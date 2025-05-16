@@ -8,7 +8,13 @@ function startAliasGame(words) {
   aliasIndex = 0;
   aliasGuessed = [];
 
-  container.innerHTML = "";
+  container.innerHTML = `
+    <h2>🎮 Алиас</h2>
+    <p>Выберите слово:</p>
+    <button onclick="showNextAliasWord()">➡️ Следующее слово</button>
+    <button onclick="goToMainMenu()">🏠 Главное меню</button>
+    <button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>
+  `;
 
   showNextAliasWord(container);
 }
@@ -27,6 +33,8 @@ function showNextAliasWord(container) {
     <div class="timer-label">секунд</div>
     <button onclick="markAliasGuessed(true)">✅ Отгадано</button>
     <button onclick="markAliasGuessed(false)">❌ Не отгадано</button>
+    <button onclick="goToMainMenu()">🏠 Главное меню</button>
+    <button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>
   `;
 
   startAliasTimer(60);
@@ -65,5 +73,5 @@ function showAliasResults(container) {
 
   container.innerHTML += "</ul>";
   container.innerHTML += `<button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>`;
-  container.innerHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()">🏠 Главное меню</button>`;
 }
