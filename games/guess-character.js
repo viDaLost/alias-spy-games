@@ -1,19 +1,36 @@
+let guessCharacters = [];
+let guessCurrentPlayer = 1;
+
 function startGuessCharacterGame(characters) {
   const container = document.getElementById("game-container");
+  guessCharacters = characters.sort(() => 0.5 - Math.random()).slice(0, 2);
+  guessCurrentPlayer = 1;
+  showGuessCharacter(container);
+}
 
-  let char1 = characters[Math.floor(Math.random() * characters.length)];
-  let char2 = characters[Math.floor(Math.random() * characters.length)];
-
-  while (char1 === char2) {
-    char2 = characters[Math.floor(Math.random() * characters.length)];
+function showGuessCharacter(container) {
+  if (guessCurrentPlayer > 2) {
+    container.innerHTML = `
+      <h2>Игра окончена!</h2>
+      <button onclick="startGuessCharacterGame(guessCharacters)">🔄 Новая игра</button>
+      <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
+    `;
+    return;
   }
+
+  const char = guessCharacters[guessCurrentPlayer - 1];
 
   container.innerHTML = `
     <h2>👥 Угадай персонажа</h2>
-    <p>Игрок 1: ваш персонаж — <strong>${char1}</strong></p>
-    <p>Игрок 2: ваш персонаж — <strong>${char2}</strong></p>
-    <p>Задавайте вопросы друг другу, чтобы угадать имя персонажа.</p>
-    <button onclick="startGuessCharacterGame(characters)">🔄 Новая игра</button>
+    <p><strong>Игрок ${guessCurrentPlayer}</strong>, ваш персонаж:</p>
+    <h3 style="color:#4a90e2;">${char}</h3>
+    <p>Объясните его без называния имени.</p>
+    <button onclick="nextGuessPlayer()">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
   `;
+}
+
+function nextGuessPlayer() {
+  guessCurrentPlayer++;
+  showGuessCharacter(document.getElementById("game-container"));
 }
