@@ -24,7 +24,7 @@ function showGuessCharacter(container) {
     <h2>👥 Угадай персонажа</h2>
     <p><strong>Игрок ${guessCurrentPlayer}</strong>, ваш персонаж:</p>
     <h3 style="color:#4a90e2;">${char}</h3>
-    <p>Объясните его без называния имени.</p>
+    <p>Опишите его, не называя имени.</p>
     <button onclick="nextGuessPlayer()">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
   `;
