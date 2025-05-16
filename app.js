@@ -10,25 +10,25 @@ function showGame(gameName) {
   container.innerHTML = "<p>Загрузка игры...</p>";
 
   if (gameName === "alias") {
-    const url = "https://raw.githubusercontent.com/ ваш-никнейм/alias-spy-games/main/data/alias_words.json";
+    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/alias_words.json";
     loadJSON(url).then(words => {
       container.innerHTML = "";
       startAliasGame(words);
     });
   } else if (gameName === "spy") {
-    const url = "https://raw.githubusercontent.com/ ваш-никнейм/alias-spy-games/main/data/spy_locations.json";
+    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json";
     loadJSON(url).then(locations => {
       container.innerHTML = "";
       startSpyGame(locations);
     });
   } else if (gameName === "guess") {
-    const url = "https://raw.githubusercontent.com/ ваш-никнейм/alias-spy-games/main/data/characters.json";
+    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json";
     loadJSON(url).then(chars => {
       container.innerHTML = "";
       startGuessCharacterGame(chars);
     });
   } else if (gameName === "describe") {
-    const url = "https://raw.githubusercontent.com/ ваш-никнейм/alias-spy-games/main/data/characters.json";
+    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json";
     loadJSON(url).then(chars => {
       container.innerHTML = "";
       startDescribeCharacterGame(chars);
