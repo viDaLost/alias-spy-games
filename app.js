@@ -1,4 +1,4 @@
-// Глобальные переменные
+// Глобальная переменная для текущего скрипта
 let currentGameScript = null;
 
 // Функция загрузки JSON
@@ -10,11 +10,12 @@ async function loadJSON(url) {
 // Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<p>Загрузка игры...</p>";
+  container.innerHTML = "<p>Загрузка...</p>";
 
   // Скрыть главное меню
   document.querySelector(".menu").style.display = "none";
 
+  // Удаляем старый скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
@@ -43,7 +44,7 @@ function showGame(gameName) {
   }
 }
 
-// Загрузка JS-файла игры
+// Подключение JS-файла
 function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
   script.src = `games/${fileName}.js`;
@@ -60,4 +61,9 @@ function goToMainMenu() {
   const container = document.getElementById("game-container");
   container.innerHTML = "";
   document.querySelector(".menu").style.display = "block";
+
+  if (currentGameScript) {
+    currentGameScript.remove();
+    currentGameScript = null;
+  }
 }
