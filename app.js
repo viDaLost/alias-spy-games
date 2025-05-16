@@ -44,7 +44,7 @@ function showGame(gameName) {
   }
 }
 
-// Подключение JS-файла
+// Загрузка JS-файла
 function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
   script.src = `games/${fileName}.js`;
