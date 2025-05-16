@@ -3,11 +3,12 @@ function startSpyGame(locations) {
 
   container.innerHTML = `
     <h2>🕵️‍♂️ Шпион</h2>
-    
-    <label>Количество игроков (2–25):</label><br>
+    <p><strong>Правила:</strong> Один или несколько игроков — шпионы. Они не знают локации. Остальные — мирные жители. Задача — вычислить шпиона.</p>
+
+    <label>Количество игроков (2–25):</label>
     <input type="number" id="playerCount" min="2" max="25" value="4"><br><br>
 
-    <label>Количество шпионов:</label><br>
+    <label>Количество шпионов (1–N-1):</label>
     <input type="number" id="spyCount" min="1" max="24" value="1"><br><br>
 
     <button onclick="startNewSpyGame(locations)">▶️ Начать игру</button>
@@ -27,13 +28,13 @@ function startNewSpyGame(locations) {
   }
 
   if (isNaN(spyCountInput) || spyCountInput < 1 || spyCountInput >= playerCount) {
-    alert(`Количество шпионов должно быть от 1 до ${playerCount - 1}`);
+    alert(`Количество шпионов должно быть от 1 до ${playerCount - 1}.`);
     return;
   }
 
   const location = locations[Math.floor(Math.random() * locations.length)];
 
-  // Создаем список игроков
+  // Создаем игроков
   const players = [];
   for (let i = 0; i < playerCount; i++) {
     players.push({ id: i + 1, role: "мирный" });
@@ -47,10 +48,11 @@ function startNewSpyGame(locations) {
   }
 
   // Назначаем шпионов
-  for (let i = 0; i < spyCountInput; i++) {
+  for (let i = 0; i < 5; i++) {
     shuffled[i].role = "шпион";
   }
 
+  // Показываем карточки
   let resultHTML = `<h3>📍 Локация: ${location}</h3>`;
   resultHTML += "<p>Карточки игроков:</p>";
 
