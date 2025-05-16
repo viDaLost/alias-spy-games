@@ -1,59 +1,67 @@
+let aliasWords = [];
+let aliasIndex = 0;
+let guessedAlias = [];
+
 function startAliasGame(words) {
   const container = document.getElementById("game-container");
-  let index = 0;
-  let timer;
+  aliasWords = [...words];
+  aliasIndex = 0;
+  guessedAlias = [];
 
-  function showNextWord() {
-    if (index >= words.length) {
-      showResults();
-      return;
+  startAliasRound(container);
+}
+
+function startAliasRound(container) {
+  if (aliasIndex >= aliasWords.length) {
+    showAliasResults(container);
+    return;
+  }
+
+  const word = aliasWords[aliasIndex];
+
+  container.innerHTML = `
+    <h2>Слово: ${word}</h2>
+    <p id="alias-timer">60</p>
+    <div class="timer-label">секунд</div>
+    <button onclick="markAliasGuessed(true)">✅ Отгадано</button>
+    <button onclick="markAliasGuessed(false)">❌ Не отгадано</button>
+  `;
+
+  startAliasTimer(60, () => {
+    aliasIndex++;
+    startAliasRound(container);
+  });
+}
+
+function markAliasGuessed(correct) {
+  guessedAlias.push({ word: aliasWords[aliasIndex], correct });
+  aliasIndex++;
+  startAliasRound(document.getElementById("game-container"));
+}
+
+function startAliasTimer(seconds, callback) {
+  let timeLeft = seconds;
+  const timerEl = document.getElementById("alias-timer");
+
+  window.aliasInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      clearInterval(window.aliasInterval);
+      timerEl.textContent = "Время вышло!";
+      setTimeout(callback, 1000);
+    } else {
+      timerEl.textContent = timeLeft;
     }
+  }, 1000);
+}
 
-    const word = words[index];
-    container.innerHTML = `
-      <h2>Слово: ${word}</h2>
-      <p id="timer">60 секунд</p>
-      <button onclick="markGuessed(true)">✅ Отгадано</button>
-      <button onclick="markGuessed(false)">❌ Не отгадано</button>
-    `;
-
-    startTimer(60);
-  }
-
-  function startTimer(seconds) {
-    let timeLeft = seconds;
-    const timerEl = document.getElementById("timer");
-
-    if (timer) clearInterval(timer); // Очистка предыдущего таймера
-
-    timer = setInterval(() => {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        clearInterval(timer);
-        timerEl.textContent = "Время вышло!";
-        index++;
-        setTimeout(showNextWord, 1500);
-      } else {
-        timerEl.textContent = `${timeLeft} секунд`;
-      }
-    }, 1000);
-  }
-
-  window.markGuessed = function(correct) {
-    clearInterval(timer);
-    index++;
-    showNextWord();
-  };
-
-  function showResults() {
-    container.innerHTML = "<h2>Результаты:</h2><ul>";
-    words.forEach(word => {
-      container.innerHTML += `<li>${word}</li>`;
-    });
-    container.innerHTML += "</ul>";
-    container.innerHTML += `<button onclick="startAliasGame(words)">🔄 Новая игра</button>`;
-    container.innerHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
-  }
-
-  showNextWord();
+function showAliasResults(container) {
+  container.innerHTML = "<h2>Результаты:</h2><ul>";
+  guessedAlias.forEach(item => {
+    const color = item.correct ? "green" : "red";
+    container.innerHTML += `<li style="color:${color}">${item.word}</li>`;
+  });
+  container.innerHTML += "</ul>";
+  container.innerHTML += `<button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
 }
