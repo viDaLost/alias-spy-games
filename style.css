@@ -15,15 +15,16 @@ header {
   padding: 1rem;
 }
 
-/* Меню */
-.menu {
+/* Контейнер меню */
+.menu-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 10px; /* фиксированный отступ между кнопками */
   padding: 1rem;
 }
 
-.menu button {
+/* Кнопки в меню */
+.menu-container button {
   width: 100%;
   padding: 15px;
   font-size: 16px;
@@ -34,11 +35,11 @@ header {
   cursor: pointer;
 }
 
-.menu button:hover {
+.menu-container button:hover {
   background-color: #357ABD;
 }
 
-/* Карточки */
+/* Карточки в играх */
 .card {
   background: white;
   border: 1px solid #ccc;
