@@ -9,6 +9,7 @@ function startAliasGame(words) {
   aliasIndex = 0;
   guessedAlias = [];
 
+  // Отображение интерфейса
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
     <p><strong>Правила:</strong> За указанное время объясни как можно больше слов, не называя их.</p>
@@ -27,6 +28,8 @@ function startAliasGame(words) {
       <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white;">❌ Не отгадано</button>
     </div>
   `;
+
+  showNextAliasWord();
 }
 
 function shuffleArray(arr) {
@@ -45,9 +48,12 @@ function showNextAliasWord() {
 }
 
 function markGuessed(correct) {
+  if (window.aliasInterval) {
+    clearInterval(window.aliasInterval);
+  }
   guessedAlias.push({ word: aliasWords[aliasIndex], correct });
   aliasIndex++;
-  showNextAliasWord(); // Показываем следующее слово
+  showNextAliasWord();
 }
 
 function startAliasTimer() {
@@ -59,19 +65,15 @@ function startAliasTimer() {
     return;
   }
 
-  timerValue = seconds;
-
   const timerEl = document.getElementById("alias-timer");
   timerEl.textContent = `${seconds} секунд`;
   timerEl.style.color = "black";
 
   window.aliasInterval = setInterval(() => {
     seconds--;
-    timerEl.textContent = `${seconds} секунд`;
-    if (seconds <= 10) timerEl.style.color = "red";
     if (seconds <= 0) {
       clearInterval(window.aliasInterval);
-      timerEl.textContent = "Время вышло!";
+      timerEl.textContent = "⏰ Время вышло!";
       setTimeout(() => {
         while (aliasIndex < aliasWords.length) {
           guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
@@ -79,10 +81,11 @@ function startAliasTimer() {
         }
         showAliasResults();
       }, 1000);
+    } else {
+      timerEl.textContent = `${seconds} секунд`;
+      if (seconds <= 10) timerEl.style.color = "red";
     }
   }, 1000);
-
-  showNextAliasWord();
 }
 
 function showAliasResults() {
