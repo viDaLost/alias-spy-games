@@ -8,11 +8,13 @@
 </head>
 <body>
 
+  <!-- Шапка -->
   <header>
     <h1>🎯 Игры для компании</h1>
     <button id="menu-toggle">☰ Меню</button>
   </header>
 
+  <!-- Навигация -->
   <nav id="main-nav">
     <button onclick="showGame('alias')">🎮 Алиас</button>
     <button onclick="showGame('spy')">🕵️‍♂️ Шпион</button>
@@ -21,11 +23,12 @@
     <button onclick="goToMainMenu()">🏠 Главное меню</button>
   </nav>
 
+  <!-- Контейнер игр -->
   <main>
     <div id="game-container"></div>
   </main>
 
-  <script src="app.js"></script>
-
+  <!-- Скрипт -->
+  <script src="app.js" defer></script>
 </body>
 </html>
