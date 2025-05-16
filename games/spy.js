@@ -17,7 +17,7 @@ function startSpyGame(locations) {
 }
 
 function startNewSpyGame(locations) {
-  const container = document.getElementById("game-container");
+  const container = document.getElementById("spy-result");
   const playerCount = parseInt(document.getElementById("playerCount").value);
   const spyCountInput = parseInt(document.getElementById("spyCount").value);
 
