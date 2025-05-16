@@ -9,10 +9,11 @@ function startGuessCharacterGame(characters) {
   }
 
   container.innerHTML = `
-    <h2>Угадай персонажа</h2>
+    <h2>👥 Угадай персонажа</h2>
     <p>Игрок 1: ваш персонаж — <strong>${char1}</strong></p>
     <p>Игрок 2: ваш персонаж — <strong>${char2}</strong></p>
     <p>Задавайте вопросы друг другу, чтобы угадать имя персонажа.</p>
-    <button onclick="startGuessCharacterGame(characters)">Новая игра</button>
+    <button onclick="startGuessCharacterGame(characters)">🔄 Новая игра</button>
+    <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
   `;
 }
