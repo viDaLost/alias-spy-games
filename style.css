@@ -1,3 +1,4 @@
+/* Базовые стили */
 body {
   font-family: 'Segoe UI', sans-serif;
   background: #f5f5f5;
@@ -6,6 +7,7 @@ body {
   color: #333;
 }
 
+/* Заголовок */
 header {
   background: #4a90e2;
   color: white;
@@ -13,6 +15,7 @@ header {
   padding: 1rem;
 }
 
+/* Меню */
 .menu {
   display: flex;
   flex-direction: column;
@@ -35,6 +38,7 @@ header {
   background-color: #357ABD;
 }
 
+/* Карточки */
 .card {
   background: white;
   border: 1px solid #ccc;
