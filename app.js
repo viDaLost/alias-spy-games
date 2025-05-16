@@ -20,7 +20,7 @@ function showGame(gameName) {
   // Скрыть главное меню
   document.querySelector(".menu").style.display = "none";
 
-  // Очистить предыдущий скрипт
+  // Удаляем старый скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
@@ -32,7 +32,8 @@ function showGame(gameName) {
       loadGameScript("alias", () => startAliasGame(words));
     });
   } else if (gameName === "coimaginarium") {
-    loadGameScript("coimaginarium", () => startCoimaginariumGame());
+    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
+    loadGameScript("coimaginarium", () => loadCoimaginariumThemes(url));
   } else if (gameName === "guess") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
