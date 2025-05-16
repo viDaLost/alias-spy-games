@@ -51,10 +51,10 @@ function startNewSpyGame(locations) {
   let resultHTML = `<h3>📍 Локация: ${location}</h3>`;
   resultHTML += "<p>Роли:</p><ul>";
 
-  shuffled.forEach(player => {
-    const roleText = player.role === "шпион" ? "🕵️‍♂️ Шпион" : "🧑‍🤝‍🧑 Мирный житель";
-    const color = player.role === "шпион" ? "red" : "green";
-    resultHTML += `<li style="color:${color}">Игрок ${player.id}: <strong>${roleText}</strong></li>`;
+  shuffled.forEach(p => {
+    const roleText = p.role === "шпион" ? "🕵️‍♂️ Шпион" : "🧑‍🤝‍🧑 Мирный житель";
+    const color = p.role === "шпион" ? "red" : "green";
+    resultHTML += `<li style="color:${color}">Игрок ${p.id}: <strong>${roleText}</strong></li>`;
   });
 
   resultHTML += "</ul>";
@@ -62,6 +62,5 @@ function startNewSpyGame(locations) {
   resultHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
 
   document.getElementById("spy-result").innerHTML = resultHTML;
-
   document.getElementById("spyCount").max = playerCount - 1;
 }
