@@ -17,6 +17,9 @@ function showGame(gameName) {
   const container = document.getElementById("game-container");
   container.innerHTML = "<p>Загрузка игры...</p>";
 
+  // Скрыть главное меню
+  document.querySelector(".menu-container").classList.add("hidden");
+
   // Удаляем предыдущий скрипт
   if (currentGameScript) {
     currentGameScript.remove();
@@ -61,11 +64,16 @@ function loadGameScript(fileName, callback) {
 // Вернуться в главное меню
 function goToMainMenu() {
   const container = document.getElementById("game-container");
-  container.innerHTML = ""; // очищаем только контейнер игр
+  container.innerHTML = "";
 
+  // Показываем главное меню снова
+  document.querySelector(".menu-container").classList.remove("hidden");
+
+  // Очистка таймеров
   if (window.aliasInterval) clearInterval(window.aliasInterval);
   if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
 
+  // Очистка текущего скрипта
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
