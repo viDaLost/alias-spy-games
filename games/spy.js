@@ -3,7 +3,7 @@ function startSpyGame(locations) {
 
   container.innerHTML = `
     <h2>🕵️‍♂️ Шпион</h2>
-    <p><strong>Правила:</strong> Укажите количество игроков и шпионов. Каждому раздаётся карточка: либо с локацией, либо надпись «Вы — шпион».</p>
+    <p><strong>Правила:</strong> Каждому игроку даётся карточка. У кого «Вы — шпион», тот должен скрыть это. Все обсуждают, кто шпион.</p>
 
     <label for="playerCount">Количество игроков (2–25):</label><br>
     <input type="number" id="playerCount" min="2" max="25" value="4"><br><br>
@@ -11,8 +11,8 @@ function startSpyGame(locations) {
     <label for="spyCount">Количество шпионов (1–N-1):</label><br>
     <input type="number" id="spyCount" min="1" max="24" value="1"><br><br>
 
-    <button onclick="startNewSpyGame(locations)" style="width:100%; padding:15px; font-size:16px;">▶️ Начать игру</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">⬅️ Главное меню</button>
+    <button onclick="startNewSpyGame(locations)" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
@@ -69,7 +69,7 @@ function startNewSpyGame(locations) {
   });
 
   resultHTML += `<button onclick="startNewSpyGame(locations)" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🔄 Новая игра</button>`;
-  resultHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">⬅️ Главное меню</button>`;
+  resultHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>`;
 
   container.innerHTML = resultHTML;
 }
