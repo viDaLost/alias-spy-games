@@ -1,85 +1,47 @@
-let coimaginariumThemes = [
-  "Животные",
-  "Еда",
-  "Транспорт",
-  "Фильмы",
-  "Музыкальные инструменты",
-  "Цвета",
-  "Имена",
-  "Города",
-  "Профессии",
-  "Эмоции"
-];
-
-let coimaginariumLetters = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ".split("");
-
+let coimaginariumThemes = [];
 let currentTheme = "";
 let currentLetter = "";
-let coimaginariumSubmitted = false;
 
-function startCoimaginariumGame() {
-  const container = document.getElementById("game-container");
+// Загрузка тем из JSON
+async function loadCoimaginariumThemes(url) {
+  const res = await fetch(url);
+  coimaginariumThemes = await res.json();
+  selectRandomThemeAndLetter();
+  showCoimaginariumGame();
+}
 
-  // Случайная тема и буква
+function selectRandomThemeAndLetter() {
   currentTheme = coimaginariumThemes[Math.floor(Math.random() * coimaginariumThemes.length)];
-  currentLetter = coimaginariumLetters[Math.floor(Math.random() * coimaginariumLetters.length)];
+  currentLetter = getRandomLetter();
+}
 
-  coimaginariumSubmitted = false;
+function getRandomLetter() {
+  const letters = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ".split("");
+  return letters[Math.floor(Math.random() * letters.length)];
+}
+
+function showCoimaginariumGame() {
+  const container = document.getElementById("game-container");
 
   container.innerHTML = `
     <h2>🧠 Соображариум</h2>
-    <p><strong>Правила:</strong> Придумайте слово по заданным теме и букве быстрее других игроков.</p>
+    <p><strong>Правила:</strong> Придумайте слово по теме и букве, но не говорите его вслух. Остальные должны догадаться сами.</p>
 
     <p>Тема: <strong>${currentTheme}</strong></p>
     <p>Буква: <strong>${currentLetter}</strong></p>
 
-    <input type="text" id="coimaginarium-answer" placeholder="Ваш ответ" style="width:100%; padding:10px; font-size:16px;" />
-    <button onclick="submitCoimaginariumAnswer()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">✅ Отправить</button>
-    <button onclick="nextCoimaginariumRound()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#4a90e2; color:white;">➡️ Следующий раунд</button>
+    <button onclick="changeCoimaginariumLetter()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#4a90e2; color:white;">🔁 Сменить букву</button>
+    <button onclick="nextCoimaginariumRound()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">➡️ Следующий раунд</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
-function submitCoimaginariumAnswer() {
-  const answer = document.getElementById("coimaginarium-answer").value.trim();
-
-  if (!answer) {
-    alert("Введите ваш ответ!");
-    return;
-  }
-
-  if (answer[0].toUpperCase() !== currentLetter.toUpperCase()) {
-    alert(`Слово должно начинаться на "${currentLetter}"`);
-    return;
-  }
-
-  coimaginariumSubmitted = true;
-  alert("✅ Ваш ответ принят!");
+function changeCoimaginariumLetter() {
+  currentLetter = getRandomLetter();
+  showCoimaginariumGame();
 }
 
 function nextCoimaginariumRound() {
-  if (!coimaginariumSubmitted) {
-    alert("Вы не отправили ответ!");
-    return;
-  }
-
-  const container = document.getElementById("game-container");
-
-  // Сброс текущего раунда
-  currentTheme = coimaginariumThemes[Math.floor(Math.random() * coimaginariumThemes.length)];
-  currentLetter = coimaginariumLetters[Math.floor(Math.random() * coimaginariumLetters.length)];
-  coimaginariumSubmitted = false;
-
-  container.innerHTML = `
-    <h2>🧠 Соображариум</h2>
-    <p><strong>Правила:</strong> Придумайте слово по заданным теме и букве быстрее других.</p>
-
-    <p>Тема: <strong>${currentTheme}</strong></p>
-    <p>Буква: <strong>${currentLetter}</strong></p>
-
-    <input type="text" id="coimaginarium-answer" placeholder="Ваш ответ" style="width:100%; padding:10px; font-size:16px;" />
-    <button onclick="submitCoimaginariumAnswer()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">✅ Отправить</button>
-    <button onclick="nextCoimaginariumRound()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">➡️ Следующий раунд</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
-  `;
+  selectRandomThemeAndLetter();
+  showCoimaginariumGame();
 }
