@@ -1,39 +1,28 @@
-let describePlayers = [];
-let describeIndex = 0;
-
 function startDescribeCharacterGame(characters) {
   const container = document.getElementById("game-container");
-  describePlayers = [];
-  for (let i = 0; i < 4; i++) {
-    describePlayers.push(characters[Math.floor(Math.random() * characters.length)]);
-  }
-  describeIndex = 0;
-  showNextDescribeCard(container);
-}
 
-function showNextDescribeCard(container) {
-  if (describeIndex >= describePlayers.length) {
-    container.innerHTML = `
-      <h2>Игра окончена!</h2>
-      <button onclick="startDescribeCharacterGame(describePlayers)">🔄 Новая игра</button>
-      <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
+  const players = [
+    { name: "Игрок 1", character: getRandomChar(characters) },
+    { name: "Игрок 2", character: getRandomChar(characters) },
+    { name: "Игрок 3", character: getRandomChar(characters) },
+    { name: "Игрок 4", character: getRandomChar(characters) }
+  ];
+
+  function getRandomChar(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  container.innerHTML = "<h2>🗣️ Опиши, но не называй</h2>";
+
+  players.forEach(p => {
+    container.innerHTML += `
+      <div class="card">
+        <strong>${p.name}</strong>: ваш персонаж — <em>${p.character}</em><br>
+        <small>Опишите его, не называя имени.</small>
+      </div>
     `;
-    return;
-  }
+  });
 
-  const character = describePlayers[describeIndex];
-
-  container.innerHTML = `
-    <h2>🗣️ Опиши, но не называй</h2>
-    <p><strong>Игрок ${describeIndex + 1}</strong>, ваш персонаж:</p>
-    <h3 style="color:#4a90e2;">${character}</h3>
-    <p>Опишите его, чтобы другие догадались.</p>
-    <button onclick="nextDescribePlayer()">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
-  `;
-}
-
-function nextDescribePlayer() {
-  describeIndex++;
-  showNextDescribeCard(document.getElementById("game-container"));
+  container.innerHTML += `<button onclick="startDescribeCharacterGame(characters)">🔄 Новая игра</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()">⬅️ Главное меню</button>`;
 }
