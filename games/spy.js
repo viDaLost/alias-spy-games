@@ -2,22 +2,22 @@ function startSpyGame(locations) {
   const container = document.getElementById("game-container");
 
   container.innerHTML = `
-    <h2>🕵️‍♂️ Игра: Шпион</h2>
+    <h2>🕵️‍♂️ Шпион</h2>
     
-    <label for="playerCount">Количество игроков (2–25):</label><br>
+    <label>Количество игроков (2–25):</label><br>
     <input type="number" id="playerCount" min="2" max="25" value="4"><br><br>
 
-    <label for="spyCount">Количество шпионов (1–N-1):</label><br>
+    <label>Количество шпионов:</label><br>
     <input type="number" id="spyCount" min="1" max="24" value="1"><br><br>
 
     <button onclick="startNewSpyGame(locations)">▶️ Начать игру</button>
+    <button onclick="goToMainMenu()">⬅️ Главное меню</button>
     <div id="spy-result"></div>
-    <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
   `;
 }
 
 function startNewSpyGame(locations) {
-  const container = document.getElementById("spy-result");
+  const container = document.getElementById("game-container");
   const playerCount = parseInt(document.getElementById("playerCount").value);
   const spyCountInput = parseInt(document.getElementById("spyCount").value);
 
@@ -27,13 +27,13 @@ function startNewSpyGame(locations) {
   }
 
   if (isNaN(spyCountInput) || spyCountInput < 1 || spyCountInput >= playerCount) {
-    alert(`Количество шпионов должно быть от 1 до ${playerCount - 1}.`);
+    alert(`Количество шпионов должно быть от 1 до ${playerCount - 1}`);
     return;
   }
 
   const location = locations[Math.floor(Math.random() * locations.length)];
 
-  // Создаём список игроков
+  // Создаем список игроков
   const players = [];
   for (let i = 0; i < playerCount; i++) {
     players.push({ id: i + 1, role: "мирный" });
@@ -51,27 +51,24 @@ function startNewSpyGame(locations) {
     shuffled[i].role = "шпион";
   }
 
-  // Показываем карточки всем игрокам
   let resultHTML = `<h3>📍 Локация: ${location}</h3>`;
   resultHTML += "<p>Карточки игроков:</p>";
-  resultHTML += "<div class='cards'>";
 
-  shuffled.forEach(player => {
-    const content = player.role === "шпион"
+  shuffled.forEach(p => {
+    const content = p.role === "шпион"
       ? "🕵️‍♂️ Вы — шпион"
       : `📍 Локация: ${location}`;
 
     resultHTML += `
       <div class="card">
-        <strong>Игрок ${player.id}</strong><br>
+        <strong>Игрок ${p.id}</strong><br>
         <small>${content}</small>
       </div>
     `;
   });
 
-  resultHTML += "</div>";
   resultHTML += `<button onclick="startNewSpyGame(locations)">🔄 Новая игра</button>`;
-  resultHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
+  resultHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">⬅️ Главное меню</button>`;
 
   container.innerHTML = resultHTML;
 }
