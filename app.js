@@ -1,22 +1,18 @@
-// Глобальная переменная для хранения текущего скрипта
+// Глобальные переменные для контента
 let currentGameScript = null;
+let characters = [];
 
 // Функция загрузки JSON
 async function loadJSON(url) {
-  try {
-    const res = await fetch(url);
-    return await res.json();
-  } catch (e) {
-    alert("Ошибка загрузки данных: " + e.message);
-  }
+  const res = await fetch(url);
+  return await res.json();
 }
 
-// Показать игру
+// Главная функция выбора игры
 function showGame(gameName) {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<p>Загрузка игры...</p>";
+  container.innerHTML = "<p>Загрузка...</p>";
 
-  // Удаляем старый скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
@@ -35,11 +31,13 @@ function showGame(gameName) {
   } else if (gameName === "guess") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
+      characters = chars;
       loadGameScript("guess-character", () => startGuessCharacterGame(chars));
     });
   } else if (gameName === "describe") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
+      characters = chars;
       loadGameScript("describe-char", () => startDescribeCharacterGame(chars));
     });
   }
@@ -61,23 +59,14 @@ function loadGameScript(fileName, callback) {
 function goToMainMenu() {
   const container = document.getElementById("game-container");
   container.innerHTML = `
-    <h2 style="text-align:center;">Добро пожаловать!</h2>
-    <p style="text-align:center;">Выберите игру из меню выше.</p>
+    <h2 style="text-align:center;">🎯 Игры для компании</h2>
+    <p style="text-align:center;">Выберите игру:</p>
+    <nav id="main-nav">
+      <button onclick="showGame('alias')">🎮 Алиас</button>
+      <button onclick="showGame('spy')">🕵️‍♂️ Шпион</button>
+      <button onclick="showGame('guess')">👥 Угадай персонажа</button>
+      <button onclick="showGame('describe')">🗣️ Опиши, но не называй</button>
+      <button onclick="goToMainMenu()">🏠 Главное меню</button>
+    </nav>
   `;
 }
-
-// Мобильное меню
-document.addEventListener("DOMContentLoaded", () => {
-  const menuToggle = document.getElementById("menu-toggle");
-  const nav = document.getElementById("main-nav");
-
-  menuToggle.addEventListener("click", () => {
-    nav.classList.toggle("open");
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!nav.contains(e.target) && !menuToggle.contains(e.target)) {
-      nav.classList.remove("open");
-    }
-  });
-});
