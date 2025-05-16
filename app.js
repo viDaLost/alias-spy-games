@@ -17,10 +17,7 @@ function showGame(gameName) {
   const container = document.getElementById("game-container");
   container.innerHTML = "<p>Загрузка игры...</p>";
 
-  // Скрыть главное меню
-  document.querySelector(".menu").style.display = "none";
-
-  // Удаляем старый скрипт
+  // Удаляем предыдущий скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
@@ -33,7 +30,9 @@ function showGame(gameName) {
     });
   } else if (gameName === "coimaginarium") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
-    loadGameScript("coimaginarium", () => loadCoimaginariumThemes(url));
+    loadJSON(url).then(themes => {
+      loadGameScript("coimaginarium", () => startCoimaginariumGame(themes));
+    });
   } else if (gameName === "guess") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
@@ -62,10 +61,8 @@ function loadGameScript(fileName, callback) {
 // Вернуться в главное меню
 function goToMainMenu() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "";
-  document.querySelector(".menu").style.display = "block";
+  container.innerHTML = ""; // очищаем только контейнер игр
 
-  // Очистка таймеров
   if (window.aliasInterval) clearInterval(window.aliasInterval);
   if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
 
