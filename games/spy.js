@@ -12,7 +12,7 @@ function startSpyGame(locations) {
 
     <button onclick="startNewSpyGame(locations)">▶️ Начать игру</button>
     <div id="spy-result"></div>
-    <button onclick="goToMainMenu()" style="margin-top:10px;">🏠 Главное меню</button>
+    <button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>
   `;
 }
 
