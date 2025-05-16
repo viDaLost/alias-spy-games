@@ -1,6 +1,5 @@
-// Глобальные переменные для контента
+// Глобальные переменные
 let currentGameScript = null;
-let characters = [];
 
 // Функция загрузки JSON
 async function loadJSON(url) {
@@ -8,10 +7,13 @@ async function loadJSON(url) {
   return await res.json();
 }
 
-// Главная функция выбора игры
+// Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<p>Загрузка...</p>";
+  container.innerHTML = "<p>Загрузка игры...</p>";
+
+  // Скрыть главное меню
+  document.getElementById("main-menu").classList.add("hidden");
 
   if (currentGameScript) {
     currentGameScript.remove();
@@ -31,13 +33,11 @@ function showGame(gameName) {
   } else if (gameName === "guess") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
-      characters = chars;
       loadGameScript("guess-character", () => startGuessCharacterGame(chars));
     });
   } else if (gameName === "describe") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
-      characters = chars;
       loadGameScript("describe-char", () => startDescribeCharacterGame(chars));
     });
   }
@@ -55,18 +55,17 @@ function loadGameScript(fileName, callback) {
   currentGameScript = script;
 }
 
-// Главное меню
+// Вернуться в главное меню
 function goToMainMenu() {
   const container = document.getElementById("game-container");
-  container.innerHTML = `
-    <h2 style="text-align:center;">🎯 Игры для компании</h2>
-    <p style="text-align:center;">Выберите игру:</p>
-    <nav id="main-nav">
-      <button onclick="showGame('alias')">🎮 Алиас</button>
-      <button onclick="showGame('spy')">🕵️‍♂️ Шпион</button>
-      <button onclick="showGame('guess')">👥 Угадай персонажа</button>
-      <button onclick="showGame('describe')">🗣️ Опиши, но не называй</button>
-      <button onclick="goToMainMenu()">🏠 Главное меню</button>
-    </nav>
-  `;
+  container.innerHTML = "";
+
+  // Показать главное меню
+  document.getElementById("main-menu").classList.remove("hidden");
+
+  // Очистить текущую игру
+  if (currentGameScript) {
+    currentGameScript.remove();
+    currentGameScript = null;
+  }
 }
