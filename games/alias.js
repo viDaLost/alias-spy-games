@@ -1,17 +1,19 @@
 let aliasWords = [];
 let aliasIndex = 0;
-let guessedAlias = [];
+let aliasGuessed = [];
 
 function startAliasGame(words) {
   const container = document.getElementById("game-container");
   aliasWords = [...words];
   aliasIndex = 0;
-  guessedAlias = [];
+  aliasGuessed = [];
 
-  startAliasRound(container);
+  container.innerHTML = "";
+
+  showNextAliasWord(container);
 }
 
-function startAliasRound(container) {
+function showNextAliasWord(container) {
   if (aliasIndex >= aliasWords.length) {
     showAliasResults(container);
     return;
@@ -27,19 +29,15 @@ function startAliasRound(container) {
     <button onclick="markAliasGuessed(false)">❌ Не отгадано</button>
   `;
 
-  startAliasTimer(60, () => {
-    aliasIndex++;
-    startAliasRound(container);
-  });
+  startAliasTimer(60);
 }
 
 function markAliasGuessed(correct) {
-  guessedAlias.push({ word: aliasWords[aliasIndex], correct });
+  aliasGuessed.push({ word: aliasWords[aliasIndex], correct });
   aliasIndex++;
-  startAliasRound(document.getElementById("game-container"));
 }
 
-function startAliasTimer(seconds, callback) {
+function startAliasTimer(seconds) {
   let timeLeft = seconds;
   const timerEl = document.getElementById("alias-timer");
 
@@ -47,8 +45,10 @@ function startAliasTimer(seconds, callback) {
     timeLeft--;
     if (timeLeft <= 0) {
       clearInterval(window.aliasInterval);
-      timerEl.textContent = "Время вышло!";
-      setTimeout(callback, 1000);
+      timerEl.textContent = "Время вышло";
+      setTimeout(() => {
+        showNextAliasWord(document.getElementById("game-container"));
+      }, 1000);
     } else {
       timerEl.textContent = timeLeft;
     }
@@ -57,10 +57,12 @@ function startAliasTimer(seconds, callback) {
 
 function showAliasResults(container) {
   container.innerHTML = "<h2>Результаты:</h2><ul>";
-  guessedAlias.forEach(item => {
+
+  aliasGuessed.forEach(item => {
     const color = item.correct ? "green" : "red";
     container.innerHTML += `<li style="color:${color}">${item.word}</li>`;
   });
+
   container.innerHTML += "</ul>";
   container.innerHTML += `<button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>`;
   container.innerHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
