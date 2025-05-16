@@ -1,4 +1,4 @@
-// Глобальные переменные
+// Глобальная переменная для текущего скрипта
 let currentGameScript = null;
 
 // Функция загрузки JSON
@@ -31,11 +31,8 @@ function showGame(gameName) {
     loadJSON(url).then(words => {
       loadGameScript("alias", () => startAliasGame(words));
     });
-  } else if (gameName === "spy") {
-    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ";
-    loadJSON(url).then(locations => {
-      loadGameScript("spy", () => startSpyGame(locations));
-    });
+  } else if (gameName === "coimaginarium") {
+    loadGameScript("coimaginarium", () => startCoimaginariumGame());
   } else if (gameName === "guess") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadJSON(url).then(chars => {
@@ -66,6 +63,10 @@ function goToMainMenu() {
   const container = document.getElementById("game-container");
   container.innerHTML = "";
   document.querySelector(".menu").style.display = "block";
+
+  // Очистка таймеров
+  if (window.aliasInterval) clearInterval(window.aliasInterval);
+  if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
 
   if (currentGameScript) {
     currentGameScript.remove();
