@@ -3,17 +3,16 @@ function startSpyGame(locations) {
 
   container.innerHTML = `
     <h2>🕵️‍♂️ Шпион</h2>
-    <p><strong>Правила:</strong> Один или несколько игроков — шпионы. Они не знают локации. Остальные — мирные жители. Задача — вычислить шпиона.</p>
+    <p><strong>Правила:</strong> Укажите количество игроков и шпионов. Каждому раздаётся карточка: либо с локацией, либо надпись «Вы — шпион».</p>
 
-    <label>Количество игроков (2–25):</label>
+    <label for="playerCount">Количество игроков (2–25):</label><br>
     <input type="number" id="playerCount" min="2" max="25" value="4"><br><br>
 
-    <label>Количество шпионов (1–N-1):</label>
+    <label for="spyCount">Количество шпионов (1–N-1):</label><br>
     <input type="number" id="spyCount" min="1" max="24" value="1"><br><br>
 
     <button onclick="startNewSpyGame(locations)">▶️ Начать игру</button>
     <button onclick="goToMainMenu()">⬅️ Главное меню</button>
-    <div id="spy-result"></div>
   `;
 }
 
@@ -34,22 +33,22 @@ function startNewSpyGame(locations) {
 
   const location = locations[Math.floor(Math.random() * locations.length)];
 
-  // Создаем игроков
+  // Создаём список игроков
   const players = [];
   for (let i = 0; i < playerCount; i++) {
-    players.push({ id: i + 1, role: "мирный" });
+    players.push({ id: i + 1, role: "локация" });
   }
 
-  // Перемешиваем
+  // Выбираем случайных шпионов
   const shuffled = [...players];
+  for (let i = 0; i < spyCountInput; i++) {
+    shuffled[i].role = "шпион";
+  }
+
+  // Перемешиваем для случайного порядка
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  // Назначаем шпионов
-  for (let i = 0; i < 5; i++) {
-    shuffled[i].role = "шпион";
   }
 
   // Показываем карточки
