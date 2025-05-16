@@ -11,8 +11,8 @@ function startSpyGame(locations) {
     <label for="spyCount">Количество шпионов (1–N-1):</label><br>
     <input type="number" id="spyCount" min="1" max="24" value="1"><br><br>
 
-    <button onclick="startNewSpyGame(locations)">▶️ Начать игру</button>
-    <button onclick="goToMainMenu()">⬅️ Главное меню</button>
+    <button onclick="startNewSpyGame(locations)" style="width:100%; padding:15px; font-size:16px;">▶️ Начать игру</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">⬅️ Главное меню</button>
   `;
 }
 
@@ -68,8 +68,8 @@ function startNewSpyGame(locations) {
     `;
   });
 
-  resultHTML += `<button onclick="startNewSpyGame(locations)">🔄 Новая игра</button>`;
-  resultHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">⬅️ Главное меню</button>`;
+  resultHTML += `<button onclick="startNewSpyGame(locations)" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🔄 Новая игра</button>`;
+  resultHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">⬅️ Главное меню</button>`;
 
   container.innerHTML = resultHTML;
 }
