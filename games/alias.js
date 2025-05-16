@@ -1,24 +1,47 @@
 function startAliasGame(words) {
   const container = document.getElementById("game-container");
-  let currentIndex = 0;
+  let index = 0;
+  let timer;
 
   function showNextWord() {
-    if (currentIndex >= words.length) {
+    if (index >= words.length) {
       showResults();
       return;
     }
 
-    const word = words[currentIndex];
+    const word = words[index];
     container.innerHTML = `
       <h2>Слово: ${word}</h2>
-      <p>Объясните, не называя!</p>
+      <p id="timer">60 секунд</p>
       <button onclick="markGuessed(true)">✅ Отгадано</button>
       <button onclick="markGuessed(false)">❌ Не отгадано</button>
     `;
+
+    startTimer(60);
+  }
+
+  function startTimer(seconds) {
+    let timeLeft = seconds;
+    const timerEl = document.getElementById("timer");
+
+    if (timer) clearInterval(timer); // Очистка предыдущего таймера
+
+    timer = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        timerEl.textContent = "Время вышло!";
+        index++;
+        setTimeout(showNextWord, 1500);
+      } else {
+        timerEl.textContent = `${timeLeft} секунд`;
+      }
+    }, 1000);
   }
 
   window.markGuessed = function(correct) {
-    currentIndex++;
+    clearInterval(timer);
+    index++;
     showNextWord();
   };
 
