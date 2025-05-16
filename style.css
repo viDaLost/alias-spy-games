@@ -23,7 +23,12 @@ header {
   padding: 1rem;
 }
 
-/* Кнопки в меню */
+/* Скрытие меню при входе в игру */
+.menu-container.hidden {
+  display: none;
+}
+
+/* Кнопки меню */
 .menu-container button {
   width: 100%;
   padding: 15px;
@@ -39,7 +44,7 @@ header {
   background-color: #357ABD;
 }
 
-/* Карточки в играх */
+/* Карточки */
 .card {
   background: white;
   border: 1px solid #ccc;
