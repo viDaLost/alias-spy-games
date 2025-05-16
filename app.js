@@ -13,7 +13,7 @@ function showGame(gameName) {
   container.innerHTML = "<p>Загрузка игры...</p>";
 
   // Скрыть главное меню
-  document.getElementById("main-menu").classList.add("hidden");
+  document.querySelector(".menu").style.display = "none";
 
   if (currentGameScript) {
     currentGameScript.remove();
@@ -59,13 +59,5 @@ function loadGameScript(fileName, callback) {
 function goToMainMenu() {
   const container = document.getElementById("game-container");
   container.innerHTML = "";
-
-  // Показать главное меню
-  document.getElementById("main-menu").classList.remove("hidden");
-
-  // Очистить текущую игру
-  if (currentGameScript) {
-    currentGameScript.remove();
-    currentGameScript = null;
-  }
+  document.querySelector(".menu").style.display = "block";
 }
