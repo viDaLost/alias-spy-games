@@ -8,18 +8,23 @@
 </head>
 <body>
 
-  <!-- Главное меню -->
-  <header id="main-menu">
+  <!-- Заголовок -->
+  <header>
     <h1>🎯 Игры для компании</h1>
-    <button id="menu-toggle">☰ Меню</button>
   </header>
 
-  <!-- Контейнер для игр -->
-  <main id="game-container">
-    <!-- Здесь будут загружаться игры -->
+  <!-- Меню выбора игр -->
+  <main class="menu">
+    <button onclick="showGame('alias')">🎮 Алиас</button>
+    <button onclick="showGame('spy')">🕵️‍♂️ Шпион</button>
+    <button onclick="showGame('guess')">👥 Угадай персонажа</button>
+    <button onclick="showGame('describe')">🗣️ Опиши, но не называй</button>
   </main>
 
-  <!-- Скрипт -->
+  <!-- Контейнер для игр -->
+  <div id="game-container"></div>
+
+  <!-- Подключение JS -->
   <script src="app.js" defer></script>
 </body>
 </html>
