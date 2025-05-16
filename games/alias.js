@@ -1,64 +1,64 @@
 let aliasWords = [];
 let aliasIndex = 0;
-let guessedAlias = [];
+let aliasGuessed = [];
 
 function startAliasGame(words) {
   const container = document.getElementById("game-container");
   aliasWords = [...words];
   aliasIndex = 0;
-  guessedAlias = [];
 
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
-    <p id="alias-timer">60</p>
-    <button onclick="markGuessed(true)">✅ Отгадано</button>
-    <button onclick="markGuessed(false)">❌ Не отгадано</button>
+    <p><strong>Правила:</strong> Объясняйте слово, не называя его. На каждое слово — 60 секунд.</p>
+    <p id="alias-timer" style="font-size: 2rem; color: black;">60</p>
+    <div id="alias-word" style="margin: 20px 0;"></div>
     <button onclick="goToMainMenu()">⬅️ Главное меню</button>
     <button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>
   `;
 
-  startAliasTimer(60);
+  showNextAliasWord();
 }
 
-function markGuessed(correct) {
-  guessedAlias.push({ word: aliasWords[aliasIndex], correct });
-  aliasIndex++;
+function showNextAliasWord() {
+  const wordEl = document.getElementById("alias-word");
+  if (aliasIndex >= aliasWords.length) {
+    showAliasResults();
+    return;
+  }
+
+  wordEl.innerHTML = `<h3>${aliasWords[aliasIndex]}</h3>`;
   startAliasTimer(60);
 }
 
 function startAliasTimer(seconds) {
   let timeLeft = seconds;
   const timerEl = document.getElementById("alias-timer");
-  timerEl.textContent = timeLeft;
 
   window.aliasInterval = setInterval(() => {
     timeLeft--;
+    timerEl.textContent = timeLeft;
+    if (timeLeft <= 10) {
+      timerEl.style.color = "red";
+    }
     if (timeLeft <= 0) {
       clearInterval(window.aliasInterval);
       timerEl.textContent = "Время вышло!";
       setTimeout(() => {
-        if (aliasIndex < aliasWords.length) {
-          markGuessed(false);
-        } else {
-          showAliasResults();
-        }
+        aliasIndex++;
+        showNextAliasWord();
       }, 1000);
-    } else {
-      timerEl.textContent = timeLeft;
     }
   }, 1000);
 }
 
 function showAliasResults() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<h2>Результаты:</h2><ul>";
+  container.innerHTML = "<h2>Результаты:</h2>";
 
-  guessedAlias.forEach(item => {
-    const color = item.correct ? "green" : "red";
-    container.innerHTML += `<li style="color:${color}">${item.word}</li>`;
-  });
+  for (let i = 0; i < aliasWords.length; i++) {
+    container.innerHTML += `<p>${aliasWords[i]}</p>`;
+  }
 
-  container.innerHTML += "</ul>";
   container.innerHTML += `<button onclick="startAliasGame(aliasWords)">🔄 Новая игра</button>`;
-  container.innerHTML += `<button onclick="goToMainMenu()">⬅️ Главное меню</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">⬅️ Главное меню</button>`;
 }
