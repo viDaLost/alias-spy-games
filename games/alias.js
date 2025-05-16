@@ -4,7 +4,7 @@ let guessedAlias = [];
 
 function startAliasGame(words) {
   const container = document.getElementById("game-container");
-  aliasWords = [...words];
+  aliasWords = shuffleArray([...words]); // Перемешиваем слова
   aliasIndex = 0;
   guessedAlias = [];
 
@@ -26,8 +26,10 @@ function startAliasGame(words) {
       <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white;">❌ Не отгадано</button>
     </div>
   `;
+}
 
-  showNextAliasWord();
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
 }
 
 function showNextAliasWord() {
@@ -46,7 +48,7 @@ function markGuessed(correct) {
   guessedAlias.push({ word: aliasWords[aliasIndex], correct });
   aliasIndex++;
   showNextAliasWord();
-}ш
+}
 
 function startAliasTimer() {
   const input = document.getElementById("timerValue").value;
@@ -74,6 +76,8 @@ function startAliasTimer() {
       if (seconds <= 10) timerEl.style.color = "red";
     }
   }, 1000);
+
+  showNextAliasWord();
 }
 
 function showAliasResults() {
