@@ -1,28 +1,43 @@
+let describePlayers = [];
+let describeIndex = 0;
+
 function startDescribeCharacterGame(characters) {
   const container = document.getElementById("game-container");
+  describePlayers = [];
 
-  const players = [
-    { name: "Игрок 1", character: getRandomChar(characters) },
-    { name: "Игрок 2", character: getRandomChar(characters) },
-    { name: "Игрок 3", character: getRandomChar(characters) },
-    { name: "Игрок 4", character: getRandomChar(characters) }
-  ];
-
-  function getRandomChar(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+  // Генерируем 4 случайных персонажей
+  for (let i = 0; i < 4; i++) {
+    describePlayers.push(characters[Math.floor(Math.random() * characters.length)];
   }
 
-  container.innerHTML = "<h2>🗣️ Опиши, но не называй</h2>";
+  describeIndex = 0;
 
-  players.forEach(p => {
-    container.innerHTML += `
-      <div class="card">
-        <strong>${p.name}</strong>: ваш персонаж — <em>${p.character}</em><br>
-        <small>Опишите его, не называя имени.</small>
-      </div>
-    `;
-  });
+  container.innerHTML = `
+    <h2>🗣️ Опиши, но не называй</h2>
+    <p><strong>Правила:</strong> Показывается персонаж каждому игроку по очереди. Остальные должны догадаться, кто он.</p>
+    <div id="describe-card"></div>
+    <button onclick="nextDescribePlayer()">➡️ Следующий игрок</button>
+    <button onclick="goToMainMenu()">⬅️ Главное меню</button>
+  `;
 
-  container.innerHTML += `<button onclick="startDescribeCharacterGame(characters)">🔄 Новая игра</button>`;
-  container.innerHTML += `<button onclick="goToMainMenu()">⬅️ Главное меню</button>`;
+  nextDescribePlayer();
+}
+
+function nextDescribePlayer() {
+  const card = document.getElementById("describe-card");
+
+  if (describeIndex >= describePlayers.length) {
+    card.innerHTML = "<h3>🎉 Все персонажи показаны!</h3>";
+    return;
+  }
+
+  card.innerHTML = `
+    <div class="card">
+      <strong>Игрок ${describeIndex + 1}</strong>, ваш персонаж:
+      <h3 style="color:#4a90e2;">${describePlayers[describeIndex]}</h3>
+      <small>Опишите его, чтобы другие догадались.</small>
+    </div>
+  `;
+
+  describeIndex++;
 }
