@@ -15,7 +15,7 @@ function showGame(gameName) {
   // Скрыть главное меню
   document.querySelector(".menu").style.display = "none";
 
-  // Удаляем старый скрипт
+  // Очистить предыдущий скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
@@ -44,7 +44,7 @@ function showGame(gameName) {
   }
 }
 
-// Загрузка JS-файла
+// Подключение JS-файла игры
 function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
   script.src = `games/${fileName}.js`;
