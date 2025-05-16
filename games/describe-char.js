@@ -12,7 +12,7 @@ function startDescribeCharacterGame(characters) {
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  container.innerHTML = "<h2>Опиши, но не называй</h2>";
+  container.innerHTML = "<h2>🗣️ Опиши, но не называй</h2>";
 
   players.forEach(p => {
     container.innerHTML += `
@@ -23,5 +23,6 @@ function startDescribeCharacterGame(characters) {
     `;
   });
 
-  container.innerHTML += `<button onclick="startDescribeCharacterGame(characters)">Новая игра</button>`;
+  container.innerHTML += `<button onclick="startDescribeCharacterGame(characters)">🔄 Новая игра</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()" style="margin-left:10px;">🏠 Главное меню</button>`;
 }
