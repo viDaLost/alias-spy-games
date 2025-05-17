@@ -1,31 +1,25 @@
 let guessCharacters = [];
 let guessCurrentPlayer = 1;
 
-function startGuessCharacterGame(characters) {
-  const container = document.getElementById("game-container");
-  guessCharacters = shuffleArray([...characters]).slice(0, 2);
-  guessCurrentPlayer = 1;
-
-  container.innerHTML = `
-    <h2>👥 Угадай персонажа</h2>
-    <p><strong>Правила:</strong> Игроки по очереди получают имя персонажа. Один описывает, другой должен угадать.</p>
-    <div id="guess-player-card"></div>
-    <button onclick="nextGuessPlayer()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
-  `;
-
-  nextGuessPlayer();
-}
-
-function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+function startGuessCharacterGame(charsUrl) {
+  fetch(charsUrl)
+    .then(res => res.json())
+    .then(chars => {
+      guessCharacters = shuffleArray([...chars]);
+      guessCurrentPlayer = 1;
+      nextGuessPlayer();
+    })
+    .catch(err => {
+      alert("Ошибка загрузки персонажей.");
+      console.error(err);
+    });
 }
 
 function nextGuessPlayer() {
   const card = document.getElementById("guess-player-card");
 
   if (guessCurrentPlayer > guessCharacters.length) {
-    card.innerHTML = "<h3>🎉 Игра окончена</h3>";
+    card.innerHTML = "<h3>🎉 Все персонажи описаны!</h3>";
     return;
   }
 
