@@ -2,22 +2,22 @@ let spyPlayers = [];
 let currentSpyIndex = 0;
 let sharedLocation = "";
 
-// Начало игры
+// Запуск игры "Шпион"
 async function startSpyGame(locationsUrl) {
   try {
     const locations = await loadJSON(locationsUrl);
 
     document.getElementById("game-container").innerHTML = `
       <h2>🕵️‍♂️ Шпион</h2>
-      <p><strong>Правила:</strong> Один или несколько игроков — шпионы. Остальные знают локацию. Задача — вычислить шпионов.</p>
+      <p><strong>Правила:</strong> Один или несколько игроков — шпионы. Остальные знают локацию.</p>
 
       <label for="playerCount">Количество игроков (3–20):</label><br>
       <input type="number" id="playerCount" min="3" max="20" value="5"><br><br>
 
-      <label for="spyCount">Количество шпионов (1–N-1):</label><br>
-      <input type="number" id="spyCount" min="1" max="19" value="1"><br><br>
+      <label for="spyCount">Количество шпионов (1–20):</label><br>
+      <input type="number" id="spyCount" min="1" max="20" value="1"><br><br>
 
-      <button onclick="setupSpyGame(locations)" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
+      <button onclick="handleStartGame()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
       <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
     `;
   } catch (e) {
@@ -26,16 +26,54 @@ async function startSpyGame(locationsUrl) {
   }
 }
 
-// Настройка игры
-function setupSpyGame(locations) {
-  const playerCount = parseInt(document.getElementById("playerCount").value);
-  const spyCount = parseInt(document.getElementById("spyCount").value);
+// Обработчик нажатия на кнопку "Начать игру"
+function handleStartGame() {
+  const playerCountInput = document.getElementById("playerCount").value.trim();
+  const spyCountInput = document.getElementById("spyCount").value.trim();
 
-  if (isNaN(playerCount) || isNaN(spyCount) || spyCount >= playerCount || playerCount < 3) {
-    alert("Введите корректные значения.");
+  if (!playerCountInput || !spyCountInput) {
+    alert("Введите корректные значения");
     return;
   }
 
+  const playerCount = parseInt(playerCountInput);
+  const spyCount = parseInt(spyCountInput);
+
+  // Проверяем диапазон
+  if (isNaN(playerCount) || isNaN(spyCount)) {
+    alert("Все значения должны быть числами");
+    return;
+  }
+
+  if (playerCount < 3 || playerCount > 20) {
+    alert("Количество игроков должно быть от 3 до 20");
+    return;
+  }
+
+  if (spyCount < 1 || spyCount > 20) {
+    alert("Количество шпионов должно быть от 1 до 20");
+    return;
+  }
+
+  if (spyCount >= playerCount) {
+    alert("Шпионов должно быть меньше, чем игроков");
+    return;
+  }
+
+  // Загружаем локации снова, чтобы избежать ошибок
+  fetch("https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ")
+    .then(res => res.json())
+    .then(locations => {
+      setupSpyGame(locations, playerCount, spyCount);
+    })
+    .catch(err => {
+      alert("Ошибка загрузки локаций");
+      console.error(err);
+    });
+}
+
+// Подготовка к игре
+function setupSpyGame(locations, playerCount, spyCount) {
   // Выбираем случайную локацию
   sharedLocation = locations[Math.floor(Math.random() * locations.length)];
 
@@ -47,8 +85,9 @@ function setupSpyGame(locations) {
 
   // Делаем шпионов
   const shuffledIndices = shuffleArray([...Array(players.length).keys()]);
-  for (let i = 0; i < shuffledIndices.length && i < spyCount; i++) {
-    players[shuffledIndices[i]].role = "шпион";
+  for (let i = 0; i < spyCount && i < shuffledIndices.length; i++) {
+    const idx = shuffledIndices[i];
+    players[idx].role = "шпион";
   }
 
   spyPlayers = players;
@@ -57,10 +96,9 @@ function setupSpyGame(locations) {
   showNextPlayerRole();
 }
 
-// Показываем роль по одному
+// Показываем роль текущего игрока
 function showNextPlayerRole() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "";
 
   if (currentSpyIndex >= spyPlayers.length) {
     showDiscussionScreen();
@@ -78,7 +116,7 @@ function showNextPlayerRole() {
   `;
 }
 
-// Открываем роль
+// Открытие роли
 function revealRole(id) {
   const container = document.getElementById("game-container");
   const player = spyPlayers.find(p => p.id === id);
@@ -106,28 +144,29 @@ function showDiscussionScreen() {
 
   container.innerHTML = `
     <h2>🗣️ Раунд общения</h2>
-    <p>Обсудите всё вместе и попробуйте вычислить шпионов.</p>
+    <p>Теперь обсудите всё вместе и попробуйте вычислить шпионов.</p>
     <button onclick="showFinalScreen()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">🏁 Завершить раунд</button>
+    <button onclick="startSpyGame('https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/spy_locations.json')" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
-// Финальный экран голосования
+// Финальный экран
 function showFinalScreen() {
   const container = document.getElementById("game-container");
 
   container.innerHTML = `
     <h2>🎯 Голосование</h2>
-    <p><strong>Выберите, кто из игроков шпион:</strong></p>
-    <select id="voteSelect" style="width:100%; padding:10px; font-size:16px;"></select><br><br>
+    <p><strong>Выберите, кто, по вашему мнению, шпион:</strong></p>
+
+    <select id="voteSelect">
+      ${spyPlayers.map(p => `<option value="${p.id}">Игрок ${p.id}</option>`).join("")}
+    </select><br><br>
 
     <button onclick="submitVote()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">🗳 Проголосовать</button>
     <button onclick="tryGuessLocation()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#4a90e2; color:white;">🔍 Шпион угадывает локацию</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
-
-  const voteSelect = document.getElementById("voteSelect");
-  voteSelect.innerHTML = spyPlayers.map(p => `<option value="${p.id}">Игрок ${p.id}</option>`).join("");
 }
 
 // Обработка голосования
@@ -137,21 +176,20 @@ function submitVote() {
   showResults(votedId);
 }
 
-// Шпион угадывает локацию
+// Шпион пытается угадать локацию
 function tryGuessLocation() {
   const container = document.getElementById("game-container");
 
   container.innerHTML = `
-    <h2>🕵️‍♂️ Шпион угадывает локацию</h2>
+    <h2>🔍 Шпион угадывает локацию</h2>
     <p>Какой, по вашему мнению, была локация?</p>
-    <input type="text" id="locationInput" placeholder="Локация" style="width:100%; padding:10px; font-size:16px;" /><br><br>
-    
+    <input type="text" id="locationInput" placeholder="Введите локацию" style="width:100%; padding:10px; font-size:16px;" /><br><br>
     <button onclick="checkGuessedLocation()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">✅ Отправить</button>
     <button onclick="showFinalScreen()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Назад</button>
   `;
 }
 
-// Проверяем угаданную локацию
+// Проверка угаданной локации
 function checkGuessedLocation() {
   const guess = document.getElementById("locationInput").value.trim().toLowerCase();
   const correct = sharedLocation.toLowerCase();
@@ -162,7 +200,7 @@ function checkGuessedLocation() {
   showFinalScreen();
 }
 
-// Показываем результаты
+// Результаты игры
 function showResults(votedId) {
   const container = document.getElementById("game-container");
   const spies = spyPlayers.filter(p => p.role === "шпион").map(p => p.id);
@@ -176,11 +214,12 @@ function showResults(votedId) {
   `;
 }
 
-// Вспомогательные функции
+// Перемешивание массива
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
+// Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
   return await res.json();
