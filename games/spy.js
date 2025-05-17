@@ -1,15 +1,15 @@
 let spyPlayers = [];
 let currentSpyIndex = 0;
 let sharedLocation = "";
-let isSpiesShown = false;
 
-// Загрузка локаций из JSON
+// Начало игры
 async function startSpyGame(locationsUrl) {
   try {
     const locations = await loadJSON(locationsUrl);
+
     document.getElementById("game-container").innerHTML = `
       <h2>🕵️‍♂️ Шпион</h2>
-      <p><strong>Правила:</strong> Один или несколько игроков — шпионы, остальные знают локацию. Задача: вычислить шпиона.</p>
+      <p><strong>Правила:</strong> Один или несколько игроков — шпионы. Остальные знают локацию. Задача — вычислить шпионов.</p>
 
       <label for="playerCount">Количество игроков (3–20):</label><br>
       <input type="number" id="playerCount" min="3" max="20" value="5"><br><br>
@@ -26,13 +26,13 @@ async function startSpyGame(locationsUrl) {
   }
 }
 
-// Подготовка к игре
+// Настройка игры
 function setupSpyGame(locations) {
   const playerCount = parseInt(document.getElementById("playerCount").value);
   const spyCount = parseInt(document.getElementById("spyCount").value);
 
   if (isNaN(playerCount) || isNaN(spyCount) || spyCount >= playerCount || playerCount < 3) {
-    alert("Введите корректное количество игроков и шпионов.");
+    alert("Введите корректные значения.");
     return;
   }
 
@@ -42,23 +42,22 @@ function setupSpyGame(locations) {
   // Создаём список игроков
   const players = [];
   for (let i = 1; i <= playerCount; i++) {
-    players.push({ id: i, name: "", role: "локация", revealed: false });
+    players.push({ id: i, role: "локация", revealed: false });
   }
 
-  // Случайным образом делаем шпионов
+  // Делаем шпионов
   const shuffledIndices = shuffleArray([...Array(players.length).keys()]);
-  for (let i = 0; i < spyCount; i++) {
+  for (let i = 0; i < shuffledIndices.length && i < spyCount; i++) {
     players[shuffledIndices[i]].role = "шпион";
   }
 
   spyPlayers = players;
   currentSpyIndex = 0;
-  isSpiesShown = false;
 
   showNextPlayerRole();
 }
 
-// Показываем роль текущего игрока
+// Показываем роль по одному
 function showNextPlayerRole() {
   const container = document.getElementById("game-container");
   container.innerHTML = "";
@@ -75,31 +74,29 @@ function showNextPlayerRole() {
     <p><strong>Нажмите кнопку ниже, чтобы увидеть свою роль.</strong></p>
     
     <button onclick="revealRole(${player.id})" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">👁 Показать роль</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
-// Открываем роль для игрока
+// Открываем роль
 function revealRole(id) {
   const container = document.getElementById("game-container");
   const player = spyPlayers.find(p => p.id === id);
 
-  if (!player.revealed) {
-    player.revealed = true;
-  }
-
   let roleText = "";
   if (player.role === "шпион") {
-    roleText = "🕵️‍♂️ Вы — шпион. Угадайте локацию.";
+    roleText = "🕵️‍♂️ Вы — шпион.";
   } else {
-    roleText = `📍 Ваша локация: <strong>${sharedLocation}</strong>`;
+    roleText = `📍 Локация: <strong>${sharedLocation}</strong>`;
   }
 
   container.innerHTML = `
-    <h2>🔍 Роль игрока ${player.id}</h2>
+    <h2>🔍 Ваша роль</h2>
     <div class="card" style="margin:20px 0;">
       ${roleText}
     </div>
     <button onclick="currentSpyIndex++; showNextPlayerRole();" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">➡️ Следующий игрок</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
@@ -109,9 +106,9 @@ function showDiscussionScreen() {
 
   container.innerHTML = `
     <h2>🗣️ Раунд общения</h2>
-    <p>Теперь обсудите всё вместе и попробуйте вычислить шпионов.</p>
+    <p>Обсудите всё вместе и попробуйте вычислить шпионов.</p>
     <button onclick="showFinalScreen()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">🏁 Завершить раунд</button>
-    <button onclick="startSpyGame('https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ')" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">🔄 Новая игра</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
@@ -121,40 +118,42 @@ function showFinalScreen() {
 
   container.innerHTML = `
     <h2>🎯 Голосование</h2>
-    <p><strong>Выберите, кто, по вашему мнению, шпион.</strong></p>
+    <p><strong>Выберите, кто из игроков шпион:</strong></p>
+    <select id="voteSelect" style="width:100%; padding:10px; font-size:16px;"></select><br><br>
 
-    <select id="voteSelect">
-      ${spyPlayers.map(p => `<option value="${p.id}">Игрок ${p.id}${p.name ? ` (${p.name})` : ""}</option>`).join("")}
-    </select><br><br>
-
-    <button onclick="submitVote()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">🗳 Голосовать</button>
-    <button onclick="tryGuessLocation()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#4a90e2; color:white;">🔍 Шпион хочет угадать локацию</button>
-    <button onclick="startSpyGame('https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ')" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">🔄 Новая игра</button>
+    <button onclick="submitVote()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">🗳 Проголосовать</button>
+    <button onclick="tryGuessLocation()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#4a90e2; color:white;">🔍 Шпион угадывает локацию</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
+
+  const voteSelect = document.getElementById("voteSelect");
+  voteSelect.innerHTML = spyPlayers.map(p => `<option value="${p.id}">Игрок ${p.id}</option>`).join("");
 }
 
 // Обработка голосования
 function submitVote() {
-  const vote = document.getElementById("voteSelect").value;
-  alert("Вы проголосовали против игрока " + vote);
-  showFinalResults();
+  const votedId = document.getElementById("voteSelect").value.trim();
+  alert(`Вы проголосовали против игрока #${votedId}`);
+  showResults(votedId);
 }
 
-// Шпион пытается угадать локацию
+// Шпион угадывает локацию
 function tryGuessLocation() {
   const container = document.getElementById("game-container");
+
   container.innerHTML = `
     <h2>🕵️‍♂️ Шпион угадывает локацию</h2>
     <p>Какой, по вашему мнению, была локация?</p>
-    <input type="text" id="guessLocationInput" placeholder="Введите локацию" style="width:100%; padding:10px; font-size:16px;" />
-    <button onclick="checkGuessedLocation()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">✅ Отправить</button>
+    <input type="text" id="locationInput" placeholder="Локация" style="width:100%; padding:10px; font-size:16px;" /><br><br>
+    
+    <button onclick="checkGuessedLocation()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">✅ Отправить</button>
     <button onclick="showFinalScreen()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Назад</button>
   `;
 }
 
 // Проверяем угаданную локацию
 function checkGuessedLocation() {
-  const guess = document.getElementById("guessLocationInput").value.trim().toLowerCase();
+  const guess = document.getElementById("locationInput").value.trim().toLowerCase();
   const correct = sharedLocation.toLowerCase();
 
   const result = guess === correct ? "🎉 Шпион угадал!" : "❌ Шпион не угадал.";
@@ -164,7 +163,7 @@ function checkGuessedLocation() {
 }
 
 // Показываем результаты
-function showFinalResults() {
+function showResults(votedId) {
   const container = document.getElementById("game-container");
   const spies = spyPlayers.filter(p => p.role === "шпион").map(p => p.id);
 
