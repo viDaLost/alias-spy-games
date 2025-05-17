@@ -3,9 +3,12 @@ let describeIndex = 0;
 
 function startDescribeCharacterGame(charsUrl) {
   fetch(charsUrl)
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error(`Сетевой ответ: ${res.status}`);
+      return res.json();
+    })
     .then(chars => {
-      describePlayers = shuffleArray([...chars]).slice(0, 4); // только 4 игрока
+      describePlayers = shuffleArray([...chars]).slice(0, 4); // 4 игрока
       describeIndex = 0;
       nextDescribePlayer();
     })
