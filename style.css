@@ -15,30 +15,37 @@ header {
   padding: 1rem;
 }
 
-/* Меню */
-.menu {
+.menu-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 1rem;
 }
 
-.menu button {
+.menu-container.hidden {
+  display: none;
+}
+
+.menu-container button,
+.game-container button {
   width: 100%;
   padding: 15px;
   font-size: 16px;
   border: none;
   border-radius: 6px;
-  background-color: #4a90e2;
-  color: white;
   cursor: pointer;
+  margin-top: 10px;
 }
 
-.menu button:hover {
+.menu-container button {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.menu-container button:hover {
   background-color: #357ABD;
 }
 
-/* Карточки */
 .card {
   background: white;
   border: 1px solid #ccc;
