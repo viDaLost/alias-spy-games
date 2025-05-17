@@ -7,6 +7,7 @@ body {
   color: #333;
 }
 
+/* Заголовок */
 header {
   background: #4a90e2;
   color: white;
@@ -14,6 +15,7 @@ header {
   padding: 1rem;
 }
 
+/* Контейнер меню */
 .menu-container {
   display: flex;
   flex-direction: column;
@@ -25,6 +27,7 @@ header {
   display: none;
 }
 
+/* Кнопки меню */
 .menu-container button,
 .game-container button {
   width: 100%;
@@ -45,6 +48,7 @@ header {
   background-color: #357ABD;
 }
 
+/* Карточки */
 .card {
   background: white;
   border: 1px solid #ccc;
