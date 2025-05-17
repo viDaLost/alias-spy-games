@@ -70,3 +70,22 @@ function goToMainMenu() {
     currentGameScript = null;
   }
 }
+
+// Открытие формы техподдержки
+function openSupport() {
+  const container = document.getElementById("game-container");
+  container.innerHTML = `
+    <h2>📞 Техподдержка</h2>
+    <p><strong>Если приложение глючит или не отвечает:</strong></p>
+    <p>Проверьте своё подключение к интернету. Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
+    <p>Вы можете также предложить улучшения или идеи для новых игр.</p>
+    
+    <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
+  `;
+}
+
+// Переход в чат Telegram
+function goToTelegram() {
+  window.open("https://t.me/@D_a_n_Vi");
+}
