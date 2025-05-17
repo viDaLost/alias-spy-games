@@ -7,6 +7,11 @@ async function loadJSON(url) {
   return await res.json();
 }
 
+// Перемешивание массива (для случайного порядка слов)
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
 // Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
@@ -15,12 +20,13 @@ function showGame(gameName) {
   // Скрыть главное меню
   document.querySelector(".menu-container").classList.add("hidden");
 
-  // Удаляем старый скрипт
+  // Удаляем старый скрипт, если он был
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
+  // Загрузка соответствующего скрипта игры
   if (gameName === "alias") {
     loadGameScript("alias", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
@@ -35,13 +41,13 @@ function showGame(gameName) {
   }
 }
 
-// Подключение JS-файла игры
+// Динамическая загрузка JS-файла игры
 function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
   script.src = `games/${fileName}.js`;
   script.onload = callback;
   script.onerror = () => {
-    alert(`Ошибка: файл ${fileName}.js не найден!`);
+    alert(`Ошибка: файл ${fileName}.js не найден или содержит ошибку`);
   };
   document.body.appendChild(script);
   currentGameScript = script;
@@ -59,7 +65,7 @@ function goToMainMenu() {
   if (window.aliasInterval) clearInterval(window.aliasInterval);
   if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
 
-  // Очистка текущего скрипта
+  // Удаление текущего скрипта
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
