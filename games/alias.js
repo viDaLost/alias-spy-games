@@ -8,7 +8,7 @@ function startAliasGame() {
   // Отображение уровней сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
-    <p><strong>Правила:</strong> Выберите уровень сложности и объясняйте слова.</p>
+    <p><strong>Правила:</strong> Выберите уровень сложности и объясняйте слова, не называя однокореных слов.</p>
 
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" style="width:100%; padding:15px; font-size:16px;">🟢 Лёгкий</button><br>
@@ -47,7 +47,7 @@ function showAliasSetup(words, difficulty) {
 
   container.innerHTML = `
     <h2>🎮 Алиас — ${difficultyName} уровень</h2>
-    <p><strong>Выберите время (1–60 секунд):</strong></p>
+    <p><strong>Выберите время (1–60 секунд), по оканчанию времени появится список отгаданых и не отгаданых слов:</strong></p>
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
     <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
