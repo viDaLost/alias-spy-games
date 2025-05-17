@@ -15,22 +15,15 @@ header {
   padding: 1rem;
 }
 
-/* Контейнер меню */
-.menu-container {
+/* Меню */
+.menu {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 1rem;
-  z-index: 1;
-  position: relative;
 }
 
-.menu-container.hidden {
-  display: none;
-}
-
-/* Кнопки меню */
-.menu-container button {
+.menu button {
   width: 100%;
   padding: 15px;
   font-size: 16px;
@@ -41,7 +34,7 @@ header {
   cursor: pointer;
 }
 
-.menu-container button:hover {
+.menu button:hover {
   background-color: #357ABD;
 }
 
