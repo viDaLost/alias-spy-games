@@ -1,11 +1,13 @@
 let spyPlayers = [];
 let currentSpyIndex = 0;
 let sharedLocation = "";
+let allLocations = [];
 
-// Запуск игры "Шпион"
+// Запуск игры
 async function startSpyGame(locationsUrl) {
   try {
     const locations = await loadJSON(locationsUrl);
+    allLocations = locations;
 
     document.getElementById("game-container").innerHTML = `
       <h2>🕵️‍♂️ Шпион</h2>
@@ -26,20 +28,19 @@ async function startSpyGame(locationsUrl) {
   }
 }
 
-// Обработчик нажатия на кнопку "Начать игру"
+// Проверка и начало игры
 function handleStartGame() {
   const playerCountInput = document.getElementById("playerCount").value.trim();
   const spyCountInput = document.getElementById("spyCount").value.trim();
 
   if (!playerCountInput || !spyCountInput) {
-    alert("Введите корректные значения");
+    alert("Введите все значения");
     return;
   }
 
   const playerCount = parseInt(playerCountInput);
   const spyCount = parseInt(spyCountInput);
 
-  // Проверяем диапазон
   if (isNaN(playerCount) || isNaN(spyCount)) {
     alert("Все значения должны быть числами");
     return;
@@ -60,22 +61,8 @@ function handleStartGame() {
     return;
   }
 
-  // Загружаем локации снова, чтобы избежать ошибок
-  fetch("https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ")
-    .then(res => res.json())
-    .then(locations => {
-      setupSpyGame(locations, playerCount, spyCount);
-    })
-    .catch(err => {
-      alert("Ошибка загрузки локаций");
-      console.error(err);
-    });
-}
-
-// Подготовка к игре
-function setupSpyGame(locations, playerCount, spyCount) {
   // Выбираем случайную локацию
-  sharedLocation = locations[Math.floor(Math.random() * locations.length)];
+  sharedLocation = allLocations[Math.floor(Math.random() * allLocations.length)];
 
   // Создаём список игроков
   const players = [];
@@ -93,10 +80,10 @@ function setupSpyGame(locations, playerCount, spyCount) {
   spyPlayers = players;
   currentSpyIndex = 0;
 
-  showNextPlayerRole();
+  showNextPlayerRole(); // Открываем первую роль
 }
 
-// Показываем роль текущего игрока
+// Показываем роль по одному игроку
 function showNextPlayerRole() {
   const container = document.getElementById("game-container");
 
@@ -116,7 +103,7 @@ function showNextPlayerRole() {
   `;
 }
 
-// Открытие роли
+// Раскрытие роли
 function revealRole(id) {
   const container = document.getElementById("game-container");
   const player = spyPlayers.find(p => p.id === id);
@@ -130,7 +117,7 @@ function revealRole(id) {
 
   container.innerHTML = `
     <h2>🔍 Ваша роль</h2>
-    <div class="card" style="margin:20px 0;">
+    <div class="card" style="margin:20px 0; padding:20px;">
       ${roleText}
     </div>
     <button onclick="currentSpyIndex++; showNextPlayerRole();" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">➡️ Следующий игрок</button>
@@ -144,14 +131,14 @@ function showDiscussionScreen() {
 
   container.innerHTML = `
     <h2>🗣️ Раунд общения</h2>
-    <p>Теперь обсудите всё вместе и попробуйте вычислить шпионов.</p>
+    <p>Теперь вы можете обсудить всё вместе и попробовать вычислить шпионов.</p>
     <button onclick="showFinalScreen()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">🏁 Завершить раунд</button>
-    <button onclick="startSpyGame('https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/spy_locations.json')" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">🔄 Новая игра</button>
+    <button onclick="startSpyGame('https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ')" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
-// Финальный экран
+// Финальный экран голосования
 function showFinalScreen() {
   const container = document.getElementById("game-container");
 
@@ -184,7 +171,7 @@ function tryGuessLocation() {
     <h2>🔍 Шпион угадывает локацию</h2>
     <p>Какой, по вашему мнению, была локация?</p>
     <input type="text" id="locationInput" placeholder="Введите локацию" style="width:100%; padding:10px; font-size:16px;" /><br><br>
-    <button onclick="checkGuessedLocation()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">✅ Отправить</button>
+    <button onclick="checkGuessedLocation()" style="width:100%; padding:15px; font-size:16px; background:#28a745; color:white;">✅ Угадать</button>
     <button onclick="showFinalScreen()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Назад</button>
   `;
 }
@@ -214,12 +201,11 @@ function showResults(votedId) {
   `;
 }
 
-// Перемешивание массива
+// Вспомогательные функции
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
   return await res.json();
