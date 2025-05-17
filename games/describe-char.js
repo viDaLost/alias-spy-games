@@ -1,24 +1,18 @@
 let describePlayers = [];
 let describeIndex = 0;
 
-function startDescribeCharacterGame(characters) {
-  const container = document.getElementById("game-container");
-  describePlayers = shuffleArray([...characters]).slice(0, 4); // первые 4 случайных персонажа
-  describeIndex = 0;
-
-  container.innerHTML = `
-    <h2>🗣️ Опиши, но не называй</h2>
-    <p><strong>Правила:</strong> Каждый игрок получает имя персонажа. Остальные должны догадаться, кто он.</p>
-    <div id="describe-card" style="margin:20px 0;"></div>
-    <button onclick="nextDescribePlayer()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
-  `;
-
-  nextDescribePlayer();
-}
-
-function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+function startDescribeCharacterGame(charsUrl) {
+  fetch(charsUrl)
+    .then(res => res.json())
+    .then(chars => {
+      describePlayers = shuffleArray([...chars]).slice(0, 4); // только 4 игрока
+      describeIndex = 0;
+      nextDescribePlayer();
+    })
+    .catch(err => {
+      alert("Ошибка загрузки персонажей.");
+      console.error(err);
+    });
 }
 
 function nextDescribePlayer() {
