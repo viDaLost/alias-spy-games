@@ -3,7 +3,10 @@ let guessCurrentPlayer = 1;
 
 function startGuessCharacterGame(charsUrl) {
   fetch(charsUrl)
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error(`Сетевой ответ: ${res.status}`);
+      return res.json();
+    })
     .then(chars => {
       guessCharacters = shuffleArray([...chars]);
       guessCurrentPlayer = 1;
