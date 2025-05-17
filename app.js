@@ -35,9 +35,21 @@ function showGame(gameName) {
     const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
   } else if (gameName === "describe") {
-    const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/describe_words.json ";
+    const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/describe_words.json ";
     loadGameScript("describe-char", () => startDescribeCharacterGame(wordsUrl));
   }
+}
+
+// Подключение JS-файла игры
+function loadGameScript(fileName, callback) {
+  const script = document.createElement("script");
+  script.src = `games/${fileName}.js`;
+  script.onload = callback;
+  script.onerror = () => {
+    alert(`Ошибка: файл ${fileName}.js не найден`);
+  };
+  document.body.appendChild(script);
+  currentGameScript = script;
 }
 
 // Открытие формы техподдержки
@@ -48,12 +60,12 @@ function openSupport() {
   // Скрываем главное меню
   menu.classList.add("hidden");
 
-  // Показываем окно техподдержки поверх
+  // Очищаем контейнер и показываем окно техподдержки
   container.innerHTML = `
     <h2>📞 Техподдержка</h2>
     <p><strong>Если приложение глючит или не отвечает:</strong></p>
-    <p>Проверьте своё подключение к интернету, после чего нажмите на 3 точки с права в углу и нажмите на кнопку Обновить страницу. Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
-    <p>Вы можете также оставить свои пожелания по улучшению игр или предложить новые.</p>
+    <p>Проверьте своё подключение к интернету, после чего нажмите на три точки с права в верхнем углу, потом нажмите кнопку Обнавить страницу. Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
+    <p>Вы можете также оставить свои пожелания по улучшению игр или предложить идеи для новых.</p>
 
     <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
@@ -68,10 +80,7 @@ function goToTelegram() {
 // Вернуться в главное меню
 function goToMainMenu() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "";
-
-  // Показываем главное меню снова
-  document.querySelector(".menu-container").classList.remove("hidden");
+  const menu = document.querySelector(".menu-container");
 
   // Очистка таймеров
   if (window.aliasInterval) clearInterval(window.aliasInterval);
@@ -82,4 +91,10 @@ function goToMainMenu() {
     currentGameScript.remove();
     currentGameScript = null;
   }
+
+  // Очистка контейнера
+  container.innerHTML = "";
+
+  // Восстанавливаем главное меню
+  menu.classList.remove("hidden");
 }
