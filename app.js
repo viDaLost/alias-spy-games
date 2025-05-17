@@ -35,26 +35,29 @@ function showGame(gameName) {
     const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
     loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
   } else if (gameName === "describe") {
-    const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/describe_words.json ";
+    const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/describe_words.json ";
     loadGameScript("describe-char", () => startDescribeCharacterGame(wordsUrl));
   }
 }
 
 // Открытие формы техподдержки
 function openSupport() {
+  const menu = document.querySelector(".menu-container");
   const container = document.getElementById("game-container");
+
+  // Скрываем главное меню
+  menu.classList.add("hidden");
+
+  // Показываем окно техподдержки поверх
   container.innerHTML = `
     <h2>📞 Техподдержка</h2>
     <p><strong>Если приложение глючит или не отвечает:</strong></p>
-    <p>Проверьте своё подключение к интернету потом нажмите на три точки с права в углу, в высветившемся меню нажмите Обновить страницу.  Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
-    <p>Вы также можете предложить идеи по улучшению игр или добавить пожелания по новым играм.</p>
+    <p>Проверьте своё подключение к интернету, после чего нажмите на 3 точки с права в углу и нажмите на кнопку Обновить страницу. Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
+    <p>Вы можете также оставить свои пожелания по улучшению игр или предложить новые.</p>
 
     <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
-
-  // Скрываем главное меню
-  document.querySelector(".menu-container").classList.add("hidden");
 }
 
 // Переход в чат Telegram
