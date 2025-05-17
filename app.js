@@ -40,26 +40,16 @@ function showGame(gameName) {
   }
 }
 
-// Открытие формы техподдержки
-function openSupport() {
-  const container = document.getElementById("game-container");
-  container.innerHTML = `
-    <h2>📞 Техподдержка</h2>
-    <p><strong>Если приложение глючит или не отвечает:</strong></p>
-    <p>Проверьте своё подключение к интернету, после чего нажмите на три точки с арава вверху и нажмите Обновить страницу.Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
-    <p>Вы также можете предложить идеи по улучшению игр или добавить пожелания по новым играм.</p>
-
-    <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
-  `;
-
-  // Скрываем главное меню
-  document.querySelector(".menu-container").classList.add("hidden");
-}
-
-// Переход в чат Telegram
-function goToTelegram() {
-  window.open("https://t.me/@D_a_n_Vi"_blank");
+// Подключение JS-файла игры
+function loadGameScript(fileName, callback) {
+  const script = document.createElement("script");
+  script.src = `games/${fileName}.js`;
+  script.onload = callback;
+  script.onerror = () => {
+    alert(`Ошибка: файл ${fileName}.js не найден`);
+  };
+  document.body.appendChild(script);
+  currentGameScript = script;
 }
 
 // Вернуться в главное меню
@@ -79,4 +69,23 @@ function goToMainMenu() {
     currentGameScript.remove();
     currentGameScript = null;
   }
+}
+
+// Открытие формы техподдержки
+function openSupport() {
+  const container = document.getElementById("game-container");
+  container.innerHTML = `
+    <h2>📞 Техподдержка</h2>
+    <p><strong>Если приложение глючит или не отвечает:</strong></p>
+    <p>Нажмите на три точки с права в верхнем углу, потом надмите Обновить страницу. Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
+    <p>Вы можете также предложить улучшения или идеи для новых игр.</p>
+    
+    <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
+  `;
+}
+
+// Переход в чат Telegram
+function goToTelegram() {
+  window.open("https://t.me/ @D_a_n_Vi");
 }
