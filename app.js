@@ -3,8 +3,13 @@ let currentGameScript = null;
 
 // Функция загрузки JSON
 async function loadJSON(url) {
-  const res = await fetch(url);
-  return await res.json();
+  try {
+    const res = await fetch(url);
+    return await res.json();
+  } catch (e) {
+    alert("Ошибка загрузки данных: " + e.message);
+    console.error(e);
+  }
 }
 
 // Перемешивание массива
@@ -15,50 +20,68 @@ function shuffleArray(arr) {
 // Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<p>Загрузка игры...</p>";
+  const menu = document.getElementById("menu-container");
+
+  if (!container || !menu) {
+    alert("Ошибка: контейнер игр или меню не найден.");
+    return;
+  }
 
   // Скрыть главное меню
-  document.querySelector(".menu-container").classList.add("hidden");
+  menu.style.display = "none";
+  container.innerHTML = "<p>🔄 Загрузка игры...</p>";
 
-  // Удаляем предыдущий скрипт
+  // Удаляем предыдущий скрипт, если он был
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
+  // Загружаем нужную игру
   if (gameName === "alias") {
-    loadGameScript("alias", () => startAliasGame());
+    loadGameScript("games/alias.js", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
     const themesUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
-    loadGameScript("coimaginarium", () => startCoimaginariumGame(themesUrl));
+    loadGameScript("games/coimaginarium.js", () => startCoimaginariumGame(themesUrl));
   } else if (gameName === "guess") {
     const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
-    loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
+    loadGameScript("games/guess-character.js", () => startGuessCharacterGame(charsUrl));
   } else if (gameName === "describe") {
     const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/describe_words.json ";
-    loadGameScript("describe-char", () => startDescribeCharacterGame(wordsUrl));
+    loadGameScript("games/describe-char.js", () => startDescribeCharacterGame(wordsUrl));
   }
 }
 
 // Подключение JS-файла игры
 function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
-  script.src = `games/${fileName}.js`;
+  script.src = fileName;
   script.onload = callback;
   script.onerror = () => {
-    alert(`Ошибка: файл ${fileName}.js не найден`);
+    const container = document.getElementById("game-container");
+    container.innerHTML = `
+      <p style="color:red;">❌ Ошибка: файл ${fileName} не найден</p>
+      <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white;">⬅️ Главное меню</button>
+    `;
   };
   document.body.appendChild(script);
   currentGameScript = script;
 }
 
+// Кнопка техподдержки — сразу открывает чат в Telegram
+function openTelegram() {
+  window.open("https://t.me/@D_a_n_Vi, "_blank");
+}
+
 // Вернуться в главное меню
 function goToMainMenu() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "";
+  const menu = document.getElementById("menu-container");
 
-  // Показываем главное меню снова
-  document.querySelector(".menu-container").classList.remove("hidden");
+  if (!container || !menu) {
+    alert("Ошибка: элементы интерфейса не найдены.");
+    return;
+  }
 
   // Очистка таймеров
   if (window.aliasInterval) clearInterval(window.aliasInterval);
@@ -69,23 +92,8 @@ function goToMainMenu() {
     currentGameScript.remove();
     currentGameScript = null;
   }
-}
 
-// Открытие формы техподдержки
-function openSupport() {
-  const container = document.getElementById("game-container");
-  container.innerHTML = `
-    <h2>📞 Техподдержка</h2>
-    <p><strong>Если приложение глючит или не отвечает:</strong></p>
-    <p>Нажмите на три точки вверхнем правом углу и надмите на кнопку Обновить страницу.Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
-    <p>Вы можете также предложить улучшения или идеи для новых игр.</p>
-    
-    <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
-  `;
-}
-
-// Переход в чат Telegram
-function goToTelegram() {
-  window.open("https://t.me/@D_a_n_Vi");
+  // Очистка контейнера и показ главного меню
+  container.innerHTML = "";
+  menu.style.display = "flex";
 }
