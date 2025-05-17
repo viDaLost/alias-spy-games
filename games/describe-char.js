@@ -13,8 +13,9 @@ function startDescribeCharacterGame(charsUrl) {
       nextDescribePlayer();
     })
     .catch(err => {
-      alert("Ошибка загрузки персонажей.");
-      console.error(err);
+      const container = document.getElementById("game-container");
+      container.innerHTML = `<p style="color:red;">⚠️ Ошибка загрузки персонажей: ${err.message}</p>`;
+      container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>`;
     });
 }
 
