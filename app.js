@@ -36,12 +36,14 @@ function showGame(gameName) {
   } else if (gameName === "coimaginarium") {
     const themesUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
     loadGameScript("coimaginarium", () => startCoimaginariumGame(themesUrl));
-  } else if (gameName === "guess") {
+  } else if (gameName === "guess" || gameName === "describe") {
     const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
-    loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
-  } else if (gameName === "describe") {
-    const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
-    loadGameScript("describe-char", () => startDescribeCharacterGame(charsUrl));
+
+    if (gameName === "guess") {
+      loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
+    } else if (gameName === "describe") {
+      loadGameScript("describe-char", () => startDescribeCharacterGame(charsUrl));
+    }
   }
 }
 
