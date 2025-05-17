@@ -1,105 +1,91 @@
-// Глобальная переменная для текущего скрипта
+// Глобальные переменные
 let currentGameScript = null;
-
-// Функция загрузки JSON
-async function loadJSON(url) {
-  try {
-    const res = await fetch(url);
-    return await res.json();
-  } catch (e) {
-    alert("Ошибка загрузки данных: " + e.message);
-    console.error(e);
-  }
-}
-
-// Перемешивание массива
-function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
-}
 
 // Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
+  if (!container) {
+    alert("Ошибка: контейнер игры не найден!");
+    return;
+  }
+
+  // Скрыть меню
+  const menu = document.getElementById("menu-container");
+  if (!menu) {
+    alert("Ошибка: главное меню не найдено!");
+    return;
+  }
+  menu.style.display = "none";
   container.innerHTML = "<p>Загрузка игры...</p>";
 
-  // Скрыть главное меню через класс
-  document.querySelector(".menu-container").classList.add("hidden");
-
-  // Удаляем предыдущий скрипт, если он был
+  // Удаляем старый скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
-  // Загружаем нужную игру
+  // Загружаем новую игру
   if (gameName === "alias") {
-    loadGameScript("alias", () => startAliasGame());
+    loadGameScript("games/alias.js", () => startAlias());
   } else if (gameName === "coimaginarium") {
-    const themesUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
-    loadGameScript("coimaginarium", () => startCoimaginariumGame(themesUrl));
+    loadGameScript("games/coimaginarium.js", () => startCoimaginarium());
   } else if (gameName === "guess") {
-    const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
-    loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
+    loadGameScript("games/guess-character.js", () => startGuessCharacter());
   } else if (gameName === "describe") {
-    const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/describe_words.json ";
-    loadGameScript("describe-char", () => startDescribeCharacterGame(wordsUrl));
+    loadGameScript("games/describe-char.js", () => startDescribeCharacter());
   }
 }
 
-// Подключение JS-файла игры
-function loadGameScript(fileName, callback) {
+// Функция загрузки JS-файла
+function loadGameScript(path, callback) {
   const script = document.createElement("script");
-  script.src = `games/${fileName}.js`;
+  script.src = path;
   script.onload = callback;
   script.onerror = () => {
-    alert(`Ошибка: файл ${fileName}.js не найден`);
+    document.getElementById("game-container").innerHTML = `
+      <p style="color:red;">❌ Ошибка загрузки игры.</p>
+      <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white;">⬅️ Главное меню</button>
+    `;
   };
   document.body.appendChild(script);
   currentGameScript = script;
 }
 
-// Открытие формы техподдержки
-function openSupport() {
-  const menu = document.querySelector(".menu-container");
+// Показ техподдержки
+function showSupport() {
+  const menu = document.getElementById("menu-container");
   const container = document.getElementById("game-container");
 
-  // Скрываем главное меню
-  menu.classList.add("hidden");
+  if (!menu || !container) {
+    alert("Ошибка: элементы интерфейса не найдены.");
+    return;
+  }
 
-  // Показываем окно техподдержки
+  menu.style.display = "none";
   container.innerHTML = `
     <h2>📞 Техподдержка</h2>
     <p><strong>Если приложение глючит или не отвечает:</strong></p>
-    <p>Проверьте своё подключение к интернету, после чего нажмите на три точки с права в верхнем углу, потом нажмите на кнопку обнавить страницу.Если проблема не решилась — напишите нам.</p>
-
+    <p>Проверьте своё подключение к интернету. Если проблема не решилась — напишите нам.</p>
     <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
+// Возврат в главное меню
+function goToMainMenu() {
+  const container = document.getElementById("game-container");
+  const menu = document.getElementById("menu-container");
+
+  if (!menu || !container) {
+    alert("Ошибка: не найдены элементы главного меню или контейнера");
+    return;
+  }
+
+  container.innerHTML = "";
+  menu.style.display = "flex";
+}
+
 // Переход в чат Telegram
 function goToTelegram() {
   window.open("https://t.me/@D_a_n_Vi"_blank");
-}
-
-// Вернуться в главное меню
-function goToMainMenu() {
-  const container = document.getElementById("game-container");
-  const menu = document.querySelector(".menu-container");
-
-  // Очистка таймеров
-  if (window.aliasInterval) clearInterval(window.aliasInterval);
-  if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
-
-  // Очистка текущего скрипта
-  if (currentGameScript) {
-    currentGameScript.remove();
-    currentGameScript = null;
-  }
-
-  // Очистка контейнера игр
-  container.innerHTML = "";
-
-  // Показываем главное меню
-  menu.classList.remove("hidden");
 }
