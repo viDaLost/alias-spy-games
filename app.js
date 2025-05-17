@@ -25,13 +25,12 @@ function showGame(gameName) {
   // Скрыть главное меню
   document.querySelector(".menu-container").classList.add("hidden");
 
-  // Удаляем предыдущий скрипт
+  // Удаляем предыдущий скрипт, если он был
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
-  // Загружаем нужную игру
   if (gameName === "alias") {
     loadGameScript("games/alias.js", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
@@ -45,7 +44,7 @@ function showGame(gameName) {
     loadGameScript("games/describe-char.js", () => startDescribeCharacterGame(wordsUrl));
   } else if (gameName === "spy") {
     const locationsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/spy_locations.json ";
-    loadGameScript("games/spy", () => startSpyGame(locationsUrl));
+    loadGameScript("games/spy.js", () => startSpyGame(locationsUrl));
   }
 }
 
