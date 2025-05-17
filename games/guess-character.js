@@ -4,7 +4,7 @@ let guessCurrentPlayer = 1;
 function startGuessCharacterGame(charsUrl) {
   fetch(charsUrl)
     .then(res => {
-      if (!res.ok) throw new Error(`Сетевой ответ: ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
       return res.json();
     })
     .then(chars => {
