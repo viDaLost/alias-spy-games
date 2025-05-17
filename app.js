@@ -7,11 +7,6 @@ async function loadJSON(url) {
   return await res.json();
 }
 
-// Перемешивание массива
-function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
-}
-
 // Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
@@ -20,32 +15,23 @@ function showGame(gameName) {
   // Скрыть главное меню
   document.querySelector(".menu-container").classList.add("hidden");
 
-  // Удаляем предыдущий скрипт
+  // Удаляем старый скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
   if (gameName === "alias") {
-    const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/alias_words.json ";
-    loadJSON(url).then(words => {
-      loadGameScript("alias", () => startAliasGame(words));
-    });
+    loadGameScript("alias", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
-    loadJSON(url).then(themes => {
-      loadGameScript("coimaginarium", () => startCoimaginariumGame(themes));
-    });
+    loadGameScript("coimaginarium", () => startCoimaginariumGame(url));
   } else if (gameName === "guess") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
-    loadJSON(url).then(chars => {
-      loadGameScript("guess-character", () => startGuessCharacterGame(chars));
-    });
+    loadGameScript("guess-character", () => startGuessCharacterGame(url));
   } else if (gameName === "describe") {
     const url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
-    loadJSON(url).then(chars => {
-      loadGameScript("describe-char", () => startDescribeCharacterGame(chars));
-    });
+    loadGameScript("describe-char", () => startDescribeCharacterGame(url));
   }
 }
 
