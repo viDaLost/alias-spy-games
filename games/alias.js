@@ -43,7 +43,6 @@ async function loadAliasWords(difficulty) {
 // Показ формы для выбора времени
 function showAliasSetup(words, difficulty) {
   const container = document.getElementById("game-container");
-
   const difficultyName = getDifficultyName(difficulty);
 
   container.innerHTML = `
@@ -51,7 +50,7 @@ function showAliasSetup(words, difficulty) {
     <p><strong>Выберите время (1–60 секунд):</strong></p>
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
-    <button onclick="startAliasTimer('${difficultyName.toLowerCase()}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
+    <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
   `;
 }
