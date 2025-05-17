@@ -20,7 +20,7 @@ function startAliasGame() {
   `;
 }
 
-// Загрузка слов из JSON по уровню
+// Загрузка слов по уровню
 async function loadAliasWords(difficulty) {
   let url = "";
   if (difficulty === "easy") {
@@ -35,12 +35,12 @@ async function loadAliasWords(difficulty) {
     const words = await loadJSON(url);
     showAliasSetup(words, difficulty);
   } catch (e) {
-    alert("Ошибка загрузки слов. Проверьте подключение к интернету.");
+    alert("Ошибка загрузки слов.");
     console.error(e);
   }
 }
 
-// Форма выбора времени
+// Настройка уровня и времени
 function showAliasSetup(words, difficulty) {
   const container = document.getElementById("game-container");
   const difficultyName = getDifficultyName(difficulty);
@@ -50,7 +50,7 @@ function showAliasSetup(words, difficulty) {
     <p><strong>Выберите время (1–60 секунд):</strong></p>
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
-    <button onclick="startAliasTimer('${difficulty}', ['${words.join("','")}')]" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
+    <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
   `;
 }
@@ -64,8 +64,8 @@ function getDifficultyName(difficulty) {
   }[difficulty] || "Неизвестный";
 }
 
-// Запуск таймера и слов
-function startAliasTimer(difficulty, words) {
+// Запуск таймера и игры
+async function startAliasTimer(difficulty) {
   const input = document.getElementById("timerValue").value;
   let seconds = parseInt(input);
 
@@ -74,61 +74,75 @@ function startAliasTimer(difficulty, words) {
     return;
   }
 
-  aliasWords = eval(words); // Преобразование строки обратно в массив
-  aliasWords = shuffleArray([...aliasWords]);
-  aliasIndex = 0;
-  guessedAlias = [];
+  let url = "";
+  if (difficulty === "easy") {
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/easy_words.json ";
+  } else if (difficulty === "medium") {
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/medium_words.json ";
+  } else if (difficulty === "hard") {
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/hard_words.json ";
+  }
 
-  const timerEl = document.createElement("p");
-  timerEl.id = "alias-timer";
-  timerEl.style.fontSize = "2rem";
-  timerEl.style.textAlign = "center";
-  timerEl.style.marginTop = "20px";
-  timerEl.textContent = `${seconds} секунд`;
+  try {
+    const words = await loadJSON(url);
+    aliasWords = shuffleArray([...words]);
+    aliasIndex = 0;
+    guessedAlias = [];
 
-  const wordEl = document.createElement("div");
-  wordEl.id = "alias-word";
-  wordEl.style.margin = "20px 0";
-  wordEl.style.fontSize = "1.5rem";
-  wordEl.style.textAlign = "center";
-
-  const controls = document.createElement("div");
-  controls.style.display = "flex";
-  controls.style.gap = "10px";
-  controls.style.justifyContent = "center";
-  controls.style.marginTop = "20px";
-
-  controls.innerHTML = `
-    <button onclick="markGuessed(true)" style="flex:1; padding:15px; background:#28a745; color:white;">✅ Отгадано</button>
-    <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white;">❌ Не отгадано</button>
-  `;
-
-  const buttonContainer = document.getElementById("game-container");
-  buttonContainer.innerHTML = "";
-
-  buttonContainer.appendChild(timerEl);
-  buttonContainer.appendChild(wordEl);
-  buttonContainer.appendChild(controls);
-  buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>`;
-
-  showNextAliasWord();
-
-  window.aliasInterval = setInterval(() => {
-    seconds--;
+    const timerEl = document.createElement("p");
+    timerEl.id = "alias-timer";
+    timerEl.style.fontSize = "2rem";
+    timerEl.style.textAlign = "center";
+    timerEl.style.marginTop = "20px";
     timerEl.textContent = `${seconds} секунд`;
-    if (seconds <= 10) timerEl.style.color = "red";
-    if (seconds <= 0) {
-      clearInterval(window.aliasInterval);
-      timerEl.textContent = "⏰ Время вышло!";
-      setTimeout(() => {
-        while (aliasIndex < aliasWords.length) {
-          guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
-          aliasIndex++;
-        }
-        showAliasResults();
-      }, 1000);
-    }
-  }, 1000);
+
+    const wordEl = document.createElement("div");
+    wordEl.id = "alias-word";
+    wordEl.style.margin = "20px 0";
+    wordEl.style.fontSize = "1.5rem";
+    wordEl.style.textAlign = "center";
+
+    const controls = document.createElement("div");
+    controls.style.display = "flex";
+    controls.style.gap = "10px";
+    controls.style.justifyContent = "center";
+    controls.style.marginTop = "20px";
+
+    controls.innerHTML = `
+      <button onclick="markGuessed(true)" style="flex:1; padding:15px; background:#28a745; color:white;">✅ Отгадано</button>
+      <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white;">❌ Не отгадано</button>
+    `;
+
+    const buttonContainer = document.getElementById("game-container");
+    buttonContainer.innerHTML = "";
+
+    buttonContainer.appendChild(timerEl);
+    buttonContainer.appendChild(wordEl);
+    buttonContainer.appendChild(controls);
+    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>`;
+
+    showNextAliasWord();
+
+    window.aliasInterval = setInterval(() => {
+      seconds--;
+      timerEl.textContent = `${seconds} секунд`;
+      if (seconds <= 10) timerEl.style.color = "red";
+      if (seconds <= 0) {
+        clearInterval(window.aliasInterval);
+        timerEl.textContent = "⏰ Время вышло!";
+        setTimeout(() => {
+          while (aliasIndex < aliasWords.length) {
+            guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
+            aliasIndex++;
+          }
+          showAliasResults();
+        }, 1000);
+      }
+    }, 1000);
+  } catch (e) {
+    alert("Ошибка при начале игры.");
+    console.error(e);
+  }
 }
 
 // Показать следующее слово
@@ -167,12 +181,12 @@ function showAliasResults() {
   container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>`;
 }
 
-// Перемешивание массива
+// Перемешивание
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Функция загрузки JSON
+// Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
   return await res.json();
