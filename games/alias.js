@@ -5,6 +5,7 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
+  // Отображение уровней сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
     <p><strong>Правила:</strong> Выберите уровень сложности и объясняйте слова.</p>
@@ -23,11 +24,11 @@ function startAliasGame() {
 async function loadAliasWords(difficulty) {
   let url = "";
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/easy_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/easy_words.json ";
   } else if (difficulty === "medium") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/medium_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/medium_words.json ";
   } else if (difficulty === "hard") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/hard_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/hard_words.json ";
   }
 
   try {
@@ -75,11 +76,11 @@ async function startAliasTimer(difficulty) {
 
   let url = "";
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/easy_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/easy_words.json ";
   } else if (difficulty === "medium") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/medium_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/medium_words.json ";
   } else if (difficulty === "hard") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/hard_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/hard_words.json ";
   }
 
   try {
@@ -155,7 +156,7 @@ function showNextAliasWord() {
   wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметить как отгаданное / не отгаданное
+// Отметить как отгаданное или нет
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
