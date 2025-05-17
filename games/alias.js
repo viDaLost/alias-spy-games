@@ -20,7 +20,7 @@ function startAliasGame() {
   `;
 }
 
-// Загрузка слов из JSON по уровню сложности
+// Загрузка слов из JSON по уровню
 async function loadAliasWords(difficulty) {
   let url = "";
   if (difficulty === "easy") {
@@ -35,12 +35,12 @@ async function loadAliasWords(difficulty) {
     const words = await loadJSON(url);
     showAliasSetup(words, difficulty);
   } catch (e) {
-    alert("Ошибка загрузки слов.");
+    alert("Ошибка загрузки слов. Проверьте подключение к интернету.");
     console.error(e);
   }
 }
 
-// Показ формы для выбора времени
+// Форма выбора времени
 function showAliasSetup(words, difficulty) {
   const container = document.getElementById("game-container");
   const difficultyName = getDifficultyName(difficulty);
@@ -50,7 +50,7 @@ function showAliasSetup(words, difficulty) {
     <p><strong>Выберите время (1–60 секунд):</strong></p>
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
-    <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
+    <button onclick="startAliasTimer('${difficulty}', ['${words.join("','")}')]" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
   `;
 }
@@ -64,34 +64,18 @@ function getDifficultyName(difficulty) {
   }[difficulty] || "Неизвестный";
 }
 
-// Запуск таймера и игры
-function startAliasTimer(difficultyLevel) {
+// Запуск таймера и слов
+function startAliasTimer(difficulty, words) {
   const input = document.getElementById("timerValue").value;
   let seconds = parseInt(input);
 
   if (isNaN(seconds) || seconds < 1 || seconds > 60) {
-    alert("Введите число от 1 до 60");
+    alert("Введите число от 1 до 60.");
     return;
   }
 
-  // Получаем список слов соответствующего уровня
-  let wordsList;
-
-  if (difficultyLevel === "easy") {
-    wordsList = [
-      "Кошка", "Машина", "Солнце", "Дерево", "Цветок"
-    ];
-  } else if (difficultyLevel === "medium") {
-    wordsList = [
-      "Банкомат", "Элеватор", "Парашют", "Гвоздь", "Радио"
-    ];
-  } else if (difficultyLevel === "hard") {
-    wordsList = [
-      "Инфракрасный", "Квантовый", "Философия", "Электричество", "Амплуа"
-    ];
-  }
-
-  aliasWords = shuffleArray([...wordsList]);
+  aliasWords = eval(words); // Преобразование строки обратно в массив
+  aliasWords = shuffleArray([...aliasWords]);
   aliasIndex = 0;
   guessedAlias = [];
 
@@ -106,7 +90,7 @@ function startAliasTimer(difficultyLevel) {
   wordEl.id = "alias-word";
   wordEl.style.margin = "20px 0";
   wordEl.style.fontSize = "1.5rem";
-  wordEl.style.text-align = "center";
+  wordEl.style.textAlign = "center";
 
   const controls = document.createElement("div");
   controls.style.display = "flex";
@@ -159,7 +143,7 @@ function showNextAliasWord() {
   wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметить слово как отгаданное или нет
+// Отметить слово как отгаданное / не отгаданное
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
