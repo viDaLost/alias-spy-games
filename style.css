@@ -15,17 +15,21 @@ header {
   padding: 1rem;
 }
 
+/* Контейнер меню */
 .menu-container {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 1rem;
+  transition: opacity 0.3s ease;
+  z-index: 1;
 }
 
 .menu-container.hidden {
   display: none;
 }
 
+/* Кнопки меню */
 .menu-container button,
 .game-container button {
   width: 100%;
@@ -46,6 +50,7 @@ header {
   background-color: #357ABD;
 }
 
+/* Карточки */
 .card {
   background: white;
   border: 1px solid #ccc;
