@@ -156,7 +156,7 @@ function showNextAliasWord() {
   wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметить как отгаданное или нет
+// Отметить как отгаданное / не отгаданное
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
@@ -178,4 +178,15 @@ function showAliasResults() {
   container.innerHTML += "</ul>";
   container.innerHTML += `<button onclick="startAliasGame()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🔄 Новая игра</button>`;
   container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>`;
+}
+
+// Перемешивание
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// Загрузка JSON
+async function loadJSON(url) {
+  const res = await fetch(url);
+  return await res.json();
 }
