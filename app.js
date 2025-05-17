@@ -1,91 +1,91 @@
-// Глобальные переменные
+// Глобальная переменная для текущего скрипта
 let currentGameScript = null;
+
+// Функция загрузки JSON
+async function loadJSON(url) {
+  const res = await fetch(url);
+  return await res.json();
+}
+
+// Перемешивание массива
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
 
 // Показать игру
 function showGame(gameName) {
   const container = document.getElementById("game-container");
-  if (!container) {
-    alert("Ошибка: контейнер игры не найден!");
-    return;
-  }
-
-  // Скрыть меню
-  const menu = document.getElementById("menu-container");
-  if (!menu) {
-    alert("Ошибка: главное меню не найдено!");
-    return;
-  }
-  menu.style.display = "none";
   container.innerHTML = "<p>Загрузка игры...</p>";
 
-  // Удаляем старый скрипт
+  // Скрыть главное меню
+  document.querySelector(".menu-container").classList.add("hidden");
+
+  // Удаляем предыдущий скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
-  // Загружаем новую игру
   if (gameName === "alias") {
-    loadGameScript("games/alias.js", () => startAlias());
+    loadGameScript("alias", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
-    loadGameScript("games/coimaginarium.js", () => startCoimaginarium());
+    const themesUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/coimaginarium_themes.json ";
+    loadGameScript("coimaginarium", () => startCoimaginariumGame(themesUrl));
   } else if (gameName === "guess") {
-    loadGameScript("games/guess-character.js", () => startGuessCharacter());
+    const charsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/characters.json ";
+    loadGameScript("guess-character", () => startGuessCharacterGame(charsUrl));
   } else if (gameName === "describe") {
-    loadGameScript("games/describe-char.js", () => startDescribeCharacter());
+    const wordsUrl = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/describe_words.json ";
+    loadGameScript("describe-char", () => startDescribeCharacterGame(wordsUrl));
   }
 }
 
-// Функция загрузки JS-файла
-function loadGameScript(path, callback) {
+// Подключение JS-файла игры
+function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
-  script.src = path;
+  script.src = `games/${fileName}.js`;
   script.onload = callback;
   script.onerror = () => {
-    document.getElementById("game-container").innerHTML = `
-      <p style="color:red;">❌ Ошибка загрузки игры.</p>
-      <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white;">⬅️ Главное меню</button>
-    `;
+    alert(`Ошибка: файл ${fileName}.js не найден`);
   };
   document.body.appendChild(script);
   currentGameScript = script;
 }
 
-// Показ техподдержки
-function showSupport() {
-  const menu = document.getElementById("menu-container");
+// Вернуться в главное меню
+function goToMainMenu() {
   const container = document.getElementById("game-container");
+  container.innerHTML = "";
 
-  if (!menu || !container) {
-    alert("Ошибка: элементы интерфейса не найдены.");
-    return;
+  // Показываем главное меню снова
+  document.querySelector(".menu-container").classList.remove("hidden");
+
+  // Очистка таймеров
+  if (window.aliasInterval) clearInterval(window.aliasInterval);
+  if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
+
+  // Очистка текущего скрипта
+  if (currentGameScript) {
+    currentGameScript.remove();
+    currentGameScript = null;
   }
+}
 
-  menu.style.display = "none";
+// Открытие формы техподдержки
+function openSupport() {
+  const container = document.getElementById("game-container");
   container.innerHTML = `
     <h2>📞 Техподдержка</h2>
     <p><strong>Если приложение глючит или не отвечает:</strong></p>
-    <p>Проверьте своё подключение к интернету. Если проблема не решилась — напишите нам.</p>
+    <p>Проверьте своё подключение к интернету. Если проблема не решилась — нажмите на кнопку ниже и опишите свою проблему.</p>
+    <p>Вы можете также предложить улучшения или идеи для новых игр.</p>
+    
     <button onclick="goToTelegram()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">💬 Написать в Telegram</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
   `;
 }
 
-// Возврат в главное меню
-function goToMainMenu() {
-  const container = document.getElementById("game-container");
-  const menu = document.getElementById("menu-container");
-
-  if (!menu || !container) {
-    alert("Ошибка: не найдены элементы главного меню или контейнера");
-    return;
-  }
-
-  container.innerHTML = "";
-  menu.style.display = "flex";
-}
-
 // Переход в чат Telegram
 function goToTelegram() {
-  window.open("https://t.me/@D_a_n_Vi"_blank");
+  window.open("https://t.me/@D_a_n_Vi");
 }
