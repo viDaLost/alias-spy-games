@@ -3,12 +3,10 @@ let guessCurrentPlayer = 1;
 
 function startGuessCharacterGame(charsUrl) {
   fetch(charsUrl)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
-      return res.json();
-    })
+    .then(res => res.json())
     .then(chars => {
-      guessCharacters = shuffleArray([...chars]);
+      // Ограничиваем до 2 игроков
+      guessCharacters = shuffleArray([...chars]).slice(0, 2);
       guessCurrentPlayer = 1;
       nextGuessPlayer();
     })
@@ -22,12 +20,7 @@ function startGuessCharacterGame(charsUrl) {
 
 function nextGuessPlayer() {
   const container = document.getElementById("game-container");
-
-  // Очищаем контейнер перед показом нового игрока
-  container.innerHTML = `
-    <h2>👥 Угадай персонажа</h2>
-    <p><strong>Правила:</strong> Один игрок получает имя персонажа. Другой должен угадать его.</p>
-  `;
+  container.innerHTML = `<h2>👥 Угадай персонажа</h2>`;
 
   if (guessCurrentPlayer > guessCharacters.length) {
     container.innerHTML += "<h3>🎉 Все персонажи описаны!</h3>";
@@ -36,6 +29,7 @@ function nextGuessPlayer() {
   }
 
   container.innerHTML += `
+    <p><strong>Двум игрокам по очереди показываются разные персонажи. Задача — угадать персонажа другого игрока.</strong></p>
     <div class="card" style="text-align:center;">
       <strong>Игрок ${guessCurrentPlayer}</strong>, ваш персонаж:
       <h3 style="color:#4a90e2; margin:10px 0;">${guessCharacters[guessCurrentPlayer - 1]}</h3>
