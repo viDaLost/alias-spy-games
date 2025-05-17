@@ -7,7 +7,6 @@ body {
   color: #333;
 }
 
-/* Заголовок */
 header {
   background: #4a90e2;
   color: white;
@@ -15,7 +14,6 @@ header {
   padding: 1rem;
 }
 
-/* Контейнер меню */
 .menu-container {
   display: flex;
   flex-direction: column;
@@ -27,23 +25,26 @@ header {
   display: none;
 }
 
-/* Кнопки меню */
-.menu-container button {
+.menu-container button,
+.game-container button {
   width: 100%;
   padding: 15px;
   font-size: 16px;
   border: none;
   border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.menu-container button {
   background-color: #4a90e2;
   color: white;
-  cursor: pointer;
 }
 
 .menu-container button:hover {
   background-color: #357ABD;
 }
 
-/* Карточки в играх */
 .card {
   background: white;
   border: 1px solid #ccc;
