@@ -87,5 +87,5 @@ function openSupport() {
 
 // Переход в чат Telegram
 function goToTelegram() {
-  window.open("https://t.me/@D_a_n_Vi"_blank");
+  window.open("https://t.me/D_a_n_Vi"_blank");
 }
