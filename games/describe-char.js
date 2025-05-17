@@ -59,7 +59,7 @@ function nextDescribePlayer() {
   }
 
   container.innerHTML += `
-    <p><strong>Игрок ${describeIndex + 1}</strong>, ваш персонаж:</p>
+    <p><strong>Игрок ${describeIndex + 1}</strong>, Ваше слово:</p>
     <div class="card" style="text-align:center;">
       <h3 style="color:#4a90e2; margin:10px 0;">${describePlayers[describeIndex]}</h3>
       <small>Опишите его, чтобы другие догадались.</small>
