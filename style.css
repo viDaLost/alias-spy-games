@@ -1,56 +1,151 @@
-/* Базовые стили */
-body {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f5f5f5;
-  margin: 0;
-  padding: 0;
-  color: #333;
+/* Общие стили */
+:root {
+  --bg-color: #fdfaf4;
+  --accent-color: #dbeafe;
+  --text-color: #2d2d2d;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --button-hover: #bfdbfe;
 }
 
-/* Заголовок */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background-color 0.3s ease;
+}
+
 header {
-  background: #4a90e2;
-  color: white;
+  width: 100%;
   text-align: center;
-  padding: 1rem;
+  padding: 1.5rem 1rem;
+  background: linear-gradient(to right, #dbeafe, #ffffff);
+  box-shadow: 0 4px 12px var(--shadow);
+  position: relative;
+  z-index: 0;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  margin: 0;
+  z-index: 1;
+  position: relative;
+}
+
+.book-icon {
+  display: inline-block;
+  transform: rotate(-10deg);
+  animation: swing 6s ease-in-out infinite;
+  transition: transform 0.3s ease;
+}
+
+@keyframes swing {
+  0% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+  100% { transform: rotate(-10deg); }
 }
 
 .menu-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 1rem;
   padding: 1rem;
+  max-width: 400px;
+  width: 90%;
+  margin-top: 2rem;
 }
 
 .menu-container.hidden {
   display: none;
 }
 
-.menu-container button,
-.game-container button {
-  width: 100%;
-  padding: 15px;
-  font-size: 16px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
 .menu-container button {
-  background-color: #4a90e2;
-  color: white;
+  background-color: var(--accent-color);
+  border: none;
+  padding: 16px 20px;
+  font-size: 1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px var(--shadow);
+  transition: all 0.2s ease-in-out;
 }
 
 .menu-container button:hover {
-  background-color: #357ABD;
+  background-color: var(--button-hover);
+  transform: scale(1.02);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+}
+
+.menu-container button:active {
+  transform: scale(0.99);
+}
+
+#game-container {
+  padding: 1rem;
+  width: 100%;
+  max-width: 400px;
+  animation: fadeIn 0.6s ease-out;
 }
 
 .card {
   background: white;
-  border: 1px solid #ccc;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 12px var(--shadow);
+  text-align: center;
+  font-size: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.intro {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: introShow 1s ease forwards;
+}
+
+@keyframes introShow {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  .menu-container button {
+    font-size: 1.1rem;
+    padding: 18px 20px;
+  }
+
+  .card {
+    font-size: 1.1rem;
+  }
 }
