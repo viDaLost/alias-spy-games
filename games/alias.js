@@ -5,10 +5,10 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Отображение уровней сложности
+  // Показываем уровни сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
-    <p><strong>Выберите уровень сложности:</strong></p>
+    <p><strong>Выберите уровень:</strong></p>
 
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" style="width:100%; padding:15px; font-size:16px;">🟢 Лёгкий</button><br>
@@ -25,17 +25,17 @@ async function loadAliasWords(difficulty) {
   let url = "";
 
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/easy_bible_words.json ";
+    url = "data/easy_bible_words.json";
   } else if (difficulty === "medium") {
-    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/medium_bible_words.json ";
+    url = "data/medium_bible_words.json";
   } else if (difficulty === "hard") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/hard_bible_words.json";
+    url = "data/hard_bible_words.json";
   }
 
+  alert("Загружаю слова по пути: " + url);
+
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ошибка: ${response.status}`);
-    const words = await response.json();
+    const words = await loadJSON(url);
     showAliasSetup(words, difficulty);
   } catch (e) {
     alert(`Ошибка загрузки слов: ${e.message}`);
@@ -79,18 +79,17 @@ async function startAliasTimer(difficulty) {
 
   let url = "";
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/easy_bible_words.json ";
+    url = "data/easy_bible_words.json";
   } else if (difficulty === "medium") {
-    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/medium_bible_words.json ";
+    url = "data/medium_bible_words.json";
   } else if (difficulty === "hard") {
-    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/hard_bible_words.json ";
+    url = "data/hard_bible_words.json";
   }
 
   try {
     const words = await loadJSON(url);
     aliasWords = shuffleArray([...words]);
     aliasIndex = 0;
-    guessedAlias = [];
 
     const timerEl = document.createElement("p");
     timerEl.id = "alias-timer";
@@ -191,5 +190,8 @@ function shuffleArray(arr) {
 // Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Ошибка HTTP: ${res.status} при загрузке ${url}`);
+  }
   return await res.json();
 }
