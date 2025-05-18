@@ -76,7 +76,7 @@ async function startAliasTimer(difficulty) {
 
   let url = "";
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/easy_bible_words.json";
+    url = "https://raw.githubusercontent.com/vidalost/alias-spy-games/main/data/easy_bible_words.json ";
   } else if (difficulty === "medium") {
     url = "https://raw.githubusercontent.com/vid алост/alias-spy-games/main/data/medium_bible_words.json";
   } else if (difficulty === "hard") {
@@ -148,15 +148,14 @@ async function startAliasTimer(difficulty) {
 function showNextAliasWord() {
   const wordEl = document.getElementById("alias-word");
 
-  // Фильтруем уже угаданные или просмотренные
-  const unguessed = aliasWords.filter((word, idx) => !guessedAlias.some(g => g.word === word && g.correct));
-  const unshown = aliasWords.filter(w => !guessedAlias.map(g => g.word).includes(w));
-
-  if (unshown.length === 0) {
+  // Фильтруем уже угаданные слова
+  const unguessed = aliasWords.filter((word, idx) => !guessedAlias.some(g => g.word === word));
+  if (unguessed.length === 0) {
     const container = document.getElementById("game-container");
     container.innerHTML = `
-      <h2>🏁 Все слова на уровне "${getDifficultyName(aliasWords.difficulty)}" показаны!</h2>
-      <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white;">⬅️ Вернуться в главное меню</button>
+      <h2>🏁 Все слова на уровне "${getDifficultyName(aliasWords.difficulty}" показаны!</h2>
+      <button onclick="startAliasGame()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">🔄 Новая игра</button>
+      <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
     `;
     if (window.aliasInterval) clearInterval(window.aliasInterval);
     return;
@@ -166,11 +165,10 @@ function showNextAliasWord() {
     aliasIndex = 0;
   }
 
-  const currentWord = aliasWords[aliasIndex];
-  wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${currentWord}</div>`;
+  wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметить слово как отгаданное / не отгаданное
+// Отметить как отгаданное / не отгаданное
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
