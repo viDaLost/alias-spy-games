@@ -5,10 +5,10 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Отображение уровней сложности
+  // Показываем уровни сложности
   container.innerHTML = `
-    <h2>🎮 Алиас</h2>
-    <p><strong>Выберите уровень:</strong></p>
+    <h2 class="fade-in">🎮 Алиас</h2>
+    <p><strong>Выберите уровень сложности:</strong></p>
 
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" style="width:100%; padding:15px; font-size:16px;">🟢 Лёгкий</button><br>
@@ -16,35 +16,27 @@ function startAliasGame() {
       <button onclick="loadAliasWords('hard')" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🔴 Тяжёлый</button><br>
     </div>
 
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Вернуться</button>
   `;
 }
-
-// Резервные слова на случай ошибки
-const LOCAL_WORDS = {
-  easy: ["Вера", "Любовь", "Молитва", "Пост", "Милосердие"],
-  medium: ["Пророк", "Жертва", "Плоть", "Дух", "Спаситель"],
-  hard: ["Агнец Божий", "Слово плоть бысть", "Не сотвори кумира", "Первые будут последними", "Кто без греха пусть первый бросит камень"]
-};
 
 // Загрузка слов из JSON по уровню
 async function loadAliasWords(difficulty) {
   let url = "";
-
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/easy_bible_words.json ";
+    url = "data/easy_bible_words.json";
   } else if (difficulty === "medium") {
-    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/medium_bible_words.json ";
+    url = "data/medium_bible_words.json";
   } else if (difficulty === "hard") {
-    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/hard_bible_words.json ";
+    url = "data/hard_bible_words.json";
   }
 
   try {
     const words = await loadJSON(url);
     showAliasSetup(words, difficulty);
   } catch (e) {
-    console.warn(`Ошибка загрузки с GitHub → используем резервные слова`);
-    showAliasSetup(LOCAL_WORDS[difficulty], difficulty);
+    alert("Ошибка загрузки слов.");
+    console.error(e);
   }
 }
 
@@ -58,7 +50,7 @@ function showAliasSetup(words, difficulty) {
     <p><strong>Выберите время (1–60 секунд):</strong></p>
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
-    <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
+    <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4f46e5; color:white;">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
   `;
 }
@@ -84,11 +76,11 @@ async function startAliasTimer(difficulty) {
 
   let url = "";
   if (difficulty === "easy") {
-    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/easy_bible_words.json ";
+    url = "data/easy_bible_words.json";
   } else if (difficulty === "medium") {
-    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/medium_bible_words.json ";
+    url = "data/medium_bible_words.json";
   } else if (difficulty === "hard") {
-    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/hard_bible_words.json ";
+    url = "data/hard_bible_words.json";
   }
 
   try {
@@ -116,8 +108,8 @@ async function startAliasTimer(difficulty) {
     controls.style.marginTop = "20px";
 
     controls.innerHTML = `
-      <button onclick="markGuessed(true)" style="flex:1; padding:15px; background:#28a745; color:white;">✅ Отгадано</button>
-      <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white;">❌ Не отгадано</button>
+      <button onclick="markGuessed(true)" style="flex:1; padding:15px; background:#28a745; color:white; border-radius:12px;">✅ Отгадано</button>
+      <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white; border-radius:12px;">❌ Не отгадано</button>
     `;
 
     const buttonContainer = document.getElementById("game-container");
@@ -126,7 +118,7 @@ async function startAliasTimer(difficulty) {
     buttonContainer.appendChild(timerEl);
     buttonContainer.appendChild(wordEl);
     buttonContainer.appendChild(controls);
-    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Вернуться</button>`;
+    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px; border-radius:12px;">⬅️ Главное меню</button>`;
 
     showNextAliasWord();
 
@@ -161,10 +153,10 @@ function showNextAliasWord() {
     return;
   }
 
-  wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${aliasWords[aliasIndex]}</div>`;
+  wordEl.innerHTML = `<div class="card">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметить как угаданное / не угаданное
+// Отметка как угаданное / не угаданное
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
@@ -184,8 +176,8 @@ function showAliasResults() {
   });
 
   container.innerHTML += "</ul>";
-  container.innerHTML += `<button onclick="startAliasGame()" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🔄 Новая игра</button>`;
-  container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>`;
+  container.innerHTML += `<button onclick="startAliasGame()" style="width:100%; padding:15px; font-size:16px; background:#4f46e5; color:white; margin-top:10px; border-radius:12px;">🔄 Новая игра</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px; border-radius:12px;">⬅️ Главное меню</button>`;
 }
 
 // Перемешивание массива
@@ -196,6 +188,5 @@ function shuffleArray(arr) {
 // Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
   return await res.json();
 }
