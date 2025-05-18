@@ -2,19 +2,20 @@
 :root {
   --bg-color: #fdfaf4;
   --accent-color: #dbeafe;
+  --accent-hover: #bfdbfe;
+  --accent-active: #4f46e5;
   --text-color: #2d2d2d;
   --shadow: rgba(0, 0, 0, 0.08);
-  --button-hover: #bfdbfe;
 }
 
 * {
   box-sizing: border-box;
-}
-
-body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
+}
+
+body {
   background-color: var(--bg-color);
   color: var(--text-color);
   min-height: 100vh;
@@ -24,12 +25,38 @@ body {
   transition: background-color 0.3s ease;
 }
 
+/* Анимация книги */
+.book-animation-container {
+  text-align: center;
+  margin-top: 2rem;
+  animation: bookFlip 6s infinite;
+}
+
+@keyframes bookFlip {
+  0% { transform: rotate(-5deg); }
+  25% { transform: rotate(5deg); }
+  50% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+  100% { transform: rotate(-5deg); }
+}
+
+.book-spread {
+  display: inline-block;
+  animation: pageTurn 2s ease-in-out infinite alternate;
+}
+
+@keyframes pageTurn {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(10deg); }
+}
+
+/* Заголовок */
 header {
   width: 100%;
   text-align: center;
   padding: 1.5rem 1rem;
   background: linear-gradient(to right, #dbeafe, #ffffff);
-  box-shadow: 0 4px 12px var(--shadow);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 0;
 }
@@ -41,27 +68,15 @@ header h1 {
   position: relative;
 }
 
-.book-icon {
-  display: inline-block;
-  transform: rotate(-10deg);
-  animation: swing 6s ease-in-out infinite;
-  transition: transform 0.3s ease;
-}
-
-@keyframes swing {
-  0% { transform: rotate(-10deg); }
-  50% { transform: rotate(10deg); }
-  100% { transform: rotate(-10deg); }
-}
-
+/* Главное меню */
 .menu-container {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
   max-width: 400px;
   width: 90%;
   margin-top: 2rem;
+  text-align: center;
 }
 
 .menu-container.hidden {
@@ -77,25 +92,21 @@ header h1 {
   cursor: pointer;
   box-shadow: 0 4px 10px var(--shadow);
   transition: all 0.2s ease-in-out;
+  color: var(--text-color);
+  font-weight: 600;
 }
 
 .menu-container button:hover {
-  background-color: var(--button-hover);
+  background-color: var(--accent-hover);
   transform: scale(1.02);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
 .menu-container button:active {
   transform: scale(0.99);
 }
 
-#game-container {
-  padding: 1rem;
-  width: 100%;
-  max-width: 400px;
-  animation: fadeIn 0.6s ease-out;
-}
-
+/* Карточки слов */
 .card {
   background: white;
   border-radius: 12px;
@@ -111,6 +122,7 @@ header h1 {
   transform: translateY(-4px);
 }
 
+/* Появление элементов */
 .fade-in {
   opacity: 0;
   animation: fadeIn 0.8s ease forwards;
@@ -122,6 +134,7 @@ header h1 {
   }
 }
 
+/* Интро-анимация */
 .intro {
   opacity: 0;
   transform: translateY(20px);
@@ -135,6 +148,7 @@ header h1 {
   }
 }
 
+/* Адаптация под мобилки */
 @media (max-width: 480px) {
   header h1 {
     font-size: 1.5rem;
