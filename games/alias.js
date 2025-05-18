@@ -5,10 +5,10 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Показываем уровни сложности
+  // Отображение уровней сложности
   container.innerHTML = `
-    <h2 class="fade-in">🎮 Алиас</h2>
-    <p><strong>Выберите уровень сложности:</strong></p>
+    <h2>🎮 Алиас</h2>
+    <p><strong>Выберите уровень:</strong></p>
 
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" style="width:100%; padding:15px; font-size:16px;">🟢 Лёгкий</button><br>
@@ -23,6 +23,7 @@ function startAliasGame() {
 // Загрузка слов из JSON по уровню
 async function loadAliasWords(difficulty) {
   let url = "";
+
   if (difficulty === "easy") {
     url = "data/easy_bible_words.json";
   } else if (difficulty === "medium") {
@@ -35,7 +36,7 @@ async function loadAliasWords(difficulty) {
     const words = await loadJSON(url);
     showAliasSetup(words, difficulty);
   } catch (e) {
-    alert("Ошибка загрузки слов.");
+    alert(`Ошибка загрузки слов: ${e.message}`);
     console.error(e);
   }
 }
@@ -156,7 +157,7 @@ function showNextAliasWord() {
   wordEl.innerHTML = `<div class="card">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметка как угаданное / не угаданное
+// Отметить как угаданное / не угаданное
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
