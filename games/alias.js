@@ -20,6 +20,13 @@ function startAliasGame() {
   `;
 }
 
+// Резервные слова на случай ошибки
+const LOCAL_WORDS = {
+  easy: ["Вера", "Любовь", "Молитва", "Пост", "Милосердие"],
+  medium: ["Пророк", "Жертва", "Плоть", "Дух", "Спаситель"],
+  hard: ["Агнец Божий", "Слово плоть бысть", "Не сотвори кумира", "Первые будут последними", "Кто без греха пусть первый бросит камень"]
+};
+
 // Загрузка слов из JSON по уровню
 async function loadAliasWords(difficulty) {
   let url = "";
@@ -32,14 +39,12 @@ async function loadAliasWords(difficulty) {
     url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/hard_bible_words.json ";
   }
 
-  alert("Загружаю слова по URL: " + url);
-
   try {
     const words = await loadJSON(url);
     showAliasSetup(words, difficulty);
   } catch (e) {
-    alert(`Ошибка загрузки слов: ${e.message}`);
-    console.error(e);
+    console.warn(`Ошибка загрузки с GitHub → используем резервные слова`);
+    showAliasSetup(LOCAL_WORDS[difficulty], difficulty);
   }
 }
 
@@ -54,7 +59,7 @@ function showAliasSetup(words, difficulty) {
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
     <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
   `;
 }
 
