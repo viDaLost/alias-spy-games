@@ -2,24 +2,36 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Игры для компании</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Библейские игры</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter :wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- Заголовок -->
-  <header>
-    <h1>📖Библейские игры📖</h1>
-  </header>
+  <!-- Интро анимация -->
+  <div class="intro" id="intro">
+    <div style="text-align: center;">
+      <svg class="book-icon" width="60" height="80" viewBox="0 0 100 130" fill="none">
+        <rect x="10" y="10" width="80" height="100" rx="8" fill="#c7d2fe"/>
+        <rect x="15" y="15" width="70" height="90" rx="6" fill="#e0e7ff"/>
+        <path d="M20 20V100H80V20" stroke="#4f46e5" stroke-width="3" fill="none"/>
+        <line x1="20" y1="40" x2="80" y2="40" stroke="#4f46e5" stroke-width="2" stroke-dasharray="5,5"/>
+        <line x1="20" y1="60" x2="80" y2="60" stroke="#4f46e5" stroke-width="2" stroke-dasharray="5,5"/>
+        <line x1="20" y1="80" x2="80" y2="80" stroke="#4f46e5" stroke-width="2" stroke-dasharray="5,5"/>
+      </svg>
+      <h1>📖Библейские игры📖</h1>
+    </div>
+  </div>
 
   <!-- Меню выбора игр -->
   <div class="menu-container" id="menu-container">
     <button onclick="showGame('alias')">🎮 Алиас</button>
     <button onclick="showGame('coimaginarium')">🧠 Соображариум</button>
     <button onclick="showGame('guess')">👥 Угадай персонажа</button>
-    <button onclick="showGame('describe')">🗣️ Опиши, но не называй</button>
-    <button onclick="showGame('spy')">🕵️‍♂️ Шпион</button>
+    <button onclick="showGame('describe')">🗣 Опиши, но не называй</button>
+    <button onclick="showGame('spy')">🕵️‍♂ Шпион</button>
   </div>
 
   <!-- Контейнер для игр -->
