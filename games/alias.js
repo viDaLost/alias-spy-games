@@ -2,14 +2,14 @@ let aliasWords = [];
 let aliasIndex = 0;
 let guessedAlias = [];
 
-// Функция запуска уровня сложности
+// Запуск игры
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
   // Показываем уровни сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
-    <p><strong>Выберите уровень сложности:</strong></p>
+    <p><strong>Выберите уровень:</strong></p>
 
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" style="width:100%; padding:15px; font-size:16px;">🟢 Лёгкий</button><br>
@@ -86,7 +86,7 @@ async function startAliasTimer(difficulty) {
 
   try {
     const words = await loadJSON(url);
-    aliasWords = shuffleArray([...words]);
+    aliasWords = [...words];
     aliasIndex = 0;
     guessedAlias = [];
 
