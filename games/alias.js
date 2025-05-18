@@ -5,18 +5,18 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Отображение уровней сложности
+  // Показываем уровни сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
     <p><strong>Выберите уровень:</strong></p>
 
     <div style="margin-bottom:15px;">
-      <button onclick="loadAliasWords('easy')" style="width:100%; padding:15px; font-size:16px;">🟢 Лёгкий</button><br>
-      <button onclick="loadAliasWords('medium')" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🟡 Средний</button><br>
-      <button onclick="loadAliasWords('hard')" style="width:100%; padding:15px; font-size:16px; margin-top:10px;">🔴 Тяжёлый</button><br>
+      <button onclick="loadAliasWords('easy')" class="menu-button">🟢 Лёгкий</button><br>
+      <button onclick="loadAliasWords('medium')" class="menu-button">🟡 Средний</button><br>
+      <button onclick="loadAliasWords('hard')" class="menu-button">🔴 Тяжёлый</button><br>
     </div>
 
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Вернуться</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>
   `;
 }
 
@@ -51,8 +51,8 @@ function showAliasSetup(words, difficulty) {
     <p><strong>Выберите время (1–60 секунд):</strong></p>
     <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
     
-    <button onclick="startAliasTimer('${difficulty}')" style="width:100%; padding:15px; font-size:16px; background:#4f46e5; color:white;">▶️ Начать игру</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
+    <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать игру</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
 
@@ -109,8 +109,8 @@ async function startAliasTimer(difficulty) {
     controls.style.marginTop = "20px";
 
     controls.innerHTML = `
-      <button onclick="markGuessed(true)" style="flex:1; padding:15px; background:#28a745; color:white; border-radius:12px;">✅ Отгадано</button>
-      <button onclick="markGuessed(false)" style="flex:1; padding:15px; background:#dc3545; color:white; border-radius:12px;">❌ Не отгадано</button>
+      <button onclick="markGuessed(true)" class="correct-button">✅ Отгадано</button>
+      <button onclick="markGuessed(false)" class="wrong-button">❌ Не отгадано</button>
     `;
 
     const buttonContainer = document.getElementById("game-container");
@@ -119,7 +119,7 @@ async function startAliasTimer(difficulty) {
     buttonContainer.appendChild(timerEl);
     buttonContainer.appendChild(wordEl);
     buttonContainer.appendChild(controls);
-    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px; border-radius:12px;">⬅️ Главное меню</button>`;
+    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 
     showNextAliasWord();
 
@@ -177,8 +177,8 @@ function showAliasResults() {
   });
 
   container.innerHTML += "</ul>";
-  container.innerHTML += `<button onclick="startAliasGame()" style="width:100%; padding:15px; font-size:16px; background:#4f46e5; color:white; margin-top:10px; border-radius:12px;">🔄 Новая игра</button>`;
-  container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px; border-radius:12px;">⬅️ Главное меню</button>`;
+  container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>`;
+  container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 }
 
 // Перемешивание массива
@@ -189,5 +189,6 @@ function shuffleArray(arr) {
 // Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
   return await res.json();
 }
