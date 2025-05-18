@@ -5,7 +5,7 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Показываем уровни сложности
+  // Отображение уровней сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
     <p><strong>Выберите уровень:</strong></p>
@@ -25,14 +25,14 @@ async function loadAliasWords(difficulty) {
   let url = "";
 
   if (difficulty === "easy") {
-    url = "data/easy_bible_words.json";
+    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/easy_bible_words.json ";
   } else if (difficulty === "medium") {
-    url = "data/medium_bible_words.json";
+    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/medium_bible_words.json ";
   } else if (difficulty === "hard") {
-    url = "data/hard_bible_words.json";
+    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/hard_bible_words.json ";
   }
 
-  alert("Загружаю слова по пути: " + url);
+  alert("Загружаю слова по URL: " + url);
 
   try {
     const words = await loadJSON(url);
@@ -79,17 +79,18 @@ async function startAliasTimer(difficulty) {
 
   let url = "";
   if (difficulty === "easy") {
-    url = "data/easy_bible_words.json";
+    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/easy_bible_words.json ";
   } else if (difficulty === "medium") {
-    url = "data/medium_bible_words.json";
+    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/medium_bible_words.json ";
   } else if (difficulty === "hard") {
-    url = "data/hard_bible_words.json";
+    url = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/hard_bible_words.json ";
   }
 
   try {
     const words = await loadJSON(url);
     aliasWords = shuffleArray([...words]);
     aliasIndex = 0;
+    guessedAlias = [];
 
     const timerEl = document.createElement("p");
     timerEl.id = "alias-timer";
@@ -120,7 +121,7 @@ async function startAliasTimer(difficulty) {
     buttonContainer.appendChild(timerEl);
     buttonContainer.appendChild(wordEl);
     buttonContainer.appendChild(controls);
-    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>`;
+    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Вернуться</button>`;
 
     showNextAliasWord();
 
@@ -158,7 +159,7 @@ function showNextAliasWord() {
   wordEl.innerHTML = `<div style="padding:20px; border:2px dashed #4a90e2; margin-top:20px;">${aliasWords[aliasIndex]}</div>`;
 }
 
-// Отметить как отгаданное / не отгаданное
+// Отметить как угаданное / не угаданное
 function markGuessed(correct) {
   if (aliasIndex < aliasWords.length) {
     guessedAlias.push({ word: aliasWords[aliasIndex], correct });
@@ -190,8 +191,6 @@ function shuffleArray(arr) {
 // Загрузка JSON
 async function loadJSON(url) {
   const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Ошибка HTTP: ${res.status} при загрузке ${url}`);
-  }
+  if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
   return await res.json();
 }
