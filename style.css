@@ -7,8 +7,8 @@
   --text-color: #2d2d2d;
   --shadow: rgba(0, 0, 0, 0.08);
   --card-bg: white;
-  --correct-color: #28a745; /* зелёный для "Отгадано" */
-  --wrong-color: #dc3545; /* красный для "Не отгадано" */
+  --correct-color: #28a745;
+  --wrong-color: #dc3545;
   --button-radius: 12px;
 }
 
@@ -16,7 +16,6 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
 }
 
 body {
@@ -26,6 +25,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  font-family: 'Inter', sans-serif;
   padding: 1rem;
   transition: background-color 0.3s ease;
 }
@@ -43,14 +43,14 @@ header {
 }
 
 header h1 {
-  font-size: 1.8rem;
+  font-size: 2rem;
   margin: 0;
   z-index: 1;
   position: relative;
   color: var(--accent-active);
 }
 
-/* Главное меню */
+/* Главная менюшка */
 .menu-container {
   display: flex;
   flex-direction: column;
@@ -65,11 +65,16 @@ header h1 {
   display: none;
 }
 
+/* Все игровые кнопки */
+.game-button,
 .menu-button,
-.start-button {
+.start-button,
+.back-button,
+.correct-button,
+.wrong-button {
   width: 100%;
-  padding: 15px;
-  font-size: 16px;
+  padding: 20px 24px;
+  font-size: 1.25rem;
   background-color: var(--accent-color);
   border: none;
   border-radius: var(--button-radius);
@@ -78,76 +83,40 @@ header h1 {
   transition: all 0.2s ease-in-out;
   color: var(--text-color);
   font-weight: 600;
+  display: block;
+  text-align: center;
+  margin-bottom: 12px;
 }
 
+.game-button:hover,
 .menu-button:hover,
-.start-button:hover {
+.start-button:hover,
+.back-button:hover,
+.correct-button:hover,
+.wrong-button:hover {
   background-color: var(--accent-hover);
   transform: scale(1.02);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
 }
 
+.game-button:active,
 .menu-button:active,
-.start-button:active {
+.start-button:active,
+.back-button:active,
+.correct-button:active,
+.wrong-button:active {
   transform: scale(0.99);
-}
-
-.back-button {
-  width: 100%;
-  padding: 15px;
-  font-size: 16px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: var(--button-radius);
-  cursor: pointer;
-  margin-top: 10px;
-  transition: all 0.2s ease-in-out;
-}
-
-.back-button:hover {
-  background: #5a6268;
-}
-
-.correct-button,
-.wrong-button {
-  flex: 1;
-  padding: 15px;
-  font-size: 16px;
-  border: none;
-  border-radius: var(--button-radius);
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  margin: 5px;
-}
-
-.correct-button {
-  background: var(--correct-color);
-  color: white;
-}
-
-.correct-button:hover {
-  background: #218838;
-}
-
-.wrong-button {
-  background: var(--wrong-color);
-  color: white;
-}
-
-.wrong-button:hover {
-  background: #c82333;
 }
 
 /* Карточки слов */
 .card {
-  background: var(--card-bg);
+  background: white;
   border-radius: var(--button-radius);
-  padding: 1rem;
-  margin: 1rem 0;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
   box-shadow: 0 4px 12px var(--shadow);
   text-align: center;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   transition: transform 0.2s ease;
 }
 
@@ -167,13 +136,6 @@ header h1 {
   }
 }
 
-/* Контейнер для игры */
-#game-container {
-  width: 100%;
-  max-width: 400px;
-  text-align: center;
-}
-
 /* Таймер */
 #alias-timer {
   font-size: 2rem;
@@ -181,25 +143,30 @@ header h1 {
   margin-top: 20px;
 }
 
+/* Контейнер для игр */
+#game-container {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
 /* Адаптация под мобилки */
 @media (max-width: 480px) {
   header h1 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
+  .game-button,
   .menu-button,
   .start-button,
-  .back-button {
-    font-size: 1rem;
-    padding: 16px 20px;
+  .back-button,
+  .correct-button,
+  .wrong-button {
+    font-size: 1.1rem;
+    padding: 20px 24px;
   }
 
   .card {
-    font-size: 1.1rem;
-  }
-
-  .correct-button,
-  .wrong-button {
-    font-size: 1rem;
+    font-size: 1.3rem;
   }
 }
