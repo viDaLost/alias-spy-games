@@ -33,14 +33,14 @@ function displayCoimaginariumUI() {
   const container = document.getElementById("game-container");
   container.innerHTML = `
     <h2>🧠 Соображариум</h2>
-    <p><strong>Правила:</strong>Ведущий называет рандомную категорию и букву, игроки вслух называют слово на эту букву по категории, кто первым правильно ответил — получает бал.</p>
+    <p><strong>Правила:</strong> Ведущий называет рандомную категорию и букву. Игроки вслух называют слово на эту букву по категории. Кто первым правильно ответил — получает бал.</p>
 
     <p>Тема: <strong>${currentTheme}</strong></p>
     <p>Буква: <strong>${currentLetter}</strong></p>
 
-    <button onclick="changeCoimaginariumLetter()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">🔁 Сменить букву</button>
-    <button onclick="nextCoimaginariumRound()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#28a745; color:white;">➡️ Новый раунд</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; margin-top:10px; background:#6c757d; color:white;">⬅️ Главное меню</button>
+    <button onclick="changeCoimaginariumLetter()" class="menu-button">🔁 Сменить букву</button>
+    <button onclick="nextCoimaginariumRound()" class="correct-button">➡️ Новый раунд</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
 
