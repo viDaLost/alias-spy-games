@@ -8,17 +8,19 @@ function startDescribeCharacterGame(charsUrl) {
 
   container.innerHTML = `
     <h2>🗣️ Опиши, но не называй</h2>
-    <p><strong>Все игроки по очереди смотрят свое слово, потом начинают описывать его.
-К примеру, где используется этот предмет, из какого он материала, твёрдый, мягкий и т.д.Основная задача: отгадать слова других игроков.</strong></p>
+    <p><strong>Все игроки по очереди смотрят своё слово, потом начинают описывать его. 
+    Например: где используется этот предмет, из чего он сделан, твёрдый или мягкий.
+    Основная задача: отгадать слова других игроков.</strong></p>
+
     <label for="playerCount">Количество игроков (2–15):</label><br>
     <input type="number" id="playerCount" min="2" max="15" value="4"><br><br>
 
-    <button onclick="startDescribeNewGame()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white;">▶️ Начать игру</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
+    <button onclick="startDescribeNewGame()" class="menu-button">▶️ Начать игру</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
 
-// Начало новой игры с заданным количеством игроков
+// Запуск новой игры
 async function startDescribeNewGame() {
   const input = document.getElementById("playerCount").value;
   const playerCount = parseInt(input);
@@ -33,7 +35,7 @@ async function startDescribeNewGame() {
     const shuffled = shuffleArray([...chars]);
     describePlayers = [];
 
-    // Раздаём слова каждому игроку
+    // Раздаём слова
     for (let i = 0; i < playerCount; i++) {
       describePlayers.push(shuffled[i % shuffled.length]);
     }
@@ -49,12 +51,12 @@ async function startDescribeNewGame() {
 // Показ карточки текущего игрока
 function nextDescribePlayer() {
   const container = document.getElementById("game-container");
-  container.innerHTML = `<h2>🗣️ Опиши, но не называй</h2>`;
+  container.innerHTML = "<h2>🗣️ Опиши, но не называй</h2>";
 
   if (describeIndex >= describePlayers.length) {
-    container.innerHTML += "<h3>🎉 Все персонажи описаны!</h3>";
-    container.innerHTML += `<button onclick="startDescribeCharacterGame('${window.charsUrl}')" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white; margin-top:10px;">🔄 Новая игра</button>`;
-    container.innerHTML += `<button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>`;
+    container.innerHTML += `<h3 class="fade-in">🎉 Все персонажи описаны!</h3>`;
+    container.innerHTML += `<button onclick="startDescribeCharacterGame('${window.charsUrl}')" class="menu-button">🔄 Новая игра</button>`;
+    container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>`;
     return;
   }
 
@@ -64,8 +66,8 @@ function nextDescribePlayer() {
       <h3 style="color:#4a90e2; margin:10px 0;">${describePlayers[describeIndex]}</h3>
       <small>Опишите его, чтобы другие догадались.</small>
     </div>
-    <button onclick="nextDescribePlayer()" style="width:100%; padding:15px; font-size:16px; background:#4a90e2; color:white; margin-top:10px;">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" style="width:100%; padding:15px; font-size:16px; background:#6c757d; color:white; margin-top:10px;">⬅️ Главное меню</button>
+    <button onclick="nextDescribePlayer()" class="correct-button">➡️ Следующий игрок</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 
   describeIndex++;
