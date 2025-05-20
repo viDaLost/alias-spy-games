@@ -108,7 +108,7 @@ header h1 {
   transform: scale(0.99);
 }
 
-/* Кнопка "отгадано" */
+/* Кнопка "Отгадано" */
 .correct-button {
   background: var(--correct-color);
   color: white;
@@ -118,7 +118,7 @@ header h1 {
   background: #218838;
 }
 
-/* Кнопка "не отгадано" */
+/* Кнопка "Не отгадано" */
 .wrong-button {
   background: var(--wrong-color);
   color: white;
@@ -144,15 +144,6 @@ header h1 {
   transform: translateY(-4px);
 }
 
-/* Таймер */
-#alias-timer {
-  font-size: 2rem;
-  text-align: center;
-  margin-top: 20px;
-  font-weight: bold;
-  transition: color 0.3s ease;
-}
-
 /* Появление элементов */
 .fade-in {
   opacity: 0;
@@ -163,6 +154,26 @@ header h1 {
   to {
     opacity: 1;
   }
+}
+
+/* Таймер */
+#alias-timer {
+  font-size: 2rem;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+/* Поле ввода времени */
+.timer-input {
+  font-size: 1.5rem;
+  padding: 12px 16px;
+  border: 2px solid var(--accent-color);
+  border-radius: var(--button-radius);
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
 }
 
 /* Контейнер для игр */
@@ -194,5 +205,10 @@ header h1 {
 
   #alias-timer {
     font-size: 2rem;
+  }
+
+  .timer-input {
+    font-size: 1.3rem;
+    padding: 12px 16px;
   }
 }
