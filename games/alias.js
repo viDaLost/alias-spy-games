@@ -117,10 +117,6 @@ async function startAliasTimer(difficulty) {
         clearInterval(window.aliasInterval);
         timerEl.textContent = "⏰ Время вышло!";
         setTimeout(() => {
-          while (aliasIndex < aliasWords.length) {
-            guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
-            aliasIndex++;
-          }
           showAliasResults();
         }, 1000);
       }
@@ -146,11 +142,11 @@ function showNextAliasWord() {
 
 // Отметить как угаданное / не угаданное
 function markGuessed(correct) {
-  if (aliasIndex > 0 && aliasIndex - 1 < aliasWords.length) {
-    const word = aliasWords[aliasIndex - 1];
-    guessedAlias.push({ word, correct });
-    showNextAliasWord();
-  }
+  if (aliasIndex <= 0) return;
+
+  const word = aliasWords[aliasIndex - 1];
+  guessedAlias.push({ word, correct });
+  showNextAliasWord();
 }
 
 // Результаты — только использованные слова
