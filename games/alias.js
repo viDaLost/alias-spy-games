@@ -90,47 +90,36 @@ async function startAliasTimer(difficulty) {
     aliasIndex = 0;
     guessedAlias = [];
 
-    const timerEl = document.createElement("p");
-    timerEl.id = "alias-timer";
-    timerEl.style.fontSize = "2rem";
-    timerEl.style.textAlign = "center";
-    timerEl.style.marginTop = "20px";
+    const container = document.getElementById("game-container");
+    container.innerHTML = `
+      <p id="alias-timer" style="font-size:2rem; text-align:center; margin-top:20px; font-weight:bold;">${seconds} секунд</p>
+      <div id="alias-word" style="text-align:center; font-size:1.5rem; margin:20px 0;"></div>
 
-    const wordEl = document.createElement("div");
-    wordEl.id = "alias-word";
-    wordEl.style.margin = "20px 0";
-    wordEl.style.fontSize = "1.5rem";
-    wordEl.style.textAlign = "center";
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+        <button onclick="markGuessed(true)" class="correct-button">✅ Отгадано</button>
+        <button onclick="markGuessed(false)" class="wrong-button">❌ Не отгадано</button>
+      </div>
 
-    const controls = document.createElement("div");
-    controls.style.display = "flex";
-    controls.style.gap = "10px";
-    controls.style.justifyContent = "center";
-    controls.style.marginTop = "20px";
-
-    controls.innerHTML = `
-      <button onclick="markGuessed(true)" class="correct-button">✅ Отгадано</button>
-      <button onclick="markGuessed(false)" class="wrong-button">❌ Не отгадано</button>
+      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
     `;
 
-    const buttonContainer = document.getElementById("game-container");
-    buttonContainer.innerHTML = ""; // Очищаем контейнер перед началом игры
-
-    buttonContainer.appendChild(timerEl); // Добавляем таймер
-    buttonContainer.appendChild(wordEl); // Добавляем место для слова
-    buttonContainer.appendChild(controls); // Кнопки управления
-    buttonContainer.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
-
     showNextAliasWord();
+
+    const timerEl = document.getElementById("alias-timer");
 
     window.aliasInterval = setInterval(() => {
       seconds--;
       timerEl.textContent = `${seconds} секунд`;
       if (seconds <= 10) timerEl.style.color = "red";
+
       if (seconds <= 0) {
         clearInterval(window.aliasInterval);
         timerEl.textContent = "⏰ Время вышло!";
         setTimeout(() => {
+          while (aliasIndex < aliasWords.length) {
+            guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
+            aliasIndex++;
+          }
           showAliasResults();
         }, 1000);
       }
