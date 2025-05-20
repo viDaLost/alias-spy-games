@@ -114,11 +114,11 @@ async function startAliasTimer(difficulty) {
     `;
 
     const buttonContainer = document.getElementById("game-container");
-    buttonContainer.innerHTML = "";
+    buttonContainer.innerHTML = ""; // Очищаем контейнер перед началом игры
 
-    buttonContainer.appendChild(timerEl);
-    buttonContainer.appendChild(wordEl);
-    buttonContainer.appendChild(controls);
+    buttonContainer.appendChild(timerEl); // Добавляем таймер
+    buttonContainer.appendChild(wordEl); // Добавляем место для слова
+    buttonContainer.appendChild(controls); // Кнопки управления
     buttonContainer.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 
     showNextAliasWord();
