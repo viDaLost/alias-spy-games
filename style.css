@@ -7,8 +7,8 @@
   --text-color: #2d2d2d;
   --shadow: rgba(0, 0, 0, 0.08);
   --card-bg: white;
-  --correct-color: #28a745;
-  --wrong-color: #dc3545;
+  --correct-color: #28a745; /* зелёный */
+  --wrong-color: #dc3545; /* красный */
   --button-radius: 12px;
 }
 
@@ -50,7 +50,7 @@ header h1 {
   color: var(--accent-active);
 }
 
-/* Главная менюшка */
+/* Главное меню */
 .menu-container {
   display: flex;
   flex-direction: column;
@@ -65,7 +65,7 @@ header h1 {
   display: none;
 }
 
-/* Все игровые кнопки */
+/* Все кнопки */
 .game-button,
 .menu-button,
 .start-button,
@@ -106,6 +106,26 @@ header h1 {
 .correct-button:active,
 .wrong-button:active {
   transform: scale(0.99);
+}
+
+/* Кнопка "отгадано" */
+.correct-button {
+  background: var(--correct-color);
+  color: white;
+}
+
+.correct-button:hover {
+  background: #218838;
+}
+
+/* Кнопка "не отгадано" */
+.wrong-button {
+  background: var(--wrong-color);
+  color: white;
+}
+
+.wrong-button:hover {
+  background: #c82333;
 }
 
 /* Карточки слов */
