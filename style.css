@@ -7,8 +7,8 @@
   --text-color: #2d2d2d;
   --shadow: rgba(0, 0, 0, 0.08);
   --card-bg: white;
-  --correct-color: #28a745; /* зелёный */
-  --wrong-color: #dc3545; /* красный */
+  --correct-color: #28a745; /* зелёный для "отгадано" */
+  --wrong-color: #dc3545; /* красный для "не отгадано" */
   --button-radius: 12px;
 }
 
@@ -161,6 +161,8 @@ header h1 {
   font-size: 2rem;
   text-align: center;
   margin-top: 20px;
+  font-weight: bold;
+  transition: color 0.3s ease;
 }
 
 /* Контейнер для игр */
@@ -188,5 +190,9 @@ header h1 {
 
   .card {
     font-size: 1.3rem;
+  }
+
+  #alias-timer {
+    font-size: 2rem;
   }
 }
