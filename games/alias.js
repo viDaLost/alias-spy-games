@@ -49,8 +49,9 @@ function showAliasSetup(words, difficulty) {
   container.innerHTML = `
     <h2>🎮 Алиас — ${difficultyName} уровень</h2>
     <p><strong>Выберите время (1–60 секунд):</strong></p>
-    <input type="number" id="timerValue" min="1" max="60" value="60"><br><br>
-    
+    <input type="number" id="timerValue" min="1" max="60" value="60" class="timer-input">
+
+    <br><br>
     <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
@@ -145,12 +146,11 @@ function showNextAliasWord() {
 
 // Отметить как угаданное / не угаданное
 function markGuessed(correct) {
-  if (aliasIndex <= 0) return;
-
-  const word = aliasWords[aliasIndex - 1];
-  guessedAlias.push({ word, correct });
-
-  showNextAliasWord();
+  if (aliasIndex > 0 && aliasIndex - 1 < aliasWords.length) {
+    const word = aliasWords[aliasIndex - 1];
+    guessedAlias.push({ word, correct });
+    showNextAliasWord();
+  }
 }
 
 // Результаты — только использованные слова
