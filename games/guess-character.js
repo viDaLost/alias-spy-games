@@ -2,6 +2,8 @@ let guessCharacters = [];
 let guessCurrentPlayer = 1;
 
 function startGuessCharacterGame(charsUrl) {
+  window.charsUrl = charsUrl; // Сохраняем URL для перезапуска
+
   fetch(charsUrl)
     .then(res => res.json())
     .then(chars => {
@@ -10,18 +12,18 @@ function startGuessCharacterGame(charsUrl) {
       guessCharacters = [shuffled[0], shuffled[1]];
 
       guessCurrentPlayer = 1;
-      nextGuessPlayer();
+      displayPlayerButton();
     })
     .catch(err => {
       document.getElementById("game-container").innerHTML = `
-        <p class="fade-in" style="color:red;">⚠️ Ошибка загрузки персонажей: ${err.message}</p>
+        <p class="fade-in" style="color:red;">⚠️ Ошибка загрузки персонажей</p>
         <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
       `;
     });
 }
 
-// Показываем следующего игрока
-function nextGuessPlayer() {
+// Отображаем кнопку "Показать персонажа"
+function displayPlayerButton() {
   const container = document.getElementById("game-container");
   container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
 
@@ -32,14 +34,25 @@ function nextGuessPlayer() {
     return;
   }
 
-  const character = guessCharacters[guessCurrentPlayer - 1];
-
   container.innerHTML += `
     <p><strong>Двум игрокам по очереди показываются разные персонажи. Задача — угадать персонажа другого.</strong></p>
     
+    <button onclick="revealCharacter()" class="menu-button">👁 Показать персонажа</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+  `;
+}
+
+// Показываем слово только при нажатии
+function revealCharacter() {
+  const container = document.getElementById("game-container");
+  container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
+
+  const character = guessCharacters[guessCurrentPlayer - 1];
+
+  container.innerHTML += `
     <div class="card" style="text-align:center;">
       <strong>Игрок ${guessCurrentPlayer}</strong>, ваш персонаж:
-      <h3 style="color:#4a90e2; margin:10px 0;">${character}</h3>
+      <h3>${character}</h3>
       <small>Опишите его, чтобы второй игрок мог угадать.</small>
     </div>
 
@@ -48,4 +61,9 @@ function nextGuessPlayer() {
   `;
 
   guessCurrentPlayer++;
+}
+
+// Перемешивание массива
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
 }
