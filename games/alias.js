@@ -5,7 +5,7 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Показываем уровни сложности
+  // Отображение уровней сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
     <p><strong>Выберите уровень:</strong></p>
@@ -92,8 +92,8 @@ async function startAliasTimer(difficulty) {
 
     const container = document.getElementById("game-container");
     container.innerHTML = `
-      <p id="alias-timer" style="font-size:2rem; text-align:center; margin-top:20px; font-weight:bold;">${seconds} секунд</p>
-      <div id="alias-word" style="text-align:center; font-size:1.5rem; margin:20px 0;"></div>
+      <p id="alias-timer">${seconds} секунд</p>
+      <div id="alias-word" class="card"></div>
 
       <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
         <button onclick="markGuessed(true)" class="correct-button">✅ Отгадано</button>
@@ -140,15 +140,17 @@ function showNextAliasWord() {
   }
 
   wordEl.innerHTML = `<div class="card">${aliasWords[aliasIndex]}</div>`;
+  aliasIndex++;
 }
 
 // Отметить как угаданное / не угаданное
 function markGuessed(correct) {
-  if (aliasIndex < aliasWords.length) {
-    guessedAlias.push({ word: aliasWords[aliasIndex], correct });
-    aliasIndex++;
-    showNextAliasWord();
-  }
+  if (aliasIndex <= 0) return;
+
+  const word = aliasWords[aliasIndex - 1];
+  guessedAlias.push({ word, correct });
+
+  showNextAliasWord();
 }
 
 // Результаты — только использованные слова
