@@ -35,8 +35,7 @@ function displayPlayerButton() {
   }
 
   container.innerHTML += `
-    <p><strong>Двум игрокам по очереди показываются разные персонажи. Задача — угадать персонажа другого.</strong></p>
-    
+    <p><strong>Игрок ${guessCurrentPlayer}, нажмите ниже, чтобы увидеть свой персонаж:</strong></p>
     <button onclick="revealCharacter()" class="menu-button">👁 Показать персонажа</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
@@ -45,9 +44,10 @@ function displayPlayerButton() {
 // Показываем слово только при нажатии
 function revealCharacter() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
 
   const character = guessCharacters[guessCurrentPlayer - 1];
+
+  container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
 
   container.innerHTML += `
     <div class="card" style="text-align:center;">
@@ -59,8 +59,12 @@ function revealCharacter() {
     <button onclick="nextGuessPlayer()" class="correct-button">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
+}
 
+// Переход к следующему игроку
+function nextGuessPlayer() {
   guessCurrentPlayer++;
+  displayPlayerButton();
 }
 
 // Перемешивание массива
