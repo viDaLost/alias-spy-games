@@ -10,7 +10,7 @@ function startDescribeCharacterGame(charsUrl) {
     <h2>🗣️ Опиши, но не называй</h2>
     <p><strong>Все игроки по очереди смотрят своё слово, потом начинают описывать его. 
     Например: где используется этот предмет, из чего он сделан, твёрдый или мягкий.
-    Основная задача: отгадать слова других игроков.</strong></p>
+    Задача — отгадать слова других игроков.</strong></p>
 
     <label for="playerCount">Количество игроков (2–15):</label><br>
     <input type="number" id="playerCount" min="2" max="15" value="4"><br><br>
@@ -41,15 +41,15 @@ async function startDescribeNewGame() {
     }
 
     describeIndex = 0;
-    nextDescribePlayer();
+    displayDescribePlayer();
   } catch (e) {
     alert("Ошибка загрузки персонажей.");
     console.error(e);
   }
 }
 
-// Показ карточки текущего игрока
-function nextDescribePlayer() {
+// Отображаем кнопку "Показать слово"
+function displayDescribePlayer() {
   const container = document.getElementById("game-container");
   container.innerHTML = "<h2>🗣️ Опиши, но не называй</h2>";
 
@@ -61,12 +61,26 @@ function nextDescribePlayer() {
   }
 
   container.innerHTML += `
-    <p><strong>Игрок ${describeIndex + 1}</strong>, Ваше слово:</p>
-    <div class="card" style="text-align:center;">
-      <h3 style="color:#4a90e2; margin:10px 0;">${describePlayers[describeIndex]}</h3>
+    <p><strong>Игрок ${describeIndex + 1}</strong>, нажмите ниже, чтобы увидеть ваше слово:</p>
+    <button onclick="revealDescribeCard(${describeIndex})" class="menu-button">👁 Показать слово</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+  `;
+}
+
+// Показываем слово при нажатии
+function revealDescribeCard(index) {
+  const container = document.getElementById("game-container");
+  const character = describePlayers[index];
+
+  container.innerHTML = `<h2>🗣️ Опиши, но не называй</h2>`;
+
+  container.innerHTML += `
+    <div class="card">
+      <strong>Игрок ${index + 1}</strong>, Ваше слово:
+      <h3>${character}</h3>
       <small>Опишите его, чтобы другие догадались.</small>
     </div>
-    <button onclick="nextDescribePlayer()" class="correct-button">➡️ Следующий игрок</button>
+    <button onclick="describeIndex++; displayDescribePlayer();" class="correct-button">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 
