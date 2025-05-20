@@ -18,33 +18,10 @@ function getTelegramUser() {
   };
 }
 
-// Логирование действий игрока
-async function logPlayerAction(gameName, action, playerId = "аноним") {
-  const LOG_URL = "https://script.google.com/macros/s/ ВАШ_СКРИПТ_ID/exec";
-
-  const payload = {
-    game: gameName,
-    action: action,
-    player: playerId,
-    timestamp: new Date().toISOString()
-  };
-
-  try {
-    await fetch(LOG_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-  } catch (e) {
-    console.error("Ошибка логирования", e);
-  }
-}
-
 // Функция загрузки JSON
 async function loadJSON(url) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Ошибка HTTP: ${res.status} при загрузке ${url}`);
+  if (!res.ok) throw new Error(`HTTP ошибка: ${res.status} при загрузке ${url}`);
   return await res.json();
 }
 
@@ -53,7 +30,7 @@ function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Показать игру по названию
+// Показать игру по имени
 function showGame(gameName) {
   const container = document.getElementById("game-container");
   container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
@@ -61,12 +38,13 @@ function showGame(gameName) {
   // Скрыть главное меню
   document.querySelector(".menu-container").classList.add("hidden");
 
-  // Удаляем предыдущий скрипт
+  // Очистить предыдущий скрипт
   if (currentGameScript) {
     currentGameScript.remove();
     currentGameScript = null;
   }
 
+  // Запуск нужной игры
   if (gameName === "alias") {
     loadGameScript("games/alias.js", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
