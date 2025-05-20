@@ -5,7 +5,7 @@ let guessedAlias = [];
 function startAliasGame() {
   const container = document.getElementById("game-container");
 
-  // Показываем уровни сложности
+  // Отображение уровней сложности
   container.innerHTML = `
     <h2>🎮 Алиас</h2>
     <p><strong>Выберите уровень:</strong></p>
@@ -166,7 +166,7 @@ function markGuessed(correct) {
   }
 }
 
-// Результаты
+// Результаты — только использованные слова
 function showAliasResults() {
   const container = document.getElementById("game-container");
   container.innerHTML = "<h2>🏁 Результаты:</h2><ul>";
