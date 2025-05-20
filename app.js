@@ -1,4 +1,4 @@
-// Глобальная переменная для текущего скрипта
+// Глобальная переменная для текущего скрипта игры
 let currentGameScript = null;
 
 // Получаем данные пользователя из Telegram
@@ -44,6 +44,7 @@ async function logPlayerAction(gameName, action, playerId = "аноним") {
 // Функция загрузки JSON
 async function loadJSON(url) {
   const res = await fetch(url);
+  if (!res.ok) throw new Error(`Ошибка HTTP: ${res.status} при загрузке ${url}`);
   return await res.json();
 }
 
@@ -52,7 +53,7 @@ function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-// Показать игру
+// Показать игру по названию
 function showGame(gameName) {
   const container = document.getElementById("game-container");
   container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
@@ -69,16 +70,16 @@ function showGame(gameName) {
   if (gameName === "alias") {
     loadGameScript("games/alias.js", () => startAliasGame());
   } else if (gameName === "coimaginarium") {
-    const themesUrl = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/coimaginarium_themes.json ";
+    const themesUrl = "data/coimaginarium_themes.json";
     loadGameScript("games/coimaginarium.js", () => startCoimaginariumGame(themesUrl));
   } else if (gameName === "guess") {
-    const charsUrl = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/characters.json ";
+    const charsUrl = "data/characters.json";
     loadGameScript("games/guess-character.js", () => startGuessCharacterGame(charsUrl));
   } else if (gameName === "describe") {
-    const wordsUrl = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/describe_words.json ";
+    const wordsUrl = "data/describe_words.json";
     loadGameScript("games/describe-char.js", () => startDescribeCharacterGame(wordsUrl));
   } else if (gameName === "spy") {
-    const locationsUrl = "https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/data/spy_locations.json ";
+    const locationsUrl = "data/spy_locations.json";
     loadGameScript("games/spy.js", () => startSpyGame(locationsUrl));
   }
 }
@@ -89,7 +90,8 @@ function loadGameScript(fileName, callback) {
   script.src = fileName;
   script.onload = callback;
   script.onerror = () => {
-    alert(`❌ Файл ${fileName} не найден`);
+    alert(`❌ Ошибка: файл ${fileName} не найден`);
+    console.error(`Файл ${fileName} не загружается`);
   };
   document.body.appendChild(script);
   currentGameScript = script;
