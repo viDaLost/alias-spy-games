@@ -1,6 +1,7 @@
 let aliasWords = [];
 let aliasIndex = 0;
 let guessedAlias = [];
+let currentDifficulty = null;
 
 function startAliasGame() {
   const container = document.getElementById("game-container");
@@ -34,6 +35,7 @@ async function loadAliasWords(difficulty) {
 
   try {
     const words = await loadJSON(url);
+    currentDifficulty = difficulty; // Сохраняем уровень для перезапуска
     showAliasSetup(words, difficulty);
   } catch (e) {
     alert(`Ошибка загрузки слов: ${e.message}`);
@@ -117,6 +119,10 @@ async function startAliasTimer(difficulty) {
         clearInterval(window.aliasInterval);
         timerEl.textContent = "⏰ Время вышло!";
         setTimeout(() => {
+          while (aliasIndex < aliasWords.length) {
+            guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
+            aliasIndex++;
+          }
           showAliasResults();
         }, 1000);
       }
@@ -152,7 +158,16 @@ function markGuessed(correct) {
 // Результаты — только использованные слова
 function showAliasResults() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<h2>🏁 Результаты:</h2><ul>";
+  container.innerHTML = "<h2>🏁 Результаты:</h2>";
+
+  if (guessedAlias.length === 0) {
+    container.innerHTML += "<p>Нет результатов. Начните игру снова.</p>";
+    container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>`;
+    container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
+    return;
+  }
+
+  container.innerHTML += "<ul>";
 
   guessedAlias.forEach(item => {
     const color = item.correct ? "green" : "red";
