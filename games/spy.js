@@ -14,10 +14,10 @@ async function startSpyGame(locationsUrl) {
       <p><strong>Правила:</strong> Один или несколько игроков — шпионы. Остальные знают локацию.</p>
 
       <label for="playerCount">Количество игроков (3–20):</label><br>
-      <input type="number" id="playerCount" min="3" max="20" value="5"><br><br>
+      <input type="number" id="playerCount" min="3" max="20" value="5" class="number-input"><br><br>
 
       <label for="spyCount">Количество шпионов (1–20):</label><br>
-      <input type="number" id="spyCount" min="1" max="20" value="1"><br><br>
+      <input type="number" id="spyCount" min="1" max="20" value="1" class="number-input"><br><br>
 
       <button onclick="handleStartGame()" class="menu-button">▶️ Начать игру</button>
       <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
@@ -130,9 +130,9 @@ function showDiscussionScreen() {
   const container = document.getElementById("game-container");
 
   container.innerHTML = `
-    <h2>🗣️ Раунд общения</h2>
+    <h2>🗣 Раунд общения</h2>
     <p>Обсудите всё вместе и попробуйте найти шпионов.</p>
-    <button onclick="showFinalScreen()" class="menu-button">🏁 Завершить раунд</button>
+    <button onclick="showFinalScreen()" class="correct-button">🎯 Голосование</button>
     <button onclick="startSpyGame('data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>
   `;
