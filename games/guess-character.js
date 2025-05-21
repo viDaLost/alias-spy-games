@@ -59,15 +59,11 @@ function revealCharacter() {
     <button onclick="nextGuessPlayer()" class="correct-button">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
+
+  guessCurrentPlayer++;
 }
 
 // Переход к следующему игроку
 function nextGuessPlayer() {
-  guessCurrentPlayer++;
   displayPlayerButton();
-}
-
-// Перемешивание массива
-function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
 }
