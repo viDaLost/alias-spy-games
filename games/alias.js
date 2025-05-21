@@ -119,10 +119,6 @@ async function startAliasTimer(difficulty) {
         clearInterval(window.aliasInterval);
         timerEl.textContent = "⏰ Время вышло!";
         setTimeout(() => {
-          while (aliasIndex < aliasWords.length) {
-            guessedAlias.push({ word: aliasWords[aliasIndex], correct: false });
-            aliasIndex++;
-          }
           showAliasResults();
         }, 1000);
       }
