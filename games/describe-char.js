@@ -13,7 +13,7 @@ function startDescribeCharacterGame(charsUrl) {
     Задача — отгадать слова других игроков.</strong></p>
 
     <label for="playerCount">Количество игроков (2–15):</label><br>
-    <input type="number" id="playerCount" min="2" max="15" value="4"><br><br>
+    <input type="number" id="playerCount" min="2" max="15" value="4" class="number-input"><br><br>
 
     <button onclick="startDescribeNewGame()" class="menu-button">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
@@ -41,7 +41,7 @@ async function startDescribeNewGame() {
     }
 
     describeIndex = 0;
-    displayDescribePlayer();
+    showNextDescribePlayer();
   } catch (e) {
     alert("Ошибка загрузки персонажей.");
     console.error(e);
@@ -49,7 +49,7 @@ async function startDescribeNewGame() {
 }
 
 // Отображаем кнопку "Показать слово"
-function displayDescribePlayer() {
+function showNextDescribePlayer() {
   const container = document.getElementById("game-container");
   container.innerHTML = "<h2>🗣️ Опиши, но не называй</h2>";
 
@@ -80,9 +80,26 @@ function revealDescribeCard(index) {
       <h3>${character}</h3>
       <small>Опишите его, чтобы другие догадались.</small>
     </div>
-    <button onclick="describeIndex++; displayDescribePlayer();" class="correct-button">➡️ Следующий игрок</button>
+
+    <button onclick="nextDescribePlayer()" class="correct-button">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 
   describeIndex++;
+}
+
+// Переход к следующему игроку
+function nextDescribePlayer() {
+  showNextDescribePlayer();
+}
+
+// Вспомогательные функции
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+async function loadJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
+  return await res.json();
 }
