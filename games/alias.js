@@ -1,11 +1,11 @@
 let aliasWords = [];        // Слова текущего раунда
 let aliasIndex = 0;         // Индекс текущего слова
-let guessedAlias = [];      // Все угаданные и не угаданные слова: { word, correct, round }
+let guessedAlias = [];      // Все использованные слова: { word, correct, round }
 let currentDifficulty = null;
-let currentRound = 1;       // Номер текущего раунда
+let currentRound = 1;
 
 function startAliasGame() {
-  // Сброс игры при старте
+  // Полный сброс при старте
   aliasWords = [];
   aliasIndex = 0;
   guessedAlias = [];
@@ -81,13 +81,20 @@ function getUnusedWords(allWords, guessedList) {
   return allWords.filter(word => !guessedWords.has(word));
 }
 
-// Сброс перед новой игрой, но остаёмся на том же уровне
-async function startAliasGameWithReset(difficulty) {
-  aliasIndex = 0;
-  aliasWords = [];
+// Запуск таймера и игры
+async function startAliasTimer(difficulty) {
+  const input = document.getElementById("timerValue").value;
+  let seconds = parseInt(input);
+
+  if (isNaN(seconds) || seconds < 1 || seconds > 60) {
+    alert("Введите число от 1 до 60.");
+    return;
+  }
+
+  let url = urlForDifficulty(difficulty);
 
   try {
-    const words = await loadJSON(urlForDifficulty(difficulty));
+    const words = await loadJSON(url);
     const unusedWords = getUnusedWords(words, guessedAlias);
 
     if (unusedWords.length === 0) {
@@ -156,7 +163,7 @@ function markGuessed(correct) {
   showNextAliasWord();
 }
 
-// Результаты — только использованные слова, разбитые по раундам
+// Результаты — разбитые по раундам
 function showAliasResults() {
   const container = document.getElementById("game-container");
   container.innerHTML = "<h2>🏁 Результаты:</h2>";
@@ -186,34 +193,16 @@ function showAliasResults() {
     container.innerHTML += "</ul>";
   }
 
-  // Кнопки с новым функционалом
-  container.innerHTML += `<button onclick="currentRound++; startAliasGameWithReset('${currentDifficulty}')" class="menu-button">🔄 Новый раунд</button>`;
-  container.innerHTML += `<button onclick="showAliasSetup(loadCurrentWords(), '${currentDifficulty}')" class="menu-button">🔘 Выбрать уровень сложности</button>`;
+  // Кнопки результата
+  container.innerHTML += `<button onclick="currentRound++; startNewRound('${currentDifficulty}')" class="menu-button">🔄 Новый раунд</button>`;
+  container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔘 Выбрать уровень сложности</button>`;
   container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 }
 
-// Получить URL для текущей сложности
-function urlForDifficulty(difficulty) {
-  return {
-    easy: "data/easy_bible_words.json",
-    medium: "data/medium_bible_words.json",
-    hard: "data/hard_bible_words.json"
-  }[difficulty] || "";
-}
-
-// Запуск таймера и игры
-async function startAliasTimer(difficulty) {
-  const input = document.getElementById("timerValue").value;
-  let seconds = parseInt(input);
-
-  if (isNaN(seconds) || seconds < 1 || seconds > 60) {
-    alert("Введите число от 1 до 60.");
-    return;
-  }
-
-  let url = urlForDifficulty(difficulty);
-
+// Перезапуск игры с тем же уровнем, но новым временем
+async function startNewRound(difficulty) {
   try {
+    const url = urlForDifficulty(difficulty);
     const words = await loadJSON(url);
     const unusedWords = getUnusedWords(words, guessedAlias);
 
@@ -227,45 +216,19 @@ async function startAliasTimer(difficulty) {
 
     const container = document.getElementById("game-container");
     container.innerHTML = `
-      <p id="alias-timer">${seconds} секунд</p>
+      <p id="alias-timer">60 секунд</p>
       <div id="alias-word" class="card"></div>
 
-      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
-        <button onclick="markGuessed(true)" class="correct-button">✅ Отгадано</button>
-        <button onclick="markGuessed(false)" class="wrong-button">❌ Не отгадано</button>
-      </div>
+      <p><strong>Выберите новое время:</strong></p>
+      <input type="number" id="timerValue" min="1" max="60" value="60" class="timer-input"><br><br>
 
+      <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать новый раунд</button>
       <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
     `;
-
-    showNextAliasWord();
-
-    const timerEl = document.getElementById("alias-timer");
-
-    window.aliasInterval = setInterval(() => {
-      seconds--;
-      timerEl.textContent = `${seconds} секунд`;
-      if (seconds <= 10) timerEl.style.color = "red";
-
-      if (seconds <= 0) {
-        clearInterval(window.aliasInterval);
-        timerEl.textContent = "⏰ Время вышло!";
-        setTimeout(() => {
-          showAliasResults();
-        }, 1000);
-      }
-    }, 1000);
   } catch (e) {
-    alert("Ошибка при начале игры.");
+    alert("Ошибка при запуске нового раунда.");
     console.error(e);
   }
-}
-
-// Получить список слов по текущей сложности
-function loadCurrentWords() {
-  const tempContainer = document.createElement("div");
-  const words = [...document.querySelectorAll("#alias-word .card")].map(el => el.textContent.trim());
-  return words;
 }
 
 // Сообщение, если все слова уже были показаны
@@ -277,6 +240,15 @@ function showAllWordsShownMessage() {
     <button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
+}
+
+// Получить URL для текущей сложности
+function urlForDifficulty(difficulty) {
+  return {
+    easy: "data/easy_bible_words.json",
+    medium: "data/medium_bible_words.json",
+    hard: "data/hard_bible_words.json"
+  }[difficulty] || "";
 }
 
 // Перемешивание массива
@@ -294,10 +266,10 @@ async function loadJSON(url) {
 // Сброс игры при выходе в меню
 function goToMainMenu() {
   if (window.aliasInterval) clearInterval(window.aliasInterval);
+
   aliasWords = [];
   aliasIndex = 0;
   guessedAlias = [];
-  currentDifficulty = null;
   currentRound = 1;
 
   document.getElementById("game-container").innerHTML = "";
