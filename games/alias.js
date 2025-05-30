@@ -1,6 +1,6 @@
-let aliasWords = [];
-let aliasIndex = 0;
-let guessedAlias = [];
+let aliasWords = [];        // Все доступные слова (текущий список)
+let aliasIndex = 0;         // Индекс текущего слова
+let guessedAlias = [];      // Только использованные слова: { word, correct }
 let currentDifficulty = null;
 
 function startAliasGame() {
@@ -14,7 +14,7 @@ function startAliasGame() {
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" class="menu-button">🟢 Лёгкий</button><br>
       <button onclick="loadAliasWords('medium')" class="menu-button">🟡 Средний</button><br>
-      <button onclick="loadAliasUsedWords()" class="menu-button">🔴 Тяжёлый</button><br>
+      <button onclick="loadAliasWords('hard')" class="menu-button">🔴 Тяжёлый</button><br>
     </div>
 
     <button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>
@@ -35,7 +35,7 @@ async function loadAliasWords(difficulty) {
 
   try {
     const words = await loadJSON(url);
-    currentDifficulty = difficulty; // Сохраняем уровень для перезапуска
+    currentDifficulty = difficulty;
     showAliasSetup(words, difficulty);
   } catch (e) {
     alert(`Ошибка загрузки слов: ${e.message}`);
@@ -187,13 +187,12 @@ function showAliasResults() {
   container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 }
 
-// Сообщение, если все слова из категории уже были показаны
+// Сообщение, если все слова из уровня уже были показаны
 function showAllWordsShownMessage() {
   const container = document.getElementById("game-container");
   container.innerHTML = `
     <h2>⚠️ Все слова показаны!</h2>
-    <p>Для продолжения начните новую игру.</p>
-    <button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>
+    <p>Перейдите в главное меню, чтобы сбросить список.</p>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
