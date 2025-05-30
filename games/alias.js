@@ -194,7 +194,7 @@ function showAliasResults() {
   }
 
   // Кнопки результата
-  container.innerHTML += `<button onclick="currentRound++; showAliasSetup(loadCurrentWords(), '${currentDifficulty}')" class="menu-button">🔄 Новый раунд</button>`;
+  container.innerHTML += `<button onclick="currentRound++; showAliasSetupWithNewTime(currentDifficulty)" class="menu-button">🔄 Новый раунд</button>`;
   container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔘 Выбрать уровень сложности</button>`;
   container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 }
