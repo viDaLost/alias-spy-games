@@ -200,35 +200,19 @@ function showAliasResults() {
 }
 
 // Перезапуск игры с тем же уровнем, но новым временем
-async function startNewRound(difficulty) {
-  try {
-    const url = urlForDifficulty(difficulty);
-    const words = await loadJSON(url);
-    const unusedWords = getUnusedWords(words, guessedAlias);
+function showAliasSetupWithNewTime(difficulty) {
+  const container = document.getElementById("game-container");
+  const difficultyName = getDifficultyName(difficulty);
 
-    if (unusedWords.length === 0) {
-      showAllWordsShownMessage();
-      return;
-    }
+  container.innerHTML = `
+    <h2>🎮 Алиас — ${difficultyName} уровень</h2>
+    <p><strong>Выберите время (1–60 секунд):</strong></p>
+    <input type="number" id="timerValue" min="1" max="60" value="60" class="timer-input">
 
-    aliasWords = shuffleArray([...unusedWords]);
-    aliasIndex = 0;
-
-    const container = document.getElementById("game-container");
-    container.innerHTML = `
-      <p id="alias-timer">60 секунд</p>
-      <div id="alias-word" class="card"></div>
-
-      <p><strong>Выберите новое время:</strong></p>
-      <input type="number" id="timerValue" min="1" max="60" value="60" class="timer-input"><br><br>
-
-      <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать новый раунд</button>
-      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
-    `;
-  } catch (e) {
-    alert("Ошибка при запуске нового раунда.");
-    console.error(e);
-  }
+    <br><br>
+    <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать новый раунд</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+  `;
 }
 
 // Сообщение, если все слова уже были показаны
