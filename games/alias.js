@@ -14,7 +14,7 @@ function startAliasGame() {
     <div style="margin-bottom:15px;">
       <button onclick="loadAliasWords('easy')" class="menu-button">🟢 Лёгкий</button><br>
       <button onclick="loadAliasWords('medium')" class="menu-button">🟡 Средний</button><br>
-      <button onclick="loadAliasWords('hard')" class="menu-button">🔴 Тяжёлый</button><br>
+      <button onclick="loadAliasUsedWords()" class="menu-button">🔴 Тяжёлый</button><br>
     </div>
 
     <button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>
@@ -68,6 +68,12 @@ function getDifficultyName(difficulty) {
   }[difficulty] || "Неизвестный";
 }
 
+// Используем только те слова, которые ещё не угаданы
+function getUnusedWords(allWords, guessedList) {
+  const guessedWords = new Set(guessedList.map(item => item.word));
+  return allWords.filter(word => !guessedWords.has(word));
+}
+
 // Запуск таймера и игры
 async function startAliasTimer(difficulty) {
   const input = document.getElementById("timerValue").value;
@@ -89,9 +95,15 @@ async function startAliasTimer(difficulty) {
 
   try {
     const words = await loadJSON(url);
-    aliasWords = shuffleArray([...words]);
+    const unusedWords = getUnusedWords(words, guessedAlias); // Исключаем уже отгаданные
+
+    if (unusedWords.length === 0) {
+      showAllWordsShownMessage();
+      return;
+    }
+
+    aliasWords = shuffleArray([...unusedWords]);
     aliasIndex = 0;
-    guessedAlias = [];
 
     const container = document.getElementById("game-container");
     container.innerHTML = `
@@ -171,8 +183,19 @@ function showAliasResults() {
   });
 
   container.innerHTML += "</ul>";
-  container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>`;
+  container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔄 Новый раунд</button>`;
   container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
+}
+
+// Сообщение, если все слова из категории уже были показаны
+function showAllWordsShownMessage() {
+  const container = document.getElementById("game-container");
+  container.innerHTML = `
+    <h2>⚠️ Все слова показаны!</h2>
+    <p>Для продолжения начните новую игру.</p>
+    <button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+  `;
 }
 
 // Перемешивание массива
