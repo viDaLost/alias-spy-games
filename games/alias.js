@@ -1,9 +1,16 @@
-let aliasWords = [];        // Все доступные слова (текущий список)
+let aliasWords = [];        // Слова текущего раунда
 let aliasIndex = 0;         // Индекс текущего слова
-let guessedAlias = [];      // Только использованные слова: { word, correct }
+let guessedAlias = [];      // Все угаданные и не угаданные слова: { word, correct, round }
 let currentDifficulty = null;
+let currentRound = 1;       // Номер текущего раунда
 
 function startAliasGame() {
+  // Сброс состояния игры при новом запуске
+  aliasWords = [];
+  aliasIndex = 0;
+  guessedAlias = [];
+  currentRound = 1;
+
   const container = document.getElementById("game-container");
 
   // Отображение уровней сложности
@@ -75,6 +82,15 @@ function getUnusedWords(allWords, guessedList) {
 }
 
 // Запуск таймера и игры
+async function startAliasGameWithReset(difficulty) {
+  // Сброс перед началом нового раунда
+  aliasIndex = 0;
+  aliasWords = [];
+  guessedAlias = [];
+
+  startAliasTimer(difficulty);
+}
+
 async function startAliasTimer(difficulty) {
   const input = document.getElementById("timerValue").value;
   let seconds = parseInt(input);
@@ -159,7 +175,7 @@ function markGuessed(correct) {
   if (aliasIndex <= 0) return;
 
   const word = aliasWords[aliasIndex - 1];
-  guessedAlias.push({ word, correct });
+  guessedAlias.push({ word, correct, round: currentRound });
   showNextAliasWord();
 }
 
@@ -175,15 +191,25 @@ function showAliasResults() {
     return;
   }
 
-  container.innerHTML += "<ul>";
-
+  // Группировка по раундам
+  const roundsMap = {};
   guessedAlias.forEach(item => {
-    const color = item.correct ? "green" : "red";
-    container.innerHTML += `<li style="color:${color};">${item.word}</li>`;
+    if (!roundsMap[item.round]) roundsMap[item.round] = [];
+    roundsMap[item.round].push(item);
   });
 
-  container.innerHTML += "</ul>";
-  container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔄 Новый раунд</button>`;
+  container.innerHTML = "<h2>🏁 Результаты:</h2>";
+
+  for (const round in roundsMap) {
+    container.innerHTML += `<h3>Раунд #${round}</h3><ul>`;
+    roundsMap[round].forEach(item => {
+      const color = item.correct ? "green" : "red";
+      container.innerHTML += `<li style="color:${color};">${item.word}</li>`;
+    });
+    container.innerHTML += "</ul>";
+  }
+
+  container.innerHTML += `<button onclick="currentRound++; startAliasGameWithReset('${currentDifficulty}')" class="menu-button">🔄 Новый раунд</button>`;
   container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
 }
 
@@ -192,7 +218,8 @@ function showAllWordsShownMessage() {
   const container = document.getElementById("game-container");
   container.innerHTML = `
     <h2>⚠️ Все слова показаны!</h2>
-    <p>Перейдите в главное меню, чтобы сбросить список.</p>
+    <p>Для продолжения начните новую игру.</p>
+    <button onclick="startAliasGame()" class="menu-button">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
@@ -207,4 +234,17 @@ async function loadJSON(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ошибка: ${res.status}`);
   return await res.json();
+}
+
+// Сброс игры при выходе в меню
+function goToMainMenu() {
+  if (window.aliasInterval) clearInterval(window.aliasInterval);
+  aliasWords = [];
+  aliasIndex = 0;
+  guessedAlias = [];
+  currentDifficulty = null;
+  currentRound = 1;
+
+  document.getElementById("game-container").innerHTML = "";
+  document.querySelector(".menu-container").classList.remove("hidden");
 }
