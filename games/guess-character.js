@@ -1,15 +1,16 @@
 let guessCharacters = [];
 let guessCurrentPlayer = 1;
+let currentCharsUrl = null; // Сохраняем URL для перезапуска
 
 function startGuessCharacterGame(charsUrl) {
-  window.charsUrl = charsUrl; // Сохраняем URL для перезапуска
+  currentCharsUrl = charsUrl; // Сохраняем URL для перезапуска
 
   fetch(charsUrl)
     .then(res => res.json())
     .then(chars => {
-      // Берём два случайных персонажа
+      // Берём все персонажи и перемешиваем их
       const shuffled = shuffleArray([...chars]);
-      guessCharacters = [shuffled[0], shuffled[1]];
+      guessCharacters = shuffled;
 
       guessCurrentPlayer = 1;
       displayPlayerButton();
@@ -17,7 +18,7 @@ function startGuessCharacterGame(charsUrl) {
     .catch(err => {
       document.getElementById("game-container").innerHTML = `
         <p class="fade-in" style="color:red;">⚠️ Ошибка загрузки персонажей</p>
-        <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+        <button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>
       `;
     });
 }
@@ -28,14 +29,16 @@ function displayPlayerButton() {
   container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
 
   if (guessCurrentPlayer > guessCharacters.length) {
-    container.innerHTML += "<h3>🎉 Все персонажи показаны!</h3>";
-    container.innerHTML += `<button onclick="startGuessCharacterGame('${window.charsUrl}')" class="menu-button">🔄 Новая игра</button>`;
-    container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>`;
+    container.innerHTML += `
+      <h3>⚠️ Все персонажи показаны!</h3>
+      <p>Перейдите в главное меню, чтобы начать заново.</p>
+      <button onclick="goToMainMenu()" class="menu-button">⬅️ Главное меню</button>
+    `;
     return;
   }
 
   container.innerHTML += `
-    <p><strong>Игрок ${guessCurrentPlayer}, нажмите ниже, чтобы увидеть свой персонаж:</strong></p>
+    <p><strong>Игрок ${guessCurrentPlayer}, нажмите ниже, чтобы увидеть своего персонажа:</strong></p>
     <button onclick="revealCharacter()" class="menu-button">👁 Показать персонажа</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
@@ -53,7 +56,7 @@ function revealCharacter() {
     <div class="card" style="text-align:center;">
       <strong>Игрок ${guessCurrentPlayer}</strong>, ваш персонаж:
       <h3>${character}</h3>
-      <small>Опишите его, чтобы второй игрок мог угадать.</small>
+      <small>Опишите его, чтобы другой игрок мог угадать.</small>
     </div>
 
     <button onclick="nextGuessPlayer()" class="correct-button">➡️ Следующий игрок</button>
@@ -66,4 +69,9 @@ function revealCharacter() {
 // Переход к следующему игроку
 function nextGuessPlayer() {
   displayPlayerButton();
+}
+
+// Перемешивание массива
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
 }
