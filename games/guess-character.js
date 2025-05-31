@@ -3,14 +3,14 @@ let guessCurrentPlayer = 1;
 let currentCharsUrl = null; // Сохраняем URL для перезапуска
 
 function startGuessCharacterGame(charsUrl) {
-  currentCharsUrl = charsUrl; // Сохраняем URL для перезапуска
+  currentCharsUrl = charsUrl;
 
   fetch(charsUrl)
     .then(res => res.json())
     .then(chars => {
-      // Берём все персонажи и перемешиваем их
+      // Берём два случайных персонажа (всегда только двое)
       const shuffled = shuffleArray([...chars]);
-      guessCharacters = shuffled;
+      guessCharacters = [shuffled[0], shuffled[1]];
 
       guessCurrentPlayer = 1;
       displayPlayerButton();
@@ -28,11 +28,12 @@ function displayPlayerButton() {
   const container = document.getElementById("game-container");
   container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
 
-  if (guessCurrentPlayer > guessCharacters.length) {
+  if (guessCurrentPlayer > 2) {
     container.innerHTML += `
-      <h3>⚠️ Все персонажи показаны!</h3>
-      <p>Перейдите в главное меню, чтобы начать заново.</p>
-      <button onclick="goToMainMenu()" class="menu-button">⬅️ Главное меню</button>
+      <h3>🎉 Оба игрока уже получили персонажей!</h3>
+      <p>Игра завершена. Начните заново.</p>
+      <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">🔄 Новая игра</button>
+      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
     `;
     return;
   }
@@ -68,7 +69,22 @@ function revealCharacter() {
 
 // Переход к следующему игроку
 function nextGuessPlayer() {
+  if (guessCurrentPlayer > 2) {
+    showAllCharactersShownMessage();
+    return;
+  }
   displayPlayerButton();
+}
+
+// Сообщение о завершении игры
+function showAllCharactersShownMessage() {
+  const container = document.getElementById("game-container");
+  container.innerHTML = `
+    <h2>🏁 Раунд окончен</h2>
+    <p>Оба игрока получили свои персонажи. Вы можете начать новый раунд или выйти в меню.</p>
+    <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">🔄 Новый раунд</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+  `;
 }
 
 // Перемешивание массива
