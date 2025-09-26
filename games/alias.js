@@ -1,4 +1,4 @@
-// games/alias.js — Alias (аккуратный UI, выбор команды до/после раунда, минимальный экран раунда)
+// games/alias.js — Alias (аккуратный UI, сброс прогресса, крупные яркие кнопки, mobile-first)
 
 // === Глобальное состояние Alias ===
 let aliasWords = [];        // слова текущего раунда
@@ -21,21 +21,63 @@ let lastTimerSeconds = 60;  // длительность для «начать р
 // Восстановление состояния (опционально)
 aliasLoadState();
 
-// Стартовый экран выбора сложности (меню не показываем здесь)
-function startAliasGame() {
-  if (window.aliasInterval) clearInterval(window.aliasInterval);
+/* ===================== НОВОЕ: функции «жёсткого» и «мягкого» сброса ===================== */
+// Полный сброс всего прогресса и состояния (опционально очищаем кэш слов)
+function aliasHardReset({ clearWordCache = false } = {}) {
+  try { if (window.aliasInterval) clearInterval(window.aliasInterval); } catch {}
+  window.aliasInterval = null;
+  if (abortCtrl) { try { abortCtrl.abort(); } catch {} }
+  gameActive = false;
+  inputLocked = false;
+
+  // Сбрасываем игровой прогресс
+  aliasWords = [];
+  aliasIndex = 0;
+  guessedAlias = [];
+  currentRound = 1;
+  lastTimerSeconds = 60;
+
+  // Сбрасываем команды/очки
+  teamCount = 2;
+  currentTeam = 1;
+  teamScores = {};
+  aliasInitTeamScores();
+
+  // Очищаем сохранённое состояние
+  try { localStorage.removeItem('alias_state'); } catch {}
+
+  // По желанию — очищаем кеш слов (например, при новом запуске приложения не нужно)
+  if (clearWordCache) wordsCache = new Map();
+}
+
+// Мягкий сброс при смене сложности: обнуляем только прогресс, оставляя визуальные настройки
+function aliasSoftResetForNewDifficulty() {
+  try { if (window.aliasInterval) clearInterval(window.aliasInterval); } catch {}
+  window.aliasInterval = null;
+  if (abortCtrl) { try { abortCtrl.abort(); } catch {} }
   gameActive = false;
   inputLocked = false;
 
   aliasWords = [];
   aliasIndex = 0;
-  guessedAlias = guessedAlias || [];
-  currentRound = currentRound || 1;
-  currentDifficulty = null;
+  guessedAlias = [];
+  currentRound = 1;
 
-  if (!Number.isInteger(teamCount) || teamCount < 1 || teamCount > 5) teamCount = 2;
-  if (!Number.isInteger(currentTeam) || currentTeam < 1 || currentTeam > teamCount) currentTeam = 1;
+  // Команды и очки тоже считаем прогрессом → обнуляем
+  teamScores = {};
+  teamCount = 2;
+  currentTeam = 1;
   aliasInitTeamScores();
+
+  // Не трогаем wordsCache (пусть остаётся для повторного использования словарей)
+  try { localStorage.removeItem('alias_state'); } catch {}
+}
+/* ======================================================================================== */
+
+// Стартовый экран выбора сложности (меню не показываем здесь)
+function startAliasGame() {
+  // Начинаем с чистого листа при входе на стартовый экран
+  aliasHardReset({ clearWordCache: false });
 
   const container = document.getElementById("game-container");
   if (!container) return;
@@ -45,12 +87,12 @@ function startAliasGame() {
     <p class="alias-sub">Выберите уровень сложности</p>
 
     <div class="alias-buttons">
-      <button onclick="loadAliasWords('easy')" class="btn btn-neutral">🟢 Лёгкий</button>
-      <button onclick="loadAliasWords('medium')" class="btn btn-neutral">🟡 Средний</button>
-      <button onclick="loadAliasWords('hard')" class="btn btn-neutral">🔴 Тяжёлый</button>
+      <button onclick="loadAliasWords('easy')" class="btn btn-neutral btn-lg">🟢 Лёгкий</button>
+      <button onclick="loadAliasWords('medium')" class="btn btn-neutral btn-lg">🟡 Средний</button>
+      <button onclick="loadAliasWords('hard')" class="btn btn-neutral btn-lg">🔴 Тяжёлый</button>
     </div>
 
-    <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+    <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
   `;
 
   const menu = document.querySelector('.menu-container');
@@ -62,6 +104,9 @@ function startAliasGame() {
 
 // Загрузка слов по уровню с кэшем
 async function loadAliasWords(difficulty) {
+  // Требование: при выборе новой сложности — сбрасываем любой прогресс
+  aliasSoftResetForNewDifficulty();
+
   currentDifficulty = difficulty;
   const url = aliasUrlForDifficulty(difficulty);
 
@@ -100,11 +145,11 @@ function aliasShowSetup(words, difficulty) {
       <div class="setup-block">
         <p class="setup-label">Время раунда</p>
         <div class="row-wrap">
-          <input type="number" id="timerValue" min="1" max="180" value="${lastTimerSeconds}" class="input">
+          <input type="number" id="timerValue" min="1" max="180" value="${lastTimerSeconds}" class="input input-lg">
           <div class="chips">
-            <button class="chip" onclick="aliasPreset(30)">30 сек</button>
-            <button class="chip" onclick="aliasPreset(60)">60 сек</button>
-            <button class="chip" onclick="aliasPreset(90)">1 мин 30 сек</button>
+            <button class="chip chip-lg" onclick="aliasPreset(30)">30 сек</button>
+            <button class="chip chip-lg" onclick="aliasPreset(60)">60 сек</button>
+            <button class="chip chip-lg" onclick="aliasPreset(90)">1 мин 30 сек</button>
           </div>
         </div>
         <p class="hint">Допустимо от 1 до 180 секунд</p>
@@ -112,7 +157,7 @@ function aliasShowSetup(words, difficulty) {
 
       <div class="setup-block">
         <p class="setup-label">Количество команд</p>
-        <select id="teamCountSelect" class="input select">
+        <select id="teamCountSelect" class="input select input-lg">
           ${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===teamCount?"selected":""}>${n}</option>`).join("")}
         </select>
         <p class="hint">Измените при необходимости</p>
@@ -120,15 +165,15 @@ function aliasShowSetup(words, difficulty) {
 
       <div class="setup-block">
         <p class="setup-label">Какая команда играет сейчас?</p>
-        <select id="currentTeamSelect" class="input select">
+        <select id="currentTeamSelect" class="input select input-lg">
           ${Array.from({length:teamCount},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===currentTeam?"selected":""}>Команда ${n}</option>`).join("")}
         </select>
       </div>
     </div>
 
     <div class="row-center">
-      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary">▶️ Начать раунд</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">▶️ Начать раунд</button>
+      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
 }
@@ -218,14 +263,14 @@ async function startAliasTimer(difficulty) {
       <div id="alias-word" class="card word-card" aria-live="polite"></div>
 
       <div class="actions">
-        <button onclick="markGuessed(true)" class="btn btn-good">✅ Отгадано (Enter)</button>
-        <button onclick="markGuessed(false)" class="btn btn-bad">❌ Не отгадано (Backspace)</button>
-        <button onclick="aliasSkipWord()" class="btn btn-skip">⏭️ Пропустить (Space)</button>
+        <button onclick="markGuessed(true)" class="btn btn-good btn-xl">✅ Отгадано (Enter)</button>
+        <button onclick="markGuessed(false)" class="btn btn-bad btn-xl">❌ Не отгадано (Backspace)</button>
+        <button onclick="aliasSkipWord()" class="btn btn-skip btn-xl">⏭️ Пропустить (Space)</button>
       </div>
 
       <div class="row-center">
-        <button onclick="aliasRestartRoundSameSettings()" class="btn btn-ghost">⟲ Начать этот раунд заново</button>
-        <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+        <button onclick="aliasRestartRoundSameSettings()" class="btn btn-ghost btn-lg">⟲ Начать этот раунд заново</button>
+        <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
       </div>
     `;
 
@@ -276,7 +321,7 @@ function aliasRestartRoundSameSettings(){
 function aliasUpdateTimerUI(timerEl, seconds) {
   if (!timerEl) return;
   timerEl.textContent = `${seconds} секунд`;
-  timerEl.style.color = seconds <= 10 ? '#d92d20' : '';
+  timerEl.style.color = seconds <= 10 ? '#ef4444' : ''; // ярче предупреждение
 }
 
 // Завершение раунда
@@ -374,8 +419,8 @@ function aliasShowResults() {
     container.innerHTML += `
       <p class="hint">Нет результатов. Начните игру снова.</p>
       <div class="row-center">
-        <button onclick="startAliasGame()" class="btn btn-neutral">🔄 Новая игра</button>
-        <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+        <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔄 Новая игра</button>
+        <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
       </div>`;
     return;
   }
@@ -416,9 +461,9 @@ function aliasShowResults() {
         <td class="center">${aliasStatusBadge(item.correct)}</td>
         <td class="center">
           <div class="row-wrap center">
-            <button class="chip" title="Отгадано" onclick="aliasEditResult(${item._idx}, true)">✅</button>
-            <button class="chip" title="Не отгадано" onclick="aliasEditResult(${item._idx}, false)">❌</button>
-            <button class="chip" title="Пропущено" onclick="aliasEditResult(${item._idx}, null)">⏭️</button>
+            <button class="chip chip-lg" title="Отгадано" onclick="aliasEditResult(${item._idx}, true)">✅</button>
+            <button class="chip chip-lg" title="Не отгадано" onclick="aliasEditResult(${item._idx}, false)">❌</button>
+            <button class="chip chip-lg" title="Пропущено" onclick="aliasEditResult(${item._idx}, null)">⏭️</button>
           </div>
         </td>
       `;
@@ -440,15 +485,15 @@ function aliasShowResults() {
   nextBlock.innerHTML = `
     <div class="row-wrap">
       <label for="nextTeamSelect" class="setup-label" style="margin:0">Кто играет в следующем раунде?</label>
-      <select id="nextTeamSelect" class="input select" style="min-width:160px;">
+      <select id="nextTeamSelect" class="input select input-lg" style="min-width:180px;">
         ${Array.from({length:teamCount},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===((currentTeam % teamCount)||teamCount)?'selected':''}>Команда ${n}</option>`).join('')}
       </select>
     </div>
 
     <div class="row-center actions-bottom">
-      <button onclick="aliasStartNextRound()" class="btn btn-primary">▶️ Начать следующий раунд</button>
-      <button onclick="startAliasGame()" class="btn btn-neutral">🔘 Выбрать уровень</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+      <button onclick="aliasStartNextRound()" class="btn btn-primary btn-xl">▶️ Начать следующий раунд</button>
+      <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔘 Выбрать уровень</button>
+      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
   container.appendChild(nextBlock);
@@ -494,25 +539,25 @@ function aliasShowSetupWithNewTime(difficulty) {
       <div class="setup-block">
         <p class="setup-label">Время раунда</p>
         <div class="row-wrap">
-          <input type="number" id="timerValue" min="1" max="180" value="${lastTimerSeconds}" class="input">
+          <input type="number" id="timerValue" min="1" max="180" value="${lastTimerSeconds}" class="input input-lg">
           <div class="chips">
-            <button class="chip" onclick="aliasPreset(30)">30 сек</button>
-            <button class="chip" onclick="aliasPreset(60)">60 сек</button>
-            <button class="chip" onclick="aliasPreset(90)">1 мин 30 сек</button>
+            <button class="chip chip-lg" onclick="aliasPreset(30)">30 сек</button>
+            <button class="chip chip-lg" onclick="aliasPreset(60)">60 сек</button>
+            <button class="chip chip-lg" onclick="aliasPreset(90)">1 мин 30 сек</button>
           </div>
         </div>
       </div>
       <div class="setup-block">
         <p class="setup-label">Активная команда</p>
-        <select id="currentTeamSelect" class="input select">
+        <select id="currentTeamSelect" class="input select input-lg">
           ${Array.from({length:teamCount},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===currentTeam?"selected":""}>Команда ${n}</option>`).join('')}
         </select>
       </div>
     </div>
 
     <div class="row-center">
-      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary">▶️ Начать раунд</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">▶️ Начать раунд</button>
+      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
 }
@@ -526,9 +571,9 @@ function aliasShowAllWordsMessage() {
     <h2 class="alias-title">⚠️ Все слова показаны</h2>
     <p class="hint">Можно начать заново или сбросить использованные слова.</p>
     <div class="row-center">
-      <button onclick="startAliasGame()" class="btn btn-neutral">🔄 Новая игра</button>
-      <button onclick="aliasResetGuessedAndContinue()" class="btn btn-primary">🧹 Сбросить использованные</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost">⬅️ В главное меню</button>
+      <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔄 Новая игра</button>
+      <button onclick="aliasResetGuessedAndContinue()" class="btn btn-primary btn-xl">🧹 Сбросить использованные</button>
+      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
 }
@@ -623,67 +668,86 @@ function aliasRemoveKeyHandlers() {
   window.removeEventListener('keydown', aliasKeydownHandler, { passive: false });
 }
 
-// ===== Минималистичные стили (самодостаточно) =====
+// ===== Минималистичные стили (самодостаточно) — ОБНОВЛЁННЫЕ ДЛЯ МОБИЛЬНЫХ И ЯРКИХ КНОПОК =====
 (function injectAliasStyles(){
   if (document.getElementById('alias-inline-styles')) return;
   const css = `
     :root{
       --bg:#ffffff; --ink:#0f172a; --muted:#6b7280; --border:#e5e7eb;
-      --good:#e7f7ea; --bad:#fdecea; --skip:#eef2f7; --brand:#2563eb; --brand-ink:#ffffff;
+      --good:#d1fae5; --bad:#fee2e2; --skip:#e5edff;
+      --brand:#2563eb; --brand-ink:#ffffff;
+      --good-ink:#065f46; --bad-ink:#7f1d1d; --skip-ink:#1e3a8a;
     }
+    * { -webkit-tap-highlight-color: transparent; }
     #game-container{ max-width:720px; margin:0 auto; padding:16px; color:var(--ink); }
-    .alias-title{ margin:0 0 8px; font-size:24px; font-weight:700; }
+    .alias-title{ margin:0 0 8px; font-size:26px; font-weight:800; letter-spacing:.2px; }
     .alias-sub{ margin:0 0 12px; color:var(--muted); }
 
-    .setup-grid{ display:grid; gap:16px; grid-template-columns:1fr; max-width:560px; }
-    .setup-block{ background:#fff; border:1px solid var(--border); border-radius:12px; padding:12px; }
-    .setup-label{ font-weight:600; margin:0 0 8px; }
-    .hint{ margin:6px 0 0; color:var(--muted); font-size:12px; }
+    .setup-grid{ display:grid; gap:16px; grid-template-columns:1fr; max-width:640px; }
+    .setup-block{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:14px; }
+    .setup-label{ font-weight:700; margin:0 0 8px; }
+    .hint{ margin:6px 0 0; color:var(--muted); font-size:13px; }
 
-    .row-wrap{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .row-center{ display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:12px; }
-    .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+    .row-wrap{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .row-center{ display:flex; gap:12px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:14px; }
+    .chips{ display:flex; gap:10px; flex-wrap:wrap; }
 
-    .input{ padding:8px 10px; border:1px solid var(--border); border-radius:10px; font-size:14px; }
-    .select{ min-width:120px; }
+    .input{ padding:12px 14px; border:1px solid var(--border); border-radius:12px; font-size:16px; }
+    .input-lg{ padding:14px 16px; font-size:17px; }
+    .select{ min-width:140px; }
 
-    .btn{ cursor:pointer; border:none; border-radius:10px; padding:10px 14px; font-size:14px; box-shadow:0 1px 2px rgba(0,0,0,.06); transition:transform .06s ease; }
+    .btn{ cursor:pointer; border:none; border-radius:14px; padding:14px 18px; font-size:16px; font-weight:700;
+          box-shadow:0 4px 10px rgba(37,99,235,0.08); transition:transform .06s ease, box-shadow .2s ease; }
     .btn:active{ transform:translateY(1px); }
-    .btn-primary{ background:var(--brand); color:var(--brand-ink); }
-    .btn-neutral{ background:#f5f6f8; }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; }
+    .btn-lg{ padding:16px 20px; font-size:17px; }
+    .btn-xl{ padding:18px 22px; font-size:18px; }
+
+    .btn-primary{ background:linear-gradient(180deg,#3b82f6,#2563eb); color:var(--brand-ink); }
+    .btn-neutral{ background:#f5f7fb; }
     .btn-ghost{ background:#f8fafc; }
-    .btn-good{ background:var(--good); }
-    .btn-bad{ background:var(--bad); }
-    .btn-skip{ background:var(--skip); }
+    .btn-good{ background:#34d399; color:#064e3b; }
+    .btn-bad{ background:#fca5a5; color:#7f1d1d; }
+    .btn-skip{ background:#c7d2fe; color:#1e3a8a; }
 
-    .alias-buttons{ display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 16px; }
+    .alias-buttons{ display:flex; gap:12px; flex-wrap:wrap; margin:12px 0 18px; }
 
-    .word-card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:20px; min-height:88px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; text-align:center; }
+    .word-card{ background:#fff; border:1px solid var(--border); border-radius:16px; padding:24px;
+                min-height:100px; display:flex; align-items:center; justify-content:center;
+                font-size:32px; font-weight:800; text-align:center; }
 
-    .round-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
-    .timer{ font-weight:700; }
-    .round-meta{ color:var(--muted); font-size:13px; }
+    .round-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+    .timer{ font-weight:900; font-size:18px; }
+    .round-meta{ color:var(--muted); font-size:14px; }
 
-    .actions{ display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
-    .actions-bottom{ margin-top:10px; }
+    .actions{ display:flex; gap:12px; justify-content:center; margin-top:18px; flex-wrap:wrap; }
+    .actions-bottom{ margin-top:12px; }
 
-    .scoreboard{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-start; margin:6px 0 14px; }
-    .badge{ display:inline-block; padding:6px 10px; border-radius:999px; background:#f2f4f7; font-size:13px; }
-    .badge-good{ background:var(--good); }
-    .badge-bad{ background:var(--bad); }
-    .badge-skip{ background:var(--skip); }
+    .scoreboard{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-start; margin:8px 0 16px; }
+    .badge{ display:inline-block; padding:8px 12px; border-radius:999px; background:#eef2f7; font-size:14px; font-weight:700; }
 
-    .results-table{ width:100%; border-collapse:collapse; margin:8px 0 14px; font-size:14px; }
-    .results-table th, .results-table td{ padding:8px 10px; border-bottom:1px solid var(--border); }
+    .badge-good{ background:var(--good); color:var(--good-ink); }
+    .badge-bad{ background:var(--bad); color:var(--bad-ink); }
+    .badge-skip{ background:var(--skip); color:var(--skip-ink); }
+
+    .results-table{ width:100%; border-collapse:collapse; margin:10px 0 16px; font-size:16px; }
+    .results-table th, .results-table td{ padding:10px 12px; border-bottom:1px solid var(--border); }
     .results-table th{ text-align:left; background:#f9fafb; }
     .results-table td.center{ text-align:center; }
-    .round-title{ margin:10px 0 8px; font-size:18px; }
-    .totals{ margin:6px 0 12px; }
-    .next-block{ display:flex; flex-direction:column; gap:10px; }
+    .round-title{ margin:12px 0 10px; font-size:20px; font-weight:800; }
+    .totals{ margin:8px 0 14px; font-weight:700; }
+    .next-block{ display:flex; flex-direction:column; gap:12px; }
 
-    @media (max-width:520px){
-      .word-card{ font-size:22px; }
-      .results-table th:nth-child(4), .results-table td:nth-child(4){ width:120px; }
+    .chip{ padding:10px 12px; border-radius:999px; background:#f3f4f6; border:1px solid var(--border); font-weight:700; }
+    .chip-lg{ padding:12px 14px; }
+
+    /* Мобильные улучшения */
+    @media (max-width:560px){
+      .btn, .btn-lg, .btn-xl { width:100%; min-height:48px; }
+      .input, .input-lg, .select{ width:100%; }
+      .word-card{ font-size:28px; min-height:110px; padding:22px; }
+      .alias-buttons{ gap:10px; }
+      .timer{ font-size:20px; }
     }
   `;
   const style = document.createElement('style');
@@ -694,7 +758,9 @@ function aliasRemoveKeyHandlers() {
 
 // Переопределите в своём коде
 function goToMainMenu(){
-  // Заглушка: вернуться к вашему общему меню приложения
+  // Требование: при выходе в главное меню — сбрасываем ЛЮБОЙ прогресс
+  aliasHardReset({ clearWordCache: false });
+
   const menu = document.querySelector('.menu-container');
   if (menu) menu.classList.remove('hidden');
   const container = document.getElementById('game-container');
