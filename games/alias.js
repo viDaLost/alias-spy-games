@@ -3,7 +3,7 @@
 // === Глобальное состояние Alias ===
 let aliasWords = [];        // слова текущего раунда
 let aliasIndex = 0;         // индекс текущего слова
-let guessedAlias = [];      // { word, correct(true/false|null), round }
+let guessedAlias = [];      // { word, correct(true/false|null), round, team }
 let currentDifficulty = null;
 let currentRound = 1;
 
@@ -11,6 +11,12 @@ let gameActive = false;     // идёт ли раунд
 let inputLocked = false;    // защита от дабл-кликов
 let wordsCache = new Map(); // 'easy'|'medium'|'hard' -> string[]
 let abortCtrl = null;       // AbortController для fetch
+
+// --- Новое: команды и очки ---
+let teamCount = 2;          // от 1 до 5
+let currentTeam = 1;        // активная команда в раунде
+let teamScores = {};        // {1:0,2:0,...}
+let lastTimerSeconds = 60;  // запоминаем длительность для «начать раунд заново»
 
 // Восстановление состояния (опционально)
 aliasLoadState();
@@ -26,6 +32,11 @@ function startAliasGame() {
   guessedAlias = [];
   currentRound = 1;
   currentDifficulty = null;
+
+  // Сброс команд по умолчанию
+  if (!Number.isInteger(teamCount) || teamCount < 1 || teamCount > 5) teamCount = 2;
+  currentTeam = 1;
+  aliasInitTeamScores();
 
   const container = document.getElementById("game-container");
   if (!container) return;
@@ -73,7 +84,7 @@ async function loadAliasWords(difficulty) {
   }
 }
 
-// Экран настройки времени
+// Экран настройки времени и команд
 function aliasShowSetup(words, difficulty) {
   const container = document.getElementById("game-container");
   if (!container) return;
@@ -82,13 +93,35 @@ function aliasShowSetup(words, difficulty) {
 
   container.innerHTML = `
     <h2>🎮 Алиас — ${difficultyName} уровень</h2>
-    <p><strong>Выберите время (1–60 секунд):</strong></p>
-    <input type="number" id="timerValue" min="1" max="60" value="60" class="timer-input">
 
-    <br><br>
+    <div class="setup-grid" style="display:grid; gap:12px; grid-template-columns:1fr; max-width:520px;">
+      <div>
+        <p><strong>Выберите время (1–180 сек):</strong></p>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="number" id="timerValue" min="1" max="180" value="${lastTimerSeconds}" class="timer-input" style="width:120px;">
+          <button class="chip" onclick="aliasPreset(30)">30 сек</button>
+          <button class="chip" onclick="aliasPreset(60)">60 сек</button>
+          <button class="chip" onclick="aliasPreset(90)">1 мин 30 сек</button>
+        </div>
+      </div>
+
+      <div>
+        <p><strong>Количество команд:</strong></p>
+        <select id="teamCountSelect" class="timer-input" style="width:160px;">
+          ${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===teamCount?"selected":""}>${n}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+
+    <br>
     <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать игру</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
+}
+
+function aliasPreset(sec){
+  const el = document.getElementById('timerValue');
+  if (el){ el.value = sec; lastTimerSeconds = sec; aliasSaveState(); }
 }
 
 function aliasGetDifficultyName(difficulty) {
@@ -107,6 +140,39 @@ function aliasGetUnusedWords(allWords, guessedList) {
   return allWords.filter(word => !guessedSet.has(aliasNormalize(word)));
 }
 
+function aliasInitTeamScores(){
+  teamScores = {};
+  for (let i=1;i<=Math.max(1,Math.min(5,teamCount));i++) teamScores[i] = 0;
+}
+
+function aliasScoreboardHTML(){
+  return `<div id="alias-scoreboard" class="scoreboard" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:6px 0 10px;">
+    ${Object.keys(teamScores).map(k=>`<span class="badge">Команда ${k}: <strong>${teamScores[k]}</strong></span>`).join("")}
+  </div>`;
+}
+
+function aliasRenderActiveTeamControls(){
+  return `<div style="display:flex; gap:8px; justify-content:center; align-items:center; margin:8px 0 6px;">
+    <span class="badge" id="alias-active-team">Текущая команда: <strong>${currentTeam}</strong></span>
+    ${teamCount>1?`<button class="chip" onclick="aliasNextTeam()">⏭️ Следующая команда</button>`:""}
+    ${teamCount>1?`<select id="alias-team-select" class="timer-input" style="width:120px;" onchange="aliasChangeTeamBySelect(this.value)">
+      ${Array.from({length:teamCount},(_,i)=>i+1).map(n=>`<option ${n===currentTeam?"selected":""} value="${n}">${n}</option>`).join("")}
+    </select>`:""}
+  </div>`;
+}
+
+function aliasNextTeam(){
+  currentTeam = ((currentTeam % teamCount) || 0) + 1;
+  const el = document.getElementById('alias-active-team');
+  if (el) el.innerHTML = `Текущая команда: <strong>${currentTeam}</strong>`;
+  const sel = document.getElementById('alias-team-select');
+  if (sel) sel.value = String(currentTeam);
+}
+function aliasChangeTeamBySelect(val){
+  const n = parseInt(val,10);
+  if (!isNaN(n) && n>=1 && n<=teamCount){ currentTeam = n; const el=document.getElementById('alias-active-team'); if (el) el.innerHTML = `Текущая команда: <strong>${currentTeam}</strong>`; }
+}
+
 // Старт таймера и раунда
 async function startAliasTimer(difficulty) {
   if (gameActive) return;
@@ -114,11 +180,21 @@ async function startAliasTimer(difficulty) {
   const inputEl = document.getElementById("timerValue");
   if (!inputEl) return;
 
+  // Кол-во команд
+  const teamSelect = document.getElementById('teamCountSelect');
+  if (teamSelect) {
+    const tc = parseInt(teamSelect.value,10);
+    teamCount = (!isNaN(tc) ? Math.min(5, Math.max(1, tc)) : 2);
+  }
+  aliasInitTeamScores();
+  currentTeam = 1;
+
   let seconds = parseInt(inputEl.value, 10);
-  if (isNaN(seconds) || seconds < 1 || seconds > 60) {
-    alert("Введите число от 1 до 60.");
+  if (isNaN(seconds) || seconds < 1 || seconds > 180) {
+    alert("Введите число от 1 до 180.");
     return;
   }
+  lastTimerSeconds = seconds;
 
   if (window.aliasInterval) clearInterval(window.aliasInterval);
 
@@ -146,11 +222,16 @@ async function startAliasTimer(difficulty) {
     if (!container) return;
 
     container.innerHTML = `
-      <p id="alias-timer">${seconds} секунд</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <p id="alias-timer" style="margin:0;">${seconds} секунд</p>
+        <button onclick="aliasRestartRoundSameSettings()" class="chip">⏮️ Начать раунд заново</button>
+      </div>
+      ${aliasRenderActiveTeamControls()}
+      ${aliasScoreboardHTML()}
       <div id="alias-left" style="margin-bottom:8px; font-size:0.95rem; opacity:.8;"></div>
-      <div id="alias-word" class="card"></div>
+      <div id="alias-word" class="card" style="min-height:68px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"></div>
 
-      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap;">
         <button onclick="markGuessed(true)" class="correct-button">✅ Отгадано (Enter)</button>
         <button onclick="markGuessed(false)" class="wrong-button">❌ Не отгадано (Backspace)</button>
         <button onclick="aliasSkipWord()" class="skip-button">⏭️ Пропустить (Space)</button>
@@ -184,6 +265,34 @@ async function startAliasTimer(difficulty) {
     alert("Ошибка при начале игры.");
     console.error(e);
   }
+}
+
+// Перезапуск текущего раунда с теми же настройками
+function aliasRestartRoundSameSettings(){
+  if (!currentDifficulty) return;
+  // Удаляем все ответы текущего раунда перед перезапуском
+  guessedAlias = guessedAlias.filter(x => x.round !== currentRound);
+  aliasSaveState();
+  // Останавливаем таймер, если был
+  clearInterval(window.aliasInterval);
+  window.aliasInterval = null;
+  gameActive = false;
+  // Запускаем заново
+  const fakeInput = document.getElementById('timerValue');
+  // Если на экране нет инпута (мы в раунде), используем lastTimerSeconds
+  if (!fakeInput) {
+    const container = document.getElementById('game-container');
+    if (container){
+      // Небольшой хак: создаём временный инпут невидимый, чтобы переиспользовать startAliasTimer
+      const tmp = document.createElement('input');
+      tmp.type = 'number'; tmp.id = 'timerValue'; tmp.value = String(lastTimerSeconds);
+      tmp.style.display = 'none';
+      container.appendChild(tmp);
+    }
+  } else {
+    fakeInput.value = String(lastTimerSeconds);
+  }
+  startAliasTimer(currentDifficulty);
 }
 
 // UI таймера
@@ -229,7 +338,9 @@ function markGuessed(correct) {
 
   inputLocked = true;
   const word = aliasWords[aliasIndex - 1];
-  guessedAlias.push({ word, correct, round: currentRound });
+  guessedAlias.push({ word, correct, round: currentRound, team: currentTeam });
+  if (correct === true) teamScores[currentTeam] = (teamScores[currentTeam]||0) + 1;
+  aliasUpdateScoreboardUI();
   aliasSaveState();
 
   requestAnimationFrame(() => aliasShowNextWord());
@@ -241,7 +352,7 @@ function aliasSkipWord() {
 
   inputLocked = true;
   const word = aliasWords[aliasIndex - 1];
-  guessedAlias.push({ word, correct: null, round: currentRound });
+  guessedAlias.push({ word, correct: null, round: currentRound, team: currentTeam });
   aliasSaveState();
 
   requestAnimationFrame(() => aliasShowNextWord());
@@ -261,6 +372,12 @@ function aliasUpdateLeftCounter() {
   leftEl.textContent = `Осталось слов: ${left}`;
 }
 
+function aliasUpdateScoreboardUI(){
+  const sb = document.getElementById('alias-scoreboard');
+  if (!sb) return;
+  sb.innerHTML = Object.keys(teamScores).map(k=>`<span class="badge">Команда ${k}: <strong>${teamScores[k]}</strong></span>`).join("");
+}
+
 // Результаты
 function aliasShowResults() {
   const container = document.getElementById("game-container");
@@ -268,7 +385,14 @@ function aliasShowResults() {
 
   aliasRemoveKeyHandlers();
 
-  container.innerHTML = "<h2>🏁 Результаты:</h2>";
+  // Итог по командам (пересчитываем на всякий случай)
+  aliasRecomputeTeamScores();
+
+  container.innerHTML = `<h2>🏁 Результаты</h2>
+    <div class="scoreboard" style="display:flex; gap:8px; flex-wrap:wrap;">
+      ${Object.keys(teamScores).map(k=>`<span class=\"badge\">Команда ${k}: <strong>${teamScores[k]}</strong></span>`).join("")}
+    </div>
+  `;
 
   if (guessedAlias.length === 0) {
     container.innerHTML += "<p>Нет результатов. Начните игру снова.</p>";
@@ -277,10 +401,11 @@ function aliasShowResults() {
     return;
   }
 
+  // Группировка по раундам
   const roundsMap = {};
-  guessedAlias.forEach(item => {
+  guessedAlias.forEach((item, idx) => {
     if (!roundsMap[item.round]) roundsMap[item.round] = [];
-    roundsMap[item.round].push(item);
+    roundsMap[item.round].push({...item, _idx: idx});
   });
 
   const rounds = Object.keys(roundsMap).map(Number).sort((a, b) => a - b);
@@ -296,21 +421,88 @@ function aliasShowResults() {
     totalYes += yes;
     totalNo  += no;
 
-    container.innerHTML += `<h3>Раунд #${round} — ✅ ${yes} / ❌ ${no}${skipped ? ` / ⏭️ ${skipped}` : ""}</h3><ul>`;
+    const head = document.createElement('h3');
+    head.textContent = `Раунд #${round} — ✅ ${yes} / ❌ ${no}${skipped ? ` / ⏭️ ${skipped}` : ""}`;
+    container.appendChild(head);
+
+    // Улучшенный список: таблица с управлением статуса и отображением команды
+    const table = document.createElement('table');
+    table.className = 'results-table';
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:6px 8px; border-bottom:1px solid #ddd;">Слово</th>
+          <th style="padding:6px 8px; border-bottom:1px solid #ddd;">Команда</th>
+          <th style="padding:6px 8px; border-bottom:1px solid #ddd;">Статус</th>
+          <th style="padding:6px 8px; border-bottom:1px solid #ddd;">Изменить</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+
     items.forEach(item => {
-      const color = item.correct === true ? "green" : (item.correct === false ? "red" : "gray");
-      container.innerHTML += `<li style="color:${color};">${aliasEscapeHTML(item.word)}</li>`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:6px 8px; border-bottom:1px solid #eee;">${aliasEscapeHTML(item.word)}</td>
+        <td style="text-align:center; padding:6px 8px; border-bottom:1px solid #eee;">${item.team || '-'}</td>
+        <td style="text-align:center; padding:6px 8px; border-bottom:1px solid #eee;">${aliasStatusBadge(item.correct)}</td>
+        <td style="text-align:center; padding:6px 8px; border-bottom:1px solid #eee;">
+          <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+            <button class="chip" title="Отгадано" onclick="aliasEditResult(${item._idx}, true)">✅</button>
+            <button class="chip" title="Не отгадано" onclick="aliasEditResult(${item._idx}, false)">❌</button>
+            <button class="chip" title="Пропущено" onclick="aliasEditResult(${item._idx}, null)">⏭️</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
-    container.innerHTML += "</ul>";
+
+    container.appendChild(table);
   });
 
-  container.innerHTML += `<p><strong>Итого: ✅ ${totalYes} / ❌ ${totalNo}</strong>${totalYes+totalNo < guessedAlias.length ? ` (⏭️ пропущено: ${guessedAlias.length - (totalYes+totalNo)})` : ""}</p>`;
+  container.innerHTML += `<p style="margin-top:10px;"><strong>Итого: ✅ ${totalYes} / ❌ ${totalNo}</strong>${totalYes+totalNo < guessedAlias.length ? ` (⏭️ пропущено: ${guessedAlias.length - (totalYes+totalNo)})` : ""}</p>`;
 
-  container.innerHTML += `<button onclick="currentRound++; aliasShowSetupWithNewTime(currentDifficulty)" class="menu-button">🔄 Новый раунд</button>`;
-  container.innerHTML += `<button onclick="startAliasGame()" class="menu-button">🔘 Выбрать уровень сложности</button>`;
-  container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>`;
+  // Кнопки управления
+  const actions = document.createElement('div');
+  actions.style.display = 'flex';
+  actions.style.gap = '10px';
+  actions.style.flexWrap = 'wrap';
+  actions.innerHTML = `
+    <button onclick="currentRound++; aliasShowSetupWithNewTime(currentDifficulty)" class="menu-button">🔄 Новый раунд</button>
+    <button onclick="startAliasGame()" class="menu-button">🔘 Выбрать уровень сложности</button>
+    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+  `;
+  container.appendChild(actions);
 
   aliasSaveState();
+}
+
+function aliasStatusBadge(correct){
+  if (correct === true) return '<span class="badge" style="background:#e7f7ea;">✅ Отгадано</span>';
+  if (correct === false) return '<span class="badge" style="background:#fdecea;">❌ Не отгадано</span>';
+  return '<span class="badge" style="background:#eef2f7;">⏭️ Пропущено</span>';
+}
+
+// Изменение результата постфактум с пересчётом очков
+function aliasEditResult(globalIdx, newStatus){
+  if (globalIdx < 0 || globalIdx >= guessedAlias.length) return;
+  guessedAlias[globalIdx].correct = newStatus;
+  aliasRecomputeTeamScores();
+  aliasSaveState();
+  aliasShowResults(); // перерисовываем удобнее всего
+}
+
+function aliasRecomputeTeamScores(){
+  aliasInitTeamScores();
+  for (const item of guessedAlias){
+    if (item && item.team && item.correct === true){
+      teamScores[item.team] = (teamScores[item.team]||0) + 1;
+    }
+  }
 }
 
 // Новый раунд с тем же уровнем
@@ -323,10 +515,25 @@ function aliasShowSetupWithNewTime(difficulty) {
 
   container.innerHTML = `
     <h2>🎮 Алиас — ${difficultyName} уровень</h2>
-    <p><strong>Выберите время (1–60 секунд):</strong></p>
-    <input type="number" id="timerValue" min="1" max="60" value="60" class="timer-input">
+    <div class="setup-grid" style="display:grid; gap:12px; grid-template-columns:1fr; max-width:520px;">
+      <div>
+        <p><strong>Выберите время (1–180 сек):</strong></p>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="number" id="timerValue" min="1" max="180" value="${lastTimerSeconds}" class="timer-input" style="width:120px;">
+          <button class="chip" onclick="aliasPreset(30)">30 сек</button>
+          <button class="chip" onclick="aliasPreset(60)">60 сек</button>
+          <button class="chip" onclick="aliasPreset(90)">1 мин 30 сек</button>
+        </div>
+      </div>
+      <div>
+        <p><strong>Количество команд:</strong></p>
+        <select id="teamCountSelect" class="timer-input" style="width:160px;">
+          ${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===teamCount?"selected":""}>${n}</option>`).join("")}
+        </select>
+      </div>
+    </div>
 
-    <br><br>
+    <br>
     <button onclick="startAliasTimer('${difficulty}')" class="start-button">▶️ Начать новый раунд</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
@@ -351,6 +558,7 @@ function aliasShowAllWordsMessage() {
 function aliasResetGuessedAndContinue() {
   guessedAlias = [];
   currentRound = 1;
+  aliasInitTeamScores();
   aliasSaveState();
   if (currentDifficulty) {
     aliasShowSetupWithNewTime(currentDifficulty);
@@ -400,7 +608,7 @@ function aliasEscapeHTML(str) {
 function aliasSaveState() {
   try {
     localStorage.setItem("alias_state", JSON.stringify({
-      guessedAlias, currentRound, currentDifficulty
+      guessedAlias, currentRound, currentDifficulty, teamCount, teamScores, lastTimerSeconds
     }));
   } catch {}
 }
@@ -412,6 +620,10 @@ function aliasLoadState() {
       guessedAlias = Array.isArray(s.guessedAlias) ? s.guessedAlias : [];
       currentRound = Number.isInteger(s.currentRound) ? s.currentRound : 1;
       currentDifficulty = s.currentDifficulty || null;
+      teamCount = (Number.isInteger(s.teamCount) ? Math.min(5, Math.max(1, s.teamCount)) : 2);
+      teamScores = (s.teamScores && typeof s.teamScores === 'object') ? s.teamScores : {};
+      lastTimerSeconds = Number.isInteger(s.lastTimerSeconds) ? s.lastTimerSeconds : 60;
+      if (!Object.keys(teamScores).length) aliasInitTeamScores();
     }
   } catch {}
 }
@@ -435,3 +647,30 @@ function aliasAddKeyHandlers() {
 function aliasRemoveKeyHandlers() {
   window.removeEventListener("keydown", aliasKeydownHandler, { passive: false });
 }
+
+// ===== Мелкие стили (по желанию, если нет общего CSS) =====
+// Можно вынести в CSS-файл. Оставлено тут для самодостаточности.
+(function injectAliasStyles(){
+  if (document.getElementById('alias-inline-styles')) return;
+  const css = `
+    .menu-button, .start-button, .back-button, .correct-button, .wrong-button, .skip-button, .chip {
+      cursor:pointer; border:none; border-radius:10px; padding:10px 14px; font-size:14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+    .menu-button{ background:#f5f6f8; }
+    .start-button{ background:#2ecc71; color:#fff; }
+    .back-button{ background:#e0e3e7; }
+    .correct-button{ background:#e7f7ea; }
+    .wrong-button{ background:#fdecea; }
+    .skip-button{ background:#eef2f7; }
+    .timer-input{ padding:8px 10px; border:1px solid #d6dbe1; border-radius:8px; }
+    .card{ background:#fff; border:1px solid #e7ebf0; border-radius:12px; padding:16px; }
+    .badge{ display:inline-block; padding:6px 10px; border-radius:999px; background:#f2f4f7; }
+    .chip{ background:#f7f8fa; }
+    .results-table th, .results-table td { font-size:14px; }
+  `;
+  const style = document.createElement('style');
+  style.id = 'alias-inline-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
