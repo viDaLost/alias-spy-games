@@ -648,29 +648,3 @@ function aliasRemoveKeyHandlers() {
   window.removeEventListener("keydown", aliasKeydownHandler, { passive: false });
 }
 
-// ===== Мелкие стили (по желанию, если нет общего CSS) =====
-// Можно вынести в CSS-файл. Оставлено тут для самодостаточности.
-(function injectAliasStyles(){
-  if (document.getElementById('alias-inline-styles')) return;
-  const css = `
-    .menu-button, .start-button, .back-button, .correct-button, .wrong-button, .skip-button, .chip {
-      cursor:pointer; border:none; border-radius:10px; padding:10px 14px; font-size:14px;
-      box-shadow: 0 1px 2px rgba(0,0,0,.08);
-    }
-    .menu-button{ background:#f5f6f8; }
-    .start-button{ background:#2ecc71; color:#fff; }
-    .back-button{ background:#e0e3e7; }
-    .correct-button{ background:#e7f7ea; }
-    .wrong-button{ background:#fdecea; }
-    .skip-button{ background:#eef2f7; }
-    .timer-input{ padding:8px 10px; border:1px solid #d6dbe1; border-radius:8px; }
-    .card{ background:#fff; border:1px solid #e7ebf0; border-radius:12px; padding:16px; }
-    .badge{ display:inline-block; padding:6px 10px; border-radius:999px; background:#f2f4f7; }
-    .chip{ background:#f7f8fa; }
-    .results-table th, .results-table td { font-size:14px; }
-  `;
-  const style = document.createElement('style');
-  style.id = 'alias-inline-styles';
-  style.textContent = css;
-  document.head.appendChild(style);
-})();
