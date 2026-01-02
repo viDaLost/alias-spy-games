@@ -5,6 +5,10 @@ let currentLetter = "";
 let shownThemes = []; // Уже показанные темы
 let themesUrlGlobal = ""; // Сохраняем URL для перезапуска
 
+// ✅ Память букв: последние 6 показанных
+let recentLetters = [];
+const LETTER_COOLDOWN = 6;
+
 function startCoimaginariumGame(themesUrl) {
   themesUrlGlobal = themesUrl;
 
@@ -14,8 +18,9 @@ function startCoimaginariumGame(themesUrl) {
       return res.json();
     })
     .then(data => {
-      coimaginariumThemes = [...data]; // Копируем список тем
-      shownThemes = []; // Очищаем предыдущие
+      coimaginariumThemes = [...data];
+      shownThemes = [];
+      recentLetters = []; // ✅ сбрасываем при старте заново
       selectRandomThemeAndLetter();
       displayCoimaginariumUI();
     })
@@ -33,16 +38,34 @@ function selectRandomThemeAndLetter() {
 
   const randomIndex = Math.floor(Math.random() * coimaginariumThemes.length);
   currentTheme = coimaginariumThemes[randomIndex];
+
+  // ✅ буква с защитой от повторов
   currentLetter = getRandomLetter();
 
-  // Убираем текущую тему из списка, чтобы не повторялась
   coimaginariumThemes.splice(randomIndex, 1);
   shownThemes.push(currentTheme);
 }
 
+// ✅ заменяем getRandomLetter на версию с “кулдауном” 6 букв
 function getRandomLetter() {
   const letters = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ".split("");
-  return letters[Math.floor(Math.random() * letters.length)];
+
+  // Разрешённые буквы: те, которых нет в последних 6
+  let available = letters.filter(l => !recentLetters.includes(l));
+
+  // На всякий случай (если вдруг LETTER_COOLDOWN станет слишком большим)
+  if (available.length === 0) {
+    available = [...letters];
+    recentLetters = [];
+  }
+
+  const picked = available[Math.floor(Math.random() * available.length)];
+
+  // Запоминаем выбранную букву
+  recentLetters.push(picked);
+  if (recentLetters.length > LETTER_COOLDOWN) recentLetters.shift();
+
+  return picked;
 }
 
 function displayCoimaginariumUI() {
@@ -50,14 +73,12 @@ function displayCoimaginariumUI() {
   container.innerHTML = "<h2>🧠 Соображариум</h2>";
 
   if (!currentTheme) {
-    // Все темы показаны
     container.innerHTML += `<div class="card">⚠️ Темы закончились!</div>`;
     container.innerHTML += `<button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>`;
     container.innerHTML += `<button onclick="startCoimaginariumGame('${themesUrlGlobal}')" class="menu-button">🔄 Начать заново</button>`;
     return;
   }
 
-  // Отображаем раунд с выделением темы и буквы
   container.innerHTML += `
     <p><strong>Правила:</strong> Ведущий называет рандомную категорию и букву. Игроки вслух называют слово на эту букву по категории. Кто первым правильно ответил — получает бал.</p>
 
@@ -73,6 +94,7 @@ function displayCoimaginariumUI() {
 }
 
 function changeCoimaginariumLetter() {
+  // ✅ тоже соблюдаем правило “не повторять в пределах 6”
   currentLetter = getRandomLetter();
   displayCoimaginariumUI();
 }
