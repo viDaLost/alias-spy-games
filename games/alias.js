@@ -756,13 +756,13 @@ function aliasRemoveKeyHandlers() {
   document.head.appendChild(style);
 })();
 
-// Переопределите в своём коде
-function goToMainMenu(){
+//function goToMainMenu() {
   // Требование: при выходе в главное меню — сбрасываем ЛЮБОЙ прогресс
   aliasHardReset({ clearWordCache: false });
 
   const menu = document.querySelector('.menu-container');
   if (menu) menu.classList.remove('hidden');
+
   const container = document.getElementById('game-container');
-  if (container) container.innerHTML = '<p class="hint"></p>';
+  if (container) container.innerHTML = ''; // ← ОЧИЩАЕМ полностью
 }
