@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Библейские игры</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Стили -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Заголовок -->
+  <header>
+    <h1> ҕиҕлᴇйскиᴇ иrᴘы </h1>
+  </header>
+
+  <!-- Меню выбора игр -->
+  <div class="menu-container" id="menu-container">
+    <div class="menu-section-title">Игры для компании</div>
+    <button onclick="showGame('alias')" class="game-button">🎮 Алиас</button><br>
+    <button onclick="showGame('coimaginarium')" class="game-button">🧠 Соображариум</button><br>
+    <button onclick="showGame('guess')" class="game-button">👥 Угадай персонажа</button><br>
+    <button onclick="showGame('describe')" class="game-button">🗣 Опиши, но не называй</button><br>
+    <button onclick="showGame('spy')" class="game-button">🕵️‍♂ Шпион</button><br>
+
+    <div class="menu-divider"></div>
+    <div class="menu-section-title">Для детей (3–7)</div>
+    <button onclick="showGame('kids-ark-pairs')" class="game-button">🛳️ Найди пару для ковчега</button><br>
+  </div>
+
+  <!-- Контейнер для игр -->
+  <div id="game-container"></div>
+
+  <!-- Подключаем основной JS -->
+  <script src="app.js" defer></script>
+</body>
+</html>
