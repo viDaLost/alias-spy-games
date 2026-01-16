@@ -1,18 +1,23 @@
 // games/kids-ark-pairs.js — «Найди пару для ковчега» (memory / перевёртыши)
-// - 3 сложности: 4x4, 6x6, 8x8
+// - 3 сложности: 4x4, 5x5, 6x6
 // - Режим «на скорость» с таймером
 // - Рекорды: топ-3 лучших результатов (быстрее = лучше)
+//
+// Важно: 5x5 = 25 карточек (нечётное), поэтому добавлена 1 бонус-карта 🕊️ без пары.
+// Она считается найденной при открытии и нужна для завершения уровня.
 
 (function () {
   const STORAGE_KEY = "kids_ark_pairs_records_v1";
 
   const DIFFICULTIES = {
-    easy: { label: "Лёгкий", size: 4 },
-    medium: { label: "Средний", size: 6 },
-    hard: { label: "Тяжёлый", size: 8 },
+    easy: { label: "Лёгкий", size: 4 },   // 4x4 = 16 = 8 пар
+    medium: { label: "Средний", size: 5 },// 5x5 = 25 = 12 пар + 1 бонус
+    hard: { label: "Тяжёлый", size: 6 },  // 6x6 = 36 = 18 пар
   };
 
-  // Нужно минимум 32 уникальных животных для 8x8 (32 пары)
+  const BONUS_CARD = "🕊️"; // одиночная карта для нечётного поля (5x5)
+
+  // Нужно минимум 18 уникальных животных для 6x6 (18 пар)
   const ANIMALS = [
     "🦁","🐯","🐻","🐼","🦊","🐶","🐱","🐭",
     "🐹","🐰","🦝","🦓","🦒","🐘","🦏","🐪",
@@ -112,9 +117,10 @@
           ${Object.keys(DIFFICULTIES)
             .map((key) => {
               const best = (records[key] && records[key][0] != null) ? fmtMs(records[key][0]) : "—";
+              const s = DIFFICULTIES[key].size;
               return `
                 <button class="game-button" data-diff="${key}">
-                  ${DIFFICULTIES[key].label} • поле ${DIFFICULTIES[key].size}×${DIFFICULTIES[key].size} • рекорд: ${best}
+                  ${DIFFICULTIES[key].label} • поле ${s}×${s} • рекорд: ${best}
                 </button>
               `;
             })
@@ -140,15 +146,20 @@
   function startBoard(diffKey, speedMode) {
     const { size, label } = DIFFICULTIES[diffKey];
     const totalCards = size * size;
-    const pairsCount = totalCards / 2;
+
+    const hasBonus = (totalCards % 2 === 1);
+    const pairsCount = Math.floor(totalCards / 2);
 
     const chosen = shuffle(ANIMALS).slice(0, pairsCount);
-    const deck = shuffle([...chosen, ...chosen]);
+    let deck = shuffle([...chosen, ...chosen]);
+    if (hasBonus) deck = shuffle([...deck, BONUS_CARD]); // 5x5 -> +1 бонус
 
     let first = null;
     let second = null;
     let lock = false;
-    let matched = 0;
+
+    let matchedPairs = 0;
+    let bonusFound = !hasBonus;
 
     let timerStarted = false;
     let startTs = 0;
@@ -160,7 +171,7 @@
         <div class="kids-topbar">
           <div>
             <div class="kids-title-small">${label} • ${size}×${size}</div>
-            <div class="kids-hint">Найди все пары животных</div>
+            <div class="kids-hint">Найди все пары животных${hasBonus ? " и открой 🕊️" : ""}</div>
           </div>
           <button class="menu-button kids-small" id="kids-restart">🔄 Заново</button>
         </div>
@@ -206,7 +217,9 @@
     }
 
     function finishIfDone() {
-      if (matched !== pairsCount) return;
+      const done = (matchedPairs === pairsCount) && bonusFound;
+      if (!done) return;
+
       stopTimer();
 
       let msg = "🎉 Молодец! Все пары найдены!";
@@ -269,11 +282,23 @@
       btn.disabled = true;
     }
 
+    function setBonusMatched(btn) {
+      btn.classList.add("matched");
+      btn.classList.add("bonus");
+      btn.disabled = true;
+    }
+
     function shake(btn) {
       btn.classList.add("wrong");
       void btn.offsetWidth; // перезапуск анимации
       btn.classList.add("shake");
       setTimeout(() => btn.classList.remove("shake"), 260);
+    }
+
+    function clearPairState() {
+      first = null;
+      second = null;
+      lock = false;
     }
 
     function onCardClick(e) {
@@ -282,6 +307,18 @@
       if (btn.classList.contains("matched") || btn.classList.contains("flipped")) return;
 
       startTimerIfNeeded();
+
+      const emoji = btn.dataset.emoji;
+
+      // Бонус-карта (одиночная): сразу фиксируем и не участвует в паре
+      if (hasBonus && !bonusFound && emoji === BONUS_CARD) {
+        flip(btn);
+        setBonusMatched(btn);
+        bonusFound = true;
+        finishIfDone();
+        return;
+      }
+
       flip(btn);
 
       if (!first) {
@@ -295,14 +332,25 @@
       const a = first.dataset.emoji;
       const b = second.dataset.emoji;
 
+      // На всякий случай: если бонус попал вторым (например бонус уже найден — не должен попадать)
+      if (hasBonus && (a === BONUS_CARD || b === BONUS_CARD)) {
+        // просто закрываем пару корректно
+        setTimeout(() => {
+          if (a === BONUS_CARD) setBonusMatched(first);
+          if (b === BONUS_CARD) setBonusMatched(second);
+          bonusFound = true;
+          clearPairState();
+          finishIfDone();
+        }, 160);
+        return;
+      }
+
       if (a === b) {
         setTimeout(() => {
           setMatched(first);
           setMatched(second);
-          matched += 1;
-          first = null;
-          second = null;
-          lock = false;
+          matchedPairs += 1;
+          clearPairState();
           finishIfDone();
         }, 220);
       } else {
@@ -311,9 +359,7 @@
         setTimeout(() => {
           unflip(first);
           unflip(second);
-          first = null;
-          second = null;
-          lock = false;
+          clearPairState();
         }, 650);
       }
     }
