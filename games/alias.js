@@ -756,7 +756,8 @@ function aliasRemoveKeyHandlers() {
   document.head.appendChild(style);
 })();
 
-//function goToMainMenu() {
+// Переопределите в своём коде
+function goToMainMenu(){
   // Требование: при выходе в главное меню — сбрасываем ЛЮБОЙ прогресс
   aliasHardReset({ clearWordCache: false });
 
@@ -764,5 +765,5 @@ function aliasRemoveKeyHandlers() {
   if (menu) menu.classList.remove('hidden');
 
   const container = document.getElementById('game-container');
-  if (container) container.innerHTML = ''; // ← ОЧИЩАЕМ полностью
+  if (container) container.innerHTML = ''; // ✅ УБРАЛИ ЛИШНЮЮ НАДПИСЬ, ПРОСТО ОЧИЩАЕМ КОНТЕЙНЕР
 }
