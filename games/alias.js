@@ -764,5 +764,5 @@ function goToMainMenu(){
   const menu = document.querySelector('.menu-container');
   if (menu) menu.classList.remove('hidden');
   const container = document.getElementById('game-container');
-  if (container) container.innerHTML = '<p class="hint">Главное меню скрывается/показывается в вашем приложении.</p>';
+  if (container) container.innerHTML = '<p class="hint"></p>';
 }
