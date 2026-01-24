@@ -61,6 +61,9 @@ function showGame(gameName) {
     loadGameScript("games/spy.js", () => startSpyGame(locationsUrl));
   } else if (gameName === "kids-ark-pairs") {
     loadGameScript("games/kids-ark-pairs.js", () => startKidsArkPairsGame());
+  } else if (gameName === "quartet") {
+    const quartetsUrl = "data/quartet_bible.json";
+    loadGameScript("games/quartet.js", () => startQuartetGame(quartetsUrl));
   } else {
     if (container) container.innerHTML = "<p>❌ Неизвестная игра.</p>";
   }
