@@ -2,7 +2,7 @@
 // Работает с app.js (loadGameScript) и UI твоего приложения.
 
 (function () {
-  const WORKER_BASE_URL = "https://bible-quartet.74x942q7fb.workers.dev"; // <-- ВСТАВЬ СВОЙ
+  const WORKER_BASE_URL = "https://bible-quartet.74x942q7fb.workers.dev/"; // <-- ВСТАВЬ СВОЙ
 
   // ✅ Таймаут для fetch, чтобы не было "вечной загрузки" в WebView/Safari.
   async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
