@@ -2,7 +2,7 @@
 // ВАЖНО: для онлайн-режима нужно указать WORKER_BASE_URL (см. README.server.md)
 
 (function () {
-  const WORKER_BASE_URL = "https://REPLACE_ME.workers.dev"; // <-- замени на свой домен воркера
+  const WORKER_BASE_URL = "https://bible-quartet.74x942q7fb.workers.dev/"; // <-- замени на свой домен воркера
 
   const $ = (sel) => document.querySelector(sel);
   const el = (tag, cls, html) => {
