@@ -4,6 +4,18 @@
 (function () {
   const WORKER_BASE_URL = "https://bible-quartet.74x942q7fb.workers.dev"; // <-- ВСТАВЬ СВОЙ
 
+  // ✅ Таймаут для fetch, чтобы не было "вечной загрузки" в WebView/Safari.
+  async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...opts, signal: controller.signal });
+      return res;
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
   const el = (tag, cls, html) => {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -72,15 +84,21 @@
     const container = document.getElementById("game-container");
     container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
 
-    // Проверим, что файл с квартетами реально доступен (чтобы не было «пустого экрана»)
-    try {
-      const r = await fetch(quartetsUrl, { cache: "no-store" });
-      if (!r.ok) throw new Error(`Не найдено: ${quartetsUrl}`);
-      await r.json(); // просто проверка JSON
-    } catch (e) {
-      container.innerHTML = `<p style="color:red">❌ Не удалось загрузить данные игры: ${e.message}</p>
-      <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>`;
-      return;
+    // ✅ Раньше мы блокировали запуск, пока не загрузится quartetsUrl.
+    // В iOS/Telegram WebView fetch иногда "зависает" → получалась вечная загрузка.
+    // Для онлайн-режима данные с сервера достаточны, поэтому делаем проверку НЕблокирующей.
+    if (quartetsUrl) {
+      try {
+        const r = await fetchWithTimeout(quartetsUrl, { cache: "no-store" }, 4000);
+        if (r.ok) {
+          // просто проверка, что JSON валиден
+          await r.json();
+        } else {
+          console.warn("quartet: quartets json not found:", quartetsUrl, r.status);
+        }
+      } catch (e) {
+        console.warn("quartet: quartets json check failed (continuing):", e);
+      }
     }
 
     renderOnlineSetup(container);
