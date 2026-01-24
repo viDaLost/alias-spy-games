@@ -1,21 +1,7 @@
-// games/quartet.js — Квартет (онлайн) под Worker-сервер БЕЗ Durable Objects
-// Работает с app.js (loadGameScript) и UI твоего приложения.
+// games/quartet.js — Квартет (онлайн) через Supabase (Realtime) для GitHub Pages
+// Никаких Workers / WebSocket сервера — Supabase сам даёт realtime обновления.
 
 (function () {
-  const WORKER_BASE_URL = "https://bible-quartet.74x942q7fb.workers.dev/"; // <-- ВСТАВЬ СВОЙ
-
-  // ✅ Таймаут для fetch, чтобы не было "вечной загрузки" в WebView/Safari.
-  async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { ...opts, signal: controller.signal });
-      return res;
-    } finally {
-      clearTimeout(t);
-    }
-  }
-
   const el = (tag, cls, html) => {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -33,79 +19,106 @@
     node.innerHTML = text || "";
   }
 
-  function wsBase(httpBase) {
-    return httpBase.replace(/^https:/, "wss:").replace(/^http:/, "ws:");
+  function makeCode(len = 5) {
+    const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // без похожих символов
+    let s = "";
+    for (let i = 0; i < len; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+    return s;
   }
 
-  async function postJSON(path, body) {
-    const res = await fetch(`${WORKER_BASE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      throw new Error(`${res.status} ${txt}`);
+  function needSupabase(container) {
+    if (!window.supabase || !window.supabase.createClient) {
+      container.innerHTML = `
+        <p style="color:red">❌ Supabase не загрузился. Проверь, что в index.html подключён supabase-js.</p>
+        <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+      `;
+      return null;
     }
-    return res.json();
+    if (!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY || window.SUPABASE_URL.includes("YOUR_")) {
+      container.innerHTML = `
+        <p style="color:red">❌ Не настроен Supabase.</p>
+        <p>Открой файл <b>supabase-config.js</b> и вставь SUPABASE_URL и SUPABASE_ANON_KEY.</p>
+        <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+      `;
+      return null;
+    }
+    return window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   }
 
-  // --- Online state ---
+  // --- Realtime state ---
+  let sb = null;
   let currentRoomCode = null;
   let currentPlayerId = null;
-  let socket = null;
+  let channel = null;
 
-  function closeSocket() {
-    try { socket?.close(); } catch {}
-    socket = null;
+  function cleanupRealtime() {
+    try {
+      if (channel && sb) sb.removeChannel(channel);
+    } catch {}
+    channel = null;
   }
 
-  function connectWS(onState, onClose) {
-    closeSocket();
-    const url = `${wsBase(WORKER_BASE_URL)}/ws/${currentRoomCode}?playerId=${encodeURIComponent(currentPlayerId)}`;
-    socket = new WebSocket(url);
+  async function fetchState(code) {
+    const { data: room, error: roomErr } = await sb
+      .from("rooms")
+      .select("code, phase, created_at")
+      .eq("code", code)
+      .maybeSingle();
 
-    socket.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        // сервер шлёт: {type:"state", data:{...}}
-        if (msg.type === "state") onState(msg.data);
-      } catch {}
+    if (roomErr) throw roomErr;
+    if (!room) throw new Error("Комната не найдена");
+
+    const { data: players, error: pErr } = await sb
+      .from("players")
+      .select("id, name, created_at")
+      .eq("room_code", code)
+      .order("created_at", { ascending: true });
+
+    if (pErr) throw pErr;
+
+    return {
+      code: room.code,
+      phase: room.phase,
+      players: players || [],
+      lastAction: null
     };
+  }
 
-    socket.onclose = () => onClose?.();
-    socket.onerror = () => onClose?.();
+  function subscribeRoom(code, onUpdate) {
+    cleanupRealtime();
+
+    // Подписка на изменения в rooms и players по конкретной комнате
+    channel = sb
+      .channel(`room:${code}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "rooms", filter: `code=eq.${code}` },
+        async () => onUpdate()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "players", filter: `room_code=eq.${code}` },
+        async () => onUpdate()
+      )
+      .subscribe();
   }
 
   // ---------------------------------------------------------
   // Entry point called from app.js: startQuartetGame(quartetsUrl)
   // ---------------------------------------------------------
-  window.startQuartetGame = async function startQuartetGame(quartetsUrl) {
+  window.startQuartetGame = async function startQuartetGame(_quartetsUrl) {
     const container = document.getElementById("game-container");
     container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
 
-    // ✅ Раньше мы блокировали запуск, пока не загрузится quartetsUrl.
-    // В iOS/Telegram WebView fetch иногда "зависает" → получалась вечная загрузка.
-    // Для онлайн-режима данные с сервера достаточны, поэтому делаем проверку НЕблокирующей.
-    if (quartetsUrl) {
-      try {
-        const r = await fetchWithTimeout(quartetsUrl, { cache: "no-store" }, 4000);
-        if (r.ok) {
-          // просто проверка, что JSON валиден
-          await r.json();
-        } else {
-          console.warn("quartet: quartets json not found:", quartetsUrl, r.status);
-        }
-      } catch (e) {
-        console.warn("quartet: quartets json check failed (continuing):", e);
-      }
-    }
+    sb = needSupabase(container);
+    if (!sb) return;
 
+    // ✅ Никаких блокирующих fetch() к JSON → больше нет вечной загрузки
     renderOnlineSetup(container);
   };
 
   function renderOnlineSetup(container) {
-    closeSocket();
+    cleanupRealtime();
     currentRoomCode = null;
     currentPlayerId = null;
 
@@ -127,7 +140,7 @@
 
     const status = el("div", "quartet-status", "");
     const backBtn = el("button", "back-button", "⬅️ В меню");
-    backBtn.onclick = () => { closeSocket(); goToMainMenu(); };
+    backBtn.onclick = () => { cleanupRealtime(); goToMainMenu(); };
 
     screen.append(nameInput, codeInput, createBtn, joinBtn, status, backBtn);
     container.appendChild(screen);
@@ -135,15 +148,42 @@
     createBtn.onclick = async () => {
       const name = safeName(nameInput.value);
       setStatus(status, "🔄 Создаю комнату...");
-      try {
-        const data = await postJSON("/api/create", { name, maxPlayers: 8 });
-        currentRoomCode = data.code;
-        currentPlayerId = data.playerId;
 
-        renderLobby(container, status);
+      try {
+        // 1) подобрать свободный код
+        let code = null;
+        for (let i = 0; i < 8; i++) {
+          const candidate = makeCode(5);
+          const { data: exists, error } = await sb
+            .from("rooms")
+            .select("code")
+            .eq("code", candidate)
+            .maybeSingle();
+          if (error) throw error;
+          if (!exists) { code = candidate; break; }
+        }
+        if (!code) throw new Error("Не удалось подобрать код, попробуй ещё раз.");
+
+        // 2) создать комнату
+        const { error: insRoomErr } = await sb
+          .from("rooms")
+          .insert({ code, phase: "lobby" });
+        if (insRoomErr) throw insRoomErr;
+
+        // 3) добавить игрока
+        const playerId = crypto.randomUUID();
+        const { error: insPlayerErr } = await sb
+          .from("players")
+          .insert({ id: playerId, room_code: code, name });
+        if (insPlayerErr) throw insPlayerErr;
+
+        currentRoomCode = code;
+        currentPlayerId = playerId;
+
+        renderLobby(container);
       } catch (e) {
         console.error(e);
-        setStatus(status, "❌ Не удалось создать комнату. Проверь сервер и WORKER_BASE_URL.", true);
+        setStatus(status, "❌ Не удалось создать комнату. Проверь Supabase (таблицы/Realtime).", true);
       }
     };
 
@@ -153,15 +193,29 @@
       if (!code) return setStatus(status, "❌ Введи код комнаты.", true);
 
       setStatus(status, "🔄 Подключаюсь...");
-      try {
-        const data = await postJSON("/api/join", { name, code });
-        currentRoomCode = data.code;
-        currentPlayerId = data.playerId;
 
-        renderLobby(container, status);
+      try {
+        const { data: room, error: roomErr } = await sb
+          .from("rooms")
+          .select("code")
+          .eq("code", code)
+          .maybeSingle();
+        if (roomErr) throw roomErr;
+        if (!room) throw new Error("Комната не найдена");
+
+        const playerId = crypto.randomUUID();
+        const { error: insPlayerErr } = await sb
+          .from("players")
+          .insert({ id: playerId, room_code: code, name });
+        if (insPlayerErr) throw insPlayerErr;
+
+        currentRoomCode = code;
+        currentPlayerId = playerId;
+
+        renderLobby(container);
       } catch (e) {
         console.error(e);
-        setStatus(status, "❌ Не удалось подключиться. Проверь код и сервер.", true);
+        setStatus(status, "❌ Не удалось подключиться. Проверь код/таблицы Supabase.", true);
       }
     };
   }
@@ -175,41 +229,52 @@
     const startBtn = el("button", "start-button", "▶️ Начать игру");
     const leaveBtn = el("button", "back-button", "⬅️ В меню");
 
-    leaveBtn.onclick = () => { closeSocket(); goToMainMenu(); };
+    leaveBtn.onclick = async () => {
+      try {
+        // попытка удалить игрока при выходе
+        if (currentPlayerId && currentRoomCode) {
+          await sb.from("players").delete().eq("id", currentPlayerId);
+        }
+      } catch {}
+      cleanupRealtime();
+      goToMainMenu();
+    };
 
     screen.append(title, status, playersBox, startBtn, leaveBtn);
     container.appendChild(screen);
 
-    const onState = (st) => {
-      setStatus(status, `Код комнаты: <strong>${st.code}</strong><br>Статус: <strong>${st.phase}</strong>`);
-      playersBox.innerHTML = "";
-      st.players.forEach((p) => {
-        playersBox.appendChild(
-          el("div", "quartet-score-row",
-            `<span>${p.id === currentPlayerId ? "👉 " : ""}${p.name}</span><span>${p.sets} кварт.</span><span>${p.handCount} карт</span>`
-          )
-        );
-      });
+    const update = async () => {
+      try {
+        const st = await fetchState(currentRoomCode);
+        setStatus(status, `Код комнаты: <strong>${st.code}</strong><br>Статус: <strong>${st.phase}</strong>`);
 
-      // Начать игру может любой (на сервере это проверяется)
-      startBtn.disabled = st.phase !== "lobby" || st.players.length < 2;
+        playersBox.innerHTML = "";
+        st.players.forEach((p) => {
+          playersBox.appendChild(
+            el("div", "quartet-score-row",
+              `<span>${p.id === currentPlayerId ? "👉 " : ""}${p.name}</span><span></span><span></span>`
+            )
+          );
+        });
+
+        // “Начать игру” доступно, когда хотя бы 2 игрока
+        startBtn.disabled = st.phase !== "lobby" || st.players.length < 2;
+      } catch (e) {
+        console.error(e);
+        setStatus(status, "⚠️ Не удалось получить состояние комнаты. Проверь Supabase/Realtime.", true);
+      }
     };
 
-    const onClose = () => {
-      setStatus(status, "⚠️ Соединение закрыто. Обнови страницу или зайди заново.", true);
-    };
-
-    connectWS(onState, onClose);
+    subscribeRoom(currentRoomCode, update);
+    update();
 
     startBtn.onclick = async () => {
       try {
-        await postJSON("/api/start", { code: currentRoomCode, playerId: currentPlayerId });
+        await sb.from("rooms").update({ phase: "playing" }).eq("code", currentRoomCode);
       } catch (e) {
         console.error(e);
         setStatus(status, "❌ Не удалось начать игру.", true);
       }
     };
-
-    setStatus(status, `Подключение... Код: <strong>${currentRoomCode}</strong>`);
   }
 })();
