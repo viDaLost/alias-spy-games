@@ -73,11 +73,37 @@ function showGame(gameName) {
 function loadGameScript(fileName, callback) {
   const script = document.createElement("script");
   script.src = fileName;
-  script.onload = callback;
-  script.onerror = () => {
-    alert(`❌ Ошибка: файл ${fileName} не найден`);
-    console.error(`Файл ${fileName} не загружается`);
+
+  // ✅ Теперь отлавливаем ошибки запуска игры, чтобы не было “вечной загрузки”
+  script.onload = () => {
+    try {
+      callback();
+    } catch (e) {
+      console.error("Ошибка запуска игры:", e);
+      const container = document.getElementById("game-container");
+      if (container) {
+        container.innerHTML = `
+          <p style="color:red">❌ Ошибка запуска игры. Проверь консоль.</p>
+          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+        `;
+      }
+    }
   };
+
+  // ✅ Если файл не загрузился — показываем ошибку на экране (alert в WebView может не работать)
+  script.onerror = () => {
+    console.error(`Файл ${fileName} не загружается`);
+    const container = document.getElementById("game-container");
+    if (container) {
+      container.innerHTML = `
+        <p style="color:red">❌ Ошибка: файл <b>${fileName}</b> не найден или не загрузился.</p>
+        <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+      `;
+    }
+    // alert оставляем как доп. сигнал, но не обязателен (в WebView может не показываться)
+    try { alert(`❌ Ошибка: файл ${fileName} не найден`); } catch {}
+  };
+
   document.body.appendChild(script);
   currentGameScript = script;
 }
