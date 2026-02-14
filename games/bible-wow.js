@@ -29,7 +29,7 @@ function startBibleWowGame(levelsUrl) {
 
     /* --- Crossword --- */
     .wow-gridWrap{display:flex;justify-content:center;}
-    .wow-grid{display:grid;gap:7px;justify-content:center;padding:6px 4px;}
+    .wow-grid{display:grid;gap:10px;justify-content:center;padding:10px 8px;}
     .wow-cell{width:clamp(34px,8.6vw,50px);height:clamp(34px,8.6vw,50px);border-radius:12px;display:flex;align-items:center;justify-content:center;
       font-weight:900;letter-spacing:.5px;text-transform:uppercase;
       background:#fff;border:2px solid rgba(79,70,229,.16);
@@ -132,7 +132,7 @@ function startBibleWowGame(levelsUrl) {
       .wow-wrap{padding-bottom:74px;}
       .wow-top{margin-bottom:10px;}
       .wow-panel{padding:10px;gap:8px;}
-      .wow-grid{gap:6px;}
+      .wow-grid{gap:8px;}
       .wow-wheel{width:min(320px,84vw,40vh);}
       .wow-bottom .wow-small{display:none;}
     }
@@ -236,22 +236,44 @@ function startBibleWowGame(levelsUrl) {
     } catch {}
   }
 
-  // ---- Crossword builder (простая расстановка со склейками по общим буквам) ----
+  // ---- Crossword builder (компактная расстановка без "островов") ----
   function buildCrossword(words) {
-    const W = 11;
-    const H = 11;
+    const sorted = [...words].sort((a, b) => b.length - a.length);
+    if (!sorted.length) return { grid: [[]], placements: [] };
+
+    // Динамический размер поля: достаточно места для пересечений, без разлёта по углам
+    const maxLen = sorted[0].length;
+    const size = Math.max(9, maxLen * 2 + 3);
+
+    const W = size;
+    const H = size;
+
     const grid = Array.from({ length: H }, () => Array(W).fill(null));
     const placements = [];
 
-    function canPlace(word, x, y, dir) {
-      // dir: 0 horiz, 1 vert
+    function hasIntersection(word, x, y, dir) {
       for (let i = 0; i < word.length; i++) {
         const xx = x + (dir === 0 ? i : 0);
         const yy = y + (dir === 1 ? i : 0);
+        if (grid[yy][xx] === word[i]) return true;
+      }
+      return false;
+    }
+
+    function canPlace(word, x, y, dir, requireIntersection) {
+      for (let i = 0; i < word.length; i++) {
+        const xx = x + (dir === 0 ? i : 0);
+        const yy = y + (dir === 1 ? i : 0);
+
         if (xx < 0 || yy < 0 || xx >= W || yy >= H) return false;
+
         const cell = grid[yy][xx];
         if (cell && cell !== word[i]) return false;
       }
+
+      // После первого слова требуем пересечение, чтобы не появлялись отдельные "острова"
+      if (requireIntersection && !hasIntersection(word, x, y, dir)) return false;
+
       return true;
     }
 
@@ -266,32 +288,33 @@ function startBibleWowGame(levelsUrl) {
       placements.push({ word, cells, dir });
     }
 
-    const sorted = [...words].sort((a, b) => b.length - a.length);
-    if (!sorted.length) return { grid, placements };
-
-    // 1) first word centered
-    const w0 = sorted[0];
-    const x0 = Math.floor((W - w0.length) / 2);
+    // 1) Первое слово — по центру, горизонтально
+    const first = sorted[0];
+    const x0 = Math.floor((W - first.length) / 2);
     const y0 = Math.floor(H / 2);
-    place(w0, x0, y0, 0);
+    place(first, x0, y0, 0);
 
-    // 2) others with intersections
+    // 2) Остальные слова — только через пересечение с уже поставленными
     for (let wi = 1; wi < sorted.length; wi++) {
       const word = sorted[wi];
       let placed = false;
 
-      // try intersect
+      // Пытаемся поставить через пересечения (как и раньше), но без fallback-сканирования "куда угодно"
       for (const p of placements) {
         if (placed) break;
+
         for (let i = 0; i < word.length; i++) {
           const ch = word[i];
+
           for (let j = 0; j < p.word.length; j++) {
             if (p.word[j] !== ch) continue;
+
             const anchor = p.cells[j];
             const dir = 1 - p.dir;
             const x = anchor.x - (dir === 0 ? i : 0);
             const y = anchor.y - (dir === 1 ? i : 0);
-            if (canPlace(word, x, y, dir)) {
+
+            if (canPlace(word, x, y, dir, true)) {
               place(word, x, y, dir);
               placed = true;
               break;
@@ -301,22 +324,11 @@ function startBibleWowGame(levelsUrl) {
         }
       }
 
-      // fallback: scan for any empty fit
-      if (!placed) {
-        for (let y = 0; y < H && !placed; y++) {
-          for (let x = 0; x < W && !placed; x++) {
-            for (let dir = 0; dir <= 1 && !placed; dir++) {
-              if (canPlace(word, x, y, dir)) {
-                place(word, x, y, dir);
-                placed = true;
-              }
-            }
-          }
-        }
-      }
+      // Если слово вообще нельзя присоединить (нет общих букв) — пропускаем его.
+      // Лучше компактный кроссворд без "островов", чем отдельные блоки по краям.
     }
 
-    // crop bounding box
+    // crop bounding box по занятым клеткам
     let minX = W, minY = H, maxX = -1, maxY = -1;
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
@@ -328,16 +340,19 @@ function startBibleWowGame(levelsUrl) {
         }
       }
     }
-    if (maxX === -1) return { grid, placements };
+
+    if (maxX === -1) return { grid: [[]], placements: [] };
 
     const cropped = [];
     for (let y = minY; y <= maxY; y++) {
       cropped.push(grid[y].slice(minX, maxX + 1));
     }
+
     // adjust placements coords
     for (const p of placements) {
       p.cells = p.cells.map(c => ({ x: c.x - minX, y: c.y - minY }));
     }
+
     return { grid: cropped, placements };
   }
 
