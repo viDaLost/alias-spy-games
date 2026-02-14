@@ -15,9 +15,9 @@ function startBibleWowGame(levelsUrl) {
   style.id = styleId;
   style.textContent = `
     .wow-wrap{max-width:980px;margin:0 auto;padding:14px 14px 32px;}
-    .wow-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
-    .wow-title{font-weight:700;font-size:16px;opacity:.95;}
-    .wow-pill{display:flex;gap:8px;align-items:center;}
+    .wow-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+    .wow-title{font-weight:700;font-size:16px;opacity:.95;white-space:nowrap;}
+    .wow-pill{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
     .wow-chip{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 10px;font-size:13px;}
     .wow-btn{border:none;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer;}
     .wow-btn.secondary{background:rgba(255,255,255,.10);color:#fff;border:1px solid rgba(255,255,255,.14);}
@@ -41,7 +41,7 @@ function startBibleWowGame(levelsUrl) {
 
     .wow-wheelWrap{display:flex;justify-content:center;align-items:center;}
     .wow-wheel{position:relative;width:min(320px,86vw);aspect-ratio:1/1;border-radius:999px;
-      background:rgba(0,0,0,.10);border:1px solid rgba(255,255,255,.10);}
+      background:rgba(0,0,0,.10);border:1px solid rgba(255,255,255,.10);touch-action:none;}
     .wow-wheel svg{position:absolute;inset:0;pointer-events:none;}
     .wow-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
     .wow-centerInner{width:86px;height:86px;border-radius:999px;background:rgba(255,255,255,.08);
@@ -305,29 +305,27 @@ function startBibleWowGame(levelsUrl) {
     const h = state.grid.length;
     const w = state.grid[0].length;
 
-    // вычисляем границы занятой области, чтобы кроссворд не выходил за экран
-    let minX = w, maxX = 0, minY = h, maxY = 0;
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
+    // вычисляем границы занятой области (исправлено!)
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
         if (state.grid[y][x]) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
         }
       }
     }
-    if (minX > maxX) { minX = 0; maxX = w - 1; minY = 0; maxY = h - 1; }
+    if (maxX === -1) { minX = 0; maxX = w - 1; minY = 0; maxY = h - 1; }
 
-    // небольшая рамка вокруг, если помещается
+    // небольшая рамка вокруг
     minX = Math.max(0, minX - 1);
     minY = Math.max(0, minY - 1);
     maxX = Math.min(w - 1, maxX + 1);
     maxY = Math.min(h - 1, maxY + 1);
 
     const viewW = (maxX - minX + 1);
-    const viewH = (maxY - minY + 1);
-
     gridEl.style.setProperty('--cols', String(viewW));
     gridEl.style.gridTemplateColumns = `repeat(${viewW}, var(--cell))`;
 
@@ -379,14 +377,12 @@ function startBibleWowGame(levelsUrl) {
   function renderWheel() {
     const wheel = document.getElementById("wow-wheel");
     if (!wheel) return;
-    // remove old letters
     wheel.querySelectorAll(".wow-letter").forEach(n => n.remove());
 
     const level = state.levels[state.levelIndex];
     const letters = uniqLetters(level._shuffled || level.letters);
     const n = letters.length;
 
-    // place letters around circle
     const rect = wheel.getBoundingClientRect();
     const cx = rect.width / 2;
     const cy = rect.height / 2;
@@ -412,7 +408,6 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function pointToWheelSvg(xPx, yPx, wheelRect) {
-    // convert absolute client px to wheel-local viewBox 0..100
     const x = ((xPx - wheelRect.left) / wheelRect.width) * 100;
     const y = ((yPx - wheelRect.top) / wheelRect.height) * 100;
     return { x, y };
@@ -461,7 +456,6 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
 
-    // bonus words: only слова из списка bonus для этого уровня
     const bonusSet = new Set(level.bonus || []);
     if (bonusSet.has(word)) {
       if (state.bonusWords.has(word)) {
@@ -477,16 +471,6 @@ function startBibleWowGame(levelsUrl) {
     }
 
     toast("❌ Нет такого слова");
-  }
-
-  function canMakeFromLetters(word, letters) {
-    const pool = {};
-    for (const ch of letters) pool[ch] = (pool[ch] || 0) + 1;
-    for (const ch of word) {
-      if (!pool[ch]) return false;
-      pool[ch]--;
-    }
-    return true;
   }
 
   function isLevelCompleted() {
@@ -530,7 +514,6 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
     const level = state.levels[state.levelIndex];
-    // find any not-yet-found word and reveal its first unrevealed letter in grid
     const remaining = level.crossword.filter(w => !state.foundWords.has(w));
     if (!remaining.length) {
       toast("Уже всё найдено ✨");
@@ -546,8 +529,7 @@ function startBibleWowGame(levelsUrl) {
     savePersisted();
   }
 
-  function attachWheelHandlers(wheel, nodes) {
-    // remove previous wheel listeners
+  function attachWheelHandlers(wheel) {
     cleanupWheelOnly();
 
     const wheelRect = () => wheel.getBoundingClientRect();
@@ -555,18 +537,15 @@ function startBibleWowGame(levelsUrl) {
     function hitTest(clientX, clientY) {
       const el = document.elementFromPoint(clientX, clientY);
       if (!el) return null;
-      const node = el.closest?.(".wow-letter");
-      if (!node) return null;
-      return node;
+      return el.closest?.(".wow-letter") || null;
     }
 
     function addNode(node, clientX, clientY) {
-      const letter = node.dataset.letter;
+      const letter = node?.dataset?.letter;
       if (!letter) return;
+
       const last = state.dragPath[state.dragPath.length - 1];
       if (last && last.node === node) return;
-
-      // allow repeats if there are duplicates in letters, but prevent selecting same exact node twice
       if (state.dragPath.some(p => p.node === node)) return;
 
       node.classList.add("active");
@@ -579,7 +558,7 @@ function startBibleWowGame(levelsUrl) {
       if (!state.isDragging) return;
       const node = hitTest(clientX, clientY);
       if (node) addNode(node, clientX, clientY);
-      // update tail
+
       const pts = state.dragPath.map(p => p.point);
       if (pts.length) {
         pts.push(pointToWheelSvg(clientX, clientY, wheelRect()));
@@ -602,20 +581,25 @@ function startBibleWowGame(levelsUrl) {
       validateWord(word);
     }
 
-    // pointer events
+    // pointer events — НЕ passive, чтобы iOS не теряла свайп
     listenWheel(wheel, "pointerdown", (e) => {
-      if (!(e instanceof PointerEvent)) return;
       wheel.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
       start(e.clientX, e.clientY);
-    }, { passive: true });
+    }, { passive: false });
+
     listenWheel(wheel, "pointermove", (e) => {
-      if (!(e instanceof PointerEvent)) return;
+      e.preventDefault();
       move(e.clientX, e.clientY);
-    }, { passive: true });
-    listenWheel(wheel, "pointerup", () => end(), { passive: true });
+    }, { passive: false });
+
+    listenWheel(wheel, "pointerup", (e) => {
+      e.preventDefault();
+      end();
+    }, { passive: false });
+
     listenWheel(wheel, "pointercancel", () => end(), { passive: true });
 
-    // prevent page scrolling while dragging in wheel
     listenWheel(wheel, "touchmove", (e) => {
       if (state.isDragging) e.preventDefault();
     }, { passive: false });
@@ -659,7 +643,6 @@ function startBibleWowGame(levelsUrl) {
     });
 
     listen(window, "resize", () => {
-      // re-render wheel positions
       renderWheel();
     }, { passive: true });
   }
@@ -668,20 +651,26 @@ function startBibleWowGame(levelsUrl) {
   container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
 
   loadPersisted();
+
   loadJSON(levelsUrl)
     .then((data) => {
       const levels = (data && data.levels) ? data.levels : [];
+
       state.levels = levels
-        .map(l => ({
-          id: l.id,
-          letters: normWord(l.letters),
-          words: (l.words || []).map(normWord).filter(Boolean)
-        }))
-        .filter(l => l.letters.length >= 3 && l.words.length);
+        .map((l) => {
+          const letters = normWord(l.letters);
+
+          // поддержка всех форматов: crossword/words + bonus
+          const crossword = (l.crossword || l.words || []).map(normWord).filter(Boolean);
+          const bonus = (l.bonus || []).map(normWord).filter(Boolean);
+
+          return { id: l.id ?? null, letters, crossword, bonus };
+        })
+        .filter(l => l.letters.length >= 3 && l.crossword.length);
 
       if (!state.levels.length) throw new Error("Нет уровней");
       if (state.levelIndex >= state.levels.length) state.levelIndex = 0;
-      state.coins = state.coins || 0;
+
       savePersisted();
       startLevel();
     })
