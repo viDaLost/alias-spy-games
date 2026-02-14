@@ -64,6 +64,9 @@ function showGame(gameName) {
   } else if (gameName === "quartet") {
     const quartetsUrl = "data/quartet_bible.json";
     loadGameScript("games/quartet.js", () => startQuartetGame(quartetsUrl));
+  } else if (gameName === "bible-wow") {
+    const levelsUrl = "data/bible_wow_levels.json";
+    loadGameScript("games/bible-wow.js", () => startBibleWowGame(levelsUrl));
   } else {
     if (container) container.innerHTML = "<p>❌ Неизвестная игра.</p>";
   }
