@@ -1,11 +1,6 @@
 // games/bible-wow.js — мини-«Words of Wonders» на библейскую тему
 // Без библиотек. Mobile-first. Мышь + тач.
-// ВАЖНО: совместим со всеми форматами уровней:
-// - old: {letters, words:[...]}
-// - new: {letters, crossword:[...], bonus:[...]}
-// Бонусные слова теперь считаются ПОЛНО: если слово библейское (в словаре) и собирается из букв уровня — оно бонусное,
-// даже если его нет в JSON level.bonus. JSON bonus становится "подсказкой/кэшем", а не единственным источником.
-
+// Совместим с форматами уровней: {letters, words} или {letters, crossword, bonus}
 /* global loadJSON, goToMainMenu */
 
 function startBibleWowGame(levelsUrl) {
@@ -43,129 +38,219 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function safeJSON(x, fallback) {
-    try { return JSON.parse(x); } catch { return fallback; }
+    try {
+      return JSON.parse(x);
+    } catch {
+      return fallback;
+    }
   }
 
-  // -------------------- Styles (в стиле приложения) --------------------
-  // Ничего не ломаем в style.css, только добавляем классы для игры.
+  // -------------------- Styles (в стиле приложения + правильная адаптивность) --------------------
   const styleId = "bible-wow-style";
   document.getElementById(styleId)?.remove();
 
   const style = document.createElement("style");
   style.id = styleId;
   style.textContent = `
-    .wow-page{width:100%;max-width:980px;margin:0 auto;padding:14px 14px 22px;}
-    .wow-headerRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
-    .wow-left{display:flex;align-items:center;gap:10px;min-width:0;}
-    .wow-title{font-size:18px;font-weight:800;color:var(--accent-active);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .wow-sub{font-size:12px;opacity:.85;margin-top:2px;}
+    /* ---------- Layout: всё в 1 экран (кроссворд + поле слова + кольцо + кнопки) ---------- */
+    .wow-page{
+      width:100%;
+      max-width:980px;
+      margin:0 auto;
+      padding:12px 12px calc(12px + env(safe-area-inset-bottom));
+      box-sizing:border-box;
+    }
+
+    .wow-headerRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+      flex-wrap:nowrap;
+    }
+
+    .wow-backBtn{
+      width:44px;height:44px;
+      border-radius:14px;
+      border:none;
+      background:rgba(79,70,229,.10);
+      color:var(--accent-active);
+      font-weight:900;
+      box-shadow:0 8px 18px var(--shadow);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
+    }
+    .wow-backBtn:active{transform:scale(.98)}
+
     .wow-levelPill{
-      display:flex;align-items:center;gap:10px;
+      display:flex;
+      align-items:center;
+      gap:10px;
       background:var(--card-bg);
       border-radius:999px;
-      box-shadow:0 6px 18px var(--shadow);
+      box-shadow:0 8px 18px var(--shadow);
       padding:8px 10px;
       border:1px solid rgba(0,0,0,.06);
+      flex:1 1 auto;
+      min-width:0;
+      justify-content:center;
+    }
+    .wow-levelText{
+      font-weight:900;
+      color:var(--text-color);
+      font-size:14px;
+      min-width:140px;
+      text-align:center;
+      white-space:nowrap;
     }
     .wow-navBtn{
-      width:36px;height:36px;border-radius:12px;border:none;
+      width:36px;height:36px;
+      border-radius:12px;
+      border:none;
       background:var(--accent-color);
-      box-shadow:0 4px 10px var(--shadow);
+      box-shadow:0 6px 14px var(--shadow);
       cursor:pointer;
-      font-weight:900;color:var(--accent-active);
-      display:grid;place-items:center;
+      font-weight:900;
+      color:var(--accent-active);
+      display:grid;
+      place-items:center;
+      flex:0 0 auto;
     }
     .wow-navBtn:active{transform:scale(.98)}
-    .wow-levelText{font-weight:800;color:var(--text-color);font-size:14px;min-width:120px;text-align:center}
+
     .wow-burger{
-      width:48px;height:48px;border-radius:14px;border:none;
-      background:var(--accent-active);color:#fff;
-      box-shadow:0 10px 24px var(--shadow);
+      width:44px;height:44px;
+      border-radius:14px;
+      border:none;
+      background:var(--accent-active);
+      color:#fff;
+      box-shadow:0 10px 22px var(--shadow);
       cursor:pointer;
-      display:grid;place-items:center;
-      font-size:20px;font-weight:900;
+      display:grid;
+      place-items:center;
+      font-size:20px;
+      font-weight:900;
+      flex:0 0 auto;
     }
     .wow-burger:active{transform:scale(.98)}
+
     .wow-card{
       background:var(--card-bg);
       border-radius:18px;
-      box-shadow:0 8px 22px var(--shadow);
+      box-shadow:0 10px 26px var(--shadow);
       border:1px solid rgba(0,0,0,.06);
       padding:12px;
-    }
+      box-sizing:border-box;
 
-    /* Layout: чтобы влезало на один экран (кроссворд + кольцо) */
-    .wow-layout{
+      /* критично: ограничиваем высоту, чтобы не было огромных пустот и всё влезало */
+      height: calc(100vh - 110px - env(safe-area-inset-bottom));
+      min-height: 520px;
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:10px;
+      overflow:hidden;
     }
-    .wow-gridWrap{display:flex;justify-content:center;align-items:center;}
+
+    /* ---------- Кроссворд ---------- */
+    .wow-gridWrap{
+      flex: 1 1 auto;
+      min-height: 220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+
     .wow-grid{
       display:grid;
       justify-content:center;
+      align-content:center;
       --gap:6px;
       gap:var(--gap);
       --cols:10;
-      --cell: clamp(30px, calc((min(92vw, 460px) - (var(--cols) - 1)*var(--gap))/var(--cols)), 44px);
+
+      /* ключ: размер клетки зависит и от ширины и от высоты, чтобы не улетало вниз */
+      --cell: clamp(26px,
+        calc((min(92vw, 440px) - (var(--cols) - 1)*var(--gap))/var(--cols)),
+        42px);
+
       grid-template-columns: repeat(var(--cols), var(--cell));
     }
+
     .wow-cell{
-      width:var(--cell);height:var(--cell);
+      width:var(--cell);
+      height:var(--cell);
       border-radius:12px;
       background:#fff;
       border:2px solid rgba(79,70,229,.20);
       box-shadow:0 6px 16px rgba(0,0,0,.06);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:900;color:var(--accent-active);
-      user-select:none;-webkit-user-select:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:var(--accent-active);
+      user-select:none;
+      -webkit-user-select:none;
       box-sizing:border-box;
       transition: transform .15s ease, background .15s ease;
     }
-    .wow-cell.block{
-      background:transparent;border:none;box-shadow:none;
-    }
+    .wow-cell.block{background:transparent;border:none;box-shadow:none;}
     .wow-cell.revealed{
       background:rgba(79,70,229,.12);
       border-color:rgba(79,70,229,.35);
       color:#111;
     }
-    .wow-cell.pop{
-      animation: wowPop .18s ease-out;
-    }
-    @keyframes wowPop{
-      from{transform:scale(.85)}
-      to{transform:scale(1)}
-    }
+    .wow-cell.pop{animation:wowPop .18s ease-out;}
+    @keyframes wowPop{from{transform:scale(.85)}to{transform:scale(1)}}
 
-    .wow-mid{
-      display:grid;gap:10px;
-      justify-items:center;
-    }
-    .wow-toast{
-      min-height:20px;
-      font-weight:800;
-      color:var(--text-color);
-      display:flex;align-items:center;gap:8px;
-      justify-content:center;
-    }
+    /* ---------- Поле текущего слова ---------- */
     .wow-current{
-      min-height:52px;
-      padding:10px 14px;
+      flex: 0 0 auto;
+      height: 54px;
       border-radius:16px;
       border:1px solid rgba(0,0,0,.07);
       background:rgba(0,0,0,.04);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:900;letter-spacing:1px;
-      width:min(520px, 92vw);
       box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      letter-spacing:1px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing:border-box;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      padding: 0 14px;
     }
 
-    .wow-wheelWrap{display:flex;justify-content:center;align-items:center;}
+    .wow-toast{
+      flex:0 0 auto;
+      min-height:20px;
+      font-weight:800;
+      color:var(--text-color);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+
+    /* ---------- Кольцо букв ---------- */
+    .wow-wheelWrap{
+      flex: 0 0 auto;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin-top:auto;
+    }
+
     .wow-wheel{
       position:relative;
       width:min(330px, 92vw);
-      aspect-ratio:1/1;
+      aspect-ratio: 1/1;
       border-radius:999px;
       background:rgba(79,70,229,.06);
       border:1px solid rgba(79,70,229,.18);
@@ -174,65 +259,104 @@ function startBibleWowGame(levelsUrl) {
     }
     .wow-wheel svg{position:absolute;inset:0;pointer-events:none;}
     .wow-wheel path{stroke:rgba(79,70,229,.75)}
+
     .wow-letter{
-      position:absolute;left:50%;top:50%;
+      position:absolute;
+      left:50%;
+      top:50%;
       transform:translate(-50%,-50%);
-      width:58px;height:58px;border-radius:999px;
+      width:58px;
+      height:58px;
+      border-radius:999px;
       background:#fff;
       border:1px solid rgba(0,0,0,.08);
       box-shadow:0 10px 22px rgba(0,0,0,.14);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:900;color:#111;
-      user-select:none;-webkit-user-select:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:#111;
+      user-select:none;
+      -webkit-user-select:none;
       touch-action:none;
     }
     .wow-letter.active{
       transform:translate(-50%,-50%) scale(1.08);
       border-color:rgba(79,70,229,.35);
     }
+
+    /* центр кольца просто декоративный, без кнопок */
     .wow-center{
-      position:absolute;inset:0;
-      display:flex;align-items:center;justify-content:center;
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       pointer-events:none;
     }
     .wow-centerInner{
-      width:92px;height:92px;border-radius:999px;
+      width:92px;
+      height:92px;
+      border-radius:999px;
       background:rgba(255,255,255,.70);
       border:1px solid rgba(0,0,0,.08);
       box-shadow:0 12px 24px rgba(0,0,0,.08);
-      display:flex;align-items:center;justify-content:center;
-      gap:10px;
-      pointer-events:auto;
     }
-    .wow-iconBtn{
-      width:38px;height:38px;border-radius:14px;border:none;
+
+    /* ---------- Кнопки под кольцом (shuffle/hint) ---------- */
+    .wow-underWheel{
+      flex:0 0 auto;
+      display:flex;
+      justify-content:center;
+      gap:10px;
+    }
+    .wow-underBtn{
+      border:none;
+      border-radius:14px;
+      padding:10px 14px;
       background:rgba(79,70,229,.12);
       color:var(--accent-active);
       font-weight:900;
       cursor:pointer;
+      box-shadow:0 8px 16px rgba(0,0,0,.08);
+      display:flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
     }
+    .wow-underBtn:active{transform:scale(.98)}
 
+    /* ---------- Нижняя строка ---------- */
     .wow-bottomRow{
-      display:flex;gap:10px;justify-content:space-between;align-items:center;
-      width:100%;
+      flex:0 0 auto;
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
       flex-wrap:wrap;
     }
-    .wow-help{font-size:12px;opacity:.85}
+    .wow-help{font-size:12px;opacity:.85;flex:1 1 auto;min-width:220px}
     .wow-next{
-      border:none;border-radius:14px;
+      border:none;
+      border-radius:14px;
       padding:12px 14px;
       background:var(--accent-active);
-      color:#fff;font-weight:900;
+      color:#fff;
+      font-weight:900;
       box-shadow:0 10px 24px var(--shadow);
       cursor:pointer;
+      flex:0 0 auto;
     }
+    .wow-next:active{transform:scale(.98)}
 
-    /* Модалка бургер-меню */
+    /* ---------- Модалка бургер-меню ---------- */
     .wow-modalOverlay{
-      position:fixed;inset:0;
+      position:fixed;
+      inset:0;
       background:rgba(0,0,0,.25);
       display:none;
-      align-items:center;justify-content:center;
+      align-items:center;
+      justify-content:center;
       padding:16px;
       z-index:9999;
     }
@@ -247,19 +371,32 @@ function startBibleWowGame(levelsUrl) {
     }
     .wow-modalTop{
       padding:12px 14px;
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
       background:linear-gradient(to right, var(--accent-color), #fff);
     }
     .wow-modalTitle{font-weight:900;color:var(--accent-active)}
     .wow-close{
-      border:none;border-radius:12px;
-      width:40px;height:40px;
+      border:none;
+      border-radius:12px;
+      width:40px;
+      height:40px;
       background:rgba(0,0,0,.06);
-      cursor:pointer;font-weight:900;
+      cursor:pointer;
+      font-weight:900;
     }
-    .wow-tabs{display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(0,0,0,.07);flex-wrap:wrap;}
+    .wow-tabs{
+      display:flex;
+      gap:8px;
+      padding:10px 14px;
+      border-bottom:1px solid rgba(0,0,0,.07);
+      flex-wrap:wrap;
+    }
     .wow-tab{
-      border:none;border-radius:999px;
+      border:none;
+      border-radius:999px;
       padding:8px 12px;
       background:rgba(0,0,0,.05);
       cursor:pointer;
@@ -269,12 +406,25 @@ function startBibleWowGame(levelsUrl) {
       background:rgba(79,70,229,.14);
       color:var(--accent-active);
     }
-    .wow-modalBody{padding:12px 14px;max-height:min(68vh, 520px);overflow:auto;}
-    .wow-statRow{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .wow-modalBody{
+      padding:12px 14px;
+      max-height:min(68vh, 520px);
+      overflow:auto;
+    }
+    .wow-statRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+    }
     .wow-chip2{
       background:rgba(0,0,0,.05);
       border:1px solid rgba(0,0,0,.07);
-      border-radius:999px;padding:8px 12px;font-weight:900;
+      border-radius:999px;
+      padding:8px 12px;
+      font-weight:900;
     }
     .wow-list{display:flex;flex-direction:column;gap:10px;}
     .wow-levelItem{
@@ -284,7 +434,10 @@ function startBibleWowGame(levelsUrl) {
       background:#fff;
       box-shadow:0 6px 14px rgba(0,0,0,.06);
       cursor:pointer;
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
     }
     .wow-levelItem .t{font-weight:900}
     .wow-levelItem .s{opacity:.7;font-size:12px}
@@ -299,42 +452,39 @@ function startBibleWowGame(levelsUrl) {
       color:#111;
     }
 
-    /* Очень низкие экраны: уменьшаем чуть-чуть */
-    @media (max-height: 760px){
-      .wow-page{padding:10px 12px 18px;}
+    /* Очень низкие экраны: чуть уменьшаем всё */
+    @media (max-height: 740px){
+      .wow-card{min-height: 480px;}
       .wow-wheel{width:min(300px, 92vw);}
       .wow-letter{width:54px;height:54px;}
-      .wow-grid{--cell: clamp(28px, calc((min(92vw, 430px) - (var(--cols) - 1)*var(--gap))/var(--cols)), 40px);}
+      .wow-current{height:50px;}
+      .wow-grid{--cell: clamp(24px, calc((min(92vw, 420px) - (var(--cols) - 1)*var(--gap))/var(--cols)), 38px);}
     }
   `;
   document.head.appendChild(style);
 
   // -------------------- State --------------------
-  const LS_PROGRESS = "bibleWow_progress_v2";
-  const LS_COINS = "bibleWow_coins_v2";
-  const LS_BONUS = "bibleWow_bonus_by_level_v2"; // { [levelIndex]: [words...] }
+  const LS_PROGRESS = "bibleWow_progress_v3";
+  const LS_COINS = "bibleWow_coins_v3";
+  const LS_BONUS = "bibleWow_bonus_by_level_v3";
 
   const state = {
     levels: [],
     levelIndex: 0,
     coins: 0,
 
-    foundWords: new Set(),   // words in crossword found
-    bonusFound: new Set(),   // bonus found in this level
+    foundWords: new Set(),
+    bonusFound: new Set(),
 
     grid: null,
     placements: [],
 
     isDragging: false,
     dragPath: [],
-
     lastToastAt: 0,
 
-    // dictionaries (global)
     dictMain: new Set(),
     dictExtra: new Set(),
-
-    // computed bonus cache for current level (ALL possible words from letters within dict)
     bonusAllForLevel: new Set(),
   };
 
@@ -360,8 +510,12 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function savePersisted() {
-    try { localStorage.setItem(LS_PROGRESS, JSON.stringify({ levelIndex: state.levelIndex })); } catch {}
-    try { localStorage.setItem(LS_COINS, String(state.coins)); } catch {}
+    try {
+      localStorage.setItem(LS_PROGRESS, JSON.stringify({ levelIndex: state.levelIndex }));
+    } catch {}
+    try {
+      localStorage.setItem(LS_COINS, String(state.coins));
+    } catch {}
   }
 
   function loadBonusPersisted(levelIndex) {
@@ -383,7 +537,6 @@ function startBibleWowGame(levelsUrl) {
   }
 
   // -------------------- Crossword builder --------------------
-  // Простая расстановка со склейками по общим буквам + обрезка.
   function buildCrossword(words) {
     const W = 11, H = 11;
     const grid = Array.from({ length: H }, () => Array(W).fill(null));
@@ -455,7 +608,7 @@ function startBibleWowGame(levelsUrl) {
       }
     }
 
-    // crop
+    // crop bounding box
     let minX = W, minY = H, maxX = -1, maxY = -1;
     for (let y = 0; y < H; y++) {
       for (let x = 0; x < W; x++) {
@@ -475,18 +628,12 @@ function startBibleWowGame(levelsUrl) {
     return { grid: cropped, placements };
   }
 
-  // -------------------- UI Skeleton --------------------
+  // -------------------- UI Skeleton (убрали “Библейские слова” и “Составляй...”) --------------------
   function renderSkeleton() {
     container.innerHTML = `
       <div class="wow-page">
         <div class="wow-headerRow">
-          <div class="wow-left">
-            <button class="wow-navBtn" id="wow-back" title="В меню">←</button>
-            <div>
-              <div class="wow-title">Библейские слова</div>
-              <div class="wow-sub">Составляй слова из букв уровня</div>
-            </div>
-          </div>
+          <button class="wow-backBtn" id="wow-back" title="В меню">←</button>
 
           <div class="wow-levelPill">
             <button class="wow-navBtn" id="wow-prev" title="Назад">◀</button>
@@ -497,34 +644,34 @@ function startBibleWowGame(levelsUrl) {
           <button class="wow-burger" id="wow-burger" title="Меню">≡</button>
         </div>
 
-        <div class="wow-card wow-layout">
+        <div class="wow-card">
           <div class="wow-gridWrap">
             <div id="wow-grid" class="wow-grid" aria-label="Кроссворд"></div>
           </div>
 
-          <div class="wow-mid">
-            <div id="wow-toast" class="wow-toast"></div>
-            <div class="wow-current" id="wow-current"> </div>
+          <div id="wow-toast" class="wow-toast"></div>
+          <div class="wow-current" id="wow-current"> </div>
 
-            <div class="wow-wheelWrap">
-              <div class="wow-wheel" id="wow-wheel">
-                <svg id="wow-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <path id="wow-path" d="" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-
-                <div class="wow-center">
-                  <div class="wow-centerInner">
-                    <button class="wow-iconBtn" id="wow-shuffle" title="Перемешать">⟲</button>
-                    <button class="wow-iconBtn" id="wow-hint" title="Подсказка">💡</button>
-                  </div>
-                </div>
+          <div class="wow-wheelWrap">
+            <div class="wow-wheel" id="wow-wheel">
+              <svg id="wow-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path id="wow-path" d="" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <div class="wow-center">
+                <div class="wow-centerInner"></div>
               </div>
             </div>
+          </div>
 
-            <div class="wow-bottomRow">
-              <div class="wow-help">Проведи по буквам, чтобы составить слово. За бонусные слова: +2 🪙</div>
-              <button class="wow-next" id="wow-advance">Следующий ▶</button>
-            </div>
+          <!-- Кнопки ПОД кольцом -->
+          <div class="wow-underWheel">
+            <button class="wow-underBtn" id="wow-shuffle" title="Перемешать">⟲ Перемешать</button>
+            <button class="wow-underBtn" id="wow-hint" title="Подсказка">💡 Подсказка</button>
+          </div>
+
+          <div class="wow-bottomRow">
+            <div class="wow-help">Проведи по буквам, чтобы составить слово. За бонусные слова: +2 🪙</div>
+            <button class="wow-next" id="wow-advance">Следующий ▶</button>
           </div>
         </div>
       </div>
@@ -550,7 +697,7 @@ function startBibleWowGame(levelsUrl) {
               </div>
               <div style="opacity:.9;line-height:1.4">
                 <div><b>Подсказка</b>: −10 🪙 (открывает одно слово в кроссворде)</div>
-                <div style="margin-top:8px"><b>Важно</b>: теперь бонусные слова считаются автоматически — если слово библейское и собирается из букв уровня.</div>
+                <div style="margin-top:8px"><b>Бонус</b>: слово засчитывается, если оно библейское и собирается из букв уровня.</div>
               </div>
             </div>
 
@@ -567,7 +714,7 @@ function startBibleWowGame(levelsUrl) {
       </div>
     `;
 
-    // header buttons
+    // navigation
     document.getElementById("wow-back")?.addEventListener("click", () => {
       cleanupAll();
       goToMainMenu();
@@ -644,7 +791,7 @@ function startBibleWowGame(levelsUrl) {
     if (el) el.textContent = s || " ";
   }
 
-  // -------------------- Grid render (буквы видны только после отгадывания) --------------------
+  // -------------------- Grid render --------------------
   function renderGrid() {
     const gridEl = document.getElementById("wow-grid");
     if (!gridEl || !state.grid) return;
@@ -674,16 +821,15 @@ function startBibleWowGame(levelsUrl) {
         } else {
           const key = `${x},${y}`;
           const isRev = revealed.has(key);
-          cell.className = "wow-cell" + (isRev ? " revealed" : "");
+          cell.className = "wow-cell" + (isRev ? " revealed pop" : "");
           cell.textContent = isRev ? ch : "";
-          if (isRev) cell.classList.add("pop");
         }
         gridEl.appendChild(cell);
       }
     }
   }
 
-  // -------------------- Wheel + dragging --------------------
+  // -------------------- Wheel + dragging (липкий hit-test) --------------------
   function pointToWheelSvg(xPx, yPx, wheelRect) {
     const x = ((xPx - wheelRect.left) / wheelRect.width) * 100;
     const y = ((yPx - wheelRect.top) / wheelRect.height) * 100;
@@ -734,7 +880,6 @@ function startBibleWowGame(levelsUrl) {
     const cy = rect.height / 2;
     const radius = Math.min(rect.width, rect.height) * 0.34;
 
-    // create nodes and store centers for better hit test
     const nodes = [];
     for (let i = 0; i < n; i++) {
       const a = (Math.PI * 2 * i) / n - Math.PI / 2;
@@ -745,10 +890,8 @@ function startBibleWowGame(levelsUrl) {
       btn.className = "wow-letter";
       btn.textContent = letters[i];
       btn.dataset.letter = letters[i];
-
       btn.style.left = `${(x / rect.width) * 100}%`;
       btn.style.top = `${(y / rect.height) * 100}%`;
-
       wheel.appendChild(btn);
       nodes.push(btn);
     }
@@ -769,33 +912,20 @@ function startBibleWowGame(levelsUrl) {
   function attachWheelHandlers(wheel, nodes) {
     cleanupWheelOnly();
 
-    // precompute centers on demand (and refresh while moving to avoid iOS layout quirks)
-    const getCenters = () => {
-      return nodes.map(node => {
-        const r = node.getBoundingClientRect();
-        return {
-          node,
-          cx: r.left + r.width / 2,
-          cy: r.top + r.height / 2,
-          radius: Math.max(r.width, r.height) / 2
-        };
-      });
-    };
+    const getCenters = () => nodes.map(node => {
+      const r = node.getBoundingClientRect();
+      return { node, cx: r.left + r.width / 2, cy: r.top + r.height / 2, radius: Math.max(r.width, r.height) / 2 };
+    });
 
     let centers = getCenters();
     const wheelRect = () => wheel.getBoundingClientRect();
 
-    // Wordscapes-like: если палец рядом — цепляем ближайшую букву по расстоянию.
     function hitTestNearest(clientX, clientY) {
-      // quick: elementFromPoint first
       const el = document.elementFromPoint(clientX, clientY);
       const direct = el?.closest?.(".wow-letter");
       if (direct) return direct;
 
-      // fallback: nearest by distance
-      // refresh centers sometimes (cheap for <= 8 letters)
       centers = getCenters();
-
       let best = null;
       let bestD2 = Infinity;
 
@@ -803,8 +933,6 @@ function startBibleWowGame(levelsUrl) {
         const dx = clientX - c.cx;
         const dy = clientY - c.cy;
         const d2 = dx * dx + dy * dy;
-
-        // "липкость": допускаем попадание даже мимо на ~0.65 радиуса
         const max = (c.radius * 0.65) ** 2;
         if (d2 <= max && d2 < bestD2) {
           bestD2 = d2;
@@ -821,19 +949,12 @@ function startBibleWowGame(levelsUrl) {
       const last = state.dragPath[state.dragPath.length - 1];
       if (last && last.node === node) return;
 
-      // нельзя выбирать один и тот же node дважды
       if (state.dragPath.some(p => p.node === node)) return;
 
       node.classList.add("active");
-      state.dragPath.push({
-        node,
-        letter,
-        point: pointToWheelSvg(clientX, clientY, wheelRect())
-      });
+      state.dragPath.push({ node, letter, point: pointToWheelSvg(clientX, clientY, wheelRect()) });
 
-      const word = state.dragPath.map(p => p.letter).join("");
-      setCurrentWord(word);
-
+      setCurrentWord(state.dragPath.map(p => p.letter).join(""));
       drawPath(state.dragPath.map(p => p.point));
     }
 
@@ -865,7 +986,6 @@ function startBibleWowGame(levelsUrl) {
       validateWord(word);
     }
 
-    // ВАЖНО: passive:false, иначе iOS иногда теряет "проводку"
     listenWheel(wheel, "pointerdown", (e) => {
       wheel.setPointerCapture?.(e.pointerId);
       e.preventDefault();
@@ -889,9 +1009,8 @@ function startBibleWowGame(levelsUrl) {
     }, { passive: false });
   }
 
-  // -------------------- Bonus generation (ALL possible from letters, within dictionary) --------------------
+  // -------------------- Bonus generation --------------------
   function isBibleWord(word) {
-    // Если словари не загрузились — fallback на JSON level.bonus (будет ограниченно)
     if (state.dictMain.size === 0 && state.dictExtra.size === 0) return false;
     return state.dictMain.has(word) || state.dictExtra.has(word);
   }
@@ -900,14 +1019,11 @@ function startBibleWowGame(levelsUrl) {
     const letters = level.letters;
     const crosswordSet = new Set(level.crossword);
 
-    // Если словари пусты — используем то, что было в level.bonus (как раньше)
     if (state.dictMain.size === 0 && state.dictExtra.size === 0) {
       return new Set((level.bonus || []).filter(w => !crosswordSet.has(w)));
     }
 
-    // Полный перебор по словарю (2–3k слов нормально по скорости)
     const out = new Set();
-
     const minLen = 3;
     const maxLen = Math.max(3, letters.length);
 
@@ -923,7 +1039,6 @@ function startBibleWowGame(levelsUrl) {
     scan(state.dictMain);
     scan(state.dictExtra);
 
-    // + гарантируем, что явно перечисленные в JSON бонусы тоже попадут
     for (const w of (level.bonus || [])) {
       if (!crosswordSet.has(w) && canMakeFromLetters(w, letters)) out.add(w);
     }
@@ -946,7 +1061,6 @@ function startBibleWowGame(levelsUrl) {
 
     const level = state.levels[state.levelIndex];
 
-    // 1) crossword
     if (level.crosswordSet.has(word)) {
       if (state.foundWords.has(word)) {
         toast("✅ Уже найдено");
@@ -956,7 +1070,6 @@ function startBibleWowGame(levelsUrl) {
       toast("✨ Отлично!");
       renderGrid();
 
-      // если уровень закрыт — +10 разово (без фарма)
       if (isLevelCompleted() && !level._completedOnce) {
         level._completedOnce = true;
         state.coins += 10;
@@ -968,17 +1081,10 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
 
-    // 2) BONUS: слово считается бонусным, если оно библейское И собирается из букв
-    // (а не только если было записано в JSON)
     if (canMakeFromLetters(word, level.letters)) {
-      // словари могут быть пустыми — тогда бонусы ограничены JSON
       let ok = false;
-
-      if (state.dictMain.size || state.dictExtra.size) {
-        ok = isBibleWord(word);
-      } else {
-        ok = state.bonusAllForLevel.has(word);
-      }
+      if (state.dictMain.size || state.dictExtra.size) ok = isBibleWord(word);
+      else ok = state.bonusAllForLevel.has(word);
 
       if (ok) {
         if (state.bonusFound.has(word)) {
@@ -992,7 +1098,6 @@ function startBibleWowGame(levelsUrl) {
         updateCoinsUI();
         toast("🪙 Бонус! +2");
 
-        // обновим меню, если открыто
         renderModalContent();
         savePersisted();
         return;
@@ -1040,7 +1145,6 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
 
-    // финал
     container.innerHTML = `
       <div class="wow-page">
         <div class="wow-card" style="text-align:center;padding:18px;">
@@ -1066,14 +1170,12 @@ function startBibleWowGame(levelsUrl) {
 
   // -------------------- Modal content --------------------
   function renderModalContent() {
-    // chips
     const coinsChip = document.getElementById("wow-coinsChip");
     if (coinsChip) coinsChip.textContent = `🪙 ${state.coins}`;
 
     const bonusChip = document.getElementById("wow-bonusChip");
     if (bonusChip) bonusChip.textContent = `⭐ ${state.bonusFound.size}`;
 
-    // levels list
     const list = document.getElementById("wow-levelList");
     if (list) {
       list.innerHTML = "";
@@ -1093,7 +1195,6 @@ function startBibleWowGame(levelsUrl) {
         item.addEventListener("click", () => {
           state.levelIndex = i;
           savePersisted();
-          // закрыть модалку
           document.getElementById("wow-modalOverlay")?.classList.remove("open");
           startLevel();
         });
@@ -1101,7 +1202,6 @@ function startBibleWowGame(levelsUrl) {
       }
     }
 
-    // bonus list
     const bonusList = document.getElementById("wow-bonusList");
     if (bonusList) {
       bonusList.innerHTML = "";
@@ -1140,15 +1240,12 @@ function startBibleWowGame(levelsUrl) {
   function startLevel() {
     const level = state.levels[state.levelIndex];
 
-    // reset found
     state.foundWords = new Set();
     state.bonusFound = loadBonusPersisted(state.levelIndex);
     level._shuffled = level.letters;
 
-    // compute FULL bonus list for this level (from dictionary + letters)
     state.bonusAllForLevel = computeAllBonusForLevel(level);
 
-    // crossword build
     const crossword = buildCrossword(level.crossword);
     state.grid = crossword.grid;
     state.placements = crossword.placements;
@@ -1161,21 +1258,16 @@ function startBibleWowGame(levelsUrl) {
     renderWheel();
     setCurrentWord("");
 
-    // hooks
+    // кнопки под кольцом
     document.getElementById("wow-shuffle")?.addEventListener("click", shuffleLetters);
     document.getElementById("wow-hint")?.addEventListener("click", giveHint);
 
     listen(window, "resize", () => renderWheel(), { passive: true });
 
-    // initial modal content (chips)
     renderModalContent();
   }
 
   // -------------------- Load dictionaries (optional) --------------------
-  // Ты писал, что у тебя остались:
-  // - data/bible_dictionary_structured.json
-  // - data/bible_extra_words.json
-  // Мы их подцепим, но игра будет работать и без них.
   async function tryLoadDict(url) {
     try {
       const data = await loadJSON(url);
@@ -1186,12 +1278,8 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function flattenStructuredDictionary(obj) {
-    // Ожидаем, что это либо:
-    // { names:[...], places:[...], items:[...], concepts:[...], actions:[...] }
-    // либо { words:[...] }
     const out = [];
     if (!obj) return out;
-
     if (Array.isArray(obj.words)) out.push(...obj.words);
     for (const k of ["names", "places", "items", "concepts", "actions"]) {
       if (Array.isArray(obj[k])) out.push(...obj[k]);
@@ -1200,7 +1288,6 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function normalizeExtra(obj) {
-    // может быть {words:[...]}, либо просто массив
     if (!obj) return [];
     if (Array.isArray(obj)) return obj.map(normWord).filter(w => w.length >= 3);
     if (Array.isArray(obj.words)) return obj.words.map(normWord).filter(w => w.length >= 3);
@@ -1213,7 +1300,6 @@ function startBibleWowGame(levelsUrl) {
   loadPersisted();
 
   (async () => {
-    // 1) load levels
     let data;
     try {
       data = await loadJSON(levelsUrl);
@@ -1233,8 +1319,6 @@ function startBibleWowGame(levelsUrl) {
     state.levels = rawLevels
       .map((l, idx) => {
         const letters = normWord(l.letters);
-
-        // поддержка всех форматов
         const crossword = (l.crossword || l.words || []).map(normWord).filter(Boolean);
         const bonus = (l.bonus || []).map(normWord).filter(Boolean);
 
@@ -1261,8 +1345,7 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
 
-    // 2) load dictionaries (optional)
-    // пытаемся грузить как абсолютные /data/... (для GitHub Pages) и как относительные к levelsUrl
+    // dictionaries (optional)
     const base = String(levelsUrl || "").split("/").slice(0, -1).join("/");
     const candidatesMain = [
       "/data/bible_dictionary_structured.json",
@@ -1289,17 +1372,12 @@ function startBibleWowGame(levelsUrl) {
       if (extraObj) break;
     }
 
-    const mainWords = flattenStructuredDictionary(mainObj);
-    const extraWords = normalizeExtra(extraObj);
+    state.dictMain = new Set(flattenStructuredDictionary(mainObj));
+    state.dictExtra = new Set(normalizeExtra(extraObj));
 
-    state.dictMain = new Set(mainWords);
-    state.dictExtra = new Set(extraWords);
-
-    // clamp persisted level
     state.levelIndex = clamp(state.levelIndex, 0, state.levels.length - 1);
     savePersisted();
 
-    // 3) start
     startLevel();
   })();
 }
