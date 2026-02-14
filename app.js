@@ -64,9 +64,12 @@ function showGame(gameName) {
   } else if (gameName === "quartet") {
     const quartetsUrl = "data/quartet_bible.json";
     loadGameScript("games/quartet.js", () => startQuartetGame(quartetsUrl));
+
+  // ✅ ВОТ ЭТО ДОБАВЛЕНО
   } else if (gameName === "bible-wow") {
     const levelsUrl = "data/bible_wow_levels.json";
     loadGameScript("games/bible-wow.js", () => startBibleWowGame(levelsUrl));
+
   } else {
     if (container) container.innerHTML = "<p>❌ Неизвестная игра.</p>";
   }
@@ -103,7 +106,6 @@ function loadGameScript(fileName, callback) {
         <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
       `;
     }
-    // alert оставляем как доп. сигнал, но не обязателен (в WebView может не показываться)
     try { alert(`❌ Ошибка: файл ${fileName} не найден`); } catch {}
   };
 
