@@ -6,7 +6,7 @@
   <title>Библейские игры</title>
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Стили -->
   <link rel="stylesheet" href="style.css" />
@@ -21,21 +21,30 @@
   <!-- Меню выбора игр -->
   <div class="menu-container" id="menu-container">
     <div class="menu-section-title">Игры для компании</div>
-    <button onclick="showGame('alias')" class="game-button">🎮 Алиас</button><br>
-    <button onclick="showGame('coimaginarium')" class="game-button">🧠 Соображариум</button><br>
-    <button onclick="showGame('guess')" class="game-button">👥 Угадай персонажа</button><br>
-    <button onclick="showGame('describe')" class="game-button">🗣 Опиши, но не называй</button><br>
-    <button onclick="showGame('spy')" class="game-button">🕵️‍♂ Шпион</button><br>
+
+    <div class="menu-grid">
+      <button onclick="showGame('alias')" class="game-button">🎮 Алиас</button>
+      <button onclick="showGame('coimaginarium')" class="game-button">🧠 Соображариум</button>
+      <button onclick="showGame('guess')" class="game-button">👥 Угадай персонажа</button>
+      <button onclick="showGame('describe')" class="game-button">🗣 Опиши, но не называй</button>
+      <button onclick="showGame('spy')" class="game-button">🕵️‍♂ Шпион</button>
+    </div>
 
     <div class="menu-divider"></div>
     <div class="menu-section-title">Словесные</div>
-    <button onclick="showGame('bible-wow')" class="game-button">
-      🧩 Библейские слова 
-    </button><br>
+
+    <div class="menu-grid menu-grid--single">
+      <button onclick="showGame('bible-wow')" class="game-button game-button--wide">
+        🧩 Библейские слова
+      </button>
+    </div>
 
     <div class="menu-divider"></div>
-    <div class="menu-section-title">Для детей </div>
-    <button onclick="showGame('kids-ark-pairs')" class="game-button">🛳️ Найди пару </button><br>
+    <div class="menu-section-title">Для детей</div>
+
+    <div class="menu-grid menu-grid--single">
+      <button onclick="showGame('kids-ark-pairs')" class="game-button game-button--wide">🛳️ Найди пару</button>
+    </div>
   </div>
 
   <!-- Контейнер для игр -->
