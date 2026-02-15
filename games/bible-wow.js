@@ -152,7 +152,8 @@ function startBibleWowGame(levelsUrl) {
     completed: new Set(),
     dict: new Set(),
     foundWords: new Set(),
-    bonusWords: new Set(),
+    bonusWords: new Set(),     // найденные бонусные слова текущего уровня
+    bonusAll: new Set(),       // все допустимые бонусные слова текущего уровня
     grid: null,
     placements: [],
     revealedKeys: new Set(),
@@ -163,8 +164,6 @@ function startBibleWowGame(levelsUrl) {
   };
 
   // Extra словарь на случай, если офлайн-словари неполные.
-  // Это НЕ "все слова русского языка" — только частые библейские/контекстные.
-  // (поправляет кейсы вроде «МЕРА»).
   const EXTRA_BIBLE_WORDS = [
     "МЕРА","МЕРЫ","СЕМ","ХАМ","СИМ","ЕВА","АДАМ","РАЙ","АД","ГРЕХ","ПОСТ","СВЕТ","ТЬМА","ХРАМ","ГРОБ","КРЕСТ","ПЛОТ","КОВЧЕГ",
     "ЖЕРТВА","АГНЕЦ","ПАСХА","ПРИТЧА","МАТФЕЙ","МАРК","ЛУКА","ИОАНН","ПЕТР","ПАВЕЛ","САУЛ","РИМ","СИНАЙ","СИОН","САРРА","РЕВЕККА",
@@ -236,124 +235,289 @@ function startBibleWowGame(levelsUrl) {
     } catch {}
   }
 
-  // ---- Crossword builder (компактная расстановка без "островов") ----
+  // ---- Crossword builder (связная расстановка без "островов" и без "склеенных линий") ----
   function buildCrossword(words) {
-    const sorted = [...words].sort((a, b) => b.length - a.length);
+    const uniq = Array.from(new Set((words || []).map(normWord).filter(Boolean)));
+    const sorted = uniq.sort((a, b) => b.length - a.length);
     if (!sorted.length) return { grid: [[]], placements: [] };
 
-    // Динамический размер поля: достаточно места для пересечений, без разлёта по углам
     const maxLen = sorted[0].length;
-    const size = Math.max(9, maxLen * 2 + 3);
-
+    const size = Math.max(11, maxLen * 2 + 5); // поле с запасом, потом кропаем
     const W = size;
     const H = size;
 
-    const grid = Array.from({ length: H }, () => Array(W).fill(null));
-    const placements = [];
+    const DIR_H = 0;
+    const DIR_V = 1;
 
-    function hasIntersection(word, x, y, dir) {
-      for (let i = 0; i < word.length; i++) {
-        const xx = x + (dir === 0 ? i : 0);
-        const yy = y + (dir === 1 ? i : 0);
-        if (grid[yy][xx] === word[i]) return true;
-      }
-      return false;
+    function emptyGrid() {
+      return Array.from({ length: H }, () => Array(W).fill(null));
     }
 
-    function canPlace(word, x, y, dir, requireIntersection) {
-      for (let i = 0; i < word.length; i++) {
-        const xx = x + (dir === 0 ? i : 0);
-        const yy = y + (dir === 1 ? i : 0);
+    function cloneGrid(g) {
+      return g.map(r => r.slice());
+    }
 
+    // Проверка "не касаться": вокруг каждой новой буквы (перпендикулярно направлению слова)
+    // должно быть пусто, если это не пересечение.
+    function canPlace(g, word, x, y, dir) {
+      const len = word.length;
+
+      // границы + совпадения
+      for (let i = 0; i < len; i++) {
+        const xx = x + (dir === DIR_H ? i : 0);
+        const yy = y + (dir === DIR_V ? i : 0);
         if (xx < 0 || yy < 0 || xx >= W || yy >= H) return false;
 
-        const cell = grid[yy][xx];
+        const cell = g[yy][xx];
         if (cell && cell !== word[i]) return false;
       }
 
-      // После первого слова требуем пересечение, чтобы не появлялись отдельные "острова"
-      if (requireIntersection && !hasIntersection(word, x, y, dir)) return false;
+      // до/после слова в направлении должны быть пустые
+      const bx = x - (dir === DIR_H ? 1 : 0);
+      const by = y - (dir === DIR_V ? 1 : 0);
+      const ax = x + (dir === DIR_H ? len : 0);
+      const ay = y + (dir === DIR_V ? len : 0);
+      if (bx >= 0 && by >= 0 && bx < W && by < H && g[by][bx]) return false;
+      if (ax >= 0 && ay >= 0 && ax < W && ay < H && g[ay][ax]) return false;
+
+      // "не касаться" по бокам
+      for (let i = 0; i < len; i++) {
+        const xx = x + (dir === DIR_H ? i : 0);
+        const yy = y + (dir === DIR_V ? i : 0);
+
+        const already = g[yy][xx]; // пересечение или пусто
+        if (already) continue; // в пересечении допускаем соседей (они уже есть в сетке)
+
+        if (dir === DIR_H) {
+          if ((yy - 1) >= 0 && g[yy - 1][xx]) return false;
+          if ((yy + 1) < H && g[yy + 1][xx]) return false;
+        } else {
+          if ((xx - 1) >= 0 && g[yy][xx - 1]) return false;
+          if ((xx + 1) < W && g[yy][xx + 1]) return false;
+        }
+      }
 
       return true;
     }
 
-    function place(word, x, y, dir) {
+    function place(g, word, x, y, dir) {
       const cells = [];
       for (let i = 0; i < word.length; i++) {
-        const xx = x + (dir === 0 ? i : 0);
-        const yy = y + (dir === 1 ? i : 0);
-        grid[yy][xx] = word[i];
+        const xx = x + (dir === DIR_H ? i : 0);
+        const yy = y + (dir === DIR_V ? i : 0);
+        g[yy][xx] = word[i];
         cells.push({ x: xx, y: yy });
       }
-      placements.push({ word, cells, dir });
+      return { word, cells, dir, x, y, len: word.length };
     }
 
-    // 1) Первое слово — по центру, горизонтально
+    function intersectionsCount(g, word, x, y, dir) {
+      let n = 0;
+      for (let i = 0; i < word.length; i++) {
+        const xx = x + (dir === DIR_H ? i : 0);
+        const yy = y + (dir === DIR_V ? i : 0);
+        if (g[yy][xx] === word[i]) n++;
+      }
+      return n;
+    }
+
+    function bboxFromGrid(g) {
+      let minX = W, minY = H, maxX = -1, maxY = -1;
+      for (let yy = 0; yy < H; yy++) {
+        for (let xx = 0; xx < W; xx++) {
+          if (g[yy][xx]) {
+            if (xx < minX) minX = xx;
+            if (yy < minY) minY = yy;
+            if (xx > maxX) maxX = xx;
+            if (yy > maxY) maxY = yy;
+          }
+        }
+      }
+      if (maxX === -1) return null;
+      return { minX, minY, maxX, maxY, w: (maxX - minX + 1), h: (maxY - minY + 1) };
+    }
+
+    // Запрет "склеенных линий": два параллельных слова не должны стоять в одной строке/колонке с зазором 0..1
+    function violatesCollinearGap(placements, candidate) {
+      const gapLimit = 1;
+      for (const p of placements) {
+        if (p.dir !== candidate.dir) continue;
+
+        if (candidate.dir === DIR_H) {
+          if (p.y !== candidate.y) continue;
+          const a1 = p.x, a2 = p.x + p.len - 1;
+          const b1 = candidate.x, b2 = candidate.x + candidate.len - 1;
+          const overlap = !(b2 < a1 || b1 > a2);
+          if (overlap) continue; // пересечения по длине не рассматриваем как "склейку"
+          const gap = (b1 > a2) ? (b1 - a2 - 1) : (a1 - b2 - 1);
+          if (gap <= gapLimit) return true;
+        } else {
+          if (p.x !== candidate.x) continue;
+          const a1 = p.y, a2 = p.y + p.len - 1;
+          const b1 = candidate.y, b2 = candidate.y + candidate.len - 1;
+          const overlap = !(b2 < a1 || b1 > a2);
+          if (overlap) continue;
+          const gap = (b1 > a2) ? (b1 - a2 - 1) : (a1 - b2 - 1);
+          if (gap <= gapLimit) return true;
+        }
+      }
+      return false;
+    }
+
+    function isConnected(placements) {
+      if (!placements.length) return true;
+      const key = (c) => `${c.x},${c.y}`;
+      const wordCells = placements.map(p => new Set(p.cells.map(key)));
+      const adj = Array.from({ length: placements.length }, () => []);
+      for (let i = 0; i < placements.length; i++) {
+        for (let j = i + 1; j < placements.length; j++) {
+          let inter = false;
+          for (const k of wordCells[i]) {
+            if (wordCells[j].has(k)) { inter = true; break; }
+          }
+          if (inter) { adj[i].push(j); adj[j].push(i); }
+        }
+      }
+      const seen = new Set([0]);
+      const q = [0];
+      while (q.length) {
+        const v = q.pop();
+        for (const u of adj[v]) {
+          if (!seen.has(u)) { seen.add(u); q.push(u); }
+        }
+      }
+      return seen.size === placements.length;
+    }
+
+    // Генерация кандидатов: ставим только через пересечения (после первого слова)
+    function candidatesForWord(g, placements, word) {
+      const cand = [];
+      const occ = [];
+      for (let yy = 0; yy < H; yy++) {
+        for (let xx = 0; xx < W; xx++) {
+          const ch = g[yy][xx];
+          if (ch) occ.push({ x: xx, y: yy, ch });
+        }
+      }
+      for (let i = 0; i < word.length; i++) {
+        const ch = word[i];
+        for (const o of occ) {
+          if (o.ch !== ch) continue;
+
+          for (const dir of [0, 1]) {
+            const x = o.x - (dir === 0 ? i : 0);
+            const y = o.y - (dir === 1 ? i : 0);
+
+            if (!canPlace(g, word, x, y, dir)) continue;
+
+            const inter = intersectionsCount(g, word, x, y, dir);
+            if (inter <= 0) continue; // обязательно пересечение
+
+            const candidate = { word, x, y, dir, len: word.length, inter };
+            if (violatesCollinearGap(placements, candidate)) continue;
+
+            const cx = (W - 1) / 2;
+            const cy = (H - 1) / 2;
+            const midx = x + (dir === 0 ? (word.length - 1) / 2 : 0);
+            const midy = y + (dir === 1 ? (word.length - 1) / 2 : 0);
+            const dist = Math.hypot(midx - cx, midy - cy);
+
+            cand.push({ ...candidate, score: inter * 100 - dist });
+          }
+        }
+      }
+      const seen = new Set();
+      const out = [];
+      for (const c of cand.sort((a, b) => b.score - a.score)) {
+        const k = `${c.x},${c.y},${c.dir}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push(c);
+        if (out.length >= 30) break;
+      }
+      return out;
+    }
+
+    function cropResult(g, placements) {
+      const bb = bboxFromGrid(g);
+      if (!bb) return { grid: [[]], placements: [] };
+      const cropped = [];
+      for (let yy = bb.minY; yy <= bb.maxY; yy++) {
+        cropped.push(g[yy].slice(bb.minX, bb.maxX + 1));
+      }
+      const adjPlacements = placements.map(p => ({
+        word: p.word,
+        dir: p.dir,
+        cells: p.cells.map(c => ({ x: c.x - bb.minX, y: c.y - bb.minY })),
+        x: p.x - bb.minX,
+        y: p.y - bb.minY,
+        len: p.len
+      }));
+      return { grid: cropped, placements: adjPlacements };
+    }
+
+    function solveOnce(order, firstDir) {
+      let g = emptyGrid();
+      let placements = [];
+
+      const first = order[0];
+      const x0 = Math.floor((W - (firstDir === 0 ? first.length : 1)) / 2);
+      const y0 = Math.floor((H - (firstDir === 1 ? first.length : 1)) / 2);
+      placements = [place(g, first, x0, y0, firstDir)];
+
+      function dfs(i, gLocal, plLocal) {
+        if (i >= order.length) return plLocal.length === order.length;
+        const w = order[i];
+        const cands = candidatesForWord(gLocal, plLocal, w);
+        for (const c of cands) {
+          const gNext = cloneGrid(gLocal);
+          const pNext = place(gNext, w, c.x, c.y, c.dir);
+          const plNext = plLocal.concat([pNext]);
+          if (dfs(i + 1, gNext, plNext)) {
+            g = gNext;
+            placements = plNext;
+            return true;
+          }
+        }
+        return false;
+      }
+
+      const ok = dfs(1, g, placements);
+      if (!ok) return null;
+      if (!isConnected(placements)) return null;
+      return cropResult(g, placements);
+    }
+
+    const attempts = 220;
+    for (let t = 0; t < attempts; t++) {
+      const groups = {};
+      for (const w of sorted) {
+        groups[w.length] = groups[w.length] || [];
+        groups[w.length].push(w);
+      }
+      const lens = Object.keys(groups).map(Number).sort((a, b) => b - a);
+      const order = [];
+      for (const L of lens) {
+        const arr = groups[L].slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        order.push(...arr);
+      }
+
+      const firstDir = (t % 2 === 0) ? 0 : 1;
+      const res = solveOnce(order, firstDir);
+      if (res) return res;
+    }
+
+    // Если никак не получилось — возвращаем только первое слово (лучше так, чем "острова" и лишние клетки)
+    const g0 = emptyGrid();
     const first = sorted[0];
     const x0 = Math.floor((W - first.length) / 2);
     const y0 = Math.floor(H / 2);
-    place(first, x0, y0, 0);
-
-    // 2) Остальные слова — только через пересечение с уже поставленными
-    for (let wi = 1; wi < sorted.length; wi++) {
-      const word = sorted[wi];
-      let placed = false;
-
-      // Пытаемся поставить через пересечения (как и раньше), но без fallback-сканирования "куда угодно"
-      for (const p of placements) {
-        if (placed) break;
-
-        for (let i = 0; i < word.length; i++) {
-          const ch = word[i];
-
-          for (let j = 0; j < p.word.length; j++) {
-            if (p.word[j] !== ch) continue;
-
-            const anchor = p.cells[j];
-            const dir = 1 - p.dir;
-            const x = anchor.x - (dir === 0 ? i : 0);
-            const y = anchor.y - (dir === 1 ? i : 0);
-
-            if (canPlace(word, x, y, dir, true)) {
-              place(word, x, y, dir);
-              placed = true;
-              break;
-            }
-          }
-          if (placed) break;
-        }
-      }
-
-      // Если слово вообще нельзя присоединить (нет общих букв) — пропускаем его.
-      // Лучше компактный кроссворд без "островов", чем отдельные блоки по краям.
-    }
-
-    // crop bounding box по занятым клеткам
-    let minX = W, minY = H, maxX = -1, maxY = -1;
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        if (grid[y][x]) {
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    }
-
-    if (maxX === -1) return { grid: [[]], placements: [] };
-
-    const cropped = [];
-    for (let y = minY; y <= maxY; y++) {
-      cropped.push(grid[y].slice(minX, maxX + 1));
-    }
-
-    // adjust placements coords
-    for (const p of placements) {
-      p.cells = p.cells.map(c => ({ x: c.x - minX, y: c.y - minY }));
-    }
-
-    return { grid: cropped, placements };
+    const p0 = place(g0, first, x0, y0, 0);
+    return cropResult(g0, [p0]);
   }
 
   // ---- UI ----
@@ -441,7 +605,7 @@ function startBibleWowGame(levelsUrl) {
               <div class="wow-modalTitle">⭐ Бонусные слова</div>
               <button class="wow-x" id="wow-bonusClose" title="Закрыть">✕</button>
             </div>
-            <div class="wow-muted" style="margin:0 0 10px;">Это слова, которых нет в кроссворде, но они есть в словаре. За каждое +2 🪙 (один раз).</div>
+            <div class="wow-muted" style="margin:0 0 10px;">Бонусные слова этого уровня (не из кроссворда). За каждое +2 🪙 (один раз).</div>
             <div class="wow-list" id="wow-bonusList"></div>
           </div>
         </div>
@@ -497,7 +661,6 @@ function startBibleWowGame(levelsUrl) {
     if (prevBtn) prevBtn.disabled = state.levelIndex <= 0;
     if (nextMini) nextMini.disabled = state.levelIndex >= state.levels.length - 1;
 
-    // disable paid actions when low coins
     const hintBtn = document.getElementById("wow-hint");
     const revealBtn = document.getElementById("wow-reveal");
     if (hintBtn) hintBtn.disabled = state.coins < 10;
@@ -509,7 +672,7 @@ function startBibleWowGame(levelsUrl) {
     if (!box) return;
     const arr = Array.from(state.bonusWords || []).sort((a, b) => a.localeCompare(b, "ru"));
     if (!arr.length) {
-      box.innerHTML = `<div class="wow-muted" style="padding:10px;">Пока нет бонусных слов. Попробуй найти слова, которых нет в кроссворде 😉</div>`;
+      box.innerHTML = `<div class="wow-muted" style="padding:10px;">Бонусных слов этого уровня пока нет. Попробуй найти слова из тех же букв 😉</div>`;
       return;
     }
     box.innerHTML = "";
@@ -571,7 +734,6 @@ function startBibleWowGame(levelsUrl) {
       }
     }
 
-    // keep previous for "pop" animation
     const prev = state.revealedKeys;
     state.revealedKeys = revealed;
 
@@ -592,11 +754,9 @@ function startBibleWowGame(levelsUrl) {
           cell.dataset.x = String(x);
           cell.dataset.y = String(y);
 
-          // grid appear wave
           cell.classList.add("in");
           cell.style.animationDelay = `${(y * w + x) * 10}ms`;
 
-          // newly revealed pop
           if (isRev && prev && !prev.has(key)) {
             cell.classList.add("pop");
           }
@@ -635,14 +795,12 @@ function startBibleWowGame(levelsUrl) {
   function renderWheel() {
     const wheel = document.getElementById("wow-wheel");
     if (!wheel) return;
-    // remove old letters
     wheel.querySelectorAll(".wow-letter").forEach(n => n.remove());
 
     const level = state.levels[state.levelIndex];
     const letters = uniqLetters(level._shuffled || level.letters);
     const n = letters.length;
 
-    // place letters around circle
     const rect = wheel.getBoundingClientRect();
     const cx = rect.width / 2;
     const cy = rect.height / 2;
@@ -668,7 +826,6 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function pointToWheelSvg(xPx, yPx, wheelRect) {
-    // convert absolute client px to wheel-local viewBox 0..100
     const x = ((xPx - wheelRect.left) / wheelRect.width) * 100;
     const y = ((yPx - wheelRect.top) / wheelRect.height) * 100;
     return { x, y };
@@ -694,9 +851,31 @@ function startBibleWowGame(levelsUrl) {
     setCurrentWord("");
   }
 
+  function getBonusAllForLevel(level) {
+    const base = Array.isArray(level.bonusWords) ? level.bonusWords.map(normWord) : [];
+    const baseSet = new Set(base.filter(w => w.length >= 3));
+    if (baseSet.size) return baseSet;
+
+    const target = new Set(level.words);
+    const letters = level.letters;
+    const gen = [];
+    if (state.dict && state.dict.size) {
+      for (const w of state.dict) {
+        if (w.length < 3) continue;
+        if (target.has(w)) continue;
+        if (!canMakeFromLetters(w, letters)) continue;
+        gen.push(w);
+      }
+    }
+    gen.sort((a, b) => a.localeCompare(b, "ru"));
+    for (const w of gen.slice(0, 120)) baseSet.add(w);
+    return baseSet;
+  }
+
   function validateWord(word) {
     const level = state.levels[state.levelIndex];
     const targetWords = new Set(level.words);
+    const bonusAll = state.bonusAll || new Set();
 
     if (word.length < 3) return;
 
@@ -708,8 +887,8 @@ function startBibleWowGame(levelsUrl) {
       state.foundWords.add(word);
       toast("✨ Отлично!");
       renderGrid();
+
       if (isLevelCompleted()) {
-        // reward only once per level
         const levelId = Number(level.id);
         if (!state.completed.has(levelId)) {
           state.completed.add(levelId);
@@ -724,18 +903,14 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
 
-    // bonus words: ONLY real words from offline Bible dictionary
-    // rule: not target, exists in dict, can be made from letters, once per level
-    if (!state.bonusWords.has(word)
-        && !targetWords.has(word)
-        && state.dict.has(word)
-        && canMakeFromLetters(word, level.letters)) {
+    if (bonusAll.has(word) && !state.bonusWords.has(word)) {
       state.bonusWords.add(word);
-      // persist per level
+
       const lid = String(level.id);
       state._bonusByLevel = state._bonusByLevel || {};
       const prev = Array.isArray(state._bonusByLevel[lid]) ? state._bonusByLevel[lid] : [];
       if (!prev.includes(word)) state._bonusByLevel[lid] = prev.concat([word]);
+
       state.coins += 2;
       toast("🪙 Бонусное слово! +2");
       updateTopbar();
@@ -798,14 +973,12 @@ function startBibleWowGame(levelsUrl) {
       return;
     }
     const level = state.levels[state.levelIndex];
-    // find any not-yet-found word and reveal its first unrevealed letter in grid
     const remaining = level.words.filter(w => !state.foundWords.has(w));
     if (!remaining.length) {
       toast("Уже всё найдено ✨");
       return;
     }
     const pick = remaining[Math.floor(Math.random() * remaining.length)];
-    // reveal one word (как "покупка подсказки")
     state.foundWords.add(pick);
     state.coins -= 10;
     toast(`💡 Открыто слово: «${pick}»`);
@@ -846,12 +1019,10 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function attachWheelHandlers(wheel, nodes) {
-    // remove previous wheel listeners
     cleanupWheelOnly();
 
     const wheelRect = () => wheel.getBoundingClientRect();
 
-    // Precompute centers for more reliable hit-testing while swiping fast
     let centers = [];
     function refreshCenters() {
       centers = nodes.map((node) => {
@@ -860,21 +1031,17 @@ function startBibleWowGame(levelsUrl) {
           node,
           cx: r.left + r.width / 2,
           cy: r.top + r.height / 2,
-          // radius based on size (+ padding)
           rr: Math.max(r.width, r.height) * 0.55
         };
       });
     }
-    // refresh after layout
     requestAnimationFrame(refreshCenters);
 
     function hitTest(clientX, clientY) {
-      // 1) DOM hit-test (fast)
       const el = document.elementFromPoint(clientX, clientY);
       const node1 = el?.closest?.(".wow-letter") || null;
       if (node1) return node1;
 
-      // 2) Fallback: nearest center (reliable when finger moves fast)
       if (!centers.length) refreshCenters();
       let best = null;
       let bestD = Infinity;
@@ -882,7 +1049,6 @@ function startBibleWowGame(levelsUrl) {
         const dx = clientX - c.cx;
         const dy = clientY - c.cy;
         const d = Math.hypot(dx, dy);
-        // allow a small tolerance beyond the visual circle so the swipe feels "sticky"
         const tol = Math.max(12, c.rr * 0.18);
         if (d < (c.rr + tol) && d < bestD) {
           best = c.node;
@@ -897,8 +1063,6 @@ function startBibleWowGame(levelsUrl) {
       if (!letter) return;
       const last = state.dragPath[state.dragPath.length - 1];
       if (last && last.node === node) return;
-
-      // allow repeats if there are duplicates in letters, but prevent selecting same exact node twice
       if (state.dragPath.some(p => p.node === node)) return;
 
       node.classList.add("active");
@@ -910,11 +1074,9 @@ function startBibleWowGame(levelsUrl) {
     let moveTick = 0;
     function move(clientX, clientY) {
       if (!state.isDragging) return;
-      // Keep centers fresh on mobile when browser changes layout during gesture
       if ((moveTick++ % 6) === 0) refreshCenters();
       const node = hitTest(clientX, clientY);
       if (node) addNode(node, clientX, clientY);
-      // update tail
       const pts = state.dragPath.map(p => p.point);
       if (pts.length) {
         pts.push(pointToWheelSvg(clientX, clientY, wheelRect()));
@@ -938,7 +1100,6 @@ function startBibleWowGame(levelsUrl) {
       validateWord(word);
     }
 
-    // pointer events
     listenWheel(wheel, "pointerdown", (e) => {
       if (!(e instanceof PointerEvent)) return;
       e.preventDefault();
@@ -953,7 +1114,6 @@ function startBibleWowGame(levelsUrl) {
     listenWheel(wheel, "pointerup", () => end(), { passive: true });
     listenWheel(wheel, "pointercancel", () => end(), { passive: true });
 
-    // prevent page scrolling while dragging in wheel
     listenWheel(wheel, "touchmove", (e) => {
       if (state.isDragging) e.preventDefault();
     }, { passive: false });
@@ -971,7 +1131,6 @@ function startBibleWowGame(levelsUrl) {
 
   // ---- Level start ----
   function startLevel() {
-    // avoid stacking listeners when restarting level / switching levels
     for (const off of offAll) off();
     offAll = [];
     cleanupWheelOnly();
@@ -980,7 +1139,12 @@ function startBibleWowGame(levelsUrl) {
     state.foundWords = new Set();
     const lid = String(level.id);
     const savedBonus = (state._bonusByLevel && Array.isArray(state._bonusByLevel[lid])) ? state._bonusByLevel[lid] : [];
-    state.bonusWords = new Set(savedBonus.map(normWord));
+
+    // Бонусные слова: только для текущего уровня (из level.bonusWords или fallback-генерации)
+    state.bonusAll = getBonusAllForLevel(level);
+    const savedSet = new Set(savedBonus.map(normWord));
+    state.bonusWords = new Set(Array.from(savedSet).filter(w => state.bonusAll.has(w)));
+
     level._shuffled = level.letters;
     state.revealedKeys = new Set();
 
@@ -1020,13 +1184,11 @@ function startBibleWowGame(levelsUrl) {
       startLevel();
     });
 
-    // floating menu
     const fabBtn = document.getElementById("wow-fabBtn");
     const fabMenu = document.getElementById("wow-fabMenu");
     fabBtn?.addEventListener("click", () => {
       fabMenu?.classList.toggle("open");
     });
-    // close on outside tap
     listen(document, "pointerdown", (e) => {
       const t = e.target;
       if (!(t instanceof HTMLElement)) return;
@@ -1035,7 +1197,6 @@ function startBibleWowGame(levelsUrl) {
     }, { passive: true });
 
     listen(window, "resize", () => {
-      // re-render wheel positions
       renderWheel();
     }, { passive: true });
   }
@@ -1053,7 +1214,7 @@ function startBibleWowGame(levelsUrl) {
   ])
     .then(([levelsData, easy, medium, hard, extra]) => {
       const levels = (levelsData && levelsData.levels) ? levelsData.levels : [];
-      // build offline dictionary (for bonus words)
+
       const all = []
         .concat(Array.isArray(easy) ? easy : [])
         .concat(Array.isArray(medium) ? medium : [])
@@ -1062,32 +1223,21 @@ function startBibleWowGame(levelsUrl) {
         .concat(EXTRA_BIBLE_WORDS);
       state.dict = new Set(all.map(normWord).filter(w => w.length >= 3));
 
-      // Build levels, and slightly simplify the game by adding a couple of valid 3-letter Bible words
-      // that can be composed from the level letters (they become part of the crossword).
+      // Build levels (без автодобавления "лишних" слов — только то, что задано в JSON)
       state.levels = levels
         .map(l => {
           const letters = normWord(l.letters);
-          const baseWords = (l.words || []).map(normWord).filter(w => w.length >= 3);
-          const set = new Set(baseWords);
-
-          // Add up to 2 extra 3-letter words from dictionary (not bonus, real target words)
-          const cand3 = [];
-          for (const w of state.dict) {
-            if (w.length !== 3) continue;
-            if (set.has(w)) continue;
-            if (!canMakeFromLetters(w, letters)) continue;
-            cand3.push(w);
-          }
-          cand3.sort((a, b) => a.localeCompare(b, "ru"));
-          for (const w of cand3.slice(0, 2)) set.add(w);
+          const words = Array.from(new Set((l.words || []).map(normWord).filter(w => w.length >= 3)));
+          const bonusWords = Array.from(new Set((l.bonusWords || []).map(normWord).filter(w => w.length >= 3)));
 
           return {
             id: l.id,
             letters,
-            words: Array.from(set)
+            words,
+            bonusWords
           };
         })
-        .filter(l => l.letters.length >= 3 && l.words.length >= 4);
+        .filter(l => l.letters.length >= 3 && l.words.length >= 1);
 
       if (!state.levels.length) throw new Error("Нет уровней");
       if (state.levelIndex >= state.levels.length) state.levelIndex = 0;
