@@ -20,6 +20,7 @@ function startBibleWowGame(levelsUrl) {
   style.textContent = `
     /* Main Layout */
     .wow-wrap {
+        --wow-accent: var(--accent-active, #4f46e5);
         max-width: 980px;
         margin: 0 auto;
         width: 100%;
@@ -100,7 +101,7 @@ function startBibleWowGame(levelsUrl) {
         z-index: 10;
     }
     .wow-cell.solved {
-        background: var(--accent, #ff9800);
+        background: var(--wow-accent);
         color: #fff;
         transform: scale(1.05);
     }
@@ -133,8 +134,8 @@ function startBibleWowGame(levelsUrl) {
         height: 36px;
         border-radius: 8px;
         background: #fff;
-        border: 2px solid var(--accent, #ff9800);
-        color: var(--accent, #ff9800);
+        border: 2px solid var(--wow-accent);
+        color: var(--wow-accent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -181,7 +182,7 @@ function startBibleWowGame(levelsUrl) {
         -webkit-user-select: none;
     }
     .wow-btn-let.active {
-        background: var(--accent, #ff9800);
+        background: var(--wow-accent);
         color: #fff;
         transform: scale(1.15);
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
@@ -249,6 +250,69 @@ function startBibleWowGame(levelsUrl) {
     }
     .wow-item:active { transform: scale(.99); }
     .wow-muted { opacity:.75; font-size: 12px; }
+
+    /* Hint-revealed single letters */
+    .wow-cell.hinted{
+        background: rgba(79,70,229,.10);
+        color: var(--wow-accent);
+    }
+
+    /* Zoom controls for crossword */
+    .wow-zoom{
+        position:absolute;
+        right: 12px;
+        top: 12px;
+        display:flex;
+        gap:8px;
+        z-index:150;
+    }
+    .wow-zoom .wow-chip{
+        padding: 7px 10px;
+        font-weight: 900;
+        color: #fff;
+        background: var(--wow-accent);
+        border-color: rgba(0,0,0,.06);
+    }
+
+    /* Right side stack: stars over bonus button */
+    .wow-rightCol{
+        display:flex;
+        flex-direction:column;
+        gap:6px;
+        align-items:flex-end;
+    }
+    .wow-stars{
+        background: var(--wow-chip-bg, rgba(0,0,0,0.02));
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--wow-accent);
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+        line-height: 1;
+        user-select:none;
+        -webkit-user-select:none;
+    }
+
+    /* Make action chips colored like app */
+    .wow-chip.btn{
+        background: var(--wow-accent);
+        color: #fff;
+        border-color: rgba(0,0,0,.06);
+    }
+    .wow-chip.btn:active{ transform: scale(.99); }
+    .wow-chip.btn.disabled{
+        opacity:.55;
+        cursor:not-allowed;
+        transform:none;
+    }
+
+    @media (max-width: 420px){
+        .wow-chip{ padding: 6px 10px; font-size: 13px; }
+        .wow-title{ font-size: 16px; }
+    }
+
   `;
   document.head.appendChild(style);
 
@@ -312,7 +376,10 @@ function startBibleWowGame(levelsUrl) {
     inputPath: [],
     inputWord: "",
 
-    _wheelHandlers: null
+    _wheelHandlers: null,
+
+    zoom: 1,
+    hintedCells: new Set() // absolute cell keys "r,c" in virtual coordinates
   };
 
   function normWord(w) {
@@ -435,6 +502,42 @@ function startBibleWowGame(levelsUrl) {
     el.classList.toggle("disabled", !!disabled);
   }
 
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function hexToRgb(hex){
+    let h = String(hex || '').trim();
+    if (!h) return [79,70,229];
+    if (h.startsWith('rgb')) {
+      const m = h.match(/rgba?\(([^)]+)\)/i);
+      if (m) {
+        const parts = m[1].split(',').map(s => parseFloat(s.trim())).filter(n => Number.isFinite(n));
+        return [parts[0]||79, parts[1]||70, parts[2]||229].map(x=>Math.round(x));
+      }
+      return [79,70,229];
+    }
+    if (h[0] === '#') h = h.slice(1);
+    if (h.length === 3) h = h.split('').map(ch=>ch+ch).join('');
+    if (h.length !== 6) return [79,70,229];
+    const n = parseInt(h,16);
+    return [(n>>16)&255, (n>>8)&255, n&255];
+  }
+
+  function applyZoom(){
+    const gridEl = document.getElementById('wow-grid');
+    if (!gridEl) return;
+    const z = clamp(st.zoom || 1, 0.6, 2.2);
+    st.zoom = z;
+    gridEl.style.transform = `scale(${z})`;
+    gridEl.style.transformOrigin = 'center center';
+  }
+
+  function changeZoom(delta){
+    st.zoom = clamp((st.zoom || 1) + delta, 0.6, 2.2);
+    applyZoom();
+  }
+
+
   // -------------------- UI Render --------------------
   function renderGame() {
     const lvl = st.currLevel;
@@ -442,23 +545,29 @@ function startBibleWowGame(levelsUrl) {
       <div class="wow-wrap">
         <div class="wow-top">
            <div class="wow-pill">
-             <div class="wow-chip" id="wow-menu">⬅ Меню</div>
+             <div class="wow-chip btn" id="wow-menu">⬅ Меню</div>
            </div>
 
            <div class="wow-pill">
-             <div class="wow-chip" id="wow-prev">◀</div>
+             <div class="wow-chip btn" id="wow-prev">◀</div>
              <div class="wow-title" id="wow-title">Уровень ${lvl ? lvl.id : ""}</div>
-             <div class="wow-chip" id="wow-next">▶</div>
+             <div class="wow-chip btn" id="wow-next">▶</div>
            </div>
 
            <div class="wow-pill">
-             <div class="wow-chip" id="wow-coins">⭐ <span id="wow-score">${st.coins}</span></div>
-             <div class="wow-chip" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
-             <div class="wow-chip" id="wow-levels-open">≡</div>
+             <div class="wow-rightCol">
+               <div class="wow-stars">⭐ <span id="wow-score">${st.coins}</span></div>
+               <div class="wow-chip btn" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
+             </div>
+             <div class="wow-chip btn" id="wow-levels-open">≡</div>
            </div>
         </div>
 
         <div class="wow-board-area" id="wow-board-area">
+           <div class="wow-zoom">
+             <div class="wow-chip" id="wow-zoom-out">−</div>
+             <div class="wow-chip" id="wow-zoom-in">＋</div>
+           </div>
            <div class="wow-grid" id="wow-grid"></div>
            <div class="wow-bonus-msg" id="wow-bonus-msg"></div>
         </div>
@@ -467,9 +576,9 @@ function startBibleWowGame(levelsUrl) {
            <div class="wow-preview" id="wow-preview"></div>
 
            <div class="wow-actions">
-             <div class="wow-chip" id="wow-shuffle">⟲ Перемешать</div>
-             <div class="wow-chip" id="wow-hint">💡 Подсказка (10⭐)</div>
-             <div class="wow-chip" id="wow-reveal">👁 Слово (25⭐)</div>
+             <div class="wow-chip btn" id="wow-shuffle">⟲ Перемешать</div>
+             <div class="wow-chip btn" id="wow-hint">💡 Подсказка (6⭐)</div>
+             <div class="wow-chip btn" id="wow-reveal">👁 Слово (20⭐)</div>
            </div>
 
            <div class="wow-wheel-wrap" id="wow-wheel">
@@ -527,6 +636,10 @@ function startBibleWowGame(levelsUrl) {
       renderWheel();
     });
 
+    document.getElementById("wow-zoom-in")?.addEventListener("click", () => changeZoom(0.1));
+    document.getElementById("wow-zoom-out")?.addEventListener("click", () => changeZoom(-0.1));
+
+
     document.getElementById("wow-hint")?.addEventListener("click", () => giveHint());
     document.getElementById("wow-reveal")?.addEventListener("click", () => revealWordPaid());
 
@@ -563,8 +676,8 @@ function startBibleWowGame(levelsUrl) {
 
     const hint = document.getElementById("wow-hint");
     const reveal = document.getElementById("wow-reveal");
-    setChipDisabled(hint, st.coins < 10);
-    setChipDisabled(reveal, st.coins < 25);
+    setChipDisabled(hint, st.coins < 6);
+    setChipDisabled(reveal, st.coins < 20);
 
     const score = document.getElementById("wow-score");
     if (score) score.textContent = String(st.coins);
@@ -649,6 +762,7 @@ function startBibleWowGame(levelsUrl) {
 
     gridEl.style.width = (cols * cellSize) + "px";
     gridEl.style.height = (rows * cellSize) + "px";
+    applyZoom();
 
     const cellMap = new Map(); // key -> {letter, solved:boolean}
     for (const wObj of layout) {
@@ -675,10 +789,17 @@ function startBibleWowGame(levelsUrl) {
       cell.style.top = (r * cellSize) + "px";
       cell.style.left = (c * cellSize) + "px";
 
+      const absR = r + minR;
+      const absC = c + minC;
+      const absKey = `${absR},${absC}`;
+
       if (data.solved) {
         cell.textContent = data.letter;
         cell.classList.add("solved");
         cell.classList.add("anim-pop");
+      } else if (st.hintedCells && st.hintedCells.has(absKey)) {
+        cell.textContent = data.letter;
+        cell.classList.add("hinted");
       } else {
         cell.textContent = "";
       }
@@ -785,7 +906,8 @@ function startBibleWowGame(levelsUrl) {
     ctx.lineWidth = 10;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = "rgba(255, 152, 0, 0.5)";
+    const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent-active') || '').trim();
+    ctx.strokeStyle = accent ? `rgba(${hexToRgb(accent).join(',')}, 0.45)` : "rgba(79, 70, 229, 0.45)";
     ctx.stroke();
   }
 
@@ -955,26 +1077,53 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function giveHint() {
-    if (st.coins < 10) { showMsg("Нужно 10⭐"); return; }
+    if (st.coins < 6) { showMsg("Нужно 6⭐"); return; }
+
+    // Find a word with at least one unrevealed cell
     const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
     if (!remaining.length) { showMsg("Всё найдено"); return; }
-    const pick = remaining[Math.floor(Math.random() * remaining.length)];
-    st.coins -= 10;
-    st.foundWords.add(pick);
-    showMsg(`Подсказка: ${pick}`);
+
+    const candidates = [];
+    for (const w of remaining) {
+      const p = st.gridInfo.find(x => x.word === w);
+      if (!p) continue;
+      for (let i = 0; i < w.length; i++) {
+        const ar = p.r + p.dr * i;
+        const ac = p.c + p.dc * i;
+        const k = `${ar},${ac}`;
+        if (!st.hintedCells.has(k)) candidates.push({ key: k, letter: w[i], word: w });
+      }
+    }
+    if (!candidates.length) { showMsg("Нет букв для подсказки"); return; }
+
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    st.coins -= 6;
+    st.hintedCells.add(pick.key);
+
+    showMsg(`💡 Открыта буква: ${pick.letter}`);
     savePersisted(st);
     renderGrid();
     updateChips();
   }
 
   function revealWordPaid() {
-    if (st.coins < 25) { showMsg("Нужно 25⭐"); return; }
+    if (st.coins < 20) { showMsg("Нужно 20⭐"); return; }
     const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
     if (!remaining.length) { showMsg("Всё найдено"); return; }
     const pick = remaining[Math.floor(Math.random() * remaining.length)];
-    st.coins -= 25;
+    st.coins -= 20;
     st.foundWords.add(pick);
-    showMsg(`Открыто: ${pick}`);
+
+    // remove hinted cells of that word (optional, but keeps state clean)
+    const p = st.gridInfo.find(x => x.word === pick);
+    if (p) {
+      for (let i = 0; i < pick.length; i++) {
+        const k = `${p.r + p.dr * i},${p.c + p.dc * i}`;
+        st.hintedCells.delete(k);
+      }
+    }
+
+    showMsg(`👁 Открыто: ${pick}`);
     savePersisted(st);
     renderGrid();
     updateChips();
@@ -1022,6 +1171,7 @@ function startBibleWowGame(levelsUrl) {
     st.bonusWordsFound = new Set(saved.filter(w => st.bonusAll.has(w)));
 
     st.foundWords = new Set();
+    st.hintedCells = new Set();
 
     st.currLevel = { id: rawLevel.id, letters, words: levelWords, _shuffled: letters };
 
