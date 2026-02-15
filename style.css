@@ -832,21 +832,33 @@ input[type="radio"] {
 
   .theme-letter { font-size: 1.3rem; }
 }
-/* =========================
-   CENTER MENU VERTICALLY
-   ========================= */
 
-/* Когда отображается главное меню */
-body.menu-active {
-  justify-content: center;   /* вертикальный центр */
+/* =========================
+   CENTER MENU VERTICALLY (FIXED)
+   =========================
+   Делает меню по центру экрана, но не ломает игры.
+   Работает даже если классы menu-active/game-active не проставляются.
+*/
+
+/* По умолчанию (меню): центрируем по вертикали */
+body {
+  justify-content: center;
 }
 
-/* Контейнер меню */
+/* Шапку делаем компактнее в режиме меню */
+header { margin-bottom: 0.7rem; }
+
+/* Если меню скрыто (то есть открыта игра) — возвращаем верстку вверх */
+body:has(.menu-container.hidden) {
+  justify-content: flex-start;
+}
+
+/* В режиме игры возвращаем обычные отступы, чтобы ничего не "липло" */
+body:has(.menu-container.hidden) header {
+  margin-bottom: 0.8rem;
+}
+
+/* Контейнер меню — без лишних внешних отступов, чтобы центрирование было ровным */
 .menu-container {
   margin: 0 auto;
-}
-
-/* Когда открыта игра — возвращаем обычное поведение */
-body.game-active {
-  justify-content: flex-start;
 }
