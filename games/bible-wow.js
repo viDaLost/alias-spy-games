@@ -1,5 +1,6 @@
 // games/bible-wow.js
-// Mobile-first. Strict Grid Logic with Auto-Bonus fallback.
+// Visuals: Restored Original (Chips, Layout).
+// Logic: Corrected (Strict Grid + Auto-Bonus).
 
 /* global loadJSON, goToMainMenu */
 
@@ -7,69 +8,209 @@ function startBibleWowGame(levelsUrl) {
   const container = document.getElementById("game-container");
   if (!container) return;
 
-  // ---- Styles ----
+  // ---- Styles: Restored to match original aesthetic ----
   const styleId = "bible-wow-style";
   const oldStyle = document.getElementById(styleId);
   if (oldStyle) oldStyle.remove();
   const style = document.createElement("style");
   style.id = styleId;
   style.textContent = `
-    .wow-wrap{max-width:980px;margin:0 auto;width:100%;padding:10px 8px 78px; display:flex; flex-direction:column; height: 100vh;}
-    .wow-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px; flex-shrink: 0;}
-    .wow-title{font-weight:800;font-size:18px;color:var(--accent-active);}
-    .wow-pill{display:flex;gap:8px;align-items:center;}
-    .wow-chip{background:var(--card-bg);border:1px solid rgba(0,0,0,.08);border-radius:999px;padding:7px 10px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.05);display:flex;align-items:center;gap:5px;font-weight:600;}
+    /* Main Layout */
+    .wow-wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        width: 100%;
+        padding: 10px 8px 78px;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        box-sizing: border-box;
+    }
     
-    /* Crossword Area */
-    .wow-board-area{
-      flex-grow: 1;
-      position: relative;
-      overflow: auto;
-      background: rgba(0,0,0,0.02);
-      border-radius: 12px;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 200px;
+    /* Top Bar (Chips) */
+    .wow-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 12px;
+        flex-shrink: 0;
     }
-    .wow-grid{position:relative; margin: auto;}
-    .wow-cell{
-      position:absolute;width:34px;height:34px;
-      background:#fff;border-radius:6px;
-      box-shadow:0 2px 4px rgba(0,0,0,0.15);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:800;font-size:18px;color:#333;
-      transition:transform 0.3s, background 0.3s;
-      z-index: 10;
+    .wow-title {
+        font-weight: 800;
+        font-size: 18px;
+        color: var(--accent-active, #d32f2f);
+        text-align: center;
     }
-    .wow-cell.solved{background:var(--accent);color:#fff;transform:scale(1.05);}
-    .wow-cell.anim-pop{animation: popCell 0.4s ease-out;}
-    @keyframes popCell{0%{transform:scale(0.5);opacity:0;} 70%{transform:scale(1.2);} 100%{transform:scale(1);}}
-
-    /* Wheel Area */
-    .wow-controls{flex-shrink: 0; display:flex;flex-direction:column;align-items:center;gap:15px;padding-bottom:10px;}
-    .wow-preview{height:32px;display:flex;gap:5px;justify-content:center;}
-    .wow-preview-let{width:32px;height:32px;border-radius:6px;background:var(--card-bg);border:1px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;}
+    .wow-pill {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+    .wow-chip {
+        background: var(--card-bg, #fff);
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 600;
+        color: #333;
+        cursor: pointer;
+    }
     
-    .wow-wheel-wrap{position:relative;width:240px;height:240px;user-select:none;touch-action:none;}
-    .wow-wheel-bg{position:absolute;inset:0;background:var(--card-bg);border-radius:50%;box-shadow:0 5px 15px rgba(0,0,0,0.15);}
-    .wow-btn-let{
-      position:absolute;width:44px;height:44px;margin-left:-22px;margin-top:-22px;
-      background:#fff;border-radius:50%;
-      box-shadow:0 2px 5px rgba(0,0,0,0.2);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:700;font-size:20px;color:#444;
-      cursor:pointer; transition: transform 0.1s;
+    /* Board Area */
+    .wow-board-area {
+        flex-grow: 1;
+        position: relative;
+        overflow: auto;
+        background: rgba(0,0,0,0.02);
+        border-radius: 12px;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        padding: 20px;
     }
-    .wow-btn-let.active{background:var(--accent);color:#fff;transform:scale(1.2);}
-    .wow-line-canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+    .wow-grid {
+        position: relative;
+        margin: auto;
+    }
+    
+    /* Grid Cells */
+    .wow-cell {
+        position: absolute;
+        width: 36px;
+        height: 36px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 20px;
+        color: #333;
+        transition: transform 0.3s, background 0.3s;
+        z-index: 10;
+    }
+    .wow-cell.solved {
+        background: var(--accent, #ff9800);
+        color: #fff;
+        transform: scale(1.05);
+    }
+    .wow-cell.anim-pop {
+        animation: popCell 0.4s ease-out;
+    }
+    @keyframes popCell {
+        0% { transform: scale(0.5); opacity: 0; }
+        70% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
 
-    .wow-bonus-msg{
-        position:absolute; top: 50%; left:50%; transform:translate(-50%, -50%);
-        background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 20px;
-        pointer-events: none; opacity: 0; transition: opacity 0.5s; z-index: 100;
+    /* Controls & Wheel */
+    .wow-controls {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        padding-bottom: 10px;
+    }
+    .wow-preview {
+        height: 36px;
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin-bottom: 5px;
+    }
+    .wow-preview-let {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #fff;
+        border: 2px solid var(--accent, #ff9800);
+        color: var(--accent, #ff9800);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .wow-wheel-wrap {
+        position: relative;
+        width: 250px;
+        height: 250px;
+        user-select: none;
+        touch-action: none;
+    }
+    .wow-wheel-bg {
+        position: absolute;
+        inset: 10px;
+        background: var(--card-bg, #fdfdfd);
+        border-radius: 50%;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .wow-btn-let {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        margin-left: -25px;
+        margin-top: -25px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 22px;
+        color: #444;
+        cursor: pointer;
+        transition: transform 0.1s;
+        z-index: 10;
+    }
+    .wow-btn-let.active {
+        background: var(--accent, #ff9800);
+        color: #fff;
+        transform: scale(1.15);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    
+    .wow-line-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    .wow-bonus-msg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.85);
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 30px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.4s;
+        z-index: 100;
         white-space: nowrap;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     .wow-bonus-msg.show { opacity: 1; }
   `;
@@ -88,37 +229,31 @@ function startBibleWowGame(levelsUrl) {
     inputWord: ""
   };
 
-  // --- Logic: Strict Grid Generation ---
+  // --- Logic: Strict Grid Generation (FIXED) ---
 
   // Проверка: можно ли поставить слово.
   // Правило: Слова пересекаются только по одинаковым буквам.
   // Соседние клетки должны быть абсолютно пустыми (никаких касаний боками).
   function canPlaceWord(grid, word, r, c, dr, dc) {
     const len = word.length;
-    // 1. Проверка границ (условные 40x40)
     if (r < 0 || c < 0 || r + dr * len > 40 || c + dc * len > 40) return false;
 
-    // Проход по всем клеткам слова
     for (let i = 0; i < len; i++) {
       const cr = r + dr * i;
       const cc = c + dc * i;
       const cell = grid[cr][cc];
       
-      // Если клетка занята
       if (cell) {
         if (cell !== word[i]) return false; // Конфликт букв
       } else {
-        // Клетка пуста. Проверяем соседей (Strict Isolation)
-        // Нельзя ставить букву, если рядом (слева/справа/сверху/снизу) есть другая буква,
-        // которая НЕ является частью пересечения.
-        
+        // Strict Isolation: Check neighbors
         const neighbors = [
           {nr: cr+1, nc: cc}, {nr: cr-1, nc: cc},
           {nr: cr, nc: cc+1}, {nr: cr, nc: cc-1}
         ];
 
         for (const n of neighbors) {
-            // Игнорируем предыдущую и следующую клетку текущего слова (мы их сейчас и ставим)
+            // Игнорируем предыдущую и следующую клетку текущего слова
             if (n.nr === cr - dr && n.nc === cc - dc) continue;
             if (n.nr === cr + dr && n.nc === cc + dc) continue;
             
@@ -139,21 +274,20 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function generateLayout(words) {
-    // Сортируем: длинные первыми для каркаса
+    // Сортируем: длинные первыми
     const sorted = [...words].sort((a, b) => b.length - a.length);
     
     // Grid 40x40 (виртуальная)
     const gridSize = 40;
     const center = 20;
     
-    // Создаем пустую сетку
     const grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
-    const placedWords = []; // { word, r, c, dr, dc }
+    const placedWords = []; 
 
-    // 1. Ставим первое (самое длинное) слово в центр
+    // 1. Ставим первое слово в центр
     if (sorted.length > 0) {
       const w = sorted[0];
-      const dir = Math.random() > 0.5 ? 0 : 1; // 0: hor, 1: ver
+      const dir = Math.random() > 0.5 ? 0 : 1; 
       const dr = dir === 0 ? 0 : 1;
       const dc = dir === 0 ? 1 : 0;
       const sr = center - Math.floor((dr * w.length) / 2);
@@ -164,7 +298,6 @@ function startBibleWowGame(levelsUrl) {
     }
 
     // 2. Пытаемся пристроить остальные
-    // Используем несколько проходов, так как добавление одного слова может открыть путь другому
     const remaining = sorted.slice(1);
     let changed = true;
     
@@ -174,35 +307,25 @@ function startBibleWowGame(levelsUrl) {
         const w = remaining[i];
         let placed = false;
 
-        // Перебираем буквы нового слова
         for (let j = 0; j < w.length; j++) {
             if (placed) break;
             const letter = w[j];
             
-            // Ищем эту букву в уже размещенных словах
             for (const pw of placedWords) {
                 if (placed) break;
                 for (let k = 0; k < pw.word.length; k++) {
                    if (pw.word[k] === letter) {
-                       // Нашли общую букву. Пробуем пересечь.
-                       
-                       // Координаты пересечения в сетке
                        const interR = pw.r + pw.dr * k;
                        const interC = pw.c + pw.dc * k;
-
-                       // Новое слово должно быть перпендикулярно
                        const newDr = pw.dr === 0 ? 1 : 0;
                        const newDc = pw.dc === 0 ? 1 : 0;
-
-                       // Вычисляем начало нового слова так, чтобы j-я буква попала в interR/interC
                        const startR = interR - newDr * j;
                        const startC = interC - newDc * j;
 
-                       // Строгая проверка (без касаний боками)
                        if (canPlaceWord(grid, w, startR, startC, newDr, newDc)) {
                            placeWord(grid, w, startR, startC, newDr, newDc);
                            placedWords.push({ word: w, r: startR, c: startC, dr: newDr, dc: newDc });
-                           remaining.splice(i, 1); // Удаляем из очереди
+                           remaining.splice(i, 1);
                            i--; 
                            placed = true;
                            changed = true;
@@ -220,17 +343,6 @@ function startBibleWowGame(levelsUrl) {
 
   // --- Helpers ---
   function normWord(w) { return w.toUpperCase().replace(/Ё/g, "Е").replace(/Й/g, "И").trim(); }
-  
-  // Проверка: можно ли собрать слово из набора букв
-  function canMakeWord(word, letters) {
-      const bank = letters.split("");
-      for (let char of word) {
-          const idx = bank.indexOf(char);
-          if (idx === -1) return false;
-          bank.splice(idx, 1);
-      }
-      return true;
-  }
 
   // --- Main Render ---
   function renderGame() {
@@ -274,7 +386,6 @@ function startBibleWowGame(levelsUrl) {
     const layout = state.gridInfo;
     if (!layout || layout.length === 0) return;
 
-    // Вычисляем границы для центрирования
     let minR=100, maxR=-100, minC=100, maxC=-100;
     layout.forEach(item => {
         const endR = item.r + item.dr * (item.word.length - 1);
@@ -287,12 +398,11 @@ function startBibleWowGame(levelsUrl) {
 
     const rows = maxR - minR + 1;
     const cols = maxC - minC + 1;
-    const cellSize = 36; // размер клетки + отступ
+    const cellSize = 40; // Чуть больше для визуальной красоты
 
     gridEl.style.width = (cols * cellSize) + "px";
     gridEl.style.height = (rows * cellSize) + "px";
 
-    // Рисуем клетки
     layout.forEach(wObj => {
       const isFound = state.foundWords.has(wObj.word);
       for (let i = 0; i < wObj.word.length; i++) {
@@ -300,7 +410,6 @@ function startBibleWowGame(levelsUrl) {
         const c = wObj.c + wObj.dc * i - minC;
         const letter = wObj.word[i];
         
-        // Ключ для уникальности клетки (чтобы не рисовать дважды на пересечении)
         const cellId = `c-${r}-${c}`;
         let cell = document.getElementById(cellId);
         
@@ -313,13 +422,14 @@ function startBibleWowGame(levelsUrl) {
           gridEl.appendChild(cell);
         }
         
-        // Логика отображения буквы
         if (isFound) {
             cell.textContent = letter;
             cell.classList.add("solved");
+            cell.classList.add("anim-pop");
         } else {
             cell.textContent = "";
             cell.classList.remove("solved");
+            cell.classList.remove("anim-pop");
         }
       }
     });
@@ -329,14 +439,13 @@ function startBibleWowGame(levelsUrl) {
     const wheel = document.getElementById("wow-wheel");
     if(!wheel) return;
     
-    // Удаляем старые кнопки
     const oldBtns = wheel.querySelectorAll(".wow-btn-let");
     oldBtns.forEach(b => b.remove());
 
     const letters = state.currLevel.letters.split("");
     const count = letters.length;
-    const radius = 85; 
-    const center = 120; // половина от 240px
+    const radius = 90; 
+    const center = 125; // center of 250px container
 
     letters.forEach((l, i) => {
       const angle = (2 * Math.PI * i) / count - Math.PI / 2;
@@ -350,7 +459,6 @@ function startBibleWowGame(levelsUrl) {
       btn.style.top = y + "px";
       btn.dataset.idx = i;
       
-      // Events start
       const handleStart = (e) => {
           e.preventDefault();
           startInput(i);
@@ -362,7 +470,6 @@ function startBibleWowGame(levelsUrl) {
       wheel.appendChild(btn);
     });
 
-    // Global listeners for drag
     const moveHandler = (e) => {
         if (!state.inputPath.length) return;
         e.preventDefault();
@@ -384,7 +491,6 @@ function startBibleWowGame(levelsUrl) {
         document.querySelectorAll(".wow-btn-let").forEach(b => b.classList.remove("active"));
     };
 
-    // Привязываем события движения к самому колесу для надежности
     wheel.addEventListener("mousemove", moveHandler);
     wheel.addEventListener("touchmove", moveHandler, {passive: false});
     document.addEventListener("mouseup", endHandler);
@@ -400,7 +506,6 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function addToInput(idx) {
-    // Если буква уже есть в пути - игнорируем (или можно реализовать 'откат' при движении назад)
     if (state.inputPath.includes(idx)) return;
     
     state.inputPath.push(idx);
@@ -427,22 +532,22 @@ function startBibleWowGame(levelsUrl) {
       const canvas = document.getElementById("wow-canvas");
       if(!canvas) return;
       const ctx = canvas.getContext("2d");
-      canvas.width = 240;
-      canvas.height = 240;
-      ctx.clearRect(0,0,240,240);
+      canvas.width = 250;
+      canvas.height = 250;
+      ctx.clearRect(0,0,250,250);
       
       if (state.inputPath.length < 2) return;
       
       ctx.beginPath();
       const btns = document.querySelectorAll(".wow-btn-let");
-      // Map idx to coordinates
       const coords = [];
+      const wheelRect = document.getElementById("wow-wheel").getBoundingClientRect();
+      
       btns.forEach(b => {
           const rect = b.getBoundingClientRect();
-          const wheelRect = document.getElementById("wow-wheel").getBoundingClientRect();
           coords[parseInt(b.dataset.idx)] = {
-              x: rect.left - wheelRect.left + 22, // + radius
-              y: rect.top - wheelRect.top + 22
+              x: rect.left - wheelRect.left + 25, // center of btn
+              y: rect.top - wheelRect.top + 25
           };
       });
 
@@ -453,10 +558,10 @@ function startBibleWowGame(levelsUrl) {
           const pt = coords[state.inputPath[i]];
           ctx.lineTo(pt.x, pt.y);
       }
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 10;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
-      ctx.strokeStyle = "rgba(255, 150, 0, 0.6)"; // Цвет линии
+      ctx.strokeStyle = "rgba(255, 152, 0, 0.5)"; // Original orange glow
       ctx.stroke();
   }
 
@@ -464,7 +569,7 @@ function startBibleWowGame(levelsUrl) {
       const canvas = document.getElementById("wow-canvas");
       if(canvas) {
         const ctx = canvas.getContext("2d");
-        ctx.clearRect(0,0,240,240);
+        ctx.clearRect(0,0,250,250);
       }
   }
 
@@ -480,13 +585,12 @@ function startBibleWowGame(levelsUrl) {
     const word = state.inputWord;
     if (word.length < 3) return;
 
-    // 1. Главное слово (из сетки)
     const mainMatch = state.gridInfo.find(o => o.word === word);
     
     if (mainMatch) {
         if (!state.foundWords.has(word)) {
             state.foundWords.add(word);
-            renderGrid(); // Открываем слово
+            renderGrid(); 
             state.coins += 10;
             savePersisted();
             checkWin();
@@ -496,13 +600,8 @@ function startBibleWowGame(levelsUrl) {
         return;
     }
 
-    // 2. Бонусное слово
-    // Проверяем: есть ли оно в списке bonus уровня ИЛИ можно ли его составить (валидация)
+    // Logic: Bonus Words (JSON file + auto-detected leftovers)
     const isBonusListed = state.currLevel.bonus.includes(word);
-    
-    // Также можно засчитать слово, если его нет в списке, но оно составлено из букв (как доп фича)
-    // Но вы просили строго по файлу. Если нужно строго по файлу - используем isBonusListed.
-    // Если игрок нашел слово, которого нет в сетке, и оно есть в bonus - даем награду.
     
     if (isBonusListed) {
         if (!state.bonusWordsFound.has(word)) {
@@ -521,7 +620,6 @@ function startBibleWowGame(levelsUrl) {
   }
 
   function checkWin() {
-      // Победа если все слова из state.gridInfo (только те что влезли) найдены
       const allNeeded = state.gridInfo.map(i => i.word);
       const isWin = allNeeded.every(w => state.foundWords.has(w));
       
@@ -556,7 +654,7 @@ function startBibleWowGame(levelsUrl) {
 
   function startLevel() {
       if (state.levelIndex >= state.levels.length) {
-          alert("Поздравляем! Все уровни пройдены! Начинаем заново.");
+          alert("Поздравляем! Все уровни пройдены!");
           state.levelIndex = 0;
       }
       
@@ -566,23 +664,17 @@ function startBibleWowGame(levelsUrl) {
       state.inputPath = [];
       state.inputWord = "";
 
-      // 1. Подготовка слов
+      // Words preparation
       const rawGridWords = (rawLevel.words || []).map(normWord);
       const rawBonusWords = (rawLevel.bonus || []).map(normWord);
 
-      // 2. Генерируем сетку
-      // Функция вернет { placed: [...], notPlaced: [...] }
+      // GENERATE GRID: strict mode (prevents touching lines)
       const layoutResult = generateLayout(rawGridWords);
       
-      // Слова, которые влезли в сетку -> это обязательные слова
       state.gridInfo = layoutResult.placed;
       
-      // Слова, которые НЕ влезли -> автоматически переносим в бонусы!
-      // Это гарантирует, что не будет пустых клеток, которые невозможно заполнить.
+      // AUTO-CORRECTION: words that didn't fit go to BONUS (prevents empty cells)
       const extraBonuses = layoutResult.notPlaced;
-      
-      // Формируем итоговый список бонусов (из файла + невлезшие)
-      // + фильтруем дубликаты
       const finalBonus = [...new Set([...rawBonusWords, ...extraBonuses])];
 
       state.currLevel = {
