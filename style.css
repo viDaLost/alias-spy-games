@@ -47,18 +47,23 @@ body {
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
   padding: 1rem;
   transition: background-color 0.3s ease;
+
+  /* типографика приятнее */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
 }
 
 /* Шапка */
 header {
   width: 100%;
   text-align: center;
-  padding: 1.5rem 1rem;
+  padding: 1.15rem 1rem; /* было 1.5rem 1rem */
   background: linear-gradient(to right, #dbeafe, #ffffff);
   box-shadow: 0 4px 12px var(--shadow);
   position: relative;
   z-index: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem; /* было 1rem */
 }
 header h1 {
   font-size: 2rem;
@@ -72,13 +77,43 @@ header h1 {
 .menu-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  max-width: 400px;
-  width: 90%;
-  margin-bottom: 2rem;
+  gap: 0.55rem;            /* было 1rem */
+  max-width: 420px;        /* было 400px */
+  width: 94%;              /* было 90% */
+  margin-bottom: 1rem;     /* было 2rem */
   text-align: center;
 }
 .menu-container.hidden { display: none; }
+
+/* Заголовки секций меню (в твоем HTML они есть) */
+.menu-section-title {
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--accent-active);
+  margin: 0.25rem 0 0.15rem;
+  font-size: 0.98rem;
+}
+
+/* Разделители меню (в твоем HTML они есть) */
+.menu-divider {
+  height: 1px;
+  background: rgba(79, 70, 229, 0.12);
+  border-radius: 999px;
+  margin: 0.2rem 0;
+}
+
+/* Сетка кнопок меню (добавлено для компактности) */
+.menu-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+.menu-grid--single{
+  grid-template-columns: 1fr;
+}
+.game-button--wide{
+  width: 100%;
+}
 
 /* ========================
    КНОПКИ (единое поведение)
@@ -91,19 +126,31 @@ header h1 {
 .wrong-button,
 .skip-button {
   width: 100%;
-  padding: 20px 24px;
-  font-size: 1.25rem;
+
+  /* сделано компактнее */
+  padding: 14px 14px;      /* было 20px 24px */
+  font-size: 1.02rem;      /* было 1.25rem */
+
   background-color: var(--accent-color);
   border: none;
-  border-radius: var(--button-radius);
+  border-radius: 14px;     /* было var(--button-radius) */
   cursor: pointer;
   box-shadow: 0 4px 10px var(--shadow);
   transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease, opacity 0.2s ease;
   color: var(--text-color);
-  font-weight: 600;
-  display: block;
+
+  /* улучшенный шрифт в кнопках */
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 0;        /* было 12px */
 }
 
 /* Hover — только там, где он есть (не для мобилок) */
@@ -343,7 +390,7 @@ input[type="radio"] {
 /* Контейнер игр */
 #game-container {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px; /* было 400px */
   text-align: center;
 }
 
@@ -749,6 +796,10 @@ input[type="radio"] {
 @media (max-width: 480px) {
   header h1 { font-size: 1.75rem; }
 
+  /* меню компактнее */
+  .menu-container { width: 96%; gap: 0.5rem; }
+  .menu-grid { gap: 0.5rem; }
+
   .game-button,
   .menu-button,
   .start-button,
@@ -756,8 +807,9 @@ input[type="radio"] {
   .correct-button,
   .wrong-button,
   .skip-button {
-    font-size: 1.1rem;
-    padding: 16px 20px;
+    font-size: 0.98rem;
+    padding: 13px 12px;
+    border-radius: 14px;
   }
 
   .card { font-size: 1.3rem; }
