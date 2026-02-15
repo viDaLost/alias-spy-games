@@ -832,3 +832,21 @@ input[type="radio"] {
 
   .theme-letter { font-size: 1.3rem; }
 }
+/* =========================
+   CENTER MENU VERTICALLY
+   ========================= */
+
+/* Когда отображается главное меню */
+body.menu-active {
+  justify-content: center;   /* вертикальный центр */
+}
+
+/* Контейнер меню */
+.menu-container {
+  margin: 0 auto;
+}
+
+/* Когда открыта игра — возвращаем обычное поведение */
+body.game-active {
+  justify-content: flex-start;
+}
