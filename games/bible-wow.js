@@ -20,7 +20,8 @@ function startBibleWowGame(levelsUrl) {
   style.textContent = `
     /* Main Layout */
     .wow-wrap {
-        --wow-accent: var(--accent-active, #4f46e5);
+        --wow-accent: #DBEAFE;
+        --wow-accent-text: #1e293b;
         max-width: 980px;
         margin: 0 auto;
         width: 100%;
@@ -102,7 +103,7 @@ function startBibleWowGame(levelsUrl) {
     }
     .wow-cell.solved {
         background: var(--wow-accent);
-        color: #fff;
+        color: var(--wow-accent-text);
         transform: scale(1.05);
     }
     .wow-cell.anim-pop { animation: popCell 0.4s ease-out; }
@@ -135,7 +136,7 @@ function startBibleWowGame(levelsUrl) {
         border-radius: 8px;
         background: #fff;
         border: 2px solid var(--wow-accent);
-        color: var(--wow-accent);
+        color: var(--wow-accent-text);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -183,7 +184,7 @@ function startBibleWowGame(levelsUrl) {
     }
     .wow-btn-let.active {
         background: var(--wow-accent);
-        color: #fff;
+        color: var(--wow-accent-text);
         transform: scale(1.15);
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
@@ -253,8 +254,8 @@ function startBibleWowGame(levelsUrl) {
 
     /* Hint-revealed single letters */
     .wow-cell.hinted{
-        background: rgba(79,70,229,.10);
-        color: var(--wow-accent);
+        background: rgba(219,234,254,.85);
+        color: var(--wow-accent-text);
     }
 
     /* Zoom controls for crossword */
@@ -269,7 +270,7 @@ function startBibleWowGame(levelsUrl) {
     .wow-zoom .wow-chip{
         padding: 7px 10px;
         font-weight: 900;
-        color: #fff;
+        color: var(--wow-accent-text);
         background: var(--wow-accent);
         border-color: rgba(0,0,0,.06);
     }
@@ -288,7 +289,7 @@ function startBibleWowGame(levelsUrl) {
         padding: 6px 10px;
         font-size: 13px;
         font-weight: 800;
-        color: var(--wow-accent);
+        color: var(--wow-accent-text);
         box-shadow: 0 1px 3px rgba(0,0,0,.05);
         line-height: 1;
         user-select:none;
@@ -298,7 +299,7 @@ function startBibleWowGame(levelsUrl) {
     /* Make action chips colored like app */
     .wow-chip.btn{
         background: var(--wow-accent);
-        color: #fff;
+        color: var(--wow-accent-text);
         border-color: rgba(0,0,0,.06);
     }
     .wow-chip.btn:active{ transform: scale(.99); }
@@ -320,6 +321,7 @@ function startBibleWowGame(levelsUrl) {
   const LS_DATA = "bibleWowData_v5";         // { coins, levelIndex }
   const LS_COMPLETED = "bibleWowCompleted";  // [levelId]
   const LS_BONUS = "bibleWowBonusByLevel";   // { [levelId]: [words...] }
+  const LS_PROGRESS = "bibleWowProgressByLevel_v1"; // { [levelId]: { foundWords:[..], hintedCells:[..] } }
 
   function loadPersisted(st) {
     try {
@@ -342,6 +344,13 @@ function startBibleWowGame(levelsUrl) {
     } catch {
       st.bonusByLevel = {};
     }
+    try {
+      const raw = localStorage.getItem(LS_PROGRESS);
+      const obj = raw ? JSON.parse(raw) : {};
+      st.progressByLevel = (obj && typeof obj === "object") ? obj : {};
+    } catch {
+      st.progressByLevel = {};
+    }
   }
 
   function savePersisted(st) {
@@ -354,6 +363,9 @@ function startBibleWowGame(levelsUrl) {
     try {
       localStorage.setItem(LS_BONUS, JSON.stringify(st.bonusByLevel || {}));
     } catch {}
+    try {
+      localStorage.setItem(LS_PROGRESS, JSON.stringify(st.progressByLevel || {}));
+    } catch {}
   }
 
   // -------------------- State --------------------
@@ -365,6 +377,7 @@ function startBibleWowGame(levelsUrl) {
     foundWords: new Set(),
     completed: new Set(),
     bonusByLevel: {},
+    progressByLevel: {},
 
     bonusWordsFound: new Set(), // found bonus words for current level
     bonusAll: new Set(),        // allowed bonus words for current level
@@ -502,6 +515,49 @@ function startBibleWowGame(levelsUrl) {
     el.classList.toggle("disabled", !!disabled);
   }
 
+  // -------------------- Per-level progress (words + used bonuses letters) --------------------
+  function saveCurrLevelProgress() {
+    if (!st.currLevel) return;
+    const lid = String(st.currLevel.id);
+    st.progressByLevel[lid] = {
+      foundWords: Array.from(st.foundWords || new Set()),
+      hintedCells: Array.from(st.hintedCells || new Set())
+    };
+  }
+
+  function loadCurrLevelProgress(allowedWordsSet) {
+    if (!st.currLevel) return;
+    const lid = String(st.currLevel.id);
+    const p = st.progressByLevel && st.progressByLevel[lid];
+    const fw = Array.isArray(p?.foundWords) ? p.foundWords.map(normWord) : [];
+    const hc = Array.isArray(p?.hintedCells) ? p.hintedCells.map(String) : [];
+    st.foundWords = new Set(fw.filter(w => allowedWordsSet.has(w)));
+    st.hintedCells = new Set(hc);
+  }
+
+  function resetLevel() {
+    if (!st.currLevel) return;
+    const lid = String(st.currLevel.id);
+    const levelIdNum = Number(st.currLevel.id);
+
+    st.foundWords = new Set();
+    st.hintedCells = new Set();
+
+    // reset bonus words found for this level too
+    st.bonusWordsFound = new Set();
+    delete st.bonusByLevel[lid];
+
+    // if level was marked completed, unmark it (stars are not rolled back)
+    if (Number.isFinite(levelIdNum)) st.completed.delete(levelIdNum);
+
+    delete st.progressByLevel[lid];
+
+    savePersisted(st);
+    renderGrid();
+    updateChips();
+    showMsg("Уровень сброшен");
+  }
+
 
   function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
@@ -579,6 +635,7 @@ function startBibleWowGame(levelsUrl) {
              <div class="wow-chip btn" id="wow-shuffle">⟲ Перемешать</div>
              <div class="wow-chip btn" id="wow-hint">💡 Подсказка (6⭐)</div>
              <div class="wow-chip btn" id="wow-reveal">👁 Слово (20⭐)</div>
+             <div class="wow-chip" id="wow-reset">↺ Сбросить уровень</div>
            </div>
 
            <div class="wow-wheel-wrap" id="wow-wheel">
@@ -642,6 +699,7 @@ function startBibleWowGame(levelsUrl) {
 
     document.getElementById("wow-hint")?.addEventListener("click", () => giveHint());
     document.getElementById("wow-reveal")?.addEventListener("click", () => revealWordPaid());
+    document.getElementById("wow-reset")?.addEventListener("click", () => resetLevel());
 
     const levelsModal = document.getElementById("wow-levels-modal");
     const bonusModal = document.getElementById("wow-bonus-modal");
@@ -906,8 +964,9 @@ function startBibleWowGame(levelsUrl) {
     ctx.lineWidth = 10;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent-active') || '').trim();
-    ctx.strokeStyle = accent ? `rgba(${hexToRgb(accent).join(',')}, 0.45)` : "rgba(79, 70, 229, 0.45)";
+    const accentEl = document.getElementById('wow-wheel') || document.documentElement;
+    const accent = (getComputedStyle(accentEl).getPropertyValue('--wow-accent') || '#DBEAFE').trim();
+    ctx.strokeStyle = `rgba(${hexToRgb(accent).join(',')}, 0.65)`;
     ctx.stroke();
   }
 
@@ -1035,6 +1094,7 @@ function startBibleWowGame(levelsUrl) {
         } else {
           showMsg("Уровень пройден!");
         }
+        saveCurrLevelProgress();
         savePersisted(st);
         updateChips();
 
@@ -1046,6 +1106,7 @@ function startBibleWowGame(levelsUrl) {
           }
         }, 450);
       } else {
+        saveCurrLevelProgress();
         savePersisted(st);
         updateChips();
       }
@@ -1061,6 +1122,7 @@ function startBibleWowGame(levelsUrl) {
 
       st.coins += 2;
       showMsg("Бонус! +2⭐");
+      saveCurrLevelProgress();
       savePersisted(st);
       updateChips();
       return;
@@ -1101,6 +1163,7 @@ function startBibleWowGame(levelsUrl) {
     st.hintedCells.add(pick.key);
 
     showMsg(`💡 Открыта буква: ${pick.letter}`);
+    saveCurrLevelProgress();
     savePersisted(st);
     renderGrid();
     updateChips();
@@ -1124,6 +1187,7 @@ function startBibleWowGame(levelsUrl) {
     }
 
     showMsg(`👁 Открыто: ${pick}`);
+    saveCurrLevelProgress();
     savePersisted(st);
     renderGrid();
     updateChips();
@@ -1170,11 +1234,16 @@ function startBibleWowGame(levelsUrl) {
     const saved = Array.isArray(st.bonusByLevel[lid]) ? st.bonusByLevel[lid].map(normWord) : [];
     st.bonusWordsFound = new Set(saved.filter(w => st.bonusAll.has(w)));
 
-    st.foundWords = new Set();
-    st.hintedCells = new Set();
-
     st.currLevel = { id: rawLevel.id, letters, words: levelWords, _shuffled: letters };
 
+    // restore per-level progress (already entered words + used hint letters)
+    loadCurrLevelProgress(placedSet);
+
+    // if level is completed, ensure all words are revealed
+    const levelIdNum = Number(rawLevel.id);
+    if (Number.isFinite(levelIdNum) && st.completed.has(levelIdNum)) {
+      st.foundWords = new Set(levelWords);
+    }
     renderGame();
   }
 
