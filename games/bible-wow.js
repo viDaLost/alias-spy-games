@@ -1,9 +1,8 @@
-// games/bible-wow.js
+/// games/bible-wow.js
 // Visuals: Restored Original (Chips, Layout).
-// Logic: Strict Grid Generation kept AS-IS (no empty cells / no touching lines).
+// Logic: Strict Grid Generation with crossword rules (no end-to-end touching, no parallel touching).
 // Features restored: prev/next level, level list modal, bonus list modal (current level only),
-// shuffle, hint (10⭐), reveal word (25⭐), persistent progress, completion reward, bonus reward.
-// Also: solved word reveals fully in crossword (no missing letters due to overlaps).
+// shuffle, hint (10⭐), reveal word (25⭐), persistent progress (remembering found words per level), completion reward, bonus reward.
 
 /* global loadJSON, goToMainMenu */
 
@@ -36,131 +35,115 @@ function startBibleWowGame(levelsUrl) {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
         margin-bottom: 12px;
         flex-shrink: 0;
     }
-    .wow-title {
-        font-weight: 800;
-        font-size: 18px;
-        color: var(--accent-active, #d32f2f);
-        text-align: center;
-        white-space: nowrap;
-    }
-    .wow-pill { display:flex; gap:8px; align-items:center; }
     .wow-chip {
-        background: var(--card-bg, #fff);
-        border: 1px solid rgba(0,0,0,.08);
-        border-radius: 999px;
-        padding: 7px 12px;
-        font-size: 14px;
-        box-shadow: 0 1px 3px rgba(0,0,0,.05);
-        display: inline-flex;
+        display: flex;
         align-items: center;
         gap: 6px;
+        background: rgba(0,0,0,0.05);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 14px;
         font-weight: 600;
-        color: #333;
         cursor: pointer;
         user-select: none;
-        -webkit-user-select: none;
+        transition: transform 0.1s;
     }
-    .wow-chip:active { transform: scale(.99); }
-    .wow-chip.disabled { opacity:.55; cursor:not-allowed; transform:none; }
+    .wow-chip:active { transform: scale(0.95); }
+    .wow-chip.btn-levels {
+        background: var(--wow-accent);
+        color: #fff;
+    }
 
-    /* Board Area */
-    .wow-board-area {
-        flex-grow: 1;
-        position: relative;
-        overflow: auto;
+    /* Main Area (Flex 1) */
+    .wow-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-height: 0;
+    }
+
+    /* Crossword Board */
+    .wow-board-wrap {
+        flex: 1;
         background: rgba(0,0,0,0.02);
         border-radius: 12px;
-        margin-bottom: 15px;
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 200px;
-        padding: 20px;
+        overflow: hidden;
+        padding: 8px;
     }
-    .wow-grid { position: relative; margin: auto; }
-
-    /* Grid Cells */
+    .wow-board {
+        position: relative;
+    }
     .wow-cell {
         position: absolute;
-        width: 36px;
-        height: 36px;
         background: #fff;
+        border: 2px solid #ddd;
         border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 800;
-        font-size: 20px;
+        font-weight: bold;
         color: #333;
-        transition: transform 0.3s, background 0.3s;
-        z-index: 10;
+        box-sizing: border-box;
+        text-transform: uppercase;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .wow-cell.solved {
+    .wow-cell.found {
         background: var(--wow-accent);
+        border-color: var(--wow-accent);
         color: #fff;
         transform: scale(1.05);
     }
-    .wow-cell.anim-pop { animation: popCell 0.4s ease-out; }
-    @keyframes popCell {
-        0% { transform: scale(0.5); opacity: 0; }
-        70% { transform: scale(1.15); }
-        100% { transform: scale(1); }
+    .wow-cell.hinted {
+        background: #e0e7ff;
+        border-color: var(--wow-accent);
+        color: var(--wow-accent);
     }
 
-    /* Controls & Wheel */
+    /* Bottom Controls */
     .wow-controls {
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 15px;
-        padding-bottom: 10px;
+        gap: 12px;
     }
-    .wow-preview {
+    .wow-word-display {
         height: 36px;
-        display: flex;
-        gap: 6px;
-        justify-content: center;
-        margin-bottom: 5px;
-        flex-wrap: wrap;
-    }
-    .wow-preview-let {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        background: #fff;
-        border: 2px solid var(--wow-accent);
+        font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 2px;
         color: var(--wow-accent);
+        text-transform: uppercase;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
-        font-size: 18px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-
-    .wow-wheel-wrap {
+    .wow-word-display.error {
+        animation: shake 0.4s;
+        color: #ef4444;
+    }
+    .wow-wheel-container {
         position: relative;
-        width: 250px;
-        height: 250px;
-        user-select: none;
+        width: 240px;
+        height: 240px;
         touch-action: none;
     }
     .wow-wheel-bg {
         position: absolute;
-        inset: 10px;
-        background: var(--card-bg, #fdfdfd);
+        inset: 0;
         border-radius: 50%;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        border: 1px solid rgba(0,0,0,0.05);
+        background: rgba(0,0,0,0.04);
+        border: 2px solid rgba(0,0,0,0.08);
     }
-
-    .wow-btn-let {
+    .wow-letter {
         position: absolute;
         width: 50px;
         height: 50px;
@@ -168,1012 +151,921 @@ function startBibleWowGame(levelsUrl) {
         margin-top: -25px;
         background: #fff;
         border-radius: 50%;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.2);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 700;
         font-size: 22px;
-        color: #444;
-        cursor: pointer;
-        transition: transform 0.1s;
-        z-index: 10;
+        font-weight: bold;
+        color: #333;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         user-select: none;
-        -webkit-user-select: none;
+        transition: transform 0.1s;
+        z-index: 2;
     }
-    .wow-btn-let.active {
+    .wow-letter.active {
         background: var(--wow-accent);
         color: #fff;
         transform: scale(1.15);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
-
     .wow-line-canvas {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
         pointer-events: none;
-        z-index: 5;
+        z-index: 1;
     }
 
-    .wow-bonus-msg {
-        position: absolute;
-        top: 18px;
+    /* Action Bar (Shuffle, Hints) */
+    .wow-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 4px;
+    }
+    .wow-action-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+    .wow-action-btn:active { transform: scale(0.9); }
+    .wow-action-btn.hint-btn { color: #f59e0b; }
+    .wow-action-btn.reveal-btn { color: #ef4444; }
+
+    /* Modal Overlay */
+    .wow-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+    .wow-modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .wow-modal-box {
+        background: #fff;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 400px;
+        max-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        transform: translateY(20px);
+        transition: transform 0.2s;
+    }
+    .wow-modal-overlay.active .wow-modal-box {
+        transform: translateY(0);
+    }
+    .wow-modal-header {
+        padding: 16px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 18px;
+    }
+    .wow-modal-close {
+        background: none; border: none; font-size: 20px; cursor: pointer; color: #888;
+    }
+    .wow-modal-body {
+        padding: 16px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    /* Modal List Items */
+    .wow-level-item {
+        padding: 12px;
+        border-radius: 8px;
+        background: #f8f9fa;
+        margin-bottom: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        font-weight: 500;
+    }
+    .wow-level-item:hover { background: #e2e8f0; }
+    .wow-level-item.active { background: var(--wow-accent); color: #fff; }
+
+    .wow-bonus-item {
+        padding: 8px 12px;
+        background: #fffbeb;
+        border-radius: 6px;
+        margin-bottom: 6px;
+        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* Animations */
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-4px); }
+        40%, 80% { transform: translateX(4px); }
+    }
+    @keyframes popIn {
+        0% { transform: scale(0.5); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Toast */
+    .wow-toast {
+        position: fixed;
+        bottom: 80px;
         left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.85);
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(0,0,0,0.8);
         color: #fff;
-        padding: 10px 18px;
-        border-radius: 30px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
         pointer-events: none;
         opacity: 0;
-        transition: opacity 0.25s;
-        z-index: 100;
-        white-space: nowrap;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        transition: all 0.3s;
+        z-index: 10000;
     }
-    .wow-bonus-msg.show { opacity: 1; }
-
-    /* ---- Added (modals & small actions, styled to match chips) ---- */
-    .wow-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top: 2px; }
-    .wow-modal {
-      position: fixed; inset:0; background: rgba(0,0,0,.42);
-      display:none; align-items:center; justify-content:center; padding:18px; z-index: 999;
-      backdrop-filter: blur(4px);
+    .wow-toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
     }
-    .wow-modal.open { display:flex; }
-    .wow-modal-card {
-      width: min(520px, 92vw);
-      max-height: min(70vh, 560px);
-      overflow:auto;
-      background: var(--card-bg, #fff);
-      border: 1px solid rgba(0,0,0,.10);
-      border-radius: 18px;
-      box-shadow: 0 18px 46px rgba(0,0,0,.28);
-      padding: 14px;
-    }
-    .wow-modal-top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 10px; }
-    .wow-modal-title { font-weight: 900; font-size: 16px; color: var(--accent-active, #d32f2f); }
-    .wow-x {
-      border:none; background:#fff; border:1px solid rgba(0,0,0,.10);
-      width:40px; height:40px; border-radius: 14px; cursor:pointer;
-      box-shadow: 0 10px 22px rgba(0,0,0,.12); font-weight: 900;
-    }
-    .wow-list { display:grid; gap:8px; }
-    .wow-item {
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      background:#fff; border:1px solid rgba(0,0,0,.10); border-radius: 16px; padding:12px 12px;
-      box-shadow: 0 10px 22px rgba(0,0,0,.10); cursor:pointer;
-    }
-    .wow-item:active { transform: scale(.99); }
-    .wow-muted { opacity:.75; font-size: 12px; }
-
-    /* Hint-revealed single letters */
-    .wow-cell.hinted{
-        background: rgba(79,70,229,.10);
-        color: var(--wow-accent);
-    }
-
-    /* Zoom controls for crossword */
-    .wow-zoom{
-        position:absolute;
-        right: 12px;
-        top: 12px;
-        display:flex;
-        gap:8px;
-        z-index:150;
-    }
-    .wow-zoom .wow-chip{
-        padding: 7px 10px;
-        font-weight: 900;
-        color: #fff;
-        background: var(--wow-accent);
-        border-color: rgba(0,0,0,.06);
-    }
-
-    /* Right side stack: stars over bonus button */
-    .wow-rightCol{
-        display:flex;
-        flex-direction:column;
-        gap:6px;
-        align-items:flex-end;
-    }
-    .wow-stars{
-        background: var(--wow-chip-bg, rgba(0,0,0,0.02));
-        border: 1px solid rgba(0,0,0,.08);
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-size: 13px;
-        font-weight: 800;
-        color: var(--wow-accent);
-        box-shadow: 0 1px 3px rgba(0,0,0,.05);
-        line-height: 1;
-        user-select:none;
-        -webkit-user-select:none;
-    }
-
-    /* Make action chips colored like app */
-    .wow-chip.btn{
-        background: var(--wow-accent);
-        color: #fff;
-        border-color: rgba(0,0,0,.06);
-    }
-    .wow-chip.btn:active{ transform: scale(.99); }
-    .wow-chip.btn.disabled{
-        opacity:.55;
-        cursor:not-allowed;
-        transform:none;
-    }
-
-    @media (max-width: 420px){
-        .wow-chip{ padding: 6px 10px; font-size: 13px; }
-        .wow-title{ font-size: 16px; }
-    }
-
   `;
   document.head.appendChild(style);
-
-  // -------------------- Persistence --------------------
-  const LS_DATA = "bibleWowData_v5";         // { coins, levelIndex }
-  const LS_COMPLETED = "bibleWowCompleted";  // [levelId]
-  const LS_BONUS = "bibleWowBonusByLevel";   // { [levelId]: [words...] }
-
-  function loadPersisted(st) {
-    try {
-      const raw = localStorage.getItem(LS_DATA);
-      if (raw) {
-        const d = JSON.parse(raw);
-        st.coins = Number.isFinite(d.coins) ? d.coins : 0;
-        st.levelIndex = Number.isFinite(d.levelIndex) ? d.levelIndex : 0;
-      }
-    } catch {}
-    try {
-      const raw = localStorage.getItem(LS_COMPLETED);
-      const arr = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(arr)) st.completed = new Set(arr.map(Number).filter(Number.isFinite));
-    } catch {}
-    try {
-      const raw = localStorage.getItem(LS_BONUS);
-      const obj = raw ? JSON.parse(raw) : {};
-      st.bonusByLevel = (obj && typeof obj === "object") ? obj : {};
-    } catch {
-      st.bonusByLevel = {};
-    }
-  }
-
-  function savePersisted(st) {
-    try {
-      localStorage.setItem(LS_DATA, JSON.stringify({ coins: st.coins, levelIndex: st.levelIndex }));
-    } catch {}
-    try {
-      localStorage.setItem(LS_COMPLETED, JSON.stringify(Array.from(st.completed || new Set())));
-    } catch {}
-    try {
-      localStorage.setItem(LS_BONUS, JSON.stringify(st.bonusByLevel || {}));
-    } catch {}
-  }
 
   // -------------------- State --------------------
   const st = {
     levels: [],
     levelIndex: 0,
-    currLevel: null,
-
-    foundWords: new Set(),
-    completed: new Set(),
+    stars: 0,
     bonusByLevel: {},
-
-    bonusWordsFound: new Set(), // found bonus words for current level
-    bonusAll: new Set(),        // allowed bonus words for current level
-
-    coins: 0,
-
-    gridInfo: [], // [{word, r, c, dr, dc}]
-
-    inputPath: [],
-    inputWord: "",
-
-    _wheelHandlers: null,
-
-    zoom: 1,
-    hintedCells: new Set() // absolute cell keys "r,c" in virtual coordinates
+    foundWordsByLevel: {},
+    hintedCellsByLevel: {},
+    currLevel: null,
+    gridInfo: null,
+    foundWords: new Set(),
+    bonusWordsFound: new Set(),
+    bonusAll: new Set(),
+    hintedCells: new Set(),
+    wheelLine: null
   };
 
-  function normWord(w) {
-    return String(w || "")
-      .toUpperCase()
-      .replace(/Ё/g, "Е")
-      .trim()
-      .replace(/[^А-Я]/g, "");
+  function normWord(w) { return w.toUpperCase().trim(); }
+
+  // -------------------- Persistence --------------------
+  function savePersisted(st) {
+    const data = {
+      levelIndex: st.levelIndex,
+      stars: st.stars,
+      bonusByLevel: st.bonusByLevel,
+      foundWordsByLevel: st.foundWordsByLevel,
+      hintedCellsByLevel: st.hintedCellsByLevel
+    };
+    localStorage.setItem("bibleWowGameSave", JSON.stringify(data));
   }
 
-  // -------------------- STRICT GRID GENERATION (DO NOT CHANGE) --------------------
-  function canPlaceWord(grid, word, r, c, dr, dc) {
-    const len = word.length;
-    if (r < 0 || c < 0 || r + dr * len > 40 || c + dc * len > 40) return false;
+  function loadPersisted(st) {
+    try {
+      const raw = localStorage.getItem("bibleWowGameSave");
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (typeof data.levelIndex === "number") st.levelIndex = data.levelIndex;
+        if (typeof data.stars === "number") st.stars = data.stars;
+        if (data.bonusByLevel) st.bonusByLevel = data.bonusByLevel;
+        if (data.foundWordsByLevel) st.foundWordsByLevel = data.foundWordsByLevel;
+        if (data.hintedCellsByLevel) st.hintedCellsByLevel = data.hintedCellsByLevel;
+      }
+    } catch (e) {
+      console.error("Load save error", e);
+    }
+    if (!st.bonusByLevel) st.bonusByLevel = {};
+    if (!st.foundWordsByLevel) st.foundWordsByLevel = {};
+    if (!st.hintedCellsByLevel) st.hintedCellsByLevel = {};
+  }
 
-    for (let i = 0; i < len; i++) {
-      const cr = r + dr * i;
-      const cc = c + dc * i;
-      const cell = grid[cr][cc];
+  function showToast(msg) {
+    let t = document.getElementById("wow-toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "wow-toast";
+      t.className = "wow-toast";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+  }
 
-      if (cell) {
-        if (cell !== word[i]) return false;
-      } else {
-        const neighbors = [
-          { nr: cr + 1, nc: cc }, { nr: cr - 1, nc: cc },
-          { nr: cr, nc: cc + 1 }, { nr: cr, nc: cc - 1 }
-        ];
+  // -------------------- Grid Logic (Strict Crossword Rules) --------------------
+  function buildLayout(words) {
+    const LIMIT = 15;
+    let grid = Array.from({ length: LIMIT }, () => Array(LIMIT).fill(null));
 
-        for (const n of neighbors) {
-          if (n.nr === cr - dr && n.nc === cc - dc) continue;
-          if (n.nr === cr + dr && n.nc === cc + dc) continue;
-          if (grid[n.nr] && grid[n.nr][n.nc]) return false;
+    function canPlace(word, r, c, dr, dc) {
+      if (r < 0 || c < 0 || r + dr * word.length > LIMIT || c + dc * word.length > LIMIT) return false;
+
+      // Prevent end-to-end touching lines
+      const rBefore = r - dr, cBefore = c - dc;
+      if (rBefore >= 0 && rBefore < LIMIT && cBefore >= 0 && cBefore < LIMIT) {
+        if (grid[rBefore][cBefore] !== null) return false;
+      }
+      const rAfter = r + dr * word.length, cAfter = c + dc * word.length;
+      if (rAfter >= 0 && rAfter < LIMIT && cAfter >= 0 && cAfter < LIMIT) {
+        if (grid[rAfter][cAfter] !== null) return false;
+      }
+
+      // Check each letter
+      for (let i = 0; i < word.length; i++) {
+        let nr = r + dr * i;
+        let nc = c + dc * i;
+        if (grid[nr][nc] !== null) {
+          if (grid[nr][nc] !== word[i]) return false; // Clash
+        } else {
+          // Empty cell: Prevent parallel touching words
+          let n1r = nr + dc, n1c = nc + dr;
+          let n2r = nr - dc, n2c = nc - dr;
+          if (n1r >= 0 && n1r < LIMIT && n1c >= 0 && n1c < LIMIT && grid[n1r][n1c] !== null) return false;
+          if (n2r >= 0 && n2r < LIMIT && n2c >= 0 && n2c < LIMIT && grid[n2r][n2c] !== null) return false;
         }
       }
-    }
-    return true;
-  }
-
-  function placeWord(grid, word, r, c, dr, dc) {
-    for (let i = 0; i < word.length; i++) {
-      grid[r + dr * i][c + dc * i] = word[i];
-    }
-  }
-
-  function generateLayout(words) {
-    const sorted = [...words].sort((a, b) => b.length - a.length);
-    const gridSize = 40;
-    const center = 20;
-
-    const grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
-    const placedWords = [];
-
-    if (sorted.length > 0) {
-      const w = sorted[0];
-      const dir = Math.random() > 0.5 ? 0 : 1;
-      const dr = dir === 0 ? 0 : 1;
-      const dc = dir === 0 ? 1 : 0;
-      const sr = center - Math.floor((dr * w.length) / 2);
-      const sc = center - Math.floor((dc * w.length) / 2);
-
-      placeWord(grid, w, sr, sc, dr, dc);
-      placedWords.push({ word: w, r: sr, c: sc, dr, dc });
+      return true;
     }
 
-    const remaining = sorted.slice(1);
-    let changed = true;
+    function placeWord(word, r, c, dr, dc) {
+      for (let i = 0; i < word.length; i++) {
+        grid[r + dr * i][c + dc * i] = word[i];
+      }
+    }
 
-    while (changed && remaining.length > 0) {
-      changed = false;
-      for (let i = 0; i < remaining.length; i++) {
-        const w = remaining[i];
-        let placed = false;
+    let placed = [];
+    let notPlaced = [];
 
-        for (let j = 0; j < w.length; j++) {
-          if (placed) break;
-          const letter = w[j];
+    // Place first word at center
+    if (words.length > 0) {
+      const w0 = words[0];
+      const r0 = Math.floor(LIMIT / 2);
+      const c0 = Math.floor((LIMIT - w0.length) / 2);
+      placeWord(w0, r0, c0, 0, 1);
+      placed.push({ word: w0, r: r0, c: c0, dr: 0, dc: 1 });
+    }
 
-          for (const pw of placedWords) {
-            if (placed) break;
-            for (let k = 0; k < pw.word.length; k++) {
-              if (pw.word[k] === letter) {
-                const interR = pw.r + pw.dr * k;
-                const interC = pw.c + pw.dc * k;
-                const newDr = pw.dr === 0 ? 1 : 0;
-                const newDc = pw.dc === 0 ? 1 : 0;
-                const startR = interR - newDr * j;
-                const startC = interC - newDc * j;
+    const ATTEMPTS_PER_WORD = 150;
 
-                if (canPlaceWord(grid, w, startR, startC, newDr, newDc)) {
-                  placeWord(grid, w, startR, startC, newDr, newDc);
-                  placedWords.push({ word: w, r: startR, c: startC, dr: newDr, dc: newDc });
-                  remaining.splice(i, 1);
-                  i--;
-                  placed = true;
-                  changed = true;
-                  break;
-                }
-              }
+    for (let i = 1; i < words.length; i++) {
+      const w = words[i];
+      let matchFound = false;
+      let options = [];
+
+      for (let p of placed) {
+        for (let j = 0; j < p.word.length; j++) {
+          const lPlaced = p.word[j];
+          for (let k = 0; k < w.length; k++) {
+            if (w[k] === lPlaced) {
+              const crossR = p.r + p.dr * j - (p.dc === 1 ? k : 0);
+              const crossC = p.c + p.dc * j - (p.dr === 1 ? k : 0);
+              const ndr = p.dc === 1 ? 1 : 0;
+              const ndc = p.dr === 1 ? 1 : 0;
+              options.push({ r: crossR, c: crossC, dr: ndr, dc: ndc });
             }
           }
         }
       }
-    }
 
-    return { placed: placedWords, notPlaced: remaining };
-  }
-  // -------------------- end of strict generator --------------------
+      options.sort(() => Math.random() - 0.5);
 
-  // -------------------- Helpers --------------------
-  function showMsg(text) {
-    const msg = document.getElementById("wow-bonus-msg");
-    if (!msg) return;
-    msg.textContent = text;
-    msg.classList.add("show");
-    setTimeout(() => msg.classList.remove("show"), 1400);
-  }
-
-  function setChipDisabled(el, disabled) {
-    if (!el) return;
-    el.classList.toggle("disabled", !!disabled);
-  }
-
-
-  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
-  function hexToRgb(hex){
-    let h = String(hex || '').trim();
-    if (!h) return [79,70,229];
-    if (h.startsWith('rgb')) {
-      const m = h.match(/rgba?\(([^)]+)\)/i);
-      if (m) {
-        const parts = m[1].split(',').map(s => parseFloat(s.trim())).filter(n => Number.isFinite(n));
-        return [parts[0]||79, parts[1]||70, parts[2]||229].map(x=>Math.round(x));
+      for (let opt of options) {
+        if (canPlace(w, opt.r, opt.c, opt.dr, opt.dc)) {
+          placeWord(w, opt.r, opt.c, opt.dr, opt.dc);
+          placed.push({ word: w, r: opt.r, c: opt.c, dr: opt.dr, dc: opt.dc });
+          matchFound = true;
+          break;
+        }
       }
-      return [79,70,229];
+
+      if (!matchFound) {
+        let placedFree = false;
+        for (let attempt = 0; attempt < ATTEMPTS_PER_WORD; attempt++) {
+          let dr = Math.random() > 0.5 ? 1 : 0;
+          let dc = dr === 1 ? 0 : 1;
+          let r = Math.floor(Math.random() * LIMIT);
+          let c = Math.floor(Math.random() * LIMIT);
+          if (canPlace(w, r, c, dr, dc)) {
+            placeWord(w, r, c, dr, dc);
+            placed.push({ word: w, r, c, dr, dc });
+            placedFree = true;
+            break;
+          }
+        }
+        if (!placedFree) notPlaced.push(w);
+      }
     }
-    if (h[0] === '#') h = h.slice(1);
-    if (h.length === 3) h = h.split('').map(ch=>ch+ch).join('');
-    if (h.length !== 6) return [79,70,229];
-    const n = parseInt(h,16);
-    return [(n>>16)&255, (n>>8)&255, n&255];
+
+    if (placed.length === 0) return { placed: [], minR: 0, maxR: 0, minC: 0, maxC: 0, notPlaced: words };
+
+    let minR = LIMIT, maxR = -1, minC = LIMIT, maxC = -1;
+    for (let p of placed) {
+      if (p.r < minR) minR = p.r;
+      if (p.c < minC) minC = p.c;
+      const endR = p.r + p.dr * (p.word.length - 1);
+      const endC = p.c + p.dc * (p.word.length - 1);
+      if (endR > maxR) maxR = endR;
+      if (endC > maxC) maxC = endC;
+    }
+
+    return { placed, minR, maxR, minC, maxC, notPlaced };
   }
 
-  function applyZoom(){
-    const gridEl = document.getElementById('wow-grid');
-    if (!gridEl) return;
-    const z = clamp(st.zoom || 1, 0.6, 2.2);
-    st.zoom = z;
-    gridEl.style.transform = `scale(${z})`;
-    gridEl.style.transformOrigin = 'center center';
+  function buildBonusSetForLevel(rawLevel, gridInfo, notPlacedMainWords) {
+    let s = new Set();
+    if (Array.isArray(rawLevel.bonus)) {
+      rawLevel.bonus.forEach(bw => s.add(normWord(bw)));
+    }
+    notPlacedMainWords.forEach(w => s.add(normWord(w)));
+    return s;
   }
 
-  function changeZoom(delta){
-    st.zoom = clamp((st.zoom || 1) + delta, 0.6, 2.2);
-    applyZoom();
-  }
-
-
-  // -------------------- UI Render --------------------
+  // -------------------- Render Main UI --------------------
   function renderGame() {
-    const lvl = st.currLevel;
-    container.innerHTML = `
-      <div class="wow-wrap">
-        <div class="wow-top">
-           <div class="wow-pill">
-             <div class="wow-chip btn" id="wow-menu">⬅ Меню</div>
-           </div>
+    container.innerHTML = "";
 
-           <div class="wow-pill">
-             <div class="wow-chip btn" id="wow-prev">◀</div>
-             <div class="wow-title" id="wow-title">Уровень ${lvl ? lvl.id : ""}</div>
-             <div class="wow-chip btn" id="wow-next">▶</div>
-           </div>
+    const wrap = document.createElement("div");
+    wrap.className = "wow-wrap";
 
-           <div class="wow-pill">
-             <div class="wow-rightCol">
-               <div class="wow-stars">⭐ <span id="wow-score">${st.coins}</span></div>
-               <div class="wow-chip btn" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
-             </div>
-             <div class="wow-chip btn" id="wow-levels-open">≡</div>
-           </div>
-        </div>
+    // Top
+    const top = document.createElement("div");
+    top.className = "wow-top";
 
-        <div class="wow-board-area" id="wow-board-area">
-           <div class="wow-zoom">
-             <div class="wow-chip" id="wow-zoom-out">−</div>
-             <div class="wow-chip" id="wow-zoom-in">＋</div>
-           </div>
-           <div class="wow-grid" id="wow-grid"></div>
-           <div class="wow-bonus-msg" id="wow-bonus-msg"></div>
-        </div>
+    const leftGroup = document.createElement("div");
+    leftGroup.style.display = "flex"; leftGroup.style.gap = "8px";
 
-        <div class="wow-controls">
-           <div class="wow-preview" id="wow-preview"></div>
+    const btnBack = document.createElement("div");
+    btnBack.className = "wow-chip";
+    btnBack.innerHTML = "🏠";
+    btnBack.onclick = () => { cleanupAll(); if (typeof goToMainMenu === "function") goToMainMenu(); };
+    leftGroup.appendChild(btnBack);
 
-           <div class="wow-actions">
-             <div class="wow-chip btn" id="wow-shuffle">⟲ Перемешать</div>
-             <div class="wow-chip btn" id="wow-hint">💡 Подсказка (6⭐)</div>
-             <div class="wow-chip btn" id="wow-reveal">👁 Слово (20⭐)</div>
-           </div>
+    const btnLevels = document.createElement("div");
+    btnLevels.className = "wow-chip btn-levels";
+    btnLevels.innerHTML = `Ур. ${st.levelIndex + 1} ▾`;
+    btnLevels.onclick = showLevelsModal;
+    leftGroup.appendChild(btnLevels);
 
-           <div class="wow-wheel-wrap" id="wow-wheel">
-              <div class="wow-wheel-bg"></div>
-              <canvas class="wow-line-canvas" id="wow-canvas"></canvas>
-           </div>
-        </div>
+    const btnPrev = document.createElement("div");
+    btnPrev.className = "wow-chip";
+    btnPrev.innerHTML = "◀";
+    if (st.levelIndex === 0) btnPrev.style.opacity = "0.5";
+    else btnPrev.onclick = () => { st.levelIndex--; savePersisted(st); startLevel(); };
+    leftGroup.appendChild(btnPrev);
 
-        <!-- Levels modal -->
-        <div class="wow-modal" id="wow-levels-modal" aria-hidden="true">
-          <div class="wow-modal-card" role="dialog" aria-label="Уровни">
-            <div class="wow-modal-top">
-              <div class="wow-modal-title">Уровни</div>
-              <button class="wow-x" id="wow-levels-close">✕</button>
-            </div>
-            <div class="wow-muted" style="margin:0 0 10px;">Нажми, чтобы перейти.</div>
-            <div class="wow-list" id="wow-levels-list"></div>
-          </div>
-        </div>
+    const btnNext = document.createElement("div");
+    btnNext.className = "wow-chip";
+    btnNext.innerHTML = "▶";
+    if (st.levelIndex >= st.levels.length - 1) btnNext.style.opacity = "0.5";
+    else btnNext.onclick = () => { st.levelIndex++; savePersisted(st); startLevel(); };
+    leftGroup.appendChild(btnNext);
 
-        <!-- Bonus modal -->
-        <div class="wow-modal" id="wow-bonus-modal" aria-hidden="true">
-          <div class="wow-modal-card" role="dialog" aria-label="Бонусные слова">
-            <div class="wow-modal-top">
-              <div class="wow-modal-title">Бонусные слова уровня</div>
-              <button class="wow-x" id="wow-bonus-close">✕</button>
-            </div>
-            <div class="wow-muted" style="margin:0 0 10px;">Засчитанные бонусы этого уровня. За каждое +2⭐ один раз.</div>
-            <div class="wow-list" id="wow-bonus-list"></div>
-          </div>
-        </div>
-      </div>
-    `;
+    top.appendChild(leftGroup);
 
-    document.getElementById("wow-menu")?.addEventListener("click", () => {
-      cleanupAll();
-      goToMainMenu();
-    });
+    const rightGroup = document.createElement("div");
+    rightGroup.style.display = "flex"; rightGroup.style.gap = "8px";
 
-    document.getElementById("wow-prev")?.addEventListener("click", () => {
-      if (st.levelIndex <= 0) return;
-      st.levelIndex--;
-      savePersisted(st);
-      startLevel();
-    });
-    document.getElementById("wow-next")?.addEventListener("click", () => {
-      if (st.levelIndex >= st.levels.length - 1) return;
-      st.levelIndex++;
-      savePersisted(st);
-      startLevel();
-    });
+    const btnBonus = document.createElement("div");
+    btnBonus.className = "wow-chip";
+    btnBonus.innerHTML = `🎁 ${st.bonusWordsFound.size}`;
+    btnBonus.onclick = showBonusModal;
+    rightGroup.appendChild(btnBonus);
 
-    document.getElementById("wow-shuffle")?.addEventListener("click", () => {
-      shuffleLetters();
-      renderWheel();
-    });
+    const chipStars = document.createElement("div");
+    chipStars.className = "wow-chip";
+    chipStars.id = "wow-stars-display";
+    chipStars.innerHTML = `⭐ ${st.stars}`;
+    rightGroup.appendChild(chipStars);
 
-    document.getElementById("wow-zoom-in")?.addEventListener("click", () => changeZoom(0.1));
-    document.getElementById("wow-zoom-out")?.addEventListener("click", () => changeZoom(-0.1));
+    top.appendChild(rightGroup);
+    wrap.appendChild(top);
 
+    // Main
+    const mainArea = document.createElement("div");
+    mainArea.className = "wow-main";
 
-    document.getElementById("wow-hint")?.addEventListener("click", () => giveHint());
-    document.getElementById("wow-reveal")?.addEventListener("click", () => revealWordPaid());
+    // Board
+    const boardWrap = document.createElement("div");
+    boardWrap.className = "wow-board-wrap";
+    const board = document.createElement("div");
+    board.className = "wow-board";
+    renderCrossword(board);
+    boardWrap.appendChild(board);
+    mainArea.appendChild(boardWrap);
 
-    const levelsModal = document.getElementById("wow-levels-modal");
-    const bonusModal = document.getElementById("wow-bonus-modal");
-    const openModal = (m) => m?.classList.add("open");
-    const closeModal = (m) => m?.classList.remove("open");
+    // Controls
+    const controls = document.createElement("div");
+    controls.className = "wow-controls";
 
-    document.getElementById("wow-levels-open")?.addEventListener("click", () => {
-      renderLevelsList();
-      openModal(levelsModal);
-    });
-    document.getElementById("wow-levels-close")?.addEventListener("click", () => closeModal(levelsModal));
-    levelsModal?.addEventListener("pointerdown", (e) => { if (e.target === levelsModal) closeModal(levelsModal); }, { passive: true });
+    const wordDisplay = document.createElement("div");
+    wordDisplay.className = "wow-word-display";
+    wordDisplay.id = "wow-word-display";
+    controls.appendChild(wordDisplay);
 
-    document.getElementById("wow-bonus-open")?.addEventListener("click", () => {
-      renderBonusList();
-      openModal(bonusModal);
-    });
-    document.getElementById("wow-bonus-close")?.addEventListener("click", () => closeModal(bonusModal));
-    bonusModal?.addEventListener("pointerdown", (e) => { if (e.target === bonusModal) closeModal(bonusModal); }, { passive: true });
+    const wheelWrap = document.createElement("div");
+    wheelWrap.className = "wow-wheel-container";
+    wheelWrap.id = "wow-wheel";
+    renderWheel(wheelWrap);
+    controls.appendChild(wheelWrap);
 
-    updateChips();
-    renderGrid();
-    renderWheel();
-    updatePreview();
+    const actions = document.createElement("div");
+    actions.className = "wow-actions";
+
+    const btnShuffle = document.createElement("button");
+    btnShuffle.className = "wow-action-btn";
+    btnShuffle.innerHTML = "🔀";
+    btnShuffle.title = "Перемешать";
+    btnShuffle.onclick = () => {
+      let arr = st.currLevel._shuffled.split('');
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      st.currLevel._shuffled = arr.join('');
+      renderGame();
+    };
+    actions.appendChild(btnShuffle);
+
+    const btnHint = document.createElement("button");
+    btnHint.className = "wow-action-btn hint-btn";
+    btnHint.innerHTML = "💡";
+    btnHint.title = "Подсказка (10⭐)";
+    btnHint.onclick = handleHint;
+    actions.appendChild(btnHint);
+
+    const btnReveal = document.createElement("button");
+    btnReveal.className = "wow-action-btn reveal-btn";
+    btnReveal.innerHTML = "🎯";
+    btnReveal.title = "Открыть слово (25⭐)";
+    btnReveal.onclick = handleRevealWord;
+    actions.appendChild(btnReveal);
+
+    controls.appendChild(actions);
+    mainArea.appendChild(controls);
+
+    wrap.appendChild(mainArea);
+    container.appendChild(wrap);
+
+    setTimeout(() => {
+      const boardW = boardWrap.clientWidth;
+      const boardH = boardWrap.clientHeight;
+      scaleBoard(board, boardW, boardH);
+    }, 10);
   }
 
-  function updateChips() {
-    const prev = document.getElementById("wow-prev");
-    const next = document.getElementById("wow-next");
-    setChipDisabled(prev, st.levelIndex <= 0);
-    setChipDisabled(next, st.levelIndex >= st.levels.length - 1);
+  function renderCrossword(board) {
+    board.innerHTML = "";
+    if (!st.gridInfo || st.gridInfo.placed.length === 0) return;
 
-    const hint = document.getElementById("wow-hint");
-    const reveal = document.getElementById("wow-reveal");
-    setChipDisabled(hint, st.coins < 6);
-    setChipDisabled(reveal, st.coins < 20);
+    const rows = st.gridInfo.maxR - st.gridInfo.minR + 1;
+    const cols = st.gridInfo.maxC - st.gridInfo.minC + 1;
+    const cellSize = 36;
+    const gap = 4;
 
-    const score = document.getElementById("wow-score");
-    if (score) score.textContent = String(st.coins);
-    const bc = document.getElementById("wow-bonus-count");
-    if (bc) bc.textContent = String(st.bonusWordsFound.size);
-  }
+    board.style.width = `${cols * cellSize + (cols - 1) * gap}px`;
+    board.style.height = `${rows * cellSize + (rows - 1) * gap}px`;
 
-  function renderLevelsList() {
-    const box = document.getElementById("wow-levels-list");
-    if (!box) return;
-    box.innerHTML = "";
-    for (let i = 0; i < st.levels.length; i++) {
-      const lvl = st.levels[i];
-      const done = st.completed.has(Number(lvl.id));
-      const row = document.createElement("div");
-      row.className = "wow-item";
-      row.innerHTML = `
-        <div style="display:flex;gap:10px;align-items:center;">
-          <div class="wow-chip" style="padding:6px 10px;cursor:default;">${done ? "✓" : "•"}</div>
-          <div>
-            <div style="font-weight:900;">Уровень ${i + 1}</div>
-            <div class="wow-muted">${done ? "пройден" : ""}</div>
-          </div>
-        </div>
-        <div class="wow-muted">ID ${lvl.id}</div>
-      `;
-      row.addEventListener("click", () => {
-        st.levelIndex = i;
-        savePersisted(st);
-        document.getElementById("wow-levels-modal")?.classList.remove("open");
-        startLevel();
-      });
-      box.appendChild(row);
-    }
-  }
+    st.gridInfo.placed.forEach(p => {
+      const isFound = st.foundWords.has(p.word);
+      for (let i = 0; i < p.word.length; i++) {
+        const r = p.r + p.dr * i;
+        const c = p.c + p.dc * i;
+        const cellId = `${r}_${c}`;
+        const isHinted = st.hintedCells.has(cellId);
 
-  function renderBonusList() {
-    const box = document.getElementById("wow-bonus-list");
-    if (!box) return;
-    const arr = Array.from(st.bonusWordsFound).sort((a, b) => a.localeCompare(b, "ru"));
-    if (!arr.length) {
-      box.innerHTML = `<div class="wow-muted" style="padding:10px;">Пока нет бонусных слов на этом уровне.</div>`;
-      return;
-    }
-    box.innerHTML = "";
-    for (const w of arr) {
-      const row = document.createElement("div");
-      row.className = "wow-item";
-      row.innerHTML = `
-        <div style="display:flex;gap:10px;align-items:center;">
-          <div class="wow-chip" style="padding:6px 10px;cursor:default;">+2⭐</div>
-          <div style="font-weight:900;letter-spacing:.4px;">${w}</div>
-        </div>
-        <div class="wow-muted">бонус</div>
-      `;
-      box.appendChild(row);
-    }
-  }
+        let cell = document.getElementById(`wow-c-${cellId}`);
+        if (!cell) {
+          cell = document.createElement("div");
+          cell.className = "wow-cell";
+          cell.id = `wow-c-${cellId}`;
+          const localR = r - st.gridInfo.minR;
+          const localC = c - st.gridInfo.minC;
+          cell.style.top = `${localR * (cellSize + gap)}px`;
+          cell.style.left = `${localC * (cellSize + gap)}px`;
+          cell.style.width = `${cellSize}px`;
+          cell.style.height = `${cellSize}px`;
+          board.appendChild(cell);
+        }
 
-  // -------------------- Grid rendering (FIX: show full solved words even with overlaps) --------------------
-  function renderGrid() {
-    const gridEl = document.getElementById("wow-grid");
-    if (!gridEl) return;
-    gridEl.innerHTML = "";
-
-    const layout = st.gridInfo || [];
-    if (!layout.length) return;
-
-    let minR = 100, maxR = -100, minC = 100, maxC = -100;
-    layout.forEach(item => {
-      const endR = item.r + item.dr * (item.word.length - 1);
-      const endC = item.c + item.dc * (item.word.length - 1);
-      minR = Math.min(minR, item.r, endR);
-      maxR = Math.max(maxR, item.r, endR);
-      minC = Math.min(minC, item.c, endC);
-      maxC = Math.max(maxC, item.c, endC);
-    });
-
-    const rows = maxR - minR + 1;
-    const cols = maxC - minC + 1;
-    const cellSize = 40;
-
-    gridEl.style.width = (cols * cellSize) + "px";
-    gridEl.style.height = (rows * cellSize) + "px";
-    applyZoom();
-
-    const cellMap = new Map(); // key -> {letter, solved:boolean}
-    for (const wObj of layout) {
-      const solvedWord = st.foundWords.has(wObj.word);
-      for (let i = 0; i < wObj.word.length; i++) {
-        const r = (wObj.r + wObj.dr * i) - minR;
-        const c = (wObj.c + wObj.dc * i) - minC;
-        const key = `${r},${c}`;
-        const letter = wObj.word[i];
-
-        const prev = cellMap.get(key);
-        if (!prev) {
-          cellMap.set(key, { letter, solved: !!solvedWord });
+        if (isFound) {
+          cell.classList.add("found");
+          cell.textContent = p.word[i];
+        } else if (isHinted) {
+          cell.classList.add("hinted");
+          cell.textContent = p.word[i];
         } else {
-          prev.solved = prev.solved || !!solvedWord;
+          cell.classList.remove("found", "hinted");
+          cell.textContent = "";
         }
       }
-    }
-
-    for (const [key, data] of cellMap.entries()) {
-      const [r, c] = key.split(",").map(Number);
-      const cell = document.createElement("div");
-      cell.className = "wow-cell";
-      cell.style.top = (r * cellSize) + "px";
-      cell.style.left = (c * cellSize) + "px";
-
-      const absR = r + minR;
-      const absC = c + minC;
-      const absKey = `${absR},${absC}`;
-
-      if (data.solved) {
-        cell.textContent = data.letter;
-        cell.classList.add("solved");
-        cell.classList.add("anim-pop");
-      } else if (st.hintedCells && st.hintedCells.has(absKey)) {
-        cell.textContent = data.letter;
-        cell.classList.add("hinted");
-      } else {
-        cell.textContent = "";
-      }
-
-      gridEl.appendChild(cell);
-    }
+    });
   }
 
-  // -------------------- Wheel + input --------------------
-  function shuffleLetters() {
-    const lvl = st.currLevel;
-    const arr = lvl.letters.split("");
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    lvl._shuffled = arr.join("");
+  function scaleBoard(board, contW, contH) {
+    if (!contW || !contH) return;
+    const padding = 16;
+    const availW = contW - padding;
+    const availH = contH - padding;
+    const bw = board.offsetWidth;
+    const bh = board.offsetHeight;
+    if (bw === 0 || bh === 0) return;
+    const scale = Math.min(1, availW / bw, availH / bh);
+    board.style.transform = `scale(${scale})`;
+    board.style.transformOrigin = "center center";
   }
 
-  function renderWheel() {
-    const wheel = document.getElementById("wow-wheel");
-    if (!wheel) return;
+  function renderWheel(container) {
+    container.innerHTML = `<div class="wow-wheel-bg"></div><canvas class="wow-line-canvas" id="wow-canvas"></canvas>`;
+    const letters = st.currLevel._shuffled.split('');
+    const radius = 80;
+    const cx = 120, cy = 120;
+    const letterEls = [];
 
-    wheel.querySelectorAll(".wow-btn-let").forEach(b => b.remove());
+    letters.forEach((char, i) => {
+      const angle = (i / letters.length) * 2 * Math.PI - Math.PI / 2;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
 
-    const lettersStr = st.currLevel._shuffled || st.currLevel.letters;
-    const letters = lettersStr.split("");
-    const count = letters.length;
-    const radius = 90;
-    const center = 125;
-
-    letters.forEach((l, i) => {
-      const angle = (2 * Math.PI * i) / count - Math.PI / 2;
-      const x = center + radius * Math.cos(angle);
-      const y = center + radius * Math.sin(angle);
-
-      const btn = document.createElement("div");
-      btn.className = "wow-btn-let";
-      btn.textContent = l;
-      btn.style.left = x + "px";
-      btn.style.top = y + "px";
-      btn.dataset.idx = String(i);
-      btn.dataset.letter = l;
-
-      wheel.appendChild(btn);
+      const el = document.createElement("div");
+      el.className = "wow-letter";
+      el.textContent = char;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.dataset.idx = i;
+      el.dataset.char = char;
+      container.appendChild(el);
+      letterEls.push(el);
     });
 
-    attachWheelHandlers();
+    attachWheelHandlers(container, letterEls, cx, cy);
   }
 
-  function updatePreview() {
-    const p = document.getElementById("wow-preview");
-    if (!p) return;
-    p.innerHTML = "";
-    if (!st.inputWord) return;
-    for (const ch of st.inputWord) {
-      const d = document.createElement("div");
-      d.className = "wow-preview-let";
-      d.textContent = ch;
-      p.appendChild(d);
-    }
-  }
+  // -------------------- Wheel Interaction --------------------
+  let isDragging = false;
+  let currentPath = [];
+  let currentWord = "";
 
-  function clearCanvas() {
-    const canvas = document.getElementById("wow-canvas");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = 250;
-    canvas.height = 250;
-    ctx.clearRect(0, 0, 250, 250);
-  }
+  function attachWheelHandlers(container, letterEls, cx, cy) {
+    st.wheelLine = { container, letterEls, cx, cy };
 
-  function drawLines(extraPoint) {
-    const canvas = document.getElementById("wow-canvas");
-    const wheel = document.getElementById("wow-wheel");
-    if (!canvas || !wheel) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = 250;
-    canvas.height = 250;
-    ctx.clearRect(0, 0, 250, 250);
-
-    if (st.inputPath.length < 1) return;
-
-    const btns = Array.from(document.querySelectorAll(".wow-btn-let"));
-    const wheelRect = wheel.getBoundingClientRect();
-
-    const coords = [];
-    for (const b of btns) {
-      const rect = b.getBoundingClientRect();
-      const idx = parseInt(b.dataset.idx, 10);
-      coords[idx] = {
-        x: rect.left - wheelRect.left + rect.width / 2,
-        y: rect.top - wheelRect.top + rect.height / 2
-      };
-    }
-
-    const path = st.inputPath.map(idx => coords[idx]).filter(Boolean);
-    if (extraPoint) path.push(extraPoint);
-    if (path.length < 2) return;
-
-    ctx.beginPath();
-    ctx.moveTo(path[0].x, path[0].y);
-    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
-    ctx.lineWidth = 10;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    const accent = (getComputedStyle(document.documentElement).getPropertyValue('--accent-active') || '').trim();
-    ctx.strokeStyle = accent ? `rgba(${hexToRgb(accent).join(',')}, 0.45)` : "rgba(79, 70, 229, 0.45)";
-    ctx.stroke();
-  }
-
-  function attachWheelHandlers() {
-    const wheel = document.getElementById("wow-wheel");
-    if (!wheel) return;
-
-    detachWheelHandlers();
-
-    const btns = Array.from(document.querySelectorAll(".wow-btn-let"));
-
-    function btnByPoint(clientX, clientY) {
-      const el = document.elementFromPoint(clientX, clientY);
-      const btn = el && el.closest ? el.closest(".wow-btn-let") : null;
-      if (btn) return btn;
-
-      const best = { b: null, d: Infinity };
-      for (const b of btns) {
-        const r = b.getBoundingClientRect();
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        const d = Math.hypot(clientX - cx, clientY - cy);
-        if (d < best.d && d < Math.max(r.width, r.height) * 0.75) {
-          best.b = b; best.d = d;
-        }
-      }
-      return best.b;
-    }
-
-    function startAt(btn) {
-      if (!btn) return;
-      st.inputPath = [];
-      st.inputWord = "";
-      clearCanvas();
-      btns.forEach(b => b.classList.remove("active"));
-
-      const idx = parseInt(btn.dataset.idx, 10);
-      st.inputPath.push(idx);
-      st.inputWord += btn.dataset.letter;
-      btn.classList.add("active");
-      updatePreview();
-    }
-
-    function addBtn(btn) {
-      if (!btn) return;
-      const idx = parseInt(btn.dataset.idx, 10);
-      if (st.inputPath.includes(idx)) return;
-      st.inputPath.push(idx);
-      st.inputWord += btn.dataset.letter;
-      btn.classList.add("active");
-      updatePreview();
-    }
-
-    function endInput() {
-      if (!st.inputPath.length) return;
-      const word = st.inputWord;
-
-      st.inputPath = [];
-      st.inputWord = "";
-      updatePreview();
-      clearCanvas();
-      btns.forEach(b => b.classList.remove("active"));
-
-      checkWord(word);
-    }
-
-    const onPointerDown = (e) => {
-      e.preventDefault();
-      wheel.setPointerCapture?.(e.pointerId);
-      const btn = btnByPoint(e.clientX, e.clientY);
-      startAt(btn);
-    };
-    const onPointerMove = (e) => {
-      if (!st.inputPath.length) return;
-      e.preventDefault();
-      const btn = btnByPoint(e.clientX, e.clientY);
-      if (btn) addBtn(btn);
-
-      const wheelRect = wheel.getBoundingClientRect();
-      drawLines({ x: e.clientX - wheelRect.left, y: e.clientY - wheelRect.top });
-    };
-    const onPointerUp = (e) => { e.preventDefault(); endInput(); };
-    const onPointerCancel = (e) => { e.preventDefault(); endInput(); };
-
-    wheel.addEventListener("pointerdown", onPointerDown, { passive: false });
-    wheel.addEventListener("pointermove", onPointerMove, { passive: false });
-    wheel.addEventListener("pointerup", onPointerUp, { passive: false });
-    wheel.addEventListener("pointercancel", onPointerCancel, { passive: false });
-
-    st._wheelHandlers = { onPointerDown, onPointerMove, onPointerUp, onPointerCancel };
+    container.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    container.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
   }
 
   function detachWheelHandlers() {
-    const wheel = document.getElementById("wow-wheel");
-    if (!wheel) return;
-    const h = st._wheelHandlers;
-    if (!h) return;
-    wheel.removeEventListener("pointerdown", h.onPointerDown);
-    wheel.removeEventListener("pointermove", h.onPointerMove);
-    wheel.removeEventListener("pointerup", h.onPointerUp);
-    wheel.removeEventListener("pointercancel", h.onPointerCancel);
-    st._wheelHandlers = null;
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
   }
 
-  // -------------------- Word checking / rewards --------------------
-  function checkWord(wordRaw) {
-    const word = normWord(wordRaw);
-    if (word.length < 3) return;
+  function onPointerDown(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (el && el.classList.contains("wow-letter")) {
+      isDragging = true;
+      currentPath = [el];
+      currentWord = el.dataset.char;
+      el.classList.add("active");
+      updateDisplay();
+      drawLines(e.clientX, e.clientY);
+    }
+  }
 
-    const targetSet = new Set(st.currLevel.words);
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (el && el.classList.contains("wow-letter")) {
+      if (!currentPath.includes(el)) {
+        currentPath.push(el);
+        currentWord += el.dataset.char;
+        el.classList.add("active");
+        updateDisplay();
+      } else if (currentPath.length > 1 && el === currentPath[currentPath.length - 2]) {
+        const removed = currentPath.pop();
+        removed.classList.remove("active");
+        currentWord = currentWord.slice(0, -1);
+        updateDisplay();
+      }
+    }
+    drawLines(e.clientX, e.clientY);
+  }
 
-    if (targetSet.has(word)) {
-      if (st.foundWords.has(word)) { showMsg("Уже найдено!"); return; }
+  function onPointerUp() {
+    if (!isDragging) return;
+    isDragging = false;
+    if (currentWord.length > 0) handleWordSubmission(currentWord);
 
-      st.foundWords.add(word);
-      showMsg("Отлично!");
-      renderGrid();
+    currentPath.forEach(el => el.classList.remove("active"));
+    currentPath = [];
+    currentWord = "";
+    updateDisplay();
+    clearLines();
+  }
 
-      if (isLevelCompleted()) {
-        const levelId = Number(st.currLevel.id);
-        if (!st.completed.has(levelId)) {
-          st.completed.add(levelId);
-          st.coins += 10;
-          showMsg("Уровень пройден! +10⭐");
-        } else {
-          showMsg("Уровень пройден!");
+  function updateDisplay() {
+    const disp = document.getElementById("wow-word-display");
+    if (disp) {
+      disp.textContent = currentWord;
+      disp.classList.remove("error");
+    }
+  }
+
+  function drawLines(tx, ty) {
+    if (!st.wheelLine) return;
+    const canvas = document.getElementById("wow-canvas");
+    if (!canvas) return;
+    const rect = st.wheelLine.container.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (currentPath.length === 0) return;
+
+    ctx.beginPath();
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(79, 70, 229, 0.4)"; // accent color
+
+    currentPath.forEach((el, i) => {
+      const lx = parseFloat(el.style.left);
+      const ly = parseFloat(el.style.top);
+      if (i === 0) ctx.moveTo(lx, ly);
+      else ctx.lineTo(lx, ly);
+    });
+
+    const localX = tx - rect.left;
+    const localY = ty - rect.top;
+    ctx.lineTo(localX, localY);
+    ctx.stroke();
+  }
+
+  function clearLines() {
+    const canvas = document.getElementById("wow-canvas");
+    if (canvas) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  function updateStarsDisplay() {
+    const d = document.getElementById("wow-stars-display");
+    if (d) d.innerHTML = `⭐ ${st.stars}`;
+  }
+
+  // -------------------- Logic Handlers --------------------
+  function handleWordSubmission(word) {
+    const norm = normWord(word);
+    if (norm.length < 2) return;
+
+    if (st.currLevel.words.includes(norm)) {
+      if (!st.foundWords.has(norm)) {
+        st.foundWords.add(norm);
+        
+        // Save to persistent storage
+        const lid = String(st.currLevel.id);
+        st.foundWordsByLevel[lid] = Array.from(st.foundWords);
+        savePersisted(st);
+
+        renderGame();
+        setTimeout(checkCompletion, 400);
+      } else {
+        showErrorDisplay();
+        showToast("Уже найдено!");
+      }
+    } else if (st.bonusAll.has(norm)) {
+      if (!st.bonusWordsFound.has(norm)) {
+        st.bonusWordsFound.add(norm);
+        st.stars += 2;
+        updateStarsDisplay();
+        const lid = String(st.currLevel.id);
+        st.bonusByLevel[lid] = Array.from(st.bonusWordsFound);
+        savePersisted(st);
+        showToast("Бонус! +2 ⭐");
+        renderGame();
+      } else {
+        showErrorDisplay();
+        showToast("Бонус уже найден!");
+      }
+    } else {
+      showErrorDisplay();
+    }
+  }
+
+  function showErrorDisplay() {
+    const disp = document.getElementById("wow-word-display");
+    if (disp) {
+      disp.classList.remove("error");
+      void disp.offsetWidth;
+      disp.classList.add("error");
+    }
+  }
+
+  function handleHint() {
+    const cost = 10;
+    if (st.stars < cost) { showToast("Не хватает звезд!"); return; }
+
+    const empty = [];
+    st.gridInfo.placed.forEach(p => {
+      if (!st.foundWords.has(p.word)) {
+        for (let i = 0; i < p.word.length; i++) {
+          const cid = `${p.r + p.dr * i}_${p.c + p.dc * i}`;
+          if (!st.hintedCells.has(cid)) empty.push(cid);
+        }
+      }
+    });
+
+    if (empty.length === 0) { showToast("Нет свободных букв!"); return; }
+
+    st.stars -= cost;
+    const pick = empty[Math.floor(Math.random() * empty.length)];
+    st.hintedCells.add(pick);
+    
+    // Save hint and check for full word auto-completion
+    const lid = String(st.currLevel.id);
+    st.hintedCellsByLevel[lid] = Array.from(st.hintedCells);
+
+    for (let wInfo of st.gridInfo.placed) {
+      if (!st.foundWords.has(wInfo.word)) {
+        let allHinted = true;
+        for (let i = 0; i < wInfo.word.length; i++) {
+          let cid = `${wInfo.r + wInfo.dr * i}_${wInfo.c + wInfo.dc * i}`;
+          if (!st.hintedCells.has(cid)) { allHinted = false; break; }
+        }
+        if (allHinted) {
+          st.foundWords.add(wInfo.word);
+          st.foundWordsByLevel[lid] = Array.from(st.foundWords);
+        }
+      }
+    }
+    
+    savePersisted(st);
+    renderGame();
+    setTimeout(checkCompletion, 400);
+  }
+
+  function handleRevealWord() {
+    const cost = 25;
+    if (st.stars < cost) { showToast("Не хватает звезд!"); return; }
+
+    let targetWord = null;
+    for (let p of st.gridInfo.placed) {
+      if (!st.foundWords.has(p.word)) { targetWord = p.word; break; }
+    }
+
+    if (targetWord) {
+      st.stars -= cost;
+      st.foundWords.add(targetWord);
+      
+      const lid = String(st.currLevel.id);
+      st.foundWordsByLevel[lid] = Array.from(st.foundWords);
+      savePersisted(st);
+
+      renderGame();
+      setTimeout(checkCompletion, 400);
+    } else {
+      showToast("Все слова открыты!");
+    }
+  }
+
+  function checkCompletion() {
+    if (st.foundWords.size === st.currLevel.words.length) {
+      st.stars += 10;
+      savePersisted(st);
+      showToast("Уровень пройден! +10 ⭐");
+      setTimeout(() => {
+        st.levelIndex++;
+        if (st.levelIndex >= st.levels.length) {
+          showToast("Игра пройдена!");
+          st.levelIndex = 0; // wrap around or handle ending
         }
         savePersisted(st);
-        updateChips();
+        startLevel();
+      }, 1500);
+    }
+  }
 
-        setTimeout(() => {
-          if (st.levelIndex < st.levels.length - 1) {
-            st.levelIndex++;
-            savePersisted(st);
-            startLevel();
-          }
-        }, 450);
-      } else {
+  // -------------------- Modals --------------------
+  function createModal(titleText) {
+    const overlay = document.createElement("div");
+    overlay.className = "wow-modal-overlay";
+
+    const box = document.createElement("div");
+    box.className = "wow-modal-box";
+
+    const header = document.createElement("div");
+    header.className = "wow-modal-header";
+    header.innerHTML = `<span>${titleText}</span>`;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "wow-modal-close";
+    closeBtn.innerHTML = "✖";
+    closeBtn.onclick = () => {
+      overlay.classList.remove("active");
+      setTimeout(() => overlay.remove(), 200);
+    };
+    header.appendChild(closeBtn);
+    box.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "wow-modal-body";
+    box.appendChild(body);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // force reflow
+    void overlay.offsetWidth;
+    overlay.classList.add("active");
+
+    return { body, close: closeBtn.onclick };
+  }
+
+  function showLevelsModal() {
+    const modal = createModal("Уровни");
+    st.levels.forEach((lvl, i) => {
+      const el = document.createElement("div");
+      el.className = "wow-level-item";
+      if (i === st.levelIndex) el.classList.add("active");
+      el.innerHTML = `<span>Уровень ${i + 1}</span>`;
+      el.onclick = () => {
+        st.levelIndex = i;
         savePersisted(st);
-        updateChips();
-      }
+        modal.close();
+        startLevel();
+      };
+      modal.body.appendChild(el);
+    });
+  }
+
+  function showBonusModal() {
+    const modal = createModal("Бонусные слова (этот уровень)");
+    if (st.bonusAll.size === 0) {
+      modal.body.innerHTML = "<p style='color:#666;text-align:center;'>Нет бонусных слов.</p>";
       return;
     }
-
-    if (st.bonusAll.has(word)) {
-      if (st.bonusWordsFound.has(word)) { showMsg("Уже в бонусах"); return; }
-      st.bonusWordsFound.add(word);
-
-      const lid = String(st.currLevel.id);
-      st.bonusByLevel[lid] = Array.from(new Set([...(st.bonusByLevel[lid] || []), word]));
-
-      st.coins += 2;
-      showMsg("Бонус! +2⭐");
-      savePersisted(st);
-      updateChips();
-      return;
-    }
-
-    showMsg("Нет такого слова");
-  }
-
-  function isLevelCompleted() {
-    for (const w of st.currLevel.words) {
-      if (!st.foundWords.has(w)) return false;
-    }
-    return true;
-  }
-
-  function giveHint() {
-    if (st.coins < 6) { showMsg("Нужно 6⭐"); return; }
-
-    // Find a word with at least one unrevealed cell
-    const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
-    if (!remaining.length) { showMsg("Всё найдено"); return; }
-
-    const candidates = [];
-    for (const w of remaining) {
-      const p = st.gridInfo.find(x => x.word === w);
-      if (!p) continue;
-      for (let i = 0; i < w.length; i++) {
-        const ar = p.r + p.dr * i;
-        const ac = p.c + p.dc * i;
-        const k = `${ar},${ac}`;
-        if (!st.hintedCells.has(k)) candidates.push({ key: k, letter: w[i], word: w });
+    st.bonusAll.forEach(w => {
+      const el = document.createElement("div");
+      el.className = "wow-bonus-item";
+      if (st.bonusWordsFound.has(w)) {
+        el.innerHTML = `<span>${w}</span><span>✔️</span>`;
+      } else {
+        el.innerHTML = `<span style="color:#aaa;">${w.replace(/./g, '*')}</span>`;
       }
-    }
-    if (!candidates.length) { showMsg("Нет букв для подсказки"); return; }
-
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    st.coins -= 6;
-    st.hintedCells.add(pick.key);
-
-    showMsg(`💡 Открыта буква: ${pick.letter}`);
-    savePersisted(st);
-    renderGrid();
-    updateChips();
+      modal.body.appendChild(el);
+    });
   }
 
-  function revealWordPaid() {
-    if (st.coins < 20) { showMsg("Нужно 20⭐"); return; }
-    const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
-    if (!remaining.length) { showMsg("Всё найдено"); return; }
-    const pick = remaining[Math.floor(Math.random() * remaining.length)];
-    st.coins -= 20;
-    st.foundWords.add(pick);
-
-    // remove hinted cells of that word (optional, but keeps state clean)
-    const p = st.gridInfo.find(x => x.word === pick);
-    if (p) {
-      for (let i = 0; i < pick.length; i++) {
-        const k = `${p.r + p.dr * i},${p.c + p.dc * i}`;
-        st.hintedCells.delete(k);
-      }
-    }
-
-    showMsg(`👁 Открыто: ${pick}`);
-    savePersisted(st);
-    renderGrid();
-    updateChips();
-  }
-
-  // -------------------- Level setup --------------------
-  function buildBonusSetForLevel(rawLevel, placedWords, notPlaced) {
-    const fromFile =
-      (Array.isArray(rawLevel.bonusWords) ? rawLevel.bonusWords :
-      (Array.isArray(rawLevel.bonus) ? rawLevel.bonus : []))
-      .map(normWord)
-      .filter(w => w.length >= 3);
-
-    const auto = (notPlaced || []).map(normWord).filter(w => w.length >= 3);
-
-    const crosswordSet = new Set(placedWords.map(x => x.word));
-    const bonus = new Set();
-    for (const w of fromFile.concat(auto)) {
-      if (!crosswordSet.has(w)) bonus.add(w);
-    }
-    return bonus;
-  }
-
+  // -------------------- Start Level --------------------
   function startLevel() {
-    detachWheelHandlers();
-
+    if (!st.levels || !st.levels.length) return;
     if (st.levelIndex >= st.levels.length) st.levelIndex = 0;
 
     const rawLevel = st.levels[st.levelIndex];
     const letters = normWord(rawLevel.letters);
+    const levelWords = Array.isArray(rawLevel.words) ? rawLevel.words.map(normWord) : [];
 
-    const rawGridWords = (rawLevel.words || []).map(normWord).filter(w => w.length >= 3);
+    const layoutResult = buildLayout(levelWords);
+    st.gridInfo = layoutResult;
 
-    const layoutResult = generateLayout(rawGridWords);
-
-    st.gridInfo = layoutResult.placed;
-
-    const placedSet = new Set(st.gridInfo.map(x => x.word));
-    const levelWords = Array.from(placedSet);
+    const placedSet = new Set(layoutResult.placed.map(p => p.word));
+    const validLevelWords = Array.from(placedSet);
 
     st.bonusAll = buildBonusSetForLevel(rawLevel, st.gridInfo, layoutResult.notPlaced);
 
     const lid = String(rawLevel.id);
-    const saved = Array.isArray(st.bonusByLevel[lid]) ? st.bonusByLevel[lid].map(normWord) : [];
-    st.bonusWordsFound = new Set(saved.filter(w => st.bonusAll.has(w)));
+    
+    const savedBonus = Array.isArray(st.bonusByLevel[lid]) ? st.bonusByLevel[lid].map(normWord) : [];
+    st.bonusWordsFound = new Set(savedBonus.filter(w => st.bonusAll.has(w)));
 
-    st.foundWords = new Set();
-    st.hintedCells = new Set();
+    const savedFound = Array.isArray(st.foundWordsByLevel[lid]) ? st.foundWordsByLevel[lid].map(normWord) : [];
+    st.foundWords = new Set(savedFound.filter(w => validLevelWords.includes(w)));
 
-    st.currLevel = { id: rawLevel.id, letters, words: levelWords, _shuffled: letters };
+    const savedHints = Array.isArray(st.hintedCellsByLevel[lid]) ? st.hintedCellsByLevel[lid] : [];
+    st.hintedCells = new Set(savedHints);
+
+    st.currLevel = { id: rawLevel.id, letters, words: validLevelWords, _shuffled: letters };
 
     renderGame();
   }
@@ -1200,10 +1092,9 @@ function startBibleWowGame(levelsUrl) {
     .catch(e => {
       console.error(e);
       container.innerHTML = `
-        <div style="padding:16px; text-align:center;">
-          <p style="color:#ffb3b3; font-weight:700;">❌ Не удалось загрузить уровни.</p>
-          <p style="opacity:.9;">Проверь файл уровней.</p>
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+        <div style="padding:16px; text-align:center; color:#ef4444;">
+          <h3>Ошибка загрузки</h3>
+          <p>${e.message}</p>
         </div>
       `;
     });
