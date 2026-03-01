@@ -1,14 +1,125 @@
 {
-  "title": "Библейский Квартет",
-  "version": 1,
+  "title": "Квартет — библейская колода (12 квартетов / 48 карточек)",
   "quartets": [
-    {"theme": "Евангелия", "cards": ["Матфей", "Марк", "Лука", "Иоанн"]},
-    {"theme": "Патриархи", "cards": ["Авраам", "Исаак", "Иаков", "Иосиф"]},
-    {"theme": "Судьи", "cards": ["Гедеон", "Самсон", "Девора", "Самуил"]},
-    {"theme": "Цари", "cards": ["Саул", "Давид", "Соломон", "Езекия"]},
-    {"theme": "Апостолы", "cards": ["Пётр", "Иоанн", "Иаков", "Андрей"]},
-    {"theme": "Чудеса Иисуса", "cards": ["Насыщение пяти тысяч", "Хождение по воде", "Исцеление слепого", "Воскрешение Лазаря"]},
-    {"theme": "Плоды Духа", "cards": ["Любовь", "Радость", "Мир", "Долготерпение"]},
-    {"theme": "Доспехи Божьи", "cards": ["Пояс истины", "Броня праведности", "Щит веры", "Меч Духа"]}
+    {
+      "id": "apostles",
+      "name": "Апостолы (из 12)",
+      "cards": [
+        {"id": "apostles_peter", "title": "Пётр"},
+        {"id": "apostles_john", "title": "Иоанн"},
+        {"id": "apostles_james", "title": "Иаков"},
+        {"id": "apostles_andrew", "title": "Андрей"}
+      ]
+    },
+    {
+      "id": "evangelists",
+      "name": "Евангелисты",
+      "cards": [
+        {"id": "evangelists_matthew", "title": "Матфей"},
+        {"id": "evangelists_mark", "title": "Марк"},
+        {"id": "evangelists_luke", "title": "Лука"},
+        {"id": "evangelists_john", "title": "Иоанн"}
+      ]
+    },
+    {
+      "id": "patriarchs",
+      "name": "Патриархи",
+      "cards": [
+        {"id": "patriarchs_abraham", "title": "Авраам"},
+        {"id": "patriarchs_isaac", "title": "Исаак"},
+        {"id": "patriarchs_jacob", "title": "Иаков"},
+        {"id": "patriarchs_joseph", "title": "Иосиф"}
+      ]
+    },
+    {
+      "id": "major_prophets",
+      "name": "Пророки",
+      "cards": [
+        {"id": "prophets_isaiah", "title": "Исаия"},
+        {"id": "prophets_jeremiah", "title": "Иеремия"},
+        {"id": "prophets_ezekiel", "title": "Иезекииль"},
+        {"id": "prophets_daniel", "title": "Даниил"}
+      ]
+    },
+    {
+      "id": "judges",
+      "name": "Судьи Израиля",
+      "cards": [
+        {"id": "judges_deborah", "title": "Девора"},
+        {"id": "judges_gideon", "title": "Гедеон"},
+        {"id": "judges_samson", "title": "Самсон"},
+        {"id": "judges_jephthah", "title": "Иеффай"}
+      ]
+    },
+    {
+      "id": "kings",
+      "name": "Цари Израиля",
+      "cards": [
+        {"id": "kings_saul", "title": "Саул"},
+        {"id": "kings_david", "title": "Давид"},
+        {"id": "kings_solomon", "title": "Соломон"},
+        {"id": "kings_hezekiah", "title": "Езекия"}
+      ]
+    },
+    {
+      "id": "matriarchs",
+      "name": "Жёны веры",
+      "cards": [
+        {"id": "matriarchs_sarah", "title": "Сарра"},
+        {"id": "matriarchs_rebekah", "title": "Ревекка"},
+        {"id": "matriarchs_rachel", "title": "Рахиль"},
+        {"id": "matriarchs_leah", "title": "Лия"}
+      ]
+    },
+    {
+      "id": "women_nt",
+      "name": "Женщины Библии",
+      "cards": [
+        {"id": "women_ruth", "title": "Руфь"},
+        {"id": "women_esther", "title": "Есфирь"},
+        {"id": "women_mary", "title": "Мария"},
+        {"id": "women_anna", "title": "Анна"}
+      ]
+    },
+    {
+      "id": "paul_team",
+      "name": "Сотрудники Павла",
+      "cards": [
+        {"id": "paulteam_barnabas", "title": "Варнава"},
+        {"id": "paulteam_silas", "title": "Сила"},
+        {"id": "paulteam_timothy", "title": "Тимофей"},
+        {"id": "paulteam_titus", "title": "Тит"}
+      ]
+    },
+    {
+      "id": "nt_places",
+      "name": "Города Нового Завета",
+      "cards": [
+        {"id": "places_bethlehem", "title": "Вифлеем"},
+        {"id": "places_nazareth", "title": "Назарет"},
+        {"id": "places_capernaum", "title": "Капернаум"},
+        {"id": "places_jerusalem", "title": "Иерусалим"}
+      ]
+    },
+    {
+      "id": "miracles_jesus",
+      "name": "Чудеса Иисуса",
+      "cards": [
+        {"id": "miracles_water_wine", "title": "Вода в вино"},
+        {"id": "miracles_feeding_5000", "title": "Накормил 5000"},
+        {"id": "miracles_calm_storm", "title": "Утихомирил бурю"},
+        {"id": "miracles_raise_lazarus", "title": "Воскресил Лазаря"}
+      ]
+    },
+    {
+      "id": "armor_of_god",
+      "name": "Всеоружие Божие (Еф 6)",
+      "cards": [
+        {"id": "armor_belt_truth", "title": "Пояс истины"},
+        {"id": "armor_breastplate", "title": "Броня праведности"},
+        {"id": "armor_shield_faith", "title": "Щит веры"},
+        {"id": "armor_helmet_salvation", "title": "Шлем спасения"}
+      ]
+    }
   ]
 }
