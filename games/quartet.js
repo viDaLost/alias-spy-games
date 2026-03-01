@@ -19,13 +19,21 @@ function startQuartetGame(quartetsUrl) {
     name: "quartet_player_name",
   };
 
+  // ✅ Вмонтированный GAS_URL (пользователю не нужно вставлять ссылку)
+  // Если ты сделаешь новый Deploy в Apps Script и URL изменится — обнови эту константу.
+  const EMBEDDED_GAS_URL = "https://script.google.com/macros/s/AKfycbwO0GkaYUxBEK2JqnQjUbriX3NlfDT7u57N6VsKRadYiC7j40lNXmvJGvvJMuC4bZc/exec";
+
   let gameData = null;
   let state = null;
   let pollTimer = null;
   let lastVersion = -1;
   let myName = localStorage.getItem(LS.name) || defaultName;
   let roomId = localStorage.getItem(LS.roomId) || "";
-  let GAS_URL = localStorage.getItem(LS.gasUrl) || "";
+  // Всегда используем встроенный URL
+  let GAS_URL = EMBEDDED_GAS_URL;
+
+  // На всякий — сохраним в localStorage (чтобы в логах/отладке было видно)
+  try { localStorage.setItem(LS.gasUrl, GAS_URL); } catch {}
 
   const ui = {
     root: null,
@@ -95,11 +103,8 @@ function startQuartetGame(quartetsUrl) {
         </div>
 
         <div class="quartet-card">
-          <div class="quartet-field">
-            <label>Apps Script WebApp URL (GAS_URL)</label>
-            <input id="q_gas" class="q-input" placeholder="Вставь URL деплоя WebApp" />
-            <div class="quartet-hint">Скопируй URL из Apps Script → Deploy → Web app → Current web app URL.</div>
-          </div>
+          <!-- GAS_URL вмонтирован в код. Поле скрыто, чтобы пользователю не нужно было ничего вставлять. -->
+          <input id="q_gas" type="hidden" value="${EMBEDDED_GAS_URL}" />
 
           <div class="quartet-grid2">
             <div class="quartet-field">
