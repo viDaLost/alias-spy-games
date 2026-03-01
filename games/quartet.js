@@ -65,14 +65,22 @@ function startQuartetGame(quartetsUrl) {
       ...payload,
     };
 
+    // IMPORTANT for Telegram iOS WebView:
+    // Use Content-Type: text/plain to avoid CORS preflight (OPTIONS),
+    // because Google Apps Script WebApp may not answer OPTIONS.
     const res = await fetch(GAS_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // critical: simple content-type => no preflight
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(body),
+      // GAS часто отвечает редиректом на script.googleusercontent.com
+      redirect: "follow",
+      cache: "no-store",
     });
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.ok === false) {
-      const msg = data.error || `HTTP ${res.status}`;
+      const msg = (data && data.error) ? data.error : `HTTP ${res.status}`;
       throw new Error(msg);
     }
     return data;
