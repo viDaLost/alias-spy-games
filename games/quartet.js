@@ -9,7 +9,10 @@ function startQuartetGame(quartetsUrl) {
   const tg = window.Telegram?.WebApp;
   try { tg?.expand?.(); } catch {}
 
-  const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "аноним", username: "аноним" };
+  const tgUser = (typeof getTelegramUser === "function")
+    ? getTelegramUser()
+    : { id: "аноним", username: "аноним" };
+
   const playerId = String(tgUser.id ?? "аноним");
   const defaultName = (tgUser.username && tgUser.username !== "аноним") ? tgUser.username : "Игрок";
 
@@ -20,15 +23,19 @@ function startQuartetGame(quartetsUrl) {
   };
 
   // ✅ Вмонтированный GAS_URL (пользователю не нужно вставлять ссылку)
-  // Если ты сделаешь новый Deploy в Apps Script и URL изменится — обнови эту константу.
   const EMBEDDED_GAS_URL = "https://script.google.com/macros/s/AKfycbwO0GkaYUxBEK2JqnQjUbriX3NlfDT7u57N6VsKRadYiC7j40lNXmvJGvvJMuC4bZc/exec";
+
+  // ✅ polling не должен быть частым (иначе GAS начнёт падать по квотам/локам)
+  const POLL_MS_OK = 2500;
 
   let gameData = null;
   let state = null;
   let pollTimer = null;
   let lastVersion = -1;
+
   let myName = localStorage.getItem(LS.name) || defaultName;
   let roomId = localStorage.getItem(LS.roomId) || "";
+
   // Всегда используем встроенный URL
   let GAS_URL = EMBEDDED_GAS_URL;
 
@@ -50,6 +57,11 @@ function startQuartetGame(quartetsUrl) {
     askPanel: null,
     pendingModal: null,
   };
+
+  // ====== анти-спам и backoff ======
+  let inFlight = false;
+  let failStreak = 0;
+  let nextAllowedAt = 0;
 
   function stopPolling() {
     if (pollTimer) clearInterval(pollTimer);
@@ -73,24 +85,31 @@ function startQuartetGame(quartetsUrl) {
       ...payload,
     };
 
-    // IMPORTANT for Telegram iOS WebView:
-    // Use Content-Type: text/plain to avoid CORS preflight (OPTIONS),
-    // because Google Apps Script WebApp may not answer OPTIONS.
     const res = await fetch(GAS_URL, {
       method: "POST",
-      // critical: simple content-type => no preflight
+      // важное для Telegram iOS WebView: простой content-type => без preflight OPTIONS
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(body),
-      // GAS часто отвечает редиректом на script.googleusercontent.com
       redirect: "follow",
       cache: "no-store",
     });
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false) {
-      const msg = (data && data.error) ? data.error : `HTTP ${res.status}`;
+    const raw = await res.text().catch(() => "");
+    let data = null;
+
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      // Иногда прилетает HTML/текст из-за квот/ошибок/редиректов — покажем кусок для диагностики
+      const snippet = (raw || "").slice(0, 180).replace(/\s+/g, " ").trim();
+      throw new Error(`Сервер вернул не-JSON. HTTP ${res.status}. Ответ: ${snippet || "—"}`);
+    }
+
+    if (!res.ok || data?.ok === false) {
+      const msg = data?.error ? String(data.error) : `HTTP ${res.status}`;
       throw new Error(msg);
     }
+
     return data;
   }
 
@@ -103,7 +122,6 @@ function startQuartetGame(quartetsUrl) {
         </div>
 
         <div class="quartet-card">
-          <!-- GAS_URL вмонтирован в код. Поле скрыто, чтобы пользователю не нужно было ничего вставлять. -->
           <input id="q_gas" type="hidden" value="${EMBEDDED_GAS_URL}" />
 
           <div class="quartet-grid2">
@@ -262,27 +280,38 @@ function startQuartetGame(quartetsUrl) {
 
   function startPolling() {
     stopPolling();
+    // сразу обновим и потом по таймеру
+    refreshState(true);
+
     pollTimer = setInterval(() => {
       refreshState(false);
-    }, 1000);
-    refreshState(true);
+    }, POLL_MS_OK);
   }
 
   async function refreshState(force) {
     if (!roomId || !GAS_URL) return;
+
+    // anti-overlap + backoff
+    if (inFlight) return;
+    const now = Date.now();
+    if (now < nextAllowedAt) return;
+
+    inFlight = true;
     try {
       const res = await api("getState", {});
       state = res.state;
       if (!state) return;
 
-      // Показываем нужный экран
+      // успех => сброс backoff
+      failStreak = 0;
+      nextAllowedAt = 0;
+
       const isPlaying = state.status === "playing";
       ui.lobby.classList.toggle("hidden", isPlaying);
       ui.game.classList.toggle("hidden", !isPlaying);
 
       // Перерисовка только если изменилась версия
       if (!force && typeof state.version === "number" && state.version === lastVersion) {
-        // Но модалку pending нужно обновлять каждую секунду (таймер)
         updatePendingModal(state);
         return;
       }
@@ -293,8 +322,19 @@ function startQuartetGame(quartetsUrl) {
       renderGame(state);
       updatePendingModal(state);
     } catch (e) {
+      failStreak += 1;
+
+      // мягкий backoff: 2s, 4s, 6s... максимум 12s
+      const delay = Math.min(12000, 2000 * failStreak);
+      nextAllowedAt = Date.now() + delay;
+
       console.warn("getState error", e);
-      setStatus("Проблема связи с сервером. Проверь GAS_URL.", "err");
+
+      // Показываем реальную причину (это поможет сразу понять, что именно ломается)
+      const msg = String(e?.message || e || "Ошибка связи");
+      setStatus(`Связь с сервером: ${msg}`, "err");
+    } finally {
+      inFlight = false;
     }
   }
 
@@ -356,7 +396,6 @@ function startQuartetGame(quartetsUrl) {
       return;
     }
 
-    // Группируем по квартетам
     const byQuartet = new Map();
     for (const cid of hand) {
       const meta = findCardMeta(cid);
@@ -406,23 +445,19 @@ function startQuartetGame(quartetsUrl) {
     }
     if (!gameData) return;
 
-    // Список целей
     const targets = (st.players || []).filter(p => String(p.playerId) !== playerId && p.isActive !== false);
     if (!targets.length) {
       ui.askPanel.innerHTML = `<div class="quartet-muted">Нет доступных игроков.</div>`;
       return;
     }
 
-    // Список доступных для запроса карт: все карты в квартетах, где у меня есть хотя бы 1 карта, но которых у меня нет.
     const myCards = new Set(hand);
     const eligible = [];
     for (const q of gameData.quartets) {
       const haveAny = q.cards.some(c => myCards.has(c.id));
       if (!haveAny) continue;
       const missing = q.cards.filter(c => !myCards.has(c.id));
-      for (const c of missing) {
-        eligible.push({ quartet: q, card: c });
-      }
+      for (const c of missing) eligible.push({ quartet: q, card: c });
     }
 
     if (!eligible.length) {
@@ -473,7 +508,6 @@ function startQuartetGame(quartetsUrl) {
       return;
     }
 
-    // Показать модалку только если я — цель
     if (String(pending.targetId) !== playerId) {
       hidePending();
       return;
@@ -534,7 +568,7 @@ function startQuartetGame(quartetsUrl) {
     renderShell();
     try {
       gameData = await loadJSON(quartetsUrl);
-      setStatus("Готово. Вставь GAS_URL, задай имя и создай/войдите в комнату.", "info");
+      setStatus("Готово. Задай имя и создай/войдите в комнату.", "info");
       if (roomId && GAS_URL) {
         ui.main.classList.remove("hidden");
         document.getElementById("q_room_label").textContent = roomId;
