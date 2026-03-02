@@ -948,3 +948,195 @@ body:has(.menu-container.hidden) header {
 .menu-container {
   margin: 0 auto;
 }
+
+/* =========================
+   WORD SEARCH (Поиск слов)
+   ========================= */
+
+.ws-wrap {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  padding: 8px 14px 18px;
+}
+
+.ws-topbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.ws-title {
+  text-align: right;
+  flex: 1;
+}
+
+.ws-title__name {
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.ws-title__meta {
+  opacity: .75;
+  font-size: .95rem;
+  margin-top: 2px;
+}
+
+.ws-panel {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.ws-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ws-progress {
+  opacity: .85;
+  font-size: .98rem;
+}
+
+.ws-board {
+  --ws-cols: 6;
+  display: grid;
+  grid-template-columns: repeat(var(--ws-cols), 1fr);
+  gap: 8px;
+  margin: 10px 0 14px;
+  touch-action: none;
+  user-select: none;
+}
+
+.ws-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(16px, 2.8vw, 22px);
+  letter-spacing: .5px;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+}
+
+.ws-cell:active { transform: none; }
+
+.ws-cell--sel {
+  outline: 2px solid rgba(219,234,254,.9);
+  background: rgba(219,234,254,.18);
+}
+
+.ws-cell--solved {
+  background: rgba(219,234,254,.28);
+  border-color: rgba(219,234,254,.35);
+  color: #fff;
+}
+
+.ws-cell--hint {
+  animation: wsPulse 0.9s ease-in-out;
+}
+
+@keyframes wsPulse {
+  0% { box-shadow: 0 0 0 0 rgba(219,234,254,.0); }
+  35% { box-shadow: 0 0 0 10px rgba(219,234,254,.35); }
+  100% { box-shadow: 0 0 0 0 rgba(219,234,254,.0); }
+}
+
+.ws-words {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.ws-words__title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.ws-words__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ws-word {
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  font-weight: 600;
+  font-size: .95rem;
+}
+
+.ws-word--done {
+  background: rgba(219,234,254,.18);
+  border-color: rgba(219,234,254,.30);
+  text-decoration: line-through;
+  opacity: .85;
+}
+
+.ws-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ws-shake {
+  animation: wsShake .25s ease-in-out;
+}
+
+@keyframes wsShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.ws-win {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0,0,0,.55);
+  z-index: 999;
+}
+
+.ws-win__card {
+  width: min(520px, 100%);
+  background: rgba(18,18,20,.96);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 20px;
+  padding: 16px;
+  text-align: center;
+}
+
+.ws-win__title {
+  font-weight: 800;
+  font-size: 1.25rem;
+  margin-bottom: 6px;
+}
+
+.ws-win__text {
+  opacity: .9;
+  margin-bottom: 12px;
+}
+
+.ws-win__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 420px) {
+  .ws-actions, .ws-bottom, .ws-win__actions { grid-template-columns: 1fr; }
+  .ws-title { text-align: left; }
+}
