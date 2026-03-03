@@ -2,6 +2,16 @@
 // Игра: поиск слов в сетке (без диагоналей, путь может изгибаться под прямым углом)
 
 function startBibleWordSearchGame(levelsUrl) {
+  // --- ФИКС ДЛЯ TELEGRAM WEB APP (Блокировка сворачивания шторки) ---
+  if (window.Telegram && window.Telegram.WebApp) {
+    const twa = window.Telegram.WebApp;
+    twa.expand(); // Раскрываем на весь экран
+    if (twa.disableVerticalSwipes) {
+      twa.disableVerticalSwipes(); // Запрещаем закрытие свайпом вниз
+    }
+  }
+  // -----------------------------------------------------------------
+
   const container = document.getElementById("game-container");
   if (!container) return;
 
@@ -86,6 +96,13 @@ function startBibleWordSearchGame(levelsUrl) {
   // ===== UI helpers =====
   function renderShell() {
     container.innerHTML = `
+      <style>
+        #ws-board, .ws-cell {
+          touch-action: none !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+        }
+      </style>
       <div class="ws-wrap fade-in">
         <div class="ws-topbar">
           <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
@@ -445,6 +462,13 @@ function startBibleWordSearchGame(levelsUrl) {
       tryCommitSelection(level, st);
     };
 
+    // --- ФИКС ЖЕСТОВ ДЛЯ IOS/SAFARI ---
+    const onTouchMove = (e) => {
+      e.preventDefault(); // Запрещаем браузеру скроллить при ведении пальцем по доске
+    };
+    board.addEventListener("touchmove", onTouchMove, { passive: false });
+    // ----------------------------------
+
     board.addEventListener("pointerdown", onDown, { passive: false });
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp, { passive: true });
@@ -453,6 +477,7 @@ function startBibleWordSearchGame(levelsUrl) {
     // Cleanup when leaving game
     window.__wsCleanup = () => {
       board.removeEventListener("pointerdown", onDown);
+      board.removeEventListener("touchmove", onTouchMove); // Убираем листенер тачей
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
