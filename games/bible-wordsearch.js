@@ -1,5 +1,5 @@
 // games/bible-wordsearch.js
-// Игра: поиск слов в сетке (без диагоналей, путь может изгибаться под прямым углом)
+// Игра: поиск слов в сетке (без диагоналей, без пересечений слов)
 
 function startBibleWordSearchGame(levelsUrl) {
   // Фикс для Telegram Web App (блокировка шторки)
@@ -43,6 +43,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function defaultProgress(levelsCount) {
     return {
+      version: 4, // Версия 4 для сброса кэша старых сеток (с пересечениями)
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
@@ -89,7 +90,6 @@ function startBibleWordSearchGame(levelsUrl) {
   let progress = null;
   let stars = loadStars();
 
-  // Глобальные функции для кнопок, чтобы избежать дублирования событий (БАГФИКС 2)
   window.__wsPrev = () => setCurrentLevel(progress.currentLevel - 1);
   window.__wsNext = () => setCurrentLevel(progress.currentLevel + 1);
   window.__wsReset = () => resetLevel();
@@ -153,7 +153,6 @@ function startBibleWordSearchGame(levelsUrl) {
     document.getElementById("ws-modal-close").addEventListener("click", closeLevelModal);
   }
 
-  // ===== Модалка уровней =====
   function openLevelModal() {
     const grid = document.getElementById("ws-levels-grid");
     grid.innerHTML = "";
@@ -198,16 +197,13 @@ function startBibleWordSearchGame(levelsUrl) {
     saveProgress(progress);
   }
 
-  // ===== ИСПРАВЛЕННЫЙ ГЕНЕРАТОР УРОВНЕЙ (БАГФИКС 1) =====
   function generateWordSearchLevel(wordsList, rows, cols) {
     let bestGrid = null;
     let bestPaths = null;
     let maxPlaced = -1;
 
-    // Сортируем слова от длинных к коротким
     const sortedWords = [...wordsList].sort((a,b) => b.length - a.length);
 
-    // Даем генератору 200 попыток, чтобы создать идеальное поле
     for (let attempt = 0; attempt < 200; attempt++) {
         const grid = Array(rows).fill(null).map(() => Array(cols).fill(''));
         const paths = [];
@@ -215,7 +211,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
         for (const word of sortedWords) {
             let placedPath = null;
-            // Пытаемся разместить конкретное слово 15 раз в разных местах
             for (let tryWord = 0; tryWord < 15; tryWord++) {
                 placedPath = placeWord(word, grid, rows, cols);
                 if (placedPath) break;
@@ -225,18 +220,16 @@ function startBibleWordSearchGame(levelsUrl) {
                 paths.push({ text: word, path: placedPath });
                 placedCount++;
             } else {
-                break; // Не смогли вместить слово — бросаем попытку, начинаем новую сетку
+                break; 
             }
         }
 
-        // Если удалось разместить ВСЕ слова — отлично!
         if (placedCount === sortedWords.length) {
             bestGrid = grid;
             bestPaths = paths;
             break;
         }
 
-        // Сохраняем лучший результат на случай, если идеальный не соберется
         if (placedCount > maxPlaced) {
             maxPlaced = placedCount;
             bestGrid = grid.map(row => [...row]);
@@ -244,7 +237,6 @@ function startBibleWordSearchGame(levelsUrl) {
         }
     }
 
-    // Заполняем оставшиеся пустые клетки случайными буквами
     const letters = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -254,25 +246,24 @@ function startBibleWordSearchGame(levelsUrl) {
         }
     }
 
-    // Возвращаем сетку в формате массива строк
     return { grid: bestGrid.map(row => row.join('')), words: bestPaths };
   }
 
   function placeWord(word, grid, rows, cols) {
       const cells = [];
       for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) cells.push([r,c]);
-      cells.sort(() => Math.random() - 0.5); // Перемешиваем стартовые точки
+      cells.sort(() => Math.random() - 0.5); 
 
       for (const [r, c] of cells) {
-          if (grid[r][c] === '' || grid[r][c] === word[0]) {
+          // ТЕПЕРЬ СТРОГО ПРОВЕРЯЕМ ТОЛЬКО ПУСТЫЕ КЛЕТКИ (БЕЗ ПЕРЕСЕЧЕНИЙ)
+          if (grid[r][c] === '') {
               const path = [[r, c]];
-              const original = grid[r][c];
               grid[r][c] = word[0];
 
               if (dfs(word, 1, r, c, path, grid, rows, cols)) {
                   return path;
               }
-              grid[r][c] = original; // Откатываем первую букву, если путь не нашелся
+              grid[r][c] = ''; 
           }
       }
       return null;
@@ -286,8 +277,8 @@ function startBibleWordSearchGame(levelsUrl) {
           const nr = r + dr, nc = c + dc;
           if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
               if (!path.some(([pr, pc]) => pr === nr && pc === nc)) {
-                  if (grid[nr][nc] === '' || grid[nr][nc] === word[charIdx]) {
-                      const original = grid[nr][nc];
+                  // ТЕПЕРЬ СТРОГО ПРОВЕРЯЕМ ТОЛЬКО ПУСТЫЕ КЛЕТКИ (БЕЗ ПЕРЕСЕЧЕНИЙ)
+                  if (grid[nr][nc] === '') {
                       grid[nr][nc] = word[charIdx];
                       path.push([nr, nc]);
 
@@ -296,7 +287,7 @@ function startBibleWordSearchGame(levelsUrl) {
                       }
 
                       path.pop();
-                      grid[nr][nc] = original; // Откатываем букву при неудаче
+                      grid[nr][nc] = ''; 
                   }
               }
           }
@@ -377,7 +368,8 @@ function startBibleWordSearchGame(levelsUrl) {
         if (color) {
           cell.classList.add("ws-cell--solved");
           cell.style.backgroundColor = color;
-          cell.disabled = true;
+          // ВОЗВРАЩЕНО: раз нет пересечений, блокируем найденные буквы
+          cell.disabled = true; 
         }
 
         board.appendChild(cell);
@@ -400,7 +392,9 @@ function startBibleWordSearchGame(levelsUrl) {
     const r = Number(el.dataset.r);
     const c = Number(el.dataset.c);
     const k = keyOf(r, c);
-    if (solvedCells.has(k)) return;
+    
+    // ВОЗВРАЩЕНО: запрещаем выделять найденные слова
+    if (solvedCells.has(k)) return; 
 
     if (selected.length === 0) {
       selected.push({ r, c, el });
@@ -476,7 +470,7 @@ function startBibleWordSearchGame(levelsUrl) {
     clearSelection();
     renderLevel(false);
 
-    if (solvedCells.size === level.rows * level.cols) {
+    if (solvedCells.size === level.rows * level.cols || levelState.found.length === level.words.length) {
       if (!isSolved(progress.currentLevel)) markSolved(progress.currentLevel);
       const lk = String(progress.currentLevel);
       if (!progress.levelRewarded?.[lk]) {
@@ -535,7 +529,7 @@ function startBibleWordSearchGame(levelsUrl) {
     w.path.forEach(([r, c]) => solvedCells.set(keyOf(r, c), color));
     renderLevel(false);
 
-    if (solvedCells.size === level.rows * level.cols) {
+    if (solvedCells.size === level.rows * level.cols || levelState.found.length === level.words.length) {
       if (!isSolved(progress.currentLevel)) markSolved(progress.currentLevel);
       const lk = String(progress.currentLevel);
       if (!progress.levelRewarded?.[lk]) {
@@ -555,7 +549,6 @@ function startBibleWordSearchGame(levelsUrl) {
     st.revealed = [];
     delete progress.completed[String(levelIndex)];
     
-    // Удаляем сгенерированную сетку, чтобы при сбросе она собралась заново и была случайной
     delete st.generatedGrid;
     delete st.generatedWords;
     
@@ -571,7 +564,8 @@ function startBibleWordSearchGame(levelsUrl) {
 
     const onDown = (e) => {
       const target = e.target.closest(".ws-cell");
-      if (!target || target.disabled) return;
+      // ВОЗВРАЩЕНО: нельзя начинать линию с заблокированной буквы
+      if (!target || target.disabled) return; 
       selecting = true;
       clearSelection();
       selectCell(target);
@@ -583,7 +577,8 @@ function startBibleWordSearchGame(levelsUrl) {
       if (!selecting) return;
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const target = el?.closest?.(".ws-cell");
-      if (!target || target.disabled) return;
+      // ВОЗВРАЩЕНО: нельзя тянуть линию через заблокированные буквы
+      if (!target || target.disabled) return; 
       selectCell(target);
       e.preventDefault();
     };
@@ -636,6 +631,18 @@ function startBibleWordSearchGame(levelsUrl) {
       if (!LEVELS.length) throw new Error("Пустой список уровней");
 
       progress = loadProgress() || defaultProgress(LEVELS.length);
+      
+      // Миграция: очищаем старые сетки с пересечениями при обновлении до версии 4
+      if (progress.version !== 4) {
+        if (progress.state) {
+          Object.keys(progress.state).forEach(k => {
+            delete progress.state[k].generatedGrid;
+            delete progress.state[k].generatedWords;
+          });
+        }
+        progress.version = 4;
+      }
+      
       progress.levelsCount = LEVELS.length;
       if (typeof progress.currentLevel !== "number") progress.currentLevel = 0;
       progress.currentLevel = clamp(progress.currentLevel, 0, LEVELS.length - 1);
