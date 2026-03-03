@@ -1,5 +1,5 @@
 // games/bible-wordsearch.js
-// Игра: поиск слов в сетке (без диагоналей, без пересечений слов, со стрелочками)
+// Игра: поиск слов в сетке (без диагоналей, без пересечений слов, с аккуратными стрелочками)
 
 function startBibleWordSearchGame(levelsUrl) {
   // Фикс для Telegram Web App
@@ -102,7 +102,7 @@ function startBibleWordSearchGame(levelsUrl) {
   function renderShell() {
     container.innerHTML = `
       <style>
-        #ws-board, .ws-cell { touch-action: none !important; user-select: none !important; -webkit-user-select: none !important; }
+        #ws-board, .ws-cell { touch-action: none !important; user-select: none !important; -webkit-user-select: none !important; position: relative;}
       </style>
       <div class="ws-wrap fade-in">
         <div class="ws-topbar">
@@ -322,7 +322,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function keyOf(r, c) { return `${r},${c}`; }
 
-  // ===== ОТРИСОВКА СТРЕЛОЧЕК (SVG) =====
+  // ===== ОТРИСОВКА СТРЕЛОЧЕК (SVG) - УЛУЧШЕННАЯ ВЕРСИЯ =====
   function drawLines() {
     const board = document.getElementById("ws-board");
     if (!board) return;
@@ -336,25 +336,26 @@ function startBibleWordSearchGame(levelsUrl) {
     if (!svg) {
       svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.id = "ws-svg-overlay";
+      svg.setAttribute("class", "ws-svg-layer");
       svg.style.position = "absolute";
       svg.style.top = "0";
       svg.style.left = "0";
       svg.style.width = "100%";
       svg.style.height = "100%";
       svg.style.pointerEvents = "none";
-      svg.style.zIndex = "10";
+      svg.style.zIndex = "5"; // Чуть ниже букв, чтобы точно не мешать
 
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      // Изящные, менее массивные наконечники стрелок
       defs.innerHTML = `
-        <marker id="arrow-found" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
-          <path d="M0,0 L5,2.5 L0,5 z" fill="rgba(0,0,0,0.30)" />
+        <marker id="arrow-found" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 L1.5,3 z" fill="rgba(0,0,0,0.15)" /> 
         </marker>
-        <marker id="arrow-sel" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
-          <path d="M0,0 L5,2.5 L0,5 z" fill="rgba(79,70,229,0.7)" />
+        <marker id="arrow-sel" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 L1.5,3 z" fill="rgba(79,70,229,0.5)" />
         </marker>
       `;
       svg.appendChild(defs);
-      board.style.position = "relative";
       board.appendChild(svg);
     }
 
@@ -368,7 +369,7 @@ function startBibleWordSearchGame(levelsUrl) {
       return `${cell.offsetLeft + cell.offsetWidth / 2},${cell.offsetTop + cell.offsetHeight / 2}`;
     };
 
-    // Рисуем линии для найденных слов
+    // Отрисовка найденных слов (очень тускло, не мешает чтению)
     const wordsByText = new Map(level.words.map(w => [w.text, w]));
     const found = levelState.found || [];
 
@@ -380,28 +381,28 @@ function startBibleWordSearchGame(levelsUrl) {
         const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
         polyline.setAttribute("points", points.join(" "));
         polyline.setAttribute("fill", "none");
-        polyline.setAttribute("stroke", "rgba(0, 0, 0, 0.18)"); // мягкая полупрозрачная линия
-        polyline.setAttribute("stroke-width", "6");
+        polyline.setAttribute("stroke", "rgba(0, 0, 0, 0.1)"); // Едва заметная тень
+        polyline.setAttribute("stroke-width", "3"); // Тоньше
         polyline.setAttribute("stroke-linecap", "round");
         polyline.setAttribute("stroke-linejoin", "round");
         polyline.setAttribute("marker-end", "url(#arrow-found)");
-        polyline.setAttribute("class", "ws-path-line");
+        polyline.setAttribute("class", "ws-path-line ws-path-found");
         svg.appendChild(polyline);
       }
     });
 
-    // Рисуем линию текущего выделения
+    // Отрисовка текущего выделения (аккуратная линия)
     if (selected && selected.length > 1) {
       const points = selected.map(x => getCenter(x.r, x.c)).filter(Boolean);
       const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
       polyline.setAttribute("points", points.join(" "));
       polyline.setAttribute("fill", "none");
-      polyline.setAttribute("stroke", "rgba(79,70,229,0.5)"); // цвет акцента выделения
-      polyline.setAttribute("stroke-width", "6");
+      polyline.setAttribute("stroke", "rgba(79,70,229,0.4)"); // Мягкий фиолетовый
+      polyline.setAttribute("stroke-width", "3"); // Тоньше
       polyline.setAttribute("stroke-linecap", "round");
       polyline.setAttribute("stroke-linejoin", "round");
       polyline.setAttribute("marker-end", "url(#arrow-sel)");
-      polyline.setAttribute("class", "ws-path-line");
+      polyline.setAttribute("class", "ws-path-line ws-path-selecting");
       svg.appendChild(polyline);
     }
   }
@@ -444,6 +445,7 @@ function startBibleWordSearchGame(levelsUrl) {
         cell.textContent = ch;
         cell.dataset.r = String(r);
         cell.dataset.c = String(c);
+        cell.style.zIndex = "10"; // Буквы всегда поверх линий
 
         const color = solvedCells.get(keyOf(r, c));
         if (color) {
