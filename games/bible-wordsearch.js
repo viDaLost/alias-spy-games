@@ -22,14 +22,8 @@ function startBibleWordSearchGame(levelsUrl) {
 
   // Палитра мягких цветов для выделения слов
   const WORD_COLORS = [
-    '#dbeafe', // нежно-голубой
-    '#dcfce7', // светло-зеленый
-    '#fef08a', // мягкий желтый
-    '#fce7f3', // светло-розовый
-    '#f3e8ff', // лавандовый
-    '#ffedd5', // персиковый
-    '#ccfbf1', // мятный
-    '#fee2e2'  // бледно-красный
+    '#dbeafe', '#dcfce7', '#fef08a', '#fce7f3', 
+    '#f3e8ff', '#ffedd5', '#ccfbf1', '#fee2e2'
   ];
 
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -52,7 +46,7 @@ function startBibleWordSearchGame(levelsUrl) {
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
-      state: {}, // хранит найденные слова и сгенерированные сетки
+      state: {}, 
       levelsCount,
     };
   }
@@ -95,6 +89,16 @@ function startBibleWordSearchGame(levelsUrl) {
   let progress = null;
   let stars = loadStars();
 
+  // Глобальные функции для кнопок, чтобы избежать дублирования событий (БАГФИКС 2)
+  window.__wsPrev = () => setCurrentLevel(progress.currentLevel - 1);
+  window.__wsNext = () => setCurrentLevel(progress.currentLevel + 1);
+  window.__wsReset = () => resetLevel();
+  window.__wsHint = () => {
+    const st = getLevelState(progress.currentLevel);
+    const rawLevel = ensureLevelGenerated(progress.currentLevel);
+    hint(rawLevel, st);
+  };
+
   // ===== UI helpers =====
   function renderShell() {
     container.innerHTML = `
@@ -116,12 +120,12 @@ function startBibleWordSearchGame(levelsUrl) {
           <div class="ws-levelrow">
             <div id="ws-level-btn" class="ws-level-btn">
                <div>Тема: <b id="ws-theme-label">...</b> <span class="ws-level-num">(Ур. <span id="ws-lvl-label">1</span>)</span></div>
-               <div style="font-size:0.85rem; opacity:0.8;">📋 Меню уровней</div>
+               <div style="font-size:0.85rem; opacity:0.8;">📋 Меню</div>
             </div>
           </div>
           <div class="ws-actions">
-            <button class="start-button" id="ws-hint">💡 Подсказка (-${HINT_COST}⭐)</button>
-            <button class="wrong-button" id="ws-reset">♻️ Сброс</button>
+            <button class="start-button" id="ws-hint" onclick="window.__wsHint()">💡 Подсказка (-${HINT_COST}⭐)</button>
+            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс</button>
           </div>
           <div class="ws-progress" id="ws-progress"></div>
         </div>
@@ -129,8 +133,8 @@ function startBibleWordSearchGame(levelsUrl) {
         <div class="ws-board" id="ws-board" aria-label="Игровое поле"></div>
 
         <div class="ws-bottom">
-          <button class="start-button" id="ws-prev">⬅️ Пред.</button>
-          <button class="start-button" id="ws-next">След. ➡️</button>
+          <button class="start-button" id="ws-prev" onclick="window.__wsPrev()">⬅️ Пред.</button>
+          <button class="start-button" id="ws-next" onclick="window.__wsNext()">След. ➡️</button>
         </div>
 
         <div id="ws-level-modal" class="ws-modal hidden">
@@ -194,106 +198,139 @@ function startBibleWordSearchGame(levelsUrl) {
     saveProgress(progress);
   }
 
-  // ===== ГЕНЕРАТОР УРОВНЕЙ =====
+  // ===== ИСПРАВЛЕННЫЙ ГЕНЕРАТОР УРОВНЕЙ (БАГФИКС 1) =====
   function generateWordSearchLevel(wordsList, rows, cols) {
-    const grid = Array(rows).fill(null).map(() => Array(cols).fill(''));
-    const paths = [];
-    const dirs = [[0,1], [1,0], [0,-1], [-1,0]]; // право, низ, лево, верх
+    let bestGrid = null;
+    let bestPaths = null;
+    let maxPlaced = -1;
 
-    function solve(wordIdx) {
-      if (wordIdx === wordsList.length) return true;
-      const word = wordsList[wordIdx];
+    // Сортируем слова от длинных к коротким
+    const sortedWords = [...wordsList].sort((a,b) => b.length - a.length);
+
+    // Даем генератору 200 попыток, чтобы создать идеальное поле
+    for (let attempt = 0; attempt < 200; attempt++) {
+        const grid = Array(rows).fill(null).map(() => Array(cols).fill(''));
+        const paths = [];
+        let placedCount = 0;
+
+        for (const word of sortedWords) {
+            let placedPath = null;
+            // Пытаемся разместить конкретное слово 15 раз в разных местах
+            for (let tryWord = 0; tryWord < 15; tryWord++) {
+                placedPath = placeWord(word, grid, rows, cols);
+                if (placedPath) break;
+            }
+            
+            if (placedPath) {
+                paths.push({ text: word, path: placedPath });
+                placedCount++;
+            } else {
+                break; // Не смогли вместить слово — бросаем попытку, начинаем новую сетку
+            }
+        }
+
+        // Если удалось разместить ВСЕ слова — отлично!
+        if (placedCount === sortedWords.length) {
+            bestGrid = grid;
+            bestPaths = paths;
+            break;
+        }
+
+        // Сохраняем лучший результат на случай, если идеальный не соберется
+        if (placedCount > maxPlaced) {
+            maxPlaced = placedCount;
+            bestGrid = grid.map(row => [...row]);
+            bestPaths = [...paths];
+        }
+    }
+
+    // Заполняем оставшиеся пустые клетки случайными буквами
+    const letters = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (bestGrid[r][c] === '') {
+                bestGrid[r][c] = letters[Math.floor(Math.random() * letters.length)];
+            }
+        }
+    }
+
+    // Возвращаем сетку в формате массива строк
+    return { grid: bestGrid.map(row => row.join('')), words: bestPaths };
+  }
+
+  function placeWord(word, grid, rows, cols) {
       const cells = [];
-      for(let r=0; r<rows; r++) for(let c=0; c<cols; c++) cells.push([r,c]);
-      cells.sort(() => Math.random() - 0.5); // случайный старт
+      for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) cells.push([r,c]);
+      cells.sort(() => Math.random() - 0.5); // Перемешиваем стартовые точки
 
       for (const [r, c] of cells) {
-        if (grid[r][c] === '' || grid[r][c] === word[0]) {
-          const path = [[r, c]];
-          const original = grid[r][c];
-          grid[r][c] = word[0];
+          if (grid[r][c] === '' || grid[r][c] === word[0]) {
+              const path = [[r, c]];
+              const original = grid[r][c];
+              grid[r][c] = word[0];
 
-          if (dfs(word, 1, r, c, path)) {
-            paths.push({ text: word, path: [...path] });
-            return true;
+              if (dfs(word, 1, r, c, path, grid, rows, cols)) {
+                  return path;
+              }
+              grid[r][c] = original; // Откатываем первую букву, если путь не нашелся
           }
-          grid[r][c] = original; // откат
-        }
       }
-      return false;
-    }
+      return null;
+  }
 
-    function dfs(word, charIdx, r, c, path) {
+  function dfs(word, charIdx, r, c, path, grid, rows, cols) {
       if (charIdx === word.length) return true;
-      const shuffledDirs = [...dirs].sort(() => Math.random() - 0.5);
+      const dirs = [[0,1], [1,0], [0,-1], [-1,0]].sort(() => Math.random() - 0.5);
 
-      for (const [dr, dc] of shuffledDirs) {
-        const nr = r + dr, nc = c + dc;
-        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-          if (!path.some(([pr, pc]) => pr === nr && pc === nc)) {
-            if (grid[nr][nc] === '' || grid[nr][nc] === word[charIdx]) {
-              const original = grid[nr][nc];
-              grid[nr][nc] = word[charIdx];
-              path.push([nr, nc]);
+      for (const [dr, dc] of dirs) {
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+              if (!path.some(([pr, pc]) => pr === nr && pc === nc)) {
+                  if (grid[nr][nc] === '' || grid[nr][nc] === word[charIdx]) {
+                      const original = grid[nr][nc];
+                      grid[nr][nc] = word[charIdx];
+                      path.push([nr, nc]);
 
-              if (dfs(word, charIdx + 1, nr, nc, path)) return true;
+                      if (dfs(word, charIdx + 1, nr, nc, path, grid, rows, cols)) {
+                          return true;
+                      }
 
-              path.pop();
-              grid[nr][nc] = original; // откат
-            }
+                      path.pop();
+                      grid[nr][nc] = original; // Откатываем букву при неудаче
+                  }
+              }
           }
-        }
       }
       return false;
-    }
-
-    wordsList.sort((a,b) => b.length - a.length); // сначала длинные
-    
-    let success = false;
-    // Даем алгоритму 50 попыток собрать сетку
-    for(let attempt=0; attempt<50; attempt++) {
-      paths.length = 0;
-      for(let r=0; r<rows; r++) for(let c=0; c<cols; c++) grid[r][c] = '';
-      if (solve(0)) { success = true; break; }
-    }
-    if (!success) return null;
-
-    // Заполняем пустоты случайными буквами
-    const letters = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
-    const finalGrid = grid.map(row => row.map(cell => cell === '' ? letters[Math.floor(Math.random() * letters.length)] : cell).join(''));
-    return { grid: finalGrid, words: paths };
   }
 
   function ensureLevelGenerated(levelIndex) {
     const level = LEVELS[levelIndex];
-    if (level.grid && level.words) return level; // Уровень уже собран
+    if (level.grid && level.words && level.grid.length > 0 && !level.wordsList) return level; 
 
     const st = getLevelState(levelIndex);
-    // Если мы уже генерировали эту сетку ранее, берем из памяти (чтобы пути не менялись при перезагрузке)
     if (st.generatedGrid && st.generatedWords) {
       level.grid = st.generatedGrid;
       level.words = st.generatedWords;
       return level;
     }
 
-    // Иначе генерируем новую сетку
-    const result = generateWordSearchLevel(level.wordsList, level.rows || 8, level.cols || 8);
+    const list = level.wordsList || (level.words ? level.words.map(w => w.text) : []);
+    const result = generateWordSearchLevel(list, level.rows || 8, level.cols || 8);
     if (result) {
       level.grid = result.grid;
       level.words = result.words;
       st.generatedGrid = result.grid;
       st.generatedWords = result.words;
       saveProgress(progress);
-    } else {
-      console.error("Не удалось сгенерировать уровень", levelIndex);
     }
     return level;
   }
 
   // ===== Game logic =====
   let selecting = false;
-  let selected = []; // list of {r,c,el}
-  let solvedCells = new Map(); // "r,c" -> color
+  let selected = []; 
+  let solvedCells = new Map(); 
 
   function keyOf(r, c) { return `${r},${c}`; }
 
@@ -313,7 +350,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
     const byText = new Map(level.words.map(w => [w.text, w]));
     
-    // Определяем цвета для уже найденных слов
     level.words.forEach((w, i) => {
       if ((levelState.found || []).includes(w.text)) {
          const color = WORD_COLORS[i % WORD_COLORS.length];
@@ -484,7 +520,6 @@ function startBibleWordSearchGame(levelsUrl) {
     }
 
     const found = new Set(levelState.found || []);
-    // Находим нераскрытые слова вместе с их индексами, чтобы определить цвет
     const remaining = level.words.map((w, index) => ({w, index})).filter(item => !found.has(item.w.text));
     if (!remaining.length) return;
 
@@ -519,6 +554,11 @@ function startBibleWordSearchGame(levelsUrl) {
     st.found = [];
     st.revealed = [];
     delete progress.completed[String(levelIndex)];
+    
+    // Удаляем сгенерированную сетку, чтобы при сбросе она собралась заново и была случайной
+    delete st.generatedGrid;
+    delete st.generatedWords;
+    
     saveProgress(progress);
     renderLevel();
   }
@@ -528,11 +568,6 @@ function startBibleWordSearchGame(levelsUrl) {
     if (!board) return;
 
     const st = getLevelState(progress.currentLevel);
-
-    document.getElementById("ws-prev")?.addEventListener("click", () => setCurrentLevel(progress.currentLevel - 1));
-    document.getElementById("ws-next")?.addEventListener("click", () => setCurrentLevel(progress.currentLevel + 1));
-    document.getElementById("ws-reset")?.addEventListener("click", resetLevel);
-    document.getElementById("ws-hint")?.addEventListener("click", () => hint(level, st));
 
     const onDown = (e) => {
       const target = e.target.closest(".ws-cell");
