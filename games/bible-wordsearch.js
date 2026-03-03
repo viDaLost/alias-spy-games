@@ -2,26 +2,35 @@
 // Игра: поиск слов в сетке (без диагоналей, путь может изгибаться под прямым углом)
 
 function startBibleWordSearchGame(levelsUrl) {
-  // --- ФИКС ДЛЯ TELEGRAM WEB APP (Блокировка сворачивания шторки) ---
+  // Фикс для Telegram Web App (блокировка шторки)
   if (window.Telegram && window.Telegram.WebApp) {
     const twa = window.Telegram.WebApp;
-    twa.expand(); // Раскрываем на весь экран
-    if (twa.disableVerticalSwipes) {
-      twa.disableVerticalSwipes(); // Запрещаем закрытие свайпом вниз
-    }
+    twa.expand();
+    if (twa.disableVerticalSwipes) twa.disableVerticalSwipes();
   }
-  // -----------------------------------------------------------------
 
   const container = document.getElementById("game-container");
   if (!container) return;
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
-  const STORAGE_KEY = `bible_wordsearch_progress_v1_${tgUser.id}`;
+  const STORAGE_KEY = `bible_wordsearch_progress_v2_${tgUser.id}`;
   const STARS_KEY = `bible_stars_v1_${tgUser.id}`;
 
-  const HINT_COST = 4;          // подсказка стоит 4⭐
-  const STAR_PER_WORD = 2;      // за найденное слово +2⭐
-  const STAR_PER_LEVEL = 8;     // за прохождение уровня +8⭐ (1 раз за уровень)
+  const HINT_COST = 4;
+  const STAR_PER_WORD = 2;
+  const STAR_PER_LEVEL = 8;
+
+  // Палитра мягких цветов для выделения слов
+  const WORD_COLORS = [
+    '#dbeafe', // нежно-голубой
+    '#dcfce7', // светло-зеленый
+    '#fef08a', // мягкий желтый
+    '#fce7f3', // светло-розовый
+    '#f3e8ff', // лавандовый
+    '#ffedd5', // персиковый
+    '#ccfbf1', // мятный
+    '#fee2e2'  // бледно-красный
+  ];
 
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   const now = () => Date.now();
@@ -31,15 +40,11 @@ function startBibleWordSearchGame(levelsUrl) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       return JSON.parse(raw);
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   function saveProgress(p) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...p, _ts: now() }));
-    } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...p, _ts: now() })); } catch {}
   }
 
   function defaultProgress(levelsCount) {
@@ -47,8 +52,7 @@ function startBibleWordSearchGame(levelsUrl) {
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
-      // per-level state: { found: [word], revealed: [word] }
-      state: {},
+      state: {}, // хранит найденные слова и сгенерированные сетки
       levelsCount,
     };
   }
@@ -57,9 +61,7 @@ function startBibleWordSearchGame(levelsUrl) {
     try {
       const n = Number(localStorage.getItem(STARS_KEY));
       return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
-    } catch {
-      return 0;
-    }
+    } catch { return 0; }
   }
 
   function saveStars(n) {
@@ -97,19 +99,14 @@ function startBibleWordSearchGame(levelsUrl) {
   function renderShell() {
     container.innerHTML = `
       <style>
-        #ws-board, .ws-cell {
-          touch-action: none !important;
-          user-select: none !important;
-          -webkit-user-select: none !important;
-        }
+        #ws-board, .ws-cell { touch-action: none !important; user-select: none !important; -webkit-user-select: none !important; }
       </style>
       <div class="ws-wrap fade-in">
         <div class="ws-topbar">
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+          <button class="back-button" style="width:auto; padding: 10px 14px; margin:0;" onclick="goToMainMenu()">⬅️ Назад</button>
           <div class="ws-title">
-            <div class="ws-title__name">🔎 Поиск библейских слов</div>
+            <div class="ws-title__name">Поиск слов</div>
             <div class="ws-title__meta">
-              <span id="ws-meta"></span>
               <span class="ws-stars">⭐ <b id="ws-stars">${stars}</b></span>
             </div>
           </div>
@@ -117,12 +114,14 @@ function startBibleWordSearchGame(levelsUrl) {
 
         <div class="ws-panel">
           <div class="ws-levelrow">
-            <label class="ws-levelrow__label" for="ws-level-select">Уровень:</label>
-            <select id="ws-level-select" class="ws-levelrow__select" aria-label="Выбор уровня"></select>
+            <div id="ws-level-btn" class="ws-level-btn">
+               <div>Тема: <b id="ws-theme-label">...</b> <span class="ws-level-num">(Ур. <span id="ws-lvl-label">1</span>)</span></div>
+               <div style="font-size:0.85rem; opacity:0.8;">📋 Меню уровней</div>
+            </div>
           </div>
           <div class="ws-actions">
             <button class="start-button" id="ws-hint">💡 Подсказка (-${HINT_COST}⭐)</button>
-            <button class="wrong-button" id="ws-reset">♻️ Сброс уровня</button>
+            <button class="wrong-button" id="ws-reset">♻️ Сброс</button>
           </div>
           <div class="ws-progress" id="ws-progress"></div>
         </div>
@@ -130,18 +129,53 @@ function startBibleWordSearchGame(levelsUrl) {
         <div class="ws-board" id="ws-board" aria-label="Игровое поле"></div>
 
         <div class="ws-bottom">
-          <button class="start-button" id="ws-prev">⬅️ Пред. уровень</button>
-          <button class="start-button" id="ws-next">След. уровень ➡️</button>
+          <button class="start-button" id="ws-prev">⬅️ Пред.</button>
+          <button class="start-button" id="ws-next">След. ➡️</button>
+        </div>
+
+        <div id="ws-level-modal" class="ws-modal hidden">
+           <div class="ws-modal-content">
+              <div class="ws-modal-header">
+                <h3>Выбор уровня</h3>
+                <button class="ws-modal-close" id="ws-modal-close">✖</button>
+              </div>
+              <div class="ws-levels-grid" id="ws-levels-grid"></div>
+           </div>
         </div>
       </div>
     `;
+
+    document.getElementById("ws-level-btn").addEventListener("click", openLevelModal);
+    document.getElementById("ws-modal-close").addEventListener("click", closeLevelModal);
+  }
+
+  // ===== Модалка уровней =====
+  function openLevelModal() {
+    const grid = document.getElementById("ws-levels-grid");
+    grid.innerHTML = "";
+    for (let i = 0; i < LEVELS.length; i++) {
+      const btn = document.createElement("button");
+      btn.className = "ws-level-item";
+      if (progress.currentLevel === i) btn.classList.add("active");
+      if (isSolved(i)) btn.classList.add("completed");
+      
+      btn.textContent = i + 1;
+      btn.addEventListener("click", () => {
+        closeLevelModal();
+        setCurrentLevel(i);
+      });
+      grid.appendChild(btn);
+    }
+    document.getElementById("ws-level-modal").classList.remove("hidden");
+  }
+
+  function closeLevelModal() {
+    document.getElementById("ws-level-modal").classList.add("hidden");
   }
 
   function getLevelState(levelIndex) {
     const k = String(levelIndex);
-    if (!progress.state[k]) {
-      progress.state[k] = { found: [], revealed: [] };
-    }
+    if (!progress.state[k]) progress.state[k] = { found: [], revealed: [] };
     return progress.state[k];
   }
 
@@ -160,56 +194,135 @@ function startBibleWordSearchGame(levelsUrl) {
     saveProgress(progress);
   }
 
+  // ===== ГЕНЕРАТОР УРОВНЕЙ =====
+  function generateWordSearchLevel(wordsList, rows, cols) {
+    const grid = Array(rows).fill(null).map(() => Array(cols).fill(''));
+    const paths = [];
+    const dirs = [[0,1], [1,0], [0,-1], [-1,0]]; // право, низ, лево, верх
+
+    function solve(wordIdx) {
+      if (wordIdx === wordsList.length) return true;
+      const word = wordsList[wordIdx];
+      const cells = [];
+      for(let r=0; r<rows; r++) for(let c=0; c<cols; c++) cells.push([r,c]);
+      cells.sort(() => Math.random() - 0.5); // случайный старт
+
+      for (const [r, c] of cells) {
+        if (grid[r][c] === '' || grid[r][c] === word[0]) {
+          const path = [[r, c]];
+          const original = grid[r][c];
+          grid[r][c] = word[0];
+
+          if (dfs(word, 1, r, c, path)) {
+            paths.push({ text: word, path: [...path] });
+            return true;
+          }
+          grid[r][c] = original; // откат
+        }
+      }
+      return false;
+    }
+
+    function dfs(word, charIdx, r, c, path) {
+      if (charIdx === word.length) return true;
+      const shuffledDirs = [...dirs].sort(() => Math.random() - 0.5);
+
+      for (const [dr, dc] of shuffledDirs) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+          if (!path.some(([pr, pc]) => pr === nr && pc === nc)) {
+            if (grid[nr][nc] === '' || grid[nr][nc] === word[charIdx]) {
+              const original = grid[nr][nc];
+              grid[nr][nc] = word[charIdx];
+              path.push([nr, nc]);
+
+              if (dfs(word, charIdx + 1, nr, nc, path)) return true;
+
+              path.pop();
+              grid[nr][nc] = original; // откат
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    wordsList.sort((a,b) => b.length - a.length); // сначала длинные
+    
+    let success = false;
+    // Даем алгоритму 50 попыток собрать сетку
+    for(let attempt=0; attempt<50; attempt++) {
+      paths.length = 0;
+      for(let r=0; r<rows; r++) for(let c=0; c<cols; c++) grid[r][c] = '';
+      if (solve(0)) { success = true; break; }
+    }
+    if (!success) return null;
+
+    // Заполняем пустоты случайными буквами
+    const letters = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЭЮЯ";
+    const finalGrid = grid.map(row => row.map(cell => cell === '' ? letters[Math.floor(Math.random() * letters.length)] : cell).join(''));
+    return { grid: finalGrid, words: paths };
+  }
+
+  function ensureLevelGenerated(levelIndex) {
+    const level = LEVELS[levelIndex];
+    if (level.grid && level.words) return level; // Уровень уже собран
+
+    const st = getLevelState(levelIndex);
+    // Если мы уже генерировали эту сетку ранее, берем из памяти (чтобы пути не менялись при перезагрузке)
+    if (st.generatedGrid && st.generatedWords) {
+      level.grid = st.generatedGrid;
+      level.words = st.generatedWords;
+      return level;
+    }
+
+    // Иначе генерируем новую сетку
+    const result = generateWordSearchLevel(level.wordsList, level.rows || 8, level.cols || 8);
+    if (result) {
+      level.grid = result.grid;
+      level.words = result.words;
+      st.generatedGrid = result.grid;
+      st.generatedWords = result.words;
+      saveProgress(progress);
+    } else {
+      console.error("Не удалось сгенерировать уровень", levelIndex);
+    }
+    return level;
+  }
+
   // ===== Game logic =====
   let selecting = false;
   let selected = []; // list of {r,c,el}
-  let solvedCells = new Set(); // "r,c"
+  let solvedCells = new Map(); // "r,c" -> color
 
   function keyOf(r, c) { return `${r},${c}`; }
 
   function buildBoard(level, levelState) {
     const board = document.getElementById("ws-board");
-    const meta = document.getElementById("ws-meta");
     const prog = document.getElementById("ws-progress");
-    const levelSelect = document.getElementById("ws-level-select");
-    if (!board || !meta || !prog || !levelSelect) return;
+    const themeLabel = document.getElementById("ws-theme-label");
+    const lvlLabel = document.getElementById("ws-lvl-label");
+    if (!board || !prog) return;
 
-    meta.textContent = `Уровень ${progress.currentLevel + 1} из ${LEVELS.length} • ${level.theme}${level.note ? " • " + level.note : ""}`;
+    themeLabel.textContent = level.theme || "Загадка";
+    lvlLabel.textContent = progress.currentLevel + 1;
 
-    // Reset per-render
     selecting = false;
     selected = [];
-    solvedCells = new Set();
+    solvedCells.clear();
 
-    // Mark solved cells from found words
     const byText = new Map(level.words.map(w => [w.text, w]));
-    (levelState.found || []).forEach(t => {
-      const w = byText.get(t);
-      if (!w) return;
-      w.path.forEach(([r, c]) => solvedCells.add(keyOf(r, c)));
+    
+    // Определяем цвета для уже найденных слов
+    level.words.forEach((w, i) => {
+      if ((levelState.found || []).includes(w.text)) {
+         const color = WORD_COLORS[i % WORD_COLORS.length];
+         w.path.forEach(([r, c]) => solvedCells.set(keyOf(r, c), color));
+      }
     });
 
-    // Только количество слов (без списка)
-    prog.textContent = `Слов на уровне: ${level.words.length} • Найдено: ${(levelState.found || []).length}/${level.words.length}`;
+    prog.textContent = `Слов: ${level.words.length} • Найдено: ${(levelState.found || []).length}/${level.words.length}`;
 
-    // Dropdown уровней
-    if (!levelSelect.dataset.ready) {
-      levelSelect.innerHTML = "";
-      for (let i = 0; i < LEVELS.length; i++) {
-        const opt = document.createElement("option");
-        opt.value = String(i);
-        opt.textContent = `Уровень ${i + 1}`;
-        levelSelect.appendChild(opt);
-      }
-      levelSelect.dataset.ready = "1";
-      levelSelect.addEventListener("change", () => {
-        const idx = Number(levelSelect.value);
-        if (Number.isFinite(idx)) setCurrentLevel(idx);
-      });
-    }
-    levelSelect.value = String(progress.currentLevel);
-
-    // Build grid
     board.style.setProperty("--ws-cols", level.cols);
     board.innerHTML = "";
 
@@ -224,8 +337,10 @@ function startBibleWordSearchGame(levelsUrl) {
         cell.dataset.r = String(r);
         cell.dataset.c = String(c);
 
-        if (solvedCells.has(keyOf(r, c))) {
+        const color = solvedCells.get(keyOf(r, c));
+        if (color) {
           cell.classList.add("ws-cell--solved");
+          cell.style.backgroundColor = color;
           cell.disabled = true;
         }
 
@@ -258,7 +373,6 @@ function startBibleWordSearchGame(levelsUrl) {
     }
 
     const last = selected[selected.length - 1];
-    // Backtrack
     if (selected.length >= 2) {
       const prev = selected[selected.length - 2];
       if (prev.r === r && prev.c === c) {
@@ -268,18 +382,11 @@ function startBibleWordSearchGame(levelsUrl) {
       }
     }
 
-    // No repeats
     if (selected.some(x => x.r === r && x.c === c)) return;
-
-    // Must be adjacent
     if (!cellsAreAdjacent(last, { r, c })) return;
 
     selected.push({ r, c, el });
     el.classList.add("ws-cell--sel");
-  }
-
-  function selectionToText() {
-    return selected.map(x => x.el.textContent).join("");
   }
 
   function tryCommitSelection(level, levelState) {
@@ -287,30 +394,31 @@ function startBibleWordSearchGame(levelsUrl) {
       clearSelection();
       return;
     }
-    const text = selectionToText();
+    const text = selected.map(x => x.el.textContent).join("");
     const rev = text.split("").reverse().join("");
 
     const remaining = new Set(level.words.map(w => w.text));
     (levelState.found || []).forEach(t => remaining.delete(t));
 
     let matched = null;
-    for (const w of level.words) {
+    let matchIndex = -1;
+    for (let i = 0; i < level.words.length; i++) {
+      const w = level.words[i];
       if (!remaining.has(w.text)) continue;
       if (w.text === text || w.text === rev) {
-        // Also verify exact path (same coordinates order OR reverse)
         const coords = selected.map(x => [x.r, x.c]);
         const p = w.path;
-        const same = p.length === coords.length && p.every((pc, i) => pc[0] === coords[i][0] && pc[1] === coords[i][1]);
-        const sameRev = p.length === coords.length && p.every((pc, i) => pc[0] === coords[coords.length - 1 - i][0] && pc[1] === coords[coords.length - 1 - i][1]);
+        const same = p.length === coords.length && p.every((pc, idx) => pc[0] === coords[idx][0] && pc[1] === coords[idx][1]);
+        const sameRev = p.length === coords.length && p.every((pc, idx) => pc[0] === coords[coords.length - 1 - idx][0] && pc[1] === coords[coords.length - 1 - idx][1]);
         if (same || sameRev) {
           matched = w;
+          matchIndex = i;
           break;
         }
       }
     }
 
     if (!matched) {
-      // small shake
       const board = document.getElementById("ws-board");
       if (board) {
         board.classList.remove("ws-shake");
@@ -322,25 +430,18 @@ function startBibleWordSearchGame(levelsUrl) {
     }
 
     const wasAlreadyFound = (levelState.found || []).includes(matched.text);
-
-    // Mark found
     levelState.found = Array.from(new Set([...(levelState.found || []), matched.text]));
     saveProgress(progress);
 
-    // ⭐ Награда за слово (только 1 раз)
     if (!wasAlreadyFound) addStars(STAR_PER_WORD);
 
-    // Lock cells
-    matched.path.forEach(([r, c]) => solvedCells.add(keyOf(r, c)));
+    const color = WORD_COLORS[matchIndex % WORD_COLORS.length];
+    matched.path.forEach(([r, c]) => solvedCells.set(keyOf(r, c), color));
     clearSelection();
     renderLevel(false);
 
-    // Completed?
     if (solvedCells.size === level.rows * level.cols) {
-      if (!isSolved(progress.currentLevel)) {
-        markSolved(progress.currentLevel);
-      }
-      // ⭐ Награда за уровень (1 раз)
+      if (!isSolved(progress.currentLevel)) markSolved(progress.currentLevel);
       const lk = String(progress.currentLevel);
       if (!progress.levelRewarded?.[lk]) {
         if (!progress.levelRewarded) progress.levelRewarded = {};
@@ -361,7 +462,7 @@ function startBibleWordSearchGame(levelsUrl) {
         <div class="ws-win__text">Тема: <b>${level.theme}</b></div>
         <div class="ws-win__actions">
           <button class="start-button" id="ws-win-next">Следующий уровень ➡️</button>
-          <button class="back-button" id="ws-win-menu">⬅️ В меню</button>
+          <button class="back-button" id="ws-win-menu">⬅️ В меню игры</button>
         </div>
       </div>
     `;
@@ -377,31 +478,30 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function hint(level, levelState) {
-    // Подсказка: всегда открывает одно слово целиком
     if (stars < HINT_COST) {
       toast(`Нужно ${HINT_COST}⭐`);
       return;
     }
 
     const found = new Set(levelState.found || []);
-    const remaining = level.words.filter(w => !found.has(w.text));
+    // Находим нераскрытые слова вместе с их индексами, чтобы определить цвет
+    const remaining = level.words.map((w, index) => ({w, index})).filter(item => !found.has(item.w.text));
     if (!remaining.length) return;
 
-    // списываем стоимость
     addStars(-HINT_COST);
 
-    const w = remaining[Math.floor(Math.random() * remaining.length)];
+    const match = remaining[Math.floor(Math.random() * remaining.length)];
+    const w = match.w;
     levelState.revealed = Array.from(new Set([...(levelState.revealed || []), w.text]));
     levelState.found = Array.from(new Set([...(levelState.found || []), w.text]));
     saveProgress(progress);
-    w.path.forEach(([r, c]) => solvedCells.add(keyOf(r, c)));
+    
+    const color = WORD_COLORS[match.index % WORD_COLORS.length];
+    w.path.forEach(([r, c]) => solvedCells.set(keyOf(r, c), color));
     renderLevel(false);
 
-    // завершение уровня (и награды)
     if (solvedCells.size === level.rows * level.cols) {
-      if (!isSolved(progress.currentLevel)) {
-        markSolved(progress.currentLevel);
-      }
+      if (!isSolved(progress.currentLevel)) markSolved(progress.currentLevel);
       const lk = String(progress.currentLevel);
       if (!progress.levelRewarded?.[lk]) {
         if (!progress.levelRewarded) progress.levelRewarded = {};
@@ -418,7 +518,6 @@ function startBibleWordSearchGame(levelsUrl) {
     const st = getLevelState(levelIndex);
     st.found = [];
     st.revealed = [];
-    // Не снимаем флаг "completed" — если хочешь, можно снять вручную ниже.
     delete progress.completed[String(levelIndex)];
     saveProgress(progress);
     renderLevel();
@@ -430,13 +529,11 @@ function startBibleWordSearchGame(levelsUrl) {
 
     const st = getLevelState(progress.currentLevel);
 
-    // Controls
     document.getElementById("ws-prev")?.addEventListener("click", () => setCurrentLevel(progress.currentLevel - 1));
     document.getElementById("ws-next")?.addEventListener("click", () => setCurrentLevel(progress.currentLevel + 1));
     document.getElementById("ws-reset")?.addEventListener("click", resetLevel);
     document.getElementById("ws-hint")?.addEventListener("click", () => hint(level, st));
 
-    // Selection (pointer events)
     const onDown = (e) => {
       const target = e.target.closest(".ws-cell");
       if (!target || target.disabled) return;
@@ -462,22 +559,17 @@ function startBibleWordSearchGame(levelsUrl) {
       tryCommitSelection(level, st);
     };
 
-    // --- ФИКС ЖЕСТОВ ДЛЯ IOS/SAFARI ---
-    const onTouchMove = (e) => {
-      e.preventDefault(); // Запрещаем браузеру скроллить при ведении пальцем по доске
-    };
+    const onTouchMove = (e) => { e.preventDefault(); };
     board.addEventListener("touchmove", onTouchMove, { passive: false });
-    // ----------------------------------
 
     board.addEventListener("pointerdown", onDown, { passive: false });
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("pointercancel", onUp, { passive: true });
 
-    // Cleanup when leaving game
     window.__wsCleanup = () => {
       board.removeEventListener("pointerdown", onDown);
-      board.removeEventListener("touchmove", onTouchMove); // Убираем листенер тачей
+      board.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
@@ -485,11 +577,10 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function renderLevel(withEvents = true) {
-    const level = LEVELS[progress.currentLevel];
+    const rawLevel = ensureLevelGenerated(progress.currentLevel);
     const st = getLevelState(progress.currentLevel);
-    buildBoard(level, st);
+    buildBoard(rawLevel, st);
 
-    // Disable prev/next appropriately
     const prevBtn = document.getElementById("ws-prev");
     const nextBtn = document.getElementById("ws-next");
     if (prevBtn) prevBtn.disabled = progress.currentLevel === 0;
@@ -497,7 +588,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
     if (withEvents) {
       try { window.__wsCleanup?.(); } catch {}
-      attachEvents(level);
+      attachEvents(rawLevel);
     }
   }
 
@@ -510,7 +601,6 @@ function startBibleWordSearchGame(levelsUrl) {
       if (!LEVELS.length) throw new Error("Пустой список уровней");
 
       progress = loadProgress() || defaultProgress(LEVELS.length);
-      // Если обновилось количество уровней
       progress.levelsCount = LEVELS.length;
       if (typeof progress.currentLevel !== "number") progress.currentLevel = 0;
       progress.currentLevel = clamp(progress.currentLevel, 0, LEVELS.length - 1);
@@ -519,9 +609,7 @@ function startBibleWordSearchGame(levelsUrl) {
       if (!progress.levelRewarded) progress.levelRewarded = {};
       saveProgress(progress);
 
-      // sync stars UI
       setStars(loadStars());
-
       renderLevel();
     })
     .catch((e) => {
@@ -529,7 +617,6 @@ function startBibleWordSearchGame(levelsUrl) {
       container.innerHTML = `
         <div class="fade-in">
           <p style="color:red">❌ Не удалось загрузить уровни.</p>
-          <p style="opacity:.85">${String(e && e.message ? e.message : e)}</p>
           <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
         </div>
       `;
