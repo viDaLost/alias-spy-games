@@ -1,8 +1,8 @@
 // games/bible-wordsearch.js
-// Игра: поиск слов в сетке (без диагоналей, без пересечений слов)
+// Игра: поиск слов в сетке (без диагоналей, без пересечений слов, со стрелочками)
 
 function startBibleWordSearchGame(levelsUrl) {
-  // Фикс для Telegram Web App (блокировка шторки)
+  // Фикс для Telegram Web App
   if (window.Telegram && window.Telegram.WebApp) {
     const twa = window.Telegram.WebApp;
     twa.expand();
@@ -20,7 +20,6 @@ function startBibleWordSearchGame(levelsUrl) {
   const STAR_PER_WORD = 2;
   const STAR_PER_LEVEL = 8;
 
-  // Палитра мягких цветов для выделения слов
   const WORD_COLORS = [
     '#dbeafe', '#dcfce7', '#fef08a', '#fce7f3', 
     '#f3e8ff', '#ffedd5', '#ccfbf1', '#fee2e2'
@@ -43,7 +42,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function defaultProgress(levelsCount) {
     return {
-      version: 4, // Версия 4 для сброса кэша старых сеток (с пересечениями)
+      version: 4, 
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
@@ -255,7 +254,6 @@ function startBibleWordSearchGame(levelsUrl) {
       cells.sort(() => Math.random() - 0.5); 
 
       for (const [r, c] of cells) {
-          // ТЕПЕРЬ СТРОГО ПРОВЕРЯЕМ ТОЛЬКО ПУСТЫЕ КЛЕТКИ (БЕЗ ПЕРЕСЕЧЕНИЙ)
           if (grid[r][c] === '') {
               const path = [[r, c]];
               grid[r][c] = word[0];
@@ -277,7 +275,6 @@ function startBibleWordSearchGame(levelsUrl) {
           const nr = r + dr, nc = c + dc;
           if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
               if (!path.some(([pr, pc]) => pr === nr && pc === nc)) {
-                  // ТЕПЕРЬ СТРОГО ПРОВЕРЯЕМ ТОЛЬКО ПУСТЫЕ КЛЕТКИ (БЕЗ ПЕРЕСЕЧЕНИЙ)
                   if (grid[nr][nc] === '') {
                       grid[nr][nc] = word[charIdx];
                       path.push([nr, nc]);
@@ -325,6 +322,90 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function keyOf(r, c) { return `${r},${c}`; }
 
+  // ===== ОТРИСОВКА СТРЕЛОЧЕК (SVG) =====
+  function drawLines() {
+    const board = document.getElementById("ws-board");
+    if (!board) return;
+
+    const levelIndex = progress.currentLevel;
+    const level = LEVELS[levelIndex];
+    const levelState = getLevelState(levelIndex);
+    if (!level || !level.grid) return;
+
+    let svg = document.getElementById("ws-svg-overlay");
+    if (!svg) {
+      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.id = "ws-svg-overlay";
+      svg.style.position = "absolute";
+      svg.style.top = "0";
+      svg.style.left = "0";
+      svg.style.width = "100%";
+      svg.style.height = "100%";
+      svg.style.pointerEvents = "none";
+      svg.style.zIndex = "10";
+
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      defs.innerHTML = `
+        <marker id="arrow-found" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+          <path d="M0,0 L5,2.5 L0,5 z" fill="rgba(0,0,0,0.30)" />
+        </marker>
+        <marker id="arrow-sel" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+          <path d="M0,0 L5,2.5 L0,5 z" fill="rgba(79,70,229,0.7)" />
+        </marker>
+      `;
+      svg.appendChild(defs);
+      board.style.position = "relative";
+      board.appendChild(svg);
+    }
+
+    // Удаляем старые линии
+    const paths = svg.querySelectorAll('.ws-path-line');
+    paths.forEach(p => p.remove());
+
+    const getCenter = (r, c) => {
+      const cell = board.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+      if (!cell) return null;
+      return `${cell.offsetLeft + cell.offsetWidth / 2},${cell.offsetTop + cell.offsetHeight / 2}`;
+    };
+
+    // Рисуем линии для найденных слов
+    const wordsByText = new Map(level.words.map(w => [w.text, w]));
+    const found = levelState.found || [];
+
+    found.forEach(text => {
+      const w = wordsByText.get(text);
+      if (!w) return;
+      const points = w.path.map(([r, c]) => getCenter(r, c)).filter(Boolean);
+      if (points.length > 1) {
+        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        polyline.setAttribute("points", points.join(" "));
+        polyline.setAttribute("fill", "none");
+        polyline.setAttribute("stroke", "rgba(0, 0, 0, 0.18)"); // мягкая полупрозрачная линия
+        polyline.setAttribute("stroke-width", "6");
+        polyline.setAttribute("stroke-linecap", "round");
+        polyline.setAttribute("stroke-linejoin", "round");
+        polyline.setAttribute("marker-end", "url(#arrow-found)");
+        polyline.setAttribute("class", "ws-path-line");
+        svg.appendChild(polyline);
+      }
+    });
+
+    // Рисуем линию текущего выделения
+    if (selected && selected.length > 1) {
+      const points = selected.map(x => getCenter(x.r, x.c)).filter(Boolean);
+      const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      polyline.setAttribute("points", points.join(" "));
+      polyline.setAttribute("fill", "none");
+      polyline.setAttribute("stroke", "rgba(79,70,229,0.5)"); // цвет акцента выделения
+      polyline.setAttribute("stroke-width", "6");
+      polyline.setAttribute("stroke-linecap", "round");
+      polyline.setAttribute("stroke-linejoin", "round");
+      polyline.setAttribute("marker-end", "url(#arrow-sel)");
+      polyline.setAttribute("class", "ws-path-line");
+      svg.appendChild(polyline);
+    }
+  }
+
   function buildBoard(level, levelState) {
     const board = document.getElementById("ws-board");
     const prog = document.getElementById("ws-progress");
@@ -368,13 +449,15 @@ function startBibleWordSearchGame(levelsUrl) {
         if (color) {
           cell.classList.add("ws-cell--solved");
           cell.style.backgroundColor = color;
-          // ВОЗВРАЩЕНО: раз нет пересечений, блокируем найденные буквы
           cell.disabled = true; 
         }
 
         board.appendChild(cell);
       }
     }
+
+    // Отрисовываем стрелочки поверх поля после того как браузер разместит кнопки
+    requestAnimationFrame(drawLines);
   }
 
   function cellsAreAdjacent(a, b) {
@@ -386,6 +469,7 @@ function startBibleWordSearchGame(levelsUrl) {
   function clearSelection() {
     selected.forEach(x => x.el.classList.remove("ws-cell--sel"));
     selected = [];
+    drawLines();
   }
 
   function selectCell(el) {
@@ -393,12 +477,12 @@ function startBibleWordSearchGame(levelsUrl) {
     const c = Number(el.dataset.c);
     const k = keyOf(r, c);
     
-    // ВОЗВРАЩЕНО: запрещаем выделять найденные слова
     if (solvedCells.has(k)) return; 
 
     if (selected.length === 0) {
       selected.push({ r, c, el });
       el.classList.add("ws-cell--sel");
+      drawLines();
       return;
     }
 
@@ -408,6 +492,7 @@ function startBibleWordSearchGame(levelsUrl) {
       if (prev.r === r && prev.c === c) {
         last.el.classList.remove("ws-cell--sel");
         selected.pop();
+        drawLines();
         return;
       }
     }
@@ -417,6 +502,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
     selected.push({ r, c, el });
     el.classList.add("ws-cell--sel");
+    drawLines();
   }
 
   function tryCommitSelection(level, levelState) {
@@ -564,7 +650,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
     const onDown = (e) => {
       const target = e.target.closest(".ws-cell");
-      // ВОЗВРАЩЕНО: нельзя начинать линию с заблокированной буквы
       if (!target || target.disabled) return; 
       selecting = true;
       clearSelection();
@@ -577,7 +662,6 @@ function startBibleWordSearchGame(levelsUrl) {
       if (!selecting) return;
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const target = el?.closest?.(".ws-cell");
-      // ВОЗВРАЩЕНО: нельзя тянуть линию через заблокированные буквы
       if (!target || target.disabled) return; 
       selectCell(target);
       e.preventDefault();
@@ -596,6 +680,7 @@ function startBibleWordSearchGame(levelsUrl) {
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("pointercancel", onUp, { passive: true });
+    window.addEventListener("resize", drawLines); // Перерисовка стрелочек при повороте экрана
 
     window.__wsCleanup = () => {
       board.removeEventListener("pointerdown", onDown);
@@ -603,6 +688,7 @@ function startBibleWordSearchGame(levelsUrl) {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("resize", drawLines);
     };
   }
 
@@ -632,7 +718,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
       progress = loadProgress() || defaultProgress(LEVELS.length);
       
-      // Миграция: очищаем старые сетки с пересечениями при обновлении до версии 4
       if (progress.version !== 4) {
         if (progress.state) {
           Object.keys(progress.state).forEach(k => {
