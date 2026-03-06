@@ -13,10 +13,12 @@ function startBibleWordSearchGame(levelsUrl) {
   if (!container) return;
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
+  // ВАЖНО: Ключ хранилища можно оставить прежним, мы обработаем миграцию через version
   const STORAGE_KEY = `bible_wordsearch_progress_v2_${tgUser.id}`;
   const STARS_KEY = `bible_stars_v1_${tgUser.id}`;
 
   const HINT_COST = 4;
+  const RESET_COST = 2; // Стоимость сброса уровня (можешь изменить значение)
   const STAR_PER_WORD = 2;
   const STAR_PER_LEVEL = 8;
 
@@ -42,7 +44,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function defaultProgress(levelsCount) {
     return {
-      version: 6, // Поднимаем версию кэша до 6, чтобы стереть старые сломанные сетки у игроков
+      version: 5, // Повышаем версию для нового JSON
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
@@ -124,7 +126,7 @@ function startBibleWordSearchGame(levelsUrl) {
           </div>
           <div class="ws-actions">
             <button class="start-button" id="ws-hint" onclick="window.__wsHint()">💡 Подсказка (-${HINT_COST}⭐)</button>
-            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс</button>
+            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс (-${RESET_COST}⭐)</button>
           </div>
           <div class="ws-progress" id="ws-progress"></div>
         </div>
@@ -304,62 +306,8 @@ function startBibleWordSearchGame(levelsUrl) {
     }
 
     const list = level.wordsList || (level.words ? level.words.map(w => w.text) : []);
-    
-    // --- ДИНАМИЧЕСКИЙ РАСЧЕТ РАЗМЕРА ПОЛЯ С ЛИМИТОМ ---
-    const totalChars = list.reduce((sum, w) => sum + w.length, 0);
-    const maxWordLen = Math.max(1, ...list.map(w => w.length));
-    
-    // Гарантируем, что если слово 11 букв, поле будет 11х11 (чтобы оно влезло), в остальных случаях максимум 10.
-    const MAX_SIZE = Math.max(10, maxWordLen);
-    
-    let bestR = Math.min(maxWordLen, MAX_SIZE);
-    let bestC = Math.min(Math.ceil(totalChars / bestR), MAX_SIZE);
-    let bestArea = 9999;
-
-    const startR = Math.max(2, Math.min(maxWordLen, MAX_SIZE));
-    for (let r = startR; r <= MAX_SIZE; r++) {
-        for (let c = 2; c <= MAX_SIZE; c++) {
-            let area = r * c;
-            if (area >= totalChars && area <= totalChars + 8 && Math.max(r, c) >= maxWordLen) {
-                if (area < bestArea || (area === bestArea && Math.abs(r - c) < Math.abs(bestR - bestC))) {
-                    bestArea = area;
-                    bestR = r;
-                    bestC = c;
-                }
-            }
-        }
-    }
-
-    if (bestArea === 9999) { 
-        bestR = Math.min(maxWordLen, MAX_SIZE);
-        bestC = Math.min(Math.ceil(totalChars / maxWordLen), MAX_SIZE);
-        if (bestR * bestC < totalChars) {
-            bestR = Math.min(Math.ceil(Math.sqrt(totalChars)), MAX_SIZE);
-            bestC = Math.min(Math.ceil(totalChars / bestR), MAX_SIZE);
-            if (bestR * bestC < totalChars) {
-                bestR = MAX_SIZE;
-                bestC = MAX_SIZE;
-            }
-        }
-    }
-
-    let result = generateWordSearchLevel(list, bestR, bestC);
-    
-    let retries = 0;
-    while (result && result.words.length < list.length && retries < 6) {
-        if (bestR <= bestC && bestR < MAX_SIZE) bestR++;
-        else if (bestC < MAX_SIZE) bestC++;
-        else if (bestR < MAX_SIZE) bestR++;
-        else break; 
-        
-        result = generateWordSearchLevel(list, bestR, bestC);
-        retries++;
-    }
-    // ----------------------------------------
-
+    const result = generateWordSearchLevel(list, level.rows || 8, level.cols || 8);
     if (result) {
-      level.rows = bestR;
-      level.cols = bestC;
       level.grid = result.grid;
       level.words = result.words;
       st.generatedGrid = result.grid;
@@ -470,14 +418,6 @@ function startBibleWordSearchGame(levelsUrl) {
     selected = [];
     solvedCells.clear();
 
-    // ВАЖНЫЙ ФИКС: Вычисляем реальные размеры из массива строк, 
-    // чтобы пустые ячейки физически не могли создаться, если есть рассинхрон с JSON
-    const actualRows = level.grid.length;
-    let actualCols = 0;
-    if (actualRows > 0) {
-      actualCols = Math.max(...level.grid.map(row => row.length));
-    }
-
     const byText = new Map(level.words.map(w => [w.text, w]));
     
     level.words.forEach((w, i) => {
@@ -489,15 +429,15 @@ function startBibleWordSearchGame(levelsUrl) {
 
     prog.textContent = `Слов: ${level.words.length} • Найдено: ${(levelState.found || []).length}/${level.words.length}`;
 
-    // Передаем реальные размеры в CSS
-    board.style.setProperty("--ws-cols", actualCols);
-    board.style.setProperty("--ws-rows", actualRows);
+    // Передаем CSS-переменные для динамической сетки
+    board.style.setProperty("--ws-cols", level.cols);
+    board.style.setProperty("--ws-rows", level.rows); // Добавлено для надежности на некоторых CSS гридах
     board.innerHTML = "";
 
-    for (let r = 0; r < actualRows; r++) {
-      const rowStr = level.grid[r] || "";
-      for (let c = 0; c < actualCols; c++) {
-        const ch = rowStr[c] || ""; 
+    for (let r = 0; r < level.rows; r++) {
+      const rowStr = level.grid[r];
+      for (let c = 0; c < level.cols; c++) {
+        const ch = rowStr[c];
         const cell = document.createElement("button");
         cell.type = "button";
         cell.className = "ws-cell";
@@ -505,12 +445,6 @@ function startBibleWordSearchGame(levelsUrl) {
         cell.dataset.r = String(r);
         cell.dataset.c = String(c);
         cell.style.zIndex = "10"; 
-
-        // Если символ не найден (кривой JSON), просто прячем кнопку
-        if (!ch || ch === " ") {
-            cell.style.visibility = "hidden";
-            cell.disabled = true;
-        }
 
         const color = solvedCells.get(keyOf(r, c));
         if (color) {
@@ -639,12 +573,12 @@ function startBibleWordSearchGame(levelsUrl) {
     const done = document.createElement("div");
     done.className = "ws-win";
     done.innerHTML = `
-      <div class="ws-win__card" style="background-color: #ffffff; color: #333333; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 16px; padding: 24px; text-align: center; border: 2px solid #e0e7ff; max-width: 90%; margin: 0 auto;">
-        <div class="ws-win__title" style="color: #4f46e5; font-size: 1.3rem; margin-bottom: 10px;">✅ Уровень пройден!</div>
+      <div class="ws-win__card" style="background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <div class="ws-win__title" style="margin-bottom: 8px; font-size: 1.25rem; font-weight: bold;">✅ Уровень пройден!</div>
         <div class="ws-win__text" style="margin-bottom: 20px;">Тема: <b>${level.theme}</b></div>
         <div class="ws-win__actions" style="display: flex; flex-direction: column; gap: 10px;">
-          <button class="start-button" id="ws-win-next" style="width: 100%; border-radius: 12px; font-weight: bold;">Следующий уровень ➡️</button>
-          <button class="back-button" id="ws-win-menu" style="width: 100%; border-radius: 12px; background-color: #f1f5f9; color: #475569;">⬅️ В меню игры</button>
+          <button class="start-button" id="ws-win-next">Следующий уровень ➡️</button>
+          <button class="back-button" id="ws-win-menu">⬅️ В меню игры</button>
         </div>
       </div>
     `;
@@ -695,24 +629,16 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function resetLevel() {
-    const levelIndex = progress.currentLevel;
-    const st = getLevelState(levelIndex);
-    
-    const foundCount = (st.found || []).length;
-    const revealedCount = (st.revealed || []).length;
-    const manuallyFoundCount = Math.max(0, foundCount - revealedCount);
-    const starsToDeduct = manuallyFoundCount * STAR_PER_WORD;
-    
-    if (stars < starsToDeduct) {
-      toast(`Нужно ${starsToDeduct}⭐ для сброса прогресса`);
+    if (stars < RESET_COST) {
+      toast(`Нужно ${RESET_COST}⭐ для сброса`);
       return;
     }
 
-    if (starsToDeduct > 0) {
-      addStars(-starsToDeduct);
-      toast(`Сброс: списано ${starsToDeduct}⭐`);
-    }
+    // Отнимаем звезды за сброс
+    addStars(-RESET_COST);
 
+    const levelIndex = progress.currentLevel;
+    const st = getLevelState(levelIndex);
     st.found = [];
     st.revealed = [];
     delete progress.completed[String(levelIndex)];
@@ -800,17 +726,19 @@ function startBibleWordSearchGame(levelsUrl) {
 
       progress = loadProgress() || defaultProgress(LEVELS.length);
       
-      // Сброс кэша (версия 6), чтобы убрать старые деформированные сетки
-      if (progress.version !== 6) {
+      // ВАЖНОЕ ИЗМЕНЕНИЕ ДЛЯ СБРОСА КЭША ПОД НОВЫЕ РАЗМЕРЫ JSON
+      if (progress.version !== 5) {
         if (progress.state) {
           Object.keys(progress.state).forEach(k => {
+            // Удаляем старые сетки, чтобы они сгенерировались под новые размеры
             delete progress.state[k].generatedGrid;
             delete progress.state[k].generatedWords;
+            // Очищаем найденные слова, так как списки слов в уровнях изменились
             progress.state[k].found = [];
             progress.state[k].revealed = [];
           });
         }
-        progress.version = 6;
+        progress.version = 5;
       }
       
       progress.levelsCount = LEVELS.length;
