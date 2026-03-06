@@ -306,19 +306,23 @@ function startBibleWordSearchGame(levelsUrl) {
 
     const list = level.wordsList || (level.words ? level.words.map(w => w.text) : []);
     
-    // --- ДИНАМИЧЕСКИЙ РАСЧЕТ РАЗМЕРА ПОЛЯ ---
+    // --- ДИНАМИЧЕСКИЙ РАСЧЕТ РАЗМЕРА ПОЛЯ С ЛИМИТОМ 10x10 ---
     const totalChars = list.reduce((sum, w) => sum + w.length, 0);
     const maxWordLen = Math.max(1, ...list.map(w => w.length));
     
-    let bestR = maxWordLen;
-    let bestC = Math.ceil(totalChars / bestR);
+    const MAX_SIZE = 10;
+    
+    // Начальные оптимальные значения
+    let bestR = Math.min(maxWordLen, MAX_SIZE);
+    let bestC = Math.min(Math.ceil(totalChars / bestR), MAX_SIZE);
     let bestArea = 9999;
 
-    // Ищем сетку, где пустых клеток от 0 до 6
-    for (let r = Math.max(2, maxWordLen); r <= 15; r++) {
-        for (let c = 2; c <= 15; c++) {
+    // Ищем сетку, где пустых клеток от 0 до 8 (чуть больше запас для малых сеток)
+    const startR = Math.max(2, Math.min(maxWordLen, MAX_SIZE));
+    for (let r = startR; r <= MAX_SIZE; r++) {
+        for (let c = 2; c <= MAX_SIZE; c++) {
             let area = r * c;
-            if (area >= totalChars && area <= totalChars + 6 && Math.max(r, c) >= maxWordLen) {
+            if (area >= totalChars && area <= totalChars + 8 && Math.max(r, c) >= maxWordLen) {
                 // Приоритет наименьшей площади, затем форме ближе к квадрату
                 if (area < bestArea || (area === bestArea && Math.abs(r - c) < Math.abs(bestR - bestC))) {
                     bestArea = area;
@@ -329,25 +333,45 @@ function startBibleWordSearchGame(levelsUrl) {
         }
     }
 
-    if (bestArea === 9999) { // Фолбэк, если идеальная сетка не найдена
-        bestR = maxWordLen;
-        bestC = Math.ceil(totalChars / maxWordLen);
+    // Фолбэк, если идеальная сетка не найдена (например, нужно слишком много букв)
+    if (bestArea === 9999) { 
+        bestR = Math.min(maxWordLen, MAX_SIZE);
+        bestC = Math.min(Math.ceil(totalChars / maxWordLen), MAX_SIZE);
+        // Защита от переполнения
+        if (bestR * bestC < totalChars) {
+            bestR = Math.min(Math.ceil(Math.sqrt(totalChars)), MAX_SIZE);
+            bestC = Math.min(Math.ceil(totalChars / bestR), MAX_SIZE);
+            if (bestR * bestC < totalChars) {
+                bestR = MAX_SIZE;
+                bestC = MAX_SIZE;
+            }
+        }
     }
 
     let result = generateWordSearchLevel(list, bestR, bestC);
     
-    // Если алгоритму слишком тесно (0-1 пустых клеток) и он не смог расставить все слова, 
-    // слегка расширяем сетку, чтобы уровень оставался проходимым
+    // Если алгоритму слишком тесно и он не смог расставить все слова, 
+    // слегка расширяем сетку, строго не превышая MAX_SIZE
     let retries = 0;
-    while (result && result.words.length < list.length && retries < 4) {
-        if (bestR <= bestC) bestR++; else bestC++;
+    while (result && result.words.length < list.length && retries < 6) {
+        if (bestR <= bestC && bestR < MAX_SIZE) {
+            bestR++;
+        } else if (bestC < MAX_SIZE) {
+            bestC++;
+        } else if (bestR < MAX_SIZE) {
+            bestR++;
+        } else {
+            // Достигли лимита 10x10, дальше расширять нельзя
+            break; 
+        }
+        
         result = generateWordSearchLevel(list, bestR, bestC);
         retries++;
     }
     // ----------------------------------------
 
     if (result) {
-      level.rows = bestR; // Сохраняем новые размеры
+      level.rows = bestR; // Сохраняем итоговые размеры
       level.cols = bestC;
       level.grid = result.grid;
       level.words = result.words;
