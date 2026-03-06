@@ -404,7 +404,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
 
 /* ========================
    QUARTET UI & KIDS UI
-   (Оставлено без изменений для совместимости)
    ======================== */
 .quartet-screen { width: 100%; max-width: 420px; margin: 0 auto; }
 .quartet-topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 12px; }
@@ -578,13 +577,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
 
 /* ОБНОВЛЕННАЯ СЕТКА ИГРОВОГО ПОЛЯ */
 .ws-board {
-  --ws-cols: 6; 
-  --ws-rows: 6; 
+  --ws-cols: 10; 
   display: grid;
   grid-template-columns: repeat(var(--ws-cols), 1fr);
-  grid-template-rows: repeat(var(--ws-rows, var(--ws-cols)), 1fr);
-  gap: 3px; /* Уменьшен отступ для плотных сеток */
+  gap: 3px;
   width: 100%;
+  max-width: 480px;
   margin: 10px auto 14px;
   position: relative;
   
@@ -604,15 +602,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
   align-items: center;
   justify-content: center;
   
-  /* Динамический расчет шрифта в зависимости от ширины экрана и количества колонок */
-  font-size: calc(90vw / var(--ws-cols) * 0.55);
+  font-size: calc(min(100vw, 480px) / var(--ws-cols) * 0.55);
   font-weight: 700;
   color: #1f2937;
   
-  border-radius: 8px; /* Скругленные квадраты (вместо больших овалов) */
+  border-radius: 8px;
   border: none;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15); /* Более легкая тень, чтобы поле не было перегружено */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   
   transition: transform 0.05s, filter 0.2s;
   cursor: pointer;
@@ -624,16 +621,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
   -webkit-user-select: none !important;
 }
 
-/* Ограничитель размера шрифта для экранов шире 500px */
-@media (min-width: 500px) {
-   .ws-cell { font-size: calc(500px / var(--ws-cols) * 0.55); }
-}
-
 .ws-cell.ws-cell--sel {
   background-color: #c7d2fe;
   transform: scale(0.92);
   box-shadow: none;
-  outline: none; /* Убран аутлайн, чтобы не ломался визуал на больших сетках */
+  outline: none;
 }
 
 .ws-cell.ws-cell--solved {
