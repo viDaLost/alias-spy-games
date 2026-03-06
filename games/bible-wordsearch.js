@@ -733,42 +733,71 @@ function startBibleWordSearchGame(levelsUrl) {
   // ===== boot =====
   renderShell();
 
-  loadJSON(levelsUrl)
+  // 1. Добавляем Cache-Buster, чтобы iOS не отдавал битый закэшированный JSON
+  const urlWithCacheBuster = levelsUrl + (levelsUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+
+  loadJSON(urlWithCacheBuster)
     .then((data) => {
       LEVELS = (data && data.levels) ? data.levels : [];
-      if (!LEVELS.length) throw new Error("Пустой список уровней");
+      if (!LEVELS.length) throw new Error("NETWORK_OR_EMPTY: Пустой список уровней или неверный формат JSON");
 
-      progress = loadProgress() || defaultProgress(LEVELS.length);
-      
-      if (progress.version !== 5) {
-        if (progress.state) {
-          Object.keys(progress.state).forEach(k => {
-            delete progress.state[k].generatedGrid;
-            delete progress.state[k].generatedWords;
-            progress.state[k].found = [];
-            progress.state[k].revealed = [];
-          });
+      // 2. Изолируем логику инициализации состояния, чтобы отлавливать TypeErrors
+      function initGameLogic() {
+        progress = loadProgress() || defaultProgress(LEVELS.length);
+        
+        if (progress.version !== 5) {
+          if (progress.state) {
+            Object.keys(progress.state).forEach(k => {
+              delete progress.state[k].generatedGrid;
+              delete progress.state[k].generatedWords;
+              progress.state[k].found = [];
+              progress.state[k].revealed = [];
+            });
+          }
+          progress.version = 5;
         }
-        progress.version = 5;
-      }
-      
-      progress.levelsCount = LEVELS.length;
-      if (typeof progress.currentLevel !== "number") progress.currentLevel = 0;
-      progress.currentLevel = clamp(progress.currentLevel, 0, LEVELS.length - 1);
-      if (!progress.state) progress.state = {};
-      if (!progress.completed) progress.completed = {};
-      if (!progress.levelRewarded) progress.levelRewarded = {};
-      saveProgress(progress);
+        
+        progress.levelsCount = LEVELS.length;
+        
+        // Защита от NaN, которая может ломать clamp()
+        if (typeof progress.currentLevel !== "number" || isNaN(progress.currentLevel)) {
+            progress.currentLevel = 0;
+        }
+        
+        progress.currentLevel = clamp(progress.currentLevel, 0, LEVELS.length - 1);
+        
+        if (!progress.state) progress.state = {};
+        if (!progress.completed) progress.completed = {};
+        if (!progress.levelRewarded) progress.levelRewarded = {};
+        saveProgress(progress);
 
-      setStars(loadStars());
-      renderLevel();
+        setStars(loadStars());
+        renderLevel();
+      }
+
+      try {
+        initGameLogic();
+      } catch (initErr) {
+        // Если старый стейт был поврежден, очищаем его и пробуем снова
+        console.warn("State corrupted, resetting...", initErr);
+        localStorage.removeItem(STORAGE_KEY);
+        initGameLogic(); 
+      }
     })
     .catch((e) => {
       console.error(e);
+      // 3. Расширенный блок ошибки: теперь юзер увидит реальную причину (Network / TypeError / SyntaxError)
       container.innerHTML = `
-        <div class="fade-in">
-          <p style="color:red">❌ Не удалось загрузить уровни.</p>
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+        <div class="fade-in" style="padding: 20px; text-align: left; background: #fff; border-radius: 12px; margin-top: 20px;">
+          <p style="color:red; font-weight: 800; font-size: 1.1rem; margin-bottom: 10px;">❌ Ошибка запуска игры</p>
+          <div style="font-size: 0.85rem; color: #374151; background: #fee2e2; padding: 12px; border-radius: 8px; border: 1px solid #fca5a5; margin-bottom: 15px; word-break: break-word;">
+            <strong>${e.name || 'Error'}:</strong> ${e.message || 'Не удалось загрузить данные'}<br><br>
+            <span style="opacity: 0.8; font-family: monospace; white-space: pre-wrap;">${e.stack ? e.stack.substring(0, 200) : 'Стэктрейс недоступен'}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+             <button class="wrong-button" onclick="localStorage.removeItem('${STORAGE_KEY}'); localStorage.removeItem('${STARS_KEY}'); location.reload();" style="margin: 0;">♻️ Очистить кэш игры</button>
+            <button class="back-button" onclick="goToMainMenu()" style="margin: 0;">⬅️ В меню</button>
+          </div>
         </div>
       `;
     });
