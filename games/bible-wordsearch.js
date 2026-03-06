@@ -13,6 +13,7 @@ function startBibleWordSearchGame(levelsUrl) {
   if (!container) return;
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
+  // ВАЖНО: Ключ хранилища можно оставить прежним, мы обработаем миграцию через version
   const STORAGE_KEY = `bible_wordsearch_progress_v2_${tgUser.id}`;
   const STARS_KEY = `bible_stars_v1_${tgUser.id}`;
 
@@ -42,7 +43,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function defaultProgress(levelsCount) {
     return {
-      version: 4, 
+      version: 5, // Повышаем версию для нового JSON
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
@@ -322,7 +323,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function keyOf(r, c) { return `${r},${c}`; }
 
-  // ===== ОТРИСОВКА СТРЕЛОЧЕК (SVG) - УЛУЧШЕННАЯ ВЕРСИЯ =====
   function drawLines() {
     const board = document.getElementById("ws-board");
     if (!board) return;
@@ -343,10 +343,9 @@ function startBibleWordSearchGame(levelsUrl) {
       svg.style.width = "100%";
       svg.style.height = "100%";
       svg.style.pointerEvents = "none";
-      svg.style.zIndex = "5"; // Чуть ниже букв, чтобы точно не мешать
+      svg.style.zIndex = "5"; 
 
       const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-      // Изящные, менее массивные наконечники стрелок
       defs.innerHTML = `
         <marker id="arrow-found" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
           <path d="M0,0 L6,3 L0,6 L1.5,3 z" fill="rgba(0,0,0,0.15)" /> 
@@ -359,7 +358,6 @@ function startBibleWordSearchGame(levelsUrl) {
       board.appendChild(svg);
     }
 
-    // Удаляем старые линии
     const paths = svg.querySelectorAll('.ws-path-line');
     paths.forEach(p => p.remove());
 
@@ -369,7 +367,6 @@ function startBibleWordSearchGame(levelsUrl) {
       return `${cell.offsetLeft + cell.offsetWidth / 2},${cell.offsetTop + cell.offsetHeight / 2}`;
     };
 
-    // Отрисовка найденных слов (очень тускло, не мешает чтению)
     const wordsByText = new Map(level.words.map(w => [w.text, w]));
     const found = levelState.found || [];
 
@@ -381,8 +378,8 @@ function startBibleWordSearchGame(levelsUrl) {
         const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
         polyline.setAttribute("points", points.join(" "));
         polyline.setAttribute("fill", "none");
-        polyline.setAttribute("stroke", "rgba(0, 0, 0, 0.1)"); // Едва заметная тень
-        polyline.setAttribute("stroke-width", "3"); // Тоньше
+        polyline.setAttribute("stroke", "rgba(0, 0, 0, 0.1)");
+        polyline.setAttribute("stroke-width", "3");
         polyline.setAttribute("stroke-linecap", "round");
         polyline.setAttribute("stroke-linejoin", "round");
         polyline.setAttribute("marker-end", "url(#arrow-found)");
@@ -391,14 +388,13 @@ function startBibleWordSearchGame(levelsUrl) {
       }
     });
 
-    // Отрисовка текущего выделения (аккуратная линия)
     if (selected && selected.length > 1) {
       const points = selected.map(x => getCenter(x.r, x.c)).filter(Boolean);
       const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
       polyline.setAttribute("points", points.join(" "));
       polyline.setAttribute("fill", "none");
-      polyline.setAttribute("stroke", "rgba(79,70,229,0.4)"); // Мягкий фиолетовый
-      polyline.setAttribute("stroke-width", "3"); // Тоньше
+      polyline.setAttribute("stroke", "rgba(79,70,229,0.4)");
+      polyline.setAttribute("stroke-width", "3");
       polyline.setAttribute("stroke-linecap", "round");
       polyline.setAttribute("stroke-linejoin", "round");
       polyline.setAttribute("marker-end", "url(#arrow-sel)");
@@ -432,7 +428,9 @@ function startBibleWordSearchGame(levelsUrl) {
 
     prog.textContent = `Слов: ${level.words.length} • Найдено: ${(levelState.found || []).length}/${level.words.length}`;
 
+    // Передаем CSS-переменные для динамической сетки
     board.style.setProperty("--ws-cols", level.cols);
+    board.style.setProperty("--ws-rows", level.rows); // Добавлено для надежности на некоторых CSS гридах
     board.innerHTML = "";
 
     for (let r = 0; r < level.rows; r++) {
@@ -445,7 +443,7 @@ function startBibleWordSearchGame(levelsUrl) {
         cell.textContent = ch;
         cell.dataset.r = String(r);
         cell.dataset.c = String(c);
-        cell.style.zIndex = "10"; // Буквы всегда поверх линий
+        cell.style.zIndex = "10"; 
 
         const color = solvedCells.get(keyOf(r, c));
         if (color) {
@@ -458,7 +456,6 @@ function startBibleWordSearchGame(levelsUrl) {
       }
     }
 
-    // Отрисовываем стрелочки поверх поля после того как браузер разместит кнопки
     requestAnimationFrame(drawLines);
   }
 
@@ -682,7 +679,7 @@ function startBibleWordSearchGame(levelsUrl) {
     window.addEventListener("pointermove", onMove, { passive: false });
     window.addEventListener("pointerup", onUp, { passive: true });
     window.addEventListener("pointercancel", onUp, { passive: true });
-    window.addEventListener("resize", drawLines); // Перерисовка стрелочек при повороте экрана
+    window.addEventListener("resize", drawLines); 
 
     window.__wsCleanup = () => {
       board.removeEventListener("pointerdown", onDown);
@@ -720,14 +717,19 @@ function startBibleWordSearchGame(levelsUrl) {
 
       progress = loadProgress() || defaultProgress(LEVELS.length);
       
-      if (progress.version !== 4) {
+      // ВАЖНОЕ ИЗМЕНЕНИЕ ДЛЯ СБРОСА КЭША ПОД НОВЫЕ РАЗМЕРЫ JSON
+      if (progress.version !== 5) {
         if (progress.state) {
           Object.keys(progress.state).forEach(k => {
+            // Удаляем старые сетки, чтобы они сгенерировались под новые размеры
             delete progress.state[k].generatedGrid;
             delete progress.state[k].generatedWords;
+            // Очищаем найденные слова, так как списки слов в уровнях изменились
+            progress.state[k].found = [];
+            progress.state[k].revealed = [];
           });
         }
-        progress.version = 4;
+        progress.version = 5;
       }
       
       progress.levelsCount = LEVELS.length;
