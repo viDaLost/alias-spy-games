@@ -586,6 +586,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
   margin: 10px auto 14px;
   position: relative;
   
+  /* ВАЖНО: Не дает ячейкам растягиваться по высоте контейнера */
+  align-content: start; 
+  
   /* Жесткая блокировка жестов браузера, чтобы свайпы работали только в игре */
   touch-action: none !important;
   user-select: none !important;
@@ -595,6 +598,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
 /* ОБНОВЛЕННЫЕ ИГРОВЫЕ ЯЧЕЙКИ */
 .ws-cell {
   width: 100%;
+  height: auto; /* ВАЖНО: Позволяет aspect-ratio работать корректно */
   aspect-ratio: 1 / 1;
   padding: 0;
   margin: 0;
@@ -602,7 +606,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
   align-items: center;
   justify-content: center;
   
-  font-size: calc(min(100vw, 480px) / var(--ws-cols) * 0.55);
+  /* Чуть поправил формулу для размера шрифта */
+  font-size: calc(min(100vw - 32px, 480px) / var(--ws-cols) * 0.55);
   font-weight: 700;
   color: #1f2937;
   
@@ -619,6 +624,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent-active)
   touch-action: none !important;
   user-select: none !important;
   -webkit-user-select: none !important;
+  
+  /* Защита от деформации на старых версиях iOS */
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .ws-cell.ws-cell--sel {
