@@ -13,12 +13,10 @@ function startBibleWordSearchGame(levelsUrl) {
   if (!container) return;
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
-  // ВАЖНО: Ключ хранилища можно оставить прежним, мы обработаем миграцию через version
   const STORAGE_KEY = `bible_wordsearch_progress_v2_${tgUser.id}`;
   const STARS_KEY = `bible_stars_v1_${tgUser.id}`;
 
   const HINT_COST = 4;
-  const RESET_COST = 2; // Стоимость сброса уровня (можешь изменить значение)
   const STAR_PER_WORD = 2;
   const STAR_PER_LEVEL = 8;
 
@@ -44,7 +42,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   function defaultProgress(levelsCount) {
     return {
-      version: 5, // Повышаем версию для нового JSON
+      version: 5,
       currentLevel: 0,
       completed: {},
       levelRewarded: {},
@@ -126,7 +124,7 @@ function startBibleWordSearchGame(levelsUrl) {
           </div>
           <div class="ws-actions">
             <button class="start-button" id="ws-hint" onclick="window.__wsHint()">💡 Подсказка (-${HINT_COST}⭐)</button>
-            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс (-${RESET_COST}⭐)</button>
+            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс</button>
           </div>
           <div class="ws-progress" id="ws-progress"></div>
         </div>
@@ -431,7 +429,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
     // Передаем CSS-переменные для динамической сетки
     board.style.setProperty("--ws-cols", level.cols);
-    board.style.setProperty("--ws-rows", level.rows); // Добавлено для надежности на некоторых CSS гридах
+    board.style.setProperty("--ws-rows", level.rows); 
     board.innerHTML = "";
 
     for (let r = 0; r < level.rows; r++) {
@@ -629,16 +627,24 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function resetLevel() {
-    if (stars < RESET_COST) {
-      toast(`Нужно ${RESET_COST}⭐ для сброса`);
-      return;
-    }
-
-    // Отнимаем звезды за сброс
-    addStars(-RESET_COST);
-
     const levelIndex = progress.currentLevel;
     const st = getLevelState(levelIndex);
+
+    // Считаем, сколько слов было найдено вручную (без использования подсказок)
+    const foundCount = (st.found || []).length;
+    const revealedCount = (st.revealed || []).length;
+    const manualFoundCount = Math.max(0, foundCount - revealedCount);
+    
+    // Рассчитываем точную сумму звезд для списания
+    const starsToDeduct = manualFoundCount * STAR_PER_WORD;
+
+    // Списываем заработанные на этом уровне звезды (функция addStars сама не даст балансу уйти ниже нуля)
+    if (starsToDeduct > 0) {
+      addStars(-starsToDeduct);
+      toast(`Списано ${starsToDeduct}⭐ за сброшенный прогресс`);
+    }
+
+    // Очищаем прогресс уровня
     st.found = [];
     st.revealed = [];
     delete progress.completed[String(levelIndex)];
@@ -710,6 +716,14 @@ function startBibleWordSearchGame(levelsUrl) {
     if (prevBtn) prevBtn.disabled = progress.currentLevel === 0;
     if (nextBtn) nextBtn.disabled = progress.currentLevel === LEVELS.length - 1;
 
+    // --- Динамическое обновление текста на кнопке сброса ---
+    const resetBtn = document.getElementById("ws-reset");
+    if (resetBtn) {
+      const manualFoundCount = Math.max(0, (st.found || []).length - (st.revealed || []).length);
+      const penalty = manualFoundCount * STAR_PER_WORD;
+      resetBtn.textContent = penalty > 0 ? `♻️ Сброс (-${penalty}⭐)` : `♻️ Сброс`;
+    }
+
     if (withEvents) {
       try { window.__wsCleanup?.(); } catch {}
       attachEvents(rawLevel);
@@ -726,14 +740,11 @@ function startBibleWordSearchGame(levelsUrl) {
 
       progress = loadProgress() || defaultProgress(LEVELS.length);
       
-      // ВАЖНОЕ ИЗМЕНЕНИЕ ДЛЯ СБРОСА КЭША ПОД НОВЫЕ РАЗМЕРЫ JSON
       if (progress.version !== 5) {
         if (progress.state) {
           Object.keys(progress.state).forEach(k => {
-            // Удаляем старые сетки, чтобы они сгенерировались под новые размеры
             delete progress.state[k].generatedGrid;
             delete progress.state[k].generatedWords;
-            // Очищаем найденные слова, так как списки слов в уровнях изменились
             progress.state[k].found = [];
             progress.state[k].revealed = [];
           });
