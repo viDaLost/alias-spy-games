@@ -305,8 +305,50 @@ function startBibleWordSearchGame(levelsUrl) {
     }
 
     const list = level.wordsList || (level.words ? level.words.map(w => w.text) : []);
-    const result = generateWordSearchLevel(list, level.rows || 8, level.cols || 8);
+    
+    // --- ДИНАМИЧЕСКИЙ РАСЧЕТ РАЗМЕРА ПОЛЯ ---
+    const totalChars = list.reduce((sum, w) => sum + w.length, 0);
+    const maxWordLen = Math.max(1, ...list.map(w => w.length));
+    
+    let bestR = maxWordLen;
+    let bestC = Math.ceil(totalChars / bestR);
+    let bestArea = 9999;
+
+    // Ищем сетку, где пустых клеток от 0 до 6
+    for (let r = Math.max(2, maxWordLen); r <= 15; r++) {
+        for (let c = 2; c <= 15; c++) {
+            let area = r * c;
+            if (area >= totalChars && area <= totalChars + 6 && Math.max(r, c) >= maxWordLen) {
+                // Приоритет наименьшей площади, затем форме ближе к квадрату
+                if (area < bestArea || (area === bestArea && Math.abs(r - c) < Math.abs(bestR - bestC))) {
+                    bestArea = area;
+                    bestR = r;
+                    bestC = c;
+                }
+            }
+        }
+    }
+
+    if (bestArea === 9999) { // Фолбэк, если идеальная сетка не найдена
+        bestR = maxWordLen;
+        bestC = Math.ceil(totalChars / maxWordLen);
+    }
+
+    let result = generateWordSearchLevel(list, bestR, bestC);
+    
+    // Если алгоритму слишком тесно (0-1 пустых клеток) и он не смог расставить все слова, 
+    // слегка расширяем сетку, чтобы уровень оставался проходимым
+    let retries = 0;
+    while (result && result.words.length < list.length && retries < 4) {
+        if (bestR <= bestC) bestR++; else bestC++;
+        result = generateWordSearchLevel(list, bestR, bestC);
+        retries++;
+    }
+    // ----------------------------------------
+
     if (result) {
+      level.rows = bestR; // Сохраняем новые размеры
+      level.cols = bestC;
       level.grid = result.grid;
       level.words = result.words;
       st.generatedGrid = result.grid;
@@ -572,12 +614,12 @@ function startBibleWordSearchGame(levelsUrl) {
     const done = document.createElement("div");
     done.className = "ws-win";
     done.innerHTML = `
-      <div class="ws-win__card">
-        <div class="ws-win__title">✅ Уровень пройден!</div>
-        <div class="ws-win__text">Тема: <b>${level.theme}</b></div>
-        <div class="ws-win__actions">
-          <button class="start-button" id="ws-win-next">Следующий уровень ➡️</button>
-          <button class="back-button" id="ws-win-menu">⬅️ В меню игры</button>
+      <div class="ws-win__card" style="background-color: #ffffff; color: #333333; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border-radius: 16px; padding: 24px; text-align: center; border: 2px solid #e0e7ff; max-width: 90%; margin: 0 auto;">
+        <div class="ws-win__title" style="color: #4f46e5; font-size: 1.3rem; margin-bottom: 10px;">✅ Уровень пройден!</div>
+        <div class="ws-win__text" style="margin-bottom: 20px;">Тема: <b>${level.theme}</b></div>
+        <div class="ws-win__actions" style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="start-button" id="ws-win-next" style="width: 100%; border-radius: 12px; font-weight: bold;">Следующий уровень ➡️</button>
+          <button class="back-button" id="ws-win-menu" style="width: 100%; border-radius: 12px; background-color: #f1f5f9; color: #475569;">⬅️ В меню игры</button>
         </div>
       </div>
     `;
@@ -630,10 +672,34 @@ function startBibleWordSearchGame(levelsUrl) {
   function resetLevel() {
     const levelIndex = progress.currentLevel;
     const st = getLevelState(levelIndex);
+    
+    // Считаем количество слов, найденных игроком (исключая те, что открыты подсказкой)
+    const foundCount = (st.found || []).length;
+    const revealedCount = (st.revealed || []).length;
+    const manuallyFoundCount = Math.max(0, foundCount - revealedCount);
+    
+    // Вычисляем, сколько звезд игрок заработал на этом уровне своими силами
+    const starsToDeduct = manuallyFoundCount * STAR_PER_WORD;
+    
+    // Проверяем, хватает ли звезд для сброса (чтобы баланс не ушел в минус, 
+    // если он потратил их на что-то еще)
+    if (stars < starsToDeduct) {
+      toast(`Нужно ${starsToDeduct}⭐ для сброса прогресса`);
+      return;
+    }
+
+    // Списываем заработанные звезды, если они есть
+    if (starsToDeduct > 0) {
+      addStars(-starsToDeduct);
+      toast(`Сброс: списано ${starsToDeduct}⭐`);
+    }
+
+    // Полностью очищаем прогресс текущего уровня
     st.found = [];
     st.revealed = [];
     delete progress.completed[String(levelIndex)];
     
+    // Удаляем сгенерированные сетки, чтобы уровень пересобрался заново
     delete st.generatedGrid;
     delete st.generatedWords;
     
