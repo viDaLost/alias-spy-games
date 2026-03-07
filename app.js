@@ -74,6 +74,10 @@ function showGame(gameName) {
     const levelsUrl = "data/bible_wordsearch_levels.json";
     loadGameScript("games/bible-wordsearch.js", () => startBibleWordSearchGame(levelsUrl));
 
+  } else if (gameName === "sacred-word") {
+    const wordsUrl = "data/sacred_words.json";
+    loadGameScript("games/sacred-word.js", () => startSacredWordGame(wordsUrl));
+
   } else {
     if (container) container.innerHTML = "<p>❌ Неизвестная игра.</p>";
   }
@@ -133,6 +137,8 @@ function goToMainMenu() {
   // Чистим глобальные слушатели/ресурсы игр (если игра их оставила)
   try { window.__wsCleanup?.(); } catch {}
   try { window.__wsCleanup = null; } catch {}
+  try { window.__sacredWordCleanup?.(); } catch {}
+  try { window.__sacredWordCleanup = null; } catch {}
 
   // Удаляем подключённый скрипт игры
   if (currentGameScript) {
