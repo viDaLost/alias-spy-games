@@ -73,7 +73,13 @@ body {
 header {
   width: 100%;
   text-align: center;
-  padding: 3.5rem 1rem 1.5rem; /* Отступ под Safe Area (челка/статус-бар) */
+  /* Увеличиваем padding-top до 4.5rem для обхода кнопок Telegram + 
+    добавляем системную переменную iOS/Android для обхода "челки" */
+  padding-top: calc(4.5rem + env(safe-area-inset-top, 0px));
+  padding-bottom: 1.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  
   background: linear-gradient(to right, var(--accent-color), var(--card-bg));
   box-shadow: 0 2px 10px rgba(0,0,0,0.03);
   border-bottom-left-radius: 24px;
@@ -82,12 +88,18 @@ header {
   z-index: 10;
   margin-bottom: 1.5rem;
 }
+
 header h1 {
   font-size: 2.1rem;
   font-weight: 800;
   margin: 0;
   color: var(--accent-active);
   letter-spacing: -0.5px;
+  line-height: 1.1;
+  /* Добавляем защиту: если на узком экране заголовок 
+     не поместится, он аккуратно перенесется */
+  word-wrap: break-word; 
+  padding: 0 10px;
 }
 
 /* ========================
