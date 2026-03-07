@@ -437,7 +437,7 @@ function startSacredWordGame(wordsUrl) {
               </div>
               <div class="sw-hintbox">${state.hint}</div>
               <div>
-                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Снизу мкрытое слово, сверху слова связанвые с ним</div>
+                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Снизу скрытое слово, сверху слова связанвые с ним</div>
                 <div class="sw-word">${renderWord()}</div>
               </div>
             </div>
