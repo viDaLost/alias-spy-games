@@ -30,7 +30,7 @@ function startSacredWordGame(wordsUrl) {
         padding: 6px 0 24px;
         color: #1e293b;
       }
-      .sw-topbar, .sw-card, .sw-keyboard, .sw-statusbar {
+      .sw-topbar, .sw-card, .sw-keyboard {
         background: #ffffff;
         border-radius: 18px;
         box-shadow: 0 6px 18px rgba(0,0,0,.08);
@@ -133,32 +133,8 @@ function startSacredWordGame(wordsUrl) {
         border: none;
         box-shadow: none;
       }
-      .sw-statusbar {
-        padding: 14px 16px;
-        display: grid;
-        gap: 10px;
-      }
-      .sw-statusrow {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .sw-errors { font-weight: 800; color: #b91c1c; }
+      
       .sw-message { min-height: 24px; font-weight: 700; color: #312e81; }
-      .sw-progress {
-        height: 10px;
-        background: #e2e8f0;
-        border-radius: 999px;
-        overflow: hidden;
-      }
-      .sw-progress-bar {
-        height: 100%;
-        width: 0%;
-        background: linear-gradient(90deg, #ef4444, #f97316);
-        transition: width .35s ease;
-      }
       .sw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
       .sw-actions button { flex: 1; min-width: 168px; margin: 0; }
       
@@ -426,13 +402,12 @@ function startSacredWordGame(wordsUrl) {
   }
 
   function render() {
-    const progress = (state.errors / MAX_ERRORS) * 100;
-    
     let actionButtons = '';
+    
     if (state.finished && state.won) {
-      actionButtons = `<button class="start-button" id="sw-next-level" style="background: #312e81; color: #fff;">➡️ Следующий уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-next-level" style="background: #312e81; color: #fff; max-width: 320px; margin: 0 auto;">➡️ Следующий уровень</button>`;
     } else {
-      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1;">🔄 Сбросить уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1; max-width: 320px; margin: 0 auto;">🔄 Сбросить уровень</button>`;
     }
 
     const levelSelectHtml = `
@@ -469,22 +444,18 @@ function startSacredWordGame(wordsUrl) {
           </div>
         </div>
 
-        <div class="sw-statusbar">
-          <div class="sw-statusrow">
-            <div class="sw-errors">Ошибки забирают свет</div>
-            <div class="sw-message">${getMessage()}</div>
-          </div>
-          <div class="sw-progress"><div class="sw-progress-bar" style="width:${progress}%"></div></div>
-          <div class="sw-actions">
-            ${actionButtons}
-          </div>
-        </div>
-
         <div class="sw-keyboard">
           ${renderKeyboard()}
         </div>
 
-        <div class="sw-footnote" style="color:#475569;">«Слово Твое — светильник ноге моей» — Псалом 118:105</div>
+        <div style="padding: 10px 16px; text-align: center;">
+          <div class="sw-message" style="margin-bottom: 12px; min-height: 24px;">${getMessage()}</div>
+          <div class="sw-actions" style="display: flex; justify-content: center;">
+            ${actionButtons}
+          </div>
+        </div>
+
+        <div class="sw-footnote" style="color:#475569; text-align:center; margin-top:8px;">«Слово Твое — светильник ноге моей» — Псалом 118:105</div>
       </div>
     `;
 
