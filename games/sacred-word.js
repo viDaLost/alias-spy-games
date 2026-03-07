@@ -5,8 +5,7 @@ function startSacredWordGame(wordsUrl) {
   if (!container) return;
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
-  const STORAGE_KEY = `sacred_word_levels_v3_${tgUser.id}`;
-  // У Меноры 7 свечей, поэтому логично сделать максимум 7 ошибок, чтобы каждая гасила 1 пламя.
+  const STORAGE_KEY = `sacred_word_levels_v4_${tgUser.id}`;
   const MAX_ERRORS = 7; 
   const KEYBOARD_ROWS = [
     ["Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х","Ъ"],
@@ -29,9 +28,10 @@ function startSacredWordGame(wordsUrl) {
         display: grid;
         gap: 14px;
         padding: 6px 0 24px;
+        color: #1e293b;
       }
       .sw-topbar, .sw-card, .sw-keyboard, .sw-statusbar {
-        background: var(--card-bg, #fff);
+        background: #ffffff;
         border-radius: 18px;
         box-shadow: 0 6px 18px rgba(0,0,0,.08);
         border: 1px solid rgba(79,70,229,.08);
@@ -44,18 +44,18 @@ function startSacredWordGame(wordsUrl) {
         gap: 10px;
       }
       .sw-titlebox { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; }
-      .sw-title { font-size: 1.3rem; font-weight: 800; color: var(--accent-active); }
-      .sw-subtitle { font-size: .92rem; opacity: .8; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+      .sw-title { font-size: 1.3rem; font-weight: 800; color: #312e81; }
+      .sw-subtitle { font-size: .92rem; color: #475569; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
       
       .sw-level-select {
-        background: rgba(79,70,229,.08);
-        border: 1px solid rgba(79,70,229,.2);
+        background: #e0e7ff;
+        border: 1px solid #c7d2fe;
         border-radius: 6px;
         padding: 2px 6px;
         font-family: inherit;
         font-size: 0.9rem;
         font-weight: 700;
-        color: var(--accent-active);
+        color: #312e81;
         cursor: pointer;
         outline: none;
       }
@@ -68,7 +68,7 @@ function startSacredWordGame(wordsUrl) {
         align-items: center;
       }
       .sw-lamp-card {
-        background: linear-gradient(180deg, rgba(15,23,42,.9), rgba(30,41,59,.98));
+        background: linear-gradient(180deg, #0f172a, #1e293b);
         border-radius: 20px;
         padding: 10px;
         min-height: 290px;
@@ -92,8 +92,9 @@ function startSacredWordGame(wordsUrl) {
         font-weight: 700;
       }
       .sw-hintbox {
-        background: rgba(253,250,244,.95);
-        border: 1px solid rgba(79,70,229,.10);
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        color: #334155;
         border-radius: 16px;
         padding: 12px 14px;
         line-height: 1.45;
@@ -111,19 +112,19 @@ function startSacredWordGame(wordsUrl) {
         height: 52px;
         border-radius: 14px;
         background: #fff;
-        border: 2px solid rgba(79,70,229,.12);
+        border: 2px solid #cbd5e1;
         box-shadow: 0 4px 10px rgba(0,0,0,.05);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.35rem;
         font-weight: 800;
-        color: #374151;
+        color: #0f172a;
         transition: transform .2s ease, background-color .2s ease;
       }
       .sw-letter.revealed {
         background: #dbeafe;
-        border-color: rgba(79,70,229,.28);
+        border-color: #818cf8;
         transform: translateY(-2px);
       }
       .sw-letter.space {
@@ -145,10 +146,10 @@ function startSacredWordGame(wordsUrl) {
         flex-wrap: wrap;
       }
       .sw-errors { font-weight: 800; color: #b91c1c; }
-      .sw-message { min-height: 24px; font-weight: 700; color: var(--accent-active); }
+      .sw-message { min-height: 24px; font-weight: 700; color: #312e81; }
       .sw-progress {
         height: 10px;
-        background: rgba(0,0,0,.06);
+        background: #e2e8f0;
         border-radius: 999px;
         overflow: hidden;
       }
@@ -175,9 +176,9 @@ function startSacredWordGame(wordsUrl) {
         height: 48px;
         border-radius: 10px;
         border: none;
-        background: #e2e8f0;
-        color: #1e293b;
-        box-shadow: 0 4px 6px rgba(0,0,0,.06);
+        background: #f1f5f9;
+        color: #0f172a;
+        box-shadow: 0 4px 6px rgba(0,0,0,.08);
         font-weight: 800;
         font-size: 1.1rem;
         padding: 0;
@@ -187,13 +188,13 @@ function startSacredWordGame(wordsUrl) {
         touch-action: manipulation;
         transition: transform .1s ease, opacity .2s ease, background-color .2s ease;
       }
-      .sw-kb-key.good { background: #dcfce7; color: #166534; }
-      .sw-kb-key.bad { background: #fee2e2; color: #991b1b; }
+      .sw-kb-key.good { background: #dcfce7; color: #166534; box-shadow: none; }
+      .sw-kb-key.bad { background: #fee2e2; color: #991b1b; box-shadow: none; }
       .sw-kb-key.used { opacity: .6; }
       .sw-kb-key:disabled { cursor: not-allowed; }
       .sw-kb-key:active:not(:disabled) { transform: scale(.92); }
       
-      .sw-lamp { width: min(100%, 260px); aspect-ratio: 1 / 1; position: relative; }
+      .sw-lamp { width: min(100%, 280px); aspect-ratio: 1 / 1; position: relative; margin: 0 auto; }
       .sw-lamp-svg { width: 100%; height: auto; display: block; overflow: visible; }
       
       .sw-flame { transition: opacity 0.5s ease, transform 0.5s ease; transform-origin: center bottom; }
@@ -261,7 +262,7 @@ function startSacredWordGame(wordsUrl) {
     
     const wordObj = words[safeIndex];
     state = {
-      level: safeIndex, // Сохраняем реальный индекс
+      level: safeIndex,
       word: sanitizeWord(wordObj.word),
       category: wordObj.category,
       hint: wordObj.hint,
@@ -347,7 +348,6 @@ function startSacredWordGame(wordsUrl) {
   }
 
   function renderLamp() {
-    // Порядок гашения свечей (от краев к центру)
     const extinctOrder = [0, 6, 1, 5, 2, 4, 3];
     let flamesHtml = '';
     
@@ -392,28 +392,31 @@ function startSacredWordGame(wordsUrl) {
           
           <circle cx="150" cy="140" r="140" fill="url(#swBigGlow)" opacity="${(MAX_ERRORS - state.errors) / MAX_ERRORS}" style="transition: opacity 0.5s" filter="url(#swBlur)"/>
           
-          <g stroke="url(#swGold)" stroke-width="8" stroke-linecap="round" fill="none">
-            <path d="M45,110 C45,230 255,230 255,110" />
-            <path d="M80,110 C80,195 220,195 220,110" />
-            <path d="M115,110 C115,160 185,160 185,110" />
-            <line x1="150" y1="110" x2="150" y2="250" stroke-width="12" />
+          <g stroke="url(#swGold)" stroke-linecap="round" fill="none">
+            <line x1="150" y1="105" x2="150" y2="255" stroke-width="14" />
+            <path d="M45,110 A 105 105 0 0 0 255,110" stroke-width="10" />
+            <path d="M80,110 A 70 70 0 0 0 220,110" stroke-width="10" />
+            <path d="M115,110 A 35 35 0 0 0 185,110" stroke-width="10" />
           </g>
 
           <g fill="url(#swGold)">
-            <ellipse cx="150" cy="180" rx="12" ry="8" />
-            <ellipse cx="150" cy="220" rx="14" ry="9" />
-            <path d="M135,250 L165,250 L175,280 L125,280 Z" />
-            <path d="M140,240 L160,240 L160,250 L140,250 Z" />
+            <ellipse cx="150" cy="145" rx="12" ry="7" />
+            <ellipse cx="150" cy="180" rx="14" ry="8" />
+            <ellipse cx="150" cy="215" rx="16" ry="9" />
+            <ellipse cx="150" cy="245" rx="18" ry="10" />
+            
+            <path d="M135,245 L165,245 L180,285 L120,285 Z" />
+            <path d="M125,285 L175,285 L175,290 L125,290 Z" />
           </g>
 
           <g fill="url(#swGold)">
-            <path d="M38,95 L52,95 L49,115 L41,115 Z" />
-            <path d="M73,95 L87,95 L84,115 L76,115 Z" />
-            <path d="M108,95 L122,95 L119,115 L111,115 Z" />
-            <path d="M143,95 L157,95 L154,115 L146,115 Z" />
-            <path d="M178,95 L192,95 L189,115 L181,115 Z" />
-            <path d="M213,95 L227,95 L224,115 L216,115 Z" />
-            <path d="M248,95 L262,95 L259,115 L251,115 Z" />
+            <path d="M36,98 L54,98 L48,114 L42,114 Z" />
+            <path d="M71,98 L89,98 L83,114 L77,114 Z" />
+            <path d="M106,98 L124,98 L118,114 L112,114 Z" />
+            <path d="M141,98 L159,98 L153,114 L147,114 Z" />
+            <path d="M176,98 L194,98 L188,114 L182,114 Z" />
+            <path d="M211,98 L229,98 L223,114 L217,114 Z" />
+            <path d="M246,98 L264,98 L258,114 L252,114 Z" />
           </g>
 
           ${flamesHtml}
@@ -427,23 +430,21 @@ function startSacredWordGame(wordsUrl) {
     
     let actionButtons = '';
     if (state.finished && state.won) {
-      actionButtons = `<button class="start-button" id="sw-next-level">➡️ Следующий уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-next-level" style="background: #312e81; color: #fff;">➡️ Следующий уровень</button>`;
     } else {
-      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#334155;">🔄 Сбросить уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1;">🔄 Сбросить уровень</button>`;
     }
 
-    // Выпадающий список для выбора уровня
     const levelSelectHtml = `
       <select id="sw-level-select" class="sw-level-select">
         ${words.map((w, i) => `<option value="${i}" ${i === state.level ? "selected" : ""}>Уровень ${i + 1}</option>`).join("")}
       </select>
     `;
 
-    // Убрали класс "fade-in", чтобы экран больше не "моргал" при каждом вводе буквы
     container.innerHTML = `
       <div class="sw-wrap">
         <div class="sw-topbar">
-          <button class="back-button" style="width:auto; padding:10px 14px; margin:0;" onclick="goToMainMenu()">⬅️ Назад</button>
+          <button class="back-button" style="width:auto; padding:10px 14px; margin:0; border: 1px solid #cbd5e1;" onclick="goToMainMenu()">⬅️ Назад</button>
           <div class="sw-titlebox">
             <div class="sw-title">Священное слово</div>
             <div class="sw-subtitle">${levelSelectHtml}</div>
@@ -483,7 +484,7 @@ function startSacredWordGame(wordsUrl) {
           ${renderKeyboard()}
         </div>
 
-        <div class="sw-footnote">«Слово Твое — светильник ноге моей» — Псалом 118:105</div>
+        <div class="sw-footnote" style="color:#475569;">«Слово Твое — светильник ноге моей» — Псалом 118:105</div>
       </div>
     `;
 
@@ -499,7 +500,6 @@ function startSacredWordGame(wordsUrl) {
       createRound(state.level);
     });
 
-    // Обработка смены уровня в выпадающем списке
     container.querySelector("#sw-level-select")?.addEventListener("change", (e) => {
       createRound(parseInt(e.target.value, 10));
     });
@@ -527,9 +527,9 @@ function startSacredWordGame(wordsUrl) {
     .catch(err => {
       console.error(err);
       container.innerHTML = `
-        <div class="card" style="max-width:640px; margin: 1rem auto;">
+        <div class="card" style="max-width:640px; margin: 1rem auto; background:#fff; padding:20px;">
           <p style="margin-bottom:12px; color:#991b1b; font-weight:700;">❌ Не удалось загрузить игру «Священное слово».</p>
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+          <button class="back-button" onclick="goToMainMenu()" style="border: 1px solid #cbd5e1;">⬅️ В меню</button>
         </div>
       `;
     });
