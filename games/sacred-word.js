@@ -437,7 +437,7 @@ function startSacredWordGame(wordsUrl) {
               </div>
               <div class="sw-hintbox">${state.hint}</div>
               <div>
-                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Скрытое слово</div>
+                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Снизу мкрытое слово, сверху слова связанвые с ним</div>
                 <div class="sw-word">${renderWord()}</div>
               </div>
             </div>
@@ -455,8 +455,6 @@ function startSacredWordGame(wordsUrl) {
           </div>
         </div>
 
-        <div class="sw-footnote" style="color:#475569; text-align:center; margin-top:8px;">«Слово Твое — светильник ноге моей» — Псалом 118:105</div>
-      </div>
     `;
 
     container.querySelectorAll(".sw-kb-key").forEach(btn => {
