@@ -1,6 +1,6 @@
 // games/bible-wow.js
 // Visuals: Restored Original (Chips, Layout).
-// Logic: Strict Grid Generation kept AS-IS (no empty cells / no touching lines).
+// Logic: Strict Grid Generation with fixed collinear overlaps (no empty cells / no touching lines).
 // Features restored: prev/next level, level list modal, bonus list modal (current level only),
 // shuffle, hint (10⭐), reveal word (25⭐), persistent progress, completion reward, bonus reward.
 // Also: solved word reveals fully in crossword (no missing letters due to overlaps).
@@ -403,31 +403,47 @@ function startBibleWowGame(levelsUrl) {
       .replace(/[^А-Я]/g, "");
   }
 
-  // -------------------- STRICT GRID GENERATION (DO NOT CHANGE) --------------------
+  // -------------------- STRICT GRID GENERATION (FIXED) --------------------
   function canPlaceWord(grid, word, r, c, dr, dc) {
     const len = word.length;
+    // Проверка выхода за общие границы сетки
     if (r < 0 || c < 0 || r + dr * len > 40 || c + dc * len > 40) return false;
 
+    // 1. Проверка "головы" (ячейка строго перед началом слова должна быть пустой)
+    const headR = r - dr;
+    const headC = c - dc;
+    if (headR >= 0 && headR < 40 && headC >= 0 && headC < 40) {
+      if (grid[headR][headC] !== null) return false;
+    }
+
+    // 2. Проверка "хвоста" (ячейка строго после конца слова должна быть пустой)
+    const tailR = r + dr * len;
+    const tailC = c + dc * len;
+    if (tailR >= 0 && tailR < 40 && tailC >= 0 && tailC < 40) {
+      if (grid[tailR][tailC] !== null) return false;
+    }
+
+    // 3. Проверка самих букв и их боковых соседей
     for (let i = 0; i < len; i++) {
       const cr = r + dr * i;
       const cc = c + dc * i;
       const cell = grid[cr][cc];
 
-      if (cell) {
+      if (cell !== null) {
+        // Если ячейка занята, это должно быть корректное пересечение (буквы совпадают)
         if (cell !== word[i]) return false;
       } else {
-        const neighbors = [
-          { nr: cr + 1, nc: cc }, { nr: cr - 1, nc: cc },
-          { nr: cr, nc: cc + 1 }, { nr: cr, nc: cc - 1 }
-        ];
+        // Если ячейка пустая, проверяем только перпендикулярных (боковых) соседей.
+        const n1r = cr + dc;
+        const n1c = cc + dr;
+        const n2r = cr - dc;
+        const n2c = cc - dr;
 
-        for (const n of neighbors) {
-          if (n.nr === cr - dr && n.nc === cc - dc) continue;
-          if (n.nr === cr + dr && n.nc === cc + dc) continue;
-          if (grid[n.nr] && grid[n.nr][n.nc]) return false;
-        }
+        if (n1r >= 0 && n1r < 40 && n1c >= 0 && n1c < 40 && grid[n1r][n1c] !== null) return false;
+        if (n2r >= 0 && n2r < 40 && n2c >= 0 && n2c < 40 && grid[n2r][n2c] !== null) return false;
       }
     }
+
     return true;
   }
 
@@ -644,7 +660,6 @@ function startBibleWowGame(levelsUrl) {
            </div>
         </div>
 
-        <!-- Levels modal -->
         <div class="wow-modal" id="wow-levels-modal" aria-hidden="true">
           <div class="wow-modal-card" role="dialog" aria-label="Уровни">
             <div class="wow-modal-top">
@@ -656,7 +671,6 @@ function startBibleWowGame(levelsUrl) {
           </div>
         </div>
 
-        <!-- Bonus modal -->
         <div class="wow-modal" id="wow-bonus-modal" aria-hidden="true">
           <div class="wow-modal-card" role="dialog" aria-label="Бонусные слова">
             <div class="wow-modal-top">
