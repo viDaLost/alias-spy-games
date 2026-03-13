@@ -36,7 +36,7 @@ function startQuartetGame(quartetsUrl) {
     name: 'quartet_player_name',
   };
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLfZLNqXuLetvxMMxxOnoVBTS-Rug2dRtcNmP6CDgFcZZI59d_AqhM7VoiOj6N08fh/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwnDm8h-4rOhiyft1_fsm7I7WMV8EFFJLmtjmEjZ26YQTPHV7CyK7xJ6kciMCyhhHcgvQ/exec';
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
   const POLL_MS_IDLE = 2500;
