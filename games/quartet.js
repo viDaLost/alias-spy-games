@@ -35,7 +35,7 @@ function startQuartetGame(quartetsUrl) {
   };
 
   // URL твоего развернутого скрипта GAS
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLfZLNqXuLetvxMMxxOnoVBTS-Rug2dRtcNmP6CDgFcZZI59d_AqhM7VoiOj6N08fh/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbw82iOnfcZAcOe0xKD8E2NuP8OylY1--FTIlebG3HrAi6VqXRrH3QHGiIFg7tkgrr7XwQ/exec';
   
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
