@@ -23,7 +23,14 @@ function startQuartetGame(quartetsUrl) {
     localStorage.setItem('quartet_player_id', localPlayerId);
   }
 
-  const playerId = String(tgUser.id || localPlayerId);
+  // Блокируем заглушки, чтобы избежать склейки разных устройств в одного юзера
+  let finalId = tgUser.id;
+  const strId = String(finalId || '').toLowerCase();
+  if (!finalId || strId === 'anon' || strId === 'аноним') {
+    finalId = localPlayerId;
+  }
+  
+  const playerId = String(finalId);
 
   const defaultName = (tgUser.first_name || tgUser.username)
     ? String(tgUser.first_name || tgUser.username).trim()
@@ -35,7 +42,7 @@ function startQuartetGame(quartetsUrl) {
   };
 
   // URL твоего развернутого скрипта GAS
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbw82iOnfcZAcOe0xKD8E2NuP8OylY1--FTIlebG3HrAi6VqXRrH3QHGiIFg7tkgrr7XwQ/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzWuUrRglBmztMR--MFTNNgGlT6fm_gAqWlN_3Si7jrnA0LAsX1xZemuwyxSN_u3qzy/exec';
   
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
@@ -104,7 +111,6 @@ function startQuartetGame(quartetsUrl) {
   }
 
   async function api(action, payload) {
-    // Теперь playerId всегда будет уникальным
     const body = Object.assign({
       action: action,
       roomId: roomId,
