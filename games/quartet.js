@@ -9,13 +9,26 @@ function startQuartetGame(quartetsUrl) {
   const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   try { if (tg && tg.expand) tg.expand(); } catch (e) {}
 
-  const tgUser = (typeof getTelegramUser === 'function')
-    ? (getTelegramUser() || {})
-    : {};
+  // 1. ИСПРАВЛЕНИЕ: Надежное получение юзера или генерация уникального ID
+  let tgUser = {};
+  if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    tgUser = tg.initDataUnsafe.user;
+  } else if (typeof getTelegramUser === 'function') {
+    tgUser = getTelegramUser() || {};
+  }
 
-  const playerId = String(tgUser.id || 'anon');
-  const defaultName = (tgUser.username && String(tgUser.username).trim())
-    ? String(tgUser.username).trim()
+  // Генерируем уникальный локальный ID, если игра запущена вне Telegram
+  let localPlayerId = localStorage.getItem('quartet_player_id');
+  if (!localPlayerId) {
+    localPlayerId = 'p_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+    localStorage.setItem('quartet_player_id', localPlayerId);
+  }
+
+  const playerId = String(tgUser.id || localPlayerId);
+
+  // Пытаемся взять нормальное имя из ТГ, иначе 'Игрок'
+  const defaultName = (tgUser.first_name || tgUser.username)
+    ? String(tgUser.first_name || tgUser.username).trim()
     : 'Игрок';
 
   const LS = {
@@ -91,10 +104,11 @@ function startQuartetGame(quartetsUrl) {
   }
 
   async function api(action, payload) {
+    // Теперь playerId всегда уникален для каждого устройства
     const body = Object.assign({
       action: action,
       roomId: roomId,
-      playerId: playerId,
+      playerId: playerId, 
       name: myName,
     }, payload || {});
 
@@ -248,7 +262,7 @@ function startQuartetGame(quartetsUrl) {
       header = '<div><b>' + (myTurn ? 'Твой ход' : 'Ход другого игрока') + '</b></div>';
     }
 
-    header += '<div class="quartet-muted">Текущий ход: ' + escapeHtml(st.turnPlayerName || '—') + '</div>';
+    header += '<div class="quartet-muted">Теку ход: ' + escapeHtml(st.turnPlayerName || '—') + '</div>';
     header += '<div class="quartet-muted">Твои квартеты: <b>' + Number((st.me && st.me.quartetsCount) || 0) + '</b></div>';
 
     ui.gameInfo.innerHTML = header;
