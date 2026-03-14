@@ -73,6 +73,7 @@ function startQuartetGame() {
   let isViewingCardsWhileWaiting = false;
   let waitToggleLoading = '';
   let reconnectLoading = false;
+  let leavingNow = false;
 
   let myName = localStorage.getItem(LS.name) || defaultName;
   let roomId = localStorage.getItem(LS.roomId) || '';
@@ -106,7 +107,7 @@ function startQuartetGame() {
     reconnectLoading = !!isLoading;
     if (!ui.loadingPanel || !ui.loadingBtn) return;
     ui.loadingPanel.classList.toggle('hidden', !reconnectLoading);
-    ui.loadingBtn.textContent = text || 'Загрузка лобби 🔄';
+    ui.loadingBtn.textContent = text || 'Загрузка…';
   }
 
   function setAuthButtonsIdle() {
@@ -168,6 +169,52 @@ function startQuartetGame() {
     syncWaitButtons();
   }
 
+  async function copyText(text) {
+    const value = String(text || '');
+    if (!value) throw new Error('Нет кода комнаты');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+
+    const ta = document.createElement('textarea');
+    ta.value = value;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+
+  async function handleCopyRoom() {
+    if (!roomId || !ui.copyBtn) return;
+    const oldText = ui.copyBtn.textContent;
+    try {
+      ui.copyBtn.disabled = true;
+      ui.copyBtn.textContent = 'Копирую…';
+      await copyText(roomId);
+      ui.copyBtn.textContent = 'Скопировано ✓';
+      setStatus('Код комнаты скопирован.', 'ok');
+    } catch (e) {
+      ui.copyBtn.textContent = 'Не удалось скопировать';
+      setStatus('Не удалось скопировать код комнаты.', 'err');
+    } finally {
+      setTimeout(() => {
+        if (ui.copyBtn) {
+          ui.copyBtn.disabled = false;
+          ui.copyBtn.textContent = oldText;
+        }
+      }, 1400);
+    }
+  }
+
   async function api(action, payload) {
     const body = Object.assign({
       action: action,
@@ -217,7 +264,7 @@ function startQuartetGame() {
   function startPolling() {
     pollingStopped = false;
     if (pollTimer) clearTimeout(pollTimer);
-    if (roomId) setReconnectLoading(true, 'Загрузка лобби 🔄');
+    if (roomId) setReconnectLoading(true, 'Загрузка…');
     refreshState(true);
   }
 
@@ -240,7 +287,7 @@ function startQuartetGame() {
       nextAllowedAt = 0;
 
       if (!state) {
-        setReconnectLoading(true, 'Загрузка лобби 🔄');
+        setReconnectLoading(true, 'Загрузка…');
         scheduleNextPoll(POLL_MS_IDLE);
         return;
       }
@@ -266,7 +313,7 @@ function startQuartetGame() {
     } catch (e) {
       failStreak += 1;
       if (!state) {
-        setReconnectLoading(true, failStreak > 1 ? 'Переподключение… 🔄' : 'Загрузка лобби 🔄');
+        setReconnectLoading(true, failStreak > 1 ? 'Переподключение…' : 'Загрузка…');
       }
       nextAllowedAt = Date.now() + Math.min(12000, failStreak * 1500);
       scheduleNextPoll(Math.min(12000, failStreak * 1500));
@@ -282,6 +329,7 @@ function startQuartetGame() {
 
     ui.authPanel.classList.toggle('hidden', showMain);
     ui.main.classList.toggle('hidden', !showMain);
+    ui.roomCodeValue.textContent = roomId || '—';
     ui.roomLabel.textContent = roomId || '—';
 
     const inLobby = st.status === 'lobby';
@@ -340,14 +388,6 @@ function startQuartetGame() {
     renderAskPanel(st);
   }
 
-  function findCardMeta(cardId) {
-    for (const q of gameData.quartets) {
-      const card = q.cards.find(x => x.id === cardId);
-      if (card) return { quartet: q, card: card };
-    }
-    return null;
-  }
-
   function buildHandGroups(hand) {
     const myCards = new Set(hand || []);
     const groups = [];
@@ -398,31 +438,33 @@ function startQuartetGame() {
 
       <div class="q-hand-groups">
         ${groups.map(group => `
-          <section class="q-hand-group ${group.ownedCount >= 3 ? 'q-hand-group--hot' : ''}">
-            <div class="q-hand-group-head">
+          <details class="q-hand-group ${group.ownedCount >= 3 ? 'q-hand-group--hot' : ''}" ${group.ownedCount >= 3 ? 'open' : ''}>
+            <summary class="q-hand-group-head">
               <div class="q-hand-title-wrap">
                 <div class="q-hand-group-title">${escapeHtml(group.quartet.name)}</div>
                 <div class="q-hand-group-meta">Собрано ${group.ownedCount}/4</div>
               </div>
               <div class="q-group-progress">${group.ownedCount}/4</div>
-            </div>
+            </summary>
 
-            <div class="q-hand-strip">
-              ${group.slots.map(slot => `
-                <div class="q-slot-card ${slot.owned ? '' : 'q-slot-card--ghost'}">
-                  <div class="q-slot-top">${slot.owned ? 'Есть' : 'Нужно'}</div>
-                  <div class="q-slot-title">${escapeHtml(slot.title)}</div>
-                </div>
-              `).join('')}
-            </div>
+            <div class="q-hand-group-body">
+              <div class="q-hand-strip">
+                ${group.slots.map(slot => `
+                  <div class="q-slot-card ${slot.owned ? '' : 'q-slot-card--ghost'}">
+                    <div class="q-slot-top">${slot.owned ? 'Есть' : 'Нужно'}</div>
+                    <div class="q-slot-title">${escapeHtml(slot.title)}</div>
+                  </div>
+                `).join('')}
+              </div>
 
-            <div class="q-hand-footer">
-              ${group.missingCards.length
-                ? `Не хватает: ${group.missingCards.map(c => `<span class="q-missing-chip">${escapeHtml(c.title)}</span>`).join('')}`
-                : `<span class="q-complete-chip">Квартет собран</span>`
-              }
+              <div class="q-hand-footer">
+                ${group.missingCards.length
+                  ? `Не хватает: ${group.missingCards.map(c => `<span class="q-missing-chip">${escapeHtml(c.title)}</span>`).join('')}`
+                  : `<span class="q-complete-chip">Квартет собран</span>`
+                }
+              </div>
             </div>
-          </section>
+          </details>
         `).join('')}
       </div>
     `;
@@ -460,7 +502,7 @@ function startQuartetGame() {
       if (buttonEl) {
         buttonEl.disabled = true;
         buttonEl.dataset.prev = buttonEl.textContent;
-        buttonEl.textContent = 'Загрузка 🔄';
+        buttonEl.textContent = 'Загрузка…';
       }
       setStatus('Отправляю запрос…', 'info');
       await api('askCard', { targetId: targetId, cardId: cardId });
@@ -599,11 +641,12 @@ function startQuartetGame() {
 
   async function onCreateRoom() {
     try {
+      leavingNow = false;
       saveInputs();
       setStatus('Создаю...', 'info');
       ui.createBtn.disabled = true;
       ui.joinBtn.disabled = true;
-      ui.createBtn.textContent = 'Загрузка 🔄';
+      ui.createBtn.textContent = 'Загрузка…';
 
       const res = await api('createRoom');
       roomId = String(res.roomId || '');
@@ -611,7 +654,7 @@ function startQuartetGame() {
 
       ui.authPanel.classList.add('hidden');
       ui.main.classList.remove('hidden');
-      setReconnectLoading(true, 'Загрузка лобби 🔄');
+      setReconnectLoading(true, 'Загрузка…');
       startPolling();
     } catch (e) {
       setStatus(String(e.message || e), 'err');
@@ -624,20 +667,21 @@ function startQuartetGame() {
 
   async function onJoinRoom() {
     try {
+      leavingNow = false;
       saveInputs();
       if (!roomId) throw new Error('Код комнаты?');
 
       setStatus('Вхожу...', 'info');
       ui.createBtn.disabled = true;
       ui.joinBtn.disabled = true;
-      ui.joinBtn.textContent = 'Загрузка 🔄';
+      ui.joinBtn.textContent = 'Загрузка…';
 
       await api('joinRoom', { roomId: roomId });
       localStorage.setItem(LS.roomId, roomId);
 
       ui.authPanel.classList.add('hidden');
       ui.main.classList.remove('hidden');
-      setReconnectLoading(true, 'Загрузка лобби 🔄');
+      setReconnectLoading(true, 'Загрузка…');
       startPolling();
     } catch (e) {
       setStatus(String(e.message || e), 'err');
@@ -649,10 +693,21 @@ function startQuartetGame() {
   }
 
   async function onLeave() {
+    if (leavingNow) return;
+    leavingNow = true;
+
     pollingStopped = true;
     if (pollTimer) clearTimeout(pollTimer);
 
-    try { await api('leave'); } catch (e) {}
+    if (ui.leaveBtn) {
+      ui.leaveBtn.disabled = true;
+      ui.leaveBtn.textContent = 'Загрузка…';
+    }
+    setReconnectLoading(true, 'Загрузка…');
+
+    try {
+      await api('leave');
+    } catch (e) {}
 
     roomId = '';
     state = null;
@@ -670,6 +725,13 @@ function startQuartetGame() {
     ui.main.classList.add('hidden');
     ui.roomInput.value = '';
     ui.status.textContent = '';
+
+    if (ui.leaveBtn) {
+      ui.leaveBtn.disabled = false;
+      ui.leaveBtn.textContent = '⬅️ Выйти';
+    }
+
+    leavingNow = false;
 
     if (typeof goToMainMenu === 'function') goToMainMenu();
   }
@@ -702,6 +764,74 @@ function startQuartetGame() {
           min-height: 58px;
         }
 
+        .q-room-block {
+          background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+          border: 1px solid #dbe3ee;
+          border-radius: 18px;
+          padding: 14px;
+          margin-bottom: 14px;
+        }
+        .q-room-title {
+          font-size: 0.9em;
+          color: #64748b;
+          font-weight: 800;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: .03em;
+        }
+        .q-room-code {
+          font-size: 1.6em;
+          font-weight: 900;
+          color: #1e293b;
+          letter-spacing: .06em;
+          margin-bottom: 10px;
+          line-height: 1;
+        }
+        .q-copy-btn {
+          width: 100%;
+          min-height: 48px;
+          border: none;
+          border-radius: 14px;
+          background: #e9f1ff;
+          color: #1d4ed8;
+          font-weight: 800;
+          font-size: 0.98em;
+          border: 1px solid #cfe0ff;
+        }
+
+        .q-guide {
+          margin-top: 12px;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 14px;
+        }
+        .q-guide-title {
+          font-size: 0.98em;
+          font-weight: 900;
+          color: #334155;
+          margin-bottom: 10px;
+        }
+        .q-guide-step {
+          color: #475569;
+          font-size: 0.94em;
+          line-height: 1.45;
+          margin-bottom: 7px;
+        }
+        .q-guide-step:last-child {
+          margin-bottom: 0;
+        }
+        .q-auth-hint {
+          margin-top: 12px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          color: #64748b;
+          font-size: 0.92em;
+          line-height: 1.4;
+        }
+
         .q-hand-summary {
           display: flex;
           flex-wrap: wrap;
@@ -732,19 +862,29 @@ function startQuartetGame() {
           background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
           border: 1px solid #e2e8f0;
           border-radius: 20px;
-          padding: 14px;
           box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+          overflow: hidden;
         }
         .q-hand-group--hot {
           border-color: #c6d8ff;
           box-shadow: 0 14px 28px rgba(37, 99, 235, 0.08);
+        }
+        .q-hand-group > summary {
+          list-style: none;
+        }
+        .q-hand-group > summary::-webkit-details-marker {
+          display: none;
         }
         .q-hand-group-head {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 10px;
-          margin-bottom: 12px;
+          padding: 14px;
+          cursor: pointer;
+        }
+        .q-hand-group-body {
+          padding: 0 14px 14px;
         }
         .q-hand-title-wrap {
           min-width: 0;
@@ -1023,6 +1163,9 @@ function startQuartetGame() {
         }
 
         @media (max-width: 420px) {
+          .q-room-code {
+            font-size: 1.42em;
+          }
           .q-slot-card {
             flex-basis: 138px;
             min-height: 84px;
@@ -1066,17 +1209,34 @@ function startQuartetGame() {
             <button id="q_create" class="start-button">Создать лобби</button>
             <button id="q_join" class="menu-button">Войти</button>
           </div>
+          <div class="q-auth-hint">
+            Чтобы подключиться к комнате, введи код комнаты и нажми «Войти».
+          </div>
           <div id="q_status" class="quartet-status" data-kind="info"></div>
         </div>
 
         <div id="q_main" class="quartet-main hidden">
           <div id="q_loading_panel" class="quartet-card q-loading-panel hidden">
-            <button id="q_loading_btn" class="start-button q-loading-btn" disabled>Загрузка лобби 🔄</button>
+            <button id="q_loading_btn" class="start-button q-loading-btn" disabled>Загрузка…</button>
           </div>
 
           <div class="quartet-topbar">
             <div class="quartet-room">Комната: <b id="q_room_label">—</b></div>
             <button id="q_leave" class="back-button">⬅️ Выйти</button>
+          </div>
+
+          <div class="q-room-block">
+            <div class="q-room-title">Код комнаты</div>
+            <div id="q_room_code_value" class="q-room-code">—</div>
+            <button id="q_copy_room" class="q-copy-btn">Скопировать код</button>
+
+            <div class="q-guide">
+              <div class="q-guide-title">Как подключить другого игрока</div>
+              <div class="q-guide-step">1. Нажми «Скопировать код».</div>
+              <div class="q-guide-step">2. Отправь этот код другу.</div>
+              <div class="q-guide-step">3. Друг вводит код в поле «Комната» и нажимает «Войти».</div>
+              <div class="q-guide-step">4. Когда в лобби будет 3–8 игроков, хост нажимает «Начать игру».</div>
+            </div>
           </div>
 
           <div id="q_lobby" class="quartet-card hidden">
@@ -1087,114 +1247,4 @@ function startQuartetGame() {
           </div>
 
           <div id="q_game" class="quartet-card hidden">
-            <div id="q_game_info" class="quartet-info"></div>
-
-            <div class="quartet-subsection" style="margin-top:20px;">Моя рука</div>
-            <div id="q_hand"></div>
-
-            <div class="quartet-subsection" style="margin-top:14px;">Действие</div>
-            <div id="q_ask"></div>
-
-            <div class="quartet-subsection" style="margin-top:20px;">Лог игры</div>
-            <div id="q_log" class="q-log-container"></div>
-          </div>
-        </div>
-
-        <div id="q_pending" class="quartet-modal hidden">
-          <div class="quartet-modal-card">
-            <div class="quartet-modal-title">Запрос карты</div>
-            <div id="q_pending_text" class="quartet-modal-text"></div>
-            <button id="q_give" class="start-button">Отдать карту</button>
-          </div>
-        </div>
-
-        <div id="q_wait_overlay" class="q-overlay hidden">
-          <div class="q-wait-box">
-            <h3>Ожидание хода</h3>
-            <p>Сейчас ходит: <span id="q_wait_turn_name" class="q-wait-name">...</span></p>
-            <button id="q_wait_show_cards" class="start-button">Показать мои карты</button>
-          </div>
-        </div>
-
-        <button id="q_wait_back" class="q-sticky-bottom hidden">Скрыть карты</button>
-      </div>
-    `;
-
-    ui.authPanel = document.getElementById('q_auth_panel');
-    ui.status = document.getElementById('q_status');
-    ui.main = document.getElementById('q_main');
-    ui.lobby = document.getElementById('q_lobby');
-    ui.game = document.getElementById('q_game');
-    ui.players = document.getElementById('q_players');
-    ui.hand = document.getElementById('q_hand');
-    ui.askPanel = document.getElementById('q_ask');
-    ui.log = document.getElementById('q_log');
-    ui.pendingModal = document.getElementById('q_pending');
-    ui.roomLabel = document.getElementById('q_room_label');
-    ui.startBtn = document.getElementById('q_start');
-    ui.nameInput = document.getElementById('q_name');
-    ui.roomInput = document.getElementById('q_room');
-    ui.gameInfo = document.getElementById('q_game_info');
-    ui.pendingText = document.getElementById('q_pending_text');
-    ui.giveBtn = document.getElementById('q_give');
-    ui.loadingPanel = document.getElementById('q_loading_panel');
-    ui.loadingBtn = document.getElementById('q_loading_btn');
-
-    ui.waitOverlay = document.getElementById('q_wait_overlay');
-    ui.waitTurnName = document.getElementById('q_wait_turn_name');
-    ui.waitShowCardsBtn = document.getElementById('q_wait_show_cards');
-    ui.waitBackBtn = document.getElementById('q_wait_back');
-
-    ui.createBtn = document.getElementById('q_create');
-    ui.joinBtn = document.getElementById('q_join');
-
-    ui.nameInput.value = myName;
-    ui.roomInput.value = roomId;
-    ui.roomLabel.textContent = roomId || '—';
-
-    ui.createBtn.addEventListener('click', onCreateRoom);
-    ui.joinBtn.addEventListener('click', onJoinRoom);
-
-    document.getElementById('q_leave').addEventListener('click', onLeave);
-
-    document.getElementById('q_start').addEventListener('click', async () => {
-      try {
-        ui.startBtn.disabled = true;
-        ui.startBtn.textContent = 'Загрузка 🔄';
-        await api('startGame');
-        await refreshStateAwait(true);
-      } catch (e) {
-        setStatus(String((e && e.message) || e), 'err');
-        ui.startBtn.disabled = false;
-        ui.startBtn.textContent = 'Начать игру';
-      }
-    });
-
-    ui.giveBtn.addEventListener('click', async () => {
-      try {
-        ui.giveBtn.disabled = true;
-        ui.giveBtn.textContent = 'Загрузка 🔄';
-        await api('giveCard', { pendingId: state && state.pending ? state.pending.pendingId : '' });
-        await refreshStateAwait(true);
-      } catch (e) {
-        setStatus(String((e && e.message) || e), 'err');
-      }
-    });
-
-    ui.waitShowCardsBtn.addEventListener('click', () => handleWaitViewToggle(true));
-    ui.waitBackBtn.addEventListener('click', () => handleWaitViewToggle(false));
-
-    syncWaitButtons();
-  }
-
-  (function init() {
-    renderShell();
-
-    if (roomId) {
-      ui.authPanel.classList.add('hidden');
-      ui.main.classList.remove('hidden');
-      setReconnectLoading(true, 'Загрузка лобби 🔄');
-      startPolling();
-    }
-  })();
-}
+            <div id="q_game_info" class="quartet-info"></
