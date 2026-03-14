@@ -57,7 +57,7 @@ function startQuartetGame() {
     ]
   };
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtxWp95-A1312RxVwrkEJ_-ujoZWtUp1Vfhn5oYotGS5BfMoxDSHQ2o-NjTlSyUhMWuQ/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxyeEJ4sjJGgujwKgnHAiUFyuYGVEphkQpnGyrr14FPyRNnKTAcrzbT9Mf_QO65l9SXqA/exec';
 
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
