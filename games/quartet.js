@@ -415,7 +415,7 @@ function startQuartetGame() {
         .q-wait-box h3 { margin: 0 0 10px 0; color: #1f2937; font-size: 1.4em; }
         .q-wait-box p { margin: 0 0 24px 0; color: #4b5563; font-size: 1.1em; }
         .q-wait-name { color: #2563eb; font-weight: bold; }
-        .q-sticky-bottom { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1999; background: #2563eb; color: white; border: none; padding: 16px 32px; border-radius: 30px; font-size: 1.1em; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); cursor: pointer; }
+        .q-sticky-bottom { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1999; background: #2563eb; color: white; border: none; padding: 16px 32px; border-radius: 30px; font-size: 1.1em; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
       </style>
 
       <div class="quartet-wrap fade-in">
@@ -536,3 +536,4 @@ function startQuartetGame() {
     if (roomId) { ui.authPanel.classList.add('hidden'); ui.main.classList.remove('hidden'); startPolling(); }
   })();
 }
+ 
