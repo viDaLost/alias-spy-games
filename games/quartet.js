@@ -9,7 +9,6 @@ function startQuartetGame() {
   const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   try { if (tg && tg.expand) tg.expand(); } catch (e) {}
 
-  // НАДЕЖНОЕ ПОЛУЧЕНИЕ ID
   let tgUser = {};
   if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
     tgUser = tg.initDataUnsafe.user;
@@ -40,7 +39,6 @@ function startQuartetGame() {
     name: 'quartet_player_name',
   };
 
-  // --- ВСТРОЕННАЯ КОЛОДА ---
   const gameData = {
     quartets: [
       { id: 'apostles', name: 'Апостолы (из 12)', cards: [{ id: 'apostles_peter', title: 'Пётр' }, { id: 'apostles_john', title: 'Иоанн' }, { id: 'apostles_james', title: 'Иаков' }, { id: 'apostles_andrew', title: 'Андрей' }] },
@@ -58,7 +56,6 @@ function startQuartetGame() {
     ]
   };
 
-  // Твоя актуальная ссылка на Web App
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtxWp95-A1312RxVwrkEJ_-ujoZWtUp1Vfhn5oYotGS5BfMoxDSHQ2o-NjTlSyUhMWuQ/exec';
 
   const POLL_MS_LOBBY = 1000;
@@ -74,13 +71,17 @@ function startQuartetGame() {
   let nextAllowedAt = 0;
 
   let isViewingCardsWhileWaiting = false;
-  let isBootLoading = false;
   let waitToggleLoading = '';
+  let reconnectLoading = false;
 
   let myName = localStorage.getItem(LS.name) || defaultName;
   let roomId = localStorage.getItem(LS.roomId) || '';
 
   const ui = {};
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
@@ -101,44 +102,42 @@ function startQuartetGame() {
     if (roomId) localStorage.setItem(LS.roomId, roomId);
   }
 
+  function setReconnectLoading(isLoading, text) {
+    reconnectLoading = !!isLoading;
+    if (!ui.loadingPanel || !ui.loadingBtn) return;
+    ui.loadingPanel.classList.toggle('hidden', !reconnectLoading);
+    ui.loadingBtn.textContent = text || 'Загрузка лобби 🔄';
+  }
+
+  function setAuthButtonsIdle() {
+    if (!ui.createBtn || !ui.joinBtn) return;
+    ui.createBtn.disabled = false;
+    ui.joinBtn.disabled = false;
+    ui.createBtn.textContent = 'Создать лобби';
+    ui.joinBtn.textContent = 'Войти';
+  }
+
   function setStartButtonState(st) {
     if (!ui.startBtn) return;
     const canStart = !!(st && st.status === 'lobby' && st.me && st.me.isHost);
     ui.startBtn.disabled = !canStart;
-    ui.startBtn.textContent = canStart
-      ? 'Начать игру'
-      : 'Начать игру может только хост';
-  }
-
-  function setReconnectLoading(isLoading, text) {
-    isBootLoading = !!isLoading;
-    if (!ui.loadingPanel || !ui.loadingBtn) return;
-    ui.loadingPanel.classList.toggle('hidden', !isBootLoading);
-    ui.loadingBtn.textContent = text || 'Загрузка лобби 🔄';
+    ui.startBtn.textContent = canStart ? 'Начать игру' : 'Начать игру может только хост';
   }
 
   function syncWaitButtons() {
     if (!ui.waitShowCardsBtn || !ui.waitBackBtn) return;
 
-    if (waitToggleLoading === 'show') {
+    if (waitToggleLoading) {
       ui.waitShowCardsBtn.textContent = 'Загрузка 🔄';
-      ui.waitShowCardsBtn.disabled = true;
       ui.waitBackBtn.textContent = 'Загрузка 🔄';
-      ui.waitBackBtn.disabled = true;
-      return;
-    }
-
-    if (waitToggleLoading === 'hide') {
-      ui.waitShowCardsBtn.textContent = 'Загрузка 🔄';
       ui.waitShowCardsBtn.disabled = true;
-      ui.waitBackBtn.textContent = 'Загрузка 🔄';
       ui.waitBackBtn.disabled = true;
       return;
     }
 
     ui.waitShowCardsBtn.textContent = 'Показать мои карты';
-    ui.waitShowCardsBtn.disabled = false;
     ui.waitBackBtn.textContent = 'Скрыть карты';
+    ui.waitShowCardsBtn.disabled = false;
     ui.waitBackBtn.disabled = false;
   }
 
@@ -171,7 +170,10 @@ function startQuartetGame() {
 
   async function api(action, payload) {
     const body = Object.assign({
-      action: action, roomId: roomId, playerId: playerId, name: myName,
+      action: action,
+      roomId: roomId,
+      playerId: playerId,
+      name: myName,
     }, payload || {});
 
     const res = await fetch(GAS_URL, {
@@ -184,12 +186,16 @@ function startQuartetGame() {
 
     const raw = await res.text().catch(() => '');
     let data;
-    try { data = raw ? JSON.parse(raw) : null; }
-    catch (e) { throw new Error('Ошибка сервера. Ответ: ' + String(raw || '').slice(0, 100)); }
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      throw new Error('Ошибка сервера. Ответ: ' + String(raw || '').slice(0, 120));
+    }
 
     if (!res.ok || !data || data.ok === false) {
       throw new Error(data && data.error ? String(data.error) : ('HTTP ' + res.status));
     }
+
     return data;
   }
 
@@ -197,6 +203,15 @@ function startQuartetGame() {
     if (pollingStopped) return;
     if (pollTimer) clearTimeout(pollTimer);
     pollTimer = setTimeout(() => refreshState(false), ms);
+  }
+
+  async function refreshStateAwait(force) {
+    let guard = 0;
+    while (inFlight && guard < 40) {
+      await sleep(100);
+      guard += 1;
+    }
+    return refreshState(force);
   }
 
   function startPolling() {
@@ -246,6 +261,7 @@ function startQuartetGame() {
       renderGame(state);
       updatePendingModal(state);
       applyWaitMode(state);
+
       scheduleNextPoll(state.status === 'lobby' ? POLL_MS_LOBBY : POLL_MS_GAME);
     } catch (e) {
       failStreak += 1;
@@ -289,10 +305,12 @@ function startQuartetGame() {
         p.isActive === false ? '<span class="q-badge">вышел</span>' : '',
       ].filter(Boolean).join(' ');
 
-      return `<div class="q-player">
-                <div class="q-player-name">${escapeHtml(p.name || 'Игрок')} ${badges}</div>
-                <div class="q-player-meta">🂠 ${Number(p.cardsCount || 0)} • 🏆 ${Number(p.quartetsCount || 0)}</div>
-              </div>`;
+      return `
+        <div class="q-player">
+          <div class="q-player-name">${escapeHtml(p.name || 'Игрок')} ${badges}</div>
+          <div class="q-player-meta">🂠 ${Number(p.cardsCount || 0)} • 🏆 ${Number(p.quartetsCount || 0)}</div>
+        </div>
+      `;
     }).join('');
   }
 
@@ -325,9 +343,40 @@ function startQuartetGame() {
   function findCardMeta(cardId) {
     for (const q of gameData.quartets) {
       const card = q.cards.find(x => x.id === cardId);
-      if (card) return { quartet: q, card };
+      if (card) return { quartet: q, card: card };
     }
     return null;
+  }
+
+  function buildHandGroups(hand) {
+    const myCards = new Set(hand || []);
+    const groups = [];
+
+    gameData.quartets.forEach(q => {
+      const owned = q.cards.filter(c => myCards.has(c.id));
+      if (!owned.length) return;
+
+      const slots = q.cards.map(c => ({
+        id: c.id,
+        title: c.title,
+        owned: myCards.has(c.id)
+      }));
+
+      groups.push({
+        quartet: q,
+        ownedCount: owned.length,
+        missingCount: 4 - owned.length,
+        slots: slots,
+        missingCards: q.cards.filter(c => !myCards.has(c.id))
+      });
+    });
+
+    groups.sort((a, b) => {
+      if (b.ownedCount !== a.ownedCount) return b.ownedCount - a.ownedCount;
+      return a.quartet.name.localeCompare(b.quartet.name, 'ru');
+    });
+
+    return groups;
   }
 
   function renderHand(st) {
@@ -337,26 +386,8 @@ function startQuartetGame() {
       return;
     }
 
-    const byQuartet = {};
-    hand.forEach(cid => {
-      const meta = findCardMeta(cid);
-      if (!meta) return;
-      if (!byQuartet[meta.quartet.id]) byQuartet[meta.quartet.id] = { quartet: meta.quartet, cards: [] };
-      byQuartet[meta.quartet.id].cards.push(meta.card);
-    });
-
-    const groups = Object.values(byQuartet)
-      .map(group => {
-        const ownedIds = new Set(group.cards.map(c => c.id));
-        const missing = group.quartet.cards.filter(c => !ownedIds.has(c.id));
-        return Object.assign({}, group, { missing: missing });
-      })
-      .sort((a, b) => {
-        if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
-        return a.quartet.name.localeCompare(b.quartet.name, 'ru');
-      });
-
-    const almostReady = groups.filter(g => g.cards.length === 3).length;
+    const groups = buildHandGroups(hand);
+    const almostReady = groups.filter(g => g.ownedCount === 3).length;
 
     ui.hand.innerHTML = `
       <div class="q-hand-summary">
@@ -364,35 +395,84 @@ function startQuartetGame() {
         <div class="q-summary-pill">Групп: <b>${groups.length}</b></div>
         <div class="q-summary-pill ${almostReady ? 'q-summary-pill--accent' : ''}">Почти собраны: <b>${almostReady}</b></div>
       </div>
+
       <div class="q-hand-groups">
-        ${groups.map(group => {
-          const progress = `${group.cards.length}/4`;
-          const cardTiles = group.cards
-            .slice()
-            .sort((a, b) => a.title.localeCompare(b.title, 'ru'))
-            .map(c => `<div class="q-mini-card"><span>${escapeHtml(c.title)}</span></div>`)
-            .join('');
-
-          const missingHtml = group.missing.length
-            ? `<div class="q-missing-row">Не хватает: ${group.missing.map(c => `<span class="q-missing-chip">${escapeHtml(c.title)}</span>`).join('')}</div>`
-            : '<div class="q-missing-row q-missing-row--done">Квартет собран полностью</div>';
-
-          return `
-            <section class="q-hand-group ${group.cards.length >= 3 ? 'q-hand-group--hot' : ''}">
-              <div class="q-hand-group-head">
-                <div>
-                  <div class="q-hand-group-title">${escapeHtml(group.quartet.name)}</div>
-                  <div class="q-hand-group-meta">Собрано ${progress}</div>
-                </div>
-                <div class="q-group-progress">${progress}</div>
+        ${groups.map(group => `
+          <section class="q-hand-group ${group.ownedCount >= 3 ? 'q-hand-group--hot' : ''}">
+            <div class="q-hand-group-head">
+              <div class="q-hand-title-wrap">
+                <div class="q-hand-group-title">${escapeHtml(group.quartet.name)}</div>
+                <div class="q-hand-group-meta">Собрано ${group.ownedCount}/4</div>
               </div>
-              <div class="q-cards-grid q-cards-grid--compact">${cardTiles}</div>
-              ${missingHtml}
-            </section>
-          `;
-        }).join('')}
+              <div class="q-group-progress">${group.ownedCount}/4</div>
+            </div>
+
+            <div class="q-hand-strip">
+              ${group.slots.map(slot => `
+                <div class="q-slot-card ${slot.owned ? '' : 'q-slot-card--ghost'}">
+                  <div class="q-slot-top">${slot.owned ? 'Есть' : 'Нужно'}</div>
+                  <div class="q-slot-title">${escapeHtml(slot.title)}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <div class="q-hand-footer">
+              ${group.missingCards.length
+                ? `Не хватает: ${group.missingCards.map(c => `<span class="q-missing-chip">${escapeHtml(c.title)}</span>`).join('')}`
+                : `<span class="q-complete-chip">Квартет собран</span>`
+              }
+            </div>
+          </section>
+        `).join('')}
       </div>
     `;
+  }
+
+  function buildEligibleGroups(hand) {
+    const myCards = new Set(hand || []);
+    const result = [];
+
+    gameData.quartets.forEach(q => {
+      const ownedCount = q.cards.filter(c => myCards.has(c.id)).length;
+      if (!ownedCount) return;
+
+      const missingCards = q.cards.filter(c => !myCards.has(c.id));
+      if (!missingCards.length) return;
+
+      result.push({
+        quartet: q,
+        ownedCount: ownedCount,
+        cards: missingCards
+      });
+    });
+
+    result.sort((a, b) => {
+      if (b.ownedCount !== a.ownedCount) return b.ownedCount - a.ownedCount;
+      return a.quartet.name.localeCompare(b.quartet.name, 'ru');
+    });
+
+    return result;
+  }
+
+  async function sendAskCard(targetId, cardId, buttonEl) {
+    if (!targetId || !cardId) return;
+    try {
+      if (buttonEl) {
+        buttonEl.disabled = true;
+        buttonEl.dataset.prev = buttonEl.textContent;
+        buttonEl.textContent = 'Загрузка 🔄';
+      }
+      setStatus('Отправляю запрос…', 'info');
+      await api('askCard', { targetId: targetId, cardId: cardId });
+      setStatus('Запрос отправлен.', 'ok');
+      await refreshStateAwait(true);
+    } catch (e) {
+      setStatus(String((e && e.message) || e), 'err');
+      if (buttonEl) {
+        buttonEl.disabled = false;
+        buttonEl.textContent = buttonEl.dataset.prev || 'Спросить';
+      }
+    }
   }
 
   function renderAskPanel(st) {
@@ -424,67 +504,82 @@ function startQuartetGame() {
       return;
     }
 
-    const myCards = new Set(hand);
-    const eligible = [];
-    gameData.quartets.forEach(q => {
-      const ownedCount = q.cards.filter(c => myCards.has(c.id)).length;
-      if (!ownedCount) return;
-      q.cards.forEach(c => {
-        if (!myCards.has(c.id)) {
-          eligible.push({ quartet: q, card: c, ownedCount: ownedCount });
-        }
-      });
+    const eligibleGroups = buildEligibleGroups(hand);
+    const flatEligible = [];
+    eligibleGroups.forEach(g => {
+      g.cards.forEach(c => flatEligible.push({ quartet: g.quartet, ownedCount: g.ownedCount, card: c }));
     });
 
-    eligible.sort((a, b) => {
-      if (b.ownedCount !== a.ownedCount) return b.ownedCount - a.ownedCount;
-      const qCmp = a.quartet.name.localeCompare(b.quartet.name, 'ru');
-      if (qCmp !== 0) return qCmp;
-      return a.card.title.localeCompare(b.card.title, 'ru');
-    });
-
-    if (!eligible.length) {
+    if (!flatEligible.length) {
       ui.askPanel.innerHTML = '<div class="quartet-muted">У тебя нет подходящих карт для запроса.</div>';
       return;
     }
 
     ui.askPanel.innerHTML = `
       <div class="q-ask-form">
-        <div class="q-ask-topline">Сначала показываются карты из почти собранных групп.</div>
         <div class="quartet-field">
           <label>Кого спросить</label>
           <select id="q_target" class="q-input">
             ${targets.map(p => `<option value="${escapeHtml(String(p.playerId))}">${escapeHtml(p.name)} (🂠 ${Number(p.cardsCount || 0)})</option>`).join('')}
           </select>
         </div>
-        <div class="quartet-field">
-          <label>Какую карту</label>
-          <select id="q_card" class="q-input">
-            ${eligible.map(x => `<option value="${escapeHtml(String(x.card.id))}">${escapeHtml(x.quartet.name)} — ${escapeHtml(x.card.title)} · ${x.ownedCount}/4</option>`).join('')}
-          </select>
+
+        <div class="q-quick-title">Быстрый выбор карты</div>
+
+        <div class="q-quick-groups">
+          ${eligibleGroups.map(group => `
+            <div class="q-quick-group ${group.ownedCount >= 3 ? 'q-quick-group--hot' : ''}">
+              <div class="q-quick-group-head">
+                <span class="q-quick-group-name">${escapeHtml(group.quartet.name)}</span>
+                <span class="q-quick-group-count">${group.ownedCount}/4</span>
+              </div>
+              <div class="q-quick-chips">
+                ${group.cards.map(card => `
+                  <button
+                    type="button"
+                    class="q-quick-chip"
+                    data-card-id="${escapeHtml(card.id)}"
+                    data-card-title="${escapeHtml(card.title)}"
+                  >${escapeHtml(card.title)}</button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
         </div>
-        <button id="q_ask_btn" class="start-button q-action-btn" style="margin-top: 10px;">Спросить карту</button>
+
+        <details class="q-manual-box">
+          <summary>Ручной выбор</summary>
+          <div class="quartet-field" style="margin-top:10px;">
+            <label>Какую карту</label>
+            <select id="q_card" class="q-input">
+              ${flatEligible.map(x => `<option value="${escapeHtml(String(x.card.id))}">${escapeHtml(x.quartet.name)} — ${escapeHtml(x.card.title)} · ${x.ownedCount}/4</option>`).join('')}
+            </select>
+          </div>
+          <button id="q_ask_btn" class="start-button q-action-btn" style="margin-top: 10px;">Спросить карту</button>
+        </details>
       </div>
-      <div class="quartet-hint">Если карта есть, игрок отдаст её. Авто-отдача через 10 сек.</div>
+      <div class="quartet-hint">Сначала идут карты из групп, которые ты почти собрал. Авто-отдача через 10 сек.</div>
     `;
 
-    document.getElementById('q_ask_btn').addEventListener('click', async function () {
-      try {
-        const tId = document.getElementById('q_target').value;
-        const cId = document.getElementById('q_card').value;
-        if (!tId || !cId) return;
-        this.disabled = true;
-        this.textContent = 'Загрузка 🔄';
-        setStatus('Отправляю запрос…', 'info');
-        await api('askCard', { targetId: tId, cardId: cId });
-        setStatus('Запрос отправлен.', 'ok');
-        refreshState(true);
-      } catch (e) {
-        setStatus(String((e && e.message) || e), 'err');
-        this.disabled = false;
-        this.textContent = 'Спросить карту';
-      }
+    const targetSelect = document.getElementById('q_target');
+    const manualAskBtn = document.getElementById('q_ask_btn');
+    const cardSelect = document.getElementById('q_card');
+
+    ui.askPanel.querySelectorAll('.q-quick-chip').forEach(btn => {
+      btn.addEventListener('click', async function () {
+        const targetId = targetSelect ? targetSelect.value : '';
+        const cardId = this.dataset.cardId || '';
+        await sendAskCard(targetId, cardId, this);
+      });
     });
+
+    if (manualAskBtn) {
+      manualAskBtn.addEventListener('click', async function () {
+        const targetId = targetSelect ? targetSelect.value : '';
+        const cardId = cardSelect ? cardSelect.value : '';
+        await sendAskCard(targetId, cardId, this);
+      });
+    }
   }
 
   function updatePendingModal(st) {
@@ -495,9 +590,7 @@ function startQuartetGame() {
     }
 
     const secsLeft = Math.max(0, Math.ceil((Number(pending.expiresAtMs || 0) - Date.now()) / 1000));
-    ui.pendingText.innerHTML = `Игрок <b>${escapeHtml(pending.askerName || '')}</b> просит карту:<br>
-      <b>${escapeHtml(pending.cardTitle || pending.cardId || '')}</b><br>
-      <span class="quartet-muted">Осталось: ${secsLeft} сек.</span>`;
+    ui.pendingText.innerHTML = `Игрок <b>${escapeHtml(pending.askerName || '')}</b> просит карту:<br><b>${escapeHtml(pending.cardTitle || pending.cardId || '')}</b><br><span class="quartet-muted">Осталось: ${secsLeft} сек.</span>`;
 
     ui.giveBtn.disabled = !pending.targetHasCard;
     ui.giveBtn.textContent = pending.targetHasCard ? 'Отдать карту' : 'Карты нет';
@@ -511,21 +604,21 @@ function startQuartetGame() {
       ui.createBtn.disabled = true;
       ui.joinBtn.disabled = true;
       ui.createBtn.textContent = 'Загрузка 🔄';
+
       const res = await api('createRoom');
       roomId = String(res.roomId || '');
       localStorage.setItem(LS.roomId, roomId);
+
       ui.authPanel.classList.add('hidden');
       ui.main.classList.remove('hidden');
       setReconnectLoading(true, 'Загрузка лобби 🔄');
       startPolling();
     } catch (e) {
       setStatus(String(e.message || e), 'err');
+      setAuthButtonsIdle();
+      setReconnectLoading(false);
       ui.authPanel.classList.remove('hidden');
       ui.main.classList.add('hidden');
-      setReconnectLoading(false);
-      ui.createBtn.disabled = false;
-      ui.joinBtn.disabled = false;
-      ui.createBtn.textContent = 'Создать лобби';
     }
   }
 
@@ -533,46 +626,51 @@ function startQuartetGame() {
     try {
       saveInputs();
       if (!roomId) throw new Error('Код комнаты?');
+
       setStatus('Вхожу...', 'info');
       ui.createBtn.disabled = true;
       ui.joinBtn.disabled = true;
       ui.joinBtn.textContent = 'Загрузка 🔄';
+
       await api('joinRoom', { roomId: roomId });
       localStorage.setItem(LS.roomId, roomId);
+
       ui.authPanel.classList.add('hidden');
       ui.main.classList.remove('hidden');
       setReconnectLoading(true, 'Загрузка лобби 🔄');
       startPolling();
     } catch (e) {
       setStatus(String(e.message || e), 'err');
+      setAuthButtonsIdle();
+      setReconnectLoading(false);
       ui.authPanel.classList.remove('hidden');
       ui.main.classList.add('hidden');
-      setReconnectLoading(false);
-      ui.createBtn.disabled = false;
-      ui.joinBtn.disabled = false;
-      ui.joinBtn.textContent = 'Войти';
     }
   }
 
   async function onLeave() {
     pollingStopped = true;
-    clearTimeout(pollTimer);
+    if (pollTimer) clearTimeout(pollTimer);
+
     try { await api('leave'); } catch (e) {}
+
     roomId = '';
     state = null;
     lastVersion = -1;
+    failStreak = 0;
+    nextAllowedAt = 0;
     isViewingCardsWhileWaiting = false;
     waitToggleLoading = '';
     localStorage.removeItem(LS.roomId);
+
     setReconnectLoading(false);
+    setAuthButtonsIdle();
+
     ui.authPanel.classList.remove('hidden');
     ui.main.classList.add('hidden');
     ui.roomInput.value = '';
     ui.status.textContent = '';
-    ui.createBtn.disabled = false;
-    ui.joinBtn.disabled = false;
-    ui.createBtn.textContent = 'Создать лобби';
-    ui.joinBtn.textContent = 'Войти';
+
     if (typeof goToMainMenu === 'function') goToMainMenu();
   }
 
@@ -584,7 +682,7 @@ function startQuartetGame() {
     applyWaitMode(state || {});
 
     try {
-      await refreshState(true);
+      await refreshStateAwait(true);
     } finally {
       waitToggleLoading = '';
       applyWaitMode(state || {});
@@ -595,25 +693,15 @@ function startQuartetGame() {
     container.innerHTML = `
       <style>
         .hidden { display: none !important; }
-        .q-cards-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 0; }
-        .q-cards-grid--compact { gap: 10px; }
-        .q-mini-card {
-          background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-          border: 1.5px solid #d9e3f0;
-          border-radius: 16px;
-          padding: 14px 12px;
-          text-align: center;
-          min-height: 72px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 6px 16px rgba(17, 24, 39, 0.05);
-          font-size: 1.06em;
-          font-weight: 800;
-          color: #0f172a;
-          line-height: 1.15;
-          word-break: break-word;
+
+        .q-loading-panel {
+          margin-bottom: 14px;
         }
+        .q-loading-btn {
+          width: 100%;
+          min-height: 58px;
+        }
+
         .q-hand-summary {
           display: flex;
           flex-wrap: wrap;
@@ -630,10 +718,11 @@ function startQuartetGame() {
           font-weight: 700;
         }
         .q-summary-pill--accent {
-          background: #e7f0ff;
+          background: #e8f1ff;
           color: #1d4ed8;
           border-color: #bfd5ff;
         }
+
         .q-hand-groups {
           display: flex;
           flex-direction: column;
@@ -644,18 +733,21 @@ function startQuartetGame() {
           border: 1px solid #e2e8f0;
           border-radius: 20px;
           padding: 14px;
-          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
         }
         .q-hand-group--hot {
-          border-color: #bfd5ff;
-          box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
+          border-color: #c6d8ff;
+          box-shadow: 0 14px 28px rgba(37, 99, 235, 0.08);
         }
         .q-hand-group-head {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          gap: 12px;
+          justify-content: space-between;
+          gap: 10px;
           margin-bottom: 12px;
+        }
+        .q-hand-title-wrap {
+          min-width: 0;
         }
         .q-hand-group-title {
           font-size: 0.98em;
@@ -667,9 +759,9 @@ function startQuartetGame() {
         }
         .q-hand-group-meta {
           margin-top: 3px;
-          font-size: 0.92em;
+          font-size: 0.9em;
           color: #64748b;
-          font-weight: 600;
+          font-weight: 700;
         }
         .q-group-progress {
           flex: 0 0 auto;
@@ -681,7 +773,56 @@ function startQuartetGame() {
           font-size: .95em;
           border: 1px solid #dbe7ff;
         }
-        .q-missing-row {
+
+        .q-hand-strip {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .q-hand-strip::-webkit-scrollbar {
+          display: none;
+        }
+
+        .q-slot-card {
+          flex: 0 0 145px;
+          min-height: 88px;
+          border-radius: 18px;
+          padding: 12px;
+          background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+          border: 1.5px solid #d6e3f7;
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+        .q-slot-card--ghost {
+          background: linear-gradient(180deg, #fafafa 0%, #f3f4f6 100%);
+          border: 1.5px dashed #cbd5e1;
+          color: #94a3b8;
+          box-shadow: none;
+        }
+        .q-slot-top {
+          font-size: 0.78em;
+          text-transform: uppercase;
+          letter-spacing: .04em;
+          color: #64748b;
+          font-weight: 800;
+        }
+        .q-slot-title {
+          font-size: 1em;
+          font-weight: 900;
+          color: #0f172a;
+          line-height: 1.15;
+          word-break: break-word;
+        }
+        .q-slot-card--ghost .q-slot-title {
+          color: #64748b;
+        }
+
+        .q-hand-footer {
           margin-top: 12px;
           display: flex;
           flex-wrap: wrap;
@@ -690,9 +831,7 @@ function startQuartetGame() {
           color: #64748b;
           font-size: 0.92em;
           font-weight: 700;
-        }
-        .q-missing-row--done {
-          color: #16a34a;
+          line-height: 1.3;
         }
         .q-missing-chip {
           display: inline-flex;
@@ -705,6 +844,18 @@ function startQuartetGame() {
           font-size: 0.9em;
           font-weight: 700;
         }
+        .q-complete-chip {
+          display: inline-flex;
+          align-items: center;
+          padding: 7px 12px;
+          background: #ecfdf5;
+          color: #15803d;
+          border: 1px solid #bbf7d0;
+          border-radius: 999px;
+          font-size: 0.9em;
+          font-weight: 800;
+        }
+
         .q-ask-form {
           background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
           border-radius: 18px;
@@ -712,15 +863,90 @@ function startQuartetGame() {
           margin-top: 12px;
           border: 1px solid #dbe3ee;
         }
-        .q-ask-topline {
-          font-size: 0.9em;
-          color: #64748b;
-          font-weight: 700;
-          margin-bottom: 12px;
+        .q-quick-title {
+          margin-top: 4px;
+          margin-bottom: 10px;
+          font-size: 0.95em;
+          font-weight: 900;
+          color: #334155;
+        }
+        .q-quick-groups {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .q-quick-group {
+          background: rgba(255,255,255,0.7);
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 12px;
+        }
+        .q-quick-group--hot {
+          border-color: #bfd5ff;
+          background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
+        }
+        .q-quick-group-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+        .q-quick-group-name {
+          font-size: 0.92em;
+          font-weight: 900;
+          color: #475569;
+          text-transform: uppercase;
+          line-height: 1.2;
+        }
+        .q-quick-group-count {
+          flex: 0 0 auto;
+          background: #eef4ff;
+          color: #2563eb;
+          border-radius: 999px;
+          padding: 4px 9px;
+          font-size: 0.82em;
+          font-weight: 900;
+          border: 1px solid #dbe7ff;
+        }
+        .q-quick-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .q-quick-chip {
+          border: none;
+          background: #2563eb;
+          color: #fff;
+          border-radius: 999px;
+          padding: 10px 14px;
+          font-size: 0.94em;
+          font-weight: 800;
+          line-height: 1;
+          box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+        }
+        .q-quick-chip:disabled {
+          opacity: 0.75;
+        }
+
+        .q-manual-box {
+          margin-top: 14px;
+          background: rgba(255,255,255,0.72);
+          border: 1px solid #e2e8f0;
+          border-radius: 14px;
+          padding: 12px;
+        }
+        .q-manual-box summary {
+          cursor: pointer;
+          font-weight: 800;
+          color: #475569;
+          outline: none;
+          user-select: none;
         }
         .q-action-btn {
           min-height: 58px;
         }
+
         .q-log-container {
           max-height: 230px;
           overflow-y: auto;
@@ -743,12 +969,10 @@ function startQuartetGame() {
           border-bottom: none;
           padding-bottom: 0;
         }
+
         .q-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          inset: 0;
           background: rgba(17, 24, 39, 0.78);
           backdrop-filter: blur(5px);
           z-index: 2000;
@@ -797,28 +1021,25 @@ function startQuartetGame() {
           font-weight: 800;
           box-shadow: 0 12px 24px rgba(37, 99, 235, 0.34);
         }
-        .q-loading-panel {
-          margin-bottom: 14px;
-        }
-        .q-loading-btn {
-          width: 100%;
-          min-height: 58px;
-          opacity: 1 !important;
-        }
+
         @media (max-width: 420px) {
-          .q-mini-card {
-            min-height: 68px;
-            padding: 12px 10px;
-            font-size: 1em;
+          .q-slot-card {
+            flex-basis: 138px;
+            min-height: 84px;
+            padding: 11px;
           }
-          .q-hand-group {
-            padding: 12px;
+          .q-slot-title {
+            font-size: 0.95em;
           }
           .q-hand-group-title {
             font-size: 0.92em;
           }
           .q-group-progress {
             padding: 7px 10px;
+            font-size: 0.9em;
+          }
+          .q-quick-chip {
+            padding: 10px 12px;
             font-size: 0.9em;
           }
         }
@@ -832,8 +1053,14 @@ function startQuartetGame() {
 
         <div id="q_auth_panel" class="quartet-card">
           <div class="quartet-grid2">
-            <div class="quartet-field"><label>Твоё имя</label><input id="q_name" class="q-input" placeholder="Имя" /></div>
-            <div class="quartet-field"><label>Комната</label><input id="q_room" class="q-input" placeholder="Код" maxlength="5" /></div>
+            <div class="quartet-field">
+              <label>Твоё имя</label>
+              <input id="q_name" class="q-input" placeholder="Имя" />
+            </div>
+            <div class="quartet-field">
+              <label>Комната</label>
+              <input id="q_room" class="q-input" placeholder="Код" maxlength="5" />
+            </div>
           </div>
           <div class="quartet-grid2">
             <button id="q_create" class="start-button">Создать лобби</button>
@@ -927,25 +1154,28 @@ function startQuartetGame() {
 
     ui.createBtn.addEventListener('click', onCreateRoom);
     ui.joinBtn.addEventListener('click', onJoinRoom);
+
     document.getElementById('q_leave').addEventListener('click', onLeave);
+
     document.getElementById('q_start').addEventListener('click', async () => {
       try {
         ui.startBtn.disabled = true;
         ui.startBtn.textContent = 'Загрузка 🔄';
         await api('startGame');
-        refreshState(true);
+        await refreshStateAwait(true);
       } catch (e) {
+        setStatus(String((e && e.message) || e), 'err');
         ui.startBtn.disabled = false;
         ui.startBtn.textContent = 'Начать игру';
-        setStatus(String((e && e.message) || e), 'err');
       }
     });
+
     ui.giveBtn.addEventListener('click', async () => {
       try {
         ui.giveBtn.disabled = true;
         ui.giveBtn.textContent = 'Загрузка 🔄';
-        await api('giveCard', { pendingId: state.pending.pendingId });
-        refreshState(true);
+        await api('giveCard', { pendingId: state && state.pending ? state.pending.pendingId : '' });
+        await refreshStateAwait(true);
       } catch (e) {
         setStatus(String((e && e.message) || e), 'err');
       }
@@ -959,6 +1189,7 @@ function startQuartetGame() {
 
   (function init() {
     renderShell();
+
     if (roomId) {
       ui.authPanel.classList.add('hidden');
       ui.main.classList.remove('hidden');
