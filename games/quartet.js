@@ -120,7 +120,7 @@ function startQuartetGame() {
   // -----------------------------------------------------------
 
   // ВАЖНО: Вставь сюда свежую ссылку после последнего "New Deployment"
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzWuUrRglBmztMR--MFTNNgGlT6fm_gAqWlN_3Si7jrnA0LAsX1xZemuwyxSN_u3qzy/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtxWp95-A1312RxVwrkEJ_-ujoZWtUp1Vfhn5oYotGS5BfMoxDSHQ2o-NjTlSyUhMWuQ/exec';
   
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
