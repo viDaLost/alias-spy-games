@@ -2,14 +2,14 @@
 // Онлайн-игра «Квартет» для Telegram WebApp
 // Клиент для Google Apps Script WebApp
 
-function startQuartetGame(quartetsUrl) {
+function startQuartetGame() {
   const container = document.getElementById('game-container');
   if (!container) return;
 
   const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   try { if (tg && tg.expand) tg.expand(); } catch (e) {}
 
-  // 1. НАДЕЖНОЕ ПОЛУЧЕНИЕ ID: Читаем из Telegram или генерируем локальный
+  // НАДЕЖНОЕ ПОЛУЧЕНИЕ ID
   let tgUser = {};
   if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
     tgUser = tg.initDataUnsafe.user;
@@ -23,7 +23,6 @@ function startQuartetGame(quartetsUrl) {
     localStorage.setItem('quartet_player_id', localPlayerId);
   }
 
-  // Блокируем заглушки, чтобы избежать склейки разных устройств в одного юзера
   let finalId = tgUser.id;
   const strId = String(finalId || '').toLowerCase();
   if (!finalId || strId === 'anon' || strId === 'аноним') {
@@ -41,14 +40,92 @@ function startQuartetGame(quartetsUrl) {
     name: 'quartet_player_name',
   };
 
-  // URL твоего развернутого скрипта GAS
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzWuUrRglBmztMR--MFTNNgGlT6fm_gAqWlN_3Si7jrnA0LAsX1xZemuwyxSN_u3qzy/exec';
+  // --- ВСТРОЕННАЯ КОЛОДА (чтобы не грузить внешний JSON) ---
+  const gameData = {
+    quartets: [
+      {
+        id: 'apostles', name: 'Апостолы (из 12)', cards: [
+          { id: 'apostles_peter', title: 'Пётр' }, { id: 'apostles_john', title: 'Иоанн' },
+          { id: 'apostles_james', title: 'Иаков' }, { id: 'apostles_andrew', title: 'Андрей' },
+        ]
+      },
+      {
+        id: 'evangelists', name: 'Евангелисты', cards: [
+          { id: 'evangelists_matthew', title: 'Матфей' }, { id: 'evangelists_mark', title: 'Марк' },
+          { id: 'evangelists_luke', title: 'Лука' }, { id: 'evangelists_john', title: 'Иоанн' },
+        ]
+      },
+      {
+        id: 'patriarchs', name: 'Патриархи', cards: [
+          { id: 'patriarchs_abraham', title: 'Авраам' }, { id: 'patriarchs_isaac', title: 'Исаак' },
+          { id: 'patriarchs_jacob', title: 'Иаков' }, { id: 'patriarchs_joseph', title: 'Иосиф' },
+        ]
+      },
+      {
+        id: 'major_prophets', name: 'Пророки', cards: [
+          { id: 'prophets_isaiah', title: 'Исаия' }, { id: 'prophets_jeremiah', title: 'Иеремия' },
+          { id: 'prophets_ezekiel', title: 'Иезекииль' }, { id: 'prophets_daniel', title: 'Даниил' },
+        ]
+      },
+      {
+        id: 'judges', name: 'Судьи Израиля', cards: [
+          { id: 'judges_deborah', title: 'Девора' }, { id: 'judges_gideon', title: 'Гедеон' },
+          { id: 'judges_samson', title: 'Самсон' }, { id: 'judges_jephthah', title: 'Иеффай' },
+        ]
+      },
+      {
+        id: 'kings', name: 'Цари Израиля', cards: [
+          { id: 'kings_saul', title: 'Саул' }, { id: 'kings_david', title: 'Давид' },
+          { id: 'kings_solomon', title: 'Соломон' }, { id: 'kings_hezekiah', title: 'Езекия' },
+        ]
+      },
+      {
+        id: 'matriarchs', name: 'Жёны веры', cards: [
+          { id: 'matriarchs_sarah', title: 'Сарра' }, { id: 'matriarchs_rebekah', title: 'Ревекка' },
+          { id: 'matriarchs_rachel', title: 'Рахиль' }, { id: 'matriarchs_leah', title: 'Лия' },
+        ]
+      },
+      {
+        id: 'women_nt', name: 'Женщины Библии', cards: [
+          { id: 'women_ruth', title: 'Руфь' }, { id: 'women_esther', title: 'Есфирь' },
+          { id: 'women_mary', title: 'Мария' }, { id: 'women_anna', title: 'Анна' },
+        ]
+      },
+      {
+        id: 'paul_team', name: 'Сотрудники Павла', cards: [
+          { id: 'paulteam_barnabas', title: 'Варнава' }, { id: 'paulteam_silas', title: 'Сила' },
+          { id: 'paulteam_timothy', title: 'Тимофей' }, { id: 'paulteam_titus', title: 'Тит' },
+        ]
+      },
+      {
+        id: 'nt_places', name: 'Города Нового Завета', cards: [
+          { id: 'places_bethlehem', title: 'Вифлеем' }, { id: 'places_nazareth', title: 'Назарет' },
+          { id: 'places_capernaum', title: 'Капернаум' }, { id: 'places_jerusalem', title: 'Иерусалим' },
+        ]
+      },
+      {
+        id: 'miracles_jesus', name: 'Чудеса Иисуса', cards: [
+          { id: 'miracles_water_wine', title: 'Вода в вино' }, { id: 'miracles_feeding_5000', title: 'Накормил 5000' },
+          { id: 'miracles_calm_storm', title: 'Утихомирил бурю' }, { id: 'miracles_raise_lazarus', title: 'Воскресил Лазаря' },
+        ]
+      },
+      {
+        id: 'armor_of_god', name: 'Всеоружие Божие (Еф 6)', cards: [
+          { id: 'armor_belt_truth', title: 'Пояс истины' }, { id: 'armor_breastplate', title: 'Броня праведности' },
+          { id: 'armor_shield_faith', title: 'Щит веры' }, { id: 'armor_helmet_salvation', title: 'Шлем спасения' },
+        ]
+      }
+    ]
+  };
+  // -----------------------------------------------------------
+
+  // ВАЖНО: Вставь сюда свежую ссылку после последнего "New Deployment"
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwLfZLNqXuLetvxMMxxOnoVBTS-Rug2dRtcNmP6CDgFcZZI59d_AqhM7VoiOj6N08fh/exec';
   
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
   const POLL_MS_IDLE = 2500;
 
-  let gameData = null;
   let state = null;
   let lastVersion = -1;
   let pollTimer = null;
@@ -61,31 +138,16 @@ function startQuartetGame(quartetsUrl) {
   let roomId = localStorage.getItem(LS.roomId) || '';
 
   const ui = {
-    status: null,
-    main: null,
-    lobby: null,
-    game: null,
-    players: null,
-    hand: null,
-    askPanel: null,
-    log: null,
-    pendingModal: null,
-    roomLabel: null,
-    startBtn: null,
-    nameInput: null,
-    roomInput: null,
-    gameInfo: null,
-    pendingText: null,
-    giveBtn: null,
+    status: null, main: null, lobby: null, game: null, players: null,
+    hand: null, askPanel: null, log: null, pendingModal: null,
+    roomLabel: null, startBtn: null, nameInput: null, roomInput: null,
+    gameInfo: null, pendingText: null, giveBtn: null,
   };
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function setStatus(text, kind) {
@@ -133,7 +195,7 @@ function startQuartetGame(quartetsUrl) {
       data = raw ? JSON.parse(raw) : null;
     } catch (e) {
       const snippet = String(raw || '').slice(0, 180).replace(/\s+/g, ' ').trim();
-      throw new Error('Сервер вернул не-JSON. HTTP ' + res.status + '. Ответ: ' + (snippet || '—'));
+      throw new Error('Сервер вернул ошибку. Проверь GAS_URL. Ответ: ' + (snippet || '—'));
     }
 
     if (!res.ok || !data || data.ok === false) {
@@ -277,7 +339,6 @@ function startQuartetGame(quartetsUrl) {
   }
 
   function findCardMeta(cardId) {
-    if (!gameData || !gameData.quartets) return null;
     for (let i = 0; i < gameData.quartets.length; i++) {
       const q = gameData.quartets[i];
       const card = (q.cards || []).find(function (x) { return x.id === cardId; });
@@ -617,26 +678,12 @@ function startQuartetGame(quartetsUrl) {
     });
   }
 
-  async function loadGameData() {
-    if (typeof loadJSON === 'function') {
-      return loadJSON(quartetsUrl);
-    }
-    const res = await fetch(quartetsUrl, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Не удалось загрузить quartet_bible.json');
-    return res.json();
-  }
-
-  (async function init() {
+  (function init() {
     renderShell();
-    try {
-      gameData = await loadGameData();
-      setStatus('Готово. Введи имя и создай лобби или войди в существующее.', 'info');
-      if (roomId) {
-        ui.main.classList.remove('hidden');
-        startPolling();
-      }
-    } catch (e) {
-      setStatus('Не удалось загрузить данные игры.', 'err');
+    setStatus('Готово. Введи имя и создай лобби или войди в существующее.', 'info');
+    if (roomId) {
+      ui.main.classList.remove('hidden');
+      startPolling();
     }
   })();
 }
