@@ -30,7 +30,6 @@ function startQuartetGame() {
   }
   
   const playerId = String(finalId);
-
   const defaultName = (tgUser.first_name || tgUser.username)
     ? String(tgUser.first_name || tgUser.username).trim()
     : 'Игрок';
@@ -103,9 +102,7 @@ function startQuartetGame() {
     if (!ui.startBtn) return;
     const canStart = !!(st && st.status === 'lobby' && st.me && st.me.isHost);
     ui.startBtn.disabled = !canStart;
-    ui.startBtn.textContent = canStart
-      ? 'Начать игру'
-      : 'Начать игру может только хост';
+    ui.startBtn.textContent = canStart ? 'Начать игру' : 'Начать игру может только хост';
   }
 
   async function api(action, payload) {
@@ -184,7 +181,7 @@ function startQuartetGame() {
   function updateScreenMode(st) {
     const showMain = !!roomId;
     
-    // Скрываем форму входа
+    // Скрываем форму входа при подключении
     ui.authPanel.classList.toggle('hidden', showMain);
     ui.main.classList.toggle('hidden', !showMain);
     ui.roomLabel.textContent = roomId || '—';
@@ -266,7 +263,7 @@ function startQuartetGame() {
   function renderHand(st) {
     const hand = (st.me && st.me.hand) || [];
     if (!hand.length) {
-      ui.hand.innerHTML = '<div class="quartet-muted">У тебя нет карт.</div>';
+      ui.hand.innerHTML = '<div class="quartet-muted" style="text-align:center; padding: 20px;">У тебя пока нет карт.</div>';
       return;
     }
 
@@ -280,259 +277,20 @@ function startQuartetGame() {
 
     const groups = Object.values(byQuartet).sort((a, b) => a.quartet.name.localeCompare(b.quartet.name, 'ru'));
 
+    // НОВЫЙ КОМПАКТНЫЙ ДИЗАЙН: Группа квартета -> Внутри пилюли с картами
     ui.hand.innerHTML = groups.map(group => {
-      const cardsHtml = group.cards.sort((a, b) => a.title.localeCompare(b.title, 'ru')).map(c => `
-        <div class="q-playing-card">
-          <div class="q-quartet-name">${escapeHtml(group.quartet.name)}</div>
-          <div class="q-card-title">${escapeHtml(c.title)}</div>
-        </div>
+      const chipsHtml = group.cards.sort((a, b) => a.title.localeCompare(b.title, 'ru')).map(c => `
+        <span class="q-card-chip">${escapeHtml(c.title)}</span>
       `).join('');
 
-      return `<div class="q-cards-grid">${cardsHtml}</div>`;
+      return `
+        <div class="q-quartet-group">
+          <div class="q-quartet-header">${escapeHtml(group.quartet.name)}</div>
+          <div class="q-card-chips">${chipsHtml}</div>
+        </div>
+      `;
     }).join('');
   }
 
   function renderAskPanel(st) {
-    if (st.status !== 'playing') { ui.askPanel.innerHTML = '<div class="quartet-muted">Игра завершена.</div>'; return; }
-
-    const myTurn = String(st.turnPlayerId || '') === String(playerId);
-    if (!myTurn) { ui.askPanel.innerHTML = '<div class="quartet-muted">Сейчас не твой ход.</div>'; return; }
-    
-    if (st.pending && st.pending.status === 'waiting') { ui.askPanel.innerHTML = '<div class="quartet-muted">Ожидаем ответа на запрос…</div>'; return; }
-    
-    const hand = (st.me && st.me.hand) || [];
-    if (!hand.length) { ui.askPanel.innerHTML = '<div class="quartet-muted">У тебя нет карт — ходить нельзя.</div>'; return; }
-
-    const targets = (st.players || []).filter(p => String(p.playerId) !== String(playerId) && p.isActive !== false);
-    if (!targets.length) { ui.askPanel.innerHTML = '<div class="quartet-muted">Нет доступных игроков.</div>'; return; }
-
-    const myCards = new Set(hand);
-    const eligible = [];
-    gameData.quartets.forEach(q => {
-      if (!q.cards.some(c => myCards.has(c.id))) return;
-      q.cards.forEach(c => { if (!myCards.has(c.id)) eligible.push({ quartet: q, card: c }); });
-    });
-
-    if (!eligible.length) { ui.askPanel.innerHTML = '<div class="quartet-muted">У тебя нет подходящих карт для запроса.</div>'; return; }
-
-    ui.askPanel.innerHTML = `
-      <div class="q-ask-form">
-        <div class="quartet-field">
-          <label>Кого спросить</label>
-          <select id="q_target" class="q-input">
-            ${targets.map(p => `<option value="${escapeHtml(String(p.playerId))}">${escapeHtml(p.name)} (🂠 ${Number(p.cardsCount || 0)})</option>`).join('')}
-          </select>
-        </div>
-        <div class="quartet-field">
-          <label>Какую карту</label>
-          <select id="q_card" class="q-input">
-            ${eligible.map(x => `<option value="${escapeHtml(String(x.card.id))}">${escapeHtml(x.quartet.name)} — ${escapeHtml(x.card.title)}</option>`).join('')}
-          </select>
-        </div>
-        <button id="q_ask_btn" class="start-button" style="margin-top: 10px;">Спросить карту</button>
-      </div>
-      <div class="quartet-hint">Если карта есть, игрок отдаст её. Авто-отдача через 10 сек.</div>
-    `;
-
-    document.getElementById('q_ask_btn').addEventListener('click', async function () {
-      try {
-        const tId = document.getElementById('q_target').value;
-        const cId = document.getElementById('q_card').value;
-        if (!tId || !cId) return;
-        this.disabled = true;
-        setStatus('Отправляю запрос…', 'info');
-        await api('askCard', { targetId: tId, cardId: cId });
-        setStatus('Запрос отправлен.', 'ok');
-        refreshState(true);
-      } catch (e) {
-        setStatus(String((e && e.message) || e), 'err');
-        this.disabled = false;
-      }
-    });
-  }
-
-  function updatePendingModal(st) {
-    const pending = st.pending;
-    if (!pending || pending.status !== 'waiting' || String(pending.targetId) !== String(playerId)) {
-      ui.pendingModal.classList.add('hidden');
-      return;
-    }
-
-    const secsLeft = Math.max(0, Math.ceil((Number(pending.expiresAtMs || 0) - Date.now()) / 1000));
-    ui.pendingText.innerHTML = `Игрок <b>${escapeHtml(pending.askerName || '')}</b> просит карту:<br>
-      <b>${escapeHtml(pending.cardTitle || pending.cardId || '')}</b><br>
-      <span class="quartet-muted">Осталось: ${secsLeft} сек.</span>`;
-
-    ui.giveBtn.disabled = !pending.targetHasCard;
-    ui.giveBtn.textContent = pending.targetHasCard ? 'Отдать карту' : 'Карты нет';
-    ui.pendingModal.classList.remove('hidden');
-  }
-
-  async function onCreateRoom() {
-    try {
-      saveInputs(); setStatus('Создаю...', 'info'); ui.startBtn.disabled = true;
-      const res = await api('createRoom');
-      roomId = String(res.roomId || ''); localStorage.setItem(LS.roomId, roomId);
-      startPolling();
-    } catch (e) { setStatus(String(e.message || e), 'err'); }
-  }
-
-  async function onJoinRoom() {
-    try {
-      saveInputs(); if (!roomId) throw new Error('Код комнаты?');
-      setStatus('Вхожу...', 'info'); ui.startBtn.disabled = true;
-      await api('joinRoom', { roomId: roomId });
-      localStorage.setItem(LS.roomId, roomId);
-      startPolling();
-    } catch (e) { setStatus(String(e.message || e), 'err'); }
-  }
-
-  async function onLeave() {
-    pollingStopped = true; clearTimeout(pollTimer);
-    try { await api('leave'); } catch (e) {}
-    roomId = ''; state = null; lastVersion = -1; localStorage.removeItem(LS.roomId);
-    ui.authPanel.classList.remove('hidden'); ui.main.classList.add('hidden');
-    ui.roomInput.value = ''; ui.status.textContent = '';
-    if (typeof goToMainMenu === 'function') goToMainMenu();
-  }
-
-  function renderShell() {
-    container.innerHTML = `
-      <style>
-        .hidden { display: none !important; }
-        .q-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 16px; }
-        .q-playing-card { background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; padding: 14px 8px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; min-height: 100px; }
-        .q-quartet-name { font-size: 0.75em; text-transform: uppercase; color: #6b7280; margin-bottom: 8px; font-weight: 700; line-height: 1.2; }
-        .q-card-title { font-size: 1.15em; color: #111827; font-weight: 800; line-height: 1.2; }
-        
-        .q-ask-form { background: #f3f4f6; border-radius: 16px; padding: 16px; margin-top: 12px; border: 1px solid #e5e7eb;}
-        .q-log-container { max-height: 200px; overflow-y: auto; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-        .q-log-item { font-size: 0.95em; color: #4b5563; border-bottom: 1px solid #f3f4f6; padding-bottom: 6px; }
-        .q-log-item:last-child { border-bottom: none; padding-bottom: 0; }
-        
-        .q-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(5px); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .q-wait-box { background: white; padding: 30px 20px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-        .q-wait-box h3 { margin: 0 0 10px 0; color: #1f2937; font-size: 1.4em; }
-        .q-wait-box p { margin: 0 0 24px 0; color: #4b5563; font-size: 1.1em; }
-        .q-wait-name { color: #2563eb; font-weight: bold; }
-        .q-sticky-bottom { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1999; background: #2563eb; color: white; border: none; padding: 16px 32px; border-radius: 30px; font-size: 1.1em; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
-      </style>
-
-      <div class="quartet-wrap fade-in">
-        <div class="quartet-header">
-          <div class="quartet-title">🃏 Квартет</div>
-          <div class="quartet-subtitle">Собери 4 карты одной группы</div>
-        </div>
-
-        <div id="q_auth_panel" class="quartet-card">
-          <div class="quartet-grid2">
-            <div class="quartet-field"><label>Твоё имя</label><input id="q_name" class="q-input" placeholder="Имя" /></div>
-            <div class="quartet-field"><label>Комната</label><input id="q_room" class="q-input" placeholder="Код" maxlength="5" /></div>
-          </div>
-          <div class="quartet-grid2">
-            <button id="q_create" class="start-button">Создать лобби</button>
-            <button id="q_join" class="menu-button">Войти</button>
-          </div>
-          <div id="q_status" class="quartet-status" data-kind="info"></div>
-        </div>
-
-        <div id="q_main" class="quartet-main hidden">
-          <div class="quartet-topbar">
-            <div class="quartet-room">Комната: <b id="q_room_label">—</b></div>
-            <button id="q_leave" class="back-button">⬅️ Выйти</button>
-          </div>
-
-          <div id="q_lobby" class="quartet-card hidden">
-            <div class="quartet-section-title">Лобби</div>
-            <div class="quartet-row"><div class="quartet-muted">Игроки (3–8):</div></div>
-            <div id="q_players" class="quartet-players"></div>
-            <button id="q_start" class="start-button" disabled>Начать игру</button>
-          </div>
-
-          <div id="q_game" class="quartet-card hidden">
-            <div id="q_game_info" class="quartet-info"></div>
-            
-            <div class="quartet-subsection" style="margin-top:20px;">Моя рука</div>
-            <div id="q_hand"></div>
-            
-            <div class="quartet-subsection" style="margin-top:10px;">Действие</div>
-            <div id="q_ask"></div>
-            
-            <div class="quartet-subsection" style="margin-top:20px;">Лог игры</div>
-            <div id="q_log" class="q-log-container"></div>
-          </div>
-        </div>
-
-        <div id="q_pending" class="quartet-modal hidden">
-          <div class="quartet-modal-card">
-            <div class="quartet-modal-title">Запрос карты</div>
-            <div id="q_pending_text" class="quartet-modal-text"></div>
-            <button id="q_give" class="start-button">Отдать карту</button>
-          </div>
-        </div>
-
-        <div id="q_wait_overlay" class="q-overlay hidden">
-          <div class="q-wait-box">
-            <h3>Ожидание хода</h3>
-            <p>Сейчас ходит: <span id="q_wait_turn_name" class="q-wait-name">...</span></p>
-            <button id="q_wait_show_cards" class="start-button">Показать мои карты</button>
-          </div>
-        </div>
-        
-        <button id="q_wait_back" class="q-sticky-bottom hidden">Скрыть карты</button>
-      </div>
-    `;
-
-    ui.authPanel = document.getElementById('q_auth_panel');
-    ui.status = document.getElementById('q_status');
-    ui.main = document.getElementById('q_main');
-    ui.lobby = document.getElementById('q_lobby');
-    ui.game = document.getElementById('q_game');
-    ui.players = document.getElementById('q_players');
-    ui.hand = document.getElementById('q_hand');
-    ui.askPanel = document.getElementById('q_ask');
-    ui.log = document.getElementById('q_log');
-    ui.pendingModal = document.getElementById('q_pending');
-    ui.roomLabel = document.getElementById('q_room_label');
-    ui.startBtn = document.getElementById('q_start');
-    ui.nameInput = document.getElementById('q_name');
-    ui.roomInput = document.getElementById('q_room');
-    ui.gameInfo = document.getElementById('q_game_info');
-    ui.pendingText = document.getElementById('q_pending_text');
-    ui.giveBtn = document.getElementById('q_give');
-    
-    ui.waitOverlay = document.getElementById('q_wait_overlay');
-    ui.waitTurnName = document.getElementById('q_wait_turn_name');
-    ui.waitShowCardsBtn = document.getElementById('q_wait_show_cards');
-    ui.waitBackBtn = document.getElementById('q_wait_back');
-
-    ui.nameInput.value = myName;
-    ui.roomInput.value = roomId;
-    ui.roomLabel.textContent = roomId || '—';
-
-    document.getElementById('q_create').addEventListener('click', onCreateRoom);
-    document.getElementById('q_join').addEventListener('click', onJoinRoom);
-    document.getElementById('q_leave').addEventListener('click', onLeave);
-    document.getElementById('q_start').addEventListener('click', async () => {
-      ui.startBtn.disabled = true; await api('startGame'); refreshState(true);
-    });
-    ui.giveBtn.addEventListener('click', async () => {
-      ui.giveBtn.disabled = true; await api('giveCard', { pendingId: state.pending.pendingId }); refreshState(true);
-    });
-    
-    ui.waitShowCardsBtn.addEventListener('click', () => {
-      isViewingCardsWhileWaiting = true;
-      refreshState(true);
-    });
-    
-    ui.waitBackBtn.addEventListener('click', () => {
-      isViewingCardsWhileWaiting = false;
-      refreshState(true);
-    });
-  }
-
-  (function init() {
-    renderShell();
-    if (roomId) { ui.authPanel.classList.add('hidden'); ui.main.classList.remove('hidden'); startPolling(); }
-  })();
-}
+    if (st.status !== 'playing') { ui.askPanel.innerHTML = '<div class="quartet-muted">Игра завершена
