@@ -57,7 +57,7 @@ function startQuartetGame() {
     ]
   };
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxyeEJ4sjJGgujwKgnHAiUFyuYGVEphkQpnGyrr14FPyRNnKTAcrzbT9Mf_QO65l9SXqA/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtxWp95-A1312RxVwrkEJ_-ujoZWtUp1Vfhn5oYotGS5BfMoxDSHQ2o-NjTlSyUhMWuQ/exec';
 
   const POLL_MS_LOBBY = 1000;
   const POLL_MS_GAME = 1800;
@@ -152,6 +152,16 @@ function startQuartetGame() {
     ui.waitBackBtn.textContent = 'Скрыть карты';
     ui.waitShowCardsBtn.disabled = false;
     ui.waitBackBtn.disabled = false;
+  }
+
+  function openRulesModal() {
+    if (!ui.rulesModal) return;
+    ui.rulesModal.classList.remove('hidden');
+  }
+
+  function closeRulesModal() {
+    if (!ui.rulesModal) return;
+    ui.rulesModal.classList.add('hidden');
   }
 
   function applyWaitMode(st) {
@@ -670,7 +680,7 @@ function startQuartetGame() {
       ui.copyCodeBtn.disabled = true;
       setTimeout(() => {
         if (ui.copyCodeBtn) {
-          ui.copyCodeBtn.textContent = 'Скопировать код';
+          ui.copyCodeBtn.textContent = old || 'Скопировать код';
           ui.copyCodeBtn.disabled = false;
         }
       }, 1500);
@@ -789,6 +799,16 @@ function startQuartetGame() {
     container.innerHTML = `
       <style>
         .hidden { display: none !important; }
+
+        .q-header-actions {
+          display: flex;
+          justify-content: center;
+          margin-top: 10px;
+          margin-bottom: 6px;
+        }
+        .q-rules-open-btn {
+          min-width: 180px;
+        }
 
         .q-loading-panel {
           margin-bottom: 14px;
@@ -1183,6 +1203,98 @@ function startQuartetGame() {
           box-shadow: 0 12px 24px rgba(37, 99, 235, 0.34);
         }
 
+        .q-rules-modal {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.65);
+          backdrop-filter: blur(6px);
+          z-index: 2500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .q-rules-card {
+          width: 100%;
+          max-width: 560px;
+          max-height: 85vh;
+          overflow-y: auto;
+          background: #ffffff;
+          border-radius: 24px;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.28);
+          padding: 18px;
+        }
+        .q-rules-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+          position: sticky;
+          top: 0;
+          background: #fff;
+          padding-bottom: 10px;
+          z-index: 2;
+        }
+        .q-rules-title {
+          font-size: 1.2em;
+          font-weight: 900;
+          color: #0f172a;
+        }
+        .q-rules-close {
+          border: none;
+          background: #eef2ff;
+          color: #1d4ed8;
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 0.95em;
+          font-weight: 800;
+        }
+        .q-rules-intro {
+          background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+          border: 1px solid #dbe7ff;
+          color: #334155;
+          border-radius: 16px;
+          padding: 14px;
+          line-height: 1.45;
+          font-size: 0.96em;
+          margin-bottom: 14px;
+        }
+        .q-rules-section {
+          margin-bottom: 14px;
+          padding: 14px;
+          border-radius: 16px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+        }
+        .q-rules-section-title {
+          font-size: 1em;
+          font-weight: 900;
+          color: #1e293b;
+          margin-bottom: 8px;
+        }
+        .q-rules-list {
+          margin: 0;
+          padding-left: 18px;
+          color: #475569;
+          line-height: 1.5;
+          font-size: 0.95em;
+        }
+        .q-rules-list li + li {
+          margin-top: 6px;
+        }
+        .q-rules-tip {
+          margin-top: 8px;
+          padding: 10px 12px;
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          border-radius: 12px;
+          color: #1e40af;
+          font-size: 0.93em;
+          line-height: 1.4;
+          font-weight: 700;
+        }
+
         @media (max-width: 420px) {
           .q-room-code-big {
             font-size: 1.55em;
@@ -1206,6 +1318,10 @@ function startQuartetGame() {
             padding: 10px 12px;
             font-size: 0.9em;
           }
+          .q-rules-card {
+            padding: 14px;
+            border-radius: 20px;
+          }
         }
       </style>
 
@@ -1213,6 +1329,9 @@ function startQuartetGame() {
         <div class="quartet-header">
           <div class="quartet-title">🃏 Квартет</div>
           <div class="quartet-subtitle">Собери 4 карты одной группы</div>
+          <div class="q-header-actions">
+            <button id="q_rules_open" class="menu-button q-rules-open-btn">Правила игры</button>
+          </div>
         </div>
 
         <div id="q_auth_panel" class="quartet-card">
@@ -1290,6 +1409,126 @@ function startQuartetGame() {
         </div>
 
         <button id="q_wait_back" class="q-sticky-bottom hidden">Скрыть карты</button>
+
+        <div id="q_rules_modal" class="q-rules-modal hidden">
+          <div class="q-rules-card">
+            <div class="q-rules-head">
+              <div class="q-rules-title">Правила игры «Квартет»</div>
+              <button id="q_rules_close" class="q-rules-close">Закрыть</button>
+            </div>
+
+            <div class="q-rules-intro">
+              Это простая карточная игра. Твоя цель — собрать как можно больше полных наборов из 4 связанных карт. Такой полный набор называется <b>квартет</b>.
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">1. В чём смысл игры</div>
+              <ul class="q-rules-list">
+                <li>Все карты разбиты на группы по 4 карты.</li>
+                <li>Например: одна группа — это 4 карты одной темы.</li>
+                <li>Твоя задача — собрать у себя все 4 карты одной группы.</li>
+                <li>Каждая полностью собранная четвёрка приносит тебе 1 квартет.</li>
+                <li>Побеждает тот, кто соберёт больше квартетов к концу игры.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">2. Как начать игру</div>
+              <ul class="q-rules-list">
+                <li>Один игрок создаёт лобби.</li>
+                <li>После создания появляется код комнаты.</li>
+                <li>Этот код нужно отправить другим игрокам.</li>
+                <li>Остальные игроки вводят код в поле «Комната» и нажимают «Войти».</li>
+                <li>Когда в комнате достаточно игроков, хост нажимает «Начать игру».</li>
+              </ul>
+              <div class="q-rules-tip">
+                Хост — это создатель комнаты. Только он запускает игру.
+              </div>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">3. Что ты видишь во время игры</div>
+              <ul class="q-rules-list">
+                <li><b>Моя рука</b> — карты, которые сейчас у тебя есть.</li>
+                <li><b>Действие</b> — здесь ты выбираешь, у кого и какую карту попросить.</li>
+                <li><b>Лог игры</b> — история ходов, чтобы понимать, что произошло.</li>
+                <li><b>Твои квартеты</b> — сколько полных наборов ты уже собрал.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">4. Как проходит ход</div>
+              <ul class="q-rules-list">
+                <li>Когда наступает твой ход, ты выбираешь одного игрока.</li>
+                <li>Потом выбираешь карту, которую хочешь у него попросить.</li>
+                <li>Просить можно только карты из той группы, которой ты уже частично владеешь.</li>
+                <li>То есть у тебя уже должна быть хотя бы 1 карта из этой четвёрки.</li>
+                <li>После выбора нажми кнопку запроса карты.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">5. Что происходит после запроса</div>
+              <ul class="q-rules-list">
+                <li>Если у выбранного игрока есть эта карта, он отдаёт её тебе.</li>
+                <li>Если карта у него отсутствует, запрос считается неудачным.</li>
+                <li>Когда карта успешно получена, ход обычно продолжается в твою пользу, и ты можешь действовать дальше.</li>
+                <li>Если нужной карты нет, ход переходит дальше по правилам партии.</li>
+              </ul>
+              <div class="q-rules-tip">
+                В игре есть авто-отдача: если у игрока есть нужная карта, система может отдать её автоматически через несколько секунд.
+              </div>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">6. Как собирается квартет</div>
+              <ul class="q-rules-list">
+                <li>Как только у тебя оказываются все 4 карты одной группы, эта группа считается собранной.</li>
+                <li>За неё ты получаешь 1 квартет.</li>
+                <li>Твоя цель — собрать таких квартетов как можно больше.</li>
+                <li>Самые выгодные группы подсвечиваются в руке как почти собранные.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">7. Как пользоваться рукой</div>
+              <ul class="q-rules-list">
+                <li>Карты сгруппированы по темам.</li>
+                <li>Можно раскрывать и сворачивать группы, чтобы экран был чище.</li>
+                <li>Ты сразу видишь, сколько карт уже собрано: например 3/4.</li>
+                <li>Также показывается, каких карт ещё не хватает.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">8. Если сейчас не твой ход</div>
+              <ul class="q-rules-list">
+                <li>Появляется экран ожидания.</li>
+                <li>Ты можешь нажать «Показать мои карты», чтобы посмотреть свою руку.</li>
+                <li>Потом можно нажать «Скрыть карты», чтобы вернуться в режим ожидания.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">9. Когда игра заканчивается</div>
+              <ul class="q-rules-list">
+                <li>Игра завершается, когда все возможные квартеты уже собраны.</li>
+                <li>После этого сравнивается количество собранных квартетов у игроков.</li>
+                <li>Побеждает тот, у кого квартетов больше всех.</li>
+              </ul>
+            </div>
+
+            <div class="q-rules-section">
+              <div class="q-rules-section-title">10. Самая простая стратегия</div>
+              <ul class="q-rules-list">
+                <li>Сначала добивай группы, где у тебя уже 2 или 3 карты.</li>
+                <li>Следи за логом игры — там видно, кто что отдавал.</li>
+                <li>Чем ближе группа к 4/4, тем выгоднее спрашивать именно её.</li>
+                <li>Не распыляйся на слишком много разных групп сразу.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -1325,6 +1564,10 @@ function startQuartetGame() {
     ui.joinBtn = document.getElementById('q_join');
     ui.leaveBtn = document.getElementById('q_leave');
 
+    ui.rulesOpenBtn = document.getElementById('q_rules_open');
+    ui.rulesModal = document.getElementById('q_rules_modal');
+    ui.rulesCloseBtn = document.getElementById('q_rules_close');
+
     ui.nameInput.value = myName;
     ui.roomInput.value = roomId;
     ui.roomLabel.textContent = roomId || '—';
@@ -1334,6 +1577,12 @@ function startQuartetGame() {
     ui.joinBtn.addEventListener('click', onJoinRoom);
     ui.leaveBtn.addEventListener('click', onLeave);
     ui.copyCodeBtn.addEventListener('click', copyRoomCode);
+
+    ui.rulesOpenBtn.addEventListener('click', openRulesModal);
+    ui.rulesCloseBtn.addEventListener('click', closeRulesModal);
+    ui.rulesModal.addEventListener('click', (e) => {
+      if (e.target === ui.rulesModal) closeRulesModal();
+    });
 
     document.getElementById('q_start').addEventListener('click', async () => {
       try {
