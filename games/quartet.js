@@ -328,7 +328,7 @@ function startQuartetGame() {
       setReconnectLoading(false);
       updateHeaderRoom();
       updateScreenMode(state);
-            if (!force && typeof state.version === 'number' && state.version === lastVersion) {
+      if (!force && typeof state.version === 'number' && state.version === lastVersion) {
         updatePendingModal(state);
         applyWaitMode(state);
         scheduleNextPoll(state.status === 'lobby' ? POLL_MS_LOBBY : POLL_MS_GAME);
@@ -337,7 +337,7 @@ function startQuartetGame() {
 
       lastVersion = typeof state.version === 'number' ? state.version : lastVersion;
       updateLobby(state);
-      updateGame(state);
+      renderGame(state); // ИСПРАВЛЕНИЕ: Был вызов несуществующей updateGame(state)
       updatePendingModal(state);
       renderRoomGuide(state);
       applyWaitMode(state);
@@ -1317,7 +1317,7 @@ function startQuartetGame() {
         }
 
         .lobby-player-row {
-                  display: flex;
+          display: flex;
           align-items: center;
           gap: 12px;
           padding: 12px;
@@ -1647,7 +1647,7 @@ function startQuartetGame() {
         }
 
         .card-footer-note {
-                  margin-top: 12px;
+          margin-top: 12px;
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
@@ -1977,7 +1977,7 @@ function startQuartetGame() {
         }
 
         .rules-section-title {
-                  font-size: 16px;
+          font-size: 16px;
           font-weight: 900;
           color: #1e293b;
           margin-bottom: 8px;
@@ -2047,7 +2047,8 @@ function startQuartetGame() {
               </div>
             </div>
 
-            <button id="rulesOpenBtnAuth" class="btn btn-secondary w-full"><span>📋 Правила игры</span></button>
+            <button id="rulesOpenBtnAuth" class="btn btn-secondary w-full" style="margin-bottom: 12px;"><span>📋 Правила игры</span></button>
+            <button id="exitToMenuBtnAuth" class="btn btn-secondary w-full"><span>🚪 Выйти в меню</span></button>
           </div>
         </div>
 
@@ -2233,6 +2234,7 @@ function startQuartetGame() {
     ui.createBtn = document.getElementById('createBtn');
     ui.joinBtn = document.getElementById('joinBtn');
     ui.rulesOpenBtnAuth = document.getElementById('rulesOpenBtnAuth');
+    ui.exitToMenuBtnAuth = document.getElementById('exitToMenuBtnAuth'); // Инициализация новой кнопки
     ui.leaveBtn = document.getElementById('leaveBtn');
     ui.roomDisplay = document.getElementById('roomDisplay');
     ui.roomCodeBig = document.getElementById('roomCodeBig');
@@ -2273,6 +2275,17 @@ function startQuartetGame() {
     ui.waitBackBtn.addEventListener('click', () => handleWaitViewToggle(false));
     ui.rulesOpenBtnAuth.addEventListener('click', openRulesModal);
     ui.rulesCloseBtn.addEventListener('click', closeRulesModal);
+    
+    // Логика новой кнопки выхода в меню
+    if (ui.exitToMenuBtnAuth) {
+      ui.exitToMenuBtnAuth.addEventListener('click', () => {
+        if (typeof goToMainMenu === 'function') {
+          goToMainMenu();
+        } else if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.close();
+        }
+      });
+    }
 
     ui.pendingModal.addEventListener('click', (e) => {
       if (e.target === ui.pendingModal) closePending();
