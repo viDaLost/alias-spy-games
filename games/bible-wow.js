@@ -322,21 +322,37 @@ function startBibleWowGame(levelsUrl) {
   const LS_COMPLETED = "bibleWowCompleted";  // [levelId]
   const LS_BONUS = "bibleWowBonusByLevel";   // { [levelId]: [words...] }
   const LS_PROGRESS = "bibleWowProgressByLevel_v1"; // { [levelId]: { foundWords:[..], hintedCells:[..] } }
+  const LS_COINS_FIX = "bibleWowCoinsFix_v1"; // Флаг для одноразового фикса баланса
 
   function loadPersisted(st) {
     try {
       const raw = localStorage.getItem(LS_DATA);
       if (raw) {
         const d = JSON.parse(raw);
-        st.coins = Number.isFinite(d.coins) ? d.coins : 0;
         st.levelIndex = Number.isFinite(d.levelIndex) ? d.levelIndex : 0;
+        
+        // Принудительно ставим 20 звезд один раз (патч для тех, кто нафармил 1000+)
+        if (!localStorage.getItem(LS_COINS_FIX)) {
+          st.coins = 20;
+          localStorage.setItem(LS_COINS_FIX, "done");
+        } else {
+          st.coins = Number.isFinite(d.coins) ? d.coins : 20;
+        }
+      } else {
+        // Для новых игроков
+        st.coins = 20;
+        localStorage.setItem(LS_COINS_FIX, "done");
       }
-    } catch {}
+    } catch {
+      st.coins = 20;
+    }
+    
     try {
       const raw = localStorage.getItem(LS_COMPLETED);
       const arr = raw ? JSON.parse(raw) : [];
       if (Array.isArray(arr)) st.completed = new Set(arr.map(Number).filter(Number.isFinite));
     } catch {}
+    
     try {
       const raw = localStorage.getItem(LS_BONUS);
       const obj = raw ? JSON.parse(raw) : {};
@@ -344,6 +360,7 @@ function startBibleWowGame(levelsUrl) {
     } catch {
       st.bonusByLevel = {};
     }
+    
     try {
       const raw = localStorage.getItem(LS_PROGRESS);
       const obj = raw ? JSON.parse(raw) : {};
@@ -382,7 +399,7 @@ function startBibleWowGame(levelsUrl) {
     bonusWordsFound: new Set(), // found bonus words for current level
     bonusAll: new Set(),        // allowed bonus words for current level
 
-    coins: 0,
+    coins: 20, // Изменено на 20
 
     gridInfo: [], // [{word, r, c, dr, dc}]
 
@@ -556,16 +573,29 @@ function startBibleWowGame(levelsUrl) {
     const lid = String(st.currLevel.id);
     const levelIdNum = Number(st.currLevel.id);
 
+    // Считаем, сколько звезд игрок заработал на этом уровне
+    let earnedStars = 0;
+
+    // 1. Отменяем награду за прохождение уровня
+    if (Number.isFinite(levelIdNum) && st.completed.has(levelIdNum)) {
+      earnedStars += 10;
+      st.completed.delete(levelIdNum);
+    }
+
+    // 2. Отменяем награду за бонусные слова (каждое по 2 звезды)
+    if (st.bonusWordsFound) {
+      earnedStars += (st.bonusWordsFound.size * 2);
+    }
+
+    // Вычитаем заработанное. Math.max(0, ...) не даст уйти в минус, 
+    // если игрок потратил нафармленные на этом уровне звезды на подсказки.
+    st.coins = Math.max(0, st.coins - earnedStars);
+
+    // Сброс прогресса
     st.foundWords = new Set();
     st.hintedCells = new Set();
-
-    // reset bonus words found for this level too
     st.bonusWordsFound = new Set();
     delete st.bonusByLevel[lid];
-
-    // if level was marked completed, unmark it (stars are not rolled back)
-    if (Number.isFinite(levelIdNum)) st.completed.delete(levelIdNum);
-
     delete st.progressByLevel[lid];
 
     savePersisted(st);
