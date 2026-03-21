@@ -3,7 +3,7 @@
 let currentGameScript = null;
 
 // --- ИНТЕГРАЦИЯ АДМИН-ПАНЕЛИ И API ---
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxs3U03XVvYzpFCHts962TKkydGEFoCPxlWthM_xKzVpmArkzZWYm01rsNRIGN7DY4/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwQ78q27vPmLxD0mOTE4PCFVWtdoUEOQNhZBn2LaEAIwc_hvjQ5YRZHRrZsjox-GuYUiA/exec";
 const ADMIN_ID = "1288379477";
 let currentUserData = { lastGames: [] };
 
