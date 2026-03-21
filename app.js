@@ -3,7 +3,7 @@
 let currentGameScript = null;
 
 // --- ИНТЕГРАЦИЯ АДМИН-ПАНЕЛИ И API ---
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwQ78q27vPmLxD0mOTE4PCFVWtdoUEOQNhZBn2LaEAIwc_hvjQ5YRZHRrZsjox-GuYUiA/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz4RpaiOSmJ83IQQYehpJ6vXSG9AvSbqmgbLRZWHOobydL3v4xCgQbGYjvu00urwQxGjA/exec";
 const ADMIN_ID = "1288379477";
 let currentUserData = { lastGames: [] };
 
@@ -22,18 +22,20 @@ async function apiRequest(payload) {
 }
 
 async function initializeApp() {
-  // Говорим Telegram, что приложение готово
   if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();
     window.Telegram.WebApp.expand();
   }
 
-  document.body.insertAdjacentHTML('afterbegin', '<div id="app-loader" style="position:fixed; inset:0; background:var(--bg-color); z-index:99999; display:flex; align-items:center; justify-content:center; font-weight:bold; color:var(--text-color);">Загрузка профиля...</div>');
+  const tgUser = getTelegramUser();
 
+  // Рисуем кнопку админки сразу же, не дожидаясь ответа сервера
+  if (String(tgUser.id) === ADMIN_ID) {
+    renderAdminButton();
+  }
+
+  // ФОНОВАЯ СИНХРОНИЗАЦИЯ: Пользователь уже видит меню, а мы тихо сверяем данные
   try {
-    const tgUser = getTelegramUser();
-    
-    // БЕЗОПАСНОЕ чтение данных из кэша (чтобы избежать зависания)
     let localWowData = { coins: 20 };
     try { localWowData = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}"); } catch(e) {}
     
@@ -61,32 +63,23 @@ async function initializeApp() {
 
     if (res) {
       if (res.isBanned) {
+        // Если прилетел бан — прячем меню и показываем заглушку
         const menu = document.querySelector(".menu-container");
         if (menu) menu.classList.add("hidden");
         const bannedScreen = document.getElementById("banned-screen");
         if (bannedScreen) bannedScreen.classList.remove("hidden");
-        return; // Стоп, пользователь забанен
+        return; 
       }
 
-      // Синхронизация
+      // Тихая синхронизация локального кэша с актуальными данными из БД
       localWowData.coins = res.wowStars;
       localStorage.setItem("bibleWowData_v5", JSON.stringify(localWowData));
       localStorage.setItem(`bible_stars_v1_${tgUser.id}`, res.wsStars);
       localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
       currentUserData.lastGames = res.lastGames;
     }
-
-    // Если это ТЫ - рисуем админку
-    if (String(tgUser.id) === ADMIN_ID) {
-      renderAdminButton();
-    }
-
   } catch (err) {
-    console.error("Critical Init Error:", err);
-  } finally {
-    // В ЛЮБОМ СЛУЧАЕ убираем экран загрузки
-    const loader = document.getElementById("app-loader");
-    if (loader) loader.remove();
+    console.error("Sync Error:", err);
   }
 }
 
@@ -120,7 +113,7 @@ function shuffleArray(arr) {
 }
 
 function showGame(gameName) {
-  // Трекинг последних игр
+  // Трекинг последних игр (Безопасное обновление ТОЛЬКО истории в БД)
   const gameTitles = {
     "alias": "Алиас", "coimaginarium": "Соображариум", "guess": "Угадай персонажа",
     "describe": "Опиши, но не называй", "spy": "Шпион", "quartet": "Квартет",
@@ -142,22 +135,11 @@ function showGame(gameName) {
     localStorage.setItem("last_games_history", JSON.stringify(history));
     currentUserData.lastGames = history;
     
-    const tgUser = getTelegramUser();
-    let localWowCoins = 20;
-    try { localWowCoins = JSON.parse(localStorage.getItem("bibleWowData_v5")||"{}").coins || 20; } catch(e){}
-    
-    let localWsCoins = 0;
-    try { localWsCoins = parseInt(localStorage.getItem(`bible_stars_v1_${tgUser.id}`) || "0"); } catch(e){}
-
+    // Вызываем новый безопасный метод, который не перезаписывает звезды
     apiRequest({
-      action: "syncUser",
-      user: { 
-        id: tgUser.id, 
-        forceUpdate: true, 
-        lastGames: history, 
-        wowStars: localWowCoins,
-        wsStars: isNaN(localWsCoins) ? 0 : localWsCoins 
-      }
+      action: "updateHistory",
+      id: getTelegramUser().id,
+      history: history
     });
   }
 
@@ -262,6 +244,10 @@ function goToMainMenu() {
     currentGameScript.remove();
     currentGameScript = null;
   }
+  
+  // При возврате в меню перезапускаем фоновую синхронизацию, 
+  // чтобы обновить звезды, если админ их изменил, пока мы играли
+  initializeApp();
 }
 
 function showSupportModal() {
@@ -379,13 +365,21 @@ async function openAdminPanel() {
   const menu = document.querySelector(".menu-container");
   
   menu.classList.add("hidden");
-  container.innerHTML = "<p class='fade-in' style='padding: 2rem; text-align: center; font-weight: 600;'>⏳ Загрузка базы пользователей...</p>";
+  
+  // Улучшенный лоадер для админки (анимация)
+  container.innerHTML = `
+    <div style='padding: 3rem 1rem; text-align: center;'>
+      <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent-active); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style='margin-top: 1rem; font-weight: 600; color: #475569;'>Синхронизация с базой данных...</p>
+      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+    </div>
+  `;
   window.scrollTo({ top: 0, behavior: "auto" });
 
   const res = await apiRequest({ action: "getAdminData", adminId: ADMIN_ID });
   
   if (!res || !res.users) {
-    container.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: red; margin-bottom: 1rem;'>❌ Ошибка загрузки админ-панели.</p><button class='back-button' onclick='goToMainMenu()'>Назад</button></div>";
+    container.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: red; margin-bottom: 1rem;'>❌ Ошибка загрузки базы.</p><button class='back-button' onclick='goToMainMenu()'>Назад</button></div>";
     return;
   }
 
@@ -451,6 +445,18 @@ window.updateUserStars = async function(targetId, type, inputId) {
   const val = document.getElementById(inputId).value;
   await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type, value: parseInt(val) } });
   
+  // Если админ редактирует сам себя, мгновенно обновляем локальный кэш
+  const tgUser = getTelegramUser();
+  if (String(tgUser.id) === String(targetId)) {
+    if (type === 'stars_wow') {
+      let d = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}");
+      d.coins = parseInt(val);
+      localStorage.setItem("bibleWowData_v5", JSON.stringify(d));
+    } else if (type === 'stars_ws') {
+      localStorage.setItem(`bible_stars_v1_${tgUser.id}`, val);
+    }
+  }
+
   const toast = document.createElement("div");
   toast.textContent = "Звезды успешно обновлены!";
   toast.style.cssText = "position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:#fff; padding:12px 24px; border-radius:999px; z-index:99999; font-weight:600; font-size: 0.95rem; box-shadow:0 8px 16px rgba(0,0,0,0.15); animation: swFadeIn 0.2s ease-out;";
