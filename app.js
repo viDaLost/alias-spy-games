@@ -29,12 +29,14 @@ async function initializeApp() {
 
   const tgUser = getTelegramUser();
 
-  // Рисуем кнопку админки сразу же, не дожидаясь ответа сервера
   if (String(tgUser.id) === ADMIN_ID) {
     renderAdminButton();
   }
 
-  // ФОНОВАЯ СИНХРОНИЗАЦИЯ: Пользователь уже видит меню, а мы тихо сверяем данные
+  const menu = document.querySelector(".menu-container");
+  const bannedScreen = document.getElementById("banned-screen");
+  const mainLoader = document.getElementById("main-loader"); // Наш новый лоадер из HTML
+
   try {
     let localWowData = { coins: 20 };
     try { localWowData = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}"); } catch(e) {}
@@ -48,6 +50,7 @@ async function initializeApp() {
       if (!Array.isArray(localGamesHistory)) localGamesHistory = [];
     } catch (e) { localGamesHistory = []; }
 
+    // Делаем запрос к БД для проверки бана и синхронизации
     const res = await apiRequest({
       action: "syncUser",
       user: {
@@ -61,25 +64,36 @@ async function initializeApp() {
       }
     });
 
+    // 1. Убираем лоадер загрузки, как только пришел ответ от сервера
+    if (mainLoader) mainLoader.remove();
+
     if (res) {
       if (res.isBanned) {
-        // Если прилетел бан — прячем меню и показываем заглушку
-        const menu = document.querySelector(".menu-container");
+        // Если забанен: меню остается скрытым, показываем бан-экран
         if (menu) menu.classList.add("hidden");
-        const bannedScreen = document.getElementById("banned-screen");
         if (bannedScreen) bannedScreen.classList.remove("hidden");
         return; 
       }
 
-      // Тихая синхронизация локального кэша с актуальными данными из БД
+      // 2. Если НЕ забанен: показываем главное меню
+      if (menu) menu.classList.remove("hidden");
+      if (bannedScreen) bannedScreen.classList.add("hidden");
+
+      // Синхронизируем локальный кэш
       localWowData.coins = res.wowStars;
       localStorage.setItem("bibleWowData_v5", JSON.stringify(localWowData));
       localStorage.setItem(`bible_stars_v1_${tgUser.id}`, res.wsStars);
       localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
       currentUserData.lastGames = res.lastGames;
+    } else {
+      // Запасной план: если сервер упал или нет интернета - пускаем в меню, чтобы приложение не сломалось
+      if (mainLoader) mainLoader.remove();
+      if (menu) menu.classList.remove("hidden");
     }
   } catch (err) {
-    console.error("Sync Error:", err);
+    console.error("Init Error:", err);
+    if (mainLoader) mainLoader.remove();
+    if (menu) menu.classList.remove("hidden");
   }
 }
 
@@ -113,7 +127,6 @@ function shuffleArray(arr) {
 }
 
 function showGame(gameName) {
-  // Трекинг последних игр (Безопасное обновление ТОЛЬКО истории в БД)
   const gameTitles = {
     "alias": "Алиас", "coimaginarium": "Соображариум", "guess": "Угадай персонажа",
     "describe": "Опиши, но не называй", "spy": "Шпион", "quartet": "Квартет",
@@ -135,7 +148,6 @@ function showGame(gameName) {
     localStorage.setItem("last_games_history", JSON.stringify(history));
     currentUserData.lastGames = history;
     
-    // Вызываем новый безопасный метод, который не перезаписывает звезды
     apiRequest({
       action: "updateHistory",
       id: getTelegramUser().id,
@@ -245,8 +257,7 @@ function goToMainMenu() {
     currentGameScript = null;
   }
   
-  // При возврате в меню перезапускаем фоновую синхронизацию, 
-  // чтобы обновить звезды, если админ их изменил, пока мы играли
+  // Фоновая сверка при выходе в меню (без лоадера)
   initializeApp();
 }
 
@@ -366,7 +377,6 @@ async function openAdminPanel() {
   
   menu.classList.add("hidden");
   
-  // Улучшенный лоадер для админки (анимация)
   container.innerHTML = `
     <div style='padding: 3rem 1rem; text-align: center;'>
       <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent-active); border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -386,7 +396,14 @@ async function openAdminPanel() {
   let html = `
     <div class="fade-in" style="width:100%; max-width: 500px; text-align:left; padding: 0 10px; margin: 0 auto;">
       <button class="back-button" onclick="goToMainMenu()" style="margin-bottom:1rem; width: auto; padding: 10px 14px;">⬅️ Назад в меню</button>
-      <h2 style="color:var(--accent-active); margin-bottom:1.5rem; text-align:center;">Пользователи</h2>
+      
+      <div class="card" style="padding:1.2rem; margin: 0 0 1.5rem 0; border: 2px solid var(--accent-color);">
+        <h3 style="color:var(--accent-active); margin: 0 0 0.8rem 0; font-size: 1.15rem;">📣 Рассылка игрокам</h3>
+        <textarea id="broadcast-text" rows="3" placeholder="Введите текст сообщения... (поддерживает HTML теги: <b>жирный</b>, <i>курсив</i>)" style="width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; margin-bottom:10px; font-family:inherit; resize:vertical; font-size: 0.95rem;"></textarea>
+        <button id="broadcast-btn" onclick="sendBroadcast()" style="width:100%; padding:12px; background:linear-gradient(135deg, #4f46e5, #3b82f6); color:#fff; font-weight:bold; border:none; border-radius:10px; cursor:pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">Отправить всем</button>
+      </div>
+
+      <h2 style="color:var(--accent-active); margin-bottom:1.5rem; text-align:center;">Пользователи (${res.users.length})</h2>
       <div style="display:flex; flex-direction:column; gap:1.2rem; padding-bottom:2rem;">
   `;
 
@@ -445,7 +462,6 @@ window.updateUserStars = async function(targetId, type, inputId) {
   const val = document.getElementById(inputId).value;
   await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type, value: parseInt(val) } });
   
-  // Если админ редактирует сам себя, мгновенно обновляем локальный кэш
   const tgUser = getTelegramUser();
   if (String(tgUser.id) === String(targetId)) {
     if (type === 'stars_wow') {
@@ -472,4 +488,36 @@ window.toggleBan = async function(targetId, banStatus) {
   if(!confirm(`Вы уверены, что хотите ${banStatus ? 'заблокировать' : 'разблокировать'} пользователя?`)) return;
   await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type: "ban", value: banStatus } });
   openAdminPanel(); 
+}
+
+window.sendBroadcast = async function() {
+  const textEl = document.getElementById('broadcast-text');
+  const btn = document.getElementById('broadcast-btn');
+  const text = textEl.value.trim();
+
+  if (!text) {
+    alert("Пожалуйста, введите текст сообщения.");
+    return;
+  }
+
+  if (!confirm("Вы уверены, что хотите отправить это сообщение всем пользователям?")) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = "⏳ Отправка...";
+  btn.style.opacity = "0.7";
+
+  const res = await apiRequest({ action: "broadcast", adminId: ADMIN_ID, text: text });
+
+  btn.disabled = false;
+  btn.innerHTML = "Отправить всем";
+  btn.style.opacity = "1";
+
+  if (res && res.success) {
+    textEl.value = ""; 
+    alert(`✅ Рассылка успешно завершена!\n\nДоставлено: ${res.delivered}\nОшибок (удалили бота): ${res.failed}`);
+  } else {
+    alert("❌ Произошла ошибка при отправке рассылки.");
+  }
 }
