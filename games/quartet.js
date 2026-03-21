@@ -140,6 +140,7 @@ function startQuartetGame() {
   let pendingMutedId = '';
   let isViewingCardsWhileWaiting = false;
   let waitToggleLoading = false;
+  let currentTargetId = ''; // Для хранения выбранного игрока при запросе
 
   let openGroups = {};
   try {
@@ -337,7 +338,7 @@ function startQuartetGame() {
 
       lastVersion = typeof state.version === 'number' ? state.version : lastVersion;
       updateLobby(state);
-      renderGame(state); // ИСПРАВЛЕНИЕ: Был вызов несуществующей updateGame(state)
+      renderGame(state);
       updatePendingModal(state);
       renderRoomGuide(state);
       applyWaitMode(state);
@@ -457,7 +458,31 @@ function startQuartetGame() {
     });
     saveOpenGroups();
 
-    ui.handCards.innerHTML = groups.map((group, idx) => {
+    let html = '';
+
+    // Сектор выбора цели над картами, если сейчас твой ход
+    if (myTurn && st.status === 'playing') {
+      const targets = (st.players || []).filter(p => String(p.playerId) !== String(playerId) && p.isActive !== false);
+      if (targets.length > 0) {
+        // Проверяем актуальность выбранного таргета
+        if (!currentTargetId || !targets.find(t => String(t.playerId) === currentTargetId)) {
+          currentTargetId = String(targets[0].playerId);
+        }
+        
+        html += `
+          <div class="turn-target-selector" style="margin-bottom: 16px; background: #eff6ff; padding: 14px; border-radius: 16px; border: 1.5px solid #bfdbfe; box-shadow: 0 4px 12px rgba(37,99,235,0.08);">
+            <div style="font-size:13px; font-weight:900; color:#1e40af; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.03em;">Кого спросить:</div>
+            <select id="hand_target_select" class="input-field compact-select" style="background:white; border-color:#93c5fd; color:#1e3a8a; font-weight:700;">
+              ${targets.map(p => `<option value="${escapeHtml(String(p.playerId))}" ${String(p.playerId) === currentTargetId ? 'selected' : ''}>${escapeHtml(p.name)} · 🃏 ${Number(p.cardsCount || 0)}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else {
+        html += `<div style="margin-bottom:16px; color:var(--danger); font-weight:bold; text-align:center;">Нет доступных игроков для запроса</div>`;
+      }
+    }
+
+    html += groups.map((group, idx) => {
       const isComplete = group.ownedCount === 4;
       const isOpen = !!openGroups[group.quartet.id];
       const needText = group.missing.length
@@ -474,61 +499,92 @@ function startQuartetGame() {
               </div>
               <div class="card-content-block">
                 <div class="card-title">${escapeHtml(group.quartet.name)}</div>
-                <div class="card-subtitle">${isComplete ? 'Полный квартет' : (myTurn ? 'Можно просить недостающие карты' : 'Собирай эту группу')}</div>
+                <div class="card-subtitle">${isComplete ? 'Полный квартет' : (myTurn ? 'Нажми на нужную карту ниже' : 'Собирай эту группу')}</div>
               </div>
               <div class="accordion-arrow ${isOpen ? 'open' : ''}">⌄</div>
             </button>
 
-            <div class="hand-group-body ${isOpen ? '' : 'hidden'}" id="hand_group_${escapeHtml(group.quartet.id)}">
-              <div class="mini-cards-grid">
-                ${group.cards.map(card => `
-                  <div class="mini-card ${card.owned ? 'owned' : 'missing'}">
-                    <div class="mini-card-top">${card.owned ? 'Есть' : 'Нужно'}</div>
-                    <div class="mini-card-title">${escapeHtml(card.title)}</div>
+            <div class="hand-group-body-wrapper ${isOpen ? 'open' : ''}" id="hand_group_wrapper_${escapeHtml(group.quartet.id)}">
+              <div class="hand-group-body-inner">
+                <div class="hand-group-body">
+                  <div class="mini-cards-grid">
+                    ${group.cards.map(card => {
+                      if (card.owned) {
+                        return `
+                          <div class="mini-card owned">
+                            <div class="mini-card-top">Есть</div>
+                            <div class="mini-card-title">${escapeHtml(card.title)}</div>
+                          </div>
+                        `;
+                      } else {
+                        if (myTurn) {
+                          return `
+                            <button type="button" class="mini-card missing interactive-ask-btn" data-card-id="${escapeHtml(card.id)}">
+                              <div class="mini-card-top">Запросить</div>
+                              <div class="mini-card-title">${escapeHtml(card.title)}</div>
+                            </button>
+                          `;
+                        } else {
+                          return `
+                            <div class="mini-card missing">
+                              <div class="mini-card-top">Нужно</div>
+                              <div class="mini-card-title">${escapeHtml(card.title)}</div>
+                            </div>
+                          `;
+                        }
+                      }
+                    }).join('')}
                   </div>
-                `).join('')}
+                  <div class="card-footer-note">${needText}</div>
+                </div>
               </div>
-              <div class="card-footer-note">${needText}</div>
             </div>
           </div>
         </div>
       `;
     }).join('');
 
+    ui.handCards.innerHTML = html;
+
+    // Привязка обработчиков для селектора цели и кнопок запроса
+    if (myTurn) {
+      const selectEl = document.getElementById('hand_target_select');
+      if (selectEl) {
+        selectEl.addEventListener('change', (e) => {
+          currentTargetId = e.target.value;
+        });
+      }
+
+      ui.handCards.querySelectorAll('.interactive-ask-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+          if (!currentTargetId) {
+            showToast('Сначала выбери игрока для запроса сверху', 'error');
+            return;
+          }
+          await sendAskCard(currentTargetId, this.dataset.cardId, this);
+        });
+      });
+    }
+
+    // Привязка обработчиков аккордеона (теперь переключает классы без полного рендера для устранения микротряски)
     ui.handCards.querySelectorAll('.hand-group-head').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.groupId;
         openGroups[id] = !openGroups[id];
         saveOpenGroups();
-        renderHand(st, hand, myTurn);
+        
+        const wrapper = document.getElementById(`hand_group_wrapper_${id}`);
+        const arrow = btn.querySelector('.accordion-arrow');
+        
+        if (openGroups[id]) {
+          if (wrapper) wrapper.classList.add('open');
+          if (arrow) arrow.classList.add('open');
+        } else {
+          if (wrapper) wrapper.classList.remove('open');
+          if (arrow) arrow.classList.remove('open');
+        }
       });
     });
-  }
-
-  function buildEligibleGroups(hand) {
-    const myCards = new Set(hand || []);
-    const result = [];
-
-    gameData.quartets.forEach(q => {
-      const ownedCount = q.cards.filter(c => myCards.has(c.id)).length;
-      if (!ownedCount) return;
-
-      const missingCards = q.cards.filter(c => !myCards.has(c.id));
-      if (!missingCards.length) return;
-
-      result.push({
-        quartet: q,
-        ownedCount: ownedCount,
-        cards: missingCards
-      });
-    });
-
-    result.sort((a, b) => {
-      if (b.ownedCount !== a.ownedCount) return b.ownedCount - a.ownedCount;
-      return a.quartet.name.localeCompare(b.quartet.name, 'ru');
-    });
-
-    return result;
   }
 
   async function sendAskCard(targetId, cardId, buttonEl) {
@@ -536,8 +592,7 @@ function startQuartetGame() {
     try {
       if (buttonEl) {
         buttonEl.disabled = true;
-        buttonEl.dataset.prev = buttonEl.textContent;
-        buttonEl.textContent = 'Загрузка...';
+        buttonEl.innerHTML = '<div class="spinner spinner-dark" style="width:16px;height:16px;border-width:2px;margin:0;"></div>';
       }
       showStatus('Отправляю запрос...', 'info');
       await api('askCard', { targetId: targetId, cardId: cardId });
@@ -545,10 +600,8 @@ function startQuartetGame() {
       await refreshStateAwait(true);
     } catch (e) {
       showToast(String((e && e.message) || e), 'error');
-      if (buttonEl) {
-        buttonEl.disabled = false;
-        buttonEl.textContent = buttonEl.dataset.prev || 'Спросить';
-      }
+      // В случае ошибки кнопка перерисуется при следующем poll-е
+      await refreshStateAwait(true); 
     }
   }
 
@@ -566,7 +619,26 @@ function startQuartetGame() {
       return;
     }
 
-    if (!myTurn) {
+    if (st.pending && st.pending.status === 'waiting') {
+      ui.actionContent.innerHTML = `
+        <div class="action-empty">
+          <div class="spinner spinner-dark"></div>
+          <div class="action-title" style="margin-top:12px;">Ожидаем ответ</div>
+          <div class="action-text">Запрос отправлен. Ждём реакции игрока.</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (myTurn) {
+      ui.actionContent.innerHTML = `
+        <div class="action-empty">
+          <div class="action-big" style="font-size:36px;">👆</div>
+          <div class="action-title" style="color:var(--primary);">Твой ход!</div>
+          <div class="action-text">Выбери кого спросить в самом верху своих карт, затем кликни на нужную карту.</div>
+        </div>
+      `;
+    } else {
       ui.actionContent.innerHTML = `
         <div class="action-empty">
           <div class="action-big">⏳</div>
@@ -574,98 +646,6 @@ function startQuartetGame() {
           <div class="action-text">Сейчас ходит другой игрок. Ты можешь смотреть стол и свою руку.</div>
         </div>
       `;
-      return;
-    }
-
-    if (st.pending && st.pending.status === 'waiting') {
-      ui.actionContent.innerHTML = `
-        <div class="action-empty">
-          <div class="spinner spinner-dark"></div>
-          <div class="action-title" style="margin-top:12px;">Ожидаем ответ</div>
-          <div class="action-text">Запрос уже отправлен. Как только игрок ответит, экран обновится.</div>
-        </div>
-      `;
-      return;
-    }
-
-    const hand = (st.me && st.me.hand) || [];
-    if (!hand.length) {
-      ui.actionContent.innerHTML = '<div class="action-empty"><div class="action-text">У тебя нет карт — запрашивать нечего.</div></div>';
-      return;
-    }
-
-    const targets = (st.players || []).filter(p => String(p.playerId) !== String(playerId) && p.isActive !== false);
-    if (!targets.length) {
-      ui.actionContent.innerHTML = '<div class="action-empty"><div class="action-text">Нет доступных игроков для запроса.</div></div>';
-      return;
-    }
-
-    const eligibleGroups = buildEligibleGroups(hand);
-    const flatEligible = [];
-    eligibleGroups.forEach(g => {
-      g.cards.forEach(c => flatEligible.push({ quartet: g.quartet, ownedCount: g.ownedCount, card: c }));
-    });
-
-    if (!flatEligible.length) {
-      ui.actionContent.innerHTML = '<div class="action-empty"><div class="action-text">Нет доступных карт для запроса.</div></div>';
-      return;
-    }
-
-    ui.actionContent.innerHTML = `
-      <div class="action-form">
-        <div class="input-group compact">
-          <label class="input-label">Кого спросить</label>
-          <select id="q_target" class="input-field compact-select">
-            ${targets.map(p => `<option value="${escapeHtml(String(p.playerId))}">${escapeHtml(p.name)} · 🃏 ${Number(p.cardsCount || 0)}</option>`).join('')}
-          </select>
-        </div>
-
-        <div class="quick-title">Быстрый выбор карты</div>
-        <div class="quick-groups">
-          ${eligibleGroups.map(group => `
-            <div class="quick-group ${group.ownedCount >= 3 ? 'hot' : ''}">
-              <div class="quick-group-head">
-                <span class="quick-group-name">${group.quartet.icon} ${escapeHtml(group.quartet.name)}</span>
-                <span class="quick-group-count">${group.ownedCount}/4</span>
-              </div>
-              <div class="quick-chips">
-                ${group.cards.map(card => `
-                  <button type="button" class="quick-chip" data-card-id="${escapeHtml(card.id)}">${escapeHtml(card.title)}</button>
-                `).join('')}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-
-        <details class="manual-box">
-          <summary>Ручной выбор</summary>
-          <div class="input-group compact" style="margin-top:10px;">
-            <label class="input-label">Какую карту</label>
-            <select id="q_card" class="input-field compact-select">
-              ${flatEligible.map(x => `<option value="${escapeHtml(String(x.card.id))}">${escapeHtml(x.quartet.name)} — ${escapeHtml(x.card.title)} · ${x.ownedCount}/4</option>`).join('')}
-            </select>
-          </div>
-          <button id="q_ask_btn" class="btn btn-primary w-full">Спросить карту</button>
-        </details>
-
-        <div class="action-hint">Сверху идут карты из групп, которые у тебя уже почти собраны.</div>
-      </div>
-    `;
-
-    const targetSelect = document.getElementById('q_target');
-    const askBtn = document.getElementById('q_ask_btn');
-    const cardSelect = document.getElementById('q_card');
-
-    ui.actionContent.querySelectorAll('.quick-chip').forEach(btn => {
-          btn.addEventListener('click', async function () {
-        await sendAskCard(targetSelect ? targetSelect.value : '', this.dataset.cardId || '', this);
-      });
-    });
-
-    if (askBtn) {
-      askBtn.addEventListener('click', async function () {
-        await sendAskCard(targetSelect ? targetSelect.value : '', cardSelect ? cardSelect.value : '', this);
-      });
     }
   }
 
@@ -681,7 +661,7 @@ function startQuartetGame() {
         ui.turnIndicator.textContent = 'Игра завершена!';
         ui.turnIndicator.style.color = 'var(--success)';
       } else if (myTurn) {
-        ui.turnIndicator.textContent = 'Твой ход! Выбери карту для запроса';
+        ui.turnIndicator.textContent = 'Твой ход! Выбирай карту в руке';
         ui.turnIndicator.style.color = 'var(--primary)';
         haptic('success');
       } else {
@@ -969,6 +949,7 @@ function startQuartetGame() {
     isViewingCardsWhileWaiting = false;
     waitToggleLoading = false;
     leavingNow = false;
+    currentTargetId = '';
     localStorage.removeItem(LS.roomId);
 
     if (ui.roomCode) ui.roomCode.value = '';
@@ -1109,7 +1090,7 @@ function startQuartetGame() {
           font-size: 16px;
           font-weight: 700;
           cursor: pointer;
-          transition: all .2s ease;
+          transition: transform .2s ease, opacity .2s ease, box-shadow .2s ease;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1159,7 +1140,7 @@ function startQuartetGame() {
             0 8px 16px rgba(0,0,0,0.05),
             inset 0 1px 0 rgba(255,255,255,0.8);
           border: 1px solid rgba(226, 232, 240, 0.8);
-          transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
         }
@@ -1376,7 +1357,7 @@ function startQuartetGame() {
           flex-direction: column;
           align-items: center;
           gap: 8px;
-          transition: all .3s ease;
+          transition: transform .3s ease;
         }
 
         .player-avatar.active { transform: scale(1.05); }
@@ -1502,8 +1483,9 @@ function startQuartetGame() {
 
         .card-wrapper {
           width: 100%;
-          transition: all .3s ease;
+          transition: transform .3s ease, opacity .3s ease; /* Убрано transition: all для избежания микротряски */
           animation: cardDeal .35s ease-out backwards;
+          will-change: transform;
         }
 
         .card-wrapper.floating {
@@ -1594,10 +1576,26 @@ function startQuartetGame() {
           font-size: 24px;
           color: var(--text-muted);
           transform: rotate(-90deg);
-          transition: transform .2s ease;
+          transition: transform .25s ease;
         }
 
         .accordion-arrow.open { transform: rotate(0deg); }
+
+        /* Использование CSS Grid для плавной анимации высоты гармошки */
+        .hand-group-body-wrapper {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: grid-template-rows;
+        }
+
+        .hand-group-body-wrapper.open {
+          grid-template-rows: 1fr;
+        }
+
+        .hand-group-body-inner {
+          overflow: hidden;
+        }
 
         .hand-group-body {
           padding: 0 14px 14px;
@@ -1625,6 +1623,37 @@ function startQuartetGame() {
           border-style: dashed;
           border-color: #cbd5e1;
           background: #f8fafc;
+        }
+
+        /* Стили для интерактивной кнопки карточки, которую можно запросить */
+        button.mini-card.missing.interactive-ask-btn {
+          cursor: pointer;
+          background: #eff6ff;
+          border-color: #93c5fd;
+          border-style: solid;
+          transition: transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease;
+          text-align: left;
+          font-family: inherit;
+          box-shadow: 0 4px 12px rgba(37,99,235,0.08);
+        }
+        
+        button.mini-card.missing.interactive-ask-btn:active {
+          transform: scale(0.96);
+          background: #dbeafe;
+        }
+
+        button.mini-card.missing.interactive-ask-btn .mini-card-top {
+          color: var(--primary);
+        }
+
+        button.mini-card.missing.interactive-ask-btn .mini-card-title {
+          color: #1e3a8a;
+        }
+        
+        button.mini-card.missing.interactive-ask-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
         }
 
         .mini-card-top {
@@ -1715,106 +1744,6 @@ function startQuartetGame() {
           font-size: 14px;
           color: var(--text-muted);
           line-height: 1.5;
-        }
-
-        .action-form {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .quick-title {
-          font-size: 14px;
-          font-weight: 900;
-          color: var(--text);
-        }
-
-        .quick-groups {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          max-height: 42vh;
-          overflow-y: auto;
-          padding-right: 2px;
-        }
-
-        .quick-group {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 12px;
-        }
-
-        .quick-group.hot {
-          background: linear-gradient(180deg, #ffffff 0%, #eff6ff 100%);
-          border-color: #bfd5ff;
-        }
-
-        .quick-group-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-
-        .quick-group-name {
-          font-size: 13px;
-          font-weight: 900;
-          color: #334155;
-          text-transform: uppercase;
-          line-height: 1.2;
-        }
-
-        .quick-group-count {
-          background: #eef4ff;
-          color: #2563eb;
-          border-radius: 999px;
-          padding: 5px 10px;
-          font-size: 12px;
-          font-weight: 900;
-          border: 1px solid #dbe7ff;
-        }
-
-        .quick-chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .quick-chip {
-          border: none;
-          background: #2563eb;
-          color: white;
-          border-radius: 999px;
-          padding: 10px 14px;
-          font-size: 14px;
-          font-weight: 800;
-          line-height: 1;
-          box-shadow: 0 8px 16px rgba(37,99,235,.18);
-        }
-
-        .manual-box {
-          margin-top: 2px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          padding: 12px;
-        }
-
-        .manual-box summary {
-          cursor: pointer;
-          font-weight: 800;
-          color: #475569;
-          user-select: none;
-          outline: none;
-        }
-
-        .action-hint {
-          font-size: 12px;
-          line-height: 1.5;
-          color: var(--text-muted);
-          text-align: center;
         }
 
         .game-log {
@@ -2234,7 +2163,7 @@ function startQuartetGame() {
     ui.createBtn = document.getElementById('createBtn');
     ui.joinBtn = document.getElementById('joinBtn');
     ui.rulesOpenBtnAuth = document.getElementById('rulesOpenBtnAuth');
-    ui.exitToMenuBtnAuth = document.getElementById('exitToMenuBtnAuth'); // Инициализация новой кнопки
+    ui.exitToMenuBtnAuth = document.getElementById('exitToMenuBtnAuth');
     ui.leaveBtn = document.getElementById('leaveBtn');
     ui.roomDisplay = document.getElementById('roomDisplay');
     ui.roomCodeBig = document.getElementById('roomCodeBig');
@@ -2276,7 +2205,6 @@ function startQuartetGame() {
     ui.rulesOpenBtnAuth.addEventListener('click', openRulesModal);
     ui.rulesCloseBtn.addEventListener('click', closeRulesModal);
     
-    // Логика новой кнопки выхода в меню
     if (ui.exitToMenuBtnAuth) {
       ui.exitToMenuBtnAuth.addEventListener('click', () => {
         if (typeof goToMainMenu === 'function') {
