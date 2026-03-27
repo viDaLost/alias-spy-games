@@ -44,6 +44,13 @@ async function initializeApp() {
     let localWsStars = 0;
     try { localWsStars = parseInt(localStorage.getItem(`bible_stars_v1_${tgUser.id}`) || "0"); } catch(e) {}
     
+    // Получаем локальный уровень игры "Священное слово"
+    let localSwLevel = 0;
+    try { 
+      const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}"); 
+      localSwLevel = swState.level || 0;
+    } catch(e) {}
+
     let localGamesHistory = [];
     try {
       localGamesHistory = JSON.parse(localStorage.getItem("last_games_history") || "[]");
@@ -59,6 +66,7 @@ async function initializeApp() {
         link: tgUser.link,
         wowStars: typeof localWowData.coins === 'number' ? localWowData.coins : 20,
         wsStars: isNaN(localWsStars) ? 0 : localWsStars,
+        swLevel: localSwLevel, // Отправляем уровень Священного слова на сервер
         lastGames: localGamesHistory,
         forceUpdate: false 
       }
@@ -83,6 +91,16 @@ async function initializeApp() {
       localWowData.coins = res.wowStars;
       localStorage.setItem("bibleWowData_v5", JSON.stringify(localWowData));
       localStorage.setItem(`bible_stars_v1_${tgUser.id}`, res.wsStars);
+      
+      // Синхронизируем уровень Священного слова
+      if (res.swLevel !== undefined) {
+        try {
+          const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}");
+          swState.level = res.swLevel;
+          localStorage.setItem(`sacred_word_levels_v4_${tgUser.id}`, JSON.stringify(swState));
+        } catch(e) {}
+      }
+
       localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
       currentUserData.lastGames = res.lastGames;
     } else {
@@ -430,7 +448,7 @@ async function openAdminPanel() {
           <div style="color:var(--text-color);">${historyStr}</div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.8rem; margin-bottom:15px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:0.8rem; margin-bottom:15px;">
           <div style="background:#f1f5f9; padding:10px; border-radius:10px;">
             <div style="font-size:0.8rem; color:#64748b; font-weight: 700; text-align: center; margin-bottom: 6px;">⭐ Bible Words</div>
             <div style="display:flex; gap:6px;">
@@ -438,11 +456,20 @@ async function openAdminPanel() {
               <button onclick="updateUserStars('${u.id}', 'stars_wow', 'wow_${u.id}')" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:0 14px; cursor:pointer; font-weight: bold;">✓</button>
             </div>
           </div>
+          
           <div style="background:#f1f5f9; padding:10px; border-radius:10px;">
             <div style="font-size:0.8rem; color:#64748b; font-weight: 700; text-align: center; margin-bottom: 6px;">⭐ Word Search</div>
             <div style="display:flex; gap:6px;">
               <input type="number" id="ws_${u.id}" value="${u.wsStars}" style="width:100%; padding:6px 8px; font-size:0.95rem; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
               <button onclick="updateUserStars('${u.id}', 'stars_ws', 'ws_${u.id}')" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:0 14px; cursor:pointer; font-weight: bold;">✓</button>
+            </div>
+          </div>
+
+          <div style="background:#f1f5f9; padding:10px; border-radius:10px;">
+            <div style="font-size:0.8rem; color:#64748b; font-weight: 700; text-align: center; margin-bottom: 6px;">🪔 Sacred Word (Ур)</div>
+            <div style="display:flex; gap:6px;">
+              <input type="number" id="sw_${u.id}" value="${u.swLevel || 0}" style="width:100%; padding:6px 8px; font-size:0.95rem; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
+              <button onclick="updateUserStars('${u.id}', 'stars_sw', 'sw_${u.id}')" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:0 14px; cursor:pointer; font-weight: bold;">✓</button>
             </div>
           </div>
         </div>
@@ -470,11 +497,15 @@ window.updateUserStars = async function(targetId, type, inputId) {
       localStorage.setItem("bibleWowData_v5", JSON.stringify(d));
     } else if (type === 'stars_ws') {
       localStorage.setItem(`bible_stars_v1_${tgUser.id}`, val);
+    } else if (type === 'stars_sw') {
+      let d = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}");
+      d.level = parseInt(val);
+      localStorage.setItem(`sacred_word_levels_v4_${tgUser.id}`, JSON.stringify(d));
     }
   }
 
   const toast = document.createElement("div");
-  toast.textContent = "Звезды успешно обновлены!";
+  toast.textContent = "Успешно обновлено!";
   toast.style.cssText = "position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:#fff; padding:12px 24px; border-radius:999px; z-index:99999; font-weight:600; font-size: 0.95rem; box-shadow:0 8px 16px rgba(0,0,0,0.15); animation: swFadeIn 0.2s ease-out;";
   document.body.appendChild(toast);
   setTimeout(() => {
