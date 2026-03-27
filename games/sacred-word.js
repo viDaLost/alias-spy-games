@@ -1,10 +1,16 @@
-/* global loadJSON, goToMainMenu */
+/* global loadJSON, goToMainMenu, THREE, getTelegramUser */
 
 function startSacredWordGame(wordsUrl) {
   const container = document.getElementById("game-container");
   if (!container) return;
 
+  if (typeof THREE === 'undefined') {
+    container.innerHTML = `<div style="padding: 20px; color: red;">Ошибка: Библиотека Three.js не подключена!</div>`;
+    return;
+  }
+
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
+  // Используем v4, чтобы синхронизация с вашим app.js работала корректно
   const STORAGE_KEY = `sacred_word_levels_v4_${tgUser.id}`;
   const MAX_ERRORS = 7; 
   const KEYBOARD_ROWS = [
@@ -16,191 +22,49 @@ function startSacredWordGame(wordsUrl) {
   let words = [];
   let state = null; 
 
+  // --- THREE.JS ПЕРЕМЕННЫЕ ---
+  let threeCanvas = null;
+  let scene, camera, renderer;
+  let flames3D = [];
+  let smokeParticles = [];
+  let animationFrameId;
+
   function injectStyles() {
     const old = document.getElementById("sacred-word-style");
     if (old) old.remove();
     const style = document.createElement("style");
     style.id = "sacred-word-style";
     style.textContent = `
-      .sw-wrap {
-        width: min(100%, 860px);
-        margin: 0 auto;
-        display: grid;
-        gap: 14px;
-        padding: 6px 0 24px;
-        color: #1e293b;
-      }
-      .sw-topbar, .sw-card, .sw-keyboard {
-        background: #ffffff;
-        border-radius: 18px;
-        box-shadow: 0 6px 18px rgba(0,0,0,.08);
-        border: 1px solid rgba(79,70,229,.08);
-      }
-      .sw-topbar {
-        padding: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-      }
+      .sw-wrap { width: min(100%, 860px); margin: 0 auto; display: grid; gap: 14px; padding: 6px 0 24px; color: #1e293b; }
+      .sw-topbar, .sw-card, .sw-keyboard { background: #ffffff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.08); border: 1px solid rgba(79,70,229,.08); }
+      .sw-topbar { padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
       .sw-titlebox { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; }
       .sw-title { font-size: 1.3rem; font-weight: 800; color: #312e81; }
       .sw-subtitle { font-size: .92rem; color: #475569; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
-      
-      .sw-level-select {
-        background: #e0e7ff;
-        border: 1px solid #c7d2fe;
-        border-radius: 6px;
-        padding: 2px 6px;
-        font-family: inherit;
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #312e81;
-        cursor: pointer;
-        outline: none;
-      }
-
+      .sw-level-select { background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 6px; padding: 2px 6px; font-family: inherit; font-size: 0.9rem; font-weight: 700; color: #312e81; cursor: pointer; outline: none; }
       .sw-card { padding: 16px; }
-      .sw-grid {
-        display: grid;
-        grid-template-columns: minmax(280px, 360px) 1fr;
-        gap: 16px;
-        align-items: center;
-      }
-      .sw-lamp-card {
-        background: linear-gradient(180deg, #0f172a, #1e293b);
-        border-radius: 20px;
-        padding: 10px;
-        min-height: 290px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-      }
+      .sw-grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 16px; align-items: center; }
+      .sw-lamp-card { background: radial-gradient(circle at center, #1e293b, #020617); border-radius: 20px; padding: 0; min-height: 290px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
       .sw-info { display: grid; gap: 12px; }
-      .sw-pillrow {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-      .sw-pill {
-        background: #dbeafe;
-        color: #1e293b;
-        border-radius: 999px;
-        padding: 8px 12px;
-        font-size: .94rem;
-        font-weight: 700;
-      }
-      .sw-hintbox {
-        background: #f8fafc;
-        border: 1px solid #cbd5e1;
-        color: #334155;
-        border-radius: 16px;
-        padding: 12px 14px;
-        line-height: 1.45;
-        font-size: 1rem;
-        font-style: italic;
-      }
-      .sw-word {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        min-height: 66px;
-      }
-      .sw-letter {
-        width: 44px;
-        height: 52px;
-        border-radius: 14px;
-        background: #fff;
-        border: 2px solid #cbd5e1;
-        box-shadow: 0 4px 10px rgba(0,0,0,.05);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-        font-weight: 800;
-        color: #0f172a;
-        transition: transform .2s ease, background-color .2s ease;
-      }
-      .sw-letter.revealed {
-        background: #dbeafe;
-        border-color: #818cf8;
-        transform: translateY(-2px);
-      }
-      .sw-letter.space {
-        width: 18px;
-        background: transparent;
-        border: none;
-        box-shadow: none;
-      }
-      
+      .sw-pillrow { display: flex; flex-wrap: wrap; gap: 8px; }
+      .sw-pill { background: #dbeafe; color: #1e293b; border-radius: 999px; padding: 8px 12px; font-size: .94rem; font-weight: 700; }
+      .sw-hintbox { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; border-radius: 16px; padding: 12px 14px; line-height: 1.45; font-size: 1rem; font-style: italic; }
+      .sw-word { display: flex; flex-wrap: wrap; gap: 8px; min-height: 66px; }
+      .sw-letter { width: 44px; height: 52px; border-radius: 14px; background: #fff; border: 2px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 800; color: #0f172a; transition: transform .2s ease, background-color .2s ease; }
+      .sw-letter.revealed { background: #dbeafe; border-color: #818cf8; transform: translateY(-2px); }
+      .sw-letter.space { width: 18px; background: transparent; border: none; box-shadow: none; }
       .sw-message { min-height: 24px; font-weight: 700; color: #312e81; }
       .sw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-      .sw-actions button { flex: 1; min-width: 168px; margin: 0; }
-      
+      .sw-actions button { flex: 1; min-width: 168px; margin: 0; padding: 10px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; }
+      .sw-actions button:active { transform: scale(0.95); }
       .sw-keyboard { padding: 14px 8px; box-sizing: border-box; }
-      .sw-kb-row {
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-        margin-bottom: 6px;
-        width: 100%;
-      }
-      .sw-kb-key {
-        flex: 1 1 auto;
-        max-width: 44px;
-        height: 48px;
-        border-radius: 10px;
-        border: none;
-        background: #f1f5f9;
-        color: #0f172a;
-        box-shadow: 0 4px 6px rgba(0,0,0,.08);
-        font-weight: 800;
-        font-size: 1.1rem;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        touch-action: manipulation;
-        transition: transform .1s ease, opacity .2s ease, background-color .2s ease;
-      }
+      .sw-kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 6px; width: 100%; }
+      .sw-kb-key { flex: 1 1 auto; max-width: 44px; height: 48px; border-radius: 10px; border: none; background: #f1f5f9; color: #0f172a; box-shadow: 0 4px 6px rgba(0,0,0,.08); font-weight: 800; font-size: 1.1rem; padding: 0; display: flex; align-items: center; justify-content: center; touch-action: manipulation; transition: transform .1s ease, opacity .2s ease, background-color .2s ease; }
       .sw-kb-key.good { background: #dcfce7; color: #166534; box-shadow: none; }
       .sw-kb-key.bad { background: #fee2e2; color: #991b1b; box-shadow: none; }
       .sw-kb-key.used { opacity: .6; }
       .sw-kb-key:disabled { cursor: not-allowed; }
       .sw-kb-key:active:not(:disabled) { transform: scale(.92); }
-      
-      .sw-lamp { width: min(100%, 280px); aspect-ratio: 1 / 1; position: relative; margin: 0 auto; }
-      .sw-lamp-svg { width: 100%; height: auto; display: block; overflow: visible; }
-      
-      .sw-flame { transition: opacity 0.5s ease, transform 0.5s ease; transform-origin: center bottom; }
-      .sw-flame.off { opacity: 0 !important; transform: scale(0.3) !important; }
-      
-      .flame-outer { animation: swFlickerOuter 1.8s ease-in-out infinite; transform-origin: inherit; }
-      .flame-inner { animation: swFlickerInner 1.4s ease-in-out infinite; transform-origin: inherit; }
-      .flame-core  { animation: swFlickerCore 1s ease-in-out infinite; transform-origin: inherit; }
-      .flame-glow  { animation: swGlowPulse 2s ease-in-out infinite alternate; transform-origin: inherit; transition: opacity 0.5s ease; }
-      
-      @keyframes swFlickerOuter {
-        0%, 100% { transform: scale(1) rotate(0deg); }
-        25% { transform: scale(1.05, 0.95) rotate(-2deg); }
-        50% { transform: scale(0.95, 1.05) rotate(1deg); }
-        75% { transform: scale(1.02, 0.98) rotate(2deg); }
-      }
-      @keyframes swFlickerInner {
-        0%, 100% { transform: scale(1); }
-        33% { transform: scale(0.9, 1.1) translateY(-1px); }
-        66% { transform: scale(1.1, 0.9) translateY(1px); }
-      }
-      @keyframes swFlickerCore {
-        0%, 100% { transform: scale(1); opacity: 0.9; }
-        50% { transform: scale(0.95); opacity: 1; }
-      }
-      @keyframes swGlowPulse {
-        0% { transform: scale(0.95); opacity: 0.7; }
-        100% { transform: scale(1.05); opacity: 1; }
-      }
-
       @media (max-width: 500px) {
         .sw-grid { grid-template-columns: 1fr; }
         .sw-lamp-card { min-height: 220px; }
@@ -213,24 +77,249 @@ function startSacredWordGame(wordsUrl) {
     document.head.appendChild(style);
   }
 
-  function normalizeLetter(letter) {
-    return (letter || "").toUpperCase().replace(/\s+/g, "");
+  // Генерация текстур для огня и дыма (Canvas 2D)
+  function createRadialGradientTexture(color1, color2) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, color1);
+    grad.addColorStop(1, color2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
   }
 
-  function sanitizeWord(word) {
-    return normalizeLetter(word).replace(/[^А-ЯЁ-]/g, "");
+  // --- ИНИЦИАЛИЗАЦИЯ THREE.JS ---
+  function initThreeJS() {
+    scene = new THREE.Scene();
+    
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(280, 280);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    threeCanvas = renderer.domElement;
+    threeCanvas.style.width = "100%";
+    threeCanvas.style.height = "auto";
+    threeCanvas.style.maxWidth = "280px";
+    threeCanvas.style.aspectRatio = "1 / 1";
+
+    camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 2.5, 14.5);
+    camera.lookAt(0, 1.5, 0);
+
+    // Сложное освещение
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+    
+    const mainLight = new THREE.DirectionalLight(0xfff0dd, 1.2);
+    mainLight.position.set(5, 10, 8);
+    scene.add(mainLight);
+
+    const backLight = new THREE.DirectionalLight(0x88bbff, 0.8);
+    backLight.position.set(-5, 5, -8);
+    scene.add(backLight);
+
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffb700,
+      metalness: 0.9,
+      roughness: 0.15,
+    });
+
+    const menorahGroup = new THREE.Group();
+    menorahGroup.position.y = -1;
+
+    // --- БАЗА И СТВОЛ ---
+    const base1 = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.8, 0.4, 32), goldMat);
+    base1.position.y = -3;
+    menorahGroup.add(base1);
+    
+    const base2 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 0.4, 32), goldMat);
+    base2.position.y = -2.6;
+    menorahGroup.add(base2);
+
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 6.5, 16), goldMat);
+    stem.position.y = 0;
+    menorahGroup.add(stem);
+
+    [-1.5, 0, 1.5].forEach(yPos => {
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), goldMat);
+      knob.position.y = yPos;
+      knob.scale.y = 0.8;
+      menorahGroup.add(knob);
+    });
+
+    // --- ВЕТВИ (U-образные) ---
+    const radii = [1.2, 2.4, 3.6];
+    const branchYCenter = 2.0; 
+
+    addCandleCupAndFire(0, branchYCenter, menorahGroup);
+
+    radii.forEach((r, idx) => {
+      const branchGeo = new THREE.TorusGeometry(r, 0.18, 16, 48, Math.PI);
+      const branch = new THREE.Mesh(branchGeo, goldMat);
+      branch.position.y = branchYCenter;
+      branch.rotation.z = Math.PI; 
+      menorahGroup.add(branch);
+
+      const bottomKnob = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), goldMat);
+      bottomKnob.position.set(0, branchYCenter - r, 0);
+      menorahGroup.add(bottomKnob);
+
+      addCandleCupAndFire(r, branchYCenter, menorahGroup);
+      addCandleCupAndFire(-r, branchYCenter, menorahGroup);
+    });
+
+    scene.add(menorahGroup);
+    animateThreeJS();
   }
 
-  function loadSavedState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+  const texCore = createRadialGradientTexture('rgba(255, 255, 255, 1)', 'rgba(255, 220, 100, 0)');
+  const texHalo = createRadialGradientTexture('rgba(255, 120, 0, 0.8)', 'rgba(255, 50, 0, 0)');
+  const texSmoke = createRadialGradientTexture('rgba(200, 200, 200, 0.6)', 'rgba(100, 100, 100, 0)');
+  const smokeMat = new THREE.SpriteMaterial({ map: texSmoke, transparent: true });
+
+  function addCandleCupAndFire(x, y, parentGroup) {
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffb700, metalness: 0.9, roughness: 0.15 });
+    const candleMat = new THREE.MeshStandardMaterial({ color: 0xfdfbf7, roughness: 0.9, metalness: 0.0 });
+    const wickMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.2, 0.4, 16), goldMat);
+    cup.position.set(x, y + 0.2, 0);
+    parentGroup.add(cup);
+
+    const cupBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), goldMat);
+    cupBase.position.set(x, y, 0);
+    parentGroup.add(cupBase);
+
+    const candleY = y + 0.8;
+    const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.2, 16), candleMat);
+    candle.position.set(x, candleY, 0);
+    parentGroup.add(candle);
+
+    const wick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 4), wickMat);
+    wick.position.set(x, candleY + 0.65, 0);
+    parentGroup.add(wick);
+
+    const flameGroup = new THREE.Group();
+    const flameY = candleY + 0.9;
+    flameGroup.position.set(x, flameY, 0);
+
+    const light = new THREE.PointLight(0xff8800, 1.5, 6);
+    flameGroup.add(light);
+
+    const coreMat = new THREE.SpriteMaterial({ map: texCore, blending: THREE.AdditiveBlending, depthWrite: false });
+    const coreSprite = new THREE.Sprite(coreMat);
+    coreSprite.scale.set(0.6, 1.0, 1);
+    
+    const haloMat = new THREE.SpriteMaterial({ map: texHalo, blending: THREE.AdditiveBlending, depthWrite: false });
+    const haloSprite = new THREE.Sprite(haloMat);
+    haloSprite.scale.set(1.2, 1.8, 1);
+    haloSprite.position.y = 0.2;
+
+    flameGroup.add(haloSprite);
+    flameGroup.add(coreSprite);
+
+    parentGroup.add(flameGroup);
+
+    flames3D.push({
+      xPosition: x, 
+      group: flameGroup,
+      core: coreSprite,
+      halo: haloSprite,
+      light: light,
+      baseY: flameY,
+      active: true,
+      randomOffset: Math.random() * 100 
+    });
   }
 
-  function saveState() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+  function spawnSmokeCloud(x, y, z) {
+    for(let i=0; i<8; i++) {
+      const sprite = new THREE.Sprite(smokeMat.clone());
+      sprite.position.set(x + (Math.random()-0.5)*0.2, y, z + (Math.random()-0.5)*0.2);
+      sprite.scale.set(0.5, 0.5, 0.5);
+      scene.add(sprite);
+      
+      smokeParticles.push({
+        sprite: sprite,
+        life: 1.0,
+        velY: 0.02 + Math.random() * 0.02,
+        velX: (Math.random() - 0.5) * 0.02,
+        scaleSpeed: 0.02 + Math.random() * 0.02
+      });
+    }
   }
+
+  function animateThreeJS() {
+    if (!scene) return;
+    animationFrameId = requestAnimationFrame(animateThreeJS);
+    const time = Date.now() * 0.005;
+
+    flames3D.forEach((flame) => {
+      if (flame.active) {
+        const flicker = Math.sin(time + flame.randomOffset) * 0.15 + 0.85;
+        flame.core.scale.set(0.6 * flicker, 1.0 * flicker, 1);
+        flame.halo.scale.set(1.2 * flicker, 1.8 * flicker, 1);
+        flame.light.intensity = 1.5 * flicker;
+        flame.group.position.y = flame.baseY + Math.sin(time * 3 + flame.randomOffset) * 0.03;
+      }
+    });
+
+    for (let i = smokeParticles.length - 1; i >= 0; i--) {
+      const p = smokeParticles[i];
+      p.life -= 0.015;
+      p.sprite.position.y += p.velY;
+      p.sprite.position.x += p.velX;
+      const currentScale = p.sprite.scale.x + p.scaleSpeed;
+      p.sprite.scale.set(currentScale, currentScale, 1);
+      p.sprite.material.opacity = p.life;
+
+      if (p.life <= 0) {
+        scene.remove(p.sprite);
+        p.sprite.material.dispose();
+        smokeParticles.splice(i, 1);
+      }
+    }
+
+    camera.position.x = Math.sin(time * 0.05) * 2;
+    camera.position.z = 14.5 + Math.cos(time * 0.05) * 1;
+    camera.lookAt(0, 1.5, 0);
+
+    renderer.render(scene, camera);
+  }
+
+  function syncFlamesWithState() {
+    if (!flames3D.length) return;
+    
+    const sortedFlames = [...flames3D].sort((a,b) => a.xPosition - b.xPosition);
+    const extinctOrder = [0, 6, 1, 5, 2, 4, 3]; 
+    
+    for (let idx = 0; idx < 7; idx++) {
+      const extinguishErrorLevel = extinctOrder.indexOf(idx) + 1; 
+      const shouldBeOff = state.errors >= extinguishErrorLevel;
+      
+      const flame = sortedFlames[idx];
+      
+      if (shouldBeOff && flame.active) {
+         flame.active = false;
+         flame.core.visible = false;
+         flame.halo.visible = false;
+         flame.light.intensity = 0;
+         const worldPos = new THREE.Vector3();
+         flame.group.getWorldPosition(worldPos);
+         spawnSmokeCloud(worldPos.x, worldPos.y, worldPos.z);
+      } else if (!shouldBeOff && !flame.active) {
+         flame.active = true;
+         flame.core.visible = true;
+         flame.halo.visible = true;
+      }
+    }
+  }
+
+  function normalizeLetter(letter) { return (letter || "").toUpperCase().replace(/\s+/g, ""); }
+  function sanitizeWord(word) { return normalizeLetter(word).replace(/[^А-ЯЁ-]/g, ""); }
+  function loadSavedState() { try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+  function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
 
   function createRound(targetLevel) {
     let lvl = targetLevel !== undefined ? targetLevel : (state ? state.level : 0);
@@ -302,9 +391,7 @@ function startSacredWordGame(wordsUrl) {
 
   function renderWord() {
     return [...state.word].map((ch, idx) => {
-      if (ch === " " || ch === "-") {
-        return `<div class="sw-letter ${ch === " " ? "space" : "revealed"}">${ch === "-" ? "–" : ""}</div>`;
-      }
+      if (ch === " " || ch === "-") return `<div class="sw-letter ${ch === " " ? "space" : "revealed"}">${ch === "-" ? "–" : ""}</div>`;
       const visible = state.revealed.includes(idx) || (!state.won && state.finished);
       return `<div class="sw-letter ${visible ? "revealed" : ""}">${visible ? ch : "_"}</div>`;
     }).join("");
@@ -323,89 +410,11 @@ function startSacredWordGame(wordsUrl) {
     `).join("");
   }
 
-  function renderLamp() {
-    const extinctOrder = [0, 6, 1, 5, 2, 4, 3];
-    let flamesHtml = '';
-    
-    for (let idx = 0; idx < 7; idx++) {
-      const extinguishErrorLevel = extinctOrder.indexOf(idx) + 1; 
-      const isOff = state.errors >= extinguishErrorLevel;
-      const x = 45 + idx * 35;
-      
-      flamesHtml += `
-        <g class="sw-flame ${isOff ? 'off' : ''}" style="transform-origin: ${x}px 90px;">
-          <circle cx="${x}" cy="75" r="22" fill="url(#swSmallGlow)" class="flame-glow" />
-          <path class="flame-outer" d="M${x},92 Q${x-7},75 ${x},55 Q${x+7},75 ${x},92 Z" fill="#ea580c"/>
-          <path class="flame-inner" d="M${x},90 Q${x-4.5},78 ${x},65 Q${x+4.5},78 ${x},90 Z" fill="#fbbf24"/>
-          <path class="flame-core"  d="M${x},88 Q${x-2.5},80 ${x},72 Q${x+2.5},80 ${x},88 Z" fill="#fef08a"/>
-        </g>
-      `;
-    }
-
-    return `
-      <div class="sw-lamp" aria-label="Менора">
-        <svg class="sw-lamp-svg" viewBox="0 0 300 300" role="img">
-          <defs>
-            <radialGradient id="swSmallGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.8"/>
-              <stop offset="60%" stop-color="#d97706" stop-opacity="0.2"/>
-              <stop offset="100%" stop-color="#78350f" stop-opacity="0"/>
-            </radialGradient>
-            <radialGradient id="swBigGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.25"/>
-              <stop offset="100%" stop-color="#78350f" stop-opacity="0"/>
-            </radialGradient>
-            <linearGradient id="swGold" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#FDE047"/>
-              <stop offset="30%" stop-color="#D97706"/>
-              <stop offset="70%" stop-color="#B45309"/>
-              <stop offset="100%" stop-color="#78350F"/>
-            </linearGradient>
-            <filter id="swBlur" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="12"/>
-            </filter>
-          </defs>
-          
-          <circle cx="150" cy="140" r="140" fill="url(#swBigGlow)" opacity="${(MAX_ERRORS - state.errors) / MAX_ERRORS}" style="transition: opacity 0.5s" filter="url(#swBlur)"/>
-          
-          <g stroke="url(#swGold)" stroke-linecap="round" fill="none">
-            <line x1="150" y1="105" x2="150" y2="255" stroke-width="14" />
-            <path d="M45,110 A 105 105 0 0 0 255,110" stroke-width="10" />
-            <path d="M80,110 A 70 70 0 0 0 220,110" stroke-width="10" />
-            <path d="M115,110 A 35 35 0 0 0 185,110" stroke-width="10" />
-          </g>
-
-          <g fill="url(#swGold)">
-            <ellipse cx="150" cy="145" rx="12" ry="7" />
-            <ellipse cx="150" cy="180" rx="14" ry="8" />
-            <ellipse cx="150" cy="215" rx="16" ry="9" />
-            <ellipse cx="150" cy="245" rx="18" ry="10" />
-            
-            <path d="M135,245 L165,245 L180,285 L120,285 Z" />
-            <path d="M125,285 L175,285 L175,290 L125,290 Z" />
-          </g>
-
-          <g fill="url(#swGold)">
-            <path d="M36,98 L54,98 L48,114 L42,114 Z" />
-            <path d="M71,98 L89,98 L83,114 L77,114 Z" />
-            <path d="M106,98 L124,98 L118,114 L112,114 Z" />
-            <path d="M141,98 L159,98 L153,114 L147,114 Z" />
-            <path d="M176,98 L194,98 L188,114 L182,114 Z" />
-            <path d="M211,98 L229,98 L223,114 L217,114 Z" />
-            <path d="M246,98 L264,98 L258,114 L252,114 Z" />
-          </g>
-
-          ${flamesHtml}
-        </svg>
-      </div>
-    `;
-  }
-
   function render() {
     let actionButtons = '';
     
     if (state.finished && state.won) {
-      actionButtons = `<button class="start-button" id="sw-next-level" style="background: #312e81; color: #fff; max-width: 320px; margin: 0 auto;">➡️ Следующий уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-next-level" style="background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; max-width: 320px; margin: 0 auto; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">➡️ Следующий уровень</button>`;
     } else {
       actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1; max-width: 320px; margin: 0 auto;">🔄 Сбросить уровень</button>`;
     }
@@ -419,7 +428,7 @@ function startSacredWordGame(wordsUrl) {
     container.innerHTML = `
       <div class="sw-wrap">
         <div class="sw-topbar">
-          <button class="back-button" style="width:auto; padding:10px 14px; margin:0; border: 1px solid #cbd5e1;" onclick="goToMainMenu()">⬅️ Назад</button>
+          <button class="back-button" style="width:auto; padding:10px 14px; margin:0; border: 1px solid #cbd5e1;" id="sw-back-btn">⬅️ Назад</button>
           <div class="sw-titlebox">
             <div class="sw-title">Священное слово</div>
             <div class="sw-subtitle">${levelSelectHtml}</div>
@@ -429,11 +438,11 @@ function startSacredWordGame(wordsUrl) {
 
         <div class="sw-card">
           <div class="sw-grid">
-            <div class="sw-lamp-card">${renderLamp()}</div>
+            <div class="sw-lamp-card" id="sw-lamp-container"></div>
             <div class="sw-info">
               <div class="sw-pillrow">
                 <div class="sw-pill">Категория: ${state.category}</div>
-                <div class="sw-pill">Угасание: ${state.errors} / ${MAX_ERRORS}</div>
+                <div class="sw-pill" style="background:${state.errors >= MAX_ERRORS ? '#fee2e2' : '#dbeafe'}; color:${state.errors >= MAX_ERRORS ? '#991b1b' : '#1e293b'};">Угасание: ${state.errors} / ${MAX_ERRORS}</div>
               </div>
               <div class="sw-hintbox">${state.hint}</div>
               <div>
@@ -454,8 +463,17 @@ function startSacredWordGame(wordsUrl) {
             ${actionButtons}
           </div>
         </div>
-
+      </div>
     `;
+
+    const lampContainer = document.getElementById("sw-lamp-container");
+    if (!threeCanvas) {
+      initThreeJS();
+    }
+    if (threeCanvas && lampContainer) {
+      lampContainer.appendChild(threeCanvas);
+    }
+    syncFlamesWithState();
 
     container.querySelectorAll(".sw-kb-key").forEach(btn => {
       btn.addEventListener("click", () => pressLetter(btn.dataset.letter));
@@ -472,6 +490,11 @@ function startSacredWordGame(wordsUrl) {
     container.querySelector("#sw-level-select")?.addEventListener("change", (e) => {
       createRound(parseInt(e.target.value, 10));
     });
+    
+    container.querySelector("#sw-back-btn")?.addEventListener("click", () => {
+       cleanupThreeJS();
+       goToMainMenu();
+    });
   }
 
   function handlePhysicalKeyboard(event) {
@@ -483,14 +506,26 @@ function startSacredWordGame(wordsUrl) {
     }
   }
 
+  function cleanupThreeJS() {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    smokeParticles = []; 
+    if (renderer) {
+      renderer.dispose();
+      renderer.forceContextLoss();
+    }
+    document.removeEventListener("keydown", handlePhysicalKeyboard);
+  }
+
   injectStyles();
   loadJSON(wordsUrl)
     .then(data => {
       words = Array.isArray(data) ? data.filter(item => item && item.word && item.category && item.hint) : [];
-      if (!words.length) throw new Error("Не удалось загрузить слова для игры.");
-      document.removeEventListener("keydown", handlePhysicalKeyboard);
+      if (!words.length) throw new Error("Не удалось загрузить слова.");
+      
+      if (window.__sacredWordCleanup) window.__sacredWordCleanup();
+      
       document.addEventListener("keydown", handlePhysicalKeyboard);
-      window.__sacredWordCleanup = () => document.removeEventListener("keydown", handlePhysicalKeyboard);
+      window.__sacredWordCleanup = cleanupThreeJS;
       ensureStateValid();
     })
     .catch(err => {
