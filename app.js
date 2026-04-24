@@ -7,6 +7,81 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N
 const ADMIN_ID = "1288379477";
 let currentUserData = { lastGames: [] };
 
+const GAME_CATALOG = {
+  alias: { title: "Алиас", icon: "🎮", desc: "Объяснение слов командами" },
+  coimaginarium: { title: "Соображариум", icon: "🧠", desc: "Тема и буква для быстрых ответов" },
+  guess: { title: "Угадай персонажа", icon: "👥", desc: "Секретный персонаж для каждого" },
+  describe: { title: "Опиши слово", icon: "🗣", desc: "Объясняй без прямого названия" },
+  spy: { title: "Шпион", icon: "🕵️", desc: "Роли, локация и голосование" },
+  quartet: { title: "Квартет", icon: "🃏", desc: "Онлайн-комнаты и наборы карт" },
+  "bible-wow": { title: "Библейские слова", icon: "🧩", desc: "Сбор слов из букв" },
+  "bible-wordsearch": { title: "Поиск библейских слов", icon: "🔎", desc: "Поле со словами и звёздами" },
+  "sacred-word": { title: "Священное слово", icon: "🪔", desc: "Угадай слово по связям" },
+  "kids-ark-pairs": { title: "Найди пару", icon: "🛳️", desc: "Карточки на память для детей" }
+};
+
+function softImpact(kind = "light") {
+  try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.(kind); } catch (e) {}
+}
+
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function hydrateMainMenu() {
+  const panel = document.getElementById("recent-games-panel");
+  const list = document.getElementById("recent-games-list");
+  if (!panel || !list) return;
+
+  let history = currentUserData.lastGames;
+  if (!Array.isArray(history) || history.length === 0) {
+    try {
+      history = JSON.parse(localStorage.getItem("last_games_history") || "[]");
+      if (!Array.isArray(history)) history = [];
+    } catch (e) { history = []; }
+  }
+
+  if (!history.length) {
+    panel.classList.add("hidden");
+    list.innerHTML = "";
+    return;
+  }
+
+  const entries = history.slice(0, 3).map(title => {
+    const key = Object.keys(GAME_CATALOG).find(k => GAME_CATALOG[k].title === title);
+    const meta = key ? GAME_CATALOG[key] : { title, icon: "✨", desc: "Недавно открывали" };
+    const actionAttr = key ? `onclick="showGame('${key}')"` : "disabled";
+    return `
+      <button class="recent-game-chip" ${actionAttr}>
+        <span>${meta.icon}</span>
+        <strong>${escapeHTML(meta.title)}</strong>
+      </button>
+    `;
+  }).join("");
+
+  list.innerHTML = entries;
+  panel.classList.remove("hidden");
+}
+
+function renderAppError(title, detail, actionLabel = "⬅️ В меню") {
+  const safeTitle = escapeHTML(title);
+  const safeDetail = escapeHTML(detail);
+  return `
+    <section class="app-error-card fade-in">
+      <div class="app-error-icon">!</div>
+      <h2>${safeTitle}</h2>
+      <p>${safeDetail}</p>
+      <button class="back-button" onclick="goToMainMenu()">${escapeHTML(actionLabel)}</button>
+    </section>
+  `;
+}
+
+
 async function apiRequest(payload) {
   try {
     const res = await fetch(GAS_API_URL, {
@@ -86,6 +161,7 @@ async function initializeApp() {
       // 2. Если НЕ забанен: показываем главное меню
       if (menu) menu.classList.remove("hidden");
       if (bannedScreen) bannedScreen.classList.add("hidden");
+      hydrateMainMenu();
 
       // Синхронизируем локальный кэш
       localWowData.coins = res.wowStars;
@@ -103,15 +179,18 @@ async function initializeApp() {
 
       localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
       currentUserData.lastGames = res.lastGames;
+      hydrateMainMenu();
     } else {
       // Запасной план: если сервер упал или нет интернета - пускаем в меню, чтобы приложение не сломалось
       if (mainLoader) mainLoader.remove();
       if (menu) menu.classList.remove("hidden");
+      hydrateMainMenu();
     }
   } catch (err) {
     console.error("Init Error:", err);
     if (mainLoader) mainLoader.remove();
     if (menu) menu.classList.remove("hidden");
+    hydrateMainMenu();
   }
 }
 
@@ -145,12 +224,9 @@ function shuffleArray(arr) {
 }
 
 function showGame(gameName) {
-  const gameTitles = {
-    "alias": "Алиас", "coimaginarium": "Соображариум", "guess": "Угадай персонажа",
-    "describe": "Опиши, но не называй", "spy": "Шпион", "quartet": "Квартет",
-    "bible-wow": "Библейские слова", "bible-wordsearch": "Поиск библейских слов", "sacred-word": "Священное слово",
-    "kids-ark-pairs": "Найди пару"
-  };
+  const gameTitles = Object.fromEntries(Object.entries(GAME_CATALOG).map(([key, meta]) => [key, meta.title]));
+
+  softImpact("light");
 
   if (gameTitles[gameName]) {
     let history = [];
@@ -176,7 +252,16 @@ function showGame(gameName) {
   const container = document.getElementById("game-container");
   const menu = document.querySelector(".menu-container");
 
-  if (container) container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
+  if (container) {
+    const meta = GAME_CATALOG[gameName] || { title: "Игра", icon: "✨" };
+    container.innerHTML = `
+      <div class="game-loading-card fade-in">
+        <div class="loader-orb loader-orb--small"></div>
+        <h2>${meta.icon} ${escapeHTML(meta.title)}</h2>
+        <p>Загружаем игру...</p>
+      </div>
+    `;
+  }
   if (menu) menu.classList.add("hidden");              
   document.body.dataset.mode = "game";                 
   window.scrollTo({ top: 0, behavior: "auto" });       
@@ -230,10 +315,7 @@ function loadGameScript(fileName, callback) {
       console.error("Ошибка запуска игры:", e);
       const container = document.getElementById("game-container");
       if (container) {
-        container.innerHTML = `
-          <p style="color:red">❌ Ошибка запуска игры. Проверь консоль.</p>
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
-        `;
+        container.innerHTML = renderAppError("Ошибка запуска игры", "Не удалось запустить сценарий. Проверьте консоль или попробуйте открыть игру заново.");
       }
     }
   };
@@ -242,10 +324,7 @@ function loadGameScript(fileName, callback) {
     console.error(`Файл ${fileName} не загружается`);
     const container = document.getElementById("game-container");
     if (container) {
-      container.innerHTML = `
-        <p style="color:red">❌ Ошибка: файл <b>${fileName}</b> не найден или не загрузился.</p>
-        <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
-      `;
+      container.innerHTML = renderAppError("Файл игры не загрузился", `Не найден или недоступен файл: ${fileName}`);
     }
     try { alert(`❌ Ошибка: файл ${fileName} не найден`); } catch {}
   };
@@ -260,6 +339,7 @@ function goToMainMenu() {
 
   if (container) container.innerHTML = "";
   if (menu) menu.classList.remove("hidden");
+  hydrateMainMenu();
   delete document.body.dataset.mode;
 
   if (window.aliasInterval) clearInterval(window.aliasInterval);
@@ -279,6 +359,8 @@ function goToMainMenu() {
   initializeApp();
 }
 
+window.appGoToMainMenu = goToMainMenu;
+
 function showSupportModal() {
   if (document.getElementById("support-modal-overlay")) return;
 
@@ -288,14 +370,13 @@ function showSupportModal() {
     style.textContent = `
       .support-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(4px);
+        background: rgba(6, 10, 20, 0.82);
         display: flex; align-items: center; justify-content: center;
         z-index: 9999;
         opacity: 0; animation: swFadeIn 0.2s forwards ease-out;
       }
       .support-box {
-        background: #ffffff;
+        background: #fffaf0;
         border-radius: 20px;
         padding: 24px;
         width: min(90%, 400px);
@@ -305,7 +386,7 @@ function showSupportModal() {
         text-align: center;
       }
       .support-title {
-        font-size: 1.3rem; font-weight: 800; color: #312e81; margin: 0 0 12px 0;
+        font-size: 1.3rem; font-weight: 800; color: #7a4d12; margin: 0 0 12px 0;
       }
       .support-text {
         font-size: 0.95rem; color: #475569; line-height: 1.5; margin: 0 0 20px 0;
@@ -314,7 +395,7 @@ function showSupportModal() {
         display: grid; gap: 10px;
       }
       .support-btn-primary {
-        background: linear-gradient(135deg, #4f46e5, #3b82f6);
+        background: linear-gradient(135deg, #b7791f, #8a5a16);
         color: #fff; border: none; padding: 12px; border-radius: 12px;
         font-size: 1rem; font-weight: 700; cursor: pointer;
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
