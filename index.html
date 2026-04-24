@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Библейские игры</title>
 
-  <meta name="theme-color" content="#111827" />
+  <meta name="theme-color" content="#fdfaf4" />
   
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,84 +15,76 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
 
-  <header class="app-header">
-    <div class="brand-lockup">
-      <div class="brand-mark">✦</div>
-      <div>
-        <p class="brand-kicker">Коллекция игр</p>
-        <h1>Библейские игры</h1>
-        <p class="brand-subtitle">Словесные, командные и детские игры в едином премиальном стиле</p>
-      </div>
-    </div>
+  <header>
+    <h1> ҕиҕлᴇйскиᴇ иrᴘы </h1>
   </header>
 
-  <div id="main-loader" class="main-loader">
-    <div class="loader-orb"></div>
-    <p>Проверка доступа...</p>
+  <div id="main-loader" style="position:fixed; inset:0; background:var(--bg-color); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+    <div style="width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent-active); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p style="margin-top: 1rem; font-weight: 600; color: var(--text-color);">Проверка доступа...</p>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
   </div>
 
-  <main class="menu-container hidden" id="menu-container">
-    <section class="menu-hero" aria-label="Главное меню">
-      <div>
-        <p class="menu-eyebrow">Игровой лаунчер</p>
-        <h2>Выберите режим</h2>
-        <p>Все игры приведены к одной теме: тёмный графит, тёплое золото, крупные карточки и быстрые нажатия без эффекта жидкого стекла.</p>
-      </div>
-      <div class="menu-hero-badge">10 игр</div>
-    </section>
-
-    <section id="recent-games-panel" class="recent-games-panel hidden" aria-label="Недавно играли">
-      <div class="menu-section-title">Недавно играли</div>
-      <div id="recent-games-list" class="recent-games-list"></div>
-    </section>
-
+  <div class="menu-container hidden" id="menu-container">
     <div class="menu-section-title">Игры для компании</div>
+
     <div class="menu-grid">
-      <button onclick="showGame('alias')" class="game-button game-card" data-game="alias"><span class="game-icon">🎮</span><span class="game-copy"><span class="game-title">Алиас</span><span class="game-desc">Команды объясняют слова на время</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('coimaginarium')" class="game-button game-card" data-game="coimaginarium"><span class="game-icon">🧠</span><span class="game-copy"><span class="game-title">Соображариум</span><span class="game-desc">Тема + буква для быстрых ответов</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('guess')" class="game-button game-card" data-game="guess"><span class="game-icon">👥</span><span class="game-copy"><span class="game-title">Угадай персонажа</span><span class="game-desc">Секретные роли для компании</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('describe')" class="game-button game-card" data-game="describe"><span class="game-icon">🗣</span><span class="game-copy"><span class="game-title">Опиши слово</span><span class="game-desc">Объясняй, но не называй напрямую</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('spy')" class="game-button game-card" data-game="spy"><span class="game-icon">🕵️</span><span class="game-copy"><span class="game-title">Шпион</span><span class="game-desc">Найди того, кто не знает локацию</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('quartet')" class="game-button game-card" data-game="quartet"><span class="game-icon">🃏</span><span class="game-copy"><span class="game-title">Квартет</span><span class="game-desc">Онлайн-комнаты и сбор наборов</span></span><span class="game-arrow">→</span></button>
+      <button onclick="showGame('alias')" class="game-button">🎮 Алиас</button>
+      <button onclick="showGame('coimaginarium')" class="game-button">🧠 Соображариум</button>
+      <button onclick="showGame('guess')" class="game-button">👥 Угадай персонажа</button>
+      <button onclick="showGame('describe')" class="game-button">🗣 Опиши, но не называй</button>
+      <button onclick="showGame('spy')" class="game-button">🕵️‍♂ Шпион</button>
+      <button onclick="showGame('quartet')" class="game-button">🃏 Квартет</button>
     </div>
 
     <div class="menu-divider"></div>
     <div class="menu-section-title">Словесные</div>
+
     <div class="menu-grid menu-grid--single">
-      <button onclick="showGame('bible-wow')" class="game-button game-card game-button--wide" data-game="bible-wow"><span class="game-icon">🧩</span><span class="game-copy"><span class="game-title">Библейские слова</span><span class="game-desc">Собирай слова из букв и проходи уровни</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('bible-wordsearch')" class="game-button game-card game-button--wide" data-game="bible-wordsearch"><span class="game-icon">🔎</span><span class="game-copy"><span class="game-title">Поиск библейских слов</span><span class="game-desc">Ищи слова на поле, зарабатывай звёзды</span></span><span class="game-arrow">→</span></button>
-      <button onclick="showGame('sacred-word')" class="game-button game-card game-button--wide" data-game="sacred-word"><span class="game-icon">🪔</span><span class="game-copy"><span class="game-title">Священное слово</span><span class="game-desc">Угадывай скрытое слово по связям</span></span><span class="game-arrow">→</span></button>
+      <button onclick="showGame('bible-wow')" class="game-button game-button--wide">
+        🧩 Библейские слова
+      </button>
+
+      <button onclick="showGame('bible-wordsearch')" class="game-button game-button--wide">
+        🔎 Поиск библейских слов
+      </button>
+
+      <button onclick="showGame('sacred-word')" class="game-button game-button--wide">
+        🪔 Священное слово
+      </button>
     </div>
 
     <div class="menu-divider"></div>
     <div class="menu-section-title">Для детей</div>
+
     <div class="menu-grid menu-grid--single">
-      <button onclick="showGame('kids-ark-pairs')" class="game-button game-card game-button--wide" data-game="kids-ark-pairs"><span class="game-icon">🛳️</span><span class="game-copy"><span class="game-title">Найди пару</span><span class="game-desc">Мягкая игра на память с карточками</span></span><span class="game-arrow">→</span></button>
+      <button onclick="showGame('kids-ark-pairs')" class="game-button game-button--wide">🛳️ Найди пару</button>
     </div>
 
     <div class="menu-divider"></div>
     <div class="menu-grid menu-grid--single">
-      <button onclick="showSupportModal()" class="game-button game-card support-card game-button--wide"><span class="game-icon">🛠</span><span class="game-copy"><span class="game-title">Тех-поддержка</span><span class="game-desc">Ошибки, идеи, предложения по новым играм</span></span><span class="game-arrow">→</span></button>
+      <button onclick="showSupportModal()" class="game-button game-button--wide" style="background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1;">
+        🛠 Тех-поддержка
+      </button>
     </div>
-  </main>
+  </div>
 
-  <section id="banned-screen" class="banned-screen hidden">
-    <div class="banned-card">
-      <div class="banned-icon">⛔</div>
-      <h2>Доступ ограничен</h2>
-      <p>Обжаловать блокировку можно через техническую поддержку.</p>
-      <button class="game-button game-card" onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/D_a_n_Vi')">Написать</button>
-    </div>
-  </section>
+  <div id="banned-screen" class="hidden" style="text-align: center; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
+    <h2 style="color: #ef4444; font-weight: 800; margin-bottom: 1rem;">Доступ к приложению ограничен</h2>
+    <p style="color: #475569; margin-bottom: 2rem;">Обжаловать блокировку можно через техническую поддержку.</p>
+    <button class="game-button" onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/D_a_n_Vi')" style="max-width: 250px;">Написать</button>
+  </div>
 
   <div id="game-container"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
-  <script src="app.js?v=12" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js?v=3"></script>
+  <script src="app.js?v=6" defer></script>
 </body>
 </html>
