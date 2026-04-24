@@ -989,8 +989,7 @@ function startQuartetGame() {
         }
 
         * {
-          box-sizing: border-box;
-          -webkit-tap-highlight-color: transparent;
+          box-sizing: border-box;tap-highlight-color: transparent;
         }
 
         #game-container {
@@ -1183,8 +1182,7 @@ function startQuartetGame() {
 
         .compact-select {
           padding-right: 40px;
-          appearance: none;
-          -webkit-appearance: none;
+          appearance: none;appearance: none;
         }
 
         .input-field:focus {
@@ -1769,7 +1767,6 @@ function startQuartetGame() {
           position: fixed;
           inset: 0;
           background: rgba(0,0,0,0.6);
-          backdrop-filter: blur(8px);
           z-index: 2500;
           display: flex;
           align-items: center;
@@ -1828,7 +1825,6 @@ function startQuartetGame() {
           position: fixed;
           inset: 0;
           background: rgba(15, 23, 42, 0.72);
-          backdrop-filter: blur(6px);
           z-index: 2400;
           display: flex;
           align-items: center;

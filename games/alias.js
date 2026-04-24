@@ -756,14 +756,20 @@ function aliasRemoveKeyHandlers() {
   document.head.appendChild(style);
 })();
 
-// Переопределите в своём коде
+// Локальная очистка Alias + возврат через общий лаунчер приложения.
+// В старой версии эта функция полностью переопределяла общий goToMainMenu(),
+// из-за чего после Alias могли ломаться навигация, очистка скриптов и синхронизация.
 function goToMainMenu(){
-  // Требование: при выходе в главное меню — сбрасываем ЛЮБОЙ прогресс
   aliasHardReset({ clearWordCache: false });
+
+  if (typeof window.appGoToMainMenu === 'function') {
+    window.appGoToMainMenu();
+    return;
+  }
 
   const menu = document.querySelector('.menu-container');
   if (menu) menu.classList.remove('hidden');
 
   const container = document.getElementById('game-container');
-  if (container) container.innerHTML = ''; // ✅ УБРАЛИ ЛИШНЮЮ НАДПИСЬ, ПРОСТО ОЧИЩАЕМ КОНТЕЙНЕР
+  if (container) container.innerHTML = '';
 }

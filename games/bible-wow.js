@@ -62,8 +62,7 @@ function startBibleWowGame(levelsUrl) {
         font-weight: 600;
         color: #333;
         cursor: pointer;
-        user-select: none;
-        -webkit-user-select: none;
+        user-select: none;user-select: none;
     }
     .wow-chip:active { transform: scale(.99); }
     .wow-chip.disabled { opacity:.55; cursor:not-allowed; transform:none; }
@@ -179,8 +178,7 @@ function startBibleWowGame(levelsUrl) {
         cursor: pointer;
         transition: transform 0.1s;
         z-index: 10;
-        user-select: none;
-        -webkit-user-select: none;
+        user-select: none;user-select: none;
     }
     .wow-btn-let.active {
         background: var(--wow-accent);
@@ -223,7 +221,6 @@ function startBibleWowGame(levelsUrl) {
     .wow-modal {
       position: fixed; inset:0; background: rgba(0,0,0,.42);
       display:none; align-items:center; justify-content:center; padding:18px; z-index: 999;
-      backdrop-filter: blur(4px);
     }
     .wow-modal.open { display:flex; }
     .wow-modal-card {
@@ -292,8 +289,7 @@ function startBibleWowGame(levelsUrl) {
         color: var(--wow-accent-text);
         box-shadow: 0 1px 3px rgba(0,0,0,.05);
         line-height: 1;
-        user-select:none;
-        -webkit-user-select:none;
+        user-select:none;user-select:none;
     }
 
     /* Make action chips colored like app */

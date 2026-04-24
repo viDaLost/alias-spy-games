@@ -1,65 +1,78 @@
 let guessCharacters = [];
 let guessCurrentPlayer = 1;
-let currentCharsUrl = null; // Сохраняем URL для перезапуска
+let currentCharsUrl = null;
+
+function guessSafe(value) {
+  if (typeof escapeHTML === "function") return escapeHTML(value);
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
+}
 
 function startGuessCharacterGame(charsUrl) {
   currentCharsUrl = charsUrl;
 
-  fetch(charsUrl)
-    .then(res => res.json())
+  fetch(charsUrl, { cache: "no-store" })
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
     .then(chars => {
-      // Берём два случайных персонажа (всегда только двое)
-      const shuffled = shuffleArray([...chars]);
-      guessCharacters = [shuffled[0], shuffled[1]];
-
+      const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])]);
+      guessCharacters = [shuffled[0], shuffled[1]].filter(Boolean);
       guessCurrentPlayer = 1;
       displayPlayerButton();
     })
     .catch(err => {
+      console.error(err);
       document.getElementById("game-container").innerHTML = `
-        <p class="fade-in" style="color:red;">⚠️ Ошибка загрузки персонажей</p>
-        <button onclick="goToMainMenu()" class="back-button">⬅️ Вернуться в главное меню</button>
+        <section class="app-error-card fade-in">
+          <div class="app-error-icon">!</div>
+          <h2>Ошибка загрузки персонажей</h2>
+          <p>Файл персонажей не загрузился или содержит неверный формат.</p>
+          <button onclick="goToMainMenu()" class="back-button">⬅️ В меню</button>
+        </section>
       `;
     });
 }
 
-// Отображаем кнопку "Показать персонажа"
 function displayPlayerButton() {
   const container = document.getElementById("game-container");
-  container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
+  if (!container) return;
 
-  if (guessCurrentPlayer > 2) {
-    container.innerHTML += `
-      <h3>🎉 Оба игрока уже получили персонажей!</h3>
-      <p>Игра завершена. Начните заново.</p>
-      <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">🔄 Новая игра</button>
+  if (guessCurrentPlayer > 2 || guessCharacters.length < 2) {
+    container.innerHTML = `
+      <h2>🏁 Раунд окончен</h2>
+      <div class="card">
+        <strong>Оба игрока получили персонажей</strong>
+        <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Теперь можно играть в отгадывание или начать новый раунд.</p>
+      </div>
+      <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">🔄 Новый раунд</button>
       <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
     `;
     return;
   }
 
-  container.innerHTML += `
-    <p><strong>Игрок ${guessCurrentPlayer}, нажмите ниже, чтобы увидеть своего персонажа:</strong></p>
+  container.innerHTML = `
+    <h2>👥 Угадай персонажа</h2>
+    <div class="card">
+      <strong>Игрок ${guessCurrentPlayer}</strong>
+      <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Нажмите кнопку, посмотрите персонажа и никому его не показывайте.</p>
+    </div>
     <button onclick="revealCharacter()" class="menu-button">👁 Показать персонажа</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
 
-// Показываем слово только при нажатии
 function revealCharacter() {
   const container = document.getElementById("game-container");
-
   const character = guessCharacters[guessCurrentPlayer - 1];
 
-  container.innerHTML = "<h2>👥 Угадай персонажа</h2>";
-
-  container.innerHTML += `
-    <div class="card" style="text-align:center;">
-      <strong>Игрок ${guessCurrentPlayer}</strong>, ваш персонаж:
-      <h3>${character}</h3>
-      <small>Опишите его, чтобы другой игрок мог угадать.</small>
+  container.innerHTML = `
+    <h2>👥 Угадай персонажа</h2>
+    <div class="card secret-card">
+      <span class="theme-label">Игрок ${guessCurrentPlayer}</span>
+      <h3>${guessSafe(character)}</h3>
+      <small>Опишите персонажа так, чтобы другой игрок смог угадать.</small>
     </div>
-
     <button onclick="nextGuessPlayer()" class="correct-button">➡️ Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
@@ -67,27 +80,10 @@ function revealCharacter() {
   guessCurrentPlayer++;
 }
 
-// Переход к следующему игроку
 function nextGuessPlayer() {
-  if (guessCurrentPlayer > 2) {
-    showAllCharactersShownMessage();
-    return;
-  }
   displayPlayerButton();
 }
 
-// Сообщение о завершении игры
-function showAllCharactersShownMessage() {
-  const container = document.getElementById("game-container");
-  container.innerHTML = `
-    <h2>🏁 Раунд окончен</h2>
-    <p>Оба игрока получили свои персонажи. Вы можете начать новый раунд или выйти в меню.</p>
-    <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">🔄 Новый раунд</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
-  `;
-}
-
-// Перемешивание массива
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
 }
