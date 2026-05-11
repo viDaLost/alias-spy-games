@@ -146,8 +146,8 @@ function startBibleWowGame(levelsUrl) {
 
     .wow-wheel-wrap {
         position: relative;
-        width: 250px;
-        height: 250px;
+        width: 216px;
+        height: 216px;
         user-select: none;
         touch-action: none;
     }
@@ -674,10 +674,10 @@ function startBibleWowGame(levelsUrl) {
            <div class="wow-preview" id="wow-preview"></div>
 
            <div class="wow-actions">
-             <div class="wow-chip btn" id="wow-shuffle">⟲ Перемешать</div>
-             <div class="wow-chip btn" id="wow-hint">💡 Подсказка (6⭐)</div>
-             <div class="wow-chip btn" id="wow-reveal">👁 Слово (20⭐)</div>
-             <div class="wow-chip" id="wow-reset">↺ Сбросить уровень</div>
+             <div class="wow-chip btn" id="wow-shuffle">⟲ Микс</div>
+             <div class="wow-chip btn" id="wow-hint">💡 Подсказка 6⭐</div>
+             <div class="wow-chip btn" id="wow-reveal">👁 Слово 20⭐</div>
+             <div class="wow-chip" id="wow-reset">↺ Сброс</div>
            </div>
 
            <div class="wow-wheel-wrap" id="wow-wheel">
@@ -856,7 +856,7 @@ function startBibleWowGame(levelsUrl) {
 
     const rows = maxR - minR + 1;
     const cols = maxC - minC + 1;
-    const cellSize = 40;
+    const cellSize = 36;
 
     gridEl.style.width = (cols * cellSize) + "px";
     gridEl.style.height = (rows * cellSize) + "px";
@@ -926,8 +926,8 @@ function startBibleWowGame(levelsUrl) {
     const lettersStr = st.currLevel._shuffled || st.currLevel.letters;
     const letters = lettersStr.split("");
     const count = letters.length;
-    const radius = 90;
-    const center = 125;
+    const radius = 76;
+    const center = 108;
 
     letters.forEach((l, i) => {
       const angle = (2 * Math.PI * i) / count - Math.PI / 2;
@@ -965,9 +965,9 @@ function startBibleWowGame(levelsUrl) {
     const canvas = document.getElementById("wow-canvas");
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    canvas.width = 250;
-    canvas.height = 250;
-    ctx.clearRect(0, 0, 250, 250);
+    canvas.width = 216;
+    canvas.height = 216;
+    ctx.clearRect(0, 0, 216, 216);
   }
 
   function drawLines(extraPoint) {
@@ -975,9 +975,9 @@ function startBibleWowGame(levelsUrl) {
     const wheel = document.getElementById("wow-wheel");
     if (!canvas || !wheel) return;
     const ctx = canvas.getContext("2d");
-    canvas.width = 250;
-    canvas.height = 250;
-    ctx.clearRect(0, 0, 250, 250);
+    canvas.width = 216;
+    canvas.height = 216;
+    ctx.clearRect(0, 0, 216, 216);
 
     if (st.inputPath.length < 1) return;
 

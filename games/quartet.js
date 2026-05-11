@@ -478,7 +478,7 @@ function startQuartetGame() {
         
         html += `
           <div class="turn-target-selector" style="margin-bottom: 16px; background: #eff6ff; padding: 14px; border-radius: 16px; border: 1.5px solid #bfdbfe; box-shadow: 0 4px 12px rgba(37,99,235,0.08);">
-            <div style="font-size:13px; font-weight:900; color:#1e40af; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.03em;">Кого спросить:</div>
+            <div style="font-size:13px; font-weight:900; color:#1e40af; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.03em;">1. Выбери игрока</div>
             <select id="hand_target_select" class="input-field compact-select" style="background:white; border-color:#93c5fd; color:#1e3a8a; font-weight:700;">
               ${targets.map(p => `<option value="${escapeHtml(String(p.playerId))}" ${String(p.playerId) === currentTargetId ? 'selected' : ''}>${escapeHtml(p.name)} · 🃏 ${Number(p.cardsCount || 0)}</option>`).join('')}
             </select>
@@ -527,7 +527,7 @@ function startQuartetGame() {
                         if (myTurn) {
                           return `
                             <button type="button" class="mini-card missing interactive-ask-btn" data-card-id="${escapeHtml(card.id)}">
-                              <div class="mini-card-top">Запросить</div>
+                              <div class="mini-card-top">2. Спросить</div>
                               <div class="mini-card-title">${escapeHtml(card.title)}</div>
                             </button>
                           `;
@@ -642,7 +642,7 @@ function startQuartetGame() {
         <div class="action-empty">
           <div class="action-big" style="font-size:36px;">👆</div>
           <div class="action-title" style="color:var(--primary);">Твой ход!</div>
-          <div class="action-text">Выбери кого спросить в самом верху своих карт, затем кликни на нужную карту.</div>
+          <div class="action-text">Сначала выбери игрока в блоке «Твои карты», потом нажми карту, которой тебе не хватает.</div>
         </div>
       `;
     } else {
@@ -2032,6 +2032,12 @@ function startQuartetGame() {
             <div class="game-info-wrap">
               <div id="turnIndicator">Ожидание хода...</div>
               <div id="quartetsDisplay"></div>
+            </div>
+
+            <div class="quartet-play-guide">
+              <span>1 Выбери игрока</span>
+              <span>2 Нажми недостающую карту</span>
+              <span>3 Собери 4 одной группы</span>
             </div>
 
             <div class="hand-section">

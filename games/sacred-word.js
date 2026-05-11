@@ -65,12 +65,34 @@ function startSacredWordGame(wordsUrl) {
       .sw-kb-key.used { opacity: .6; }
       .sw-kb-key:disabled { cursor: not-allowed; }
       .sw-kb-key:active:not(:disabled) { transform: scale(.92); }
+      /* v15 compact mobile game board: no empty vertical gaps, all controls stay visible */
+      .sw-wrap { gap: 10px; padding: 0 0 14px; }
+      .sw-topbar { padding: 8px; border-radius: 22px; }
+      .sw-card { padding: 10px; border-radius: 24px; }
+      .sw-grid { grid-template-columns: minmax(170px, 235px) minmax(0,1fr); gap: 10px; align-items: stretch; }
+      .sw-lamp-card { min-height: 190px; border-radius: 22px; }
+      .sw-info { gap: 8px; }
+      .sw-pillrow { gap: 6px; }
+      .sw-pill { padding: 7px 10px; font-size: .86rem; }
+      .sw-hintbox { padding: 10px 12px; font-size: .92rem; }
+      .sw-word { min-height: 46px; gap: 5px; align-items: center; justify-content: center; }
+      .sw-letter { width: 34px; height: 42px; border-radius: 12px; font-size: 1.1rem; }
+      .sw-keyboard { padding: 10px 6px; border-radius: 24px; }
+      .sw-kb-row { gap: 4px; margin-bottom: 5px; }
+      .sw-kb-key { max-width: 38px; height: 42px; border-radius: 13px; font-size: 1rem; }
+      .sw-message { min-height: 18px; margin-bottom: 8px !important; }
       @media (max-width: 500px) {
-        .sw-grid { grid-template-columns: 1fr; }
-        .sw-lamp-card { min-height: 220px; }
-        .sw-title { font-size: 1.12rem; }
-        .sw-topbar { padding: 10px; }
-        .sw-kb-key { height: 42px; font-size: 1rem; max-width: 36px; }
+        .sw-wrap { gap: 9px; }
+        .sw-grid { grid-template-columns: minmax(128px, 38vw) minmax(0,1fr); gap: 8px; }
+        .sw-lamp-card { min-height: 166px; }
+        .sw-title { font-size: 1.04rem; }
+        .sw-topbar { padding: 8px; }
+        .sw-card { padding: 9px; }
+        .sw-pill { font-size: .8rem; padding: 6px 8px; }
+        .sw-hintbox { font-size: .82rem; padding: 8px 10px; }
+        .sw-letter { width: 28px; height: 36px; font-size: .98rem; border-radius: 10px; }
+        .sw-subtitle { font-size: .78rem; }
+        .sw-kb-key { height: 38px; font-size: .93rem; max-width: 31px; }
         .sw-kb-row { gap: 3px; }
       }
     `;
@@ -95,12 +117,12 @@ function startSacredWordGame(wordsUrl) {
     scene = new THREE.Scene();
     
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(280, 280);
+    renderer.setSize(220, 220);
     renderer.setPixelRatio(window.devicePixelRatio);
     threeCanvas = renderer.domElement;
     threeCanvas.style.width = "100%";
     threeCanvas.style.height = "auto";
-    threeCanvas.style.maxWidth = "280px";
+    threeCanvas.style.maxWidth = "220px";
     threeCanvas.style.aspectRatio = "1 / 1";
 
     camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
@@ -446,7 +468,7 @@ function startSacredWordGame(wordsUrl) {
               </div>
               <div class="sw-hintbox">${state.hint}</div>
               <div>
-                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Снизу скрытое слово, сверху слова связанвые с ним</div>
+                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Снизу скрытое слово, сверху связанные подсказки</div>
                 <div class="sw-word">${renderWord()}</div>
               </div>
             </div>
