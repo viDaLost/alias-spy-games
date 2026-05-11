@@ -1527,3 +1527,338 @@ body[data-current-game="alias"] #game-container { gap: 16px; }
   .game-card__icon, .game-card__svg { width: 52px !important; height: 52px !important; }
   #game-container > h2, #game-container .alias-title { font-size: clamp(1.75rem, 9vw, 2.2rem) !important; }
 }
+
+
+/* =========================================================
+   v15 — компактные словесные игры + полный мобильный редизайн Квартета
+   ========================================================= */
+body[data-current-game="bible-wordsearch"] #game-container,
+body[data-current-game="bible-wow"] #game-container,
+body[data-current-game="sacred-word"] #game-container,
+body[data-current-game="quartet"] #game-container {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 82px) !important;
+  gap: 10px !important;
+}
+
+/* Поиск библейских слов: вся партия помещается выше, без огромного служебного блока */
+body[data-current-game="bible-wordsearch"] .ws-wrap {
+  width: min(100%, 620px) !important;
+  gap: 10px !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-topbar {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  align-items: center !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-topbar .back-button {
+  min-height: 44px !important;
+  padding: 10px 12px !important;
+  border-radius: 18px !important;
+  white-space: nowrap !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-title__name {
+  font-size: clamp(1.45rem, 6vw, 2.1rem) !important;
+  text-align: left !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-stars {
+  min-height: 44px !important;
+  padding: 9px 12px !important;
+  box-shadow: 0 8px 18px rgba(79,70,229,.08) !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-panel {
+  display: grid !important;
+  gap: 8px !important;
+  padding: 10px !important;
+  margin: 0 !important;
+  border-radius: 24px !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-levelrow { margin: 0 !important; }
+body[data-current-game="bible-wordsearch"] .ws-level-btn {
+  min-height: 48px !important;
+  padding: 9px 12px !important;
+  border-radius: 18px !important;
+  font-size: clamp(.92rem, 3.8vw, 1.05rem) !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-actions {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin: 0 !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-actions .start-button,
+body[data-current-game="bible-wordsearch"] .ws-actions .wrong-button,
+body[data-current-game="bible-wordsearch"] .ws-bottom .start-button {
+  min-height: 46px !important;
+  padding: 10px 12px !important;
+  border-radius: 18px !important;
+  font-size: clamp(.9rem, 3.7vw, 1rem) !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-progress {
+  min-height: 24px !important;
+  font-size: clamp(.9rem, 3.5vw, 1rem) !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-board {
+  width: min(calc(100vw - 26px), 560px) !important;
+  max-width: min(calc(100vw - 26px), 560px) !important;
+  gap: clamp(2px, .8vw, 4px) !important;
+  padding: clamp(6px, 1.5vw, 10px) !important;
+  margin: 0 auto !important;
+  border-radius: 24px !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-cell {
+  border-radius: clamp(9px, 2.4vw, 14px) !important;
+  font-size: clamp(1.15rem, calc(46vw / var(--ws-cols)), 1.95rem) !important;
+}
+body[data-current-game="bible-wordsearch"] .ws-bottom {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin-top: 0 !important;
+}
+
+/* Библейские слова: компактная доска + колесо не раздувает страницу */
+body[data-current-game="bible-wow"] .wow-wrap {
+  width: min(100%, 640px) !important;
+  display: grid !important;
+  gap: 10px !important;
+  min-height: auto !important;
+  height: auto !important;
+  padding: 0 0 calc(14px + env(safe-area-inset-bottom,0px)) !important;
+}
+body[data-current-game="bible-wow"] .wow-top {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+body[data-current-game="bible-wow"] .wow-top > .wow-pill {
+  min-height: 48px !important;
+  padding: 6px !important;
+  border-radius: 20px !important;
+  margin: 0 !important;
+  gap: 6px !important;
+}
+body[data-current-game="bible-wow"] .wow-top > .wow-pill:nth-child(2) { min-width: 0 !important; }
+body[data-current-game="bible-wow"] .wow-title { font-size: clamp(1rem, 4.2vw, 1.25rem) !important; white-space: nowrap !important; }
+body[data-current-game="bible-wow"] .wow-rightCol { gap: 4px !important; align-items: center !important; }
+body[data-current-game="bible-wow"] .wow-stars { padding: 5px 9px !important; font-size: .86rem !important; }
+body[data-current-game="bible-wow"] #wow-bonus-open { min-height: 32px !important; padding: 5px 8px !important; font-size: .78rem !important; }
+body[data-current-game="bible-wow"] #wow-levels-open { min-width: 42px !important; }
+body[data-current-game="bible-wow"] .wow-board-area {
+  min-height: clamp(150px, 28dvh, 245px) !important;
+  max-height: 280px !important;
+  padding: 10px !important;
+  margin: 0 !important;
+  border-radius: 24px !important;
+}
+body[data-current-game="bible-wow"] .wow-cell { width: 34px !important; height: 34px !important; font-size: 18px !important; border-radius: 12px !important; }
+body[data-current-game="bible-wow"] .wow-controls {
+  padding: 10px !important;
+  gap: 9px !important;
+  border-radius: 26px !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.86), rgba(232,241,255,.66)) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+body[data-current-game="bible-wow"] .wow-preview { height: 32px !important; margin: 0 !important; }
+body[data-current-game="bible-wow"] .wow-preview-let { width: 32px !important; height: 32px !important; border-radius: 11px !important; font-size: 16px !important; }
+body[data-current-game="bible-wow"] .wow-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  width: 100% !important;
+  gap: 8px !important;
+  order: 3 !important;
+}
+body[data-current-game="bible-wow"] .wow-actions .wow-chip {
+  min-height: 44px !important;
+  padding: 9px 10px !important;
+  border-radius: 17px !important;
+  font-size: clamp(.84rem, 3.5vw, .98rem) !important;
+}
+body[data-current-game="bible-wow"] .wow-wheel-wrap { width: 216px !important; height: 216px !important; order: 2 !important; }
+body[data-current-game="bible-wow"] .wow-btn-let { width: 44px !important; height: 44px !important; margin-left: -22px !important; margin-top: -22px !important; font-size: 19px !important; }
+body[data-current-game="bible-wow"] .wow-wheel-bg { inset: 9px !important; }
+body[data-current-game="bible-wow"] .wow-zoom { top: 8px !important; right: 8px !important; }
+body[data-current-game="bible-wow"] .wow-zoom .wow-chip { min-height: 34px !important; padding: 5px 9px !important; }
+
+/* Священное слово: компактнее и без пустого вертикального разрыва */
+body[data-current-game="sacred-word"] .sw-wrap { width: min(100%, 660px) !important; }
+body[data-current-game="sacred-word"] .sw-topbar { margin: 0 !important; }
+body[data-current-game="sacred-word"] .sw-card { margin: 0 !important; }
+body[data-current-game="sacred-word"] .sw-lamp-card canvas { max-width: 210px !important; }
+
+/* Квартет v15: мобильная игровая панель вместо длинного десктопного стола */
+body[data-current-game="quartet"] #game-container { width: min(680px, 100%) !important; max-width: 680px !important; }
+body[data-current-game="quartet"] .quartet-root {
+  min-height: auto !important;
+  background: transparent !important;
+  padding: 0 0 calc(16px + env(safe-area-inset-bottom,0px)) !important;
+  color: #0f172a !important;
+}
+body[data-current-game="quartet"] .game-header {
+  position: sticky !important;
+  top: calc(env(safe-area-inset-top, 0px) + 72px) !important;
+  z-index: 80 !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  border-radius: 26px !important;
+  padding: 12px 14px !important;
+  margin: 0 0 10px !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.9), rgba(223,235,255,.72)) !important;
+  color: #0f172a !important;
+  box-shadow: 0 14px 34px rgba(79,70,229,.13), inset 0 1px 0 rgba(255,255,255,.9) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+body[data-current-game="quartet"] .game-title {
+  margin: 0 !important;
+  font-size: clamp(1.6rem, 7vw, 2.4rem) !important;
+  line-height: 1 !important;
+  letter-spacing: -.05em !important;
+  color: #312e81 !important;
+  text-shadow: none !important;
+}
+body[data-current-game="quartet"] .game-subtitle { color: rgba(49,46,129,.62) !important; font-weight: 850 !important; opacity: 1 !important; }
+body[data-current-game="quartet"] .content-wrap { padding: 0 !important; max-width: none !important; }
+body[data-current-game="quartet"] .card-3d,
+body[data-current-game="quartet"] .room-code-display,
+body[data-current-game="quartet"] .game-table,
+body[data-current-game="quartet"] .hand-section,
+body[data-current-game="quartet"] .log-section,
+body[data-current-game="quartet"] .action-panel {
+  border-radius: 26px !important;
+  border: 1px solid rgba(255,255,255,.7) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.86), rgba(232,241,255,.68)) !important;
+  box-shadow: 0 14px 34px rgba(79,70,229,.11), inset 0 1px 0 rgba(255,255,255,.88) !important;
+  color: #0f172a !important;
+}
+body[data-current-game="quartet"] .card-3d { padding: 14px !important; margin-bottom: 12px !important; }
+body[data-current-game="quartet"] .input-group { margin-bottom: 10px !important; }
+body[data-current-game="quartet"] .room-code-display { padding: 16px !important; margin: 0 0 12px !important; }
+body[data-current-game="quartet"] .room-code { font-size: clamp(2rem, 10vw, 3.4rem) !important; color: #312e81 !important; text-shadow: none !important; }
+body[data-current-game="quartet"] .lobby-player-row { border-radius: 18px !important; background: rgba(255,255,255,.8) !important; }
+body[data-current-game="quartet"] .grid-2 { gap: 10px !important; }
+body[data-current-game="quartet"] .btn {
+  min-height: 50px !important;
+  border-radius: 18px !important;
+  margin-bottom: 10px !important;
+  padding: 12px 16px !important;
+  font-weight: 950 !important;
+}
+body[data-current-game="quartet"] .btn-primary { background: linear-gradient(135deg, #4f46e5, #0ea5e9) !important; color: #fff !important; box-shadow: 0 16px 30px rgba(79,70,229,.2) !important; }
+body[data-current-game="quartet"] .btn-secondary { background: rgba(255,255,255,.86) !important; color: #2563eb !important; border: 1px solid rgba(99,102,241,.18) !important; }
+body[data-current-game="quartet"] .btn-icon { width: 46px !important; height: 46px !important; min-height: 46px !important; }
+body[data-current-game="quartet"] .game-table {
+  min-height: 0 !important;
+  margin: 0 0 10px !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
+body[data-current-game="quartet"] .table-felt { display: none !important; }
+body[data-current-game="quartet"] .players-ring {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  padding: 0 !important;
+}
+body[data-current-game="quartet"] .player-avatar {
+  display: grid !important;
+  grid-template-columns: 42px 1fr !important;
+  align-items: center !important;
+  gap: 9px !important;
+  padding: 9px !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.76) !important;
+  border: 1px solid rgba(99,102,241,.12) !important;
+  transform: none !important;
+}
+body[data-current-game="quartet"] .player-avatar.active { background: rgba(254,243,199,.88) !important; box-shadow: 0 0 0 2px rgba(245,158,11,.25) inset !important; }
+body[data-current-game="quartet"] .avatar-circle {
+  width: 42px !important; height: 42px !important; font-size: 17px !important;
+  border: 0 !important; background: linear-gradient(135deg, #4f46e5, #0ea5e9) !important;
+}
+body[data-current-game="quartet"] .player-info { color: #0f172a !important; text-align: left !important; text-shadow: none !important; min-width:0 !important; }
+body[data-current-game="quartet"] .player-cards-count { background: rgba(79,70,229,.1) !important; color: #312e81 !important; }
+body[data-current-game="quartet"] .game-info-wrap { padding: 0 0 8px !important; }
+body[data-current-game="quartet"] #turnIndicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 44px !important;
+  padding: 9px 14px !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.78) !important;
+  box-shadow: 0 8px 18px rgba(79,70,229,.08) !important;
+  font-size: clamp(.95rem, 4vw, 1.12rem) !important;
+  color: #312e81 !important;
+}
+body[data-current-game="quartet"] #quartetsDisplay { margin-bottom: 2px !important; }
+body[data-current-game="quartet"] .quartet-badge { padding: 7px 11px !important; font-size: .82rem !important; }
+body[data-current-game="quartet"] .hand-section { padding: 12px !important; margin: 0 0 10px !important; }
+body[data-current-game="quartet"] .section-caption { margin-bottom: 8px !important; color: rgba(49,46,129,.62) !important; }
+body[data-current-game="quartet"] .cards-fan { gap: 8px !important; }
+body[data-current-game="quartet"] .hand-group { border-radius: 22px !important; }
+body[data-current-game="quartet"] .hand-group-head { padding: 11px !important; gap: 9px !important; }
+body[data-current-game="quartet"] .card-header-row { flex-basis: 48px !important; }
+body[data-current-game="quartet"] .card-icon { width: 38px !important; height: 38px !important; border-radius: 13px !important; }
+body[data-current-game="quartet"] .card-title { font-size: 1rem !important; }
+body[data-current-game="quartet"] .card-subtitle { font-size: .78rem !important; }
+body[data-current-game="quartet"] .mini-cards-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+body[data-current-game="quartet"] .mini-card { min-height: 68px !important; padding: 9px !important; border-radius: 16px !important; }
+body[data-current-game="quartet"] .action-panel {
+  position: sticky !important;
+  bottom: calc(8px + env(safe-area-inset-bottom,0px)) !important;
+  margin: 0 0 10px !important;
+  padding: 12px !important;
+  border-radius: 26px !important;
+  z-index: 70 !important;
+}
+body[data-current-game="quartet"] .action-handle { display: none !important; }
+body[data-current-game="quartet"] .action-title { font-size: 1.04rem !important; }
+body[data-current-game="quartet"] .action-text { font-size: .9rem !important; }
+body[data-current-game="quartet"] .log-section { padding: 12px !important; margin: 0 !important; }
+body[data-current-game="quartet"] .game-log { max-height: 132px !important; padding: 10px !important; border-radius: 18px !important; background: rgba(255,255,255,.74) !important; }
+body[data-current-game="quartet"] .modal-content,
+body[data-current-game="quartet"] .wait-box { border-radius: 26px !important; }
+@media (max-width: 520px) {
+  body[data-current-game="bible-wordsearch"] #game-container,
+  body[data-current-game="bible-wow"] #game-container,
+  body[data-current-game="sacred-word"] #game-container,
+  body[data-current-game="quartet"] #game-container {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 76px) !important;
+  }
+  body[data-current-game="bible-wow"] .wow-top { grid-template-columns: 1fr !important; }
+  body[data-current-game="bible-wow"] .wow-top > .wow-pill { justify-content: center !important; }
+  body[data-current-game="bible-wow"] .wow-actions { grid-template-columns: 1fr 1fr !important; }
+  body[data-current-game="quartet"] .players-ring { grid-template-columns: 1fr 1fr !important; }
+  body[data-current-game="quartet"] .game-header { top: calc(env(safe-area-inset-top, 0px) + 66px) !important; }
+}
+@media (max-width: 380px) {
+  body[data-current-game="bible-wordsearch"] .ws-actions .start-button,
+  body[data-current-game="bible-wordsearch"] .ws-actions .wrong-button { font-size: .84rem !important; }
+  body[data-current-game="bible-wow"] .wow-actions .wow-chip { font-size: .78rem !important; padding: 8px 7px !important; }
+  body[data-current-game="quartet"] .players-ring { grid-template-columns: 1fr !important; }
+  body[data-current-game="quartet"] .mini-cards-grid { grid-template-columns: 1fr !important; }
+}
+body[data-current-game="quartet"] .quartet-play-guide {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+  gap: 8px !important;
+  margin: 0 0 10px !important;
+}
+body[data-current-game="quartet"] .quartet-play-guide span {
+  display: grid !important;
+  place-items: center !important;
+  min-height: 42px !important;
+  padding: 8px !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.76) !important;
+  border: 1px solid rgba(99,102,241,.14) !important;
+  color: #312e81 !important;
+  font-size: clamp(.72rem, 3vw, .9rem) !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  line-height: 1.12 !important;
+}
+@media (max-width: 380px) {
+  body[data-current-game="quartet"] .quartet-play-guide { grid-template-columns: 1fr !important; }
+}
