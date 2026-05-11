@@ -25,9 +25,16 @@ async function initializeApp() {
   if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();
     window.Telegram.WebApp.expand();
+    try {
+      window.Telegram.WebApp.backgroundColor = "#f8f9ff";
+      window.Telegram.WebApp.headerColor = "#f8f9ff";
+      window.Telegram.WebApp.setBackgroundColor?.("#f8f9ff");
+      window.Telegram.WebApp.setHeaderColor?.("#f8f9ff");
+    } catch (e) {}
   }
 
   const tgUser = getTelegramUser();
+  renderUserProfile(tgUser);
 
   if (String(tgUser.id) === ADMIN_ID) {
     renderAdminButton();
@@ -132,6 +139,35 @@ function getTelegramUser() {
     };
   }
   return { username: "аноним", id: "аноним", link: "аноним" };
+}
+
+function escapeAppText(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+}
+
+function renderUserProfile(user = getTelegramUser()) {
+  const profile = document.getElementById("user-profile");
+  if (!profile) return;
+
+  const safeName = escapeAppText(user.username || "Игрок");
+  const letter = escapeAppText(String(user.username || "И").charAt(0).toUpperCase() || "И");
+  const isGuest = String(user.id || "") === "аноним" || String(user.id || "") === "0";
+
+  profile.innerHTML = `
+    <div class="profile-pill">
+      <div class="profile-avatar">${letter}</div>
+      <div class="profile-meta">
+        <span class="profile-label">${isGuest ? "Гость" : "Игрок"}</span>
+        <span class="profile-name">${safeName}</span>
+      </div>
+    </div>
+  `;
 }
 
 async function loadJSON(url) {
