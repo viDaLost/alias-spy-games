@@ -2222,6 +2222,17 @@ function startQuartetGame() {
     syncWaitButtons();
   }
 
+  window.__quartetCleanup = function () {
+    pollingStopped = true;
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = null;
+    inFlight = false;
+    reconnectLoading = false;
+    try { if (ui.pendingModal) ui.pendingModal.classList.remove('active'); } catch (e) {}
+    try { if (ui.rulesModal) ui.rulesModal.classList.remove('active'); } catch (e) {}
+    try { if (ui.waitOverlay) ui.waitOverlay.classList.add('hidden'); } catch (e) {}
+  };
+
   (function init() {
     renderShell();
 
