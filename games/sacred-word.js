@@ -1,14 +1,8 @@
 /* global loadJSON, goToMainMenu, THREE, getTelegramUser */
 
 function startSacredWordGame(wordsUrl) {
-  try { window.__sacredWordCleanup?.(); } catch (e) {}
   const container = document.getElementById("game-container");
   if (!container) return;
-  let sacredCancelled = false;
-  window.__sacredWordCleanup = function sacredWordEarlyCleanup() {
-    sacredCancelled = true;
-    try { cleanupThreeJS(); } catch (e) {}
-  };
 
   if (typeof THREE === 'undefined') {
     container.innerHTML = `<div style="padding: 20px; color: red;">Ошибка: Библиотека Three.js не подключена!</div>`;
@@ -527,17 +521,14 @@ function startSacredWordGame(wordsUrl) {
     .then(data => {
       words = Array.isArray(data) ? data.filter(item => item && item.word && item.category && item.hint) : [];
       if (!words.length) throw new Error("Не удалось загрузить слова.");
-      if (sacredCancelled || (window.__activeGameName && window.__activeGameName !== "sacred-word")) return;
-
+      
+      if (window.__sacredWordCleanup) window.__sacredWordCleanup();
+      
       document.addEventListener("keydown", handlePhysicalKeyboard);
-      window.__sacredWordCleanup = function sacredWordCleanup() {
-        sacredCancelled = true;
-        cleanupThreeJS();
-      };
+      window.__sacredWordCleanup = cleanupThreeJS;
       ensureStateValid();
     })
     .catch(err => {
-      if (sacredCancelled || (window.__activeGameName && window.__activeGameName !== "sacred-word")) return;
       console.error(err);
       container.innerHTML = `
         <div class="card" style="max-width:640px; margin: 1rem auto; background:#fff; padding:20px;">

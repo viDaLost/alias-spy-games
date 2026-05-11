@@ -16,14 +16,12 @@ function startGuessCharacterGame(charsUrl) {
       return res.json();
     })
     .then(chars => {
-      if (window.__activeGameName && window.__activeGameName !== "guess") return;
       const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])]);
       guessCharacters = [shuffled[0], shuffled[1]].filter(Boolean);
       guessCurrentPlayer = 1;
       displayPlayerButton();
     })
     .catch(err => {
-      if (window.__activeGameName && window.__activeGameName !== "guess") return;
       console.error(err);
       document.getElementById("game-container").innerHTML = `
         <section class="app-error-card fade-in">

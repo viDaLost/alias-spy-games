@@ -11,8 +11,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
   const container = document.getElementById("game-container");
   if (!container) return;
-  let wsCancelled = false;
-  window.__wsCleanup = () => { wsCancelled = true; };
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
   const STORAGE_KEY = `bible_wordsearch_progress_v2_${tgUser.id}`;
@@ -699,7 +697,6 @@ function startBibleWordSearchGame(levelsUrl) {
     window.addEventListener("resize", drawLines); 
 
     window.__wsCleanup = () => {
-      wsCancelled = true;
       board.removeEventListener("pointerdown", onDown);
       board.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("pointermove", onMove);
@@ -741,7 +738,6 @@ function startBibleWordSearchGame(levelsUrl) {
 
   loadJSON(urlWithCacheBuster)
     .then((data) => {
-      if (wsCancelled) return;
       LEVELS = (data && data.levels) ? data.levels : [];
       if (!LEVELS.length) throw new Error("NETWORK_OR_EMPTY: Пустой список уровней или неверный формат JSON");
 
@@ -789,7 +785,6 @@ function startBibleWordSearchGame(levelsUrl) {
       }
     })
     .catch((e) => {
-      if (wsCancelled) return;
       console.error(e);
       // 3. Расширенный блок ошибки: теперь юзер увидит реальную причину (Network / TypeError / SyntaxError)
       container.innerHTML = `

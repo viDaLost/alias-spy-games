@@ -11,7 +11,6 @@ function spySafe(value) {
 async function startSpyGame(locationsUrl) {
   try {
     const locations = await loadJSON(locationsUrl);
-    if (window.__activeGameName && window.__activeGameName !== "spy") return;
     allLocations = Array.isArray(locations) ? locations : [];
 
     document.getElementById("game-container").innerHTML = `
@@ -38,7 +37,6 @@ async function startSpyGame(locationsUrl) {
       <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
     `;
   } catch (e) {
-    if (window.__activeGameName && window.__activeGameName !== "spy") return;
     console.error(e);
     document.getElementById("game-container").innerHTML = `
       <section class="app-error-card fade-in">

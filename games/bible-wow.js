@@ -8,10 +8,8 @@
 /* global loadJSON, goToMainMenu */
 
 function startBibleWowGame(levelsUrl) {
-  try { window.__bibleWowCleanup?.(); } catch (e) {}
   const container = document.getElementById("game-container");
   if (!container) return;
-  let bibleWowCancelled = false;
 
   // -------------------- Styles (keep EXACT aesthetic from user's file; only adding missing UI bits) --------------------
   const styleId = "bible-wow-style";
@@ -1291,13 +1289,10 @@ function startBibleWowGame(levelsUrl) {
 
   // -------------------- Cleanup --------------------
   function cleanupAll() {
-    bibleWowCancelled = true;
     detachWheelHandlers();
     const stEl = document.getElementById(styleId);
     if (stEl) stEl.remove();
   }
-
-  window.__bibleWowCleanup = cleanupAll;
 
   // -------------------- Init --------------------
   container.innerHTML = "<p style='padding:16px'>🔄 Загрузка...</p>";
@@ -1306,14 +1301,12 @@ function startBibleWowGame(levelsUrl) {
 
   loadJSON(levelsUrl)
     .then(data => {
-      if (bibleWowCancelled) return;
       st.levels = (data && Array.isArray(data.levels)) ? data.levels : [];
       if (!st.levels.length) throw new Error("No levels");
       if (st.levelIndex >= st.levels.length) st.levelIndex = 0;
       startLevel();
     })
     .catch(e => {
-      if (bibleWowCancelled) return;
       console.error(e);
       container.innerHTML = `
         <div style="padding:16px; text-align:center;">

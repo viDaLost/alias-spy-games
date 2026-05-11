@@ -7,14 +7,6 @@
 // Она считается найденной при открытии и нужна для завершения уровня.
 
 (function () {
-  let activeKidsTimer = null;
-  window.__kidsArkCleanup = function kidsArkCleanup() {
-    if (activeKidsTimer) {
-      clearInterval(activeKidsTimer);
-      activeKidsTimer = null;
-    }
-  };
-
   const STORAGE_KEY = "kids_ark_pairs_records_v1";
 
   const DIFFICULTIES = {
@@ -103,7 +95,6 @@
   }
 
   function startGameUI() {
-    try { window.__kidsArkCleanup?.(); } catch (e) {}
     const container = document.getElementById("game-container");
     const records = readRecords();
 
@@ -153,7 +144,6 @@
   }
 
   function startBoard(diffKey, speedMode) {
-    try { window.__kidsArkCleanup?.(); } catch (e) {}
     const { size, label } = DIFFICULTIES[diffKey];
     const totalCards = size * size;
 
@@ -213,7 +203,6 @@
 
     function stopTimer() {
       if (timerInterval) clearInterval(timerInterval);
-      if (activeKidsTimer === timerInterval) activeKidsTimer = null;
       timerInterval = null;
     }
 
@@ -225,7 +214,6 @@
         const ms = performance.now() - startTs;
         if (timerEl) timerEl.textContent = `⏱ ${fmtMs(ms)}`;
       }, 50);
-      activeKidsTimer = timerInterval;
     }
 
     function finishIfDone() {

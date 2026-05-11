@@ -3,7 +3,6 @@
 // Адаптированная JS-версия на основе HTML-макета
 
 function startQuartetGame() {
-  try { window.__quartetCleanup?.(); } catch (e) {}
   const container = document.getElementById('game-container');
   if (!container) return;
 
@@ -142,17 +141,6 @@ function startQuartetGame() {
   let isViewingCardsWhileWaiting = false;
   let waitToggleLoading = false;
   let currentTargetId = ''; // Для хранения выбранного игрока при запросе
-
-  window.__quartetCleanup = function quartetCleanup() {
-    pollingStopped = true;
-    leavingNow = true;
-    reconnectLoading = false;
-    waitToggleLoading = false;
-    if (pollTimer) {
-      clearTimeout(pollTimer);
-      pollTimer = null;
-    }
-  };
 
   let openGroups = {};
   try {
@@ -312,7 +300,6 @@ function startQuartetGame() {
   }
 
   async function refreshState(force) {
-    if (pollingStopped) return;
     if (!roomId) return;
 
     if (inFlight) {
@@ -328,7 +315,6 @@ function startQuartetGame() {
     inFlight = true;
     try {
       const res = await api('getState');
-      if (pollingStopped || !document.getElementById('game-container')) return;
       state = res.state || null;
       failStreak = 0;
       nextAllowedAt = 0;
