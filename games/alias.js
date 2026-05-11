@@ -24,6 +24,7 @@ aliasLoadState();
 /* ===================== НОВОЕ: функции «жёсткого» и «мягкого» сброса ===================== */
 // Полный сброс всего прогресса и состояния (опционально очищаем кэш слов)
 function aliasHardReset({ clearWordCache = false } = {}) {
+  try { aliasRemoveKeyHandlers(); } catch {}
   try { if (window.aliasInterval) clearInterval(window.aliasInterval); } catch {}
   window.aliasInterval = null;
   if (abortCtrl) { try { abortCtrl.abort(); } catch {} }
@@ -52,6 +53,7 @@ function aliasHardReset({ clearWordCache = false } = {}) {
 
 // Мягкий сброс при смене сложности: обнуляем только прогресс, оставляя визуальные настройки
 function aliasSoftResetForNewDifficulty() {
+  try { aliasRemoveKeyHandlers(); } catch {}
   try { if (window.aliasInterval) clearInterval(window.aliasInterval); } catch {}
   window.aliasInterval = null;
   if (abortCtrl) { try { abortCtrl.abort(); } catch {} }
@@ -757,8 +759,11 @@ function aliasRemoveKeyHandlers() {
 })();
 
 // Локальная очистка Alias + возврат через общий лаунчер приложения.
-// В старой версии эта функция полностью переопределяла общий goToMainMenu(),
-// из-за чего после Alias могли ломаться навигация, очистка скриптов и синхронизация.
+// Alias больше не выполняет повторную проверку доступа и не оставляет свой goToMainMenu после выхода.
+window.__aliasCleanup = function __aliasCleanup(){
+  aliasHardReset({ clearWordCache: false });
+};
+
 function goToMainMenu(){
   aliasHardReset({ clearWordCache: false });
 
