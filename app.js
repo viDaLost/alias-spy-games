@@ -6,6 +6,8 @@ const SUPPORT_LINK = "https://t.me/D_a_n_Vi";
 const ADMIN_PAGE_SIZE = 10;
 
 let currentGameScript = null;
+const loadedGameScripts = new Map();
+let activeGameName = null;
 let currentUserData = { lastGames: [] };
 let accessState = {
   checked: false,
@@ -415,10 +417,11 @@ function showGame(gameName) {
   document.body.dataset.mode = "game";
   window.scrollTo({ top: 0, behavior: "auto" });
 
-  if (currentGameScript) {
-    currentGameScript.remove();
-    currentGameScript = null;
-  }
+  // Скрипты игр не удаляем и не загружаем повторно: у старых игровых файлов есть
+  // глобальные let/const/function, и повторная вставка того же script ломает игру
+  // после выхода в меню. Активное состояние чистится отдельно через cleanupActiveGame().
+  activeGameName = gameName;
+  document.body.dataset.currentGame = gameName;
 
   const routes = {
     alias: ["games/alias.js", () => window.startAliasGame?.()],
@@ -443,13 +446,13 @@ function showGame(gameName) {
 }
 
 function loadGameScript(fileName, callback) {
-  const script = document.createElement("script");
-  script.src = `${fileName}?v=12`;
-
-  script.onload = () => {
+  const startLoadedGame = () => {
     try {
+      if (typeof callback !== "function") throw new Error("Не найдена функция запуска игры");
       const result = callback();
-      if (result === undefined && typeof callback !== "function") throw new Error("Не найдена функция запуска игры");
+      if (result === undefined) {
+        // undefined — нормальный результат для старых start-функций.
+      }
     } catch (error) {
       console.error("Ошибка запуска игры:", error);
       const container = document.getElementById("game-container");
@@ -457,7 +460,7 @@ function loadGameScript(fileName, callback) {
         container.innerHTML = `
           <section class="app-error-card fade-in">
             <h2>Ошибка запуска</h2>
-            <p>Игра загрузилась, но не смогла стартовать. Проверьте консоль браузера.</p>
+            <p>Игра загрузилась, но не смогла стартовать. Попробуйте вернуться в меню и открыть её снова.</p>
             <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
           </section>
         `;
@@ -465,7 +468,33 @@ function loadGameScript(fileName, callback) {
     }
   };
 
+  const existing = loadedGameScripts.get(fileName);
+  if (existing?.status === "loaded") {
+    requestAnimationFrame(startLoadedGame);
+    return;
+  }
+
+  if (existing?.status === "loading") {
+    existing.callbacks.push(startLoadedGame);
+    return;
+  }
+
+  const record = { status: "loading", callbacks: [startLoadedGame], element: null };
+  loadedGameScripts.set(fileName, record);
+
+  const script = document.createElement("script");
+  script.src = `${fileName}?v=14`;
+  script.dataset.gameScript = fileName;
+
+  script.onload = () => {
+    record.status = "loaded";
+    currentGameScript = script;
+    const callbacks = record.callbacks.splice(0);
+    callbacks.forEach((fn) => requestAnimationFrame(fn));
+  };
+
   script.onerror = () => {
+    loadedGameScripts.delete(fileName);
     console.error(`Файл ${fileName} не загружается`);
     const container = document.getElementById("game-container");
     if (container) {
@@ -479,6 +508,7 @@ function loadGameScript(fileName, callback) {
     }
   };
 
+  record.element = script;
   document.body.appendChild(script);
   currentGameScript = script;
 }
@@ -490,12 +520,6 @@ function cleanupActiveGame() {
   try { window.__wsCleanup?.(); } catch {}
   try { window.__sacredWordCleanup?.(); } catch {}
   try { window.__quartetCleanup?.(); } catch {}
-  try { document.getElementById("alias-inline-styles")?.remove(); } catch {}
-
-  try { window.__aliasCleanup = null; } catch {}
-  try { window.__wsCleanup = null; } catch {}
-  try { window.__sacredWordCleanup = null; } catch {}
-  try { window.__quartetCleanup = null; } catch {}
 }
 
 function goToMainMenu() {
@@ -504,13 +528,12 @@ function goToMainMenu() {
 
   cleanupActiveGame();
 
-  if (currentGameScript) {
-    currentGameScript.remove();
-    currentGameScript = null;
-  }
+  currentGameScript = null;
+  activeGameName = null;
 
   if (container) container.innerHTML = "";
   delete document.body.dataset.mode;
+  delete document.body.dataset.currentGame;
 
   // Важно: не запускаем initializeApp() повторно при каждом выходе из игры.
   // Проверка доступа выполняется один раз при открытии приложения, а история игр обновляется отдельно.
@@ -861,6 +884,7 @@ function showToast(message, type = "success") {
 
 // Экспортируем функции для старых игровых файлов и inline-обработчиков.
 window.apiRequest = apiRequest;
+window.svgIcon = svgIcon;
 window.getTelegramUser = getTelegramUser;
 window.loadJSON = loadJSON;
 window.shuffleArray = shuffleArray;
