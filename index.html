@@ -2,208 +2,89 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
   <title>Библейские игры</title>
 
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" content="#fdfaf4" />
+  
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Игры">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=12" />
+
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="app-sidebar">
-      <div class="sidebar-brand">
-        <div class="sidebar-brand__title">БИБЛЕЙСКИЕ<br>ИГРЫ</div>
-      </div>
 
-      <div id="sidebar-profile-card" class="sidebar-profile-card" aria-live="polite">
-        <div id="sidebar-profile-avatar" class="sidebar-profile-card__avatar"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" style="width:100%; height:100%; border-radius:50%;"></div>
-        <div class="sidebar-profile-card__meta">
-          <div class="sidebar-profile-card__welcome">Welcome,</div>
-          <div id="sidebar-profile-name" class="sidebar-profile-card__name">Believer</div>
-          <div id="sidebar-profile-sub" class="sidebar-profile-card__sub">🔥 5 days</div>
-        </div>
-      </div>
+  <header>
+    <h1> ҕиҕлᴇйскиᴇ иrᴘы </h1>
+  </header>
 
-      <nav class="sidebar-nav" aria-label="Разделы">
-        <button type="button" class="sidebar-nav__item is-active" data-nav="home">
-          <span class="sidebar-nav__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          </span>
-          <span class="sidebar-nav__text">Home</span>
-        </button>
-        <button type="button" class="sidebar-nav__item" data-nav="groups">
-          <span class="sidebar-nav__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-          </span>
-          <span class="sidebar-nav__text">Stats</span>
-        </button>
-        <button type="button" class="sidebar-nav__item" data-nav="words">
-          <span class="sidebar-nav__icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </span>
-          <span class="sidebar-nav__text">Settings</span>
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <button onclick="showSupportModal()" class="sidebar-support-button" type="button">
-          <span class="sidebar-support-button__icon">🎧</span>
-          <span>Technical Support</span>
-        </button>
-      </div>
-    </aside>
-
-    <section class="app-main">
-      <header class="app-header">
-        <div class="app-title-block">
-          </div>
-        <div class="app-header__right">
-          <div id="app-currency" class="app-currency">
-             🪙 1,250 Coins 
-             <div class="currency-plus">+</div>
-          </div>
-          <button type="button" class="topbar-icon-button" onclick="handleCloseApp()" aria-label="Закрыть">✕</button>
-        </div>
-      </header>
-
-      <div id="main-loader" class="main-loader">
-        <div class="loader-ring"></div>
-      </div>
-
-      <main class="menu-container hidden" id="menu-container">
-        <section class="hero-card">
-          <div class="hero-card__content">
-            <span class="hero-card__tag">Featured Play</span>
-            <h2 class="hero-card__title">The Journey</h2>
-            <p class="hero-card__text">Embark on an epic narrative adventure tracing the footsteps of the patriarchs. Experience the stories like never before.</p>
-          </div>
-          <button onclick="showGame('alias')" class="hero-play-button" type="button">▶</button>
-        </section>
-
-        <section class="menu-section" id="section-groups">
-          <div class="section-head">
-            <div class="menu-section-title">
-              <span class="section-icon">👥</span> Games for Groups
-            </div>
-          </div>
-          <div class="menu-grid menu-grid--cards">
-            <button onclick="showGame('alias')" class="game-button game-button--dashboard" type="button">
-              <span class="game-button__icon">🗣️</span>
-              <span class="game-button__text">Alias</span>
-              <span class="game-button__meta">Explain the word</span>
-            </button>
-            <button onclick="showGame('coimaginarium')" class="game-button game-button--dashboard" type="button">
-              <span class="game-button__icon">🧠</span>
-              <span class="game-button__text">Coimaginarium</span>
-              <span class="game-button__meta">Visual associations</span>
-            </button>
-            <button onclick="showGame('guess')" class="game-button game-button--dashboard" type="button">
-              <span class="game-button__icon">👦</span>
-              <span class="game-button__text">Guess Character</span>
-              <span class="game-button__meta">Who am I?</span>
-            </button>
-            <button onclick="showGame('describe')" class="game-button game-button--dashboard" type="button">
-              <span class="game-button__icon">📄</span>
-              <span class="game-button__text">Describe it</span>
-              <span class="game-button__meta">Use other words</span>
-            </button>
-            <button onclick="showGame('spy')" class="game-button game-button--dashboard" type="button">
-              <span class="game-button__icon">🕵️</span>
-              <span class="game-button__text">Spy</span>
-              <span class="game-button__meta">Find the impostor</span>
-            </button>
-            <button onclick="showGame('quartet')" class="game-button game-button--dashboard" type="button">
-              <span class="game-button__icon">🃏</span>
-              <span class="game-button__text">Quartet</span>
-              <span class="game-button__meta">Collect the sets</span>
-            </button>
-          </div>
-        </section>
-
-        <div class="dashboard-columns">
-          <section class="menu-section" id="section-words">
-            <div class="section-head">
-              <div class="menu-section-title">
-                <span class="section-icon">📖</span> Word Games
-              </div>
-            </div>
-            <div class="list-cards">
-              <button onclick="showGame('bible-wow')" class="game-button game-button--list" type="button">
-                <div style="display:flex; align-items:center; gap:14px;">
-                  <span class="game-button__icon game-button__icon--list">A</span>
-                  <span class="game-button__body">
-                    <span class="game-button__text">Bible WoW</span>
-                    <span class="game-button__meta">Connect the letters</span>
-                  </span>
-                </div>
-                <span class="game-button__play">▶</span>
-              </button>
-              <button onclick="showGame('bible-wordsearch')" class="game-button game-button--list" type="button">
-                <div style="display:flex; align-items:center; gap:14px;">
-                  <span class="game-button__icon game-button__icon--list">🔍</span>
-                  <span class="game-button__body">
-                    <span class="game-button__text">Word Search</span>
-                    <span class="game-button__meta">Find hidden names</span>
-                  </span>
-                </div>
-                <span class="game-button__play">▶</span>
-              </button>
-              <button onclick="showGame('sacred-word')" class="game-button game-button--list" type="button">
-                <div style="display:flex; align-items:center; gap:14px;">
-                  <span class="game-button__icon game-button__icon--list">🪔</span>
-                  <span class="game-button__body">
-                    <span class="game-button__text">Sacred Word</span>
-                    <span class="game-button__meta">Daily verse puzzle</span>
-                  </span>
-                </div>
-                <span class="game-button__play">▶</span>
-              </button>
-            </div>
-          </section>
-
-          <section class="menu-section" id="section-kids">
-            <div class="section-head">
-              <div class="menu-section-title">
-                <span class="section-icon">🧩</span> For Kids
-              </div>
-            </div>
-            <div class="kids-feature-card">
-              <div class="kids-feature-card__icon">🐾</div>
-              <div class="kids-feature-card__info">
-                <div class="kids-feature-card__title">Kids Ark Pairs</div>
-                <div class="kids-feature-card__text">Match the animals two by two in this fun memory game designed for little ones.</div>
-              </div>
-              <button onclick="showGame('kids-ark-pairs')" class="start-button kids-feature-card__button" type="button">Play Now →</button>
-            </div>
-          </section>
-        </div>
-      </main>
-
-      <section id="banned-screen" class="banned-screen hidden">
-        <div class="card banned-card">
-          <div class="banned-icon">⛔</div>
-          <h2>Доступ к приложению ограничен</h2>
-          <button class="game-button game-button--wide" onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/D_a_n_Vi')">
-            <span class="game-button__body"><span class="game-button__text">Написать в поддержку</span></span>
-          </button>
-        </div>
-      </section>
-
-      <div id="game-container"></div>
-    </section>
+  <div id="main-loader" style="position:fixed; inset:0; background:var(--bg-color); z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+    <div style="width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent-active); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p style="margin-top: 1rem; font-weight: 600; color: var(--text-color);">Проверка доступа...</p>
+    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
   </div>
 
+  <div class="menu-container hidden" id="menu-container">
+    <div class="menu-section-title">Игры для компании</div>
+
+    <div class="menu-grid">
+      <button onclick="showGame('alias')" class="game-button">🎮 Алиас</button>
+      <button onclick="showGame('coimaginarium')" class="game-button">🧠 Соображариум</button>
+      <button onclick="showGame('guess')" class="game-button">👥 Угадай персонажа</button>
+      <button onclick="showGame('describe')" class="game-button">🗣 Опиши, но не называй</button>
+      <button onclick="showGame('spy')" class="game-button">🕵️‍♂ Шпион</button>
+      <button onclick="showGame('quartet')" class="game-button">🃏 Квартет</button>
+    </div>
+
+    <div class="menu-divider"></div>
+    <div class="menu-section-title">Словесные</div>
+
+    <div class="menu-grid menu-grid--single">
+      <button onclick="showGame('bible-wow')" class="game-button game-button--wide">
+        🧩 Библейские слова
+      </button>
+
+      <button onclick="showGame('bible-wordsearch')" class="game-button game-button--wide">
+        🔎 Поиск библейских слов
+      </button>
+
+      <button onclick="showGame('sacred-word')" class="game-button game-button--wide">
+        🪔 Священное слово
+      </button>
+    </div>
+
+    <div class="menu-divider"></div>
+    <div class="menu-section-title">Для детей</div>
+
+    <div class="menu-grid menu-grid--single">
+      <button onclick="showGame('kids-ark-pairs')" class="game-button game-button--wide">🛳️ Найди пару</button>
+    </div>
+
+    <div class="menu-divider"></div>
+    <div class="menu-grid menu-grid--single">
+      <button onclick="showSupportModal()" class="game-button game-button--wide" style="background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1;">
+        🛠 Тех-поддержка
+      </button>
+    </div>
+  </div>
+
+  <div id="banned-screen" class="hidden" style="text-align: center; padding: 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
+    <h2 style="color: #ef4444; font-weight: 800; margin-bottom: 1rem;">Доступ к приложению ограничен</h2>
+    <p style="color: #475569; margin-bottom: 2rem;">Обжаловать блокировку можно через техническую поддержку.</p>
+    <button class="game-button" onclick="window.Telegram.WebApp.openTelegramLink('https://t.me/D_a_n_Vi')" style="max-width: 250px;">Написать</button>
+  </div>
+
+  <div id="game-container"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="app.js?v=12" defer></script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js?v=3"></script>
+  <script src="app.js?v=6" defer></script>
 </body>
 </html>
