@@ -85,16 +85,16 @@ function startAliasGame() {
   if (!container) return;
 
   container.innerHTML = `
-    <h2 class="alias-title">🎮 Алиас</h2>
+    <h2 class="alias-title"><span class="alias-title-icon">А</span> Алиас</h2>
     <p class="alias-sub">Выберите уровень сложности</p>
 
     <div class="alias-buttons">
-      <button onclick="loadAliasWords('easy')" class="btn btn-neutral btn-lg">🟢 Лёгкий</button>
-      <button onclick="loadAliasWords('medium')" class="btn btn-neutral btn-lg">🟡 Средний</button>
-      <button onclick="loadAliasWords('hard')" class="btn btn-neutral btn-lg">🔴 Тяжёлый</button>
+      <button onclick="loadAliasWords('easy')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--easy"></span>Лёгкий</button>
+      <button onclick="loadAliasWords('medium')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--medium"></span>Средний</button>
+      <button onclick="loadAliasWords('hard')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--hard"></span>Тяжёлый</button>
     </div>
 
-    <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+    <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
   `;
 
   const menu = document.querySelector('.menu-container');
@@ -141,7 +141,7 @@ function aliasShowSetup(words, difficulty) {
   if (!Number.isInteger(currentTeam) || currentTeam < 1 || currentTeam > teamCount) currentTeam = 1;
 
   container.innerHTML = `
-    <h2 class="alias-title">🎮 Алиас — ${difficultyName}</h2>
+    <h2 class="alias-title">Алиас — ${difficultyName}</h2>
 
     <div class="setup-grid">
       <div class="setup-block">
@@ -175,7 +175,7 @@ function aliasShowSetup(words, difficulty) {
 
     <div class="row-center">
       <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">▶️ Начать раунд</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
 }
@@ -272,7 +272,7 @@ async function startAliasTimer(difficulty) {
 
       <div class="row-center">
         <button onclick="aliasRestartRoundSameSettings()" class="btn btn-ghost btn-lg">⟲ Начать этот раунд заново</button>
-        <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+        <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
       </div>
     `;
 
@@ -413,7 +413,7 @@ function aliasShowResults() {
   let totalYes = 0, totalNo = 0;
 
   container.innerHTML = `
-    <h2 class="alias-title">🏁 Результаты</h2>
+    <h2 class="alias-title">Результаты</h2>
     ${aliasScoreboardHTML()}
   `;
 
@@ -422,7 +422,7 @@ function aliasShowResults() {
       <p class="hint">Нет результатов. Начните игру снова.</p>
       <div class="row-center">
         <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔄 Новая игра</button>
-        <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+        <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
       </div>`;
     return;
   }
@@ -495,7 +495,7 @@ function aliasShowResults() {
     <div class="row-center actions-bottom">
       <button onclick="aliasStartNextRound()" class="btn btn-primary btn-xl">▶️ Начать следующий раунд</button>
       <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔘 Выбрать уровень</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
   container.appendChild(nextBlock);
@@ -536,7 +536,7 @@ function aliasShowSetupWithNewTime(difficulty) {
   const difficultyName = aliasGetDifficultyName(difficulty);
 
   container.innerHTML = `
-    <h2 class="alias-title">🎮 Алиас — ${difficultyName}</h2>
+    <h2 class="alias-title">Алиас — ${difficultyName}</h2>
     <div class="setup-grid">
       <div class="setup-block">
         <p class="setup-label">Время раунда</p>
@@ -559,7 +559,7 @@ function aliasShowSetupWithNewTime(difficulty) {
 
     <div class="row-center">
       <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">▶️ Начать раунд</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
 }
@@ -570,12 +570,12 @@ function aliasShowAllWordsMessage() {
   if (!container) return;
 
   container.innerHTML = `
-    <h2 class="alias-title">⚠️ Все слова показаны</h2>
+    <h2 class="alias-title">Все слова показаны</h2>
     <p class="hint">Можно начать заново или сбросить использованные слова.</p>
     <div class="row-center">
       <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔄 Новая игра</button>
       <button onclick="aliasResetGuessedAndContinue()" class="btn btn-primary btn-xl">🧹 Сбросить использованные</button>
-      <button onclick="goToMainMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
     </div>
   `;
 }
@@ -758,13 +758,15 @@ function aliasRemoveKeyHandlers() {
   document.head.appendChild(style);
 })();
 
+window.aliasExitToMenu = aliasExitToMenu;
+
 // Локальная очистка Alias + возврат через общий лаунчер приложения.
 // Alias больше не выполняет повторную проверку доступа и не оставляет свой goToMainMenu после выхода.
 window.__aliasCleanup = function __aliasCleanup(){
   aliasHardReset({ clearWordCache: false });
 };
 
-function goToMainMenu(){
+function aliasExitToMenu(){
   aliasHardReset({ clearWordCache: false });
 
   if (typeof window.appGoToMainMenu === 'function') {

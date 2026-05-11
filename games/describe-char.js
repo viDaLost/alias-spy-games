@@ -39,11 +39,7 @@ async function startDescribeNewGame() {
 
   try {
     const chars = await loadJSON(window.charsUrl);
-    const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])].filter(Boolean));
-    if (!shuffled.length) {
-      alert("Список слов пустой. Проверьте файл data/describe_words.json.");
-      return;
-    }
+    const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])]);
     describePlayers = [];
 
     for (let i = 0; i < playerCount; i++) {

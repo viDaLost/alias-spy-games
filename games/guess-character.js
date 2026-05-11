@@ -16,10 +16,7 @@ function startGuessCharacterGame(charsUrl) {
       return res.json();
     })
     .then(chars => {
-      const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])].filter(Boolean));
-      if (shuffled.length < 2) {
-        throw new Error("В файле должно быть минимум 2 персонажа.");
-      }
+      const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])]);
       guessCharacters = [shuffled[0], shuffled[1]].filter(Boolean);
       guessCurrentPlayer = 1;
       displayPlayerButton();
