@@ -1,554 +1,628 @@
-// app.js — лаунчер игр (полноэкранный режим для каждой игры)
+(() => {
+  "use strict";
 
-let currentGameScript = null;
+  const ADMIN_ID = "1288379477";
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec";
 
-// --- ИНТЕГРАЦИЯ АДМИН-ПАНЕЛИ И API ---
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec";
-const ADMIN_ID = "1288379477";
-let currentUserData = { lastGames: [] };
+  const CATEGORIES = [
+    { id: "company", label: "Игры для компании" },
+    { id: "words", label: "Словесные" },
+    { id: "kids", label: "Для детей" }
+  ];
 
-async function apiRequest(payload) {
-  try {
-    const res = await fetch(GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "text/plain;charset=utf-8" }
-    });
-    return await res.json();
-  } catch (e) {
-    console.error("API Error:", e);
-    return null;
-  }
-}
+  const GAMES = [
+    { id: "alias", category: "company", title: "Алиас", icon: "💬", script: "games/alias.js", startFn: "startAliasGame" },
+    { id: "coimaginarium", category: "company", title: "Соображариум", icon: "💡", script: "games/coimaginarium.js", startFn: "startCoimaginariumGame", args: ["data/coimaginarium_themes.json"] },
+    { id: "guess", category: "company", title: "Угадай персонажа", icon: "🎭", script: "games/guess-character.js", startFn: "startGuessCharacterGame", args: ["data/characters.json"] },
+    { id: "describe", category: "company", title: "Опиши, но не называй", icon: "🗣️", script: "games/describe-char.js", startFn: "startDescribeCharacterGame", args: ["data/describe_words.json"] },
+    { id: "spy", category: "company", title: "Шпион", icon: "👁️", script: "games/spy.js", startFn: "startSpyGame", args: ["data/spy_locations.json"] },
+    { id: "quartet", category: "company", title: "Квартет", icon: "🃏", script: "games/quartet.js", startFn: "startQuartetGame", args: ["data/quartet_bible.json"] },
+    { id: "bible-wow", category: "words", title: "Библейские слова", icon: "▦", script: "games/bible-wow.js", startFn: "startBibleWowGame", args: ["data/bible_wow_levels.json"] },
+    { id: "bible-wordsearch", category: "words", title: "Поиск библейских слов", icon: "🔎", script: "games/bible-wordsearch.js", startFn: "startBibleWordSearchGame", args: ["data/bible_wordsearch_levels.json"] },
+    { id: "sacred-word", category: "words", title: "Священное слово", icon: "🔥", script: "games/sacred-word.js", startFn: "startSacredWordGame", args: ["data/sacred_words.json"] },
+    { id: "kids-ark-pairs", category: "kids", title: "Найди пару", icon: "🐦", script: "games/kids-ark-pairs.js", startFn: "startKidsArkPairsGame" }
+  ];
 
-async function initializeApp() {
-  if (window.Telegram && window.Telegram.WebApp) {
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
-  }
+  const state = {
+    status: "loading",
+    activeGame: null,
+    supportOpen: false,
+    users: [],
+    adminLoading: false,
+    broadcastText: "",
+    broadcastLoading: false
+  };
 
-  const tgUser = getTelegramUser();
+  const root = document.getElementById("root");
+  const scriptRegistry = new Map();
 
-  if (String(tgUser.id) === ADMIN_ID) {
-    renderAdminButton();
-  }
+  const escapeHtml = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
-  const menu = document.querySelector(".menu-container");
-  const bannedScreen = document.getElementById("banned-screen");
-  const mainLoader = document.getElementById("main-loader"); // Наш новый лоадер из HTML
+  const asInt = (value, fallback = 0) => {
+    const num = Number.parseInt(value, 10);
+    return Number.isFinite(num) ? num : fallback;
+  };
 
-  try {
-    let localWowData = { coins: 20 };
-    try { localWowData = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}"); } catch(e) {}
-    
-    let localWsStars = 0;
-    try { localWsStars = parseInt(localStorage.getItem(`bible_stars_v1_${tgUser.id}`) || "0"); } catch(e) {}
-    
-    // Получаем локальный уровень игры "Священное слово"
-    let localSwLevel = 0;
-    try { 
-      const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}"); 
-      localSwLevel = swState.level || 0;
-    } catch(e) {}
-
-    let localGamesHistory = [];
+  async function apiRequest(payload) {
     try {
-      localGamesHistory = JSON.parse(localStorage.getItem("last_games_history") || "[]");
-      if (!Array.isArray(localGamesHistory)) localGamesHistory = [];
-    } catch (e) { localGamesHistory = []; }
-
-    // Делаем запрос к БД для проверки бана и синхронизации
-    const res = await apiRequest({
-      action: "syncUser",
-      user: {
-        id: tgUser.id,
-        username: tgUser.username,
-        link: tgUser.link,
-        wowStars: typeof localWowData.coins === 'number' ? localWowData.coins : 20,
-        wsStars: isNaN(localWsStars) ? 0 : localWsStars,
-        swLevel: localSwLevel, // Отправляем уровень Священного слова на сервер
-        lastGames: localGamesHistory,
-        forceUpdate: false 
-      }
-    });
-
-    // 1. Убираем лоадер загрузки, как только пришел ответ от сервера
-    if (mainLoader) mainLoader.remove();
-
-    if (res) {
-      if (res.isBanned) {
-        // Если забанен: меню остается скрытым, показываем бан-экран
-        if (menu) menu.classList.add("hidden");
-        if (bannedScreen) bannedScreen.classList.remove("hidden");
-        return; 
-      }
-
-      // 2. Если НЕ забанен: показываем главное меню
-      if (menu) menu.classList.remove("hidden");
-      if (bannedScreen) bannedScreen.classList.add("hidden");
-
-      // Синхронизируем локальный кэш
-      localWowData.coins = res.wowStars;
-      localStorage.setItem("bibleWowData_v5", JSON.stringify(localWowData));
-      localStorage.setItem(`bible_stars_v1_${tgUser.id}`, res.wsStars);
-      
-      // Синхронизируем уровень Священного слова
-      if (res.swLevel !== undefined) {
-        try {
-          const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}");
-          swState.level = res.swLevel;
-          localStorage.setItem(`sacred_word_levels_v4_${tgUser.id}`, JSON.stringify(swState));
-        } catch(e) {}
-      }
-
-      localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
-      currentUserData.lastGames = res.lastGames;
-    } else {
-      // Запасной план: если сервер упал или нет интернета - пускаем в меню, чтобы приложение не сломалось
-      if (mainLoader) mainLoader.remove();
-      if (menu) menu.classList.remove("hidden");
+      const res = await fetch(GAS_API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "text/plain" }
+      });
+      return await res.json();
+    } catch (error) {
+      console.error("API Error:", error);
+      return null;
     }
-  } catch (err) {
-    console.error("Init Error:", err);
-    if (mainLoader) mainLoader.remove();
-    if (menu) menu.classList.remove("hidden");
   }
-}
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-  initializeApp();
-}
-// --- КОНЕЦ ИНТЕГРАЦИИ API ---
-
-function getTelegramUser() {
-  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-    const user = window.Telegram.WebApp.initDataUnsafe.user || {};
+  function getTelegramUser() {
+    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
     return {
-      username: user.username || "без_ника",
-      id: user.id || "аноним",
-      link: user.username ? `https://t.me/${user.username}` : "неизвестно"
+      username: tgUser.username || "без_ника",
+      id: tgUser.id || "аноним",
+      link: tgUser.username ? `https://t.me/${tgUser.username}` : "неизвестно"
     };
   }
-  return { username: "аноним", id: "аноним", link: "аноним" };
-}
 
-async function loadJSON(url) {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ошибка: ${res.status} при загрузке ${url}`);
-  return await res.json();
-}
-
-function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
-}
-
-function showGame(gameName) {
-  const gameTitles = {
-    "alias": "Алиас", "coimaginarium": "Соображариум", "guess": "Угадай персонажа",
-    "describe": "Опиши, но не называй", "spy": "Шпион", "quartet": "Квартет",
-    "bible-wow": "Библейские слова", "bible-wordsearch": "Поиск библейских слов", "sacred-word": "Священное слово",
-    "kids-ark-pairs": "Найди пару"
-  };
-
-  if (gameTitles[gameName]) {
-    let history = [];
+  function initTelegram() {
+    const wa = window.Telegram?.WebApp;
+    if (!wa) return;
     try {
-      history = JSON.parse(localStorage.getItem("last_games_history") || "[]");
+      wa.ready();
+      wa.expand();
+    } catch (error) {
+      console.warn("Telegram WebApp init skipped:", error);
+    }
+  }
+
+  function openTelegramLink(url) {
+    const wa = window.Telegram?.WebApp;
+    if (wa?.openTelegramLink) wa.openTelegramLink(url);
+    else window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function getLocalSnapshot(userId) {
+    let localWowData = { coins: 20 };
+    let localGamesHistory = [];
+    let localSwLevel = 0;
+
+    try {
+      localWowData = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}");
+      if (typeof localWowData !== "object" || !localWowData) localWowData = { coins: 20 };
+    } catch (_) {}
+
+    let localWsStars = asInt(localStorage.getItem(`bible_stars_v1_${userId}`), 0);
+
+    try {
+      const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${userId}`) || "{}");
+      localSwLevel = asInt(swState.level, 0);
+    } catch (_) {}
+
+    try {
+      const parsed = JSON.parse(localStorage.getItem("last_games_history") || "[]");
+      localGamesHistory = Array.isArray(parsed) ? parsed : [];
+    } catch (_) {}
+
+    return {
+      localWowData,
+      localWsStars,
+      localSwLevel,
+      localGamesHistory
+    };
+  }
+
+  async function checkAccess() {
+    state.status = "loading";
+    render();
+
+    try {
+      const user = getTelegramUser();
+      const local = getLocalSnapshot(user.id);
+      const res = await apiRequest({
+        action: "syncUser",
+        user: {
+          id: user.id,
+          username: user.username,
+          link: user.link,
+          wowStars: typeof local.localWowData.coins === "number" ? local.localWowData.coins : 20,
+          wsStars: local.localWsStars,
+          swLevel: local.localSwLevel,
+          lastGames: local.localGamesHistory,
+          forceUpdate: false
+        }
+      });
+
+      if (res?.isBanned) {
+        state.status = "banned";
+        render();
+        return;
+      }
+
+      if (res) {
+        const nextWowData = local.localWowData;
+        if (typeof res.wowStars === "number") nextWowData.coins = res.wowStars;
+        localStorage.setItem("bibleWowData_v5", JSON.stringify(nextWowData));
+        if (res.wsStars !== undefined) localStorage.setItem(`bible_stars_v1_${user.id}`, String(res.wsStars));
+
+        if (res.swLevel !== undefined) {
+          try {
+            const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${user.id}`) || "{}");
+            swState.level = res.swLevel;
+            localStorage.setItem(`sacred_word_levels_v4_${user.id}`, JSON.stringify(swState));
+          } catch (_) {}
+        }
+
+        if (res.lastGames) localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    state.status = "menu";
+    render();
+  }
+
+  function getLastGamesHistory() {
+    try {
+      const history = JSON.parse(localStorage.getItem("last_games_history") || "[]");
+      return Array.isArray(history) ? history.slice(0, 3) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveGameHistory(gameTitle) {
+    let nextHistory = [];
+    try {
+      let history = JSON.parse(localStorage.getItem("last_games_history") || "[]");
       if (!Array.isArray(history)) history = [];
-    } catch (e) { history = []; }
-    
-    history = history.filter(g => g !== gameTitles[gameName]); 
-    history.unshift(gameTitles[gameName]); 
-    if (history.length > 3) history.pop(); 
-    
-    localStorage.setItem("last_games_history", JSON.stringify(history));
-    currentUserData.lastGames = history;
-    
-    apiRequest({
-      action: "updateHistory",
-      id: getTelegramUser().id,
-      history: history
+      history = history.filter((title) => title !== gameTitle);
+      history.unshift(gameTitle);
+      nextHistory = history.slice(0, 3);
+      localStorage.setItem("last_games_history", JSON.stringify(nextHistory));
+    } catch (_) {}
+    return nextHistory;
+  }
+
+  function cleanupGame() {
+    try { window.aliasHardReset?.({ clearWordCache: false }); } catch (_) {}
+    try { window.aliasRemoveKeyHandlers?.(); } catch (_) {}
+    if (window.aliasInterval) clearInterval(window.aliasInterval);
+    if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
+    try { window.__wsCleanup?.(); } catch (_) {}
+    try { window.__wsCleanup = null; } catch (_) {}
+    try { window.__sacredWordCleanup?.(); } catch (_) {}
+    try { window.__sacredWordCleanup = null; } catch (_) {}
+    try { window.__quartetCleanup?.(); } catch (_) {}
+    try { window.__quartetCleanup = null; } catch (_) {}
+    delete window.goToMainMenu;
+  }
+
+  function gotoMenu(sync = true) {
+    cleanupGame();
+    state.activeGame = null;
+    state.status = "menu";
+    render();
+    if (sync) checkAccess();
+  }
+
+  function selectGame(gameId) {
+    const game = GAMES.find((item) => item.id === gameId);
+    if (!game) return;
+    cleanupGame();
+    state.activeGame = game;
+    state.status = "game";
+    const history = saveGameHistory(game.title);
+    const user = getTelegramUser();
+    apiRequest({ action: "updateHistory", id: user.id, history }).catch(() => {});
+    render();
+    loadGameScript(game);
+  }
+
+  function loadGameScript(game) {
+    window.appGoToMainMenu = () => gotoMenu(true);
+    window.goToMainMenu = window.appGoToMainMenu;
+    const container = document.getElementById("game-container");
+    if (!container) return;
+
+    const startGame = () => {
+      if (state.status !== "game" || state.activeGame?.id !== game.id) return;
+      try {
+        const starter = window[game.startFn];
+        if (typeof starter !== "function") {
+          showGameError(game, `Стартовая функция ${game.startFn} не найдена.`);
+          return;
+        }
+        starter(...(game.args || []));
+      } catch (error) {
+        console.error(error);
+        showGameError(game, "Скрипт найден, но игра не запустилась из-за ошибки.");
+      }
+    };
+
+    if (scriptRegistry.get(game.script) === "loaded") {
+      startGame();
+      return;
+    }
+
+    if (scriptRegistry.get(game.script) === "loading") {
+      const timer = window.setInterval(() => {
+        if (scriptRegistry.get(game.script) === "loaded") {
+          window.clearInterval(timer);
+          startGame();
+        }
+      }, 80);
+      return;
+    }
+
+    scriptRegistry.set(game.script, "loading");
+    const scriptEl = document.createElement("script");
+    scriptEl.src = game.script;
+    scriptEl.async = true;
+    scriptEl.onload = () => {
+      scriptRegistry.set(game.script, "loaded");
+      startGame();
+    };
+    scriptEl.onerror = () => {
+      scriptRegistry.delete(game.script);
+      showGameError(game, `Файл ${game.script} не найден в архиве или на сервере.`);
+    };
+    document.body.appendChild(scriptEl);
+  }
+
+  function showGameError(game, details) {
+    const container = document.getElementById("game-container");
+    if (!container) return;
+    container.innerHTML = `
+      <div class="game-error">
+        <div class="state-icon" style="width:64px;height:64px;margin:0;font-size:30px;">⚠️</div>
+        <div class="game-error-title">Игра находится в разработке</div>
+        <div class="game-error-text">${escapeHtml(details || `Файлы для игры ${game.title} не найдены.`)}</div>
+        <button class="primary-button" style="max-width:260px" data-action="menu">Вернуться в меню</button>
+      </div>
+    `;
+  }
+
+  function render() {
+    root.innerHTML = `
+      <main class="app-shell">
+        <div class="bg-orbs" aria-hidden="true"><div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div></div>
+        ${renderContent()}
+        ${state.supportOpen ? renderSupportModal() : ""}
+      </main>
+    `;
+  }
+
+  function renderContent() {
+    if (state.status === "loading") return renderLoading();
+    if (state.status === "banned") return renderBanned();
+    if (state.status === "admin") return renderAdminPanel();
+    if (state.status === "game" && state.activeGame) return renderGameRunner(state.activeGame);
+    return renderMenu();
+  }
+
+  function renderLoading() {
+    return `
+      <section class="fullscreen-state">
+        <div class="state-card">
+          <div class="spinner"></div>
+          <div class="loading-label">Проверка доступа...</div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderBanned() {
+    return `
+      <section class="fullscreen-state" style="background:#DBEAFE">
+        <div class="state-card">
+          <div class="state-icon">!</div>
+          <h1 class="state-title">Доступ к приложению ограничен</h1>
+          <p class="state-text">Обжаловать блокировку можно через техническую поддержку.</p>
+          <button class="danger-button" data-action="support-link">Написать в поддержку</button>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderMenu() {
+    const user = getTelegramUser();
+    const isAdmin = String(user.id) === ADMIN_ID;
+    const categories = CATEGORIES.map((cat) => {
+      const games = GAMES.filter((game) => game.category === cat.id);
+      if (!games.length) return "";
+      return `
+        <section class="category">
+          <h2 class="category-title">${escapeHtml(cat.label)}</h2>
+          <div class="game-grid ${games.length === 1 ? "single" : ""}">
+            ${games.map((game) => `
+              <button class="game-card" data-game-id="${escapeHtml(game.id)}">
+                <span class="game-icon">${escapeHtml(game.icon)}</span>
+                <span class="game-title">${escapeHtml(game.title)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }).join("");
+
+    return `
+      <section class="view">
+        <header class="header">
+          <h1 class="title">Библейские игры</h1>
+          <p class="subtitle">Во что будем играть?</p>
+        </header>
+        ${categories}
+        <div class="menu-actions">
+          <button class="soft-button" data-action="support">🛟 Тех-поддержка</button>
+          ${isAdmin ? `<button class="primary-button" data-action="admin">🛡️ Админ Панель</button>` : ""}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderGameRunner(game) {
+    return `
+      <section class="view">
+        <div class="topbar">
+          <button class="back-icon" data-action="menu" aria-label="Назад">←</button>
+          <h1 class="game-name">${escapeHtml(game.title)}</h1>
+          <div class="icon-chip">${escapeHtml(game.icon)}</div>
+        </div>
+        <div id="game-container">
+          <div class="game-loading">
+            <div class="spinner" style="width:40px;height:40px"></div>
+            <div>Загрузка игры...</div>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderSupportModal() {
+    return `
+      <div class="modal-backdrop" data-action="support-close"></div>
+      <section class="modal-shell" role="dialog" aria-modal="true" aria-label="Тех-поддержка">
+        <div class="support-card">
+          <button class="close-button" data-action="support-close" aria-label="Закрыть">×</button>
+          <div class="support-icon">⚙️</div>
+          <h2 class="support-title">Тех-поддержка</h2>
+          <p class="support-text">Заметили недочёты, ошибки в работе приложения или есть идеи для новых функций? Напишите нам напрямую.</p>
+          <div class="modal-actions">
+            <button class="primary-button" data-action="support-link">Написать ↗</button>
+            <button class="plain-button" data-action="support-close">Закрыть</button>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function parseLastGames(value) {
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return typeof value === "string" ? [value] : [];
+    }
+  }
+
+  function renderAdminPanel() {
+    const users = state.users || [];
+    return `
+      <section class="view admin-wrap">
+        <div class="topbar left">
+          <button class="back-icon" data-action="menu-no-sync" aria-label="Назад">←</button>
+          <h1 class="topbar-title">Админ Панель</h1>
+        </div>
+
+        <div class="section-card">
+          <h2 class="section-heading">✉️ Рассылка</h2>
+          <textarea class="textarea" data-field="broadcast" placeholder="Введите текст сообщения... (поддерживает HTML: &lt;b&gt;, &lt;i&gt;)" ${state.broadcastLoading ? "disabled" : ""}>${escapeHtml(state.broadcastText)}</textarea>
+          <button class="primary-button" data-action="broadcast" style="margin-top:12px" ${state.broadcastLoading ? "disabled" : ""}>${state.broadcastLoading ? "Отправка..." : "Отправить всем"}</button>
+        </div>
+
+        <h2 class="users-heading">Пользователи (${users.length})</h2>
+        ${state.adminLoading ? `
+          <div class="game-loading"><div class="spinner"></div></div>
+        ` : `
+          <div class="users-list">
+            ${users.length ? users.map(renderUserCard).join("") : `<div class="section-card empty">Пользователи не найдены</div>`}
+          </div>
+        `}
+      </section>
+    `;
+  }
+
+  function renderUserCard(user) {
+    const id = String(user.id ?? "");
+    const username = user.username && user.username !== "без_ника" ? `@${user.username}` : `ID: ${id}`;
+    const lastGames = parseLastGames(user.lastGames);
+    const stats = [
+      { label: "Bible Words", key: "wowStars", type: "stars_wow", val: user.wowStars || 0 },
+      { label: "Word Search", key: "wsStars", type: "stars_ws", val: user.wsStars || 0 },
+      { label: "Sacred Word", key: "swLevel", type: "stars_sw", val: user.swLevel || 0 }
+    ];
+
+    return `
+      <article class="user-card">
+        <div class="user-head">
+          <div style="min-width:0">
+            <div class="user-name">${escapeHtml(username)}</div>
+            <div class="user-id">ID: ${escapeHtml(id)}</div>
+          </div>
+          ${user.link && user.link !== "неизвестно" ? `<a class="chat-link" href="${escapeHtml(user.link)}" target="_blank" rel="noopener noreferrer">Чат</a>` : ""}
+        </div>
+
+        <div class="last-games">
+          <div class="last-games-label">🎮 Последние игры:</div>
+          <div class="last-games-text">${escapeHtml(lastGames.length ? lastGames.join(", ") : "Нет данных")}</div>
+        </div>
+
+        <div class="stat-grid">
+          ${stats.map((stat) => `
+            <div class="stat-card">
+              <div class="stat-label">${escapeHtml(stat.label)}</div>
+              <input class="stat-input" type="number" value="${escapeHtml(stat.val)}" data-stat-input="${escapeHtml(id)}:${escapeHtml(stat.type)}" />
+              <button class="save-stat" data-action="save-stat" data-user-id="${escapeHtml(id)}" data-stat-type="${escapeHtml(stat.type)}">✓</button>
+            </div>
+          `).join("")}
+        </div>
+
+        <button class="ban-button ${user.isBanned ? "unblock" : "block"}" data-action="toggle-ban" data-user-id="${escapeHtml(id)}">
+          ${user.isBanned ? "✓ Разблокировать" : "⊘ Заблокировать"}
+        </button>
+      </article>
+    `;
+  }
+
+  async function loadAdminData() {
+    state.status = "admin";
+    state.adminLoading = true;
+    render();
+
+    const res = await apiRequest({ action: "getAdminData", adminId: ADMIN_ID });
+    state.users = Array.isArray(res?.users) ? res.users : [];
+    state.adminLoading = false;
+    render();
+  }
+
+  function findAdminUser(userId) {
+    return (state.users || []).find((user) => String(user.id) === String(userId));
+  }
+
+  async function handleBroadcast() {
+    const textarea = document.querySelector('[data-field="broadcast"]');
+    state.broadcastText = textarea?.value || state.broadcastText;
+    if (!state.broadcastText.trim()) {
+      alert("Введите текст");
+      return;
+    }
+    if (!confirm("Отправить сообщение всем?")) return;
+
+    state.broadcastLoading = true;
+    render();
+
+    const res = await apiRequest({ action: "broadcast", adminId: ADMIN_ID, text: state.broadcastText });
+    state.broadcastLoading = false;
+
+    if (res?.success) {
+      const delivered = res.delivered ?? 0;
+      const failed = res.failed ?? 0;
+      state.broadcastText = "";
+      alert(`✅ Успешно!\nДоставлено: ${delivered}\nОшибок: ${failed}`);
+    } else {
+      alert("❌ Ошибка отправки");
+    }
+    render();
+  }
+
+  async function updateUserStars(userId, type, value) {
+    await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId: userId, type, value } });
+    await loadAdminData();
+  }
+
+  async function toggleBan(userId) {
+    const user = findAdminUser(userId);
+    if (!user) return;
+    const isBanning = !user.isBanned;
+    if (!confirm(`Вы уверены, что хотите ${isBanning ? "заблокировать" : "разблокировать"}?`)) return;
+    await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId: user.id, type: "ban", value: isBanning } });
+    await loadAdminData();
+  }
+
+  function bindEvents() {
+    document.addEventListener("click", async (event) => {
+      const gameButton = event.target.closest("[data-game-id]");
+      if (gameButton) {
+        selectGame(gameButton.dataset.gameId);
+        return;
+      }
+
+      const actionEl = event.target.closest("[data-action]");
+      if (!actionEl) return;
+      const action = actionEl.dataset.action;
+
+      if (action === "support") {
+        state.supportOpen = true;
+        render();
+      }
+
+      if (action === "support-close") {
+        state.supportOpen = false;
+        render();
+      }
+
+      if (action === "support-link") {
+        openTelegramLink("https://t.me/D_a_n_Vi");
+      }
+
+      if (action === "admin") {
+        await loadAdminData();
+      }
+
+      if (action === "menu") {
+        gotoMenu(true);
+      }
+
+      if (action === "menu-no-sync") {
+        gotoMenu(false);
+      }
+
+      if (action === "broadcast") {
+        await handleBroadcast();
+      }
+
+      if (action === "save-stat") {
+        const userId = actionEl.dataset.userId;
+        const type = actionEl.dataset.statType;
+        const input = document.querySelector(`[data-stat-input="${CSS.escape(`${userId}:${type}`)}"]`);
+        await updateUserStars(userId, type, asInt(input?.value, 0));
+      }
+
+      if (action === "toggle-ban") {
+        await toggleBan(actionEl.dataset.userId);
+      }
+    });
+
+    document.addEventListener("input", (event) => {
+      if (event.target.matches('[data-field="broadcast"]')) {
+        state.broadcastText = event.target.value;
+      }
     });
   }
 
-  const container = document.getElementById("game-container");
-  const menu = document.querySelector(".menu-container");
-
-  if (container) container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
-  if (menu) menu.classList.add("hidden");              
-  document.body.dataset.mode = "game";                 
-  window.scrollTo({ top: 0, behavior: "auto" });       
-
-  if (currentGameScript) {
-    currentGameScript.remove();
-    currentGameScript = null;
+  async function loadJSON(url) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ошибка: ${res.status} при загрузке ${url}`);
+    return await res.json();
   }
 
-  if (gameName === "alias") {
-    loadGameScript("games/alias.js", () => startAliasGame());
-  } else if (gameName === "coimaginarium") {
-    const themesUrl = "data/coimaginarium_themes.json";
-    loadGameScript("games/coimaginarium.js", () => startCoimaginariumGame(themesUrl));
-  } else if (gameName === "guess") {
-    const charsUrl = "data/characters.json";
-    loadGameScript("games/guess-character.js", () => startGuessCharacterGame(charsUrl));
-  } else if (gameName === "describe") {
-    const wordsUrl = "data/describe_words.json";
-    loadGameScript("games/describe-char.js", () => startDescribeCharacterGame(wordsUrl));
-  } else if (gameName === "spy") {
-    const locationsUrl = "data/spy_locations.json";
-    loadGameScript("games/spy.js", () => startSpyGame(locationsUrl));
-  } else if (gameName === "kids-ark-pairs") {
-    loadGameScript("games/kids-ark-pairs.js", () => startKidsArkPairsGame());
-  } else if (gameName === "quartet") {
-    const quartetsUrl = "data/quartet_bible.json";
-    loadGameScript("games/quartet.js", () => startQuartetGame(quartetsUrl));
-  } else if (gameName === "bible-wow") {
-    const levelsUrl = "data/bible_wow_levels.json";
-    loadGameScript("games/bible-wow.js", () => startBibleWowGame(levelsUrl));
-  } else if (gameName === "bible-wordsearch") {
-    const levelsUrl = "data/bible_wordsearch_levels.json";
-    loadGameScript("games/bible-wordsearch.js", () => startBibleWordSearchGame(levelsUrl));
-  } else if (gameName === "sacred-word") {
-    const wordsUrl = "data/sacred_words.json";
-    loadGameScript("games/sacred-word.js", () => startSacredWordGame(wordsUrl));
-  } else {
-    if (container) container.innerHTML = "<p>❌ Неизвестная игра.</p>";
-  }
-}
-
-function loadGameScript(fileName, callback) {
-  const script = document.createElement("script");
-  script.src = fileName;
-
-  script.onload = () => {
-    try {
-      callback();
-    } catch (e) {
-      console.error("Ошибка запуска игры:", e);
-      const container = document.getElementById("game-container");
-      if (container) {
-        container.innerHTML = `
-          <p style="color:red">❌ Ошибка запуска игры. Проверь консоль.</p>
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
-        `;
-      }
+  function shuffleArray(arr) {
+    const next = Array.isArray(arr) ? [...arr] : [];
+    for (let i = next.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [next[i], next[j]] = [next[j], next[i]];
     }
-  };
-
-  script.onerror = () => {
-    console.error(`Файл ${fileName} не загружается`);
-    const container = document.getElementById("game-container");
-    if (container) {
-      container.innerHTML = `
-        <p style="color:red">❌ Ошибка: файл <b>${fileName}</b> не найден или не загрузился.</p>
-        <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
-      `;
-    }
-    try { alert(`❌ Ошибка: файл ${fileName} не найден`); } catch {}
-  };
-
-  document.body.appendChild(script);
-  currentGameScript = script;
-}
-
-function goToMainMenu() {
-  const container = document.getElementById("game-container");
-  const menu = document.querySelector(".menu-container");
-
-  if (container) container.innerHTML = "";
-  if (menu) menu.classList.remove("hidden");
-  delete document.body.dataset.mode;
-
-  if (window.aliasInterval) clearInterval(window.aliasInterval);
-  if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
-
-  try { window.__wsCleanup?.(); } catch {}
-  try { window.__wsCleanup = null; } catch {}
-  try { window.__sacredWordCleanup?.(); } catch {}
-  try { window.__sacredWordCleanup = null; } catch {}
-
-  if (currentGameScript) {
-    currentGameScript.remove();
-    currentGameScript = null;
-  }
-  
-  // Фоновая сверка при выходе в меню (без лоадера)
-  initializeApp();
-}
-
-function showSupportModal() {
-  if (document.getElementById("support-modal-overlay")) return;
-
-  if (!document.getElementById("support-modal-style")) {
-    const style = document.createElement("style");
-    style.id = "support-modal-style";
-    style.textContent = `
-      .support-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(4px);
-        display: flex; align-items: center; justify-content: center;
-        z-index: 9999;
-        opacity: 0; animation: swFadeIn 0.2s forwards ease-out;
-      }
-      .support-box {
-        background: #ffffff;
-        border-radius: 20px;
-        padding: 24px;
-        width: min(90%, 400px);
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
-        transform: translateY(20px) scale(0.95);
-        animation: swSlideUp 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
-        text-align: center;
-      }
-      .support-title {
-        font-size: 1.3rem; font-weight: 800; color: #312e81; margin: 0 0 12px 0;
-      }
-      .support-text {
-        font-size: 0.95rem; color: #475569; line-height: 1.5; margin: 0 0 20px 0;
-      }
-      .support-actions {
-        display: grid; gap: 10px;
-      }
-      .support-btn-primary {
-        background: linear-gradient(135deg, #4f46e5, #3b82f6);
-        color: #fff; border: none; padding: 12px; border-radius: 12px;
-        font-size: 1rem; font-weight: 700; cursor: pointer;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      }
-      .support-btn-secondary {
-        background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
-        padding: 10px; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer;
-      }
-      @keyframes swFadeIn { to { opacity: 1; } }
-      @keyframes swSlideUp { to { transform: translateY(0) scale(1); } }
-    `;
-    document.head.appendChild(style);
+    return next;
   }
 
-  const overlay = document.createElement("div");
-  overlay.id = "support-modal-overlay";
-  overlay.className = "support-overlay";
+  // Совместимость со всеми vanilla-играми из старого архива.
+  window.getTelegramUser = getTelegramUser;
+  window.loadJSON = loadJSON;
+  window.shuffleArray = shuffleArray;
+  window.escapeHTML = escapeHtml;
+  window.appGoToMainMenu = () => gotoMenu(true);
 
-  overlay.innerHTML = `
-    <div class="support-box" onclick="event.stopPropagation()">
-      <h3 class="support-title">🛠 Тех-поддержка</h3>
-      <p class="support-text">
-        Если вы заметили какие-то недочёты или ошибки в приложении или у вас есть предложения по улучшению или добавлению новых функций, обращайтесь по кнопке ниже.
-      </p>
-      <div class="support-actions">
-        <button class="support-btn-primary" id="support-write-btn">Написать</button>
-        <button class="support-btn-secondary" id="support-close-btn">Закрыть</button>
-      </div>
-    </div>
-  `;
-
-  overlay.addEventListener("click", closeModal);
-  document.body.appendChild(overlay);
-
-  document.getElementById("support-close-btn").addEventListener("click", closeModal);
-  
-  document.getElementById("support-write-btn").addEventListener("click", () => {
-    const tgUrl = "https://t.me/D_a_n_Vi";
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(tgUrl);
-    } else {
-      window.open(tgUrl, "_blank");
-    }
-  });
-
-  function closeModal() {
-    overlay.style.animation = "none";
-    overlay.style.opacity = "0";
-    overlay.style.transition = "opacity 0.2s ease";
-    setTimeout(() => overlay.remove(), 200);
-  }
-}
-
-// --- ФУНКЦИИ АДМИН ПАНЕЛИ ---
-function renderAdminButton() {
-  const menu = document.querySelector(".menu-container");
-  if (!menu || document.getElementById("admin-btn")) return;
-  
-  const divider = document.createElement("div");
-  divider.className = "menu-divider";
-  divider.style.display = "block";
-  
-  const btn = document.createElement("button");
-  btn.id = "admin-btn";
-  btn.className = "game-button game-button--wide";
-  btn.style.background = "#0f172a";
-  btn.style.color = "#fff";
-  btn.innerHTML = "👑 Админ Панель";
-  btn.onclick = openAdminPanel;
-  
-  menu.appendChild(divider);
-  menu.appendChild(btn);
-}
-
-async function openAdminPanel() {
-  const container = document.getElementById("game-container");
-  const menu = document.querySelector(".menu-container");
-  
-  menu.classList.add("hidden");
-  
-  container.innerHTML = `
-    <div style='padding: 3rem 1rem; text-align: center;'>
-      <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--accent-active); border-radius: 50%; animation: spin 1s linear infinite;"></div>
-      <p style='margin-top: 1rem; font-weight: 600; color: #475569;'>Синхронизация с базой данных...</p>
-      <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-    </div>
-  `;
-  window.scrollTo({ top: 0, behavior: "auto" });
-
-  const res = await apiRequest({ action: "getAdminData", adminId: ADMIN_ID });
-  
-  if (!res || !res.users) {
-    container.innerHTML = "<div style='text-align: center; padding: 2rem;'><p style='color: red; margin-bottom: 1rem;'>❌ Ошибка загрузки базы.</p><button class='back-button' onclick='goToMainMenu()'>Назад</button></div>";
-    return;
-  }
-
-  let html = `
-    <div class="fade-in" style="width:100%; max-width: 500px; text-align:left; padding: 0 10px; margin: 0 auto;">
-      <button class="back-button" onclick="goToMainMenu()" style="margin-bottom:1rem; width: auto; padding: 10px 14px;">⬅️ Назад в меню</button>
-      
-      <div class="card" style="padding:1.2rem; margin: 0 0 1.5rem 0; border: 2px solid var(--accent-color);">
-        <h3 style="color:var(--accent-active); margin: 0 0 0.8rem 0; font-size: 1.15rem;">📣 Рассылка игрокам</h3>
-        <textarea id="broadcast-text" rows="3" placeholder="Введите текст сообщения... (поддерживает HTML теги: <b>жирный</b>, <i>курсив</i>)" style="width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; margin-bottom:10px; font-family:inherit; resize:vertical; font-size: 0.95rem;"></textarea>
-        <button id="broadcast-btn" onclick="sendBroadcast()" style="width:100%; padding:12px; background:linear-gradient(135deg, #4f46e5, #3b82f6); color:#fff; font-weight:bold; border:none; border-radius:10px; cursor:pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">Отправить всем</button>
-      </div>
-
-      <h2 style="color:var(--accent-active); margin-bottom:1.5rem; text-align:center;">Пользователи (${res.users.length})</h2>
-      <div style="display:flex; flex-direction:column; gap:1.2rem; padding-bottom:2rem;">
-  `;
-
-  if(res.users.length === 0) {
-     html += `<div style="text-align: center; color: #64748b;">Пока никого нет в базе</div>`;
-  }
-
-  res.users.forEach(u => {
-    let historyStr = "Нет данных";
-    try {
-      const h = JSON.parse(u.lastGames);
-      if (Array.isArray(h) && h.length > 0) historyStr = h.join(", ");
-    } catch(e) {}
-
-    html += `
-      <div class="card" style="padding:1.2rem; text-align:left; font-size:1rem; font-weight:normal; margin: 0;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-          <b style="font-size:1.15rem; word-break: break-all;">${u.username !== "без_ника" ? `@${u.username}` : `ID: ${u.id}`}</b>
-          ${u.link !== "неизвестно" ? `<a href="${u.link}" target="_blank" style="color:#3b82f6; text-decoration:none; font-weight:bold; flex-shrink: 0; padding: 4px 8px; background: #eff6ff; border-radius: 8px;">💬 Чат</a>` : `<span style="color:#9ca3af; font-size:0.85rem;">Нет ссылки</span>`}
-        </div>
-        
-        <div style="font-size:0.9rem; color:#475569; margin-bottom:15px; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <div style="margin-bottom: 4px; font-weight: 600; color: #64748b;">🎮 Последние игры:</div>
-          <div style="color:var(--text-color);">${historyStr}</div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap:0.8rem; margin-bottom:15px;">
-          <div style="background:#f1f5f9; padding:10px; border-radius:10px;">
-            <div style="font-size:0.8rem; color:#64748b; font-weight: 700; text-align: center; margin-bottom: 6px;">⭐ Bible Words</div>
-            <div style="display:flex; gap:6px;">
-              <input type="number" id="wow_${u.id}" value="${u.wowStars}" style="width:100%; padding:6px 8px; font-size:0.95rem; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
-              <button onclick="updateUserStars('${u.id}', 'stars_wow', 'wow_${u.id}')" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:0 14px; cursor:pointer; font-weight: bold;">✓</button>
-            </div>
-          </div>
-          
-          <div style="background:#f1f5f9; padding:10px; border-radius:10px;">
-            <div style="font-size:0.8rem; color:#64748b; font-weight: 700; text-align: center; margin-bottom: 6px;">⭐ Word Search</div>
-            <div style="display:flex; gap:6px;">
-              <input type="number" id="ws_${u.id}" value="${u.wsStars}" style="width:100%; padding:6px 8px; font-size:0.95rem; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
-              <button onclick="updateUserStars('${u.id}', 'stars_ws', 'ws_${u.id}')" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:0 14px; cursor:pointer; font-weight: bold;">✓</button>
-            </div>
-          </div>
-
-          <div style="background:#f1f5f9; padding:10px; border-radius:10px;">
-            <div style="font-size:0.8rem; color:#64748b; font-weight: 700; text-align: center; margin-bottom: 6px;">🪔 Sacred Word (Ур)</div>
-            <div style="display:flex; gap:6px;">
-              <input type="number" id="sw_${u.id}" value="${u.swLevel || 0}" style="width:100%; padding:6px 8px; font-size:0.95rem; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
-              <button onclick="updateUserStars('${u.id}', 'stars_sw', 'sw_${u.id}')" style="background:#22c55e; color:#fff; border:none; border-radius:6px; padding:0 14px; cursor:pointer; font-weight: bold;">✓</button>
-            </div>
-          </div>
-        </div>
-
-        <button onclick="toggleBan('${u.id}', ${!u.isBanned})" style="width:100%; padding:12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; background:${u.isBanned ? '#22c55e' : '#ef4444'}; color:#fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); transition: transform 0.1s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'">
-          ${u.isBanned ? '🟢 Разблокировать пользователя' : '🔴 Заблокировать пользователя'}
-        </button>
-      </div>
-    `;
-  });
-
-  html += `</div></div>`;
-  container.innerHTML = html;
-}
-
-window.updateUserStars = async function(targetId, type, inputId) {
-  const val = document.getElementById(inputId).value;
-  await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type, value: parseInt(val) } });
-  
-  const tgUser = getTelegramUser();
-  if (String(tgUser.id) === String(targetId)) {
-    if (type === 'stars_wow') {
-      let d = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}");
-      d.coins = parseInt(val);
-      localStorage.setItem("bibleWowData_v5", JSON.stringify(d));
-    } else if (type === 'stars_ws') {
-      localStorage.setItem(`bible_stars_v1_${tgUser.id}`, val);
-    } else if (type === 'stars_sw') {
-      let d = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}");
-      d.level = parseInt(val);
-      localStorage.setItem(`sacred_word_levels_v4_${tgUser.id}`, JSON.stringify(d));
-    }
-  }
-
-  const toast = document.createElement("div");
-  toast.textContent = "Успешно обновлено!";
-  toast.style.cssText = "position:fixed; bottom:40px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:#fff; padding:12px 24px; border-radius:999px; z-index:99999; font-weight:600; font-size: 0.95rem; box-shadow:0 8px 16px rgba(0,0,0,0.15); animation: swFadeIn 0.2s ease-out;";
-  document.body.appendChild(toast);
-  setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transition = "opacity 0.3s ease";
-      setTimeout(() => toast.remove(), 300);
-  }, 2000);
-}
-
-window.toggleBan = async function(targetId, banStatus) {
-  if(!confirm(`Вы уверены, что хотите ${banStatus ? 'заблокировать' : 'разблокировать'} пользователя?`)) return;
-  await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type: "ban", value: banStatus } });
-  openAdminPanel(); 
-}
-
-window.sendBroadcast = async function() {
-  const textEl = document.getElementById('broadcast-text');
-  const btn = document.getElementById('broadcast-btn');
-  const text = textEl.value.trim();
-
-  if (!text) {
-    alert("Пожалуйста, введите текст сообщения.");
-    return;
-  }
-
-  if (!confirm("Вы уверены, что хотите отправить это сообщение всем пользователям?")) {
-    return;
-  }
-
-  btn.disabled = true;
-  btn.innerHTML = "⏳ Отправка...";
-  btn.style.opacity = "0.7";
-
-  const res = await apiRequest({ action: "broadcast", adminId: ADMIN_ID, text: text });
-
-  btn.disabled = false;
-  btn.innerHTML = "Отправить всем";
-  btn.style.opacity = "1";
-
-  if (res && res.success) {
-    textEl.value = ""; 
-    alert(`✅ Рассылка успешно завершена!\n\nДоставлено: ${res.delivered}\nОшибок (удалили бота): ${res.failed}`);
-  } else {
-    alert("❌ Произошла ошибка при отправке рассылки.");
-  }
-}
+  bindEvents();
+  initTelegram();
+  checkAccess();
+})();
