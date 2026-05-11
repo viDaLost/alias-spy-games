@@ -25,6 +25,12 @@ async function initializeApp() {
   if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();
     window.Telegram.WebApp.expand();
+    try {
+      window.Telegram.WebApp.backgroundColor = "#DBEAFE";
+      window.Telegram.WebApp.headerColor = "#DBEAFE";
+      window.Telegram.WebApp.setBackgroundColor?.("#DBEAFE");
+      window.Telegram.WebApp.setHeaderColor?.("#DBEAFE");
+    } catch (e) {}
   }
 
   const tgUser = getTelegramUser();
@@ -79,12 +85,16 @@ async function initializeApp() {
       if (res.isBanned) {
         // Если забанен: меню остается скрытым, показываем бан-экран
         if (menu) menu.classList.add("hidden");
+        const gameScreen = document.getElementById("game-screen");
+        if (gameScreen) gameScreen.classList.add("hidden");
         if (bannedScreen) bannedScreen.classList.remove("hidden");
         return; 
       }
 
       // 2. Если НЕ забанен: показываем главное меню
       if (menu) menu.classList.remove("hidden");
+      const gameScreen = document.getElementById("game-screen");
+      if (gameScreen) gameScreen.classList.add("hidden");
       if (bannedScreen) bannedScreen.classList.add("hidden");
 
       // Синхронизируем локальный кэш
@@ -107,11 +117,15 @@ async function initializeApp() {
       // Запасной план: если сервер упал или нет интернета - пускаем в меню, чтобы приложение не сломалось
       if (mainLoader) mainLoader.remove();
       if (menu) menu.classList.remove("hidden");
+      const gameScreen = document.getElementById("game-screen");
+      if (gameScreen) gameScreen.classList.add("hidden");
     }
   } catch (err) {
     console.error("Init Error:", err);
     if (mainLoader) mainLoader.remove();
     if (menu) menu.classList.remove("hidden");
+    const gameScreen = document.getElementById("game-screen");
+    if (gameScreen) gameScreen.classList.add("hidden");
   }
 }
 
@@ -152,20 +166,26 @@ function showGame(gameName) {
     "kids-ark-pairs": "Найди пару"
   };
 
+  const gameIcons = {
+    "alias": "☰", "coimaginarium": "✦", "guess": "◉", "describe": "✎",
+    "spy": "◌", "quartet": "▤", "bible-wow": "▦", "bible-wordsearch": "⌕",
+    "sacred-word": "♢", "kids-ark-pairs": "⌁"
+  };
+
   if (gameTitles[gameName]) {
     let history = [];
     try {
       history = JSON.parse(localStorage.getItem("last_games_history") || "[]");
       if (!Array.isArray(history)) history = [];
     } catch (e) { history = []; }
-    
-    history = history.filter(g => g !== gameTitles[gameName]); 
-    history.unshift(gameTitles[gameName]); 
-    if (history.length > 3) history.pop(); 
-    
+
+    history = history.filter(g => g !== gameTitles[gameName]);
+    history.unshift(gameTitles[gameName]);
+    if (history.length > 3) history.pop();
+
     localStorage.setItem("last_games_history", JSON.stringify(history));
     currentUserData.lastGames = history;
-    
+
     apiRequest({
       action: "updateHistory",
       id: getTelegramUser().id,
@@ -175,11 +195,27 @@ function showGame(gameName) {
 
   const container = document.getElementById("game-container");
   const menu = document.querySelector(".menu-container");
+  const gameScreen = document.getElementById("game-screen");
+  const bannedScreen = document.getElementById("banned-screen");
+  const runnerTitle = document.getElementById("runner-title");
+  const runnerIcon = document.getElementById("runner-icon");
 
-  if (container) container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
-  if (menu) menu.classList.add("hidden");              
-  document.body.dataset.mode = "game";                 
-  window.scrollTo({ top: 0, behavior: "auto" });       
+  if (runnerTitle) runnerTitle.textContent = gameTitles[gameName] || "Игра";
+  if (runnerIcon) runnerIcon.textContent = gameIcons[gameName] || "✦";
+  if (container) {
+    container.innerHTML = `
+      <div class="game-loading-card fade-in">
+        <div class="loader-ring"></div>
+        <p>Загрузка игры...</p>
+      </div>
+    `;
+  }
+
+  if (menu) menu.classList.add("hidden");
+  if (bannedScreen) bannedScreen.classList.add("hidden");
+  if (gameScreen) gameScreen.classList.remove("hidden");
+  document.body.dataset.mode = "game";
+  window.scrollTo({ top: 0, behavior: "auto" });
 
   if (currentGameScript) {
     currentGameScript.remove();
@@ -257,8 +293,12 @@ function loadGameScript(fileName, callback) {
 function goToMainMenu() {
   const container = document.getElementById("game-container");
   const menu = document.querySelector(".menu-container");
+  const gameScreen = document.getElementById("game-screen");
+  const bannedScreen = document.getElementById("banned-screen");
 
   if (container) container.innerHTML = "";
+  if (gameScreen) gameScreen.classList.add("hidden");
+  if (bannedScreen) bannedScreen.classList.add("hidden");
   if (menu) menu.classList.remove("hidden");
   delete document.body.dataset.mode;
 
@@ -274,9 +314,18 @@ function goToMainMenu() {
     currentGameScript.remove();
     currentGameScript = null;
   }
-  
+
   // Фоновая сверка при выходе в меню (без лоадера)
   initializeApp();
+}
+
+function openSupportLink() {
+  const tgUrl = "https://t.me/D_a_n_Vi";
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
+    window.Telegram.WebApp.openTelegramLink(tgUrl);
+  } else {
+    window.open(tgUrl, "_blank");
+  }
 }
 
 function showSupportModal() {
@@ -351,14 +400,7 @@ function showSupportModal() {
 
   document.getElementById("support-close-btn").addEventListener("click", closeModal);
   
-  document.getElementById("support-write-btn").addEventListener("click", () => {
-    const tgUrl = "https://t.me/D_a_n_Vi";
-    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(tgUrl);
-    } else {
-      window.open(tgUrl, "_blank");
-    }
-  });
+  document.getElementById("support-write-btn").addEventListener("click", openSupportLink);
 
   function closeModal() {
     overlay.style.animation = "none";
@@ -372,21 +414,16 @@ function showSupportModal() {
 function renderAdminButton() {
   const menu = document.querySelector(".menu-container");
   if (!menu || document.getElementById("admin-btn")) return;
-  
-  const divider = document.createElement("div");
-  divider.className = "menu-divider";
-  divider.style.display = "block";
-  
+
+  const actions = menu.querySelector(".menu-actions") || menu;
+
   const btn = document.createElement("button");
   btn.id = "admin-btn";
-  btn.className = "game-button game-button--wide";
-  btn.style.background = "#0f172a";
-  btn.style.color = "#fff";
-  btn.innerHTML = "👑 Админ Панель";
+  btn.className = "admin-menu-btn";
+  btn.innerHTML = "<span>⚑</span><span>Админ Панель</span>";
   btn.onclick = openAdminPanel;
-  
-  menu.appendChild(divider);
-  menu.appendChild(btn);
+
+  actions.appendChild(btn);
 }
 
 async function openAdminPanel() {
