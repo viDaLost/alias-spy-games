@@ -24,7 +24,7 @@ function startSacredWordGame(wordsUrl) {
 
   // --- THREE.JS ПЕРЕМЕННЫЕ ---
   let threeCanvas = null;
-  let scene, camera, renderer;
+  let scene, camera, renderer, menorahGroup;
   let flames3D = [];
   let smokeParticles = [];
   let animationFrameId;
@@ -116,38 +116,48 @@ function startSacredWordGame(wordsUrl) {
   function initThreeJS() {
     scene = new THREE.Scene();
     
-    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(220, 220);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(260, 260);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+    if ('toneMapping' in renderer) renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    if ('toneMappingExposure' in renderer) renderer.toneMappingExposure = 1.18;
     threeCanvas = renderer.domElement;
     threeCanvas.style.width = "100%";
     threeCanvas.style.height = "auto";
-    threeCanvas.style.maxWidth = "220px";
+    threeCanvas.style.maxWidth = "260px";
     threeCanvas.style.aspectRatio = "1 / 1";
 
     camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
-    camera.position.set(0, 2.5, 14.5);
-    camera.lookAt(0, 1.5, 0);
+    camera.position.set(0, 2.35, 14.2);
+    camera.lookAt(0, 1.35, 0);
+    scene.fog = new THREE.FogExp2(0xdbeafe, 0.018);
 
     // Сложное освещение
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.58);
     scene.add(ambientLight);
     
-    const mainLight = new THREE.DirectionalLight(0xfff0dd, 1.2);
+    const mainLight = new THREE.DirectionalLight(0xfff1d6, 1.45);
     mainLight.position.set(5, 10, 8);
+    mainLight.castShadow = true;
     scene.add(mainLight);
 
-    const backLight = new THREE.DirectionalLight(0x88bbff, 0.8);
+    const backLight = new THREE.DirectionalLight(0x8fd3ff, 1.05);
     backLight.position.set(-5, 5, -8);
     scene.add(backLight);
 
     const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xffb700,
-      metalness: 0.9,
-      roughness: 0.15,
+      color: 0xffc24d,
+      emissive: 0x3a1f00,
+      emissiveIntensity: 0.16,
+      metalness: 0.96,
+      roughness: 0.18,
     });
 
-    const menorahGroup = new THREE.Group();
+    menorahGroup = new THREE.Group();
     menorahGroup.position.y = -1;
 
     // --- БАЗА И СТВОЛ ---
@@ -191,6 +201,14 @@ function startSacredWordGame(wordsUrl) {
       addCandleCupAndFire(-r, branchYCenter, menorahGroup);
     });
 
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(4.6, 64),
+      new THREE.MeshBasicMaterial({ color: 0xfff2bf, transparent: true, opacity: 0.14, depthWrite: false })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -3.25;
+    scene.add(floor);
+
     scene.add(menorahGroup);
     animateThreeJS();
   }
@@ -201,7 +219,7 @@ function startSacredWordGame(wordsUrl) {
   const smokeMat = new THREE.SpriteMaterial({ map: texSmoke, transparent: true });
 
   function addCandleCupAndFire(x, y, parentGroup) {
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffb700, metalness: 0.9, roughness: 0.15 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc24d, emissive: 0x3a1f00, emissiveIntensity: 0.14, metalness: 0.96, roughness: 0.18 });
     const candleMat = new THREE.MeshStandardMaterial({ color: 0xfdfbf7, roughness: 0.9, metalness: 0.0 });
     const wickMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
 
@@ -226,7 +244,7 @@ function startSacredWordGame(wordsUrl) {
     const flameY = candleY + 0.9;
     flameGroup.position.set(x, flameY, 0);
 
-    const light = new THREE.PointLight(0xff8800, 1.5, 6);
+    const light = new THREE.PointLight(0xffb020, 2.1, 7.4);
     flameGroup.add(light);
 
     const coreMat = new THREE.SpriteMaterial({ map: texCore, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -279,11 +297,14 @@ function startSacredWordGame(wordsUrl) {
 
     flames3D.forEach((flame) => {
       if (flame.active) {
-        const flicker = Math.sin(time + flame.randomOffset) * 0.15 + 0.85;
-        flame.core.scale.set(0.6 * flicker, 1.0 * flicker, 1);
-        flame.halo.scale.set(1.2 * flicker, 1.8 * flicker, 1);
-        flame.light.intensity = 1.5 * flicker;
-        flame.group.position.y = flame.baseY + Math.sin(time * 3 + flame.randomOffset) * 0.03;
+        const slow = Math.sin(time * 0.45 + flame.randomOffset) * 0.06;
+        const fast = Math.sin(time * 2.8 + flame.randomOffset) * 0.13;
+        const flicker = 0.9 + slow + fast;
+        flame.core.scale.set(0.54 * flicker, 0.98 * flicker, 1);
+        flame.halo.scale.set(1.35 * flicker, 2.05 * flicker, 1);
+        flame.light.intensity = 1.55 + flicker * 0.82;
+        flame.group.position.y = flame.baseY + Math.sin(time * 2.2 + flame.randomOffset) * 0.045;
+        flame.group.position.x = flame.xPosition + Math.sin(time * 1.1 + flame.randomOffset) * 0.018;
       }
     });
 
@@ -303,9 +324,13 @@ function startSacredWordGame(wordsUrl) {
       }
     }
 
-    camera.position.x = Math.sin(time * 0.05) * 2;
-    camera.position.z = 14.5 + Math.cos(time * 0.05) * 1;
-    camera.lookAt(0, 1.5, 0);
+    if (menorahGroup) {
+      menorahGroup.rotation.y = Math.sin(time * 0.12) * 0.12;
+      menorahGroup.position.y = -1 + Math.sin(time * 0.22) * 0.055;
+    }
+    camera.position.x = Math.sin(time * 0.04) * 1.15;
+    camera.position.z = 14.2 + Math.cos(time * 0.04) * 0.55;
+    camera.lookAt(0, 1.35, 0);
 
     renderer.render(scene, camera);
   }

@@ -641,24 +641,12 @@ function startBibleWowGame(levelsUrl) {
     const lvl = st.currLevel;
     container.innerHTML = `
       <div class="wow-wrap">
-        <div class="wow-top">
-           <div class="wow-pill">
+        <div class="wow-head">
+           <div class="wow-head-row">
              <div class="wow-chip btn" id="wow-menu">⬅ Меню</div>
+             <div class="wow-chip btn" id="wow-levels-open">▦ Уровни</div>
            </div>
-
-           <div class="wow-pill">
-             <div class="wow-chip btn" id="wow-prev">◀</div>
-             <div class="wow-title" id="wow-title">Уровень ${lvl ? lvl.id : ""}</div>
-             <div class="wow-chip btn" id="wow-next">▶</div>
-           </div>
-
-           <div class="wow-pill">
-             <div class="wow-rightCol">
-               <div class="wow-stars">⭐ <span id="wow-score">${st.coins}</span></div>
-               <div class="wow-chip btn" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
-             </div>
-             <div class="wow-chip btn" id="wow-levels-open">≡</div>
-           </div>
+           <div class="wow-stars wow-stars-floating">⭐ <span id="wow-score">${st.coins}</span></div>
         </div>
 
         <div class="wow-board-area" id="wow-board-area">
@@ -671,18 +659,25 @@ function startBibleWowGame(levelsUrl) {
         </div>
 
         <div class="wow-controls">
+           <div class="wow-level-switch">
+             <div class="wow-chip btn" id="wow-prev">◀</div>
+             <div class="wow-title" id="wow-title">Уровень ${lvl ? lvl.id : ""}</div>
+             <div class="wow-chip btn" id="wow-next">▶</div>
+           </div>
+
            <div class="wow-preview" id="wow-preview"></div>
+
+           <div class="wow-wheel-wrap" id="wow-wheel">
+              <div class="wow-wheel-bg"></div>
+              <canvas class="wow-line-canvas" id="wow-canvas"></canvas>
+           </div>
 
            <div class="wow-actions">
              <div class="wow-chip btn" id="wow-shuffle">⟲ Микс</div>
              <div class="wow-chip btn" id="wow-hint">💡 Подсказка 6⭐</div>
              <div class="wow-chip btn" id="wow-reveal">👁 Слово 20⭐</div>
+             <div class="wow-chip btn" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
              <div class="wow-chip" id="wow-reset">↺ Сброс</div>
-           </div>
-
-           <div class="wow-wheel-wrap" id="wow-wheel">
-              <div class="wow-wheel-bg"></div>
-              <canvas class="wow-line-canvas" id="wow-canvas"></canvas>
            </div>
         </div>
 
