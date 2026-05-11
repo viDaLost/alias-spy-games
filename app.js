@@ -9,6 +9,10 @@ let currentUserData = { lastGames: [] };
 
 
 const loadedGameScripts = new Map();
+let activeGameObserver = null;
+let appInitRunId = 0;
+let appCurrentMode = "menu";
+let activeGameRunId = 0;
 
 const GAME_META = {
   "alias": { title: "Алиас", script: "games/alias.js", startFn: "startAliasGame", args: [] },
@@ -86,6 +90,91 @@ function openSupportLink() {
 }
 
 
+function cleanupActiveGame() {
+  if (activeGameObserver) {
+    try { activeGameObserver.disconnect(); } catch(e) {}
+    activeGameObserver = null;
+  }
+
+  try { window.__aliasCleanup?.(); } catch(e) {}
+  try { window.__aliasCleanup = null; } catch(e) {}
+  if (window.aliasInterval) {
+    clearInterval(window.aliasInterval);
+    window.aliasInterval = null;
+  }
+  if (window.coimaginariumInterval) {
+    clearInterval(window.coimaginariumInterval);
+    window.coimaginariumInterval = null;
+  }
+
+  try { window.__wsCleanup?.(); } catch(e) {}
+  try { window.__wsCleanup = null; } catch(e) {}
+  try { window.__sacredWordCleanup?.(); } catch(e) {}
+  try { window.__sacredWordCleanup = null; } catch(e) {}
+  try { window.__quartetCleanup?.(); } catch(e) {}
+  try { window.__quartetCleanup = null; } catch(e) {}
+  try { window.__kidsArkCleanup?.(); } catch(e) {}
+  try { window.__kidsArkCleanup = null; } catch(e) {}
+  try { window.__bibleWowCleanup?.(); } catch(e) {}
+  try { window.__bibleWowCleanup = null; } catch(e) {}
+  window.__activeGameName = "";
+}
+
+function enhanceGameDom(gameName) {
+  const container = document.getElementById("game-container");
+  if (!container) return;
+
+  container.classList.add("game-content", `game-content--${String(gameName).replace(/[^a-z0-9-]/gi, "")}`);
+
+  container.querySelectorAll(":scope > h2, .alias-title, .game-title, .quartet-title, .kids-screen > h2, .sw-title, .wow-title").forEach((node) => {
+    node.classList.add("unified-game-title");
+  });
+
+  container.querySelectorAll(".card, .setup-block, .premium-theme-card, .secret-card, .app-error-card, .kids-screen, .ws-panel, .sw-card, .sw-lamp-card, .wow-modal-card, .kids-modal-card, .quartet-card, .mini-card, .content-wrap, .action-empty, .action-big, .rules-section").forEach((node) => {
+    node.classList.add("unified-surface");
+  });
+
+  container.querySelectorAll("button").forEach((btn) => {
+    btn.classList.add("unified-button");
+    if (!btn.dataset.enhancedButton) {
+      btn.dataset.enhancedButton = "1";
+      if (!btn.getAttribute("type")) btn.setAttribute("type", "button");
+    }
+  });
+
+  container.querySelectorAll("input, textarea, select").forEach((field) => {
+    field.classList.add("unified-field");
+  });
+
+  renderAppIcons();
+}
+
+function installGameDomObserver(gameName) {
+  if (activeGameObserver) {
+    try { activeGameObserver.disconnect(); } catch(e) {}
+    activeGameObserver = null;
+  }
+
+  const container = document.getElementById("game-container");
+  if (!container) return;
+
+  let scheduled = false;
+  const runEnhance = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      enhanceGameDom(gameName);
+    });
+  };
+
+  activeGameObserver = new MutationObserver(runEnhance);
+  activeGameObserver.observe(container, { childList: true, subtree: true });
+  runEnhance();
+}
+
+
+
 async function apiRequest(payload) {
   try {
     const res = await fetch(GAS_API_URL, {
@@ -100,7 +189,8 @@ async function apiRequest(payload) {
   }
 }
 
-async function initializeApp() {
+async function initializeApp({ keepCurrentView = false } = {}) {
+  const runId = ++appInitRunId;
   renderAppIcons();
 
   if (window.Telegram && window.Telegram.WebApp) {
@@ -117,16 +207,25 @@ async function initializeApp() {
 
   const menu = document.querySelector(".menu-container");
   const bannedScreen = document.getElementById("banned-screen");
-  const mainLoader = document.getElementById("main-loader"); // Наш новый лоадер из HTML
+  const gameScreen = document.getElementById("game-screen");
+  const mainLoader = document.getElementById("main-loader");
+
+  const showMenuSafely = () => {
+    if (keepCurrentView || document.body.dataset.mode === "game") return;
+    if (menu) menu.classList.remove("hidden");
+    if (gameScreen) gameScreen.classList.add("hidden");
+    if (bannedScreen) bannedScreen.classList.add("hidden");
+    appCurrentMode = "menu";
+    renderAppIcons();
+  };
 
   try {
     let localWowData = { coins: 20 };
     try { localWowData = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}"); } catch(e) {}
-    
+
     let localWsStars = 0;
     try { localWsStars = parseInt(localStorage.getItem(`bible_stars_v1_${tgUser.id}`) || "0"); } catch(e) {}
-    
-    // Получаем локальный уровень игры "Священное слово"
+
     let localSwLevel = 0;
     try { 
       const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}"); 
@@ -139,7 +238,6 @@ async function initializeApp() {
       if (!Array.isArray(localGamesHistory)) localGamesHistory = [];
     } catch (e) { localGamesHistory = []; }
 
-    // Делаем запрос к БД для проверки бана и синхронизации
     const res = await apiRequest({
       action: "syncUser",
       user: {
@@ -148,37 +246,30 @@ async function initializeApp() {
         link: tgUser.link,
         wowStars: typeof localWowData.coins === 'number' ? localWowData.coins : 20,
         wsStars: isNaN(localWsStars) ? 0 : localWsStars,
-        swLevel: localSwLevel, // Отправляем уровень Священного слова на сервер
+        swLevel: localSwLevel,
         lastGames: localGamesHistory,
         forceUpdate: false 
       }
     });
 
-    // 1. Убираем лоадер загрузки, как только пришел ответ от сервера
+    if (runId !== appInitRunId) return;
     if (mainLoader) mainLoader.remove();
 
     if (res) {
       if (res.isBanned) {
-        // Если забанен: меню остается скрытым, показываем бан-экран
+        if (keepCurrentView || document.body.dataset.mode === "game") return;
         if (menu) menu.classList.add("hidden");
-        document.getElementById("game-screen")?.classList.add("hidden");
+        if (gameScreen) gameScreen.classList.add("hidden");
         if (bannedScreen) bannedScreen.classList.remove("hidden");
+        appCurrentMode = "banned";
         renderAppIcons();
         return; 
       }
 
-      // 2. Если НЕ забанен: показываем главное меню
-      if (menu) menu.classList.remove("hidden");
-      document.getElementById("game-screen")?.classList.add("hidden");
-      if (bannedScreen) bannedScreen.classList.add("hidden");
-      renderAppIcons();
-
-      // Синхронизируем локальный кэш
       localWowData.coins = res.wowStars;
       localStorage.setItem("bibleWowData_v5", JSON.stringify(localWowData));
       localStorage.setItem(`bible_stars_v1_${tgUser.id}`, res.wsStars);
-      
-      // Синхронизируем уровень Священного слова
+
       if (res.swLevel !== undefined) {
         try {
           const swState = JSON.parse(localStorage.getItem(`sacred_word_levels_v4_${tgUser.id}`) || "{}");
@@ -187,24 +278,20 @@ async function initializeApp() {
         } catch(e) {}
       }
 
-      localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
-      currentUserData.lastGames = res.lastGames;
+      if (Array.isArray(res.lastGames)) {
+        localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
+        currentUserData.lastGames = res.lastGames;
+      }
+      showMenuSafely();
     } else {
-      // Запасной план: если сервер упал или нет интернета - пускаем в меню, чтобы приложение не сломалось
-      if (mainLoader) mainLoader.remove();
-      if (menu) menu.classList.remove("hidden");
-      document.getElementById("game-screen")?.classList.add("hidden");
-      renderAppIcons();
+      showMenuSafely();
     }
   } catch (err) {
     console.error("Init Error:", err);
     if (mainLoader) mainLoader.remove();
-    if (menu) menu.classList.remove("hidden");
-    document.getElementById("game-screen")?.classList.add("hidden");
-    renderAppIcons();
+    showMenuSafely();
   }
 }
-
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
@@ -235,6 +322,9 @@ function shuffleArray(arr) {
 }
 
 function showGame(gameName) {
+  cleanupActiveGame();
+  appInitRunId++;
+  const gameRunId = ++activeGameRunId;
   const meta = GAME_META[gameName];
   if (!meta) {
     const container = document.getElementById("game-container");
@@ -257,6 +347,7 @@ function showGame(gameName) {
   const menu = document.querySelector(".menu-container");
   const gameScreen = document.getElementById("game-screen");
   const bannedScreen = document.getElementById("banned-screen");
+  window.__activeGameName = gameName;
   const runnerTitle = document.getElementById("runner-title");
   const runnerIcon = document.getElementById("runner-icon");
 
@@ -276,11 +367,17 @@ function showGame(gameName) {
   }
 
   document.body.dataset.mode = "game";
+  appCurrentMode = "game";
+  installGameDomObserver(gameName);
   window.scrollTo({ top: 0, behavior: "auto" });
 
   loadGameScript(meta.script, () => {
+    if (gameRunId !== activeGameRunId || document.body.dataset.mode !== "game") return;
     try {
       safeStartGame(meta);
+      enhanceGameDom(gameName);
+      setTimeout(() => enhanceGameDom(gameName), 120);
+      setTimeout(() => enhanceGameDom(gameName), 600);
       renderAppIcons();
     } catch (e) {
       console.error("Ошибка запуска игры:", e);
@@ -355,25 +452,23 @@ function goToMainMenu() {
   const gameScreen = document.getElementById("game-screen");
   const bannedScreen = document.getElementById("banned-screen");
 
-  if (window.aliasInterval) clearInterval(window.aliasInterval);
-  if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
-  try { window.__wsCleanup?.(); } catch {}
-  try { window.__wsCleanup = null; } catch {}
-  try { window.__sacredWordCleanup?.(); } catch {}
-  try { window.__sacredWordCleanup = null; } catch {}
+  cleanupActiveGame();
 
-  if (container) container.innerHTML = "";
+  if (container) {
+    container.className = "";
+    container.innerHTML = "";
+  }
   if (gameScreen) gameScreen.classList.add("hidden");
   if (bannedScreen) bannedScreen.classList.add("hidden");
   if (menu) menu.classList.remove("hidden");
 
   delete document.body.dataset.mode;
+  appCurrentMode = "menu";
+  appInitRunId++;
+  activeGameRunId++;
   renderAppIcons();
   window.scrollTo({ top: 0, behavior: "auto" });
-
-  initializeApp();
 }
-
 function showSupportModal() {
   if (document.getElementById("support-modal-overlay")) return;
 

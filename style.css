@@ -1726,3 +1726,653 @@ button[onclick^="toggleBan"] {
     transition-duration: .01ms !important;
   }
 }
+
+
+
+/* =========================================================
+   FULL GAME FIX PASS
+   Единый стиль для внутренних экранов всех игр
+   ========================================================= */
+
+.hidden { display: none !important; }
+
+#game-container.game-content {
+  width: 100%;
+  max-width: 448px;
+  margin: 0 auto;
+  display: block;
+  animation: pagePop .26s cubic-bezier(.16,1,.3,1);
+}
+
+#game-container.game-content * {
+  box-sizing: border-box;
+}
+
+#game-container.game-content > * + * {
+  margin-top: 14px;
+}
+
+.game-loading-card {
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 32px;
+  background: rgba(255,255,255,.56);
+  border: 1px solid rgba(255,255,255,.70);
+  box-shadow: 0 8px 30px rgba(0,0,0,.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.game-loading-card p {
+  margin-top: 14px;
+  color: rgba(49,46,129,.62);
+  font-weight: 900;
+}
+
+.unified-game-title,
+#game-container > h2,
+.alias-title,
+.game-title,
+.quartet-title,
+.wow-title,
+.sw-title,
+.kids-screen > h2 {
+  margin: 4px 0 12px !important;
+  padding: 0 !important;
+  text-align: center !important;
+  font-size: clamp(28px, 8vw, 36px) !important;
+  line-height: 1.05 !important;
+  letter-spacing: -.04em !important;
+  font-weight: 900 !important;
+  color: #1e1b4b !important;
+  background: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+#game-container p,
+.hint,
+.field-hint,
+.alias-sub,
+.game-subtitle,
+.kids-subtitle,
+.kids-hint,
+.ws-title__meta,
+.wow-muted,
+.sw-subtitle,
+.rules-tip,
+.action-text,
+.empty-note {
+  color: rgba(49,46,129,.58) !important;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.unified-surface,
+.card,
+.setup-block,
+.premium-theme-card,
+.secret-card,
+.kids-screen,
+.ws-panel,
+.sw-card,
+.sw-lamp-card,
+.quartet-card,
+.mini-card,
+.content-wrap,
+.action-empty,
+.action-big,
+.rules-section,
+.wait-box {
+  background: rgba(255,255,255,.68) !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,.04) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  color: #18181b !important;
+  animation: pagePop .24s cubic-bezier(.16,1,.3,1);
+}
+
+.card,
+.setup-block,
+.premium-theme-card,
+.secret-card,
+.kids-screen,
+.ws-panel,
+.sw-card,
+.sw-lamp-card,
+.quartet-card,
+.mini-card,
+.content-wrap,
+.action-empty,
+.action-big,
+.rules-section {
+  padding: 20px !important;
+}
+
+.secret-card h3,
+.theme-letter strong,
+.card strong,
+.card-title,
+.action-title,
+.guide-title,
+.kids-title-small,
+.rules-section-title,
+.setup-label,
+.input-label,
+.theme-label {
+  color: #1e1b4b !important;
+  font-weight: 900 !important;
+}
+
+.theme-label,
+.badge,
+.chip,
+.mini-chip,
+.q-chip,
+.wow-chip,
+.wow-pill,
+.sw-pill,
+.ws-stars,
+.kids-timer,
+.room-code-display {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px !important;
+  background: rgba(185,204,255,.62) !important;
+  color: #3730a3 !important;
+  border: 1px solid rgba(185,204,255,.80) !important;
+  box-shadow: none !important;
+  font-size: 13px;
+  font-weight: 900 !important;
+}
+
+.unified-button,
+.game-button,
+.menu-button,
+.start-button,
+.back-button,
+.correct-button,
+.wrong-button,
+.skip-button,
+.btn,
+button.ws-level-btn,
+.ws-level-item,
+.sw-kb-key,
+.sw-btn,
+.kids-small,
+.support-btn-primary,
+.support-btn-secondary,
+.banned-button {
+  min-height: 54px !important;
+  padding: 14px 16px !important;
+  border-radius: 18px !important;
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.15 !important;
+  border: 1px solid rgba(185,204,255,.80) !important;
+  background: rgba(185,204,255,.62) !important;
+  color: #1e1b4b !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,.04) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  transition: transform .15s cubic-bezier(.4,0,.2,1), background-color .15s ease, box-shadow .15s ease !important;
+}
+
+.unified-button:active,
+.game-button:active,
+.menu-button:active,
+.start-button:active,
+.back-button:active,
+.correct-button:active,
+.wrong-button:active,
+.skip-button:active,
+.btn:active,
+.ws-level-item:active,
+.sw-kb-key:active,
+.sw-btn:active,
+.kids-card:active {
+  transform: scale(.96) !important;
+}
+
+.correct-button,
+.btn-good,
+.btn-success,
+.btn-primary,
+.start-button {
+  background: #4f61e5 !important;
+  color: #fffff4 !important;
+  border-color: rgba(79,97,229,.65) !important;
+  box-shadow: 0 8px 22px rgba(79,97,229,.22) !important;
+}
+
+.wrong-button,
+.btn-bad {
+  background: #f43f5e !important;
+  color: #fff !important;
+  border-color: rgba(244,63,94,.55) !important;
+}
+
+.skip-button,
+.btn-skip {
+  background: #f59e0b !important;
+  color: #fff !important;
+  border-color: rgba(245,158,11,.55) !important;
+}
+
+.back-button,
+.btn-ghost {
+  background: rgba(255,255,255,.56) !important;
+  color: #3730a3 !important;
+  border-color: rgba(255,255,255,.72) !important;
+}
+
+input.unified-field,
+textarea.unified-field,
+select.unified-field,
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="email"],
+input[type="url"],
+input[type="tel"],
+input[type="password"],
+textarea,
+select,
+.timer-input,
+.q-input,
+.input,
+.input-field,
+.number-input,
+.compact-select {
+  width: 100%;
+  min-height: 54px !important;
+  padding: 14px 16px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  background: rgba(255,255,255,.76) !important;
+  color: #18181b !important;
+  font-family: "Nunito", sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,.03) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.timer-input:focus,
+.q-input:focus,
+.input:focus,
+.input-field:focus,
+.number-input:focus,
+.compact-select:focus {
+  outline: none !important;
+  border-color: rgba(79,97,229,.7) !important;
+  box-shadow: 0 0 0 4px rgba(79,97,229,.18) !important;
+}
+
+.setup-grid,
+.alias-buttons,
+.actions,
+.premium-actions,
+.row-center,
+.row-wrap,
+.chips,
+.kids-panel,
+.kids-difficulty,
+.kids-bottom,
+.wow-actions,
+.wow-controls,
+.ws-actions,
+.ws-bottom {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 12px !important;
+  width: 100%;
+}
+
+.setup-grid {
+  margin: 16px 0 !important;
+}
+
+.timer,
+#alias-timer {
+  width: 124px !important;
+  height: 124px !important;
+  margin: 12px auto !important;
+  border-radius: 999px !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  background: rgba(255,255,255,.66) !important;
+  border: 4px solid rgba(244,63,94,.55) !important;
+  color: #f43f5e !important;
+  font-size: 24px !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,.04) !important;
+}
+
+.round-head {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.round-meta {
+  color: rgba(49,46,129,.58);
+  font-weight: 900;
+}
+
+.word-card {
+  min-height: 210px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: clamp(30px, 10vw, 44px) !important;
+  color: #1e1b4b !important;
+  font-weight: 900 !important;
+}
+
+/* Word Search */
+.ws-wrap,
+.wow-wrap,
+.kids-screen,
+.quartet-wrap {
+  width: 100% !important;
+  max-width: 448px !important;
+  margin: 0 auto !important;
+}
+
+.ws-topbar,
+.wow-top,
+.kids-topbar,
+.game-header,
+.mini-card-top,
+.card-header-row,
+.quartet-topbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  flex-wrap: wrap;
+}
+
+.ws-board,
+.wow-board-area,
+.kids-grid,
+.sw-board,
+.mini-cards-grid,
+.hand-group-body {
+  background: rgba(255,255,255,.50) !important;
+  border: 1px solid rgba(255,255,255,.72) !important;
+  border-radius: 28px !important;
+  padding: 14px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,.04) !important;
+}
+
+.ws-grid,
+.wow-grid,
+.ws-levelrow,
+.ws-levels-grid,
+.mini-cards-grid {
+  display: grid !important;
+  gap: 8px !important;
+}
+
+.ws-cell,
+.wow-cell,
+.sw-letter {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,.75) !important;
+  background: rgba(255,255,255,.86) !important;
+  color: #1e1b4b !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  font-weight: 900 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.04) !important;
+}
+
+.ws-cell.ws-cell--sel,
+.ws-cell.ws-cell--solved,
+.ws-cell.ws-cell--found,
+.wow-cell.active,
+.sw-letter.active,
+.sw-letter.hinted,
+.ws-level-item.active {
+  background: #4f61e5 !important;
+  color: #fffff4 !important;
+  border-color: rgba(79,97,229,.6) !important;
+}
+
+.ws-cell.ws-cell--solved,
+.solved,
+.completed,
+.matched .kids-card-inner {
+  box-shadow: 0 0 0 3px rgba(16,185,129,.22), 0 8px 30px rgba(0,0,0,.04) !important;
+}
+
+.wow-wheel-wrap,
+.wow-wheel-bg {
+  touch-action: none;
+}
+
+.wow-preview {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(255,255,255,.56);
+  border: 1px solid rgba(255,255,255,.72);
+  font-weight: 900;
+  color: #1e1b4b;
+}
+
+/* Kids cards */
+.kids-grid {
+  display: grid !important;
+  grid-template-columns: repeat(var(--kids-grid, 4), minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.kids-card {
+  aspect-ratio: 1 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  perspective: 900px;
+}
+
+.kids-card-inner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform .38s cubic-bezier(.16,1,.3,1);
+}
+
+.kids-card.open .kids-card-inner,
+.kids-card.matched .kids-card-inner {
+  transform: rotateY(180deg);
+}
+
+.kids-card-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  font-size: clamp(24px, 8vw, 38px);
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 8px 22px rgba(0,0,0,.05);
+}
+
+.kids-card-back {
+  background: rgba(185,204,255,.70) !important;
+  color: #4f61e5 !important;
+}
+
+.kids-card-front {
+  background: rgba(255,255,255,.90) !important;
+  transform: rotateY(180deg);
+}
+
+/* Quartet */
+.quartet-field,
+.input-group {
+  width: 100%;
+  text-align: left;
+}
+
+.quartet-row,
+.lobby-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lobby-player-row,
+.mini-card,
+.hand-group,
+.quartet-info,
+.quartet-ask {
+  background: rgba(255,255,255,.56) !important;
+  border: 1px solid rgba(255,255,255,.70) !important;
+  border-radius: 20px !important;
+}
+
+.game-log,
+.quartet-log {
+  max-height: 220px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modals */
+.quartet-modal,
+.kids-modal,
+.ws-modal,
+.ws-win,
+.wow-modal,
+.support-overlay,
+.wait-overlay,
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  background: rgba(15,23,42,.34) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 18px !important;
+}
+
+.quartet-modal.hidden,
+.kids-modal.hidden,
+.ws-modal.hidden,
+.ws-win.hidden,
+.wow-modal.hidden,
+.wait-overlay.hidden,
+.modal-overlay.hidden {
+  display: none !important;
+}
+
+.quartet-modal-card,
+.kids-modal-card,
+.ws-modal-content,
+.ws-win__card,
+.wow-modal-card,
+.modal-content {
+  width: min(100%, 390px) !important;
+  max-height: min(88dvh, 720px) !important;
+  overflow: auto !important;
+  background: #fff !important;
+  border: 0 !important;
+  border-radius: 32px !important;
+  box-shadow: 0 24px 60px rgba(15,23,42,.20) !important;
+  padding: 24px !important;
+  animation: modalPop .24s cubic-bezier(.16,1,.3,1);
+}
+
+/* Phone fit */
+@media (max-width: 460px) {
+  #game-container.game-content,
+  .ws-wrap,
+  .wow-wrap,
+  .kids-screen,
+  .quartet-wrap {
+    max-width: 100% !important;
+  }
+
+  .unified-button,
+  .game-button,
+  .menu-button,
+  .start-button,
+  .back-button,
+  .correct-button,
+  .wrong-button,
+  .skip-button,
+  .btn {
+    min-height: 52px !important;
+    padding: 13px 14px !important;
+    font-size: 14px !important;
+  }
+
+  .ws-cell,
+  .wow-cell,
+  .sw-letter {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+  }
+
+  .ws-board,
+  .wow-board-area,
+  .kids-grid,
+  .sw-board {
+    padding: 10px !important;
+  }
+
+  .kids-card-face {
+    border-radius: 14px;
+  }
+}
+
+@media (max-width: 370px) {
+  .ws-cell,
+  .wow-cell,
+  .sw-letter {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14px !important;
+  }
+
+  .timer,
+  #alias-timer {
+    width: 104px !important;
+    height: 104px !important;
+    font-size: 20px !important;
+  }
+}
