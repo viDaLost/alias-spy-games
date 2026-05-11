@@ -21,6 +21,14 @@ let lastTimerSeconds = 60;  // длительность для «начать р
 // Восстановление состояния (опционально)
 aliasLoadState();
 
+function aliasCleanupRuntime() {
+  try { if (window.aliasInterval) clearInterval(window.aliasInterval); } catch {}
+  window.aliasInterval = null;
+  if (abortCtrl) { try { abortCtrl.abort(); } catch {} }
+  gameActive = false;
+  inputLocked = false;
+}
+
 /* ===================== НОВОЕ: функции «жёсткого» и «мягкого» сброса ===================== */
 // Полный сброс всего прогресса и состояния (опционально очищаем кэш слов)
 function aliasHardReset({ clearWordCache = false } = {}) {
@@ -76,6 +84,7 @@ function aliasSoftResetForNewDifficulty() {
 
 // Стартовый экран выбора сложности (меню не показываем здесь)
 function startAliasGame() {
+  window.__aliasCleanup = aliasCleanupRuntime;
   // Начинаем с чистого листа при входе на стартовый экран
   aliasHardReset({ clearWordCache: false });
 
@@ -116,12 +125,15 @@ async function loadAliasWords(difficulty) {
 
     if (!wordsCache.has(difficulty)) {
       const words = await aliasLoadJSON(url, abortCtrl.signal);
+      if (window.__activeGameName && window.__activeGameName !== "alias") return;
       wordsCache.set(difficulty, Array.isArray(words) ? words : []);
     }
 
     aliasShowSetup(wordsCache.get(difficulty), difficulty);
     aliasSaveState();
   } catch (e) {
+    if (window.__activeGameName && window.__activeGameName !== "alias") return;
+    if (e && e.name === "AbortError") return;
     alert(`Ошибка загрузки слов: ${e.message}`);
     console.error(e);
   }
@@ -239,6 +251,7 @@ async function startAliasTimer(difficulty) {
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
       const words = await aliasLoadJSON(url, abortCtrl.signal);
+      if (window.__activeGameName && window.__activeGameName !== "alias") return;
       wordsCache.set(difficulty, Array.isArray(words) ? words : []);
     }
 
@@ -291,6 +304,8 @@ async function startAliasTimer(difficulty) {
     aliasAddKeyHandlers();
     aliasSaveState();
   } catch (e) {
+    if (window.__activeGameName && window.__activeGameName !== "alias") return;
+    if (e && e.name === "AbortError") return;
     alert('Ошибка при начале игры.');
     console.error(e);
   }

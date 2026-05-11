@@ -20,6 +20,7 @@ function startCoimaginariumGame(themesUrl) {
       return res.json();
     })
     .then(data => {
+      if (window.__activeGameName && window.__activeGameName !== "coimaginarium") return;
       coimaginariumThemes = Array.isArray(data) ? [...data] : [];
       shownThemes = [];
       recentLetters = [];
@@ -27,6 +28,7 @@ function startCoimaginariumGame(themesUrl) {
       displayCoimaginariumUI();
     })
     .catch(err => {
+      if (window.__activeGameName && window.__activeGameName !== "coimaginarium") return;
       console.error(err);
       const container = document.getElementById("game-container");
       if (container) {

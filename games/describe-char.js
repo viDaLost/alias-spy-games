@@ -39,6 +39,7 @@ async function startDescribeNewGame() {
 
   try {
     const chars = await loadJSON(window.charsUrl);
+    if (window.__activeGameName && window.__activeGameName !== "describe") return;
     const shuffled = shuffleArray([...(Array.isArray(chars) ? chars : [])]);
     describePlayers = [];
 
@@ -49,6 +50,7 @@ async function startDescribeNewGame() {
     describeIndex = 0;
     showNextDescribePlayer();
   } catch (e) {
+    if (window.__activeGameName && window.__activeGameName !== "describe") return;
     console.error(e);
     alert("Ошибка загрузки слов.");
   }
