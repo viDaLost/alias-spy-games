@@ -35,6 +35,7 @@ async function initializeApp() {
 
   const tgUser = getTelegramUser();
   renderUserProfile(tgUser);
+  bindSidebarNavigation();
 
   if (String(tgUser.id) === ADMIN_ID) {
     renderAdminButton();
@@ -93,6 +94,7 @@ async function initializeApp() {
       // 2. Если НЕ забанен: показываем главное меню
       if (menu) menu.classList.remove("hidden");
       if (bannedScreen) bannedScreen.classList.add("hidden");
+      setActiveSidebarNav("home");
 
       // Синхронизируем локальный кэш
       localWowData.coins = res.wowStars;
@@ -110,15 +112,21 @@ async function initializeApp() {
 
       localStorage.setItem("last_games_history", JSON.stringify(res.lastGames));
       currentUserData.lastGames = res.lastGames;
+      renderUserProfile(tgUser);
+      updateAppChrome({ wowStars: res.wowStars, wsStars: res.wsStars, swLevel: res.swLevel });
     } else {
       // Запасной план: если сервер упал или нет интернета - пускаем в меню, чтобы приложение не сломалось
       if (mainLoader) mainLoader.remove();
       if (menu) menu.classList.remove("hidden");
+      updateAppChrome();
+      setActiveSidebarNav("home");
     }
   } catch (err) {
     console.error("Init Error:", err);
     if (mainLoader) mainLoader.remove();
     if (menu) menu.classList.remove("hidden");
+    updateAppChrome();
+    setActiveSidebarNav("home");
   }
 }
 
@@ -153,21 +161,31 @@ function escapeAppText(value) {
 
 function renderUserProfile(user = getTelegramUser()) {
   const profile = document.getElementById("user-profile");
-  if (!profile) return;
-
   const safeName = escapeAppText(user.username || "Игрок");
   const letter = escapeAppText(String(user.username || "И").charAt(0).toUpperCase() || "И");
   const isGuest = String(user.id || "") === "аноним" || String(user.id || "") === "0";
 
-  profile.innerHTML = `
-    <div class="profile-pill">
-      <div class="profile-avatar">${letter}</div>
-      <div class="profile-meta">
-        <span class="profile-label">${isGuest ? "Гость" : "Игрок"}</span>
-        <span class="profile-name">${safeName}</span>
+  if (profile) {
+    profile.innerHTML = `
+      <div class="profile-pill">
+        <div class="profile-avatar">${letter}</div>
+        <div class="profile-meta">
+          <span class="profile-label">${isGuest ? "Гость" : "Игрок"}</span>
+          <span class="profile-name">${safeName}</span>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
+
+  const sidebarAvatar = document.getElementById("sidebar-profile-avatar");
+  const sidebarName = document.getElementById("sidebar-profile-name");
+  const sidebarSub = document.getElementById("sidebar-profile-sub");
+  if (sidebarAvatar) sidebarAvatar.textContent = letter;
+  if (sidebarName) sidebarName.textContent = safeName;
+  if (sidebarSub) {
+    const history = Array.isArray(currentUserData.lastGames) ? currentUserData.lastGames : [];
+    sidebarSub.textContent = history.length ? `Недавние игры: ${history.length}` : "Выбери первую игру";
+  }
 }
 
 async function loadJSON(url) {
@@ -212,10 +230,16 @@ function showGame(gameName) {
   const container = document.getElementById("game-container");
   const menu = document.querySelector(".menu-container");
 
-  if (container) container.innerHTML = "<p class='fade-in'>🔄 Загрузка игры...</p>";
-  if (menu) menu.classList.add("hidden");              
-  document.body.dataset.mode = "game";                 
-  window.scrollTo({ top: 0, behavior: "auto" });       
+  if (container) container.innerHTML = `
+    <section class="card game-loading-card fade-in">
+      <div class="loader-ring"></div>
+      <p style="margin-top:16px; font-weight:800; color:var(--primary);">Загрузка игры...</p>
+    </section>
+  `;
+  if (menu) menu.classList.add("hidden");
+  document.body.dataset.mode = "game";
+  setActiveSidebarNav(resolveSectionByGame(gameName));
+  window.scrollTo({ top: 0, behavior: "auto" });
 
   if (currentGameScript) {
     currentGameScript.remove();
@@ -297,6 +321,8 @@ function goToMainMenu() {
   if (container) container.innerHTML = "";
   if (menu) menu.classList.remove("hidden");
   delete document.body.dataset.mode;
+  setActiveSidebarNav("home");
+  updateAppChrome();
 
   if (window.aliasInterval) clearInterval(window.aliasInterval);
   if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval);
@@ -314,6 +340,78 @@ function goToMainMenu() {
   // Фоновая сверка при выходе в меню (без лоадера)
   initializeApp();
 }
+
+function getLocalWowStars() {
+  try {
+    const wow = JSON.parse(localStorage.getItem("bibleWowData_v5") || "{}");
+    return typeof wow.coins === "number" ? wow.coins : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function updateAppChrome(serverData = {}) {
+  const currency = document.getElementById("app-currency");
+  const wowStars = typeof serverData.wowStars === "number" ? serverData.wowStars : getLocalWowStars();
+  if (currency) currency.textContent = `⭐ ${wowStars}`;
+  renderUserProfile(getTelegramUser());
+}
+
+function setActiveSidebarNav(section = "home") {
+  document.querySelectorAll(".sidebar-nav__item").forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.nav === section);
+  });
+}
+
+function resolveSectionByGame(gameName) {
+  if (["alias", "coimaginarium", "guess", "describe", "spy", "quartet"].includes(gameName)) return "groups";
+  if (["bible-wow", "bible-wordsearch", "sacred-word"].includes(gameName)) return "words";
+  if (["kids-ark-pairs"].includes(gameName)) return "kids";
+  return "home";
+}
+
+function handleCloseApp() {
+  if (window.Telegram?.WebApp?.close) {
+    try { window.Telegram.WebApp.close(); return; } catch (e) {}
+  }
+  if (document.body.dataset.mode === "game") {
+    goToMainMenu();
+    return;
+  }
+  try { window.history.back(); } catch (e) {}
+}
+
+function bindSidebarNavigation() {
+  if (window.__sidebarNavBound) return;
+  window.__sidebarNavBound = true;
+
+  document.addEventListener("click", (event) => {
+    const item = event.target.closest(".sidebar-nav__item");
+    if (!item) return;
+
+    const section = item.dataset.nav || "home";
+    if (document.body.dataset.mode === "game") {
+      goToMainMenu();
+      setTimeout(() => scrollToSidebarSection(section), 80);
+      return;
+    }
+
+    scrollToSidebarSection(section);
+  });
+}
+
+function scrollToSidebarSection(section) {
+  setActiveSidebarNav(section);
+  const targets = {
+    home: ".hero-card",
+    groups: "#section-groups",
+    words: "#section-words",
+    kids: "#section-kids"
+  };
+  const target = document.querySelector(targets[section] || targets.home);
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 
 function showSupportModal() {
   if (document.getElementById("support-modal-overlay")) return;
