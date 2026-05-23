@@ -58,71 +58,250 @@ const GAME_TITLES = Object.fromEntries(
 function svgIcon(type) {
   const common = 'viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"';
   const shell = (body) => `<svg class="game-card__svg" ${common}>${body}</svg>`;
-  const defs = (id, a = "#6366f1", b = "#38bdf8") => `
+  
+  // Premium Global Definitions for High-End Visual Effects
+  const globalDefs = `
     <defs>
-      <linearGradient id="${id}" x1="10" y1="8" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-        <stop stop-color="${a}"/><stop offset="1" stop-color="${b}"/>
+      <filter id="premium-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="2" result="blur" />
+        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+      </filter>
+      <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="3" stdDeviation="2" flood-opacity="0.3"/>
+      </filter>
+      <linearGradient id="gold-metal" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFE259"/>
+        <stop offset="100%" stop-color="#FFA751"/>
       </linearGradient>
-    </defs>`;
+      <linearGradient id="silver-metal" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#E2E8F0"/>
+        <stop offset="100%" stop-color="#94A3B8"/>
+      </linearGradient>
+    </defs>
+  `;
 
   const map = {
-    alias: shell(`${defs("gi_alias")}
-      <rect x="7" y="10" width="50" height="42" rx="17" fill="url(#gi_alias)"/>
-      <path d="M21 28h22M21 37h14" stroke="white" stroke-width="4.5" stroke-linecap="round"/>
-      <path d="M24 51l-8 7 2.5-10" fill="#7dd3fc" opacity=".95"/>`),
-    idea: shell(`${defs("gi_idea", "#7c3aed", "#f59e0b")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_idea)"/>
-      <path d="M32 15c-8 0-14 6.2-14 13.5 0 4.6 2.4 8.3 6 10.7 1.3.9 2 2.3 2 3.8h12c0-1.5.7-2.9 2-3.8 3.6-2.4 6-6.1 6-10.7C46 21.2 40 15 32 15Z" fill="#fff7cc"/>
-      <path d="M27 48h10M28 53h8" stroke="white" stroke-width="4" stroke-linecap="round"/>`),
-    character: shell(`${defs("gi_char", "#4f46e5", "#ec4899")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_char)"/>
-      <path d="M23 21c5.5 0 10 4.5 10 10v2c0 5.5-4.5 10-10 10S13 38.5 13 33v-2c0-5.5 4.5-10 10-10Z" fill="white" opacity=".92"/>
-      <path d="M41 18c5.5 0 10 4.5 10 10v3c0 5.5-4.5 10-10 10s-10-4.5-10-10v-3c0-5.5 4.5-10 10-10Z" fill="#e0e7ff"/>
-      <path d="M19 33c2 2 6 2 8 0M37 31c2 2 6 2 8 0" stroke="#312e81" stroke-width="3" stroke-linecap="round"/>`),
-    describe: shell(`${defs("gi_desc", "#2563eb", "#14b8a6")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_desc)"/>
-      <circle cx="25" cy="27" r="9" fill="white" opacity=".95"/>
-      <path d="M21 40c2.6-3.3 9.4-3.3 12 0" stroke="white" stroke-width="5" stroke-linecap="round"/>
-      <path d="M39 23h8M39 32h11M39 41h7" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>`),
-    spy: shell(`${defs("gi_spy", "#0f172a", "#2563eb")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_spy)"/>
-      <path d="M18 28h28" stroke="white" stroke-width="5" stroke-linecap="round"/>
-      <path d="M23 26l4-8h10l4 8" fill="#c7d2fe"/>
-      <circle cx="25" cy="36" r="5" stroke="white" stroke-width="3"/>
-      <circle cx="39" cy="36" r="5" stroke="white" stroke-width="3"/>
-      <path d="M30 36h4" stroke="white" stroke-width="3" stroke-linecap="round"/>`),
-    quartet: shell(`${defs("gi_quartet", "#4338ca", "#60a5fa")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_quartet)"/>
-      <rect x="18" y="15" width="21" height="30" rx="5" fill="white" transform="rotate(-8 18 15)"/>
-      <rect x="28" y="18" width="21" height="30" rx="5" fill="#dbeafe" transform="rotate(8 28 18)"/>
-      <path d="M28 31c4-6 12-1 6 5l-6 5-6-5c-6-6 2-11 6-5Z" fill="#4f46e5"/>`),
-    words: shell(`${defs("gi_words", "#0284c7", "#22c55e")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_words)"/>
-      ${[18,28,38].map((y) => [18,28,38].map((x) => `<rect x="${x}" y="${y}" width="8" height="8" rx="2" fill="white" opacity=".92"/>`).join("")).join("")}
-      <path d="M18 50h28" stroke="#dcfce7" stroke-width="4" stroke-linecap="round"/>`),
-    search: shell(`${defs("gi_search", "#4f46e5", "#06b6d4")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_search)"/>
-      <circle cx="29" cy="29" r="12" stroke="white" stroke-width="5"/>
-      <path d="M38 38l9 9" stroke="white" stroke-width="5" stroke-linecap="round"/>
-      <path d="M24 29h10M29 24v10" stroke="#bfdbfe" stroke-width="3" stroke-linecap="round"/>`),
-    sacred: shell(`${defs("gi_sacred", "#ea580c", "#facc15")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_sacred)"/>
-      <path d="M31 47c-8 0-13-5-13-12 0-6 5-10 8-14 1 5 4 7 7 10 1-5 4-8 8-11 0 7 6 10 6 17 0 6-6 10-16 10Z" fill="white" opacity=".95"/>
-      <path d="M32 44c-4 0-7-3-7-7 0-4 4-6 6-9 1 3 4 5 5 8 1-2 2-3 4-5 0 5 2 6 2 9 0 3-4 4-10 4Z" fill="#fb923c"/>`),
-    ark: shell(`${defs("gi_ark", "#0ea5e9", "#8b5cf6")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_ark)"/>
-      <path d="M16 37h32l-4 8H20l-4-8Z" fill="white"/>
-      <path d="M22 37V25h20v12" stroke="white" stroke-width="5" stroke-linejoin="round"/>
-      <path d="M26 24c3-6 9-6 12 0" stroke="#dbeafe" stroke-width="4" stroke-linecap="round"/>
-      <path d="M18 48c4 2 8 2 12 0 4-2 8-2 16 0" stroke="#bfdbfe" stroke-width="4" stroke-linecap="round"/>`),
-    support: shell(`${defs("gi_support", "#64748b", "#0ea5e9")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_support)"/>
-      <path d="M24 20l20 20M40 18l6 6-8 8-6-6 8-8Z" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M20 45l10-10" stroke="#dbeafe" stroke-width="5" stroke-linecap="round"/>`),
-    admin: shell(`${defs("gi_admin", "#111827", "#6366f1")}
-      <rect x="7" y="8" width="50" height="48" rx="18" fill="url(#gi_admin)"/>
-      <path d="M20 29l8 7 16-16" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M18 45h28" stroke="#c7d2fe" stroke-width="4" stroke-linecap="round"/>`),
+    alias: shell(`
+      <defs>
+        <linearGradient id="bg_alias" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#1E3A8A"/><stop offset="100%" stop-color="#3B82F6"/>
+        </linearGradient>
+        <linearGradient id="sand_glow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFF"/><stop offset="100%" stop-color="#60A5FA"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_alias)" filter="url(#soft-shadow)"/>
+      <path d="M16 14h32v36H16z" fill="#FFF" opacity="0.1" rx="4"/>
+      <path d="M20 16h24v4c0 6-4 9-8 12 4 3 8 6 8 12v4H20v-4c0-6 4-9 8-12-4-3-8-6-8-12v-4z" stroke="url(#gold-metal)" stroke-width="3" stroke-linejoin="round" fill="none"/>
+      <path d="M23 19h18c0 4-3 7-9 7s-9-3-9-7z" fill="url(#sand_glow)"/>
+      <path d="M23 45c0-4 3-7 9-7s-9 3-9 7z" fill="url(#sand_glow)"/>
+      <line x1="32" y1="26" x2="32" y2="39" stroke="#FFF" stroke-width="2" stroke-dasharray="2 2"/>
+      <circle cx="32" cy="33" r="1.5" fill="#FFF" filter="url(#premium-glow)"/>
+      <circle cx="28" cy="42" r="1" fill="#FFF"/>
+      <circle cx="36" cy="43" r="1" fill="#FFF"/>
+    `),
+
+    idea: shell(`
+      <defs>
+        <linearGradient id="bg_idea" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#4C1D95"/><stop offset="100%" stop-color="#D946EF"/>
+        </linearGradient>
+        <radialGradient id="lamp_glow" cx="50%" cy="45%" r="50%">
+          <stop offset="0%" stop-color="#FFF" stop-opacity="1"/>
+          <stop offset="50%" stop-color="#FDE047" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="#FDE047" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_idea)" filter="url(#soft-shadow)"/>
+      <circle cx="32" cy="26" r="16" fill="url(#lamp_glow)"/>
+      <path d="M32 12c-7.72 0-14 6.28-14 14 0 5.25 3 9.3 6.5 12.5l1.5 3.5h12l1.5-3.5c3.5-3.2 6.5-7.25 6.5-12.5 0-7.72-6.28-14-14-14z" stroke="#FFF" stroke-width="2.5" fill="none"/>
+      <path d="M32 20c-1.5 0-3 1-3.5 2.5s.5 3 2 3.5c-2 .5-3 2-3 4 0 2.5 2.5 4.5 4.5 4.5s4.5-2 4.5-4.5c0-2-1-3.5-3-4 1.5-.5 2.5-2 2-3.5S33.5 20 32 20z" fill="none" stroke="url(#gold-metal)" stroke-width="2" filter="url(#premium-glow)"/>
+      <path d="M25 45h14v4H25zm3 4h8v3h-8z" fill="url(#silver-metal)"/>
+    `),
+
+    character: shell(`
+      <defs>
+        <linearGradient id="bg_char" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#800020"/><stop offset="100%" stop-color="#DA70D6"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_char)" filter="url(#soft-shadow)"/>
+      <path d="M18 16c0-3.3 2.7-6 6-6h4v32h-10V16zm14-6h4c3.3 0 6 2.7 6 6v26H32V10z" fill="#FFF" opacity="0.15"/>
+      <circle cx="32" cy="28" r="14" stroke="url(#gold-metal)" stroke-width="1.5" stroke-dasharray="4 2" fill="none" filter="url(#premium-glow)"/>
+      <path d="M28.5 22c0-3.5 2.5-5 4.5-5s4.5 1.5 4.5 4c0 2.5-2 3.5-3.5 4.5c-1 1-1 2-1 3.5" stroke="url(#gold-metal)" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+      <circle cx="33" cy="35.5" r="2.5" fill="url(#gold-metal)"/>
+    `),
+
+    describe: shell(`
+      <defs>
+        <linearGradient id="bg_desc" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0F766E"/><stop offset="100%" stop-color="#14B8A6"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_desc)" filter="url(#soft-shadow)"/>
+      <path d="M14 44c6-2 14-8 16-16s-2-14-6-16c-3-1.5-6 1-4 4s6 8 4 14-10 10-14 11c-2 .5-1 3.5 4 3z" fill="url(#gold-metal)" filter="url(#soft-shadow)"/>
+      <path d="M16 41.5c4-1 9-5 11-11.5s-1-10.5-3-12" stroke="#B45309" stroke-width="1.5" fill="none"/>
+      <path d="M36 22c3.5 2 5.5 6 5.5 10s-2 8-5.5 10" stroke="#FFF" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.8"/>
+      <path d="M43 16c5 3.5 8 9 8 16s-3 12.5-8 16" stroke="#E0F2FE" stroke-width="3.5" stroke-linecap="round" fill="none" filter="url(#premium-glow)" opacity="0.5"/>
+    `),
+
+    spy: shell(`
+      <defs>
+        <linearGradient id="bg_spy" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#030712"/><stop offset="100%" stop-color="#1E40AF"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_spy)" filter="url(#soft-shadow)"/>
+      <circle cx="16" cy="14" r="1" fill="#FFF" opacity="0.8"/>
+      <circle cx="48" cy="18" r="1" fill="#FFF" opacity="0.5"/>
+      <circle cx="42" cy="46" r="1" fill="#FFF" opacity="0.7"/>
+      <circle cx="18" cy="38" r="1" fill="#FFF" opacity="0.4"/>
+      <path d="M32 14c-4.5 0-8 4-8 9s1.5 8 3.5 10c-5.5 2-9.5 6.5-10.5 13h30c-1-6.5-5-11-10.5-13 2-2 3.5-5 3.5-10s-3.5-9-8-9z" fill="#111827" filter="url(#soft-shadow)"/>
+      <path d="M24 23c0 6 3.5 11 8 11s8-5 8-11-3.5-9-8-9-8 3-8 9z" fill="none" stroke="url(#gold-metal)" stroke-width="2" filter="url(#premium-glow)"/>
+      <path d="M28 24h8" stroke="#FFF" stroke-width="1.5" stroke-linecap="round"/>
+    `),
+
+    quartet: shell(`
+      <defs>
+        <linearGradient id="bg_quartet" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#2E1065"/><stop offset="100%" stop-color="#3B82F6"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_quartet)" filter="url(#soft-shadow)"/>
+      <g transform="translate(12, 14) rotate(-15)">
+        <rect x="0" y="0" width="16" height="26" rx="3" fill="#FFF" filter="url(#soft-shadow)"/>
+        <path d="M8 6v12M5 10h6" stroke="#EF4444" stroke-width="2"/>
+      </g>
+      <g transform="translate(22, 11) rotate(-5)">
+        <rect x="0" y="0" width="16" height="26" rx="3" fill="url(#silver-metal)" filter="url(#soft-shadow)"/>
+        <path d="M3 13c3-4 7-4 10 0-3 4-7 4-10 0z M11 11l2 4M13 11l-2 4" stroke="#1E3A8A" stroke-width="1.5" fill="none"/>
+      </g>
+      <g transform="translate(32, 12) rotate(10)">
+        <rect x="0" y="0" width="16" height="26" rx="3" fill="url(#gold-metal)" filter="url(#soft-shadow)"/>
+        <path d="M4 16h8l-1 4H5z" fill="#B45309"/>
+      </g>
+      <g transform="translate(40, 16) rotate(25)">
+        <rect x="0" y="0" width="16" height="26" rx="3" fill="#FFF" filter="url(#soft-shadow)"/>
+        <path d="M8 8l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z" fill="#F59E0B"/>
+      </g>
+    `),
+
+    words: shell(`
+      <defs>
+        <linearGradient id="bg_words" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0369A1"/><stop offset="100%" stop-color="#047857"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_words)" filter="url(#soft-shadow)"/>
+      <path d="M32 46c-4-4-12-4-18-2V18c6-2 14-2 18 2 4-4 12-4 18-2v26c-6-2-14-2-18 2z" fill="#FFF" filter="url(#soft-shadow)"/>
+      <path d="M32 20v26" stroke="#94A3B8" stroke-width="2"/>
+      <path d="M10 18v26c3-.5 7-.5 10 1V21c-3-1.5-7-1.5-10-2z" fill="#78350F" opacity="0.1"/>
+      <g fill="url(#gold-metal)" font-family="Arial, sans-serif" font-weight="900" filter="url(#premium-glow)">
+        <text x="18" y="28" font-size="8">А</text>
+        <text x="24" y="38" font-size="7">Ω</text>
+        <text x="38" y="26" font-size="9">В</text>
+        <text x="44" y="36" font-size="7">Б</text>
+      </g>
+    `),
+
+    search: shell(`
+      <defs>
+        <linearGradient id="bg_search" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#4338CA"/><stop offset="100%" stop-color="#0EA5E9"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_search)" filter="url(#soft-shadow)"/>
+      <path d="M16 14h30c2 0 3 1.5 3 3.5s-1 3.5-3 3.5H18c-1.5 0-2 .5-2 1.5s.5 1.5 2 1.5h28c2 0 3 1.5 3 3.5s-1 3.5-3 3.5H16z" fill="#FEF08A" stroke="#CA8A04" stroke-width="1.5" filter="url(#soft-shadow)"/>
+      <path d="M22 18h20M24 28h16M20 38h22" stroke="#854D0E" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="38" cy="36" r="8" stroke="url(#gold-metal)" stroke-width="3" fill="#FFF" fill-opacity="0.2" filter="url(#premium-glow)"/>
+      <line x1="44" y1="42" x2="52" y2="50" stroke="url(#gold-metal)" stroke-width="4" stroke-linecap="round"/>
+    `),
+
+    sacred: shell(`
+      <defs>
+        <linearGradient id="bg_sacred" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#7C2D12"/><stop offset="100%" stop-color="#EA580C"/>
+        </linearGradient>
+        <radialGradient id="fire_glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#FFF7ED"/><stop offset="40%" stop-color="#FACC15"/><stop offset="100%" stop-color="#EA580C" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_sacred)" filter="url(#soft-shadow)"/>
+      <circle cx="32" cy="22" r="14" fill="url(#fire_glow)" opacity="0.6"/>
+      <path d="M32 48V24M24 26v4c0 5 3.5 8 8 8s8-3 8-8v-4M16 28v4c0 9 6.5 13 16 13s16-4 16-13v-4M22 48h20" stroke="url(#gold-metal)" stroke-width="3" stroke-linecap="round" fill="none" filter="url(#soft-shadow)"/>
+      <g fill="#FDE047" filter="url(#premium-glow)">
+        <path d="M16 23c-.5-2 0-4 1-5 .5 1.5 1.5 2 1 5z"/>
+        <path d="M24 21c-.5-2 0-4 1-5 .5 1.5 1.5 2 1 5z"/>
+        <path d="M32 19c-.5-2 0-4 1-5 .5 1.5 1.5 2 1 5z"/>
+        <path d="M40 21c-.5-2 0-4 1-5 .5 1.5 1.5 2 1 5z"/>
+        <path d="M48 23c-.5-2 0-4 1-5 .5 1.5 1.5 2 1 5z"/>
+      </g>
+    `),
+
+    ark: shell(`
+      <defs>
+        <linearGradient id="bg_ark" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0284C7"/><stop offset="100%" stop-color="#6366F1"/>
+        </linearGradient>
+        <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#EF4444"/><stop offset="50%" stop-color="#10B981"/><stop offset="100%" stop-color="#3B82F6"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_ark)" filter="url(#soft-shadow)"/>
+      <path d="M12 32c0-11 9-20 20-20s20 9 20 20" stroke="url(#rainbow)" stroke-width="2" fill="none" opacity="0.6" filter="url(#premium-glow)"/>
+      <path d="M14 34h36l-4 11H18l-4-11z" fill="#78350F" filter="url(#soft-shadow)"/>
+      <path d="M22 34V26h20v8H22z" fill="#A16207"/>
+      <path d="M20 26l12-6 12 6H20z" fill="#9A3412"/>
+      <circle cx="27" cy="30" r="1.5" fill="#FEF08A"/>
+      <circle cx="32" cy="30" r="1.5" fill="#FEF08A"/>
+      <circle cx="37" cy="30" r="1.5" fill="#FEF08A"/>
+      <path d="M8 44c3-2 6-2 9 0s6 2 9 0 6-2 9 0 6 2 9 0 6-2 9 0" stroke="#E0F2FE" stroke-width="2.5" fill="none"/>
+    `),
+
+    support: shell(`
+      <defs>
+        <linearGradient id="bg_support" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#4B5563"/><stop offset="100%" stop-color="#1E293B"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_support)" filter="url(#soft-shadow)"/>
+      <path d="M12 24c4-6 12-6 18 2-6-8-14-8-18-2zm40 0c-4-6-12-6-18 2 6-8 14-8 18-2z" fill="url(#silver-metal)" filter="url(#premium-glow)" opacity="0.7"/>
+      <rect x="18" y="26" width="28" height="18" rx="3" fill="#FFF" filter="url(#soft-shadow)"/>
+      <path d="M18 26l14 10 14-10" stroke="#94A3B8" stroke-width="2" fill="none"/>
+      <circle cx="32" cy="35" r="4.5" fill="url(#gold-metal)"/>
+      <path d="M32 32.5v5M29.5 35h5" stroke="#FFF" stroke-width="1.2"/>
+    `),
+
+    admin: shell(`
+      <defs>
+        <linearGradient id="bg_admin" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#111827"/><stop offset="100%" stop-color="#312E81"/>
+        </linearGradient>
+      </defs>
+      ${globalDefs}
+      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#bg_admin)" filter="url(#soft-shadow)"/>
+      <g stroke="url(#gold-metal)" stroke-width="2" fill="none" filter="url(#soft-shadow)">
+        <path d="M22 42l12-12M24 44l-4-4 2-2 2 2 2-2M42 22L30 32M38 18l4 4-2 2-2-2-2 2" stroke-linecap="round"/>
+        <circle cx="18" cy="46" r="3"/>
+        <circle cx="46" cy="18" r="3"/>
+      </g>
+      <path d="M20 36l4-10 8 5 8-5 4 10H20z" fill="url(#gold-metal)" filter="url(#premium-glow)"/>
+      <rect x="20" y="36" width="24" height="3" fill="#B45309" rx="1"/>
+      <circle cx="24" cy="26" r="1.5" fill="#EF4444"/>
+      <circle cx="32" cy="31" r="1.5" fill="#3B82F6"/>
+      <circle cx="40" cy="26" r="1.5" fill="#EF4444"/>
+    `),
   };
 
   return map[type] || map.alias;
