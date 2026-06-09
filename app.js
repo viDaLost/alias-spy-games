@@ -1,4 +1,4 @@
-// app.js — Telegram-friendly launcher, access cache, SVG menu and compact admin panel
+// app.js — Telegram-friendly launcher, access cache, image menu icons and compact admin panel
 
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec";
 const ADMIN_ID = "1288379477";
@@ -54,6 +54,27 @@ const GAME_GROUPS = [
 const GAME_TITLES = Object.fromEntries(
   GAME_GROUPS.flatMap((group) => group.items.map((item) => [item.key, item.title]))
 );
+
+const MENU_ICON_VERSION = "1";
+const MENU_ICON_SOURCES = {
+  alias: "assets/icons/alias.png",
+  idea: "assets/icons/idea.png",
+  character: "assets/icons/character.png",
+  describe: "assets/icons/describe.png",
+  spy: "assets/icons/spy.png",
+  quartet: "assets/icons/quartet.png",
+  words: "assets/icons/words.png",
+  search: "assets/icons/search.png",
+  sacred: "assets/icons/sacred.png",
+  ark: "assets/icons/ark.png",
+};
+
+function menuIconHTML(type, title = "") {
+  const src = MENU_ICON_SOURCES[type];
+  if (!src) return svgIcon(type);
+  const alt = title ? `Иконка игры ${escapeHTML(title)}` : "Иконка игры";
+  return `<img class="game-card__img" src="${src}?v=${MENU_ICON_VERSION}" alt="${alt}" loading="lazy" decoding="async" draggable="false" />`;
+}
 
 function svgIcon(type) {
   const common = 'viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"';
@@ -388,7 +409,7 @@ function openSupportChat() {
 function renderGameButton(item) {
   return `
     <button type="button" class="game-card" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}">
-      <span class="game-card__icon">${svgIcon(item.icon)}</span>
+      <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
         <span class="game-card__desc">${escapeHTML(item.desc)}</span>
