@@ -78,11 +78,13 @@ function handleStartGame() {
     return;
   }
 
-  sharedLocation = allLocations[Math.floor(Math.random() * allLocations.length)];
+  sharedLocation = allLocations[randomInt(allLocations.length)];
 
   const players = Array.from({ length: playerCount }, (_, i) => ({ id: i + 1, role: "локация", revealed: false }));
-  const shuffledIndices = shuffleArray([...Array(players.length).keys()]);
-  for (let i = 0; i < spyCount; i++) players[shuffledIndices[i]].role = "шпион";
+  const spyIndices = pickUniqueRandomIndices(playerCount, spyCount);
+  spyIndices.forEach(index => {
+    players[index].role = "шпион";
+  });
 
   spyPlayers = players;
   currentSpyIndex = 0;
@@ -194,8 +196,44 @@ function showResults(votedId) {
   `;
 }
 
+function pickUniqueRandomIndices(totalCount, pickCount) {
+  const indices = Array.from({ length: totalCount }, (_, index) => index);
+  return shuffleArray(indices).slice(0, pickCount);
+}
+
 function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  const result = [...arr];
+
+  // Fisher–Yates даёт равномерное распределение.
+  // sort(() => Math.random() - 0.5) создаёт перекос и как раз может
+  // часто выбирать одни и те же позиции при одном шпионе.
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+function randomInt(maxExclusive) {
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+    throw new Error("randomInt: maxExclusive должен быть положительным целым числом");
+  }
+
+  // crypto.getRandomValues лучше для честной жеребьёвки, а fallback нужен для старых WebView.
+  const cryptoObject = globalThis.crypto || globalThis.msCrypto;
+  if (cryptoObject?.getRandomValues) {
+    const limit = 0x100000000 - (0x100000000 % maxExclusive);
+    const buffer = new Uint32Array(1);
+
+    do {
+      cryptoObject.getRandomValues(buffer);
+    } while (buffer[0] >= limit);
+
+    return buffer[0] % maxExclusive;
+  }
+
+  return Math.floor(Math.random() * maxExclusive);
 }
 
 async function loadJSON(url) {
