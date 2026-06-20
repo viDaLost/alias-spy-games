@@ -683,7 +683,7 @@ function loadGameScript(fileName, callback) {
   loadedGameScripts.set(fileName, record);
 
   const script = document.createElement("script");
-  script.src = `${fileName}?v=18`;
+  script.src = `${fileName}?v=19`;
   script.dataset.gameScript = fileName;
 
   script.onload = () => {
