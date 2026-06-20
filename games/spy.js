@@ -3,12 +3,261 @@ let currentSpyIndex = 0;
 let sharedLocation = "";
 let allLocations = [];
 
+const SPY_ROLE_CARD_ASSETS = Object.freeze({
+  back: "assets/cards/spy-card-back.png",
+  player: "assets/cards/spy-card-player.png",
+  spy: "assets/cards/spy-card-spy.png",
+});
+
 function spySafe(value) {
   if (typeof escapeHTML === "function") return escapeHTML(value);
   return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[ch]));
 }
 
+function spyHaptic(type = "light") {
+  try {
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred?.(type);
+  } catch {}
+}
+
+function ensureSpyRoleCardStyles() {
+  if (document.getElementById("spy-role-card-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "spy-role-card-styles";
+  style.textContent = `
+    .spy-role-stage {
+      width: min(100%, 520px);
+      margin: 0 auto;
+      padding: 0 0 22px;
+      text-align: center;
+    }
+
+    .spy-role-header {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+
+    .spy-role-title {
+      margin: 0;
+      color: #312e81;
+      font-size: clamp(1.72rem, 7vw, 2.32rem);
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+    }
+
+    .spy-role-hint {
+      margin: 0 auto;
+      max-width: 410px;
+      color: rgba(49, 46, 129, .62);
+      font-size: .98rem;
+      line-height: 1.35;
+      font-weight: 750;
+    }
+
+    .spy-card-shell {
+      width: min(86vw, 360px);
+      aspect-ratio: 5 / 7;
+      margin: 14px auto 18px;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      perspective: 1300px;
+      cursor: pointer;
+      display: block;
+      filter: drop-shadow(0 22px 34px rgba(49, 46, 129, .22));
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .spy-card-shell:focus-visible {
+      outline: 4px solid rgba(79, 70, 229, .28);
+      outline-offset: 8px;
+      border-radius: 32px;
+    }
+
+    .spy-card-shell__inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition:
+        transform .82s cubic-bezier(.18, .86, .26, 1),
+        filter .24s ease;
+    }
+
+    .spy-card-shell:active .spy-card-shell__inner {
+      filter: brightness(1.03);
+      transform: scale(.985);
+    }
+
+    .spy-card-shell.is-revealed .spy-card-shell__inner {
+      transform: rotateY(180deg);
+    }
+
+    .spy-card-shell.is-revealed:active .spy-card-shell__inner {
+      transform: rotateY(180deg) scale(.985);
+    }
+
+    .spy-card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 30px;
+      overflow: hidden;
+      background: #dbeafe;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, .55),
+        0 18px 44px rgba(15, 23, 42, .16);
+    }
+
+    .spy-card-face--front {
+      transform: rotateY(180deg);
+    }
+
+    .spy-card-face img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .spy-card-back-glow {
+      position: absolute;
+      inset: 10%;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(255,255,255,.42), transparent 62%);
+      opacity: .55;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .spy-card-value {
+      position: absolute;
+      left: 13.5%;
+      right: 13.5%;
+      top: 54.5%;
+      min-height: 17%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      color: #0f172a;
+      text-align: center;
+      pointer-events: none;
+      text-shadow:
+        0 2px 0 rgba(255, 255, 255, .72),
+        0 10px 24px rgba(255, 255, 255, .68);
+    }
+
+    .spy-card-value__eyebrow {
+      font-size: clamp(.66rem, 2.7vw, .82rem);
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(49, 46, 129, .62);
+    }
+
+    .spy-card-value__main {
+      max-width: 100%;
+      color: #111827;
+      font-size: clamp(1.32rem, 6vw, 2.2rem);
+      font-weight: 950;
+      line-height: .98;
+      letter-spacing: -.04em;
+      overflow-wrap: anywhere;
+    }
+
+    .spy-card-value__main--spy {
+      color: #0f172a;
+      font-size: clamp(1.55rem, 7vw, 2.42rem);
+    }
+
+    .spy-card-value__note {
+      max-width: 92%;
+      color: rgba(49, 46, 129, .66);
+      font-size: clamp(.72rem, 2.8vw, .92rem);
+      font-weight: 850;
+      line-height: 1.15;
+    }
+
+    .spy-role-actions {
+      display: grid;
+      gap: 10px;
+      width: min(100%, 420px);
+      margin: 0 auto;
+    }
+
+    .spy-role-next[hidden],
+    .spy-role-reveal[hidden] {
+      display: none !important;
+    }
+
+    .spy-role-progress {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      margin: 0 auto;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(99,102,241,.14);
+      color: rgba(49, 46, 129, .72);
+      box-shadow: 0 12px 28px rgba(79,70,229,.08);
+      font-size: .86rem;
+      font-weight: 900;
+    }
+
+    .spy-card-privacy {
+      width: min(100%, 420px);
+      margin: 0 auto 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(99,102,241,.14);
+      border-radius: 20px;
+      background: rgba(255,255,255,.72);
+      box-shadow: 0 14px 34px rgba(79,70,229,.08);
+      color: rgba(17,24,39,.68);
+      font-weight: 750;
+      line-height: 1.32;
+    }
+
+    @media (max-width: 380px) {
+      .spy-card-shell {
+        width: min(90vw, 330px);
+      }
+
+      .spy-card-face {
+        border-radius: 24px;
+      }
+
+      .spy-card-value {
+        left: 12.5%;
+        right: 12.5%;
+        top: 54.8%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spy-card-shell__inner {
+        transition: none;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 async function startSpyGame(locationsUrl) {
+  ensureSpyRoleCardStyles();
+
   try {
     const locations = await loadJSON(locationsUrl);
     allLocations = Array.isArray(locations) ? locations : [];
@@ -42,7 +291,7 @@ async function startSpyGame(locationsUrl) {
       <section class="app-error-card fade-in">
         <div class="app-error-icon">!</div>
         <h2>Не удалось загрузить локации</h2>
-        <p>Проверьте файл ` + locationsUrl + ` и попробуйте снова.</p>
+        <p>Проверьте файл ` + spySafe(locationsUrl) + ` и попробуйте снова.</p>
         <button onclick="goToMainMenu()" class="back-button">⬅️ В меню</button>
       </section>
     `;
@@ -92,6 +341,8 @@ function handleStartGame() {
 }
 
 function showNextPlayerRole() {
+  ensureSpyRoleCardStyles();
+
   const container = document.getElementById("game-container");
 
   if (currentSpyIndex >= spyPlayers.length) {
@@ -100,32 +351,97 @@ function showNextPlayerRole() {
   }
 
   const player = spyPlayers[currentSpyIndex];
+  player.revealed = false;
+
+  const isSpy = player.role === "шпион";
+  const frontAsset = isSpy ? SPY_ROLE_CARD_ASSETS.spy : SPY_ROLE_CARD_ASSETS.player;
+  const valueHTML = getSpyRoleValueHTML(player);
+
   container.innerHTML = `
-    <h2>🔍 Игрок ${player.id}</h2>
-    <div class="card">
-      <strong>Секретная роль</strong>
-      <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Нажмите и посмотрите роль так, чтобы её не увидели другие.</p>
-    </div>
-    <button onclick="revealRole(${player.id})" class="menu-button">👁 Показать роль</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <section class="spy-role-stage fade-in">
+      <div class="spy-role-header">
+        <p class="spy-role-progress">Игрок ${player.id} из ${spyPlayers.length}</p>
+        <h2 class="spy-role-title">Секретная карточка</h2>
+        <p class="spy-role-hint">Передайте телефон игроку ${player.id}. Нажмите на карточку так, чтобы роль не увидели другие.</p>
+      </div>
+
+      <div class="spy-card-privacy">Карточка перевернётся с анимацией. После просмотра нажмите «Передать следующему».</div>
+
+      <button
+        type="button"
+        id="spy-role-card"
+        class="spy-card-shell"
+        onclick="revealRole(${player.id})"
+        aria-label="Показать роль игрока ${player.id}"
+      >
+        <span class="spy-card-shell__inner">
+          <span class="spy-card-face spy-card-face--back">
+            <img src="${SPY_ROLE_CARD_ASSETS.back}" alt="" loading="eager" decoding="async">
+            <span class="spy-card-back-glow" aria-hidden="true"></span>
+          </span>
+          <span class="spy-card-face spy-card-face--front">
+            <img src="${frontAsset}" alt="" loading="eager" decoding="async">
+            <span class="spy-card-value">
+              ${valueHTML}
+            </span>
+          </span>
+        </span>
+      </button>
+
+      <div class="spy-role-actions">
+        <button id="spy-reveal-btn" onclick="revealRole(${player.id})" class="menu-button spy-role-reveal">👁 Перевернуть карточку</button>
+        <button id="spy-next-btn" onclick="showNextSpyPlayer()" class="menu-button spy-role-next" hidden>➡️ Передать следующему</button>
+        <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+      </div>
+    </section>
+  `;
+}
+
+function getSpyRoleValueHTML(player) {
+  if (player.role === "шпион") {
+    return `
+      <span class="spy-card-value__eyebrow">Ваша роль</span>
+      <span class="spy-card-value__main spy-card-value__main--spy">Вы — шпион</span>
+      <span class="spy-card-value__note">Узнайте локацию по ответам игроков</span>
+    `;
+  }
+
+  return `
+    <span class="spy-card-value__eyebrow">Локация</span>
+    <span class="spy-card-value__main">${spySafe(sharedLocation)}</span>
+    <span class="spy-card-value__note">Запомните место и не показывайте экран</span>
   `;
 }
 
 function revealRole(id) {
-  const container = document.getElementById("game-container");
   const player = spyPlayers.find(p => p.id === id);
-  const roleText = player.role === "шпион" ? "🕵️ Вы — шпион" : `📍 Локация: <strong>${spySafe(sharedLocation)}</strong>`;
+  if (!player) return;
 
-  container.innerHTML = `
-    <h2>🔍 Ваша роль</h2>
-    <div class="card secret-card">
-      <span class="theme-label">Игрок ${player.id}</span>
-      <h3>${roleText}</h3>
-      <small>Запомните и передайте телефон следующему игроку.</small>
-    </div>
-    <button onclick="currentSpyIndex++; showNextPlayerRole();" class="menu-button">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
-  `;
+  player.revealed = true;
+  spyHaptic("medium");
+
+  const card = document.getElementById("spy-role-card");
+  const revealButton = document.getElementById("spy-reveal-btn");
+  const nextButton = document.getElementById("spy-next-btn");
+
+  if (!card || !revealButton || !nextButton) {
+    showNextPlayerRole();
+    requestAnimationFrame(() => revealRole(id));
+    return;
+  }
+
+  card.classList.add("is-revealed");
+  card.setAttribute("aria-label", `Роль игрока ${player.id} открыта`);
+  card.onclick = null;
+  revealButton.hidden = true;
+  nextButton.hidden = false;
+  nextButton.focus({ preventScroll: true });
+}
+
+function showNextSpyPlayer() {
+  spyHaptic("light");
+  currentSpyIndex += 1;
+  showNextPlayerRole();
 }
 
 function showDiscussionScreen() {
