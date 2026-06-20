@@ -3,10 +3,11 @@ let currentSpyIndex = 0;
 let sharedLocation = "";
 let allLocations = [];
 
+const SPY_ROLE_CARD_VERSION = "2";
 const SPY_ROLE_CARD_ASSETS = Object.freeze({
-  back: "assets/cards/spy-card-back.png",
-  player: "assets/cards/spy-card-player.png",
-  spy: "assets/cards/spy-card-spy.png",
+  back: `assets/cards/spy-card-back.png?v=${SPY_ROLE_CARD_VERSION}`,
+  player: `assets/cards/spy-card-player.png?v=${SPY_ROLE_CARD_VERSION}`,
+  spy: `assets/cards/spy-card-spy.png?v=${SPY_ROLE_CARD_VERSION}`,
 });
 
 function spySafe(value) {
@@ -79,9 +80,12 @@ function ensureSpyRoleCardStyles() {
 
     .spy-card-shell__inner {
       position: relative;
+      display: block;
       width: 100%;
       height: 100%;
       transform-style: preserve-3d;
+      transform-origin: center center;
+      will-change: transform;
       transition:
         transform .82s cubic-bezier(.18, .86, .26, 1),
         filter .24s ease;
