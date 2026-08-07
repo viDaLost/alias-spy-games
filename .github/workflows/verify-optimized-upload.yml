@@ -1,0 +1,24 @@
+name: Verify optimized upload
+
+on:
+  push:
+    branches:
+      - agent/optimized-games-review
+    paths:
+      - ".github/workflows/verify-optimized-upload.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify project
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e manifest.webmanifest
+          test ! -e sw.js
+          npm run check
