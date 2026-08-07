@@ -2,15 +2,14 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Библейские игры</title>
   <meta name="theme-color" content="#eaf3ff" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Игры" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css?v=19" />
+  <meta name="description" content="Библейские мини-игры для компании, друзей и семьи" />
+  <meta name="application-name" content="Библейские игры" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; font-src 'self' data:;" />
+  <link rel="stylesheet" href="style.css?v=21" />
 </head>
 <body>
   <header class="app-header">
@@ -49,13 +48,12 @@
     <div class="banned-card">
       <h2>Доступ ограничен</h2>
       <p>Обжаловать блокировку можно через техническую поддержку.</p>
-      <button class="game-button" onclick="openSupportChat()">Написать</button>
+      <button class="game-button" id="banned-support-btn" type="button">Написать</button>
     </div>
   </section>
 
   <main id="game-container" aria-live="polite"></main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="app.js?v=19" defer></script>
+  <script src="app.js?v=21" defer></script>
 </body>
 </html>
