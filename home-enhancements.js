@@ -85,7 +85,7 @@
     ` : '';
 
     const recentHtml = recent.length ? `
-      <div class="home-dashboard__label">Недавние игры</div>
+      <div class="home-dashboard__label home-dashboard__label--recent">Недавние игры</div>
       <div class="home-recent">
         ${recent.map((title) => `<button type="button" class="home-recent__item" data-home-game="${escapeAttr(title)}">${escapeText(title)}</button>`).join('')}
       </div>
@@ -94,7 +94,7 @@
     dashboard.innerHTML = `
       ${continueHtml}
       ${recentHtml}
-      <div class="home-dashboard__label">Ваш прогресс</div>
+      <div class="home-dashboard__label home-dashboard__label--progress">Ваш прогресс</div>
       <div class="home-progress" aria-label="Прогресс в словесных играх">
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.wow))} ⭐</strong><span class="home-progress__name">Библейские слова</span></div>
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.search))} ⭐</strong><span class="home-progress__name">Поиск слов</span></div>
