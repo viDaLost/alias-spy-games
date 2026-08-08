@@ -2,6 +2,14 @@ name: Deploy Quartet Cloudflare backend
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/quartet-worker/**'
+      - '.github/workflows/deploy-quartet-cloudflare.yml'
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
