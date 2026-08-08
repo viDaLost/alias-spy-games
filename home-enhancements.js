@@ -83,10 +83,7 @@
     const hidden = hiddenSections();
     const signature = JSON.stringify({ recent, p, hidden: [...hidden].sort() });
     const existing = document.getElementById('home-dashboard');
-    if (existing && signature === lastSignature && existing.dataset.contentReady === '1') {
-      window.__homeControlsApply?.();
-      return;
-    }
+    if (existing && signature === lastSignature && existing.dataset.contentReady === '1') return;
     lastSignature = signature;
 
     const dashboard = existing || document.createElement('section');
