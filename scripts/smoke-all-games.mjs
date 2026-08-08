@@ -65,7 +65,7 @@ async function makePage() {
   await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
     status: 200,
     contentType: 'text/javascript; charset=utf-8',
-    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
+    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
   }));
 
   const gasReply = JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] });
@@ -73,12 +73,10 @@ async function makePage() {
     await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gasReply }));
   }
 
-  // The app intentionally becomes usable based on its own readiness gate rather
-  // than the browser's DOMContentLoaded lifecycle. Wait for the document commit,
-  // then assert the actual UI contract.
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
+  await page.waitForSelector('#bible-sketch-card', { timeout: 5_000 });
   return { context, page, pageErrors, consoleErrors };
 }
 
@@ -94,6 +92,7 @@ let gameKeys = [];
 }
 
 if (!gameKeys.length) failures.push('Главное меню не содержит ни одной запускаемой игры.');
+if (!gameKeys.includes('bible-sketch')) failures.push('Библейский художник не зарегистрирован в главном меню.');
 console.log(`Discovered ${gameKeys.length} games: ${gameKeys.join(', ')}`);
 
 for (const gameKey of gameKeys) {
