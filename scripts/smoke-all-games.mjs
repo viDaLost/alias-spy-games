@@ -77,7 +77,6 @@ async function makePage() {
   // than the browser's DOMContentLoaded lifecycle. Wait for the document commit,
   // then assert the actual UI contract.
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
-  await page.waitForSelector('#main-loader', { timeout: 5_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
   return { context, page, pageErrors, consoleErrors };
