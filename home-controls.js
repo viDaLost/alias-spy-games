@@ -2,7 +2,7 @@
   const STORAGE_KEY = 'home_hidden_sections_v1';
   const SECTION_KEYS = ['continue', 'recent', 'progress'];
   let observer = null;
-  let scheduled = null;
+  let scheduled = 0;
   let rendering = false;
 
   function syncRoot(hidden) {
@@ -29,11 +29,6 @@
     syncRoot(hidden);
   }
 
-  function findLabel(dashboard, text) {
-    return [...dashboard.querySelectorAll('.home-dashboard__label')]
-      .find((node) => (node.textContent || '').trim() === text) || null;
-  }
-
   function controlsButton(key, hidden) {
     const row = document.createElement('div');
     row.className = 'home-section-controls';
@@ -57,18 +52,19 @@
   function apply() {
     if (rendering) return;
     const dashboard = document.getElementById('home-dashboard');
-    if (!dashboard) return;
+    if (!dashboard || dashboard.dataset.contentReady !== '1') return;
 
     rendering = true;
     observer?.disconnect();
     try {
+      dashboard.dataset.controlsReady = '0';
       dashboard.querySelectorAll('.home-section-controls, .home-hidden-restore').forEach((node) => node.remove());
       const hidden = readHidden();
 
       const continueCard = dashboard.querySelector('.home-continue');
-      const recentLabel = findLabel(dashboard, 'Недавние игры');
+      const recentLabel = dashboard.querySelector('.home-dashboard__label--recent');
       const recentRow = dashboard.querySelector('.home-recent');
-      const progressLabel = findLabel(dashboard, 'Ваш прогресс');
+      const progressLabel = dashboard.querySelector('.home-dashboard__label--progress');
       const progressGrid = dashboard.querySelector('.home-progress');
 
       setHidden([continueCard], hidden.has('continue'));
@@ -93,19 +89,25 @@
         restore.appendChild(button);
         dashboard.appendChild(restore);
       }
+      dashboard.dataset.controlsReady = '1';
+      window.dispatchEvent(new CustomEvent('app:home-controls-ready'));
     } finally {
-      observer?.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode'] });
+      observer?.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode', 'data-content-ready'] });
       rendering = false;
     }
   }
 
   function schedule() {
-    clearTimeout(scheduled);
-    scheduled = setTimeout(apply, 80);
+    if (scheduled) cancelAnimationFrame(scheduled);
+    scheduled = requestAnimationFrame(() => {
+      scheduled = 0;
+      apply();
+    });
   }
 
+  window.__homeControlsApply = apply;
   observer = new MutationObserver(schedule);
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode'] });
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode', 'data-content-ready'] });
   window.addEventListener('pageshow', schedule);
   schedule();
 })();
