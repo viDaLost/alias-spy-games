@@ -4,6 +4,10 @@
   "version": "2.1.0",
   "type": "commonjs",
   "scripts": {
-    "check": "node scripts/check-project.mjs"
+    "check": "node scripts/check-project.mjs",
+    "smoke:games": "node scripts/smoke-all-games.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.55.0"
   }
 }
