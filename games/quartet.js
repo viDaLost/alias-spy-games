@@ -1,4 +1,4 @@
-// games/quartet.js — Quartet v2, Cloudflare Workers + Durable Objects + WebSocket
+// games/quartet.js — Quartet v2.1, Cloudflare realtime UX
 
 function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   const container = document.getElementById('game-container');
@@ -14,6 +14,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     guestId: 'quartet_v2_guest_id',
   };
 
+  const TURN_TIMEOUT_SECONDS = 90;
   const backendBase = resolveBackendBase();
   const guestId = getOrCreateGuestId();
   const telegramInitData = String(tg?.initData || '');
@@ -35,9 +36,11 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   let destroyed = false;
   let leaving = false;
   let selectedTargetId = '';
+  let selectedCardId = '';
   let lastEventId = '';
   let turnTimerInterval = null;
   let toastTimer = null;
+  let turnNoticeTimer = null;
   let currentScreen = 'loading';
 
   const ui = {};
@@ -50,7 +53,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   window.__quartetCleanup = cleanup;
 
   boot().catch((error) => {
-    console.error('Quartet v2 boot error', error);
+    console.error('Quartet v2.1 boot error', error);
     showFatal(String(error?.message || error));
   });
 
@@ -95,11 +98,15 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   }
 
   function injectStylesheet() {
-    if (document.getElementById('quartet-v2-css')) return;
+    const existing = document.getElementById('quartet-v2-css');
+    if (existing) {
+      existing.href = 'games/quartet-v2.css?v=3';
+      return;
+    }
     const link = document.createElement('link');
     link.id = 'quartet-v2-css';
     link.rel = 'stylesheet';
-    link.href = 'games/quartet-v2.css?v=1';
+    link.href = 'games/quartet-v2.css?v=3';
     document.head.appendChild(link);
   }
 
@@ -149,6 +156,10 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
           </div>
         </header>
         <div id="qv2-content"></div>
+        <div class="qv2-turn-notice" id="qv2-turn-notice" role="status" aria-live="assertive">
+          <div class="qv2-turn-notice-icon" id="qv2-turn-notice-icon">↻</div>
+          <div><strong id="qv2-turn-notice-title"></strong><span id="qv2-turn-notice-text"></span></div>
+        </div>
         <div class="qv2-toast" id="qv2-toast" role="status" aria-live="polite"></div>
         <div id="qv2-modal-root"></div>
       </section>
@@ -158,6 +169,10 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     ui.subtitle = document.getElementById('qv2-subtitle');
     ui.connection = document.getElementById('qv2-connection');
     ui.connectionText = document.getElementById('qv2-connection-text');
+    ui.turnNotice = document.getElementById('qv2-turn-notice');
+    ui.turnNoticeIcon = document.getElementById('qv2-turn-notice-icon');
+    ui.turnNoticeTitle = document.getElementById('qv2-turn-notice-title');
+    ui.turnNoticeText = document.getElementById('qv2-turn-notice-text');
     ui.toast = document.getElementById('qv2-toast');
     ui.modalRoot = document.getElementById('qv2-modal-root');
     setConnection('offline', 'Не подключено');
@@ -179,17 +194,10 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
         if (action === 'start-game') return sendAction('startGame', {}, target);
         if (action === 'restart-game') return sendAction('restartGame', {}, target);
         if (action === 'leave-room') return confirmLeave();
-        if (action === 'select-target') {
-          selectedTargetId = String(target.dataset.playerId || '');
-          renderState();
-          haptic('selection');
-          return;
-        }
-        if (action === 'ask-card') {
-          const cardId = String(target.dataset.cardId || '');
-          if (!selectedTargetId) return showToast('Сначала выбери игрока', 'error');
-          return sendAction('askCard', { targetId: selectedTargetId, cardId }, target);
-        }
+        if (action === 'select-target') return selectTarget(target);
+        if (action === 'select-card') return selectCard(target);
+        if (action === 'confirm-ask') return confirmAsk(target);
+        if (action === 'focus-group') return focusGroup(target.dataset.groupId || '');
         if (action === 'open-rules') return openRules();
         if (action === 'close-modal') return closeModal();
         if (action === 'retry-connect') return retryConnect();
@@ -203,21 +211,54 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     });
   }
 
+  function selectTarget(button) {
+    if (!isMyTurn()) return;
+    selectedTargetId = String(button.dataset.playerId || '');
+    renderState();
+    haptic('selection');
+  }
+
+  function selectCard(button) {
+    if (!isMyTurn()) return;
+    const cardId = String(button.dataset.cardId || '');
+    if (!cardId) return;
+    selectedCardId = selectedCardId === cardId ? '' : cardId;
+    const groupId = quartetByCardId.get(cardId)?.id || '';
+    renderState();
+    if (groupId) requestAnimationFrame(() => focusGroup(groupId));
+    haptic('selection');
+  }
+
+  function confirmAsk(button) {
+    if (!isMyTurn()) return showToast('Сейчас ход другого игрока', 'info');
+    if (!selectedTargetId) return showToast('Сначала выбери игрока', 'info');
+    if (!selectedCardId) return showToast('Теперь выбери недостающую карту', 'info');
+    const card = cardById.get(selectedCardId);
+    showTurnNotice('Запрос отправлен', `Спрашиваем «${card?.title || 'карту'}»…`, 'pending', '↗', 1200);
+    return sendAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId }, button);
+  }
+
+  function focusGroup(groupId) {
+    const element = document.getElementById(`qv2-group-${safeDomId(groupId)}`);
+    if (!element) return;
+    element.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
+  }
+
   function renderHome() {
     currentScreen = 'home';
     state = null;
-    selectedTargetId = '';
+    resetSelection();
     updateHeader();
     ui.content.innerHTML = `
       <div class="qv2-home">
         <section class="qv2-hero qv2-glass">
           <span class="qv2-kicker">Realtime · 2–8 игроков</span>
           <h2>Собери больше квартетов</h2>
-          <p>Выбирай соперника, проси конкретную карту и собирай группы по четыре. Если карта есть — ход остаётся у тебя.</p>
+          <p>Выбирай соперника, отмечай нужную карту и собирай группы по четыре. Успешный запрос сохраняет ход за тобой.</p>
           <div class="qv2-steps">
-            <div class="qv2-step"><b>1 · Выбери</b><span>игрока, у которого хочешь спросить карту</span></div>
-            <div class="qv2-step"><b>2 · Спроси</b><span>только карту из группы, которая уже есть в руке</span></div>
-            <div class="qv2-step"><b>3 · Собери</b><span>четыре карты — квартет автоматически засчитается</span></div>
+            <div class="qv2-step"><b>1 · Игрок</b><span>выбери соперника</span></div>
+            <div class="qv2-step"><b>2 · Карта</b><span>отметь недостающую</span></div>
+            <div class="qv2-step"><b>3 · Запрос</b><span>подтверди действие</span></div>
           </div>
         </section>
 
@@ -246,9 +287,8 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     ui.content.innerHTML = `
       <section class="qv2-hero qv2-glass">
         <span class="qv2-kicker">Quartet v2</span>
-        <h2>Cloudflare backend готов к подключению</h2>
-        <p>Frontend уже переведён на realtime WebSocket, но в <code>index.html</code> ещё не указан URL развернутого Worker.</p>
-        <div class="qv2-backend-note" style="margin-top:16px;">⚙️ Сначала разверните <b>cloudflare/quartet-worker</b>, затем вставьте выданный <b>workers.dev</b> URL в meta <b>quartet-backend</b>.</div>
+        <h2>Cloudflare backend не подключён</h2>
+        <p>В <code>index.html</code> должен быть указан URL Cloudflare Worker в meta <b>quartet-backend</b>.</p>
       </section>
     `;
   }
@@ -256,7 +296,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   function showConnecting(text = 'Подключение…') {
     currentScreen = 'connecting';
     ui.content.innerHTML = `
-      <section class="qv2-loading qv2-glass" style="border-radius:28px;">
+      <section class="qv2-loading qv2-glass">
         <div class="qv2-loading-box"><div class="qv2-spinner"></div><div>${escapeHtml(text)}</div></div>
       </section>
     `;
@@ -270,7 +310,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
         <span class="qv2-kicker">Ошибка</span>
         <h2>Квартет не запустился</h2>
         <p>${escapeHtml(message)}</p>
-        <button class="qv2-btn qv2-btn--primary qv2-btn--full" style="margin-top:16px;" data-action="retry-connect">Повторить</button>
+        <button class="qv2-btn qv2-btn--primary qv2-btn--full qv2-mt" data-action="retry-connect">Повторить</button>
       </section>
     `;
   }
@@ -279,10 +319,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     persistNameFromInput();
     setButtonBusy(button, true, 'Создаём…');
     try {
-      const response = await http('/rooms', {
-        method: 'POST',
-        body: authBody(),
-      });
+      const response = await http('/rooms', { method: 'POST', body: authBody() });
       roomId = normalizeRoomId(response.roomId);
       sessionToken = String(response.sessionToken || '');
       localStorage.setItem(LS.roomId, roomId);
@@ -298,31 +335,21 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     const code = normalizeRoomId(document.getElementById('qv2-room-code')?.value || '');
     if (!code) throw new Error('Введите код комнаты');
     setButtonBusy(button, true, 'Входим…');
-    try {
-      await joinOrResume(code, false);
-    } finally {
-      setButtonBusy(button, false);
-    }
+    try { await joinOrResume(code, false); }
+    finally { setButtonBusy(button, false); }
   }
 
   async function joinOrResume(code, quiet) {
     roomId = normalizeRoomId(code);
     if (!quiet) showConnecting('Подключаемся к комнате…');
-    const response = await http(`/rooms/${encodeURIComponent(roomId)}/join`, {
-      method: 'POST',
-      body: authBody(),
-    });
+    const response = await http(`/rooms/${encodeURIComponent(roomId)}/join`, { method: 'POST', body: authBody() });
     sessionToken = String(response.sessionToken || '');
     localStorage.setItem(LS.roomId, roomId);
     connectSocket();
   }
 
   function authBody() {
-    return {
-      telegramInitData,
-      guestId,
-      name: playerName,
-    };
+    return { telegramInitData, guestId, name: playerName };
   }
 
   async function http(path, options = {}) {
@@ -368,11 +395,13 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
       let message;
       try { message = JSON.parse(event.data); } catch { return; }
       if (message.type === 'state' && message.state) {
+        const previousState = state;
         state = message.state;
         roomId = normalizeRoomId(state.roomId || roomId);
         localStorage.setItem(LS.roomId, roomId);
-        handleServerEvent(state.lastEvent);
+        reconcileSelection(previousState, state);
         renderState();
+        handleStateTransition(previousState, state);
       } else if (message.type === 'error') {
         showToast(message.error || 'Ошибка сервера', 'error');
       }
@@ -381,12 +410,11 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     socket.addEventListener('close', () => {
       if (destroyed || leaving) return;
       setConnection('offline', 'Связь потеряна');
+      showToast('Связь потеряна. Переподключаемся…', 'info');
       scheduleReconnect();
     });
 
-    socket.addEventListener('error', () => {
-      setConnection('offline', 'Ошибка связи');
-    });
+    socket.addEventListener('error', () => setConnection('offline', 'Ошибка связи'));
   }
 
   function scheduleReconnect() {
@@ -396,9 +424,8 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     reconnectTimer = setTimeout(async () => {
       reconnectTimer = null;
       reconnecting = true;
-      try {
-        await joinOrResume(roomId, true);
-      } catch (error) {
+      try { await joinOrResume(roomId, true); }
+      catch {
         reconnecting = false;
         setConnection('offline', 'Нет связи');
         scheduleReconnect();
@@ -410,10 +437,9 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     if (!backendBase) return showBackendNotConfigured();
     if (roomId) {
       showConnecting('Переподключаемся…');
-      try { await joinOrResume(roomId, true); } catch (error) { showFatal(String(error?.message || error)); }
-    } else {
-      renderHome();
-    }
+      try { await joinOrResume(roomId, true); }
+      catch (error) { showFatal(String(error?.message || error)); }
+    } else renderHome();
   }
 
   function renderState() {
@@ -446,10 +472,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
         </section>
 
         <section class="qv2-section qv2-glass">
-          <div class="qv2-section-head">
-            <h3 class="qv2-section-title">Игроки</h3>
-            <div class="qv2-section-meta">${activePlayers.length}/8</div>
-          </div>
+          <div class="qv2-section-head"><h3 class="qv2-section-title">Игроки</h3><div class="qv2-section-meta">${activePlayers.length}/8</div></div>
           <div class="qv2-player-list">${activePlayers.map(renderLobbyPlayer).join('')}</div>
         </section>
 
@@ -457,7 +480,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
           ${me.isHost
             ? `<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="start-game" ${canStart ? '' : 'disabled'}>${canStart ? 'Начать игру' : 'Ждём ещё игрока'}</button>`
             : `<div class="qv2-empty">Ведущий начнёт игру, когда все будут готовы.</div>`}
-          <button class="qv2-btn qv2-btn--danger qv2-btn--full" style="margin-top:8px;" data-action="leave-room">Выйти из комнаты</button>
+          <button class="qv2-btn qv2-btn--danger qv2-btn--full qv2-mt-sm" data-action="leave-room">Выйти из комнаты</button>
         </section>
       </div>
     `;
@@ -480,41 +503,47 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   function renderGame() {
     currentScreen = 'game';
     const me = state.me || {};
-    const myTurn = state.turnPlayerId === me.playerId;
-    const targets = (state.players || []).filter((player) => player.isActive !== false && player.playerId !== me.playerId && player.cardsCount > 0);
-    if (!targets.some((player) => player.playerId === selectedTargetId)) selectedTargetId = targets[0]?.playerId || '';
+    const myTurn = isMyTurn();
+    const targets = availableTargets();
+    if (selectedTargetId && !targets.some((player) => player.playerId === selectedTargetId)) selectedTargetId = '';
 
     const groupedHand = buildHandGroups(me.hand || []);
     const completed = (me.completedQuartets || []).map((id) => quartetById.get(id)).filter(Boolean);
-    const lastEvent = renderLastEvent(state.lastEvent, me.playerId);
+    const event = renderLastEvent(state.lastEvent, me.playerId);
 
     ui.content.innerHTML = `
-      <div class="qv2-home">
+      <div class="qv2-game ${myTurn ? 'is-my-turn' : 'is-waiting-turn'}">
         ${renderTurnBanner(myTurn)}
 
-        <section class="qv2-section qv2-glass">
+        <section class="qv2-section qv2-glass qv2-players-section">
           <div class="qv2-section-head">
-            <h3 class="qv2-section-title">Игроки</h3>
-            <div class="qv2-section-meta">${myTurn ? '1. Выбери соперника' : 'Счёт партии'}</div>
+            <div><h3 class="qv2-section-title">Игроки</h3><div class="qv2-section-caption">${myTurn ? 'Шаг 1 · выбери, у кого спросить карту' : `Сейчас действует ${escapeHtml(state.turnPlayerName || 'игрок')}`}</div></div>
+            <div class="qv2-section-meta">${(state.players || []).filter((player) => player.isActive !== false).length} в партии</div>
           </div>
           <div class="qv2-score-strip">${(state.players || []).filter((player) => player.isActive !== false).map((player) => renderScorePlayer(player, myTurn)).join('')}</div>
         </section>
 
-        ${lastEvent ? `<div class="qv2-event ${lastEvent.className}">${lastEvent.text}</div>` : ''}
+        ${event ? `<div class="qv2-event ${event.className}"><span class="qv2-event-icon">${event.icon}</span><span>${event.text}</span></div>` : ''}
 
-        <section class="qv2-section qv2-glass">
+        <section class="qv2-section qv2-glass qv2-hand-section">
           <div class="qv2-section-head">
-            <h3 class="qv2-section-title">Твои карты</h3>
-            <div class="qv2-section-meta">${me.cardsCount || 0} карт · ${me.quartetsCount || 0} квартетов</div>
+            <div><h3 class="qv2-section-title">Твоя рука</h3><div class="qv2-section-caption">${myTurn ? 'Шаг 2 · выбери недостающую карту' : 'Можно заранее продумать следующий запрос'}</div></div>
+            <div class="qv2-section-meta">🃏 ${me.cardsCount || 0} · 🏆 ${me.quartetsCount || 0}</div>
           </div>
-          ${completed.length ? `<div class="qv2-completed" style="margin-bottom:10px;">${completed.map((quartet) => `<span class="qv2-trophy">🏆 ${escapeHtml(quartet.name)}</span>`).join('')}</div>` : ''}
-          <div class="qv2-hand">${groupedHand.length ? groupedHand.map((group) => renderHandGroup(group, myTurn)).join('') : '<div class="qv2-empty">В руке больше нет карт.</div>'}</div>
+          ${completed.length ? `<div class="qv2-completed">${completed.map((quartet) => `<span class="qv2-trophy">🏆 ${escapeHtml(quartet.name)}</span>`).join('')}</div>` : ''}
+          ${renderHandDeck(groupedHand, myTurn)}
         </section>
 
-        <details class="qv2-section qv2-glass qv2-log">
-          <summary><span>История ходов</span><span>⌄</span></summary>
-          <div class="qv2-log-list">${(state.log || []).slice().reverse().map((item) => `<div class="qv2-log-item">${escapeHtml(item)}</div>`).join('')}</div>
-        </details>
+        ${renderActionDock(myTurn)}
+
+        <section class="qv2-section qv2-glass qv2-activity">
+          <div class="qv2-section-head"><h3 class="qv2-section-title">Последние действия</h3><div class="qv2-section-meta">партия в реальном времени</div></div>
+          <div class="qv2-activity-list">${renderRecentLog()}</div>
+          <details class="qv2-log">
+            <summary><span>Вся история</span><span>⌄</span></summary>
+            <div class="qv2-log-list">${(state.log || []).slice().reverse().map((item) => `<div class="qv2-log-item">${escapeHtml(item)}</div>`).join('')}</div>
+          </details>
+        </section>
 
         <button class="qv2-btn qv2-btn--danger qv2-btn--full" data-action="leave-room">Выйти из партии</button>
       </div>
@@ -523,14 +552,19 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   }
 
   function renderTurnBanner(myTurn) {
+    const turnName = escapeHtml(state.turnPlayerName || 'игрок');
     return `
-      <section class="qv2-turn-banner qv2-glass ${myTurn ? 'is-mine' : ''}">
-        <div class="qv2-turn-icon">${myTurn ? '👆' : '⏳'}</div>
-        <div>
-          <div class="qv2-turn-title">${myTurn ? 'Твой ход' : `Ходит ${escapeHtml(state.turnPlayerName || 'игрок')}`}</div>
-          <div class="qv2-turn-text">${myTurn ? 'Выбери игрока, затем недостающую карту.' : 'Смотри свою руку — ход придёт автоматически.'}</div>
+      <section class="qv2-turn-banner qv2-glass ${myTurn ? 'is-mine' : 'is-waiting'}" id="qv2-turn-banner">
+        <div class="qv2-turn-badge">${myTurn ? 'ВАШ ХОД' : 'ОЖИДАНИЕ'}</div>
+        <div class="qv2-turn-main">
+          <div class="qv2-turn-avatar">${myTurn ? '✦' : escapeHtml(String(state.turnPlayerName || 'И').charAt(0).toUpperCase())}</div>
+          <div>
+            <div class="qv2-turn-title">${myTurn ? 'Ваш ход начался' : `Ход игрока ${turnName}`}</div>
+            <div class="qv2-turn-text">${myTurn ? 'Выберите соперника и карту. После выбора подтвердите запрос.' : 'Ваши игровые действия временно заблокированы. Следите за партией — очередь переключится автоматически.'}</div>
+          </div>
         </div>
-        <div class="qv2-turn-timer" id="qv2-turn-timer">--</div>
+        <div class="qv2-turn-timer-wrap"><span>Осталось</span><strong class="qv2-turn-timer" id="qv2-turn-timer">--</strong></div>
+        <div class="qv2-turn-progress" aria-hidden="true"><span id="qv2-turn-progress"></span></div>
       </section>
     `;
   }
@@ -538,15 +572,20 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   function renderScorePlayer(player, myTurn) {
     const meId = state.me?.playerId;
     const selectable = myTurn && player.playerId !== meId && player.cardsCount > 0;
-    const classes = [
-      player.playerId === selectedTargetId ? 'is-target' : '',
-      player.playerId === state.turnPlayerId ? 'is-turn' : '',
-      player.playerId === meId ? 'is-me' : '',
-    ].filter(Boolean).join(' ');
+    const isTurn = player.playerId === state.turnPlayerId;
+    const isTarget = player.playerId === selectedTargetId;
+    const classes = [isTarget ? 'is-target' : '', isTurn ? 'is-turn' : '', player.playerId === meId ? 'is-me' : ''].filter(Boolean).join(' ');
+    const initial = escapeHtml(String(player.name || 'И').charAt(0).toUpperCase());
     return `
-      <button type="button" class="qv2-score-player ${classes}" ${selectable ? `data-action="select-target" data-player-id="${escapeHtml(player.playerId)}"` : 'disabled'}>
-        <div class="qv2-score-top"><span class="qv2-score-name">${escapeHtml(player.name)}${player.playerId === meId ? ' · ты' : ''}</span><span>${player.connected ? '●' : '○'}</span></div>
+      <button type="button" class="qv2-score-player ${classes}" ${selectable ? `data-action="select-target" data-player-id="${escapeHtml(player.playerId)}" aria-pressed="${isTarget}"` : 'disabled'}>
+        <div class="qv2-score-player-head">
+          <span class="qv2-mini-avatar">${initial}</span>
+          <span class="qv2-score-name">${escapeHtml(player.name)}${player.playerId === meId ? ' · ты' : ''}</span>
+          <span class="qv2-presence ${player.connected ? 'is-online' : ''}" title="${player.connected ? 'Онлайн' : 'Не в сети'}"></span>
+        </div>
         <div class="qv2-score-stats"><span>🃏 ${Number(player.cardsCount || 0)}</span><span>🏆 ${Number(player.quartetsCount || 0)}</span></div>
+        ${isTurn ? '<div class="qv2-player-turn-label">Сейчас ходит</div>' : ''}
+        ${isTarget ? '<div class="qv2-player-target-label">Выбран</div>' : ''}
       </button>
     `;
   }
@@ -554,8 +593,9 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   function buildHandGroups(hand) {
     const owned = new Set(hand || []);
     return catalog
-      .map((quartet) => ({
+      .map((quartet, catalogIndex) => ({
         quartet,
+        catalogIndex,
         ownedCount: quartet.cards.filter((card) => owned.has(card.id)).length,
         cards: quartet.cards.map((card) => ({ ...card, owned: owned.has(card.id) })),
       }))
@@ -563,30 +603,89 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
       .sort((a, b) => b.ownedCount - a.ownedCount || a.quartet.name.localeCompare(b.quartet.name, 'ru'));
   }
 
-  function renderHandGroup(group, myTurn) {
-    const near = group.ownedCount >= 3 ? 'is-near' : '';
+  function renderHandDeck(groups, myTurn) {
+    if (!groups.length) return '<div class="qv2-empty">В руке больше нет карт.</div>';
+    const selectedGroupId = quartetByCardId.get(selectedCardId)?.id || '';
     return `
-      <article class="qv2-group ${near}">
-        <div class="qv2-group-head">
-          <div class="qv2-group-icon">${escapeHtml(group.quartet.icon)}</div>
-          <div><div class="qv2-group-title">${escapeHtml(group.quartet.name)}</div><div class="qv2-group-progress">${group.ownedCount === 3 ? 'Осталась одна карта' : 'Собирай все четыре карты'}</div></div>
-          <div class="qv2-progress-ring">${group.ownedCount}/4</div>
+      <div class="qv2-group-tabs" aria-label="Квартеты в руке">
+        ${groups.map((group) => `
+          <button type="button" class="qv2-group-tab ${selectedGroupId === group.quartet.id ? 'is-active' : ''}" data-action="focus-group" data-group-id="${escapeHtml(group.quartet.id)}">
+            <span>${escapeHtml(group.quartet.icon)}</span><b>${group.ownedCount}/4</b>
+          </button>`).join('')}
+      </div>
+      <div class="qv2-quartet-deck" id="qv2-quartet-deck">
+        ${groups.map((group, index) => renderHandGroup(group, myTurn, index)).join('')}
+      </div>
+      <div class="qv2-swipe-hint"><span>←</span> Листайте квартеты <span>→</span></div>
+    `;
+  }
+
+  function renderHandGroup(group, myTurn, index) {
+    const near = group.ownedCount >= 3 ? 'is-near' : '';
+    const selectedGroup = group.cards.some((card) => card.id === selectedCardId);
+    const theme = (group.catalogIndex + index) % 6;
+    const progressLabel = group.ownedCount === 3 ? 'Осталась 1 карта' : group.ownedCount === 2 ? 'Половина собрана' : 'Квартет открыт';
+    return `
+      <article class="qv2-quartet-card qv2-theme-${theme} ${near} ${selectedGroup ? 'has-selection' : ''}" id="qv2-group-${safeDomId(group.quartet.id)}">
+        <div class="qv2-quartet-card-head">
+          <div class="qv2-quartet-symbol">${escapeHtml(group.quartet.icon)}</div>
+          <div class="qv2-quartet-heading"><span>Квартет</span><strong>${escapeHtml(group.quartet.name)}</strong><small>${progressLabel}</small></div>
+          <div class="qv2-quartet-progress"><strong>${group.ownedCount}</strong><span>/4</span></div>
         </div>
-        <div class="qv2-cards">
-          ${group.cards.map((card) => renderCardSlot(card, myTurn)).join('')}
+        <div class="qv2-progress-pips" aria-label="Собрано ${group.ownedCount} из 4">
+          ${[0,1,2,3].map((n) => `<span class="${n < group.ownedCount ? 'is-filled' : ''}"></span>`).join('')}
+        </div>
+        <div class="qv2-card-grid">
+          ${group.cards.map((card, cardIndex) => renderPlayingCard(card, myTurn, cardIndex + 1)).join('')}
         </div>
       </article>
     `;
   }
 
-  function renderCardSlot(card, myTurn) {
+  function renderPlayingCard(card, myTurn, number) {
+    const selected = card.id === selectedCardId;
+    const quartet = quartetByCardId.get(card.id);
     if (card.owned) {
-      return `<div class="qv2-card-slot is-owned"><span class="qv2-card-state">Есть</span><span class="qv2-card-title">${escapeHtml(card.title)}</span></div>`;
+      return `
+        <div class="qv2-playing-card is-owned" aria-label="${escapeHtml(card.title)}, карта у вас">
+          <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
+          <div class="qv2-card-face-icon">${escapeHtml(quartet?.icon || '🃏')}</div>
+          <div class="qv2-playing-card-title">${escapeHtml(card.title)}</div>
+          <div class="qv2-card-status">✓ В руке</div>
+        </div>`;
     }
-    if (myTurn && selectedTargetId) {
-      return `<button type="button" class="qv2-card-slot is-missing is-askable" data-action="ask-card" data-card-id="${escapeHtml(card.id)}"><span class="qv2-card-state">2. Спросить</span><span class="qv2-card-title">${escapeHtml(card.title)}</span></button>`;
-    }
-    return `<div class="qv2-card-slot is-missing"><span class="qv2-card-state">Нужно</span><span class="qv2-card-title">${escapeHtml(card.title)}</span></div>`;
+    const canSelect = myTurn && !!selectedTargetId;
+    return `
+      <button type="button" class="qv2-playing-card is-missing ${canSelect ? 'is-selectable' : ''} ${selected ? 'is-selected' : ''}"
+        ${canSelect ? `data-action="select-card" data-card-id="${escapeHtml(card.id)}" aria-pressed="${selected}"` : 'disabled'}
+        aria-label="${escapeHtml(card.title)}, недостающая карта${selected ? ', выбрана' : ''}">
+        <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
+        <div class="qv2-card-face-icon">${selected ? '✓' : '?'}</div>
+        <div class="qv2-playing-card-title">${escapeHtml(card.title)}</div>
+        <div class="qv2-card-status">${selected ? 'Выбрана' : canSelect ? 'Нажмите, чтобы выбрать' : 'Нужно собрать'}</div>
+      </button>`;
+  }
+
+  function renderActionDock(myTurn) {
+    const target = (state.players || []).find((player) => player.playerId === selectedTargetId);
+    const card = cardById.get(selectedCardId);
+    const ready = myTurn && !!target && !!card;
+    return `
+      <section class="qv2-action-dock qv2-glass ${myTurn ? 'is-active' : 'is-locked'}">
+        <div class="qv2-action-dock-step qv2-action-target"><span>1</span><div><small>Соперник</small><strong>${target ? escapeHtml(target.name) : myTurn ? 'Выберите игрока' : 'Недоступно'}</strong></div></div>
+        <div class="qv2-action-arrow">→</div>
+        <div class="qv2-action-dock-step qv2-action-card"><span>2</span><div><small>Карта</small><strong>${card ? escapeHtml(card.title) : myTurn ? 'Выберите карту' : 'Ждите хода'}</strong></div></div>
+        <button type="button" class="qv2-btn qv2-btn--primary qv2-confirm-ask" data-action="confirm-ask" ${ready ? '' : 'disabled'}>
+          ${myTurn ? (ready ? 'Спросить карту' : 'Сделайте 2 выбора') : `Ходит ${escapeHtml(state.turnPlayerName || 'игрок')}`}
+        </button>
+      </section>
+    `;
+  }
+
+  function renderRecentLog() {
+    const recent = (state.log || []).slice(-3).reverse();
+    if (!recent.length) return '<div class="qv2-empty">Действий пока нет.</div>';
+    return recent.map((item, index) => `<div class="qv2-activity-item"><span>${index === 0 ? '●' : '○'}</span><div>${escapeHtml(item)}</div></div>`).join('');
   }
 
   function renderResults() {
@@ -612,7 +711,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
               <div class="qv2-leader-score">🏆 ${Number(player.quartetsCount || 0)}</div>
             </div>`).join('')}</div>
         </section>
-        ${me.isHost ? '<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="restart-game">Новая партия</button>' : '<div class="qv2-event">Ведущий может запустить новую партию в этой же комнате.</div>'}
+        ${me.isHost ? '<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="restart-game">Новая партия</button>' : '<div class="qv2-event"><span class="qv2-event-icon">⏳</span><span>Ведущий может запустить новую партию в этой же комнате.</span></div>'}
         <button class="qv2-btn qv2-btn--danger qv2-btn--full" data-action="leave-room">Выйти из комнаты</button>
       </div>
     `;
@@ -621,49 +720,110 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   function renderLastEvent(event, meId) {
     if (!event?.type) return null;
     if (event.type === 'ask_success') {
-      const actor = event.actorId === meId ? 'Ты' : escapeHtml(event.actorName || 'Игрок');
-      const target = event.targetId === meId ? 'тебя' : escapeHtml(event.targetName || 'игрока');
+      const actor = event.actorId === meId ? 'Вы' : escapeHtml(event.actorName || 'Игрок');
+      const target = event.targetId === meId ? 'у вас' : `у ${escapeHtml(event.targetName || 'игрока')}`;
       const extra = Array.isArray(event.completedQuartets) && event.completedQuartets.length
-        ? ` · собран квартет «${escapeHtml(event.completedQuartets.join(', '))}» 🏆`
+        ? ` Собран квартет «${escapeHtml(event.completedQuartets.join(', '))}» 🏆`
         : '';
-      return { className: 'is-success', text: `${actor} получил карту «${escapeHtml(event.cardTitle)}» у ${target}${extra}` };
+      const verb = event.actorId === meId ? 'получили' : 'получил';
+      return { className: 'is-success', icon: '✓', text: `${actor} ${verb} карту «${escapeHtml(event.cardTitle)}» ${target}.${extra}` };
     }
     if (event.type === 'ask_miss') {
-      const actor = event.actorId === meId ? 'Ты' : escapeHtml(event.actorName || 'Игрок');
-      return { className: 'is-miss', text: `${actor} спросил «${escapeHtml(event.cardTitle)}» — такой карты у выбранного игрока нет. Ход перешёл дальше.` };
+      const actor = event.actorId === meId ? 'Ваш запрос' : `Запрос игрока ${escapeHtml(event.actorName || '')}`;
+      return { className: 'is-miss', icon: '↻', text: `${actor}: карты «${escapeHtml(event.cardTitle)}» нет. Предыдущий ход завершён.` };
     }
-    if (event.type === 'turn_timeout') return { className: 'is-miss', text: `${escapeHtml(event.actorName || 'Игрок')} не успел сделать ход — очередь перешла дальше.` };
+    if (event.type === 'turn_timeout') return { className: 'is-miss', icon: '⌛', text: `${escapeHtml(event.actorName || 'Игрок')} не успел сделать ход. Очередь переключена.` };
+    if (event.type === 'game_started') return { className: 'is-info', icon: '▶', text: 'Партия началась. Первый ход уже активен.' };
     return null;
   }
 
-  function handleServerEvent(event) {
-    if (!event?.id || event.id === lastEventId) return;
-    lastEventId = event.id;
-    const meId = state?.me?.playerId;
-    if (event.type === 'ask_success') {
-      if (event.actorId === meId) {
-        showToast(`Карта «${event.cardTitle}» получена`, 'success');
+  function handleStateTransition(previous, next) {
+    if (!next) return;
+    const event = next.lastEvent;
+    const isNewEvent = !!event?.id && event.id !== lastEventId;
+    const meId = next.me?.playerId;
+    const previousTurn = previous?.turnPlayerId || '';
+    const nextTurn = next.turnPlayerId || '';
+    const turnChanged = !!previous && previousTurn !== nextTurn;
+
+    if (isNewEvent) {
+      lastEventId = event.id;
+      handleServerEvent(event, next);
+    }
+
+    if (!previous && next.status === 'playing') {
+      announceTurnStart(next, 'Партия продолжается');
+      return;
+    }
+
+    if (previous?.status === 'lobby' && next.status === 'playing') {
+      resetSelection();
+      announceTurnStart(next, 'Партия началась');
+      return;
+    }
+
+    if (next.status === 'finished' && previous?.status !== 'finished') {
+      resetSelection();
+      showTurnNotice('Партия завершена', 'Считаем итоговые квартеты', 'success', '🏆', 2200);
+      haptic('success');
+      return;
+    }
+
+    if (previous?.status === 'playing' && next.status === 'playing' && turnChanged) {
+      resetSelection();
+      const previousName = playerNameById(previous, previousTurn) || 'Игрок';
+      if (nextTurn === meId) {
+        showTurnNotice('Предыдущий ход завершён', `${previousName} закончил ход · теперь ходите вы`, 'mine', '✦', 2400);
         haptic('success');
-      } else if (event.targetId === meId) {
-        showToast(`${event.actorName} забрал у тебя «${event.cardTitle}»`, 'info');
+      } else {
+        showTurnNotice('Ход завершён', `${previousName} закончил ход · теперь ${next.turnPlayerName || 'следующий игрок'}`, 'waiting', '↻', 2200);
+        if (previousTurn === meId) haptic('warning');
+      }
+      return;
+    }
+
+    if (previous?.status === 'playing' && next.status === 'playing' && !turnChanged && isNewEvent && event?.type === 'ask_success') {
+      selectedCardId = '';
+      if (event.actorId === meId) {
+        showTurnNotice('Успешный запрос', 'Карта получена · ваш ход продолжается', 'success', '✓', 1900);
+        haptic('success');
+      } else {
+        showTurnNotice('Ход продолжается', `${event.actorName || 'Игрок'} получил карту и ходит ещё раз`, 'waiting', '↻', 1700);
+      }
+    }
+  }
+
+  function handleServerEvent(event, nextState) {
+    const meId = nextState?.me?.playerId;
+    if (event.type === 'ask_success') {
+      if (event.actorId === meId) showToast(`Карта «${event.cardTitle}» получена`, 'success');
+      else if (event.targetId === meId) {
+        showToast(`${event.actorName} получил у вас «${event.cardTitle}»`, 'info');
         haptic('warning');
       }
     } else if (event.type === 'ask_miss' && event.actorId === meId) {
-      showToast('Карты нет — ход переходит дальше', 'info');
-      haptic('warning');
-    } else if (event.type === 'game_finished') {
+      showToast('Карты нет — ваш ход завершён', 'info');
+    } else if (event.type === 'player_joined') {
+      if (event.playerId !== meId) showToast(`${event.playerName} вошёл в комнату`, 'info');
+    } else if (event.type === 'player_left') {
+      if (event.playerId !== meId) showToast(`${event.playerName} вышел из комнаты`, 'info');
+    }
+  }
+
+  function announceTurnStart(next, prefix) {
+    if (next.turnPlayerId === next.me?.playerId) {
+      showTurnNotice(prefix, 'Ваш ход начался · выберите соперника и карту', 'mine', '✦', 2300);
       haptic('success');
+    } else {
+      showTurnNotice(prefix, `Первым ходит ${next.turnPlayerName || 'игрок'}`, 'waiting', '▶', 2100);
     }
   }
 
   async function sendAction(action, payload = {}, button = null) {
     if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error('Нет соединения с комнатой');
-    if (button) setButtonBusy(button, true, '…');
-    try {
-      socket.send(JSON.stringify({ type: 'action', action, payload }));
-    } finally {
-      if (button) setTimeout(() => setButtonBusy(button, false), 600);
-    }
+    if (button) setButtonBusy(button, true, 'Отправляем…');
+    try { socket.send(JSON.stringify({ type: 'action', action, payload })); }
+    finally { if (button) setTimeout(() => setButtonBusy(button, false), 700); }
   }
 
   async function confirmLeave() {
@@ -699,9 +859,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     try {
       await navigator.clipboard.writeText(roomId);
       showToast('Код скопирован', 'success');
-    } catch {
-      showToast(`Код комнаты: ${roomId}`, 'info');
-    }
+    } catch { showToast(`Код комнаты: ${roomId}`, 'info'); }
   }
 
   async function shareRoom() {
@@ -721,12 +879,13 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
         <div class="qv2-modal-card" data-modal-card>
           <h3>Как играть в Квартет</h3>
           <ol>
-            <li>В каждой группе четыре карты. Цель — собрать больше полных групп.</li>
-            <li>Во время своего хода выбери другого игрока.</li>
-            <li>Можно спросить только карту из квартета, от которого у тебя уже есть хотя бы одна карта.</li>
-            <li>Если выбранная карта есть у соперника, она сразу переходит к тебе и ты ходишь ещё раз.</li>
-            <li>Если карты нет, ход автоматически переходит следующему игроку.</li>
-            <li>Когда все четыре карты группы у одного игрока, квартет автоматически засчитывается и карты уходят из руки.</li>
+            <li>В каждой группе четыре карты. Цель — собрать больше полных квартетов.</li>
+            <li>Когда сверху появляется <b>«Ваш ход»</b>, сначала выберите соперника.</li>
+            <li>Затем листайте квартеты в своей руке и выберите одну недостающую карту.</li>
+            <li>Проверьте выбор в нижней панели и нажмите <b>«Спросить карту»</b>.</li>
+            <li>Если карта есть у соперника, она сразу переходит к вам и ваш ход продолжается.</li>
+            <li>Если карты нет или вышел таймер, ход завершается и автоматически переходит следующему игроку.</li>
+            <li>Когда все четыре карты группы собраны, квартет засчитывается автоматически.</li>
           </ol>
           <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Понятно</button>
         </div>
@@ -734,20 +893,58 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     `;
   }
 
-  function closeModal() {
-    ui.modalRoot.innerHTML = '';
-  }
+  function closeModal() { ui.modalRoot.innerHTML = ''; }
 
   function persistNameFromInput() {
-    playerName = String(document.getElementById('qv2-player-name')?.value || defaultName).replace(/[<>\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 32) || defaultName;
+    playerName = String(document.getElementById('qv2-player-name')?.value || defaultName)
+      .replace(/[<>\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 32) || defaultName;
     localStorage.setItem(LS.playerName, playerName);
+  }
+
+  function reconcileSelection(previous, next) {
+    if (!next || next.status !== 'playing') {
+      resetSelection();
+      return;
+    }
+    const myTurn = next.turnPlayerId === next.me?.playerId;
+    if (!myTurn) {
+      resetSelection();
+      return;
+    }
+    if (previous && previous.turnPlayerId !== next.turnPlayerId) resetSelection();
+    const targets = availableTargets(next);
+    if (selectedTargetId && !targets.some((player) => player.playerId === selectedTargetId)) selectedTargetId = '';
+    if (selectedCardId && next.me?.hand?.includes(selectedCardId)) selectedCardId = '';
+    if (selectedCardId) {
+      const q = quartetByCardId.get(selectedCardId);
+      const ownsSameQuartet = q?.cards?.some((card) => next.me?.hand?.includes(card.id));
+      if (!ownsSameQuartet) selectedCardId = '';
+    }
+  }
+
+  function resetSelection() {
+    selectedTargetId = '';
+    selectedCardId = '';
+  }
+
+  function availableTargets(sourceState = state) {
+    const meId = sourceState?.me?.playerId;
+    return (sourceState?.players || []).filter((player) => player.isActive !== false && player.playerId !== meId && player.cardsCount > 0);
+  }
+
+  function isMyTurn() {
+    return !!state?.me?.playerId && state.status === 'playing' && state.turnPlayerId === state.me.playerId;
+  }
+
+  function playerNameById(sourceState, playerId) {
+    return sourceState?.players?.find((player) => player.playerId === playerId)?.name || '';
   }
 
   function clearRoomSession() {
     roomId = '';
     sessionToken = '';
     state = null;
-    selectedTargetId = '';
+    resetSelection();
     reconnectAttempt = 0;
     localStorage.removeItem(LS.roomId);
   }
@@ -779,12 +976,23 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     if (!ui.toast) return;
     clearTimeout(toastTimer);
     ui.toast.textContent = message;
-    ui.toast.className = `qv2-toast is-visible ${type === 'error' ? 'is-error' : type === 'success' ? 'is-success' : ''}`;
-    toastTimer = setTimeout(() => { if (ui.toast) ui.toast.className = 'qv2-toast'; }, 2400);
+    ui.toast.className = `qv2-toast is-visible is-${type}`;
+    toastTimer = setTimeout(() => { if (ui.toast) ui.toast.className = 'qv2-toast'; }, 2500);
+  }
+
+  function showTurnNotice(title, text, mode = 'waiting', icon = '↻', duration = 2100) {
+    if (!ui.turnNotice) return;
+    clearTimeout(turnNoticeTimer);
+    ui.turnNoticeTitle.textContent = title;
+    ui.turnNoticeText.textContent = text;
+    ui.turnNoticeIcon.textContent = icon;
+    ui.turnNotice.className = `qv2-turn-notice is-visible is-${mode}`;
+    turnNoticeTimer = setTimeout(() => { if (ui.turnNotice) ui.turnNotice.className = 'qv2-turn-notice'; }, duration);
   }
 
   function haptic(kind) {
     try {
+      if (typeof window.appHaptic === 'function') return window.appHaptic(kind);
       if (!tg?.HapticFeedback) return;
       if (kind === 'selection') tg.HapticFeedback.selectionChanged();
       else tg.HapticFeedback.notificationOccurred(kind === 'warning' ? 'warning' : 'success');
@@ -793,18 +1001,31 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
 
   function startTurnClock() {
     clearInterval(turnTimerInterval);
-    turnTimerInterval = setInterval(updateTurnTimer, 1000);
+    turnTimerInterval = setInterval(updateTurnTimer, 500);
   }
 
   function updateTurnTimer() {
     const element = document.getElementById('qv2-turn-timer');
+    const progress = document.getElementById('qv2-turn-progress');
+    const banner = document.getElementById('qv2-turn-banner');
     if (!element || !state?.turnDeadlineMs || state.status !== 'playing') return;
     const seconds = Math.max(0, Math.ceil((Number(state.turnDeadlineMs) - Date.now()) / 1000));
+    const percent = Math.max(0, Math.min(100, (seconds / TURN_TIMEOUT_SECONDS) * 100));
     element.textContent = `${seconds}с`;
+    if (progress) progress.style.width = `${percent}%`;
+    if (banner) banner.classList.toggle('is-urgent', seconds <= 15);
+  }
+
+  function prefersReducedMotion() {
+    return document.documentElement.classList.contains('reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   }
 
   function normalizeRoomId(value) {
     return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+  }
+
+  function safeDomId(value) {
+    return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '_');
   }
 
   function escapeHtml(value) {
@@ -831,6 +1052,7 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
     clearInterval(turnTimerInterval);
     turnTimerInterval = null;
     clearTimeout(toastTimer);
+    clearTimeout(turnNoticeTimer);
     closeSocket(false);
     try { tg?.disableClosingConfirmation?.(); } catch {}
     window.__quartetCleanup = null;
