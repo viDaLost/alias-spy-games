@@ -1,0 +1,12 @@
+{
+  "name": "alias-spy-games-bible-sketch-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --test test/*.test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.102.0"
+  }
+}
