@@ -38,7 +38,6 @@ await page.route('https://alias-spy-games-observability.vitaledanilov.workers.de
 });
 
 await page.goto(baseURL,{waitUntil:'commit',timeout:20_000});
-await page.waitForSelector('#main-loader',{timeout:5_000});
 await page.waitForSelector('#menu-container:not(.hidden)',{timeout:10_000});
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'),null,{timeout:10_000});
 await page.evaluate(() => window.showGame('alias'));
