@@ -45,7 +45,7 @@ async function pageFor(width) {
   await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
     status: 200,
     contentType: 'text/javascript; charset=utf-8',
-    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
+    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
   }));
   const gasReply = JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] });
   for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
@@ -54,6 +54,7 @@ async function pageFor(width) {
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
+  await page.waitForSelector('#bible-sketch-card', { timeout: 5_000 });
   return { page, context };
 }
 
@@ -62,6 +63,7 @@ const gameKeys = [...new Set(await discovery.page.locator('.game-card[onclick*="
   .map((button) => (button.getAttribute('onclick') || '').match(/showGame\(['\"]([^'\"]+)['\"]\)/)?.[1])
   .filter(Boolean)))];
 await discovery.context.close();
+if (!gameKeys.includes('bible-sketch')) failures.push('Библейский художник отсутствует в mobile discovery.');
 
 for (const width of widths) {
   for (const gameKey of gameKeys) {
