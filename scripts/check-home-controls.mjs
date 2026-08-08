@@ -47,7 +47,8 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   });
 });
 
-await page.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
+await page.waitForSelector('#main-loader', { timeout: 5_000 });
 await page.waitForTimeout(60);
 const boot = await page.evaluate(() => {
   const menu = document.getElementById('menu-container');
