@@ -1,0 +1,318 @@
+/* Quartet v2.1 mobile containment and phone-first layout.
+   Keeps horizontal card swiping inside the hand area instead of widening the page. */
+
+body[data-current-game="quartet"] {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body[data-current-game="quartet"] #game-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin-inline: auto !important;
+  overflow-x: clip;
+}
+
+body[data-current-game="quartet"] #game-container,
+body[data-current-game="quartet"] .qv2-root,
+body[data-current-game="quartet"] #qv2-content,
+body[data-current-game="quartet"] .qv2-home,
+body[data-current-game="quartet"] .qv2-lobby,
+body[data-current-game="quartet"] .qv2-game,
+body[data-current-game="quartet"] .qv2-section,
+body[data-current-game="quartet"] .qv2-topbar,
+body[data-current-game="quartet"] .qv2-turn-banner,
+body[data-current-game="quartet"] .qv2-turn-main,
+body[data-current-game="quartet"] .qv2-score-strip,
+body[data-current-game="quartet"] .qv2-score-player,
+body[data-current-game="quartet"] .qv2-hand-section,
+body[data-current-game="quartet"] .qv2-group-tabs,
+body[data-current-game="quartet"] .qv2-quartet-deck,
+body[data-current-game="quartet"] .qv2-action-dock,
+body[data-current-game="quartet"] .qv2-activity {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-current-game="quartet"] .qv2-root {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: clip;
+}
+
+body[data-current-game="quartet"] #qv2-content,
+body[data-current-game="quartet"] .qv2-home,
+body[data-current-game="quartet"] .qv2-lobby,
+body[data-current-game="quartet"] .qv2-game,
+body[data-current-game="quartet"] .qv2-section,
+body[data-current-game="quartet"] .qv2-topbar,
+body[data-current-game="quartet"] .qv2-turn-banner,
+body[data-current-game="quartet"] .qv2-action-dock {
+  width: 100%;
+}
+
+/* Explicit minmax(0, 1fr) prevents long labels from defining page width. */
+body[data-current-game="quartet"] .qv2-topbar {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+}
+
+body[data-current-game="quartet"] .qv2-turn-banner {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+body[data-current-game="quartet"] .qv2-turn-main {
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+
+body[data-current-game="quartet"] .qv2-titlebox,
+body[data-current-game="quartet"] .qv2-turn-main > div,
+body[data-current-game="quartet"] .qv2-section-head > div,
+body[data-current-game="quartet"] .qv2-score-player-head,
+body[data-current-game="quartet"] .qv2-quartet-heading,
+body[data-current-game="quartet"] .qv2-action-dock-step > div {
+  min-width: 0;
+}
+
+/* The hand owns its horizontal scrolling. Nothing inside may widen the document. */
+body[data-current-game="quartet"] .qv2-hand-section {
+  overflow: hidden;
+}
+
+body[data-current-game="quartet"] .qv2-group-tabs,
+body[data-current-game="quartet"] .qv2-quartet-deck {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+body[data-current-game="quartet"] .qv2-quartet-deck {
+  box-sizing: border-box;
+  padding-inline: 2px;
+  scroll-padding-inline: 2px;
+}
+
+/* Percentage is relative to the hand viewport; vw was unreliable in iOS WebViews. */
+body[data-current-game="quartet"] .qv2-quartet-card {
+  flex: 0 0 min(330px, calc(100% - 24px)) !important;
+  width: min(330px, calc(100% - 24px));
+  max-width: calc(100% - 24px);
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+body[data-current-game="quartet"] .qv2-card-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-current-game="quartet"] .qv2-playing-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-current-game="quartet"] .qv2-playing-card-title,
+body[data-current-game="quartet"] .qv2-card-status,
+body[data-current-game="quartet"] .qv2-turn-title,
+body[data-current-game="quartet"] .qv2-turn-text,
+body[data-current-game="quartet"] .qv2-activity-item,
+body[data-current-game="quartet"] .qv2-log-item {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 620px) {
+  body[data-current-game="quartet"] {
+    padding-left: calc(10px + env(safe-area-inset-left, 0px));
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
+  }
+
+  body[data-current-game="quartet"] #game-container {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 66px) !important;
+  }
+
+  body[data-current-game="quartet"] .qv2-root {
+    gap: 9px;
+  }
+
+  body[data-current-game="quartet"] .qv2-topbar {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px;
+    min-height: 60px;
+    border-radius: 20px;
+  }
+
+  body[data-current-game="quartet"] .qv2-icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+  }
+
+  body[data-current-game="quartet"] .qv2-title {
+    font-size: 1.2rem;
+  }
+
+  body[data-current-game="quartet"] .qv2-subtitle {
+    font-size: .7rem;
+  }
+
+  body[data-current-game="quartet"] .qv2-section {
+    padding: 12px;
+    border-radius: 22px;
+  }
+
+  body[data-current-game="quartet"] .qv2-section-head {
+    min-width: 0;
+    gap: 7px;
+  }
+
+  body[data-current-game="quartet"] .qv2-section-meta {
+    max-width: 42%;
+    white-space: normal;
+  }
+
+  body[data-current-game="quartet"] .qv2-score-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-current-game="quartet"] .qv2-score-player {
+    min-width: 0;
+    min-height: 92px;
+  }
+
+  body[data-current-game="quartet"] .qv2-quartet-card {
+    flex-basis: calc(100% - 18px) !important;
+    width: calc(100% - 18px);
+    max-width: calc(100% - 18px);
+    padding: 11px;
+    border-radius: 23px;
+  }
+
+  body[data-current-game="quartet"] .qv2-quartet-card-head {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    gap: 7px;
+  }
+
+  body[data-current-game="quartet"] .qv2-quartet-symbol {
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+  }
+
+  body[data-current-game="quartet"] .qv2-quartet-heading strong {
+    font-size: .9rem;
+  }
+
+  body[data-current-game="quartet"] .qv2-quartet-progress {
+    min-width: 44px;
+    height: 38px;
+    padding-inline: 7px;
+  }
+
+  body[data-current-game="quartet"] .qv2-card-grid {
+    gap: 7px;
+  }
+
+  body[data-current-game="quartet"] .qv2-playing-card {
+    min-height: 126px;
+    aspect-ratio: auto;
+    padding: 8px;
+    border-radius: 17px;
+  }
+
+  body[data-current-game="quartet"] .qv2-card-face-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+
+  body[data-current-game="quartet"] .qv2-playing-card-title {
+    min-height: 30px;
+    font-size: .76rem;
+  }
+
+  body[data-current-game="quartet"] .qv2-action-dock {
+    grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr);
+    grid-template-areas: "target arrow card" "button button button";
+    gap: 7px;
+    padding: 9px;
+    border-radius: 21px;
+  }
+
+  body[data-current-game="quartet"] .qv2-action-target { grid-area: target; }
+  body[data-current-game="quartet"] .qv2-action-arrow { grid-area: arrow; text-align: center; }
+  body[data-current-game="quartet"] .qv2-action-card { grid-area: card; }
+  body[data-current-game="quartet"] .qv2-confirm-ask { grid-area: button; width: 100%; }
+
+  body[data-current-game="quartet"] .qv2-action-dock-step {
+    min-width: 0;
+    grid-template-columns: 24px minmax(0, 1fr);
+    padding: 7px;
+  }
+
+  body[data-current-game="quartet"] .qv2-action-dock-step > span {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-current-game="quartet"] .qv2-turn-banner {
+    grid-template-columns: minmax(0, 1fr) 62px;
+    padding: 12px;
+    gap: 8px;
+  }
+
+  body[data-current-game="quartet"] .qv2-turn-main {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  body[data-current-game="quartet"] .qv2-turn-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+  }
+
+  body[data-current-game="quartet"] .qv2-turn-timer-wrap {
+    min-width: 62px;
+    padding: 8px 6px;
+  }
+
+  body[data-current-game="quartet"] .qv2-score-strip {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-current-game="quartet"] .qv2-score-player {
+    min-height: 82px;
+  }
+
+  body[data-current-game="quartet"] .qv2-quartet-card {
+    flex-basis: calc(100% - 12px) !important;
+    width: calc(100% - 12px);
+    max-width: calc(100% - 12px);
+  }
+
+  body[data-current-game="quartet"] .qv2-playing-card {
+    min-height: 120px;
+  }
+
+  body[data-current-game="quartet"] .qv2-card-status {
+    font-size: .53rem;
+  }
+}
+
+@supports not (overflow: clip) {
+  body[data-current-game="quartet"],
+  body[data-current-game="quartet"] #game-container,
+  body[data-current-game="quartet"] .qv2-root {
+    overflow-x: hidden;
+  }
+}
