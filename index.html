@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="app-booting">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -22,6 +22,21 @@
       } catch {}
     })();
   </script>
+  <style>
+    html.app-booting #menu-container,html.app-menu-preparing #menu-container{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    html.app-booting #banned-screen{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    html.app-booting #main-loader{visibility:visible!important;opacity:1!important}
+  </style>
+  <link rel="preload" as="image" href="assets/icons/alias.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/idea.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/character.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/describe.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/spy.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/quartet.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/words.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/search.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/sacred.png?v=1" />
+  <link rel="preload" as="image" href="assets/icons/ark.png?v=1" />
   <link rel="stylesheet" href="style.css?v=22" />
   <link rel="stylesheet" href="admin-enhancements.css?v=22" />
   <link rel="stylesheet" href="home-enhancements.css?v=1" />
@@ -30,6 +45,7 @@
   <link rel="stylesheet" href="error-system.css?v=1" />
   <link rel="stylesheet" href="games-mobile-polish.css?v=1" />
   <link rel="stylesheet" href="games/quartet-mobile.css?v=1" />
+  <link rel="stylesheet" href="app-motion.css?v=1" />
 </head>
 <body>
   <header class="app-header">
@@ -78,11 +94,13 @@
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="backend-bridge.js?v=2" defer></script>
   <script src="error-system.js?v=1" defer></script>
+  <script src="startup-coordinator.js?v=1" defer></script>
   <script src="app.js?v=22" defer></script>
   <script src="system-icons.js?v=1" defer></script>
   <script src="admin-enhancements.js?v=22" defer></script>
-  <script src="home-enhancements.js?v=2" defer></script>
-  <script src="home-controls.js?v=2" defer></script>
+  <script src="home-enhancements.js?v=3" defer></script>
+  <script src="home-controls.js?v=3" defer></script>
+  <script src="app-motion.js?v=1" defer></script>
   <script src="telemetry.js?v=1" defer></script>
   <script src="presence-identity.js?v=1" defer></script>
   <script src="admin-live-v2.js?v=2" defer></script>
