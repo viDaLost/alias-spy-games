@@ -5,6 +5,7 @@
   const ICON_URLS = ICON_NAMES.map((name) => `assets/icons/${name}.png?v=${ICON_VERSION}`);
   let revealToken = 0;
   let preparing = false;
+  let menuReady = false;
 
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -85,25 +86,52 @@
     setTimeout(() => menu.classList.remove('app-menu-enter'), 420);
   }
 
+  function cancelPreparation() {
+    ++revealToken;
+    preparing = false;
+    menuReady = false;
+    root.classList.remove('app-menu-preparing', 'app-ui-ready');
+  }
+
   async function prepareVisibleMenu() {
     const menu = document.getElementById('menu-container');
-    if (!menu || menu.classList.contains('hidden') || document.body?.dataset.mode) return;
+    if (!menu || menu.classList.contains('hidden') || document.body?.dataset.mode || preparing || menuReady) return;
+
     const token = ++revealToken;
     preparing = true;
+    menuReady = false;
     root.classList.add('app-menu-preparing');
+    root.classList.remove('app-ui-ready');
 
     forceEagerImages(menu);
     await timeout(iconWarmup, 3500);
     await waitForDashboard();
     await decodeRenderedMenuImages();
-    if (token !== revealToken || menu.classList.contains('hidden') || document.body?.dataset.mode) return;
+
+    if (token !== revealToken || menu.classList.contains('hidden') || document.body?.dataset.mode) {
+      if (token === revealToken) {
+        preparing = false;
+        root.classList.remove('app-menu-preparing');
+      }
+      return;
+    }
 
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    if (token !== revealToken || menu.classList.contains('hidden') || document.body?.dataset.mode) return;
+    if (token !== revealToken || menu.classList.contains('hidden') || document.body?.dataset.mode) {
+      if (token === revealToken) {
+        preparing = false;
+        root.classList.remove('app-menu-preparing');
+      }
+      return;
+    }
 
+    // Mark the state ready BEFORE changing root classes. MutationObserver will
+    // see those class changes, but evaluate() now knows this reveal is complete
+    // and will not start another preparation cycle.
+    menuReady = true;
+    preparing = false;
     root.classList.remove('app-booting', 'app-menu-preparing');
     root.classList.add('app-ui-ready');
-    preparing = false;
     animateMenu(menu);
     window.dispatchEvent(new CustomEvent('app:menu-ready'));
   }
@@ -113,6 +141,7 @@
     if (!banned || banned.classList.contains('hidden')) return false;
     ++revealToken;
     preparing = false;
+    menuReady = false;
     root.classList.remove('app-booting', 'app-menu-preparing');
     root.classList.add('app-ui-ready');
     return true;
@@ -122,12 +151,16 @@
     if (revealBannedIfNeeded()) return;
     const menu = document.getElementById('menu-container');
     if (!menu) return;
-    if (!menu.classList.contains('hidden') && !document.body?.dataset.mode) {
-      if (!preparing) prepareVisibleMenu();
-    } else {
-      ++revealToken;
-      preparing = false;
-      root.classList.remove('app-menu-preparing');
+
+    const visibleMenuState = !menu.classList.contains('hidden') && !document.body?.dataset.mode;
+    if (visibleMenuState) {
+      if (menuReady || preparing) return;
+      prepareVisibleMenu();
+      return;
+    }
+
+    if (preparing || menuReady || root.classList.contains('app-menu-preparing') || root.classList.contains('app-ui-ready')) {
+      cancelPreparation();
     }
   }
 
