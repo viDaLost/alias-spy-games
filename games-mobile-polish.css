@@ -57,6 +57,50 @@ body[data-mode="game"] #game-container strong {
   overflow-wrap: break-word;
 }
 
+/* Kids Ark Pairs: Android/Telegram WebView must not dim opened cards.
+   The generic disabled-button rule lowers opacity/saturation, but this game
+   disables a card as soon as it is flipped. Keep the revealed emoji vivid. */
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card,
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card:disabled {
+  opacity: 1 !important;
+  filter: drop-shadow(0 10px 18px rgba(79,70,229,.12)) !important;
+  -webkit-filter: drop-shadow(0 10px 18px rgba(79,70,229,.12)) !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card-inner {
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card-face {
+  opacity: 1 !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card-back {
+  transform: rotateY(0deg) translateZ(1px);
+}
+
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card-front {
+  transform: rotateY(180deg) translateZ(1px);
+  opacity: 1 !important;
+  filter: saturate(1.22) contrast(1.06) !important;
+  -webkit-filter: saturate(1.22) contrast(1.06) !important;
+  color: #111827;
+}
+
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card.matched .kids-card-front,
+body[data-current-game="kids-ark-pairs"] #game-container .kids-card.flipped .kids-card-front {
+  opacity: 1 !important;
+  filter: saturate(1.22) contrast(1.06) !important;
+  -webkit-filter: saturate(1.22) contrast(1.06) !important;
+}
+
 @media (max-width: 520px) {
   body[data-mode="game"] {
     padding-left: calc(10px + env(safe-area-inset-left, 0px));
