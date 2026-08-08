@@ -1,4 +1,4 @@
-import { UserStore as BaseUserStore } from './index.js';
+import { SqlUserStore } from './sql-user-store.js';
 
 const encoder = new TextEncoder();
 const USER_ACTIONS = new Set(['syncUser', 'updateHistory']);
@@ -13,7 +13,7 @@ export default {
 
     try {
       if (url.pathname === '/health' && request.method === 'GET') {
-        return json({ ok: true, service: 'alias-spy-games-core', storage: 'cloudflare', now: Date.now() }, 200, cors);
+        return json({ ok: true, service: 'alias-spy-games-core', storage: 'cloudflare-sql', now: Date.now() }, 200, cors);
       }
 
       if (url.pathname !== '/compat' || request.method !== 'POST') {
@@ -42,20 +42,20 @@ export default {
       if (action === 'updateHistory') {
         if (String(payload.id || '') !== verifiedId) throw httpError(403, 'User mismatch');
         await callStore(store, '/history', { id: verifiedId, history: payload.history });
-        return json({ success: true, source: 'cloudflare' }, 200, cors);
+        return json({ success: true, source: 'cloudflare-sql' }, 200, cors);
       }
 
       if (!isAdmin) throw httpError(403, 'Admin only');
 
       if (action === 'getAdminData') {
         const data = await callStore(store, '/admin-data', {});
-        return json({ ...data, source: 'cloudflare' }, 200, cors);
+        return json({ ...data, source: 'cloudflare-sql' }, 200, cors);
       }
 
       if (action === 'updateUser') {
         const updateData = payload.updateData && typeof payload.updateData === 'object' ? payload.updateData : {};
         await callStore(store, '/admin-update', { updateData });
-        return json({ success: true, source: 'cloudflare' }, 200, cors);
+        return json({ success: true, source: 'cloudflare-sql' }, 200, cors);
       }
 
       // Apps Script is intentionally retained for one purpose only: mass broadcast.
@@ -72,27 +72,7 @@ export default {
   },
 };
 
-export class UserStore extends BaseUserStore {
-  // New Telegram users are created directly in Durable Object storage.
-  // No Apps Script / Google Sheets seed is required anymore.
-  async syncUser({ verifiedUser = {}, clientUser = {} }) {
-    return super.syncUser({ verifiedUser, clientUser, legacySeed: {} });
-  }
-
-  async updateHistory({ id, history }) {
-    let result = await super.updateHistory({ id, history });
-    if (result?.needLegacy) {
-      await super.syncUser({ verifiedUser: { id }, clientUser: { id }, legacySeed: {} });
-      result = await super.updateHistory({ id, history });
-    }
-    return result;
-  }
-
-  async meta() {
-    const meta = await super.meta();
-    return { ...meta, canonicalSource: 'cloudflare', fullImportDone: true };
-  }
-}
+export class UserStore extends SqlUserStore {}
 
 async function callStore(stub, pathname, body) {
   const response = await stub.fetch(`https://users.internal${pathname}`, {
@@ -128,7 +108,7 @@ function syncResponse(record = {}) {
     wsStars: safeNumber(record.wsStars, 0),
     swLevel: safeNumber(record.swLevel, 0),
     lastGames: normalizeHistory(record.lastGames),
-    source: 'cloudflare',
+    source: 'cloudflare-sql',
   };
 }
 
