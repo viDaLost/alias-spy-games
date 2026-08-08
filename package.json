@@ -6,7 +6,8 @@
   "scripts": {
     "check": "node scripts/check-project.mjs",
     "smoke:games": "node scripts/smoke-all-games.mjs",
-    "check:mobile": "node scripts/check-mobile-layout.mjs"
+    "check:mobile": "node scripts/check-mobile-layout.mjs",
+    "check:errors": "node scripts/check-error-system.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.55.0"
