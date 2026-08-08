@@ -26,6 +26,12 @@ jobs:
       - name: Validate Cloudflare Worker bundle
         working-directory: cloudflare/quartet-worker
         run: npx wrangler deploy --dry-run --outdir /tmp/quartet-worker-build
+      - name: Install observability Worker tooling
+        working-directory: cloudflare/app-observability-worker
+        run: npm install --no-audit --no-fund
+      - name: Validate observability Worker bundle
+        working-directory: cloudflare/app-observability-worker
+        run: npx wrangler deploy --dry-run --outdir /tmp/app-observability-worker-build
 
   smoke-games:
     name: Smoke-test every game

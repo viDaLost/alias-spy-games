@@ -52,6 +52,7 @@ const browser = await chromium.launch({
 
 async function makePage() {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await context.addInitScript(() => { window.__APP_TELEMETRY_DISABLED__ = true; });
   const page = await context.newPage();
   const pageErrors = [];
   const consoleErrors = [];
