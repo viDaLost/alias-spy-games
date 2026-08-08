@@ -18,6 +18,8 @@ jobs:
           node-version: 22
       - name: Validate project
         run: npm run check
+      - name: Enforce Cloudflare-only core data
+        run: npm run check:cloudflare-core
       - name: Test Quartet server engine
         run: node --test cloudflare/quartet-worker/test/*.test.mjs
       - name: Install Quartet Worker tooling
