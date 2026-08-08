@@ -52,7 +52,6 @@ async function pageFor(width) {
     await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gasReply }));
   }
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
-  await page.waitForSelector('#main-loader', { timeout: 5_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
   return { page, context };
