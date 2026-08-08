@@ -12,12 +12,12 @@
       }
     ]
   },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["QuartetRoom"]
+  "exports": {
+    "QuartetRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
     }
-  ],
+  },
   "vars": {
     "ALLOWED_ORIGINS": "https://vidalost.github.io",
     "ALLOW_GUESTS": "true"
