@@ -23,9 +23,32 @@
     })();
   </script>
   <style>
-    html.app-booting #menu-container,html.app-menu-preparing #menu-container{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-    html.app-booting #banned-screen{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-    html.app-booting #main-loader{visibility:visible!important;opacity:1!important}
+    html.app-booting,html.app-booting body{background:#fdfaf4!important}
+    html.app-booting .app-header,
+    html.app-menu-preparing .app-header,
+    html.app-booting #menu-container,
+    html.app-menu-preparing #menu-container,
+    html.app-booting #banned-screen,
+    html.app-booting #game-container{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    html.app-booting #main-loader{
+      position:fixed!important;
+      inset:0!important;
+      z-index:2147483647!important;
+      display:flex!important;
+      flex-direction:column!important;
+      align-items:center!important;
+      justify-content:center!important;
+      width:100%!important;
+      min-width:100%!important;
+      height:100vh!important;
+      min-height:100dvh!important;
+      margin:0!important;
+      padding:0 24px!important;
+      visibility:visible!important;
+      opacity:1!important;
+      pointer-events:auto!important;
+      background:#fdfaf4!important;
+    }
   </style>
   <link rel="preload" as="image" href="assets/icons/alias.png?v=1" />
   <link rel="preload" as="image" href="assets/icons/idea.png?v=1" />

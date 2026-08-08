@@ -55,16 +55,27 @@ await page.waitForTimeout(80);
 const boot = await page.evaluate(() => {
   const menu = document.getElementById('menu-container');
   const loader = document.getElementById('main-loader');
+  const header = document.querySelector('.app-header');
+  const loaderStyle = loader ? getComputedStyle(loader) : null;
+  const headerStyle = header ? getComputedStyle(header) : null;
+  const loaderRect = loader?.getBoundingClientRect();
   return {
     booting: document.documentElement.classList.contains('app-booting'),
     menuHiddenClass: menu?.classList.contains('hidden'),
     menuVisibility: menu ? getComputedStyle(menu).visibility : '',
-    loaderDisplay: loader ? getComputedStyle(loader).display : 'none',
+    loaderDisplay: loaderStyle?.display || 'none',
+    loaderOpacity: loaderStyle?.opacity || '0',
+    loaderPosition: loaderStyle?.position || '',
+    loaderCoversViewport: Boolean(loaderRect && loaderRect.top <= 0 && loaderRect.left <= 0 && loaderRect.right >= innerWidth && loaderRect.bottom >= innerHeight),
+    headerVisibility: headerStyle?.visibility || '',
+    headerOpacity: Number(headerStyle?.opacity || 0),
   };
 });
 if (!boot.booting) throw new Error('Стартовый UI был разблокирован до окончания проверки доступа.');
 if (!boot.menuHiddenClass && boot.menuVisibility !== 'hidden') throw new Error(`Главное меню попало в кадр во время проверки доступа: ${JSON.stringify(boot)}`);
-if (boot.loaderDisplay === 'none') throw new Error('Во время проверки доступа не показан loader.');
+if (boot.headerVisibility !== 'hidden' && boot.headerOpacity > 0) throw new Error(`Шапка главного меню попала в первый кадр: ${JSON.stringify(boot)}`);
+if (boot.loaderDisplay === 'none' || boot.loaderOpacity !== '1') throw new Error(`Во время проверки доступа не показан непрозрачный loader: ${JSON.stringify(boot)}`);
+if (boot.loaderPosition !== 'fixed' || !boot.loaderCoversViewport) throw new Error(`Loader не перекрывает весь viewport: ${JSON.stringify(boot)}`);
 
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
@@ -123,7 +134,7 @@ const flashOnReturn = await page.evaluate(() => new Promise((resolve) => {
 if (flashOnReturn) throw new Error('При возврате из игры скрытые домашние блоки попали в видимый кадр.');
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'));
 
-console.log('OK: access gate prevents menu flash, hidden home sections never flash, menu icons are decoded before reveal, system icons and unified motion are active.');
+console.log('OK: access gate fully covers the first frame, header/menu stay hidden, hidden home sections never flash, menu icons are decoded before reveal, system icons and unified motion are active.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
