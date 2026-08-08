@@ -22,12 +22,20 @@ jobs:
         run: npm run check:cloudflare-core
       - name: Test Quartet server engine
         run: node --test cloudflare/quartet-worker/test/*.test.mjs
+      - name: Test Bible Sketch server engine
+        run: node --test cloudflare/bible-sketch-worker/test/*.test.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund
       - name: Validate Cloudflare Worker bundle
         working-directory: cloudflare/quartet-worker
         run: npx wrangler deploy --dry-run --outdir /tmp/quartet-worker-build
+      - name: Install Bible Sketch Worker tooling
+        working-directory: cloudflare/bible-sketch-worker
+        run: npm install --no-audit --no-fund
+      - name: Validate Bible Sketch Worker bundle
+        working-directory: cloudflare/bible-sketch-worker
+        run: npx wrangler deploy --dry-run --outdir /tmp/bible-sketch-worker-build
       - name: Install observability Worker tooling
         working-directory: cloudflare/app-observability-worker
         run: npm install --no-audit --no-fund
