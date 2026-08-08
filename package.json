@@ -1,0 +1,9 @@
+{
+  "name": "alias-spy-games",
+  "private": true,
+  "version": "2.1.0",
+  "type": "commonjs",
+  "scripts": {
+    "check": "node scripts/check-project.mjs"
+  }
+}
