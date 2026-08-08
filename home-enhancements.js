@@ -12,14 +12,19 @@
     'Найди пару': { key: 'kids-ark-pairs', desc: 'Память, пары и ковчег', icon: 'ark' },
   };
 
+  const ICON_VERSION = '1';
   const ICONS = {
-    alias: 'assets/icons/alias.png', idea: 'assets/icons/idea.png', character: 'assets/icons/character.png',
-    describe: 'assets/icons/describe.png', spy: 'assets/icons/spy.png', quartet: 'assets/icons/quartet.png',
-    words: 'assets/icons/words.png', search: 'assets/icons/search.png', sacred: 'assets/icons/sacred.png', ark: 'assets/icons/ark.png',
+    alias: `assets/icons/alias.png?v=${ICON_VERSION}`, idea: `assets/icons/idea.png?v=${ICON_VERSION}`,
+    character: `assets/icons/character.png?v=${ICON_VERSION}`, describe: `assets/icons/describe.png?v=${ICON_VERSION}`,
+    spy: `assets/icons/spy.png?v=${ICON_VERSION}`, quartet: `assets/icons/quartet.png?v=${ICON_VERSION}`,
+    words: `assets/icons/words.png?v=${ICON_VERSION}`, search: `assets/icons/search.png?v=${ICON_VERSION}`,
+    sacred: `assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `assets/icons/ark.png?v=${ICON_VERSION}`,
   };
 
+  const HIDDEN_KEY = 'home_hidden_sections_v1';
+  const ALLOWED_HIDDEN = new Set(['continue', 'recent', 'progress']);
   let lastSignature = '';
-  let scheduled = null;
+  let scheduled = 0;
 
   function history() {
     try {
@@ -27,6 +32,15 @@
       return Array.isArray(value) ? value.filter((title) => GAMES[title]).slice(0, 3) : [];
     } catch {
       return [];
+    }
+  }
+
+  function hiddenSections() {
+    try {
+      const value = JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]');
+      return new Set(Array.isArray(value) ? value.filter((key) => ALLOWED_HIDDEN.has(key)) : []);
+    } catch {
+      return new Set();
     }
   }
 
@@ -50,6 +64,10 @@
     return { wow, search, sacred };
   }
 
+  function hiddenClass(hidden, key) {
+    return hidden.has(key) ? ' home-user-hidden' : '';
+  }
+
   function openGame(title) {
     const game = GAMES[title];
     if (!game || typeof window.showGame !== 'function') return;
@@ -58,23 +76,29 @@
 
   function render() {
     const menu = document.getElementById('menu-container');
-    if (!menu || menu.classList.contains('hidden') || document.body.dataset.mode) return;
+    if (!menu || document.body.dataset.mode) return;
 
     const recent = history();
     const p = progress();
-    const signature = JSON.stringify({ recent, p });
+    const hidden = hiddenSections();
+    const signature = JSON.stringify({ recent, p, hidden: [...hidden].sort() });
     const existing = document.getElementById('home-dashboard');
-    if (existing && signature === lastSignature) return;
+    if (existing && signature === lastSignature && existing.dataset.contentReady === '1') {
+      window.__homeControlsApply?.();
+      return;
+    }
     lastSignature = signature;
 
     const dashboard = existing || document.createElement('section');
     dashboard.id = 'home-dashboard';
     dashboard.className = 'home-dashboard';
+    dashboard.dataset.contentReady = '0';
+    delete dashboard.dataset.controlsReady;
 
     const latest = recent[0] ? GAMES[recent[0]] : null;
     const continueHtml = latest ? `
-      <button type="button" class="home-continue" data-home-game="${escapeAttr(recent[0])}">
-        <span class="home-continue__icon"><img src="${ICONS[latest.icon]}" alt="" loading="eager" decoding="async"></span>
+      <button type="button" class="home-continue${hiddenClass(hidden, 'continue')}" data-home-game="${escapeAttr(recent[0])}">
+        <span class="home-continue__icon"><img src="${ICONS[latest.icon]}" alt="" loading="eager" decoding="async" fetchpriority="high"></span>
         <span class="home-continue__body">
           <span class="home-continue__eyebrow">Продолжить</span>
           <strong class="home-continue__title">${escapeText(recent[0])}</strong>
@@ -85,8 +109,8 @@
     ` : '';
 
     const recentHtml = recent.length ? `
-      <div class="home-dashboard__label home-dashboard__label--recent">Недавние игры</div>
-      <div class="home-recent">
+      <div class="home-dashboard__label home-dashboard__label--recent${hiddenClass(hidden, 'recent')}">Недавние игры</div>
+      <div class="home-recent${hiddenClass(hidden, 'recent')}">
         ${recent.map((title) => `<button type="button" class="home-recent__item" data-home-game="${escapeAttr(title)}">${escapeText(title)}</button>`).join('')}
       </div>
     ` : '';
@@ -94,8 +118,8 @@
     dashboard.innerHTML = `
       ${continueHtml}
       ${recentHtml}
-      <div class="home-dashboard__label home-dashboard__label--progress">Ваш прогресс</div>
-      <div class="home-progress" aria-label="Прогресс в словесных играх">
+      <div class="home-dashboard__label home-dashboard__label--progress${hiddenClass(hidden, 'progress')}">Ваш прогресс</div>
+      <div class="home-progress${hiddenClass(hidden, 'progress')}" aria-label="Прогресс в словесных играх">
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.wow))} ⭐</strong><span class="home-progress__name">Библейские слова</span></div>
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.search))} ⭐</strong><span class="home-progress__name">Поиск слов</span></div>
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.sacred))}</strong><span class="home-progress__name">Уровень «Священного слова»</span></div>
@@ -107,11 +131,17 @@
     });
 
     if (!existing) menu.prepend(dashboard);
+    dashboard.dataset.contentReady = '1';
+    window.__homeControlsApply?.();
+    window.dispatchEvent(new CustomEvent('app:home-dashboard-ready'));
   }
 
   function scheduleRender() {
-    clearTimeout(scheduled);
-    scheduled = setTimeout(render, 60);
+    if (scheduled) cancelAnimationFrame(scheduled);
+    scheduled = requestAnimationFrame(() => {
+      scheduled = 0;
+      render();
+    });
   }
 
   function escapeText(value) {
@@ -125,5 +155,5 @@
   const observer = new MutationObserver(scheduleRender);
   observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode'] });
   window.addEventListener('pageshow', scheduleRender);
-  scheduleRender();
+  render();
 })();
