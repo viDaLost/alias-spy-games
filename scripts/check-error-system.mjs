@@ -37,8 +37,9 @@ await page.route('https://alias-spy-games-observability.vitaledanilov.workers.de
   await route.fulfill({status:200,contentType:'application/json; charset=utf-8',body:JSON.stringify({ok:true,recentErrors:[]})});
 });
 
-await page.goto(baseURL,{waitUntil:'domcontentloaded',timeout:20_000});
+await page.goto(baseURL,{waitUntil:'commit',timeout:20_000});
 await page.waitForSelector('#menu-container:not(.hidden)',{timeout:10_000});
+await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'),null,{timeout:10_000});
 await page.evaluate(() => window.showGame('alias'));
 await page.waitForFunction(() => document.body.dataset.currentGame === 'alias' && !document.querySelector('.app-game-loading'),null,{timeout:12_000});
 
@@ -53,6 +54,7 @@ if (!reports.some((item) => item.event === 'client_error' && String(item.message
 
 await page.locator('.app-fatal-error__menu').click();
 await page.waitForSelector('#menu-container:not(.hidden)',{timeout:5_000});
+await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'),null,{timeout:5_000});
 if (await page.locator('#app-fatal-error').count()) throw new Error('Fatal overlay did not close');
 
 await page.evaluate(() => window.showGame('alias'));

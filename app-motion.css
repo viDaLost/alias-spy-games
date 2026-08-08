@@ -1,0 +1,16 @@
+:root{--app-motion-fast:160ms;--app-motion-normal:260ms;--app-motion-slow:360ms;--app-motion-ease:cubic-bezier(.22,.8,.28,1);--app-motion-pop:cubic-bezier(.2,.9,.25,1.08)}
+html.app-booting #menu-container,html.app-menu-preparing #menu-container{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+html.app-booting #banned-screen{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+html.app-booting #main-loader{visibility:visible!important;opacity:1!important}
+.menu-container.app-menu-enter{animation:appMenuEnter var(--app-motion-normal) var(--app-motion-ease) both}
+.app-motion-enter{animation:appSurfaceEnter var(--app-motion-normal) var(--app-motion-ease) both}
+.app-motion-pop{animation:appPopIn var(--app-motion-slow) var(--app-motion-pop) both}
+.game-card,.home-continue,.home-recent__item,.home-progress__item,.admin-v2 button,.support-box button,.game-button,.menu-button,.start-button,.back-button,.correct-button,.wrong-button,.skip-button{transition:transform var(--app-motion-fast) ease,box-shadow var(--app-motion-fast) ease,filter var(--app-motion-fast) ease,opacity var(--app-motion-fast) ease,background-color var(--app-motion-fast) ease,border-color var(--app-motion-fast) ease}
+.game-card:active,.home-continue:active,.home-recent__item:active,.admin-v2 button:active,.support-box button:active{transform:translateY(1px) scale(.985)}
+#main-loader,.app-game-loading{transition:opacity var(--app-motion-normal) ease,transform var(--app-motion-normal) var(--app-motion-ease)}
+.support-overlay,.quartet-modal,.kids-modal,.ws-modal,.ws-win{transition:opacity var(--app-motion-normal) ease,backdrop-filter var(--app-motion-normal) ease}
+.app-toast{transition:opacity var(--app-motion-normal) ease,transform var(--app-motion-normal) var(--app-motion-ease)}
+@keyframes appMenuEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes appSurfaceEnter{from{opacity:0;transform:translateY(10px) scale(.995)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes appPopIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}.menu-container.app-menu-enter,.app-motion-enter,.app-motion-pop{animation:none!important}.game-card,.home-continue,.home-recent__item,.home-progress__item,.admin-v2 button,.support-box button,.game-button,.menu-button,.start-button,.back-button,.correct-button,.wrong-button,.skip-button,#main-loader,.app-game-loading,.support-overlay,.quartet-modal,.kids-modal,.ws-modal,.ws-win,.app-toast{transition:none!important}}
