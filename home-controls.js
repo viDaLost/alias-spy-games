@@ -5,17 +5,28 @@
   let scheduled = null;
   let rendering = false;
 
+  function syncRoot(hidden) {
+    const value = [...hidden].filter((key) => SECTION_KEYS.includes(key)).join(' ');
+    if (value) document.documentElement.dataset.homeHidden = value;
+    else delete document.documentElement.dataset.homeHidden;
+  }
+
   function readHidden() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      return new Set(Array.isArray(raw) ? raw.filter((key) => SECTION_KEYS.includes(key)) : []);
+      const hidden = new Set(Array.isArray(raw) ? raw.filter((key) => SECTION_KEYS.includes(key)) : []);
+      syncRoot(hidden);
+      return hidden;
     } catch {
-      return new Set();
+      const hidden = new Set();
+      syncRoot(hidden);
+      return hidden;
     }
   }
 
   function writeHidden(hidden) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...hidden]));
+    syncRoot(hidden);
   }
 
   function findLabel(dashboard, text) {
@@ -76,6 +87,7 @@
         button.textContent = `Показать скрытые блоки (${hidden.size})`;
         button.addEventListener('click', () => {
           localStorage.removeItem(STORAGE_KEY);
+          syncRoot(new Set());
           apply();
         });
         restore.appendChild(button);
