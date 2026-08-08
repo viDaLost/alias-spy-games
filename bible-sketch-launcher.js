@@ -2,7 +2,6 @@
   const GAME_KEY = 'bible-sketch';
   const GAME_TITLE = 'Библейский художник';
   const GAME_DESC = 'Рисуйте по очереди и найдите шпиона';
-  let patched = false;
   let gameScriptPromise = null;
 
   function iconHTML() {
@@ -30,9 +29,10 @@
     button.type = 'button';
     button.id = 'bible-sketch-card';
     button.className = 'game-card';
+    button.dataset.gameKey = GAME_KEY;
+    button.setAttribute('onclick', `showGame('${GAME_KEY}')`);
     button.setAttribute('aria-label', `Открыть игру ${GAME_TITLE}`);
     button.innerHTML = `<span class="game-card__icon">${iconHTML()}</span><span class="game-card__body"><span class="game-card__title">${GAME_TITLE}</span><span class="game-card__desc">${GAME_DESC}</span></span>`;
-    button.addEventListener('click', () => window.showGame?.(GAME_KEY));
     root.appendChild(button);
   }
 
@@ -42,7 +42,6 @@
     if (!Array.isArray(history)) history = [];
     history = [GAME_TITLE, ...history.filter((title) => title !== GAME_TITLE)].slice(0, 3);
     localStorage.setItem('last_games_history', JSON.stringify(history));
-    try { window.apiRequest?.({ action: 'updateHistory', id: window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'аноним', history }); } catch {}
   }
 
   function loadGameScript() {
@@ -78,22 +77,33 @@
     }
   }
 
-  function patchNavigation() {
-    if (patched || typeof window.showGame !== 'function' || typeof window.goToMainMenu !== 'function') return;
-    patched = true;
-    const originalShowGame = window.showGame;
-    window.showGame = function(gameName) {
+  function patchShowGame() {
+    const current = window.showGame;
+    if (typeof current !== 'function' || current.__bibleSketchWrapped) return;
+    const wrapped = function(gameName) {
       if (String(gameName) === GAME_KEY) return openGame();
-      return originalShowGame.apply(this, arguments);
+      return current.apply(this, arguments);
     };
+    wrapped.__bibleSketchWrapped = true;
+    window.showGame = wrapped;
+  }
 
-    const originalGoToMainMenu = window.goToMainMenu;
-    window.goToMainMenu = function() {
+  function patchGoToMenu() {
+    const current = window.goToMainMenu;
+    if (typeof current !== 'function' || current.__bibleSketchWrapped) return;
+    const wrapped = function() {
       if (document.body.dataset.currentGame === GAME_KEY) {
         try { window.__bibleSketchCleanup?.(); } catch {}
       }
-      return originalGoToMainMenu.apply(this, arguments);
+      return current.apply(this, arguments);
     };
+    wrapped.__bibleSketchWrapped = true;
+    window.goToMainMenu = wrapped;
+  }
+
+  function patchNavigation() {
+    patchShowGame();
+    patchGoToMenu();
   }
 
   function escapeText(value) {
@@ -104,7 +114,7 @@
     patchNavigation();
     ensureCard();
   });
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-ready', 'class'] });
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-ready', 'class', 'data-mode', 'data-current-game'] });
   patchNavigation();
   ensureCard();
   window.__bibleSketchEnsureCard = ensureCard;
