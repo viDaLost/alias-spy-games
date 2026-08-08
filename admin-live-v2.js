@@ -15,18 +15,29 @@
   let scheduled = null;
 
   function ensurePanel() {
-    const page = document.querySelector('.admin-page');
+    const page = document.querySelector('.admin-v2, .admin-page');
     if (!page) return;
+
     document.getElementById('admin-live-stats')?.classList.add('admin-live-legacy-hidden');
+
     let panel = document.getElementById('admin-live-v2');
     if (!panel) {
       panel = document.createElement('section');
       panel.id = 'admin-live-v2';
       panel.className = 'admin-live-v2';
-      const topbar = page.querySelector('.admin-topbar');
-      if (topbar) topbar.after(panel); else page.prepend(panel);
+
+      const modernStats = page.querySelector('.admin-v2__stats');
+      const modernHeader = page.querySelector('.admin-v2__header');
+      const legacyTopbar = page.querySelector('.admin-topbar');
+
+      if (modernStats) modernStats.after(panel);
+      else if (modernHeader) modernHeader.after(panel);
+      else if (legacyTopbar) legacyTopbar.after(panel);
+      else page.prepend(panel);
+
       panel.innerHTML = '<div class="admin-live-v2__loading">Загружаем онлайн…</div>';
       refresh();
+
       clearInterval(refreshTimer);
       refreshTimer = setInterval(() => {
         if (document.getElementById('admin-live-v2')) refresh();
@@ -38,17 +49,20 @@
   async function refresh() {
     const panel = document.getElementById('admin-live-v2');
     if (!panel) return;
+
     const initData = String(window.Telegram?.WebApp?.initData || '');
     if (!initData) {
       panel.innerHTML = '<div class="admin-live-v2__loading">Онлайн-статистика доступна только внутри Telegram.</div>';
       return;
     }
+
     try {
       const response = await fetch(`${backend}/admin/stats?initData=${encodeURIComponent(initData)}`, { cache: 'no-store' });
       const data = await response.json();
       if (!response.ok || !data?.ok) throw new Error(data?.error || `HTTP ${response.status}`);
       render(panel, data);
-    } catch {
+    } catch (error) {
+      console.error('Admin live stats error:', error);
       panel.innerHTML = '<div class="admin-live-v2__loading">Не удалось получить онлайн. Список пользователей продолжает работать.</div>';
     }
   }
@@ -91,6 +105,7 @@
       </details>
       <div class="admin-live-v2__foot">Обновлено ${generatedAt} · запусков сегодня ${Number(data.gameOpensToday || 0)} · ошибок ${Number(data.errorsToday || 0)}</div>
     `;
+
     document.getElementById('admin-live-refresh')?.addEventListener('click', refresh);
   }
 
@@ -104,6 +119,11 @@
   }
 
   observer = new MutationObserver(schedule);
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode'] });
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['class', 'data-mode'],
+  });
   schedule();
 })();
