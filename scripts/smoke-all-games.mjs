@@ -40,7 +40,14 @@ const executablePath = process.env.CHROME_BIN || '/usr/bin/google-chrome';
 const browser = await chromium.launch({
   headless: true,
   executablePath,
-  args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-webgl', '--ignore-gpu-blocklist', '--use-gl=swiftshader'],
+  args: [
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    '--enable-webgl',
+    '--ignore-gpu-blocklist',
+    '--enable-unsafe-swiftshader',
+    '--use-angle=swiftshader',
+  ],
 });
 
 async function makePage() {
