@@ -18,3 +18,5 @@ jobs:
           node-version: 22
       - name: Validate project
         run: npm run check
+      - name: Test Quartet server engine
+        run: node --test cloudflare/quartet-worker/test/*.test.mjs
