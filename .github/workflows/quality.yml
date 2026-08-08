@@ -26,3 +26,26 @@ jobs:
       - name: Validate Cloudflare Worker bundle
         working-directory: cloudflare/quartet-worker
         run: npx wrangler deploy --dry-run --outdir /tmp/quartet-worker-build
+
+  smoke-games:
+    name: Smoke-test every game
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser test tooling
+        run: npm install --no-audit --no-fund
+      - name: Locate Chrome
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME_BIN" ]; then
+            echo "Chrome/Chromium is not installed on the GitHub runner"
+            exit 1
+          fi
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          echo "Using $CHROME_BIN"
+      - name: Open every game and return to menu
+        run: npm run smoke:games
