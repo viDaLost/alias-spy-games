@@ -3,7 +3,7 @@
   let scheduled = null;
 
   function ensurePanel() {
-    const adminPage = document.querySelector('.admin-page');
+    const adminPage = document.querySelector('.admin-v2, .admin-page');
     if (!adminPage || document.getElementById('admin-sheet-import')) return;
 
     injectStyles();
@@ -26,7 +26,7 @@
       </div>
     `;
 
-    const anchor = adminPage.querySelector('.admin-tools');
+    const anchor = adminPage.querySelector('.admin-v2__users-section') || adminPage.querySelector('.admin-tools');
     if (anchor) anchor.before(panel); else adminPage.append(panel);
 
     const input = panel.querySelector('#admin-sheet-url');
