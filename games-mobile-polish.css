@@ -1,0 +1,97 @@
+/* Shared mobile safeguards for every existing game.
+   Game-specific design stays untouched; these rules only prevent page overflow,
+   keep media inside the viewport and normalize touch behaviour. */
+
+body[data-mode="game"] {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body[data-mode="game"] #game-container {
+  width: 100% !important;
+  max-width: 860px !important;
+  min-width: 0 !important;
+  margin-inline: auto !important;
+  overflow-x: clip;
+}
+
+body[data-mode="game"] #game-container > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-mode="game"] #game-container img,
+body[data-mode="game"] #game-container canvas,
+body[data-mode="game"] #game-container video,
+body[data-mode="game"] #game-container svg {
+  max-width: 100%;
+}
+
+body[data-mode="game"] #game-container img,
+body[data-mode="game"] #game-container video {
+  height: auto;
+}
+
+body[data-mode="game"] #game-container button,
+body[data-mode="game"] #game-container [role="button"] {
+  touch-action: manipulation;
+}
+
+body[data-mode="game"] #game-container input,
+body[data-mode="game"] #game-container textarea,
+body[data-mode="game"] #game-container select {
+  max-width: 100%;
+}
+
+body[data-mode="game"] #game-container p,
+body[data-mode="game"] #game-container h1,
+body[data-mode="game"] #game-container h2,
+body[data-mode="game"] #game-container h3,
+body[data-mode="game"] #game-container h4,
+body[data-mode="game"] #game-container span,
+body[data-mode="game"] #game-container strong {
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 520px) {
+  body[data-mode="game"] {
+    padding-left: calc(10px + env(safe-area-inset-left, 0px));
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
+  }
+
+  body[data-mode="game"] #game-container {
+    max-width: 100% !important;
+  }
+
+  body[data-mode="game"] #game-container > section,
+  body[data-mode="game"] #game-container > div {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Common action rows may wrap instead of forcing the document wider. */
+  body[data-mode="game"] #game-container .actions,
+  body[data-mode="game"] #game-container .game-actions,
+  body[data-mode="game"] #game-container .button-row,
+  body[data-mode="game"] #game-container .controls,
+  body[data-mode="game"] #game-container .control-row {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 340px) {
+  body[data-mode="game"] {
+    padding-left: calc(8px + env(safe-area-inset-left, 0px));
+    padding-right: calc(8px + env(safe-area-inset-right, 0px));
+  }
+
+  body[data-mode="game"] #game-container button:not(.sw-kb-key) {
+    max-width: 100%;
+  }
+}
