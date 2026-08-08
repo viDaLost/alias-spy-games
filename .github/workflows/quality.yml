@@ -40,7 +40,7 @@ jobs:
         run: npx wrangler deploy --dry-run --outdir /tmp/app-core-worker-build
 
   smoke-games:
-    name: Browser, mobile and error checks
+    name: Browser, mobile, home and error checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -63,5 +63,7 @@ jobs:
         run: npm run smoke:games
       - name: Check 390px and 320px phone layouts
         run: npm run check:mobile
+      - name: Check home dashboard hide controls
+        run: npm run check:home
       - name: Check friendly error boundary
         run: npm run check:errors
