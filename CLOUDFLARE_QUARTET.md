@@ -1,59 +1,78 @@
-# Квартет v2 — переход на Cloudflare
+# Квартет v2 — Cloudflare backend
 
-Новая версия Квартета использует Cloudflare Workers + Durable Objects + WebSocket вместо Google Apps Script polling.
+Production Worker уже развернут:
 
-## Что меняется
+`https://alias-spy-games-quartet.vitaledanilov.workers.dev`
+
+Frontend-ветка `agent/quartet-cloudflare-v2` уже использует этот адрес через `quartet-backend` в `index.html`.
+
+## Архитектура
+
+Квартет v2 использует Cloudflare Workers + SQLite Durable Object (`QuartetRoom`) + WebSocket вместо Google Apps Script polling.
 
 - Один Durable Object = одна игровая комната.
-- Все руки и правила хранятся и проверяются сервером.
-- Клиенты получают изменения по WebSocket сразу после хода.
-- Чужие руки никогда не отправляются другим игрокам.
+- Сервер хранит руки, очередь, таймер и результаты.
+- Клиенты получают состояние сразу по WebSocket.
+- Чужие руки не отправляются другим игрокам.
+- Успешный запрос карты сохраняет ход.
+- Промах передает ход следующему игроку.
+- Ход ограничен 90 секундами.
 - При обрыве сети клиент автоматически переподключается.
-- Ход ограничен 90 секундами; при таймауте очередь автоматически переходит дальше.
-- Комнаты удаляются после длительного простоя.
 
-## 1. Добавить GitHub Secrets
+## Безопасность
 
-Для GitHub Actions нужны repository secrets:
+Telegram-клиент отправляет raw `Telegram.WebApp.initData`. Worker валидирует его с `TELEGRAM_BOT_TOKEN`, проверяет `auth_date` и выпускает короткоживущую подписанную WebSocket-сессию.
+
+Гостевой запуск из обычного браузера сейчас разрешен через `ALLOW_GUESTS=true`.
+
+## GitHub Secrets
+
+Deployment использует repository secrets:
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `TELEGRAM_BOT_TOKEN`
 - `QUARTET_SESSION_SECRET`
 
-`QUARTET_SESSION_SECRET` — случайная длинная строка (32+ байта).
+Их значения нельзя коммитить в репозиторий.
 
-## 2. Развернуть Worker
+## Deploy
 
-В GitHub откройте:
+Для повторного deployment откройте:
 
 `Actions → Deploy Quartet Cloudflare backend → Run workflow`
 
-Workflow сначала запускает тесты игрового движка, затем устанавливает секреты Worker и выполняет `wrangler deploy`.
+Если изменения еще находятся только в PR #4, выбирайте ветку:
 
-## 3. Включить новый frontend
+`agent/quartet-cloudflare-v2`
 
-После deploy Cloudflare покажет адрес вида:
+Workflow выполняет тесты, `wrangler deploy`, а затем обновляет Worker secrets.
 
-`https://alias-spy-games-quartet.<workers-subdomain>.workers.dev`
+## Финальная проверка перед merge PR #4
 
-В `index.html` заполните:
+Автоматически уже проверено:
 
-```html
-<meta name="quartet-backend" content="https://alias-spy-games-quartet.<workers-subdomain>.workers.dev" />
-```
+- project checker;
+- Quartet server-engine tests;
+- Wrangler install;
+- `wrangler deploy --dry-run`;
+- production deploy Worker;
+- подключение production URL во frontend;
+- повторный GitHub Actions CI после подключения URL.
 
-## 4. Проверка
+Остался один живой smoke-test минимум на двух телефонах:
 
-1. Создать комнату из Telegram.
-2. Подключить второй телефон по коду.
-3. Убедиться, что оба игрока сразу появляются онлайн.
-4. Начать игру.
-5. Проверить успешный запрос карты: карта переходит сразу, ход остаётся у спрашивающего.
-6. Проверить промах: ход сразу переходит следующему игроку.
-7. Выключить интернет на одном телефоне и вернуть — WebSocket должен переподключиться автоматически.
+1. Открыть приложение из Telegram на обоих телефонах.
+2. На телефоне A создать комнату Квартета.
+3. На телефоне B войти по коду комнаты.
+4. Запустить игру с телефона ведущего.
+5. Сделать несколько запросов карты с обоих телефонов и проверить мгновенное обновление хода.
+6. Свернуть Telegram на одном телефоне и вернуться — состояние должно переподключиться автоматически.
+7. Один раз выйти и снова войти в комнату — состояние комнаты должно сохраниться корректно.
 8. Проверить новую партию после завершения.
 
-## После успешного перехода
+Если этот тест проходит, PR #4 можно сливать в `main`.
 
-Старый Apps Script endpoint Квартета можно удалить/отключить. Остальные Apps Script endpoints приложения это изменение не затрагивает.
+## После перехода
+
+Старый Apps Script endpoint именно Квартета можно отключить. Остальные Apps Script endpoints приложения это изменение не затрагивает.
