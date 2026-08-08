@@ -37,3 +37,69 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - name: Verify SQL user migration
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ADMIN_TELEGRAM_ID: '1288379477'
+          CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
+        run: |
+          node <<'NODE'
+          const crypto = require('node:crypto');
+
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          const adminId = process.env.ADMIN_TELEGRAM_ID;
+          const workerUrl = process.env.CORE_WORKER_URL;
+          if (!botToken || !adminId || !workerUrl) throw new Error('Migration verification environment is incomplete');
+
+          function createInitData() {
+            const params = new URLSearchParams();
+            params.set('auth_date', String(Math.floor(Date.now() / 1000)));
+            params.set('user', JSON.stringify({ id: Number(adminId), first_name: 'Deploy verification' }));
+            const checkString = [...params.entries()]
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([key, value]) => `${key}=${value}`)
+              .join('\n');
+            const secret = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+            const hash = crypto.createHmac('sha256', secret).update(checkString).digest('hex');
+            params.set('hash', hash);
+            return params.toString();
+          }
+
+          async function verify() {
+            const response = await fetch(`${workerUrl}/compat`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Origin': 'https://vidalost.github.io',
+              },
+              body: JSON.stringify({
+                telegramInitData: createInitData(),
+                payload: { action: 'getAdminData', adminId },
+              }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data?.success === false) {
+              throw new Error(`Core verification failed: HTTP ${response.status} ${data?.error || ''}`.trim());
+            }
+            if (data?.source !== 'cloudflare-sql') throw new Error(`Unexpected storage source: ${data?.source || 'missing'}`);
+            if (data?.storage?.engine !== 'sqlite-sql') throw new Error(`Unexpected storage engine: ${data?.storage?.engine || 'missing'}`);
+            const sqlCount = Number(data?.storage?.sqlUserCount || 0);
+            const usersCount = Array.isArray(data?.users) ? data.users.length : 0;
+            if (sqlCount <= 0 || usersCount <= 0) throw new Error(`SQL migration produced no users: sql=${sqlCount}, admin=${usersCount}`);
+            if (sqlCount !== usersCount) throw new Error(`SQL/admin count mismatch: sql=${sqlCount}, admin=${usersCount}`);
+            if (data?.storage?.kvBackupRetained !== true) throw new Error('KV backup retention was not confirmed');
+            console.log(`SQL migration verified: ${sqlCount} users; KV backup: ${Number(data?.storage?.kvBackupCount || 0)} records.`);
+          }
+
+          let lastError;
+          for (let attempt = 1; attempt <= 5; attempt += 1) {
+            try {
+              await verify();
+              process.exit(0);
+            } catch (error) {
+              lastError = error;
+              if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+          }
+          throw lastError;
+          NODE
