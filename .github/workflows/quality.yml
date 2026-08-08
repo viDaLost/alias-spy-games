@@ -40,7 +40,7 @@ jobs:
         run: npx wrangler deploy --dry-run --outdir /tmp/app-core-worker-build
 
   smoke-games:
-    name: Smoke-test every game
+    name: Browser and mobile game checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -61,3 +61,5 @@ jobs:
           echo "Using $CHROME_BIN"
       - name: Open every game and return to menu
         run: npm run smoke:games
+      - name: Check 390px and 320px phone layouts
+        run: npm run check:mobile
