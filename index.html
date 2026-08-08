@@ -9,7 +9,8 @@
   <meta name="application-name" content="Библейские игры" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com; font-src 'self' data:;" />
-  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="stylesheet" href="style.css?v=22" />
+  <link rel="stylesheet" href="admin-enhancements.css?v=22" />
 </head>
 <body>
   <header class="app-header">
@@ -48,12 +49,15 @@
     <div class="banned-card">
       <h2>Доступ ограничен</h2>
       <p>Обжаловать блокировку можно через техническую поддержку.</p>
-      <button class="game-button" id="banned-support-btn" type="button">Написать</button>
+      <button class="game-button" type="button" onclick="openSupportChat()">Написать</button>
     </div>
   </section>
 
   <main id="game-container" aria-live="polite"></main>
 
-  <script src="app.js?v=21" defer></script>
+  <!-- Telegram SDK снова загружается до app.js, но через defer: скачивание идёт параллельно парсингу HTML. -->
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="app.js?v=22" defer></script>
+  <script src="admin-enhancements.js?v=22" defer></script>
 </body>
 </html>
