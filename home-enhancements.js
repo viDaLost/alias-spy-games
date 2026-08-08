@@ -6,6 +6,7 @@
     'Опиши, но не называй': { key: 'describe', desc: 'Подсказки без прямого ответа', icon: 'describe' },
     'Шпион': { key: 'spy', desc: 'Секретная роль и локация', icon: 'spy' },
     'Квартет': { key: 'quartet', desc: 'Собери четыре связанные карты', icon: 'quartet' },
+    'Библейский художник': { key: 'bible-sketch', desc: 'Рисуйте по очереди и найдите шпиона', icon: 'bibleSketch' },
     'Библейские слова': { key: 'bible-wow', desc: 'Собери слова из букв', icon: 'words' },
     'Поиск библейских слов': { key: 'bible-wordsearch', desc: 'Найди скрытые слова', icon: 'search' },
     'Священное слово': { key: 'sacred-word', desc: 'Открой слово по подсказкам', icon: 'sacred' },
@@ -17,6 +18,7 @@
     alias: `assets/icons/alias.png?v=${ICON_VERSION}`, idea: `assets/icons/idea.png?v=${ICON_VERSION}`,
     character: `assets/icons/character.png?v=${ICON_VERSION}`, describe: `assets/icons/describe.png?v=${ICON_VERSION}`,
     spy: `assets/icons/spy.png?v=${ICON_VERSION}`, quartet: `assets/icons/quartet.png?v=${ICON_VERSION}`,
+    bibleSketch: `assets/icons/bible-sketch.svg?v=${ICON_VERSION}`,
     words: `assets/icons/words.png?v=${ICON_VERSION}`, search: `assets/icons/search.png?v=${ICON_VERSION}`,
     sacred: `assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `assets/icons/ark.png?v=${ICON_VERSION}`,
   };
