@@ -3,6 +3,8 @@
   const GAME_TITLE = 'Библейский художник';
   const GAME_DESC = 'Рисуйте по очереди и найдите шпиона';
   let gameScriptPromise = null;
+  let showPatched = false;
+  let wasSketch = false;
 
   function iconHTML() {
     return `<svg class="game-card__svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -66,6 +68,7 @@
     if (container) container.innerHTML = `<div class="app-game-loading"><div class="app-loader__ring"></div><p>Загрузка игры...</p></div>`;
     document.body.dataset.mode = 'game';
     document.body.dataset.currentGame = GAME_KEY;
+    wasSketch = true;
     window.scrollTo({ top: 0, behavior: 'auto' });
     try {
       await loadGameScript();
@@ -77,33 +80,25 @@
     }
   }
 
-  function patchShowGame() {
-    const current = window.showGame;
-    if (typeof current !== 'function' || current.__bibleSketchWrapped) return;
+  function patchShowGameOnce() {
+    if (showPatched || typeof window.showGame !== 'function') return;
+    showPatched = true;
+    const originalShowGame = window.showGame;
     const wrapped = function(gameName) {
       if (String(gameName) === GAME_KEY) return openGame();
-      return current.apply(this, arguments);
+      return originalShowGame.apply(this, arguments);
     };
     wrapped.__bibleSketchWrapped = true;
     window.showGame = wrapped;
   }
 
-  function patchGoToMenu() {
-    const current = window.goToMainMenu;
-    if (typeof current !== 'function' || current.__bibleSketchWrapped) return;
-    const wrapped = function() {
-      if (document.body.dataset.currentGame === GAME_KEY) {
-        try { window.__bibleSketchCleanup?.(); } catch {}
-      }
-      return current.apply(this, arguments);
-    };
-    wrapped.__bibleSketchWrapped = true;
-    window.goToMainMenu = wrapped;
-  }
-
-  function patchNavigation() {
-    patchShowGame();
-    patchGoToMenu();
+  function trackCleanup() {
+    const isSketch = document.body?.dataset.currentGame === GAME_KEY;
+    if (wasSketch && !isSketch) {
+      wasSketch = false;
+      try { window.__bibleSketchCleanup?.(); } catch {}
+    }
+    if (isSketch) wasSketch = true;
   }
 
   function escapeText(value) {
@@ -111,11 +106,13 @@
   }
 
   const observer = new MutationObserver(() => {
-    patchNavigation();
+    patchShowGameOnce();
     ensureCard();
+    trackCleanup();
   });
   observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-ready', 'class', 'data-mode', 'data-current-game'] });
-  patchNavigation();
+  patchShowGameOnce();
   ensureCard();
+  trackCleanup();
   window.__bibleSketchEnsureCard = ensureCard;
 })();
