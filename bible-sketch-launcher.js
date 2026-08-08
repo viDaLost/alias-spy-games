@@ -44,6 +44,10 @@
     if (!Array.isArray(history)) history = [];
     history = [GAME_TITLE, ...history.filter((title) => title !== GAME_TITLE)].slice(0, 3);
     localStorage.setItem('last_games_history', JSON.stringify(history));
+    const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (id && typeof window.apiRequest === 'function') {
+      Promise.resolve(window.apiRequest({ action: 'updateHistory', id, history })).catch(() => {});
+    }
   }
 
   function loadGameScript() {
