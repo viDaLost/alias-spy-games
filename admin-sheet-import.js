@@ -79,7 +79,12 @@
         setTimeout(() => window.openAdminPanel(), 900);
       }
     } catch (error) {
-      setResult(result, String(error?.message || 'Не удалось импортировать таблицу.'), true);
+      const message = String(error?.message || 'Не удалось импортировать таблицу.');
+      if (/Google Sheets вернул HTTP (401|403)/i.test(message)) {
+        setResult(result, 'Таблица закрыта для Cloudflare. В Google Sheets откройте «Доступ» → «Все, у кого есть ссылка» → «Читатель», затем повторите импорт. После успешного переноса доступ можно снова закрыть.', true);
+      } else {
+        setResult(result, message, true);
+      }
     } finally {
       if (button) { button.disabled = false; button.textContent = 'Импортировать в Cloudflare'; }
     }
