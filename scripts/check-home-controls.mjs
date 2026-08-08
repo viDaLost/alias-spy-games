@@ -95,7 +95,8 @@ await page.waitForFunction(() => document.querySelectorAll('#home-dashboard .hom
 
 for (let i = 0; i < 3; i += 1) {
   await page.locator('#home-dashboard .home-section-hide').first().click();
-  await page.waitForFunction(() => document.querySelectorAll('#home-dashboard .home-section-hide').length === 2 - i);
+  const expectedButtons = 2 - i;
+  await page.waitForFunction((expected) => document.querySelectorAll('#home-dashboard .home-section-hide').length === expected, expectedButtons);
 }
 await page.waitForSelector('.home-hidden-restore button');
 
