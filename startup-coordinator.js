@@ -123,7 +123,7 @@
     const menu = document.getElementById('menu-container');
     if (!menu) return;
     if (!menu.classList.contains('hidden') && !document.body?.dataset.mode) {
-      if (!preparing || root.classList.contains('app-menu-preparing')) prepareVisibleMenu();
+      if (!preparing) prepareVisibleMenu();
     } else {
       ++revealToken;
       preparing = false;
