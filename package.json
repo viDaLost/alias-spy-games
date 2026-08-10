@@ -9,6 +9,7 @@
     "check:mobile": "node scripts/check-mobile-layout.mjs",
     "check:errors": "node scripts/check-error-system.mjs",
     "check:home": "node scripts/check-home-controls.mjs",
+    "check:android": "node scripts/check-android-runtime.mjs",
     "check:cloudflare-core": "node scripts/check-cloudflare-core-mode.mjs"
   },
   "devDependencies": {
