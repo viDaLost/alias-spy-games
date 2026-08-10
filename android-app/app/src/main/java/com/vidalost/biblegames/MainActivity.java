@@ -3,27 +3,31 @@ package com.vidalost.biblegames;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.net.http.SslError;
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -34,10 +38,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Pattern;
 
 public class MainActivity extends Activity {
-    private static final String APP_URL = "https://vidalost.github.io/alias-spy-games/?android=1";
+    private static final String APP_URL = "https://vidalost.github.io/alias-spy-games/?android=1&apk=101";
     private static final String BOT_URL = "https://t.me/username_to_id_bot";
     private static final String PREFS = "bible_games_android";
     private static final String PREF_TELEGRAM_ID = "telegram_id";
@@ -62,11 +68,8 @@ public class MainActivity extends Activity {
             getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         }
 
-        if (isValidUserId(telegramId)) {
-            showWebApp();
-        } else {
-            showLogin();
-        }
+        if (isValidUserId(telegramId)) showWebApp();
+        else showLogin();
     }
 
     private boolean isValidUserId(String value) {
@@ -112,7 +115,7 @@ public class MainActivity extends Activity {
         scroll.addView(root, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         ImageView icon = new ImageView(this);
-        icon.setImageResource(com.vidalost.biblegames.R.drawable.ic_launcher);
+        icon.setImageResource(R.drawable.ic_launcher);
         LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(dp(88), dp(88));
         iconLp.bottomMargin = dp(18);
         root.addView(icon, iconLp);
@@ -167,6 +170,7 @@ public class MainActivity extends Activity {
         input.setTextSize(18);
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
         input.setPadding(dp(16), 0, dp(16), 0);
         input.setTextColor(Color.parseColor("#101828"));
         input.setHintTextColor(Color.parseColor("#98A2B3"));
@@ -197,21 +201,13 @@ public class MainActivity extends Activity {
         loginLp.topMargin = dp(14);
         card.addView(loginButton, loginLp);
 
-        loginButton.setOnClickListener(v -> {
-            String value = input.getText().toString().trim();
-            if (!TELEGRAM_ID_PATTERN.matcher(value).matches()) {
-                error.setText("Введите числовой Telegram ID.");
-                error.setVisibility(View.VISIBLE);
-                return;
+        loginButton.setOnClickListener(v -> submitTelegramId(input, error));
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                submitTelegramId(input, error);
+                return true;
             }
-            if (ADMIN_ID.equals(value)) {
-                error.setText("Админ-профиль нельзя открыть через вход только по ID. Используйте Telegram Mini App.");
-                error.setVisibility(View.VISIBLE);
-                return;
-            }
-            telegramId = value;
-            preferences.edit().putString(PREF_TELEGRAM_ID, telegramId).apply();
-            showWebApp();
+            return false;
         });
 
         TextView note = text(
@@ -224,6 +220,34 @@ public class MainActivity extends Activity {
         root.addView(note, noteLp);
 
         setContentView(scroll);
+    }
+
+    private void submitTelegramId(EditText input, TextView error) {
+        String value = input.getText().toString().trim();
+        if (!TELEGRAM_ID_PATTERN.matcher(value).matches()) {
+            error.setText("Введите числовой Telegram ID.");
+            error.setVisibility(View.VISIBLE);
+            return;
+        }
+        if (ADMIN_ID.equals(value)) {
+            error.setText("Админ-профиль нельзя открыть через вход только по ID. Используйте Telegram Mini App.");
+            error.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        error.setVisibility(View.GONE);
+        telegramId = value;
+        preferences.edit().putString(PREF_TELEGRAM_ID, telegramId).apply();
+        hideKeyboard(input);
+        showWebApp();
+    }
+
+    private void hideKeyboard(View view) {
+        try {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            view.clearFocus();
+        } catch (Exception ignored) {}
     }
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
@@ -250,11 +274,9 @@ public class MainActivity extends Activity {
         settings.setSupportMultipleWindows(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setTextZoom(100);
-        settings.setUserAgentString(settings.getUserAgentString() + " BibleGamesAndroid/1.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " BibleGamesAndroid/1.0.1");
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            settings.setSafeBrowsingEnabled(true);
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) settings.setSafeBrowsingEnabled(true);
 
         webView.addJavascriptInterface(new AndroidBridge(), "AndroidApp");
         webView.setWebChromeClient(new WebChromeClient());
@@ -281,6 +303,18 @@ public class MainActivity extends Activity {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             return handleNavigation(Uri.parse(url));
+        }
+
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            Uri uri = request.getUrl();
+            String host = uri.getHost() == null ? "" : uri.getHost();
+            String path = uri.getPath() == null ? "" : uri.getPath();
+            if ("telegram.org".equalsIgnoreCase(host) && path.endsWith("/js/telegram-web-app.js")) {
+                byte[] emptySdk = "/* Telegram SDK intentionally skipped inside standalone Android APK. */".getBytes(StandardCharsets.UTF_8);
+                return new WebResourceResponse("application/javascript", "UTF-8", new ByteArrayInputStream(emptySdk));
+            }
+            return super.shouldInterceptRequest(view, request);
         }
 
         @Override
@@ -349,7 +383,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String getAppVersion() {
-            return "1.0.0";
+            return "1.0.1";
         }
 
         @JavascriptInterface
