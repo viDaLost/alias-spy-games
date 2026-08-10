@@ -2,7 +2,9 @@
   if (window.__APP_TELEMETRY_DISABLED__) return;
   const backend = String(document.querySelector('meta[name="app-observability"]')?.content || '').replace(/\/+$/, '');
   const initData = String(window.Telegram?.WebApp?.initData || '');
-  if (!backend || !initData) return;
+  const androidUserId = String(window.__ANDROID_TELEGRAM_ID__ || '').trim();
+  const isAndroidIdentity = window.__ANDROID_APK__ === true && /^\d{5,20}$/.test(androidUserId);
+  if (!backend || (!initData && !isAndroidIdentity)) return;
 
   const sid = getSessionId();
   let socket = null;
@@ -27,8 +29,10 @@
   }
 
   function currentRoomId() {
-    if (currentGame() !== 'quartet') return '';
-    const subtitle = document.querySelector('.qv2-subtitle')?.textContent || '';
+    const game = currentGame();
+    if (game !== 'quartet' && game !== 'bible-sketch') return '';
+    const selector = game === 'quartet' ? '.qv2-subtitle' : '.bsk-subtitle';
+    const subtitle = document.querySelector(selector)?.textContent || '';
     const match = subtitle.match(/Комната\s+([A-Z0-9]{4,10})/i);
     return match ? match[1].toUpperCase() : '';
   }
@@ -37,7 +41,8 @@
     const url = new URL(`${backend}/presence`);
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     url.searchParams.set('sid', sid);
-    url.searchParams.set('initData', initData);
+    if (initData) url.searchParams.set('initData', initData);
+    else if (isAndroidIdentity) url.searchParams.set('androidUserId', androidUserId);
     return url.toString();
   }
 
