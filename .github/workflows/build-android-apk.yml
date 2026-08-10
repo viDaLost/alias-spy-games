@@ -6,9 +6,15 @@ on:
     paths:
       - 'android-app/**'
       - 'android-runtime.js'
+      - 'android-performance.js'
       - 'backend-bridge.js'
+      - 'presence-identity.js'
+      - 'network-warmup.js'
+      - 'startup-coordinator.js'
+      - 'three-gate.js'
       - 'index.html'
       - 'cloudflare/app-core-worker/**'
+      - 'cloudflare/app-observability-worker/**'
       - '.github/workflows/build-android-apk.yml'
 
 permissions:
@@ -36,8 +42,8 @@ jobs:
       - name: Prepare APK artifact
         run: |
           mkdir -p dist
-          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-1.0.1.apk
-          ls -lh dist/BibleGames-Android-1.0.1.apk
+          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-1.0.2.apk
+          ls -lh dist/BibleGames-Android-1.0.2.apk
 
       - name: Verify APK signature
         run: |
@@ -46,11 +52,11 @@ jobs:
             echo "apksigner was not found in Android SDK"
             exit 1
           fi
-          "$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-1.0.1.apk
+          "$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-1.0.2.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BibleGames-Android-1.0.1
-          path: dist/BibleGames-Android-1.0.1.apk
+          name: BibleGames-Android-1.0.2
+          path: dist/BibleGames-Android-1.0.2.apk
           if-no-files-found: error
           retention-days: 30
