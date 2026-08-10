@@ -32,12 +32,28 @@
     return jsonResponse({ success: false, error: 'Telegram authorization required' }, 401);
   }
 
+  async function callCore(path, body) {
+    try {
+      const response = await originalFetch(`${coreUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      });
+      coreHealthy = response.ok;
+      if (!response.ok) lastFailureAt = Date.now();
+      return response;
+    } catch (error) {
+      coreHealthy = false;
+      lastFailureAt = Date.now();
+      return jsonResponse({ success: false, error: 'Cloudflare backend is temporarily unavailable' }, 503);
+    }
+  }
+
   window.fetch = async function bridgedFetch(input, init = {}) {
     const requestUrl = typeof input === 'string' || input instanceof URL ? String(input) : String(input?.url || '');
     const method = String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
 
-    // app.js still calls the historical compatibility URL. We intercept every
-    // such request here, so user/admin data never reaches Apps Script anymore.
     if (requestUrl !== legacyUrl || method !== 'POST') return originalFetch(input, init);
 
     let payload;
@@ -52,27 +68,15 @@
       return jsonResponse({ success: false, error: 'API action required' }, 400);
     }
 
+    const androidId = String(window.__ANDROID_TELEGRAM_ID__ || '').trim();
+    if (window.__ANDROID_APK__ === true && /^\d{5,20}$/.test(androidId)) {
+      return callCore('/android/compat', { payload, androidUserId: androidId });
+    }
+
     const telegramInitData = String(window.Telegram?.WebApp?.initData || '');
     if (!telegramInitData) return guestResponse(payload);
 
-    try {
-      const response = await originalFetch(`${coreUrl}/compat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload, telegramInitData }),
-        cache: 'no-store',
-      });
-      coreHealthy = response.ok;
-      if (!response.ok) lastFailureAt = Date.now();
-      return response;
-    } catch (error) {
-      coreHealthy = false;
-      lastFailureAt = Date.now();
-      return jsonResponse({
-        success: false,
-        error: 'Cloudflare backend is temporarily unavailable',
-      }, 503);
-    }
+    return callCore('/compat', { payload, telegramInitData });
   };
 
   window.AppCoreBridge = {

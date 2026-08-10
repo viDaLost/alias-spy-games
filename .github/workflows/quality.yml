@@ -75,5 +75,7 @@ jobs:
         run: npm run check:mobile
       - name: Check home dashboard hide controls
         run: npm run check:home
+      - name: Check Android ID login runtime
+        run: npm run check:android
       - name: Check friendly error boundary
         run: npm run check:errors
