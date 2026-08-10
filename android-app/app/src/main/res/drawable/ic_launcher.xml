@@ -4,11 +4,34 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#4338CA" android:pathData="M54,4A50,50 0,1 0,54 104A50,50 0,1 0,54 4" />
-    <path android:fillColor="#2563EB" android:fillAlpha="0.55" android:pathData="M18,22C30,10 50,8 68,13C84,18 96,34 98,52C100,72 88,91 68,99C48,106 25,98 14,80C3,62 6,38 18,22Z" />
-    <path android:fillColor="#F7D774" android:pathData="M28,31C39,27 48,29 54,35C60,29 69,27 80,31V76C70,72 61,73 54,79C47,73 38,72 28,76Z" />
-    <path android:fillColor="#FFF9E9" android:pathData="M32,35C41,32 48,35 51,40V69C46,65 39,64 32,66Z" />
-    <path android:fillColor="#FFF9E9" android:pathData="M76,35C67,32 60,35 57,40V69C62,65 69,64 76,66Z" />
-    <path android:strokeColor="#B7791F" android:strokeWidth="2" android:fillColor="@android:color/transparent" android:pathData="M54,39V78" />
-    <path android:strokeColor="#F7D774" android:strokeWidth="3" android:strokeLineCap="round" android:fillColor="@android:color/transparent" android:pathData="M24,82C39,87 69,87 84,82" />
+
+    <!-- Deep enamel tile -->
+    <path android:fillColor="#172554" android:pathData="M22,6H86C96,6 102,12 102,22V86C102,96 96,102 86,102H22C12,102 6,96 6,86V22C6,12 12,6 22,6Z" />
+    <path android:fillColor="#2539D8" android:pathData="M23,9H85C94,9 99,14 99,23V85C99,94 94,99 85,99H23C14,99 9,94 9,85V23C9,14 14,9 23,9Z" />
+    <path android:fillColor="#2563EB" android:fillAlpha="0.55" android:pathData="M17,20C29,11 45,10 57,12C77,14 92,28 96,47C99,66 90,86 73,94C54,103 29,96 17,78C6,61 7,37 17,20Z" />
+
+    <!-- Stars -->
+    <path android:fillColor="#FFF3B0" android:pathData="M23,24L25,29L30,31L25,33L23,38L21,33L16,31L21,29Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M84,19L86,23L90,25L86,27L84,31L82,27L78,25L82,23Z" />
+    <path android:fillColor="#FFD76A" android:pathData="M87,43L88,46L91,47L88,48L87,51L86,48L83,47L86,46Z" />
+
+    <!-- Book shadow -->
+    <path android:fillColor="#0F172A" android:fillAlpha="0.35" android:pathData="M23,75C34,72 44,73 54,80C64,73 75,72 87,75V84C73,81 63,82 54,89C45,82 35,81 21,84Z" />
+
+    <!-- Gold book cover -->
+    <path android:fillColor="#B45309" android:pathData="M20,32C34,27 46,29 54,36C62,29 74,27 88,32V79C74,75 63,76 54,84C45,76 34,75 20,79Z" />
+    <path android:fillColor="#F4B62F" android:pathData="M23,29C36,25 47,28 54,34C61,28 72,25 85,29V76C72,73 62,74 54,81C46,74 36,73 23,76Z" />
+
+    <!-- Pages -->
+    <path android:fillColor="#FFF9E8" android:pathData="M27,32C38,29 47,32 51,38V70C44,65 36,64 27,67Z" />
+    <path android:fillColor="#FFFDF5" android:pathData="M81,32C70,29 61,32 57,38V70C64,65 72,64 81,67Z" />
+    <path android:fillColor="#F6E7C7" android:pathData="M30,39C38,37 44,39 48,42V44C43,41 37,40 30,42ZM30,48C38,46 44,48 48,51V53C43,50 37,49 30,51ZM60,42C64,39 70,37 78,39V42C71,40 65,41 60,44ZM60,51C64,48 70,46 78,48V51C71,49 65,50 60,53Z" />
+
+    <!-- Spine and bookmark -->
+    <path android:fillColor="#D97706" android:pathData="M52.5,36H55.5V80H52.5Z" />
+    <path android:fillColor="#FFCC33" android:pathData="M60,69H70V92L65,88L60,92Z" />
+    <path android:fillColor="#D97706" android:pathData="M60,69H70V73H60Z" />
+
+    <!-- Bottom shine -->
+    <path android:strokeColor="#FFE7A3" android:strokeWidth="2.2" android:strokeLineCap="round" android:fillColor="@android:color/transparent" android:pathData="M25,82C39,86 69,86 83,82" />
 </vector>
