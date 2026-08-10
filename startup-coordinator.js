@@ -1,5 +1,6 @@
 (() => {
   const root = document.documentElement;
+  const isAndroidApk = window.__ANDROID_APK__ === true;
   const ICON_VERSION = '1';
   const ICON_NAMES = ['alias', 'idea', 'character', 'describe', 'spy', 'quartet', 'words', 'search', 'sacred', 'ark'];
   const ICON_URLS = ICON_NAMES.map((name) => `assets/icons/${name}.png?v=${ICON_VERSION}`);
@@ -22,8 +23,7 @@
       const finish = () => {
         if (settled) return;
         settled = true;
-        Promise.resolve(typeof image.decode === 'function' ? image.decode().catch(() => {}) : null)
-          .finally(resolve);
+        Promise.resolve(typeof image.decode === 'function' ? image.decode().catch(() => {}) : null).finally(resolve);
       };
       image.decoding = 'async';
       image.loading = 'eager';
@@ -35,12 +35,13 @@
     });
   }
 
-  const iconWarmup = Promise.all(ICON_URLS.map(preloadIcon)).then(() => {
-    root.classList.add('app-icons-ready');
-  });
+  const iconWarmup = isAndroidApk
+    ? Promise.resolve().then(() => root.classList.add('app-icons-ready'))
+    : Promise.all(ICON_URLS.map(preloadIcon)).then(() => root.classList.add('app-icons-ready'));
   window.__appMenuIconsReady = iconWarmup;
 
   function forceEagerImages(scope = document) {
+    if (isAndroidApk) return;
     scope.querySelectorAll?.('.game-card__img, .home-continue__icon img').forEach((img) => {
       img.loading = 'eager';
       img.decoding = 'async';
@@ -49,6 +50,7 @@
   }
 
   async function decodeRenderedMenuImages() {
+    if (isAndroidApk) return;
     const menu = document.getElementById('menu-container');
     if (!menu) return;
     forceEagerImages(menu);
@@ -70,7 +72,7 @@
     return Boolean(dashboard && dashboard.dataset.contentReady === '1' && dashboard.dataset.controlsReady === '1');
   }
 
-  async function waitForDashboard(maxMs = 1200) {
+  async function waitForDashboard(maxMs = isAndroidApk ? 350 : 1200) {
     const started = performance.now();
     while (performance.now() - started < maxMs) {
       if (dashboardReady()) return true;
@@ -104,7 +106,7 @@
     root.classList.remove('app-ui-ready');
 
     forceEagerImages(menu);
-    await timeout(iconWarmup, 3500);
+    if (!isAndroidApk) await timeout(iconWarmup, 3500);
     await waitForDashboard();
     await decodeRenderedMenuImages();
 
@@ -125,9 +127,6 @@
       return;
     }
 
-    // Mark the state ready BEFORE changing root classes. MutationObserver will
-    // see those class changes, but evaluate() now knows this reveal is complete
-    // and will not start another preparation cycle.
     menuReady = true;
     preparing = false;
     root.classList.remove('app-booting', 'app-menu-preparing');
@@ -151,25 +150,17 @@
     if (revealBannedIfNeeded()) return;
     const menu = document.getElementById('menu-container');
     if (!menu) return;
-
     const visibleMenuState = !menu.classList.contains('hidden') && !document.body?.dataset.mode;
     if (visibleMenuState) {
       if (menuReady || preparing) return;
       prepareVisibleMenu();
       return;
     }
-
-    if (preparing || menuReady || root.classList.contains('app-menu-preparing') || root.classList.contains('app-ui-ready')) {
-      cancelPreparation();
-    }
+    if (preparing || menuReady || root.classList.contains('app-menu-preparing') || root.classList.contains('app-ui-ready')) cancelPreparation();
   }
 
   const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (node.nodeType === 1) forceEagerImages(node);
-      });
-    }
+    for (const mutation of mutations) mutation.addedNodes.forEach((node) => { if (node.nodeType === 1) forceEagerImages(node); });
     queueMicrotask(evaluate);
   });
 
