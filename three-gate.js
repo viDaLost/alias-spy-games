@@ -1,28 +1,31 @@
 (() => {
-  const script = document.getElementById('three-js');
-  let settled = Boolean(window.THREE);
+  const holder = document.getElementById('three-js');
+  const threeSrc = String(holder?.dataset.src || 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+  let loadPromise = null;
 
-  const ready = settled ? Promise.resolve(true) : new Promise((resolve) => {
-    if (!script) {
-      resolve(false);
-      return;
-    }
-    const done = (ok) => {
-      if (settled) return;
-      settled = true;
-      resolve(Boolean(ok && window.THREE));
-    };
-    script.addEventListener('load', () => done(true), { once: true });
-    script.addEventListener('error', () => done(false), { once: true });
-  });
+  function loadThree() {
+    if (window.THREE) return Promise.resolve(true);
+    if (loadPromise) return loadPromise;
 
-  window.__threeReady = ready;
+    loadPromise = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = threeSrc;
+      script.async = true;
+      script.crossOrigin = 'anonymous';
+      script.addEventListener('load', () => resolve(Boolean(window.THREE)), { once: true });
+      script.addEventListener('error', () => resolve(false), { once: true });
+      document.head.appendChild(script);
+    });
+    return loadPromise;
+  }
+
+  window.__loadThree = loadThree;
   const originalShowGame = window.showGame;
   if (typeof originalShowGame !== 'function') return;
 
-  function waitWithTimeout(ms) {
+  async function waitWithTimeout(ms) {
     return Promise.race([
-      ready,
+      loadThree(),
       new Promise((resolve) => setTimeout(() => resolve(Boolean(window.THREE)), ms)),
     ]);
   }
@@ -41,8 +44,7 @@
           <div class="app-loader__ring"></div>
           <p>Подготовка «Священного слова»...</p>
           <button type="button" class="back-button" onclick="goToMainMenu()">В меню</button>
-        </div>
-      `;
+        </div>`;
     }
 
     const ok = await waitWithTimeout(8000);
@@ -53,8 +55,7 @@
             <h2>Не удалось подготовить игру</h2>
             <p>Проверьте соединение и попробуйте открыть «Священное слово» ещё раз.</p>
             <button class="back-button" type="button" onclick="goToMainMenu()">В главное меню</button>
-          </section>
-        `;
+          </section>`;
       }
       document.body.dataset.currentGame = 'sacred-word';
       return;

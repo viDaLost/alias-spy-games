@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-observability",
-  "main": "src/index-v2.js",
+  "main": "src/index-v3.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "durable_objects": {
