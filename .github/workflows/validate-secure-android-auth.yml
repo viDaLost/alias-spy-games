@@ -31,8 +31,8 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Apply secure auth migration
-        run: python scripts/apply-secure-android-auth.py
+      - name: Apply final auth hardening
+        run: python scripts/harden-secure-android-auth.py
 
       - name: Static security assertions
         shell: bash
@@ -41,16 +41,17 @@ jobs:
           node --check cloudflare/app-core-worker/src/index-v4.js
           node --check cloudflare/app-core-worker/src/android-auth-user-store.js
           node --check cloudflare/app-observability-worker/src/index-v3.js
+          grep -q 'AuthSessionInvalid' android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt
+          grep -q 'clearVerifiedSession' android-app/app/src/main/java/com/vidalost/biblegames/App.kt
+          grep -q 'logoutSession(oldToken)' android-app/app/src/main/java/com/vidalost/biblegames/App.kt
+          grep -q 'request.headers.get.*CF-Connecting-IP' cloudflare/app-core-worker/src/index-v4.js
           grep -q "Authorization.*Bearer" android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt
-          grep -q "AndroidSessionStore" android-app/app/src/main/java/com/vidalost/biblegames/App.kt
-          grep -q "android/auth/verify" cloudflare/app-core-worker/src/index-v4.js
-          grep -q "requireAndroidSession" cloudflare/app-core-worker/src/index-v4.js
           if grep -q 'android/access?id=' android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt; then
             echo 'Legacy ID-only access endpoint is still referenced' >&2
             exit 1
           fi
 
-      - name: Existing regression checks
+      - name: Regression checks
         run: |
           node scripts/check-android-ban-enforcement.mjs
           node scripts/check-support-center.mjs
@@ -70,7 +71,7 @@ jobs:
           npm install --no-audit --no-fund
           npx wrangler deploy --dry-run --outdir /tmp/observability-auth-build
 
-      - name: Commit secure auth implementation
+      - name: Commit final hardening
         shell: bash
         run: |
           set -euo pipefail
@@ -78,14 +79,9 @@ jobs:
           git config user.email "vitaledanilov@gmail.com"
           git add \
             android-app/app/src/main/java/com/vidalost/biblegames/App.kt \
-            android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt \
-            android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt \
             android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt \
-            android-app/app/build.gradle \
-            cloudflare/app-core-worker/src/index-v4.js \
-            cloudflare/app-observability-worker/src/index-v3.js \
-            cloudflare/app-observability-worker/wrangler.jsonc
-          git commit -m "Require Telegram code verification for Android sessions"
+            cloudflare/app-core-worker/src/index-v4.js
+          git commit -m "Harden Android verified session lifecycle"
           git push origin HEAD:agent/secure-android-telegram-auth-2.7.0
 
-# validation-pass: 5
+# validation-pass: final-hardening
