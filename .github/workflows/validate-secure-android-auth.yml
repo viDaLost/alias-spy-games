@@ -84,9 +84,8 @@ jobs:
             android-app/app/build.gradle \
             cloudflare/app-core-worker/src/index-v4.js \
             cloudflare/app-observability-worker/src/index-v3.js \
-            cloudflare/app-observability-worker/wrangler.jsonc \
-            .github/workflows/build-android-apk.yml
+            cloudflare/app-observability-worker/wrangler.jsonc
           git commit -m "Require Telegram code verification for Android sessions"
           git push origin HEAD:agent/secure-android-telegram-auth-2.7.0
 
-# validation-pass: 3
+# validation-pass: 4
