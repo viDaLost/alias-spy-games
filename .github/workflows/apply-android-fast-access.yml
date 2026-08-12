@@ -28,6 +28,6 @@ jobs:
           set -euo pipefail
           git config user.name "viDaLost"
           git config user.email "vitaledanilov@gmail.com"
-          git add android-app cloudflare .github/workflows/build-android-apk.yml scripts/check-android-ban-enforcement.mjs scripts/check-support-center.mjs
+          git add android-app cloudflare scripts/check-android-ban-enforcement.mjs scripts/check-support-center.mjs
           git commit -m "Speed up Android access checks and auto-refresh bans"
           git push origin HEAD:agent/android-fast-access-refresh-2.6.6
