@@ -438,7 +438,7 @@ private fun HomeScreen(
                 }
             }
             item { SectionTitle("Помощь") }
-            item { SupportCard onSupport }
+            item { SupportCard(onSupport) }
             item {
                 Spacer(Modifier.height(4.dp))
                 Surface(
