@@ -212,7 +212,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                 applyAccessState(banned)
                 if (!banned && (firstVerification || wasBanned)) {
                     syncing = true
-                    appScope.launch {
+                    launch {
                         cloud.syncProfile(userId, profile).onSuccess {
                             profile = it
                             saveLocalProfile(context, it)
