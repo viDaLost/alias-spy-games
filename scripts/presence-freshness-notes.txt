@@ -1,5 +1,0 @@
-Stale presence fix summary:
-- WebSocket ping refreshes updatedAt on the server.
-- liveSnapshot ignores and closes sessions older than 90 seconds.
-- This fixes Android users remaining visible as "Главное меню" after losing network or closing the app without a clean WebSocket close.
-- Existing Android APKs benefit after backend deployment; no app update is required for the stale-session timeout itself.
