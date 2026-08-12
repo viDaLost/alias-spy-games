@@ -2,7 +2,7 @@ import { SqlUserStore } from './sql-user-store.js';
 
 const encoder = new TextEncoder();
 const USER_ACTIONS = new Set(['syncUser', 'updateHistory']);
-const ADMIN_ACTIONS = new Set(['getAdminData', 'updateUser', 'broadcast']);
+const ADMIN_ACTIONS = new Set(['getAdminData', 'updateUser']);
 
 export default {
   async fetch(request, env) {
@@ -58,12 +58,6 @@ export default {
         return json({ success: true, source: 'cloudflare-sql' }, 200, cors);
       }
 
-      // Apps Script is intentionally retained for one purpose only: mass broadcast.
-      if (action === 'broadcast') {
-        const result = await callBroadcastBackend(payload, env);
-        return json(result, 200, cors);
-      }
-
       throw httpError(400, 'Unsupported action');
     } catch (error) {
       const status = Number(error?.status || 500);
@@ -86,18 +80,6 @@ async function callStore(stub, pathname, body) {
     throw httpError(response.status || 500, data?.error || `Store HTTP ${response.status}`);
   }
   return data || {};
-}
-
-async function callBroadcastBackend(payload, env) {
-  if (!env.BROADCAST_GAS_URL) throw httpError(503, 'Broadcast backend is not configured');
-  const response = await fetch(env.BROADCAST_GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw httpError(502, `Broadcast HTTP ${response.status}`);
-  try { return await response.json(); }
-  catch { throw httpError(502, 'Broadcast backend returned invalid JSON'); }
 }
 
 function syncResponse(record = {}) {
