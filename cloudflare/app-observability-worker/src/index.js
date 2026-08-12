@@ -97,7 +97,10 @@ export class AppStats extends DurableObject {
     catch { return; }
 
     if (payload?.type === 'ping') {
-      try { webSocket.send(JSON.stringify({ type: 'pong', at: Date.now() })); } catch {}
+      const attachment = webSocket.deserializeAttachment() || {};
+      attachment.updatedAt = Date.now();
+      webSocket.serializeAttachment(attachment);
+      try { webSocket.send(JSON.stringify({ type: 'pong', at: attachment.updatedAt })); } catch {}
       return;
     }
 
