@@ -42,7 +42,6 @@ jobs:
             '</adaptive-icon>' \
             > android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
           cp android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android-app/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml
-
           printf '%s\n' \
             '<?xml version="1.0" encoding="utf-8"?>' \
             '<layer-list xmlns:android="http://schemas.android.com/apk/res/android">' \
@@ -52,17 +51,12 @@ jobs:
 
           sed -i 's/versionCode 13/versionCode 14/' android-app/app/build.gradle
           sed -i "s/versionName '2.6.1-native'/versionName '2.6.2-native'/" android-app/app/build.gradle
-          sed -i 's/BibleGames-Android-2\.6\.1-native/BibleGames-Android-2.6.2-native/g' .github/workflows/build-android-apk.yml
-
           grep -q 'versionCode 14' android-app/app/build.gradle
           grep -q "versionName '2.6.2-native'" android-app/app/build.gradle
-          grep -q '@drawable/ic_launcher_art' android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
 
           rm -rf .icon-repair
-          rm -f .github/workflows/repair-launcher-binaries.yml
-
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add android-app .icon-repair
           git commit -m 'Restore valid launcher icon binary'
           git push origin HEAD:agent/repair-icon-binaries-2.6.2
