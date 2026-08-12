@@ -70,10 +70,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf cloudflare/app-core-worker/node_modules
+          rm -f cloudflare/app-core-worker/package-lock.json
           rm -f scripts/apply-android-auth-reliability-271.py .github/workflows/apply-android-auth-reliability-271.yml
           git config user.name "viDaLost"
           git config user.email "vitaledanilov@gmail.com"
-          git add -A
+          git add \
+            android-app/app/build.gradle \
+            android-app/app/src/main/java/com/vidalost/biblegames/App.kt \
+            android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt \
+            cloudflare/app-core-worker/src/index-v4.js \
+            cloudflare/app-core-worker/src/android-auth-user-store.js \
+            scripts/check-android-secure-auth.mjs \
+            scripts/check-android-ban-enforcement.mjs \
+            scripts/check-support-center.mjs \
+            .github/workflows/build-android-apk.yml
+          git add -u scripts/apply-android-auth-reliability-271.py .github/workflows/apply-android-auth-reliability-271.yml
+          git status --short
+          test -z "$(git status --porcelain --untracked-files=no | grep 'node_modules' || true)"
           git commit -m "Fix Android Telegram auth reliability and admin isolation"
           git pull --rebase origin fix/android-auth-reliability-2.7.1
           git push origin HEAD:fix/android-auth-reliability-2.7.1
