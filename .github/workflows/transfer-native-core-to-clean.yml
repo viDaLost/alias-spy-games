@@ -93,17 +93,7 @@ jobs:
           else
             : > .gitignore
           fi
-          cat >> .gitignore <<'EOF'
-
-# Android local/generated files and signing material
-android-app/.gradle/
-android-app/**/build/
-android-app/local.properties
-*.jks
-*.keystore
-*.apk
-*.aab
-EOF
+          printf '%s\n' '' '# Android local/generated files and signing material' 'android-app/.gradle/' 'android-app/**/build/' 'android-app/local.properties' '*.jks' '*.keystore' '*.apk' '*.aab' >> .gitignore
 
           rm -f .github/workflows/validate-native-clean-transfer.yml
           git config user.name 'github-actions[bot]'
