@@ -28,6 +28,14 @@ jobs:
           if old not in s:
               raise SystemExit('expected old game gate check')
           p.write_text(s.replace(old, new, 1))
+
+          p = Path('scripts/check-support-center.mjs')
+          s = p.read_text()
+          old = "requireText(gradle, \"versionName '2.6.6-native'\", 'Android release version is not current');"
+          new = "requireText(gradle, \"versionName '2.6.7-native'\", 'Android release version is not current');"
+          if old not in s:
+              raise SystemExit('expected old support version check')
+          p.write_text(s.replace(old, new, 1))
           PY
       - name: Run targeted regression checks
         run: |
@@ -39,6 +47,6 @@ jobs:
           set -euo pipefail
           git config user.name "viDaLost"
           git config user.email "vitaledanilov@gmail.com"
-          git add android-app cloudflare/app-core-worker/src/index-v4.js scripts/check-android-ban-enforcement.mjs
+          git add android-app cloudflare/app-core-worker/src/index-v4.js scripts/check-android-ban-enforcement.mjs scripts/check-support-center.mjs
           git commit -m "Make Android access checks resilient and non-blocking"
           git push origin HEAD:agent/android-access-retry-2.6.7
