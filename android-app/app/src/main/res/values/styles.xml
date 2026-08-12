@@ -8,6 +8,8 @@
         <item name="android:navigationBarColor">#E6F6FF</item>
         <item name="android:statusBarColor">#FDFBF8</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowDisablePreview">false</item>
+        <item name="android:windowContentTransitions">true</item>
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 </resources>

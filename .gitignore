@@ -1,0 +1,9 @@
+
+# Android local/generated files and signing material
+android-app/.gradle/
+android-app/**/build/
+android-app/local.properties
+*.jks
+*.keystore
+*.apk
+*.aab
