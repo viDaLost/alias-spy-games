@@ -1,13 +1,9 @@
 from pathlib import Path
 
-p = Path('cloudflare/app-observability-worker/src/index-v2.js')
-s = p.read_text()
-
-old = "const encoder = new TextEncoder();\n"
-new = "const encoder = new TextEncoder();\nconst PRESENCE_STALE_MS = 90_000;\n"
-assert old in s and 'PRESENCE_STALE_MS' not in s
-s = s.replace(old, new, 1)
-
+# The deployed v3 worker inherits WebSocket handling from index.js through index-v2.js.
+# Keep ping heartbeats fresh in the base class, then filter stale sockets in v2 liveSnapshot.
+base = Path('cloudflare/app-observability-worker/src/index.js')
+base_text = base.read_text()
 old = """    if (payload?.type === 'ping') {
       try { webSocket.send(JSON.stringify({ type: 'pong', at: Date.now() })); } catch {}
       return;
@@ -21,7 +17,14 @@ new = """    if (payload?.type === 'ping') {
       return;
     }
 """
-assert old in s
+assert old in base_text
+base.write_text(base_text.replace(old, new, 1))
+
+v2 = Path('cloudflare/app-observability-worker/src/index-v2.js')
+s = v2.read_text()
+old = "const encoder = new TextEncoder();\n"
+new = "const encoder = new TextEncoder();\nconst PRESENCE_STALE_MS = 90_000;\n"
+assert old in s and 'PRESENCE_STALE_MS' not in s
 s = s.replace(old, new, 1)
 
 old = """  liveSnapshot() {
@@ -49,6 +52,4 @@ new = """  liveSnapshot() {
       const previous = sessions.get(sid);
 """
 assert old in s
-s = s.replace(old, new, 1)
-
-p.write_text(s)
+v2.write_text(s.replace(old, new, 1))
