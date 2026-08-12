@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply compile fix
+      - name: Apply lifecycle/CORS hardening
         run: python scripts/fix-access-resilience-compile.py
       - name: Run regression checks
         run: |
@@ -40,12 +40,12 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx wrangler deploy --dry-run --outdir /tmp/app-core-worker-build
-      - name: Commit compile fix
+      - name: Commit hardening
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "viDaLost"
           git config user.email "vitaledanilov@gmail.com"
-          git add android-app/app/src/main/java/com/vidalost/biblegames/App.kt
-          git commit -m "Fix Android access monitor compile state"
+          git add android-app/app/src/main/java/com/vidalost/biblegames/App.kt cloudflare/app-core-worker/src/index-v4.js
+          git commit -m "Harden Android access monitor lifecycle"
           git push origin HEAD:agent/android-access-retry-2.6.7
