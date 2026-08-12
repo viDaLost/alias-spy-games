@@ -23,6 +23,9 @@ if (!wrangler.includes('"main": "src/index-v4.js"')) fail('Core Worker must use 
 if (wrangler.includes('BROADCAST_GAS_URL') || wrangler.includes('LEGACY_GAS_URL')) {
   fail('Apps Script backend variables must not be active in production.');
 }
+if (baseWorker.includes('BROADCAST_GAS_URL') || baseWorker.includes("action === 'broadcast'")) {
+  fail('Base Core Worker must not retain an Apps Script broadcast fallback.');
+}
 
 for (const forbidden of ['importGoogleSheet', 'docs.google.com', 'mirrorLegacy(', 'callLegacy(']) {
   if (worker.includes(forbidden) || baseWorker.includes(forbidden)) fail(`Cloudflare-only Worker still contains forbidden runtime dependency: ${forbidden}`);
