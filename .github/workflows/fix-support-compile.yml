@@ -1,0 +1,29 @@
+name: Fix support compile marker
+on:
+  push:
+    branches: [agent/support-center-v1]
+    paths: ['.github/workflows/fix-support-compile.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Fix invocation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android-app/app/src/main/java/com/vidalost/biblegames/App.kt')
+          s=p.read_text()
+          assert 'SupportCard onSupport' in s
+          p.write_text(s.replace('SupportCard onSupport', 'SupportCard(onSupport)', 1))
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add android-app/app/src/main/java/com/vidalost/biblegames/App.kt
+          git commit -m 'Fix support card callback invocation'
+          git push origin HEAD:agent/support-center-v1
