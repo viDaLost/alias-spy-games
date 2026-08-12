@@ -5,16 +5,7 @@ on:
   pull_request:
     paths:
       - 'android-app/**'
-      - 'android-runtime.js'
-      - 'android-performance.js'
-      - 'backend-bridge.js'
-      - 'presence-identity.js'
-      - 'network-warmup.js'
-      - 'startup-coordinator.js'
-      - 'three-gate.js'
-      - 'index.html'
-      - 'cloudflare/app-core-worker/**'
-      - 'cloudflare/app-observability-worker/**'
+      - 'scripts/sync-android-assets.mjs'
       - '.github/workflows/build-android-apk.yml'
 
 permissions:
@@ -24,26 +15,28 @@ jobs:
   validate-debug-build:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
-
-      - name: Build debug APK without release secrets
-        run: gradle -p android-app :app:assembleDebug --no-daemon
+          gradle-version: '8.11.1'
+      - name: Sync Android packaged assets
+        run: node scripts/sync-android-assets.mjs
+      - name: Build and lint native debug app
+        run: gradle -p android-app :app:assembleDebug :app:lintDebug --no-daemon
 
   build-signed-release:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -51,15 +44,16 @@ jobs:
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11.1'
 
       - name: Validate release signing secrets
         shell: bash
@@ -91,31 +85,32 @@ jobs:
             -alias "$ANDROID_KEY_ALIAS" \
             -keypass "$ANDROID_KEY_PASSWORD" >/dev/null
 
-      - name: Build signed release APK
-        run: gradle -p android-app :app:assembleRelease --no-daemon
+      - name: Sync Android packaged assets
+        run: node scripts/sync-android-assets.mjs
 
-      - name: Prepare APK artifact
+      - name: Build signed native APK and AAB
+        run: gradle -p android-app :app:assembleRelease :app:bundleRelease --no-daemon
+
+      - name: Prepare release artifacts
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-1.0.2.apk
-          sha256sum dist/BibleGames-Android-1.0.2.apk | tee dist/BibleGames-Android-1.0.2.apk.sha256
-          ls -lh dist/BibleGames-Android-1.0.2.apk
+          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-2.6.0-native.apk
+          cp android-app/app/build/outputs/bundle/release/app-release.aab dist/BibleGames-Android-2.6.0-native.aab
+          sha256sum dist/BibleGames-Android-2.6.0-native.apk | tee dist/BibleGames-Android-2.6.0-native.apk.sha256
+          sha256sum dist/BibleGames-Android-2.6.0-native.aab | tee dist/BibleGames-Android-2.6.0-native.aab.sha256
 
       - name: Verify APK signature and reject debug certificates
         shell: bash
         run: |
           set -euo pipefail
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
-          if [ -z "$APKSIGNER" ]; then
-            echo "apksigner was not found in Android SDK"
-            exit 1
-          fi
-          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-1.0.2.apk 2>&1)"
+          test -n "$APKSIGNER"
+          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-2.6.0-native.apk 2>&1)"
           printf '%s\n' "$VERIFY_OUTPUT"
           if printf '%s\n' "$VERIFY_OUTPUT" | grep -Eqi 'Android Debug|CN=Android Debug'; then
-            echo "Refusing to publish an APK signed with an Android debug certificate."
+            echo 'Refusing to publish an APK signed with an Android debug certificate.'
             exit 1
           fi
 
@@ -126,9 +121,11 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BibleGames-Android-1.0.2-signed
+          name: BibleGames-Android-2.6.0-native-signed
           path: |
-            dist/BibleGames-Android-1.0.2.apk
-            dist/BibleGames-Android-1.0.2.apk.sha256
+            dist/BibleGames-Android-2.6.0-native.apk
+            dist/BibleGames-Android-2.6.0-native.apk.sha256
+            dist/BibleGames-Android-2.6.0-native.aab
+            dist/BibleGames-Android-2.6.0-native.aab.sha256
           if-no-files-found: error
           retention-days: 30
