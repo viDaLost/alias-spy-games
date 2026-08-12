@@ -19,7 +19,8 @@ need(app, 'if (!accessChecked) {', 'game launch is not gated by verified access'
 reject(app, 'if (userId.isNotBlank() && !accessChecked && !isBanned)', 'startup still blocks on verification screen');
 need(app, 'targetState = Triple(userId.isNotBlank(), currentGame, isBanned)', 'root navigation does not use live ban state');
 reject(app, 'LaunchedEffect(userId, accessChecked)', 'cached banned users cannot recover automatically');
-need(cloud, 'callTimeout(7, TimeUnit.SECONDS)', 'bounded access call deadline missing');
+need(cloud, 'callTimeout(11, TimeUnit.SECONDS)', 'bounded primary access deadline missing');
+need(cloud, 'accessFallbackClient', 'fallback access transport missing');
 need(cloud, 'protocols(listOf(Protocol.HTTP_1_1))', 'access transport is not VPN-friendly HTTP/1.1');
 need(cloud, '.url("$CORE/android/access")', 'dedicated GET access endpoint missing');
 reject(cloud, 'android/access?id=', 'client still sends an untrusted Telegram ID to access endpoint');
@@ -34,6 +35,6 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 3', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, "versionName '2.7.0-native'", 'Android version was not bumped');
+need(gradle, "versionName '2.7.1-native'", 'Android version was not bumped');
 
 console.log('Android verified-session access and ban refresh checks passed.');
