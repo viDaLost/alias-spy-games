@@ -1,0 +1,37 @@
+name: Check native partial upload
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/native-android-2.6.0
+    paths:
+      - '.native-upload/CHECK'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/native-android-2.6.0
+      - name: Repair and inspect staged ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .native-upload/payload-*.b64 > /tmp/native.b64
+          base64 --decode /tmp/native.b64 > /tmp/native-truncated.zip
+          zip -FF /tmp/native-truncated.zip --out /tmp/native-repaired.zip >/tmp/repair.log 2>&1 || { cat /tmp/repair.log; exit 1; }
+          unzip -t /tmp/native-repaired.zip
+          unzip -l /tmp/native-repaired.zip
+          mkdir -p /tmp/native
+          unzip -oq /tmp/native-repaired.zip -d /tmp/native
+          test -f /tmp/native/android-app/app/build.gradle.kts
+          test -f /tmp/native/android-app/app/src/main/AndroidManifest.xml
+          test -f /tmp/native/android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
+          test -f /tmp/native/android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp
+          test -f /tmp/native/android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp
+          echo 'PARTIAL_PAYLOAD_HAS_REQUIRED_CORE_AND_ICONS=YES'
