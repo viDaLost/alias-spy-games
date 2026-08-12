@@ -1,0 +1,88 @@
+name: Fix stale presence sessions
+
+on:
+  push:
+    branches: [agent/fix-stale-presence]
+    paths:
+      - '.github/workflows/fix-stale-presence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch observability presence freshness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('cloudflare/app-observability-worker/src/index-v2.js')
+          s = p.read_text()
+
+          old = "const encoder = new TextEncoder();\n"
+          new = "const encoder = new TextEncoder();\nconst PRESENCE_STALE_MS = 90_000;\n"
+          assert old in s and 'PRESENCE_STALE_MS' not in s
+          s = s.replace(old, new, 1)
+
+          old = """    if (payload?.type === 'ping') {
+      try { webSocket.send(JSON.stringify({ type: 'pong', at: Date.now() })); } catch {}
+      return;
+    }
+"""
+          new = """    if (payload?.type === 'ping') {
+      const attachment = webSocket.deserializeAttachment() || {};
+      attachment.updatedAt = Date.now();
+      webSocket.serializeAttachment(attachment);
+      try { webSocket.send(JSON.stringify({ type: 'pong', at: attachment.updatedAt })); } catch {}
+      return;
+    }
+"""
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = """  liveSnapshot() {
+    const sessions = new Map();
+    for (const socket of this.ctx.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() || {};
+      const sid = sanitizeSessionId(attachment.sid);
+      if (!sid) continue;
+      const current = normalizeAttachment(attachment);
+      const previous = sessions.get(sid);
+"""
+          new = """  liveSnapshot() {
+    const sessions = new Map();
+    const now = Date.now();
+    for (const socket of this.ctx.getWebSockets()) {
+      const attachment = socket.deserializeAttachment() || {};
+      const sid = sanitizeSessionId(attachment.sid);
+      if (!sid) continue;
+      const current = normalizeAttachment(attachment);
+      const updatedAt = Number(current.updatedAt || 0);
+      if (!updatedAt || now - updatedAt > PRESENCE_STALE_MS) {
+        try { socket.close(1001, 'stale presence'); } catch {}
+        continue;
+      }
+      const previous = sessions.get(sid);
+"""
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+
+          grep -q 'const PRESENCE_STALE_MS = 90_000;' cloudflare/app-observability-worker/src/index-v2.js
+          grep -q "attachment.updatedAt = Date.now();" cloudflare/app-observability-worker/src/index-v2.js
+          grep -q "now - updatedAt > PRESENCE_STALE_MS" cloudflare/app-observability-worker/src/index-v2.js
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cloudflare/app-observability-worker/src/index-v2.js
+          git commit -m 'Expire stale live presence sessions'
+          git push origin HEAD:agent/fix-stale-presence
