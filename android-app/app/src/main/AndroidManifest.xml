@@ -11,6 +11,7 @@
         android:usesCleartextTraffic="false"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="Библейские игры"
         android:theme="@style/Theme.BibleGames"
         tools:targetApi="31">
