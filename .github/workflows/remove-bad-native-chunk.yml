@@ -1,0 +1,30 @@
+name: Remove bad native chunk
+
+on:
+  push:
+    branches:
+      - agent/native-android-2.6.0
+    paths:
+      - '.native-upload/REMOVE_BAD_CHUNK'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/native-android-2.6.0
+      - name: Remove accidentally staged placeholder chunk
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .native-upload/payload-013.b64
+          rm -f .native-upload/REMOVE_BAD_CHUNK
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Remove invalid native payload chunk'
+          git push origin HEAD:agent/native-android-2.6.0
