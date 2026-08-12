@@ -1,0 +1,115 @@
+name: Transfer validated native Android core to clean branch
+
+on:
+  push:
+    branches:
+      - agent/native-android-2.6.0
+    paths:
+      - '.native-upload/COPY_TO_CLEAN'
+
+permissions:
+  contents: write
+
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/native-android-2.6.0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Recover native source if earlier finalize did not apply it
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f android-app/app/build.gradle.kts ]; then
+            test -d .native-upload
+            cat .native-upload/payload-*.b64 > /tmp/native.b64
+            base64 --decode /tmp/native.b64 > /tmp/native-truncated.zip
+            zip -FF /tmp/native-truncated.zip --out /tmp/native.zip >/tmp/repair.log 2>&1 || { cat /tmp/repair.log; exit 1; }
+            mkdir -p /tmp/native
+            unzip -oq /tmp/native.zip -d /tmp/native
+            test -f /tmp/native/android-app/app/build.gradle.kts
+            test -f /tmp/native/android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
+            test -f /tmp/native/android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp
+            rm -rf android-app
+            cp -a /tmp/native/android-app ./android-app
+            if [ -f /tmp/native/scripts/sync-android-assets.mjs ]; then
+              cp /tmp/native/scripts/sync-android-assets.mjs scripts/sync-android-assets.mjs
+            fi
+          fi
+
+          test -f android-app/app/build.gradle.kts
+          test -f android-app/app/src/main/AndroidManifest.xml
+          test -f android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
+          test -f android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp
+          if [ ! -f android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp ]; then
+            cp android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp
+          fi
+          test -f scripts/sync-android-assets.mjs
+
+      - name: Validate native Android before copying
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/sync-android-assets.mjs
+          gradle -p android-app :app:assembleDebug :app:lintDebug --no-daemon
+          grep -Eq 'compileSdk[ =]+36' android-app/app/build.gradle.kts
+          grep -Eq 'targetSdk[ =]+36' android-app/app/build.gradle.kts
+          grep -Eq 'versionCode[ =]+12' android-app/app/build.gradle.kts
+          grep -Eq 'versionName[ =]+"2\.6\.0-native"' android-app/app/build.gradle.kts
+          grep -Rqs 'ANDROID_KEYSTORE_PATH' android-app
+          if grep -Rqs 'signingConfigs\.debug\|signingConfig signingConfigs.debug' android-app; then
+            echo 'Debug signing fallback found'
+            exit 1
+          fi
+
+      - name: Copy only Android core into clean branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main agent/native-android-2.6.0-clean
+          git worktree add /tmp/clean origin/agent/native-android-2.6.0-clean
+
+          rm -rf /tmp/clean/android-app
+          cp -a android-app /tmp/clean/android-app
+          cp scripts/sync-android-assets.mjs /tmp/clean/scripts/sync-android-assets.mjs
+
+          cd /tmp/clean
+          if git cat-file -e origin/main:.gitignore 2>/dev/null; then
+            git show origin/main:.gitignore > .gitignore
+          else
+            : > .gitignore
+          fi
+          cat >> .gitignore <<'EOF'
+
+# Android local/generated files and signing material
+android-app/.gradle/
+android-app/**/build/
+android-app/local.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+EOF
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add android-app scripts/sync-android-assets.mjs .gitignore
+          git commit -m 'Replace Android wrapper with native 2.6.0 app'
+          git push origin HEAD:agent/native-android-2.6.0-clean
