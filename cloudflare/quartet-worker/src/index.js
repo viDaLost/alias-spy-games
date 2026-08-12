@@ -15,6 +15,7 @@ const encoder = new TextEncoder();
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const ROOM_IDLE_TTL_MS = 12 * 60 * 60 * 1000;
+const POLL_PRESENCE_TTL_MS = 8_000;
 
 export default {
   async fetch(request, env) {
@@ -52,7 +53,7 @@ export default {
         throw httpError(503, 'Не удалось подобрать свободный код комнаты');
       }
 
-      const match = url.pathname.match(/^\/rooms\/([A-Z0-9]{4,10})(?:\/(join|ws))?$/i);
+      const match = url.pathname.match(/^\/rooms\/([A-Z0-9]{4,10})(?:\/(join|ws|poll))?$/i);
       if (match) {
         const roomId = normalizeRoomId(match[1]);
         const action = match[2] || '';
@@ -86,6 +87,28 @@ export default {
           const forwarded = new Request('https://quartet.internal/ws', { method: 'GET', headers });
           return stub.fetch(forwarded);
         }
+
+        // Some Android carrier/VPN combinations allow ordinary HTTPS but block
+        // a WebSocket upgrade.  The signed polling endpoint keeps the exact same
+        // room engine and state views available without creating a second game
+        // implementation on the client.
+        if (action === 'poll' && request.method === 'POST') {
+          const session = await verifySessionToken(url.searchParams.get('token') || '', env);
+          if (session.roomId !== roomId) throw httpError(403, 'Сессия относится к другой комнате');
+          const body = await readJson(request);
+          const response = await stub.fetch('https://quartet.internal/poll', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Quartet-Player-Id': session.playerId,
+              'X-Quartet-Player-Name': session.name,
+            },
+            body: JSON.stringify(body),
+          });
+          let payload = {};
+          try { payload = await response.json(); } catch {}
+          return json(payload, response.status, originHeaders);
+        }
       }
 
       return json({ ok: false, error: 'Not found' }, 404, originHeaders);
@@ -103,6 +126,9 @@ export class QuartetRoom extends DurableObject {
     this.ctx = ctx;
     this.env = env;
     this.room = null;
+    this.pollingPresence = new Map();
+    this.pollingLastActionAt = new Map();
+    this.pollingActionIds = new Map();
     this.ctx.blockConcurrencyWhile(async () => {
       this.room = (await this.ctx.storage.get('room')) || null;
     });
@@ -145,6 +171,42 @@ export class QuartetRoom extends DurableObject {
       return new Response(null, { status: 101, webSocket: client });
     }
 
+    if (request.method === 'POST' && url.pathname === '/poll') {
+      if (!this.room) return json({ ok: false, error: 'Комната не найдена', code: 'ROOM_NOT_FOUND' }, 404);
+      const playerId = request.headers.get('X-Quartet-Player-Id') || '';
+      const player = this.room.players.find((item) => item.playerId === playerId && item.isActive !== false);
+      if (!player) return json({ ok: false, error: 'Игрок не найден в комнате', code: 'PLAYER_NOT_FOUND' }, 403);
+
+      const payload = await readJson(request);
+      const now = Date.now();
+      this.pollingPresence.set(playerId, now);
+      await this.scheduleAlarm();
+      try {
+        const action = String(payload.action || '');
+        const requestId = String(payload.requestId || '').slice(0, 96);
+        if (action && !this.hasProcessedPollingAction(playerId, requestId)) {
+          const previous = Number(this.pollingLastActionAt.get(playerId) || 0);
+          if (now - previous < 250) throw Object.assign(new Error('Слишком много действий подряд'), { code: 'RATE_LIMIT' });
+          this.pollingLastActionAt.set(playerId, now);
+          const result = await this.applyAction(playerId, action, payload.payload || {}, now);
+          this.rememberPollingAction(playerId, requestId);
+          if (result.deleted) return json({ ok: true, closed: true, transport: 'https' });
+        } else {
+          // Presence itself is realtime state for browser/WebSocket players.
+          await this.broadcastState();
+        }
+
+        if (!this.room) return json({ ok: true, closed: true, transport: 'https' });
+        return json({
+          ok: true,
+          transport: 'https',
+          state: buildView(this.room, playerId, this.connectedPlayerIds()),
+        });
+      } catch (error) {
+        return json({ ok: false, error: String(error?.message || error), code: error?.code || 'ACTION_ERROR' }, 409);
+      }
+    }
+
     return json({ ok: false, error: 'Not found' }, 404);
   }
 
@@ -174,31 +236,37 @@ export class QuartetRoom extends DurableObject {
 
     try {
       if (payload.type !== 'action') throw new Error('Неизвестный тип сообщения');
-      const action = String(payload.action || '');
-      const data = payload.payload || {};
-
-      if (action === 'startGame') {
-        startGame(this.room, playerId, now);
-      } else if (action === 'restartGame') {
-        restartGame(this.room, playerId, now);
-      } else if (action === 'askCard') {
-        askCard(this.room, playerId, String(data.targetId || ''), String(data.cardId || ''), now);
-      } else if (action === 'leave') {
-        const result = leaveRoom(this.room, playerId, now);
-        if (result.deleted) {
-          await this.ctx.storage.deleteAll();
-          this.room = null;
-          this.closeAllSockets(1000, 'Room closed');
-          return;
-        }
-      } else {
-        throw Object.assign(new Error('Неизвестное действие'), { code: 'UNKNOWN_ACTION' });
-      }
-
-      await this.persistAndBroadcast();
+      await this.applyAction(playerId, String(payload.action || ''), payload.payload || {}, now);
     } catch (error) {
       this.sendError(webSocket, String(error?.message || error), error?.code || 'ACTION_ERROR');
     }
+  }
+
+  async applyAction(playerId, action, data, now) {
+    if (!this.room) throw Object.assign(new Error('Сессия комнаты недоступна'), { code: 'NO_SESSION' });
+    if (action === 'startGame') {
+      startGame(this.room, playerId, now);
+    } else if (action === 'restartGame') {
+      restartGame(this.room, playerId, now);
+    } else if (action === 'askCard') {
+      askCard(this.room, playerId, String(data.targetId || ''), String(data.cardId || ''), now);
+    } else if (action === 'leave') {
+      const result = leaveRoom(this.room, playerId, now);
+      this.pollingPresence.delete(playerId);
+      this.pollingLastActionAt.delete(playerId);
+      this.pollingActionIds.delete(playerId);
+      if (result.deleted) {
+        await this.ctx.storage.deleteAll();
+        this.room = null;
+        this.closeAllSockets(1000, 'Room closed');
+        return { deleted: true };
+      }
+    } else {
+      throw Object.assign(new Error('Неизвестное действие'), { code: 'UNKNOWN_ACTION' });
+    }
+
+    await this.persistAndBroadcast();
+    return { deleted: false };
   }
 
   async webSocketClose(webSocket, code, reason) {
@@ -228,7 +296,10 @@ export class QuartetRoom extends DurableObject {
     }
 
     if (changed) await this.persistAndBroadcast();
-    else await this.scheduleAlarm();
+    else {
+      await this.broadcastState();
+      await this.scheduleAlarm();
+    }
   }
 
   async persistAndBroadcast() {
@@ -242,7 +313,10 @@ export class QuartetRoom extends DurableObject {
     if (!this.room) return;
     const cleanupAt = Number(this.room.updatedAt || Date.now()) + ROOM_IDLE_TTL_MS;
     const turnAt = this.room.status === 'playing' && this.room.turnDeadlineMs ? this.room.turnDeadlineMs : Number.POSITIVE_INFINITY;
-    await this.ctx.storage.setAlarm(Math.min(cleanupAt, turnAt));
+    const pollExpiryAt = this.pollingPresence.size
+      ? Math.min(...this.pollingPresence.values()) + POLL_PRESENCE_TTL_MS
+      : Number.POSITIVE_INFINITY;
+    await this.ctx.storage.setAlarm(Math.min(cleanupAt, turnAt, pollExpiryAt));
   }
 
   connectedPlayerIds() {
@@ -251,7 +325,24 @@ export class QuartetRoom extends DurableObject {
       const attachment = socket.deserializeAttachment() || {};
       if (attachment.playerId) ids.add(String(attachment.playerId));
     }
+    const now = Date.now();
+    for (const [playerId, seenAt] of this.pollingPresence) {
+      if (now - Number(seenAt) <= POLL_PRESENCE_TTL_MS) ids.add(String(playerId));
+      else this.pollingPresence.delete(playerId);
+    }
     return ids;
+  }
+
+  hasProcessedPollingAction(playerId, requestId) {
+    return Boolean(requestId) && (this.pollingActionIds.get(playerId) || []).includes(requestId);
+  }
+
+  rememberPollingAction(playerId, requestId) {
+    if (!requestId) return;
+    const recent = this.pollingActionIds.get(playerId) || [];
+    recent.push(requestId);
+    if (recent.length > 128) recent.splice(0, recent.length - 128);
+    this.pollingActionIds.set(playerId, recent);
   }
 
   async broadcastState() {

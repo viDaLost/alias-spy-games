@@ -22,6 +22,7 @@ const encoder = new TextEncoder();
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const ROOM_IDLE_TTL_MS = 12 * 60 * 60 * 1000;
+const POLL_PRESENCE_TTL_MS = 8_000;
 
 export default {
   async fetch(request, env) {
@@ -61,7 +62,7 @@ export default {
         throw httpError(503, 'Не удалось подобрать свободный код комнаты');
       }
 
-      const match = url.pathname.match(/^\/rooms\/([A-Z0-9]{4,10})(?:\/(join|ws))?$/i);
+      const match = url.pathname.match(/^\/rooms\/([A-Z0-9]{4,10})(?:\/(join|ws|poll))?$/i);
       if (match) {
         const roomId = normalizeRoomId(match[1]);
         const action = match[2] || '';
@@ -89,6 +90,24 @@ export default {
           headers.set('X-Bible-Sketch-Player-Name', session.name);
           return stub.fetch(new Request('https://bible-sketch.internal/ws', { method: 'GET', headers }));
         }
+
+        if (action === 'poll' && request.method === 'POST') {
+          const session = await verifySessionToken(url.searchParams.get('token') || '', env);
+          if (session.roomId !== roomId) throw httpError(403, 'Сессия относится к другой комнате');
+          const body = await readJson(request);
+          const response = await stub.fetch('https://bible-sketch.internal/poll', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Bible-Sketch-Player-Id': session.playerId,
+              'X-Bible-Sketch-Player-Name': session.name,
+            },
+            body: JSON.stringify(body),
+          });
+          let payload = {};
+          try { payload = await response.json(); } catch {}
+          return json(payload, response.status, originHeaders);
+        }
       }
 
       return json({ ok: false, error: 'Not found' }, 404, originHeaders);
@@ -105,6 +124,9 @@ export class BibleSketchRoom extends DurableObject {
     this.ctx = ctx;
     this.env = env;
     this.room = null;
+    this.pollingPresence = new Map();
+    this.pollingRateLimits = new Map();
+    this.pollingActionIds = new Map();
     this.ctx.blockConcurrencyWhile(async () => {
       this.room = (await this.ctx.storage.get('room')) || null;
     });
@@ -148,6 +170,40 @@ export class BibleSketchRoom extends DurableObject {
       queueMicrotask(() => this.broadcastState().catch(console.error));
       return new Response(null, { status: 101, webSocket: client });
     }
+
+
+    if (request.method === 'POST' && url.pathname === '/poll') {
+      if (!this.room) return json({ ok: false, error: 'Комната не найдена', code: 'ROOM_NOT_FOUND' }, 404);
+      const playerId = request.headers.get('X-Bible-Sketch-Player-Id') || '';
+      const player = this.room.players.find((entry) => entry.playerId === playerId && entry.isActive !== false);
+      if (!player) return json({ ok: false, error: 'Игрок не найден в комнате', code: 'PLAYER_NOT_FOUND' }, 403);
+
+      const payload = await readJson(request);
+      const now = Date.now();
+      this.pollingPresence.set(playerId, now);
+      await this.scheduleAlarm();
+      try {
+        const action = String(payload.action || '');
+        const requestId = String(payload.requestId || '').slice(0, 96);
+        if (action && !this.hasProcessedPollingAction(playerId, requestId)) {
+          this.enforcePollingRateLimit(playerId, action, now);
+          const result = await this.applyAction(playerId, action, payload.payload || {}, now);
+          this.rememberPollingAction(playerId, requestId);
+          if (result.deleted) return json({ ok: true, closed: true, transport: 'https' });
+        } else {
+          await this.broadcastState();
+        }
+
+        if (!this.room) return json({ ok: true, closed: true, transport: 'https' });
+        return json({
+          ok: true,
+          transport: 'https',
+          state: buildView(this.room, playerId, this.connectedPlayerIds()),
+        });
+      } catch (error) {
+        return json({ ok: false, error: String(error?.message || error), code: error?.code || 'ACTION_ERROR' }, 409);
+      }
+    }
     return json({ ok: false, error: 'Not found' }, 404);
   }
 
@@ -175,28 +231,37 @@ export class BibleSketchRoom extends DurableObject {
     webSocket.serializeAttachment(attachment);
 
     try {
-      if (action === 'startRound') startRound(this.room, playerId, now);
-      else if (action === 'restartRound') restartRound(this.room, playerId, now);
-      else if (action === 'finishTurn') finishDrawingTurn(this.room, playerId, now);
-      else if (action === 'drawStroke') commitStroke(this.room, playerId, data.stroke, now);
-      else if (action === 'undoStroke') undoStroke(this.room, playerId, now);
-      else if (action === 'submitGuess') submitSpyGuess(this.room, playerId, String(data.text || ''), now);
-      else if (action === 'reviewGuess') voteGuessReview(this.room, playerId, Boolean(data.accept), now);
-      else if (action === 'voteSpy') voteForSpy(this.room, playerId, String(data.targetId || ''), now);
-      else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
-      else if (action === 'leave') {
-        const result = leaveRoom(this.room, playerId, now);
-        if (result.deleted) {
-          await this.ctx.storage.deleteAll();
-          this.room = null;
-          this.closeAllSockets(1000, 'Room closed');
-          return;
-        }
-      } else throw Object.assign(new Error('Неизвестное действие'), { code: 'UNKNOWN_ACTION' });
-      await this.persistAndBroadcast();
+      await this.applyAction(playerId, action, data, now);
     } catch (error) {
       this.sendError(webSocket, String(error?.message || error), error?.code || 'ACTION_ERROR');
     }
+  }
+
+  async applyAction(playerId, action, data, now) {
+    if (!this.room) throw Object.assign(new Error('Сессия комнаты недоступна'), { code: 'NO_SESSION' });
+    if (action === 'startRound') startRound(this.room, playerId, now);
+    else if (action === 'restartRound') restartRound(this.room, playerId, now);
+    else if (action === 'finishTurn') finishDrawingTurn(this.room, playerId, now);
+    else if (action === 'drawStroke') commitStroke(this.room, playerId, data.stroke, now);
+    else if (action === 'undoStroke') undoStroke(this.room, playerId, now);
+    else if (action === 'submitGuess') submitSpyGuess(this.room, playerId, String(data.text || ''), now);
+    else if (action === 'reviewGuess') voteGuessReview(this.room, playerId, Boolean(data.accept), now);
+    else if (action === 'voteSpy') voteForSpy(this.room, playerId, String(data.targetId || ''), now);
+    else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
+    else if (action === 'leave') {
+      const result = leaveRoom(this.room, playerId, now);
+      this.pollingPresence.delete(playerId);
+      this.pollingRateLimits.delete(playerId);
+      this.pollingActionIds.delete(playerId);
+      if (result.deleted) {
+        await this.ctx.storage.deleteAll();
+        this.room = null;
+        this.closeAllSockets(1000, 'Room closed');
+        return { deleted: true };
+      }
+    } else throw Object.assign(new Error('Неизвестное действие'), { code: 'UNKNOWN_ACTION' });
+    await this.persistAndBroadcast();
+    return { deleted: false };
   }
 
   async webSocketClose(webSocket, code, reason) {
@@ -219,7 +284,10 @@ export class BibleSketchRoom extends DurableObject {
       return;
     }
     if (changed) await this.persistAndBroadcast();
-    else await this.scheduleAlarm();
+    else {
+      await this.broadcastState();
+      await this.scheduleAlarm();
+    }
   }
 
   async persistAndBroadcast() {
@@ -233,7 +301,10 @@ export class BibleSketchRoom extends DurableObject {
     if (!this.room) return;
     const cleanupAt = Number(this.room.updatedAt || Date.now()) + ROOM_IDLE_TTL_MS;
     const phaseAt = Number(this.room.turnDeadlineMs || Number.POSITIVE_INFINITY);
-    await this.ctx.storage.setAlarm(Math.min(cleanupAt, phaseAt));
+    const pollExpiryAt = this.pollingPresence.size
+      ? Math.min(...this.pollingPresence.values()) + POLL_PRESENCE_TTL_MS
+      : Number.POSITIVE_INFINITY;
+    await this.ctx.storage.setAlarm(Math.min(cleanupAt, phaseAt, pollExpiryAt));
   }
 
   connectedPlayerIds() {
@@ -242,7 +313,35 @@ export class BibleSketchRoom extends DurableObject {
       const attachment = socket.deserializeAttachment() || {};
       if (attachment.playerId) ids.add(String(attachment.playerId));
     }
+    const now = Date.now();
+    for (const [playerId, seenAt] of this.pollingPresence) {
+      if (now - Number(seenAt) <= POLL_PRESENCE_TTL_MS) ids.add(String(playerId));
+      else this.pollingPresence.delete(playerId);
+    }
     return ids;
+  }
+
+  enforcePollingRateLimit(playerId, action, now) {
+    const limits = this.pollingRateLimits.get(playerId) || { action: 0, chat: 0 };
+    const key = action === 'chat' ? 'chat' : 'action';
+    const minDelay = action === 'chat' ? 700 : action === 'drawStroke' ? 50 : 160;
+    if (now - Number(limits[key] || 0) < minDelay) {
+      throw Object.assign(new Error('Слишком много действий подряд'), { code: 'RATE_LIMIT' });
+    }
+    limits[key] = now;
+    this.pollingRateLimits.set(playerId, limits);
+  }
+
+  hasProcessedPollingAction(playerId, requestId) {
+    return Boolean(requestId) && (this.pollingActionIds.get(playerId) || []).includes(requestId);
+  }
+
+  rememberPollingAction(playerId, requestId) {
+    if (!requestId) return;
+    const recent = this.pollingActionIds.get(playerId) || [];
+    recent.push(requestId);
+    if (recent.length > 256) recent.splice(0, recent.length - 256);
+    this.pollingActionIds.set(playerId, recent);
   }
 
   async broadcastState() {

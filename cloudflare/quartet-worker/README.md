@@ -6,7 +6,8 @@ Realtime backend for the existing **Quartet** game. It replaces the Google Apps 
 
 - every room is coordinated by one Durable Object, so moves are serialized server-side;
 - game state is authoritative on the server and opponents' hands are never sent to other players;
-- clients receive changes over WebSocket instead of polling every 1–2 seconds;
+- clients receive changes over WebSocket; native Android automatically uses a
+  signed HTTPS polling channel when a carrier, VPN or Private DNS blocks WSS;
 - SQLite-backed Durable Objects are used for new namespaces;
 - Telegram `initData` is validated server-side before a Telegram identity is trusted;
 - rooms expire automatically after inactivity.
@@ -42,6 +43,12 @@ Put that exact base URL into the `quartet-backend` meta in `/index.html`.
 - `POST /rooms` — create room
 - `POST /rooms/:code/join` — join/reconnect
 - `GET /rooms/:code/ws?token=...` — realtime WebSocket
+- `POST /rooms/:code/poll?token=...` — signed HTTPS state/action fallback
+
+An empty polling body (`{}`) returns the player's private state. To perform an
+action, send `{"requestId":"uuid","action":"startGame","payload":{}}`.
+`requestId` makes a retried mobile request idempotent within the active room
+instance.
 
 After the WebSocket opens, client actions are JSON messages:
 
