@@ -23,11 +23,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin agent/native-android-2.6.0
+          git fetch origin refs/heads/agent/native-android-2.6.0
+          STAGING_SHA="$(git rev-parse FETCH_HEAD)"
+          mapfile -t PAYLOADS < <(git ls-tree -r --name-only "$STAGING_SHA" | grep '^.native-upload/payload-' | grep '\.b64$' | sort)
+          test "${#PAYLOADS[@]}" -gt 10
           : > /tmp/native.b64
-          while IFS= read -r path; do
-            git show "origin/agent/native-android-2.6.0:$path" >> /tmp/native.b64
-          done < <(git ls-tree -r --name-only origin/agent/native-android-2.6.0 -- .native-upload | grep -E '^\.native-upload/payload-[0-9]+\.b64$' | sort)
+          for path in "${PAYLOADS[@]}"; do
+            git show "$STAGING_SHA:$path" >> /tmp/native.b64
+          done
           base64 --decode /tmp/native.b64 > /tmp/native.tar.xz
           mkdir -p /tmp/native
           tar -xJf /tmp/native.tar.xz -C /tmp/native
@@ -44,14 +47,11 @@ jobs:
           cp "$SRC/ic_launcher_art.png" "$DST/ic_launcher_art.png"
           cp "$SRC/ic_launcher_adaptive.png" "$DST/ic_launcher_adaptive.png"
 
-          # Advance the Android version so the fixed launcher icon is a real update.
           sed -i "s/versionCode 13/versionCode 14/" android-app/app/build.gradle
           sed -i "s/versionName '2.6.1-native'/versionName '2.6.2-native'/" android-app/app/build.gradle
           sed -i 's/BibleGames-Android-2\.6\.1-native/BibleGames-Android-2.6.2-native/g' .github/workflows/build-android-apk.yml
 
-          # This helper must not remain in main.
           rm -f .github/workflows/repair-launcher-binaries.yml
-
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
