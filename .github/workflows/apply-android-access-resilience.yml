@@ -1,0 +1,33 @@
+name: Apply Android access resilience
+
+on:
+  push:
+    branches: [agent/android-access-retry-2.6.7]
+    paths:
+      - '.github/workflows/apply-android-access-resilience.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/android-access-retry-2.6.7
+      - name: Apply resilience patch
+        run: python scripts/apply-android-access-resilience.py
+      - name: Run targeted regression checks
+        run: |
+          node scripts/check-android-ban-enforcement.mjs
+          node scripts/check-support-center.mjs
+      - name: Commit production changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "viDaLost"
+          git config user.email "vitaledanilov@gmail.com"
+          git add android-app cloudflare/app-core-worker/src/index-v4.js scripts/check-android-ban-enforcement.mjs
+          git commit -m "Make Android access checks resilient and non-blocking"
+          git push origin HEAD:agent/android-access-retry-2.6.7
