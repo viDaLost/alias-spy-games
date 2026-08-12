@@ -1,0 +1,31 @@
+name: Apply support center integration
+
+on:
+  push:
+    branches: [agent/support-center-v1]
+    paths:
+      - '.github/workflows/apply-support-center.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply support center patch
+        run: python3 scripts/apply-support-center.py
+      - name: Validate patch markers
+        run: node scripts/check-support-center.mjs
+      - name: Commit integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cloudflare/app-core-worker/src/index-v4.js android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt android-app/app/src/main/java/com/vidalost/biblegames/App.kt android-app/app/build.gradle .github/workflows/build-android-apk.yml index.html .github/workflows/quality.yml
+          git commit -m 'Integrate support center across web and Android'
+          git push origin HEAD:agent/support-center-v1
