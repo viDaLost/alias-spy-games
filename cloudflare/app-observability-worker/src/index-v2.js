@@ -1,6 +1,7 @@
 import original, { AppStats as BaseAppStats } from './index.js';
 
 const encoder = new TextEncoder();
+const PRESENCE_STALE_MS = 90_000;
 
 export default {
   async fetch(request, env, ctx) {
@@ -64,11 +65,17 @@ export class AppStats extends BaseAppStats {
 
   liveSnapshot() {
     const sessions = new Map();
+    const now = Date.now();
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = socket.deserializeAttachment() || {};
       const sid = sanitizeSessionId(attachment.sid);
       if (!sid) continue;
       const current = normalizeAttachment(attachment);
+      const updatedAt = Number(current.updatedAt || 0);
+      if (!updatedAt || now - updatedAt > PRESENCE_STALE_MS) {
+        try { socket.close(1001, 'stale presence'); } catch {}
+        continue;
+      }
       const previous = sessions.get(sid);
       if (!previous) {
         sessions.set(sid, current);
