@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/secure-android-telegram-auth-2.7.0
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -51,10 +52,11 @@ jobs:
             exit 1
           fi
 
-      - name: Regression checks
+      - name: Regression and security checks
         run: |
           node scripts/check-android-ban-enforcement.mjs
           node scripts/check-support-center.mjs
+          node scripts/check-android-secure-auth.mjs
 
       - name: Build and lint Android
         run: gradle -p android-app :app:assembleDebug :app:lintDebug --no-daemon
@@ -82,6 +84,7 @@ jobs:
             android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt \
             cloudflare/app-core-worker/src/index-v4.js
           git commit -m "Harden Android verified session lifecycle"
+          git pull --rebase origin agent/secure-android-telegram-auth-2.7.0
           git push origin HEAD:agent/secure-android-telegram-auth-2.7.0
 
-# validation-pass: final-hardening
+# validation-pass: race-safe-final
