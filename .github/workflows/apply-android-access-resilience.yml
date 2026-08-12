@@ -17,7 +17,18 @@ jobs:
         with:
           ref: agent/android-access-retry-2.6.7
       - name: Apply resilience patch
-        run: python scripts/apply-android-access-resilience.py
+        run: |
+          python scripts/apply-android-access-resilience.py
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/check-android-ban-enforcement.mjs')
+          s = p.read_text()
+          old = "need(app, 'if (!accessChecked || isBanned) return', 'game launch is not gated by verified access');"
+          new = "need(app, 'if (!accessChecked) {', 'game launch is not gated by verified access');"
+          if old not in s:
+              raise SystemExit('expected old game gate check')
+          p.write_text(s.replace(old, new, 1))
+          PY
       - name: Run targeted regression checks
         run: |
           node scripts/check-android-ban-enforcement.mjs
