@@ -1,0 +1,33 @@
+name: Apply Android fast access refresh
+
+on:
+  push:
+    branches: [agent/android-fast-access-refresh-2.6.6]
+    paths:
+      - '.github/workflows/apply-android-fast-access.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/android-fast-access-refresh-2.6.6
+      - name: Apply fast access patch
+        run: python scripts/apply-android-fast-access.py
+      - name: Run targeted regression checks
+        run: |
+          node scripts/check-android-ban-enforcement.mjs
+          node scripts/check-support-center.mjs
+      - name: Commit production changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "viDaLost"
+          git config user.email "vitaledanilov@gmail.com"
+          git add android-app cloudflare .github/workflows/build-android-apk.yml scripts/check-android-ban-enforcement.mjs scripts/check-support-center.mjs
+          git commit -m "Speed up Android access checks and auto-refresh bans"
+          git push origin HEAD:agent/android-fast-access-refresh-2.6.6
