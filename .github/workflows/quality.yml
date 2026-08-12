@@ -18,6 +18,8 @@ jobs:
           node-version: 22
       - name: Validate project
         run: npm run check
+      - name: Check rich admin broadcast mount
+        run: node scripts/check-broadcast-ui.mjs
       - name: Enforce Cloudflare-only core data
         run: npm run check:cloudflare-core
       - name: Test Quartet server engine
