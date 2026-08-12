@@ -37,6 +37,8 @@ class AuthBotStartRequired(
     message: String,
 ) : IOException(message)
 
+class AuthSessionInvalid(message: String) : IOException(message)
+
 class CloudRepository(initialSessionToken: String = "") {
     companion object {
         const val CORE = "https://alias-spy-games-core.vitaledanilov.workers.dev"
@@ -166,9 +168,8 @@ class CloudRepository(initialSessionToken: String = "") {
         }
     }
 
-    suspend fun logoutSession() = withContext(Dispatchers.IO) {
+    suspend fun logoutSession(token: String = sessionToken) = withContext(Dispatchers.IO) {
         runCatching {
-            val token = sessionToken
             if (token.isBlank()) return@runCatching
             val request = Request.Builder()
                 .url("$CORE/android/auth/logout")
@@ -222,9 +223,10 @@ class CloudRepository(initialSessionToken: String = "") {
             accessClient.newCall(request).execute().use { response ->
                 val payload = response.body?.string().orEmpty()
                 val json = runCatching { JSONObject(payload) }.getOrNull()
-                if (!response.isSuccessful || json == null) {
-                    throw IOException(json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось проверить доступ")
-                }
+                val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось проверить доступ"
+                if (response.code == 401) throw AuthSessionInvalid(message)
+                if (!response.isSuccessful || json == null) throw IOException(message)
+                if (json.optString("userId") != id) throw AuthSessionInvalid("Сессия принадлежит другому аккаунту")
                 json.optBoolean("isBanned", false)
             }
         }

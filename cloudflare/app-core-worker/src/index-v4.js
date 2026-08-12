@@ -171,10 +171,7 @@ async function handleAndroidAuthRequest(request, env, cors) {
     const challengeId = `ach_${crypto.randomUUID().replaceAll('-', '')}`;
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0');
     const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
-    const requestKey = await authSha256Hex([
-      request.headers.get('CF-Connecting-IP') || 'unknown',
-      request.headers.get('User-Agent') || '',
-    ].join('|'));
+    const requestKey = await authSha256Hex(request.headers.get('CF-Connecting-IP') || 'unknown');
     const expiresAt = Date.now() + ANDROID_AUTH_CODE_TTL_MS;
     const store = env.USERS.get(env.USERS.idFromName('global'));
     await callStore(store, '/android-auth/begin', { challengeId, telegramId, codeHash, requestKey, expiresAt });
@@ -216,19 +213,18 @@ async function handleAndroidAuthVerify(request, env, cors) {
       throw httpError(400, 'Введите шестизначный код из Telegram');
     }
 
-    const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${String(body?.telegramId || '').trim()}:${code}`);
-    // The challenge owns the Telegram ID. For privacy, the client repeats the ID
-    // only as part of the HMAC input; the store never trusts it for the session.
+    // The challenge owns the Telegram ID. The repeated ID is only part of the
+    // HMAC input; the durable store remains the authority for session identity.
     const telegramId = String(body?.telegramId || '').trim();
     if (!/^\d{5,20}$/.test(telegramId)) throw httpError(400, 'Telegram ID отсутствует');
-    const correctedCodeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
+    const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
     const token = `bgs_${authRandomBase64Url(32)}`;
     const tokenHash = await authSha256Hex(token);
     const sessionExpiresAt = Date.now() + ANDROID_AUTH_SESSION_TTL_MS;
     const store = env.USERS.get(env.USERS.idFromName('global'));
     const result = await callStore(store, '/android-auth/consume', {
       challengeId,
-      codeHash: correctedCodeHash || codeHash,
+      codeHash,
       tokenHash,
       sessionExpiresAt,
     });

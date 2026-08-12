@@ -79,6 +79,7 @@ import com.vidalost.biblegames.data.CloudRepository
 import com.vidalost.biblegames.data.AndroidAuthChallenge
 import com.vidalost.biblegames.data.AndroidSessionStore
 import com.vidalost.biblegames.data.AuthBotStartRequired
+import com.vidalost.biblegames.data.AuthSessionInvalid
 import com.vidalost.biblegames.games.GameHost
 import com.vidalost.biblegames.model.GameKey
 import com.vidalost.biblegames.model.GameSection
@@ -200,6 +201,19 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         }
     }
 
+    fun clearVerifiedSession() {
+        cloud.setSessionToken("")
+        sessionStore.clear()
+        prefs.edit().remove(ID_KEY).apply()
+        supportOpen = false
+        currentGame = null
+        activeRoomId = ""
+        accessChecked = false
+        isBanned = false
+        syncing = false
+        userId = ""
+    }
+
     // One access monitor owns both startup verification and later ban/unban
     // refreshes. Network failures retry automatically; there are no overlapping
     // manual + polling requests and no raw timeout screen for the player.
@@ -229,7 +243,10 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                         syncing = false
                     }
                 }
+            }.onFailure { cause ->
+                if (cause is AuthSessionInvalid) clearVerifiedSession()
             }
+            if (userId.isBlank()) return@LaunchedEffect
             delay(if (result.isSuccess) ACCESS_POLL_MS else ACCESS_RETRY_MS)
         }
     }
@@ -262,17 +279,10 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
 
     fun logout() {
         val oldToken = cloud.currentSessionToken()
+        clearVerifiedSession()
         appScope.launch {
-            if (oldToken.isNotBlank()) cloud.logoutSession()
+            if (oldToken.isNotBlank()) cloud.logoutSession(oldToken)
         }
-        cloud.setSessionToken("")
-        sessionStore.clear()
-        prefs.edit().remove(ID_KEY).apply()
-        userId = ""
-        currentGame = null
-        activeRoomId = ""
-        accessChecked = false
-        isBanned = false
     }
 
     fun closeGame() {
