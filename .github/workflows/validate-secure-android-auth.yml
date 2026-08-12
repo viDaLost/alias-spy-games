@@ -89,4 +89,4 @@ jobs:
           git commit -m "Require Telegram code verification for Android sessions"
           git push origin HEAD:agent/secure-android-telegram-auth-2.7.0
 
-# validation-pass: 2
+# validation-pass: 3
