@@ -14,6 +14,8 @@ jobs:
   transfer:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,47 +35,41 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Recover native source if earlier finalize did not apply it
+      - name: Recover native source from transfer payload
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f android-app/app/build.gradle.kts ]; then
-            test -d .native-upload
-            cat .native-upload/payload-*.b64 > /tmp/native.b64
-            base64 --decode /tmp/native.b64 > /tmp/native-truncated.zip
-            zip -FF /tmp/native-truncated.zip --out /tmp/native.zip >/tmp/repair.log 2>&1 || { cat /tmp/repair.log; exit 1; }
-            mkdir -p /tmp/native
-            unzip -oq /tmp/native.zip -d /tmp/native
-            test -f /tmp/native/android-app/app/build.gradle.kts
-            test -f /tmp/native/android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
-            test -f /tmp/native/android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp
-            rm -rf android-app
-            cp -a /tmp/native/android-app ./android-app
-            if [ -f /tmp/native/scripts/sync-android-assets.mjs ]; then
-              cp /tmp/native/scripts/sync-android-assets.mjs scripts/sync-android-assets.mjs
-            fi
-          fi
+          cat .native-upload/payload-*.b64 > /tmp/native.b64
+          base64 --decode /tmp/native.b64 > /tmp/native.tar.xz
+          mkdir -p /tmp/native
+          tar -xJf /tmp/native.tar.xz -C /tmp/native
 
-          test -f android-app/app/build.gradle.kts
-          test -f android-app/app/src/main/AndroidManifest.xml
-          test -f android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
-          test -f android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp
-          if [ ! -f android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp ]; then
-            cp android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp
-          fi
-          test -f scripts/sync-android-assets.mjs
+          test -f /tmp/native/android-app/app/build.gradle
+          test -f /tmp/native/android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
+          test -f /tmp/native/scripts/sync-android-assets.mjs
+
+          ICON_DIR=/tmp/native/android-app/app/src/main/res/drawable-nodpi
+          mkdir -p "$ICON_DIR"
+          gh api repos/viDaLost/alias-spy-games/git/blobs/a693a26463d80941c2eb939bc19853ac99bd0e2d --jq .content | tr -d '\n' | base64 --decode > "$ICON_DIR/ic_launcher_art.webp"
+          gh api repos/viDaLost/alias-spy-games/git/blobs/cfdcc801d549d23b692320212c36df6ac180e684 --jq .content | tr -d '\n' | base64 --decode > "$ICON_DIR/ic_launcher_adaptive.webp"
+          file "$ICON_DIR/ic_launcher_art.webp" | grep -qi WebP
+          file "$ICON_DIR/ic_launcher_adaptive.webp" | grep -qi WebP
+
+          rm -rf android-app
+          cp -a /tmp/native/android-app ./android-app
+          cp /tmp/native/scripts/sync-android-assets.mjs scripts/sync-android-assets.mjs
 
       - name: Validate native Android before copying
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/sync-android-assets.mjs
           gradle -p android-app :app:assembleDebug :app:lintDebug --no-daemon
-          grep -Eq 'compileSdk[ =]+36' android-app/app/build.gradle.kts
-          grep -Eq 'targetSdk[ =]+36' android-app/app/build.gradle.kts
-          grep -Eq 'versionCode[ =]+12' android-app/app/build.gradle.kts
-          grep -Eq 'versionName[ =]+"2\.6\.0-native"' android-app/app/build.gradle.kts
+          grep -Eq 'compileSdk[ =]+36' android-app/app/build.gradle
+          grep -Eq 'targetSdk[ =]+36' android-app/app/build.gradle
+          grep -Eq 'versionCode[ =]+12' android-app/app/build.gradle
+          grep -Eq "versionName[ =]+'2\\.6\\.0-native'" android-app/app/build.gradle
           grep -Rqs 'ANDROID_KEYSTORE_PATH' android-app
+          test ! -f android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.java
           if grep -Rqs 'signingConfigs\.debug\|signingConfig signingConfigs.debug' android-app; then
             echo 'Debug signing fallback found'
             exit 1
@@ -89,6 +85,7 @@ jobs:
           rm -rf /tmp/clean/android-app
           cp -a android-app /tmp/clean/android-app
           cp scripts/sync-android-assets.mjs /tmp/clean/scripts/sync-android-assets.mjs
+          cp .github/workflows/build-android-apk.yml /tmp/clean/.github/workflows/build-android-apk.yml
 
           cd /tmp/clean
           if git cat-file -e origin/main:.gitignore 2>/dev/null; then
@@ -108,8 +105,18 @@ android-app/local.properties
 *.aab
 EOF
 
+          rm -f .github/workflows/validate-native-clean-transfer.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add android-app scripts/sync-android-assets.mjs .gitignore
+          git add -A
           git commit -m 'Replace Android wrapper with native 2.6.0 app'
+
+          bad=0
+          while IFS= read -r path; do
+            case "$path" in
+              android-app/*|.github/workflows/build-android-apk.yml|scripts/sync-android-assets.mjs|.gitignore) ;;
+              *) echo "Unexpected non-Android change: $path"; bad=1 ;;
+            esac
+          done < <(git diff --name-only origin/main...HEAD)
+          test "$bad" -eq 0
           git push origin HEAD:agent/native-android-2.6.0-clean
