@@ -110,6 +110,7 @@ export class UserStore extends DurableObject {
 
     if (url.pathname === '/sync' && request.method === 'POST') return json(await this.syncUser(body));
     if (url.pathname === '/history' && request.method === 'POST') return json(await this.updateHistory(body));
+    if (url.pathname === '/access' && request.method === 'POST') return json(await this.accessStatus(body));
     if (url.pathname === '/import' && request.method === 'POST') return json(await this.importUsers(body.users));
     if (url.pathname === '/admin-update' && request.method === 'POST') return json(await this.adminUpdate(body.updateData));
     if (url.pathname === '/admin-data' && request.method === 'POST') return json(await this.adminData());
@@ -133,6 +134,13 @@ export class UserStore extends DurableObject {
     record.lastSeenAt = Date.now();
     await this.ctx.storage.put(key, record);
     return { ok: true, user: record };
+  }
+
+  async accessStatus({ id }) {
+    const clean = cleanId(id);
+    if (!clean) return { ok: false, error: 'Bad user id' };
+    const record = await this.ctx.storage.get(userKey(clean));
+    return { ok: true, isBanned: Boolean(record?.isBanned), exists: Boolean(record) };
   }
 
   async updateHistory({ id, history }) {

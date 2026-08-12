@@ -99,11 +99,8 @@ export default {
         return json(result, 200, cors);
       }
 
-      const access = await callStore(store, '/sync', {
-        verifiedUser: syntheticUser,
-        clientUser: { id: androidUserId },
-      });
-      const isBanned = Boolean(access.user?.isBanned);
+      const access = await callStore(store, '/access', { id: androidUserId });
+      const isBanned = Boolean(access.isBanned);
 
       if (action === 'accessStatus') {
         return json({ success: true, isBanned, source: 'cloudflare-sql-android-access' }, 200, cors);
@@ -112,7 +109,7 @@ export default {
       if (action === 'syncUser') {
         const clientUser = payload.user && typeof payload.user === 'object' ? payload.user : {};
         if (String(clientUser.id || '') !== androidUserId) throw httpError(403, 'User mismatch');
-        if (isBanned) return json(syncResponse(access.user), 200, cors);
+        if (isBanned) return json({ success: true, isBanned: true, source: 'cloudflare-sql-android-access' }, 200, cors);
         const result = await callStore(store, '/sync', { verifiedUser: syntheticUser, clientUser });
         return json(syncResponse(result.user), 200, cors);
       }

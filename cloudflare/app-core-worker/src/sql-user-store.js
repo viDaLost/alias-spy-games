@@ -86,6 +86,14 @@ export class SqlUserStore extends LegacyUserStore {
     return { ok: true, user: toLegacyShape(row) };
   }
 
+  async accessStatus({ id }) {
+    await this.ensureMigrated();
+    const clean = cleanId(id);
+    if (!clean) return { ok: false, error: 'Bad user id' };
+    const row = this.getRow(clean);
+    return { ok: true, isBanned: Boolean(row?.is_banned), exists: Boolean(row) };
+  }
+
   async updateHistory({ id, history }) {
     await this.ensureMigrated();
     const clean = cleanId(id);

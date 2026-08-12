@@ -35,6 +35,18 @@ class CloudRepository {
         .retryOnConnectionFailure(true)
         .build()
 
+    /** Access checks must never hold the first screen behind OkHttp's normal
+     * retry/timeout budget. The server action is tiny and safe to repeat on the
+     * next poll, so use a strict call deadline and no transparent retry. */
+    private val accessClient: OkHttpClient = OkHttpClient.Builder()
+        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+        .connectTimeout(3, TimeUnit.SECONDS)
+        .readTimeout(3, TimeUnit.SECONDS)
+        .writeTimeout(3, TimeUnit.SECONDS)
+        .callTimeout(5, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
+        .build()
+
     /** Fast primary pool for room REST traffic. HTTP/2 keeps frequent lobby and
      * canvas polls on one connection and normally produces the first state much
      * faster than a fresh HTTP/1.1 connection on mobile networks. */
@@ -100,7 +112,7 @@ class CloudRepository {
     suspend fun checkAccess(id: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
             val payload = JSONObject().put("action", "accessStatus")
-            val json = post("$CORE/android/compat", JSONObject().put("payload", payload).put("androidUserId", id))
+            val json = postWith(accessClient, "$CORE/android/compat", JSONObject().put("payload", payload).put("androidUserId", id))
             json.optBoolean("isBanned", false)
         }
     }
