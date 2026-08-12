@@ -1,5 +1,5 @@
 BibleGames Android release trigger
-version=2.6.5-native
-versionCode=17
+version=2.6.6-native
+versionCode=18
 requested=2026-08-12
-reason=android-ban-enforcement
+reason=fast-access-auto-unban
