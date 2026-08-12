@@ -98,12 +98,6 @@ private const val ID_KEY = "telegram_id"
 private const val HISTORY_KEY = "last_games"
 private const val RECENT_HIDDEN_KEY = "recent_games_hidden"
 private const val ADMIN_ID = "1288379477"
-private const val SUPPORT_LINK = "https://t.me/D_a_n_Vi"
-
-private fun openSupport(context: Context) {
-    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_LINK)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-}
-
 private fun profileKey(userId: String, field: String) = "profile_${userId}_$field"
 
 private fun historyRoute(value: String): String? = GameKey.entries
@@ -148,6 +142,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     var userId by rememberSaveable { mutableStateOf(prefs.getString(ID_KEY, "").orEmpty()) }
     var currentGame by rememberSaveable { mutableStateOf<String?>(null) }
+    var supportOpen by rememberSaveable { mutableStateOf(false) }
     var activeRoomId by rememberSaveable { mutableStateOf("") }
     var history by remember {
         mutableStateOf(normalizeHistory(prefs.getString(HISTORY_KEY, "").orEmpty().split(',').filter { it.isNotBlank() }))
@@ -227,6 +222,12 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         }
     }
 
+    if (supportOpen) {
+        BackHandler { supportOpen = false }
+        SupportScreen(cloud = cloud, initialUserId = userId, onBack = { supportOpen = false })
+        return
+    }
+
     BackHandler(enabled = currentGame != null) { closeGame() }
 
     AnimatedContent(
@@ -244,6 +245,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                     prefs.edit().putString(ID_KEY, id).apply()
                     userId = id
                 },
+                onSupport = { supportOpen = true },
             )
             banned -> AccessRestrictedScreen {
                 prefs.edit().remove(ID_KEY).apply(); userId = ""
@@ -270,13 +272,14 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                 onLogout = {
                     prefs.edit().remove(ID_KEY).apply(); userId = ""
                 },
+                onSupport = { supportOpen = true },
             )
         }
     }
 }
 
 @Composable
-private fun LoginScreen(onLogin: (String) -> Unit) {
+private fun LoginScreen(onLogin: (String) -> Unit, onSupport: () -> Unit) {
     val context = LocalContext.current
     val focus = LocalFocusManager.current
     var id by rememberSaveable { mutableStateOf("") }
@@ -340,7 +343,7 @@ private fun LoginScreen(onLogin: (String) -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 com.vidalost.biblegames.ui.SecondaryButton(
                     "Техподдержка",
-                    { openSupport(context) },
+                    onSupport,
                     Modifier.fillMaxWidth(),
                     icon = "🎧",
                 )
@@ -357,6 +360,7 @@ private fun HomeScreen(
     profile: PlayerProfile,
     onOpenGame: (GameKey) -> Unit,
     onLogout: () -> Unit,
+    onSupport: () -> Unit,
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
@@ -434,7 +438,7 @@ private fun HomeScreen(
                 }
             }
             item { SectionTitle("Помощь") }
-            item { SupportCard { openSupport(context) } }
+            item { SupportCard onSupport }
             item {
                 Spacer(Modifier.height(4.dp))
                 Surface(

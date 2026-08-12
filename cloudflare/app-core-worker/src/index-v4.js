@@ -1,10 +1,12 @@
 import core from './index-v3.js';
-import { BroadcastUserStore } from './broadcast-user-store.js';
+import { SupportUserStore } from './support-user-store.js';
 
-export class UserStore extends BroadcastUserStore {}
+export class UserStore extends SupportUserStore {}
 
 const encoder = new TextEncoder();
-const ANDROID_USER_ACTIONS = new Set(['syncUser', 'updateHistory']);
+const ANDROID_USER_ACTIONS = new Set(['syncUser', 'updateHistory', 'supportCreate', 'supportList']);
+const SUPPORT_USER_ACTIONS = new Set(['supportCreate', 'supportList']);
+const SUPPORT_ADMIN_ACTIONS = new Set(['supportAdminList', 'supportReply', 'supportSetStatus']);
 const BROADCAST_ACTIONS = new Set([
   'broadcast',
   'broadcastCreate',
@@ -26,18 +28,39 @@ export default {
     }
 
     if (url.pathname === '/compat' && request.method === 'POST') {
+      let action = '';
       try {
         const body = await request.clone().json();
         const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
-        const action = String(payload.action || '');
-        if (BROADCAST_ACTIONS.has(action)) {
+        action = String(payload.action || '');
+        const isSupport = SUPPORT_USER_ACTIONS.has(action) || SUPPORT_ADMIN_ACTIONS.has(action);
+        if (BROADCAST_ACTIONS.has(action) || isSupport) {
           if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
-          await verifyAdmin(String(body.telegramInitData || ''), env);
           const store = env.USERS.get(env.USERS.idFromName('global'));
-          return handleBroadcastAction(store, action, payload, cors);
+          if (BROADCAST_ACTIONS.has(action)) {
+            await verifyAdmin(String(body.telegramInitData || ''), env);
+            return handleBroadcastAction(store, action, payload, cors);
+          }
+          if (SUPPORT_ADMIN_ACTIONS.has(action)) {
+            await verifyAdmin(String(body.telegramInitData || ''), env);
+            return handleSupportAdminAction(store, action, payload, cors);
+          }
+          const verified = await verifyTelegramInitData(String(body.telegramInitData || ''), env.TELEGRAM_BOT_TOKEN);
+          const userId = String(verified.user.id || '');
+          if (action === 'supportList') {
+            return json(await callStore(store, '/support/user-list', { userId }), 200, cors);
+          }
+          const result = await callStore(store, '/support/create', {
+            userId,
+            source: 'web',
+            subject: payload.subject,
+            message: payload.message,
+          });
+          if (result.ticket) ctx.waitUntil(notifySupportAdmin(env, result.ticket));
+          return json(result, 200, cors);
         }
       } catch (error) {
-        if (BROADCAST_ACTIONS.has(await safeAction(request))) {
+        if (BROADCAST_ACTIONS.has(action) || SUPPORT_USER_ACTIONS.has(action) || SUPPORT_ADMIN_ACTIONS.has(action)) {
           return json({ success: false, ok: false, error: String(error?.message || 'Server error') }, Number(error?.status || 500), cors);
         }
       }
@@ -61,6 +84,21 @@ export default {
       const store = env.USERS.get(env.USERS.idFromName('global'));
       const syntheticUser = { id: androidUserId, username: '' };
 
+      if (action === 'supportList') {
+        return json(await callStore(store, '/support/user-list', { userId: androidUserId }), 200, cors);
+      }
+
+      if (action === 'supportCreate') {
+        const result = await callStore(store, '/support/create', {
+          userId: androidUserId,
+          source: 'android',
+          subject: payload.subject,
+          message: payload.message,
+        });
+        if (result.ticket) ctx.waitUntil(notifySupportAdmin(env, result.ticket));
+        return json(result, 200, cors);
+      }
+
       if (action === 'syncUser') {
         const clientUser = payload.user && typeof payload.user === 'object' ? payload.user : {};
         if (String(clientUser.id || '') !== androidUserId) throw httpError(403, 'User mismatch');
@@ -76,6 +114,43 @@ export default {
     }
   },
 };
+
+async function handleSupportAdminAction(store, action, payload, cors) {
+  if (action === 'supportAdminList') {
+    return json(await callStore(store, '/support/admin-list', {}), 200, cors);
+  }
+  if (action === 'supportReply') {
+    return json(await callStore(store, '/support/reply', { ticketId: payload.ticketId, message: payload.message }), 200, cors);
+  }
+  return json(await callStore(store, '/support/status', { ticketId: payload.ticketId, status: payload.status }), 200, cors);
+}
+
+async function notifySupportAdmin(env, ticket = {}) {
+  if (!env.TELEGRAM_BOT_TOKEN || !env.ADMIN_TELEGRAM_ID) return;
+  const firstMessage = Array.isArray(ticket.messages) ? ticket.messages.find((item) => item.sender === 'user')?.body || '' : '';
+  const text = [
+    '🎧 Новое обращение в техподдержку',
+    `№ ${String(ticket.id || '')}`,
+    `Пользователь: ${String(ticket.userId || '')}`,
+    `Источник: ${ticket.source === 'android' ? 'Android' : 'Web'}`,
+    `Тема: ${String(ticket.subject || '')}`,
+    '',
+    String(firstMessage || '').slice(0, 900),
+    '',
+    'Откройте админ-панель → Техподдержка для ответа.',
+  ].join('\n');
+  try {
+    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: String(env.ADMIN_TELEGRAM_ID),
+        text,
+        disable_web_page_preview: true,
+      }),
+    });
+  } catch {}
+}
 
 async function handleBroadcastAction(store, action, payload, cors) {
   let path = '';
