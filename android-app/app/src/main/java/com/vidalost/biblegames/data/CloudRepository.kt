@@ -97,6 +97,14 @@ class CloudRepository {
         }
     }
 
+    suspend fun checkAccess(id: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            val payload = JSONObject().put("action", "accessStatus")
+            val json = post("$CORE/android/compat", JSONObject().put("payload", payload).put("androidUserId", id))
+            json.optBoolean("isBanned", false)
+        }
+    }
+
     suspend fun updateHistory(id: String, routes: List<String>) = withContext(Dispatchers.IO) {
         runCatching {
             val payload = JSONObject().put("action", "updateHistory").put("id", id).put("history", JSONArray(routes))

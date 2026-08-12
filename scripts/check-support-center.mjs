@@ -27,7 +27,7 @@ requireText(android, 'SupportScreen(cloud = cloud', 'Android support navigation 
 requireText(android, 'AccessRestrictedScreen(', 'blocked-user support route missing');
 requireText(repo, 'createSupportTicket', 'Android create API missing');
 requireText(repo, 'listSupportTickets', 'Android list API missing');
-requireText(gradle, "versionName '2.6.4-native'", 'Android version was not bumped');
+requireText(gradle, "versionName '2.6.5-native'", 'Android release version is not current');
 if (android.includes('t.me/D_a_n_Vi')) throw new Error('Personal Telegram support link is still in Android app');
 if (android.includes('openSupport(')) throw new Error('Legacy Android support callback is still present');
 
