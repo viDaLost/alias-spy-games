@@ -247,9 +247,10 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                 },
                 onSupport = { supportOpen = true },
             )
-            banned -> AccessRestrictedScreen {
-                prefs.edit().remove(ID_KEY).apply(); userId = ""
-            }
+            banned -> AccessRestrictedScreen(
+                onLogout = { prefs.edit().remove(ID_KEY).apply(); userId = "" },
+                onSupport = { supportOpen = true },
+            )
             route != null -> GameHost(
                 game = GameKey.fromRoute(route) ?: GameKey.ALIAS,
                 assets = assets,
@@ -604,8 +605,7 @@ private fun CompactRecentCard(game: GameKey, assets: AssetRepository, onClick: (
 }
 
 @Composable
-private fun AccessRestrictedScreen(onLogout: () -> Unit) {
-    val context = LocalContext.current
+private fun AccessRestrictedScreen(onLogout: () -> Unit, onSupport: () -> Unit) {
     AppBackground {
         Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
             GlassCard(Modifier.fillMaxWidth()) {
@@ -615,7 +615,7 @@ private fun AccessRestrictedScreen(onLogout: () -> Unit) {
                 Spacer(Modifier.height(18.dp))
                 com.vidalost.biblegames.ui.SecondaryButton(
                     "Написать в техподдержку",
-                    { openSupport(context) },
+                    onSupport,
                     Modifier.fillMaxWidth(),
                     icon = "🎧",
                 )
