@@ -25,21 +25,26 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: originHeaders });
 
     try {
-      if (url.pathname === '/health') return json({ ok: true, service: 'alias-spy-games-quartet', chat: true, now: Date.now() }, 200, originHeaders);
+      if (url.pathname === '/health') return json({ ok: true, service: 'alias-spy-games-quartet', chat: true, idempotentCreate: true, now: Date.now() }, 200, originHeaders);
 
       if (request.method === 'POST' && url.pathname === '/rooms') {
         const body = await readJson(request);
         const player = await authenticatePlayer(body, env);
+        const createRequestId = normalizeRequestId(body?.requestId);
         for (let attempt = 0; attempt < 12; attempt += 1) {
-          const roomId = randomRoomCode(6);
+          const roomId = createRequestId
+            ? await stableRoomCode(player.playerId, createRequestId, attempt)
+            : randomRoomCode(6);
           const stub = roomStub(env, roomId);
           const response = await stub.fetch('https://quartet.internal/create', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId, player }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId, player, createRequestId }),
           });
           if (response.status === 409) continue;
           if (!response.ok) throw await internalError(response);
+          let created = {};
+          try { created = await response.json(); } catch {}
           const sessionToken = await createSessionToken({ roomId, ...player }, env);
-          return json({ ok: true, roomId, sessionToken, player }, 201, originHeaders);
+          return json({ ok: true, roomId, sessionToken, player, state: created.state || null, replayed: Boolean(created.replayed) }, 201, originHeaders);
         }
         throw httpError(503, 'Не удалось подобрать свободный код комнаты');
       }
@@ -56,8 +61,10 @@ export default {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ player }),
           });
           if (!response.ok) throw await internalError(response);
+          let joined = {};
+          try { joined = await response.json(); } catch {}
           const sessionToken = await createSessionToken({ roomId, ...player }, env);
-          return json({ ok: true, roomId, sessionToken, player }, 200, originHeaders);
+          return json({ ok: true, roomId, sessionToken, player, state: joined.state || null }, 200, originHeaders);
         }
         if (action === 'ws' && request.method === 'GET') {
           if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') throw httpError(426, 'Нужно WebSocket-подключение');
@@ -112,12 +119,24 @@ export class QuartetRoom extends DurableObject {
   async fetch(request) {
     const url = new URL(request.url);
     if (request.method === 'POST' && url.pathname === '/create') {
-      if (this.room) return json({ ok: false, error: 'Room exists' }, 409);
-      const { roomId, player } = await readJson(request);
+      const { roomId, player, createRequestId } = await readJson(request);
+      const normalizedRequestId = normalizeRequestId(createRequestId);
+      if (this.room) {
+        if (normalizedRequestId && this.room.createRequestId === normalizedRequestId && this.room.hostPlayerId === player?.playerId) {
+          ensureChat(this.room);
+          const state = buildView(this.room, player.playerId, this.connectedPlayerIds());
+          state.chat = this.room.chat.map((entry) => ({ ...entry }));
+          return json({ ok: true, replayed: true, state });
+        }
+        return json({ ok: false, error: 'Room exists' }, 409);
+      }
       this.room = createRoomState(normalizeRoomId(roomId), player);
+      this.room.createRequestId = normalizedRequestId || null;
       ensureChat(this.room);
       await this.persistAndBroadcast();
-      return json({ ok: true }, 201);
+      const state = buildView(this.room, player.playerId, this.connectedPlayerIds());
+      state.chat = this.room.chat.map((entry) => ({ ...entry }));
+      return json({ ok: true, replayed: false, state }, 201);
     }
     if (request.method === 'POST' && url.pathname === '/join') {
       if (!this.room) return json({ ok: false, error: 'Комната не найдена', code: 'ROOM_NOT_FOUND' }, 404);
@@ -126,7 +145,9 @@ export class QuartetRoom extends DurableObject {
       try {
         joinRoom(this.room, player);
         await this.persistAndBroadcast();
-        return json({ ok: true });
+        const state = buildView(this.room, player.playerId, this.connectedPlayerIds());
+        state.chat = this.room.chat.map((entry) => ({ ...entry }));
+        return json({ ok: true, state });
       } catch (error) {
         return json({ ok: false, error: error.message, code: error.code }, 409);
       }
@@ -417,6 +438,14 @@ function base64UrlDecode(value) {
 }
 function roomStub(env, roomId) { return env.ROOMS.get(env.ROOMS.idFromName(normalizeRoomId(roomId))); }
 function normalizeRoomId(value) { return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
+function normalizeRequestId(value) { return String(value || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 96); }
+async function stableRoomCode(playerId, requestId, attempt) {
+  const digest = new Uint8Array(await crypto.subtle.digest(
+    'SHA-256',
+    encoder.encode(`${String(playerId)}\n${requestId}\n${attempt}`),
+  ));
+  return Array.from(digest.slice(0, 6), (byte) => ROOM_CODE_ALPHABET[byte % ROOM_CODE_ALPHABET.length]).join('');
+}
 function randomRoomCode(length) {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);

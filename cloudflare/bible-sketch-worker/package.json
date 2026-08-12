@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node --test test/*.test.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check": "node --check src/index.js && node --check src/engine.js && node --check src/catalog.js && node --test test/*.test.mjs",
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
