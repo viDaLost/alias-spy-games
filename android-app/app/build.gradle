@@ -2,6 +2,14 @@ plugins {
     id 'com.android.application'
 }
 
+def releaseStoreFile = System.getenv('ANDROID_KEYSTORE_PATH')
+def releaseStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every {
+    it != null && !it.trim().isEmpty()
+}
+
 android {
     namespace 'com.vidalost.biblegames'
     compileSdk 35
@@ -14,16 +22,41 @@ android {
         versionName '1.0.2'
     }
 
+    signingConfigs {
+        if (releaseSigningReady) {
+            release {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
-            signingConfig signingConfigs.debug
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def releaseRequested = graph.allTasks.any {
+        it.project == project && it.name.toLowerCase().contains('release')
+    }
+    if (releaseRequested && !releaseSigningReady) {
+        throw new GradleException(
+                'Release signing is not configured. Set ANDROID_KEYSTORE_PATH, ' +
+                'ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD.'
+        )
     }
 }
