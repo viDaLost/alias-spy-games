@@ -67,6 +67,20 @@ export default {
       return core.fetch(request, env, ctx);
     }
 
+    if (url.pathname === '/android/access' && request.method === 'GET') {
+      try {
+        if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
+        const androidUserId = String(url.searchParams.get('id') || '').trim();
+        if (!/^\d{5,20}$/.test(androidUserId)) throw httpError(400, 'Bad Android user id');
+        if (androidUserId === String(env.ADMIN_TELEGRAM_ID || '')) throw httpError(403, 'Admin login is not allowed in Android ID mode');
+        const store = env.USERS.get(env.USERS.idFromName('global'));
+        const access = await callStore(store, '/access', { id: androidUserId });
+        return json({ success: true, isBanned: Boolean(access.isBanned), source: 'cloudflare-sql-android-access-get' }, 200, cors);
+      } catch (error) {
+        return json({ success: false, error: String(error?.message || 'Server error') }, Number(error?.status || 500), cors);
+      }
+    }
+
     if (url.pathname !== '/android/compat') return core.fetch(request, env, ctx);
     if (request.method !== 'POST') return json({ success: false, error: 'Not found' }, 404, cors);
 

@@ -35,16 +35,16 @@ class CloudRepository {
         .retryOnConnectionFailure(true)
         .build()
 
-    /** Access checks must never hold the first screen behind OkHttp's normal
-     * retry/timeout budget. The server action is tiny and safe to repeat on the
-     * next poll, so use a strict call deadline and no transparent retry. */
+    /** Access status is a tiny read-only request. HTTP/1.1 is deliberately
+     * used here because some mobile VPN/carrier paths repeatedly stall HTTP/2
+     * setup. The whole call is still bounded so a bad network cannot freeze UI. */
     private val accessClient: OkHttpClient = OkHttpClient.Builder()
-        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-        .connectTimeout(3, TimeUnit.SECONDS)
-        .readTimeout(3, TimeUnit.SECONDS)
-        .writeTimeout(3, TimeUnit.SECONDS)
-        .callTimeout(5, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(false)
+        .protocols(listOf(Protocol.HTTP_1_1))
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(6, TimeUnit.SECONDS)
+        .writeTimeout(6, TimeUnit.SECONDS)
+        .callTimeout(7, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build()
 
     /** Fast primary pool for room REST traffic. HTTP/2 keeps frequent lobby and
@@ -111,9 +111,22 @@ class CloudRepository {
 
     suspend fun checkAccess(id: String): Result<Boolean> = withContext(Dispatchers.IO) {
         runCatching {
-            val payload = JSONObject().put("action", "accessStatus")
-            val json = postWith(accessClient, "$CORE/android/compat", JSONObject().put("payload", payload).put("androidUserId", id))
-            json.optBoolean("isBanned", false)
+            val request = Request.Builder()
+                .url("$CORE/android/access?id=$id")
+                .get()
+                .header("Accept", "application/json")
+                .header("Origin", "https://vidalost.github.io")
+                .header("Cache-Control", "no-store")
+                .header("User-Agent", "BibleGames-Android/2.6 Native")
+                .build()
+            accessClient.newCall(request).execute().use { response ->
+                val payload = response.body?.string().orEmpty()
+                val json = runCatching { JSONObject(payload) }.getOrNull()
+                if (!response.isSuccessful || json == null) {
+                    throw IOException(json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось проверить доступ")
+                }
+                json.optBoolean("isBanned", false)
+            }
         }
     }
 
