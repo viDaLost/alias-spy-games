@@ -4,7 +4,7 @@ import { SupportUserStore } from './support-user-store.js';
 export class UserStore extends SupportUserStore {}
 
 const encoder = new TextEncoder();
-const ANDROID_USER_ACTIONS = new Set(['syncUser', 'updateHistory', 'supportCreate', 'supportList']);
+const ANDROID_USER_ACTIONS = new Set(['syncUser', 'updateHistory', 'supportCreate', 'supportList', 'accessStatus']);
 const SUPPORT_USER_ACTIONS = new Set(['supportCreate', 'supportList']);
 const SUPPORT_ADMIN_ACTIONS = new Set(['supportAdminList', 'supportReply', 'supportSetStatus']);
 const BROADCAST_ACTIONS = new Set([
@@ -99,13 +99,25 @@ export default {
         return json(result, 200, cors);
       }
 
+      const access = await callStore(store, '/sync', {
+        verifiedUser: syntheticUser,
+        clientUser: { id: androidUserId },
+      });
+      const isBanned = Boolean(access.user?.isBanned);
+
+      if (action === 'accessStatus') {
+        return json({ success: true, isBanned, source: 'cloudflare-sql-android-access' }, 200, cors);
+      }
+
       if (action === 'syncUser') {
         const clientUser = payload.user && typeof payload.user === 'object' ? payload.user : {};
         if (String(clientUser.id || '') !== androidUserId) throw httpError(403, 'User mismatch');
+        if (isBanned) return json(syncResponse(access.user), 200, cors);
         const result = await callStore(store, '/sync', { verifiedUser: syntheticUser, clientUser });
         return json(syncResponse(result.user), 200, cors);
       }
 
+      if (isBanned) throw httpError(403, 'Доступ ограничен');
       if (String(payload.id || '') !== androidUserId) throw httpError(403, 'User mismatch');
       await callStore(store, '/history', { id: androidUserId, history: payload.history });
       return json({ success: true, source: 'cloudflare-sql-android' }, 200, cors);

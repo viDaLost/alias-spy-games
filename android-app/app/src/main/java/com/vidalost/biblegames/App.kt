@@ -98,7 +98,9 @@ private const val ID_KEY = "telegram_id"
 private const val HISTORY_KEY = "last_games"
 private const val RECENT_HIDDEN_KEY = "recent_games_hidden"
 private const val ADMIN_ID = "1288379477"
+private const val ACCESS_POLL_MS = 4_000L
 private fun profileKey(userId: String, field: String) = "profile_${userId}_$field"
+private fun banKey(userId: String) = "profile_${userId}_banned"
 
 private fun historyRoute(value: String): String? = GameKey.entries
     .firstOrNull { it.route == value || it.title == value }
@@ -148,6 +150,10 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         mutableStateOf(normalizeHistory(prefs.getString(HISTORY_KEY, "").orEmpty().split(',').filter { it.isNotBlank() }))
     }
     var profile by remember(userId) { mutableStateOf(loadLocalProfile(context, userId, history)) }
+    var isBanned by remember(userId) { mutableStateOf(prefs.getBoolean(banKey(userId), false)) }
+    var accessChecked by remember(userId) { mutableStateOf(false) }
+    var accessError by remember(userId) { mutableStateOf<String?>(null) }
+    var accessRetry by remember(userId) { mutableStateOf(0) }
     var syncing by remember(userId) { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     val presence = remember(userId) {
@@ -174,26 +180,56 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         presence?.update(currentGame, activeRoomId)
     }
 
-    LaunchedEffect(userId) {
+    fun applyAccessState(banned: Boolean) {
+        isBanned = banned
+        accessChecked = true
+        accessError = null
+        prefs.edit().putBoolean(banKey(userId), banned).apply()
+        if (banned) {
+            currentGame = null
+            activeRoomId = ""
+        }
+    }
+
+    LaunchedEffect(userId, accessRetry) {
         if (userId.matches(Regex("^[0-9]{5,20}$")) && userId != ADMIN_ID) {
             syncing = true
-            cloud.syncProfile(userId, profile).onSuccess {
-                profile = it
-                saveLocalProfile(context, it)
-                if (it.lastGames.isNotEmpty()) {
-                    history = normalizeHistory(history + it.lastGames)
-                    prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
+            accessChecked = false
+            accessError = null
+            cloud.syncProfile(userId, profile)
+                .onSuccess {
+                    profile = it
+                    applyAccessState(it.isBanned)
+                    saveLocalProfile(context, it)
+                    if (it.lastGames.isNotEmpty()) {
+                        history = normalizeHistory(history + it.lastGames)
+                        prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
+                    }
                 }
-            }
+                .onFailure { error ->
+                    accessChecked = false
+                    accessError = error.message ?: "Не удалось проверить доступ"
+                }
             syncing = false
+        } else {
+            accessChecked = false
+            accessError = null
+        }
+    }
+
+    LaunchedEffect(userId, accessChecked) {
+        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID || !accessChecked) return@LaunchedEffect
+        while (true) {
+            delay(ACCESS_POLL_MS)
+            cloud.checkAccess(userId).onSuccess(::applyAccessState)
         }
     }
 
     // The web app writes progress immediately.  Mirror that behaviour with a
     // short debounce so a completed level survives process death and appears
     // on the website/admin panel without waiting for the game screen to close.
-    LaunchedEffect(userId, profile.wowStars, profile.wordSearchStars, profile.sacredLevel, history) {
-        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID) return@LaunchedEffect
+    LaunchedEffect(userId, profile.wowStars, profile.wordSearchStars, profile.sacredLevel, history, accessChecked, isBanned) {
+        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID || !accessChecked || isBanned) return@LaunchedEffect
         delay(650)
         val snapshot = profile.copy(lastGames = cloudHistory(history))
         saveLocalProfile(context, snapshot)
@@ -202,6 +238,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     }
 
     fun openGame(game: GameKey) {
+        if (!accessChecked || isBanned) return
         activeRoomId = ""
         currentGame = game.route
         history = (listOf(game.route) + history).distinct().take(3)
@@ -213,6 +250,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     fun closeGame() {
         activeRoomId = ""
         currentGame = null
+        if (isBanned) return
         val historySnapshot = history
         val profileSnapshot = profile.copy(lastGames = cloudHistory(historySnapshot))
         saveLocalProfile(context, profileSnapshot)
@@ -228,10 +266,23 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         return
     }
 
+    if (userId.isNotBlank() && !accessChecked && !isBanned) {
+        AccessVerificationScreen(
+            error = accessError,
+            onRetry = { accessRetry += 1 },
+            onLogout = {
+                prefs.edit().remove(ID_KEY).apply()
+                userId = ""
+            },
+            onSupport = { supportOpen = true },
+        )
+        return
+    }
+
     BackHandler(enabled = currentGame != null) { closeGame() }
 
     AnimatedContent(
-        targetState = Triple(userId.isNotBlank(), currentGame, profile.isBanned),
+        targetState = Triple(userId.isNotBlank(), currentGame, isBanned),
         transitionSpec = {
             val forward = targetState.second != null
             (slideInHorizontally(tween(420)) { if (forward) it else -it / 3 } + fadeIn(tween(260))) togetherWith
@@ -600,6 +651,50 @@ private fun CompactRecentCard(game: GameKey, assets: AssetRepository, onClick: (
                 Text(game.description, color = InkSoft, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             Text("→", color = Color(game.accent), fontSize = 25.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun AccessVerificationScreen(
+    error: String?,
+    onRetry: () -> Unit,
+    onLogout: () -> Unit,
+    onSupport: () -> Unit,
+) {
+    AppBackground {
+        Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
+            GlassCard(Modifier.fillMaxWidth()) {
+                Text("Проверка доступа", color = Color(0xFF25236E), fontSize = 25.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    if (error.isNullOrBlank())
+                        "Проверяем статус аккаунта. Игры откроются сразу после подтверждения доступа."
+                    else
+                        "Не удалось проверить статус аккаунта. До успешной проверки запуск игр временно недоступен.",
+                    color = InkSoft,
+                    lineHeight = 21.sp,
+                )
+                if (!error.isNullOrBlank()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(error, color = Color(0xFF991B1B), fontSize = 13.sp)
+                }
+                Spacer(Modifier.height(18.dp))
+                PrimaryButton("Повторить проверку", onRetry, Modifier.fillMaxWidth(), icon = "↻")
+                Spacer(Modifier.height(10.dp))
+                com.vidalost.biblegames.ui.SecondaryButton(
+                    "Техподдержка",
+                    onSupport,
+                    Modifier.fillMaxWidth(),
+                    icon = "🎧",
+                )
+                Spacer(Modifier.height(10.dp))
+                com.vidalost.biblegames.ui.SecondaryButton(
+                    "Сменить Telegram ID",
+                    onLogout,
+                    Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
