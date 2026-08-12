@@ -76,6 +76,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.vidalost.biblegames.data.AppPresenceClient
 import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.data.CloudRepository
+import com.vidalost.biblegames.data.AndroidAuthChallenge
+import com.vidalost.biblegames.data.AndroidSessionStore
+import com.vidalost.biblegames.data.AuthBotStartRequired
+import com.vidalost.biblegames.data.AuthSessionInvalid
 import com.vidalost.biblegames.games.GameHost
 import com.vidalost.biblegames.model.GameKey
 import com.vidalost.biblegames.model.GameSection
@@ -144,7 +148,9 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     val context = LocalContext.current
     val appScope = rememberCoroutineScope()
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
-    var userId by rememberSaveable { mutableStateOf(prefs.getString(ID_KEY, "").orEmpty()) }
+    val sessionStore = remember { AndroidSessionStore(context) }
+    val restoredSession = remember { sessionStore.load() }
+    var userId by rememberSaveable { mutableStateOf(restoredSession?.userId.orEmpty()) }
     var currentGame by rememberSaveable { mutableStateOf<String?>(null) }
     var supportOpen by rememberSaveable { mutableStateOf(false) }
     var activeRoomId by rememberSaveable { mutableStateOf("") }
@@ -195,6 +201,19 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         }
     }
 
+    fun clearVerifiedSession() {
+        cloud.setSessionToken("")
+        sessionStore.clear()
+        prefs.edit().remove(ID_KEY).apply()
+        supportOpen = false
+        currentGame = null
+        activeRoomId = ""
+        accessChecked = false
+        isBanned = false
+        syncing = false
+        userId = ""
+    }
+
     // One access monitor owns both startup verification and later ban/unban
     // refreshes. Network failures retry automatically; there are no overlapping
     // manual + polling requests and no raw timeout screen for the player.
@@ -224,7 +243,10 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                         syncing = false
                     }
                 }
+            }.onFailure { cause ->
+                if (cause is AuthSessionInvalid) clearVerifiedSession()
             }
+            if (userId.isBlank()) return@LaunchedEffect
             delay(if (result.isSuccess) ACCESS_POLL_MS else ACCESS_RETRY_MS)
         }
     }
@@ -253,6 +275,14 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
         val historySnapshot = cloudHistory(history)
         appScope.launch { cloud.updateHistory(userId, historySnapshot) }
+    }
+
+    fun logout() {
+        val oldToken = cloud.currentSessionToken()
+        clearVerifiedSession()
+        appScope.launch {
+            if (oldToken.isNotBlank()) cloud.logoutSession(oldToken)
+        }
     }
 
     fun closeGame() {
@@ -287,14 +317,16 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     ) { (signedIn, route, banned) ->
         when {
             !signedIn -> LoginScreen(
-                onLogin = { id ->
+                cloud = cloud,
+                onLogin = { id, token, expiresAt ->
+                    cloud.setSessionToken(token)
+                    sessionStore.save(id, token, expiresAt)
                     prefs.edit().putString(ID_KEY, id).apply()
                     userId = id
                 },
-                onSupport = { supportOpen = true },
             )
             banned -> AccessRestrictedScreen(
-                onLogout = { prefs.edit().remove(ID_KEY).apply(); userId = "" },
+                onLogout = ::logout,
                 onSupport = { supportOpen = true },
             )
             route != null -> GameHost(
@@ -317,9 +349,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                 accessReady = accessChecked,
                 profile = profile,
                 onOpenGame = ::openGame,
-                onLogout = {
-                    prefs.edit().remove(ID_KEY).apply(); userId = ""
-                },
+                onLogout = ::logout,
                 onSupport = { supportOpen = true },
             )
         }
@@ -327,19 +357,70 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
 }
 
 @Composable
-private fun LoginScreen(onLogin: (String) -> Unit, onSupport: () -> Unit) {
+private fun LoginScreen(
+    cloud: CloudRepository,
+    onLogin: (String, String, Long) -> Unit,
+) {
     val context = LocalContext.current
     val focus = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
     var id by rememberSaveable { mutableStateOf("") }
+    var code by rememberSaveable { mutableStateOf("") }
+    var challenge by remember { mutableStateOf<AndroidAuthChallenge?>(null) }
+    var botUsername by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
-    fun submit() {
+    var info by rememberSaveable { mutableStateOf<String?>(null) }
+    var busy by rememberSaveable { mutableStateOf(false) }
+
+    fun validId(): Boolean {
         focus.clearFocus()
         error = when {
             !id.matches(Regex("^[0-9]{5,20}$")) -> "Введите числовой Telegram ID (от 5 до 20 цифр)."
-            id == ADMIN_ID -> "Вход администратора через Android ID недоступен."
+            id == ADMIN_ID -> "Вход администратора через Android недоступен."
             else -> null
         }
-        if (error == null) onLogin(id)
+        return error == null
+    }
+
+    fun requestCode() {
+        if (!validId() || busy) return
+        busy = true
+        error = null
+        info = null
+        challenge = null
+        code = ""
+        scope.launch {
+            cloud.requestLoginCode(id).onSuccess {
+                challenge = it
+                info = "Код отправлен вам в Telegram. Введите 6 цифр из сообщения бота."
+            }.onFailure { cause ->
+                if (cause is AuthBotStartRequired) botUsername = cause.botUsername
+                error = cause.message ?: "Не удалось отправить код"
+            }
+            busy = false
+        }
+    }
+
+    fun verifyCode() {
+        val current = challenge ?: run {
+            error = "Сначала запросите код в Telegram."
+            return
+        }
+        if (!code.matches(Regex("^\\d{6}$"))) {
+            error = "Введите шестизначный код из Telegram."
+            return
+        }
+        if (busy) return
+        busy = true
+        error = null
+        scope.launch {
+            cloud.verifyLoginCode(current, code).onSuccess { session ->
+                onLogin(session.userId, session.token, session.expiresAt)
+            }.onFailure { cause ->
+                error = cause.message ?: "Код не подтверждён"
+            }
+            busy = false
+        }
     }
 
     AppBackground {
@@ -356,45 +437,83 @@ private fun LoginScreen(onLogin: (String) -> Unit, onSupport: () -> Unit) {
                 }
                 Spacer(Modifier.height(18.dp))
                 Text("Библейские игры", color = Color(0xFF25236E), fontSize = 31.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-                Text("Полноценное Android‑приложение", color = InkSoft, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Безопасный вход через Telegram", color = InkSoft, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(24.dp))
                 GlassCard(Modifier.fillMaxWidth()) {
-                    Text("Как узнать свой Telegram ID", color = Color(0xFF312E81), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                    Spacer(Modifier.height(10.dp))
-                    Text("1. Откройте @username_to_id_bot в Telegram.\n2. Нажмите Start / Запустить.\n3. Скопируйте числовой ID и вставьте его ниже.", color = InkSoft, lineHeight = 22.sp)
-                    Spacer(Modifier.height(14.dp))
-                    com.vidalost.biblegames.ui.SecondaryButton(
-                        "Открыть @username_to_id_bot",
-                        { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/username_to_id_bot"))) },
-                        Modifier.fillMaxWidth(), icon = "↗",
+                    Text("Подтвердите свой Telegram", color = Color(0xFF312E81), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+                    Spacer(Modifier.height(9.dp))
+                    Text(
+                        "Теперь одного Telegram ID недостаточно. Мы отправим одноразовый код именно в ваш Telegram — поэтому войти под чужим ID нельзя.",
+                        color = InkSoft,
+                        lineHeight = 21.sp,
                     )
-                    Spacer(Modifier.height(17.dp))
+                    Spacer(Modifier.height(15.dp))
                     OutlinedTextField(
                         value = id,
-                        onValueChange = { value -> id = value.filter(Char::isDigit).take(20); error = null },
+                        onValueChange = { value ->
+                            id = value.filter(Char::isDigit).take(20)
+                            challenge = null
+                            code = ""
+                            error = null
+                            info = null
+                        },
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !busy,
                         label = { Text("Telegram ID") },
                         placeholder = { Text("Например: 123456789") },
                         singleLine = true,
                         isError = error != null,
-                        supportingText = { error?.let { Text(it) } },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { submit() }),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
                         shape = RoundedCornerShape(18.dp),
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Indigo, unfocusedBorderColor = Color(0xFFC7D2FE)),
                     )
-                    Spacer(Modifier.height(14.dp))
-                    PrimaryButton("Войти", ::submit, Modifier.fillMaxWidth(), icon = "→")
+                    Spacer(Modifier.height(12.dp))
+                    PrimaryButton(
+                        if (busy && challenge == null) "Отправляем…" else "Получить код в Telegram",
+                        ::requestCode,
+                        Modifier.fillMaxWidth(),
+                        icon = "✉",
+                    )
+                    if (botUsername.isNotBlank()) {
+                        Spacer(Modifier.height(10.dp))
+                        com.vidalost.biblegames.ui.SecondaryButton(
+                            "Открыть @$botUsername",
+                            { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$botUsername?start=android_login"))) },
+                            Modifier.fillMaxWidth(),
+                            icon = "↗",
+                        )
+                        Spacer(Modifier.height(7.dp))
+                        Text("Нажмите Start в Telegram, вернитесь сюда и снова запросите код.", color = InkSoft, fontSize = 12.sp)
+                    }
+                    if (challenge != null) {
+                        Spacer(Modifier.height(14.dp))
+                        OutlinedTextField(
+                            value = code,
+                            onValueChange = { value -> code = value.filter(Char::isDigit).take(6); error = null },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !busy,
+                            label = { Text("Код из Telegram") },
+                            placeholder = { Text("000000") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { verifyCode() }),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Indigo, unfocusedBorderColor = Color(0xFFC7D2FE)),
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        PrimaryButton(if (busy) "Проверяем…" else "Подтвердить и войти", ::verifyCode, Modifier.fillMaxWidth(), icon = "✓")
+                    }
+                    info?.let {
+                        Spacer(Modifier.height(10.dp))
+                        Text(it, color = Color(0xFF047857), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                    error?.let {
+                        Spacer(Modifier.height(10.dp))
+                        Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
                 Spacer(Modifier.height(13.dp))
-                Text("Ваш прогресс синхронизируется с веб‑приложением через тот же облачный профиль.", color = InkSoft, textAlign = TextAlign.Center, fontSize = 12.sp)
-                Spacer(Modifier.height(12.dp))
-                com.vidalost.biblegames.ui.SecondaryButton(
-                    "Техподдержка",
-                    onSupport,
-                    Modifier.fillMaxWidth(),
-                    icon = "🎧",
-                )
+                Text("Код действует 10 минут. После подтверждения приложение хранит защищённую сессию на этом устройстве — вводить ID при каждом запуске не потребуется.", color = InkSoft, textAlign = TextAlign.Center, fontSize = 12.sp)
             }
         }
     }

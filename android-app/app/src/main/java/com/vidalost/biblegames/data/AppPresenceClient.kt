@@ -71,9 +71,10 @@ class AppPresenceClient(
         if (!foreground || connected || socket != null) return
         val wsBase = OBSERVABILITY.replaceFirst("https://", "wss://")
         val request = Request.Builder()
-            .url("$wsBase/presence?sid=$sessionId&androidUserId=$userId")
+            .url("$wsBase/presence?sid=$sessionId")
             .header("Origin", TRUSTED_ORIGIN)
-            .header("User-Agent", "BibleGames-Android-Native")
+            .header("Authorization", "Bearer ${cloud.currentSessionToken()}")
+            .header("User-Agent", "BibleGames-Android/2.7 Native")
             .build()
         socket = cloud.client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -120,7 +121,6 @@ class AppPresenceClient(
         val payload = JSONObject()
             .put("type", "presence")
             .put("platform", "android")
-            .put("userId", userId)
             .put("game", game)
             .put("roomId", roomId)
         if (socket?.send(payload.toString()) != true) {

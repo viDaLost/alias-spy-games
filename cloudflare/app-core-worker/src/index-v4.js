@@ -1,7 +1,7 @@
 import core from './index-v3.js';
-import { SupportUserStore } from './support-user-store.js';
+import { AndroidAuthUserStore } from './android-auth-user-store.js';
 
-export class UserStore extends SupportUserStore {}
+export class UserStore extends AndroidAuthUserStore {}
 
 const encoder = new TextEncoder();
 const ANDROID_USER_ACTIONS = new Set(['syncUser', 'updateHistory', 'supportCreate', 'supportList', 'accessStatus']);
@@ -22,6 +22,19 @@ export default {
     const cors = corsHeaders(request, env);
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+
+    if (url.pathname === '/android/auth/request' && request.method === 'POST') {
+      return handleAndroidAuthRequest(request, env, cors);
+    }
+    if (url.pathname === '/android/auth/verify' && request.method === 'POST') {
+      return handleAndroidAuthVerify(request, env, cors);
+    }
+    if (url.pathname === '/android/auth/me' && request.method === 'GET') {
+      return handleAndroidAuthMe(request, env, cors);
+    }
+    if (url.pathname === '/android/auth/logout' && request.method === 'POST') {
+      return handleAndroidAuthLogout(request, env, cors);
+    }
 
     if (url.pathname === '/broadcast/upload') {
       return handleBroadcastUpload(request, env, ctx, cors);
@@ -70,12 +83,15 @@ export default {
     if (url.pathname === '/android/access' && request.method === 'GET') {
       try {
         if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
-        const androidUserId = String(url.searchParams.get('id') || '').trim();
-        if (!/^\d{5,20}$/.test(androidUserId)) throw httpError(400, 'Bad Android user id');
-        if (androidUserId === String(env.ADMIN_TELEGRAM_ID || '')) throw httpError(403, 'Admin login is not allowed in Android ID mode');
+        const session = await requireAndroidSession(request, env);
         const store = env.USERS.get(env.USERS.idFromName('global'));
-        const access = await callStore(store, '/access', { id: androidUserId });
-        return json({ success: true, isBanned: Boolean(access.isBanned), source: 'cloudflare-sql-android-access-get' }, 200, cors);
+        const access = await callStore(store, '/access', { id: session.userId });
+        return json({
+          success: true,
+          userId: session.userId,
+          isBanned: Boolean(access.isBanned),
+          source: 'cloudflare-sql-android-session',
+        }, 200, cors);
       } catch (error) {
         return json({ success: false, error: String(error?.message || 'Server error') }, Number(error?.status || 500), cors);
       }
@@ -87,9 +103,10 @@ export default {
     try {
       if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
       const body = await request.json();
-      const androidUserId = String(body?.androidUserId || '').trim();
-      if (!/^\d{5,20}$/.test(androidUserId)) throw httpError(400, 'Bad Android user id');
-      if (androidUserId === String(env.ADMIN_TELEGRAM_ID || '')) throw httpError(403, 'Admin login is not allowed in Android ID mode');
+      const session = await requireAndroidSession(request, env);
+      const androidUserId = session.userId;
+      const claimedUserId = String(body?.androidUserId || '').trim();
+      if (claimedUserId && claimedUserId !== androidUserId) throw httpError(403, 'User mismatch');
 
       const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
       const action = String(payload.action || '');
@@ -137,6 +154,187 @@ export default {
     }
   },
 };
+
+
+const ANDROID_AUTH_CODE_TTL_MS = 10 * 60 * 1000;
+const ANDROID_AUTH_SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+async function handleAndroidAuthRequest(request, env, cors) {
+  try {
+    if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
+    if (!env.TELEGRAM_BOT_TOKEN) throw httpError(500, 'Telegram secret is not configured');
+    const body = await request.json().catch(() => ({}));
+    const telegramId = String(body?.telegramId || '').trim();
+    if (!/^\d{5,20}$/.test(telegramId)) throw httpError(400, 'Введите корректный Telegram ID');
+    if (telegramId === String(env.ADMIN_TELEGRAM_ID || '')) throw httpError(403, 'Вход администратора через Android недоступен');
+
+    const challengeId = `ach_${crypto.randomUUID().replaceAll('-', '')}`;
+    const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0');
+    const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
+    const requestKey = await authSha256Hex(request.headers.get('CF-Connecting-IP') || 'unknown');
+    const expiresAt = Date.now() + ANDROID_AUTH_CODE_TTL_MS;
+    const store = env.USERS.get(env.USERS.idFromName('global'));
+    await callStore(store, '/android-auth/begin', { challengeId, telegramId, codeHash, requestKey, expiresAt });
+
+    const sent = await telegramSendLoginCode(env, telegramId, code);
+    if (!sent.ok) {
+      await callStore(store, '/android-auth/drop', { challengeId }).catch(() => {});
+      const botUsername = await telegramBotUsername(env).catch(() => '');
+      const needsStart = sent.status === 400 || sent.status === 403;
+      return json({
+        success: false,
+        code: needsStart ? 'BOT_START_REQUIRED' : 'TELEGRAM_DELIVERY_FAILED',
+        requiresBotStart: needsStart,
+        botUsername,
+        error: needsStart
+          ? 'Бот пока не может написать вам. Откройте бота, нажмите Start и запросите код ещё раз.'
+          : 'Не удалось отправить код в Telegram. Попробуйте ещё раз.',
+      }, needsStart ? 409 : 502, cors);
+    }
+
+    return json({
+      success: true,
+      challengeId,
+      expiresInSeconds: Math.floor(ANDROID_AUTH_CODE_TTL_MS / 1000),
+    }, 200, cors);
+  } catch (error) {
+    return json({ success: false, error: String(error?.message || 'Не удалось запросить код') }, Number(error?.status || 500), cors);
+  }
+}
+
+async function handleAndroidAuthVerify(request, env, cors) {
+  try {
+    if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
+    if (!env.TELEGRAM_BOT_TOKEN) throw httpError(500, 'Telegram secret is not configured');
+    const body = await request.json().catch(() => ({}));
+    const challengeId = String(body?.challengeId || '').trim();
+    const code = String(body?.code || '').trim();
+    if (!/^ach_[a-zA-Z0-9_-]{20,80}$/.test(challengeId) || !/^\d{6}$/.test(code)) {
+      throw httpError(400, 'Введите шестизначный код из Telegram');
+    }
+
+    // The challenge owns the Telegram ID. The repeated ID is only part of the
+    // HMAC input; the durable store remains the authority for session identity.
+    const telegramId = String(body?.telegramId || '').trim();
+    if (!/^\d{5,20}$/.test(telegramId)) throw httpError(400, 'Telegram ID отсутствует');
+    const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
+    const token = `bgs_${authRandomBase64Url(32)}`;
+    const tokenHash = await authSha256Hex(token);
+    const sessionExpiresAt = Date.now() + ANDROID_AUTH_SESSION_TTL_MS;
+    const store = env.USERS.get(env.USERS.idFromName('global'));
+    const result = await callStore(store, '/android-auth/consume', {
+      challengeId,
+      codeHash,
+      tokenHash,
+      sessionExpiresAt,
+    });
+    if (String(result.userId || '') !== telegramId) throw httpError(403, 'Telegram ID не совпадает с кодом');
+    return json({
+      success: true,
+      userId: String(result.userId || ''),
+      token,
+      expiresAt: Number(result.expiresAt || sessionExpiresAt),
+      source: 'telegram-code-session',
+    }, 200, cors);
+  } catch (error) {
+    return json({ success: false, error: String(error?.message || 'Код не подтверждён') }, Number(error?.status || 500), cors);
+  }
+}
+
+async function handleAndroidAuthMe(request, env, cors) {
+  try {
+    const session = await requireAndroidSession(request, env);
+    const store = env.USERS.get(env.USERS.idFromName('global'));
+    const access = await callStore(store, '/access', { id: session.userId });
+    return json({ success: true, userId: session.userId, isBanned: Boolean(access.isBanned), expiresAt: session.expiresAt }, 200, cors);
+  } catch (error) {
+    return json({ success: false, error: String(error?.message || 'Сессия недействительна') }, Number(error?.status || 401), cors);
+  }
+}
+
+async function handleAndroidAuthLogout(request, env, cors) {
+  try {
+    const token = androidBearerToken(request);
+    if (token) {
+      const tokenHash = await authSha256Hex(token);
+      const store = env.USERS.get(env.USERS.idFromName('global'));
+      await callStore(store, '/android-auth/revoke', { tokenHash }).catch(() => {});
+    }
+    return json({ success: true }, 200, cors);
+  } catch {
+    return json({ success: true }, 200, cors);
+  }
+}
+
+async function requireAndroidSession(request, env) {
+  const token = androidBearerToken(request);
+  if (!token) throw httpError(401, 'Требуется подтверждённый вход');
+  const tokenHash = await authSha256Hex(token);
+  const store = env.USERS.get(env.USERS.idFromName('global'));
+  const session = await callStore(store, '/android-auth/session', { tokenHash });
+  const userId = String(session.userId || '');
+  if (!/^\d{5,20}$/.test(userId)) throw httpError(401, 'Сессия недействительна');
+  return { userId, expiresAt: Number(session.expiresAt || 0) };
+}
+
+function androidBearerToken(request) {
+  const header = String(request.headers.get('Authorization') || '');
+  const match = header.match(/^Bearer\s+(bgs_[A-Za-z0-9_-]{40,80})$/i);
+  return match ? match[1] : '';
+}
+
+async function telegramSendLoginCode(env, telegramId, code) {
+  const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: telegramId,
+      text: [
+        '🔐 Вход в «Библейские игры»',
+        '',
+        `Код подтверждения: ${code}`,
+        '',
+        'Код действует 10 минут. Никому его не сообщайте.',
+        'Если вы не запрашивали вход, просто проигнорируйте это сообщение.',
+      ].join('\n'),
+      disable_web_page_preview: true,
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  return { ok: response.ok && data?.ok === true, status: response.status, description: String(data?.description || '') };
+}
+
+async function telegramBotUsername(env) {
+  const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getMe`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.ok !== true) return '';
+  return String(data?.result?.username || '').replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 64);
+}
+
+async function authHmacHex(secret, value) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(String(secret || '')),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(String(value || ''))));
+  return [...signature].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function authSha256Hex(value) {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value || ''))));
+  return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function authRandomBase64Url(size) {
+  const bytes = new Uint8Array(size);
+  crypto.getRandomValues(bytes);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/g, '');
+}
 
 async function handleSupportAdminAction(store, action, payload, cors) {
   if (action === 'supportAdminList') {
@@ -374,7 +572,7 @@ function corsHeaders(request, env) {
   return {
     'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0] || 'https://vidalost.github.io',
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   };

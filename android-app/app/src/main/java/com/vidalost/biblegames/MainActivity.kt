@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.data.CloudRepository
+import com.vidalost.biblegames.data.AndroidSessionStore
 import com.vidalost.biblegames.ui.BibleGamesTheme
 
 class MainActivity : ComponentActivity() {
@@ -23,7 +24,8 @@ class MainActivity : ComponentActivity() {
             ),
         )
         val assets = AssetRepository(applicationContext)
-        val cloud = CloudRepository()
+        val sessionStore = AndroidSessionStore(applicationContext)
+        val cloud = CloudRepository(sessionStore.load()?.token.orEmpty())
         setContent {
             BibleGamesTheme { BibleGamesApp(assets = assets, cloud = cloud) }
         }

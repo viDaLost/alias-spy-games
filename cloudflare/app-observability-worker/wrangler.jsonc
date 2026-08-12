@@ -20,6 +20,7 @@
   },
   "vars": {
     "ALLOWED_ORIGINS": "https://vidalost.github.io",
-    "ADMIN_TELEGRAM_ID": "1288379477"
+    "ADMIN_TELEGRAM_ID": "1288379477",
+    "CORE_WORKER_URL": "https://alias-spy-games-core.vitaledanilov.workers.dev"
   }
 }
