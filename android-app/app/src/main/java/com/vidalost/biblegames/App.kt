@@ -98,7 +98,7 @@ private const val ID_KEY = "telegram_id"
 private const val HISTORY_KEY = "last_games"
 private const val RECENT_HIDDEN_KEY = "recent_games_hidden"
 private const val ADMIN_ID = "1288379477"
-private const val ACCESS_POLL_MS = 4_000L
+private const val ACCESS_POLL_MS = 3_000L
 private fun profileKey(userId: String, field: String) = "profile_${userId}_$field"
 private fun banKey(userId: String) = "profile_${userId}_banned"
 
@@ -194,21 +194,26 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     LaunchedEffect(userId, accessRetry) {
         if (userId.matches(Regex("^[0-9]{5,20}$")) && userId != ADMIN_ID) {
             syncing = true
-            accessChecked = false
             accessError = null
-            cloud.syncProfile(userId, profile)
-                .onSuccess {
-                    profile = it
-                    applyAccessState(it.isBanned)
-                    saveLocalProfile(context, it)
-                    if (it.lastGames.isNotEmpty()) {
-                        history = normalizeHistory(history + it.lastGames)
-                        prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
+            if (!isBanned) accessChecked = false
+
+            cloud.checkAccess(userId)
+                .onSuccess { banned ->
+                    applyAccessState(banned)
+                    if (!banned) {
+                        cloud.syncProfile(userId, profile).onSuccess {
+                            profile = it
+                            saveLocalProfile(context, it)
+                            if (it.lastGames.isNotEmpty()) {
+                                history = normalizeHistory(history + it.lastGames)
+                                prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
+                            }
+                        }
                     }
                 }
                 .onFailure { error ->
-                    accessChecked = false
-                    accessError = error.message ?: "Не удалось проверить доступ"
+                    if (!isBanned) accessChecked = false
+                    accessError = error.message ?: "Не удалось быстро проверить доступ"
                 }
             syncing = false
         } else {
@@ -217,11 +222,30 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         }
     }
 
-    LaunchedEffect(userId, accessChecked) {
-        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID || !accessChecked) return@LaunchedEffect
+    // Poll independently from accessChecked. This is important for a cached
+    // banned account: unblocking in the admin panel must restore access without
+    // forcing the player to change and re-enter the Telegram ID.
+    LaunchedEffect(userId) {
+        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID) return@LaunchedEffect
+        delay(ACCESS_POLL_MS)
         while (true) {
+            val wasBanned = isBanned
+            cloud.checkAccess(userId).onSuccess { banned ->
+                applyAccessState(banned)
+                if (wasBanned && !banned) {
+                    syncing = true
+                    cloud.syncProfile(userId, profile).onSuccess {
+                        profile = it
+                        saveLocalProfile(context, it)
+                        if (it.lastGames.isNotEmpty()) {
+                            history = normalizeHistory(history + it.lastGames)
+                            prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
+                        }
+                    }
+                    syncing = false
+                }
+            }
             delay(ACCESS_POLL_MS)
-            cloud.checkAccess(userId).onSuccess(::applyAccessState)
         }
     }
 
@@ -706,7 +730,7 @@ private fun AccessRestrictedScreen(onLogout: () -> Unit, onSupport: () -> Unit) 
             GlassCard(Modifier.fillMaxWidth()) {
                 Text("Доступ ограничен", color = Color(0xFF991B1B), fontSize = 25.sp, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(8.dp))
-                Text("Обжаловать блокировку можно через техническую поддержку.", color = InkSoft)
+                Text("Статус проверяется автоматически каждые несколько секунд. После разблокировки доступ восстановится без смены ID. Обжаловать блокировку можно через техническую поддержку.", color = InkSoft)
                 Spacer(Modifier.height(18.dp))
                 com.vidalost.biblegames.ui.SecondaryButton(
                     "Написать в техподдержку",
