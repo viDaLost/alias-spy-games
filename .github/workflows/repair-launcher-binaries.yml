@@ -1,4 +1,4 @@
-name: Repair launcher image binaries
+name: Repair launcher image binary
 
 on:
   push:
@@ -19,41 +19,50 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Restore valid launcher PNGs from original native payload
+      - name: Decode and install validated launcher icon
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin refs/heads/agent/native-android-2.6.0
-          STAGING_SHA="$(git rev-parse FETCH_HEAD)"
-          mapfile -t PAYLOADS < <(git ls-tree -r --name-only "$STAGING_SHA" | grep '^.native-upload/payload-' | grep '\.b64$' | sort)
-          test "${#PAYLOADS[@]}" -gt 10
-          : > /tmp/native.b64
-          for path in "${PAYLOADS[@]}"; do
-            git show "$STAGING_SHA:$path" >> /tmp/native.b64
-          done
-          base64 --decode /tmp/native.b64 > /tmp/native.tar.xz
-          mkdir -p /tmp/native
-          tar -xJf /tmp/native.tar.xz -C /tmp/native
+          test "$(find .icon-repair -maxdepth 1 -name 'chunk-*.b64' | wc -l)" -eq 8
+          cat .icon-repair/chunk-*.b64 | base64 --decode > /tmp/ic_launcher_art.webp
+          test "$(stat -c%s /tmp/ic_launcher_art.webp)" -eq 44748
+          echo '6061248a80c797d3467c9fcb9436e13d61ff81f0d0bce4052b797486d2bb09df  /tmp/ic_launcher_art.webp' | sha256sum -c -
+          file /tmp/ic_launcher_art.webp | grep -qi 'Web/P image'
 
-          SRC=/tmp/native/android-app/app/src/main/res/drawable-nodpi
           DST=android-app/app/src/main/res/drawable-nodpi
-          test -f "$SRC/ic_launcher_art.png"
-          test -f "$SRC/ic_launcher_adaptive.png"
-          file "$SRC/ic_launcher_art.png" | grep -q 'PNG image data, 512 x 512'
-          file "$SRC/ic_launcher_adaptive.png" | grep -q 'PNG image data, 512 x 512'
-
           mkdir -p "$DST"
           rm -f "$DST/ic_launcher_art.webp" "$DST/ic_launcher_adaptive.webp"
-          cp "$SRC/ic_launcher_art.png" "$DST/ic_launcher_art.png"
-          cp "$SRC/ic_launcher_adaptive.png" "$DST/ic_launcher_adaptive.png"
+          cp /tmp/ic_launcher_art.webp "$DST/ic_launcher_art.webp"
 
-          sed -i "s/versionCode 13/versionCode 14/" android-app/app/build.gradle
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' \
+            '    <background android:drawable="@color/launcher_background" />' \
+            '    <foreground android:drawable="@drawable/ic_launcher_art" />' \
+            '</adaptive-icon>' \
+            > android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          cp android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml android-app/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml
+
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="utf-8"?>' \
+            '<layer-list xmlns:android="http://schemas.android.com/apk/res/android">' \
+            '    <item android:drawable="@drawable/ic_launcher_art" />' \
+            '</layer-list>' \
+            > android-app/app/src/main/res/mipmap-anydpi/ic_launcher.xml
+
+          sed -i 's/versionCode 13/versionCode 14/' android-app/app/build.gradle
           sed -i "s/versionName '2.6.1-native'/versionName '2.6.2-native'/" android-app/app/build.gradle
           sed -i 's/BibleGames-Android-2\.6\.1-native/BibleGames-Android-2.6.2-native/g' .github/workflows/build-android-apk.yml
 
+          grep -q 'versionCode 14' android-app/app/build.gradle
+          grep -q "versionName '2.6.2-native'" android-app/app/build.gradle
+          grep -q '@drawable/ic_launcher_art' android-app/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+
+          rm -rf .icon-repair
           rm -f .github/workflows/repair-launcher-binaries.yml
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Restore valid launcher PNG resources'
+          git commit -m 'Restore valid launcher icon binary'
           git push origin HEAD:agent/repair-icon-binaries-2.6.2
