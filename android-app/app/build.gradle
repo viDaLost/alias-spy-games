@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 def releaseStoreFile = System.getenv('ANDROID_KEYSTORE_PATH')
@@ -12,19 +13,20 @@ def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAli
 
 android {
     namespace 'com.vidalost.biblegames'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId 'com.vidalost.biblegames'
         minSdk 24
-        targetSdk 35
-        versionCode 3
-        versionName '1.0.2'
+        targetSdk 36
+        versionCode 12
+        versionName '2.6.0-native'
+        vectorDrawables.useSupportLibrary = true
     }
 
     signingConfigs {
         if (releaseSigningReady) {
-            release {
+            production {
                 storeFile file(releaseStoreFile)
                 storePassword releaseStorePassword
                 keyAlias releaseKeyAlias
@@ -35,11 +37,12 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             if (releaseSigningReady) {
-                signingConfig signingConfigs.release
+                signingConfig signingConfigs.production
             }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -47,16 +50,75 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    kotlinOptions { jvmTarget = '17' }
+
+    buildFeatures { compose true }
+    composeOptions { kotlinCompilerExtensionVersion = '1.5.14' }
+
+    packaging {
+        resources.excludes += ['/META-INF/{AL2.0,LGPL2.1}', 'META-INF/DEPENDENCIES']
+    }
+
+    sourceSets {
+        main.assets.srcDir(layout.buildDirectory.dir('generated/assets/native'))
+    }
 }
 
 gradle.taskGraph.whenReady { graph ->
     def releaseRequested = graph.allTasks.any {
-        it.project == project && it.name.toLowerCase().contains('release')
+        it.project == project && (it.name == 'assembleRelease' || it.name == 'bundleRelease' || it.name == 'apkForDistribution' || it.name == 'bundleForPlay')
     }
     if (releaseRequested && !releaseSigningReady) {
         throw new GradleException(
-                'Release signing is not configured. Set ANDROID_KEYSTORE_PATH, ' +
+                'Production signing is not configured. Set ANDROID_KEYSTORE_PATH, ' +
                 'ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD.'
         )
     }
+    if (releaseRequested && !file(releaseStoreFile).isFile()) {
+        throw new GradleException('ANDROID_KEYSTORE_PATH does not point to a readable keystore file')
+    }
+}
+
+tasks.register('bundleForPlay') {
+    group = 'build'
+    description = 'Builds a production-signed Android App Bundle.'
+    dependsOn 'bundleRelease'
+}
+
+tasks.register('apkForDistribution') {
+    group = 'build'
+    description = 'Builds a production-signed APK for direct distribution.'
+    dependsOn 'assembleRelease'
+}
+
+def repositoryRoot = rootProject.projectDir.parentFile
+def generatedNativeAssets = layout.buildDirectory.dir('generated/assets/native')
+
+tasks.register('syncNativeAssets', Exec) {
+    workingDir repositoryRoot
+    commandLine 'node', new File(repositoryRoot, 'scripts/sync-android-assets.mjs').absolutePath, generatedNativeAssets.get().asFile.absolutePath
+    inputs.files(fileTree(repositoryRoot) {
+        include 'assets/icons/**', 'assets/cards/**', 'data/**'
+        exclude 'node_modules/**', 'android-app/**'
+    })
+    outputs.dir(generatedNativeAssets)
+}
+
+tasks.named('preBuild').configure {
+    dependsOn tasks.named('syncNativeAssets')
+}
+
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.09.03')
+    implementation 'androidx.activity:activity-compose:1.9.2'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.6'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.animation:animation'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
 }
