@@ -104,6 +104,49 @@ class CloudRepository {
         }
     }
 
+    suspend fun createSupportTicket(id: String, subject: String, message: String): Result<SupportTicket> = withContext(Dispatchers.IO) {
+        runCatching {
+            val payload = JSONObject()
+                .put("action", "supportCreate")
+                .put("subject", subject)
+                .put("message", message)
+                .put("source", "android")
+            val json = post("$CORE/android/compat", JSONObject().put("payload", payload).put("androidUserId", id))
+            parseSupportTicket(json.getJSONObject("ticket"))
+        }
+    }
+
+    suspend fun listSupportTickets(id: String): Result<List<SupportTicket>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val payload = JSONObject().put("action", "supportList")
+            val json = post("$CORE/android/compat", JSONObject().put("payload", payload).put("androidUserId", id))
+            val array = json.optJSONArray("tickets") ?: JSONArray()
+            List(array.length()) { index -> parseSupportTicket(array.getJSONObject(index)) }
+        }
+    }
+
+    private fun parseSupportTicket(json: JSONObject): SupportTicket {
+        val messagesJson = json.optJSONArray("messages") ?: JSONArray()
+        val messages = List(messagesJson.length()) { index ->
+            val item = messagesJson.getJSONObject(index)
+            SupportMessage(
+                sender = item.optString("sender", "user"),
+                body = item.optString("body", ""),
+                createdAt = item.optLong("createdAt", 0L),
+            )
+        }
+        return SupportTicket(
+            id = json.optString("id", ""),
+            userId = json.optString("userId", ""),
+            source = json.optString("source", "android"),
+            subject = json.optString("subject", ""),
+            status = json.optString("status", "new"),
+            createdAt = json.optLong("createdAt", 0L),
+            updatedAt = json.optLong("updatedAt", 0L),
+            messages = messages,
+        )
+    }
+
     suspend fun post(url: String, body: JSONObject): JSONObject = postWith(client, url, body)
 
     /**
