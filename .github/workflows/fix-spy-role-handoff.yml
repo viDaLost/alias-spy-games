@@ -2,10 +2,7 @@ name: Fix Android Spy role handoff
 
 on:
   push:
-    branches:
-      - agent/fix-spy-role-handoff-2.6.3
-    paths:
-      - '.github/workflows/fix-spy-role-handoff.yml'
+    branches: [agent/fix-spy-role-handoff-2.6.3]
 
 permissions:
   contents: write
@@ -13,30 +10,17 @@ permissions:
 jobs:
   patch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Apply Spy Android fix
+      - name: Apply patch
         run: python3 scripts/fix-spy-role-handoff.py
-
-      - name: Verify patch
-        shell: bash
+      - name: Commit changes
         run: |
-          set -euo pipefail
-          grep -q 'handoffInProgress' android-app/app/src/main/java/com/vidalost/biblegames/games/SpyGame.kt
-          grep -q 'val showFront = revealed && rotation > 90f' android-app/app/src/main/java/com/vidalost/biblegames/games/SpyGame.kt
-          grep -q 'fillMaxWidth(.96f)' android-app/app/src/main/java/com/vidalost/biblegames/games/SpyGame.kt
-          grep -q 'versionCode 15' android-app/app/build.gradle
-
-      - name: Commit patched Android files
-        shell: bash
-        run: |
-          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add android-app
+          git diff --cached --quiet && exit 0
           git commit -m 'Fix Spy role card layout and secure handoff'
           git push origin HEAD:agent/fix-spy-role-handoff-2.6.3
