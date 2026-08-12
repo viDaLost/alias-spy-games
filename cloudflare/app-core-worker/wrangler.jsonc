@@ -20,7 +20,6 @@
   },
   "vars": {
     "ALLOWED_ORIGINS": "https://vidalost.github.io",
-    "ADMIN_TELEGRAM_ID": "1288379477",
-    "BROADCAST_GAS_URL": "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec"
+    "ADMIN_TELEGRAM_ID": "1288379477"
   }
 }
