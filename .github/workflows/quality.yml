@@ -30,6 +30,8 @@ jobs:
         run: node scripts/check-presence-freshness.mjs
       - name: Check support center integration
         run: node scripts/check-support-center.mjs
+      - name: Check Android ban enforcement
+        run: node scripts/check-android-ban-enforcement.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund
