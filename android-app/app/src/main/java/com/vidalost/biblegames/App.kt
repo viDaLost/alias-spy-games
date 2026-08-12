@@ -188,7 +188,6 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     fun applyAccessState(banned: Boolean) {
         isBanned = banned
         accessChecked = true
-        accessError = null
         prefs.edit().putBoolean(banKey(userId), banned).apply()
         if (banned) {
             currentGame = null
