@@ -3,6 +3,7 @@ package com.vidalost.biblegames
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -99,6 +100,7 @@ private const val HISTORY_KEY = "last_games"
 private const val RECENT_HIDDEN_KEY = "recent_games_hidden"
 private const val ADMIN_ID = "1288379477"
 private const val ACCESS_POLL_MS = 3_000L
+private const val ACCESS_RETRY_MS = 900L
 private fun profileKey(userId: String, field: String) = "profile_${userId}_$field"
 private fun banKey(userId: String) = "profile_${userId}_banned"
 
@@ -152,12 +154,15 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     var profile by remember(userId) { mutableStateOf(loadLocalProfile(context, userId, history)) }
     var isBanned by remember(userId) { mutableStateOf(prefs.getBoolean(banKey(userId), false)) }
     var accessChecked by remember(userId) { mutableStateOf(false) }
-    var accessError by remember(userId) { mutableStateOf<String?>(null) }
-    var accessRetry by remember(userId) { mutableStateOf(0) }
     var syncing by remember(userId) { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val presence = remember(userId) {
-        if (userId.matches(Regex("^[0-9]{5,20}$"))) AppPresenceClient(context, cloud, userId) else null
+    // Do not open the presence WebSocket until access is verified. Besides
+    // preventing blocked/unverified sessions from appearing online, this avoids
+    // competing with the tiny access request during cold mobile/VPN startup.
+    val presence = remember(userId, accessChecked, isBanned) {
+        if (userId.matches(Regex("^[0-9]{5,20}$")) && accessChecked && !isBanned)
+            AppPresenceClient(context, cloud, userId)
+        else null
     }
 
     DisposableEffect(lifecycleOwner, presence) {
@@ -183,7 +188,6 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     fun applyAccessState(banned: Boolean) {
         isBanned = banned
         accessChecked = true
-        accessError = null
         prefs.edit().putBoolean(banKey(userId), banned).apply()
         if (banned) {
             currentGame = null
@@ -191,16 +195,24 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
         }
     }
 
-    LaunchedEffect(userId, accessRetry) {
-        if (userId.matches(Regex("^[0-9]{5,20}$")) && userId != ADMIN_ID) {
-            syncing = true
-            accessError = null
-            if (!isBanned) accessChecked = false
-
-            cloud.checkAccess(userId)
-                .onSuccess { banned ->
-                    applyAccessState(banned)
-                    if (!banned) {
+    // One access monitor owns both startup verification and later ban/unban
+    // refreshes. Network failures retry automatically; there are no overlapping
+    // manual + polling requests and no raw timeout screen for the player.
+    LaunchedEffect(userId) {
+        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID) {
+            accessChecked = false
+            return@LaunchedEffect
+        }
+        if (!isBanned) accessChecked = false
+        while (true) {
+            val firstVerification = !accessChecked
+            val wasBanned = isBanned
+            val result = cloud.checkAccess(userId)
+            result.onSuccess { banned ->
+                applyAccessState(banned)
+                if (!banned && (firstVerification || wasBanned)) {
+                    syncing = true
+                    launch {
                         cloud.syncProfile(userId, profile).onSuccess {
                             profile = it
                             saveLocalProfile(context, it)
@@ -209,43 +221,11 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                                 prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
                             }
                         }
+                        syncing = false
                     }
-                }
-                .onFailure { error ->
-                    if (!isBanned) accessChecked = false
-                    accessError = error.message ?: "Не удалось быстро проверить доступ"
-                }
-            syncing = false
-        } else {
-            accessChecked = false
-            accessError = null
-        }
-    }
-
-    // Poll independently from accessChecked. This is important for a cached
-    // banned account: unblocking in the admin panel must restore access without
-    // forcing the player to change and re-enter the Telegram ID.
-    LaunchedEffect(userId) {
-        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID) return@LaunchedEffect
-        delay(ACCESS_POLL_MS)
-        while (true) {
-            val wasBanned = isBanned
-            cloud.checkAccess(userId).onSuccess { banned ->
-                applyAccessState(banned)
-                if (wasBanned && !banned) {
-                    syncing = true
-                    cloud.syncProfile(userId, profile).onSuccess {
-                        profile = it
-                        saveLocalProfile(context, it)
-                        if (it.lastGames.isNotEmpty()) {
-                            history = normalizeHistory(history + it.lastGames)
-                            prefs.edit().putString(HISTORY_KEY, history.joinToString(",")).apply()
-                        }
-                    }
-                    syncing = false
                 }
             }
-            delay(ACCESS_POLL_MS)
+            delay(if (result.isSuccess) ACCESS_POLL_MS else ACCESS_RETRY_MS)
         }
     }
 
@@ -262,7 +242,11 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     }
 
     fun openGame(game: GameKey) {
-        if (!accessChecked || isBanned) return
+        if (!accessChecked) {
+            Toast.makeText(context, "Проверяем доступ. Игра откроется после подтверждения.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (isBanned) return
         activeRoomId = ""
         currentGame = game.route
         history = (listOf(game.route) + history).distinct().take(3)
@@ -287,19 +271,6 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     if (supportOpen) {
         BackHandler { supportOpen = false }
         SupportScreen(cloud = cloud, initialUserId = userId, onBack = { supportOpen = false })
-        return
-    }
-
-    if (userId.isNotBlank() && !accessChecked && !isBanned) {
-        AccessVerificationScreen(
-            error = accessError,
-            onRetry = { accessRetry += 1 },
-            onLogout = {
-                prefs.edit().remove(ID_KEY).apply()
-                userId = ""
-            },
-            onSupport = { supportOpen = true },
-        )
         return
     }
 
@@ -343,6 +314,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                 assets = assets,
                 history = history,
                 syncing = syncing,
+                accessReady = accessChecked,
                 profile = profile,
                 onOpenGame = ::openGame,
                 onLogout = {
@@ -433,6 +405,7 @@ private fun HomeScreen(
     assets: AssetRepository,
     history: List<String>,
     syncing: Boolean,
+    accessReady: Boolean,
     profile: PlayerProfile,
     onOpenGame: (GameKey) -> Unit,
     onLogout: () -> Unit,
@@ -465,7 +438,15 @@ private fun HomeScreen(
                     Text("Выберите игру и начните партию", color = InkSoft, fontSize = 15.sp)
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatusPill(if (syncing) "Синхронизация…" else "Прогресс сохранён", if (syncing) Cyan else Color(0xFF059669), if (syncing) "↻" else "✓")
+                        StatusPill(
+                            when {
+                                !accessReady -> "Проверяем доступ…"
+                                syncing -> "Синхронизация…"
+                                else -> "Прогресс сохранён"
+                            },
+                            if (!accessReady || syncing) Cyan else Color(0xFF059669),
+                            if (!accessReady || syncing) "↻" else "✓",
+                        )
                         StatusPill("★ ${profile.wowStars}", Color(0xFFB7791F))
                     }
                 }
