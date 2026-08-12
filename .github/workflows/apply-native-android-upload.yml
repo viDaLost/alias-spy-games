@@ -1,0 +1,71 @@
+name: Apply native Android upload
+
+on:
+  push:
+    branches:
+      - agent/native-android-2.6.0
+    paths:
+      - '.native-upload/APPLY'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/native-android-2.6.0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Repair and apply staged native Android ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .native-upload/payload-*.b64 > /tmp/native.b64
+          base64 --decode /tmp/native.b64 > /tmp/native-truncated.zip
+          zip -FF /tmp/native-truncated.zip --out /tmp/native.zip >/tmp/repair.log 2>&1 || { cat /tmp/repair.log; exit 1; }
+          unzip -t /tmp/native.zip
+          mkdir -p /tmp/native
+          unzip -oq /tmp/native.zip -d /tmp/native
+
+          test -f /tmp/native/android-app/app/build.gradle.kts
+          test -f /tmp/native/android-app/app/src/main/AndroidManifest.xml
+          test -f /tmp/native/android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt
+          test -f /tmp/native/android-app/app/src/main/res/drawable-nodpi/ic_launcher_adaptive.webp
+          test -f /tmp/native/android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp
+          test -f /tmp/native/.github/workflows/build-android-apk.yml
+          test -f /tmp/native/scripts/sync-android-assets.mjs
+
+          rm -rf android-app
+          cp -a /tmp/native/android-app ./android-app
+          cp /tmp/native/.github/workflows/build-android-apk.yml .github/workflows/build-android-apk.yml
+          cp /tmp/native/scripts/sync-android-assets.mjs scripts/sync-android-assets.mjs
+          cp /tmp/native/.gitignore .gitignore
+
+          node scripts/sync-android-assets.mjs
+          gradle -p android-app :app:assembleDebug :app:lintDebug --no-daemon
+
+          rm -rf .native-upload
+          rm -f __placeholder
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Replace Android wrapper with native 2.6.0 app'
+          git push origin HEAD:agent/native-android-2.6.0
