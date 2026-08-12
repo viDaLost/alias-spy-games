@@ -26,6 +26,8 @@ jobs:
         run: node --test cloudflare/quartet-worker/test/*.test.mjs
       - name: Test Bible Sketch server engine
         run: node --test cloudflare/bible-sketch-worker/test/*.test.mjs
+      - name: Check presence freshness logic
+        run: node scripts/check-presence-freshness.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund
