@@ -99,6 +99,7 @@ jobs:
           set -euo pipefail
           rm -rf cloudflare/app-core-worker/node_modules
           rm -f cloudflare/app-core-worker/package-lock.json
+          git checkout -- scripts/apply-android-auth-request-timeout-272.py
           git config user.name "viDaLost"
           git config user.email "vitaledanilov@gmail.com"
           git add \
@@ -112,5 +113,4 @@ jobs:
             scripts/check-support-center.mjs
           git status --short
           git commit -m "Fix Telegram code request response loss on Android"
-          git pull --rebase origin fix/android-auth-request-timeout-2.7.2
           git push origin HEAD:fix/android-auth-request-timeout-2.7.2
