@@ -31,10 +31,10 @@ need(core, "callStore(store, '/access', { id: session.userId })", 'backend acces
 need(core, "if (isBanned) throw httpError(403, 'Доступ ограничен');", 'backend does not reject banned writes');
 need(authStore, 'CREATE TABLE IF NOT EXISTS android_sessions', 'durable Android session storage missing');
 need(authStore, 'MAX_CODE_ATTEMPTS = 5', 'verification code brute-force limit missing');
-need(authStore, 'MAX_CHALLENGES_PER_ID = 3', 'verification request rate limit missing');
+need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit missing');
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, "versionName '2.7.2-native'", 'Android version was not bumped');
+need(gradle, "versionName '2.7.3-native'", 'Android version was not bumped');
 
 console.log('Android verified-session access and ban refresh checks passed.');
