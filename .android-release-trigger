@@ -1,5 +1,5 @@
 BibleGames Android release trigger
-version=2.7.1-native
-versionCode=21
+version=2.7.2-native
+versionCode=22
 requested=2026-08-13
-reason=android-auth-reliability-admin-isolation
+reason=telegram-code-request-response-loss
