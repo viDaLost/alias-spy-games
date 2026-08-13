@@ -80,11 +80,11 @@ jobs:
           set -euo pipefail
           rm -rf cloudflare/app-core-worker/node_modules
           rm -f cloudflare/app-core-worker/package-lock.json
+          git checkout -- .github/workflows/build-android-apk.yml
           git config user.name "viDaLost"
           git config user.email "vitaledanilov@gmail.com"
           git add \
             .android-release-trigger \
-            .github/workflows/build-android-apk.yml \
             android-app/app/build.gradle \
             android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt \
             cloudflare/app-core-worker/src/index-v4.js \
