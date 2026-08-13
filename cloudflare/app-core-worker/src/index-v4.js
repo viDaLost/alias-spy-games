@@ -167,13 +167,25 @@ async function handleAndroidAuthRequest(request, env, cors) {
     const telegramId = String(body?.telegramId || '').trim();
     if (!/^\d{5,20}$/.test(telegramId)) throw httpError(400, 'Введите корректный Telegram ID');
 
-    const challengeId = `ach_${crypto.randomUUID().replaceAll('-', '')}`;
+    const requestedChallengeId = String(body?.challengeId || '').trim();
+    const challengeId = /^ach_[a-zA-Z0-9_-]{20,80}$/.test(requestedChallengeId)
+      ? requestedChallengeId
+      : `ach_${crypto.randomUUID().replaceAll('-', '')}`;
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0');
     const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
     const requestKey = await authSha256Hex(request.headers.get('CF-Connecting-IP') || 'unknown');
     const expiresAt = Date.now() + ANDROID_AUTH_CODE_TTL_MS;
     const store = env.USERS.get(env.USERS.idFromName('global'));
-    await callStore(store, '/android-auth/begin', { challengeId, telegramId, codeHash, requestKey, expiresAt });
+    const begin = await callStore(store, '/android-auth/begin', { challengeId, telegramId, codeHash, requestKey, expiresAt });
+
+    if (begin.existing) {
+      return json({
+        success: true,
+        challengeId,
+        expiresInSeconds: Math.max(1, Math.floor((Number(begin.expiresAt || expiresAt) - Date.now()) / 1000)),
+        reused: true,
+      }, 200, cors);
+    }
 
     const sent = await telegramSendLoginCode(env, telegramId, code);
     if (!sent.ok) {

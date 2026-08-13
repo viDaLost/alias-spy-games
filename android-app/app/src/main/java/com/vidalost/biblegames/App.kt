@@ -391,7 +391,11 @@ private fun LoginScreen(
         scope.launch {
             cloud.requestLoginCode(id).onSuccess {
                 challenge = it
-                info = "Код отправлен в @$TELEGRAM_BOT_USERNAME. Введите 6 цифр из сообщения бота."
+                info = if (it.deliveryConfirmed) {
+                    "Код отправлен в @$TELEGRAM_BOT_USERNAME. Введите 6 цифр из сообщения бота."
+                } else {
+                    "Если код уже пришёл в @$TELEGRAM_BOT_USERNAME, введите 6 цифр ниже. Ответ сервера потерялся, но полученный код можно подтвердить."
+                }
             }.onFailure { cause ->
                 error = if (cause is AuthBotStartRequired) {
                     "Откройте @$TELEGRAM_BOT_USERNAME, нажмите Start и запросите код ещё раз."

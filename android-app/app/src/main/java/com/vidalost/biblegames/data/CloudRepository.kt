@@ -12,6 +12,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class RoomHttpException(
@@ -24,6 +25,7 @@ data class AndroidAuthChallenge(
     val telegramId: String,
     val challengeId: String,
     val expiresInSeconds: Int,
+    val deliveryConfirmed: Boolean = true,
 )
 
 data class AndroidAuthSession(
@@ -42,6 +44,8 @@ class AuthBotStartRequired(
     val botUsername: String,
     message: String,
 ) : IOException(message)
+
+class AuthRequestRejected(message: String) : IOException(message)
 
 class AuthSessionInvalid(message: String) : IOException(message)
 
@@ -128,38 +132,53 @@ class CloudRepository(initialSessionToken: String = "") {
         .build()
 
     suspend fun requestLoginCode(id: String): Result<AndroidAuthChallenge> = withContext(Dispatchers.IO) {
+        // The client owns the challenge id. This makes requesting a code retry-safe:
+        // if Telegram received the code but the HTTP response was lost, Android can
+        // repeat the same request and the server will return the existing challenge.
+        val challengeId = "ach_${UUID.randomUUID().toString().replace("-", "")}"
         runCatching {
-            val body = JSONObject().put("telegramId", id)
+            val body = JSONObject()
+                .put("telegramId", id)
+                .put("challengeId", challengeId)
             val request = Request.Builder()
                 .url("$CORE/android/auth/request")
                 .post(body.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
                 .build()
-            accessFallbackClient.newCall(request).execute().use { response ->
-                val text = response.body?.string().orEmpty()
-                val json = runCatching { JSONObject(text) }.getOrNull()
-                if (!response.isSuccessful || json == null || !json.optBoolean("success", false)) {
-                    val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось отправить код"
-                    if (json?.optBoolean("requiresBotStart", false) == true) {
-                        throw AuthBotStartRequired(json.optString("botUsername", ""), message)
-                    }
-                    throw IOException(message)
+            val response = executeSmallJsonWithRetry(request)
+            val json = response.json
+            if (response.status !in 200..299 || json == null || !json.optBoolean("success", false)) {
+                val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось отправить код"
+                if (json?.optBoolean("requiresBotStart", false) == true) {
+                    throw AuthBotStartRequired(json.optString("botUsername", ""), message)
                 }
+                throw AuthRequestRejected(message)
+            }
+            AndroidAuthChallenge(
+                telegramId = id,
+                challengeId = json.optString("challengeId", challengeId).ifBlank { challengeId },
+                expiresInSeconds = json.optInt("expiresInSeconds", 600),
+                deliveryConfirmed = true,
+            )
+        }.recoverCatching { cause ->
+            if (cause is AuthBotStartRequired || cause is AuthRequestRejected) throw cause
+            if (cause is IOException) {
+                // A lost response must not hide the code field. If the server already
+                // sent the Telegram message, the locally known challenge id is enough
+                // to verify it. If the request never arrived, no code will arrive and
+                // the player can simply request another one.
                 AndroidAuthChallenge(
                     telegramId = id,
-                    challengeId = json.getString("challengeId"),
-                    expiresInSeconds = json.optInt("expiresInSeconds", 600),
+                    challengeId = challengeId,
+                    expiresInSeconds = 600,
+                    deliveryConfirmed = false,
                 )
+            } else {
+                throw cause
             }
-        }.recoverCatching { cause ->
-            if (cause is AuthBotStartRequired) throw cause
-            if (cause is IOException && cause.message?.lowercase()?.contains("timeout") == true) {
-                throw IOException("Сервер отвечает медленно. Проверьте интернет или VPN и запросите код ещё раз.", cause)
-            }
-            throw cause
         }
     }
 
@@ -175,7 +194,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
                 .build()
             val response = executeSmallJsonWithRetry(request)
             val json = response.json
@@ -199,7 +218,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .post("{}".toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
-                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
                 .build()
             accessClient.newCall(request).execute().close()
         }
@@ -241,7 +260,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
                 .build()
             val response = executeSmallJsonWithRetry(request)
             val json = response.json
@@ -372,7 +391,7 @@ class CloudRepository(initialSessionToken: String = "") {
             // so Android and Telegram WebApp use one profile store.
             .header("Origin", "https://vidalost.github.io")
             .header("Cache-Control", "no-store")
-            .header("User-Agent", "BibleGames-Android/2.7.1 Native")
+            .header("User-Agent", "BibleGames-Android/2.7.2 Native")
         if (url.startsWith(CORE) && sessionToken.isNotBlank()) builder.header("Authorization", "Bearer $sessionToken")
         val request = builder.build()
         http.newCall(request).execute().use { response ->

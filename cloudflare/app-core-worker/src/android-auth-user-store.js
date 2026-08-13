@@ -74,6 +74,30 @@ export class AndroidAuthUserStore extends SupportUserStore {
     }
 
     this.cleanupAuth(now);
+
+    // A mobile request can reach Cloudflare and send the Telegram message while
+    // its HTTP response is lost. The client therefore retries with the same
+    // challenge id. Return the existing challenge before rate-limit accounting
+    // so a transport retry neither creates a second code nor consumes quota.
+    const existing = this.sql.exec(
+      'SELECT telegram_id, expires_at FROM android_auth_challenges WHERE id = ?',
+      challengeId,
+    ).toArray()[0];
+    if (existing) {
+      if (String(existing.telegram_id || '') !== telegramId) {
+        return fail(409, 'AUTH_CHALLENGE_CONFLICT', 'Некорректный запрос подтверждения');
+      }
+      if (Number(existing.expires_at || 0) > now) {
+        return {
+          ok: true,
+          success: true,
+          existing: true,
+          expiresAt: Number(existing.expires_at || 0),
+        };
+      }
+      this.sql.exec('DELETE FROM android_auth_challenges WHERE id = ?', challengeId);
+    }
+
     const byId = this.sql.exec(
       'SELECT COUNT(*) AS count FROM android_auth_challenges WHERE telegram_id = ? AND created_at >= ?',
       telegramId,
@@ -103,7 +127,7 @@ export class AndroidAuthUserStore extends SupportUserStore {
       now,
       expiresAt,
     );
-    return { ok: true, success: true };
+    return { ok: true, success: true, existing: false, expiresAt };
   }
 
   async dropChallenge(raw = {}) {
