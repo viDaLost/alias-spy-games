@@ -54,6 +54,20 @@ jobs:
       - name: Apply retry-safe auth request patch
         run: python scripts/apply-android-auth-request-timeout-272.py
 
+      - name: Update version-sensitive regression checks
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('scripts/check-android-ban-enforcement.mjs', 'scripts/check-support-center.mjs'):
+              p = Path(name)
+              text = p.read_text(encoding='utf-8')
+              old = "versionName '2.7.1-native'"
+              if old not in text:
+                  raise SystemExit(f'Missing 2.7.1 version marker in {name}')
+              p.write_text(text.replace(old, "versionName '2.7.2-native'"), encoding='utf-8')
+          PY
+
       - name: Static and security checks
         shell: bash
         run: |
@@ -93,7 +107,9 @@ jobs:
             android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt \
             cloudflare/app-core-worker/src/index-v4.js \
             cloudflare/app-core-worker/src/android-auth-user-store.js \
-            scripts/check-android-secure-auth.mjs
+            scripts/check-android-secure-auth.mjs \
+            scripts/check-android-ban-enforcement.mjs \
+            scripts/check-support-center.mjs
           git status --short
           git commit -m "Fix Telegram code request response loss on Android"
           git pull --rebase origin fix/android-auth-request-timeout-2.7.2
