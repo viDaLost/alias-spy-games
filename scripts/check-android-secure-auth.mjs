@@ -33,6 +33,8 @@ need(cloud, '/android/auth/verify', 'auth verify endpoint missing in Android cli
 need(cloud, '.header("Authorization", "Bearer $token")', 'access check lacks bearer authentication');
 need(cloud, 'AuthSessionInvalid', '401 session failures are not distinguished from network failures');
 need(cloud, 'executeSmallJsonWithRetry', 'verification/access calls do not retry alternate transport');
+need(cloud, '.put("challengeId", challengeId)', 'code request does not carry a client-owned retry id');
+need(cloud, 'deliveryConfirmed = false', 'lost auth-request responses still hide the code entry step');
 reject(cloud, 'android/access?id=', 'client can still choose identity in access URL');
 
 need(sessionStore, 'AndroidKeyStore', 'session key is not hardware/OS keystore backed');
@@ -48,6 +50,7 @@ need(core, "callStore(store, '/access', { id: session.userId })", 'access lookup
 need(core, 'authHmacHex(env.TELEGRAM_BOT_TOKEN', 'login code is not keyed with a server-only secret');
 need(core, 'session:${challengeId}:${telegramId}:${code}', 'retry-safe session token derivation is missing');
 need(core, "request.headers.get('CF-Connecting-IP')", 'auth request rate limit is not keyed to requester network');
+need(core, 'if (begin.existing)', 'retrying a lost code-request response can send a second Telegram code');
 reject(core, 'Вход администратора через Android недоступен', 'backend still blocks the administrator account on Android');
 
 need(authStore, 'CREATE TABLE IF NOT EXISTS android_auth_challenges', 'challenge persistence missing');
@@ -57,6 +60,7 @@ reject(authStore, 'token TEXT PRIMARY KEY', 'raw bearer token column exists');
 need(authStore, 'MAX_CODE_ATTEMPTS = 5', 'code brute-force attempts are not bounded');
 need(authStore, 'MAX_CHALLENGES_PER_ID = 3', 'per-account code request rate limit missing');
 need(authStore, 'INSERT OR IGNORE INTO android_sessions', 'verification is not idempotent after a lost response');
+need(authStore, 'existing: true', 'code request is not idempotent after a lost response');
 need(authStore, 'CHALLENGE_VERIFY_GRACE_MS', 'OTP can expire while a verification request is in flight');
 need(authStore, 'SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000', 'session expiration missing');
 
@@ -65,7 +69,7 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '2.7.1-native'", 'secure auth release version is not current');
-need(gradle, 'versionCode 21', 'secure auth versionCode is not current');
+need(gradle, "versionName '2.7.2-native'", 'secure auth release version is not current');
+need(gradle, 'versionCode 22', 'secure auth versionCode is not current');
 
 console.log('Android Telegram ownership + bearer session security checks passed.');
