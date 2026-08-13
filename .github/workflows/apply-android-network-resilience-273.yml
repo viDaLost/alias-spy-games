@@ -36,6 +36,19 @@ jobs:
       - name: Apply patch
         run: python scripts/apply-android-network-resilience-273.py
 
+      - name: Update rate-limit regression check
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/check-android-secure-auth.mjs')
+          text = p.read_text(encoding='utf-8')
+          old = 'MAX_CHALLENGES_PER_ID = 3'
+          if old not in text:
+              raise SystemExit('Old auth rate-limit marker missing')
+          p.write_text(text.replace(old, 'MAX_CHALLENGES_PER_ID = 6'), encoding='utf-8')
+          PY
+
       - name: Static and security checks
         shell: bash
         run: |
