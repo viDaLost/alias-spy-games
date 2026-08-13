@@ -35,6 +35,9 @@ export default {
     if (url.pathname === '/android/auth/logout' && request.method === 'POST') {
       return handleAndroidAuthLogout(request, env, cors);
     }
+    if (url.pathname === '/android/room-relay' && request.method === 'POST') {
+      return handleAndroidRoomRelay(request, env, cors);
+    }
 
     if (url.pathname === '/broadcast/upload') {
       return handleBroadcastUpload(request, env, ctx, cors);
@@ -158,6 +161,70 @@ export default {
 
 const ANDROID_AUTH_CODE_TTL_MS = 10 * 60 * 1000;
 const ANDROID_AUTH_SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const ANDROID_ROOM_BACKENDS = Object.freeze({
+  quartet: 'https://alias-spy-games-quartet.vitaledanilov.workers.dev',
+  sketch: 'https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev',
+});
+
+async function handleAndroidRoomRelay(request, env, cors) {
+  try {
+    if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
+    await requireAndroidSession(request, env);
+    const body = await request.json().catch(() => ({}));
+    const backendKey = String(body?.backend || '').trim();
+    const base = ANDROID_ROOM_BACKENDS[backendKey];
+    if (!base) throw httpError(400, 'Unknown room backend');
+
+    const rawPath = String(body?.path || '').trim();
+    const upstreamUrl = new URL(rawPath, `${base}/`);
+    if (upstreamUrl.origin !== new URL(base).origin) throw httpError(400, 'Invalid room target');
+    const allowedPath = upstreamUrl.pathname === '/rooms'
+      || /^\/rooms\/[A-Z0-9]{4,10}\/(?:join|poll)$/i.test(upstreamUrl.pathname);
+    if (!allowedPath) throw httpError(400, 'Invalid room path');
+    const queryKeys = [...upstreamUrl.searchParams.keys()];
+    if (queryKeys.some((key) => key !== 'token')) throw httpError(400, 'Invalid room query');
+    if (upstreamUrl.pathname.endsWith('/poll')) {
+      if (!upstreamUrl.searchParams.get('token')) throw httpError(400, 'Room token missing');
+    } else if (queryKeys.length) {
+      throw httpError(400, 'Unexpected room query');
+    }
+
+    const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
+    const payloadText = JSON.stringify(payload);
+    if (payloadText.length > 512 * 1024) throw httpError(413, 'Room payload too large');
+
+    const upstream = await fetch(upstreamUrl.toString(), {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json; charset=utf-8',
+        'Origin': 'https://vidalost.github.io',
+        'Cache-Control': 'no-store',
+        'User-Agent': 'BibleGames-Core-Room-Relay/1',
+      },
+      body: payloadText,
+      redirect: 'error',
+    });
+    const text = await upstream.text();
+    const parsed = (() => { try { return JSON.parse(text); } catch { return null; } })();
+    if (!parsed) {
+      return json({
+        ok: false,
+        success: false,
+        code: 'ROOM_RELAY_UPSTREAM',
+        error: upstream.ok ? 'Сервер комнаты вернул некорректный ответ' : `Сервер комнаты временно недоступен (${upstream.status})`,
+      }, upstream.ok ? 502 : upstream.status, cors);
+    }
+    return json(parsed, upstream.status, { ...cors, 'X-BibleGames-Room-Relay': '1' });
+  } catch (error) {
+    return json({
+      ok: false,
+      success: false,
+      code: error?.code || 'ROOM_RELAY_ERROR',
+      error: String(error?.message || 'Room relay failed'),
+    }, Number(error?.status || 500), cors);
+  }
+}
 
 async function handleAndroidAuthRequest(request, env, cors) {
   try {

@@ -71,6 +71,19 @@ class CloudRepository(initialSessionToken: String = "") {
         .retryOnConnectionFailure(true)
         .build()
 
+    /** Login code delivery must not keep the user on the sending screen while
+     * Telegram has already delivered the OTP. This short HTTP/1.1 request waits
+     * only long enough to surface fast server-side validation errors. If the
+     * response is lost, requestLoginCode returns the locally owned challenge id. */
+    private val authRequestClient: OkHttpClient = OkHttpClient.Builder()
+        .protocols(listOf(Protocol.HTTP_1_1))
+        .connectTimeout(3, TimeUnit.SECONDS)
+        .readTimeout(3, TimeUnit.SECONDS)
+        .writeTimeout(3, TimeUnit.SECONDS)
+        .callTimeout(4, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+
     /** Access status is a tiny read-only request. HTTP/1.1 is deliberately
      * used here because some mobile VPN/carrier paths repeatedly stall HTTP/2
      * setup. The whole call is still bounded so a bad network cannot freeze UI. */
@@ -146,9 +159,15 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.3 Native")
                 .build()
-            val response = executeSmallJsonWithRetry(request)
+            val response = authRequestClient.newCall(request).execute().use { http ->
+                val payload = http.body?.string().orEmpty()
+                SmallJsonResponse(
+                    status = http.code,
+                    json = runCatching { JSONObject(payload) }.getOrNull(),
+                )
+            }
             val json = response.json
             if (response.status !in 200..299 || json == null || !json.optBoolean("success", false)) {
                 val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось отправить код"
@@ -194,7 +213,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.3 Native")
                 .build()
             val response = executeSmallJsonWithRetry(request)
             val json = response.json
@@ -218,7 +237,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .post("{}".toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
-                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.3 Native")
                 .build()
             accessClient.newCall(request).execute().close()
         }
@@ -260,7 +279,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7.2 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.3 Native")
                 .build()
             val response = executeSmallJsonWithRetry(request)
             val json = response.json
@@ -361,12 +380,35 @@ class CloudRepository(initialSessionToken: String = "") {
                 return postWith(http, url, body)
             } catch (cause: IOException) {
                 val retryable = cause !is RoomHttpException || cause.status >= 500
-                if (!retryable || attempt == 1) throw cause
+                if (!retryable) throw cause
                 lastFailure = cause
-                delay(240)
+                if (attempt == 0) delay(240)
             }
         }
+
+        // Some regional mobile/VPN paths return a Cloudflare edge "internal
+        // error; reference=..." for the room Workers even while the same
+        // Workers are healthy from other regions. Relay the final HTTPS retry
+        // through the already-authenticated core Worker, which then reaches the
+        // allowlisted room backend from Cloudflare's network.
+        if (hasSession() && (url.startsWith(QUARTET) || url.startsWith(SKETCH))) {
+            return postRoomViaCore(url, body)
+        }
         throw lastFailure ?: IOException("Room request failed")
+    }
+
+    private suspend fun postRoomViaCore(url: String, body: JSONObject): JSONObject {
+        val (backendKey, base) = when {
+            url.startsWith(QUARTET) -> "quartet" to QUARTET
+            url.startsWith(SKETCH) -> "sketch" to SKETCH
+            else -> throw IOException("Unsupported room backend")
+        }
+        val path = url.removePrefix(base).ifBlank { "/" }
+        val relayBody = JSONObject()
+            .put("backend", backendKey)
+            .put("path", path)
+            .put("payload", JSONObject(body.toString()))
+        return postWith(accessFallbackClient, "$CORE/android/room-relay", relayBody)
     }
 
     suspend fun warmRoom(backend: String): Boolean = withContext(Dispatchers.IO) {
@@ -391,7 +433,7 @@ class CloudRepository(initialSessionToken: String = "") {
             // so Android and Telegram WebApp use one profile store.
             .header("Origin", "https://vidalost.github.io")
             .header("Cache-Control", "no-store")
-            .header("User-Agent", "BibleGames-Android/2.7.2 Native")
+            .header("User-Agent", "BibleGames-Android/2.7.3 Native")
         if (url.startsWith(CORE) && sessionToken.isNotBlank()) builder.header("Authorization", "Bearer $sessionToken")
         val request = builder.build()
         http.newCall(request).execute().use { response ->
