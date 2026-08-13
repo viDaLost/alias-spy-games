@@ -103,10 +103,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-2.7.1-native.apk
-          cp android-app/app/build/outputs/bundle/release/app-release.aab dist/BibleGames-Android-2.7.1-native.aab
-          sha256sum dist/BibleGames-Android-2.7.1-native.apk | tee dist/BibleGames-Android-2.7.1-native.apk.sha256
-          sha256sum dist/BibleGames-Android-2.7.1-native.aab | tee dist/BibleGames-Android-2.7.1-native.aab.sha256
+          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-2.7.2-native.apk
+          cp android-app/app/build/outputs/bundle/release/app-release.aab dist/BibleGames-Android-2.7.2-native.aab
+          sha256sum dist/BibleGames-Android-2.7.2-native.apk | tee dist/BibleGames-Android-2.7.2-native.apk.sha256
+          sha256sum dist/BibleGames-Android-2.7.2-native.aab | tee dist/BibleGames-Android-2.7.2-native.aab.sha256
 
       - name: Verify APK signature and reject debug certificates
         shell: bash
@@ -117,7 +117,7 @@ jobs:
             echo "apksigner was not found in Android SDK"
             exit 1
           fi
-          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-2.7.1-native.apk 2>&1)"
+          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-2.7.2-native.apk 2>&1)"
           printf '%s\n' "$VERIFY_OUTPUT"
           if printf '%s\n' "$VERIFY_OUTPUT" | grep -Eqi 'Android Debug|CN=Android Debug'; then
             echo "Refusing to publish an APK signed with an Android debug certificate."
@@ -131,10 +131,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BibleGames-Android-2.7.1-native-signed
+          name: BibleGames-Android-2.7.2-native-signed
           path: |
-            dist/BibleGames-Android-2.7.1-native.apk
-            dist/BibleGames-Android-2.7.1-native.aab
+            dist/BibleGames-Android-2.7.2-native.apk
+            dist/BibleGames-Android-2.7.2-native.aab
             dist/*.sha256
           if-no-files-found: error
           retention-days: 30
