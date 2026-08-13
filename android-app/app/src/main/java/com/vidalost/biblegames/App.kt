@@ -102,9 +102,10 @@ private const val PREFS = "bible_games_native"
 private const val ID_KEY = "telegram_id"
 private const val HISTORY_KEY = "last_games"
 private const val RECENT_HIDDEN_KEY = "recent_games_hidden"
-private const val ADMIN_ID = "1288379477"
 private const val ACCESS_POLL_MS = 3_000L
 private const val ACCESS_RETRY_MS = 900L
+private const val TELEGRAM_BOT_USERNAME = "bibleiskie_bot"
+private const val TELEGRAM_ID_HELP_BOT_USERNAME = "userinfobot"
 private fun profileKey(userId: String, field: String) = "profile_${userId}_$field"
 private fun banKey(userId: String) = "profile_${userId}_banned"
 
@@ -218,7 +219,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     // refreshes. Network failures retry automatically; there are no overlapping
     // manual + polling requests and no raw timeout screen for the player.
     LaunchedEffect(userId) {
-        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID) {
+        if (!userId.matches(Regex("^[0-9]{5,20}$"))) {
             accessChecked = false
             return@LaunchedEffect
         }
@@ -255,7 +256,7 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
     // short debounce so a completed level survives process death and appears
     // on the website/admin panel without waiting for the game screen to close.
     LaunchedEffect(userId, profile.wowStars, profile.wordSearchStars, profile.sacredLevel, history, accessChecked, isBanned) {
-        if (!userId.matches(Regex("^[0-9]{5,20}$")) || userId == ADMIN_ID || !accessChecked || isBanned) return@LaunchedEffect
+        if (!userId.matches(Regex("^[0-9]{5,20}$")) || !accessChecked || isBanned) return@LaunchedEffect
         delay(650)
         val snapshot = profile.copy(lastGames = cloudHistory(history))
         saveLocalProfile(context, snapshot)
@@ -367,7 +368,6 @@ private fun LoginScreen(
     var id by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var challenge by remember { mutableStateOf<AndroidAuthChallenge?>(null) }
-    var botUsername by rememberSaveable { mutableStateOf("") }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     var info by rememberSaveable { mutableStateOf<String?>(null) }
     var busy by rememberSaveable { mutableStateOf(false) }
@@ -376,7 +376,6 @@ private fun LoginScreen(
         focus.clearFocus()
         error = when {
             !id.matches(Regex("^[0-9]{5,20}$")) -> "Введите числовой Telegram ID (от 5 до 20 цифр)."
-            id == ADMIN_ID -> "Вход администратора через Android недоступен."
             else -> null
         }
         return error == null
@@ -392,10 +391,13 @@ private fun LoginScreen(
         scope.launch {
             cloud.requestLoginCode(id).onSuccess {
                 challenge = it
-                info = "Код отправлен вам в Telegram. Введите 6 цифр из сообщения бота."
+                info = "Код отправлен в @$TELEGRAM_BOT_USERNAME. Введите 6 цифр из сообщения бота."
             }.onFailure { cause ->
-                if (cause is AuthBotStartRequired) botUsername = cause.botUsername
-                error = cause.message ?: "Не удалось отправить код"
+                error = if (cause is AuthBotStartRequired) {
+                    "Откройте @$TELEGRAM_BOT_USERNAME, нажмите Start и запросите код ещё раз."
+                } else {
+                    cause.message ?: "Не удалось отправить код"
+                }
             }
             busy = false
         }
@@ -443,7 +445,7 @@ private fun LoginScreen(
                     Text("Подтвердите свой Telegram", color = Color(0xFF312E81), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                     Spacer(Modifier.height(9.dp))
                     Text(
-                        "Теперь одного Telegram ID недостаточно. Мы отправим одноразовый код именно в ваш Telegram — поэтому войти под чужим ID нельзя.",
+                        "Telegram ID нужен, чтобы загрузить ваш профиль, прогресс и историю игр. Свой числовой ID можно узнать у @$TELEGRAM_ID_HELP_BOT_USERNAME. Код подтверждения придёт в @$TELEGRAM_BOT_USERNAME.",
                         color = InkSoft,
                         lineHeight = 21.sp,
                     )
@@ -474,17 +476,20 @@ private fun LoginScreen(
                         Modifier.fillMaxWidth(),
                         icon = "✉",
                     )
-                    if (botUsername.isNotBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        com.vidalost.biblegames.ui.SecondaryButton(
-                            "Открыть @$botUsername",
-                            { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$botUsername?start=android_login"))) },
-                            Modifier.fillMaxWidth(),
-                            icon = "↗",
-                        )
-                        Spacer(Modifier.height(7.dp))
-                        Text("Нажмите Start в Telegram, вернитесь сюда и снова запросите код.", color = InkSoft, fontSize = 12.sp)
-                    }
+                    Spacer(Modifier.height(10.dp))
+                    com.vidalost.biblegames.ui.SecondaryButton(
+                        "Где узнать Telegram ID",
+                        { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_ID_HELP_BOT_USERNAME"))) },
+                        Modifier.fillMaxWidth(),
+                        icon = "?",
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    com.vidalost.biblegames.ui.SecondaryButton(
+                        "Открыть @$TELEGRAM_BOT_USERNAME",
+                        { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_BOT_USERNAME?start=android_login"))) },
+                        Modifier.fillMaxWidth(),
+                        icon = "↗",
+                    )
                     if (challenge != null) {
                         Spacer(Modifier.height(14.dp))
                         OutlinedTextField(
@@ -513,7 +518,7 @@ private fun LoginScreen(
                     }
                 }
                 Spacer(Modifier.height(13.dp))
-                Text("Код действует 10 минут. После подтверждения приложение хранит защищённую сессию на этом устройстве — вводить ID при каждом запуске не потребуется.", color = InkSoft, textAlign = TextAlign.Center, fontSize = 12.sp)
+                Text("Код действует 10 минут.", color = InkSoft, textAlign = TextAlign.Center, fontSize = 12.sp)
             }
         }
     }
@@ -775,50 +780,6 @@ private fun CompactRecentCard(game: GameKey, assets: AssetRepository, onClick: (
                 Text(game.description, color = InkSoft, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             Text("→", color = Color(game.accent), fontSize = 25.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-private fun AccessVerificationScreen(
-    error: String?,
-    onRetry: () -> Unit,
-    onLogout: () -> Unit,
-    onSupport: () -> Unit,
-) {
-    AppBackground {
-        Box(Modifier.fillMaxSize().padding(22.dp), contentAlignment = Alignment.Center) {
-            GlassCard(Modifier.fillMaxWidth()) {
-                Text("Проверка доступа", color = Color(0xFF25236E), fontSize = 25.sp, fontWeight = FontWeight.Black)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (error.isNullOrBlank())
-                        "Проверяем статус аккаунта. Игры откроются сразу после подтверждения доступа."
-                    else
-                        "Не удалось проверить статус аккаунта. До успешной проверки запуск игр временно недоступен.",
-                    color = InkSoft,
-                    lineHeight = 21.sp,
-                )
-                if (!error.isNullOrBlank()) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(error, color = Color(0xFF991B1B), fontSize = 13.sp)
-                }
-                Spacer(Modifier.height(18.dp))
-                PrimaryButton("Повторить проверку", onRetry, Modifier.fillMaxWidth(), icon = "↻")
-                Spacer(Modifier.height(10.dp))
-                com.vidalost.biblegames.ui.SecondaryButton(
-                    "Техподдержка",
-                    onSupport,
-                    Modifier.fillMaxWidth(),
-                    icon = "🎧",
-                )
-                Spacer(Modifier.height(10.dp))
-                com.vidalost.biblegames.ui.SecondaryButton(
-                    "Сменить Telegram ID",
-                    onLogout,
-                    Modifier.fillMaxWidth(),
-                )
-            }
         }
     }
 }

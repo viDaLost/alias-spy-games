@@ -1,6 +1,7 @@
 import { SupportUserStore } from './support-user-store.js';
 
 const CHALLENGE_TTL_MS = 10 * 60 * 1000;
+const CHALLENGE_VERIFY_GRACE_MS = 30 * 1000;
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const ID_WINDOW_MS = 10 * 60 * 1000;
 const REQUEST_WINDOW_MS = 10 * 60 * 1000;
@@ -56,7 +57,7 @@ export class AndroidAuthUserStore extends SupportUserStore {
   }
 
   cleanupAuth(now = Date.now()) {
-    this.sql.exec('DELETE FROM android_auth_challenges WHERE expires_at <= ?', now);
+    this.sql.exec('DELETE FROM android_auth_challenges WHERE expires_at <= ?', now - CHALLENGE_VERIFY_GRACE_MS);
     this.sql.exec('DELETE FROM android_sessions WHERE expires_at <= ? OR revoked = 1', now);
   }
 
@@ -124,7 +125,7 @@ export class AndroidAuthUserStore extends SupportUserStore {
 
     this.cleanupAuth(now);
     const row = this.sql.exec('SELECT * FROM android_auth_challenges WHERE id = ?', challengeId).toArray()[0];
-    if (!row || Number(row.expires_at || 0) <= now) {
+    if (!row || Number(row.expires_at || 0) + CHALLENGE_VERIFY_GRACE_MS <= now) {
       if (row) this.sql.exec('DELETE FROM android_auth_challenges WHERE id = ?', challengeId);
       return fail(410, 'AUTH_EXPIRED', 'Код истёк. Запросите новый.');
     }
@@ -146,9 +147,8 @@ export class AndroidAuthUserStore extends SupportUserStore {
 
     const telegramId = String(row.telegram_id || '');
     this.ctx.storage.transactionSync(() => {
-      this.sql.exec('DELETE FROM android_auth_challenges WHERE id = ?', challengeId);
       this.sql.exec(
-        `INSERT INTO android_sessions
+        `INSERT OR IGNORE INTO android_sessions
          (token_hash, telegram_id, created_at, expires_at, last_seen_at, revoked)
          VALUES (?, ?, ?, ?, ?, 0)`,
         tokenHash,
@@ -168,7 +168,17 @@ export class AndroidAuthUserStore extends SupportUserStore {
         this.sql.exec('UPDATE android_sessions SET revoked = 1 WHERE token_hash = ?', String(session.token_hash || ''));
       });
     });
-    return { ok: true, success: true, userId: telegramId, expiresAt: sessionExpiresAt };
+    const session = this.sql.exec(
+      'SELECT expires_at FROM android_sessions WHERE token_hash = ? AND telegram_id = ?',
+      tokenHash,
+      telegramId,
+    ).toArray()[0];
+    return {
+      ok: true,
+      success: true,
+      userId: telegramId,
+      expiresAt: Number(session?.expires_at || sessionExpiresAt),
+    };
   }
 
   async resolveSession(raw = {}) {

@@ -166,7 +166,6 @@ async function handleAndroidAuthRequest(request, env, cors) {
     const body = await request.json().catch(() => ({}));
     const telegramId = String(body?.telegramId || '').trim();
     if (!/^\d{5,20}$/.test(telegramId)) throw httpError(400, 'Введите корректный Telegram ID');
-    if (telegramId === String(env.ADMIN_TELEGRAM_ID || '')) throw httpError(403, 'Вход администратора через Android недоступен');
 
     const challengeId = `ach_${crypto.randomUUID().replaceAll('-', '')}`;
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, '0');
@@ -218,7 +217,7 @@ async function handleAndroidAuthVerify(request, env, cors) {
     const telegramId = String(body?.telegramId || '').trim();
     if (!/^\d{5,20}$/.test(telegramId)) throw httpError(400, 'Telegram ID отсутствует');
     const codeHash = await authHmacHex(env.TELEGRAM_BOT_TOKEN, `${challengeId}:${telegramId}:${code}`);
-    const token = `bgs_${authRandomBase64Url(32)}`;
+    const token = `bgs_${await authHmacHex(env.TELEGRAM_BOT_TOKEN, `session:${challengeId}:${telegramId}:${code}`)}`;
     const tokenHash = await authSha256Hex(token);
     const sessionExpiresAt = Date.now() + ANDROID_AUTH_SESSION_TTL_MS;
     const store = env.USERS.get(env.USERS.idFromName('global'));
@@ -229,11 +228,13 @@ async function handleAndroidAuthVerify(request, env, cors) {
       sessionExpiresAt,
     });
     if (String(result.userId || '') !== telegramId) throw httpError(403, 'Telegram ID не совпадает с кодом');
+    const access = await callStore(store, '/access', { id: telegramId });
     return json({
       success: true,
       userId: String(result.userId || ''),
       token,
       expiresAt: Number(result.expiresAt || sessionExpiresAt),
+      isBanned: Boolean(access.isBanned),
       source: 'telegram-code-session',
     }, 200, cors);
   } catch (error) {

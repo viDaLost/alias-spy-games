@@ -30,6 +30,12 @@ data class AndroidAuthSession(
     val userId: String,
     val token: String,
     val expiresAt: Long,
+    val isBanned: Boolean,
+)
+
+private data class SmallJsonResponse(
+    val status: Int,
+    val json: JSONObject?,
 )
 
 class AuthBotStartRequired(
@@ -66,10 +72,22 @@ class CloudRepository(initialSessionToken: String = "") {
      * setup. The whole call is still bounded so a bad network cannot freeze UI. */
     private val accessClient: OkHttpClient = OkHttpClient.Builder()
         .protocols(listOf(Protocol.HTTP_1_1))
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(6, TimeUnit.SECONDS)
-        .writeTimeout(6, TimeUnit.SECONDS)
-        .callTimeout(7, TimeUnit.SECONDS)
+        .connectTimeout(7, TimeUnit.SECONDS)
+        .readTimeout(9, TimeUnit.SECONDS)
+        .writeTimeout(9, TimeUnit.SECONDS)
+        .callTimeout(11, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+
+    /** Secondary path for login verification and access checks. A request may
+     * reach Cloudflare while the mobile/VPN path loses the response, so the
+     * server-side verification flow is idempotent and safe to retry. */
+    private val accessFallbackClient: OkHttpClient = OkHttpClient.Builder()
+        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+        .connectTimeout(9, TimeUnit.SECONDS)
+        .readTimeout(13, TimeUnit.SECONDS)
+        .writeTimeout(13, TimeUnit.SECONDS)
+        .callTimeout(16, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
 
@@ -118,9 +136,9 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
                 .build()
-            accessClient.newCall(request).execute().use { response ->
+            accessFallbackClient.newCall(request).execute().use { response ->
                 val text = response.body?.string().orEmpty()
                 val json = runCatching { JSONObject(text) }.getOrNull()
                 if (!response.isSuccessful || json == null || !json.optBoolean("success", false)) {
@@ -136,6 +154,12 @@ class CloudRepository(initialSessionToken: String = "") {
                     expiresInSeconds = json.optInt("expiresInSeconds", 600),
                 )
             }
+        }.recoverCatching { cause ->
+            if (cause is AuthBotStartRequired) throw cause
+            if (cause is IOException && cause.message?.lowercase()?.contains("timeout") == true) {
+                throw IOException("Сервер отвечает медленно. Проверьте интернет или VPN и запросите код ещё раз.", cause)
+            }
+            throw cause
         }
     }
 
@@ -151,20 +175,19 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
                 .build()
-            accessClient.newCall(request).execute().use { response ->
-                val text = response.body?.string().orEmpty()
-                val json = runCatching { JSONObject(text) }.getOrNull()
-                if (!response.isSuccessful || json == null || !json.optBoolean("success", false)) {
-                    throw IOException(json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Код не подтверждён")
-                }
-                AndroidAuthSession(
-                    userId = json.getString("userId"),
-                    token = json.getString("token"),
-                    expiresAt = json.optLong("expiresAt", 0L),
-                )
+            val response = executeSmallJsonWithRetry(request)
+            val json = response.json
+            if (response.status !in 200..299 || json == null || !json.optBoolean("success", false)) {
+                throw IOException(json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Код не подтверждён")
             }
+            AndroidAuthSession(
+                userId = json.getString("userId"),
+                token = json.getString("token"),
+                expiresAt = json.optLong("expiresAt", 0L),
+                isBanned = json.optBoolean("isBanned", false),
+            )
         }
     }
 
@@ -176,7 +199,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .post("{}".toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
-                .header("User-Agent", "BibleGames-Android/2.7 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
                 .build()
             accessClient.newCall(request).execute().close()
         }
@@ -218,17 +241,15 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.7 Native")
+                .header("User-Agent", "BibleGames-Android/2.7.1 Native")
                 .build()
-            accessClient.newCall(request).execute().use { response ->
-                val payload = response.body?.string().orEmpty()
-                val json = runCatching { JSONObject(payload) }.getOrNull()
-                val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось проверить доступ"
-                if (response.code == 401) throw AuthSessionInvalid(message)
-                if (!response.isSuccessful || json == null) throw IOException(message)
-                if (json.optString("userId") != id) throw AuthSessionInvalid("Сессия принадлежит другому аккаунту")
-                json.optBoolean("isBanned", false)
-            }
+            val response = executeSmallJsonWithRetry(request)
+            val json = response.json
+            val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось проверить доступ"
+            if (response.status == 401) throw AuthSessionInvalid(message)
+            if (response.status !in 200..299 || json == null) throw IOException(message)
+            if (json.optString("userId") != id) throw AuthSessionInvalid("Сессия принадлежит другому аккаунту")
+            json.optBoolean("isBanned", false)
         }
     }
 
@@ -282,6 +303,30 @@ class CloudRepository(initialSessionToken: String = "") {
         )
     }
 
+    private suspend fun executeSmallJsonWithRetry(request: Request): SmallJsonResponse {
+        val clients = listOf(accessClient, accessFallbackClient)
+        var lastFailure: IOException? = null
+        for ((index, http) in clients.withIndex()) {
+            try {
+                http.newCall(request).execute().use { response ->
+                    val payload = response.body?.string().orEmpty()
+                    val json = runCatching { JSONObject(payload) }.getOrNull()
+                    val shouldRetry = index < clients.lastIndex && (response.code >= 500 || (response.isSuccessful && json == null))
+                    if (!shouldRetry) return SmallJsonResponse(response.code, json)
+                    lastFailure = IOException(json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Сервер временно недоступен")
+                }
+            } catch (cause: IOException) {
+                lastFailure = cause
+                if (index == clients.lastIndex) break
+            }
+            if (index < clients.lastIndex) delay(220)
+        }
+        throw IOException(
+            "Не удалось связаться с сервером. Проверьте интернет или VPN — приложение повторит проверку автоматически.",
+            lastFailure,
+        )
+    }
+
     suspend fun post(url: String, body: JSONObject): JSONObject = postWith(client, url, body)
 
     /**
@@ -327,7 +372,7 @@ class CloudRepository(initialSessionToken: String = "") {
             // so Android and Telegram WebApp use one profile store.
             .header("Origin", "https://vidalost.github.io")
             .header("Cache-Control", "no-store")
-            .header("User-Agent", "BibleGames-Android/2.7 Native")
+            .header("User-Agent", "BibleGames-Android/2.7.1 Native")
         if (url.startsWith(CORE) && sessionToken.isNotBlank()) builder.header("Authorization", "Bearer $sessionToken")
         val request = builder.build()
         http.newCall(request).execute().use { response ->
