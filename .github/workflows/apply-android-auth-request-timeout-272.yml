@@ -33,6 +33,24 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Make patch script tolerate all client user-agent occurrences
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('scripts/apply-android-auth-request-timeout-272.py')
+          text = p.read_text(encoding='utf-8')
+          old = "replace_one(cloud_path, 'BibleGames-Android/2.7.1 Native', 'BibleGames-Android/2.7.2 Native')"
+          new = """cloud_file = ROOT / cloud_path
+          cloud_text = cloud_file.read_text(encoding='utf-8')
+          if 'BibleGames-Android/2.7.1 Native' not in cloud_text:
+              raise SystemExit('Expected at least one remaining 2.7.1 user-agent')
+          cloud_file.write_text(cloud_text.replace('BibleGames-Android/2.7.1 Native', 'BibleGames-Android/2.7.2 Native'), encoding='utf-8')"""
+          if old not in text:
+              raise SystemExit('Patch-script user-agent replacement marker missing')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Apply retry-safe auth request patch
         run: python scripts/apply-android-auth-request-timeout-272.py
 
