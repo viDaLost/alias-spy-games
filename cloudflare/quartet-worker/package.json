@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "node --check src/index.js && node --check src/index-chat.js && node --check src/engine.js && node --check src/catalog.js && npm test",
+    "check": "node --check src/index.js && node --check src/index-chat.js && node --check src/index-lobby-resume.js && node --check src/lobby-resume.js && node --check src/engine.js && node --check src/catalog.js && npm test",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
