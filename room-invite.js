@@ -33,8 +33,6 @@
     startAutoOpen();
   }
 
-  loadMiniAppConfig().catch(() => {});
-
   function normalizeRoomId(value) {
     const room = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
     return /^[A-Z0-9]{4,10}$/.test(room) ? room : '';
