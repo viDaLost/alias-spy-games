@@ -1,6 +1,7 @@
-// Layout patch for «Библейские слова».
-// Removes the redundant inline level switch, keeps one live input strip,
-// and enlarges the letter wheel without breaking swipe hit-testing.
+// Stable layout patch for «Библейские слова».
+// The game engine still works in its original coordinate model; this layer only
+// resizes the real wheel element, repositions the letter buttons to that exact
+// rendered size and draws the swipe line on a matching canvas.
 
 (() => {
   'use strict';
@@ -11,6 +12,7 @@
     canvas: null,
     pointer: null,
     raf: 0,
+    layoutRaf: 0,
   };
 
   const $ = (selector, root = document) => root?.querySelector?.(selector) || null;
@@ -21,7 +23,69 @@
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function desiredWheelSize(wrap) {
+    const viewport = Math.max(280, window.innerWidth || document.documentElement.clientWidth || 390);
+    const wrapWidth = Math.max(280, wrap.getBoundingClientRect().width || viewport);
+    const available = Math.min(viewport - 28, wrapWidth - 18);
+    return Math.round(Math.min(350, Math.max(282, available)));
+  }
+
+  function forceWheelSize(wheel, size) {
+    // The game injects its own styles after page CSS. Use inline !important so
+    // its legacy 216×216 rule can never win again.
+    wheel.style.setProperty('position', 'relative', 'important');
+    wheel.style.setProperty('width', `${size}px`, 'important');
+    wheel.style.setProperty('height', `${size}px`, 'important');
+    wheel.style.setProperty('min-width', `${size}px`, 'important');
+    wheel.style.setProperty('min-height', `${size}px`, 'important');
+    wheel.style.setProperty('max-width', `${size}px`, 'important');
+    wheel.style.setProperty('max-height', `${size}px`, 'important');
+    wheel.style.setProperty('margin-left', 'auto', 'important');
+    wheel.style.setProperty('margin-right', 'auto', 'important');
+    wheel.style.setProperty('overflow', 'visible', 'important');
+    wheel.style.setProperty('transform', 'none', 'important');
+    wheel.style.setProperty('--wow-wheel-v2-size', `${size}px`);
+  }
+
+  function actualWheelSize(wheel) {
+    const rect = wheel.getBoundingClientRect();
+    return Math.max(1, Math.min(rect.width, rect.height));
+  }
+
+  function positionButtons(wheel) {
+    const buttons = $$('.wow-btn-let', wheel);
+    if (!buttons.length) return;
+
+    const size = actualWheelSize(wheel);
+    const center = size / 2;
+    const firstRect = buttons[0].getBoundingClientRect();
+    const buttonSize = Math.max(54, Math.min(firstRect.width || 66, 76));
+    const radius = Math.max(78, center - buttonSize / 2 - 18);
+    const count = buttons.length;
+
+    buttons.forEach((button, index) => {
+      const raw = Number.parseInt(button.dataset.idx || '', 10);
+      const order = Number.isFinite(raw) ? raw : index;
+      const angle = (2 * Math.PI * order) / count - Math.PI / 2;
+      button.style.setProperty('left', `${center + radius * Math.cos(angle)}px`, 'important');
+      button.style.setProperty('top', `${center + radius * Math.sin(angle)}px`, 'important');
+    });
+  }
+
+  function ensureOverlayCanvas(wheel) {
+    let canvas = $('.wow-wheel-v2-canvas', wheel);
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.className = 'wow-wheel-v2-canvas';
+      canvas.setAttribute('aria-hidden', 'true');
+      wheel.appendChild(canvas);
+    }
+    state.canvas = canvas;
+    return canvas;
   }
 
   function syncCanvasSize() {
@@ -86,49 +150,13 @@
     state.raf = requestAnimationFrame(drawSelectionLine);
   }
 
-  function desiredWheelSize(wrap) {
-    const viewport = Math.max(280, window.innerWidth || document.documentElement.clientWidth || 390);
-    const available = Math.max(280, Math.min(viewport - 34, wrap.clientWidth - 20 || viewport - 34));
-    return Math.round(Math.min(350, Math.max(282, available)));
-  }
-
-  function positionButtons(wheel, size) {
-    const buttons = $$('.wow-btn-let', wheel);
-    if (!buttons.length) return;
-
-    const center = size / 2;
-    const buttonSize = size <= 300 ? 64 : 72;
-    const radius = Math.min(size * 0.345, center - buttonSize / 2 - 18);
-    const count = buttons.length;
-
-    buttons.forEach((button, index) => {
-      const raw = Number.parseInt(button.dataset.idx || '', 10);
-      const order = Number.isFinite(raw) ? raw : index;
-      const angle = (2 * Math.PI * order) / count - Math.PI / 2;
-      button.style.left = `${center + radius * Math.cos(angle)}px`;
-      button.style.top = `${center + radius * Math.sin(angle)}px`;
-    });
-  }
-
-  function ensureOverlayCanvas(wheel) {
-    let canvas = $('.wow-wheel-v2-canvas', wheel);
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvas.className = 'wow-wheel-v2-canvas';
-      canvas.setAttribute('aria-hidden', 'true');
-      wheel.appendChild(canvas);
-    }
-    state.canvas = canvas;
-    syncCanvasSize();
-  }
-
   function removeInlineLevelSwitch(wrap) {
     $$('.wow-level-switch', wrap).forEach((node) => node.remove());
   }
 
   function installWheelEvents(wheel) {
-    if (wheel.dataset.wowWheelV2Events === '1') return;
-    wheel.dataset.wowWheelV2Events = '1';
+    if (wheel.dataset.wowWheelV2Events === '2') return;
+    wheel.dataset.wowWheelV2Events = '2';
 
     wheel.addEventListener('pointerdown', (event) => {
       const rect = wheel.getBoundingClientRect();
@@ -151,7 +179,7 @@
     wheel.addEventListener('pointercancel', finish, true);
   }
 
-  function applyLayout(wrap) {
+  function applyLayoutNow(wrap) {
     if (!wrap?.isConnected) return;
     removeInlineLevelSwitch(wrap);
 
@@ -163,16 +191,34 @@
       wheel.parentElement.insertBefore(preview, wheel);
     }
 
-    const size = desiredWheelSize(wrap);
-    wheel.style.width = `${size}px`;
-    wheel.style.height = `${size}px`;
-    wheel.style.setProperty('--wow-wheel-v2-size', `${size}px`);
-
     state.wrap = wrap;
     state.wheel = wheel;
+
+    const targetSize = desiredWheelSize(wrap);
+    forceWheelSize(wheel, targetSize);
     ensureOverlayCanvas(wheel);
     installWheelEvents(wheel);
-    positionButtons(wheel, size);
+
+    // Read the *actual* rendered size only after forcing the legacy 216px rule
+    // out of the cascade, then place all letters relative to that same box.
+    positionButtons(wheel);
+    syncCanvasSize();
+  }
+
+  function applyLayout(wrap) {
+    if (state.layoutRaf) cancelAnimationFrame(state.layoutRaf);
+    state.layoutRaf = requestAnimationFrame(() => {
+      state.layoutRaf = 0;
+      applyLayoutNow(wrap);
+      // The game may append/reposition letters later in the same render pass.
+      requestAnimationFrame(() => {
+        if (wrap?.isConnected) {
+          forceWheelSize(state.wheel, desiredWheelSize(wrap));
+          positionButtons(state.wheel);
+          syncCanvasSize();
+        }
+      });
+    });
   }
 
   function discover() {
@@ -188,10 +234,10 @@
   }
 
   const gameContainer = document.getElementById('game-container');
-  const observer = gameContainer ? new MutationObserver(() => requestAnimationFrame(discover)) : null;
+  const observer = gameContainer ? new MutationObserver(discover) : null;
   observer?.observe(gameContainer, { childList: true, subtree: true });
 
-  window.addEventListener('resize', () => requestAnimationFrame(discover), { passive: true });
+  window.addEventListener('resize', discover, { passive: true });
   window.addEventListener('orientationchange', () => setTimeout(discover, 80), { passive: true });
   window.addEventListener('pagehide', () => observer?.disconnect(), { once: true });
 
