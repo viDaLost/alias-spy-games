@@ -46,6 +46,8 @@ jobs:
 
   build-signed-release:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -138,3 +140,25 @@ jobs:
             dist/*.sha256
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish stable Android download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="android-latest"
+          TITLE="Библейские игры для Android"
+          NOTES="Официальная подписанная сборка Android. Стабильная ссылка из главного меню мини-приложения всегда ведёт на актуальный APK."
+
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "$TITLE" \
+              --notes "$NOTES"
+          fi
+
+          gh release upload "$TAG" \
+            dist/BibleGames-Android-2.7.3-native.apk \
+            dist/BibleGames-Android-2.7.3-native.apk.sha256 \
+            --clobber
