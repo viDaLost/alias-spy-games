@@ -43,7 +43,7 @@
       refreshTimer = setInterval(() => {
         if (document.getElementById('admin-live-v2')) refresh();
         else clearInterval(refreshTimer);
-      }, 10_000);
+      }, 5_000);
     }
   }
 
@@ -72,7 +72,9 @@
     const current = data.currentGames || {};
     const onlineUsers = Array.isArray(data.onlineUsers) ? data.onlineUsers : [];
     const menuNow = Number(data.menuNow ?? Math.max(0, Number(data.onlineNow || 0) - Object.values(current).reduce((sum, n) => sum + Number(n || 0), 0)));
-    const generatedAt = new Date(data.generatedAt || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const activeRooms = Number(data.activeRoomsNow ?? data.activeQuartetRooms ?? 0);
+    const generatedAt = new Date(data.generatedAt || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const strictWindowSec = Math.round(Number(data.strictPresenceWindowMs || 0) / 1000);
 
     const gameCards = GAMES.map(([key, title]) => `
       <div class="admin-live-game ${Number(current[key] || 0) > 0 ? 'is-active' : ''}">
@@ -81,11 +83,13 @@
 
     const people = onlineUsers.length
       ? onlineUsers.map((user) => {
-          const name = user.username ? `@${user.username}` : (user.displayName || (user.id ? `ID ${user.id}` : 'Гость'));
+          const name = user.username ? `@${user.username}` : (user.displayName || (user.id ? `ID ${user.id}` : 'Пользователь'));
           const gameName = user.game ? (NAMES[user.game] || user.game) : 'Главное меню';
-          return `<div class="admin-online-user"><span class="admin-online-user__dot"></span><div><b>${escapeText(name)}</b><small>${escapeText(gameName)}</small></div></div>`;
+          const room = user.roomId ? ` · комната ${user.roomId}` : '';
+          const platform = user.platform === 'android' ? 'Android' : 'Telegram';
+          return `<div class="admin-online-user"><span class="admin-online-user__dot"></span><div><b>${escapeText(name)}</b><small>${escapeText(`${gameName}${room} · ${platform}`)}</small></div></div>`;
         }).join('')
-      : '<div class="admin-live-v2__empty">Сейчас нет авторизованных пользователей онлайн.</div>';
+      : '<div class="admin-live-v2__empty">Сейчас нет проверенных пользователей онлайн.</div>';
 
     panel.innerHTML = `
       <div class="admin-live-v2__head">
@@ -95,16 +99,16 @@
       <div class="admin-live-v2__summary">
         <div><b>${Number(data.onlineNow || 0)}</b><span>онлайн сейчас</span></div>
         <div><b>${menuNow}</b><span>в главном меню</span></div>
-        <div><b>${Number(data.activeQuartetRooms || 0)}</b><span>комнат Квартета</span></div>
+        <div><b>${activeRooms}</b><span>активных комнат</span></div>
         <div><b>${Number(data.peakOnlineToday || 0)}</b><span>пик сегодня</span></div>
       </div>
-      <div class="admin-live-v2__section-title">Сколько игроков сейчас в каждой игре</div>
+      <div class="admin-live-v2__section-title">Сколько пользователей сейчас в каждой игре</div>
       <div class="admin-live-games-v2">${gameCards}</div>
       <details class="admin-online-details" ${onlineUsers.length ? 'open' : ''}>
         <summary>Кто сейчас онлайн <span>${onlineUsers.length}</span></summary>
         <div class="admin-online-list">${people}</div>
       </details>
-      <div class="admin-live-v2__foot">Обновлено ${generatedAt} · запусков сегодня ${Number(data.gameOpensToday || 0)} · ошибок ${Number(data.errorsToday || 0)}</div>
+      <div class="admin-live-v2__foot">Обновлено ${generatedAt}${strictWindowSec ? ` · проверка активности ≤ ${strictWindowSec} сек` : ''} · запусков сегодня ${Number(data.gameOpensToday || 0)} · ошибок ${Number(data.errorsToday || 0)}</div>
     `;
 
     document.getElementById('admin-live-refresh')?.addEventListener('click', refresh);
