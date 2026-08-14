@@ -65,6 +65,17 @@
   display: none !important;
 }
 
+/* The previous enhancement flew the whole word as one chip. The new effect replaces it. */
+.wow-word-flight {
+  display: none !important;
+}
+
+/* Do not reveal the whole solved word at once: each new cell waits for its flying letter. */
+.wow-wrap .wow-cell.anim-pop,
+.wow-wrap .wow-cell.wow-cell-reveal {
+  animation: none !important;
+}
+
 /* Make the wheel feel materially larger without changing its 216px coordinate system,
    so the existing drawing and gesture math remains exact. */
 .wow-wrap .wow-wheel-wrap {
