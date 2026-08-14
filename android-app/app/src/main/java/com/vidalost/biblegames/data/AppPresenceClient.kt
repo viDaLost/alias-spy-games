@@ -10,7 +10,7 @@ import okhttp3.WebSocketListener
 import org.json.JSONObject
 import java.security.SecureRandom
 
-/** Keeps Android in the same live-presence channel as Telegram WebApp. */
+/** Keeps Android in the same strict live-presence channel as Telegram WebApp. */
 class AppPresenceClient(
     context: Context,
     private val cloud: CloudRepository,
@@ -21,7 +21,7 @@ class AppPresenceClient(
         private const val TRUSTED_ORIGIN = "https://vidalost.github.io"
         private const val PREFS = "bible_games_native"
         private const val SESSION_KEY = "presence_session_id_v1"
-        private const val HEARTBEAT_MS = 45_000L
+        private const val HEARTBEAT_MS = 15_000L
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -57,13 +57,14 @@ class AppPresenceClient(
         connected = false
         main.removeCallbacks(reconnect)
         main.removeCallbacks(heartbeat)
+        socket?.send(JSONObject().put("type", "offline").put("reason", "background").toString())
         socket?.close(1000, "background")
         socket = null
     }
 
     fun update(gameRoute: String?, activeRoomId: String?) {
         game = sanitizeGame(gameRoute)
-        roomId = if (game == "quartet") sanitizeRoom(activeRoomId) else ""
+        roomId = if (game == "quartet" || game == "bible-sketch") sanitizeRoom(activeRoomId) else ""
         if (foreground && connected) sendPresence()
     }
 
@@ -121,6 +122,7 @@ class AppPresenceClient(
         val payload = JSONObject()
             .put("type", "presence")
             .put("platform", "android")
+            .put("visible", true)
             .put("game", game)
             .put("roomId", roomId)
         if (socket?.send(payload.toString()) != true) {

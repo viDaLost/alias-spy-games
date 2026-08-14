@@ -1,6 +1,7 @@
 (() => {
   let scannerOpen = false;
-  let eventHandler = null;
+  let qrEventHandler = null;
+  let closeEventHandler = null;
   let lastValue = '';
   let lastValueAt = 0;
 
@@ -13,21 +14,39 @@
     return typeof tg?.showScanQrPopup === 'function';
   }
 
-  function detachQrEvent() {
-    const tg = telegramWebApp();
-    if (!eventHandler || typeof tg?.offEvent !== 'function') {
-      eventHandler = null;
-      return;
+  function extractQrText(value) {
+    if (typeof value === 'string') return value.trim();
+    if (value && typeof value === 'object') {
+      if (typeof value.data === 'string') return value.data.trim();
+      if (typeof value.text === 'string') return value.text.trim();
     }
-    try { tg.offEvent('qrTextReceived', eventHandler); } catch {}
-    eventHandler = null;
+    return '';
+  }
+
+  function detachEvents() {
+    const tg = telegramWebApp();
+    if (typeof tg?.offEvent === 'function') {
+      if (qrEventHandler) {
+        try { tg.offEvent('qrTextReceived', qrEventHandler); } catch {}
+      }
+      if (closeEventHandler) {
+        try { tg.offEvent('scanQrPopupClosed', closeEventHandler); } catch {}
+      }
+    }
+    qrEventHandler = null;
+    closeEventHandler = null;
+  }
+
+  function markClosed() {
+    scannerOpen = false;
+    detachEvents();
   }
 
   function closeScanner() {
     const tg = telegramWebApp();
-    detachQrEvent();
-    if (!scannerOpen) return;
-    scannerOpen = false;
+    const wasOpen = scannerOpen;
+    markClosed();
+    if (!wasOpen) return;
     try { tg?.closeScanQrPopup?.(); } catch {}
   }
 
@@ -43,8 +62,14 @@
     try { window.alert(message); } catch {}
   }
 
+  function showInvalidCode() {
+    const tg = telegramWebApp();
+    try { tg?.HapticFeedback?.notificationOccurred?.('error'); } catch {}
+    try { navigator.vibrate?.([30, 40, 30]); } catch {}
+  }
+
   function acceptValue(value) {
-    const text = String(value || '').trim();
+    const text = extractQrText(value);
     if (!text) return false;
 
     const now = Date.now();
@@ -52,7 +77,7 @@
 
     const invite = window.RoomInvite?.acceptScanned?.(text);
     if (!invite) {
-      try { telegramWebApp()?.HapticFeedback?.notificationOccurred?.('error'); } catch {}
+      showInvalidCode();
       return false;
     }
 
@@ -75,24 +100,23 @@
     closeScanner();
     scannerOpen = true;
 
-    const onQrText = (text) => {
-      const accepted = acceptValue(text);
-      return accepted === true;
-    };
+    // Telegram's qrTextReceived event passes { data: "..." }, while the
+    // showScanQrPopup callback passes the text string directly. Normalize both.
+    qrEventHandler = (event) => acceptValue(event);
+    closeEventHandler = () => markClosed();
 
-    eventHandler = onQrText;
     if (typeof tg?.onEvent === 'function') {
-      try { tg.onEvent('qrTextReceived', eventHandler); } catch {}
+      try { tg.onEvent('qrTextReceived', qrEventHandler); } catch {}
+      try { tg.onEvent('scanQrPopupClosed', closeEventHandler); } catch {}
     }
 
     try {
       tg.showScanQrPopup(
         { text: 'Наведите камеру на QR-код комнаты' },
-        (text) => onQrText(text),
+        (text) => acceptValue(text),
       );
     } catch (error) {
-      scannerOpen = false;
-      detachQrEvent();
+      markClosed();
       const message = String(error?.message || 'Не удалось открыть сканер Telegram');
       try {
         if (typeof tg?.showAlert === 'function') tg.showAlert(message);
@@ -106,5 +130,6 @@
     open: openScanner,
     close: closeScanner,
     isAvailable: canScan,
+    extractQrText,
   });
 })();
