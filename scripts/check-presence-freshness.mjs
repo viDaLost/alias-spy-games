@@ -1,16 +1,43 @@
 import fs from 'node:fs';
 
-const base = fs.readFileSync('cloudflare/app-observability-worker/src/index.js', 'utf8');
-const v2 = fs.readFileSync('cloudflare/app-observability-worker/src/index-v2.js', 'utf8');
+const read = (path) => fs.readFileSync(path, 'utf8');
+const requireText = (text, needle, label) => {
+  if (!text.includes(needle)) throw new Error(`Presence check failed: ${label}`);
+};
 
-if (!base.includes('attachment.updatedAt = Date.now();')) {
-  throw new Error('Ping must refresh presence updatedAt');
-}
-if (!v2.includes('const PRESENCE_STALE_MS = 90_000;')) {
-  throw new Error('Presence stale timeout is missing');
-}
-if (!v2.includes('now - updatedAt > PRESENCE_STALE_MS')) {
-  throw new Error('Stale presence sessions are not filtered');
-}
+const worker = read('cloudflare/app-observability-worker/src/index-v4.js');
+const wrangler = read('cloudflare/app-observability-worker/wrangler.jsonc');
+const web = read('presence-identity.js');
+const android = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
+const admin = read('admin-live-v2.js');
+const html = read('index.html');
 
-console.log('Presence freshness regression check passed');
+requireText(worker, 'const PRESENCE_STALE_MS = 35_000;', 'strict stale window must be 35 seconds');
+requireText(worker, "if (!initData) return jsonError('Verified Telegram session required'", 'anonymous Telegram presence is still accepted');
+requireText(worker, 'verifyAndroidIdentity', 'verified Android presence path is missing');
+requireText(worker, "const ROOM_GAMES = new Set(['quartet', 'bible-sketch'])", 'Bible Sketch room presence is not tracked');
+requireText(worker, "payload?.type === 'offline'", 'explicit offline presence message is missing');
+requireText(worker, 'const freshestByUser = new Map()', 'online sessions are not deduplicated by verified user');
+requireText(worker, 'onlineNow: onlineUsers.length', 'online count is not based on unique verified users');
+requireText(worker, 'activeBibleSketchRooms', 'Bible Sketch active room count is missing');
+requireText(worker, 'strictPresenceWindowMs: PRESENCE_STALE_MS', 'admin does not receive presence freshness window');
+requireText(wrangler, 'src/index-v4.js', 'strict observability entrypoint is not active');
+
+requireText(web, 'const HEARTBEAT_MS = 15_000;', 'WebApp heartbeat is not strict enough');
+requireText(web, "if (!backend || !initData) return;", 'WebApp presence is not restricted to verified Telegram initData');
+requireText(web, "game === 'bible-sketch'", 'WebApp does not report Bible Sketch room');
+requireText(web, "type: 'offline'", 'WebApp does not explicitly report offline state');
+requireText(web, "document.addEventListener('visibilitychange'", 'WebApp visibility tracking is missing');
+requireText(web, "sendOfflineAndClose('hidden')", 'hidden WebApp remains online');
+
+requireText(android, 'private const val HEARTBEAT_MS = 15_000L', 'Android heartbeat is not strict enough');
+requireText(android, 'game == "quartet" || game == "bible-sketch"', 'Android does not report Bible Sketch rooms');
+requireText(android, '.put("type", "offline")', 'Android does not explicitly report background/offline state');
+
+requireText(admin, '5_000', 'admin live monitor does not refresh every five seconds');
+requireText(admin, 'user.roomId', 'admin online list does not show current room');
+requireText(admin, 'strictPresenceWindowMs', 'admin does not show strict freshness window');
+requireText(html, 'presence-identity.js?v=3', 'new WebApp presence client is not mounted');
+requireText(html, 'admin-live-v2.js?v=4', 'new admin live monitor is not mounted');
+
+console.log('Strict verified presence, room tracking and freshness checks passed');
