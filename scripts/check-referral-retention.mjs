@@ -9,6 +9,7 @@ const forbidText = (text, needle, label) => {
 };
 
 const worker = read('cloudflare/app-core-worker/src/index-v6.js');
+const entryWorker = read('cloudflare/app-core-worker/src/index-v7.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const survey = read('referral-survey.js');
 const html = read('index.html');
@@ -24,8 +25,9 @@ requireText(worker, 'DELETE FROM support_tickets WHERE user_id = ?', 'support da
 requireText(worker, 'DELETE FROM android_sessions WHERE telegram_id = ?', 'Android sessions are not removed with an inactive account');
 requireText(worker, 'this.ctx.storage.delete(`user:${id}`)', 'legacy KV backup record is not removed with an inactive account');
 requireText(worker, 'async scheduled(', 'scheduled cleanup handler is missing');
+requireText(entryWorker, "from './index-v6.js'", 'v7 entrypoint must preserve retention runtime');
 
-requireText(wrangler, '"main": "src/index-v6.js"', 'new worker entry is not active');
+requireText(wrangler, '"main": "src/index-v7.js"', 'new worker entry is not active');
 requireText(wrangler, '"crons"', 'daily cleanup cron is not configured');
 
 requireText(survey, 'Откуда вы узнали о «Библейских играх»?', 'survey question is missing');
