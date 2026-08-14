@@ -18,7 +18,7 @@
       <span class="game-card__icon room-scan-menu-icon" aria-hidden="true">⌗</span>
       <span class="game-card__body">
         <span class="game-card__title">Сканировать QR</span>
-        <span class="game-card__desc">Подключиться к комнате камерой</span>
+        <span class="game-card__desc">Подключиться к комнате камерой Telegram</span>
       </span>`;
     button.addEventListener('click', () => window.RoomQrScanner?.open?.());
     root.appendChild(button);
@@ -86,6 +86,61 @@
     join.insertAdjacentElement('afterend', button);
   }
 
+  async function shareRoomInvite(game, room, title) {
+    const inviteUrl = await window.RoomInvite?.getShareUrl?.(game, room);
+    if (!inviteUrl) {
+      window.showToast?.('Не удалось подготовить Telegram-ссылку', 'error');
+      return;
+    }
+
+    const text = `${title} · комната ${room}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(text)}`;
+    const tg = window.Telegram?.WebApp;
+
+    try {
+      if (typeof tg?.openTelegramLink === 'function') {
+        tg.openTelegramLink(shareUrl);
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title, text, url: inviteUrl });
+        return;
+      }
+      const copied = await navigator.clipboard?.writeText?.(inviteUrl).then(() => true).catch(() => false);
+      if (copied) window.showToast?.('Telegram-ссылка скопирована');
+      else window.open(shareUrl, '_blank', 'noopener');
+    } catch (error) {
+      if (error?.name !== 'AbortError') window.showToast?.('Не удалось поделиться ссылкой', 'error');
+    }
+  }
+
+  function replaceShareButton(container, game, room, title) {
+    if (!container || !room) return;
+    const original = [...container.querySelectorAll('button')].find((button) => /поделиться/i.test(button.textContent || ''));
+    if (!original || original.dataset.telegramRoomShare === '1') return;
+
+    const button = original.cloneNode(true);
+    button.dataset.telegramRoomShare = '1';
+    button.removeAttribute('onclick');
+    original.replaceWith(button);
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      shareRoomInvite(game, room, title);
+    });
+  }
+
+  function replaceLegacyShareButtons() {
+    if (currentGame() === 'quartet') {
+      const room = window.RoomInvite?.normalizeRoomId(document.querySelector('.qv2-room-code')?.textContent || '');
+      replaceShareButton(document.querySelector('.qv2-room-actions'), 'quartet', room, 'Квартет');
+    }
+    if (currentGame() === 'bible-sketch') {
+      const room = window.RoomInvite?.normalizeRoomId(document.querySelector('.bsk-room-code')?.textContent || '');
+      replaceShareButton(document.querySelector('.bsk-link-row'), 'bible-sketch', room, 'Библейский художник');
+    }
+  }
+
   function finishInviteIfLobbyOpened(invite) {
     if (!invite) return false;
     const selector = invite.game === 'quartet' ? '.qv2-room-code' : '.bsk-room-code';
@@ -116,6 +171,7 @@
     addQuartetScannerButton();
     addSketchQrButton();
     addSketchScannerButton();
+    replaceLegacyShareButtons();
     const invite = window.RoomInvite.peek();
     if (!invite) return;
     if (finishInviteIfLobbyOpened(invite)) return;
