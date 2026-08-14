@@ -12,20 +12,30 @@ const invite = read('room-invite.js');
 const scanner = read('room-qr-scanner.js');
 const addon = read('room-qr-addon.js');
 const css = read('room-invite.css');
+const gestureCss = read('quartet-gesture-guard.css');
+const gestureJs = read('telegram-gesture-guard.js');
+const core = read('cloudflare/app-core-worker/src/index-v7.js');
+const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const html = read('index.html');
 
 requireText(invite, "quartet_v2_room_id", 'Quartet invite does not seed room storage');
 requireText(invite, "bible_sketch_room_id_v1", 'Bible Sketch invite does not seed room storage');
-requireText(invite, "searchParams.set('join'", 'shareable room URL is missing');
+requireText(invite, '/telegram/miniapp-config', 'Telegram bot profile is not loaded from core backend');
+requireText(invite, 'https://t.me/', 'shareable room link is not a Telegram Mini App deep link');
+requireText(invite, '?startapp=', 'Telegram Mini App start parameter is missing');
 requireText(invite, 'join_', 'Telegram start parameter format is missing');
-requireText(invite, 'biblegames:', 'internal QR payload format is missing');
+requireText(invite, 'biblegames:', 'internal QR payload fallback is missing');
+requireText(invite, 'getShareUrl', 'async Telegram share URL resolver is missing');
 requireText(invite, 'acceptScanned', 'scanned QR cannot be accepted in-app');
 requireText(invite, 'QRCode', 'QR renderer is missing');
 requireText(invite, 'window.showGame', 'invite does not auto-open the target game');
+forbidText(invite, "searchParams.set('join'", 'new invitations must not point at the public website');
 
 requireText(scanner, 'showScanQrPopup', 'Telegram QR scanner is missing');
+requireText(scanner, "onEvent('qrTextReceived'", 'Telegram QR event fallback is missing');
+requireText(scanner, "offEvent('qrTextReceived'", 'Telegram QR event cleanup is missing');
+requireText(scanner, 'closeScanQrPopup', 'successful scan does not explicitly close the Telegram scanner');
 requireText(scanner, 'acceptScanned', 'scanner does not hand off to room invite flow');
-requireText(scanner, 'return true', 'valid Telegram scan does not close the QR popup');
 forbidText(scanner, 'getUserMedia', 'browser camera scanner must not be used');
 forbidText(scanner, 'BarcodeDetector', 'browser BarcodeDetector scanner must not be used');
 forbidText(scanner, 'jsQR', 'jsQR fallback must not be used');
@@ -35,8 +45,20 @@ requireText(addon, '.bsk-link-row', 'Bible Sketch lobby QR button mount is missi
 requireText(addon, 'data-room-scan="quartet"', 'Quartet scanner button is missing');
 requireText(addon, 'data-room-scan="bible-sketch"', 'Bible Sketch scanner button is missing');
 requireText(addon, 'data-room-scan-global', 'main menu scanner entry is missing');
+requireText(addon, 'telegramRoomShare', 'legacy room share buttons are not replaced');
+requireText(addon, 'getShareUrl', 'room share button does not resolve Telegram deep link');
+requireText(addon, 't.me/share/url', 'room share button does not use Telegram share flow');
 requireText(addon, 'data-action="join"', 'Quartet fallback auto-join is missing');
 requireText(addon, 'data-action="join-room"', 'Bible Sketch fallback auto-join is missing');
+
+requireText(core, "'/telegram/miniapp-config'", 'core backend does not expose Mini App bot config');
+requireText(core, '/getMe', 'core backend does not resolve Telegram bot username');
+requireText(wrangler, 'src/index-v7.js', 'Mini App config worker entrypoint is not active');
+
+requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
+requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
+requireText(gestureJs, "event.preventDefault()", 'Quartet pull-down fallback does not block top overscroll');
+requireText(gestureCss, 'overscroll-behavior-y: none', 'Quartet vertical overscroll containment is missing');
 
 requireText(css, '.room-invite-qr>canvas', 'QR overflow containment styles are missing');
 requireText(css, '.room-invite-hint{display:none!important}', 'obsolete QR browser notice is still visible');
@@ -45,8 +67,10 @@ requireText(css, 'grid-template-columns:repeat(3,minmax(0,1fr))', 'Bible Sketch 
 forbidText(css, '.room-scan-camera', 'obsolete custom camera scanner styles must be removed');
 
 requireText(html, 'room-invite.css?v=3', 'updated QR styles are not mounted');
-requireText(html, 'room-invite.js?v=2', 'room invite helper is not mounted');
-requireText(html, 'room-qr-scanner.js?v=2', 'Telegram QR scanner is not mounted');
-requireText(html, 'room-qr-addon.js?v=2', 'room QR addon is not mounted');
+requireText(html, 'room-invite.js?v=3', 'updated room invite helper is not mounted');
+requireText(html, 'room-qr-scanner.js?v=3', 'updated Telegram QR scanner is not mounted');
+requireText(html, 'room-qr-addon.js?v=3', 'updated room QR addon is not mounted');
+requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
+requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
 
-console.log('Room QR invite, Telegram scanner and Bible Sketch lobby checks passed.');
+console.log('Room QR scanner, Telegram Mini App links and Quartet swipe guard checks passed.');
