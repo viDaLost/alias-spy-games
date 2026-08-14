@@ -1,0 +1,15 @@
+/* Prevent pull-down overscroll from being handed to Telegram while Quartet is open. */
+body[data-current-game="quartet"] {
+  overscroll-behavior-y: none;
+}
+
+body[data-current-game="quartet"] #game-container,
+body[data-current-game="quartet"] .qv2-root,
+body[data-current-game="quartet"] #qv2-content {
+  overscroll-behavior-y: contain;
+}
+
+body[data-current-game="quartet"] .qv2-group-tabs,
+body[data-current-game="quartet"] .qv2-quartet-deck {
+  overscroll-behavior: contain;
+}
