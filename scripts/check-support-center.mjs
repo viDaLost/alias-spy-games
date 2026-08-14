@@ -7,6 +7,7 @@ const requireText = (text, needle, label) => {
 
 const core = read('cloudflare/app-core-worker/src/index-v4.js');
 const telegramCore = read('cloudflare/app-core-worker/src/index-v5.js');
+const entryCore = read('cloudflare/app-core-worker/src/index-v6.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const deploy = read('.github/workflows/deploy-core-cloudflare.yml');
 const store = read('cloudflare/app-core-worker/src/support-user-store.js');
@@ -25,7 +26,8 @@ requireText(telegramCore, 'force_reply', 'Telegram support prompt must use Force
 requireText(telegramCore, "'/support/reply'", 'admin swipe reply does not persist support answer');
 requireText(telegramCore, 'sendSupportAnswerToUser', 'support answer is not delivered back to Telegram user');
 requireText(telegramCore, 'X-Telegram-Bot-Api-Secret-Token', 'Telegram webhook secret validation missing');
-requireText(wrangler, 'src/index-v5.js', 'support-enabled core entrypoint is not active');
+requireText(entryCore, "from './index-v5.js'", 'v6 entrypoint must preserve Telegram support runtime');
+requireText(wrangler, 'src/index-v6.js', 'support-enabled core entrypoint is not active');
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');
