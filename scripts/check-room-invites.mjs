@@ -11,6 +11,8 @@ const forbidText = (text, needle, label) => {
 const invite = read('room-invite.js');
 const scanner = read('room-qr-scanner.js');
 const addon = read('room-qr-addon.js');
+const brand = read('room-qr-brand.js');
+const brandCss = read('room-qr-brand.css');
 const css = read('room-invite.css');
 const gestureCss = read('quartet-gesture-guard.css');
 const gestureJs = read('telegram-gesture-guard.js');
@@ -34,11 +36,24 @@ forbidText(invite, "searchParams.set('join'", 'new invitations must not point at
 requireText(scanner, 'showScanQrPopup', 'Telegram QR scanner is missing');
 requireText(scanner, "onEvent('qrTextReceived'", 'Telegram QR event fallback is missing');
 requireText(scanner, "offEvent('qrTextReceived'", 'Telegram QR event cleanup is missing');
+requireText(scanner, "onEvent('scanQrPopupClosed'", 'Telegram scanner close event is missing');
+requireText(scanner, "typeof value.data === 'string'", 'qrTextReceived event.data is not normalized');
 requireText(scanner, 'closeScanQrPopup', 'successful scan does not explicitly close the Telegram scanner');
 requireText(scanner, 'acceptScanned', 'scanner does not hand off to room invite flow');
 forbidText(scanner, 'getUserMedia', 'browser camera scanner must not be used');
 forbidText(scanner, 'BarcodeDetector', 'browser BarcodeDetector scanner must not be used');
 forbidText(scanner, 'jsQR', 'jsQR fallback must not be used');
+
+requireText(brand, 'buildQrPayload', 'branded QR does not use the short in-app payload');
+requireText(brand, 'renderBrandedQr', 'branded QR renderer is missing');
+requireText(brand, 'qrPayload', 'branded QR payload is missing');
+requireText(brand, 'CorrectLevel?.H', 'branded QR does not use high error correction');
+requireText(brand, '_oQRCode', 'custom QR module renderer is missing');
+requireText(brand, 'quiet = 4', 'QR quiet zone is missing');
+requireText(brand, '__brandedQr', 'RoomInvite openQr override is not installed');
+forbidText(brand, 'text: inviteUrl', 'QR must never encode the external Telegram link');
+requireText(brandCss, '.room-invite-qr-shell', 'branded QR shell styles are missing');
+requireText(brandCss, '.room-invite-qr-brand', 'branded QR label styles are missing');
 
 requireText(addon, '.qv2-room-actions', 'Quartet lobby QR button mount is missing');
 requireText(addon, '.bsk-link-row', 'Bible Sketch lobby QR button mount is missing');
@@ -66,11 +81,13 @@ requireText(css, '.bsk-room-head', 'Bible Sketch room header mobile fix is missi
 requireText(css, 'grid-template-columns:repeat(3,minmax(0,1fr))', 'Bible Sketch room actions are not laid out responsively');
 forbidText(css, '.room-scan-camera', 'obsolete custom camera scanner styles must be removed');
 
-requireText(html, 'room-invite.css?v=3', 'updated QR styles are not mounted');
+requireText(html, 'room-invite.css?v=3', 'updated QR base styles are not mounted');
+requireText(html, 'room-qr-brand.css?v=1', 'branded QR styles are not mounted');
 requireText(html, 'room-invite.js?v=3', 'updated room invite helper is not mounted');
-requireText(html, 'room-qr-scanner.js?v=3', 'updated Telegram QR scanner is not mounted');
+requireText(html, 'room-qr-brand.js?v=1', 'branded QR renderer is not mounted');
+requireText(html, 'room-qr-scanner.js?v=4', 'fixed Telegram QR scanner is not mounted');
 requireText(html, 'room-qr-addon.js?v=3', 'updated room QR addon is not mounted');
 requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
 requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
 
-console.log('Room QR scanner, Telegram Mini App links and Quartet swipe guard checks passed.');
+console.log('Room QR scanner, branded in-app QR payloads, Telegram Mini App links and Quartet swipe guard checks passed.');
