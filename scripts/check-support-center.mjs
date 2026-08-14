@@ -6,6 +6,9 @@ const requireText = (text, needle, label) => {
 };
 
 const core = read('cloudflare/app-core-worker/src/index-v4.js');
+const telegramCore = read('cloudflare/app-core-worker/src/index-v5.js');
+const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
+const deploy = read('.github/workflows/deploy-core-cloudflare.yml');
 const store = read('cloudflare/app-core-worker/src/support-user-store.js');
 const web = read('support-center.js');
 const html = read('index.html');
@@ -13,9 +16,19 @@ const android = read('android-app/app/src/main/java/com/vidalost/biblegames/App.
 const repo = read('android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt');
 const gradle = read('android-app/app/build.gradle');
 
-requireText(core, "supportCreate", 'core route missing');
-requireText(core, "notifySupportAdmin", 'Telegram notification missing');
-requireText(core, "ADMIN_TELEGRAM_ID", 'admin destination missing');
+requireText(core, 'supportCreate', 'core route missing');
+requireText(core, 'notifySupportAdmin', 'Telegram notification missing');
+requireText(core, 'ADMIN_TELEGRAM_ID', 'admin destination missing');
+requireText(telegramCore, "'/telegram/webhook'", 'Telegram support webhook route missing');
+requireText(telegramCore, '/support', 'Telegram /support command missing');
+requireText(telegramCore, 'force_reply', 'Telegram support prompt must use ForceReply');
+requireText(telegramCore, "'/support/reply'", 'admin swipe reply does not persist support answer');
+requireText(telegramCore, 'sendSupportAnswerToUser', 'support answer is not delivered back to Telegram user');
+requireText(telegramCore, 'X-Telegram-Bot-Api-Secret-Token', 'Telegram webhook secret validation missing');
+requireText(wrangler, 'src/index-v5.js', 'support-enabled core entrypoint is not active');
+requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
+requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
+requireText(deploy, "command: 'support'", '/support command is not registered');
 requireText(store, 'CREATE TABLE IF NOT EXISTS support_tickets', 'ticket SQL missing');
 requireText(store, 'CREATE TABLE IF NOT EXISTS support_messages', 'message SQL missing');
 requireText(web, 'window.openSupportChat = openSupportCenter', 'legacy web support callback not replaced');
