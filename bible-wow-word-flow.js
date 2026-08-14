@@ -8,7 +8,6 @@
   const state = {
     wrap: null,
     dragging: false,
-    lastSubmission: '',
     submissionSeq: 0,
   };
 
@@ -199,7 +198,6 @@
     if (word.length < 3) return;
 
     const beforeSolved = new Set(solvedCells(wrap).map((item) => item.key));
-    state.lastSubmission = word;
     state.submissionSeq += 1;
     const seq = state.submissionSeq;
 
@@ -211,10 +209,6 @@
     wrap.dataset.wowWordFlow = '1';
     state.wrap = wrap;
     state.dragging = false;
-
-    // The old enhancement duplicated the current word inside the wheel.
-    // Keep only the larger display above it.
-    $$('.wow-live-center', wrap).forEach((node) => node.remove());
 
     wrap.addEventListener('pointerdown', (event) => {
       if (!event.target.closest('#wow-wheel')) return;
@@ -233,7 +227,6 @@
       return;
     }
     if (state.wrap !== wrap || wrap.dataset.wowWordFlow !== '1') installOnWrap(wrap);
-    $$('.wow-live-center', wrap).forEach((node) => node.remove());
   }
 
   const timer = setInterval(discover, 140);
