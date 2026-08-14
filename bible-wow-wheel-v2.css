@@ -1,0 +1,165 @@
+/* Final mobile layout for «Библейские слова».
+   The inline level switch is removed entirely; the live input strip takes its place. */
+
+.wow-wrap .wow-level-switch {
+  display: none !important;
+}
+
+.wow-wrap .wow-controls {
+  gap: 10px !important;
+}
+
+/* One single live input strip directly above the wheel. */
+.wow-wrap .wow-preview {
+  width: min(94%, 520px) !important;
+  min-height: 72px !important;
+  height: auto !important;
+  margin: 14px auto 12px !important;
+  padding: 10px 16px !important;
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 2px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+  border-radius: 24px !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(239,246,255,.92)) !important;
+  border: 1px solid rgba(99,102,241,.14) !important;
+  box-shadow: 0 12px 30px rgba(79,70,229,.11), inset 0 1px 0 rgba(255,255,255,.94) !important;
+  opacity: 1 !important;
+}
+
+.wow-wrap .wow-preview:empty::before {
+  content: 'Проведите по буквам';
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: .01em;
+}
+
+.wow-wrap .wow-preview-let {
+  width: auto !important;
+  min-width: 24px !important;
+  height: auto !important;
+  padding: 0 1px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #312e81 !important;
+  font-size: clamp(29px, 7.7vw, 40px) !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: .02em;
+}
+
+/* No duplicate word in the wheel itself. */
+.wow-wrap .wow-live-center {
+  display: none !important;
+}
+
+/* The JS patch expands this to 282–350px depending on the phone width. */
+.wow-wrap .wow-wheel-wrap {
+  position: relative !important;
+  width: 330px;
+  height: 330px;
+  max-width: calc(100vw - 28px);
+  max-height: calc(100vw - 28px);
+  margin: 2px auto 22px !important;
+  flex: 0 0 auto;
+  touch-action: none;
+  user-select: none;
+  isolation: isolate;
+}
+
+.wow-wrap .wow-wheel-bg {
+  inset: 4px !important;
+  transform: none !important;
+  border-radius: 50% !important;
+  background:
+    radial-gradient(circle at 36% 28%, rgba(255,255,255,.99), rgba(238,242,255,.94) 56%, rgba(219,234,254,.88)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(99,102,241,.11),
+    0 24px 44px rgba(79,70,229,.17) !important;
+}
+
+/* Hide the engine's fixed 216×216 drawing canvas; the V2 overlay draws at the real wheel size. */
+.wow-wrap .wow-line-canvas {
+  opacity: 0 !important;
+}
+
+.wow-wrap .wow-wheel-v2-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 7px rgba(96,165,250,.32));
+}
+
+.wow-wrap .wow-btn-let {
+  width: 72px !important;
+  height: 72px !important;
+  margin-left: -36px !important;
+  margin-top: -36px !important;
+  font-size: 31px !important;
+  font-weight: 950 !important;
+  z-index: 10 !important;
+  box-shadow: 0 11px 23px rgba(30,41,59,.15) !important;
+}
+
+.wow-wrap .wow-btn-let.active {
+  transform: scale(1.2) translateY(-1px) !important;
+  box-shadow: 0 14px 29px rgba(79,70,229,.26), 0 0 0 7px rgba(129,140,248,.14) !important;
+}
+
+/* Reclaimed vertical space goes to the crossword and the larger wheel. */
+.wow-wrap .wow-board-area {
+  min-height: 250px !important;
+  margin-bottom: 8px !important;
+}
+
+@media (max-width: 420px) {
+  .wow-wrap .wow-preview {
+    width: min(94%, 390px) !important;
+    min-height: 66px !important;
+    margin: 12px auto 10px !important;
+    padding: 9px 12px !important;
+  }
+
+  .wow-wrap .wow-preview-let {
+    min-width: 20px !important;
+    font-size: clamp(27px, 8.4vw, 36px) !important;
+  }
+
+  .wow-wrap .wow-btn-let {
+    width: 66px !important;
+    height: 66px !important;
+    margin-left: -33px !important;
+    margin-top: -33px !important;
+    font-size: 29px !important;
+  }
+}
+
+@media (max-width: 340px) {
+  .wow-wrap .wow-preview {
+    min-height: 60px !important;
+  }
+
+  .wow-wrap .wow-btn-let {
+    width: 62px !important;
+    height: 62px !important;
+    margin-left: -31px !important;
+    margin-top: -31px !important;
+    font-size: 27px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wow-wrap .wow-btn-let,
+  .wow-wrap .wow-preview-let {
+    transition: none !important;
+    animation: none !important;
+  }
+}
