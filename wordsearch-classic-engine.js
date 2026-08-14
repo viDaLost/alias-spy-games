@@ -53,62 +53,52 @@
     if (!words.length) return level;
 
     const random = randomFor(`${level.id}|${level.theme}|${words.join('|')}`);
-    const ordered = shuffle(words, random);
-    const horizontalCount = Math.ceil(ordered.length / 2);
-    const horizontal = ordered.slice(0, horizontalCount);
-    const vertical = ordered.slice(horizontalCount);
-    const maxHorizontal = Math.max(3, ...horizontal.map((word) => word.length));
-    const maxVertical = Math.max(3, ...vertical.map((word) => word.length));
+    const ordered = shuffle(words, random).sort((a, b) => b.length - a.length);
 
-    // Separate zones keep straight paths compatible with the legacy rule that
-    // solved cells become inactive. This gives horizontal and vertical classic
-    // words without breaking already saved progress or the old snake mode.
-    const gap = 2;
-    const leftWidth = maxHorizontal + 1;
-    const rows = Math.max(
-      Number(level.rows) || 0,
-      maxVertical + 2,
-      horizontal.length + 3,
-      8,
-    );
-    const cols = Math.max(
-      Number(level.cols) || 0,
-      leftWidth + gap + Math.max(vertical.length, 2) + 1,
-      9,
-    );
+    // Long words go vertically into the upper zone, shorter words horizontally
+    // into rows below it. The zones never cross, so a found word can still be
+    // disabled by the legacy UI without blocking another word. Keeping the
+    // number of columns low also preserves comfortable 30px+ touch targets.
+    const verticalCount = Math.ceil(ordered.length / 2);
+    const vertical = ordered.slice(0, verticalCount);
+    const horizontal = ordered.slice(verticalCount);
+    const maxVertical = Math.max(3, ...vertical.map((word) => word.length));
+    const maxHorizontal = Math.max(3, ...horizontal.map((word) => word.length));
+    const rowGap = 2;
+    const cols = Math.max(8, maxHorizontal + 1, vertical.length + 2);
+    const rows = Math.max(8, maxVertical + rowGap + horizontal.length);
 
     const grid = Array.from({ length: rows }, () => Array(cols).fill(''));
     const placements = [];
-    const rowPool = shuffle(Array.from({ length: rows }, (_, index) => index), random).slice(0, horizontal.length);
+    const verticalCols = shuffle(Array.from({ length: cols }, (_, index) => index), random).slice(0, vertical.length);
 
-    horizontal.forEach((word, index) => {
-      const row = rowPool[index];
-      const maxStart = Math.max(0, leftWidth - word.length);
-      const start = Math.floor(random() * (maxStart + 1));
+    vertical.forEach((word, index) => {
+      const col = verticalCols[index];
+      const start = Math.floor(random() * (Math.max(0, maxVertical - word.length) + 1));
       const reversed = random() > .5;
       const display = reversed ? word.split('').reverse().join('') : word;
       const path = [];
       for (let i = 0; i < display.length; i++) {
-        const col = start + i;
+        const row = start + i;
         grid[row][col] = display[i];
         path.push([row, col]);
       }
       placements.push({ text: word, path: reversed ? path.reverse() : path });
     });
 
-    const verticalCols = shuffle(
-      Array.from({ length: Math.max(vertical.length, 1) }, (_, index) => leftWidth + gap + index),
+    const horizontalRows = shuffle(
+      Array.from({ length: horizontal.length }, (_, index) => maxVertical + rowGap + index),
       random,
     );
-    vertical.forEach((word, index) => {
-      const col = verticalCols[index];
-      const maxStart = Math.max(0, rows - word.length);
+    horizontal.forEach((word, index) => {
+      const row = horizontalRows[index];
+      const maxStart = Math.max(0, cols - word.length);
       const start = Math.floor(random() * (maxStart + 1));
       const reversed = random() > .5;
       const display = reversed ? word.split('').reverse().join('') : word;
       const path = [];
       for (let i = 0; i < display.length; i++) {
-        const row = start + i;
+        const col = start + i;
         grid[row][col] = display[i];
         path.push([row, col]);
       }
