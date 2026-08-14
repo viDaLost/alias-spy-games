@@ -1,5 +1,9 @@
 (() => {
   const QR_LIBRARY_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  const CORE_BACKEND_URL = String(
+    document.querySelector('meta[name="app-core-backend"]')?.content ||
+    'https://alias-spy-games-core.vitaledanilov.workers.dev'
+  ).replace(/\/+$/, '');
   const GAME_KEYS = Object.freeze({
     quartet: 'quartet',
     q: 'quartet',
@@ -18,6 +22,8 @@
 
   let pendingInvite = readInvite();
   let qrLibraryPromise = null;
+  let miniAppConfigPromise = null;
+  let miniAppConfig = null;
   let autoOpenTimer = null;
   let autoOpenObserver = null;
 
@@ -26,6 +32,8 @@
     removeConsumedUrlParameter();
     startAutoOpen();
   }
+
+  loadMiniAppConfig().catch(() => {});
 
   function normalizeRoomId(value) {
     const room = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
@@ -47,7 +55,7 @@
       return game && room ? { game, room, opened: false } : null;
     }
 
-    if (/^https?:\/\//i.test(raw)) {
+    if (/^https?:\/\//i.test(raw) || /^tg:\/\//i.test(raw)) {
       try {
         const url = new URL(raw);
         for (const key of ['join', 'startapp', 'tgWebAppStartParam']) {
@@ -180,17 +188,6 @@
     return { game: invite.game, room: invite.room };
   }
 
-  function buildUrl(game, room) {
-    const canonical = normalizeGame(game);
-    const normalizedRoom = normalizeRoomId(room);
-    if (!canonical || !normalizedRoom) return '';
-    const url = new URL(window.location.href);
-    url.search = '';
-    url.hash = '';
-    url.searchParams.set('join', `${INVITE_NAMES[canonical] || canonical}:${normalizedRoom}`);
-    return url.toString();
-  }
-
   function buildStartParam(game, room) {
     const canonical = normalizeGame(game);
     const normalizedRoom = normalizeRoomId(room);
@@ -203,6 +200,44 @@
     const normalizedRoom = normalizeRoomId(room);
     if (!canonical || !normalizedRoom) return '';
     return `biblegames:${INVITE_NAMES[canonical] || canonical}:${normalizedRoom}`;
+  }
+
+  async function loadMiniAppConfig() {
+    if (miniAppConfig?.botUsername) return miniAppConfig;
+    if (miniAppConfigPromise) return miniAppConfigPromise;
+
+    miniAppConfigPromise = fetch(`${CORE_BACKEND_URL}/telegram/miniapp-config`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data?.ok !== true || !data?.botUsername) {
+          throw new Error(String(data?.error || `Mini App config HTTP ${response.status}`));
+        }
+        miniAppConfig = {
+          botUsername: String(data.botUsername || '').replace(/^@+/, ''),
+        };
+        return miniAppConfig;
+      })
+      .finally(() => { miniAppConfigPromise = null; });
+
+    return miniAppConfigPromise;
+  }
+
+  function buildUrl(game, room) {
+    const startParam = buildStartParam(game, room);
+    const username = String(miniAppConfig?.botUsername || '').replace(/^@+/, '');
+    if (!startParam || !username) return '';
+    return `https://t.me/${encodeURIComponent(username)}?startapp=${encodeURIComponent(startParam)}`;
+  }
+
+  async function getShareUrl(game, room) {
+    const startParam = buildStartParam(game, room);
+    if (!startParam) return '';
+    try { await loadMiniAppConfig(); } catch {}
+    return buildUrl(game, room);
   }
 
   function loadQrLibrary() {
@@ -259,9 +294,11 @@
   async function openQr(game, room, title = 'Присоединиться к игре') {
     const canonical = normalizeGame(game);
     const normalizedRoom = normalizeRoomId(room);
-    const inviteUrl = buildUrl(canonical, normalizedRoom);
     const qrPayload = buildQrPayload(canonical, normalizedRoom);
-    if (!inviteUrl || !qrPayload) return;
+    if (!qrPayload) return;
+
+    const inviteUrl = await getShareUrl(canonical, normalizedRoom);
+    const qrValue = inviteUrl || qrPayload;
 
     closeQr();
     const overlay = document.createElement('div');
@@ -272,7 +309,7 @@
         <button type="button" class="room-invite-close" aria-label="Закрыть">×</button>
         <div class="room-invite-kicker">Подключение по QR</div>
         <h3 id="room-invite-title"></h3>
-        <p class="room-invite-hint">Откройте «Сканировать QR» в Библейских играх на другом телефоне. Код подключит его к комнате без перехода в Safari или Chrome.</p>
+        <p class="room-invite-hint">Откройте «Сканировать QR» в «Библейских играх» на другом телефоне.</p>
         <div class="room-invite-qr" id="room-invite-qr" aria-label="QR-код комнаты"><div class="room-invite-qr-loading">Создаём QR…</div></div>
         <div class="room-invite-code"><small>Код комнаты</small><strong id="room-invite-code"></strong></div>
         <div class="room-invite-actions">
@@ -287,23 +324,32 @@
     overlay.querySelector('.room-invite-close')?.addEventListener('click', closeQr);
     overlay.addEventListener('click', (event) => { if (event.target === overlay) closeQr(); });
     overlay.querySelector('[data-invite-copy]')?.addEventListener('click', async () => {
-      const ok = await copyText(inviteUrl);
       const feedback = overlay.querySelector('#room-invite-feedback');
-      if (feedback) feedback.textContent = ok ? 'Ссылка скопирована' : inviteUrl;
+      if (!inviteUrl) {
+        if (feedback) feedback.textContent = 'Не удалось подготовить Telegram-ссылку. Попробуйте ещё раз.';
+        return;
+      }
+      const ok = await copyText(inviteUrl);
+      if (feedback) feedback.textContent = ok ? 'Telegram-ссылка скопирована' : inviteUrl;
     });
     overlay.querySelector('[data-invite-share]')?.addEventListener('click', async () => {
+      const feedback = overlay.querySelector('#room-invite-feedback');
+      if (!inviteUrl) {
+        if (feedback) feedback.textContent = 'Не удалось подготовить Telegram-ссылку. Попробуйте ещё раз.';
+        return;
+      }
       try {
-        if (navigator.share) await navigator.share({ title: String(title || 'Библейские игры'), text: `Комната ${normalizedRoom}`, url: inviteUrl });
-        else {
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(`Присоединяйтесь к комнате ${normalizedRoom} в «Библейских играх»`)}`;
+        if (typeof window.Telegram?.WebApp?.openTelegramLink === 'function') {
+          window.Telegram.WebApp.openTelegramLink(shareUrl);
+        } else if (navigator.share) {
+          await navigator.share({ title: String(title || 'Библейские игры'), text: `Комната ${normalizedRoom}`, url: inviteUrl });
+        } else {
           const ok = await copyText(inviteUrl);
-          const feedback = overlay.querySelector('#room-invite-feedback');
-          if (feedback) feedback.textContent = ok ? 'Ссылка скопирована' : inviteUrl;
+          if (feedback) feedback.textContent = ok ? 'Telegram-ссылка скопирована' : inviteUrl;
         }
       } catch (error) {
-        if (error?.name !== 'AbortError') {
-          const feedback = overlay.querySelector('#room-invite-feedback');
-          if (feedback) feedback.textContent = 'Не удалось открыть меню «Поделиться»';
-        }
+        if (error?.name !== 'AbortError' && feedback) feedback.textContent = 'Не удалось открыть меню «Поделиться»';
       }
     });
 
@@ -316,7 +362,7 @@
       if (!qrNode || !document.body.contains(qrNode)) return;
       qrNode.innerHTML = '';
       new window.QRCode(qrNode, {
-        text: qrPayload,
+        text: qrValue,
         width: 184,
         height: 184,
         correctLevel: window.QRCode.CorrectLevel?.M,
@@ -330,7 +376,7 @@
       }
     } catch {
       if (qrNode) {
-        qrNode.innerHTML = '<div class="room-invite-qr-error">QR не удалось загрузить. Используйте кнопку «Скопировать ссылку».</div>';
+        qrNode.innerHTML = '<div class="room-invite-qr-error">QR не удалось загрузить. Используйте код комнаты.</div>';
       }
     }
   }
@@ -345,6 +391,8 @@
     buildUrl,
     buildStartParam,
     buildQrPayload,
+    getShareUrl,
+    loadMiniAppConfig,
     openQr,
   });
 })();
