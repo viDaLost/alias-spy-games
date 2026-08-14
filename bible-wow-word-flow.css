@@ -1,0 +1,201 @@
+/* Focused polish for «Библейские слова»: one large input display and exact letter flights. */
+
+/* The top «Уровень N» navigator is redundant because the game already has the «Уровни» button. */
+.wow-wrap .wow-level-switch {
+  display: none !important;
+}
+
+.wow-wrap .wow-controls {
+  gap: 10px !important;
+}
+
+/* One clear word display above the wheel. */
+.wow-wrap .wow-preview {
+  width: min(92%, 430px) !important;
+  min-height: 64px !important;
+  height: auto !important;
+  margin: 0 auto 10px !important;
+  padding: 8px 16px !important;
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 2px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(238,242,255,.90));
+  border: 1px solid rgba(99,102,241,.15);
+  box-shadow: 0 12px 28px rgba(79,70,229,.10), inset 0 1px 0 rgba(255,255,255,.92);
+  opacity: 1 !important;
+}
+
+.wow-wrap .wow-preview:empty::before {
+  content: 'Проведите по буквам';
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: .01em;
+}
+
+.wow-wrap .wow-preview-let {
+  width: auto !important;
+  min-width: 24px !important;
+  height: auto !important;
+  padding: 0 1px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #312e81 !important;
+  font-size: clamp(27px, 7.5vw, 36px) !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: .02em;
+  animation: wowInputLetterPop .16s cubic-bezier(.2,.9,.2,1) both !important;
+}
+
+@keyframes wowInputLetterPop {
+  from { opacity: 0; transform: translateY(7px) scale(.78); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Remove the duplicate word/label from the center of the wheel. */
+.wow-wrap .wow-live-center {
+  display: none !important;
+}
+
+/* Make the wheel feel materially larger without changing its 216px coordinate system,
+   so the existing drawing and gesture math remains exact. */
+.wow-wrap .wow-wheel-wrap {
+  margin: 12px 0 20px !important;
+}
+
+.wow-wrap .wow-wheel-bg {
+  inset: 3px !important;
+  transform: scale(1.055);
+  transform-origin: center;
+  box-shadow:
+    inset 0 0 0 1px rgba(99,102,241,.11),
+    0 22px 42px rgba(79,70,229,.16) !important;
+}
+
+.wow-wrap .wow-btn-let {
+  width: 58px !important;
+  height: 58px !important;
+  margin-left: -29px !important;
+  margin-top: -29px !important;
+  font-size: 25px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 7px 18px rgba(30,41,59,.16) !important;
+}
+
+.wow-wrap .wow-btn-let.active {
+  transform: scale(1.17) translateY(-1px) !important;
+  box-shadow: 0 10px 24px rgba(79,70,229,.28), 0 0 0 6px rgba(129,140,248,.13) !important;
+}
+
+/* Give the crossword a little more breathing room after reclaiming the level-selector row. */
+.wow-wrap .wow-board-area {
+  min-height: 260px !important;
+  padding: 24px !important;
+}
+
+/* A freshly solved cell waits for its own flying letter instead of revealing the whole word at once. */
+.wow-wrap .wow-cell.wow-cell-awaiting-letter {
+  color: transparent !important;
+  transform: scale(.88) !important;
+  background: rgba(238,242,255,.72) !important;
+  box-shadow: inset 0 0 0 2px rgba(129,140,248,.12), 0 2px 5px rgba(0,0,0,.10) !important;
+}
+
+.wow-wrap .wow-cell.wow-cell-letter-land {
+  animation: wowLetterLand .48s cubic-bezier(.18,.88,.22,1.18) both !important;
+}
+
+@keyframes wowLetterLand {
+  0% { transform: scale(.72); filter: brightness(1.2); }
+  58% { transform: scale(1.19); filter: brightness(1.08); }
+  100% { transform: scale(1.05); filter: none; }
+}
+
+/* Individual letters travel from the big word display to the exact cells of that word. */
+.wow-letter-flight {
+  position: fixed;
+  z-index: 4000;
+  width: 38px;
+  height: 38px;
+  margin-left: -19px;
+  margin-top: -19px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(145deg, #ffffff, #eef2ff);
+  border: 1px solid rgba(99,102,241,.18);
+  color: #312e81;
+  box-shadow: 0 12px 28px rgba(79,70,229,.24);
+  font-size: 23px;
+  font-weight: 950;
+  line-height: 1;
+  transform: translate3d(0, 0, 0) scale(.76);
+}
+
+.wow-letter-flight.go {
+  animation: wowLetterFlight .72s cubic-bezier(.22,.72,.18,1) var(--wow-flight-delay, 0ms) both;
+}
+
+@keyframes wowLetterFlight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(.74) rotate(-5deg);
+  }
+  12% {
+    opacity: 1;
+    transform: translate3d(0, -6px, 0) scale(1.08) rotate(0deg);
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(calc(var(--wow-flight-x) * .82), calc(var(--wow-flight-y) * .82 - 9px), 0) scale(.92) rotate(2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--wow-flight-x), var(--wow-flight-y), 0) scale(.62) rotate(0deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .wow-wrap .wow-preview {
+    width: min(94%, 390px) !important;
+    min-height: 60px !important;
+    padding-inline: 12px !important;
+  }
+
+  .wow-wrap .wow-preview-let {
+    min-width: 20px !important;
+    font-size: clamp(25px, 8.2vw, 33px) !important;
+  }
+
+  .wow-wrap .wow-btn-let {
+    width: 56px !important;
+    height: 56px !important;
+    margin-left: -28px !important;
+    margin-top: -28px !important;
+    font-size: 24px !important;
+  }
+
+  .wow-wrap .wow-board-area {
+    min-height: 250px !important;
+    padding: 20px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wow-letter-flight.go,
+  .wow-wrap .wow-cell.wow-cell-letter-land,
+  .wow-wrap .wow-preview-let {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+  }
+}
