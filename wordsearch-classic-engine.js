@@ -84,7 +84,7 @@
     horizontal.forEach((word, index) => {
       const row = rowPool[index];
       const maxStart = Math.max(0, leftWidth - word.length);
-      let start = Math.floor(random() * (maxStart + 1));
+      const start = Math.floor(random() * (maxStart + 1));
       const reversed = random() > .5;
       const display = reversed ? word.split('').reverse().join('') : word;
       const path = [];
@@ -132,7 +132,27 @@
     return upgraded;
   }
 
+  function installStableTextWrites() {
+    const descriptor = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+    if (!descriptor?.get || !descriptor?.set || Node.prototype.__wordGamesStableText) return;
+
+    const selector = '.ws-live-word, .wow-live-center b, .wow-live-center small, .wow-scroll-meter b';
+    Object.defineProperty(Node.prototype, 'textContent', {
+      configurable: descriptor.configurable,
+      enumerable: descriptor.enumerable,
+      get() { return descriptor.get.call(this); },
+      set(value) {
+        const next = value == null ? '' : String(value);
+        if (this instanceof Element && this.matches(selector) && descriptor.get.call(this) === next) return;
+        descriptor.set.call(this, value);
+      },
+    });
+    Object.defineProperty(Node.prototype, '__wordGamesStableText', { value: true, configurable: true });
+  }
+
   function install() {
+    installStableTextWrites();
+
     // Use a direct fetch wrapper instead of chaining the first experimental
     // transformer. This avoids doing expensive placement searches for all
     // forty levels during game startup.
