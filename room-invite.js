@@ -40,6 +40,24 @@
     const raw = String(value || '').trim();
     if (!raw) return null;
 
+    const internal = raw.match(/^biblegames:(?:\/\/join\/)?([a-z0-9_-]+)[:/]([a-z0-9]+)$/i);
+    if (internal) {
+      const game = normalizeGame(internal[1]);
+      const room = normalizeRoomId(internal[2]);
+      return game && room ? { game, room, opened: false } : null;
+    }
+
+    if (/^https?:\/\//i.test(raw)) {
+      try {
+        const url = new URL(raw);
+        for (const key of ['join', 'startapp', 'tgWebAppStartParam']) {
+          const nested = url.searchParams.get(key);
+          const parsed = nested ? parseInvite(nested) : null;
+          if (parsed) return parsed;
+        }
+      } catch {}
+    }
+
     let game = '';
     let room = '';
     const colon = raw.match(/^([a-z0-9_-]+):([a-z0-9]+)$/i);
@@ -110,7 +128,8 @@
   }
 
   function startAutoOpen() {
-    if (!pendingInvite || autoOpenObserver) return;
+    if (!pendingInvite) return;
+    stopAutoOpen();
     autoOpenObserver = new MutationObserver(tryAutoOpen);
     autoOpenObserver.observe(document.documentElement, {
       subtree: true,
@@ -118,7 +137,7 @@
       attributes: true,
       attributeFilter: ['class', 'data-mode', 'data-current-game', 'data-ready'],
     });
-    autoOpenTimer = window.setInterval(tryAutoOpen, 350);
+    autoOpenTimer = window.setInterval(tryAutoOpen, 250);
     window.setTimeout(stopAutoOpen, 15000);
     tryAutoOpen();
   }
@@ -144,6 +163,23 @@
     return invite;
   }
 
+  function acceptScanned(value) {
+    const invite = parseInvite(value);
+    if (!invite) return null;
+
+    pendingInvite = invite;
+    persistInviteRoom(invite);
+
+    const currentGame = normalizeGame(document.body?.dataset?.currentGame || '');
+    if (currentGame && currentGame !== invite.game && typeof window.goToMainMenu === 'function') {
+      try { window.goToMainMenu(); } catch {}
+    }
+
+    startAutoOpen();
+    window.dispatchEvent(new CustomEvent('roominvitechange', { detail: { game: invite.game, room: invite.room } }));
+    return { game: invite.game, room: invite.room };
+  }
+
   function buildUrl(game, room) {
     const canonical = normalizeGame(game);
     const normalizedRoom = normalizeRoomId(room);
@@ -160,6 +196,13 @@
     const normalizedRoom = normalizeRoomId(room);
     if (!canonical || !normalizedRoom) return '';
     return `join_${INVITE_NAMES[canonical] || canonical}_${normalizedRoom}`;
+  }
+
+  function buildQrPayload(game, room) {
+    const canonical = normalizeGame(game);
+    const normalizedRoom = normalizeRoomId(room);
+    if (!canonical || !normalizedRoom) return '';
+    return `biblegames:${INVITE_NAMES[canonical] || canonical}:${normalizedRoom}`;
   }
 
   function loadQrLibrary() {
@@ -217,7 +260,8 @@
     const canonical = normalizeGame(game);
     const normalizedRoom = normalizeRoomId(room);
     const inviteUrl = buildUrl(canonical, normalizedRoom);
-    if (!inviteUrl) return;
+    const qrPayload = buildQrPayload(canonical, normalizedRoom);
+    if (!inviteUrl || !qrPayload) return;
 
     closeQr();
     const overlay = document.createElement('div');
@@ -228,7 +272,7 @@
         <button type="button" class="room-invite-close" aria-label="Закрыть">×</button>
         <div class="room-invite-kicker">Подключение по QR</div>
         <h3 id="room-invite-title"></h3>
-        <p class="room-invite-hint">Отсканируйте код камерой другого телефона — нужная игра откроется и подключится к комнате автоматически.</p>
+        <p class="room-invite-hint">Откройте «Сканировать QR» в Библейских играх на другом телефоне. Код подключит его к комнате без перехода в Safari или Chrome.</p>
         <div class="room-invite-qr" id="room-invite-qr" aria-label="QR-код комнаты"><div class="room-invite-qr-loading">Создаём QR…</div></div>
         <div class="room-invite-code"><small>Код комнаты</small><strong id="room-invite-code"></strong></div>
         <div class="room-invite-actions">
@@ -272,11 +316,18 @@
       if (!qrNode || !document.body.contains(qrNode)) return;
       qrNode.innerHTML = '';
       new window.QRCode(qrNode, {
-        text: inviteUrl,
-        width: 224,
-        height: 224,
+        text: qrPayload,
+        width: 184,
+        height: 184,
         correctLevel: window.QRCode.CorrectLevel?.M,
       });
+      const rendered = qrNode.querySelector('canvas, img, table');
+      if (rendered) {
+        rendered.style.width = '100%';
+        rendered.style.height = '100%';
+        rendered.style.maxWidth = '100%';
+        rendered.style.maxHeight = '100%';
+      }
     } catch {
       if (qrNode) {
         qrNode.innerHTML = '<div class="room-invite-qr-error">QR не удалось загрузить. Используйте кнопку «Скопировать ссылку».</div>';
@@ -287,10 +338,13 @@
   window.RoomInvite = Object.freeze({
     normalizeRoomId,
     normalizeGame,
+    parseInvite,
     peek,
     consume,
+    acceptScanned,
     buildUrl,
     buildStartParam,
+    buildQrPayload,
     openQr,
   });
 })();
