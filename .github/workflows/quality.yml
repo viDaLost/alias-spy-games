@@ -30,6 +30,8 @@ jobs:
         run: node scripts/check-presence-freshness.mjs
       - name: Check support center integration
         run: node scripts/check-support-center.mjs
+      - name: Check room QR invites
+        run: node scripts/check-room-invites.mjs
       - name: Check Android ban enforcement
         run: node scripts/check-android-ban-enforcement.mjs
       - name: Check Android verified Telegram authentication
