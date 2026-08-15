@@ -343,7 +343,7 @@
     const preferences = readPreferences();
 
     container.innerHTML = `
-      <section class="kids-screen kids-setup kids-theme-${preferences.collection} fade-in" aria-labelledby="kids-title">
+      <section class="kids-screen kids-setup kids-theme-${preferences.collection}" aria-labelledby="kids-title">
         <div class="kids-hero">
           <div class="kids-hero__sky" aria-hidden="true">
             <span class="kids-cloud kids-cloud--one">☁️</span>
@@ -411,7 +411,7 @@
 
     const screen = container.querySelector(".kids-screen");
     const applyPreferences = () => {
-      screen.className = `kids-screen kids-setup kids-theme-${preferences.collection} fade-in`;
+      screen.className = `kids-screen kids-setup kids-theme-${preferences.collection}`;
       screen.querySelectorAll("[data-mode]").forEach((button) => {
         button.setAttribute("aria-pressed", String(button.dataset.mode === preferences.mode));
       });
@@ -489,7 +489,7 @@
     const container = document.getElementById("game-container");
     if (!container) return;
     container.innerHTML = `
-      <section class="kids-screen kids-game kids-theme-${collectionKey} fade-in" data-size="${difficulty.size}" aria-labelledby="kids-board-title">
+      <section class="kids-screen kids-game kids-theme-${collectionKey}" data-size="${difficulty.size}" aria-labelledby="kids-board-title">
         <header class="kids-game-header">
           <div>
             <p class="kids-kicker">${collection.icon} ${collection.label} · ${mode.icon} ${mode.label}</p>
@@ -622,21 +622,19 @@
     }
 
     function unflip(button, className = "flipped") {
-      button.classList.remove(className, "wrong", "shake");
+      button.classList.remove(className, "wrong");
       setCardLabel(button, "closed");
     }
 
     function setMatched(button, bonus = false) {
-      button.classList.remove("flipped", "peeked", "wrong", "shake");
-      button.classList.add("matched", "just-matched");
+      button.classList.remove("flipped", "peeked", "wrong");
+      button.classList.add("matched");
       if (bonus) button.classList.add("bonus");
       setCardLabel(button, "matched");
-      session.later(() => button.classList.remove("just-matched"), 760);
     }
 
-    function shake(button) {
-      button.classList.add("wrong", "shake");
-      session.later(() => button.classList.remove("shake"), 360);
+    function markWrong(button) {
+      button.classList.add("wrong");
     }
 
     function clearTurn() {
@@ -697,7 +695,6 @@
       stats.bestAccuracy[diffKey] = Math.max(stats.bestAccuracy[diffKey] || 0, accuracy);
       writeJson(STATS_KEY, stats);
 
-      haptic("success");
       screen.classList.add("kids-complete");
       announce("Все пары найдены. Ковчег готов к путешествию!");
       session.later(() => showVictory({ finalTime, accuracy, stars, newTimeRecord, newMoveRecord }), 680);
@@ -750,7 +747,6 @@
       if (locked || finished || button.classList.contains("matched") || button.classList.contains("flipped") || button.classList.contains("peeked")) return;
 
       startTimerIfNeeded();
-      haptic("selection");
 
       if (button.dataset.bonus === "true") {
         const pendingPairName = first?.dataset.label || "";
@@ -790,16 +786,14 @@
           matchedPairs += 1;
           combo += 1;
           createMatchParticles(secondCard, secondCard.dataset.emoji);
-          haptic("success");
           clearTurn();
           updateHud(combo >= 2 ? `Серия из ${combo} пар! Так держать.` : `Пара «${secondCard.dataset.label}» уже на борту!`);
           finishGame();
         }, 300);
       } else {
         combo = 0;
-        shake(firstCard);
-        shake(secondCard);
-        haptic("error");
+        markWrong(firstCard);
+        markWrong(secondCard);
         updateHud("Пока не пара. Запомните карточки — они скоро закроются.");
         session.later(() => {
           unflip(firstCard);

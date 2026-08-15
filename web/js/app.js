@@ -605,23 +605,30 @@ function rememberGameOpen(gameName) {
   apiRequest({ action: "updateHistory", id: getTelegramUser().id, history });
 }
 
+function startGameSafely(callback) {
+  try {
+    if (typeof callback !== "function") throw new Error("Не найдена функция запуска игры");
+    callback();
+  } catch (error) {
+    console.error("Ошибка запуска игры:", error);
+    const container = document.getElementById("game-container");
+    if (container) {
+      container.innerHTML = `
+        <section class="app-error-card fade-in">
+          <h2>Ошибка запуска</h2>
+          <p>Игра загрузилась, но не смогла стартовать. Попробуйте вернуться в меню и открыть её снова.</p>
+          <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
+        </section>
+      `;
+    }
+  }
+}
+
 function showGame(gameName) {
   rememberGameOpen(gameName);
 
   const container = document.getElementById("game-container");
   const menu = document.getElementById("menu-container");
-
-  if (container) container.innerHTML = `<div class="app-game-loading"><div class="app-loader__ring"></div><p>Загрузка игры...</p></div>`;
-  if (menu) menu.classList.add("hidden");
-
-  document.body.dataset.mode = "game";
-  window.scrollTo({ top: 0, behavior: "auto" });
-
-  // Скрипты игр не удаляем и не загружаем повторно: у старых игровых файлов есть
-  // глобальные let/const/function, и повторная вставка того же script ломает игру
-  // после выхода в меню. Активное состояние чистится отдельно через cleanupActiveGame().
-  activeGameName = gameName;
-  document.body.dataset.currentGame = gameName;
 
   const routes = {
     alias: ["web/games/alias.js", () => window.startAliasGame?.()],
@@ -638,7 +645,37 @@ function showGame(gameName) {
 
   const route = routes[gameName];
   if (!route) {
+    if (menu) menu.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    activeGameName = gameName;
+    document.body.dataset.currentGame = gameName;
     if (container) container.innerHTML = `<div class="app-error-card"><h2>Игра не найдена</h2><button class="back-button" onclick="goToMainMenu()">В меню</button></div>`;
+    return;
+  }
+
+  // «Найди пару» загружается вместе с оболочкой приложения. Поэтому при входе
+  // можно сразу собрать экран игры, не показывая загрузчик даже на один кадр.
+  const canStartImmediately = gameName === "kids-ark-pairs"
+    && typeof window.startKidsArkPairsGame === "function";
+
+  if (container) {
+    container.innerHTML = canStartImmediately
+      ? ""
+      : `<div class="app-game-loading"><div class="app-loader__ring"></div><p>Загрузка игры...</p></div>`;
+  }
+  if (menu) menu.classList.add("hidden");
+
+  document.body.dataset.mode = "game";
+  window.scrollTo({ top: 0, behavior: "auto" });
+
+  // Скрипты игр не удаляем и не загружаем повторно: у старых игровых файлов есть
+  // глобальные let/const/function, и повторная вставка того же script ломает игру
+  // после выхода в меню. Активное состояние чистится отдельно через cleanupActiveGame().
+  activeGameName = gameName;
+  document.body.dataset.currentGame = gameName;
+
+  if (canStartImmediately) {
+    startGameSafely(route[1]);
     return;
   }
 
@@ -646,31 +683,11 @@ function showGame(gameName) {
 }
 
 function loadGameScript(fileName, callback) {
-  const startLoadedGame = () => {
-    try {
-      if (typeof callback !== "function") throw new Error("Не найдена функция запуска игры");
-      const result = callback();
-      if (result === undefined) {
-        // undefined — нормальный результат для старых start-функций.
-      }
-    } catch (error) {
-      console.error("Ошибка запуска игры:", error);
-      const container = document.getElementById("game-container");
-      if (container) {
-        container.innerHTML = `
-          <section class="app-error-card fade-in">
-            <h2>Ошибка запуска</h2>
-            <p>Игра загрузилась, но не смогла стартовать. Попробуйте вернуться в меню и открыть её снова.</p>
-            <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
-          </section>
-        `;
-      }
-    }
-  };
+  const startLoadedGame = () => startGameSafely(callback);
 
   const existing = loadedGameScripts.get(fileName);
   if (existing?.status === "loaded") {
-    requestAnimationFrame(startLoadedGame);
+    startLoadedGame();
     return;
   }
 
