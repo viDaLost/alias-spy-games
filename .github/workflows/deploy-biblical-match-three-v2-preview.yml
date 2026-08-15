@@ -88,7 +88,7 @@ jobs:
             <style>
               html,body{margin:0;min-height:100%;background:#fdf9ef}
               body{min-height:100dvh}
-              #preview-badge{position:fixed;z-index:11000;top:max(7px,env(safe-area-inset-top));right:7px;padding:4px 8px;border-radius:999px;background:rgba(22,50,77,.82);color:#fff;font:800 9px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(7px)}
+              #preview-badge{position:fixed;z-index:11000;bottom:max(7px,env(safe-area-inset-bottom));right:7px;padding:4px 8px;border-radius:999px;background:rgba(22,50,77,.72);color:#fff;font:800 9px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(7px)}
               #game-container{min-height:100dvh}
             </style>
           </head>
@@ -97,6 +97,7 @@ jobs:
             <main id="game-container" aria-live="polite"></main>
             <script>
               window.Telegram=window.Telegram||{WebApp:{initDataUnsafe:{user:{id:999999,first_name:'Preview'}},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};
+              if(localStorage.getItem('bible_stars_v1_999999')===null)localStorage.setItem('bible_stars_v1_999999','80');
               window.appGoToMainMenu=()=>window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=2');
             </script>
             <script src="web/games/biblical-match-three-core.js?v=2"></script>
