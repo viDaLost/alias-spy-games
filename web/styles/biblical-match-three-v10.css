@@ -180,7 +180,7 @@ body[data-match-three="2"] .bmt-sheet__close{
   z-index:10!important;
 }
 
-/* Bottom sheets adapt to the real visual viewport and keep the primary action in view. */
+/* Bottom sheets adapt to the real visual viewport and avoid expensive live blur on mobile. */
 body[data-match-three="2"] > .bmt-sheet-overlay,
 body[data-match-three="2"] > .bmt-result-overlay,
 body[data-match-three="2"] > .bmt-pause-overlay,
@@ -189,6 +189,10 @@ body[data-match-three="2"] > .bmt-tutorial{
   max-height:var(--bmt-viewport-height,100dvh)!important;
   overflow:hidden!important;
   padding:12px max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))!important;
+  background:rgba(37,48,66,.46)!important;
+  -webkit-backdrop-filter:none!important;
+  backdrop-filter:none!important;
+  z-index:2147483000!important;
 }
 body[data-match-three="2"][data-bmt-telegram="1"] > .bmt-sheet-overlay,
 body[data-match-three="2"][data-bmt-telegram="1"] > .bmt-result-overlay,
@@ -200,10 +204,15 @@ body[data-match-three="2"] > .bmt-sheet-overlay .bmt-sheet,
 body[data-match-three="2"] > .bmt-result-overlay .bmt-result-card,
 body[data-match-three="2"] > .bmt-pause-overlay .bmt-pause-card,
 body[data-match-three="2"] > .bmt-tutorial .bmt-tutorial__card{
+  position:relative!important;
+  z-index:1!important;
   max-height:calc(var(--bmt-viewport-height,100dvh) - var(--bmt-content-top,0px) - 24px)!important;
   overflow:auto!important;
   overscroll-behavior:contain!important;
   -webkit-overflow-scrolling:touch!important;
+  background:#fff!important;
+  opacity:1!important;
+  isolation:isolate!important;
 }
 body[data-match-three="2"] > .bmt-sheet-overlay .bmt-sheet{
   padding-bottom:max(14px,env(safe-area-inset-bottom,0px))!important;
