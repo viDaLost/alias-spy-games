@@ -1,4 +1,5 @@
 name: Deploy Biblical Match Three Preview
+# Branch-only preview; never deploys main.
 
 on:
   workflow_dispatch:
