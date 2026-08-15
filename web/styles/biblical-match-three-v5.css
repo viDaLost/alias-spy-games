@@ -56,4 +56,6 @@
 .bmt-v2 .bmt-board{overflow:visible!important}
 .bmt-v2 .bmt-stats-v2.is-time-critical>div:nth-child(2) strong{color:#dc2626!important;animation:bmt-v6-timer-pulse .7s ease-in-out infinite alternate}
 @keyframes bmt-v6-timer-pulse{from{transform:scale(1)}to{transform:scale(1.08)}}
-@media(max-width:350px){.bmt-v2 .bmt-free-grid{gap:6px!important}.bmt-v2 .bmt-free-card{min-height:116px!important;padding:9px 7px!important}}
+.bmt-v2 .bmt-gamebar .bmt-heading-wrap{min-width:0!important;overflow:hidden!important}
+.bmt-v2 .bmt-gamebar .bmt-title{font-size:clamp(20px,6.1vw,27px)!important;line-height:1.02!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+@media(max-width:350px){.bmt-v2 .bmt-free-grid{gap:6px!important}.bmt-v2 .bmt-free-card{min-height:116px!important;padding:9px 7px!important}.bmt-v2 .bmt-gamebar .bmt-title{font-size:20px!important}}
