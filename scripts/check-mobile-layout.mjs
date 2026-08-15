@@ -76,6 +76,14 @@ for (const width of widths) {
       }, null, { timeout: 15_000 });
       await page.waitForTimeout(500);
 
+      // The setup screen is wider and easier than the actual 6×6 board. Check
+      // the densest Kids Ark Pairs state on both supported phone widths.
+      if (gameKey === 'kids-ark-pairs') {
+        await page.locator('[data-diff="hard"]').click();
+        await page.waitForSelector('.kids-game[data-size="6"] .kids-card', { timeout: 5_000 });
+        await page.waitForTimeout(350);
+      }
+
       const geometry = await page.evaluate(() => {
         const viewport = window.innerWidth;
         const docWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
@@ -98,13 +106,22 @@ for (const width of widths) {
           .slice(0, 5)
           .map(({ el, rect }) => ({ text: (el.textContent || '').trim().slice(0, 40), width: Math.round(rect.width), height: Math.round(rect.height) }));
 
-        return { viewport, docWidth, offenders, tinyControls };
+        const kidsCardSizes = [...document.querySelectorAll('.kids-game .kids-card')]
+          .map((card) => card.getBoundingClientRect())
+          .filter((rect) => rect.width > 0 && rect.height > 0)
+          .flatMap((rect) => [rect.width, rect.height]);
+        const kidsCardMin = kidsCardSizes.length ? Math.min(...kidsCardSizes) : null;
+
+        return { viewport, docWidth, offenders, tinyControls, kidsCardMin };
       });
 
       if (geometry.docWidth > geometry.viewport + 2) {
         throw new Error(`horizontal overflow ${geometry.docWidth}px > ${geometry.viewport}px; ${JSON.stringify(geometry.offenders)}`);
       }
       if (geometry.tinyControls.length) throw new Error(`too-small controls: ${JSON.stringify(geometry.tinyControls)}`);
+      if (gameKey === 'kids-ark-pairs' && geometry.kidsCardMin < 43.5) {
+        throw new Error(`6×6 cards are too small for touch: ${geometry.kidsCardMin.toFixed(1)}px`);
+      }
       console.log(`✓ ${gameKey} @ ${width}px`);
     } catch (error) {
       failures.push(`${gameKey} @ ${width}px: ${error.message}`);

@@ -6,6 +6,7 @@
   "scripts": {
     "check": "node scripts/check-project.mjs",
     "smoke:games": "node scripts/smoke-all-games.mjs",
+    "check:kids-pairs": "node scripts/check-kids-ark-pairs.mjs",
     "check:mobile": "node scripts/check-mobile-layout.mjs",
     "check:errors": "node scripts/check-error-system.mjs",
     "check:home": "node scripts/check-home-controls.mjs",

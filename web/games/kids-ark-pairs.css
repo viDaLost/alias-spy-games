@@ -1,0 +1,970 @@
+/* «Найди пару для ковчега» — isolated visual system. */
+
+body[data-current-game="kids-ark-pairs"] #game-container {
+  width: min(720px, 100%) !important;
+  max-width: 720px !important;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-screen {
+  --kids-primary: #4f46e5;
+  --kids-primary-deep: #3730a3;
+  --kids-secondary: #0ea5e9;
+  --kids-accent: #f59e0b;
+  --kids-soft: #eef2ff;
+  --kids-sky: #dbeafe;
+  --kids-ink: #172554;
+  --kids-muted: #526077;
+  --kids-line: rgba(79, 70, 229, .16);
+  --kids-shadow: 0 20px 52px rgba(49, 46, 129, .14), 0 5px 16px rgba(15, 23, 42, .07);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  color: var(--kids-ink);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-theme-safari {
+  --kids-primary: #15803d;
+  --kids-primary-deep: #14532d;
+  --kids-secondary: #84cc16;
+  --kids-accent: #f59e0b;
+  --kids-soft: #f0fdf4;
+  --kids-sky: #fef3c7;
+  --kids-line: rgba(21, 128, 61, .18);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-theme-ocean {
+  --kids-primary: #0369a1;
+  --kids-primary-deep: #164e63;
+  --kids-secondary: #06b6d4;
+  --kids-accent: #f97316;
+  --kids-soft: #ecfeff;
+  --kids-sky: #cffafe;
+  --kids-line: rgba(8, 145, 178, .2);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-kicker {
+  margin: 0 0 5px;
+  color: var(--kids-primary) !important;
+  font-size: .77rem;
+  font-weight: 950 !important;
+  letter-spacing: .095em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+/* Setup and animated hero */
+body[data-current-game="kids-ark-pairs"] .kids-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 250px;
+  padding: 28px clamp(18px, 5vw, 34px) 24px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 88% 4%, rgba(255, 255, 255, .94), transparent 28%),
+    linear-gradient(155deg, rgba(255, 255, 255, .96), var(--kids-sky));
+  box-shadow: var(--kids-shadow);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hero::after {
+  content: "";
+  position: absolute;
+  right: -12%;
+  bottom: -68px;
+  left: -12%;
+  height: 118px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(14, 165, 233, .28), rgba(14, 165, 233, .64));
+  box-shadow: 0 -16px 0 rgba(255, 255, 255, .24), 0 -29px 0 rgba(14, 165, 233, .12);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hero h2 {
+  position: relative;
+  z-index: 2;
+  max-width: 430px;
+  margin: 0;
+  color: var(--kids-primary-deep);
+  font-size: clamp(2rem, 7vw, 3.15rem);
+  font-weight: 1000;
+  letter-spacing: -.055em;
+  line-height: .98;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hero > p:last-child {
+  position: relative;
+  z-index: 2;
+  max-width: 410px;
+  margin: 14px 0 0;
+  color: var(--kids-muted) !important;
+  font-size: clamp(.95rem, 3.4vw, 1.08rem);
+  font-weight: 750 !important;
+  line-height: 1.45;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hero__sky {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-rainbow {
+  position: absolute;
+  top: 12px;
+  right: 34px;
+  font-size: clamp(3.7rem, 13vw, 6.4rem);
+  opacity: .22;
+  transform: rotate(-8deg);
+  animation: kidsRainbowGlow 3.6s ease-in-out infinite;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-ark {
+  position: absolute;
+  z-index: 2;
+  right: clamp(18px, 8vw, 76px);
+  bottom: 20px;
+  font-size: clamp(3rem, 12vw, 5.5rem);
+  filter: drop-shadow(0 14px 12px rgba(15, 23, 42, .18));
+  animation: kidsArkFloat 2.8s ease-in-out infinite;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-cloud {
+  position: absolute;
+  color: rgba(255, 255, 255, .84);
+  filter: drop-shadow(0 6px 8px rgba(59, 130, 246, .08));
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-cloud--one {
+  top: 18px;
+  left: 43%;
+  font-size: 2.4rem;
+  animation: kidsCloudDrift 9s ease-in-out infinite alternate;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-cloud--two {
+  top: 76px;
+  right: 8%;
+  font-size: 1.7rem;
+  animation: kidsCloudDrift 7s 1.2s ease-in-out infinite alternate-reverse;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hero-pair {
+  position: absolute;
+  z-index: 2;
+  bottom: 22px;
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  filter: drop-shadow(0 8px 8px rgba(15, 23, 42, .12));
+  animation: kidsAnimalWalk 3.2s ease-in-out infinite;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hero-pair--one { right: clamp(118px, 25vw, 205px); }
+body[data-current-game="kids-ark-pairs"] .kids-hero-pair--two { right: clamp(88px, 18vw, 154px); animation-delay: -.35s; }
+
+body[data-current-game="kids-ark-pairs"] .kids-setup-card {
+  display: grid;
+  gap: 20px;
+  padding: clamp(16px, 4vw, 24px);
+  border: 1px solid var(--kids-line);
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(244, 247, 255, .82));
+  box-shadow: var(--kids-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-fieldset legend {
+  width: 100%;
+  margin: 0 0 9px;
+  color: var(--kids-primary-deep);
+  font-size: .92rem;
+  font-weight: 950;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice-grid {
+  display: grid;
+  gap: 9px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice-grid--modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body[data-current-game="kids-ark-pairs"] .kids-choice-grid--collections { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+body[data-current-game="kids-ark-pairs"] .kids-choice,
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card,
+body[data-current-game="kids-ark-pairs"] .kids-icon-button {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--kids-line);
+  color: var(--kids-ink);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 78px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .78);
+  box-shadow: 0 8px 18px rgba(49, 46, 129, .06);
+  text-align: left;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice:hover { transform: translateY(-2px); }
+body[data-current-game="kids-ark-pairs"] .kids-choice:active { transform: scale(.975); }
+
+body[data-current-game="kids-ark-pairs"] .kids-choice[aria-pressed="true"] {
+  border-color: var(--kids-primary);
+  background: linear-gradient(145deg, rgba(255, 255, 255, .98), var(--kids-soft));
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, .16), 0 12px 24px rgba(49, 46, 129, .1);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice__icon {
+  display: grid;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--kids-soft);
+  font-size: 1.45rem;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice strong,
+body[data-current-game="kids-ark-pairs"] .kids-choice small {
+  display: block;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice strong {
+  color: var(--kids-primary-deep);
+  font-size: .94rem;
+  font-weight: 950;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-choice small {
+  margin-top: 3px;
+  color: var(--kids-muted);
+  font-size: .71rem;
+  font-weight: 720;
+  line-height: 1.25;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 144px;
+  padding: 14px;
+  border-radius: 22px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, .98), var(--kids-soft));
+  box-shadow: 0 10px 24px rgba(49, 46, 129, .08);
+  text-align: left;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card:hover {
+  border-color: var(--kids-primary);
+  box-shadow: 0 16px 30px rgba(49, 46, 129, .14);
+  transform: translateY(-3px);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card:active { transform: scale(.97); }
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card__size {
+  margin-bottom: 9px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--kids-primary), var(--kids-secondary));
+  color: white;
+  font-size: .78rem;
+  font-weight: 950;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card strong {
+  color: var(--kids-primary-deep);
+  font-size: 1.02rem;
+  font-weight: 1000;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card small {
+  margin-top: 2px;
+  color: var(--kids-muted);
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card__record {
+  margin-top: auto;
+  color: var(--kids-primary);
+  font-size: .7rem;
+  font-weight: 900;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-setup-footer,
+body[data-current-game="kids-ark-pairs"] .kids-game-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-setup-footer button,
+body[data-current-game="kids-ark-pairs"] .kids-game-actions button { margin: 0 !important; }
+
+body[data-current-game="kids-ark-pairs"] .kids-total-note,
+body[data-current-game="kids-ark-pairs"] .kids-rule-note {
+  margin: 0;
+  color: var(--kids-muted) !important;
+  font-size: .78rem;
+  font-weight: 760 !important;
+  text-align: center;
+}
+
+/* Board, HUD and journey */
+body[data-current-game="kids-ark-pairs"] .kids-game { max-width: 680px; }
+
+body[data-current-game="kids-ark-pairs"] .kids-game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px;
+  border: 1px solid var(--kids-line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 12px 28px rgba(49, 46, 129, .09);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-game-header h2 {
+  margin: 0;
+  color: var(--kids-primary-deep);
+  font-size: clamp(1.35rem, 5vw, 1.9rem);
+  font-weight: 1000;
+  letter-spacing: -.035em;
+  line-height: 1.05;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-game-header h2 span {
+  color: var(--kids-primary);
+  white-space: nowrap;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-icon-button {
+  display: grid;
+  flex: 0 0 50px;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #fff, var(--kids-soft));
+  box-shadow: 0 9px 18px rgba(49, 46, 129, .1);
+  color: var(--kids-primary);
+  font-size: 1.65rem;
+  font-weight: 900;
+  transition: transform .18s ease;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-icon-button:active { transform: rotate(-24deg) scale(.93); }
+
+body[data-current-game="kids-ark-pairs"] .kids-progress-card {
+  padding: 13px 15px 15px;
+  border: 1px solid var(--kids-line);
+  border-radius: 23px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .94), var(--kids-soft));
+  box-shadow: 0 11px 26px rgba(49, 46, 129, .08);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-progress-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  color: var(--kids-muted);
+  font-size: .79rem;
+  font-weight: 850;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-progress-copy strong { color: var(--kids-primary-deep); font-weight: 1000; }
+
+body[data-current-game="kids-ark-pairs"] .kids-progress-track {
+  position: relative;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .22);
+  box-shadow: inset 0 2px 5px rgba(15, 23, 42, .08);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--kids-secondary), var(--kids-primary), var(--kids-accent));
+  box-shadow: 0 0 16px rgba(79, 70, 229, .22);
+  transition: width .55s cubic-bezier(.2, .8, .2, 1);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-progress-ark {
+  position: absolute;
+  top: 50%;
+  left: 8%;
+  z-index: 2;
+  font-size: 1.55rem;
+  filter: drop-shadow(0 4px 5px rgba(15, 23, 42, .18));
+  transform: translate(-50%, -58%);
+  transition: left .58s cubic-bezier(.2, .8, .2, 1);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hud {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-metric {
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid var(--kids-line);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 8px 18px rgba(49, 46, 129, .06);
+  text-align: center;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-metric span,
+body[data-current-game="kids-ark-pairs"] .kids-metric strong { display: block; }
+
+body[data-current-game="kids-ark-pairs"] .kids-metric span {
+  color: var(--kids-muted);
+  font-size: .68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-metric strong {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--kids-primary-deep);
+  font-size: clamp(1rem, 4.5vw, 1.35rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 1000;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-feedback-row {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 8px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-status {
+  flex: 1;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .66);
+  color: var(--kids-muted) !important;
+  font-size: .78rem;
+  font-weight: 800 !important;
+  line-height: 1.3;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-combo {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, .18);
+  font-size: .78rem;
+  font-weight: 1000;
+  animation: kidsComboPop .38s cubic-bezier(.2, 1.5, .4, 1);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-board-shell {
+  position: relative;
+  padding: clamp(7px, 2vw, 14px);
+  border: 1px solid rgba(255, 255, 255, .78);
+  border-radius: 29px;
+  background:
+    radial-gradient(circle at 50% -18%, rgba(255, 255, 255, .96), transparent 42%),
+    linear-gradient(155deg, var(--kids-soft), var(--kids-sky));
+  box-shadow: var(--kids-shadow);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-board-shell::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  border: 1px dashed var(--kids-line);
+  border-radius: 23px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(var(--kids-grid, 4), minmax(0, 1fr));
+  gap: clamp(5px, 1.6vw, 11px);
+  width: 100%;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: clamp(11px, 3vw, 20px);
+  background: transparent;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 10px rgba(49, 46, 129, .12));
+  -webkit-filter: drop-shadow(0 8px 10px rgba(49, 46, 129, .12));
+  perspective: 720px;
+  -webkit-tap-highlight-color: transparent;
+  animation: kidsCardDeal .42s calc(var(--kids-order) * 16ms) both cubic-bezier(.18, .84, .25, 1.18);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card:hover:not(.matched):not(.flipped):not(.peeked) .kids-card-inner {
+  box-shadow: 0 13px 22px rgba(49, 46, 129, .18);
+  transform: translateY(-2px) rotateX(2deg);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card:active:not(.matched) { transform: scale(.95); }
+
+body[data-current-game="kids-ark-pairs"] .kids-card-inner {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 9px 18px rgba(49, 46, 129, .12), inset 0 1px 0 rgba(255, 255, 255, .45);
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform .46s cubic-bezier(.22, .72, .18, 1), box-shadow .24s ease;
+  will-change: transform;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card.flipped .kids-card-inner,
+body[data-current-game="kids-ark-pairs"] .kids-card.peeked .kids-card-inner,
+body[data-current-game="kids-ark-pairs"] .kids-card.matched .kids-card-inner {
+  transform: rotateY(180deg);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, .42);
+  border-radius: inherit;
+  opacity: 1 !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card-back {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, .28) 0 3px, transparent 4px),
+    radial-gradient(circle at 78% 72%, rgba(255, 255, 255, .2) 0 4px, transparent 5px),
+    linear-gradient(145deg, var(--kids-primary), var(--kids-secondary));
+  background-size: 27px 27px, 34px 34px, auto;
+  color: white;
+  transform: rotateY(0deg) translateZ(1px);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card-back span {
+  font-size: clamp(1rem, 5vw, 2.1rem);
+  filter: drop-shadow(0 3px 4px rgba(15, 23, 42, .18));
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card-front {
+  background:
+    radial-gradient(circle at 30% 20%, #fff 0 8%, transparent 31%),
+    linear-gradient(145deg, #fff, var(--kids-soft));
+  color: #111827;
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card-front span {
+  font-size: clamp(1.55rem, 8.6vw, 3.65rem);
+  line-height: 1;
+  filter: saturate(1.16) drop-shadow(0 6px 5px rgba(15, 23, 42, .12));
+  transform: translateY(1px);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-game[data-size="6"] .kids-card-front span {
+  font-size: clamp(1.3rem, 7.2vw, 3.1rem);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card.peeked .kids-card-inner {
+  box-shadow: 0 0 0 3px #f59e0b, 0 0 24px rgba(245, 158, 11, .34);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card.matched .kids-card-inner {
+  box-shadow: 0 0 0 3px #22c55e, 0 0 24px rgba(34, 197, 94, .28);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card.bonus .kids-card-inner {
+  box-shadow: 0 0 0 3px #f59e0b, 0 0 28px rgba(245, 158, 11, .38);
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-card.just-matched { animation: kidsMatched .7s cubic-bezier(.2, 1.5, .35, 1); }
+body[data-current-game="kids-ark-pairs"] .kids-card.wrong .kids-card-inner { box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, .24); }
+body[data-current-game="kids-ark-pairs"] .kids-card.shake { animation: kidsShake .38s cubic-bezier(.36, .07, .19, .97) both; }
+
+body[data-current-game="kids-ark-pairs"] .kids-card[aria-disabled="true"] { cursor: default; }
+
+body[data-current-game="kids-ark-pairs"] .kids-card:focus-visible,
+body[data-current-game="kids-ark-pairs"] .kids-choice:focus-visible,
+body[data-current-game="kids-ark-pairs"] .kids-difficulty-card:focus-visible,
+body[data-current-game="kids-ark-pairs"] .kids-icon-button:focus-visible {
+  outline: 4px solid #fbbf24;
+  outline-offset: 3px;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-hint-button {
+  background: linear-gradient(135deg, var(--kids-primary), var(--kids-secondary)) !important;
+  color: #fff !important;
+}
+
+body[data-current-game="kids-ark-pairs"] .kids-complete .kids-progress-card {
+  animation: kidsCompleteGlow 1.15s ease-in-out infinite alternate;
+}
+
+/* Match particles and result overlays */
+.kids-particle-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kids-particle-layer span {
+  position: fixed;
+  top: var(--kids-particle-y);
+  left: var(--kids-particle-x);
+  font-size: 1.2rem;
+  animation: kidsParticleFly .82s calc(var(--kids-particle-i) * 38ms) both cubic-bezier(.16, .8, .28, 1);
+}
+
+.kids-modal[data-kids-owned="true"] {
+  overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  background: rgba(15, 23, 42, .42);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.kids-modal[data-kids-owned="true"] .kids-modal-card {
+  position: relative;
+  z-index: 2;
+  width: min(520px, 100%);
+  max-width: 520px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: clamp(20px, 5vw, 30px);
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 90% 0, rgba(191, 219, 254, .65), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, .99), rgba(238, 242, 255, .98));
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .28);
+}
+
+.kids-modal[data-kids-owned="true"] .kids-modal-title {
+  margin: 0 0 8px;
+  color: #312e81;
+  font-size: clamp(1.55rem, 6vw, 2.2rem);
+  font-weight: 1000;
+  letter-spacing: -.035em;
+}
+
+.kids-modal[data-kids-owned="true"] .kids-modal-lead {
+  margin: 0 0 18px;
+  color: #526077;
+  font-size: .93rem;
+  font-weight: 750;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.kids-modal[data-kids-owned="true"] .kids-modal-badge,
+.kids-modal[data-kids-owned="true"] .kids-victory-ark {
+  margin-bottom: 4px;
+  font-size: 3.3rem;
+  text-align: center;
+  filter: drop-shadow(0 10px 8px rgba(49, 46, 129, .16));
+}
+
+.kids-modal[data-kids-owned="true"] .kids-victory-ark { animation: kidsArkFloat 2.4s ease-in-out infinite; }
+
+.kids-record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin: 16px 0;
+}
+
+.kids-record-card {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(79, 70, 229, .13);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .76);
+}
+
+.kids-record-card__title {
+  color: #312e81;
+  font-size: .9rem;
+  font-weight: 1000;
+}
+
+.kids-record-card__title span {
+  display: block;
+  color: #6366f1;
+  font-size: .7rem;
+}
+
+.kids-record-card dl { display: grid; gap: 8px; margin: 12px 0 0; }
+.kids-record-card dl div { display: grid; gap: 1px; }
+.kids-record-card dt { color: #64748b; font-size: .62rem; font-weight: 800; }
+.kids-record-card dd { margin: 0; color: #0f172a; font-size: .84rem; font-weight: 1000; }
+
+.kids-record-summary {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 14px 0 18px;
+  color: #64748b;
+  font-size: .83rem;
+  font-weight: 800;
+}
+
+.kids-record-summary strong { color: #312e81; font-size: 1.1rem; }
+
+.kids-victory-badge {
+  width: fit-content;
+  margin: 2px auto 8px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: .76rem;
+  font-weight: 1000;
+}
+
+.kids-stars {
+  margin: 2px 0 10px;
+  color: #f59e0b;
+  font-size: clamp(2rem, 9vw, 3.2rem);
+  letter-spacing: .05em;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 6px 16px rgba(245, 158, 11, .24);
+}
+
+.kids-result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 18px;
+}
+
+.kids-result-grid div {
+  min-width: 0;
+  padding: 11px 7px;
+  border: 1px solid rgba(79, 70, 229, .13);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .82);
+  text-align: center;
+}
+
+.kids-result-grid span,
+.kids-result-grid strong { display: block; }
+.kids-result-grid span { color: #64748b; font-size: .66rem; font-weight: 850; text-transform: uppercase; }
+.kids-result-grid strong { overflow: hidden; margin-top: 3px; color: #312e81; font-size: 1.05rem; font-weight: 1000; text-overflow: ellipsis; white-space: nowrap; }
+
+.kids-modal-actions { display: grid; gap: 9px; }
+.kids-modal-actions button { width: 100%; margin: 0 !important; }
+
+.kids-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kids-confetti span {
+  position: absolute;
+  top: -12%;
+  left: var(--kids-confetti-x);
+  font-size: clamp(1rem, 4vw, 1.8rem);
+  animation: kidsConfettiFall var(--kids-confetti-duration) var(--kids-confetti-delay) infinite linear;
+}
+
+/* Motion */
+@keyframes kidsArkFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+@keyframes kidsCloudDrift {
+  from { transform: translateX(-12px); opacity: .62; }
+  to { transform: translateX(20px); opacity: .92; }
+}
+
+@keyframes kidsRainbowGlow {
+  0%, 100% { opacity: .17; transform: rotate(-8deg) scale(.98); }
+  50% { opacity: .3; transform: rotate(-5deg) scale(1.04); }
+}
+
+@keyframes kidsAnimalWalk {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  45% { transform: translateY(-5px) rotate(2deg); }
+}
+
+@keyframes kidsCardDeal {
+  from { opacity: 0; transform: translateY(15px) rotate(-3deg); }
+  to { opacity: 1; transform: translateY(0) rotate(0); }
+}
+
+@keyframes kidsMatched {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.12) rotate(2deg); }
+  100% { transform: scale(1); }
+}
+
+@keyframes kidsShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+@keyframes kidsComboPop {
+  from { opacity: 0; transform: scale(.72) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes kidsParticleFly {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.4); }
+  22% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--kids-particle-dx)), calc(-50% + var(--kids-particle-dy))) rotate(var(--kids-particle-rotate)) scale(1.08);
+  }
+}
+
+@keyframes kidsConfettiFall {
+  from { transform: translateY(-10vh) rotate(0); opacity: 0; }
+  8% { opacity: 1; }
+  to { transform: translateY(118vh) rotate(520deg); opacity: .72; }
+}
+
+@keyframes kidsCompleteGlow {
+  from { box-shadow: 0 11px 26px rgba(49, 46, 129, .08); }
+  to { box-shadow: 0 0 0 4px rgba(34, 197, 94, .16), 0 18px 38px rgba(34, 197, 94, .2); }
+}
+
+/* Narrow phones: keep even the 6×6 board tappable without horizontal overflow. */
+@media (max-width: 520px) {
+  body[data-current-game="kids-ark-pairs"] .kids-screen { gap: 11px; }
+  body[data-current-game="kids-ark-pairs"] .kids-hero { min-height: 228px; padding: 22px 17px 20px; border-radius: 27px; }
+  body[data-current-game="kids-ark-pairs"] .kids-hero h2 { max-width: 75%; }
+  body[data-current-game="kids-ark-pairs"] .kids-hero > p:last-child { max-width: 74%; font-size: .86rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-setup-card { gap: 17px; padding: 14px; border-radius: 25px; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice { min-height: 70px; padding: 9px; border-radius: 17px; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice__icon { flex-basis: 36px; width: 36px; height: 36px; border-radius: 12px; font-size: 1.2rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice strong { font-size: .82rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice small { font-size: .63rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice-grid--collections .kids-choice { flex-direction: column; justify-content: center; gap: 5px; text-align: center; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice-grid--collections .kids-choice small { display: none; }
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card { min-height: 128px; padding: 11px; border-radius: 18px; }
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card__size { margin-bottom: 7px; padding: 4px 7px; }
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card__record { font-size: .61rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-game-header { padding: 12px 13px; border-radius: 21px; }
+  body[data-current-game="kids-ark-pairs"] .kids-icon-button { flex-basis: 46px; width: 46px; height: 46px; }
+  body[data-current-game="kids-ark-pairs"] .kids-progress-card { padding: 11px 12px 13px; }
+  body[data-current-game="kids-ark-pairs"] .kids-board-shell { padding: 7px; border-radius: 22px; }
+  body[data-current-game="kids-ark-pairs"] .kids-board-shell::before { inset: 4px; border-radius: 18px; }
+  body[data-current-game="kids-ark-pairs"] .kids-grid { gap: clamp(4px, 1.4vw, 7px); }
+  body[data-current-game="kids-ark-pairs"] .kids-card { border-radius: clamp(9px, 2.8vw, 15px); }
+  body[data-current-game="kids-ark-pairs"] .kids-card-face { border-width: 1px; }
+  body[data-current-game="kids-ark-pairs"] .kids-feedback-row { min-height: 36px; }
+  body[data-current-game="kids-ark-pairs"] .kids-status { padding: 7px 9px; font-size: .7rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-combo { padding: 7px 9px; font-size: .7rem; }
+  .kids-record-grid { grid-template-columns: 1fr; }
+  .kids-record-card { display: grid; grid-template-columns: minmax(85px, .7fr) 1fr; align-items: center; }
+  .kids-record-card dl { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; gap: 5px; }
+}
+
+@media (max-width: 350px) {
+  body[data-current-game="kids-ark-pairs"] .kids-hero h2 { max-width: 82%; font-size: 1.8rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-hero > p:last-child { max-width: 80%; }
+  body[data-current-game="kids-ark-pairs"] .kids-ark { right: 12px; font-size: 3.25rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-hero-pair--one { right: 88px; }
+  body[data-current-game="kids-ark-pairs"] .kids-hero-pair--two { right: 66px; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice-grid--modes { grid-template-columns: 1fr; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice-grid--modes .kids-choice { min-height: 62px; }
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card { min-height: 118px; padding: 9px; }
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card strong { font-size: .88rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card small { font-size: .63rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-setup-footer,
+  body[data-current-game="kids-ark-pairs"] .kids-game-actions { grid-template-columns: 1fr; }
+  body[data-current-game="kids-ark-pairs"] .kids-progress-copy { font-size: .72rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-board-shell { padding: 5px; }
+  body[data-current-game="kids-ark-pairs"] .kids-grid { gap: 4px; }
+  body[data-current-game="kids-ark-pairs"] .kids-metric { padding: 8px 4px; border-radius: 15px; }
+  body[data-current-game="kids-ark-pairs"] .kids-metric span { font-size: .59rem; }
+  body[data-current-game="kids-ark-pairs"] .kids-rule-note { font-size: .69rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-current-game="kids-ark-pairs"] .kids-screen *,
+  .kids-modal[data-kids-owned="true"] *,
+  .kids-particle-layer * {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+
+  .kids-confetti,
+  .kids-particle-layer { display: none !important; }
+}
+
+@media (forced-colors: active) {
+  body[data-current-game="kids-ark-pairs"] .kids-card-face,
+  body[data-current-game="kids-ark-pairs"] .kids-choice,
+  body[data-current-game="kids-ark-pairs"] .kids-difficulty-card { border: 2px solid ButtonText; }
+  body[data-current-game="kids-ark-pairs"] .kids-choice[aria-pressed="true"] { outline: 3px solid Highlight; }
+}

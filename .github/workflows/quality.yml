@@ -85,6 +85,8 @@ jobs:
           echo "Using $CHROME_BIN"
       - name: Open every game and return to menu
         run: npm run smoke:games
+      - name: Test Kids Ark Pairs gameplay
+        run: npm run check:kids-pairs
       - name: Check 390px and 320px phone layouts
         run: npm run check:mobile
       - name: Check home dashboard hide controls
