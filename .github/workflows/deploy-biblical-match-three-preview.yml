@@ -99,4 +99,5 @@ jobs:
         run: npx --yes wrangler@latest deploy --config .preview-wrangler.jsonc
 
       - name: Print preview URL
-        run: echo 'Preview: https://alias-spy-games-biblical-preview.vitaledanilov.workers.dev/'
+        run: |
+          echo 'Preview: https://alias-spy-games-biblical-preview.vitaledanilov.workers.dev/'
