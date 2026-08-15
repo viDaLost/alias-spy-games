@@ -4,9 +4,11 @@
   "version": "2.1.0",
   "type": "commonjs",
   "scripts": {
-    "check": "node scripts/check-project.mjs",
+    "check": "node scripts/check-project.mjs && node scripts/check-biblical-match-three.mjs",
     "smoke:games": "node scripts/smoke-all-games.mjs",
     "check:kids-pairs": "node scripts/check-kids-ark-pairs.mjs",
+    "check:match-three": "node scripts/check-biblical-match-three.mjs",
+    "check:match-three:visual": "node scripts/check-biblical-match-three-visual.mjs",
     "check:mobile": "node scripts/check-mobile-layout.mjs",
     "check:errors": "node scripts/check-error-system.mjs",
     "check:home": "node scripts/check-home-controls.mjs",

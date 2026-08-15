@@ -1,0 +1,13 @@
+{
+  "name": "Biblical Match Three Preview",
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "Библейские три в ряд",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postAttachCommand": {
+    "preview": "bash -lc 'if ! pgrep -f \"python3 -m http.server 8000\" >/dev/null; then nohup python3 -m http.server 8000 --bind 0.0.0.0 > /tmp/biblical-match-three-preview.log 2>&1 & fi; echo http://localhost:8000'"
+  }
+}

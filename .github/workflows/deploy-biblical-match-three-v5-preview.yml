@@ -1,0 +1,76 @@
+name: Deploy Biblical Match Three V5 Preview
+
+on:
+  push:
+    branches:
+      - agent/biblical-match-three-v2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: biblical-match-three-v5-preview
+  cancel-in-progress: true
+
+jobs:
+  v5-preview:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Validate V5 logic and HQ atlas
+        run: npm run check:match-three
+      - name: Install Chrome
+        run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+      - name: V5 final mobile visual QA
+        run: node scripts/check-biblical-match-three-v5-final.mjs
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+      - name: Upload final QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: biblical-match-three-v5-final-mobile-qa
+          path: artifacts/biblical-match-three-v5-final/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Build isolated V5 preview
+        run: |
+          rm -rf .preview-v5
+          mkdir -p .preview-v5/web/{games,data,assets,styles}
+          cp -r web/assets/biblical-match-three .preview-v5/web/assets/
+          cp web/data/biblical_match_three_levels.json .preview-v5/web/data/
+          cp web/games/biblical-match-three-core.js web/games/biblical-match-three-progress.js web/games/biblical-match-three-effects.js web/games/biblical-match-three.js web/games/biblical-match-three-art-v4.js web/games/biblical-match-three-v5-loader.js web/games/biblical-match-three-v2-ux.js web/games/biblical-match-three-v5-ux.js .preview-v5/web/games/
+          cp web/styles/biblical-match-three.css web/styles/biblical-match-three-v2.css web/styles/biblical-match-three-v2-polish.css web/styles/biblical-match-three-v4.css web/styles/biblical-match-three-v5.css .preview-v5/web/styles/
+          cat > .preview-v5/index.html <<'HTML'
+          <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fdfaf4"><title>Библейские три в ряд · V5 HQ Preview</title><style>:root{--bg-color:#fdfaf4;--accent-color:#dbeafe;--accent-hover:#bfdbfe;--accent-active:#4f46e5;--text-color:#2d2d2d;--card-bg:#fff;--shadow-app:0 4px 12px rgba(79,70,229,.08),0 2px 4px rgba(0,0,0,.04)}html,body{margin:0;min-height:100%;background:var(--bg-color);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text-color)}#badge{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9999;padding:7px 12px;border-radius:999px;background:rgba(45,45,45,.7);color:#fff;font-weight:800;font-size:11px;letter-spacing:.12em;pointer-events:none}</style><link rel="stylesheet" href="web/styles/biblical-match-three.css?v=5"><link rel="stylesheet" href="web/styles/biblical-match-three-v2.css?v=5"><link rel="stylesheet" href="web/styles/biblical-match-three-v2-polish.css?v=5"><link rel="stylesheet" href="web/styles/biblical-match-three-v4.css?v=5"><link rel="stylesheet" href="web/styles/biblical-match-three-v5.css?v=5"></head><body><main id="game-container"></main><div id="badge">V5 HQ · TEST</div><script>window.appGoToMainMenu=()=>window.location.reload()</script><script src="web/games/biblical-match-three-art-v4.js?v=5"></script><script src="web/games/biblical-match-three-v5-loader.js?v=5"></script><script src="web/games/biblical-match-three-core.js?v=5"></script><script src="web/games/biblical-match-three-progress.js?v=5"></script><script src="web/games/biblical-match-three-effects.js?v=5"></script><script src="web/games/biblical-match-three.js?v=5"></script><script>(async()=>{await window.BiblicalMatchThreeV5ArtReady;for(const src of ['web/games/biblical-match-three-v2-ux.js?v=5','web/games/biblical-match-three-v5-ux.js?v=5'])await new Promise((ok,fail)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=fail;document.head.appendChild(s)});window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=5')})().catch(e=>{console.error(e);document.getElementById('game-container').textContent='Не удалось загрузить V5 HQ preview'})</script></body></html>
+          HTML
+      - name: Deploy V5 HQ preview to Cloudflare
+        run: npx wrangler@4 deploy --config .github/wrangler-biblical-v2-preview.toml --assets .preview-v5 --var PREVIEW_BUILD_ID:${{ github.sha }}
+      - name: Verify V5 HQ preview marker
+        run: |
+          python3 - <<'PY'
+          import urllib.request,time
+          url='https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
+          for i in range(8):
+              try:
+                  body=urllib.request.urlopen(url+'?v5hq='+str(i),timeout=20).read().decode('utf-8','replace')
+                  if 'V5 HQ · TEST' in body:
+                      print('V5 HQ preview verified:',url)
+                      break
+              except Exception as e:
+                  print('attempt',i+1,e)
+              time.sleep(5)
+          else: raise SystemExit('V5 HQ preview marker not found')
+          PY

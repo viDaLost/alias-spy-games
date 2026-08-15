@@ -24,6 +24,7 @@ fun GameHost(
         GameKey.DESCRIBE -> DescribeGame(assets, onBack)
         GameKey.SPY -> SpyGame(assets, onBack)
         GameKey.PAIRS -> MemoryGame(onBack)
+        GameKey.MATCH_THREE -> BiblicalMatchThreeGame(onBack)
         GameKey.WOW -> BibleWowGame(assets, profile, onProfileChange, onBack)
         GameKey.WORD_SEARCH -> WordSearchGame(assets, profile, onProfileChange, onBack)
         GameKey.SACRED -> SacredWordGame(assets, profile, onProfileChange, onBack)
