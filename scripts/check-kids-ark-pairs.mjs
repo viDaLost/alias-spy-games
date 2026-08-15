@@ -90,11 +90,11 @@ try {
   await page.waitForSelector('.kids-setup', { timeout: 10_000 });
 
   const setup = await page.evaluate(() => ({
-    modes: document.querySelectorAll('[data-mode]').length,
-    collections: document.querySelectorAll('[data-collection]').length,
-    difficulties: document.querySelectorAll('[data-diff]').length,
-    activeMode: document.querySelector('[data-mode][aria-pressed="true"]')?.dataset.mode,
-    activeCollection: document.querySelector('[data-collection][aria-pressed="true"]')?.dataset.collection,
+    modes: document.querySelectorAll('.kids-setup [data-mode]').length,
+    collections: document.querySelectorAll('.kids-setup [data-collection]').length,
+    difficulties: document.querySelectorAll('.kids-setup [data-diff]').length,
+    activeMode: document.querySelector('.kids-setup [data-mode][aria-pressed="true"]')?.dataset.mode,
+    activeCollection: document.querySelector('.kids-setup [data-collection][aria-pressed="true"]')?.dataset.collection,
   }));
   check(setup.modes === 2, `Ожидалось 2 режима, получено ${setup.modes}`);
   check(setup.collections === 3, `Ожидалось 3 набора, получено ${setup.collections}`);
@@ -102,11 +102,11 @@ try {
   check(setup.activeMode === 'calm', 'Спокойный режим должен быть выбран по умолчанию');
   check(setup.activeCollection === 'ark', 'Весь ковчег должен быть выбран по умолчанию');
 
-  await page.locator('[data-mode="speed"]').click();
-  await page.locator('[data-collection="ocean"]').click();
-  check(await page.locator('[data-mode="speed"]').getAttribute('aria-pressed') === 'true', 'Скоростной режим не активировался');
-  check(await page.locator('[data-collection="ocean"]').getAttribute('aria-pressed') === 'true', 'Набор «У воды» не активировался');
-  await page.locator('[data-diff="medium"]').click();
+  await page.locator('.kids-setup [data-mode="speed"]').click();
+  await page.locator('.kids-setup [data-collection="ocean"]').click();
+  check(await page.locator('.kids-setup [data-mode="speed"]').getAttribute('aria-pressed') === 'true', 'Скоростной режим не активировался');
+  check(await page.locator('.kids-setup [data-collection="ocean"]').getAttribute('aria-pressed') === 'true', 'Набор «У воды» не активировался');
+  await page.locator('.kids-setup [data-diff="medium"]').click();
   await page.waitForSelector('.kids-game[data-size="5"] .kids-card', { timeout: 5_000 });
 
   const board = await page.evaluate(() => {
@@ -193,10 +193,10 @@ try {
 
   await page.locator('#kids-change-settings').click();
   await page.waitForSelector('.kids-setup');
-  check(await page.locator('[data-mode="speed"]').getAttribute('aria-pressed') === 'true', 'Выбранный режим не сохранился после игры');
-  check(await page.locator('[data-collection="ocean"]').getAttribute('aria-pressed') === 'true', 'Выбранная коллекция не сохранилась после игры');
+  check(await page.locator('.kids-setup [data-mode="speed"]').getAttribute('aria-pressed') === 'true', 'Выбранный режим не сохранился после игры');
+  check(await page.locator('.kids-setup [data-collection="ocean"]').getAttribute('aria-pressed') === 'true', 'Выбранная коллекция не сохранилась после игры');
 
-  await page.locator('[data-diff="hard"]').click();
+  await page.locator('.kids-setup [data-diff="hard"]').click();
   await page.waitForSelector('.kids-game[data-size="6"]');
   const hardCards = await cardState();
   const hardGroups = new Map();
