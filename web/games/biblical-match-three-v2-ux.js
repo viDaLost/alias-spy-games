@@ -1,7 +1,7 @@
 (() => {
 "use strict";
 
-const ART = window.BiblicalMatchThreeV3Art || {};
+const ART = window.BiblicalMatchThreeV4Art || window.BiblicalMatchThreeV3Art || {};
 const SYMBOLS = {
   bible: ART.symbols?.bible, fish: ART.symbols?.fish, dove: ART.symbols?.dove, lamp: ART.symbols?.candle,
   crown: ART.symbols?.crown, ark: ART.symbols?.ark, bread: ART.symbols?.bread, grapes: ART.symbols?.grapes, tablets: ART.symbols?.tablets,
@@ -13,6 +13,8 @@ const BOOSTERS = {
 const GOALS = { score: ART.goals?.score, cascade: ART.goals?.cascade, special: ART.goals?.special };
 const OBSTACLES = { tablet: ART.obstacles?.tablets, chain: ART.obstacles?.chains, lamp: ART.obstacles?.candle };
 const GENERIC_RX = /web\/assets\/biblical-match-three\/(bible|fish|dove|lamp|crown|ark|bread|grapes|tablets)\.svg(?:\?.*)?$/;
+const SHORT_BOOSTER = { sling: "Праща", staff: "Посох", jericho: "Трубы", ark: "Ковчег" };
+
 let observer = null;
 let scheduled = false;
 let syntheticClick = false;
@@ -36,14 +38,17 @@ function replaceGenericImages(root = document) {
     if (match && SYMBOLS[match[1]] && current !== SYMBOLS[match[1]]) img.src = SYMBOLS[match[1]];
   });
   const hero = root.querySelector?.(".bmt-hero-v2__icon img");
-  if (hero) hero.src = SYMBOLS.bible;
+  if (hero && SYMBOLS.bible) hero.src = SYMBOLS.bible;
 }
 
 function replaceBoosterImages(root = document) {
   root.querySelectorAll?.("[data-booster]").forEach((node) => {
-    const src = BOOSTERS[node.dataset.booster];
+    const id = node.dataset.booster;
+    const src = BOOSTERS[id];
     const img = node.querySelector("img");
     if (src && img && img.getAttribute("src") !== src) img.src = src;
+    const name = node.querySelector(".bmt-booster__name");
+    if (name && SHORT_BOOSTER[id] && name.textContent !== SHORT_BOOSTER[id]) name.textContent = SHORT_BOOSTER[id];
   });
   root.querySelectorAll?.(".bmt-prebooster").forEach((node) => {
     const label = node.querySelector("strong")?.textContent || "";
@@ -58,7 +63,9 @@ function replaceBoosterImages(root = document) {
 
 function replaceGoalIcon(node, src) {
   const icon = node.querySelector(":scope > span:first-child, .bmt-goal__icon");
-  if (!icon || !src || icon.querySelector(`img[src="${src}"]`)) return;
+  if (!icon || !src) return;
+  const current = icon.querySelector("img")?.getAttribute("src");
+  if (current === src) return;
   icon.replaceChildren(assetImg(src, "bmt-goal-art"));
 }
 
@@ -74,7 +81,23 @@ function enhanceGoalIcons(root = document) {
   });
 }
 
-function enhanceCopy(root = document) {
+function enhanceObstacles(root = document) {
+  const pairs = [
+    [".bmt-blocker__tablet", OBSTACLES.tablet],
+    [".bmt-blocker__chain", OBSTACLES.chain],
+    [".bmt-blocker__lamp", OBSTACLES.lamp],
+  ];
+  for (const [selector, src] of pairs) {
+    if (!src) continue;
+    root.querySelectorAll?.(selector).forEach((node) => {
+      const existing = node.querySelector(":scope > img.bmt-blocker-art");
+      if (existing) { if (existing.src !== src) existing.src = src; return; }
+      node.prepend(assetImg(src, "bmt-blocker-art"));
+    });
+  }
+}
+
+function refineCopy(root = document) {
   root.querySelectorAll?.(".bmt-tutorial p").forEach((node) => {
     if ((node.textContent || "").includes("Коснитесь двух соседних фишек")) {
       node.textContent = "Проведите фишку свайпом вверх, вниз, влево или вправо. Четыре и пять в ряд создают особые фишки.";
@@ -83,6 +106,16 @@ function enhanceCopy(root = document) {
   root.querySelectorAll?.(".bmt-tutorial h3").forEach((node) => {
     if ((node.textContent || "").includes("Соберите три одинаковых")) node.textContent = "Соберите три одинаковых символа свайпом";
   });
+  root.querySelectorAll?.(".bmt-goal__copy small, .bmt-prelevel__goals strong").forEach((node) => {
+    const value = node.textContent || "";
+    const next = value.replace("Светильник", "Свеча").replace("светильники", "свечи");
+    if (next !== value) node.textContent = next;
+  });
+  const hero = root.querySelector?.(".bmt-hero-v2__copy");
+  if (hero && !hero.dataset.refined) {
+    hero.dataset.refined = "1";
+    hero.innerHTML = `<span class="bmt-hero-v2__eyebrow">Библейская головоломка</span><strong>Собирайте символы и проходите путь уровней</strong><span>30 уровней · свайпы · особые комбинации · библейские бустеры</span>`;
+  }
 }
 
 function removeDaily(root = document) {
@@ -97,9 +130,10 @@ function journeySvg() {
   svg.setAttribute("preserveAspectRatio", "none");
   svg.setAttribute("aria-hidden", "true");
   const glow = document.createElementNS(ns, "path");
-  glow.setAttribute("d", "M180 0 C68 80 78 165 180 220 S292 362 180 440 S68 582 180 660 S292 802 180 880 S68 1020 180 1100");
+  glow.setAttribute("d", "M180 0 C90 90 82 174 180 240 S276 384 180 470 S84 610 180 700 S278 836 180 930 S88 1035 180 1100");
   glow.setAttribute("class", "bmt-journey-route__glow");
-  const line = glow.cloneNode(); line.setAttribute("class", "bmt-journey-route__line");
+  const line = glow.cloneNode();
+  line.setAttribute("class", "bmt-journey-route__line");
   svg.append(glow, line);
   return svg;
 }
@@ -139,11 +173,6 @@ function enhanceMap(root = document) {
       child.remove();
     } else if (child.classList.contains("bmt-map-node") && path) {
       child.classList.add("bmt-journey-node");
-      const body = child.querySelector(".bmt-map-node__body");
-      if (body) {
-        const stars = body.querySelector("span")?.textContent || "";
-        body.dataset.stars = stars;
-      }
       path.append(child);
     } else if (section) {
       section.append(child);
@@ -164,7 +193,8 @@ function enhance(root = document) {
   replaceGenericImages(root);
   replaceBoosterImages(root);
   enhanceGoalIcons(root);
-  enhanceCopy(root);
+  enhanceObstacles(root);
+  refineCopy(root);
   reorderMenu(root);
   enhanceMap(root);
 }
@@ -184,8 +214,8 @@ function clearDrag() {
 }
 
 function adjacentIndex(index, dx, dy) {
-  const row = Math.floor(index / 8); const col = index % 8;
-  const nextRow = row + dy; const nextCol = col + dx;
+  const row = Math.floor(index / 8), col = index % 8;
+  const nextRow = row + dy, nextCol = col + dx;
   if (nextRow < 0 || nextRow >= 8 || nextCol < 0 || nextCol >= 8) return null;
   return nextRow * 8 + nextCol;
 }
@@ -209,10 +239,10 @@ function onPointerDown(event) {
 
 function onPointerMove(event) {
   if (!pointer || event.pointerId !== pointer.id) return;
-  const dx = event.clientX - pointer.x; const dy = event.clientY - pointer.y;
+  const dx = event.clientX - pointer.x, dy = event.clientY - pointer.y;
   if (Math.hypot(dx, dy) > 5) pointer.moved = true;
   const rect = pointer.tile.getBoundingClientRect();
-  const max = Math.max(12, Math.min(rect.width, rect.height) * 0.34);
+  const max = Math.max(12, Math.min(rect.width, rect.height) * 0.38);
   pointer.tile.style.setProperty("--bmt-drag-x", `${Math.max(-max, Math.min(max, dx))}px`);
   pointer.tile.style.setProperty("--bmt-drag-y", `${Math.max(-max, Math.min(max, dy))}px`);
   if (pointer.moved) event.preventDefault();
@@ -221,7 +251,7 @@ function onPointerMove(event) {
 function onPointerUp(event) {
   if (!pointer || event.pointerId !== pointer.id) return;
   const state = pointer;
-  const dx = event.clientX - state.x; const dy = event.clientY - state.y;
+  const dx = event.clientX - state.x, dy = event.clientY - state.y;
   clearDrag();
   const distance = Math.hypot(dx, dy);
   suppressClickUntil = performance.now() + 450;
@@ -263,7 +293,8 @@ function onBoosterCapture(event) {
 }
 
 function install() {
-  if (window.__bmtV3UxInstalled) return;
+  if (window.__bmtV4UxInstalled) return;
+  window.__bmtV4UxInstalled = true;
   window.__bmtV3UxInstalled = true;
   document.addEventListener("pointerdown", onPointerDown, { capture: true, passive: false });
   document.addEventListener("pointermove", onPointerMove, { capture: true, passive: false });
@@ -276,6 +307,7 @@ function install() {
   enhance(document);
 }
 
-window.BiblicalMatchThreeV3Assets = { SYMBOLS, BOOSTERS, GOALS, OBSTACLES };
+window.BiblicalMatchThreeV4Assets = { SYMBOLS, BOOSTERS, GOALS, OBSTACLES };
+window.BiblicalMatchThreeV3Assets = window.BiblicalMatchThreeV4Assets;
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true }); else install();
 })();

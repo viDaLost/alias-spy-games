@@ -10,11 +10,12 @@ on:
       - 'web/games/biblical-match-three-progress.js'
       - 'web/games/biblical-match-three-effects.js'
       - 'web/games/biblical-match-three.js'
-      - 'web/games/biblical-match-three-art-*.js'
+      - 'web/games/biblical-match-three-art-v4.js'
       - 'web/games/biblical-match-three-v2-ux.js'
       - 'web/js/biblical-match-three-launcher.js'
       - 'web/styles/biblical-match-three-v2.css'
       - 'web/styles/biblical-match-three-v2-polish.css'
+      - 'web/styles/biblical-match-three-v4.css'
       - 'web/data/biblical_match_three_levels.json'
       - 'web/assets/biblical-match-three/**'
       - 'scripts/check-biblical-match-three.mjs'
@@ -48,14 +49,13 @@ jobs:
             exit 1
           fi
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
-          echo "Using $CHROME_BIN"
-      - name: Run 390px and 320px visual and gesture QA
+      - name: Run 390px and 320px production visual and gesture QA
         run: npm run check:match-three:visual
       - name: Upload mobile QA screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: biblical-match-three-v3-mobile-qa
+          name: biblical-match-three-v4-mobile-qa
           path: artifacts/biblical-match-three-v2/*.png
           if-no-files-found: warn
           retention-days: 14
@@ -64,12 +64,8 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .preview-v2-dist
-          mkdir -p \
-            .preview-v2-dist/web/games \
-            .preview-v2-dist/web/styles \
-            .preview-v2-dist/web/data \
-            .preview-v2-dist/web/assets/biblical-match-three
-          cp web/games/biblical-match-three-art-*.js .preview-v2-dist/web/games/
+          mkdir -p .preview-v2-dist/web/games .preview-v2-dist/web/styles .preview-v2-dist/web/data .preview-v2-dist/web/assets/biblical-match-three
+          cp web/games/biblical-match-three-art-v4.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-core.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-progress.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-effects.js .preview-v2-dist/web/games/
@@ -77,6 +73,7 @@ jobs:
           cp web/games/biblical-match-three-v2-ux.js .preview-v2-dist/web/games/
           cp web/styles/biblical-match-three-v2.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v2-polish.css .preview-v2-dist/web/styles/
+          cp web/styles/biblical-match-three-v4.css .preview-v2-dist/web/styles/
           cp web/data/biblical_match_three_levels.json .preview-v2-dist/web/data/
           cp -R web/assets/biblical-match-three/. .preview-v2-dist/web/assets/biblical-match-three/
 
@@ -87,53 +84,33 @@ jobs:
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
             <meta name="theme-color" content="#fdfaf4">
-            <title>Библейские три в ряд v3 — Preview</title>
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v2.css?v=3">
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v2-polish.css?v=3">
+            <title>Библейские три в ряд — Preview</title>
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v2.css?v=4">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v2-polish.css?v=4">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v4.css?v=4">
             <style>
               :root{--bg-color:#fdfaf4;--accent-color:#dbeafe;--accent-hover:#bfdbfe;--accent-active:#4f46e5;--text-color:#2d2d2d;--card-bg:#fff;--shadow-app:0 4px 12px rgba(79,70,229,.08),0 2px 4px rgba(0,0,0,.04)}
               html,body{margin:0;min-height:100%;background:var(--bg-color);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
               body{min-height:100dvh}
-              #preview-badge{position:fixed;z-index:11000;bottom:max(7px,env(safe-area-inset-bottom));right:7px;padding:4px 8px;border-radius:999px;background:rgba(45,45,45,.68);color:#fff;font:800 9px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(7px)}
+              #preview-badge{position:fixed;z-index:11000;bottom:max(7px,env(safe-area-inset-bottom));right:7px;padding:4px 8px;border-radius:999px;background:rgba(45,45,45,.64);color:#fff;font:800 9px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(7px)}
               #game-container{min-height:100dvh}
             </style>
           </head>
           <body>
-            <div id="preview-badge">V3 · TEST</div>
+            <div id="preview-badge">V4 · TEST</div>
             <main id="game-container" aria-live="polite"></main>
             <script>
               window.Telegram=window.Telegram||{WebApp:{initDataUnsafe:{user:{id:999999,first_name:'Preview'}},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};
               if(localStorage.getItem('bible_stars_v1_999999')===null)localStorage.setItem('bible_stars_v1_999999','80');
-              window.appGoToMainMenu=()=>window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=3');
+              window.appGoToMainMenu=()=>window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=4');
             </script>
-            <script src="web/games/biblical-match-three-art-symbols-bible.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-fish.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-dove.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-candle.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-crown.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-ark.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-bread.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-grapes.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-symbols-tablets.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-manna.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-oil.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-covenant.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-sling.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-staff.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-jericho.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-boosters-ark.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-goals-score.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-goals-cascade.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-goals-special.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-obstacles-tablets.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-obstacles-chains.js?v=3"></script>
-            <script src="web/games/biblical-match-three-art-obstacles-candle.js?v=3"></script>
-            <script src="web/games/biblical-match-three-core.js?v=3"></script>
-            <script src="web/games/biblical-match-three-progress.js?v=3"></script>
-            <script src="web/games/biblical-match-three-effects.js?v=3"></script>
-            <script src="web/games/biblical-match-three.js?v=3"></script>
-            <script src="web/games/biblical-match-three-v2-ux.js?v=3"></script>
-            <script>window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=3');</script>
+            <script src="web/games/biblical-match-three-art-v4.js?v=4"></script>
+            <script src="web/games/biblical-match-three-core.js?v=4"></script>
+            <script src="web/games/biblical-match-three-progress.js?v=4"></script>
+            <script src="web/games/biblical-match-three-effects.js?v=4"></script>
+            <script src="web/games/biblical-match-three.js?v=4"></script>
+            <script src="web/games/biblical-match-three-v2-ux.js?v=4"></script>
+            <script>window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=4');</script>
           </body>
           </html>
           HTML
@@ -156,6 +133,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config .preview-v2-wrangler.jsonc
       - name: Print preview URL
-        shell: bash
-        run: |
-          echo 'Preview: https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
+        run: echo 'Preview: https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
