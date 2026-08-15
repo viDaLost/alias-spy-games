@@ -18,11 +18,11 @@
     }
 
     const assets = [
-      ['script', 'games/quartet.js?v=4'],
-      ['style', 'games/quartet-v2.css?v=3'],
-      ['script', 'games/bible-sketch.js?v=1'],
-      ['style', 'games/bible-sketch.css?v=1'],
-      ['fetch', 'data/quartet_bible.json'],
+      ['script', 'web/games/quartet.js?v=4'],
+      ['style', 'web/games/quartet-v2.css?v=3'],
+      ['script', 'web/games/bible-sketch.js?v=1'],
+      ['style', 'web/games/bible-sketch.css?v=1'],
+      ['fetch', 'web/data/quartet_bible.json'],
     ];
     for (const [as, href] of assets) {
       const link = document.createElement('link');

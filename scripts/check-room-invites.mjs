@@ -8,14 +8,14 @@ const forbidText = (text, needle, label) => {
   if (text.includes(needle)) throw new Error(`Room invite check failed: ${label}`);
 };
 
-const invite = read('room-invite.js');
-const scanner = read('room-qr-scanner.js');
-const addon = read('room-qr-addon.js');
-const brand = read('room-qr-brand.js');
-const brandCss = read('room-qr-brand.css');
-const css = read('room-invite.css');
-const gestureCss = read('quartet-gesture-guard.css');
-const gestureJs = read('telegram-gesture-guard.js');
+const invite = read('web/js/room-invite.js');
+const scanner = read('web/js/room-qr-scanner.js');
+const addon = read('web/js/room-qr-addon.js');
+const brand = read('web/js/room-qr-brand.js');
+const brandCss = read('web/styles/room-qr-brand.css');
+const css = read('web/styles/room-invite.css');
+const gestureCss = read('web/styles/quartet-gesture-guard.css');
+const gestureJs = read('web/js/telegram-gesture-guard.js');
 const core = read('cloudflare/app-core-worker/src/index-v7.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const html = read('index.html');

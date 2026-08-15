@@ -591,9 +591,9 @@ function aliasResetGuessedAndContinue() {
 // URL словарей
 function aliasUrlForDifficulty(difficulty) {
   return {
-    easy: 'data/easy_bible_words.json',
-    medium: 'data/medium_bible_words.json',
-    hard: 'data/hard_bible_words.json'
+    easy: 'web/data/easy_bible_words.json',
+    medium: 'web/data/medium_bible_words.json',
+    hard: 'web/data/hard_bible_words.json'
   }[difficulty] || '';
 }
 

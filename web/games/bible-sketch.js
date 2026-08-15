@@ -97,7 +97,7 @@ function startBibleSketchGame() {
       link.rel = 'stylesheet';
       document.head.appendChild(link);
     }
-    link.href = 'games/bible-sketch.css?v=1';
+    link.href = 'web/games/bible-sketch.css?v=1';
   }
 
   function renderRoot() {
