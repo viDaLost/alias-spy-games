@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const VERSION="8";
+const VERSION="10";
 const BASE="web/assets/biblical-match-three/hq-v5";
 const FALLBACK_BASE="web/assets/biblical-match-three";
 const PART_COUNT=11;
@@ -14,7 +14,6 @@ const POS={
  obstacles:{chains:[2,4],tablets:[3,4],candle:[4,4],cracked:[0,5]}
 };
 const GENERIC=/web\/assets\/biblical-match-three\/(bible|fish|dove|lamp|crown|ark|bread|grapes|tablets)\.svg(?:\?.*)?$/;
-let observer=null;
 function partUrl(i){return `${BASE}/atlas-${String(i).padStart(2,"0")}.txt?v=${VERSION}`}
 function asset(name){return `${FALLBACK_BASE}/${name}.svg?v=${VERSION}`}
 function direct(name){return `${BASE}/symbols/${name}.webp?v=${VERSION}`}
@@ -54,12 +53,12 @@ function crop(img,col,row){
 async function makeGroup(img,defs){return Object.fromEntries(await Promise.all(Object.entries(defs).map(async([key,[c,r]])=>[key,await crop(img,c,r)])))}
 function fallbackArt(){
  return {
-  version:8,
-  symbols:{bible:asset("bible"),fish:direct("fish"),dove:asset("dove"),candle:asset("lamp"),crown:asset("crown"),ark:asset("ark"),bread:asset("bread"),grapes:asset("grapes"),tablets:asset("tablets")},
-  boosters:{manna:asset("bread"),oil:asset("lamp"),covenant:asset("dove"),sling:asset("crown"),staff:asset("tablets"),jericho:asset("lamp"),ark:asset("ark")},
+  version:10,
+  symbols:{bible:asset("bible"),fish:direct("fish"),dove:asset("dove"),candle:asset("lamp"),crown:asset("crown"),ark:direct("ark"),bread:asset("bread"),grapes:asset("grapes"),tablets:asset("tablets")},
+  boosters:{manna:asset("bread"),oil:asset("lamp"),covenant:asset("dove"),sling:asset("crown"),staff:asset("tablets"),jericho:asset("lamp"),ark:direct("ark")},
   goals:{score:asset("crown"),collect:asset("bible"),cascade:asset("dove"),special:asset("crown"),blockers:asset("tablets"),light:asset("lamp")},
   obstacles:{chains:asset("tablets"),tablets:asset("tablets"),candle:asset("lamp"),cracked:asset("tablets")},
-  kind:"safe-fallback-v8",sourceSize:192
+  kind:"safe-fallback-v10",sourceSize:192
  };
 }
 function replaceGeneric(root=document,art=window.BiblicalMatchThreeV5Art){
@@ -67,29 +66,29 @@ function replaceGeneric(root=document,art=window.BiblicalMatchThreeV5Art){
  root.querySelectorAll?.('img[src*="web/assets/biblical-match-three/"]').forEach(img=>{
   const m=(img.getAttribute("src")||"").match(GENERIC);if(!m)return;
   const key=m[1]==="lamp"?"candle":m[1];const next=art.symbols?.[key];
-  if(next&&img.getAttribute("src")!==next){img.src=next;img.dataset.bmtRaster=art.kind.startsWith("raster")?"v8":"fallback"}
+  if(next&&img.getAttribute("src")!==next){img.src=next;img.dataset.bmtRaster=art.kind.startsWith("raster")?"v10":"fallback"}
  });
-}
-function installRewriter(art){
- replaceGeneric(document,art);if(observer)observer.disconnect();
- let queued=false;const schedule=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;replaceGeneric(document,art)})};
- observer=new MutationObserver(schedule);observer.observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:["src"]});
 }
 function publish(art){
  window.BiblicalMatchThreeV5Art=art;window.BiblicalMatchThreeV4Art=art;window.__bmtV5ArtReady=true;
- document.documentElement.dataset.bmtArt=art.kind;installRewriter(art);return art;
+ document.documentElement.dataset.bmtArt=art.kind;
+ replaceGeneric(document,art);
+ return art;
 }
 async function init(){
  try{
   const {img,objectUrl}=await loadAtlas();
   try{
-   const art={version:8,symbols:await makeGroup(img,POS.symbols),boosters:await makeGroup(img,POS.boosters),goals:await makeGroup(img,POS.goals),obstacles:await makeGroup(img,POS.obstacles),kind:"raster-hq-v8",sourceSize:CELL};
-   art.symbols.fish=direct("fish");return publish(art);
+   const art={version:10,symbols:await makeGroup(img,POS.symbols),boosters:await makeGroup(img,POS.boosters),goals:await makeGroup(img,POS.goals),obstacles:await makeGroup(img,POS.obstacles),kind:"raster-hq-v10",sourceSize:CELL};
+   art.symbols.fish=direct("fish");
+   art.symbols.ark=direct("ark");
+   art.boosters.ark=direct("ark");
+   return publish(art);
   }finally{URL.revokeObjectURL(objectUrl)}
  }catch(error){
   console.warn("Biblical Treasures HQ art fallback activated",error);return publish(fallbackArt());
  }
 }
 window.BiblicalMatchThreeV5ArtReady=init().catch(error=>{console.warn("Biblical Treasures art emergency fallback",error);return publish(fallbackArt())});
-window.__BMTV5Raster={version:8,scan:()=>replaceGeneric(document)};
+window.__BMTV5Raster={version:10,scan:()=>replaceGeneric(document)};
 })();
