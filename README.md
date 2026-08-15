@@ -1,47 +1,71 @@
 # Библейские игры
 
-Мобильное веб-приложение с 10 существующими играми для Telegram Mini App и обычного браузера. Проект остаётся обычным статическим сайтом для GitHub Pages: без PWA, Service Worker, Web App Manifest и отдельной сборки.
+Набор из 11 библейских мини-игр: статическое веб-приложение для GitHub Pages и Telegram Mini App, нативное Android-приложение и четыре Cloudflare Worker backend-сервиса.
 
-## Что улучшено
+Веб-часть не требует сборки: `index.html` напрямую подключает ресурсы из `web/`. В проекте сознательно нет Service Worker, Web App Manifest и PWA-обвязки.
 
-- Сохранены все существующие игры, новые не добавлялись.
-- Тяжёлая растровая графика первого экрана удалена: меню использует сетевые-независимые emoji/SVG-иконки, а секретные карточки «Шпиона» рисуются CSS без загрузки многомегабайтных изображений.
-- Three.js загружается только при открытии «Священного слова».
-- Telegram WebApp SDK больше не блокирует первый экран в обычном браузере и подгружается только при признаках запуска внутри Telegram.
-- Главное меню показывается сразу; холодный Google Apps Script синхронизируется в фоне.
-- Статические JSON используют browser cache и общий in-memory cache вместо принудительных cache-buster/no-store запросов.
-- Добавлен общий `GameRuntime`: при выходе из игры очищаются созданные ею timers, intervals, animation frames и event listeners.
-- Существующие cleanup-функции Alias, Word Search, Sacred Word и Quartet сохранены и вызываются дополнительно.
-- Polling «Квартета» при скрытой вкладке приостанавливается; Three.js сцена также не рендерится в фоне.
-- Добавлены настройки вибрации, уменьшения анимаций и размера текста.
-- Добавлена локальная статистика запусков существующих игр.
-- Убрано запрещение масштабирования страницы.
-- Добавлен стабильный guest ID для браузера вне Telegram.
-- Клиент добавляет `telegramInitData` к запросам Apps Script, чтобы сервер мог валидировать подпись Telegram.
-- Добавлена GitHub Actions проверка JS, JSON, локальных ресурсов, размера изображений и отсутствия PWA-регрессии.
+## Структура репозитория
 
-## Запуск
+| Путь | Назначение |
+| --- | --- |
+| `index.html` | Единственный web entrypoint для GitHub Pages |
+| `web/js/` | Клиентский runtime и функциональные дополнения |
+| `web/styles/` | Общие и feature-specific стили |
+| `web/games/` | Реализации игр и их локальные стили |
+| `web/data/` | JSON-каталоги и уровни, используемые web и Android |
+| `web/assets/` | Иконки и карточки, используемые web и Android |
+| `cloudflare/` | Core, observability и realtime Worker-сервисы |
+| `android-app/` | Нативное Kotlin/Jetpack Compose приложение |
+| `scripts/` | Статические, интеграционные и браузерные проверки |
+| `docs/` | Архитектура, безопасность и эксплуатационные заметки |
+| `.github/workflows/` | Действующие проверки, deploy и Android release workflows |
 
-Для локальной проверки используйте любой статический HTTP-сервер, например:
+## Локальный запуск web
+
+Из корня репозитория:
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Затем откройте `http://localhost:8080`.
+Затем откройте `http://localhost:8080`. Открывать `index.html` через `file://` не следует: игры загружают локальные JSON и скрипты через HTTP.
 
-GitHub Pages может по-прежнему публиковать проект непосредственно из `main:/`.
+## Проверки
 
-## Проверка проекта
+Базовая проверка синтаксиса, JSON и локальных ссылок не требует установки зависимостей:
 
 ```bash
 npm run check
 ```
 
-Команда не требует npm-зависимостей.
+Полный набор браузерных smoke/layout-проверок требует Chromium/Chrome и `playwright-core`:
 
-## Безопасность Apps Script
+```bash
+npm install
+npm run smoke:games
+npm run check:mobile
+npm run check:home
+npm run check:android
+npm run check:errors
+```
 
-Фронтенд не может надёжно защищать административные действия. Сервер Apps Script должен сам проверять `telegramInitData` по алгоритму Telegram и определять `user.id` только из проверенных данных. См. [BACKEND_SECURITY.md](BACKEND_SECURITY.md).
+Серверные движки проверяются отдельно:
 
-Подробности изменений и оставшиеся ограничения: [AUDIT.md](AUDIT.md).
+```bash
+node --test cloudflare/quartet-worker/test/*.test.mjs
+node --test cloudflare/bible-sketch-worker/test/*.test.mjs
+```
+
+## Публикация
+
+- GitHub Pages публикует `main:/`; web build step отсутствует.
+- Изменения в `cloudflare/*-worker/` разворачиваются соответствующими workflow.
+- Android release запускается вручную либо изменением `.android-release-trigger`; ключ подписи хранится только в GitHub Secrets.
+
+## Документация
+
+- [Структурный аудит](docs/audit.md)
+- [Безопасность backend](docs/backend-security.md)
+- [Cloudflare-архитектура «Квартета»](docs/quartet-cloudflare.md)
+- [Пользовательские данные в Cloudflare](docs/cloudflare-user-data.md)
+- [Подпись Android release](android-app/SIGNING.md)

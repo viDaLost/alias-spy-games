@@ -5,9 +5,9 @@ let allLocations = [];
 
 const SPY_ROLE_CARD_VERSION = "2";
 const SPY_ROLE_CARD_ASSETS = Object.freeze({
-  back: `assets/cards/spy-card-back.png?v=${SPY_ROLE_CARD_VERSION}`,
-  player: `assets/cards/spy-card-player.png?v=${SPY_ROLE_CARD_VERSION}`,
-  spy: `assets/cards/spy-card-spy.png?v=${SPY_ROLE_CARD_VERSION}`,
+  back: `web/assets/cards/spy-card-back.png?v=${SPY_ROLE_CARD_VERSION}`,
+  player: `web/assets/cards/spy-card-player.png?v=${SPY_ROLE_CARD_VERSION}`,
+  spy: `web/assets/cards/spy-card-spy.png?v=${SPY_ROLE_CARD_VERSION}`,
 });
 
 function spySafe(value) {
@@ -454,7 +454,7 @@ function showDiscussionScreen() {
     <h2>🗣 Раунд общения</h2>
     <div class="card"><strong>Обсуждение началось</strong><p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Задавайте вопросы и ищите игроков, которые не знают локацию.</p></div>
     <button onclick="showFinalScreen()" class="correct-button">🎯 Голосование</button>
-    <button onclick="startSpyGame('data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }
@@ -511,7 +511,7 @@ function showResults(votedId) {
       <strong>${guessedCorrectly ? "Шпионы найдены" : "Шпионы скрылись"}</strong>
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;"><b>Шпионы:</b> ${spies.join(", ")}<br><b>Локация:</b> ${spySafe(sharedLocation)}</p>
     </div>
-    <button onclick="startSpyGame('data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
     <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
   `;
 }

@@ -15,12 +15,12 @@
 
   const ICON_VERSION = '1';
   const ICONS = {
-    alias: `assets/icons/alias.png?v=${ICON_VERSION}`, idea: `assets/icons/idea.png?v=${ICON_VERSION}`,
-    character: `assets/icons/character.png?v=${ICON_VERSION}`, describe: `assets/icons/describe.png?v=${ICON_VERSION}`,
-    spy: `assets/icons/spy.png?v=${ICON_VERSION}`, quartet: `assets/icons/quartet.png?v=${ICON_VERSION}`,
-    bibleSketch: `assets/icons/bible-sketch.svg?v=${ICON_VERSION}`,
-    words: `assets/icons/words.png?v=${ICON_VERSION}`, search: `assets/icons/search.png?v=${ICON_VERSION}`,
-    sacred: `assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `assets/icons/ark.png?v=${ICON_VERSION}`,
+    alias: `web/assets/icons/alias.png?v=${ICON_VERSION}`, idea: `web/assets/icons/idea.png?v=${ICON_VERSION}`,
+    character: `web/assets/icons/character.png?v=${ICON_VERSION}`, describe: `web/assets/icons/describe.png?v=${ICON_VERSION}`,
+    spy: `web/assets/icons/spy.png?v=${ICON_VERSION}`, quartet: `web/assets/icons/quartet.png?v=${ICON_VERSION}`,
+    bibleSketch: `web/assets/icons/bible-sketch.svg?v=${ICON_VERSION}`,
+    words: `web/assets/icons/words.png?v=${ICON_VERSION}`, search: `web/assets/icons/search.png?v=${ICON_VERSION}`,
+    sacred: `web/assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.png?v=${ICON_VERSION}`,
   };
 
   const HIDDEN_KEY = 'home_hidden_sections_v1';

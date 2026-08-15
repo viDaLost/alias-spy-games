@@ -35,7 +35,16 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   }
 }
 
-const localRefRegex = /(?:src|href)=["'](?!https?:|data:|#|mailto:|tel:)([^"'?]+)|["'`](assets\/[A-Za-z0-9_./-]+|data\/[A-Za-z0-9_./-]+|games\/[A-Za-z0-9_./-]+)[?"'`]/g;
+const markdownLinkRegex = /\[[^\]]*\]\((?!https?:|mailto:|#)([^)#\s]+)(?:#[^)]+)?\)/g;
+for (const file of files.filter((f) => f.endsWith('.md'))) {
+  const text = fs.readFileSync(file, 'utf8');
+  for (const match of text.matchAll(markdownLinkRegex)) {
+    const target = path.resolve(path.dirname(file), decodeURI(match[1]));
+    if (!fs.existsSync(target)) failures.push(`Broken Markdown link in ${rel(file)}: ${match[1]}`);
+  }
+}
+
+const localRefRegex = /(?:src|href)=["'](?!https?:|data:|#|mailto:|tel:)([^"'?]+)|["'`](web\/(?:assets|data|games)\/[A-Za-z0-9_./-]+)[?"'`]/g;
 for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   const text = fs.readFileSync(file, 'utf8');
   for (const match of text.matchAll(localRefRegex)) {
@@ -46,13 +55,33 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   }
 }
 
+const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|kt|gradle)$/i.test(file));
+const runtimeReferenceText = new Map(
+  runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
+);
+const publishedFiles = files.filter((file) => rel(file).startsWith('web/'));
+
+for (const file of publishedFiles) {
+  const name = rel(file);
+  const aliases = [name];
+  if (name.startsWith('web/assets/') || name.startsWith('web/data/')) aliases.push(name.slice(4));
+
+  const referenced = runtimeReferenceFiles.some((source) => {
+    if (source === file) return false;
+    const text = runtimeReferenceText.get(source) || '';
+    return aliases.some((alias) => text.includes(alias));
+  });
+
+  if (!referenced) failures.push(`Unreferenced published file: ${name}`);
+}
+
 // These three files predate the size check and already exist on main. Keep them visible as
 // technical debt without letting unrelated PRs stay permanently red. Any new oversized image
 // still fails CI.
 const legacyOversizedImages = new Set([
-  'assets/cards/spy-card-back.png',
-  'assets/cards/spy-card-player.png',
-  'assets/cards/spy-card-spy.png',
+  'web/assets/cards/spy-card-back.png',
+  'web/assets/cards/spy-card-player.png',
+  'web/assets/cards/spy-card-spy.png',
 ]);
 
 for (const file of files.filter((f) => /\.(?:png|jpe?g|webp)$/i.test(f))) {
@@ -69,4 +98,4 @@ if (failures.length) {
   console.error(`Project check failed (${failures.length}):\n\n${failures.join('\n\n')}`);
   process.exit(1);
 }
-console.log(`OK: ${files.length} files checked; JS, JSON, local assets and non-PWA constraints are valid.`);
+console.log(`OK: ${files.length} files checked; syntax, JSON, links, published-file reachability and non-PWA constraints are valid.`);

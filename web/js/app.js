@@ -57,16 +57,16 @@ const GAME_TITLES = Object.fromEntries(
 
 const MENU_ICON_VERSION = "1";
 const MENU_ICON_SOURCES = {
-  alias: "assets/icons/alias.png",
-  idea: "assets/icons/idea.png",
-  character: "assets/icons/character.png",
-  describe: "assets/icons/describe.png",
-  spy: "assets/icons/spy.png",
-  quartet: "assets/icons/quartet.png",
-  words: "assets/icons/words.png",
-  search: "assets/icons/search.png",
-  sacred: "assets/icons/sacred.png",
-  ark: "assets/icons/ark.png",
+  alias: "web/assets/icons/alias.png",
+  idea: "web/assets/icons/idea.png",
+  character: "web/assets/icons/character.png",
+  describe: "web/assets/icons/describe.png",
+  spy: "web/assets/icons/spy.png",
+  quartet: "web/assets/icons/quartet.png",
+  words: "web/assets/icons/words.png",
+  search: "web/assets/icons/search.png",
+  sacred: "web/assets/icons/sacred.png",
+  ark: "web/assets/icons/ark.png",
 };
 
 function menuIconHTML(type, title = "") {
@@ -624,16 +624,16 @@ function showGame(gameName) {
   document.body.dataset.currentGame = gameName;
 
   const routes = {
-    alias: ["games/alias.js", () => window.startAliasGame?.()],
-    coimaginarium: ["games/coimaginarium.js", () => window.startCoimaginariumGame?.("data/coimaginarium_themes.json")],
-    guess: ["games/guess-character.js", () => window.startGuessCharacterGame?.("data/characters.json")],
-    describe: ["games/describe-char.js", () => window.startDescribeCharacterGame?.("data/describe_words.json")],
-    spy: ["games/spy.js", () => window.startSpyGame?.("data/spy_locations.json")],
-    "kids-ark-pairs": ["games/kids-ark-pairs.js", () => window.startKidsArkPairsGame?.()],
-    quartet: ["games/quartet.js", () => window.startQuartetGame?.("data/quartet_bible.json")],
-    "bible-wow": ["games/bible-wow.js", () => window.startBibleWowGame?.("data/bible_wow_levels.json")],
-    "bible-wordsearch": ["games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("data/bible_wordsearch_levels.json")],
-    "sacred-word": ["games/sacred-word.js", () => window.startSacredWordGame?.("data/sacred_words.json")],
+    alias: ["web/games/alias.js", () => window.startAliasGame?.()],
+    coimaginarium: ["web/games/coimaginarium.js", () => window.startCoimaginariumGame?.("web/data/coimaginarium_themes.json")],
+    guess: ["web/games/guess-character.js", () => window.startGuessCharacterGame?.("web/data/characters.json")],
+    describe: ["web/games/describe-char.js", () => window.startDescribeCharacterGame?.("web/data/describe_words.json")],
+    spy: ["web/games/spy.js", () => window.startSpyGame?.("web/data/spy_locations.json")],
+    "kids-ark-pairs": ["web/games/kids-ark-pairs.js", () => window.startKidsArkPairsGame?.()],
+    quartet: ["web/games/quartet.js", () => window.startQuartetGame?.("web/data/quartet_bible.json")],
+    "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
+    "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
+    "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
   };
 
   const route = routes[gameName];

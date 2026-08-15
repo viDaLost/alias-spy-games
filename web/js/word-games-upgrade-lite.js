@@ -5,7 +5,7 @@
   'use strict';
 
   const MODE_KEY = 'bible_wordsearch_mode_v1';
-  const WS_URL = 'data/bible_wordsearch_levels.json';
+  const WS_URL = 'web/data/bible_wordsearch_levels.json';
   const $ = (s, root = document) => root?.querySelector?.(s) || null;
   const $$ = (s, root = document) => Array.from(root?.querySelectorAll?.(s) || []);
 

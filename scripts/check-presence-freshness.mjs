@@ -7,9 +7,9 @@ const requireText = (text, needle, label) => {
 
 const worker = read('cloudflare/app-observability-worker/src/index-v4.js');
 const wrangler = read('cloudflare/app-observability-worker/wrangler.jsonc');
-const web = read('presence-identity.js');
+const web = read('web/js/presence-identity.js');
 const android = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
-const admin = read('admin-live-v2.js');
+const admin = read('web/js/admin-live-v2.js');
 const html = read('index.html');
 
 requireText(worker, 'const PRESENCE_STALE_MS = 35_000;', 'strict stale window must be 35 seconds');

@@ -4,7 +4,7 @@ const read = (file) => fs.readFileSync(file, 'utf8');
 const fail = (message) => { throw new Error(message); };
 
 const html = read('index.html');
-const bridge = read('backend-bridge.js');
+const bridge = read('web/js/backend-bridge.js');
 const entryWorker = read('cloudflare/app-core-worker/src/index-v7.js');
 const retentionEntryWorker = read('cloudflare/app-core-worker/src/index-v6.js');
 const supportEntryWorker = read('cloudflare/app-core-worker/src/index-v5.js');

@@ -6,7 +6,10 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDir, '..');
 const defaultOutput = path.join(repositoryRoot, 'android-app', 'app', 'build', 'generated', 'assets', 'native');
 const outputRoot = path.resolve(process.argv[2] || defaultOutput);
-const allowedDirectories = ['assets', 'data'];
+const assetMappings = [
+  ['web/assets', 'assets'],
+  ['web/data', 'data'],
+];
 const apkExcludedFiles = new Set();
 
 let fileCount = 0;
@@ -41,8 +44,8 @@ function copyTree(sourceRoot, destinationRoot) {
 fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(outputRoot, { recursive: true });
 
-for (const directory of allowedDirectories) {
-  copyTree(path.join(repositoryRoot, directory), path.join(outputRoot, directory));
+for (const [source, destination] of assetMappings) {
+  copyTree(path.join(repositoryRoot, source), path.join(outputRoot, destination));
 }
 
 console.log(`Android native assets: ${fileCount} files, ${(totalBytes / 1024 / 1024).toFixed(2)} MiB -> ${outputRoot}`);

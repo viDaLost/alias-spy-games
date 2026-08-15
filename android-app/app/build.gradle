@@ -99,7 +99,7 @@ tasks.register('syncNativeAssets', Exec) {
     workingDir repositoryRoot
     commandLine 'node', new File(repositoryRoot, 'scripts/sync-android-assets.mjs').absolutePath, generatedNativeAssets.get().asFile.absolutePath
     inputs.files(fileTree(repositoryRoot) {
-        include 'assets/icons/**', 'assets/cards/**', 'data/**'
+        include 'web/assets/icons/**', 'web/assets/cards/**', 'web/data/**'
         exclude 'node_modules/**', 'android-app/**'
     })
     outputs.dir(generatedNativeAssets)

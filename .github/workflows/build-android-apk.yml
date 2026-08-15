@@ -9,13 +9,8 @@ on:
   pull_request:
     paths:
       - 'android-app/**'
-      - '*.js'
-      - '*.css'
       - 'index.html'
-      - 'assets/**'
-      - 'data/**'
-      - 'games/**'
-      - 'vendor/**'
+      - 'web/**'
       - 'scripts/sync-android-assets.mjs'
       - 'cloudflare/app-core-worker/**'
       - 'cloudflare/app-observability-worker/**'

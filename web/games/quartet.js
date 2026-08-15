@@ -1,6 +1,6 @@
 // games/quartet.js — Quartet v2.1, Cloudflare realtime UX
 
-function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
+function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   const container = document.getElementById('game-container');
   if (!container) return;
 
@@ -100,13 +100,13 @@ function startQuartetGame(catalogUrl = 'data/quartet_bible.json') {
   function injectStylesheet() {
     const existing = document.getElementById('quartet-v2-css');
     if (existing) {
-      existing.href = 'games/quartet-v2.css?v=3';
+      existing.href = 'web/games/quartet-v2.css?v=3';
       return;
     }
     const link = document.createElement('link');
     link.id = 'quartet-v2-css';
     link.rel = 'stylesheet';
-    link.href = 'games/quartet-v2.css?v=3';
+    link.href = 'web/games/quartet-v2.css?v=3';
     document.head.appendChild(link);
   }
 

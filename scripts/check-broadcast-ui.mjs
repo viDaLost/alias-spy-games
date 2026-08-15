@@ -4,9 +4,9 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const fail = (message) => { throw new Error(message); };
 
 const html = read('index.html');
-const admin = read('admin-enhancements.js');
-const mount = read('broadcast-admin-mount.js');
-const broadcast = read('broadcast-cloudflare.js');
+const admin = read('web/js/admin-enhancements.js');
+const mount = read('web/js/broadcast-admin-mount.js');
+const broadcast = read('web/js/broadcast-cloudflare.js');
 
 if (!admin.includes('admin-v2__broadcast')) fail('Admin v2 broadcast container is missing.');
 if (!mount.includes("querySelectorAll('.admin-v2__broadcast')")) fail('Broadcast mount bridge does not target admin v2.');

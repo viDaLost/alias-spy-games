@@ -11,7 +11,7 @@ const forbidText = (text, needle, label) => {
 const worker = read('cloudflare/app-core-worker/src/index-v6.js');
 const entryWorker = read('cloudflare/app-core-worker/src/index-v7.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
-const survey = read('referral-survey.js');
+const survey = read('web/js/referral-survey.js');
 const html = read('index.html');
 
 requireText(worker, 'CREATE TABLE IF NOT EXISTS acquisition_sources', 'survey answers are not persisted in SQL');
