@@ -75,7 +75,7 @@ async function runFreeResult(){
  await finish.click();
  await page.waitForSelector('body > .bmt-result-overlay .bmt-result-card',{timeout:5000});
  const labels=await page.evaluate(()=>[...document.querySelectorAll('body > .bmt-result-overlay .bmt-result-actions button')].map(b=>{const r=b.getBoundingClientRect(),s=getComputedStyle(b);return{text:(b.textContent||'').trim(),display:s.display,opacity:Number(s.opacity),w:r.width,h:r.height,bottom:r.bottom}}));
- if(labels.length<2||labels.some(x=>x.display==='none'||x.opacity<.9||x.w<70||x.h<40||x.bottom>innerHeight+2))throw Error(`result buttons ${JSON.stringify(labels)}`);
+ if(labels.length<2||labels.some(x=>x.display==='none'||x.opacity<.9||x.w<70||x.h<40||x.bottom>846))throw Error(`result buttons ${JSON.stringify(labels)}`);
  await page.screenshot({path:path.join(out,'free-result-v10-390.png'),fullPage:true});
 }
 
