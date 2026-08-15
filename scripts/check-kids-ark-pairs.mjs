@@ -76,7 +76,7 @@ try {
   await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
     status: 200,
     contentType: 'text/javascript; charset=utf-8',
-    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
+    body: `window.__kidsQaHaptics=[];window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(kind){window.__kidsQaHaptics.push('impact:'+kind)},notificationOccurred(kind){window.__kidsQaHaptics.push('notification:'+kind)},selectionChanged(){window.__kidsQaHaptics.push('selection')}}}};`,
   }));
   const gasReply = JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] });
   for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
@@ -86,8 +86,30 @@ try {
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
+  await page.evaluate(() => {
+    window.__kidsQaLoadingMounts = 0;
+    const container = document.querySelector('#game-container');
+    window.__kidsQaLoaderObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) return;
+        if (node.matches('.app-game-loading') || node.querySelector('.app-game-loading')) {
+          window.__kidsQaLoadingMounts += 1;
+        }
+      }));
+    });
+    window.__kidsQaLoaderObserver.observe(container, { childList: true, subtree: true });
+  });
   await page.evaluate(() => window.showGame('kids-ark-pairs'));
   await page.waitForSelector('.kids-setup', { timeout: 10_000 });
+
+  const firstEntry = await page.evaluate(() => ({
+    loadingMounts: window.__kidsQaLoadingMounts,
+    screenAnimation: getComputedStyle(document.querySelector('.kids-screen')).animationName,
+    containerAnimation: getComputedStyle(document.querySelector('#game-container')).animationName,
+  }));
+  check(firstEntry.loadingMounts === 0, 'При первом входе появился промежуточный загрузчик');
+  check(firstEntry.screenAnimation === 'none', `Корневой экран не должен исчезать при входе: ${firstEntry.screenAnimation}`);
+  check(firstEntry.containerAnimation === 'none', `Контейнер игры не должен исчезать при входе: ${firstEntry.containerAnimation}`);
 
   const setup = await page.evaluate(() => ({
     modes: document.querySelectorAll('.kids-setup [data-mode]').length,
@@ -101,6 +123,19 @@ try {
   check(setup.difficulties === 3, `Ожидалось 3 сложности, получено ${setup.difficulties}`);
   check(setup.activeMode === 'calm', 'Спокойный режим должен быть выбран по умолчанию');
   check(setup.activeCollection === 'ark', 'Весь ковчег должен быть выбран по умолчанию');
+
+  await page.evaluate(() => window.goToMainMenu());
+  await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 2_000 });
+  await page.evaluate(() => window.showGame('kids-ark-pairs'));
+  await page.waitForSelector('.kids-setup', { timeout: 2_000 });
+  const repeatedEntry = await page.evaluate(() => ({
+    loadingMounts: window.__kidsQaLoadingMounts,
+    screenAnimation: getComputedStyle(document.querySelector('.kids-screen')).animationName,
+    containerAnimation: getComputedStyle(document.querySelector('#game-container')).animationName,
+  }));
+  check(repeatedEntry.loadingMounts === 0, 'При повторном входе появился промежуточный загрузчик');
+  check(repeatedEntry.screenAnimation === 'none', `Корневой экран исчезает при повторном входе: ${repeatedEntry.screenAnimation}`);
+  check(repeatedEntry.containerAnimation === 'none', `Контейнер игры исчезает при повторном входе: ${repeatedEntry.containerAnimation}`);
 
   await page.locator('.kids-setup [data-mode="speed"]').click();
   await page.locator('.kids-setup [data-collection="ocean"]').click();
@@ -122,6 +157,7 @@ try {
   check(board.bonuses === 1, `Среднее поле должно содержать 1 сюрприз, получено ${board.bonuses}`);
   check(new Set(board.labels).size === 25, 'Закрытые карточки должны иметь уникальные доступные подписи');
   check(board.theme.includes('kids-theme-ocean'), 'Тема «У воды» не применена к полю');
+  check(await page.locator('.kids-game').evaluate((element) => getComputedStyle(element).animationName) === 'none', 'Игровое поле не должно появляться через нулевую прозрачность');
 
   async function boardGeometry() {
     return page.locator('.kids-board-shell').evaluate((element) => {
@@ -159,6 +195,7 @@ try {
     groups.set(card.emoji, list);
   });
   const firstPair = [...groups.values()][0];
+  await page.evaluate(() => { window.__kidsQaHaptics.length = 0; });
   const boardBeforeChoice = await boardGeometry();
   await page.locator(`.kids-card[data-idx="${firstPair[0].idx}"]`).click();
   await page.waitForFunction((idx) => document.querySelector(`.kids-card[data-idx="${idx}"]`)?.classList.contains('flipped'), firstPair[0].idx, { timeout: 2_000 });
@@ -166,16 +203,38 @@ try {
   await page.locator(`.kids-card[data-idx="${firstPair[1].idx}"]`).click();
   await page.waitForFunction(() => document.querySelectorAll('.kids-card.matched').length === 2, null, { timeout: 3_000 });
   checkStableBoard(boardBeforeChoice, await boardGeometry(), 'выбора второй карточки');
+  const matchedMotion = await page.locator('.kids-card.matched').evaluateAll((cards) => cards.map((card) => ({
+    outerAnimation: getComputedStyle(card).animationName,
+    innerAnimation: getComputedStyle(card.querySelector('.kids-card-inner')).animationName,
+    innerTransitions: getComputedStyle(card.querySelector('.kids-card-inner')).transitionProperty,
+  })));
+  check(matchedMotion.every((motion) => !/kidsMatched|kidsShake/.test(motion.outerAnimation)), 'Совпавшие карточки всё ещё двигаются после хода');
+  check(matchedMotion.every((motion) => motion.innerAnimation === 'none'), 'Совпавшая пара не должна запускать дополнительное движение');
+  check(matchedMotion.every((motion) => motion.innerTransitions.includes('box-shadow')), 'Совпавшая пара должна подтверждаться плавной подсветкой');
+  check((await page.evaluate(() => window.__kidsQaHaptics)).length === 0, 'Выбор и совпадение карточек не должны вызывать виброотклик');
   check(await page.locator('#kids-moves').textContent() === '1', 'Найденная пара должна считаться одним ходом');
   check(await page.locator('#kids-pairs').textContent() === '1/12', 'Счётчик найденных пар не обновился');
 
   const remaining = (await cardState()).filter((card) => !card.matched && !card.bonus);
   const mismatchA = remaining[0];
   const mismatchB = remaining.find((card) => card.emoji !== mismatchA.emoji);
+  const boardBeforeMismatch = await boardGeometry();
   await page.locator(`.kids-card[data-idx="${mismatchA.idx}"]`).click();
   await page.locator(`.kids-card[data-idx="${mismatchB.idx}"]`).click();
   await page.waitForFunction(() => document.querySelector('#kids-moves')?.textContent === '2', null, { timeout: 2_000 });
+  await page.waitForFunction(() => document.querySelectorAll('.kids-card.wrong').length === 2, null, { timeout: 2_000 });
+  const wrongMotion = await page.locator('.kids-card.wrong').evaluateAll((cards) => cards.map((card) => ({
+    outerAnimation: getComputedStyle(card).animationName,
+    innerAnimation: getComputedStyle(card.querySelector('.kids-card-inner')).animationName,
+    innerTransitions: getComputedStyle(card.querySelector('.kids-card-inner')).transitionProperty,
+  })));
+  check(wrongMotion.every((motion) => !/kidsMatched|kidsShake/.test(motion.outerAnimation)), 'Неподходящие карточки всё ещё подрагивают');
+  check(wrongMotion.every((motion) => motion.innerAnimation === 'none'), 'Неподходящая пара не должна запускать дополнительное движение');
+  check(wrongMotion.every((motion) => motion.innerTransitions.includes('box-shadow')), 'Ошибка должна показываться только плавной подсветкой');
+  checkStableBoard(boardBeforeMismatch, await boardGeometry(), 'несовпавшей пары');
+  check((await page.evaluate(() => window.__kidsQaHaptics)).length === 0, 'Несовпавшая пара не должна вызывать виброотклик');
   await page.waitForFunction(() => document.querySelectorAll('.kids-card.flipped').length === 0, null, { timeout: 3_000 });
+  checkStableBoard(boardBeforeMismatch, await boardGeometry(), 'закрытия несовпавшей пары');
   check(!(await page.locator(`.kids-card[data-idx="${mismatchA.idx}"]`).getAttribute('aria-label')).includes('открыта'), 'Неподходящая карточка осталась открытой');
 
   await page.locator('#kids-hint').click();
@@ -241,7 +300,7 @@ try {
   check(meaningfulConsoleErrors.length === 0, `console.error: ${meaningfulConsoleErrors.join(' | ')}`);
 
   await context.close();
-  console.log('OK: Kids Ark Pairs setup, stable board, modes, collections, matching, mismatch, hint, restart, victory, persistence and cleanup are valid.');
+  console.log('OK: Kids Ark Pairs enters without flashes, keeps outcome motion spatially stable, and passes setup, modes, matching, mismatch, hint, restart, victory, persistence and cleanup checks.');
 } catch (error) {
   failures.push(error.message);
 } finally {
