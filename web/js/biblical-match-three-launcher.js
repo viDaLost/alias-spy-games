@@ -7,11 +7,13 @@ const PROGRESS_SRC = "web/games/biblical-match-three-progress.js?v=2";
 const EFFECTS_SRC = "web/games/biblical-match-three-effects.js?v=2";
 const GAME_SRC = "web/games/biblical-match-three.js?v=2";
 const LEVELS_SRC = "web/data/biblical_match_three_levels.json?v=2";
-const STYLE_SRC = "web/styles/biblical-match-three-v2.css?v=2";
+const STYLE_SOURCES = ["web/styles/biblical-match-three-v2.css?v=2", "web/styles/biblical-match-three-v2-polish.css?v=2"];
 function ensureStylesheet() {
-  let link = document.querySelector('link[data-biblical-match-three]');
-  if (link) { if (!link.href.includes("biblical-match-three-v2.css")) link.href = STYLE_SRC; return; }
-  link = document.createElement("link"); link.rel = "stylesheet"; link.href = STYLE_SRC; link.dataset.biblicalMatchThree = "1"; document.head.appendChild(link);
+  STYLE_SOURCES.forEach((href, index) => {
+    let link = document.querySelector(`link[data-biblical-match-three-style="${index}"]`);
+    if (!link) { link = document.createElement("link"); link.rel = "stylesheet"; link.dataset.biblicalMatchThreeStyle = String(index); document.head.appendChild(link); }
+    if (!link.href.includes(href.split("?")[0])) link.href = href;
+  });
 }
 function rememberOpen() {
   try { let history = JSON.parse(localStorage.getItem("last_games_history") || "[]"); if (!Array.isArray(history)) history = []; history = [TITLE, ...history.filter((item) => item !== TITLE)].slice(0, 3); localStorage.setItem("last_games_history", JSON.stringify(history)); } catch {}
