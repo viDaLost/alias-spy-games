@@ -7,7 +7,7 @@ const FX = window.BiblicalMatchThreeEffects || {};
 if (!Core) throw new Error("BiblicalMatchThreeCore is not loaded");
 if (!Progress) throw new Error("BiblicalMatchThreeProgress is not loaded");
 
-const ROWS = 8;
+let ROWS = 8;
 const COLS = 8;
 
 const SYMBOLS = [
@@ -24,9 +24,9 @@ const SYMBOLS = [
 const SYMBOL_BY_ID = Object.fromEntries(SYMBOLS.map((item) => [item.id, item]));
 
 const FREE_MODES = {
-  easy: { label: "Лёгкий", symbolCount: 6, hintDelay: 7000, accent: "green" },
-  medium: { label: "Средний", symbolCount: 7, hintDelay: 9500, accent: "gold" },
-  hard: { label: "Сложный", symbolCount: 9, hintDelay: 12500, accent: "violet" },
+  easy: { label: "Лёгкий", symbolCount: 6, rows: 6, hintDelay: 7000, accent: "green" },
+  medium: { label: "Средний", symbolCount: 7, rows: 7, hintDelay: 9500, accent: "gold" },
+  hard: { label: "Сложный", symbolCount: 9, rows: 8, hintDelay: 12500, accent: "violet" },
 };
 
 const PRE_BOOSTERS = {
@@ -70,6 +70,18 @@ function escapeHtml(value) {
 
 function getSymbolSet(count) {
   return SYMBOLS.slice(0, Math.max(3, Math.min(SYMBOLS.length, Number(count || 6)))).map((item) => item.id);
+}
+
+function resolveBoardRows(mode, level, difficulty) {
+  const requested = mode === "level" ? Number(level?.rows || runtime?.levelConfig?.rows || 8) : Number(FREE_MODES[difficulty]?.rows || 8);
+  return Math.max(5, Math.min(8, Number.isFinite(requested) ? Math.round(requested) : 8));
+}
+
+function currentSymbolAsset(id) {
+  const symbol = SYMBOL_BY_ID[id];
+  if (!symbol) return "";
+  const key = id === "lamp" ? "candle" : id;
+  return window.BiblicalMatchThreeV5Art?.symbols?.[key] || window.BiblicalMatchThreeV4Art?.symbols?.[key] || symbol.asset;
 }
 
 function cleanup() {
@@ -117,7 +129,6 @@ function updateWallet() {
   document.querySelectorAll("[data-bmt-wallet]").forEach((node) => { node.textContent = String(starBalance()); });
   document.querySelectorAll(".bmt-wallet").forEach((node) => { node.setAttribute("aria-label", `Баланс ${starBalance()} звёзд`); });
 }
-
 function goalText(goal) {
   if (goal.type === "score") return `Набрать ${Number(goal.count).toLocaleString("ru-RU")} очков`;
   if (goal.type === "collect") return `Собрать «${SYMBOL_BY_ID[goal.symbol]?.label || goal.symbol}» ×${goal.count}`;
@@ -130,7 +141,7 @@ function goalText(goal) {
 
 function goalIcon(goal) {
   if (goal.type === "score") return "★";
-  if (goal.type === "collect") return `<img src="${SYMBOL_BY_ID[goal.symbol]?.asset || ""}" alt="">`;
+  if (goal.type === "collect") return `<img src="${currentSymbolAsset(goal.symbol)}" alt="">`;
   if (goal.type === "clearBlockers") return BLOCKER_META[goal.blocker]?.icon || "▦";
   if (goal.type === "lightLamps") return "✦";
   if (goal.type === "activateSpecials") return "✺";
@@ -238,7 +249,8 @@ function openPreLevel(level) {
   runtime.preBoosters = new Set();
   const shell = document.querySelector(".bmt-shell"); if (!shell) return;
   const overlay = el("div", "bmt-sheet-overlay"); const sheet = el("section", "bmt-sheet bmt-prelevel"); const reward = Number(level.reward || 0);
-  sheet.innerHTML = `<button type="button" class="bmt-sheet__close" aria-label="Закрыть">×</button><div class="bmt-prelevel__head"><span>Уровень ${level.id}</span><h3>${escapeHtml(level.title)}</h3><p>Награда за первое прохождение: <strong>+${reward} ★</strong></p></div><div class="bmt-prelevel__goals">${level.goals.map((goal) => `<div><span>${goalIcon(goal)}</span><strong>${escapeHtml(goalText(goal))}</strong></div>`).join("")}</div><div class="bmt-prelevel__boost-title"><span>Бустеры перед стартом</span><strong data-bmt-pre-total>0 ★</strong></div><div class="bmt-preboosters"></div>`;
+  const previewRows = resolveBoardRows("level", level, null);
+  sheet.innerHTML = `<button type="button" class="bmt-sheet__close" aria-label="Закрыть">×</button><div class="bmt-prelevel__head"><span>Уровень ${level.id}</span><h3>${escapeHtml(level.title)}</h3><p>Поле ${previewRows}×${COLS} · награда за первое прохождение: <strong>+${reward} ★</strong></p></div><div class="bmt-prelevel__goals">${level.goals.map((goal) => `<div><span>${goalIcon(goal)}</span><strong>${escapeHtml(goalText(goal))}</strong></div>`).join("")}</div><div class="bmt-prelevel__boost-title"><span>Бустеры перед стартом</span><strong data-bmt-pre-total>0 ★</strong></div><div class="bmt-preboosters"></div>`;
   const boosters = sheet.querySelector(".bmt-preboosters"); let startButton;
   for (const [id, booster] of Object.entries(PRE_BOOSTERS)) {
     const node = button("", "bmt-prebooster", () => {
@@ -287,6 +299,7 @@ function initBlockers(level) {
 
 function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBoosters }) {
   clearHint(); runtime.screen = "board"; runtime.mode = mode; runtime.level = level; runtime.difficulty = difficulty; runtime.symbolIds = symbolIds;
+  ROWS = resolveBoardRows(mode, level, difficulty);
   runtime.board = Core.createBoard(ROWS, COLS, symbolIds); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
   initBlockers(level); applyPreBoosters(selectedBoosters || new Set());
   const container = document.getElementById("game-container"); container.innerHTML = ""; const shell = el("section", "bmt-shell bmt-board-screen bmt-v2");
@@ -295,7 +308,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
   top.append(back, heading, walletBadge()); shell.append(top);
   const stats = el("section", "bmt-stats-v2"); stats.innerHTML = `<div><span>Очки</span><strong id="bmt-score">0</strong>${mode === "free" ? '<small id="bmt-best">рекорд 0</small>' : ""}</div><div><span>${mode === "level" ? "Ходы" : "Награда"}</span><strong id="bmt-moves">${mode === "level" ? moves : "0 ★"}</strong><small>${mode === "free" ? "за рубежи" : "осталось"}</small></div><div><span>Каскад</span><strong id="bmt-cascade">×1</strong><small id="bmt-special-count">0 особых</small></div>`; shell.append(stats);
   if (mode === "level") { const goals = el("section", "bmt-goals-v2"); goals.id = "bmt-goals"; shell.append(goals); }
-  const boardWrap = el("section", "bmt-board-wrap"); const board = el("div", "bmt-board"); board.setAttribute("role", "grid"); board.setAttribute("aria-label", "Игровое поле 8 на 8");
+  const boardWrap = el("section", "bmt-board-wrap"); const board = el("div", "bmt-board"); board.setAttribute("role", "grid"); board.setAttribute("aria-label", `Игровое поле ${ROWS} на ${COLS}`); board.style.setProperty("--bmt-rows", String(ROWS)); board.style.setProperty("--bmt-cols", String(COLS)); board.style.setProperty("--bmt-board-ratio", `${COLS} / ${ROWS}`); board.dataset.rows = String(ROWS); board.dataset.cols = String(COLS);
   for (let index = 0; index < ROWS * COLS; index += 1) {
     const tile = el("button", "bmt-tile"); tile.type = "button"; tile.dataset.index = String(index); tile.setAttribute("role", "gridcell");
     const piece = el("span", "bmt-piece-wrap"); const img = new Image(); img.className = "bmt-piece"; img.draggable = false; img.alt = ""; piece.append(img); tile.append(piece, el("span", "bmt-special-mark"), el("span", "bmt-blocker"));
@@ -545,7 +558,7 @@ function updateTile(tile, cell, blocker) {
   tile.classList.remove("is-clearing", "is-invalid", "is-line-h", "is-line-v", "is-burst", "is-rainbow", "has-tablet", "has-chain", "has-lamp", "is-lamp-lit", "is-layer-2", "is-layer-3");
   const img = tile.querySelector(".bmt-piece"); const specialMark = tile.querySelector(".bmt-special-mark"); const blockerMark = tile.querySelector(".bmt-blocker");
   if (!cell) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; }
-  else { tile.classList.remove("is-empty"); const symbol = SYMBOL_BY_ID[cell.type]; if (img && img.getAttribute("src") !== symbol.asset) img.src = symbol.asset; if (img) img.alt = symbol.label; tile.setAttribute("aria-label", `${symbol.label}${cell.special ? ", особая фишка" : ""}`); if (cell.special) tile.classList.add(`is-${cell.special.replace("lineH", "line-h").replace("lineV", "line-v")}`); if (specialMark) specialMark.textContent = cell.special === "rainbow" ? "✦" : cell.special === "burst" ? "✺" : cell.special ? "↯" : ""; }
+  else { tile.classList.remove("is-empty"); const symbol = SYMBOL_BY_ID[cell.type]; const asset = currentSymbolAsset(cell.type); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = symbol.label; tile.setAttribute("aria-label", `${symbol.label}${cell.special ? ", особая фишка" : ""}`); if (cell.special) tile.classList.add(`is-${cell.special.replace("lineH", "line-h").replace("lineV", "line-v")}`); if (specialMark) specialMark.textContent = cell.special === "rainbow" ? "✦" : cell.special === "burst" ? "✺" : cell.special ? "↯" : ""; }
   if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); } else if (blockerMark) blockerMark.innerHTML = "";
 }
 
