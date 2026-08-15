@@ -1,0 +1,39 @@
+/* Match Three V5 — high-detail raster art integration */
+.bmt-v2 img{image-rendering:auto;-webkit-user-drag:none}
+.bmt-v2 .bmt-piece{width:100%!important;height:100%!important;max-width:92%!important;max-height:92%!important;object-fit:contain!important;filter:drop-shadow(0 1px 1.5px rgba(30,41,59,.18))!important}
+.bmt-v2 .bmt-piece-wrap{padding:4%!important}
+.bmt-v2 .bmt-hero-v2__icon{width:60px!important;height:60px!important;padding:5px!important;background:#fff!important}
+.bmt-v2 .bmt-hero-v2__icon img{width:100%!important;height:100%!important;object-fit:contain!important;filter:drop-shadow(0 2px 4px rgba(31,41,55,.12))!important}
+.bmt-v2 .bmt-journey-chapter__art{width:50px!important;height:50px!important;flex-basis:50px!important;padding:4px!important;background:#fff!important}
+.bmt-v2 .bmt-journey-chapter__art img{width:100%!important;height:100%!important;object-fit:contain!important;filter:drop-shadow(0 2px 4px rgba(31,41,55,.12))!important}
+.bmt-v2 .bmt-prelevel__goals>div{grid-template-columns:48px minmax(0,1fr)!important;min-height:66px!important;padding:8px 11px!important;gap:10px!important}
+.bmt-v2 .bmt-prelevel__goals>div>span:first-child{width:48px!important;height:48px!important;padding:3px!important;background:#fff!important;border:1px solid #eceef5!important}
+.bmt-v2 .bmt-prelevel__goals img,.bmt-v2 .bmt-prelevel__goals .bmt-goal-art{width:100%!important;height:100%!important;max-width:42px!important;max-height:42px!important;object-fit:contain!important;filter:drop-shadow(0 1px 2px rgba(31,41,55,.12))!important}
+.bmt-v2 .bmt-prebooster{grid-template-columns:50px minmax(0,1fr) auto!important;min-height:72px!important;padding:8px 9px!important;gap:9px!important}
+.bmt-v2 .bmt-prebooster__icon{width:50px!important;height:50px!important;padding:2px!important;background:#fff!important;border:1px solid #eceef5!important}
+.bmt-v2 .bmt-prebooster__icon img{width:100%!important;height:100%!important;max-width:46px!important;max-height:46px!important;object-fit:contain!important;filter:drop-shadow(0 1px 2px rgba(31,41,55,.14))!important}
+.bmt-v2 .bmt-goal{grid-template-columns:38px minmax(0,1fr) 15px!important;min-height:54px!important;padding:6px 8px!important}
+.bmt-v2 .bmt-goal__icon{width:38px!important;height:38px!important;padding:2px!important;background:#fff!important;border:1px solid #eceef5!important}
+.bmt-v2 .bmt-goal__icon img,.bmt-v2 .bmt-goal__icon .bmt-goal-art{width:100%!important;height:100%!important;max-width:34px!important;max-height:34px!important;object-fit:contain!important;filter:drop-shadow(0 1px 2px rgba(31,41,55,.12))!important}
+.bmt-v2 .bmt-booster{min-height:92px!important;padding:7px 3px 6px!important;gap:3px!important}
+.bmt-v2 .bmt-booster__icon{width:48px!important;height:48px!important;padding:2px!important;border-radius:13px!important;background:#fff!important;border:1px solid #eceef5!important}
+.bmt-v2 .bmt-booster__icon img{width:100%!important;height:100%!important;max-width:44px!important;max-height:44px!important;object-fit:contain!important;filter:drop-shadow(0 1px 2px rgba(31,41,55,.16))!important}
+.bmt-v2 .bmt-booster__name{font-size:9.5px!important;line-height:1.05!important;font-weight:800!important;white-space:nowrap!important}
+.bmt-v2 .bmt-booster__price{font-size:9px!important;line-height:1!important}
+.bmt-v2 .bmt-blocker-art{width:88%!important;height:88%!important;object-fit:contain!important;filter:drop-shadow(0 2px 3px rgba(31,41,55,.2))!important}
+.bmt-v2 .bmt-blocker__tablet,.bmt-v2 .bmt-blocker__chain,.bmt-v2 .bmt-blocker__lamp{background:rgba(255,255,255,.88)!important}
+.bmt-v2 .bmt-tile{background:linear-gradient(180deg,#fff 0%,#fbfbfd 100%)!important;border-color:#e5e7ef!important}
+.bmt-v2 .bmt-board-wrap{background:#eef0ff!important}
+@media(max-width:350px){
+ .bmt-v2 .bmt-piece{max-width:90%!important;max-height:90%!important}
+ .bmt-v2 .bmt-prelevel__goals>div{grid-template-columns:44px minmax(0,1fr)!important}
+ .bmt-v2 .bmt-prelevel__goals>div>span:first-child{width:44px!important;height:44px!important}
+ .bmt-v2 .bmt-prebooster{grid-template-columns:44px minmax(0,1fr) auto!important}
+ .bmt-v2 .bmt-prebooster__icon{width:44px!important;height:44px!important}
+ .bmt-v2 .bmt-prebooster__icon img{max-width:40px!important;max-height:40px!important}
+ .bmt-v2 .bmt-booster__icon{width:42px!important;height:42px!important}
+ .bmt-v2 .bmt-booster__icon img{max-width:38px!important;max-height:38px!important}
+ .bmt-v2 .bmt-booster__name{font-size:8.4px!important}
+}
+.bmt-v2 img[data-bmt-raster="v5"],.bmt-v2 img[src^="blob:"]{image-rendering:auto!important;transform:translateZ(0)}
+.bmt-v2 .bmt-prelevel__goals img,.bmt-v2 .bmt-prebooster__icon img,.bmt-v2 .bmt-goal__icon img,.bmt-v2 .bmt-booster__icon img{object-position:center!important}

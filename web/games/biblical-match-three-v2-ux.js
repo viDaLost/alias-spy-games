@@ -1,7 +1,7 @@
 (() => {
 "use strict";
 
-const ART = window.BiblicalMatchThreeV4Art || window.BiblicalMatchThreeV3Art || {};
+const ART = window.BiblicalMatchThreeV5Art || window.BiblicalMatchThreeV4Art || window.BiblicalMatchThreeV3Art || {};
 const SYMBOLS = {
   bible: ART.symbols?.bible, fish: ART.symbols?.fish, dove: ART.symbols?.dove, lamp: ART.symbols?.candle,
   crown: ART.symbols?.crown, ark: ART.symbols?.ark, bread: ART.symbols?.bread, grapes: ART.symbols?.grapes, tablets: ART.symbols?.tablets,
@@ -307,7 +307,8 @@ function install() {
   enhance(document);
 }
 
-window.BiblicalMatchThreeV4Assets = { SYMBOLS, BOOSTERS, GOALS, OBSTACLES };
-window.BiblicalMatchThreeV3Assets = window.BiblicalMatchThreeV4Assets;
+window.BiblicalMatchThreeV5Assets = { SYMBOLS, BOOSTERS, GOALS, OBSTACLES };
+window.BiblicalMatchThreeV4Assets = window.BiblicalMatchThreeV5Assets;
+window.BiblicalMatchThreeV3Assets = window.BiblicalMatchThreeV5Assets;
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true }); else install();
 })();
