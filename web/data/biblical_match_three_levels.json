@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "rows": 8,
+  "cols": 8,
+  "levels": [
+    {"id":1,"title":"Первый свет","moves":24,"symbolCount":6,"targetScore":1200,"collect":{"bible":8}},
+    {"id":2,"title":"Голубь мира","moves":24,"symbolCount":6,"targetScore":1600,"collect":{"dove":10}},
+    {"id":3,"title":"Хлеб жизни","moves":23,"symbolCount":6,"targetScore":2100,"collect":{"bread":12}},
+    {"id":4,"title":"Светильник","moves":22,"symbolCount":7,"targetScore":2600,"collect":{"lamp":12,"fish":8}},
+    {"id":5,"title":"Добрый плод","moves":22,"symbolCount":7,"targetScore":3200,"collect":{"grapes":14}},
+    {"id":6,"title":"Путь ковчега","moves":21,"symbolCount":7,"targetScore":3800,"collect":{"ark":12,"dove":8}},
+    {"id":7,"title":"Скрижали","moves":21,"symbolCount":8,"targetScore":4500,"collect":{"tablets":14}},
+    {"id":8,"title":"Царский венец","moves":20,"symbolCount":8,"targetScore":5200,"collect":{"crown":14,"bible":10}},
+    {"id":9,"title":"Изобилие","moves":20,"symbolCount":9,"targetScore":6000,"collect":{"bread":12,"grapes":12}},
+    {"id":10,"title":"Большой каскад","moves":19,"symbolCount":9,"targetScore":7200,"collect":{"bible":10,"fish":10,"dove":10}}
+  ]
+}
