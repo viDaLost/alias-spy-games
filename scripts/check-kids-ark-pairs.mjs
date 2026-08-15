@@ -126,7 +126,12 @@ try {
   async function boardGeometry() {
     return page.locator('.kids-board-shell').evaluate((element) => {
       const rect = element.getBoundingClientRect();
-      return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+      return {
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+        height: rect.height,
+      };
     });
   }
 
