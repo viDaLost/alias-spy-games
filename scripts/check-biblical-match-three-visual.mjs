@@ -42,11 +42,10 @@ async function runWidth(width){
   await page.waitForFunction(()=>window.__swipeSeen>0,null,{timeout:3000});
   await page.waitForFunction(()=>!document.querySelector('.bmt-shell')?.classList.contains('is-busy'),null,{timeout:8000}).catch(()=>{});
   await page.waitForTimeout(700);
-  const board=await page.evaluate(()=>({tiles:document.querySelectorAll('.bmt-tile').length,filled:[...document.querySelectorAll('.bmt-piece')].filter(i=>i.getAttribute('src')).length,overflow:Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-innerWidth,titleWidth:document.querySelector('.bmt-gamebar .bmt-title')?.scrollWidth-titleWidth(document.querySelector('.bmt-gamebar .bmt-title'))}));
+  const board=await page.evaluate(()=>({tiles:document.querySelectorAll('.bmt-tile').length,filled:[...document.querySelectorAll('.bmt-piece')].filter(i=>i.getAttribute('src')).length,overflow:Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-innerWidth}));
   if(board.tiles!==64||board.filled!==64||board.overflow>2)throw Error(`board ${JSON.stringify(board)}`);
   await page.screenshot({path:path.join(out,`board-v6-${width}.png`),fullPage:true});
 }
-function titleWidth(el){return el?.clientWidth||0}
 
 for(const width of [390,320]){try{await runWidth(width)}catch(error){try{await page.screenshot({path:path.join(out,`failure-v6-${width}.png`),fullPage:true})}catch{}failures.push(`${width}: ${error.message}`)}}
 await context.close();await browser.close();await new Promise(r=>server.close(r));
