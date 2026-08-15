@@ -1,0 +1,102 @@
+name: Deploy Biblical Match Three Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/biblical-match-three
+    paths:
+      - 'web/games/biblical-match-three-core.js'
+      - 'web/games/biblical-match-three.js'
+      - 'web/styles/biblical-match-three.css'
+      - 'web/styles/style.css'
+      - 'web/data/biblical_match_three_levels.json'
+      - 'web/assets/biblical-match-three/**'
+      - '.github/workflows/deploy-biblical-match-three-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build isolated preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .preview-dist
+          mkdir -p \
+            .preview-dist/web/games \
+            .preview-dist/web/styles \
+            .preview-dist/web/data \
+            .preview-dist/web/assets/biblical-match-three
+
+          cp web/games/biblical-match-three-core.js .preview-dist/web/games/
+          cp web/games/biblical-match-three.js .preview-dist/web/games/
+          cp web/styles/biblical-match-three.css .preview-dist/web/styles/
+          cp web/styles/style.css .preview-dist/web/styles/
+          cp web/data/biblical_match_three_levels.json .preview-dist/web/data/
+          cp web/assets/biblical-match-three/*.svg .preview-dist/web/assets/biblical-match-three/
+
+          cat > .preview-dist/index.html <<'HTML'
+          <!doctype html>
+          <html lang="ru">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+            <meta name="theme-color" content="#fdfaf4">
+            <title>Библейские три в ряд — Preview</title>
+            <link rel="stylesheet" href="web/styles/style.css">
+            <link rel="stylesheet" href="web/styles/biblical-match-three.css">
+            <style>
+              html,body{margin:0;min-height:100%;background:#fdfaf4}
+              body{min-height:100dvh}
+              #preview-badge{position:fixed;z-index:9999;top:max(8px,env(safe-area-inset-top));right:8px;padding:5px 9px;border-radius:999px;background:#111827;color:white;font:600 11px/1.2 system-ui;opacity:.82;pointer-events:none}
+              #game-container{min-height:100dvh}
+            </style>
+          </head>
+          <body>
+            <div id="preview-badge">TEST · Cloudflare</div>
+            <main id="game-container" aria-live="polite"></main>
+            <script src="web/games/biblical-match-three-core.js"></script>
+            <script src="web/games/biblical-match-three.js"></script>
+            <script>
+              window.appGoToMainMenu = () => window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json');
+              window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json');
+            </script>
+          </body>
+          </html>
+          HTML
+
+          cat > .preview-wrangler.jsonc <<'JSON'
+          {
+            "$schema": "./node_modules/wrangler/config-schema.json",
+            "name": "alias-spy-games-biblical-preview",
+            "compatibility_date": "2026-08-15",
+            "workers_dev": true,
+            "assets": {
+              "directory": "./.preview-dist",
+              "not_found_handling": "single-page-application"
+            }
+          }
+          JSON
+
+      - name: Validate match-three recovery
+        run: node scripts/check-biblical-match-three.mjs
+
+      - name: Deploy isolated preview to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@latest deploy --config .preview-wrangler.jsonc
+
+      - name: Print preview URL
+        run: echo 'Preview: https://alias-spy-games-biblical-preview.vitaledanilov.workers.dev/'
