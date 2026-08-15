@@ -52,7 +52,7 @@ try {
   });
 
   const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
+    viewport: { width: 320, height: 844 },
     deviceScaleFactor: 2,
     isMobile: true,
     hasTouch: true,
@@ -123,6 +123,20 @@ try {
   check(new Set(board.labels).size === 25, 'Закрытые карточки должны иметь уникальные доступные подписи');
   check(board.theme.includes('kids-theme-ocean'), 'Тема «У воды» не применена к полю');
 
+  async function boardGeometry() {
+    return page.locator('.kids-board-shell').evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+    });
+  }
+
+  function checkStableBoard(before, after, action) {
+    for (const key of ['top', 'left', 'width', 'height']) {
+      const shift = Math.abs(before[key] - after[key]);
+      check(shift <= 0.5, `Поле сместилось после ${action}: ${key} изменился на ${shift.toFixed(2)}px`);
+    }
+  }
+
   async function cardState() {
     return page.locator('.kids-card').evaluateAll((cards) => cards.map((card) => ({
       idx: card.dataset.idx,
@@ -140,9 +154,13 @@ try {
     groups.set(card.emoji, list);
   });
   const firstPair = [...groups.values()][0];
+  const boardBeforeChoice = await boardGeometry();
   await page.locator(`.kids-card[data-idx="${firstPair[0].idx}"]`).click();
+  await page.waitForFunction((idx) => document.querySelector(`.kids-card[data-idx="${idx}"]`)?.classList.contains('flipped'), firstPair[0].idx, { timeout: 2_000 });
+  checkStableBoard(boardBeforeChoice, await boardGeometry(), 'выбора первой карточки');
   await page.locator(`.kids-card[data-idx="${firstPair[1].idx}"]`).click();
   await page.waitForFunction(() => document.querySelectorAll('.kids-card.matched').length === 2, null, { timeout: 3_000 });
+  checkStableBoard(boardBeforeChoice, await boardGeometry(), 'выбора второй карточки');
   check(await page.locator('#kids-moves').textContent() === '1', 'Найденная пара должна считаться одним ходом');
   check(await page.locator('#kids-pairs').textContent() === '1/12', 'Счётчик найденных пар не обновился');
 
@@ -218,7 +236,7 @@ try {
   check(meaningfulConsoleErrors.length === 0, `console.error: ${meaningfulConsoleErrors.join(' | ')}`);
 
   await context.close();
-  console.log('OK: Kids Ark Pairs setup, modes, collections, matching, mismatch, hint, restart, victory, persistence and cleanup are valid.');
+  console.log('OK: Kids Ark Pairs setup, stable board, modes, collections, matching, mismatch, hint, restart, victory, persistence and cleanup are valid.');
 } catch (error) {
   failures.push(error.message);
 } finally {
