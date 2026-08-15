@@ -344,6 +344,12 @@ body[data-current-game="kids-ark-pairs"] .kids-rule-note {
 /* Board, HUD and journey */
 body[data-current-game="kids-ark-pairs"] .kids-game { max-width: 680px; }
 
+/* The shared fade-in moves an entire game screen by 6px. Card dealing already
+   provides the entrance motion here, so keep the board itself spatially fixed. */
+body[data-current-game="kids-ark-pairs"] .kids-game.fade-in {
+  animation: kidsGameAppear .2s ease-out both;
+}
+
 body[data-current-game="kids-ark-pairs"] .kids-game-header {
   display: flex;
   align-items: center;
@@ -477,12 +483,20 @@ body[data-current-game="kids-ark-pairs"] .kids-metric strong {
 body[data-current-game="kids-ark-pairs"] .kids-feedback-row {
   display: flex;
   align-items: center;
-  min-height: 42px;
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
   gap: 8px;
+  contain: layout;
 }
 
 body[data-current-game="kids-ark-pairs"] .kids-status {
+  display: flex;
+  align-items: center;
   flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
   margin: 0;
   padding: 9px 12px;
   border-radius: 15px;
@@ -532,6 +546,7 @@ body[data-current-game="kids-ark-pairs"] .kids-grid {
   grid-template-columns: repeat(var(--kids-grid, 4), minmax(0, 1fr));
   gap: clamp(5px, 1.6vw, 11px);
   width: 100%;
+  contain: layout style;
 }
 
 body[data-current-game="kids-ark-pairs"] .kids-card {
@@ -545,29 +560,32 @@ body[data-current-game="kids-ark-pairs"] .kids-card {
   border-radius: clamp(11px, 3vw, 20px);
   background: transparent;
   cursor: pointer;
-  filter: drop-shadow(0 8px 10px rgba(49, 46, 129, .12));
-  -webkit-filter: drop-shadow(0 8px 10px rgba(49, 46, 129, .12));
+  contain: layout style;
   perspective: 720px;
   -webkit-tap-highlight-color: transparent;
+  transition: transform .14s ease-out;
   animation: kidsCardDeal .42s calc(var(--kids-order) * 16ms) both cubic-bezier(.18, .84, .25, 1.18);
 }
 
-body[data-current-game="kids-ark-pairs"] .kids-card:hover:not(.matched):not(.flipped):not(.peeked) .kids-card-inner {
-  box-shadow: 0 13px 22px rgba(49, 46, 129, .18);
-  transform: translateY(-2px) rotateX(2deg);
+@media (hover: hover) and (pointer: fine) {
+  body[data-current-game="kids-ark-pairs"] .kids-card:hover:not(.matched):not(.flipped):not(.peeked) .kids-card-inner {
+    box-shadow: 0 13px 22px rgba(49, 46, 129, .18);
+    transform: translateY(-2px) rotateX(2deg);
+  }
 }
 
-body[data-current-game="kids-ark-pairs"] .kids-card:active:not(.matched) { transform: scale(.95); }
+body[data-current-game="kids-ark-pairs"] .kids-card:active:not(.matched) { transform: scale(.985); }
 
 body[data-current-game="kids-ark-pairs"] .kids-card-inner {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   box-shadow: 0 9px 18px rgba(49, 46, 129, .12), inset 0 1px 0 rgba(255, 255, 255, .45);
+  transform: rotateY(0deg);
+  transform-origin: center;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-  transition: transform .46s cubic-bezier(.22, .72, .18, 1), box-shadow .24s ease;
-  will-change: transform;
+  transition: transform .44s cubic-bezier(.22, .74, .18, 1), box-shadow .26s ease;
 }
 
 body[data-current-game="kids-ark-pairs"] .kids-card.flipped .kids-card-inner,
@@ -602,7 +620,7 @@ body[data-current-game="kids-ark-pairs"] .kids-card-back {
 
 body[data-current-game="kids-ark-pairs"] .kids-card-back span {
   font-size: clamp(1rem, 5vw, 2.1rem);
-  filter: drop-shadow(0 3px 4px rgba(15, 23, 42, .18));
+  text-shadow: 0 3px 4px rgba(15, 23, 42, .18);
 }
 
 body[data-current-game="kids-ark-pairs"] .kids-card-front {
@@ -616,7 +634,7 @@ body[data-current-game="kids-ark-pairs"] .kids-card-front {
 body[data-current-game="kids-ark-pairs"] .kids-card-front span {
   font-size: clamp(1.55rem, 8.6vw, 3.65rem);
   line-height: 1;
-  filter: saturate(1.16) drop-shadow(0 6px 5px rgba(15, 23, 42, .12));
+  text-shadow: 0 5px 5px rgba(15, 23, 42, .12);
   transform: translateY(1px);
 }
 
@@ -638,7 +656,7 @@ body[data-current-game="kids-ark-pairs"] .kids-card.bonus .kids-card-inner {
 
 body[data-current-game="kids-ark-pairs"] .kids-card.just-matched { animation: kidsMatched .7s cubic-bezier(.2, 1.5, .35, 1); }
 body[data-current-game="kids-ark-pairs"] .kids-card.wrong .kids-card-inner { box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, .24); }
-body[data-current-game="kids-ark-pairs"] .kids-card.shake { animation: kidsShake .38s cubic-bezier(.36, .07, .19, .97) both; }
+body[data-current-game="kids-ark-pairs"] .kids-card.shake { animation: kidsShake .32s ease-in-out both; }
 
 body[data-current-game="kids-ark-pairs"] .kids-card[aria-disabled="true"] { cursor: default; }
 
@@ -858,6 +876,11 @@ body[data-current-game="kids-ark-pairs"] .kids-complete .kids-progress-card {
   to { opacity: 1; transform: translateY(0) rotate(0); }
 }
 
+@keyframes kidsGameAppear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes kidsMatched {
   0% { transform: scale(1); }
   45% { transform: scale(1.12) rotate(2deg); }
@@ -866,8 +889,9 @@ body[data-current-game="kids-ark-pairs"] .kids-complete .kids-progress-card {
 
 @keyframes kidsShake {
   0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-5px); }
-  40%, 80% { transform: translateX(5px); }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
 }
 
 @keyframes kidsComboPop {
@@ -919,7 +943,7 @@ body[data-current-game="kids-ark-pairs"] .kids-complete .kids-progress-card {
   body[data-current-game="kids-ark-pairs"] .kids-grid { gap: clamp(4px, 1.4vw, 7px); }
   body[data-current-game="kids-ark-pairs"] .kids-card { border-radius: clamp(9px, 2.8vw, 15px); }
   body[data-current-game="kids-ark-pairs"] .kids-card-face { border-width: 1px; }
-  body[data-current-game="kids-ark-pairs"] .kids-feedback-row { min-height: 36px; }
+  body[data-current-game="kids-ark-pairs"] .kids-feedback-row { height: 62px; min-height: 62px; max-height: 62px; }
   body[data-current-game="kids-ark-pairs"] .kids-status { padding: 7px 9px; font-size: .7rem; }
   body[data-current-game="kids-ark-pairs"] .kids-combo { padding: 7px 9px; font-size: .7rem; }
   .kids-record-grid { grid-template-columns: 1fr; }
@@ -949,6 +973,7 @@ body[data-current-game="kids-ark-pairs"] .kids-complete .kids-progress-card {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body[data-current-game="kids-ark-pairs"] .kids-screen,
   body[data-current-game="kids-ark-pairs"] .kids-screen *,
   .kids-modal[data-kids-owned="true"] *,
   .kids-particle-layer * {
