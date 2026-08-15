@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - agent/biblical-match-three-v2
+      - fix/biblical-match-three-ark-boosters-layouts
     paths:
       - 'web/games/biblical-match-three-core.js'
       - 'web/games/biblical-match-three-progress.js'
