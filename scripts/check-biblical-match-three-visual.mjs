@@ -71,7 +71,7 @@ async function runFreeResult(){
  await page.locator('.bmt-free-card').filter({hasText:'Лёгкий'}).click();
  await page.waitForSelector('.bmt-board .bmt-tile',{timeout:8000});
  if(await page.locator('.bmt-tutorial').count())await page.locator('.bmt-tutorial button').click();
- const finish=page.getByRole('button',{name:/Завершить/});
+ const finish=page.locator('.bmt-actions-v2 .bmt-action-button').filter({hasText:'Завершить'});
  await finish.click();
  await page.waitForSelector('body > .bmt-result-overlay .bmt-result-card',{timeout:5000});
  const labels=await page.evaluate(()=>[...document.querySelectorAll('body > .bmt-result-overlay .bmt-result-actions button')].map(b=>{const r=b.getBoundingClientRect(),s=getComputedStyle(b);return{text:(b.textContent||'').trim(),display:s.display,opacity:Number(s.opacity),w:r.width,h:r.height,bottom:r.bottom}}));
