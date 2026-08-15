@@ -43,6 +43,7 @@ npm run check
 ```bash
 npm install
 npm run smoke:games
+npm run check:kids-pairs
 npm run check:mobile
 npm run check:home
 npm run check:android
@@ -68,4 +69,5 @@ node --test cloudflare/bible-sketch-worker/test/*.test.mjs
 - [Безопасность backend](docs/backend-security.md)
 - [Cloudflare-архитектура «Квартета»](docs/quartet-cloudflare.md)
 - [Пользовательские данные в Cloudflare](docs/cloudflare-user-data.md)
+- [Игра «Найди пару для ковчега»](docs/kids-ark-pairs.md)
 - [Подпись Android release](android-app/SIGNING.md)

@@ -10,7 +10,7 @@
     'Библейские слова': { key: 'bible-wow', desc: 'Собери слова из букв', icon: 'words' },
     'Поиск библейских слов': { key: 'bible-wordsearch', desc: 'Найди скрытые слова', icon: 'search' },
     'Священное слово': { key: 'sacred-word', desc: 'Открой слово по подсказкам', icon: 'sacred' },
-    'Найди пару': { key: 'kids-ark-pairs', desc: 'Память, пары и ковчег', icon: 'ark' },
+    'Найди пару': { key: 'kids-ark-pairs', desc: 'Соберите животных попарно', icon: 'ark' },
   };
 
   const ICON_VERSION = '1';

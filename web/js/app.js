@@ -46,7 +46,7 @@ const GAME_GROUPS = [
   {
     id: "kids-games",
     items: [
-      { key: "kids-ark-pairs", title: "Найди пару", desc: "Память, пары и ковчег", icon: "ark" },
+      { key: "kids-ark-pairs", title: "Найди пару", desc: "Соберите животных попарно", icon: "ark" },
     ],
   },
 ];
@@ -683,7 +683,7 @@ function loadGameScript(fileName, callback) {
   loadedGameScripts.set(fileName, record);
 
   const script = document.createElement("script");
-  script.src = `${fileName}?v=19`;
+  script.src = `${fileName}?v=20`;
   script.dataset.gameScript = fileName;
 
   script.onload = () => {
@@ -719,6 +719,7 @@ function cleanupActiveGame() {
   try { window.__aliasCleanup?.(); } catch {}
   try { window.__wsCleanup?.(); } catch {}
   try { window.__sacredWordCleanup?.(); } catch {}
+  try { window.__kidsArkPairsCleanup?.(); } catch {}
   try { window.__quartetCleanup?.(); } catch {}
 }
 
