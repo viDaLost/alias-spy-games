@@ -1,0 +1,37 @@
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { chromium } from 'playwright-core';
+
+const root=process.cwd();
+const out=path.join(root,'artifacts','biblical-match-three-v5-final');
+fs.mkdirSync(out,{recursive:true});
+const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{--bg-color:#fdfaf4;--accent-color:#dbeafe;--accent-hover:#bfdbfe;--accent-active:#4f46e5;--text-color:#2d2d2d;--card-bg:#fff;--shadow-app:0 4px 12px rgba(79,70,229,.08),0 2px 4px rgba(0,0,0,.04)}</style><link rel="stylesheet" href="/web/styles/biblical-match-three-v2.css?v=5"><link rel="stylesheet" href="/web/styles/biblical-match-three-v2-polish.css?v=5"><link rel="stylesheet" href="/web/styles/biblical-match-three-v4.css?v=5"><link rel="stylesheet" href="/web/styles/biblical-match-three-v5.css?v=5"></head><body><main id="game-container"></main><script>window.Telegram={WebApp:{initDataUnsafe:{user:{id:999999}},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};window.appGoToMainMenu=()=>{};localStorage.setItem('bible_stars_v1_999999','80');</script><script src="/web/games/biblical-match-three-art-v4.js?v=5"></script><script src="/web/games/biblical-match-three-v5-loader.js?v=5"></script><script src="/web/games/biblical-match-three-core.js?v=5"></script><script src="/web/games/biblical-match-three-progress.js?v=5"></script><script src="/web/games/biblical-match-three-effects.js?v=5"></script><script src="/web/games/biblical-match-three.js?v=5"></script><script>(async()=>{await window.BiblicalMatchThreeV5ArtReady;for(const src of ['/web/games/biblical-match-three-v2-ux.js?v=5','/web/games/biblical-match-three-v5-ux.js?v=5'])await new Promise((ok,fail)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=fail;document.head.appendChild(s)});window.startBiblicalMatchThreeGame('/web/data/biblical_match_three_levels.json?v=5')})().catch(e=>{document.body.dataset.qaError=e.stack||e.message;console.error(e)});</script></body></html>`;
+const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.txt':'text/plain; charset=utf-8'};
+const server=http.createServer((req,res)=>{const u=new URL(req.url||'/','http://x');if(u.pathname==='/favicon.ico'){res.writeHead(204).end();return}if(u.pathname==='/__qa'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(html);return}const f=path.resolve(root,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||!fs.statSync(f).isFile()){res.writeHead(404).end();return}res.writeHead(200,{'Content-Type':mime[path.extname(f)]||'application/octet-stream','Cache-Control':'no-store'});fs.createReadStream(f).pipe(res)});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const base=`http://127.0.0.1:${server.address().port}`;
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+const failures=[];const assert=(v,m)=>{if(!v)failures.push(m)};const pause=ms=>new Promise(r=>setTimeout(r,ms));
+const rasterStats=sel=>[...document.querySelectorAll(sel)].map(i=>({src:i.currentSrc||i.src,w:i.naturalWidth,h:i.naturalHeight}));
+try{
+ for(const width of [390,320]){
+  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(base+'/__qa',{waitUntil:'networkidle'});await page.waitForSelector('.bmt-menu-v2',{timeout:15000});await pause(150);
+  assert(!await page.evaluate(()=>document.body.dataset.qaError||''),`bootstrap error @${width}`);
+  assert(await page.evaluate(()=>window.BiblicalMatchThreeV5Art?.kind)==='raster-hq-v5',`V5 raster art inactive @${width}`);
+  const menu=await page.evaluate(rasterStats,'.bmt-menu-v2 img');assert(menu.length>0&&menu.every(i=>i.src.startsWith('blob:')&&i.w>=120&&i.h>=120),`menu is not HQ raster @${width}`);
+  assert(await page.locator('.bmt-daily-card').count()===0,`daily bonus visible @${width}`);assert(await page.locator('.bmt-map-node').count()===30,`campaign node count @${width}`);
+  await page.screenshot({path:path.join(out,`menu-${width}.png`),fullPage:true});
+  await page.locator('.bmt-map-node').first().click();await page.waitForSelector('.bmt-prelevel-v2',{timeout:5000});await pause(120);
+  const pre=await page.evaluate(()=>{const imgs=[...document.querySelectorAll('.bmt-prelevel-v2 img')];const overlap=[...document.querySelectorAll('.bmt-prelevel-goal,.bmt-prestart-booster')].some(card=>{const a=card.querySelector('img')?.getBoundingClientRect(),b=card.querySelector('.bmt-prelevel-goal__copy,.bmt-prestart-booster__copy')?.getBoundingClientRect();return a&&b&&!(a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top)});return{count:imgs.length,raster:imgs.every(i=>i.src.startsWith('blob:')&&i.naturalWidth>=120),overlap,overflow:document.documentElement.scrollWidth>innerWidth+2}});
+  assert(pre.count>0&&pre.raster,`pre-level icons are not HQ raster @${width}`);assert(!pre.overlap,`pre-level icon/text overlap @${width}`);assert(!pre.overflow,`pre-level overflow @${width}`);await page.screenshot({path:path.join(out,`prelevel-${width}.png`),fullPage:true});
+  await page.locator('.bmt-prelevel__start').click();await page.waitForSelector('.bmt-board .bmt-tile',{timeout:5000});await pause(220);
+  const board=await page.evaluate(()=>{const pieces=[...document.querySelectorAll('.bmt-board .bmt-piece')],boosters=[...document.querySelectorAll('.bmt-booster img')],goals=[...document.querySelectorAll('.bmt-goal img')];return{tiles:document.querySelectorAll('.bmt-board .bmt-tile').length,pieces:pieces.length,pieceRaster:pieces.every(i=>i.src.startsWith('blob:')&&i.naturalWidth>=120),boosterRaster:boosters.length===4&&boosters.every(i=>i.src.startsWith('blob:')&&i.naturalWidth>=120),goalRaster:goals.length>0&&goals.every(i=>i.src.startsWith('blob:')&&i.naturalWidth>=120),svg:[...document.querySelectorAll('.bmt-game-v2 img')].filter(i=>i.src.includes('.svg')||i.src.startsWith('data:image/svg')).length,overflow:document.documentElement.scrollWidth>innerWidth+2}});
+  assert(board.tiles===64&&board.pieces>=60&&board.pieceRaster,`board raster failure @${width}`);assert(board.boosterRaster,`booster raster failure @${width}`);assert(board.goalRaster,`goal raster failure @${width}`);assert(board.svg===0,`SVG leaked into V5 game @${width}`);assert(!board.overflow,`board overflow @${width}`);
+  const first=await page.locator('.bmt-tile').first().boundingBox();if(first){await page.mouse.move(first.x+first.width/2,first.y+first.height/2);await page.mouse.down();await page.mouse.move(first.x+first.width*1.2,first.y+first.height/2,{steps:6});await page.mouse.up();await pause(450)}
+  await page.screenshot({path:path.join(out,`board-${width}.png`),fullPage:true});assert(errors.length===0,`page errors @${width}: ${errors.join(' | ')}`);await page.close();
+ }
+}finally{await browser.close();await new Promise(r=>server.close(r));}
+if(failures.length){console.error(failures.map(x=>'FAIL: '+x).join('\n'));process.exit(1)}
+console.log('V5 FINAL QA passed: detailed raster art across menu, goals, board and boosters at 390/320 px.');
