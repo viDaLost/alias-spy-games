@@ -166,13 +166,16 @@ jobs:
           set -euo pipefail
           URL='https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
           for i in 1 2 3 4 5 6; do
-            if curl -fsSL --max-time 15 "$URL" | grep -q 'V10 · TEST'; then break; fi
+            if curl -fsSL --max-time 15 "$URL" -o /tmp/bmt-preview.html && grep -q 'V10 · TEST' /tmp/bmt-preview.html; then break; fi
             if [ "$i" = 6 ]; then echo 'Preview did not return V10'; exit 1; fi
             sleep 3
           done
-          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-ux.js?v=10" | grep -q '__bmtV10UxInstalled'
-          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-runtime.js?v=10" | grep -q '__bmtV10RuntimeInstalled'
-          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v10.css?v=10" | grep -q 'bmt-v10-piece-swap'
+          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-ux.js?v=10" -o /tmp/bmt-v10-ux.js
+          grep -q '__bmtV10UxInstalled' /tmp/bmt-v10-ux.js
+          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-runtime.js?v=10" -o /tmp/bmt-v10-runtime.js
+          grep -q '__bmtV10RuntimeInstalled' /tmp/bmt-v10-runtime.js
+          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v10.css?v=10" -o /tmp/bmt-v10.css
+          grep -q 'bmt-v10-piece-swap' /tmp/bmt-v10.css
           curl -fsSL --max-time 15 "${URL}web/assets/biblical-match-three/hq-v5/symbols/ark.webp?v=10" >/dev/null
       - name: Print preview URL
         shell: bash
