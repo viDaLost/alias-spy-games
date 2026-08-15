@@ -133,4 +133,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config .preview-v2-wrangler.jsonc
       - name: Print preview URL
-        run: echo 'Preview: https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
+        shell: bash
+        run: |
+          echo 'Preview: https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
