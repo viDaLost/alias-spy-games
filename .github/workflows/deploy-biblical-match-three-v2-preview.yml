@@ -11,6 +11,7 @@ on:
       - 'web/games/biblical-match-three-effects.js'
       - 'web/games/biblical-match-three.js'
       - 'web/styles/biblical-match-three-v2.css'
+      - 'web/styles/biblical-match-three-v2-polish.css'
       - 'web/data/biblical_match_three_levels.json'
       - 'web/assets/biblical-match-three/**'
       - 'scripts/check-biblical-match-three.mjs'
@@ -28,17 +29,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Install browser test tooling
         run: npm install --no-audit --no-fund
-
       - name: Validate match-three v2 gameplay
         run: npm run check:match-three
-
       - name: Locate Chrome
         shell: bash
         run: |
@@ -49,10 +46,8 @@ jobs:
           fi
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
           echo "Using $CHROME_BIN"
-
       - name: Run 390px and 320px visual QA
         run: npm run check:match-three:visual
-
       - name: Upload mobile QA screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -61,7 +56,6 @@ jobs:
           path: artifacts/biblical-match-three-v2/*.png
           if-no-files-found: warn
           retention-days: 14
-
       - name: Build isolated Cloudflare preview
         shell: bash
         run: |
@@ -72,12 +66,12 @@ jobs:
             .preview-v2-dist/web/styles \
             .preview-v2-dist/web/data \
             .preview-v2-dist/web/assets/biblical-match-three
-
           cp web/games/biblical-match-three-core.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-progress.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-effects.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three.js .preview-v2-dist/web/games/
           cp web/styles/biblical-match-three-v2.css .preview-v2-dist/web/styles/
+          cp web/styles/biblical-match-three-v2-polish.css .preview-v2-dist/web/styles/
           cp web/data/biblical_match_three_levels.json .preview-v2-dist/web/data/
           cp web/assets/biblical-match-three/*.svg .preview-v2-dist/web/assets/biblical-match-three/
 
@@ -90,8 +84,9 @@ jobs:
             <meta name="theme-color" content="#fdf9ef">
             <title>Библейские три в ряд v2 — Preview</title>
             <link rel="stylesheet" href="web/styles/biblical-match-three-v2.css?v=2">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v2-polish.css?v=2">
             <style>
-              html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fdf9ef}
+              html,body{margin:0;min-height:100%;background:#fdf9ef}
               body{min-height:100dvh}
               #preview-badge{position:fixed;z-index:11000;top:max(7px,env(safe-area-inset-top));right:7px;padding:4px 8px;border-radius:999px;background:rgba(22,50,77,.82);color:#fff;font:800 9px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(7px)}
               #game-container{min-height:100dvh}
@@ -125,13 +120,11 @@ jobs:
             }
           }
           JSON
-
       - name: Deploy isolated v2 preview to Cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config .preview-v2-wrangler.jsonc
-
       - name: Print v2 preview URL
         shell: bash
         run: |
