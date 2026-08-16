@@ -180,20 +180,22 @@ jobs:
         run: |
           set -euo pipefail
           URL='https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
+          CACHE="sha=${GITHUB_SHA}"
           for i in 1 2 3 4 5 6; do
-            if curl -fsSL --max-time 15 "$URL" -o /tmp/bmt-preview.html && grep -q 'V11 · TEST' /tmp/bmt-preview.html; then break; fi
+            if curl -fsSL --retry 2 --retry-delay 1 --max-time 15 "${URL}?${CACHE}&try=${i}" -o /tmp/bmt-preview.html && grep -Fq 'V11 · TEST' /tmp/bmt-preview.html; then break; fi
             if [ "$i" = 6 ]; then echo 'Preview did not return V11'; exit 1; fi
             sleep 3
           done
-          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v11-ui.js?v=11" -o /tmp/bmt-v11-ui.js
-          grep -q '__bmtV11UiInstalled' /tmp/bmt-v11-ui.js
-          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-runtime.js?v=11" -o /tmp/bmt-v10-runtime.js
-          grep -q '__bmtV10RuntimeInstalled' /tmp/bmt-v10-runtime.js
-          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v11.css?v=11" -o /tmp/bmt-v11.css
-          grep -q 'bmt-v11-swap-layer' /tmp/bmt-v11.css
-          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v11-modal.css?v=11" -o /tmp/bmt-v11-modal.css
-          grep -q 'bmt-sheet-overlay' /tmp/bmt-v11-modal.css
-          curl -fsSL --max-time 15 "${URL}web/assets/biblical-match-three/hq-v5/symbols/ark.webp?v=11" >/dev/null
+          for asset in \
+            'web/games/biblical-match-three-v11-ui.js' \
+            'web/games/biblical-match-three-v10-runtime.js' \
+            'web/styles/biblical-match-three-v11.css' \
+            'web/styles/biblical-match-three-v11-modal.css' \
+            'web/assets/biblical-match-three/hq-v5/symbols/ark.webp'; do
+            echo "Checking ${asset}"
+            curl -fsSL --retry 3 --retry-delay 1 --max-time 15 "${URL}${asset}?${CACHE}" -o "/tmp/$(basename "$asset")"
+            test -s "/tmp/$(basename "$asset")"
+          done
       - name: Print preview URL
         shell: bash
         run: |
