@@ -57,3 +57,11 @@ new = '''  await page.goto(base+'/__qa',{waitUntil:'domcontentloaded',timeout:30
 if text.count(old) != 1:
     raise SystemExit(f'visual dead-board marker count {text.count(old)}')
 visual.write_text(text.replace(old, new, 1))
+
+static = Path('scripts/check-biblical-match-three.mjs')
+text = static.read_text()
+old = "ok(game.includes('const MIN_START_MOVES = 3')&&game.includes('countPlayableMoves(runtime.board, 1) === 0')&&game.includes('finishLevel(false, \\\"noMoves\\\")')&&game.includes('openFreeExit(\\\"noMoves\\\")'),'V20 start/dead-board rules missing');"
+new = "ok(game.includes('const MIN_START_MOVES = 3')&&game.includes('function finishIfNoMoves()')&&game.includes('countPlayableMoves(runtime.board, 1) !== 0')&&game.includes('finishLevel(false, \\\"noMoves\\\")')&&game.includes('openFreeExit(\\\"noMoves\\\")')&&game.includes('checkDeadBoard:finishIfNoMoves'),'V20 start/dead-board rules missing');"
+if text.count(old) != 1:
+    raise SystemExit(f'static dead-board marker count {text.count(old)}')
+static.write_text(text.replace(old, new, 1))
