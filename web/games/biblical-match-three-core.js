@@ -94,26 +94,33 @@
     return findMatches(swap(board, a, b), rows, cols).length > 0;
   }
 
-  function findHint(board, rows, cols, canSwap = null) {
+  function findMoves(board, rows, cols, canSwap = null, limit = Infinity) {
+    const moves = [];
+    const max = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : Infinity;
+    const playable = (a, b) => (!canSwap || canSwap(a, b)) && (createsMatch(board, rows, cols, a, b) || Boolean(specialComboClearSet(board, a, b, rows, cols)));
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < cols; col += 1) {
         const a = indexOf(row, col, cols);
         if (col + 1 < cols) {
           const b = indexOf(row, col + 1, cols);
-          if ((!canSwap || canSwap(a, b)) && createsMatch(board, rows, cols, a, b)) return [a, b];
+          if (playable(a, b)) { moves.push([a, b]); if (moves.length >= max) return moves; }
         }
         if (row + 1 < rows) {
           const b = indexOf(row + 1, col, cols);
-          if ((!canSwap || canSwap(a, b)) && createsMatch(board, rows, cols, a, b)) return [a, b];
+          if (playable(a, b)) { moves.push([a, b]); if (moves.length >= max) return moves; }
         }
       }
     }
-    return null;
+    return moves;
+  }
+
+  function findHint(board, rows, cols, canSwap = null) {
+    return findMoves(board, rows, cols, canSwap, 1)[0] || null;
   }
 
   function createBoard(rows, cols, typeIds, rng = Math.random) {
     if (!Array.isArray(typeIds) || typeIds.length < 3) throw new Error("At least three tile types are required");
-    for (let attempt = 0; attempt < 120; attempt += 1) {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
       const board = new Array(rows * cols);
       for (let row = 0; row < rows; row += 1) {
         for (let col = 0; col < cols; col += 1) {
@@ -134,7 +141,7 @@
           board[indexOf(row, col, cols)] = { type, special: null };
         }
       }
-      if (findMatches(board, rows, cols).length === 0 && findHint(board, rows, cols)) return board;
+      if (findMatches(board, rows, cols).length === 0 && findMoves(board, rows, cols, null, 3).length >= 3) return board;
     }
     throw new Error("Could not generate a playable board");
   }
@@ -231,5 +238,5 @@
     return null;
   }
 
-  return { cloneBoard, coordinates, indexOf, areAdjacent, swap, findMatchGroups, findMatches, analyzeMatches, createsMatch, findHint, createBoard, reshuffle, areaIndices, rowIndices, columnIndices, specialComboClearSet };
+  return { cloneBoard, coordinates, indexOf, areAdjacent, swap, findMatchGroups, findMatches, analyzeMatches, createsMatch, findMoves, findHint, createBoard, reshuffle, areaIndices, rowIndices, columnIndices, specialComboClearSet };
 });

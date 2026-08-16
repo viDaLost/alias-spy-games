@@ -9,6 +9,7 @@ if (!Progress) throw new Error("BiblicalMatchThreeProgress is not loaded");
 
 let ROWS = 8;
 const COLS = 8;
+const MIN_START_MOVES = 3;
 
 const SYMBOLS = [
   { id: "bible", label: "Библия", asset: "web/assets/biblical-match-three/bible.svg" },
@@ -126,16 +127,19 @@ function makeActiveMask(shape, rows, cols, level = null) {
 
 function isActive(index) { return !runtime?.activeMask || runtime.activeMask[index] !== false; }
 function canSwapActive(a, b) { return isActive(a) && isActive(b); }
-function findPlayableHint(board = runtime?.board) { return board ? Core.findHint(board, ROWS, COLS, canSwapActive) : null; }
+function findPlayableMoves(board = runtime?.board, limit = Infinity) { return board ? Core.findMoves(board, ROWS, COLS, canSwapActive, limit) : []; }
+function countPlayableMoves(board = runtime?.board, limit = Infinity) { return findPlayableMoves(board, limit).length; }
+function findPlayableHint(board = runtime?.board) { return findPlayableMoves(board, 1)[0] || null; }
 
 function createPlayableBoard(rows, cols, symbolIds, mask, required = []) {
-  for (let attempt = 0; attempt < 180; attempt += 1) {
+  for (let attempt = 0; attempt < 360; attempt += 1) {
     const board = Core.createBoard(rows, cols, symbolIds);
     board.forEach((_, index) => { if (mask[index] === false) board[index] = null; });
     const hasRequired = required.every((symbol) => board.reduce((count, cell) => count + (cell?.type === symbol ? 1 : 0), 0) >= 3);
-    if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && Core.findHint(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false)) return board;
+    const startMoves = Core.findMoves(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false, MIN_START_MOVES).length;
+    if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && startMoves >= MIN_START_MOVES) return board;
   }
-  throw new Error("Could not generate a playable shaped board");
+  throw new Error(`Could not generate a shaped board with ${MIN_START_MOVES} starting moves`);
 }
 
 function reshufflePlayable() {
@@ -419,7 +423,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
   top.append(back, heading, walletBadge()); shell.append(top);
   const stats = el("section", "bmt-stats-v2"); stats.innerHTML = `<div><span>Очки</span><strong id="bmt-score">0</strong>${mode === "free" ? '<small id="bmt-best">рекорд 0</small>' : ""}</div><div><span>Ходы</span><strong id="bmt-moves">${Number.isFinite(moves) ? moves : "∞"}</strong><small>осталось</small></div><div><span>Каскад</span><strong id="bmt-cascade">×1</strong><small id="bmt-special-count">0 особых</small></div>`; shell.append(stats);
   if (mode === "level") { const goals = el("section", "bmt-goals-v2"); goals.id = "bmt-goals"; shell.append(goals); }
-  const boardWrap = el("section", "bmt-board-wrap"); const board = el("div", "bmt-board"); board.setAttribute("role", "grid"); board.setAttribute("aria-label", `Игровое поле ${ROWS} на ${COLS}`); board.style.setProperty("--bmt-rows", String(ROWS)); board.style.setProperty("--bmt-cols", String(COLS)); board.style.setProperty("--bmt-board-ratio", `${COLS} / ${ROWS}`); board.dataset.rows = String(ROWS); board.dataset.cols = String(COLS); board.dataset.shape = runtime.boardShape; board.dataset.activeCells = String(runtime.activeMask.filter(Boolean).length);
+  const boardWrap = el("section", "bmt-board-wrap"); const board = el("div", "bmt-board"); board.setAttribute("role", "grid"); board.setAttribute("aria-label", `Игровое поле ${ROWS} на ${COLS}`); board.style.setProperty("--bmt-rows", String(ROWS)); board.style.setProperty("--bmt-cols", String(COLS)); board.style.setProperty("--bmt-board-ratio", `${COLS} / ${ROWS}`); board.dataset.rows = String(ROWS); board.dataset.cols = String(COLS); board.dataset.shape = runtime.boardShape; board.dataset.activeCells = String(runtime.activeMask.filter(Boolean).length); board.dataset.startMoves = String(countPlayableMoves(runtime.board));
   for (let index = 0; index < ROWS * COLS; index += 1) {
     const tile = el("button", "bmt-tile"); tile.type = "button"; tile.dataset.index = String(index); tile.setAttribute("role", "gridcell");
     const active = isActive(index); tile.classList.toggle("is-hole", !active); tile.disabled = !active; if (!active) { tile.tabIndex = -1; tile.setAttribute("aria-hidden", "true"); }
@@ -568,27 +572,38 @@ function damageBlockers(clearSet) {
 function blockerClearedCount(type) { const initial = Number(runtime.initialBlockerCounts?.[type] || 0); if (!initial) return 0; let remaining = 0; for (const blocker of runtime.blockers.values()) if (blocker.type === type) remaining += 1; return Math.max(0, initial - remaining); }
 function lampLitCount() { let count = 0; for (const blocker of runtime.blockers.values()) if (blocker.type === "lamp" && blocker.lit) count += 1; return count; }
 
+function finishIfNoMoves() {
+  if (!runtime || countPlayableMoves(runtime.board, 1) !== 0) return false;
+  clearHint();
+  if (runtime.mode === "level") { finishLevel(false, "noMoves"); return true; }
+  setBusy(false);
+  if (runtime.mode === "free") { openFreeExit("noMoves"); return true; }
+  return true;
+}
+
 function finishTurn() {
   if (!runtime) return; runtime.lastSwap = null; runtime.cascade = 0; updateHud();
   if (runtime.mode === "level" && allGoalsComplete()) { finishLevel(true); return; }
   if (runtime.mode === "level" && runtime.moves <= 0) { finishLevel(false); return; }
   if (runtime.mode === "free") { persistFreeRecord(true); if (Number.isFinite(runtime.moves) && runtime.moves <= 0) { setBusy(false); openFreeExit("moves"); return; } }
-  if (!findPlayableHint()) { runtime.board = reshufflePlayable(); updateAllTiles(); toast("Поле перемешано — появился новый доступный ход", "info"); }
+  if (finishIfNoMoves()) return;
   setBusy(false); scheduleHint();
 }
 
 function starsForLevel() { const thresholds = runtime.level?.starThresholds || []; let rating = 1; if (runtime.score >= Number(thresholds[1] || Infinity)) rating = 2; if (runtime.score >= Number(thresholds[2] || Infinity)) rating = 3; return rating; }
 
-function finishLevel(won) {
+function finishLevel(won, reason = "moves") {
   clearHint(); setBusy(true); const overlay = el("div", "bmt-result-overlay"); const card = el("section", `bmt-result-card ${won ? "is-win" : "is-lose"}`);
   if (won) {
     const rating = starsForLevel(); const result = Progress.completeLevel(runtime.progress, runtime.level.id, rating, Number(runtime.level.reward || 0), runtime.levels.length); runtime.progress = result.progress; updateWallet(); FX.haptic?.("success"); FX.celebrate?.();
     card.innerHTML = `<div class="bmt-result-card__halo">✦</div><span class="bmt-result-card__eyebrow">Испытание пройдено</span><h3>${escapeHtml(runtime.level.title)}</h3><div class="bmt-result-stars" aria-label="${rating} из 3">${[1,2,3].map((n) => `<span class="${n <= rating ? "is-on" : ""}">★</span>`).join("")}</div><strong class="bmt-result-score">${runtime.score.toLocaleString("ru-RU")} очков</strong><div class="bmt-result-reward"><span>Награда</span><strong>+${result.awarded} ★</strong></div><div class="bmt-result-actions"></div>`;
     const actions = card.querySelector(".bmt-result-actions"); actions.append(button("К карте", "bmt-secondary", () => { overlay.remove(); renderMenu(); }), button("Дальше", "bmt-primary", () => { overlay.remove(); setBusy(false); const next = runtime.levels.find((item) => item.id === runtime.level.id + 1); if (next) openPreLevel(next); else renderMenu(); }));
   } else {
-    FX.haptic?.("error"); const continueCost = Number(runtime.levelConfig.continueCost || 8); const canContinue = starBalance() >= continueCost;
-    card.innerHTML = `<div class="bmt-result-card__halo is-muted">◇</div><span class="bmt-result-card__eyebrow">Почти получилось</span><h3>Ходы закончились</h3><p>Можно продолжить ещё 5 ходов или начать заново.</p><div class="bmt-result-progress">${runtime.level.goals.map((goal) => { const current = Math.min(Number(goal.count), currentGoalValue(goal)); return `<span>${goalIcon(goal)} ${current}/${goal.count}</span>`; }).join("")}</div><div class="bmt-result-actions"></div>`;
-    const actions = card.querySelector(".bmt-result-actions"); actions.append(button("Заново", "bmt-secondary", () => { overlay.remove(); setBusy(false); beginLevel(runtime.level); }), button(`+5 ходов · ${continueCost} ★`, "bmt-primary", () => { const spend = Progress.spendStars(continueCost, `match3-continue-level-${runtime.level.id}`); if (!spend.ok) { toast("Недостаточно звёзд", "error"); return; } updateWallet(); overlay.remove(); runtime.moves = 5; setBusy(false); updateHud(); scheduleHint(); })); actions.lastElementChild.disabled = !canContinue; card.append(button("К карте уровней", "bmt-link-button", () => { overlay.remove(); renderMenu(); }));
+    FX.haptic?.("error"); const noMoves = reason === "noMoves"; const continueCost = Number(runtime.levelConfig.continueCost || 8); const canContinue = !noMoves && starBalance() >= continueCost;
+    card.innerHTML = `<div class="bmt-result-card__halo is-muted">◇</div><span class="bmt-result-card__eyebrow">${noMoves ? "Поле исчерпано" : "Почти получилось"}</span><h3>${noMoves ? "Нет доступных ходов" : "Ходы закончились"}</h3><p>${noMoves ? "На поле не осталось допустимых комбинаций. Уровень завершён." : "Можно продолжить ещё 5 ходов или начать заново."}</p><div class="bmt-result-progress">${runtime.level.goals.map((goal) => { const current = Math.min(Number(goal.count), currentGoalValue(goal)); return `<span>${goalIcon(goal)} ${current}/${goal.count}</span>`; }).join("")}</div><div class="bmt-result-actions"></div>`;
+    const actions = card.querySelector(".bmt-result-actions"); actions.append(button("Заново", "bmt-secondary", () => { overlay.remove(); setBusy(false); beginLevel(runtime.level); }));
+    if (noMoves) actions.append(button("К карте", "bmt-primary", () => { overlay.remove(); renderMenu(); }));
+    else { const more = button(`+5 ходов · ${continueCost} ★`, "bmt-primary", () => { const spend = Progress.spendStars(continueCost, `match3-continue-level-${runtime.level.id}`); if (!spend.ok) { toast("Недостаточно звёзд", "error"); return; } updateWallet(); overlay.remove(); runtime.moves = 5; setBusy(false); updateHud(); scheduleHint(); }); more.disabled = !canContinue; actions.append(more); card.append(button("К карте уровней", "bmt-link-button", () => { overlay.remove(); renderMenu(); })); }
   }
   overlay.append(card); document.querySelector(".bmt-shell")?.append(overlay);
 }
@@ -606,7 +621,7 @@ function updateFreeHud(stats = runtime?.progress?.free?.[runtime?.difficulty]) {
 
 function openFreeExit(reason = "manual") {
   if (!runtime || runtime.mode !== "free") return; persistFreeRecord(false); const stats = runtime.progress.free?.[runtime.difficulty] || {}; const overlay = el("div", "bmt-result-overlay"); const card = el("section", "bmt-result-card"); const isRecord = runtime.score >= Number(stats.bestScore || 0) && runtime.score > 0;
-  card.innerHTML = `<div class="bmt-result-card__halo">${isRecord ? "★" : "↯"}</div><span class="bmt-result-card__eyebrow">${reason === "moves" ? "30 ходов завершены" : isRecord ? "Новый личный рекорд" : "Свободная игра"}</span><h3>${runtime.score.toLocaleString("ru-RU")} очков</h3><div class="bmt-free-result"><span><b>↯ ×${runtime.maxCascade}</b> лучший каскад</span><span><b>✺ ${runtime.specialsActivated}</b> особых активировано</span><span><b>+${runtime.freeSessionReward} ★</b> заработано в попытке</span></div><div class="bmt-result-actions"></div>`;
+  card.innerHTML = `<div class="bmt-result-card__halo">${isRecord ? "★" : "↯"}</div><span class="bmt-result-card__eyebrow">${reason === "noMoves" ? "Нет доступных ходов" : reason === "moves" ? "30 ходов завершены" : isRecord ? "Новый личный рекорд" : "Свободная игра"}</span><h3>${runtime.score.toLocaleString("ru-RU")} очков</h3>${reason === "noMoves" ? "<p>На поле не осталось допустимых комбинаций. Партия завершена.</p>" : ""}<div class="bmt-free-result"><span><b>↯ ×${runtime.maxCascade}</b> лучший каскад</span><span><b>✺ ${runtime.specialsActivated}</b> особых активировано</span><span><b>+${runtime.freeSessionReward} ★</b> заработано в попытке</span></div><div class="bmt-result-actions"></div>`;
   const actions = card.querySelector(".bmt-result-actions"); actions.append(button("В меню", "bmt-secondary", () => { overlay.remove(); renderMenu(); }), button("Играть ещё", "bmt-primary", () => { overlay.remove(); beginFree(runtime.difficulty); })); overlay.append(card); document.querySelector(".bmt-shell")?.append(overlay);
 }
 
@@ -691,7 +706,7 @@ function blockerMarkup(blocker) {
   const badge = blocker.layers > 1 ? `<b class="bmt-blocker__layers" aria-hidden="true">${blocker.layers}</b>` : "";
   if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet" data-blocker-type="tablet">${art || '<i class="bmt-blocker-fallback">▦</i>'}${badge}</span>`;
   if (blocker.type === "chain") return `<span class="bmt-blocker__chain" data-blocker-type="chain">${art || '<i class="bmt-blocker-fallback">◇</i>'}${badge}</span>`;
-  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp">${art || '<i class="bmt-blocker-fallback">✦</i>'}<i class="bmt-blocker__lamp-state" aria-hidden="true">${blocker.lit ? "✦" : ""}</i></span>`;
+  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp" data-blocker-lit="${blocker.lit ? "true" : "false"}">${blocker.lit ? '<i class="bmt-blocker__lamp-state" aria-hidden="true">✦</i>' : (art || '<i class="bmt-blocker-fallback">✦</i>')}</span>`;
   return "";
 }
 
@@ -703,5 +718,7 @@ function pause(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 window.addEventListener("app:stars-changed", updateWallet);
 window.startBiblicalMatchThreeGame = start;
 window.__biblicalMatchThreeCleanup = cleanup;
-window.BiblicalMatchThreeV18Rules = { version:18, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS };
+const rulesApi = { version:20, minStartMoves:MIN_START_MOVES, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS, findPlayableMoves:(limit=Infinity)=>findPlayableMoves(runtime?.board,limit), countPlayableMoves:(limit=Infinity)=>countPlayableMoves(runtime?.board,limit), checkDeadBoard:finishIfNoMoves };
+window.BiblicalMatchThreeV18Rules = rulesApi;
+window.BiblicalMatchThreeV20Rules = rulesApi;
 })();
