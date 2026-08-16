@@ -17,6 +17,18 @@ jobs:
         with:
           ref: feature/biblical-v18-level-shapes-tutorial
           fetch-depth: 0
+      - name: Normalize V18 patch helper
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/apply-biblical-v18-patch.py')
+          t=p.read_text()
+          t=t.replace("patch(game, '  if (!runtime || runtime.busy) return; clearHint();', '  if (!runtime || runtime.busy || !isActive(index)) return; clearHint();', 1)", "patch(game, 'function chooseTile(index) {\\n  if (!runtime || runtime.busy) return; clearHint();', 'function chooseTile(index) {\\n  if (!runtime || runtime.busy || !isActive(index)) return; clearHint();')")
+          old="""if 'web/js/biblical-match-three-launcher.js?v=17' not in text:\n    raise SystemExit('index launcher cache key missing')\nindex.write_text(text.replace('web/js/biblical-match-three-launcher.js?v=17','web/js/biblical-match-three-launcher.js?v=18',1))"""
+          new="""if 'web/js/biblical-match-three-launcher.js?v=17' in text:\n    text=text.replace('web/js/biblical-match-three-launcher.js?v=17','web/js/biblical-match-three-launcher.js?v=18',1)\nelif 'web/js/biblical-match-three-launcher.js?v=18' not in text:\n    raise SystemExit('index launcher cache key missing')\nindex.write_text(text)"""
+          if old in t: t=t.replace(old,new,1)
+          p.write_text(t)
+          PY
       - name: Apply V18 gameplay patch
         run: python scripts/apply-biblical-v18-patch.py
       - name: Commit V18 gameplay patch
