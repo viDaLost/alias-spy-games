@@ -1,0 +1,30 @@
+name: V21 home icon test sync
+on:
+  push:
+    branches:
+      - ui/v21-home-icons-board-background
+    paths:
+      - .github/workflows/v21-home-check-sync.yml
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/v21-home-icons-board-background
+          fetch-depth: 0
+      - name: Update system icon regression expectation
+        run: |
+          sed -i 's/data-icon-version=\"2\"/data-icon-version=\"3\"/g' scripts/check-home-controls.mjs
+          node --check scripts/check-home-controls.mjs
+          grep -q 'data-icon-version=\"3\"' scripts/check-home-controls.mjs
+          git diff --check
+      - name: Commit test sync
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-home-controls.mjs
+          git commit -m "Sync V21 system icon home check"
+          git push origin HEAD:ui/v21-home-icons-board-background
