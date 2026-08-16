@@ -8,6 +8,7 @@ on:
       - fix/biblical-match-three-ark-boosters-layouts
       - fix/biblical-treasures-v9-mobile-polish
       - fix/biblical-treasures-v10-performance-layout
+      - fix/biblical-treasures-v11-menu-layout-swap
     paths:
       - 'web/games/biblical-match-three-core.js'
       - 'web/games/biblical-match-three-progress.js'
@@ -17,6 +18,7 @@ on:
       - 'web/assets/biblical-match-three/hq-v5/**'
       - 'web/games/biblical-match-three-v10-ux.js'
       - 'web/games/biblical-match-three-v10-runtime.js'
+      - 'web/games/biblical-match-three-v11-ui.js'
       - 'web/js/biblical-match-three-launcher.js'
       - 'web/styles/biblical-match-three-v2.css'
       - 'web/styles/biblical-match-three-v2-polish.css'
@@ -24,6 +26,7 @@ on:
       - 'web/styles/biblical-match-three-v5.css'
       - 'web/styles/biblical-match-three-v9.css'
       - 'web/styles/biblical-match-three-v10.css'
+      - 'web/styles/biblical-match-three-v11.css'
       - 'web/data/biblical_match_three_levels.json'
       - 'web/assets/biblical-match-three/**'
       - 'scripts/check-biblical-match-three.mjs'
@@ -57,13 +60,13 @@ jobs:
             exit 1
           fi
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
-      - name: Run adaptive viewport, buttons, Ark and swipe QA
+      - name: Run V11 compact menu, adaptive viewport, Ark and swap QA
         run: npm run check:match-three:visual
       - name: Upload mobile QA screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: biblical-match-three-v10-mobile-qa
+          name: biblical-match-three-v11-mobile-qa
           path: artifacts/biblical-match-three-v2/*.png
           if-no-files-found: warn
           retention-days: 14
@@ -80,12 +83,14 @@ jobs:
           cp web/games/biblical-match-three.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-v10-ux.js .preview-v2-dist/web/games/
           cp web/games/biblical-match-three-v10-runtime.js .preview-v2-dist/web/games/
+          cp web/games/biblical-match-three-v11-ui.js .preview-v2-dist/web/games/
           cp web/styles/biblical-match-three-v2.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v2-polish.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v4.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v5.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v9.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v10.css .preview-v2-dist/web/styles/
+          cp web/styles/biblical-match-three-v11.css .preview-v2-dist/web/styles/
           cp web/data/biblical_match_three_levels.json .preview-v2-dist/web/data/
           cp -R web/assets/biblical-match-three/. .preview-v2-dist/web/assets/biblical-match-three/
 
@@ -97,12 +102,13 @@ jobs:
             <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
             <meta name="theme-color" content="#fdfaf4">
             <title>Библейские сокровища — Preview</title>
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v2.css?v=10">
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v2-polish.css?v=10">
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v4.css?v=10">
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v5.css?v=10">
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v9.css?v=10">
-            <link rel="stylesheet" href="web/styles/biblical-match-three-v10.css?v=10">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v2.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v2-polish.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v4.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v5.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v9.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v10.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v11.css?v=11">
             <style>
               :root{--bg-color:#fdfaf4;--accent-color:#dbeafe;--accent-hover:#bfdbfe;--accent-active:#4f46e5;--text-color:#2d2d2d;--card-bg:#fff;--shadow-app:0 4px 12px rgba(79,70,229,.08),0 2px 4px rgba(0,0,0,.04)}
               html,body{margin:0;min-height:100%;background:var(--bg-color);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -113,30 +119,36 @@ jobs:
             </style>
           </head>
           <body>
-            <div id="preview-badge">V10 · TEST</div>
+            <div id="preview-badge">V11 · TEST</div>
             <main id="game-container" aria-live="polite"></main>
             <script>
               window.Telegram=window.Telegram||{WebApp:{initDataUnsafe:{user:{id:999999,first_name:'Preview'}},contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};
               if(localStorage.getItem('bible_stars_v1_999999')===null)localStorage.setItem('bible_stars_v1_999999','80');
-              window.appGoToMainMenu=()=>window.startBiblicalMatchThreeGame?.('web/data/biblical_match_three_levels.json?v=10');
+              window.appGoToMainMenu=()=>window.startBiblicalMatchThreeGame?.('web/data/biblical_match_three_levels.json?v=11');
               window.__bmtPreviewError=(message)=>{const c=document.getElementById('game-container');if(c)c.innerHTML=`<section class="preview-start-error"><h2>Библейские сокровища</h2><p>${message}</p><button type="button" onclick="location.reload()">Повторить</button></section>`};
             </script>
-            <script src="web/games/biblical-match-three-v5-loader.js?v=10"></script>
-            <script src="web/games/biblical-match-three-core.js?v=10"></script>
-            <script src="web/games/biblical-match-three-progress.js?v=10"></script>
-            <script src="web/games/biblical-match-three-effects.js?v=10"></script>
-            <script src="web/games/biblical-match-three.js?v=10"></script>
-            <script src="web/games/biblical-match-three-v10-runtime.js?v=10"></script>
+            <script src="web/games/biblical-match-three-v5-loader.js?v=11"></script>
+            <script src="web/games/biblical-match-three-core.js?v=11"></script>
+            <script src="web/games/biblical-match-three-progress.js?v=11"></script>
+            <script src="web/games/biblical-match-three-effects.js?v=11"></script>
+            <script src="web/games/biblical-match-three.js?v=11"></script>
+            <script src="web/games/biblical-match-three-v10-runtime.js?v=11"></script>
             <script>
               (async()=>{
                 try{
                   if(window.BiblicalMatchThreeV5ArtReady)await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise(resolve=>setTimeout(resolve,12000))]);
                 }catch(error){console.warn('HQ art preload failed; continuing with safe fallback',error)}
-                const s=document.createElement('script');
-                s.src='web/games/biblical-match-three-v10-ux.js?v=10';
-                s.onerror=()=>window.__bmtPreviewError('Не удалось загрузить интерфейс игры. Обновите страницу.');
-                s.onload=async()=>{try{if(typeof window.startBiblicalMatchThreeGame!=='function')throw new Error('start function missing');await window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=10');if(!document.querySelector('.bmt-shell'))throw new Error('game shell missing')}catch(error){console.error(error);window.__bmtPreviewError('Игра не смогла запуститься. Нажмите «Повторить».')}};
-                document.body.appendChild(s);
+                const ux=document.createElement('script');
+                ux.src='web/games/biblical-match-three-v10-ux.js?v=11';
+                ux.onerror=()=>window.__bmtPreviewError('Не удалось загрузить интерфейс игры. Обновите страницу.');
+                ux.onload=()=>{
+                  const ui=document.createElement('script');
+                  ui.src='web/games/biblical-match-three-v11-ui.js?v=11';
+                  ui.onerror=()=>window.__bmtPreviewError('Не удалось загрузить V11 интерфейс игры. Обновите страницу.');
+                  ui.onload=async()=>{try{if(typeof window.startBiblicalMatchThreeGame!=='function')throw new Error('start function missing');await window.startBiblicalMatchThreeGame('web/data/biblical_match_three_levels.json?v=11');window.BiblicalMatchThreeV11?.enhance?.(document);if(!document.querySelector('.bmt-shell'))throw new Error('game shell missing')}catch(error){console.error(error);window.__bmtPreviewError('Игра не смогла запуститься. Нажмите «Повторить».')}};
+                  document.body.appendChild(ui);
+                };
+                document.body.appendChild(ux);
               })();
             </script>
           </body>
@@ -166,18 +178,18 @@ jobs:
           set -euo pipefail
           URL='https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/'
           for i in 1 2 3 4 5 6; do
-            if curl -fsSL --max-time 15 "$URL" -o /tmp/bmt-preview.html && grep -q 'V10 · TEST' /tmp/bmt-preview.html; then break; fi
-            if [ "$i" = 6 ]; then echo 'Preview did not return V10'; exit 1; fi
+            if curl -fsSL --max-time 15 "$URL" -o /tmp/bmt-preview.html && grep -q 'V11 · TEST' /tmp/bmt-preview.html; then break; fi
+            if [ "$i" = 6 ]; then echo 'Preview did not return V11'; exit 1; fi
             sleep 3
           done
-          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-ux.js?v=10" -o /tmp/bmt-v10-ux.js
-          grep -q '__bmtV10UxInstalled' /tmp/bmt-v10-ux.js
-          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-runtime.js?v=10" -o /tmp/bmt-v10-runtime.js
+          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v11-ui.js?v=11" -o /tmp/bmt-v11-ui.js
+          grep -q '__bmtV11UiInstalled' /tmp/bmt-v11-ui.js
+          curl -fsSL --max-time 15 "${URL}web/games/biblical-match-three-v10-runtime.js?v=11" -o /tmp/bmt-v10-runtime.js
           grep -q '__bmtV10RuntimeInstalled' /tmp/bmt-v10-runtime.js
-          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v10.css?v=10" -o /tmp/bmt-v10.css
-          grep -q 'bmt-v10-piece-swap' /tmp/bmt-v10.css
-          curl -fsSL --max-time 15 "${URL}web/assets/biblical-match-three/hq-v5/symbols/ark.webp?v=10" >/dev/null
+          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v11.css?v=11" -o /tmp/bmt-v11.css
+          grep -q 'bmt-v11-swap-layer' /tmp/bmt-v11.css
+          curl -fsSL --max-time 15 "${URL}web/assets/biblical-match-three/hq-v5/symbols/ark.webp?v=11" >/dev/null
       - name: Print preview URL
         shell: bash
         run: |
-          echo 'Preview: https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/?v=10'
+          echo 'Preview: https://alias-spy-games-biblical-v2-preview.vitaledanilov.workers.dev/?v=11'
