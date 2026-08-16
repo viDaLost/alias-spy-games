@@ -1,4 +1,4 @@
-/* Biblical Treasures V17 — direct generated WebP icons and transparent cells. */
+/* Biblical Treasures V18 — shaped boards, animated obstacles and direct WebP icons. */
 body[data-current-game="biblical-match-three"] .bmt-hero-v2{display:none!important}
 body[data-current-game="biblical-match-three"] .bmt-booster__icon img:not([data-bmt-raster="webp-v17"]),
 body[data-current-game="biblical-match-three"] .bmt-prebooster__icon img:not([data-bmt-raster="webp-v17"]){visibility:hidden!important}
@@ -63,3 +63,28 @@ body[data-current-game="biblical-match-three"] .bmt-prelevel__goals img{object-f
  body[data-current-game="biblical-match-three"] .bmt-v13-level,body[data-current-game="biblical-match-three"] .bmt-map-node{padding-right:33px!important}
  body[data-current-game="biblical-match-three"] .bmt-piece[data-bmt-raster="webp-v17"]{width:108%!important;height:108%!important}
 }
+
+/* V18 irregular boards: missing cells are real holes, not playable invisible tiles. */
+body[data-current-game="biblical-match-three"] .bmt-tile.is-hole{visibility:hidden!important;pointer-events:none!important;opacity:0!important}
+body[data-current-game="biblical-match-three"] .bmt-board[data-shape]:not([data-shape="rect"]){background:transparent!important;box-shadow:none!important;border-color:transparent!important}
+body[data-current-game="biblical-match-three"] .bmt-board[data-shape="cross"] .bmt-piece,
+body[data-current-game="biblical-match-three"] .bmt-board[data-shape="diamond"] .bmt-piece{filter:drop-shadow(0 4px 4px rgba(38,54,98,.18))!important}
+
+@keyframes bmt-v18-blocker-hit{0%{transform:scale(1) rotate(0);filter:brightness(1)}35%{transform:scale(1.16) rotate(-5deg);filter:brightness(1.35)}100%{transform:scale(1) rotate(0);filter:brightness(1)}}
+@keyframes bmt-v18-blocker-break{0%{transform:scale(1);opacity:1;filter:brightness(1)}45%{transform:scale(1.24) rotate(7deg);opacity:1;filter:brightness(1.55)}100%{transform:scale(.45) rotate(-16deg);opacity:0;filter:brightness(1.8)}}
+@keyframes bmt-v18-blocker-light{0%{transform:scale(.9);filter:brightness(1)}45%{transform:scale(1.25);filter:brightness(1.8) drop-shadow(0 0 8px rgba(245,183,55,.8))}100%{transform:scale(1);filter:brightness(1)}}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-hit .bmt-blocker{animation:bmt-v18-blocker-hit .28s ease both!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-breaking .bmt-blocker{animation:bmt-v18-blocker-break .18s ease-out both!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-lit .bmt-blocker{animation:bmt-v18-blocker-light .34s ease both!important}
+
+/* Free-mode icons sit in their own top-right zone and never cover labels or scores. */
+body[data-current-game="biblical-match-three"] .bmt-free-card{padding-left:16px!important;padding-right:82px!important;min-height:154px!important}
+body[data-current-game="biblical-match-three"] .bmt-v15-free-icon{left:auto!important;right:12px!important;top:14px!important;width:62px!important;height:62px!important;filter:drop-shadow(0 4px 5px rgba(40,55,90,.16))!important}
+body[data-current-game="biblical-match-three"] .bmt-free-card__mode,
+body[data-current-game="biblical-match-three"] .bmt-free-card>strong,
+body[data-current-game="biblical-match-three"] .bmt-free-card__record{position:relative!important;z-index:2!important;max-width:100%!important}
+
+body[data-current-game="biblical-match-three"] .is-tutorial-focus{position:relative!important;z-index:2147483001!important;filter:drop-shadow(0 0 8px rgba(79,70,229,.45))!important}
+body[data-current-game="biblical-match-three"] .bmt-v18-tutorial-step{display:block;margin-bottom:5px;font-weight:900;letter-spacing:.12em;color:#635bdf}
+body[data-current-game="biblical-match-three"] .bmt-v18-tutorial-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+@media(max-width:360px){body[data-current-game="biblical-match-three"] .bmt-free-card{padding-right:68px!important}body[data-current-game="biblical-match-three"] .bmt-v15-free-icon{width:50px!important;height:50px!important;right:9px!important}}

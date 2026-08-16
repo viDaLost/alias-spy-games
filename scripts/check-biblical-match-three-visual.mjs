@@ -4,7 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root=process.cwd();
-const V='17';
+const V='18';
 const ALLOWED='1288379477';
 const scripts=[
   'biblical-match-three-v5-loader.js','biblical-match-three-core.js','biblical-match-three-progress.js','biblical-match-three-effects.js','biblical-match-three.js','biblical-match-three-v10-runtime.js','biblical-match-three-v15-ui.js','biblical-match-three-v15-polish.js',
@@ -53,4 +53,20 @@ async function checkGame(){
   if(requested.some(url=>/hq-v5\/atlas-|hq-v5\/symbols\/fish|biblical-match-three-(?:v14-raster-pack|v14-icons|art-symbols|art-boosters|art-goals|art-obstacles)/i.test(url)))throw new Error('obsolete art requested');
  }finally{await page.close()}
 }
-try{await checkAccess();await checkGame();console.log('OK: Biblical Treasures V17 private access + direct WebP icons + transparent cells + visible swipe passed')}finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve))}
+
+async function checkV18Rules(){
+ const page=await context.newPage();
+ try{
+  await page.goto(base+'/__qa?unlockAll=1',{waitUntil:'domcontentloaded',timeout:30000});await page.waitForSelector('.bmt-v13-menu',{timeout:20000});
+  const level3=page.locator('.bmt-v13-level').filter({hasText:'Хлеб жизни'}).first();await level3.evaluate(el=>el.click());await page.waitForSelector('.bmt-prelevel',{state:'visible',timeout:6000});await page.getByRole('button',{name:/Начать уровень/}).click();await page.waitForSelector('.bmt-board',{timeout:8000});await dismissTutorial(page);
+  const l3=await page.evaluate(()=>({shape:document.querySelector('.bmt-board')?.dataset.shape,holes:document.querySelectorAll('.bmt-tile.is-hole').length,bread:[...document.querySelectorAll('.bmt-piece')].filter(img=>img.alt==='Хлеб'&&img.naturalWidth>=64).length,active:Number(document.querySelector('.bmt-board')?.dataset.activeCells||0)}));
+  if(l3.shape!=='oval'||l3.holes<1||l3.bread<3||l3.active<24)throw new Error(`level3 rules ${JSON.stringify(l3)}`);
+  await page.locator('.bmt-gamebar .bmt-icon-button').click();await page.waitForSelector('.bmt-pause-overlay',{timeout:3000});await page.getByRole('button',{name:/В меню игры/}).click();await page.waitForSelector('.bmt-v13-menu',{timeout:5000});await page.locator('[data-v13-mode="free"]').click();
+  const iconLayout=await page.evaluate(()=>[...document.querySelectorAll('.bmt-free-card')].map(card=>{const img=card.querySelector('.bmt-v15-free-icon'),label=card.querySelector('.bmt-free-card__mode'),ir=img?.getBoundingClientRect(),lr=label?.getBoundingClientRect();return{w:ir?.width||0,overlap:ir&&lr?!(ir.right<=lr.left||ir.left>=lr.right||ir.bottom<=lr.top||ir.top>=lr.bottom):false}}));
+  if(iconLayout.length<4||iconLayout.some(x=>x.w<48||x.overlap))throw new Error(`free icon layout ${JSON.stringify(iconLayout)}`);
+  const medium=page.locator('.bmt-free-card').filter({hasText:'Средний'}).first();await medium.click();await page.waitForSelector('.bmt-board',{timeout:5000});const med=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet').length}));if(med.rows!==8||med.moves!=='30'||med.shape!=='bowl'||med.blockers<8)throw new Error(`medium ${JSON.stringify(med)}`);
+  await page.locator('.bmt-gamebar .bmt-icon-button').click();await page.waitForSelector('.bmt-result-overlay',{timeout:3000});await page.getByRole('button',{name:/В меню/}).click();await page.waitForSelector('.bmt-v13-menu',{timeout:5000});await page.locator('[data-v13-mode="free"]').click();const hard=page.locator('.bmt-free-card').filter({hasText:'Сложный'}).first();await hard.click();await page.waitForSelector('.bmt-board',{timeout:5000});const hardState=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet,.bmt-tile.has-lamp').length}));if(hardState.rows!==8||hardState.moves!=='30'||hardState.shape!=='cross'||hardState.blockers<14)throw new Error(`hard ${JSON.stringify(hardState)}`);
+ }finally{await page.close()}
+}
+
+try{await checkAccess();await checkGame();await checkV18Rules();console.log('OK: Biblical Treasures V18 private access + goals + shapes + free difficulty + direct WebP + visible swipe passed')}finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve))}
