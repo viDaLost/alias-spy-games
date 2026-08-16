@@ -1,4 +1,29 @@
 /* V11 modal viewport fix — applies whether overlays are portaled to body or remain inside #game-container. */
+body[data-match-three="2"]{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+}
+body[data-match-three="2"] #game-container{
+  box-sizing:border-box!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+body[data-match-three="2"]:has(.bmt-sheet-overlay),
+body[data-match-three="2"]:has(.bmt-result-overlay),
+body[data-match-three="2"]:has(.bmt-pause-overlay),
+body[data-match-three="2"]:has(.bmt-tutorial){
+  width:100vw!important;
+  height:var(--bmt-v11-viewport-height,100dvh)!important;
+  min-height:0!important;
+  max-height:var(--bmt-v11-viewport-height,100dvh)!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
 body[data-match-three="2"] .bmt-sheet-overlay,
 body[data-match-three="2"] .bmt-result-overlay,
 body[data-match-three="2"] .bmt-pause-overlay,
