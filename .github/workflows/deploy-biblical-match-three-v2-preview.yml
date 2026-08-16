@@ -27,6 +27,7 @@ on:
       - 'web/styles/biblical-match-three-v9.css'
       - 'web/styles/biblical-match-three-v10.css'
       - 'web/styles/biblical-match-three-v11.css'
+      - 'web/styles/biblical-match-three-v11-modal.css'
       - 'web/data/biblical_match_three_levels.json'
       - 'web/assets/biblical-match-three/**'
       - 'scripts/check-biblical-match-three.mjs'
@@ -91,6 +92,7 @@ jobs:
           cp web/styles/biblical-match-three-v9.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v10.css .preview-v2-dist/web/styles/
           cp web/styles/biblical-match-three-v11.css .preview-v2-dist/web/styles/
+          cp web/styles/biblical-match-three-v11-modal.css .preview-v2-dist/web/styles/
           cp web/data/biblical_match_three_levels.json .preview-v2-dist/web/data/
           cp -R web/assets/biblical-match-three/. .preview-v2-dist/web/assets/biblical-match-three/
 
@@ -109,6 +111,7 @@ jobs:
             <link rel="stylesheet" href="web/styles/biblical-match-three-v9.css?v=11">
             <link rel="stylesheet" href="web/styles/biblical-match-three-v10.css?v=11">
             <link rel="stylesheet" href="web/styles/biblical-match-three-v11.css?v=11">
+            <link rel="stylesheet" href="web/styles/biblical-match-three-v11-modal.css?v=11">
             <style>
               :root{--bg-color:#fdfaf4;--accent-color:#dbeafe;--accent-hover:#bfdbfe;--accent-active:#4f46e5;--text-color:#2d2d2d;--card-bg:#fff;--shadow-app:0 4px 12px rgba(79,70,229,.08),0 2px 4px rgba(0,0,0,.04)}
               html,body{margin:0;min-height:100%;background:var(--bg-color);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -188,6 +191,8 @@ jobs:
           grep -q '__bmtV10RuntimeInstalled' /tmp/bmt-v10-runtime.js
           curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v11.css?v=11" -o /tmp/bmt-v11.css
           grep -q 'bmt-v11-swap-layer' /tmp/bmt-v11.css
+          curl -fsSL --max-time 15 "${URL}web/styles/biblical-match-three-v11-modal.css?v=11" -o /tmp/bmt-v11-modal.css
+          grep -q 'bmt-sheet-overlay' /tmp/bmt-v11-modal.css
           curl -fsSL --max-time 15 "${URL}web/assets/biblical-match-three/hq-v5/symbols/ark.webp?v=11" >/dev/null
       - name: Print preview URL
         shell: bash
