@@ -703,7 +703,7 @@ function blockerMarkup(blocker) {
   const badge = blocker.layers > 1 ? `<b class="bmt-blocker__layers" aria-hidden="true">${blocker.layers}</b>` : "";
   if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet" data-blocker-type="tablet">${art || '<i class="bmt-blocker-fallback">▦</i>'}${badge}</span>`;
   if (blocker.type === "chain") return `<span class="bmt-blocker__chain" data-blocker-type="chain">${art || '<i class="bmt-blocker-fallback">◇</i>'}${badge}</span>`;
-  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp" data-blocker-lit="${blocker.lit ? "true" : "false"}">${blocker.lit ? "" : (art || '<i class="bmt-blocker-fallback">✦</i>')}<i class="bmt-blocker__lamp-state" aria-hidden="true">${blocker.lit ? "✦" : ""}</i></span>`;
+  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp" data-blocker-lit="${blocker.lit ? "true" : "false"}">${blocker.lit ? '<i class="bmt-blocker__lamp-state" aria-hidden="true">✦</i>' : (art || '<i class="bmt-blocker-fallback">✦</i>')}</span>`;
   return "";
 }
 
