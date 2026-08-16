@@ -1,0 +1,111 @@
+/* Biblical Treasures V15 — one HQ icon set + unclipped swipe animation. */
+body[data-current-game="biblical-match-three"] img[data-bmt-raster="hq-v15"]{
+  object-fit:contain!important;
+  object-position:center!important;
+  image-rendering:auto!important;
+  filter:none!important;
+  content:normal!important;
+  backface-visibility:visible!important;
+  transform:none!important;
+}
+body[data-current-game="biblical-match-three"] [data-booster="ark"] img,
+body[data-current-game="biblical-match-three"] img.bmt-piece[alt="Ковчег"]{
+  content:normal!important;
+  object-fit:contain!important;
+  object-position:center!important;
+}
+
+/* V13 clipped the translated piece to its original cell. That made the icon vanish during a swipe. */
+body[data-current-game="biblical-match-three"] .bmt-tile.is-swapping,
+body[data-current-game="biblical-match-three"] .bmt-tile.is-swap-back{
+  overflow:visible!important;
+  contain:none!important;
+  z-index:8!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-swapping .bmt-piece-wrap,
+body[data-current-game="biblical-match-three"] .bmt-tile.is-swap-back .bmt-piece-wrap{
+  overflow:visible!important;
+  backface-visibility:visible!important;
+  will-change:transform!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-piece{
+  backface-visibility:visible!important;
+  transform:none!important;
+  will-change:auto!important;
+}
+
+@keyframes bmt-v13-swap{
+  from{transform:translate(0,0)}
+  to{transform:translate(var(--bmt-swap-x,0),var(--bmt-swap-y,0))}
+}
+@keyframes bmt-v13-swap-back{
+  from{transform:translate(var(--bmt-swap-x,0),var(--bmt-swap-y,0))}
+  to{transform:translate(0,0)}
+}
+
+/* HQ art in the compact V13 menu. */
+body[data-current-game="biblical-match-three"] .bmt-v13-resume{
+  grid-template-columns:40px minmax(0,1fr) auto!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-v15-resume-icon{
+  width:40px!important;
+  height:40px!important;
+  padding:2px!important;
+  border-radius:10px!important;
+  object-fit:contain!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-v13-chapter__head{position:relative!important}
+body[data-current-game="biblical-match-three"] .bmt-v15-chapter-icon{
+  width:30px!important;
+  height:30px!important;
+  flex:0 0 30px!important;
+  object-fit:contain!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-v13-level,
+body[data-current-game="biblical-match-three"] .bmt-map-node{
+  position:relative!important;
+  padding-right:40px!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-v15-level-icon{
+  position:absolute!important;
+  top:50%!important;
+  right:7px!important;
+  width:30px!important;
+  height:30px!important;
+  transform:translateY(-50%)!important;
+  pointer-events:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-map-node:disabled .bmt-v15-level-icon,
+body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled .bmt-v15-level-icon{
+  opacity:.22!important;
+  filter:grayscale(1)!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-free-card{
+  position:relative!important;
+  padding-left:50px!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-v15-free-icon{
+  position:absolute!important;
+  left:9px!important;
+  top:10px!important;
+  width:34px!important;
+  height:34px!important;
+  pointer-events:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-booster__icon img[data-bmt-raster="hq-v15"]{
+  width:100%!important;
+  height:100%!important;
+  max-width:44px!important;
+  max-height:44px!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-piece[data-bmt-raster="hq-v15"]{
+  width:100%!important;
+  height:100%!important;
+}
+@media(max-width:360px){
+  body[data-current-game="biblical-match-three"] .bmt-v13-resume{grid-template-columns:34px minmax(0,1fr) auto!important}
+  body[data-current-game="biblical-match-three"] .bmt-v15-resume-icon{width:34px!important;height:34px!important}
+  body[data-current-game="biblical-match-three"] .bmt-v15-level-icon{width:24px!important;height:24px!important;right:6px!important}
+  body[data-current-game="biblical-match-three"] .bmt-v13-level,
+  body[data-current-game="biblical-match-three"] .bmt-map-node{padding-right:33px!important}
+}
