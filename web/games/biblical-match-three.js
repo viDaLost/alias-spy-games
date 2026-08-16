@@ -188,6 +188,12 @@ function currentSymbolAsset(id) {
   return window.BiblicalMatchThreeV5Art?.symbols?.[key] || window.BiblicalMatchThreeV4Art?.symbols?.[key] || symbol.asset;
 }
 
+function currentBlockerAsset(type) {
+  const obstacles = window.BiblicalMatchThreeV5Art?.obstacles || window.BiblicalMatchThreeV4Art?.obstacles || {};
+  const key = type === "chain" ? "chains" : type === "tablet" ? "tablets" : type === "lamp" ? "candle" : "";
+  return key ? (obstacles[key] || "") : "";
+}
+
 function cleanup() {
   if (!runtime) return;
   if (runtime.hintTimer) clearTimeout(runtime.hintTimer);
@@ -676,13 +682,16 @@ function updateTile(tile, cell, blocker) {
   if (!active) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; if (blockerMark) blockerMark.innerHTML = ""; return; }
   if (!cell) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; }
   else { tile.classList.remove("is-empty"); const symbol = SYMBOL_BY_ID[cell.type]; const asset = currentSymbolAsset(cell.type); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = symbol.label; tile.setAttribute("aria-label", `${symbol.label}${cell.special ? ", особая фишка" : ""}`); if (cell.special) tile.classList.add(`is-${cell.special.replace("lineH", "line-h").replace("lineV", "line-v")}`); if (specialMark) specialMark.textContent = cell.special === "rainbow" ? "✦" : cell.special === "burst" ? "✺" : cell.special ? "↯" : ""; }
-  if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); } else if (blockerMark) blockerMark.innerHTML = "";
+  if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); const label = BLOCKER_META[blocker.type]?.label || blocker.type; tile.setAttribute("aria-label", `${tile.getAttribute("aria-label") || "Фишка"}, препятствие ${label}${blocker.layers > 1 ? `, ${blocker.layers} слоя` : ""}`); } else if (blockerMark) blockerMark.innerHTML = "";
 }
 
 function blockerMarkup(blocker) {
-  if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet"><i></i><b>${blocker.layers > 1 ? blocker.layers : ""}</b></span>`;
-  if (blocker.type === "chain") return `<span class="bmt-blocker__chain"><i></i><i></i>${blocker.layers > 1 ? `<b>${blocker.layers}</b>` : ""}</span>`;
-  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp">${blocker.lit ? "✦" : "·"}</span>`;
+  const src = currentBlockerAsset(blocker.type);
+  const art = src ? `<img class="bmt-blocker-art" src="${src}" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async" data-bmt-raster="webp-v17">` : "";
+  const badge = blocker.layers > 1 ? `<b class="bmt-blocker__layers" aria-hidden="true">${blocker.layers}</b>` : "";
+  if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet" data-blocker-type="tablet">${art || '<i class="bmt-blocker-fallback">▦</i>'}${badge}</span>`;
+  if (blocker.type === "chain") return `<span class="bmt-blocker__chain" data-blocker-type="chain">${art || '<i class="bmt-blocker-fallback">◇</i>'}${badge}</span>`;
+  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp">${art || '<i class="bmt-blocker-fallback">✦</i>'}<i class="bmt-blocker__lamp-state" aria-hidden="true">${blocker.lit ? "✦" : ""}</i></span>`;
   return "";
 }
 
