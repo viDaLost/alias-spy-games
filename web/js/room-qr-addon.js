@@ -15,7 +15,7 @@
     button.dataset.roomScanGlobal = '1';
     button.setAttribute('aria-label', 'Сканировать QR-код комнаты');
     button.innerHTML = `
-      <span class="game-card__icon room-scan-menu-icon" aria-hidden="true">⌗</span>
+      <span class="game-card__icon room-scan-menu-icon" aria-hidden="true"><img class="game-card__img" src="web/assets/icons/qr-scanner.webp?v=4" alt="" draggable="false" loading="eager" decoding="async"></span>
       <span class="game-card__body">
         <span class="game-card__title">Сканировать QR</span>
         <span class="game-card__desc">Подключиться к комнате камерой Telegram</span>
