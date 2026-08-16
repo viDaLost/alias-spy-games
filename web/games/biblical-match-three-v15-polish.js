@@ -27,7 +27,7 @@ function symbol(key){ return art().symbols?.[key] || ""; }
 function booster(key){ return art().boosters?.[key] || ""; }
 function mark(img){
   if (!img) return img;
-  img.dataset.bmtRaster = "hq-v15";
+  img.dataset.bmtRaster = "hq-v16";
   img.decoding = "sync";
   img.loading = "eager";
   img.draggable = false;
@@ -146,7 +146,7 @@ const observer = new MutationObserver((mutations) => {
 });
 observer.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:["src"]});
 
-window.BiblicalMatchThreeV15 = { version:15, enhance };
+window.BiblicalMatchThreeV15 = { version:16, enhance };
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded",schedule,{once:true});
 else schedule();
 })();

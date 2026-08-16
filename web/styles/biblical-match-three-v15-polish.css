@@ -1,12 +1,12 @@
-/* Biblical Treasures V15 — one HQ icon set + unclipped swipe animation. */
+/* Biblical Treasures V16 — one HQ icon set + unclipped swipe animation. */
 body[data-current-game="biblical-match-three"] .bmt-hero-v2{
   display:none!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-booster__icon img:not([data-bmt-raster="hq-v15"]),
-body[data-current-game="biblical-match-three"] .bmt-prebooster__icon img:not([data-bmt-raster="hq-v15"]){
+body[data-current-game="biblical-match-three"] .bmt-booster__icon img:not([data-bmt-raster="hq-v16"]),
+body[data-current-game="biblical-match-three"] .bmt-prebooster__icon img:not([data-bmt-raster="hq-v16"]){
   visibility:hidden!important;
 }
-body[data-current-game="biblical-match-three"] img[data-bmt-raster="hq-v15"]{
+body[data-current-game="biblical-match-three"] img[data-bmt-raster="hq-v16"]{
   visibility:visible!important;
   object-fit:contain!important;
   object-position:center!important;
@@ -100,13 +100,13 @@ body[data-current-game="biblical-match-three"] .bmt-v15-free-icon{
   height:34px!important;
   pointer-events:none!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-booster__icon img[data-bmt-raster="hq-v15"]{
+body[data-current-game="biblical-match-three"] .bmt-booster__icon img[data-bmt-raster="hq-v16"]{
   width:100%!important;
   height:100%!important;
   max-width:44px!important;
   max-height:44px!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-piece[data-bmt-raster="hq-v15"]{
+body[data-current-game="biblical-match-three"] .bmt-piece[data-bmt-raster="hq-v16"]{
   width:100%!important;
   height:100%!important;
 }
