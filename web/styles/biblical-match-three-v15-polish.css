@@ -1,5 +1,13 @@
 /* Biblical Treasures V15 — one HQ icon set + unclipped swipe animation. */
+body[data-current-game="biblical-match-three"] .bmt-hero-v2{
+  display:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-booster__icon img:not([data-bmt-raster="hq-v15"]),
+body[data-current-game="biblical-match-three"] .bmt-prebooster__icon img:not([data-bmt-raster="hq-v15"]){
+  visibility:hidden!important;
+}
 body[data-current-game="biblical-match-three"] img[data-bmt-raster="hq-v15"]{
+  visibility:visible!important;
   object-fit:contain!important;
   object-position:center!important;
   image-rendering:auto!important;
