@@ -11,7 +11,7 @@
   const GAME_NAMES = {
     alias: 'Алиас', coimaginarium: 'Соображариум', guess: 'Угадай персонажа', describe: 'Опиши, но не называй',
     spy: 'Шпион', quartet: 'Квартет', 'bible-wow': 'Библейские слова', 'bible-wordsearch': 'Поиск библейских слов',
-    'sacred-word': 'Священное слово', 'kids-ark-pairs': 'Найди пару',
+    'sacred-word': 'Священное слово', 'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
   };
 
   function gameKey() {
@@ -29,6 +29,17 @@
   function cleanMessage(value) {
     const text = value instanceof Error ? (value.stack || value.message) : String(value ?? '');
     return text.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 170);
+  }
+
+  function fatalForCurrentGame(error, source = '') {
+    if (document.body.dataset.mode !== 'game') return false;
+    const game = gameKey();
+    if (!game) return false;
+    if (game !== 'biblical-match-three') return true;
+
+    const text = `${source} ${cleanMessage(error)}`.toLowerCase();
+    if (/biblical-match-three-v(?:10|11)|biblical-match-three-launcher/.test(text)) return false;
+    return /biblical-match-three(?:-core|-progress|-effects)?\.js/.test(text);
   }
 
   function report(error, { kind = 'runtime', source = '', fatal = false } = {}) {
@@ -95,6 +106,10 @@
   function restartGame(game) {
     closeBoundary();
     try {
+      if (game === 'biblical-match-three' && typeof window.openBiblicalMatchThree === 'function') {
+        Promise.resolve(window.openBiblicalMatchThree({ retry: true })).catch(() => location.reload());
+        return;
+      }
       if (typeof window.goToMainMenu !== 'function' || typeof window.showGame !== 'function') throw new Error('navigation unavailable');
       window.goToMainMenu();
       setTimeout(() => window.showGame(game), 100);
@@ -142,13 +157,13 @@
     report(event.error || event.message, {
       kind: 'unhandled-error',
       source: event.filename || '',
-      fatal: document.body.dataset.mode === 'game',
+      fatal: fatalForCurrentGame(event.error || event.message, event.filename || ''),
     });
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason instanceof Error ? event.reason : String(event.reason || 'Unhandled promise rejection');
-    report(reason, { kind: 'unhandled-promise', fatal: document.body.dataset.mode === 'game' });
+    report(reason, { kind: 'unhandled-promise', fatal: fatalForCurrentGame(reason) });
   });
 
   const originalConsoleError = console.error.bind(console);
