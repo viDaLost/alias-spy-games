@@ -54,6 +54,11 @@ async function warmArt(art){
  const values=[...Object.values(art.symbols),...Object.values(art.boosters),...Object.values(art.goals),...Object.values(art.obstacles)];
  await Promise.all([...new Set(values)].map(warmSource));
 }
+function lockValue(map,key){
+ const value=map?.[key];
+ if(!map||!value)return;
+ Object.defineProperty(map,key,{enumerable:true,configurable:false,get(){return value},set(){}});
+}
 function symbolSource(id,art=window.BiblicalMatchThreeV5Art){const key=id==="lamp"?"candle":id;return art?.symbols?.[key]||""}
 function boosterSource(id,art=window.BiblicalMatchThreeV5Art){const map={lampOil:"oil"};return art?.boosters?.[map[id]||id]||""}
 function patchLegacy(root=document,art=window.BiblicalMatchThreeV5Art){
@@ -69,6 +74,8 @@ function patchLegacy(root=document,art=window.BiblicalMatchThreeV5Art){
  });
 }
 function publish(art){
+ lockValue(art.symbols,"ark");
+ lockValue(art.boosters,"ark");
  window.BiblicalMatchThreeV5Art=art;
  window.BiblicalMatchThreeV4Art=art;
  window.__bmtV5ArtReady=true;
