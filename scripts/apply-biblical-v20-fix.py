@@ -1,0 +1,204 @@
+from pathlib import Path
+
+
+def patch(path, old, new, count=1):
+    p = Path(path)
+    text = p.read_text()
+    found = text.count(old)
+    if found != count:
+        raise SystemExit(f"{path}: expected {count}, got {found}: {old[:140]!r}")
+    p.write_text(text.replace(old, new, count))
+
+
+core = "web/games/biblical-match-three-core.js"
+patch(core, '''  function findHint(board, rows, cols, canSwap = null) {
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
+        const a = indexOf(row, col, cols);
+        if (col + 1 < cols) {
+          const b = indexOf(row, col + 1, cols);
+          if ((!canSwap || canSwap(a, b)) && createsMatch(board, rows, cols, a, b)) return [a, b];
+        }
+        if (row + 1 < rows) {
+          const b = indexOf(row + 1, col, cols);
+          if ((!canSwap || canSwap(a, b)) && createsMatch(board, rows, cols, a, b)) return [a, b];
+        }
+      }
+    }
+    return null;
+  }
+''', '''  function findMoves(board, rows, cols, canSwap = null, limit = Infinity) {
+    const moves = [];
+    const max = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : Infinity;
+    const playable = (a, b) => (!canSwap || canSwap(a, b)) && (createsMatch(board, rows, cols, a, b) || Boolean(specialComboClearSet(board, a, b, rows, cols)));
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
+        const a = indexOf(row, col, cols);
+        if (col + 1 < cols) {
+          const b = indexOf(row, col + 1, cols);
+          if (playable(a, b)) { moves.push([a, b]); if (moves.length >= max) return moves; }
+        }
+        if (row + 1 < rows) {
+          const b = indexOf(row + 1, col, cols);
+          if (playable(a, b)) { moves.push([a, b]); if (moves.length >= max) return moves; }
+        }
+      }
+    }
+    return moves;
+  }
+
+  function findHint(board, rows, cols, canSwap = null) {
+    return findMoves(board, rows, cols, canSwap, 1)[0] || null;
+  }
+''')
+patch(core, 'for (let attempt = 0; attempt < 120; attempt += 1) {', 'for (let attempt = 0; attempt < 240; attempt += 1) {')
+patch(core, 'if (findMatches(board, rows, cols).length === 0 && findHint(board, rows, cols)) return board;', 'if (findMatches(board, rows, cols).length === 0 && findMoves(board, rows, cols, null, 3).length >= 3) return board;')
+patch(core, 'return { cloneBoard, coordinates, indexOf, areAdjacent, swap, findMatchGroups, findMatches, analyzeMatches, createsMatch, findHint, createBoard, reshuffle, areaIndices, rowIndices, columnIndices, specialComboClearSet };', 'return { cloneBoard, coordinates, indexOf, areAdjacent, swap, findMatchGroups, findMatches, analyzeMatches, createsMatch, findMoves, findHint, createBoard, reshuffle, areaIndices, rowIndices, columnIndices, specialComboClearSet };')
+
+
+game = "web/games/biblical-match-three.js"
+patch(game, 'let ROWS = 8;\nconst COLS = 8;', 'let ROWS = 8;\nconst COLS = 8;\nconst MIN_START_MOVES = 3;')
+patch(game, 'function findPlayableHint(board = runtime?.board) { return board ? Core.findHint(board, ROWS, COLS, canSwapActive) : null; }', '''function findPlayableMoves(board = runtime?.board, limit = Infinity) { return board ? Core.findMoves(board, ROWS, COLS, canSwapActive, limit) : []; }
+function countPlayableMoves(board = runtime?.board, limit = Infinity) { return findPlayableMoves(board, limit).length; }
+function findPlayableHint(board = runtime?.board) { return findPlayableMoves(board, 1)[0] || null; }''')
+patch(game, '''function createPlayableBoard(rows, cols, symbolIds, mask, required = []) {
+  for (let attempt = 0; attempt < 180; attempt += 1) {
+    const board = Core.createBoard(rows, cols, symbolIds);
+    board.forEach((_, index) => { if (mask[index] === false) board[index] = null; });
+    const hasRequired = required.every((symbol) => board.reduce((count, cell) => count + (cell?.type === symbol ? 1 : 0), 0) >= 3);
+    if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && Core.findHint(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false)) return board;
+  }
+  throw new Error("Could not generate a playable shaped board");
+}
+''', '''function createPlayableBoard(rows, cols, symbolIds, mask, required = []) {
+  for (let attempt = 0; attempt < 360; attempt += 1) {
+    const board = Core.createBoard(rows, cols, symbolIds);
+    board.forEach((_, index) => { if (mask[index] === false) board[index] = null; });
+    const hasRequired = required.every((symbol) => board.reduce((count, cell) => count + (cell?.type === symbol ? 1 : 0), 0) >= 3);
+    const startMoves = Core.findMoves(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false, MIN_START_MOVES).length;
+    if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && startMoves >= MIN_START_MOVES) return board;
+  }
+  throw new Error(`Could not generate a shaped board with ${MIN_START_MOVES} starting moves`);
+}
+''')
+patch(game, 'board.dataset.activeCells = String(runtime.activeMask.filter(Boolean).length);', 'board.dataset.activeCells = String(runtime.activeMask.filter(Boolean).length); board.dataset.startMoves = String(countPlayableMoves(runtime.board));')
+patch(game, '''function finishTurn() {
+  if (!runtime) return; runtime.lastSwap = null; runtime.cascade = 0; updateHud();
+  if (runtime.mode === "level" && allGoalsComplete()) { finishLevel(true); return; }
+  if (runtime.mode === "level" && runtime.moves <= 0) { finishLevel(false); return; }
+  if (runtime.mode === "free") { persistFreeRecord(true); if (Number.isFinite(runtime.moves) && runtime.moves <= 0) { setBusy(false); openFreeExit("moves"); return; } }
+  if (!findPlayableHint()) { runtime.board = reshufflePlayable(); updateAllTiles(); toast("Поле перемешано — появился новый доступный ход", "info"); }
+  setBusy(false); scheduleHint();
+}
+''', '''function finishTurn() {
+  if (!runtime) return; runtime.lastSwap = null; runtime.cascade = 0; updateHud();
+  if (runtime.mode === "level" && allGoalsComplete()) { finishLevel(true); return; }
+  if (runtime.mode === "level" && runtime.moves <= 0) { finishLevel(false); return; }
+  if (runtime.mode === "free") { persistFreeRecord(true); if (Number.isFinite(runtime.moves) && runtime.moves <= 0) { setBusy(false); openFreeExit("moves"); return; } }
+  if (countPlayableMoves(runtime.board, 1) === 0) {
+    clearHint();
+    if (runtime.mode === "level") { finishLevel(false, "noMoves"); return; }
+    setBusy(false);
+    if (runtime.mode === "free") { openFreeExit("noMoves"); return; }
+    return;
+  }
+  setBusy(false); scheduleHint();
+}
+''')
+patch(game, 'function finishLevel(won) {', 'function finishLevel(won, reason = "moves") {')
+patch(game, '''  } else {
+    FX.haptic?.("error"); const continueCost = Number(runtime.levelConfig.continueCost || 8); const canContinue = starBalance() >= continueCost;
+    card.innerHTML = `<div class="bmt-result-card__halo is-muted">◇</div><span class="bmt-result-card__eyebrow">Почти получилось</span><h3>Ходы закончились</h3><p>Можно продолжить ещё 5 ходов или начать заново.</p><div class="bmt-result-progress">${runtime.level.goals.map((goal) => { const current = Math.min(Number(goal.count), currentGoalValue(goal)); return `<span>${goalIcon(goal)} ${current}/${goal.count}</span>`; }).join("")}</div><div class="bmt-result-actions"></div>`;
+    const actions = card.querySelector(".bmt-result-actions"); actions.append(button("Заново", "bmt-secondary", () => { overlay.remove(); setBusy(false); beginLevel(runtime.level); }), button(`+5 ходов · ${continueCost} ★`, "bmt-primary", () => { const spend = Progress.spendStars(continueCost, `match3-continue-level-${runtime.level.id}`); if (!spend.ok) { toast("Недостаточно звёзд", "error"); return; } updateWallet(); overlay.remove(); runtime.moves = 5; setBusy(false); updateHud(); scheduleHint(); })); actions.lastElementChild.disabled = !canContinue; card.append(button("К карте уровней", "bmt-link-button", () => { overlay.remove(); renderMenu(); }));
+  }
+''', '''  } else {
+    FX.haptic?.("error"); const noMoves = reason === "noMoves"; const continueCost = Number(runtime.levelConfig.continueCost || 8); const canContinue = !noMoves && starBalance() >= continueCost;
+    card.innerHTML = `<div class="bmt-result-card__halo is-muted">◇</div><span class="bmt-result-card__eyebrow">${noMoves ? "Поле исчерпано" : "Почти получилось"}</span><h3>${noMoves ? "Нет доступных ходов" : "Ходы закончились"}</h3><p>${noMoves ? "На поле не осталось допустимых комбинаций. Уровень завершён." : "Можно продолжить ещё 5 ходов или начать заново."}</p><div class="bmt-result-progress">${runtime.level.goals.map((goal) => { const current = Math.min(Number(goal.count), currentGoalValue(goal)); return `<span>${goalIcon(goal)} ${current}/${goal.count}</span>`; }).join("")}</div><div class="bmt-result-actions"></div>`;
+    const actions = card.querySelector(".bmt-result-actions"); actions.append(button("Заново", "bmt-secondary", () => { overlay.remove(); setBusy(false); beginLevel(runtime.level); }));
+    if (noMoves) actions.append(button("К карте", "bmt-primary", () => { overlay.remove(); renderMenu(); }));
+    else { const more = button(`+5 ходов · ${continueCost} ★`, "bmt-primary", () => { const spend = Progress.spendStars(continueCost, `match3-continue-level-${runtime.level.id}`); if (!spend.ok) { toast("Недостаточно звёзд", "error"); return; } updateWallet(); overlay.remove(); runtime.moves = 5; setBusy(false); updateHud(); scheduleHint(); }); more.disabled = !canContinue; actions.append(more); card.append(button("К карте уровней", "bmt-link-button", () => { overlay.remove(); renderMenu(); })); }
+  }
+''')
+patch(game, '''  card.innerHTML = `<div class="bmt-result-card__halo">${isRecord ? "★" : "↯"}</div><span class="bmt-result-card__eyebrow">${reason === "moves" ? "30 ходов завершены" : isRecord ? "Новый личный рекорд" : "Свободная игра"}</span><h3>${runtime.score.toLocaleString("ru-RU")} очков</h3><div class="bmt-free-result"><span><b>↯ ×${runtime.maxCascade}</b> лучший каскад</span><span><b>✺ ${runtime.specialsActivated}</b> особых активировано</span><span><b>+${runtime.freeSessionReward} ★</b> заработано в попытке</span></div><div class="bmt-result-actions"></div>`;
+''', '''  card.innerHTML = `<div class="bmt-result-card__halo">${isRecord ? "★" : "↯"}</div><span class="bmt-result-card__eyebrow">${reason === "noMoves" ? "Нет доступных ходов" : reason === "moves" ? "30 ходов завершены" : isRecord ? "Новый личный рекорд" : "Свободная игра"}</span><h3>${runtime.score.toLocaleString("ru-RU")} очков</h3>${reason === "noMoves" ? "<p>На поле не осталось допустимых комбинаций. Партия завершена.</p>" : ""}<div class="bmt-free-result"><span><b>↯ ×${runtime.maxCascade}</b> лучший каскад</span><span><b>✺ ${runtime.specialsActivated}</b> особых активировано</span><span><b>+${runtime.freeSessionReward} ★</b> заработано в попытке</span></div><div class="bmt-result-actions"></div>`;
+''')
+patch(game, '''  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp">${art || '<i class="bmt-blocker-fallback">✦</i>'}<i class="bmt-blocker__lamp-state" aria-hidden="true">${blocker.lit ? "✦" : ""}</i></span>`;
+''', '''  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp" data-blocker-lit="${blocker.lit ? "true" : "false"}">${blocker.lit ? "" : (art || '<i class="bmt-blocker-fallback">✦</i>')}<i class="bmt-blocker__lamp-state" aria-hidden="true">${blocker.lit ? "✦" : ""}</i></span>`;
+''')
+patch(game, '''window.BiblicalMatchThreeV18Rules = { version:18, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS };
+''', '''const rulesApi = { version:20, minStartMoves:MIN_START_MOVES, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS, findPlayableMoves:(limit=Infinity)=>findPlayableMoves(runtime?.board,limit), countPlayableMoves:(limit=Infinity)=>countPlayableMoves(runtime?.board,limit) };
+window.BiblicalMatchThreeV18Rules = rulesApi;
+window.BiblicalMatchThreeV20Rules = rulesApi;
+''')
+
+css = Path("web/styles/biblical-match-three-v15-polish.css")
+css.write_text(css.read_text() + r'''
+
+/* V20: a lit lamp becomes a quiet completion marker instead of pulsing under the tile art. */
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-blocker{inset:0!important;display:block!important;animation:none!important;filter:none!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-blocker-art{display:none!important;visibility:hidden!important;animation:none!important;filter:none!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-lamp.is-lamp-lit .bmt-piece-wrap{opacity:1!important;filter:none!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-blocker__lamp{inset:auto 1px 1px auto!important;width:20px!important;height:20px!important;border:0!important;border-radius:50%!important;background:transparent!important;box-shadow:none!important;animation:none!important;filter:none!important;transform:none!important;display:grid!important;place-items:center!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-blocker__lamp-state{position:static!important;width:18px!important;height:18px!important;border:1.5px solid rgba(255,255,255,.96)!important;border-radius:50%!important;background:#f7c94e!important;color:#7d5708!important;box-shadow:0 1px 4px rgba(86,58,8,.2)!important;display:grid!important;place-items:center!important;font-size:10px!important;line-height:1!important;font-style:normal!important;font-weight:950!important;animation:none!important;transform:none!important}
+''')
+
+patch("web/js/biblical-match-three-launcher.js", 'const VERSION="19";', 'const VERSION="20";')
+patch("index.html", 'web/js/biblical-match-three-launcher.js?v=19', 'web/js/biblical-match-three-launcher.js?v=20')
+
+check = Path("scripts/check-biblical-match-three.mjs")
+text = check.read_text()
+text = text.replace("const runtime=read('web/games/biblical-match-three-v10-runtime.js')", "const core=read('web/games/biblical-match-three-core.js'),runtime=read('web/games/biblical-match-three-v10-runtime.js')", 1)
+text = text.replace('launcher.includes(\'VERSION="19"\')', 'launcher.includes(\'VERSION="20"\')', 1).replace("'V19 three-user private access gate missing'", "'V20 three-user private access gate missing'", 1)
+text = text.replace("Boolean(Core.findHint(board,rows,data.cols,(a,b)=>mask[a]&&mask[b]))", "Core.findMoves(board,rows,data.cols,(a,b)=>mask[a]&&mask[b],3).length>=3", 1)
+marker = "ok(game.includes('currentBlockerAsset')&&game.includes('bmt-blocker-art')&&game.includes('data-blocker-type=\\\"chain\\\"'),'V19 obstacle WebP markup missing');"
+if text.count(marker) != 1:
+    raise SystemExit("static V19 marker missing")
+text = text.replace(marker, marker + "ok(core.includes('function findMoves')&&typeof Core.findMoves==='function','V20 move enumeration missing');ok(game.includes('const MIN_START_MOVES = 3')&&game.includes('countPlayableMoves(runtime.board, 1) === 0')&&game.includes('finishLevel(false, \\\"noMoves\\\")')&&game.includes('openFreeExit(\\\"noMoves\\\")'),'V20 start/dead-board rules missing');ok(!game.includes('Поле перемешано — появился новый доступный ход'),'automatic dead-board reshuffle must stay removed');", 1)
+marker = "ok(css15.includes('V19: obstacle artwork')&&css15.includes('.bmt-blocker-art')&&css15.includes('.bmt-blocker__layers'),'V19 visible obstacle styling missing');"
+if text.count(marker) != 1:
+    raise SystemExit("static CSS marker missing")
+text = text.replace(marker, marker + "ok(css15.includes('V20: a lit lamp')&&css15.includes('.bmt-tile.is-lamp-lit .bmt-blocker-art{display:none!important')&&css15.includes('animation:none!important'),'V20 lit-lamp settle styling missing');", 1)
+old = "ok(b.length===rows*8&&Core.findMatches(b,rows,8).length===0&&Core.findHint(b,rows,8),`${rows}x8 seed ${seed} invalid`)"
+new = "ok(b.length===rows*8&&Core.findMatches(b,rows,8).length===0&&Core.findMoves(b,rows,8,null,3).length>=3,`${rows}x8 seed ${seed} has fewer than 3 starting moves`)"
+if text.count(old) != 1:
+    raise SystemExit("seed assertion missing")
+text = text.replace(old, new, 1)
+text = text.replace("console.log('OK: Biblical Treasures V19 shaped-board logic + visible obstacle WebP checks passed');", "console.log('OK: Biblical Treasures V20 stable lamps + 3-start-move + dead-board finish checks passed');", 1)
+check.write_text(text)
+
+visual = Path("scripts/check-biblical-match-three-visual.mjs")
+text = visual.read_text().replace("const V='19';", "const V='20';", 1)
+old = "const l3=await page.evaluate(()=>({shape:document.querySelector('.bmt-board')?.dataset.shape,holes:document.querySelectorAll('.bmt-tile.is-hole').length,bread:[...document.querySelectorAll('.bmt-piece')].filter(img=>img.alt==='Хлеб'&&img.naturalWidth>=64).length,active:Number(document.querySelector('.bmt-board')?.dataset.activeCells||0)}));\n  if(l3.shape!=='oval'||l3.holes<1||l3.bread<3||l3.active<24)throw new Error(`level3 rules ${JSON.stringify(l3)}`);"
+new = "const l3=await page.evaluate(()=>({shape:document.querySelector('.bmt-board')?.dataset.shape,holes:document.querySelectorAll('.bmt-tile.is-hole').length,bread:[...document.querySelectorAll('.bmt-piece')].filter(img=>img.alt==='Хлеб'&&img.naturalWidth>=64).length,active:Number(document.querySelector('.bmt-board')?.dataset.activeCells||0),startMoves:Number(document.querySelector('.bmt-board')?.dataset.startMoves||0),apiMoves:window.BiblicalMatchThreeV20Rules?.countPlayableMoves?.()||0}));\n  if(l3.shape!=='oval'||l3.holes<1||l3.bread<3||l3.active<24||l3.startMoves<3||l3.apiMoves<3)throw new Error(`level3 rules ${JSON.stringify(l3)}`);"
+if text.count(old) != 1:
+    raise SystemExit("level3 visual marker missing")
+text = text.replace(old, new, 1)
+old = "const med=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet').length}));if(med.rows!==8||med.moves!=='30'||med.shape!=='bowl'||med.blockers<8)throw new Error(`medium ${JSON.stringify(med)}`);"
+new = "const med=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet').length,startMoves:Number(document.querySelector('.bmt-board')?.dataset.startMoves||0)}));if(med.rows!==8||med.moves!=='30'||med.shape!=='bowl'||med.blockers<8||med.startMoves<3)throw new Error(`medium ${JSON.stringify(med)}`);"
+if text.count(old) != 1:
+    raise SystemExit("medium visual marker missing")
+text = text.replace(old, new, 1)
+old = "const hardState=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet,.bmt-tile.has-lamp').length,obstacles:[...document.querySelectorAll('.bmt-blocker-art')].map(img=>({src:img.getAttribute('src')||'',w:img.naturalWidth,h:img.naturalHeight,tag:img.dataset.bmtRaster,visibility:getComputedStyle(img).visibility,opacity:+getComputedStyle(img).opacity}))}));if(hardState.rows!==8||hardState.moves!=='30'||hardState.shape!=='cross'||hardState.blockers<14)throw new Error(`hard ${JSON.stringify(hardState)}`);"
+new = "const hardState=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet,.bmt-tile.has-lamp').length,startMoves:Number(document.querySelector('.bmt-board')?.dataset.startMoves||0),obstacles:[...document.querySelectorAll('.bmt-blocker-art')].map(img=>({src:img.getAttribute('src')||'',w:img.naturalWidth,h:img.naturalHeight,tag:img.dataset.bmtRaster,visibility:getComputedStyle(img).visibility,opacity:+getComputedStyle(img).opacity}))}));if(hardState.rows!==8||hardState.moves!=='30'||hardState.shape!=='cross'||hardState.blockers<14||hardState.startMoves<3)throw new Error(`hard ${JSON.stringify(hardState)}`);"
+if text.count(old) != 1:
+    raise SystemExit("hard visual marker missing")
+text = text.replace(old, new, 1)
+obstacle = "if(hardState.obstacles.length<14||hardState.obstacles.some(x=>!String(x.src||'').includes('/icons-v17/')||!/\\.webp(?:\\?|$)/i.test(String(x.src||''))||x.w<64||x.h<64||x.tag!=='webp-v17'||x.visibility==='hidden'||x.opacity<.95)||!hardState.obstacles.some(x=>/chains\\.webp/.test(x.src))||!hardState.obstacles.some(x=>/tablets\\.webp/.test(x.src))||!hardState.obstacles.some(x=>/candle\\.webp/.test(x.src)))throw new Error(`hard obstacle art ${JSON.stringify(hardState.obstacles)}`);"
+if text.count(obstacle) != 1:
+    raise SystemExit("hard obstacle assertion missing")
+lamp_test = obstacle + "\n  const lamp=page.locator('.bmt-tile.has-lamp').first();const lampIndex=await lamp.getAttribute('data-index');await page.locator('[data-booster=\\\"sling\\\"]').click();await lamp.click();await page.waitForFunction(index=>document.querySelector(`.bmt-tile[data-index=\\\"${index}\\\"]`)?.classList.contains('is-lamp-lit'),lampIndex,{timeout:5000});await page.waitForTimeout(420);const litLamp=await page.evaluate(index=>{const tile=document.querySelector(`.bmt-tile[data-index=\\\"${index}\\\"]`),wrapper=tile?.querySelector('.bmt-blocker__lamp'),piece=tile?.querySelector('.bmt-piece-wrap'),state=tile?.querySelector('.bmt-blocker__lamp-state'),sr=state?.getBoundingClientRect();return{art:tile?.querySelectorAll('.bmt-blocker-art').length||0,animation:wrapper?getComputedStyle(wrapper).animationName:'',pieceOpacity:piece?+getComputedStyle(piece).opacity:0,stateW:sr?.width||0,stateH:sr?.height||0}},lampIndex);if(litLamp.art!==0||litLamp.animation!=='none'||litLamp.pieceOpacity<.99||litLamp.stateW<15||litLamp.stateH<15)throw new Error(`lit lamp ${JSON.stringify(litLamp)}`);"
+text = text.replace(obstacle, lamp_test, 1)
+insert = r'''
+async function checkNoMoveTermination(){
+ const page=await context.newPage();
+ try{
+  await page.goto(base+'/__qa',{waitUntil:'domcontentloaded',timeout:30000});await page.waitForSelector('.bmt-v13-menu',{timeout:20000});const first=page.locator('.bmt-v13-level:not([disabled])').first();await first.click();await page.waitForSelector('.bmt-prelevel',{state:'visible',timeout:6000});await page.getByRole('button',{name:/Начать уровень/}).click();await page.waitForSelector('.bmt-board',{timeout:8000});await dismissTutorial(page);const state=await page.evaluate(()=>({count:window.BiblicalMatchThreeV20Rules?.countPlayableMoves?.()||0,move:window.BiblicalMatchThreeV20Rules?.findPlayableMoves?.(1)?.[0]||null}));if(state.count<3||!state.move)throw new Error(`campaign start moves ${JSON.stringify(state)}`);await page.locator(`.bmt-tile[data-index="${state.move[0]}"]`).click();await page.locator(`.bmt-tile[data-index="${state.move[1]}"]`).click();await page.evaluate(()=>{window.BiblicalMatchThreeCore.findMoves=()=>[]});await page.waitForSelector('.bmt-result-overlay',{state:'visible',timeout:7000});const result=await page.evaluate(()=>({title:document.querySelector('.bmt-result-card h3')?.textContent?.trim()||'',continueButtons:[...document.querySelectorAll('.bmt-result-card button')].filter(b=>(b.textContent||'').includes('+5 ходов')).length}));if(result.title!=='Нет доступных ходов'||result.continueButtons)throw new Error(`campaign no-move result ${JSON.stringify(result)}`);
+ }finally{await page.close()}
+}
+'''
+anchor = "\ntry{await checkAccess();await checkGame();await checkV18Rules();"
+if text.count(anchor) != 1:
+    raise SystemExit("visual runner anchor missing")
+text = text.replace(anchor, insert + "\ntry{await checkAccess();await checkGame();await checkV18Rules();await checkNoMoveTermination();", 1)
+text = text.replace("console.log('OK: Biblical Treasures V19 visible obstacles + goals + shapes + free difficulty + direct WebP + swipe passed')", "console.log('OK: Biblical Treasures V20 settled lamps + 3 starting moves + dead-board finish + mobile gameplay passed')", 1)
+visual.write_text(text)
