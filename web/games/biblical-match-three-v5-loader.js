@@ -7,7 +7,7 @@ const art={
  version:17,
  kind:"file-webp-v17",
  transport:"file",
- sourceSize:256,
+ sourceSize:128,
  symbols:{
   bible:file("bible"),fish:file("fish"),dove:file("dove"),candle:file("candle"),crown:file("crown"),
   ark:file("ark"),bread:file("bread"),grapes:file("grapes"),tablets:file("tablets")
@@ -33,7 +33,7 @@ function waitForImage(src,timeout=10000){
 function allSources(){return [...new Set([...Object.values(art.symbols),...Object.values(art.boosters),...Object.values(art.goals),...Object.values(art.obstacles)])]}
 async function warmArt(){
  const images=await Promise.all(allSources().map(waitForImage));
- if(images.some(img=>img.naturalWidth<128||img.naturalHeight<128))throw new Error("Biblical Treasures V17 icon resolution is too small");
+ if(images.some(img=>img.naturalWidth<64||img.naturalHeight<64))throw new Error("Biblical Treasures V17 icon resolution is too small");
  return art;
 }
 function symbolSource(id){return art.symbols[id==="lamp"?"candle":id]||""}
