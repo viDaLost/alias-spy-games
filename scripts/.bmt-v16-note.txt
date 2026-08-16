@@ -1,0 +1,1 @@
+V16 QA is implemented in check-biblical-match-three-visual.mjs: private Telegram ID gating, CSP without data: images, all HQ art decode, and swipe visibility.
