@@ -26,7 +26,9 @@ async function visibleButton(text){
  return page.evaluate((label)=>{const b=[...document.querySelectorAll('button')].find(n=>(n.textContent||'').trim().includes(label));if(!b)return null;const r=b.getBoundingClientRect(),s=getComputedStyle(b);return{text:(b.textContent||'').trim(),display:s.display,visibility:s.visibility,opacity:Number(s.opacity),w:r.width,h:r.height,top:r.top,bottom:r.bottom,disabled:b.disabled}},text);
 }
 async function openLevelOne(viewportHeight){
- await page.locator('.bmt-journey-node').first().click();
+ const chapterOne=page.locator('.bmt-v11-chapter-chip').first();
+ if(await chapterOne.count())await chapterOne.click();
+ await page.locator('.bmt-journey-chapter.is-active .bmt-journey-node').first().click();
  await page.waitForSelector('body > .bmt-sheet-overlay .bmt-prelevel',{timeout:5000});
  const start=await visibleButton('Начать уровень');
  if(!start||start.display==='none'||start.visibility==='hidden'||start.opacity<.9||start.w<80||start.h<40||start.bottom>viewportHeight+2||start.disabled)throw Error(`start button ${JSON.stringify(start)}`);
