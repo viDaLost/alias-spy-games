@@ -58,7 +58,7 @@ async function checkV18Rules(){
  const page=await context.newPage();
  try{
   await page.goto(base+'/__qa?unlockAll=1',{waitUntil:'domcontentloaded',timeout:30000});await page.waitForSelector('.bmt-v13-menu',{timeout:20000});
-  const level3=page.locator('.bmt-v13-level').filter({hasText:'Хлеб жизни'}).first();await level3.click();await page.waitForSelector('.bmt-prelevel',{state:'visible',timeout:6000});await page.getByRole('button',{name:/Начать уровень/}).click();await page.waitForSelector('.bmt-board',{timeout:8000});await dismissTutorial(page);
+  const level3=page.locator('.bmt-v13-level').filter({hasText:'Хлеб жизни'}).first();await level3.evaluate(el=>el.click());await page.waitForSelector('.bmt-prelevel',{state:'visible',timeout:6000});await page.getByRole('button',{name:/Начать уровень/}).click();await page.waitForSelector('.bmt-board',{timeout:8000});await dismissTutorial(page);
   const l3=await page.evaluate(()=>({shape:document.querySelector('.bmt-board')?.dataset.shape,holes:document.querySelectorAll('.bmt-tile.is-hole').length,bread:[...document.querySelectorAll('.bmt-piece')].filter(img=>img.alt==='Хлеб'&&img.naturalWidth>=64).length,active:Number(document.querySelector('.bmt-board')?.dataset.activeCells||0)}));
   if(l3.shape!=='oval'||l3.holes<1||l3.bread<3||l3.active<24)throw new Error(`level3 rules ${JSON.stringify(l3)}`);
   await page.locator('.bmt-gamebar .bmt-icon-button').click();await page.waitForSelector('.bmt-pause-overlay',{timeout:3000});await page.getByRole('button',{name:/В меню игры/}).click();await page.waitForSelector('.bmt-v13-menu',{timeout:5000});await page.locator('[data-v13-mode="free"]').click();
