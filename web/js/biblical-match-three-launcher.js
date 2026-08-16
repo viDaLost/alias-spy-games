@@ -9,7 +9,7 @@ const PROGRESS_SRC=`web/games/biblical-match-three-progress.js?v=${VERSION}`;
 const EFFECTS_SRC=`web/games/biblical-match-three-effects.js?v=${VERSION}`;
 const GAME_SRC=`web/games/biblical-match-three.js?v=${VERSION}`;
 const RUNTIME_SRC=`web/games/biblical-match-three-v10-runtime.js?v=${VERSION}`;
-const V13_UI_SRC=`web/games/biblical-match-three-v13-ui.js?v=${VERSION}`;
+const V15_UI_SRC=`web/games/biblical-match-three-v15-ui.js?v=${VERSION}`;
 const V15_POLISH_SRC=`web/games/biblical-match-three-v15-polish.js?v=${VERSION}`;
 const LEVELS_SRC=`web/data/biblical_match_three_levels.json?v=${VERSION}`;
 const STYLE_SOURCES=[
@@ -61,14 +61,14 @@ async function performOpen({retry=false}={}){
   await loadScriptOnce(EFFECTS_SRC,"BiblicalMatchThreeEffects");
   await loadScriptOnce(GAME_SRC,"startBiblicalMatchThreeGame");
   await loadScriptOnce(RUNTIME_SRC,"__bmtV10RuntimeInstalled");
-  await loadScriptOnce(V13_UI_SRC,"__bmtV13UiInstalled");
+  await loadScriptOnce(V15_UI_SRC,"__bmtV15UiInstalled");
   await loadScriptOnce(V15_POLISH_SRC,"__bmtV15PolishInstalled");
   if(typeof window.startBiblicalMatchThreeGame!=="function")throw new Error("start function missing");
   const levels=retry?`${LEVELS_SRC}&retry=${Date.now()}`:LEVELS_SRC;
   await window.startBiblicalMatchThreeGame(levels);
   if(attempt!==launchAttempt)return;
   window.__BMTV5Raster?.scan?.();
-  try{window.BiblicalMatchThreeV13?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V13 enhancement warning",error)}
+  try{window.BiblicalMatchThreeV15UI?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V15 UI warning",error)}
   try{window.BiblicalMatchThreeV15?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V15 enhancement warning",error)}
  }catch(error){
   console.error("Biblical match-three launch error",error);
