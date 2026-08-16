@@ -1,0 +1,40 @@
+name: Biblical V20 QA stabilization
+on:
+  push:
+    branches:
+      - fix/biblical-v20-lamps-move-rules
+    paths:
+      - .github/workflows/biblical-v20-qa-stabilize.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/biblical-v20-lamps-move-rules
+          fetch-depth: 0
+      - name: Stabilize real lamp interaction QA
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/check-biblical-match-three-visual.mjs')
+          text=p.read_text()
+          old='''  const lamp=page.locator('.bmt-tile.has-lamp').first();const lampIndex=await lamp.getAttribute('data-index');await page.locator('[data-booster=\\"sling\\"]').click();await lamp.click();await page.waitForFunction(index=>document.querySelector(`.bmt-tile[data-index=\\"${index}\\"]`)?.classList.contains('is-lamp-lit'),lampIndex,{timeout:5000});await page.waitForTimeout(420);const litLamp=await page.evaluate(index=>{const tile=document.querySelector(`.bmt-tile[data-index=\\"${index}\\"]`),wrapper=tile?.querySelector('.bmt-blocker__lamp'),piece=tile?.querySelector('.bmt-piece-wrap'),state=tile?.querySelector('.bmt-blocker__lamp-state'),sr=state?.getBoundingClientRect();return{art:tile?.querySelectorAll('.bmt-blocker-art').length||0,animation:wrapper?getComputedStyle(wrapper).animationName:'',pieceOpacity:piece?+getComputedStyle(piece).opacity:0,stateW:sr?.width||0,stateH:sr?.height||0}},lampIndex);if(litLamp.art!==0||litLamp.animation!=='none'||litLamp.pieceOpacity<.99||litLamp.stateW<15||litLamp.stateH<15)throw new Error(`lit lamp ${JSON.stringify(litLamp)}`);
+'''
+          new='''  const lamp=page.locator('.bmt-tile.has-lamp').first();const lampIndex=await lamp.getAttribute('data-index');if(lampIndex==null)throw new Error('hard mode has no lamp target');await page.locator('[data-booster="sling"]').click();await page.waitForFunction(()=>document.querySelector('[data-booster="sling"]')?.classList.contains('is-active'),{timeout:3000});await page.evaluate(index=>document.querySelector(`.bmt-tile[data-index="${index}"]`)?.click(),lampIndex);try{await page.waitForFunction(index=>document.querySelector(`.bmt-tile[data-index="${index}"]`)?.classList.contains('is-lamp-lit'),lampIndex,{timeout:7000})}catch(error){const diagnostic=await page.evaluate(index=>{const tile=document.querySelector(`.bmt-tile[data-index="${index}"]`),booster=document.querySelector('[data-booster="sling"]'),shell=document.querySelector('.bmt-shell');return{tileClass:tile?.className||'',boosterClass:booster?.className||'',shellClass:shell?.className||'',wallet:document.querySelector('[data-bmt-wallet]')?.textContent||'',result:document.querySelector('.bmt-result-card h3')?.textContent||''}},lampIndex);throw new Error(`lamp did not light ${JSON.stringify(diagnostic)}; ${error.message}`)}await page.waitForTimeout(420);const litLamp=await page.evaluate(index=>{const tile=document.querySelector(`.bmt-tile[data-index="${index}"]`),wrapper=tile?.querySelector('.bmt-blocker__lamp'),piece=tile?.querySelector('.bmt-piece-wrap'),state=tile?.querySelector('.bmt-blocker__lamp-state'),sr=state?.getBoundingClientRect();return{art:tile?.querySelectorAll('.bmt-blocker-art').length||0,animation:wrapper?getComputedStyle(wrapper).animationName:'',pieceOpacity:piece?+getComputedStyle(piece).opacity:0,stateW:sr?.width||0,stateH:sr?.height||0}},lampIndex);if(litLamp.art!==0||litLamp.animation!=='none'||litLamp.pieceOpacity<.99||litLamp.stateW<15||litLamp.stateH<15)throw new Error(`lit lamp ${JSON.stringify(litLamp)}`);
+'''
+          if text.count(old)!=1: raise SystemExit(f'lamp QA marker count {text.count(old)}')
+          p.write_text(text.replace(old,new,1))
+          PY
+          node --check scripts/check-biblical-match-three-visual.mjs
+          git diff --check
+      - name: Commit QA stabilization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-biblical-match-three-visual.mjs
+          git commit -m "Stabilize lit lamp gameplay QA"
+          git push origin HEAD:fix/biblical-v20-lamps-move-rules
