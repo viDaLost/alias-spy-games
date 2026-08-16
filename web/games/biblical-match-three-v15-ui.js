@@ -108,7 +108,7 @@ function attachSwipe(board){
   board.addEventListener("click",event=>{if(synthetic||performance.now()>=suppressClickUntil)return;event.preventDefault();event.stopImmediatePropagation()},true);
   board.addEventListener("pointerdown",event=>{
     if(event.button!=null&&event.button!==0)return;
-    const tile=event.target.closest(".bmt-tile");if(!tile||!board.contains(tile))return;
+    const tile=event.target.closest(".bmt-tile");if(!tile||!board.contains(tile)||tile.disabled||tile.classList.contains("is-hole"))return;
     pointer={id:event.pointerId,index:Number(tile.dataset.index),x:event.clientX,y:event.clientY};
     try{board.setPointerCapture?.(event.pointerId)}catch{}
   },{passive:true});
@@ -121,7 +121,7 @@ function attachSwipe(board){
     if(Math.hypot(dx,dy)<threshold)return;
     const horizontal=Math.abs(dx)>=Math.abs(dy),sx=horizontal?Math.sign(dx):0,sy=horizontal?0:Math.sign(dy);
     const rows=Math.max(1,Number(board.dataset.rows||8)),cols=Math.max(1,Number(board.dataset.cols||8));const targetIndex=adjacentIndex(state.index,sx,sy,rows,cols);if(targetIndex==null)return;
-    const source=board.querySelector(`.bmt-tile[data-index="${state.index}"]`),target=board.querySelector(`.bmt-tile[data-index="${targetIndex}"]`);if(!source||!target)return;
+    const source=board.querySelector(`.bmt-tile[data-index="${state.index}"]`),target=board.querySelector(`.bmt-tile[data-index="${targetIndex}"]`);if(!source||!target||source.disabled||target.disabled||source.classList.contains("is-hole")||target.classList.contains("is-hole"))return;
     suppressClickUntil=performance.now()+420;event.preventDefault();event.stopPropagation();
     requestAnimationFrame(()=>{synthetic=true;try{source.click();target.click()}finally{synthetic=false}});
   },{passive:false});
@@ -147,5 +147,5 @@ function scheduleEnhance(){if(enhanceFrame)return;enhanceFrame=requestAnimationF
 const observer=new MutationObserver(mutations=>{for(const mutation of mutations){if([...mutation.addedNodes].some(nodeImportant)||[...mutation.removedNodes].some(nodeImportant)){scheduleEnhance();return}}});observer.observe(document.documentElement,{childList:true,subtree:true});
 window.addEventListener("resize",scheduleFit,{passive:true});window.addEventListener("orientationchange",scheduleFit,{passive:true});window.visualViewport?.addEventListener("resize",scheduleFit,{passive:true});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",enhance,{once:true});else enhance();
-window.BiblicalMatchThreeV15UI={version:15,enhance,fit:fitBoardNow};
+window.BiblicalMatchThreeV15UI={version:18,enhance,fit:fitBoardNow};
 })();

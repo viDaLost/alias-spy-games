@@ -24,9 +24,9 @@ const SYMBOLS = [
 const SYMBOL_BY_ID = Object.fromEntries(SYMBOLS.map((item) => [item.id, item]));
 
 const FREE_MODES = {
-  easy: { label: "Лёгкий", symbolCount: 6, rows: 6, hintDelay: 7000, accent: "green" },
-  medium: { label: "Средний", symbolCount: 7, rows: 7, hintDelay: 9500, accent: "gold" },
-  hard: { label: "Сложный", symbolCount: 9, rows: 8, hintDelay: 12500, accent: "violet" },
+  easy: { label: "Лёгкий", symbolCount: 7, rows: 7, moves: 30, hintDelay: 7000, accent: "green" },
+  medium: { label: "Средний", symbolCount: 8, rows: 8, moves: 30, hintDelay: 9500, accent: "gold" },
+  hard: { label: "Сложный", symbolCount: 9, rows: 8, moves: 30, hintDelay: 12500, accent: "violet" },
 };
 
 const PRE_BOOSTERS = {
@@ -70,6 +70,110 @@ function escapeHtml(value) {
 
 function getSymbolSet(count) {
   return SYMBOLS.slice(0, Math.max(3, Math.min(SYMBOLS.length, Number(count || 6)))).map((item) => item.id);
+}
+
+function requiredCollectSymbols(level) {
+  return [...new Set((level?.goals || []).filter((goal) => goal.type === "collect" && SYMBOL_BY_ID[goal.symbol]).map((goal) => goal.symbol))];
+}
+
+function getLevelSymbolSet(level) {
+  const requested = Math.max(3, Math.min(SYMBOLS.length, Number(level?.symbolCount || 6)));
+  const required = requiredCollectSymbols(level);
+  const pool = getSymbolSet(requested);
+  for (const symbol of required) {
+    if (pool.includes(symbol)) continue;
+    let slot = -1;
+    for (let index = pool.length - 1; index >= 0; index -= 1) {
+      if (!required.includes(pool[index])) { slot = index; break; }
+    }
+    if (slot >= 0) pool[slot] = symbol;
+    else if (pool.length < SYMBOLS.length) pool.push(symbol);
+  }
+  return [...new Set(pool)];
+}
+
+const LEVEL_SHAPES = {
+  1:"rect",2:"rect",3:"oval",4:"bowl",5:"diamond",6:"oval",7:"cross",8:"bowl",9:"diamond",10:"cross",
+  11:"shield",12:"oval",13:"diamond",14:"bowl",15:"cross",16:"shield",17:"cross",18:"diamond",19:"bowl",20:"shield",
+  21:"diamond",22:"cross",23:"bowl",24:"diamond",25:"shield",26:"cross",27:"bowl",28:"diamond",29:"shield",30:"cross"
+};
+const SHAPE_LABELS = { rect:"классическое", oval:"овальное", bowl:"полукруг", diamond:"ромб", cross:"крест", shield:"щит" };
+
+function boardShapeFor(mode, level, difficulty) {
+  if (mode === "free") {
+    if (window.__bmtTimedRequested || window.__bmtTimedActive) return "rect";
+    return difficulty === "hard" ? "cross" : difficulty === "medium" ? "bowl" : "oval";
+  }
+  return LEVEL_SHAPES[Number(level?.id || 1)] || "rect";
+}
+
+function makeActiveMask(shape, rows, cols, level = null) {
+  const mask = new Array(rows * cols).fill(true); const cx = (cols - 1) / 2; const cy = (rows - 1) / 2;
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      const dx = Math.abs(col - cx); const dy = Math.abs(row - cy); let active = true;
+      if (shape === "oval") active = ((col - cx) / Math.max(1, cols * .53)) ** 2 + ((row - cy) / Math.max(1, rows * .57)) ** 2 <= 1;
+      else if (shape === "diamond") active = dx / Math.max(1, cols * .52) + dy / Math.max(1, rows * .55) <= 1;
+      else if (shape === "cross") active = dx <= 1.55 || dy <= 1.15;
+      else if (shape === "bowl") { const edge = dx / Math.max(1, cx); const minRow = Math.floor(edge * edge * Math.max(1, rows * .38)); active = row >= minRow; }
+      else if (shape === "shield") { const t = rows <= 1 ? 0 : row / (rows - 1); const half = t < .42 ? cols * .46 : Math.max(1.35, cols * .46 - (t - .42) * cols * .52); active = dx <= half; }
+      mask[row * cols + col] = active;
+    }
+  }
+  for (const group of level?.blockers || []) for (const index of group.cells || []) if (Number(index) >= 0 && Number(index) < mask.length) mask[Number(index)] = true;
+  return mask;
+}
+
+function isActive(index) { return !runtime?.activeMask || runtime.activeMask[index] !== false; }
+function canSwapActive(a, b) { return isActive(a) && isActive(b); }
+function findPlayableHint(board = runtime?.board) { return board ? Core.findHint(board, ROWS, COLS, canSwapActive) : null; }
+
+function createPlayableBoard(rows, cols, symbolIds, mask, required = []) {
+  for (let attempt = 0; attempt < 180; attempt += 1) {
+    const board = Core.createBoard(rows, cols, symbolIds);
+    board.forEach((_, index) => { if (mask[index] === false) board[index] = null; });
+    const hasRequired = required.every((symbol) => board.reduce((count, cell) => count + (cell?.type === symbol ? 1 : 0), 0) >= 3);
+    if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && Core.findHint(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false)) return board;
+  }
+  throw new Error("Could not generate a playable shaped board");
+}
+
+function reshufflePlayable() {
+  const required = runtime.mode === "level" ? requiredCollectSymbols(runtime.level) : [];
+  const specials = runtime.board.filter((cell) => cell?.special).map((cell) => cell.special);
+  const fresh = createPlayableBoard(ROWS, COLS, runtime.symbolIds, runtime.activeMask, required);
+  for (const special of specials) {
+    const available = fresh.map((cell,index) => (cell && !cell.special ? index : -1)).filter((index) => index >= 0);
+    if (!available.length) break;
+    fresh[available[Math.floor(Math.random() * available.length)]].special = special;
+  }
+  return fresh;
+}
+
+function pickChallengeCells(count, offset, used) {
+  const active = runtime.activeMask.map((on,index) => on && runtime.board[index] ? index : -1).filter((index) => index >= 0 && !used.has(index));
+  const result = [];
+  for (let n = 0; n < count && active.length; n += 1) {
+    const slot = Math.floor(((n + .5) * active.length / Math.max(1, count) + offset * 3)) % active.length;
+    let index = active[slot]; let probe = 0;
+    while (used.has(index) && probe < active.length) { index = active[(slot + ++probe) % active.length]; }
+    if (!used.has(index)) { used.add(index); result.push(index); }
+  }
+  return result;
+}
+
+function freeChallengeConfig(difficulty) {
+  if (window.__bmtTimedRequested || window.__bmtTimedActive || difficulty === "easy") return null;
+  const used = new Set();
+  if (difficulty === "medium") return { blockers:[
+    { type:"chain", cells:pickChallengeCells(6,1,used), layers:1 },
+    { type:"tablet", cells:pickChallengeCells(4,3,used), layers:1 }
+  ] };
+  return { blockers:[
+    { type:"chain", cells:pickChallengeCells(8,1,used), layers:2 },
+    { type:"tablet", cells:pickChallengeCells(6,4,used), layers:2 },
+    { type:"lamp", cells:pickChallengeCells(4,7,used), layers:1 }
+  ] };
 }
 
 function resolveBoardRows(mode, level, difficulty) {
@@ -170,7 +274,7 @@ async function start(levelsUrl) {
   runtime = {
     abort: new AbortController(), levels: [], levelConfig: {}, progress: Progress.load(), screen: "loading", board: [], tileNodes: [], selected: null, busy: false,
     score: 0, moves: 0, collected: {}, mode: null, level: null, difficulty: null, symbolIds: [], hintTimer: null, lastSwap: null, cascade: 0, maxCascade: 1,
-    specialsActivated: 0, blockers: new Map(), initialBlockerCounts: {}, preBoosters: new Set(), activeBooster: null, freeSessionReward: 0, freeStarted: false, lastGoalSnapshot: new Map(),
+    specialsActivated: 0, blockers: new Map(), initialBlockerCounts: {}, preBoosters: new Set(), activeBooster: null, freeSessionReward: 0, freeStarted: false, lastGoalSnapshot: new Map(), activeMask: [], boardShape: "rect",
   };
   document.body.dataset.matchThree = "2";
   try {
@@ -278,12 +382,13 @@ function openPreLevel(level) {
 }
 
 function beginLevel(level, selectedBoosters = new Set()) {
-  setupBoard({ mode: "level", level, difficulty: null, symbolIds: getSymbolSet(level.symbolCount || 6), moves: Number(level.moves || 24), selectedBoosters });
+  setupBoard({ mode: "level", level, difficulty: null, symbolIds: getLevelSymbolSet(level), moves: Number(level.moves || 24), selectedBoosters });
 }
 
 function beginFree(difficulty) {
   runtime.progress = Progress.beginFreeRun(runtime.progress, difficulty); runtime.freeStarted = true;
-  setupBoard({ mode: "free", level: null, difficulty, symbolIds: getSymbolSet(FREE_MODES[difficulty]?.symbolCount || 7), moves: Infinity, selectedBoosters: new Set() });
+  const timed = Boolean(window.__bmtTimedRequested || window.__bmtTimedActive);
+  setupBoard({ mode: "free", level: null, difficulty, symbolIds: getSymbolSet(FREE_MODES[difficulty]?.symbolCount || 7), moves: timed ? Infinity : Number(FREE_MODES[difficulty]?.moves || 30), selectedBoosters: new Set() });
 }
 
 function initBlockers(level) {
@@ -299,18 +404,19 @@ function initBlockers(level) {
 
 function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBoosters }) {
   clearHint(); runtime.screen = "board"; runtime.mode = mode; runtime.level = level; runtime.difficulty = difficulty; runtime.symbolIds = symbolIds;
-  ROWS = resolveBoardRows(mode, level, difficulty);
-  runtime.board = Core.createBoard(ROWS, COLS, symbolIds); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
-  initBlockers(level); applyPreBoosters(selectedBoosters || new Set());
+  ROWS = resolveBoardRows(mode, level, difficulty); runtime.boardShape = boardShapeFor(mode, level, difficulty); runtime.activeMask = makeActiveMask(runtime.boardShape, ROWS, COLS, level);
+  runtime.board = createPlayableBoard(ROWS, COLS, symbolIds, runtime.activeMask, mode === "level" ? requiredCollectSymbols(level) : []); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
+  initBlockers(mode === "free" ? freeChallengeConfig(difficulty) : level); applyPreBoosters(selectedBoosters || new Set());
   const container = document.getElementById("game-container"); container.innerHTML = ""; const shell = el("section", "bmt-shell bmt-board-screen bmt-v2");
   const top = el("header", "bmt-gamebar"); const back = button("←", "bmt-icon-button", () => runtime.mode === "free" ? openFreeExit() : openPause()); back.setAttribute("aria-label", runtime.mode === "free" ? "Завершить свободную игру" : "Пауза");
   const heading = el("div", "bmt-heading-wrap"); heading.innerHTML = `<p class="bmt-kicker">${mode === "level" ? `Уровень ${level.id}` : `Свободная игра · ${FREE_MODES[difficulty].label}`}</p><h2 class="bmt-title">${escapeHtml(mode === "level" ? level.title : "Рекордный режим")}</h2>`;
   top.append(back, heading, walletBadge()); shell.append(top);
-  const stats = el("section", "bmt-stats-v2"); stats.innerHTML = `<div><span>Очки</span><strong id="bmt-score">0</strong>${mode === "free" ? '<small id="bmt-best">рекорд 0</small>' : ""}</div><div><span>${mode === "level" ? "Ходы" : "Награда"}</span><strong id="bmt-moves">${mode === "level" ? moves : "0 ★"}</strong><small>${mode === "free" ? "за рубежи" : "осталось"}</small></div><div><span>Каскад</span><strong id="bmt-cascade">×1</strong><small id="bmt-special-count">0 особых</small></div>`; shell.append(stats);
+  const stats = el("section", "bmt-stats-v2"); stats.innerHTML = `<div><span>Очки</span><strong id="bmt-score">0</strong>${mode === "free" ? '<small id="bmt-best">рекорд 0</small>' : ""}</div><div><span>Ходы</span><strong id="bmt-moves">${Number.isFinite(moves) ? moves : "∞"}</strong><small>осталось</small></div><div><span>Каскад</span><strong id="bmt-cascade">×1</strong><small id="bmt-special-count">0 особых</small></div>`; shell.append(stats);
   if (mode === "level") { const goals = el("section", "bmt-goals-v2"); goals.id = "bmt-goals"; shell.append(goals); }
-  const boardWrap = el("section", "bmt-board-wrap"); const board = el("div", "bmt-board"); board.setAttribute("role", "grid"); board.setAttribute("aria-label", `Игровое поле ${ROWS} на ${COLS}`); board.style.setProperty("--bmt-rows", String(ROWS)); board.style.setProperty("--bmt-cols", String(COLS)); board.style.setProperty("--bmt-board-ratio", `${COLS} / ${ROWS}`); board.dataset.rows = String(ROWS); board.dataset.cols = String(COLS);
+  const boardWrap = el("section", "bmt-board-wrap"); const board = el("div", "bmt-board"); board.setAttribute("role", "grid"); board.setAttribute("aria-label", `Игровое поле ${ROWS} на ${COLS}`); board.style.setProperty("--bmt-rows", String(ROWS)); board.style.setProperty("--bmt-cols", String(COLS)); board.style.setProperty("--bmt-board-ratio", `${COLS} / ${ROWS}`); board.dataset.rows = String(ROWS); board.dataset.cols = String(COLS); board.dataset.shape = runtime.boardShape; board.dataset.activeCells = String(runtime.activeMask.filter(Boolean).length);
   for (let index = 0; index < ROWS * COLS; index += 1) {
     const tile = el("button", "bmt-tile"); tile.type = "button"; tile.dataset.index = String(index); tile.setAttribute("role", "gridcell");
+    const active = isActive(index); tile.classList.toggle("is-hole", !active); tile.disabled = !active; if (!active) { tile.tabIndex = -1; tile.setAttribute("aria-hidden", "true"); }
     const piece = el("span", "bmt-piece-wrap"); const img = new Image(); img.className = "bmt-piece"; img.draggable = false; img.alt = ""; piece.append(img); tile.append(piece, el("span", "bmt-special-mark"), el("span", "bmt-blocker"));
     tile.addEventListener("click", () => chooseTile(index), { signal: runtime.abort.signal }); runtime.tileNodes.push(tile); board.append(tile);
   }
@@ -322,7 +428,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
   shell.append(boosters);
   const actions = el("div", "bmt-actions-v2"); const hint = button("Подсказка", "bmt-action-button", showHint); hint.innerHTML = `<span>✦</span><strong>Подсказка</strong>`; const pauseButton = button(mode === "free" ? "Завершить" : "Пауза", "bmt-action-button", mode === "free" ? openFreeExit : openPause); pauseButton.innerHTML = `<span>${mode === "free" ? "✓" : "Ⅱ"}</span><strong>${mode === "free" ? "Завершить" : "Пауза"}</strong>`; actions.append(hint, pauseButton); shell.append(actions);
   container.append(shell); updateAllTiles(); updateHud(); animateEntrance(); scheduleHint();
-  if (mode === "level" && level.id <= 3 && !runtime.progress.tutorialSeen?.[`level-${level.id}`]) setTimeout(() => showTutorial(level.id), 480);
+  if (!runtime.progress.tutorialSeen?.["v18-first-run"]) setTimeout(showTutorial, 420);
 }
 
 function applyPreBoosters(selected) {
@@ -339,15 +445,24 @@ function animateEntrance() {
   setTimeout(() => runtime?.tileNodes?.forEach((tile) => tile.classList.remove("is-entering")), 800);
 }
 
-function showTutorial(levelId) {
-  const copy = { 1: ["Соберите три одинаковых символа", "Коснитесь двух соседних фишек. Четыре и пять в ряд создают особые фишки."], 2: ["Следите за целями", "Прогресс каждой цели обновляется сверху. Каскады дают больше очков."], 3: ["Особые фишки сильнее вместе", "Меняйте особые фишки местами друг с другом, чтобы запускать мощные комбинации."] }[levelId];
-  if (!copy) return;
-  runtime.progress.tutorialSeen[`level-${levelId}`] = true; Progress.save(runtime.progress);
-  const shell = document.querySelector(".bmt-shell"); const overlay = el("div", "bmt-tutorial"); overlay.innerHTML = `<div class="bmt-tutorial__card"><span class="bmt-tutorial__spark">✦</span><h3>${copy[0]}</h3><p>${copy[1]}</p><button type="button" class="bmt-primary">Понятно</button></div>`; shell?.append(overlay); overlay.querySelector("button").addEventListener("click", () => overlay.remove(), { once: true });
+function showTutorial() {
+  if (!runtime || runtime.progress.tutorialSeen?.["v18-first-run"]) return;
+  const steps = [
+    { title:"Соберите три", text:"Смахните фишку к соседней. Совпадение из трёх исчезнет, а новые фишки упадут сверху.", focus:".bmt-board" },
+    { title:"Смотрите на цели", text:"В кампании сверху показаны все условия уровня. Нужный символ всегда входит в набор фишек этого уровня.", focus:".bmt-goals-v2" },
+    { title:"Форма поля и препятствия", text:"На следующих уровнях поле станет овальным, полукруглым, ромбом, крестом или щитом. Цепи и скрижали разрушаются совпадениями рядом или прямо на них.", focus:".bmt-board" },
+    { title:"Особые фишки и помощь", text:"Четыре и пять одинаковых создают усиления. Бустеры снизу помогают пройти сложный момент и не тратят ход.", focus:".bmt-booster-tray" }
+  ];
+  const shell = document.querySelector(".bmt-shell"); if (!shell) return; const overlay = el("div", "bmt-tutorial bmt-v18-tutorial");
+  overlay.innerHTML = `<div class="bmt-tutorial__card"><span class="bmt-tutorial__spark">✦</span><small class="bmt-v18-tutorial-step"></small><h3></h3><p></p><div class="bmt-v18-tutorial-actions"><button type="button" class="bmt-secondary" data-skip>Пропустить</button><button type="button" class="bmt-primary" data-next>Далее</button></div></div>`; shell.append(overlay);
+  let index = 0; let focused = null;
+  const finish = () => { focused?.classList.remove("is-tutorial-focus"); runtime.progress.tutorialSeen ||= {}; runtime.progress.tutorialSeen["v18-first-run"] = true; Progress.save(runtime.progress); overlay.remove(); scheduleHint(); };
+  const render = () => { focused?.classList.remove("is-tutorial-focus"); const step = steps[index]; focused = document.querySelector(step.focus); focused?.classList.add("is-tutorial-focus"); overlay.querySelector(".bmt-v18-tutorial-step").textContent = `${index + 1} / ${steps.length}`; overlay.querySelector("h3").textContent = step.title; overlay.querySelector("p").textContent = step.text; overlay.querySelector("[data-next]").textContent = index === steps.length - 1 ? "Играть" : "Далее"; };
+  overlay.querySelector("[data-skip]").addEventListener("click", finish); overlay.querySelector("[data-next]").addEventListener("click", () => { if (index >= steps.length - 1) finish(); else { index += 1; render(); } }); render();
 }
 
 function chooseTile(index) {
-  if (!runtime || runtime.busy) return; clearHint();
+  if (!runtime || runtime.busy || !isActive(index)) return; clearHint();
   if (runtime.activeBooster) { useTargetBooster(runtime.activeBooster, index); return; }
   if (runtime.selected == null) { runtime.selected = index; FX.haptic?.(); updateSelection(); scheduleHint(); return; }
   if (runtime.selected === index) { runtime.selected = null; updateSelection(); scheduleHint(); return; }
@@ -365,15 +480,15 @@ async function animateSwap(a, b, reverse = false) {
 }
 
 async function trySwap(a, b) {
-  if (!runtime || runtime.busy) return; setBusy(true); runtime.lastSwap = [a, b];
+  if (!runtime || runtime.busy || !isActive(a) || !isActive(b)) return; setBusy(true); runtime.lastSwap = [a, b];
   const original = Core.cloneBoard(runtime.board); const combo = Core.specialComboClearSet(original, a, b, ROWS, COLS); await animateSwap(a, b); runtime.board = Core.swap(runtime.board, a, b); updateAllTiles();
   if (combo) {
-    if (runtime.mode === "level") runtime.moves -= 1; FX.haptic?.("success"); await playComboEffect(combo.combo, a, b); await clearAndCascade(combo.clearSet, 1, new Map(), { combo: combo.combo }); finishTurn(); return;
+    if (runtime.mode === "level" || (runtime.mode === "free" && Number.isFinite(runtime.moves))) runtime.moves -= 1; FX.haptic?.("success"); await playComboEffect(combo.combo, a, b); await clearAndCascade(combo.clearSet, 1, new Map(), { combo: combo.combo }); finishTurn(); return;
   }
   if (!Core.findMatches(runtime.board, ROWS, COLS).length) {
     await pause(50); await animateSwap(a, b, true); runtime.board = original; updateAllTiles(); runtime.tileNodes[a]?.classList.add("is-invalid"); runtime.tileNodes[b]?.classList.add("is-invalid"); FX.haptic?.("error"); await pause(260); runtime.tileNodes[a]?.classList.remove("is-invalid"); runtime.tileNodes[b]?.classList.remove("is-invalid"); setBusy(false); scheduleHint(); return;
   }
-  if (runtime.mode === "level") runtime.moves -= 1; await resolveMatches(1); finishTurn();
+  if (runtime.mode === "level" || (runtime.mode === "free" && Number.isFinite(runtime.moves))) runtime.moves -= 1; await resolveMatches(1); finishTurn();
 }
 
 async function resolveMatches(cascade) {
@@ -415,11 +530,12 @@ function specialLabel(special) { if (special === "lineH" || special === "lineV")
 function collapseBoard() {
   const distanceByDestination = new Map(); let maxDistance = 0;
   for (let col = 0; col < COLS; col += 1) {
-    const existing = [];
-    for (let row = ROWS - 1; row >= 0; row -= 1) { const sourceIndex = row * COLS + col; const cell = runtime.board[sourceIndex]; if (cell) existing.push({ cell, sourceRow: row }); }
-    let destinationRow = ROWS - 1;
-    for (const item of existing) { const destination = destinationRow * COLS + col; runtime.board[destination] = item.cell; const distance = Math.max(0, destinationRow - item.sourceRow); if (distance) { distanceByDestination.set(destination, distance); maxDistance = Math.max(maxDistance, distance); } destinationRow -= 1; }
-    while (destinationRow >= 0) { const destination = destinationRow * COLS + col; const type = runtime.symbolIds[Math.floor(Math.random() * runtime.symbolIds.length)]; runtime.board[destination] = { type, special: null }; const distance = destinationRow + 2 + Math.random() * 1.5; distanceByDestination.set(destination, distance); maxDistance = Math.max(maxDistance, distance); destinationRow -= 1; }
+    const activeRows = []; for (let row = 0; row < ROWS; row += 1) if (isActive(row * COLS + col)) activeRows.push(row);
+    const existing = []; for (let p = activeRows.length - 1; p >= 0; p -= 1) { const row = activeRows[p]; const cell = runtime.board[row * COLS + col]; if (cell) existing.push({ cell, sourceRow:row }); }
+    for (const row of activeRows) runtime.board[row * COLS + col] = null;
+    let destinationPos = activeRows.length - 1;
+    for (const item of existing) { const destinationRow = activeRows[destinationPos--]; const destination = destinationRow * COLS + col; runtime.board[destination] = item.cell; const distance = Math.max(0, destinationRow - item.sourceRow); if (distance) { distanceByDestination.set(destination, distance); maxDistance = Math.max(maxDistance, distance); } }
+    while (destinationPos >= 0) { const destinationRow = activeRows[destinationPos--]; const destination = destinationRow * COLS + col; const type = runtime.symbolIds[Math.floor(Math.random() * runtime.symbolIds.length)]; runtime.board[destination] = { type, special:null }; const distance = destinationRow + 2 + Math.random() * 1.5; distanceByDestination.set(destination, distance); maxDistance = Math.max(maxDistance, distance); }
   }
   return { distanceByDestination, maxDistance };
 }
@@ -436,8 +552,8 @@ function damageBlockers(clearSet) {
   for (const index of direct) { const { row, col } = Core.coordinates(index, COLS); [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr, dc]) => { const rr = row + dr; const cc = col + dc; if (rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS) adjacent.add(rr * COLS + cc); }); }
   let score = 0;
   for (const [index, blocker] of [...runtime.blockers.entries()]) {
-    if (blocker.type === "lamp") { if (!blocker.lit && (direct.has(index) || adjacent.has(index))) { blocker.lit = true; score += 80; FX.ring?.(index, "gold"); FX.floatText?.(index, "СВЕТ", "gold"); } continue; }
-    const hit = blocker.type === "tablet" ? direct.has(index) : (direct.has(index) || adjacent.has(index)); if (!hit) continue; blocker.layers -= 1; score += 45; FX.particleBurst?.(index, blocker.type === "chain" ? "blue" : "gold", 7);
+    if (blocker.type === "lamp") { if (!blocker.lit && (direct.has(index) || adjacent.has(index))) { blocker.lit = true; runtime.tileNodes[index]?.classList.add("is-blocker-lit"); setTimeout(() => runtime?.tileNodes?.[index]?.classList.remove("is-blocker-lit"), 360); score += 80; FX.ring?.(index, "gold"); FX.floatText?.(index, "СВЕТ", "gold"); } continue; }
+    const hit = blocker.type === "tablet" ? direct.has(index) : (direct.has(index) || adjacent.has(index)); if (!hit) continue; blocker.layers -= 1; const tile = runtime.tileNodes[index]; tile?.classList.remove("is-blocker-hit", "is-blocker-breaking"); if (tile) { void tile.offsetWidth; tile.classList.add(blocker.layers <= 0 ? "is-blocker-breaking" : "is-blocker-hit"); setTimeout(() => tile.classList.remove("is-blocker-hit", "is-blocker-breaking"), 360); } score += 45; FX.particleBurst?.(index, blocker.type === "chain" ? "blue" : "gold", 7);
     if (blocker.layers <= 0) { runtime.blockers.delete(index); score += 90; FX.floatText?.(index, "ОЧИЩЕНО", "green"); }
   }
   return score;
@@ -450,8 +566,8 @@ function finishTurn() {
   if (!runtime) return; runtime.lastSwap = null; runtime.cascade = 0; updateHud();
   if (runtime.mode === "level" && allGoalsComplete()) { finishLevel(true); return; }
   if (runtime.mode === "level" && runtime.moves <= 0) { finishLevel(false); return; }
-  if (runtime.mode === "free") persistFreeRecord(true);
-  if (!Core.findHint(runtime.board, ROWS, COLS)) { runtime.board = Core.reshuffle(runtime.board, ROWS, COLS); updateAllTiles(); toast("Поле мягко перемешано — ходов не осталось", "info"); }
+  if (runtime.mode === "free") { persistFreeRecord(true); if (Number.isFinite(runtime.moves) && runtime.moves <= 0) { setBusy(false); openFreeExit("moves"); return; } }
+  if (!findPlayableHint()) { runtime.board = reshufflePlayable(); updateAllTiles(); toast("Поле перемешано — появился новый доступный ход", "info"); }
   setBusy(false); scheduleHint();
 }
 
@@ -479,12 +595,12 @@ function persistFreeRecord(showToast) {
 }
 
 function updateFreeHud(stats = runtime?.progress?.free?.[runtime?.difficulty]) {
-  if (!runtime || runtime.mode !== "free") return; const best = document.getElementById("bmt-best"); const moves = document.getElementById("bmt-moves"); if (best) best.textContent = `рекорд ${Number(stats?.bestScore || 0).toLocaleString("ru-RU")}`; if (moves) moves.textContent = `${runtime.freeSessionReward} ★`;
+  if (!runtime || runtime.mode !== "free") return; const best = document.getElementById("bmt-best"); const moves = document.getElementById("bmt-moves"); if (best) best.textContent = `рекорд ${Number(stats?.bestScore || 0).toLocaleString("ru-RU")}`; if (moves) moves.textContent = Number.isFinite(runtime.moves) ? String(Math.max(0, runtime.moves)) : `${runtime.freeSessionReward} ★`;
 }
 
-function openFreeExit() {
+function openFreeExit(reason = "manual") {
   if (!runtime || runtime.mode !== "free") return; persistFreeRecord(false); const stats = runtime.progress.free?.[runtime.difficulty] || {}; const overlay = el("div", "bmt-result-overlay"); const card = el("section", "bmt-result-card"); const isRecord = runtime.score >= Number(stats.bestScore || 0) && runtime.score > 0;
-  card.innerHTML = `<div class="bmt-result-card__halo">${isRecord ? "★" : "↯"}</div><span class="bmt-result-card__eyebrow">${isRecord ? "Новый личный рекорд" : "Свободная игра"}</span><h3>${runtime.score.toLocaleString("ru-RU")} очков</h3><div class="bmt-free-result"><span><b>↯ ×${runtime.maxCascade}</b> лучший каскад</span><span><b>✺ ${runtime.specialsActivated}</b> особых активировано</span><span><b>+${runtime.freeSessionReward} ★</b> заработано в попытке</span></div><div class="bmt-result-actions"></div>`;
+  card.innerHTML = `<div class="bmt-result-card__halo">${isRecord ? "★" : "↯"}</div><span class="bmt-result-card__eyebrow">${reason === "moves" ? "30 ходов завершены" : isRecord ? "Новый личный рекорд" : "Свободная игра"}</span><h3>${runtime.score.toLocaleString("ru-RU")} очков</h3><div class="bmt-free-result"><span><b>↯ ×${runtime.maxCascade}</b> лучший каскад</span><span><b>✺ ${runtime.specialsActivated}</b> особых активировано</span><span><b>+${runtime.freeSessionReward} ★</b> заработано в попытке</span></div><div class="bmt-result-actions"></div>`;
   const actions = card.querySelector(".bmt-result-actions"); actions.append(button("В меню", "bmt-secondary", () => { overlay.remove(); renderMenu(); }), button("Играть ещё", "bmt-primary", () => { overlay.remove(); beginFree(runtime.difficulty); })); overlay.append(card); document.querySelector(".bmt-shell")?.append(overlay);
 }
 
@@ -512,7 +628,7 @@ function spendBooster(id) {
 }
 
 async function useTargetBooster(id, index) {
-  if (!runtime || runtime.busy) return;
+  if (!runtime || runtime.busy || !isActive(index)) return;
   if (!spendBooster(id)) { runtime.activeBooster = null; updateBoosterState(); return; }
   runtime.activeBooster = null; updateBoosterState(); setBusy(true);
   if (id === "sling") { FX.floatText?.(index, "ПРАЩА", "gold"); FX.ring?.(index, "gold"); await clearAndCascade(new Set([index]), 1, new Map(), { booster: id }); }
@@ -523,7 +639,7 @@ async function useTargetBooster(id, index) {
 
 function useNoahArk() {
   if (!runtime || runtime.busy) return; if (!spendBooster("ark")) return; setBusy(true); FX.haptic?.("success"); document.querySelector(".bmt-board")?.classList.add("is-ark-shuffling"); setTimeout(() => document.querySelector(".bmt-board")?.classList.remove("is-ark-shuffling"), 520);
-  runtime.board = Core.reshuffle(runtime.board, ROWS, COLS); const available = runtime.board.map((cell, index) => (!cell.special ? index : -1)).filter((index) => index >= 0);
+  runtime.board = reshufflePlayable(); const available = runtime.board.map((cell, index) => (!cell.special ? index : -1)).filter((index) => index >= 0);
   if (available.length) { const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]; runtime.board[first].special = "lineH"; }
   if (available.length) { const second = available[Math.floor(Math.random() * available.length)]; runtime.board[second].special = "lineV"; }
   updateAllTiles(); toast("Ковчег сохранил поле и принёс две особые фишки", "success"); setTimeout(() => { setBusy(false); scheduleHint(); }, 480);
@@ -542,7 +658,7 @@ function playComboEffect(combo, a, b) {
 
 function updateHud(pulseGoals = false) {
   if (!runtime) return; const score = document.getElementById("bmt-score"); const moves = document.getElementById("bmt-moves"); const cascade = document.getElementById("bmt-cascade"); const specials = document.getElementById("bmt-special-count");
-  if (score) score.textContent = runtime.score.toLocaleString("ru-RU"); if (moves && runtime.mode === "level") moves.textContent = String(Math.max(0, runtime.moves)); if (cascade) cascade.textContent = `×${Math.max(1, runtime.cascade || runtime.maxCascade || 1)}`; if (specials) specials.textContent = `${runtime.specialsActivated} особых`; renderGoals(pulseGoals); if (runtime.mode === "free") updateFreeHud(); updateWallet();
+  if (score) score.textContent = runtime.score.toLocaleString("ru-RU"); if (moves && (runtime.mode === "level" || Number.isFinite(runtime.moves))) moves.textContent = String(Math.max(0, runtime.moves)); if (cascade) cascade.textContent = `×${Math.max(1, runtime.cascade || runtime.maxCascade || 1)}`; if (specials) specials.textContent = `${runtime.specialsActivated} особых`; renderGoals(pulseGoals); if (runtime.mode === "free") updateFreeHud(); updateWallet();
 }
 
 function renderGoals(pulseChanged = false) {
@@ -556,7 +672,8 @@ function updateAllTiles() { runtime.tileNodes.forEach((tile, index) => updateTil
 
 function updateTile(tile, cell, blocker) {
   tile.classList.remove("is-clearing", "is-invalid", "is-line-h", "is-line-v", "is-burst", "is-rainbow", "has-tablet", "has-chain", "has-lamp", "is-lamp-lit", "is-layer-2", "is-layer-3");
-  const img = tile.querySelector(".bmt-piece"); const specialMark = tile.querySelector(".bmt-special-mark"); const blockerMark = tile.querySelector(".bmt-blocker");
+  const img = tile.querySelector(".bmt-piece"); const specialMark = tile.querySelector(".bmt-special-mark"); const blockerMark = tile.querySelector(".bmt-blocker"); const index = Number(tile.dataset.index); const active = isActive(index); tile.classList.toggle("is-hole", !active); tile.disabled = !active;
+  if (!active) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; if (blockerMark) blockerMark.innerHTML = ""; return; }
   if (!cell) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; }
   else { tile.classList.remove("is-empty"); const symbol = SYMBOL_BY_ID[cell.type]; const asset = currentSymbolAsset(cell.type); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = symbol.label; tile.setAttribute("aria-label", `${symbol.label}${cell.special ? ", особая фишка" : ""}`); if (cell.special) tile.classList.add(`is-${cell.special.replace("lineH", "line-h").replace("lineV", "line-v")}`); if (specialMark) specialMark.textContent = cell.special === "rainbow" ? "✦" : cell.special === "burst" ? "✺" : cell.special ? "↯" : ""; }
   if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); } else if (blockerMark) blockerMark.innerHTML = "";
@@ -569,7 +686,7 @@ function blockerMarkup(blocker) {
   return "";
 }
 
-function showHint() { if (!runtime || runtime.busy || runtime.activeBooster) return; clearHint(); const hint = Core.findHint(runtime.board, ROWS, COLS); if (!hint) return; hint.forEach((index) => runtime.tileNodes[index]?.classList.add("is-hint")); runtime.hintTimer = setTimeout(clearHint, 1650); }
+function showHint() { if (!runtime || runtime.busy || runtime.activeBooster) return; clearHint(); const hint = findPlayableHint(); if (!hint) return; hint.forEach((index) => runtime.tileNodes[index]?.classList.add("is-hint")); runtime.hintTimer = setTimeout(clearHint, 1650); }
 function clearHint() { if (!runtime) return; if (runtime.hintTimer) clearTimeout(runtime.hintTimer); runtime.hintTimer = null; runtime.tileNodes?.forEach((tile) => tile.classList.remove("is-hint")); }
 function scheduleHint() { if (!runtime || runtime.busy || runtime.screen !== "board" || runtime.activeBooster) return; clearHint(); const delay = runtime.mode === "free" ? FREE_MODES[runtime.difficulty].hintDelay : Math.max(6500, 11200 - Number(runtime.level?.id || 1) * 90); runtime.hintTimer = setTimeout(showHint, delay); }
 function pause(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
@@ -577,4 +694,5 @@ function pause(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 window.addEventListener("app:stars-changed", updateWallet);
 window.startBiblicalMatchThreeGame = start;
 window.__biblicalMatchThreeCleanup = cleanup;
+window.BiblicalMatchThreeV18Rules = { version:18, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS };
 })();
