@@ -111,8 +111,8 @@ for (let i = 0; i < 3; i += 1) {
 }
 await page.waitForSelector('.home-hidden-restore button');
 
-await page.waitForSelector('#system-actions [data-system-icon="support"][data-icon-version="2"]', { timeout: 5_000 });
-await page.waitForSelector('#admin-btn [data-system-icon="admin"][data-icon-version="2"]', { timeout: 5_000 });
+await page.waitForSelector('#system-actions [data-system-icon="support"][data-icon-version="3"]', { timeout: 5_000 });
+await page.waitForSelector('#admin-btn [data-system-icon="admin"][data-icon-version="3"]', { timeout: 5_000 });
 
 await page.evaluate(() => window.showGame('describe'));
 await page.waitForFunction(() => document.body.dataset.mode === 'game' && document.getElementById('game-container')?.children.length > 0, null, { timeout: 8_000 });

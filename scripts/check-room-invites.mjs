@@ -86,7 +86,7 @@ requireText(html, 'room-qr-brand.css?v=1', 'branded QR styles are not mounted');
 requireText(html, 'room-invite.js?v=3', 'updated room invite helper is not mounted');
 requireText(html, 'room-qr-brand.js?v=1', 'branded QR renderer is not mounted');
 requireText(html, 'room-qr-scanner.js?v=4', 'fixed Telegram QR scanner is not mounted');
-requireText(html, 'room-qr-addon.js?v=3', 'updated room QR addon is not mounted');
+requireText(html, 'room-qr-addon.js?v=4', 'updated room QR addon is not mounted');
 requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
 requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
 
