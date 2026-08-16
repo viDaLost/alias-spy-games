@@ -3,39 +3,75 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
 
-const root=process.cwd(),out=path.join(root,'artifacts','biblical-match-three-v2'),V='11';
-fs.mkdirSync(out,{recursive:true});
-const scripts=['biblical-match-three-v5-loader.js','biblical-match-three-core.js','biblical-match-three-progress.js','biblical-match-three-effects.js','biblical-match-three.js','biblical-match-three-v10-runtime.js'].map(n=>`<script src="/web/games/${n}?v=${V}"></script>`).join('');
-const html=`<!doctype html><html lang=ru><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{--bg-color:#fdfaf4;--accent-color:#dbeafe;--accent-hover:#bfdbfe;--accent-active:#4f46e5;--text-color:#2d2d2d;--card-bg:#fff;--shadow-app:0 4px 12px rgba(79,70,229,.08),0 2px 4px rgba(0,0,0,.04)}html,body{margin:0;min-height:100%}</style>${['v2','v2-polish','v4','v5','v9','v10','v11','v11-modal'].map(n=>`<link rel=stylesheet href=/web/styles/biblical-match-three-${n}.css?v=${V}>`).join('')}</head><body><main id=game-container></main><script>window.Telegram={WebApp:{initDataUnsafe:{user:{id:999999}},contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};window.appGoToMainMenu=()=>{};localStorage.setItem('bible_stars_v1_999999','80');window.__swipeSeen=0;addEventListener('bmt:swipe',()=>__swipeSeen++);</script>${scripts}<script>(async()=>{try{if(window.BiblicalMatchThreeV5ArtReady)await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise(r=>setTimeout(r,12000))])}catch{}const ux=document.createElement('script');ux.src='/web/games/biblical-match-three-v10-ux.js?v=${V}';ux.onload=()=>{const ui=document.createElement('script');ui.src='/web/games/biblical-match-three-v11-ui.js?v=${V}';ui.onload=()=>startBiblicalMatchThreeGame('/web/data/biblical_match_three_levels.json?v=${V}');document.body.appendChild(ui)};document.body.appendChild(ux)})()</script></body></html>`;
+const root=process.cwd();
+const scripts=[
+  'biblical-match-three-v5-loader.js',
+  'biblical-match-three-core.js',
+  'biblical-match-three-progress.js',
+  'biblical-match-three-effects.js',
+  'biblical-match-three.js',
+  'biblical-match-three-v10-runtime.js',
+  'biblical-match-three-v15-ui.js',
+  'biblical-match-three-v15-polish.js',
+].map(name=>`<script src="/web/games/${name}?v=15"></script>`).join('');
+const styles=['v2','v2-polish','v4','v5','v9','v10','v11-modal','v13','v15-polish']
+  .map(name=>`<link rel="stylesheet" href="/web/styles/biblical-match-three-${name}.css?v=15">`).join('');
+const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${styles}</head><body data-current-game="biblical-match-three" data-mode="game"><main id="game-container"></main><script>
+window.Telegram={WebApp:{contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};
+window.appGoToMainMenu=()=>{};
+localStorage.setItem('bible_stars_v1','100');
+</script>${scripts}<script>(async()=>{await window.BiblicalMatchThreeV5ArtReady;await window.startBiblicalMatchThreeGame('/web/data/biblical_match_three_levels.json?v=15')})().catch(e=>{document.body.dataset.qaError=String(e&&e.stack||e)})</script></body></html>`;
 const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp','.avif':'image/avif','.png':'image/png','.txt':'text/plain'};
-const server=http.createServer((req,res)=>{const u=new URL(req.url||'/','http://x');if(u.pathname==='/__qa'){res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});res.end(html);return}const f=path.resolve(root,'.'+decodeURIComponent(u.pathname));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||!fs.statSync(f).isFile()){res.writeHead(404).end();return}res.writeHead(200,{'Content-Type':mime[path.extname(f)]||'application/octet-stream','Cache-Control':'public,max-age=3600'});fs.createReadStream(f).pipe(res)});
-await new Promise(r=>server.listen(0,'127.0.0.1',r));
+const server=http.createServer((req,res)=>{
+  const url=new URL(req.url||'/','http://local');
+  if(url.pathname==='/__qa'){res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});res.end(html);return;}
+  const file=path.resolve(root,'.'+decodeURIComponent(url.pathname));
+  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404).end();return;}
+  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});fs.createReadStream(file).pipe(res);
+});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
 const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-const page=await context.newPage(),failures=[];
-const shot=name=>page.screenshot({path:path.join(out,name),fullPage:true});
+const page=await context.newPage();
+const requested=[];page.on('request',request=>requested.push(request.url()));
+try{
+  await page.goto(base+'/__qa',{waitUntil:'domcontentloaded',timeout:30000});
+  await page.waitForSelector('.bmt-v13-menu',{timeout:20000});
+  await page.waitForFunction(()=>window.BiblicalMatchThreeV5Art?.kind==='raster-hq-v15'&&window.__bmtV15UiInstalled&&window.__bmtV15PolishInstalled,{timeout:15000});
+  const menu=await page.evaluate(()=>({
+    kind:window.BiblicalMatchThreeV5Art?.kind,
+    ark:window.BiblicalMatchThreeV5Art?.symbols?.ark||'',
+    boosterArk:window.BiblicalMatchThreeV5Art?.boosters?.ark||'',
+    lowQuality:[...document.images].some(img=>/biblical-match-three-art-|v14-raster-pack|v14-icons/i.test(img.src)),
+    overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+  }));
+  if(menu.kind!=='raster-hq-v15'||!menu.ark.startsWith('data:image/')||!menu.boosterArk.startsWith('data:image/')||menu.lowQuality||menu.overflow>2)throw new Error(`menu ${JSON.stringify(menu)}`);
 
-async function waitMenu(){await page.waitForSelector('.bmt-v11-menu .bmt-v11-dashboard',{timeout:15000});await page.waitForFunction(()=>document.querySelector('.bmt-title')?.textContent.trim()==='Сокровища'&&document.querySelectorAll('.bmt-journey-node:not([disabled])').length===30&&window.__bmtV11UiInstalled,{},{timeout:10000})}
-async function buttonState(label){return page.evaluate(text=>{const b=[...document.querySelectorAll('button')].find(n=>(n.textContent||'').includes(text));if(!b)return null;const r=b.getBoundingClientRect(),s=getComputedStyle(b);return{display:s.display,visibility:s.visibility,opacity:+s.opacity,w:r.width,h:r.height,bottom:r.bottom,disabled:b.disabled}},label)}
-async function dismissDelayedTutorial(){await page.waitForTimeout(650);const t=page.locator('.bmt-tutorial button');if(await t.count()){try{if(await t.first().isVisible())await t.first().click()}catch{}}await page.waitForTimeout(260);await page.waitForFunction(()=>!document.querySelector('.bmt-tutorial')&&!document.querySelector('.bmt-shell')?.classList.contains('is-busy'),{},{timeout:3000}).catch(()=>{})}
-async function levelOne(height){const chip=page.locator('.bmt-v11-chapter-chip').first();if(await chip.count())await chip.click();await page.locator('.bmt-journey-chapter.is-active .bmt-journey-node').first().click();await page.waitForSelector('.bmt-prelevel',{state:'visible',timeout:5000});await page.waitForTimeout(380);const state=await buttonState('Начать уровень');if(!state||state.display==='none'||state.visibility==='hidden'||state.opacity<.9||state.w<80||state.h<38||state.bottom>height+2||state.disabled)throw Error(`start ${JSON.stringify(state)}`);await page.getByRole('button',{name:/Начать уровень/}).click();await page.waitForSelector('.bmt-board .bmt-tile',{timeout:8000});await dismissDelayedTutorial()}
+  await page.locator('[data-v13-mode="free"]').click();
+  await page.locator('.bmt-free-card').first().click();
+  await page.waitForSelector('.bmt-board .bmt-tile',{timeout:8000});
+  await page.waitForFunction(()=>[...document.querySelectorAll('.bmt-piece')].filter(img=>img.src).every(img=>img.complete&&img.naturalWidth>0&&img.dataset.bmtRaster==='hq-v15'),{timeout:8000});
+  const artState=await page.evaluate(()=>({
+    pieces:[...document.querySelectorAll('.bmt-piece')].filter(img=>img.src).map(img=>({src:img.getAttribute('src'),w:img.naturalWidth,tag:img.dataset.bmtRaster})),
+    boosters:[...document.querySelectorAll('.bmt-booster__icon img')].map(img=>({src:img.getAttribute('src'),w:img.naturalWidth,tag:img.dataset.bmtRaster,visibility:getComputedStyle(img).visibility})),
+    ark:[...document.querySelectorAll('[data-booster="ark"] img')].map(img=>({src:img.getAttribute('src'),w:img.naturalWidth,tag:img.dataset.bmtRaster})),
+  }));
+  const goodSrc=src=>String(src||'').startsWith('data:image/')||String(src||'').includes('/hq-v5/symbols/fish.webp');
+  if(!artState.pieces.length||artState.pieces.some(x=>!goodSrc(x.src)||x.w<64||x.tag!=='hq-v15'))throw new Error(`pieces ${JSON.stringify(artState.pieces.slice(0,4))}`);
+  if(artState.boosters.length!==4||artState.boosters.some(x=>!goodSrc(x.src)||x.w<64||x.tag!=='hq-v15'||x.visibility==='hidden'))throw new Error(`boosters ${JSON.stringify(artState.boosters)}`);
+  if(artState.ark.length!==1||!goodSrc(artState.ark[0].src)||artState.ark[0].w<64||artState.ark[0].tag!=='hq-v15')throw new Error(`ark ${JSON.stringify(artState.ark)}`);
 
-async function runWidth(width,height){
- await page.setViewportSize({width,height});await page.goto(base+'/__qa?unlockAll=1',{waitUntil:'domcontentloaded',timeout:30000});await waitMenu();
- const menu=await page.evaluate(()=>{const shell=document.querySelector('.bmt-v11-menu'),text=shell?.textContent||'';return{tabs:document.querySelectorAll('.bmt-v11-tabs button').length,chapter:document.querySelectorAll('.bmt-v11-chapter-map .bmt-journey-chapter.is-active:not([hidden])').length,hero:!!document.querySelector('.bmt-hero-v2'),forbidden:/30 уровней|адаптивное поле|библейские бустеры/i.test(text),ark:window.BiblicalMatchThreeV5Art?.symbols?.ark||'',overflow:Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-innerWidth}});
- if(menu.tabs!==2||menu.chapter!==1||menu.hero||menu.forbidden||!(menu.ark.startsWith('blob:')||menu.ark.includes('/hq-v5/symbols/ark.webp'))||menu.overflow>2)throw Error(`menu ${JSON.stringify(menu)}`);await shot(`menu-v11-${width}.png`);
- await levelOne(height);await shot(`board-v11-${width}.png`);
- const board=await page.evaluate(()=>{const n=document.querySelector('.bmt-board'),r=n?.getBoundingClientRect(),w=n?.closest('.bmt-board-wrap')?.getBoundingClientRect();const boosters=[...document.querySelectorAll('.bmt-booster')].map(x=>{const r=x.getBoundingClientRect(),s=getComputedStyle(x);return{display:s.display,w:r.width,h:r.height,bottom:r.bottom}}),actions=[...document.querySelectorAll('.bmt-actions-v2 .bmt-action-button')].map(x=>{const r=x.getBoundingClientRect(),s=getComputedStyle(x);return{display:s.display,w:r.width,h:r.height,bottom:r.bottom}});return{rows:+(n?.dataset.rows||0),cols:+(n?.dataset.cols||0),tiles:document.querySelectorAll('.bmt-tile').length,ark:!!document.querySelector('[data-booster="ark"] img[data-bmt-v11-ark="raster"]'),scrollH:document.documentElement.scrollHeight,innerH:innerHeight,top:r?.top,bottom:r?.bottom,left:r?.left,right:r?.right,bh:r?.height,wh:w?.height,boosters,actions,overflow:Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-innerWidth}});
- if(board.rows!==5||board.cols!==8||board.tiles!==40||!board.ark||board.scrollH>height+3||board.bottom>height+2||board.top<0||board.left<0||board.right>width+2||board.overflow>2||board.wh-board.bh>12||board.boosters.length!==4||board.boosters.some(x=>x.display==='none'||x.w<35||x.h<35||x.bottom>height+2)||board.actions.length!==2||board.actions.some(x=>x.display==='none'||x.w<80||x.h<34||x.bottom>height+2))throw Error(`board ${JSON.stringify(board)}`);
- await page.evaluate(()=>{window.__ghostSeen=0;window.__ghostObserver?.disconnect?.();window.__ghostObserver=new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1&&n.classList?.contains('bmt-v11-swap-layer'))window.__ghostSeen++})));window.__ghostObserver.observe(document.body,{childList:true})});
- const first=page.locator('.bmt-tile').first(),box=await first.boundingBox();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.92,box.y+box.height*.5,{steps:3});const during=await first.evaluate(n=>({dx:n.style.getPropertyValue('--bmt-drag-x'),ready:n.classList.contains('is-swipe-ready')}));await page.mouse.up();if(during.dx||!during.ready)throw Error(`drag ${JSON.stringify(during)}`);await page.waitForFunction(()=>window.__swipeSeen>0&&window.__ghostSeen>0,{},{timeout:3000});await page.waitForTimeout(520);const post=await page.evaluate(()=>({seen:window.__ghostSeen,layers:document.querySelectorAll('.bmt-v11-swap-layer').length,ghosting:document.querySelectorAll('.bmt-v11-ghosting').length,scrollH:document.documentElement.scrollHeight,drag:[...document.querySelectorAll('.bmt-tile')].some(n=>n.style.getPropertyValue('--bmt-drag-x')||n.style.getPropertyValue('--bmt-drag-y'))}));if(post.seen<1||post.layers||post.ghosting||post.drag||post.scrollH>height+3)throw Error(`swap ${JSON.stringify(post)}`);
+  const first=page.locator('.bmt-tile').first();const box=await first.boundingBox();
+  await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*1.15,box.y+box.height*.5,{steps:3});await page.mouse.up();
+  await page.waitForSelector('.bmt-tile.is-swapping',{timeout:2500});
+  const during=await page.evaluate(()=>[...document.querySelectorAll('.bmt-tile.is-swapping')].map(tile=>{const img=tile.querySelector('.bmt-piece'),wrap=tile.querySelector('.bmt-piece-wrap'),ts=getComputedStyle(tile),is=getComputedStyle(img),ws=getComputedStyle(wrap);return{overflow:ts.overflow,contain:ts.contain,visibility:is.visibility,opacity:+is.opacity,w:img.naturalWidth,src:img.getAttribute('src'),wrapOverflow:ws.overflow}}));
+  if(during.length!==2||during.some(x=>x.overflow!=='visible'||x.contain!=='none'||x.visibility==='hidden'||x.opacity<.99||x.w<64||!goodSrc(x.src)||x.wrapOverflow!=='visible'))throw new Error(`swipe ${JSON.stringify(during)}`);
+  await page.waitForFunction(()=>!document.querySelector('.bmt-tile.is-swapping')&&!document.querySelector('.bmt-tile.is-swap-back'),{timeout:3000});
+  const after=await page.evaluate(()=>({missing:[...document.querySelectorAll('.bmt-piece')].filter(img=>img.src&&(img.naturalWidth===0||getComputedStyle(img).visibility==='hidden')).length,scrollH:document.documentElement.scrollHeight,innerH:innerHeight}));
+  if(after.missing||after.scrollH>after.innerH+3)throw new Error(`after ${JSON.stringify(after)}`);
+  if(requested.some(url=>/biblical-match-three-(?:v14-raster-pack|v14-icons|art-symbols|art-boosters|art-goals|art-obstacles)/i.test(url)))throw new Error('obsolete art requested');
+  console.log('OK: Biblical Treasures V15 HQ icons + visible swipe animation passed');
+} finally {
+  await context.close();await browser.close();await new Promise(resolve=>server.close(resolve));
 }
-
-async function freeResult(){await page.setViewportSize({width:390,height:844});await page.goto(base+'/__qa?unlockAll=1',{waitUntil:'domcontentloaded'});await waitMenu();await page.locator('[data-bmt-v11-tab="free"]').click();await page.locator('.bmt-free-card').filter({hasText:'Лёгкий'}).click();await page.waitForSelector('.bmt-board .bmt-tile');await dismissDelayedTutorial();await page.locator('.bmt-actions-v2 .bmt-action-button').filter({hasText:'Завершить'}).click();await page.waitForSelector('.bmt-result-card');await page.waitForTimeout(380);const bad=await page.evaluate(()=>[...document.querySelectorAll('.bmt-result-actions button')].some(b=>{const r=b.getBoundingClientRect(),s=getComputedStyle(b);return s.display==='none'||+s.opacity<.9||r.width<70||r.height<38||r.bottom>innerHeight+2}));if(bad)throw Error('result actions hidden');await shot('free-result-v11-390.png')}
-async function forcedFallback(){await page.setViewportSize({width:390,height:844});await page.goto(base+'/__qa?unlockAll=1&artFallback=1',{waitUntil:'domcontentloaded'});await waitMenu();const s=await page.evaluate(()=>({kind:window.BiblicalMatchThreeV5Art?.kind,ark:window.BiblicalMatchThreeV5Art?.symbols?.ark||'',raster:!!document.querySelector('img[data-bmt-v11-ark="raster"]')}));if(s.kind!=='safe-fallback-v10'||!(s.ark.startsWith('blob:')||s.ark.includes('/hq-v5/symbols/ark.webp'))||!s.raster)throw Error(`fallback ${JSON.stringify(s)}`)}
-
-for(const [w,h] of [[390,844],[320,700],[430,932]])try{await runWidth(w,h)}catch(e){try{await shot(`failure-v11-${w}.png`)}catch{}failures.push(`${w}x${h}: ${e.message}`)}
-try{await freeResult()}catch(e){try{await shot('failure-v11-result.png')}catch{}failures.push(`result: ${e.message}`)}
-try{await forcedFallback()}catch(e){failures.push(`fallback: ${e.message}`)}
-await context.close();await browser.close();await new Promise(r=>server.close(r));if(failures.length){console.error(failures.join('\n'));process.exit(1)}console.log('OK: Biblical Treasures V11 compact menu + single viewport + raster Ark + continuous swap QA passed');
