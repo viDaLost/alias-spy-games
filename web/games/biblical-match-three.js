@@ -572,18 +572,21 @@ function damageBlockers(clearSet) {
 function blockerClearedCount(type) { const initial = Number(runtime.initialBlockerCounts?.[type] || 0); if (!initial) return 0; let remaining = 0; for (const blocker of runtime.blockers.values()) if (blocker.type === type) remaining += 1; return Math.max(0, initial - remaining); }
 function lampLitCount() { let count = 0; for (const blocker of runtime.blockers.values()) if (blocker.type === "lamp" && blocker.lit) count += 1; return count; }
 
+function finishIfNoMoves() {
+  if (!runtime || countPlayableMoves(runtime.board, 1) !== 0) return false;
+  clearHint();
+  if (runtime.mode === "level") { finishLevel(false, "noMoves"); return true; }
+  setBusy(false);
+  if (runtime.mode === "free") { openFreeExit("noMoves"); return true; }
+  return true;
+}
+
 function finishTurn() {
   if (!runtime) return; runtime.lastSwap = null; runtime.cascade = 0; updateHud();
   if (runtime.mode === "level" && allGoalsComplete()) { finishLevel(true); return; }
   if (runtime.mode === "level" && runtime.moves <= 0) { finishLevel(false); return; }
   if (runtime.mode === "free") { persistFreeRecord(true); if (Number.isFinite(runtime.moves) && runtime.moves <= 0) { setBusy(false); openFreeExit("moves"); return; } }
-  if (countPlayableMoves(runtime.board, 1) === 0) {
-    clearHint();
-    if (runtime.mode === "level") { finishLevel(false, "noMoves"); return; }
-    setBusy(false);
-    if (runtime.mode === "free") { openFreeExit("noMoves"); return; }
-    return;
-  }
+  if (finishIfNoMoves()) return;
   setBusy(false); scheduleHint();
 }
 
@@ -715,7 +718,7 @@ function pause(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 window.addEventListener("app:stars-changed", updateWallet);
 window.startBiblicalMatchThreeGame = start;
 window.__biblicalMatchThreeCleanup = cleanup;
-const rulesApi = { version:20, minStartMoves:MIN_START_MOVES, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS, findPlayableMoves:(limit=Infinity)=>findPlayableMoves(runtime?.board,limit), countPlayableMoves:(limit=Infinity)=>countPlayableMoves(runtime?.board,limit) };
+const rulesApi = { version:20, minStartMoves:MIN_START_MOVES, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS, findPlayableMoves:(limit=Infinity)=>findPlayableMoves(runtime?.board,limit), countPlayableMoves:(limit=Infinity)=>countPlayableMoves(runtime?.board,limit), checkDeadBoard:finishIfNoMoves };
 window.BiblicalMatchThreeV18Rules = rulesApi;
 window.BiblicalMatchThreeV20Rules = rulesApi;
 })();
