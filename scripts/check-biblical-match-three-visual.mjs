@@ -16,7 +16,7 @@ const scripts=[
 ].map(name=>`<script src="/web/games/${name}?v=15"></script>`).join('');
 const styles=['v2','v2-polish','v4','v5','v9','v10','v11-modal','v13','v15-polish']
   .map(name=>`<link rel="stylesheet" href="/web/styles/biblical-match-three-${name}.css?v=15">`).join('');
-const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${styles}</head><body><main id="game-container"></main><script>
+const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${styles}</head><body data-current-game="biblical-match-three" data-mode="game"><main id="game-container"></main><script>
 window.Telegram={WebApp:{contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};
 window.appGoToMainMenu=()=>{};
 localStorage.setItem('bible_stars_v1','100');
