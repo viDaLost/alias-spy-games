@@ -2,14 +2,15 @@
 "use strict";
 const GAME_KEY="biblical-match-three";
 const TITLE="Библейские сокровища";
-const VERSION="13";
-const ART_SRC=`web/games/biblical-match-three-v5-loader.js?v=${VERSION}`;
+const VERSION="14";
+const RASTER_PACK_SRC=`web/games/biblical-match-three-v14-raster-pack.js?v=${VERSION}`;
 const CORE_SRC=`web/games/biblical-match-three-core.js?v=${VERSION}`;
 const PROGRESS_SRC=`web/games/biblical-match-three-progress.js?v=${VERSION}`;
 const EFFECTS_SRC=`web/games/biblical-match-three-effects.js?v=${VERSION}`;
 const GAME_SRC=`web/games/biblical-match-three.js?v=${VERSION}`;
 const RUNTIME_SRC=`web/games/biblical-match-three-v10-runtime.js?v=${VERSION}`;
 const V13_UI_SRC=`web/games/biblical-match-three-v13-ui.js?v=${VERSION}`;
+const V14_ICONS_SRC=`web/games/biblical-match-three-v14-icons.js?v=${VERSION}`;
 const LEVELS_SRC=`web/data/biblical_match_three_levels.json?v=${VERSION}`;
 const STYLE_SOURCES=[
  `web/styles/biblical-match-three-v2.css?v=${VERSION}`,
@@ -19,13 +20,14 @@ const STYLE_SOURCES=[
  `web/styles/biblical-match-three-v9.css?v=${VERSION}`,
  `web/styles/biblical-match-three-v10.css?v=${VERSION}`,
  `web/styles/biblical-match-three-v11-modal.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v13.css?v=${VERSION}`
+ `web/styles/biblical-match-three-v13.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v14-icons.css?v=${VERSION}`
 ];
 const SCRIPT_TIMEOUT=9000;
 let launchPromise=null;
 let launchAttempt=0;
 
-function menuArt(){return window.BiblicalMatchThreeV5Art?.symbols?.bible||`web/assets/biblical-match-three/bible.svg?v=${VERSION}`}
+function menuArt(){return window.BiblicalMatchThreeV5Art?.symbols?.bible||window.BiblicalMatchThreeV3Art?.symbols?.bible||""}
 function ensureStylesheet(){STYLE_SOURCES.forEach((href,index)=>{let link=document.querySelector(`link[data-biblical-match-three-style="${index}"]`);if(!link){link=document.createElement("link");link.rel="stylesheet";link.dataset.biblicalMatchThreeStyle=String(index);document.head.appendChild(link)}if(!link.href.includes(href.split("?")[0])||!link.href.includes(`v=${VERSION}`))link.href=href});document.querySelectorAll('link[data-biblical-match-three-style]').forEach((link)=>{const index=Number(link.dataset.biblicalMatchThreeStyle);if(index>=STYLE_SOURCES.length)link.remove()})}
 function rememberOpen(){try{let history=JSON.parse(localStorage.getItem("last_games_history")||"[]");if(!Array.isArray(history))history=[];history=[TITLE,...history.filter(item=>item!==TITLE)].slice(0,3);localStorage.setItem("last_games_history",JSON.stringify(history))}catch{}}
 function markerReady(marker){return !marker||Boolean(window[marker])}
@@ -37,11 +39,13 @@ async function loadScriptOnce(src,marker){if(markerReady(marker))return;let exis
 function purgeFailedScripts(){document.querySelectorAll('script[data-bmt-failed="1"]').forEach(script=>script.remove())}
 
 async function ensureArt(){
- try{
-  await loadScriptOnce(ART_SRC,"BiblicalMatchThreeV5ArtReady");
-  if(window.BiblicalMatchThreeV5ArtReady)await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise(resolve=>setTimeout(resolve,9000))]);
- }catch(error){console.warn("Biblical Treasures art preload failed; continuing with fallback",error)}
- return window.BiblicalMatchThreeV5Art||null;
+ await loadScriptOnce(RASTER_PACK_SRC,"BiblicalMatchThreeRasterPackReady");
+ const art=await Promise.race([
+  window.BiblicalMatchThreeRasterPackReady,
+  new Promise((_,reject)=>setTimeout(()=>reject(new Error("embedded raster pack timeout")),9000))
+ ]);
+ if(!art?.symbols?.bible||!art?.symbols?.ark||!art?.boosters?.ark)throw new Error("embedded raster pack incomplete");
+ return art;
 }
 
 async function performOpen({retry=false}={}){
@@ -58,24 +62,26 @@ async function performOpen({retry=false}={}){
   await loadScriptOnce(GAME_SRC,"startBiblicalMatchThreeGame");
   await loadScriptOnce(RUNTIME_SRC,"__bmtV10RuntimeInstalled");
   await loadScriptOnce(V13_UI_SRC,"__bmtV13UiInstalled");
+  await loadScriptOnce(V14_ICONS_SRC,"__bmtV14IconsInstalled");
   if(typeof window.startBiblicalMatchThreeGame!=="function")throw new Error("start function missing");
   const levels=retry?`${LEVELS_SRC}&retry=${Date.now()}`:LEVELS_SRC;
   await window.startBiblicalMatchThreeGame(levels);
   if(attempt!==launchAttempt)return;
-  window.__BMTV5Raster?.scan?.();
+  window.BiblicalMatchThreeRasterPack?.scan?.(document);
   try{window.BiblicalMatchThreeV13?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V13 enhancement warning",error)}
+  try{window.BiblicalMatchThreeV14?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V14 icon enhancement warning",error)}
  }catch(error){
   console.error("Biblical match-three launch error",error);
   window.AppErrorBoundary?.report?.(error,{kind:"game-load",source:"biblical-match-three-launcher",fatal:false});
-  container.innerHTML=`<section class="app-error-card fade-in"><h2>Не удалось запустить «Библейские сокровища»</h2><p>Не удалось загрузить один из файлов игры. Нажмите «Повторить».</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="back-button" id="bmt-launch-retry">Повторить</button><button type="button" class="back-button" id="bmt-launch-back">В главное меню</button></div></section>`;
+  container.innerHTML=`<section class="app-error-card fade-in"><h2>Не удалось запустить «Библейские сокровища»</h2><p>Не удалось загрузить графику или один из файлов игры. Нажмите «Повторить».</p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="back-button" id="bmt-launch-retry">Повторить</button><button type="button" class="back-button" id="bmt-launch-back">В главное меню</button></div></section>`;
   document.getElementById("bmt-launch-retry")?.addEventListener("click",()=>openGame({retry:true}),{once:true});
   document.getElementById("bmt-launch-back")?.addEventListener("click",()=>{(window.appGoToMainMenu||window.goToMainMenu)?.()},{once:true});
  }
 }
 
 function openGame(options={}){if(launchPromise)return launchPromise;launchPromise=performOpen(options).finally(()=>{launchPromise=null});return launchPromise}
-function addMenuCard(){const root=document.getElementById("kids-games");if(!root||document.getElementById("biblical-match-three-card"))return false;const card=document.createElement("button");card.type="button";card.id="biblical-match-three-card";card.className="game-card";card.setAttribute("aria-label",`Открыть игру ${TITLE}`);card.innerHTML=`<span class="game-card__icon game-card__icon--image"><img class="game-card__img" src="${menuArt()}" alt="Иконка игры ${TITLE}" loading="lazy" decoding="async" draggable="false"></span><span class="game-card__body"><span class="game-card__title">${TITLE}</span><span class="game-card__desc">Матч‑3 с Путём света, рекордами и быстрыми комбинациями</span></span>`;card.addEventListener("click",()=>openGame());root.append(card);return true}
-async function install(){ensureStylesheet();ensureArt().catch(()=>{});if(addMenuCard())return;const observer=new MutationObserver(()=>{if(addMenuCard())observer.disconnect()});observer.observe(document.documentElement,{childList:true,subtree:true});setTimeout(()=>observer.disconnect(),12000)}
+function addMenuCard(){const root=document.getElementById("kids-games");if(!root||document.getElementById("biblical-match-three-card"))return false;const card=document.createElement("button");card.type="button";card.id="biblical-match-three-card";card.className="game-card";card.setAttribute("aria-label",`Открыть игру ${TITLE}`);const art=menuArt();card.innerHTML=`<span class="game-card__icon game-card__icon--image">${art?`<img class="game-card__img" src="${art}" alt="Иконка игры ${TITLE}" loading="eager" decoding="async" draggable="false">`:""}</span><span class="game-card__body"><span class="game-card__title">${TITLE}</span><span class="game-card__desc">Матч‑3 с Путём света, рекордами и быстрыми комбинациями</span></span>`;card.addEventListener("click",()=>openGame());root.append(card);return true}
+async function install(){ensureStylesheet();try{await ensureArt()}catch(error){console.warn("Biblical Treasures menu art preload failed",error)}if(addMenuCard())return;const observer=new MutationObserver(()=>{if(addMenuCard())observer.disconnect()});observer.observe(document.documentElement,{childList:true,subtree:true});setTimeout(()=>observer.disconnect(),12000)}
 window.openBiblicalMatchThree=openGame;
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>requestAnimationFrame(install),{once:true});else requestAnimationFrame(install);
 })();
