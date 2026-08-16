@@ -1,8 +1,20 @@
 (() => {
 "use strict";
 const VERSION="15";
-const BASE="web/assets/biblical-match-three/hq-v5";
-const PART_COUNT=11;
+const PART_URLS=[
+ "web/assets/biblical-match-three/hq-v5/atlas-00.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-01.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-02.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-03.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-04.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-05.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-06.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-07.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-08.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-09.txt",
+ "web/assets/biblical-match-three/hq-v5/atlas-10.txt"
+];
+const FISH_URL="web/assets/biblical-match-three/hq-v5/symbols/fish.webp";
 const CELL=128;
 const EXPECTED_W=640;
 const EXPECTED_H=768;
@@ -14,8 +26,7 @@ const POS={
 };
 const LEGACY_SYMBOL=/web\/assets\/biblical-match-three\/(bible|fish|dove|lamp|crown|ark|bread|grapes|tablets)\.svg(?:\?.*)?$/i;
 
-function partUrl(i){return `${BASE}/atlas-${String(i).padStart(2,"0")}.txt?v=${VERSION}`}
-function directFish(){return `${BASE}/symbols/fish.webp?v=${VERSION}`}
+function versioned(url){return `${url}?v=${VERSION}`}
 function waitForImage(src,timeout=10000){
  return new Promise((resolve,reject)=>{
   const img=new Image();img.decoding="sync";img.loading="eager";let done=false;
@@ -32,7 +43,7 @@ function base64Blob(payload,type){
  return new Blob([bytes],{type});
 }
 async function loadAtlas(){
- const parts=await Promise.all(Array.from({length:PART_COUNT},(_,i)=>fetch(partUrl(i),{cache:"force-cache"}).then(r=>{if(!r.ok)throw new Error(`HQ atlas part ${i}: HTTP ${r.status}`);return r.text()})));
+ const parts=await Promise.all(PART_URLS.map((url,i)=>fetch(versioned(url),{cache:"force-cache"}).then(r=>{if(!r.ok)throw new Error(`HQ atlas part ${i}: HTTP ${r.status}`);return r.text()})));
  const payload=parts.join("").replace(/\s+/g,"");
  if(!payload.startsWith("AAAAIGZ0eXBhdmlm"))throw new Error("HQ atlas payload damaged");
  const objectUrl=URL.createObjectURL(base64Blob(payload,"image/avif"));
@@ -88,7 +99,7 @@ async function init(){
  try{
   const art={version:15,symbols:makeGroup(img,POS.symbols),boosters:makeGroup(img,POS.boosters),goals:makeGroup(img,POS.goals),obstacles:makeGroup(img,POS.obstacles),kind:"raster-hq-v15",sourceSize:CELL};
   const atlasFish=art.symbols.fish;
-  art.symbols.fish=directFish();
+  art.symbols.fish=versioned(FISH_URL);
   if(!(await warmSource(art.symbols.fish)))art.symbols.fish=atlasFish;
   await warmArt(art);
   return publish(art);
