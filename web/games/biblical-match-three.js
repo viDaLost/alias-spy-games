@@ -120,7 +120,7 @@ function makeActiveMask(shape, rows, cols, level = null) {
       mask[row * cols + col] = active;
     }
   }
-  for (const group of level?.blockers || []) for (const index of group.cells || []) if (Number(index) >= 0 && Number(index) < mask.length) mask[Number(index)] = true;
+  for (const group of level?.blockers || []) for (const rawIndex of group.cells || []) { const index = Number(rawIndex); if (index < 0 || index >= mask.length) continue; mask[index] = true; const row = Math.floor(index / cols); const col = index % cols; for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) { const nr=row+dr,nc=col+dc; if(nr>=0&&nr<rows&&nc>=0&&nc<cols) mask[nr*cols+nc]=true; } }
   return mask;
 }
 

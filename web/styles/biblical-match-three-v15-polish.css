@@ -74,7 +74,7 @@ body[data-current-game="biblical-match-three"] .bmt-board[data-shape="diamond"] 
 @keyframes bmt-v18-blocker-break{0%{transform:scale(1);opacity:1;filter:brightness(1)}45%{transform:scale(1.24) rotate(7deg);opacity:1;filter:brightness(1.55)}100%{transform:scale(.45) rotate(-16deg);opacity:0;filter:brightness(1.8)}}
 @keyframes bmt-v18-blocker-light{0%{transform:scale(.9);filter:brightness(1)}45%{transform:scale(1.25);filter:brightness(1.8) drop-shadow(0 0 8px rgba(245,183,55,.8))}100%{transform:scale(1);filter:brightness(1)}}
 body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-hit .bmt-blocker{animation:bmt-v18-blocker-hit .28s ease both!important}
-body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-breaking .bmt-blocker{animation:bmt-v18-blocker-break .3s ease both!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-breaking .bmt-blocker{animation:bmt-v18-blocker-break .18s ease-out both!important}
 body[data-current-game="biblical-match-three"] .bmt-tile.is-blocker-lit .bmt-blocker{animation:bmt-v18-blocker-light .34s ease both!important}
 
 /* Free-mode icons sit in their own top-right zone and never cover labels or scores. */
