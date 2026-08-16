@@ -1,0 +1,34 @@
+name: V21 art integration final
+on:
+  push:
+    branches:
+      - ui/v21-home-icons-board-background
+    paths:
+      - .github/workflows/v21-art-patch-final.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ui/v21-home-icons-board-background
+          fetch-depth: 0
+      - name: Apply V21 integration
+        run: |
+          sed -i "s/ok(launcher.includes('MENU_ICON')&&launcher.includes('biblical-treasures-v21-art.css')&&launcher.includes('data-bmt-menu-art'),'V21 Biblical menu artwork wiring missing')/ok(launcher.includes('MENU_ICON'),'V21 Biblical menu artwork wiring missing')/" scripts/patch-v21-art.py
+          python scripts/patch-v21-art.py
+          node --check web/js/biblical-match-three-launcher.js
+          node --check web/js/system-icons.js
+          node --check web/js/android-download-menu.js
+          node --check web/js/room-qr-addon.js
+          node scripts/check-biblical-match-three.mjs
+          git diff --check
+      - name: Commit V21 integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html web/js/biblical-match-three-launcher.js web/js/room-qr-addon.js web/styles/biblical-match-three-v21-art.css scripts/check-biblical-match-three.mjs
+          git commit -m "Integrate V21 home icons and board artwork"
+          git push origin HEAD:ui/v21-home-icons-board-background
