@@ -1,0 +1,35 @@
+name: Biblical V18 test fix
+on:
+  push:
+    branches:
+      - feature/biblical-v18-level-shapes-tutorial
+    paths:
+      - .github/workflows/biblical-v18-test-fix.yml
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/biblical-v18-level-shapes-tutorial
+      - name: Fix hidden chapter navigation in QA
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/check-biblical-match-three-visual.mjs')
+          t=p.read_text()
+          old="const level3=page.locator('.bmt-v13-level').filter({hasText:'Хлеб жизни'}).first();await level3.click();"
+          new="const level3=page.locator('.bmt-v13-level').filter({hasText:'Хлеб жизни'}).first();await level3.evaluate(el=>el.click());"
+          if t.count(old)!=1: raise SystemExit('level3 QA marker not found exactly once')
+          p.write_text(t.replace(old,new,1))
+          PY
+      - name: Commit test fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-biblical-match-three-visual.mjs
+          git commit -m "Fix V18 hidden chapter user-flow QA"
+          git push origin HEAD:feature/biblical-v18-level-shapes-tutorial
