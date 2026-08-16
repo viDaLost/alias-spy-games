@@ -2,23 +2,31 @@
 "use strict";
 const GAME_KEY="biblical-match-three";
 const TITLE="Библейские сокровища";
-const VERSION="12";
+const VERSION="13";
 const ART_SRC=`web/games/biblical-match-three-v5-loader.js?v=${VERSION}`;
 const CORE_SRC=`web/games/biblical-match-three-core.js?v=${VERSION}`;
 const PROGRESS_SRC=`web/games/biblical-match-three-progress.js?v=${VERSION}`;
 const EFFECTS_SRC=`web/games/biblical-match-three-effects.js?v=${VERSION}`;
 const GAME_SRC=`web/games/biblical-match-three.js?v=${VERSION}`;
-const UX_SRC=`web/games/biblical-match-three-v10-ux.js?v=${VERSION}`;
 const RUNTIME_SRC=`web/games/biblical-match-three-v10-runtime.js?v=${VERSION}`;
-const V11_UI_SRC=`web/games/biblical-match-three-v11-ui.js?v=${VERSION}`;
+const V13_UI_SRC=`web/games/biblical-match-three-v13-ui.js?v=${VERSION}`;
 const LEVELS_SRC=`web/data/biblical_match_three_levels.json?v=${VERSION}`;
-const STYLE_SOURCES=[`web/styles/biblical-match-three-v2.css?v=${VERSION}`,`web/styles/biblical-match-three-v2-polish.css?v=${VERSION}`,`web/styles/biblical-match-three-v4.css?v=${VERSION}`,`web/styles/biblical-match-three-v5.css?v=${VERSION}`,`web/styles/biblical-match-three-v9.css?v=${VERSION}`,`web/styles/biblical-match-three-v10.css?v=${VERSION}`,`web/styles/biblical-match-three-v11.css?v=${VERSION}`,`web/styles/biblical-match-three-v11-modal.css?v=${VERSION}`];
+const STYLE_SOURCES=[
+ `web/styles/biblical-match-three-v2.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v2-polish.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v4.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v5.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v9.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v10.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v11-modal.css?v=${VERSION}`,
+ `web/styles/biblical-match-three-v13.css?v=${VERSION}`
+];
 const SCRIPT_TIMEOUT=9000;
 let launchPromise=null;
 let launchAttempt=0;
 
 function menuArt(){return window.BiblicalMatchThreeV5Art?.symbols?.bible||`web/assets/biblical-match-three/bible.svg?v=${VERSION}`}
-function ensureStylesheet(){STYLE_SOURCES.forEach((href,index)=>{let link=document.querySelector(`link[data-biblical-match-three-style="${index}"]`);if(!link){link=document.createElement("link");link.rel="stylesheet";link.dataset.biblicalMatchThreeStyle=String(index);document.head.appendChild(link)}if(!link.href.includes(href.split("?")[0])||!link.href.includes(`v=${VERSION}`))link.href=href})}
+function ensureStylesheet(){STYLE_SOURCES.forEach((href,index)=>{let link=document.querySelector(`link[data-biblical-match-three-style="${index}"]`);if(!link){link=document.createElement("link");link.rel="stylesheet";link.dataset.biblicalMatchThreeStyle=String(index);document.head.appendChild(link)}if(!link.href.includes(href.split("?")[0])||!link.href.includes(`v=${VERSION}`))link.href=href});document.querySelectorAll('link[data-biblical-match-three-style]').forEach((link)=>{const index=Number(link.dataset.biblicalMatchThreeStyle);if(index>=STYLE_SOURCES.length)link.remove()})}
 function rememberOpen(){try{let history=JSON.parse(localStorage.getItem("last_games_history")||"[]");if(!Array.isArray(history))history=[];history=[TITLE,...history.filter(item=>item!==TITLE)].slice(0,3);localStorage.setItem("last_games_history",JSON.stringify(history))}catch{}}
 function markerReady(marker){return !marker||Boolean(window[marker])}
 function canonicalOf(src){return src.split("?")[0]}
@@ -31,7 +39,7 @@ function purgeFailedScripts(){document.querySelectorAll('script[data-bmt-failed=
 async function ensureArt(){
  try{
   await loadScriptOnce(ART_SRC,"BiblicalMatchThreeV5ArtReady");
-  if(window.BiblicalMatchThreeV5ArtReady)await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise(resolve=>setTimeout(resolve,12000))]);
+  if(window.BiblicalMatchThreeV5ArtReady)await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise(resolve=>setTimeout(resolve,9000))]);
  }catch(error){console.warn("Biblical Treasures art preload failed; continuing with fallback",error)}
  return window.BiblicalMatchThreeV5Art||null;
 }
@@ -49,14 +57,13 @@ async function performOpen({retry=false}={}){
   await loadScriptOnce(EFFECTS_SRC,"BiblicalMatchThreeEffects");
   await loadScriptOnce(GAME_SRC,"startBiblicalMatchThreeGame");
   await loadScriptOnce(RUNTIME_SRC,"__bmtV10RuntimeInstalled");
-  await loadScriptOnce(UX_SRC,"__bmtV10UxInstalled");
-  await loadScriptOnce(V11_UI_SRC,"__bmtV11UiInstalled");
+  await loadScriptOnce(V13_UI_SRC,"__bmtV13UiInstalled");
   if(typeof window.startBiblicalMatchThreeGame!=="function")throw new Error("start function missing");
   const levels=retry?`${LEVELS_SRC}&retry=${Date.now()}`:LEVELS_SRC;
   await window.startBiblicalMatchThreeGame(levels);
   if(attempt!==launchAttempt)return;
   window.__BMTV5Raster?.scan?.();
-  try{window.BiblicalMatchThreeV11?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V11 enhancement warning",error)}
+  try{window.BiblicalMatchThreeV13?.enhance?.(document)}catch(error){console.warn("Biblical Treasures V13 enhancement warning",error)}
  }catch(error){
   console.error("Biblical match-three launch error",error);
   window.AppErrorBoundary?.report?.(error,{kind:"game-load",source:"biblical-match-three-launcher",fatal:false});
