@@ -1,8 +1,24 @@
 (() => {
 "use strict";
 const VERSION="17";
-const BASE="web/assets/biblical-match-three/icons-v17";
-const file=(name)=>`${BASE}/${name}.webp?v=${VERSION}`;
+const FILES={
+ ark:"web/assets/biblical-match-three/icons-v17/ark.webp",
+ bible:"web/assets/biblical-match-three/icons-v17/bible.webp",
+ bread:"web/assets/biblical-match-three/icons-v17/bread.webp",
+ candle:"web/assets/biblical-match-three/icons-v17/candle.webp",
+ chains:"web/assets/biblical-match-three/icons-v17/chains.webp",
+ covenant:"web/assets/biblical-match-three/icons-v17/covenant.webp",
+ crown:"web/assets/biblical-match-three/icons-v17/crown.webp",
+ dove:"web/assets/biblical-match-three/icons-v17/dove.webp",
+ fish:"web/assets/biblical-match-three/icons-v17/fish.webp",
+ grapes:"web/assets/biblical-match-three/icons-v17/grapes.webp",
+ jericho:"web/assets/biblical-match-three/icons-v17/jericho.webp",
+ score:"web/assets/biblical-match-three/icons-v17/score.webp",
+ sling:"web/assets/biblical-match-three/icons-v17/sling.webp",
+ staff:"web/assets/biblical-match-three/icons-v17/staff.webp",
+ tablets:"web/assets/biblical-match-three/icons-v17/tablets.webp"
+};
+const file=(name)=>`${FILES[name]}?v=${VERSION}`;
 const art={
  version:17,
  kind:"file-webp-v17",
