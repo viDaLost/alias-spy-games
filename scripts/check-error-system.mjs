@@ -65,7 +65,26 @@ const friendlyText = await page.locator('.app-friendly-error').innerText();
 if (!/Не удалось открыть игру/.test(friendlyText)) throw new Error('Handled technical error was not normalized');
 if (/Three\.js/.test(friendlyText)) throw new Error('Dependency name leaked into friendly error');
 
-console.log('OK: fatal and handled technical errors are user-friendly and reported.');
+await page.evaluate(() => {
+  document.querySelector('.app-friendly-error')?.remove();
+  document.body.dataset.mode = 'game';
+  document.body.dataset.currentGame = 'biblical-match-three';
+  window.__bmtRetryCount = 0;
+  window.__bmtRetryOptions = null;
+  window.openBiblicalMatchThree = (options) => { window.__bmtRetryCount += 1; window.__bmtRetryOptions = options; };
+  window.AppErrorBoundary.showFatal('biblical-match-three');
+});
+await page.locator('.app-fatal-error__retry').click();
+const retryState = await page.evaluate(() => ({ count: window.__bmtRetryCount, options: window.__bmtRetryOptions }));
+if (retryState.count !== 1 || retryState.options?.retry !== true) throw new Error(`Biblical retry did not use dedicated launcher: ${JSON.stringify(retryState)}`);
+if (await page.locator('#app-fatal-error').count()) throw new Error('Biblical fatal overlay did not close on retry');
+
+await page.evaluate(() => setTimeout(() => { throw new Error('BMT_OPTIONAL_UI_FAILURE'); }, 0));
+await page.waitForTimeout(250);
+if (await page.locator('#app-fatal-error').count()) throw new Error('Unscoped Biblical UI error should be reported without blocking the game');
+if (!reports.some((item) => item.event === 'client_error' && String(item.message || '').includes('BMT_OPTIONAL_UI_FAILURE'))) throw new Error('Biblical optional UI error was not reported');
+
+console.log('OK: fatal errors, handled load errors and Biblical Treasures recovery are user-friendly and reported.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
