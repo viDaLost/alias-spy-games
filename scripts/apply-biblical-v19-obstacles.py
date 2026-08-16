@@ -1,0 +1,82 @@
+from pathlib import Path
+
+def patch(path, old, new, count=1):
+    p=Path(path); text=p.read_text(); found=text.count(old)
+    if found != count: raise SystemExit(f'{path}: expected {count}, got {found}: {old[:100]!r}')
+    p.write_text(text.replace(old,new,count))
+
+game='web/games/biblical-match-three.js'
+marker='''function currentSymbolAsset(id) {
+  const symbol = SYMBOL_BY_ID[id];
+  if (!symbol) return "";
+  const key = id === "lamp" ? "candle" : id;
+  return window.BiblicalMatchThreeV5Art?.symbols?.[key] || window.BiblicalMatchThreeV4Art?.symbols?.[key] || symbol.asset;
+}
+'''
+patch(game, marker, marker+'''
+function currentBlockerAsset(type) {
+  const obstacles = window.BiblicalMatchThreeV5Art?.obstacles || window.BiblicalMatchThreeV4Art?.obstacles || {};
+  const key = type === "chain" ? "chains" : type === "tablet" ? "tablets" : type === "lamp" ? "candle" : "";
+  return key ? (obstacles[key] || "") : "";
+}
+''')
+old='''  if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); } else if (blockerMark) blockerMark.innerHTML = "";
+}
+
+function blockerMarkup(blocker) {
+  if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet"><i></i><b>${blocker.layers > 1 ? blocker.layers : ""}</b></span>`;
+  if (blocker.type === "chain") return `<span class="bmt-blocker__chain"><i></i><i></i>${blocker.layers > 1 ? `<b>${blocker.layers}</b>` : ""}</span>`;
+  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp">${blocker.lit ? "✦" : "·"}</span>`;
+  return "";
+}
+'''
+new='''  if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); const label = BLOCKER_META[blocker.type]?.label || blocker.type; tile.setAttribute("aria-label", `${tile.getAttribute("aria-label") || "Фишка"}, препятствие ${label}${blocker.layers > 1 ? `, ${blocker.layers} слоя` : ""}`); } else if (blockerMark) blockerMark.innerHTML = "";
+}
+
+function blockerMarkup(blocker) {
+  const src = currentBlockerAsset(blocker.type);
+  const art = src ? `<img class="bmt-blocker-art" src="${src}" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async" data-bmt-raster="webp-v17">` : "";
+  const badge = blocker.layers > 1 ? `<b class="bmt-blocker__layers" aria-hidden="true">${blocker.layers}</b>` : "";
+  if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet" data-blocker-type="tablet">${art || '<i class="bmt-blocker-fallback">▦</i>'}${badge}</span>`;
+  if (blocker.type === "chain") return `<span class="bmt-blocker__chain" data-blocker-type="chain">${art || '<i class="bmt-blocker-fallback">◇</i>'}${badge}</span>`;
+  if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp">${art || '<i class="bmt-blocker-fallback">✦</i>'}<i class="bmt-blocker__lamp-state" aria-hidden="true">${blocker.lit ? "✦" : ""}</i></span>`;
+  return "";
+}
+'''
+patch(game, old, new)
+
+css=Path('web/styles/biblical-match-three-v15-polish.css')
+css.write_text(css.read_text()+r'''
+
+/* V19: obstacle artwork must be unmistakable on transparent icon-only cells. */
+body[data-current-game="biblical-match-three"] .bmt-blocker{inset:-5%!important;z-index:9!important;display:grid!important;place-items:center!important;overflow:visible!important;pointer-events:none!important}
+body[data-current-game="biblical-match-three"] .bmt-blocker__tablet,body[data-current-game="biblical-match-three"] .bmt-blocker__chain,body[data-current-game="biblical-match-three"] .bmt-blocker__lamp{position:absolute!important;inset:-4%!important;width:auto!important;height:auto!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;display:grid!important;place-items:center!important;overflow:visible!important;color:inherit!important}
+body[data-current-game="biblical-match-three"] .bmt-blocker__tablet::before,body[data-current-game="biblical-match-three"] .bmt-blocker__tablet::after,body[data-current-game="biblical-match-three"] .bmt-blocker__chain::before,body[data-current-game="biblical-match-three"] .bmt-blocker__chain::after{display:none!important;content:none!important}
+body[data-current-game="biblical-match-three"] .bmt-blocker-art{display:block!important;width:118%!important;height:118%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center!important;opacity:1!important;visibility:visible!important;filter:drop-shadow(0 3px 4px rgba(24,37,70,.42))!important;transform:none!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-chain .bmt-blocker-art{width:128%!important;height:128%!important;filter:drop-shadow(0 3px 4px rgba(23,45,76,.5)) contrast(1.1)!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-tablet .bmt-blocker-art{width:116%!important;height:116%!important;filter:drop-shadow(0 3px 4px rgba(68,55,34,.42)) contrast(1.08)!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-lamp .bmt-blocker-art{width:92%!important;height:92%!important;filter:drop-shadow(0 3px 5px rgba(121,79,10,.44))!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-chain .bmt-piece-wrap{opacity:.72!important;filter:saturate(.82) brightness(.94)!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-tablet .bmt-piece-wrap{opacity:.5!important;filter:saturate(.72) brightness(.95)!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.has-lamp .bmt-piece-wrap{opacity:.62!important;filter:saturate(.8) brightness(.96)!important}
+body[data-current-game="biblical-match-three"] .bmt-blocker__layers{position:absolute!important;right:-1px!important;top:-1px!important;bottom:auto!important;z-index:4!important;min-width:19px!important;height:19px!important;padding:0 4px!important;border:2px solid rgba(255,255,255,.96)!important;border-radius:999px!important;background:#5146d9!important;color:#fff!important;box-shadow:0 2px 6px rgba(36,29,104,.35)!important;display:grid!important;place-items:center!important;font-size:10px!important;line-height:1!important;font-weight:950!important}
+body[data-current-game="biblical-match-three"] .bmt-blocker__lamp-state{position:absolute!important;right:4%!important;bottom:5%!important;z-index:4!important;width:17px!important;height:17px!important;border-radius:50%!important;display:grid!important;place-items:center!important;background:rgba(255,255,255,.92)!important;color:#c18411!important;font-size:11px!important;font-style:normal!important;font-weight:950!important;box-shadow:0 1px 5px rgba(80,55,8,.2)!important}
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-blocker-art{filter:brightness(1.17) drop-shadow(0 0 8px rgba(255,196,53,.85))!important}
+body[data-current-game="biblical-match-three"] .bmt-blocker-fallback{font-style:normal!important;font-size:clamp(24px,7vw,42px)!important;font-weight:950!important;text-shadow:0 2px 5px rgba(20,35,60,.28)!important}
+''')
+
+patch('web/js/biblical-match-three-launcher.js','const VERSION="18";','const VERSION="19";')
+patch('index.html','web/js/biblical-match-three-launcher.js?v=18','web/js/biblical-match-three-launcher.js?v=19')
+
+p=Path('scripts/check-biblical-match-three.mjs'); text=p.read_text()
+text=text.replace('launcher.includes(\'VERSION="18"\')','launcher.includes(\'VERSION="19"\')',1).replace("'V18 three-user private access gate missing'","'V19 three-user private access gate missing'",1)
+needle="ok(game.includes('is-blocker-breaking')&&css15.includes('bmt-v18-blocker-break'),'V18 obstacle animation missing');"
+if text.count(needle)!=1: raise SystemExit('static obstacle marker missing')
+text=text.replace(needle,needle+"ok(game.includes('currentBlockerAsset')&&game.includes('bmt-blocker-art')&&game.includes('data-blocker-type=\\\"chain\\\"'),'V19 obstacle WebP markup missing');ok(css15.includes('V19: obstacle artwork')&&css15.includes('.bmt-blocker-art')&&css15.includes('.bmt-blocker__layers'),'V19 visible obstacle styling missing');",1)
+text=text.replace("console.log('OK: Biblical Treasures V18 shaped-board logic/direct-WebP checks passed');","console.log('OK: Biblical Treasures V19 shaped-board logic + visible obstacle WebP checks passed');",1); p.write_text(text)
+
+p=Path('scripts/check-biblical-match-three-visual.mjs'); text=p.read_text().replace("const V='18';","const V='19';",1)
+old="const hardState=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet,.bmt-tile.has-lamp').length}));if(hardState.rows!==8||hardState.moves!=='30'||hardState.shape!=='cross'||hardState.blockers<14)throw new Error(`hard ${JSON.stringify(hardState)}`);"
+new="const hardState=await page.evaluate(()=>({rows:+document.querySelector('.bmt-board')?.dataset.rows,moves:document.getElementById('bmt-moves')?.textContent?.trim(),shape:document.querySelector('.bmt-board')?.dataset.shape,blockers:document.querySelectorAll('.bmt-tile.has-chain,.bmt-tile.has-tablet,.bmt-tile.has-lamp').length,obstacles:[...document.querySelectorAll('.bmt-blocker-art')].map(img=>({src:img.getAttribute('src')||'',w:img.naturalWidth,h:img.naturalHeight,tag:img.dataset.bmtRaster,visibility:getComputedStyle(img).visibility,opacity:+getComputedStyle(img).opacity}))}));if(hardState.rows!==8||hardState.moves!=='30'||hardState.shape!=='cross'||hardState.blockers<14)throw new Error(`hard ${JSON.stringify(hardState)}`);if(hardState.obstacles.length<14||hardState.obstacles.some(x=>!goodSrc(x.src)||x.w<64||x.h<64||x.tag!=='webp-v17'||x.visibility==='hidden'||x.opacity<.95)||!hardState.obstacles.some(x=>/chains\\.webp/.test(x.src))||!hardState.obstacles.some(x=>/tablets\\.webp/.test(x.src))||!hardState.obstacles.some(x=>/candle\\.webp/.test(x.src)))throw new Error(`hard obstacle art ${JSON.stringify(hardState.obstacles)}`);"
+if text.count(old)!=1: raise SystemExit('visual hard marker missing')
+text=text.replace(old,new,1).replace("console.log('OK: Biblical Treasures V18 private access + goals + shapes + free difficulty + direct WebP + visible swipe passed')","console.log('OK: Biblical Treasures V19 visible obstacles + goals + shapes + free difficulty + direct WebP + swipe passed')",1); p.write_text(text)
