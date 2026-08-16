@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const VERSION="15";
+const VERSION="16";
 const PART_URLS=[
  "web/assets/biblical-match-three/hq-v5/atlas-00.txt",
  "web/assets/biblical-match-three/hq-v5/atlas-01.txt",
@@ -18,6 +18,7 @@ const FISH_URL="web/assets/biblical-match-three/hq-v5/symbols/fish.webp";
 const CELL=128;
 const EXPECTED_W=640;
 const EXPECTED_H=768;
+const ICON_URLS=new Set();
 const POS={
  symbols:{bible:[0,0],fish:[1,0],dove:[2,0],candle:[3,0],crown:[4,0],ark:[0,1],bread:[1,1],grapes:[2,1],tablets:[3,1]},
  boosters:{manna:[4,1],oil:[0,2],covenant:[1,2],sling:[2,2],staff:[3,2],jericho:[4,2],ark:[0,3]},
@@ -53,13 +54,23 @@ async function loadAtlas(){
   return {img,objectUrl};
  }catch(error){URL.revokeObjectURL(objectUrl);throw error}
 }
-function crop(img,col,row){
- const canvas=document.createElement("canvas");canvas.width=CELL;canvas.height=CELL;
- const ctx=canvas.getContext("2d",{alpha:true});ctx.clearRect(0,0,CELL,CELL);ctx.drawImage(img,col*CELL,row*CELL,CELL,CELL,0,0,CELL,CELL);
- const webp=canvas.toDataURL("image/webp",0.96);
- return /^data:image\/webp/i.test(webp)?webp:canvas.toDataURL("image/png");
+function canvasBlob(canvas,type,quality){
+ return new Promise(resolve=>canvas.toBlob(blob=>resolve(blob||null),type,quality));
 }
-function makeGroup(img,defs){return Object.fromEntries(Object.entries(defs).map(([key,[c,r]])=>[key,crop(img,c,r)]))}
+async function crop(img,col,row){
+ const canvas=document.createElement("canvas");canvas.width=CELL;canvas.height=CELL;
+ const ctx=canvas.getContext("2d",{alpha:true});
+ if(!ctx)throw new Error("HQ icon canvas unavailable");
+ ctx.clearRect(0,0,CELL,CELL);ctx.drawImage(img,col*CELL,row*CELL,CELL,CELL,0,0,CELL,CELL);
+ let blob=await canvasBlob(canvas,"image/webp",0.96);
+ if(!blob)blob=await canvasBlob(canvas,"image/png");
+ if(!blob)throw new Error("HQ icon raster export failed");
+ const url=URL.createObjectURL(blob);ICON_URLS.add(url);return url;
+}
+async function makeGroup(img,defs){
+ const entries=await Promise.all(Object.entries(defs).map(async([key,[c,r]])=>[key,await crop(img,c,r)]));
+ return Object.fromEntries(entries);
+}
 async function warmSource(src){if(!src)return false;try{await waitForImage(src,5000);return true}catch{return false}}
 async function warmArt(art){
  const values=[...Object.values(art.symbols),...Object.values(art.boosters),...Object.values(art.goals),...Object.values(art.obstacles)];
@@ -81,7 +92,7 @@ function patchLegacy(root=document,art=window.BiblicalMatchThreeV5Art){
   if(!next){const match=current.match(LEGACY_SYMBOL);if(match)next=symbolSource(match[1],art)}
   if(!next&&/hq-v5\/symbols\/ark\.webp/i.test(current))next=symbolSource("ark",art);
   if(next&&current!==next)img.src=next;
-  if(next){img.dataset.bmtRaster="hq-v15";img.decoding="sync";img.loading="eager";img.draggable=false}
+  if(next){img.dataset.bmtRaster="hq-v16";img.decoding="sync";img.loading="eager";img.draggable=false}
  });
 }
 function publish(art){
@@ -97,7 +108,10 @@ function publish(art){
 async function init(){
  const {img,objectUrl}=await loadAtlas();
  try{
-  const art={version:15,symbols:makeGroup(img,POS.symbols),boosters:makeGroup(img,POS.boosters),goals:makeGroup(img,POS.goals),obstacles:makeGroup(img,POS.obstacles),kind:"raster-hq-v15",sourceSize:CELL};
+  const [symbols,boosters,goals,obstacles]=await Promise.all([
+   makeGroup(img,POS.symbols),makeGroup(img,POS.boosters),makeGroup(img,POS.goals),makeGroup(img,POS.obstacles)
+  ]);
+  const art={version:16,symbols,boosters,goals,obstacles,kind:"raster-hq-v16",sourceSize:CELL,transport:"blob"};
   const atlasFish=art.symbols.fish;
   art.symbols.fish=versioned(FISH_URL);
   if(!(await warmSource(art.symbols.fish)))art.symbols.fish=atlasFish;
@@ -109,5 +123,5 @@ window.BiblicalMatchThreeV5ArtReady=init().catch(error=>{
  console.error("Biblical Treasures HQ art failed",error);
  throw error;
 });
-window.__BMTV5Raster={version:15,scan:()=>patchLegacy(document),symbolSource,boosterSource};
+window.__BMTV5Raster={version:16,scan:()=>patchLegacy(document),symbolSource,boosterSource};
 })();
