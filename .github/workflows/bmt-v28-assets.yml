@@ -1,0 +1,74 @@
+name: Build Biblical Treasures V28 assets
+
+on:
+  push:
+    branches: [bmt-v28-targeted-fix]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bmt-v28-targeted-fix
+          fetch-depth: 0
+      - name: Decode Biblical Treasures V28 raster assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d .bmt-v28-assets ]; then
+            echo "Biblical Treasures V28 raster assets are already decoded."
+            exit 0
+          fi
+
+          mkdir -p web/assets/biblical-match-three/icons-v28
+
+          cat $(ls .bmt-v28-assets/completion-1.*.txt | sort -V) | base64 -d > web/assets/biblical-match-three/completion-1-star-v28.webp
+          cat $(ls .bmt-v28-assets/completion-2.*.txt | sort -V) | base64 -d > web/assets/biblical-match-three/completion-2-stars-v28.webp
+
+          test "$(git hash-object web/assets/biblical-match-three/completion-1-star-v28.webp)" = "6f4f21f4bee439f446acd481285c6c5b174f141c"
+          test "$(git hash-object web/assets/biblical-match-three/completion-2-stars-v28.webp)" = "99041d52f35ba315589ab382ca609979c0623b47"
+
+          # Build the three-star result from the supplied two-star HQ artwork by
+          # copying the matching-size gold side star over the remaining silver side star.
+          if command -v magick >/dev/null 2>&1; then IM=magick; else IM=convert; fi
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp -crop 112x112+196+374 +repage /tmp/bmt-gold-side-star.png
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp /tmp/bmt-gold-side-star.png -geometry +398+374 -composite -quality 94 web/assets/biblical-match-three/completion-3-stars-v28.webp
+
+          # Reuse the high-quality raster lamp blob previously uploaded to this repository.
+          gh api "repos/${GITHUB_REPOSITORY}/git/blobs/e4159639ef9f390bfe81130804b3c4908f9d1c78" --jq .content | tr -d '\n' | base64 -d > web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          test "$(git hash-object web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)" = "e4159639ef9f390bfe81130804b3c4908f9d1c78"
+
+          # Replace the old Bible-only menu icon with a chest crop from the new HQ result art.
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp -crop 460x460+130+20 +repage -resize 256x256^ -gravity center -extent 256x256 /tmp/bmt-menu-source.png
+          "$IM" -size 256x256 xc:none -fill white -draw 'roundrectangle 4,4 251,251 42,42' /tmp/bmt-menu-mask.png
+          "$IM" /tmp/bmt-menu-source.png /tmp/bmt-menu-mask.png -alpha off -compose CopyOpacity -composite -stroke '#b89cff' -strokewidth 5 -fill none -draw 'roundrectangle 4,4 251,251 42,42' -quality 92 web/assets/icons/biblical-treasures.webp
+
+          # Remove only obsolete Biblical Treasures assets requested by the user.
+          rm -f web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          rm -f web/assets/biblical-match-three/completion-1-star-v26.avif \
+                web/assets/biblical-match-three/completion-2-stars-v26.avif \
+                web/assets/biblical-match-three/completion-3-stars-v26.avif
+          rm -rf .bmt-v28-assets
+
+          # Sanity-check raster dimensions.
+          identify web/assets/biblical-match-three/completion-1-star-v28.webp
+          identify web/assets/biblical-match-three/completion-2-stars-v28.webp
+          identify web/assets/biblical-match-three/completion-3-stars-v28.webp
+          identify web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          identify web/assets/icons/biblical-treasures.webp
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .bmt-v28-assets web/assets/biblical-match-three web/assets/icons/biblical-treasures.webp
+          if git diff --cached --quiet; then
+            echo "No asset changes to commit."
+            exit 0
+          fi
+          git commit -m "Add Biblical Treasures V28 raster assets"
+          git push origin HEAD:bmt-v28-targeted-fix
