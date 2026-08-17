@@ -1,0 +1,101 @@
+name: Merge targeted Biblical Treasures V28 tree to production
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  merge-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge, validate and deploy only Biblical Treasures V28
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main bmt-v28-targeted-fix
+
+          # Merge the already prepared feature tree. If it is already in main,
+          # this is intentionally a no-op apart from deleting this temporary helper.
+          git merge --no-commit --no-ff origin/bmt-v28-targeted-fix || {
+            git status --short
+            exit 1
+          }
+
+          rm -f .github/workflows/bmt-v28-assets.yml \
+                .github/workflows/bmt-v28-finalize.yml \
+                .github/workflows/bmt-v28-publish.yml \
+                .github/workflows/bmt-v28-deploy.yml \
+                .github/workflows/bmt-v28-deploy-retry.yml \
+                .github/workflows/bmt-v28-force-deploy.yml \
+                .github/workflows/bmt-v28-production-verify.yml \
+                .github/workflows/bmt-v28-merge-production.yml
+          rm -rf .bmt-v28-assets
+
+          # Exact requested production invariants.
+          test -f web/assets/biblical-match-three/completion-1-star-v28.webp
+          test -f web/assets/biblical-match-three/completion-2-stars-v28.webp
+          test -f web/assets/biblical-match-three/completion-3-stars-v28.webp
+          test -f web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          test ! -e web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          test ! -e web/assets/biblical-match-three/completion-1-star-v26.avif
+          test ! -e web/assets/biblical-match-three/completion-2-stars-v26.avif
+          test ! -e web/assets/biblical-match-three/completion-3-stars-v26.avif
+          grep -q 'completion-1-star-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-2-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-3-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'icons-v28/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js
+          grep -q 'callbackSource' web/js/v27-biblical-treasures-hotfix.js
+          grep -q '\.special' web/js/v27-biblical-treasures-hotfix.js
+          grep -q 'biblical-treasures.webp?v=28' web/js/v27-biblical-treasures-hotfix.js
+          node --check web/js/v23-biblical-treasures-polish.js
+          node --check web/js/v24-biblical-treasures-board.js
+          node --check web/js/v27-biblical-treasures-hotfix.js
+
+          # Refuse any final working-tree changes outside this game's requested scope
+          # (temporary helper deletions are permitted and do not survive the commit).
+          mapfile -t changed < <(git diff --name-only origin/main)
+          for path in "${changed[@]}"; do
+            case "$path" in
+              .github/workflows/bmt-v28-*.yml|\
+              index.html|\
+              web/js/v22-game-loader.js|\
+              web/js/v23-biblical-treasures-polish.js|\
+              web/js/v24-biblical-treasures-board.js|\
+              web/js/v27-biblical-treasures-hotfix.js|\
+              web/js/v22-home-art.js|\
+              scripts/check-biblical-match-three-v27-ui.mjs|\
+              web/assets/icons/biblical-treasures.webp|\
+              web/assets/biblical-match-three/completion-1-star-v28.webp|\
+              web/assets/biblical-match-three/completion-2-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-3-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-1-star-v26.avif|\
+              web/assets/biblical-match-three/completion-2-stars-v26.avif|\
+              web/assets/biblical-match-three/completion-3-stars-v26.avif|\
+              web/assets/biblical-match-three/icons-v27/lamp-unlit.svg|\
+              web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)
+                ;;
+              *) echo "Unexpected unrelated path: $path" >&2; exit 1 ;;
+            esac
+          done
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Feature tree is already in main; only no-op verification was required."
+          else
+            git commit -m "Publish targeted Biblical Treasures V28 fixes"
+          fi
+          git push origin HEAD:main
+
+          # Explicit branch-based Pages rebuild for this exact production tree.
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
