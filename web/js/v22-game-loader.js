@@ -2,7 +2,7 @@
   'use strict';
   const GUARD = 'web/js/v22-legacy-tutorial-guard.js?v=22';
   const POLISH = 'web/js/v22-game-polish.js?v=22';
-  const V23 = 'web/js/v23-biblical-treasures-polish.js?v=23';
+  const V23 = 'web/js/v23-biblical-treasures-polish.js?v=24';
   let loading = false;
 
   function appendScript(src, marker) {
@@ -27,7 +27,7 @@
       if (!window.__bmtV22GamePolishInstalled) await appendScript(POLISH, 'v22GamePolish');
       await appendScript(V23, 'v23BiblicalTreasuresPolish');
     } catch (error) {
-      console.error('[Biblical Treasures V23]', error);
+      console.error('[Biblical Treasures V24]', error);
     } finally {
       loading = false;
     }
