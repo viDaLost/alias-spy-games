@@ -1,0 +1,81 @@
+/* V24 Biblical Treasures board: user-supplied backdrop and a precise boundary behind the pieces. */
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background-color:#eaf2ff!important;
+  background-image:url("../assets/biblical-match-three/board-background-v24.webp?v=24")!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  border:1px solid rgba(112,103,191,.28)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.62),0 10px 28px rgba(64,67,120,.11)!important;
+}
+
+/* Do not tint or cover the supplied artwork with the older V23 layers. */
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap::before{
+  background:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board{
+  position:relative!important;
+  z-index:2!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board::before{
+  display:none!important;
+  content:none!important;
+}
+
+/* The old boundary was z-index:12 and visibly crossed the artwork. V24 disables it. */
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board > .bmt-v23-boundary{
+  display:none!important;
+}
+
+/* V24 traces the real active-cell mask, not an approximate shape polygon. */
+body[data-current-game="biblical-match-three"] .bmt-v24-boundary-underlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  overflow:visible;
+  pointer-events:none;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-boundary-underlay path{
+  fill:none;
+  vector-effect:non-scaling-stroke;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-boundary-soft{
+  stroke:rgba(79,69,151,.18);
+  stroke-width:5px;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-boundary-line{
+  stroke:rgba(123,113,205,.56);
+  stroke-width:2px;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-boundary-light{
+  stroke:rgba(255,255,255,.88);
+  stroke-width:.8px;
+}
+
+/* Pieces and blockers always paint above the boundary. */
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board > .bmt-tile{
+  position:relative!important;
+  z-index:2!important;
+}
+
+/* Keep holes visually empty so the supplied background is visible through the board shape. */
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board > .bmt-tile.is-hole{
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+
+@media (max-width:350px){
+  body[data-current-game="biblical-match-three"] .bmt-v24-boundary-soft{stroke-width:4px}
+  body[data-current-game="biblical-match-three"] .bmt-v24-boundary-line{stroke-width:1.7px}
+}

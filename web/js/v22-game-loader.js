@@ -3,6 +3,7 @@
   const GUARD = 'web/js/v22-legacy-tutorial-guard.js?v=22';
   const POLISH = 'web/js/v22-game-polish.js?v=22';
   const V23 = 'web/js/v23-biblical-treasures-polish.js?v=23';
+  const V24 = 'web/js/v24-biblical-treasures-board.js?v=24';
   let loading = false;
 
   function appendScript(src, marker) {
@@ -19,15 +20,16 @@
   }
 
   async function load() {
-    if (loading || window.__bmtV23PolishInstalled) return;
+    if (loading || window.__bmtV24BoardInstalled) return;
     if (document.body?.dataset?.currentGame !== 'biblical-match-three') return;
     loading = true;
     try {
       await appendScript(GUARD, 'v22TutorialGuard');
       if (!window.__bmtV22GamePolishInstalled) await appendScript(POLISH, 'v22GamePolish');
-      await appendScript(V23, 'v23BiblicalTreasuresPolish');
+      if (!window.__bmtV23PolishInstalled) await appendScript(V23, 'v23BiblicalTreasuresPolish');
+      await appendScript(V24, 'v24BiblicalTreasuresBoard');
     } catch (error) {
-      console.error('[Biblical Treasures V23]', error);
+      console.error('[Biblical Treasures V24]', error);
     } finally {
       loading = false;
     }
