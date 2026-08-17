@@ -6,9 +6,9 @@
   const VERSION = '28';
   const STYLE_ID = 'bmt-v23-polish-style';
   const HERO_ASSETS = {
-    1: `web/assets/biblical-match-three/completion-1-star-v28.jpg?v=${VERSION}`,
-    2: `web/assets/biblical-match-three/completion-2-stars-v28.jpg?v=${VERSION}`,
-    3: `web/assets/biblical-match-three/completion-3-stars-v28.jpg?v=${VERSION}`,
+    1: `web/assets/biblical-match-three/completion-1-star-v28.webp?v=${VERSION}`,
+    2: `web/assets/biblical-match-three/completion-2-stars-v28.webp?v=${VERSION}`,
+    3: `web/assets/biblical-match-three/completion-3-stars-v28.webp?v=${VERSION}`,
   };
   let scheduled = false;
   let resultPoll = 0;
