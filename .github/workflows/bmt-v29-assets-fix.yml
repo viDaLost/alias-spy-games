@@ -30,34 +30,37 @@ jobs:
           decode() {
             local prefix="$1" out="$2" list
             list="$(git ls-tree -r --name-only origin/bmt-v29-assets .bmt-v29-assets | grep -E "^\\.bmt-v29-assets/${prefix}\\.[0-9]+\\.txt$" | sort -V)"
-            test -n "$list"
+            if [ -z "$list" ]; then
+              echo "::error title=BMT V29 asset repair::No chunks for ${prefix}"
+              exit 1
+            fi
             : > /tmp/bmt.b64
             while IFS= read -r f; do
               git show "origin/bmt-v29-assets:$f" | tr -d '\r\n' >> /tmp/bmt.b64
             done <<< "$list"
-            base64 -d /tmp/bmt.b64 > "$out"
+            if ! base64 -d /tmp/bmt.b64 > "$out"; then
+              echo "::error title=BMT V29 asset repair::Base64 decode failed for ${prefix}"
+              exit 1
+            fi
             rm -f /tmp/bmt.b64
           }
 
-          decode c1 web/assets/biblical-match-three/completion-1-star-v29.webp
-          decode c2 web/assets/biblical-match-three/completion-2-stars-v29.webp
-
-          node - <<'NODE'
-          const fs = require('fs');
-          for (const f of [
-            'web/assets/biblical-match-three/completion-1-star-v29.webp',
-            'web/assets/biblical-match-three/completion-2-stars-v29.webp',
-          ]) {
-            const b = fs.readFileSync(f);
-            if (b.length < 50000 || b.subarray(0,4).toString('ascii') !== 'RIFF' || b.subarray(8,12).toString('ascii') !== 'WEBP') {
-              throw new Error(`Invalid repaired WebP: ${f} (${b.length} bytes)`);
-            }
-            console.log(`${f}: ${b.length} bytes, valid RIFF/WEBP`);
+          check_webp() {
+            local f="$1" size riff webp
+            size="$(wc -c < "$f" | tr -d ' ')"
+            riff="$(dd if="$f" bs=1 count=4 status=none 2>/dev/null || true)"
+            webp="$(dd if="$f" bs=1 skip=8 count=4 status=none 2>/dev/null || true)"
+            echo "$f => ${size} bytes; magic=${riff}/${webp}"
+            if [ "$size" -lt 50000 ] || [ "$riff" != "RIFF" ] || [ "$webp" != "WEBP" ]; then
+              echo "::error title=BMT V29 asset repair::Invalid repaired WebP ${f}: ${size} bytes, ${riff}/${webp}"
+              exit 1
+            fi
           }
-          NODE
 
-          file web/assets/biblical-match-three/completion-1-star-v29.webp | grep -qi 'Web/P\|WebP'
-          file web/assets/biblical-match-three/completion-2-stars-v29.webp | grep -qi 'Web/P\|WebP'
+          decode c1 web/assets/biblical-match-three/completion-1-star-v29.webp
+          check_webp web/assets/biblical-match-three/completion-1-star-v29.webp
+          decode c2 web/assets/biblical-match-three/completion-2-stars-v29.webp
+          check_webp web/assets/biblical-match-three/completion-2-stars-v29.webp
 
           rm -f .github/workflows/bmt-v29-assets-fix.yml
           git add -A .github/workflows/bmt-v29-assets-fix.yml \
