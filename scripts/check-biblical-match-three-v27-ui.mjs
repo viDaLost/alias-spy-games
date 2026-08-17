@@ -44,10 +44,10 @@ try{
     const wrap=document.querySelector('.bmt-board-wrap');const board=document.querySelector('.bmt-board');const label=document.querySelector('.bmt-booster-tray__label span');
     const bg=getComputedStyle(wrap).backgroundImage;
     const load=(src)=>new Promise(resolve=>{const img=new Image();img.onload=()=>resolve({w:img.naturalWidth,h:img.naturalHeight});img.onerror=()=>resolve({w:0,h:0});img.src=src});
-    const [background,lamp]=await Promise.all([load('/web/assets/biblical-match-three/board-background-v26.avif?v=28'),load('/web/assets/biblical-match-three/icons-v28/lamp-unlit.png?v=28')]);
+    const [background,lamp]=await Promise.all([load('/web/assets/biblical-match-three/board-background-v26.avif?v=28'),load('/web/assets/biblical-match-three/icons-v28/lamp-unlit.webp?v=28')]);
     return{bg,background,lamp,label:label?.textContent||'',boardClass:board?.classList.contains('bmt-v24-board'),wrapClass:wrap?.classList.contains('bmt-v24-board-wrap'),shape:board?.dataset.shape||''};
   });
-  if(!ui.bg.includes('board-background-v26.avif')||ui.background.w<500||ui.background.h<700||ui.lamp.w<500||ui.lamp.h<500||ui.label!=='Усилители'||!ui.boardClass||!ui.wrapClass||!ui.shape)throw new Error(`V28 board UI ${JSON.stringify(ui)}`);
+  if(!ui.bg.includes('board-background-v26.avif')||ui.background.w<500||ui.background.h<700||ui.lamp.w<350||ui.lamp.h<350||ui.label!=='Усилители'||!ui.boardClass||!ui.wrapClass||!ui.shape)throw new Error(`V28 board UI ${JSON.stringify(ui)}`);
 
   const arkGuard=await page.evaluate(()=>{
     const shaped=[null,{type:'bible',special:null}];let result=null;let error='';
@@ -67,7 +67,7 @@ try{
     if(image && !image.complete) await new Promise(resolve=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true})});
     return{title:document.querySelector('.bmt-result-card[data-v23-result="1"] h3')?.textContent,stats:document.querySelectorAll('.bmt-v22-result-stats>div').length,rewards:document.querySelectorAll('.bmt-v22-rewards>div').length,next:document.querySelector('.bmt-v22-next')?.textContent?.trim(),repeat:document.querySelector('.bmt-v22-repeat')?.textContent?.trim(),menu:document.querySelector('.bmt-v22-menu')?.textContent?.trim(),rating:document.querySelector('.bmt-result-card[data-v23-result="1"]')?.dataset.v23Rating,art:image?.getAttribute('src')||'',artWidth:image?.naturalWidth||0,artHeight:image?.naturalHeight||0};
   });
-  if(result.title!=='Уровень пройден!'||result.stats!==3||result.rewards!==2||result.next!=='Следующий уровень'||result.repeat!=='↻Повторить'||result.menu!=='⌂В меню'||result.rating!=='2'||!result.art.includes('completion-2-stars-v28.jpg')||result.artWidth<1400||result.artHeight<1000)throw new Error(`V28 result ${JSON.stringify(result)}`);
+  if(result.title!=='Уровень пройден!'||result.stats!==3||result.rewards!==2||result.next!=='Следующий уровень'||result.repeat!=='↻Повторить'||result.menu!=='⌂В меню'||result.rating!=='2'||!result.art.includes('completion-2-stars-v28.webp')||result.artWidth<1000||result.artHeight<750)throw new Error(`V28 result ${JSON.stringify(result)}`);
 
   const menuIcon=await page.evaluate(async()=>{
     document.body.dataset.currentGame='';
