@@ -23,11 +23,11 @@
     if (!host) return;
     if (host.querySelector(`[data-system-icon="${type}"][data-icon-version="${ICON_VERSION}"]`)) return;
     host.innerHTML = systemIcon(type);
-    host.classList.add('game-card__icon--system-art');
+    if (!host.classList.contains('game-card__icon--system-art')) host.classList.add('game-card__icon--system-art');
   }
 
   function markTitleOnly(button) {
-    button?.classList.add('game-card--title-only-v22');
+    if (button && !button.classList.contains('game-card--title-only-v22')) button.classList.add('game-card--title-only-v22');
   }
 
   function refresh() {
