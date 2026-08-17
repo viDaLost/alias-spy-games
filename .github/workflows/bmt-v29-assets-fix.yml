@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Restore valid V29 completion WebP files only
+      - name: Restore valid V29 completion art only
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -27,23 +27,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin bmt-v29-assets
 
-          decode() {
-            local prefix="$1" out="$2" list
-            list="$(git ls-tree -r --name-only origin/bmt-v29-assets .bmt-v29-assets | grep -E "^\\.bmt-v29-assets/${prefix}\\.[0-9]+\\.txt$" | sort -V)"
-            if [ -z "$list" ]; then
-              echo "::error title=BMT V29 asset repair::No chunks for ${prefix}"
-              exit 1
-            fi
-            : > /tmp/bmt.b64
-            while IFS= read -r f; do
-              git show "origin/bmt-v29-assets:$f" | tr -d '\r\n' >> /tmp/bmt.b64
-            done <<< "$list"
-            if ! base64 -d /tmp/bmt.b64 > "$out"; then
-              echo "::error title=BMT V29 asset repair::Base64 decode failed for ${prefix}"
-              exit 1
-            fi
-            rm -f /tmp/bmt.b64
-          }
+          list="$(git ls-tree -r --name-only origin/bmt-v29-assets .bmt-v29-assets | grep -E '^\.bmt-v29-assets/c1\.[0-9]+\.txt$' | sort -V)"
+          if [ -z "$list" ]; then
+            echo "::error title=BMT V29 asset repair::No one-star chunks found"
+            exit 1
+          fi
+          : > /tmp/bmt-c1.b64
+          while IFS= read -r f; do
+            git show "origin/bmt-v29-assets:$f" | tr -d '\r\n' >> /tmp/bmt-c1.b64
+          done <<< "$list"
+          if ! base64 -d /tmp/bmt-c1.b64 > web/assets/biblical-match-three/completion-1-star-v29.webp; then
+            echo "::error title=BMT V29 asset repair::One-star Base64 decode failed"
+            exit 1
+          fi
+          rm -f /tmp/bmt-c1.b64
 
           check_webp() {
             local f="$1" size riff webp
@@ -56,10 +53,17 @@ jobs:
               exit 1
             fi
           }
-
-          decode c1 web/assets/biblical-match-three/completion-1-star-v29.webp
           check_webp web/assets/biblical-match-three/completion-1-star-v29.webp
-          decode c2 web/assets/biblical-match-three/completion-2-stars-v29.webp
+
+          # Build the two-star result from the valid three-star artwork by restoring
+          # the right silver star from the one-star image. These supplied result arts
+          # share the same 720x540 composition and side-star coordinates.
+          if command -v magick >/dev/null 2>&1; then IM=magick; elif command -v convert >/dev/null 2>&1; then IM=convert; else
+            echo "::error title=BMT V29 asset repair::ImageMagick is unavailable"
+            exit 1
+          fi
+          "$IM" web/assets/biblical-match-three/completion-1-star-v29.webp -crop 112x112+398+374 +repage /tmp/bmt-silver-right.png
+          "$IM" web/assets/biblical-match-three/completion-3-stars-v29.avif /tmp/bmt-silver-right.png -geometry +398+374 -composite -quality 90 web/assets/biblical-match-three/completion-2-stars-v29.webp
           check_webp web/assets/biblical-match-three/completion-2-stars-v29.webp
 
           rm -f .github/workflows/bmt-v29-assets-fix.yml
