@@ -1,0 +1,103 @@
+name: Deploy targeted Biblical Treasures V28 fix
+
+on:
+  push:
+    branches: [bmt-v28-targeted-fix]
+
+permissions:
+  contents: write
+  pages: write
+  actions: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bmt-v28-targeted-fix
+          fetch-depth: 0
+      - name: Verify and deploy the tested Biblical Treasures tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 15
+          git fetch origin main bmt-v28-targeted-fix
+          git reset --hard origin/bmt-v28-targeted-fix
+
+          # Never publish the temporary deployment helper itself.
+          rm -f .github/workflows/bmt-v28-deploy.yml \
+                .github/workflows/bmt-v28-assets.yml \
+                .github/workflows/bmt-v28-finalize.yml \
+                .github/workflows/bmt-v28-publish.yml
+          rm -rf .bmt-v28-assets
+
+          # Exact requested asset/runtime invariants.
+          test -f web/assets/biblical-match-three/completion-1-star-v28.webp
+          test -f web/assets/biblical-match-three/completion-2-stars-v28.webp
+          test -f web/assets/biblical-match-three/completion-3-stars-v28.webp
+          test -f web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          test ! -e web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          test ! -e web/assets/biblical-match-three/completion-1-star-v26.avif
+          test ! -e web/assets/biblical-match-three/completion-2-stars-v26.avif
+          test ! -e web/assets/biblical-match-three/completion-3-stars-v26.avif
+          grep -q 'completion-1-star-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-2-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-3-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'icons-v28/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js
+          grep -q 'callbackSource.includes(".special")' web/js/v27-biblical-treasures-hotfix.js
+          grep -q 'biblical-treasures.webp?v=28' web/js/v27-biblical-treasures-hotfix.js
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/workflows .bmt-v28-assets
+          if ! git diff --cached --quiet; then
+            git commit -m "Remove temporary Biblical Treasures deployment helper"
+          fi
+
+          # No unrelated game/file may be part of the production tree.
+          git fetch origin main
+          mapfile -t changed < <(git diff --name-only origin/main...HEAD)
+          for path in "${changed[@]}"; do
+            case "$path" in
+              index.html|\
+              web/js/v22-game-loader.js|\
+              web/js/v23-biblical-treasures-polish.js|\
+              web/js/v24-biblical-treasures-board.js|\
+              web/js/v27-biblical-treasures-hotfix.js|\
+              web/js/v22-home-art.js|\
+              scripts/check-biblical-match-three-v27-ui.mjs|\
+              web/assets/icons/biblical-treasures.webp|\
+              web/assets/biblical-match-three/completion-1-star-v28.webp|\
+              web/assets/biblical-match-three/completion-2-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-3-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-1-star-v26.avif|\
+              web/assets/biblical-match-three/completion-2-stars-v26.avif|\
+              web/assets/biblical-match-three/completion-3-stars-v26.avif|\
+              web/assets/biblical-match-three/icons-v27/lamp-unlit.svg|\
+              web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)
+                ;;
+              *) echo "Refusing unrelated production path: $path" >&2; exit 1 ;;
+            esac
+          done
+
+          npm install --no-audit --no-fund
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          export CHROME_BIN
+          npm run check:match-three:visual
+
+          # Publish the exact tested feature tree to main.
+          git push origin HEAD:bmt-v28-targeted-fix
+          git push origin HEAD:main
+
+          # GITHUB_TOKEN pushes intentionally do not recursively start workflows;
+          # explicitly request the repository's Pages build. Quality is already
+          # covered above by the dedicated Biblical Treasures browser regression.
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/tmp/pages-build.json || {
+            cat /tmp/pages-build.json 2>/dev/null || true
+            echo "Pages build API did not accept a manual build request." >&2
+            exit 1
+          }
