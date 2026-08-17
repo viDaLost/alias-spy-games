@@ -1,0 +1,47 @@
+name: Verify Biblical Treasures V28 production tree
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  verify-biblical-treasures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify requested Biblical Treasures fixes and remove helper
+        shell: bash
+        run: |
+          set +e
+          status=0
+          test -f web/assets/biblical-match-three/completion-1-star-v28.webp || status=1
+          test -f web/assets/biblical-match-three/completion-2-stars-v28.webp || status=1
+          test -f web/assets/biblical-match-three/completion-3-stars-v28.webp || status=1
+          test -f web/assets/biblical-match-three/icons-v28/lamp-unlit.webp || status=1
+          test ! -e web/assets/biblical-match-three/icons-v27/lamp-unlit.svg || status=1
+          test ! -e web/assets/biblical-match-three/completion-1-star-v26.avif || status=1
+          test ! -e web/assets/biblical-match-three/completion-2-stars-v26.avif || status=1
+          test ! -e web/assets/biblical-match-three/completion-3-stars-v26.avif || status=1
+          grep -q 'completion-1-star-v28.webp' web/js/v23-biblical-treasures-polish.js || status=1
+          grep -q 'completion-2-stars-v28.webp' web/js/v23-biblical-treasures-polish.js || status=1
+          grep -q 'completion-3-stars-v28.webp' web/js/v23-biblical-treasures-polish.js || status=1
+          grep -q 'icons-v28/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js || status=1
+          grep -q 'callbackSource' web/js/v27-biblical-treasures-hotfix.js || status=1
+          grep -q '\.special' web/js/v27-biblical-treasures-hotfix.js || status=1
+          grep -q 'biblical-treasures.webp?v=28' web/js/v27-biblical-treasures-hotfix.js || status=1
+          node --check web/js/v23-biblical-treasures-polish.js || status=1
+          node --check web/js/v24-biblical-treasures-board.js || status=1
+          node --check web/js/v27-biblical-treasures-hotfix.js || status=1
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/bmt-v28-production-verify.yml
+          git add -A .github/workflows/bmt-v28-production-verify.yml
+          git commit -m "Remove temporary Biblical Treasures production verifier"
+          git push origin HEAD:main
+          exit "$status"
