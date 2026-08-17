@@ -8,6 +8,7 @@
   const VERSION = '31';
   const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${VERSION}`;
   const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v31.webp?v=${VERSION}`;
+  const BOARD_WRAP_BACKGROUND = `web/assets/biblical-match-three/board-background-v29.webp?v=${VERSION}`;
   const VISUAL_STYLE_ID = 'bmt-v31-user-art';
   const RESULT_ART = {
     1: `web/assets/biblical-match-three/completion-1-star-v29.webp?v=${VERSION}`,
@@ -76,12 +77,13 @@ body[data-current-game="biblical-match-three"] .bmt-shell.bmt-board-screen{
 }
 body[data-current-game="biblical-match-three"] .bmt-board-wrap,
 body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{
-  background-color:rgba(255,255,255,.16)!important;
-  background-image:none!important;
+  background-color:rgba(255,255,255,.10)!important;
+  background-image:url("${BOARD_WRAP_BACKGROUND}")!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
   border-color:rgba(255,255,255,.28)!important;
   box-shadow:0 10px 28px rgba(73,47,103,.12)!important;
-  -webkit-backdrop-filter:blur(1.5px)!important;
-  backdrop-filter:blur(1.5px)!important;
 }
 body[data-current-game="biblical-match-three"] .bmt-board{background:transparent!important}
 body[data-current-game="biblical-match-three"] .bmt-v31-star-rules{
