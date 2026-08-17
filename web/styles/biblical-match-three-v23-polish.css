@@ -1,0 +1,193 @@
+/* V23 Biblical Treasures polish: high-resolution backdrop, true shape boundary and dedicated completion art. */
+
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v23-board-wrap{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background-color:#eaf2ff!important;
+  background-image:
+    linear-gradient(180deg,rgba(244,249,255,.40),rgba(216,225,255,.22) 48%,rgba(244,238,255,.32)),
+    url("../assets/biblical-match-three/board-background-v23.svg?v=23")!important;
+  background-size:cover!important;
+  background-position:center 46%!important;
+  background-repeat:no-repeat!important;
+  border:1px solid rgba(116,103,198,.34)!important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.68),
+    inset 0 0 34px rgba(99,111,202,.12),
+    0 10px 30px rgba(65,70,126,.12)!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v23-board-wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 12%,rgba(255,255,255,.58),transparent 30%),
+    linear-gradient(90deg,rgba(88,76,186,.08),transparent 15%,transparent 85%,rgba(88,76,186,.08));
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board{
+  position:relative!important;
+  z-index:1!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board::before{
+  display:block!important;
+  content:""!important;
+  position:absolute!important;
+  inset:1.4%!important;
+  z-index:-1!important;
+  pointer-events:none!important;
+  background:linear-gradient(180deg,rgba(231,239,255,.44),rgba(207,220,255,.30))!important;
+  filter:none!important;
+  box-shadow:inset 0 0 24px rgba(255,255,255,.55)!important;
+}
+
+/* Exact vector boundary. It sits above tiles and follows the same named shape as the active mask. */
+body[data-current-game="biblical-match-three"] .bmt-v23-boundary{
+  position:absolute;
+  inset:1.1%;
+  width:97.8%;
+  height:97.8%;
+  z-index:12;
+  overflow:visible;
+  pointer-events:none;
+}
+body[data-current-game="biblical-match-three"] .bmt-v23-boundary path{
+  fill:none;
+  vector-effect:non-scaling-stroke;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+body[data-current-game="biblical-match-three"] .bmt-v23-boundary-shadow{
+  stroke:rgba(42,48,104,.34);
+  stroke-width:6px;
+}
+body[data-current-game="biblical-match-three"] .bmt-v23-boundary-main{
+  stroke:url(#bmtV23BoundaryGradient);
+  stroke-width:3px;
+  filter:url(#bmtV23BoundaryGlow);
+}
+body[data-current-game="biblical-match-three"] .bmt-v23-boundary-highlight{
+  stroke:rgba(255,255,255,.92);
+  stroke-width:1px;
+}
+
+/* Dedicated completion artwork and cleaner result composition. */
+.bmt-result-overlay:has(.bmt-result-card[data-v23-result="1"]){
+  align-items:center!important;
+  padding:14px!important;
+  background:rgba(28,33,68,.60)!important;
+  backdrop-filter:blur(10px) saturate(.9)!important;
+}
+.bmt-result-card[data-v23-result="1"]{
+  width:min(94vw,480px)!important;
+  max-height:min(92dvh,820px)!important;
+  overflow:auto!important;
+  padding:0 18px 18px!important;
+  border-radius:30px!important;
+  background:linear-gradient(180deg,#fff 0,#fff 76%,#f6f9ff 100%)!important;
+  border:1px solid rgba(101,88,201,.18)!important;
+  box-shadow:0 26px 76px rgba(22,27,63,.38)!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero{
+  position:relative!important;
+  height:clamp(156px,24dvh,218px)!important;
+  margin:0 -18px 5px!important;
+  overflow:hidden!important;
+  border-radius:30px 30px 22px 22px!important;
+  background:#ebe9ff!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero::after{
+  content:"";
+  position:absolute;
+  inset:auto 0 0;
+  height:48%;
+  pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(255,255,255,.18) 44%,rgba(255,255,255,.98));
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v23-win-art{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 53%;
+  transform:scale(1.01);
+}
+.bmt-result-card[data-v23-result="1"]>.bmt-result-card__eyebrow{
+  margin-top:1px!important;
+  color:#697591!important;
+  font-size:11px!important;
+  letter-spacing:.115em!important;
+}
+.bmt-result-card[data-v23-result="1"]>h3{
+  margin:5px 0 3px!important;
+  color:#243075!important;
+  font-size:clamp(25px,7vw,31px)!important;
+  line-height:1.02!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-stars{
+  margin:9px 0 14px!important;
+  gap:14px!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-stars span{
+  font-size:clamp(39px,11vw,49px)!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-stats{
+  border-radius:19px!important;
+  background:rgba(251,252,255,.98)!important;
+  box-shadow:0 7px 20px rgba(54,67,122,.07)!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-stats div{padding:12px 6px!important}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-reward-title{margin:14px 0 8px!important}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-rewards{gap:10px!important;margin-bottom:14px!important}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-rewards>div{
+  flex:1 1 0;
+  min-width:0!important;
+  min-height:58px;
+  padding:9px 10px!important;
+  border-radius:18px!important;
+  background:linear-gradient(180deg,#f7faff,#edf4ff)!important;
+  border:1px solid rgba(112,128,183,.08);
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-actions .bmt-v22-next{
+  min-height:58px!important;
+  border-radius:18px!important;
+  font-size:17px!important;
+  background:linear-gradient(135deg,#5339ef,#4030f1 55%,#2f73e9)!important;
+  box-shadow:0 11px 24px rgba(55,46,210,.28)!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-secondary{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-top:11px!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-secondary button{
+  min-height:52px!important;
+  border-radius:17px!important;
+  background:#eef5ff!important;
+  border:1px solid rgba(98,119,174,.08)!important;
+  box-shadow:0 5px 14px rgba(49,64,112,.06)!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-secondary button:active,
+.bmt-result-card[data-v23-result="1"] .bmt-v22-result-actions .bmt-v22-next:active{
+  transform:translateY(1px) scale(.995);
+}
+
+@media (max-height:740px){
+  .bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero{height:128px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-result-stars{margin:5px 0 9px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-result-stars span{font-size:36px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-reward-title{margin:9px 0 6px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-rewards{margin-bottom:9px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-result-actions .bmt-v22-next{min-height:50px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-result-secondary button{min-height:46px!important}
+}
+@media (max-width:350px){
+  .bmt-result-card[data-v23-result="1"]{padding-left:14px!important;padding-right:14px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero{margin-left:-14px!important;margin-right:-14px!important}
+  .bmt-result-card[data-v23-result="1"] .bmt-v22-result-secondary{gap:7px!important}
+}
