@@ -1,17 +1,15 @@
 (() => {
   'use strict';
-
   if (window.__bmtV23PolishInstalled) return;
   window.__bmtV23PolishInstalled = true;
 
-  const VERSION = '26';
+  const VERSION = '27';
   const STYLE_ID = 'bmt-v23-polish-style';
   const HERO_ASSETS = {
     1: `web/assets/biblical-match-three/completion-1-star-v26.avif?v=${VERSION}`,
     2: `web/assets/biblical-match-three/completion-2-stars-v26.avif?v=${VERSION}`,
     3: `web/assets/biblical-match-three/completion-3-stars-v26.avif?v=${VERSION}`,
   };
-
   let scheduled = false;
 
   function ensureStyle() {
@@ -23,7 +21,7 @@
       link.rel = 'stylesheet';
       document.head.appendChild(link);
     }
-    if (!link.getAttribute('href')?.includes(`v=${VERSION}`)) link.href = href;
+    if (link.getAttribute('href') !== href) link.href = href;
   }
 
   function patchBoard(board) {
@@ -38,15 +36,20 @@
   }
 
   function resultRating(card) {
-    const stars = card.querySelectorAll('.bmt-v22-result-stars .is-on').length;
-    return Math.max(1, Math.min(3, stars || 1));
+    const saved = Number(card.dataset.resultStars || card.dataset.rating || card.dataset.stars || 0);
+    if (saved >= 1 && saved <= 3) return saved;
+    const stars = card.querySelector('.bmt-v22-result-stars, .bmt-result-stars');
+    const label = stars?.getAttribute('aria-label') || '';
+    const labelled = Number((label.match(/([1-3])\s*(?:из|\/)/i) || [])[1] || 0);
+    if (labelled >= 1 && labelled <= 3) return labelled;
+    const on = stars?.querySelectorAll('.is-on').length || 0;
+    return Math.max(1, Math.min(3, on || 1));
   }
 
   function patchWinResult(card) {
     if (!card || !card.classList.contains('is-win')) return;
     const hero = card.querySelector('.bmt-v22-win-hero');
     if (!hero) return;
-
     const rating = resultRating(card);
     if (card.dataset.v23Result === '1' && Number(card.dataset.v23Rating) === rating) return;
 
@@ -61,14 +64,9 @@
       stars.setAttribute('aria-hidden', 'true');
       stars.dataset.rating = String(rating);
     }
-
-    const next = card.querySelector('.bmt-v22-next');
-    const repeat = card.querySelector('.bmt-v22-repeat');
-    const menu = card.querySelector('.bmt-v22-menu');
-    if (next) next.setAttribute('aria-label', 'Перейти к следующему уровню');
-    if (repeat) repeat.setAttribute('aria-label', 'Повторить текущий уровень');
-    if (menu) menu.setAttribute('aria-label', 'Вернуться в меню уровней');
-
+    card.querySelector('.bmt-v22-next')?.setAttribute('aria-label', 'Перейти к следующему уровню');
+    card.querySelector('.bmt-v22-repeat')?.setAttribute('aria-label', 'Повторить текущий уровень');
+    card.querySelector('.bmt-v22-menu')?.setAttribute('aria-label', 'Вернуться в меню уровней');
     card.dataset.v23Result = '1';
     card.dataset.v23Rating = String(rating);
   }
@@ -84,7 +82,7 @@
   function schedulePatch() {
     if (scheduled) return;
     scheduled = true;
-    window.requestAnimationFrame(patchAll);
+    requestAnimationFrame(patchAll);
   }
 
   function start() {
@@ -94,7 +92,7 @@
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ['data-current-game', 'data-shape', 'data-v22-result'],
+      attributeFilter: ['data-current-game', 'data-shape', 'data-v22-result', 'data-result-stars'],
     });
   }
 
