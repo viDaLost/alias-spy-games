@@ -2,9 +2,12 @@
   'use strict';
   if (window.__bmtV29HotfixInstalled) return;
   window.__bmtV29HotfixInstalled = true;
+  window.__bmtV30HotfixInstalled = true;
 
-  const VERSION = '29';
+  const VERSION = '30';
   const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${VERSION}`;
+  const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v29.webp?v=${VERSION}`;
+  const VISUAL_STYLE_ID = 'bmt-v30-user-art';
   let pointer = null;
 
   function isBiblicalGame() {
@@ -17,8 +20,19 @@
     if (!img) return;
     if ((img.getAttribute('src') || '') !== MENU_ICON) img.src = MENU_ICON;
     img.alt = 'Иконка игры Библейские сокровища';
-    img.dataset.bmtMenuArt = 'v29';
+    img.dataset.bmtMenuArt = 'v30';
     img.dataset.iconVersion = VERSION;
+  }
+
+  function ensureUserArtwork() {
+    let style = document.getElementById(VISUAL_STYLE_ID);
+    if (!style) {
+      style = document.createElement('style');
+      style.id = VISUAL_STYLE_ID;
+      document.head.appendChild(style);
+    }
+    const css = `body[data-current-game="biblical-match-three"] .bmt-board-wrap,body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{background-color:#f2ecf7!important;background-image:url("${BOARD_BACKGROUND}")!important;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}`;
+    if (style.textContent !== css) style.textContent = css;
   }
 
   function patchLegacyStyleLinks() {
@@ -26,6 +40,22 @@
       const next = `web/styles/biblical-match-three-v21-art.css?v=${VERSION}`;
       if (link.getAttribute('href') !== next) link.href = next;
     });
+  }
+
+  function parseHudScore() {
+    const text = document.getElementById('bmt-score')?.textContent || '';
+    const score = Number(String(text).replace(/[^0-9-]/g, ''));
+    return Number.isFinite(score) ? Math.max(0, Math.floor(score)) : 0;
+  }
+
+  function patchProgressBestScore() {
+    const api = window.BiblicalMatchThreeProgress;
+    if (!api || api.__bmtV30BestScorePatched || typeof api.completeLevel !== 'function') return;
+    const nativeCompleteLevel = api.completeLevel;
+    api.completeLevel = function completeLevelWithBestScore(progress, levelId, rating, reward, totalLevels) {
+      return nativeCompleteLevel.call(this, progress, levelId, rating, reward, totalLevels, parseHudScore());
+    };
+    api.__bmtV30BestScorePatched = true;
   }
 
   function captureResultStars() {
@@ -139,19 +169,26 @@
     document.addEventListener('pointercancel', () => { pointer = null; }, true);
   }
 
+  function patchAll() {
+    patchMenuIcon();
+    patchProgressBestScore();
+    if (isBiblicalGame()) {
+      ensureUserArtwork();
+      patchLegacyStyleLinks();
+      captureResultStars();
+    }
+  }
+
   function start() {
     installArkGuard();
     installLampGuards();
-    patchMenuIcon();
-    patchLegacyStyleLinks();
-    captureResultStars();
-    new MutationObserver(() => {
-      patchMenuIcon();
-      if (isBiblicalGame()) {
-        patchLegacyStyleLinks();
-        captureResultStars();
-      }
-    }).observe(document.body, {
+    patchAll();
+    const progressTimer = window.setInterval(() => {
+      patchProgressBestScore();
+      if (window.BiblicalMatchThreeProgress?.__bmtV30BestScorePatched) window.clearInterval(progressTimer);
+    }, 150);
+    window.setTimeout(() => window.clearInterval(progressTimer), 15000);
+    new MutationObserver(patchAll).observe(document.body, {
       childList: true,
       subtree: true,
       attributes: true,
