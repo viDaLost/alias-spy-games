@@ -1,0 +1,131 @@
+name: Retry targeted Biblical Treasures V28 deploy
+
+on:
+  push:
+    branches: [bmt-v28-targeted-fix]
+
+permissions:
+  contents: write
+  pages: write
+  actions: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bmt-v28-targeted-fix
+          fetch-depth: 0
+      - name: Validate and publish Biblical Treasures only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 15
+          git fetch origin main bmt-v28-targeted-fix
+          git reset --hard origin/bmt-v28-targeted-fix
+          if command -v magick >/dev/null 2>&1; then IM=magick; else IM=convert; fi
+
+          # Self-heal assets only if an earlier branch helper stopped before its asset commit.
+          mkdir -p web/assets/biblical-match-three/icons-v28
+          if [ ! -f web/assets/biblical-match-three/completion-1-star-v28.webp ] && [ -d .bmt-v28-assets ]; then
+            cat $(ls .bmt-v28-assets/completion-1.*.txt | sort -V) | base64 -d > web/assets/biblical-match-three/completion-1-star-v28.webp
+          fi
+          if [ ! -f web/assets/biblical-match-three/completion-2-stars-v28.webp ] && [ -d .bmt-v28-assets ]; then
+            cat $(ls .bmt-v28-assets/completion-2.*.txt | sort -V) | base64 -d > web/assets/biblical-match-three/completion-2-stars-v28.webp
+          fi
+          if [ ! -f web/assets/biblical-match-three/completion-3-stars-v28.webp ]; then
+            "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp -crop 112x112+196+374 +repage /tmp/bmt-gold-side-star.png
+            "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp /tmp/bmt-gold-side-star.png -geometry +398+374 -composite -quality 95 web/assets/biblical-match-three/completion-3-stars-v28.webp
+          fi
+          if [ ! -f web/assets/biblical-match-three/icons-v28/lamp-unlit.webp ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/git/blobs/e4159639ef9f390bfe81130804b3c4908f9d1c78" --jq .content | tr -d '\n' | base64 -d > web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          fi
+
+          for f in \
+            web/assets/biblical-match-three/completion-1-star-v28.webp \
+            web/assets/biblical-match-three/completion-2-stars-v28.webp \
+            web/assets/biblical-match-three/completion-3-stars-v28.webp; do
+            if [ "$(identify -format '%wx%h' "$f")" != "1440x1080" ]; then
+              "$IM" "$f" -filter Lanczos -resize 1440x1080! -quality 96 "${f}.tmp.webp"
+              mv "${f}.tmp.webp" "$f"
+            fi
+          done
+          if [ "$(identify -format '%wx%h' web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)" != "512x512" ]; then
+            "$IM" web/assets/biblical-match-three/icons-v28/lamp-unlit.webp -filter Lanczos -resize 512x512! -quality 96 web/assets/biblical-match-three/icons-v28/lamp-unlit.tmp.webp
+            mv web/assets/biblical-match-three/icons-v28/lamp-unlit.tmp.webp web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          fi
+
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp -crop 920x920+260+40 +repage -resize 256x256^ -gravity center -extent 256x256 /tmp/bmt-menu-source.png
+          "$IM" -size 256x256 xc:none -fill white -draw 'roundrectangle 4,4 251,251 42,42' /tmp/bmt-menu-mask.png
+          "$IM" /tmp/bmt-menu-source.png /tmp/bmt-menu-mask.png -alpha off -compose CopyOpacity -composite -stroke '#b89cff' -strokewidth 5 -fill none -draw 'roundrectangle 4,4 251,251 42,42' -quality 94 web/assets/icons/biblical-treasures.webp
+
+          rm -f web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          rm -f web/assets/biblical-match-three/completion-1-star-v26.avif \
+                web/assets/biblical-match-three/completion-2-stars-v26.avif \
+                web/assets/biblical-match-three/completion-3-stars-v26.avif
+          rm -rf .bmt-v28-assets
+          rm -f .github/workflows/bmt-v28-assets.yml \
+                .github/workflows/bmt-v28-finalize.yml \
+                .github/workflows/bmt-v28-publish.yml \
+                .github/workflows/bmt-v28-deploy.yml \
+                .github/workflows/bmt-v28-deploy-retry.yml
+
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/completion-1-star-v28.webp)" = "1440x1080"
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/completion-2-stars-v28.webp)" = "1440x1080"
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/completion-3-stars-v28.webp)" = "1440x1080"
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)" = "512x512"
+          test ! -e web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          grep -q 'completion-1-star-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-2-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-3-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'icons-v28/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js
+          grep -q 'callbackSource' web/js/v27-biblical-treasures-hotfix.js
+          grep -q '\.special' web/js/v27-biblical-treasures-hotfix.js
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Finalize targeted Biblical Treasures V28 deploy"
+          fi
+
+          git fetch origin main
+          mapfile -t changed < <(git diff --name-only origin/main...HEAD)
+          for path in "${changed[@]}"; do
+            case "$path" in
+              index.html|\
+              web/js/v22-game-loader.js|\
+              web/js/v23-biblical-treasures-polish.js|\
+              web/js/v24-biblical-treasures-board.js|\
+              web/js/v27-biblical-treasures-hotfix.js|\
+              web/js/v22-home-art.js|\
+              scripts/check-biblical-match-three-v27-ui.mjs|\
+              web/assets/icons/biblical-treasures.webp|\
+              web/assets/biblical-match-three/completion-1-star-v28.webp|\
+              web/assets/biblical-match-three/completion-2-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-3-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-1-star-v26.avif|\
+              web/assets/biblical-match-three/completion-2-stars-v26.avif|\
+              web/assets/biblical-match-three/completion-3-stars-v26.avif|\
+              web/assets/biblical-match-three/icons-v27/lamp-unlit.svg|\
+              web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)
+                ;;
+              *) echo "Refusing unrelated path: $path" >&2; exit 1 ;;
+            esac
+          done
+
+          npm install --no-audit --no-fund
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          export CHROME_BIN
+          npm run check:match-three:visual
+
+          git push origin HEAD:bmt-v28-targeted-fix
+          git push origin HEAD:main
+
+          # Explicitly request the branch-based Pages build because GITHUB_TOKEN pushes
+          # do not recursively start ordinary workflows.
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" || true
