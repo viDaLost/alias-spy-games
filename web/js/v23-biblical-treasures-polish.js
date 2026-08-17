@@ -3,14 +3,15 @@
   if (window.__bmtV23PolishInstalled) return;
   window.__bmtV23PolishInstalled = true;
 
-  const VERSION = '27';
+  const VERSION = '28';
   const STYLE_ID = 'bmt-v23-polish-style';
   const HERO_ASSETS = {
-    1: `web/assets/biblical-match-three/completion-1-star-v26.avif?v=${VERSION}`,
-    2: `web/assets/biblical-match-three/completion-2-stars-v26.avif?v=${VERSION}`,
-    3: `web/assets/biblical-match-three/completion-3-stars-v26.avif?v=${VERSION}`,
+    1: `web/assets/biblical-match-three/completion-1-star-v28.jpg?v=${VERSION}`,
+    2: `web/assets/biblical-match-three/completion-2-stars-v28.jpg?v=${VERSION}`,
+    3: `web/assets/biblical-match-three/completion-3-stars-v28.jpg?v=${VERSION}`,
   };
   let scheduled = false;
+  let resultPoll = 0;
 
   function ensureStyle() {
     let link = document.getElementById(STYLE_ID);
@@ -42,7 +43,7 @@
     const label = stars?.getAttribute('aria-label') || '';
     const labelled = Number((label.match(/([1-3])\s*(?:из|\/)/i) || [])[1] || 0);
     if (labelled >= 1 && labelled <= 3) return labelled;
-    const on = stars?.querySelectorAll('.is-on').length || 0;
+    const on = stars?.querySelectorAll('.is-on, .active, [data-on="true"], [aria-checked="true"]').length || 0;
     return Math.max(1, Math.min(3, on || 1));
   }
 
@@ -88,6 +89,9 @@
   function start() {
     ensureStyle();
     schedulePatch();
+    if (!resultPoll) resultPoll = window.setInterval(() => {
+      if (document.body?.dataset?.currentGame === 'biblical-match-three' && document.querySelector('.bmt-result-card.is-win')) schedulePatch();
+    }, 200);
     new MutationObserver(schedulePatch).observe(document.body, {
       subtree: true,
       childList: true,
