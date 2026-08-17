@@ -1,5 +1,5 @@
 (() => {
-  const ICON_VERSION = '3';
+  const ICON_VERSION = '22';
   const SOURCES = {
     support: 'web/assets/icons/support.webp',
     admin: 'web/assets/icons/admin.webp',
@@ -17,12 +17,21 @@
     host.classList.add('game-card__icon--system-art');
   }
 
+  function makeTitleOnly(button) {
+    if (!button) return;
+    button.querySelector('.game-card__desc')?.remove();
+    button.classList.add('game-card--title-only-v22');
+  }
+
   function refresh() {
     const root = document.getElementById('system-actions');
     if (root) {
       const supportButton = [...root.querySelectorAll('.game-card')].find((button) => (button.querySelector('.game-card__title')?.textContent || '').includes('Тех-поддержка'));
       replaceHost(supportButton?.querySelector('.game-card__icon'), 'support');
-      replaceHost(document.getElementById('admin-btn')?.querySelector('.game-card__icon'), 'admin');
+      makeTitleOnly(supportButton);
+      const adminButton = document.getElementById('admin-btn');
+      replaceHost(adminButton?.querySelector('.game-card__icon'), 'admin');
+      makeTitleOnly(adminButton);
     }
     replaceHost(document.querySelector('#support-modal-overlay .support-icon'), 'support');
   }
