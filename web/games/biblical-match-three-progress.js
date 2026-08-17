@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (root) {
   "use strict";
 
-  const VERSION = 2;
+  const VERSION = 3;
   const LEGACY_KEY = "biblical_match_three_progress_v1";
   const DEFAULT_DAILY_REWARD = 5;
   const FREE_REWARD_STEPS = { easy: 3500, medium: 5000, hard: 6500 };
@@ -55,6 +55,7 @@
       version: VERSION,
       unlocked: 1,
       levelRatings: {},
+      levelBestScores: {},
       firstClearRewarded: {},
       free: { easy: emptyFreeStats(), medium: emptyFreeStats(), hard: emptyFreeStats() },
       freeRewardMilestones: { easy: 0, medium: 0, hard: 0 },
@@ -104,6 +105,10 @@
       const ratings = parsed.levelRatings || parsed.stars || {};
       if (ratings && typeof ratings === "object") {
         for (const [id, rating] of Object.entries(ratings)) next.levelRatings[id] = Math.max(0, Math.min(3, Number(rating || 0)));
+      }
+      const bestScores = parsed.levelBestScores || {};
+      if (bestScores && typeof bestScores === "object") {
+        for (const [id, score] of Object.entries(bestScores)) next.levelBestScores[id] = Math.max(0, Math.floor(Number(score || 0)));
       }
       next.firstClearRewarded = parsed.firstClearRewarded && typeof parsed.firstClearRewarded === "object" ? { ...parsed.firstClearRewarded } : {};
       for (const mode of ["easy", "medium", "hard"]) next.free[mode] = normalizeFreeStats(parsed.free?.[mode]);
@@ -157,12 +162,17 @@
     return { ok: true, balance: setStars(balance - price, reason), cost: price };
   }
 
-  function completeLevel(progress, levelId, rating, reward, totalLevels) {
+  function completeLevel(progress, levelId, rating, reward, totalLevels, score = 0) {
     const next = progress || load();
     const id = String(levelId);
+    if (!next.levelBestScores || typeof next.levelBestScores !== "object") next.levelBestScores = {};
     const previousRating = Number(next.levelRatings[id] || 0);
     const newRating = Math.max(previousRating, Math.min(3, Math.max(1, Number(rating || 1))));
+    const previousBestScore = Math.max(0, Math.floor(Number(next.levelBestScores[id] || 0)));
+    const attemptScore = Math.max(0, Math.floor(Number(score || 0)));
+    const newBestScore = Math.max(previousBestScore, attemptScore);
     next.levelRatings[id] = newRating;
+    next.levelBestScores[id] = newBestScore;
     next.unlocked = Math.max(next.unlocked, Math.min(Number(totalLevels || levelId), Number(levelId) + 1));
     let awarded = 0;
     if (!next.firstClearRewarded[id]) {
@@ -172,7 +182,16 @@
     if (newRating > previousRating) awarded += (newRating - previousRating) * 2;
     if (awarded > 0) addStars(awarded, `match3-level-${id}`);
     save(next);
-    return { progress: next, awarded, previousRating, newRating, balance: getStars() };
+    return {
+      progress: next,
+      awarded,
+      previousRating,
+      newRating,
+      previousBestScore,
+      newBestScore,
+      isImproved: newRating > previousRating || newBestScore > previousBestScore,
+      balance: getStars(),
+    };
   }
 
   function dayKey(date = new Date()) {
