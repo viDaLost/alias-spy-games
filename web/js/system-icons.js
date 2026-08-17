@@ -17,10 +17,8 @@
     host.classList.add('game-card__icon--system-art');
   }
 
-  function makeTitleOnly(button) {
-    if (!button) return;
-    button.querySelector('.game-card__desc')?.remove();
-    button.classList.add('game-card--title-only-v22');
+  function markTitleOnly(button) {
+    button?.classList.add('game-card--title-only-v22');
   }
 
   function refresh() {
@@ -28,10 +26,10 @@
     if (root) {
       const supportButton = [...root.querySelectorAll('.game-card')].find((button) => (button.querySelector('.game-card__title')?.textContent || '').includes('Тех-поддержка'));
       replaceHost(supportButton?.querySelector('.game-card__icon'), 'support');
-      makeTitleOnly(supportButton);
+      markTitleOnly(supportButton);
       const adminButton = document.getElementById('admin-btn');
       replaceHost(adminButton?.querySelector('.game-card__icon'), 'admin');
-      makeTitleOnly(adminButton);
+      markTitleOnly(adminButton);
     }
     replaceHost(document.querySelector('#support-modal-overlay .support-icon'), 'support');
   }
