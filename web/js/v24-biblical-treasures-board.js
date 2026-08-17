@@ -3,13 +3,13 @@
   if (window.__bmtV24BoardInstalled) return;
   window.__bmtV24BoardInstalled = true;
 
-  const VERSION = '27';
+  const VERSION = '28';
   const STYLE_ID = 'bmt-v24-board-style';
   const NS = 'http://www.w3.org/2000/svg';
   const BLOCKER_ASSETS = {
     chain: `web/assets/biblical-match-three/icons-v17/chains.webp?v=${VERSION}`,
     tablet: `web/assets/biblical-match-three/icons-v17/tablets.webp?v=${VERSION}`,
-    lamp: `web/assets/biblical-match-three/icons-v27/lamp-unlit.svg?v=${VERSION}`,
+    lamp: `web/assets/biblical-match-three/icons-v28/lamp-unlit.webp?v=${VERSION}`,
   };
   const observedBoards = new WeakSet();
   let resizeObserver = null;
@@ -85,6 +85,7 @@
       }
       if (image.getAttribute('src') !== src) image.src = src;
       node.querySelector('.bmt-blocker-fallback')?.remove();
+      node.querySelector('svg')?.remove();
     });
   }
 
