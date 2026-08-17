@@ -1,8 +1,11 @@
 (() => {
   'use strict';
-  const GUARD = 'web/js/v22-legacy-tutorial-guard.js?v=28';
-  const POLISH = 'web/js/v22-game-polish.js?v=28';
-  const V23 = 'web/js/v23-biblical-treasures-polish.js?v=28';
+  const VERSION = '29';
+  const GUARD = `web/js/v22-legacy-tutorial-guard.js?v=${VERSION}`;
+  const POLISH = `web/js/v22-game-polish.js?v=${VERSION}`;
+  const V23 = `web/js/v23-biblical-treasures-polish.js?v=${VERSION}`;
+  const V24 = `web/js/v24-biblical-treasures-board.js?v=${VERSION}`;
+  const HOTFIX = `web/js/v29-biblical-treasures-hotfix.js?v=${VERSION}`;
   let loading = false;
 
   function appendScript(src, marker) {
@@ -19,15 +22,17 @@
   }
 
   async function load() {
-    if (loading || window.__bmtV23PolishInstalled) return;
+    if (loading) return;
     if (document.body?.dataset?.currentGame !== 'biblical-match-three') return;
     loading = true;
     try {
       await appendScript(GUARD, 'v22TutorialGuard');
       if (!window.__bmtV22GamePolishInstalled) await appendScript(POLISH, 'v22GamePolish');
-      await appendScript(V23, 'v23BiblicalTreasuresPolish');
+      if (!window.__bmtV24BoardInstalled) await appendScript(V24, 'v24BiblicalTreasuresBoard');
+      if (!window.__bmtV23PolishInstalled) await appendScript(V23, 'v23BiblicalTreasuresPolish');
+      if (!window.__bmtV29HotfixInstalled) await appendScript(HOTFIX, 'v29BiblicalTreasuresHotfix');
     } catch (error) {
-      console.error('[Biblical Treasures V28]', error);
+      console.error('[Biblical Treasures V29]', error);
     } finally {
       loading = false;
     }

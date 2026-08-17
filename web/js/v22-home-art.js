@@ -2,7 +2,7 @@
   'use strict';
 
   const VERSION = '22';
-  const BIBLICAL_VERSION = '28';
+  const BIBLICAL_VERSION = '29';
   const ICONS = {
     biblical: `web/assets/icons/biblical-treasures.webp?v=${BIBLICAL_VERSION}`,
     support: `web/assets/icons/support.webp?v=${VERSION}`,
@@ -11,13 +11,15 @@
   };
 
   function imageMarkup(src, type, alt = '') {
-    return `<img class="game-card__img system-art-img" src="${src}" alt="${alt}" draggable="false" loading="eager" decoding="async" data-system-icon="${type}" data-icon-version="${VERSION}">`;
+    const version = type === 'biblical' ? BIBLICAL_VERSION : VERSION;
+    return `<img class="game-card__img system-art-img" src="${src}" alt="${alt}" draggable="false" loading="eager" decoding="async" data-system-icon="${type}" data-icon-version="${version}">`;
   }
 
   function patchIcon(card, type, src, alt = '') {
     const host = card?.querySelector('.game-card__icon');
     if (!host) return false;
-    const current = host.querySelector(`img[data-icon-version="${VERSION}"][data-system-icon="${type}"]`);
+    const version = type === 'biblical' ? BIBLICAL_VERSION : VERSION;
+    const current = host.querySelector(`img[data-icon-version="${version}"][data-system-icon="${type}"]`);
     if (!current || current.getAttribute('src') !== src) {
       host.innerHTML = imageMarkup(src, type, alt);
       host.classList.add('game-card__icon--system-art');
@@ -45,7 +47,7 @@
     const biblicalReady = patchIcon(biblical, 'biblical', ICONS.biblical, 'Иконка игры Библейские сокровища');
     if (biblicalReady) {
       const img = biblical.querySelector('img[data-system-icon="biblical"]');
-      if (img) img.dataset.bmtMenuArt = 'v28';
+      if (img) img.dataset.bmtMenuArt = 'v29';
     }
     ready = biblicalReady && ready;
 
