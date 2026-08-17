@@ -1,0 +1,16 @@
+/* Biblical Treasures board fallback: current supplied artwork. */
+body[data-current-game="biblical-match-three"] .bmt-board-wrap {
+  background-color:#f2ecf7!important;
+  background-image:url("../assets/biblical-match-three/board-background-v29.webp?v=29")!important;
+  background-size:cover!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  border:0!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board {
+  background:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
