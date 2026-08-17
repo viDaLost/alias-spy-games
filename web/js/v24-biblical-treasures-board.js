@@ -3,13 +3,13 @@
   if (window.__bmtV24BoardInstalled) return;
   window.__bmtV24BoardInstalled = true;
 
-  const VERSION = '26';
+  const VERSION = '27';
   const STYLE_ID = 'bmt-v24-board-style';
   const NS = 'http://www.w3.org/2000/svg';
   const BLOCKER_ASSETS = {
     chain: `web/assets/biblical-match-three/icons-v17/chains.webp?v=${VERSION}`,
     tablet: `web/assets/biblical-match-three/icons-v17/tablets.webp?v=${VERSION}`,
-    lamp: `web/assets/biblical-match-three/icons-v17/candle.webp?v=${VERSION}`,
+    lamp: `web/assets/biblical-match-three/icons-v27/lamp-unlit.svg?v=${VERSION}`,
   };
   const observedBoards = new WeakSet();
   let resizeObserver = null;
@@ -25,7 +25,7 @@
       link.rel = 'stylesheet';
       document.head.appendChild(link);
     }
-    if (!link.getAttribute('href')?.includes(`v=${VERSION}`)) link.href = href;
+    if (link.getAttribute('href') !== href) link.href = href;
   }
 
   function getMask(board) {
@@ -46,13 +46,11 @@
     const signature = `${rows}x${cols}:${mask.map((value) => value ? '1' : '0').join('')}`;
     if (underlay.dataset.signature === signature) return;
     underlay.dataset.signature = signature;
-
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${cols} ${rows}`);
     svg.setAttribute('preserveAspectRatio', 'none');
     svg.setAttribute('aria-hidden', 'true');
     svg.classList.add('bmt-v24-field-svg');
-
     const cells = document.createElementNS(NS, 'g');
     cells.classList.add('bmt-v24-field-cells');
     mask.forEach((on, index) => {
@@ -64,22 +62,16 @@
       rect.setAttribute('height', '1');
       cells.appendChild(rect);
     });
-
-    // No contour path: the user requested a borderless game-field silhouette.
     svg.append(cells);
     underlay.replaceChildren(svg);
   }
 
-  function blockerType(node) {
-    return node?.dataset?.blockerType || '';
-  }
-
   function patchBlockerArt(board) {
     board.querySelectorAll('.bmt-blocker [data-blocker-type]').forEach((node) => {
-      const type = blockerType(node);
-      const src = BLOCKER_ASSETS[type];
-      if (!src || (type === 'lamp' && node.dataset.blockerLit === 'true')) return;
-
+      const type = node.dataset.blockerType || '';
+      const isLit = type === 'lamp' && node.dataset.blockerLit === 'true';
+      const src = isLit ? `web/assets/biblical-match-three/icons-v17/candle.webp?v=${VERSION}` : BLOCKER_ASSETS[type];
+      if (!src) return;
       let image = node.querySelector('img.bmt-blocker-art');
       if (!image) {
         image = document.createElement('img');
@@ -89,10 +81,9 @@
         image.draggable = false;
         image.loading = 'eager';
         image.decoding = 'async';
-        image.dataset.bmtRaster = 'webp-v17';
         node.prepend(image);
       }
-      if ((image.getAttribute('src') || '') !== src) image.src = src;
+      if (image.getAttribute('src') !== src) image.src = src;
       node.querySelector('.bmt-blocker-fallback')?.remove();
     });
   }
@@ -102,15 +93,10 @@
     const boardRect = board.getBoundingClientRect();
     const wrapRect = wrap.getBoundingClientRect();
     if (!boardRect.width || !boardRect.height || !wrapRect.width || !wrapRect.height) return;
-
-    const left = `${boardRect.left - wrapRect.left}px`;
-    const top = `${boardRect.top - wrapRect.top}px`;
-    const width = `${boardRect.width}px`;
-    const height = `${boardRect.height}px`;
-    if (underlay.style.left !== left) underlay.style.left = left;
-    if (underlay.style.top !== top) underlay.style.top = top;
-    if (underlay.style.width !== width) underlay.style.width = width;
-    if (underlay.style.height !== height) underlay.style.height = height;
+    underlay.style.left = `${boardRect.left - wrapRect.left}px`;
+    underlay.style.top = `${boardRect.top - wrapRect.top}px`;
+    underlay.style.width = `${boardRect.width}px`;
+    underlay.style.height = `${boardRect.height}px`;
   }
 
   function observeBoardSize(board) {
@@ -133,13 +119,9 @@
     if (!board?.isConnected) return;
     const wrap = board.closest('.bmt-board-wrap');
     if (!wrap) return;
-
-    if (!wrap.classList.contains('bmt-v24-board-wrap')) wrap.classList.add('bmt-v24-board-wrap');
-    if (!board.classList.contains('bmt-v24-board')) board.classList.add('bmt-v24-board');
-
-    const shape = board.dataset.shape || 'rect';
-    if (wrap.dataset.boardShape !== shape) wrap.dataset.boardShape = shape;
-
+    wrap.classList.add('bmt-v24-board-wrap');
+    board.classList.add('bmt-v24-board');
+    wrap.dataset.boardShape = board.dataset.shape || 'rect';
     wrap.querySelectorAll(':scope > .bmt-v23-boundary').forEach((node) => node.remove());
     board.querySelectorAll(':scope > .bmt-v23-boundary').forEach((node) => node.remove());
 
@@ -150,7 +132,6 @@
       underlay.setAttribute('aria-hidden', 'true');
       wrap.insertBefore(underlay, board);
     }
-
     rebuildUnderlay(board, underlay);
     patchBlockerArt(board);
     positionUnderlay(board, wrap, underlay);
@@ -182,7 +163,6 @@
   function start() {
     ensureStyle();
     schedulePatch();
-
     const root = document.getElementById('game-container') || document.body;
     mutationObserver = new MutationObserver((records) => {
       if (records.some(mutationNeedsPatch)) schedulePatch();
@@ -193,7 +173,6 @@
       attributes: true,
       attributeFilter: ['data-shape'],
     });
-
     window.addEventListener('resize', schedulePatch, { passive: true });
   }
 
