@@ -1,0 +1,145 @@
+name: Publish targeted Biblical Treasures V28 fix
+
+on:
+  push:
+    branches: [bmt-v28-targeted-fix]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bmt-v28-targeted-fix
+          fetch-depth: 0
+      - name: Finalize, test and publish only Biblical Treasures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 20
+          git fetch origin main bmt-v28-targeted-fix
+          git reset --hard origin/bmt-v28-targeted-fix
+
+          mkdir -p web/assets/biblical-match-three/icons-v28
+          if command -v magick >/dev/null 2>&1; then IM=magick; else IM=convert; fi
+
+          # Rebuild only the two supplied HQ result sources if another one-time
+          # branch job has not already done so.
+          if [ ! -f web/assets/biblical-match-three/completion-1-star-v28.webp ]; then
+            cat $(ls .bmt-v28-assets/completion-1.*.txt | sort -V) | base64 -d > web/assets/biblical-match-three/completion-1-star-v28.webp
+          fi
+          if [ ! -f web/assets/biblical-match-three/completion-2-stars-v28.webp ]; then
+            cat $(ls .bmt-v28-assets/completion-2.*.txt | sort -V) | base64 -d > web/assets/biblical-match-three/completion-2-stars-v28.webp
+          fi
+
+          # Build the three-star variant from the matching-size supplied gold side star
+          # if it has not already been finalized.
+          if [ ! -f web/assets/biblical-match-three/completion-3-stars-v28.webp ]; then
+            "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp -crop 112x112+196+374 +repage /tmp/bmt-gold-side-star.png
+            "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp /tmp/bmt-gold-side-star.png -geometry +398+374 -composite -quality 95 web/assets/biblical-match-three/completion-3-stars-v28.webp
+          fi
+
+          # Real raster extinguished lamp: no SVG fallback is retained.
+          if [ ! -f web/assets/biblical-match-three/icons-v28/lamp-unlit.webp ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/git/blobs/e4159639ef9f390bfe81130804b3c4908f9d1c78" --jq .content | tr -d '\n' | base64 -d > web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          fi
+
+          # Give the result modal enough intrinsic pixels for iPhone/Telegram DPR.
+          for f in \
+            web/assets/biblical-match-three/completion-1-star-v28.webp \
+            web/assets/biblical-match-three/completion-2-stars-v28.webp \
+            web/assets/biblical-match-three/completion-3-stars-v28.webp; do
+            if [ "$(identify -format '%wx%h' "$f")" != "1440x1080" ]; then
+              "$IM" "$f" -filter Lanczos -resize 1440x1080! -quality 96 "${f}.tmp.webp"
+              mv "${f}.tmp.webp" "$f"
+            fi
+          done
+          if [ "$(identify -format '%wx%h' web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)" != "512x512" ]; then
+            "$IM" web/assets/biblical-match-three/icons-v28/lamp-unlit.webp -filter Lanczos -resize 512x512! -quality 96 web/assets/biblical-match-three/icons-v28/lamp-unlit.tmp.webp
+            mv web/assets/biblical-match-three/icons-v28/lamp-unlit.tmp.webp web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          fi
+
+          # Replace the old game-menu visual at its compatibility path, so there is
+          # no old icon left for older menu code to restore after an error.
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v28.webp -crop 920x920+260+40 +repage -resize 256x256^ -gravity center -extent 256x256 /tmp/bmt-menu-source.png
+          "$IM" -size 256x256 xc:none -fill white -draw 'roundrectangle 4,4 251,251 42,42' /tmp/bmt-menu-mask.png
+          "$IM" /tmp/bmt-menu-source.png /tmp/bmt-menu-mask.png -alpha off -compose CopyOpacity -composite -stroke '#b89cff' -strokewidth 5 -fill none -draw 'roundrectangle 4,4 251,251 42,42' -quality 94 web/assets/icons/biblical-treasures.webp
+
+          rm -f web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          rm -f web/assets/biblical-match-three/completion-1-star-v26.avif \
+                web/assets/biblical-match-three/completion-2-stars-v26.avif \
+                web/assets/biblical-match-three/completion-3-stars-v26.avif
+          rm -rf .bmt-v28-assets
+
+          # Branch-only staging workflows must never reach production.
+          rm -f .github/workflows/bmt-v28-assets.yml \
+                .github/workflows/bmt-v28-finalize.yml \
+                .github/workflows/bmt-v28-publish.yml
+
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/completion-1-star-v28.webp)" = "1440x1080"
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/completion-2-stars-v28.webp)" = "1440x1080"
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/completion-3-stars-v28.webp)" = "1440x1080"
+          test "$(identify -format '%wx%h' web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)" = "512x512"
+          test "$(identify -format '%wx%h' web/assets/icons/biblical-treasures.webp)" = "256x256"
+          test ! -e web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          test ! -e web/assets/biblical-match-three/completion-1-star-v26.avif
+          test ! -e web/assets/biblical-match-three/completion-2-stars-v26.avif
+          test ! -e web/assets/biblical-match-three/completion-3-stars-v26.avif
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/workflows .bmt-v28-assets web/assets/biblical-match-three web/assets/icons/biblical-treasures.webp
+          if ! git diff --cached --quiet; then
+            git commit -m "Finalize Biblical Treasures V28 targeted assets"
+          fi
+
+          # Prove the feature branch changes only Biblical Treasures and its targeted checks/wiring.
+          git fetch origin main
+          mapfile -t changed < <(git diff --name-only origin/main...HEAD)
+          printf 'Changed paths:\n%s\n' "${changed[*]}"
+          for path in "${changed[@]}"; do
+            case "$path" in
+              index.html|\
+              web/js/v22-game-loader.js|\
+              web/js/v23-biblical-treasures-polish.js|\
+              web/js/v24-biblical-treasures-board.js|\
+              web/js/v27-biblical-treasures-hotfix.js|\
+              web/js/v22-home-art.js|\
+              scripts/check-biblical-match-three-v27-ui.mjs|\
+              web/assets/icons/biblical-treasures.webp|\
+              web/assets/biblical-match-three/completion-1-star-v28.webp|\
+              web/assets/biblical-match-three/completion-2-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-3-stars-v28.webp|\
+              web/assets/biblical-match-three/completion-1-star-v26.avif|\
+              web/assets/biblical-match-three/completion-2-stars-v26.avif|\
+              web/assets/biblical-match-three/completion-3-stars-v26.avif|\
+              web/assets/biblical-match-three/icons-v27/lamp-unlit.svg|\
+              web/assets/biblical-match-three/icons-v28/lamp-unlit.webp)
+                ;;
+              *)
+                echo "Unexpected non-Biblical-Treasures path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          # Install only the existing browser-test dependency and run the dedicated
+          # Biblical Treasures visual/gameplay regression (includes the level-5 Ark crash repro).
+          npm install --no-audit --no-fund
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          export CHROME_BIN
+          npm run check:match-three:visual
+
+          # Commit the self-removal/final asset state and publish the exact tested tree.
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Remove temporary Biblical Treasures publish helpers"
+          fi
+          git push origin HEAD:bmt-v28-targeted-fix
+          git push origin HEAD:main
