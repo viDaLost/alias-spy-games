@@ -2,7 +2,7 @@
   const APK_URL = 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-2.7.3-native.apk';
   const APK_NAME = 'BibleGames-Android-2.7.3-native.apk';
   const BUTTON_ID = 'android-download-btn';
-  const ICON_VERSION = '2';
+  const ICON_VERSION = '22';
 
   function downloadAndroidApp() {
     if (window.__ANDROID_APK__ === true) {
@@ -42,13 +42,12 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.id = BUTTON_ID;
-    button.className = 'game-card game-card--system';
+    button.className = 'game-card game-card--system game-card--title-only-v22';
     button.setAttribute('aria-label', 'Скачать приложение Библейские игры для Android');
     button.innerHTML = `
       <span class="game-card__icon">${androidIcon()}</span>
       <span class="game-card__body">
         <span class="game-card__title">Скачать для Android</span>
-        <span class="game-card__desc">APK приложения · версия 2.7.3</span>
       </span>
     `;
     button.addEventListener('click', downloadAndroidApp);
