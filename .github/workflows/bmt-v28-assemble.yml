@@ -1,0 +1,69 @@
+name: Assemble Biblical Treasures V28 assets
+
+on:
+  push:
+    branches: [bmt-v28-publish]
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble only Biblical Treasures V28 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -d .bmt-v28-stage ]; then
+            echo "Biblical Treasures assets are already assembled"
+            exit 0
+          fi
+
+          mkdir -p web/assets/biblical-match-three/icons-v28
+          mkdir -p web/assets/biblical-match-three
+          mkdir -p web/assets/icons
+
+          # HQ 1/2-star images were already verified as binary blobs in the dedicated test branch.
+          curl -fsSL --retry 3 \
+            https://raw.githubusercontent.com/viDaLost/alias-spy-games/bmt-v28-blob-check/.bmt-blob-check/c1.webp \
+            -o web/assets/biblical-match-three/completion-1-star-v28.webp
+          curl -fsSL --retry 3 \
+            https://raw.githubusercontent.com/viDaLost/alias-spy-games/bmt-v28-blob-check/.bmt-blob-check/c2.webp \
+            -o web/assets/biblical-match-three/completion-2-stars-v28.webp
+
+          # Keep the correct three-star artwork, but move it to the V28 namespace.
+          # The result UI no longer zooms/blurs this image, so it is rendered at native aspect ratio.
+          cp web/assets/biblical-match-three/completion-3-stars-v26.avif \
+             web/assets/biblical-match-three/completion-3-stars-v28.avif
+
+          cat .bmt-v28-stage/board.avif.*.txt | base64 -d > web/assets/biblical-match-three/board-background-v28.avif
+          cat .bmt-v28-stage/lamp.webp.*.txt | base64 -d > web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          cat .bmt-v28-stage/menu.webp.*.txt | base64 -d > web/assets/icons/biblical-treasures.webp
+
+          test -s web/assets/biblical-match-three/completion-1-star-v28.webp
+          test -s web/assets/biblical-match-three/completion-2-stars-v28.webp
+          test -s web/assets/biblical-match-three/completion-3-stars-v28.avif
+          test -s web/assets/biblical-match-three/board-background-v28.avif
+          test -s web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          test -s web/assets/icons/biblical-treasures.webp
+
+          file web/assets/biblical-match-three/completion-1-star-v28.webp
+          file web/assets/biblical-match-three/completion-2-stars-v28.webp
+          file web/assets/biblical-match-three/completion-3-stars-v28.avif
+          file web/assets/biblical-match-three/board-background-v28.avif
+          file web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+          file web/assets/icons/biblical-treasures.webp
+
+          rm -rf .bmt-v28-stage .bmt-v28-final
+          rm -f web/assets/biblical-match-three/icons-v28/.placeholder
+          rm -f web/js/.bmt-v28-publish-marker.js
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Assemble Biblical Treasures V28 raster assets"
+            git push origin HEAD:bmt-v28-publish
+          fi
