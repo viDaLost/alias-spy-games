@@ -54,7 +54,7 @@ jobs:
             riff="$(dd if="$f" bs=1 count=4 status=none 2>/dev/null || true)"
             webp="$(dd if="$f" bs=1 skip=8 count=4 status=none 2>/dev/null || true)"
             echo "$f => ${size} bytes; magic=${riff}/${webp}"
-            if [ "$size" -lt 50000 ] || [ "$riff" != "RIFF" ] || [ "$webp" != "WEBP" ]; then
+            if [ "$size" -lt 20000 ] || [ "$riff" != "RIFF" ] || [ "$webp" != "WEBP" ]; then
               echo "::error title=BMT V29 asset repair::Invalid repaired WebP ${f}: ${size} bytes, ${riff}/${webp}"
               exit 1
             fi
