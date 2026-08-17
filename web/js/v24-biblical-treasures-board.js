@@ -3,21 +3,29 @@
   if (window.__bmtV24BoardInstalled) return;
   window.__bmtV24BoardInstalled = true;
 
-  const VERSION = '25';
+  const VERSION = '26';
   const STYLE_ID = 'bmt-v24-board-style';
   const NS = 'http://www.w3.org/2000/svg';
+  const BLOCKER_ASSETS = {
+    chain: `web/assets/biblical-match-three/icons-v17/chains.webp?v=${VERSION}`,
+    tablet: `web/assets/biblical-match-three/icons-v17/tablets.webp?v=${VERSION}`,
+    lamp: `web/assets/biblical-match-three/icons-v17/candle.webp?v=${VERSION}`,
+  };
   const observedBoards = new WeakSet();
   let resizeObserver = null;
   let mutationObserver = null;
   let patchScheduled = false;
 
   function ensureStyle() {
-    if (document.getElementById(STYLE_ID)) return;
-    const link = document.createElement('link');
-    link.id = STYLE_ID;
-    link.rel = 'stylesheet';
-    link.href = `web/styles/biblical-match-three-v24-board.css?v=${VERSION}`;
-    document.head.appendChild(link);
+    let link = document.getElementById(STYLE_ID);
+    const href = `web/styles/biblical-match-three-v24-board.css?v=${VERSION}`;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = STYLE_ID;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    if (!link.getAttribute('href')?.includes(`v=${VERSION}`)) link.href = href;
   }
 
   function getMask(board) {
@@ -31,21 +39,6 @@
       mask[index] = !tile.classList.contains('is-hole') && !tile.hasAttribute('aria-hidden');
     });
     return { rows, cols, mask };
-  }
-
-  function pathForMask(rows, cols, mask) {
-    const parts = [];
-    const active = (row, col) => row >= 0 && row < rows && col >= 0 && col < cols && mask[row * cols + col];
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < cols; col += 1) {
-        if (!active(row, col)) continue;
-        if (!active(row - 1, col)) parts.push(`M${col} ${row}H${col + 1}`);
-        if (!active(row, col + 1)) parts.push(`M${col + 1} ${row}V${row + 1}`);
-        if (!active(row + 1, col)) parts.push(`M${col + 1} ${row + 1}H${col}`);
-        if (!active(row, col - 1)) parts.push(`M${col} ${row + 1}V${row}`);
-      }
-    }
-    return parts.join(' ');
   }
 
   function rebuildUnderlay(board, underlay) {
@@ -72,12 +65,36 @@
       cells.appendChild(rect);
     });
 
-    const contour = document.createElementNS(NS, 'path');
-    contour.classList.add('bmt-v24-field-contour');
-    contour.setAttribute('d', pathForMask(rows, cols, mask));
-    contour.setAttribute('vector-effect', 'non-scaling-stroke');
-    svg.append(cells, contour);
+    // No contour path: the user requested a borderless game-field silhouette.
+    svg.append(cells);
     underlay.replaceChildren(svg);
+  }
+
+  function blockerType(node) {
+    return node?.dataset?.blockerType || '';
+  }
+
+  function patchBlockerArt(board) {
+    board.querySelectorAll('.bmt-blocker [data-blocker-type]').forEach((node) => {
+      const type = blockerType(node);
+      const src = BLOCKER_ASSETS[type];
+      if (!src || (type === 'lamp' && node.dataset.blockerLit === 'true')) return;
+
+      let image = node.querySelector('img.bmt-blocker-art');
+      if (!image) {
+        image = document.createElement('img');
+        image.className = 'bmt-blocker-art';
+        image.alt = '';
+        image.setAttribute('aria-hidden', 'true');
+        image.draggable = false;
+        image.loading = 'eager';
+        image.decoding = 'async';
+        image.dataset.bmtRaster = 'webp-v17';
+        node.prepend(image);
+      }
+      if ((image.getAttribute('src') || '') !== src) image.src = src;
+      node.querySelector('.bmt-blocker-fallback')?.remove();
+    });
   }
 
   function positionUnderlay(board, wrap, underlay) {
@@ -123,6 +140,9 @@
     const shape = board.dataset.shape || 'rect';
     if (wrap.dataset.boardShape !== shape) wrap.dataset.boardShape = shape;
 
+    wrap.querySelectorAll(':scope > .bmt-v23-boundary').forEach((node) => node.remove());
+    board.querySelectorAll(':scope > .bmt-v23-boundary').forEach((node) => node.remove());
+
     let underlay = wrap.querySelector(':scope > .bmt-v24-field-underlay');
     if (!underlay) {
       underlay = document.createElement('div');
@@ -132,6 +152,7 @@
     }
 
     rebuildUnderlay(board, underlay);
+    patchBlockerArt(board);
     positionUnderlay(board, wrap, underlay);
     observeBoardSize(board);
   }
@@ -154,7 +175,7 @@
     if (record.target?.classList?.contains('bmt-board')) return true;
     const nodes = [...record.addedNodes, ...record.removedNodes];
     return nodes.some((node) => node.nodeType === 1 && (
-      node.matches?.('.bmt-board, .bmt-tile') || node.querySelector?.('.bmt-board, .bmt-tile')
+      node.matches?.('.bmt-board, .bmt-tile, .bmt-blocker') || node.querySelector?.('.bmt-board, .bmt-tile, .bmt-blocker')
     ));
   }
 
