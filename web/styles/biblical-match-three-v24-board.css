@@ -1,0 +1,88 @@
+/* V24 Biblical Treasures board: crisp scene background + exact active-cell contour beneath pieces. */
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  background-color:#eaf2ff!important;
+  background-image:url("../assets/biblical-match-three/board-background-v24.svg?v=24")!important;
+  background-size:cover!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  border:1px solid rgba(125,112,206,.24)!important;
+  border-radius:28px!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.48),0 8px 24px rgba(69,72,128,.09)!important;
+}
+
+/* Remove every older foreground/pseudo outline from the board and wrapper. */
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap::before,
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap::after,
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board::before,
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board::after{
+  content:none!important;
+  display:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap [class*="v23"][class*="outline"],
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap [class*="v23"][class*="contour"],
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap [class*="shape-outline"]{
+  display:none!important;
+}
+
+/* Pieces always stay above field decoration. */
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board{
+  position:relative!important;
+  z-index:3!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board .bmt-tile{
+  position:relative!important;
+  z-index:2!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board .bmt-tile.is-hole{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+/* Exact active-cell silhouette, positioned to the board bounds by V24 JS. */
+body[data-current-game="biblical-match-three"] .bmt-v24-field-underlay{
+  position:absolute;
+  z-index:1;
+  pointer-events:none;
+  overflow:visible;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-field-svg{
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-field-cells rect{
+  fill:rgba(245,249,255,.12);
+}
+body[data-current-game="biblical-match-three"] .bmt-v24-field-contour{
+  fill:none;
+  stroke:rgba(111,106,196,.68);
+  stroke-width:1.7px;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 0 1px rgba(255,255,255,.98)) drop-shadow(0 0 3px rgba(92,99,199,.22));
+}
+
+/* Keep decorative background visible around shaped boards without washing the pieces out. */
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-piece,
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-blocker,
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-special-mark{
+  position:relative;
+  z-index:4;
+}
+
+@media (max-width:420px){
+  body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{border-radius:24px!important}
+  body[data-current-game="biblical-match-three"] .bmt-v24-field-contour{stroke-width:1.45px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  body[data-current-game="biblical-match-three"] .bmt-v24-field-contour{filter:none}
+}
