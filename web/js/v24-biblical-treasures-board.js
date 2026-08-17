@@ -9,7 +9,7 @@
   const BLOCKER_ASSETS = {
     chain: `web/assets/biblical-match-three/icons-v17/chains.webp?v=${VERSION}`,
     tablet: `web/assets/biblical-match-three/icons-v17/tablets.webp?v=${VERSION}`,
-    lamp: `web/assets/biblical-match-three/icons-v28/lamp-unlit.png?v=${VERSION}`,
+    lamp: `web/assets/biblical-match-three/icons-v28/lamp-unlit.webp?v=${VERSION}`,
   };
   const observedBoards = new WeakSet();
   let resizeObserver = null;
