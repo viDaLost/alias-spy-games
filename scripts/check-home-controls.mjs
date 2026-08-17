@@ -101,18 +101,21 @@ if (!prepared.imageState.length || prepared.imageState.some((img) => !img.comple
 if (!prepared.motionReady || !prepared.motionToken) throw new Error('Единый слой анимаций не загрузился.');
 
 await page.waitForSelector('.home-hidden-restore button', { timeout: 5_000 });
-await page.locator('.home-hidden-restore button').click();
+// Home controls intentionally rebuild their own DOM when state changes. Trigger
+// the native button action in-page so the QA check validates the behavior rather
+// than Playwright's element-stability heuristic racing that rebuild.
+await page.evaluate(() => document.querySelector('.home-hidden-restore button')?.click());
 await page.waitForFunction(() => document.querySelectorAll('#home-dashboard .home-section-hide').length === 3);
 
 for (let i = 0; i < 3; i += 1) {
-  await page.locator('#home-dashboard .home-section-hide').first().click();
+  await page.evaluate(() => document.querySelector('#home-dashboard .home-section-hide')?.click());
   const expectedButtons = 2 - i;
   await page.waitForFunction((expected) => document.querySelectorAll('#home-dashboard .home-section-hide').length === expected, expectedButtons);
 }
 await page.waitForSelector('.home-hidden-restore button');
 
-await page.waitForSelector('#system-actions [data-system-icon="support"][data-icon-version="3"]', { timeout: 5_000 });
-await page.waitForSelector('#admin-btn [data-system-icon="admin"][data-icon-version="3"]', { timeout: 5_000 });
+await page.waitForSelector('#system-actions [data-system-icon="support"][data-icon-version="22"]', { timeout: 5_000 });
+await page.waitForSelector('#admin-btn [data-system-icon="admin"][data-icon-version="22"]', { timeout: 5_000 });
 
 await page.evaluate(() => window.showGame('describe'));
 await page.waitForFunction(() => document.body.dataset.mode === 'game' && document.getElementById('game-container')?.children.length > 0, null, { timeout: 8_000 });
@@ -134,7 +137,7 @@ const flashOnReturn = await page.evaluate(() => new Promise((resolve) => {
 if (flashOnReturn) throw new Error('При возврате из игры скрытые домашние блоки попали в видимый кадр.');
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'));
 
-console.log('OK: access gate fully covers the first frame, header/menu stay hidden, hidden home sections never flash, menu icons are decoded before reveal, system icons and unified motion are active.');
+console.log('OK: access gate fully covers the first frame, header/menu stay hidden, hidden home sections never flash, V22 menu icons are decoded before reveal, system icons and unified motion are active.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));

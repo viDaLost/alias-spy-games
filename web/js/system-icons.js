@@ -1,9 +1,18 @@
 (() => {
-  const ICON_VERSION = '3';
+  const ICON_VERSION = '22';
   const SOURCES = {
     support: 'web/assets/icons/support.webp',
     admin: 'web/assets/icons/admin.webp',
   };
+
+  function ensureStyle() {
+    if (document.getElementById('v22-home-art-style')) return;
+    const link = document.createElement('link');
+    link.id = 'v22-home-art-style';
+    link.rel = 'stylesheet';
+    link.href = 'web/styles/v22-home-art.css?v=22';
+    document.head.appendChild(link);
+  }
 
   function systemIcon(type) {
     const src = SOURCES[type] || SOURCES.support;
@@ -14,15 +23,23 @@
     if (!host) return;
     if (host.querySelector(`[data-system-icon="${type}"][data-icon-version="${ICON_VERSION}"]`)) return;
     host.innerHTML = systemIcon(type);
-    host.classList.add('game-card__icon--system-art');
+    if (!host.classList.contains('game-card__icon--system-art')) host.classList.add('game-card__icon--system-art');
+  }
+
+  function markTitleOnly(button) {
+    if (button && !button.classList.contains('game-card--title-only-v22')) button.classList.add('game-card--title-only-v22');
   }
 
   function refresh() {
+    ensureStyle();
     const root = document.getElementById('system-actions');
     if (root) {
       const supportButton = [...root.querySelectorAll('.game-card')].find((button) => (button.querySelector('.game-card__title')?.textContent || '').includes('Тех-поддержка'));
       replaceHost(supportButton?.querySelector('.game-card__icon'), 'support');
-      replaceHost(document.getElementById('admin-btn')?.querySelector('.game-card__icon'), 'admin');
+      markTitleOnly(supportButton);
+      const adminButton = document.getElementById('admin-btn');
+      replaceHost(adminButton?.querySelector('.game-card__icon'), 'admin');
+      markTitleOnly(adminButton);
     }
     replaceHost(document.querySelector('#support-modal-overlay .support-icon'), 'support');
   }
