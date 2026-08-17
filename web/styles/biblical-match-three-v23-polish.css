@@ -1,79 +1,68 @@
-/* V23 Biblical Treasures polish: high-resolution backdrop, true shape boundary and dedicated completion art. */
+/* V24 Biblical Treasures polish: supplied board artwork, mask-accurate underlay boundary and completion art. */
 
 body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v23-board-wrap{
   position:relative!important;
   isolation:isolate!important;
   overflow:hidden!important;
   background-color:#eaf2ff!important;
-  background-image:
-    linear-gradient(180deg,rgba(244,249,255,.40),rgba(216,225,255,.22) 48%,rgba(244,238,255,.32)),
-    url("../assets/biblical-match-three/board-background-v23.svg?v=23")!important;
-  background-size:cover!important;
-  background-position:center 46%!important;
+  background-image:url("../assets/biblical-match-three/board-background-v24.jpg?v=24")!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
   background-repeat:no-repeat!important;
-  border:1px solid rgba(116,103,198,.34)!important;
+  border:1px solid rgba(116,103,198,.22)!important;
   box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.68),
-    inset 0 0 34px rgba(99,111,202,.12),
-    0 10px 30px rgba(65,70,126,.12)!important;
+    inset 0 0 0 1px rgba(255,255,255,.56),
+    0 10px 30px rgba(65,70,126,.10)!important;
 }
 body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v23-board-wrap::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  z-index:0;
-  pointer-events:none;
-  background:
-    radial-gradient(circle at 50% 12%,rgba(255,255,255,.58),transparent 30%),
-    linear-gradient(90deg,rgba(88,76,186,.08),transparent 15%,transparent 85%,rgba(88,76,186,.08));
+  display:none!important;
+  content:none!important;
 }
 body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board{
   position:relative!important;
   z-index:1!important;
+  isolation:isolate!important;
   background:transparent!important;
   border:0!important;
   box-shadow:none!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board::before{
-  display:block!important;
-  content:""!important;
-  position:absolute!important;
-  inset:1.4%!important;
-  z-index:-1!important;
-  pointer-events:none!important;
-  background:linear-gradient(180deg,rgba(231,239,255,.44),rgba(207,220,255,.30))!important;
-  filter:none!important;
-  box-shadow:inset 0 0 24px rgba(255,255,255,.55)!important;
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board::before,
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board::after{
+  display:none!important;
+  content:none!important;
 }
 
-/* Exact vector boundary. It sits above tiles and follows the same named shape as the active mask. */
-body[data-current-game="biblical-match-three"] .bmt-v23-boundary{
-  position:absolute;
-  inset:1.1%;
-  width:97.8%;
-  height:97.8%;
-  z-index:12;
-  overflow:visible;
-  pointer-events:none;
+/* The outline is calculated from the real active-cell mask and is rendered below every tile. */
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board > .bmt-v23-boundary{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  z-index:0!important;
+  overflow:visible!important;
+  pointer-events:none!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-v23-boundary path{
-  fill:none;
-  vector-effect:non-scaling-stroke;
-  stroke-linejoin:round;
-  stroke-linecap:round;
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board > .bmt-v23-boundary path{
+  fill:none!important;
+  vector-effect:non-scaling-stroke!important;
+  stroke-linejoin:round!important;
+  stroke-linecap:round!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-v23-boundary-shadow{
-  stroke:rgba(42,48,104,.34);
-  stroke-width:6px;
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board > .bmt-v23-boundary .bmt-v23-boundary-shadow{
+  stroke:rgba(73,72,139,.20)!important;
+  stroke-width:4px!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-v23-boundary-main{
-  stroke:url(#bmtV23BoundaryGradient);
-  stroke-width:3px;
-  filter:url(#bmtV23BoundaryGlow);
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board > .bmt-v23-boundary .bmt-v23-boundary-main{
+  stroke:rgba(247,238,211,.92)!important;
+  stroke-width:1.5px!important;
+  filter:drop-shadow(0 0 1.5px rgba(117,108,211,.40))!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-v23-boundary-highlight{
-  stroke:rgba(255,255,255,.92);
-  stroke-width:1px;
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board > .bmt-tile{
+  position:relative!important;
+  z-index:2!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v23-board > .bmt-tile.is-hole{
+  z-index:1!important;
 }
 
 /* Dedicated completion artwork and cleaner result composition. */
