@@ -4,7 +4,7 @@ body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wra
   isolation:isolate!important;
   overflow:hidden!important;
   background-color:#f2ecf7!important;
-  background-image:url("../assets/biblical-match-three/board-background-v26.avif?v=26")!important;
+  background-image:url("../assets/biblical-match-three/board-background-v28.avif?v=28")!important;
   background-size:cover!important;
   background-position:center!important;
   background-repeat:no-repeat!important;
@@ -142,4 +142,17 @@ body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-blocker_
 
 @media (max-width:420px){
   body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{border-radius:24px!important}
+}
+
+/* V28: real raster unlit lamp only; never render legacy SVG fallback. */
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-blocker-fallback,
+body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-blocker svg {
+  display:none!important;
+  visibility:hidden!important;
+}
+body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap,
+body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board {
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
 }
