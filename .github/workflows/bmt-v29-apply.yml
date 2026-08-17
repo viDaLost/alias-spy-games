@@ -1,0 +1,180 @@
+name: Apply Biblical Treasures V29 fixes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bmt-v29-apply.yml'
+
+permissions:
+  contents: write
+  pages: write
+
+env:
+  SRC_BRANCH: bmt-v29-assets
+  ASSET_BRANCH: bmt-v28-targeted-fix
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply only Biblical Treasures V29
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$SRC_BRANCH" "$ASSET_BRANCH"
+
+          # Copy the reviewed V29 source files. These paths are limited to Biblical Treasures
+          # plus the two existing shared loaders where only this game's cache version changes.
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/index.html" > index.html
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/js/v22-game-loader.js" > web/js/v22-game-loader.js
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/js/v22-home-art.js" > web/js/v22-home-art.js
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/js/v23-biblical-treasures-polish.js" > web/js/v23-biblical-treasures-polish.js
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/js/v24-biblical-treasures-board.js" > web/js/v24-biblical-treasures-board.js
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/js/v29-biblical-treasures-hotfix.js" > web/js/v29-biblical-treasures-hotfix.js
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/styles/biblical-match-three-v21-art.css" > web/styles/biblical-match-three-v21-art.css
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/styles/biblical-match-three-v23-polish.css" > web/styles/biblical-match-three-v23-polish.css
+          git show "origin/$SRC_BRANCH:.bmt-v29-src/web/styles/biblical-match-three-v24-board.css" > web/styles/biblical-match-three-v24-board.css
+
+          # The launcher is Biblical Treasures-only. Move its internal cache key to V29.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('web/js/biblical-match-three-launcher.js')
+          s = p.read_text()
+          old = 'const VERSION="28";'
+          if old not in s:
+              raise SystemExit('Expected Biblical Treasures launcher V28 marker not found')
+          p.write_text(s.replace(old, 'const VERSION="29";', 1))
+          PY
+
+          mkdir -p web/assets/biblical-match-three/icons-v29
+
+          # Restore the exact supplied HQ completion art from the original staged chunks.
+          decode_chunks() {
+            local prefix="$1" out="$2" tmp
+            tmp="$(mktemp)"
+            git ls-tree -r --name-only "origin/$ASSET_BRANCH" .bmt-v28-assets \
+              | grep -E "^\\.bmt-v28-assets/${prefix}\\.[0-9]+\\.txt$" \
+              | sort -V \
+              | while IFS= read -r f; do git show "origin/$ASSET_BRANCH:$f"; done \
+              | tr -d '\r\n' > "$tmp"
+            test -s "$tmp"
+            base64 -d "$tmp" > "$out"
+            rm -f "$tmp"
+          }
+          decode_chunks completion-1 web/assets/biblical-match-three/completion-1-star-v29.webp
+          decode_chunks completion-2 web/assets/biblical-match-three/completion-2-stars-v29.webp
+          test "$(git hash-object web/assets/biblical-match-three/completion-1-star-v29.webp)" = "6f4f21f4bee439f446acd481285c6c5b174f141c"
+          test "$(git hash-object web/assets/biblical-match-three/completion-2-stars-v29.webp)" = "99041d52f35ba315589ab382ca609979c0623b47"
+
+          # Create the matching three-star HQ result from the supplied two-star artwork.
+          if command -v magick >/dev/null 2>&1; then IM=magick; elif command -v convert >/dev/null 2>&1; then IM=convert; else echo 'ImageMagick is required' >&2; exit 1; fi
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v29.webp -crop 112x112+196+374 +repage /tmp/bmt-gold-side-star.png
+          "$IM" web/assets/biblical-match-three/completion-2-stars-v29.webp /tmp/bmt-gold-side-star.png -geometry +398+374 -composite -quality 94 web/assets/biblical-match-three/completion-3-stars-v29.webp
+
+          # The currently published board file contains valid WebP bytes but had the wrong .avif suffix.
+          # Publish it under its real format so Safari/Telegram can decode it reliably.
+          cp web/assets/biblical-match-three/board-background-v28.avif web/assets/biblical-match-three/board-background-v29.webp
+
+          # Keep the real raster extinguished lamp, under the new cache-clean V29 path.
+          cp web/assets/biblical-match-three/icons-v28/lamp-unlit.webp web/assets/biblical-match-three/icons-v29/lamp-unlit.webp
+
+          # Restore the actual Bible game icon rather than the accidental treasure-chest crop.
+          cp web/assets/biblical-match-three/icons-v17/bible.webp web/assets/icons/biblical-treasures.webp
+
+          # Delete stale/broken Biblical Treasures-only assets and old hotfixes.
+          find web/assets/biblical-match-three -maxdepth 1 -type f -name 'completion-*' \
+            ! -name 'completion-1-star-v29.webp' \
+            ! -name 'completion-2-stars-v29.webp' \
+            ! -name 'completion-3-stars-v29.webp' -delete
+          find web/assets/biblical-match-three -maxdepth 1 -type f -name 'board-background-*' \
+            ! -name 'board-background-v29.webp' -delete
+          rm -rf web/assets/biblical-match-three/icons-v28 web/assets/biblical-match-three/icons-v27
+          rm -f web/js/v27-biblical-treasures-hotfix.js
+
+          # This one-shot workflow must not remain and retrigger future releases.
+          rm -f .github/workflows/bmt-v29-apply.yml
+
+          # Validate all corrected assets and scripts before publishing.
+          file web/assets/biblical-match-three/completion-1-star-v29.webp | grep -qi 'Web/P\|WebP'
+          file web/assets/biblical-match-three/completion-2-stars-v29.webp | grep -qi 'Web/P\|WebP'
+          file web/assets/biblical-match-three/completion-3-stars-v29.webp | grep -qi 'Web/P\|WebP'
+          file web/assets/biblical-match-three/board-background-v29.webp | grep -qi 'Web/P\|WebP'
+          file web/assets/biblical-match-three/icons-v29/lamp-unlit.webp | grep -qi 'Web/P\|WebP'
+          test "$(git hash-object web/assets/icons/biblical-treasures.webp)" = "38452e11d051afe2eb94afbe4f1e137d5f10078c"
+
+          node --check web/js/v22-game-loader.js
+          node --check web/js/v22-home-art.js
+          node --check web/js/v23-biblical-treasures-polish.js
+          node --check web/js/v24-biblical-treasures-board.js
+          node --check web/js/v29-biblical-treasures-hotfix.js
+          node --check web/js/biblical-match-three-launcher.js
+
+          grep -q 'completion-1-star-v29.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-2-stars-v29.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-3-stars-v29.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'board-background-v29.webp' web/styles/biblical-match-three-v24-board.css
+          grep -q 'icons-v29/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js
+          grep -q 'has-lamp' web/js/v29-biblical-treasures-hotfix.js
+          grep -q 'bmtArkGuardV29' web/js/v29-biblical-treasures-hotfix.js
+          grep -q 'biblical-treasures.webp?v=29' web/js/v29-biblical-treasures-hotfix.js
+          grep -q 'const VERSION="29";' web/js/biblical-match-three-launcher.js
+
+          test ! -e web/js/v27-biblical-treasures-hotfix.js
+          test ! -e web/assets/biblical-match-three/board-background-v28.avif
+          test ! -e web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+
+          # Ensure no stale V27/V28 references remain in the exact V29 integration files.
+          ! grep -nE 'board-background-v28|completion-[123].*v28|icons-v28/lamp-unlit|v27-biblical-treasures-hotfix|[?&]v=28' \
+            index.html \
+            web/js/biblical-match-three-launcher.js \
+            web/js/v22-game-loader.js \
+            web/js/v22-home-art.js \
+            web/js/v23-biblical-treasures-polish.js \
+            web/js/v24-biblical-treasures-board.js \
+            web/js/v29-biblical-treasures-hotfix.js \
+            web/styles/biblical-match-three-v21-art.css \
+            web/styles/biblical-match-three-v23-polish.css \
+            web/styles/biblical-match-three-v24-board.css
+
+          # Hard scope guard: refuse to publish any unrelated game change.
+          mapfile -t changed < <(git diff --name-only HEAD)
+          for path in "${changed[@]}"; do
+            case "$path" in
+              .github/workflows/bmt-v29-apply.yml|\
+              index.html|\
+              web/js/biblical-match-three-launcher.js|\
+              web/js/v22-game-loader.js|\
+              web/js/v22-home-art.js|\
+              web/js/v23-biblical-treasures-polish.js|\
+              web/js/v24-biblical-treasures-board.js|\
+              web/js/v27-biblical-treasures-hotfix.js|\
+              web/js/v29-biblical-treasures-hotfix.js|\
+              web/styles/biblical-match-three-v21-art.css|\
+              web/styles/biblical-match-three-v23-polish.css|\
+              web/styles/biblical-match-three-v24-board.css|\
+              web/assets/icons/biblical-treasures.webp|\
+              web/assets/biblical-match-three/board-background-*|\
+              web/assets/biblical-match-three/completion-*|\
+              web/assets/biblical-match-three/icons-v27/*|\
+              web/assets/biblical-match-three/icons-v28/*|\
+              web/assets/biblical-match-three/icons-v29/*)
+                ;;
+              *) echo "Refusing unrelated path: $path" >&2; exit 1 ;;
+            esac
+          done
+
+          git add -A
+          git commit -m "Fix Biblical Treasures V29 art and lamp interactions"
+          git push origin HEAD:main
+
+          # Force a branch-based Pages rebuild for the exact published commit.
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
