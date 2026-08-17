@@ -4,18 +4,9 @@
   if (window.__bmtV23PolishInstalled) return;
   window.__bmtV23PolishInstalled = true;
 
-  const VERSION = '23';
+  const VERSION = '24';
   const STYLE_ID = 'bmt-v23-polish-style';
   const HERO_ASSET = `web/assets/biblical-match-three/completion-hero-v23.svg?v=${VERSION}`;
-
-  const SHAPE_PATHS = {
-    rect: 'M6 2H94Q98 2 98 6V94Q98 98 94 98H6Q2 98 2 94V6Q2 2 6 2Z',
-    oval: 'M50 2C76.5 2 98 23.5 98 50S76.5 98 50 98 2 76.5 2 50 23.5 2 50 2Z',
-    diamond: 'M50 2L98 50 50 98 2 50Z',
-    cross: 'M34 2H66V34H98V66H66V98H34V66H2V34H34Z',
-    bowl: 'M18 2H82Q91 6 95 17Q98 28 98 44V98H2V44Q2 28 5 17Q9 6 18 2Z',
-    shield: 'M7 2H93L92 61Q90 73 82 80L50 98 18 80Q10 73 8 61Z',
-  };
 
   let scheduled = false;
 
@@ -28,25 +19,32 @@
     document.head.appendChild(link);
   }
 
-  function boundaryMarkup(path) {
-    return `
-      <defs>
-        <linearGradient id="bmtV23BoundaryGradient" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#fff7c7"/>
-          <stop offset=".2" stop-color="#e8c776"/>
-          <stop offset=".48" stop-color="#7767f0"/>
-          <stop offset=".76" stop-color="#a9c8ff"/>
-          <stop offset="1" stop-color="#fff9dd"/>
-        </linearGradient>
-        <filter id="bmtV23BoundaryGlow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="1.4" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <path class="bmt-v23-boundary-shadow" d="${path}"/>
-      <path class="bmt-v23-boundary-main" d="${path}"/>
-      <path class="bmt-v23-boundary-highlight" d="${path}"/>
-    `;
+  function activeCellSet(board, cols) {
+    const active = new Set();
+    board.querySelectorAll(':scope > .bmt-tile:not(.is-hole)').forEach((tile) => {
+      const index = Number(tile.dataset.index);
+      if (Number.isInteger(index) && index >= 0) active.add(index);
+    });
+    return active;
+  }
+
+  function boundaryGeometry(board) {
+    const rows = Math.max(1, Number(board.dataset.rows) || 8);
+    const cols = Math.max(1, Number(board.dataset.cols) || 8);
+    const active = activeCellSet(board, cols);
+    const segments = [];
+
+    const has = (row, col) => row >= 0 && row < rows && col >= 0 && col < cols && active.has(row * cols + col);
+    for (const index of active) {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      if (!has(row - 1, col)) segments.push(`M${col} ${row}H${col + 1}`);
+      if (!has(row, col + 1)) segments.push(`M${col + 1} ${row}V${row + 1}`);
+      if (!has(row + 1, col)) segments.push(`M${col + 1} ${row + 1}H${col}`);
+      if (!has(row, col - 1)) segments.push(`M${col} ${row + 1}V${row}`);
+    }
+
+    return { rows, cols, path: segments.join('') };
   }
 
   function patchBoard(board) {
@@ -57,27 +55,29 @@
     board.classList.add('bmt-v23-board');
     wrap.classList.add('bmt-v23-board-wrap');
 
-    const shape = SHAPE_PATHS[board.dataset.shape] ? board.dataset.shape : 'rect';
+    const { rows, cols, path } = boundaryGeometry(board);
+    if (!path) return;
+
     let svg = board.querySelector(':scope > .bmt-v23-boundary');
     if (!svg) {
       svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.classList.add('bmt-v23-boundary');
-      svg.setAttribute('viewBox', '0 0 100 100');
       svg.setAttribute('preserveAspectRatio', 'none');
       svg.setAttribute('aria-hidden', 'true');
       board.appendChild(svg);
     }
-    if (svg.dataset.shape !== shape) {
-      svg.dataset.shape = shape;
-      svg.innerHTML = boundaryMarkup(SHAPE_PATHS[shape]);
-    }
+    svg.classList.add('bmt-v23-boundary--underlay');
+
+    const signature = `${rows}x${cols}:${path}`;
+    if (svg.dataset.geometry === signature) return;
+    svg.dataset.geometry = signature;
+    svg.setAttribute('viewBox', `0 0 ${cols} ${rows}`);
+    svg.innerHTML = `<path class="bmt-v23-boundary-shadow" d="${path}"/><path class="bmt-v23-boundary-main" d="${path}"/>`;
   }
 
   function patchWinResult(card) {
     if (!card || card.dataset.v23Result === '1' || !card.classList.contains('is-win')) return;
 
-    // V22 builds the result structure and button behavior. V23 only replaces the
-    // decorative hero with one dedicated high-resolution asset and refines layout.
     const hero = card.querySelector('.bmt-v22-win-hero');
     if (!hero) return;
 
@@ -115,7 +115,7 @@
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ['data-current-game', 'data-shape', 'data-v22-result'],
+      attributeFilter: ['data-current-game', 'data-shape', 'data-rows', 'data-cols'],
     });
   }
 
