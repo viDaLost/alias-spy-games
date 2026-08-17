@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = '29';
+  const VERSION = '31';
   const GUARD = `web/js/v22-legacy-tutorial-guard.js?v=${VERSION}`;
   const POLISH = `web/js/v22-game-polish.js?v=${VERSION}`;
   const V23 = `web/js/v23-biblical-treasures-polish.js?v=${VERSION}`;
@@ -30,9 +30,9 @@
       if (!window.__bmtV22GamePolishInstalled) await appendScript(POLISH, 'v22GamePolish');
       if (!window.__bmtV24BoardInstalled) await appendScript(V24, 'v24BiblicalTreasuresBoard');
       if (!window.__bmtV23PolishInstalled) await appendScript(V23, 'v23BiblicalTreasuresPolish');
-      if (!window.__bmtV29HotfixInstalled) await appendScript(HOTFIX, 'v29BiblicalTreasuresHotfix');
+      if (!window.__bmtV31HotfixInstalled) await appendScript(HOTFIX, 'v31BiblicalTreasuresHotfix');
     } catch (error) {
-      console.error('[Biblical Treasures V29]', error);
+      console.error('[Biblical Treasures V31]', error);
     } finally {
       loading = false;
     }
