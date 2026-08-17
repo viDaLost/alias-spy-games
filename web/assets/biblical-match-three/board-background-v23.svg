@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1440" role="img" aria-label="Светлый храмовый фон игрового поля">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#edf5ff"/>
+      <stop offset=".46" stop-color="#e9ebff"/>
+      <stop offset="1" stop-color="#f8efff"/>
+    </linearGradient>
+    <radialGradient id="light" cx="50%" cy="30%" r="64%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".98"/>
+      <stop offset=".28" stop-color="#fff8d9" stop-opacity=".72"/>
+      <stop offset=".62" stop-color="#cbd7ff" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#8c7de1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arch" x1="0" x2="1">
+      <stop stop-color="#cdd6ff"/>
+      <stop offset=".5" stop-color="#f8e8ff"/>
+      <stop offset="1" stop-color="#c6d0ff"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" x2="1">
+      <stop stop-color="#fff8c5"/>
+      <stop offset=".4" stop-color="#e8c06a"/>
+      <stop offset=".72" stop-color="#fff4b0"/>
+      <stop offset="1" stop-color="#c89543"/>
+    </linearGradient>
+    <filter id="blur24"><feGaussianBlur stdDeviation="24"/></filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1080" height="1440" fill="url(#sky)"/>
+  <rect width="1080" height="1440" fill="url(#light)"/>
+  <g opacity=".9">
+    <path d="M-60 470C55 180 255 82 540 82S1025 180 1140 470" fill="none" stroke="url(#arch)" stroke-width="150" opacity=".55"/>
+    <path d="M-40 466C74 200 268 116 540 116s466 84 580 350" fill="none" stroke="url(#gold)" stroke-width="10" opacity=".72"/>
+  </g>
+  <g opacity=".46">
+    <path d="M0 300h116v980H0z" fill="#b9c7ff"/>
+    <path d="M964 300h116v980H964z" fill="#b9c7ff"/>
+    <path d="M22 280h72v1000H22zM986 280h72v1000h-72z" fill="#fff" opacity=".54"/>
+    <path d="M0 302h130v28H0zM950 302h130v28H950z" fill="url(#gold)" opacity=".62"/>
+  </g>
+  <g fill="#fff" opacity=".62" filter="url(#blur24)">
+    <ellipse cx="210" cy="1040" rx="280" ry="170"/>
+    <ellipse cx="520" cy="1120" rx="340" ry="210"/>
+    <ellipse cx="880" cy="1010" rx="300" ry="180"/>
+  </g>
+  <g fill="#fff" opacity=".72">
+    <ellipse cx="120" cy="1170" rx="240" ry="90"/>
+    <ellipse cx="455" cy="1240" rx="330" ry="120"/>
+    <ellipse cx="850" cy="1175" rx="280" ry="96"/>
+  </g>
+  <g fill="#fff" filter="url(#glow)" opacity=".84">
+    <circle cx="180" cy="220" r="5"/><circle cx="850" cy="260" r="5"/><circle cx="730" cy="120" r="4"/><circle cx="330" cy="150" r="4"/>
+    <path d="M876 500l8 18 18 8-18 8-8 18-8-18-18-8 18-8z"/>
+    <path d="M182 610l6 14 14 6-14 6-6 14-6-14-14-6 14-6z"/>
+  </g>
+</svg>

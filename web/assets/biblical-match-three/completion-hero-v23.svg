@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Открытая Библия в сияющем храме">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e7efff"/><stop offset=".5" stop-color="#f2efff"/><stop offset="1" stop-color="#fffaf2"/></linearGradient>
+    <radialGradient id="sun" cx="50%" cy="58%" r="38%"><stop stop-color="#fffbd7"/><stop offset=".28" stop-color="#ffe895" stop-opacity=".9"/><stop offset=".7" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="purple" x1="0" x2="1"><stop stop-color="#7567df"/><stop offset=".5" stop-color="#a69cf6"/><stop offset="1" stop-color="#7468db"/></linearGradient>
+    <linearGradient id="gold" x1="0" x2="1"><stop stop-color="#fff2a8"/><stop offset=".35" stop-color="#d99b31"/><stop offset=".65" stop-color="#ffd96d"/><stop offset="1" stop-color="#b97720"/></linearGradient>
+    <linearGradient id="page" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fffdf1"/><stop offset="1" stop-color="#f1d99e"/></linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1200" height="700" fill="url(#sky)"/>
+  <rect width="1200" height="700" fill="url(#sun)"/>
+  <path d="M-80 490C65 135 300 35 600 35s535 100 680 455" fill="none" stroke="url(#purple)" stroke-width="132" opacity=".55"/>
+  <path d="M-56 482C85 165 310 76 600 76s515 89 656 406" fill="none" stroke="url(#gold)" stroke-width="10" opacity=".9"/>
+  <g opacity=".48"><path d="M0 315h108v385H0zM1092 315h108v385h-108z" fill="#cbd3ff"/><path d="M28 300h56v400H28zM1116 300h56v400h-56z" fill="#fff"/></g>
+  <g opacity=".84" fill="#fff" filter="url(#soft)"><ellipse cx="250" cy="620" rx="280" ry="110"/><ellipse cx="600" cy="640" rx="360" ry="120"/><ellipse cx="950" cy="620" rx="280" ry="110"/></g>
+  <g fill="#d79b22" opacity=".86"><path d="M188 92l20 8-7 30-20-8z"/><path d="M1000 120l18 6-9 28-17-6z"/><path d="M328 146l15 10-14 22-15-10z"/><path d="M890 82l17 4-5 23-17-4z"/><path d="M1060 245l13 8-12 18-13-8z"/></g>
+  <g transform="translate(600 390)">
+    <ellipse cx="0" cy="40" rx="260" ry="105" fill="#fff3a5" opacity=".25" filter="url(#soft)"/>
+    <g transform="translate(-205 0) rotate(-10)">
+      <path d="M0 10L-126 88" stroke="url(#gold)" stroke-width="28" stroke-linecap="round"/>
+      <path d="M-126 88l-45 18 31-46z" fill="url(#gold)"/>
+      <ellipse cx="5" cy="5" rx="42" ry="25" fill="url(#gold)"/><ellipse cx="8" cy="5" rx="25" ry="13" fill="#fff4a9" opacity=".75"/>
+      <path d="M-86 56l-15 38" stroke="#3659b6" stroke-width="19"/><path d="M-104 90l38 8-17 44-38-8z" fill="#2851bb"/><path d="M-109 100l10 3 3 10 8-8 11 2-6-10 6-9-12 1-7-8-3 11z" fill="#ffe07a"/>
+    </g>
+    <g transform="translate(205 0) scale(-1 1) rotate(-10)">
+      <path d="M0 10L-126 88" stroke="url(#gold)" stroke-width="28" stroke-linecap="round"/>
+      <path d="M-126 88l-45 18 31-46z" fill="url(#gold)"/>
+      <ellipse cx="5" cy="5" rx="42" ry="25" fill="url(#gold)"/><ellipse cx="8" cy="5" rx="25" ry="13" fill="#fff4a9" opacity=".75"/>
+      <path d="M-86 56l-15 38" stroke="#3659b6" stroke-width="19"/><path d="M-104 90l38 8-17 44-38-8z" fill="#2851bb"/><path d="M-109 100l10 3 3 10 8-8 11 2-6-10 6-9-12 1-7-8-3 11z" fill="#ffe07a"/>
+    </g>
+    <g transform="translate(-6 -30)">
+      <path d="M0 10C-92-35-198-27-243 13v213c71-42 155-41 243 7z" fill="url(#page)" stroke="#b77a25" stroke-width="8"/>
+      <path d="M0 10C92-35 198-27 243 13v213c-71-42-155-41-243 7z" fill="url(#page)" stroke="#b77a25" stroke-width="8"/>
+      <path d="M0 10v225" stroke="#c27d26" stroke-width="10"/>
+      <path d="M-2 18l16 8-5 232-18 28z" fill="#c94432"/>
+      <g stroke="#c9ad71" stroke-width="5" opacity=".58"><path d="M-205 55h142M-205 80h145M-205 105h133M-205 130h140M-205 155h126"/><path d="M65 55h138M65 80h144M65 105h130M65 130h139M65 155h122"/></g>
+      <path d="M145 70v96M110 106h70" stroke="#c7902b" stroke-width="18" stroke-linecap="round" filter="url(#glow)"/>
+      <path d="M-228 221q111-31 228 12 111-43 228-12" fill="none" stroke="#8d5e1d" stroke-width="9" opacity=".62"/>
+    </g>
+  </g>
+  <g fill="#fff" filter="url(#glow)" opacity=".9"><path d="M600 155l9 23 23 9-23 9-9 23-9-23-23-9 23-9z"/><circle cx="468" cy="235" r="5"/><circle cx="735" cy="220" r="5"/></g>
+</svg>
