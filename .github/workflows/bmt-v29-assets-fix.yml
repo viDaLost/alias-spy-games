@@ -1,0 +1,68 @@
+name: Repair Biblical Treasures V29 completion art
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bmt-v29-assets-fix.yml'
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore valid V29 completion WebP files only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin bmt-v29-assets
+
+          decode() {
+            local prefix="$1" out="$2" list
+            list="$(git ls-tree -r --name-only origin/bmt-v29-assets .bmt-v29-assets | grep -E "^\\.bmt-v29-assets/${prefix}\\.[0-9]+\\.txt$" | sort -V)"
+            test -n "$list"
+            : > /tmp/bmt.b64
+            while IFS= read -r f; do
+              git show "origin/bmt-v29-assets:$f" | tr -d '\r\n' >> /tmp/bmt.b64
+            done <<< "$list"
+            base64 -d /tmp/bmt.b64 > "$out"
+            rm -f /tmp/bmt.b64
+          }
+
+          decode c1 web/assets/biblical-match-three/completion-1-star-v29.webp
+          decode c2 web/assets/biblical-match-three/completion-2-stars-v29.webp
+
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const f of [
+            'web/assets/biblical-match-three/completion-1-star-v29.webp',
+            'web/assets/biblical-match-three/completion-2-stars-v29.webp',
+          ]) {
+            const b = fs.readFileSync(f);
+            if (b.length < 50000 || b.subarray(0,4).toString('ascii') !== 'RIFF' || b.subarray(8,12).toString('ascii') !== 'WEBP') {
+              throw new Error(`Invalid repaired WebP: ${f} (${b.length} bytes)`);
+            }
+            console.log(`${f}: ${b.length} bytes, valid RIFF/WEBP`);
+          }
+          NODE
+
+          file web/assets/biblical-match-three/completion-1-star-v29.webp | grep -qi 'Web/P\|WebP'
+          file web/assets/biblical-match-three/completion-2-stars-v29.webp | grep -qi 'Web/P\|WebP'
+
+          rm -f .github/workflows/bmt-v29-assets-fix.yml
+          git add -A .github/workflows/bmt-v29-assets-fix.yml \
+            web/assets/biblical-match-three/completion-1-star-v29.webp \
+            web/assets/biblical-match-three/completion-2-stars-v29.webp
+          git commit -m "Repair Biblical Treasures V29 completion images"
+          git push origin HEAD:main
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages/builds" >/dev/null 2>&1 || true
