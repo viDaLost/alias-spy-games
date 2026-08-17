@@ -3,22 +3,27 @@
   if (window.__bmtV24BoardInstalled) return;
   window.__bmtV24BoardInstalled = true;
 
+  const VERSION = '25';
   const STYLE_ID = 'bmt-v24-board-style';
   const NS = 'http://www.w3.org/2000/svg';
+  const observedBoards = new WeakSet();
   let resizeObserver = null;
+  let mutationObserver = null;
+  let patchScheduled = false;
 
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     const link = document.createElement('link');
     link.id = STYLE_ID;
     link.rel = 'stylesheet';
-    link.href = 'web/styles/biblical-match-three-v24-board.css?v=24';
+    link.href = `web/styles/biblical-match-three-v24-board.css?v=${VERSION}`;
     document.head.appendChild(link);
   }
 
   function getMask(board) {
-    const rows = Math.max(1, Number(board.dataset.rows || getComputedStyle(board).getPropertyValue('--bmt-rows') || 8));
-    const cols = Math.max(1, Number(board.dataset.cols || getComputedStyle(board).getPropertyValue('--bmt-cols') || 8));
+    const styles = getComputedStyle(board);
+    const rows = Math.max(1, Number(board.dataset.rows || styles.getPropertyValue('--bmt-rows') || 8));
+    const cols = Math.max(1, Number(board.dataset.cols || styles.getPropertyValue('--bmt-cols') || 8));
     const mask = new Array(rows * cols).fill(false);
     board.querySelectorAll('.bmt-tile').forEach((tile) => {
       const index = Number(tile.dataset.index);
@@ -48,7 +53,6 @@
     const signature = `${rows}x${cols}:${mask.map((value) => value ? '1' : '0').join('')}`;
     if (underlay.dataset.signature === signature) return;
     underlay.dataset.signature = signature;
-    underlay.replaceChildren();
 
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${cols} ${rows}`);
@@ -73,7 +77,7 @@
     contour.setAttribute('d', pathForMask(rows, cols, mask));
     contour.setAttribute('vector-effect', 'non-scaling-stroke');
     svg.append(cells, contour);
-    underlay.appendChild(svg);
+    underlay.replaceChildren(svg);
   }
 
   function positionUnderlay(board, wrap, underlay) {
@@ -81,20 +85,43 @@
     const boardRect = board.getBoundingClientRect();
     const wrapRect = wrap.getBoundingClientRect();
     if (!boardRect.width || !boardRect.height || !wrapRect.width || !wrapRect.height) return;
-    underlay.style.left = `${boardRect.left - wrapRect.left}px`;
-    underlay.style.top = `${boardRect.top - wrapRect.top}px`;
-    underlay.style.width = `${boardRect.width}px`;
-    underlay.style.height = `${boardRect.height}px`;
+
+    const left = `${boardRect.left - wrapRect.left}px`;
+    const top = `${boardRect.top - wrapRect.top}px`;
+    const width = `${boardRect.width}px`;
+    const height = `${boardRect.height}px`;
+    if (underlay.style.left !== left) underlay.style.left = left;
+    if (underlay.style.top !== top) underlay.style.top = top;
+    if (underlay.style.width !== width) underlay.style.width = width;
+    if (underlay.style.height !== height) underlay.style.height = height;
+  }
+
+  function observeBoardSize(board) {
+    if (!window.ResizeObserver || observedBoards.has(board)) return;
+    if (!resizeObserver) {
+      resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const target = entry.target;
+          const wrap = target.closest('.bmt-board-wrap');
+          const underlay = wrap?.querySelector(':scope > .bmt-v24-field-underlay');
+          if (wrap && underlay) positionUnderlay(target, wrap, underlay);
+        }
+      });
+    }
+    observedBoards.add(board);
+    resizeObserver.observe(board);
   }
 
   function patchBoard(board) {
-    if (!board || !board.isConnected) return;
+    if (!board?.isConnected) return;
     const wrap = board.closest('.bmt-board-wrap');
     if (!wrap) return;
 
-    wrap.classList.add('bmt-v24-board-wrap');
-    board.classList.add('bmt-v24-board');
-    wrap.dataset.boardShape = board.dataset.shape || wrap.dataset.boardShape || 'rect';
+    if (!wrap.classList.contains('bmt-v24-board-wrap')) wrap.classList.add('bmt-v24-board-wrap');
+    if (!board.classList.contains('bmt-v24-board')) board.classList.add('bmt-v24-board');
+
+    const shape = board.dataset.shape || 'rect';
+    if (wrap.dataset.boardShape !== shape) wrap.dataset.boardShape = shape;
 
     let underlay = wrap.querySelector(':scope > .bmt-v24-field-underlay');
     if (!underlay) {
@@ -106,35 +133,47 @@
 
     rebuildUnderlay(board, underlay);
     positionUnderlay(board, wrap, underlay);
-
-    if (window.ResizeObserver) {
-      if (!resizeObserver) resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const target = entry.target;
-          const targetWrap = target.closest('.bmt-board-wrap');
-          const targetUnderlay = targetWrap?.querySelector(':scope > .bmt-v24-field-underlay');
-          if (targetWrap && targetUnderlay) positionUnderlay(target, targetWrap, targetUnderlay);
-        }
-      });
-      if (board.dataset.v24ResizeObserved !== '1') {
-        board.dataset.v24ResizeObserved = '1';
-        resizeObserver.observe(board);
-      }
-    }
+    observeBoardSize(board);
   }
 
   function patchAll() {
+    patchScheduled = false;
     if (document.body?.dataset?.currentGame !== 'biblical-match-three') return;
     document.querySelectorAll('.bmt-board').forEach(patchBoard);
   }
 
+  function schedulePatch() {
+    if (patchScheduled) return;
+    patchScheduled = true;
+    requestAnimationFrame(patchAll);
+  }
+
+  function mutationNeedsPatch(record) {
+    if (record.type === 'attributes') return record.target?.classList?.contains('bmt-board');
+    if (record.type !== 'childList') return false;
+    if (record.target?.classList?.contains('bmt-board')) return true;
+    const nodes = [...record.addedNodes, ...record.removedNodes];
+    return nodes.some((node) => node.nodeType === 1 && (
+      node.matches?.('.bmt-board, .bmt-tile') || node.querySelector?.('.bmt-board, .bmt-tile')
+    ));
+  }
+
   function start() {
     ensureStyle();
-    patchAll();
+    schedulePatch();
+
     const root = document.getElementById('game-container') || document.body;
-    new MutationObserver(patchAll).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-shape'] });
-    window.addEventListener('resize', patchAll, { passive: true });
-    window.setInterval(patchAll, 450);
+    mutationObserver = new MutationObserver((records) => {
+      if (records.some(mutationNeedsPatch)) schedulePatch();
+    });
+    mutationObserver.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-shape'],
+    });
+
+    window.addEventListener('resize', schedulePatch, { passive: true });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
