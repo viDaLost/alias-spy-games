@@ -172,12 +172,17 @@
   }
 
   function mutationNeedsPatch(record) {
-    if (record.type === 'attributes') return record.attributeName === 'data-shape' || record.attributeName === 'class';
+    if (record.type === 'attributes') {
+      return record.attributeName === 'data-shape'
+        || record.attributeName === 'class'
+        || record.attributeName === 'data-blocker-lit';
+    }
     if (record.type !== 'childList') return false;
-    if (record.target?.classList?.contains('bmt-board')) return true;
+    if (record.target?.classList?.contains('bmt-board') || record.target?.classList?.contains('bmt-blocker') || record.target?.closest?.('.bmt-blocker')) return true;
     const nodes = [...record.addedNodes, ...record.removedNodes];
     return nodes.some((node) => node.nodeType === 1 && (
-      node.matches?.('.bmt-board, .bmt-tile, .bmt-blocker') || node.querySelector?.('.bmt-board, .bmt-tile, .bmt-blocker')
+      node.matches?.('.bmt-board, .bmt-tile, .bmt-blocker, [data-blocker-type]')
+      || node.querySelector?.('.bmt-board, .bmt-tile, .bmt-blocker, [data-blocker-type]')
     ));
   }
 
@@ -193,7 +198,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-shape', 'class'],
+      attributeFilter: ['data-shape', 'class', 'data-blocker-lit'],
     });
 
     window.addEventListener('resize', schedulePatch, { passive: true });
