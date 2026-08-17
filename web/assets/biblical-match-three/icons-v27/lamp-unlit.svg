@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Потухший светильник">
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Потухший светильник">
   <defs>
     <linearGradient id="g" x1="38" y1="24" x2="202" y2="222" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#fff3a4"/><stop offset=".16" stop-color="#ffc62c"/><stop offset=".48" stop-color="#e88908"/><stop offset=".76" stop-color="#ffb616"/><stop offset="1" stop-color="#a84e05"/>
