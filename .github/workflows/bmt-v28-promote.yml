@@ -1,0 +1,101 @@
+name: Promote Biblical Treasures V28
+
+on:
+  push:
+    branches: [bmt-v28-publish]
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify V28 and fast-forward production
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Do nothing until the assembler/finalizer have produced the complete scoped fix.
+          required=(
+            web/assets/biblical-match-three/completion-1-star-v28.webp
+            web/assets/biblical-match-three/completion-2-stars-v28.webp
+            web/assets/biblical-match-three/completion-3-stars-v28.avif
+            web/assets/biblical-match-three/board-background-v28.avif
+            web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+            web/assets/icons/biblical-treasures.webp
+          )
+          for file in "${required[@]}"; do
+            [ -s "$file" ] || { echo "Waiting for $file"; exit 0; }
+          done
+
+          grep -q 'biblical-match-three-launcher.js?v=28' index.html || exit 0
+          grep -q 'v22-home-art.js?v=28' index.html || exit 0
+          grep -q 'v22-game-loader.js?v=28' index.html || exit 0
+          grep -q 'v24-biblical-treasures-board.js?v=28' index.html || exit 0
+          grep -q 'v27-biblical-treasures-hotfix.js?v=28' index.html || exit 0
+          grep -q 'const VERSION="28";' web/js/biblical-match-three-launcher.js || exit 0
+          grep -q "const VERSION = '28';" web/js/v23-biblical-treasures-polish.js || exit 0
+          grep -q 'icons-v28/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js || exit 0
+          grep -q '__bmtArkGuardV28' web/js/v27-biblical-treasures-hotfix.js || exit 0
+
+          [ ! -e web/assets/biblical-match-three/completion-1-star-v26.avif ] || exit 0
+          [ ! -e web/assets/biblical-match-three/completion-2-stars-v26.avif ] || exit 0
+          [ ! -e web/assets/biblical-match-three/completion-3-stars-v26.avif ] || exit 0
+          [ ! -e web/assets/biblical-match-three/board-background-v26.avif ] || exit 0
+          [ ! -e web/assets/biblical-match-three/icons-v27/lamp-unlit.svg ] || exit 0
+
+          # Clean all temporary V28 publishing scaffolding before main is advanced.
+          rm -rf .bmt-v28-stage .bmt-v28-final .bmt-v28-assets .bmt-v28-test .bmt-v28-check
+          rm -f .github/workflows/bmt-v28-assemble.yml .github/workflows/bmt-v28-finalize.yml .github/workflows/bmt-v28-promote.yml
+          rm -f web/assets/biblical-match-three/icons-v28/.placeholder web/js/.bmt-v28-publish-marker.js
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Clean Biblical Treasures V28 publishing scaffolding"
+          fi
+
+          git fetch origin main
+
+          # Safety fence: the production diff may contain only Biblical Treasures and its exact home/loader hooks.
+          changed="$(git diff --name-only origin/main...HEAD)"
+          printf '%s\n' "$changed"
+          while IFS= read -r path; do
+            [ -z "$path" ] && continue
+            case "$path" in
+              index.html|\
+              web/js/biblical-match-three-launcher.js|\
+              web/js/v22-home-art.js|\
+              web/js/v22-game-loader.js|\
+              web/js/v23-biblical-treasures-polish.js|\
+              web/js/v24-biblical-treasures-board.js|\
+              web/js/v27-biblical-treasures-hotfix.js|\
+              web/styles/biblical-match-three-v21-art.css|\
+              web/styles/biblical-match-three-v23-polish.css|\
+              web/styles/biblical-match-three-v24-board.css|\
+              web/assets/icons/biblical-treasures.webp|\
+              web/assets/biblical-match-three/*|\
+              web/assets/biblical-match-three/icons-v27/*|\
+              web/assets/biblical-match-three/icons-v28/*)
+                ;;
+              *)
+                echo "Refusing production push: unrelated path changed: $path" >&2
+                exit 1
+                ;;
+            esac
+          done <<< "$changed"
+
+          # No stale Biblical Treasures URL/version reference is allowed in the touched runtime surface.
+          ! grep -RInE 'completion-[123].*v26|board-background-v26|icons-v27/lamp-unlit|biblical-treasures\.webp\?v=(21|22|26|27)' \
+            index.html web/js/biblical-match-three-launcher.js web/js/v22-home-art.js web/js/v22-game-loader.js \
+            web/js/v23-biblical-treasures-polish.js web/js/v24-biblical-treasures-board.js \
+            web/js/v27-biblical-treasures-hotfix.js web/styles/biblical-match-three-v21-art.css \
+            web/styles/biblical-match-three-v23-polish.css web/styles/biblical-match-three-v24-board.css
+
+          git push origin HEAD:bmt-v28-publish
+          git push origin HEAD:main
