@@ -143,3 +143,17 @@ body[data-current-game="biblical-match-three"] .bmt-v23-boundary{
   .bmt-result-card[data-v23-result="1"]{padding-left:13px!important;padding-right:13px!important}
   .bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero{margin-left:-13px!important;margin-right:-13px!important}
 }
+
+/* V27: preserve the supplied victory artwork without the soft white wash or forced zoom. */
+.bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero::after{
+  content:none!important;
+  display:none!important;
+}
+.bmt-result-card[data-v23-result="1"] .bmt-v23-win-art{
+  object-fit:contain!important;
+  object-position:center!important;
+  transform:none!important;
+  image-rendering:auto!important;
+  filter:contrast(1.035) saturate(1.035)!important;
+  background:#fff!important;
+}
