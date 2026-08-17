@@ -4,7 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
-const V = '27';
+const V = '28';
 const styles = ['v2','v2-polish','v4','v5','v9','v10','v11-modal','v13','v15-polish','v21-art']
   .map((name) => `<link rel="stylesheet" href="/web/styles/biblical-match-three-${name}.css?v=${V}">`).join('');
 const scripts = ['biblical-match-three-v5-loader.js','biblical-match-three-core.js','biblical-match-three-progress.js','biblical-match-three-effects.js','biblical-match-three.js','biblical-match-three-v10-runtime.js','biblical-match-three-v15-ui.js','biblical-match-three-v15-polish.js']
@@ -12,14 +12,19 @@ const scripts = ['biblical-match-three-v5-loader.js','biblical-match-three-core.
 const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${styles}</head><body data-current-game="biblical-match-three" data-mode="game"><main id="game-container"></main><script>
 window.Telegram={WebApp:{initDataUnsafe:{user:{id:1288379477}},contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};window.appGoToMainMenu=()=>{};localStorage.setItem('bible_stars_v1_1288379477','100');
 </script>${scripts}<script src="/web/js/v22-legacy-tutorial-guard.js?v=22"></script><script src="/web/js/v22-game-polish.js?v=22"></script><script src="/web/js/v23-biblical-treasures-polish.js?v=${V}"></script><script src="/web/js/v24-biblical-treasures-board.js?v=${V}"></script><script src="/web/js/v27-biblical-treasures-hotfix.js?v=${V}"></script><script>(async()=>{await window.BiblicalMatchThreeV5ArtReady;await window.startBiblicalMatchThreeGame('/web/data/biblical_match_three_levels.json?v=${V}')})().catch(e=>document.body.dataset.qaError=String(e?.stack||e))</script></body></html>`;
-const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.avif':'image/avif'};
-const server=http.createServer((req,res)=>{const url=new URL(req.url||'/','http://local');if(url.pathname==='/__v27'){res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});res.end(html);return}const file=path.resolve(root,'.'+decodeURIComponent(url.pathname));if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404).end();return}res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});fs.createReadStream(file).pipe(res)});
+const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png','.svg':'image/svg+xml','.avif':'image/avif','.jpg':'image/jpeg','.jpeg':'image/jpeg'};
+const server=http.createServer((req,res)=>{const url=new URL(req.url||'/','http://local');if(url.pathname==='/__v28'){res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});res.end(html);return}const file=path.resolve(root,'.'+decodeURIComponent(url.pathname));if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404).end();return}res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});fs.createReadStream(file).pipe(res)});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
 const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 try{
-  await page.goto(`${base}/__v27`,{waitUntil:'domcontentloaded',timeout:30000});
+  if(fs.existsSync(path.join(root,'web/assets/biblical-match-three/icons-v27/lamp-unlit.svg')))throw new Error('obsolete SVG lamp must be deleted');
+  for(const old of ['completion-1-star-v26.avif','completion-2-stars-v26.avif','completion-3-stars-v26.avif']){
+    if(fs.existsSync(path.join(root,'web/assets/biblical-match-three',old)))throw new Error(`obsolete low-quality result art must be deleted: ${old}`);
+  }
+
+  await page.goto(`${base}/__v28`,{waitUntil:'domcontentloaded',timeout:30000});
   await page.waitForSelector('.bmt-v13-menu',{timeout:20000});
   const first=page.locator('.bmt-v13-chapter.is-active .bmt-v13-level:not([disabled]),.bmt-v13-level:not([disabled])').first();
   await first.click();
@@ -39,15 +44,15 @@ try{
     const wrap=document.querySelector('.bmt-board-wrap');const board=document.querySelector('.bmt-board');const label=document.querySelector('.bmt-booster-tray__label span');
     const bg=getComputedStyle(wrap).backgroundImage;
     const load=(src)=>new Promise(resolve=>{const img=new Image();img.onload=()=>resolve({w:img.naturalWidth,h:img.naturalHeight});img.onerror=()=>resolve({w:0,h:0});img.src=src});
-    const [background,lamp]=await Promise.all([load('/web/assets/biblical-match-three/board-background-v26.avif?v=27'),load('/web/assets/biblical-match-three/icons-v27/lamp-unlit.svg?v=27')]);
+    const [background,lamp]=await Promise.all([load('/web/assets/biblical-match-three/board-background-v26.avif?v=28'),load('/web/assets/biblical-match-three/icons-v28/lamp-unlit.png?v=28')]);
     return{bg,background,lamp,label:label?.textContent||'',boardClass:board?.classList.contains('bmt-v24-board'),wrapClass:wrap?.classList.contains('bmt-v24-board-wrap'),shape:board?.dataset.shape||''};
   });
-  if(!ui.bg.includes('board-background-v26.avif')||ui.background.w<500||ui.background.h<700||ui.lamp.w<200||ui.lamp.h<200||ui.label!=='Усилители'||!ui.boardClass||!ui.wrapClass||!ui.shape)throw new Error(`V27 board UI ${JSON.stringify(ui)}`);
+  if(!ui.bg.includes('board-background-v26.avif')||ui.background.w<500||ui.background.h<700||ui.lamp.w<500||ui.lamp.h<500||ui.label!=='Усилители'||!ui.boardClass||!ui.wrapClass||!ui.shape)throw new Error(`V28 board UI ${JSON.stringify(ui)}`);
 
   const arkGuard=await page.evaluate(()=>{
-    const button=document.createElement('button');button.dataset.booster='ark';document.body.appendChild(button);let result=null;let error='';
-    button.addEventListener('click',()=>{try{const shaped=[null,{type:'bible',special:null}];result=shaped.map((cell,index)=>(!cell.special?index:-1));}catch(e){error=String(e?.message||e)}});
-    button.click();button.remove();return{result,error};
+    const shaped=[null,{type:'bible',special:null}];let result=null;let error='';
+    try{result=shaped.map((cell,index)=>(!cell.special?index:-1));}catch(e){error=String(e?.message||e)}
+    return{result,error};
   });
   if(arkGuard.error||JSON.stringify(arkGuard.result)!=='[-1,1]')throw new Error(`Noah Ark shaped-board guard failed ${JSON.stringify(arkGuard)}`);
 
@@ -57,10 +62,22 @@ try{
   });
   await page.waitForSelector('.bmt-result-card[data-v23-result="1"]',{timeout:5000});
   await page.waitForFunction(()=>document.querySelector('.bmt-result-card[data-v23-result="1"]')?.dataset.v23Rating==='2',{timeout:5000});
-  const result=await page.evaluate(()=>({title:document.querySelector('.bmt-result-card[data-v23-result="1"] h3')?.textContent,stats:document.querySelectorAll('.bmt-v22-result-stats>div').length,rewards:document.querySelectorAll('.bmt-v22-rewards>div').length,next:document.querySelector('.bmt-v22-next')?.textContent?.trim(),repeat:document.querySelector('.bmt-v22-repeat')?.textContent?.trim(),menu:document.querySelector('.bmt-v22-menu')?.textContent?.trim(),rating:document.querySelector('.bmt-result-card[data-v23-result="1"]')?.dataset.v23Rating,art:document.querySelector('.bmt-v23-win-art')?.getAttribute('src')||''}));
-  if(result.title!=='Уровень пройден!'||result.stats!==3||result.rewards!==2||result.next!=='Следующий уровень'||result.repeat!=='↻Повторить'||result.menu!=='⌂В меню'||result.rating!=='2'||!result.art.includes('completion-2-stars-v26.avif'))throw new Error(`V27 result ${JSON.stringify(result)}`);
+  const result=await page.evaluate(async()=>{
+    const image=document.querySelector('.bmt-v23-win-art');
+    if(image && !image.complete) await new Promise(resolve=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true})});
+    return{title:document.querySelector('.bmt-result-card[data-v23-result="1"] h3')?.textContent,stats:document.querySelectorAll('.bmt-v22-result-stats>div').length,rewards:document.querySelectorAll('.bmt-v22-rewards>div').length,next:document.querySelector('.bmt-v22-next')?.textContent?.trim(),repeat:document.querySelector('.bmt-v22-repeat')?.textContent?.trim(),menu:document.querySelector('.bmt-v22-menu')?.textContent?.trim(),rating:document.querySelector('.bmt-result-card[data-v23-result="1"]')?.dataset.v23Rating,art:image?.getAttribute('src')||'',artWidth:image?.naturalWidth||0,artHeight:image?.naturalHeight||0};
+  });
+  if(result.title!=='Уровень пройден!'||result.stats!==3||result.rewards!==2||result.next!=='Следующий уровень'||result.repeat!=='↻Повторить'||result.menu!=='⌂В меню'||result.rating!=='2'||!result.art.includes('completion-2-stars-v28.jpg')||result.artWidth<1400||result.artHeight<1000)throw new Error(`V28 result ${JSON.stringify(result)}`);
 
-  console.log('OK: Biblical Treasures V27 background, extinguished lamp, Ark guard and star-specific completion art passed');
+  const menuIcon=await page.evaluate(async()=>{
+    document.body.dataset.currentGame='';
+    const card=document.createElement('button');card.id='biblical-match-three-card';card.innerHTML='<span class="game-card__icon"><img src="web/assets/icons/biblical-treasures.webp?v=21" alt=""></span>';document.body.appendChild(card);
+    await new Promise(resolve=>setTimeout(resolve,50));
+    return card.querySelector('img')?.getAttribute('src')||'';
+  });
+  if(!menuIcon.includes('biblical-treasures.webp?v=28'))throw new Error(`menu icon did not stay on V28 art: ${menuIcon}`);
+
+  console.log('OK: Biblical Treasures V28 HQ results, raster lamp, Noah Ark guard and stable menu icon passed');
 } finally {
   await page.close();await browser.close();await new Promise(resolve=>server.close(resolve));
 }
