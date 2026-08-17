@@ -1,0 +1,392 @@
+name: Finalize Biblical Treasures V28
+
+on:
+  push:
+    branches: [bmt-v28-publish]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply only Biblical Treasures V28 fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Wait for the binary-only assembler run. A subsequent branch push runs this job again.
+          required=(
+            web/assets/biblical-match-three/completion-1-star-v28.webp
+            web/assets/biblical-match-three/completion-2-stars-v28.webp
+            web/assets/biblical-match-three/completion-3-stars-v28.avif
+            web/assets/biblical-match-three/board-background-v28.avif
+            web/assets/biblical-match-three/icons-v28/lamp-unlit.webp
+            web/assets/icons/biblical-treasures.webp
+          )
+          for file in "${required[@]}"; do
+            if [ ! -s "$file" ]; then
+              echo "Waiting for V28 asset assembly: $file"
+              exit 0
+            fi
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, pairs):
+              p = Path(path)
+              text = p.read_text()
+              original = text
+              for old, new in pairs:
+                  text = text.replace(old, new)
+              if text != original:
+                  p.write_text(text)
+
+          # Cache bust ONLY Biblical Treasures loaders plus the home-art script whose Biblical icon changed.
+          replace('index.html', [
+              ('web/js/biblical-match-three-launcher.js?v=27', 'web/js/biblical-match-three-launcher.js?v=28'),
+              ('web/js/v22-home-art.js?v=22', 'web/js/v22-home-art.js?v=28'),
+              ('web/js/v22-game-loader.js?v=27', 'web/js/v22-game-loader.js?v=28'),
+              ('web/js/v24-biblical-treasures-board.js?v=27', 'web/js/v24-biblical-treasures-board.js?v=28'),
+              ('web/js/v27-biblical-treasures-hotfix.js?v=27', 'web/js/v27-biblical-treasures-hotfix.js?v=28'),
+          ])
+
+          # The Biblical Treasures launcher is the canonical cache-version source for its own core/styles/data/icon.
+          replace('web/js/biblical-match-three-launcher.js', [
+              ('const VERSION="21";', 'const VERSION="28";'),
+              ('data-bmt-menu-art="v21"', 'data-bmt-menu-art="v28"'),
+          ])
+
+          # v22-home-art also serves unrelated system cards: leave their V22 assets unchanged and bump Biblical only.
+          p = Path('web/js/v22-home-art.js')
+          text = p.read_text()
+          if "const BIBLICAL_VERSION = '28';" not in text:
+              text = text.replace("const VERSION = '22';", "const VERSION = '22';\n  const BIBLICAL_VERSION = '28';")
+          text = text.replace("biblical: `web/assets/icons/biblical-treasures.webp?v=${VERSION}`", "biblical: `web/assets/icons/biblical-treasures.webp?v=${BIBLICAL_VERSION}`")
+          text = text.replace("img.dataset.bmtMenuArt = 'v22';", "img.dataset.bmtMenuArt = 'v28';")
+          p.write_text(text)
+
+          # The game-only loader must not request any old V22/V27 cached helper.
+          replace('web/js/v22-game-loader.js', [
+              ("web/js/v22-legacy-tutorial-guard.js?v=22", "web/js/v22-legacy-tutorial-guard.js?v=28"),
+              ("web/js/v22-game-polish.js?v=22", "web/js/v22-game-polish.js?v=28"),
+              ("web/js/v23-biblical-treasures-polish.js?v=27", "web/js/v23-biblical-treasures-polish.js?v=28"),
+              ("[Biblical Treasures V27]", "[Biblical Treasures V28]"),
+          ])
+
+          # Board script: V28 raster lamp, no SVG fallback.
+          p = Path('web/js/v24-biblical-treasures-board.js')
+          text = p.read_text()
+          text = text.replace("const VERSION = '27';", "const VERSION = '28';")
+          text = text.replace('web/assets/biblical-match-three/icons-v27/lamp-unlit.svg?v=${VERSION}', 'web/assets/biblical-match-three/icons-v28/lamp-unlit.webp?v=${VERSION}')
+          if "node.querySelector('svg')?.remove();" not in text:
+              text = text.replace("node.querySelector('.bmt-blocker-fallback')?.remove();", "node.querySelector('.bmt-blocker-fallback')?.remove();\n      node.querySelector('svg')?.remove();")
+          p.write_text(text)
+
+          # Every Biblical board background reference now names V28.
+          for css in ['web/styles/biblical-match-three-v21-art.css', 'web/styles/biblical-match-three-v24-board.css']:
+              p = Path(css)
+              text = p.read_text()
+              text = text.replace('board-background-v26.avif?v=26', 'board-background-v28.avif?v=28')
+              text = text.replace('board-background-v26.avif?v=27', 'board-background-v28.avif?v=28')
+              p.write_text(text)
+          PY
+
+          cat > web/js/v23-biblical-treasures-polish.js <<'JS'
+          (() => {
+            'use strict';
+            if (window.__bmtV23PolishInstalled) return;
+            window.__bmtV23PolishInstalled = true;
+
+            const VERSION = '28';
+            const STYLE_ID = 'bmt-v23-polish-style';
+            const HERO_ASSETS = {
+              1: `web/assets/biblical-match-three/completion-1-star-v28.webp?v=${VERSION}`,
+              2: `web/assets/biblical-match-three/completion-2-stars-v28.webp?v=${VERSION}`,
+              3: `web/assets/biblical-match-three/completion-3-stars-v28.avif?v=${VERSION}`,
+            };
+            let scheduled = false;
+
+            function ensureStyle() {
+              let link = document.getElementById(STYLE_ID);
+              const href = `web/styles/biblical-match-three-v23-polish.css?v=${VERSION}`;
+              if (!link) {
+                link = document.createElement('link');
+                link.id = STYLE_ID;
+                link.rel = 'stylesheet';
+                document.head.appendChild(link);
+              }
+              if (link.getAttribute('href') !== href) link.href = href;
+            }
+
+            function patchBoard(board) {
+              const wrap = board?.closest('.bmt-board-wrap');
+              if (!wrap) return;
+              board.classList.add('bmt-v23-board');
+              wrap.classList.add('bmt-v23-board-wrap');
+              wrap.dataset.boardShape = board.dataset.shape || 'rect';
+              wrap.querySelector(':scope > .bmt-v23-boundary')?.remove();
+              board.querySelector(':scope > .bmt-v23-boundary')?.remove();
+            }
+
+            function labelledRating(card) {
+              const stars = card.querySelector('.bmt-result-stars, .bmt-v22-result-stars');
+              const label = stars?.getAttribute('aria-label') || '';
+              const hit = label.match(/([1-3])\s*(?:из|\/|of)\s*3/i);
+              return Number(hit?.[1] || 0);
+            }
+
+            function visibleRating(card) {
+              const stars = card.querySelector('.bmt-result-stars, .bmt-v22-result-stars');
+              if (!stars) return 0;
+              const on = stars.querySelectorAll('.is-on, .active, [data-on="true"], [aria-checked="true"]').length;
+              return on >= 1 && on <= 3 ? on : 0;
+            }
+
+            function resultRating(card) {
+              const explicit = Number(card.dataset.resultStars || card.dataset.rating || card.dataset.stars || 0);
+              if (explicit >= 1 && explicit <= 3) return explicit;
+              const labelled = labelledRating(card);
+              if (labelled) return labelled;
+              const visible = visibleRating(card);
+              if (visible) return visible;
+              return 1;
+            }
+
+            function patchWinResult(card) {
+              if (!card?.classList.contains('is-win')) return;
+              const hero = card.querySelector('.bmt-v22-win-hero');
+              if (!hero) return;
+              const rating = resultRating(card);
+              if (card.dataset.v23Result === '1' && card.dataset.v23Rating === String(rating)) return;
+
+              card.dataset.resultStars = String(rating);
+              card.dataset.v23Result = '1';
+              card.dataset.v23Rating = String(rating);
+              hero.classList.add('bmt-v23-win-hero');
+              hero.removeAttribute('aria-hidden');
+              hero.setAttribute('role', 'img');
+              hero.setAttribute('aria-label', `Результат уровня: ${rating} из 3 звёзд`);
+              hero.innerHTML = `<img class="bmt-v23-win-art" src="${HERO_ASSETS[rating]}" alt="${rating} из 3 звёзд" decoding="async" loading="eager" fetchpriority="high" draggable="false">`;
+              card.querySelector('.bmt-v22-result-stars, .bmt-result-stars')?.setAttribute('aria-hidden', 'true');
+            }
+
+            function patchAll() {
+              scheduled = false;
+              ensureStyle();
+              if (document.body?.dataset?.currentGame !== 'biblical-match-three') return;
+              document.querySelectorAll('.bmt-board').forEach(patchBoard);
+              document.querySelectorAll('.bmt-result-card.is-win').forEach(patchWinResult);
+            }
+
+            function schedulePatch() {
+              if (scheduled) return;
+              scheduled = true;
+              requestAnimationFrame(patchAll);
+            }
+
+            function start() {
+              ensureStyle();
+              schedulePatch();
+              new MutationObserver(schedulePatch).observe(document.getElementById('game-container') || document.body, {
+                subtree: true,
+                childList: true,
+                attributes: true,
+                attributeFilter: ['class', 'aria-label', 'data-result-stars', 'data-rating', 'data-stars', 'data-shape'],
+              });
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+            else start();
+          })();
+          JS
+
+          cat > web/js/v27-biblical-treasures-hotfix.js <<'JS'
+          (() => {
+            'use strict';
+            if (window.__bmtV27HotfixInstalled) return;
+            window.__bmtV27HotfixInstalled = true;
+
+            const VERSION = '28';
+            const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${VERSION}`;
+
+            function patchMenuIcon(root = document) {
+              const card = root.querySelector?.('#biblical-match-three-card') || document.getElementById('biblical-match-three-card');
+              const img = card?.querySelector('img');
+              if (!img) return;
+              if ((img.getAttribute('src') || '') !== MENU_ICON) img.src = MENU_ICON;
+              img.dataset.bmtMenuArt = 'v28';
+            }
+
+            function captureResultStars(root = document) {
+              root.querySelectorAll?.('.bmt-result-card.is-win').forEach((card) => {
+                const stars = card.querySelector('.bmt-result-stars, .bmt-v22-result-stars');
+                if (!stars) return;
+                const label = stars.getAttribute('aria-label') || '';
+                let rating = Number((label.match(/([1-3])\s*(?:из|\/|of)\s*3/i) || [])[1] || 0);
+                if (!rating) rating = stars.querySelectorAll('.is-on, .active, [data-on="true"], [aria-checked="true"]').length;
+                if (rating >= 1 && rating <= 3) card.dataset.resultStars = String(rating);
+              });
+            }
+
+            function installArkGuard() {
+              document.addEventListener('click', (event) => {
+                const ark = event.target?.closest?.('[data-booster="ark"]');
+                if (!ark || document.body?.dataset?.currentGame !== 'biblical-match-three') return;
+
+                const nativeMap = Array.prototype.map;
+                if (nativeMap.__bmtArkGuardV28) return;
+
+                function guardedMap(callback, thisArg) {
+                  const array = this;
+                  const looksLikeShapedBoard = Array.isArray(array)
+                    && array.some((value) => value === null)
+                    && array.some((value) => value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'type'));
+                  if (!looksLikeShapedBoard || typeof callback !== 'function') return nativeMap.call(array, callback, thisArg);
+
+                  return nativeMap.call(array, (value, index, source) => {
+                    if (value !== null) return callback.call(thisArg, value, index, source);
+                    try {
+                      return callback.call(thisArg, value, index, source);
+                    } catch (error) {
+                      if (error instanceof TypeError) return -1;
+                      throw error;
+                    }
+                  });
+                }
+
+                guardedMap.__bmtArkGuardV28 = true;
+                Array.prototype.map = guardedMap;
+                setTimeout(() => {
+                  if (Array.prototype.map === guardedMap) Array.prototype.map = nativeMap;
+                }, 0);
+              }, true);
+            }
+
+            function start() {
+              installArkGuard();
+              patchMenuIcon(document);
+              captureResultStars(document);
+              new MutationObserver(() => {
+                patchMenuIcon(document);
+                captureResultStars(document);
+              }).observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['data-current-game', 'class', 'aria-label'],
+              });
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+            else start();
+          })();
+          JS
+
+          cat > web/styles/biblical-match-three-v23-polish.css <<'CSS'
+          /* V28: native-aspect completion art, no blur/zoom/upscale filters. */
+          .bmt-result-overlay:has(.bmt-result-card[data-v23-result="1"]) {
+            align-items:center!important;
+            padding:12px!important;
+            background:rgba(31,26,60,.52)!important;
+            backdrop-filter:blur(8px)!important;
+          }
+          .bmt-result-card[data-v23-result="1"] {
+            width:min(94vw,520px)!important;
+            max-height:min(94dvh,880px)!important;
+            overflow:auto!important;
+            padding:0 16px 16px!important;
+            border-radius:30px!important;
+            background:#fff!important;
+            border:1px solid rgba(113,89,187,.13)!important;
+            box-shadow:0 26px 76px rgba(26,20,61,.36)!important;
+            text-align:center!important;
+          }
+          .bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero {
+            position:relative!important;
+            width:auto!important;
+            height:auto!important;
+            min-height:0!important;
+            margin:0 -16px 6px!important;
+            overflow:hidden!important;
+            border-radius:30px 30px 20px 20px!important;
+            background:#fff!important;
+            filter:none!important;
+            transform:none!important;
+          }
+          .bmt-result-card[data-v23-result="1"] .bmt-v23-win-hero::after { content:none!important; display:none!important; }
+          .bmt-result-card[data-v23-result="1"] .bmt-v23-win-art {
+            display:block!important;
+            width:100%!important;
+            height:auto!important;
+            max-height:none!important;
+            object-fit:contain!important;
+            object-position:center!important;
+            image-rendering:auto!important;
+            filter:none!important;
+            transform:none!important;
+          }
+          .bmt-result-card[data-v23-result="1"] .bmt-v22-result-stars,
+          .bmt-result-card[data-v23-result="1"] .bmt-result-stars { display:none!important; }
+          CSS
+
+          cat >> web/styles/biblical-match-three-v24-board.css <<'CSS'
+
+          /* V28: real raster unlit lamp only; never render legacy SVG fallback. */
+          body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-blocker-fallback,
+          body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-blocker svg {
+            display:none!important;
+            visibility:hidden!important;
+          }
+          body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap,
+          body[data-current-game="biblical-match-three"] .bmt-board.bmt-v24-board {
+            border:0!important;
+            outline:0!important;
+            box-shadow:none!important;
+          }
+          CSS
+
+          # Remove only obsolete Biblical Treasures V26/V27 assets now that V28 files exist.
+          rm -f web/assets/biblical-match-three/completion-1-star-v26.avif
+          rm -f web/assets/biblical-match-three/completion-2-stars-v26.avif
+          rm -f web/assets/biblical-match-three/completion-3-stars-v26.avif
+          rm -f web/assets/biblical-match-three/board-background-v26.avif
+          rm -f web/assets/biblical-match-three/icons-v27/lamp-unlit.svg
+          rmdir web/assets/biblical-match-three/icons-v27 2>/dev/null || true
+
+          # Temporary publishing files/workflows must never reach production.
+          rm -rf .bmt-v28-stage .bmt-v28-final .bmt-v28-assets .bmt-v28-test .bmt-v28-check
+          rm -f web/assets/biblical-match-three/icons-v28/.placeholder
+          rm -f web/js/.bmt-v28-publish-marker.js
+          rm -f .github/workflows/bmt-v28-assemble.yml .github/workflows/bmt-v28-finalize.yml
+
+          # Hard checks: no Biblical code may still request V21/V22/V26/V27 resources.
+          grep -q 'biblical-match-three-launcher.js?v=28' index.html
+          grep -q 'v22-home-art.js?v=28' index.html
+          grep -q 'v22-game-loader.js?v=28' index.html
+          grep -q 'v24-biblical-treasures-board.js?v=28' index.html
+          grep -q 'v27-biblical-treasures-hotfix.js?v=28' index.html
+          grep -q 'const VERSION="28";' web/js/biblical-match-three-launcher.js
+          grep -q "const BIBLICAL_VERSION = '28';" web/js/v22-home-art.js
+          grep -q "const VERSION = '28';" web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-1-star-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-2-stars-v28.webp' web/js/v23-biblical-treasures-polish.js
+          grep -q 'completion-3-stars-v28.avif' web/js/v23-biblical-treasures-polish.js
+          grep -q 'icons-v28/lamp-unlit.webp' web/js/v24-biblical-treasures-board.js
+          grep -q '__bmtArkGuardV28' web/js/v27-biblical-treasures-hotfix.js
+          ! grep -RInE 'completion-[123].*v26|board-background-v26|icons-v27/lamp-unlit|biblical-treasures\.webp\?v=(21|22|26|27)' \
+            index.html web/js/biblical-match-three-launcher.js web/js/v22-home-art.js web/js/v22-game-loader.js \
+            web/js/v23-biblical-treasures-polish.js web/js/v24-biblical-treasures-board.js \
+            web/js/v27-biblical-treasures-hotfix.js web/styles/biblical-match-three-v21-art.css \
+            web/styles/biblical-match-three-v23-polish.css web/styles/biblical-match-three-v24-board.css
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Finalize Biblical Treasures V28 and remove stale asset calls"
+            git push origin HEAD:bmt-v28-publish
+          fi
