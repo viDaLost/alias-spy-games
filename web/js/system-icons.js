@@ -5,6 +5,15 @@
     admin: 'web/assets/icons/admin.webp',
   };
 
+  function ensureStyle() {
+    if (document.getElementById('v22-home-art-style')) return;
+    const link = document.createElement('link');
+    link.id = 'v22-home-art-style';
+    link.rel = 'stylesheet';
+    link.href = 'web/styles/v22-home-art.css?v=22';
+    document.head.appendChild(link);
+  }
+
   function systemIcon(type) {
     const src = SOURCES[type] || SOURCES.support;
     return `<img class="game-card__img system-art-img" src="${src}?v=${ICON_VERSION}" alt="" aria-hidden="true" draggable="false" loading="eager" decoding="async" data-system-icon="${type}" data-icon-version="${ICON_VERSION}" style="display:block;width:100%;height:100%;object-fit:contain">`;
@@ -22,6 +31,7 @@
   }
 
   function refresh() {
+    ensureStyle();
     const root = document.getElementById('system-actions');
     if (root) {
       const supportButton = [...root.querySelectorAll('.game-card')].find((button) => (button.querySelector('.game-card__title')?.textContent || '').includes('Тех-поддержка'));
