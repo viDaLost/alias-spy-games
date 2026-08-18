@@ -116,8 +116,9 @@
   function escapeAttr(value) { return escapeText(value); }
 
   const observer = new MutationObserver(scheduleRender);
-  observer.observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['class','data-mode'] });
+  observer.observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['data-mode'] });
   window.addEventListener('pageshow', scheduleRender);
   window.addEventListener('app:stars-changed', scheduleRender);
+  window.addEventListener('app:menu-ready', scheduleRender);
   render();
 })();
