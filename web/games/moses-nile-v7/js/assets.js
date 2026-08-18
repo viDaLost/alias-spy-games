@@ -8,18 +8,38 @@ class AssetManager {
   }
 
   async loadBasketModel(){
-    const candidatePaths=['models/basket.glb','models/woven-basket.glb','models/basket.obj','models/woven-basket.obj','basket.glb','woven_basket.glb','basket.obj'];
+    const localObjPaths=['models/basket.obj','models/woven-basket.obj'];
+    for(const path of localObjPaths){
+      try{
+        const response=await fetch(path,{cache:'no-store'});
+        if(!response.ok)continue;
+        const parsed=this._parseBasketObj(await response.text());
+        if(parsed){
+          console.log(`[AssetManager] woven basket parsed: ${path}`);
+          window.__mosesBasketSource='woven-obj';
+          this.basketModel=this._prepareBasket(parsed);
+          return this.basketModel.clone(true);
+        }
+      }catch(err){
+        console.warn(`[AssetManager] woven basket parse failed: ${path}`,err?.message||err);
+      }
+    }
+
+    const candidatePaths=['models/basket.glb','models/woven-basket.glb','basket.glb','woven_basket.glb','basket.obj'];
     for(const path of candidatePaths){
       try{
         const model=await this._tryLoad(path);
         if(model){
-          console.log(`[AssetManager] basket loaded: ${path}`);
+          console.log(`[AssetManager] basket loader fallback: ${path}`);
+          window.__mosesBasketSource='loader-fallback';
           this.basketModel=this._prepareBasket(model);
           return this.basketModel.clone(true);
         }
       }catch{}
     }
+
     console.warn('[AssetManager] local basket unavailable, using procedural basket');
+    window.__mosesBasketSource='procedural';
     return this.createProceduralBasket();
   }
 
@@ -87,38 +107,140 @@ class AssetManager {
     return root;
   }
 
+  _makeBasketTexture(){
+    const canvas=document.createElement('canvas');
+    canvas.width=128;canvas.height=128;
+    const ctx=canvas.getContext('2d');
+    const base=ctx.createLinearGradient(0,0,128,128);
+    base.addColorStop(0,'#e1a756');
+    base.addColorStop(.38,'#b56c2d');
+    base.addColorStop(.7,'#8d4d20');
+    base.addColorStop(1,'#cf8740');
+    ctx.fillStyle=base;ctx.fillRect(0,0,128,128);
+    ctx.strokeStyle='rgba(72,35,14,.78)';ctx.lineWidth=5;
+    for(let x=-128;x<256;x+=18){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+128,128);ctx.stroke();}
+    ctx.strokeStyle='rgba(255,220,151,.48)';ctx.lineWidth=3;
+    for(let y=7;y<128;y+=15){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(128,y);ctx.stroke();}
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+    texture.repeat.set(3.2,2.1);
+    texture.anisotropy=2;
+    return texture;
+  }
+
+  _basketMaterial(){
+    return new THREE.MeshStandardMaterial({
+      color:0xc17a34,
+      map:this._makeBasketTexture(),
+      roughness:.9,
+      metalness:0,
+      side:THREE.DoubleSide
+    });
+  }
+
+  _parseBasketObj(text){
+    const vertices=[];
+    const triangles=[];
+    String(text||'').split(/\r?\n/).forEach(line=>{
+      const value=line.trim();
+      if(value.startsWith('v ')){
+        const parts=value.split(/\s+/);
+        vertices.push([Number(parts[1]),Number(parts[2]),Number(parts[3])]);
+      }else if(value.startsWith('f ')){
+        const ids=value.slice(2).trim().split(/\s+/).map(token=>{
+          const raw=Number(token.split('/')[0]);
+          return raw<0?vertices.length+raw:raw-1;
+        });
+        for(let i=1;i<ids.length-1;i++)triangles.push(ids[0],ids[i],ids[i+1]);
+      }
+    });
+    if(vertices.length<3||triangles.length<3)return null;
+
+    const positions=[];
+    triangles.forEach(id=>{const p=vertices[id];if(p)positions.push(p[0],p[1],p[2]);});
+    if(positions.length<9)return null;
+
+    let minY=Infinity,maxY=-Infinity;
+    for(let i=1;i<positions.length;i+=3){minY=Math.min(minY,positions[i]);maxY=Math.max(maxY,positions[i]);}
+    const h=Math.max(.0001,maxY-minY);
+    const uvs=[];
+    for(let i=0;i<positions.length;i+=3){
+      const x=positions[i],y=positions[i+1],z=positions[i+2];
+      const u=(Math.atan2(z,x)/(Math.PI*2)+1)%1;
+      const v=(y-minY)/h;
+      uvs.push(u,v);
+    }
+
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
+    geometry.computeVertexNormals();
+    return new THREE.Mesh(geometry,this._basketMaterial());
+  }
+
   _prepareBasket(root){
     const box=new THREE.Box3().setFromObject(root);
     const size=new THREE.Vector3();box.getSize(size);
-    const maxDim=Math.max(size.x,size.y,size.z);
-    const scale=1.4/(maxDim||1);
-    root.scale.setScalar(scale);
+    const maxDim=Math.max(size.x,size.y,size.z)||1;
+    const scale=1.85/maxDim;
     const center=new THREE.Vector3();box.getCenter(center);
-    root.position.sub(center.multiplyScalar(scale));
+    root.scale.setScalar(scale);
+    root.position.set(-center.x*scale,-center.y*scale+.42,-center.z*scale);
+    root.rotation.y=Math.PI;
     root.traverse(child=>{
       if(child.isMesh){
-        child.castShadow=true;child.receiveShadow=true;
-        if(child.material){
-          child.material=child.material.clone();
-          child.material.roughness=Math.max(.55,child.material.roughness??.8);
-          child.material.metalness=Math.min(.12,child.material.metalness??0);
-        }
+        child.castShadow=true;
+        child.receiveShadow=true;
+        child.material=this._basketMaterial();
       }
     });
-    const wrapper=new THREE.Group();wrapper.add(root);this._addBabyMoses(wrapper);return wrapper;
+
+    const wrapper=new THREE.Group();
+    wrapper.add(root);
+
+    const rim=new THREE.Mesh(
+      new THREE.TorusGeometry(.77,.065,7,24),
+      new THREE.MeshStandardMaterial({color:0x7a421d,roughness:.92,metalness:0})
+    );
+    rim.rotation.x=Math.PI/2;
+    rim.position.y=.39;
+    rim.scale.z=.82;
+    rim.castShadow=true;
+    wrapper.add(rim);
+
+    this._addBabyMoses(wrapper);
+    return wrapper;
   }
 
   _addBabyMoses(parent){
-    const blanket=new THREE.Mesh(new THREE.SphereGeometry(.45,12,12,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xf8fafc,roughness:.5}));
-    blanket.position.set(0,.1,0);blanket.castShadow=true;parent.add(blanket);
-    const head=new THREE.Mesh(new THREE.SphereGeometry(.18,12,12),new THREE.MeshStandardMaterial({color:0xffd1a4,roughness:.6}));
-    head.position.set(0,.28,.1);head.castShadow=true;parent.add(head);
+    const blanket=new THREE.Mesh(
+      new THREE.SphereGeometry(.43,12,10,0,Math.PI*2,0,Math.PI/2),
+      new THREE.MeshStandardMaterial({color:0xf3ead8,roughness:.82})
+    );
+    blanket.scale.set(1.05,.55,1.25);
+    blanket.position.set(0,.42,-.02);
+    blanket.castShadow=true;
+    parent.add(blanket);
+
+    const head=new THREE.Mesh(
+      new THREE.SphereGeometry(.16,12,10),
+      new THREE.MeshStandardMaterial({color:0xf0bd91,roughness:.72})
+    );
+    head.position.set(0,.58,.16);
+    head.castShadow=true;
+    parent.add(head);
   }
 
   createProceduralBasket(){
     const group=new THREE.Group();
-    const basket=new THREE.Mesh(new THREE.CylinderGeometry(.85,.6,.55,16),new THREE.MeshStandardMaterial({color:0x8b5a2b,roughness:.85,flatShading:true}));
-    basket.castShadow=true;group.add(basket);this._addBabyMoses(group);return group;
+    const basket=new THREE.Mesh(new THREE.CylinderGeometry(.85,.6,.55,16,1,true),this._basketMaterial());
+    basket.position.y=.28;basket.castShadow=true;group.add(basket);
+    const bottom=new THREE.Mesh(new THREE.CylinderGeometry(.6,.6,.08,16),this._basketMaterial());
+    bottom.position.y=.04;bottom.castShadow=true;group.add(bottom);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(.83,.07,7,24),new THREE.MeshStandardMaterial({color:0x75401c,roughness:.92}));
+    rim.rotation.x=Math.PI/2;rim.position.y=.55;rim.castShadow=true;group.add(rim);
+    this._addBabyMoses(group);
+    return group;
   }
 }
 window.assetManager=new AssetManager();
