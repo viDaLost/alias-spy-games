@@ -49,18 +49,31 @@ ok(levels.version === 4, 'Biblical Treasures level balance version missing');
 ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
 ok(index.includes('biblical-match-three-launcher.js?v=30') && index.includes('v22-home-art.js?v=31'), 'Biblical Treasures launcher/menu icon wiring missing');
-ok(index.includes('v22-game-loader.js?v=31') && index.includes('v29-biblical-treasures-hotfix.js?v=31'), 'V31 loader/hotfix cache-bust wiring missing');
+ok(index.includes('v22-game-loader.js?v=31') && index.includes('v29-biblical-treasures-hotfix.js?v=34'), 'V34 hotfix cache-bust wiring missing');
 ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wiring changed unexpectedly');
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
-ok(loader.includes("const VERSION = '31'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'V31 Biblical Treasures game loader wiring missing');
+ok(loader.includes("const VERSION = '31'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(home.includes("BIBLICAL_VERSION = '31'") && home.includes('biblical-treasures.webp') && home.includes("bmtMenuArt = 'v31'"), 'V31 menu icon patch missing');
 ok(result.includes('completion-1-star-v29.webp') && result.includes('completion-2-stars-v29.webp') && result.includes('completion-3-stars-v29.avif') && result.includes('dataset.resultStars'), 'Star-specific completion art wiring missing');
 ok(board.includes('icons-v29/lamp-unlit.webp') && board.includes('icons-v17/candle.webp') && board.includes('data-blocker-lit'), 'Extinguished/lit lamp art wiring missing');
 ok(boardCss.includes('board-background-v29.webp') && boardCss.includes('.bmt-tile.has-lamp .bmt-piece-wrap') && boardCss.includes('visibility:hidden!important'), 'Board background / standalone lamp styling missing');
-ok(artCss.includes('board-background-v29.webp'), 'Board fallback background missing');
-ok(hotfix.includes('__bmtV31HotfixInstalled') && hotfix.includes("VERSION = '31'") && hotfix.includes('board-background-v31.webp') && hotfix.includes('.bmt-shell.bmt-board-screen') && hotfix.includes('BOARD_WRAP_BACKGROUND') && hotfix.includes('background-size:100% 100%!important'), 'V31 visible full-screen and board background hotfix missing');
-ok(hotfix.includes('THREE_STAR_REMAINING_RATIO = 0.20') && hotfix.includes('TWO_STAR_REMAINING_RATIO = 0.08') && hotfix.includes('efficiencyRating') && hotfix.includes('__bmtV31RatingPatched'), 'V31 attainable star-rating logic missing');
-ok(hotfix.includes('patchPrelevelStarRules') && hotfix.includes('Как получить звёзды') && hotfix.includes('applyRunRatingToResult'), 'V31 star rules/result synchronization missing');
+ok(artCss.includes('board-background-v29.webp'), 'Existing board art fallback missing');
+
+ok(hotfix.includes('__bmtV34HotfixInstalled') && hotfix.includes("const VERSION = '34'") && hotfix.includes('board-background-v31.webp') && hotfix.includes('.bmt-board-wrap'), 'V34 board artwork hotfix missing');
+ok(hotfix.includes('background-image:none!important') && hotfix.includes('#game-container') && hotfix.includes('.bmt-shell.bmt-board-screen'), 'V34 must explicitly remove the old full-screen artwork');
+ok(hotfix.includes('.bmt-v24-field-cells rect') && hotfix.includes('fill:rgba(255,255,255,.11)'), 'V34 board underlay must expose the supplied artwork behind pieces');
+ok(!hotfix.includes('BOARD_WRAP_BACKGROUND'), 'V34 must not paint the old secondary board background over the supplied artwork');
+
+ok(hotfix.includes('THREE_STAR_REMAINING_RATIO = 0.20') && hotfix.includes('TWO_STAR_REMAINING_RATIO = 0.08') && hotfix.includes('efficiencyRating') && hotfix.includes('__bmtV34RatingPatched'), 'V34 attainable star-rating logic missing');
+ok(hotfix.includes('patchPrelevelStarRules') && hotfix.includes('Как получить звёзды') && hotfix.includes('applyRunRatingToResult'), 'V34 star rules/result synchronization missing');
+
+// Regression for the exact freeze reported after all level goals are complete.
+ok(hotfix.includes("stars.getAttribute('aria-label') !== label"), 'Result aria-label must be written only when it actually changes');
+ok(hotfix.includes("attributeFilter:['data-current-game','class']"), 'V34 result observer must not observe aria-label');
+ok(!hotfix.includes("attributeFilter:['data-current-game','class','aria-label']") && !hotfix.includes("attributeFilter: ['data-current-game', 'class', 'aria-label']"), 'Old self-triggering aria-label observer returned');
+ok(hotfix.includes('requestAnimationFrame(patchAll)') && hotfix.includes('patchScheduled'), 'V34 mutation processing must be coalesced to one animation frame');
+ok(hotfix.includes('v34ResultSynced'), 'V34 result synchronization marker missing');
+
 ok(hotfix.includes('sourceLamp') && hotfix.includes("target?.classList.contains('has-lamp')") && hotfix.includes("document.addEventListener('pointerdown'") && hotfix.includes("document.addEventListener('pointerup'"), 'Lamp swipe guard missing');
 ok(launcher.includes('const VERSION="30"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
 ok(progress.includes('levelBestScores') && progress.includes('previousBestScore') && progress.includes('newBestScore') && progress.includes('isImproved'), 'Campaign best-score persistence missing');
@@ -73,7 +86,6 @@ for (const level of levels.levels) {
   ok(one > 0 && one < two && two < three, `Level ${level.id}: star thresholds must be strictly ascending`);
   ok(two <= Math.ceil(one * 1.35) + 100, `Level ${level.id}: two-star target is too far above completion score`);
   ok(three <= Math.ceil(one * 1.65) + 100, `Level ${level.id}: three-star target is too far above completion score`);
-
   const moves = Number(level.moves || 0);
   ok(moves >= 20, `Level ${level.id}: move budget is unexpectedly low`);
   for (const goal of level.goals || []) {
@@ -125,4 +137,4 @@ for (const file of [
   ok(check.status === 0, `JS syntax failed: ${file}\n${check.stderr || ''}`);
 }
 
-console.log('OK: Biblical Treasures V31 background visibility, attainable star ratings, best replay results and per-star completion art are wired correctly');
+console.log('OK: Biblical Treasures V34 board-only high-resolution art, attainable stars, best replay results and completion freeze guard are wired correctly');
