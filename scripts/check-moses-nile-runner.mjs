@@ -23,7 +23,7 @@ if (!gameSource.includes('pointerdown') || !gameSource.includes('pointerup') || 
 if (!launcherSource.includes("GAME_KEY = 'moses-nile-runner'") || !launcherSource.includes('moses-nile-runner-card')) throw new Error('Nile runner menu launcher is missing');
 if (!launcherSource.includes('THREE_GAME_SRC') || !launcherSource.includes('__startMosesNile3D')) throw new Error('Nile runner 3D addon is not lazy-loaded by the launcher');
 if (launcherSource.includes('new MutationObserver')) throw new Error('Nile runner launcher must not keep a broad menu MutationObserver alive');
-if (!indexSource.includes('moses-nile-runner-launcher.js?v=2')) throw new Error('Nile runner launcher cache version was not bumped');
+if (!indexSource.includes('moses-nile-runner-launcher.js?v=3')) throw new Error('Nile runner launcher cache version was not bumped');
 if (!indexSource.includes("connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net")) throw new Error('Nile model CDN is not allowed by the app CSP');
 
 for (const token of [
