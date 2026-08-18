@@ -29,7 +29,7 @@ const STYLE_SOURCES=[
 const SCRIPT_TIMEOUT=12000;
 let launchPromise=null,launchAttempt=0,installed=false,eligibilityTimer=0;
 function currentUserId(){const values=[window.Telegram?.WebApp?.initDataUnsafe?.user?.id,window.__ANDROID_TELEGRAM_ID__];for(const value of values){const id=String(value??"").trim();if(/^\d{5,20}$/.test(id))return id}return ""}
-function isAllowedUser(){return [ALLOWED_USER_ID,"5693086211","5502223852"].includes(currentUserId())}
+function isAllowedUser(){return [ALLOWED_USER_ID,"5693086211","5502223852","231001051"].includes(currentUserId())}
 function removeMenuCard(){document.getElementById("biblical-match-three-card")?.remove()}
 function ensureStylesheet(){STYLE_SOURCES.forEach((href,index)=>{let link=document.querySelector(`link[data-biblical-match-three-style="${index}"]`);if(!link){link=document.createElement("link");link.rel="stylesheet";link.dataset.biblicalMatchThreeStyle=String(index);document.head.appendChild(link)}if(!link.href.includes(href.split("?")[0])||!link.href.includes(`v=${VERSION}`))link.href=href});document.querySelectorAll('link[data-biblical-match-three-style]').forEach(link=>{if(Number(link.dataset.biblicalMatchThreeStyle)>=STYLE_SOURCES.length)link.remove()})}
 function rememberOpen(){try{let history=JSON.parse(localStorage.getItem("last_games_history")||"[]");if(!Array.isArray(history))history=[];history=[TITLE,...history.filter(item=>item!==TITLE)].slice(0,3);localStorage.setItem("last_games_history",JSON.stringify(history))}catch{}}
