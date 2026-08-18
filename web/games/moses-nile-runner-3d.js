@@ -779,7 +779,7 @@
     state.basketX = lerp(state.basketX, targetX, .2);
     const boosting = host.classList.contains('is-boosting');
     const hit = host.classList.contains('is-hit');
-    state.basketModel.position.set(state.basketX, boosting ? .56 : .48, 4.15 + (boosting ? -1.0 : 0));
+    state.basketModel.position.set(state.basketX, boosting ? .12 : .02, 4.15 + (boosting ? -1.0 : 0));
     state.basketModel.rotation.y = lerp(state.basketModel.rotation.y, -state.basketX * .065, .14);
     state.basketModel.rotation.z = lerp(state.basketModel.rotation.z, hit ? Math.sin(now * .04) * .13 : -state.basketX * .035, .2);
     state.basketModel.rotation.x = boosting ? -.09 : Math.sin(now * .0026) * .025;
