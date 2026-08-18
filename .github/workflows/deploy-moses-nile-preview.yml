@@ -1,0 +1,105 @@
+name: Deploy Moses Nile Preview
+# Isolated branch-only preview for the Nile runner. Never deploys main.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/moses-nile-runner-mvp
+    paths:
+      - 'web/games/moses-nile-runner.js'
+      - 'web/games/moses-nile-runner-3d.js'
+      - 'web/assets/models/moses-nile/**'
+      - 'scripts/check-moses-nile-runner.mjs'
+      - 'scripts/data/moses-nile-model-manifest.json'
+      - '.github/workflows/deploy-moses-nile-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build isolated Nile preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .preview-dist
+          mkdir -p \
+            .preview-dist/web/games \
+            .preview-dist/web/assets/models/moses-nile
+
+          cp web/games/moses-nile-runner.js .preview-dist/web/games/
+          cp web/games/moses-nile-runner-3d.js .preview-dist/web/games/
+          cp web/assets/models/moses-nile/woven-basket.obj .preview-dist/web/assets/models/moses-nile/
+
+          cat > .preview-dist/index.html <<'HTML'
+          <!doctype html>
+          <html lang="ru">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+            <meta name="theme-color" content="#9eddf2">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; connect-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self';">
+            <title>Моисей: путь по Нилу — Preview</title>
+            <style>
+              html,body{margin:0;width:100%;min-height:100%;background:#9eddf2;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+              body{min-height:100dvh}
+              #game-container{min-height:100dvh}
+              #preview-badge{position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));right:8px;padding:6px 10px;border-radius:999px;background:rgba(17,24,39,.82);color:#fff;font:700 11px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(8px)}
+            </style>
+          </head>
+          <body data-mode="game" data-current-game="moses-nile-runner">
+            <div id="preview-badge">TEST · Cloudflare</div>
+            <main id="game-container" aria-live="polite"></main>
+            <script>
+              window.Telegram = window.Telegram || { WebApp: { HapticFeedback: { impactOccurred(){}, notificationOccurred(){} } } };
+              window.appGoToMainMenu = () => location.reload();
+              window.goToMainMenu = window.appGoToMainMenu;
+            </script>
+            <script src="web/games/moses-nile-runner.js"></script>
+            <script src="web/games/moses-nile-runner-3d.js"></script>
+            <script>
+              window.startMosesNileRunner();
+              window.__startMosesNile3D?.();
+            </script>
+          </body>
+          </html>
+          HTML
+
+          cat > .preview-wrangler.jsonc <<'JSON'
+          {
+            "$schema": "./node_modules/wrangler/config-schema.json",
+            "name": "alias-spy-games-moses-nile-preview",
+            "compatibility_date": "2026-08-18",
+            "workers_dev": true,
+            "assets": {
+              "directory": "./.preview-dist",
+              "not_found_handling": "single-page-application"
+            }
+          }
+          JSON
+
+      - name: Validate preview sources
+        run: |
+          node --check web/games/moses-nile-runner.js
+          node --check web/games/moses-nile-runner-3d.js
+          node -e "const fs=require('fs');const s=fs.readFileSync('web/assets/models/moses-nile/woven-basket.obj','utf8');const v=s.split(/\r?\n/).filter(x=>x.startsWith('v ')).length;const f=s.split(/\r?\n/).filter(x=>x.startsWith('f ')).length;if(v!==213||f!==344)throw new Error('Unexpected basket geometry '+v+'/'+f);console.log('Basket geometry OK:',v,'vertices,',f,'triangles');"
+
+      - name: Deploy isolated preview to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@latest deploy --config .preview-wrangler.jsonc
+
+      - name: Print preview URL
+        run: |
+          echo 'Preview: https://alias-spy-games-moses-nile-preview.vitaledanilov.workers.dev/'
