@@ -8,7 +8,7 @@
     "smoke:games": "node scripts/smoke-all-games.mjs",
     "check:kids-pairs": "node scripts/check-kids-ark-pairs.mjs",
     "check:match-three": "node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v29.mjs",
-    "check:match-three:visual": "node scripts/check-biblical-match-three-visual.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v29-ui.mjs",
+    "check:match-three:visual": "node scripts/check-biblical-match-three-visual.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v34-ui.mjs",
     "check:mobile": "node scripts/check-mobile-layout.mjs",
     "check:errors": "node scripts/check-error-system.mjs",
     "check:home": "node scripts/check-home-controls.mjs",
