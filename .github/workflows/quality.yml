@@ -83,6 +83,8 @@ jobs:
           fi
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
           echo "Using $CHROME_BIN"
+      - name: Check home dashboard startup and controls
+        run: npm run check:home
       - name: Open every game and return to menu
         run: npm run smoke:games
       - name: Test Biblical Treasures HQ icons and swipe
@@ -91,8 +93,6 @@ jobs:
         run: npm run check:kids-pairs
       - name: Check 390px and 320px phone layouts
         run: npm run check:mobile
-      - name: Check home dashboard hide controls
-        run: npm run check:home
       - name: Check Android ID login runtime
         run: npm run check:android
       - name: Check friendly error boundary
