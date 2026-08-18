@@ -39,6 +39,9 @@ await context.addInitScript(() => {
   localStorage.setItem('home_hidden_sections_v1', JSON.stringify(['continue', 'recent', 'progress']));
 });
 const page = await context.newPage();
+page.on('console', (message) => console.log(`[browser:${message.type()}] ${message.text()}`));
+page.on('pageerror', (error) => console.log(`[pageerror] ${error.stack || error.message}`));
+page.on('requestfailed', (request) => console.log(`[requestfailed] ${request.url()} ${request.failure()?.errorText || ''}`));
 
 await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
   status: 200,
@@ -84,8 +87,40 @@ if (boot.headerVisibility !== 'hidden' && boot.headerOpacity > 0) throw new Erro
 if (boot.loaderDisplay === 'none' || boot.loaderOpacity !== '1') throw new Error(`Во время проверки доступа не показан непрозрачный loader: ${JSON.stringify(boot)}`);
 if (boot.loaderPosition !== 'fixed' || !boot.loaderCoversViewport) throw new Error(`Loader не перекрывает весь viewport: ${JSON.stringify(boot)}`);
 
-await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
-await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
+await page.waitForTimeout(7500);
+const startupState = await page.evaluate(() => {
+  const menu = document.getElementById('menu-container');
+  const loader = document.getElementById('main-loader');
+  const banned = document.getElementById('banned-screen');
+  const style = menu ? getComputedStyle(menu) : null;
+  return {
+    readyState: document.readyState,
+    rootClass: document.documentElement.className,
+    menuClass: menu?.className || null,
+    menuVisibility: style?.visibility || null,
+    menuOpacity: style?.opacity || null,
+    menuPointerEvents: style?.pointerEvents || null,
+    menuDisplay: style?.display || null,
+    loaderExists: Boolean(loader),
+    loaderText: loader?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    bannedClass: banned?.className || null,
+    bodyMode: document.body?.dataset.mode || '',
+    companyChildren: document.getElementById('company-games')?.children.length || 0,
+    systemChildren: document.getElementById('system-actions')?.children.length || 0,
+    appCore: window.AppCoreBridge?.status?.() || null,
+    initializeType: typeof window.initializeApp,
+    showMenuType: typeof window.showMenu,
+    renderMainMenuType: typeof window.renderMainMenu,
+  };
+});
+console.log(`startup-state: ${JSON.stringify(startupState)}`);
+if (!startupState.menuClass || startupState.menuClass.split(/\s+/).includes('hidden') || startupState.menuVisibility === 'hidden' || startupState.menuPointerEvents === 'none') {
+  throw new Error(`Главное меню не стало интерактивным после startup watchdog: ${JSON.stringify(startupState)}`);
+}
+if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.rootClass.split(/\s+/).includes('app-menu-preparing') || startupState.loaderExists) {
+  throw new Error(`Стартовый gate не завершился: ${JSON.stringify(startupState)}`);
+}
+
 await page.waitForSelector('#home-dashboard[data-content-ready="1"][data-controls-ready="1"]', { timeout: 5_000 });
 
 const prepared = await page.evaluate(() => {
