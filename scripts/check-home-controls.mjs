@@ -10,6 +10,13 @@ const mime = new Map([
   ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
 ]);
 
+const startupSource = fs.readFileSync(path.join(root, 'web/js/startup-coordinator.js'), 'utf8');
+const homeControlsSource = fs.readFileSync(path.join(root, 'web/js/home-controls.js'), 'utf8');
+const homeEnhancementsSource = fs.readFileSync(path.join(root, 'web/js/home-enhancements.js'), 'utf8');
+if (startupSource.includes("root.classList.add('app-menu-preparing')")) throw new Error('Startup coordinator must not re-lock an already visible menu.');
+if (homeControlsSource.includes("attributeFilter: ['class'")) throw new Error('Home controls must not rebuild on every class animation mutation.');
+if (homeEnhancementsSource.includes("attributeFilter:['class'")) throw new Error('Home dashboard must not rerender on every class animation mutation.');
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://127.0.0.1');
   const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
@@ -84,12 +91,16 @@ await page.waitForSelector('#home-dashboard[data-content-ready="1"][data-control
 const prepared = await page.evaluate(() => {
   const imageState = [...document.querySelectorAll('#menu-container .game-card__img, #menu-container .home-continue__icon img')]
     .map((img) => ({ complete: img.complete, width: img.naturalWidth, src: img.getAttribute('src') }));
+  const menu = document.getElementById('menu-container');
+  const menuStyle = menu ? getComputedStyle(menu) : null;
   return {
     marker: document.documentElement.dataset.homeHidden || '',
     continueDisplay: getComputedStyle(document.querySelector('.home-continue')).display,
     recentDisplay: getComputedStyle(document.querySelector('.home-recent')).display,
     progressDisplay: getComputedStyle(document.querySelector('.home-progress')).display,
     imageState,
+    menuVisibility: menuStyle?.visibility || '',
+    menuPointerEvents: menuStyle?.pointerEvents || '',
     motionReady: window.__appMotionReady === true,
     motionToken: getComputedStyle(document.documentElement).getPropertyValue('--app-motion-normal').trim(),
   };
@@ -97,8 +108,15 @@ const prepared = await page.evaluate(() => {
 const markerKeys = prepared.marker.split(/\s+/).filter(Boolean).sort();
 if (markerKeys.join(',') !== ['continue', 'progress', 'recent'].join(',')) throw new Error(`Скрытые блоки не отмечены до показа меню: ${prepared.marker}`);
 if ([prepared.continueDisplay, prepared.recentDisplay, prepared.progressDisplay].some((value) => value !== 'none')) throw new Error(`Скрытый блок видим после подготовки: ${JSON.stringify(prepared)}`);
-if (!prepared.imageState.length || prepared.imageState.some((img) => !img.complete || img.width <= 0)) throw new Error(`Меню показано до декодирования иконок: ${JSON.stringify(prepared.imageState)}`);
+if (!prepared.imageState.length || prepared.imageState.some((img) => !img.src)) throw new Error(`У меню отсутствуют источники иконок: ${JSON.stringify(prepared.imageState)}`);
+if (prepared.menuVisibility === 'hidden' || prepared.menuPointerEvents === 'none') throw new Error(`Главное меню осталось заблокировано после access-check: ${JSON.stringify(prepared)}`);
 if (!prepared.motionReady || !prepared.motionToken) throw new Error('Единый слой анимаций не загрузился.');
+
+await page.waitForSelector('#system-actions .game-card', { timeout: 5_000 });
+await page.locator('#system-actions .game-card').filter({ hasText: 'Тех-поддержка' }).click();
+await page.waitForSelector('#support-modal-overlay', { state: 'visible', timeout: 3_000 });
+await page.locator('#support-close-btn').click();
+await page.waitForSelector('#support-modal-overlay', { state: 'detached', timeout: 3_000 });
 
 await page.waitForSelector('.home-hidden-restore button', { timeout: 5_000 });
 // Home controls intentionally rebuild their own DOM when state changes. Trigger
@@ -137,7 +155,7 @@ const flashOnReturn = await page.evaluate(() => new Promise((resolve) => {
 if (flashOnReturn) throw new Error('При возврате из игры скрытые домашние блоки попали в видимый кадр.');
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'));
 
-console.log('OK: access gate fully covers the first frame, header/menu stay hidden, hidden home sections never flash, V22 menu icons are decoded before reveal, system icons and unified motion are active.');
+console.log('OK: access gate covers the first frame, menu becomes immediately interactive after access-check, home controls avoid animation mutation churn, hidden sections never flash, system icons and unified motion are active.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
