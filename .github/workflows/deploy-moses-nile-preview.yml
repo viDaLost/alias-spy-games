@@ -69,8 +69,8 @@ jobs:
           const file = '.preview-dist/web/games/moses-nile-runner-3d.js';
           let source = fs.readFileSync(file, 'utf8');
           source = source
-            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=4';\n")
-            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=4';\n")
+            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=5';\n")
+            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=5';\n")
             .replace(/const MODEL_ROOT = .*?;\n/, "const MODEL_ROOT = 'web/assets/models/moses-nile/environment';\n");
           fs.writeFileSync(file, source);
           NODE
@@ -81,11 +81,11 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-            <meta name="theme-color" content="#9eddf2">
+            <meta name="theme-color" content="#79b9ca">
             <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self';">
             <title>Моисей: путь по Нилу — Full 3D Preview</title>
             <style>
-              html,body{margin:0;width:100%;min-height:100%;background:#9eddf2;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+              html,body{margin:0;width:100%;min-height:100%;background:#79b9ca;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
               body{min-height:100dvh}
               #game-container{min-height:100dvh}
               #preview-badge,#preview-3d{position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));padding:6px 10px;border-radius:999px;color:#fff;font:700 11px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(8px)}
@@ -104,8 +104,8 @@ jobs:
               window.appGoToMainMenu = () => location.reload();
               window.goToMainMenu = window.appGoToMainMenu;
             </script>
-            <script src="web/games/moses-nile-runner.js?v=4"></script>
-            <script src="web/games/moses-nile-runner-3d.js?v=4"></script>
+            <script src="web/games/moses-nile-runner.js?v=5"></script>
+            <script src="web/games/moses-nile-runner-3d.js?v=5"></script>
             <script>
               (() => {
                 const badge = document.getElementById('preview-3d');
@@ -167,6 +167,8 @@ jobs:
           grep -q 'PerspectiveCamera' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'makeBank' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'ACESFilmicToneMapping' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'landLight' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'riverLight' .preview-dist/web/games/moses-nile-runner-3d.js
           du -h .preview-dist/web/vendor/* .preview-dist/web/assets/models/moses-nile/environment/*/*
 
       - name: Deploy isolated preview to Cloudflare
