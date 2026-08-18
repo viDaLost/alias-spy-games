@@ -1,15 +1,16 @@
 (() => {
   'use strict';
-  if (window.__bmtV31HotfixInstalled) return;
+  if (window.__bmtV34HotfixInstalled) return;
+  window.__bmtV34HotfixInstalled = true;
   window.__bmtV31HotfixInstalled = true;
   window.__bmtV29HotfixInstalled = true;
   window.__bmtV30HotfixInstalled = true;
 
-  const VERSION = '31';
-  const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${VERSION}`;
+  const VERSION = '34';
+  const MENU_ART_VERSION = '31';
+  const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${MENU_ART_VERSION}`;
   const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v31.webp?v=${VERSION}`;
-  const BOARD_WRAP_BACKGROUND = `web/assets/biblical-match-three/board-background-v29.webp?v=${VERSION}`;
-  const VISUAL_STYLE_ID = 'bmt-v31-user-art';
+  const VISUAL_STYLE_ID = 'bmt-v34-user-art';
   const RESULT_ART = {
     1: `web/assets/biblical-match-three/completion-1-star-v29.webp?v=${VERSION}`,
     2: `web/assets/biblical-match-three/completion-2-stars-v29.webp?v=${VERSION}`,
@@ -20,6 +21,7 @@
 
   let pointer = null;
   let runState = null;
+  let patchScheduled = false;
 
   function isBiblicalGame() {
     return document.body?.dataset?.currentGame === 'biblical-match-three';
@@ -50,12 +52,13 @@
     const img = card?.querySelector('img');
     if (!img) return;
     if ((img.getAttribute('src') || '') !== MENU_ICON) img.src = MENU_ICON;
-    img.alt = 'Иконка игры Библейские сокровища';
-    img.dataset.bmtMenuArt = 'v31';
-    img.dataset.iconVersion = VERSION;
+    if (img.alt !== 'Иконка игры Библейские сокровища') img.alt = 'Иконка игры Библейские сокровища';
+    if (img.dataset.bmtMenuArt !== 'v31') img.dataset.bmtMenuArt = 'v31';
+    if (img.dataset.iconVersion !== MENU_ART_VERSION) img.dataset.iconVersion = MENU_ART_VERSION;
   }
 
   function ensureUserArtwork() {
+    document.getElementById('bmt-v31-user-art')?.remove();
     let style = document.getElementById(VISUAL_STYLE_ID);
     if (!style) {
       style = document.createElement('style');
@@ -63,29 +66,33 @@
       document.head.appendChild(style);
     }
     const css = `
-body[data-current-game="biblical-match-three"] #game-container,
-body[data-current-game="biblical-match-three"] .bmt-shell.bmt-board-screen{
+html body[data-current-game="biblical-match-three"] #game-container,
+html body[data-current-game="biblical-match-three"] #game-container .bmt-shell.bmt-board-screen{
+  background-image:none!important;
+}
+html body[data-current-game="biblical-match-three"] #game-container .bmt-board-wrap,
+html body[data-current-game="biblical-match-three"] #game-container .bmt-board-wrap.bmt-v24-board-wrap{
   background-color:#f4edf8!important;
   background-image:url("${BOARD_BACKGROUND}")!important;
   background-size:cover!important;
-  background-position:center top!important;
+  background-position:center center!important;
   background-repeat:no-repeat!important;
-}
-body[data-current-game="biblical-match-three"] .bmt-shell.bmt-board-screen{
-  min-height:100%!important;
-  background-attachment:local!important;
-}
-body[data-current-game="biblical-match-three"] .bmt-board-wrap,
-body[data-current-game="biblical-match-three"] .bmt-board-wrap.bmt-v24-board-wrap{
-  background-color:rgba(255,255,255,.10)!important;
-  background-image:url("${BOARD_WRAP_BACKGROUND}")!important;
-  background-size:100% 100%!important;
-  background-position:center!important;
-  background-repeat:no-repeat!important;
-  border-color:rgba(255,255,255,.28)!important;
+  image-rendering:auto!important;
+  border-color:rgba(255,255,255,.38)!important;
   box-shadow:0 10px 28px rgba(73,47,103,.12)!important;
+  overflow:hidden!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-board{background:transparent!important}
+html body[data-current-game="biblical-match-three"] #game-container .bmt-board{
+  background:transparent!important;
+}
+html body[data-current-game="biblical-match-three"] #game-container .bmt-v24-field-underlay,
+html body[data-current-game="biblical-match-three"] #game-container .bmt-v24-field-svg{
+  background:transparent!important;
+}
+html body[data-current-game="biblical-match-three"] #game-container .bmt-v24-field-cells rect{
+  fill:rgba(255,255,255,.11)!important;
+  stroke:rgba(255,255,255,.08)!important;
+}
 body[data-current-game="biblical-match-three"] .bmt-v31-star-rules{
   margin:10px 0 2px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.72);
   box-shadow:inset 0 0 0 1px rgba(115,82,155,.12);font-size:12px;line-height:1.35;color:#574867;
@@ -96,26 +103,13 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
     if (style.textContent !== css) style.textContent = css;
   }
 
-  function patchLegacyStyleLinks() {
-    document.querySelectorAll('link[href*="biblical-match-three-v21-art.css"]').forEach((link) => {
-      const next = `web/styles/biblical-match-three-v21-art.css?v=${VERSION}`;
-      if (link.getAttribute('href') !== next) link.href = next;
-    });
-  }
-
   function captureRunState() {
     const board = document.querySelector('.bmt-board');
     if (!board || !isBiblicalGame()) return;
     const moves = parseHudMoves();
     if (runState?.board !== board) {
-      runState = {
-        board,
-        levelId: currentLevelId(),
-        startMoves: moves || 0,
-        lastMoves: moves,
-        continued: false,
-      };
-      if (runState.startMoves > 0) board.dataset.v31StartMoves = String(runState.startMoves);
+      runState = { board, levelId: currentLevelId(), startMoves: moves || 0, lastMoves: moves, continued: false };
+      if (runState.startMoves > 0 && board.dataset.v34StartMoves !== String(runState.startMoves)) board.dataset.v34StartMoves = String(runState.startMoves);
       return;
     }
     if (moves == null) return;
@@ -133,31 +127,27 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
 
   function patchProgressBestScore() {
     const api = window.BiblicalMatchThreeProgress;
-    if (!api || api.__bmtV31RatingPatched || typeof api.completeLevel !== 'function') return;
+    if (!api || typeof api.completeLevel !== 'function' || api.__bmtV34RatingPatched) return;
+    if (api.__bmtV31RatingPatched) {
+      api.__bmtV34RatingPatched = true;
+      return;
+    }
     const nativeCompleteLevel = api.completeLevel;
-    api.completeLevel = function completeLevelWithBestScoreAndRating(progress, levelId, rating, reward, totalLevels) {
+    api.completeLevel = function completeLevelWithBestScoreAndRating(progress, levelId, rating, reward, totalLevels, explicitScore) {
       captureRunState();
-      const score = parseHudScore();
+      const hudScore = parseHudScore();
+      const score = Number.isFinite(Number(explicitScore)) ? Math.max(0, Number(explicitScore)) : hudScore;
       const remainingMoves = parseHudMoves();
       const startMoves = runState?.levelId === Number(levelId) ? Number(runState.startMoves || 0) : 0;
       const continued = Boolean(runState?.levelId === Number(levelId) && runState.continued);
-      const runRating = Math.max(
-        1,
-        Math.min(3, Number(rating || 1)),
-        efficiencyRating(startMoves, remainingMoves, continued),
-      );
+      const runRating = Math.max(1, Math.min(3, Number(rating || 1)), efficiencyRating(startMoves, remainingMoves, continued));
       const result = nativeCompleteLevel.call(this, progress, levelId, runRating, reward, totalLevels, score);
-      window.__bmtV31LastLevelResult = {
-        levelId: Number(levelId),
-        runRating,
-        originalRating: Math.max(1, Math.min(3, Number(rating || 1))),
-        score,
-        startMoves,
-        remainingMoves: remainingMoves ?? 0,
-        continued,
-      };
+      const payload = { levelId:Number(levelId), runRating, originalRating:Math.max(1,Math.min(3,Number(rating||1))), score, startMoves, remainingMoves:remainingMoves ?? 0, continued };
+      window.__bmtV34LastLevelResult = payload;
+      window.__bmtV31LastLevelResult = payload;
       return result;
     };
+    api.__bmtV34RatingPatched = true;
     api.__bmtV31RatingPatched = true;
     api.__bmtV30BestScorePatched = true;
   }
@@ -176,25 +166,32 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
 
   function applyRunRatingToResult(card) {
     if (!card?.classList.contains('is-win')) return;
-    const last = window.__bmtV31LastLevelResult;
+    const last = window.__bmtV34LastLevelResult || window.__bmtV31LastLevelResult;
     if (!last || last.runRating < 1 || last.runRating > 3) return;
     const rating = Number(last.runRating);
+    const ratingText = String(rating);
+    const label = `${rating} из 3`;
     const stars = card.querySelector('.bmt-result-stars, .bmt-v22-result-stars');
     if (stars) {
-      stars.setAttribute('aria-label', `${rating} из 3`);
-      [...stars.children].forEach((node, index) => node.classList.toggle('is-on', index < rating));
-      stars.dataset.rating = String(rating);
+      if (stars.getAttribute('aria-label') !== label) stars.setAttribute('aria-label', label);
+      [...stars.children].forEach((node, index) => {
+        const on = index < rating;
+        if (node.classList.contains('is-on') !== on) node.classList.toggle('is-on', on);
+      });
+      if (stars.dataset.rating !== ratingText) stars.dataset.rating = ratingText;
     }
-    card.dataset.resultStars = String(rating);
+    if (card.dataset.resultStars !== ratingText) card.dataset.resultStars = ratingText;
     if (card.dataset.v23Rating && Number(card.dataset.v23Rating) !== rating) {
       delete card.dataset.v23Result;
       delete card.dataset.v23Rating;
     }
     const art = card.querySelector('.bmt-v23-win-art');
-    if (art && RESULT_ART[rating] && (art.getAttribute('src') || '') !== RESULT_ART[rating]) {
-      art.src = RESULT_ART[rating];
-      art.alt = `${rating} из 3 звёзд`;
+    if (art && RESULT_ART[rating]) {
+      if ((art.getAttribute('src') || '') !== RESULT_ART[rating]) art.src = RESULT_ART[rating];
+      const alt = `${rating} из 3 звёзд`;
+      if (art.alt !== alt) art.alt = alt;
     }
+    if (card.dataset.v34ResultSynced !== ratingText) card.dataset.v34ResultSynced = ratingText;
   }
 
   function captureResultStars() {
@@ -206,7 +203,7 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
       const label = stars.getAttribute('aria-label') || '';
       let n = Number((label.match(/([1-3])\s*(?:из|\/|of)\s*3/i) || [])[1] || 0);
       if (!n) n = stars.querySelectorAll('.is-on, .active, [data-on="true"], [aria-checked="true"]').length;
-      if (n >= 1 && n <= 3) card.dataset.resultStars = String(n);
+      if (n >= 1 && n <= 3 && card.dataset.resultStars !== String(n)) card.dataset.resultStars = String(n);
     });
   }
 
@@ -218,9 +215,7 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
       if (nativeMap.__bmtArkGuardV29) return;
       function guardedMap(callback, thisArg) {
         const array = this;
-        const shaped = Array.isArray(array)
-          && array.some((value) => value === null)
-          && array.some((value) => value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'type'));
+        const shaped = Array.isArray(array) && array.some((value) => value === null) && array.some((value) => value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'type'));
         if (!shaped || typeof callback !== 'function') return nativeMap.call(array, callback, thisArg);
         return nativeMap.call(array, (value, index, source) => {
           if (value !== null) return callback.call(thisArg, value, index, source);
@@ -234,75 +229,40 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
     }, true);
   }
 
-  function boardTargeting(board) {
-    return board?.classList?.contains('is-targeting');
-  }
-
-  function lampTile(node) {
-    return node?.closest?.('.bmt-tile.has-lamp');
-  }
-
+  function boardTargeting(board) { return board?.classList?.contains('is-targeting'); }
+  function lampTile(node) { return node?.closest?.('.bmt-tile.has-lamp'); }
   function blockLampClick(event) {
     if (!isBiblicalGame()) return;
     const tile = lampTile(event.target);
     if (!tile) return;
     const board = tile.closest('.bmt-board');
     if (boardTargeting(board)) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
+    event.preventDefault(); event.stopImmediatePropagation();
   }
-
   function rememberPointer(event) {
     if (!isBiblicalGame()) return;
     const tile = event.target?.closest?.('.bmt-tile');
     const board = tile?.closest?.('.bmt-board');
-    if (!tile || !board || tile.disabled || tile.classList.contains('is-hole') || boardTargeting(board)) {
-      pointer = null;
-      return;
-    }
-    pointer = {
-      id: event.pointerId,
-      board,
-      index: Number(tile.dataset.index),
-      x: event.clientX,
-      y: event.clientY,
-      sourceLamp: tile.classList.contains('has-lamp'),
-    };
-    if (pointer.sourceLamp) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
+    if (!tile || !board || tile.disabled || tile.classList.contains('is-hole') || boardTargeting(board)) { pointer = null; return; }
+    pointer = { id:event.pointerId, board, index:Number(tile.dataset.index), x:event.clientX, y:event.clientY, sourceLamp:tile.classList.contains('has-lamp') };
+    if (pointer.sourceLamp) { event.preventDefault(); event.stopImmediatePropagation(); }
   }
-
   function blockLampSwipe(event) {
     if (!pointer || pointer.id !== event.pointerId) return;
-    const state = pointer;
-    pointer = null;
+    const state = pointer; pointer = null;
     if (!isBiblicalGame() || !state.board?.isConnected || boardTargeting(state.board)) return;
     const source = state.board.querySelector(`.bmt-tile[data-index="${state.index}"]`);
     if (!source) return;
-    const dx = event.clientX - state.x;
-    const dy = event.clientY - state.y;
+    const dx = event.clientX - state.x; const dy = event.clientY - state.y;
     const threshold = Math.max(12, Math.min(source.clientWidth || 52, source.clientHeight || 52) * .2);
     if (Math.hypot(dx, dy) < threshold) return;
-    const horizontal = Math.abs(dx) >= Math.abs(dy);
-    const sx = horizontal ? Math.sign(dx) : 0;
-    const sy = horizontal ? 0 : Math.sign(dy);
-    const rows = Math.max(1, Number(state.board.dataset.rows || 8));
-    const cols = Math.max(1, Number(state.board.dataset.cols || 8));
-    const row = Math.floor(state.index / cols);
-    const col = state.index % cols;
-    const nr = row + sy;
-    const nc = col + sx;
+    const horizontal = Math.abs(dx) >= Math.abs(dy); const sx = horizontal ? Math.sign(dx) : 0; const sy = horizontal ? 0 : Math.sign(dy);
+    const rows = Math.max(1, Number(state.board.dataset.rows || 8)); const cols = Math.max(1, Number(state.board.dataset.cols || 8));
+    const row = Math.floor(state.index / cols); const col = state.index % cols; const nr = row + sy; const nc = col + sx;
     if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) return;
-    const targetIndex = nr * cols + nc;
-    const target = state.board.querySelector(`.bmt-tile[data-index="${targetIndex}"]`);
-    if (state.sourceLamp || target?.classList.contains('has-lamp')) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
+    const target = state.board.querySelector(`.bmt-tile[data-index="${nr * cols + nc}"]`);
+    if (state.sourceLamp || target?.classList.contains('has-lamp')) { event.preventDefault(); event.stopImmediatePropagation(); }
   }
-
   function installLampGuards() {
     document.addEventListener('click', blockLampClick, true);
     document.addEventListener('pointerdown', rememberPointer, true);
@@ -311,34 +271,38 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
   }
 
   function patchAll() {
+    patchScheduled = false;
     patchMenuIcon();
     patchProgressBestScore();
     if (isBiblicalGame()) {
       ensureUserArtwork();
-      patchLegacyStyleLinks();
       captureRunState();
       patchPrelevelStarRules();
       captureResultStars();
     }
   }
-
+  function schedulePatch() {
+    if (patchScheduled) return;
+    patchScheduled = true;
+    requestAnimationFrame(patchAll);
+  }
   function start() {
     installArkGuard();
     installLampGuards();
     patchAll();
     const progressTimer = window.setInterval(() => {
       patchProgressBestScore();
-      if (window.BiblicalMatchThreeProgress?.__bmtV31RatingPatched) window.clearInterval(progressTimer);
+      if (window.BiblicalMatchThreeProgress?.__bmtV34RatingPatched) window.clearInterval(progressTimer);
     }, 150);
     window.setTimeout(() => window.clearInterval(progressTimer), 15000);
-    new MutationObserver(patchAll).observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['data-current-game', 'class', 'aria-label'],
+    new MutationObserver(schedulePatch).observe(document.body, {
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:['data-current-game','class'],
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
   else start();
 })();
