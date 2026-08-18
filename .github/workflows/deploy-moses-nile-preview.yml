@@ -53,24 +53,22 @@ jobs:
 
           MODEL_REV=d6aacfb25dd969ead90cddd94ad901e74aede5d8
           MODEL_BASE="https://raw.githubusercontent.com/trebeljahr/quaternius-showcase/${MODEL_REV}/public/glb"
-          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Rock_1.glb" \
-            -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Rock_1.glb
-          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Plant_2.glb" \
-            -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Plant_2.glb
-          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/PalmTree_4.glb" \
-            -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/PalmTree_4.glb
-          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/WoodLog.glb" \
-            -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/WoodLog.glb
-          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/Raft.glb" \
-            -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Rock_1.glb" -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Rock_1.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Plant_2.glb" -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Plant_2.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Bush_1.glb" -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Bush_1.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Grass.glb" -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Grass.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Plant_1.glb" -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Plant_1.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/PalmTree_4.glb" -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/PalmTree_4.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/WoodLog.glb" -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/WoodLog.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/Raft.glb" -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
 
           node <<'NODE'
           const fs = require('fs');
           const file = '.preview-dist/web/games/moses-nile-runner-3d.js';
           let source = fs.readFileSync(file, 'utf8');
           source = source
-            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=5';\n")
-            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=5';\n")
+            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=6';\n")
+            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=6';\n")
             .replace(/const MODEL_ROOT = .*?;\n/, "const MODEL_ROOT = 'web/assets/models/moses-nile/environment';\n");
           fs.writeFileSync(file, source);
           NODE
@@ -81,11 +79,11 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-            <meta name="theme-color" content="#79b9ca">
+            <meta name="theme-color" content="#679eb2">
             <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self';">
             <title>Моисей: путь по Нилу — Full 3D Preview</title>
             <style>
-              html,body{margin:0;width:100%;min-height:100%;background:#79b9ca;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+              html,body{margin:0;width:100%;min-height:100%;background:#679eb2;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
               body{min-height:100dvh}
               #game-container{min-height:100dvh}
               #preview-badge,#preview-3d{position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));padding:6px 10px;border-radius:999px;color:#fff;font:700 11px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(8px)}
@@ -104,8 +102,8 @@ jobs:
               window.appGoToMainMenu = () => location.reload();
               window.goToMainMenu = window.appGoToMainMenu;
             </script>
-            <script src="web/games/moses-nile-runner.js?v=5"></script>
-            <script src="web/games/moses-nile-runner-3d.js?v=5"></script>
+            <script src="web/games/moses-nile-runner.js?v=6"></script>
+            <script src="web/games/moses-nile-runner-3d.js?v=6"></script>
             <script>
               (() => {
                 const badge = document.getElementById('preview-3d');
@@ -120,7 +118,7 @@ jobs:
                   const fullScene = document.querySelector('#mnr-stage.mnr-stage--full-3d');
                   if (canvas && fullScene) {
                     clearInterval(timer);
-                    setStatus('on', '3D · сцена ON');
+                    setStatus('on', '3D · сцена v6 ON');
                     return;
                   }
                   if (performance.now() - startedAt > 9000) {
@@ -157,15 +155,17 @@ jobs:
           node -e "const fs=require('fs');const s=fs.readFileSync('web/assets/models/moses-nile/woven-basket.obj','utf8');const v=s.split(/\r?\n/).filter(x=>x.startsWith('v ')).length;const f=s.split(/\r?\n/).filter(x=>x.startsWith('f ')).length;if(v!==213||f!==344)throw new Error('Unexpected basket geometry '+v+'/'+f);console.log('Basket geometry OK:',v,'vertices,',f,'triangles');"
           test -s .preview-dist/web/vendor/three-r128.min.js
           test -s .preview-dist/web/vendor/GLTFLoader-r128.js
-          test -s .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Rock_1.glb
-          test -s .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Plant_2.glb
-          test -s .preview-dist/web/assets/models/moses-nile/environment/nature_pack/PalmTree_4.glb
+          for file in Rock_1.glb Plant_1.glb Plant_2.glb Bush_1.glb Grass.glb PalmTree_4.glb; do test -s ".preview-dist/web/assets/models/moses-nile/environment/nature_pack/$file"; done
           test -s .preview-dist/web/assets/models/moses-nile/environment/survival_pack/WoodLog.glb
           test -s .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
           ! grep -q 'cdnjs.cloudflare.com' .preview-dist/web/games/moses-nile-runner-3d.js
           ! grep -q 'cdn.jsdelivr.net' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'PerspectiveCamera' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'makeBank' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'makePyramidModel' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'makeWaterDetailTexture' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'Bush_1.glb' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'Grass.glb' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'ACESFilmicToneMapping' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'landLight' .preview-dist/web/games/moses-nile-runner-3d.js
           grep -q 'riverLight' .preview-dist/web/games/moses-nile-runner-3d.js
