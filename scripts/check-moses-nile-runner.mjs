@@ -38,9 +38,17 @@ for (const token of [
   "powerPreference: 'low-power'",
   'MAX_PIXEL_RATIO = 1.25',
   'MIN_FRAME_MS = 30',
+  'PerspectiveCamera',
+  'makeWaterTexture',
+  'makeBank',
+  'mnr-stage--full-3d',
+  'ACESFilmicToneMapping',
+  'renderer.shadowMap.enabled = false',
+  'laneFromInlineStyle',
 ]) {
-  if (!threeSource.includes(token)) throw new Error(`Nile 3D layer is missing required mobile safeguard/asset: ${token}`);
+  if (!threeSource.includes(token)) throw new Error(`Nile 3D layer is missing required mobile/full-scene safeguard: ${token}`);
 }
+if (threeSource.includes('el.getBoundingClientRect')) throw new Error('Obstacle placement must not copy DOM pixel rectangles into the 3D scene');
 
 const vertexCount = basketSource.split(/\r?\n/).filter((line) => line.startsWith('v ')).length;
 const faceCount = basketSource.split(/\r?\n/).filter((line) => line.startsWith('f ')).length;
@@ -89,11 +97,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   let action = '';
   try { action = String(route.request().postDataJSON()?.payload?.action || ''); } catch {}
   if (action === 'referralStatus') {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json; charset=utf-8',
-      body: JSON.stringify({ success: true, answered: true, skip: true }),
-    });
+    await route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: JSON.stringify({ success: true, answered: true, skip: true }) });
     return;
   }
   await route.fulfill({
@@ -152,7 +156,7 @@ try {
   }));
   if (state.mode || state.runner || state.canvas || state.history[0] !== 'Моисей: путь по Нилу') throw new Error(`Runner cleanup/history failed: ${JSON.stringify(state)}`);
 
-  console.log(`OK: Moses Nile runner lazily requests its 3D layer, enforces a ${remoteTotal}-byte pinned remote model budget, and stays playable when optional 3D CDNs are unavailable.`);
+  console.log(`OK: Moses Nile runner uses a full PerspectiveCamera scene with 3D river/banks, enforces a ${remoteTotal}-byte pinned remote model budget, and remains playable when optional 3D CDNs are unavailable.`);
 } finally {
   await context.close();
   await browser.close();
