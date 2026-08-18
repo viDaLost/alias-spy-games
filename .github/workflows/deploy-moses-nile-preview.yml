@@ -1,5 +1,6 @@
 name: Deploy Moses Nile Preview
 # Isolated branch-only preview for the Nile runner. Never deploys main.
+# Registered on main; this branch copy is the live preview trigger.
 
 on:
   workflow_dispatch:
@@ -35,11 +36,49 @@ jobs:
           rm -rf .preview-dist
           mkdir -p \
             .preview-dist/web/games \
-            .preview-dist/web/assets/models/moses-nile
+            .preview-dist/web/vendor \
+            .preview-dist/web/assets/models/moses-nile/environment/nature_pack \
+            .preview-dist/web/assets/models/moses-nile/environment/survival_pack
 
           cp web/games/moses-nile-runner.js .preview-dist/web/games/
           cp web/games/moses-nile-runner-3d.js .preview-dist/web/games/
           cp web/assets/models/moses-nile/woven-basket.obj .preview-dist/web/assets/models/moses-nile/
+
+          # Runtime 3D dependencies are bundled into the Cloudflare preview so iOS/WebViews
+          # do not depend on third-party script/model requests while the game is running.
+          curl -fsSL --retry 3 \
+            https://raw.githubusercontent.com/mrdoob/three.js/r128/build/three.min.js \
+            -o .preview-dist/web/vendor/three-r128.min.js
+          curl -fsSL --retry 3 \
+            https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/GLTFLoader.js \
+            -o .preview-dist/web/vendor/GLTFLoader-r128.js
+
+          MODEL_REV=d6aacfb25dd969ead90cddd94ad901e74aede5d8
+          MODEL_BASE="https://raw.githubusercontent.com/trebeljahr/quaternius-showcase/${MODEL_REV}/public/glb"
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Rock_1.glb" \
+            -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Rock_1.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Plant_2.glb" \
+            -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Plant_2.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/PalmTree_4.glb" \
+            -o .preview-dist/web/assets/models/moses-nile/environment/nature_pack/PalmTree_4.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/WoodLog.glb" \
+            -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/WoodLog.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/Raft.glb" \
+            -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
+
+          # Patch only the isolated preview copy. The production source keeps its normal
+          # lazy/fallback behavior, while preview is intentionally 100% same-origin.
+          node <<'NODE'
+          const fs = require('fs');
+          const file = '.preview-dist/web/games/moses-nile-runner-3d.js';
+          let source = fs.readFileSync(file, 'utf8');
+          source = source
+            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=3';\n")
+            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=3';\n")
+            .replace(/const MODEL_ROOT = .*?;\n/, "const MODEL_ROOT = 'web/assets/models/moses-nile/environment';\n")
+            .replace("zIndex: '7'", "zIndex: '13'");
+          fs.writeFileSync(file, source);
+          NODE
 
           cat > .preview-dist/index.html <<'HTML'
           <!doctype html>
@@ -48,16 +87,21 @@ jobs:
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
             <meta name="theme-color" content="#9eddf2">
-            <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; connect-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self';">
-            <title>Моисей: путь по Нилу — Preview</title>
+            <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self';">
+            <title>Моисей: путь по Нилу — 3D Preview</title>
             <style>
               html,body{margin:0;width:100%;min-height:100%;background:#9eddf2;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
               body{min-height:100dvh}
               #game-container{min-height:100dvh}
-              #preview-badge{position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));right:8px;padding:6px 10px;border-radius:999px;background:rgba(17,24,39,.82);color:#fff;font:700 11px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(8px)}
+              #preview-badge,#preview-3d{position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));padding:6px 10px;border-radius:999px;color:#fff;font:700 11px/1.2 system-ui;letter-spacing:.04em;pointer-events:none;backdrop-filter:blur(8px)}
+              #preview-badge{right:8px;background:rgba(17,24,39,.82)}
+              #preview-3d{left:8px;background:rgba(65,76,88,.88)}
+              #preview-3d[data-state="on"]{background:rgba(12,116,75,.9)}
+              #preview-3d[data-state="fallback"]{background:rgba(176,57,57,.92)}
             </style>
           </head>
           <body data-mode="game" data-current-game="moses-nile-runner">
+            <div id="preview-3d" data-state="loading">3D · загрузка</div>
             <div id="preview-badge">TEST · Cloudflare</div>
             <main id="game-container" aria-live="polite"></main>
             <script>
@@ -65,11 +109,36 @@ jobs:
               window.appGoToMainMenu = () => location.reload();
               window.goToMainMenu = window.appGoToMainMenu;
             </script>
-            <script src="web/games/moses-nile-runner.js"></script>
-            <script src="web/games/moses-nile-runner-3d.js"></script>
+            <script src="web/games/moses-nile-runner.js?v=3"></script>
+            <script src="web/games/moses-nile-runner-3d.js?v=3"></script>
             <script>
-              window.startMosesNileRunner();
-              window.__startMosesNile3D?.();
+              (() => {
+                const badge = document.getElementById('preview-3d');
+                const setStatus = (state, text) => {
+                  badge.dataset.state = state;
+                  badge.textContent = text;
+                };
+                window.startMosesNileRunner();
+                Promise.resolve(window.__startMosesNile3D?.()).then((started) => {
+                  if (!started) setStatus('fallback', '3D · fallback');
+                }).catch(() => setStatus('fallback', '3D · ошибка'));
+
+                const startedAt = performance.now();
+                const timer = setInterval(() => {
+                  const canvas = document.querySelector('.mnr-3d-canvas');
+                  const cssBasket = document.querySelector('#mnr-basket .mnr-basket');
+                  const basketReplaced = cssBasket && getComputedStyle(cssBasket).visibility === 'hidden';
+                  if (canvas && basketReplaced) {
+                    clearInterval(timer);
+                    setStatus('on', '3D · модели ON');
+                    return;
+                  }
+                  if (performance.now() - startedAt > 8000) {
+                    clearInterval(timer);
+                    setStatus('fallback', canvas ? '3D · модели не загрузились' : '3D · WebGL недоступен');
+                  }
+                }, 250);
+              })();
             </script>
           </body>
           </html>
@@ -88,11 +157,25 @@ jobs:
           }
           JSON
 
-      - name: Validate preview sources
+      - name: Validate preview sources and local 3D bundle
+        shell: bash
         run: |
+          set -euo pipefail
           node --check web/games/moses-nile-runner.js
           node --check web/games/moses-nile-runner-3d.js
+          node --check .preview-dist/web/games/moses-nile-runner-3d.js
           node -e "const fs=require('fs');const s=fs.readFileSync('web/assets/models/moses-nile/woven-basket.obj','utf8');const v=s.split(/\r?\n/).filter(x=>x.startsWith('v ')).length;const f=s.split(/\r?\n/).filter(x=>x.startsWith('f ')).length;if(v!==213||f!==344)throw new Error('Unexpected basket geometry '+v+'/'+f);console.log('Basket geometry OK:',v,'vertices,',f,'triangles');"
+          test -s .preview-dist/web/vendor/three-r128.min.js
+          test -s .preview-dist/web/vendor/GLTFLoader-r128.js
+          test -s .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Rock_1.glb
+          test -s .preview-dist/web/assets/models/moses-nile/environment/nature_pack/Plant_2.glb
+          test -s .preview-dist/web/assets/models/moses-nile/environment/nature_pack/PalmTree_4.glb
+          test -s .preview-dist/web/assets/models/moses-nile/environment/survival_pack/WoodLog.glb
+          test -s .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
+          ! grep -q 'cdnjs.cloudflare.com' .preview-dist/web/games/moses-nile-runner-3d.js
+          ! grep -q 'cdn.jsdelivr.net' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q "zIndex: '13'" .preview-dist/web/games/moses-nile-runner-3d.js
+          du -h .preview-dist/web/vendor/* .preview-dist/web/assets/models/moses-nile/environment/*/*
 
       - name: Deploy isolated preview to Cloudflare
         env:
