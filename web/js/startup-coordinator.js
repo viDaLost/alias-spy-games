@@ -163,14 +163,39 @@
   window.addEventListener('pageshow', evaluate);
   window.addEventListener('pagehide', () => observers.forEach((observer) => observer.disconnect()), { once: true });
 
-  // iOS WebViews must never stay behind an invisible startup gate after the loader is removed.
-  window.setTimeout(() => {
-    const currentMenu = document.getElementById('menu-container');
-    const loader = document.getElementById('main-loader');
-    if (!loader && currentMenu && !currentMenu.classList.contains('hidden') && !document.body?.dataset.mode) {
-      revealMenu(currentMenu);
+  // Short polling closes the gap between showMenu() removing the loader and an
+  // iOS WebView delivering MutationObserver callbacks. It stops as soon as the
+  // access gate has resolved, so there is no steady-state polling cost.
+  const unlockPoll = window.setInterval(() => {
+    const currentLoader = document.getElementById('main-loader');
+    if (currentLoader || document.body?.dataset.mode) return;
+    if (revealBannedIfNeeded()) {
+      window.clearInterval(unlockPoll);
+      return;
     }
-  }, 700);
+    const currentMenu = document.getElementById('menu-container');
+    if (!currentMenu) return;
+    currentMenu.classList.remove('hidden');
+    revealMenu(currentMenu);
+    window.clearInterval(unlockPoll);
+  }, 80);
+  window.setTimeout(() => window.clearInterval(unlockPoll), 12000);
+
+  // Absolute fail-open watchdog: backend-bridge already gives access verification
+  // a 5s deadline. If the shell is still locked after that deadline, never leave
+  // Telegram/iOS on a blank or untouchable screen.
+  window.setTimeout(() => {
+    if (!root.classList.contains('app-booting') && !root.classList.contains('app-menu-preparing')) return;
+    if (revealBannedIfNeeded()) return;
+    if (document.body?.dataset.mode) return;
+
+    const currentMenu = document.getElementById('menu-container');
+    if (!currentMenu) return;
+    try { window.renderMainMenu?.(); } catch {}
+    document.getElementById('main-loader')?.remove();
+    currentMenu.classList.remove('hidden');
+    revealMenu(currentMenu);
+  }, 6500);
 
   queueMicrotask(evaluate);
 })();
