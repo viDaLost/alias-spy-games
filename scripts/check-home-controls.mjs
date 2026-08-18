@@ -10,6 +10,13 @@ const mime = new Map([
   ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
 ]);
 
+const startupSource = fs.readFileSync(path.join(root, 'web/js/startup-coordinator.js'), 'utf8');
+const homeControlsSource = fs.readFileSync(path.join(root, 'web/js/home-controls.js'), 'utf8');
+const homeEnhancementsSource = fs.readFileSync(path.join(root, 'web/js/home-enhancements.js'), 'utf8');
+if (startupSource.includes("root.classList.add('app-menu-preparing')")) throw new Error('Startup coordinator must not re-lock an already visible menu.');
+if (homeControlsSource.includes("attributeFilter: ['class'")) throw new Error('Home controls must not rebuild on every class animation mutation.');
+if (homeEnhancementsSource.includes("attributeFilter:['class'")) throw new Error('Home dashboard must not rerender on every class animation mutation.');
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://127.0.0.1');
   const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
@@ -32,6 +39,9 @@ await context.addInitScript(() => {
   localStorage.setItem('home_hidden_sections_v1', JSON.stringify(['continue', 'recent', 'progress']));
 });
 const page = await context.newPage();
+page.on('console', (message) => console.log(`[browser:${message.type()}] ${message.text()}`));
+page.on('pageerror', (error) => console.log(`[pageerror] ${error.stack || error.message}`));
+page.on('requestfailed', (request) => console.log(`[requestfailed] ${request.url()} ${request.failure()?.errorText || ''}`));
 
 await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
   status: 200,
@@ -39,9 +49,26 @@ await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route
   body: `window.Telegram={WebApp:{initData:'qa-init-data',initDataUnsafe:{user:{id:1288379477,username:'qa_admin',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
 }));
 await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat', async (route) => {
+  let action = '';
+  try {
+    action = String(route.request().postDataJSON()?.payload?.action || '');
+  } catch {}
+
+  // The referral survey is independent from the startup/menu interaction test.
+  // Mark it answered so its intentional modal does not intercept the tap we use
+  // to prove that the main menu is genuinely interactive.
+  if (action === 'referralStatus') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      body: JSON.stringify({ success: true, answered: true, skip: true }),
+    });
+    return;
+  }
+
   // Keep access verification intentionally pending long enough to inspect a
   // stable loading frame before the application is allowed to reveal the menu.
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  if (action === 'syncUser') await new Promise((resolve) => setTimeout(resolve, 1200));
   await route.fulfill({
     status: 200,
     contentType: 'application/json; charset=utf-8',
@@ -77,19 +104,55 @@ if (boot.headerVisibility !== 'hidden' && boot.headerOpacity > 0) throw new Erro
 if (boot.loaderDisplay === 'none' || boot.loaderOpacity !== '1') throw new Error(`Во время проверки доступа не показан непрозрачный loader: ${JSON.stringify(boot)}`);
 if (boot.loaderPosition !== 'fixed' || !boot.loaderCoversViewport) throw new Error(`Loader не перекрывает весь viewport: ${JSON.stringify(boot)}`);
 
-await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
-await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
+await page.waitForTimeout(7500);
+const startupState = await page.evaluate(() => {
+  const menu = document.getElementById('menu-container');
+  const loader = document.getElementById('main-loader');
+  const banned = document.getElementById('banned-screen');
+  const style = menu ? getComputedStyle(menu) : null;
+  return {
+    readyState: document.readyState,
+    rootClass: document.documentElement.className,
+    menuClass: menu?.className || null,
+    menuVisibility: style?.visibility || null,
+    menuOpacity: style?.opacity || null,
+    menuPointerEvents: style?.pointerEvents || null,
+    menuDisplay: style?.display || null,
+    loaderExists: Boolean(loader),
+    loaderText: loader?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    bannedClass: banned?.className || null,
+    bodyMode: document.body?.dataset.mode || '',
+    companyChildren: document.getElementById('company-games')?.children.length || 0,
+    systemChildren: document.getElementById('system-actions')?.children.length || 0,
+    appCore: window.AppCoreBridge?.status?.() || null,
+    initializeType: typeof window.initializeApp,
+    showMenuType: typeof window.showMenu,
+    renderMainMenuType: typeof window.renderMainMenu,
+  };
+});
+console.log(`startup-state: ${JSON.stringify(startupState)}`);
+if (!startupState.menuClass || startupState.menuClass.split(/\s+/).includes('hidden') || startupState.menuVisibility === 'hidden' || startupState.menuPointerEvents === 'none') {
+  throw new Error(`Главное меню не стало интерактивным после startup watchdog: ${JSON.stringify(startupState)}`);
+}
+if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.rootClass.split(/\s+/).includes('app-menu-preparing') || startupState.loaderExists) {
+  throw new Error(`Стартовый gate не завершился: ${JSON.stringify(startupState)}`);
+}
+
 await page.waitForSelector('#home-dashboard[data-content-ready="1"][data-controls-ready="1"]', { timeout: 5_000 });
 
 const prepared = await page.evaluate(() => {
   const imageState = [...document.querySelectorAll('#menu-container .game-card__img, #menu-container .home-continue__icon img')]
     .map((img) => ({ complete: img.complete, width: img.naturalWidth, src: img.getAttribute('src') }));
+  const menu = document.getElementById('menu-container');
+  const menuStyle = menu ? getComputedStyle(menu) : null;
   return {
     marker: document.documentElement.dataset.homeHidden || '',
     continueDisplay: getComputedStyle(document.querySelector('.home-continue')).display,
     recentDisplay: getComputedStyle(document.querySelector('.home-recent')).display,
     progressDisplay: getComputedStyle(document.querySelector('.home-progress')).display,
     imageState,
+    menuVisibility: menuStyle?.visibility || '',
+    menuPointerEvents: menuStyle?.pointerEvents || '',
     motionReady: window.__appMotionReady === true,
     motionToken: getComputedStyle(document.documentElement).getPropertyValue('--app-motion-normal').trim(),
   };
@@ -97,8 +160,15 @@ const prepared = await page.evaluate(() => {
 const markerKeys = prepared.marker.split(/\s+/).filter(Boolean).sort();
 if (markerKeys.join(',') !== ['continue', 'progress', 'recent'].join(',')) throw new Error(`Скрытые блоки не отмечены до показа меню: ${prepared.marker}`);
 if ([prepared.continueDisplay, prepared.recentDisplay, prepared.progressDisplay].some((value) => value !== 'none')) throw new Error(`Скрытый блок видим после подготовки: ${JSON.stringify(prepared)}`);
-if (!prepared.imageState.length || prepared.imageState.some((img) => !img.complete || img.width <= 0)) throw new Error(`Меню показано до декодирования иконок: ${JSON.stringify(prepared.imageState)}`);
+if (!prepared.imageState.length || prepared.imageState.some((img) => !img.src)) throw new Error(`У меню отсутствуют источники иконок: ${JSON.stringify(prepared.imageState)}`);
+if (prepared.menuVisibility === 'hidden' || prepared.menuPointerEvents === 'none') throw new Error(`Главное меню осталось заблокировано после access-check: ${JSON.stringify(prepared)}`);
 if (!prepared.motionReady || !prepared.motionToken) throw new Error('Единый слой анимаций не загрузился.');
+
+await page.waitForSelector('#system-actions .game-card', { timeout: 5_000 });
+await page.locator('#system-actions .game-card').filter({ hasText: 'Тех-поддержка' }).click();
+await page.waitForSelector('#support-modal-overlay', { state: 'visible', timeout: 3_000 });
+await page.locator('#support-close-btn').click();
+await page.waitForSelector('#support-modal-overlay', { state: 'detached', timeout: 3_000 });
 
 await page.waitForSelector('.home-hidden-restore button', { timeout: 5_000 });
 // Home controls intentionally rebuild their own DOM when state changes. Trigger
@@ -137,7 +207,7 @@ const flashOnReturn = await page.evaluate(() => new Promise((resolve) => {
 if (flashOnReturn) throw new Error('При возврате из игры скрытые домашние блоки попали в видимый кадр.');
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'));
 
-console.log('OK: access gate fully covers the first frame, header/menu stay hidden, hidden home sections never flash, V22 menu icons are decoded before reveal, system icons and unified motion are active.');
+console.log('OK: access gate covers the first frame, menu becomes immediately interactive after access-check, home controls avoid animation mutation churn, hidden sections never flash, system icons and unified motion are active.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
