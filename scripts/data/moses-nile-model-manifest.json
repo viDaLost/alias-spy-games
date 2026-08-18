@@ -1,9 +1,9 @@
 {
-  "version": 1,
+  "version": 2,
   "limits": {
     "localAssetBytes": 50000,
     "remoteAssetBytes": 100000,
-    "remoteTotalBytes": 170000
+    "remoteTotalBytes": 220000
   },
   "models": [
     {
@@ -21,9 +21,27 @@
       "license": "CC0"
     },
     {
-      "key": "reeds",
+      "key": "plant",
       "url": "https://cdn.jsdelivr.net/gh/trebeljahr/quaternius-showcase@d6aacfb25dd969ead90cddd94ad901e74aede5d8/public/glb/nature_pack/Plant_2.glb",
       "bytes": 16040,
+      "license": "CC0"
+    },
+    {
+      "key": "bush",
+      "url": "https://cdn.jsdelivr.net/gh/trebeljahr/quaternius-showcase@d6aacfb25dd969ead90cddd94ad901e74aede5d8/public/glb/nature_pack/Bush_1.glb",
+      "bytes": 21348,
+      "license": "CC0"
+    },
+    {
+      "key": "grass",
+      "url": "https://cdn.jsdelivr.net/gh/trebeljahr/quaternius-showcase@d6aacfb25dd969ead90cddd94ad901e74aede5d8/public/glb/nature_pack/Grass.glb",
+      "bytes": 12632,
+      "license": "CC0"
+    },
+    {
+      "key": "bankPlant",
+      "url": "https://cdn.jsdelivr.net/gh/trebeljahr/quaternius-showcase@d6aacfb25dd969ead90cddd94ad901e74aede5d8/public/glb/nature_pack/Plant_1.glb",
+      "bytes": 18416,
       "license": "CC0"
     },
     {
