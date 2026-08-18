@@ -4,9 +4,9 @@
   if (window.__mosesNileRunnerLauncherInstalled) return;
   window.__mosesNileRunnerLauncherInstalled = true;
 
-  const VERSION = '2';
+  const VERSION = '3';
   const GAME_VERSION = '1';
-  const THREE_VERSION = '1';
+  const THREE_VERSION = '2';
   const GAME_KEY = 'moses-nile-runner';
   const TITLE = 'Моисей: путь по Нилу';
   const GAME_SRC = `web/games/moses-nile-runner.js?v=${GAME_VERSION}`;
