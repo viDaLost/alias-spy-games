@@ -49,9 +49,26 @@ await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route
   body: `window.Telegram={WebApp:{initData:'qa-init-data',initDataUnsafe:{user:{id:1288379477,username:'qa_admin',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
 }));
 await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat', async (route) => {
+  let action = '';
+  try {
+    action = String(route.request().postDataJSON()?.payload?.action || '');
+  } catch {}
+
+  // The referral survey is independent from the startup/menu interaction test.
+  // Mark it answered so its intentional modal does not intercept the tap we use
+  // to prove that the main menu is genuinely interactive.
+  if (action === 'referralStatus') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      body: JSON.stringify({ success: true, answered: true, skip: true }),
+    });
+    return;
+  }
+
   // Keep access verification intentionally pending long enough to inspect a
   // stable loading frame before the application is allowed to reveal the menu.
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  if (action === 'syncUser') await new Promise((resolve) => setTimeout(resolve, 1200));
   await route.fulfill({
     status: 200,
     contentType: 'application/json; charset=utf-8',
