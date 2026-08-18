@@ -1,5 +1,6 @@
 name: Deploy Moses Nile Preview
 # Isolated branch-only preview for the Nile runner. Never deploys main.
+# Registered on main; this branch copy is the live preview trigger.
 
 on:
   workflow_dispatch:
