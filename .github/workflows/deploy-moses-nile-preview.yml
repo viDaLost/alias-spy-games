@@ -44,8 +44,6 @@ jobs:
           cp web/games/moses-nile-runner-3d.js .preview-dist/web/games/
           cp web/assets/models/moses-nile/woven-basket.obj .preview-dist/web/assets/models/moses-nile/
 
-          # Runtime 3D dependencies are bundled into the Cloudflare preview so iOS/WebViews
-          # do not depend on third-party script/model requests while the game is running.
           curl -fsSL --retry 3 \
             https://raw.githubusercontent.com/mrdoob/three.js/r128/build/three.min.js \
             -o .preview-dist/web/vendor/three-r128.min.js
@@ -66,17 +64,14 @@ jobs:
           curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/Raft.glb" \
             -o .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
 
-          # Patch only the isolated preview copy. The production source keeps its normal
-          # lazy/fallback behavior, while preview is intentionally 100% same-origin.
           node <<'NODE'
           const fs = require('fs');
           const file = '.preview-dist/web/games/moses-nile-runner-3d.js';
           let source = fs.readFileSync(file, 'utf8');
           source = source
-            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=3';\n")
-            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=3';\n")
-            .replace(/const MODEL_ROOT = .*?;\n/, "const MODEL_ROOT = 'web/assets/models/moses-nile/environment';\n")
-            .replace("zIndex: '7'", "zIndex: '13'");
+            .replace(/const THREE_SRC = .*?;\n/, "const THREE_SRC = 'web/vendor/three-r128.min.js?v=4';\n")
+            .replace(/const GLTF_LOADER_SRC = .*?;\n/, "const GLTF_LOADER_SRC = 'web/vendor/GLTFLoader-r128.js?v=4';\n")
+            .replace(/const MODEL_ROOT = .*?;\n/, "const MODEL_ROOT = 'web/assets/models/moses-nile/environment';\n");
           fs.writeFileSync(file, source);
           NODE
 
@@ -88,7 +83,7 @@ jobs:
             <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
             <meta name="theme-color" content="#9eddf2">
             <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self';">
-            <title>Моисей: путь по Нилу — 3D Preview</title>
+            <title>Моисей: путь по Нилу — Full 3D Preview</title>
             <style>
               html,body{margin:0;width:100%;min-height:100%;background:#9eddf2;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
               body{min-height:100dvh}
@@ -109,31 +104,26 @@ jobs:
               window.appGoToMainMenu = () => location.reload();
               window.goToMainMenu = window.appGoToMainMenu;
             </script>
-            <script src="web/games/moses-nile-runner.js?v=3"></script>
-            <script src="web/games/moses-nile-runner-3d.js?v=3"></script>
+            <script src="web/games/moses-nile-runner.js?v=4"></script>
+            <script src="web/games/moses-nile-runner-3d.js?v=4"></script>
             <script>
               (() => {
                 const badge = document.getElementById('preview-3d');
-                const setStatus = (state, text) => {
-                  badge.dataset.state = state;
-                  badge.textContent = text;
-                };
+                const setStatus = (state, text) => { badge.dataset.state = state; badge.textContent = text; };
                 window.startMosesNileRunner();
                 Promise.resolve(window.__startMosesNile3D?.()).then((started) => {
                   if (!started) setStatus('fallback', '3D · fallback');
                 }).catch(() => setStatus('fallback', '3D · ошибка'));
-
                 const startedAt = performance.now();
                 const timer = setInterval(() => {
                   const canvas = document.querySelector('.mnr-3d-canvas');
-                  const cssBasket = document.querySelector('#mnr-basket .mnr-basket');
-                  const basketReplaced = cssBasket && getComputedStyle(cssBasket).visibility === 'hidden';
-                  if (canvas && basketReplaced) {
+                  const fullScene = document.querySelector('#mnr-stage.mnr-stage--full-3d');
+                  if (canvas && fullScene) {
                     clearInterval(timer);
-                    setStatus('on', '3D · модели ON');
+                    setStatus('on', '3D · сцена ON');
                     return;
                   }
-                  if (performance.now() - startedAt > 8000) {
+                  if (performance.now() - startedAt > 9000) {
                     clearInterval(timer);
                     setStatus('fallback', canvas ? '3D · модели не загрузились' : '3D · WebGL недоступен');
                   }
@@ -174,7 +164,9 @@ jobs:
           test -s .preview-dist/web/assets/models/moses-nile/environment/survival_pack/Raft.glb
           ! grep -q 'cdnjs.cloudflare.com' .preview-dist/web/games/moses-nile-runner-3d.js
           ! grep -q 'cdn.jsdelivr.net' .preview-dist/web/games/moses-nile-runner-3d.js
-          grep -q "zIndex: '13'" .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'PerspectiveCamera' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'makeBank' .preview-dist/web/games/moses-nile-runner-3d.js
+          grep -q 'ACESFilmicToneMapping' .preview-dist/web/games/moses-nile-runner-3d.js
           du -h .preview-dist/web/vendor/* .preview-dist/web/assets/models/moses-nile/environment/*/*
 
       - name: Deploy isolated preview to Cloudflare
