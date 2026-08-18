@@ -18,6 +18,12 @@
     burst: 'Взрывной усилитель',
     rainbow: 'Радужный усилитель',
   };
+  const SPECIAL_CLASSES = {
+    lineH: 'bmt-piece--special-line-h',
+    lineV: 'bmt-piece--special-line-v',
+    burst: 'bmt-piece--special-burst',
+    rainbow: 'bmt-piece--special-rainbow',
+  };
 
   let scheduled = false;
 
@@ -37,14 +43,11 @@
     return '';
   }
 
-  function clearSpecialClasses(img) {
-    img.classList.remove(
-      'bmt-piece--special',
-      'bmt-piece--special-line-h',
-      'bmt-piece--special-line-v',
-      'bmt-piece--special-burst',
-      'bmt-piece--special-rainbow',
-    );
+  function syncSpecialClasses(img, special) {
+    img.classList.toggle('bmt-piece--special', Boolean(special));
+    for (const [key, className] of Object.entries(SPECIAL_CLASSES)) {
+      img.classList.toggle(className, special === key);
+    }
   }
 
   function patchTile(tile) {
@@ -54,22 +57,22 @@
     const mark = tile.querySelector('.bmt-special-mark');
 
     if (!special) {
-      clearSpecialClasses(img);
-      delete img.dataset.bmtSpecialArt;
+      syncSpecialClasses(img, '');
+      if (img.dataset.bmtSpecialArt) delete img.dataset.bmtSpecialArt;
       return;
     }
 
     const src = specialSource(special);
     const label = LABELS[special] || 'Особый усилитель';
-    clearSpecialClasses(img);
-    img.classList.add('bmt-piece--special', `bmt-piece--special-${special.replace('lineH', 'line-h').replace('lineV', 'line-v')}`);
-    img.dataset.bmtSpecialArt = `${special}-v${VERSION}`;
+    const marker = `${special}-v${VERSION}`;
+    syncSpecialClasses(img, special);
+    if (img.dataset.bmtSpecialArt !== marker) img.dataset.bmtSpecialArt = marker;
     if (src && (img.getAttribute('src') || '') !== src) img.src = src;
     if (img.alt !== label) img.alt = label;
     if (mark && mark.textContent) mark.textContent = '';
 
     const tileLabel = tile.getAttribute('aria-label') || '';
-    if (!tileLabel.includes(label)) tile.setAttribute('aria-label', label);
+    if (tileLabel !== label) tile.setAttribute('aria-label', label);
   }
 
   function patchBoard() {
