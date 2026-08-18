@@ -92,7 +92,7 @@
       dashboard.dataset.controlsReady = '1';
       window.dispatchEvent(new CustomEvent('app:home-controls-ready'));
     } finally {
-      observer?.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode', 'data-content-ready'] });
+      observer?.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-mode', 'data-content-ready'] });
       rendering = false;
     }
   }
@@ -107,7 +107,9 @@
 
   window.__homeControlsApply = apply;
   observer = new MutationObserver(schedule);
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode', 'data-content-ready'] });
+  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-mode', 'data-content-ready'] });
   window.addEventListener('pageshow', schedule);
+  window.addEventListener('app:home-dashboard-ready', schedule);
+  window.addEventListener('app:menu-ready', schedule);
   schedule();
 })();
