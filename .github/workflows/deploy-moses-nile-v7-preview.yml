@@ -1,0 +1,70 @@
+name: Deploy Moses Nile V7 Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-moses-nile-v7-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-v7:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout V7 game branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/moses-nile-runner-mvp
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build standalone V7
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .preview-v7
+          mkdir -p .preview-v7/js .preview-v7/vendor .preview-v7/models
+          cp web/games/moses-nile-v7/index.html .preview-v7/index.html
+          cp web/games/moses-nile-v7/js/*.js .preview-v7/js/
+          cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/basket.obj
+          cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
+
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/build/three.min.js -o .preview-v7/vendor/three-r128.min.js
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/GLTFLoader.js -o .preview-v7/vendor/GLTFLoader-r128.js
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/OBJLoader.js -o .preview-v7/vendor/OBJLoader-r128.js
+
+          grep -q 'V7 · AI STUDIO' .preview-v7/index.html
+          grep -q 'PerspectiveCamera' .preview-v7/js/game.js
+          grep -q 'powerPreference' .preview-v7/js/game.js
+          grep -q 'models/basket.obj' .preview-v7/js/assets.js
+          ! grep -q 'cdnjs.cloudflare.com' .preview-v7/index.html
+          ! grep -q 'cdn.jsdelivr.net' .preview-v7/index.html
+
+          cat > wrangler-v7.jsonc <<'JSON'
+          {
+            "$schema": "./node_modules/wrangler/config-schema.json",
+            "name": "alias-spy-games-moses-nile-v7-preview",
+            "compatibility_date": "2026-08-19",
+            "workers_dev": true,
+            "assets": {
+              "directory": "./.preview-v7",
+              "not_found_handling": "single-page-application"
+            }
+          }
+          JSON
+
+      - name: Deploy V7 preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
+
+      - name: Print URL
+        run: echo 'https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
