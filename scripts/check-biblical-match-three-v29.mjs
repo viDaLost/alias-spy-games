@@ -44,6 +44,7 @@ const board = read('web/js/v24-biblical-treasures-board.js');
 const boardCss = read('web/styles/biblical-match-three-v24-board.css');
 const artCss = read('web/styles/biblical-match-three-v21-art.css');
 const hotfix = read('web/js/v29-biblical-treasures-hotfix.js');
+const lampSwipe = read('web/js/v37-biblical-treasures-lamp-swipe.js');
 const launcher = read('web/js/biblical-match-three-launcher.js');
 const progress = read('web/games/biblical-match-three-progress.js');
 const levels = JSON.parse(read('web/data/biblical_match_three_levels.json'));
@@ -52,10 +53,11 @@ ok(levels.version === 4, 'Biblical Treasures level balance version missing');
 ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
 ok(index.includes('biblical-match-three-launcher.js?v=30') && index.includes('v22-home-art.js?v=31'), 'Biblical Treasures launcher/menu icon wiring missing');
-ok(index.includes('v22-game-loader.js?v=31') && index.includes('v29-biblical-treasures-hotfix.js?v=35'), 'V35 hotfix cache-bust wiring missing');
+ok(index.includes('v22-game-loader.js?v=37') && index.includes('v29-biblical-treasures-hotfix.js?v=35') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V37 lamp/edge cache-bust wiring missing');
 ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wiring changed unexpectedly');
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
 ok(loader.includes("const VERSION = '31'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
+ok(loader.includes('v37-biblical-treasures-lamp-swipe.js?v=37') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
 ok(home.includes("BIBLICAL_VERSION = '31'") && home.includes('biblical-treasures.webp') && home.includes("bmtMenuArt = 'v31'"), 'V31 menu icon patch missing');
 ok(result.includes('completion-1-star-v29.webp') && result.includes('completion-2-stars-v29.webp') && result.includes('completion-3-stars-v29.avif') && result.includes('dataset.resultStars'), 'Star-specific completion art wiring missing');
 ok(board.includes('icons-v29/lamp-unlit.webp') && board.includes('icons-v17/candle.webp') && board.includes('data-blocker-lit'), 'Extinguished/lit lamp art wiring missing');
@@ -66,17 +68,20 @@ ok(hotfix.includes('__bmtV34HotfixInstalled') && hotfix.includes("const VERSION 
 ok(hotfix.includes('background-image:none!important') && hotfix.includes('#game-container') && hotfix.includes('.bmt-shell.bmt-board-screen'), 'V35 must explicitly keep the supplied artwork off the full game screen');
 ok(hotfix.includes('.bmt-v24-field-cells rect') && hotfix.includes('fill:rgba(255,255,255,.11)'), 'V35 board underlay must expose the supplied artwork behind pieces');
 ok(!hotfix.includes('BOARD_WRAP_BACKGROUND'), 'V35 must not paint an old secondary board background over the supplied artwork');
-
 ok(hotfix.includes('THREE_STAR_REMAINING_RATIO = 0.20') && hotfix.includes('TWO_STAR_REMAINING_RATIO = 0.08') && hotfix.includes('efficiencyRating') && hotfix.includes('__bmtV34RatingPatched'), 'V35 attainable star-rating logic missing');
 ok(hotfix.includes('patchPrelevelStarRules') && hotfix.includes('Как получить звёзды') && hotfix.includes('applyRunRatingToResult'), 'V35 star rules/result synchronization missing');
-
 ok(hotfix.includes("stars.getAttribute('aria-label') !== label"), 'Result aria-label must be written only when it actually changes');
 ok(hotfix.includes("attributeFilter:['data-current-game','class']"), 'V35 result observer must not observe aria-label');
 ok(!hotfix.includes("attributeFilter:['data-current-game','class','aria-label']") && !hotfix.includes("attributeFilter: ['data-current-game', 'class', 'aria-label']"), 'Old self-triggering aria-label observer returned');
 ok(hotfix.includes('requestAnimationFrame(patchAll)') && hotfix.includes('patchScheduled'), 'V35 mutation processing must be coalesced to one animation frame');
 ok(hotfix.includes('v34ResultSynced'), 'V35 result synchronization marker missing');
-
 ok(hotfix.includes('sourceLamp') && hotfix.includes("target?.classList.contains('has-lamp')") && hotfix.includes("document.addEventListener('pointerdown'") && hotfix.includes("document.addEventListener('pointerup'"), 'Lamp swipe guard missing');
+
+ok(lampSwipe.includes('__bmtV37LampSwipeInstalled') && lampSwipe.includes('bmtLampCleared') && lampSwipe.includes('data-blocker-lit'), 'V37 lit-lamp unlock patch missing');
+ok(lampSwipe.includes("tile.classList.remove('has-lamp', 'is-lamp-lit')") && lampSwipe.includes("blocker.replaceChildren()"), 'V37 lit lamps must become normal playable cells');
+ok(lampSwipe.includes('edgeFallback') && lampSwipe.includes('fallbackIndex') && lampSwipe.includes('document.addEventListener(\'pointermove\''), 'V37 edge swipe fallback missing');
+ok(lampSwipe.includes('validSwapTile') && lampSwipe.includes('!unlitLamp(tile)'), 'V37 must keep unlit lamp obstacles protected');
+
 ok(launcher.includes('const VERSION="30"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
 ok(progress.includes('levelBestScores') && progress.includes('previousBestScore') && progress.includes('newBestScore') && progress.includes('isImproved'), 'Campaign best-score persistence missing');
 
@@ -136,10 +141,11 @@ for (const file of [
   'web/js/v23-biblical-treasures-polish.js',
   'web/js/v24-biblical-treasures-board.js',
   'web/js/v29-biblical-treasures-hotfix.js',
+  'web/js/v37-biblical-treasures-lamp-swipe.js',
   'web/games/biblical-match-three-progress.js',
 ]) {
   const check = spawnSync(process.execPath, ['--check', file], { cwd: root, encoding: 'utf8' });
   ok(check.status === 0, `JS syntax failed: ${file}\n${check.stderr || ''}`);
 }
 
-console.log('OK: Biblical Treasures V35 board-only maximum-quality art, attainable stars, best replay results and completion freeze guard are wired correctly');
+console.log('OK: Biblical Treasures V37 keeps lit lamp cells playable and edge swipes usable while preserving V35/V36 gameplay fixes');
