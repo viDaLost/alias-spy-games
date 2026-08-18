@@ -1,0 +1,78 @@
+name: Prepare Biblical Treasures V35 background
+
+on:
+  push:
+    branches:
+      - fix/biblical-board-bg-completion-freeze-v35
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install WebP encoder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp
+      - name: Encode supplied background at maximum WebP quality
+        run: |
+          set -euo pipefail
+          src='web/assets/biblical-match-three/board-background-v31.PNG'
+          dst='web/assets/biblical-match-three/board-background-v35.webp'
+          test -f "$src"
+          cwebp -q 100 -m 6 "$src" -o "$dst"
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('web/assets/biblical-match-three/board-background-v35.webp')
+          b = p.read_bytes()
+          assert b[:4] == b'RIFF' and b[8:12] == b'WEBP', 'invalid WebP'
+          marker = b.find(b'\x9d\x01\x2a')
+          assert marker >= 0, 'VP8 dimensions missing'
+          w = int.from_bytes(b[marker+3:marker+5], 'little') & 0x3fff
+          h = int.from_bytes(b[marker+5:marker+7], 'little') & 0x3fff
+          size = len(b)
+          print(f'V35 WebP: {w}x{h}, {size} bytes')
+          assert w >= 1000 and h >= 1400, (w, h)
+          assert 200_000 <= size < 600 * 1024, size
+          PY
+      - name: Point the board to the V35 asset and remove oversized PNG
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          replacements = {
+              'web/js/v29-biblical-treasures-hotfix.js': [
+                  ("const VERSION = '34';", "const VERSION = '35';"),
+                  ('board-background-v31.PNG?v=${VERSION}', 'board-background-v35.webp?v=${VERSION}'),
+              ],
+              'web/styles/biblical-match-three-v21-art.css': [
+                  ('board-background-v29.webp?v=29', 'board-background-v35.webp?v=35'),
+              ],
+              'web/styles/biblical-match-three-v24-board.css': [
+                  ('board-background-v29.webp?v=29', 'board-background-v35.webp?v=35'),
+              ],
+              'index.html': [
+                  ('v29-biblical-treasures-hotfix.js?v=34', 'v29-biblical-treasures-hotfix.js?v=35'),
+              ],
+          }
+          for name, pairs in replacements.items():
+              path = Path(name)
+              text = path.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'missing expected text in {name}: {old}')
+                  text = text.replace(old, new)
+              path.write_text(text)
+          Path('web/assets/biblical-match-three/board-background-v31.PNG').unlink()
+          Path('.github/workflows/prepare-bmt-v35-background.yml').unlink()
+          PY
+      - name: Commit prepared V35 asset
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Prepare full-resolution V35 Biblical Treasures board background'
+          git push origin HEAD:fix/biblical-board-bg-completion-freeze-v35
