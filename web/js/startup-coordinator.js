@@ -4,9 +4,8 @@
   const ICON_VERSION = '1';
   const ICON_NAMES = ['alias', 'idea', 'character', 'describe', 'spy', 'quartet', 'words', 'search', 'sacred', 'ark'];
   const ICON_URLS = ICON_NAMES.map((name) => `web/assets/icons/${name}.png?v=${ICON_VERSION}`);
-  let revealToken = 0;
-  let preparing = false;
   let menuReady = false;
+  let warmupRunning = false;
 
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -72,11 +71,11 @@
     return Boolean(dashboard && dashboard.dataset.contentReady === '1' && dashboard.dataset.controlsReady === '1');
   }
 
-  async function waitForDashboard(maxMs = isAndroidApk ? 350 : 1200) {
+  async function waitForDashboard(maxMs = isAndroidApk ? 250 : 800) {
     const started = performance.now();
     while (performance.now() - started < maxMs) {
       if (dashboardReady()) return true;
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await wait(32);
     }
     return dashboardReady();
   }
@@ -88,61 +87,41 @@
     setTimeout(() => menu.classList.remove('app-menu-enter'), 420);
   }
 
-  function cancelPreparation() {
-    ++revealToken;
-    preparing = false;
-    menuReady = false;
-    root.classList.remove('app-menu-preparing', 'app-ui-ready');
-  }
-
-  async function prepareVisibleMenu() {
-    const menu = document.getElementById('menu-container');
-    if (!menu || menu.classList.contains('hidden') || document.body?.dataset.mode || preparing || menuReady) return;
-
-    const token = ++revealToken;
-    preparing = true;
-    menuReady = false;
-    root.classList.add('app-menu-preparing');
-    root.classList.remove('app-ui-ready');
-
-    forceEagerImages(menu);
-    if (!isAndroidApk) await timeout(iconWarmup, 3500);
-    await waitForDashboard();
-    await decodeRenderedMenuImages();
-
-    if (token !== revealToken || menu.classList.contains('hidden') || document.body?.dataset.mode) {
-      if (token === revealToken) {
-        preparing = false;
-        root.classList.remove('app-menu-preparing');
-      }
-      return;
-    }
-
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    if (token !== revealToken || menu.classList.contains('hidden') || document.body?.dataset.mode) {
-      if (token === revealToken) {
-        preparing = false;
-        root.classList.remove('app-menu-preparing');
-      }
-      return;
-    }
-
-    menuReady = true;
-    preparing = false;
+  function unlockShell() {
     root.classList.remove('app-booting', 'app-menu-preparing');
     root.classList.add('app-ui-ready');
-    animateMenu(menu);
-    window.dispatchEvent(new CustomEvent('app:menu-ready'));
+  }
+
+  function warmVisibleMenu(menu) {
+    if (warmupRunning) return;
+    warmupRunning = true;
+    Promise.resolve().then(async () => {
+      forceEagerImages(menu);
+      if (!isAndroidApk) await timeout(iconWarmup, 1200);
+      await waitForDashboard();
+      await decodeRenderedMenuImages();
+    }).catch((error) => {
+      console.warn('[startup] Non-blocking menu warmup failed:', error);
+    }).finally(() => {
+      warmupRunning = false;
+    });
+  }
+
+  function revealMenu(menu) {
+    unlockShell();
+    if (!menuReady) {
+      menuReady = true;
+      animateMenu(menu);
+      window.dispatchEvent(new CustomEvent('app:menu-ready'));
+    }
+    warmVisibleMenu(menu);
   }
 
   function revealBannedIfNeeded() {
     const banned = document.getElementById('banned-screen');
     if (!banned || banned.classList.contains('hidden')) return false;
-    ++revealToken;
-    preparing = false;
     menuReady = false;
-    root.classList.remove('app-booting', 'app-menu-preparing');
-    root.classList.add('app-ui-ready');
+    unlockShell();
     return true;
   }
 
@@ -152,27 +131,46 @@
     if (!menu) return;
     const visibleMenuState = !menu.classList.contains('hidden') && !document.body?.dataset.mode;
     if (visibleMenuState) {
-      if (menuReady || preparing) return;
-      prepareVisibleMenu();
+      revealMenu(menu);
       return;
     }
-    if (preparing || menuReady || root.classList.contains('app-menu-preparing') || root.classList.contains('app-ui-ready')) cancelPreparation();
+    menuReady = false;
   }
 
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) mutation.addedNodes.forEach((node) => { if (node.nodeType === 1) forceEagerImages(node); });
-    queueMicrotask(evaluate);
-  });
+  const menu = document.getElementById('menu-container');
+  const banned = document.getElementById('banned-screen');
+  const body = document.body;
+  const observers = [];
 
-  observer.observe(document.documentElement, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ['class', 'data-mode', 'data-content-ready', 'data-controls-ready'],
-  });
+  if (menu) {
+    const observer = new MutationObserver(evaluate);
+    observer.observe(menu, { attributes: true, attributeFilter: ['class'] });
+    observers.push(observer);
+  }
+  if (banned) {
+    const observer = new MutationObserver(evaluate);
+    observer.observe(banned, { attributes: true, attributeFilter: ['class'] });
+    observers.push(observer);
+  }
+  if (body) {
+    const observer = new MutationObserver(evaluate);
+    observer.observe(body, { attributes: true, attributeFilter: ['data-mode'] });
+    observers.push(observer);
+  }
 
   window.addEventListener('app:home-dashboard-ready', evaluate);
   window.addEventListener('app:home-controls-ready', evaluate);
   window.addEventListener('pageshow', evaluate);
+  window.addEventListener('pagehide', () => observers.forEach((observer) => observer.disconnect()), { once: true });
+
+  // iOS WebViews must never stay behind an invisible startup gate after the loader is removed.
+  window.setTimeout(() => {
+    const currentMenu = document.getElementById('menu-container');
+    const loader = document.getElementById('main-loader');
+    if (!loader && currentMenu && !currentMenu.classList.contains('hidden') && !document.body?.dataset.mode) {
+      revealMenu(currentMenu);
+    }
+  }, 700);
+
   queueMicrotask(evaluate);
 })();
