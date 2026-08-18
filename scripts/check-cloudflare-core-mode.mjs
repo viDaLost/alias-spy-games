@@ -21,6 +21,16 @@ if (/script\.google\.com|script\.googleusercontent\.com|googleusercontent\.com/.
 
 if (!bridge.includes('legacyFallbackEnabled: false')) fail('Core bridge must explicitly disable legacy fallback.');
 if (!bridge.includes("source: 'cloudflare'")) fail('Core bridge must identify Cloudflare as canonical source.');
+if (!html.includes('web/js/backend-bridge.js?v=4')) fail('Bounded access bridge must be cache-busted in the production HTML.');
+for (const required of [
+  'CORE_TIMEOUT_MS = 5000',
+  'FAILURE_COOLDOWN_MS = 30000',
+  'AbortController',
+  'Promise.race([request, timeout])',
+  'continuing with local app state',
+]) {
+  if (!bridge.includes(required)) fail(`Core bridge access timeout guard is incomplete: ${required}`);
+}
 
 if (!wrangler.includes('"main": "src/index-v7.js"')) fail('Core Worker must use the production Cloudflare entrypoint.');
 if (!entryWorker.includes("from './index-v6.js'")) fail('Production entrypoint must preserve the v6 retention runtime.');
@@ -67,4 +77,4 @@ for (const required of [
 }
 if (broadcastStore.includes('script.google.com')) fail('Broadcast engine must not call Apps Script.');
 
-console.log('OK: users, admin, support, referral survey, room invites and broadcast are Cloudflare-native; Telegram delivery is direct; KV backup is retained until account-retention cleanup.');
+console.log('OK: users, admin, support, referral survey, room invites and broadcast are Cloudflare-native; access checks are bounded; Telegram delivery is direct; KV backup is retained until account-retention cleanup.');

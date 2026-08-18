@@ -4,6 +4,8 @@
   if (!coreUrl || typeof window.fetch !== 'function') return;
 
   const originalFetch = window.fetch.bind(window);
+  const CORE_TIMEOUT_MS = 5000;
+  const FAILURE_COOLDOWN_MS = 30000;
   let coreHealthy = true;
   let lastFailureAt = 0;
 
@@ -32,21 +34,51 @@
     return jsonResponse({ success: false, error: 'Telegram authorization required' }, 401);
   }
 
+  function unavailableResponse(reason = 'temporarily unavailable') {
+    return jsonResponse({ success: false, error: `Cloudflare backend is ${reason}` }, 503);
+  }
+
   async function callCore(path, body) {
+    const now = Date.now();
+    if (!coreHealthy && lastFailureAt && now - lastFailureAt < FAILURE_COOLDOWN_MS) {
+      return unavailableResponse('cooling down after a failed request');
+    }
+
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    let timeoutId = 0;
+    const timeout = new Promise((_, reject) => {
+      timeoutId = window.setTimeout(() => {
+        try { controller?.abort(); } catch {}
+        const error = new Error(`Core request timed out after ${CORE_TIMEOUT_MS}ms`);
+        error.name = 'TimeoutError';
+        reject(error);
+      }, CORE_TIMEOUT_MS);
+    });
+
     try {
-      const response = await originalFetch(`${coreUrl}${path}`, {
+      const request = originalFetch(`${coreUrl}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         cache: 'no-store',
+        ...(controller ? { signal: controller.signal } : {}),
       });
+      const response = await Promise.race([request, timeout]);
       coreHealthy = response.ok;
       if (!response.ok) lastFailureAt = Date.now();
+      else lastFailureAt = 0;
       return response;
     } catch (error) {
       coreHealthy = false;
       lastFailureAt = Date.now();
-      return jsonResponse({ success: false, error: 'Cloudflare backend is temporarily unavailable' }, 503);
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+        console.warn('[AppCoreBridge] Access request timed out; continuing with local app state.');
+      } else {
+        console.warn('[AppCoreBridge] Core request failed; continuing with local app state.', error);
+      }
+      return unavailableResponse();
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
     }
   }
 
@@ -83,8 +115,9 @@
     backend: coreUrl,
     source: 'cloudflare',
     legacyFallbackEnabled: false,
+    timeoutMs: CORE_TIMEOUT_MS,
     status() {
-      return { coreHealthy, lastFailureAt, legacyFallbackEnabled: false };
+      return { coreHealthy, lastFailureAt, legacyFallbackEnabled: false, timeoutMs: CORE_TIMEOUT_MS };
     },
   };
 })();
