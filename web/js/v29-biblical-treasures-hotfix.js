@@ -9,7 +9,7 @@
   const VERSION = '34';
   const MENU_ART_VERSION = '31';
   const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${MENU_ART_VERSION}`;
-  const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v31.webp?v=${VERSION}`;
+  const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v31.PNG?v=${VERSION}`;
   const VISUAL_STYLE_ID = 'bmt-v34-user-art';
   const RESULT_ART = {
     1: `web/assets/biblical-match-three/completion-1-star-v29.webp?v=${VERSION}`,
