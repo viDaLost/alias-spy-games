@@ -12,29 +12,29 @@
   const MODEL_URLS = Object.freeze({
     basket: 'web/assets/models/moses-nile/woven-basket.obj?v=1',
     rock: `${MODEL_ROOT}/nature_pack/Rock_1.glb`,
-    reeds: `${MODEL_ROOT}/nature_pack/Plant_2.glb`,
+    plant: `${MODEL_ROOT}/nature_pack/Plant_2.glb`,
     log: `${MODEL_ROOT}/survival_pack/WoodLog.glb`,
     raft: `${MODEL_ROOT}/survival_pack/Raft.glb`,
     palm: `${MODEL_ROOT}/nature_pack/PalmTree_4.glb`,
   });
-  const REMOTE_MODEL_BYTES = Object.freeze({
-    rock: 5516,
-    reeds: 16040,
-    log: 13904,
-    raft: 58392,
-    palm: 63764,
-  });
+  const REMOTE_MODEL_BYTES = Object.freeze({ rock: 5516, plant: 16040, log: 13904, raft: 58392, palm: 63764 });
   const REMOTE_MODEL_BUDGET = 170000;
   const MAX_PIXEL_RATIO = 1.25;
   const MIN_FRAME_MS = 30;
+  const FAR_Z = -74;
+  const NEAR_Z = 5.2;
+  const RIVER_HALF = 5.8;
+  const LANE_X = 2.15;
+  const ENV_WRAP_LENGTH = 92;
+  const SCENE_STYLE_ID = 'moses-nile-full-3d-style-v2';
 
   let active = null;
   let dependencyPromise = null;
   const scriptPromises = new Map();
 
-  function totalRemoteBudget() {
-    return Object.values(REMOTE_MODEL_BYTES).reduce((sum, value) => sum + value, 0);
-  }
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function totalRemoteBudget() { return Object.values(REMOTE_MODEL_BYTES).reduce((sum, value) => sum + value, 0); }
 
   function loadScriptOnce(src, marker) {
     if (scriptPromises.has(src)) return scriptPromises.get(src);
@@ -53,10 +53,7 @@
       script.async = true;
       script.crossOrigin = 'anonymous';
       script.dataset[marker] = '1';
-      script.addEventListener('load', () => {
-        script.dataset.loaded = '1';
-        resolve(true);
-      }, { once: true });
+      script.addEventListener('load', () => { script.dataset.loaded = '1'; resolve(true); }, { once: true });
       script.addEventListener('error', () => resolve(false), { once: true });
       document.head.appendChild(script);
     });
@@ -86,10 +83,24 @@
   }
 
   function withTimeout(promise, ms = 5000) {
-    return Promise.race([
-      promise,
-      new Promise((resolve) => setTimeout(() => resolve(null), ms)),
-    ]);
+    return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
+  }
+
+  function ensureSceneStyle() {
+    if (document.getElementById(SCENE_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = SCENE_STYLE_ID;
+    style.textContent = `
+.mnr-stage.mnr-stage--full-3d{background:#9cdcf1!important}
+.mnr-stage.mnr-stage--full-3d::before,.mnr-stage.mnr-stage--full-3d::after,
+.mnr-stage.mnr-stage--full-3d .mnr-sky,.mnr-stage.mnr-stage--full-3d .mnr-horizon,
+.mnr-stage.mnr-stage--full-3d .mnr-water{opacity:0!important;visibility:hidden!important}
+.mnr-stage.mnr-stage--full-3d .mnr-object__emoji,
+.mnr-stage.mnr-stage--full-3d .mnr-basket,
+.mnr-stage.mnr-stage--full-3d .mnr-wake{visibility:hidden!important}
+.mnr-stage .mnr-3d-canvas{display:block}
+`;
+    document.head.appendChild(style);
   }
 
   function disposeMaterial(material) {
@@ -121,53 +132,69 @@
     box.getSize(size);
     box.getCenter(center);
     const maxDim = Math.max(size.x, size.y, size.z, 0.0001);
-
-    const inner = new THREE.Group();
     object.position.sub(center);
+    const inner = new THREE.Group();
     inner.add(object);
     inner.scale.setScalar(1 / maxDim);
-
     const outer = new THREE.Group();
     outer.add(inner);
     return outer;
   }
 
+  function brightenLoadedObject(root) {
+    const THREE = window.THREE;
+    root.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      node.castShadow = false;
+      node.receiveShadow = false;
+      const list = Array.isArray(node.material) ? node.material : [node.material];
+      const next = list.map((material) => {
+        if (!material) return material;
+        const clone = material.clone();
+        if (clone.color) clone.color.lerp(new THREE.Color(0xffffff), 0.12);
+        if ('roughness' in clone) clone.roughness = Math.max(0.62, Number(clone.roughness ?? 0.82));
+        if ('metalness' in clone) clone.metalness = Math.min(0.08, Number(clone.metalness ?? 0));
+        if (clone.color && 'emissive' in clone) {
+          clone.emissive = clone.color.clone().multiplyScalar(0.035);
+          clone.emissiveIntensity = 0.32;
+        }
+        clone.side = THREE.DoubleSide;
+        return clone;
+      });
+      node.material = Array.isArray(node.material) ? next : next[0];
+    });
+    return root;
+  }
+
   function basketMaterial() {
     const THREE = window.THREE;
     const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 64;
+    canvas.width = 96;
+    canvas.height = 96;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      ctx.fillStyle = '#b87b38';
-      ctx.fillRect(0, 0, 64, 64);
-      ctx.strokeStyle = '#7b4a22';
-      ctx.lineWidth = 4;
-      for (let x = -64; x < 128; x += 12) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x + 64, 64);
-        ctx.stroke();
+      const gradient = ctx.createLinearGradient(0, 0, 96, 96);
+      gradient.addColorStop(0, '#d9a35d');
+      gradient.addColorStop(0.5, '#a9672d');
+      gradient.addColorStop(1, '#e0b268');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 96, 96);
+      ctx.strokeStyle = 'rgba(92,49,20,.74)';
+      ctx.lineWidth = 5;
+      for (let x = -96; x < 192; x += 16) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 96, 96); ctx.stroke();
       }
-      ctx.strokeStyle = '#d6a45a';
+      ctx.strokeStyle = 'rgba(245,205,132,.58)';
       ctx.lineWidth = 3;
-      for (let y = 4; y < 64; y += 12) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(64, y);
-        ctx.stroke();
+      for (let y = 6; y < 96; y += 14) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(96, y); ctx.stroke();
       }
     }
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2.2, 1.4);
-    texture.needsUpdate = true;
-    return new THREE.MeshStandardMaterial({
-      color: 0xc18a45,
-      map: texture,
-      roughness: 0.92,
-      metalness: 0,
-    });
+    texture.repeat.set(2.4, 1.6);
+    texture.anisotropy = 2;
+    return new THREE.MeshStandardMaterial({ color: 0xc88743, map: texture, roughness: 0.9, metalness: 0 });
   }
 
   function parseBasketObj(text) {
@@ -196,7 +223,7 @@
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
     const mesh = new THREE.Mesh(geometry, basketMaterial());
-    mesh.rotation.x = -0.08;
+    mesh.rotation.x = -0.06;
     return normalizeObject(mesh);
   }
 
@@ -205,209 +232,484 @@
       const response = await fetch(MODEL_URLS.basket, { cache: 'force-cache' });
       if (!response.ok) return null;
       return parseBasketObj(await response.text());
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   async function loadGltf(url) {
     const THREE = window.THREE;
     try {
-      const result = await withTimeout(new Promise((resolve) => {
+      const scene = await withTimeout(new Promise((resolve) => {
         const loader = new THREE.GLTFLoader();
         loader.load(url, (gltf) => resolve(gltf?.scene || null), undefined, () => resolve(null));
-      }), 5500);
-      if (!result) return null;
-      result.traverse?.((node) => {
-        if (!node?.isMesh) return;
-        node.castShadow = false;
-        node.receiveShadow = false;
-        if (node.material) {
-          const materials = Array.isArray(node.material) ? node.material : [node.material];
-          materials.forEach((material) => {
-            if (!material) return;
-            material.roughness = Math.max(0.58, Number(material.roughness ?? 0.8));
-            material.metalness = Math.min(0.12, Number(material.metalness ?? 0));
-          });
-        }
-      });
-      return normalizeObject(result);
-    } catch {
-      return null;
+      }), 6500);
+      if (!scene) return null;
+      return normalizeObject(brightenLoadedObject(scene));
+    } catch { return null; }
+  }
+
+  function makeShadowTexture() {
+    const THREE = window.THREE;
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 3, 32, 32, 30);
+    g.addColorStop(0, 'rgba(20,38,38,.35)');
+    g.addColorStop(.55, 'rgba(20,38,38,.16)');
+    g.addColorStop(1, 'rgba(20,38,38,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function makeWaterTexture() {
+    const THREE = window.THREE;
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, '#73cfe2');
+    g.addColorStop(.48, '#2c9fc1');
+    g.addColorStop(1, '#176f91');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 512);
+    for (let y = 16; y < 512; y += 38) {
+      const width = 34 + (y % 92);
+      const x = (y * 17) % 128;
+      ctx.strokeStyle = y % 76 ? 'rgba(229,250,255,.16)' : 'rgba(255,255,255,.25)';
+      ctx.lineWidth = y % 76 ? 2 : 3;
+      ctx.beginPath();
+      ctx.moveTo(x - width, y);
+      ctx.quadraticCurveTo(x, y - 4, x + width, y);
+      ctx.stroke();
     }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1.2, 5.5);
+    texture.anisotropy = 2;
+    return texture;
+  }
+
+  function makeSkyTexture() {
+    const THREE = window.THREE;
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#72c5ec');
+    g.addColorStop(.58, '#cdeef5');
+    g.addColorStop(1, '#f5d9a2');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 256);
+    return new THREE.CanvasTexture(canvas);
   }
 
   function makeCrocodile() {
     const THREE = window.THREE;
     const root = new THREE.Group();
-    const green = new THREE.MeshStandardMaterial({ color: 0x477c38, roughness: 0.86, metalness: 0 });
-    const belly = new THREE.MeshStandardMaterial({ color: 0x789a55, roughness: 0.9, metalness: 0 });
-    const dark = new THREE.MeshStandardMaterial({ color: 0x263823, roughness: 0.9, metalness: 0 });
-    const eye = new THREE.MeshStandardMaterial({ color: 0xf5e7ad, roughness: 0.7, metalness: 0 });
-
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.25, 0.42), green);
-    body.position.x = -0.12;
-    root.add(body);
-    const underside = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 0.37), belly);
-    underside.position.set(-0.02, -0.14, 0);
-    root.add(underside);
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.3, 0.48), green);
-    head.position.x = 0.83;
-    root.add(head);
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.18, 0.38), green);
-    snout.position.x = 1.32;
-    root.add(snout);
-    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.24, 1.18, 5), green);
-    tail.rotation.z = Math.PI / 2;
-    tail.position.x = -1.18;
-    root.add(tail);
-
-    [-0.48, 0.15].forEach((x) => {
-      [-0.3, 0.3].forEach((z) => {
-        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.1, 0.16), dark);
-        leg.position.set(x, -0.12, z);
-        leg.rotation.y = z > 0 ? -0.35 : 0.35;
-        root.add(leg);
-      });
-    });
-    [-0.15, 0.15].forEach((z) => {
-      const ball = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 4), eye);
-      ball.position.set(0.92, 0.19, z);
-      root.add(ball);
-      const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 3), dark);
-      pupil.position.set(0.97, 0.205, z);
-      root.add(pupil);
+    const green = new THREE.MeshStandardMaterial({ color: 0x4f813e, roughness: 0.84, metalness: 0 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x29472b, roughness: 0.9, metalness: 0 });
+    const belly = new THREE.MeshStandardMaterial({ color: 0x80995b, roughness: 0.9, metalness: 0 });
+    const eye = new THREE.MeshStandardMaterial({ color: 0xe9db87, roughness: 0.65, metalness: 0 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.55, .24, .44), green); body.position.x = -.12; root.add(body);
+    const underside = new THREE.Mesh(new THREE.BoxGeometry(1.12, .08, .38), belly); underside.position.set(-.02, -.14, 0); root.add(underside);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.58, .3, .5), green); head.position.x = .88; root.add(head);
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(.5, .18, .4), green); snout.position.x = 1.35; root.add(snout);
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(.24, 1.28, 5), green); tail.rotation.z = Math.PI / 2; tail.position.x = -1.28; root.add(tail);
+    [-.48, .18].forEach((x) => [-.31, .31].forEach((z) => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(.34, .1, .16), dark);
+      leg.position.set(x, -.12, z); leg.rotation.y = z > 0 ? -.35 : .35; root.add(leg);
+    }));
+    [-.16, .16].forEach((z) => {
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(.065, 6, 4), eye); ball.position.set(.96, .19, z); root.add(ball);
+      const pupil = new THREE.Mesh(new THREE.SphereGeometry(.026, 5, 3), dark); pupil.position.set(1.015, .205, z); root.add(pupil);
     });
     return normalizeObject(root);
   }
 
-  function clonePrototype(prototype) {
-    return prototype?.clone?.(true) || null;
+  function makePapyrus() {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0x477d49, roughness: .9 });
+    const topMat = new THREE.MeshStandardMaterial({ color: 0x71a24f, roughness: .86, side: THREE.DoubleSide });
+    const offsets = [-.2, -.1, 0, .11, .21];
+    offsets.forEach((x, i) => {
+      const h = .78 + (i % 3) * .12;
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(.025, .035, h, 5), stemMat);
+      stem.position.set(x, h / 2, (i % 2 ? .08 : -.06));
+      stem.rotation.z = (i - 2) * .035;
+      group.add(stem);
+      for (let r = 0; r < 5; r += 1) {
+        const leaf = new THREE.Mesh(new THREE.ConeGeometry(.07, .28, 4), topMat);
+        leaf.position.set(x, h + .05, stem.position.z);
+        leaf.rotation.z = Math.PI / 2 - .18;
+        leaf.rotation.y = (Math.PI * 2 * r) / 5;
+        group.add(leaf);
+      }
+    });
+    return normalizeObject(group);
   }
 
-  function stagePoint(state, rect) {
-    const stageRect = state.stage.getBoundingClientRect();
-    return {
-      x: rect.left + rect.width / 2 - stageRect.left - stageRect.width / 2,
-      y: stageRect.height / 2 - (rect.top + rect.height / 2 - stageRect.top),
-      width: rect.width,
-      height: rect.height,
-    };
+  function makePickup() {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(.22, 1), new THREE.MeshStandardMaterial({
+      color: 0xffdf65, emissive: 0xffb300, emissiveIntensity: 1.8, roughness: .38, metalness: .02,
+    }));
+    group.add(core);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xfff2a3, transparent: true, opacity: .58, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.4, .025, 5, 18), ringMat); ring.rotation.x = Math.PI / 2; group.add(ring);
+    return group;
+  }
+
+  function makeFallbackRock() {
+    const THREE = window.THREE;
+    const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(.55, 0), new THREE.MeshStandardMaterial({ color: 0x686b69, roughness: .96 }));
+    mesh.scale.set(1.2, .75, 1);
+    return normalizeObject(mesh);
+  }
+
+  function makeFallbackLog() {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    const wood = new THREE.MeshStandardMaterial({ color: 0x8a542e, roughness: .95 });
+    const end = new THREE.MeshStandardMaterial({ color: 0xc58b56, roughness: .9 });
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.28, .33, 1.6, 7), wood); trunk.rotation.z = Math.PI / 2; group.add(trunk);
+    const capA = new THREE.Mesh(new THREE.CylinderGeometry(.29, .29, .02, 7), end); capA.rotation.z = Math.PI / 2; capA.position.x = -.81; group.add(capA);
+    const capB = capA.clone(); capB.position.x = .81; group.add(capB);
+    return normalizeObject(group);
+  }
+
+  function clonePrototype(prototype) { return prototype?.clone?.(true) || null; }
+
+  function makeBank(side) {
+    const THREE = window.THREE;
+    const s = side < 0 ? -1 : 1;
+    const zNear = 14;
+    const zFar = -110;
+    const inner = RIVER_HALF;
+    const ridge = 7.4;
+    const outer = 18;
+    const vertices = new Float32Array([
+      s * inner, .02, zNear, s * ridge, .62, zNear, s * outer, .82, zNear,
+      s * inner, .02, zFar, s * ridge, .62, zFar, s * outer, .82, zFar,
+    ]);
+    const indices = [0, 3, 4, 0, 4, 1, 1, 4, 5, 1, 5, 2];
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const sand = new THREE.MeshStandardMaterial({ color: 0xd8ba73, roughness: .98, metalness: 0 });
+    const bank = new THREE.Mesh(geometry, sand);
+
+    const greenGeometry = new THREE.BufferGeometry();
+    const gInner = 7.25;
+    const gOuter = 8.5;
+    greenGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
+      s * gInner, .655, zNear, s * gOuter, .695, zNear,
+      s * gInner, .655, zFar, s * gOuter, .695, zFar,
+    ]), 3));
+    greenGeometry.setIndex([0, 2, 3, 0, 3, 1]);
+    greenGeometry.computeVertexNormals();
+    const green = new THREE.Mesh(greenGeometry, new THREE.MeshStandardMaterial({ color: 0x8fae58, roughness: .95 }));
+
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(.22, .22, 124), new THREE.MeshStandardMaterial({ color: 0x9b7b46, roughness: 1 }));
+    edge.position.set(s * (RIVER_HALF + .02), -.08, -48);
+
+    const group = new THREE.Group();
+    group.add(bank, green, edge);
+    return group;
+  }
+
+  function makeDistantLandscape() {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    const matA = new THREE.MeshStandardMaterial({ color: 0xc99f62, roughness: 1 });
+    const matB = new THREE.MeshStandardMaterial({ color: 0xe0bb77, roughness: 1 });
+    const positions = [
+      [-13, -91, 7, 10, matA], [-6, -96, 4, 6, matB], [7, -94, 5, 8, matA], [14, -92, 7, 11, matB],
+    ];
+    positions.forEach(([x, z, radius, height, material]) => {
+      const hill = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 5), material);
+      hill.position.set(x, height / 2 - .5, z);
+      hill.rotation.y = x * .11;
+      group.add(hill);
+    });
+    return group;
+  }
+
+  function makeStaticScene(state) {
+    const THREE = window.THREE;
+    const skyTexture = makeSkyTexture();
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(180, 100), new THREE.MeshBasicMaterial({ map: skyTexture, depthWrite: false }));
+    sky.position.set(0, 27, -112);
+    state.scene.add(sky);
+    state.skyTexture = skyTexture;
+
+    const sun = new THREE.Mesh(new THREE.CircleGeometry(5.6, 24), new THREE.MeshBasicMaterial({ color: 0xffe3a0, transparent: true, opacity: .88 }));
+    sun.position.set(13, 16, -105);
+    state.scene.add(sun);
+
+    state.scene.add(makeDistantLandscape());
+
+    const waterTexture = makeWaterTexture();
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: 0x55bed5,
+      map: waterTexture,
+      roughness: .33,
+      metalness: .06,
+      emissive: 0x0c3f55,
+      emissiveIntensity: .08,
+    });
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(RIVER_HALF * 2, 124, 1, 1), waterMat);
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(0, 0, -48);
+    state.scene.add(water);
+    state.water = water;
+    state.waterTexture = waterTexture;
+
+    state.scene.add(makeBank(-1), makeBank(1));
+
+    const laneMat = new THREE.MeshBasicMaterial({ color: 0xc6f2f7, transparent: true, opacity: .075, depthWrite: false });
+    [-.5, .5].forEach((lane) => {
+      const guide = new THREE.Mesh(new THREE.PlaneGeometry(.045, 108), laneMat);
+      guide.rotation.x = -Math.PI / 2;
+      guide.position.set(lane * LANE_X, .025, -44);
+      state.scene.add(guide);
+    });
+
+    const hemi = new THREE.HemisphereLight(0xdff6ff, 0x886b45, 1.55);
+    state.scene.add(hemi);
+    const sunLight = new THREE.DirectionalLight(0xfff0cf, 2.15);
+    sunLight.position.set(-8, 14, 10);
+    sunLight.target.position.set(0, 0, -28);
+    state.scene.add(sunLight, sunLight.target);
+    const fill = new THREE.DirectionalLight(0x7ecbff, .48);
+    fill.position.set(9, 7, -4);
+    state.scene.add(fill);
+    state.scene.add(new THREE.AmbientLight(0xffffff, .22));
+  }
+
+  function addBlobShadow(group, scaleX = 1.3, scaleZ = .75) {
+    const THREE = window.THREE;
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({
+      map: active?.shadowTexture || null,
+      transparent: true,
+      opacity: .56,
+      depthWrite: false,
+      color: 0xffffff,
+    }));
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = .025;
+    shadow.scale.set(scaleX, scaleZ, 1);
+    group.add(shadow);
+    return shadow;
+  }
+
+  function makeBasketVisual(state) {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    const model = clonePrototype(state.prototypes.basket);
+    if (model) {
+      model.scale.setScalar(1.6);
+      model.position.y = .26;
+      model.rotation.y = Math.PI;
+      group.add(model);
+    } else {
+      const shell = new THREE.Mesh(new THREE.CylinderGeometry(.8, .55, .6, 10, 1, false, 0, Math.PI * 2), new THREE.MeshStandardMaterial({ color: 0xb66f31, roughness: .9 }));
+      shell.scale.z = .72;
+      shell.position.y = .36;
+      group.add(shell);
+    }
+    const cloth = new THREE.Mesh(new THREE.SphereGeometry(.38, 12, 7), new THREE.MeshStandardMaterial({ color: 0xf1dfb7, roughness: .96 }));
+    cloth.scale.set(1.22, .34, .68);
+    cloth.position.set(0, .54, -.02);
+    group.add(cloth);
+    const handleMat = new THREE.MeshStandardMaterial({ color: 0x875023, roughness: .93 });
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(.62, .045, 6, 18, Math.PI), handleMat);
+    handle.rotation.x = Math.PI / 2;
+    handle.rotation.z = Math.PI;
+    handle.position.set(0, .72, .02);
+    group.add(handle);
+    addBlobShadow(group, 1.9, 1.05);
+    state.scene.add(group);
+    state.basketModel = group;
+    return group;
+  }
+
+  function makeEntityVisual(state, el, type) {
+    const THREE = window.THREE;
+    const group = new THREE.Group();
+    let model = null;
+    if (type === 'pickup') model = makePickup();
+    else if (type === 'reeds') model = clonePrototype(state.prototypes.reeds);
+    else model = clonePrototype(state.prototypes[type]);
+    if (!model) return null;
+
+    const scaleByType = { rock: 1.25, reeds: 1.45, log: 1.7, crocodile: 2.0, pickup: 1.0 };
+    model.scale.setScalar(scaleByType[type] || 1.2);
+    if (type === 'log') {
+      model.rotation.y = Math.PI / 2 + .1;
+      model.rotation.z = -.05;
+      model.position.y = .24;
+    } else if (type === 'rock') {
+      model.rotation.y = .38;
+      model.position.y = .32;
+    } else if (type === 'reeds') {
+      model.position.y = .48;
+    } else if (type === 'crocodile') {
+      model.rotation.y = -Math.PI / 2;
+      model.position.y = .22;
+    } else if (type === 'pickup') {
+      model.position.y = 1.05;
+    }
+    group.add(model);
+    if (type !== 'pickup') addBlobShadow(group, type === 'log' ? 2 : type === 'crocodile' ? 2.2 : 1.35, type === 'log' ? .72 : .9);
+    group.userData.type = type;
+    group.userData.currentX = 0;
+    group.userData.phase = Math.random() * Math.PI * 2;
+    state.scene.add(group);
+    const emoji = el.querySelector('.mnr-object__emoji');
+    if (emoji) emoji.style.visibility = 'hidden';
+    return group;
   }
 
   function inferEntityType(el) {
+    if (el.classList.contains('mnr-object--pickup')) return 'pickup';
     for (const key of ['rock', 'reeds', 'log', 'crocodile']) {
       if (el.classList.contains(`mnr-object--${key}`)) return key;
     }
     return '';
   }
 
-  function makeEntityVisual(state, el, type) {
-    const prototype = type === 'crocodile' ? state.prototypes.crocodile : state.prototypes[type];
-    const model = clonePrototype(prototype);
-    if (!model) return null;
-    model.userData.mosesType = type;
-    state.scene.add(model);
-    const emoji = el.querySelector('.mnr-object__emoji');
-    if (emoji) emoji.style.visibility = 'hidden';
-    return model;
+  function laneFromInlineStyle(el) {
+    const left = Number.parseFloat(el.style.left || '50');
+    if (left < 41) return -1;
+    if (left > 59) return 1;
+    return 0;
+  }
+
+  function progressFromInlineStyle(el) {
+    const top = Number.parseFloat(el.style.top || '23');
+    return clamp((top - 23) / 67, 0, 1.08);
   }
 
   function syncEntities(state, now) {
     const alive = new Set();
-    state.stage.querySelectorAll('.mnr-object:not(.mnr-object--pickup)').forEach((el) => {
+    state.stage.querySelectorAll('.mnr-object').forEach((el) => {
       const type = inferEntityType(el);
       if (!type) return;
-      let model = state.entityModels.get(el);
-      if (!model) {
-        model = makeEntityVisual(state, el, type);
-        if (!model) return;
-        state.entityModels.set(el, model);
+      let group = state.entityModels.get(el);
+      if (!group) {
+        group = makeEntityVisual(state, el, type);
+        if (!group) return;
+        state.entityModels.set(el, group);
       }
       alive.add(el);
-      const rect = el.getBoundingClientRect();
-      const point = stagePoint(state, rect);
-      model.position.set(point.x, point.y, type === 'reeds' ? 1 : 0);
-      const size = Math.max(22, Math.min(104, Math.max(point.width, point.height)));
-      const factor = type === 'log' ? 0.94 : type === 'crocodile' ? 1.18 : type === 'reeds' ? 0.92 : 0.82;
-      model.scale.setScalar(size * factor);
-      if (type === 'log') {
-        model.rotation.z = -0.22 + Math.sin(now * 0.002 + point.x) * 0.05;
-        model.rotation.y = 0.4;
+      const lane = laneFromInlineStyle(el);
+      const perspectiveProgress = progressFromInlineStyle(el);
+      const targetX = lane * LANE_X;
+      group.userData.currentX = lerp(group.userData.currentX ?? targetX, targetX, type === 'crocodile' ? .08 : .18);
+      group.position.x = group.userData.currentX;
+      group.position.z = lerp(FAR_Z, NEAR_Z, perspectiveProgress);
+      group.position.y = 0;
+      group.visible = perspectiveProgress < 1.075;
+
+      if (type === 'pickup') {
+        group.rotation.y += .025;
+        group.position.y = Math.sin(now * .005 + group.userData.phase) * .12;
+      } else if (type === 'log') {
+        group.rotation.z = -.04 + Math.sin(now * .0022 + group.userData.phase) * .035;
       } else if (type === 'crocodile') {
-        model.rotation.z = Math.sin(now * 0.004 + point.x * 0.01) * 0.055;
-        model.rotation.y = 0.08;
+        group.rotation.z = Math.sin(now * .004 + group.userData.phase) * .025;
       } else if (type === 'reeds') {
-        model.rotation.z = Math.sin(now * 0.0027 + point.x * 0.02) * 0.045;
-      } else {
-        model.rotation.z = Math.sin(point.x * 0.04) * 0.12;
-        model.rotation.y = 0.25;
+        group.rotation.z = Math.sin(now * .002 + group.userData.phase) * .035;
       }
-      model.visible = rect.width > 0 && rect.height > 0;
+
+      if (el.classList.contains('is-hit') || el.classList.contains('is-collected')) {
+        group.scale.multiplyScalar(.93);
+        group.rotation.y += .06;
+      }
     });
 
-    for (const [el, model] of state.entityModels.entries()) {
+    for (const [el, group] of state.entityModels.entries()) {
       if (alive.has(el) && el.isConnected) continue;
-      state.scene.remove(model);
+      state.scene.remove(group);
       state.entityModels.delete(el);
     }
   }
 
-  function syncBasket(state) {
+  function syncBasket(state, now) {
     const host = state.stage.querySelector('#mnr-basket');
-    const cssBasket = host?.querySelector('.mnr-basket');
-    if (!host || !state.prototypes.basket) return;
-    if (!state.basketModel) {
-      state.basketModel = clonePrototype(state.prototypes.basket);
-      if (!state.basketModel) return;
-      state.scene.add(state.basketModel);
-      if (cssBasket) cssBasket.style.visibility = 'hidden';
-      state.cssBasket = cssBasket || null;
-    }
-    const rect = host.getBoundingClientRect();
-    const point = stagePoint(state, rect);
-    state.basketModel.position.set(point.x, point.y + 2, 2);
-    state.basketModel.scale.setScalar(Math.max(64, Math.min(112, rect.width * 0.9)));
-    state.basketModel.rotation.x = 0.05;
-    state.basketModel.rotation.y = -0.08;
-    state.basketModel.rotation.z = 0;
-    state.basketModel.visible = rect.width > 0 && rect.height > 0;
+    if (!host) return;
+    if (!state.basketModel) makeBasketVisual(state);
+    const lane = laneFromInlineStyle(host);
+    const targetX = lane * LANE_X;
+    state.basketX = lerp(state.basketX, targetX, .18);
+    const boosting = host.classList.contains('is-boosting');
+    const hit = host.classList.contains('is-hit');
+    state.basketModel.position.set(state.basketX, boosting ? .22 : .08, 4.9 + (boosting ? -.9 : 0));
+    state.basketModel.rotation.y = lerp(state.basketModel.rotation.y, -state.basketX * .045, .12);
+    state.basketModel.rotation.z = lerp(state.basketModel.rotation.z, hit ? Math.sin(now * .04) * .12 : -state.basketX * .025, .18);
+    state.basketModel.rotation.x = boosting ? -.08 : Math.sin(now * .0025) * .018;
   }
 
-  function createDecoration(state, key, xRatio, yRatio, pixelSize, rotationZ = 0) {
-    const prototype = state.prototypes[key];
-    if (!prototype) return;
-    const model = clonePrototype(prototype);
+  function createDecoration(state, key, x, z, scale, rotation = 0) {
+    const model = clonePrototype(state.prototypes[key]);
     if (!model) return;
-    model.userData.mosesDecoration = true;
-    model.userData.layout = { key, xRatio, yRatio, pixelSize, rotationZ };
-    state.scene.add(model);
-    state.decorations.push(model);
-  }
-
-  function layoutDecorations(state) {
-    const rect = state.stage.getBoundingClientRect();
-    state.decorations.forEach((model) => {
-      const layout = model.userData.layout;
-      if (!layout) return;
-      model.position.set(
-        (layout.xRatio - 0.5) * rect.width,
-        (0.5 - layout.yRatio) * rect.height,
-        -2
-      );
-      model.scale.setScalar(layout.pixelSize * Math.min(1.15, Math.max(0.78, rect.width / 390)));
-      model.rotation.z = layout.rotationZ;
-    });
+    const group = new window.THREE.Group();
+    model.scale.setScalar(scale);
+    model.rotation.y = rotation;
+    group.add(model);
+    group.position.set(x, key === 'palm' ? .75 : key === 'plant' ? .73 : .67, z);
+    group.userData.baseX = x;
+    group.userData.wrap = true;
+    state.scene.add(group);
+    state.decorations.push(group);
   }
 
   function mountDecorations(state) {
     if (state.decorations.length) return;
-    createDecoration(state, 'palm', 0.12, 0.31, 110, -0.035);
-    createDecoration(state, 'palm', 0.86, 0.35, 94, 0.04);
-    createDecoration(state, 'reeds', 0.18, 0.56, 72, -0.04);
-    createDecoration(state, 'reeds', 0.82, 0.61, 76, 0.035);
-    createDecoration(state, 'raft', 0.26, 0.42, 68, -0.12);
-    layoutDecorations(state);
+    const slots = [
+      ['palm', -9.0, -12, 4.8, .5], ['palm', 9.4, -31, 4.2, -1.0], ['palm', -10.2, -57, 4.4, .9], ['palm', 9.1, -78, 4.6, -1.1],
+      ['plant', -7.5, -23, 1.35, .3], ['plant', 7.7, -48, 1.2, -.4], ['plant', -7.8, -72, 1.18, .5],
+      ['rock', 8.8, -15, 1.2, .4], ['rock', -8.6, -43, .95, -.2], ['rock', 8.3, -66, 1.15, .7],
+    ];
+    slots.forEach((args) => createDecoration(state, ...args));
+  }
+
+  function updateDecorations(state, dt, running) {
+    if (!running) return;
+    const boost = state.stage.querySelector('#mnr-basket')?.classList.contains('is-boosting');
+    const speed = boost ? 23 : 15.5;
+    state.decorations.forEach((group) => {
+      group.position.z += dt * speed;
+      if (group.position.z > 13) group.position.z -= ENV_WRAP_LENGTH;
+    });
+    state.sandMarkers.forEach((group) => {
+      group.position.z += dt * speed;
+      if (group.position.z > 13) group.position.z -= ENV_WRAP_LENGTH;
+    });
+  }
+
+  function makeSandMarkers(state) {
+    const THREE = window.THREE;
+    const material = new THREE.MeshStandardMaterial({ color: 0xc49d5d, roughness: 1, transparent: true, opacity: .34 });
+    for (let i = 0; i < 12; i += 1) {
+      const z = -4 - i * 8;
+      [-1, 1].forEach((side) => {
+        const marker = new THREE.Mesh(new THREE.PlaneGeometry(1.6 + (i % 3) * .4, .55), material);
+        marker.rotation.x = -Math.PI / 2;
+        marker.rotation.z = (i % 2 ? .18 : -.14) * side;
+        marker.position.set(side * (8.2 + (i % 2) * 1.1), .68, z - side * 1.2);
+        state.scene.add(marker);
+        state.sandMarkers.push(marker);
+      });
+    }
   }
 
   function resizeRenderer(state) {
@@ -418,12 +720,15 @@
     state.width = width;
     state.height = height;
     state.renderer.setSize(width, height, false);
-    state.camera.left = -width / 2;
-    state.camera.right = width / 2;
-    state.camera.top = height / 2;
-    state.camera.bottom = -height / 2;
+    state.camera.aspect = width / height;
     state.camera.updateProjectionMatrix();
-    layoutDecorations(state);
+  }
+
+  function isRunning(state) {
+    const intro = document.getElementById('mnr-intro');
+    const result = document.getElementById('mnr-result');
+    const pause = document.getElementById('mnr-pause-tag');
+    return Boolean(intro?.classList.contains('hidden') && result?.classList.contains('hidden') && !pause?.classList.contains('is-on'));
   }
 
   function renderFrame(state, now) {
@@ -434,35 +739,46 @@
     }
     state.raf = requestAnimationFrame((time) => renderFrame(state, time));
     if (document.hidden || now - state.lastRender < MIN_FRAME_MS) return;
+    const dt = clamp((now - state.lastRender) / 1000, 0, .06);
     state.lastRender = now;
     resizeRenderer(state);
-    syncBasket(state);
+    const running = isRunning(state);
+    if (running) {
+      state.waterTexture.offset.y -= dt * .17;
+      state.waterTexture.offset.x = Math.sin(now * .00025) * .015;
+    }
+    syncBasket(state, now);
     syncEntities(state, now);
+    updateDecorations(state, dt, running);
+
+    state.camera.position.x = lerp(state.camera.position.x, state.basketX * .12, .08);
+    state.camera.position.y = 6.65 + Math.sin(now * .0012) * .025;
+    state.camera.lookAt(state.camera.position.x * .08, .35, -24);
     state.renderer.render(state.scene, state.camera);
   }
 
   async function loadPrototypes(state) {
-    if (totalRemoteBudget() > REMOTE_MODEL_BUDGET) {
-      console.warn('[Moses 3D] remote model budget exceeded; keeping CSS fallback');
-      return;
-    }
-    const tasks = {
+    if (totalRemoteBudget() > REMOTE_MODEL_BUDGET) return;
+    const entries = await Promise.all(Object.entries({
       basket: loadBasket(),
       rock: loadGltf(MODEL_URLS.rock),
-      reeds: loadGltf(MODEL_URLS.reeds),
+      plant: loadGltf(MODEL_URLS.plant),
       log: loadGltf(MODEL_URLS.log),
       raft: loadGltf(MODEL_URLS.raft),
       palm: loadGltf(MODEL_URLS.palm),
-    };
-    const entries = await Promise.all(Object.entries(tasks).map(async ([key, promise]) => [key, await promise]));
+    }).map(async ([key, promise]) => [key, await promise]));
     if (active !== state) {
       entries.forEach(([, model]) => disposeObject(model));
       return;
     }
-    entries.forEach(([key, model]) => {
-      if (model) state.prototypes[key] = model;
-    });
+    entries.forEach(([key, model]) => { if (model) state.prototypes[key] = model; });
+    if (!state.prototypes.rock) state.prototypes.rock = makeFallbackRock();
+    if (!state.prototypes.log) state.prototypes.log = makeFallbackLog();
+    if (!state.prototypes.palm) state.prototypes.palm = state.prototypes.plant || null;
     mountDecorations(state);
+    if (!state.basketModel) makeBasketVisual(state);
+    state.stage.classList.add('mnr-stage--full-3d');
+    state.ready3D = true;
   }
 
   async function start() {
@@ -470,56 +786,59 @@
     if (document.body.dataset.currentGame !== GAME_KEY) return false;
     const stage = document.getElementById('mnr-stage');
     if (!stage) return false;
-
-    const deps = await withTimeout(ensureDependencies(), 7000);
+    const deps = await withTimeout(ensureDependencies(), 7500);
     if (!deps || !window.THREE || document.body.dataset.currentGame !== GAME_KEY || !stage.isConnected) return false;
+    ensureSceneStyle();
     const THREE = window.THREE;
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: false,
-      powerPreference: 'low-power',
-      preserveDrawingBuffer: false,
-    });
+    const renderer = new THREE.WebGLRenderer({ alpha: false, antialias: false, powerPreference: 'low-power', preserveDrawingBuffer: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO));
-    renderer.setClearColor(0x000000, 0);
+    renderer.setClearColor(0x9eddf2, 1);
+    renderer.shadowMap.enabled = false;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.07;
+    if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.domElement.className = 'mnr-3d-canvas';
     Object.assign(renderer.domElement.style, {
-      position: 'absolute',
-      inset: '0',
-      width: '100%',
-      height: '100%',
-      zIndex: '7',
-      pointerEvents: 'none',
+      position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '4', pointerEvents: 'none',
     });
     stage.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1000, 1000);
-    camera.position.z = 100;
-    scene.add(new THREE.HemisphereLight(0xfff1cf, 0x4b7990, 1.15));
-    const sun = new THREE.DirectionalLight(0xffffff, 0.72);
-    sun.position.set(-3, 5, 7);
-    scene.add(sun);
+    scene.background = new THREE.Color(0xa7def0);
+    scene.fog = new THREE.Fog(0xcbe8e8, 42, 108);
+    const camera = new THREE.PerspectiveCamera(52, 1, .1, 180);
+    camera.position.set(0, 6.65, 12.3);
+    camera.lookAt(0, .35, -24);
 
     const state = {
-      stage,
-      renderer,
-      scene,
-      camera,
+      stage, renderer, scene, camera,
       prototypes: Object.create(null),
       entityModels: new Map(),
       decorations: [],
+      sandMarkers: [],
       basketModel: null,
-      cssBasket: null,
+      basketX: 0,
+      shadowTexture: null,
+      skyTexture: null,
+      waterTexture: null,
+      water: null,
       width: 0,
       height: 0,
       raf: 0,
-      lastRender: 0,
+      lastRender: performance.now(),
       onResize: null,
       onPageHide: null,
+      ready3D: false,
     };
     active = state;
+    state.shadowTexture = makeShadowTexture();
+    state.prototypes.crocodile = makeCrocodile();
+    state.prototypes.reeds = makePapyrus();
+    state.prototypes.rock = makeFallbackRock();
+    state.prototypes.log = makeFallbackLog();
+    makeStaticScene(state);
+    makeSandMarkers(state);
     resizeRenderer(state);
 
     state.onResize = () => { state.width = 0; resizeRenderer(state); };
@@ -527,9 +846,8 @@
     window.addEventListener('resize', state.onResize, { passive: true });
     window.addEventListener('pagehide', state.onPageHide, { once: true });
 
-    state.prototypes.crocodile = makeCrocodile();
     state.raf = requestAnimationFrame((time) => renderFrame(state, time));
-    loadPrototypes(state).catch((error) => console.warn('[Moses 3D] optional assets unavailable', error));
+    loadPrototypes(state).catch((error) => console.warn('[Moses 3D] optional asset load failed', error));
     return true;
   }
 
@@ -540,17 +858,12 @@
     if (state.raf) cancelAnimationFrame(state.raf);
     window.removeEventListener('resize', state.onResize);
     window.removeEventListener('pagehide', state.onPageHide);
-
-    if (state.cssBasket) state.cssBasket.style.visibility = '';
+    state.stage?.classList.remove('mnr-stage--full-3d');
     state.stage?.querySelectorAll('.mnr-object__emoji').forEach((emoji) => { emoji.style.visibility = ''; });
-
-    for (const model of state.entityModels.values()) state.scene.remove(model);
-    state.entityModels.clear();
-    state.decorations.forEach((model) => state.scene.remove(model));
-    state.decorations = [];
-    if (state.basketModel) state.scene.remove(state.basketModel);
-
     Object.values(state.prototypes).forEach((model) => disposeObject(model));
+    try { state.shadowTexture?.dispose?.(); } catch {}
+    try { state.skyTexture?.dispose?.(); } catch {}
+    try { state.waterTexture?.dispose?.(); } catch {}
     try { state.renderer.dispose(); } catch {}
     try { state.renderer.forceContextLoss?.(); } catch {}
     try { state.renderer.domElement.remove(); } catch {}
@@ -558,9 +871,5 @@
 
   window.__startMosesNile3D = start;
   window.__cleanupMosesNile3D = cleanup;
-  window.__mosesNile3DModelBudget = Object.freeze({
-    remoteBytes: totalRemoteBudget(),
-    remoteLimit: REMOTE_MODEL_BUDGET,
-    urls: MODEL_URLS,
-  });
+  window.__mosesNile3DModelBudget = Object.freeze({ remoteBytes: totalRemoteBudget(), remoteLimit: REMOTE_MODEL_BUDGET, urls: MODEL_URLS });
 })();
