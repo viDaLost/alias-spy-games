@@ -85,11 +85,23 @@ await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route
   contentType: 'text/javascript; charset=utf-8',
   body: `window.Telegram={WebApp:{initData:'qa',initDataUnsafe:{user:{id:1288379477,username:'qa'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};`,
 }));
-await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat', (route) => route.fulfill({
-  status: 200,
-  contentType: 'application/json; charset=utf-8',
-  body: JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] }),
-}));
+await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat', async (route) => {
+  let action = '';
+  try { action = String(route.request().postDataJSON()?.payload?.action || ''); } catch {}
+  if (action === 'referralStatus') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      body: JSON.stringify({ success: true, answered: true, skip: true }),
+    });
+    return;
+  }
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json; charset=utf-8',
+    body: JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] }),
+  });
+});
 await page.route('https://cdnjs.cloudflare.com/**', (route) => route.abort());
 await page.route('https://cdn.jsdelivr.net/**', (route) => route.abort());
 
