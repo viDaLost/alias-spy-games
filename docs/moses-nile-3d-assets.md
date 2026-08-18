@@ -10,14 +10,19 @@
 
 ## Nile environment models
 
-Rock, wood log, raft, reeds/plant and palm models are loaded lazily from the Quaternius showcase packs pinned to commit `d6aacfb25dd969ead90cddd94ad901e74aede5d8`:
+Environment foliage and props are loaded lazily from the Quaternius showcase packs pinned to commit `d6aacfb25dd969ead90cddd94ad901e74aede5d8`:
 
 - `public/glb/nature_pack/Rock_1.glb`
+- `public/glb/nature_pack/Plant_1.glb`
 - `public/glb/nature_pack/Plant_2.glb`
+- `public/glb/nature_pack/Bush_1.glb`
+- `public/glb/nature_pack/Grass.glb`
 - `public/glb/nature_pack/PalmTree_4.glb`
 - `public/glb/survival_pack/WoodLog.glb`
 - `public/glb/survival_pack/Raft.glb`
 
 Quaternius assets are released under CC0. Runtime URLs are pinned to the same revision so an upstream change cannot silently alter the game.
 
-The crocodile is a tiny project-owned low-poly Three.js mesh built from primitive geometry, avoiding a multi-megabyte animal download in Telegram WebView.
+## Project-owned lightweight scenery
+
+The river banks, animated two-layer water surface, papyrus obstacle, crocodile and stepped Giza-inspired background pyramids are generated from small project-owned Three.js meshes/textures. This avoids adding large terrain and architectural files to Telegram WebView while retaining real 3D geometry. The pyramid geometry is deliberately independent from the downloadable CC-BY Sketchfab reference models reviewed during research.
