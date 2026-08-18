@@ -16,7 +16,7 @@ const launcherSource = fs.readFileSync(path.join(root, 'web/js/moses-nile-runner
 const indexSource = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const basketPath = path.join(root, 'web/assets/models/moses-nile/woven-basket.obj');
 const basketSource = fs.readFileSync(basketPath, 'utf8');
-const manifest = JSON.parse(fs.readFileSync(path.join(root, 'web/assets/models/moses-nile/model-manifest.json'), 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
 if (!gameSource.includes('startMosesNileRunner') || !gameSource.includes("const LANES = [-1, 0, 1]")) throw new Error('Nile runner engine is incomplete');
 if (!gameSource.includes('pointerdown') || !gameSource.includes('pointerup') || !gameSource.includes('processSwipe')) throw new Error('Nile runner swipe controls are missing');
@@ -24,6 +24,7 @@ if (!launcherSource.includes("GAME_KEY = 'moses-nile-runner'") || !launcherSourc
 if (!launcherSource.includes('THREE_GAME_SRC') || !launcherSource.includes('__startMosesNile3D')) throw new Error('Nile runner 3D addon is not lazy-loaded by the launcher');
 if (launcherSource.includes('new MutationObserver')) throw new Error('Nile runner launcher must not keep a broad menu MutationObserver alive');
 if (!indexSource.includes('moses-nile-runner-launcher.js?v=2')) throw new Error('Nile runner launcher cache version was not bumped');
+if (!indexSource.includes("connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net")) throw new Error('Nile model CDN is not allowed by the app CSP');
 
 for (const token of [
   '__startMosesNile3D',
