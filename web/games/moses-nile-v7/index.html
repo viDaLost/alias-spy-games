@@ -15,9 +15,26 @@
   <canvas id="game-canvas"></canvas><div id="hud"><div class="hud-chip">🌊 <span id="dist-txt">0</span> м</div><div class="hud-chip">🪷 <span id="score-txt">0</span></div></div><div id="powerups-bar"><div id="shield-badge" class="active-buff" style="display:none">🛡️ ЩИТ ВЕРЫ</div><div id="magnet-badge" class="active-buff" style="display:none">✨ СВЕТ МИРИАМ</div></div><div class="mobile-controls"><button class="steer-btn" id="btn-left">◀</button><button class="steer-btn" id="btn-right">▶</button></div>
   <div id="start-screen" class="screen"><div class="panel"><h1>Моисей: Путь по Нилу</h1><p>Проведите закрытую плетёную корзинку через воды Нила. Избегайте крокодилов, камней и брёвен, собирайте цветы лотоса.</p><button class="btn" id="start-btn">ОТПЛЫТЬ</button><div style="margin-top:16px;font-size:12px;color:#aab5ae">Управление: <b>A / D</b>, <b>← / →</b> или свайпы</div></div></div>
   <div id="gameover-screen" class="screen hidden"><div class="panel"><h1 style="color:#cc7868">Путь прерван</h1><p id="fail-desc">Корзинка столкнулась с опасностью реки.</p><div style="background:rgba(0,0,0,.22);border-radius:12px;padding:12px;margin-bottom:18px;font-size:14px;color:#cbd5d1"><div>Дистанция: <b id="final-dist" style="color:#fff">0 м</b></div><div style="margin-top:4px">Собрано лотосов: <b id="final-score" style="color:#dfbf80">0</b></div></div><button class="btn" id="restart-btn">ПОПРОБОВАТЬ СНОВА</button></div></div>
-  <div id="version-badge">V7.4 · LOADING</div><script>window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){}}}};</script>
-  <script src="js/sound.js?v=740"></script><script src="js/assets.js?v=740"></script><script src="js/v73-enhancements.js?v=740"></script><script src="js/v731-polish.js?v=740"></script><script src="js/v732-lotus.js?v=740"></script><script src="js/v734-stability.js?v=740"></script><script src="js/v735-crocs-textures.js?v=740"></script><script src="js/v736-water-banks.js?v=740"></script><script src="js/v739-physics.js?v=740"></script><script src="js/v7310-mobile-polish.js?v=740"></script><script src="js/v7311-bridge.js?v=740"></script><script src="js/game.js?v=740"></script><script src="js/v737-gameplay-polish.js?v=740"></script><script src="js/v738-cinematic.js?v=740"></script><script src="js/v7313-visual-quality.js?v=740"></script>
-  <script type="module" src="js/water/main.js?v=740"></script><script type="module" src="js/terrain/main.js?v=740"></script><script src="js/v740-visual-overhaul.js?v=740"></script>
+  <div id="version-badge">V7.4 · LOADING</div>
+  <script>
+    // V7.4 owns the user-visible version badge. Legacy V7.3.x layers are still loaded
+    // for selected gameplay/stability behavior, but are not allowed to relabel the build.
+    (()=>{
+      const badge=document.getElementById('version-badge');
+      const descriptor=Object.getOwnPropertyDescriptor(Node.prototype,'textContent');
+      if(!badge||!descriptor?.get||!descriptor?.set)return;
+      Object.defineProperty(badge,'textContent',{
+        configurable:false,
+        enumerable:false,
+        get(){return descriptor.get.call(this);},
+        set(value){const text=String(value??'');if(text.startsWith('V7.4'))descriptor.set.call(this,text);}
+      });
+      window.__mosesV740BadgeOwned=true;
+    })();
+    window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){}}}};
+  </script>
+  <script src="js/sound.js?v=740b"></script><script src="js/assets.js?v=740b"></script><script src="js/v73-enhancements.js?v=740b"></script><script src="js/v731-polish.js?v=740b"></script><script src="js/v732-lotus.js?v=740b"></script><script src="js/v734-stability.js?v=740b"></script><script src="js/v735-crocs-textures.js?v=740b"></script><script src="js/v736-water-banks.js?v=740b"></script><script src="js/v739-physics.js?v=740b"></script><script src="js/v7310-mobile-polish.js?v=740b"></script><script src="js/v7311-bridge.js?v=740b"></script><script src="js/game.js?v=740b"></script><script src="js/v737-gameplay-polish.js?v=740b"></script><script src="js/v738-cinematic.js?v=740b"></script><script src="js/v7313-visual-quality.js?v=740b"></script>
+  <script type="module" src="js/water/main.js?v=740b"></script><script type="module" src="js/terrain/main.js?v=740b"></script><script src="js/v740-visual-overhaul.js?v=740b"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){setTimeout(()=>document.getElementById('start-btn')?.click(),7000);}</script>
   <script>(()=>{const badge=document.getElementById('version-badge');let tries=0;const timer=setInterval(()=>{tries++;if(window.__mosesV7311Ready&&window.__mosesV7312Ready&&window.__mosesV740Ready){clearInterval(timer);badge.dataset.state='ready';badge.textContent='V7.4 · NILE VISUAL OVERHAUL';return;}if(tries>200){clearInterval(timer);badge.dataset.state='fallback';badge.textContent='V7.4 · PARTIAL FALLBACK';}},250);})();</script>
 </body></html>
