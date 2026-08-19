@@ -13,7 +13,7 @@ on:
       - '.github/workflows/deploy-moses-nile-v7-preview.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy-v7:
@@ -97,7 +97,7 @@ jobs:
 
           All runtime JavaScript, vendor files, textures and 3D models are included in this folder.
 
-          To run locally, serve this directory through a local HTTP server (opening index.html directly as file:// may block model/texture loading in browsers).
+          Run through a local HTTP server; opening index.html directly as file:// may block model/texture loading.
 
           Example:
             python3 -m http.server 8080
@@ -117,6 +117,13 @@ jobs:
           }
           JSON
 
+      - name: Create one-file ZIP package
+        shell: bash
+        run: |
+          rm -f moses-nile-v737-full.zip
+          (cd .preview-v7 && zip -q -r ../moses-nile-v737-full.zip .)
+          test -s moses-nile-v737-full.zip
+
       - name: Upload full standalone game archive
         uses: actions/upload-artifact@v4
         with:
@@ -124,6 +131,26 @@ jobs:
           path: .preview-v7/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish ZIP to repository downloads
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp moses-nile-v737-full.zip /tmp/moses-nile-v737-full.zip
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p downloads
+          cp /tmp/moses-nile-v737-full.zip downloads/moses-nile-v737-full.zip
+          git add downloads/moses-nile-v737-full.zip
+          if git diff --cached --quiet; then
+            echo 'Standalone ZIP already current.'
+          else
+            git commit -m 'Add Moses Nile V7.3.7 full standalone archive'
+            git push origin main
+          fi
 
       - name: Deploy V7.3.7 preview
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
