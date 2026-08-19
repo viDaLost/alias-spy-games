@@ -1,0 +1,10 @@
+commit=ec71a4435f313f7340107a4a6fe14c1bc0563c93
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/
+version=V7.3.12
+verify=success
+terrain=chunked-splat-pbr
+layers=wet-mud,wet-sand,sand,cracked-mud,gravel
+ktx2_graph=verified
+terrain_assets=verified
+water_terrain=shared-shoreline
+checked_at=2026-08-19T16:10:21Z
