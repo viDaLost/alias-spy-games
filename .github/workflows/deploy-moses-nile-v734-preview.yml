@@ -9,7 +9,7 @@ on:
       - '.github/workflows/deploy-moses-nile-v734-preview.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy-v737:
@@ -55,7 +55,6 @@ jobs:
           npx --yes @gltf-transform/cli@latest resize .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb --width 512 --height 512 || cp .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb
           rm -f .preview-v7/models/v73/crocodile-original.glb
 
-          # Poly Haven CC0 1K terrain maps.
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_diff_1k.jpg -o .preview-v7/textures/sand-03-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_diff_1k.jpg -o .preview-v7/textures/damp-sand-diffuse-1k.jpg
@@ -63,7 +62,6 @@ jobs:
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_diff_1k.jpg -o .preview-v7/textures/ganges-pebbles-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_nor_gl_1k.jpg -o .preview-v7/textures/ganges-pebbles-normal-gl-1k.jpg
 
-          # Two Three.js normal maps for a lightweight layered river flow.
           THREE_WATER_REV=83d8667898fd32a6a0f1af92f6d91065db272ce2
           curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_1_M_Normal.jpg" -o .preview-v7/textures/Water_1_M_Normal.jpg
           curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_2_M_Normal.jpg" -o .preview-v7/textures/Water_2_M_Normal.jpg
@@ -94,6 +92,16 @@ jobs:
           test -s .preview-v7/models/v73/lotus-flower.obj
           test -s .preview-v7/models/basket.obj
 
+          cat > .preview-v7/README.txt <<'TXT'
+          Moses: Nile Run — V7.3.7 full standalone web build
+
+          This folder contains the complete runtime build: game JS, bundled Three.js vendor files, all 3D models used by the game, basket/lotus OBJ files and all terrain/water textures.
+
+          Run it through a local HTTP server (file:// can block model or texture loading):
+            python3 -m http.server 8080
+          Then open http://localhost:8080/
+          TXT
+
           cat > wrangler-v7.jsonc <<'JSON'
           {
             "$schema": "./node_modules/wrangler/config-schema.json",
@@ -103,6 +111,36 @@ jobs:
             "assets": {"directory": "./.preview-v7", "not_found_handling": "single-page-application"}
           }
           JSON
+
+      - name: Create standalone archive
+        shell: bash
+        run: |
+          rm -f moses-nile-v737-full.zip
+          (cd .preview-v7 && zip -q -r ../moses-nile-v737-full.zip .)
+          test -s moses-nile-v737-full.zip
+
+      - name: Upload standalone archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moses-nile-v737-full
+          path: .preview-v7/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish standalone archive branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp moses-nile-v737-full.zip /tmp/moses-nile-v737-full.zip
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B package/moses-nile-v737 origin/main
+          mkdir -p downloads
+          cp /tmp/moses-nile-v737-full.zip downloads/moses-nile-v737-full.zip
+          git add downloads/moses-nile-v737-full.zip
+          git commit -m 'Add Moses Nile V7.3.7 full standalone archive' || true
+          git push --force origin HEAD:refs/heads/package/moses-nile-v737
 
       - name: Deploy V7.3.7 preview
         env:
