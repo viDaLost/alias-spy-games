@@ -1,0 +1,17 @@
+commit=1fb2df93418d4c39c2c79b3ec3f9a8518ada5704
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/
+version=V7.3.11
+build=failure
+deploy=skipped
+verify=skipped
+water=three-water-river
+wake=buffergeometry-pooled
+boat_wake=v-shaped
+ripples=pooled
+splash=points-pooled
+foam=pooled
+interaction=surface-crossing-lod
+particles_max=420
+ripples_max=72
+people_model=removed
+checked_at=2026-08-19T16:00:49Z
