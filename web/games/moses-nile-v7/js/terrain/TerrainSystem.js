@@ -19,15 +19,8 @@ export class TerrainSystem {
   }
   sampleHeight(x,z){
     const d=this.mask.getDistanceToWater(x,z),macroN=this.mask.fbm(x*.55,z*.68)-.5,erosionN=this.mask.noise(x*.15+12,z*.15-9)-.5;
-    if(d<0){
-      const depth=Math.min(.72,.018+Math.pow(Math.max(0,-d),1.06)*.061);
-      const shoreBlend=1-THREE.MathUtils.smoothstep(Math.max(0,-d),0,5.5);
-      return this.waterLevel-depth+macroN*.026*shoreBlend;
-    }
-    const shore=THREE.MathUtils.smoothstep(d,0,4.0);
-    const rise=Math.min(.94,.008+d*.0365);
-    const relief=(macroN*.17+erosionN*.038)*(1-shore*.9);
-    const oldChannel=Math.sin(z*.011+x*.026)*.022*THREE.MathUtils.smoothstep(d,5,18);
+    if(d<0){const depth=Math.min(.72,.018+Math.pow(Math.max(0,-d),1.06)*.061);const shoreBlend=1-THREE.MathUtils.smoothstep(Math.max(0,-d),0,5.5);return this.waterLevel-depth+macroN*.026*shoreBlend;}
+    const shore=THREE.MathUtils.smoothstep(d,0,4.0),rise=Math.min(.94,.008+d*.0365),relief=(macroN*.17+erosionN*.038)*(1-shore*.9),oldChannel=Math.sin(z*.011+x*.026)*.022*THREE.MathUtils.smoothstep(d,5,18);
     return this.waterLevel+rise+relief+oldChannel;
   }
   async init(){
@@ -37,8 +30,8 @@ export class TerrainSystem {
     const startX=Math.floor(this.bounds.minX/s)*s+s*.5,endX=Math.ceil(this.bounds.maxX/s)*s-s*.5,startZ=Math.floor(this.bounds.minZ/s)*s+s*.5,endZ=Math.ceil(this.bounds.maxZ/s)*s-s*.5;
     for(let z=startZ;z<=endZ+.1;z+=s)for(let x=startX;x<=endX+.1;x+=s)this.chunks.push(new TerrainChunk({system:this,cx:x,cz:z,size:s,material,lodDistances:[this.lodSystem.near,this.lodSystem.mid]}).load());
     this.createFootprintPool();
-    this.vegetation=new VegetationSystem({scene:this.scene,terrain:this,maxReeds:92,maxGrass:58}).generate();
-    this.rocks=new RockScatterSystem({scene:this.scene,terrain:this}).generate();
+    this.vegetation=new VegetationSystem({scene:this.scene,terrain:this,maxReeds:180,maxGrass:125}).generate();
+    this.rocks=new RockScatterSystem({scene:this.scene,terrain:this,maxRocks:96}).generate();
     this.controlMap=this.mask.createControlTexture({...this.bounds,resolution:256});this.ready=true;return this;
   }
   hideLegacyTerrain(){this.scene.traverse(node=>{if(!node?.isMesh)return;const ud=node.userData||{},name=String(node.name||''),mats=Array.isArray(node.material)?node.material:[node.material],colors=mats.map(m=>m?.color?.getHex?.());const legacy=ud.v73Bank||ud.v73WetBank||ud.v73GreenBank||ud.v739RiverBankOccluders||ud.v7310Shoreline||/V739RiverBankOccluders|V7310OpaqueShoreline/.test(name)||colors.some(c=>[0xc98638,0xd4a35f,0x8d673d,0x8c7045,0x4d7542,0x4f7c45,0xa87343].includes(c));if(legacy)node.visible=false;});}
