@@ -77,9 +77,9 @@ jobs:
           node --check .preview-v7/js/v73-enhancements.js
           node --check .preview-v7/js/v731-polish.js
           grep -q 'V7.3.1 · LOADING' .preview-v7/index.html
+          grep -q 'v73-enhancements.js?v=731' .preview-v7/index.html
+          grep -q 'v731-polish.js?v=731' .preview-v7/index.html
           grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
-          grep -q 'v73-enhancements.js' .preview-v7/index.html
-          grep -q 'v731-polish.js' .preview-v7/index.html
           grep -q 'models/v73/crocodile.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/human.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/Flowers.glb' .preview-v7/js/v73-enhancements.js
