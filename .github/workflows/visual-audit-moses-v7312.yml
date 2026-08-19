@@ -21,52 +21,44 @@ jobs:
         with:
           node-version: 22
       - name: Install Playwright Chromium
-        id: install
-        continue-on-error: true
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install chromium
-      - name: Capture real Cloudflare render
-        id: capture
-        continue-on-error: true
+      - name: Capture and publish real Cloudflare render
         shell: bash
         run: |
-          echo 'capture step entered' > /tmp/capture.log
+          set +e
+          mkdir -p visual-audit
           cat > /tmp/capture.mjs <<'JS'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const url='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?visualAudit='+Date.now();
-          const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
-          const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
-          const errors=[]; page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())}); page.on('pageerror',e=>errors.push('pageerror: '+e.message));
-          await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
-          await page.waitForTimeout(9000);
-          const start=page.locator('#start-btn'); if(await start.count()) await start.click();
-          await page.waitForTimeout(9000);
-          await page.screenshot({path:'/tmp/moses-mobile.png'});
-          await page.setViewportSize({width:1280,height:800}); await page.waitForTimeout(1800); await page.screenshot({path:'/tmp/moses-desktop.png'});
-          const state=await page.evaluate(()=>({badge:document.getElementById('version-badge')?.textContent||'',ready:!!window.__mosesV7312Ready,terrain:!!window.__mosesTerrain,water:!!window.__mosesWaterFX}));
-          fs.writeFileSync('/tmp/visual-state.json',JSON.stringify({url,state,errors},null,2));
-          await browser.close();
+          const errors=[];
+          try {
+            const browser=await chromium.launch({headless:true,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']});
+            const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+            page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text())}); page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+            await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
+            await page.waitForTimeout(9000);
+            const start=page.locator('#start-btn'); if(await start.count()) await start.click();
+            await page.waitForTimeout(9000);
+            await page.screenshot({path:'visual-audit/mobile.png'});
+            await page.setViewportSize({width:1280,height:800}); await page.waitForTimeout(1800); await page.screenshot({path:'visual-audit/desktop.png'});
+            const state=await page.evaluate(()=>({badge:document.getElementById('version-badge')?.textContent||'',ready:!!window.__mosesV7312Ready,terrain:!!window.__mosesTerrain,water:!!window.__mosesWaterFX}));
+            fs.writeFileSync('visual-audit/state.json',JSON.stringify({url,state,errors},null,2));
+            await browser.close();
+            fs.writeFileSync('visual-audit/status.txt',`commit=${process.env.GITHUB_SHA}\ncapture=success\n`);
+          } catch (e) {
+            errors.push(String(e?.stack||e));
+            fs.writeFileSync('visual-audit/state.json',JSON.stringify({url,state:null,errors},null,2));
+            fs.writeFileSync('visual-audit/status.txt',`commit=${process.env.GITHUB_SHA}\ncapture=failure\n`);
+          }
           JS
-          node /tmp/capture.mjs >> /tmp/capture.log 2>&1
-      - name: Publish visual audit diagnostics
-        if: always()
-        shell: bash
-        env:
-          INSTALL_OUTCOME: ${{ steps.install.outcome }}
-          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
-        run: |
-          set -euo pipefail
+          node /tmp/capture.mjs > visual-audit/capture.log 2>&1
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v7312-visual
-          mkdir -p visual-audit
-          printf 'commit=%s\ninstall=%s\ncapture=%s\n' "$GITHUB_SHA" "${INSTALL_OUTCOME:-skipped}" "${CAPTURE_OUTCOME:-skipped}" > visual-audit/status.txt
-          test -f /tmp/capture.log && cp /tmp/capture.log visual-audit/capture.log || true
-          test -f /tmp/moses-mobile.png && cp /tmp/moses-mobile.png visual-audit/mobile.png || true
-          test -f /tmp/moses-desktop.png && cp /tmp/moses-desktop.png visual-audit/desktop.png || true
-          test -f /tmp/visual-state.json && cp /tmp/visual-state.json visual-audit/state.json || true
           git add visual-audit
           git commit -m 'Capture Moses Nile V7.3.12 visual audit' || true
           git push --force origin HEAD:refs/heads/verify/moses-nile-v7312-visual
+          grep -q 'capture=success' visual-audit/status.txt
