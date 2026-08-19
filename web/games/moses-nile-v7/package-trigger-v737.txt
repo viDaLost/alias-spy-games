@@ -1,1 +1,2 @@
 Temporary CI trigger for assembling the complete Moses Nile V7.3.7 standalone archive.
+Retry after artifact path fix.
