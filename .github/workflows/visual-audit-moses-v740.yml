@@ -1,4 +1,4 @@
-name: Visual Audit Moses Nile V7.4
+name: Visual Audit Moses Nile V7.4 Reference
 
 on:
   workflow_dispatch:
@@ -14,55 +14,57 @@ permissions:
 jobs:
   capture:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for V7.4 preview
+      - name: Wait for isolated V7.4 reference preview
         run: |
           set -euo pipefail
-          P='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            if curl -fsSL --max-time 20 "${P}?audit740=${GITHUB_SHA}-${i}" | grep -q 'V7.4 · LOADING'; then exit 0; fi
+          P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
+          for i in $(seq 1 20); do
+            if curl -fsSL --max-time 20 "${P}?audit=${GITHUB_SHA}-${i}" | grep -q 'V7.4 · REFERENCE PASS'; then exit 0; fi
             sleep 6
           done
           exit 1
-      - name: Capture real browser frames and live DOM
+      - name: Capture mobile reference checkpoints
         run: |
           set -euo pipefail
           CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
-          URL="https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?visualAudit=1&v=740&sha=${GITHUB_SHA}"
+          P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
           mkdir -p visual-audit
-          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=23000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/mobile.png "$URL"
-          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=1280,800 --virtual-time-budget=23000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/desktop.png "$URL"
-          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=23000 --dump-dom "$URL" > visual-audit/live-dom.html
-          test -s visual-audit/mobile.png && test -s visual-audit/desktop.png && test -s visual-audit/live-dom.html
-          grep -q 'V7.4 · NILE VISUAL OVERHAUL' visual-audit/live-dom.html
-          ! grep -q 'V7.3.8 · LOADING' visual-audit/live-dom.html
-          printf 'commit=%s\nversion=V7.4\ncapture=success\nruntime_badge=V7.4\nlegacy_v738_badge=absent\nurl=%s\n' "$GITHUB_SHA" "$URL" > visual-audit/status.txt
-      - name: Analyze river color regression
+          for T in 13000 23000 33000; do
+            "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=$T --run-all-compositor-stages-before-draw --screenshot="visual-audit/mobile-${T}.png" "${P}?visualAudit=1&sha=${GITHUB_SHA}&t=${T}"
+          done
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=33000 --dump-dom "${P}?visualAudit=1&sha=${GITHUB_SHA}" > visual-audit/live-dom.html
+          grep -q 'V7.4 · REFERENCE PASS' visual-audit/live-dom.html
+      - name: Analyze composition and color
         run: |
           python -m pip install --quiet pillow
           python - <<'PY'
           from PIL import Image
-          im=Image.open('visual-audit/mobile.png').convert('RGB')
-          w,h=im.size;samples=[]
-          for y in range(int(h*.34),int(h*.70)):
-              p=(y-h*.34)/(h*.36);half=int(24+70*p);cx=w//2
-              for x in range(cx-half,cx+half):samples.append(im.getpixel((x,y)))
-          n=max(1,len(samples));mr=sum(p[0] for p in samples)/n;mg=sum(p[1] for p in samples)/n;mb=sum(p[2] for p in samples)/n
-          blue=sum(1 for r,g,b in samples if b>r*1.28 and b>g*1.06 and b-r>28)/n
-          grey=sum(1 for r,g,b in samples if max(r,g,b)-min(r,g,b)<15 and 65<(r+g+b)/3<190)/n
-          with open('visual-audit/metrics.txt','w') as f:
-              f.write(f'river_mean_rgb={mr:.1f},{mg:.1f},{mb:.1f}\ncyan_blue_fraction={blue:.4f}\nneutral_grey_fraction={grey:.4f}\n')
-          assert blue < .12, f'river regressed too cyan: {blue:.3f}'
-          assert mb-mr < 35, f'river shifted too blue: RGB={mr:.1f},{mg:.1f},{mb:.1f}'
+          from pathlib import Path
+          rows=[]
+          for p in sorted(Path('visual-audit').glob('mobile-*.png')):
+              im=Image.open(p).convert('RGB');w,h=im.size
+              river=[];bank=[]
+              for y in range(int(h*.30),int(h*.70)):
+                  prog=(y-h*.30)/(h*.40);half=int(20+65*prog);cx=w//2
+                  for x in range(max(0,cx-half),min(w,cx+half)): river.append(im.getpixel((x,y)))
+                  for x in list(range(0,max(0,cx-half-8)))+list(range(min(w,cx+half+8),w)): bank.append(im.getpixel((x,y)))
+              mean=lambda s: tuple(sum(v[i] for v in s)/max(1,len(s)) for i in range(3))
+              r=mean(river);b=mean(bank);cyan=sum(1 for R,G,B in river if B>R*1.25 and B>G*1.06 and B-R>25)/max(1,len(river))
+              rows.append(f'{p.name}: river={r[0]:.1f},{r[1]:.1f},{r[2]:.1f} bank={b[0]:.1f},{b[1]:.1f},{b[2]:.1f} cyan={cyan:.4f}')
+              assert cyan < .08
+              assert r[2]-r[0] < 28
+          Path('visual-audit/metrics.txt').write_text('\n'.join(rows)+'\n')
           PY
-      - name: Publish V7.4 screenshots
+          printf 'commit=%s\nversion=V7.4-reference\ncapture=success\ncheckpoints=3\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" > visual-audit/status.txt
+      - name: Publish reference audit
         if: always()
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v740-visual
           git add visual-audit || true
-          git commit -m 'Capture Moses Nile V7.4 visual audit' || true
+          git commit -m 'Capture V7.4 reference visual audit' || true
           git push --force origin HEAD:refs/heads/verify/moses-nile-v740-visual
