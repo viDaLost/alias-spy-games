@@ -10,9 +10,9 @@
 
 ## Crocodile
 
-- Model: **Crocodile**
-- Author: **saeedam73**
-- Original source: https://sketchfab.com/3d-models/crocodile-76c8c5ff9d914dcb973b3a0ef946d15c
+- Model: **crocodile high quality**
+- Author: **Beerus**
+- Original source: https://sketchfab.com/3d-models/crocodile-high-quality-a242e4634a234d3fb909c54b2c39d7b8
 - License: **CC BY 4.0**
 - Repository mirror used by the preview build: `sandeshdamkondwar/3d-viewer`, pinned to commit `a33f107378e79b4458d2a400bb5e32fddcedbf73`.
 - V7.3 uses this higher-detail model for gameplay crocodiles instead of the previous procedural box/cone crocodile.
