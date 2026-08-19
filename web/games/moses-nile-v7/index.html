@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#b67d3f">
-  <title>Моисей: Путь по Нилу — V7.3.9</title>
+  <title>Моисей: Путь по Нилу — V7.3.10</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;user-select:none;-webkit-user-select:none}
     html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#111827;font-family:'Segoe UI',Roboto,system-ui,sans-serif;color:#fff}
@@ -41,20 +41,21 @@
   <div class="mobile-controls"><button class="steer-btn" id="btn-left">◀</button><button class="steer-btn" id="btn-right">▶</button></div>
   <div id="start-screen" class="screen"><div class="panel"><h1>Моисей: Путь по Нилу</h1><p>Проведите закрытую плетёную корзинку с младенцем через коварные воды Нила. Избегайте всплывающих крокодилов, камней и брёвен, собирайте цветы лотоса.</p><button class="btn" id="start-btn">ОТПЛЫТЬ</button><div style="margin-top:16px;font-size:12px;color:#94a3b8">Управление: <b>A / D</b>, <b>← / →</b> или свайпы по экрану</div></div></div>
   <div id="gameover-screen" class="screen hidden"><div class="panel"><h1 style="color:#ef4444">Путь прерван</h1><p id="fail-desc">Корзинка столкнулась с опасностью реки.</p><div style="background:rgba(0,0,0,.3);border-radius:12px;padding:12px;margin-bottom:18px;font-size:14px;color:#cbd5e1"><div>Дистанция: <b id="final-dist" style="color:#fff">0 м</b></div><div style="margin-top:4px">Собрано лотосов: <b id="final-score" style="color:#fbbf24">0</b></div></div><button class="btn" id="restart-btn">ПОПРОБОВАТЬ СНОВА</button></div></div>
-  <div id="version-badge">V7.3.9 · LOADING</div>
+  <div id="version-badge">V7.3.10 · LOADING</div>
   <script>window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){}}}};</script>
-  <script src="js/sound.js?v=739"></script>
-  <script src="js/assets.js?v=739"></script>
-  <script src="js/v73-enhancements.js?v=739"></script>
-  <script src="js/v731-polish.js?v=739"></script>
-  <script src="js/v732-lotus.js?v=739"></script>
-  <script src="js/v734-stability.js?v=739"></script>
-  <script src="js/v735-crocs-textures.js?v=739"></script>
-  <script src="js/v736-water-banks.js?v=739"></script>
-  <script src="js/v739-physics.js?v=739"></script>
-  <script src="js/game.js?v=739"></script>
-  <script src="js/v737-gameplay-polish.js?v=739"></script>
-  <script src="js/v738-cinematic.js?v=739"></script>
+  <script src="js/sound.js?v=7310"></script>
+  <script src="js/assets.js?v=7310"></script>
+  <script src="js/v73-enhancements.js?v=7310"></script>
+  <script src="js/v731-polish.js?v=7310"></script>
+  <script src="js/v732-lotus.js?v=7310"></script>
+  <script src="js/v734-stability.js?v=7310"></script>
+  <script src="js/v735-crocs-textures.js?v=7310"></script>
+  <script src="js/v736-water-banks.js?v=7310"></script>
+  <script src="js/v739-physics.js?v=7310"></script>
+  <script src="js/game.js?v=7310"></script>
+  <script src="js/v737-gameplay-polish.js?v=7310"></script>
+  <script src="js/v738-cinematic.js?v=7310"></script>
+  <script src="js/v7310-mobile-polish.js?v=7310"></script>
   <script>
     (()=>{
       const badge=document.getElementById('version-badge');
@@ -67,10 +68,11 @@
         const textures=Boolean(window.__mosesV736TexturesReady);
         const polish=Boolean(window.__mosesV737Installed);
         const physics=Boolean(window.__mosesV739Ready);
-        if(closed&&ready&&realLotus&&textures&&polish&&physics){clearInterval(timer);return;}
-        if(tries>80){
+        const mobile=Boolean(window.__mosesV7310Ready);
+        if(closed&&ready&&realLotus&&textures&&polish&&physics&&mobile){clearInterval(timer);return;}
+        if(tries>100){
           clearInterval(timer);badge.dataset.state='fallback';
-          badge.textContent=!closed?'V7.3.9 · BASKET FALLBACK':!realLotus?'V7.3.9 · LOTUS FALLBACK':!textures?'V7.3.9 · TEXTURE FALLBACK':!polish?'V7.3.9 · POLISH FALLBACK':!physics?'V7.3.9 · PHYSICS FALLBACK':'V7.3.9 · MODEL FALLBACK';
+          badge.textContent=!closed?'V7.3.10 · BASKET FALLBACK':!realLotus?'V7.3.10 · LOTUS FALLBACK':!textures?'V7.3.10 · TEXTURE FALLBACK':!polish?'V7.3.10 · POLISH FALLBACK':!physics?'V7.3.10 · PHYSICS FALLBACK':!mobile?'V7.3.10 · MOBILE POLISH FALLBACK':'V7.3.10 · MODEL FALLBACK';
         }
       },250);
     })();
