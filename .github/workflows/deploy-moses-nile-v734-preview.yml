@@ -110,7 +110,8 @@ jobs:
               && grep -q '__mosesV739Installed' /tmp/v739.js \
               && grep -q 'V739RiverBankOccluders' /tmp/v739.js \
               && grep -q 'v739Physics' /tmp/v739.js \
-              && ! curl -fsSL --max-time 10 "${PREVIEW}models/v73/human.glb?verify=${GITHUB_SHA}-${attempt}" -o /tmp/human.glb; then
+              && curl -fsSL --max-time 10 "${PREVIEW}models/v73/human.glb?verify=${GITHUB_SHA}-${attempt}" -o /tmp/human-response \
+              && grep -q 'V7.3.9 · LOADING' /tmp/human-response; then
               exit 0
             fi
             sleep 5
