@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.3.13 Preview
+name: Deploy Moses Nile V7.3.14 Preview
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  deploy-v7313:
+  deploy-v7314:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build V7.3.13 preview
+      - name: Build V7.3.14 preview
         id: build
         shell: bash
         run: |
@@ -92,7 +92,6 @@ jobs:
               out.save(d/'nrmao.png',optimize=True)
           PY
 
-          # Legacy textures still requested by earlier compatibility scripts before the new terrain hides those meshes.
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_diff_1k.jpg -o .preview-v7/textures/sand-03-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_diff_1k.jpg -o .preview-v7/textures/damp-sand-diffuse-1k.jpg
@@ -105,18 +104,17 @@ jobs:
 
           for file in .preview-v7/js/*.js; do node --check "$file"; done
           for file in .preview-v7/js/water/*.js .preview-v7/js/terrain/*.js; do node --input-type=module --check < "$file"; done
-          grep -q 'V7.3.13 · LOADING' .preview-v7/index.html
-          grep -q 'v7313-visual-quality.js?v=7313' .preview-v7/index.html
-          grep -q 'NileSkyV7313' .preview-v7/js/v7313-visual-quality.js
-          grep -q 'riverHalfWidth:6.34' .preview-v7/js/terrain/TerrainSystem.js
-          grep -q 'tn.x\*.50,max(.30,tn.y),tn.z\*.50' .preview-v7/js/terrain/TerrainMaterial.js
-          grep -q 'width = 13.72' .preview-v7/js/water/WaterSystem.js || grep -q 'width = 13.72' web/games/moses-nile-v7/js/water/WaterSystem.js || grep -q 'width = 13.72' /dev/null
+          grep -q 'V7.3.14 · LOADING' .preview-v7/index.html
+          grep -q 'v7314-visual-final.js?v=7314' .preview-v7/index.html
+          grep -q 'riverHalfWidth:6.18' .preview-v7/js/terrain/TerrainSystem.js
+          grep -q 'width=12.9' .preview-v7/js/water/WaterSystem.js
+          grep -q 'NileReedsInstancedV7314' .preview-v7/js/terrain/VegetationSystem.js
           ! test -e .preview-v7/models/v73/human.glb
 
           cat > wrangler-v7.jsonc <<'JSON'
           {"$schema":"./node_modules/wrangler/config-schema.json","name":"alias-spy-games-moses-nile-v7-preview","compatibility_date":"2026-08-19","workers_dev":true,"assets":{"directory":"./.preview-v7","not_found_handling":"single-page-application"}}
           JSON
-      - name: Deploy V7.3.13 preview
+      - name: Deploy V7.3.14 preview
         id: deploy
         if: always() && steps.build.outcome == 'success'
         continue-on-error: true
@@ -124,7 +122,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
-      - name: Verify V7.3.13 endpoint
+      - name: Verify V7.3.14 endpoint
         id: verify
         if: always() && steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -135,17 +133,17 @@ jobs:
           for attempt in 1 2 3 4 5 6; do
             Q="?verify=${GITHUB_SHA}-${attempt}"
             if curl -fsSL --max-time 20 "${PREVIEW}${Q}" -o /tmp/index.html \
-              && grep -q 'V7.3.13 · LOADING' /tmp/index.html \
-              && curl -fsSL --max-time 20 "${PREVIEW}js/v7313-visual-quality.js${Q}" -o /tmp/visual.js \
-              && grep -q 'NileSkyV7313' /tmp/visual.js \
-              && curl -fsSL --max-time 20 "${PREVIEW}js/terrain/TerrainMaterial.js${Q}" -o /tmp/terrain-material.js \
-              && grep -q 'max(.30,tn.y)' /tmp/terrain-material.js \
+              && grep -q 'V7.3.14 · LOADING' /tmp/index.html \
+              && curl -fsSL --max-time 20 "${PREVIEW}js/v7314-visual-final.js${Q}" -o /tmp/visual.js \
+              && grep -q 'FINAL VISUAL' /tmp/visual.js \
               && curl -fsSL --max-time 20 "${PREVIEW}js/terrain/TerrainSystem.js${Q}" -o /tmp/terrain-system.js \
-              && grep -q 'riverHalfWidth:6.34' /tmp/terrain-system.js; then exit 0; fi
+              && grep -q 'riverHalfWidth:6.18' /tmp/terrain-system.js \
+              && curl -fsSL --max-time 20 "${PREVIEW}js/water/WaterSystem.js${Q}" -o /tmp/water.js \
+              && grep -q 'width=12.9' /tmp/water.js; then exit 0; fi
             sleep 5
           done
           exit 1
-      - name: Publish V7.3.13 marker
+      - name: Publish V7.3.14 marker
         if: always()
         shell: bash
         env:
@@ -155,11 +153,11 @@ jobs:
         run: |
           set -euo pipefail
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
-          printf 'commit=%s\npreview=%s\nversion=V7.3.13\nbuild=%s\ndeploy=%s\nverify=%s\nshoreline=continuous\nterrain_normal=corrected\natmosphere=natural-daylight\npyramids=deemphasized\nwater=calm-nile\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/status.txt
+          printf 'commit=%s\npreview=%s\nversion=V7.3.14\nbuild=%s\ndeploy=%s\nverify=%s\nshoreline=soft-continuous\nlegacy_water_guides=removed\nvegetation=sparse-clustered\natmosphere=neutral-nile-daylight\nwater=calm-muted\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -B verify/moses-nile-v7313
-          mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v7313.txt
-          git add deploy-status/moses-nile-v7313.txt; git commit -m 'Record Moses Nile V7.3.13 deploy status' || true; git push --force origin HEAD:refs/heads/verify/moses-nile-v7313
+          git checkout -B verify/moses-nile-v7314
+          mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v7314.txt
+          git add deploy-status/moses-nile-v7314.txt; git commit -m 'Record Moses Nile V7.3.14 deploy status' || true; git push --force origin HEAD:refs/heads/verify/moses-nile-v7314
       - name: Require verified preview
         if: always()
         env:
