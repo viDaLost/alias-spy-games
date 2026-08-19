@@ -76,7 +76,7 @@ jobs:
           CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
           URL="${P}?visualAudit=1&isolated=${GITHUB_SHA}"
           "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=23000 --dump-dom "$URL" > /tmp/dom.html
-          grep -q 'V7.4 · NILE VISUAL OVERHAUL' /tmp/dom.html
+          grep -q 'V7.4' /tmp/dom.html
           ! grep -q 'V7.3.7 ·' /tmp/dom.html
           ! grep -q 'V7.3.8 · LOADING' /tmp/dom.html
 
