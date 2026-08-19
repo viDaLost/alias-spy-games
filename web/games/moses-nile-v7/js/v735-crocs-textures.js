@@ -43,9 +43,9 @@
   }
 
   async function applyRealTextures(scene) {
-    if (texturesApplied || !scene) return;
+    if (texturesApplied || !scene || window.__mosesV736Installed) return;
     const maps = await ensureTextures();
-    if (!maps) return;
+    if (!maps || window.__mosesV736Installed) return;
 
     scene.traverse((node) => {
       if (!node?.isMesh || !node.material) return;
@@ -175,7 +175,6 @@
     item.rotation.set(0, 0, Math.sin(t * 1.8) * .010 * surfacing);
 
     if (model) {
-      // This GLB points toward the player at rotation 0.
       model.rotation.y = Math.sin(t * 1.05) * .075 * surfacing;
       model.rotation.x = Math.sin(t * 2.3) * .018 * surfacing;
       model.rotation.z = tailMotion * surfacing;
@@ -188,7 +187,6 @@
       }
     }
 
-    // A crocodile is only dangerous after it has visibly surfaced.
     item.userData.radius = surfacing > .82 ? state.originalRadius : 0;
 
     const wake = item.userData?.v733Wake;
@@ -204,6 +202,7 @@
   }
 
   function updateBadge(scene) {
+    if (window.__mosesV736Installed) return;
     const badge = document.getElementById('version-badge');
     if (!badge || !scene) return;
     const textures = window.__mosesV735TexturesReady ? 'TEXTURES ON' : 'TEXTURES…';
@@ -216,16 +215,18 @@
     const dt = Math.min(.05, Math.max(.001, (now - lastNow) / 1000));
     lastNow = now;
     if (scene) {
-      if (!texturesApplied) applyRealTextures(scene).catch(() => {});
+      if (!window.__mosesV736Installed && !texturesApplied) applyRealTextures(scene).catch(() => {});
       scene.children.forEach((node) => {
         if (node?.userData?.v73Croc) animateCroc(node, ensureCroc(node), now);
       });
-      if (waterTexture) waterTexture.offset.y -= dt * .030;
-      if (waterNormal) {
-        waterNormal.offset.y -= dt * .045;
-        waterNormal.offset.x = Math.sin(now * .00035) * .025;
+      if (!window.__mosesV736Installed) {
+        if (waterTexture) waterTexture.offset.y -= dt * .030;
+        if (waterNormal) {
+          waterNormal.offset.y -= dt * .045;
+          waterNormal.offset.x = Math.sin(now * .00035) * .025;
+        }
+        updateBadge(scene);
       }
-      updateBadge(scene);
     }
     requestAnimationFrame(frame);
   }
