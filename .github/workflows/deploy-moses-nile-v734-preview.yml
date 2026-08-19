@@ -28,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .preview-v7
-          mkdir -p .preview-v7/js .preview-v7/vendor/addons/objects .preview-v7/vendor/addons/loaders .preview-v7/vendor/basis .preview-v7/build .preview-v7/textures/water .preview-v7/textures/terrain .preview-v7/models/environment/nature_pack .preview-v7/models/environment/survival_pack .preview-v7/models/v73
+          mkdir -p .preview-v7/js .preview-v7/vendor/addons/objects .preview-v7/vendor/addons/loaders .preview-v7/vendor/addons/libs .preview-v7/vendor/basis .preview-v7/build .preview-v7/textures/water .preview-v7/textures/terrain .preview-v7/models/environment/nature_pack .preview-v7/models/environment/survival_pack .preview-v7/models/v73
           cp web/games/moses-nile-v7/index.html .preview-v7/index.html
           cp -R web/games/moses-nile-v7/js/. .preview-v7/js/
           cp web/games/moses-nile-v7/models/lotus-flower.obj .preview-v7/models/v73/lotus-flower.obj
@@ -41,6 +41,9 @@ jobs:
           curl -fsSL --retry 3 "$GH/build/three.module.js" -o .preview-v7/build/three.module.js
           curl -fsSL --retry 3 "$GH/examples/jsm/objects/Water.js" -o .preview-v7/vendor/addons/objects/Water.js
           curl -fsSL --retry 3 "$GH/examples/jsm/loaders/KTX2Loader.js" -o .preview-v7/vendor/addons/loaders/KTX2Loader.js
+          curl -fsSL --retry 3 "$GH/examples/jsm/loaders/BasisTextureLoader.js" -o .preview-v7/vendor/addons/loaders/BasisTextureLoader.js
+          curl -fsSL --retry 3 "$GH/examples/jsm/libs/ktx-parse.module.js" -o .preview-v7/vendor/addons/libs/ktx-parse.module.js
+          curl -fsSL --retry 3 "$GH/examples/jsm/libs/zstddec.module.js" -o .preview-v7/vendor/addons/libs/zstddec.module.js
           curl -fsSL --retry 3 "$GH/examples/js/libs/basis/basis_transcoder.js" -o .preview-v7/vendor/basis/basis_transcoder.js
           curl -fsSL --retry 3 "$GH/examples/js/libs/basis/basis_transcoder.wasm" -o .preview-v7/vendor/basis/basis_transcoder.wasm
           curl -fsSL --retry 3 "$GH/examples/js/loaders/GLTFLoader.js" -o .preview-v7/vendor/GLTFLoader-r128.js
@@ -85,7 +88,6 @@ jobs:
               (d/'src').rmdir()
           PY
 
-          # Compatibility assets for legacy scripts; their meshes are hidden once TerrainSystem is ready.
           cp .preview-v7/textures/terrain/sand/color.jpg .preview-v7/textures/sand-03-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
           cp .preview-v7/textures/terrain/wet_sand/color.jpg .preview-v7/textures/damp-sand-diffuse-1k.jpg
@@ -112,8 +114,11 @@ jobs:
           grep -q 'getSurfaceTypeAt' .preview-v7/js/terrain/TerrainSystem.js
           grep -q 'setShorelineData' .preview-v7/js/water/WaterSystem.js
           grep -q 'KTX2Loader' .preview-v7/js/terrain/TerrainMaterial.js
+          grep -q 'BasisTextureLoader' .preview-v7/vendor/addons/loaders/KTX2Loader.js
           for layer in wet_mud wet_sand sand cracked_mud gravel; do test -s ".preview-v7/textures/terrain/$layer/color.jpg"; test -s ".preview-v7/textures/terrain/$layer/nrmao.png"; done
-          test -s .preview-v7/vendor/addons/loaders/KTX2Loader.js
+          test -s .preview-v7/vendor/addons/loaders/BasisTextureLoader.js
+          test -s .preview-v7/vendor/addons/libs/ktx-parse.module.js
+          test -s .preview-v7/vendor/addons/libs/zstddec.module.js
           test -s .preview-v7/vendor/basis/basis_transcoder.wasm
           ! test -e .preview-v7/models/v73/human.glb
 
@@ -155,7 +160,11 @@ jobs:
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/terrain/gravel/nrmao.png${Q}" -o /tmp/gravel.png \
               && test "$(wc -c < /tmp/gravel.png)" -gt 10000 \
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}vendor/addons/loaders/KTX2Loader.js${Q}" -o /tmp/ktx.js \
-              && grep -q 'class KTX2Loader' /tmp/ktx.js; then exit 0; fi
+              && grep -q 'BasisTextureLoader' /tmp/ktx.js \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}vendor/addons/loaders/BasisTextureLoader.js${Q}" -o /tmp/basis-loader.js \
+              && grep -q 'class BasisTextureLoader' /tmp/basis-loader.js \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}vendor/addons/libs/ktx-parse.module.js${Q}" -o /tmp/ktx-parse.js \
+              && test "$(wc -c < /tmp/ktx-parse.js)" -gt 10000; then exit 0; fi
             sleep 5
           done
           exit 1
@@ -169,7 +178,7 @@ jobs:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
-          printf 'commit=%s\npreview=%s\nversion=V7.3.12\nbuild=%s\ndeploy=%s\nverify=%s\nterrain=chunked-splat-pbr\nlayers=wet-mud,wet-sand,sand,cracked-mud,gravel\nshoreline=shared-mask\nqueries=height,surface,wetness\nvegetation=instanced\nrocks=instanced\nlod=40,120,270\nktx2=supported-with-jpg-png-fallback\npeople_model=removed\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7312-status.txt
+          printf 'commit=%s\npreview=%s\nversion=V7.3.12\nbuild=%s\ndeploy=%s\nverify=%s\nterrain=chunked-splat-pbr\nlayers=wet-mud,wet-sand,sand,cracked-mud,gravel\nshoreline=shared-mask\nqueries=height,surface,wetness\nvegetation=instanced\nrocks=instanced\nlod=40,120,270\nktx2=complete-module-graph-with-jpg-png-fallback\npeople_model=removed\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7312-status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v7312
           mkdir -p deploy-status; cp /tmp/moses-nile-v7312-status.txt deploy-status/moses-nile-v7312.txt
