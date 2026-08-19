@@ -84,9 +84,9 @@ jobs:
           node --check .preview-v7/js/v732-lotus.js
           grep -q 'V7.3.2 · LOADING' .preview-v7/index.html
           grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
-          grep -q 'v73-enhancements.js' .preview-v7/index.html
-          grep -q 'v731-polish.js' .preview-v7/index.html
-          grep -q 'v732-lotus.js' .preview-v7/index.html
+          grep -q 'v73-enhancements.js?v=732' .preview-v7/index.html
+          grep -q 'v731-polish.js?v=732' .preview-v7/index.html
+          grep -q 'v732-lotus.js?v=732' .preview-v7/index.html
           grep -q 'models/v73/crocodile.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/human.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/lotus-flower.obj' .preview-v7/js/v732-lotus.js
