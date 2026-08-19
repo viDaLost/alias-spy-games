@@ -1,0 +1,7 @@
+commit=47dbcb9f19af28e6e83e47df118bbddf71e0b3b7
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/
+version=V7.3.8
+build=failure
+deploy=skipped
+verify=skipped
+checked_at=2026-08-19T14:45:24Z
