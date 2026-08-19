@@ -11,7 +11,7 @@ export class TerrainChunk {
     this.system.scene.add(this.lod);return this;
   }
   buildGeometry(segments){
-    const n=segments+1,verts=n*n,pos=new Float32Array(verts*3),uv=new Float32Array(verts*2),idx=new Uint32Array(segments*segments*6);
+    const n=segments+1,verts=n*n,pos=new Float32Array(verts*3),uv=new Float32Array(verts*2),idx=new Uint16Array(segments*segments*6);
     let p=0,t=0;
     for(let iz=0;iz<n;iz++)for(let ix=0;ix<n;ix++){
       const lx=(ix/segments-.5)*this.size,lz=(iz/segments-.5)*this.size,wx=this.cx+lx,wz=this.cz+lz;
