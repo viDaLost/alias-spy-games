@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.3.9 Preview
+name: Deploy Moses Nile V7.3.10 Preview
 
 on:
   workflow_dispatch:
@@ -12,11 +12,11 @@ permissions:
   contents: write
 
 jobs:
-  deploy-v739:
+  deploy-v7310:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
-      - name: Checkout V7.3.9 source
+      - name: Checkout V7.3.10 source
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build V7.3.9 preview
+      - name: Build V7.3.10 preview
         id: build
         shell: bash
         run: |
@@ -51,25 +51,37 @@ jobs:
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Flowers.glb" -o .preview-v7/models/v73/Flowers.glb
           curl -fsSL --retry 3 https://raw.githubusercontent.com/sandeshdamkondwar/3d-viewer/a33f107378e79b4458d2a400bb5e32fddcedbf73/models/crocodile.glb -o .preview-v7/models/v73/crocodile.glb
 
+          # Existing terrain/water assets kept for legacy layers.
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_diff_1k.jpg -o .preview-v7/textures/sand-03-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_diff_1k.jpg -o .preview-v7/textures/damp-sand-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_nor_gl_1k.jpg -o .preview-v7/textures/damp-sand-normal-gl-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_diff_1k.jpg -o .preview-v7/textures/ganges-pebbles-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_nor_gl_1k.jpg -o .preview-v7/textures/ganges-pebbles-normal-gl-1k.jpg
+
+          # V7.3.10: Poly Haven Coast Sand 02 (CC0) for all visible sand.
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_diff_1k.jpg -o .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_nor_gl_1k.jpg -o .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_rough_1k.jpg -o .preview-v7/textures/coast-sand-02-rough-1k.jpg
+
           THREE_WATER_REV=83d8667898fd32a6a0f1af92f6d91065db272ce2
           curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_1_M_Normal.jpg" -o .preview-v7/textures/Water_1_M_Normal.jpg
           curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_2_M_Normal.jpg" -o .preview-v7/textures/Water_2_M_Normal.jpg
 
           for file in .preview-v7/js/*.js; do node --check "$file"; done
-          grep -q 'V7.3.9 · LOADING' .preview-v7/index.html
-          grep -q 'v739-physics.js?v=739' .preview-v7/index.html
-          grep -q '__mosesV739Installed' .preview-v7/js/v739-physics.js
-          grep -q 'V739RiverBankOccluders' .preview-v7/js/v739-physics.js
-          grep -q 'v739Physics' .preview-v7/js/v739-physics.js
+          grep -q 'V7.3.10 · LOADING' .preview-v7/index.html
+          grep -q 'v7310-mobile-polish.js?v=7310' .preview-v7/index.html
+          grep -q '__mosesV7310Installed' .preview-v7/js/v7310-mobile-polish.js
+          grep -q 'V7310OpaqueShoreline' .preview-v7/js/v7310-mobile-polish.js
+          grep -q '__mosesV7310BasketStable' .preview-v7/js/v7310-mobile-polish.js
+          grep -q 'const size = 1.28' .preview-v7/js/v7310-mobile-polish.js
+          grep -q 'coast-sand-02-diffuse-1k.jpg' .preview-v7/js/v7310-mobile-polish.js
           ! grep -q 'v733-life.js' .preview-v7/index.html
           ! test -e .preview-v7/js/v733-life.js
           ! test -e .preview-v7/models/v73/human.glb
+          test -s .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
+          test -s .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
+          test -s .preview-v7/textures/coast-sand-02-rough-1k.jpg
           test -s .preview-v7/models/v73/crocodile.glb
           test -s .preview-v7/models/v73/lotus-flower.obj
           test -s .preview-v7/models/basket.obj
@@ -84,7 +96,7 @@ jobs:
           }
           JSON
 
-      - name: Deploy V7.3.9 preview
+      - name: Deploy V7.3.10 preview
         id: deploy
         if: always() && steps.build.outcome == 'success'
         continue-on-error: true
@@ -93,7 +105,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
 
-      - name: Verify Cloudflare V7.3.9 preview
+      - name: Verify Cloudflare V7.3.10 preview
         id: verify
         if: always() && steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -103,22 +115,23 @@ jobs:
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
           for attempt in 1 2 3 4 5 6; do
             if curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}?verify=${GITHUB_SHA}-${attempt}" -o /tmp/preview.html \
-              && grep -q 'V7.3.9 · LOADING' /tmp/preview.html \
-              && grep -q 'v739-physics.js?v=739' /tmp/preview.html \
+              && grep -q 'V7.3.10 · LOADING' /tmp/preview.html \
+              && grep -q 'v7310-mobile-polish.js?v=7310' /tmp/preview.html \
               && ! grep -q 'v733-life.js' /tmp/preview.html \
-              && curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}js/v739-physics.js?verify=${GITHUB_SHA}-${attempt}" -o /tmp/v739.js \
-              && grep -q '__mosesV739Installed' /tmp/v739.js \
-              && grep -q 'V739RiverBankOccluders' /tmp/v739.js \
-              && grep -q 'v739Physics' /tmp/v739.js \
-              && curl -fsSL --max-time 10 "${PREVIEW}models/v73/human.glb?verify=${GITHUB_SHA}-${attempt}" -o /tmp/human-response \
-              && grep -q 'V7.3.9 · LOADING' /tmp/human-response; then
+              && curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}js/v7310-mobile-polish.js?verify=${GITHUB_SHA}-${attempt}" -o /tmp/v7310.js \
+              && grep -q '__mosesV7310Installed' /tmp/v7310.js \
+              && grep -q 'V7310OpaqueShoreline' /tmp/v7310.js \
+              && grep -q '__mosesV7310BasketStable' /tmp/v7310.js \
+              && grep -q 'const size = 1.28' /tmp/v7310.js \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/coast-sand-02-diffuse-1k.jpg?verify=${GITHUB_SHA}-${attempt}" -o /tmp/coast.jpg \
+              && test "$(wc -c < /tmp/coast.jpg)" -gt 50000; then
               exit 0
             fi
             sleep 5
           done
           exit 1
 
-      - name: Publish V7.3.9 diagnostic marker
+      - name: Publish V7.3.10 diagnostic marker
         if: always()
         shell: bash
         env:
@@ -128,18 +141,18 @@ jobs:
         run: |
           set -euo pipefail
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
-          printf 'commit=%s\npreview=%s\nversion=V7.3.9\nbuild=%s\ndeploy=%s\nverify=%s\npeople_model=removed\nwater=solid-depth\ncrocodile=physics-state-machine\nchecked_at=%s\n' \
-            "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v739-status.txt
+          printf 'commit=%s\npreview=%s\nversion=V7.3.10\nbuild=%s\ndeploy=%s\nverify=%s\nbasket=stabilized\ncrocodile=larger-bite-fx\nshoreline=opaque-inset\nsand=polyhaven-coast_sand_02\npeople_model=removed\nchecked_at=%s\n' \
+            "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7310-status.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -B verify/moses-nile-v739
+          git checkout -B verify/moses-nile-v7310
           mkdir -p deploy-status
-          cp /tmp/moses-nile-v739-status.txt deploy-status/moses-nile-v739.txt
-          git add deploy-status/moses-nile-v739.txt
-          git commit -m 'Record Moses Nile V7.3.9 deploy status' || true
-          git push --force origin HEAD:refs/heads/verify/moses-nile-v739
+          cp /tmp/moses-nile-v7310-status.txt deploy-status/moses-nile-v7310.txt
+          git add deploy-status/moses-nile-v7310.txt
+          git commit -m 'Record Moses Nile V7.3.10 deploy status' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v7310
 
-      - name: Require verified V7.3.9 preview
+      - name: Require verified V7.3.10 preview
         if: always()
         shell: bash
         env:
