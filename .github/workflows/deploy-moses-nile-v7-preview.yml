@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.3 Preview
+name: Deploy Moses Nile V7.3.1 Preview
 
 on:
   workflow_dispatch:
@@ -18,9 +18,9 @@ permissions:
 jobs:
   deploy-v7:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 14
     steps:
-      - name: Checkout current preview source
+      - name: Checkout current V7.3.1 preview source
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build V7.3 enhanced world
+      - name: Build V7.3.1 enhanced world
         shell: bash
         run: |
           set -euo pipefail
@@ -60,26 +60,36 @@ jobs:
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/PalmTree_4.glb" -o .preview-v7/models/environment/nature_pack/PalmTree_4.glb
           curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/WoodLog.glb" -o .preview-v7/models/environment/survival_pack/WoodLog.glb
 
-          # V7.3 scene upgrades. The same wooden Boat replaces the old raft asset too.
+          # V7.3+ scene upgrades. Wooden boat replaces the old raft asset.
           curl -fsSL --retry 3 "$MODEL_BASE/cute_fish_pack/Boat.glb" -o .preview-v7/models/v73/Boat.glb
           cp .preview-v7/models/v73/Boat.glb .preview-v7/models/environment/survival_pack/Raft.glb
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Flowers.glb" -o .preview-v7/models/v73/Flowers.glb
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/sandeshdamkondwar/3d-viewer/a33f107378e79b4458d2a400bb5e32fddcedbf73/models/crocodile.glb -o .preview-v7/models/v73/crocodile.glb
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/UMRAM-Bilkent/supine-human-model/728f23ab5eb9d6cb2c8fb39acb3440bd81db0d3e/assets/human.glb -o .preview-v7/models/v73/human.glb
+
+          # Higher-detail gameplay crocodile (CC BY 4.0). Keep original if image optimization fails.
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/sandeshdamkondwar/3d-viewer/a33f107378e79b4458d2a400bb5e32fddcedbf73/models/crocodile.glb -o .preview-v7/models/v73/crocodile-original.glb
+          cp .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb
+          npx --yes @gltf-transform/cli@latest resize .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb --width 512 --height 512 || cp .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb
+          rm -f .preview-v7/models/v73/crocodile-original.glb
+
+          # CC0 Quaternius upright low-poly Farmer; runtime adds linen-style period clothing.
+          curl -fsSL --retry 3 "$MODEL_BASE/modular_men/Farmer.glb" -o .preview-v7/models/v73/human.glb
 
           node --check .preview-v7/js/sound.js
           node --check .preview-v7/js/assets.js
           node --check .preview-v7/js/game.js
           node --check .preview-v7/js/v73-enhancements.js
-          grep -q 'V7.3 · LOADING' .preview-v7/index.html
+          node --check .preview-v7/js/v731-polish.js
+          grep -q 'V7.3.1 · LOADING' .preview-v7/index.html
           grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
           grep -q 'v73-enhancements.js' .preview-v7/index.html
+          grep -q 'v731-polish.js' .preview-v7/index.html
           grep -q 'models/v73/crocodile.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/human.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/Flowers.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'ClosedWovenLid' .preview-v7/js/v73-enhancements.js
           grep -q 'buildBank' .preview-v7/js/v73-enhancements.js
           grep -q 'findWaveBone' .preview-v7/js/v73-enhancements.js
+          grep -q 'V731FallbackWaveArm' .preview-v7/js/v731-polish.js
           test -s .preview-v7/vendor/SkeletonUtils-r128.js
           test -s .preview-v7/models/v73/crocodile.glb
           test -s .preview-v7/models/v73/human.glb
@@ -107,7 +117,7 @@ jobs:
           }
           JSON
 
-      - name: Deploy V7.3 preview
+      - name: Deploy V7.3.1 preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
