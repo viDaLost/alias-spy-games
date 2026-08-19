@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.3.1 Preview
+name: Deploy Moses Nile V7.3.2 Preview
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
-      - name: Checkout current V7.3.1 preview source
+      - name: Checkout current V7.3.2 preview source
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build V7.3.1 enhanced world
+      - name: Build V7.3.2 enhanced world
         shell: bash
         run: |
           set -euo pipefail
@@ -42,6 +42,7 @@ jobs:
 
           cp web/games/moses-nile-v7/index.html .preview-v7/index.html
           cp web/games/moses-nile-v7/js/*.js .preview-v7/js/
+          cp web/games/moses-nile-v7/models/lotus-flower.obj .preview-v7/models/v73/lotus-flower.obj
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/basket.obj
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
 
@@ -63,6 +64,7 @@ jobs:
           # V7.3+ scene upgrades. Wooden boat replaces the old raft asset.
           curl -fsSL --retry 3 "$MODEL_BASE/cute_fish_pack/Boat.glb" -o .preview-v7/models/v73/Boat.glb
           cp .preview-v7/models/v73/Boat.glb .preview-v7/models/environment/survival_pack/Raft.glb
+          # Generic flower remains bundled only as a lightweight fallback if the project-owned lotus OBJ fails.
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Flowers.glb" -o .preview-v7/models/v73/Flowers.glb
 
           # Higher-detail gameplay crocodile (CC BY 4.0). Keep original if image optimization fails.
@@ -79,13 +81,16 @@ jobs:
           node --check .preview-v7/js/game.js
           node --check .preview-v7/js/v73-enhancements.js
           node --check .preview-v7/js/v731-polish.js
-          grep -q 'V7.3.1 · LOADING' .preview-v7/index.html
+          node --check .preview-v7/js/v732-lotus.js
+          grep -q 'V7.3.2 · LOADING' .preview-v7/index.html
           grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
           grep -q 'v73-enhancements.js' .preview-v7/index.html
           grep -q 'v731-polish.js' .preview-v7/index.html
+          grep -q 'v732-lotus.js' .preview-v7/index.html
           grep -q 'models/v73/crocodile.glb' .preview-v7/js/v73-enhancements.js
           grep -q 'models/v73/human.glb' .preview-v7/js/v73-enhancements.js
-          grep -q 'models/v73/Flowers.glb' .preview-v7/js/v73-enhancements.js
+          grep -q 'models/v73/lotus-flower.obj' .preview-v7/js/v732-lotus.js
+          grep -q 'project-owned-obj' .preview-v7/js/v732-lotus.js
           grep -q 'ClosedWovenLid' .preview-v7/js/v73-enhancements.js
           grep -q 'buildBank' .preview-v7/js/v73-enhancements.js
           grep -q 'findWaveBone' .preview-v7/js/v73-enhancements.js
@@ -95,8 +100,10 @@ jobs:
           test -s .preview-v7/models/v73/human.glb
           test -s .preview-v7/models/v73/Boat.glb
           test -s .preview-v7/models/v73/Flowers.glb
+          test -s .preview-v7/models/v73/lotus-flower.obj
           test -s .preview-v7/models/basket.obj
           node -e "const fs=require('fs');const s=fs.readFileSync('.preview-v7/models/basket.obj','utf8');const v=s.split(/\r?\n/).filter(x=>x.startsWith('v ')).length;const f=s.split(/\r?\n/).filter(x=>x.startsWith('f ')).length;if(v!==213||f!==344)throw new Error('Unexpected basket '+v+'/'+f);console.log('Woven basket OK:',v,'vertices,',f,'faces');"
+          node -e "const fs=require('fs');const s=fs.readFileSync('.preview-v7/models/v73/lotus-flower.obj','utf8');const v=s.split(/\r?\n/).filter(x=>x.startsWith('v ')).length;const f=s.split(/\r?\n/).filter(x=>x.startsWith('f ')).length;if(v!==957||f!==1260)throw new Error('Unexpected lotus '+v+'/'+f);console.log('Nile lotus OK:',v,'vertices,',f,'faces');"
           for file in Rock_1.glb Plant_2.glb Bush_1.glb Grass.glb Plant_1.glb PalmTree_4.glb; do test -s ".preview-v7/models/environment/nature_pack/$file"; done
           test -s .preview-v7/models/environment/survival_pack/WoodLog.glb
           test -s .preview-v7/models/environment/survival_pack/Raft.glb
@@ -117,7 +124,7 @@ jobs:
           }
           JSON
 
-      - name: Deploy V7.3.1 preview
+      - name: Deploy V7.3.2 preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
