@@ -1,0 +1,10 @@
+commit=5821f61edafc66793d480d3cc79ded466e0ef303
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/
+version=V7.3.9
+build=failure
+deploy=skipped
+verify=skipped
+people_model=removed
+water=solid-depth
+crocodile=physics-state-machine
+checked_at=2026-08-19T15:11:40Z
