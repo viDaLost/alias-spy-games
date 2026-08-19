@@ -4,7 +4,7 @@
   // The original V7.3.8 cinematic layer continuously overwrote the version badge,
   // re-enabled legacy shoreline/PBR settings, and expected human NPCs that were removed.
   // V7.4 now owns crocodile animation, terrain, water and status UI.
-  // Deploy epoch: v740-racefix-20260819-2304.
+  // Deploy epoch: v740-isolated-trigger-20260819-2342.
   if (window.__mosesV738Installed) return;
   window.__mosesV738Installed = true;
   window.__mosesV738Ready = true;
