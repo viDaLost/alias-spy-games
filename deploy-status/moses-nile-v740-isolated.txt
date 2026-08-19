@@ -1,0 +1,8 @@
+commit=07d7e03dffe8d81afa6099735972a40f3283b4db
+version=V7.4-reference
+build=failure
+deploy=skipped
+verify=skipped
+runtime_badge=unavailable
+reference_pass=enabled
+preview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/
