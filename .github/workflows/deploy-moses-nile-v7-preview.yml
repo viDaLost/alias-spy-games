@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.2 Preview
+name: Deploy Moses Nile V7.3 Preview
 
 on:
   workflow_dispatch:
@@ -13,9 +13,9 @@ permissions:
 jobs:
   deploy-v7:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
-      - name: Checkout V7.2 game branch
+      - name: Checkout V7.3 game branch
         uses: actions/checkout@v4
         with:
           ref: feature/moses-nile-runner-mvp
@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build V7.2 with woven basket fix
+      - name: Build V7.3 enhanced world
         shell: bash
         run: |
           set -euo pipefail
@@ -34,7 +34,8 @@ jobs:
             .preview-v7/js \
             .preview-v7/vendor \
             .preview-v7/models/environment/nature_pack \
-            .preview-v7/models/environment/survival_pack
+            .preview-v7/models/environment/survival_pack \
+            .preview-v7/models/v73
 
           cp web/games/moses-nile-v7/index.html .preview-v7/index.html
           cp web/games/moses-nile-v7/js/*.js .preview-v7/js/
@@ -44,6 +45,7 @@ jobs:
           curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/build/three.min.js -o .preview-v7/vendor/three-r128.min.js
           curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/GLTFLoader.js -o .preview-v7/vendor/GLTFLoader-r128.js
           curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/OBJLoader.js -o .preview-v7/vendor/OBJLoader-r128.js
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/utils/SkeletonUtils.js -o .preview-v7/vendor/SkeletonUtils-r128.js
 
           MODEL_REV=d6aacfb25dd969ead90cddd94ad901e74aede5d8
           MODEL_BASE="https://raw.githubusercontent.com/trebeljahr/quaternius-showcase/${MODEL_REV}/public/glb"
@@ -54,24 +56,40 @@ jobs:
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Plant_1.glb" -o .preview-v7/models/environment/nature_pack/Plant_1.glb
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/PalmTree_4.glb" -o .preview-v7/models/environment/nature_pack/PalmTree_4.glb
           curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/WoodLog.glb" -o .preview-v7/models/environment/survival_pack/WoodLog.glb
-          curl -fsSL --retry 3 "$MODEL_BASE/survival_pack/Raft.glb" -o .preview-v7/models/environment/survival_pack/Raft.glb
+
+          # V7.3 scene upgrades. The same wooden Boat replaces the old raft asset too.
+          curl -fsSL --retry 3 "$MODEL_BASE/cute_fish_pack/Boat.glb" -o .preview-v7/models/v73/Boat.glb
+          cp .preview-v7/models/v73/Boat.glb .preview-v7/models/environment/survival_pack/Raft.glb
+          curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Flowers.glb" -o .preview-v7/models/v73/Flowers.glb
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/sandeshdamkondwar/3d-viewer/a33f107378e79b4458d2a400bb5e32fddcedbf73/models/crocodile.glb -o .preview-v7/models/v73/crocodile.glb
+          curl -fsSL --retry 3 https://raw.githubusercontent.com/UMRAM-Bilkent/supine-human-model/728f23ab5eb9d6cb2c8fb39acb3440bd81db0d3e/assets/human.glb -o .preview-v7/models/v73/human.glb
 
           node --check .preview-v7/js/sound.js
           node --check .preview-v7/js/assets.js
           node --check .preview-v7/js/game.js
-          grep -q 'V7.2 · BASKET' .preview-v7/index.html
-          grep -q '_parseBasketObj' .preview-v7/js/assets.js
-          grep -q '_makeBasketTexture' .preview-v7/js/assets.js
-          grep -q "__mosesBasketSource='woven-obj'" .preview-v7/js/assets.js
-          grep -q 'preloadEnvironmentModels' .preview-v7/js/assets.js
-          grep -q "cloneModel('rock'" .preview-v7/js/game.js
-          grep -q "cloneModel('log'" .preview-v7/js/game.js
+          node --check .preview-v7/js/v73-enhancements.js
+          grep -q 'V7.3 · LOADING' .preview-v7/index.html
+          grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
+          grep -q 'v73-enhancements.js' .preview-v7/index.html
+          grep -q 'models/v73/crocodile.glb' .preview-v7/js/v73-enhancements.js
+          grep -q 'models/v73/human.glb' .preview-v7/js/v73-enhancements.js
+          grep -q 'models/v73/Flowers.glb' .preview-v7/js/v73-enhancements.js
+          grep -q 'ClosedWovenLid' .preview-v7/js/v73-enhancements.js
+          grep -q 'buildBank' .preview-v7/js/v73-enhancements.js
+          grep -q 'findWaveBone' .preview-v7/js/v73-enhancements.js
+          test -s .preview-v7/vendor/SkeletonUtils-r128.js
+          test -s .preview-v7/models/v73/crocodile.glb
+          test -s .preview-v7/models/v73/human.glb
+          test -s .preview-v7/models/v73/Boat.glb
+          test -s .preview-v7/models/v73/Flowers.glb
           test -s .preview-v7/models/basket.obj
           node -e "const fs=require('fs');const s=fs.readFileSync('.preview-v7/models/basket.obj','utf8');const v=s.split(/\r?\n/).filter(x=>x.startsWith('v ')).length;const f=s.split(/\r?\n/).filter(x=>x.startsWith('f ')).length;if(v!==213||f!==344)throw new Error('Unexpected basket '+v+'/'+f);console.log('Woven basket OK:',v,'vertices,',f,'faces');"
           for file in Rock_1.glb Plant_2.glb Bush_1.glb Grass.glb Plant_1.glb PalmTree_4.glb; do test -s ".preview-v7/models/environment/nature_pack/$file"; done
-          for file in WoodLog.glb Raft.glb; do test -s ".preview-v7/models/environment/survival_pack/$file"; done
+          test -s .preview-v7/models/environment/survival_pack/WoodLog.glb
+          test -s .preview-v7/models/environment/survival_pack/Raft.glb
           ! grep -q 'cdnjs.cloudflare.com' .preview-v7/index.html
           ! grep -q 'cdn.jsdelivr.net' .preview-v7/index.html
+          du -h .preview-v7/models/v73/*
 
           cat > wrangler-v7.jsonc <<'JSON'
           {
@@ -86,7 +104,7 @@ jobs:
           }
           JSON
 
-      - name: Deploy V7.2 preview
+      - name: Deploy V7.3 preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
