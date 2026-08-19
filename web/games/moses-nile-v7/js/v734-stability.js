@@ -24,9 +24,9 @@
       lastOutputZ: person.position.z,
       phase: Number(person.userData?.v733Phase ?? index * .79),
       behavior: person.userData?.v733Behavior || ['wave','point','walk','cheer','carry','bow'][index % 6],
-      nextGesture: performance.now() + 650 + (index % 4) * 480 + Math.random() * 900,
+      nextGesture: performance.now() + 350 + (index % 4) * 320 + Math.random() * 650,
       gestureStart: 0,
-      gestureDuration: 2200 + (index % 3) * 250,
+      gestureDuration: 2500 + (index % 3) * 260,
     };
     person.userData.v734Managed = true;
     personState.set(person, state);
@@ -60,11 +60,11 @@
     const elapsed = now - state.gestureStart;
     if (elapsed >= state.gestureDuration) {
       state.gestureStart = 0;
-      state.nextGesture = now + 1800 + Math.random() * 4300;
+      state.nextGesture = now + 1200 + Math.random() * 2800;
       return 0;
     }
     const p = elapsed / state.gestureDuration;
-    return Math.min(1, p * 5, (1 - p) * 5);
+    return Math.min(1, p * 6, (1 - p) * 6);
   }
 
   function animateVisibleArm(person, state, now, amount) {
@@ -78,36 +78,36 @@
     let lift = 0, sweep = 0, elbowBend = .32;
 
     if (behavior === 'wave') {
-      lift = amount * 1.05;
-      sweep = Math.sin(t * 7.2) * .32 * amount;
-      elbowBend = .45 + Math.sin(t * 7.2 + .8) * .18;
+      lift = amount * 1.18;
+      sweep = Math.sin(t * 7.4) * .38 * amount;
+      elbowBend = .48 + Math.sin(t * 7.4 + .8) * .22;
     } else if (behavior === 'point') {
-      lift = .72 + amount * .12;
-      sweep = Math.sin(t * 1.1) * .06;
-      elbowBend = .10;
+      lift = .82 + amount * .12;
+      sweep = Math.sin(t * 1.1) * .07;
+      elbowBend = .08;
     } else if (behavior === 'cheer') {
-      lift = .92 + amount * .18;
-      sweep = Math.sin(t * 4.5) * .12;
-      elbowBend = .22;
+      lift = 1.06 + amount * .18;
+      sweep = Math.sin(t * 4.6) * .14;
+      elbowBend = .18;
     } else if (behavior === 'carry') {
-      lift = .18;
-      elbowBend = .62;
+      lift = .20;
+      elbowBend = .66;
     } else {
-      lift = .08 + amount * .10;
-      sweep = Math.sin(t * 1.5) * .04;
+      lift = .10 + amount * .12;
+      sweep = Math.sin(t * 1.5) * .05;
     }
 
     if (arm && elbow) {
-      arm.rotation.x = -.08 - lift * .22;
+      arm.rotation.x = -.10 - lift * .24;
       arm.rotation.y = 0;
-      arm.rotation.z = inward * (-.62 - lift * .74 + sweep);
+      arm.rotation.z = inward * (-.62 - lift * .78 + sweep);
       elbow.rotation.x = 0;
       elbow.rotation.y = 0;
       elbow.rotation.z = inward * elbowBend;
     } else if (bone && base) {
       bone.rotation.copy(base);
-      bone.rotation.x = base.x - lift * .88;
-      bone.rotation.z = base.z + (person.userData.waveSide || inward) * (.18 + lift * .58 + sweep);
+      bone.rotation.x = base.x - lift * .96;
+      bone.rotation.z = base.z + (person.userData.waveSide || inward) * (.20 + lift * .66 + sweep);
     }
   }
 
@@ -119,30 +119,30 @@
     let x = state.homeX, y = state.homeY, rx = 0, ry = state.facing, rz = 0;
 
     if (behavior === 'walk') {
-      x += Math.sin(t * .68) * .48;
-      y += Math.abs(Math.sin(t * 2.7)) * .025;
-      ry += Math.sin(t * .68) * .10;
-      rz = Math.sin(t * 2.7) * .009;
+      x += Math.sin(t * .60) * .54;
+      y += Math.abs(Math.sin(t * 2.45)) * .020;
+      ry += Math.sin(t * .60) * .10;
+      rz = Math.sin(t * 2.45) * .007;
     } else if (behavior === 'cheer') {
-      y += Math.abs(Math.sin(t * 2.8)) * .038;
-      rz = Math.sin(t * 2.8) * .012;
+      y += Math.abs(Math.sin(t * 2.55)) * .055;
+      rz = Math.sin(t * 2.55) * .014;
     } else if (behavior === 'point') {
-      ry += (state.homeX < 0 ? -.10 : .10) + Math.sin(t * .65) * .015;
+      ry += (state.homeX < 0 ? -.12 : .12) + Math.sin(t * .62) * .018;
     } else if (behavior === 'bow') {
-      const cycle = .5 + .5 * Math.sin(t * .58);
-      rx = cycle > .76 ? -.18 * ((cycle - .76) / .24) : 0;
+      const cycle = .5 + .5 * Math.sin(t * .56);
+      rx = cycle > .72 ? -.22 * ((cycle - .72) / .28) : 0;
     } else if (behavior === 'carry') {
-      x += Math.sin(t * .38) * .16;
-      rz = Math.sin(t * 1.9) * .008;
+      x += Math.sin(t * .34) * .18;
+      rz = Math.sin(t * 1.7) * .007;
     } else {
-      y += Math.sin(t * 1.1) * .006;
+      y += Math.sin(t * 1.0) * .004;
     }
 
-    person.position.x = expLerp(person.position.x, x, 10, dt);
-    person.position.y = expLerp(person.position.y, y, 10, dt);
-    person.rotation.x = expLerp(person.rotation.x, rx, 9, dt);
-    person.rotation.y = expLerp(person.rotation.y, ry, 9, dt);
-    person.rotation.z = expLerp(person.rotation.z, rz, 9, dt);
+    person.position.x = expLerp(person.position.x, x, 12, dt);
+    person.position.y = expLerp(person.position.y, y, 12, dt);
+    person.rotation.x = expLerp(person.rotation.x, rx, 11, dt);
+    person.rotation.y = expLerp(person.rotation.y, ry, 11, dt);
+    person.rotation.z = expLerp(person.rotation.z, rz, 11, dt);
     animateVisibleArm(person, state, now, amount);
   }
 
