@@ -3,8 +3,13 @@ name: Deploy Moses Nile V7.3 Preview
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feature/moses-nile-runner-mvp
     paths:
+      - 'web/games/moses-nile-v7/**'
+      - 'web/assets/models/moses-nile/woven-basket.obj'
+      - 'docs/moses-nile-3d-assets.md'
       - '.github/workflows/deploy-moses-nile-v7-preview.yml'
 
 permissions:
@@ -15,10 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Checkout V7.3 game branch
+      - name: Checkout current preview source
         uses: actions/checkout@v4
-        with:
-          ref: feature/moses-nile-runner-mvp
 
       - name: Setup Node
         uses: actions/setup-node@v4
