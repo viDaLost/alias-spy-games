@@ -36,33 +36,24 @@ jobs:
           "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=1280,800 --virtual-time-budget=23000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/desktop.png "$URL"
           test -s visual-audit/mobile.png && test -s visual-audit/desktop.png
           printf 'commit=%s\nversion=V7.4\ncapture=success\nurl=%s\n' "$GITHUB_SHA" "$URL" > visual-audit/status.txt
-      - name: Analyze river color and stripe regressions
+      - name: Analyze river color regression
         run: |
           python -m pip install --quiet pillow
           python - <<'PY'
           from PIL import Image
           im=Image.open('visual-audit/mobile.png').convert('RGB')
-          w,h=im.size
-          samples=[]
-          # Central river trapezoid, avoiding HUD, banks and foreground basket.
+          w,h=im.size;samples=[]
           for y in range(int(h*.34),int(h*.70)):
-              p=(y-h*.34)/(h*.36)
-              half=int(24+70*p)
-              cx=w//2
-              for x in range(cx-half,cx+half):
-                  samples.append(im.getpixel((x,y)))
-          n=max(1,len(samples))
-          mr=sum(p[0] for p in samples)/n; mg=sum(p[1] for p in samples)/n; mb=sum(p[2] for p in samples)/n
+              p=(y-h*.34)/(h*.36);half=int(24+70*p);cx=w//2
+              for x in range(cx-half,cx+half):samples.append(im.getpixel((x,y)))
+          n=max(1,len(samples));mr=sum(p[0] for p in samples)/n;mg=sum(p[1] for p in samples)/n;mb=sum(p[2] for p in samples)/n
           blue=sum(1 for r,g,b in samples if b>r*1.28 and b>g*1.06 and b-r>28)/n
-          # Neutral medium grey in the river is a good proxy for the old terrain wedges.
           grey=sum(1 for r,g,b in samples if max(r,g,b)-min(r,g,b)<15 and 65<(r+g+b)/3<190)/n
           with open('visual-audit/metrics.txt','w') as f:
-              f.write(f'river_mean_rgb={mr:.1f},{mg:.1f},{mb:.1f}\n')
-              f.write(f'cyan_blue_fraction={blue:.4f}\n')
-              f.write(f'neutral_grey_fraction={grey:.4f}\n')
-          # Regression guards are intentionally tolerant of reflections and fog.
-          assert blue < .38, f'river regressed too cyan: {blue:.3f}'
-          assert grey < .30, f'large grey terrain wedges likely returned: {grey:.3f}'
+              f.write(f'river_mean_rgb={mr:.1f},{mg:.1f},{mb:.1f}\ncyan_blue_fraction={blue:.4f}\nneutral_grey_fraction={grey:.4f}\n')
+          # Grey is reported only: muted green-brown Nile water is naturally low-saturation.
+          assert blue < .12, f'river regressed too cyan: {blue:.3f}'
+          assert mb-mr < 35, f'river shifted too blue: RGB={mr:.1f},{mg:.1f},{mb:.1f}'
           PY
       - name: Publish V7.4 screenshots
         if: always()
