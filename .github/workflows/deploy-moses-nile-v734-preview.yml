@@ -9,7 +9,7 @@ on:
       - '.github/workflows/deploy-moses-nile-v734-preview.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy-v738:
@@ -94,6 +94,40 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
+
+      - name: Verify Cloudflare V7.3.8 preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}?verify=${GITHUB_SHA}-${attempt}" -o /tmp/preview.html \
+              && grep -q 'V7.3.8 · LOADING' /tmp/preview.html \
+              && grep -q 'v738-cinematic.js?v=738' /tmp/preview.html \
+              && curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}js/v738-cinematic.js?verify=${GITHUB_SHA}-${attempt}" -o /tmp/v738-cinematic.js \
+              && grep -q '__mosesV738Installed' /tmp/v738-cinematic.js \
+              && grep -q 'v738Attack' /tmp/v738-cinematic.js; then
+              printf 'VERIFIED\ncommit=%s\npreview=%s\nversion=V7.3.8\nhtml_badge=ok\ncinematic_asset=ok\nverified_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v738-verified.txt
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Cloudflare preview did not serve the expected V7.3.8 runtime' >&2
+          exit 1
+
+      - name: Publish verification marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/moses-nile-v738-verified.txt /tmp/verified.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B verify/moses-nile-v738
+          mkdir -p deploy-status
+          cp /tmp/verified.txt deploy-status/moses-nile-v738.txt
+          git add deploy-status/moses-nile-v738.txt
+          git commit -m 'Verify Moses Nile V7.3.8 Cloudflare preview' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v738
 
       - name: Print URL
         run: echo 'https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
