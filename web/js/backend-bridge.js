@@ -4,7 +4,8 @@
   if (!coreUrl || typeof window.fetch !== 'function') return;
 
   const originalFetch = window.fetch.bind(window);
-  const CORE_TIMEOUT_MS = 5000;
+  const ACCESS_TIMEOUT_MS = 5000;
+  const DEFAULT_TIMEOUT_MS = 20000;
   const FAILURE_COOLDOWN_MS = 30000;
   let coreHealthy = true;
   let lastFailureAt = 0;
@@ -38,9 +39,20 @@
     return jsonResponse({ success: false, error: `Cloudflare backend is ${reason}` }, 503);
   }
 
+  function requestPolicy(body) {
+    const action = String(body?.payload?.action || '');
+    const isAccessCheck = action === 'syncUser';
+    return {
+      action,
+      timeoutMs: isAccessCheck ? ACCESS_TIMEOUT_MS : DEFAULT_TIMEOUT_MS,
+      useFailureCooldown: isAccessCheck,
+    };
+  }
+
   async function callCore(path, body) {
+    const policy = requestPolicy(body);
     const now = Date.now();
-    if (!coreHealthy && lastFailureAt && now - lastFailureAt < FAILURE_COOLDOWN_MS) {
+    if (policy.useFailureCooldown && !coreHealthy && lastFailureAt && now - lastFailureAt < FAILURE_COOLDOWN_MS) {
       return unavailableResponse('cooling down after a failed request');
     }
 
@@ -49,10 +61,10 @@
     const timeout = new Promise((_, reject) => {
       timeoutId = window.setTimeout(() => {
         try { controller?.abort(); } catch {}
-        const error = new Error(`Core request timed out after ${CORE_TIMEOUT_MS}ms`);
+        const error = new Error(`Core request timed out after ${policy.timeoutMs}ms`);
         error.name = 'TimeoutError';
         reject(error);
-      }, CORE_TIMEOUT_MS);
+      }, policy.timeoutMs);
     });
 
     try {
@@ -64,17 +76,19 @@
         ...(controller ? { signal: controller.signal } : {}),
       });
       const response = await Promise.race([request, timeout]);
-      coreHealthy = response.ok;
-      if (!response.ok) lastFailureAt = Date.now();
+      const serverFailure = response.status >= 500 || response.status === 429;
+      coreHealthy = !serverFailure;
+      if (serverFailure) lastFailureAt = Date.now();
       else lastFailureAt = 0;
       return response;
     } catch (error) {
       coreHealthy = false;
       lastFailureAt = Date.now();
+      const label = policy.action || path;
       if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
-        console.warn('[AppCoreBridge] Access request timed out; continuing with local app state.');
+        console.warn(`[AppCoreBridge] ${label} request timed out after ${policy.timeoutMs}ms; continuing with local app state.`);
       } else {
-        console.warn('[AppCoreBridge] Core request failed; continuing with local app state.', error);
+        console.warn(`[AppCoreBridge] ${label} request failed; continuing with local app state.`, error);
       }
       return unavailableResponse();
     } finally {
@@ -115,9 +129,16 @@
     backend: coreUrl,
     source: 'cloudflare',
     legacyFallbackEnabled: false,
-    timeoutMs: CORE_TIMEOUT_MS,
+    timeoutMs: ACCESS_TIMEOUT_MS,
+    defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
     status() {
-      return { coreHealthy, lastFailureAt, legacyFallbackEnabled: false, timeoutMs: CORE_TIMEOUT_MS };
+      return {
+        coreHealthy,
+        lastFailureAt,
+        legacyFallbackEnabled: false,
+        timeoutMs: ACCESS_TIMEOUT_MS,
+        defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
+      };
     },
   };
 })();
