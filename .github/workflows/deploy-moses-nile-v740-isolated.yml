@@ -38,24 +38,24 @@ jobs:
           PY
           bash /tmp/v740-build.sh
 
-          # V7.4 owns all user-visible version/status UI. Preserve the gameplay logic
-          # from legacy layers where it is still useful, but remove their badge writers.
+          # V7.4 exclusively owns the visible version badge. Keep this patch idempotent:
+          # older source revisions get their badge writers stripped, newer fixed source passes through.
           python - <<'PY'
           from pathlib import Path
 
           p=Path('.preview-v7/js/v737-gameplay-polish.js')
           s=p.read_text(encoding='utf-8')
           old="""  function updateBadge() {\n    const badge = document.getElementById('version-badge');\n    if (!badge || !window.__mosesV736TexturesReady) return;\n    badge.dataset.state = 'ready';\n    badge.textContent = 'V7.3.7 · CROCS CHOMP · CLEAN BANKS · SAFE EDGES';\n  }"""
-          new="""  function updateBadge() {\n    // V7.4 owns #version-badge. Keep V7.3.7 gameplay polish, never overwrite UI version.\n    return;\n  }"""
-          if old not in s:
-              raise SystemExit('Expected V7.3.7 badge writer was not found')
-          p.write_text(s.replace(old,new),encoding='utf-8')
+          new="""  function updateBadge() {\n    // V7.4 owns #version-badge. Keep legacy gameplay logic, never overwrite UI version.\n    return;\n  }"""
+          if old in s:
+              s=s.replace(old,new)
+          p.write_text(s,encoding='utf-8')
 
           p=Path('.preview-v7/js/v7313-visual-quality.js')
           s=p.read_text(encoding='utf-8')
-          old="""const b=document.getElementById('version-badge');if(b){b.dataset.state='ready';b.textContent='V7.3.13 · VISUAL QUALITY';}"""
+          old="""const badge=document.getElementById('version-badge');if(badge){badge.dataset.state='ready';badge.textContent='V7.3.13 · VISUAL QUALITY';}"""
           if old in s:
-              s=s.replace(old,"""const b=document.getElementById('version-badge');if(b){b.dataset.v7313='ready';}""")
+              s=s.replace(old,"""const badge=document.getElementById('version-badge');if(badge)badge.dataset.v7313='ready';""")
           p.write_text(s,encoding='utf-8')
           PY
 
@@ -69,7 +69,7 @@ jobs:
 
           grep -q 'V7.4 · LOADING' .preview-v7/index.html
           ! grep -q 'V7.3.7 · CROCS CHOMP' .preview-v7/js/v737-gameplay-polish.js
-          ! grep -q "badge.textContent='V7.3.13" .preview-v7/js/v7313-visual-quality.js
+          ! grep -q 'V7.3.13 · VISUAL QUALITY' .preview-v7/js/v7313-visual-quality.js
           ! grep -q 'V7.3.8 · LOADING' .preview-v7/js/v738-cinematic.js
 
       - name: Deploy isolated V7.4 worker
@@ -96,21 +96,30 @@ jobs:
               && curl -fsSL --max-time 20 "${P}js/v737-gameplay-polish.js${Q}" -o /tmp/v737.js \
               && ! grep -q 'V7.3.7 · CROCS CHOMP' /tmp/v737.js \
               && curl -fsSL --max-time 20 "${P}js/v7313-visual-quality.js${Q}" -o /tmp/v7313.js \
-              && ! grep -q "badge.textContent='V7.3.13" /tmp/v7313.js; then break; fi
+              && ! grep -q 'V7.3.13 · VISUAL QUALITY' /tmp/v7313.js; then break; fi
             sleep 5
           done
           grep -q 'V7.4 · LOADING' /tmp/index.html
           ! grep -q 'V7.3.7 · CROCS CHOMP' /tmp/v737.js
+          ! grep -q 'V7.3.13 · VISUAL QUALITY' /tmp/v7313.js
 
           CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
           URL="${P}?visualAudit=1&isolated=${GITHUB_SHA}"
           "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=35000 --dump-dom "$URL" > /tmp/dom.html
-
-          # Validate the actual rendered version badge, not an unrelated V7.4 string elsewhere in DOM.
-          grep -Eq '<div id="version-badge"[^>]*>V7\.4[^<]*</div>' /tmp/dom.html
-          ! grep -Eq '<div id="version-badge"[^>]*>V7\.3\.7' /tmp/dom.html
-          ! grep -Eq '<div id="version-badge"[^>]*>V7\.3\.8' /tmp/dom.html
-          ! grep -Eq '<div id="version-badge"[^>]*>V7\.3\.13' /tmp/dom.html
+          python - <<'PY'
+          import re
+          s=open('/tmp/dom.html',encoding='utf-8').read()
+          m=re.search(r'<div id="version-badge"[^>]*>([^<]*)</div>',s)
+          if not m:
+              raise SystemExit('version badge missing from runtime DOM')
+          badge=m.group(1).strip()
+          open('/tmp/runtime-badge.txt','w',encoding='utf-8').write(badge+'\n')
+          print('runtime badge:',badge)
+          if not badge.startswith('V7.4'):
+              raise SystemExit('unexpected runtime badge: '+badge)
+          if any(v in badge for v in ('V7.3.7','V7.3.8','V7.3.13')):
+              raise SystemExit('legacy runtime badge: '+badge)
+          PY
 
       - name: Publish isolated verification marker
         if: always()
@@ -120,7 +129,9 @@ jobs:
           V: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          printf 'commit=%s\nversion=V7.4\nbuild=%s\ndeploy=%s\nverify=%s\nruntime_badge=V7.4\nlegacy_v737_badge=removed\nlegacy_v738_badge=removed\nlegacy_v7313_badge=removed\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          BADGE='unavailable'
+          if test -s /tmp/runtime-badge.txt; then BADGE=$(cat /tmp/runtime-badge.txt); fi
+          printf 'commit=%s\nversion=V7.4\nbuild=%s\ndeploy=%s\nverify=%s\nruntime_badge=%s\nlegacy_v737_badge=removed\nlegacy_v738_badge=removed\nlegacy_v7313_badge=removed\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" "$B" "$D" "$V" "$BADGE" > /tmp/status.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v740-isolated
