@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.3.5 Preview
+name: Deploy Moses Nile V7.3.6 Preview
 
 on:
   workflow_dispatch:
@@ -12,17 +12,19 @@ permissions:
   contents: read
 
 jobs:
-  deploy-v735:
+  deploy-v736:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
-      - name: Checkout V7.3.5 source
+      - name: Checkout V7.3.6 source
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build V7.3.5 preview
+
+      - name: Build V7.3.6 preview
         shell: bash
         run: |
           set -euo pipefail
@@ -53,27 +55,37 @@ jobs:
           npx --yes @gltf-transform/cli@latest resize .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb --width 512 --height 512 || cp .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb
           rm -f .preview-v7/models/v73/crocodile-original.glb
 
-          # CC0 Poly Haven sand PBR maps (Aerial Beach 01, 1K).
-          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/aerial_beach_01/aerial_beach_01_diff_1k.png -o .preview-v7/textures/aerial-beach-01-diffuse.png
-          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/aerial_beach_01/aerial_beach_01_nor_gl_1k.png -o .preview-v7/textures/aerial-beach-01-normal.png
-          # Lightweight Three.js MIT water texture + normal map, bundled same-origin for iPhone/Telegram.
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/water.jpg -o .preview-v7/textures/water.jpg
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/waternormals.jpg -o .preview-v7/textures/waternormals.jpg
+          # Poly Haven CC0 1K terrain maps.
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_diff_1k.jpg -o .preview-v7/textures/sand-03-diffuse-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_diff_1k.jpg -o .preview-v7/textures/damp-sand-diffuse-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_nor_gl_1k.jpg -o .preview-v7/textures/damp-sand-normal-gl-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_diff_1k.jpg -o .preview-v7/textures/ganges-pebbles-diffuse-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_nor_gl_1k.jpg -o .preview-v7/textures/ganges-pebbles-normal-gl-1k.jpg
+
+          # Two Three.js normal maps for a lightweight layered river flow.
+          THREE_WATER_REV=83d8667898fd32a6a0f1af92f6d91065db272ce2
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_1_M_Normal.jpg" -o .preview-v7/textures/Water_1_M_Normal.jpg
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_2_M_Normal.jpg" -o .preview-v7/textures/Water_2_M_Normal.jpg
 
           node --check .preview-v7/js/v73-enhancements.js
           node --check .preview-v7/js/v731-polish.js
           node --check .preview-v7/js/v733-life.js
           node --check .preview-v7/js/v734-stability.js
           node --check .preview-v7/js/v735-crocs-textures.js
-          grep -q 'V7.3.5 · LOADING' .preview-v7/index.html
-          grep -q 'v735-crocs-textures.js?v=735' .preview-v7/index.html
+          node --check .preview-v7/js/v736-water-banks.js
+          grep -q 'V7.3.6 · LOADING' .preview-v7/index.html
+          grep -q 'v736-water-banks.js?v=736' .preview-v7/index.html
           grep -q 'v735UniqueCroc' .preview-v7/js/v735-crocs-textures.js
-          grep -q 'aerial-beach-01-diffuse.png' .preview-v7/js/v735-crocs-textures.js
-          grep -q 'waternormals.jpg' .preview-v7/js/v735-crocs-textures.js
-          test -s .preview-v7/textures/aerial-beach-01-diffuse.png
-          test -s .preview-v7/textures/aerial-beach-01-normal.png
-          test -s .preview-v7/textures/water.jpg
-          test -s .preview-v7/textures/waternormals.jpg
+          grep -q 'SAND + DAMP' .preview-v7/js/v736-water-banks.js
+          test -s .preview-v7/textures/sand-03-diffuse-1k.jpg
+          test -s .preview-v7/textures/sand-03-normal-gl-1k.jpg
+          test -s .preview-v7/textures/damp-sand-diffuse-1k.jpg
+          test -s .preview-v7/textures/damp-sand-normal-gl-1k.jpg
+          test -s .preview-v7/textures/ganges-pebbles-diffuse-1k.jpg
+          test -s .preview-v7/textures/ganges-pebbles-normal-gl-1k.jpg
+          test -s .preview-v7/textures/Water_1_M_Normal.jpg
+          test -s .preview-v7/textures/Water_2_M_Normal.jpg
           test -s .preview-v7/models/v73/crocodile.glb
           test -s .preview-v7/models/v73/human.glb
           test -s .preview-v7/models/v73/lotus-flower.obj
@@ -88,10 +100,12 @@ jobs:
             "assets": {"directory": "./.preview-v7", "not_found_handling": "single-page-application"}
           }
           JSON
-      - name: Deploy V7.3.5 preview
+
+      - name: Deploy V7.3.6 preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
+
       - name: Print URL
         run: echo 'https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
