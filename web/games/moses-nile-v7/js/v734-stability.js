@@ -6,6 +6,7 @@
   const personState = new WeakMap();
   const crocState = new WeakMap();
   let lastNow = performance.now();
+  let lastDistance = Number(document.getElementById('dist-txt')?.textContent || 0);
 
   function expLerp(current, target, speed, dt) {
     const k = 1 - Math.exp(-speed * Math.max(0, dt));
@@ -32,7 +33,7 @@
     return state;
   }
 
-  function syncPersonZ(person, state, dt) {
+  function syncPersonZ(person, state, dt, extraAdvance = 0) {
     const observed = Number(person.position.z);
     const delta = observed - state.lastOutputZ;
     if (Number.isFinite(delta) && Math.abs(delta) > .0001) {
@@ -42,6 +43,11 @@
       } else {
         state.targetZ += delta;
       }
+    }
+    if (extraAdvance > 0) state.targetZ += extraAdvance;
+    if (state.targetZ > 30) {
+      state.targetZ -= 260;
+      state.displayZ -= 260;
     }
     state.displayZ = expLerp(state.displayZ, state.targetZ, 8.5, dt);
     person.position.z = state.displayZ;
@@ -105,8 +111,8 @@
     }
   }
 
-  function animatePerson(person, state, now, dt) {
-    syncPersonZ(person, state, dt);
+  function animatePerson(person, state, now, dt, extraAdvance) {
+    syncPersonZ(person, state, dt, extraAdvance);
     const t = now * .001 + state.phase;
     const amount = gestureEnvelope(state, now);
     const behavior = state.behavior;
@@ -195,9 +201,14 @@
     const scene = window.__mosesV73Scene;
     const dt = Math.min(.05, Math.max(.001, (now - lastNow) / 1000));
     lastNow = now;
+    const distance = Number(document.getElementById('dist-txt')?.textContent || 0);
+    const advance = Math.max(0, Math.min(3, distance - lastDistance));
+    lastDistance = distance;
+
     if (scene) {
       scene.children.filter((node) => node?.userData?.v73Person).forEach((person, index) => {
-        animatePerson(person, ensurePerson(person, index), now, dt);
+        const extraAdvance = person.userData?.v733Extra ? advance : 0;
+        animatePerson(person, ensurePerson(person, index), now, dt, extraAdvance);
       });
       scene.children.forEach((node) => {
         if (node?.userData?.v73Croc) animateCroc(node, ensureCroc(node), now, dt);
