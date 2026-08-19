@@ -1,0 +1,12 @@
+commit=2bd06d56cc0226c4626cbd9f397fac26e61892d4
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/
+version=V7.3.13
+build=failure
+deploy=skipped
+verify=skipped
+shoreline=continuous
+terrain_normal=corrected
+atmosphere=natural-daylight
+pyramids=deemphasized
+water=calm-nile
+checked_at=2026-08-19T17:12:27Z
