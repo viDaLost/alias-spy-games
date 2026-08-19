@@ -21,8 +21,13 @@ jobs:
         with:
           node-version: 22
       - name: Install lightweight browser driver
+        id: install
+        continue-on-error: true
         run: npm install --no-save playwright-core@1.55.0
       - name: Capture real Cloudflare render
+        id: capture
+        if: always() && steps.install.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -36,29 +41,34 @@ jobs:
           const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
           const errors=[]; page.on('console',m=>{ if(m.type()==='error') errors.push('console: '+m.text()); }); page.on('pageerror',e=>errors.push('pageerror: '+e.message));
           await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
-          await page.waitForTimeout(9000);
+          await page.waitForTimeout(8000);
           const start=page.locator('#start-btn'); if(await start.count()) await start.click();
-          await page.waitForTimeout(9000);
+          await page.waitForTimeout(8000);
           await page.screenshot({path:'/tmp/moses-mobile.png',fullPage:false});
           await page.setViewportSize({width:1280,height:800});
-          await page.waitForTimeout(2000);
+          await page.waitForTimeout(1500);
           await page.screenshot({path:'/tmp/moses-desktop.png',fullPage:false});
           const state=await page.evaluate(()=>({badge:document.getElementById('version-badge')?.textContent||'',ready:!!window.__mosesV7312Ready,terrain:!!window.__mosesTerrain,water:!!window.__mosesWaterFX}));
           fs.writeFileSync('/tmp/visual-state.json',JSON.stringify({url,state,errors},null,2));
           await browser.close();
           JS
           node /tmp/capture.mjs
-      - name: Publish visual audit
+      - name: Publish visual audit diagnostics
+        if: always()
         shell: bash
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          CAPTURE_OUTCOME: ${{ steps.capture.outcome }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v7312-visual
           mkdir -p visual-audit
-          cp /tmp/moses-mobile.png visual-audit/mobile.png
-          cp /tmp/moses-desktop.png visual-audit/desktop.png
-          cp /tmp/visual-state.json visual-audit/state.json
+          printf 'commit=%s\ninstall=%s\ncapture=%s\n' "$GITHUB_SHA" "${INSTALL_OUTCOME:-skipped}" "${CAPTURE_OUTCOME:-skipped}" > visual-audit/status.txt
+          if test -f /tmp/moses-mobile.png; then cp /tmp/moses-mobile.png visual-audit/mobile.png; fi
+          if test -f /tmp/moses-desktop.png; then cp /tmp/moses-desktop.png visual-audit/desktop.png; fi
+          if test -f /tmp/visual-state.json; then cp /tmp/visual-state.json visual-audit/state.json; fi
           git add visual-audit
           git commit -m 'Capture Moses Nile V7.3.12 visual audit' || true
           git push --force origin HEAD:refs/heads/verify/moses-nile-v7312-visual
