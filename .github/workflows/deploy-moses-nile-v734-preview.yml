@@ -84,6 +84,7 @@ jobs:
 
       - name: Upload V7.3.8 standalone artifact
         if: steps.build.outcome == 'success'
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: moses-nile-v738-full
@@ -93,7 +94,7 @@ jobs:
 
       - name: Deploy V7.3.8 preview
         id: deploy
-        if: steps.build.outcome == 'success'
+        if: always() && steps.build.outcome == 'success'
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -102,7 +103,7 @@ jobs:
 
       - name: Verify Cloudflare V7.3.8 preview
         id: verify
-        if: steps.deploy.outcome == 'success'
+        if: always() && steps.deploy.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
