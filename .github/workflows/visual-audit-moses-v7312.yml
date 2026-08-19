@@ -1,0 +1,64 @@
+name: Visual Audit Moses Nile V7.3.12
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/moses-nile-runner-mvp]
+    paths:
+      - 'web/games/moses-nile-v7/**'
+      - '.github/workflows/visual-audit-moses-v7312.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install lightweight browser driver
+        run: npm install --no-save playwright-core@1.55.0
+      - name: Capture real Cloudflare render
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          export CHROME
+          cat > /tmp/capture.mjs <<'JS'
+          import { chromium } from 'playwright-core';
+          import fs from 'node:fs';
+          const url='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?visualAudit='+Date.now();
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+          const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+          const errors=[]; page.on('console',m=>{ if(m.type()==='error') errors.push('console: '+m.text()); }); page.on('pageerror',e=>errors.push('pageerror: '+e.message));
+          await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
+          await page.waitForTimeout(9000);
+          const start=page.locator('#start-btn'); if(await start.count()) await start.click();
+          await page.waitForTimeout(9000);
+          await page.screenshot({path:'/tmp/moses-mobile.png',fullPage:false});
+          await page.setViewportSize({width:1280,height:800});
+          await page.waitForTimeout(2000);
+          await page.screenshot({path:'/tmp/moses-desktop.png',fullPage:false});
+          const state=await page.evaluate(()=>({badge:document.getElementById('version-badge')?.textContent||'',ready:!!window.__mosesV7312Ready,terrain:!!window.__mosesTerrain,water:!!window.__mosesWaterFX}));
+          fs.writeFileSync('/tmp/visual-state.json',JSON.stringify({url,state,errors},null,2));
+          await browser.close();
+          JS
+          node /tmp/capture.mjs
+      - name: Publish visual audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B verify/moses-nile-v7312-visual
+          mkdir -p visual-audit
+          cp /tmp/moses-mobile.png visual-audit/mobile.png
+          cp /tmp/moses-desktop.png visual-audit/desktop.png
+          cp /tmp/visual-state.json visual-audit/state.json
+          git add visual-audit
+          git commit -m 'Capture Moses Nile V7.3.12 visual audit' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v7312-visual
