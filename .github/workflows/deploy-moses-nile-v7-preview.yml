@@ -132,7 +132,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Publish ZIP to repository downloads
+      - name: Publish ZIP to package branch
         if: github.event_name == 'push'
         shell: bash
         run: |
@@ -141,16 +141,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git checkout -B main origin/main
+          git checkout -B package/moses-nile-v737 origin/main
           mkdir -p downloads
           cp /tmp/moses-nile-v737-full.zip downloads/moses-nile-v737-full.zip
           git add downloads/moses-nile-v737-full.zip
-          if git diff --cached --quiet; then
-            echo 'Standalone ZIP already current.'
-          else
-            git commit -m 'Add Moses Nile V7.3.7 full standalone archive'
-            git push origin main
-          fi
+          git commit -m 'Add Moses Nile V7.3.7 full standalone archive' || true
+          git push --force origin HEAD:refs/heads/package/moses-nile-v737
 
       - name: Deploy V7.3.7 preview
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
