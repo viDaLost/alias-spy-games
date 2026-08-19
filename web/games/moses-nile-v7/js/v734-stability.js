@@ -76,7 +76,6 @@
     const bone = person.userData?.waveBone;
     const base = person.userData?.waveBase;
     let lift = 0, sweep = 0, elbowBend = .32;
-
     if (behavior === 'wave') {
       lift = amount * 1.18;
       sweep = Math.sin(t * 7.4) * .38 * amount;
@@ -96,7 +95,6 @@
       lift = .10 + amount * .12;
       sweep = Math.sin(t * 1.5) * .05;
     }
-
     if (arm && elbow) {
       arm.rotation.x = -.10 - lift * .24;
       arm.rotation.y = 0;
@@ -117,7 +115,6 @@
     const amount = gestureEnvelope(state, now);
     const behavior = state.behavior;
     let x = state.homeX, y = state.homeY, rx = 0, ry = state.facing, rz = 0;
-
     if (behavior === 'walk') {
       x += Math.sin(t * .60) * .54;
       y += Math.abs(Math.sin(t * 2.45)) * .020;
@@ -137,7 +134,6 @@
     } else {
       y += Math.sin(t * 1.0) * .004;
     }
-
     person.position.x = expLerp(person.position.x, x, 12, dt);
     person.position.y = expLerp(person.position.y, y, 12, dt);
     person.rotation.x = expLerp(person.rotation.x, rx, 11, dt);
@@ -149,11 +145,7 @@
   function ensureCroc(item) {
     if (crocState.has(item)) return crocState.get(item);
     const model = item.userData?.v733Model || item.children?.find?.((child) => child && !child.userData?.v733Wake) || item.children?.[0];
-    const state = {
-      model,
-      baseX: Number(item.userData?.v733BaseX ?? item.position.x),
-      phase: Number(item.userData?.v733Phase ?? Math.random() * Math.PI * 2),
-    };
+    const state = { model, baseX: Number(item.userData?.v733BaseX ?? item.position.x), phase: Number(item.userData?.v733Phase ?? Math.random() * Math.PI * 2) };
     item.userData.v734FacingPlayer = true;
     crocState.set(item, state);
     return state;
@@ -167,16 +159,13 @@
     item.rotation.x = expLerp(item.rotation.x, 0, 8, dt);
     item.rotation.y = expLerp(item.rotation.y, 0, 8, dt);
     item.rotation.z = expLerp(item.rotation.z, Math.sin(t * 2.1) * .012, 8, dt);
-
     const model = state.model;
     if (model) {
-      // Source GLB faces away at PI. Zero faces the basket/player.
       model.rotation.y = yaw;
       model.rotation.x = Math.sin(t * 2.7) * .018;
       model.rotation.z = Math.sin(t * 2.25 + .7) * .018;
       model.position.y = -.18 + Math.sin(t * 3.0) * .035;
     }
-
     const wake = item.userData?.v733Wake;
     if (wake?.children) {
       wake.position.z = -.18;
@@ -204,7 +193,6 @@
     const distance = Number(document.getElementById('dist-txt')?.textContent || 0);
     const advance = Math.max(0, Math.min(3, distance - lastDistance));
     lastDistance = distance;
-
     if (scene) {
       scene.children.filter((node) => node?.userData?.v73Person).forEach((person, index) => {
         const extraAdvance = person.userData?.v733Extra ? advance : 0;
