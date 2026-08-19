@@ -148,6 +148,7 @@
     person.userData.v73Person = true;
     person.userData.v733Extra = true;
     person.userData.v733Variant = variant;
+    person.userData.v733Decorated = true;
     person.userData.waveBone = findArmBone(human);
     if (person.userData.waveBone) {
       person.userData.waveBase = person.userData.waveBone.rotation.clone();
