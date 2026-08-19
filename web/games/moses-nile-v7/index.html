@@ -60,7 +60,7 @@
         const closed=window.__mosesBasketSource==='closed-woven';
         const ready=Boolean(window.__mosesV73ModelsReady);
         const realLotus=window.__mosesLotusSource==='project-owned-obj';
-        if(closed&&ready&&realLotus&&window.__mosesV734Installed){clearInterval(timer);badge.dataset.state='ready';badge.textContent='V7.3.4 · STABLE';return;}
+        if(closed&&ready&&realLotus&&window.__mosesV734Installed){clearInterval(timer);return;}
         if(tries>60){
           clearInterval(timer);badge.dataset.state='fallback';
           badge.textContent=!closed?'V7.3.4 · BASKET FALLBACK':!realLotus?'V7.3.4 · LOTUS FALLBACK':'V7.3.4 · MODEL FALLBACK';
