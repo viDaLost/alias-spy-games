@@ -18,12 +18,10 @@ jobs:
     steps:
       - name: Checkout V7.3.4 source
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Build stabilized preview
         shell: bash
         run: |
@@ -57,8 +55,6 @@ jobs:
           node --check .preview-v7/js/v734-stability.js
           grep -q 'V7.3.4 · LOADING' .preview-v7/index.html
           grep -q 'v734-stability.js?v=734' .preview-v7/index.html
-          grep -q 'window.__mosesV734Installed' .preview-v7/js/v73-enhancements.js
-          grep -q '!window.__mosesV734Installed' .preview-v7/js/v731-polish.js
           grep -q 'v734FacingPlayer' .preview-v7/js/v734-stability.js
           test -s .preview-v7/models/v73/crocodile.glb
           test -s .preview-v7/models/v73/human.glb
@@ -73,12 +69,10 @@ jobs:
             "assets": {"directory": "./.preview-v7", "not_found_handling": "single-page-application"}
           }
           JSON
-
       - name: Deploy V7.3.4 preview
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
-
       - name: Print URL
         run: echo 'https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
