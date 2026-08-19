@@ -128,7 +128,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: moses-nile-v737-full
-          path: .preview-v7/
+          path: moses-nile-v737-full.zip
           if-no-files-found: error
           retention-days: 7
 
