@@ -81,6 +81,7 @@
   }
 
   function updateBadge(scene){
+    if(window.__mosesV735Installed||window.__mosesV736Installed) return;
     const badge=document.getElementById('version-badge'); if(!badge) return;
     const count=scene.children.filter(node=>node?.userData?.v73Person).length; badge.dataset.state='ready'; badge.textContent=`V7.3.4 · PEOPLE SMOOTH · CROCS FACE YOU · ${count}`;
   }
@@ -90,7 +91,10 @@
     const distance=Number(document.getElementById('dist-txt')?.textContent||0), advance=Math.max(0,Math.min(3,distance-lastDistance)); lastDistance=distance;
     if(scene){
       scene.children.filter(node=>node?.userData?.v73Person).forEach((person,index)=>animatePerson(person,ensurePerson(person,index),now,dt,person.userData?.v733Extra?advance:0));
-      scene.children.forEach(node=>{if(node?.userData?.v73Croc) animateCroc(node,ensureCroc(node),now,dt);}); updateBadge(scene);
+      if(!window.__mosesV735Installed&&!window.__mosesV736Installed){
+        scene.children.forEach(node=>{if(node?.userData?.v73Croc) animateCroc(node,ensureCroc(node),now,dt);});
+      }
+      updateBadge(scene);
     }
     requestAnimationFrame(frame);
   }
