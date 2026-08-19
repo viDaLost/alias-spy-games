@@ -20,8 +20,6 @@
   function keepBasketFullyVisible(scene) {
     const p = findPlayer(scene);
     if (!p) return;
-    // The original lane centers are +/-4. On narrow portrait screens the basket clips.
-    // Clamp the visible player center while preserving the three-lane gameplay/collisions.
     p.position.x = clamp(p.position.x, -3.05, 3.05);
   }
 
@@ -31,7 +29,6 @@
     if (!shallowGroup) return;
     shallowGroup.children.forEach((child) => {
       const hex = child?.material?.color?.getHex?.();
-      // V7.3.6 foam/guide strips were the two pale transparent bank lines.
       if (hex === 0xe1f4ec) {
         child.visible = false;
         child.userData.v737HiddenBankStrip = true;
@@ -77,10 +74,7 @@
     pivot.userData.v737FallbackJaw = true;
     pivot.position.set(0, .03, 1.12);
 
-    const jaw = new THREE.Mesh(
-      new THREE.BoxGeometry(.82, .13, 1.18),
-      cloneCrocMaterial(model),
-    );
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(.82, .13, 1.18), cloneCrocMaterial(model));
     jaw.position.set(0, -.055, .53);
     jaw.castShadow = true;
     pivot.add(jaw);
@@ -122,13 +116,10 @@
     const warning = item.children?.find?.((child) => child?.userData?.v735Warning);
     if (!warning) return;
     const modelY = Number(state.model?.position?.y ?? -2);
-    // Keep the telegraph while submerged, but never leave the circular ripple under a visible croc.
     if (modelY > -1.05 || item.position.z > -29) warning.visible = false;
   }
 
   function chompAmount(z) {
-    // Crocodile is already surfaced by this point. It opens, then snaps shut very quickly
-    // while still far enough from the basket for a last-second dodge.
     if (z <= -19 || z >= -5.5) return 0;
     const p = (z + 19) / 13.5;
     if (p < .48) return smoothstep(p / .48);
@@ -156,12 +147,8 @@
     }
   }
 
-  function updateBadge() {
-    const badge = document.getElementById('version-badge');
-    if (!badge || !window.__mosesV736TexturesReady) return;
-    badge.dataset.state = 'ready';
-    badge.textContent = 'V7.3.7 · CROCS CHOMP · CLEAN BANKS · SAFE EDGES';
-  }
+  // V7.4 owns #version-badge. This legacy gameplay layer must never overwrite it.
+  function updateBadge() { return; }
 
   function frame() {
     const scene = window.__mosesV73Scene;
