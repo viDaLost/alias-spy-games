@@ -7,7 +7,6 @@
     const scene=window.__mosesV73Scene,renderer=window.__mosesRenderer;
     if(!scene||!window.THREE)throw new Error('scene unavailable');
 
-    // Replace the flat orange atmosphere with a warm Nile daylight gradient.
     scene.background=new THREE.Color(0xc7d7d8);
     scene.fog=new THREE.Fog(0xd6c6a6,72,285);
     const skyGeo=new THREE.SphereGeometry(420,24,12);
@@ -19,14 +18,12 @@
     });
     const sky=new THREE.Mesh(skyGeo,skyMat);sky.name='NileSkyV7313';sky.renderOrder=-10;scene.add(sky);
 
-    // Remove the oversized low-poly pyramid silhouettes that dominated the horizon.
     for(const child of [...scene.children]){
       let giantPyramid=false;
       child.traverse?.(node=>{const p=node?.geometry?.parameters;if(node?.geometry?.type==='ConeGeometry'&&p?.radialSegments===4&&(p?.radius||0)>18)giantPyramid=true;});
       if(giantPyramid)child.visible=false;
     }
 
-    // More neutral daylight: warm sun, cool sky, restrained colored fill.
     scene.traverse(node=>{
       if(node?.isHemisphereLight){node.color.setHex(0xdbe7e5);node.groundColor.setHex(0x806649);node.intensity=.78;}
       else if(node?.isDirectionalLight){
@@ -36,7 +33,6 @@
     });
     if(renderer){renderer.toneMappingExposure=.98;renderer.shadowMap.autoUpdate=true;}
 
-    // Reduce visual repetition of legacy bank props without removing the Nile vegetation identity.
     let palmIndex=0,plantIndex=0;
     for(const child of scene.children){
       let name='';child.traverse?.(n=>{name+=' '+String(n?.name||'');});
@@ -45,7 +41,7 @@
     }
 
     window.__mosesV7313Ready=true;
-    const badge=document.getElementById('version-badge');if(badge){badge.dataset.state='ready';badge.textContent='V7.3.13 · VISUAL QUALITY';}
+    const badge=document.getElementById('version-badge');if(badge)badge.dataset.v7313='ready';
   }
   boot().catch(e=>{console.error('[V7.3.13 visual]',e);window.__mosesV7313Ready=false;});
 })();
