@@ -1,0 +1,2 @@
+Moses Nile V7.3.7 standalone package trigger.
+This file is intentionally included in the game directory so the pull-request packaging workflow builds the complete archive with runtime JS, vendor libraries, textures, basket OBJ, lotus OBJ and all GLB environment/character/crocodile models.
