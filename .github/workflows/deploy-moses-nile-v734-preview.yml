@@ -56,6 +56,7 @@ jobs:
           npx --yes @gltf-transform/cli@latest resize .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb --width 512 --height 512 || cp .preview-v7/models/v73/crocodile-original.glb .preview-v7/models/v73/crocodile.glb
           rm -f .preview-v7/models/v73/crocodile-original.glb
 
+          node --check .preview-v7/js/v73-enhancements.js
           node --check .preview-v7/js/v731-polish.js
           node --check .preview-v7/js/v733-life.js
           node --check .preview-v7/js/v734-stability.js
@@ -64,6 +65,7 @@ jobs:
           grep -q 'v734FacingPlayer' .preview-v7/js/v734-stability.js
           grep -q 'syncPersonZ' .preview-v7/js/v734-stability.js
           grep -q 'extraAdvance' .preview-v7/js/v734-stability.js
+          grep -q 'window.__mosesV734Installed' .preview-v7/js/v73-enhancements.js
           grep -q '!window.__mosesV734Installed' .preview-v7/js/v731-polish.js
           test -s .preview-v7/models/v73/crocodile.glb
           test -s .preview-v7/models/v73/human.glb
