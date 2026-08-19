@@ -1,0 +1,11 @@
+commit=93f8c7bf1b96893709a8fe143d2525331a20c57e
+version=V7.4
+build=failure
+deploy=skipped
+verify=skipped
+terrain=shoreline-clipped
+water=muted-green-brown
+basket=waterline-lowered
+pyramids=restored-distance
+decor=instanced-bank-detail
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=740
