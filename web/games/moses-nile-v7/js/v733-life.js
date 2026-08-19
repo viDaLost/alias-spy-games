@@ -109,14 +109,8 @@
   function addOutfit(person, variant) {
     const p = OUTFITS[variant % OUTFITS.length];
     const longRobe = variant % 3 !== 1;
-    const robe = new THREE.Mesh(
-      new THREE.CylinderGeometry(.30, longRobe ? .46 : .41, longRobe ? .92 : .68, 8),
-      sharedMat(p.linen, .96),
-    );
-    robe.position.y = longRobe ? .72 : .84;
-    robe.scale.z = .72;
-    robe.castShadow = true;
-    person.add(robe);
+    const robe = new THREE.Mesh(new THREE.CylinderGeometry(.30, longRobe ? .46 : .41, longRobe ? .92 : .68, 8), sharedMat(p.linen, .96));
+    robe.position.y = longRobe ? .72 : .84; robe.scale.z = .72; robe.castShadow = true; person.add(robe);
     const belt = new THREE.Mesh(new THREE.TorusGeometry(.30, .032, 5, 12), sharedMat(p.accent, .9));
     belt.rotation.x = Math.PI / 2; belt.position.y = 1.05; belt.scale.z = .72; person.add(belt);
     if (variant % 2 === 0) {
@@ -148,7 +142,6 @@
     person.userData.v73Person = true;
     person.userData.v733Extra = true;
     person.userData.v733Variant = variant;
-    person.userData.v733Decorated = true;
     person.userData.waveBone = findArmBone(human);
     if (person.userData.waveBone) {
       person.userData.waveBase = person.userData.waveBone.rotation.clone();
@@ -208,170 +201,47 @@
       item.userData.v733BaseX = item.position.x;
       item.userData.v733Phase = Math.random() * Math.PI * 2 + Math.abs(item.position.z) * .07;
       item.userData.v733CrocScale = 1.48;
-
       const wake = new THREE.Group();
       wake.userData.v733Wake = true;
       const mat = new THREE.MeshBasicMaterial({ color: 0xcdf4ff, transparent: true, opacity: .22, depthWrite: false });
       for (const side of [-1, 1]) {
         const streak = new THREE.Mesh(new THREE.PlaneGeometry(.62, .055), mat.clone());
-        streak.rotation.x = -Math.PI / 2;
-        streak.position.set(side * .34, .035, -1.22);
-        wake.add(streak);
+        streak.rotation.x = -Math.PI / 2; streak.position.set(side * .34, .035, -1.22); wake.add(streak);
       }
-      item.add(wake);
-      item.userData.v733Wake = wake;
+      item.add(wake); item.userData.v733Wake = wake;
     }
     crocs.add(item);
   }
 
-  function animateCrocs(now) {
-    const t = now * .001;
-    crocs.forEach((item) => {
-      if (!item.parent) { crocs.delete(item); return; }
-      const phase = item.userData.v733Phase || 0;
-      const baseX = Number(item.userData.v733BaseX ?? item.position.x);
-      const swim = Math.sin(t * 1.15 + phase);
-      const kick = Math.sin(t * 2.8 + phase * 1.7);
-      item.position.x = baseX + swim * .52;
-      item.rotation.y = swim * .085;
-      const model = item.userData.v733Model;
-      if (model) {
-        model.position.y = -.18 + Math.sin(t * 3.2 + phase) * .045;
-        model.rotation.y = Math.PI + swim * .12;
-        model.rotation.z = kick * .025;
-      }
-      const wake = item.userData.v733Wake;
-      if (wake?.children) {
-        wake.children.forEach((streak, index) => {
-          const pulse = .5 + .5 * Math.sin(t * 5 + phase + index * 1.8);
-          streak.material.opacity = .10 + pulse * .18;
-          streak.scale.x = .85 + pulse * .65;
-          streak.position.z = -1.15 - pulse * .35;
-        });
-      }
-    });
-  }
-
-  function animateGestureArm(person, now) {
-    const behavior = person.userData.v733Behavior || 'wave';
-    const phase = person.userData.v733Phase || 0;
-    const t = now * .001 + phase;
-    const inward = person.position.x < 0 ? 1 : -1;
-    const arm = person.userData.v731WaveArm;
-    const elbow = person.userData.v731WaveElbow;
-    const bone = person.userData.waveBone;
-
-    if (arm && elbow) {
-      if (behavior === 'wave') {
-        arm.rotation.z = inward * (-1.25 + Math.sin(t * 5.5) * .28);
-        arm.rotation.x = -.24;
-        elbow.rotation.z = inward * (.48 + Math.sin(t * 5.5 + .8) * .22);
-      } else if (behavior === 'point') {
-        arm.rotation.z = inward * -1.12;
-        arm.rotation.x = -.18 + Math.sin(t * 1.8) * .04;
-        elbow.rotation.z = inward * .10;
-      } else if (behavior === 'cheer') {
-        arm.rotation.z = inward * (-1.55 + Math.sin(t * 4) * .10);
-        arm.rotation.x = -.34;
-        elbow.rotation.z = inward * (.20 + Math.sin(t * 4 + 1) * .10);
-      } else if (behavior === 'carry') {
-        arm.rotation.z = inward * -.35;
-        arm.rotation.x = -.08;
-        elbow.rotation.z = inward * .55;
-      } else {
-        arm.rotation.z = inward * (-.66 + Math.sin(t * 1.6) * .05);
-        arm.rotation.x = -.05;
-        elbow.rotation.z = inward * (.32 + Math.sin(t * 1.8) * .04);
-      }
-    } else if (bone && person.userData.waveBase) {
-      const base = person.userData.waveBase;
-      if (behavior === 'wave' || behavior === 'cheer') {
-        bone.rotation.x = base.x - .85 - (behavior === 'cheer' ? .28 : 0);
-        bone.rotation.z = base.z + (person.userData.waveSide || 1) * (.65 + Math.sin(t * 5.5) * .26);
-      } else if (behavior === 'point') {
-        bone.rotation.x = base.x - .62;
-        bone.rotation.z = base.z + (person.userData.waveSide || 1) * .43;
-      }
-    }
-  }
-
-  function animatePerson(person, now) {
-    if (!person?.parent) { people.delete(person); return; }
-    const behavior = person.userData.v733Behavior || 'wave';
-    const phase = person.userData.v733Phase || 0;
-    const t = now * .001 + phase;
-    const homeX = Number(person.userData.v733HomeX ?? person.position.x);
-    const homeY = Number(person.userData.v733HomeY ?? person.position.y);
-    const facing = Number(person.userData.v733BaseRotationY ?? 0);
-
-    person.position.y = homeY;
-    person.rotation.x = 0;
-    person.rotation.z = Math.sin(t * 1.4) * .012;
-    person.rotation.y = facing;
-
-    if (behavior === 'walk') {
-      person.position.x = homeX + Math.sin(t * .72) * .72;
-      person.position.y = homeY + Math.abs(Math.sin(t * 3.5)) * .045;
-      person.rotation.y = facing + Math.sin(t * .72) * .18;
-      person.rotation.z = Math.sin(t * 3.5) * .018;
-    } else if (behavior === 'cheer') {
-      person.position.x = homeX;
-      person.position.y = homeY + Math.abs(Math.sin(t * 3.8)) * .07;
-      person.rotation.z = Math.sin(t * 3.8) * .026;
-    } else if (behavior === 'point') {
-      person.position.x = homeX;
-      person.rotation.y = facing + (person.position.x < 0 ? -.10 : .10) + Math.sin(t * .8) * .025;
-    } else if (behavior === 'bow') {
-      person.position.x = homeX;
-      const cycle = .5 + .5 * Math.sin(t * .75);
-      person.rotation.x = cycle > .78 ? -.14 * ((cycle - .78) / .22) : 0;
-    } else if (behavior === 'carry') {
-      person.position.x = homeX + Math.sin(t * .42) * .32;
-      person.position.y = homeY + Math.abs(Math.sin(t * 2.4)) * .022;
-      person.rotation.z = Math.sin(t * 2.4) * .012;
-    } else {
-      person.position.x = homeX;
-      person.position.y = homeY + Math.sin(t * 1.5) * .012;
-    }
-    animateGestureArm(person, now);
-  }
-
   function updateBadge(scene) {
     const badge = document.getElementById('version-badge');
-    if (!badge || !extrasMounted) return;
+    if (!badge || !extrasMounted || window.__mosesV734Installed) return;
     const count = scene.children.filter((node) => node?.userData?.v73Person).length;
     if (window.__mosesV73ModelsReady && window.__mosesBasketSource === 'closed-woven') {
-      badge.dataset.state = 'ready';
-      badge.dataset.v733 = '1';
+      badge.dataset.state = 'ready'; badge.dataset.v733 = '1';
       badge.textContent = `V7.3.3 · CROCS LIVE · ${count} PEOPLE`;
     }
   }
 
-  function frame(now) {
+  function frame() {
     const scene = window.__mosesV73Scene;
     if (scene) {
       mountExtraPeople(scene);
       scene.children.forEach((node, index) => {
         if (node?.userData?.v73Croc) enhanceCroc(node);
-        if (node?.userData?.v73Person) {
-          decorateExistingPerson(node, index);
-          people.add(node);
-        }
+        if (node?.userData?.v73Person) { decorateExistingPerson(node, index); people.add(node); }
       });
 
       const distance = Number(document.getElementById('dist-txt')?.textContent || 0);
       const advance = Math.max(0, distance - previousDistance);
       previousDistance = distance;
-      if (advance > 0 && advance < 4) {
+      if (advance > 0 && advance < 4 && !window.__mosesV734Installed) {
         people.forEach((person) => {
           if (!person.userData.v733Extra) return;
           person.position.z += advance;
           if (person.position.z > 30) person.position.z -= 260;
         });
       }
-
-      animateCrocs(now);
-      people.forEach((person) => animatePerson(person, now));
       updateBadge(scene);
     }
     requestAnimationFrame(frame);
