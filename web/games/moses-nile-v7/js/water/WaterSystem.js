@@ -12,6 +12,11 @@ export class WaterSystem {
     this.water.rotation.x=-Math.PI/2;this.water.position.set(0,this.waterLevel,0);this.water.name='NileWaterV740';this.water.userData.nileWater=true;this.water.renderOrder=0;
     this.water.material.transparent=false;this.water.material.depthWrite=true;this.water.material.depthTest=true;this.water.material.side=THREE.FrontSide;
     if(this.water.material.uniforms?.size)this.water.material.uniforms.size.value=2.8;
+    // Water.js r128 intentionally reflects the scene strongly. Keep the reflections but grade them back into a muddy Nile palette.
+    if(this.water.material.fragmentShader?.includes('vec3 outgoingLight = albedo;')){
+      this.water.material.fragmentShader=this.water.material.fragmentShader.replace('vec3 outgoingLight = albedo;','vec3 outgoingLight = mix( albedo, waterColor * 0.82, 0.34 );\n\t\t\t\t\toutgoingLight *= 0.82;');
+      this.water.material.needsUpdate=true;
+    }
     this.scene.add(this.water);this.ready=true;return this.water;
   }
   setShorelineData(data){this.shorelineData=data||null;if(data?.waterLevel!==undefined)this.waterLevel=data.waterLevel;window.__mosesWaterShorelineShared=Boolean(data?.shoreMask&&data?.terrain);}
