@@ -70,9 +70,7 @@
   function improveClosedBasket(scene) {
     if (!scene || scene.userData?.v731BasketDone) return;
     let lid = null;
-    scene.traverse((node) => {
-      if (!lid && node.name === 'ClosedWovenLid') lid = node;
-    });
+    scene.traverse((node) => { if (!lid && node.name === 'ClosedWovenLid') lid = node; });
     if (!lid) return;
     lid.position.y += .06;
     lid.scale.set(1.06, 1.02, 1.06);
@@ -88,6 +86,7 @@
   }
 
   function updateBadge(scene) {
+    if (window.__mosesV734Installed) return;
     const badge = document.getElementById('version-badge');
     if (!badge || badge.dataset.v731 === '1') return;
     const people = scene?.children?.filter?.((x) => x?.userData?.v73Person)?.length || 0;
@@ -105,7 +104,7 @@
     const scene = window.__mosesV73Scene;
     if (scene) {
       scene.children.forEach((node) => makeFallbackWaveArm(node));
-      fallbackWavers.forEach((person) => animateFallbackWave(person, now));
+      if (!window.__mosesV734Installed) fallbackWavers.forEach((person) => animateFallbackWave(person, now));
       improveClosedBasket(scene);
       updateBadge(scene);
     }
