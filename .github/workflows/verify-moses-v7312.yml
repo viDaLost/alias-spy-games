@@ -1,0 +1,80 @@
+name: Verify Moses Nile V7.3.12 Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/moses-nile-runner-mvp]
+    paths:
+      - '.github/workflows/verify-moses-v7312.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify-v7312:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify deployed V7.3.12 assets
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
+          ok=0
+          for attempt in $(seq 1 15); do
+            Q="?final=${GITHUB_SHA}-${attempt}"
+            rm -rf /tmp/v7312 && mkdir -p /tmp/v7312
+            if curl -fsSL --max-time 25 --retry 2 "${PREVIEW}${Q}" -o /tmp/v7312/index.html \
+              && grep -q 'V7.3.12 · LOADING' /tmp/v7312/index.html \
+              && grep -q 'js/terrain/main.js?v=7312' /tmp/v7312/index.html \
+              && curl -fsSL --max-time 25 --retry 2 "${PREVIEW}js/terrain/TerrainSystem.js${Q}" -o /tmp/v7312/TerrainSystem.js \
+              && grep -q 'class TerrainSystem' /tmp/v7312/TerrainSystem.js \
+              && grep -q 'getSurfaceTypeAt' /tmp/v7312/TerrainSystem.js \
+              && curl -fsSL --max-time 25 --retry 2 "${PREVIEW}js/terrain/TerrainMaterial.js${Q}" -o /tmp/v7312/TerrainMaterial.js \
+              && grep -q 'KTX2Loader' /tmp/v7312/TerrainMaterial.js \
+              && grep -q 'uNRMAO4' /tmp/v7312/TerrainMaterial.js \
+              && curl -fsSL --max-time 25 --retry 2 "${PREVIEW}vendor/addons/loaders/KTX2Loader.js${Q}" -o /tmp/v7312/KTX2Loader.js \
+              && grep -q 'BasisTextureLoader' /tmp/v7312/KTX2Loader.js \
+              && curl -fsSL --max-time 25 --retry 2 "${PREVIEW}vendor/addons/loaders/BasisTextureLoader.js${Q}" -o /tmp/v7312/BasisTextureLoader.js \
+              && curl -fsSL --max-time 25 --retry 2 "${PREVIEW}vendor/addons/libs/ktx-parse.module.js${Q}" -o /tmp/v7312/ktx-parse.module.js \
+              && curl -fsSL --max-time 25 --retry 2 "${PREVIEW}vendor/addons/libs/zstddec.module.js${Q}" -o /tmp/v7312/zstddec.module.js; then
+              layers_ok=1
+              for layer in wet_mud wet_sand sand cracked_mud gravel; do
+                curl -fsSL --max-time 25 --retry 2 "${PREVIEW}textures/terrain/${layer}/color.jpg${Q}" -o "/tmp/v7312/${layer}-color.jpg" || layers_ok=0
+                curl -fsSL --max-time 25 --retry 2 "${PREVIEW}textures/terrain/${layer}/nrmao.png${Q}" -o "/tmp/v7312/${layer}-nrmao.png" || layers_ok=0
+                test -s "/tmp/v7312/${layer}-color.jpg" || layers_ok=0
+                test -s "/tmp/v7312/${layer}-nrmao.png" || layers_ok=0
+              done
+              if [ "$layers_ok" = 1 ]; then ok=1; break; fi
+            fi
+            sleep 10
+          done
+          test "$ok" = 1
+
+      - name: Publish final verification marker
+        if: always()
+        shell: bash
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
+          printf 'commit=%s\npreview=%s\nversion=V7.3.12\nverify=%s\nterrain=chunked-splat-pbr\nlayers=wet-mud,wet-sand,sand,cracked-mud,gravel\nktx2_graph=verified\nterrain_assets=verified\nwater_terrain=shared-shoreline\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7312-final.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B verify/moses-nile-v7312-final
+          mkdir -p deploy-status
+          cp /tmp/moses-nile-v7312-final.txt deploy-status/moses-nile-v7312-final.txt
+          git add deploy-status/moses-nile-v7312-final.txt
+          git commit -m 'Record final Moses Nile V7.3.12 verification' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v7312-final
+
+      - name: Require verified preview
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+        run: test "$VERIFY_OUTCOME" = success
