@@ -1,0 +1,4 @@
+commit=2bd06d56cc0226c4626cbd9f397fac26e61892d4
+version=V7.3.13
+capture=success
+url=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?visualAudit=1&sha=2bd06d56cc0226c4626cbd9f397fac26e61892d4
