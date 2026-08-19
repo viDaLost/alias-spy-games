@@ -12,6 +12,12 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entr
 const rel = (file) => path.relative(root, file).replaceAll(path.sep, '/');
 const files = walk(root).filter((f) => !rel(f).startsWith('.git/'));
 
+// Standalone preview sources are copied into an isolated Cloudflare bundle by their
+// deployment workflow. Their vendor files are injected at build time and the subtree is
+// intentionally not part of the production web reachability graph.
+const previewOnlyPrefixes = ['web/games/moses-nile-v7/'];
+const isPreviewOnly = (file) => previewOnlyPrefixes.some((prefix) => rel(file).startsWith(prefix));
+
 for (const file of files.filter((f) => f.endsWith('.js'))) {
   try { execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }); }
   catch (error) { failures.push(`JS syntax: ${rel(file)}\n${error.stderr?.toString() || error.message}`); }
@@ -27,7 +33,7 @@ for (const name of forbidden) {
   if (fs.existsSync(path.join(root, name))) failures.push(`PWA file must stay removed: ${name}`);
 }
 
-const searchable = files.filter((f) => /\.(?:html|js|css|md)$/i.test(f));
+const searchable = files.filter((f) => /\.(?:html|js|css|md)$/i.test(f) && !isPreviewOnly(f));
 for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   const text = fs.readFileSync(file, 'utf8');
   if (/manifest\.webmanifest|navigator\.serviceWorker|beforeinstallprompt|appinstalled/i.test(text)) {
@@ -59,7 +65,7 @@ const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|kt|gradle
 const runtimeReferenceText = new Map(
   runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
 );
-const publishedFiles = files.filter((file) => rel(file).startsWith('web/'));
+const publishedFiles = files.filter((file) => rel(file).startsWith('web/') && !isPreviewOnly(file));
 
 for (const file of publishedFiles) {
   const name = rel(file);
