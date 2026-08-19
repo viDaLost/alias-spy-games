@@ -26,7 +26,7 @@ jobs:
             sleep 6
           done
           exit 1
-      - name: Capture real browser frames
+      - name: Capture real browser frames and live DOM
         run: |
           set -euo pipefail
           CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
@@ -34,8 +34,11 @@ jobs:
           mkdir -p visual-audit
           "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=23000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/mobile.png "$URL"
           "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=1280,800 --virtual-time-budget=23000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/desktop.png "$URL"
-          test -s visual-audit/mobile.png && test -s visual-audit/desktop.png
-          printf 'commit=%s\nversion=V7.4\ncapture=success\nurl=%s\n' "$GITHUB_SHA" "$URL" > visual-audit/status.txt
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=23000 --dump-dom "$URL" > visual-audit/live-dom.html
+          test -s visual-audit/mobile.png && test -s visual-audit/desktop.png && test -s visual-audit/live-dom.html
+          grep -q 'V7.4 · NILE VISUAL OVERHAUL' visual-audit/live-dom.html
+          ! grep -q 'V7.3.8 · LOADING' visual-audit/live-dom.html
+          printf 'commit=%s\nversion=V7.4\ncapture=success\nruntime_badge=V7.4\nlegacy_v738_badge=absent\nurl=%s\n' "$GITHUB_SHA" "$URL" > visual-audit/status.txt
       - name: Analyze river color regression
         run: |
           python -m pip install --quiet pillow
@@ -51,7 +54,6 @@ jobs:
           grey=sum(1 for r,g,b in samples if max(r,g,b)-min(r,g,b)<15 and 65<(r+g+b)/3<190)/n
           with open('visual-audit/metrics.txt','w') as f:
               f.write(f'river_mean_rgb={mr:.1f},{mg:.1f},{mb:.1f}\ncyan_blue_fraction={blue:.4f}\nneutral_grey_fraction={grey:.4f}\n')
-          # Grey is reported only: muted green-brown Nile water is naturally low-saturation.
           assert blue < .12, f'river regressed too cyan: {blue:.3f}'
           assert mb-mr < 35, f'river shifted too blue: RGB={mr:.1f},{mg:.1f},{mb:.1f}'
           PY
