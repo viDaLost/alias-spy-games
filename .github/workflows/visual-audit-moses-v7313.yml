@@ -1,4 +1,4 @@
-name: Visual Audit Moses Nile V7.3.13
+name: Visual Audit Moses Nile V7.3.14
 
 on:
   workflow_dispatch:
@@ -17,13 +17,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for V7.3.13 preview
+      - name: Wait for V7.3.14 preview
         shell: bash
         run: |
           set -euo pipefail
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
           for i in 1 2 3 4 5 6 7 8; do
-            if curl -fsSL --max-time 20 "${PREVIEW}?visualAuditProbe=${GITHUB_SHA}-${i}" | grep -q 'V7.3.13 · LOADING'; then exit 0; fi
+            if curl -fsSL --max-time 20 "${PREVIEW}?visualAuditProbe=${GITHUB_SHA}-${i}" | grep -q 'V7.3.14 · LOADING'; then exit 0; fi
             sleep 6
           done
           exit 1
@@ -34,11 +34,11 @@ jobs:
           CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
           URL="https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?visualAudit=1&sha=${GITHUB_SHA}"
           mkdir -p visual-audit
-          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=22000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/mobile.png "$URL"
-          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=1280,800 --virtual-time-budget=22000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/desktop.png "$URL"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=24000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/mobile.png "$URL"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=1280,800 --virtual-time-budget=24000 --run-all-compositor-stages-before-draw --screenshot=visual-audit/desktop.png "$URL"
           test -s visual-audit/mobile.png
           test -s visual-audit/desktop.png
-          printf 'commit=%s\nversion=V7.3.13\ncapture=success\nurl=%s\n' "$GITHUB_SHA" "$URL" > visual-audit/status.txt
+          printf 'commit=%s\nversion=V7.3.14\ncapture=success\nurl=%s\n' "$GITHUB_SHA" "$URL" > visual-audit/status.txt
       - name: Publish screenshots
         if: always()
         shell: bash
@@ -46,7 +46,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -B verify/moses-nile-v7313-visual
+          git checkout -B verify/moses-nile-v7314-visual
           git add visual-audit || true
-          git commit -m 'Capture Moses Nile V7.3.13 visual audit' || true
-          git push --force origin HEAD:refs/heads/verify/moses-nile-v7313-visual
+          git commit -m 'Capture Moses Nile V7.3.14 visual audit' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v7314-visual
