@@ -12,7 +12,7 @@ function crocSample(node){return node?.userData?.v733Model||node?.children?.find
 
 async function boot(){
   const scene=await waitForGame(),camera=window.__mosesCamera||null;
-  const waterSystem=new WaterSystem({scene,waterLevel:-0.055,waterColor:0x39493f,deepColor:0x2b3b35,distortionScale:1.28,rippleSpeed:0.18,width:13.05});
+  const waterSystem=new WaterSystem({scene,waterLevel:-0.055,waterColor:0x2f3e34,deepColor:0x24312a,distortionScale:1.15,rippleSpeed:0.15,width:13.05});
   await waterSystem.init();
   const ripples=new RippleSystem({scene,waterLevel:waterSystem.waterLevel,maxRipples:72});
   const splashes=new SplashSystem({scene,waterLevel:waterSystem.waterLevel,maxParticles:420});
