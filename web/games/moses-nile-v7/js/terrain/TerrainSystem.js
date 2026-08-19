@@ -15,7 +15,7 @@ export class TerrainSystem {
     this.shoreline=new ShorelineSystem({mask:this.mask,waterLevel});
     this.query=new SurfaceQuerySystem({terrain:this,shoreline:this.shoreline});
     this.lodSystem=new TerrainLODSystem(lod);this.chunks=[];this.materialSystem=null;this.vegetation=null;this.rocks=null;this.ready=false;
-    this.debug={showControlMap:false,showShoreDistance:false,showWetness:false,showLOD:false};
+    this.debug={showControlMap:false,showShoreDistance:false,showWetness:false,showVegetationDensity:false,showLOD:false};
     this.footprints=[];this.footprintCursor=0;
   }
   sampleHeight(x,z){
@@ -61,7 +61,12 @@ export class TerrainSystem {
   getSurfaceTypeAt(x,z){return this.query.getSurfaceTypeAt(x,z);}
   getWetnessAt(x,z){return this.query.getWetnessAt(x,z);}
   getShorelineData(){return {waterLevel:this.waterLevel,shoreMask:this.mask,terrainBounds:this.bounds,terrain:this};}
-  setDebug(flags={}){Object.assign(this.debug,flags);let mode=0;if(this.debug.showControlMap)mode=1;else if(this.debug.showShoreDistance)mode=2;else if(this.debug.showWetness)mode=3;this.materialSystem?.setDebugMode(mode);}
+  setDebug(flags={}){
+    Object.assign(this.debug,flags);let mode=0;
+    if(this.debug.showControlMap)mode=1;else if(this.debug.showShoreDistance)mode=2;else if(this.debug.showWetness)mode=3;else if(this.debug.showVegetationDensity)mode=4;
+    this.materialSystem?.setDebugMode(mode);
+    if(this.materialSystem?.material){this.materialSystem.material.wireframe=Boolean(this.debug.showLOD);this.materialSystem.material.needsUpdate=true;}
+  }
   update(camera,dt=0){
     this.lodSystem.update(this.chunks,camera);this.vegetation?.update(camera,dt);this.rocks?.update(camera);
     for(const f of this.footprints){if(!f.mesh.visible)continue;f.age+=dt;const p=f.age/f.lifetime;if(p>=1)f.mesh.visible=false;else f.mesh.material.opacity*=Math.pow(Math.max(.001,1-p),dt*.9);}
