@@ -11,7 +11,8 @@ import { RockScatterSystem } from './RockScatterSystem.js';
 export class TerrainSystem {
   constructor({scene,renderer,waterLevel=-0.055,chunkSize=64,bounds={minX:-64,maxX:64,minZ:-320,maxZ:96},lod={near:40,mid:120,cull:270},preferKTX2=false}={}){
     this.scene=scene;this.renderer=renderer;this.waterLevel=waterLevel;this.chunkSize=chunkSize;this.bounds=bounds;this.preferKTX2=preferKTX2;
-    this.mask=new TerrainMask({waterLevel,riverHalfWidth:6.62,wetBandWidth:2.15});
+    // Slight terrain/water overlap prevents a bright seam while the bank remains above the water plane.
+    this.mask=new TerrainMask({waterLevel,riverHalfWidth:6.34,wetBandWidth:2.65});
     this.shoreline=new ShorelineSystem({mask:this.mask,waterLevel});
     this.query=new SurfaceQuerySystem({terrain:this,shoreline:this.shoreline});
     this.lodSystem=new TerrainLODSystem(lod);this.chunks=[];this.materialSystem=null;this.vegetation=null;this.rocks=null;this.ready=false;
@@ -19,11 +20,21 @@ export class TerrainSystem {
     this.footprints=[];this.footprintCursor=0;
   }
   sampleHeight(x,z){
-    const d=this.mask.getDistanceToWater(x,z),centerDepth=Math.max(0,-d);
-    const macro=(this.mask.fbm(x*.75,z)-.5)*.34,erosion=(this.mask.noise(x*.23+12,z*.23-9)-.5)*.10;
-    if(d<0)return this.waterLevel-.16-Math.min(.78,centerDepth*.075)+macro*.16;
-    const slope=Math.min(1.45,d*.058),terrace=Math.sin(z*.018+x*.045)*.055*Math.min(1,d/10);
-    return this.waterLevel+.05+slope+macro+erosion+terrace;
+    const d=this.mask.getDistanceToWater(x,z);
+    const macroN=this.mask.fbm(x*.62,z*.78)-.5;
+    const erosionN=this.mask.noise(x*.18+12,z*.18-9)-.5;
+    if(d<0){
+      // Continuous shallow shelf into a gently deepening riverbed. No vertical step at shoreline.
+      const depth=Math.min(.78,.026+Math.pow(Math.max(0,-d),1.08)*.067);
+      const calm=THREE.MathUtils.smoothstep(Math.max(0,-d),0,4.8);
+      return this.waterLevel-depth+macroN*.035*calm;
+    }
+    // Broad low Nile bank: almost flat at water, then a gradual rise with restrained macro relief.
+    const near=THREE.MathUtils.smoothstep(d,0,3.2);
+    const rise=Math.min(1.34,.014+d*.0505);
+    const relief=(macroN*.23+erosionN*.055)*(1-near*.84);
+    const oldChannel=Math.sin(z*.013+x*.031)*.032*THREE.MathUtils.smoothstep(d,4,16);
+    return this.waterLevel+rise+relief+oldChannel;
   }
   async init(){
     this.hideLegacyTerrain();
@@ -34,7 +45,7 @@ export class TerrainSystem {
     const startZ=Math.floor(this.bounds.minZ/s)*s+s*.5,endZ=Math.ceil(this.bounds.maxZ/s)*s-s*.5;
     for(let z=startZ;z<=endZ+.1;z+=s)for(let x=startX;x<=endX+.1;x+=s)this.chunks.push(new TerrainChunk({system:this,cx:x,cz:z,size:s,material,lodDistances:[this.lodSystem.near,this.lodSystem.mid]}).load());
     this.createFootprintPool();
-    this.vegetation=new VegetationSystem({scene:this.scene,terrain:this}).generate();
+    this.vegetation=new VegetationSystem({scene:this.scene,terrain:this,maxReeds:132,maxGrass:104}).generate();
     this.rocks=new RockScatterSystem({scene:this.scene,terrain:this}).generate();
     this.controlMap=this.mask.createControlTexture({...this.bounds,resolution:256});
     this.ready=true;return this;
