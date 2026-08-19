@@ -15,7 +15,15 @@
 - Original source: https://sketchfab.com/3d-models/crocodile-high-quality-a242e4634a234d3fb909c54b2c39d7b8
 - License: **CC BY 4.0**
 - Repository mirror used by the preview build: `sandeshdamkondwar/3d-viewer`, pinned to commit `a33f107378e79b4458d2a400bb5e32fddcedbf73`.
-- V7.3 uses this higher-detail model for gameplay crocodiles instead of the previous procedural box/cone crocodile. V7.3.1 resizes embedded textures to a maximum of 512 px during the preview build when the optimizer is available; if optimization fails, the original licensed GLB is retained.
+- V7.3 uses this higher-detail model for gameplay crocodiles instead of the previous procedural box/cone crocodile. V7.3.1+ resizes embedded textures to a maximum of 512 px during the preview build when the optimizer is available; if optimization fails, the original licensed GLB is retained.
+
+## Nile lotus
+
+- Primary V7.3.2 model: project-owned low-poly OBJ at `web/games/moses-nile-v7/models/lotus-flower.obj`.
+- The geometry was created specifically for this game: three radial petal layers, a raised flower center and small stamens, with no external textures or third-party model dependency.
+- Geometry budget: **957 vertices / 1,260 triangular faces**.
+- Runtime: the preview copies the OBJ to `models/v73/lotus-flower.obj`; `v732-lotus.js` loads it with the local OBJLoader, applies pink petal layers plus a gold center and supplies it to the existing lily-pad pickup.
+- The Quaternius `Flowers.glb` asset remains bundled only as a lightweight fallback if the project-owned lotus cannot load.
 
 ## Quaternius Nile environment models
 
@@ -29,7 +37,7 @@ Used models:
 - `public/glb/nature_pack/Bush_1.glb`
 - `public/glb/nature_pack/Grass.glb`
 - `public/glb/nature_pack/PalmTree_4.glb`
-- `public/glb/nature_pack/Flowers.glb` — lightweight real 3D flower geometry recolored and paired with a lily-pad mesh for the lotus pickup
+- `public/glb/nature_pack/Flowers.glb` — fallback flower only; V7.3.2 uses the project-owned lotus OBJ as the primary pickup model
 - `public/glb/survival_pack/WoodLog.glb`
 - `public/glb/cute_fish_pack/Boat.glb` — wooden boat replacing the previous raft/inflatable-looking prop
 
