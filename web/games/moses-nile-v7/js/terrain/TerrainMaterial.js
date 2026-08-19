@@ -1,0 +1,54 @@
+import * as THREE from 'three';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+
+const LAYERS=['wet_mud','wet_sand','sand','cracked_mud','gravel'];
+
+/** One MeshStandardMaterial shared by every terrain chunk. Five layers are mixed in the shader. */
+export class TerrainMaterial {
+  constructor({renderer,mask,assetRoot='textures/terrain',preferKTX2=false,anisotropy=4}={}){
+    this.renderer=renderer;this.mask=mask;this.assetRoot=assetRoot;this.preferKTX2=preferKTX2;
+    this.anisotropy=Math.min(anisotropy,renderer?.capabilities?.getMaxAnisotropy?.()||4);
+    this.textures={};this.material=null;this.debugMode=0;
+  }
+  async init(){
+    const loader=new THREE.TextureLoader();
+    const ktx=new KTX2Loader();ktx.setTranscoderPath('vendor/basis/');ktx.detectSupport(this.renderer);ktx.setWorkerLimit(1);
+    const load=async(layer,kind,srgb=false)=>{
+      let tex=null;
+      if(this.preferKTX2){try{tex=await ktx.loadAsync(`${this.assetRoot}/${layer}/${kind}.ktx2`);}catch{}}
+      if(!tex)tex=await loader.loadAsync(`${this.assetRoot}/${layer}/${kind}.jpg`);
+      tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=this.anisotropy;
+      if(srgb){if('colorSpace'in tex)tex.colorSpace=THREE.SRGBColorSpace;else tex.encoding=THREE.sRGBEncoding;}
+      return tex;
+    };
+    for(const layer of LAYERS)this.textures[layer]={color:await load(layer,'color',true),nrmao:await load(layer,'nrmao',false)};
+    this.macroNoise=this.makeMacroNoise();
+    this.material=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.86,metalness:0,side:THREE.FrontSide});
+    this.material.name='NileTerrainSplatV7312';
+    this.installShader();
+    this.material.customProgramCacheKey=()=>`nile-terrain-v7312-${this.debugMode}`;
+    return this.material;
+  }
+  makeMacroNoise(){
+    const size=128,data=new Uint8Array(size*size*4);
+    for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4;const n=128+Math.round((Math.sin(x*.31)+Math.sin(y*.19)+Math.sin((x+y)*.073))*18);data[i]=data[i+1]=data[i+2]=n;data[i+3]=255;}
+    const t=new THREE.DataTexture(data,size,size,THREE.RGBAFormat);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.needsUpdate=true;return t;
+  }
+  setDebugMode(mode=0){this.debugMode=mode;this.material?.userData?.shader&&(this.material.userData.shader.uniforms.uDebugMode.value=mode);}
+  installShader(){
+    const t=this.textures,m=this.material;
+    m.onBeforeCompile=(shader)=>{
+      const u=shader.uniforms;
+      u.uWaterLevel={value:this.mask.waterLevel};u.uRiverHalf={value:this.mask.riverHalfWidth};u.uWetWidth={value:this.mask.wetBandWidth};u.uDebugMode={value:this.debugMode};u.uMacroNoise={value:this.macroNoise};
+      LAYERS.forEach((layer,i)=>{u[`uColor${i}`]={value:t[layer].color};u[`uNRMAO${i}`]={value:t[layer].nrmao};});
+      m.userData.shader=shader;
+      shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vTerrainWorld;varying vec3 vTerrainWorldNormal;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvTerrainWorld=worldPosition.xyz;vTerrainWorldNormal=normalize(mat3(modelMatrix)*objectNormal);');
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>\nvarying vec3 vTerrainWorld;varying vec3 vTerrainWorldNormal;\nuniform float uWaterLevel,uRiverHalf,uWetWidth,uDebugMode;uniform sampler2D uMacroNoise;\nuniform sampler2D uColor0,uColor1,uColor2,uColor3,uColor4;uniform sampler2D uNRMAO0,uNRMAO1,uNRMAO2,uNRMAO3,uNRMAO4;\nfloat h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}\nfloat vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1)),f.x),f.y);}\nvec2 rotuv(vec2 p,float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c)*p;}\nvec3 nrm(sampler2D s,vec2 uv){vec4 p=texture2D(s,uv);vec2 xy=p.rg*2.0-1.0;float z=sqrt(max(.02,1.0-dot(xy,xy)));return normalize(vec3(xy.x,z,xy.y));}\nvec4 weightsAt(vec3 wp){float center=sin(wp.z*.0105)*.34+sin(wp.z*.027+1.4)*.13;float macro=(vnoise(wp.xz*.05)-.5)*1.6;float d=abs(wp.x-center)-(uRiverHalf+macro*.32);float n=(vnoise(wp.xz*.12)-.5)*2.0;float q=d+n*clamp(abs(d)*.18,.35,2.2);float a=1.0-smoothstep(-.35,1.05,q);float b=smoothstep(.25,1.0,q)*(1.0-smoothstep(1.2,3.2,q));float c=smoothstep(1.35,3.0,q)*(1.0-smoothstep(6.2,10.5,q));float e=smoothstep(5.2,9.0,q)*(1.0-smoothstep(13.0,19.0,q));float f=smoothstep(11.5,18.0,q);float total=a+b+c+e+f+1e-4;return vec4(a/total,b/total,c/total,e/total);}\nfloat gravelWeight(vec3 wp,vec4 w){float used=w.x+w.y+w.z+w.w;return max(0.0,1.0-used);}\n`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`vec4 tw=weightsAt(vTerrainWorld);float wg=gravelWeight(vTerrainWorld,tw);vec2 p=vTerrainWorld.xz;vec2 uv0=rotuv(p/2.6,.2967);vec2 uv1=rotuv(p/2.9,-.12);vec2 uv2=p/3.4;vec2 uv3=rotuv(p/3.1,.541);vec2 uv4=rotuv(p/3.8,-.192);vec4 c0=texture2D(uColor0,uv0),c1=texture2D(uColor1,uv1),c2=texture2D(uColor2,uv2),c3=texture2D(uColor3,uv3),c4=texture2D(uColor4,uv4);vec3 terrainColor=c0.rgb*tw.x+c1.rgb*tw.y+c2.rgb*tw.z+c3.rgb*tw.w+c4.rgb*wg;float macro=texture2D(uMacroNoise,p/72.0).r;terrainColor*=mix(.91,1.07,macro);if(uDebugMode>0.5&&uDebugMode<1.5)terrainColor=vec3(tw.x,tw.y+tw.z*.55,tw.w);else if(uDebugMode>1.5&&uDebugMode<2.5){float sd=clamp((abs(p.x)-uRiverHalf)/20.0,0.0,1.0);terrainColor=vec3(sd);}else if(uDebugMode>2.5)terrainColor=vec3(1.0-smoothstep(0.0,uWetWidth,abs(p.x)-uRiverHalf));diffuseColor.rgb*=terrainColor;`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <roughnessmap_fragment>',`vec4 n0=texture2D(uNRMAO0,uv0),n1=texture2D(uNRMAO1,uv1),n2=texture2D(uNRMAO2,uv2),n3=texture2D(uNRMAO3,uv3),n4=texture2D(uNRMAO4,uv4);float terrainR=n0.b*tw.x+n1.b*tw.y+n2.b*tw.z+n3.b*tw.w+n4.b*wg;float wet=tw.x+tw.y*.55;roughnessFactor*=mix(terrainR,clamp(terrainR*.58,.28,.65),wet);`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',`vec3 tn=nrm(uNRMAO0,uv0)*tw.x+nrm(uNRMAO1,uv1)*tw.y+nrm(uNRMAO2,uv2)*tw.z+nrm(uNRMAO3,uv3)*tw.w+nrm(uNRMAO4,uv4)*wg;tn=normalize(tn);vec3 worldN=normalize(vec3(tn.x,tn.z,tn.y));normal=normalize(mix(normal,normalize(mat3(viewMatrix)*worldN),.58));`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <aomap_fragment>',`float terrainAO=n0.a*tw.x+n1.a*tw.y+n2.a*tw.z+n3.a*tw.w+n4.a*wg;reflectedLight.indirectDiffuse*=mix(.72,1.0,terrainAO);`);
+    };
+    m.needsUpdate=true;
+  }
+}
