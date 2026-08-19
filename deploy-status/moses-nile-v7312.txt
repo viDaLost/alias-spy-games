@@ -1,0 +1,16 @@
+commit=ab3078cc03f626ab3f2658160d3c05d7d211cd8f
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/
+version=V7.3.12
+build=success
+deploy=success
+verify=failure
+terrain=chunked-splat-pbr
+layers=wet-mud,wet-sand,sand,cracked-mud,gravel
+shoreline=shared-mask
+queries=height,surface,wetness
+vegetation=instanced
+rocks=instanced
+lod=40,120,270
+ktx2=complete-module-graph-with-jpg-png-fallback
+people_model=removed
+checked_at=2026-08-19T16:36:59Z
