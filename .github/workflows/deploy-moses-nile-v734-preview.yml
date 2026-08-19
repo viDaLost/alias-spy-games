@@ -1,4 +1,4 @@
-name: Deploy Moses Nile V7.3.10 Preview
+name: Deploy Moses Nile V7.3.11 Preview
 
 on:
   workflow_dispatch:
@@ -12,11 +12,11 @@ permissions:
   contents: write
 
 jobs:
-  deploy-v7310:
+  deploy-v7311:
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
-      - name: Checkout V7.3.10 source
+      - name: Checkout V7.3.11 source
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -24,23 +24,26 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build V7.3.10 preview
+      - name: Build V7.3.11 preview
         id: build
         shell: bash
         run: |
           set -euo pipefail
           rm -rf .preview-v7
-          mkdir -p .preview-v7/js .preview-v7/vendor .preview-v7/textures .preview-v7/models/environment/nature_pack .preview-v7/models/environment/survival_pack .preview-v7/models/v73
+          mkdir -p .preview-v7/js .preview-v7/vendor/addons/objects .preview-v7/build .preview-v7/textures/water .preview-v7/models/environment/nature_pack .preview-v7/models/environment/survival_pack .preview-v7/models/v73
           cp web/games/moses-nile-v7/index.html .preview-v7/index.html
-          cp web/games/moses-nile-v7/js/*.js .preview-v7/js/
+          cp -R web/games/moses-nile-v7/js/. .preview-v7/js/
           cp web/games/moses-nile-v7/models/lotus-flower.obj .preview-v7/models/v73/lotus-flower.obj
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/basket.obj
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
 
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/build/three.min.js -o .preview-v7/vendor/three-r128.min.js
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/GLTFLoader.js -o .preview-v7/vendor/GLTFLoader-r128.js
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/loaders/OBJLoader.js -o .preview-v7/vendor/OBJLoader-r128.js
-          curl -fsSL --retry 3 https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/js/utils/SkeletonUtils.js -o .preview-v7/vendor/SkeletonUtils-r128.js
+          THREE_REV=r128
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/build/three.min.js" -o .preview-v7/vendor/three-r128.min.js
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/build/three.module.js" -o .preview-v7/build/three.module.js
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/jsm/objects/Water.js" -o .preview-v7/vendor/addons/objects/Water.js
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/loaders/GLTFLoader.js" -o .preview-v7/vendor/GLTFLoader-r128.js
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/loaders/OBJLoader.js" -o .preview-v7/vendor/OBJLoader-r128.js
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/utils/SkeletonUtils.js" -o .preview-v7/vendor/SkeletonUtils-r128.js
 
           MODEL_REV=d6aacfb25dd969ead90cddd94ad901e74aede5d8
           MODEL_BASE="https://raw.githubusercontent.com/trebeljahr/quaternius-showcase/${MODEL_REV}/public/glb"
@@ -51,7 +54,16 @@ jobs:
           curl -fsSL --retry 3 "$MODEL_BASE/nature_pack/Flowers.glb" -o .preview-v7/models/v73/Flowers.glb
           curl -fsSL --retry 3 https://raw.githubusercontent.com/sandeshdamkondwar/3d-viewer/a33f107378e79b4458d2a400bb5e32fddcedbf73/models/crocodile.glb -o .preview-v7/models/v73/crocodile.glb
 
-          # Existing terrain/water assets kept for legacy layers.
+          # Sand: Poly Haven Coast Sand 02 (CC0).
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_diff_1k.jpg -o .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_nor_gl_1k.jpg -o .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_rough_1k.jpg -o .preview-v7/textures/coast-sand-02-rough-1k.jpg
+
+          # Legacy maps are retained for old terrain layers; Water_1 becomes the V7.3.11 normal source.
+          THREE_WATER_REV=83d8667898fd32a6a0f1af92f6d91065db272ce2
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_1_M_Normal.jpg" -o .preview-v7/textures/Water_1_M_Normal.jpg
+          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_2_M_Normal.jpg" -o .preview-v7/textures/Water_2_M_Normal.jpg
+          cp .preview-v7/textures/Water_1_M_Normal.jpg .preview-v7/textures/water/water-normal.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_diff_1k.jpg -o .preview-v7/textures/sand-03-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_diff_1k.jpg -o .preview-v7/textures/damp-sand-diffuse-1k.jpg
@@ -59,32 +71,27 @@ jobs:
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_diff_1k.jpg -o .preview-v7/textures/ganges-pebbles-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_nor_gl_1k.jpg -o .preview-v7/textures/ganges-pebbles-normal-gl-1k.jpg
 
-          # V7.3.10: Poly Haven Coast Sand 02 (CC0) for all visible sand.
-          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_diff_1k.jpg -o .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
-          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_nor_gl_1k.jpg -o .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
-          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_rough_1k.jpg -o .preview-v7/textures/coast-sand-02-rough-1k.jpg
-
-          THREE_WATER_REV=83d8667898fd32a6a0f1af92f6d91065db272ce2
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_1_M_Normal.jpg" -o .preview-v7/textures/Water_1_M_Normal.jpg
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_2_M_Normal.jpg" -o .preview-v7/textures/Water_2_M_Normal.jpg
-
+          # Syntax/static architecture checks.
           for file in .preview-v7/js/*.js; do node --check "$file"; done
-          grep -q 'V7.3.10 · LOADING' .preview-v7/index.html
-          grep -q 'v7310-mobile-polish.js?v=7310' .preview-v7/index.html
-          grep -q '__mosesV7310Installed' .preview-v7/js/v7310-mobile-polish.js
-          grep -q 'V7310OpaqueShoreline' .preview-v7/js/v7310-mobile-polish.js
-          grep -q '__mosesV7310BasketStable' .preview-v7/js/v7310-mobile-polish.js
-          grep -q 'const size = 1.28' .preview-v7/js/v7310-mobile-polish.js
-          grep -q 'coast-sand-02-diffuse-1k.jpg' .preview-v7/js/v7310-mobile-polish.js
-          ! grep -q 'v733-life.js' .preview-v7/index.html
-          ! test -e .preview-v7/js/v733-life.js
+          for file in .preview-v7/js/water/*.js; do node --input-type=module --check < "$file"; done
+          grep -q 'V7.3.11 · LOADING' .preview-v7/index.html
+          grep -q 'type="module" src="js/water/main.js?v=7311"' .preview-v7/index.html
+          grep -q 'three/addons/' .preview-v7/index.html
+          grep -q 'class WaterSystem' .preview-v7/js/water/WaterSystem.js
+          grep -q 'class WakeTrail' .preview-v7/js/water/WakeTrail.js
+          grep -q 'class BoatWake' .preview-v7/js/water/BoatWake.js
+          grep -q 'class RippleSystem' .preview-v7/js/water/RippleSystem.js
+          grep -q 'class SplashSystem' .preview-v7/js/water/SplashSystem.js
+          grep -q 'class FoamSystem' .preview-v7/js/water/FoamSystem.js
+          grep -q 'class WaterInteractionSystem' .preview-v7/js/water/WaterInteractionSystem.js
+          grep -q 'distortionScale: 2.15' .preview-v7/js/water/main.js
+          grep -q 'maxParticles: 420' .preview-v7/js/water/main.js
+          grep -q 'wakeInterval: 0.075' .preview-v7/js/water/main.js
+          grep -q 'from .*Water.js' .preview-v7/js/water/WaterSystem.js
+          test -s .preview-v7/build/three.module.js
+          test -s .preview-v7/vendor/addons/objects/Water.js
+          test -s .preview-v7/textures/water/water-normal.jpg
           ! test -e .preview-v7/models/v73/human.glb
-          test -s .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
-          test -s .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
-          test -s .preview-v7/textures/coast-sand-02-rough-1k.jpg
-          test -s .preview-v7/models/v73/crocodile.glb
-          test -s .preview-v7/models/v73/lotus-flower.obj
-          test -s .preview-v7/models/basket.obj
 
           cat > wrangler-v7.jsonc <<'JSON'
           {
@@ -96,7 +103,7 @@ jobs:
           }
           JSON
 
-      - name: Deploy V7.3.10 preview
+      - name: Deploy V7.3.11 preview
         id: deploy
         if: always() && steps.build.outcome == 'success'
         continue-on-error: true
@@ -105,7 +112,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
 
-      - name: Verify Cloudflare V7.3.10 preview
+      - name: Verify Cloudflare V7.3.11 preview
         id: verify
         if: always() && steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -114,24 +121,27 @@ jobs:
           set -euo pipefail
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
           for attempt in 1 2 3 4 5 6; do
-            if curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}?verify=${GITHUB_SHA}-${attempt}" -o /tmp/preview.html \
-              && grep -q 'V7.3.10 · LOADING' /tmp/preview.html \
-              && grep -q 'v7310-mobile-polish.js?v=7310' /tmp/preview.html \
-              && ! grep -q 'v733-life.js' /tmp/preview.html \
-              && curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}js/v7310-mobile-polish.js?verify=${GITHUB_SHA}-${attempt}" -o /tmp/v7310.js \
-              && grep -q '__mosesV7310Installed' /tmp/v7310.js \
-              && grep -q 'V7310OpaqueShoreline' /tmp/v7310.js \
-              && grep -q '__mosesV7310BasketStable' /tmp/v7310.js \
-              && grep -q 'const size = 1.28' /tmp/v7310.js \
-              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/coast-sand-02-diffuse-1k.jpg?verify=${GITHUB_SHA}-${attempt}" -o /tmp/coast.jpg \
-              && test "$(wc -c < /tmp/coast.jpg)" -gt 50000; then
+            Q="?verify=${GITHUB_SHA}-${attempt}"
+            if curl -fsSL --max-time 20 --retry 2 -H 'Cache-Control: no-cache' "${PREVIEW}${Q}" -o /tmp/index.html \
+              && grep -q 'V7.3.11 · LOADING' /tmp/index.html \
+              && grep -q 'js/water/main.js?v=7311' /tmp/index.html \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}js/water/WaterSystem.js${Q}" -o /tmp/water-system.js \
+              && grep -q 'class WaterSystem' /tmp/water-system.js \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}js/water/WaterInteractionSystem.js${Q}" -o /tmp/interaction.js \
+              && grep -q 'class WaterInteractionSystem' /tmp/interaction.js \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}vendor/addons/objects/Water.js${Q}" -o /tmp/Water.js \
+              && grep -q 'class Water extends Mesh' /tmp/Water.js \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}build/three.module.js${Q}" -o /tmp/three.module.js \
+              && test "$(wc -c < /tmp/three.module.js)" -gt 500000 \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/water/water-normal.jpg${Q}" -o /tmp/water-normal.jpg \
+              && test "$(wc -c < /tmp/water-normal.jpg)" -gt 10000; then
               exit 0
             fi
             sleep 5
           done
           exit 1
 
-      - name: Publish V7.3.10 diagnostic marker
+      - name: Publish V7.3.11 diagnostic marker
         if: always()
         shell: bash
         env:
@@ -141,18 +151,18 @@ jobs:
         run: |
           set -euo pipefail
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
-          printf 'commit=%s\npreview=%s\nversion=V7.3.10\nbuild=%s\ndeploy=%s\nverify=%s\nbasket=stabilized\ncrocodile=larger-bite-fx\nshoreline=opaque-inset\nsand=polyhaven-coast_sand_02\npeople_model=removed\nchecked_at=%s\n' \
-            "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7310-status.txt
+          printf 'commit=%s\npreview=%s\nversion=V7.3.11\nbuild=%s\ndeploy=%s\nverify=%s\nwater=three-water-river\nwake=buffergeometry-pooled\nboat_wake=v-shaped\nripples=pooled\nsplash=points-pooled\nfoam=pooled\ninteraction=surface-crossing-lod\nparticles_max=420\nripples_max=72\npeople_model=removed\nchecked_at=%s\n' \
+            "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7311-status.txt
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -B verify/moses-nile-v7310
+          git checkout -B verify/moses-nile-v7311
           mkdir -p deploy-status
-          cp /tmp/moses-nile-v7310-status.txt deploy-status/moses-nile-v7310.txt
-          git add deploy-status/moses-nile-v7310.txt
-          git commit -m 'Record Moses Nile V7.3.10 deploy status' || true
-          git push --force origin HEAD:refs/heads/verify/moses-nile-v7310
+          cp /tmp/moses-nile-v7311-status.txt deploy-status/moses-nile-v7311.txt
+          git add deploy-status/moses-nile-v7311.txt
+          git commit -m 'Record Moses Nile V7.3.11 deploy status' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v7311
 
-      - name: Require verified V7.3.10 preview
+      - name: Require verified V7.3.11 preview
         if: always()
         shell: bash
         env:
