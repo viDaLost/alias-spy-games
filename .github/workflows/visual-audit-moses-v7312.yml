@@ -28,10 +28,10 @@ jobs:
           npx playwright install chromium
       - name: Capture real Cloudflare render
         id: capture
-        if: always() && steps.install.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
+          echo 'capture step entered' > /tmp/capture.log
           cat > /tmp/capture.mjs <<'JS'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
@@ -49,7 +49,7 @@ jobs:
           fs.writeFileSync('/tmp/visual-state.json',JSON.stringify({url,state,errors},null,2));
           await browser.close();
           JS
-          node /tmp/capture.mjs > /tmp/capture.log 2>&1
+          node /tmp/capture.mjs >> /tmp/capture.log 2>&1
       - name: Publish visual audit diagnostics
         if: always()
         shell: bash
