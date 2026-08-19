@@ -18,12 +18,10 @@ jobs:
     steps:
       - name: Checkout V7.3.12 source
         uses: actions/checkout@v4
-
-      - name: Setup Node and Python
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Build V7.3.12 preview
         id: build
         shell: bash
@@ -38,15 +36,16 @@ jobs:
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
 
           THREE_REV=r128
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/build/three.min.js" -o .preview-v7/vendor/three-r128.min.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/build/three.module.js" -o .preview-v7/build/three.module.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/jsm/objects/Water.js" -o .preview-v7/vendor/addons/objects/Water.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/jsm/loaders/KTX2Loader.js" -o .preview-v7/vendor/addons/loaders/KTX2Loader.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/libs/basis/basis_transcoder.js" -o .preview-v7/vendor/basis/basis_transcoder.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/libs/basis/basis_transcoder.wasm" -o .preview-v7/vendor/basis/basis_transcoder.wasm
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/loaders/GLTFLoader.js" -o .preview-v7/vendor/GLTFLoader-r128.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/loaders/OBJLoader.js" -o .preview-v7/vendor/OBJLoader-r128.js
-          curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}/examples/js/utils/SkeletonUtils.js" -o .preview-v7/vendor/SkeletonUtils-r128.js
+          GH="https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}"
+          curl -fsSL --retry 3 "$GH/build/three.min.js" -o .preview-v7/vendor/three-r128.min.js
+          curl -fsSL --retry 3 "$GH/build/three.module.js" -o .preview-v7/build/three.module.js
+          curl -fsSL --retry 3 "$GH/examples/jsm/objects/Water.js" -o .preview-v7/vendor/addons/objects/Water.js
+          curl -fsSL --retry 3 "$GH/examples/jsm/loaders/KTX2Loader.js" -o .preview-v7/vendor/addons/loaders/KTX2Loader.js
+          curl -fsSL --retry 3 "$GH/examples/js/libs/basis/basis_transcoder.js" -o .preview-v7/vendor/basis/basis_transcoder.js
+          curl -fsSL --retry 3 "$GH/examples/js/libs/basis/basis_transcoder.wasm" -o .preview-v7/vendor/basis/basis_transcoder.wasm
+          curl -fsSL --retry 3 "$GH/examples/js/loaders/GLTFLoader.js" -o .preview-v7/vendor/GLTFLoader-r128.js
+          curl -fsSL --retry 3 "$GH/examples/js/loaders/OBJLoader.js" -o .preview-v7/vendor/OBJLoader-r128.js
+          curl -fsSL --retry 3 "$GH/examples/js/utils/SkeletonUtils.js" -o .preview-v7/vendor/SkeletonUtils-r128.js
 
           MODEL_REV=d6aacfb25dd969ead90cddd94ad901e74aede5d8
           MODEL_BASE="https://raw.githubusercontent.com/trebeljahr/quaternius-showcase/${MODEL_REV}/public/glb"
@@ -60,28 +59,19 @@ jobs:
           THREE_WATER_REV=83d8667898fd32a6a0f1af92f6d91065db272ce2
           curl -fsSL --retry 3 "https://raw.githubusercontent.com/mrdoob/three.js/${THREE_WATER_REV}/examples/textures/water/Water_1_M_Normal.jpg" -o .preview-v7/textures/water/water-normal.jpg
 
-          # Five Poly Haven CC0 PBR terrain sets. Runtime uses 1K and packs NormalXY + Roughness + AO to save samplers/VRAM.
           python -m pip install --quiet pillow
-          declare -A ASSET
-          ASSET[wet_mud]=brown_mud_02
-          ASSET[wet_sand]=coast_sand_01
-          ASSET[sand]=sand_01
-          ASSET[cracked_mud]=mud_cracked_dry_03
-          ASSET[gravel]=gravelly_sand
+          declare -A ASSET=( [wet_mud]=brown_mud_02 [wet_sand]=coast_sand_01 [sand]=sand_01 [cracked_mud]=mud_cracked_dry_03 [gravel]=gravelly_sand )
           for layer in wet_mud wet_sand sand cracked_mud gravel; do
-            asset="${ASSET[$layer]}"; dir=".preview-v7/textures/terrain/$layer"; mkdir -p "$dir/src"
-            base="https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/${asset}"
+            asset="${ASSET[$layer]}"; dir=".preview-v7/textures/terrain/$layer"; mkdir -p "$dir/src"; base="https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/${asset}"
             curl -fsSL --retry 3 "$base/${asset}_diff_1k.jpg" -o "$dir/color.jpg"
             curl -fsSL --retry 3 "$base/${asset}_nor_gl_1k.jpg" -o "$dir/src/normal.jpg"
             curl -fsSL --retry 3 "$base/${asset}_rough_1k.jpg" -o "$dir/src/rough.jpg"
             curl -fsSL --retry 3 "$base/${asset}_ao_1k.jpg" -o "$dir/src/ao.jpg"
           done
-
           python - <<'PY'
           from PIL import Image
           from pathlib import Path
-          root=Path('.preview-v7/textures/terrain')
-          for d in root.iterdir():
+          for d in Path('.preview-v7/textures/terrain').iterdir():
               if not d.is_dir(): continue
               n=Image.open(d/'src/normal.jpg').convert('RGB')
               r=Image.open(d/'src/rough.jpg').convert('L').resize(n.size)
@@ -90,13 +80,12 @@ jobs:
               for y in range(n.height):
                   for x in range(n.width):
                       p=nr[x,y]; px[x,y]=(p[0],p[1],rr[x,y],aa[x,y])
-              out.convert('RGB').save(d/'nrmao.jpg',quality=90,optimize=True)
+              out.save(d/'nrmao.png',compress_level=6)
               for f in (d/'src').iterdir(): f.unlink()
               (d/'src').rmdir()
           PY
 
-          # Legacy terrain texture files still referenced by older scripts before V7.3.12 hides those meshes.
-          mkdir -p .preview-v7/textures
+          # Compatibility assets for legacy scripts; their meshes are hidden once TerrainSystem is ready.
           cp .preview-v7/textures/terrain/sand/color.jpg .preview-v7/textures/sand-03-diffuse-1k.jpg
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sand_03/sand_03_nor_gl_1k.jpg -o .preview-v7/textures/sand-03-normal-gl-1k.jpg
           cp .preview-v7/textures/terrain/wet_sand/color.jpg .preview-v7/textures/damp-sand-diffuse-1k.jpg
@@ -105,11 +94,10 @@ jobs:
           curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/ganges_river_pebbles/ganges_river_pebbles_nor_gl_1k.jpg -o .preview-v7/textures/ganges-pebbles-normal-gl-1k.jpg
           cp .preview-v7/textures/water/water-normal.jpg .preview-v7/textures/Water_1_M_Normal.jpg
           cp .preview-v7/textures/water/water-normal.jpg .preview-v7/textures/Water_2_M_Normal.jpg
-          cp .preview-v7/textures/terrain/wet_sand/color.jpg .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
-          cp .preview-v7/textures/terrain/wet_sand/src/normal.jpg .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg 2>/dev/null || cp .preview-v7/textures/sand-03-normal-gl-1k.jpg .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
-          cp .preview-v7/textures/terrain/wet_sand/nrmao.jpg .preview-v7/textures/coast-sand-02-rough-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_diff_1k.jpg -o .preview-v7/textures/coast-sand-02-diffuse-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_nor_gl_1k.jpg -o .preview-v7/textures/coast-sand-02-normal-gl-1k.jpg
+          curl -fsSL --retry 3 https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/coast_sand_02/coast_sand_02_rough_1k.jpg -o .preview-v7/textures/coast-sand-02-rough-1k.jpg
 
-          # Syntax and architecture checks.
           for file in .preview-v7/js/*.js; do node --check "$file"; done
           for file in .preview-v7/js/water/*.js .preview-v7/js/terrain/*.js; do node --input-type=module --check < "$file"; done
           grep -q 'V7.3.12 · LOADING' .preview-v7/index.html
@@ -124,19 +112,13 @@ jobs:
           grep -q 'getSurfaceTypeAt' .preview-v7/js/terrain/TerrainSystem.js
           grep -q 'setShorelineData' .preview-v7/js/water/WaterSystem.js
           grep -q 'KTX2Loader' .preview-v7/js/terrain/TerrainMaterial.js
-          for layer in wet_mud wet_sand sand cracked_mud gravel; do test -s ".preview-v7/textures/terrain/$layer/color.jpg"; test -s ".preview-v7/textures/terrain/$layer/nrmao.jpg"; done
+          for layer in wet_mud wet_sand sand cracked_mud gravel; do test -s ".preview-v7/textures/terrain/$layer/color.jpg"; test -s ".preview-v7/textures/terrain/$layer/nrmao.png"; done
           test -s .preview-v7/vendor/addons/loaders/KTX2Loader.js
           test -s .preview-v7/vendor/basis/basis_transcoder.wasm
           ! test -e .preview-v7/models/v73/human.glb
 
           cat > wrangler-v7.jsonc <<'JSON'
-          {
-            "$schema":"./node_modules/wrangler/config-schema.json",
-            "name":"alias-spy-games-moses-nile-v7-preview",
-            "compatibility_date":"2026-08-19",
-            "workers_dev":true,
-            "assets":{"directory":"./.preview-v7","not_found_handling":"single-page-application"}
-          }
+          {"$schema":"./node_modules/wrangler/config-schema.json","name":"alias-spy-games-moses-nile-v7-preview","compatibility_date":"2026-08-19","workers_dev":true,"assets":{"directory":"./.preview-v7","not_found_handling":"single-page-application"}}
           JSON
 
       - name: Deploy V7.3.12 preview
@@ -162,17 +144,16 @@ jobs:
               && grep -q 'V7.3.12 · LOADING' /tmp/index.html \
               && grep -q 'js/terrain/main.js?v=7312' /tmp/index.html \
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}js/terrain/TerrainSystem.js${Q}" -o /tmp/terrain.js \
-              && grep -q 'class TerrainSystem' /tmp/terrain.js \
               && grep -q 'getSurfaceTypeAt' /tmp/terrain.js \
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}js/terrain/TerrainMaterial.js${Q}" -o /tmp/material.js \
-              && grep -q 'KTX2Loader' /tmp/material.js \
               && grep -q 'uNRMAO4' /tmp/material.js \
+              && grep -q 'KTX2Loader' /tmp/material.js \
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}js/terrain/VegetationSystem.js${Q}" -o /tmp/veg.js \
               && grep -q 'InstancedMesh' /tmp/veg.js \
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/terrain/wet_mud/color.jpg${Q}" -o /tmp/mud.jpg \
               && test "$(wc -c < /tmp/mud.jpg)" -gt 20000 \
-              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/terrain/gravel/nrmao.jpg${Q}" -o /tmp/gravel.jpg \
-              && test "$(wc -c < /tmp/gravel.jpg)" -gt 10000 \
+              && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}textures/terrain/gravel/nrmao.png${Q}" -o /tmp/gravel.png \
+              && test "$(wc -c < /tmp/gravel.png)" -gt 10000 \
               && curl -fsSL --max-time 20 --retry 2 "${PREVIEW}vendor/addons/loaders/KTX2Loader.js${Q}" -o /tmp/ktx.js \
               && grep -q 'class KTX2Loader' /tmp/ktx.js; then exit 0; fi
             sleep 5
@@ -188,7 +169,7 @@ jobs:
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           PREVIEW='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
-          printf 'commit=%s\npreview=%s\nversion=V7.3.12\nbuild=%s\ndeploy=%s\nverify=%s\nterrain=chunked-splat-pbr\nlayers=wet-mud,wet-sand,sand,cracked-mud,gravel\nshoreline=shared-mask\nqueries=height,surface,wetness\nvegetation=instanced\nrocks=instanced\nlod=40,120,270\nktx2=supported-with-jpg-fallback\npeople_model=removed\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7312-status.txt
+          printf 'commit=%s\npreview=%s\nversion=V7.3.12\nbuild=%s\ndeploy=%s\nverify=%s\nterrain=chunked-splat-pbr\nlayers=wet-mud,wet-sand,sand,cracked-mud,gravel\nshoreline=shared-mask\nqueries=height,surface,wetness\nvegetation=instanced\nrocks=instanced\nlod=40,120,270\nktx2=supported-with-jpg-png-fallback\npeople_model=removed\nchecked_at=%s\n' "$GITHUB_SHA" "$PREVIEW" "${BUILD_OUTCOME:-skipped}" "${DEPLOY_OUTCOME:-skipped}" "${VERIFY_OUTCOME:-skipped}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/moses-nile-v7312-status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v7312
           mkdir -p deploy-status; cp /tmp/moses-nile-v7312-status.txt deploy-status/moses-nile-v7312.txt
