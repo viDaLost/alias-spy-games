@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
+import vm from 'node:vm';
 
 const root = process.cwd();
 const require = createRequire(import.meta.url);
@@ -14,25 +15,26 @@ const WEBP = (p) => {
   const b = bytes(p);
   return b.length > 12 && b.subarray(0, 4).toString('ascii') === 'RIFF' && b.subarray(8, 12).toString('ascii') === 'WEBP';
 };
-const AVIF = (p) => {
-  const b = bytes(p);
-  return b.length > 12 && b.subarray(4, 12).toString('ascii') === 'ftypavif';
-};
-
 const BOARD_BACKGROUND = 'web/assets/biblical-match-three/board-background-v35.webp';
+const COMPLETION_ART = [
+  'web/assets/biblical-match-three/completion-1-star-v40.webp',
+  'web/assets/biblical-match-three/completion-2-stars-v40.webp',
+  'web/assets/biblical-match-three/completion-3-stars-v40.webp',
+];
 const required = [
   'web/assets/icons/biblical-treasures-v38.png',
   BOARD_BACKGROUND,
-  'web/assets/biblical-match-three/completion-1-star-v29.webp',
-  'web/assets/biblical-match-three/completion-2-stars-v29.webp',
-  'web/assets/biblical-match-three/completion-3-stars-v29.avif',
+  ...COMPLETION_ART,
   'web/assets/biblical-match-three/icons-v29/lamp-unlit.webp',
   'web/assets/biblical-match-three/icons-v17/candle.webp',
 ];
 for (const file of required) ok(exists(file), `Biblical Treasures asset missing: ${file}`);
 for (const file of required.filter((f) => f.endsWith('.webp'))) ok(WEBP(file), `Biblical Treasures WebP has invalid bytes: ${file}`);
 ok(bytes('web/assets/icons/biblical-treasures-v38.png').subarray(1, 4).toString('ascii') === 'PNG', 'V38 transparent menu icon has invalid bytes');
-ok(AVIF('web/assets/biblical-match-three/completion-3-stars-v29.avif'), 'Biblical Treasures three-star AVIF has invalid bytes');
+for (const file of COMPLETION_ART) {
+  ok(bytes(file).length >= 160_000, `V40 completion artwork is unexpectedly compressed: ${file}`);
+  ok(bytes(file).length < 600 * 1024, `V40 completion artwork exceeds the project image-size limit: ${file}`);
+}
 const backgroundBytes = bytes(BOARD_BACKGROUND);
 ok(backgroundBytes.length >= 200_000, 'V35 supplied board background must keep maximum-quality image data');
 ok(backgroundBytes.length < 600 * 1024, 'V35 supplied board background must stay below the project image-size limit');
@@ -48,23 +50,26 @@ const hotfix = read('web/js/v29-biblical-treasures-hotfix.js');
 const lampSwipe = read('web/js/v37-biblical-treasures-lamp-swipe.js');
 const launcher = read('web/js/biblical-match-three-launcher.js');
 const progress = read('web/games/biblical-match-three-progress.js');
+const game = read('web/games/biblical-match-three.js');
+const experienceCss = read('web/styles/biblical-match-three-v38.css');
 const levels = JSON.parse(read('web/data/biblical_match_three_levels.json'));
 
 ok(levels.version === 4, 'Biblical Treasures level balance version missing');
 ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
-ok(index.includes('biblical-match-three-launcher.js?v=39') && index.includes('v22-home-art.js?v=39'), 'Biblical Treasures V39 launcher/menu icon wiring missing');
-ok(index.includes('v22-game-loader.js?v=39') && index.includes('v29-biblical-treasures-hotfix.js?v=35') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V39 experience/lamp cache-bust wiring missing');
+ok(index.includes('biblical-match-three-launcher.js?v=40') && index.includes('v22-home-art.js?v=39'), 'Biblical Treasures V40 launcher/menu icon wiring missing');
+ok(index.includes('v22-game-loader.js?v=40') && index.includes('v29-biblical-treasures-hotfix.js?v=40') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V40 experience/lamp cache-bust wiring missing');
 ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wiring changed unexpectedly');
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
-ok(loader.includes("const VERSION = '31'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
+ok(loader.includes("const VERSION = '40'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(loader.includes('v37-biblical-treasures-lamp-swipe.js?v=37') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
 ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.png') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
-ok(launcher.includes('const VERSION="39"') && launcher.includes('biblical-treasures-v38.png') && launcher.includes('data-bmt-menu-art="v39"'), 'V39 canonical launcher icon source missing');
+ok(launcher.includes('const VERSION="40"') && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.png') && launcher.includes('data-bmt-menu-art="v39"'), 'V40 canonical launcher icon source missing');
 ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.png'), 'Legacy hotfix can still revert the V39 menu icon');
 ok(!read('web/games/biblical-match-three-v15-polish.js').includes('patchAppCard'), 'Game polish can still replace the app icon after returning to the menu');
-ok(read('web/games/biblical-match-three.js').includes('applyLevelGoalSpecials') && read('web/games/biblical-match-three.js').includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
-ok(result.includes('completion-1-star-v29.webp') && result.includes('completion-2-stars-v29.webp') && result.includes('completion-3-stars-v29.avif') && result.includes('dataset.resultStars'), 'Star-specific completion art wiring missing');
+ok(game.includes('applyLevelGoalSpecials') && game.includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
+ok(result.includes('completion-1-star-v40.webp') && result.includes('completion-2-stars-v40.webp') && result.includes('completion-3-stars-v40.webp') && result.includes('dataset.resultStars'), 'HQ star-specific completion art wiring missing');
+ok(hotfix.includes("RESULT_ART_VERSION = '40'") && hotfix.includes('completion-3-stars-v40.webp'), 'The result synchronizer can still restore compressed completion artwork');
 ok(board.includes('icons-v29/lamp-unlit.webp') && board.includes('icons-v17/candle.webp') && board.includes('data-blocker-lit'), 'Extinguished/lit lamp art wiring missing');
 ok(boardCss.includes('board-background-v35.webp?v=35') && boardCss.includes('.bmt-tile.has-lamp .bmt-piece-wrap') && boardCss.includes('visibility:hidden!important'), 'V35 board background / standalone lamp styling missing');
 ok(artCss.includes('board-background-v35.webp?v=35'), 'V35 board art fallback missing');
@@ -87,8 +92,28 @@ ok(lampSwipe.includes("tile.classList.remove('has-lamp', 'is-lamp-lit')") && lam
 ok(lampSwipe.includes('edgeFallback') && lampSwipe.includes('fallbackIndex') && lampSwipe.includes('document.addEventListener(\'pointermove\''), 'V37 edge swipe fallback missing');
 ok(lampSwipe.includes('validSwapTile') && lampSwipe.includes('!unlitLamp(tile)'), 'V37 must keep unlit lamp obstacles protected');
 
-ok(launcher.includes('const VERSION="39"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
+ok(launcher.includes('const VERSION="40"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
 ok(progress.includes('levelBestScores') && progress.includes('previousBestScore') && progress.includes('newBestScore') && progress.includes('isImproved'), 'Campaign best-score persistence missing');
+ok(game.includes('data-bmt-pre-balance') && game.includes('Доступно') && game.includes('Выбрано') && game.includes('selectedCost() + booster.cost <= starBalance()') && game.includes('aria-pressed'), 'Pre-level boosters do not expose or enforce the real star balance');
+ok(experienceCss.includes('.bmt-board.bmt-v24-board{overflow:visible!important') && experienceCss.includes('padding:8px 8px 14px!important'), 'The outer board pieces can still be clipped');
+
+const testStore = new Map([['bible_stars_v1_5693086211', '87']]);
+const progressContext = {
+  localStorage: {
+    getItem: (key) => testStore.has(key) ? testStore.get(key) : null,
+    setItem: (key, value) => testStore.set(key, String(value)),
+    removeItem: (key) => testStore.delete(key),
+  },
+  getTelegramUser: () => ({ id: 'аноним' }),
+  __ANDROID_TELEGRAM_ID__: '5693086211',
+};
+progressContext.globalThis = progressContext;
+vm.createContext(progressContext);
+vm.runInContext(progress, progressContext);
+ok(progressContext.BiblicalMatchThreeProgress.userId() === '5693086211', 'Android user id must win over the anonymous Telegram placeholder');
+ok(progressContext.BiblicalMatchThreeProgress.getStars() === 87, 'Pre-level balance must read the authenticated Android/Telegram wallet');
+const boosterPurchase = progressContext.BiblicalMatchThreeProgress.spendStars(6, 'qa-prelevel-booster');
+ok(boosterPurchase.ok && boosterPurchase.balance === 81, 'An affordable pre-level booster must be purchased from the visible wallet');
 
 for (const level of levels.levels) {
   const thresholds = level.starThresholds || [];
@@ -136,6 +161,9 @@ for (const obsolete of [
   'web/assets/biblical-match-three/completion-1-star-v28.webp',
   'web/assets/biblical-match-three/completion-2-stars-v28.webp',
   'web/assets/biblical-match-three/completion-3-stars-v28.avif',
+  'web/assets/biblical-match-three/completion-1-star-v29.webp',
+  'web/assets/biblical-match-three/completion-2-stars-v29.webp',
+  'web/assets/biblical-match-three/completion-3-stars-v29.avif',
   'web/assets/biblical-match-three/icons-v28/lamp-unlit.webp',
 ]) ok(!exists(obsolete), `Obsolete Biblical Treasures asset must be removed: ${obsolete}`);
 

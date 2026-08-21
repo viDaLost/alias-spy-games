@@ -240,8 +240,10 @@ function walletBadge() {
 }
 
 function updateWallet() {
-  document.querySelectorAll("[data-bmt-wallet]").forEach((node) => { node.textContent = String(starBalance()); });
-  document.querySelectorAll(".bmt-wallet").forEach((node) => { node.setAttribute("aria-label", `Баланс ${starBalance()} звёзд`); });
+  const balance = starBalance();
+  document.querySelectorAll("[data-bmt-wallet]").forEach((node) => { node.textContent = String(balance); });
+  document.querySelectorAll(".bmt-wallet").forEach((node) => { node.setAttribute("aria-label", `Баланс ${balance} звёзд`); });
+  document.querySelectorAll("[data-bmt-pre-balance]").forEach((node) => { node.textContent = `${balance} ★`; });
 }
 function goalText(goal) {
   if (goal.type === "score") return `Набрать ${Number(goal.count).toLocaleString("ru-RU")} очков`;
@@ -364,22 +366,39 @@ function openPreLevel(level) {
   const shell = document.querySelector(".bmt-shell"); if (!shell) return;
   const overlay = el("div", "bmt-sheet-overlay"); const sheet = el("section", "bmt-sheet bmt-prelevel"); const reward = Number(level.reward || 0);
   const previewRows = resolveBoardRows("level", level, null);
-  sheet.innerHTML = `<button type="button" class="bmt-sheet__close" aria-label="Закрыть">×</button><div class="bmt-prelevel__head"><span>Уровень ${level.id}</span><h3>${escapeHtml(level.title)}</h3><p>Поле ${previewRows}×${COLS} · награда за первое прохождение: <strong>+${reward} ★</strong></p></div><div class="bmt-prelevel__goals">${level.goals.map((goal) => `<div><span>${goalIcon(goal)}</span><strong>${escapeHtml(goalText(goal))}</strong></div>`).join("")}</div><div class="bmt-prelevel__boost-title"><span>Бустеры перед стартом</span><strong data-bmt-pre-total>0 ★</strong></div><div class="bmt-preboosters"></div>`;
+  sheet.innerHTML = `<button type="button" class="bmt-sheet__close" aria-label="Закрыть">×</button><div class="bmt-prelevel__head"><span>Уровень ${level.id}</span><h3>${escapeHtml(level.title)}</h3><p>Поле ${previewRows}×${COLS} · награда за первое прохождение: <strong>+${reward} ★</strong></p></div><div class="bmt-prelevel__goals">${level.goals.map((goal) => `<div><span>${goalIcon(goal)}</span><strong>${escapeHtml(goalText(goal))}</strong></div>`).join("")}</div><div class="bmt-prelevel__boost-title"><span>Усилители перед стартом</span><span class="bmt-prelevel__boost-meta"><small>Доступно <strong data-bmt-pre-balance>${starBalance()} ★</strong></small><small>Выбрано <strong data-bmt-pre-total>0 ★</strong></small></span></div><div class="bmt-preboosters"></div>`;
   const boosters = sheet.querySelector(".bmt-preboosters"); let startButton;
+  const selectedCost = () => [...runtime.preBoosters].reduce((sum, key) => sum + PRE_BOOSTERS[key].cost, 0);
+  const refreshBoosters = () => {
+    const balance = starBalance(); const total = selectedCost();
+    sheet.querySelector("[data-bmt-pre-balance]").textContent = `${balance} ★`;
+    sheet.querySelector("[data-bmt-pre-total]").textContent = `${total} ★`;
+    boosters.querySelectorAll("[data-bmt-pre-booster]").forEach((node) => {
+      const id = node.dataset.bmtPreBooster; const selected = runtime.preBoosters.has(id);
+      const unaffordable = !selected && total + PRE_BOOSTERS[id].cost > balance;
+      node.classList.toggle("is-selected", selected); node.classList.toggle("is-unaffordable", unaffordable);
+      node.setAttribute("aria-pressed", String(selected)); node.setAttribute("aria-disabled", String(unaffordable));
+    });
+    if (startButton) {
+      startButton.disabled = total > balance;
+      startButton.classList.toggle("is-disabled", startButton.disabled);
+    }
+  };
   for (const [id, booster] of Object.entries(PRE_BOOSTERS)) {
     const node = button("", "bmt-prebooster", () => {
-      if (runtime.preBoosters.has(id)) runtime.preBoosters.delete(id); else runtime.preBoosters.add(id);
-      node.classList.toggle("is-selected", runtime.preBoosters.has(id));
-      const total = [...runtime.preBoosters].reduce((sum, key) => sum + PRE_BOOSTERS[key].cost, 0);
-      sheet.querySelector("[data-bmt-pre-total]").textContent = `${total} ★`; startButton.disabled = total > starBalance(); startButton.classList.toggle("is-disabled", startButton.disabled);
+      if (runtime.preBoosters.has(id)) runtime.preBoosters.delete(id);
+      else if (selectedCost() + booster.cost <= starBalance()) runtime.preBoosters.add(id);
+      else { FX.haptic?.("error"); toast(`Недостаточно звёзд: доступно ${starBalance()} ★`, "error"); }
+      refreshBoosters();
     });
+    node.dataset.bmtPreBooster = id; node.setAttribute("aria-pressed", "false");
     node.innerHTML = `<span class="bmt-prebooster__icon"><img src="${booster.asset}" alt=""></span><span class="bmt-prebooster__copy"><strong>${escapeHtml(booster.label)}</strong><small>${escapeHtml(booster.desc)}</small></span><span class="bmt-prebooster__price">${booster.cost} ★</span>`;
     boosters.append(node);
   }
   const actions = el("div", "bmt-prelevel__actions");
   const cancel = button("Назад", "bmt-secondary", () => overlay.remove());
   startButton = button("Начать уровень", "bmt-primary bmt-primary--large", () => {
-    const total = [...runtime.preBoosters].reduce((sum, key) => sum + PRE_BOOSTERS[key].cost, 0);
+    const total = selectedCost();
     if (total > 0) {
       const spend = Progress.spendStars(total, `match3-preboost-level-${level.id}`);
       if (!spend.ok) { FX.haptic?.("error"); toast("Недостаточно звёзд", "error"); return; }
@@ -388,6 +407,7 @@ function openPreLevel(level) {
     overlay.remove(); beginLevel(level, new Set(runtime.preBoosters));
   });
   actions.append(cancel, startButton); sheet.append(actions); overlay.append(sheet); shell.append(overlay);
+  refreshBoosters();
   sheet.querySelector(".bmt-sheet__close").addEventListener("click", () => overlay.remove(), { once: true });
 }
 

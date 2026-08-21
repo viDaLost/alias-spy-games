@@ -38,9 +38,9 @@ try{
     const [background,lamp,one,two,three,menu]=await Promise.all([
       load('/web/assets/biblical-match-three/board-background-v29.webp?v=29'),
       load('/web/assets/biblical-match-three/icons-v29/lamp-unlit.webp?v=29'),
-      load('/web/assets/biblical-match-three/completion-1-star-v29.webp?v=29'),
-      load('/web/assets/biblical-match-three/completion-2-stars-v29.webp?v=29'),
-      load('/web/assets/biblical-match-three/completion-3-stars-v29.avif?v=29'),
+      load('/web/assets/biblical-match-three/completion-1-star-v40.webp?v=40'),
+      load('/web/assets/biblical-match-three/completion-2-stars-v40.webp?v=40'),
+      load('/web/assets/biblical-match-three/completion-3-stars-v40.webp?v=40'),
       load('/web/assets/icons/biblical-treasures-v38.png?v=39')
     ]);
     return{bg,background,lamp,one,two,three,menu,label:label?.textContent||'',boardClass:board?.classList.contains('bmt-v24-board'),wrapClass:wrap?.classList.contains('bmt-v24-board-wrap'),shape:board?.dataset.shape||''};
@@ -99,7 +99,7 @@ try{
   await page.waitForSelector('.bmt-result-card[data-v23-result="1"]',{timeout:5000});
   await page.waitForFunction(()=>document.querySelector('.bmt-result-card[data-v23-result="1"]')?.dataset.v23Rating==='2',{timeout:5000});
   const result=await page.evaluate(()=>({title:document.querySelector('.bmt-result-card[data-v23-result="1"] h3')?.textContent,stats:document.querySelectorAll('.bmt-v22-result-stats>div').length,rewards:document.querySelectorAll('.bmt-v22-rewards>div').length,next:document.querySelector('.bmt-v22-next')?.textContent?.trim(),repeat:document.querySelector('.bmt-v22-repeat')?.textContent?.trim(),menu:document.querySelector('.bmt-v22-menu')?.textContent?.trim(),rating:document.querySelector('.bmt-result-card[data-v23-result="1"]')?.dataset.v23Rating,art:document.querySelector('.bmt-v23-win-art')?.getAttribute('src')||''}));
-  if(result.title!=='Уровень пройден!'||result.stats!==3||result.rewards!==2||result.next!=='Следующий уровень'||result.repeat!=='↻Повторить'||result.menu!=='⌂В меню'||result.rating!=='2'||!result.art.includes('completion-2-stars-v29.webp'))throw new Error(`V29 result ${JSON.stringify(result)}`);
+  if(result.title!=='Уровень пройден!'||result.stats!==3||result.rewards!==2||result.next!=='Следующий уровень'||result.repeat!=='↻Повторить'||result.menu!=='⌂В меню'||result.rating!=='2'||!result.art.includes('completion-2-stars-v40.webp'))throw new Error(`V40 result ${JSON.stringify(result)}`);
 
   console.log('OK: Biblical Treasures V29 board art, result art, standalone lamp transitions, lamp swipe guard and Ark guard passed');
 } finally {

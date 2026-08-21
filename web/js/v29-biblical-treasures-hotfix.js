@@ -7,14 +7,15 @@
   window.__bmtV30HotfixInstalled = true;
 
   const VERSION = '35';
+  const RESULT_ART_VERSION = '40';
   const MENU_ART_VERSION = '39';
   const MENU_ICON = `web/assets/icons/biblical-treasures-v38.png?v=${MENU_ART_VERSION}`;
   const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v35.webp?v=${VERSION}`;
   const VISUAL_STYLE_ID = 'bmt-v34-user-art';
   const RESULT_ART = {
-    1: `web/assets/biblical-match-three/completion-1-star-v29.webp?v=${VERSION}`,
-    2: `web/assets/biblical-match-three/completion-2-stars-v29.webp?v=${VERSION}`,
-    3: `web/assets/biblical-match-three/completion-3-stars-v29.avif?v=${VERSION}`,
+    1: `web/assets/biblical-match-three/completion-1-star-v40.webp?v=${RESULT_ART_VERSION}`,
+    2: `web/assets/biblical-match-three/completion-2-stars-v40.webp?v=${RESULT_ART_VERSION}`,
+    3: `web/assets/biblical-match-three/completion-3-stars-v40.webp?v=${RESULT_ART_VERSION}`,
   };
   const TWO_STAR_REMAINING_RATIO = 0.08;
   const THREE_STAR_REMAINING_RATIO = 0.20;

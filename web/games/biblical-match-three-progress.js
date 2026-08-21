@@ -25,16 +25,21 @@
   const storage = safeStorage();
 
   function userId() {
+    const candidates = [];
     try {
       if (typeof root?.getTelegramUser === "function") {
         const user = root.getTelegramUser();
-        if (user?.id != null) return String(user.id);
+        candidates.push(user?.id);
       }
     } catch {}
     try {
-      const id = root?.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      if (id != null) return String(id);
+      candidates.push(root?.Telegram?.WebApp?.initDataUnsafe?.user?.id);
     } catch {}
+    try { candidates.push(root?.__ANDROID_TELEGRAM_ID__); } catch {}
+    for (const value of candidates) {
+      const id = String(value ?? "").trim();
+      if (/^\d{5,20}$/.test(id)) return id;
+    }
     return "anon";
   }
 

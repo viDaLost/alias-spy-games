@@ -2,7 +2,8 @@
 "use strict";
 const GAME_KEY="biblical-match-three";
 const TITLE="Библейские сокровища";
-const VERSION="39";
+const VERSION="40";
+const MENU_ART_VERSION="39";
 const ALLOWED_USER_ID="1288379477";
 const ART_SRC=`web/games/biblical-match-three-v5-loader.js?v=${VERSION}`;
 const CORE_SRC=`web/games/biblical-match-three-core.js?v=${VERSION}`;
@@ -13,7 +14,7 @@ const RUNTIME_SRC=`web/games/biblical-match-three-v10-runtime.js?v=${VERSION}`;
 const UI_SRC=`web/games/biblical-match-three-v15-ui.js?v=${VERSION}`;
 const POLISH_SRC=`web/games/biblical-match-three-v15-polish.js?v=${VERSION}`;
 const LEVELS_SRC=`web/data/biblical_match_three_levels.json?v=${VERSION}`;
-const MENU_ICON=`web/assets/icons/biblical-treasures-v38.png?v=${VERSION}`;
+const MENU_ICON=`web/assets/icons/biblical-treasures-v38.png?v=${MENU_ART_VERSION}`;
 const STYLE_SOURCES=[
  `web/styles/biblical-match-three-v2.css?v=${VERSION}`,
  `web/styles/biblical-match-three-v2-polish.css?v=${VERSION}`,

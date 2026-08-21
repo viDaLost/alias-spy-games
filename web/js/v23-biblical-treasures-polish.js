@@ -4,12 +4,12 @@
   if (window.__bmtV23PolishInstalled) return;
   window.__bmtV23PolishInstalled = true;
 
-  const VERSION = '29';
+  const VERSION = '40';
   const STYLE_ID = 'bmt-v23-polish-style';
   const HERO_ASSETS = {
-    1: `web/assets/biblical-match-three/completion-1-star-v29.webp?v=${VERSION}`,
-    2: `web/assets/biblical-match-three/completion-2-stars-v29.webp?v=${VERSION}`,
-    3: `web/assets/biblical-match-three/completion-3-stars-v29.avif?v=${VERSION}`,
+    1: `web/assets/biblical-match-three/completion-1-star-v40.webp?v=${VERSION}`,
+    2: `web/assets/biblical-match-three/completion-2-stars-v40.webp?v=${VERSION}`,
+    3: `web/assets/biblical-match-three/completion-3-stars-v40.webp?v=${VERSION}`,
   };
 
   let scheduled = false;
