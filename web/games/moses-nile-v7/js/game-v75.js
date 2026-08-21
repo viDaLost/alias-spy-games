@@ -760,19 +760,14 @@
     const size = clamp(w * .20, 64, 104);
     ctx.save();
     ctx.translate(x, y);
-    ctx.strokeStyle = 'rgba(244,235,203,.31)';
-    ctx.lineWidth = Math.max(1.4, size * .018);
+    ctx.strokeStyle = 'rgba(244,235,203,.34)';
+    ctx.lineWidth = Math.max(1.6, size * .019);
+    ctx.lineCap = 'round';
     for (const side of [-1, 1]) {
       ctx.beginPath();
       ctx.moveTo(side * size * .32, size * .17);
-      ctx.quadraticCurveTo(side * size * .48, size * .55, side * size * .62, size * 1.18);
+      ctx.bezierCurveTo(side * size * .43, size * .34, side * size * .57, size * .50, side * size * .66, size * .76);
       ctx.stroke();
-      ctx.globalAlpha = .48;
-      ctx.beginPath();
-      ctx.moveTo(side * size * .22, size * .20);
-      ctx.quadraticCurveTo(side * size * .31, size * .55, side * size * .38, size * .91);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
     }
     const shadow = ctx.createRadialGradient(0, size * .31, 0, 0, size * .31, size * .68);
     shadow.addColorStop(0, 'rgba(15,19,13,.32)'); shadow.addColorStop(1, 'rgba(15,19,13,0)');
