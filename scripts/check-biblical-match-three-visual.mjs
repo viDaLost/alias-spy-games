@@ -4,15 +4,15 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root=process.cwd();
-const V='21';
-const ALLOWED='1288379477';
+const V='42';
+const QA_USER='1288379477';
 const scripts=[
   'biblical-match-three-v5-loader.js','biblical-match-three-core.js','biblical-match-three-progress.js','biblical-match-three-effects.js','biblical-match-three.js','biblical-match-three-v10-runtime.js','biblical-match-three-v15-ui.js','biblical-match-three-v15-polish.js',
 ].map(name=>`<script src="/web/games/${name}?v=${V}"></script>`).join('');
 const styles=['v2','v2-polish','v4','v5','v9','v10','v11-modal','v13','v15-polish','v21-art'].map(name=>`<link rel="stylesheet" href="/web/styles/biblical-match-three-${name}.css?v=${V}">`).join('');
 const strictCsp=`default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self';`;
 const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="${strictCsp}">${styles}</head><body data-current-game="biblical-match-three" data-mode="game"><main id="game-container"></main><script>
-window.Telegram={WebApp:{initDataUnsafe:{user:{id:Number('${ALLOWED}')}},contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};window.appGoToMainMenu=()=>{};localStorage.setItem('bible_stars_v1_${ALLOWED}','100');
+window.Telegram={WebApp:{initDataUnsafe:{user:{id:Number('${QA_USER}')}},contentSafeAreaInset:{top:96},safeAreaInset:{top:47},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};window.appGoToMainMenu=()=>{};localStorage.setItem('bible_stars_v1_${QA_USER}','100');
 </script>${scripts}<script>(async()=>{await window.BiblicalMatchThreeV5ArtReady;await window.startBiblicalMatchThreeGame('/web/data/biblical_match_three_levels.json?v=${V}')})().catch(e=>{document.body.dataset.qaError=String(e&&e.stack||e)})</script></body></html>`;
 function accessHtml(uid){return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content="${strictCsp}"></head><body data-mode="menu"><main id="menu-container"><section><div id="kids-games"></div></section></main><main id="game-container"></main><script>window.Telegram={WebApp:{initDataUnsafe:{user:{id:Number('${uid}')}},contentSafeAreaInset:{top:0},safeAreaInset:{top:0},HapticFeedback:{selectionChanged(){},notificationOccurred(){}}}};window.appGoToMainMenu=()=>{};</script><script src="/web/js/biblical-match-three-launcher.js?v=${V}"></script></body></html>`}
 const mime={'.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp','.png':'image/png','.txt':'text/plain'};
@@ -23,14 +23,14 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.CH
 const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 
 async function checkAccess(){
- const denied=await context.newPage(),deniedRequests=[];denied.on('request',r=>deniedRequests.push(r.url()));await denied.goto(`${base}/__access?uid=999999999`,{waitUntil:'domcontentloaded',timeout:30000});await denied.waitForTimeout(900);
- const deniedState=await denied.evaluate(async()=>({card:!!document.getElementById('biblical-match-three-card'),allowed:window.BiblicalMatchThreeAccess?.isAllowedUser?.(),result:await window.openBiblicalMatchThree?.(),game:document.body.dataset.currentGame||'',gameHtml:document.getElementById('game-container')?.innerHTML||''}));
- if(deniedState.card||deniedState.allowed||deniedState.result!==false||deniedState.game||deniedState.gameHtml)throw new Error(`unauthorized access ${JSON.stringify(deniedState)}`);
- if(deniedRequests.some(url=>/biblical-match-three-v5-loader|icons-v17\//i.test(url)))throw new Error('unauthorized user loaded private game art');await denied.close();
- const allowed=await context.newPage(),allowedRequests=[];allowed.on('request',r=>allowedRequests.push(r.url()));await allowed.goto(`${base}/__access?uid=${ALLOWED}`,{waitUntil:'domcontentloaded',timeout:30000});await allowed.waitForSelector('#biblical-match-three-card',{timeout:20000});
- const allowedState=await allowed.evaluate(()=>({allowed:window.BiblicalMatchThreeAccess?.isAllowedUser?.(),id:window.BiblicalMatchThreeAccess?.currentUserId?.(),src:document.querySelector('#biblical-match-three-card img')?.getAttribute('src')||''}));
- if(!allowedState.allowed||allowedState.id!==ALLOWED||!allowedState.src.includes('assets/icons/biblical-treasures-v38.png'))throw new Error(`authorized access ${JSON.stringify(allowedState)}`);
- await allowed.locator('#biblical-match-three-card').click();await allowed.waitForSelector('.bmt-v13-menu',{timeout:20000});if(!allowedRequests.some(url=>/biblical-match-three-v5-loader/i.test(url))||!allowedRequests.some(url=>/icons-v17\/bible\.webp/i.test(url)))throw new Error('authorized user did not load V17 game art');await allowed.close();
+ const guest=await context.newPage(),guestRequests=[];guest.on('request',r=>guestRequests.push(r.url()));await guest.goto(`${base}/__access?uid=999999999`,{waitUntil:'domcontentloaded',timeout:30000});await guest.waitForSelector('#biblical-match-three-card',{timeout:20000});
+ const guestState=await guest.evaluate(()=>({allowed:window.BiblicalMatchThreeAccess?.isAllowedUser?.(),publicAccess:window.BiblicalMatchThreeAccess?.publicAccess,id:window.BiblicalMatchThreeAccess?.currentUserId?.(),src:document.querySelector('#biblical-match-three-card img')?.getAttribute('src')||''}));
+ if(!guestState.allowed||!guestState.publicAccess||guestState.id!=='999999999'||!guestState.src.includes('assets/icons/biblical-treasures-v38.png'))throw new Error(`public guest access ${JSON.stringify(guestState)}`);
+ if(guestRequests.some(url=>/biblical-match-three-v5-loader|icons-v17\//i.test(url)))throw new Error('public launcher eagerly loaded gameplay art before the card was opened');
+ await guest.locator('#biblical-match-three-card').click();await guest.waitForSelector('.bmt-v13-menu',{timeout:20000});if(!guestRequests.some(url=>/biblical-match-three-v5-loader/i.test(url))||!guestRequests.some(url=>/icons-v17\/bible\.webp/i.test(url)))throw new Error('public guest did not load V17 game art');await guest.close();
+ const member=await context.newPage();await member.goto(`${base}/__access?uid=${QA_USER}`,{waitUntil:'domcontentloaded',timeout:30000});await member.waitForSelector('#biblical-match-three-card',{timeout:20000});
+ const memberState=await member.evaluate(()=>({allowed:window.BiblicalMatchThreeAccess?.isAllowedUser?.(),publicAccess:window.BiblicalMatchThreeAccess?.publicAccess,id:window.BiblicalMatchThreeAccess?.currentUserId?.()}));
+ if(!memberState.allowed||!memberState.publicAccess||memberState.id!==QA_USER)throw new Error(`public member access ${JSON.stringify(memberState)}`);await member.close();
 }
 async function dismissTutorial(page){await page.waitForTimeout(700);const button=page.locator('.bmt-tutorial button').first();if(await button.count()){try{if(await button.isVisible())await button.click()}catch{}}await page.waitForTimeout(180)}
 async function checkGame(){

@@ -49,7 +49,7 @@ ok(css15.includes('.bmt-tile.is-swapping') && css15.includes('overflow:visible!i
 ok(css15.includes('background:transparent!important') && css15.includes('webp-v17'), 'transparent direct-WebP tile style missing');
 ok(effects.includes('function lowPower()') && effects.includes('count=Math.min(count,lowPower()?6:10)'), 'mobile FX throttling missing');
 ok(game.includes('let ROWS = 8') && game.includes('resolveBoardRows') && game.includes('currentSymbolAsset'), 'variable board runtime missing');
-ok(launcher.includes('VERSION="21"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('isAllowedUser') && launcher.includes('removeMenuCard'), 'V21 three-user private access gate missing');
+ok(launcher.includes('isAllowedUser(){return true}') && launcher.includes('publicAccess:true') && !launcher.includes('ALLOWED_USER_ID') && !launcher.includes('removeMenuCard'), 'Public Biblical Treasures access wiring missing');
 ok(launcher.includes('file-webp-v17') && launcher.includes('transport!=="file"'), 'V17 launcher must require direct WebP art');
 
 const icons = ['ark', 'bible', 'bread', 'candle', 'chains', 'covenant', 'crown', 'dove', 'fish', 'grapes', 'jericho', 'score', 'sling', 'staff', 'tablets'];
