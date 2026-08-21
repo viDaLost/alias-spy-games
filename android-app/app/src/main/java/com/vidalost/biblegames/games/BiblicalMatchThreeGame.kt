@@ -283,7 +283,7 @@ private fun BmtMenuTab(title: String, selected: Boolean, modifier: Modifier, onC
 }
 
 @Composable
-private fun BmtFreeSection(assets: AssetRepository, progress: BmtProgressStore, onFree: (BmtFreeMode) -> Unit) {
+private fun ColumnScope.BmtFreeSection(assets: AssetRepository, progress: BmtProgressStore, onFree: (BmtFreeMode) -> Unit) {
     GlassCard(Modifier.fillMaxWidth(), padding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AssetImage(assets, BmtSymbol.ARK.asset, Modifier.size(52.dp))
