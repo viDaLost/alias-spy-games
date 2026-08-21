@@ -24,7 +24,7 @@
     words: `web/assets/icons/words.png?v=${ICON_VERSION}`, search: `web/assets/icons/search.png?v=${ICON_VERSION}`,
     matchThree: 'web/assets/biblical-match-three/bible.svg?v=2',
     sacred: `web/assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.png?v=${ICON_VERSION}`,
-    mosesNile: `web/assets/icons/moses-nile-runner.svg?v=${ICON_VERSION}`,
+    mosesNile: 'web/assets/icons/moses-nile-runner.svg?v=2',
   };
 
   const HIDDEN_KEY = 'home_hidden_sections_v1';

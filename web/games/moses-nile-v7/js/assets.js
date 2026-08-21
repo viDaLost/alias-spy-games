@@ -8,7 +8,7 @@ class AssetManager {
   }
 
   async loadBasketModel(){
-    const localObjPaths=['models/basket.obj','models/woven-basket.obj'];
+    const localObjPaths=['/web/assets/models/moses-nile/woven-basket.obj','models/basket.obj','models/woven-basket.obj'];
     for(const path of localObjPaths){
       try{
         const response=await fetch(path,{cache:'no-store'});

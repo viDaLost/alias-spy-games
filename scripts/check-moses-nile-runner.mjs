@@ -4,89 +4,63 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
+const launcherSource = fs.readFileSync(path.join(root, 'web/js/moses-nile-runner-launcher.js'), 'utf8');
+const appIndex = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const v75Index = fs.readFileSync(path.join(root, 'web/games/moses-nile-v7/index.html'), 'utf8');
+const v75Game = fs.readFileSync(path.join(root, 'web/games/moses-nile-v7/js/game-v75.js'), 'utf8');
+const backgroundPath = path.join(root, 'web/games/moses-nile-v7/assets/nile-reference-bg-v75.webp');
+
+for (const token of [
+  "const VERSION = '4'",
+  "GAME_URL = 'web/games/moses-nile-v7/index.html?embedded=1&v=750'",
+  'mnr-v75-frame',
+  'mnr-v75-close',
+  'cleanupGame',
+  "GAME_KEY = 'moses-nile-runner'",
+]) {
+  if (!launcherSource.includes(token)) throw new Error(`Nile V7.5 launcher is missing ${token}`);
+}
+if (launcherSource.includes('moses-nile-runner-3d.js') || launcherSource.includes('loadThreeAddon')) {
+  throw new Error('The launcher still loads the retired parallel runner');
+}
+if (!appIndex.includes('moses-nile-runner-launcher.js?v=4')) throw new Error('Nile launcher cache version was not bumped');
+if (!appIndex.includes("connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net")) throw new Error('Nile CDN is not allowed by the app CSP');
+if (!v75Index.includes('game-v75.js?v=750') || !v75Index.includes('nile-reference-bg-v75.webp')) throw new Error('The V7.5 iframe entry is incomplete');
+if (!v75Game.includes('__mosesV75ReferenceRebuild') || !v75Game.includes('oneRenderLoop: true')) throw new Error('The V7.5 engine is not the single reference runtime');
+if (!fs.existsSync(backgroundPath)) throw new Error('The V7.5 cinematic environment is missing');
+if (process.env.MOSES_STATIC_ONLY === '1') {
+  console.log('OK: Moses Nile V7.5 launcher, single-runtime engine and cinematic asset are wired together.');
+  process.exit(0);
+}
+
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'],
   ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.webp', 'image/webp'], ['.json', 'application/json; charset=utf-8'],
   ['.obj', 'text/plain; charset=utf-8'], ['.glb', 'model/gltf-binary'],
 ]);
-
-const gameSource = fs.readFileSync(path.join(root, 'web/games/moses-nile-runner.js'), 'utf8');
-const threeSource = fs.readFileSync(path.join(root, 'web/games/moses-nile-runner-3d.js'), 'utf8');
-const launcherSource = fs.readFileSync(path.join(root, 'web/js/moses-nile-runner-launcher.js'), 'utf8');
-const indexSource = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const basketPath = path.join(root, 'web/assets/models/moses-nile/woven-basket.obj');
-const basketSource = fs.readFileSync(basketPath, 'utf8');
-const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
-
-if (!gameSource.includes('startMosesNileRunner') || !gameSource.includes("const LANES = [-1, 0, 1]")) throw new Error('Nile runner engine is incomplete');
-if (!gameSource.includes('pointerdown') || !gameSource.includes('pointerup') || !gameSource.includes('processSwipe')) throw new Error('Nile runner swipe controls are missing');
-if (!launcherSource.includes("GAME_KEY = 'moses-nile-runner'") || !launcherSource.includes('moses-nile-runner-card')) throw new Error('Nile runner menu launcher is missing');
-if (!launcherSource.includes('THREE_GAME_SRC') || !launcherSource.includes('__startMosesNile3D')) throw new Error('Nile runner 3D addon is not lazy-loaded by the launcher');
-if (launcherSource.includes('new MutationObserver')) throw new Error('Nile runner launcher must not keep a broad menu MutationObserver alive');
-if (!indexSource.includes('moses-nile-runner-launcher.js?v=3')) throw new Error('Nile runner launcher cache version was not bumped');
-if (!indexSource.includes("connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net")) throw new Error('Nile model CDN is not allowed by the app CSP');
-
-for (const token of [
-  '__startMosesNile3D',
-  '__cleanupMosesNile3D',
-  'woven-basket.obj',
-  'Rock_1.glb',
-  'Plant_2.glb',
-  'WoodLog.glb',
-  'Raft.glb',
-  'PalmTree_4.glb',
-  "powerPreference: 'low-power'",
-  'MAX_PIXEL_RATIO = 1.25',
-  'MIN_FRAME_MS = 30',
-  'PerspectiveCamera',
-  'makeWaterTexture',
-  'makeBank',
-  'mnr-stage--full-3d',
-  'ACESFilmicToneMapping',
-  'renderer.shadowMap.enabled = false',
-  'laneFromInlineStyle',
-]) {
-  if (!threeSource.includes(token)) throw new Error(`Nile 3D layer is missing required mobile/full-scene safeguard: ${token}`);
-}
-if (threeSource.includes('el.getBoundingClientRect')) throw new Error('Obstacle placement must not copy DOM pixel rectangles into the 3D scene');
-
-const vertexCount = basketSource.split(/\r?\n/).filter((line) => line.startsWith('v ')).length;
-const faceCount = basketSource.split(/\r?\n/).filter((line) => line.startsWith('f ')).length;
-if (vertexCount !== 213 || faceCount !== 344) throw new Error(`Basket mesh changed unexpectedly: ${vertexCount} vertices / ${faceCount} triangles`);
-if (fs.statSync(basketPath).size > manifest.limits.localAssetBytes) throw new Error('Basket mesh exceeds the mobile local-asset budget');
-
-const remoteModels = manifest.models.filter((model) => model.url);
-const remoteTotal = remoteModels.reduce((sum, model) => sum + Number(model.bytes || 0), 0);
-if (remoteTotal > manifest.limits.remoteTotalBytes) throw new Error(`Remote Nile models exceed total budget: ${remoteTotal}`);
-for (const model of remoteModels) {
-  if (Number(model.bytes || 0) > manifest.limits.remoteAssetBytes) throw new Error(`${model.key} exceeds per-model mobile budget`);
-  if (!String(model.url).includes('@d6aacfb25dd969ead90cddd94ad901e74aede5d8/')) throw new Error(`${model.key} is not pinned to the reviewed Quaternius revision`);
-}
-const basketManifest = manifest.models.find((model) => model.key === 'basket');
-if (basketManifest?.triangles !== faceCount) throw new Error('Basket triangle budget metadata is stale');
-
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url || '/', 'http://127.0.0.1');
+const server = http.createServer((request, response) => {
+  const url = new URL(request.url || '/', 'http://127.0.0.1');
   const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
   const target = path.resolve(root, `.${pathname}`);
-  if (!target.startsWith(root + path.sep) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
-    res.writeHead(404).end('Not found');
+  if (!target.startsWith(`${root}${path.sep}`) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
+    response.writeHead(404).end('Not found');
     return;
   }
-  res.writeHead(200, { 'Content-Type': mime.get(path.extname(target).toLowerCase()) || 'application/octet-stream', 'Cache-Control': 'no-store' });
-  fs.createReadStream(target).pipe(res);
+  response.writeHead(200, { 'Content-Type': mime.get(path.extname(target).toLowerCase()) || 'application/octet-stream', 'Cache-Control': 'no-store' });
+  fs.createReadStream(target).pipe(response);
 });
 
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const baseURL = `http://127.0.0.1:${server.address().port}`;
-const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-webgl'] });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 const page = await context.newPage();
-let addonRequests = 0;
+const pageErrors = [];
+let retiredRunnerRequests = 0;
+page.on('pageerror', (error) => pageErrors.push(error.message));
 page.on('request', (request) => {
-  if (request.url().includes('/web/games/moses-nile-runner-3d.js')) addonRequests += 1;
+  if (/moses-nile-runner(?:-3d)?\.js/.test(request.url())) retiredRunnerRequests += 1;
 });
-page.on('pageerror', (error) => console.log(`[pageerror] ${error.stack || error.message}`));
 
 await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
   status: 200,
@@ -100,63 +74,60 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
     await route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: JSON.stringify({ success: true, answered: true, skip: true }) });
     return;
   }
-  await route.fulfill({
-    status: 200,
-    contentType: 'application/json; charset=utf-8',
-    body: JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] }),
-  });
+  await route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] }) });
 });
-await page.route('https://cdnjs.cloudflare.com/**', (route) => route.abort());
-await page.route('https://cdn.jsdelivr.net/**', (route) => route.abort());
+await page.route('https://cdnjs.cloudflare.com/**', (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
+await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }));
 
 try {
   await page.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForSelector('#moses-nile-runner-card', { timeout: 5_000 });
-  if (addonRequests !== 0) throw new Error('Nile 3D addon was loaded before the user opened the game');
-
   await page.locator('#moses-nile-runner-card').click();
-  await page.waitForSelector('.mnr-shell[data-version="1"]', { timeout: 5_000 });
-  await page.waitForFunction(() => [...document.scripts].some((script) => script.src.includes('moses-nile-runner-3d.js')), null, { timeout: 2_000 });
-  if (addonRequests !== 1) throw new Error(`Expected one lazy 3D addon request, got ${addonRequests}`);
-  await page.waitForSelector('#mnr-intro:not(.hidden)');
-  await page.locator('#mnr-start').click();
-  await page.waitForFunction(() => Number.parseInt(document.querySelector('#mnr-distance')?.textContent || '0', 10) > 0, null, { timeout: 4_000 });
+  await page.waitForSelector('.mnr-v75-host', { timeout: 4_000 });
+  const frameElement = page.locator('.mnr-v75-frame');
+  const frame = page.frameLocator('.mnr-v75-frame');
+  await frame.locator('#start-screen').waitFor({ state: 'visible', timeout: 8_000 });
+  await frame.locator('#version-badge').waitFor({ state: 'visible', timeout: 3_000 });
+  await page.waitForFunction(() => document.querySelector('.mnr-v75-loader')?.classList.contains('is-hidden'));
 
-  const stage = page.locator('#mnr-stage');
-  const box = await stage.boundingBox();
-  if (!box) throw new Error('Nile runner stage is not measurable');
-  const basketBefore = await page.locator('#mnr-basket').evaluate((el) => getComputedStyle(el).left);
-  await page.mouse.move(box.x + box.width * .5, box.y + box.height * .72);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * .78, box.y + box.height * .72, { steps: 5 });
-  await page.mouse.up();
-  await page.waitForTimeout(250);
-  const basketAfter = await page.locator('#mnr-basket').evaluate((el) => getComputedStyle(el).left);
-  if (basketAfter === basketBefore) throw new Error(`Horizontal swipe did not change lane: ${basketBefore}`);
+  const hostBox = await page.locator('.mnr-v75-host').boundingBox();
+  const frameBox = await frameElement.boundingBox();
+  if (!hostBox || !frameBox || hostBox.width < 389 || hostBox.height < 843 || frameBox.width < 389 || frameBox.height < 843) {
+    throw new Error(`V7.5 iframe is not full-screen: host=${JSON.stringify(hostBox)} frame=${JSON.stringify(frameBox)}`);
+  }
+  const mode = await frame.locator('body').evaluate(() => ({
+    mode: window.__mosesV75Mode,
+    badge: document.getElementById('version-badge')?.textContent,
+    background: getComputedStyle(document.getElementById('scene-bg')).backgroundImage,
+  }));
+  if (mode.mode !== 'fallback' || !mode.badge?.startsWith('V7.5 · LITE READY') || !mode.background.includes('nile-reference-bg-v75.webp')) {
+    throw new Error(`V7.5 fallback did not boot inside the app: ${JSON.stringify(mode)}`);
+  }
 
-  await page.mouse.move(box.x + box.width * .5, box.y + box.height * .72);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * .5, box.y + box.height * .45, { steps: 5 });
-  await page.mouse.up();
-  await page.waitForFunction(() => document.querySelector('#mnr-basket')?.classList.contains('is-boosting'), null, { timeout: 1_000 });
+  await frame.locator('#start-btn').click();
+  await frame.locator('#dist-txt').waitFor({ state: 'visible' });
+  await page.waitForFunction(() => {
+    const iframe = document.querySelector('.mnr-v75-frame');
+    return Number(iframe?.contentDocument?.getElementById('dist-txt')?.textContent || 0) >= 8;
+  }, null, { timeout: 3_000 });
+  await frame.locator('#btn-right').click();
+  await page.waitForFunction(() => document.querySelector('.mnr-v75-frame')?.contentWindow?.__mosesV75Diagnostics?.lane === 2, null, { timeout: 2_000 });
 
-  await page.locator('#mnr-pause').click();
-  await page.waitForSelector('#mnr-pause-tag.is-on');
-  await page.locator('#mnr-pause').click();
-  await page.waitForFunction(() => !document.querySelector('#mnr-pause-tag')?.classList.contains('is-on'));
-
-  await page.locator('#mnr-back').click();
+  await page.locator('.mnr-v75-close').click();
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 4_000 });
-  const state = await page.evaluate(() => ({
+  const finalState = await page.evaluate(() => ({
     mode: document.body.dataset.mode || '',
-    runner: Boolean(document.querySelector('.mnr-shell')),
-    canvas: Boolean(document.querySelector('.mnr-3d-canvas')),
+    currentGame: document.body.dataset.currentGame || '',
+    host: Boolean(document.querySelector('.mnr-v75-host')),
     history: JSON.parse(localStorage.getItem('last_games_history') || '[]'),
   }));
-  if (state.mode || state.runner || state.canvas || state.history[0] !== 'Моисей: путь по Нилу') throw new Error(`Runner cleanup/history failed: ${JSON.stringify(state)}`);
-
-  console.log(`OK: Moses Nile runner uses a full PerspectiveCamera scene with 3D river/banks, enforces a ${remoteTotal}-byte pinned remote model budget, and remains playable when optional 3D CDNs are unavailable.`);
+  if (finalState.mode || finalState.currentGame || finalState.host || finalState.history[0] !== 'Моисей: путь по Нилу') {
+    throw new Error(`V7.5 return/history failed: ${JSON.stringify(finalState)}`);
+  }
+  if (retiredRunnerRequests !== 0) throw new Error(`Retired parallel runner was requested ${retiredRunnerRequests} times`);
+  if (pageErrors.length) throw new Error(`V7.5 integration page errors: ${pageErrors.join(' | ')}`);
+  console.log('OK: the main menu opens Moses Nile V7.5 full-screen, the no-WebGL path remains playable, and the legacy parallel runner is not requested.');
 } finally {
   await context.close();
   await browser.close();
