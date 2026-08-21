@@ -1,38 +1,24 @@
 (() => {
   'use strict';
-  if (window.__bmtV38ExperienceInstalled) return;
-  window.__bmtV38ExperienceInstalled = true;
+  if (window.__bmtV39ExperienceInstalled) return;
+  window.__bmtV39ExperienceInstalled = true;
+  document.querySelectorAll('.bmt-v38-menu-crest').forEach((node) => node.remove());
 
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   let boardToken = null;
 
   function decorateMenuCard() {
     const card = document.getElementById('biblical-match-three-card');
-    if (!card || card.dataset.bmtV38 === '1') return;
+    if (!card) return;
     card.dataset.bmtV38 = '1';
     card.classList.add('game-card--biblical-treasures-v38');
     const icon = card.querySelector('.game-card__icon');
-    if (!icon) return;
+    if (!icon || icon.querySelector('.bmt-v38-card-sparkles')) return;
     const sparkle = document.createElement('span');
     sparkle.className = 'bmt-v38-card-sparkles';
     sparkle.setAttribute('aria-hidden', 'true');
     sparkle.innerHTML = '<i></i><i></i><i></i>';
     icon.append(sparkle);
-  }
-
-  function decorateGameMenu() {
-    const shell = document.querySelector('.bmt-v13-menu');
-    if (!shell || shell.dataset.bmtV38 === '1') return;
-    shell.dataset.bmtV38 = '1';
-    const homebar = shell.querySelector('.bmt-homebar');
-    if (!homebar) return;
-    const crest = document.createElement('img');
-    crest.className = 'bmt-v38-menu-crest';
-    crest.src = 'web/assets/icons/biblical-treasures-v38.png?v=38';
-    crest.alt = '';
-    crest.draggable = false;
-    crest.decoding = 'async';
-    homebar.append(crest);
   }
 
   function decorateBoard() {
@@ -53,7 +39,7 @@
   function sync() {
     decorateMenuCard();
     if (document.body?.dataset?.currentGame !== 'biblical-match-three') return;
-    decorateGameMenu();
+    document.querySelectorAll('.bmt-v38-menu-crest').forEach((node) => node.remove());
     decorateBoard();
   }
 

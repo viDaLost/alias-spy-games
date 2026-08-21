@@ -21,7 +21,7 @@
     spy: `web/assets/icons/spy.png?v=${ICON_VERSION}`, quartet: `web/assets/icons/quartet.png?v=${ICON_VERSION}`,
     bibleSketch: `web/assets/icons/bible-sketch.svg?v=${ICON_VERSION}`,
     words: `web/assets/icons/words.png?v=${ICON_VERSION}`, search: `web/assets/icons/search.png?v=${ICON_VERSION}`,
-    matchThree: 'web/assets/biblical-match-three/bible.svg?v=2',
+    matchThree: 'web/assets/icons/biblical-treasures-v38.png?v=39',
     sacred: `web/assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.png?v=${ICON_VERSION}`,
   };
 

@@ -56,6 +56,23 @@ function generate(level, mask) {
   }
   return null;
 }
+function seedGoalSpecials(level, board, mask) {
+  const goal = level.goals.find(item => item.type === 'activateSpecials');
+  if (!goal) return 0;
+  const blockers = new Set((level.blockers || []).flatMap(group => group.cells || []).map(Number));
+  const target = Math.min(10, Math.ceil(Math.max(2, Number(goal.count || 0)) / 2) * 2);
+  const used = new Set(); let placed = 0;
+  const available = index => mask[index] && board[index] && !board[index].special && !blockers.has(index) && !used.has(index);
+  const pairs = [];
+  for (let row = 0; row < level.rows; row += 1) for (let col = 0; col < COLS - 1; col += 1) pairs.push([row * COLS + col, row * COLS + col + 1]);
+  for (let col = 0; col < COLS; col += 1) for (let row = 0; row < level.rows - 1; row += 1) pairs.push([row * COLS + col, (row + 1) * COLS + col]);
+  for (const [a, b] of pairs) {
+    if (placed >= target) break;
+    if (!available(a) || !available(b)) continue;
+    board[a].special = 'lineH'; board[b].special = 'lineV'; used.add(a); used.add(b); placed += 2;
+  }
+  return placed;
+}
 
 assert(levels.length === 30, 'Expected 30 campaign levels');
 for (const [offset, level] of levels.entries()) {
@@ -85,6 +102,16 @@ for (const [offset, level] of levels.entries()) {
     if (goal.type === 'score') assert(goal.count <= level.moves * 400, `Level ${level.id}: score target is outside the conservative move budget`);
     if (goal.type === 'activateSpecials') assert(goal.count <= Math.ceil(level.moves / 3), `Level ${level.id}: special target is too aggressive`);
   }
-  for (let sample = 0; sample < 120; sample += 1) assert(generate(level, mask), `Level ${level.id}: could not generate a playable board (sample ${sample + 1})`);
+  for (let sample = 0; sample < 120; sample += 1) {
+    const board = generate(level, mask);
+    assert(board, `Level ${level.id}: could not generate a playable board (sample ${sample + 1})`);
+    const specialGoal = level.goals.find(goal => goal.type === 'activateSpecials');
+    if (specialGoal) {
+      const seeded = seedGoalSpecials(level, board, mask);
+      const comboMoves = Core.findMoves(board, level.rows, COLS, (a,b) => mask[a] && mask[b]).filter(([a,b]) => Core.specialComboClearSet(board, a, b, level.rows, COLS)).length;
+      assert(seeded >= specialGoal.count, `Level ${level.id}: only ${seeded}/${specialGoal.count} guaranteed special pieces`);
+      assert(comboMoves >= Math.ceil(specialGoal.count / 2), `Level ${level.id}: not enough immediately activatable special pairs`);
+    }
+  }
 }
-console.log(`OK: all ${levels.length} Biblical Treasures levels passed structural, goal-budget and 3-starting-moves checks (3,600 boards)`);
+console.log(`OK: all ${levels.length} Biblical Treasures levels passed structural, goal-budget, special-goal and 3-starting-moves checks (3,600 boards)`);

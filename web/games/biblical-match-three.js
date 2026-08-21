@@ -412,11 +412,30 @@ function initBlockers(level) {
   }
 }
 
+function applyLevelGoalSpecials(level) {
+  const goal = level?.goals?.find((item) => item.type === "activateSpecials");
+  if (!goal) return 0;
+  const target = Math.min(10, Math.ceil(Math.max(2, Number(goal.count || 0)) / 2) * 2);
+  const used = new Set(); let placed = 0;
+  const available = (index) => isActive(index) && runtime.board[index] && !runtime.board[index].special && !runtime.blockers.has(index) && !used.has(index);
+  const pairs = [];
+  for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS - 1; col += 1) pairs.push([row * COLS + col, row * COLS + col + 1]);
+  for (let col = 0; col < COLS; col += 1) for (let row = 0; row < ROWS - 1; row += 1) pairs.push([row * COLS + col, (row + 1) * COLS + col]);
+  for (const [a, b] of pairs) {
+    if (placed >= target) break;
+    if (!available(a) || !available(b)) continue;
+    runtime.board[a].special = "lineH"; runtime.board[b].special = "lineV";
+    used.add(a); used.add(b); placed += 2;
+  }
+  runtime.seededGoalSpecials = placed;
+  return placed;
+}
+
 function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBoosters }) {
   clearHint(); runtime.screen = "board"; runtime.mode = mode; runtime.level = level; runtime.difficulty = difficulty; runtime.symbolIds = symbolIds;
   ROWS = resolveBoardRows(mode, level, difficulty); runtime.boardShape = boardShapeFor(mode, level, difficulty); runtime.activeMask = makeActiveMask(runtime.boardShape, ROWS, COLS, level);
-  runtime.board = createPlayableBoard(ROWS, COLS, symbolIds, runtime.activeMask, mode === "level" ? requiredCollectSymbols(level) : []); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
-  initBlockers(mode === "free" ? freeChallengeConfig(difficulty) : level); applyPreBoosters(selectedBoosters || new Set());
+  runtime.board = createPlayableBoard(ROWS, COLS, symbolIds, runtime.activeMask, mode === "level" ? requiredCollectSymbols(level) : []); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.seededGoalSpecials = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
+  initBlockers(mode === "free" ? freeChallengeConfig(difficulty) : level); if (mode === "level") applyLevelGoalSpecials(level); applyPreBoosters(selectedBoosters || new Set());
   const container = document.getElementById("game-container"); container.innerHTML = ""; const shell = el("section", "bmt-shell bmt-board-screen bmt-v2");
   const top = el("header", "bmt-gamebar"); const back = button("←", "bmt-icon-button", () => runtime.mode === "free" ? openFreeExit() : openPause()); back.setAttribute("aria-label", runtime.mode === "free" ? "Завершить свободную игру" : "Пауза");
   const heading = el("div", "bmt-heading-wrap"); heading.innerHTML = `<p class="bmt-kicker">${mode === "level" ? `Уровень ${level.id}` : `Свободная игра · ${FREE_MODES[difficulty].label}`}</p><h2 class="bmt-title">${escapeHtml(mode === "level" ? level.title : "Рекордный режим")}</h2>`;
@@ -438,6 +457,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
   shell.append(boosters);
   const actions = el("div", "bmt-actions-v2"); const hint = button("Подсказка", "bmt-action-button", showHint); hint.innerHTML = `<span>✦</span><strong>Подсказка</strong>`; const pauseButton = button(mode === "free" ? "Завершить" : "Пауза", "bmt-action-button", mode === "free" ? openFreeExit : openPause); pauseButton.innerHTML = `<span>${mode === "free" ? "✓" : "Ⅱ"}</span><strong>${mode === "free" ? "Завершить" : "Пауза"}</strong>`; actions.append(hint, pauseButton); shell.append(actions);
   container.append(shell); updateAllTiles(); updateHud(); animateEntrance(); scheduleHint();
+  if (runtime.seededGoalSpecials > 0) setTimeout(() => toast("Особые фишки уже на поле — соедините соседнюю пару", "info"), 560);
   if (!runtime.progress.tutorialSeen?.["v18-first-run"]) setTimeout(showTutorial, 420);
 }
 

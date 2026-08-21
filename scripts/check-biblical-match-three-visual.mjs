@@ -29,7 +29,7 @@ async function checkAccess(){
  if(deniedRequests.some(url=>/biblical-match-three-v5-loader|icons-v17\//i.test(url)))throw new Error('unauthorized user loaded private game art');await denied.close();
  const allowed=await context.newPage(),allowedRequests=[];allowed.on('request',r=>allowedRequests.push(r.url()));await allowed.goto(`${base}/__access?uid=${ALLOWED}`,{waitUntil:'domcontentloaded',timeout:30000});await allowed.waitForSelector('#biblical-match-three-card',{timeout:20000});
  const allowedState=await allowed.evaluate(()=>({allowed:window.BiblicalMatchThreeAccess?.isAllowedUser?.(),id:window.BiblicalMatchThreeAccess?.currentUserId?.(),src:document.querySelector('#biblical-match-three-card img')?.getAttribute('src')||''}));
- if(!allowedState.allowed||allowedState.id!==ALLOWED||!allowedState.src.includes('assets/icons/biblical-treasures.webp'))throw new Error(`authorized access ${JSON.stringify(allowedState)}`);
+ if(!allowedState.allowed||allowedState.id!==ALLOWED||!allowedState.src.includes('assets/icons/biblical-treasures-v38.png'))throw new Error(`authorized access ${JSON.stringify(allowedState)}`);
  await allowed.locator('#biblical-match-three-card').click();await allowed.waitForSelector('.bmt-v13-menu',{timeout:20000});if(!allowedRequests.some(url=>/biblical-match-three-v5-loader/i.test(url))||!allowedRequests.some(url=>/icons-v17\/bible\.webp/i.test(url)))throw new Error('authorized user did not load V17 game art');await allowed.close();
 }
 async function dismissTutorial(page){await page.waitForTimeout(700);const button=page.locator('.bmt-tutorial button').first();if(await button.count()){try{if(await button.isVisible())await button.click()}catch{}}await page.waitForTimeout(180)}

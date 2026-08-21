@@ -156,7 +156,7 @@ ok(css15.includes('V19: obstacle artwork') && css15.includes('.bmt-blocker-art')
 ok(css15.includes('V20: a lit lamp') && css15.includes('.bmt-tile.is-lamp-lit .bmt-blocker-art{display:none!important') && css15.includes('animation:none!important'), 'V20 lit-lamp settle styling missing');
 ok(css15.includes('.bmt-tile.is-hole') && css15.includes('width:62px'), 'V18 shaped board/free icon polish missing');
 
-const v21Assets = ['web/assets/icons/biblical-treasures.webp', 'web/assets/icons/support.webp', 'web/assets/icons/android-download.webp', 'web/assets/icons/qr-scanner.webp', 'web/assets/icons/admin.webp', 'web/assets/biblical-match-three/board-background-v21.webp'];
+const v21Assets = ['web/assets/icons/biblical-treasures-v38.png', 'web/assets/icons/support.webp', 'web/assets/icons/android-download.webp', 'web/assets/icons/qr-scanner.webp', 'web/assets/icons/admin.webp', 'web/assets/biblical-match-three/board-background-v21.webp'];
 for (const f of v21Assets) ok(exists(f), `V21 artwork missing: ${f}`);
 ok(launcher.includes('MENU_ICON'), 'V21 Biblical menu artwork wiring missing');
 ok(css21.includes('board-background-v21.webp') && css21.includes('.bmt-board-wrap') && css21.includes('.bmt-board'), 'V21 board background styling missing');
@@ -165,7 +165,7 @@ ok(androidMenu.includes('android-download.webp') && !androidMenu.includes('<svg'
 ok(qrAddon.includes('qr-scanner.webp'), 'V21 QR artwork wiring missing');
 ok(indexHtml.includes('biblical-match-three-launcher.js?v=21') && indexHtml.includes('system-icons.js?v=22') && indexHtml.includes('android-download-menu.js?v=22') && indexHtml.includes('room-qr-addon.js?v=4'), 'V22 cache bust wiring missing');
 
-const v22Assets = ['web/assets/icons/biblical-treasures.webp', 'web/assets/icons/support.webp', 'web/assets/icons/android-download.webp', 'web/assets/icons/admin.webp', 'web/assets/biblical-match-three/board-background-v22.webp'];
+const v22Assets = ['web/assets/icons/biblical-treasures-v38.png', 'web/assets/icons/support.webp', 'web/assets/icons/android-download.webp', 'web/assets/icons/admin.webp', 'web/assets/biblical-match-three/board-background-v22.webp'];
 for (const f of v22Assets) ok(exists(f), `V22 artwork missing: ${f}`);
 ok(indexHtml.includes('v22-home-art.js?v=22') && indexHtml.includes('v22-game-loader.js?v=22'), 'V22 UI loader wiring missing');
 

@@ -53,13 +53,17 @@ const levels = JSON.parse(read('web/data/biblical_match_three_levels.json'));
 ok(levels.version === 4, 'Biblical Treasures level balance version missing');
 ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
-ok(index.includes('biblical-match-three-launcher.js?v=30') && index.includes('v22-home-art.js?v=38'), 'Biblical Treasures launcher/menu icon wiring missing');
-ok(index.includes('v22-game-loader.js?v=38') && index.includes('v29-biblical-treasures-hotfix.js?v=35') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V38 experience/lamp cache-bust wiring missing');
+ok(index.includes('biblical-match-three-launcher.js?v=39') && index.includes('v22-home-art.js?v=39'), 'Biblical Treasures V39 launcher/menu icon wiring missing');
+ok(index.includes('v22-game-loader.js?v=39') && index.includes('v29-biblical-treasures-hotfix.js?v=35') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V39 experience/lamp cache-bust wiring missing');
 ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wiring changed unexpectedly');
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
 ok(loader.includes("const VERSION = '31'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(loader.includes('v37-biblical-treasures-lamp-swipe.js?v=37') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
-ok(home.includes("BIBLICAL_VERSION = '38'") && home.includes('biblical-treasures-v38.png') && home.includes("bmtMenuArt = 'v38'"), 'V38 transparent menu icon patch missing');
+ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.png') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
+ok(launcher.includes('const VERSION="39"') && launcher.includes('biblical-treasures-v38.png') && launcher.includes('data-bmt-menu-art="v39"'), 'V39 canonical launcher icon source missing');
+ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.png'), 'Legacy hotfix can still revert the V39 menu icon');
+ok(!read('web/games/biblical-match-three-v15-polish.js').includes('patchAppCard'), 'Game polish can still replace the app icon after returning to the menu');
+ok(read('web/games/biblical-match-three.js').includes('applyLevelGoalSpecials') && read('web/games/biblical-match-three.js').includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
 ok(result.includes('completion-1-star-v29.webp') && result.includes('completion-2-stars-v29.webp') && result.includes('completion-3-stars-v29.avif') && result.includes('dataset.resultStars'), 'Star-specific completion art wiring missing');
 ok(board.includes('icons-v29/lamp-unlit.webp') && board.includes('icons-v17/candle.webp') && board.includes('data-blocker-lit'), 'Extinguished/lit lamp art wiring missing');
 ok(boardCss.includes('board-background-v35.webp?v=35') && boardCss.includes('.bmt-tile.has-lamp .bmt-piece-wrap') && boardCss.includes('visibility:hidden!important'), 'V35 board background / standalone lamp styling missing');
@@ -83,7 +87,7 @@ ok(lampSwipe.includes("tile.classList.remove('has-lamp', 'is-lamp-lit')") && lam
 ok(lampSwipe.includes('edgeFallback') && lampSwipe.includes('fallbackIndex') && lampSwipe.includes('document.addEventListener(\'pointermove\''), 'V37 edge swipe fallback missing');
 ok(lampSwipe.includes('validSwapTile') && lampSwipe.includes('!unlitLamp(tile)'), 'V37 must keep unlit lamp obstacles protected');
 
-ok(launcher.includes('const VERSION="30"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
+ok(launcher.includes('const VERSION="39"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
 ok(progress.includes('levelBestScores') && progress.includes('previousBestScore') && progress.includes('newBestScore') && progress.includes('isImproved'), 'Campaign best-score persistence missing');
 
 for (const level of levels.levels) {

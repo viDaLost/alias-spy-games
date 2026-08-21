@@ -7,8 +7,8 @@
   window.__bmtV30HotfixInstalled = true;
 
   const VERSION = '35';
-  const MENU_ART_VERSION = '31';
-  const MENU_ICON = `web/assets/icons/biblical-treasures.webp?v=${MENU_ART_VERSION}`;
+  const MENU_ART_VERSION = '39';
+  const MENU_ICON = `web/assets/icons/biblical-treasures-v38.png?v=${MENU_ART_VERSION}`;
   const BOARD_BACKGROUND = `web/assets/biblical-match-three/board-background-v35.webp?v=${VERSION}`;
   const VISUAL_STYLE_ID = 'bmt-v34-user-art';
   const RESULT_ART = {
@@ -53,7 +53,7 @@
     if (!img) return;
     if ((img.getAttribute('src') || '') !== MENU_ICON) img.src = MENU_ICON;
     if (img.alt !== 'Иконка игры Библейские сокровища') img.alt = 'Иконка игры Библейские сокровища';
-    if (img.dataset.bmtMenuArt !== 'v31') img.dataset.bmtMenuArt = 'v31';
+    if (img.dataset.bmtMenuArt !== 'v39') img.dataset.bmtMenuArt = 'v39';
     if (img.dataset.iconVersion !== MENU_ART_VERSION) img.dataset.iconVersion = MENU_ART_VERSION;
   }
 
