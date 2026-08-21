@@ -12,7 +12,6 @@
     'Библейские три в ряд': { key: 'biblical-match-three', desc: 'Комбинации, бустеры и путь из 30 уровней', icon: 'matchThree' },
     'Священное слово': { key: 'sacred-word', desc: 'Открой слово по подсказкам', icon: 'sacred' },
     'Найди пару': { key: 'kids-ark-pairs', desc: 'Соберите животных попарно', icon: 'ark' },
-    'Моисей: путь по Нилу': { key: 'moses-nile-runner', desc: 'Проведи корзину по Нилу', icon: 'mosesNile' },
   };
 
   const ICON_VERSION = '1';
@@ -24,7 +23,6 @@
     words: `web/assets/icons/words.png?v=${ICON_VERSION}`, search: `web/assets/icons/search.png?v=${ICON_VERSION}`,
     matchThree: 'web/assets/icons/biblical-treasures-v38.png?v=39',
     sacred: `web/assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.png?v=${ICON_VERSION}`,
-    mosesNile: 'web/assets/icons/moses-nile-runner.svg?v=2',
   };
 
   const HIDDEN_KEY = 'home_hidden_sections_v1';
@@ -71,10 +69,6 @@
     if (!game) return;
     if (game.key === 'biblical-match-three' && typeof window.openBiblicalMatchThree === 'function') {
       window.openBiblicalMatchThree();
-      return;
-    }
-    if (game.key === 'moses-nile-runner' && typeof window.openMosesNileRunner === 'function') {
-      window.openMosesNileRunner();
       return;
     }
     if (typeof window.showGame === 'function') window.showGame(game.key);
