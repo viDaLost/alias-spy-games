@@ -4,10 +4,10 @@
   if (window.__mosesNileRunnerLauncherInstalled) return;
   window.__mosesNileRunnerLauncherInstalled = true;
 
-  const VERSION = '4';
+  const VERSION = '5';
   const GAME_KEY = 'moses-nile-runner';
   const TITLE = 'Моисей: путь по Нилу';
-  const GAME_URL = 'web/games/moses-nile-v7/index.html?embedded=1&v=750';
+  const GAME_URL = 'web/games/moses-nile-v7/index.html?embedded=1&v=751';
   const ICON_SRC = 'web/assets/icons/moses-nile-runner.svg?v=2';
   const STYLE_ID = 'moses-nile-v75-launcher-style';
   let nativeGoToMainMenu = null;

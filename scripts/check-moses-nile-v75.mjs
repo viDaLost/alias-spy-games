@@ -12,7 +12,7 @@ const background = path.join(gameRoot, 'assets/nile-reference-bg-v75.webp');
 for (const token of [
   'V7.5 · LOADING',
   'nile-reference-bg-v75.webp',
-  'game-v75.js?v=750',
+  'game-v75.js?v=751',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
 ]) {

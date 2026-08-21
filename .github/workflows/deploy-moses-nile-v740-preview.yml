@@ -49,7 +49,7 @@ jobs:
 
           for file in .preview-v7/js/*.js; do node --check "$file"; done
           grep -q 'V7.5 · LOADING' .preview-v7/index.html
-          grep -q 'game-v75.js?v=750' .preview-v7/index.html
+          grep -q 'game-v75.js?v=751' .preview-v7/index.html
           grep -q '__mosesV75ReferenceRebuild' .preview-v7/js/game-v75.js
           grep -q 'V75DistantPyramid' .preview-v7/js/game-v75.js
           grep -q 'oneRenderLoop: true' .preview-v7/js/game-v75.js
@@ -94,7 +94,7 @@ jobs:
           V: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          printf 'commit=%s\nversion=V7.5\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nwater=silty-green-brown\nbasket=closed-at-waterline\nbackground=reference-driven\npyramids=restored-distance\ndecor=instanced-bank-detail\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=750\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          printf 'commit=%s\nversion=V7.5\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nwater=silty-green-brown\nbasket=closed-at-waterline\nbackground=reference-driven\npyramids=restored-distance\ndecor=instanced-bank-detail\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=751\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v750
           mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v750.txt

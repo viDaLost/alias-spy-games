@@ -11,8 +11,8 @@ const v75Game = fs.readFileSync(path.join(root, 'web/games/moses-nile-v7/js/game
 const backgroundPath = path.join(root, 'web/games/moses-nile-v7/assets/nile-reference-bg-v75.webp');
 
 for (const token of [
-  "const VERSION = '4'",
-  "GAME_URL = 'web/games/moses-nile-v7/index.html?embedded=1&v=750'",
+  "const VERSION = '5'",
+  "GAME_URL = 'web/games/moses-nile-v7/index.html?embedded=1&v=751'",
   'mnr-v75-frame',
   'mnr-v75-close',
   'cleanupGame',
@@ -23,9 +23,9 @@ for (const token of [
 if (launcherSource.includes('moses-nile-runner-3d.js') || launcherSource.includes('loadThreeAddon')) {
   throw new Error('The launcher still loads the retired parallel runner');
 }
-if (!appIndex.includes('moses-nile-runner-launcher.js?v=4')) throw new Error('Nile launcher cache version was not bumped');
+if (!appIndex.includes('moses-nile-runner-launcher.js?v=5')) throw new Error('Nile launcher cache version was not bumped');
 if (!appIndex.includes("connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net")) throw new Error('Nile CDN is not allowed by the app CSP');
-if (!v75Index.includes('game-v75.js?v=750') || !v75Index.includes('nile-reference-bg-v75.webp')) throw new Error('The V7.5 iframe entry is incomplete');
+if (!v75Index.includes('game-v75.js?v=751') || !v75Index.includes('nile-reference-bg-v75.webp')) throw new Error('The V7.5 iframe entry is incomplete');
 if (!v75Game.includes('__mosesV75ReferenceRebuild') || !v75Game.includes('oneRenderLoop: true')) throw new Error('The V7.5 engine is not the single reference runtime');
 if (!fs.existsSync(backgroundPath)) throw new Error('The V7.5 cinematic environment is missing');
 if (process.env.MOSES_STATIC_ONLY === '1') {
