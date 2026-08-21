@@ -1,4 +1,4 @@
-name: Visual Audit Moses Nile V7.5 Reference Rebuild
+name: Visual Audit Moses Nile V7.5.1 Real Assets
 
 on:
   workflow_dispatch:
@@ -17,12 +17,12 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for isolated V7.5 reference preview
+      - name: Wait for isolated V7.5.1 preview
         run: |
           set -euo pipefail
           P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
           for i in $(seq 1 20); do
-            if curl -fsSL --max-time 20 "${P}?audit=${GITHUB_SHA}-${i}" | grep -q 'V7.5 · LOADING' \
+            if curl -fsSL --max-time 20 "${P}?audit=${GITHUB_SHA}-${i}" | grep -q 'V7.5.1 · LOADING' \
               && curl -fsSL --max-time 20 "${P}build.json?audit=${GITHUB_SHA}-${i}" | grep -q "$GITHUB_SHA"; then exit 0; fi
             sleep 6
           done
@@ -37,7 +37,7 @@ jobs:
             "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=$T --run-all-compositor-stages-before-draw --screenshot="visual-audit/mobile-${T}.png" "${P}?visualAudit=1&sha=${GITHUB_SHA}&t=${T}"
           done
           "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=33000 --dump-dom "${P}?visualAudit=1&sha=${GITHUB_SHA}" > visual-audit/live-dom.html
-          grep -q 'V7.5 ·' visual-audit/live-dom.html
+          grep -q 'V7.5.1 ·' visual-audit/live-dom.html
           grep -q '__mosesV75ReferenceRebuild' <(curl -fsSL --max-time 20 "${P}js/game-v75.js?sha=${GITHUB_SHA}")
       - name: Analyze composition and color
         run: |
@@ -60,7 +60,7 @@ jobs:
               assert r[2]-r[0] < 28
           Path('visual-audit/metrics.txt').write_text('\n'.join(rows)+'\n')
           PY
-          printf 'commit=%s\nversion=V7.5-reference-rebuild\ncapture=success\ncheckpoints=3\nbackground=cinematic-nile\nfallback=verified\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" > visual-audit/status.txt
+          printf 'commit=%s\nversion=V7.5.1-real-assets\ncapture=success\ncheckpoints=3\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nbackground=cinematic-nile\nfallback=verified\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" > visual-audit/status.txt
       - name: Publish reference audit
         if: always()
         run: |
@@ -68,5 +68,5 @@ jobs:
           git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v750-visual
           git add visual-audit || true
-          git commit -m 'Capture V7.5 reference visual audit' || true
+          git commit -m 'Capture V7.5.1 real-assets visual audit' || true
           git push --force origin HEAD:refs/heads/verify/moses-nile-v750-visual

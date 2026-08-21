@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#b79869">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Моисей: Путь по Нилу — V7.5</title>
+  <title>Моисей: Путь по Нилу — V7.5.1</title>
   <style>
     :root {
       --ink: #241c14;
@@ -51,6 +51,7 @@
     p { margin: 0 0 16px; color: #5a4b3a; font-size: 14px; line-height: 1.42; }
     .eyebrow { display: block; margin-bottom: 7px; color: #9a6b2e; font-size: 11px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
     .btn { width: 100%; min-height: 52px; border: 0; border-radius: 999px; color: #2b2116; background: linear-gradient(135deg, #d3a351, #f0cd80); box-shadow: 0 8px 22px rgba(113, 75, 30, .25), inset 0 1px rgba(255,255,255,.38); font-size: 16px; font-weight: 900; cursor: pointer; }
+    .btn:disabled { cursor: wait; filter: saturate(.55); opacity: .68; }
     .controls-hint { margin-top: 11px; color: #796a58; font-size: 11px; }
     #gameover-screen { align-items: center; padding-bottom: 20px; background: rgba(21, 18, 13, .46); }
     #gameover-screen h1 { color: #733d2c; }
@@ -121,11 +122,11 @@
     </div>
   </div>
 
-  <div id="version-badge">V7.5 · LOADING</div>
+  <div id="version-badge">V7.5.1 · LOADING</div>
   <script>window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};</script>
-  <script src="js/sound.js?v=751"></script>
-  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=751"><\/script>');else window.assetManager={};</script>
-  <script src="js/game-v75.js?v=751"></script>
+  <script src="js/sound.js?v=752"></script>
+  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=752"><\/script>');else window.assetManager={};</script>
+  <script src="js/game-v75.js?v=752"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){setTimeout(()=>document.getElementById('start-btn')?.click(),1600)}</script>
 </body>
 </html>

@@ -16,6 +16,7 @@
 - License: **CC BY 4.0**
 - Repository mirror used by the preview build: `sandeshdamkondwar/3d-viewer`, pinned to commit `a33f107378e79b4458d2a400bb5e32fddcedbf73`.
 - V7.3 uses this higher-detail model for gameplay crocodiles instead of the previous procedural box/cone crocodile. V7.3.1+ resizes embedded textures to a maximum of 512 px during the preview build when the optimizer is available; if optimization fails, the original licensed GLB is retained.
+- V7.5.1 extracts the verified packaged copy to `models/v73/crocodile.glb` in the active same-origin build. The box/cone mesh is now only an emergency load-failure fallback.
 
 ## Nile lotus
 
@@ -23,6 +24,7 @@
 - The geometry was created specifically for this game: three radial petal layers, a raised flower center and small stamens, with no external textures or third-party model dependency.
 - Geometry budget: **957 vertices / 1,260 triangular faces**.
 - Runtime: the preview copies the OBJ to `models/v73/lotus-flower.obj`; `v732-lotus.js` loads it with the local OBJLoader, applies pink petal layers plus a gold center and supplies it to the existing lily-pad pickup.
+- V7.5.1 loads the same project-owned OBJ directly through the single-runtime asset manager before gameplay begins.
 - The Quaternius `Flowers.glb` asset remains bundled only as a lightweight fallback if the project-owned lotus cannot load.
 
 ## Quaternius Nile environment models
@@ -40,6 +42,12 @@ Used models:
 - `public/glb/nature_pack/Flowers.glb` — fallback flower only; V7.3.2 uses the project-owned lotus OBJ as the primary pickup model
 - `public/glb/survival_pack/WoodLog.glb`
 - `public/glb/cute_fish_pack/Boat.glb` — wooden boat replacing the previous raft/inflatable-looking prop
+
+V7.5.1 extracts the gameplay and bank-decoration subset from the repository-owned `downloads/moses-nile-v737-full.zip` package into `models/environment/` during the Worker build. The package is pinned by commit and SHA-256, and the resulting files are served same-origin so iOS/WebView clients never depend on a cross-origin runtime model fetch. Rock and wood-log gameplay obstacles are cloned from these GLB files instead of generated polyhedrons.
+
+## Relief textures
+
+V7.5.1 restores the packaged water, damp-sand, sand and pebble normal maps from the same verified archive. The active scene uses two independently scrolling Nile normal layers and applies matching normal maps to the shoreline ribbons. The 1K terrain sources are resized to 512 px for the mobile build while preserving the normal-map channels.
 
 ## River-bank people
 

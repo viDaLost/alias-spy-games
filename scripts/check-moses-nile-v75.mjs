@@ -7,19 +7,22 @@ const root = process.cwd();
 const gameRoot = path.join(root, 'web/games/moses-nile-v7');
 const index = fs.readFileSync(path.join(gameRoot, 'index.html'), 'utf8');
 const game = fs.readFileSync(path.join(gameRoot, 'js/game-v75.js'), 'utf8');
+const assets = fs.readFileSync(path.join(gameRoot, 'js/assets.js'), 'utf8');
 const background = path.join(gameRoot, 'assets/nile-reference-bg-v75.webp');
+const deployWorkflow = fs.readFileSync(path.join(root, '.github/workflows/deploy-moses-nile-v740-preview.yml'), 'utf8');
+const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
 for (const token of [
-  'V7.5 · LOADING',
+  'V7.5.1 · LOADING',
   'nile-reference-bg-v75.webp',
-  'game-v75.js?v=751',
+  'game-v75.js?v=752',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
 ]) {
-  if (!index.includes(token)) throw new Error(`V7.5 index is missing ${token}`);
+  if (!index.includes(token)) throw new Error(`V7.5.1 index is missing ${token}`);
 }
 if (index.includes('type="module"') || index.includes('v740-visual-overhaul.js') || index.includes('v7310-mobile-polish.js')) {
-  throw new Error('V7.5 must not load the legacy multi-runtime patch stack');
+  throw new Error('V7.5.1 must not load the legacy multi-runtime patch stack');
 }
 for (const token of [
   '__mosesV75ReferenceRebuild',
@@ -29,16 +32,38 @@ for (const token of [
   'V75ReedsInstanced',
   'V75ClosedBasketLid',
   'waterNormal.offset',
+  'waterDetailNormal.offset',
+  'V751DetailedCrocodileModel',
+  "cloneModel?.('lotus'",
+  'buildBanks();',
   'cinematicBackgroundVisible: true',
   "const LANES = [-3.75, 0, 3.75]",
 ]) {
-  if (!game.includes(token)) throw new Error(`V7.5 engine is missing ${token}`);
+  if (!game.includes(token)) throw new Error(`V7.5.1 engine is missing ${token}`);
+}
+if (game.includes('OctahedronGeometry')) throw new Error('The placeholder octahedron power-up is still present');
+for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj']) {
+  if (!assets.includes(token)) throw new Error(`V7.5.1 asset manager is missing ${token}`);
 }
 if (!fs.existsSync(background)) throw new Error('Cinematic Nile background is missing');
 const backgroundBytes = fs.statSync(background).size;
 if (backgroundBytes < 50_000 || backgroundBytes > 250_000) throw new Error(`Unexpected background budget: ${backgroundBytes}`);
+for (const token of [
+  'ASSET_PACKAGE_REV=8887faf7638a4168d37583f17b1c8eec9c46dd3f',
+  'downloads/moses-nile-v737-full.zip',
+  'ASSET_PACKAGE_SHA256=06fd34662ba8424a9987f74f5c9592479ef3ec25a77a7f1b53dd36c4ed0d99e5',
+  'models/v73/crocodile.glb',
+  'textures/damp-sand-normal-gl-1k.jpg',
+  'textures/ganges-pebbles-normal-gl-1k.jpg',
+  'if (vertices !== 957 || faces !== 1260)',
+]) {
+  if (!deployWorkflow.includes(token)) throw new Error(`V7.5.1 deploy is missing verified package wiring: ${token}`);
+}
+if (modelManifest.delivery !== 'same-origin-build-extraction' || modelManifest.package?.sha256 !== '06fd34662ba8424a9987f74f5c9592479ef3ec25a77a7f1b53dd36c4ed0d99e5') {
+  throw new Error('The real-model package manifest is not pinned to the verified repository archive');
+}
 if (process.env.MOSES_STATIC_ONLY === '1') {
-  console.log(`OK: Moses Nile V7.5 static contract and ${backgroundBytes}-byte cinematic asset are valid.`);
+  console.log(`OK: Moses Nile V7.5.1 static contract, pinned repository 3D package, PBR normal maps and ${backgroundBytes}-byte cinematic asset are valid.`);
   process.exit(0);
 }
 
@@ -46,6 +71,9 @@ const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
   ['.webp', 'image/webp'],
+  ['.jpg', 'image/jpeg'],
+  ['.glb', 'model/gltf-binary'],
+  ['.obj', 'text/plain; charset=utf-8'],
 ]);
 const server = http.createServer((request, response) => {
   const url = new URL(request.url || '/', 'http://127.0.0.1');
@@ -105,7 +133,7 @@ try {
   if (!initial.background.includes('nile-reference-bg-v75.webp')) throw new Error('Cinematic background is not applied');
   if (initial.imageSize.join('x') !== '1024x1536') throw new Error(`Unexpected background dimensions: ${initial.imageSize}`);
   if (!initial.controlsInsideViewport) throw new Error('Mobile controls are clipped');
-  if (!initial.badge.startsWith('V7.5 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
+  if (!initial.badge.startsWith('V7.5.1 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
 
   await page.locator('#start-btn').click();
   await page.waitForFunction(() => Number(document.getElementById('dist-txt')?.textContent || 0) >= 8, null, { timeout: 3_000 });
@@ -126,7 +154,7 @@ try {
   });
   if (!running.playing || !running.startHidden || running.distance < 8 || running.painted < 200) throw new Error(`Fallback gameplay is not visibly running: ${JSON.stringify(running)}`);
   if (errors.length) throw new Error(`Fallback page errors: ${errors.join(' | ')}`);
-  console.log(`OK: Moses Nile V7.5 uses one runtime, a ${backgroundBytes}-byte cinematic environment, unclipped mobile controls, and a playable no-WebGL fallback.`);
+  console.log(`OK: Moses Nile V7.5.1 uses local 3D models and relief textures in WebGL, plus an unclipped playable no-WebGL fallback.`);
 } finally {
   await context.close();
   await browser.close();

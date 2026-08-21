@@ -5,6 +5,8 @@ class AssetManager {
     this.basketModel=null;
     this.models={};
     this.environmentPromise=null;
+    this.gameplayPromise=null;
+    this.sources={};
   }
 
   async loadBasketModel(){
@@ -52,19 +54,43 @@ class AssetManager {
       grass:'models/environment/nature_pack/Grass.glb',
       bankPlant:'models/environment/nature_pack/Plant_1.glb',
       palm:'models/environment/nature_pack/PalmTree_4.glb',
-      log:'models/environment/survival_pack/WoodLog.glb',
-      raft:'models/environment/survival_pack/Raft.glb'
+      log:'models/environment/survival_pack/WoodLog.glb'
     };
     this.environmentPromise=Promise.all(Object.entries(sources).map(async([key,url])=>{
       try{
         const model=await this._tryLoad(url);
         this.models[key]=this._prepareEnvironment(model);
+        this.sources[key]=url;
         console.log(`[AssetManager] environment loaded: ${key}`);
       }catch(err){
         console.warn(`[AssetManager] environment fallback: ${key}`,err?.message||err);
       }
     })).then(()=>this.models);
     return this.environmentPromise;
+  }
+
+  async preloadGameplayModels(){
+    if(this.gameplayPromise)return this.gameplayPromise;
+    this.gameplayPromise=(async()=>{
+      await this.preloadEnvironmentModels();
+      const sources={
+        crocodile:'models/v73/crocodile.glb',
+        lotus:'models/v73/lotus-flower.obj'
+      };
+      await Promise.all(Object.entries(sources).map(async([key,url])=>{
+        try{
+          const model=await this._tryLoad(url);
+          this.models[key]=key==='lotus'?this._prepareLotus(model):this._prepareEnvironment(model,.58);
+          this.sources[key]=url;
+          console.log(`[AssetManager] gameplay model loaded: ${key}`);
+        }catch(err){
+          console.warn(`[AssetManager] gameplay fallback: ${key}`,err?.message||err);
+        }
+      }));
+      window.__mosesV75ModelSources={...this.sources};
+      return this.models;
+    })();
+    return this.gameplayPromise;
   }
 
   hasModel(name){return !!this.models[name];}
@@ -92,17 +118,46 @@ class AssetManager {
     });
   }
 
-  _prepareEnvironment(root){
+  _prepareEnvironment(root,minRoughness=.55){
     root.traverse(child=>{
       if(child.isMesh){
         child.castShadow=true;
         child.receiveShadow=true;
         if(child.material){
-          child.material=child.material.clone();
-          child.material.roughness=Math.max(.55,child.material.roughness??.8);
-          child.material.metalness=Math.min(.12,child.material.metalness??0);
+          const materials=(Array.isArray(child.material)?child.material:[child.material]).map(material=>{
+            const next=material.clone();
+            if('roughness' in next)next.roughness=Math.max(minRoughness,next.roughness??.8);
+            if('metalness' in next)next.metalness=Math.min(.12,next.metalness??0);
+            next.side=THREE.DoubleSide;
+            return next;
+          });
+          child.material=Array.isArray(child.material)?materials:materials[0];
         }
       }
+    });
+    return root;
+  }
+
+  _prepareLotus(root){
+    const lotusColor=name=>{
+      const id=String(name||'').toLowerCase();
+      if(id.includes('center')||id.includes('stamen'))return 0xe7bd43;
+      if(id.includes('inner'))return 0xf8cadc;
+      if(id.includes('mid'))return 0xef8eb6;
+      if(id.includes('outer'))return 0xd95d8e;
+      return 0xee91b8;
+    };
+    root.name='ProjectOwnedNileLotus';
+    root.traverse(child=>{
+      if(!child.isMesh)return;
+      child.castShadow=true;
+      child.receiveShadow=true;
+      child.material=new THREE.MeshStandardMaterial({
+        color:lotusColor(child.name||child.parent?.name),
+        roughness:.72,
+        metalness:0,
+        side:THREE.DoubleSide
+      });
     });
     return root;
   }

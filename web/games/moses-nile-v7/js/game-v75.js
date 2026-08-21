@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'V7.5';
+  const VERSION = 'V7.5.1';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
   const MAX_DPR = 1.25;
@@ -53,6 +53,7 @@
   let waterPositions = null;
   let waterBaseY = null;
   let waterNormal = null;
+  let waterDetailNormal = null;
   let player = null;
   let basketVisual = null;
   let wake = null;
@@ -110,7 +111,7 @@
     }
   }
 
-  function makeTexture(path, repeatX, repeatY, material, kind = 'map') {
+  function makeTexture(path, repeatX, repeatY, material, kind = 'map', onLoad = null) {
     const loader = new THREE.TextureLoader();
     loader.load(path, (texture) => {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -118,9 +119,12 @@
       texture.anisotropy = Math.min(4, renderer?.capabilities?.getMaxAnisotropy?.() || 2);
       if (kind === 'map' && 'encoding' in texture) texture.encoding = THREE.sRGBEncoding;
       material[kind] = texture;
-      if (kind === 'normalMap') material.normalScale = new THREE.Vector2(.34, .34);
+      if (kind === 'normalMap') {
+        const strength = material.userData.normalStrength || .34;
+        material.normalScale = new THREE.Vector2(strength, strength);
+      }
       material.needsUpdate = true;
-      if (kind === 'normalMap') waterNormal = texture;
+      onLoad?.(texture);
     }, undefined, () => {});
   }
 
@@ -169,15 +173,33 @@
       depthWrite: false,
       side: THREE.DoubleSide,
     });
-    makeTexture('textures/water/water-normal.jpg', 3.2, 46, material, 'normalMap');
+    material.userData.normalStrength = .40;
+    makeTexture('textures/water/water-normal-primary.jpg', 3.2, 46, material, 'normalMap', (texture) => { waterNormal = texture; });
     water = new THREE.Mesh(geometry, material);
     water.name = 'MosesV75SiltyNile';
     water.receiveShadow = true;
     water.renderOrder = 0;
     scene.add(water);
+
+    const detailMaterial = new THREE.MeshStandardMaterial({
+      color: 0x65705a,
+      roughness: .62,
+      metalness: .025,
+      transparent: true,
+      opacity: .055,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    detailMaterial.userData.normalStrength = .22;
+    makeTexture('textures/water/water-normal-detail.jpg', 6.4, 78, detailMaterial, 'normalMap', (texture) => { waterDetailNormal = texture; });
+    const detail = new THREE.Mesh(geometry, detailMaterial);
+    detail.name = 'MosesV751WaterReliefDetail';
+    detail.position.y = .008;
+    detail.renderOrder = 1;
+    scene.add(detail);
   }
 
-  function buildRibbon(name, side, innerOffset, outerOffset, color, texturePath, yOffset = 0) {
+  function buildRibbon(name, side, innerOffset, outerOffset, color, texturePath, normalPath, yOffset = 0, opacity = .2) {
     const segments = 92;
     const positions = [];
     const uvs = [];
@@ -204,8 +226,10 @@
     geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
-    const material = new THREE.MeshStandardMaterial({ color, roughness: .97, metalness: 0, side: THREE.DoubleSide });
+    const material = new THREE.MeshStandardMaterial({ color, roughness: .97, metalness: 0, side: THREE.DoubleSide, transparent: true, opacity, depthWrite: false });
+    material.userData.normalStrength = .42;
     if (texturePath) makeTexture(texturePath, 1.15, 52, material);
+    if (normalPath) makeTexture(normalPath, 1.15, 52, material, 'normalMap');
     const ribbon = new THREE.Mesh(geometry, material);
     ribbon.name = name;
     ribbon.receiveShadow = true;
@@ -216,11 +240,9 @@
 
   function buildBanks() {
     for (const side of [-1, 1]) {
-      buildRibbon('V75WetMud', side, 0, .95, 0x514739, 'textures/terrain/wet_mud/color.jpg', .008);
-      buildRibbon('V75DampSand', side, .93, 2.25, 0x78654d, 'textures/terrain/wet_sand/color.jpg', .022);
-      buildRibbon('V75WarmSand', side, 2.20, 6.8, 0xa48258, 'textures/terrain/sand/color.jpg', .045);
-      buildRibbon('V75DryEarth', side, 6.7, 14.5, 0x906d48, 'textures/terrain/cracked_mud/color.jpg', .08);
-      buildRibbon('V75Gravel', side, 14.35, 31, 0x77654d, 'textures/terrain/gravel/color.jpg', .12);
+      buildRibbon('V751DampShore', side, 0, 1.05, 0x655545, 'textures/terrain/damp-sand-color.jpg', 'textures/terrain/damp-sand-normal.jpg', .008, .34);
+      buildRibbon('V751WarmSand', side, 1.02, 3.1, 0x9a7a52, 'textures/terrain/sand-color.jpg', 'textures/terrain/sand-normal.jpg', .025, .20);
+      buildRibbon('V751PebbleBank', side, 3.0, 7.5, 0x806d56, 'textures/terrain/pebbles-color.jpg', 'textures/terrain/pebbles-normal.jpg', .055, .10);
     }
   }
 
@@ -446,6 +468,15 @@
     const group = new THREE.Group();
     const pad = new THREE.Mesh(new THREE.CylinderGeometry(.56, .62, .04, 18), new THREE.MeshStandardMaterial({ color: 0x486b3e, roughness: .88 }));
     group.add(pad);
+    const model = window.assetManager?.cloneModel?.('lotus', .88);
+    if (model) {
+      model.position.y += .055;
+      model.rotation.y = Math.PI * .15;
+      model.name = 'V751ProjectLotusModel';
+      group.add(model);
+      group.userData.assetSource = 'models/v73/lotus-flower.obj';
+      return group;
+    }
     const petalMaterial = new THREE.MeshStandardMaterial({ color: 0xe6a3ad, roughness: .76, emissive: 0x4a161d, emissiveIntensity: .08 });
     for (let i = 0; i < 7; i += 1) {
       const petal = new THREE.Mesh(new THREE.SphereGeometry(.13, 8, 5), petalMaterial);
@@ -455,26 +486,52 @@
       petal.rotation.y = -angle;
       group.add(petal);
     }
+    group.userData.assetSource = 'emergency-procedural';
     return group;
   }
 
   function createRock() {
+    const model = window.assetManager?.cloneModel?.('rock', 1.72);
+    if (model) {
+      model.rotation.set(.08, Math.PI * hash(state.elapsed + state.items.length, 91), .05);
+      model.name = 'V751QuaterniusRockModel';
+      model.userData.assetSource = 'models/environment/nature_pack/Rock_1.glb';
+      return model;
+    }
     const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(.82, 0), new THREE.MeshStandardMaterial({ color: 0x655d50, roughness: 1, flatShading: true }));
     mesh.scale.set(1.1, .70, .95);
     mesh.rotation.set(.32, .65, .16);
+    mesh.userData.assetSource = 'emergency-procedural';
     return mesh;
   }
 
   function createLog() {
+    const model = window.assetManager?.cloneModel?.('log', 2.72);
+    if (model) {
+      model.rotation.y = Math.PI / 2 + (hash(state.elapsed + state.items.length, 73) - .5) * .24;
+      model.position.y = -.08;
+      model.name = 'V751QuaterniusWoodLogModel';
+      model.userData.assetSource = 'models/environment/survival_pack/WoodLog.glb';
+      return model;
+    }
     const group = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(.31, .38, 2.9, 10), new THREE.MeshStandardMaterial({ color: 0x69472c, roughness: 1 }));
     body.rotation.z = Math.PI / 2;
     body.position.y = .02;
     group.add(body);
+    group.userData.assetSource = 'emergency-procedural';
     return group;
   }
 
   function createCrocodile() {
+    const model = window.assetManager?.cloneModel?.('crocodile', 3.35);
+    if (model) {
+      model.rotation.y = Math.PI;
+      model.position.y = -.26;
+      model.name = 'V751DetailedCrocodileModel';
+      model.userData.assetSource = 'models/v73/crocodile.glb';
+      return model;
+    }
     const group = new THREE.Group();
     const hide = new THREE.MeshStandardMaterial({ color: 0x344c34, roughness: .92, flatShading: true });
     const body = new THREE.Mesh(new THREE.BoxGeometry(.82, .24, 2.35), hide);
@@ -487,14 +544,67 @@
     tail.rotation.x = -Math.PI / 2;
     tail.position.z = -1.72;
     group.add(tail);
+    group.userData.assetSource = 'emergency-procedural';
     return group;
   }
 
+  function makePowerupTexture(type) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    const shield = type === 'shield';
+    const glow = ctx.createRadialGradient(64, 58, 4, 64, 64, 58);
+    glow.addColorStop(0, shield ? '#efffff' : '#fff8cc');
+    glow.addColorStop(.48, shield ? '#78b8b1' : '#e3b94d');
+    glow.addColorStop(1, 'rgba(35,42,35,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    if (shield) {
+      ctx.fillStyle = '#d9f1ea';
+      ctx.strokeStyle = '#315e5c';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(64, 24); ctx.lineTo(96, 37); ctx.lineTo(91, 77);
+      ctx.quadraticCurveTo(83, 99, 64, 108);
+      ctx.quadraticCurveTo(45, 99, 37, 77);
+      ctx.lineTo(32, 37); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#c99b37'; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(64, 43); ctx.lineTo(64, 88); ctx.moveTo(47, 61); ctx.lineTo(81, 61); ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#805f18';
+      ctx.fillStyle = '#ffe9a0';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      for (let i = 0; i < 16; i += 1) {
+        const radius = i % 2 ? 15 : 39;
+        const angle = -Math.PI / 2 + i * Math.PI / 8;
+        const x = 64 + Math.cos(angle) * radius;
+        const y = 64 + Math.sin(angle) * radius;
+        if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fff8d7'; ctx.beginPath(); ctx.arc(64, 64, 10, 0, Math.PI * 2); ctx.fill();
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    if ('encoding' in texture) texture.encoding = THREE.sRGBEncoding;
+    return texture;
+  }
+
   function createPowerup(type) {
-    const color = type === 'shield' ? 0x86b7b1 : 0xe5be64;
-    const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(.48), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .28, roughness: .52 }));
-    mesh.position.y = .34;
-    return mesh;
+    const group = new THREE.Group();
+    const color = type === 'shield' ? 0x7fc6bc : 0xe5be64;
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: makePowerupTexture(type), color: 0xffffff, transparent: true, depthWrite: false }));
+    sprite.scale.set(1.15, 1.15, 1.15);
+    sprite.position.y = .55;
+    group.add(sprite);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.42, .04, 8, 28), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .22, roughness: .48 }));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = .08;
+    group.add(ring);
+    group.userData.assetSource = 'designed-powerup-token';
+    return group;
   }
 
   function meshForType(type) {
@@ -555,6 +665,7 @@
   }
 
   function startGame() {
+    if (!state.ready) return;
     window.gameAudio?.init?.();
     dom.startScreen.classList.add('hidden');
     dom.gameOverScreen.classList.add('hidden');
@@ -696,6 +807,10 @@
     if (waterNormal) {
       waterNormal.offset.x = (waterNormal.offset.x + dt * .0022) % 1;
       waterNormal.offset.y = (waterNormal.offset.y - dt * .008) % 1;
+    }
+    if (waterDetailNormal) {
+      waterDetailNormal.offset.x = (waterDetailNormal.offset.x - dt * .0041) % 1;
+      waterDetailNormal.offset.y = (waterDetailNormal.offset.y - dt * .013) % 1;
     }
   }
 
@@ -844,6 +959,7 @@
     setBadge(label);
     dom.body.classList.remove('is-loading');
     state.ready = true;
+    dom.start.disabled = false;
     window.__mosesV75Ready = true;
     window.__mosesV75Mode = 'fallback';
     window.__mosesV75ReferenceRebuild = true;
@@ -870,6 +986,7 @@
     riverFill.position.set(9, 8, -15);
     scene.add(riverFill);
     buildWater();
+    buildBanks();
     buildPlayer();
     renderer.render(scene, camera);
   }
@@ -900,6 +1017,7 @@
         lane: state.lane,
         items: state.items.length,
         cinematicBackgroundVisible: true,
+        modelSources: window.__mosesV75ModelSources || {},
       };
       fallbackFrame = requestAnimationFrame(frame);
       return;
@@ -914,6 +1032,7 @@
       items: state.items.length,
       pixelRatio: renderer.getPixelRatio(),
       cinematicBackgroundVisible: true,
+      modelSources: window.__mosesV75ModelSources || {},
     };
   }
 
@@ -942,19 +1061,21 @@
     window.addEventListener('resize', resize, { passive: true });
   }
 
-  function boot() {
+  async function boot() {
     bindControls();
+    dom.start.disabled = true;
     renderer = tryCreateRenderer();
     if (!renderer) {
       activateFallback('LITE READY');
       return;
     }
     try {
+      await window.assetManager?.preloadGameplayModels?.();
       buildScene();
       resize();
       state.ready = true;
       dom.body.classList.remove('is-loading');
-      setBadge('CINEMATIC READY');
+      setBadge('REAL MODELS READY');
       window.__mosesV75Ready = true;
       window.__mosesV75Mode = 'webgl';
       window.__mosesV75ReferenceRebuild = true;
