@@ -46,7 +46,7 @@ assert(exists('web/assets/biblical-match-three/board-background-v35.webp'), 'sou
 
 const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
-assert(gradle.includes('versionCode 25') && gradle.includes("versionName '2.9.0-native'"), 'APK version must be 2.9.0-native (25)');
-assert(androidMenu.includes('BibleGames-Android-2.9.0-native.apk'), 'Web download menu does not point to APK 2.9.0');
+assert(gradle.includes('versionCode 26') && gradle.includes("versionName '2.9.1-native'"), 'APK version must be 2.9.1-native (26)');
+assert(androidMenu.includes('BibleGames-Android-2.9.1-native.apk'), 'Web download menu does not point to APK 2.9.1');
 
 console.log(`Web/Android game parity passed: ${androidRoutes.size} routes, including Bible Sketch and Biblical Treasures with real artwork`);

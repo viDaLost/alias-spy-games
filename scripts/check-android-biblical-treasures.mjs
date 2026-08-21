@@ -47,7 +47,12 @@ for (const token of ['LINE_H', 'LINE_V', 'BURST', 'RAINBOW', 'specialComboClearS
 for (const token of ['require(levels.size == 30)', 'data/biblical_match_three_levels.json']) {
   need(data, token, `Android does not use the shared campaign source: ${token}`);
 }
-for (const token of ['BmtCatalog.load', 'detectDragGestures', 'BmtPreBooster.entries', 'BmtBooster.entries', 'BmtEngine.resolveBooster', 'BmtEngine.reshuffle', 'completion-', 'board-background-v35.webp', 'profile.wowStars']) {
+for (const token of [
+  'BmtCatalog.load', 'detectDragGestures', 'BmtPreBooster.entries', 'BmtBooster.entries',
+  'BmtEngine.resolveBooster', 'BmtEngine.reshuffle', 'completion-', 'board-background-v35.webp',
+  'profile.wowStars', 'BmtMenuSection', 'BmtBoardScaffold', 'ContentScale.Crop', 'Color.Transparent',
+  'Animatable(0f)', 'swapProgress.animateTo(1f', 'freeChallengeSeeds', 'BmtBlockerType.LAMP -> 1.08f',
+]) {
   need(ui, token, `Android Biblical Treasures UI is missing ${token}`);
 }
 need(host, 'BiblicalMatchThreeGame(assets, profile, onProfileChange, onBack)', 'Biblical Treasures is not connected to the shared star wallet');

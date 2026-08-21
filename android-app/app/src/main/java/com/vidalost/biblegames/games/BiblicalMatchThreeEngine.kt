@@ -203,8 +203,10 @@ internal object BmtEngine {
         error("Не удалось создать игровое поле с доступными ходами")
     }
 
-    fun blockersFrom(level: BmtLevel): Map<Int, BmtBlocker> = buildMap {
-        level.blockerSeeds.forEach { seed ->
+    fun blockersFrom(level: BmtLevel): Map<Int, BmtBlocker> = blockersFrom(level.blockerSeeds)
+
+    fun blockersFrom(seeds: List<BmtBlockerSeed>): Map<Int, BmtBlocker> = buildMap {
+        seeds.forEach { seed ->
             seed.cells.forEach { index -> put(index, BmtBlocker(seed.type, seed.layers, seed.layers)) }
         }
     }
