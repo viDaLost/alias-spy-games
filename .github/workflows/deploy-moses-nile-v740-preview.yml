@@ -1,0 +1,174 @@
+name: Deploy Moses Nile V7.5.1 Real Assets Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/moses-nile-runner-mvp]
+    paths:
+      - 'web/games/moses-nile-v7/**'
+      - '.github/workflows/deploy-moses-nile-v740-preview.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-v740:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build V7.5.1 preview
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .preview-v7
+          mkdir -p .preview-v7/js .preview-v7/assets .preview-v7/vendor \
+            .preview-v7/models/environment/nature_pack \
+            .preview-v7/models/environment/survival_pack \
+            .preview-v7/models/v73 \
+            .preview-v7/textures/water \
+            .preview-v7/textures/terrain
+          cp web/games/moses-nile-v7/index.html .preview-v7/index.html
+          cp -R web/games/moses-nile-v7/js/. .preview-v7/js/
+          cp -R web/games/moses-nile-v7/assets/. .preview-v7/assets/
+          cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/basket.obj
+          cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
+          printf '{"commit":"%s","version":"V7.5.1"}\n' "$GITHUB_SHA" > .preview-v7/build.json
+          printf '/*\n  Cache-Control: no-store, no-cache, max-age=0, must-revalidate\n' > .preview-v7/_headers
+
+          THREE_REV=r128; RAW="https://raw.githubusercontent.com/mrdoob/three.js/${THREE_REV}"
+          curl -fsSL --retry 3 "$RAW/build/three.min.js" -o .preview-v7/vendor/three-r128.min.js
+          curl -fsSL --retry 3 "$RAW/examples/js/loaders/GLTFLoader.js" -o .preview-v7/vendor/GLTFLoader-r128.js
+          curl -fsSL --retry 3 "$RAW/examples/js/loaders/OBJLoader.js" -o .preview-v7/vendor/OBJLoader-r128.js
+
+          # Reuse the verified real-model package already stored in this repository.
+          ASSET_PACKAGE_REV=8887faf7638a4168d37583f17b1c8eec9c46dd3f
+          ASSET_PACKAGE_URL="https://raw.githubusercontent.com/viDaLost/alias-spy-games/${ASSET_PACKAGE_REV}/downloads/moses-nile-v737-full.zip"
+          ASSET_PACKAGE_SHA256=06fd34662ba8424a9987f74f5c9592479ef3ec25a77a7f1b53dd36c4ed0d99e5
+          ASSET_ZIP=$(mktemp /tmp/moses-nile-assets.XXXXXX.zip)
+          ASSET_DIR=$(mktemp -d /tmp/moses-nile-assets.XXXXXX)
+          curl -fsSL --retry 3 "$ASSET_PACKAGE_URL" -o "$ASSET_ZIP"
+          printf '%s  %s\n' "$ASSET_PACKAGE_SHA256" "$ASSET_ZIP" | sha256sum -c -
+          unzip -q "$ASSET_ZIP" -d "$ASSET_DIR"
+
+          cp "$ASSET_DIR/models/environment/nature_pack/"*.glb .preview-v7/models/environment/nature_pack/
+          cp "$ASSET_DIR/models/environment/survival_pack/WoodLog.glb" .preview-v7/models/environment/survival_pack/
+          cp "$ASSET_DIR/models/v73/crocodile.glb" .preview-v7/models/v73/
+          cp "$ASSET_DIR/models/v73/lotus-flower.obj" .preview-v7/models/v73/
+
+          optimize_texture() {
+            local source="$1" destination="$2" quality="$3"
+            if command -v magick >/dev/null 2>&1; then
+              magick "$source" -resize '512x512>' -strip -quality "$quality" "$destination"
+            elif command -v convert >/dev/null 2>&1; then
+              convert "$source" -resize '512x512>' -strip -quality "$quality" "$destination"
+            else
+              cp "$source" "$destination"
+            fi
+          }
+          optimize_texture "$ASSET_DIR/textures/Water_1_M_Normal.jpg" .preview-v7/textures/water/water-normal-primary.jpg 80
+          optimize_texture "$ASSET_DIR/textures/Water_2_M_Normal.jpg" .preview-v7/textures/water/water-normal-detail.jpg 80
+          optimize_texture "$ASSET_DIR/textures/damp-sand-diffuse-1k.jpg" .preview-v7/textures/terrain/damp-sand-color.jpg 76
+          optimize_texture "$ASSET_DIR/textures/damp-sand-normal-gl-1k.jpg" .preview-v7/textures/terrain/damp-sand-normal.jpg 82
+          optimize_texture "$ASSET_DIR/textures/sand-03-diffuse-1k.jpg" .preview-v7/textures/terrain/sand-color.jpg 76
+          optimize_texture "$ASSET_DIR/textures/sand-03-normal-gl-1k.jpg" .preview-v7/textures/terrain/sand-normal.jpg 82
+          optimize_texture "$ASSET_DIR/textures/ganges-pebbles-diffuse-1k.jpg" .preview-v7/textures/terrain/pebbles-color.jpg 76
+          optimize_texture "$ASSET_DIR/textures/ganges-pebbles-normal-gl-1k.jpg" .preview-v7/textures/terrain/pebbles-normal.jpg 82
+
+          for file in .preview-v7/js/*.js; do node --check "$file"; done
+          grep -q 'V7.5.1 · LOADING' .preview-v7/index.html
+          grep -q 'game-v75.js?v=752' .preview-v7/index.html
+          grep -q '__mosesV75ReferenceRebuild' .preview-v7/js/game-v75.js
+          grep -q "cloneModel?.('crocodile'" .preview-v7/js/game-v75.js
+          grep -q 'preloadGameplayModels' .preview-v7/js/assets.js
+          grep -q 'water-normal-detail.jpg' .preview-v7/js/game-v75.js
+          ! grep -q 'OctahedronGeometry' .preview-v7/js/game-v75.js
+          grep -q 'cinematicBackgroundVisible: true' .preview-v7/js/game-v75.js
+          grep -q 'oneRenderLoop: true' .preview-v7/js/game-v75.js
+          grep -q 'fallback-mode' .preview-v7/index.html
+          test -s .preview-v7/assets/nile-reference-bg-v75.webp
+          test "$(stat -c %s .preview-v7/assets/nile-reference-bg-v75.webp)" -lt 250000
+          ! grep -q 'type="module"' .preview-v7/index.html
+          ! grep -q 'v740-visual-overhaul.js' .preview-v7/index.html
+          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 3
+          for asset in \
+            models/environment/nature_pack/Rock_1.glb \
+            models/environment/survival_pack/WoodLog.glb \
+            models/v73/crocodile.glb \
+            models/v73/lotus-flower.obj \
+            textures/water/water-normal-primary.jpg \
+            textures/water/water-normal-detail.jpg \
+            textures/terrain/damp-sand-normal.jpg \
+            textures/terrain/sand-normal.jpg \
+            textures/terrain/pebbles-normal.jpg; do
+            test -s ".preview-v7/$asset"
+          done
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const file of [
+            '.preview-v7/models/environment/nature_pack/Rock_1.glb',
+            '.preview-v7/models/environment/survival_pack/WoodLog.glb',
+            '.preview-v7/models/v73/crocodile.glb',
+          ]) {
+            const bytes = fs.readFileSync(file);
+            if (bytes.toString('ascii', 0, 4) !== 'glTF' || bytes.readUInt32LE(4) !== 2 || bytes.readUInt32LE(8) !== bytes.length) throw new Error(`Invalid GLB: ${file}`);
+          }
+          const lotus = fs.readFileSync('.preview-v7/models/v73/lotus-flower.obj', 'utf8');
+          const vertices = lotus.split(/\r?\n/).filter((line) => line.startsWith('v ')).length;
+          const faces = lotus.split(/\r?\n/).filter((line) => line.startsWith('f ')).length;
+          if (vertices !== 957 || faces !== 1260) throw new Error(`Unexpected lotus: ${vertices}/${faces}`);
+          NODE
+          cat > wrangler-v7.jsonc <<'JSON'
+          {"$schema":"./node_modules/wrangler/config-schema.json","name":"alias-spy-games-moses-nile-v7-preview","compatibility_date":"2026-08-19","workers_dev":true,"assets":{"directory":"./.preview-v7","not_found_handling":"single-page-application"}}
+          JSON
+      - name: Deploy V7.5.1 preview
+        id: deploy
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@latest deploy --config wrangler-v7.jsonc
+      - name: Verify V7.5.1 endpoint
+        id: verify
+        if: always() && steps.deploy.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          P='https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/'
+          for i in 1 2 3 4 5 6; do
+            q="?v751=${GITHUB_SHA}-${i}"
+            if curl -fsSL --max-time 20 "${P}${q}" -o /tmp/i && grep -q 'V7.5.1 · LOADING' /tmp/i \
+              && curl -fsSL --max-time 20 "${P}js/game-v75.js${q}" -o /tmp/v && grep -q '__mosesV75ReferenceRebuild' /tmp/v \
+              && curl -fsSL --max-time 20 "${P}models/v73/crocodile.glb${q}" -o /tmp/croc && test "$(stat -c %s /tmp/croc)" -gt 2000000 \
+              && curl -fsSL --max-time 20 "${P}textures/terrain/sand-normal.jpg${q}" -o /tmp/normal && test -s /tmp/normal \
+              && curl -fsSL --max-time 20 "${P}assets/nile-reference-bg-v75.webp${q}" -o /tmp/bg && test -s /tmp/bg \
+              && curl -fsSL --max-time 20 "${P}build.json${q}" | grep -q "$GITHUB_SHA"; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+      - name: Publish V7.5.1 marker
+        if: always()
+        env:
+          B: ${{ steps.build.outcome }}
+          D: ${{ steps.deploy.outcome }}
+          V: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=reference-driven\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=752\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B verify/moses-nile-v750
+          mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v750.txt
+          git add deploy-status/moses-nile-v750.txt; git commit -m 'Record Moses Nile V7.5.1 deploy status' || true; git push --force origin HEAD:refs/heads/verify/moses-nile-v750
+      - name: Require verified V7.5.1
+        if: always()
+        env:
+          B: ${{ steps.build.outcome }}
+          D: ${{ steps.deploy.outcome }}
+          V: ${{ steps.verify.outcome }}
+        run: test "$B" = success && test "$D" = success && test "$V" = success

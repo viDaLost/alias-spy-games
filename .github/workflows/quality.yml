@@ -91,6 +91,10 @@ jobs:
         run: npm run check:match-three:visual
       - name: Test Kids Ark Pairs gameplay
         run: npm run check:kids-pairs
+      - name: Test Moses Nile runner gestures
+        run: npm run check:nile-runner
+      - name: Test Moses Nile V7.5 cinematic and lite modes
+        run: npm run check:nile-v75
       - name: Check 390px and 320px phone layouts
         run: npm run check:mobile
       - name: Check Android ID login runtime

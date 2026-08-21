@@ -1,0 +1,90 @@
+name: Deploy Moses Nile V7.5.1 Isolated Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/moses-nile-runner-mvp]
+    paths:
+      - 'web/games/moses-nile-v7/**'
+      - '.github/workflows/deploy-moses-nile-v740-isolated.yml'
+      - '.github/workflows/deploy-moses-nile-v740-preview.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-isolated-v740:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Reuse verified V7.5.1 build recipe
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pyyaml
+          python - <<'PY'
+          import yaml
+          p='.github/workflows/deploy-moses-nile-v740-preview.yml'
+          with open(p,encoding='utf-8') as f: doc=yaml.safe_load(f)
+          step=next(s for s in doc['jobs']['deploy-v740']['steps'] if s.get('name')=='Build V7.5.1 preview')
+          open('/tmp/v750-build.sh','w',encoding='utf-8').write(step['run'])
+          PY
+          bash /tmp/v750-build.sh
+          python - <<'PY'
+          import json
+          with open('wrangler-v7.jsonc',encoding='utf-8') as f: cfg=json.load(f)
+          cfg['name']='alias-spy-games-moses-nile-v740-preview'
+          open('wrangler-v740-isolated.jsonc','w').write(json.dumps(cfg))
+          PY
+          grep -q 'V7.5.1 · LOADING' .preview-v7/index.html
+          grep -q '__mosesV75ReferenceRebuild' .preview-v7/js/game-v75.js
+          grep -q 'nile-reference-bg-v75.webp' .preview-v7/index.html
+      - name: Deploy isolated V7.5.1 worker
+        id: deploy
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@latest deploy --config wrangler-v740-isolated.jsonc
+      - name: Verify isolated endpoint and actual runtime badge
+        id: verify
+        if: always() && steps.deploy.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
+          for i in $(seq 1 16); do
+            Q="?isolated=${GITHUB_SHA}-${i}"
+            if curl -fsSL --max-time 20 "${P}${Q}" -o /tmp/index.html && grep -q 'V7.5.1 · LOADING' /tmp/index.html && curl -fsSL --max-time 20 "${P}js/game-v75.js${Q}" -o /tmp/v750.js && grep -q '__mosesV75ReferenceRebuild' /tmp/v750.js && curl -fsSL --max-time 20 "${P}build.json${Q}" | grep -q "$GITHUB_SHA"; then break; fi
+            sleep 5
+          done
+          grep -q 'V7.5.1 · LOADING' /tmp/index.html
+          grep -q '__mosesV75ReferenceRebuild' /tmp/v750.js
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
+          URL="${P}?visualAudit=1&isolated=${GITHUB_SHA}"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=35000 --dump-dom "$URL" > /tmp/dom.html
+          python - <<'PY'
+          import re
+          s=open('/tmp/dom.html',encoding='utf-8').read();m=re.search(r'<div id="version-badge"[^>]*>([^<]*)</div>',s)
+          if not m: raise SystemExit('badge missing')
+          badge=m.group(1).strip();open('/tmp/runtime-badge.txt','w').write(badge+'\n');print(badge)
+          if not badge.startswith('V7.5.1'): raise SystemExit('unexpected '+badge)
+          PY
+      - name: Publish isolated verification marker
+        if: always()
+        env: { B: '${{ steps.build.outcome }}', D: '${{ steps.deploy.outcome }}', V: '${{ steps.verify.outcome }}' }
+        run: |
+          set -euo pipefail
+          BADGE='unavailable';test ! -s /tmp/runtime-badge.txt || BADGE=$(cat /tmp/runtime-badge.txt)
+          printf 'commit=%s\nversion=V7.5.1-real-assets\nbuild=%s\ndeploy=%s\nverify=%s\nruntime_badge=%s\nmodels=local-glb-obj\nterrain=pbr-normal-maps\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" "$B" "$D" "$V" "$BADGE" > /tmp/status.txt
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';git checkout -B verify/moses-nile-v750-isolated;mkdir -p deploy-status;cp /tmp/status.txt deploy-status/moses-nile-v750-isolated.txt;git add deploy-status/moses-nile-v750-isolated.txt;git commit -m 'Record V7.5 reference verification' || true;git push --force origin HEAD:refs/heads/verify/moses-nile-v750-isolated
+      - name: Require isolated V7.5.1 verification
+        if: always()
+        env: { B: '${{ steps.build.outcome }}', D: '${{ steps.deploy.outcome }}', V: '${{ steps.verify.outcome }}' }
+        run: test "$B" = success && test "$D" = success && test "$V" = success

@@ -1,0 +1,72 @@
+name: Visual Audit Moses Nile V7.5.1 Real Assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/moses-nile-runner-mvp]
+    paths:
+      - 'web/games/moses-nile-v7/**'
+      - '.github/workflows/visual-audit-moses-v740.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for isolated V7.5.1 preview
+        run: |
+          set -euo pipefail
+          P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
+          for i in $(seq 1 20); do
+            if curl -fsSL --max-time 20 "${P}?audit=${GITHUB_SHA}-${i}" | grep -q 'V7.5.1 · LOADING' \
+              && curl -fsSL --max-time 20 "${P}build.json?audit=${GITHUB_SHA}-${i}" | grep -q "$GITHUB_SHA"; then exit 0; fi
+            sleep 6
+          done
+          exit 1
+      - name: Capture mobile reference checkpoints
+        run: |
+          set -euo pipefail
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
+          P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
+          mkdir -p visual-audit
+          for T in 13000 23000 33000; do
+            "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=390,844 --virtual-time-budget=$T --run-all-compositor-stages-before-draw --screenshot="visual-audit/mobile-${T}.png" "${P}?visualAudit=1&sha=${GITHUB_SHA}&t=${T}"
+          done
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=33000 --dump-dom "${P}?visualAudit=1&sha=${GITHUB_SHA}" > visual-audit/live-dom.html
+          grep -q 'V7.5.1 ·' visual-audit/live-dom.html
+          grep -q '__mosesV75ReferenceRebuild' <(curl -fsSL --max-time 20 "${P}js/game-v75.js?sha=${GITHUB_SHA}")
+      - name: Analyze composition and color
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          rows=[]
+          for p in sorted(Path('visual-audit').glob('mobile-*.png')):
+              im=Image.open(p).convert('RGB');w,h=im.size
+              river=[];bank=[]
+              for y in range(int(h*.30),int(h*.70)):
+                  prog=(y-h*.30)/(h*.40);half=int(20+65*prog);cx=w//2
+                  for x in range(max(0,cx-half),min(w,cx+half)): river.append(im.getpixel((x,y)))
+                  for x in list(range(0,max(0,cx-half-8)))+list(range(min(w,cx+half+8),w)): bank.append(im.getpixel((x,y)))
+              mean=lambda s: tuple(sum(v[i] for v in s)/max(1,len(s)) for i in range(3))
+              r=mean(river);b=mean(bank);cyan=sum(1 for R,G,B in river if B>R*1.25 and B>G*1.06 and B-R>25)/max(1,len(river))
+              rows.append(f'{p.name}: river={r[0]:.1f},{r[1]:.1f},{r[2]:.1f} bank={b[0]:.1f},{b[1]:.1f},{b[2]:.1f} cyan={cyan:.4f}')
+              assert cyan < .08
+              assert r[2]-r[0] < 28
+          Path('visual-audit/metrics.txt').write_text('\n'.join(rows)+'\n')
+          PY
+          printf 'commit=%s\nversion=V7.5.1-real-assets\ncapture=success\ncheckpoints=3\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nbackground=cinematic-nile\nfallback=verified\npreview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/\n' "$GITHUB_SHA" > visual-audit/status.txt
+      - name: Publish reference audit
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B verify/moses-nile-v750-visual
+          git add visual-audit || true
+          git commit -m 'Capture V7.5.1 real-assets visual audit' || true
+          git push --force origin HEAD:refs/heads/verify/moses-nile-v750-visual

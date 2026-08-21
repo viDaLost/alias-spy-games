@@ -1,0 +1,87 @@
+{
+  "version": 3,
+  "delivery": "same-origin-build-extraction",
+  "package": {
+    "ref": "8887faf7638a4168d37583f17b1c8eec9c46dd3f",
+    "path": "downloads/moses-nile-v737-full.zip",
+    "sha256": "06fd34662ba8424a9987f74f5c9592479ef3ec25a77a7f1b53dd36c4ed0d99e5"
+  },
+  "limits": {
+    "largestAssetBytes": 3000000,
+    "totalModelBytes": 2800000
+  },
+  "models": [
+    {
+      "key": "basket",
+      "path": "web/assets/models/moses-nile/woven-basket.obj",
+      "bytes": 10269,
+      "triangles": 344,
+      "license": "CC BY 4.0",
+      "source": "user-uploaded GLB"
+    },
+    {
+      "key": "rock",
+      "path": "web/games/moses-nile-v7/models/environment/nature_pack/Rock_1.glb",
+      "bytes": 5516,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "reeds",
+      "path": "web/games/moses-nile-v7/models/environment/nature_pack/Plant_2.glb",
+      "bytes": 16040,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "bush",
+      "path": "web/games/moses-nile-v7/models/environment/nature_pack/Bush_1.glb",
+      "bytes": 21348,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "grass",
+      "path": "web/games/moses-nile-v7/models/environment/nature_pack/Grass.glb",
+      "bytes": 12632,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "bankPlant",
+      "path": "web/games/moses-nile-v7/models/environment/nature_pack/Plant_1.glb",
+      "bytes": 18416,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "palm",
+      "path": "web/games/moses-nile-v7/models/environment/nature_pack/PalmTree_4.glb",
+      "bytes": 63764,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "log",
+      "path": "web/games/moses-nile-v7/models/environment/survival_pack/WoodLog.glb",
+      "bytes": 13904,
+      "license": "CC0",
+      "source": "Quaternius Survival Pack"
+    },
+    {
+      "key": "lotus",
+      "path": "web/games/moses-nile-v7/models/v73/lotus-flower.obj",
+      "bytes": 46526,
+      "vertices": 957,
+      "triangles": 1260,
+      "license": "project-owned"
+    },
+    {
+      "key": "crocodile",
+      "path": "web/games/moses-nile-v7/models/v73/crocodile.glb",
+      "bytes": 2551260,
+      "license": "CC BY 4.0",
+      "source": "Beerus / crocodile high quality"
+    }
+  ]
+}

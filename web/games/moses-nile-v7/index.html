@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#b79869">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Моисей: Путь по Нилу — V7.5.1</title>
+  <style>
+    :root {
+      --ink: #241c14;
+      --ivory: #fff8e9;
+      --gold: #e1bd72;
+      --chip: rgba(43, 37, 27, .76);
+      --safe-top: max(14px, env(safe-area-inset-top));
+      --safe-bottom: max(18px, env(safe-area-inset-bottom));
+    }
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #8d795b; font-family: Inter, "Segoe UI", Roboto, system-ui, sans-serif; color: var(--ivory); }
+    button { font: inherit; touch-action: manipulation; }
+    #scene-bg, #game-canvas, #fallback-canvas, #scene-grade { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #scene-bg {
+      z-index: 0;
+      background: #8d795b url("assets/nile-reference-bg-v75.webp") center center / cover no-repeat;
+      transform: scale(1.012);
+      filter: saturate(.88) contrast(1.03) brightness(.92);
+      transition: transform 8s linear;
+    }
+    body.is-playing #scene-bg { transform: scale(1.045) translateY(1.2%); }
+    #scene-grade { z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(73, 51, 28, .09), transparent 26%, transparent 72%, rgba(18, 21, 16, .16)); }
+    #game-canvas { z-index: 2; display: block; }
+    #fallback-canvas { z-index: 3; display: none; pointer-events: none; }
+    body.fallback-mode #game-canvas { display: none; }
+    body.fallback-mode #fallback-canvas { display: block; }
+
+    #hud { position: absolute; top: var(--safe-top); left: 16px; right: 16px; z-index: 10; display: flex; justify-content: space-between; pointer-events: none; }
+    .hud-chip { min-width: 100px; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 9px 15px; border-radius: 999px; color: #f7e6bb; background: var(--chip); border: 1px solid rgba(255, 238, 196, .24); box-shadow: 0 8px 28px rgba(23, 16, 8, .28), inset 0 1px rgba(255,255,255,.08); backdrop-filter: blur(12px); font-weight: 800; font-size: 16px; letter-spacing: .01em; }
+    .hud-chip .icon { font-size: 22px; line-height: 1; }
+    .hud-chip strong { font-size: 21px; color: var(--gold); }
+    #powerups-bar { position: absolute; top: calc(var(--safe-top) + 58px); left: 50%; z-index: 11; display: flex; gap: 8px; transform: translateX(-50%); pointer-events: none; }
+    .active-buff { display: none; padding: 6px 12px; border-radius: 999px; color: #fff4ce; background: rgba(45, 60, 45, .80); border: 1px solid rgba(236, 212, 157, .32); box-shadow: 0 5px 18px rgba(0,0,0,.22); font-size: 11px; font-weight: 900; letter-spacing: .06em; }
+
+    .mobile-controls { position: absolute; z-index: 15; left: 0; right: 0; bottom: var(--safe-bottom); display: flex; justify-content: space-between; padding: 0 22px; pointer-events: none; }
+    .steer-btn { pointer-events: auto; width: 72px; height: 72px; border-radius: 50%; border: 1.5px solid rgba(255, 251, 230, .68); color: #fff9e8; background: rgba(30, 32, 25, .25); box-shadow: 0 10px 28px rgba(22,16,8,.18), inset 0 0 0 1px rgba(0,0,0,.10); backdrop-filter: blur(10px); font-size: 28px; font-weight: 900; cursor: pointer; transition: transform .12s, background .12s; }
+    .steer-btn:active { transform: scale(.91); background: rgba(44, 53, 38, .56); }
+
+    .screen { position: absolute; inset: 0; z-index: 30; display: flex; justify-content: center; align-items: flex-end; padding: 20px 20px calc(var(--safe-bottom) + 88px); text-align: center; pointer-events: auto; background: linear-gradient(180deg, rgba(17, 15, 10, .02) 0%, rgba(17, 15, 10, .03) 46%, rgba(17, 15, 10, .38) 78%, rgba(17, 15, 10, .64) 100%); transition: opacity .28s ease, visibility .28s ease; }
+    .screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .panel { width: min(100%, 430px); padding: 20px 20px 18px; border-radius: 24px; color: var(--ink); background: rgba(255, 250, 238, .93); border: 1px solid rgba(255,255,255,.72); box-shadow: 0 18px 55px rgba(35, 24, 12, .30); backdrop-filter: blur(16px); }
+    h1 { margin: 0 0 8px; color: #2f2519; font-family: Georgia, "Times New Roman", serif; font-size: clamp(25px, 6vw, 34px); line-height: 1.05; }
+    p { margin: 0 0 16px; color: #5a4b3a; font-size: 14px; line-height: 1.42; }
+    .eyebrow { display: block; margin-bottom: 7px; color: #9a6b2e; font-size: 11px; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+    .btn { width: 100%; min-height: 52px; border: 0; border-radius: 999px; color: #2b2116; background: linear-gradient(135deg, #d3a351, #f0cd80); box-shadow: 0 8px 22px rgba(113, 75, 30, .25), inset 0 1px rgba(255,255,255,.38); font-size: 16px; font-weight: 900; cursor: pointer; }
+    .btn:disabled { cursor: wait; filter: saturate(.55); opacity: .68; }
+    .controls-hint { margin-top: 11px; color: #796a58; font-size: 11px; }
+    #gameover-screen { align-items: center; padding-bottom: 20px; background: rgba(21, 18, 13, .46); }
+    #gameover-screen h1 { color: #733d2c; }
+    .result { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 16px; }
+    .result div { padding: 11px; border-radius: 14px; background: rgba(117, 88, 49, .08); color: #574634; font-size: 12px; }
+    .result b { display: block; margin-top: 2px; color: #2e2419; font-size: 18px; }
+    #version-badge { position: fixed; z-index: 40; left: 50%; bottom: calc(var(--safe-bottom) + 2px); transform: translateX(-50%); padding: 6px 8px; border-radius: 999px; color: rgba(255,248,226,.78); background: rgba(35,31,22,.44); font: 800 9px/1 system-ui; letter-spacing: .08em; pointer-events: none; }
+    #loading-note { position: absolute; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 8px 12px; border-radius: 999px; color: rgba(255,250,231,.86); background: rgba(41,36,27,.46); font-size: 11px; font-weight: 800; letter-spacing: .08em; opacity: 0; pointer-events: none; transition: opacity .25s; }
+    body.is-loading #loading-note { opacity: 1; }
+
+    @media (min-width: 760px) {
+      #scene-bg { background-size: cover; }
+      .screen { align-items: center; padding: 20px; }
+      .panel { max-width: 390px; }
+      .mobile-controls { padding: 0 40px; }
+    }
+    @media (prefers-reduced-motion: reduce) { #scene-bg, .screen, .steer-btn { transition: none; } }
+  </style>
+  <script src="vendor/three-r128.min.js"></script>
+  <script src="vendor/GLTFLoader-r128.js"></script>
+  <script src="vendor/OBJLoader-r128.js"></script>
+  <script>
+    if(!window.THREE)document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    if(window.THREE&&!window.THREE.GLTFLoader)document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"><\/script>');
+    if(window.THREE&&!window.THREE.OBJLoader)document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"><\/script>');
+  </script>
+</head>
+<body class="is-loading">
+  <div id="scene-bg" role="img" aria-label="Река Нил на закате с пальмами и пирамидами"></div>
+  <div id="scene-grade"></div>
+  <canvas id="game-canvas" aria-label="Игровая сцена Нила"></canvas>
+  <canvas id="fallback-canvas" aria-label="Облегчённая игровая сцена Нила"></canvas>
+  <div id="loading-note">ГОТОВИМ ПУТЬ ПО НИЛУ…</div>
+
+  <div id="hud">
+    <div class="hud-chip"><span class="icon">🌊</span><strong id="dist-txt">0</strong><span>м</span></div>
+    <div class="hud-chip"><span class="icon">🪷</span><strong id="score-txt">0</strong></div>
+  </div>
+  <div id="powerups-bar">
+    <div id="shield-badge" class="active-buff">🛡 ЩИТ ВЕРЫ</div>
+    <div id="magnet-badge" class="active-buff">✨ СВЕТ МИРИАМ</div>
+  </div>
+  <div class="mobile-controls">
+    <button class="steer-btn" id="btn-left" type="button" aria-label="Двигаться влево">◀</button>
+    <button class="steer-btn" id="btn-right" type="button" aria-label="Двигаться вправо">▶</button>
+  </div>
+
+  <div id="start-screen" class="screen">
+    <div class="panel">
+      <span class="eyebrow">Новое путешествие</span>
+      <h1>Моисей на Ниле</h1>
+      <p>Проведите закрытую корзинку по течению, обходите опасности и собирайте цветы лотоса.</p>
+      <button class="btn" id="start-btn" type="button">ОТПЛЫТЬ</button>
+      <div class="controls-hint">Кнопки, стрелки клавиатуры или свайп</div>
+    </div>
+  </div>
+
+  <div id="gameover-screen" class="screen hidden">
+    <div class="panel">
+      <span class="eyebrow">Путешествие окончено</span>
+      <h1>Путь прерван</h1>
+      <p id="fail-desc">Корзинка столкнулась с опасностью реки.</p>
+      <div class="result">
+        <div>Дистанция<b id="final-dist">0 м</b></div>
+        <div>Лотосы<b id="final-score">0</b></div>
+      </div>
+      <button class="btn" id="restart-btn" type="button">ПОПРОБОВАТЬ СНОВА</button>
+    </div>
+  </div>
+
+  <div id="version-badge">V7.5.1 · LOADING</div>
+  <script>window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};</script>
+  <script src="js/sound.js?v=752"></script>
+  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=752"><\/script>');else window.assetManager={};</script>
+  <script src="js/game-v75.js?v=752"></script>
+  <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){setTimeout(()=>document.getElementById('start-btn')?.click(),1600)}</script>
+</body>
+</html>

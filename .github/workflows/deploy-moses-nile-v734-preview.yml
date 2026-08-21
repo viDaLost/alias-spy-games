@@ -1,4 +1,4 @@
-name: Obsolete Moses Nile Legacy Preview
+name: Obsolete Moses Nile V7.3.x Preview
 
 on:
   workflow_dispatch:
@@ -11,5 +11,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo 'This legacy Moses Nile deploy is disabled.'
+          echo 'This legacy V7.3.x deploy is disabled.'
           echo 'Use deploy-moses-nile-v740-preview.yml for the active Cloudflare preview.'
