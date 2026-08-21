@@ -9,6 +9,7 @@
     describe: 'Опиши, но не называй', spy: 'Шпион', quartet: 'Квартет',
     'bible-wow': 'Библейские слова', 'bible-wordsearch': 'Поиск библейских слов',
     'sacred-word': 'Священное слово', 'kids-ark-pairs': 'Найди пару',
+    'bible-sketch': 'Библейский художник', 'biblical-match-three': 'Библейские сокровища',
   };
 
   let socket = null;

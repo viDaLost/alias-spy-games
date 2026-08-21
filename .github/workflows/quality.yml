@@ -38,6 +38,10 @@ jobs:
         run: node scripts/check-android-ban-enforcement.mjs
       - name: Check Android verified Telegram authentication
         run: node scripts/check-android-secure-auth.mjs
+      - name: Check registration administrator notifications
+        run: node scripts/check-registration-admin-notifications.mjs
+      - name: Compare Web and Android game catalogs
+        run: node scripts/check-web-android-game-parity.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund

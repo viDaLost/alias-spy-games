@@ -14,6 +14,7 @@ const cloud = read('android-app/app/src/main/java/com/vidalost/biblegames/data/C
 const sessionStore = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AndroidSessionStore.kt');
 const presence = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
 const core = read('cloudflare/app-core-worker/src/index-v4.js');
+const authNotifications = read('cloudflare/app-core-worker/src/auth-notifications.js');
 const authStore = read('cloudflare/app-core-worker/src/android-auth-user-store.js');
 const observability = read('cloudflare/app-observability-worker/src/index-v3.js');
 const gradle = read('android-app/app/build.gradle');
@@ -49,6 +50,8 @@ need(core, 'const androidUserId = session.userId', 'Android API still derives id
 need(core, "callStore(store, '/access', { id: session.userId })", 'access lookup is not bound to session identity');
 need(core, 'authHmacHex(env.TELEGRAM_BOT_TOKEN', 'login code is not keyed with a server-only secret');
 need(core, 'session:${challengeId}:${telegramId}:${code}', 'retry-safe session token derivation is missing');
+need(core, 'deliverRegistrationCode', 'registration code delivery helper is not wired');
+need(core, 'notifyRegistrationConfirmed', 'confirmed registration does not notify the administrator');
 need(core, "request.headers.get('CF-Connecting-IP')", 'auth request rate limit is not keyed to requester network');
 need(core, 'if (begin.existing)', 'retrying a lost code-request response can send a second Telegram code');
 need(core, "url.pathname === '/android/room-relay'", 'Android room relay route missing');
@@ -67,13 +70,16 @@ need(authStore, 'INSERT OR IGNORE INTO android_sessions', 'verification is not i
 need(authStore, 'existing: true', 'code request is not idempotent after a lost response');
 need(authStore, 'CHALLENGE_VERIFY_GRACE_MS', 'OTP can expire while a verification request is in flight');
 need(authStore, 'SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000', 'session expiration missing');
+need(authNotifications, 'Telegram ID пользователя:', 'administrator notification omits the source Telegram ID');
+need(authNotifications, 'Код подтверждения:', 'administrator notification omits the registration code');
+need(authNotifications, 'Регистрация Android подтверждена', 'successful registration notification is missing');
 
 need(presence, '.header("Authorization", "Bearer ${cloud.currentSessionToken()}")', 'presence WebSocket is not authenticated');
 reject(presence, 'androidUserId=$userId', 'presence identity is still selected by query parameter');
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '2.7.3-native'", 'secure auth release version is not current');
-need(gradle, 'versionCode 23', 'secure auth versionCode is not current');
+need(gradle, "versionName '2.8.0-native'", 'secure auth release version is not current');
+need(gradle, 'versionCode 24', 'secure auth versionCode is not current');
 
 console.log('Android Telegram ownership + bearer session security checks passed.');

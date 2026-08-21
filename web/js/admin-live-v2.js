@@ -9,6 +9,7 @@
     ['bible-sketch', 'Библейский художник'],
     ['bible-wow', 'Библейские слова'], ['bible-wordsearch', 'Поиск слов'],
     ['sacred-word', 'Священное слово'], ['kids-ark-pairs', 'Найди пару'],
+    ['biblical-match-three', 'Библейские сокровища'],
   ];
   const NAMES = Object.fromEntries(GAMES);
   let refreshTimer = null;
@@ -76,14 +77,25 @@
     const generatedAt = new Date(data.generatedAt || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const strictWindowSec = Math.round(Number(data.strictPresenceWindowMs || 0) / 1000);
 
-    const gameCards = GAMES.map(([key, title]) => `
-      <div class="admin-live-game ${Number(current[key] || 0) > 0 ? 'is-active' : ''}">
-        <b>${Number(current[key] || 0)}</b><span>${escapeText(title)}</span>
-      </div>`).join('');
+    const playerLabel = (user) => user.username
+      ? `@${user.username}`
+      : (user.displayName || (user.id ? `ID ${user.id}` : 'Пользователь'));
+    const gameCards = GAMES.map(([key, title]) => {
+      const players = onlineUsers.filter((user) => user.game === key);
+      const visiblePlayers = players.slice(0, 3).map((user) => escapeText(playerLabel(user)));
+      const remaining = players.length - visiblePlayers.length;
+      const playerList = visiblePlayers.length
+        ? `<small class="admin-live-game__players">${visiblePlayers.join(' · ')}${remaining > 0 ? ` · ещё ${remaining}` : ''}</small>`
+        : '';
+      return `
+        <div class="admin-live-game ${players.length > 0 ? 'is-active' : ''}" data-admin-live-game="${escapeText(key)}">
+          <b>${Number(current[key] || 0)}</b><span>${escapeText(title)}</span>${playerList}
+        </div>`;
+    }).join('');
 
     const people = onlineUsers.length
       ? onlineUsers.map((user) => {
-          const name = user.username ? `@${user.username}` : (user.displayName || (user.id ? `ID ${user.id}` : 'Пользователь'));
+          const name = playerLabel(user);
           const gameName = user.game ? (NAMES[user.game] || user.game) : 'Главное меню';
           const room = user.roomId ? ` · комната ${user.roomId}` : '';
           const platform = user.platform === 'android' ? 'Android' : 'Telegram';

@@ -18,7 +18,7 @@ enum class GameKey(
     WORD_SEARCH("bible-wordsearch", "Поиск библейских слов", "Найди скрытые слова", "assets/icons/search.png", GameSection.WORDS, 0xFF0284C7),
     SACRED("sacred-word", "Священное слово", "Открой слово по подсказкам", "assets/icons/sacred.png", GameSection.WORDS, 0xFFB7791F),
     PAIRS("kids-ark-pairs", "Найди пару", "Память, пары и ковчег", "assets/icons/ark.png", GameSection.KIDS, 0xFF059669),
-    MATCH_THREE("biblical-match-three", "Библейские три в ряд", "Комбинации, каскады и уровни", "assets/icons/ark.png", GameSection.KIDS, 0xFF315F91),
+    MATCH_THREE("biblical-match-three", "Библейские сокровища", "Матч‑3, каскады и Путь света", "assets/icons/biblical-treasures-v38.png", GameSection.KIDS, 0xFF4F46E5),
     SKETCH("bible-sketch", "Библейский художник", "Рисуйте вместе и найдите шпиона", "assets/icons/bible-sketch.webp", GameSection.COMPANY, 0xFFDB2777),
     ;
 

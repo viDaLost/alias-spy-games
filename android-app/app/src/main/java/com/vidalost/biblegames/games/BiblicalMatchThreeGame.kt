@@ -28,11 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import com.vidalost.biblegames.data.AssetRepository
+import com.vidalost.biblegames.ui.AssetImage
 import com.vidalost.biblegames.ui.GameScaffold
 import com.vidalost.biblegames.ui.GlassCard
 import com.vidalost.biblegames.ui.Indigo
@@ -50,11 +53,21 @@ import kotlin.math.max
 
 private const val BMT_SIZE = 8
 private const val BMT_PREFS = "biblical_match_three_progress_v1"
-private enum class NativeSpecial { LINE, BURST, RAINBOW }
-private enum class NativeSymbol(val mark:String,val color:Color){
-    BIBLE("Б",Color(0xFF315F91)),FISH("Р",Color(0xFF2D8AA8)),DOVE("Г",Color(0xFF7C8DA6)),
-    LAMP("С",Color(0xFFD39B39)),CROWN("В",Color(0xFFB7791F)),ARK("К",Color(0xFF8B5E3C)),
-    BREAD("Х",Color(0xFFC78B45)),GRAPES("Я",Color(0xFF7553AA)),TABLETS("Т",Color(0xFF64748B))
+private enum class NativeSpecial(val asset:String) {
+    LINE("assets/biblical-match-three/icons-v17/staff.webp"),
+    BURST("assets/biblical-match-three/icons-v17/jericho.webp"),
+    RAINBOW("assets/biblical-match-three/icons-v17/covenant.webp")
+}
+private enum class NativeSymbol(val asset:String,val color:Color){
+    BIBLE("assets/biblical-match-three/icons-v17/bible.webp",Color(0xFF315F91)),
+    FISH("assets/biblical-match-three/icons-v17/fish.webp",Color(0xFF2D8AA8)),
+    DOVE("assets/biblical-match-three/icons-v17/dove.webp",Color(0xFF7C8DA6)),
+    LAMP("assets/biblical-match-three/icons-v17/candle.webp",Color(0xFFD39B39)),
+    CROWN("assets/biblical-match-three/icons-v17/crown.webp",Color(0xFFB7791F)),
+    ARK("assets/biblical-match-three/icons-v17/ark.webp",Color(0xFF8B5E3C)),
+    BREAD("assets/biblical-match-three/icons-v17/bread.webp",Color(0xFFC78B45)),
+    GRAPES("assets/biblical-match-three/icons-v17/grapes.webp",Color(0xFF7553AA)),
+    TABLETS("assets/biblical-match-three/icons-v17/tablets.webp",Color(0xFF64748B))
 }
 private data class NativeCell(val symbol:NativeSymbol,val special:NativeSpecial?=null)
 private data class NativeLevel(val id:Int,val title:String,val moves:Int,val target:Int,val symbols:Int,val goal:NativeSymbol,val amount:Int)
@@ -69,16 +82,16 @@ private val nativeLevels=listOf(
     NativeLevel(9,"Изобилие",20,6000,9,NativeSymbol.BREAD,12),NativeLevel(10,"Большой каскад",19,7200,9,NativeSymbol.BIBLE,10)
 )
 
-@Composable fun BiblicalMatchThreeGame(onBack:()->Unit){
+@Composable fun BiblicalMatchThreeGame(assets:AssetRepository,onBack:()->Unit){
     var level by rememberSaveable{mutableStateOf<Int?>(null)}
     var free by rememberSaveable{mutableStateOf<NativeDifficulty?>(null)}
-    when{level!=null->NativeBoard(nativeLevels[level!!-1],null,{level=null},onBack);free!=null->NativeBoard(null,free,{free=null},onBack);else->NativeMenu({level=it.id},{free=it},onBack)}
+    when{level!=null->NativeBoard(assets,nativeLevels[level!!-1],null,{level=null},onBack);free!=null->NativeBoard(assets,null,free,{free=null},onBack);else->NativeMenu({level=it.id},{free=it},onBack)}
 }
 
 @Composable private fun NativeMenu(onLevel:(NativeLevel)->Unit,onFree:(NativeDifficulty)->Unit,onBack:()->Unit){
     val context=LocalContext.current
     val unlocked=context.getSharedPreferences(BMT_PREFS,Context.MODE_PRIVATE).getInt("unlocked",1)
-    GameScaffold("Библейские три в ряд","10 уровней и свободная игра",onBack){
+    GameScaffold("Библейские сокровища","10 нативных уровней и свободная игра",onBack){
         GlassCard(Modifier.fillMaxWidth(),padding=14.dp){Text("Собирайте библейские символы",color=Ink,fontWeight=FontWeight.Black,fontSize=20.sp);Text("Меняйте соседние фишки, запускайте каскады и выполняйте цели.",color=InkSoft,fontSize=13.sp)}
         Spacer(Modifier.height(10.dp))
         nativeLevels.forEach{l->SecondaryButton("${l.id}. ${l.title} · ${l.moves} ходов",{onLevel(l)},Modifier.fillMaxWidth().padding(bottom=6.dp),enabled=l.id<=unlocked,accent=if(l.id<unlocked) Success else Indigo)}
@@ -87,23 +100,23 @@ private val nativeLevels=listOf(
     }
 }
 
-@Composable private fun NativeBoard(level:NativeLevel?,difficulty:NativeDifficulty?,onBack:()->Unit,onExit:()->Unit){
+@Composable private fun NativeBoard(assets:AssetRepository,level:NativeLevel?,difficulty:NativeDifficulty?,onBack:()->Unit,onExit:()->Unit){
     val context=LocalContext.current;val scope=rememberCoroutineScope();val count=level?.symbols?:difficulty!!.symbols;val startMoves=level?.moves?:difficulty!!.moves;val target=level?.target?:difficulty!!.target
     var board by remember(level?.id,difficulty){mutableStateOf(playableBoard(count))};var selected by remember{mutableStateOf<Int?>(null)};var moves by remember{mutableIntStateOf(startMoves)};var score by remember{mutableIntStateOf(0)};var collected by remember{mutableIntStateOf(0)};var busy by remember{mutableStateOf(false)};var result by remember{mutableStateOf<Boolean?>(null)};var hint by remember{mutableStateOf<Pair<Int,Int>?>(null)}
     fun done()=score>=target&&(level==null||collected>=level.amount)
     fun reset(){board=playableBoard(count);selected=null;moves=startMoves;score=0;collected=0;busy=false;result=null;hint=null}
     fun finish(){if(done()){result=true;if(level!=null){val p=context.getSharedPreferences(BMT_PREFS,Context.MODE_PRIVATE);p.edit().putInt("unlocked",max(p.getInt("unlocked",1),level.id+1)).apply()}}else if(moves<=0) result=false}
     fun swap(a:Int,b:Int){if(busy||result!=null||moves<=0||!adjacent(a,b))return;val next=board.toMutableList();val t=next[a];next[a]=next[b];next[b]=t;var matched=matches(next);if(matched.isEmpty()){selected=null;return};moves--;busy=true;selected=null;hint=null;scope.launch{var work=next.toList();var chain=1;while(matched.isNotEmpty()){val special=makeSpecial(work,matched,a,b);val clear=expandSpecials(work,matched.toMutableSet());if(special!=null)clear.remove(special.first);if(level!=null)collected+=clear.count{work[it].symbol==level.goal};score+=clear.size*45*chain;delay(100);work=collapse(work,clear,count);if(special!=null){val m=work.toMutableList();m[special.first.coerceIn(0,m.lastIndex)]=m[special.first.coerceIn(0,m.lastIndex)].copy(special=special.second);work=m};board=work;delay(90);matched=matches(work);chain++};if(findHint(board)==null)board=playableBoard(count);busy=false;finish()}}
-    GameScaffold("Библейские три в ряд",level?.let{"Уровень ${it.id} · ${it.title}"}?:"Свободно · ${difficulty!!.label}",onBack,scroll=false){
+    GameScaffold("Библейские сокровища",level?.let{"Уровень ${it.id} · ${it.title}"}?:"Свободно · ${difficulty!!.label}",onBack,scroll=false){
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){StatusPill("$moves ходов",Modifier.weight(1f),Indigo);StatusPill("$score / $target",Modifier.weight(1f),Color(0xFFB7791F));if(level!=null)StatusPill("$collected/${level.amount}",Modifier.weight(1f),level.goal.color)}
-        Spacer(Modifier.height(8.dp));LazyVerticalGrid(columns=GridCells.Fixed(BMT_SIZE),modifier=Modifier.fillMaxWidth().weight(1f),horizontalArrangement=Arrangement.spacedBy(3.dp),verticalArrangement=Arrangement.spacedBy(3.dp),userScrollEnabled=false){items(board.indices.toList()){i->NativeTile(board[i],selected==i,hint?.let{i==it.first||i==it.second}==true,!busy&&result==null){val s=selected;when{s==null->selected=i;s==i->selected=null;adjacent(s,i)->swap(s,i);else->selected=i}}}}
+        Spacer(Modifier.height(8.dp));Box(Modifier.fillMaxWidth().weight(1f)){AssetImage(assets,"assets/biblical-match-three/board-background-v35.webp",Modifier.fillMaxSize(),ContentScale.Crop);LazyVerticalGrid(columns=GridCells.Fixed(BMT_SIZE),modifier=Modifier.fillMaxSize().padding(4.dp),horizontalArrangement=Arrangement.spacedBy(3.dp),verticalArrangement=Arrangement.spacedBy(3.dp),userScrollEnabled=false){items(board.indices.toList()){i->NativeTile(assets,board[i],selected==i,hint?.let{i==it.first||i==it.second}==true,!busy&&result==null){val s=selected;when{s==null->selected=i;s==i->selected=null;adjacent(s,i)->swap(s,i);else->selected=i}}}}}
         Spacer(Modifier.height(7.dp));Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){SecondaryButton("Подсказка",{hint=findHint(board)},Modifier.weight(1f),enabled=!busy&&result==null);SecondaryButton("Перемешать",{board=playableBoard(count);selected=null;hint=null},Modifier.weight(1f),enabled=!busy&&result==null)}
         result?.let{ok->Spacer(Modifier.height(8.dp));GlassCard(Modifier.fillMaxWidth(),padding=13.dp){Text(if(ok)"Цель выполнена!" else "Ходы закончились",Modifier.fillMaxWidth(),textAlign=TextAlign.Center,color=if(ok) Success else Color(0xFF9A3412),fontWeight=FontWeight.Black,fontSize=19.sp);Spacer(Modifier.height(7.dp));Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(7.dp)){SecondaryButton("Заново",::reset,Modifier.weight(1f));PrimaryButton(if(level!=null)"К уровням" else "К режимам",onBack,Modifier.weight(1f))}}}
     }
 }
 
-@Composable private fun NativeTile(cell:NativeCell,selected:Boolean,hinted:Boolean,enabled:Boolean,onClick:()->Unit){
-    Surface(Modifier.aspectRatio(1f).bounceClick(enabled,onClick),RoundedCornerShape(12.dp),color=if(selected) Color(0xFFFFF4CC) else Color.White,shadowElevation=if(selected)7.dp else 2.dp,border=androidx.compose.foundation.BorderStroke(if(selected||hinted)2.dp else 1.dp,if(selected||hinted) Indigo else Color(0xFFE2E8F0))){Box(Modifier.fillMaxSize().padding(3.dp).background(cell.symbol.color.copy(.12f),RoundedCornerShape(9.dp)),contentAlignment=Alignment.Center){Text(cell.symbol.mark,color=cell.symbol.color,fontWeight=FontWeight.Black,fontSize=18.sp);cell.special?.let{Text(when(it){NativeSpecial.LINE->"—";NativeSpecial.BURST->"✦";NativeSpecial.RAINBOW->"◎"},Modifier.align(Alignment.TopEnd),color=Color(0xFFB7791F),fontSize=10.sp,fontWeight=FontWeight.Black)}}}
+@Composable private fun NativeTile(assets:AssetRepository,cell:NativeCell,selected:Boolean,hinted:Boolean,enabled:Boolean,onClick:()->Unit){
+    Surface(Modifier.aspectRatio(1f).bounceClick(enabled,onClick),RoundedCornerShape(12.dp),color=if(selected) Color(0xFFFFF4CC) else Color.White,shadowElevation=if(selected)7.dp else 2.dp,border=androidx.compose.foundation.BorderStroke(if(selected||hinted)2.dp else 1.dp,if(selected||hinted) Indigo else Color(0xFFE2E8F0))){Box(Modifier.fillMaxSize().padding(3.dp).background(cell.symbol.color.copy(.10f),RoundedCornerShape(9.dp)),contentAlignment=Alignment.Center){AssetImage(assets,cell.special?.asset?:cell.symbol.asset,Modifier.fillMaxSize().padding(2.dp))}}
 }
 
 private fun adjacent(a:Int,b:Int)=abs(a/BMT_SIZE-b/BMT_SIZE)+abs(a%BMT_SIZE-b%BMT_SIZE)==1

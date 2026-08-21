@@ -35,6 +35,6 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, "versionName '2.7.3-native'", 'Android version was not bumped');
+need(gradle, "versionName '2.8.0-native'", 'Android version was not bumped');
 
 console.log('Android verified-session access and ban refresh checks passed.');

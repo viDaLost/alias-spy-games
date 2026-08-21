@@ -37,7 +37,10 @@ requireText(android, '.put("type", "offline")', 'Android does not explicitly rep
 requireText(admin, '5_000', 'admin live monitor does not refresh every five seconds');
 requireText(admin, 'user.roomId', 'admin online list does not show current room');
 requireText(admin, 'strictPresenceWindowMs', 'admin does not show strict freshness window');
+requireText(admin, "['biblical-match-three', 'Библейские сокровища']", 'Biblical Treasures is missing from the administrator game list');
+requireText(admin, 'admin-live-game__players', 'administrator game cards do not show current players');
 requireText(html, 'presence-identity.js?v=3', 'new WebApp presence client is not mounted');
-requireText(html, 'admin-live-v2.js?v=4', 'new admin live monitor is not mounted');
+requireText(html, 'admin-live-v2.js?v=5', 'new admin live monitor is not mounted');
+requireText(html, 'admin-live-v2.css?v=2', 'new admin live monitor styles are not mounted');
 
 console.log('Strict verified presence, room tracking and freshness checks passed');

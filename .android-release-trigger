@@ -1,5 +1,5 @@
 BibleGames Android release trigger
-version=2.7.3-native
-versionCode=23
-requested=2026-08-14
-reason=android-download-menu-release
+version=2.8.0-native
+versionCode=24
+requested=2026-08-21
+reason=web-game-parity-registration-admin-monitoring

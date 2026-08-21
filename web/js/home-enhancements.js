@@ -9,6 +9,7 @@
     'Библейский художник': { key: 'bible-sketch', desc: 'Рисуйте по очереди и найдите шпиона', icon: 'bibleSketch' },
     'Библейские слова': { key: 'bible-wow', desc: 'Собери слова из букв', icon: 'words' },
     'Поиск библейских слов': { key: 'bible-wordsearch', desc: 'Найди скрытые слова', icon: 'search' },
+    'Библейские сокровища': { key: 'biblical-match-three', desc: 'Комбинации, бустеры и путь из 30 уровней', icon: 'matchThree' },
     'Библейские три в ряд': { key: 'biblical-match-three', desc: 'Комбинации, бустеры и путь из 30 уровней', icon: 'matchThree' },
     'Священное слово': { key: 'sacred-word', desc: 'Открой слово по подсказкам', icon: 'sacred' },
     'Найди пару': { key: 'kids-ark-pairs', desc: 'Соберите животных попарно', icon: 'ark' },
