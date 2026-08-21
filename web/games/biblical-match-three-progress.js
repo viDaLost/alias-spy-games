@@ -257,6 +257,8 @@
   function noteBoosterUse(progress = load(), boosterId) {
     const id = String(boosterId || "");
     if (!id) return progress;
+    if (!progress || typeof progress !== "object") progress = load();
+    if (!progress.boosterStats || typeof progress.boosterStats !== "object") progress.boosterStats = {};
     progress.boosterStats[id] = Math.max(0, Number(progress.boosterStats[id] || 0)) + 1;
     save(progress);
     return progress;

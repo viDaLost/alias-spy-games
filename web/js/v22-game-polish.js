@@ -67,7 +67,7 @@
       if (main && main.textContent !== 'Усилители') main.textContent = 'Усилители';
       if (small && small.textContent !== 'за звёзды') small.textContent = 'за звёзды';
     });
-    root.querySelectorAll('.bmt-prelevel__boost-title span').forEach((node) => {
+    root.querySelectorAll('.bmt-prelevel__boost-title > span:first-child').forEach((node) => {
       if (node.textContent !== 'Усилители перед стартом') node.textContent = 'Усилители перед стартом';
     });
   }

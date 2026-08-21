@@ -41,6 +41,7 @@ ok(backgroundBytes.length < 600 * 1024, 'V35 supplied board background must stay
 
 const index = read('index.html');
 const loader = read('web/js/v22-game-loader.js');
+const gamePolish = read('web/js/v22-game-polish.js');
 const home = read('web/js/v22-home-art.js');
 const result = read('web/js/v23-biblical-treasures-polish.js');
 const board = read('web/js/v24-biblical-treasures-board.js');
@@ -52,19 +53,21 @@ const launcher = read('web/js/biblical-match-three-launcher.js');
 const progress = read('web/games/biblical-match-three-progress.js');
 const game = read('web/games/biblical-match-three.js');
 const experienceCss = read('web/styles/biblical-match-three-v38.css');
+const motionCss = read('web/styles/app-motion.css');
 const levels = JSON.parse(read('web/data/biblical_match_three_levels.json'));
 
 ok(levels.version === 4, 'Biblical Treasures level balance version missing');
 ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
-ok(index.includes('biblical-match-three-launcher.js?v=40') && index.includes('v22-home-art.js?v=39'), 'Biblical Treasures V40 launcher/menu icon wiring missing');
-ok(index.includes('v22-game-loader.js?v=40') && index.includes('v29-biblical-treasures-hotfix.js?v=40') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V40 experience/lamp cache-bust wiring missing');
+ok(index.includes('biblical-match-three-launcher.js?v=41') && index.includes('v22-home-art.js?v=39'), 'Biblical Treasures V41 launcher/menu icon wiring missing');
+ok(index.includes('v22-game-loader.js?v=41') && index.includes('v29-biblical-treasures-hotfix.js?v=40') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V41 experience/lamp cache-bust wiring missing');
+ok(index.includes('app-motion.css?v=2') && index.includes('biblical-match-three-v38.css?v=41'), 'V41 layout/menu motion cache-bust wiring missing');
 ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wiring changed unexpectedly');
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
-ok(loader.includes("const VERSION = '40'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
+ok(loader.includes("const VERSION = '41'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(loader.includes('v37-biblical-treasures-lamp-swipe.js?v=37') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
 ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.png') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
-ok(launcher.includes('const VERSION="40"') && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.png') && launcher.includes('data-bmt-menu-art="v39"'), 'V40 canonical launcher icon source missing');
+ok(launcher.includes('const VERSION="41"') && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.png') && launcher.includes('data-bmt-menu-art="v39"'), 'V41 canonical launcher icon source missing');
 ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.png'), 'Legacy hotfix can still revert the V39 menu icon');
 ok(!read('web/games/biblical-match-three-v15-polish.js').includes('patchAppCard'), 'Game polish can still replace the app icon after returning to the menu');
 ok(game.includes('applyLevelGoalSpecials') && game.includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
@@ -92,10 +95,17 @@ ok(lampSwipe.includes("tile.classList.remove('has-lamp', 'is-lamp-lit')") && lam
 ok(lampSwipe.includes('edgeFallback') && lampSwipe.includes('fallbackIndex') && lampSwipe.includes('document.addEventListener(\'pointermove\''), 'V37 edge swipe fallback missing');
 ok(lampSwipe.includes('validSwapTile') && lampSwipe.includes('!unlitLamp(tile)'), 'V37 must keep unlit lamp obstacles protected');
 
-ok(launcher.includes('const VERSION="40"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
+ok(launcher.includes('const VERSION="41"') && launcher.includes('ALLOWED_USER_ID="1288379477"') && launcher.includes('5693086211') && launcher.includes('5502223852') && launcher.includes('MENU_ICON'), 'Biblical Treasures launcher/access gate changed unexpectedly');
 ok(progress.includes('levelBestScores') && progress.includes('previousBestScore') && progress.includes('newBestScore') && progress.includes('isImproved'), 'Campaign best-score persistence missing');
 ok(game.includes('data-bmt-pre-balance') && game.includes('Доступно') && game.includes('Выбрано') && game.includes('selectedCost() + booster.cost <= starBalance()') && game.includes('aria-pressed'), 'Pre-level boosters do not expose or enforce the real star balance');
+ok(gamePolish.includes(".bmt-prelevel__boost-title > span:first-child") && !gamePolish.includes("querySelectorAll('.bmt-prelevel__boost-title span')"), 'Legacy polish can still delete the pre-level balance controls and crash booster selection');
+ok(game.includes('if (balanceNode)') && game.includes('if (totalNode)') && game.includes('!runtime.blockers.has(index)'), 'Pre-level booster application is not defensive against patched markup or blocker cells');
+ok(game.includes('match3-preboost-refund-level-') && game.includes('kind:"prelevel-booster"') && game.includes('selectedBoosters.forEach'), 'A failed pre-level booster start must be contained and refund its stars');
+ok(progress.includes('if (!progress.boosterStats || typeof progress.boosterStats !== "object") progress.boosterStats = {}'), 'Legacy progress can still crash while recording a pre-level booster');
 ok(experienceCss.includes('.bmt-board.bmt-v24-board{overflow:visible!important') && experienceCss.includes('padding:8px 8px 14px!important'), 'The outer board pieces can still be clipped');
+ok(experienceCss.includes('.bmt-v22-result-actions{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important}') && experienceCss.includes('.bmt-v22-next{width:100%!important'), 'Next-level button is not guaranteed to span the result card');
+ok(motionCss.includes('.menu-container:not(.hidden) .game-card__icon') && motionCss.includes('@keyframes appGameIconFloat') && motionCss.includes('@keyframes appGameIconSway') && motionCss.includes('@keyframes appGameIconBreathe'), 'Main-menu game icons are not animated');
+ok(motionCss.includes('prefers-reduced-motion:reduce') && motionCss.includes('.menu-container:not(.hidden) .game-card__icon{animation:none!important}'), 'Menu icon motion does not respect reduced-motion preferences');
 
 const testStore = new Map([['bible_stars_v1_5693086211', '87']]);
 const progressContext = {
@@ -114,6 +124,10 @@ ok(progressContext.BiblicalMatchThreeProgress.userId() === '5693086211', 'Androi
 ok(progressContext.BiblicalMatchThreeProgress.getStars() === 87, 'Pre-level balance must read the authenticated Android/Telegram wallet');
 const boosterPurchase = progressContext.BiblicalMatchThreeProgress.spendStars(6, 'qa-prelevel-booster');
 ok(boosterPurchase.ok && boosterPurchase.balance === 81, 'An affordable pre-level booster must be purchased from the visible wallet');
+const legacyBoosterProgress = progressContext.BiblicalMatchThreeProgress.load();
+legacyBoosterProgress.boosterStats = null;
+const repairedBoosterProgress = progressContext.BiblicalMatchThreeProgress.noteBoosterUse(legacyBoosterProgress, 'manna');
+ok(repairedBoosterProgress.boosterStats.manna === 1, 'Legacy progress must not crash when any pre-level booster is recorded');
 
 for (const level of levels.levels) {
   const thresholds = level.starThresholds || [];

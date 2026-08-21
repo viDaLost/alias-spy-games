@@ -371,8 +371,10 @@ function openPreLevel(level) {
   const selectedCost = () => [...runtime.preBoosters].reduce((sum, key) => sum + PRE_BOOSTERS[key].cost, 0);
   const refreshBoosters = () => {
     const balance = starBalance(); const total = selectedCost();
-    sheet.querySelector("[data-bmt-pre-balance]").textContent = `${balance} ★`;
-    sheet.querySelector("[data-bmt-pre-total]").textContent = `${total} ★`;
+    const balanceNode = sheet.querySelector("[data-bmt-pre-balance]");
+    const totalNode = sheet.querySelector("[data-bmt-pre-total]");
+    if (balanceNode) balanceNode.textContent = `${balance} ★`;
+    if (totalNode) totalNode.textContent = `${total} ★`;
     boosters.querySelectorAll("[data-bmt-pre-booster]").forEach((node) => {
       const id = node.dataset.bmtPreBooster; const selected = runtime.preBoosters.has(id);
       const unaffordable = !selected && total + PRE_BOOSTERS[id].cost > balance;
@@ -399,12 +401,23 @@ function openPreLevel(level) {
   const cancel = button("Назад", "bmt-secondary", () => overlay.remove());
   startButton = button("Начать уровень", "bmt-primary bmt-primary--large", () => {
     const total = selectedCost();
+    const selectedBoosters = new Set(runtime.preBoosters);
+    let spent = false;
     if (total > 0) {
       const spend = Progress.spendStars(total, `match3-preboost-level-${level.id}`);
       if (!spend.ok) { FX.haptic?.("error"); toast("Недостаточно звёзд", "error"); return; }
-      [...runtime.preBoosters].forEach((id) => { runtime.progress = Progress.noteBoosterUse(runtime.progress, id); }); updateWallet();
+      spent = true;
     }
-    overlay.remove(); beginLevel(level, new Set(runtime.preBoosters));
+    try {
+      beginLevel(level, selectedBoosters);
+      if (spent) selectedBoosters.forEach((id) => { runtime.progress = Progress.noteBoosterUse(runtime.progress, id); });
+      updateWallet(); overlay.remove();
+    } catch (error) {
+      if (spent) Progress.addStars(total, `match3-preboost-refund-level-${level.id}`);
+      window.AppErrorBoundary?.report?.(error, { kind:"prelevel-booster", source:"biblical-match-three.js", fatal:false });
+      FX.haptic?.("error"); overlay.remove(); renderMenu();
+      setTimeout(() => { openPreLevel(level); toast("Не удалось применить усилитель — звёзды возвращены", "error"); }, 0);
+    }
   });
   actions.append(cancel, startButton); sheet.append(actions); overlay.append(sheet); shell.append(overlay);
   refreshBoosters();
@@ -483,7 +496,12 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
 
 function applyPreBoosters(selected) {
   if (!selected?.size) return;
-  const randomEmpty = () => { const candidates = runtime.board.map((cell, index) => (cell && !cell.special ? index : -1)).filter((index) => index >= 0); return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : -1; };
+  const randomEmpty = () => {
+    const candidates = runtime.board
+      .map((cell, index) => (cell && !cell.special && isActive(index) && !runtime.blockers.has(index) ? index : -1))
+      .filter((index) => index >= 0);
+    return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : -1;
+  };
   if (selected.has("manna")) { const a = randomEmpty(); if (a >= 0) runtime.board[a].special = "lineH"; const b = randomEmpty(); if (b >= 0) runtime.board[b].special = "lineV"; }
   if (selected.has("lampOil")) { const index = randomEmpty(); if (index >= 0) runtime.board[index].special = "burst"; }
   if (selected.has("covenant")) { const index = randomEmpty(); if (index >= 0) runtime.board[index].special = "rainbow"; }

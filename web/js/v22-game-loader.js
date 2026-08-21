@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION = '40';
+  const VERSION = '41';
   const GUARD = `web/js/v22-legacy-tutorial-guard.js?v=${VERSION}`;
   const POLISH = `web/js/v22-game-polish.js?v=${VERSION}`;
   const V23 = `web/js/v23-biblical-treasures-polish.js?v=${VERSION}`;
