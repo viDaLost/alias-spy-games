@@ -21,7 +21,7 @@ const AVIF = (p) => {
 
 const BOARD_BACKGROUND = 'web/assets/biblical-match-three/board-background-v35.webp';
 const required = [
-  'web/assets/icons/biblical-treasures.webp',
+  'web/assets/icons/biblical-treasures-v38.png',
   BOARD_BACKGROUND,
   'web/assets/biblical-match-three/completion-1-star-v29.webp',
   'web/assets/biblical-match-three/completion-2-stars-v29.webp',
@@ -31,6 +31,7 @@ const required = [
 ];
 for (const file of required) ok(exists(file), `Biblical Treasures asset missing: ${file}`);
 for (const file of required.filter((f) => f.endsWith('.webp'))) ok(WEBP(file), `Biblical Treasures WebP has invalid bytes: ${file}`);
+ok(bytes('web/assets/icons/biblical-treasures-v38.png').subarray(1, 4).toString('ascii') === 'PNG', 'V38 transparent menu icon has invalid bytes');
 ok(AVIF('web/assets/biblical-match-three/completion-3-stars-v29.avif'), 'Biblical Treasures three-star AVIF has invalid bytes');
 const backgroundBytes = bytes(BOARD_BACKGROUND);
 ok(backgroundBytes.length >= 200_000, 'V35 supplied board background must keep maximum-quality image data');
@@ -52,13 +53,13 @@ const levels = JSON.parse(read('web/data/biblical_match_three_levels.json'));
 ok(levels.version === 4, 'Biblical Treasures level balance version missing');
 ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
-ok(index.includes('biblical-match-three-launcher.js?v=30') && index.includes('v22-home-art.js?v=31'), 'Biblical Treasures launcher/menu icon wiring missing');
-ok(index.includes('v22-game-loader.js?v=37') && index.includes('v29-biblical-treasures-hotfix.js?v=35') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V37 lamp/edge cache-bust wiring missing');
+ok(index.includes('biblical-match-three-launcher.js?v=30') && index.includes('v22-home-art.js?v=38'), 'Biblical Treasures launcher/menu icon wiring missing');
+ok(index.includes('v22-game-loader.js?v=38') && index.includes('v29-biblical-treasures-hotfix.js?v=35') && index.includes('v37-biblical-treasures-lamp-swipe.js?v=37'), 'V38 experience/lamp cache-bust wiring missing');
 ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wiring changed unexpectedly');
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
 ok(loader.includes("const VERSION = '31'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(loader.includes('v37-biblical-treasures-lamp-swipe.js?v=37') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
-ok(home.includes("BIBLICAL_VERSION = '31'") && home.includes('biblical-treasures.webp') && home.includes("bmtMenuArt = 'v31'"), 'V31 menu icon patch missing');
+ok(home.includes("BIBLICAL_VERSION = '38'") && home.includes('biblical-treasures-v38.png') && home.includes("bmtMenuArt = 'v38'"), 'V38 transparent menu icon patch missing');
 ok(result.includes('completion-1-star-v29.webp') && result.includes('completion-2-stars-v29.webp') && result.includes('completion-3-stars-v29.avif') && result.includes('dataset.resultStars'), 'Star-specific completion art wiring missing');
 ok(board.includes('icons-v29/lamp-unlit.webp') && board.includes('icons-v17/candle.webp') && board.includes('data-blocker-lit'), 'Extinguished/lit lamp art wiring missing');
 ok(boardCss.includes('board-background-v35.webp?v=35') && boardCss.includes('.bmt-tile.has-lamp .bmt-piece-wrap') && boardCss.includes('visibility:hidden!important'), 'V35 board background / standalone lamp styling missing');

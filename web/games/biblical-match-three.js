@@ -575,9 +575,25 @@ function lampLitCount() { let count = 0; for (const blocker of runtime.blockers.
 function finishIfNoMoves() {
   if (!runtime || countPlayableMoves(runtime.board, 1) !== 0) return false;
   clearHint();
-  if (runtime.mode === "level") { finishLevel(false, "noMoves"); return true; }
-  setBusy(false);
-  if (runtime.mode === "free") { openFreeExit("noMoves"); return true; }
+  setBusy(true);
+  try {
+    runtime.board = reshufflePlayable();
+    updateAllTiles();
+    document.querySelector(".bmt-board")?.classList.add("is-auto-shuffling");
+    toast("Нет доступных ходов — поле перемешано", "info");
+    FX.haptic?.();
+    window.setTimeout(() => {
+      if (!runtime) return;
+      document.querySelector(".bmt-board")?.classList.remove("is-auto-shuffling");
+      setBusy(false);
+      scheduleHint();
+    }, 560);
+  } catch (error) {
+    console.error("[Biblical Treasures] reshuffle failed", error);
+    setBusy(false);
+    if (runtime.mode === "level") finishLevel(false, "noMoves");
+    else if (runtime.mode === "free") openFreeExit("noMoves");
+  }
   return true;
 }
 

@@ -2,9 +2,9 @@
   'use strict';
 
   const VERSION = '22';
-  const BIBLICAL_VERSION = '31';
+  const BIBLICAL_VERSION = '38';
   const ICONS = {
-    biblical: `web/assets/icons/biblical-treasures.webp?v=${BIBLICAL_VERSION}`,
+    biblical: `web/assets/icons/biblical-treasures-v38.png?v=${BIBLICAL_VERSION}`,
     support: `web/assets/icons/support.webp?v=${VERSION}`,
     android: `web/assets/icons/android-download.webp?v=${VERSION}`,
     admin: `web/assets/icons/admin.webp?v=${VERSION}`,
@@ -47,7 +47,7 @@
     const biblicalReady = patchIcon(biblical, 'biblical', ICONS.biblical, 'Иконка игры Библейские сокровища');
     if (biblicalReady) {
       const img = biblical.querySelector('img[data-system-icon="biblical"]');
-      if (img) img.dataset.bmtMenuArt = 'v31';
+      if (img) img.dataset.bmtMenuArt = 'v38';
     }
     ready = biblicalReady && ready;
 

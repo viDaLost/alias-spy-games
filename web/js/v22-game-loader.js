@@ -8,6 +8,7 @@
   const HOTFIX = `web/js/v29-biblical-treasures-hotfix.js?v=${VERSION}`;
   const SPECIAL_ART = 'web/js/v36-biblical-treasures-special-art.js?v=36';
   const LAMP_SWIPE = 'web/js/v37-biblical-treasures-lamp-swipe.js?v=37';
+  const EXPERIENCE = 'web/js/v38-biblical-treasures-experience.js?v=38';
   let loading = false;
 
   function appendScript(src, marker) {
@@ -35,8 +36,9 @@
       if (!window.__bmtV31HotfixInstalled) await appendScript(HOTFIX, 'v31BiblicalTreasuresHotfix');
       if (!window.__bmtV36SpecialArtInstalled) await appendScript(SPECIAL_ART, 'v36BiblicalTreasuresSpecialArt');
       if (!window.__bmtV37LampSwipeInstalled) await appendScript(LAMP_SWIPE, 'v37BiblicalTreasuresLampSwipe');
+      if (!window.__bmtV38ExperienceInstalled) await appendScript(EXPERIENCE, 'v38BiblicalTreasuresExperience');
     } catch (error) {
-      console.error('[Biblical Treasures V37]', error);
+      console.error('[Biblical Treasures V38]', error);
     } finally {
       loading = false;
     }
