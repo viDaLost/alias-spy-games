@@ -165,7 +165,7 @@
       roughness: .54,
       metalness: .045,
       transparent: true,
-      opacity: .68,
+      opacity: .14,
       depthWrite: false,
       side: THREE.DoubleSide,
     });
@@ -344,29 +344,29 @@
 
   function addClosedLid(root) {
     if (!root || root.getObjectByName?.('V75ClosedBasketLid')) return root;
-    const material = new THREE.MeshStandardMaterial({ color: 0xb56f32, roughness: .94, metalness: 0 });
+    const material = window.assetManager?._basketMaterial?.() || new THREE.MeshStandardMaterial({ color: 0xb56f32, roughness: .94, metalness: 0 });
     const lid = new THREE.Group();
     lid.name = 'V75ClosedBasketLid';
     const disc = new THREE.Mesh(new THREE.CylinderGeometry(.78, .82, .12, 20), material);
     disc.scale.z = .82;
-    disc.position.y = .66;
+    disc.position.y = .71;
     disc.castShadow = true;
     lid.add(disc);
     const dome = new THREE.Mesh(new THREE.SphereGeometry(.78, 20, 9, 0, Math.PI * 2, 0, Math.PI / 2), material.clone());
     dome.scale.set(1, .24, .82);
-    dome.position.y = .68;
+    dome.position.y = .73;
     dome.castShadow = true;
     lid.add(dome);
     const rim = new THREE.Mesh(new THREE.TorusGeometry(.80, .045, 6, 28), new THREE.MeshStandardMaterial({ color: 0x674020, roughness: .98 }));
     rim.rotation.x = Math.PI / 2;
     rim.scale.z = .82;
-    rim.position.y = .64;
+    rim.position.y = .69;
     lid.add(rim);
     for (let i = 0; i < 9; i += 1) {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(.09 + i * .068, .012, 4, 30), new THREE.MeshBasicMaterial({ color: i % 2 ? 0x8c5325 : 0xd09149, transparent: true, opacity: .78 }));
       ring.rotation.x = Math.PI / 2;
       ring.scale.z = .82;
-      ring.position.y = .736;
+      ring.position.y = .795;
       lid.add(ring);
     }
     root.add(lid);
@@ -398,8 +398,8 @@
     if (!player || !visual) return;
     if (basketVisual) player.remove(basketVisual);
     basketVisual = addClosedLid(visual);
-    basketVisual.scale.setScalar(1.08);
-    basketVisual.position.y = -.48;
+    basketVisual.scale.setScalar(.62);
+    basketVisual.position.y = -.30;
     basketVisual.rotation.y = Math.PI;
     basketVisual.traverse((node) => {
       if (!node.isMesh) return;
@@ -846,6 +846,7 @@
     state.ready = true;
     window.__mosesV75Ready = true;
     window.__mosesV75Mode = 'fallback';
+    window.__mosesV75ReferenceRebuild = true;
     if (!fallbackFrame) fallbackFrame = requestAnimationFrame(frame);
   }
 
@@ -869,9 +870,6 @@
     riverFill.position.set(9, 8, -15);
     scene.add(riverFill);
     buildWater();
-    buildBanks();
-    buildBankDetail();
-    buildPyramids();
     buildPlayer();
     renderer.render(scene, camera);
   }
@@ -901,6 +899,7 @@
         targetX: state.targetX,
         lane: state.lane,
         items: state.items.length,
+        cinematicBackgroundVisible: true,
       };
       fallbackFrame = requestAnimationFrame(frame);
       return;
@@ -914,6 +913,7 @@
       triangles: renderer.info.render.triangles,
       items: state.items.length,
       pixelRatio: renderer.getPixelRatio(),
+      cinematicBackgroundVisible: true,
     };
   }
 

@@ -29,6 +29,7 @@ for (const token of [
   'V75ReedsInstanced',
   'V75ClosedBasketLid',
   'waterNormal.offset',
+  'cinematicBackgroundVisible: true',
   "const LANES = [-3.75, 0, 3.75]",
 ]) {
   if (!game.includes(token)) throw new Error(`V7.5 engine is missing ${token}`);

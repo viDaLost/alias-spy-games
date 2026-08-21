@@ -208,7 +208,6 @@ class AssetManager {
     rim.castShadow=true;
     wrapper.add(rim);
 
-    this._addBabyMoses(wrapper);
     return wrapper;
   }
 
@@ -239,7 +238,6 @@ class AssetManager {
     bottom.position.y=.04;bottom.castShadow=true;group.add(bottom);
     const rim=new THREE.Mesh(new THREE.TorusGeometry(.83,.07,7,24),new THREE.MeshStandardMaterial({color:0x75401c,roughness:.92}));
     rim.rotation.x=Math.PI/2;rim.position.y=.55;rim.castShadow=true;group.add(rim);
-    this._addBabyMoses(group);
     return group;
   }
 }
