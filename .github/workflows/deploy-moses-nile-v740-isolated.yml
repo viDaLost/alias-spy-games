@@ -61,7 +61,7 @@ jobs:
           P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
           for i in $(seq 1 16); do
             Q="?isolated=${GITHUB_SHA}-${i}"
-            if curl -fsSL --max-time 20 "${P}${Q}" -o /tmp/index.html && grep -q 'V7.5 · LOADING' /tmp/index.html && curl -fsSL --max-time 20 "${P}js/game-v75.js${Q}" -o /tmp/v750.js && grep -q '__mosesV75ReferenceRebuild' /tmp/v750.js; then break; fi
+            if curl -fsSL --max-time 20 "${P}${Q}" -o /tmp/index.html && grep -q 'V7.5 · LOADING' /tmp/index.html && curl -fsSL --max-time 20 "${P}js/game-v75.js${Q}" -o /tmp/v750.js && grep -q '__mosesV75ReferenceRebuild' /tmp/v750.js && curl -fsSL --max-time 20 "${P}build.json${Q}" | grep -q "$GITHUB_SHA"; then break; fi
             sleep 5
           done
           grep -q 'V7.5 · LOADING' /tmp/index.html

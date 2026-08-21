@@ -22,7 +22,8 @@ jobs:
           set -euo pipefail
           P='https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/'
           for i in $(seq 1 20); do
-            if curl -fsSL --max-time 20 "${P}?audit=${GITHUB_SHA}-${i}" | grep -q 'V7.5 · LOADING'; then exit 0; fi
+            if curl -fsSL --max-time 20 "${P}?audit=${GITHUB_SHA}-${i}" | grep -q 'V7.5 · LOADING' \
+              && curl -fsSL --max-time 20 "${P}build.json?audit=${GITHUB_SHA}-${i}" | grep -q "$GITHUB_SHA"; then exit 0; fi
             sleep 6
           done
           exit 1
