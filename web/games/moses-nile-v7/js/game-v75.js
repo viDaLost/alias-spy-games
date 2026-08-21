@@ -375,20 +375,20 @@
 
   function makeWake() {
     const group = new THREE.Group();
-    const streakMaterial = new THREE.MeshBasicMaterial({ color: 0xf4e9c8, transparent: true, opacity: .20, depthWrite: false, side: THREE.DoubleSide });
+    const streakMaterial = new THREE.MeshBasicMaterial({ color: 0xf4e9c8, transparent: true, opacity: .09, depthWrite: false, side: THREE.DoubleSide });
     for (const side of [-1, 1]) {
-      const streak = new THREE.Mesh(new THREE.PlaneGeometry(.13, 5.8), streakMaterial.clone());
+      const streak = new THREE.Mesh(new THREE.PlaneGeometry(.09, 2.7), streakMaterial.clone());
       streak.rotation.x = -Math.PI / 2;
-      streak.position.set(side * .66, -.02, -2.75);
-      streak.rotation.z = side * .055;
+      streak.position.set(side * .50, -.02, -1.42);
+      streak.rotation.z = side * .11;
       group.add(streak);
     }
     for (let i = 0; i < 4; i += 1) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(.44 + i * .26, .48 + i * .27, 28, 1, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0xe9dfbd, transparent: true, opacity: .16 - i * .022, depthWrite: false, side: THREE.DoubleSide }));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(.36 + i * .14, .39 + i * .145, 28, 1, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0xe9dfbd, transparent: true, opacity: .10 - i * .014, depthWrite: false, side: THREE.DoubleSide }));
       ring.rotation.x = -Math.PI / 2;
       ring.rotation.z = Math.PI;
-      ring.scale.x = 1.8 + i * .15;
-      ring.position.set(0, -.01, -1.15 - i * .66);
+      ring.scale.x = 1.30 + i * .07;
+      ring.position.set(0, -.01, -.72 - i * .36);
       group.add(ring);
     }
     return group;
