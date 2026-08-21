@@ -1,9 +1,15 @@
 package com.vidalost.biblegames.games
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +24,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -44,18 +52,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.model.PlayerProfile
 import com.vidalost.biblegames.ui.AssetImage
 import com.vidalost.biblegames.ui.GameScaffold
+import com.vidalost.biblegames.ui.GameTopBar
 import com.vidalost.biblegames.ui.GlassCard
 import com.vidalost.biblegames.ui.Indigo
 import com.vidalost.biblegames.ui.Ink
@@ -69,6 +81,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 private enum class BmtScreen { MENU, PRE_LEVEL, BOARD }
+private enum class BmtMenuSection { CAMPAIGN, FREE }
 
 private enum class BmtFreeMode(
     val title: String,
@@ -92,6 +105,7 @@ fun BiblicalMatchThreeGame(
     val catalog = remember(assets) { BmtCatalog.load(assets) }
     val progress = remember(profile.id) { BmtProgressStore(context, profile.id) }
     var screen by rememberSaveable { mutableStateOf(BmtScreen.MENU) }
+    var menuSection by rememberSaveable { mutableStateOf(BmtMenuSection.CAMPAIGN) }
     var levelId by rememberSaveable { mutableIntStateOf(1) }
     var freeModeName by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedPreBoosters by remember { mutableStateOf(emptySet<BmtPreBooster>()) }
@@ -115,13 +129,17 @@ fun BiblicalMatchThreeGame(
             levels = catalog.levels,
             progress = progress,
             wallet = wallet,
+            section = menuSection,
+            onSectionChange = { menuSection = it },
             onLevel = { chosen ->
+                menuSection = BmtMenuSection.CAMPAIGN
                 levelId = chosen.id
                 freeModeName = null
                 selectedPreBoosters = emptySet()
                 screen = BmtScreen.PRE_LEVEL
             },
             onFree = { mode ->
+                menuSection = BmtMenuSection.FREE
                 freeModeName = mode.name
                 selectedPreBoosters = emptySet()
                 screen = BmtScreen.PRE_LEVEL
@@ -174,72 +192,144 @@ private fun BmtCampaignScreen(
     levels: List<BmtLevel>,
     progress: BmtProgressStore,
     wallet: Int,
+    section: BmtMenuSection,
+    onSectionChange: (BmtMenuSection) -> Unit,
     onLevel: (BmtLevel) -> Unit,
     onFree: (BmtFreeMode) -> Unit,
     onBack: () -> Unit,
 ) {
     val unlocked = progress.unlocked()
     val stars = levels.sumOf { progress.rating(it.id) }
-    GameScaffold("Библейские сокровища", "Путь света · 30 уровней", onBack, scroll = false) {
+    GameScaffold("Библейские сокровища", if (section == BmtMenuSection.CAMPAIGN) "Путь света · 30 уровней" else "Свободная игра", onBack, scroll = false) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BmtMetric("★ $wallet", "баланс", Color(0xFFB7791F), Modifier.weight(1f))
             BmtMetric("$stars / 90 ★", "прогресс", Indigo, Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
-        GlassCard(Modifier.fillMaxWidth(), padding = 12.dp) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AssetImage(assets, BmtSymbol.BIBLE.asset, Modifier.size(48.dp))
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("Путь света", color = Indigo, fontWeight = FontWeight.Black, fontSize = 12.sp)
-                    Text("Собирайте символы, создавайте особые фишки и проходите главы.", color = Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp)
-                }
-            }
-        }
+        BmtMenuTabs(section, onSectionChange)
         Spacer(Modifier.height(8.dp))
-        LazyColumn(
-            Modifier.fillMaxWidth().weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            levels.chunked(10).forEachIndexed { chapterIndex, chapterLevels ->
-                item(key = "chapter_$chapterIndex") {
-                    Text(
-                        "ГЛАВА ${chapterIndex + 1} · ${chapterTitle(chapterIndex)}",
-                        Modifier.fillMaxWidth().padding(top = if (chapterIndex == 0) 2.dp else 8.dp),
-                        color = Indigo,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 12.sp,
-                    )
-                }
-                items(chapterLevels.chunked(2), key = { "${chapterIndex}_${it.first().id}" }) { pair ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        pair.forEach { item ->
-                            BmtLevelCard(
-                                assets = assets,
-                                level = item,
-                                rating = progress.rating(item.id),
-                                unlocked = item.id <= unlocked,
-                                onClick = { onLevel(item) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+        if (section == BmtMenuSection.CAMPAIGN) {
+            GlassCard(Modifier.fillMaxWidth(), padding = 12.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AssetImage(assets, BmtSymbol.BIBLE.asset, Modifier.size(48.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Путь света", color = Indigo, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                        Text("Собирайте символы, создавайте особые фишки и проходите главы.", color = Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp, lineHeight = 18.sp)
                     }
                 }
             }
-            item("free_title") {
-                Text("СВОБОДНАЯ ИГРА", Modifier.padding(top = 12.dp), color = Ink, fontWeight = FontWeight.Black, fontSize = 15.sp)
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(
+                Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                levels.chunked(10).forEachIndexed { chapterIndex, chapterLevels ->
+                    item(key = "chapter_$chapterIndex") {
+                        Text(
+                            "ГЛАВА ${chapterIndex + 1} · ${chapterTitle(chapterIndex)}",
+                            Modifier.fillMaxWidth().padding(top = if (chapterIndex == 0) 2.dp else 8.dp),
+                            color = Indigo,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 12.sp,
+                        )
+                    }
+                    items(chapterLevels.chunked(2), key = { "${chapterIndex}_${it.first().id}" }) { pair ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            pair.forEach { item ->
+                                BmtLevelCard(
+                                    assets = assets,
+                                    level = item,
+                                    rating = progress.rating(item.id),
+                                    unlocked = item.id <= unlocked,
+                                    onClick = { onLevel(item) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
+                }
+                item { Spacer(Modifier.height(14.dp)) }
             }
-            items(BmtFreeMode.entries, key = BmtFreeMode::name) { mode ->
-                SecondaryButton(
-                    "${mode.title} · 30 ходов · рекорд ${progress.freeBest(mode.name)}",
-                    { onFree(mode) },
-                    Modifier.fillMaxWidth(),
-                    accent = Indigo,
-                )
-            }
-            item { Spacer(Modifier.height(14.dp)) }
+        } else {
+            BmtFreeSection(assets, progress, onFree)
         }
+    }
+}
+
+@Composable
+private fun BmtMenuTabs(section: BmtMenuSection, onChange: (BmtMenuSection) -> Unit) {
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(18.dp), color = Color(0xFFDDE6F5).copy(.8f)) {
+        Row(Modifier.padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            BmtMenuTab("Путь света", section == BmtMenuSection.CAMPAIGN, Modifier.weight(1f)) { onChange(BmtMenuSection.CAMPAIGN) }
+            BmtMenuTab("Свободная игра", section == BmtMenuSection.FREE, Modifier.weight(1f)) { onChange(BmtMenuSection.FREE) }
+        }
+    }
+}
+
+@Composable
+private fun BmtMenuTab(title: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Surface(
+        modifier.heightIn(min = 48.dp).bounceClick(onClick = onClick),
+        RoundedCornerShape(15.dp),
+        color = if (selected) Color.White else Color.Transparent,
+        shadowElevation = if (selected) 3.dp else 0.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(title, color = if (selected) Indigo else InkSoft, fontWeight = FontWeight.Black, fontSize = 13.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.BmtFreeSection(assets: AssetRepository, progress: BmtProgressStore, onFree: (BmtFreeMode) -> Unit) {
+    GlassCard(Modifier.fillMaxWidth(), padding = 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AssetImage(assets, BmtSymbol.ARK.asset, Modifier.size(52.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Рекордный режим", color = Color(0xFF9A6A14), fontWeight = FontWeight.Black, fontSize = 12.sp)
+                Text("Выберите сложность и начинайте сразу — кампания остаётся в соседнем разделе.", color = Ink, fontWeight = FontWeight.Bold, fontSize = 13.sp, lineHeight = 17.sp)
+            }
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+    LazyColumn(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        items(BmtFreeMode.entries, key = BmtFreeMode::name) { mode ->
+            val accent = when (mode) {
+                BmtFreeMode.EASY -> Color(0xFF198754)
+                BmtFreeMode.MEDIUM -> Color(0xFFB7791F)
+                BmtFreeMode.HARD -> Color(0xFF7C3AED)
+            }
+            Surface(
+                Modifier.fillMaxWidth().heightIn(min = 94.dp).bounceClick { onFree(mode) },
+                RoundedCornerShape(22.dp),
+                color = Color.White.copy(.92f),
+                border = BorderStroke(1.dp, accent.copy(.2f)),
+                shadowElevation = 4.dp,
+            ) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(Modifier.size(54.dp), RoundedCornerShape(18.dp), color = accent.copy(.11f)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            AssetImage(assets, when (mode) {
+                                BmtFreeMode.EASY -> BmtSymbol.DOVE.asset
+                                BmtFreeMode.MEDIUM -> BmtBlockerType.CHAIN.asset
+                                BmtFreeMode.HARD -> BmtBlockerType.LAMP.asset
+                            }, Modifier.padding(7.dp))
+                        }
+                    }
+                    Spacer(Modifier.width(11.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(mode.title, color = Ink, fontWeight = FontWeight.Black, fontSize = 17.sp)
+                        Text("30 ходов · ${mode.rows}×8 · ${if (mode == BmtFreeMode.EASY) "без преград" else "с преградами"}", color = InkSoft, fontSize = 11.sp)
+                        Text("Рекорд: ${progress.freeBest(mode.name)}", color = accent, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                    }
+                    Text("›", color = accent, fontWeight = FontWeight.Black, fontSize = 28.sp)
+                }
+            }
+        }
+        item { Spacer(Modifier.height(14.dp)) }
     }
 }
 
@@ -352,6 +442,46 @@ private fun BmtPreBoosterRow(assets: AssetRepository, booster: BmtPreBooster, se
 }
 
 @Composable
+private fun BmtBoardScaffold(
+    assets: AssetRepository,
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Box(Modifier.fillMaxSize().background(Color(0xFFE8E4F8))) {
+        AssetImage(
+            assets,
+            "assets/biblical-match-three/board-background-v35.webp",
+            Modifier.fillMaxSize(),
+            ContentScale.Crop,
+        )
+        Box(
+            Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color.White.copy(.68f),
+                        Color.White.copy(.16f),
+                        Color(0xFFEAF7FF).copy(.34f),
+                    ),
+                ),
+            ),
+        )
+        Column(
+            Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            GameTopBar(title, subtitle, onBack)
+            Column(
+                Modifier.fillMaxWidth().weight(1f).padding(top = 3.dp, bottom = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
 private fun BmtBoardScreen(
     assets: AssetRepository,
     level: BmtLevel?,
@@ -367,13 +497,17 @@ private fun BmtBoardScreen(
     val scope = rememberCoroutineScope()
     val rows = level?.rows ?: freeMode?.rows ?: 7
     val shape = level?.shape ?: freeMode?.shape ?: BmtBoardShape.RECT
-    val mask = remember(level?.id, freeMode) { BmtEngine.activeMask(shape, rows, blockerSeeds = level?.blockerSeeds.orEmpty()) }
+    val baseMask = remember(level?.id, freeMode) { BmtEngine.activeMask(shape, rows) }
+    val blockerSeeds = remember(level?.id, freeMode) {
+        level?.blockerSeeds ?: freeChallengeSeeds(freeMode ?: BmtFreeMode.EASY, baseMask)
+    }
+    val mask = remember(level?.id, freeMode) { BmtEngine.activeMask(shape, rows, blockerSeeds = blockerSeeds) }
     val symbols = remember(level?.id, freeMode) {
         level?.let(BmtEngine::symbolPool) ?: BmtSymbol.entries.take(freeMode?.symbolCount ?: 7)
     }
     val config = remember(level?.id, freeMode) { BmtBoardConfig(rows, symbols = symbols, mask = mask) }
-    val initialBlockers = remember(level?.id) { level?.let(BmtEngine::blockersFrom).orEmpty() }
-    val initialBlockerCounts = remember(level?.id) { initialBlockers.values.groupingBy(BmtBlocker::type).eachCount() }
+    val initialBlockers = remember(level?.id, freeMode) { BmtEngine.blockersFrom(blockerSeeds) }
+    val initialBlockerCounts = remember(level?.id, freeMode) { initialBlockers.values.groupingBy(BmtBlocker::type).eachCount() }
     val initialBoard = remember(level?.id, freeMode, preBoosters) {
         BmtEngine.seedSpecials(
             BmtEngine.createPlayableBoard(config),
@@ -397,6 +531,8 @@ private fun BmtBoardScreen(
     var paused by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<BmtResult?>(null) }
     var boardWallet by remember { mutableIntStateOf(wallet) }
+    var animatedSwap by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val swapProgress = remember { Animatable(0f) }
 
     LaunchedEffect(wallet) { if (wallet != boardWallet) boardWallet = wallet }
 
@@ -445,20 +581,28 @@ private fun BmtBoardScreen(
         if (busy || paused || result != null || moves <= 0 || !BmtEngine.areAdjacent(a, b) || board.getOrNull(a) == null || board.getOrNull(b) == null) return
         val combo = BmtEngine.specialComboClearSet(board, a, b, config)
         val swapped = BmtEngine.swap(board, a, b)
-        if (combo == null && BmtEngine.findGroups(swapped, rows).isEmpty()) {
-            selected = null
-            hint = null
-            return
-        }
+        val valid = combo != null || BmtEngine.findGroups(swapped, rows).isNotEmpty()
         busy = true
         selected = null
         hint = null
-        moves -= 1
-        board = swapped
         scope.launch {
-            delay(105)
+            animatedSwap = a to b
+            swapProgress.snapTo(0f)
+            if (!valid) {
+                swapProgress.animateTo(.22f, tween(90, easing = FastOutSlowInEasing))
+                swapProgress.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh))
+                animatedSwap = null
+                busy = false
+                return@launch
+            }
+            moves -= 1
+            swapProgress.animateTo(1f, tween(265, easing = FastOutSlowInEasing))
+            board = swapped
+            animatedSwap = null
+            swapProgress.snapTo(0f)
+            delay(55)
             applyTurn(BmtEngine.resolveTurn(swapped, blockers, config, preferred = listOf(b, a), forcedClear = combo))
-            delay(90)
+            delay(170)
             busy = false
             finishIfNeeded()
         }
@@ -501,15 +645,17 @@ private fun BmtBoardScreen(
         hint = null
         targetBooster = null
         busy = false
+        animatedSwap = null
+        scope.launch { swapProgress.snapTo(0f) }
         result = null
     }
 
     Box(Modifier.fillMaxSize()) {
-        GameScaffold(
-            level?.title ?: "Свободно · ${freeMode?.title.orEmpty()}",
-            level?.let { "Уровень ${it.id}" } ?: "Библейские сокровища",
-            onBack,
-            scroll = false,
+        BmtBoardScaffold(
+            assets = assets,
+            title = level?.title ?: "Свободно · ${freeMode?.title.orEmpty()}",
+            subtitle = level?.let { "Уровень ${it.id}" } ?: "Библейские сокровища",
+            onBack = onBack,
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 BmtMetric(score.toString(), "очки", Indigo, Modifier.weight(1f))
@@ -532,13 +678,11 @@ private fun BmtBoardScreen(
                 val boardWidth = cell * BMT_COLS
                 val boardHeight = cell * rows
                 Box(
-                    Modifier.size(boardWidth, boardHeight).clip(RoundedCornerShape(24.dp))
-                        .background(Brush.verticalGradient(listOf(Color(0xFFDDEBFF), Color(0xFFE8E2FF), Color(0xFFD7F4FF)))),
+                    Modifier.size(boardWidth, boardHeight),
                 ) {
-                    AssetImage(assets, "assets/biblical-match-three/board-background-v35.webp", Modifier.fillMaxSize(), ContentScale.Crop)
-                    Column(Modifier.fillMaxSize().padding(4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(Modifier.fillMaxSize().padding(horizontal = 2.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         for (row in 0 until rows) {
-                            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
                                 for (col in 0 until BMT_COLS) {
                                     val index = row * BMT_COLS + col
                                     val cellValue = board.getOrNull(index)
@@ -551,6 +695,17 @@ private fun BmtBoardScreen(
                                         hinted = hint?.let { index == it.first || index == it.second } == true,
                                         targeted = targetBooster != null,
                                         enabled = !busy && !paused && result == null,
+                                        swapDeltaColumn = when (index) {
+                                            animatedSwap?.first -> (animatedSwap?.second ?: index) % BMT_COLS - index % BMT_COLS
+                                            animatedSwap?.second -> (animatedSwap?.first ?: index) % BMT_COLS - index % BMT_COLS
+                                            else -> 0
+                                        },
+                                        swapDeltaRow = when (index) {
+                                            animatedSwap?.first -> (animatedSwap?.second ?: index) / BMT_COLS - index / BMT_COLS
+                                            animatedSwap?.second -> (animatedSwap?.first ?: index) / BMT_COLS - index / BMT_COLS
+                                            else -> 0
+                                        },
+                                        swapFraction = if (index == animatedSwap?.first || index == animatedSwap?.second) swapProgress.value else 0f,
                                         modifier = Modifier.weight(1f).fillMaxHeight(),
                                         onTap = {
                                             if (targetBooster != null) useTargetBooster(index)
@@ -612,51 +767,103 @@ private fun BmtTile(
     hinted: Boolean,
     targeted: Boolean,
     enabled: Boolean,
+    swapDeltaColumn: Int,
+    swapDeltaRow: Int,
+    swapFraction: Float,
     modifier: Modifier,
     onTap: () -> Unit,
     onSwipe: (BmtSwipe) -> Unit,
 ) {
-    val scale by animateFloatAsState(if (selected || hinted) 1.06f else 1f, label = "bmtTileScale")
-    var dx = 0f
-    var dy = 0f
+    val scale by animateFloatAsState(
+        if (selected || hinted) 1.05f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "bmtTileScale",
+    )
+    var dragOffset by remember { mutableStateOf(Offset.Zero) }
+    val dragX by animateFloatAsState(
+        dragOffset.x,
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
+        label = "bmtDragX",
+    )
+    val dragY by animateFloatAsState(
+        dragOffset.y,
+        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh),
+        label = "bmtDragY",
+    )
     val drag = Modifier.pointerInput(enabled) {
         if (!enabled) return@pointerInput
         detectDragGestures(
-            onDragStart = { dx = 0f; dy = 0f },
+            onDragStart = { dragOffset = Offset.Zero },
             onDragEnd = {
-                if (maxOf(abs(dx), abs(dy)) >= 18f) {
-                    onSwipe(if (abs(dx) > abs(dy)) if (dx < 0) BmtSwipe.LEFT else BmtSwipe.RIGHT else if (dy < 0) BmtSwipe.UP else BmtSwipe.DOWN)
+                val released = dragOffset
+                dragOffset = Offset.Zero
+                if (maxOf(abs(released.x), abs(released.y)) >= 18f) {
+                    onSwipe(if (abs(released.x) > abs(released.y)) if (released.x < 0) BmtSwipe.LEFT else BmtSwipe.RIGHT else if (released.y < 0) BmtSwipe.UP else BmtSwipe.DOWN)
                 }
             },
+            onDragCancel = { dragOffset = Offset.Zero },
             onDrag = { change, amount ->
                 change.consume()
-                dx += amount.x
-                dy += amount.y
+                dragOffset = Offset(
+                    (dragOffset.x + amount.x).coerceIn(-64f, 64f),
+                    (dragOffset.y + amount.y).coerceIn(-64f, 64f),
+                )
             },
         )
     }
-    Surface(
-        modifier.scale(scale).then(drag).bounceClick(enabled, onTap),
-        RoundedCornerShape(11.dp),
-        color = if (targeted) Color(0xFFFFF3BF) else Color.White.copy(.93f),
-        border = BorderStroke(if (selected || hinted || targeted) 2.dp else 1.dp, if (selected || hinted) Indigo else if (targeted) Color(0xFFE3AC39) else Color.White),
-        shadowElevation = if (selected || hinted) 6.dp else 2.dp,
+    val shape = RoundedCornerShape(12.dp)
+    val highlight = selected || hinted || targeted
+    Box(
+        modifier.zIndex(if (swapFraction > 0f || dragOffset != Offset.Zero) 6f else if (blocker != null) 4f else 1f)
+            .scale(scale).then(drag).bounceClick(enabled, onTap),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.fillMaxSize().padding(2.dp), contentAlignment = Alignment.Center) {
-            AssetImage(assets, cell.special?.asset ?: cell.symbol.asset, Modifier.fillMaxSize().padding(if (cell.special == null) 1.dp else 0.dp))
-            cell.special?.let { special ->
-                val marker = when (special) { BmtSpecial.LINE_H -> "↔"; BmtSpecial.LINE_V -> "↕"; BmtSpecial.BURST -> "✦"; BmtSpecial.RAINBOW -> "◎" }
-                Surface(Modifier.align(Alignment.TopEnd).size(15.dp), CircleShape, color = Indigo.copy(.88f)) {
-                    Box(contentAlignment = Alignment.Center) { Text(marker, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black) }
+        Box(
+            Modifier.fillMaxSize()
+                .background(
+                    when {
+                        targeted -> Color(0x55FFE082)
+                        selected || hinted -> Color(0x44FFFFFF)
+                        else -> Color.Transparent
+                    },
+                    shape,
+                )
+                .then(if (highlight) Modifier.border(2.dp, if (selected || hinted) Indigo.copy(.78f) else Color(0xFFE3AC39), shape) else Modifier),
+        )
+        if (blocker?.type != BmtBlockerType.LAMP) {
+            Box(
+                Modifier.fillMaxSize().zIndex(2f)
+                    .graphicsLayer {
+                        translationX = size.width * swapDeltaColumn * swapFraction + dragX
+                        translationY = size.height * swapDeltaRow * swapFraction + dragY
+                    }
+                    .alpha(if (blocker == null) 1f else .58f),
+                contentAlignment = Alignment.Center,
+            ) {
+                AssetImage(
+                    assets,
+                    cell.special?.asset ?: cell.symbol.asset,
+                    Modifier.fillMaxSize().scale(if (cell.special == null) 1.16f else 1.22f),
+                )
+                cell.special?.let { special ->
+                    val marker = when (special) { BmtSpecial.LINE_H -> "↔"; BmtSpecial.LINE_V -> "↕"; BmtSpecial.BURST -> "✦"; BmtSpecial.RAINBOW -> "◎" }
+                    Surface(Modifier.align(Alignment.TopEnd).size(15.dp), CircleShape, color = Indigo.copy(.9f)) {
+                        Box(contentAlignment = Alignment.Center) { Text(marker, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black) }
+                    }
                 }
             }
-            blocker?.let { current ->
-                val asset = if (current.type == BmtBlockerType.LAMP && current.lit) BmtSymbol.LAMP.asset else current.type.asset
-                Box(Modifier.fillMaxSize().background(Color(0x884B3B70), RoundedCornerShape(9.dp)), contentAlignment = Alignment.Center) {
-                    AssetImage(assets, asset, Modifier.fillMaxSize().padding(3.dp))
-                    if (current.layers > 1) Surface(Modifier.align(Alignment.BottomEnd).size(15.dp), CircleShape, color = Color(0xFF7C3AED)) {
-                        Box(contentAlignment = Alignment.Center) { Text(current.layers.toString(), color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black) }
-                    }
+        }
+        blocker?.let { current ->
+            val asset = if (current.type == BmtBlockerType.LAMP && current.lit) BmtSymbol.LAMP.asset else current.type.asset
+            val blockerScale = when (current.type) {
+                BmtBlockerType.CHAIN -> 1.34f
+                BmtBlockerType.TABLET -> 1.24f
+                BmtBlockerType.LAMP -> 1.08f
+            }
+            Box(Modifier.fillMaxSize().zIndex(8f), contentAlignment = Alignment.Center) {
+                AssetImage(assets, asset, Modifier.fillMaxSize().scale(blockerScale))
+                if (current.layers > 1) Surface(Modifier.align(Alignment.BottomEnd).size(17.dp), CircleShape, color = Color(0xFF6D28D9), shadowElevation = 3.dp) {
+                    Box(contentAlignment = Alignment.Center) { Text(current.layers.toString(), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black) }
                 }
             }
         }
@@ -818,4 +1025,32 @@ private fun freeTarget(mode: BmtFreeMode): Int = when (mode) {
     BmtFreeMode.EASY -> 3_000
     BmtFreeMode.MEDIUM -> 4_500
     BmtFreeMode.HARD -> 6_200
+}
+
+private fun freeChallengeSeeds(mode: BmtFreeMode, mask: List<Boolean>): List<BmtBlockerSeed> {
+    if (mode == BmtFreeMode.EASY) return emptyList()
+    val active = mask.indices.filter { mask[it] }
+    val used = mutableSetOf<Int>()
+    fun pick(count: Int, offset: Int): List<Int> = buildList {
+        repeat(count) { number ->
+            if (active.isEmpty()) return@repeat
+            var slot = (((number + .5) * active.size / count) + offset * 3).toInt() % active.size
+            var candidate = active[slot]
+            var probe = 0
+            while (candidate in used && probe < active.size) {
+                probe += 1
+                slot = (slot + 1) % active.size
+                candidate = active[slot]
+            }
+            if (used.add(candidate)) add(candidate)
+        }
+    }
+    return if (mode == BmtFreeMode.MEDIUM) listOf(
+        BmtBlockerSeed(BmtBlockerType.CHAIN, pick(6, 1), 1),
+        BmtBlockerSeed(BmtBlockerType.TABLET, pick(4, 3), 1),
+    ) else listOf(
+        BmtBlockerSeed(BmtBlockerType.CHAIN, pick(8, 1), 2),
+        BmtBlockerSeed(BmtBlockerType.TABLET, pick(6, 4), 2),
+        BmtBlockerSeed(BmtBlockerType.LAMP, pick(4, 7), 1),
+    )
 }

@@ -159,7 +159,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.9.0 Native")
+                .header("User-Agent", "BibleGames-Android/2.9.1 Native")
                 .build()
             val response = authRequestClient.newCall(request).execute().use { http ->
                 val payload = http.body?.string().orEmpty()
@@ -213,7 +213,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Accept", "application/json")
                 .header("Origin", "https://vidalost.github.io")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.9.0 Native")
+                .header("User-Agent", "BibleGames-Android/2.9.1 Native")
                 .build()
             val response = executeSmallJsonWithRetry(request)
             val json = response.json
@@ -237,7 +237,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .post("{}".toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
-                .header("User-Agent", "BibleGames-Android/2.9.0 Native")
+                .header("User-Agent", "BibleGames-Android/2.9.1 Native")
                 .build()
             accessClient.newCall(request).execute().close()
         }
@@ -279,7 +279,7 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Origin", "https://vidalost.github.io")
                 .header("Authorization", "Bearer $token")
                 .header("Cache-Control", "no-store")
-                .header("User-Agent", "BibleGames-Android/2.9.0 Native")
+                .header("User-Agent", "BibleGames-Android/2.9.1 Native")
                 .build()
             val response = executeSmallJsonWithRetry(request)
             val json = response.json
@@ -433,7 +433,7 @@ class CloudRepository(initialSessionToken: String = "") {
             // so Android and Telegram WebApp use one profile store.
             .header("Origin", "https://vidalost.github.io")
             .header("Cache-Control", "no-store")
-            .header("User-Agent", "BibleGames-Android/2.9.0 Native")
+            .header("User-Agent", "BibleGames-Android/2.9.1 Native")
         if (url.startsWith(CORE) && sessionToken.isNotBlank()) builder.header("Authorization", "Bearer $sessionToken")
         val request = builder.build()
         http.newCall(request).execute().use { response ->

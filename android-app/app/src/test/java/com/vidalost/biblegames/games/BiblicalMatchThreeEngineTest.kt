@@ -69,5 +69,17 @@ class BiblicalMatchThreeEngineTest {
         assertTrue(BmtEngine.findMoves(seeded, config).isNotEmpty())
     }
 
+    @Test
+    fun blockerSeedsCreateVisibleLayeredObstacles() {
+        val seeds = listOf(
+            BmtBlockerSeed(BmtBlockerType.CHAIN, listOf(2, 5), 2),
+            BmtBlockerSeed(BmtBlockerType.LAMP, listOf(9), 1),
+        )
+        val blockers = BmtEngine.blockersFrom(seeds)
+        assertEquals(3, blockers.size)
+        assertEquals(2, blockers[2]?.layers)
+        assertEquals(BmtBlockerType.LAMP, blockers[9]?.type)
+    }
+
     private fun cell(symbol: BmtSymbol) = BmtCell(symbol)
 }
