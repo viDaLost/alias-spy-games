@@ -409,7 +409,11 @@ private fun BmtBoardScreen(
         goal, score, collected, currentBlockers, initialBlockerCounts, specialsActivated, maxCascade,
     )
 
-    fun goalsDone(): Boolean = level?.goals?.all { goalValue(it) >= it.count } ?: score >= freeTarget(freeMode ?: BmtFreeMode.EASY)
+    fun goalsDone(): Boolean {
+        val campaignGoals = level?.goals
+        return if (campaignGoals != null) campaignGoals.all { goalValue(it) >= it.count }
+        else score >= freeTarget(freeMode ?: BmtFreeMode.EASY)
+    }
 
     fun applyTurn(turn: BmtTurnResult) {
         board = turn.board

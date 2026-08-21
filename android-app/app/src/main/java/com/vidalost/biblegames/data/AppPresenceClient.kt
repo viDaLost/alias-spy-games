@@ -75,7 +75,7 @@ class AppPresenceClient(
             .url("$wsBase/presence?sid=$sessionId")
             .header("Origin", TRUSTED_ORIGIN)
             .header("Authorization", "Bearer ${cloud.currentSessionToken()}")
-            .header("User-Agent", "BibleGames-Android/2.8.0 Native")
+            .header("User-Agent", "BibleGames-Android/2.9.0 Native")
             .build()
         socket = cloud.client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {

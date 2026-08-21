@@ -19,8 +19,8 @@ android {
         applicationId 'com.vidalost.biblegames'
         minSdk 24
         targetSdk 36
-        versionCode 24
-        versionName '2.8.0-native'
+        versionCode 25
+        versionName '2.9.0-native'
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -110,6 +110,7 @@ tasks.named('preBuild').configure {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
     implementation platform('androidx.compose:compose-bom:2024.09.03')
     implementation 'androidx.activity:activity-compose:1.9.2'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6'

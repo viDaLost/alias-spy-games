@@ -79,7 +79,7 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '2.8.0-native'", 'secure auth release version is not current');
-need(gradle, 'versionCode 24', 'secure auth versionCode is not current');
+need(gradle, "versionName '2.9.0-native'", 'secure auth release version is not current');
+need(gradle, 'versionCode 25', 'secure auth versionCode is not current');
 
 console.log('Android Telegram ownership + bearer session security checks passed.');
