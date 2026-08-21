@@ -1,0 +1,9 @@
+commit=3682fef5acf1ddbba3486d59a6be0da7c9301f65
+version=V7.5.1-real-assets
+build=success
+deploy=success
+verify=success
+runtime_badge=V7.5.1 · LOADING
+models=local-glb-obj
+terrain=pbr-normal-maps
+preview=https://alias-spy-games-moses-nile-v740-preview.vitaledanilov.workers.dev/
