@@ -1,8 +1,8 @@
 (() => {
-  const APK_URL = 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-2.8.0-native.apk';
-  const APK_NAME = 'BibleGames-Android-2.8.0-native.apk';
+  const APK_URL = 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-2.9.0-native.apk';
+  const APK_NAME = 'BibleGames-Android-2.9.0-native.apk';
   const BUTTON_ID = 'android-download-btn';
-  const ICON_VERSION = '23';
+  const ICON_VERSION = '24';
 
   function downloadAndroidApp() {
     if (window.__ANDROID_APK__ === true) {
