@@ -11,9 +11,38 @@ const mime = new Map([
   ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'], ['.svg', 'image/svg+xml'],
 ]);
 
+function testPage() {
+  return `<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev">
+  <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev">
+  <link rel="stylesheet" href="/web/styles/admin-live-v3.css?v=5">
+</head>
+<body>
+  <main id="game-container">
+    <section class="admin-v2">
+      <header class="admin-v2__header"><h2>Управление приложением</h2></header>
+      <div class="admin-v2__stats"><div>Всего 141</div><div>Активных 141</div><div>Заблокировано 0</div></div>
+      <section class="support-center">Техподдержка</section>
+    </section>
+  </main>
+  <script>window.Telegram={WebApp:{initData:'signed_test_init_data',initDataUnsafe:{user:{id:1288379477,username:'admin_test',first_name:'Admin'}}}};</script>
+  <script src="/web/js/admin-live-rescue.js?v=1"></script>
+</body>
+</html>`;
+}
+
 const server = http.createServer((req, res) => {
   try {
     const url = new URL(req.url || '/', 'http://127.0.0.1');
+    if (url.pathname === '/admin-live-test.html') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(testPage());
+      return;
+    }
     const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
     const target = path.resolve(root, `.${pathname}`);
     if (!target.startsWith(root + path.sep) || !fs.existsSync(target) || !fs.statSync(target).isFile()) {
@@ -49,25 +78,8 @@ try {
     isMobile: true,
     hasTouch: true,
   });
-
-  await context.addInitScript(() => { window.__APP_TELEMETRY_DISABLED__ = true; });
   const page = await context.newPage();
   page.on('request', (request) => requestedUrls.push(request.url()));
-
-  await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
-    status: 200,
-    contentType: 'text/javascript; charset=utf-8',
-    body: `window.Telegram={WebApp:{initData:'signed_test_init_data',initDataUnsafe:{user:{id:1288379477,username:'admin_test',first_name:'Admin'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
-  }));
-
-  for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
-    await page.route(pattern, (route) => route.fulfill({
-      status: 200,
-      contentType: 'application/json; charset=utf-8',
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ success: true, isBanned: false, users: [], lastGames: [] }),
-    }));
-  }
 
   await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/**', async (route) => {
     const request = route.request();
@@ -91,12 +103,7 @@ try {
       });
       return;
     }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json; charset=utf-8',
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ success: true, ok: true, isBanned: false, users: [], lastGames: [] }),
-    });
+    await route.fulfill({ status: 404, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' });
   });
 
   await page.route('https://alias-spy-games-observability.vitaledanilov.workers.dev/**', async (route) => {
@@ -125,44 +132,18 @@ try {
           activeRoomsNow: 1,
           generatedAt: Date.now(),
           onlineUsers: [{
-            id: '55555',
-            username: 'online_tester',
-            displayName: 'Online Tester',
-            platform: 'telegram',
-            game: 'quartet',
-            roomId: 'ABCD',
-            updatedAt: Date.now(),
+            id: '55555', username: 'online_tester', displayName: 'Online Tester',
+            platform: 'telegram', game: 'quartet', roomId: 'ABCD', updatedAt: Date.now(),
           }],
         }),
       });
       return;
     }
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json; charset=utf-8',
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ ok: true }),
-    });
+    await route.fulfill({ status: 404, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' });
   });
 
-  await page.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await page.waitForSelector('#game-container', { state: 'attached', timeout: 10_000 });
-
-  await page.evaluate(() => {
-    document.documentElement.classList.remove('app-booting', 'app-menu-preparing');
-    const container = document.getElementById('game-container');
-    container.style.visibility = 'visible';
-    container.style.opacity = '1';
-    container.style.pointerEvents = 'auto';
-    container.innerHTML = `
-      <section class="admin-v2">
-        <header class="admin-v2__header"><h2>Управление приложением</h2></header>
-        <div class="admin-v2__stats"><div>Всего 141</div><div>Активных 141</div><div>Заблокировано 0</div></div>
-        <section class="support-center">Техподдержка</section>
-      </section>`;
-  });
-
-  await page.waitForSelector('#admin-live-rescue', { state: 'attached', timeout: 5_000 });
+  await page.goto(`${baseURL}/admin-live-test.html`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+  await page.waitForSelector('#admin-live-rescue', { state: 'visible', timeout: 5_000 });
   await page.waitForFunction(() => {
     const panel = document.getElementById('admin-live-rescue');
     const text = panel?.innerText || '';
@@ -183,11 +164,9 @@ try {
   if (!state.mounted) throw new Error('Recovery live panel did not mount');
   if (!state.immediatelyAfterStats) throw new Error('Recovery live panel is not mounted after admin statistics');
   if (state.width <= 0 || state.width > 390) throw new Error(`Recovery panel mobile width is invalid: ${state.width}`);
-  if (requestedUrls.some((url) => /[?&]initData=/i.test(url))) {
-    throw new Error('Telegram initData leaked into a request URL');
-  }
+  if (requestedUrls.some((url) => /[?&]initData=/i.test(url))) throw new Error('Telegram initData leaked into a request URL');
 
-  console.log('OK: admin recovery live panel mounts on 390px mobile, shows an online player/game/room, and keeps initData out of URLs.');
+  console.log('OK: isolated 390px admin shell mounts recovery live panel, shows an online player/game/room, and keeps initData out of URLs.');
   await context.close();
 } finally {
   if (browser) await browser.close();
