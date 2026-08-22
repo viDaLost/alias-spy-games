@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate Quartet v4
+      - name: Validate Quartet v4.1
         run: node scripts/check-quartet-card-table-v3.mjs
 
       - name: Build isolated preview
@@ -40,17 +40,17 @@ jobs:
         env:
           PREVIEW_URL: https://alias-spy-games-quartet-ui-preview.vitaledanilov.workers.dev/
         run: |
-          for attempt in 1 2 3 4 5; do
+          for attempt in 1 2 3 4 5 6; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/quartet-preview.html \
-              && grep -Fq 'QUARTET V4 · CLOUDFLARE PREVIEW' /tmp/quartet-preview.html \
-              && grep -Fq 'quartet-v4-preview.css' /tmp/quartet-preview.html \
+              && grep -Fq 'QUARTET V4.1 · CLOUDFLARE PREVIEW' /tmp/quartet-preview.html \
+              && grep -Fq 'preview-v41' /tmp/quartet-preview.html \
               && grep -Fq 'quartet-v4-preview-addon.js' /tmp/quartet-preview.html; then
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}health" | grep -Fq 'alias-spy-games-quartet'
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}web/assets/quartet/card-back-v4.svg" | grep -Fq '<svg'
-              echo "Quartet V4 preview verified: ${PREVIEW_URL}"
+              echo "Quartet V4.1 preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Cloudflare Quartet V4 preview marker was not found' >&2
+          echo 'Cloudflare Quartet V4.1 preview marker was not found' >&2
           exit 1
