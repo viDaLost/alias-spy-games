@@ -8,7 +8,9 @@ const requireText = (text, needle, label) => {
 const core = read('cloudflare/app-core-worker/src/index-v4.js');
 const telegramCore = read('cloudflare/app-core-worker/src/index-v5.js');
 const referralCore = read('cloudflare/app-core-worker/src/index-v6.js');
-const entryCore = read('cloudflare/app-core-worker/src/index-v7.js');
+const inviteCore = read('cloudflare/app-core-worker/src/index-v7.js');
+const balanceCore = read('cloudflare/app-core-worker/src/index-v8.js');
+const entryCore = read('cloudflare/app-core-worker/src/index-v9.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const deploy = read('.github/workflows/deploy-core-cloudflare.yml');
 const store = read('cloudflare/app-core-worker/src/support-user-store.js');
@@ -28,8 +30,10 @@ requireText(telegramCore, "'/support/reply'", 'admin swipe reply does not persis
 requireText(telegramCore, 'sendSupportAnswerToUser', 'support answer is not delivered back to Telegram user');
 requireText(telegramCore, 'X-Telegram-Bot-Api-Secret-Token', 'Telegram webhook secret validation missing');
 requireText(referralCore, "from './index-v5.js'", 'v6 entrypoint must preserve Telegram support runtime');
-requireText(entryCore, "from './index-v6.js'", 'v7 entrypoint must preserve v6 runtime');
-requireText(wrangler, 'src/index-v7.js', 'support-enabled core entrypoint is not active');
+requireText(inviteCore, "from './index-v6.js'", 'v7 entrypoint must preserve v6 runtime');
+requireText(balanceCore, "from './index-v7.js'", 'v8 entrypoint must preserve v7 runtime');
+requireText(entryCore, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
+requireText(wrangler, 'src/index-v9.js', 'support-enabled hardened core entrypoint is not active');
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');

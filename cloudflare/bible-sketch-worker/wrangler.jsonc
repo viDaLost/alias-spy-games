@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-bible-sketch",
-  "main": "src/index-drawing-cycles.js",
+  "main": "src/index-admin-observer-v2.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "durable_objects": {
@@ -18,6 +18,12 @@
       "storage": "sqlite"
     }
   },
+  "services": [
+    {
+      "binding": "APP_CORE",
+      "service": "alias-spy-games-core"
+    }
+  ],
   "vars": {
     "ALLOWED_ORIGINS": "https://vidalost.github.io",
     "ALLOW_GUESTS": "true"
