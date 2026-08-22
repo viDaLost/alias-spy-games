@@ -15,6 +15,7 @@
     return '';
   }
 
+  function gameActive() { return document.body?.dataset?.currentGame === GAME_KEY; }
   function key(id) { return `biblical_match_three_stars_v1_${id}`; }
   function legacyKey(id) { return `bible_stars_v1_${id}`; }
   function shadowKey(id) { return `biblical_match_three_cloud_v2_${id}`; }
@@ -162,9 +163,11 @@
     return syncPromise;
   }
 
-  function schedule(delay = 250) {
+  function schedule(delay = 250, force = false) {
     clearTimeout(timer);
-    timer = window.setTimeout(syncNow, delay);
+    timer = window.setTimeout(() => {
+      if (force || gameActive()) syncNow();
+    }, delay);
   }
 
   window.addEventListener('app:stars-changed', (event) => {
@@ -173,13 +176,20 @@
     const id = userId();
     const delta = Math.trunc(Number(event?.detail?.delta || 0));
     if (id && delta) queueMutation(id, delta, event?.detail?.reason || 'match3-local-change');
-    schedule(180);
+    schedule(180, true);
   });
 
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(120); });
-  window.addEventListener('online', () => schedule(100));
-  window.setInterval(() => { if (document.body?.dataset?.currentGame === GAME_KEY) syncNow(); }, SYNC_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && gameActive()) schedule(120); });
+  window.addEventListener('online', () => { if (gameActive()) schedule(100); });
+  window.setInterval(() => { if (gameActive()) syncNow(); }, SYNC_INTERVAL_MS);
 
+  const gameObserver = new MutationObserver(() => {
+    if (gameActive()) schedule(80);
+    else clearTimeout(timer);
+  });
+  if (document.body) gameObserver.observe(document.body, { attributes: true, attributeFilter: ['data-current-game'] });
+
+  window.addEventListener('pagehide', () => gameObserver.disconnect(), { once: true });
   window.__syncBiblicalTreasuresStars = syncNow;
-  schedule(900);
+  if (gameActive()) schedule(900);
 })();
