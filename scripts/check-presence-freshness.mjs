@@ -14,6 +14,7 @@ const wrangler = read('cloudflare/app-observability-worker/wrangler.jsonc');
 const web = read('web/js/presence-identity.js');
 const android = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
 const admin = read('web/js/admin-live-v3.js');
+const rescue = read('web/js/admin-live-rescue.js');
 const html = read('index.html');
 
 requireText(worker, 'const PRESENCE_STALE_MS = 35_000;', 'strict stale window must be 35 seconds');
@@ -27,7 +28,9 @@ requireText(worker, 'activeBibleSketchRooms', 'Bible Sketch active room count is
 requireText(worker, 'strictPresenceWindowMs: PRESENCE_STALE_MS', 'admin does not receive presence freshness window');
 requireText(wrangler, 'src/index-v6.js', 'secure observability entrypoint is not active');
 requireText(secureWorker, "verifyScopedSession(env, String(url.searchParams.get('token') || ''), 'presence')", 'scoped web presence session is missing');
-requireText(secureWorker, "verifyScopedSession(env, token, 'admin')", 'scoped admin live session is missing');
+requireText(secureWorker, 'await verifyAdminRequest(request, env)', 'rollout-safe admin verification is missing');
+requireText(secureWorker, "return verifyScopedSession(env, token, 'admin')", 'scoped admin bearer session is missing');
+requireText(secureWorker, "request.headers.get('X-Telegram-Init-Data')", 'rollout-safe admin header verification is missing');
 
 requireText(web, 'const HEARTBEAT_MS = 15_000;', 'WebApp heartbeat is not strict enough');
 requireText(web, "scope: 'presence'", 'WebApp does not obtain a scoped presence session');
@@ -50,8 +53,11 @@ requireText(admin, "['biblical-match-three', 'Библейские сокров�
 requireText(admin, 'data-live-user', 'administrator live list does not render current verified users');
 requireText(admin, 'Authorization', 'administrator live requests do not use scoped bearer auth');
 forbidText(admin, '?initData=', 'administrator live requests must not expose Telegram initData in URLs');
+forbidText(rescue, '?initData=', 'recovery live requests must not expose Telegram initData in URLs');
+requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback must use a request header');
 requireText(html, 'presence-identity.js?v=4', 'secure WebApp presence client is not mounted');
-requireText(html, 'admin-live-v3.js?v=4', 'admin live v3 monitor is not mounted');
-requireText(html, 'admin-live-v3.css?v=4', 'admin live v3 styles are not mounted');
+requireText(html, 'admin-live-v3.js?v=5', 'admin live v3 monitor is not mounted with fresh cache key');
+requireText(html, 'admin-live-v3.css?v=5', 'admin live v3 styles are not mounted with fresh cache key');
+requireText(html, 'admin-live-rescue.js?v=1', 'admin live recovery client is not mounted');
 
-console.log('Strict verified presence, scoped sessions, room tracking and freshness checks passed');
+console.log('Strict verified presence, scoped sessions, rollout-safe admin fallback, room tracking and freshness checks passed');
