@@ -4,7 +4,7 @@
   "version": "2.1.0",
   "type": "commonjs",
   "scripts": {
-    "check": "node scripts/check-project-ci.mjs && node scripts/check-quartet-card-table-v3.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v29.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs",
+    "check": "node scripts/check-project-ci.mjs && node scripts/check-quartet-card-table-v3.mjs && node scripts/check-quartet-v43-smooth.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v29.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs",
     "smoke:games": "node scripts/smoke-all-games.mjs",
     "check:kids-pairs": "node scripts/check-kids-ark-pairs.mjs",
     "check:match-three": "node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v29.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs",
@@ -14,7 +14,7 @@
     "check:mobile": "node scripts/check-mobile-layout.mjs",
     "check:errors": "node scripts/check-error-system.mjs",
     "check:home": "node scripts/check-home-controls.mjs",
-    "check:quartet": "node scripts/check-quartet-card-table-v3.mjs",
+    "check:quartet": "node scripts/check-quartet-card-table-v3.mjs && node scripts/check-quartet-v43-smooth.mjs",
     "check:android": "node scripts/check-android-runtime.mjs",
     "check:cloudflare-core": "node scripts/check-cloudflare-core-mode.mjs"
   },
