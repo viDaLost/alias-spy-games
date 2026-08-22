@@ -19,7 +19,17 @@ assert.match(launcher, /bible-sketch\.js\?v=2/);
 assert.match(launcher, /if\s*\(!link\.isConnected\)\s*document\.head\.appendChild\(link\)/);
 assert.doesNotMatch(launcher, /if\s*\(isSketch\)\s*\{[\s\S]{0,180}?ensureLandscapeStyles\(\)/);
 assert.match(html, /bible-sketch-launcher\.js\?v=5/);
-assert.match(wrangler, /src\/index-drawing-cycles\.js/);
+
+const entryMatch = wrangler.match(/"main"\s*:\s*"([^"]+)"/);
+assert.ok(entryMatch, 'Bible Sketch Wrangler entrypoint is missing');
+const entryPath = `cloudflare/bible-sketch-worker/${entryMatch[1]}`;
+const entrySource = fs.readFileSync(entryPath, 'utf8');
+if (!/src\/index-drawing-cycles\.js/.test(wrangler)) {
+  assert.match(entrySource, /index-admin-observer\.js/, 'Secure observer v2 must preserve the observer chain');
+  const observerSource = fs.readFileSync('cloudflare/bible-sketch-worker/src/index-admin-observer.js', 'utf8');
+  assert.match(observerSource, /index-drawing-cycles\.js/, 'Observer chain must retain the two-cycle game entrypoint');
+}
+
 assert.match(cycleSource, /DRAWING_CYCLES\s*=\s*2/);
 assert.match(cycleSource, /turnsPerCycle \* DRAWING_CYCLES/);
 
