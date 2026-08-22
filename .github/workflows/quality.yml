@@ -91,6 +91,8 @@ jobs:
           echo "Using $CHROME_BIN"
       - name: Check home dashboard startup and controls
         run: npm run check:home
+      - name: Check admin live recovery on mobile
+        run: npm run check:admin-live:browser
       - name: Open every game and return to menu
         run: npm run smoke:games
       - name: Test Biblical Treasures HQ icons and swipe
