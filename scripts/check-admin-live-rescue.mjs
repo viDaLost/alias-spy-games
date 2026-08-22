@@ -11,9 +11,9 @@ for (const file of ['web/js/admin-live-rescue.js', 'cloudflare/app-observability
   assert(result.status === 0, `${file} syntax check failed:\n${result.stderr || result.stdout}`);
 }
 
-includes('index.html', 'admin-live-v3.css?v=5', 'Admin live CSS cache key must be refreshed');
-includes('index.html', 'admin-live-v3.js?v=5', 'Primary admin live cache key must be refreshed');
-includes('index.html', 'admin-live-rescue.js?v=1', 'Recovery live panel must be loaded');
+includes('index.html', 'admin-live-v3.css?v=6', 'Admin live CSS cache key must be refreshed');
+includes('index.html', 'admin-live-v3.js?v=6', 'Primary admin live cache key must be refreshed');
+includes('index.html', 'admin-live-rescue.js?v=2', 'Recovery live panel must be loaded');
 includes('web/js/admin-live-rescue.js', "document.getElementById('admin-live-rescue')", 'Recovery panel must have a stable mount');
 includes('web/js/admin-live-rescue.js', "document.querySelector('.admin-v2, .admin-page')", 'Recovery panel must support the current admin shell');
 includes('web/js/admin-live-rescue.js', "headers: { Authorization: `Bearer ${token}` }", 'Recovery must prefer scoped bearer sessions');

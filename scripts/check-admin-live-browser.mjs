@@ -19,18 +19,36 @@ function testPage() {
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev">
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev">
-  <link rel="stylesheet" href="/web/styles/admin-live-v3.css?v=5">
+  <link rel="stylesheet" href="/web/styles/admin-enhancements.css?v=24">
+  <link rel="stylesheet" href="/web/styles/admin-live-v3.css?v=6">
+  <link rel="stylesheet" href="/web/styles/admin-shell-v3.css?v=1">
 </head>
-<body>
+<body data-mode="admin">
   <main id="game-container">
     <section class="admin-v2">
-      <header class="admin-v2__header"><h2>Управление приложением</h2></header>
-      <div class="admin-v2__stats"><div>Всего 141</div><div>Активных 141</div><div>Заблокировано 0</div></div>
-      <section class="support-center">Техподдержка</section>
+      <header class="admin-v2__header">
+        <button class="admin-v2__icon-btn" type="button">←</button>
+        <div class="admin-v2__heading">
+          <div class="admin-v2__eyebrow">ADMIN • Telegram ID 1288379477</div>
+          <h2>Управление приложением</h2>
+          <p>Обновлено: <span data-admin-loaded-at>17:33</span></p>
+        </div>
+        <button class="admin-v2__refresh" data-admin-action="refresh" type="button">↻ <span>Обновить</span></button>
+      </header>
+      <div class="admin-v2__stats">
+        <div class="admin-v2-stat"><span>Всего</span><strong>141</strong></div>
+        <div class="admin-v2-stat admin-v2-stat--active"><span>Активных</span><strong>141</strong></div>
+        <div class="admin-v2-stat admin-v2-stat--banned"><span>Заблокировано</span><strong>0</strong></div>
+      </div>
+      <section id="support-admin-panel" class="support-admin-panel"><div class="support-admin-panel__head"><h3>🎧 Техподдержка</h3></div><div id="support-admin-list"></div></section>
+      <section class="admin-v2__toolbar"><label class="admin-v2__search"><span>⌕</span><input data-admin-search></label><div class="admin-v2__filters"><button>Все</button><button>Активные</button><button>Блок.</button></div></section>
+      <details class="admin-v2__broadcast"><summary>Рассылка</summary></details>
+      <section class="admin-v2__users-section"><div class="admin-v2__list-title"><b>Пользователи</b></div><div class="admin-v2__list"></div></section>
     </section>
   </main>
   <script>window.Telegram={WebApp:{initData:'signed_test_init_data',initDataUnsafe:{user:{id:1288379477,username:'admin_test',first_name:'Admin'}}}};</script>
-  <script src="/web/js/admin-live-rescue.js?v=1"></script>
+  <script src="/web/js/admin-live-rescue.js?v=2"></script>
+  <script src="/web/js/admin-shell-v3.js?v=1"></script>
 </body>
 </html>`;
 }
@@ -143,6 +161,7 @@ try {
   });
 
   await page.goto(`${baseURL}/admin-live-test.html`, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+  await page.waitForSelector('.admin-v3-shell', { state: 'visible', timeout: 5_000 });
   await page.waitForSelector('#admin-live-rescue', { state: 'visible', timeout: 5_000 });
   await page.waitForFunction(() => {
     const panel = document.getElementById('admin-live-rescue');
@@ -151,22 +170,38 @@ try {
   }, null, { timeout: 8_000 });
 
   const state = await page.evaluate(() => {
-    const stats = document.querySelector('.admin-v2__stats');
+    const shell = document.querySelector('.admin-v3-shell');
+    const stats = shell?.querySelector('.admin-v2__stats');
     const rescue = document.getElementById('admin-live-rescue');
+    const support = document.getElementById('support-admin-panel');
+    const toolbar = shell?.querySelector('.admin-v2__toolbar');
+    const broadcast = shell?.querySelector('.admin-v2__broadcast');
+    const users = shell?.querySelector('.admin-v2__users-section');
+    const order = [stats, rescue, support, toolbar, broadcast, users].map((node) => node ? [...shell.children].indexOf(node) : -1);
     return {
-      mounted: Boolean(rescue),
-      immediatelyAfterStats: stats?.nextElementSibling?.id === 'admin-live-rescue',
+      version: shell?.dataset.adminVersion || '',
+      title: shell?.querySelector('.admin-v2__heading h2')?.textContent || '',
+      eyebrow: shell?.querySelector('.admin-v2__eyebrow')?.textContent || '',
+      navButtons: shell?.querySelectorAll('.admin-v3-nav button').length || 0,
+      order,
       text: rescue?.innerText || '',
-      width: rescue?.getBoundingClientRect().width || 0,
+      width: shell?.getBoundingClientRect().width || 0,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     };
   });
 
-  if (!state.mounted) throw new Error('Recovery live panel did not mount');
-  if (!state.immediatelyAfterStats) throw new Error('Recovery live panel is not mounted after admin statistics');
-  if (state.width <= 0 || state.width > 390) throw new Error(`Recovery panel mobile width is invalid: ${state.width}`);
+  if (state.version !== '3') throw new Error(`Admin shell version is ${state.version || 'missing'}, expected 3`);
+  if (state.title !== 'Панель управления') throw new Error(`Admin shell title was not upgraded: ${state.title}`);
+  if (!state.eyebrow.includes('V3')) throw new Error(`Admin V3 marker is missing: ${state.eyebrow}`);
+  if (state.navButtons !== 4) throw new Error(`Admin V3 navigation has ${state.navButtons} buttons, expected 4`);
+  if (state.order.some((index) => index < 0) || state.order.some((index, i) => i > 0 && index <= state.order[i - 1])) {
+    throw new Error(`Admin sections are in the wrong order: ${state.order.join(',')}`);
+  }
+  if (state.width <= 0 || state.width > 390) throw new Error(`Admin V3 shell mobile width is invalid: ${state.width}`);
+  if (state.overflow) throw new Error('Admin V3 shell causes horizontal document overflow');
   if (requestedUrls.some((url) => /[?&]initData=/i.test(url))) throw new Error('Telegram initData leaked into a request URL');
 
-  console.log('OK: isolated 390px admin shell mounts recovery live panel, shows an online player/game/room, and keeps initData out of URLs.');
+  console.log('OK: 390px admin V3 shell is active, ordered correctly, shows live player/game/room and keeps initData out of URLs.');
   await context.close();
 } finally {
   if (browser) await browser.close();

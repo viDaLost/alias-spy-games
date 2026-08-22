@@ -15,6 +15,7 @@ const web = read('web/js/presence-identity.js');
 const android = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
 const admin = read('web/js/admin-live-v3.js');
 const rescue = read('web/js/admin-live-rescue.js');
+const shell = read('web/js/admin-shell-v3.js');
 const html = read('index.html');
 
 requireText(worker, 'const PRESENCE_STALE_MS = 35_000;', 'strict stale window must be 35 seconds');
@@ -55,9 +56,13 @@ requireText(admin, 'Authorization', 'administrator live requests do not use scop
 forbidText(admin, '?initData=', 'administrator live requests must not expose Telegram initData in URLs');
 forbidText(rescue, '?initData=', 'recovery live requests must not expose Telegram initData in URLs');
 requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback must use a request header');
+requireText(shell, "page.dataset.adminVersion = '3'", 'admin shell v3 must stamp its runtime version');
+requireText(shell, "livePanel(page)", 'admin shell v3 must place live monitoring in the dashboard');
 requireText(html, 'presence-identity.js?v=4', 'secure WebApp presence client is not mounted');
-requireText(html, 'admin-live-v3.js?v=5', 'admin live v3 monitor is not mounted with fresh cache key');
-requireText(html, 'admin-live-v3.css?v=5', 'admin live v3 styles are not mounted with fresh cache key');
-requireText(html, 'admin-live-rescue.js?v=1', 'admin live recovery client is not mounted');
+requireText(html, 'admin-live-v3.js?v=6', 'admin live v3 monitor is not mounted with fresh cache key');
+requireText(html, 'admin-live-v3.css?v=6', 'admin live v3 styles are not mounted with fresh cache key');
+requireText(html, 'admin-live-rescue.js?v=2', 'admin live recovery client is not mounted');
+requireText(html, 'admin-shell-v3.js?v=1', 'admin shell v3 is not mounted');
+requireText(html, 'admin-shell-v3.css?v=1', 'admin shell v3 styles are not mounted');
 
-console.log('Strict verified presence, scoped sessions, rollout-safe admin fallback, room tracking and freshness checks passed');
+console.log('Strict verified presence, scoped sessions, rollout-safe admin fallback, room tracking and admin shell v3 checks passed');
