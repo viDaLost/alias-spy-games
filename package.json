@@ -4,7 +4,7 @@
   "version": "2.1.0",
   "type": "commonjs",
   "scripts": {
-    "check": "node scripts/check-project-ci.mjs && node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs && node scripts/check-quartet-card-table-v3.mjs && node scripts/check-quartet-v43-smooth.mjs && node scripts/check-quartet-v44-overlay.mjs && node scripts/check-quartet-v45-card-identity.mjs && node scripts/check-bible-sketch-landscape-v2.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v45-compat.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs && node scripts/check-bmt-v45-source-patch.mjs && node scripts/check-bmt-special-swipe-v45.mjs",
+    "check": "node scripts/check-project-ci.mjs && node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs && node scripts/check-admin-observer-cors.mjs && node scripts/check-quartet-card-table-v3.mjs && node scripts/check-quartet-v43-smooth.mjs && node scripts/check-quartet-v44-overlay.mjs && node scripts/check-quartet-v45-card-identity.mjs && node scripts/check-bible-sketch-landscape-v2.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v45-compat.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs && node scripts/check-bmt-v45-source-patch.mjs && node scripts/check-bmt-special-swipe-v45.mjs",
     "smoke:games": "node scripts/smoke-all-games.mjs",
     "check:kids-pairs": "node scripts/check-kids-ark-pairs.mjs",
     "check:match-three": "node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v45-compat.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs && node scripts/check-bmt-v45-source-patch.mjs && node scripts/check-bmt-special-swipe-v45.mjs",
@@ -18,7 +18,7 @@
     "check:bible-sketch": "node scripts/check-bible-sketch-landscape-v2.mjs",
     "check:android": "node scripts/check-android-runtime.mjs",
     "check:cloudflare-core": "node scripts/check-cloudflare-core-mode.mjs",
-    "check:admin-live": "node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs",
+    "check:admin-live": "node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs && node scripts/check-admin-observer-cors.mjs",
     "check:admin-live:browser": "node scripts/check-admin-live-browser.mjs && node scripts/check-admin-live-entry-browser.mjs",
     "check:presence:browser": "node scripts/check-presence-game-browser.mjs"
   },
