@@ -15,8 +15,7 @@ export default {
     if (request.method === 'GET' && (url.pathname === '/admin/live' || url.pathname === '/admin/stats')) {
       try {
         if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
-        const token = bearerToken(request);
-        await verifyScopedSession(env, token, 'admin');
+        await verifyAdminRequest(request, env);
         const stub = env.STATS.get(env.STATS.idFromName('global'));
         const internalPath = url.pathname === '/admin/live' ? '/live-snapshot' : '/snapshot';
         const response = await stub.fetch(`https://stats.internal${internalPath}`);
@@ -54,6 +53,30 @@ export default {
 };
 
 export class AppStats extends BaseAppStats {}
+
+async function verifyAdminRequest(request, env) {
+  const token = bearerToken(request);
+  if (token.startsWith('bgw_')) {
+    return verifyScopedSession(env, token, 'admin');
+  }
+
+  const initData = String(request.headers.get('X-Telegram-Init-Data') || '').trim();
+  if (!initData) throw httpError(401, 'Admin web session required');
+
+  const response = await env.APP_CORE.fetch('https://core.internal/admin/verify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: request.headers.get('Origin') || 'https://vidalost.github.io',
+    },
+    body: JSON.stringify({ telegramInitData: initData }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.admin !== true) {
+    throw httpError(response.status || 403, data?.error || 'Admin only');
+  }
+  return { userId: sanitizeUserId(data.userId || data.id || '') };
+}
 
 async function verifyScopedSession(env, token, expectedScope) {
   const clean = String(token || '').trim();
@@ -104,7 +127,7 @@ function corsHeaders(request, env) {
   return {
     'Access-Control-Allow-Origin': corsOrigin(origin, env),
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match, X-Telegram-Init-Data',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   };
