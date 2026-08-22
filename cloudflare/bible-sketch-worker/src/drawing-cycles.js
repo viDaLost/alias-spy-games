@@ -42,11 +42,22 @@ export function ensureDrawingCycle(state) {
 
 export function withDrawingCycleMeta(view, state) {
   if (!view || typeof view !== 'object') return view;
+  const cycle = state?.status === 'drawing' || Number(state?.drawingCycle)
+    ? currentDrawingCycle(state)
+    : 0;
+  const turnsPerCycle = Math.max(0, Number(view.turnCount || 0));
+  const localTurnIndex = Math.max(0, Number(view.turnIndex || 0));
+  const exposeExpandedTurns = cycle > 0 && turnsPerCycle > 0;
+
   return {
     ...view,
-    drawingCycle: state?.status === 'drawing' || Number(state?.drawingCycle)
-      ? currentDrawingCycle(state)
-      : 0,
+    drawingCycle: cycle,
     drawingCycles: DRAWING_CYCLES,
+    turnIndex: exposeExpandedTurns
+      ? ((cycle - 1) * turnsPerCycle) + localTurnIndex
+      : view.turnIndex,
+    turnCount: exposeExpandedTurns
+      ? turnsPerCycle * DRAWING_CYCLES
+      : view.turnCount,
   };
 }
