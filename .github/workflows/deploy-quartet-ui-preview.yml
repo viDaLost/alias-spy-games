@@ -1,0 +1,87 @@
+name: Deploy Quartet UI Cloudflare preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/quartet-card-redesign
+    paths-ignore:
+      - '.preview-status/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: quartet-ui-cloudflare-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate Quartet v4.2
+        run: node scripts/check-quartet-card-table-v3.mjs
+
+      - name: Build isolated preview
+        run: node scripts/build-quartet-ui-preview.mjs .preview-quartet-ui
+
+      - name: Verify preview build contracts
+        run: |
+          grep -Fq "function updateSelectionUi()" .preview-quartet-ui/public/web/games/quartet.js
+          ! grep -Fq "requestAnimationFrame(() => focusGroup(groupId))" .preview-quartet-ui/public/web/games/quartet.js
+          grep -Fq "RoomInvite" .preview-quartet-ui/public/web/js/room-invite.js
+          grep -Fq "room-invite-qr-shell" .preview-quartet-ui/public/web/styles/room-qr-brand.css
+          grep -Fq "QUARTET V4.2 · CLOUDFLARE PREVIEW" .preview-quartet-ui/public/index.html
+
+      - name: Deploy isolated Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy --config .preview-quartet-ui/wrangler.jsonc
+
+      - name: Verify deployed preview
+        env:
+          PREVIEW_URL: https://alias-spy-games-quartet-ui-preview.vitaledanilov.workers.dev/
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/quartet-preview.html \
+              && grep -Fq 'QUARTET V4.2 · CLOUDFLARE PREVIEW' /tmp/quartet-preview.html \
+              && grep -Fq 'preview-v42' /tmp/quartet-preview.html \
+              && grep -Fq 'room-qr-brand.js' /tmp/quartet-preview.html \
+              && grep -Fq 'quartet-v4-preview-addon.js' /tmp/quartet-preview.html; then
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}health" | grep -Fq 'alias-spy-games-quartet'
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}web/assets/quartet/card-back-v4.svg" | grep -Fq '<svg'
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}web/styles/room-qr-brand.css" | grep -Fq 'room-invite-qr-shell'
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}web/js/room-invite.js" | grep -Fq 'RoomInvite'
+              echo "Quartet V4.2 preview verified: ${PREVIEW_URL}"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Cloudflare Quartet V4.2 preview marker was not found' >&2
+          exit 1
+
+      - name: Record verified preview SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_PATH: .preview-status/quartet.json
+          PREVIEW_URL: https://alias-spy-games-quartet-ui-preview.vitaledanilov.workers.dev/
+        run: |
+          verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"4.2",verified_at:$verified}')"
+          encoded="$(printf '%s' "$status_json" | base64 -w0)"
+          current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
+          body="$(jq -nc --arg msg "chore: record Quartet preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" \
+            -d "$body" >/dev/null

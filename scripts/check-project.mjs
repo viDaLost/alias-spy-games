@@ -61,7 +61,9 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   }
 }
 
-const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|kt|gradle)$/i.test(file));
+// Runtime catalogs may point at media directly (for example one illustration per
+// Quartet card), so JSON participates in the published-file reachability graph.
+const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|json|kt|gradle)$/i.test(file));
 const runtimeReferenceText = new Map(
   runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
 );

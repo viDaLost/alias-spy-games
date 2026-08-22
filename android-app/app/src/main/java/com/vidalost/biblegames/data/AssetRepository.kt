@@ -84,7 +84,11 @@ class AssetRepository(private val context: Context) {
                 icon = item.optString("icon", "🃏"),
                 cards = List(cards.length()) { cardIndex ->
                     val raw = cards.get(cardIndex)
-                    if (raw is JSONObject) QuartetCard(raw.optString("id", "${id}_$cardIndex"), raw.optString("title"))
+                    if (raw is JSONObject) QuartetCard(
+                        raw.optString("id", "${id}_$cardIndex"),
+                        raw.optString("title"),
+                        raw.optString("art").removePrefix("web/"),
+                    )
                     else QuartetCard("${id}_$cardIndex", raw.toString())
                 },
             )

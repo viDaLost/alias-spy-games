@@ -19,6 +19,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -69,11 +70,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -161,7 +164,7 @@ fun QuartetGame(assets: AssetRepository, cloud: CloudRepository, userId: String,
                     )
                     target == "lobby" -> QuartetLobby(context, renderState, session.roomId, { session.action("startGame") }, { session.leave() })
                     target == "playing" -> QuartetPlaying(
-                        renderState, catalog, selectedTarget, { selectedTarget = it; selectedCard = "" },
+                        renderState, catalog, assets, selectedTarget, { selectedTarget = it; selectedCard = "" },
                         selectedCard, { selectedCard = it },
                         ask = {
                             session.action("askCard", JSONObject().put("targetId", selectedTarget).put("cardId", selectedCard))
@@ -281,6 +284,7 @@ private fun PlayerLobbyRow(player: JSONObject) {
 private fun QuartetPlaying(
     state: JSONObject,
     catalog: List<QuartetSet>,
+    assets: AssetRepository,
     selectedTarget: String,
     setTarget: (String) -> Unit,
     selectedCard: String,
@@ -295,6 +299,8 @@ private fun QuartetPlaying(
     val completed = me.optJSONArray("completedQuartets").strings().toSet()
     val activePlayers = state.optJSONArray("players").objects().filter { it.optBoolean("isActive", true) }
     val targets = activePlayers.filter { it.optString("playerId") != myId && it.optInt("cardsCount") > 0 }
+    val targetName = targets.firstOrNull { it.optString("playerId") == selectedTarget }?.optString("name")
+    val cardTitle = catalog.asSequence().flatMap { it.cards.asSequence() }.firstOrNull { it.id == selectedCard }?.title
     val haptic = LocalHapticFeedback.current
     var seconds by remember(state.optLong("turnDeadlineMs")) { mutableIntStateOf(0) }
     LaunchedEffect(state.optLong("turnDeadlineMs")) {
@@ -334,6 +340,8 @@ private fun QuartetPlaying(
         }
     }
     Spacer(Modifier.height(10.dp))
+    QuartetStepRail(myTurn, targetName, cardTitle)
+    Spacer(Modifier.height(8.dp))
     GlassCard(Modifier.fillMaxWidth(), padding = 12.dp) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
@@ -361,7 +369,7 @@ private fun QuartetPlaying(
                             Spacer(Modifier.width(5.dp))
                             Text(if (player.optBoolean("connected")) "●" else "○", color = if (player.optBoolean("connected")) Success else InkSoft, fontSize = 10.sp)
                         }
-                        Text("🃏 ${player.optInt("cardsCount")}   🏆 ${player.optInt("quartetsCount")}", color = InkSoft, fontSize = 10.sp)
+                        QuartetMiniCardFan(player.optInt("cardsCount"))
                         if (isTurn) Text("Сейчас ходит", color = Color(0xFFB7791F), fontSize = 9.sp, fontWeight = FontWeight.Black)
                         if (selected) Text("Выбран", color = Color(0xFF0F766E), fontSize = 9.sp, fontWeight = FontWeight.Black)
                     }
@@ -399,49 +407,24 @@ private fun QuartetPlaying(
     val handGroups = catalog.filter { set -> set.cards.any { it.id in hand } }
         .sortedWith(compareByDescending<QuartetSet> { set -> set.cards.count { it.id in hand } }.thenBy { it.name.lowercase(Locale("ru")) })
     if (handGroups.isEmpty()) GlassCard(Modifier.fillMaxWidth()) { Text("В руке больше нет карт.", Modifier.fillMaxWidth(), color = InkSoft, textAlign = TextAlign.Center) }
-    handGroups.forEachIndexed { groupIndex, set ->
-        val ownedCount = set.cards.count { it.id in hand }
-        val near = ownedCount == 3
-        GlassCard(Modifier.fillMaxWidth().padding(bottom = 9.dp), padding = 12.dp, color = if (near) Color(0xFFFFF9DD) else Color.White.copy(.9f)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(42.dp).background(listOf(Color(0xFFE0F2FE), Color(0xFFF3E8FF), Color(0xFFFFF1F2), Color(0xFFECFDF5))[groupIndex % 4], RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) { Text(set.icon, fontSize = 23.sp) }
-                Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
-                    Text(set.name, color = Ink, fontWeight = FontWeight.ExtraBold)
-                    Text(when (ownedCount) { 3 -> "Осталась 1 карта"; 2 -> "Половина собрана"; else -> "Квартет открыт" }, color = InkSoft, fontSize = 10.sp)
-                }
-                Text("$ownedCount", color = if (near) Color(0xFFB7791F) else Color(0xFF0F766E), fontSize = 25.sp, fontWeight = FontWeight.Black)
-                Text("/4", color = InkSoft, fontSize = 11.sp)
-            }
-            Spacer(Modifier.height(7.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                repeat(4) { index -> Box(Modifier.weight(1f).height(5.dp).background(if (index < ownedCount) Color(0xFF14B8A6) else Color(0xFFE2E8F0), CircleShape)) }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                set.cards.forEachIndexed { cardIndex, card ->
-                    val owned = card.id in hand
-                    val selected = selectedCard == card.id
-                    Box(
-                        Modifier.weight(1f).height(106.dp).clip(RoundedCornerShape(14.dp))
-                            .background(when { owned -> Color(0xFFE0F2FE); selected -> Color(0xFFCCFBF1); else -> Color(0xFFF1F5F9) })
-                            .border(if (selected) 2.dp else 1.dp, when { selected -> Color(0xFF0F766E); owned -> Color(0xFF7DD3FC); else -> Color(0xFFCBD5E1) }, RoundedCornerShape(12.dp))
-                            .bounceClick(enabled = myTurn && !owned && selectedTarget.isNotBlank()) { setCard(card.id) }
-                            .padding(4.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(set.icon, fontSize = 11.sp); Text("${cardIndex + 1}", color = InkSoft, fontSize = 9.sp, fontWeight = FontWeight.Black) }
-                            Text(if (owned) set.icon else if (selected) "✓" else "?", fontSize = 25.sp, color = if (selected) Color(0xFF0F766E) else InkSoft)
-                            Text(card.title, color = Ink, fontSize = 8.sp, lineHeight = 10.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2)
-                            Text(when { owned -> "✓ В руке"; selected -> "Выбрана"; myTurn && selectedTarget.isNotBlank() -> "Выбрать"; else -> "Не хватает" }, color = when { owned -> Color(0xFF0369A1); selected -> Color(0xFF0F766E); else -> InkSoft }, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                }
+    if (handGroups.isNotEmpty()) BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val panelWidth = if (maxWidth > 580.dp) 580.dp else maxWidth - 8.dp
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            handGroups.forEachIndexed { groupIndex, set ->
+                QuartetHandPanel(
+                    set = set,
+                    groupIndex = groupIndex,
+                    hand = hand,
+                    myTurn = myTurn,
+                    hasTarget = selectedTarget.isNotBlank(),
+                    selectedCard = selectedCard,
+                    setCard = setCard,
+                    assets = assets,
+                    modifier = Modifier.width(panelWidth),
+                )
             }
         }
     }
-    val targetName = targets.firstOrNull { it.optString("playerId") == selectedTarget }?.optString("name")
-    val cardTitle = catalog.asSequence().flatMap { it.cards.asSequence() }.firstOrNull { it.id == selectedCard }?.title
     GlassCard(Modifier.fillMaxWidth(), padding = 12.dp, color = if (myTurn) Color(0xFFF0FDFA) else Color(0xFFF8FAFC)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             StatusPill("1", Color(0xFF0F766E))
@@ -464,6 +447,159 @@ private fun QuartetPlaying(
     GameLog(state.optJSONArray("log").strings())
     Spacer(Modifier.height(10.dp))
     SecondaryButton("Выйти из партии", leave, Modifier.fillMaxWidth(), accent = Danger)
+}
+
+@Composable
+private fun QuartetStepRail(myTurn: Boolean, targetName: String?, cardTitle: String?) {
+    val steps = listOf(
+        Triple("1", "Игрок", targetName ?: if (myTurn) "Выберите" else "Ожидание"),
+        Triple("2", "Карта", cardTitle ?: if (targetName != null) "Выберите" else "После игрока"),
+        Triple("3", "Запрос", if (targetName != null && cardTitle != null) "Готов" else "Подтвердить"),
+    )
+    Surface(Modifier.fillMaxWidth(), RoundedCornerShape(20.dp), color = Color.White.copy(.9f), shadowElevation = 5.dp) {
+        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            steps.forEachIndexed { index, (number, label, value) ->
+                val done = index == 0 && targetName != null || index == 1 && cardTitle != null
+                val active = myTurn && (index == 0 && targetName == null || index == 1 && targetName != null && cardTitle == null || index == 2 && targetName != null && cardTitle != null)
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(27.dp).background(
+                            when { active -> Color(0xFF2563EB); done -> Color(0xFFCCFBF1); else -> Color(0xFFE5EEF8) },
+                            CircleShape,
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) { Text(if (done) "✓" else number, color = when { active -> Color.White; done -> Color(0xFF0F766E); else -> InkSoft }, fontSize = 10.sp, fontWeight = FontWeight.Black) }
+                    Column(Modifier.weight(1f).padding(start = 5.dp)) {
+                        Text(label.uppercase(), color = InkSoft, fontSize = 7.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                        Text(value, color = Color(0xFF173F7A), fontSize = 9.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                    }
+                }
+                if (index < steps.lastIndex) Text("—", color = Color(0xFFB9CDE2), fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuartetMiniCardFan(cardCount: Int) {
+    Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+        repeat(3) {
+            Box(
+                Modifier.width(18.dp).height(25.dp).clip(RoundedCornerShape(4.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFF3B82F6), Color(0xFF1E40AF))))
+                    .border(1.dp, Color.White.copy(.9f), RoundedCornerShape(4.dp)),
+            )
+        }
+        Box(Modifier.size(22.dp).background(Color(0xFF173F7A), CircleShape), contentAlignment = Alignment.Center) {
+            Text(cardCount.toString(), color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+        }
+    }
+}
+
+@Composable
+private fun QuartetHandPanel(
+    set: QuartetSet,
+    groupIndex: Int,
+    hand: Set<String>,
+    myTurn: Boolean,
+    hasTarget: Boolean,
+    selectedCard: String,
+    setCard: (String) -> Unit,
+    assets: AssetRepository,
+    modifier: Modifier = Modifier,
+) {
+    val ownedCount = set.cards.count { it.id in hand }
+    val near = ownedCount == 3
+    val accents = listOf(Color(0xFF2563EB), Color(0xFF7C3AED), Color(0xFF0F766E), Color(0xFFC2410C), Color(0xFF0369A1), Color(0xFFBE123C))
+    val accent = accents[groupIndex % accents.size]
+    GlassCard(modifier.padding(bottom = 8.dp), padding = 10.dp, color = if (near) Color(0xFFFFFDF7) else Color.White.copy(.94f)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(38.dp).background(accent, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) { Text(set.icon, fontSize = 20.sp) }
+            Column(Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                Text("КВАРТЕТ", color = InkSoft, fontSize = 7.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Black)
+                Text(set.name, color = Color(0xFF173F7A), fontSize = 16.sp, fontWeight = FontWeight.Black, maxLines = 1)
+                Text(when (ownedCount) { 3 -> "Осталась 1 карта"; 2 -> "Половина собрана"; else -> "Квартет открыт" }, color = InkSoft, fontSize = 9.sp)
+            }
+            Text("$ownedCount", color = accent, fontSize = 22.sp, fontWeight = FontWeight.Black)
+            Text("/4", color = InkSoft, fontSize = 10.sp)
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            repeat(4) { index -> Box(Modifier.weight(1f).height(4.dp).background(if (index < ownedCount) accent else Color(0xFFE2E8F0), CircleShape)) }
+        }
+        Spacer(Modifier.height(7.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            set.cards.forEachIndexed { cardIndex, card ->
+                val owned = card.id in hand
+                val selected = selectedCard == card.id
+                QuartetPlayingCard(
+                    set = set,
+                    cardIndex = cardIndex,
+                    cardId = card.id,
+                    cardArt = card.art,
+                    title = card.title,
+                    owned = owned,
+                    selected = selected,
+                    enabled = myTurn && !owned && hasTarget,
+                    accent = accent,
+                    assets = assets,
+                    onClick = { setCard(card.id) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuartetPlayingCard(
+    set: QuartetSet,
+    cardIndex: Int,
+    cardId: String,
+    cardArt: String,
+    title: String,
+    owned: Boolean,
+    selected: Boolean,
+    enabled: Boolean,
+    accent: Color,
+    assets: AssetRepository,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val art = remember(cardId, cardArt) {
+        assets.bitmap(cardArt.ifBlank { "assets/quartet/cards/$cardId.webp" })?.asImageBitmap()
+    }
+    Column(
+        modifier.height(174.dp).clip(shape)
+            .background(if (owned) Color(0xFFFFFDF8) else Color(0xFFF5F9FF))
+            .border(if (selected) 2.dp else 1.dp, if (selected) Color(0xFF2563EB) else Color(0xFFD9E3ED), shape)
+            .bounceClick(enabled = enabled) { onClick() }
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(11.dp))) {
+            if (owned && art != null) {
+                Image(art, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            } else {
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.linearGradient(if (selected) listOf(Color(0xFF38BDF8), Color(0xFF2563EB)) else listOf(Color(0xFF6EA6EF), Color(0xFF3156B5))),
+                    ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.fillMaxSize().padding(8.dp).border(1.dp, Color.White.copy(.65f), RoundedCornerShape(9.dp)))
+                    Text(if (selected) "✓" else "?", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black)
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(5.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(set.icon, fontSize = 10.sp)
+                Text("${cardIndex + 1}", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
+            }
+        }
+        Text(title, color = Color(0xFF173F7A), fontSize = 9.sp, lineHeight = 10.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center, maxLines = 2, modifier = Modifier.padding(top = 4.dp))
+        Text(when { owned -> "✓ В РУКЕ"; selected -> "ВЫБРАНА"; enabled -> "ВЫБРАТЬ"; else -> "НЕ ХВАТАЕТ" }, color = when { owned -> Color(0xFF0F766E); selected -> accent; else -> InkSoft }, fontSize = 6.sp, fontWeight = FontWeight.Black, maxLines = 1)
+    }
 }
 
 @Composable
