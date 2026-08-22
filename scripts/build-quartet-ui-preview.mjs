@@ -69,13 +69,13 @@ function isApiPath(pathname) {
 
 async function proxyToBackend(request, env) {
   const incoming = new URL(request.url);
-  const upstream = new URL(incoming.pathname + incoming.search, env.QUARTET_BACKEND_URL);
+  const upstream = new URL(incoming.pathname + incoming.search, 'https://quartet.internal');
   const headers = new Headers(request.headers);
   headers.set('Origin', UPSTREAM_ORIGIN);
   headers.delete('Host');
   const init = { method: request.method, headers, redirect: 'manual' };
   if (request.method !== 'GET' && request.method !== 'HEAD') init.body = request.body;
-  return fetch(new Request(upstream, init));
+  return env.QUARTET_BACKEND.fetch(new Request(upstream, init));
 }
 
 export default {
@@ -98,9 +98,10 @@ const wranglerConfig = {
     run_worker_first: true,
     not_found_handling: 'single-page-application',
   },
-  vars: {
-    QUARTET_BACKEND_URL: 'https://alias-spy-games-quartet.vitaledanilov.workers.dev',
-  },
+  services: [{
+    binding: 'QUARTET_BACKEND',
+    service: 'alias-spy-games-quartet',
+  }],
 };
 
 fs.writeFileSync(path.join(publicDir, 'index.html'), indexHtml);
