@@ -1,26 +1,25 @@
 (() => {
-  if (window.__QUARTET_V41_PREVIEW__) return;
-  window.__QUARTET_V41_PREVIEW__ = true;
+  if (window.__QUARTET_V42_PREVIEW__) return;
+  window.__QUARTET_V42_PREVIEW__ = true;
 
   let titleToCard = new Map();
   let enhanceTimer = 0;
   let lastDockSignature = '';
-  const imageCache = window.__quartetV4ImageCache || new Map();
-  window.__quartetV4ImageCache = imageCache;
+  const imageCache = window.__quartetV42ImageCache || new Map();
+  window.__quartetV42ImageCache = imageCache;
 
   loadCatalog();
 
-  const observer = new MutationObserver(() => scheduleEnhance(48));
+  const observer = new MutationObserver(() => scheduleEnhance(28));
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) scheduleEnhance(24);
-  });
-  window.addEventListener('pageshow', () => scheduleEnhance(24));
+  window.addEventListener('quartetselectionchange', () => scheduleEnhance(0));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleEnhance(16); });
+  window.addEventListener('pageshow', () => scheduleEnhance(16));
   scheduleEnhance(0);
 
   async function loadCatalog() {
     try {
-      const response = await fetch('web/data/quartet_bible.json?v=preview-v4', { cache: 'force-cache' });
+      const response = await fetch('web/data/quartet_bible.json?v=preview-v42', { cache: 'force-cache' });
       const data = await response.json();
       const entries = [];
       for (const quartet of data?.quartets || []) {
@@ -29,27 +28,27 @@
           const id = String(card.id || '').trim();
           const art = String(card.art || `web/assets/quartet/cards/${encodeURIComponent(id)}.webp`).trim();
           if (title && id) entries.push([title, { id, art }]);
-          preloadImage(id, art);
         }
       }
       titleToCard = new Map(entries);
       scheduleEnhance(0);
     } catch (error) {
-      console.warn('Quartet v4.1 catalog enhancer unavailable', error);
+      console.warn('Quartet v4.2 catalog enhancer unavailable', error);
     }
   }
 
-  function preloadImage(id, url) {
-    if (!id || !url || imageCache.has(id)) return;
+  function warmImage(url) {
+    if (!url || imageCache.has(url)) return;
     const image = new Image();
     image.decoding = 'async';
     image.loading = 'eager';
     image.src = url;
-    imageCache.set(id, image);
+    imageCache.set(url, image);
+    if (imageCache.size > 24) imageCache.delete(imageCache.keys().next().value);
     if (typeof image.decode === 'function') image.decode().catch(() => {});
   }
 
-  function scheduleEnhance(delay = 32) {
+  function scheduleEnhance(delay = 24) {
     clearTimeout(enhanceTimer);
     enhanceTimer = setTimeout(enhance, delay);
   }
@@ -63,6 +62,7 @@
     markUnknownCards(root);
 
     const dock = root.querySelector('.qv2-action-dock');
+    document.body.classList.toggle('quartet-v42-dock-visible', Boolean(dock));
     if (!dock) return;
     const activeTurn = dock.classList.contains('is-active');
     if (activeTurn) enableCardFirstSelection(root);
@@ -71,16 +71,19 @@
 
   function stabilizeCardMedia(root) {
     for (const img of root.querySelectorAll('.qv3-card-art img')) {
-      if (img.dataset.qv41Stable === '1') continue;
-      img.dataset.qv41Stable = '1';
+      const url = img.currentSrc || img.getAttribute('src') || '';
+      const art = img.closest('.qv3-card-art');
+      if (art && url) {
+        art.style.backgroundImage = `url("${url.replace(/"/g, '%22')}")`;
+        art.style.backgroundSize = 'cover';
+        art.style.backgroundPosition = 'center';
+        warmImage(url);
+      }
       img.loading = 'eager';
       img.decoding = 'async';
-      img.removeAttribute('loading');
+      img.fetchPriority = 'high';
       img.setAttribute('draggable', 'false');
-      const url = img.getAttribute('src') || '';
-      if (url && ![...imageCache.values()].some((cached) => cached.src === img.src)) {
-        preloadImage(`url:${url}`, url);
-      }
+      img.dataset.qv42Stable = '1';
     }
   }
 
@@ -105,9 +108,9 @@
     for (const card of root.querySelectorAll('.qv2-playing-card.is-missing')) {
       const art = card.querySelector('.qv3-card-art');
       if (!art) continue;
+      art.style.backgroundImage = '';
       art.classList.add('qv4-unknown-card-art');
       const selected = card.classList.contains('is-selected');
-      const label = selected ? '✓ Выбрано' : 'Нужна карта';
       let badge = art.querySelector('.qv4-back-label');
       if (!badge) {
         art.replaceChildren();
@@ -115,7 +118,8 @@
         badge.className = 'qv4-back-label';
         art.appendChild(badge);
       }
-      if (badge.textContent !== label) badge.textContent = label;
+      badge.textContent = selected ? '✓' : '';
+      badge.setAttribute('aria-hidden', 'true');
     }
   }
 
@@ -142,12 +146,18 @@
       <div class="qv4-dock-title">
         <div class="qv4-dock-copy">
           <strong>${activeTurn ? 'Ваш ход' : 'Ожидайте хода'}</strong>
-          <small>${activeTurn ? 'Выберите карту и соперника в любом порядке' : 'Следите за ходом партии'}</small>
+          <small>${activeTurn ? 'Карта и соперник выбираются в любом порядке' : 'Следите за ходом партии'}</small>
         </div>
-        <button class="qv4-chat-btn" type="button" aria-label="Открыть чат">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5v2h12V9H6Zm0 4v2h8v-2H6Z"/></svg>
-          <span>Чат</span><i class="${unread ? 'is-visible' : ''}">${escapeHtml(unread)}</i>
-        </button>
+        <div class="qv4-dock-actions">
+          <button class="qv4-qr-btn" type="button" aria-label="Показать QR-код комнаты" title="QR-код комнаты">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm9-2h2v2h-2v-2Zm4 0h3v3h-2v-1h-1v-2Zm-5 4h3v4h-3v-4Zm5 1h3v3h-5v-2h2v-1Z"/></svg>
+            <span>QR</span>
+          </button>
+          <button class="qv4-chat-btn" type="button" aria-label="Открыть чат">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5v2h12V9H6Zm0 4v2h8v-2H6Z"/></svg>
+            <span>Чат</span><i class="${unread ? 'is-visible' : ''}">${escapeHtml(unread)}</i>
+          </button>
+        </div>
       </div>
       ${activeTurn ? `<div class="qv4-targets" aria-label="Быстрый выбор соперника">${players.length ? players.map(renderTarget).join('') : '<span class="qv4-target-empty">Нет доступных соперников</span>'}</div>` : ''}
       ${activeTurn ? `
@@ -159,6 +169,12 @@
     `;
 
     center.querySelector('.qv4-chat-btn')?.addEventListener('click', () => document.getElementById('qchat-fab')?.click());
+    center.querySelector('.qv4-qr-btn')?.addEventListener('click', () => {
+      const qrButton = root.querySelector('[data-action="show-room-qr"]');
+      if (qrButton) return qrButton.click();
+      const roomId = new URLSearchParams(location.search).get('room') || sessionStorage.getItem('quartet.roomId') || '';
+      if (window.RoomInvite?.openQr && roomId) window.RoomInvite.openQr(roomId, { game: 'quartet' });
+    });
   }
 
   function readTarget(button) {
