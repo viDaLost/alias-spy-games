@@ -22,7 +22,7 @@ const file=(name)=>`${FILES[name]}?v=${VERSION}`;
 const art={
  version:17,kind:"file-webp-v17",transport:"file",sourceSize:128,
  symbols:{bible:file("bible"),fish:file("fish"),dove:file("dove"),candle:file("candle"),crown:file("crown"),ark:file("ark"),bread:file("bread"),grapes:file("grapes"),tablets:file("tablets")},
- boosters:{manna:file("bread"),oil:file("candle"),covenant:file("covenant"),sling:file("sling"),staff:file("staff"),jericho:file("jericho"),rainbow:file("covenant")},
+ boosters:{manna:file("bread"),oil:file("candle"),covenant:file("covenant"),sling:file("sling"),staff:file("staff"),jericho:file("jericho"),rainbow:file("covenant"),ark:file("covenant")},
  goals:{score:file("score"),collect:file("bible"),cascade:file("crown"),special:file("covenant"),blockers:file("chains"),light:file("candle")},
  obstacles:{chains:file("chains"),tablets:file("tablets"),candle:file("candle"),cracked:file("chains")}
 };
