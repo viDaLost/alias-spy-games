@@ -56,11 +56,9 @@
   function enhance() {
     const root = document.getElementById('qv2-root');
     if (!root || document.body.dataset.currentGame !== 'quartet') return;
-
     stabilizeCardMedia(root);
     removeCardCornerEmoji(root);
     markUnknownCards(root);
-
     const dock = root.querySelector('.qv2-action-dock');
     document.body.classList.toggle('quartet-v42-dock-visible', Boolean(dock));
     if (!dock) return;
@@ -131,7 +129,6 @@
       dock.prepend(center);
       lastDockSignature = '';
     }
-
     const targetName = String(dock.querySelector('.qv2-action-target strong')?.textContent || 'Выберите игрока').trim();
     const cardName = String(dock.querySelector('.qv2-action-card strong')?.textContent || 'Выберите карту').trim();
     const playerButtons = [...root.querySelectorAll('.qv2-score-player[data-player-id]')].filter((button) => !button.disabled);
@@ -141,38 +138,21 @@
     const signature = JSON.stringify({ activeTurn, targetName, cardName, unread, players });
     if (signature === lastDockSignature) return;
     lastDockSignature = signature;
-
     center.innerHTML = `
       <div class="qv4-dock-title">
-        <div class="qv4-dock-copy">
-          <strong>${activeTurn ? 'Ваш ход' : 'Ожидайте хода'}</strong>
-          <small>${activeTurn ? 'Карта и соперник выбираются в любом порядке' : 'Следите за ходом партии'}</small>
-        </div>
+        <div class="qv4-dock-copy"><strong>${activeTurn ? 'Ваш ход' : 'Ожидайте хода'}</strong><small>${activeTurn ? 'Карта и соперник выбираются в любом порядке' : 'Следите за ходом партии'}</small></div>
         <div class="qv4-dock-actions">
-          <button class="qv4-qr-btn" type="button" aria-label="Показать QR-код комнаты" title="QR-код комнаты">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm9-2h2v2h-2v-2Zm4 0h3v3h-2v-1h-1v-2Zm-5 4h3v4h-3v-4Zm5 1h3v3h-5v-2h2v-1Z"/></svg>
-            <span>QR</span>
-          </button>
-          <button class="qv4-chat-btn" type="button" aria-label="Открыть чат">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5v2h12V9H6Zm0 4v2h8v-2H6Z"/></svg>
-            <span>Чат</span><i class="${unread ? 'is-visible' : ''}">${escapeHtml(unread)}</i>
-          </button>
+          <button class="qv4-qr-btn" type="button" aria-label="Показать QR-код комнаты" title="QR-код комнаты"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm9-2h2v2h-2v-2Zm4 0h3v3h-2v-1h-1v-2Zm-5 4h3v4h-3v-4Zm5 1h3v3h-5v-2h2v-1Z"/></svg><span>QR</span></button>
+          <button class="qv4-chat-btn" type="button" aria-label="Открыть чат"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5v2h12V9H6Zm0 4v2h8v-2H6Z"/></svg><span>Чат</span><i class="${unread ? 'is-visible' : ''}">${escapeHtml(unread)}</i></button>
         </div>
       </div>
       ${activeTurn ? `<div class="qv4-targets" aria-label="Быстрый выбор соперника">${players.length ? players.map(renderTarget).join('') : '<span class="qv4-target-empty">Нет доступных соперников</span>'}</div>` : ''}
-      ${activeTurn ? `
-        <div class="qv4-choice-summary">
-          <div class="qv4-choice-item" title="${escapeHtml(targetName)}"><small>Соперник</small><strong>${escapeHtml(targetName)}</strong></div>
-          <div class="qv4-choice-arrow">→</div>
-          <div class="qv4-choice-item" title="${escapeHtml(cardName)}"><small>Карта</small><strong>${escapeHtml(cardName)}</strong></div>
-        </div>` : ''}
-    `;
-
+      ${activeTurn ? `<div class="qv4-choice-summary"><div class="qv4-choice-item" title="${escapeHtml(targetName)}"><small>Соперник</small><strong>${escapeHtml(targetName)}</strong></div><div class="qv4-choice-arrow">→</div><div class="qv4-choice-item" title="${escapeHtml(cardName)}"><small>Карта</small><strong>${escapeHtml(cardName)}</strong></div></div>` : ''}`;
     center.querySelector('.qv4-chat-btn')?.addEventListener('click', () => document.getElementById('qchat-fab')?.click());
     center.querySelector('.qv4-qr-btn')?.addEventListener('click', () => {
       const qrButton = root.querySelector('[data-action="show-room-qr"]');
       if (qrButton) return qrButton.click();
-      const roomId = new URLSearchParams(location.search).get('room') || sessionStorage.getItem('quartet.roomId') || '';
+      const roomId = localStorage.getItem('quartet_v2_room_id') || new URLSearchParams(location.search).get('room') || '';
       if (window.RoomInvite?.openQr && roomId) window.RoomInvite.openQr(roomId, { game: 'quartet' });
     });
   }
@@ -180,20 +160,12 @@
   function readTarget(button) {
     const playerId = String(button.dataset.playerId || '');
     const rawName = String(button.querySelector('.qv2-score-name')?.textContent || 'Игрок').replace(/\s*·\s*ты\s*$/i, '').trim();
-    return {
-      playerId,
-      rawName,
-      initial: rawName.charAt(0).toUpperCase() || 'И',
-      selected: button.getAttribute('aria-pressed') === 'true' || button.classList.contains('is-target'),
-      online: Boolean(button.querySelector('.qv2-presence.is-online')),
-    };
+    return { playerId, rawName, initial: rawName.charAt(0).toUpperCase() || 'И', selected: button.getAttribute('aria-pressed') === 'true' || button.classList.contains('is-target'), online: Boolean(button.querySelector('.qv2-presence.is-online')) };
   }
 
   function renderTarget(player) {
     return `<button type="button" class="qv4-target ${player.selected ? 'is-selected' : ''}" data-action="select-target" data-player-id="${escapeHtml(player.playerId)}" aria-pressed="${player.selected}" title="${escapeHtml(player.rawName)}"><span class="qv4-target-avatar">${escapeHtml(player.initial)}</span><span class="qv4-target-text"><b>${escapeHtml(player.rawName)}</b><small>${player.online ? '● онлайн' : '○ не в сети'}</small></span></button>`;
   }
 
-  function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-  }
+  function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
 })();
