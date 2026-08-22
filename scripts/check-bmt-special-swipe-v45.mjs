@@ -6,24 +6,35 @@ const read = (path) => fs.readFileSync(path, 'utf8');
 const coreSource = read('web/games/biblical-match-three-core.js');
 const rulesSource = read('web/js/v45-biblical-treasures-special-swipe.js');
 const launcherSource = read('web/js/biblical-match-three-launcher.js');
+const artSource = read('web/games/biblical-match-three-v5-loader.js');
 const indexSource = read('index.html');
+const styleSource = read('web/styles/biblical-match-three-v45.css');
 
+assert.doesNotThrow(() => new Function(launcherSource), 'V45 launcher must parse');
+assert.doesNotThrow(() => new Function(rulesSource), 'V45 special rules must parse');
 assert.match(launcherSource, /const VERSION="45"/);
 assert.match(launcherSource, /v45-biblical-treasures-special-swipe\.js/);
 assert.match(launcherSource, /rainbow: \{ label: \"Радуга Завета\"/);
 assert.match(launcherSource, /id === \"rainbow\"/);
 assert.match(launcherSource, /special:\"rainbow\"/);
 assert.match(launcherSource, /patchGameSource/);
-assert.match(launcherSource, /useNoahArk/); // old signature exists only as a removal target
+assert.match(launcherSource, /useNoahArk/); // old source signature exists only as a guarded removal target
 assert.match(rulesSource, /\[data-booster=\"ark\"\]/);
 assert.match(rulesSource, /arkBoosterRemoved: true/);
+assert.match(rulesSource, /biblical-match-three-v45\.css\?v=45/);
+assert.match(styleSource, /data-booster="rainbow"/);
 assert.match(indexSource, /biblical-match-three-launcher\.js\?v=45/);
+assert.match(artSource, /rainbow:file\("covenant"\)/);
+assert.doesNotMatch(artSource, /boosters:\{[^\n]*ark:file\("ark"\)/);
 
+const styleLinks = [];
 const document = {
   body: { dataset: {} },
   documentElement: {},
+  head: { appendChild: (node) => styleLinks.push(node) },
   querySelectorAll: () => [],
   querySelector: () => null,
+  createElement: (tag) => ({ tagName: tag.toUpperCase(), dataset: {}, rel: '', href: '' }),
 };
 class MutationObserver { observe() {} disconnect() {} }
 const context = {
@@ -44,6 +55,8 @@ vm.runInContext(rulesSource, context, { filename: 'v45-biblical-treasures-specia
 const Core = context.BiblicalMatchThreeCore;
 assert.ok(Core);
 assert.equal(context.__bmtV45SpecialSwipeInstalled, true);
+assert.equal(styleLinks.length, 1);
+assert.equal(styleLinks[0].href, 'web/styles/biblical-match-three-v45.css?v=45');
 
 const rows = 3;
 const cols = 4;
