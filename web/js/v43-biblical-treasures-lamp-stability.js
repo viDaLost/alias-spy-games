@@ -72,15 +72,15 @@
       document.head.appendChild(style);
     }
     const css = `
-body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-tile.is-lamp-lit .bmt-piece-wrap,
-body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-tile.is-lamp-lit .bmt-special-mark,
-body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-tile[data-bmt-lamp-playable="1"] .bmt-piece-wrap,
-body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-tile[data-bmt-lamp-playable="1"] .bmt-special-mark{
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-piece-wrap,
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-special-mark,
+body[data-current-game="biblical-match-three"] .bmt-tile[data-bmt-lamp-playable="1"] .bmt-piece-wrap,
+body[data-current-game="biblical-match-three"] .bmt-tile[data-bmt-lamp-playable="1"] .bmt-special-mark{
   opacity:1!important;
   visibility:visible!important;
 }
-body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-tile.is-lamp-lit .bmt-blocker,
-body[data-current-game="biblical-match-three"] .bmt-v24-board-wrap .bmt-tile[data-bmt-lamp-playable="1"] .bmt-blocker{
+body[data-current-game="biblical-match-three"] .bmt-tile.is-lamp-lit .bmt-blocker,
+body[data-current-game="biblical-match-three"] .bmt-tile[data-bmt-lamp-playable="1"] .bmt-blocker{
   opacity:0!important;
   visibility:hidden!important;
   pointer-events:none!important;
