@@ -37,7 +37,7 @@ const indexHtml = `<!doctype html>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#eef4ff">
   <meta name="quartet-backend" content="">
-  <title>Квартет V4 · Cloudflare Preview</title>
+  <title>Квартет V4.1 · Cloudflare Preview</title>
   <style>
     :root{--app-primary:#4f46e5;--app-primary-2:#2563eb;color-scheme:light}
     *{box-sizing:border-box}
@@ -45,27 +45,27 @@ const indexHtml = `<!doctype html>
     body{min-height:100dvh;overflow-x:clip;background:radial-gradient(circle at 92% 4%,rgba(199,210,254,.7),transparent 30rem),radial-gradient(circle at 4% 92%,rgba(186,230,253,.58),transparent 30rem),linear-gradient(180deg,#f9fbff,#dceaff);color:#142844;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     button,input{font:inherit}
     #game-container{width:min(100%,960px);min-height:100dvh;margin:0 auto;padding:12px max(10px,env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
-    #preview-badge{position:fixed;z-index:99999;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));padding:6px 10px;border-radius:999px;background:rgba(21,40,68,.78);color:#fff;font-size:10px;font-weight:900;letter-spacing:.09em;pointer-events:none;backdrop-filter:blur(12px)}
+    #preview-badge{position:fixed;z-index:99999;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));padding:6px 10px;border-radius:999px;background:rgba(21,40,68,.78);color:#fff;font-size:10px;font-weight:900;letter-spacing:.09em;pointer-events:none}
     @media(max-width:560px){#game-container{padding-top:max(8px,env(safe-area-inset-top))}}
   </style>
-  <link id="quartet-v2-css" rel="stylesheet" href="web/games/quartet-v2.css?v=preview-v4">
-  <link rel="stylesheet" href="web/games/quartet-mobile.css?v=preview-v4">
-  <link rel="stylesheet" href="web/games/quartet-v4-preview.css?v=preview-v4">
+  <link id="quartet-v2-css" rel="stylesheet" href="web/games/quartet-v2.css?v=preview-v41">
+  <link rel="stylesheet" href="web/games/quartet-mobile.css?v=preview-v41">
+  <link rel="stylesheet" href="web/games/quartet-v4-preview.css?v=preview-v41">
 </head>
 <body data-mode="game" data-current-game="quartet">
   <main id="game-container" aria-live="polite"></main>
-  <div id="preview-badge">QUARTET V4 · CLOUDFLARE PREVIEW</div>
+  <div id="preview-badge">QUARTET V4.1 · CLOUDFLARE PREVIEW</div>
   <script>
     window.QUARTET_BACKEND_URL = location.origin;
     const backendMeta = document.querySelector('meta[name="quartet-backend"]');
     if (backendMeta) backendMeta.content = location.origin;
     window.appGoToMainMenu = () => location.reload();
   </script>
-  <script src="web/games/quartet.js?v=preview-v4"></script>
-  <script src="web/js/quartet-chat-addon.js?v=preview-v4"></script>
-  <script src="web/js/quartet-v4-preview-addon.js?v=preview-v4"></script>
+  <script src="web/games/quartet.js?v=preview-v41"></script>
+  <script src="web/js/quartet-chat-addon.js?v=preview-v41"></script>
+  <script src="web/js/quartet-v4-preview-addon.js?v=preview-v41"></script>
   <script>
-    window.startQuartetGame('web/data/quartet_bible.json?v=preview-v4');
+    window.startQuartetGame('web/data/quartet_bible.json?v=preview-v41');
   </script>
 </body>
 </html>`;
@@ -132,4 +132,4 @@ for (const required of [
   if (!fs.existsSync(path.join(publicDir, required))) throw new Error(`Missing preview asset: ${required}`);
 }
 
-console.log(`Quartet V4 Cloudflare preview built at ${output} with ${assetCount} illustrated cards, chat and premium card back.`);
+console.log(`Quartet V4.1 Cloudflare preview built at ${output} with ${assetCount} illustrated cards, chat, stable mobile dock and premium card back.`);
