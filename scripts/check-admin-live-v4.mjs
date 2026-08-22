@@ -47,6 +47,8 @@ includes('web/js/presence-identity.js', 'AppPresenceContext', 'Presence must exp
 includes('web/js/bmt-stars-cloud-sync.js', 'mutateBmtStars', 'BMT client must replay delta mutations');
 includes('web/js/bmt-stars-cloud-sync.js', 'pendingMutations', 'BMT client must retain offline mutation state');
 includes('web/js/bmt-stars-cloud-sync.js', 'expectedRevision', 'BMT client must send revision checks');
+includes('web/js/bmt-stars-cloud-sync.js', 'function gameActive()', 'BMT sync must be scoped to the active game');
+includes('web/js/bmt-stars-cloud-sync.js', 'if (force || gameActive()) syncNow()', 'Background pages must not trigger BMT sync traffic');
 
 includes('cloudflare/quartet-worker/src/index-admin-observer-v2.js', 'SESSION_CACHE_MS', 'Quartet observer must cache admin verification');
 includes('cloudflare/bible-sketch-worker/src/index-admin-observer-v2.js', 'SESSION_CACHE_MS', 'Bible Sketch observer must cache admin verification');
@@ -57,6 +59,6 @@ includes('web/styles/admin-live-v3.css', 'width:44px;height:44px', 'Admin contro
 includes('web/styles/admin-live-v3.css', 'admin-live-modal-open', 'Admin modals must lock background scrolling');
 includes('index.html', 'admin-live-v3.js?v=4', 'Admin live cache key must be bumped');
 includes('index.html', 'presence-identity.js?v=4', 'Presence cache key must be bumped');
-includes('index.html', 'bmt-stars-cloud-sync.js?v=47', 'BMT sync cache key must be bumped');
+includes('index.html', 'bmt-stars-cloud-sync.js?v=48', 'BMT sync cache key must be bumped');
 
 console.log('Admin live v4 regression checks passed.');
