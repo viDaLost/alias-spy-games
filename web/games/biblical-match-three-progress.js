@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (root) {
   "use strict";
 
-  const VERSION = 3;
+  const VERSION = 4;
   const LEGACY_KEY = "biblical_match_three_progress_v1";
   const DEFAULT_DAILY_REWARD = 5;
   const FREE_REWARD_STEPS = { easy: 3500, medium: 5000, hard: 6500 };
@@ -48,7 +48,19 @@
   }
 
   function starsKey() {
+    return `biblical_match_three_stars_v1_${userId()}`;
+  }
+
+  function legacyStarsKey() {
     return `bible_stars_v1_${userId()}`;
+  }
+
+  function migrateLegacyStarsOnce() {
+    try {
+      if (storage.getItem(starsKey()) !== null) return;
+      const legacy = Number(storage.getItem(legacyStarsKey()));
+      if (Number.isFinite(legacy)) storage.setItem(starsKey(), String(Math.max(0, Math.floor(legacy))));
+    } catch {}
   }
 
   function emptyFreeStats() {
@@ -138,6 +150,7 @@
   }
 
   function getStars() {
+    migrateLegacyStarsOnce();
     try {
       const value = Number(storage.getItem(starsKey()));
       return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
