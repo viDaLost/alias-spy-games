@@ -93,6 +93,8 @@ jobs:
         run: npm run check:home
       - name: Check admin live recovery on mobile
         run: npm run check:admin-live:browser
+      - name: Check live presence game transitions
+        run: npm run check:presence:browser
       - name: Open every game and return to menu
         run: npm run smoke:games
       - name: Test Biblical Treasures HQ icons and swipe

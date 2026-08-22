@@ -19,7 +19,12 @@
   let sessionExpiresAt = 0;
   let sessionPromise = null;
   let explicitRoom = '';
+  let explicitRoomGame = '';
   let explicitGame = '';
+
+  function normalizeGame(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+  }
 
   function getSessionId() {
     const key = 'app_telemetry_sid_v1';
@@ -33,7 +38,17 @@
   }
 
   function currentGame() {
-    return String(document.body?.dataset?.currentGame || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+    const domGame = normalizeGame(document.body?.dataset?.currentGame || '');
+    if (domGame) {
+      if (explicitGame && explicitGame !== domGame) explicitGame = domGame;
+      return domGame;
+    }
+
+    // If the application explicitly says it is not in game mode, never keep a
+    // stale explicit game from a previous screen.
+    const mode = String(document.body?.dataset?.mode || '').toLowerCase();
+    if (mode && mode !== 'game') return '';
+    return explicitGame;
   }
 
   function normalizeRoom(value) {
@@ -51,22 +66,42 @@
 
   function currentRoomId() {
     const game = currentGame();
-    if (explicitGame === game && explicitRoom) return explicitRoom;
+    if (explicitRoomGame === game && explicitRoom) return explicitRoom;
     return roomFromStorage(game);
   }
 
+  function setGame(game) {
+    explicitGame = normalizeGame(game);
+    sendPresence(true);
+  }
+
+  function clearGame(game = '') {
+    const expected = normalizeGame(game);
+    if (!expected || explicitGame === expected) {
+      explicitGame = '';
+      if (!document.body?.dataset?.currentGame) sendPresence(true);
+    }
+  }
+
   window.AppPresenceContext = Object.freeze({
+    setGame,
+    clearGame,
     setRoom(game, roomId) {
-      explicitGame = String(game || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
+      explicitRoomGame = normalizeGame(game);
       explicitRoom = normalizeRoom(roomId);
+      if (explicitRoomGame) explicitGame = explicitRoomGame;
       sendPresence(true);
     },
     clearRoom(game = '') {
-      if (!game || explicitGame === String(game).toLowerCase()) {
-        explicitGame = '';
+      const normalized = normalizeGame(game);
+      if (!normalized || explicitRoomGame === normalized) {
+        explicitRoomGame = '';
         explicitRoom = '';
         sendPresence(true);
       }
+    },
+    snapshot() {
+      return { game: currentGame(), roomId: currentRoomId() };
     },
   });
 
@@ -136,7 +171,10 @@
     pingTimer = setInterval(() => {
       if (document.hidden || pageLeaving) return sendOfflineAndClose('hidden-heartbeat');
       if (socket?.readyState === WebSocket.OPEN) {
-        try { socket.send(JSON.stringify({ type: 'ping' })); } catch {}
+        // Send the complete state on every heartbeat. A missed DOM transition can
+        // therefore self-heal within 15 seconds instead of keeping "main menu"
+        // forever while plain pings keep the stale socket fresh.
+        sendPresence(true);
       } else connect();
     }, HEARTBEAT_MS);
   }
@@ -177,14 +215,25 @@
     try { current.close(1000, reason); } catch {}
   }
 
-  const observer = new MutationObserver(() => sendPresence());
+  const observer = new MutationObserver(() => {
+    if (!document.body?.dataset?.currentGame && String(document.body?.dataset?.mode || '').toLowerCase() !== 'game') {
+      explicitGame = '';
+    }
+    sendPresence();
+  });
   observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-current-game', 'data-mode'] });
   contextTimer = window.setInterval(() => sendPresence(), CONTEXT_CHECK_MS);
+
+  window.addEventListener('app:game-presence', (event) => {
+    const game = normalizeGame(event?.detail?.game || '');
+    if (game) setGame(game); else clearGame();
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) sendOfflineAndClose('hidden');
     else { connect(); window.setTimeout(() => sendPresence(true), 60); }
   });
+  window.addEventListener('pageshow', () => { connect(); window.setTimeout(() => sendPresence(true), 60); });
   window.addEventListener('online', () => { connect(); window.setTimeout(() => sendPresence(true), 60); });
   window.addEventListener('offline', () => sendOfflineAndClose('network-offline'));
   window.addEventListener('pagehide', () => {
