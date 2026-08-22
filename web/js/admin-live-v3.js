@@ -382,9 +382,22 @@
   function writeCache(data) { try { sessionStorage.setItem('admin_live_v3_cache', JSON.stringify({ at: Date.now(), data })); } catch {} }
   function readCache() { try { const value = JSON.parse(sessionStorage.getItem('admin_live_v3_cache') || 'null'); return value && Date.now() - Number(value.at || 0) < 60_000 ? value.data : null; } catch { return null; } }
 
-  function scheduleMount() { clearTimeout(scheduled); scheduled = setTimeout(() => { ensurePanel(); enhanceAdminUserCards(); }, 100); }
+  function runMount() {
+    scheduled = 0;
+    ensurePanel();
+    enhanceAdminUserCards();
+  }
+
+  function scheduleMount() {
+    if (scheduled) return;
+    scheduled = setTimeout(runMount, 60);
+  }
+
   mountObserver = new MutationObserver(scheduleMount);
   mountObserver.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'data-mode'] });
+  window.addEventListener('pageshow', scheduleMount);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleMount(); });
   window.addEventListener('pagehide', () => { closeObserver(); clearInterval(refreshTimer); clearInterval(historyTimer); mountObserver?.disconnect(); });
+  window.AdminLiveV3 = Object.freeze({ mount: scheduleMount, refresh: () => refreshLive(true) });
   scheduleMount();
 })();
