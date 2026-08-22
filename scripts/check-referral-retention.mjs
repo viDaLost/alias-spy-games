@@ -9,7 +9,9 @@ const forbidText = (text, needle, label) => {
 };
 
 const worker = read('cloudflare/app-core-worker/src/index-v6.js');
-const entryWorker = read('cloudflare/app-core-worker/src/index-v7.js');
+const inviteWorker = read('cloudflare/app-core-worker/src/index-v7.js');
+const balanceWorker = read('cloudflare/app-core-worker/src/index-v8.js');
+const entryWorker = read('cloudflare/app-core-worker/src/index-v9.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const survey = read('web/js/referral-survey.js');
 const html = read('index.html');
@@ -25,9 +27,11 @@ requireText(worker, 'DELETE FROM support_tickets WHERE user_id = ?', 'support da
 requireText(worker, 'DELETE FROM android_sessions WHERE telegram_id = ?', 'Android sessions are not removed with an inactive account');
 requireText(worker, 'this.ctx.storage.delete(`user:${id}`)', 'legacy KV backup record is not removed with an inactive account');
 requireText(worker, 'async scheduled(', 'scheduled cleanup handler is missing');
-requireText(entryWorker, "from './index-v6.js'", 'v7 entrypoint must preserve retention runtime');
+requireText(inviteWorker, "from './index-v6.js'", 'v7 entrypoint must preserve retention runtime');
+requireText(balanceWorker, "from './index-v7.js'", 'v8 entrypoint must preserve v7 runtime');
+requireText(entryWorker, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
 
-requireText(wrangler, '"main": "src/index-v7.js"', 'new worker entry is not active');
+requireText(wrangler, '"main": "src/index-v9.js"', 'hardened worker entry is not active');
 requireText(wrangler, '"crons"', 'daily cleanup cron is not configured');
 
 requireText(survey, 'Откуда вы узнали о «Библейских играх»?', 'survey question is missing');
