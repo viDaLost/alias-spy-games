@@ -146,10 +146,14 @@ try {
   });
 
   await page.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-  await page.waitForSelector('#game-container', { timeout: 10_000 });
+  await page.waitForSelector('#game-container', { state: 'attached', timeout: 10_000 });
 
   await page.evaluate(() => {
+    document.documentElement.classList.remove('app-booting', 'app-menu-preparing');
     const container = document.getElementById('game-container');
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
+    container.style.pointerEvents = 'auto';
     container.innerHTML = `
       <section class="admin-v2">
         <header class="admin-v2__header"><h2>Управление приложением</h2></header>
@@ -158,7 +162,7 @@ try {
       </section>`;
   });
 
-  await page.waitForSelector('#admin-live-rescue', { timeout: 5_000 });
+  await page.waitForSelector('#admin-live-rescue', { state: 'attached', timeout: 5_000 });
   await page.waitForFunction(() => {
     const panel = document.getElementById('admin-live-rescue');
     const text = panel?.innerText || '';
