@@ -38,6 +38,10 @@ includes('web/js/admin-live-v3.js', 'needed.slice(index, index + 75)', 'Admin pr
 includes('web/js/admin-live-v3.js', 'busyBalances.has(key)', 'Balance buttons must be race guarded');
 includes('web/js/admin-live-v3.js', 'data-admin-bmt-input', 'Standard admin user cards must expose BMT balance');
 includes('web/js/admin-live-v3.js', "'If-None-Match'", 'Room observer must use conditional polling');
+includes('web/js/admin-live-v3.js', 'function runMount()', 'Admin live must have an explicit mount runner');
+includes('web/js/admin-live-v3.js', 'if (scheduled) return;', 'Admin live mount scheduling must not be starved by repeated DOM mutations');
+includes('web/js/admin-live-v3.js', 'scheduled = setTimeout(runMount, 60);', 'Admin live must mount promptly after the admin shell appears');
+excludes('web/js/admin-live-v3.js', 'clearTimeout(scheduled); scheduled = setTimeout', 'Admin live must not endlessly postpone first mount');
 
 excludes('web/js/presence-identity.js', "searchParams.set('initData'", 'Presence websocket must not expose Telegram initData');
 includes('web/js/presence-identity.js', "scope: 'presence'", 'Presence must use a scoped web session');
@@ -57,8 +61,12 @@ includes('cloudflare/bible-sketch-worker/src/index-admin-observer-v2.js', 'If-No
 
 includes('web/styles/admin-live-v3.css', 'width:44px;height:44px', 'Admin controls must have mobile touch targets');
 includes('web/styles/admin-live-v3.css', 'admin-live-modal-open', 'Admin modals must lock background scrolling');
-includes('index.html', 'admin-live-v3.js?v=6', 'Admin live cache key must be bumped');
+includes('web/styles/admin-live-compact.css', 'grid-template-columns: repeat(2, minmax(0, 1fr));', 'Online balances must stay in a compact two-column grid');
+includes('web/styles/admin-live-compact.css', 'grid-template-columns: 44px minmax(24px, 1fr) 44px;', 'Compact balance controls must preserve 44px touch targets');
+includes('index.html', 'admin-live-v3.js?v=7', 'Admin live cache key must be bumped');
+includes('index.html', 'admin-live-compact.css?v=1', 'Compact admin live stylesheet must be loaded');
+includes('index.html', 'admin-shell-v3-20260822-2', 'Admin build marker must identify the instant compact release');
 includes('index.html', 'presence-identity.js?v=4', 'Presence cache key must be bumped');
 includes('index.html', 'bmt-stars-cloud-sync.js?v=48', 'BMT sync cache key must be bumped');
 
-console.log('Admin live v4 regression checks passed.');
+console.log('Admin live instant-mount and compact-layout regression checks passed.');

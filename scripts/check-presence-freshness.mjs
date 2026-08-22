@@ -59,8 +59,9 @@ requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback 
 requireText(shell, "page.dataset.adminVersion = '3'", 'admin shell v3 must stamp its runtime version');
 requireText(shell, "livePanel(page)", 'admin shell v3 must place live monitoring in the dashboard');
 requireText(html, 'presence-identity.js?v=4', 'secure WebApp presence client is not mounted');
-requireText(html, 'admin-live-v3.js?v=6', 'admin live v3 monitor is not mounted with fresh cache key');
+requireText(html, 'admin-live-v3.js?v=7', 'admin live v3 monitor is not mounted with fresh cache key');
 requireText(html, 'admin-live-v3.css?v=6', 'admin live v3 styles are not mounted with fresh cache key');
+requireText(html, 'admin-live-compact.css?v=1', 'compact live user-card styles are not mounted');
 requireText(html, 'admin-live-rescue.js?v=2', 'admin live recovery client is not mounted');
 requireText(html, 'admin-shell-v3.js?v=1', 'admin shell v3 is not mounted');
 requireText(html, 'admin-shell-v3.css?v=1', 'admin shell v3 styles are not mounted');

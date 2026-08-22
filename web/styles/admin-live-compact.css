@@ -1,0 +1,132 @@
+/* Compact online-player cards for Admin Live V3.
+   Keeps 44px touch targets while fitting all four balances into a 2x2 grid. */
+.admin-live-v3__people {
+  gap: 6px;
+}
+
+.admin-live-v3__person {
+  padding: 8px;
+  border-radius: 16px;
+}
+
+.admin-live-v3__identity {
+  grid-template-columns: 8px 36px minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.admin-live-v3__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  font-size: .78rem;
+}
+
+.admin-live-v3__name b {
+  font-size: .76rem;
+}
+
+.admin-live-v3__name small {
+  margin-top: 2px;
+  font-size: .61rem;
+}
+
+.admin-live-v3__chat {
+  min-width: 44px;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.admin-live-v3__balances {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.admin-live-v3__balance {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 6px;
+  border-radius: 11px;
+}
+
+.admin-live-v3__balance > span {
+  display: block;
+  min-width: 0;
+  font-size: .61rem;
+  line-height: 1.05;
+}
+
+.admin-live-v3__balance > div {
+  display: grid;
+  grid-template-columns: 44px minmax(24px, 1fr) 44px;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-live-v3__balance button {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.admin-live-v3__balance b {
+  min-width: 0;
+  overflow: hidden;
+  font-size: .72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-live-v3__observe {
+  margin-top: 6px;
+}
+
+.admin-live-v3__profile-loading {
+  grid-column: 1 / -1;
+  padding: 8px;
+}
+
+@media (max-width: 520px) {
+  .admin-live-v3__balances {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-live-v3__identity {
+    grid-template-columns: 8px 34px minmax(0, 1fr) 44px;
+    gap: 6px;
+  }
+
+  .admin-live-v3__avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .admin-live-v3__balance {
+    padding: 5px;
+  }
+
+  .admin-live-v3__balance > span {
+    font-size: .59rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .admin-live-v3__balances {
+    gap: 4px;
+  }
+
+  .admin-live-v3__balance {
+    padding-inline: 4px;
+  }
+
+  .admin-live-v3__balance > div {
+    grid-template-columns: 44px minmax(20px, 1fr) 44px;
+  }
+}
