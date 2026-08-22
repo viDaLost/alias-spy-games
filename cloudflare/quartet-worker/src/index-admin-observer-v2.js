@@ -9,11 +9,16 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const match = url.pathname.match(/^\/admin\/rooms\/([A-Z0-9]{4,10})\/state$/i);
-    const hasBearer = /^Bearer\s+bgw_/i.test(String(request.headers.get('Authorization') || ''));
-    if (!match || !hasBearer) return baseWorker.fetch(request, env, ctx);
+    if (!match) return baseWorker.fetch(request, env, ctx);
 
     const cors = corsHeaders(request, env);
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method === 'OPTIONS') {
+      if (!isAllowedOrigin(request, env)) return json({ ok: false, error: 'Origin not allowed' }, 403, cors);
+      return new Response(null, { status: 204, headers: cors });
+    }
+
+    const hasBearer = /^Bearer\s+bgw_/i.test(String(request.headers.get('Authorization') || ''));
+    if (!hasBearer) return baseWorker.fetch(request, env, ctx);
     if (request.method !== 'GET') return json({ ok: false, error: 'Not found' }, 404, cors);
 
     try {
@@ -100,6 +105,7 @@ function corsHeaders(request, env) {
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
     'Access-Control-Expose-Headers': 'ETag',
+    'Access-Control-Max-Age': '600',
     Vary: 'Origin',
   };
 }
