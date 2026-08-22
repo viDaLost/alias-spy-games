@@ -18,7 +18,8 @@
     "check:bible-sketch": "node scripts/check-bible-sketch-landscape-v2.mjs",
     "check:android": "node scripts/check-android-runtime.mjs",
     "check:cloudflare-core": "node scripts/check-cloudflare-core-mode.mjs",
-    "check:admin-live": "node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs"
+    "check:admin-live": "node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs",
+    "check:admin-live:browser": "node scripts/check-admin-live-browser.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.55.0"
