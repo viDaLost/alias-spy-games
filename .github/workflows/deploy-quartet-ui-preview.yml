@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - feat/quartet-card-redesign
+    paths-ignore:
+      - '.preview-status/**'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: quartet-ui-cloudflare-preview
@@ -54,3 +56,21 @@ jobs:
           done
           echo 'Cloudflare Quartet V4.1 preview marker was not found' >&2
           exit 1
+
+      - name: Record verified preview SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_PATH: .preview-status/quartet.json
+          PREVIEW_URL: https://alias-spy-games-quartet-ui-preview.vitaledanilov.workers.dev/
+        run: |
+          verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"4.1",verified_at:$verified}')"
+          encoded="$(printf '%s' "$status_json" | base64 -w0)"
+          current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
+          body="$(jq -nc --arg msg "chore: record Quartet preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" \
+            -d "$body" >/dev/null
