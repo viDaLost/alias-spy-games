@@ -12,6 +12,7 @@ const worker = read('cloudflare/app-observability-worker/src/index-v4.js');
 const secureWorker = read('cloudflare/app-observability-worker/src/index-v6.js');
 const wrangler = read('cloudflare/app-observability-worker/wrangler.jsonc');
 const web = read('web/js/presence-identity.js');
+const bridge = read('web/js/presence-game-bridge.js');
 const android = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
 const admin = read('web/js/admin-live-v3.js');
 const rescue = read('web/js/admin-live-rescue.js');
@@ -38,10 +39,21 @@ requireText(web, "scope: 'presence'", 'WebApp does not obtain a scoped presence 
 requireText(web, "url.searchParams.set('token', token)", 'WebApp does not connect with the scoped presence token');
 forbidText(web, "url.searchParams.set('initData'", 'Telegram initData must not be exposed in the presence WebSocket URL');
 requireText(web, "localStorage.getItem('bible_sketch_room_id_v1')", 'WebApp does not report Bible Sketch room state');
-requireText(web, 'AppPresenceContext', 'explicit room presence context API is missing');
+requireText(web, 'setGame,', 'presence context must expose an explicit game setter');
+requireText(web, 'clearGame,', 'presence context must expose an explicit game clearer');
+requireText(web, 'sendPresence(true);', 'presence heartbeat must send complete state instead of only a stale ping');
+forbidText(web, "socket.send(JSON.stringify({ type: 'ping' }))", 'Web heartbeat must not preserve stale game state with ping-only refreshes');
+requireText(web, "window.addEventListener('app:game-presence'", 'presence must accept explicit game navigation events');
+requireText(web, 'snapshot()', 'presence context must expose a debuggable state snapshot');
 requireText(web, "type: 'offline'", 'WebApp does not explicitly report offline state');
 requireText(web, "document.addEventListener('visibilitychange'", 'WebApp visibility tracking is missing');
 requireText(web, "sendOfflineAndClose('hidden')", 'hidden WebApp remains online');
+
+requireText(bridge, 'window.showGame = wrappedShowGame;', 'game bridge must wrap the common game launcher');
+requireText(bridge, "wrapMenuFunction('goToMainMenu')", 'game bridge must clear presence on return to menu');
+requireText(bridge, "document.body?.dataset?.currentGame", 'game bridge must use the canonical body game marker');
+requireText(bridge, "window.AppPresenceContext?.setGame?.", 'game bridge must push game state into presence');
+requireText(bridge, "window.AppPresenceContext?.clearGame?.", 'game bridge must clear game state in presence');
 
 requireText(android, 'private const val HEARTBEAT_MS = 15_000L', 'Android heartbeat is not strict enough');
 requireText(android, 'game == "quartet" || game == "bible-sketch"', 'Android does not report Bible Sketch rooms');
@@ -58,7 +70,8 @@ forbidText(rescue, '?initData=', 'recovery live requests must not expose Telegra
 requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback must use a request header');
 requireText(shell, "page.dataset.adminVersion = '3'", 'admin shell v3 must stamp its runtime version');
 requireText(shell, "livePanel(page)", 'admin shell v3 must place live monitoring in the dashboard');
-requireText(html, 'presence-identity.js?v=4', 'secure WebApp presence client is not mounted');
+requireText(html, 'presence-identity.js?v=5', 'fresh WebApp presence client is not mounted');
+requireText(html, 'presence-game-bridge.js?v=1', 'game-navigation presence bridge is not mounted');
 requireText(html, 'admin-live-v3.js?v=7', 'admin live v3 monitor is not mounted with fresh cache key');
 requireText(html, 'admin-live-v3.css?v=6', 'admin live v3 styles are not mounted with fresh cache key');
 requireText(html, 'admin-live-compact.css?v=1', 'compact live user-card styles are not mounted');
@@ -66,4 +79,4 @@ requireText(html, 'admin-live-rescue.js?v=2', 'admin live recovery client is not
 requireText(html, 'admin-shell-v3.js?v=1', 'admin shell v3 is not mounted');
 requireText(html, 'admin-shell-v3.css?v=1', 'admin shell v3 styles are not mounted');
 
-console.log('Strict verified presence, scoped sessions, rollout-safe admin fallback, room tracking and admin shell v3 checks passed');
+console.log('Strict verified presence, current-game tracking, scoped sessions, room tracking and admin shell v3 checks passed');
