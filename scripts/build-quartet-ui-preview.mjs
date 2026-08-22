@@ -19,7 +19,11 @@ for (const file of [
   'web/games/quartet.js',
   'web/games/quartet-v2.css',
   'web/games/quartet-mobile.css',
+  'web/games/quartet-v4-preview.css',
+  'web/js/quartet-chat-addon.js',
+  'web/js/quartet-v4-preview-addon.js',
   'web/data/quartet_bible.json',
+  'web/assets/quartet/card-back-v4.svg',
 ]) copy(file);
 
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'web/data/quartet_bible.json'), 'utf8'));
@@ -33,7 +37,7 @@ const indexHtml = `<!doctype html>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#eef4ff">
   <meta name="quartet-backend" content="">
-  <title>Квартет · Cloudflare Preview</title>
+  <title>Квартет V4 · Cloudflare Preview</title>
   <style>
     :root{--app-primary:#4f46e5;--app-primary-2:#2563eb;color-scheme:light}
     *{box-sizing:border-box}
@@ -44,19 +48,24 @@ const indexHtml = `<!doctype html>
     #preview-badge{position:fixed;z-index:99999;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));padding:6px 10px;border-radius:999px;background:rgba(21,40,68,.78);color:#fff;font-size:10px;font-weight:900;letter-spacing:.09em;pointer-events:none;backdrop-filter:blur(12px)}
     @media(max-width:560px){#game-container{padding-top:max(8px,env(safe-area-inset-top))}}
   </style>
-  <link id="quartet-v2-css" rel="stylesheet" href="web/games/quartet-v2.css?v=preview-v3">
-  <link rel="stylesheet" href="web/games/quartet-mobile.css?v=preview-v3">
+  <link id="quartet-v2-css" rel="stylesheet" href="web/games/quartet-v2.css?v=preview-v4">
+  <link rel="stylesheet" href="web/games/quartet-mobile.css?v=preview-v4">
+  <link rel="stylesheet" href="web/games/quartet-v4-preview.css?v=preview-v4">
 </head>
 <body data-mode="game" data-current-game="quartet">
   <main id="game-container" aria-live="polite"></main>
-  <div id="preview-badge">QUARTET V3 · CLOUDFLARE PREVIEW</div>
+  <div id="preview-badge">QUARTET V4 · CLOUDFLARE PREVIEW</div>
   <script>
     window.QUARTET_BACKEND_URL = location.origin;
+    const backendMeta = document.querySelector('meta[name="quartet-backend"]');
+    if (backendMeta) backendMeta.content = location.origin;
     window.appGoToMainMenu = () => location.reload();
   </script>
-  <script src="web/games/quartet.js?v=preview-v3"></script>
+  <script src="web/games/quartet.js?v=preview-v4"></script>
+  <script src="web/js/quartet-chat-addon.js?v=preview-v4"></script>
+  <script src="web/js/quartet-v4-preview-addon.js?v=preview-v4"></script>
   <script>
-    window.startQuartetGame('web/data/quartet_bible.json?v=preview-v3');
+    window.startQuartetGame('web/data/quartet_bible.json?v=preview-v4');
   </script>
 </body>
 </html>`;
@@ -114,4 +123,13 @@ if (assetCount !== cards.length || cards.length !== 48) {
   throw new Error(`Preview card bundle mismatch: ${assetCount}/${cards.length}`);
 }
 
-console.log(`Quartet Cloudflare preview built at ${output} with ${assetCount} illustrated cards.`);
+for (const required of [
+  'web/games/quartet-v4-preview.css',
+  'web/js/quartet-chat-addon.js',
+  'web/js/quartet-v4-preview-addon.js',
+  'web/assets/quartet/card-back-v4.svg',
+]) {
+  if (!fs.existsSync(path.join(publicDir, required))) throw new Error(`Missing preview asset: ${required}`);
+}
+
+console.log(`Quartet V4 Cloudflare preview built at ${output} with ${assetCount} illustrated cards, chat and premium card back.`);
