@@ -57,16 +57,22 @@
   function upgradeHeader(page) {
     const header = first('.admin-v2__header', page);
     if (!header) return;
-    header.classList.add('admin-v3-header');
+    if (!header.classList.contains('admin-v3-header')) header.classList.add('admin-v3-header');
 
     const heading = first('.admin-v2__heading', header);
     if (heading) {
       const eyebrow = first('.admin-v2__eyebrow', heading);
-      if (eyebrow) eyebrow.textContent = 'CONTROL CENTER · V3';
+      if (eyebrow && eyebrow.textContent !== 'CONTROL CENTER · V3') eyebrow.textContent = 'CONTROL CENTER · V3';
+
       const title = first('h2', heading);
-      if (title) title.textContent = 'Панель управления';
+      if (title && title.textContent !== 'Панель управления') title.textContent = 'Панель управления';
+
       const meta = first('p', heading);
-      if (meta) meta.innerHTML = `Синхронизация <span class="admin-v3-online-dot" aria-hidden="true"></span> <span data-admin-loaded-at>${document.querySelector('[data-admin-loaded-at]')?.textContent || 'сейчас'}</span>`;
+      if (meta && meta.dataset.adminV3Ready !== '1') {
+        const loaded = first('[data-admin-loaded-at]', meta)?.textContent?.trim() || 'сейчас';
+        meta.innerHTML = `Синхронизация <span class="admin-v3-online-dot" aria-hidden="true"></span> <span data-admin-loaded-at>${loaded}</span>`;
+        meta.dataset.adminV3Ready = '1';
+      }
 
       if (!first('.admin-v3-live-badge', heading)) {
         const badge = document.createElement('span');
@@ -78,19 +84,20 @@
 
     const refresh = first('[data-admin-action="refresh"]', header);
     if (refresh) {
-      refresh.classList.add('admin-v3-refresh');
-      refresh.setAttribute('title', 'Обновить данные');
+      if (!refresh.classList.contains('admin-v3-refresh')) refresh.classList.add('admin-v3-refresh');
+      if (refresh.getAttribute('title') !== 'Обновить данные') refresh.setAttribute('title', 'Обновить данные');
     }
   }
 
   function upgradeStats(page) {
     const stats = first('.admin-v2__stats', page);
     if (!stats) return;
-    stats.classList.add('admin-v3-stats');
+    if (!stats.classList.contains('admin-v3-stats')) stats.classList.add('admin-v3-stats');
     const cards = [...stats.children];
     const icons = ['Σ', '✓', '×'];
     cards.forEach((card, index) => {
-      card.dataset.adminV3Icon = icons[index] || '•';
+      const icon = icons[index] || '•';
+      if (card.dataset.adminV3Icon !== icon) card.dataset.adminV3Icon = icon;
     });
   }
 
@@ -131,13 +138,15 @@
     const nav = first('.admin-v3-nav', page);
     if (!nav) return;
     const online = first('#admin-live-v3 .admin-live-v3__section-head span', page)
-      || first('#admin-live-rescue [data-live-count]', page);
+      || first('#admin-live-rescue .admin-live-v3__section-head span', page);
     const supportCount = first('#support-admin-list', page)?.children?.length || 0;
 
     const overview = first('[data-admin-v3-target="overview"]', nav);
     const support = first('[data-admin-v3-target="support"]', nav);
-    if (overview) overview.dataset.count = String(online?.textContent?.trim() || '');
-    if (support) support.dataset.count = supportCount > 0 ? String(supportCount) : '';
+    const onlineCount = String(online?.textContent?.trim() || '');
+    const supportValue = supportCount > 0 ? String(supportCount) : '';
+    if (overview && overview.dataset.count !== onlineCount) overview.dataset.count = onlineCount;
+    if (support && support.dataset.count !== supportValue) support.dataset.count = supportValue;
   }
 
   function enhance() {
@@ -145,8 +154,8 @@
     const page = first(PAGE_SELECTOR);
     if (!page) return;
 
-    page.classList.add('admin-v3-shell');
-    page.dataset.adminVersion = '3';
+    if (!page.classList.contains('admin-v3-shell')) page.classList.add('admin-v3-shell');
+    if (page.dataset.adminVersion !== '3') page.dataset.adminVersion = '3';
     upgradeHeader(page);
     ensureNav(page);
     upgradeStats(page);
@@ -161,7 +170,7 @@
   }
 
   observer = new MutationObserver(schedule);
-  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'id'] });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
   window.addEventListener('pageshow', schedule);
   document.addEventListener('DOMContentLoaded', schedule, { once: true });
   schedule();
