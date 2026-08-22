@@ -1,8 +1,12 @@
 (() => {
   const STORAGE_KEY = 'home_hidden_sections_v1';
   const SECTION_KEYS = ['continue', 'recent', 'progress'];
+  const READY_RETRY_MS = 80;
+  const MAX_READY_RETRIES = 30;
   let observer = null;
   let scheduled = 0;
+  let retryTimer = 0;
+  let retryCount = 0;
   let rendering = false;
 
   function syncRoot(hidden) {
@@ -50,9 +54,9 @@
   }
 
   function apply() {
-    if (rendering) return;
+    if (rendering) return false;
     const dashboard = document.getElementById('home-dashboard');
-    if (!dashboard || dashboard.dataset.contentReady !== '1') return;
+    if (!dashboard || dashboard.dataset.contentReady !== '1') return false;
 
     rendering = true;
     observer?.disconnect();
@@ -90,26 +94,39 @@
         dashboard.appendChild(restore);
       }
       dashboard.dataset.controlsReady = '1';
+      retryCount = 0;
+      clearTimeout(retryTimer);
+      retryTimer = 0;
       window.dispatchEvent(new CustomEvent('app:home-controls-ready'));
+      return true;
     } finally {
       observer?.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-mode', 'data-content-ready'] });
       rendering = false;
     }
   }
 
+  function ensureReady() {
+    if (apply()) return;
+    if (retryCount >= MAX_READY_RETRIES) return;
+    retryCount += 1;
+    clearTimeout(retryTimer);
+    retryTimer = window.setTimeout(ensureReady, READY_RETRY_MS);
+  }
+
   function schedule() {
     if (scheduled) cancelAnimationFrame(scheduled);
     scheduled = requestAnimationFrame(() => {
       scheduled = 0;
-      apply();
+      ensureReady();
     });
   }
 
   window.__homeControlsApply = apply;
   observer = new MutationObserver(schedule);
   observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-mode', 'data-content-ready'] });
-  window.addEventListener('pageshow', schedule);
-  window.addEventListener('app:home-dashboard-ready', schedule);
-  window.addEventListener('app:menu-ready', schedule);
-  schedule();
+  window.addEventListener('pageshow', ensureReady);
+  window.addEventListener('app:home-dashboard-ready', ensureReady);
+  window.addEventListener('app:menu-ready', ensureReady);
+  document.addEventListener('DOMContentLoaded', ensureReady, { once: true });
+  ensureReady();
 })();
