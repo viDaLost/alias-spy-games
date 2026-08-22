@@ -7,9 +7,17 @@
   const Core = window.BiblicalMatchThreeCore;
   if (!Core) throw new Error('BiblicalMatchThreeCore must load before V45 special rules');
 
+  const styleHref = 'web/styles/biblical-match-three-v45.css?v=45';
+  if (!document.querySelector('link[data-bmt-v45-style]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = styleHref;
+    link.dataset.bmtV45Style = '1';
+    document.head.appendChild(link);
+  }
+
   const originalCombo = Core.specialComboClearSet.bind(Core);
   const originalFindMoves = Core.findMoves.bind(Core);
-  const isLine = (special) => special === 'lineH' || special === 'lineV';
 
   function addAll(target, indices) {
     for (const index of indices || []) target.add(index);
@@ -24,7 +32,7 @@
     const sb = second.special || null;
     if (!sa && !sb) return null;
 
-    // Preserve the existing authored combinations when both swapped pieces are special.
+    // Preserve authored special-to-special combinations.
     if (sa && sb) return originalCombo(board, a, b, rows, cols);
 
     const special = sa || sb;
@@ -33,8 +41,8 @@
     const clearSet = new Set([a, b]);
 
     if (special === 'rainbow') {
-      // Rainbow + symbol: remove the rainbow, the swapped piece and every piece
-      // of that symbol currently present on the board.
+      // Rainbow + symbol: remove the rainbow, swapped piece and every piece
+      // of that symbol type currently on the board.
       for (let index = 0; index < board.length; index += 1) {
         if (board[index]?.type === normal.type) clearSet.add(index);
       }
@@ -93,7 +101,7 @@
   function patchCopy() {
     if (document.body?.dataset?.currentGame !== 'biblical-match-three') return;
 
-    // Old Ark booster must never reappear even if an older cached game script renders it.
+    // Old Ark booster must never reappear if an older game script is cached.
     document.querySelectorAll('#game-container [data-booster="ark"]').forEach((node) => node.remove());
 
     const covenant = document.querySelector('#game-container [data-bmt-pre-booster="covenant"] .bmt-prebooster__copy small');
