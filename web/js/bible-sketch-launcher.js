@@ -3,6 +3,7 @@
   const GAME_TITLE = 'Библейский художник';
   const GAME_DESC = 'Рисуйте по очереди и найдите шпиона';
   const ICON_URL = 'web/assets/icons/bible-sketch.webp?v=3';
+  const LANDSCAPE_STYLE_URL = 'web/games/bible-sketch-landscape-v2.css?v=2';
   let gameScriptPromise = null;
   let showPatched = false;
   let wasSketch = false;
@@ -37,12 +38,26 @@
     }
   }
 
+  function ensureLandscapeStyles() {
+    let link = document.getElementById('bible-sketch-landscape-v2-css');
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'bible-sketch-landscape-v2-css';
+      link.rel = 'stylesheet';
+      link.href = LANDSCAPE_STYLE_URL;
+      document.head.appendChild(link);
+      return;
+    }
+    if (!String(link.href || '').includes('bible-sketch-landscape-v2.css')) link.href = LANDSCAPE_STYLE_URL;
+    document.head.appendChild(link);
+  }
+
   function loadGameScript() {
     if (typeof window.startBibleSketchGame === 'function') return Promise.resolve();
     if (gameScriptPromise) return gameScriptPromise;
     gameScriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'web/games/bible-sketch.js?v=1';
+      script.src = 'web/games/bible-sketch.js?v=2';
       script.dataset.gameScript = 'web/games/bible-sketch.js';
       script.onload = resolve;
       script.onerror = () => reject(new Error('Не удалось загрузить Библейского художника'));
@@ -65,6 +80,8 @@
       await loadGameScript();
       if (document.body.dataset.currentGame !== GAME_KEY) return;
       window.startBibleSketchGame?.();
+      ensureLandscapeStyles();
+      requestAnimationFrame(ensureLandscapeStyles);
     } catch (error) {
       console.error('Bible Sketch launcher error', error);
       if (container) container.innerHTML = `<section class="app-error-card fade-in"><h2>Не удалось открыть игру</h2><p>${escapeText(error?.message || error)}</p><button class="back-button" onclick="goToMainMenu()">В главное меню</button></section>`;
@@ -89,7 +106,10 @@
       wasSketch = false;
       try { window.__bibleSketchCleanup?.(); } catch {}
     }
-    if (isSketch) wasSketch = true;
+    if (isSketch) {
+      wasSketch = true;
+      ensureLandscapeStyles();
+    }
   }
 
   function escapeText(value) {
