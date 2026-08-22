@@ -95,6 +95,7 @@ const wranglerConfig = {
   assets: {
     directory: './public',
     binding: 'ASSETS',
+    run_worker_first: true,
     not_found_handling: 'single-page-application',
   },
   vars: {
