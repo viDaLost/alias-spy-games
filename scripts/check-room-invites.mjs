@@ -16,7 +16,9 @@ const brandCss = read('web/styles/room-qr-brand.css');
 const css = read('web/styles/room-invite.css');
 const gestureCss = read('web/styles/quartet-gesture-guard.css');
 const gestureJs = read('web/js/telegram-gesture-guard.js');
-const core = read('cloudflare/app-core-worker/src/index-v7.js');
+const inviteCore = read('cloudflare/app-core-worker/src/index-v7.js');
+const balanceCore = read('cloudflare/app-core-worker/src/index-v8.js');
+const entryCore = read('cloudflare/app-core-worker/src/index-v9.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const html = read('index.html');
 
@@ -66,9 +68,11 @@ requireText(addon, 't.me/share/url', 'room share button does not use Telegram sh
 requireText(addon, 'data-action="join"', 'Quartet fallback auto-join is missing');
 requireText(addon, 'data-action="join-room"', 'Bible Sketch fallback auto-join is missing');
 
-requireText(core, "'/telegram/miniapp-config'", 'core backend does not expose Mini App bot config');
-requireText(core, '/getMe', 'core backend does not resolve Telegram bot username');
-requireText(wrangler, 'src/index-v7.js', 'Mini App config worker entrypoint is not active');
+requireText(inviteCore, "'/telegram/miniapp-config'", 'core backend does not expose Mini App bot config');
+requireText(inviteCore, '/getMe', 'core backend does not resolve Telegram bot username');
+requireText(balanceCore, "from './index-v7.js'", 'v8 entrypoint must preserve Mini App config runtime');
+requireText(entryCore, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
+requireText(wrangler, 'src/index-v9.js', 'hardened Mini App config worker entrypoint is not active');
 
 requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
 requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
