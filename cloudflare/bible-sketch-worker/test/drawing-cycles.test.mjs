@@ -53,9 +53,11 @@ test('only the active last drawer may finish the first cycle', () => {
   assert.equal(isLastTurnOfDrawingCycle(state, 'p2'), false);
 });
 
-test('cycle metadata is exposed to clients', () => {
-  const state = makeState({ drawingCycle: 2 });
-  const view = withDrawingCycleMeta({ status: 'drawing' }, state);
+test('cycle metadata expands client turn progress across both cycles', () => {
+  const state = makeState({ drawingCycle: 2, turnIndex: 1 });
+  const view = withDrawingCycleMeta({ status: 'drawing', turnIndex: 1, turnCount: 3 }, state);
   assert.equal(view.drawingCycle, 2);
   assert.equal(view.drawingCycles, 2);
+  assert.equal(view.turnIndex, 4);
+  assert.equal(view.turnCount, 6);
 });
