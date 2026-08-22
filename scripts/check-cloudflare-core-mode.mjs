@@ -5,6 +5,8 @@ const fail = (message) => { throw new Error(message); };
 
 const html = read('index.html');
 const bridge = read('web/js/backend-bridge.js');
+const secureEntryWorker = read('cloudflare/app-core-worker/src/index-v9.js');
+const balanceEntryWorker = read('cloudflare/app-core-worker/src/index-v8.js');
 const entryWorker = read('cloudflare/app-core-worker/src/index-v7.js');
 const retentionEntryWorker = read('cloudflare/app-core-worker/src/index-v6.js');
 const supportEntryWorker = read('cloudflare/app-core-worker/src/index-v5.js');
@@ -40,12 +42,17 @@ if (bridge.includes('coreHealthy = response.ok')) {
   fail('HTTP 4xx responses must not put the whole Core bridge into failure cooldown.');
 }
 
-if (!wrangler.includes('"main": "src/index-v7.js"')) fail('Core Worker must use the production Cloudflare entrypoint.');
-if (!entryWorker.includes("from './index-v6.js'")) fail('Production entrypoint must preserve the v6 retention runtime.');
+if (!wrangler.includes('"main": "src/index-v9.js"')) fail('Core Worker must use the hardened v9 production entrypoint.');
+if (!secureEntryWorker.includes("from './index-v8.js'")) fail('v9 entrypoint must preserve the v8 balance/admin runtime.');
+if (!balanceEntryWorker.includes("from './index-v7.js'")) fail('v8 entrypoint must preserve the v7 invite runtime.');
+if (!entryWorker.includes("from './index-v6.js'")) fail('v7 entrypoint must preserve the v6 retention runtime.');
 if (!retentionEntryWorker.includes("from './index-v5.js'")) fail('Retention entrypoint must preserve the validated v5 support runtime.');
 if (!supportEntryWorker.includes("from './index-v4.js'")) fail('Support entrypoint must preserve the validated v4 core runtime.');
 if (!supportEntryWorker.includes("'/telegram/webhook'")) fail('Production runtime must expose the Telegram support webhook.');
 if (!entryWorker.includes("'/telegram/miniapp-config'")) fail('Production runtime must expose Telegram Mini App invite config.');
+for (const required of ["'/web/session'", "'/web/session/verify'", 'mutateBmtStars', "url.pathname === '/android/compat'", 'expectedRevision']) {
+  if (!secureEntryWorker.includes(required)) fail(`Hardened Core runtime is incomplete: ${required}`);
+}
 if (wrangler.includes('BROADCAST_GAS_URL') || wrangler.includes('LEGACY_GAS_URL')) {
   fail('Apps Script backend variables must not be active in production.');
 }
@@ -54,7 +61,7 @@ if (baseWorker.includes('BROADCAST_GAS_URL') || baseWorker.includes("action === 
 }
 
 for (const forbidden of ['importGoogleSheet', 'docs.google.com', 'mirrorLegacy(', 'callLegacy(']) {
-  if (entryWorker.includes(forbidden) || retentionEntryWorker.includes(forbidden) || supportEntryWorker.includes(forbidden) || worker.includes(forbidden) || baseWorker.includes(forbidden)) {
+  if ([secureEntryWorker, balanceEntryWorker, entryWorker, retentionEntryWorker, supportEntryWorker, worker, baseWorker].some((source) => source.includes(forbidden))) {
     fail(`Cloudflare-only Worker still contains forbidden runtime dependency: ${forbidden}`);
   }
 }
@@ -85,4 +92,4 @@ for (const required of [
 }
 if (broadcastStore.includes('script.google.com')) fail('Broadcast engine must not call Apps Script.');
 
-console.log('OK: users, admin, support, referral survey, room invites and broadcast are Cloudflare-native; access checks stay bounded without throttling admin requests; Telegram delivery is direct; KV backup is retained until account-retention cleanup.');
+console.log('OK: Core v9 preserves the validated Cloudflare-only runtime chain and adds scoped web sessions plus revisioned BMT sync; KV backup and direct Telegram delivery remain intact.');
