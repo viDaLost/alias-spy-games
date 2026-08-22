@@ -57,7 +57,7 @@ includes('cloudflare/bible-sketch-worker/src/index-admin-observer-v2.js', 'If-No
 
 includes('web/styles/admin-live-v3.css', 'width:44px;height:44px', 'Admin controls must have mobile touch targets');
 includes('web/styles/admin-live-v3.css', 'admin-live-modal-open', 'Admin modals must lock background scrolling');
-includes('index.html', 'admin-live-v3.js?v=4', 'Admin live cache key must be bumped');
+includes('index.html', 'admin-live-v3.js?v=5', 'Admin live cache key must be bumped');
 includes('index.html', 'presence-identity.js?v=4', 'Presence cache key must be bumped');
 includes('index.html', 'bmt-stars-cloud-sync.js?v=48', 'BMT sync cache key must be bumped');
 
