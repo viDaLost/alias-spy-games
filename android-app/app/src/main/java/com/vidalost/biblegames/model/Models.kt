@@ -50,5 +50,5 @@ data class WordSearchLevel(
     val words: List<String>,
 )
 
-data class QuartetCard(val id: String, val title: String)
+data class QuartetCard(val id: String, val title: String, val art: String = "")
 data class QuartetSet(val id: String, val name: String, val icon: String, val cards: List<QuartetCard>)

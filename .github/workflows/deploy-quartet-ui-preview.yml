@@ -1,0 +1,53 @@
+name: Deploy Quartet UI Cloudflare preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/quartet-card-redesign
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quartet-ui-cloudflare-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate Quartet v3
+        run: node scripts/check-quartet-card-table-v3.mjs
+
+      - name: Build isolated preview
+        run: node scripts/build-quartet-ui-preview.mjs .preview-quartet-ui
+
+      - name: Deploy isolated Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy --config .preview-quartet-ui/wrangler.jsonc
+
+      - name: Verify deployed preview
+        env:
+          PREVIEW_URL: https://alias-spy-games-quartet-ui-preview.vitaledanilov.workers.dev/
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/quartet-preview.html \
+              && grep -Fq 'QUARTET V3 · CLOUDFLARE PREVIEW' /tmp/quartet-preview.html; then
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}health" | grep -Fq 'alias-spy-games-quartet'
+              echo "Preview verified: ${PREVIEW_URL}"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Cloudflare preview marker was not found' >&2
+          exit 1

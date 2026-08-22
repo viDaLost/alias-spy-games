@@ -19,7 +19,7 @@
 
     const assets = [
       ['script', 'web/games/quartet.js?v=4'],
-      ['style', 'web/games/quartet-v2.css?v=3'],
+      ['style', 'web/games/quartet-v2.css?v=4'],
       ['script', 'web/games/bible-sketch.js?v=1'],
       ['style', 'web/games/bible-sketch.css?v=1'],
       ['fetch', 'web/data/quartet_bible.json'],

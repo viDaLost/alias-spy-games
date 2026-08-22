@@ -1,4 +1,4 @@
-/* Quartet v2.1 mobile containment and phone-first layout.
+/* Quartet v3 mobile containment and phone-first layout.
    Keeps horizontal card swiping inside the hand area instead of widening the page. */
 
 body[data-current-game="quartet"] {

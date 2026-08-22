@@ -1,4 +1,4 @@
-// games/quartet.js — Quartet v2.1, Cloudflare realtime UX
+// games/quartet.js — Quartet v3, tactile card-table UX
 
 function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   const container = document.getElementById('game-container');
@@ -53,7 +53,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   window.__quartetCleanup = cleanup;
 
   boot().catch((error) => {
-    console.error('Quartet v2.1 boot error', error);
+    console.error('Quartet v3 boot error', error);
     showFatal(String(error?.message || error));
   });
 
@@ -100,13 +100,13 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   function injectStylesheet() {
     const existing = document.getElementById('quartet-v2-css');
     if (existing) {
-      existing.href = 'web/games/quartet-v2.css?v=3';
+      existing.href = 'web/games/quartet-v2.css?v=4';
       return;
     }
     const link = document.createElement('link');
     link.id = 'quartet-v2-css';
     link.rel = 'stylesheet';
-    link.href = 'web/games/quartet-v2.css?v=3';
+    link.href = 'web/games/quartet-v2.css?v=4';
     document.head.appendChild(link);
   }
 
@@ -124,8 +124,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       name: String(quartet.name || quartet.theme || 'Квартет'),
       icon: String(quartet.icon || '🃏'),
       cards: (quartet.cards || []).map((card, index) => typeof card === 'string'
-        ? { id: `${quartet.id || 'q'}_${index}`, title: card }
-        : { id: String(card.id || ''), title: String(card.title || '') }),
+        ? { id: `${quartet.id || 'q'}_${index}`, title: card, art: '' }
+        : { id: String(card.id || ''), title: String(card.title || ''), art: String(card.art || '') }),
     }));
   }
 
@@ -515,7 +515,9 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       <div class="qv2-game ${myTurn ? 'is-my-turn' : 'is-waiting-turn'}">
         ${renderTurnBanner(myTurn)}
 
-        <section class="qv2-section qv2-glass qv2-players-section">
+        ${renderTurnSteps(myTurn)}
+
+        <section class="qv2-section qv2-glass qv2-players-section qv3-opponents">
           <div class="qv2-section-head">
             <div><h3 class="qv2-section-title">Игроки</h3><div class="qv2-section-caption">${myTurn ? 'Шаг 1 · выбери, у кого спросить карту' : `Сейчас действует ${escapeHtml(state.turnPlayerName || 'игрок')}`}</div></div>
             <div class="qv2-section-meta">${(state.players || []).filter((player) => player.isActive !== false).length} в партии</div>
@@ -525,7 +527,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
 
         ${event ? `<div class="qv2-event ${event.className}"><span class="qv2-event-icon">${event.icon}</span><span>${event.text}</span></div>` : ''}
 
-        <section class="qv2-section qv2-glass qv2-hand-section">
+        <section class="qv2-section qv2-glass qv2-hand-section qv3-hand-table">
           <div class="qv2-section-head">
             <div><h3 class="qv2-section-title">Твоя рука</h3><div class="qv2-section-caption">${myTurn ? 'Шаг 2 · выбери недостающую карту' : 'Можно заранее продумать следующий запрос'}</div></div>
             <div class="qv2-section-meta">🃏 ${me.cardsCount || 0} · 🏆 ${me.quartetsCount || 0}</div>
@@ -549,6 +551,19 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       </div>
     `;
     updateTurnTimer();
+  }
+
+  function renderTurnSteps(myTurn) {
+    const target = (state.players || []).find((player) => player.playerId === selectedTargetId);
+    const card = cardById.get(selectedCardId);
+    return `
+      <div class="qv3-step-rail ${myTurn ? '' : 'is-locked'}" aria-label="Этапы игрового хода">
+        <div class="qv3-step ${target ? 'is-done' : myTurn ? 'is-active' : ''}"><span>1</span><div><small>Игрок</small><strong>${target ? escapeHtml(target.name) : myTurn ? 'Выберите' : 'Ожидание'}</strong></div></div>
+        <i aria-hidden="true"></i>
+        <div class="qv3-step ${card ? 'is-done' : target ? 'is-active' : ''}"><span>2</span><div><small>Карта</small><strong>${card ? escapeHtml(card.title) : target ? 'Выберите' : 'После игрока'}</strong></div></div>
+        <i aria-hidden="true"></i>
+        <div class="qv3-step ${target && card ? 'is-active' : ''}"><span>3</span><div><small>Запрос</small><strong>${target && card ? 'Готов' : 'Подтвердить'}</strong></div></div>
+      </div>`;
   }
 
   function renderTurnBanner(myTurn) {
@@ -583,6 +598,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
           <span class="qv2-score-name">${escapeHtml(player.name)}${player.playerId === meId ? ' · ты' : ''}</span>
           <span class="qv2-presence ${player.connected ? 'is-online' : ''}" title="${player.connected ? 'Онлайн' : 'Не в сети'}"></span>
         </div>
+        <div class="qv3-card-fan" aria-hidden="true"><i></i><i></i><i></i><b>${Number(player.cardsCount || 0)}</b></div>
         <div class="qv2-score-stats"><span>🃏 ${Number(player.cardsCount || 0)}</span><span>🏆 ${Number(player.quartetsCount || 0)}</span></div>
         ${isTurn ? '<div class="qv2-player-turn-label">Сейчас ходит</div>' : ''}
         ${isTarget ? '<div class="qv2-player-target-label">Выбран</div>' : ''}
@@ -649,7 +665,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       return `
         <div class="qv2-playing-card is-owned" aria-label="${escapeHtml(card.title)}, карта у вас">
           <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
-          <div class="qv2-card-face-icon">${escapeHtml(quartet?.icon || '🃏')}</div>
+          <div class="qv3-card-art"><img src="${escapeHtml(cardArtUrl(card))}" alt="" loading="lazy" decoding="async"></div>
           <div class="qv2-playing-card-title">${escapeHtml(card.title)}</div>
           <div class="qv2-card-status">✓ В руке</div>
         </div>`;
@@ -660,10 +676,14 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
         ${canSelect ? `data-action="select-card" data-card-id="${escapeHtml(card.id)}" aria-pressed="${selected}"` : 'disabled'}
         aria-label="${escapeHtml(card.title)}, недостающая карта${selected ? ', выбрана' : ''}">
         <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
-        <div class="qv2-card-face-icon">${selected ? '✓' : '?'}</div>
+        <div class="qv3-card-art qv3-card-back"><span>${selected ? '✓' : '?'}</span></div>
         <div class="qv2-playing-card-title">${escapeHtml(card.title)}</div>
         <div class="qv2-card-status">${selected ? 'Выбрана' : canSelect ? 'Нажмите, чтобы выбрать' : 'Нужно собрать'}</div>
       </button>`;
+  }
+
+  function cardArtUrl(card) {
+    return card?.art || `web/assets/quartet/cards/${encodeURIComponent(String(card?.id || ''))}.webp`;
   }
 
   function renderActionDock(myTurn) {
