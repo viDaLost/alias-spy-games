@@ -10,10 +10,16 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const match = url.pathname.match(/^\/admin\/rooms\/([A-Z0-9]{4,10})\/state$/i);
-    const hasBearer = /^Bearer\s+bgw_/i.test(String(request.headers.get('Authorization') || ''));
-    if (!match || !hasBearer) return baseWorker.fetch(request, env, ctx);
+    if (!match) return baseWorker.fetch(request, env, ctx);
+
     const cors = corsHeaders(request, env);
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    if (request.method === 'OPTIONS') {
+      if (!isAllowedOrigin(request, env)) return json({ ok: false, error: 'Origin not allowed' }, 403, cors);
+      return new Response(null, { status: 204, headers: cors });
+    }
+
+    const hasBearer = /^Bearer\s+bgw_/i.test(String(request.headers.get('Authorization') || ''));
+    if (!hasBearer) return baseWorker.fetch(request, env, ctx);
     if (request.method !== 'GET') return json({ ok: false, error: 'Not found' }, 404, cors);
 
     try {
@@ -95,6 +101,17 @@ function bearerToken(request) { const match = String(request.headers.get('Author
 function normalizeRoomId(value) { return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
 function allowedOrigins(env) { return String(env.ALLOWED_ORIGINS || 'https://vidalost.github.io').split(',').map((item) => item.trim()).filter(Boolean); }
 function isAllowedOrigin(request, env) { return allowedOrigins(env).includes(request.headers.get('Origin') || ''); }
-function corsHeaders(request, env) { const origin = request.headers.get('Origin') || ''; const allowed = allowedOrigins(env); return { 'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0] || 'https://vidalost.github.io', 'Access-Control-Allow-Methods': 'GET,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match', 'Access-Control-Expose-Headers': 'ETag', Vary: 'Origin' }; }
+function corsHeaders(request, env) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = allowedOrigins(env);
+  return {
+    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0] || 'https://vidalost.github.io',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    'Access-Control-Expose-Headers': 'ETag',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin',
+  };
+}
 function json(value, status = 200, extra = {}) { return new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extra } }); }
 function httpError(status, message) { const error = new Error(message); error.status = status; return error; }
