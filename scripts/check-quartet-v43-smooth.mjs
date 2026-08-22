@@ -26,7 +26,11 @@ ok(loader.includes('renderStateIncremental(previousState)'), 'Realtime updates a
 ok(loader.includes("handSignature !== previousHandSignature"), 'Hand updates are not guarded by a state signature');
 ok(loader.includes("playerSignature !== previousPlayerSignature"), 'Player updates are not guarded by a state signature');
 ok(loader.includes("updateSelectionUi();"), 'Selection must update DOM locally');
-ok(!loader.includes("if (groupId) requestAnimationFrame(() => focusGroup(groupId))"), 'Selection patch still auto-scrolls the deck');
+const patchedStart = loader.indexOf('const newSelectionHandlers');
+const patchedEnd = loader.indexOf('const oldStateRender');
+ok(patchedStart >= 0 && patchedEnd > patchedStart, 'Patched selection handler block is missing');
+const patchedSelection = loader.slice(patchedStart, patchedEnd);
+ok(!patchedSelection.includes('focusGroup(') && !patchedSelection.includes('renderState();'), 'Patched selection handlers still redraw or auto-scroll the deck');
 
 ok(ui.includes("document.body.appendChild(portal)"), 'Quick-action dock must be owned by body/viewport');
 ok(ui.includes("ResizeObserver"), 'Dock spacing must follow the real rendered height');
