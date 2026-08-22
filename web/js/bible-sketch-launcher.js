@@ -46,10 +46,15 @@
       link.rel = 'stylesheet';
       link.href = LANDSCAPE_STYLE_URL;
       document.head.appendChild(link);
-      return;
+      return link;
     }
-    if (!String(link.href || '').includes('bible-sketch-landscape-v2.css')) link.href = LANDSCAPE_STYLE_URL;
-    document.head.appendChild(link);
+
+    const currentHref = String(link.getAttribute('href') || '');
+    if (!currentHref.includes('bible-sketch-landscape-v2.css')) {
+      link.setAttribute('href', LANDSCAPE_STYLE_URL);
+    }
+    if (!link.isConnected) document.head.appendChild(link);
+    return link;
   }
 
   function loadGameScript() {
@@ -77,11 +82,10 @@
     wasSketch = true;
     window.scrollTo({ top: 0, behavior: 'auto' });
     try {
+      ensureLandscapeStyles();
       await loadGameScript();
       if (document.body.dataset.currentGame !== GAME_KEY) return;
       window.startBibleSketchGame?.();
-      ensureLandscapeStyles();
-      requestAnimationFrame(ensureLandscapeStyles);
     } catch (error) {
       console.error('Bible Sketch launcher error', error);
       if (container) container.innerHTML = `<section class="app-error-card fade-in"><h2>Не удалось открыть игру</h2><p>${escapeText(error?.message || error)}</p><button class="back-button" onclick="goToMainMenu()">В главное меню</button></section>`;
@@ -106,10 +110,7 @@
       wasSketch = false;
       try { window.__bibleSketchCleanup?.(); } catch {}
     }
-    if (isSketch) {
-      wasSketch = true;
-      ensureLandscapeStyles();
-    }
+    if (isSketch) wasSketch = true;
   }
 
   function escapeText(value) {
