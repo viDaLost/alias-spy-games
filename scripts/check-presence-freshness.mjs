@@ -10,6 +10,7 @@ const forbidText = (text, needle, label) => {
 
 const worker = read('cloudflare/app-observability-worker/src/index-v4.js');
 const secureWorker = read('cloudflare/app-observability-worker/src/index-v6.js');
+const optimizedWorker = read('cloudflare/app-observability-worker/src/index-v7.js');
 const wrangler = read('cloudflare/app-observability-worker/wrangler.jsonc');
 const web = read('web/js/presence-identity.js');
 const bridge = read('web/js/presence-game-bridge.js');
@@ -19,7 +20,6 @@ const rescue = read('web/js/admin-live-rescue.js');
 const shell = read('web/js/admin-shell-v3.js');
 const html = read('index.html');
 
-requireText(worker, 'const PRESENCE_STALE_MS = 35_000;', 'strict stale window must be 35 seconds');
 requireText(worker, "if (!initData) return jsonError('Verified Telegram session required'", 'legacy Telegram verification guard is missing');
 requireText(worker, 'verifyAndroidIdentity', 'verified Android presence path is missing');
 requireText(worker, "const ROOM_GAMES = new Set(['quartet', 'bible-sketch'])", 'Bible Sketch room presence is not tracked');
@@ -27,14 +27,16 @@ requireText(worker, "payload?.type === 'offline'", 'explicit offline presence me
 requireText(worker, 'const freshestByUser = new Map()', 'online sessions are not deduplicated by verified user');
 requireText(worker, 'onlineNow: onlineUsers.length', 'online count is not based on unique verified users');
 requireText(worker, 'activeBibleSketchRooms', 'Bible Sketch active room count is missing');
-requireText(worker, 'strictPresenceWindowMs: PRESENCE_STALE_MS', 'admin does not receive presence freshness window');
-requireText(wrangler, 'src/index-v6.js', 'secure observability entrypoint is not active');
+requireText(optimizedWorker, 'const PRESENCE_STALE_MS = 75_000;', 'optimized stale window must tolerate 30-second heartbeats');
+requireText(optimizedWorker, 'strictPresenceWindowMs: PRESENCE_STALE_MS', 'admin does not receive optimized presence freshness window');
+requireText(optimizedWorker, "from './index-v6.js'", 'optimized observability entrypoint must preserve secure v6 routes');
+requireText(wrangler, 'src/index-v7.js', 'optimized observability entrypoint is not active');
 requireText(secureWorker, "verifyScopedSession(env, String(url.searchParams.get('token') || ''), 'presence')", 'scoped web presence session is missing');
 requireText(secureWorker, 'await verifyAdminRequest(request, env)', 'rollout-safe admin verification is missing');
 requireText(secureWorker, "return verifyScopedSession(env, token, 'admin')", 'scoped admin bearer session is missing');
 requireText(secureWorker, "request.headers.get('X-Telegram-Init-Data')", 'rollout-safe admin header verification is missing');
 
-requireText(web, 'const HEARTBEAT_MS = 15_000;', 'WebApp heartbeat is not strict enough');
+requireText(web, 'const HEARTBEAT_MS = 30_000;', 'WebApp heartbeat must use the optimized 30-second interval');
 requireText(web, "scope: 'presence'", 'WebApp does not obtain a scoped presence session');
 requireText(web, "url.searchParams.set('token', token)", 'WebApp does not connect with the scoped presence token');
 forbidText(web, "url.searchParams.set('initData'", 'Telegram initData must not be exposed in the presence WebSocket URL');
@@ -43,6 +45,7 @@ requireText(web, 'setGame,', 'presence context must expose an explicit game sett
 requireText(web, 'clearGame,', 'presence context must expose an explicit game clearer');
 requireText(web, 'sendPresence(true);', 'presence heartbeat must send complete state instead of only a stale ping');
 forbidText(web, "socket.send(JSON.stringify({ type: 'ping' }))", 'Web heartbeat must not preserve stale game state with ping-only refreshes');
+requireText(web, 'Math.min(30_000, 2_500 * (2 ** Math.min(reconnectAttempt, 4)))', 'Web presence reconnects must back off under failure');
 requireText(web, "window.addEventListener('app:game-presence'", 'presence must accept explicit game navigation events');
 requireText(web, 'snapshot()', 'presence context must expose a debuggable state snapshot');
 requireText(web, "type: 'offline'", 'WebApp does not explicitly report offline state');
@@ -55,11 +58,13 @@ requireText(bridge, "document.body?.dataset?.currentGame", 'game bridge must use
 requireText(bridge, "window.AppPresenceContext?.setGame?.", 'game bridge must push game state into presence');
 requireText(bridge, "window.AppPresenceContext?.clearGame?.", 'game bridge must clear game state in presence');
 
-requireText(android, 'private const val HEARTBEAT_MS = 15_000L', 'Android heartbeat is not strict enough');
+requireText(android, 'private const val HEARTBEAT_MS = 30_000L', 'Android heartbeat must use the optimized 30-second interval');
 requireText(android, 'game == "quartet" || game == "bible-sketch"', 'Android does not report Bible Sketch rooms');
 requireText(android, '.put("type", "offline")', 'Android does not explicitly report background/offline state');
+forbidText(android, '.put("type", "ping")', 'Android must not send redundant ping plus presence heartbeat messages');
+requireText(android, 'coerceAtMost(30_000L)', 'Android reconnects must back off under failure');
 
-requireText(admin, '5_000', 'admin live monitor does not refresh every five seconds');
+requireText(admin, '5_000', 'admin UI timer cadence changed unexpectedly');
 requireText(admin, 'user.roomId', 'admin online list does not show current room');
 requireText(admin, 'strictPresenceWindowMs', 'admin does not show strict freshness window');
 requireText(admin, "['biblical-match-three', 'Библейские сокровища']", 'Biblical Treasures is missing from the administrator game list');
@@ -70,7 +75,7 @@ forbidText(rescue, '?initData=', 'recovery live requests must not expose Telegra
 requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback must use a request header');
 requireText(shell, "page.dataset.adminVersion = '3'", 'admin shell v3 must stamp its runtime version');
 requireText(shell, "livePanel(page)", 'admin shell v3 must place live monitoring in the dashboard');
-requireText(html, 'presence-identity.js?v=5', 'fresh WebApp presence client is not mounted');
+requireText(html, 'presence-identity.js?v=6', 'fresh optimized WebApp presence client is not mounted');
 requireText(html, 'presence-game-bridge.js?v=1', 'game-navigation presence bridge is not mounted');
 requireText(html, 'admin-live-v3.js?v=7', 'admin live v3 monitor is not mounted with fresh cache key');
 requireText(html, 'admin-live-v3.css?v=6', 'admin live v3 styles are not mounted with fresh cache key');
@@ -78,5 +83,6 @@ requireText(html, 'admin-live-compact.css?v=1', 'compact live user-card styles a
 requireText(html, 'admin-live-rescue.js?v=2', 'admin live recovery client is not mounted');
 requireText(html, 'admin-shell-v3.js?v=1', 'admin shell v3 is not mounted');
 requireText(html, 'admin-shell-v3.css?v=1', 'admin shell v3 styles are not mounted');
+requireText(html, 'cloudflare-request-budget.js?v=1', 'Cloudflare request-budget client is not mounted');
 
-console.log('Strict verified presence, current-game tracking, scoped sessions, room tracking and admin shell v3 checks passed');
+console.log('Verified presence, current-game tracking, scoped sessions and lower-frequency request budget checks passed');
