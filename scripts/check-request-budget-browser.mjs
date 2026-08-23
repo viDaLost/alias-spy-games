@@ -13,7 +13,6 @@ function testPage() {
   window.__clock = 1000000;
   Date.now = () => window.__clock;
   window.__counts = { live: 0, stats: 0, observer: 0 };
-  window.__observerEtag = '';
   window.fetch = async (input, init = {}) => {
     const url = new URL(String(input), location.href);
     if (url.pathname === '/admin/live') {
@@ -32,7 +31,7 @@ function testPage() {
     if (/^\\/admin\\/rooms\\//.test(url.pathname)) {
       window.__counts.observer += 1;
       const requestHeaders = new Headers(init.headers || {});
-      if (window.__counts.observer > 1 || requestHeaders.get('If-None-Match')) {
+      if (requestHeaders.get('If-None-Match') === '"v1"') {
         return new Response(null, { status: 304, headers: { ETag: '"v1"' } });
       }
       return new Response(JSON.stringify({ ok: true, version: 1 }), {
@@ -97,7 +96,8 @@ try {
     await fetch(stats);
     const statsAfterBudget = window.__counts.stats;
 
-    await fetch(observer, { headers: { 'If-None-Match': '"v0"' } });
+    // First observer request has no ETag and returns a full 200 snapshot.
+    const firstObserver = await fetch(observer);
     window.__clock += 8_001;
     const first304 = await fetch(observer, { headers: { 'If-None-Match': '"v1"' } });
     const observerAfter304 = window.__counts.observer;
@@ -126,6 +126,7 @@ try {
       liveAfterBudget,
       statsWithinBudget,
       statsAfterBudget,
+      firstObserver: firstObserver.status,
       first304: first304.status,
       cached304: cached304.status,
       observerAfter304,
@@ -141,7 +142,7 @@ try {
   expect(result.concurrentLive === 1, 'Concurrent live requests were not coalesced');
   expect(result.liveWithinBudget === 1 && result.liveAfterBudget === 2, '15-second live budget is incorrect');
   expect(result.statsWithinBudget === 1 && result.statsAfterBudget === 2, '5-minute stats budget is incorrect');
-  expect(result.first304 === 304 && result.cached304 === 304, 'Cached observer 304 response is invalid');
+  expect(result.firstObserver === 200 && result.first304 === 304 && result.cached304 === 304, 'Observer 200/304 cache flow is invalid');
   expect(result.observerAfter304 === 2 && result.observerWithin304Budget === 2 && result.observerAfter304Budget === 3, 'Observer 304 budget is incorrect');
   expect(result.liveAfterManualRefresh === 3, 'Manual live refresh did not invalidate cache');
   expect(result.liveWhileHidden === 3, 'Hidden WebView still generated a live network request');
