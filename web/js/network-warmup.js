@@ -1,20 +1,34 @@
 (() => {
   if (window.__ANDROID_APK__ !== true) return;
 
+  const HEALTH_WARMUP_KEY = 'worker_health_warmup_at_v1';
+  const HEALTH_WARMUP_TTL_MS = 6 * 60 * 60 * 1000;
   let started = false;
+
+  function shouldWarmWorkers() {
+    try {
+      const last = Number(localStorage.getItem(HEALTH_WARMUP_KEY) || 0);
+      if (last && Date.now() - last < HEALTH_WARMUP_TTL_MS) return false;
+      localStorage.setItem(HEALTH_WARMUP_KEY, String(Date.now()));
+    } catch {}
+    return true;
+  }
+
   function warm() {
     if (started) return;
     started = true;
 
-    const endpoints = [
-      document.querySelector('meta[name="app-core-backend"]')?.content,
-      document.querySelector('meta[name="quartet-backend"]')?.content,
-      document.querySelector('meta[name="bible-sketch-backend"]')?.content,
-      document.querySelector('meta[name="app-observability"]')?.content,
-    ].map((value) => String(value || '').replace(/\/+$/, '')).filter(Boolean);
+    if (shouldWarmWorkers()) {
+      const endpoints = [
+        document.querySelector('meta[name="app-core-backend"]')?.content,
+        document.querySelector('meta[name="quartet-backend"]')?.content,
+        document.querySelector('meta[name="bible-sketch-backend"]')?.content,
+        document.querySelector('meta[name="app-observability"]')?.content,
+      ].map((value) => String(value || '').replace(/\/+$/, '')).filter(Boolean);
 
-    for (const base of endpoints) {
-      fetch(`${base}/health`, { method: 'GET', cache: 'no-store', mode: 'cors' }).catch(() => {});
+      for (const base of endpoints) {
+        fetch(`${base}/health`, { method: 'GET', cache: 'no-store', mode: 'cors' }).catch(() => {});
+      }
     }
 
     const assets = [

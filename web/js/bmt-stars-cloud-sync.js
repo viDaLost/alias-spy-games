@@ -1,6 +1,6 @@
 (() => {
   const GAME_KEY = 'biblical-match-three';
-  const SYNC_INTERVAL_MS = 12_000;
+  const SAFETY_SYNC_INTERVAL_MS = 90_000;
   const MAX_QUEUE = 250;
   let timer = 0;
   let syncPromise = null;
@@ -166,7 +166,7 @@
   function schedule(delay = 250, force = false) {
     clearTimeout(timer);
     timer = window.setTimeout(() => {
-      if (force || gameActive()) syncNow();
+      if ((force || gameActive()) && !document.hidden && navigator.onLine) syncNow();
     }, delay);
   }
 
@@ -176,12 +176,16 @@
     const id = userId();
     const delta = Math.trunc(Number(event?.detail?.delta || 0));
     if (id && delta) queueMutation(id, delta, event?.detail?.reason || 'match3-local-change');
+    // Mutations still sync immediately. The long interval below is only a
+    // safety reconciliation for admin-side balance changes and missed events.
     schedule(180, true);
   });
 
   document.addEventListener('visibilitychange', () => { if (!document.hidden && gameActive()) schedule(120); });
   window.addEventListener('online', () => { if (gameActive()) schedule(100); });
-  window.setInterval(() => { if (gameActive()) syncNow(); }, SYNC_INTERVAL_MS);
+  window.setInterval(() => {
+    if (gameActive() && !document.hidden && navigator.onLine) syncNow();
+  }, SAFETY_SYNC_INTERVAL_MS);
 
   const gameObserver = new MutationObserver(() => {
     if (gameActive()) schedule(80);

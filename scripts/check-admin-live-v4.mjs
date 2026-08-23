@@ -8,11 +8,12 @@ const excludes = (path, value, message) => assert(!read(path).includes(value), m
 
 const files = [
   'web/js/admin-live-v3.js',
+  'web/js/cloudflare-request-budget.js',
   'web/js/presence-identity.js',
   'web/js/presence-game-bridge.js',
   'web/js/bmt-stars-cloud-sync.js',
   'cloudflare/app-core-worker/src/index-v9.js',
-  'cloudflare/app-observability-worker/src/index-v6.js',
+  'cloudflare/app-observability-worker/src/index-v7.js',
   'cloudflare/quartet-worker/src/index-admin-observer-v2.js',
   'cloudflare/bible-sketch-worker/src/index-admin-observer-v2.js',
 ];
@@ -23,7 +24,8 @@ for (const file of files) {
 }
 
 includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v9.js', 'Core must run v9');
-includes('cloudflare/app-observability-worker/wrangler.jsonc', 'src/index-v6.js', 'Observability must run v6');
+includes('cloudflare/app-observability-worker/wrangler.jsonc', 'src/index-v7.js', 'Observability must run optimized v7');
+includes('cloudflare/app-observability-worker/src/index-v7.js', "from './index-v6.js'", 'Observability v7 must preserve secure v6 routes');
 includes('cloudflare/quartet-worker/wrangler.jsonc', 'index-admin-observer-v2.js', 'Quartet must run secure observer v2');
 includes('cloudflare/bible-sketch-worker/wrangler.jsonc', 'index-admin-observer-v2.js', 'Bible Sketch must run secure observer v2');
 
@@ -44,6 +46,11 @@ includes('web/js/admin-live-v3.js', 'if (scheduled) return;', 'Admin live mount 
 includes('web/js/admin-live-v3.js', 'scheduled = setTimeout(runMount, 60);', 'Admin live must mount promptly after the admin shell appears');
 excludes('web/js/admin-live-v3.js', 'clearTimeout(scheduled); scheduled = setTimeout', 'Admin live must not endlessly postpone first mount');
 
+includes('web/js/cloudflare-request-budget.js', 'adminLive: { freshMs: 15_000', 'Admin live network calls must be budgeted');
+includes('web/js/cloudflare-request-budget.js', 'adminStats: { freshMs: 300_000', 'Historical admin stats must be budgeted');
+includes('web/js/cloudflare-request-budget.js', 'observerUnchanged: { freshMs: 20_000', 'Unchanged room observer polling must be budgeted');
+includes('web/js/cloudflare-request-budget.js', 'if (document.hidden && existing) return responseFrom(existing);', 'Hidden admin screens must reuse local snapshots');
+
 excludes('web/js/presence-identity.js', "searchParams.set('initData'", 'Presence websocket must not expose Telegram initData');
 includes('web/js/presence-identity.js', "scope: 'presence'", 'Presence must use a scoped web session');
 includes('web/js/presence-identity.js', "localStorage.getItem('quartet_v2_room_id')", 'Presence room context must use explicit game storage state');
@@ -57,7 +64,8 @@ includes('web/js/bmt-stars-cloud-sync.js', 'mutateBmtStars', 'BMT client must re
 includes('web/js/bmt-stars-cloud-sync.js', 'pendingMutations', 'BMT client must retain offline mutation state');
 includes('web/js/bmt-stars-cloud-sync.js', 'expectedRevision', 'BMT client must send revision checks');
 includes('web/js/bmt-stars-cloud-sync.js', 'function gameActive()', 'BMT sync must be scoped to the active game');
-includes('web/js/bmt-stars-cloud-sync.js', 'if (force || gameActive()) syncNow()', 'Background pages must not trigger BMT sync traffic');
+includes('web/js/bmt-stars-cloud-sync.js', 'SAFETY_SYNC_INTERVAL_MS = 90_000', 'BMT safety sync must be throttled');
+includes('web/js/bmt-stars-cloud-sync.js', '!document.hidden && navigator.onLine', 'Background/offline BMT sync must be paused');
 
 includes('cloudflare/quartet-worker/src/index-admin-observer-v2.js', 'SESSION_CACHE_MS', 'Quartet observer must cache admin verification');
 includes('cloudflare/bible-sketch-worker/src/index-admin-observer-v2.js', 'SESSION_CACHE_MS', 'Bible Sketch observer must cache admin verification');
@@ -68,11 +76,12 @@ includes('web/styles/admin-live-v3.css', 'width:44px;height:44px', 'Admin contro
 includes('web/styles/admin-live-v3.css', 'admin-live-modal-open', 'Admin modals must lock background scrolling');
 includes('web/styles/admin-live-compact.css', 'grid-template-columns: repeat(2, minmax(0, 1fr));', 'Online balances must stay in a compact two-column grid');
 includes('web/styles/admin-live-compact.css', 'grid-template-columns: 44px minmax(24px, 1fr) 44px;', 'Compact balance controls must preserve 44px touch targets');
-includes('index.html', 'admin-live-v3.js?v=7', 'Admin live cache key must be bumped');
+includes('index.html', 'admin-live-v3.js?v=7', 'Admin live cache key must remain current');
 includes('index.html', 'admin-live-compact.css?v=1', 'Compact admin live stylesheet must be loaded');
-includes('index.html', 'admin-shell-v3-20260822-3', 'Admin build marker must identify the presence-v5 release');
-includes('index.html', 'presence-identity.js?v=5', 'Presence cache key must be bumped');
+includes('index.html', 'request-budget-v1-20260823', 'Build marker must identify the Cloudflare request-budget release');
+includes('index.html', 'cloudflare-request-budget.js?v=1', 'Cloudflare request-budget client must be loaded');
+includes('index.html', 'presence-identity.js?v=6', 'Presence cache key must be bumped');
 includes('index.html', 'presence-game-bridge.js?v=1', 'Presence game bridge must be loaded');
-includes('index.html', 'bmt-stars-cloud-sync.js?v=48', 'BMT sync cache key must be bumped');
+includes('index.html', 'bmt-stars-cloud-sync.js?v=49', 'BMT sync cache key must be bumped');
 
-console.log('Admin live instant-mount, compact-layout and current-game presence regression checks passed.');
+console.log('Admin live, compact layout, current-game presence and Cloudflare request-budget regression checks passed.');

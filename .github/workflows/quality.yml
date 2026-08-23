@@ -95,6 +95,8 @@ jobs:
         run: npm run check:admin-live:browser
       - name: Check live presence game transitions
         run: npm run check:presence:browser
+      - name: Check Cloudflare request budget in browser
+        run: npm run check:request-budget:browser
       - name: Open every game and return to menu
         run: npm run smoke:games
       - name: Test Biblical Treasures HQ icons and swipe
