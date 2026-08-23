@@ -6,8 +6,8 @@
   const initData = String(window.Telegram?.WebApp?.initData || '');
   if (!backend || !coreBackend || !initData) return;
 
-  const HEARTBEAT_MS = 15_000;
-  const CONTEXT_CHECK_MS = 900;
+  const HEARTBEAT_MS = 30_000;
+  const CONTEXT_CHECK_MS = 2_000;
   const sid = getSessionId();
   let socket = null;
   let reconnectTimer = null;
@@ -21,6 +21,7 @@
   let explicitRoom = '';
   let explicitRoomGame = '';
   let explicitGame = '';
+  let reconnectAttempt = 0;
 
   function normalizeGame(value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
@@ -44,8 +45,6 @@
       return domGame;
     }
 
-    // If the application explicitly says it is not in game mode, never keep a
-    // stale explicit game from a previous screen.
     const mode = String(document.body?.dataset?.mode || '').toLowerCase();
     if (mode && mode !== 'game') return '';
     return explicitGame;
@@ -148,6 +147,7 @@
 
     socket.addEventListener('open', () => {
       if (pageLeaving || document.hidden) return sendOfflineAndClose('hidden-on-open');
+      reconnectAttempt = 0;
       lastPresence = '';
       sendPresence(true);
       restartHeartbeat();
@@ -171,9 +171,8 @@
     pingTimer = setInterval(() => {
       if (document.hidden || pageLeaving) return sendOfflineAndClose('hidden-heartbeat');
       if (socket?.readyState === WebSocket.OPEN) {
-        // Send the complete state on every heartbeat. A missed DOM transition can
-        // therefore self-heal within 15 seconds instead of keeping "main menu"
-        // forever while plain pings keep the stale socket fresh.
+        // Full state is repeated as a low-frequency safety heartbeat. Navigation
+        // changes themselves are pushed immediately by setGame/setRoom.
         sendPresence(true);
       } else connect();
     }, HEARTBEAT_MS);
@@ -183,7 +182,9 @@
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
     if (pageLeaving || document.hidden || !navigator.onLine) return;
-    reconnectTimer = setTimeout(connect, 2_500);
+    const delay = Math.min(30_000, 2_500 * (2 ** Math.min(reconnectAttempt, 4)));
+    reconnectAttempt += 1;
+    reconnectTimer = setTimeout(connect, delay);
   }
 
   function sendPresence(force = false) {
@@ -231,10 +232,14 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) sendOfflineAndClose('hidden');
-    else { connect(); window.setTimeout(() => sendPresence(true), 60); }
+    else {
+      reconnectAttempt = 0;
+      connect();
+      window.setTimeout(() => sendPresence(true), 60);
+    }
   });
-  window.addEventListener('pageshow', () => { connect(); window.setTimeout(() => sendPresence(true), 60); });
-  window.addEventListener('online', () => { connect(); window.setTimeout(() => sendPresence(true), 60); });
+  window.addEventListener('pageshow', () => { reconnectAttempt = 0; connect(); window.setTimeout(() => sendPresence(true), 60); });
+  window.addEventListener('online', () => { reconnectAttempt = 0; connect(); window.setTimeout(() => sendPresence(true), 60); });
   window.addEventListener('offline', () => sendOfflineAndClose('network-offline'));
   window.addEventListener('pagehide', () => {
     pageLeaving = true;
