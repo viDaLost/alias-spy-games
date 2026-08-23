@@ -21,7 +21,8 @@
     "check:admin-live": "node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs && node scripts/check-admin-observer-cors.mjs && node scripts/check-cloudflare-request-budget.mjs",
     "check:admin-live:browser": "node scripts/check-admin-live-browser.mjs && node scripts/check-admin-live-entry-browser.mjs",
     "check:presence:browser": "node scripts/check-presence-game-browser.mjs",
-    "check:request-budget": "node scripts/check-cloudflare-request-budget.mjs"
+    "check:request-budget": "node scripts/check-cloudflare-request-budget.mjs",
+    "check:request-budget:browser": "node scripts/check-request-budget-browser.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.55.0"
