@@ -46,22 +46,19 @@
     return age <= policy.freshMs;
   }
 
-  async function storeResponse(key, kind, response) {
-    if (!(response.ok || response.status === 304)) return response;
-    const clone = response.clone();
-    const body = await clone.text().catch(() => '');
-    const policyKey = kind === 'observer'
-      ? (response.status === 304 ? 'observerUnchanged' : 'observerChanged')
-      : kind;
-    cache.set(key, {
+  async function captureResponse(response, kind) {
+    const body = await response.clone().text().catch(() => '');
+    return {
       at: Date.now(),
-      policyKey,
+      policyKey: kind === 'observer'
+        ? (response.status === 304 ? 'observerUnchanged' : 'observerChanged')
+        : kind,
+      cacheable: response.ok || response.status === 304,
       status: response.status,
       statusText: response.statusText,
       headers: [...response.headers.entries()],
       body,
-    });
-    return response;
+    };
   }
 
   async function budgetedFetch(input, init = {}) {
@@ -79,26 +76,25 @@
     // until the page becomes visible again.
     if (document.hidden && existing) return responseFrom(existing);
 
-    if (inFlight.has(target.key)) {
-      const entry = await inFlight.get(target.key);
-      if (entry) return responseFrom(entry);
-      return upstreamFetch(input, init);
+    let pending = inFlight.get(target.key);
+    if (!pending) {
+      pending = (async () => {
+        try {
+          const response = await upstreamFetch(input, init);
+          const captured = await captureResponse(response, target.kind);
+          if (captured.cacheable) cache.set(target.key, captured);
+          return captured;
+        } finally {
+          inFlight.delete(target.key);
+        }
+      })();
+      inFlight.set(target.key, pending);
     }
 
-    const request = (async () => {
-      try {
-        const response = await upstreamFetch(input, init);
-        await storeResponse(target.key, target.kind, response);
-        return cache.get(target.key) || null;
-      } finally {
-        inFlight.delete(target.key);
-      }
-    })();
-    inFlight.set(target.key, request);
-
-    const entry = await request;
-    if (entry) return responseFrom(entry);
-    return upstreamFetch(input, init);
+    // Every caller gets its own Response object, including error responses, so
+    // concurrent polling never triggers a second network request just because
+    // the first response was not cacheable.
+    return responseFrom(await pending);
   }
 
   function invalidate(kind = '') {
