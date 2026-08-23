@@ -10,7 +10,7 @@ import okhttp3.WebSocketListener
 import org.json.JSONObject
 import java.security.SecureRandom
 
-/** Keeps Android in the same strict live-presence channel as Telegram WebApp. */
+/** Keeps Android in the same verified live-presence channel as Telegram WebApp. */
 class AppPresenceClient(
     context: Context,
     private val cloud: CloudRepository,
@@ -21,7 +21,7 @@ class AppPresenceClient(
         private const val TRUSTED_ORIGIN = "https://vidalost.github.io"
         private const val PREFS = "bible_games_native"
         private const val SESSION_KEY = "presence_session_id_v1"
-        private const val HEARTBEAT_MS = 15_000L
+        private const val HEARTBEAT_MS = 30_000L
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -37,7 +37,8 @@ class AppPresenceClient(
         override fun run() {
             if (!foreground) return
             if (connected) {
-                socket?.send(JSONObject().put("type", "ping").toString())
+                // Presence already refreshes the server timestamp, so a separate
+                // ping would double Durable Object WebSocket message traffic.
                 sendPresence()
             }
             main.postDelayed(this, HEARTBEAT_MS)
@@ -48,6 +49,7 @@ class AppPresenceClient(
     fun start() {
         if (!userId.matches(Regex("^[0-9]{5,20}$"))) return
         foreground = true
+        reconnectAttempt = 0
         main.removeCallbacks(reconnect)
         if (!connected) connect() else sendPresence()
     }
@@ -139,7 +141,7 @@ class AppPresenceClient(
         main.removeCallbacks(reconnect)
         if (!foreground) return
         reconnectAttempt += 1
-        val delay = (1_000L shl reconnectAttempt.coerceAtMost(4)).coerceAtMost(15_000L)
+        val delay = (1_000L shl reconnectAttempt.coerceAtMost(5)).coerceAtMost(30_000L)
         main.postDelayed(reconnect, delay)
     }
 
