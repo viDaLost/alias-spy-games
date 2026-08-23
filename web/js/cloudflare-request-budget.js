@@ -32,7 +32,8 @@
   }
 
   function responseFrom(entry) {
-    return new Response(entry.body, {
+    const body = [204, 205, 304].includes(Number(entry.status)) ? null : entry.body;
+    return new Response(body, {
       status: entry.status,
       statusText: entry.statusText,
       headers: new Headers(entry.headers),
