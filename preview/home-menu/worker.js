@@ -1,7 +1,7 @@
-const VIDEO_PATH = '/home-bg-v13.mp4';
-const BUILD_VERSION = 'home-menu-v13-hq-30fps-seamless';
-const BUILD_LABEL = '● HOME V13 · HQ 30 FPS · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
-const VIDEO_ETAG = '"8ee0a9e1ddab7c66380fe66a6c5e6fb19ffbefd56de59bfaf4b3e0d733200ed3"';
+const VIDEO_PATH = '/home-bg-v14-scroll.mp4';
+const BUILD_VERSION = 'home-menu-v14-scroll-driven-city';
+const BUILD_LABEL = '● HOME V14 · SCROLL-DRIVEN CITY · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
+const VIDEO_ETAG = '"535c60d719f2e0a9298190fabaa5f91de6ef6d0299858113b91ecc772f4760e3"';
 
 function parseRange(value, size) {
   if (!value || !value.startsWith('bytes=')) return null;
@@ -32,7 +32,7 @@ function videoHeaders() {
     etag: VIDEO_ETAG,
     'x-content-type-options': 'nosniff',
     'x-home-menu-build': BUILD_VERSION,
-    'x-home-menu-video': 'hq-h264-30fps-seamless-v13',
+    'x-home-menu-video': 'scroll-scrubbed-biblical-city-v14',
   });
 }
 
@@ -75,21 +75,25 @@ function versionResponse() {
   return Response.json({
     version: BUILD_VERSION,
     label: BUILD_LABEL,
-    background: 'hq-h264-30fps-seamless-v13',
-    architecture: 'index-native-video-v13',
-    autoplayRequired: true,
-    source: 'user-original-upload',
+    background: 'scroll-scrubbed-biblical-city-v14',
+    architecture: 'index-native-scroll-video-v14',
+    autoplayRequired: false,
+    interaction: 'scroll-seek-with-action-effects',
+    source: 'user-generated-upload',
     rangeFix: true,
     video: {
       codec: 'H.264 High',
       width: 512,
       height: 910,
       fps: 30,
-      durationSeconds: 8.5,
-      bytes: 5124574,
+      durationSeconds: 10,
+      bytes: 6673300,
       audio: false,
       fastStart: true,
-      seamlessLoop: true,
+      seamlessLoop: false,
+      scrollDriven: true,
+      keyframeIntervalSeconds: 0.267,
+      hasBFrames: false,
     },
   }, {
     headers: {
@@ -120,7 +124,7 @@ export default {
       headers.set('x-content-type-options', 'nosniff');
       headers.set('referrer-policy', 'no-referrer');
       headers.set('x-robots-tag', 'noindex, nofollow');
-      headers.set('x-home-menu-preview', 'hq-h264-30fps-seamless-v13');
+      headers.set('x-home-menu-preview', 'scroll-scrubbed-biblical-city-v14');
       headers.set('x-home-menu-build', BUILD_VERSION);
       return new Response(response.body, { status: response.status, headers });
     }

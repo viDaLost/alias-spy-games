@@ -1,5 +1,7 @@
-home-menu-v13-hq-30fps-seamless
-2026-08-24T21:18:28Z
-source=user-original-upload
-video=512x910-30fps-h264-high
-loop=seamless-crossfade
+home-menu-v14-scroll-driven-city
+2026-08-24T22:08:33Z
+source=user-generated-upload
+video=512x910-30fps-h264-high-no-audio
+interaction=scroll-seek-with-action-effects
+keyframes=0.267s-no-b-frames
+loop=disabled
