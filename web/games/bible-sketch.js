@@ -268,10 +268,10 @@ function startBibleSketchGame() {
   }
 
   function scheduleReconnect() {
-    if (destroyed || leaving || !roomId) return;
+    if (destroyed || leaving || document.hidden || !roomId) return;
     reconnectAttempt += 1;
     setConnection('reconnecting', 'Возвращаем связь');
-    const delay = Math.min(12_000, 1000 * (2 ** Math.min(4, reconnectAttempt - 1)));
+    const delay = Math.min(30_000, 2_500 * (2 ** Math.min(4, reconnectAttempt - 1)));
     reconnectTimer = setTimeout(() => {
       joinOrResume(roomId, true).catch((error) => {
         console.warn('Bible Sketch reconnect failed', error);
