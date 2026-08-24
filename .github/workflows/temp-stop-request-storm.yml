@@ -1,0 +1,61 @@
+name: Temporary reconnect storm patch
+
+on:
+  push:
+    branches: [perf/stop-cloudflare-reconnect-storm-v2]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[storm-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/stop-cloudflare-reconnect-storm-v2
+      - name: Patch large realtime clients
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected block in {path}: {old[:100]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          room = 'android-app/app/src/main/java/com/vidalost/biblegames/data/RealtimeRoomClient.kt'
+          replace(room, 'private const val POLL_INTERVAL_MS = 850L', 'private const val POLL_INTERVAL_MS = 5_000L')
+          replace(room, 'private const val POLL_ACTION_GAP_MS = 90L', 'private const val POLL_ACTION_GAP_MS = 250L')
+          replace(room, 'private const val KEY_ROOM_ID = "room_id"\n        private const val POLL_INTERVAL_MS', 'private const val KEY_ROOM_ID = "room_id"\n        private const val WS_FALLBACK_GRACE_MS = 3_000L\n        private const val POLL_INTERVAL_MS')
+          replace(room,
+              '''connecting = true\n        connected = false\n        usingHttpsFallback = true\n\n        // Bootstrap over ordinary HTTPS immediately. The WebSocket upgrade is\n        // attempted in parallel on an isolated client and wins only after it\n        // has delivered a real state snapshot.\n        startPollingFallback(preserveSocket = true)''',
+              '''connecting = true\n        connected = false\n        usingHttpsFallback = false\n\n        // Give the WebSocket a short grace period before falling back to HTTPS.\n        // This prevents every healthy room from generating an 850ms polling stream\n        // while the first WebSocket state snapshot is still in flight.\n        main.postDelayed({\n            if (generation == socketGeneration && !connected && !closed && !leaving) {\n                startPollingFallback(preserveSocket = true)\n            }\n        }, WS_FALLBACK_GRACE_MS)''')
+
+          quartet = 'web/games/quartet.js'
+          replace(quartet,
+              'if (destroyed || leaving || reconnectTimer || reconnecting || !roomId) return;',
+              'if (destroyed || leaving || document.hidden || reconnectTimer || reconnecting || !roomId) return;')
+          replace(quartet,
+              'const delay = Math.min(8000, 800 * 2 ** Math.min(reconnectAttempt - 1, 4));',
+              'const delay = Math.min(30_000, 2_500 * 2 ** Math.min(reconnectAttempt - 1, 4));')
+
+          sketch = 'web/games/bible-sketch.js'
+          replace(sketch,
+              'if (destroyed || leaving || !roomId) return;',
+              'if (destroyed || leaving || document.hidden || !roomId) return;')
+          replace(sketch,
+              'const delay = Math.min(12_000, 1000 * (2 ** Math.min(4, reconnectAttempt - 1)));',
+              'const delay = Math.min(30_000, 2_500 * (2 ** Math.min(4, reconnectAttempt - 1)));')
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android-app/app/src/main/java/com/vidalost/biblegames/data/RealtimeRoomClient.kt web/games/quartet.js web/games/bible-sketch.js
+          git commit -m "fix: stop realtime fallback request storms [storm-patched]"
+          git push origin HEAD:perf/stop-cloudflare-reconnect-storm-v2
