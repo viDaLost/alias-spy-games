@@ -1,1 +1,1 @@
-{"source_sha":"cd442322dfd303b81a4605318ca4630e75c90fd8","version":"home-menu-v11-ios-safe-video","state":"finished","finished_at":"2026-08-24T20:46:06Z","steps":{"source":"success","validate":"success","deploy":"success","verify":"failure"}}
+{"source_sha":"e39860d625d6660b2fc3868653a9a958523ebce7","version":"home-menu-v11-ios-safe-video","state":"finished","finished_at":"2026-08-24T20:49:48Z","steps":{"source":"failure","validate":"skipped","deploy":"skipped","verify":"skipped"}}
