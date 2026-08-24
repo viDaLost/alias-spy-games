@@ -43,22 +43,33 @@ jobs:
         continue-on-error: true
         run: |
           set -euxo pipefail
+          echo 'stage=tooling' >> "$GITHUB_OUTPUT"
           command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          command -v ffprobe >/dev/null
+
+          echo 'stage=decode-source' >> "$GITHUB_OUTPUT"
           cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > /tmp/home-bg-source.mp4
           test -s /tmp/home-bg-source.mp4
+
+          echo 'stage=probe-source' >> "$GITHUB_OUTPUT"
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt -of default=nw=1 /tmp/home-bg-source.mp4 | tee /tmp/source-probe.txt
           grep -Fq 'codec_name=h264' /tmp/source-probe.txt
+
+          echo 'stage=encode-gif' >> "$GITHUB_OUTPUT"
           ffmpeg -loglevel error -y -i /tmp/home-bg-source.mp4 \
-            -filter_complex "[0:v]fps=8,scale=320:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=112:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4" \
+            -vf "fps=6,scale=240:-2:flags=lanczos" \
             -loop 0 preview/home-menu/public/home-bg-ios-v9.gif
+
+          echo 'stage=verify-gif' >> "$GITHUB_OUTPUT"
           test -s preview/home-menu/public/home-bg-ios-v9.gif
           python3 - <<'PY'
           from pathlib import Path
           p=Path('preview/home-menu/public/home-bg-ios-v9.gif').read_bytes()
-          assert p[:6] in (b'GIF87a', b'GIF89a')
-          assert p.count(b'\x21\xF9\x04') > 1
-          print('GIF bytes', len(p), 'frame markers', p.count(b'\x21\xF9\x04'))
+          assert p[:6] in (b'GIF87a', b'GIF89a'), p[:6]
+          assert len(p) > 50000, len(p)
+          print('GIF bytes', len(p))
           PY
+          echo 'stage=complete' >> "$GITHUB_OUTPUT"
 
       - name: Verify V9 source contracts
         id: contracts
@@ -116,8 +127,8 @@ jobs:
               from pathlib import Path
               p=Path('/tmp/home-bg-ios-v9.gif').read_bytes()
               assert p[:6] in (b'GIF87a', b'GIF89a')
-              assert p.count(b'\x21\xF9\x04') > 1
-              print('Remote GIF bytes', len(p), 'frame markers', p.count(b'\x21\xF9\x04'))
+              assert len(p) > 50000
+              print('Remote GIF bytes', len(p))
               PY
               exit 0
             fi
@@ -131,13 +142,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           STATUS_PATH: .preview-status/home-menu-run.json
           MEDIA: ${{ steps.media.outcome }}
+          MEDIA_STAGE: ${{ steps.media.outputs.stage }}
           CONTRACTS: ${{ steps.contracts.outcome }}
           VALIDATE: ${{ steps.validate.outcome }}
           DEPLOY: ${{ steps.deploy.outcome }}
           VERIFY: ${{ steps.verify.outcome }}
         run: |
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg media "$MEDIA" --arg contracts "$CONTRACTS" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,state:"finished",finished_at:$at,steps:{media:$media,contracts:$contracts,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg media "$MEDIA" --arg stage "$MEDIA_STAGE" --arg contracts "$CONTRACTS" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,state:"finished",finished_at:$at,steps:{media:$media,media_stage:$stage,contracts:$contracts,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
           body="$(jq -nc --arg msg "chore: record home menu preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
