@@ -1,1 +1,1 @@
-{"source_sha":"df09ed2f5ca4a34d5400b4c469dc82ee72db5101","version":"home-menu-v12-ios-range-fix","state":"finished","finished_at":"2026-08-24T20:51:43Z","steps":{"source":"success","validate":"success","deploy":"success","verify":"success"}}
+{"source_sha":"03ea2345d6e38435705d48f4b2a73cf203482422","version":"home-menu-v13-hq-30fps-seamless","state":"finished","finished_at":"2026-08-24T21:30:50Z","steps":{"source":"failure","validate":"skipped","deploy":"skipped","verify":"skipped"}}
