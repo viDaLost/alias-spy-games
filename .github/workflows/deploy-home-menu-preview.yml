@@ -33,58 +33,71 @@ jobs:
           ffmpeg -version | head -n 1
           ffprobe -version | head -n 1
 
-      - name: Rebuild background media
+      - name: Build V9 direct background media
         run: |
           set -euxo pipefail
-          cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > preview/home-menu/public/home-bg-v3.mp4
-          test -s preview/home-menu/public/home-bg-v3.mp4
-          bytes="$(wc -c < preview/home-menu/public/home-bg-v3.mp4)"
-          test "$bytes" -gt 50000
-          test "$bytes" -lt 300000
 
-          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,pix_fmt,width,height -of default=nw=1 preview/home-menu/public/home-bg-v3.mp4 | tee /tmp/home-bg-probe.txt
+          cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > /tmp/home-bg-source.mp4
+          test -s /tmp/home-bg-source.mp4
+          source_bytes="$(wc -c < /tmp/home-bg-source.mp4)"
+          test "$source_bytes" -gt 50000
+          test "$source_bytes" -lt 300000
+
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,pix_fmt,width,height \
+            -of default=nw=1 /tmp/home-bg-source.mp4 | tee /tmp/home-bg-probe.txt
           grep -Fq 'codec_name=h264' /tmp/home-bg-probe.txt
 
+          # Animated WebP is the real UI background. It behaves as an image,
+          # so iOS/Safari does not need video autoplay permission.
           ffmpeg -loglevel error -y \
-            -i preview/home-menu/public/home-bg-v3.mp4 \
-            -vf "fps=10,scale=320:-2:flags=lanczos,palettegen=max_colors=96:stats_mode=diff" \
-            /tmp/home-bg-palette.png
+            -i /tmp/home-bg-source.mp4 \
+            -an -vf "fps=10,scale=320:-2:flags=lanczos" \
+            -c:v libwebp_anim -lossless 0 -q:v 60 -compression_level 4 -loop 0 \
+            preview/home-menu/public/home-bg-ios-v9.webp
 
-          test -s /tmp/home-bg-palette.png
-
+          # Keep an iOS-compatible H.264 fallback asset for diagnostics/future use.
           ffmpeg -loglevel error -y \
-            -i preview/home-menu/public/home-bg-v3.mp4 \
-            -i /tmp/home-bg-palette.png \
-            -lavfi "fps=10,scale=320:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4" \
-            -loop 0 preview/home-menu/public/home-bg-v8.gif
+            -i /tmp/home-bg-source.mp4 \
+            -an -vf "fps=15,scale=320:-2:flags=lanczos,format=yuv420p" \
+            -c:v libx264 -profile:v baseline -level 3.0 -preset medium -crf 30 \
+            -movflags +faststart \
+            preview/home-menu/public/home-bg-ios-v9.mp4
 
-          test -s preview/home-menu/public/home-bg-v8.gif
-          gif_bytes="$(wc -c < preview/home-menu/public/home-bg-v8.gif)"
-          echo "GIF bytes: $gif_bytes"
-          test "$gif_bytes" -gt 50000
-          test "$gif_bytes" -lt 10000000
+          test -s preview/home-menu/public/home-bg-ios-v9.webp
+          test -s preview/home-menu/public/home-bg-ios-v9.mp4
+
+          webp_bytes="$(wc -c < preview/home-menu/public/home-bg-ios-v9.webp)"
+          mp4_bytes="$(wc -c < preview/home-menu/public/home-bg-ios-v9.mp4)"
+          echo "V9 animated WebP bytes: $webp_bytes"
+          echo "V9 baseline MP4 bytes: $mp4_bytes"
+          test "$webp_bytes" -gt 50000
+          test "$webp_bytes" -lt 8000000
+          test "$mp4_bytes" -gt 50000
+          test "$mp4_bytes" -lt 3000000
+
           python3 - <<'PY'
           from pathlib import Path
-          p=Path('preview/home-menu/public/home-bg-v8.gif').read_bytes()
-          assert p[:6] in (b'GIF87a', b'GIF89a'), p[:6]
-          print('GIF signature verified:', p[:6], 'bytes:', len(p))
+          webp = Path('preview/home-menu/public/home-bg-ios-v9.webp').read_bytes()
+          mp4 = Path('preview/home-menu/public/home-bg-ios-v9.mp4').read_bytes()
+          assert webp[:4] == b'RIFF' and webp[8:12] == b'WEBP', webp[:12]
+          assert b'ftyp' in mp4[:64], mp4[:64]
+          print('V9 media signatures verified')
           PY
 
-      - name: Verify preview contracts
+      - name: Verify V9 source contracts
         run: |
-          grep -Fq 'HOME V3 VIDEO · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ' preview/home-menu/public/index.html
-          grep -Fq 'home-bg-v3.mp4' preview/home-menu/public/index.html
+          grep -Fq 'home-menu-v9-direct-media' preview/home-menu/worker.js
+          grep -Fq 'HOME V9 · DIRECT ANIM BG' preview/home-menu/worker.js
+          grep -Fq '/home-bg-ios-v9.webp' preview/home-menu/worker.js
+          grep -Fq 'animated-webp-direct-v9' preview/home-menu/worker.js
+          grep -Fq '/__preview_version' preview/home-menu/worker.js
           grep -Fq 'bible-sketch.webp' preview/home-menu/public/index.html
           grep -Fq 'Войти по коду' preview/home-menu/public/index.html
           grep -Fq 'Войти по QR' preview/home-menu/public/index.html
-          grep -Fq 'Живой фон' preview/home-menu/public/index.html
           grep -Fq 'view-profile' preview/home-menu/public/index.html
           grep -Fq 'view-settings' preview/home-menu/public/index.html
           grep -Fq '#4f46e5' preview/home-menu/public/index.html
-          grep -Fq 'home-menu-v8-gif-background' preview/home-menu/worker.js
-          grep -Fq 'HOME V8 · GIF BG' preview/home-menu/worker.js
-          grep -Fq 'gif-v8' preview/home-menu/worker.js
-          grep -Fq '/__preview_version' preview/home-menu/worker.js
 
       - name: Validate Worker bundle
         working-directory: preview/home-menu
@@ -100,52 +113,58 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V8 preview and GIF background
+      - name: Verify deployed V9 direct animated background
         env:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
-          for attempt in 1 2 3 4 5 6; do
+          set -euxo pipefail
+          for attempt in 1 2 3 4 5 6 7 8; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V8 · GIF BG' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v8-gif-background' /tmp/home-menu-preview.html \
+              && grep -Fq 'HOME V9 · DIRECT ANIM BG' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v9-direct-media' /tmp/home-menu-preview.html \
               && grep -Fq 'homeAnimatedBg' /tmp/home-menu-preview.html \
               && grep -Fq 'view-profile' /tmp/home-menu-preview.html \
               && grep -Fq 'view-settings' /tmp/home-menu-preview.html; then
 
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
-              jq -e '.version == "home-menu-v8-gif-background" and .background == "gif-v8" and .videoDisabled == true' /tmp/home-menu-version.json >/dev/null
+              jq -e '.version == "home-menu-v9-direct-media" and .background == "animated-webp-direct-v9" and .autoplayRequired == false' /tmp/home-menu-version.json >/dev/null
 
-              curl -fsS --retry 2 --max-time 20 -D /tmp/gif-headers.txt "${PREVIEW_URL}home-bg-v8.gif?v=8&build=${GITHUB_SHA}" -o /tmp/home-bg-v8.gif
-              grep -Eiq '^content-type: *image/gif' /tmp/gif-headers.txt
-              grep -Eiq '^x-home-menu-animated-bg: *gif-v8' /tmp/gif-headers.txt
-              grep -Eiq '^x-home-menu-build: *home-menu-v8-gif-background' /tmp/gif-headers.txt
-              test "$(wc -c < /tmp/home-bg-v8.gif)" -gt 50000
+              curl -fsS --retry 2 --max-time 25 \
+                -D /tmp/webp-headers.txt \
+                "${PREVIEW_URL}home-bg-ios-v9.webp?v=9&build=${GITHUB_SHA}" \
+                -o /tmp/home-bg-ios-v9.webp
+
+              grep -Eiq '^content-type: *image/webp' /tmp/webp-headers.txt
+              grep -Eiq '^x-home-menu-media: *animated-webp-direct-v9' /tmp/webp-headers.txt
+              grep -Eiq '^x-home-menu-build: *home-menu-v9-direct-media' /tmp/webp-headers.txt
+              test "$(wc -c < /tmp/home-bg-ios-v9.webp)" -gt 50000
+
               python3 - <<'PY'
               from pathlib import Path
-              p=Path('/tmp/home-bg-v8.gif').read_bytes()
-              assert p[:6] in (b'GIF87a', b'GIF89a')
-              print('Remote GIF verified:', len(p))
+              p = Path('/tmp/home-bg-ios-v9.webp').read_bytes()
+              assert p[:4] == b'RIFF' and p[8:12] == b'WEBP', p[:12]
+              print('Remote V9 animated WebP verified:', len(p))
               PY
 
-              echo "Home menu V8 preview verified: ${PREVIEW_URL}"
+              echo "Home menu V9 preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V8 Cloudflare preview verification failed' >&2
+          echo 'Home menu V9 Cloudflare preview verification failed' >&2
           exit 1
 
-      - name: Record verified preview
+      - name: Record verified V9 preview
         env:
           GH_TOKEN: ${{ github.token }}
           STATUS_PATH: .preview-status/home-menu.json
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v8-gif-background",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v9-direct-media",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V8 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu V9 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H 'Accept: application/vnd.github+json' \
