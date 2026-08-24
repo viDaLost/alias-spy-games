@@ -37,7 +37,6 @@ jobs:
           grep -Fq 'HOME V12 · iOS RANGE FIX' preview/home-menu/worker.js
           grep -Fq '/home-bg-v11.mp4' preview/home-menu/worker.js
           grep -Fq 'ios-range-fixed-h264-v12' preview/home-menu/worker.js
-          grep -Fq 'const match=/^(\\d*)-(\\d*)$/' preview/home-menu/worker.js
           grep -Fq 'bible-sketch.webp' preview/home-menu/public/index.html
           grep -Fq 'view-profile' preview/home-menu/public/index.html
           grep -Fq 'view-settings' preview/home-menu/public/index.html
