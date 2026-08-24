@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f6fb">
+<title>Библейские игры · Новое главное меню</title>
+<style>
+:root{
+  --bg:#f4f6fb;--surface:#fff;--surface-2:#f8f9fc;--ink:#172039;--muted:#77819a;
+  --line:#e8ebf2;--primary:#5b55e7;--primary-2:#7a63f1;--gold:#e8b95c;--green:#36b889;
+  --shadow:0 18px 50px rgba(42,51,83,.10);--soft:0 8px 25px rgba(42,51,83,.07);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+body{min-height:100dvh;overflow-x:hidden}
+button,input{font:inherit;color:inherit}
+button{border:0;cursor:pointer}
+.app{width:min(100%,760px);margin:0 auto;min-height:100dvh;padding:calc(13px + env(safe-area-inset-top)) 16px calc(98px + env(safe-area-inset-bottom));position:relative}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand-mark{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:white;font-size:20px;background:linear-gradient(145deg,#4c45d6,#806cf4);box-shadow:0 9px 23px rgba(91,85,231,.28);position:relative;overflow:hidden}
+.brand-mark:after{content:"";position:absolute;width:32px;height:32px;border:1px solid rgba(255,255,255,.22);border-radius:50%;top:-12px;right:-11px}
+.brand-copy strong{display:block;font-size:19px;letter-spacing:-.45px;line-height:1.1}.brand-copy span{display:block;color:var(--muted);font-size:11px;margin-top:3px;font-weight:650}
+.top-actions{display:flex;gap:8px}.round-btn{width:40px;height:40px;border-radius:14px;background:var(--surface);box-shadow:var(--soft);display:grid;place-items:center;font-size:17px;border:1px solid rgba(232,235,242,.75)}
+.hero{position:relative;overflow:hidden;border-radius:28px;padding:23px 21px 20px;background:linear-gradient(140deg,#453bc8 0%,#6456e7 49%,#8768f4 100%);color:#fff;box-shadow:0 20px 50px rgba(75,66,190,.25);min-height:205px}
+.hero:before,.hero:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.13)}.hero:before{width:210px;height:210px;right:-72px;top:-105px}.hero:after{width:120px;height:120px;right:21px;bottom:-82px}
+.hero-spark{position:absolute;right:18px;top:15px;width:89px;height:89px;opacity:.95;filter:drop-shadow(0 12px 20px rgba(28,23,93,.2))}.hero-spark span{position:absolute;display:grid;place-items:center;background:rgba(255,255,255,.13);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);border-radius:18px;width:49px;height:49px;font-size:23px}.hero-spark span:nth-child(1){left:4px;top:27px;transform:rotate(-9deg)}.hero-spark span:nth-child(2){right:0;top:3px;transform:rotate(8deg)}
+.kicker{font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;opacity:.76}.hero h1{font-size:29px;line-height:1.04;letter-spacing:-1.15px;margin:8px 85px 8px 0}.hero p{font-size:13px;line-height:1.45;margin:0 78px 17px 0;color:rgba(255,255,255,.8)}
+.hero-btn{height:48px;padding:0 18px;border-radius:16px;background:white;color:#443fc0;font-weight:850;font-size:14px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 18px rgba(34,30,103,.18)}
+.hero-btn i{font-style:normal;font-size:16px}.hero-chips{position:absolute;right:16px;bottom:18px;display:flex;flex-direction:column;gap:5px}.hero-chip{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.13);font-size:9px;font-weight:800;white-space:nowrap}
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 0 18px}.quick-action{min-height:68px;border-radius:20px;background:var(--surface);box-shadow:var(--soft);border:1px solid rgba(232,235,242,.78);display:flex;align-items:center;text-align:left;padding:12px 13px;gap:10px}.quick-action__icon{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#f0efff;color:#5049d5;font-size:19px;flex:0 0 auto}.quick-action:nth-child(2) .quick-action__icon{background:#eef9f5;color:#279b72}.quick-action strong{display:block;font-size:13px;letter-spacing:-.2px}.quick-action span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.section{margin-top:20px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:10px}.section-head h2{font-size:18px;letter-spacing:-.55px;margin:0}.section-head button{background:transparent;color:var(--primary);font-weight:800;font-size:11px;padding:4px}
+.continue-card{background:linear-gradient(135deg,#fff,#fbfbff);border:1px solid #ebeafa;border-radius:22px;padding:13px;display:flex;align-items:center;gap:12px;box-shadow:var(--soft);position:relative;overflow:hidden}.continue-card:after{content:"";position:absolute;width:80px;height:80px;border-radius:50%;background:rgba(91,85,231,.06);right:-27px;top:-31px}.continue-icon{width:56px;height:56px;border-radius:17px;overflow:hidden;display:grid;place-items:center;background:#efedff;flex:0 0 auto}.continue-icon img{width:100%;height:100%;object-fit:cover}.continue-copy{min-width:0;flex:1}.continue-copy small{font-size:9px;font-weight:900;letter-spacing:.1em;color:var(--primary);text-transform:uppercase}.continue-copy strong{display:block;font-size:15px;margin-top:3px}.continue-copy span{display:block;color:var(--muted);font-size:10px;margin-top:3px}.continue-play{width:43px;height:43px;border-radius:15px;background:var(--primary);color:white;display:grid;place-items:center;font-size:16px;box-shadow:0 8px 18px rgba(91,85,231,.24);z-index:1}
+.filters{display:flex;gap:7px;overflow-x:auto;padding:1px 1px 4px;margin:0 -1px;scrollbar-width:none}.filters::-webkit-scrollbar{display:none}.filter{flex:0 0 auto;padding:8px 13px;border-radius:999px;background:#fff;color:#747e95;border:1px solid var(--line);font-size:11px;font-weight:800;transition:.18s}.filter.active{background:var(--ink);border-color:var(--ink);color:white;box-shadow:0 7px 18px rgba(23,32,57,.18)}
+.games{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:11px}.game-card{position:relative;min-height:174px;border-radius:24px;background:#fff;border:1px solid rgba(232,235,242,.84);box-shadow:var(--soft);padding:13px;text-align:left;overflow:hidden;transition:transform .18s ease,box-shadow .18s ease}.game-card:active{transform:scale(.98)}.game-card.hidden{display:none}.game-visual{height:87px;border-radius:17px;position:relative;overflow:hidden;display:grid;place-items:center;margin-bottom:11px}.game-visual:after{content:"";position:absolute;inset:auto -16px -34px auto;width:80px;height:80px;border-radius:50%;border:1px solid rgba(255,255,255,.22)}.game-visual img{width:68px;height:68px;object-fit:contain;filter:drop-shadow(0 9px 12px rgba(31,34,72,.16));z-index:1}.game-badge{position:absolute;left:8px;top:8px;z-index:2;padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);font-size:8px;font-weight:900;letter-spacing:.045em;color:#37405b}.game-title{font-size:13px;font-weight:850;line-height:1.15;letter-spacing:-.28px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.game-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.meta-pill{font-size:9px;color:#687189;background:#f4f5f8;border-radius:999px;padding:4px 6px;font-weight:750}.game-arrow{position:absolute;right:12px;bottom:12px;width:27px;height:27px;border-radius:10px;background:#f3f4f8;display:grid;place-items:center;color:#6c7488;font-size:12px}
+.palette-sketch{background:linear-gradient(145deg,#bff4e8,#91ded0)}.palette-quartet{background:linear-gradient(145deg,#f6d8be,#eab78b)}.palette-spy{background:linear-gradient(145deg,#cbd6ff,#7f96e8)}.palette-treasure{background:linear-gradient(145deg,#ffe6a7,#f4bf5e)}.palette-alias{background:linear-gradient(145deg,#bfdbfe,#72a8ed)}.palette-wow{background:linear-gradient(145deg,#ddcffc,#ad91ee)}.palette-search{background:linear-gradient(145deg,#c5eee7,#75c4b6)}.palette-sacred{background:linear-gradient(145deg,#f1d2dc,#d596ab)}.palette-ark{background:linear-gradient(145deg,#d8edbd,#9ecf78)}.palette-idea{background:linear-gradient(145deg,#f6d1ee,#d595cb)}.palette-character{background:linear-gradient(145deg,#f8d4ca,#e39480)}.palette-describe{background:linear-gradient(145deg,#cbe9f5,#8bc6df)}
+.roulette{margin-top:20px;border-radius:25px;padding:17px;background:linear-gradient(135deg,#1f2841,#303b5a);color:white;display:flex;align-items:center;gap:13px;position:relative;overflow:hidden;box-shadow:var(--shadow)}.roulette:after{content:"";position:absolute;width:110px;height:110px;border-radius:50%;right:-40px;top:-45px;background:rgba(255,255,255,.05)}.roulette-icon{width:52px;height:52px;border-radius:17px;background:rgba(255,255,255,.09);display:grid;place-items:center;font-size:27px;border:1px solid rgba(255,255,255,.08)}.roulette-copy{flex:1;min-width:0}.roulette-copy strong{font-size:14px;display:block}.roulette-copy span{font-size:10px;color:rgba(255,255,255,.62);display:block;margin-top:4px}.roulette-go{width:42px;height:42px;border-radius:14px;background:white;color:#26314d;display:grid;place-items:center;font-size:16px;z-index:1}
+.bottom-nav{position:fixed;z-index:40;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,760px);padding:8px 22px calc(8px + env(safe-area-inset-bottom));background:rgba(248,249,252,.88);backdrop-filter:blur(22px);border-top:1px solid rgba(222,226,236,.85);display:grid;grid-template-columns:repeat(3,1fr)}.nav-btn{background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;color:#8a92a5;font-size:9px;font-weight:800;padding:5px}.nav-btn b{font-size:19px;font-weight:500;line-height:1}.nav-btn.active{color:var(--primary)}
+.preview-badge{position:fixed;z-index:80;right:max(8px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));transform:translateY(50px);padding:5px 8px;border-radius:999px;background:rgba(23,32,57,.76);backdrop-filter:blur(10px);color:white;font-size:7px;font-weight:900;letter-spacing:.08em;pointer-events:none;opacity:.82}
+.overlay{position:fixed;z-index:100;inset:0;background:rgba(18,24,43,.38);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:14px;opacity:0;pointer-events:none;transition:.22s}.overlay.open{opacity:1;pointer-events:auto}.sheet{width:min(100%,520px);background:white;border-radius:28px;padding:9px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 24px 80px rgba(22,30,53,.24);transform:translateY(20px);transition:.22s;max-height:84dvh;overflow:auto}.overlay.open .sheet{transform:translateY(0)}.grab{width:42px;height:4px;border-radius:999px;background:#d9dde7;margin:3px auto 15px}.sheet h3{font-size:21px;letter-spacing:-.7px;margin:0}.sheet>p{font-size:12px;color:var(--muted);line-height:1.45;margin:6px 0 15px}.choice-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:#8a92a5;font-weight:900;margin:17px 0 8px}.choice-row{display:flex;gap:7px;flex-wrap:wrap}.choice{padding:9px 12px;border-radius:13px;background:#f5f6fa;border:1px solid #e7e9f0;font-size:11px;font-weight:800}.choice.active{background:#ebe9ff;color:#5048d2;border-color:#d5d1ff}.primary-action{width:100%;height:50px;border-radius:16px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:white;font-weight:850;margin-top:18px;box-shadow:0 9px 22px rgba(91,85,231,.22)}.suggestion{margin-top:15px;padding:13px;border-radius:18px;background:#f7f7fc;display:none;align-items:center;gap:11px}.suggestion.show{display:flex}.suggestion img{width:48px;height:48px;border-radius:14px;object-fit:contain;background:#ebe9ff}.suggestion strong{display:block;font-size:13px}.suggestion span{display:block;font-size:10px;color:var(--muted);margin-top:3px}.code-input{height:54px;width:100%;border-radius:16px;border:1px solid #dfe3ec;background:#fafbfc;text-align:center;font-size:22px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;outline:none}.code-input:focus{border-color:#9e98f6;box-shadow:0 0 0 4px rgba(91,85,231,.09)}.toast{position:fixed;z-index:200;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#1f2841;color:white;padding:10px 14px;border-radius:14px;font-size:11px;font-weight:750;box-shadow:0 15px 35px rgba(20,26,45,.24);opacity:0;pointer-events:none;transition:.2s;max-width:calc(100% - 32px);text-align:center}.toast.show{opacity:1;transform:translate(-50%,0)}
+.highlight{animation:pulse 1.05s ease 2}@keyframes pulse{0%,100%{box-shadow:var(--soft)}50%{box-shadow:0 0 0 4px rgba(91,85,231,.16),0 12px 35px rgba(65,58,173,.20);transform:translateY(-2px)}}
+@media(min-width:580px){.games{grid-template-columns:repeat(3,minmax(0,1fr))}.game-card{min-height:180px}.hero{padding:27px}.hero h1{font-size:34px}.app{padding-left:22px;padding-right:22px}}
+@media(max-width:355px){.app{padding-left:11px;padding-right:11px}.hero{padding:19px 16px}.hero h1{font-size:25px}.hero p{margin-right:60px}.quick-action{padding:10px}.game-card{padding:10px;min-height:162px}.game-visual{height:78px}.game-title{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">✦</div><div class="brand-copy"><strong>Библейские игры</strong><span>Играйте вместе, без лишних шагов</span></div></div>
+    <div class="top-actions"><button class="round-btn" id="notifications" aria-label="Уведомления">⌁</button><button class="round-btn" id="settings" aria-label="Настройки">⚙</button></div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-spark"><span>🎲</span><span>🃏</span></div>
+    <div class="kicker">Быстрый старт</div>
+    <h1>Во что играем?</h1>
+    <p>Подберём игру под вашу компанию и свободное время.</p>
+    <button class="hero-btn" id="quickGame"><i>⚡</i> Быстрая игра <span>→</span></button>
+    <div class="hero-chips"><span class="hero-chip">2–4 игрока</span><span class="hero-chip">5–8 игроков</span><span class="hero-chip">9+ игроков</span></div>
+  </section>
+
+  <div class="quick-actions">
+    <button class="quick-action" id="createRoom"><span class="quick-action__icon">＋</span><span><strong>Создать комнату</strong><span>Для онлайн-игры</span></span></button>
+    <button class="quick-action" id="joinRoom"><span class="quick-action__icon">⌨</span><span><strong>Ввести код</strong><span>Войти к друзьям</span></span></button>
+  </div>
+
+  <section class="section" id="continueSection">
+    <div class="section-head"><h2>Продолжить</h2><button id="hideContinue">Скрыть</button></div>
+    <div class="continue-card" id="continueCard">
+      <div class="continue-icon"><img id="continueImage" src="https://vidalost.github.io/alias-spy-games/web/assets/icons/quartet.png?v=1" alt=""></div>
+      <div class="continue-copy"><small>Последняя игра</small><strong id="continueTitle">Квартет</strong><span id="continueMeta">6 игроков · сыграть ещё раз</span></div>
+      <button class="continue-play" id="continuePlay" aria-label="Играть ещё">▶</button>
+    </div>
+  </section>
+
+  <section class="section" id="gamesSection">
+    <div class="section-head"><h2>Игры</h2><button id="showAll">Все игры</button></div>
+    <div class="filters" id="filters">
+      <button class="filter active" data-filter="all">Все</button><button class="filter" data-filter="company">Компания</button><button class="filter" data-filter="online">Онлайн</button><button class="filter" data-filter="words">Слова</button><button class="filter" data-filter="kids">Детям</button><button class="filter" data-filter="solo">1 игрок</button>
+    </div>
+    <div class="games" id="games"></div>
+  </section>
+
+  <button class="roulette" id="roulette"><span class="roulette-icon">🎲</span><span class="roulette-copy"><strong>Не знаете, что выбрать?</strong><span>Доверьте выбор игре — один тап</span></span><span class="roulette-go">→</span></button>
+</main>
+
+<nav class="bottom-nav" aria-label="Навигация"><button class="nav-btn active" data-nav="games"><b>▦</b><span>Игры</span></button><button class="nav-btn" data-nav="quick"><b>⚡</b><span>Быстрая</span></button><button class="nav-btn" data-nav="profile"><b>◉</b><span>Профиль</span></button></nav>
+<div class="preview-badge">CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ</div>
+
+<div class="overlay" id="quickSheet"><div class="sheet"><div class="grab"></div><h3>Быстрая игра</h3><p>Два вопроса — и покажем вариант, который подходит вашей компании.</p><div class="choice-label">Сколько вас?</div><div class="choice-row" id="playerChoices"><button class="choice" data-players="2">2</button><button class="choice" data-players="3">3</button><button class="choice active" data-players="4">4</button><button class="choice" data-players="5">5</button><button class="choice" data-players="6">6</button><button class="choice" data-players="8">7–8</button><button class="choice" data-players="10">9+</button></div><div class="choice-label">Сколько времени?</div><div class="choice-row" id="timeChoices"><button class="choice" data-time="5">5 мин</button><button class="choice active" data-time="10">10 мин</button><button class="choice" data-time="20">20 мин</button><button class="choice" data-time="60">Неважно</button></div><button class="primary-action" id="findGame">Подобрать игру</button><div class="suggestion" id="suggestion"><img id="suggestionImage" alt=""><div><strong id="suggestionTitle"></strong><span id="suggestionMeta"></span></div></div></div></div>
+<div class="overlay" id="roomSheet"><div class="sheet"><div class="grab"></div><h3 id="roomSheetTitle">Создать комнату</h3><p id="roomSheetCopy">Выберите онлайн-игру — в рабочей версии комната создастся сразу.</p><div class="choice-row" id="roomGames"></div><button class="primary-action" id="roomAction">Продолжить</button></div></div>
+<div class="overlay" id="joinSheet"><div class="sheet"><div class="grab"></div><h3>Войти по коду</h3><p>Код остаётся запасным способом. Основной сценарий позже можно сделать через QR.</p><input class="code-input" id="roomCode" maxlength="6" placeholder="ABC123" autocomplete="off"><button class="primary-action" id="joinAction">Войти в комнату</button></div></div>
+<div class="overlay" id="profileSheet"><div class="sheet"><div class="grab"></div><h3>Профиль</h3><p>Минимальный профиль без перегрузки: последние игры, избранное, настройки и поддержка.</p><div class="continue-card"><div class="continue-icon" style="font-size:25px">👤</div><div class="continue-copy"><small>Игрок</small><strong>Ваш профиль</strong><span>⭐ прогресс · недавние игры</span></div></div><button class="primary-action" data-close>Готово</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PROD='https://vidalost.github.io/alias-spy-games/';
+const A=PROD+'web/assets/icons/';
+const games=[
+ {id:'bible-sketch',title:'Библейский художник',icon:A+'bible-sketch.svg?v=1',players:[3,8],minutes:12,cats:['company','online'],palette:'palette-sketch',badge:'ОНЛАЙН'},
+ {id:'quartet',title:'Квартет',icon:A+'quartet.png?v=1',players:[2,8],minutes:15,cats:['company','online'],palette:'palette-quartet',badge:'ПОПУЛЯРНОЕ'},
+ {id:'spy',title:'Шпион',icon:A+'spy.png?v=1',players:[4,12],minutes:8,cats:['company'],palette:'palette-spy',badge:'БЫСТРАЯ'},
+ {id:'biblical-match-three',title:'Библейские сокровища',icon:A+'biblical-treasures-v38.png?v=39',players:[1,1],minutes:10,cats:['solo'],palette:'palette-treasure',badge:'30 УРОВНЕЙ'},
+ {id:'alias',title:'Алиас',icon:A+'alias.png?v=1',players:[4,16],minutes:15,cats:['company'],palette:'palette-alias',badge:'КОМПАНИЯ'},
+ {id:'bible-wow',title:'Библейские слова',icon:A+'words.png?v=1',players:[1,1],minutes:8,cats:['words','solo'],palette:'palette-wow',badge:'СЛОВА'},
+ {id:'bible-wordsearch',title:'Поиск слов',icon:A+'search.png?v=1',players:[1,1],minutes:8,cats:['words','solo'],palette:'palette-search',badge:'СПОКОЙНАЯ'},
+ {id:'sacred-word',title:'Священное слово',icon:A+'sacred.png?v=1',players:[1,1],minutes:10,cats:['words','solo'],palette:'palette-sacred',badge:'СЛОВА'},
+ {id:'kids-ark-pairs',title:'Найди пару',icon:A+'ark.png?v=1',players:[1,2],minutes:6,cats:['kids','solo'],palette:'palette-ark',badge:'ДЕТЯМ'},
+ {id:'coimaginarium',title:'Соображариум',icon:A+'idea.png?v=1',players:[3,12],minutes:10,cats:['company'],palette:'palette-idea',badge:'ВЕСЁЛАЯ'},
+ {id:'guess',title:'Угадай персонажа',icon:A+'character.png?v=1',players:[3,12],minutes:12,cats:['company'],palette:'palette-character',badge:'КОМПАНИЯ'},
+ {id:'describe',title:'Опиши, но не называй',icon:A+'describe.png?v=1',players:[4,16],minutes:10,cats:['company'],palette:'palette-describe',badge:'БЫСТРАЯ'}
+];
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const gamesEl=$('#games');
+function playerText(g){return g.players[0]===g.players[1]?`${g.players[0]} игрок`:`${g.players[0]}–${g.players[1]}`}
+function renderGames(filter='all'){
+ gamesEl.innerHTML=games.map(g=>`<button class="game-card" data-game="${g.id}" data-cats="${g.cats.join(' ')}"><div class="game-visual ${g.palette}"><span class="game-badge">${g.badge}</span><img src="${g.icon}" alt="" loading="lazy"></div><span class="game-title">${g.title}</span><span class="game-meta"><span class="meta-pill">👥 ${playerText(g)}</span><span class="meta-pill">⏱ ~${g.minutes} мин</span></span><span class="game-arrow">→</span></button>`).join('');
+ applyFilter(filter); bindCards();
+}
+function applyFilter(filter){$$('.game-card').forEach(card=>card.classList.toggle('hidden',filter!=='all'&&!card.dataset.cats.split(' ').includes(filter)))}
+function bindCards(){$$('.game-card').forEach(card=>card.onclick=()=>selectGame(card.dataset.game))}
+function selectGame(id){const g=games.find(x=>x.id===id); if(!g)return; localStorage.setItem('home_preview_last',id); updateContinue(g); toast(`${g.title}: в production здесь сразу открывается игра`)}
+function updateContinue(g){$('#continueTitle').textContent=g.title;$('#continueImage').src=g.icon;$('#continueMeta').textContent=`${playerText(g)} · сыграть ещё раз`}
+const saved=games.find(g=>g.id===localStorage.getItem('home_preview_last')); if(saved)updateContinue(saved);
+renderGames();
+$('#filters').onclick=e=>{const b=e.target.closest('[data-filter]');if(!b)return;$$('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');applyFilter(b.dataset.filter)};
+$('#showAll').onclick=()=>{$$('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));applyFilter('all')};
+function openSheet(id){$(id).classList.add('open')}
+function closeSheets(){ $$('.overlay').forEach(x=>x.classList.remove('open')) }
+$$('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeSheets()})); $$('[data-close]').forEach(b=>b.onclick=closeSheets);
+$('#quickGame').onclick=()=>openSheet('#quickSheet'); $('[data-nav="quick"]').onclick=()=>openSheet('#quickSheet');
+function choiceGroup(root){$(root).onclick=e=>{const b=e.target.closest('.choice');if(!b)return;$(root).querySelectorAll('.choice').forEach(x=>x.classList.remove('active'));b.classList.add('active')}}
+choiceGroup('#playerChoices'); choiceGroup('#timeChoices');
+$('#findGame').onclick=()=>{const p=+$('#playerChoices .active').dataset.players,t=+$('#timeChoices .active').dataset.time;let pool=games.filter(g=>p>=g.players[0]&&p<=g.players[1]&&g.minutes<=t+4);if(!pool.length)pool=games.filter(g=>p>=g.players[0]&&p<=g.players[1]);if(!pool.length)pool=games;const g=pool[Math.floor(Math.random()*pool.length)];$('#suggestionImage').src=g.icon;$('#suggestionTitle').textContent=g.title;$('#suggestionMeta').textContent=`👥 ${playerText(g)} · ⏱ ~${g.minutes} мин`;$('#suggestion').classList.add('show');$('#suggestion').onclick=()=>{closeSheets();setTimeout(()=>focusGame(g.id),220)}};
+function focusGame(id){const card=$(`[data-game="${id}"]`);if(!card)return;$$('.filter').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));applyFilter('all');card.scrollIntoView({behavior:'smooth',block:'center'});card.classList.add('highlight');setTimeout(()=>card.classList.remove('highlight'),2400)}
+$('#createRoom').onclick=()=>{const online=games.filter(g=>g.cats.includes('online'));$('#roomGames').innerHTML=online.map((g,i)=>`<button class="choice${i===0?' active':''}" data-room-game="${g.id}">${g.title}</button>`).join('');$('#roomGames').onclick=e=>{const b=e.target.closest('[data-room-game]');if(!b)return;$('#roomGames').querySelectorAll('.choice').forEach(x=>x.classList.remove('active'));b.classList.add('active')};openSheet('#roomSheet')};
+$('#roomAction').onclick=()=>{const id=$('#roomGames .active')?.dataset.roomGame;const g=games.find(x=>x.id===id);closeSheets();toast(`${g?.title||'Игра'}: комната создаётся одним нажатием`)};
+$('#joinRoom').onclick=()=>openSheet('#joinSheet');$('#roomCode').oninput=e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);$('#joinAction').onclick=()=>{const code=$('#roomCode').value;if(code.length<4)return toast('Введите код комнаты');closeSheets();toast(`Комната ${code}: в production выполняется прямой вход`)};
+$('#roulette').onclick=()=>{const g=games[Math.floor(Math.random()*games.length)];toast(`🎲 Выпало: ${g.title}`);setTimeout(()=>focusGame(g.id),350)};
+$('#continuePlay').onclick=()=>selectGame(localStorage.getItem('home_preview_last')||'quartet');$('#continueCard').onclick=e=>{if(!e.target.closest('button'))selectGame(localStorage.getItem('home_preview_last')||'quartet')};
+$('#hideContinue').onclick=()=>{$('#continueSection').style.display='none';toast('Блок «Продолжить» скрыт')};
+$('[data-nav="games"]').onclick=()=>{window.scrollTo({top:0,behavior:'smooth'});$$('.nav-btn').forEach(x=>x.classList.remove('active'));$('[data-nav="games"]').classList.add('active')};
+$('[data-nav="profile"]').onclick=()=>openSheet('#profileSheet');
+$('#settings').onclick=()=>toast('Настройки будут открываться отдельным компактным листом');$('#notifications').onclick=()=>toast('Для коротких сессий уведомления не занимают отдельную вкладку');
+let toastTimer;function toast(text){const t=$('#toast');t.textContent=text;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200)}
+</script>
+</body>
+</html>
