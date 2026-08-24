@@ -418,9 +418,9 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function scheduleReconnect() {
-    if (destroyed || leaving || reconnectTimer || reconnecting || !roomId) return;
+    if (destroyed || leaving || document.hidden || reconnectTimer || reconnecting || !roomId) return;
     reconnectAttempt += 1;
-    const delay = Math.min(8000, 800 * 2 ** Math.min(reconnectAttempt - 1, 4));
+    const delay = Math.min(30_000, 2_500 * 2 ** Math.min(reconnectAttempt - 1, 4));
     reconnectTimer = setTimeout(async () => {
       reconnectTimer = null;
       reconnecting = true;

@@ -14,7 +14,7 @@ const css = read('web/styles/quartet-v43-smooth.css');
 new Function(loader);
 new Function(ui);
 
-ok(index.includes('quartet-production-v43-loader.js?v=43'), 'V43 production loader is not wired');
+ok(index.includes('quartet-production-v43-loader.js?v=44'), 'V43 production loader cache-bust is not wired');
 ok(index.includes('quartet-v43-smooth-ui.js?v=43'), 'V43 viewport UI is not wired');
 ok(index.includes('quartet-v43-smooth.css?v=43'), 'V43 smooth CSS is not wired');
 ok(!index.includes('quartet-production-v42-loader.js?v=42'), 'Old V42 production loader is still active');

@@ -49,6 +49,7 @@ excludes('web/js/admin-live-v3.js', 'clearTimeout(scheduled); scheduled = setTim
 includes('web/js/cloudflare-request-budget.js', 'adminLive: { freshMs: 15_000', 'Admin live network calls must be budgeted');
 includes('web/js/cloudflare-request-budget.js', 'adminStats: { freshMs: 300_000', 'Historical admin stats must be budgeted');
 includes('web/js/cloudflare-request-budget.js', 'observerUnchanged: { freshMs: 20_000', 'Unchanged room observer polling must be budgeted');
+includes('web/js/cloudflare-request-budget.js', 'roomJoinMinMs: 30_000', 'Automatic room rejoins must be budgeted');
 includes('web/js/cloudflare-request-budget.js', 'if (document.hidden && existing) return responseFrom(existing);', 'Hidden admin screens must reuse local snapshots');
 
 excludes('web/js/presence-identity.js', "searchParams.set('initData'", 'Presence websocket must not expose Telegram initData');
@@ -56,6 +57,7 @@ includes('web/js/presence-identity.js', "scope: 'presence'", 'Presence must use 
 includes('web/js/presence-identity.js', "localStorage.getItem('quartet_v2_room_id')", 'Presence room context must use explicit game storage state');
 includes('web/js/presence-identity.js', 'setGame,', 'Presence must expose explicit game state');
 includes('web/js/presence-identity.js', 'sendPresence(true);', 'Presence heartbeat must refresh full game state');
+includes('web/js/presence-identity.js', 'if (reconnectTimer || connecting', 'Presence passive timers must not bypass reconnect backoff');
 excludes('web/js/presence-identity.js', "socket.send(JSON.stringify({ type: 'ping' }))", 'Presence heartbeat must not keep stale menu state alive');
 includes('web/js/presence-game-bridge.js', 'window.showGame = wrappedShowGame;', 'Game navigation must feed presence state');
 includes('web/js/presence-game-bridge.js', "wrapMenuFunction('goToMainMenu')", 'Return to menu must clear presence game state');
@@ -78,9 +80,9 @@ includes('web/styles/admin-live-compact.css', 'grid-template-columns: repeat(2, 
 includes('web/styles/admin-live-compact.css', 'grid-template-columns: 44px minmax(24px, 1fr) 44px;', 'Compact balance controls must preserve 44px touch targets');
 includes('index.html', 'admin-live-v3.js?v=7', 'Admin live cache key must remain current');
 includes('index.html', 'admin-live-compact.css?v=1', 'Compact admin live stylesheet must be loaded');
-includes('index.html', 'request-budget-v1-20260823', 'Build marker must identify the Cloudflare request-budget release');
-includes('index.html', 'cloudflare-request-budget.js?v=1', 'Cloudflare request-budget client must be loaded');
-includes('index.html', 'presence-identity.js?v=6', 'Presence cache key must be bumped');
+includes('index.html', 'request-storm-v2-20260824', 'Build marker must identify the reconnect-storm release');
+includes('index.html', 'cloudflare-request-budget.js?v=2', 'Cloudflare request-budget client must be loaded');
+includes('index.html', 'presence-identity.js?v=7', 'Presence cache key must be bumped');
 includes('index.html', 'presence-game-bridge.js?v=1', 'Presence game bridge must be loaded');
 includes('index.html', 'bmt-stars-cloud-sync.js?v=49', 'BMT sync cache key must be bumped');
 

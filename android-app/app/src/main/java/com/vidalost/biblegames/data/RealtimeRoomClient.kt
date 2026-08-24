@@ -298,12 +298,16 @@ class RealtimeRoomClient(
         socket = null
         connecting = true
         connected = false
-        usingHttpsFallback = true
+        usingHttpsFallback = false
 
-        // Bootstrap over ordinary HTTPS immediately. The WebSocket upgrade is
-        // attempted in parallel on an isolated client and wins only after it
-        // has delivered a real state snapshot.
-        startPollingFallback(preserveSocket = true)
+        // Give the WebSocket a short grace period before falling back to HTTPS.
+        // This prevents every healthy room from generating an 850ms polling stream
+        // while the first WebSocket state snapshot is still in flight.
+        main.postDelayed({
+            if (generation == socketGeneration && !connected && !closed && !leaving) {
+                startPollingFallback(preserveSocket = true)
+            }
+        }, WS_FALLBACK_GRACE_MS)
 
         val wsBase = backend.replaceFirst("https://", "wss://").replaceFirst("http://", "ws://")
         val request = Request.Builder()
@@ -569,8 +573,9 @@ class RealtimeRoomClient(
         private const val KEY_GUEST_ID = "guest_id"
         private const val KEY_PLAYER_NAME = "player_name"
         private const val KEY_ROOM_ID = "room_id"
-        private const val POLL_INTERVAL_MS = 850L
-        private const val POLL_ACTION_GAP_MS = 90L
+        private const val WS_FALLBACK_GRACE_MS = 3_000L
+        private const val POLL_INTERVAL_MS = 5_000L
+        private const val POLL_ACTION_GAP_MS = 250L
 
         private fun randomGuestId(): String {
             val bytes = ByteArray(12).also(SecureRandom()::nextBytes)

@@ -22,6 +22,7 @@
   let explicitRoomGame = '';
   let explicitGame = '';
   let reconnectAttempt = 0;
+  let connecting = false;
 
   function normalizeGame(value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40);
@@ -125,10 +126,10 @@
   }
 
   async function connect() {
-    if (pageLeaving || document.hidden || !navigator.onLine) return;
+    if (pageLeaving || document.hidden || !navigator.onLine || connecting) return;
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
+    if (reconnectTimer) return;
+    connecting = true;
 
     try {
       const token = await ensureSession();
@@ -143,6 +144,8 @@
       socket = null;
       scheduleReconnect();
       return;
+    } finally {
+      connecting = false;
     }
 
     socket.addEventListener('open', () => {
@@ -171,20 +174,28 @@
     pingTimer = setInterval(() => {
       if (document.hidden || pageLeaving) return sendOfflineAndClose('hidden-heartbeat');
       if (socket?.readyState === WebSocket.OPEN) {
-        // Full state is repeated as a low-frequency safety heartbeat. Navigation
-        // changes themselves are pushed immediately by setGame/setRoom.
         sendPresence(true);
-      } else connect();
+      } else {
+        scheduleReconnect();
+      }
     }, HEARTBEAT_MS);
   }
 
   function scheduleReconnect() {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-    if (pageLeaving || document.hidden || !navigator.onLine) return;
+    if (reconnectTimer || connecting || pageLeaving || document.hidden || !navigator.onLine) return;
     const delay = Math.min(30_000, 2_500 * (2 ** Math.min(reconnectAttempt, 4)));
     reconnectAttempt += 1;
-    reconnectTimer = setTimeout(connect, delay);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connect();
+    }, delay);
+  }
+
+  function reconnectNow() {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    reconnectAttempt = 0;
+    connect();
   }
 
   function sendPresence(force = false) {
@@ -194,7 +205,7 @@
     const signature = `${game}|${roomId}`;
     if (!force && signature === lastPresence) return;
     if (socket?.readyState !== WebSocket.OPEN) {
-      connect();
+      scheduleReconnect();
       return;
     }
     lastPresence = signature;
@@ -233,13 +244,12 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) sendOfflineAndClose('hidden');
     else {
-      reconnectAttempt = 0;
-      connect();
+      reconnectNow();
       window.setTimeout(() => sendPresence(true), 60);
     }
   });
-  window.addEventListener('pageshow', () => { reconnectAttempt = 0; connect(); window.setTimeout(() => sendPresence(true), 60); });
-  window.addEventListener('online', () => { reconnectAttempt = 0; connect(); window.setTimeout(() => sendPresence(true), 60); });
+  window.addEventListener('pageshow', () => { reconnectNow(); window.setTimeout(() => sendPresence(true), 60); });
+  window.addEventListener('online', () => { reconnectNow(); window.setTimeout(() => sendPresence(true), 60); });
   window.addEventListener('offline', () => sendOfflineAndClose('network-offline'));
   window.addEventListener('pagehide', () => {
     pageLeaving = true;
