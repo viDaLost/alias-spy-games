@@ -46,6 +46,7 @@ jobs:
           echo 'stage=tooling' >> "$GITHUB_OUTPUT"
           command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
           command -v ffprobe >/dev/null
+          python3 -m pip install --disable-pip-version-check --quiet pillow
 
           echo 'stage=decode-source' >> "$GITHUB_OUTPUT"
           cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > /tmp/home-bg-source.mp4
@@ -55,20 +56,33 @@ jobs:
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt -of default=nw=1 /tmp/home-bg-source.mp4 | tee /tmp/source-probe.txt
           grep -Fq 'codec_name=h264' /tmp/source-probe.txt
 
-          echo 'stage=encode-gif' >> "$GITHUB_OUTPUT"
+          echo 'stage=extract-frames' >> "$GITHUB_OUTPUT"
+          mkdir -p /tmp/home-bg-frames
           ffmpeg -loglevel error -y -i /tmp/home-bg-source.mp4 \
             -vf "fps=6,scale=240:-2:flags=lanczos" \
-            -loop 0 preview/home-menu/public/home-bg-ios-v9.gif
+            /tmp/home-bg-frames/frame-%03d.png
+          test "$(find /tmp/home-bg-frames -name 'frame-*.png' | wc -l)" -gt 10
+
+          echo 'stage=encode-pillow-gif' >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          paths=sorted(Path('/tmp/home-bg-frames').glob('frame-*.png'))
+          assert len(paths) > 10, len(paths)
+          frames=[]
+          for path in paths:
+              img=Image.open(path).convert('RGB')
+              frames.append(img)
+          out=Path('preview/home-menu/public/home-bg-ios-v9.gif')
+          frames[0].save(out, save_all=True, append_images=frames[1:], duration=167, loop=0, optimize=True, disposal=2)
+          data=out.read_bytes()
+          assert data[:6] in (b'GIF87a', b'GIF89a'), data[:6]
+          assert len(data) > 50000, len(data)
+          print('Pillow GIF:', len(frames), 'frames,', len(data), 'bytes')
+          PY
 
           echo 'stage=verify-gif' >> "$GITHUB_OUTPUT"
           test -s preview/home-menu/public/home-bg-ios-v9.gif
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('preview/home-menu/public/home-bg-ios-v9.gif').read_bytes()
-          assert p[:6] in (b'GIF87a', b'GIF89a'), p[:6]
-          assert len(p) > 50000, len(p)
-          print('GIF bytes', len(p))
-          PY
           echo 'stage=complete' >> "$GITHUB_OUTPUT"
 
       - name: Verify V9 source contracts
