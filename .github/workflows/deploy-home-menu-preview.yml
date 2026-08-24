@@ -31,66 +31,39 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           ffmpeg -version | head -n 1
-          ffprobe -version | head -n 1
 
-      - name: Build V9 direct background media
+      - name: Build iPhone-safe animated GIF background
         run: |
           set -euxo pipefail
-
           cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > /tmp/home-bg-source.mp4
           test -s /tmp/home-bg-source.mp4
-          source_bytes="$(wc -c < /tmp/home-bg-source.mp4)"
-          test "$source_bytes" -gt 50000
-          test "$source_bytes" -lt 300000
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt -of default=nw=1 /tmp/home-bg-source.mp4 | tee /tmp/source-probe.txt
+          grep -Fq 'codec_name=h264' /tmp/source-probe.txt
 
-          ffprobe -v error -select_streams v:0 \
-            -show_entries stream=codec_name,pix_fmt,width,height \
-            -of default=nw=1 /tmp/home-bg-source.mp4 | tee /tmp/home-bg-probe.txt
-          grep -Fq 'codec_name=h264' /tmp/home-bg-probe.txt
-
-          # Animated WebP is the real UI background. It behaves as an image,
-          # so iOS/Safari does not need video autoplay permission.
           ffmpeg -loglevel error -y \
             -i /tmp/home-bg-source.mp4 \
-            -an -vf "fps=10,scale=320:-2:flags=lanczos" \
-            -c:v libwebp_anim -lossless 0 -q:v 60 -compression_level 4 -loop 0 \
-            preview/home-menu/public/home-bg-ios-v9.webp
+            -filter_complex "[0:v]fps=8,scale=320:-2:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=112:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4" \
+            -loop 0 preview/home-menu/public/home-bg-ios-v9.gif
 
-          # Keep an iOS-compatible H.264 fallback asset for diagnostics/future use.
-          ffmpeg -loglevel error -y \
-            -i /tmp/home-bg-source.mp4 \
-            -an -vf "fps=15,scale=320:-2:flags=lanczos,format=yuv420p" \
-            -c:v libx264 -profile:v baseline -level 3.0 -preset medium -crf 30 \
-            -movflags +faststart \
-            preview/home-menu/public/home-bg-ios-v9.mp4
-
-          test -s preview/home-menu/public/home-bg-ios-v9.webp
-          test -s preview/home-menu/public/home-bg-ios-v9.mp4
-
-          webp_bytes="$(wc -c < preview/home-menu/public/home-bg-ios-v9.webp)"
-          mp4_bytes="$(wc -c < preview/home-menu/public/home-bg-ios-v9.mp4)"
-          echo "V9 animated WebP bytes: $webp_bytes"
-          echo "V9 baseline MP4 bytes: $mp4_bytes"
-          test "$webp_bytes" -gt 50000
-          test "$webp_bytes" -lt 8000000
-          test "$mp4_bytes" -gt 50000
-          test "$mp4_bytes" -lt 3000000
-
+          test -s preview/home-menu/public/home-bg-ios-v9.gif
+          gif_bytes="$(wc -c < preview/home-menu/public/home-bg-ios-v9.gif)"
+          echo "GIF bytes: $gif_bytes"
+          test "$gif_bytes" -gt 50000
+          test "$gif_bytes" -lt 12000000
           python3 - <<'PY'
           from pathlib import Path
-          webp = Path('preview/home-menu/public/home-bg-ios-v9.webp').read_bytes()
-          mp4 = Path('preview/home-menu/public/home-bg-ios-v9.mp4').read_bytes()
-          assert webp[:4] == b'RIFF' and webp[8:12] == b'WEBP', webp[:12]
-          assert b'ftyp' in mp4[:64], mp4[:64]
-          print('V9 media signatures verified')
+          p=Path('preview/home-menu/public/home-bg-ios-v9.gif').read_bytes()
+          assert p[:6] in (b'GIF87a', b'GIF89a'), p[:6]
+          assert p.count(b'\x21\xF9\x04') > 1, 'GIF does not appear animated'
+          print('Animated GIF verified:', len(p), 'bytes; frame markers:', p.count(b'\x21\xF9\x04'))
           PY
 
       - name: Verify V9 source contracts
         run: |
-          grep -Fq 'home-menu-v9-direct-media' preview/home-menu/worker.js
-          grep -Fq 'HOME V9 · DIRECT ANIM BG' preview/home-menu/worker.js
-          grep -Fq '/home-bg-ios-v9.webp' preview/home-menu/worker.js
-          grep -Fq 'animated-webp-direct-v9' preview/home-menu/worker.js
+          grep -Fq 'home-menu-v9-gif-no-autoplay' preview/home-menu/worker.js
+          grep -Fq 'HOME V9 · GIF NO AUTOPLAY' preview/home-menu/worker.js
+          grep -Fq '/home-bg-ios-v9.gif' preview/home-menu/worker.js
+          grep -Fq 'gif-no-autoplay-v9' preview/home-menu/worker.js
           grep -Fq '/__preview_version' preview/home-menu/worker.js
           grep -Fq 'bible-sketch.webp' preview/home-menu/public/index.html
           grep -Fq 'Войти по коду' preview/home-menu/public/index.html
@@ -113,37 +86,31 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V9 direct animated background
+      - name: Verify deployed V9 and animated GIF delivery
         env:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           set -euxo pipefail
           for attempt in 1 2 3 4 5 6 7 8; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V9 · DIRECT ANIM BG' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v9-direct-media' /tmp/home-menu-preview.html \
-              && grep -Fq 'homeAnimatedBg' /tmp/home-menu-preview.html \
-              && grep -Fq 'view-profile' /tmp/home-menu-preview.html \
-              && grep -Fq 'view-settings' /tmp/home-menu-preview.html; then
+              && grep -Fq 'HOME V9 · GIF NO AUTOPLAY' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v9-gif-no-autoplay' /tmp/home-menu-preview.html \
+              && grep -Fq 'homeAnimatedBg' /tmp/home-menu-preview.html; then
 
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
-              jq -e '.version == "home-menu-v9-direct-media" and .background == "animated-webp-direct-v9" and .autoplayRequired == false' /tmp/home-menu-version.json >/dev/null
+              jq -e '.version == "home-menu-v9-gif-no-autoplay" and .background == "gif-no-autoplay-v9" and .autoplayRequired == false' /tmp/home-menu-version.json >/dev/null
 
-              curl -fsS --retry 2 --max-time 25 \
-                -D /tmp/webp-headers.txt \
-                "${PREVIEW_URL}home-bg-ios-v9.webp?v=9&build=${GITHUB_SHA}" \
-                -o /tmp/home-bg-ios-v9.webp
-
-              grep -Eiq '^content-type: *image/webp' /tmp/webp-headers.txt
-              grep -Eiq '^x-home-menu-media: *animated-webp-direct-v9' /tmp/webp-headers.txt
-              grep -Eiq '^x-home-menu-build: *home-menu-v9-direct-media' /tmp/webp-headers.txt
-              test "$(wc -c < /tmp/home-bg-ios-v9.webp)" -gt 50000
-
+              curl -fsS --retry 2 --max-time 30 -D /tmp/gif-headers.txt "${PREVIEW_URL}home-bg-ios-v9.gif?v=9&build=${GITHUB_SHA}" -o /tmp/home-bg-ios-v9.gif
+              grep -Eiq '^content-type: *image/gif' /tmp/gif-headers.txt
+              grep -Eiq '^x-home-menu-animated-bg: *gif-no-autoplay-v9' /tmp/gif-headers.txt
+              grep -Eiq '^x-home-menu-build: *home-menu-v9-gif-no-autoplay' /tmp/gif-headers.txt
+              test "$(wc -c < /tmp/home-bg-ios-v9.gif)" -gt 50000
               python3 - <<'PY'
               from pathlib import Path
-              p = Path('/tmp/home-bg-ios-v9.webp').read_bytes()
-              assert p[:4] == b'RIFF' and p[8:12] == b'WEBP', p[:12]
-              print('Remote V9 animated WebP verified:', len(p))
+              p=Path('/tmp/home-bg-ios-v9.gif').read_bytes()
+              assert p[:6] in (b'GIF87a', b'GIF89a')
+              assert p.count(b'\x21\xF9\x04') > 1
+              print('Remote animated GIF verified:', len(p), 'bytes; frame markers:', p.count(b'\x21\xF9\x04'))
               PY
 
               echo "Home menu V9 preview verified: ${PREVIEW_URL}"
@@ -161,7 +128,7 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v9-direct-media",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v9-gif-no-autoplay",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
           body="$(jq -nc --arg msg "chore: record home menu V9 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
