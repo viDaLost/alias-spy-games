@@ -175,11 +175,14 @@
   };
 
   async function refreshAdminErrors() {
-    if (!backend || document.body.dataset.mode !== 'admin' || !document.querySelector('.admin-page')) return;
+    if (!backend || document.hidden || document.body.dataset.mode !== 'admin' || !document.querySelector('.admin-page')) return;
     const initData = String(window.Telegram?.WebApp?.initData || '');
     if (!initData) return;
     try {
-      const response = await fetch(`${backend}/admin/stats?initData=${encodeURIComponent(initData)}`, { cache: 'no-store' });
+      const response = await fetch(`${backend}/admin/stats`, {
+        cache: 'no-store',
+        headers: { 'X-Telegram-Init-Data': initData },
+      });
       const data = await response.json();
       if (!response.ok || !data?.ok) return;
       renderAdminErrors(Array.isArray(data.recentErrors) ? data.recentErrors : []);
@@ -224,7 +227,7 @@
     if (document.body.dataset.mode === 'admin' && document.querySelector('.admin-page')) {
       if (!adminTimer) {
         refreshAdminErrors();
-        adminTimer = setInterval(refreshAdminErrors, 20_000);
+        adminTimer = setInterval(refreshAdminErrors, 300_000);
       }
     } else if (adminTimer) {
       clearInterval(adminTimer);
