@@ -1,8 +1,10 @@
 const VIDEO_PATH = '/home-bg-v3.mp4';
+const BUILD_VERSION = 'home-menu-v6-ios-video';
+const BUILD_LABEL = '● HOME V6 · iOS VIDEO · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
 
 const VIDEO_FIX = `
-<style id="video-fix-v5">
-/* VIDEO FIX V5 · iOS/Safari delivery + playback */
+<style id="video-fix-v6">
+/* VIDEO FIX V6 · iOS/Safari delivery + explicit build marker */
 .video-bg{background:#0b0b18!important}
 .video-bg video{
   position:absolute!important;
@@ -37,14 +39,24 @@ const VIDEO_FIX = `
   body:not(.user-reduced-motion):not(.video-user-off) .video-bg video{display:block!important}
 }
 </style>
-<script id="video-fix-v5-script">
+<script id="video-fix-v6-script">
 (()=>{
+  const BUILD='${BUILD_VERSION}';
+  const BUILD_LABEL='${BUILD_LABEL}';
+  document.documentElement.dataset.previewBuild=BUILD;
+  document.title='Библейские игры · Home V6 iOS Video Preview';
+  const chip=document.querySelector('.preview-chip');
+  if(chip){
+    chip.textContent=BUILD_LABEL;
+    chip.dataset.build=BUILD;
+  }
+
   const video=document.getElementById('homeVideo');
   const videoToggle=document.getElementById('videoToggle');
   const motionToggle=document.getElementById('motionToggle');
   if(!video) return;
 
-  const desiredSrc='/home-bg-v3.mp4?v=5';
+  const desiredSrc='/home-bg-v3.mp4?v=6';
   video.querySelectorAll('source').forEach(s=>s.remove());
   video.src=desiredSrc;
   video.muted=true;
@@ -107,8 +119,6 @@ const VIDEO_FIX = `
 </script>`;
 
 async function serveVideo(request, env) {
-  // Fetch the full static asset without forwarding Safari's Range header,
-  // then implement byte ranges explicitly. This makes iOS/Safari media loading deterministic.
   const assetUrl = new URL(VIDEO_PATH, request.url);
   const assetResponse = await env.ASSETS.fetch(new Request(assetUrl.toString(), {
     method: 'GET',
@@ -121,9 +131,12 @@ async function serveVideo(request, env) {
   const baseHeaders = new Headers({
     'content-type': 'video/mp4',
     'accept-ranges': 'bytes',
-    'cache-control': 'public, max-age=3600',
+    'cache-control': 'no-store, max-age=0',
+    'pragma': 'no-cache',
+    'expires': '0',
     'x-content-type-options': 'nosniff',
-    'x-home-menu-video': 'range-v5'
+    'x-home-menu-video': 'range-v6',
+    'x-home-menu-build': BUILD_VERSION
   });
 
   if (request.method === 'HEAD') {
@@ -169,6 +182,21 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === '/__preview_version') {
+      return Response.json({
+        version: BUILD_VERSION,
+        label: BUILD_LABEL,
+        video: 'range-v6'
+      }, {
+        headers: {
+          'cache-control': 'no-store, max-age=0',
+          'pragma': 'no-cache',
+          'expires': '0',
+          'x-home-menu-build': BUILD_VERSION
+        }
+      });
+    }
+
     if (url.pathname === VIDEO_PATH) {
       return serveVideo(request, env);
     }
@@ -183,8 +211,12 @@ export default {
         : `${html}${VIDEO_FIX}`;
       const headers = new Headers(response.headers);
       headers.set('content-type', 'text/html; charset=utf-8');
-      headers.set('cache-control', 'no-store, max-age=0');
-      headers.set('x-home-menu-preview', 'video-fix-v5');
+      headers.set('cache-control', 'no-store, no-cache, must-revalidate, max-age=0');
+      headers.set('pragma', 'no-cache');
+      headers.set('expires', '0');
+      headers.set('surrogate-control', 'no-store');
+      headers.set('x-home-menu-preview', 'video-fix-v6');
+      headers.set('x-home-menu-build', BUILD_VERSION);
       return new Response(body, { status: response.status, headers });
     }
 
