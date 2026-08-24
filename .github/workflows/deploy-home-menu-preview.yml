@@ -1,0 +1,68 @@
+name: Deploy home menu Cloudflare preview
+
+on:
+  push:
+    branches:
+      - preview/home-menu-redesign-v1
+    paths:
+      - 'preview/home-menu/**'
+      - '.github/workflows/deploy-home-menu-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: home-menu-cloudflare-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify preview contracts
+        run: |
+          grep -Fq 'CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ' preview/home-menu/public/index.html
+          grep -Fq 'Быстрая игра' preview/home-menu/public/index.html
+          grep -Fq 'Создать комнату' preview/home-menu/public/index.html
+          grep -Fq 'Не знаете, что выбрать?' preview/home-menu/public/index.html
+          grep -Fq 'data-filter="company"' preview/home-menu/public/index.html
+          grep -Fq 'Библейский художник' preview/home-menu/public/index.html
+          grep -Fq 'Квартет' preview/home-menu/public/index.html
+
+      - name: Validate Worker bundle
+        working-directory: preview/home-menu
+        env:
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
+
+      - name: Deploy isolated Cloudflare Worker
+        working-directory: preview/home-menu
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy
+
+      - name: Verify deployed preview
+        env:
+          PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
+              && grep -Fq 'CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ' /tmp/home-menu-preview.html \
+              && grep -Fq 'Быстрая игра' /tmp/home-menu-preview.html \
+              && grep -Fq 'Библейский художник' /tmp/home-menu-preview.html; then
+              echo "Home menu preview verified: ${PREVIEW_URL}"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Home menu Cloudflare preview verification failed' >&2
+          exit 1
