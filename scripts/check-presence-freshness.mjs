@@ -83,6 +83,6 @@ requireText(html, 'admin-live-compact.css?v=1', 'compact live user-card styles a
 requireText(html, 'admin-live-rescue.js?v=2', 'admin live recovery client is not mounted');
 requireText(html, 'admin-shell-v3.js?v=1', 'admin shell v3 is not mounted');
 requireText(html, 'admin-shell-v3.css?v=1', 'admin shell v3 styles are not mounted');
-requireText(html, 'cloudflare-request-budget.js?v=1', 'Cloudflare request-budget client is not mounted');
+requireText(html, 'cloudflare-request-budget.js?v=2', 'Cloudflare request-budget client is not mounted');
 
 console.log('Verified presence, current-game tracking, scoped sessions and lower-frequency request budget checks passed');
