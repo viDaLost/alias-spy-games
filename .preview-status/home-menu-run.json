@@ -1,1 +1,1 @@
-{"source_sha":"8fc70e600af5e391144f5538013d9664cbe91a9e","state":"started","started_at":"2026-08-24T19:59:52Z"}
+{"source_sha":"8fc70e600af5e391144f5538013d9664cbe91a9e","state":"finished","finished_at":"2026-08-24T20:00:10Z","steps":{"media":"failure","contracts":"skipped","validate":"skipped","deploy":"skipped","verify":"skipped"}}
