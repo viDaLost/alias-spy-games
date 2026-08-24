@@ -5,12 +5,16 @@
   const upstreamFetch = window.fetch.bind(window);
   const cache = new Map();
   const inFlight = new Map();
+  const roomJoinAt = new Map();
+  let lastUserIntentAt = 0;
 
   const POLICY = Object.freeze({
     adminLive: { freshMs: 15_000, backgroundMs: 120_000 },
     adminStats: { freshMs: 300_000, backgroundMs: 900_000 },
     observerChanged: { freshMs: 8_000, backgroundMs: 120_000 },
     observerUnchanged: { freshMs: 20_000, backgroundMs: 120_000 },
+    roomJoinMinMs: 30_000,
+    manualIntentMs: 2_500,
   });
 
   function requestMeta(input, init = {}) {
@@ -22,11 +26,14 @@
   }
 
   function classify(meta) {
-    if (!meta || meta.method !== 'GET' || !/\.workers\.dev$/i.test(meta.url.hostname)) return null;
-    if (meta.url.pathname === '/admin/live') return { kind: 'adminLive', key: `live:${meta.url.origin}${meta.url.pathname}` };
-    if (meta.url.pathname === '/admin/stats') return { kind: 'adminStats', key: `stats:${meta.url.origin}${meta.url.pathname}` };
-    if (/^\/admin\/rooms\/[A-Z0-9]{4,10}\/state$/i.test(meta.url.pathname)) {
+    if (!meta || !/\.workers\.dev$/i.test(meta.url.hostname)) return null;
+    if (meta.method === 'GET' && meta.url.pathname === '/admin/live') return { kind: 'adminLive', key: `live:${meta.url.origin}${meta.url.pathname}` };
+    if (meta.method === 'GET' && meta.url.pathname === '/admin/stats') return { kind: 'adminStats', key: `stats:${meta.url.origin}${meta.url.pathname}` };
+    if (meta.method === 'GET' && /^\/admin\/rooms\/[A-Z0-9]{4,10}\/state$/i.test(meta.url.pathname)) {
       return { kind: 'observer', key: `observer:${meta.url.origin}${meta.url.pathname}` };
+    }
+    if (meta.method === 'POST' && /^\/rooms\/[A-Z0-9]{4,10}\/join$/i.test(meta.url.pathname)) {
+      return { kind: 'roomJoin', key: `roomJoin:${meta.url.origin}${meta.url.pathname}` };
     }
     return null;
   }
@@ -37,6 +44,14 @@
       status: entry.status,
       statusText: entry.statusText,
       headers: new Headers(entry.headers),
+    });
+  }
+
+  function localBackoffResponse(reason = 'CLIENT_RECONNECT_BACKOFF') {
+    return new Response(JSON.stringify({ ok: false, error: reason }), {
+      status: 429,
+      statusText: 'Client reconnect backoff',
+      headers: { 'Content-Type': 'application/json', 'X-Client-Backoff': '1' },
     });
   }
 
@@ -62,19 +77,43 @@
     };
   }
 
+  async function budgetRoomJoin(input, init, target) {
+    const now = Date.now();
+    const manual = now - lastUserIntentAt <= POLICY.manualIntentMs;
+    if (document.hidden) return localBackoffResponse('CLIENT_BACKGROUND_PAUSE');
+
+    const last = Number(roomJoinAt.get(target.key) || 0);
+    if (!manual && last && now - last < POLICY.roomJoinMinMs) {
+      return localBackoffResponse();
+    }
+
+    let pending = inFlight.get(target.key);
+    if (!pending) {
+      roomJoinAt.set(target.key, now);
+      pending = (async () => {
+        try {
+          const response = await upstreamFetch(input, init);
+          return captureResponse(response, 'roomJoin');
+        } finally {
+          inFlight.delete(target.key);
+        }
+      })();
+      inFlight.set(target.key, pending);
+    }
+    return responseFrom(await pending);
+  }
+
   async function budgetedFetch(input, init = {}) {
     const meta = requestMeta(input, init);
     const target = classify(meta);
     if (!target) return upstreamFetch(input, init);
+    if (target.kind === 'roomJoin') return budgetRoomJoin(input, init, target);
 
     const existing = cache.get(target.key);
     const policyKey = existing?.policyKey || (target.kind === 'observer' ? 'observerChanged' : target.kind);
     const policy = POLICY[policyKey];
     if (policy && usable(existing, policy)) return responseFrom(existing);
 
-    // A hidden Telegram WebView should not keep polling Cloudflare. If it has
-    // already fetched this resource once, keep serving the last local snapshot
-    // until the page becomes visible again.
     if (document.hidden && existing) return responseFrom(existing);
 
     let pending = inFlight.get(target.key);
@@ -92,9 +131,6 @@
       inFlight.set(target.key, pending);
     }
 
-    // Every caller gets its own Response object, including error responses, so
-    // concurrent polling never triggers a second network request just because
-    // the first response was not cacheable.
     return responseFrom(await pending);
   }
 
@@ -109,11 +145,17 @@
   window.CloudflareRequestBudget = Object.freeze({
     invalidate,
     snapshot() {
-      return [...cache.entries()].map(([key, value]) => ({ key, ageMs: Date.now() - value.at, status: value.status }));
+      return [
+        ...[...cache.entries()].map(([key, value]) => ({ key, ageMs: Date.now() - value.at, status: value.status })),
+        ...[...roomJoinAt.entries()].map(([key, at]) => ({ key, ageMs: Date.now() - at, status: 'join-budget' })),
+      ];
     },
   });
 
-  // Manual administrator refresh must bypass the local budget cache.
+  const markIntent = () => { lastUserIntentAt = Date.now(); };
+  document.addEventListener('pointerdown', markIntent, true);
+  document.addEventListener('keydown', markIntent, true);
+
   document.addEventListener('click', (event) => {
     if (event.target?.closest?.('[data-live-refresh]')) invalidate('live');
   }, true);
