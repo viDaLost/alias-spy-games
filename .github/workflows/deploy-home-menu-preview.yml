@@ -26,10 +26,26 @@ jobs:
         with:
           node-version: 22
 
+      - name: Mark V10 run started
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_PATH: .preview-status/home-menu-run.json
+        run: |
+          at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$at" '{source_sha:$sha,version:"home-menu-v10-original-animated-webp",state:"started",started_at:$at}')"
+          encoded="$(printf '%s' "$json" | base64 -w0)"
+          current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
+          body="$(jq -nc --arg msg "chore: mark V10 preview run ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
+
       - name: Rebuild verified original animated background
+        id: media
+        continue-on-error: true
         run: |
           set -euxo pipefail
+          echo 'stage=decode-base64' >> "$GITHUB_OUTPUT"
           base64 -d preview/home-menu/video-src/home-bg-original-v10.webp.b64 > preview/home-menu/public/home-bg-original-v10.webp
+          echo 'stage=verify-sha' >> "$GITHUB_OUTPUT"
           test -s preview/home-menu/public/home-bg-original-v10.webp
           echo '8944bb56c9b892c15ca4c6694d41e18734c8d481476cc6598b6d0b53d8815e90  preview/home-menu/public/home-bg-original-v10.webp' | sha256sum -c -
           python3 - <<'PY'
@@ -37,11 +53,15 @@ jobs:
           p=Path('preview/home-menu/public/home-bg-original-v10.webp').read_bytes()
           assert len(p) == 213524, len(p)
           assert p[:4] == b'RIFF' and p[8:12] == b'WEBP', p[:12]
-          assert b'ANIM' in p and b'ANMF' in p, 'WebP is not animated'
-          print('V10 original animated WebP verified:', len(p), 'bytes')
+          assert b'ANIM' in p and b'ANMF' in p
+          print('V10 source verified:', len(p))
           PY
+          echo 'stage=complete' >> "$GITHUB_OUTPUT"
 
       - name: Verify V10 source contracts
+        id: contracts
+        if: steps.media.outcome == 'success'
+        continue-on-error: true
         run: |
           grep -Fq 'home-menu-v10-original-animated-webp' preview/home-menu/worker.js
           grep -Fq 'HOME V10 · ORIGINAL ANIM BG' preview/home-menu/worker.js
@@ -53,12 +73,18 @@ jobs:
           grep -Fq 'view-settings' preview/home-menu/public/index.html
 
       - name: Validate Worker bundle
+        id: validate
+        if: steps.media.outcome == 'success' && steps.contracts.outcome == 'success'
+        continue-on-error: true
         working-directory: preview/home-menu
         env:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
 
       - name: Deploy isolated Cloudflare Worker
+        id: deploy
+        if: steps.validate.outcome == 'success'
+        continue-on-error: true
         working-directory: preview/home-menu
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -67,6 +93,9 @@ jobs:
         run: npx --yes wrangler@4.102.0 deploy
 
       - name: Verify deployed V10 and exact animated background
+        id: verify
+        if: steps.deploy.outcome == 'success'
+        continue-on-error: true
         env:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
@@ -76,15 +105,9 @@ jobs:
               && grep -Fq 'HOME V10 · ORIGINAL ANIM BG' /tmp/home-menu-preview.html \
               && grep -Fq 'home-menu-v10-original-animated-webp' /tmp/home-menu-preview.html \
               && grep -Fq 'homeAnimatedBg' /tmp/home-menu-preview.html; then
-
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
               jq -e '.version == "home-menu-v10-original-animated-webp" and .background == "original-animated-webp-v10" and .autoplayRequired == false and .source == "user-original-upload"' /tmp/home-menu-version.json >/dev/null
-
-              curl -fsS --retry 2 --max-time 30 \
-                -D /tmp/webp-headers.txt \
-                "${PREVIEW_URL}home-bg-original-v10.webp?v=10&build=${GITHUB_SHA}" \
-                -o /tmp/home-bg-original-v10.webp
-
+              curl -fsS --retry 2 --max-time 30 -D /tmp/webp-headers.txt "${PREVIEW_URL}home-bg-original-v10.webp?v=10&build=${GITHUB_SHA}" -o /tmp/home-bg-original-v10.webp
               grep -Eiq '^content-type: *image/webp' /tmp/webp-headers.txt
               grep -Eiq '^x-home-menu-animated-bg: *original-webp-v10' /tmp/webp-headers.txt
               grep -Eiq '^x-home-menu-build: *home-menu-v10-original-animated-webp' /tmp/webp-headers.txt
@@ -95,17 +118,34 @@ jobs:
               assert len(p) == 213524
               assert p[:4] == b'RIFF' and p[8:12] == b'WEBP'
               assert b'ANIM' in p and b'ANMF' in p
-              print('Remote V10 animated WebP verified:', len(p), 'bytes')
               PY
-              echo "Home menu V10 preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V10 Cloudflare preview verification failed' >&2
           exit 1
 
+      - name: Record V10 run diagnostics
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATUS_PATH: .preview-status/home-menu-run.json
+          MEDIA: ${{ steps.media.outcome }}
+          MEDIA_STAGE: ${{ steps.media.outputs.stage }}
+          CONTRACTS: ${{ steps.contracts.outcome }}
+          VALIDATE: ${{ steps.validate.outcome }}
+          DEPLOY: ${{ steps.deploy.outcome }}
+          VERIFY: ${{ steps.verify.outcome }}
+        run: |
+          at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$at" --arg media "$MEDIA" --arg media_stage "$MEDIA_STAGE" --arg contracts "$CONTRACTS" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v10-original-animated-webp",state:"finished",finished_at:$at,steps:{media:$media,media_stage:$media_stage,contracts:$contracts,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          encoded="$(printf '%s' "$json" | base64 -w0)"
+          current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
+          body="$(jq -nc --arg msg "chore: record V10 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
+
       - name: Record verified V10 preview
+        if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           STATUS_PATH: .preview-status/home-menu.json
@@ -116,9 +156,10 @@ jobs:
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
           body="$(jq -nc --arg msg "chore: record home menu V10 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" \
-            -d "$body" >/dev/null
+          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
+
+      - name: Fail if V10 was not verified
+        if: always()
+        env:
+          VERIFY: ${{ steps.verify.outcome }}
+        run: test "$VERIFY" = success
