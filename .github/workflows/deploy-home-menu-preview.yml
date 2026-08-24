@@ -26,15 +26,22 @@ jobs:
         with:
           node-version: 22
 
+      - name: Rebuild optimized preview background video
+        run: |
+          cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > preview/home-menu/public/home-bg-v3.mp4
+          test -s preview/home-menu/public/home-bg-v3.mp4
+          bytes="$(wc -c < preview/home-menu/public/home-bg-v3.mp4)"
+          test "$bytes" -gt 50000
+          test "$bytes" -lt 300000
+
       - name: Verify preview contracts
         run: |
-          grep -Fq 'CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ · V2' preview/home-menu/public/index.html
-          grep -Fq 'Быстрая игра' preview/home-menu/public/index.html
-          grep -Fq 'Создать комнату' preview/home-menu/public/index.html
-          grep -Fq 'Не знаете, что выбрать?' preview/home-menu/public/index.html
-          grep -Fq 'data-filter="company"' preview/home-menu/public/index.html
-          grep -Fq 'Библейский художник' preview/home-menu/public/index.html
+          grep -Fq 'HOME V3 VIDEO · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ' preview/home-menu/public/index.html
+          grep -Fq 'home-bg-v3.mp4' preview/home-menu/public/index.html
           grep -Fq 'bible-sketch.webp' preview/home-menu/public/index.html
+          grep -Fq 'Войти по коду' preview/home-menu/public/index.html
+          grep -Fq 'Войти по QR' preview/home-menu/public/index.html
+          grep -Fq 'Живой фон' preview/home-menu/public/index.html
           grep -Fq 'view-profile' preview/home-menu/public/index.html
           grep -Fq 'view-settings' preview/home-menu/public/index.html
           grep -Fq '#4f46e5' preview/home-menu/public/index.html
@@ -44,13 +51,6 @@ jobs:
         env:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
-
-      - name: Verify real game icon sources
-        run: |
-          curl -fsSL --retry 2 --max-time 20 -o /tmp/bible-sketch.webp https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/web/assets/icons/bible-sketch.webp
-          test -s /tmp/bible-sketch.webp
-          curl -fsSL --retry 2 --max-time 20 -o /tmp/quartet.png https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/web/assets/icons/quartet.png
-          test -s /tmp/quartet.png
 
       - name: Deploy isolated Cloudflare Worker
         working-directory: preview/home-menu
@@ -66,16 +66,18 @@ jobs:
         run: |
           for attempt in 1 2 3 4 5 6; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
-              && grep -Fq 'CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ · V2' /tmp/home-menu-preview.html \
+              && grep -Fq 'HOME V3 VIDEO · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ' /tmp/home-menu-preview.html \
               && grep -Fq 'bible-sketch.webp' /tmp/home-menu-preview.html \
               && grep -Fq 'view-profile' /tmp/home-menu-preview.html \
               && grep -Fq 'view-settings' /tmp/home-menu-preview.html; then
-              echo "Home menu V2 preview verified: ${PREVIEW_URL}"
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}home-bg-v3.mp4" -o /tmp/home-bg.mp4
+              test "$(wc -c < /tmp/home-bg.mp4)" -gt 50000
+              echo "Home menu V3 video preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu Cloudflare preview verification failed' >&2
+          echo 'Home menu V3 Cloudflare preview verification failed' >&2
           exit 1
 
       - name: Record verified preview
@@ -85,10 +87,10 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v2",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v3-video",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu v2 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu V3 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H 'Accept: application/vnd.github+json' \
