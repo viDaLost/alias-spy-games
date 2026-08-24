@@ -42,7 +42,7 @@ function testPage() {
     return new Response('{}', { status: 404 });
   };
 </script>
-<script src="/web/js/cloudflare-request-budget.js?v=1"></script>
+<script src="/web/js/cloudflare-request-budget.js?v=2"></script>
 </body></html>`;
 }
 

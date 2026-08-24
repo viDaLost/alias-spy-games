@@ -75,7 +75,7 @@ forbidText(rescue, '?initData=', 'recovery live requests must not expose Telegra
 requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback must use a request header');
 requireText(shell, "page.dataset.adminVersion = '3'", 'admin shell v3 must stamp its runtime version');
 requireText(shell, "livePanel(page)", 'admin shell v3 must place live monitoring in the dashboard');
-requireText(html, 'presence-identity.js?v=6', 'fresh optimized WebApp presence client is not mounted');
+requireText(html, 'presence-identity.js?v=7', 'fresh optimized WebApp presence client is not mounted');
 requireText(html, 'presence-game-bridge.js?v=1', 'game-navigation presence bridge is not mounted');
 requireText(html, 'admin-live-v3.js?v=7', 'admin live v3 monitor is not mounted with fresh cache key');
 requireText(html, 'admin-live-v3.css?v=6', 'admin live v3 styles are not mounted with fresh cache key');
