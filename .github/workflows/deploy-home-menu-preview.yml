@@ -26,8 +26,16 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install media tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
       - name: Rebuild background media
         run: |
+          set -euxo pipefail
           cat preview/home-menu/video-src/home-bg-v3.part* | base64 -d > preview/home-menu/public/home-bg-v3.mp4
           test -s preview/home-menu/public/home-bg-v3.mp4
           bytes="$(wc -c < preview/home-menu/public/home-bg-v3.mp4)"
@@ -39,18 +47,27 @@ jobs:
 
           ffmpeg -loglevel error -y \
             -i preview/home-menu/public/home-bg-v3.mp4 \
-            -vf "fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=96:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" \
+            -vf "fps=10,scale=320:-2:flags=lanczos,palettegen=max_colors=96:stats_mode=diff" \
+            /tmp/home-bg-palette.png
+
+          test -s /tmp/home-bg-palette.png
+
+          ffmpeg -loglevel error -y \
+            -i preview/home-menu/public/home-bg-v3.mp4 \
+            -i /tmp/home-bg-palette.png \
+            -lavfi "fps=10,scale=320:-2:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4" \
             -loop 0 preview/home-menu/public/home-bg-v8.gif
 
           test -s preview/home-menu/public/home-bg-v8.gif
           gif_bytes="$(wc -c < preview/home-menu/public/home-bg-v8.gif)"
+          echo "GIF bytes: $gif_bytes"
           test "$gif_bytes" -gt 50000
           test "$gif_bytes" -lt 10000000
           python3 - <<'PY'
           from pathlib import Path
           p=Path('preview/home-menu/public/home-bg-v8.gif').read_bytes()
           assert p[:6] in (b'GIF87a', b'GIF89a'), p[:6]
-          print('GIF bytes:', len(p))
+          print('GIF signature verified:', p[:6], 'bytes:', len(p))
           PY
 
       - name: Verify preview contracts
