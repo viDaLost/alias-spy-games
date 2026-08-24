@@ -15,10 +15,10 @@ assert.match(css, /data-width="3"/);
 assert.match(css, /data-width="6"/);
 assert.match(css, /data-width="11"/);
 assert.match(launcher, /bible-sketch-landscape-v2\.css\?v=2/);
-assert.match(launcher, /bible-sketch\.js\?v=2/);
+assert.match(launcher, /bible-sketch\.js\?v=3/);
 assert.match(launcher, /if\s*\(!link\.isConnected\)\s*document\.head\.appendChild\(link\)/);
 assert.doesNotMatch(launcher, /if\s*\(isSketch\)\s*\{[\s\S]{0,180}?ensureLandscapeStyles\(\)/);
-assert.match(html, /bible-sketch-launcher\.js\?v=5/);
+assert.match(html, /bible-sketch-launcher\.js\?v=6/);
 
 const entryMatch = wrangler.match(/"main"\s*:\s*"([^"]+)"/);
 assert.ok(entryMatch, 'Bible Sketch Wrangler entrypoint is missing');
