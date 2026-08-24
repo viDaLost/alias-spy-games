@@ -1,3 +1,5 @@
-home-menu-redesign-v11-final
-2026-08-24T20:46:30Z
-trigger=cloudflare-v11
+home-menu-v13-hq-30fps-seamless
+2026-08-24T21:18:28Z
+source=user-original-upload
+video=512x910-30fps-h264-high
+loop=seamless-crossfade

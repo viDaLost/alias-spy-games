@@ -25,21 +25,69 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify V12 source media and contracts
+      - name: Verify V13 HQ source media and contracts
         id: source
         continue-on-error: true
         run: |
           set -euxo pipefail
-          test -s preview/home-menu/public/home-bg-v11.mp4
-          test "$(wc -c < preview/home-menu/public/home-bg-v11.mp4)" -eq 13493
-          echo '0b78a7f9177f81bf14d1f26f23f83d65a6dc48a2a276df4d546f09b3497bfb3b  preview/home-menu/public/home-bg-v11.mp4' | sha256sum -c -
-          grep -Fq 'home-menu-v12-ios-range-fix' preview/home-menu/worker.js
-          grep -Fq 'HOME V12 · iOS RANGE FIX' preview/home-menu/worker.js
-          grep -Fq '/home-bg-v11.mp4' preview/home-menu/worker.js
-          grep -Fq 'ios-range-fixed-h264-v12' preview/home-menu/worker.js
-          grep -Fq 'bible-sketch.webp' preview/home-menu/public/index.html
-          grep -Fq 'view-profile' preview/home-menu/public/index.html
-          grep -Fq 'view-settings' preview/home-menu/public/index.html
+          video='preview/home-menu/public/home-bg-v13.mp4'
+          poster='preview/home-menu/public/home-bg-v13-poster.webp'
+          html='preview/home-menu/public/index.html'
+          worker='preview/home-menu/worker.js'
+
+          test "$(wc -c < "$video")" -eq 5124574
+          test "$(wc -c < "$poster")" -eq 29534
+          echo '8ee0a9e1ddab7c66380fe66a6c5e6fb19ffbefd56de59bfaf4b3e0d733200ed3  preview/home-menu/public/home-bg-v13.mp4' | sha256sum -c -
+          echo '7c533d58646e5cc8e65c787f9ce23a5b9087808f34a037ead2221a29234100b2  preview/home-menu/public/home-bg-v13-poster.webp' | sha256sum -c -
+
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,avg_frame_rate,nb_frames:format=duration,size -of json "$video" > /tmp/home-bg-v13-probe.json
+          jq -e '
+            (.streams | length) == 1 and
+            .streams[0].codec_name == "h264" and
+            .streams[0].profile == "High" and
+            .streams[0].width == 512 and
+            .streams[0].height == 910 and
+            .streams[0].pix_fmt == "yuv420p" and
+            .streams[0].r_frame_rate == "30/1" and
+            .streams[0].avg_frame_rate == "30/1" and
+            .streams[0].nb_frames == "255" and
+            .format.duration == "8.500000" and
+            .format.size == "5124574"
+          ' /tmp/home-bg-v13-probe.json >/dev/null
+          test "$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$video" | wc -l)" -eq 0
+
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json "$poster" > /tmp/home-bg-v13-poster-probe.json
+          jq -e '
+            .streams[0].codec_name == "webp" and
+            .streams[0].width == 512 and
+            .streams[0].height == 910
+          ' /tmp/home-bg-v13-poster-probe.json >/dev/null
+
+          python3 - <<'PY'
+          from pathlib import Path
+          data = Path('preview/home-menu/public/home-bg-v13.mp4').read_bytes()
+          assert data.index(b'moov') < data.index(b'mdat'), 'MP4 is not fast-start'
+          PY
+
+          grep -Fq 'home-menu-v13-hq-30fps-seamless' "$html"
+          grep -Fq 'HOME V13 · HQ 30 FPS · CLOUDFLARE PREVIEW' "$html"
+          grep -Fq '/home-bg-v13.mp4?v=13' "$html"
+          grep -Fq '/home-bg-v13-poster.webp?v=13' "$html"
+          grep -Fq 'hq-h264-30fps-seamless-v13' "$html"
+          if grep -Fq 'home-bg-v3.mp4' "$html" || grep -Fq 'Home V3' "$html"; then
+            echo 'Legacy V3 source or title remains in index.html' >&2
+            exit 1
+          fi
+
+          grep -Fq 'home-menu-v13-hq-30fps-seamless' "$worker"
+          grep -Fq '/home-bg-v13.mp4' "$worker"
+          grep -Fq 'index-native-video-v13' "$worker"
+          grep -Fq 'hq-h264-30fps-seamless-v13' "$worker"
+          if grep -Fq 'BG_FIX' "$worker"; then
+            echo 'Legacy HTML injection remains in worker.js' >&2
+            exit 1
+          fi
+          node --input-type=module --check < "$worker"
 
       - name: Validate Worker bundle
         id: validate
@@ -61,7 +109,7 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V12 HTML, MP4 and iOS byte ranges
+      - name: Verify deployed V13 HTML, HQ MP4 and iOS byte ranges
         id: verify
         if: steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -70,38 +118,71 @@ jobs:
         run: |
           set -euxo pipefail
           for attempt in 1 2 3 4 5 6 7 8; do
-            if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V12 · iOS RANGE FIX' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v12-ios-range-fix' /tmp/home-menu-preview.html; then
+            if curl -fsSL --retry 2 --max-time 30 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
+              && grep -Fq 'HOME V13 · HQ 30 FPS · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v13-hq-30fps-seamless' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v13.mp4?v=13' /tmp/home-menu-preview.html; then
+
+              grep -Eiq '^x-home-menu-build: *home-menu-v13-hq-30fps-seamless' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-preview: *hq-h264-30fps-seamless-v13' /tmp/html-headers.txt
 
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
-              jq -e '.version == "home-menu-v12-ios-range-fix" and .background == "ios-range-fixed-h264-v12" and .source == "user-original-upload" and .rangeFix == true' /tmp/home-menu-version.json >/dev/null
+              jq -e '
+                .version == "home-menu-v13-hq-30fps-seamless" and
+                .background == "hq-h264-30fps-seamless-v13" and
+                .architecture == "index-native-video-v13" and
+                .source == "user-original-upload" and
+                .rangeFix == true and
+                .video.codec == "H.264 High" and
+                .video.width == 512 and
+                .video.height == 910 and
+                .video.fps == 30 and
+                .video.durationSeconds == 8.5 and
+                .video.bytes == 5124574 and
+                .video.audio == false and
+                .video.fastStart == true and
+                .video.seamlessLoop == true
+              ' /tmp/home-menu-version.json >/dev/null
 
-              curl -fsS --retry 2 --max-time 20 -D /tmp/video-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=12&build=${GITHUB_SHA}" -o /tmp/home-bg-v12.mp4
+              curl -fsS --retry 2 --max-time 45 -D /tmp/video-headers.txt "${PREVIEW_URL}home-bg-v13.mp4?v=13&build=${GITHUB_SHA}" -o /tmp/home-bg-v13.mp4
               grep -Eiq '^content-type: *video/mp4' /tmp/video-headers.txt
               grep -Eiq '^accept-ranges: *bytes' /tmp/video-headers.txt
-              grep -Eiq '^x-home-menu-video: *ios-range-fixed-h264-v12' /tmp/video-headers.txt
-              echo '0b78a7f9177f81bf14d1f26f23f83d65a6dc48a2a276df4d546f09b3497bfb3b  /tmp/home-bg-v12.mp4' | sha256sum -c -
+              grep -Eiq '^content-length: *5124574' /tmp/video-headers.txt
+              grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/video-headers.txt
+              grep -Eiq '^x-home-menu-video: *hq-h264-30fps-seamless-v13' /tmp/video-headers.txt
+              echo '8ee0a9e1ddab7c66380fe66a6c5e6fb19ffbefd56de59bfaf4b3e0d733200ed3  /tmp/home-bg-v13.mp4' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=0-1023' -D /tmp/range-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=12&range=1&build=${GITHUB_SHA}" -o /tmp/home-bg-range.bin
+              curl -fsS --retry 2 --max-time 20 -D /tmp/poster-headers.txt "${PREVIEW_URL}home-bg-v13-poster.webp?v=13&build=${GITHUB_SHA}" -o /tmp/home-bg-v13-poster.webp
+              grep -Eiq '^content-type: *image/webp' /tmp/poster-headers.txt
+              echo '7c533d58646e5cc8e65c787f9ce23a5b9087808f34a037ead2221a29234100b2  /tmp/home-bg-v13-poster.webp' | sha256sum -c -
+
+              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=0-1023' -D /tmp/range-headers.txt "${PREVIEW_URL}home-bg-v13.mp4?v=13&range=1&build=${GITHUB_SHA}" -o /tmp/home-bg-range.bin
               grep -Eq '^HTTP/.* 206' /tmp/range-headers.txt
-              grep -Eiq '^content-range: *bytes 0-1023/13493' /tmp/range-headers.txt
+              grep -Eiq '^content-range: *bytes 0-1023/5124574' /tmp/range-headers.txt
               test "$(wc -c < /tmp/home-bg-range.bin)" -eq 1024
 
-              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=1024-2047' -D /tmp/range2-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=12&range=2&build=${GITHUB_SHA}" -o /tmp/home-bg-range2.bin
+              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=1048576-1049599' -D /tmp/range2-headers.txt "${PREVIEW_URL}home-bg-v13.mp4?v=13&range=2&build=${GITHUB_SHA}" -o /tmp/home-bg-range2.bin
               grep -Eq '^HTTP/.* 206' /tmp/range2-headers.txt
-              grep -Eiq '^content-range: *bytes 1024-2047/13493' /tmp/range2-headers.txt
+              grep -Eiq '^content-range: *bytes 1048576-1049599/5124574' /tmp/range2-headers.txt
               test "$(wc -c < /tmp/home-bg-range2.bin)" -eq 1024
 
-              echo "Home menu V12 iOS byte-range preview verified: ${PREVIEW_URL}"
+              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=-1024' -D /tmp/range3-headers.txt "${PREVIEW_URL}home-bg-v13.mp4?v=13&range=3&build=${GITHUB_SHA}" -o /tmp/home-bg-range3.bin
+              grep -Eq '^HTTP/.* 206' /tmp/range3-headers.txt
+              grep -Eiq '^content-range: *bytes 5123550-5124573/5124574' /tmp/range3-headers.txt
+              test "$(wc -c < /tmp/home-bg-range3.bin)" -eq 1024
+
+              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "8ee0a9e1ddab7c66380fe66a6c5e6fb19ffbefd56de59bfaf4b3e0d733200ed3"' "${PREVIEW_URL}home-bg-v13.mp4?v=13&etag=1&build=${GITHUB_SHA}")"
+              test "$status" = 304
+
+              echo "Home menu V13 HQ 30 FPS preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V12 Cloudflare preview verification failed' >&2
+          echo 'Home menu V13 Cloudflare preview verification failed' >&2
           exit 1
 
-      - name: Record V12 run diagnostics
+      - name: Record V13 run diagnostics
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -112,13 +193,13 @@ jobs:
           VERIFY: ${{ steps.verify.outcome }}
         run: |
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v12-ios-range-fix",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v13-hq-30fps-seamless",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V12 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record V13 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Record verified V12 preview
+      - name: Record verified V13 preview
         if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -126,13 +207,13 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v12-ios-range-fix",background:"ios-range-fixed-h264-v12",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v13-hq-30fps-seamless",background:"hq-h264-30fps-seamless-v13",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V12 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu V13 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Fail if V12 was not verified
+      - name: Fail if V13 was not verified
         if: always()
         env:
           VERIFY: ${{ steps.verify.outcome }}
