@@ -1,10 +1,12 @@
-const GIF_PATH = '/home-bg-ios-v9.gif';
-const BUILD_VERSION = 'home-menu-v9-gif-no-autoplay';
-const BUILD_LABEL = '● HOME V9 · GIF NO AUTOPLAY · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
+const ANIM_PATH = '/home-bg-original-v10.webp';
+const BUILD_VERSION = 'home-menu-v10-original-animated-webp';
+const BUILD_LABEL = '● HOME V10 · ORIGINAL ANIM BG · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
 
 const BG_FIX = `
-<style id="background-fix-v9">
-.video-bg{background:#0b0b18!important}
+<style id="background-fix-v10">
+.video-bg{
+  background:#0b0b18 url('${ANIM_PATH}?v=10') center center/cover no-repeat!important;
+}
 #homeAnimatedBg{
   position:absolute!important;
   inset:0!important;
@@ -21,26 +23,25 @@ const BG_FIX = `
   pointer-events:none!important;
 }
 .video-bg video{display:none!important;opacity:0!important;visibility:hidden!important}
-.bg-fallback{z-index:0!important}
+.bg-fallback{z-index:0!important;opacity:.08!important}
 .video-bg:after{
   z-index:2!important;
   background:
     linear-gradient(180deg,rgba(7,8,20,.02) 0%,rgba(8,9,24,.05) 25%,rgba(9,10,27,.13) 58%,rgba(7,7,18,.31) 100%),
     radial-gradient(circle at 50% 8%,rgba(79,70,229,.035),transparent 45%)!important;
 }
-.hero{background:linear-gradient(135deg,rgba(52,46,116,.34),rgba(22,23,51,.30))!important}
-.quick-action,.continue-card,.profile-block,.settings-card,.game-card{background:rgba(18,19,43,.35)!important}
-.preview-chip{background:rgba(13,14,33,.24)!important}
-body.video-user-off #homeAnimatedBg,
-body.user-reduced-motion #homeAnimatedBg{display:none!important}
+.hero{background:linear-gradient(135deg,rgba(52,46,116,.32),rgba(22,23,51,.28))!important}
+.quick-action,.continue-card,.profile-block,.settings-card,.game-card{background:rgba(18,19,43,.34)!important}
+.preview-chip{background:rgba(13,14,33,.23)!important}
+body.video-user-off #homeAnimatedBg{display:none!important}
 </style>
-<script id="background-fix-v9-script">
+<script id="background-fix-v10-script">
 (()=>{
   const BUILD='${BUILD_VERSION}';
   const BUILD_LABEL='${BUILD_LABEL}';
   document.documentElement.dataset.previewBuild=BUILD;
-  document.documentElement.dataset.backgroundMode='gif-no-autoplay';
-  document.title='Библейские игры · Home V9 GIF Background';
+  document.documentElement.dataset.backgroundMode='original-animated-webp';
+  document.title='Библейские игры · Home V10 Original Animated Background';
 
   const chip=document.querySelector('.preview-chip');
   if(chip){ chip.textContent=BUILD_LABEL; chip.dataset.build=BUILD; }
@@ -48,7 +49,6 @@ body.user-reduced-motion #homeAnimatedBg{display:none!important}
   const bg=document.querySelector('.video-bg');
   const video=document.getElementById('homeVideo');
   const videoToggle=document.getElementById('videoToggle');
-  const motionToggle=document.getElementById('motionToggle');
 
   if(video){
     try{video.pause()}catch(_){ }
@@ -64,31 +64,29 @@ body.user-reduced-motion #homeAnimatedBg{display:none!important}
     animatedBg.setAttribute('aria-hidden','true');
     animatedBg.decoding='async';
     animatedBg.fetchPriority='high';
-    animatedBg.src='${GIF_PATH}?v=9';
+    animatedBg.src='${ANIM_PATH}?v=10';
     bg.insertBefore(animatedBg,bg.firstChild);
   }
 
-  const syncToggles=()=>{
-    document.body.classList.toggle('user-reduced-motion',!!motionToggle?.classList.contains('on'));
+  const syncToggle=()=>{
     document.body.classList.toggle('video-user-off',!!videoToggle && !videoToggle.classList.contains('on'));
   };
-  videoToggle?.addEventListener('click',()=>setTimeout(syncToggles,0));
-  motionToggle?.addEventListener('click',()=>setTimeout(syncToggles,0));
-  syncToggles();
+  videoToggle?.addEventListener('click',()=>setTimeout(syncToggle,0));
+  syncToggle();
 })();
 </script>`;
 
-async function serveGif(request, env) {
-  const assetUrl = new URL(GIF_PATH, request.url);
+async function serveAnimatedBg(request, env) {
+  const assetUrl = new URL(ANIM_PATH, request.url);
   const response = await env.ASSETS.fetch(new Request(assetUrl.toString(), {method:'GET'}));
   if (!response.ok) return response;
   const headers = new Headers(response.headers);
-  headers.set('content-type','image/gif');
+  headers.set('content-type','image/webp');
   headers.set('cache-control','no-store, max-age=0');
   headers.set('pragma','no-cache');
   headers.set('expires','0');
   headers.set('x-home-menu-build',BUILD_VERSION);
-  headers.set('x-home-menu-animated-bg','gif-no-autoplay-v9');
+  headers.set('x-home-menu-animated-bg','original-webp-v10');
   return new Response(request.method === 'HEAD' ? null : response.body,{status:response.status,headers});
 }
 
@@ -100,8 +98,9 @@ export default {
       return Response.json({
         version:BUILD_VERSION,
         label:BUILD_LABEL,
-        background:'gif-no-autoplay-v9',
-        autoplayRequired:false
+        background:'original-animated-webp-v10',
+        autoplayRequired:false,
+        source:'user-original-upload'
       },{headers:{
         'cache-control':'no-store, max-age=0',
         'pragma':'no-cache',
@@ -110,7 +109,7 @@ export default {
       }});
     }
 
-    if (url.pathname === GIF_PATH) return serveGif(request,env);
+    if (url.pathname === ANIM_PATH) return serveAnimatedBg(request,env);
 
     const response = await env.ASSETS.fetch(request);
     const type = response.headers.get('content-type') || '';
@@ -123,7 +122,7 @@ export default {
       headers.set('pragma','no-cache');
       headers.set('expires','0');
       headers.set('surrogate-control','no-store');
-      headers.set('x-home-menu-preview','gif-no-autoplay-v9');
+      headers.set('x-home-menu-preview','original-animated-webp-v10');
       headers.set('x-home-menu-build',BUILD_VERSION);
       return new Response(body,{status:response.status,headers});
     }
