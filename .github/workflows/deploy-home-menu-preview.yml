@@ -33,6 +33,7 @@ jobs:
           bytes="$(wc -c < preview/home-menu/public/home-bg-v3.mp4)"
           test "$bytes" -gt 50000
           test "$bytes" -lt 300000
+          head -c 16 preview/home-menu/public/home-bg-v3.mp4 | grep -aq 'ftyp'
 
       - name: Verify preview contracts
         run: |
@@ -45,6 +46,8 @@ jobs:
           grep -Fq 'view-profile' preview/home-menu/public/index.html
           grep -Fq 'view-settings' preview/home-menu/public/index.html
           grep -Fq '#4f46e5' preview/home-menu/public/index.html
+          grep -Fq 'range-v5' preview/home-menu/worker.js
+          grep -Fq 'video-fix-v5' preview/home-menu/worker.js
 
       - name: Validate Worker bundle
         working-directory: preview/home-menu
@@ -60,24 +63,40 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed preview
+      - name: Verify deployed preview and iOS video ranges
         env:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           for attempt in 1 2 3 4 5 6; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
               && grep -Fq 'HOME V3 VIDEO · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ' /tmp/home-menu-preview.html \
+              && grep -Fq 'video-fix-v5' /tmp/home-menu-preview.html \
               && grep -Fq 'bible-sketch.webp' /tmp/home-menu-preview.html \
               && grep -Fq 'view-profile' /tmp/home-menu-preview.html \
               && grep -Fq 'view-settings' /tmp/home-menu-preview.html; then
-              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}home-bg-v3.mp4" -o /tmp/home-bg.mp4
+
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}home-bg-v3.mp4?v=5" -o /tmp/home-bg.mp4
               test "$(wc -c < /tmp/home-bg.mp4)" -gt 50000
-              echo "Home menu V3 video preview verified: ${PREVIEW_URL}"
+              head -c 16 /tmp/home-bg.mp4 | grep -aq 'ftyp'
+
+              curl -fsS --retry 2 --max-time 20 \
+                -H 'Range: bytes=0-1023' \
+                -D /tmp/video-range.headers \
+                "${PREVIEW_URL}home-bg-v3.mp4?v=5" \
+                -o /tmp/video-range.bin
+              grep -Eiq '^HTTP/[^ ]+ 206' /tmp/video-range.headers
+              grep -Eiq '^content-type: *video/mp4' /tmp/video-range.headers
+              grep -Eiq '^accept-ranges: *bytes' /tmp/video-range.headers
+              grep -Eiq '^content-range: *bytes 0-1023/' /tmp/video-range.headers
+              test "$(wc -c < /tmp/video-range.bin)" -eq 1024
+              head -c 16 /tmp/video-range.bin | grep -aq 'ftyp'
+
+              echo "Home menu V3 iOS video preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V3 Cloudflare preview verification failed' >&2
+          echo 'Home menu V3 iOS video Cloudflare verification failed' >&2
           exit 1
 
       - name: Record verified preview
@@ -87,10 +106,10 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v3-video",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v3-video-ios-v5",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V3 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu iOS video preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H 'Accept: application/vnd.github+json' \
