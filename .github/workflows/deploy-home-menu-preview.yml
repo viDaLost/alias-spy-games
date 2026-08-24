@@ -21,12 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Verify V11 source media and contracts
+      - name: Verify V12 source media and contracts
         id: source
         continue-on-error: true
         run: |
@@ -34,10 +33,11 @@ jobs:
           test -s preview/home-menu/public/home-bg-v11.mp4
           test "$(wc -c < preview/home-menu/public/home-bg-v11.mp4)" -eq 13493
           echo '0b78a7f9177f81bf14d1f26f23f83d65a6dc48a2a276df4d546f09b3497bfb3b  preview/home-menu/public/home-bg-v11.mp4' | sha256sum -c -
-          grep -Fq 'home-menu-v11-ios-safe-video' preview/home-menu/worker.js
-          grep -Fq 'HOME V11 · iOS SAFE VIDEO' preview/home-menu/worker.js
+          grep -Fq 'home-menu-v12-ios-range-fix' preview/home-menu/worker.js
+          grep -Fq 'HOME V12 · iOS RANGE FIX' preview/home-menu/worker.js
           grep -Fq '/home-bg-v11.mp4' preview/home-menu/worker.js
-          grep -Fq 'ios-safe-h264-v11' preview/home-menu/worker.js
+          grep -Fq 'ios-range-fixed-h264-v12' preview/home-menu/worker.js
+          grep -Fq 'const match=/^(\\d*)-(\\d*)$/' preview/home-menu/worker.js
           grep -Fq 'bible-sketch.webp' preview/home-menu/public/index.html
           grep -Fq 'view-profile' preview/home-menu/public/index.html
           grep -Fq 'view-settings' preview/home-menu/public/index.html
@@ -62,7 +62,7 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V11 HTML, full MP4 and iOS range response
+      - name: Verify deployed V12 HTML, MP4 and iOS byte ranges
         id: verify
         if: steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -72,32 +72,37 @@ jobs:
           set -euxo pipefail
           for attempt in 1 2 3 4 5 6 7 8; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V11 · iOS SAFE VIDEO' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v11-ios-safe-video' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-bg-v11.mp4' /tmp/home-menu-preview.html; then
-              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
-              jq -e '.version == "home-menu-v11-ios-safe-video" and .background == "ios-safe-h264-v11" and .source == "user-original-upload"' /tmp/home-menu-version.json >/dev/null
+              && grep -Fq 'HOME V12 · iOS RANGE FIX' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v12-ios-range-fix' /tmp/home-menu-preview.html; then
 
-              curl -fsS --retry 2 --max-time 20 -D /tmp/video-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=11&build=${GITHUB_SHA}" -o /tmp/home-bg-v11.mp4
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
+              jq -e '.version == "home-menu-v12-ios-range-fix" and .background == "ios-range-fixed-h264-v12" and .source == "user-original-upload" and .rangeFix == true' /tmp/home-menu-version.json >/dev/null
+
+              curl -fsS --retry 2 --max-time 20 -D /tmp/video-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=12&build=${GITHUB_SHA}" -o /tmp/home-bg-v12.mp4
               grep -Eiq '^content-type: *video/mp4' /tmp/video-headers.txt
               grep -Eiq '^accept-ranges: *bytes' /tmp/video-headers.txt
-              grep -Eiq '^x-home-menu-video: *ios-safe-h264-v11' /tmp/video-headers.txt
-              echo '0b78a7f9177f81bf14d1f26f23f83d65a6dc48a2a276df4d546f09b3497bfb3b  /tmp/home-bg-v11.mp4' | sha256sum -c -
+              grep -Eiq '^x-home-menu-video: *ios-range-fixed-h264-v12' /tmp/video-headers.txt
+              echo '0b78a7f9177f81bf14d1f26f23f83d65a6dc48a2a276df4d546f09b3497bfb3b  /tmp/home-bg-v12.mp4' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=0-1023' -D /tmp/range-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=11&range=1&build=${GITHUB_SHA}" -o /tmp/home-bg-range.bin
+              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=0-1023' -D /tmp/range-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=12&range=1&build=${GITHUB_SHA}" -o /tmp/home-bg-range.bin
               grep -Eq '^HTTP/.* 206' /tmp/range-headers.txt
               grep -Eiq '^content-range: *bytes 0-1023/13493' /tmp/range-headers.txt
               test "$(wc -c < /tmp/home-bg-range.bin)" -eq 1024
 
-              echo "Home menu V11 iOS-safe video preview verified: ${PREVIEW_URL}"
+              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=1024-2047' -D /tmp/range2-headers.txt "${PREVIEW_URL}home-bg-v11.mp4?v=12&range=2&build=${GITHUB_SHA}" -o /tmp/home-bg-range2.bin
+              grep -Eq '^HTTP/.* 206' /tmp/range2-headers.txt
+              grep -Eiq '^content-range: *bytes 1024-2047/13493' /tmp/range2-headers.txt
+              test "$(wc -c < /tmp/home-bg-range2.bin)" -eq 1024
+
+              echo "Home menu V12 iOS byte-range preview verified: ${PREVIEW_URL}"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V11 Cloudflare preview verification failed' >&2
+          echo 'Home menu V12 Cloudflare preview verification failed' >&2
           exit 1
 
-      - name: Record V11 run diagnostics
+      - name: Record V12 run diagnostics
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -108,18 +113,13 @@ jobs:
           VERIFY: ${{ steps.verify.outcome }}
         run: |
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v11-ios-safe-video",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v12-ios-range-fix",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V11 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" \
-            -d "$body" >/dev/null
+          body="$(jq -nc --arg msg "chore: record V12 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Record verified V11 preview
+      - name: Record verified V12 preview
         if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -127,18 +127,13 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v11-ios-safe-video",background:"ios-safe-h264-v11",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v12-ios-range-fix",background:"ios-range-fixed-h264-v12",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V11 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" \
-            -d "$body" >/dev/null
+          body="$(jq -nc --arg msg "chore: record home menu V12 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Fail if V11 was not verified
+      - name: Fail if V12 was not verified
         if: always()
         env:
           VERIFY: ${{ steps.verify.outcome }}
