@@ -53,6 +53,7 @@ jobs:
           if grep -Fq 'falling-stars-v19.webp' "$html" "$js"; then exit 1; fi
           if test -e "$public/home-menu-v19.js"; then exit 1; fi
           if test -e "$public/actions/falling-stars-v19.webp"; then exit 1; fi
+          echo 'V20 source validation passed'
       - name: Validate Worker bundle
         id: validate
         working-directory: preview/home-menu
