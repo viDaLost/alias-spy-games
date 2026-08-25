@@ -25,15 +25,17 @@ jobs:
       - name: Validate Worker bundle
         id: validate
         working-directory: preview/home-menu
+        env:
+          npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
       - name: Deploy V20 Cloudflare Worker
         id: deploy
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: preview/home-menu
-          command: deploy
+        working-directory: preview/home-menu
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy
       - name: Verify deployed V20
         id: verify
         shell: bash
