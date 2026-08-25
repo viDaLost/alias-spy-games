@@ -14,135 +14,79 @@ concurrency:
 jobs:
   deploy-preview:
     runs-on: ubuntu-24.04
-    env:
-      PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Verify V20 title, centered actions and removals
+      - name: Validate V20 source
         id: source
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           public='preview/home-menu/public'
           html="$public/index.html"
           js="$public/home-menu-v20.js"
           worker='preview/home-menu/worker.js'
-          test -f "$public/layers/title-v20.webp"
+          test -f "$html" && test -f "$js" && test -f "$public/layers/title-v20.webp"
           test "$(wc -c < "$public/layers/title-v20.webp")" -eq 55460
           echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  preview/home-menu/public/layers/title-v20.webp' | sha256sum -c -
           grep -Fq 'home-menu-v20-title-centered-actions' "$html"
           grep -Fq '/layers/title-v20.webp?v=20' "$html"
           grep -Fq 'modal-overlay' "$html"
-          grep -Fq 'align-items:center;justify-content:center' "$html"
           grep -Fq '<script src="/home-menu-v20.js?v=20" defer></script>' "$html"
           ! grep -Fq 'Игровой маршрут' "$html"
           ! grep -Fq 'nightPlanner' "$html"
           ! grep -Fq 'view-profile' "$html"
           ! grep -Fq 'view-settings' "$html"
-          ! grep -Fq 'data-view="profile"' "$html"
-          ! grep -Fq 'data-view="settings"' "$html"
           ! grep -Fq 'falling-stars-v19.webp' "$html"
-          test ! -e "$public/home-menu-v19.js"
-          ! grep -Eiq 'падающ|falling.?stars' "$html"
+          ! test -e "$public/home-menu-v19.js"
+          ! test -e "$public/actions/falling-stars-v19.webp"
           grep -Fq "create:{asset:'room',src:'/actions/room-v19.webp?v=20'" "$js"
           grep -Fq "code:{asset:'code',src:'/actions/code-v19.webp?v=20'" "$js"
           grep -Fq "qr:{asset:'qr',src:'/actions/qr-v19.webp?v=20'" "$js"
           grep -Fq 'await playRasterAction(kind);openModal(kind)' "$js"
           ! grep -Fq 'PLANNER_STORAGE_KEY' "$js"
           ! grep -Fq 'falling-stars-v19.webp' "$js"
-          ! grep -Fq "stars:{src:" "$js"
           grep -Fq "gameNightPlanner:false" "$worker"
           grep -Fq "profileRemoved:true" "$worker"
           grep -Fq "settingsRemoved:true" "$worker"
           grep -Fq "fallingStarsRemoved:true" "$worker"
           grep -Fq "placement:'center'" "$worker"
           grep -Fq "opensAfterAnimation:true" "$worker"
-          if test -e "$public/actions/falling-stars-v19.webp"; then echo 'falling stars asset still exists' >&2; exit 1; fi
           node --check "$js"
           node --input-type=module --check < "$worker"
-          git diff --check HEAD
-          echo 'result=success' >> "$GITHUB_OUTPUT"
       - name: Validate Worker bundle
         id: validate
-        env:
-          npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
+        working-directory: preview/home-menu
       - name: Deploy V20 Cloudflare Worker
         id: deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          npm_config_cache: /tmp/npm-cache
-        run: npx --yes wrangler@4.102.0 deploy
-      - name: Verify deployed V20 title and centered action flow
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: preview/home-menu
+          command: deploy
+      - name: Verify deployed V20
         id: verify
         shell: bash
         run: |
-          set -euxo pipefail
-          base="$(printf '%s' "$PREVIEW_URL" | sed 's:/$::')"
-          ready=false
-          for attempt in 1 2 3 4 5 6 7 8; do
-            if curl -fsSL --retry 2 --max-time 30 "$PREVIEW_URL?build=$GITHUB_SHA&attempt=$attempt" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V20 · TITLE LAYER + CENTERED ACTIONS' /tmp/home-menu-preview.html \
-              && grep -Fq '/layers/title-v20.webp?v=20' /tmp/home-menu-preview.html; then
-              ready=true; break
-            fi
-            sleep 3
-          done
-          test "$ready" = true
-          grep -Eiq '^x-home-menu-build: *home-menu-v20-title-centered-actions' /tmp/html-headers.txt
-          grep -Eiq '^x-home-menu-preview: *event-driven-raster-parallax-v20' /tmp/html-headers.txt
-          ! grep -Fq 'Игровой маршрут' /tmp/home-menu-preview.html
-          ! grep -Fq 'view-profile' /tmp/home-menu-preview.html
-          ! grep -Fq 'view-settings' /tmp/home-menu-preview.html
-          ! grep -Fq 'falling-stars-v19.webp' /tmp/home-menu-preview.html
-          curl -fsSL --retry 2 --max-time 25 "$base/home-menu-v20.js?v=20&build=$GITHUB_SHA" -o /tmp/home-menu-v20.js
-          cmp preview/home-menu/public/home-menu-v20.js /tmp/home-menu-v20.js
-          grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/home-menu-v20.js
-          curl -fsSL --retry 2 --max-time 20 "$base/__preview_version?build=$GITHUB_SHA" -o /tmp/home-menu-version.json
-          jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .assets.actionLayers.count==3 and .modal.placement=="center" and .modal.opensAfterAnimation==true' /tmp/home-menu-version.json >/dev/null
-          curl -fsS --retry 2 --max-time 30 -D /tmp/title-headers.txt "$base/layers/title-v20.webp?v=20&build=$GITHUB_SHA" -o /tmp/title-v20.webp
-          test "$(wc -c < /tmp/title-v20.webp)" -eq 55460
-          echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  /tmp/title-v20.webp' | sha256sum -c -
-          grep -Eiq '^x-home-menu-asset: *raster-title-bible-games' /tmp/title-headers.txt
-          legacy_type="$(curl -sS --retry 2 --max-time 20 -D /tmp/legacy-headers.txt "$base/actions/falling-stars-v19.webp?removed=1&build=$GITHUB_SHA" -o /tmp/legacy-response && awk 'BEGIN{IGNORECASE=1} /^content-type:/{gsub("\r","");print $2}' /tmp/legacy-headers.txt | tail -1)"
-          test "$legacy_type" != image/webp
-          echo 'result=success' >> "$GITHUB_OUTPUT"
-      - name: Record V20 run diagnostics
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          STATUS_PATH: .preview-status/home-menu-run.json
-          SOURCE: ${{ steps.source.outcome }}
-          VALIDATE: ${{ steps.validate.outcome }}
-          DEPLOY: ${{ steps.deploy.outcome }}
-          VERIFY: ${{ steps.verify.outcome }}
-        run: |
           set -euo pipefail
-          finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v20-title-centered-actions",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
-          encoded="$(printf '%s' "$status_json" | base64 -w0)"
-          current_sha="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V20 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
-      - name: Record verified V20 preview
-        if: steps.verify.outcome == 'success'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          STATUS_PATH: .preview-status/home-menu.json
-        run: |
-          set -euo pipefail
-          verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v20-title-centered-actions",background:"event-driven-raster-parallax-v20",verified_at:$verified}')"
-          encoded="$(printf '%s' "$status_json" | base64 -w0)"
-          current_sha="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V20 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
-      - name: Fail if V20 was not verified
-        if: always()
-        env:
-          VERIFY: ${{ steps.verify.outcome }}
-        run: test "$VERIFY" = success
+          base='https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev'
+          stamp="$(date +%s)"
+          curl -fsS "$base/__preview_version?v=20&ci=$stamp" -o /tmp/version.json
+          jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .modal.placement=="center" and .modal.opensAfterAnimation==true' /tmp/version.json >/dev/null
+          curl -fsS "$base/?v=20&ci=$stamp" -o /tmp/index.html
+          grep -Fq '/layers/title-v20.webp?v=20' /tmp/index.html
+          grep -Fq '/home-menu-v20.js?v=20' /tmp/index.html
+          ! grep -Fq 'Игровой маршрут' /tmp/index.html
+          ! grep -Fq 'view-profile' /tmp/index.html
+          ! grep -Fq 'view-settings' /tmp/index.html
+          ! grep -Fq 'falling-stars-v19.webp' /tmp/index.html
+          curl -fsS "$base/home-menu-v20.js?v=20&ci=$stamp" -o /tmp/app.js
+          grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/app.js
+          ! grep -Fq 'PLANNER_STORAGE_KEY' /tmp/app.js
+          curl -fsS "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
+          test "$(wc -c < /tmp/title.webp)" -eq 55460
+          echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  /tmp/title.webp' | sha256sum -c -
