@@ -1,5 +1,5 @@
-const BUILD_VERSION = 'home-menu-v15-layered-parallax';
-const BUILD_LABEL = '● HOME V15 · LAYERED PARALLAX · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
+const BUILD_VERSION = 'home-menu-v16-reactive-depth';
+const BUILD_LABEL = '● HOME V16 · REACTIVE DEPTH · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
 
 const IMAGE_ASSETS = {
   '/home-bg-v15-city.png': {
@@ -53,12 +53,13 @@ function versionResponse() {
   return Response.json({
     version: BUILD_VERSION,
     label: BUILD_LABEL,
-    background: 'layered-biblical-city-parallax-v15',
-    architecture: 'index-native-layered-scene-v15',
-    interaction: 'continuous-scroll-parallax-with-action-effects',
+    background: 'reactive-layered-biblical-city-v16',
+    architecture: 'index-native-reactive-layered-scene-v16',
+    interaction: 'scroll-velocity-actions-and-opt-in-tilt',
     source: 'generated-high-detail-assets',
     videoRequired: false,
     rangeRequired: false,
+    legacyVideoAssetsRemoved: true,
     assets: {
       city: {
         path: '/home-bg-v15-city.png',
@@ -84,12 +85,18 @@ function versionResponse() {
       'css-haze',
       'lantern-glows',
       'foreground-olive-frame',
+      'scroll-energy-response',
+      'optional-device-tilt',
       'action-effects',
     ],
     motion: {
       scrollDriven: true,
       continuousAcrossPage: true,
       independentLayerTransforms: true,
+      scrollVelocityReactive: true,
+      scrollDirectionReactive: true,
+      pointerReactive: true,
+      optInDeviceTilt: true,
       reducedMotionFallback: true,
     },
   }, {
@@ -123,7 +130,7 @@ export default {
       headers.set('x-content-type-options', 'nosniff');
       headers.set('referrer-policy', 'no-referrer');
       headers.set('x-robots-tag', 'noindex, nofollow');
-      headers.set('x-home-menu-preview', 'layered-biblical-city-parallax-v15');
+      headers.set('x-home-menu-preview', 'reactive-layered-biblical-city-v16');
       headers.set('x-home-menu-build', BUILD_VERSION);
       return new Response(response.body, { status: response.status, headers });
     }

@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify V15 layered source assets and contracts
+      - name: Verify V16 reactive-depth source and contracts
         id: source
         continue-on-error: true
         run: |
@@ -56,26 +56,44 @@ jobs:
           assert png_header('preview/home-menu/public/home-bg-v15-foreground.png') == (941, 1672, 6)
           PY
 
-          grep -Fq 'home-menu-v15-layered-parallax' "$html"
-          grep -Fq 'HOME V15 · LAYERED PARALLAX · CLOUDFLARE PREVIEW' "$html"
-          grep -Fq '/home-bg-v15-city.png?v=15' "$html"
-          grep -Fq '/home-bg-v15-foreground.png?v=15' "$html"
-          grep -Fq 'layered-biblical-city-parallax-v15' "$html"
+          grep -Fq 'home-menu-v16-reactive-depth' "$html"
+          grep -Fq 'HOME V16 · REACTIVE DEPTH · CLOUDFLARE PREVIEW' "$html"
+          grep -Fq '/home-bg-v15-city.png?v=16' "$html"
+          grep -Fq '/home-bg-v15-foreground.png?v=16' "$html"
+          grep -Fq 'reactive-layered-biblical-city-v16' "$html"
           grep -Fq 'STAR_COUNT=28' "$html"
           grep -Fq 'LIGHT_POSITIONS=' "$html"
           grep -Fq "window.addEventListener('scroll',updateSceneTarget" "$html"
           grep -Fq 'scene-foreground' "$html"
           grep -Fq 'triggerSceneAction' "$html"
-          if grep -Fq '<video id="homeVideo"' "$html" || grep -Fq 'home-bg-v14-scroll.mp4' "$html"; then
-            echo 'V14 video remains active in index.html' >&2
+          grep -Fq 'targetEnergy=' "$html"
+          grep -Fq 'targetLean=' "$html"
+          grep -Fq 'tiltToggle' "$html"
+          grep -Fq 'Orientation.requestPermission' "$html"
+          grep -Fq "window.addEventListener('deviceorientation'" "$html"
+          grep -Fq -- '--scene-foreground-rotate' "$html"
+          if grep -Fq '<video' "$html"; then
+            echo 'A video element remains active in index.html' >&2
             exit 1
           fi
 
-          grep -Fq 'home-menu-v15-layered-parallax' "$worker"
+          for legacy in \
+            preview/home-menu/public/home-bg-v11.mp4 \
+            preview/home-menu/public/home-bg-v13.mp4 \
+            preview/home-menu/public/home-bg-v13-poster.webp \
+            preview/home-menu/public/home-bg-v14-scroll.mp4 \
+            preview/home-menu/public/home-bg-v14-scroll-poster.webp \
+            preview/home-menu/video-src; do
+            test ! -e "$legacy"
+          done
+
+          grep -Fq 'home-menu-v16-reactive-depth' "$worker"
           grep -Fq '/home-bg-v15-city.png' "$worker"
           grep -Fq '/home-bg-v15-foreground.png' "$worker"
-          grep -Fq 'index-native-layered-scene-v15' "$worker"
-          grep -Fq 'layered-biblical-city-parallax-v15' "$worker"
+          grep -Fq 'index-native-reactive-layered-scene-v16' "$worker"
+          grep -Fq 'reactive-layered-biblical-city-v16' "$worker"
+          grep -Fq 'scroll-velocity-actions-and-opt-in-tilt' "$worker"
+          grep -Fq 'legacyVideoAssetsRemoved: true' "$worker"
           if grep -Eq 'VIDEO_PATH|parseRange|serveVideo|BG_FIX' "$worker"; then
             echo 'Legacy video or HTML injection logic remains in worker.js' >&2
             exit 1
@@ -109,7 +127,7 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V15 layered assets and interactions
+      - name: Verify deployed V16 reactive depth and interactions
         id: verify
         if: steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -120,25 +138,27 @@ jobs:
           base="$(printf '%s' "$PREVIEW_URL" | sed 's:/$::')"
           for attempt in 1 2 3 4 5 6 7 8; do
             if curl -fsSL --retry 2 --max-time 30 "$PREVIEW_URL?build=$GITHUB_SHA&attempt=$attempt" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V15 · LAYERED PARALLAX · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v15-layered-parallax' /tmp/home-menu-preview.html \
-              && grep -Fq '/home-bg-v15-city.png?v=15' /tmp/home-menu-preview.html \
-              && grep -Fq '/home-bg-v15-foreground.png?v=15' /tmp/home-menu-preview.html \
+              && grep -Fq 'HOME V16 · REACTIVE DEPTH · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v16-reactive-depth' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v15-city.png?v=16' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v15-foreground.png?v=16' /tmp/home-menu-preview.html \
               && grep -Fq "window.addEventListener('scroll',updateSceneTarget" /tmp/home-menu-preview.html \
-              && ! grep -Fq '<video id="homeVideo"' /tmp/home-menu-preview.html; then
+              && grep -Fq "window.addEventListener('deviceorientation'" /tmp/home-menu-preview.html \
+              && ! grep -Fq '<video' /tmp/home-menu-preview.html; then
 
-              grep -Eiq '^x-home-menu-build: *home-menu-v15-layered-parallax' /tmp/html-headers.txt
-              grep -Eiq '^x-home-menu-preview: *layered-biblical-city-parallax-v15' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-build: *home-menu-v16-reactive-depth' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-preview: *reactive-layered-biblical-city-v16' /tmp/html-headers.txt
 
               curl -fsSL --retry 2 --max-time 20 "$base/__preview_version?build=$GITHUB_SHA" -o /tmp/home-menu-version.json
               jq -e '
-                .version == "home-menu-v15-layered-parallax" and
-                .background == "layered-biblical-city-parallax-v15" and
-                .architecture == "index-native-layered-scene-v15" and
-                .interaction == "continuous-scroll-parallax-with-action-effects" and
+                .version == "home-menu-v16-reactive-depth" and
+                .background == "reactive-layered-biblical-city-v16" and
+                .architecture == "index-native-reactive-layered-scene-v16" and
+                .interaction == "scroll-velocity-actions-and-opt-in-tilt" and
                 .source == "generated-high-detail-assets" and
                 .videoRequired == false and
                 .rangeRequired == false and
+                .legacyVideoAssetsRemoved == true and
                 .assets.city.width == 941 and
                 .assets.city.height == 1672 and
                 .assets.city.bytes == 1907656 and
@@ -146,41 +166,45 @@ jobs:
                 .assets.foreground.height == 1672 and
                 .assets.foreground.bytes == 810819 and
                 .assets.foreground.transparent == true and
-                (.layers | length) == 6 and
+                (.layers | length) == 8 and
                 .motion.scrollDriven == true and
                 .motion.continuousAcrossPage == true and
                 .motion.independentLayerTransforms == true and
+                .motion.scrollVelocityReactive == true and
+                .motion.scrollDirectionReactive == true and
+                .motion.pointerReactive == true and
+                .motion.optInDeviceTilt == true and
                 .motion.reducedMotionFallback == true
               ' /tmp/home-menu-version.json >/dev/null
 
-              curl -fsS --retry 2 --max-time 35 -D /tmp/city-headers.txt "$base/home-bg-v15-city.png?v=15&build=$GITHUB_SHA" -o /tmp/home-bg-v15-city.png
+              curl -fsS --retry 2 --max-time 35 -D /tmp/city-headers.txt "$base/home-bg-v15-city.png?v=16&build=$GITHUB_SHA" -o /tmp/home-bg-v15-city.png
               grep -Eiq '^content-type: *image/png' /tmp/city-headers.txt
               grep -Eiq '^content-length: *1907656' /tmp/city-headers.txt
               grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/city-headers.txt
               grep -Eiq '^x-home-menu-asset: *city-plate' /tmp/city-headers.txt
               echo '06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25  /tmp/home-bg-v15-city.png' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 30 -D /tmp/foreground-headers.txt "$base/home-bg-v15-foreground.png?v=15&build=$GITHUB_SHA" -o /tmp/home-bg-v15-foreground.png
+              curl -fsS --retry 2 --max-time 30 -D /tmp/foreground-headers.txt "$base/home-bg-v15-foreground.png?v=16&build=$GITHUB_SHA" -o /tmp/home-bg-v15-foreground.png
               grep -Eiq '^content-type: *image/png' /tmp/foreground-headers.txt
               grep -Eiq '^content-length: *810819' /tmp/foreground-headers.txt
               grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/foreground-headers.txt
               grep -Eiq '^x-home-menu-asset: *foreground-olive-frame' /tmp/foreground-headers.txt
               echo '6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c  /tmp/home-bg-v15-foreground.png' | sha256sum -c -
 
-              head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/home-bg-v15-city.png?v=15&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
+              head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/home-bg-v15-city.png?v=16&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
               test "$head_length" = 1907656
 
-              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25"' "$base/home-bg-v15-city.png?v=15&etag=1&build=$GITHUB_SHA")"
+              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25"' "$base/home-bg-v15-city.png?v=16&etag=1&build=$GITHUB_SHA")"
               test "$status" = 304
 
-              echo "Home menu V15 layered parallax preview verified: $PREVIEW_URL"
+              echo "Home menu V16 reactive-depth preview verified: $PREVIEW_URL"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V15 Cloudflare preview verification failed' >&2
+          echo 'Home menu V16 Cloudflare preview verification failed' >&2
           exit 1
-      - name: Record V15 run diagnostics
+      - name: Record V16 run diagnostics
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -191,13 +215,13 @@ jobs:
           VERIFY: ${{ steps.verify.outcome }}
         run: |
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v15-layered-parallax",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v16-reactive-depth",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V15 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record V16 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Record verified V15 preview
+      - name: Record verified V16 preview
         if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -205,13 +229,13 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v15-layered-parallax",background:"layered-biblical-city-parallax-v15",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v16-reactive-depth",background:"reactive-layered-biblical-city-v16",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V15 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu V16 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Fail if V15 was not verified
+      - name: Fail if V16 was not verified
         if: always()
         env:
           VERIFY: ${{ steps.verify.outcome }}

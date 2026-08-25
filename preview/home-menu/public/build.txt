@@ -1,7 +1,8 @@
-home-menu-v15-layered-parallax
-2026-08-25T06:17:17Z
+home-menu-v16-reactive-depth
+2026-08-25T06:53:57Z
 source=generated-high-detail-assets
 city=941x1672-png
 foreground=941x1672-png-alpha
-interaction=continuous-scroll-parallax-with-action-effects
+interaction=scroll-velocity-actions-and-opt-in-tilt
+legacy-video-assets=removed
 video=not-required
