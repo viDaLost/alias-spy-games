@@ -54,7 +54,8 @@ jobs:
           if test -e "$public/home-menu-v19.js"; then exit 1; fi
           if test -e "$public/actions/falling-stars-v19.webp"; then exit 1; fi
           node --check "$js"
-          node --input-type=module --check < "$worker"
+          cp "$worker" /tmp/home-menu-worker-v20.mjs
+          node --check /tmp/home-menu-worker-v20.mjs
       - name: Validate Worker bundle
         id: validate
         working-directory: preview/home-menu
