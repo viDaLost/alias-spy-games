@@ -1,10 +1,12 @@
-home-menu-v17-minimal-layered-icons
-2026-08-25T09:30:00Z
-source=generated-high-detail-assets
+home-menu-v18-isolated-assets
+2026-08-25T13:40:00Z
+source=generated-high-detail-assets-and-local-game-icons
 city=941x1672-png
 foreground=941x1672-png-alpha
-icons=1254x1254-png-alpha-3x3
+interface-icons=1254x1254-png-alpha-3x3
+game-icons=6-local-assets-2275329-bytes
 interaction=scroll-actions-tilt-and-icon-feedback
 quick-game=removed
+production-main-asset-dependency=false
 legacy-video-assets=removed
 video=not-required

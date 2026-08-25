@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify V17 minimal layered source and contracts
+      - name: Verify V18 isolated assets source and contracts
         id: source
         continue-on-error: true
         run: |
@@ -33,6 +33,7 @@ jobs:
           city='preview/home-menu/public/home-bg-v15-city.png'
           foreground='preview/home-menu/public/home-bg-v15-foreground.png'
           icons='preview/home-menu/public/home-menu-icons-v17.png'
+          game_icons='preview/home-menu/public/icons'
           html='preview/home-menu/public/index.html'
           worker='preview/home-menu/worker.js'
 
@@ -42,6 +43,19 @@ jobs:
           echo '06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25  preview/home-menu/public/home-bg-v15-city.png' | sha256sum -c -
           echo '6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c  preview/home-menu/public/home-bg-v15-foreground.png' | sha256sum -c -
           echo 'f5024040052c4fb6a762f8b0b5040550d6c2ce50409b996932db5134e18adbc7  preview/home-menu/public/home-menu-icons-v17.png' | sha256sum -c -
+          test "$(find "$game_icons" -maxdepth 1 -type f | wc -l)" -eq 6
+          test "$(wc -c < "$game_icons/alias.png")" -eq 354173
+          test "$(wc -c < "$game_icons/idea.png")" -eq 364257
+          test "$(wc -c < "$game_icons/biblical-treasures-v38.png")" -eq 420180
+          test "$(wc -c < "$game_icons/quartet.png")" -eq 401949
+          test "$(wc -c < "$game_icons/spy.png")" -eq 372269
+          test "$(wc -c < "$game_icons/words.png")" -eq 362501
+          echo '42f2bf6cce4f4cfdde062790a888f34a2b9bc560ac9c82e59fe480a375623a02  preview/home-menu/public/icons/alias.png' | sha256sum -c -
+          echo '85041c24cf8008fd0aa3ae1a08733580286911e21769006c07bf90e5bc2defd1  preview/home-menu/public/icons/idea.png' | sha256sum -c -
+          echo 'dff341415bf43e2220b9fc877a800b00fca1717c30a833e7f05be27195831d19  preview/home-menu/public/icons/biblical-treasures-v38.png' | sha256sum -c -
+          echo '798fea10a39d030a9b77d049e86bb3266a119a01b44c7183c534a099999000c6  preview/home-menu/public/icons/quartet.png' | sha256sum -c -
+          echo '07f7f082daae62413cf5fbddcac77542f4ef8c2e963991dd4079463b426d4242  preview/home-menu/public/icons/spy.png' | sha256sum -c -
+          echo 'abb22292a06eec2442a55f7898622c225bd3cea2fd2eca1c6c0a7099fe0e6897  preview/home-menu/public/icons/words.png' | sha256sum -c -
 
           python3 - <<'PY'
           from pathlib import Path
@@ -58,14 +72,22 @@ jobs:
           assert png_header('preview/home-menu/public/home-bg-v15-city.png') == (941, 1672, 2)
           assert png_header('preview/home-menu/public/home-bg-v15-foreground.png') == (941, 1672, 6)
           assert png_header('preview/home-menu/public/home-menu-icons-v17.png') == (1254, 1254, 6)
+          for name in ('alias.png', 'idea.png', 'biblical-treasures-v38.png', 'quartet.png', 'spy.png', 'words.png'):
+              assert png_header(f'preview/home-menu/public/icons/{name}') == (512, 512, 6)
           PY
 
-          grep -Fq 'home-menu-v17-minimal-layered-icons' "$html"
-          grep -Fq 'HOME V17 · MINIMAL LAYERS · CLOUDFLARE PREVIEW' "$html"
-          grep -Fq '/home-bg-v15-city.png?v=17' "$html"
-          grep -Fq '/home-bg-v15-foreground.png?v=17' "$html"
-          grep -Fq '/home-menu-icons-v17.png?v=17' "$html"
-          grep -Fq 'deep-layered-biblical-city-v17' "$html"
+          grep -Fq 'home-menu-v18-isolated-assets' "$html"
+          grep -Fq 'HOME V18 · ISOLATED ASSETS · CLOUDFLARE PREVIEW' "$html"
+          grep -Fq '/home-bg-v15-city.png?v=18' "$html"
+          grep -Fq '/home-bg-v15-foreground.png?v=18' "$html"
+          grep -Fq '/home-menu-icons-v17.png?v=18' "$html"
+          grep -Fq 'deep-layered-biblical-city-v18' "$html"
+          grep -Fq "const ICON='/icons/';" "$html"
+          grep -Fq '/icons/quartet.png?v=18' "$html"
+          if grep -Fq 'raw.githubusercontent.com' "$html"; then
+            echo 'Production main asset dependency remains in index.html' >&2
+            exit 1
+          fi
           grep -Fq 'STAR_COUNT=36' "$html"
           grep -Fq 'DUST_COUNT=22' "$html"
           grep -Fq 'LIGHT_POSITIONS=' "$html"
@@ -119,15 +141,18 @@ jobs:
             test ! -e "$legacy"
           done
 
-          grep -Fq 'home-menu-v17-minimal-layered-icons' "$worker"
+          grep -Fq 'home-menu-v18-isolated-assets' "$worker"
           grep -Fq '/home-bg-v15-city.png' "$worker"
           grep -Fq '/home-bg-v15-foreground.png' "$worker"
           grep -Fq '/home-menu-icons-v17.png' "$worker"
-          grep -Fq 'index-native-minimal-multilayer-scene-v17' "$worker"
-          grep -Fq 'deep-layered-biblical-city-v17' "$worker"
+          grep -Fq '/icons/quartet.png' "$worker"
+          grep -Fq '/icons/idea.png' "$worker"
+          grep -Fq 'index-native-minimal-multilayer-scene-v18' "$worker"
+          grep -Fq 'deep-layered-biblical-city-v18' "$worker"
           grep -Fq 'scroll-actions-tilt-and-icon-feedback' "$worker"
           grep -Fq 'quickGameRemoved: true' "$worker"
           grep -Fq 'customRasterIcons: true' "$worker"
+          grep -Fq 'productionMainAssetDependency: false' "$worker"
           grep -Fq 'legacyVideoAssetsRemoved: true' "$worker"
           if grep -Eq 'VIDEO_PATH|parseRange|serveVideo|BG_FIX' "$worker"; then
             echo 'Legacy video or HTML injection logic remains in worker.js' >&2
@@ -162,7 +187,7 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V17 minimal layers and raster icons
+      - name: Verify deployed V18 isolated assets
         id: verify
         if: steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -173,31 +198,34 @@ jobs:
           base="$(printf '%s' "$PREVIEW_URL" | sed 's:/$::')"
           for attempt in 1 2 3 4 5 6 7 8; do
             if curl -fsSL --retry 2 --max-time 30 "$PREVIEW_URL?build=$GITHUB_SHA&attempt=$attempt" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V17 · MINIMAL LAYERS · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v17-minimal-layered-icons' /tmp/home-menu-preview.html \
-              && grep -Fq '/home-bg-v15-city.png?v=17' /tmp/home-menu-preview.html \
-              && grep -Fq '/home-bg-v15-foreground.png?v=17' /tmp/home-menu-preview.html \
-              && grep -Fq '/home-menu-icons-v17.png?v=17' /tmp/home-menu-preview.html \
+              && grep -Fq 'HOME V18 · ISOLATED ASSETS · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v18-isolated-assets' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v15-city.png?v=18' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v15-foreground.png?v=18' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-menu-icons-v17.png?v=18' /tmp/home-menu-preview.html \
+              && grep -Fq "const ICON='/icons/';" /tmp/home-menu-preview.html \
+              && ! grep -Fq 'raw.githubusercontent.com' /tmp/home-menu-preview.html \
               && grep -Fq "window.addEventListener('scroll',updateSceneTarget" /tmp/home-menu-preview.html \
               && grep -Fq "window.addEventListener('deviceorientation'" /tmp/home-menu-preview.html \
               && ! grep -Eiq 'quick|быстр' /tmp/home-menu-preview.html \
               && ! grep -Fq '<video' /tmp/home-menu-preview.html; then
 
-              grep -Eiq '^x-home-menu-build: *home-menu-v17-minimal-layered-icons' /tmp/html-headers.txt
-              grep -Eiq '^x-home-menu-preview: *deep-layered-biblical-city-v17' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-build: *home-menu-v18-isolated-assets' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-preview: *deep-layered-biblical-city-v18' /tmp/html-headers.txt
 
               curl -fsSL --retry 2 --max-time 20 "$base/__preview_version?build=$GITHUB_SHA" -o /tmp/home-menu-version.json
               jq -e '
-                .version == "home-menu-v17-minimal-layered-icons" and
-                .background == "deep-layered-biblical-city-v17" and
-                .architecture == "index-native-minimal-multilayer-scene-v17" and
+                .version == "home-menu-v18-isolated-assets" and
+                .background == "deep-layered-biblical-city-v18" and
+                .architecture == "index-native-minimal-multilayer-scene-v18" and
                 .interaction == "scroll-actions-tilt-and-icon-feedback" and
-                .source == "generated-high-detail-assets" and
+                .source == "generated-high-detail-assets-and-local-game-icons" and
                 .videoRequired == false and
                 .rangeRequired == false and
                 .legacyVideoAssetsRemoved == true and
                 .quickGameRemoved == true and
                 .customRasterIcons == true and
+                .productionMainAssetDependency == false and
                 .assets.city.width == 941 and
                 .assets.city.height == 1672 and
                 .assets.city.bytes == 1907656 and
@@ -211,6 +239,11 @@ jobs:
                 .assets.icons.grid == "3x3" and
                 .assets.icons.count == 9 and
                 .assets.icons.transparent == true and
+                .assets.gameIcons.basePath == "/icons/" and
+                .assets.gameIcons.count == 6 and
+                .assets.gameIcons.totalBytes == 2275329 and
+                .assets.gameIcons.isolated == true and
+                .assets.gameIcons.registry == "preview-local-static-copy" and
                 (.layers | length) == 12 and
                 .motion.scrollDriven == true and
                 .motion.continuousAcrossPage == true and
@@ -222,41 +255,57 @@ jobs:
                 .motion.reducedMotionFallback == true
               ' /tmp/home-menu-version.json >/dev/null
 
-              curl -fsS --retry 2 --max-time 35 -D /tmp/city-headers.txt "$base/home-bg-v15-city.png?v=17&build=$GITHUB_SHA" -o /tmp/home-bg-v15-city.png
+              curl -fsS --retry 2 --max-time 35 -D /tmp/city-headers.txt "$base/home-bg-v15-city.png?v=18&build=$GITHUB_SHA" -o /tmp/home-bg-v15-city.png
               grep -Eiq '^content-type: *image/png' /tmp/city-headers.txt
               grep -Eiq '^content-length: *1907656' /tmp/city-headers.txt
               grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/city-headers.txt
               grep -Eiq '^x-home-menu-asset: *city-plate' /tmp/city-headers.txt
               echo '06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25  /tmp/home-bg-v15-city.png' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 30 -D /tmp/foreground-headers.txt "$base/home-bg-v15-foreground.png?v=17&build=$GITHUB_SHA" -o /tmp/home-bg-v15-foreground.png
+              curl -fsS --retry 2 --max-time 30 -D /tmp/foreground-headers.txt "$base/home-bg-v15-foreground.png?v=18&build=$GITHUB_SHA" -o /tmp/home-bg-v15-foreground.png
               grep -Eiq '^content-type: *image/png' /tmp/foreground-headers.txt
               grep -Eiq '^content-length: *810819' /tmp/foreground-headers.txt
               grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/foreground-headers.txt
               grep -Eiq '^x-home-menu-asset: *foreground-olive-frame' /tmp/foreground-headers.txt
               echo '6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c  /tmp/home-bg-v15-foreground.png' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 35 -D /tmp/icon-headers.txt "$base/home-menu-icons-v17.png?v=17&build=$GITHUB_SHA" -o /tmp/home-menu-icons-v17.png
+              curl -fsS --retry 2 --max-time 35 -D /tmp/icon-headers.txt "$base/home-menu-icons-v17.png?v=18&build=$GITHUB_SHA" -o /tmp/home-menu-icons-v17.png
               grep -Eiq '^content-type: *image/png' /tmp/icon-headers.txt
               grep -Eiq '^content-length: *2626324' /tmp/icon-headers.txt
               grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/icon-headers.txt
               grep -Eiq '^x-home-menu-asset: *custom-raster-icon-atlas' /tmp/icon-headers.txt
               echo 'f5024040052c4fb6a762f8b0b5040550d6c2ce50409b996932db5134e18adbc7  /tmp/home-menu-icons-v17.png' | sha256sum -c -
 
-              head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/home-bg-v15-city.png?v=17&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
+              while IFS='|' read -r file bytes hash type role; do
+                curl -fsS --retry 2 --max-time 30 -D /tmp/game-icon-headers.txt "$base/icons/$file?v=18&build=$GITHUB_SHA" -o "/tmp/$file"
+                grep -Eiq "^content-type: *$type" /tmp/game-icon-headers.txt
+                grep -Eiq "^content-length: *$bytes" /tmp/game-icon-headers.txt
+                grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/game-icon-headers.txt
+                grep -Eiq "^x-home-menu-asset: *$role" /tmp/game-icon-headers.txt
+                echo "$hash  /tmp/$file" | sha256sum -c -
+              done <<'ICONS'
+              alias.png|354173|42f2bf6cce4f4cfdde062790a888f34a2b9bc560ac9c82e59fe480a375623a02|image/png|game-icon-alias
+              idea.png|364257|85041c24cf8008fd0aa3ae1a08733580286911e21769006c07bf90e5bc2defd1|image/png|game-icon-bible-sketch
+              biblical-treasures-v38.png|420180|dff341415bf43e2220b9fc877a800b00fca1717c30a833e7f05be27195831d19|image/png|game-icon-biblical-treasures
+              quartet.png|401949|798fea10a39d030a9b77d049e86bb3266a119a01b44c7183c534a099999000c6|image/png|game-icon-quartet
+              spy.png|372269|07f7f082daae62413cf5fbddcac77542f4ef8c2e963991dd4079463b426d4242|image/png|game-icon-spy
+              words.png|362501|abb22292a06eec2442a55f7898622c225bd3cea2fd2eca1c6c0a7099fe0e6897|image/png|game-icon-words
+              ICONS
+
+              head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/home-bg-v15-city.png?v=18&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
               test "$head_length" = 1907656
 
-              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25"' "$base/home-bg-v15-city.png?v=17&etag=1&build=$GITHUB_SHA")"
+              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25"' "$base/home-bg-v15-city.png?v=18&etag=1&build=$GITHUB_SHA")"
               test "$status" = 304
 
-              echo "Home menu V17 minimal layered preview verified: $PREVIEW_URL"
+              echo "Home menu V18 isolated-assets preview verified: $PREVIEW_URL"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V17 Cloudflare preview verification failed' >&2
+          echo 'Home menu V18 Cloudflare preview verification failed' >&2
           exit 1
-      - name: Record V17 run diagnostics
+      - name: Record V18 run diagnostics
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -267,13 +316,13 @@ jobs:
           VERIFY: ${{ steps.verify.outcome }}
         run: |
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v17-minimal-layered-icons",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v18-isolated-assets",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V17 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record V18 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Record verified V17 preview
+      - name: Record verified V18 preview
         if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -281,13 +330,13 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v17-minimal-layered-icons",background:"deep-layered-biblical-city-v17",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v18-isolated-assets",background:"deep-layered-biblical-city-v18",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V17 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu V18 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Fail if V17 was not verified
+      - name: Fail if V18 was not verified
         if: always()
         env:
           VERIFY: ${{ steps.verify.outcome }}

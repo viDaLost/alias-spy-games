@@ -1,5 +1,5 @@
-const BUILD_VERSION = 'home-menu-v17-minimal-layered-icons';
-const BUILD_LABEL = '● HOME V17 · MINIMAL LAYERS · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
+const BUILD_VERSION = 'home-menu-v18-isolated-assets';
+const BUILD_LABEL = '● HOME V18 · ISOLATED ASSETS · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
 
 const IMAGE_ASSETS = {
   '/home-bg-v15-city.png': {
@@ -19,6 +19,42 @@ const IMAGE_ASSETS = {
     contentType: 'image/png',
     bytes: 2626324,
     etag: '"f5024040052c4fb6a762f8b0b5040550d6c2ce50409b996932db5134e18adbc7"',
+  },
+  '/icons/alias.png': {
+    role: 'game-icon-alias',
+    contentType: 'image/png',
+    bytes: 354173,
+    etag: '"42f2bf6cce4f4cfdde062790a888f34a2b9bc560ac9c82e59fe480a375623a02"',
+  },
+  '/icons/idea.png': {
+    role: 'game-icon-bible-sketch',
+    contentType: 'image/png',
+    bytes: 364257,
+    etag: '"85041c24cf8008fd0aa3ae1a08733580286911e21769006c07bf90e5bc2defd1"',
+  },
+  '/icons/biblical-treasures-v38.png': {
+    role: 'game-icon-biblical-treasures',
+    contentType: 'image/png',
+    bytes: 420180,
+    etag: '"dff341415bf43e2220b9fc877a800b00fca1717c30a833e7f05be27195831d19"',
+  },
+  '/icons/quartet.png': {
+    role: 'game-icon-quartet',
+    contentType: 'image/png',
+    bytes: 401949,
+    etag: '"798fea10a39d030a9b77d049e86bb3266a119a01b44c7183c534a099999000c6"',
+  },
+  '/icons/spy.png': {
+    role: 'game-icon-spy',
+    contentType: 'image/png',
+    bytes: 372269,
+    etag: '"07f7f082daae62413cf5fbddcac77542f4ef8c2e963991dd4079463b426d4242"',
+  },
+  '/icons/words.png': {
+    role: 'game-icon-words',
+    contentType: 'image/png',
+    bytes: 362501,
+    etag: '"abb22292a06eec2442a55f7898622c225bd3cea2fd2eca1c6c0a7099fe0e6897"',
   },
 };
 
@@ -59,15 +95,16 @@ function versionResponse() {
   return Response.json({
     version: BUILD_VERSION,
     label: BUILD_LABEL,
-    background: 'deep-layered-biblical-city-v17',
-    architecture: 'index-native-minimal-multilayer-scene-v17',
+    background: 'deep-layered-biblical-city-v18',
+    architecture: 'index-native-minimal-multilayer-scene-v18',
     interaction: 'scroll-actions-tilt-and-icon-feedback',
-    source: 'generated-high-detail-assets',
+    source: 'generated-high-detail-assets-and-local-game-icons',
     videoRequired: false,
     rangeRequired: false,
     legacyVideoAssetsRemoved: true,
     quickGameRemoved: true,
     customRasterIcons: true,
+    productionMainAssetDependency: false,
     assets: {
       city: {
         path: '/home-bg-v15-city.png',
@@ -96,6 +133,13 @@ function versionResponse() {
         grid: '3x3',
         count: 9,
         transparent: true,
+      },
+      gameIcons: {
+        basePath: '/icons/',
+        count: 6,
+        totalBytes: 2275329,
+        isolated: true,
+        registry: 'preview-local-static-copy',
       },
     },
     layers: [
@@ -153,7 +197,7 @@ export default {
       headers.set('x-content-type-options', 'nosniff');
       headers.set('referrer-policy', 'no-referrer');
       headers.set('x-robots-tag', 'noindex, nofollow');
-      headers.set('x-home-menu-preview', 'deep-layered-biblical-city-v17');
+      headers.set('x-home-menu-preview', 'deep-layered-biblical-city-v18');
       headers.set('x-home-menu-build', BUILD_VERSION);
       return new Response(response.body, { status: response.status, headers });
     }
