@@ -1,1 +1,1 @@
-{"source_sha":"6a3ff25a185214f38999c080a0246f4ad3f37250","version":"home-menu-v19-raster-action-layers-planner","state":"finished","finished_at":"2026-08-25T15:21:31Z","steps":{"source":"success","validate":"success","deploy":"success","verify":"success"}}
+{"source_sha":"028a3b187d37ead073c57e53d92ec0102aaed150","version":"home-menu-v20-title-centered-actions","state":"finished","finished_at":"2026-08-25T16:00:11Z","steps":{"source":"failure","validate":"skipped","deploy":"skipped","verify":"skipped"}}
