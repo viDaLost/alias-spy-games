@@ -27,18 +27,22 @@ jobs:
           test -f preview/home-menu/public/index.html
           test -f preview/home-menu/public/home-menu-v21.js
           test -f preview/home-menu/public/layers/title-v21.webp
-          test "$(wc -c < preview/home-menu/public/layers/title-v21.webp)" -eq 70926
+          test "$(wc -c < preview/home-menu/public/layers/title-v21.webp)" -eq 10870
+          test "$(git hash-object preview/home-menu/public/layers/title-v21.webp)" = '17dcef4aa69864314a39015343d8470cabf47bb6'
+          echo 'ee18110abbd013ad5209065a0b7be3cdeb6b9584f343ff96dd1a8e1d6b3dcfa2  preview/home-menu/public/layers/title-v21.webp' | sha256sum -c -
           grep -Fq 'home-menu-v21-dark-action-stage' preview/home-menu/public/index.html
           grep -Fq '/layers/title-v21.webp?v=21' preview/home-menu/public/index.html
           grep -Fq 'class="action-stage"' preview/home-menu/public/index.html
           grep -Fq 'background:#010208' preview/home-menu/public/index.html
-          grep -Fq "await playRasterAction(kind);openModal(kind)" preview/home-menu/public/home-menu-v21.js
+          grep -Fq "await playRasterAction(kind);await revealModalFromDarkStage(kind)" preview/home-menu/public/home-menu-v21.js
           grep -Fq "actionStage.classList.add('active')" preview/home-menu/public/home-menu-v21.js
+          grep -Fq "openModal(kind);" preview/home-menu/public/home-menu-v21.js
+          grep -Fq "actionStage.classList.remove('active')" preview/home-menu/public/home-menu-v21.js
           ! grep -Fq 'Игровой маршрут' preview/home-menu/public/index.html
           ! grep -Fq 'view-profile' preview/home-menu/public/index.html
           ! grep -Fq 'view-settings' preview/home-menu/public/index.html
           ! grep -Fq 'falling-stars-v19.webp' preview/home-menu/public/index.html
-          echo 'source=success · V21 title and dark action stage verified'
+          echo 'source=success · exact V21 title + dark-stage/modal handoff verified'
       - name: Validate Worker bundle
         id: validate
         working-directory: preview/home-menu
@@ -76,7 +80,7 @@ jobs:
             fi
             sleep 2
           done
-          jq -e '.version=="home-menu-v21-dark-action-stage" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .actionStage.opaque==true and .actionStage.coversMenu==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==70926' /tmp/version.json >/dev/null
+          jq -e '.version=="home-menu-v21-dark-action-stage" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .actionStage.opaque==true and .actionStage.coversMenu==true and .actionStage.noMenuFlashBeforeModal==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==10870 and .assets.title.gitBlob=="17dcef4aa69864314a39015343d8470cabf47bb6"' /tmp/version.json >/dev/null
           stamp="$(date +%s)"
           curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/?v=21&ci=$stamp" -o /tmp/index.html
           grep -Fq '/layers/title-v21.webp?v=21' /tmp/index.html
@@ -89,10 +93,13 @@ jobs:
           ! grep -Fq 'falling-stars-v19.webp' /tmp/index.html
           curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/home-menu-v21.js?v=21&ci=$stamp" -o /tmp/app.js
           grep -Fq "actionStage.classList.add('active')" /tmp/app.js
-          grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/app.js
+          grep -Fq 'await playRasterAction(kind);await revealModalFromDarkStage(kind)' /tmp/app.js
+          grep -Fq 'openModal(kind);' /tmp/app.js
+          grep -Fq "actionStage.classList.remove('active')" /tmp/app.js
           ! grep -Fq 'sceneActionLayers' /tmp/app.js
           curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -D /tmp/title.headers "$base/layers/title-v21.webp?v=21&ci=$stamp" -o /tmp/title.webp
-          test "$(wc -c < /tmp/title.webp)" -eq 70926
+          test "$(wc -c < /tmp/title.webp)" -eq 10870
+          echo 'ee18110abbd013ad5209065a0b7be3cdeb6b9584f343ff96dd1a8e1d6b3dcfa2  /tmp/title.webp' | sha256sum -c -
           grep -Eiq '^content-type: *image/webp' /tmp/title.headers
           grep -Eiq '^x-home-menu-asset: *raster-title-bible-games-transparent' /tmp/title.headers
-          echo 'verify=success · V21 transparent title and opaque dark action flow are live'
+          echo 'verify=success · V21 transparent title, opaque action stage, and centered modal handoff are live'
