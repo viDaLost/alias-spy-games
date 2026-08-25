@@ -20,4 +20,5 @@ quick-game=removed
 random-game=removed
 production-main-asset-dependency=false
 legacy-video-assets=removed
+legacy-html-script=removed-after-v19-verify
 video=not-required

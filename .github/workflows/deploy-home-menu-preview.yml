@@ -103,7 +103,7 @@ jobs:
           grep -Fq 'id="sceneActionLayers"' "$html"
           grep -Fq 'Игровой маршрут' "$html"
           grep -Fq 'id="plannerBuild"' "$html"
-          grep -Fq '<script type="application/x-home-menu-v18-legacy" data-retained-until-v19-verify>' "$html"
+          if grep -Fq 'application/x-home-menu-v18-legacy' "$html"; then echo 'Verified V18 legacy script remains' >&2; exit 1; fi
           grep -Fq '<script src="/home-menu-v19.js?v=19" defer></script>' "$html"
           grep -Fq '/home-menu-icons-v19.webp?v=19' "$html"
           if grep -Fq 'raw.githubusercontent.com' "$html"; then echo 'Production main dependency remains' >&2; exit 1; fi
@@ -136,6 +136,7 @@ jobs:
           grep -Fq 'quickGameRemoved: true' "$worker"
           grep -Fq 'randomGameRemoved: true' "$worker"
           grep -Fq 'productionMainAssetDependency: false' "$worker"
+          grep -Fq 'legacyHtmlScriptRemoved: true' "$worker"
           if grep -Eq 'VIDEO_PATH|parseRange|serveVideo|BG_FIX' "$worker"; then echo 'Legacy video logic remains in Worker' >&2; exit 1; fi
 
           for legacy in \
@@ -203,6 +204,7 @@ jobs:
           ! grep -Fq 'raw.githubusercontent.com' /tmp/home-menu-preview.html
           ! grep -Fq '<video' /tmp/home-menu-preview.html
           ! grep -Eq 'fx-portal|fx-code|fx-qr|fx-orbit|fx-games' /tmp/home-menu-preview.html
+          ! grep -Fq 'application/x-home-menu-v18-legacy' /tmp/home-menu-preview.html
 
           curl -fsSL --retry 2 --max-time 25 "$base/home-menu-v19.js?v=19&build=$GITHUB_SHA" -o /tmp/home-menu-v19.js
           cmp preview/home-menu/public/home-menu-v19.js /tmp/home-menu-v19.js
@@ -224,7 +226,8 @@ jobs:
             .gameNightPlanner == true and
             .customRasterIcons == true and
             .productionMainAssetDependency == false and
-            .legacyHtmlScriptRetainedInert == true and
+            .legacyHtmlScriptRetainedInert == false and
+            .legacyHtmlScriptRemoved == true and
             .assets.city.width == 941 and
             .assets.city.height == 1672 and
             .assets.rasterLayers.count == 4 and

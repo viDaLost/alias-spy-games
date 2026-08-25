@@ -197,7 +197,8 @@ function versionResponse() {
     gameNightPlanner: true,
     customRasterIcons: true,
     productionMainAssetDependency: false,
-    legacyHtmlScriptRetainedInert: true,
+    legacyHtmlScriptRetainedInert: false,
+    legacyHtmlScriptRemoved: true,
     assets: {
       city: {
         path: '/home-bg-v15-city.png',
