@@ -276,6 +276,13 @@ jobs:
               grep -Eiq '^x-home-menu-asset: *custom-raster-icon-atlas' /tmp/icon-headers.txt
               echo 'f5024040052c4fb6a762f8b0b5040550d6c2ce50409b996932db5134e18adbc7  /tmp/home-menu-icons-v17.png' | sha256sum -c -
 
+              printf '%s\n' \
+                'alias.png|354173|42f2bf6cce4f4cfdde062790a888f34a2b9bc560ac9c82e59fe480a375623a02|image/png|game-icon-alias' \
+                'idea.png|364257|85041c24cf8008fd0aa3ae1a08733580286911e21769006c07bf90e5bc2defd1|image/png|game-icon-bible-sketch' \
+                'biblical-treasures-v38.png|420180|dff341415bf43e2220b9fc877a800b00fca1717c30a833e7f05be27195831d19|image/png|game-icon-biblical-treasures' \
+                'quartet.png|401949|798fea10a39d030a9b77d049e86bb3266a119a01b44c7183c534a099999000c6|image/png|game-icon-quartet' \
+                'spy.png|372269|07f7f082daae62413cf5fbddcac77542f4ef8c2e963991dd4079463b426d4242|image/png|game-icon-spy' \
+                'words.png|362501|abb22292a06eec2442a55f7898622c225bd3cea2fd2eca1c6c0a7099fe0e6897|image/png|game-icon-words' |
               while IFS='|' read -r file bytes hash type role; do
                 curl -fsS --retry 2 --max-time 30 -D /tmp/game-icon-headers.txt "$base/icons/$file?v=18&build=$GITHUB_SHA" -o "/tmp/$file"
                 grep -Eiq "^content-type: *$type" /tmp/game-icon-headers.txt
@@ -283,14 +290,7 @@ jobs:
                 grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/game-icon-headers.txt
                 grep -Eiq "^x-home-menu-asset: *$role" /tmp/game-icon-headers.txt
                 echo "$hash  /tmp/$file" | sha256sum -c -
-              done <<'ICONS'
-              alias.png|354173|42f2bf6cce4f4cfdde062790a888f34a2b9bc560ac9c82e59fe480a375623a02|image/png|game-icon-alias
-              idea.png|364257|85041c24cf8008fd0aa3ae1a08733580286911e21769006c07bf90e5bc2defd1|image/png|game-icon-bible-sketch
-              biblical-treasures-v38.png|420180|dff341415bf43e2220b9fc877a800b00fca1717c30a833e7f05be27195831d19|image/png|game-icon-biblical-treasures
-              quartet.png|401949|798fea10a39d030a9b77d049e86bb3266a119a01b44c7183c534a099999000c6|image/png|game-icon-quartet
-              spy.png|372269|07f7f082daae62413cf5fbddcac77542f4ef8c2e963991dd4079463b426d4242|image/png|game-icon-spy
-              words.png|362501|abb22292a06eec2442a55f7898622c225bd3cea2fd2eca1c6c0a7099fe0e6897|image/png|game-icon-words
-              ICONS
+              done
 
               head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/home-bg-v15-city.png?v=18&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
               test "$head_length" = 1907656
