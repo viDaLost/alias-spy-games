@@ -1,296 +1,117 @@
-name: Deploy home menu Cloudflare preview
-
+name: Deploy Home Menu Preview
 on:
   push:
-    branches:
-      - preview/home-menu-redesign-v1
+    branches: [preview/home-menu-redesign-v1]
     paths:
       - 'preview/home-menu/**'
       - '.github/workflows/deploy-home-menu-preview.yml'
   workflow_dispatch:
-
 permissions:
   contents: write
-
 concurrency:
-  group: home-menu-cloudflare-preview
+  group: home-menu-preview
   cancel-in-progress: true
-
 jobs:
   deploy-preview:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Verify V19 raster layers, planner and performance contracts
+      - name: Verify V20 title, centered actions and removals
         id: source
-        continue-on-error: true
+        shell: bash
         run: |
           set -euxo pipefail
           public='preview/home-menu/public'
           html="$public/index.html"
-          controller="$public/home-menu-v19.js"
+          js="$public/home-menu-v20.js"
           worker='preview/home-menu/worker.js'
-
-          printf '%s\n' \
-            'home-bg-v15-city.png|1907656|06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25' \
-            'home-bg-v15-foreground.png|810819|6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c' \
-            'layers/moon-v19.webp|139610|66f8274871f0bfeee7a22147e1ab48aa23d9f3da32279aa20f2837d8e7e8cc35' \
-            'layers/stars-v19.webp|292862|1f1c4e8c72ace99703888d3fb96b9569fe2d27f3c78228bd8f33023d4c60f491' \
-            'layers/clouds-far-v19.webp|404510|0dbb8693b1337a369991dadea266e7c60b52f4bc3deb4a1741d6ea277927165b' \
-            'layers/clouds-near-v19.webp|454478|da35373301a3f84ef990e60f7ffc06d62d819e25a9e42e364aa04c8fabee8c4d' \
-            'actions/room-v19.webp|494240|d3c96c720da4e5cb3af7739a7f60aa47567f0813fa430eea3c7412f8765e1790' \
-            'actions/code-v19.webp|167420|60ec5e7ecaac41fa8dceb5853e1a5ed9ec3f2a8ec655a65f0baec633ef1cd3ce' \
-            'actions/qr-v19.webp|518236|d89fab159b8b63f01a3302cf59ff5f571056022505acb115b0b892255963f3e1' \
-            'actions/falling-stars-v19.webp|38938|e9d0929091818714c4c9935b291e60e02ebaac2c4d8e8859139931ca02c01715' \
-            'home-menu-icons-v19.webp|493088|99535429340ab69de04407dd041cc348e74ec61d92aa2d0c8a64852334852d50' \
-            'icons-v19/alias.webp|81010|f4d6c2427be82995c4bf7a8402c8c034f43ed9854ae8f791161d5703e8f67785' \
-            'icons-v19/idea.webp|86200|f67874770ed052bebb31701e9c49d522712b50aa7334a13bb578e8d9ed28d141' \
-            'icons-v19/biblical-treasures-v38.webp|116596|8a6b5cdb9b91d216492bffbfa12853eca408e13c9662a5c2a70807ea88678e79' \
-            'icons-v19/quartet.webp|93172|3265657801bc2f00c11532a1a99976cde67e510b2a75f1f62862852714026609' \
-            'icons-v19/spy.webp|85974|1316509425e53f44479ae574f109ef4c43aad153e87742ab7c7ddd0b2aa73fb8' \
-            'icons-v19/words.webp|85584|fd0895a6a05de7414e69ba885555847617b7531dc2e3ffd51ddfc9907861e181' |
-          while IFS='|' read -r relative bytes hash; do
-            file="$public/$relative"
-            test -f "$file"
-            test "$(wc -c < "$file")" -eq "$bytes"
-            echo "$hash  $file" | sha256sum -c -
-          done
-
-          node - <<'NODE'
-          const assert=require('assert');
-          const fs=require('fs');
-          const root='preview/home-menu/public/';
-          function png(relative,width,height,colorType){
-            const data=fs.readFileSync(root+relative);
-            assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
-            assert.equal(data.subarray(12,16).toString('ascii'),'IHDR');
-            assert.equal(data.readUInt32BE(16),width);
-            assert.equal(data.readUInt32BE(20),height);
-            assert.equal(data[24],8);
-            assert.equal(data[25],colorType);
-          }
-          function webp(relative,width,height){
-            const data=fs.readFileSync(root+relative);
-            assert.equal(data.subarray(0,4).toString('ascii'),'RIFF');
-            assert.equal(data.subarray(8,12).toString('ascii'),'WEBP');
-            assert.equal(data.subarray(12,16).toString('ascii'),'VP8L');
-            assert.equal(data[20],0x2f);
-            const bits=data.readUInt32LE(21);
-            assert.equal(1+(bits&0x3fff),width);
-            assert.equal(1+((bits>>>14)&0x3fff),height);
-            assert.equal((bits>>>28)&1,1,'expected alpha channel in '+relative);
-          }
-          png('home-bg-v15-city.png',941,1672,2);
-          png('home-bg-v15-foreground.png',941,1672,6);
-          webp('layers/moon-v19.webp',384,384);
-          for(const name of ['stars-v19.webp','clouds-far-v19.webp','clouds-near-v19.webp'])webp('layers/'+name,720,1280);
-          for(const name of ['room-v19.webp','code-v19.webp','qr-v19.webp','falling-stars-v19.webp'])webp('actions/'+name,720,1280);
-          webp('home-menu-icons-v19.webp',576,576);
-          for(const name of ['alias.webp','idea.webp','biblical-treasures-v38.webp','quartet.webp','spy.webp','words.webp'])webp('icons-v19/'+name,288,288);
-          NODE
-
-          grep -Fq 'home-menu-v19-raster-action-layers-planner' "$html"
-          grep -Fq 'HOME V19 · FULL RASTER LAYERS + ROUTE · CLOUDFLARE PREVIEW' "$html"
-          grep -Fq 'event-driven-raster-parallax-v19' "$html"
-          grep -Fq '/layers/stars-v19.webp?v=19' "$html"
-          grep -Fq '/layers/moon-v19.webp?v=19' "$html"
-          grep -Fq '/layers/clouds-far-v19.webp?v=19' "$html"
-          grep -Fq '/layers/clouds-near-v19.webp?v=19' "$html"
-          grep -Fq 'id="sceneActionLayers"' "$html"
-          grep -Fq 'Игровой маршрут' "$html"
-          grep -Fq 'id="plannerBuild"' "$html"
-          if grep -Fq 'application/x-home-menu-v18-legacy' "$html"; then echo 'Verified V18 legacy script remains' >&2; exit 1; fi
-          grep -Fq '<script src="/home-menu-v19.js?v=19" defer></script>' "$html"
-          grep -Fq '/home-menu-icons-v19.webp?v=19' "$html"
-          if grep -Fq 'raw.githubusercontent.com' "$html"; then echo 'Production main dependency remains' >&2; exit 1; fi
-          if grep -Fq '<video' "$html"; then echo 'Video element remains' >&2; exit 1; fi
-          if grep -Eiq 'быстрая игра|quick game' "$html"; then echo 'Quick-game scenario remains' >&2; exit 1; fi
-          if grep -Eq 'fx-portal|fx-code|fx-qr|fx-orbit|fx-games|portalOpen|codeTiles|qrFrame|gameConstellation' "$html"; then echo 'Procedural action shape remains active' >&2; exit 1; fi
-          if grep -Fq '<svg' "$html"; then echo 'SVG icon markup remains' >&2; exit 1; fi
-
-          grep -Fq 'const MAX_FRAME_RATE=60' "$controller"
-          grep -Fq "room:{src:'/actions/room-v19.webp?v=19'" "$controller"
-          grep -Fq "code:{src:'/actions/code-v19.webp?v=19'" "$controller"
-          grep -Fq "qr:{src:'/actions/qr-v19.webp?v=19'" "$controller"
-          grep -Fq "stars:{src:'/actions/falling-stars-v19.webp?v=19'" "$controller"
-          grep -Fq 'pruneActionLayers(assetKey)' "$controller"
-          grep -Fq "telegram?.onEvent?.('deactivated'" "$controller"
-          grep -Fq "telegram?.onEvent?.('activated'" "$controller"
-          grep -Fq 'PLANNER_STORAGE_KEY' "$controller"
-          grep -Fq 'chooseRoute' "$controller"
-          if grep -Eq 'setInterval|STAR_COUNT|DUST_COUNT|requestAnimationFrame\([^)]*loop' "$controller"; then echo 'Continuous animation loop or procedural particles remain' >&2; exit 1; fi
-
-          grep -Fq 'home-menu-v19-raster-action-layers-planner' "$worker"
-          grep -Fq "source: 'generated-raster-background-and-action-layers'" "$worker"
-          grep -Fq '/actions/room-v19.webp' "$worker"
-          grep -Fq '/actions/code-v19.webp' "$worker"
-          grep -Fq '/actions/qr-v19.webp' "$worker"
-          grep -Fq '/actions/falling-stars-v19.webp' "$worker"
-          grep -Fq 'lazyActionLayers: true' "$worker"
-          grep -Fq 'maxDecodedActionLayers: 1' "$worker"
-          grep -Fq 'continuousAnimationLoops: 0' "$worker"
-          grep -Fq 'quickGameRemoved: true' "$worker"
-          grep -Fq 'randomGameRemoved: true' "$worker"
-          grep -Fq 'productionMainAssetDependency: false' "$worker"
-          grep -Fq 'legacyHtmlScriptRemoved: true' "$worker"
-          if grep -Eq 'VIDEO_PATH|parseRange|serveVideo|BG_FIX' "$worker"; then echo 'Legacy video logic remains in Worker' >&2; exit 1; fi
-
-          for legacy in \
-            preview/home-menu/.v11-base \
-            preview/home-menu/public/home-bg-v11.mp4 \
-            preview/home-menu/public/home-bg-v13.mp4 \
-            preview/home-menu/public/home-bg-v13-poster.webp \
-            preview/home-menu/public/home-bg-v14-scroll.mp4 \
-            preview/home-menu/public/home-bg-v14-scroll-poster.webp \
-            preview/home-menu/video-src; do
-            test ! -e "$legacy"
-          done
-
-          node --check "$controller"
+          test -f "$public/layers/title-v20.webp"
+          test "$(wc -c < "$public/layers/title-v20.webp")" -eq 55460
+          echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  preview/home-menu/public/layers/title-v20.webp' | sha256sum -c -
+          grep -Fq 'home-menu-v20-title-centered-actions' "$html"
+          grep -Fq '/layers/title-v20.webp?v=20' "$html"
+          grep -Fq 'modal-overlay' "$html"
+          grep -Fq 'align-items:center;justify-content:center' "$html"
+          grep -Fq '<script src="/home-menu-v20.js?v=20" defer></script>' "$html"
+          ! grep -Fq 'Игровой маршрут' "$html"
+          ! grep -Fq 'nightPlanner' "$html"
+          ! grep -Fq 'view-profile' "$html"
+          ! grep -Fq 'view-settings' "$html"
+          ! grep -Fq 'data-view="profile"' "$html"
+          ! grep -Fq 'data-view="settings"' "$html"
+          ! grep -Fq 'falling-stars-v19.webp' "$html"
+          test ! -e "$public/home-menu-v19.js"
+          ! grep -Eiq 'падающ|falling.?stars' "$html"
+          grep -Fq "create:{asset:'room',src:'/actions/room-v19.webp?v=20'" "$js"
+          grep -Fq "code:{asset:'code',src:'/actions/code-v19.webp?v=20'" "$js"
+          grep -Fq "qr:{asset:'qr',src:'/actions/qr-v19.webp?v=20'" "$js"
+          grep -Fq 'await playRasterAction(kind);openModal(kind)' "$js"
+          ! grep -Fq 'PLANNER_STORAGE_KEY' "$js"
+          ! grep -Fq 'falling-stars-v19.webp' "$js"
+          ! grep -Fq "stars:{src:" "$js"
+          grep -Fq "gameNightPlanner:false" "$worker"
+          grep -Fq "profileRemoved:true" "$worker"
+          grep -Fq "settingsRemoved:true" "$worker"
+          grep -Fq "fallingStarsRemoved:true" "$worker"
+          grep -Fq "placement:'center'" "$worker"
+          grep -Fq "opensAfterAnimation:true" "$worker"
+          if test -e "$public/actions/falling-stars-v19.webp"; then echo 'falling stars asset still exists' >&2; exit 1; fi
+          node --check "$js"
           node --input-type=module --check < "$worker"
           git diff --check HEAD
-
+          echo 'result=success' >> "$GITHUB_OUTPUT"
       - name: Validate Worker bundle
         id: validate
-        if: steps.source.outcome == 'success'
-        continue-on-error: true
-        working-directory: preview/home-menu
         env:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
-
-      - name: Deploy V19 Cloudflare Worker
+      - name: Deploy V20 Cloudflare Worker
         id: deploy
-        if: steps.validate.outcome == 'success'
-        continue-on-error: true
-        working-directory: preview/home-menu
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
-
-      - name: Verify deployed V19 raster layers and planner
+      - name: Verify deployed V20 title and centered action flow
         id: verify
-        if: steps.deploy.outcome == 'success'
-        continue-on-error: true
-        env:
-          PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
+        shell: bash
         run: |
           set -euxo pipefail
           base="$(printf '%s' "$PREVIEW_URL" | sed 's:/$::')"
           ready=false
           for attempt in 1 2 3 4 5 6 7 8; do
             if curl -fsSL --retry 2 --max-time 30 "$PREVIEW_URL?build=$GITHUB_SHA&attempt=$attempt" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V19 · FULL RASTER LAYERS + ROUTE · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v19-raster-action-layers-planner' /tmp/home-menu-preview.html \
-              && grep -Fq 'id="sceneActionLayers"' /tmp/home-menu-preview.html \
-              && grep -Fq 'Игровой маршрут' /tmp/home-menu-preview.html; then
-              ready=true
-              break
+              && grep -Fq 'HOME V20 · TITLE LAYER + CENTERED ACTIONS' /tmp/home-menu-preview.html \
+              && grep -Fq '/layers/title-v20.webp?v=20' /tmp/home-menu-preview.html; then
+              ready=true; break
             fi
             sleep 3
           done
           test "$ready" = true
-
-          grep -Eiq '^x-home-menu-build: *home-menu-v19-raster-action-layers-planner' /tmp/html-headers.txt
-          grep -Eiq '^x-home-menu-preview: *event-driven-raster-parallax-v19' /tmp/html-headers.txt
-          grep -Fq '<script src="/home-menu-v19.js?v=19" defer></script>' /tmp/home-menu-preview.html
-          grep -Fq '/layers/moon-v19.webp?v=19' /tmp/home-menu-preview.html
-          ! grep -Fq 'raw.githubusercontent.com' /tmp/home-menu-preview.html
-          ! grep -Fq '<video' /tmp/home-menu-preview.html
-          ! grep -Eq 'fx-portal|fx-code|fx-qr|fx-orbit|fx-games' /tmp/home-menu-preview.html
-          ! grep -Fq 'application/x-home-menu-v18-legacy' /tmp/home-menu-preview.html
-
-          curl -fsSL --retry 2 --max-time 25 "$base/home-menu-v19.js?v=19&build=$GITHUB_SHA" -o /tmp/home-menu-v19.js
-          cmp preview/home-menu/public/home-menu-v19.js /tmp/home-menu-v19.js
-          grep -Fq "room:{src:'/actions/room-v19.webp?v=19'" /tmp/home-menu-v19.js
-          grep -Fq 'pruneActionLayers(assetKey)' /tmp/home-menu-v19.js
-
+          grep -Eiq '^x-home-menu-build: *home-menu-v20-title-centered-actions' /tmp/html-headers.txt
+          grep -Eiq '^x-home-menu-preview: *event-driven-raster-parallax-v20' /tmp/html-headers.txt
+          ! grep -Fq 'Игровой маршрут' /tmp/home-menu-preview.html
+          ! grep -Fq 'view-profile' /tmp/home-menu-preview.html
+          ! grep -Fq 'view-settings' /tmp/home-menu-preview.html
+          ! grep -Fq 'falling-stars-v19.webp' /tmp/home-menu-preview.html
+          curl -fsSL --retry 2 --max-time 25 "$base/home-menu-v20.js?v=20&build=$GITHUB_SHA" -o /tmp/home-menu-v20.js
+          cmp preview/home-menu/public/home-menu-v20.js /tmp/home-menu-v20.js
+          grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/home-menu-v20.js
           curl -fsSL --retry 2 --max-time 20 "$base/__preview_version?build=$GITHUB_SHA" -o /tmp/home-menu-version.json
-          jq -e '
-            .version == "home-menu-v19-raster-action-layers-planner" and
-            .background == "event-driven-raster-parallax-v19" and
-            .architecture == "separated-ui-and-event-driven-scene-v19" and
-            .interaction == "scroll-actions-route-planner-and-optional-tilt" and
-            .source == "generated-raster-background-and-action-layers" and
-            .videoRequired == false and
-            .rangeRequired == false and
-            .legacyVideoAssetsRemoved == true and
-            .quickGameRemoved == true and
-            .randomGameRemoved == true and
-            .gameNightPlanner == true and
-            .customRasterIcons == true and
-            .productionMainAssetDependency == false and
-            .legacyHtmlScriptRetainedInert == false and
-            .legacyHtmlScriptRemoved == true and
-            .assets.city.width == 941 and
-            .assets.city.height == 1672 and
-            .assets.rasterLayers.count == 4 and
-            .assets.rasterLayers.totalBytes == 1291460 and
-            .assets.actionLayers.count == 4 and
-            .assets.actionLayers.totalBytes == 1218834 and
-            .assets.actionLayers.loading == "on-first-action" and
-            .assets.icons.width == 576 and
-            .assets.icons.height == 576 and
-            .assets.icons.count == 9 and
-            .assets.gameIcons.count == 6 and
-            .assets.gameIcons.totalBytes == 548536 and
-            .motion.scrollDriven == true and
-            .motion.eventDriven == true and
-            .motion.infiniteLoops == false and
-            .motion.independentLayerTransforms == true and
-            .planner.maxGames == 2 and
-            .planner.deterministic == true and
-            .performance.maxFrameRate == 60 and
-            .performance.continuousAnimationLoops == 0 and
-            .performance.proceduralParticleNodes == 0 and
-            .performance.cssActionShapes == 0 and
-            .performance.lazyActionLayers == true and
-            .performance.maxDecodedActionLayers == 1 and
-            .performance.telegramLifecycleAware == true and
-            (.layers | index("lazy-raster-action-layers")) != null
-          ' /tmp/home-menu-version.json >/dev/null
-
-          printf '%s\n' \
-            '/home-bg-v15-city.png|1907656|06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25|image/png|city-plate' \
-            '/home-bg-v15-foreground.png|810819|6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c|image/png|foreground-olive-frame' \
-            '/layers/moon-v19.webp|139610|66f8274871f0bfeee7a22147e1ab48aa23d9f3da32279aa20f2837d8e7e8cc35|image/webp|raster-layer-moon' \
-            '/layers/stars-v19.webp|292862|1f1c4e8c72ace99703888d3fb96b9569fe2d27f3c78228bd8f33023d4c60f491|image/webp|raster-layer-stars' \
-            '/layers/clouds-far-v19.webp|404510|0dbb8693b1337a369991dadea266e7c60b52f4bc3deb4a1741d6ea277927165b|image/webp|raster-layer-clouds-far' \
-            '/layers/clouds-near-v19.webp|454478|da35373301a3f84ef990e60f7ffc06d62d819e25a9e42e364aa04c8fabee8c4d|image/webp|raster-layer-clouds-near' \
-            '/actions/room-v19.webp|494240|d3c96c720da4e5cb3af7739a7f60aa47567f0813fa430eea3c7412f8765e1790|image/webp|raster-action-layer-room-portal' \
-            '/actions/code-v19.webp|167420|60ec5e7ecaac41fa8dceb5853e1a5ed9ec3f2a8ec655a65f0baec633ef1cd3ce|image/webp|raster-action-layer-room-code' \
-            '/actions/qr-v19.webp|518236|d89fab159b8b63f01a3302cf59ff5f571056022505acb115b0b892255963f3e1|image/webp|raster-action-layer-qr-scanner' \
-            '/actions/falling-stars-v19.webp|38938|e9d0929091818714c4c9935b291e60e02ebaac2c4d8e8859139931ca02c01715|image/webp|raster-action-layer-falling-stars' \
-            '/home-menu-icons-v19.webp|493088|99535429340ab69de04407dd041cc348e74ec61d92aa2d0c8a64852334852d50|image/webp|optimized-custom-raster-icon-atlas' \
-            '/icons-v19/alias.webp|81010|f4d6c2427be82995c4bf7a8402c8c034f43ed9854ae8f791161d5703e8f67785|image/webp|optimized-game-icon-alias' \
-            '/icons-v19/idea.webp|86200|f67874770ed052bebb31701e9c49d522712b50aa7334a13bb578e8d9ed28d141|image/webp|optimized-game-icon-bible-sketch' \
-            '/icons-v19/biblical-treasures-v38.webp|116596|8a6b5cdb9b91d216492bffbfa12853eca408e13c9662a5c2a70807ea88678e79|image/webp|optimized-game-icon-biblical-treasures' \
-            '/icons-v19/quartet.webp|93172|3265657801bc2f00c11532a1a99976cde67e510b2a75f1f62862852714026609|image/webp|optimized-game-icon-quartet' \
-            '/icons-v19/spy.webp|85974|1316509425e53f44479ae574f109ef4c43aad153e87742ab7c7ddd0b2aa73fb8|image/webp|optimized-game-icon-spy' \
-            '/icons-v19/words.webp|85584|fd0895a6a05de7414e69ba885555847617b7531dc2e3ffd51ddfc9907861e181|image/webp|optimized-game-icon-words' |
-          while IFS='|' read -r path bytes hash type role; do
-            target="/tmp/asset-$(printf '%s' "$path" | tr '/.' '__')"
-            curl -fsS --retry 2 --max-time 35 -D /tmp/asset-headers.txt "$base$path?v=19&build=$GITHUB_SHA" -o "$target"
-            grep -Eiq "^content-type: *$type" /tmp/asset-headers.txt
-            grep -Eiq "^content-length: *$bytes" /tmp/asset-headers.txt
-            grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/asset-headers.txt
-            grep -Eiq "^x-home-menu-asset: *$role" /tmp/asset-headers.txt
-            echo "$hash  $target" | sha256sum -c -
-          done
-
-          head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/actions/qr-v19.webp?v=19&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
-          test "$head_length" = 518236
-          status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "d89fab159b8b63f01a3302cf59ff5f571056022505acb115b0b892255963f3e1"' "$base/actions/qr-v19.webp?v=19&etag=1&build=$GITHUB_SHA")"
-          test "$status" = 304
-          echo "Home menu V19 raster-layer preview verified: $PREVIEW_URL"
-
-      - name: Record V19 run diagnostics
+          jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .assets.actionLayers.count==3 and .modal.placement=="center" and .modal.opensAfterAnimation==true' /tmp/home-menu-version.json >/dev/null
+          curl -fsS --retry 2 --max-time 30 -D /tmp/title-headers.txt "$base/layers/title-v20.webp?v=20&build=$GITHUB_SHA" -o /tmp/title-v20.webp
+          test "$(wc -c < /tmp/title-v20.webp)" -eq 55460
+          echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  /tmp/title-v20.webp' | sha256sum -c -
+          grep -Eiq '^x-home-menu-asset: *raster-title-bible-games' /tmp/title-headers.txt
+          legacy_type="$(curl -sS --retry 2 --max-time 20 -D /tmp/legacy-headers.txt "$base/actions/falling-stars-v19.webp?removed=1&build=$GITHUB_SHA" -o /tmp/legacy-response && awk 'BEGIN{IGNORECASE=1} /^content-type:/{gsub("\r","");print $2}' /tmp/legacy-headers.txt | tail -1)"
+          test "$legacy_type" != image/webp
+          echo 'result=success' >> "$GITHUB_OUTPUT"
+      - name: Record V20 run diagnostics
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -300,28 +121,27 @@ jobs:
           DEPLOY: ${{ steps.deploy.outcome }}
           VERIFY: ${{ steps.verify.outcome }}
         run: |
+          set -euo pipefail
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v19-raster-action-layers-planner",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v20-title-centered-actions",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
-          current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V19 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
-
-      - name: Record verified V19 preview
+          current_sha="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
+          body="$(jq -nc --arg msg "chore: record V20 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
+      - name: Record verified V20 preview
         if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           STATUS_PATH: .preview-status/home-menu.json
-          PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
+          set -euo pipefail
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v19-raster-action-layers-planner",background:"event-driven-raster-parallax-v19",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v20-title-centered-actions",background:"event-driven-raster-parallax-v20",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
-          current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V19 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
-          curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
-
-      - name: Fail if V19 was not verified
+          current_sha="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
+          body="$(jq -nc --arg msg "chore: record home menu V20 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          curl -fsSL -X PUT -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
+      - name: Fail if V20 was not verified
         if: always()
         env:
           VERIFY: ${{ steps.verify.outcome }}
