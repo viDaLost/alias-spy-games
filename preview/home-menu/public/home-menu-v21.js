@@ -17,6 +17,7 @@ const GAMES=[
 const telegram=window.Telegram?.WebApp;
 const haptic=(style='light')=>{try{telegram?.HapticFeedback?.impactOccurred(style)}catch{}};
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const nextFrame=()=>new Promise(requestAnimationFrame);
 const games=document.getElementById('games');
 games.innerHTML=GAMES.map((g,i)=>`<button class="game-card" data-game-key="${g.key}" data-tags="${g.tags.join(' ')}"><div class="game-visual"><span class="game-badge">${g.badge}</span><span class="fav-btn ${i===1?'active':''}">♥</span><img src="${ICON}${g.icon}?v=21" alt="${g.title}" width="77" height="77" loading="${i<2?'eager':'lazy'}" decoding="async"></div><strong class="game-title">${g.title}</strong><div class="game-meta"><span class="pill">${g.players} игроков</span><span class="pill">${g.minutes} мин</span></div><span class="game-arrow">→</span></button>`).join('');
 const modalOverlay=document.getElementById('modalOverlay');
@@ -38,21 +39,30 @@ async function loadActionImage(meta){
 }
 async function playRasterAction(kind){
   const meta=ACTION_ASSETS[kind];if(!meta)return;
-  actionStage.replaceChildren();actionStage.classList.add('active');actionStage.setAttribute('aria-hidden','false');
+  actionStage.replaceChildren();
+  actionStage.classList.add('active');
+  actionStage.setAttribute('aria-hidden','false');
+  await nextFrame();
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduced){await sleep(220);actionStage.classList.remove('active');actionStage.setAttribute('aria-hidden','true');return}
+  if(reduced){await sleep(220);return}
   const image=await loadActionImage(meta);
   actionStage.appendChild(image);
-  await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
+  await nextFrame();await nextFrame();
   image.classList.add(meta.className);
   await sleep(meta.duration+90);
   image.remove();
-  actionStage.classList.remove('active');actionStage.setAttribute('aria-hidden','true');
-  await sleep(90);
+}
+async function revealModalFromDarkStage(kind){
+  openModal(kind);
+  await nextFrame();await nextFrame();
+  actionStage.classList.remove('active');
+  actionStage.setAttribute('aria-hidden','true');
+  actionStage.replaceChildren();
 }
 async function handleEntryAction(kind,button){
-  if(actionBusy)return;actionBusy=true;document.body.classList.add('action-lock');button?.setAttribute('aria-busy','true');haptic('medium');
-  try{await playRasterAction(kind);openModal(kind)}finally{actionBusy=false;document.body.classList.remove('action-lock');button?.removeAttribute('aria-busy')}
+  if(actionBusy)return;
+  actionBusy=true;document.body.classList.add('action-lock');button?.setAttribute('aria-busy','true');haptic('medium');
+  try{await playRasterAction(kind);await revealModalFromDarkStage(kind)}finally{actionBusy=false;document.body.classList.remove('action-lock');button?.removeAttribute('aria-busy')}
 }
 document.querySelectorAll('[data-action]').forEach(button=>button.addEventListener('click',()=>handleEntryAction(button.dataset.action,button)));
 function applyFilter(tag){document.querySelectorAll('.filter').forEach(b=>b.classList.toggle('active',b.dataset.filter===tag));document.querySelectorAll('.game-card').forEach(card=>card.classList.toggle('is-filtered',tag!=='all'&&!card.dataset.tags.includes(tag)))}
