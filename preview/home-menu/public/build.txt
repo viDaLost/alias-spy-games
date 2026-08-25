@@ -1,7 +1,7 @@
-home-menu-v14-scroll-driven-city
-2026-08-24T22:08:33Z
-source=user-generated-upload
-video=512x910-30fps-h264-high-no-audio
-interaction=scroll-seek-with-action-effects
-keyframes=0.267s-no-b-frames
-loop=disabled
+home-menu-v15-layered-parallax
+2026-08-25T06:17:17Z
+source=generated-high-detail-assets
+city=941x1672-png
+foreground=941x1672-png-alpha
+interaction=continuous-scroll-parallax-with-action-effects
+video=not-required

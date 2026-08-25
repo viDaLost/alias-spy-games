@@ -1,99 +1,96 @@
-const VIDEO_PATH = '/home-bg-v14-scroll.mp4';
-const BUILD_VERSION = 'home-menu-v14-scroll-driven-city';
-const BUILD_LABEL = '● HOME V14 · SCROLL-DRIVEN CITY · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
-const VIDEO_ETAG = '"535c60d719f2e0a9298190fabaa5f91de6ef6d0299858113b91ecc772f4760e3"';
+const BUILD_VERSION = 'home-menu-v15-layered-parallax';
+const BUILD_LABEL = '● HOME V15 · LAYERED PARALLAX · CLOUDFLARE PREVIEW · MAIN НЕ ЗАТРОНУТ';
 
-function parseRange(value, size) {
-  if (!value || !value.startsWith('bytes=')) return null;
-  const match = /^(\d*)-(\d*)$/.exec(value.slice(6).trim());
-  if (!match) return null;
+const IMAGE_ASSETS = {
+  '/home-bg-v15-city.png': {
+    role: 'city-plate',
+    contentType: 'image/png',
+    bytes: 1907656,
+    etag: '"06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25"',
+  },
+  '/home-bg-v15-foreground.png': {
+    role: 'foreground-olive-frame',
+    contentType: 'image/png',
+    bytes: 810819,
+    etag: '"6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c"',
+  },
+};
 
-  let start;
-  let end;
-  if (match[1] === '' && match[2] !== '') {
-    const suffix = Number(match[2]);
-    if (!Number.isFinite(suffix) || suffix <= 0) return null;
-    start = Math.max(0, size - suffix);
-    end = size - 1;
-  } else {
-    start = Number(match[1]);
-    end = match[2] === '' ? size - 1 : Number(match[2]);
-  }
-
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start || start >= size) return null;
-  return { start, end: Math.min(end, size - 1) };
-}
-
-function videoHeaders() {
+function imageHeaders(meta) {
   return new Headers({
-    'content-type': 'video/mp4',
-    'accept-ranges': 'bytes',
+    'content-type': meta.contentType,
+    'content-length': String(meta.bytes),
     'cache-control': 'public, max-age=31536000, immutable',
-    etag: VIDEO_ETAG,
+    etag: meta.etag,
     'x-content-type-options': 'nosniff',
     'x-home-menu-build': BUILD_VERSION,
-    'x-home-menu-video': 'scroll-scrubbed-biblical-city-v14',
+    'x-home-menu-asset': meta.role,
   });
 }
 
-async function serveVideo(request, env) {
+async function serveImage(request, env, meta) {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response('Method Not Allowed', { status: 405, headers: { allow: 'GET, HEAD' } });
   }
 
-  const assetUrl = new URL(VIDEO_PATH, request.url);
-  const asset = await env.ASSETS.fetch(new Request(assetUrl, { method: 'GET' }));
-  if (!asset.ok) return asset;
-
-  const bytes = await asset.arrayBuffer();
-  const size = bytes.byteLength;
-  const headers = videoHeaders();
-  const requestedRange = request.headers.get('range');
-  const range = parseRange(requestedRange, size);
-
-  if (!requestedRange && request.headers.get('if-none-match') === VIDEO_ETAG) {
+  const headers = imageHeaders(meta);
+  if (request.headers.get('if-none-match') === meta.etag) {
     return new Response(null, { status: 304, headers });
   }
 
-  if (requestedRange && !range) {
-    headers.set('content-range', `bytes */${size}`);
-    return new Response(null, { status: 416, headers });
-  }
+  const assetUrl = new URL(request.url);
+  assetUrl.search = '';
+  const asset = await env.ASSETS.fetch(new Request(assetUrl, { method: 'GET' }));
+  if (!asset.ok) return asset;
 
-  if (range) {
-    const body = bytes.slice(range.start, range.end + 1);
-    headers.set('content-range', `bytes ${range.start}-${range.end}/${size}`);
-    headers.set('content-length', String(body.byteLength));
-    return new Response(request.method === 'HEAD' ? null : body, { status: 206, headers });
-  }
-
-  headers.set('content-length', String(size));
-  return new Response(request.method === 'HEAD' ? null : bytes, { status: 200, headers });
+  return new Response(request.method === 'HEAD' ? null : asset.body, {
+    status: 200,
+    headers,
+  });
 }
 
 function versionResponse() {
   return Response.json({
     version: BUILD_VERSION,
     label: BUILD_LABEL,
-    background: 'scroll-scrubbed-biblical-city-v14',
-    architecture: 'index-native-scroll-video-v14',
-    autoplayRequired: false,
-    interaction: 'scroll-seek-with-action-effects',
-    source: 'user-generated-upload',
-    rangeFix: true,
-    video: {
-      codec: 'H.264 High',
-      width: 512,
-      height: 910,
-      fps: 30,
-      durationSeconds: 10,
-      bytes: 6673300,
-      audio: false,
-      fastStart: true,
-      seamlessLoop: false,
+    background: 'layered-biblical-city-parallax-v15',
+    architecture: 'index-native-layered-scene-v15',
+    interaction: 'continuous-scroll-parallax-with-action-effects',
+    source: 'generated-high-detail-assets',
+    videoRequired: false,
+    rangeRequired: false,
+    assets: {
+      city: {
+        path: '/home-bg-v15-city.png',
+        format: 'PNG',
+        width: 941,
+        height: 1672,
+        bytes: 1907656,
+        sha256: '06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25',
+      },
+      foreground: {
+        path: '/home-bg-v15-foreground.png',
+        format: 'PNG alpha',
+        width: 941,
+        height: 1672,
+        bytes: 810819,
+        sha256: '6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c',
+        transparent: true,
+      },
+    },
+    layers: [
+      'city-plate',
+      'procedural-stars',
+      'css-haze',
+      'lantern-glows',
+      'foreground-olive-frame',
+      'action-effects',
+    ],
+    motion: {
       scrollDriven: true,
-      keyframeIntervalSeconds: 0.267,
-      hasBFrames: false,
+      continuousAcrossPage: true,
+      independentLayerTransforms: true,
+      reducedMotionFallback: true,
     },
   }, {
     headers: {
@@ -110,7 +107,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/__preview_version') return versionResponse();
-    if (url.pathname === VIDEO_PATH) return serveVideo(request, env);
+
+    const imageMeta = IMAGE_ASSETS[url.pathname];
+    if (imageMeta) return serveImage(request, env, imageMeta);
 
     const response = await env.ASSETS.fetch(request);
     const type = response.headers.get('content-type') || '';
@@ -124,7 +123,7 @@ export default {
       headers.set('x-content-type-options', 'nosniff');
       headers.set('referrer-policy', 'no-referrer');
       headers.set('x-robots-tag', 'noindex, nofollow');
-      headers.set('x-home-menu-preview', 'scroll-scrubbed-biblical-city-v14');
+      headers.set('x-home-menu-preview', 'layered-biblical-city-parallax-v15');
       headers.set('x-home-menu-build', BUILD_VERSION);
       return new Response(response.body, { status: response.status, headers });
     }

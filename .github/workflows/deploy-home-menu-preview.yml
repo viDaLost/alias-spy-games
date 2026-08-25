@@ -25,96 +25,62 @@ jobs:
         with:
           node-version: 22
 
-      - name: Verify V14 scroll-driven source media and contracts
+      - name: Verify V15 layered source assets and contracts
         id: source
         continue-on-error: true
         run: |
           set -euxo pipefail
-          if ! command -v ffprobe >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install --yes --no-install-recommends ffmpeg
-          fi
-
-          video='preview/home-menu/public/home-bg-v14-scroll.mp4'
-          poster='preview/home-menu/public/home-bg-v14-scroll-poster.webp'
+          city='preview/home-menu/public/home-bg-v15-city.png'
+          foreground='preview/home-menu/public/home-bg-v15-foreground.png'
           html='preview/home-menu/public/index.html'
           worker='preview/home-menu/worker.js'
 
-          test "$(wc -c < "$video")" -eq 6673300
-          test "$(wc -c < "$poster")" -eq 37822
-          echo '535c60d719f2e0a9298190fabaa5f91de6ef6d0299858113b91ecc772f4760e3  preview/home-menu/public/home-bg-v14-scroll.mp4' | sha256sum -c -
-          echo '32b0bf47b1d001ceb6cff80453f6484e34d34bff5d681279624305b470eeb595  preview/home-menu/public/home-bg-v14-scroll-poster.webp' | sha256sum -c -
-
-          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,level,width,height,has_b_frames,pix_fmt,color_space,color_transfer,color_primaries,r_frame_rate,avg_frame_rate,nb_frames:format=duration,size -of json "$video" > /tmp/home-bg-v14-probe.json
-          jq -e '
-            (.streams | length) == 1 and
-            .streams[0].codec_name == "h264" and
-            .streams[0].profile == "High" and
-            .streams[0].level == 31 and
-            .streams[0].width == 512 and
-            .streams[0].height == 910 and
-            .streams[0].has_b_frames == 0 and
-            .streams[0].pix_fmt == "yuv420p" and
-            .streams[0].color_space == "bt709" and
-            .streams[0].color_transfer == "bt709" and
-            .streams[0].color_primaries == "bt709" and
-            .streams[0].r_frame_rate == "30/1" and
-            .streams[0].avg_frame_rate == "30/1" and
-            .streams[0].nb_frames == "300" and
-            .format.duration == "10.000000" and
-            .format.size == "6673300"
-          ' /tmp/home-bg-v14-probe.json >/dev/null
-          test "$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$video" | wc -l)" -eq 0
-
-          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json "$poster" > /tmp/home-bg-v14-poster-probe.json
-          jq -e '
-            .streams[0].codec_name == "webp" and
-            .streams[0].width == 512 and
-            .streams[0].height == 910
-          ' /tmp/home-bg-v14-poster-probe.json >/dev/null
+          test "$(wc -c < "$city")" -eq 1907656
+          test "$(wc -c < "$foreground")" -eq 810819
+          echo '06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25  preview/home-menu/public/home-bg-v15-city.png' | sha256sum -c -
+          echo '6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c  preview/home-menu/public/home-bg-v15-foreground.png' | sha256sum -c -
 
           python3 - <<'PY'
           from pathlib import Path
-          import re
-          data = Path('preview/home-menu/public/home-bg-v14-scroll.mp4').read_bytes()
-          assert data.index(b'moov') < data.index(b'mdat'), 'MP4 is not fast-start'
+          from struct import unpack
 
-          html = Path('preview/home-menu/public/index.html').read_text()
-          video_tag = re.search(r'<video id="homeVideo"[^>]*>', html).group(0)
-          assert ' autoplay' not in video_tag, video_tag
-          assert ' loop' not in video_tag, video_tag
-          assert ' muted' in video_tag and ' playsinline' in video_tag, video_tag
+          def png_header(path):
+              data = Path(path).read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n'
+              assert data[12:16] == b'IHDR'
+              width, height, depth, color_type, compression, filtering, interlace = unpack('>IIBBBBB', data[16:29])
+              assert depth == 8 and compression == 0 and filtering == 0 and interlace == 0
+              return width, height, color_type
+
+          assert png_header('preview/home-menu/public/home-bg-v15-city.png') == (941, 1672, 2)
+          assert png_header('preview/home-menu/public/home-bg-v15-foreground.png') == (941, 1672, 6)
           PY
 
-          ffprobe -v error -select_streams v:0 -skip_frame nokey -show_entries frame=best_effort_timestamp_time -of default=nokey=1:noprint_wrappers=1 "$video" > /tmp/home-bg-v14-keyframes.txt
-          test "$(wc -l < /tmp/home-bg-v14-keyframes.txt)" -eq 38
-          python3 - <<'PY'
-          from pathlib import Path
-          times = [float(line) for line in Path('/tmp/home-bg-v14-keyframes.txt').read_text().splitlines()]
-          assert times[0] == 0.0
-          assert max(b - a for a, b in zip(times, times[1:])) <= 0.268
-          PY
-
-          grep -Fq 'home-menu-v14-scroll-driven-city' "$html"
-          grep -Fq 'HOME V14 · SCROLL-DRIVEN CITY · CLOUDFLARE PREVIEW' "$html"
-          grep -Fq '/home-bg-v14-scroll.mp4?v=14' "$html"
-          grep -Fq '/home-bg-v14-scroll-poster.webp?v=14' "$html"
-          grep -Fq 'scroll-scrubbed-biblical-city-v14' "$html"
+          grep -Fq 'home-menu-v15-layered-parallax' "$html"
+          grep -Fq 'HOME V15 · LAYERED PARALLAX · CLOUDFLARE PREVIEW' "$html"
+          grep -Fq '/home-bg-v15-city.png?v=15' "$html"
+          grep -Fq '/home-bg-v15-foreground.png?v=15' "$html"
+          grep -Fq 'layered-biblical-city-parallax-v15' "$html"
+          grep -Fq 'STAR_COUNT=28' "$html"
+          grep -Fq 'LIGHT_POSITIONS=' "$html"
           grep -Fq "window.addEventListener('scroll',updateSceneTarget" "$html"
+          grep -Fq 'scene-foreground' "$html"
           grep -Fq 'triggerSceneAction' "$html"
-          if grep -Fq 'home-bg-v3.mp4' "$html" || grep -Fq 'Home V3' "$html"; then
-            echo 'Legacy V3 source or title remains in index.html' >&2
+          if grep -Fq '<video id="homeVideo"' "$html" || grep -Fq 'home-bg-v14-scroll.mp4' "$html"; then
+            echo 'V14 video remains active in index.html' >&2
             exit 1
           fi
 
-          grep -Fq 'home-menu-v14-scroll-driven-city' "$worker"
-          grep -Fq '/home-bg-v14-scroll.mp4' "$worker"
-          grep -Fq 'index-native-scroll-video-v14' "$worker"
-          grep -Fq 'scroll-scrubbed-biblical-city-v14' "$worker"
-          if grep -Fq 'BG_FIX' "$worker"; then
-            echo 'Legacy HTML injection remains in worker.js' >&2
+          grep -Fq 'home-menu-v15-layered-parallax' "$worker"
+          grep -Fq '/home-bg-v15-city.png' "$worker"
+          grep -Fq '/home-bg-v15-foreground.png' "$worker"
+          grep -Fq 'index-native-layered-scene-v15' "$worker"
+          grep -Fq 'layered-biblical-city-parallax-v15' "$worker"
+          if grep -Eq 'VIDEO_PATH|parseRange|serveVideo|BG_FIX' "$worker"; then
+            echo 'Legacy video or HTML injection logic remains in worker.js' >&2
             exit 1
           fi
+
           node --input-type=module --check < "$worker"
           node - <<'NODE'
           const fs = require('fs');
@@ -123,7 +89,6 @@ jobs:
           if (!script) throw new Error('Inline script not found');
           new Function(script);
           NODE
-
       - name: Validate Worker bundle
         id: validate
         if: steps.source.outcome == 'success'
@@ -144,7 +109,7 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
 
-      - name: Verify deployed V14 scroll interaction, MP4 and iOS byte ranges
+      - name: Verify deployed V15 layered assets and interactions
         id: verify
         if: steps.deploy.outcome == 'success'
         continue-on-error: true
@@ -152,78 +117,70 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           set -euxo pipefail
+          base="$(printf '%s' "$PREVIEW_URL" | sed 's:/$::')"
           for attempt in 1 2 3 4 5 6 7 8; do
-            if curl -fsSL --retry 2 --max-time 30 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
-              && grep -Fq 'HOME V14 · SCROLL-DRIVEN CITY · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
-              && grep -Fq 'home-menu-v14-scroll-driven-city' /tmp/home-menu-preview.html \
-              && grep -Fq '/home-bg-v14-scroll.mp4?v=14' /tmp/home-menu-preview.html \
-              && grep -Fq "window.addEventListener('scroll',updateSceneTarget" /tmp/home-menu-preview.html; then
+            if curl -fsSL --retry 2 --max-time 30 "$PREVIEW_URL?build=$GITHUB_SHA&attempt=$attempt" -D /tmp/html-headers.txt -o /tmp/home-menu-preview.html \
+              && grep -Fq 'HOME V15 · LAYERED PARALLAX · CLOUDFLARE PREVIEW' /tmp/home-menu-preview.html \
+              && grep -Fq 'home-menu-v15-layered-parallax' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v15-city.png?v=15' /tmp/home-menu-preview.html \
+              && grep -Fq '/home-bg-v15-foreground.png?v=15' /tmp/home-menu-preview.html \
+              && grep -Fq "window.addEventListener('scroll',updateSceneTarget" /tmp/home-menu-preview.html \
+              && ! grep -Fq '<video id="homeVideo"' /tmp/home-menu-preview.html; then
 
-              grep -Eiq '^x-home-menu-build: *home-menu-v14-scroll-driven-city' /tmp/html-headers.txt
-              grep -Eiq '^x-home-menu-preview: *scroll-scrubbed-biblical-city-v14' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-build: *home-menu-v15-layered-parallax' /tmp/html-headers.txt
+              grep -Eiq '^x-home-menu-preview: *layered-biblical-city-parallax-v15' /tmp/html-headers.txt
 
-              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}__preview_version?build=${GITHUB_SHA}" -o /tmp/home-menu-version.json
+              curl -fsSL --retry 2 --max-time 20 "$base/__preview_version?build=$GITHUB_SHA" -o /tmp/home-menu-version.json
               jq -e '
-                .version == "home-menu-v14-scroll-driven-city" and
-                .background == "scroll-scrubbed-biblical-city-v14" and
-                .architecture == "index-native-scroll-video-v14" and
-                .interaction == "scroll-seek-with-action-effects" and
-                .autoplayRequired == false and
-                .source == "user-generated-upload" and
-                .rangeFix == true and
-                .video.codec == "H.264 High" and
-                .video.width == 512 and
-                .video.height == 910 and
-                .video.fps == 30 and
-                .video.durationSeconds == 10 and
-                .video.bytes == 6673300 and
-                .video.audio == false and
-                .video.fastStart == true and
-                .video.seamlessLoop == false and
-                .video.scrollDriven == true and
-                .video.keyframeIntervalSeconds == 0.267 and
-                .video.hasBFrames == false
+                .version == "home-menu-v15-layered-parallax" and
+                .background == "layered-biblical-city-parallax-v15" and
+                .architecture == "index-native-layered-scene-v15" and
+                .interaction == "continuous-scroll-parallax-with-action-effects" and
+                .source == "generated-high-detail-assets" and
+                .videoRequired == false and
+                .rangeRequired == false and
+                .assets.city.width == 941 and
+                .assets.city.height == 1672 and
+                .assets.city.bytes == 1907656 and
+                .assets.foreground.width == 941 and
+                .assets.foreground.height == 1672 and
+                .assets.foreground.bytes == 810819 and
+                .assets.foreground.transparent == true and
+                (.layers | length) == 6 and
+                .motion.scrollDriven == true and
+                .motion.continuousAcrossPage == true and
+                .motion.independentLayerTransforms == true and
+                .motion.reducedMotionFallback == true
               ' /tmp/home-menu-version.json >/dev/null
 
-              curl -fsS --retry 2 --max-time 60 -D /tmp/video-headers.txt "${PREVIEW_URL}home-bg-v14-scroll.mp4?v=14&build=${GITHUB_SHA}" -o /tmp/home-bg-v14-scroll.mp4
-              grep -Eiq '^content-type: *video/mp4' /tmp/video-headers.txt
-              grep -Eiq '^accept-ranges: *bytes' /tmp/video-headers.txt
-              grep -Eiq '^content-length: *6673300' /tmp/video-headers.txt
-              grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/video-headers.txt
-              grep -Eiq '^x-home-menu-video: *scroll-scrubbed-biblical-city-v14' /tmp/video-headers.txt
-              echo '535c60d719f2e0a9298190fabaa5f91de6ef6d0299858113b91ecc772f4760e3  /tmp/home-bg-v14-scroll.mp4' | sha256sum -c -
+              curl -fsS --retry 2 --max-time 35 -D /tmp/city-headers.txt "$base/home-bg-v15-city.png?v=15&build=$GITHUB_SHA" -o /tmp/home-bg-v15-city.png
+              grep -Eiq '^content-type: *image/png' /tmp/city-headers.txt
+              grep -Eiq '^content-length: *1907656' /tmp/city-headers.txt
+              grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/city-headers.txt
+              grep -Eiq '^x-home-menu-asset: *city-plate' /tmp/city-headers.txt
+              echo '06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25  /tmp/home-bg-v15-city.png' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 20 -D /tmp/poster-headers.txt "${PREVIEW_URL}home-bg-v14-scroll-poster.webp?v=14&build=${GITHUB_SHA}" -o /tmp/home-bg-v14-scroll-poster.webp
-              grep -Eiq '^content-type: *image/webp' /tmp/poster-headers.txt
-              echo '32b0bf47b1d001ceb6cff80453f6484e34d34bff5d681279624305b470eeb595  /tmp/home-bg-v14-scroll-poster.webp' | sha256sum -c -
+              curl -fsS --retry 2 --max-time 30 -D /tmp/foreground-headers.txt "$base/home-bg-v15-foreground.png?v=15&build=$GITHUB_SHA" -o /tmp/home-bg-v15-foreground.png
+              grep -Eiq '^content-type: *image/png' /tmp/foreground-headers.txt
+              grep -Eiq '^content-length: *810819' /tmp/foreground-headers.txt
+              grep -Eiq '^cache-control: *public, max-age=31536000, immutable' /tmp/foreground-headers.txt
+              grep -Eiq '^x-home-menu-asset: *foreground-olive-frame' /tmp/foreground-headers.txt
+              echo '6c2de95c725e804be02c18e6ee5203a31ee6618526283021a8ebaae09926502c  /tmp/home-bg-v15-foreground.png' | sha256sum -c -
 
-              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=0-1023' -D /tmp/range-headers.txt "${PREVIEW_URL}home-bg-v14-scroll.mp4?v=14&range=1&build=${GITHUB_SHA}" -o /tmp/home-bg-range.bin
-              grep -Eq '^HTTP/.* 206' /tmp/range-headers.txt
-              grep -Eiq '^content-range: *bytes 0-1023/6673300' /tmp/range-headers.txt
-              test "$(wc -c < /tmp/home-bg-range.bin)" -eq 1024
+              head_length="$(curl -fsSI --retry 2 --max-time 20 "$base/home-bg-v15-city.png?v=15&head=1&build=$GITHUB_SHA" | awk 'BEGIN{IGNORECASE=1} /^content-length:/{gsub("\r",""); print $2}')"
+              test "$head_length" = 1907656
 
-              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=2097152-2098175' -D /tmp/range2-headers.txt "${PREVIEW_URL}home-bg-v14-scroll.mp4?v=14&range=2&build=${GITHUB_SHA}" -o /tmp/home-bg-range2.bin
-              grep -Eq '^HTTP/.* 206' /tmp/range2-headers.txt
-              grep -Eiq '^content-range: *bytes 2097152-2098175/6673300' /tmp/range2-headers.txt
-              test "$(wc -c < /tmp/home-bg-range2.bin)" -eq 1024
-
-              curl -fsS --retry 2 --max-time 20 -H 'Range: bytes=-1024' -D /tmp/range3-headers.txt "${PREVIEW_URL}home-bg-v14-scroll.mp4?v=14&range=3&build=${GITHUB_SHA}" -o /tmp/home-bg-range3.bin
-              grep -Eq '^HTTP/.* 206' /tmp/range3-headers.txt
-              grep -Eiq '^content-range: *bytes 6672276-6673299/6673300' /tmp/range3-headers.txt
-              test "$(wc -c < /tmp/home-bg-range3.bin)" -eq 1024
-
-              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "535c60d719f2e0a9298190fabaa5f91de6ef6d0299858113b91ecc772f4760e3"' "${PREVIEW_URL}home-bg-v14-scroll.mp4?v=14&etag=1&build=${GITHUB_SHA}")"
+              status="$(curl -sS --retry 2 --max-time 20 -o /dev/null -w '%{http_code}' -H 'If-None-Match: "06a70e94f0dbfbf93596cad57898be039f93319a5590d9c7669f83b00cc28a25"' "$base/home-bg-v15-city.png?v=15&etag=1&build=$GITHUB_SHA")"
               test "$status" = 304
 
-              echo "Home menu V14 scroll-driven city preview verified: ${PREVIEW_URL}"
+              echo "Home menu V15 layered parallax preview verified: $PREVIEW_URL"
               exit 0
             fi
             sleep 3
           done
-          echo 'Home menu V14 Cloudflare preview verification failed' >&2
+          echo 'Home menu V15 Cloudflare preview verification failed' >&2
           exit 1
-
-      - name: Record V14 run diagnostics
+      - name: Record V15 run diagnostics
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -234,13 +191,13 @@ jobs:
           VERIFY: ${{ steps.verify.outcome }}
         run: |
           finished_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v14-scroll-driven-city",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg at "$finished_at" --arg source "$SOURCE" --arg validate "$VALIDATE" --arg deploy "$DEPLOY" --arg verify "$VERIFY" '{source_sha:$sha,version:"home-menu-v15-layered-parallax",state:"finished",finished_at:$at,steps:{source:$source,validate:$validate,deploy:$deploy,verify:$verify}}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record V14 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record V15 preview diagnostics ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Record verified V14 preview
+      - name: Record verified V15 preview
         if: steps.verify.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -248,13 +205,13 @@ jobs:
           PREVIEW_URL: https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev/
         run: |
           verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v14-scroll-driven-city",background:"scroll-scrubbed-biblical-city-v14",verified_at:$verified}')"
+          status_json="$(jq -nc --arg sha "$GITHUB_SHA" --arg url "$PREVIEW_URL" --arg verified "$verified_at" '{source_sha:$sha,url:$url,version:"home-menu-v15-layered-parallax",background:"layered-biblical-city-parallax-v15",verified_at:$verified}')"
           encoded="$(printf '%s' "$status_json" | base64 -w0)"
           current_sha="$(curl -fsSL -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}?ref=${GITHUB_REF_NAME}" | jq -r '.sha // empty' 2>/dev/null || true)"
-          body="$(jq -nc --arg msg "chore: record home menu V14 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
+          body="$(jq -nc --arg msg "chore: record home menu V15 preview ${GITHUB_SHA::7}" --arg content "$encoded" --arg branch "$GITHUB_REF_NAME" --arg sha "$current_sha" 'if $sha == "" then {message:$msg,content:$content,branch:$branch} else {message:$msg,content:$content,branch:$branch,sha:$sha} end')"
           curl -fsSL -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${STATUS_PATH}" -d "$body" >/dev/null
 
-      - name: Fail if V14 was not verified
+      - name: Fail if V15 was not verified
         if: always()
         env:
           VERIFY: ${{ steps.verify.outcome }}
