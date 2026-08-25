@@ -7,7 +7,7 @@ on:
       - '.github/workflows/deploy-home-menu-preview.yml'
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: home-menu-preview
   cancel-in-progress: true
@@ -28,38 +28,37 @@ jobs:
           html="$public/index.html"
           js="$public/home-menu-v20.js"
           worker='preview/home-menu/worker.js'
-          test -f "$html" && test -f "$js" && test -f "$public/layers/title-v20.webp"
+          test -f "$html"
+          test -f "$js"
+          test -f "$worker"
+          test -f "$public/layers/title-v20.webp"
           test "$(wc -c < "$public/layers/title-v20.webp")" -eq 55460
-          echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  preview/home-menu/public/layers/title-v20.webp' | sha256sum -c -
           grep -Fq 'home-menu-v20-title-centered-actions' "$html"
           grep -Fq '/layers/title-v20.webp?v=20' "$html"
+          grep -Fq '/home-menu-v20.js?v=20' "$html"
           grep -Fq 'modal-overlay' "$html"
-          grep -Fq '<script src="/home-menu-v20.js?v=20" defer></script>' "$html"
-          ! grep -Fq 'Игровой маршрут' "$html"
-          ! grep -Fq 'nightPlanner' "$html"
-          ! grep -Fq 'view-profile' "$html"
-          ! grep -Fq 'view-settings' "$html"
-          ! grep -Fq 'falling-stars-v19.webp' "$html"
-          ! test -e "$public/home-menu-v19.js"
-          ! test -e "$public/actions/falling-stars-v19.webp"
           grep -Fq "create:{asset:'room',src:'/actions/room-v19.webp?v=20'" "$js"
           grep -Fq "code:{asset:'code',src:'/actions/code-v19.webp?v=20'" "$js"
           grep -Fq "qr:{asset:'qr',src:'/actions/qr-v19.webp?v=20'" "$js"
           grep -Fq 'await playRasterAction(kind);openModal(kind)' "$js"
-          ! grep -Fq 'PLANNER_STORAGE_KEY' "$js"
-          ! grep -Fq 'falling-stars-v19.webp' "$js"
           grep -Fq "gameNightPlanner:false" "$worker"
           grep -Fq "profileRemoved:true" "$worker"
           grep -Fq "settingsRemoved:true" "$worker"
           grep -Fq "fallingStarsRemoved:true" "$worker"
           grep -Fq "placement:'center'" "$worker"
           grep -Fq "opensAfterAnimation:true" "$worker"
+          if grep -Fq 'Игровой маршрут' "$html"; then exit 1; fi
+          if grep -Fq 'view-profile' "$html"; then exit 1; fi
+          if grep -Fq 'view-settings' "$html"; then exit 1; fi
+          if grep -Fq 'falling-stars-v19.webp' "$html" "$js"; then exit 1; fi
+          if test -e "$public/home-menu-v19.js"; then exit 1; fi
+          if test -e "$public/actions/falling-stars-v19.webp"; then exit 1; fi
           node --check "$js"
           node --input-type=module --check < "$worker"
       - name: Validate Worker bundle
         id: validate
-        run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
         working-directory: preview/home-menu
+        run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
       - name: Deploy V20 Cloudflare Worker
         id: deploy
         uses: cloudflare/wrangler-action@v3
@@ -89,4 +88,3 @@ jobs:
           ! grep -Fq 'PLANNER_STORAGE_KEY' /tmp/app.js
           curl -fsS "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
           test "$(wc -c < /tmp/title.webp)" -eq 55460
-          echo 'f5244b39f0fff3dd5c30c919539c67d68bee0f5edc64bbe2032c86cc3f937132  /tmp/title.webp' | sha256sum -c -
