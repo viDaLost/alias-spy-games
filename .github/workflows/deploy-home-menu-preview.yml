@@ -63,26 +63,27 @@ jobs:
         run: |
           set -euo pipefail
           base='https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev'
-          expected='home-menu-v21-dark-action-stage'
+          contract='.version=="home-menu-v21-dark-action-stage" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .actionStage.opaque==true and .actionStage.coversMenu==true and .actionStage.noMenuFlashBeforeModal==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==10870 and .assets.title.gitBlob=="17dcef4aa69864314a39015343d8470cabf47bb6"'
+          ready=0
           for attempt in $(seq 1 30); do
             stamp="$(date +%s)-$attempt"
-            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 "$base/__preview_version?v=21&ci=$stamp" -o /tmp/version.json; then
-              actual="$(jq -r '.version // empty' /tmp/version.json 2>/dev/null || true)"
-              echo "verify propagation attempt $attempt: version=${actual:-missing}"
-              if [ "$actual" = "$expected" ]; then
+            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/__preview_version?v=21&ci=$stamp" -o /tmp/version.json; then
+              echo "verify propagation attempt $attempt: $(jq -c '{version,actionStage,title:.assets.title,modal}' /tmp/version.json 2>/dev/null || cat /tmp/version.json)"
+              if jq -e "$contract" /tmp/version.json >/dev/null 2>&1; then
+                ready=1
                 break
               fi
             fi
-            if [ "$attempt" -eq 30 ]; then
-              echo 'V21 did not propagate in time'
-              cat /tmp/version.json 2>/dev/null || true
-              exit 1
-            fi
             sleep 2
           done
-          jq -e '.version=="home-menu-v21-dark-action-stage" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .actionStage.opaque==true and .actionStage.coversMenu==true and .actionStage.noMenuFlashBeforeModal==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==10870 and .assets.title.gitBlob=="17dcef4aa69864314a39015343d8470cabf47bb6"' /tmp/version.json >/dev/null
+          if [ "$ready" -ne 1 ]; then
+            echo 'Complete V21 runtime contract did not propagate in time'
+            cat /tmp/version.json 2>/dev/null || true
+            exit 1
+          fi
+          jq -e "$contract" /tmp/version.json >/dev/null
           stamp="$(date +%s)"
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/?v=21&ci=$stamp" -o /tmp/index.html
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/?v=21&ci=$stamp" -o /tmp/index.html
           grep -Fq '/layers/title-v21.webp?v=21' /tmp/index.html
           grep -Fq '/home-menu-v21.js?v=21' /tmp/index.html
           grep -Fq 'class="action-stage"' /tmp/index.html
@@ -91,13 +92,13 @@ jobs:
           ! grep -Fq 'view-profile' /tmp/index.html
           ! grep -Fq 'view-settings' /tmp/index.html
           ! grep -Fq 'falling-stars-v19.webp' /tmp/index.html
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/home-menu-v21.js?v=21&ci=$stamp" -o /tmp/app.js
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/home-menu-v21.js?v=21&ci=$stamp" -o /tmp/app.js
           grep -Fq "actionStage.classList.add('active')" /tmp/app.js
           grep -Fq 'await playRasterAction(kind);await revealModalFromDarkStage(kind)' /tmp/app.js
           grep -Fq 'openModal(kind);' /tmp/app.js
           grep -Fq "actionStage.classList.remove('active')" /tmp/app.js
           ! grep -Fq 'sceneActionLayers' /tmp/app.js
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -D /tmp/title.headers "$base/layers/title-v21.webp?v=21&ci=$stamp" -o /tmp/title.webp
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' -D /tmp/title.headers "$base/layers/title-v21.webp?v=21&ci=$stamp" -o /tmp/title.webp
           test "$(wc -c < /tmp/title.webp)" -eq 10870
           echo 'ee18110abbd013ad5209065a0b7be3cdeb6b9584f343ff96dd1a8e1d6b3dcfa2  /tmp/title.webp' | sha256sum -c -
           grep -Eiq '^content-type: *image/webp' /tmp/title.headers
