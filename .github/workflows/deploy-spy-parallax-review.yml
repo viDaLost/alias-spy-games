@@ -19,7 +19,7 @@ jobs:
       - name: Generate raster layers
         run: |
           python -m pip install --disable-pip-version-check pillow==11.3.0
-          python preview/spy-parallax/generate_layers.py
+          OUT_DIR=preview/spy-parallax/public/layers python preview/spy-parallax/generate_layers.py
       - name: Validate source
         run: |
           set -euo pipefail
