@@ -1,41 +1,60 @@
 name: Deploy Spy Parallax Review
+
 on:
   push:
     branches: [preview/spy-parallax-review-v1]
-    paths: ['preview/spy-parallax/**','.github/workflows/deploy-spy-parallax-review.yml']
+    paths:
+      - 'preview/spy-parallax/**'
+      - '.github/workflows/deploy-spy-parallax-review.yml'
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: spy-parallax-review
   cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - uses: actions/setup-node@v4
-        with: {node-version: 22}
-      - name: Generate raster layers
+        with:
+          node-version: 22
+
+      - name: Validate raster assets
         run: |
           python -m pip install --disable-pip-version-check pillow==11.3.0
-          OUT_DIR=preview/spy-parallax/public/layers python preview/spy-parallax/generate_layers.py
+          python preview/spy-parallax/validate_layers.py
+
       - name: Validate source
         run: |
           set -euo pipefail
           test -f preview/spy-parallax/public/index.html
+          test -f preview/spy-parallax/public/styles.css
           test -f preview/spy-parallax/public/app.js
           test -f preview/spy-parallax/worker.js
-          test "$(find preview/spy-parallax/public/layers -name '*.webp' | wc -l)" -eq 8
-          grep -Fq 'spy-parallax-review-v1' preview/spy-parallax/public/index.html
+          test ! -e preview/spy-parallax/generate_layers.py
+          grep -Fq 'spy-parallax-ai-layers-v2' preview/spy-parallax/public/index.html
           grep -Fq 'requestAnimationFrame(render)' preview/spy-parallax/public/app.js
+          grep -Fq '/layers/17-patrol.webp' preview/spy-parallax/public/index.html
           ! grep -Fq 'setInterval' preview/spy-parallax/public/app.js
-          ! grep -Fq 'infinite' preview/spy-parallax/public/index.html
+          ! grep -Fq 'infinite' preview/spy-parallax/public/styles.css
           echo 'source=success'
+
       - name: Validate Worker
         working-directory: preview/spy-parallax
-        env: {npm_config_cache: /tmp/npm-cache}
+        env:
+          npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/spy-review-build
+
       - name: Deploy
         working-directory: preview/spy-parallax
         env:
@@ -43,21 +62,37 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
+
       - name: Verify live
         run: |
           set -euo pipefail
           base='https://alias-spy-games-spy-parallax-preview.vitaledanilov.workers.dev'
           ready=0
           for i in $(seq 1 30); do
-            if curl -fsS "$base/__preview_version?ci=$i" -o /tmp/v.json && jq -e '.version=="spy-parallax-review-v1" and .layers==8 and .continuousLoops==0 and .transparentRasterLayers==true' /tmp/v.json >/dev/null; then ready=1; break; fi
+            if curl -fsS "$base/__preview_version?ci=$i" -o /tmp/v.json \
+              && jq -e '.version=="spy-parallax-review-v1" and .build=="spy-parallax-ai-layers-v2" and .layers==17 and .runtimeDepthLayers==12 and .eagerDepthLayers==11 and .continuousLoops==0 and .transparentRasterLayers==true and .productionMainTouched==false' /tmp/v.json >/dev/null; then
+              ready=1
+              break
+            fi
             sleep 2
           done
           test "$ready" -eq 1
+
           curl -fsS "$base/?ci=1" -o /tmp/index.html
-          grep -Fq 'SPY · PARALLAX REVIEW' /tmp/index.html
-          grep -Fq '/layers/08-torch-walker.webp' /tmp/index.html
+          grep -Fq 'SPY · PARALLAX REVIEW V2' /tmp/index.html
+          grep -Fq '/layers/17-patrol.webp' /tmp/index.html
+
           curl -fsS "$base/app.js?ci=1" -o /tmp/app.js
           grep -Fq 'requestAnimationFrame(render)' /tmp/app.js
           ! grep -Fq 'setInterval' /tmp/app.js
-          ! grep -Fq 'infinite' /tmp/index.html
+
+          curl -fsS "$base/styles.css?ci=1" -o /tmp/styles.css
+          ! grep -Fq 'infinite' /tmp/styles.css
+
+          for asset in 01-sky-moon-stars.webp 08-spy.webp 17-patrol.webp; do
+            curl -fsS "$base/layers/$asset?ci=1" -o "/tmp/$asset"
+            test -s "/tmp/$asset"
+            curl -fsSI "$base/layers/$asset?ci=1" | grep -qi '^content-type: image/webp'
+          done
+
           echo 'verify=success'
