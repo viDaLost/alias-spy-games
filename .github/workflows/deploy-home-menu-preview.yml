@@ -42,19 +42,35 @@ jobs:
         run: |
           set -euo pipefail
           base='https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev'
-          stamp="$(date +%s)"
-          curl -fsS "$base/__preview_version?v=20&ci=$stamp" -o /tmp/version.json
+          expected='home-menu-v20-title-centered-actions'
+          for attempt in $(seq 1 30); do
+            stamp="$(date +%s)-$attempt"
+            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 "$base/__preview_version?v=20&ci=$stamp" -o /tmp/version.json; then
+              actual="$(jq -r '.version // empty' /tmp/version.json 2>/dev/null || true)"
+              echo "verify propagation attempt $attempt: version=${actual:-missing}"
+              if [ "$actual" = "$expected" ]; then
+                break
+              fi
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo 'V20 did not propagate in time'
+              cat /tmp/version.json 2>/dev/null || true
+              exit 1
+            fi
+            sleep 2
+          done
           jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .modal.placement=="center" and .modal.opensAfterAnimation==true' /tmp/version.json >/dev/null
-          curl -fsS "$base/?v=20&ci=$stamp" -o /tmp/index.html
+          stamp="$(date +%s)"
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/?v=20&ci=$stamp" -o /tmp/index.html
           grep -Fq '/layers/title-v20.webp?v=20' /tmp/index.html
           grep -Fq '/home-menu-v20.js?v=20' /tmp/index.html
           ! grep -Fq 'Игровой маршрут' /tmp/index.html
           ! grep -Fq 'view-profile' /tmp/index.html
           ! grep -Fq 'view-settings' /tmp/index.html
           ! grep -Fq 'falling-stars-v19.webp' /tmp/index.html
-          curl -fsS "$base/home-menu-v20.js?v=20&ci=$stamp" -o /tmp/app.js
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/home-menu-v20.js?v=20&ci=$stamp" -o /tmp/app.js
           grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/app.js
           ! grep -Fq 'PLANNER_STORAGE_KEY' /tmp/app.js
-          curl -fsS "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
           test "$(wc -c < /tmp/title.webp)" -eq 55460
           echo 'verify=success · V20 centered action flow is live'
