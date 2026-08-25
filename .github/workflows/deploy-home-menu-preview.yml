@@ -19,37 +19,35 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Source snapshot V21
+      - name: Source snapshot V22
         id: source
         shell: bash
         run: |
           set -euo pipefail
           test -f preview/home-menu/public/index.html
-          test -f preview/home-menu/public/home-menu-v21.js
-          test -f preview/home-menu/public/layers/title-v21.webp
-          test "$(wc -c < preview/home-menu/public/layers/title-v21.webp)" -eq 10870
-          test "$(git hash-object preview/home-menu/public/layers/title-v21.webp)" = '17dcef4aa69864314a39015343d8470cabf47bb6'
-          echo 'ee18110abbd013ad5209065a0b7be3cdeb6b9584f343ff96dd1a8e1d6b3dcfa2  preview/home-menu/public/layers/title-v21.webp' | sha256sum -c -
-          grep -Fq 'home-menu-v21-dark-action-stage' preview/home-menu/public/index.html
-          grep -Fq '/layers/title-v21.webp?v=21' preview/home-menu/public/index.html
-          grep -Fq 'class="action-stage"' preview/home-menu/public/index.html
-          grep -Fq 'background:#010208' preview/home-menu/public/index.html
-          grep -Fq "await playRasterAction(kind);await revealModalFromDarkStage(kind)" preview/home-menu/public/home-menu-v21.js
-          grep -Fq "actionStage.classList.add('active')" preview/home-menu/public/home-menu-v21.js
-          grep -Fq "openModal(kind);" preview/home-menu/public/home-menu-v21.js
-          grep -Fq "actionStage.classList.remove('active')" preview/home-menu/public/home-menu-v21.js
-          ! grep -Fq 'Игровой маршрут' preview/home-menu/public/index.html
-          ! grep -Fq 'view-profile' preview/home-menu/public/index.html
-          ! grep -Fq 'view-settings' preview/home-menu/public/index.html
-          ! grep -Fq 'falling-stars-v19.webp' preview/home-menu/public/index.html
-          echo 'source=success · exact V21 title + dark-stage/modal handoff verified'
+          test -f preview/home-menu/public/home-menu-v22.js
+          grep -Fq 'home-menu-v22-games-profile' preview/home-menu/public/index.html
+          grep -Fq '/home-menu-v22.js?v=22' preview/home-menu/public/index.html
+          grep -Fq 'data-nav="games"' preview/home-menu/public/index.html
+          grep -Fq 'data-nav="profile"' preview/home-menu/public/index.html
+          grep -Fq 'data-action="code"' preview/home-menu/public/index.html
+          grep -Fq 'data-action="qr"' preview/home-menu/public/index.html
+          ! grep -Fq 'title-v21.webp' preview/home-menu/public/index.html
+          ! grep -Fq 'data-action="create"' preview/home-menu/public/index.html
+          ! grep -Fq 'Создать комнату' preview/home-menu/public/index.html
+          ! grep -Fq 'action-stage' preview/home-menu/public/index.html
+          ! grep -Fq '/actions/' preview/home-menu/public/home-menu-v22.js
+          grep -Fq "openModal(button.dataset.action)" preview/home-menu/public/home-menu-v22.js
+          grep -Fq 'current+=delta*.115' preview/home-menu/public/home-menu-v22.js
+          grep -Fq 'requestAnimationFrame(render)' preview/home-menu/public/home-menu-v22.js
+          echo 'source=success · V22 no-title/no-room/direct-actions/two-tab/smooth-parallax verified'
       - name: Validate Worker bundle
         id: validate
         working-directory: preview/home-menu
         env:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
-      - name: Deploy V21 Cloudflare Worker
+      - name: Deploy V22 Cloudflare Worker
         id: deploy
         working-directory: preview/home-menu
         env:
@@ -57,50 +55,39 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
-      - name: Verify deployed V21
+      - name: Verify deployed V22
         id: verify
         shell: bash
         run: |
           set -euo pipefail
           base='https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev'
-          contract='.version=="home-menu-v21-dark-action-stage" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .actionStage.opaque==true and .actionStage.coversMenu==true and .actionStage.noMenuFlashBeforeModal==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==10870 and .assets.title.gitBlob=="17dcef4aa69864314a39015343d8470cabf47bb6"'
+          contract='.version=="home-menu-v22-games-profile" and .roomRemoved==true and .roomFunctionalityRemoved==true and .titleImageRemoved==true and .actionAnimationsRemoved==true and .profileEnabled==true and .assets.title==null and .assets.actionLayers.count==0 and .navigation.count==2 and .navigation.items==["games","profile"] and .entryActions.items==["code","qr"] and .entryActions.animations==false and .performance.parallax=="requestAnimationFrame-interpolated" and .performance.idleRaf==false and .performance.qualityReduction==false and .modal.opensDirectly==true'
           ready=0
           for attempt in $(seq 1 30); do
             stamp="$(date +%s)-$attempt"
-            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/__preview_version?v=21&ci=$stamp" -o /tmp/version.json; then
-              echo "verify propagation attempt $attempt: $(jq -c '{version,actionStage,title:.assets.title,modal}' /tmp/version.json 2>/dev/null || cat /tmp/version.json)"
-              if jq -e "$contract" /tmp/version.json >/dev/null 2>&1; then
-                ready=1
-                break
-              fi
+            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/__preview_version?v=22&ci=$stamp" -o /tmp/version.json; then
+              echo "verify propagation attempt $attempt: $(jq -c '{version,navigation,entryActions,performance}' /tmp/version.json 2>/dev/null || cat /tmp/version.json)"
+              if jq -e "$contract" /tmp/version.json >/dev/null 2>&1; then ready=1; break; fi
             fi
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then
-            echo 'Complete V21 runtime contract did not propagate in time'
+            echo 'Complete V22 runtime contract did not propagate in time'
             cat /tmp/version.json 2>/dev/null || true
             exit 1
           fi
-          jq -e "$contract" /tmp/version.json >/dev/null
           stamp="$(date +%s)"
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/?v=21&ci=$stamp" -o /tmp/index.html
-          grep -Fq '/layers/title-v21.webp?v=21' /tmp/index.html
-          grep -Fq '/home-menu-v21.js?v=21' /tmp/index.html
-          grep -Fq 'class="action-stage"' /tmp/index.html
-          grep -Fq 'background:#010208' /tmp/index.html
-          ! grep -Fq 'Игровой маршрут' /tmp/index.html
-          ! grep -Fq 'view-profile' /tmp/index.html
-          ! grep -Fq 'view-settings' /tmp/index.html
-          ! grep -Fq 'falling-stars-v19.webp' /tmp/index.html
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/home-menu-v21.js?v=21&ci=$stamp" -o /tmp/app.js
-          grep -Fq "actionStage.classList.add('active')" /tmp/app.js
-          grep -Fq 'await playRasterAction(kind);await revealModalFromDarkStage(kind)' /tmp/app.js
-          grep -Fq 'openModal(kind);' /tmp/app.js
-          grep -Fq "actionStage.classList.remove('active')" /tmp/app.js
-          ! grep -Fq 'sceneActionLayers' /tmp/app.js
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' -D /tmp/title.headers "$base/layers/title-v21.webp?v=21&ci=$stamp" -o /tmp/title.webp
-          test "$(wc -c < /tmp/title.webp)" -eq 10870
-          echo 'ee18110abbd013ad5209065a0b7be3cdeb6b9584f343ff96dd1a8e1d6b3dcfa2  /tmp/title.webp' | sha256sum -c -
-          grep -Eiq '^content-type: *image/webp' /tmp/title.headers
-          grep -Eiq '^x-home-menu-asset: *raster-title-bible-games-transparent' /tmp/title.headers
-          echo 'verify=success · V21 transparent title, opaque action stage, and centered modal handoff are live'
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/?v=22&ci=$stamp" -o /tmp/index.html
+          grep -Fq '/home-menu-v22.js?v=22' /tmp/index.html
+          grep -Fq 'data-nav="games"' /tmp/index.html
+          grep -Fq 'data-nav="profile"' /tmp/index.html
+          grep -Fq 'data-action="code"' /tmp/index.html
+          grep -Fq 'data-action="qr"' /tmp/index.html
+          ! grep -Fq 'title-v21.webp' /tmp/index.html
+          ! grep -Fq 'data-action="create"' /tmp/index.html
+          ! grep -Fq 'action-stage' /tmp/index.html
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -H 'Cache-Control: no-cache' "$base/home-menu-v22.js?v=22&ci=$stamp" -o /tmp/app.js
+          ! grep -Fq '/actions/' /tmp/app.js
+          grep -Fq "openModal(button.dataset.action)" /tmp/app.js
+          grep -Fq 'current+=delta*.115' /tmp/app.js
+          echo 'verify=success · V22 games/profile, direct QR/code, and smooth full-quality parallax are live'
