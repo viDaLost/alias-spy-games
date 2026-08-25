@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru" data-preview-version="alias-parallax-review-v1" data-asset-build="alias-market-layers-v1">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111538">
+  <title>Алиас · Parallax Review</title>
+  <link rel="preload" as="image" href="/layers/01-sky-sunset.webp" type="image/webp" fetchpriority="high">
+  <link rel="stylesheet" href="/styles.css?v=alias1">
+</head>
+<body>
+  <div class="scene" id="scene" aria-hidden="true">
+    <img class="parallax-layer depth-sky" id="sky" src="/layers/01-sky-sunset.webp" alt="" decoding="async" fetchpriority="high">
+    <img class="parallax-layer depth-mountains" id="mountains" src="/layers/02-mountains.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-city" id="city" src="/layers/03-city-far.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-market" id="market" src="/layers/04-market-mid.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-haze" id="haze" src="/layers/09-dust-haze.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-left" id="leftForeground" src="/layers/05-left-foreground.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-right" id="rightForeground" src="/layers/06-right-foreground.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-props" id="props" src="/layers/08-props.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-hourglass" id="hourglass" src="/layers/07-hourglass.webp" alt="" decoding="async">
+
+    <img class="event-layer lantern-glow" id="lanternGlow" data-src="/layers/10-lantern-glow.webp" alt="" decoding="async">
+    <img class="event-layer correct-sparks" id="correctSparks" data-src="/layers/11-correct-sparks.webp" alt="" decoding="async">
+    <img class="event-layer skip-dust" id="skipDust" data-src="/layers/12-skip-dust.webp" alt="" decoding="async">
+    <img class="event-layer round-finish" id="roundFinish" data-src="/layers/13-round-finish.webp" alt="" decoding="async">
+    <div class="scene-shade"></div>
+  </div>
+
+  <main class="app-shell">
+    <header class="topbar">
+      <button class="icon-button" id="resetView" type="button" aria-label="Сбросить параллакс">◎</button>
+      <div class="brand">
+        <span>ПЛОЩАДЬ РАССКАЗЧИКОВ</span>
+        <strong>Алиас</strong>
+      </div>
+      <span class="review-badge">REVIEW V1</span>
+    </header>
+
+    <section class="score-strip" id="scoreStrip" aria-live="polite"></section>
+
+    <section class="game-stage" id="gameStage">
+      <noscript>Для игры требуется JavaScript.</noscript>
+    </section>
+
+    <footer class="performance-note">
+      <span><b>13</b> WebP</span>
+      <span><b>0</b> visual loops</span>
+      <span><b>1</b> RAF</span>
+    </footer>
+  </main>
+
+  <script src="/app.js?v=alias1" defer></script>
+</body>
+</html>

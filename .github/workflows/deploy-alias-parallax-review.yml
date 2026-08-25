@@ -1,0 +1,126 @@
+name: Deploy Alias Parallax Review
+
+on:
+  push:
+    branches:
+      - preview/alias-parallax-review-v1
+    paths:
+      - preview/alias-parallax/**
+      - .github/workflows/deploy-alias-parallax-review.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alias-parallax-review
+  cancel-in-progress: true
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: preview/alias-parallax
+
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install validation dependency
+        run: python -m pip install --disable-pip-version-check Pillow==12.0.0
+
+      - name: Validate raster layers and dictionaries
+        run: python validate_layers.py
+
+      - name: Validate source
+        run: |
+          node --check public/app.js
+          grep -q 'alias-parallax-review-v1' public/index.html
+          grep -q 'requestAnimationFrame(renderParallax)' public/app.js
+          ! grep -Rq 'setInterval' public worker.js
+          ! grep -Rq 'animation:.*infinite' public/styles.css
+          test "$(find public/layers -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 13
+
+      - name: Validate Worker bundle
+        run: npx --yes wrangler@4.102.0 deploy --dry-run
+
+      - name: Deploy isolated review Worker
+        run: npx --yes wrangler@4.102.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Verify live review
+        env:
+          PREVIEW_URL: https://alias-spy-games-alias-parallax-preview.vitaledanilov.workers.dev
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.request
+
+          base = os.environ["PREVIEW_URL"].rstrip("/")
+
+          def get(path):
+              request = urllib.request.Request(base + path, headers={"User-Agent": "alias-preview-ci"})
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  return response.status, response.headers, response.read()
+
+          last_error = None
+          for _ in range(12):
+              try:
+                  status, headers, body = get("/__preview_version")
+                  data = json.loads(body)
+                  assert status == 200
+                  assert data["version"] == "alias-parallax-review-v1"
+                  assert data["game"] == "alias"
+                  assert data["review"] is True
+                  assert data["productionMainTouched"] is False
+                  assert data["layers"] == 13
+                  assert data["continuousVisualLoops"] == 0
+                  assert data["parallax"] == "event-driven-smoothed-raf"
+                  break
+              except Exception as error:
+                  last_error = error
+                  time.sleep(5)
+          else:
+              raise RuntimeError(f"Preview did not become ready: {last_error}")
+
+          checks = {
+              "/": ("text/html", b"alias-parallax-review-v1"),
+              "/app.js?v=alias1": ("javascript", b"renderParallax"),
+              "/styles.css?v=alias1": ("text/css", b".word-card"),
+              "/data/easy.json": ("application/json", b"["),
+          }
+          for path, (content_type, marker) in checks.items():
+              status, headers, body = get(path)
+              assert status == 200, (path, status)
+              assert content_type in headers.get_content_type(), (path, headers.get("Content-Type"))
+              assert marker in body, path
+
+          for number, name in enumerate([
+              "sky-sunset", "mountains", "city-far", "market-mid", "left-foreground",
+              "right-foreground", "hourglass", "props", "dust-haze", "lantern-glow",
+              "correct-sparks", "skip-dust", "round-finish",
+          ], start=1):
+              path = f"/layers/{number:02d}-{name}.webp"
+              status, headers, body = get(path)
+              assert status == 200, (path, status)
+              assert headers.get_content_type() == "image/webp", (path, headers.get("Content-Type"))
+              assert len(body) > 1_000, (path, len(body))
+
+          print("Live Alias review verified")
+          PY

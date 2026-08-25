@@ -1,0 +1,11 @@
+{
+  "name": "alias-spy-games-alias-parallax-preview",
+  "main": "./worker.js",
+  "compatibility_date": "2026-08-26",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "single-page-application"
+  }
+}
