@@ -1,9 +1,14 @@
-home-menu-v20-title-centered-actions
+home-menu-v21-dark-action-stage
 source=preview/home-menu-redesign-v1
-title_layer=layers/title-v20.webp
+title_layer=layers/title-v21.webp
+title_transparent=true
 planner=removed
 profile=removed
 settings=removed
 falling_stars=removed
+action_stage=opaque-dark-screen
 modal=centered-after-action-animation
+room_sequence=tap-dark-animation-modal
+code_sequence=tap-dark-animation-modal
+qr_sequence=tap-dark-animation-modal
 main=untouched
