@@ -78,6 +78,7 @@ jobs:
           fi
 
           for legacy in \
+            preview/home-menu/.v11-base \
             preview/home-menu/public/home-bg-v11.mp4 \
             preview/home-menu/public/home-bg-v13.mp4 \
             preview/home-menu/public/home-bg-v13-poster.webp \
