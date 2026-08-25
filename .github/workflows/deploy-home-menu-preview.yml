@@ -19,16 +19,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Source snapshot V20
+      - name: Source snapshot V21
         id: source
-        run: echo 'source=success · V20 preview snapshot checked out'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f preview/home-menu/public/index.html
+          test -f preview/home-menu/public/home-menu-v21.js
+          test -f preview/home-menu/public/layers/title-v21.webp
+          test "$(wc -c < preview/home-menu/public/layers/title-v21.webp)" -eq 70926
+          grep -Fq 'home-menu-v21-dark-action-stage' preview/home-menu/public/index.html
+          grep -Fq '/layers/title-v21.webp?v=21' preview/home-menu/public/index.html
+          grep -Fq 'class="action-stage"' preview/home-menu/public/index.html
+          grep -Fq 'background:#010208' preview/home-menu/public/index.html
+          grep -Fq "await playRasterAction(kind);openModal(kind)" preview/home-menu/public/home-menu-v21.js
+          grep -Fq "actionStage.classList.add('active')" preview/home-menu/public/home-menu-v21.js
+          ! grep -Fq 'Игровой маршрут' preview/home-menu/public/index.html
+          ! grep -Fq 'view-profile' preview/home-menu/public/index.html
+          ! grep -Fq 'view-settings' preview/home-menu/public/index.html
+          ! grep -Fq 'falling-stars-v19.webp' preview/home-menu/public/index.html
+          echo 'source=success · V21 title and dark action stage verified'
       - name: Validate Worker bundle
         id: validate
         working-directory: preview/home-menu
         env:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --dry-run --outdir /tmp/home-menu-preview-build
-      - name: Deploy V20 Cloudflare Worker
+      - name: Deploy V21 Cloudflare Worker
         id: deploy
         working-directory: preview/home-menu
         env:
@@ -36,16 +53,16 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy
-      - name: Verify deployed V20
+      - name: Verify deployed V21
         id: verify
         shell: bash
         run: |
           set -euo pipefail
           base='https://alias-spy-games-home-menu-preview.vitaledanilov.workers.dev'
-          expected='home-menu-v20-title-centered-actions'
+          expected='home-menu-v21-dark-action-stage'
           for attempt in $(seq 1 30); do
             stamp="$(date +%s)-$attempt"
-            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 "$base/__preview_version?v=20&ci=$stamp" -o /tmp/version.json; then
+            if curl -fsS --retry 2 --retry-all-errors --retry-delay 1 "$base/__preview_version?v=21&ci=$stamp" -o /tmp/version.json; then
               actual="$(jq -r '.version // empty' /tmp/version.json 2>/dev/null || true)"
               echo "verify propagation attempt $attempt: version=${actual:-missing}"
               if [ "$actual" = "$expected" ]; then
@@ -53,27 +70,29 @@ jobs:
               fi
             fi
             if [ "$attempt" -eq 30 ]; then
-              echo 'V20 did not propagate in time'
+              echo 'V21 did not propagate in time'
               cat /tmp/version.json 2>/dev/null || true
               exit 1
             fi
             sleep 2
           done
-          jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==15009' /tmp/version.json >/dev/null
+          jq -e '.version=="home-menu-v21-dark-action-stage" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .actionStage.opaque==true and .actionStage.coversMenu==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==70926' /tmp/version.json >/dev/null
           stamp="$(date +%s)"
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/?v=20&ci=$stamp" -o /tmp/index.html
-          grep -Fq '/layers/title-v20.webp?v=20' /tmp/index.html
-          grep -Fq '/home-menu-v20.js?v=20' /tmp/index.html
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/?v=21&ci=$stamp" -o /tmp/index.html
+          grep -Fq '/layers/title-v21.webp?v=21' /tmp/index.html
+          grep -Fq '/home-menu-v21.js?v=21' /tmp/index.html
+          grep -Fq 'class="action-stage"' /tmp/index.html
+          grep -Fq 'background:#010208' /tmp/index.html
           ! grep -Fq 'Игровой маршрут' /tmp/index.html
           ! grep -Fq 'view-profile' /tmp/index.html
           ! grep -Fq 'view-settings' /tmp/index.html
           ! grep -Fq 'falling-stars-v19.webp' /tmp/index.html
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/home-menu-v20.js?v=20&ci=$stamp" -o /tmp/app.js
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/home-menu-v21.js?v=21&ci=$stamp" -o /tmp/app.js
+          grep -Fq "actionStage.classList.add('active')" /tmp/app.js
           grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/app.js
-          ! grep -Fq 'PLANNER_STORAGE_KEY' /tmp/app.js
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -D /tmp/title.headers "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
-          test "$(wc -c < /tmp/title.webp)" -eq 15009
+          ! grep -Fq 'sceneActionLayers' /tmp/app.js
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -D /tmp/title.headers "$base/layers/title-v21.webp?v=21&ci=$stamp" -o /tmp/title.webp
+          test "$(wc -c < /tmp/title.webp)" -eq 70926
           grep -Eiq '^content-type: *image/webp' /tmp/title.headers
-          grep -Eiq '^content-length: *15009' /tmp/title.headers
-          grep -Eiq '^x-home-menu-asset: *raster-title-bible-games' /tmp/title.headers
-          echo 'verify=success · V20 centered action flow is live'
+          grep -Eiq '^x-home-menu-asset: *raster-title-bible-games-transparent' /tmp/title.headers
+          echo 'verify=success · V21 transparent title and opaque dark action flow are live'
