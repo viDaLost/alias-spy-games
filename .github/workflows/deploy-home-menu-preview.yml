@@ -59,7 +59,7 @@ jobs:
             fi
             sleep 2
           done
-          jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .modal.placement=="center" and .modal.opensAfterAnimation==true' /tmp/version.json >/dev/null
+          jq -e '.version=="home-menu-v20-title-centered-actions" and .gameNightPlanner==false and .profileRemoved==true and .settingsRemoved==true and .fallingStarsRemoved==true and .modal.placement=="center" and .modal.opensAfterAnimation==true and .assets.title.bytes==15009' /tmp/version.json >/dev/null
           stamp="$(date +%s)"
           curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/?v=20&ci=$stamp" -o /tmp/index.html
           grep -Fq '/layers/title-v20.webp?v=20' /tmp/index.html
@@ -71,6 +71,9 @@ jobs:
           curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/home-menu-v20.js?v=20&ci=$stamp" -o /tmp/app.js
           grep -Fq 'await playRasterAction(kind);openModal(kind)' /tmp/app.js
           ! grep -Fq 'PLANNER_STORAGE_KEY' /tmp/app.js
-          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
-          test "$(wc -c < /tmp/title.webp)" -eq 55460
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 1 -D /tmp/title.headers "$base/layers/title-v20.webp?v=20&ci=$stamp" -o /tmp/title.webp
+          test "$(wc -c < /tmp/title.webp)" -eq 15009
+          grep -Eiq '^content-type: *image/webp' /tmp/title.headers
+          grep -Eiq '^content-length: *15009' /tmp/title.headers
+          grep -Eiq '^x-home-menu-asset: *raster-title-bible-games' /tmp/title.headers
           echo 'verify=success · V20 centered action flow is live'
