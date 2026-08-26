@@ -1,7 +1,7 @@
 const SOURCE_COMMIT = '58cfe7515fd1d50163eda13d10a14958a9475357';
 const VERSION = {
   version: 'unified-games-redesign-review-v1',
-  build: 'unified-menu-all-production-games-v1',
+  build: 'unified-menu-all-production-games-v2-webgl-fallback',
   sourceCommit: SOURCE_COMMIT,
   productionMainTouched: false,
   gameCount: 12,
