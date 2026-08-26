@@ -1,6 +1,6 @@
 const VERSION = {
   version: 'bible-words-parallax-review-v1',
-  build: 'temple-of-writing-v2-mobile-polish',
+  build: 'temple-of-writing-v3-illuminated-scriptorium',
   game: 'bible-words',
   review: true,
   productionMainTouched: false,
@@ -12,7 +12,7 @@ const VERSION = {
   generatedAtRuntime: false,
   continuousVisualLoops: 0,
   parallax: 'event-driven-smoothed-raf',
-  polish: 'mobile-v2',
+  polish: 'illuminated-scriptorium-v3',
   mechanics: [
     'word-wheel',
     'crossword',
@@ -24,6 +24,8 @@ const VERSION = {
     'persistent-progress',
     'gesture-cancel-guard',
     'mobile-action-grid',
+    'event-synced-temple-reactions',
+    'illuminated-stone-visual-system',
   ],
 };
 
