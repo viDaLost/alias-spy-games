@@ -37,6 +37,14 @@ assert len(re.findall(r"motion: 'parallax'", script)) == 9  # menu + 8 games
 assert len(re.findall(r"motion: 'static'", script)) == 4
 assert 'requestAnimationFrame(render)' in script
 assert 'interactiveSelector' in script and 'freeze()' in script
+assert "canonicalReferences: { home: 'home-menu-v22', alias: '7e36d9a', spy: 'ddd4d3a' }" in script
+assert "layer(`${ASSET}/alias/07-hourglass.webp`, 53, 30)" in script
+assert "layer(`${ASSET}/spy/08-spy.webp`, 55, 32" in script
+assert len(re.findall(r"\{ key: '[^']+', title:", script)) == 12
+assert 'id="ur-profile-view"' in script and 'data-ur-nav="profile"' in script
+assert '.ur-menu-moon' in styles and 'width:clamp(112px,30vw,174px)' in styles
+assert 'body[data-current-game="alias"] .btn-good::before' in styles
+assert '#menu-container{display:none!important}' in styles
 assert 'bmt:path-light' in bridge + script
 assert 'createFallbackLamp' in sacred_word and 'WebGL недоступен' in sacred_word
 assert '__sacredWordReviewFallbackV1' in sacred_word + three_gate and "sacred-word.js?v=22" in three_gate
@@ -46,6 +54,7 @@ assert 'setInterval' not in script + bridge + worker
 assert not re.search(r'animation\s*:[^;}]*(?:infinite)', styles, re.I)
 assert 'web/js/app.js?v=25' in index
 assert 'web/js/three-gate.js?v=3' in index
+assert 'web/review/unified.css?v=2' in index and 'web/review/unified.js?v=2' in index
 for name in ('unified.css', 'unified.js', 'bmt-event-bridge.js'):
     assert (REPO / 'web' / 'review' / name).read_bytes() == (PUBLIC / 'web' / 'review' / name).read_bytes(), name
 for name in ('games/sacred-word.js', 'js/three-gate.js'):

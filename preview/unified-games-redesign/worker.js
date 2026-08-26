@@ -1,7 +1,7 @@
 const SOURCE_COMMIT = '58cfe7515fd1d50163eda13d10a14958a9475357';
 const VERSION = {
   version: 'unified-games-redesign-review-v1',
-  build: 'unified-menu-all-production-games-v3-webgl-fallback-ci',
+  build: 'unified-home-v22-alias-spy-canonical-v4',
   sourceCommit: SOURCE_COMMIT,
   productionMainTouched: false,
   gameCount: 12,
@@ -10,7 +10,15 @@ const VERSION = {
   parallaxGames: ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'bible-wow', 'sacred-word', 'biblical-match-three'],
   staticRedesignGames: ['quartet', 'bible-sketch', 'bible-wordsearch', 'kids-ark-pairs'],
   menuParallax: true,
-  parallaxController: 'single-event-driven-raf',
+  menuArchitecture: 'home-v22-games-profile-two-tab',
+  profileEnabled: true,
+  canonicalReferences: {
+    home: 'home-menu-v22',
+    alias: '7e36d9a',
+    spy: 'ddd4d3a',
+  },
+  canonicalDepth: { aliasMaxPx: 53, spyMaxPx: 55 },
+  parallaxController: 'single-event-driven-smoothed-raf',
   gesturePolicy: 'freeze-on-interactive-pointer',
 };
 

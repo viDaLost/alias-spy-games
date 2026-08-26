@@ -79,12 +79,18 @@ jobs:
           assert data['sourceCommit'] == '58cfe7515fd1d50163eda13d10a14958a9475357'
           assert data['productionMainTouched'] is False
           assert data['gameCount'] == 12
+          assert data['build'] == 'unified-home-v22-alias-spy-canonical-v4'
+          assert data['menuArchitecture'] == 'home-v22-games-profile-two-tab'
+          assert data['profileEnabled'] is True
+          assert data['canonicalReferences']['alias'] == '7e36d9a'
+          assert data['canonicalReferences']['spy'] == 'ddd4d3a'
+          assert data['canonicalDepth'] == {'aliasMaxPx': 53, 'spyMaxPx': 55}
           assert len(data['parallaxGames']) == 8
           assert len(data['staticRedesignGames']) == 4
           checks = {
               '/': ('text/html', b'unified-games-redesign-review-v1'),
-              '/web/review/unified.css?v=1': ('text/css', b'.ur-scene'),
-              '/web/review/unified.js?v=1': ('javascript', b'UnifiedGamesReview'),
+              '/web/review/unified.css?v=2': ('text/css', b'.ur-menu-moon'),
+              '/web/review/unified.js?v=2': ('javascript', b'home-menu-v22'),
               '/web/review/assets/menu/city.webp': ('image/webp', None),
               '/web/review/assets/scenes/pairs.webp': ('image/webp', None),
               '/web/review/assets/path/temple-base-v3.webp': ('image/webp', None),
