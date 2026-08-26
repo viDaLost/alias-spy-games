@@ -1,0 +1,364 @@
+/* Bible Words Parallax Review V2 — mobile-first polish.
+   This file intentionally overrides V1 without changing the gameplay core. */
+
+:root {
+  --tap-size: 46px;
+  --mobile-panel: rgba(5, 14, 35, 0.72);
+}
+
+button {
+  -webkit-touch-callout: none;
+}
+
+button:focus-visible,
+.word-wheel:focus-visible {
+  outline: 2px solid rgba(255, 231, 160, 0.92);
+  outline-offset: 3px;
+}
+
+.icon-button,
+.tiny-button,
+.level-button,
+.action-button,
+.primary-button,
+.secondary-button,
+.dialog-close,
+.shuffle-button {
+  touch-action: manipulation;
+}
+
+.action-button,
+.primary-button,
+.secondary-button,
+.level-button,
+.tiny-button,
+.icon-button,
+.shuffle-button {
+  transition: transform 120ms ease, border-color 160ms ease, background-color 160ms ease, opacity 160ms ease;
+}
+
+.action-button:not(:disabled):active,
+.primary-button:not(:disabled):active,
+.secondary-button:not(:disabled):active,
+.level-button:not(:disabled):active,
+.tiny-button:not(:disabled):active,
+.icon-button:not(:disabled):active,
+.shuffle-button:not(:disabled):active {
+  transform: scale(0.965);
+}
+
+/* Keep preview metadata available in the DOM but out of the game composition. */
+.review-badge {
+  width: 42px;
+  min-width: 42px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  visibility: hidden;
+  border: 0;
+}
+
+.performance-note {
+  display: none;
+}
+
+.game-stage {
+  min-height: calc(100svh - 72px);
+}
+
+.board-panel {
+  background:
+    linear-gradient(145deg, rgba(18, 39, 82, 0.46), rgba(4, 12, 31, 0.68)),
+    var(--mobile-panel);
+}
+
+.board-empty-note {
+  pointer-events: none;
+}
+
+.word-wheel {
+  isolation: isolate;
+}
+
+.word-wheel::before {
+  position: absolute;
+  z-index: 1;
+  inset: 8%;
+  border: 1px solid rgba(255, 231, 160, 0.08);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(235, 201, 110, 0.04), transparent 64%);
+  content: "";
+  pointer-events: none;
+}
+
+.gesture-coach {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: -1px auto 3px;
+  color: rgba(230, 236, 250, 0.68);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-align: center;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.gesture-coach::before {
+  color: var(--gold);
+  content: "↗";
+  font-size: 14px;
+}
+
+.gesture-coach.is-hidden {
+  opacity: 0;
+  transform: translateY(-3px);
+  pointer-events: none;
+}
+
+.control-panel.is-selecting .gesture-coach {
+  opacity: 0;
+  transform: translateY(-3px);
+}
+
+.control-panel.is-selecting .word-preview {
+  text-shadow: 0 0 22px rgba(255, 216, 118, 0.5);
+}
+
+@media (max-width: 519px) {
+  .app-shell {
+    width: 100%;
+    padding: max(7px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+    gap: 7px;
+    min-height: 52px;
+  }
+
+  .icon-button,
+  .dialog-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .brand span {
+    font-size: 8px;
+  }
+
+  .brand strong {
+    font-size: clamp(18px, 5.6vw, 22px);
+  }
+
+  .game-layout {
+    gap: 8px;
+  }
+
+  .game-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 3px 7px;
+    min-height: 72px;
+    padding: 5px 7px 7px;
+    border-radius: 17px;
+  }
+
+  .level-control {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    gap: 0;
+  }
+
+  .tiny-button {
+    min-width: 31px;
+    min-height: 38px;
+    padding-inline: 5px;
+  }
+
+  .level-button {
+    min-width: 96px;
+    min-height: 40px;
+    padding-inline: 9px;
+  }
+
+  .level-button strong {
+    font-size: 14px;
+  }
+
+  .stars-chip {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 58px;
+    min-height: 39px;
+    padding-inline: 8px;
+  }
+
+  .progress-summary {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .progress-summary strong {
+    font-size: 15px;
+  }
+
+  .progress-summary span {
+    font-size: 9px;
+  }
+
+  .board-panel {
+    min-height: clamp(218px, 31svh, 292px);
+    padding: 12px 8px 9px;
+    border-radius: 20px;
+  }
+
+  .board-panel::before {
+    inset: 7px;
+    border-radius: 15px;
+  }
+
+  .board-empty-note {
+    top: 9px;
+    max-width: calc(100% - 30px);
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
+  }
+
+  .control-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    padding: 7px 9px 9px;
+    border-radius: 20px;
+  }
+
+  .word-preview {
+    min-height: 32px;
+    margin-bottom: 0;
+    font-size: clamp(19px, 6vw, 25px);
+  }
+
+  .word-wheel {
+    width: clamp(202px, 61vw, 230px);
+  }
+
+  .letter-button {
+    width: clamp(44px, 12vw, 50px);
+    height: clamp(44px, 12vw, 50px);
+  }
+
+  .letter-button.is-dense {
+    width: clamp(34px, 9.2vw, 39px);
+    height: clamp(34px, 9.2vw, 39px);
+  }
+
+  .shuffle-button {
+    width: 50px;
+    height: 50px;
+  }
+
+  .action-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 7px;
+  }
+
+  .action-button {
+    min-height: var(--tap-size);
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+
+  .action-button span {
+    display: inline;
+    margin: 0 0 0 5px;
+  }
+
+  .temple-dialog {
+    width: min(calc(100% - 18px), 520px);
+    max-height: min(88svh, 720px);
+    padding: 16px;
+    border-radius: 21px;
+  }
+
+  .level-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .level-tile {
+    min-height: 55px;
+    padding: 5px;
+  }
+}
+
+@media (max-width: 359px) {
+  .brand span {
+    display: none;
+  }
+
+  .level-button {
+    min-width: 88px;
+    padding-inline: 6px;
+  }
+
+  .tiny-button {
+    min-width: 28px;
+  }
+
+  .board-panel {
+    min-height: 210px;
+  }
+
+  .word-wheel {
+    width: 198px;
+  }
+
+  .action-button {
+    font-size: 10px;
+  }
+}
+
+@media (max-height: 720px) and (orientation: portrait) {
+  .topbar {
+    min-height: 46px;
+  }
+
+  .game-toolbar {
+    min-height: 66px;
+  }
+
+  .board-panel {
+    min-height: 190px;
+  }
+
+  .word-wheel {
+    width: 188px;
+  }
+
+  .gesture-coach {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-button,
+  .primary-button,
+  .secondary-button,
+  .level-button,
+  .tiny-button,
+  .icon-button,
+  .shuffle-button,
+  .gesture-coach {
+    transition: none;
+  }
+}
