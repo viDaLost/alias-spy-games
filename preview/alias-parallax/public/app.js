@@ -136,9 +136,9 @@
   }
 
   const difficultyMeta = {
-    easy: { title: 'Лёгкий', description: 'Знакомые персонажи, места и предметы', path: '/data/easy.json' },
-    medium: { title: 'Средний', description: 'Термины, события и образы Писания', path: '/data/medium.json' },
-    hard: { title: 'Тяжёлый', description: 'Редкие понятия и сложные имена', path: '/data/hard.json' },
+    easy: { title: 'Лёгкий', description: 'Знакомые персонажи, места и предметы', path: '/data/easy.json?v=alias2' },
+    medium: { title: 'Средний', description: 'Термины, события и образы Писания', path: '/data/medium.json?v=alias2' },
+    hard: { title: 'Тяжёлый', description: 'Редкие понятия и сложные имена', path: '/data/hard.json?v=alias2' },
   };
 
   const state = {

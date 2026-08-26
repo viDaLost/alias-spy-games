@@ -101,9 +101,9 @@ jobs:
 
           checks = {
               "/": ("text/html", b"alias-parallax-review-v1"),
-              "/app.js?v=alias1": ("javascript", b"renderParallax"),
+              "/app.js?v=alias2": ("javascript", b"seenWords"),
               "/styles.css?v=alias1": ("text/css", b".word-card"),
-              "/data/easy.json": ("application/json", b"["),
+              "/data/easy.json?v=alias2": ("application/json", b"["),
           }
           for path, (content_type, marker) in checks.items():
               status, headers, body = get(path)
