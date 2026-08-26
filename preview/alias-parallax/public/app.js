@@ -248,7 +248,17 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const words = await response.json();
         if (!Array.isArray(words) || words.length < 20) throw new Error('Недостаточно слов');
-        state.wordsByDifficulty.set(difficulty, words.map(String));
+        const uniqueWords = [];
+        const seenWords = new Set();
+        words.forEach((word) => {
+          const cleaned = String(word).trim();
+          const key = normaliseWord(cleaned);
+          if (!key || seenWords.has(key)) return;
+          seenWords.add(key);
+          uniqueWords.push(cleaned);
+        });
+        if (uniqueWords.length < 20) throw new Error('Недостаточно уникальных слов');
+        state.wordsByDifficulty.set(difficulty, uniqueWords);
       }
       state.difficulty = difficulty;
       resetScores();

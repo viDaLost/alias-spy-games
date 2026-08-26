@@ -70,6 +70,7 @@ def validate_dictionaries() -> None:
         cleaned = [str(word).strip() for word in words]
         assert all(cleaned), f"Blank word in {difficulty}"
         unique_count = len({word.casefold() for word in cleaned})
+        assert unique_count == len(cleaned), f"Duplicate words in {difficulty}: {len(cleaned) - unique_count}"
         assert unique_count >= 100, f"Not enough unique words in {difficulty}: {unique_count}"
         print(f"Validated {difficulty} dictionary: {len(cleaned)} words ({unique_count} unique)")
 
