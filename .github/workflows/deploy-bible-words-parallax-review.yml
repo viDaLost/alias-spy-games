@@ -48,10 +48,13 @@ jobs:
         run: |
           node --check public/app.js
           node --check public/interaction-polish.js
+          node --check public/scene-polish-v3.js
           node --check worker.js
           grep -q 'bible-words-parallax-review-v1' public/index.html
-          grep -q 'temple-of-writing-v2-mobile-polish' public/index.html
+          grep -q 'temple-of-writing-v3-illuminated-scriptorium' public/index.html
           grep -q 'requestAnimationFrame(renderParallax)' public/app.js
+          grep -q 'is-word-awake' public/scene-polish-v3.js
+          grep -q 'v3-cell-inscription' public/visual-polish-v3.css
           ! grep -Rq 'setInterval' public worker.js
           ! grep -REq 'animation:[^;]*infinite' public/*.css
           test "$(find public/layers -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 10
@@ -99,7 +102,7 @@ jobs:
                   data = json.loads(body)
                   assert status == 200
                   assert data["version"] == "bible-words-parallax-review-v1"
-                  assert data["build"] == "temple-of-writing-v2-mobile-polish"
+                  assert data["build"] == "temple-of-writing-v3-illuminated-scriptorium"
                   assert data["game"] == "bible-words"
                   assert data["review"] is True
                   assert data["productionMainTouched"] is False
@@ -107,7 +110,8 @@ jobs:
                   assert data["layers"] == 10
                   assert data["continuousVisualLoops"] == 0
                   assert data["parallax"] == "event-driven-smoothed-raf"
-                  assert data["polish"] == "mobile-v2"
+                  assert data["polish"] == "illuminated-scriptorium-v3"
+                  assert "event-synced-temple-reactions" in data["mechanics"]
                   break
               except Exception as error:
                   last_error = error
@@ -116,11 +120,13 @@ jobs:
               raise RuntimeError(f"Preview did not become ready: {last_error}")
 
           checks = {
-              "/": ("text/html", b"temple-of-writing-v2-mobile-polish"),
+              "/": ("text/html", b"temple-of-writing-v3-illuminated-scriptorium"),
               "/app.js?v=words1": ("javascript", b"generateLayout"),
-              "/interaction-polish.js?v=words2": ("javascript", b"gesture-cancel-guard" if False else b"pointercancel"),
+              "/interaction-polish.js?v=words2": ("javascript", b"pointercancel"),
+              "/scene-polish-v3.js?v=words3": ("javascript", b"is-word-awake"),
               "/styles.css?v=words1": ("text/css", b".word-wheel"),
               "/mobile-polish.css?v=words2": ("text/css", b".gesture-coach"),
+              "/visual-polish-v3.css?v=words3": ("text/css", b"v3-cell-inscription"),
               "/data/bible_wow_levels.json": ("application/json", b'"levels"'),
           }
           for path, (content_type, marker) in checks.items():
@@ -139,5 +145,5 @@ jobs:
               assert headers.get_content_type() == "image/webp", (name, headers.get("Content-Type"))
               assert len(body) > 1_000, (name, len(body))
 
-          print("Live Bible Words review V2 verified")
+          print("Live Bible Words review V3 verified")
           PY
