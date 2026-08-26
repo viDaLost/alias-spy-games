@@ -28,6 +28,7 @@ script = (PUBLIC / 'web' / 'review' / 'unified.js').read_text(encoding='utf-8')
 styles = (PUBLIC / 'web' / 'review' / 'unified.css').read_text(encoding='utf-8')
 worker = (ROOT / 'worker.js').read_text(encoding='utf-8')
 bridge = (PUBLIC / 'web' / 'review' / 'bmt-event-bridge.js').read_text(encoding='utf-8')
+sacred_word = (PUBLIC / 'web' / 'games' / 'sacred-word.js').read_text(encoding='utf-8')
 assert 'unified-games-redesign-review-v1' in index + script + worker
 assert '58cfe7515fd1d50163eda13d10a14958a9475357' in script + worker
 assert "gameCount: 12" in worker
@@ -36,6 +37,8 @@ assert len(re.findall(r"motion: 'static'", script)) == 4
 assert 'requestAnimationFrame(render)' in script
 assert 'interactiveSelector' in script and 'freeze()' in script
 assert 'bmt:path-light' in bridge + script
+assert 'createFallbackLamp' in sacred_word and 'WebGL недоступен' in sacred_word
+assert "url.pathname === '/web/games/sacred-word.js'" in worker
 assert 'setInterval' not in script + bridge + worker
 assert not re.search(r'animation\s*:[^;}]*(?:infinite)', styles, re.I)
 assert 'web/js/app.js?v=25' in index

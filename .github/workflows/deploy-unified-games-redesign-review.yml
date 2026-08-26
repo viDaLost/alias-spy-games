@@ -89,6 +89,7 @@ jobs:
               '/web/review/assets/scenes/pairs.webp': ('image/webp', None),
               '/web/review/assets/path/temple-base-v3.webp': ('image/webp', None),
               '/web/js/app.js?v=25': ('javascript', b'GAME_GROUPS'),
+              '/web/games/sacred-word.js?v=21': ('javascript', b'createFallbackLamp'),
               '/web/data/biblical_match_three_levels.json': ('json', b'levels'),
           }
           for path, (kind, marker) in checks.items():

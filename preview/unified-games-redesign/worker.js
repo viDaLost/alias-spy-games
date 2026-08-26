@@ -39,6 +39,10 @@ export default {
       const response = await localAsset(request, env);
       return secured(response, { 'Cache-Control': 'public, max-age=31536000, immutable' });
     }
+    if (url.pathname === '/web/games/sacred-word.js') {
+      const response = await localAsset(request, env);
+      return secured(response, { 'Cache-Control': 'public, max-age=300' });
+    }
     if (url.pathname.startsWith('/web/')) {
       const upstream = new URL(`https://cdn.jsdelivr.net/gh/viDaLost/alias-spy-games@${SOURCE_COMMIT}${url.pathname}`);
       upstream.search = url.search;
