@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru" data-preview-version="bible-words-parallax-review-v1" data-asset-build="temple-of-writing-v1">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07142f">
+  <meta name="description" content="Рабочий Parallax Preview игры «Библейские слова»">
+  <title>Библейские слова · Parallax Review</title>
+  <link rel="preload" as="image" href="/layers/01-temple-base.webp" type="image/webp" fetchpriority="high">
+  <link rel="stylesheet" href="/styles.css?v=words1">
+</head>
+<body>
+  <div class="scene" id="scene" aria-hidden="true">
+    <img class="parallax-layer depth-base" id="templeBase" src="/layers/01-temple-base.webp" alt="" decoding="async" fetchpriority="high">
+    <img class="parallax-layer depth-sanctuary" id="distantSanctuary" src="/layers/02-distant-sanctuary.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-beams" id="moonbeams" src="/layers/06-moonbeams.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-dust" id="dustMotes" src="/layers/07-dust-motes.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-left" id="leftArch" src="/layers/03-left-arch.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-right" id="rightArch" src="/layers/04-right-arch.webp" alt="" decoding="async">
+    <img class="parallax-layer depth-ledge" id="scriptoriumLedge" src="/layers/05-scriptorium-ledge.webp" alt="" decoding="async">
+
+    <img class="event-layer event-correct" id="correctEffect" data-src="/layers/event-correct-inscription.webp" alt="" decoding="async">
+    <img class="event-layer event-error" id="errorEffect" data-src="/layers/event-error-shards.webp" alt="" decoding="async">
+    <img class="event-layer event-complete" id="completeEffect" data-src="/layers/event-level-complete.webp" alt="" decoding="async">
+    <div class="scene-shade"></div>
+  </div>
+
+  <main class="app-shell">
+    <header class="topbar">
+      <button class="icon-button" id="resetParallax" type="button" aria-label="Вернуть фон в исходное положение">◎</button>
+      <div class="brand">
+        <span>ХРАМ ПИСЬМЕННОСТИ</span>
+        <strong>Библейские слова</strong>
+      </div>
+      <span class="review-badge">REVIEW V1</span>
+    </header>
+
+    <section class="game-stage" id="gameStage" aria-live="polite">
+      <div class="loading-card" role="status">
+        <span class="loading-seal">✦</span>
+        <strong>Открываем свиток…</strong>
+      </div>
+      <noscript>Для игры требуется JavaScript.</noscript>
+    </section>
+
+    <footer class="performance-note" aria-label="Параметры Preview">
+      <span><b>10</b> WebP</span>
+      <span><b>100</b> уровней</span>
+      <span><b>0</b> visual loops</span>
+      <span><b>1</b> RAF</span>
+    </footer>
+  </main>
+
+  <dialog class="temple-dialog" id="levelsDialog" aria-labelledby="levelsTitle">
+    <div class="dialog-heading">
+      <div>
+        <span class="eyebrow">Карта храма</span>
+        <h2 id="levelsTitle">Выберите уровень</h2>
+      </div>
+      <button class="dialog-close" type="button" data-close-dialog="levelsDialog" aria-label="Закрыть">×</button>
+    </div>
+    <div class="level-list" id="levelList"></div>
+  </dialog>
+
+  <dialog class="temple-dialog" id="bonusDialog" aria-labelledby="bonusTitle">
+    <div class="dialog-heading">
+      <div>
+        <span class="eyebrow">Боковая надпись</span>
+        <h2 id="bonusTitle">Бонусные слова</h2>
+      </div>
+      <button class="dialog-close" type="button" data-close-dialog="bonusDialog" aria-label="Закрыть">×</button>
+    </div>
+    <div class="bonus-list" id="bonusList"></div>
+  </dialog>
+
+  <dialog class="temple-dialog complete-dialog" id="completeDialog" aria-labelledby="completeTitle">
+    <div class="complete-seal">✦</div>
+    <span class="eyebrow">Письмена пробуждены</span>
+    <h2 id="completeTitle">Уровень завершён</h2>
+    <p>Все слова заняли своё место в храме.</p>
+    <div class="complete-reward">+10 <span aria-hidden="true">✦</span></div>
+    <div class="dialog-actions">
+      <button class="secondary-button" type="button" data-close-dialog="completeDialog">Остаться</button>
+      <button class="primary-button" id="nextLevelButton" type="button">Следующий уровень</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js?v=words1" defer></script>
+</body>
+</html>
