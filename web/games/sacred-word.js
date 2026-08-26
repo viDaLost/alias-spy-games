@@ -1,5 +1,7 @@
 /* global loadJSON, goToMainMenu, THREE, getTelegramUser */
 
+window.__sacredWordReviewFallbackV1 = true;
+
 function startSacredWordGame(wordsUrl) {
   const container = document.getElementById("game-container");
   if (!container) return;
@@ -49,14 +51,13 @@ function startSacredWordGame(wordsUrl) {
       .sw-lamp-fallback { width: min(92%, 260px); aspect-ratio: 1; position: relative; display: flex; align-items: flex-end; justify-content: center; filter: drop-shadow(0 16px 24px rgba(0,0,0,.45)); }
       .sw-lamp-fallback__lights { position: absolute; inset: 18% 5% 40%; display: flex; align-items: flex-end; justify-content: space-between; }
       .sw-lamp-fallback__light { width: 13%; display: grid; justify-items: center; gap: 2px; transition: opacity .22s ease, filter .22s ease; }
-      .sw-lamp-fallback__light::before { content: ''; width: 17px; height: 27px; border-radius: 52% 48% 56% 44%; background: radial-gradient(circle at 50% 70%,#fff9b8 0 14%,#ffcf4e 34%,#ff7a1a 66%,transparent 70%); filter: drop-shadow(0 0 11px rgba(255,179,42,.9)); animation: sw-fallback-flame .9s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+      .sw-lamp-fallback__light::before { content: ''; width: 17px; height: 27px; border-radius: 52% 48% 56% 44%; background: radial-gradient(circle at 50% 70%,#fff9b8 0 14%,#ffcf4e 34%,#ff7a1a 66%,transparent 70%); filter: drop-shadow(0 0 11px rgba(255,179,42,.9)); transform: rotate(-1deg); transform-origin: 50% 100%; }
       .sw-lamp-fallback__light::after { content: ''; width: 24px; height: 8px; border-radius: 50%; background: linear-gradient(180deg,#ffe59a,#a96a12); box-shadow: inset 0 1px rgba(255,255,255,.7); }
       .sw-lamp-fallback__light.is-off { opacity: .25; filter: grayscale(1); }
-      .sw-lamp-fallback__light.is-off::before { opacity: 0; animation: none; }
+      .sw-lamp-fallback__light.is-off::before { opacity: 0; }
       .sw-lamp-fallback__branches { position: absolute; left: 14%; right: 14%; bottom: 20%; height: 44%; border: 9px solid #d99b24; border-top: 0; border-radius: 0 0 48% 48%; box-shadow: inset 0 -2px #fff0a8,0 3px 9px rgba(0,0,0,.35); }
       .sw-lamp-fallback__stem { position: absolute; left: calc(50% - 5px); bottom: 10%; width: 10px; height: 55%; border-radius: 8px; background: linear-gradient(90deg,#8b5410,#ffe291 45%,#b87514); }
       .sw-lamp-fallback__base { position: absolute; left: 25%; right: 25%; bottom: 6%; height: 11%; border-radius: 50% 50% 22% 22%; background: linear-gradient(180deg,#ffe49a,#a96610); box-shadow: inset 0 2px rgba(255,255,255,.6),0 7px 12px rgba(0,0,0,.35); }
-      @keyframes sw-fallback-flame { from { transform: scale(.92) rotate(-2deg); } to { transform: scale(1.06) rotate(2deg); } }
       .sw-info { display: grid; gap: 12px; }
       .sw-pillrow { display: flex; flex-wrap: wrap; gap: 8px; }
       .sw-pill { background: #dbeafe; color: #1e293b; border-radius: 999px; padding: 8px 12px; font-size: .94rem; font-weight: 700; }
