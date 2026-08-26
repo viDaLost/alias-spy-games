@@ -25,9 +25,8 @@ EXPECTED_LAYERS = [
     "08-props.webp",
     "09-dust-haze.webp",
     "10-lantern-glow.webp",
-    "11-correct-sparks.webp",
-    "12-skip-dust.webp",
-    "13-round-finish.webp",
+    "11-skip-dust.webp",
+    "12-round-finish.webp",
 ]
 
 

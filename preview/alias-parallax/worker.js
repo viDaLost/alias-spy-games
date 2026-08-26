@@ -4,7 +4,7 @@ const VERSION = {
   game: 'alias',
   review: true,
   productionMainTouched: false,
-  layers: 13,
+  layers: 12,
   runtimeDepthLayers: 9,
   eagerDepthLayers: 9,
   transparentRasterLayers: true,

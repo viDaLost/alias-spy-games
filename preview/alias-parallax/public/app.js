@@ -440,8 +440,6 @@
     card?.classList.add(status === 'correct' ? 'is-correct' : status === 'wrong' ? 'is-wrong' : 'is-skip');
 
     if (status === 'correct') {
-      playSceneEvent('correctSparks', 'play');
-      playSceneEvent('lanternGlow', 'pulse');
       navigator.vibrate?.(20);
     } else if (status === 'skip') {
       playSceneEvent('skipDust', 'play');

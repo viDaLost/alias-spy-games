@@ -51,7 +51,7 @@ jobs:
           grep -q 'requestAnimationFrame(renderParallax)' public/app.js
           ! grep -Rq 'setInterval' public worker.js
           ! grep -Rq 'animation:.*infinite' public/styles.css
-          test "$(find public/layers -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 13
+          test "$(find public/layers -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 12
 
       - name: Validate Worker bundle
         run: npx --yes wrangler@4.102.0 deploy --dry-run
@@ -89,7 +89,7 @@ jobs:
                   assert data["game"] == "alias"
                   assert data["review"] is True
                   assert data["productionMainTouched"] is False
-                  assert data["layers"] == 13
+                  assert data["layers"] == 12
                   assert data["continuousVisualLoops"] == 0
                   assert data["parallax"] == "event-driven-smoothed-raf"
                   break
@@ -101,7 +101,7 @@ jobs:
 
           checks = {
               "/": ("text/html", b"alias-parallax-review-v1"),
-              "/app.js?v=alias2": ("javascript", b"seenWords"),
+              "/app.js?v=alias3": ("javascript", b"seenWords"),
               "/styles.css?v=alias1": ("text/css", b".word-card"),
               "/data/easy.json?v=alias2": ("application/json", b"["),
           }
@@ -114,7 +114,7 @@ jobs:
           for number, name in enumerate([
               "sky-sunset", "mountains", "city-far", "market-mid", "left-foreground",
               "right-foreground", "hourglass", "props", "dust-haze", "lantern-glow",
-              "correct-sparks", "skip-dust", "round-finish",
+              "skip-dust", "round-finish",
           ], start=1):
               path = f"/layers/{number:02d}-{name}.webp"
               status, headers, body = get(path)
