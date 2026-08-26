@@ -28,15 +28,16 @@
       layer(`${ASSET}/alias/03-city-far.webp`, 10, 7), layer(`${ASSET}/alias/04-market-mid.webp`, 17, 11),
       layer(`${ASSET}/alias/09-dust-haze.webp`, 23, 16, { opacity: .34 }),
       layer(`${ASSET}/alias/05-left-foreground.webp`, 40, 24), layer(`${ASSET}/alias/06-right-foreground.webp`, 42, 24),
-      layer(`${ASSET}/alias/08-props.webp`, 47, 27), layer(`${ASSET}/alias/07-hourglass.webp`, 53, 30),
+      layer(`${ASSET}/alias/08-props.webp`, 47, 27), layer(`${ASSET}/alias/07-hourglass.webp`, 53, 30, { className: 'ur-alias-hourglass' }),
     ]},
     spy: { motion: 'parallax', layers: [
       layer(`${ASSET}/spy/01-sky-moon-stars.webp`, 4, 3), layer(`${ASSET}/spy/02-mountains.webp`, 7, 5),
       layer(`${ASSET}/spy/03-temple-far.webp`, 10, 7), layer(`${ASSET}/spy/04-city-mid.webp`, 16, 10),
       layer(`${ASSET}/spy/05-rooftops.webp`, 24, 14), layer(`${ASSET}/spy/06-fog.webp`, 29, 18, { opacity: .42 }),
+      layer(`${ASSET}/spy/16-light-particles.webp`, 32, 18, { className: 'ur-spy-particles', opacity: 0 }),
       layer(`${ASSET}/spy/08-spy.webp`, 55, 32, { opacity: .97 }), layer(`${ASSET}/spy/07-left-foreground.webp`, 42, 24),
       layer(`${ASSET}/spy/10-right-foreground.webp`, 42, 24), layer(`${ASSET}/spy/09-leaves.webp`, 48, 27, { opacity: .55 }),
-      layer(`${ASSET}/spy/11-props.webp`, 50, 28), layer(`${ASSET}/spy/12-plants-right.webp`, 50, 28, { opacity: .76 }),
+      layer(`${ASSET}/spy/12-plants-right.webp`, 50, 28, { opacity: .76 }),
     ]},
     'bible-wow': { motion: 'parallax', layers: [
       layer(`${ASSET}/bible-words/01-temple-base.webp`, 4, 3, { filter: 'brightness(.82) saturate(.9)' }),
@@ -298,8 +299,11 @@
   new MutationObserver(queueUpdate).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-mode', 'data-current-game', 'class', 'hidden'] });
   addEventListener('app:menu-ready', queueUpdate); addEventListener('pageshow', queueUpdate); update();
   window.UnifiedGamesReview = {
-    version: 'unified-games-redesign-review-v2', sourceCommit: SOURCE_COMMIT,
-    canonicalReferences: { home: 'home-menu-v22', alias: '7e36d9a', spy: 'ddd4d3a' },
+    version: 'unified-games-redesign-review-v3', sourceCommit: SOURCE_COMMIT,
+    canonicalReferences: {
+      home: 'home-menu-v22@195f150b', alias: 'alias-parallax@7e36d9a', spy: 'spy-parallax@ddd4d3a',
+      bibleWords: 'temple-of-writing-v3@dd1743c', treasures: 'path-of-light@ae6f795', quartet: 'quartet-card-redesign',
+    },
     catalog: Object.fromEntries(Object.entries(CATALOG).map(([key, value]) => [key, value.motion])),
     get scene() { return sceneKey; }, get motion() { return sceneMotion; }, get frozen() { return frozen; }, playSceneEvent,
   };

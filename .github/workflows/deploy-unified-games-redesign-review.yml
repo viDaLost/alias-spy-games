@@ -44,9 +44,10 @@ jobs:
         run: |
           python validate_review.py
           node --check public/web/review/unified.js
+          node --check public/web/review/canonical.js
           node --check public/web/review/bmt-event-bridge.js
           node --check worker.js
-          test "$(find public/web/review/assets -type f -name '*.webp' | wc -l)" -eq 46
+          test "$(find public/web/review/assets -type f -name '*.webp' | wc -l)" -eq 54
           ! grep -Rq 'setInterval' public/web/review worker.js
       - name: Validate Worker bundle
         run: npx --yes wrangler@4.102.0 deploy --dry-run
@@ -79,18 +80,31 @@ jobs:
           assert data['sourceCommit'] == '58cfe7515fd1d50163eda13d10a14958a9475357'
           assert data['productionMainTouched'] is False
           assert data['gameCount'] == 12
-          assert data['build'] == 'unified-home-v22-alias-spy-canonical-v4'
+          assert data['build'] == 'canonical-preview-adapters-v1'
+          assert data['visualOwnership'] == 'preview-shells-only-production-main-mechanics-only'
+          assert data['visualBridge'] == 'canonical-preview-adapters-v1'
           assert data['menuArchitecture'] == 'home-v22-games-profile-two-tab'
           assert data['profileEnabled'] is True
-          assert data['canonicalReferences']['alias'] == '7e36d9a'
-          assert data['canonicalReferences']['spy'] == 'ddd4d3a'
+          assert data['canonicalReferences'] == {
+              'home': 'home-menu-v22@195f150b',
+              'alias': 'alias-parallax@7e36d9a',
+              'spy': 'spy-parallax@ddd4d3a',
+              'bibleWords': 'temple-of-writing-v3@dd1743c',
+              'treasures': 'path-of-light@ae6f795',
+              'quartet': 'quartet-card-redesign',
+          }
           assert data['canonicalDepth'] == {'aliasMaxPx': 53, 'spyMaxPx': 55}
           assert len(data['parallaxGames']) == 8
           assert len(data['staticRedesignGames']) == 4
           checks = {
               '/': ('text/html', b'unified-games-redesign-review-v1'),
-              '/web/review/unified.css?v=2': ('text/css', b'.ur-menu-moon'),
-              '/web/review/unified.js?v=2': ('javascript', b'home-menu-v22'),
+              '/web/review/unified.css?v=3': ('text/css', b'.ur-menu-moon'),
+              '/web/review/unified.js?v=3': ('javascript', b'home-menu-v22@195f150b'),
+              '/web/review/canonical.css?v=1': ('text/css', b'Canonical preview adapters'),
+              '/web/review/canonical.js?v=1': ('javascript', b'canonical-preview-adapters-v1'),
+              '/web/review/assets/menu/icons-v19.webp?v=23': ('image/webp', None),
+              '/web/review/assets/alias/12-round-finish.webp': ('image/webp', None),
+              '/web/review/assets/spy/17-patrol.webp': ('image/webp', None),
               '/web/review/assets/menu/city.webp': ('image/webp', None),
               '/web/review/assets/scenes/pairs.webp': ('image/webp', None),
               '/web/review/assets/path/temple-base-v3.webp': ('image/webp', None),
@@ -105,5 +119,5 @@ jobs:
               assert kind in headers.get('Content-Type', ''), (path, headers.get('Content-Type'))
               if marker: assert marker in body, path
               if path.endswith('.webp'): assert len(body) > 20_000, (path, len(body))
-          print('Live unified review verified: menu + 12 production games')
+          print('Live unified review verified: canonical preview visuals + 12 production game mechanics')
           PY
