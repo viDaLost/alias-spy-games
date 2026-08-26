@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru" class="app-booting">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Библейские игры</title>
+  <meta name="theme-color" content="#eaf3ff" />
+  <meta name="description" content="Библейские мини-игры для компании, друзей и семьи" />
+  <meta name="application-name" content="Библейские игры" />
+  <meta name="app-build" content="request-storm-v2-20260824" />
+  <meta name="preview-build" content="unified-games-redesign-review-v1" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="quartet-backend" content="https://alias-spy-games-quartet.vitaledanilov.workers.dev" />
+  <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
+  <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
+  <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net https://script.google.com https://script.googleusercontent.com; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
+  <script>
+    (() => {
+      try {
+        const allowed = new Set(['continue', 'recent', 'progress']);
+        const raw = JSON.parse(localStorage.getItem('home_hidden_sections_v1') || '[]');
+        const hidden = Array.isArray(raw) ? raw.filter((key) => allowed.has(key)) : [];
+        if (hidden.length) document.documentElement.dataset.homeHidden = hidden.join(' ');
+      } catch {}
+    })();
+  </script>
+  <style>
+    html.app-booting,html.app-booting body{background:#fdfaf4!important}
+    html.app-booting .app-header,
+    html.app-menu-preparing .app-header,
+    html.app-booting #menu-container,
+    html.app-menu-preparing #menu-container,
+    html.app-booting #banned-screen,
+    html.app-booting #game-container{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+    html.app-booting #main-loader{
+      position:fixed!important;
+      inset:0!important;
+      z-index:2147483647!important;
+      display:flex!important;
+      flex-direction:column!important;
+      align-items:center!important;
+      justify-content:center!important;
+      width:100%!important;
+      min-width:100%!important;
+      height:100vh!important;
+      min-height:100dvh!important;
+      margin:0!important;
+      padding:0 24px!important;
+      visibility:visible!important;
+      opacity:1!important;
+      pointer-events:auto!important;
+      background:#fdfaf4!important;
+    }
+  </style>
+  <link rel="stylesheet" href="web/styles/style.css?v=23" />
+  <link rel="stylesheet" href="web/styles/admin-enhancements.css?v=24" />
+  <link rel="stylesheet" href="web/styles/home-enhancements.css?v=1" />
+  <link rel="stylesheet" href="web/styles/home-controls.css?v=2" />
+  <link rel="stylesheet" href="web/styles/admin-live-v3.css?v=6" />
+  <link rel="stylesheet" href="web/styles/broadcast-cloudflare.css?v=2" />
+  <link rel="stylesheet" href="web/styles/error-system.css?v=1" />
+  <link rel="stylesheet" href="web/styles/support-center.css?v=1" />
+  <link rel="stylesheet" href="web/styles/admin-compact-lists.css?v=1" />
+  <link rel="stylesheet" href="web/styles/admin-shell-v3.css?v=1" />
+  <link rel="stylesheet" href="web/styles/admin-live-compact.css?v=1" />
+  <link rel="stylesheet" href="web/styles/room-invite.css?v=3" />
+  <link rel="stylesheet" href="web/styles/room-qr-brand.css?v=1" />
+  <link rel="stylesheet" href="web/styles/games-mobile-polish.css?v=3" />
+  <link rel="stylesheet" href="web/games/kids-ark-pairs.css?v=6" />
+  <link rel="stylesheet" href="web/games/quartet-mobile.css?v=42" />
+  <link rel="stylesheet" href="web/games/quartet-v4-preview.css?v=42" />
+  <link rel="stylesheet" href="web/styles/quartet-v43-smooth.css?v=43" />
+  <link rel="stylesheet" href="web/styles/quartet-gesture-guard.css?v=1" />
+  <link rel="stylesheet" href="web/styles/app-motion.css?v=2" />
+  <link rel="stylesheet" href="web/styles/word-games-upgrade.css?v=1" />
+  <link rel="stylesheet" href="web/styles/bible-wow-word-flow.css?v=1" />
+  <link rel="stylesheet" href="web/styles/biblical-match-three-v38.css?v=41" />
+  <link rel="stylesheet" href="web/review/unified.css?v=1" />
+</head>
+<body>
+  <header class="app-header">
+    <p class="app-kicker">Мини-игры для компании</p>
+    <h1>Библейские игры</h1>
+    <p class="app-subtitle">Выберите игру и начните партию</p>
+  </header>
+
+  <div id="main-loader" class="app-loader" aria-live="polite">
+    <div class="app-loader__ring"></div>
+    <p>Проверка доступа...</p>
+  </div>
+
+  <main class="menu-container hidden" id="menu-container">
+    <section class="menu-section">
+      <div class="menu-section-title">Игры для компании</div>
+      <div class="menu-grid" id="company-games"></div>
+    </section>
+
+    <section class="menu-section">
+      <div class="menu-section-title">Словесные</div>
+      <div class="menu-grid" id="word-games"></div>
+    </section>
+
+    <section class="menu-section">
+      <div class="menu-grid" id="kids-games"></div>
+    </section>
+
+    <section class="menu-section">
+      <div class="menu-grid" id="system-actions"></div>
+    </section>
+  </main>
+
+  <section id="banned-screen" class="hidden banned-screen">
+    <div class="banned-card">
+      <h2>Доступ ограничен</h2>
+      <p>Обжаловать блокировку можно через техническую поддержку.</p>
+      <button class="game-button" type="button" onclick="openSupportChat()">Написать</button>
+    </div>
+  </section>
+
+  <main id="game-container" aria-live="polite"></main>
+
+  <script id="three-js" type="application/json" data-src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+  <script src="web/js/android-runtime.js?v=1" defer></script>
+  <script src="web/js/backend-bridge.js?v=5" defer></script>
+  <script src="web/js/referral-survey.js?v=1" defer></script>
+  <script src="web/js/error-system.js?v=3" defer></script>
+  <script src="web/js/startup-coordinator.js?v=3" defer></script>
+  <script src="web/games/kids-ark-pairs.js?v=21" defer></script>
+  <script src="web/js/quartet-production-v43-loader.js?v=44" defer></script>
+  <script src="web/js/app.js?v=25" defer></script>
+  <script src="web/js/cloudflare-request-budget.js?v=2" defer></script>
+  <script src="web/games/biblical-match-three-progress.js?v=46" defer></script>
+  <script src="web/js/bmt-stars-cloud-sync.js?v=49" defer></script>
+  <script src="web/js/biblical-match-three-launcher.js?v=45" defer></script>
+  <script src="web/review/bmt-event-bridge.js?v=1" defer></script>
+  <script src="web/js/android-download-menu.js?v=25" defer></script>
+  <script src="web/js/android-performance.js?v=1" defer></script>
+  <script src="web/js/bible-sketch-launcher.js?v=6" defer></script>
+  <script src="web/js/room-invite.js?v=3" defer></script>
+  <script src="web/js/room-qr-brand.js?v=1" defer></script>
+  <script src="web/js/room-qr-scanner.js?v=4" defer></script>
+  <script src="web/js/room-qr-addon.js?v=4" defer></script>
+  <script src="web/js/telegram-gesture-guard.js?v=1" defer></script>
+  <script src="web/js/quartet-chat-addon.js?v=42" defer></script>
+  <script src="web/js/quartet-v43-smooth-ui.js?v=43" defer></script>
+  <script src="web/js/quartet-v45-card-id-fix.js?v=45" defer></script>
+  <script src="web/js/quartet-v44-overlay-fix.js?v=44" defer></script>
+  <script src="web/js/quartet-v46-cleanup.js?v=46" defer></script>
+  <script src="web/js/early-init.js?v=2" defer></script>
+  <script src="web/js/three-gate.js?v=2" defer></script>
+  <script src="web/js/system-icons.js?v=22" defer></script>
+  <script src="web/js/v22-home-art.js?v=39" defer></script>
+  <script src="web/js/v43-biblical-treasures-lamp-stability.js?v=43" defer></script>
+  <script src="web/js/v22-game-loader.js?v=41" defer></script>
+  <script src="web/js/v24-biblical-treasures-board.js?v=29" defer></script>
+  <script src="web/js/v29-biblical-treasures-hotfix.js?v=40" defer></script>
+  <script src="web/js/v36-biblical-treasures-special-art.js?v=36" defer></script>
+  <script src="web/js/v37-biblical-treasures-lamp-swipe.js?v=37" defer></script>
+  <script src="web/js/v38-biblical-treasures-experience.js?v=39" defer></script>
+  <script src="web/js/admin-enhancements.js?v=24" defer></script>
+  <script src="web/js/broadcast-admin-mount.js?v=1" defer></script>
+  <script src="web/js/broadcast-cloudflare.js?v=2" defer></script>
+  <script src="web/js/home-enhancements.js?v=8" defer></script>
+  <script src="web/js/home-controls.js?v=5" defer></script>
+  <script src="web/js/app-motion.js?v=1" defer></script>
+  <script src="web/js/word-games-upgrade-lite.js?v=1" defer></script>
+  <script src="web/js/bible-wow-word-flow.js?v=1" defer></script>
+  <script src="web/js/wordsearch-classic-engine.js?v=1" defer></script>
+  <script src="web/js/network-warmup.js?v=2" defer></script>
+  <script src="web/js/telemetry.js?v=3" defer></script>
+  <script src="web/js/presence-identity.js?v=7" defer></script>
+  <script src="web/js/presence-game-bridge.js?v=1" defer></script>
+  <script src="web/js/admin-live-v3.js?v=7" defer></script>
+  <script src="web/js/admin-live-rescue.js?v=2" defer></script>
+  <script src="web/js/admin-shell-v3.js?v=1" defer></script>
+  <script src="web/js/admin-live-modal-safety.js?v=1" defer></script>
+  <script src="web/js/support-center.js?v=1" defer></script>
+  <script src="web/review/unified.js?v=1" defer></script>
+</body>
+</html>

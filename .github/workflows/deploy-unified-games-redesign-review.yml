@@ -1,0 +1,101 @@
+name: Deploy Unified Games Redesign Review
+
+on:
+  push:
+    branches:
+      - preview/unified-games-redesign-review-v1
+    paths:
+      - preview/unified-games-redesign/**
+      - web/review/**
+      - .github/workflows/deploy-unified-games-redesign-review.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unified-games-redesign-review
+  cancel-in-progress: true
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: preview/unified-games-redesign
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install image validator
+        run: python -m pip install --disable-pip-version-check Pillow==12.0.0
+      - name: Verify production mechanics remain intact
+        working-directory: ${{ github.workspace }}
+        run: npm run check
+      - name: Validate source and artwork
+        run: |
+          python validate_review.py
+          node --check public/web/review/unified.js
+          node --check public/web/review/bmt-event-bridge.js
+          node --check worker.js
+          test "$(find public/web/review/assets -type f -name '*.webp' | wc -l)" -eq 46
+          ! grep -Rq 'setInterval' public/web/review worker.js
+      - name: Validate Worker bundle
+        run: npx --yes wrangler@4.102.0 deploy --dry-run
+      - name: Deploy isolated review Worker
+        run: npx --yes wrangler@4.102.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Verify live review
+        env:
+          PREVIEW_URL: https://alias-spy-games-unified-redesign-review.vitaledanilov.workers.dev
+        run: |
+          python - <<'PY'
+          import json, os, time, urllib.request
+          base = os.environ['PREVIEW_URL'].rstrip('/')
+          def get(path):
+              req = urllib.request.Request(base + path, headers={'User-Agent':'unified-redesign-review-ci'})
+              with urllib.request.urlopen(req, timeout=25) as response:
+                  return response.status, response.headers, response.read()
+          def ready(path):
+              last = None
+              for _ in range(15):
+                  try: return get(path)
+                  except Exception as error: last = error; time.sleep(5)
+              raise RuntimeError(f'{path} not ready: {last}')
+          status, headers, body = ready('/__preview_version')
+          data = json.loads(body)
+          assert status == 200
+          assert data['version'] == 'unified-games-redesign-review-v1'
+          assert data['sourceCommit'] == '58cfe7515fd1d50163eda13d10a14958a9475357'
+          assert data['productionMainTouched'] is False
+          assert data['gameCount'] == 12
+          assert len(data['parallaxGames']) == 8
+          assert len(data['staticRedesignGames']) == 4
+          checks = {
+              '/': ('text/html', b'unified-games-redesign-review-v1'),
+              '/web/review/unified.css?v=1': ('text/css', b'.ur-scene'),
+              '/web/review/unified.js?v=1': ('javascript', b'UnifiedGamesReview'),
+              '/web/review/assets/menu/city.webp': ('image/webp', None),
+              '/web/review/assets/scenes/pairs.webp': ('image/webp', None),
+              '/web/review/assets/path/temple-base-v3.webp': ('image/webp', None),
+              '/web/js/app.js?v=25': ('javascript', b'GAME_GROUPS'),
+              '/web/data/biblical_match_three_levels.json': ('json', b'levels'),
+          }
+          for path, (kind, marker) in checks.items():
+              status, headers, body = ready(path)
+              assert status == 200, (path, status)
+              assert kind in headers.get('Content-Type', ''), (path, headers.get('Content-Type'))
+              if marker: assert marker in body, path
+              if path.endswith('.webp'): assert len(body) > 20_000, (path, len(body))
+          print('Live unified review verified: menu + 12 production games')
+          PY
