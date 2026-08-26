@@ -34,24 +34,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install layer validator
-        run: python -m pip install --disable-pip-version-check Pillow==12.0.0
-      - name: Validate generated layers and source
+      - name: Validate scene and source
         run: |
           python validate_layers.py
           node --check public/preview-bridge.js
           node --check public/app.js
           node --check worker.js
-          grep -q 'path-of-light-v1-working-match3' public/index.html
+          grep -q 'path-of-light-v2-production-art-css-scene' public/index.html
           grep -q 'real-match3-v45-launcher' worker.js
           grep -q 'parallax-freeze-on-swipe' worker.js
+          grep -q 'worker-proxied-pinned-production-assets' worker.js
           grep -q 'bmt:path-light' public/preview-bridge.js
           grep -q 'pointerdown' public/app.js
           grep -q 'freezeParallax' public/app.js
+          grep -q 'board-background-v35.webp' public/scene-v2.css
           ! grep -Rq 'setInterval' public worker.js
-          ! grep -REq 'animation:[^;]*infinite' public/styles.css
-          test -s public/path-layers.webp
-          grep -q 'path-frame-9' public/index.html
+          ! grep -REq 'animation:[^;]*infinite' public/scene-v2.css
       - name: Validate Worker bundle
         run: npx --yes wrangler@4.102.0 deploy --dry-run
       - name: Deploy isolated review Worker
@@ -83,29 +81,30 @@ jobs:
                   data=json.loads(body)
                   assert status == 200
                   assert data['version'] == 'biblical-treasures-path-of-light-review-v1'
-                  assert data['build'] == 'path-of-light-v1-working-match3'
+                  assert data['build'] == 'path-of-light-v2-production-art-css-scene'
                   assert data['engine'] == 'production-v45-from-pinned-main-commit'
                   assert data['productionMainTouched'] is False
-                  assert data['baseLayers'] == 10
+                  assert data['layers'] == 10
                   assert data['eventReactions'] == 10
                   assert data['continuousVisualLoops'] == 0
+                  assert data['assetTransport'] == 'worker-proxied-pinned-production-assets'
                   assert 'parallax-freeze-on-swipe' in data['mechanics']
                   break
               except Exception as e: last=e; time.sleep(5)
           else: raise RuntimeError(f'preview version not ready: {last}')
           checks={
-            '/':('text/html',b'path-of-light-v1-working-match3'),
+            '/':('text/html',b'path-of-light-v2-production-art-css-scene'),
             '/preview-bridge.js?v=path1':('javascript',b'bmt:path-light'),
             '/app.js?v=path1':('javascript',b'freezeParallax'),
-            '/styles.css?v=path1':('text/css',b'.path-scene'),
+            '/scene-v2.css?v=path2':('text/css',b'board-background-v35.webp'),
+            '/web/assets/biblical-match-three/board-background-v35.webp':('image/webp',None),
+            '/web/assets/biblical-match-three/icons-v17/sling.webp':('image/webp',None),
           }
           for path,(ctype,marker) in checks.items():
               status,headers,body=ready(path)
-              assert status == 200
-              assert ctype in headers.get_content_type(), (path,headers.get('Content-Type'))
-              assert marker in body, path
-          status,headers,body=ready('/path-layers.webp')
-          assert status == 200 and headers.get_content_type() == 'image/webp'
-          assert len(body) > 200_000
-          print('Live Biblical Treasures Path of Light review verified')
+              assert status == 200, (path,status)
+              assert ctype in headers.get('Content-Type',''), (path,headers.get('Content-Type'))
+              if marker: assert marker in body, path
+              if path.endswith('board-background-v35.webp'): assert len(body) > 200_000, len(body)
+          print('Live Biblical Treasures Path of Light V2 review verified')
           PY
