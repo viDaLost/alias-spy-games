@@ -20,31 +20,23 @@ jobs:
   validate-deploy-verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: preview/biblical-treasures-path-light
     steps:
       - name: Checkout review branch
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-
-      - name: Extract isolated review runtime
-        run: |
-          rm -rf preview/biblical-treasures-path-light/runtime
-          mkdir -p preview/biblical-treasures-path-light/runtime
-          unzip -q preview/biblical-treasures-path-light/review-bundle.zip -d preview/biblical-treasures-path-light/runtime
-
       - name: Install layer validator
         run: python -m pip install --disable-pip-version-check Pillow==12.0.0
-
       - name: Validate generated layers and source
-        working-directory: preview/biblical-treasures-path-light/runtime
         run: |
           python validate_layers.py
           node --check public/preview-bridge.js
@@ -60,18 +52,13 @@ jobs:
           ! grep -REq 'animation:[^;]*infinite' public/styles.css
           test -s public/path-layers.webp
           grep -q 'path-frame-9' public/index.html
-
       - name: Validate Worker bundle
-        working-directory: preview/biblical-treasures-path-light/runtime
         run: npx --yes wrangler@4.102.0 deploy --dry-run
-
       - name: Deploy isolated review Worker
-        working-directory: preview/biblical-treasures-path-light/runtime
         run: npx --yes wrangler@4.102.0 deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
       - name: Verify live review
         env:
           PREVIEW_URL: https://alias-spy-games-biblical-treasures-path-light-preview.vitaledanilov.workers.dev
@@ -79,27 +66,21 @@ jobs:
           python - <<'PY'
           import json, os, time, urllib.request
           base = os.environ['PREVIEW_URL'].rstrip('/')
-
           def get(path):
               req = urllib.request.Request(base + path, headers={'User-Agent':'path-light-preview-ci'})
               with urllib.request.urlopen(req, timeout=20) as r:
                   return r.status, r.headers, r.read()
-
           def ready(path):
-              last = None
+              last=None
               for _ in range(12):
-                  try:
-                      return get(path)
-                  except Exception as e:
-                      last = e
-                      time.sleep(5)
+                  try: return get(path)
+                  except Exception as e: last=e; time.sleep(5)
               raise RuntimeError(f'{path} not ready: {last}')
-
-          last = None
+          last=None
           for _ in range(12):
               try:
                   status, headers, body = get('/__preview_version')
-                  data = json.loads(body)
+                  data=json.loads(body)
                   assert status == 200
                   assert data['version'] == 'biblical-treasures-path-of-light-review-v1'
                   assert data['build'] == 'path-of-light-v1-working-match3'
@@ -110,25 +91,20 @@ jobs:
                   assert data['continuousVisualLoops'] == 0
                   assert 'parallax-freeze-on-swipe' in data['mechanics']
                   break
-              except Exception as e:
-                  last = e
-                  time.sleep(5)
-          else:
-              raise RuntimeError(f'preview version not ready: {last}')
-
-          checks = {
-              '/': ('text/html', b'path-of-light-v1-working-match3'),
-              '/preview-bridge.js?v=path1': ('javascript', b'bmt:path-light'),
-              '/app.js?v=path1': ('javascript', b'freezeParallax'),
-              '/styles.css?v=path1': ('text/css', b'.path-scene'),
+              except Exception as e: last=e; time.sleep(5)
+          else: raise RuntimeError(f'preview version not ready: {last}')
+          checks={
+            '/':('text/html',b'path-of-light-v1-working-match3'),
+            '/preview-bridge.js?v=path1':('javascript',b'bmt:path-light'),
+            '/app.js?v=path1':('javascript',b'freezeParallax'),
+            '/styles.css?v=path1':('text/css',b'.path-scene'),
           }
-          for path, (ctype, marker) in checks.items():
-              status, headers, body = ready(path)
+          for path,(ctype,marker) in checks.items():
+              status,headers,body=ready(path)
               assert status == 200
-              assert ctype in headers.get_content_type(), (path, headers.get('Content-Type'))
+              assert ctype in headers.get_content_type(), (path,headers.get('Content-Type'))
               assert marker in body, path
-
-          status, headers, body = ready('/path-layers.webp')
+          status,headers,body=ready('/path-layers.webp')
           assert status == 200 and headers.get_content_type() == 'image/webp'
           assert len(body) > 200_000
           print('Live Biblical Treasures Path of Light review verified')
