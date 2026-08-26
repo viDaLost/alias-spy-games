@@ -80,6 +80,16 @@ jobs:
               with urllib.request.urlopen(request, timeout=20) as response:
                   return response.status, response.headers, response.read()
 
+          def get_ready(path):
+              last_error = None
+              for _ in range(12):
+                  try:
+                      return get(path)
+                  except Exception as error:
+                      last_error = error
+                      time.sleep(5)
+              raise RuntimeError(f"Asset did not become ready: {path}: {last_error}")
+
           last_error = None
           for _ in range(12):
               try:
@@ -108,7 +118,7 @@ jobs:
               "/data/bible_wow_levels.json": ("application/json", b'"levels"'),
           }
           for path, (content_type, marker) in checks.items():
-              status, headers, body = get(path)
+              status, headers, body = get_ready(path)
               assert status == 200, (path, status)
               assert content_type in headers.get_content_type(), (path, headers.get("Content-Type"))
               assert marker in body, path
@@ -118,7 +128,7 @@ jobs:
               "05-scriptorium-ledge", "06-moonbeams", "07-dust-motes",
               "event-correct-inscription", "event-error-shards", "event-level-complete",
           ]:
-              status, headers, body = get(f"/layers/{name}.webp")
+              status, headers, body = get_ready(f"/layers/{name}.webp")
               assert status == 200, (name, status)
               assert headers.get_content_type() == "image/webp", (name, headers.get("Content-Type"))
               assert len(body) > 1_000, (name, len(body))
