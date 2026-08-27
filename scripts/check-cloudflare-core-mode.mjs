@@ -47,7 +47,8 @@ if (!wrangler.includes('"main": "src/index-v10.js"')) fail('Core Worker must use
 if (!richEntryWorker.includes("from './index-v9.js'")) fail('v10 entrypoint must preserve the hardened v9 runtime.');
 if (!richEntryWorker.includes("telegramApi(env, 'sendRichMessage'")) fail('v10 entrypoint must send Telegram Rich Messages.');
 if (!richEntryWorker.includes("callback_data: 'support:start'")) fail('v10 Rich Message must preserve the support callback route.');
-if (!richEntryWorker.includes("web_app: { url: miniAppUrl }")) fail('v10 Rich Message must launch the Main Mini App via web_app.');
+if (!richEntryWorker.includes('url: miniAppUrl')) fail('v10 Rich Message must launch the Main Mini App through a valid URL button.');
+if (richEntryWorker.includes('web_app: { url: miniAppUrl }')) fail('Telegram t.me deep links must not be passed as WebAppInfo URLs.');
 if (!secureEntryWorker.includes("from './index-v8.js'")) fail('v9 entrypoint must preserve the v8 balance/admin runtime.');
 if (!balanceEntryWorker.includes("from './index-v7.js'")) fail('v8 entrypoint must preserve the v7 invite runtime.');
 if (!entryWorker.includes("from './index-v6.js'")) fail('v7 entrypoint must preserve the v6 retention runtime.');
