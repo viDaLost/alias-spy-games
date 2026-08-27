@@ -72,6 +72,16 @@ async function tryHandleRichWelcome(request, env, ctx) {
   const senderId = String(message.from?.id || '');
   if (!chatId || !senderId || chatId !== senderId) return false;
 
+  const photoFileId = getLargestPhotoFileId(message);
+  if (photoFileId) {
+    ctx.waitUntil(telegramSendMessage(
+      env,
+      chatId,
+      `Telegram Photo file_id:\n${photoFileId}`,
+    ).catch(() => {}));
+    return true;
+  }
+
   const text = String(message.text || '').trim();
   if (!/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) return false;
 
@@ -88,6 +98,13 @@ async function tryHandleRichWelcome(request, env, ctx) {
   }));
 
   return true;
+}
+
+function getLargestPhotoFileId(message) {
+  const photos = Array.isArray(message?.photo) ? message.photo : [];
+  if (!photos.length) return '';
+  const largest = photos[photos.length - 1];
+  return String(largest?.file_id || '').trim();
 }
 
 async function sendRichWelcomeMessage(env, chatId, origin) {
