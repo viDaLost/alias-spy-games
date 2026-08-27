@@ -7,6 +7,7 @@ let cachedBotUsername = '';
 
 const PLAY_CUSTOM_EMOJI_ID = '5224314565776417323';
 const SUPPORT_CUSTOM_EMOJI_ID = '5224665219791364705';
+const WELCOME_COVER_URL = 'https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/web/assets/telegram-rich-welcome.jpg';
 
 export default {
   async fetch(request, env, ctx) {
@@ -67,6 +68,13 @@ async function sendRichWelcomeMessage(env, chatId) {
     rich_message: {
       blocks: [
         {
+          type: 'photo',
+          photo: {
+            type: 'photo',
+            media: WELCOME_COVER_URL,
+          },
+        },
+        {
           type: 'heading',
           size: 1,
           text: 'Библейские игры',
@@ -100,6 +108,7 @@ async function sendRichWelcomeMessage(env, chatId) {
                 },
                 ' Поддержка',
               ],
+              style: 'primary',
               callback_data: 'support:start',
             },
           ],
