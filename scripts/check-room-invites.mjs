@@ -18,7 +18,8 @@ const gestureCss = read('web/styles/quartet-gesture-guard.css');
 const gestureJs = read('web/js/telegram-gesture-guard.js');
 const inviteCore = read('cloudflare/app-core-worker/src/index-v7.js');
 const balanceCore = read('cloudflare/app-core-worker/src/index-v8.js');
-const entryCore = read('cloudflare/app-core-worker/src/index-v9.js');
+const secureCore = read('cloudflare/app-core-worker/src/index-v9.js');
+const entryCore = read('cloudflare/app-core-worker/src/index-v10.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const html = read('index.html');
 
@@ -71,8 +72,9 @@ requireText(addon, 'data-action="join-room"', 'Bible Sketch fallback auto-join i
 requireText(inviteCore, "'/telegram/miniapp-config'", 'core backend does not expose Mini App bot config');
 requireText(inviteCore, '/getMe', 'core backend does not resolve Telegram bot username');
 requireText(balanceCore, "from './index-v7.js'", 'v8 entrypoint must preserve Mini App config runtime');
-requireText(entryCore, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
-requireText(wrangler, 'src/index-v9.js', 'hardened Mini App config worker entrypoint is not active');
+requireText(secureCore, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
+requireText(entryCore, "from './index-v9.js'", 'v10 entrypoint must preserve hardened v9 runtime');
+requireText(wrangler, 'src/index-v10.js', 'v10 Mini App config worker entrypoint is not active');
 
 requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
 requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
@@ -94,4 +96,4 @@ requireText(html, 'room-qr-addon.js?v=4', 'updated room QR addon is not mounted'
 requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
 requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
 
-console.log('Room QR scanner, branded in-app QR payloads, Telegram Mini App links and Quartet swipe guard checks passed.');
+console.log('Room QR scanner, branded in-app QR payloads, Telegram Mini App links and Quartet swipe guard checks passed through the v10 entry chain.');
