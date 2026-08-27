@@ -67,13 +67,18 @@ jobs:
               req = urllib.request.Request(base + path, headers={'User-Agent':'unified-redesign-review-ci'})
               with urllib.request.urlopen(req, timeout=25) as response:
                   return response.status, response.headers, response.read()
-          def ready(path):
+          def ready(path, marker=None):
               last = None
               for _ in range(15):
-                  try: return get(path)
-                  except Exception as error: last = error; time.sleep(5)
+                  try:
+                      result = get(path)
+                      if marker is None or marker in result[2]: return result
+                      last = RuntimeError(f'{path} still serves the previous deployment')
+                  except Exception as error: last = error
+                  time.sleep(5)
               raise RuntimeError(f'{path} not ready: {last}')
-          status, headers, body = ready('/__preview_version')
+          expected_build = b'canonical-preview-adapters-v2'
+          status, headers, body = ready('/__preview_version?build=canonical-preview-adapters-v2', expected_build)
           data = json.loads(body)
           assert status == 200
           assert data['version'] == 'unified-games-redesign-review-v1'
@@ -114,7 +119,7 @@ jobs:
               '/web/data/biblical_match_three_levels.json': ('json', b'levels'),
           }
           for path, (kind, marker) in checks.items():
-              status, headers, body = ready(path)
+              status, headers, body = ready(path, marker)
               assert status == 200, (path, status)
               assert kind in headers.get('Content-Type', ''), (path, headers.get('Content-Type'))
               if marker: assert marker in body, path
