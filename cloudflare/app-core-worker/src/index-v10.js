@@ -7,11 +7,15 @@ let cachedBotUsername = '';
 
 const PLAY_CUSTOM_EMOJI_ID = '5224314565776417323';
 const SUPPORT_CUSTOM_EMOJI_ID = '5224665219791364705';
-const WELCOME_COVER_URL = 'https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/web/assets/telegram-rich-welcome.jpg';
+const WELCOME_COVER_SOURCE_URL = 'https://raw.githubusercontent.com/viDaLost/alias-spy-games/main/web/assets/telegram-rich-welcome.jpg';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/telegram/rich-welcome-cover.jpg' && request.method === 'GET') {
+      return proxyWelcomeCover();
+    }
 
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
       const handled = await tryHandleRichWelcome(request, env, ctx);
@@ -27,6 +31,31 @@ export default {
     }
   },
 };
+
+async function proxyWelcomeCover() {
+  const response = await fetch(WELCOME_COVER_SOURCE_URL, {
+    headers: { Accept: 'image/jpeg,image/*;q=0.9,*/*;q=0.1' },
+  });
+
+  if (!response.ok) {
+    return new Response('Welcome cover unavailable', { status: 502 });
+  }
+
+  const contentType = String(response.headers.get('Content-Type') || '').toLowerCase();
+  if (!contentType.startsWith('image/')) {
+    return new Response('Welcome cover has invalid content type', { status: 502 });
+  }
+
+  return new Response(response.body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+      'Content-Disposition': 'inline; filename="telegram-rich-welcome.jpg"',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
 
 async function tryHandleRichWelcome(request, env, ctx) {
   if (!env.TELEGRAM_BOT_TOKEN) return false;
@@ -46,7 +75,8 @@ async function tryHandleRichWelcome(request, env, ctx) {
   const text = String(message.text || '').trim();
   if (!/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) return false;
 
-  ctx.waitUntil(sendRichWelcomeMessage(env, chatId).catch(async (error) => {
+  const origin = new URL(request.url).origin;
+  ctx.waitUntil(sendRichWelcomeMessage(env, chatId, origin).catch(async (error) => {
     const adminId = String(env.ADMIN_TELEGRAM_ID || '');
     if (adminId) {
       await telegramSendMessage(
@@ -60,8 +90,9 @@ async function tryHandleRichWelcome(request, env, ctx) {
   return true;
 }
 
-async function sendRichWelcomeMessage(env, chatId) {
+async function sendRichWelcomeMessage(env, chatId, origin) {
   const miniAppUrl = await getMainMiniAppUrl(env);
+  const coverUrl = `${String(origin || '').replace(/\/$/, '')}/telegram/rich-welcome-cover.jpg`;
 
   return telegramApi(env, 'sendRichMessage', {
     chat_id: String(chatId),
@@ -71,7 +102,7 @@ async function sendRichWelcomeMessage(env, chatId) {
           type: 'photo',
           photo: {
             type: 'photo',
-            media: WELCOME_COVER_URL,
+            media: coverUrl,
           },
         },
         {
