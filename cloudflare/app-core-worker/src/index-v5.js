@@ -6,6 +6,7 @@ const encoder = new TextEncoder();
 const SUPPORT_PROMPT_PREFIX = '🎧 Техподдержка';
 const TICKET_RE = /(?:№|ID обращения:)\s*(sup_[a-z0-9_]{6,80})/i;
 const recentUpdates = new Map();
+let cachedBotUsername = '';
 
 export default {
   async fetch(request, env, ctx) {
@@ -61,6 +62,12 @@ async function handleTelegramWebhook(request, env, ctx) {
 }
 
 async function processTelegramUpdate(update, env) {
+  const callbackQuery = update?.callback_query;
+  if (callbackQuery) {
+    await handleTelegramCallbackQuery(callbackQuery, env);
+    return;
+  }
+
   const message = update?.message;
   if (!message?.chat || message.chat.type !== 'private') return;
 
@@ -96,12 +103,7 @@ async function processTelegramUpdate(update, env) {
   }
 
   if (/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) {
-    await telegramSendMessage(env, chatId, [
-      '👋 Библейские игры',
-      '',
-      'Через этого бота приходят коды входа и ответы техподдержки.',
-      'Чтобы написать в техподдержку, отправьте /support.',
-    ].join('\n'));
+    await sendWelcomeMessage(env, chatId);
     return;
   }
 
@@ -117,6 +119,77 @@ async function processTelegramUpdate(update, env) {
   if (text) {
     await telegramSendMessage(env, chatId, 'Чтобы отправить сообщение в техподдержку, используйте команду /support.');
   }
+}
+
+async function handleTelegramCallbackQuery(callbackQuery, env) {
+  const callbackId = String(callbackQuery?.id || '');
+  const chatId = String(callbackQuery?.message?.chat?.id || '');
+  const chatType = String(callbackQuery?.message?.chat?.type || '');
+  const senderId = String(callbackQuery?.from?.id || '');
+  const data = String(callbackQuery?.data || '');
+
+  if (!callbackId) return;
+
+  if (!chatId || chatType !== 'private' || !senderId || chatId !== senderId) {
+    await telegramApi(env, 'answerCallbackQuery', { callback_query_id: callbackId }).catch(() => {});
+    return;
+  }
+
+  if (data === 'support:start') {
+    await telegramApi(env, 'answerCallbackQuery', { callback_query_id: callbackId }).catch(() => {});
+    await sendSupportPrompt(env, chatId, Number(callbackQuery?.message?.message_id || 0));
+    return;
+  }
+
+  await telegramApi(env, 'answerCallbackQuery', {
+    callback_query_id: callbackId,
+    text: 'Действие больше недоступно. Отправьте /start.',
+  }).catch(() => {});
+}
+
+async function sendWelcomeMessage(env, chatId) {
+  const botUsername = await getBotUsername(env);
+  const miniAppUrl = `https://t.me/${botUsername}?startapp`;
+  await telegramApi(env, 'sendMessage', {
+    chat_id: String(chatId),
+    text: [
+      '👋 Библейские игры',
+      '',
+      'Добро пожаловать! Здесь вы можете открыть приложение с играми, а также быстро обратиться в техподдержку.',
+      '',
+      'Коды входа и ответы поддержки тоже будут приходить в этот чат.',
+    ].join('\n'),
+    disable_web_page_preview: true,
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: '🎮 Открыть Библейские игры',
+            url: miniAppUrl,
+            style: 'primary',
+          },
+        ],
+        [
+          {
+            text: '🎧 Техподдержка',
+            callback_data: 'support:start',
+            style: 'success',
+          },
+        ],
+      ],
+    },
+  });
+}
+
+async function getBotUsername(env) {
+  if (cachedBotUsername) return cachedBotUsername;
+  const profile = await telegramApi(env, 'getMe', {});
+  const username = String(profile?.username || '').replace(/^@+/, '');
+  if (!/^[A-Za-z0-9_]{5,32}$/.test(username)) {
+    throw new Error('Telegram bot username is unavailable');
+  }
+  cachedBotUsername = username;
+  return cachedBotUsername;
 }
 
 async function sendSupportPrompt(env, chatId, replyToMessageId = 0) {
