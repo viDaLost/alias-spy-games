@@ -39,6 +39,16 @@ async function tryHandleRichWelcome(request, env, ctx) {
   const senderId = String(message.from?.id || '');
   if (!chatId || !senderId || chatId !== senderId) return false;
 
+  const emojiIds = collectCustomEmojiIds(message);
+  if (emojiIds.length) {
+    ctx.waitUntil(telegramSendMessage(
+      env,
+      chatId,
+      `Custom Emoji ID${emojiIds.length > 1 ? 's' : ''}:\n${emojiIds.join('\n')}`,
+    ).catch(() => {}));
+    return true;
+  }
+
   const text = String(message.text || '').trim();
   if (!/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) return false;
 
@@ -54,6 +64,20 @@ async function tryHandleRichWelcome(request, env, ctx) {
   }));
 
   return true;
+}
+
+function collectCustomEmojiIds(message) {
+  const entities = [
+    ...(Array.isArray(message?.entities) ? message.entities : []),
+    ...(Array.isArray(message?.caption_entities) ? message.caption_entities : []),
+  ];
+
+  return [...new Set(
+    entities
+      .filter((entity) => entity?.type === 'custom_emoji')
+      .map((entity) => String(entity.custom_emoji_id || '').trim())
+      .filter(Boolean),
+  )];
 }
 
 async function sendRichWelcomeMessage(env, chatId) {
