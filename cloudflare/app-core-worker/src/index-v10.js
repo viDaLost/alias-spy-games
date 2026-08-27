@@ -5,6 +5,9 @@ export { UserStore };
 const encoder = new TextEncoder();
 let cachedBotUsername = '';
 
+const PLAY_CUSTOM_EMOJI_ID = '5224314565776417323';
+const SUPPORT_CUSTOM_EMOJI_ID = '5224665219791364705';
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -39,16 +42,6 @@ async function tryHandleRichWelcome(request, env, ctx) {
   const senderId = String(message.from?.id || '');
   if (!chatId || !senderId || chatId !== senderId) return false;
 
-  const emojiIds = collectCustomEmojiIds(message);
-  if (emojiIds.length) {
-    ctx.waitUntil(telegramSendMessage(
-      env,
-      chatId,
-      `Custom Emoji ID${emojiIds.length > 1 ? 's' : ''}:\n${emojiIds.join('\n')}`,
-    ).catch(() => {}));
-    return true;
-  }
-
   const text = String(message.text || '').trim();
   if (!/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) return false;
 
@@ -66,20 +59,6 @@ async function tryHandleRichWelcome(request, env, ctx) {
   return true;
 }
 
-function collectCustomEmojiIds(message) {
-  const entities = [
-    ...(Array.isArray(message?.entities) ? message.entities : []),
-    ...(Array.isArray(message?.caption_entities) ? message.caption_entities : []),
-  ];
-
-  return [...new Set(
-    entities
-      .filter((entity) => entity?.type === 'custom_emoji')
-      .map((entity) => String(entity.custom_emoji_id || '').trim())
-      .filter(Boolean),
-  )];
-}
-
 async function sendRichWelcomeMessage(env, chatId) {
   const miniAppUrl = await getMainMiniAppUrl(env);
 
@@ -90,34 +69,37 @@ async function sendRichWelcomeMessage(env, chatId) {
         {
           type: 'heading',
           size: 1,
-          text: '👋 Библейские игры',
+          text: 'Библейские игры',
         },
         {
           type: 'paragraph',
-          text: 'Игры для компании, друзей и семьи — прямо в Telegram.',
-        },
-        {
-          type: 'paragraph',
-          text: 'Откройте приложение или быстро свяжитесь с техподдержкой.',
+          text: 'Играй вместе с друзьями и открывай Библию по-новому.',
         },
         {
           type: 'buttons',
           align: 'center',
           buttons: [
             {
-              text: '🎮 Играть',
+              text: [
+                {
+                  type: 'custom_emoji',
+                  custom_emoji_id: PLAY_CUSTOM_EMOJI_ID,
+                  alternative_text: '▶️',
+                },
+                ' Играть',
+              ],
               style: 'primary',
               url: miniAppUrl,
             },
-          ],
-        },
-        {
-          type: 'buttons',
-          align: 'center',
-          buttons: [
             {
-              text: '🎧 Техподдержка',
-              style: 'success',
+              text: [
+                {
+                  type: 'custom_emoji',
+                  custom_emoji_id: SUPPORT_CUSTOM_EMOJI_ID,
+                  alternative_text: '🎧',
+                },
+                ' Поддержка',
+              ],
               callback_data: 'support:start',
             },
           ],
@@ -125,7 +107,7 @@ async function sendRichWelcomeMessage(env, chatId) {
         { type: 'divider' },
         {
           type: 'footer',
-          text: 'Коды входа и ответы поддержки будут приходить в этот чат.',
+          text: 'Мини-игры • комнаты • прогресс',
         },
       ],
       skip_entity_detection: true,
