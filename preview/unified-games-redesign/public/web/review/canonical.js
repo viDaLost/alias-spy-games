@@ -353,7 +353,7 @@
   window.addEventListener('roominvitechange', scheduleSync);
 
   window.CanonicalVisualBridge = Object.freeze({
-    version: 'canonical-preview-adapters-v1',
+    version: 'canonical-preview-adapters-v2',
     mechanicsSource: `production-main@${SOURCE_COMMIT}`,
     visualSources: Object.freeze({
       home: `home-menu-v22@${HOME_REFERENCE}`,

@@ -80,9 +80,9 @@ jobs:
           assert data['sourceCommit'] == '58cfe7515fd1d50163eda13d10a14958a9475357'
           assert data['productionMainTouched'] is False
           assert data['gameCount'] == 12
-          assert data['build'] == 'canonical-preview-adapters-v1'
+          assert data['build'] == 'canonical-preview-adapters-v2'
           assert data['visualOwnership'] == 'preview-shells-only-production-main-mechanics-only'
-          assert data['visualBridge'] == 'canonical-preview-adapters-v1'
+          assert data['visualBridge'] == 'canonical-preview-adapters-v2'
           assert data['menuArchitecture'] == 'home-v22-games-profile-two-tab'
           assert data['profileEnabled'] is True
           assert data['canonicalReferences'] == {
@@ -99,10 +99,10 @@ jobs:
           checks = {
               '/': ('text/html', b'unified-games-redesign-review-v1'),
               '/web/review/unified.css?v=3': ('text/css', b'.ur-menu-moon'),
-              '/web/review/unified.js?v=3': ('javascript', b'home-menu-v22@195f150b'),
-              '/web/review/canonical.css?v=1': ('text/css', b'Canonical preview adapters'),
-              '/web/review/canonical.js?v=1': ('javascript', b'canonical-preview-adapters-v1'),
-              '/web/review/assets/menu/icons-v19.webp?v=23': ('image/webp', None),
+              '/web/review/unified.js?v=4': ('javascript', b'home-menu-v22@195f150b'),
+              '/web/review/canonical.css?v=2': ('text/css', b'Canonical preview adapters'),
+              '/web/review/canonical.js?v=2': ('javascript', b'canonical-preview-adapters-v2'),
+              '/web/review/assets/menu/icons-v19.webp?v=24': ('image/webp', None),
               '/web/review/assets/alias/12-round-finish.webp': ('image/webp', None),
               '/web/review/assets/spy/17-patrol.webp': ('image/webp', None),
               '/web/review/assets/menu/city.webp': ('image/webp', None),

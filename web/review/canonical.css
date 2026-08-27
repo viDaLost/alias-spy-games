@@ -206,7 +206,7 @@
   border: 0 !important;
   border-radius: 0 !important;
   background-color: transparent !important;
-  background-image: url('/web/review/assets/menu/icons-v19.webp?v=23') !important;
+  background-image: url('/web/review/assets/menu/icons-v19.webp?v=24') !important;
   background-repeat: no-repeat !important;
   background-size: 300% 300% !important;
   box-shadow: none !important;
@@ -312,7 +312,7 @@
 #ur-home .ur-nav-btn small { font-size: 9px !important; }
 #ur-home .ur-profile-card { background: rgba(16, 18, 43, .48) !important; backdrop-filter: none !important; }
 #ur-home .ur-profile-avatar {
-  background: rgba(91, 80, 238, .24) url('/web/review/assets/menu/icons-v19.webp?v=23') 50% 0 / 300% 300% no-repeat !important;
+  background: rgba(91, 80, 238, .24) url('/web/review/assets/menu/icons-v19.webp?v=24') 50% 0 / 300% 300% no-repeat !important;
   color: transparent !important;
   font-size: 0 !important;
 }

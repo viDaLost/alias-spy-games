@@ -56,11 +56,11 @@ assert 'id="ur-profile-view"' in script and 'data-ur-nav="profile"' in script
 assert '.ur-menu-moon' in styles and 'width:clamp(112px,30vw,174px)' in styles
 assert 'body[data-current-game="alias"] .btn-good::before' in styles
 assert '#menu-container{display:none!important}' in styles
-assert 'canonical-preview-adapters-v1' in canonical_script + worker
+assert 'canonical-preview-adapters-v2' in canonical_script + worker
 assert 'preview-shells-only-production-main-mechanics-only' in worker
 assert 'production-main@${SOURCE_COMMIT}' in canonical_script
 assert 'window.showGame' in canonical_script and 'window.openBiblicalMatchThree' in canonical_script
-assert 'icons-v19.webp?v=23' in canonical_styles
+assert 'icons-v19.webp?v=24' in canonical_styles
 assert '#game-container > header.ur-game-chrome.cv-game-topbar' in canonical_styles
 assert 'body[data-current-game="alias"]' in canonical_styles
 assert 'body[data-current-game="spy"]' in canonical_styles
@@ -77,8 +77,8 @@ assert 'setInterval' not in script + canonical_script + bridge + worker
 assert not re.search(r'animation\s*:[^;}]*(?:infinite)', styles + canonical_styles, re.I)
 assert 'web/js/app.js?v=25' in index
 assert 'web/js/three-gate.js?v=3' in index
-assert 'web/review/unified.css?v=3' in index and 'web/review/unified.js?v=3' in index
-assert 'web/review/canonical.css?v=1' in index and 'web/review/canonical.js?v=1' in index
+assert 'web/review/unified.css?v=3' in index and 'web/review/unified.js?v=4' in index
+assert 'web/review/canonical.css?v=2' in index and 'web/review/canonical.js?v=2' in index
 for name in ('unified.css', 'unified.js', 'canonical.css', 'canonical.js', 'bmt-event-bridge.js'):
     assert (REPO / 'web' / 'review' / name).read_bytes() == (PUBLIC / 'web' / 'review' / name).read_bytes(), name
 for name in ('games/sacred-word.js', 'js/three-gate.js'):

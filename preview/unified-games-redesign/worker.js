@@ -1,13 +1,13 @@
 const SOURCE_COMMIT = '58cfe7515fd1d50163eda13d10a14958a9475357';
 const VERSION = {
   version: 'unified-games-redesign-review-v1',
-  build: 'canonical-preview-adapters-v1',
+  build: 'canonical-preview-adapters-v2',
   sourceCommit: SOURCE_COMMIT,
   productionMainTouched: false,
   gameCount: 12,
   mechanicsSource: 'production-main-pinned-proxy',
   visualOwnership: 'preview-shells-only-production-main-mechanics-only',
-  visualBridge: 'canonical-preview-adapters-v1',
+  visualBridge: 'canonical-preview-adapters-v2',
   assetLoading: 'menu-eager-game-scenes-lazy',
   parallaxGames: ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'bible-wow', 'sacred-word', 'biblical-match-three'],
   staticRedesignGames: ['quartet', 'bible-sketch', 'bible-wordsearch', 'kids-ark-pairs'],
