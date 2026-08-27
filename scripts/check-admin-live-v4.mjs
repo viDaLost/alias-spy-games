@@ -12,6 +12,7 @@ const files = [
   'web/js/presence-identity.js',
   'web/js/presence-game-bridge.js',
   'web/js/bmt-stars-cloud-sync.js',
+  'cloudflare/app-core-worker/src/index-v10.js',
   'cloudflare/app-core-worker/src/index-v9.js',
   'cloudflare/app-observability-worker/src/index-v7.js',
   'cloudflare/quartet-worker/src/index-admin-observer-v2.js',
@@ -23,7 +24,8 @@ for (const file of files) {
   assert(result.status === 0, `${file} syntax check failed:\n${result.stderr || result.stdout}`);
 }
 
-includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v9.js', 'Core must run v9');
+includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v10.js', 'Core must run v10');
+includes('cloudflare/app-core-worker/src/index-v10.js', "from './index-v9.js'", 'Core v10 must preserve hardened v9 runtime');
 includes('cloudflare/app-observability-worker/wrangler.jsonc', 'src/index-v7.js', 'Observability must run optimized v7');
 includes('cloudflare/app-observability-worker/src/index-v7.js', "from './index-v6.js'", 'Observability v7 must preserve secure v6 routes');
 includes('cloudflare/quartet-worker/wrangler.jsonc', 'index-admin-observer-v2.js', 'Quartet must run secure observer v2');
