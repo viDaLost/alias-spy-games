@@ -5,6 +5,7 @@ const fail = (message) => { throw new Error(message); };
 
 const html = read('index.html');
 const bridge = read('web/js/backend-bridge.js');
+const richEntryWorker = read('cloudflare/app-core-worker/src/index-v10.js');
 const secureEntryWorker = read('cloudflare/app-core-worker/src/index-v9.js');
 const balanceEntryWorker = read('cloudflare/app-core-worker/src/index-v8.js');
 const entryWorker = read('cloudflare/app-core-worker/src/index-v7.js');
@@ -42,7 +43,11 @@ if (bridge.includes('coreHealthy = response.ok')) {
   fail('HTTP 4xx responses must not put the whole Core bridge into failure cooldown.');
 }
 
-if (!wrangler.includes('"main": "src/index-v9.js"')) fail('Core Worker must use the hardened v9 production entrypoint.');
+if (!wrangler.includes('"main": "src/index-v10.js"')) fail('Core Worker must use the v10 rich-message production entrypoint.');
+if (!richEntryWorker.includes("from './index-v9.js'")) fail('v10 entrypoint must preserve the hardened v9 runtime.');
+if (!richEntryWorker.includes("telegramApi(env, 'sendRichMessage'")) fail('v10 entrypoint must send Telegram Rich Messages.');
+if (!richEntryWorker.includes("callback_data: 'support:start'")) fail('v10 Rich Message must preserve the support callback route.');
+if (!richEntryWorker.includes("web_app: { url: miniAppUrl }")) fail('v10 Rich Message must launch the Main Mini App via web_app.');
 if (!secureEntryWorker.includes("from './index-v8.js'")) fail('v9 entrypoint must preserve the v8 balance/admin runtime.');
 if (!balanceEntryWorker.includes("from './index-v7.js'")) fail('v8 entrypoint must preserve the v7 invite runtime.');
 if (!entryWorker.includes("from './index-v6.js'")) fail('v7 entrypoint must preserve the v6 retention runtime.');
@@ -61,7 +66,7 @@ if (baseWorker.includes('BROADCAST_GAS_URL') || baseWorker.includes("action === 
 }
 
 for (const forbidden of ['importGoogleSheet', 'docs.google.com', 'mirrorLegacy(', 'callLegacy(']) {
-  if ([secureEntryWorker, balanceEntryWorker, entryWorker, retentionEntryWorker, supportEntryWorker, worker, baseWorker].some((source) => source.includes(forbidden))) {
+  if ([richEntryWorker, secureEntryWorker, balanceEntryWorker, entryWorker, retentionEntryWorker, supportEntryWorker, worker, baseWorker].some((source) => source.includes(forbidden))) {
     fail(`Cloudflare-only Worker still contains forbidden runtime dependency: ${forbidden}`);
   }
 }
@@ -92,4 +97,4 @@ for (const required of [
 }
 if (broadcastStore.includes('script.google.com')) fail('Broadcast engine must not call Apps Script.');
 
-console.log('OK: Core v9 preserves the validated Cloudflare-only runtime chain and adds scoped web sessions plus revisioned BMT sync; KV backup and direct Telegram delivery remain intact.');
+console.log('OK: Core v10 wraps the validated v9 Cloudflare-only runtime with Telegram Rich Messages; KV backup and direct Telegram delivery remain intact.');
