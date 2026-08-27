@@ -83,7 +83,7 @@ async function sendRichWelcomeMessage(env, chatId) {
             {
               text: '🎮 Играть',
               style: 'primary',
-              web_app: { url: miniAppUrl },
+              url: miniAppUrl,
             },
           ],
         },
