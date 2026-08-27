@@ -57,30 +57,61 @@ async function tryHandleRichWelcome(request, env, ctx) {
 }
 
 async function sendRichWelcomeMessage(env, chatId) {
-  const botUsername = await getBotUsername(env);
-  const miniAppUrl = `https://t.me/${botUsername}?startapp`;
-
-  const html = [
-    '<h1>👋 Библейские игры</h1>',
-    '<p>Игры для компании, друзей и семьи — прямо в Telegram.</p>',
-    '<p>Откройте приложение или быстро свяжитесь с техподдержкой.</p>',
-    '<tg-button-row align="center">',
-    `  <tg-button type="url" style="primary" url="${escapeHtmlAttribute(miniAppUrl)}">🎮 Открыть Библейские игры</tg-button>`,
-    '</tg-button-row>',
-    '<tg-button-row align="center">',
-    '  <tg-button type="callback_data" style="success" data="support:start">🎧 Техподдержка</tg-button>',
-    '</tg-button-row>',
-    '<hr/>',
-    '<footer>Коды входа и ответы поддержки будут приходить в этот чат.</footer>',
-  ].join('\n');
+  const miniAppUrl = await getMainMiniAppUrl(env);
 
   return telegramApi(env, 'sendRichMessage', {
     chat_id: String(chatId),
     rich_message: {
-      html,
+      blocks: [
+        {
+          type: 'heading',
+          size: 1,
+          text: '👋 Библейские игры',
+        },
+        {
+          type: 'paragraph',
+          text: 'Игры для компании, друзей и семьи — прямо в Telegram.',
+        },
+        {
+          type: 'paragraph',
+          text: 'Откройте приложение или быстро свяжитесь с техподдержкой.',
+        },
+        {
+          type: 'buttons',
+          align: 'center',
+          buttons: [
+            {
+              text: '🎮 Играть',
+              style: 'primary',
+              web_app: { url: miniAppUrl },
+            },
+          ],
+        },
+        {
+          type: 'buttons',
+          align: 'center',
+          buttons: [
+            {
+              text: '🎧 Техподдержка',
+              style: 'success',
+              callback_data: 'support:start',
+            },
+          ],
+        },
+        { type: 'divider' },
+        {
+          type: 'footer',
+          text: 'Коды входа и ответы поддержки будут приходить в этот чат.',
+        },
+      ],
       skip_entity_detection: true,
     },
   });
+}
+
+async function getMainMiniAppUrl(env) {
+  const botUsername = await getBotUsername(env);
+  return `https://t.me/${botUsername}?startapp`;
 }
 
 async function getBotUsername(env) {
@@ -132,12 +163,4 @@ function constantTimeStringEqual(a, b) {
   let diff = 0;
   for (let i = 0; i < left.length; i += 1) diff |= left[i] ^ right[i];
   return diff === 0;
-}
-
-function escapeHtmlAttribute(value) {
-  return String(value || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
 }
