@@ -2,24 +2,24 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '1';
+  const ASSET_VERSION = '2';
   const ASSET_ROOT = 'web/assets/home-parallax-v1';
   const MENU_ID = 'menu-container';
   const ROOT_CLASS = 'home-parallax-v1';
 
   const FULL_LAYERS = [
-    { key: 'base', file: 'base.webp', depth: 0.008, scale: 1.045, opacity: 1 },
-    { key: 'clouds', file: 'clouds.webp', depth: -0.025, scale: 1.055, opacity: 0.68 },
-    { key: 'mountains', file: 'mountains.webp', depth: -0.045, scale: 1.060, opacity: 0.76 },
-    { key: 'city', file: 'city.webp', depth: -0.070, scale: 1.070, opacity: 0.92 },
-    { key: 'olives', file: 'olives.webp', depth: -0.105, scale: 1.085, opacity: 0.88 },
-    { key: 'foreground', file: 'foreground.webp', depth: -0.135, scale: 1.105, opacity: 0.94 },
+    { key: 'base', file: 'base.avif', depth: 0.008, scale: 1.045, opacity: 1 },
+    { key: 'clouds', file: 'clouds.avif', depth: -0.025, scale: 1.055, opacity: 0.68 },
+    { key: 'mountains', file: 'mountains.avif', depth: -0.045, scale: 1.060, opacity: 0.76 },
+    { key: 'city', file: 'city.avif', depth: -0.070, scale: 1.070, opacity: 0.92 },
+    { key: 'olives', file: 'olives.avif', depth: -0.105, scale: 1.085, opacity: 0.88 },
+    { key: 'foreground', file: 'foreground.avif', depth: -0.135, scale: 1.105, opacity: 0.94 },
   ];
 
   const LITE_LAYERS = [
-    { key: 'base', file: 'base.webp', depth: 0, scale: 1.035, opacity: 1 },
-    { key: 'mountains', file: 'mountains.webp', depth: -0.024, scale: 1.045, opacity: 0.72 },
-    { key: 'city', file: 'city.webp', depth: -0.043, scale: 1.055, opacity: 0.90 },
+    { key: 'base', file: 'base.avif', depth: 0, scale: 1.035, opacity: 1 },
+    { key: 'mountains', file: 'mountains.avif', depth: -0.024, scale: 1.045, opacity: 0.72 },
+    { key: 'city', file: 'city.avif', depth: -0.043, scale: 1.055, opacity: 0.90 },
   ];
 
   let scene = null;
@@ -41,22 +41,18 @@
   function waitForTargetUser(timeoutMs = 2500) {
     return new Promise((resolve) => {
       const startedAt = performance.now();
-
       const check = () => {
         const userId = getTelegramUserId();
         if (userId) {
           resolve(userId === TARGET_USER_ID);
           return;
         }
-
         if (performance.now() - startedAt >= timeoutMs) {
           resolve(false);
           return;
         }
-
         window.setTimeout(check, 100);
       };
-
       check();
     });
   }
@@ -70,18 +66,20 @@
 
     const lowCpu = cores > 0 && cores <= 4;
     const lowMemory = memory > 0 && memory <= 4;
-    const veryLargeViewport = Math.max(innerWidth, innerHeight) >= 1200;
+    const constrainedViewport = Math.max(innerWidth, innerHeight) <= 900;
 
-    liteMode = saveData || reducedMotion || lowCpu || lowMemory || veryLargeViewport;
+    liteMode = saveData || reducedMotion || lowCpu || lowMemory || constrainedViewport;
     return liteMode ? 'lite' : 'full';
   }
 
-  function createLayer(config) {
+  function createLayer(config, index) {
     const image = document.createElement('img');
     image.className = `home-parallax-v1__layer home-parallax-v1__layer--${config.key}`;
     image.alt = '';
     image.setAttribute('aria-hidden', 'true');
     image.decoding = 'async';
+    image.loading = index === 0 ? 'eager' : 'lazy';
+    image.fetchPriority = index === 0 ? 'high' : 'low';
     image.draggable = false;
     image.dataset.depth = String(config.depth);
     image.dataset.scale = String(config.scale);
@@ -102,8 +100,8 @@
     scene.setAttribute('aria-hidden', 'true');
 
     const configs = liteMode ? LITE_LAYERS : FULL_LAYERS;
-    layers = configs.map((config) => {
-      const image = createLayer(config);
+    layers = configs.map((config, index) => {
+      const image = createLayer(config, index);
       scene.appendChild(image);
       return { element: image, ...config };
     });
@@ -185,10 +183,7 @@
     if (Math.abs(delta) < 0.25) currentScroll = targetScroll;
 
     renderFrame();
-
-    if (currentScroll !== targetScroll) {
-      rafId = requestAnimationFrame(animateTowardTarget);
-    }
+    if (currentScroll !== targetScroll) rafId = requestAnimationFrame(animateTowardTarget);
   }
 
   function onScroll() {
@@ -237,9 +232,6 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
 })();
