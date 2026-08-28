@@ -1,4 +1,4 @@
-/* Game Hub parallax — 1 background + 5 source-resolution overlays.
+/* Game Hub parallax — 1 background + 4 source-resolution overlays.
    The whole scene is gated in JS to Telegram user 1288379477. */
 
 html.home-gamehub-parallax.home-gamehub-parallax-active body {
@@ -27,8 +27,8 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   display: none !important;
 }
 
-/* Middle ground between the previous 124% crop and the too-small 96% contain.
-   All artwork now fills the viewport with mild overscan so top/bottom seams stay outside the screen. */
+/* Background/atmosphere/architecture keep mild overscan so parallax never
+   reveals top or bottom seams. */
 .home-gamehub-parallax__layer {
   position: absolute;
   inset: -3.5dvh -3.5vw;
@@ -67,32 +67,27 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   height: 107dvh;
 }
 
+/* Decorative icon canvases are transparent. Keep their entire canvas visible,
+   then JS scales them down slightly so generated icons stay inside the screen. */
+.home-gamehub-parallax__layer--game-icons,
+.home-gamehub-parallax__layer--game-library {
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  object-fit: contain;
+  object-position: 50% 50%;
+}
+
 .home-gamehub-parallax__layer--game-icons {
   z-index: 4;
-  width: 108vw;
-  height: 108dvh;
-  /* First icon set owns mostly the upper/middle scene. Fade it before the lower set. */
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0,0,0,.72) 63%, transparent 78%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0,0,0,.72) 63%, transparent 78%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,.70) 66%, transparent 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,.70) 66%, transparent 82%, transparent 100%);
 }
 
 .home-gamehub-parallax__layer--game-library {
   z-index: 5;
-  width: 108vw;
-  height: 108dvh;
-  /* Second icon set owns the middle/lower scene. This prevents two generated icon frames colliding. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 24%, rgba(0,0,0,.60) 38%, #000 52%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, transparent 24%, rgba(0,0,0,.60) 38%, #000 52%, #000 100%);
-}
-
-.home-gamehub-parallax__layer--foreground {
-  z-index: 6;
-  inset: -4.5dvh -4.5vw;
-  width: 109vw;
-  height: 109dvh;
-  /* Feather only the extreme top/bottom of the nearest layer; the seam itself stays outside the viewport. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.72) 7%, #000 15%, #000 90%, rgba(0,0,0,.82) 96%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.72) 7%, #000 15%, #000 90%, rgba(0,0,0,.82) 96%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,.58) 34%, #000 50%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,.58) 34%, #000 50%, #000 100%);
 }
 
 html.home-gamehub-parallax body > .app-header,
@@ -108,7 +103,6 @@ html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container {
   background: transparent !important;
 }
 
-/* Header text sits directly over the artwork — no panel behind it. */
 html.home-gamehub-parallax.home-gamehub-parallax-active .app-header {
   background: transparent !important;
   border: 0 !important;
@@ -160,14 +154,12 @@ html.home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title {
 
   .home-gamehub-parallax__layer--game-icons,
   .home-gamehub-parallax__layer--game-library {
-    width: 109vw;
-    height: 107dvh;
-  }
-
-  .home-gamehub-parallax__layer--foreground {
-    inset: -4dvh -5vw;
-    width: 110vw;
-    height: 108dvh;
+    inset: 0;
+    left: 2vw;
+    top: 1dvh;
+    width: 96vw;
+    height: 98dvh;
+    object-fit: contain;
   }
 }
 
