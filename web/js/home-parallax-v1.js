@@ -2,29 +2,36 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '5';
-  const HQ_BASE_ROOT = 'web/assets/home-parallax-hq/base';
-  const HQ_BASE_PART_COUNT = 13;
+  const ASSET_VERSION = '10';
+  const ASSET_ROOT = 'web/assets/home-parallax-v2';
   const MENU_ID = 'menu-container';
-  const ROOT_CLASS = 'home-parallax-v1';
+  const ROOT_CLASS = 'home-parallax-v2';
+
+  const LAYERS = [
+    { key: 'base', file: '01-base.webp', depth: 0.000, scale: 1.035, opacity: 1.00 },
+    { key: 'clouds', file: '02-clouds.webp', depth: -0.018, scale: 1.045, opacity: 0.58 },
+    { key: 'mountains', file: '03-mountains.webp', depth: -0.035, scale: 1.055, opacity: 0.82 },
+    { key: 'city', file: '04-city.webp', depth: -0.058, scale: 1.070, opacity: 0.62 },
+    { key: 'olives', file: '05-olives.webp', depth: -0.090, scale: 1.085, opacity: 0.82 },
+    { key: 'foreground', file: '06-foreground.webp', depth: -0.125, scale: 1.105, opacity: 0.92 },
+  ];
 
   let scene = null;
   let menu = null;
-  let baseLayer = null;
+  let layers = [];
   let currentScroll = 0;
   let targetScroll = 0;
   let rafId = 0;
   let active = false;
   let reducedMotion = false;
   let visibilityObserver = null;
-  let hqBaseObjectUrl = '';
 
   function getTelegramUserId() {
     const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
     return id == null ? '' : String(id);
   }
 
-  function waitForTargetUser(timeoutMs = 2500) {
+  function waitForTargetUser(timeoutMs = 3000) {
     return new Promise((resolve) => {
       const startedAt = performance.now();
       const check = () => {
@@ -43,66 +50,48 @@
     });
   }
 
-  function partName(index) {
-    return `${String(index).padStart(2, '0')}.part`;
+  function createLayer(config, index) {
+    const image = document.createElement('img');
+    image.className = `home-parallax-v2__layer home-parallax-v2__layer--${config.key}`;
+    image.alt = '';
+    image.setAttribute('aria-hidden', 'true');
+    image.decoding = 'async';
+    image.loading = index <= 1 ? 'eager' : 'lazy';
+    image.fetchPriority = index === 0 ? 'high' : 'auto';
+    image.draggable = false;
+    image.style.opacity = String(config.opacity);
+    image.src = `${ASSET_ROOT}/${config.file}?v=${ASSET_VERSION}`;
+    return image;
   }
 
-  async function loadHqBaseObjectUrl() {
-    const requests = Array.from({ length: HQ_BASE_PART_COUNT }, (_, index) =>
-      fetch(`${HQ_BASE_ROOT}/${partName(index)}?v=${ASSET_VERSION}`, {
-        cache: 'force-cache',
-        credentials: 'same-origin',
-      }).then((response) => {
-        if (!response.ok) throw new Error(`HQ parallax part ${index} returned ${response.status}`);
-        return response.text();
-      })
-    );
-
-    const base64 = (await Promise.all(requests)).join('').replace(/\s+/g, '');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-
-    const blob = new Blob([bytes], { type: 'image/webp' });
-    hqBaseObjectUrl = URL.createObjectURL(blob);
-    return hqBaseObjectUrl;
-  }
-
-  function buildScene(hqBaseUrl) {
+  function buildScene() {
     menu = document.getElementById(MENU_ID);
-    if (!menu || !hqBaseUrl || document.querySelector('.home-parallax-v1__scene')) return false;
+    if (!menu || document.querySelector('.home-parallax-v2__scene')) return false;
 
     reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
 
     scene = document.createElement('div');
-    scene.className = 'home-parallax-v1__scene home-parallax-v1__scene--hq';
-    scene.dataset.quality = 'source';
-    scene.dataset.baseQuality = 'source-941x1672-webp';
+    scene.className = 'home-parallax-v2__scene';
+    scene.dataset.quality = 'source-resolution';
     scene.setAttribute('aria-hidden', 'true');
 
-    baseLayer = document.createElement('img');
-    baseLayer.className = 'home-parallax-v1__layer home-parallax-v1__layer--base home-parallax-v1__layer--source';
-    baseLayer.alt = '';
-    baseLayer.setAttribute('aria-hidden', 'true');
-    baseLayer.decoding = 'async';
-    baseLayer.loading = 'eager';
-    baseLayer.fetchPriority = 'high';
-    baseLayer.draggable = false;
-    baseLayer.src = hqBaseUrl;
-    scene.appendChild(baseLayer);
-
-    const veil = document.createElement('div');
-    veil.className = 'home-parallax-v1__veil';
-    scene.appendChild(veil);
+    layers = LAYERS.map((config, index) => {
+      const element = createLayer(config, index);
+      scene.appendChild(element);
+      return { ...config, element };
+    });
 
     document.body.prepend(scene);
-    document.documentElement.classList.add(ROOT_CLASS, `${ROOT_CLASS}-source-hq`);
+    document.documentElement.classList.add(ROOT_CLASS);
 
+    const base = layers[0]?.element;
     const reveal = () => scene?.classList.add('is-ready');
-    if (baseLayer.decode) baseLayer.decode().then(reveal, reveal);
-    else {
-      baseLayer.addEventListener('load', reveal, { once: true });
-      window.setTimeout(reveal, 500);
+    if (base?.decode) base.decode().then(reveal, reveal);
+    else if (base) {
+      base.addEventListener('load', reveal, { once: true });
+      window.setTimeout(reveal, 650);
+    } else {
+      reveal();
     }
 
     syncVisibility();
@@ -110,9 +99,7 @@
   }
 
   function menuIsVisible() {
-    return Boolean(
-      menu && scene && !menu.classList.contains('hidden') && document.body.dataset.mode !== 'admin'
-    );
+    return Boolean(menu && scene && !menu.classList.contains('hidden') && document.body.dataset.mode !== 'admin');
   }
 
   function syncVisibility() {
@@ -122,6 +109,10 @@
     active = shouldBeActive;
     scene?.toggleAttribute('hidden', !active);
     document.documentElement.classList.toggle(`${ROOT_CLASS}-active`, active);
+
+    for (const layer of layers) {
+      layer.element.style.willChange = active && !reducedMotion ? 'transform' : 'auto';
+    }
 
     if (active) {
       targetScroll = window.scrollY || 0;
@@ -139,10 +130,13 @@
   }
 
   function renderFrame() {
-    if (!active || !baseLayer) return;
-    const scroll = Math.min(Math.max(currentScroll, 0), 1600);
-    const y = reducedMotion ? 0 : Math.max(-34, Math.min(8, scroll * -0.022));
-    baseLayer.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(1.025)`;
+    if (!active || !scene) return;
+    const scroll = Math.min(Math.max(currentScroll, 0), 1500);
+
+    for (const layer of layers) {
+      const y = reducedMotion ? 0 : Math.max(-150, Math.min(30, scroll * layer.depth));
+      layer.element.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${layer.scale})`;
+    }
   }
 
   function animateTowardTarget() {
@@ -150,7 +144,7 @@
     if (!active || reducedMotion) return;
 
     const delta = targetScroll - currentScroll;
-    currentScroll += delta * 0.20;
+    currentScroll += delta * 0.18;
     if (Math.abs(delta) < 0.2) currentScroll = targetScroll;
     renderFrame();
 
@@ -185,31 +179,20 @@
         onResize();
       }
     });
-
-    window.addEventListener('pagehide', () => {
-      if (hqBaseObjectUrl) URL.revokeObjectURL(hqBaseObjectUrl);
-      hqBaseObjectUrl = '';
-    }, { once: true });
   }
 
   async function init() {
     const allowed = await waitForTargetUser();
     if (!allowed) return;
+    if (!buildScene()) return;
 
-    try {
-      const hqBaseUrl = await loadHqBaseObjectUrl();
-      if (!buildScene(hqBaseUrl)) return;
-      bindLifecycle();
-      window.__homeParallaxV1 = Object.freeze({
-        userId: TARGET_USER_ID,
-        quality: 'source-hq',
-        sourceSize: '941x1672',
-        layerCount: 1,
-        lowResolutionLayers: 0,
-      });
-    } catch (error) {
-      console.error('[home-parallax] source HQ load failed', error);
-    }
+    bindLifecycle();
+    window.__homeParallaxV2 = Object.freeze({
+      userId: TARGET_USER_ID,
+      quality: 'source-resolution',
+      layerCount: layers.length,
+      runtimeAssembly: false,
+    });
   }
 
   if (document.readyState === 'loading') {
