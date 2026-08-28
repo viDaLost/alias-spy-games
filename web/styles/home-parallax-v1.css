@@ -1,4 +1,4 @@
-/* High-resolution direct-image parallax, gated in JS to Telegram user 1288379477. */
+/* Source-resolution direct PNG parallax. JS gates it to Telegram user 1288379477. */
 
 html.home-parallax-v2.home-parallax-v2-active body {
   background: #f7efd9;
@@ -12,7 +12,7 @@ html.home-parallax-v2.home-parallax-v2-active body {
   pointer-events: none;
   opacity: 0;
   contain: layout paint style;
-  transition: opacity 240ms ease;
+  transition: opacity 220ms ease;
   background: #f7efd9;
 }
 
@@ -26,9 +26,9 @@ html.home-parallax-v2.home-parallax-v2-active body {
 
 .home-parallax-v2__layer {
   position: absolute;
-  inset: -5vh -5vw;
-  width: 110vw;
-  height: 110vh;
+  inset: -4vh -4vw;
+  width: 108vw;
+  height: 108vh;
   max-width: none;
   object-fit: cover;
   object-position: 50% 50%;
@@ -40,13 +40,14 @@ html.home-parallax-v2.home-parallax-v2-active body {
   -webkit-backface-visibility: hidden;
   image-rendering: auto;
   filter: none !important;
+  mix-blend-mode: normal !important;
 }
 
 .home-parallax-v2__layer--base { z-index: 1; }
-.home-parallax-v2__layer--clouds { z-index: 2; mix-blend-mode: multiply; }
+.home-parallax-v2__layer--clouds { z-index: 2; }
 .home-parallax-v2__layer--mountains { z-index: 3; }
-.home-parallax-v2__layer--city { z-index: 4; mix-blend-mode: multiply; }
-.home-parallax-v2__layer--olives { z-index: 5; mix-blend-mode: multiply; }
+.home-parallax-v2__layer--city { z-index: 4; }
+.home-parallax-v2__layer--olives { z-index: 5; }
 .home-parallax-v2__layer--foreground { z-index: 6; }
 
 html.home-parallax-v2 body > .app-header,
