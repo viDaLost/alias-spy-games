@@ -7,13 +7,15 @@
   <meta name="theme-color" content="#eaf3ff" />
   <meta name="description" content="Библейские мини-игры для компании, друзей и семьи" />
   <meta name="application-name" content="Библейские игры" />
-  <meta name="app-build" content="request-storm-v2-20260824" />
+  <meta name="app-build" content="telegram-desktop-bootstrap-20260828" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="quartet-backend" content="https://alias-spy-games-quartet.vitaledanilov.workers.dev" />
   <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
   <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
+  <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
+  <script src="web/js/telegram-launch-context.js?v=1"></script>
   <script>
     (() => {
       try {
@@ -22,6 +24,36 @@
         const hidden = Array.isArray(raw) ? raw.filter((key) => allowed.has(key)) : [];
         if (hidden.length) document.documentElement.dataset.homeHidden = hidden.join(' ');
       } catch {}
+    })();
+  </script>
+  <script>
+    (() => {
+      // This guard is intentionally inline: it must still run even if an external
+      // Telegram SDK request or a deferred application script never settles.
+      window.setTimeout(() => {
+        const root = document.documentElement;
+        if (!root.classList.contains('app-booting') && !root.classList.contains('app-menu-preparing')) return;
+        if (document.body?.dataset.mode) return;
+
+        const loader = document.getElementById('main-loader');
+        const menu = document.getElementById('menu-container');
+
+        if (typeof window.renderMainMenu === 'function' && menu) {
+          try { window.renderMainMenu(); } catch {}
+          loader?.remove();
+          menu.classList.remove('hidden');
+          root.classList.remove('app-booting', 'app-menu-preparing');
+          root.classList.add('app-ui-ready');
+          return;
+        }
+
+        if (!loader) return;
+        loader.innerHTML = `
+          <div class="app-loader__ring"></div>
+          <p>Не удалось завершить запуск приложения.</p>
+          <button class="game-button" type="button" onclick="location.reload()">Повторить запуск</button>
+        `;
+      }, 9000);
     })();
   </script>
   <style>
@@ -120,7 +152,6 @@
   <main id="game-container" aria-live="polite"></main>
 
   <script id="three-js" type="application/json" data-src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
   <script src="web/js/android-runtime.js?v=1" defer></script>
   <script src="web/js/backend-bridge.js?v=5" defer></script>
   <script src="web/js/referral-survey.js?v=1" defer></script>
