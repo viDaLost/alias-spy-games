@@ -13,10 +13,10 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   pointer-events: none;
   opacity: 0;
   contain: layout paint style;
-  transition: opacity 260ms ease;
+  transition: opacity 240ms ease;
   background:
-    radial-gradient(circle at 50% 18%, rgba(219,234,254,.96), transparent 38%),
-    linear-gradient(180deg, #E0F2FE 0%, #DBEAFE 43%, #6366F1 100%);
+    radial-gradient(circle at 50% 18%, rgba(219,234,254,.94), transparent 40%),
+    linear-gradient(180deg, #E0F2FE 0%, #DBEAFE 46%, #6366F1 100%);
 }
 
 .home-gamehub-parallax__scene.is-ready {
@@ -29,11 +29,10 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
 
 .home-gamehub-parallax__layer {
   position: absolute;
-  inset: -7vh -9vw;
-  width: 118vw;
-  height: 114vh;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
   max-width: none;
-  object-fit: cover;
   object-position: 50% 50%;
   user-select: none;
   -webkit-user-select: none;
@@ -46,20 +45,29 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   mix-blend-mode: normal !important;
 }
 
-/* Ordered from farthest to nearest. */
-.home-gamehub-parallax__layer--base { z-index: 1; }
+/* Base fills the viewport. Transparent overlays stay fully visible so their
+   decorative edges are not cropped on narrow iPhone screens. */
+.home-gamehub-parallax__layer--base {
+  z-index: 1;
+  inset: -1.5vh -1.5vw;
+  width: 103vw;
+  height: 103dvh;
+  object-fit: cover;
+}
+
+.home-gamehub-parallax__layer--atmosphere,
+.home-gamehub-parallax__layer--architecture,
+.home-gamehub-parallax__layer--game-icons,
+.home-gamehub-parallax__layer--game-library,
+.home-gamehub-parallax__layer--foreground {
+  object-fit: contain;
+}
+
 .home-gamehub-parallax__layer--atmosphere { z-index: 2; }
 .home-gamehub-parallax__layer--architecture { z-index: 3; }
 .home-gamehub-parallax__layer--game-icons { z-index: 4; }
 .home-gamehub-parallax__layer--game-library { z-index: 5; }
 .home-gamehub-parallax__layer--foreground { z-index: 6; }
-
-/* The foreground artwork is intentionally feathered into the scene so the
-   upper cut line never reads as a separate pasted layer. */
-.home-gamehub-parallax__layer--foreground {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 9%, #000 22%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 9%, #000 22%, #000 100%);
-}
 
 html.home-gamehub-parallax body > .app-header,
 html.home-gamehub-parallax body > #main-loader,
@@ -74,12 +82,20 @@ html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container {
   background: transparent !important;
 }
 
+/* No panel behind the title: the header text sits directly over the artwork. */
 html.home-gamehub-parallax.home-gamehub-parallax-active .app-header {
-  background: linear-gradient(135deg, rgba(224,242,254,.76), rgba(255,255,255,.60));
-  border: 1px solid rgba(219,234,254,.78);
-  box-shadow: 0 12px 34px rgba(49,46,129,.10);
-  -webkit-backdrop-filter: blur(6px) saturate(1.05);
-  backdrop-filter: blur(6px) saturate(1.05);
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.home-gamehub-parallax.home-gamehub-parallax-active .app-header h1,
+html.home-gamehub-parallax.home-gamehub-parallax-active .app-header .app-kicker,
+html.home-gamehub-parallax.home-gamehub-parallax-active .app-header .app-subtitle {
+  text-shadow: 0 2px 12px rgba(224,242,254,.72), 0 1px 3px rgba(255,255,255,.72);
 }
 
 html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .game-card,
@@ -105,9 +121,25 @@ html.home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title {
 
 @media (max-width: 430px) {
   .home-gamehub-parallax__layer {
-    inset: -6vh -12vw;
-    width: 124vw;
-    height: 112vh;
+    width: 100vw;
+    height: 100dvh;
+  }
+
+  .home-gamehub-parallax__layer--base {
+    inset: -1vh -1vw;
+    width: 102vw;
+    height: 102dvh;
+  }
+
+  .home-gamehub-parallax__layer--atmosphere,
+  .home-gamehub-parallax__layer--architecture,
+  .home-gamehub-parallax__layer--game-icons,
+  .home-gamehub-parallax__layer--game-library,
+  .home-gamehub-parallax__layer--foreground {
+    width: 96vw;
+    height: 98dvh;
+    left: 2vw;
+    top: 1dvh;
   }
 }
 
