@@ -2,8 +2,10 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '3';
+  const ASSET_VERSION = '4';
   const ASSET_ROOT = 'web/assets/home-parallax-v1';
+  const HQ_BASE_ROOT = 'web/assets/home-parallax-hq/base';
+  const HQ_BASE_PART_COUNT = 13;
   const MENU_ID = 'menu-container';
   const ROOT_CLASS = 'home-parallax-v1';
 
@@ -32,6 +34,7 @@
   let reducedMotion = false;
   let liteMode = false;
   let visibilityObserver = null;
+  let hqBaseObjectUrl = '';
 
   function getTelegramUserId() {
     const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
@@ -68,7 +71,37 @@
     liteMode = saveData || reducedMotion || weakCpu || weakMemory;
   }
 
-  function createLayer(config, index) {
+  function partName(index) {
+    return `${String(index).padStart(2, '0')}.part`;
+  }
+
+  async function loadHqBaseObjectUrl() {
+    try {
+      const requests = Array.from({ length: HQ_BASE_PART_COUNT }, (_, index) =>
+        fetch(`${HQ_BASE_ROOT}/${partName(index)}?v=${ASSET_VERSION}`, {
+          cache: 'force-cache',
+          credentials: 'same-origin',
+        }).then((response) => {
+          if (!response.ok) throw new Error(`HQ parallax part ${index} returned ${response.status}`);
+          return response.text();
+        })
+      );
+
+      const base64 = (await Promise.all(requests)).join('').replace(/\s+/g, '');
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+
+      const blob = new Blob([bytes], { type: 'image/webp' });
+      hqBaseObjectUrl = URL.createObjectURL(blob);
+      return hqBaseObjectUrl;
+    } catch (error) {
+      console.warn('[home-parallax] HQ base fallback:', error);
+      return '';
+    }
+  }
+
+  function createLayer(config, index, hqBaseUrl) {
     const image = document.createElement('img');
     image.className = `home-parallax-v1__layer home-parallax-v1__layer--${config.key}`;
     image.alt = '';
@@ -78,11 +111,13 @@
     image.fetchPriority = index === 0 ? 'high' : 'low';
     image.draggable = false;
     image.style.opacity = String(config.opacity);
-    image.src = `${ASSET_ROOT}/${config.file}?v=${ASSET_VERSION}`;
+    image.src = config.key === 'base' && hqBaseUrl
+      ? hqBaseUrl
+      : `${ASSET_ROOT}/${config.file}?v=${ASSET_VERSION}`;
     return image;
   }
 
-  function buildScene() {
+  function buildScene(hqBaseUrl) {
     menu = document.getElementById(MENU_ID);
     if (!menu || document.querySelector('.home-parallax-v1__scene')) return false;
 
@@ -91,11 +126,12 @@
     scene = document.createElement('div');
     scene.className = 'home-parallax-v1__scene';
     scene.dataset.quality = liteMode ? 'lite' : 'full';
+    scene.dataset.baseQuality = hqBaseUrl ? 'source' : 'fallback';
     scene.setAttribute('aria-hidden', 'true');
 
     const configs = liteMode ? LITE_LAYERS : FULL_LAYERS;
     layers = configs.map((config, index) => {
-      const element = createLayer(config, index);
+      const element = createLayer(config, index, hqBaseUrl);
       scene.appendChild(element);
       return { element, ...config };
     });
@@ -209,17 +245,30 @@
         onResize();
       }
     });
+
+    window.addEventListener('pagehide', () => {
+      if (hqBaseObjectUrl) {
+        URL.revokeObjectURL(hqBaseObjectUrl);
+        hqBaseObjectUrl = '';
+      }
+    }, { once: true });
   }
 
   async function init() {
     const allowed = await waitForTargetUser();
     if (!allowed) return;
-    if (!buildScene()) return;
+
+    const hqBaseUrl = await loadHqBaseObjectUrl();
+    if (!buildScene(hqBaseUrl)) {
+      if (hqBaseObjectUrl) URL.revokeObjectURL(hqBaseObjectUrl);
+      return;
+    }
 
     bindLifecycle();
     window.__homeParallaxV1 = Object.freeze({
       userId: TARGET_USER_ID,
       quality: liteMode ? 'lite' : 'full',
+      baseQuality: hqBaseUrl ? 'source-941x1672-webp' : 'fallback',
       layerCount: layers.length,
     });
   }
