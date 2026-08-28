@@ -1,8 +1,7 @@
 (() => {
   'use strict';
 
-  const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '17';
+  const ASSET_VERSION = '18';
   const ASSET_ROOT = 'web/assets/home-gamehub-parallax-v1';
   const MENU_ID = 'menu-container';
   const ROOT_CLASS = 'home-gamehub-parallax';
@@ -27,30 +26,6 @@
   let active = false;
   let reducedMotion = false;
   let visibilityObserver = null;
-
-  function getTelegramUserId() {
-    const id = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-    return id == null ? '' : String(id);
-  }
-
-  function waitForTargetUser(timeoutMs = 3000) {
-    return new Promise((resolve) => {
-      const startedAt = performance.now();
-      const check = () => {
-        const userId = getTelegramUserId();
-        if (userId) {
-          resolve(userId === TARGET_USER_ID);
-          return;
-        }
-        if (performance.now() - startedAt >= timeoutMs) {
-          resolve(false);
-          return;
-        }
-        window.setTimeout(check, 100);
-      };
-      check();
-    });
-  }
 
   function assetUrl(file) {
     return `${ASSET_ROOT}/${encodeURIComponent(file).replace(/%2F/g, '/')}?v=${ASSET_VERSION}`;
@@ -79,6 +54,7 @@
     scene = document.createElement('div');
     scene.className = 'home-gamehub-parallax__scene';
     scene.dataset.quality = 'source-resolution-png';
+    scene.dataset.audience = 'all-users';
     scene.setAttribute('aria-hidden', 'true');
 
     layers = LAYERS.map((config, index) => {
@@ -201,14 +177,12 @@
     });
   }
 
-  async function init() {
-    const allowed = await waitForTargetUser();
-    if (!allowed) return;
+  function init() {
     if (!buildScene()) return;
 
     bindLifecycle();
     window.__homeGamehubParallax = Object.freeze({
-      userId: TARGET_USER_ID,
+      audience: 'all-users',
       assetRoot: ASSET_ROOT,
       assetVersion: ASSET_VERSION,
       layerCount: layers.length,
