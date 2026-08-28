@@ -1,10 +1,11 @@
-/* Source-resolution direct PNG parallax. JS gates it to Telegram user 1288379477. */
+/* Game Hub parallax — 1 background + 5 unique transparent overlays.
+   JS gates the whole scene to Telegram user 1288379477. */
 
-html.home-parallax-v2.home-parallax-v2-active body {
-  background: #f7efd9;
+html.home-gamehub-parallax.home-gamehub-parallax-active body {
+  background: #E0F2FE;
 }
 
-.home-parallax-v2__scene {
+.home-gamehub-parallax__scene {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -12,23 +13,25 @@ html.home-parallax-v2.home-parallax-v2-active body {
   pointer-events: none;
   opacity: 0;
   contain: layout paint style;
-  transition: opacity 220ms ease;
-  background: #f7efd9;
+  transition: opacity 260ms ease;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(219,234,254,.96), transparent 38%),
+    linear-gradient(180deg, #E0F2FE 0%, #DBEAFE 43%, #6366F1 100%);
 }
 
-.home-parallax-v2__scene.is-ready {
+.home-gamehub-parallax__scene.is-ready {
   opacity: 1;
 }
 
-.home-parallax-v2__scene[hidden] {
+.home-gamehub-parallax__scene[hidden] {
   display: none !important;
 }
 
-.home-parallax-v2__layer {
+.home-gamehub-parallax__layer {
   position: absolute;
-  inset: -4vh -4vw;
-  width: 108vw;
-  height: 108vh;
+  inset: -7vh -9vw;
+  width: 118vw;
+  height: 114vh;
   max-width: none;
   object-fit: cover;
   object-position: 50% 50%;
@@ -43,49 +46,72 @@ html.home-parallax-v2.home-parallax-v2-active body {
   mix-blend-mode: normal !important;
 }
 
-.home-parallax-v2__layer--base { z-index: 1; }
-.home-parallax-v2__layer--clouds { z-index: 2; }
-.home-parallax-v2__layer--mountains { z-index: 3; }
-.home-parallax-v2__layer--city { z-index: 4; }
-.home-parallax-v2__layer--olives { z-index: 5; }
-.home-parallax-v2__layer--foreground { z-index: 6; }
+/* Ordered from farthest to nearest. */
+.home-gamehub-parallax__layer--base { z-index: 1; }
+.home-gamehub-parallax__layer--atmosphere { z-index: 2; }
+.home-gamehub-parallax__layer--architecture { z-index: 3; }
+.home-gamehub-parallax__layer--game-icons { z-index: 4; }
+.home-gamehub-parallax__layer--game-library { z-index: 5; }
+.home-gamehub-parallax__layer--foreground { z-index: 6; }
 
-html.home-parallax-v2 body > .app-header,
-html.home-parallax-v2 body > #main-loader,
-html.home-parallax-v2 body > #menu-container,
-html.home-parallax-v2 body > #banned-screen,
-html.home-parallax-v2 body > #game-container {
+/* The foreground artwork is intentionally feathered into the scene so the
+   upper cut line never reads as a separate pasted layer. */
+.home-gamehub-parallax__layer--foreground {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 9%, #000 22%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.38) 9%, #000 22%, #000 100%);
+}
+
+html.home-gamehub-parallax body > .app-header,
+html.home-gamehub-parallax body > #main-loader,
+html.home-gamehub-parallax body > #menu-container,
+html.home-gamehub-parallax body > #banned-screen,
+html.home-gamehub-parallax body > #game-container {
   position: relative;
   z-index: 10;
 }
 
-html.home-parallax-v2.home-parallax-v2-active #menu-container {
+html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container {
   background: transparent !important;
 }
 
-html.home-parallax-v2.home-parallax-v2-active .app-header {
-  background: linear-gradient(135deg, rgba(247,250,255,.72), rgba(255,255,255,.60));
-  border: 1px solid rgba(255,255,255,.58);
-  box-shadow: 0 10px 30px rgba(49,46,129,.07);
-  -webkit-backdrop-filter: blur(5px) saturate(1.03);
-  backdrop-filter: blur(5px) saturate(1.03);
+html.home-gamehub-parallax.home-gamehub-parallax-active .app-header {
+  background: linear-gradient(135deg, rgba(224,242,254,.76), rgba(255,255,255,.60));
+  border: 1px solid rgba(219,234,254,.78);
+  box-shadow: 0 12px 34px rgba(49,46,129,.10);
+  -webkit-backdrop-filter: blur(6px) saturate(1.05);
+  backdrop-filter: blur(6px) saturate(1.05);
 }
 
-html.home-parallax-v2.home-parallax-v2-active #menu-container .game-card,
-html.home-parallax-v2.home-parallax-v2-active #menu-container .home-continue,
-html.home-parallax-v2.home-parallax-v2-active #menu-container .home-progress__item,
-html.home-parallax-v2.home-parallax-v2-active #menu-container .home-recent__item {
-  -webkit-backdrop-filter: blur(5px) saturate(1.02);
-  backdrop-filter: blur(5px) saturate(1.02);
+html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .game-card,
+html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .home-continue,
+html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .home-progress__item,
+html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .home-recent__item {
+  -webkit-backdrop-filter: blur(6px) saturate(1.04);
+  backdrop-filter: blur(6px) saturate(1.04);
 }
 
-html.home-parallax-v2.home-parallax-v2-active #menu-container .game-card {
-  background: rgba(255,255,255,.78);
-  border-color: rgba(255,255,255,.66);
-  box-shadow: 0 12px 28px rgba(49,46,129,.09), inset 0 1px 0 rgba(255,255,255,.86);
+html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .game-card {
+  background: rgba(255,255,255,.80);
+  border-color: rgba(219,234,254,.82);
+  box-shadow:
+    0 14px 32px rgba(49,46,129,.11),
+    inset 0 1px 0 rgba(255,255,255,.92);
+}
+
+html.home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title {
+  color: #312E81 !important;
+  text-shadow: 0 1px 8px rgba(224,242,254,.78);
+}
+
+@media (max-width: 430px) {
+  .home-gamehub-parallax__layer {
+    inset: -6vh -12vw;
+    width: 124vw;
+    height: 112vh;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-parallax-v2__scene { transition: none; }
-  .home-parallax-v2__layer { will-change: auto !important; }
+  .home-gamehub-parallax__scene { transition: none; }
+  .home-gamehub-parallax__layer { will-change: auto !important; }
 }
