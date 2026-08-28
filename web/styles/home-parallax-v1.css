@@ -1,10 +1,10 @@
-/* Private main-menu parallax preview for Telegram user 1288379477. */
+/* High-resolution direct-image parallax, gated in JS to Telegram user 1288379477. */
 
-html.home-parallax-v1.home-parallax-v1-active body {
-  background: #f8f1df;
+html.home-parallax-v2.home-parallax-v2-active body {
+  background: #f7efd9;
 }
 
-.home-parallax-v1__scene {
+.home-parallax-v2__scene {
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -12,82 +12,79 @@ html.home-parallax-v1.home-parallax-v1-active body {
   pointer-events: none;
   opacity: 0;
   contain: layout paint style;
-  transition: opacity 260ms ease;
-  background: #f8f1df;
+  transition: opacity 240ms ease;
+  background: #f7efd9;
 }
 
-.home-parallax-v1__scene.is-ready {
+.home-parallax-v2__scene.is-ready {
   opacity: 1;
 }
 
-.home-parallax-v1__scene[hidden] {
+.home-parallax-v2__scene[hidden] {
   display: none !important;
 }
 
-.home-parallax-v1__layer {
+.home-parallax-v2__layer {
   position: absolute;
-  inset: -2vh -2vw;
-  width: 104vw;
-  height: 104vh;
+  inset: -5vh -5vw;
+  width: 110vw;
+  height: 110vh;
   max-width: none;
   object-fit: cover;
   object-position: 50% 50%;
   user-select: none;
+  -webkit-user-select: none;
   pointer-events: none;
   transform-origin: 50% 50%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  will-change: transform;
   image-rendering: auto;
-}
-
-.home-parallax-v1__layer--source {
   filter: none !important;
-  opacity: 1 !important;
 }
 
-.home-parallax-v1__veil {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,.015) 0%, rgba(255,255,255,.025) 45%, rgba(255,255,255,.055) 100%);
-}
+.home-parallax-v2__layer--base { z-index: 1; }
+.home-parallax-v2__layer--clouds { z-index: 2; mix-blend-mode: multiply; }
+.home-parallax-v2__layer--mountains { z-index: 3; }
+.home-parallax-v2__layer--city { z-index: 4; mix-blend-mode: multiply; }
+.home-parallax-v2__layer--olives { z-index: 5; mix-blend-mode: multiply; }
+.home-parallax-v2__layer--foreground { z-index: 6; }
 
-html.home-parallax-v1 body > .app-header,
-html.home-parallax-v1 body > #main-loader,
-html.home-parallax-v1 body > #menu-container,
-html.home-parallax-v1 body > #banned-screen,
-html.home-parallax-v1 body > #game-container {
+html.home-parallax-v2 body > .app-header,
+html.home-parallax-v2 body > #main-loader,
+html.home-parallax-v2 body > #menu-container,
+html.home-parallax-v2 body > #banned-screen,
+html.home-parallax-v2 body > #game-container {
   position: relative;
-  z-index: 2;
+  z-index: 10;
 }
 
-html.home-parallax-v1.home-parallax-v1-active .app-header {
-  background: linear-gradient(135deg, rgba(234,243,255,.80), rgba(255,255,255,.66));
-  border: 1px solid rgba(255,255,255,.46);
-  box-shadow: 0 10px 34px rgba(49,46,129,.08);
-  -webkit-backdrop-filter: blur(8px) saturate(1.04);
-  backdrop-filter: blur(8px) saturate(1.04);
+html.home-parallax-v2.home-parallax-v2-active #menu-container {
+  background: transparent !important;
 }
 
-html.home-parallax-v1.home-parallax-v1-active #menu-container .game-card,
-html.home-parallax-v1.home-parallax-v1-active #menu-container .home-continue,
-html.home-parallax-v1.home-parallax-v1-active #menu-container .home-progress__item,
-html.home-parallax-v1.home-parallax-v1-active #menu-container .home-recent__item {
-  -webkit-backdrop-filter: blur(8px) saturate(1.03);
-  backdrop-filter: blur(8px) saturate(1.03);
+html.home-parallax-v2.home-parallax-v2-active .app-header {
+  background: linear-gradient(135deg, rgba(247,250,255,.72), rgba(255,255,255,.60));
+  border: 1px solid rgba(255,255,255,.58);
+  box-shadow: 0 10px 30px rgba(49,46,129,.07);
+  -webkit-backdrop-filter: blur(5px) saturate(1.03);
+  backdrop-filter: blur(5px) saturate(1.03);
 }
 
-html.home-parallax-v1.home-parallax-v1-active #menu-container .game-card {
-  background: rgba(255,255,255,.82);
-  border-color: rgba(255,255,255,.60);
-  box-shadow: 0 12px 28px rgba(49,46,129,.10), inset 0 1px 0 rgba(255,255,255,.78);
+html.home-parallax-v2.home-parallax-v2-active #menu-container .game-card,
+html.home-parallax-v2.home-parallax-v2-active #menu-container .home-continue,
+html.home-parallax-v2.home-parallax-v2-active #menu-container .home-progress__item,
+html.home-parallax-v2.home-parallax-v2-active #menu-container .home-recent__item {
+  -webkit-backdrop-filter: blur(5px) saturate(1.02);
+  backdrop-filter: blur(5px) saturate(1.02);
+}
+
+html.home-parallax-v2.home-parallax-v2-active #menu-container .game-card {
+  background: rgba(255,255,255,.78);
+  border-color: rgba(255,255,255,.66);
+  box-shadow: 0 12px 28px rgba(49,46,129,.09), inset 0 1px 0 rgba(255,255,255,.86);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-parallax-v1__scene {
-    transition: none;
-  }
-  .home-parallax-v1__layer {
-    will-change: auto;
-  }
+  .home-parallax-v2__scene { transition: none; }
+  .home-parallax-v2__layer { will-change: auto !important; }
 }
