@@ -27,13 +27,12 @@ jobs:
           for asset in 01-base 02-clouds 03-mountains 04-city 05-olives 06-foreground; do
             cat ".parallax-upload/${asset}"/*.b64 | tr -d '\n\r ' | base64 --decode > "web/assets/home-parallax-v2/${asset}.webp"
             test -s "web/assets/home-parallax-v2/${asset}.webp"
-            file "web/assets/home-parallax-v2/${asset}.webp" | grep -qi webp
+            file "web/assets/home-parallax-v2/${asset}.webp" | grep -Eqi 'Web/P|WebP'
           done
 
-          # The application no longer assembles browser-side .part files.
+          # Browser-side .part/base64 assembly is gone; remove old runtime parts.
           rm -rf web/assets/home-parallax-hq
           rm -rf .parallax-upload
-          rm -f .github/workflows/parallax-assets-assemble.yml
 
           # Bust Telegram/WebView caches for the new direct-image runtime.
           sed -i 's#home-parallax-v1.css?v=[0-9]*#home-parallax-v1.css?v=10#g' index.html
