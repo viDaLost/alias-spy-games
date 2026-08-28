@@ -2,18 +2,18 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '10';
+  const ASSET_VERSION = '11';
   const ASSET_ROOT = 'web/assets/home-parallax-v2';
   const MENU_ID = 'menu-container';
   const ROOT_CLASS = 'home-parallax-v2';
 
   const LAYERS = [
-    { key: 'base', file: '01-base.webp', depth: 0.000, scale: 1.035, opacity: 1.00 },
-    { key: 'clouds', file: '02-clouds.webp', depth: -0.018, scale: 1.045, opacity: 0.58 },
-    { key: 'mountains', file: '03-mountains.webp', depth: -0.035, scale: 1.055, opacity: 0.82 },
-    { key: 'city', file: '04-city.webp', depth: -0.058, scale: 1.070, opacity: 0.62 },
-    { key: 'olives', file: '05-olives.webp', depth: -0.090, scale: 1.085, opacity: 0.82 },
-    { key: 'foreground', file: '06-foreground.webp', depth: -0.125, scale: 1.105, opacity: 0.92 },
+    { key: 'base', file: '01-base.PNG', depth: 0.000, scale: 1.025, opacity: 1.00 },
+    { key: 'clouds', file: '02-clouds.PNG', depth: -0.018, scale: 1.035, opacity: 0.78 },
+    { key: 'mountains', file: '03-mountains.PNG', depth: -0.035, scale: 1.045, opacity: 1.00 },
+    { key: 'city', file: '04-city.PNG', depth: -0.058, scale: 1.055, opacity: 1.00 },
+    { key: 'olives', file: '05-olives.PNG', depth: -0.090, scale: 1.070, opacity: 1.00 },
+    { key: 'foreground', file: '06-foreground.PNG', depth: -0.125, scale: 1.085, opacity: 1.00 },
   ];
 
   let scene = null;
@@ -56,7 +56,7 @@
     image.alt = '';
     image.setAttribute('aria-hidden', 'true');
     image.decoding = 'async';
-    image.loading = index <= 1 ? 'eager' : 'lazy';
+    image.loading = 'eager';
     image.fetchPriority = index === 0 ? 'high' : 'auto';
     image.draggable = false;
     image.style.opacity = String(config.opacity);
@@ -189,7 +189,7 @@
     bindLifecycle();
     window.__homeParallaxV2 = Object.freeze({
       userId: TARGET_USER_ID,
-      quality: 'source-resolution',
+      quality: 'source-resolution-png',
       layerCount: layers.length,
       runtimeAssembly: false,
     });
