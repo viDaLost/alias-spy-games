@@ -1,5 +1,5 @@
-/* Game Hub parallax — 1 background + 5 unique transparent overlays.
-   JS gates the whole scene to Telegram user 1288379477. */
+/* Game Hub parallax — 1 background + 5 source-resolution overlays.
+   The whole scene is gated in JS to Telegram user 1288379477. */
 
 html.home-gamehub-parallax.home-gamehub-parallax-active body {
   background: #E0F2FE;
@@ -13,7 +13,7 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   pointer-events: none;
   opacity: 0;
   contain: layout paint style;
-  transition: opacity 240ms ease;
+  transition: opacity 220ms ease;
   background:
     radial-gradient(circle at 50% 18%, rgba(219,234,254,.94), transparent 40%),
     linear-gradient(180deg, #E0F2FE 0%, #DBEAFE 46%, #6366F1 100%);
@@ -27,12 +27,15 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   display: none !important;
 }
 
+/* Middle ground between the previous 124% crop and the too-small 96% contain.
+   All artwork now fills the viewport with mild overscan so top/bottom seams stay outside the screen. */
 .home-gamehub-parallax__layer {
   position: absolute;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
+  inset: -3.5dvh -3.5vw;
+  width: 107vw;
+  height: 107dvh;
   max-width: none;
+  object-fit: cover;
   object-position: 50% 50%;
   user-select: none;
   -webkit-user-select: none;
@@ -45,29 +48,52 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   mix-blend-mode: normal !important;
 }
 
-/* Base fills the viewport. Transparent overlays stay fully visible so their
-   decorative edges are not cropped on narrow iPhone screens. */
 .home-gamehub-parallax__layer--base {
   z-index: 1;
-  inset: -1.5vh -1.5vw;
-  width: 103vw;
-  height: 103dvh;
-  object-fit: cover;
+  inset: -2.5dvh -2.5vw;
+  width: 105vw;
+  height: 105dvh;
 }
 
-.home-gamehub-parallax__layer--atmosphere,
-.home-gamehub-parallax__layer--architecture,
-.home-gamehub-parallax__layer--game-icons,
-.home-gamehub-parallax__layer--game-library,
+.home-gamehub-parallax__layer--atmosphere {
+  z-index: 2;
+  width: 106vw;
+  height: 106dvh;
+}
+
+.home-gamehub-parallax__layer--architecture {
+  z-index: 3;
+  width: 107vw;
+  height: 107dvh;
+}
+
+.home-gamehub-parallax__layer--game-icons {
+  z-index: 4;
+  width: 108vw;
+  height: 108dvh;
+  /* First icon set owns mostly the upper/middle scene. Fade it before the lower set. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0,0,0,.72) 63%, transparent 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 54%, rgba(0,0,0,.72) 63%, transparent 78%, transparent 100%);
+}
+
+.home-gamehub-parallax__layer--game-library {
+  z-index: 5;
+  width: 108vw;
+  height: 108dvh;
+  /* Second icon set owns the middle/lower scene. This prevents two generated icon frames colliding. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 24%, rgba(0,0,0,.60) 38%, #000 52%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, transparent 24%, rgba(0,0,0,.60) 38%, #000 52%, #000 100%);
+}
+
 .home-gamehub-parallax__layer--foreground {
-  object-fit: contain;
+  z-index: 6;
+  inset: -4.5dvh -4.5vw;
+  width: 109vw;
+  height: 109dvh;
+  /* Feather only the extreme top/bottom of the nearest layer; the seam itself stays outside the viewport. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.72) 7%, #000 15%, #000 90%, rgba(0,0,0,.82) 96%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,.72) 7%, #000 15%, #000 90%, rgba(0,0,0,.82) 96%, transparent 100%);
 }
-
-.home-gamehub-parallax__layer--atmosphere { z-index: 2; }
-.home-gamehub-parallax__layer--architecture { z-index: 3; }
-.home-gamehub-parallax__layer--game-icons { z-index: 4; }
-.home-gamehub-parallax__layer--game-library { z-index: 5; }
-.home-gamehub-parallax__layer--foreground { z-index: 6; }
 
 html.home-gamehub-parallax body > .app-header,
 html.home-gamehub-parallax body > #main-loader,
@@ -82,7 +108,7 @@ html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container {
   background: transparent !important;
 }
 
-/* No panel behind the title: the header text sits directly over the artwork. */
+/* Header text sits directly over the artwork — no panel behind it. */
 html.home-gamehub-parallax.home-gamehub-parallax-active .app-header {
   background: transparent !important;
   border: 0 !important;
@@ -95,7 +121,7 @@ html.home-gamehub-parallax.home-gamehub-parallax-active .app-header {
 html.home-gamehub-parallax.home-gamehub-parallax-active .app-header h1,
 html.home-gamehub-parallax.home-gamehub-parallax-active .app-header .app-kicker,
 html.home-gamehub-parallax.home-gamehub-parallax-active .app-header .app-subtitle {
-  text-shadow: 0 2px 12px rgba(224,242,254,.72), 0 1px 3px rgba(255,255,255,.72);
+  text-shadow: 0 2px 12px rgba(224,242,254,.70), 0 1px 3px rgba(255,255,255,.70);
 }
 
 html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .game-card,
@@ -121,25 +147,27 @@ html.home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title {
 
 @media (max-width: 430px) {
   .home-gamehub-parallax__layer {
-    width: 100vw;
-    height: 100dvh;
+    inset: -3dvh -4vw;
+    width: 108vw;
+    height: 106dvh;
   }
 
   .home-gamehub-parallax__layer--base {
-    inset: -1vh -1vw;
-    width: 102vw;
-    height: 102dvh;
+    inset: -2dvh -3vw;
+    width: 106vw;
+    height: 104dvh;
   }
 
-  .home-gamehub-parallax__layer--atmosphere,
-  .home-gamehub-parallax__layer--architecture,
   .home-gamehub-parallax__layer--game-icons,
-  .home-gamehub-parallax__layer--game-library,
+  .home-gamehub-parallax__layer--game-library {
+    width: 109vw;
+    height: 107dvh;
+  }
+
   .home-gamehub-parallax__layer--foreground {
-    width: 96vw;
-    height: 98dvh;
-    left: 2vw;
-    top: 1dvh;
+    inset: -4dvh -5vw;
+    width: 110vw;
+    height: 108dvh;
   }
 }
 
