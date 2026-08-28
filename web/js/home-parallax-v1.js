@@ -2,20 +2,20 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '16';
+  const ASSET_VERSION = '17';
   const ASSET_ROOT = 'web/assets/home-gamehub-parallax-v1';
   const MENU_ID = 'menu-container';
   const ROOT_CLASS = 'home-gamehub-parallax';
 
   // GitHub mobile upload preserved four leading spaces in these filenames.
   // Reference the exact binary names to keep the original PNGs untouched.
-  // Foreground pedestal layer is intentionally omitted from rendering.
+  // Foreground pedestal layer remains intentionally omitted from rendering.
   const LAYERS = [
     { key: 'base',         file: '    01-gamehub-base.PNG',   depthY:  0.0015, depthX:  0.0000, scale: 1.000, opacity: 1.00, offsetY:  0 },
-    { key: 'atmosphere',   file: '    02-atmosphere.PNG',     depthY: -0.0060, depthX:  0.0015, scale: 1.004, opacity: 0.72, offsetY: -2 },
-    { key: 'architecture', file: '    03-architecture.PNG',   depthY: -0.0130, depthX: -0.0020, scale: 1.007, opacity: 0.90, offsetY:  2 },
-    { key: 'game-icons',   file: '    04-game-icons.PNG',     depthY: -0.0180, depthX:  0.0020, scale: 0.930, opacity: 0.82, offsetY: -10 },
-    { key: 'game-library', file: '    05-game-library.PNG',   depthY: -0.0240, depthX: -0.0025, scale: 0.940, opacity: 0.82, offsetY:  14 },
+    { key: 'atmosphere',   file: '    02-atmosphere.PNG',     depthY: -0.0055, depthX:  0.0012, scale: 1.004, opacity: 0.78, offsetY: -2 },
+    { key: 'architecture', file: '    03-architecture.PNG',   depthY: -0.0110, depthX: -0.0018, scale: 1.006, opacity: 0.94, offsetY:  2 },
+    { key: 'game-icons',   file: '    04-game-icons.PNG',     depthY: -0.0160, depthX:  0.0018, scale: 1.000, opacity: 1.00, offsetY: -8 },
+    { key: 'game-library', file: '    05-game-library.PNG',   depthY: -0.0210, depthX: -0.0020, scale: 1.005, opacity: 1.00, offsetY: 10 },
   ];
 
   let scene = null;
@@ -150,8 +150,8 @@
     const scroll = Math.min(Math.max(currentScroll, 0), 1600);
 
     for (const layer of layers) {
-      const motionY = reducedMotion ? 0 : Math.max(-46, Math.min(14, scroll * layer.depthY));
-      const motionX = reducedMotion ? 0 : Math.max(-5, Math.min(5, scroll * layer.depthX));
+      const motionY = reducedMotion ? 0 : Math.max(-40, Math.min(12, scroll * layer.depthY));
+      const motionX = reducedMotion ? 0 : Math.max(-4, Math.min(4, scroll * layer.depthX));
       const y = layer.offsetY + motionY;
       layer.element.style.transform = `translate3d(${motionX.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${layer.scale})`;
     }
