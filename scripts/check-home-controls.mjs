@@ -43,7 +43,7 @@ page.on('console', (message) => console.log(`[browser:${message.type()}] ${messa
 page.on('pageerror', (error) => console.log(`[pageerror] ${error.stack || error.message}`));
 page.on('requestfailed', (request) => console.log(`[requestfailed] ${request.url()} ${request.failure()?.errorText || ''}`));
 
-await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
+await page.route('https://telegram.org/js/telegram-web-app.js*', (route) => route.fulfill({
   status: 200,
   contentType: 'text/javascript; charset=utf-8',
   body: `window.Telegram={WebApp:{initData:'qa-init-data',initDataUnsafe:{user:{id:1288379477,username:'qa_admin',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
