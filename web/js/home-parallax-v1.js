@@ -2,18 +2,70 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '11';
-  const ASSET_ROOT = 'web/assets/home-parallax-v2';
+  const ASSET_VERSION = '12';
+  const PRIMARY_ROOT = 'web/assets/home-gamehub-parallax-v1';
+  const FALLBACK_ROOT = 'web/assets/home-parallax-v2';
   const MENU_ID = 'menu-container';
-  const ROOT_CLASS = 'home-parallax-v2';
+  const ROOT_CLASS = 'home-gamehub-parallax';
 
+  // 1 base + 5 unique overlays. All primary assets share one vertical canvas.
+  // The old source-resolution scene is used only as a temporary fallback until
+  // the six new PNG files are uploaded to PRIMARY_ROOT.
   const LAYERS = [
-    { key: 'base', file: '01-base.PNG', depth: 0.000, scale: 1.025, opacity: 1.00 },
-    { key: 'clouds', file: '02-clouds.PNG', depth: -0.018, scale: 1.035, opacity: 0.78 },
-    { key: 'mountains', file: '03-mountains.PNG', depth: -0.035, scale: 1.045, opacity: 1.00 },
-    { key: 'city', file: '04-city.PNG', depth: -0.058, scale: 1.055, opacity: 1.00 },
-    { key: 'olives', file: '05-olives.PNG', depth: -0.090, scale: 1.070, opacity: 1.00 },
-    { key: 'foreground', file: '06-foreground.PNG', depth: -0.125, scale: 1.085, opacity: 1.00 },
+    {
+      key: 'base',
+      file: '01-gamehub-base.PNG',
+      fallback: '01-base.PNG',
+      depthY: 0.004,
+      depthX: 0.000,
+      scale: 1.055,
+      opacity: 1.00,
+    },
+    {
+      key: 'atmosphere',
+      file: '02-atmosphere.PNG',
+      fallback: '02-clouds.PNG',
+      depthY: -0.014,
+      depthX: 0.004,
+      scale: 1.070,
+      opacity: 0.78,
+    },
+    {
+      key: 'architecture',
+      file: '03-architecture.PNG',
+      fallback: '03-mountains.PNG',
+      depthY: -0.033,
+      depthX: -0.006,
+      scale: 1.085,
+      opacity: 0.96,
+    },
+    {
+      key: 'game-icons',
+      file: '04-game-icons.PNG',
+      fallback: '04-city.PNG',
+      depthY: -0.056,
+      depthX: 0.009,
+      scale: 1.100,
+      opacity: 0.98,
+    },
+    {
+      key: 'game-library',
+      file: '05-game-library.PNG',
+      fallback: '05-olives.PNG',
+      depthY: -0.084,
+      depthX: -0.012,
+      scale: 1.115,
+      opacity: 1.00,
+    },
+    {
+      key: 'foreground',
+      file: '06-foreground-platform.PNG',
+      fallback: '06-foreground.PNG',
+      depthY: -0.122,
+      depthX: 0.014,
+      scale: 1.135,
+      opacity: 1.00,
+    },
   ];
 
   let scene = null;
@@ -50,28 +102,42 @@
     });
   }
 
+  function buildUrl(root, file) {
+    return `${root}/${file}?v=${ASSET_VERSION}`;
+  }
+
   function createLayer(config, index) {
     const image = document.createElement('img');
-    image.className = `home-parallax-v2__layer home-parallax-v2__layer--${config.key}`;
+    image.className = `home-gamehub-parallax__layer home-gamehub-parallax__layer--${config.key}`;
     image.alt = '';
     image.setAttribute('aria-hidden', 'true');
     image.decoding = 'async';
-    image.loading = 'eager';
+    image.loading = index <= 1 ? 'eager' : 'lazy';
     image.fetchPriority = index === 0 ? 'high' : 'auto';
     image.draggable = false;
     image.style.opacity = String(config.opacity);
-    image.src = `${ASSET_ROOT}/${config.file}?v=${ASSET_VERSION}`;
+    image.dataset.source = 'gamehub';
+
+    // This makes the code safe to publish before the user uploads the new art.
+    // As soon as the new file exists, it wins automatically. No Blob/base64/part assembly.
+    image.addEventListener('error', () => {
+      if (image.dataset.source === 'fallback') return;
+      image.dataset.source = 'fallback';
+      image.src = buildUrl(FALLBACK_ROOT, config.fallback);
+    });
+
+    image.src = buildUrl(PRIMARY_ROOT, config.file);
     return image;
   }
 
   function buildScene() {
     menu = document.getElementById(MENU_ID);
-    if (!menu || document.querySelector('.home-parallax-v2__scene')) return false;
+    if (!menu || document.querySelector('.home-gamehub-parallax__scene')) return false;
 
     reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
 
     scene = document.createElement('div');
-    scene.className = 'home-parallax-v2__scene';
+    scene.className = 'home-gamehub-parallax__scene';
     scene.dataset.quality = 'source-resolution';
     scene.setAttribute('aria-hidden', 'true');
 
@@ -86,10 +152,9 @@
 
     const base = layers[0]?.element;
     const reveal = () => scene?.classList.add('is-ready');
-    if (base?.decode) base.decode().then(reveal, reveal);
-    else if (base) {
+    if (base) {
       base.addEventListener('load', reveal, { once: true });
-      window.setTimeout(reveal, 650);
+      window.setTimeout(reveal, 1100);
     } else {
       reveal();
     }
@@ -99,7 +164,12 @@
   }
 
   function menuIsVisible() {
-    return Boolean(menu && scene && !menu.classList.contains('hidden') && document.body.dataset.mode !== 'admin');
+    return Boolean(
+      menu &&
+      scene &&
+      !menu.classList.contains('hidden') &&
+      document.body.dataset.mode !== 'admin'
+    );
   }
 
   function syncVisibility() {
@@ -131,11 +201,13 @@
 
   function renderFrame() {
     if (!active || !scene) return;
-    const scroll = Math.min(Math.max(currentScroll, 0), 1500);
+
+    const scroll = Math.min(Math.max(currentScroll, 0), 1800);
 
     for (const layer of layers) {
-      const y = reducedMotion ? 0 : Math.max(-150, Math.min(30, scroll * layer.depth));
-      layer.element.style.transform = `translate3d(0, ${y.toFixed(2)}px, 0) scale(${layer.scale})`;
+      const y = reducedMotion ? 0 : Math.max(-170, Math.min(38, scroll * layer.depthY));
+      const x = reducedMotion ? 0 : Math.max(-22, Math.min(22, scroll * layer.depthX));
+      layer.element.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${layer.scale})`;
     }
   }
 
@@ -144,11 +216,13 @@
     if (!active || reducedMotion) return;
 
     const delta = targetScroll - currentScroll;
-    currentScroll += delta * 0.18;
+    currentScroll += delta * 0.16;
     if (Math.abs(delta) < 0.2) currentScroll = targetScroll;
     renderFrame();
 
-    if (currentScroll !== targetScroll) rafId = requestAnimationFrame(animateTowardTarget);
+    if (currentScroll !== targetScroll) {
+      rafId = requestAnimationFrame(animateTowardTarget);
+    }
   }
 
   function onScroll() {
@@ -187,11 +261,12 @@
     if (!buildScene()) return;
 
     bindLifecycle();
-    window.__homeParallaxV2 = Object.freeze({
+    window.__homeGamehubParallax = Object.freeze({
       userId: TARGET_USER_ID,
-      quality: 'source-resolution-png',
+      assetRoot: PRIMARY_ROOT,
       layerCount: layers.length,
       runtimeAssembly: false,
+      sourceResolution: true,
     });
   }
 
