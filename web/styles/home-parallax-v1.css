@@ -27,13 +27,12 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   display: none !important;
 }
 
-/* Background/atmosphere/architecture keep mild overscan so parallax never
-   reveals top or bottom seams. */
+/* Mild overscan on every layer keeps generated canvas edges outside the viewport. */
 .home-gamehub-parallax__layer {
   position: absolute;
-  inset: -3.5dvh -3.5vw;
-  width: 107vw;
-  height: 107dvh;
+  inset: -3dvh -3vw;
+  width: 106vw;
+  height: 106dvh;
   max-width: none;
   object-fit: cover;
   object-position: 50% 50%;
@@ -46,6 +45,8 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   image-rendering: auto;
   filter: none !important;
   mix-blend-mode: normal !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 
 .home-gamehub-parallax__layer--base {
@@ -63,31 +64,28 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
 
 .home-gamehub-parallax__layer--architecture {
   z-index: 3;
-  width: 107vw;
-  height: 107dvh;
+  width: 106vw;
+  height: 106dvh;
 }
 
-/* Decorative icon canvases are transparent. Keep their entire canvas visible,
-   then JS scales them down slightly so generated icons stay inside the screen. */
-.home-gamehub-parallax__layer--game-icons,
-.home-gamehub-parallax__layer--game-library {
-  inset: 0;
-  width: 100vw;
-  height: 100dvh;
-  object-fit: contain;
-  object-position: 50% 50%;
-}
-
+/* Decorative icon layers are now fully opaque and slightly overscanned.
+   No masks/fades: this removes visible transition bands and restores icon contrast. */
 .home-gamehub-parallax__layer--game-icons {
   z-index: 4;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,.70) 66%, transparent 82%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,.70) 66%, transparent 82%, transparent 100%);
+  inset: -2dvh -2.5vw;
+  width: 105vw;
+  height: 104dvh;
+  object-fit: cover;
+  object-position: 50% 48%;
 }
 
 .home-gamehub-parallax__layer--game-library {
   z-index: 5;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,.58) 34%, #000 50%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,.58) 34%, #000 50%, #000 100%);
+  inset: -2dvh -2.5vw;
+  width: 105vw;
+  height: 104dvh;
+  object-fit: cover;
+  object-position: 50% 52%;
 }
 
 html.home-gamehub-parallax body > .app-header,
@@ -154,12 +152,10 @@ html.home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title {
 
   .home-gamehub-parallax__layer--game-icons,
   .home-gamehub-parallax__layer--game-library {
-    inset: 0;
-    left: 2vw;
-    top: 1dvh;
-    width: 96vw;
-    height: 98dvh;
-    object-fit: contain;
+    inset: -2.5dvh -3.5vw;
+    width: 107vw;
+    height: 105dvh;
+    object-fit: cover;
   }
 }
 
