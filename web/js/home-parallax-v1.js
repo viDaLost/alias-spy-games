@@ -2,21 +2,21 @@
   'use strict';
 
   const TARGET_USER_ID = '1288379477';
-  const ASSET_VERSION = '13';
+  const ASSET_VERSION = '14';
   const ASSET_ROOT = 'web/assets/home-gamehub-parallax-v1';
   const MENU_ID = 'menu-container';
   const ROOT_CLASS = 'home-gamehub-parallax';
 
-  // GitHub mobile upload preserved four leading spaces in the binary filenames.
-  // Use those exact filenames directly so the original source PNGs are rendered
-  // without any rename, transcoding, Blob/base64 or .part assembly.
+  // GitHub mobile upload preserved four leading spaces in these filenames.
+  // They are intentionally referenced exactly as stored to avoid touching the
+  // original source PNG bytes.
   const LAYERS = [
-    { key: 'base',         file: '    01-gamehub-base.PNG',          depthY:  0.004, depthX:  0.000, scale: 1.055, opacity: 1.00 },
-    { key: 'atmosphere',   file: '    02-atmosphere.PNG',            depthY: -0.014, depthX:  0.004, scale: 1.070, opacity: 0.82 },
-    { key: 'architecture', file: '    03-architecture.PNG',          depthY: -0.033, depthX: -0.006, scale: 1.085, opacity: 0.97 },
-    { key: 'game-icons',   file: '    04-game-icons.PNG',            depthY: -0.056, depthX:  0.009, scale: 1.100, opacity: 0.98 },
-    { key: 'game-library', file: '    05-game-library.PNG',          depthY: -0.084, depthX: -0.012, scale: 1.115, opacity: 1.00 },
-    { key: 'foreground',   file: '    06-foreground-platform.PNG',   depthY: -0.122, depthX:  0.014, scale: 1.135, opacity: 1.00 },
+    { key: 'base',         file: '    01-gamehub-base.PNG',        depthY:  0.002, depthX:  0.000, scale: 1.000, opacity: 1.00 },
+    { key: 'atmosphere',   file: '    02-atmosphere.PNG',          depthY: -0.008, depthX:  0.002, scale: 1.004, opacity: 0.76 },
+    { key: 'architecture', file: '    03-architecture.PNG',        depthY: -0.018, depthX: -0.003, scale: 1.008, opacity: 0.94 },
+    { key: 'game-icons',   file: '    04-game-icons.PNG',          depthY: -0.030, depthX:  0.004, scale: 1.012, opacity: 0.96 },
+    { key: 'game-library', file: '    05-game-library.PNG',        depthY: -0.044, depthX: -0.005, scale: 1.016, opacity: 0.98 },
+    { key: 'foreground',   file: '    06-foreground-platform.PNG', depthY: -0.060, depthX:  0.006, scale: 1.022, opacity: 1.00 },
   ];
 
   let scene = null;
@@ -148,11 +148,11 @@
   function renderFrame() {
     if (!active || !scene) return;
 
-    const scroll = Math.min(Math.max(currentScroll, 0), 1800);
+    const scroll = Math.min(Math.max(currentScroll, 0), 1600);
 
     for (const layer of layers) {
-      const y = reducedMotion ? 0 : Math.max(-175, Math.min(42, scroll * layer.depthY));
-      const x = reducedMotion ? 0 : Math.max(-24, Math.min(24, scroll * layer.depthX));
+      const y = reducedMotion ? 0 : Math.max(-76, Math.min(20, scroll * layer.depthY));
+      const x = reducedMotion ? 0 : Math.max(-8, Math.min(8, scroll * layer.depthX));
       layer.element.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${layer.scale})`;
     }
   }
@@ -162,7 +162,7 @@
     if (!active || reducedMotion) return;
 
     const delta = targetScroll - currentScroll;
-    currentScroll += delta * 0.16;
+    currentScroll += delta * 0.14;
     if (Math.abs(delta) < 0.2) currentScroll = targetScroll;
     renderFrame();
 
