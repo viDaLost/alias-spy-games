@@ -27,11 +27,14 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (url.pathname === '/compat' && request.method === 'POST') {
+    if ((url.pathname === '/compat' || url.pathname === '/android/compat') && request.method === 'POST') {
       const body = await request.clone().json().catch(() => ({}));
       const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
       const action = String(payload.action || '');
       if (PROFILE_ACTIONS.has(action)) {
+        if (url.pathname === '/android/compat') {
+          return handleAndroidProfileCompat(request, env, ctx, payload, action);
+        }
         return handleProfileCompat(request, env, body, payload, action);
       }
     }
@@ -52,40 +55,103 @@ async function handleProfileCompat(request, env, body, payload, action) {
     const userId = cleanUserId(verified.user?.id);
     if (!userId) throw httpError(401, 'Telegram user missing');
 
-    const store = env.USERS.get(env.USERS.idFromName('global'));
     const displayName = sanitizeDisplayName(
       [verified.user?.first_name, verified.user?.last_name].filter(Boolean).join(' ')
       || verified.user?.username
       || 'Игрок'
     );
-
-    let result;
-    if (action === 'profileBootstrap') {
-      result = await callStore(store, '/profile/bootstrap', { userId, displayName });
-    } else if (action === 'profileSearch') {
-      result = await callStore(store, '/profile/search', { userId, query: payload.query });
-    } else if (action === 'profileAddFriend') {
-      result = await callStore(store, '/profile/friend-add', { userId, friendId: payload.friendId });
-    } else if (action === 'profileRemoveFriend') {
-      result = await callStore(store, '/profile/friend-remove', { userId, friendId: payload.friendId });
-    } else if (action === 'profileSetFavorites') {
-      result = await callStore(store, '/profile/favorites', { userId, displayName, favorites: payload.favorites });
-    } else if (action === 'profileTrackGame') {
-      result = await callStore(store, '/profile/track', { userId, displayName, game: payload.game });
-    } else if (action === 'profileInviteFriend') {
-      result = await inviteFriendToGame(env, store, verified.user || {}, userId, payload);
-    } else {
-      throw httpError(400, 'Unsupported profile action');
-    }
-
+    const store = env.USERS.get(env.USERS.idFromName('global'));
+    const result = await executeProfileAction(
+      env,
+      store,
+      userId,
+      displayName,
+      verified.user || {},
+      payload,
+      action,
+    );
     return json(result, 200, cors);
   } catch (error) {
-    return json(
-      { ok: false, success: false, error: String(error?.message || error) },
-      Number(error?.status || 500),
-      cors,
-    );
+    return profileError(error, cors);
   }
+}
+
+async function handleAndroidProfileCompat(request, env, ctx, payload, action) {
+  const cors = corsHeaders(request, env);
+  try {
+    if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
+    const userId = await authenticateAndroidRequest(request, env, ctx);
+    const claimedId = cleanUserId(payload.userId || payload.id);
+    if (claimedId && claimedId !== userId) throw httpError(403, 'User mismatch');
+
+    // An Android session proves identity independently of Telegram initData. Do
+    // not overwrite a Telegram-provided display name when the standalone APK
+    // does not know it; player_profiles keeps the existing non-empty name.
+    const displayName = sanitizeDisplayName(payload.displayName || '');
+    const senderName = displayName || `Игрок ${userId.slice(-4)}`;
+    const store = env.USERS.get(env.USERS.idFromName('global'));
+    const result = await executeProfileAction(
+      env,
+      store,
+      userId,
+      displayName,
+      { first_name: senderName },
+      payload,
+      action,
+    );
+    return json(result, 200, cors);
+  } catch (error) {
+    return profileError(error, cors);
+  }
+}
+
+async function executeProfileAction(env, store, userId, displayName, sender, payload, action) {
+  if (action === 'profileBootstrap') {
+    return callStore(store, '/profile/bootstrap', { userId, displayName });
+  }
+  if (action === 'profileSearch') {
+    return callStore(store, '/profile/search', { userId, query: payload.query });
+  }
+  if (action === 'profileAddFriend') {
+    return callStore(store, '/profile/friend-add', { userId, friendId: payload.friendId });
+  }
+  if (action === 'profileRemoveFriend') {
+    return callStore(store, '/profile/friend-remove', { userId, friendId: payload.friendId });
+  }
+  if (action === 'profileSetFavorites') {
+    return callStore(store, '/profile/favorites', { userId, displayName, favorites: payload.favorites });
+  }
+  if (action === 'profileTrackGame') {
+    return callStore(store, '/profile/track', { userId, displayName, game: payload.game });
+  }
+  if (action === 'profileInviteFriend') {
+    return inviteFriendToGame(env, store, sender || {}, userId, payload);
+  }
+  throw httpError(400, 'Unsupported profile action');
+}
+
+async function authenticateAndroidRequest(request, env, ctx) {
+  const headers = new Headers(request.headers);
+  const verifyRequest = new Request(new URL('/android/auth/me', request.url), {
+    method: 'GET',
+    headers,
+  });
+  const response = await coreV11.fetch(verifyRequest, env, ctx);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.success !== true || data?.isBanned === true) {
+    throw httpError(data?.isBanned ? 403 : 401, data?.error || 'Android session invalid');
+  }
+  const userId = cleanUserId(data.userId);
+  if (!userId) throw httpError(401, 'Android session invalid');
+  return userId;
+}
+
+function profileError(error, cors) {
+  return json(
+    { ok: false, success: false, error: String(error?.message || error) },
+    Number(error?.status || 500),
+    cors,
+  );
 }
 
 async function inviteFriendToGame(env, store, sender, userId, payload) {
