@@ -35,7 +35,7 @@ await context.addInitScript(() => {
     getTelegramId() { return '555555555'; },
     getSessionToken() { return 'bgs_android_runtime_test_token'; },
     isAndroidApp() { return true; },
-    getAppVersion() { return '3.0.5-standalone'; },
+    getAppVersion() { return '3.0.6-standalone'; },
     logout() {},
   };
 });
@@ -109,7 +109,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
 });
 
 stage = 'app startup';
-await page.goto(`${baseURL}/?android=1&apk=32&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
+await page.goto(`${baseURL}/?android=1&apk=33&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
 await page.waitForSelector('[data-social-open="profile"]', { timeout: 10_000 });
