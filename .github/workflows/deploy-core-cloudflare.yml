@@ -142,6 +142,68 @@ jobs:
           }
           throw lastError;
           NODE
+      - name: Verify hardened admin RBAC boundary
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ADMIN_TELEGRAM_ID: '1288379477'
+          CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
+        run: |
+          node <<'NODE'
+          const crypto = await import('node:crypto');
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          const adminId = process.env.ADMIN_TELEGRAM_ID;
+          const workerUrl = process.env.CORE_WORKER_URL;
+          const origin = 'https://vidalost.github.io';
+          if (!botToken || !adminId || !workerUrl) throw new Error('Admin RBAC verification environment is incomplete');
+
+          function createInitData(id = adminId) {
+            const params = new URLSearchParams();
+            params.set('auth_date', String(Math.floor(Date.now() / 1000)));
+            params.set('user', JSON.stringify({ id: Number(id), first_name: 'RBAC verification' }));
+            const checkString = [...params.entries()]
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([key, value]) => `${key}=${value}`)
+              .join('\n');
+            const secret = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+            params.set('hash', crypto.createHmac('sha256', secret).update(checkString).digest('hex'));
+            return params.toString();
+          }
+
+          async function compat(body) {
+            const response = await fetch(`${workerUrl}/compat`, {
+              method: 'POST',
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            return { response, data: await response.json().catch(() => ({})) };
+          }
+
+          let result = await compat({
+            telegramInitData: createInitData(),
+            payload: { action: 'adminRoleStatus', adminId: '999999999' },
+          });
+          if (!result.response.ok || result.data?.isAdmin !== true || result.data?.isRoot !== true || String(result.data?.userId) !== String(adminId)) {
+            throw new Error(`Root RBAC verification failed: HTTP ${result.response.status} ${JSON.stringify(result.data)}`);
+          }
+
+          result = await compat({
+            telegramInitData: '',
+            payload: { action: 'getAdminData', adminId },
+          });
+          if (result.response.status !== 401) {
+            throw new Error(`Client-supplied adminId bypassed signed Telegram proof: HTTP ${result.response.status}`);
+          }
+
+          result = await compat({
+            telegramInitData: 'auth_date=1&user=%7B%22id%22%3A1288379477%7D&hash=' + '0'.repeat(64),
+            payload: { action: 'adminRoleGrant', targetId: adminId, adminId },
+          });
+          if (result.response.status !== 401) {
+            throw new Error(`Forged Telegram signature reached role mutation: HTTP ${result.response.status}`);
+          }
+
+          console.log('Admin RBAC boundary verified: root is server-derived and forged/client-only identity cannot authorize admin actions.');
+          NODE
       - name: Verify registration code delivery to administrator
         env:
           ADMIN_TELEGRAM_ID: '1288379477'
@@ -212,7 +274,7 @@ jobs:
             if (!response.ok || data?.success === false) {
               throw new Error(`Core verification failed: HTTP ${response.status} ${data?.error || ''}`.trim());
             }
-            if (data?.source !== 'cloudflare-sql') throw new Error(`Unexpected storage source: ${data?.source || 'missing'}`);
+            if (data?.source !== 'cloudflare-sql-rbac') throw new Error(`Unexpected storage source: ${data?.source || 'missing'}`);
             if (data?.storage?.engine !== 'sqlite-sql') throw new Error(`Unexpected storage engine: ${data?.storage?.engine || 'missing'}`);
             const sqlCount = Number(data?.storage?.sqlUserCount || 0);
             const usersCount = Array.isArray(data?.users) ? data.users.length : 0;
