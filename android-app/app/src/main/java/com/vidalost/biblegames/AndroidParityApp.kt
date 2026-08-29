@@ -18,7 +18,12 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -28,11 +33,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.vidalost.biblegames.data.AndroidSessionStore
 import com.vidalost.biblegames.data.AssetRepository
@@ -44,17 +54,6 @@ import com.vidalost.biblegames.ui.Ink
 import com.vidalost.biblegames.ui.InkSoft
 import com.vidalost.biblegames.ui.PrimaryButton
 import com.vidalost.biblegames.ui.SecondaryButton
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
 private const val WEB_APP_URL = "https://vidalost.github.io/alias-spy-games/"
@@ -170,6 +169,7 @@ private fun AndroidWebExperience(
             modifier = Modifier.fillMaxSize(),
             factory = { viewContext ->
                 WebView(viewContext).apply {
+                    val appWebView = this
                     setBackgroundColor(AndroidColor.rgb(224, 242, 254))
                     setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     settings.apply {
@@ -189,7 +189,7 @@ private fun AndroidWebExperience(
 
                     CookieManager.getInstance().apply {
                         setAcceptCookie(true)
-                        setAcceptThirdPartyCookies(this@apply, false)
+                        setAcceptThirdPartyCookies(appWebView, false)
                     }
 
                     addJavascriptInterface(
