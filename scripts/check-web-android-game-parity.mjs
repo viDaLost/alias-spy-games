@@ -27,54 +27,67 @@ const expectedRoutes = new Set([
 
 const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
-assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected Android fallback routes: ${sorted(androidRoutes).join(', ')}`);
+assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
 
-// APK 3.x uses the actual production Web UI after the encrypted native OTP
-// gate. Starting with 3.0.2 the web tree is bundled into the APK and served by
-// WebViewAssetLoader, so visual/feature parity no longer depends on GitHub Pages
-// network availability during application startup.
+// APK 3.0.3 uses the actual production Web UI after the encrypted native OTP
+// gate. The web tree is bundled into the APK, but WebViewAssetLoader serves it
+// under the real GitHub Pages HTTPS origin so CORS, online rooms and the profile
+// API see exactly the same origin as the production web application.
 const mainActivity = read('android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt');
 const parityShell = read('android-app/app/src/main/java/com/vidalost/biblegames/AndroidParityApp.kt');
+const androidRuntime = read('web/js/android-runtime.js');
+const backendBridge = read('web/js/backend-bridge.js');
 const assetSync = read('scripts/sync-android-assets.mjs');
 assert(mainActivity.includes('AndroidParityApp('), 'MainActivity does not launch the Web parity shell');
 assert(parityShell.includes('WebViewAssetLoader'), 'APK parity shell does not use WebViewAssetLoader');
-assert(parityShell.includes('https://$WEB_APP_ORIGIN/assets/index.html'), 'APK parity shell does not load the bundled production app');
-assert(parityShell.includes('appassets.androidplatform.net'), 'APK parity shell uses the wrong local HTTPS origin');
-assert(!parityShell.includes('https://vidalost.github.io/alias-spy-games/'), 'APK startup still depends on GitHub Pages');
+assert(parityShell.includes('WEB_APP_ORIGIN = "vidalost.github.io"'), 'APK does not use the production HTTPS origin');
+assert(parityShell.includes('WEB_APP_PATH_PREFIX = "/alias-spy-games/"'), 'APK bundled path does not mirror GitHub Pages');
+assert(parityShell.includes('.setDomain(WEB_APP_ORIGIN)'), 'WebViewAssetLoader is not bound to the production domain');
+assert(parityShell.includes('.setHttpAllowed(false)'), 'bundled Web UI can fall back to cleartext HTTP');
+assert(parityShell.includes('https://$WEB_APP_ORIGIN${WEB_APP_PATH_PREFIX}index.html'), 'APK parity shell does not load the bundled production app path');
+assert(!parityShell.includes('appassets.androidplatform.net'), 'legacy appassets origin still breaks worker CORS parity');
 assert(parityShell.includes('sessionStore.load()'), 'APK parity shell bypasses the encrypted native login session');
 assert(parityShell.includes('addJavascriptInterface(') && parityShell.includes('"AndroidApp"'), 'APK parity shell does not expose the audited Android bridge');
 assert(parityShell.includes('getTelegramId()'), 'Android bridge does not provide the verified Telegram ID');
+assert(parityShell.includes('getSessionToken()'), 'Android bridge cannot authenticate Web parity API calls');
+assert(!parityShell.includes('onNativeFallback'), 'signed-in APK can still fall back to divergent native games');
+assert(!parityShell.includes('nativeFallback'), 'signed-in APK retains the divergent native fallback state');
 assert(parityShell.includes('mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW'), 'WebView allows mixed content');
 assert(parityShell.includes('allowFileAccess = false') && parityShell.includes('allowContentAccess = false'), 'WebView local file/content access is not disabled');
 assert(parityShell.includes('DisposableEffect(Unit)'), 'WebView cleanup is not tied to screen lifecycle');
 assert(!parityShell.includes('DisposableEffect(webView)'), 'WebView can be destroyed during startup state replacement');
+assert(androidRuntime.includes('ensureSocialFeatures'), 'Android does not mount profile/friends/favorites Web modules');
+assert(androidRuntime.includes('android-native-session'), 'Android social identity marker is missing');
+assert(backendBridge.includes("callCore('/android/compat'"), 'Android Web requests are not routed through authenticated compat API');
+assert(backendBridge.includes('getSessionToken'), 'Android Web API requests do not use the verified bearer session');
 assert(assetSync.includes("['index.html', 'index.html']"), 'Android asset sync does not bundle index.html');
 assert(assetSync.includes("['web', 'web']"), 'Android asset sync does not bundle the production web tree');
 
-// Native implementations stay packaged as the offline fallback and must keep
-// the same 12-route catalog and real Biblical Treasures artwork.
+// Native implementations remain packaged for the login-era codebase, but they
+// are no longer a post-login game fallback. Keep their catalog/artwork valid so
+// source compatibility and native tests do not silently rot.
 const host = read('android-app/app/src/main/java/com/vidalost/biblegames/games/GameHost.kt');
-assert(host.includes('GameKey.SKETCH -> BibleSketchGame('), 'Bible Sketch is not launchable in the offline fallback');
-assert(host.includes('GameKey.MATCH_THREE -> BiblicalMatchThreeGame(assets, profile, onProfileChange, onBack)'), 'Biblical Treasures is not launchable in the offline fallback');
+assert(host.includes('GameKey.SKETCH -> BibleSketchGame('), 'packaged Bible Sketch route is missing');
+assert(host.includes('GameKey.MATCH_THREE -> BiblicalMatchThreeGame(assets, profile, onProfileChange, onBack)'), 'packaged Biblical Treasures route is missing');
 assert(models.includes('MATCH_THREE("biblical-match-three", "Библейские сокровища"'), 'APK uses the wrong Biblical Treasures title');
 assert(models.includes('assets/icons/biblical-treasures-v38.png'), 'APK uses a placeholder Biblical Treasures menu icon');
 
 const matchThree = read('android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeGame.kt');
 const matchThreeEngine = read('android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeEngine.kt');
 for (const name of ['bible', 'fish', 'dove', 'candle', 'crown', 'ark', 'bread', 'grapes', 'tablets', 'staff', 'jericho', 'covenant']) {
-  assert((matchThree + matchThreeEngine).includes(`assets/biblical-match-three/icons-v17/${name}.webp`), `APK Biblical Treasures fallback does not use the real ${name} artwork`);
+  assert((matchThree + matchThreeEngine).includes(`assets/biblical-match-three/icons-v17/${name}.webp`), `APK Biblical Treasures package does not use the real ${name} artwork`);
   assert(exists(`web/assets/biblical-match-three/icons-v17/${name}.webp`), `source artwork is missing: ${name}.webp`);
 }
-assert(matchThree.includes('assets/biblical-match-three/board-background-v35.webp'), 'APK Biblical Treasures fallback does not use the real board texture');
+assert(matchThree.includes('assets/biblical-match-three/board-background-v35.webp'), 'APK Biblical Treasures package does not use the real board texture');
 assert(exists('web/assets/biblical-match-three/board-background-v35.webp'), 'source board texture is missing');
 
 const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
 const releaseWorkflow = read('.github/workflows/build-android-apk.yml');
-assert(gradle.includes('versionCode 29') && gradle.includes("versionName '3.0.2-web-parity'"), 'APK version must be 3.0.2-web-parity (29)');
-assert(gradle.includes("implementation 'androidx.webkit:webkit:1.17.0'"), 'APK is missing current AndroidX WebKit');
+assert(gradle.includes('versionCode 30') && gradle.includes("versionName '3.0.3-web-parity'"), 'APK version must be 3.0.3-web-parity (30)');
+assert(gradle.includes("implementation 'androidx.webkit:webkit:1.14.0'"), 'APK is missing the Kotlin-compatible AndroidX WebKit');
 assert(androidMenu.includes('BibleGames-Android-latest.apk'), 'Web download menu does not point to the stable latest APK');
-assert(releaseWorkflow.includes('BibleGames-Android-3.0.2-web-parity.apk'), 'Android release workflow does not publish the versioned 3.0.2 APK');
+assert(releaseWorkflow.includes('BibleGames-Android-3.0.3-web-parity.apk'), 'Android release workflow does not publish the versioned 3.0.3 APK');
 assert(releaseWorkflow.includes('BibleGames-Android-latest.apk'), 'Android release workflow does not publish the stable latest APK alias');
 
-console.log(`Web/Android parity passed: bundled production Web UI + ${androidRoutes.size} native fallback routes`);
+console.log(`Web/Android parity passed: production-origin bundled Web UI + ${androidRoutes.size} packaged native routes`);
