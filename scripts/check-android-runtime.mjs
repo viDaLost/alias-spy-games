@@ -35,7 +35,7 @@ await context.addInitScript(() => {
     getTelegramId() { return '555555555'; },
     getSessionToken() { return 'bgs_android_runtime_test_token'; },
     isAndroidApp() { return true; },
-    getAppVersion() { return '3.0.4-standalone'; },
+    getAppVersion() { return '3.0.5-standalone'; },
     logout() {},
   };
 });
@@ -100,7 +100,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'APK must not use Telegram compat route' }) });
 });
 
-await page.goto(`${baseURL}/?android=1&apk=31&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
+await page.goto(`${baseURL}/?android=1&apk=32&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
 await page.waitForSelector('[data-social-open="profile"]', { timeout: 10_000 });
@@ -158,12 +158,77 @@ const favoritesState = await page.evaluate(() => ({
 if (!favoritesState.visible || favoritesState.selected !== 2 || !favoritesState.text.includes('Библейский художник')) {
   throw new Error(`Favorites did not render Android profile data: ${JSON.stringify(favoritesState)}`);
 }
+await page.locator('[data-social-close]').click();
+
+// Regression for the Android-only "header over blank gradient" failure. The
+// entire Bible Sketch home surface must be composited above the menu parallax,
+// not just its sticky topbar.
+await page.evaluate(() => localStorage.removeItem('bible_sketch_room_id_v1'));
+await page.waitForSelector('#bible-sketch-card', { timeout: 8_000 });
+await page.locator('#bible-sketch-card').click();
+await page.waitForSelector('#bsk-root #bsk-content .bsk-home', { timeout: 8_000 });
+await page.waitForFunction(() => {
+  const content = document.getElementById('bsk-content');
+  return Boolean(content?.textContent?.includes('Создать комнату') && content?.textContent?.includes('Войти по коду'));
+}, null, { timeout: 8_000 });
+await page.waitForTimeout(800);
+
+const sketchLayout = await page.evaluate(() => {
+  const container = document.getElementById('game-container');
+  const root = document.getElementById('bsk-root');
+  const content = document.getElementById('bsk-content');
+  const hero = document.querySelector('#bsk-content .bsk-hero');
+  const scene = document.querySelector('.home-gamehub-parallax__scene');
+  if (!container || !root || !content || !hero) return null;
+
+  const contentStyle = getComputedStyle(content);
+  const containerStyle = getComputedStyle(container);
+  const sceneStyle = scene ? getComputedStyle(scene) : null;
+  const contentRect = content.getBoundingClientRect();
+  const heroRect = hero.getBoundingClientRect();
+  const sampleX = Math.max(1, Math.min(innerWidth - 2, heroRect.left + heroRect.width / 2));
+  const sampleY = Math.max(1, Math.min(innerHeight - 2, heroRect.top + Math.min(heroRect.height / 2, 70)));
+  const topElement = document.elementFromPoint(sampleX, sampleY);
+
+  return {
+    bodyGame: document.body?.dataset?.currentGame || '',
+    contentText: String(content.textContent || ''),
+    contentDisplay: contentStyle.display,
+    contentVisibility: contentStyle.visibility,
+    contentOpacity: Number.parseFloat(contentStyle.opacity || '1'),
+    contentWidth: contentRect.width,
+    contentHeight: contentRect.height,
+    gameZ: Number.parseInt(containerStyle.zIndex || '0', 10) || 0,
+    sceneHidden: scene ? scene.hidden : true,
+    sceneDisplay: sceneStyle?.display || 'none',
+    sceneVisibility: sceneStyle?.visibility || 'hidden',
+    topInsideGame: Boolean(topElement && root.contains(topElement)),
+    topClass: topElement?.className || '',
+  };
+});
+
+if (!sketchLayout) throw new Error('Bible Sketch root/home did not render in Android runtime.');
+if (sketchLayout.bodyGame !== 'bible-sketch') throw new Error(`Wrong active Android game: ${JSON.stringify(sketchLayout)}`);
+if (sketchLayout.contentDisplay === 'none' || sketchLayout.contentVisibility === 'hidden' || sketchLayout.contentOpacity <= 0.01) {
+  throw new Error(`Bible Sketch content is CSS-hidden: ${JSON.stringify(sketchLayout)}`);
+}
+if (sketchLayout.contentWidth < 250 || sketchLayout.contentHeight < 250) {
+  throw new Error(`Bible Sketch content is collapsed behind the header: ${JSON.stringify(sketchLayout)}`);
+}
+if (!sketchLayout.contentText.includes('Создать комнату') || !sketchLayout.contentText.includes('Войти по коду')) {
+  throw new Error(`Bible Sketch home controls are missing: ${JSON.stringify(sketchLayout)}`);
+}
+if (!sketchLayout.sceneHidden || sketchLayout.sceneDisplay !== 'none' || sketchLayout.sceneVisibility !== 'hidden') {
+  throw new Error(`Menu parallax is still composited over Bible Sketch: ${JSON.stringify(sketchLayout)}`);
+}
+if (sketchLayout.gameZ < 100) throw new Error(`Bible Sketch game surface was not promoted above Android background: ${JSON.stringify(sketchLayout)}`);
+if (!sketchLayout.topInsideGame) throw new Error(`A foreign/background layer is on top of Bible Sketch content: ${JSON.stringify(sketchLayout)}`);
 
 if (androidCalls < 2) throw new Error(`Expected Android sync + profile calls, got ${androidCalls}.`);
 if (!androidActions.includes('profileBootstrap')) throw new Error(`profileBootstrap was not routed through Android bearer API: ${androidActions.join(', ')}`);
 if (telegramCompatCalls !== 0) throw new Error(`APK incorrectly called Telegram /compat ${telegramCompatCalls} time(s).`);
 
-console.log(`OK: Android standalone session rendered Profile/Favorites inside viewport and used bearer Cloudflare routes (${androidActions.join(', ')}).`);
+console.log(`OK: Android standalone rendered Profile/Favorites and Bible Sketch foreground UI above the disabled menu parallax (${androidActions.join(', ')}).`);
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
