@@ -82,7 +82,7 @@ includes('web/styles/admin-live-compact.css', 'grid-template-columns: repeat(2, 
 includes('web/styles/admin-live-compact.css', 'grid-template-columns: 44px minmax(24px, 1fr) 44px;', 'Compact balance controls must preserve 44px touch targets');
 includes('index.html', 'admin-live-v3.js?v=7', 'Admin live cache key must remain current');
 includes('index.html', 'admin-live-compact.css?v=1', 'Compact admin live stylesheet must be loaded');
-includes('index.html', 'request-storm-v2-20260824', 'Build marker must identify the reconnect-storm release');
+includes('index.html', 'telegram-desktop-bootstrap-20260828', 'Build marker must identify the current production bootstrap release');
 includes('index.html', 'cloudflare-request-budget.js?v=2', 'Cloudflare request-budget client must be loaded');
 includes('index.html', 'presence-identity.js?v=7', 'Presence cache key must be bumped');
 includes('index.html', 'presence-game-bridge.js?v=1', 'Presence game bridge must be loaded');
