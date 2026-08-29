@@ -100,12 +100,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-3.0.2-web-parity.apk
+          cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-3.0.3-web-parity.apk
           cp android-app/app/build/outputs/apk/release/app-release.apk dist/BibleGames-Android-latest.apk
-          cp android-app/app/build/outputs/bundle/release/app-release.aab dist/BibleGames-Android-3.0.2-web-parity.aab
-          sha256sum dist/BibleGames-Android-3.0.2-web-parity.apk | tee dist/BibleGames-Android-3.0.2-web-parity.apk.sha256
+          cp android-app/app/build/outputs/bundle/release/app-release.aab dist/BibleGames-Android-3.0.3-web-parity.aab
+          sha256sum dist/BibleGames-Android-3.0.3-web-parity.apk | tee dist/BibleGames-Android-3.0.3-web-parity.apk.sha256
           sha256sum dist/BibleGames-Android-latest.apk | tee dist/BibleGames-Android-latest.apk.sha256
-          sha256sum dist/BibleGames-Android-3.0.2-web-parity.aab | tee dist/BibleGames-Android-3.0.2-web-parity.aab.sha256
+          sha256sum dist/BibleGames-Android-3.0.3-web-parity.aab | tee dist/BibleGames-Android-3.0.3-web-parity.aab.sha256
 
       - name: Verify APK signature and reject debug certificates
         shell: bash
@@ -116,7 +116,7 @@ jobs:
             echo "apksigner was not found in Android SDK"
             exit 1
           fi
-          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-3.0.2-web-parity.apk 2>&1)"
+          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs dist/BibleGames-Android-3.0.3-web-parity.apk 2>&1)"
           printf '%s\n' "$VERIFY_OUTPUT"
           if printf '%s\n' "$VERIFY_OUTPUT" | grep -Eqi 'Android Debug|CN=Android Debug'; then
             echo "Refusing to publish an APK signed with an Android debug certificate."
@@ -130,10 +130,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BibleGames-Android-3.0.2-web-parity-signed
+          name: BibleGames-Android-3.0.3-web-parity-signed
           path: |
-            dist/BibleGames-Android-3.0.2-web-parity.apk
-            dist/BibleGames-Android-3.0.2-web-parity.aab
+            dist/BibleGames-Android-3.0.3-web-parity.apk
+            dist/BibleGames-Android-3.0.3-web-parity.aab
             dist/BibleGames-Android-latest.apk
             dist/*.sha256
           if-no-files-found: error
@@ -147,7 +147,7 @@ jobs:
           set -euo pipefail
           TAG="android-latest"
           TITLE="Библейские игры для Android"
-          NOTES="Официальная подписанная Android 3.0.2 Web Parity сборка. Production Web UI упакован внутрь APK и запускается локально через WebViewAssetLoader; GitHub Pages больше не является точкой отказа при старте приложения."
+          NOTES="Официальная подписанная Android 3.0.3 Web Parity сборка. Production Web UI упакован внутрь APK и обслуживается локально под production HTTPS-origin. Исправлены Android online rooms, Библейский художник, web-игры со вводом, параллакс, профиль/друзья/избранное и лишняя нагрузка старого fallback runtime."
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" \
@@ -162,8 +162,8 @@ jobs:
           fi
 
           gh release upload "$TAG" \
-            dist/BibleGames-Android-3.0.2-web-parity.apk \
-            dist/BibleGames-Android-3.0.2-web-parity.apk.sha256 \
+            dist/BibleGames-Android-3.0.3-web-parity.apk \
+            dist/BibleGames-Android-3.0.3-web-parity.apk.sha256 \
             dist/BibleGames-Android-latest.apk \
             dist/BibleGames-Android-latest.apk.sha256 \
             --clobber
