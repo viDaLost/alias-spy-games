@@ -64,6 +64,8 @@ private const val SESSION_POLL_MS = 120L
 private const val CAMERA_REQUEST_CODE = 7301
 private const val WEB_CACHE_PREFS = "android_web_parity_runtime"
 private const val WEB_CACHE_VERSION = "cache_version"
+private const val WEB_REVEAL_WATCHDOG_MS = 3_500L
+private const val WEB_LOAD_TIMEOUT_MS = 12_000L
 
 /**
  * Android keeps the existing Telegram-code login as the trusted identity gate,
@@ -144,6 +146,22 @@ private fun AndroidWebExperience(
     var loadFailed by remember(session.userId) { mutableStateOf(false) }
     var committed by remember(session.userId) { mutableStateOf(false) }
     var reloadKey by remember { mutableIntStateOf(0) }
+
+    // Some vendor WebView builds do not reliably dispatch onPageCommitVisible,
+    // especially when the document is served from cache. Never allow the native
+    // first-frame veil to cover an otherwise loaded web app forever.
+    LaunchedEffect(webView, reloadKey, session.userId) {
+        val view = webView ?: return@LaunchedEffect
+
+        delay(WEB_REVEAL_WATCHDOG_MS)
+        if (!committed && !loadFailed) {
+            val hasDocument = !view.url.isNullOrBlank() && view.url != "about:blank"
+            if (hasDocument && view.progress >= 60) committed = true
+        }
+
+        delay(WEB_LOAD_TIMEOUT_MS - WEB_REVEAL_WATCHDOG_MS)
+        if (!committed && !loadFailed) loadFailed = true
+    }
 
     // The Web client is a DOM-routed SPA, so WebView history alone cannot return
     // from a game. Try the same visible back/menu control a player would tap;
@@ -239,6 +257,10 @@ private fun AndroidWebExperience(
                             committed = true
                         }
 
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            if (!loadFailed) committed = true
+                        }
+
                         override fun onReceivedError(
                             view: WebView?,
                             request: WebResourceRequest?,
@@ -274,8 +296,9 @@ private fun AndroidWebExperience(
             },
         )
 
-        // Prevent the white WebView first-frame flash. As soon as the HTML is
-        // committed, the web startup portal takes over and this veil disappears.
+        // Prevent the white WebView first-frame flash. onPageFinished and the
+        // bounded watchdog are fallbacks for vendor WebViews that never deliver
+        // onPageCommitVisible, so this veil can no longer remain indefinitely.
         if (!committed && !loadFailed) {
             Box(
                 Modifier
@@ -286,7 +309,15 @@ private fun AndroidWebExperience(
                             radius = 1700f,
                         ),
                     ),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Запускаем игры…",
+                    color = InkSoft,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
 
         if (loadFailed) {
@@ -304,7 +335,7 @@ private fun AndroidWebExperience(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Проверьте интернет или VPN. APK использует тот же интерфейс и те же игры, что и веб-версия.",
+                        "Проверьте интернет или VPN. Если экран снова не откроется, обновите Android System WebView или Chrome и повторите загрузку.",
                         color = InkSoft,
                         textAlign = TextAlign.Center,
                     )
