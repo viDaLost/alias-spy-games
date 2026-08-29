@@ -99,12 +99,8 @@ tasks.register('syncNativeAssets', Exec) {
     workingDir repositoryRoot
     commandLine 'node', new File(repositoryRoot, 'scripts/sync-android-assets.mjs').absolutePath, generatedNativeAssets.get().asFile.absolutePath
     inputs.files(fileTree(repositoryRoot) {
-        include 'web/assets/icons/**',
-                'web/assets/cards/**',
-                'web/assets/biblical-match-three/**',
-                'web/assets/quartet/**',
-                'web/assets/home-gamehub-parallax-v1/**',
-                'web/data/**'
+        include 'web/assets/icons/**', 'web/assets/cards/**', 'web/assets/biblical-match-three/**', 'web/assets/quartet/**', 'web/data/**'
+        include 'web/assets/home-gamehub-parallax-v1/**'
         exclude 'node_modules/**', 'android-app/**'
     })
     outputs.dir(generatedNativeAssets)
