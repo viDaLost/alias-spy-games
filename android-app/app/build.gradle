@@ -19,8 +19,8 @@ android {
         applicationId 'com.vidalost.biblegames'
         minSdk 24
         targetSdk 36
-        versionCode 28
-        versionName '3.0.1-web-parity'
+        versionCode 29
+        versionName '3.0.2-web-parity'
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -102,7 +102,9 @@ tasks.register('syncNativeAssets', Exec) {
     workingDir repositoryRoot
     commandLine 'node', new File(repositoryRoot, 'scripts/sync-android-assets.mjs').absolutePath, generatedNativeAssets.get().asFile.absolutePath
     inputs.files(fileTree(repositoryRoot) {
-        include 'web/assets/icons/**', 'web/assets/cards/**', 'web/assets/biblical-match-three/**', 'web/assets/quartet/**', 'web/data/**'
+        include 'index.html'
+        include 'web/**'
+        include 'scripts/sync-android-assets.mjs'
         exclude 'node_modules/**', 'android-app/**'
     })
     outputs.dir(generatedNativeAssets)
@@ -123,6 +125,7 @@ dependencies {
     implementation 'androidx.compose.foundation:foundation'
     implementation 'androidx.compose.animation:animation'
     implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.webkit:webkit:1.17.0'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     debugImplementation 'androidx.compose.ui:ui-tooling'
 }
