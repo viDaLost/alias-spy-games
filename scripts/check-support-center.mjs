@@ -14,6 +14,8 @@ const secureCore = read('cloudflare/app-core-worker/src/index-v9.js');
 const richEntryCore = read('cloudflare/app-core-worker/src/index-v10.js');
 const profileEntryCore = read('cloudflare/app-core-worker/src/index-v11.js');
 const socialEntryCore = read('cloudflare/app-core-worker/src/index-v12.js');
+const rbacEntryCore = read('cloudflare/app-core-worker/src/index-v13.js');
+const adminSessionEntryCore = read('cloudflare/app-core-worker/src/index-v14.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const deploy = read('.github/workflows/deploy-core-cloudflare.yml');
 const webhookFix = read('.github/workflows/configure-telegram-webhook.yml');
@@ -45,7 +47,9 @@ requireText(profileEntryCore, "from './index-v10.js'", 'v11 entrypoint must pres
 requireText(profileEntryCore, "url.pathname === '/telegram/webhook'", 'v11 Telegram webhook wrapper must preserve support routing');
 requireText(socialEntryCore, "from './index-v11.js'", 'v12 entrypoint must preserve the support-enabled v11 runtime');
 requireText(socialEntryCore, "url.pathname === '/android/compat'", 'v12 Android social/profile wrapper is missing');
-requireText(wrangler, 'src/index-v12.js', 'support-enabled v12 core entrypoint is not active');
+requireText(rbacEntryCore, "from './index-v12.js'", 'v13 RBAC wrapper must preserve support-enabled v12 runtime');
+requireText(adminSessionEntryCore, "from './index-v13.js'", 'v14 admin-session wrapper must preserve v13 and support runtime');
+requireText(wrangler, 'src/index-v14.js', 'support-enabled v14 core entrypoint is not active');
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');
@@ -71,4 +75,4 @@ if (parityShell.includes('WEB_APP_ORIGIN = "vidalost.github.io"')) throw new Err
 if (android.includes('t.me/D_a_n_Vi')) throw new Error('Personal Telegram support link is still in Android app');
 if (android.includes('openSupport(')) throw new Error('Legacy Android support callback is still present');
 
-console.log('Support center integration checks passed through the v12 social wrapper and Android 3.0.4 standalone appassets runtime.');
+console.log('Support center integration checks passed through the Core v14 RBAC chain and Android 3.0.4 standalone appassets runtime.');
