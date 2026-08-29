@@ -48,6 +48,10 @@ await page.route('https://telegram.org/js/telegram-web-app.js*', (route) => rout
   contentType: 'text/javascript; charset=utf-8',
   body: `window.Telegram={WebApp:{initData:'qa-init-data',initDataUnsafe:{user:{id:1288379477,username:'qa_admin',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
 }));
+
+let releaseSyncUser = null;
+const syncUserGate = new Promise((resolve) => { releaseSyncUser = resolve; });
+
 await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat', async (route) => {
   let action = '';
   try {
@@ -66,10 +70,10 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
     return;
   }
 
-  // Keep access verification intentionally pending long enough to inspect a
-  // stable loading frame even on a busy GitHub Actions runner. This delay exists
-  // only in QA and does not affect production startup time.
-  if (action === 'syncUser') await new Promise((resolve) => setTimeout(resolve, 3000));
+  // Keep access verification pending deterministically until the test has
+  // inspected the first protected frame. This avoids timing flakes on busy CI
+  // runners and does not affect production startup behaviour.
+  if (action === 'syncUser') await syncUserGate;
   await route.fulfill({
     status: 200,
     contentType: 'application/json; charset=utf-8',
@@ -105,7 +109,13 @@ if (boot.headerVisibility !== 'hidden' && boot.headerOpacity > 0) throw new Erro
 if (boot.loaderDisplay === 'none' || boot.loaderOpacity !== '1') throw new Error(`Во время проверки доступа не показан непрозрачный loader: ${JSON.stringify(boot)}`);
 if (boot.loaderPosition !== 'fixed' || !boot.loaderCoversViewport) throw new Error(`Loader не перекрывает весь viewport: ${JSON.stringify(boot)}`);
 
-await page.waitForTimeout(7500);
+releaseSyncUser?.();
+await page.waitForFunction(() => {
+  const root = document.documentElement;
+  const menu = document.getElementById('menu-container');
+  return !root.classList.contains('app-booting') && !root.classList.contains('app-menu-preparing') && menu && !menu.classList.contains('hidden');
+}, null, { timeout: 9000 });
+
 const startupState = await page.evaluate(() => {
   const menu = document.getElementById('menu-container');
   const loader = document.getElementById('main-loader');
