@@ -61,11 +61,11 @@ requireText(android, 'SupportScreen(cloud = cloud', 'Android offline support nav
 requireText(android, 'AccessRestrictedScreen(', 'blocked-user support route missing');
 requireText(repo, 'createSupportTicket', 'Android create API missing');
 requireText(repo, 'listSupportTickets', 'Android list API missing');
-requireText(gradle, "versionCode 27", 'Android release versionCode is not current');
-requireText(gradle, "versionName '3.0.0-web-parity'", 'Android release version is not current');
+requireText(gradle, "versionCode 29", 'Android release versionCode is not current');
+requireText(gradle, "versionName '3.0.2-web-parity'", 'Android release version is not current');
 requireText(parityShell, 'AndroidParityApp(', 'Android production parity shell missing');
 requireText(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'Android offline support fallback missing');
 if (android.includes('t.me/D_a_n_Vi')) throw new Error('Personal Telegram support link is still in Android app');
 if (android.includes('openSupport(')) throw new Error('Legacy Android support callback is still present');
 
-console.log('Support center integration checks passed through the v12 public-social wrapper, including Android 3.0 Web Parity and offline fallback.');
+console.log('Support center integration checks passed through the v12 public-social wrapper, including Android 3.0.2 Web Parity and offline fallback.');
