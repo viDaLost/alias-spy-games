@@ -41,6 +41,14 @@ await context.addInitScript(() => {
 });
 
 const page = await context.newPage();
+page.setDefaultTimeout(8_000);
+let stage = 'routing';
+const hardStop = setTimeout(() => {
+  console.error(`Android runtime regression exceeded 45s during: ${stage}`);
+  try { server.closeAllConnections?.(); } catch {}
+  process.exit(124);
+}, 45_000);
+
 let androidCalls = 0;
 let telegramCompatCalls = 0;
 const androidActions = [];
@@ -100,6 +108,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'APK must not use Telegram compat route' }) });
 });
 
+stage = 'app startup';
 await page.goto(`${baseURL}/?android=1&apk=32&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
@@ -122,6 +131,7 @@ if (state.source !== 'cloudflare') throw new Error(`Cloudflare bridge is missing
 if (!state.authenticated) throw new Error('Android Web bridge did not expose an authenticated session state.');
 if (!state.socialMounted) throw new Error('Android social dock did not mount while telemetry was disabled.');
 
+stage = 'profile rendering';
 await page.locator('[data-social-open="profile"]').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-hero', { timeout: 8_000 });
 await page.waitForFunction(() => document.querySelector('.social-sheet-overlay.is-open')?.textContent?.includes('Android Runtime'), null, { timeout: 8_000 });
@@ -147,6 +157,7 @@ if (profileLayout.top < -2 || profileLayout.left < -2 || profileLayout.bottom > 
   throw new Error(`Profile sheet is outside Android viewport: ${JSON.stringify(profileLayout)}`);
 }
 
+stage = 'favorites rendering';
 await page.locator('[data-social-close]').click();
 await page.locator('[data-social-open="favorites"]').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-favorites-grid', { timeout: 8_000 });
@@ -164,6 +175,7 @@ await page.locator('[data-social-close]').click();
 // the production game router directly so this check measures WebView rendering
 // rather than Playwright's pointer-action bookkeeping. Physical menu clicking
 // remains covered by the general all-games smoke suite.
+stage = 'Bible Sketch foreground rendering';
 await page.evaluate(() => localStorage.removeItem('bible_sketch_room_id_v1'));
 await page.waitForSelector('#bible-sketch-card', { timeout: 8_000 });
 await page.evaluate(() => { window.showGame?.('bible-sketch'); });
@@ -230,6 +242,13 @@ if (!androidActions.includes('profileBootstrap')) throw new Error(`profileBootst
 if (telegramCompatCalls !== 0) throw new Error(`APK incorrectly called Telegram /compat ${telegramCompatCalls} time(s).`);
 
 console.log(`OK: Android standalone rendered Profile/Favorites and Bible Sketch foreground UI above the disabled menu parallax (${androidActions.join(', ')}).`);
+stage = 'cleanup';
+await page.evaluate(() => {
+  try { window.__bibleSketchCleanup?.(); } catch {}
+  try { window.goToMainMenu?.(); } catch {}
+});
 await context.close();
 await browser.close();
+try { server.closeAllConnections?.(); } catch {}
 await new Promise((resolve) => server.close(resolve));
+clearTimeout(hardStop);
