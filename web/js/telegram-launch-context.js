@@ -121,7 +121,18 @@
   }
 
   function maybeLoadProfileBeta(user) {
+    // Browser QA intentionally disables auxiliary telemetry/features so request
+    // budget and startup checks only measure the production core path under test.
+    if (window.__APP_TELEMETRY_DISABLED__ === true) return;
     if (String(user?.id || '') !== PROFILE_BETA_ADMIN_ID) return;
+
+    if (!document.getElementById('player-profile-beta-runtime-style')) {
+      const style = document.createElement('style');
+      style.id = 'player-profile-beta-runtime-style';
+      style.textContent = 'body[data-mode] .player-profile-launcher{display:none!important}';
+      document.head.appendChild(style);
+    }
+
     if (!document.querySelector('link[data-player-profile-beta]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
