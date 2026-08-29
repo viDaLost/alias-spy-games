@@ -13,7 +13,8 @@ const inviteWorker = read('cloudflare/app-core-worker/src/index-v7.js');
 const balanceWorker = read('cloudflare/app-core-worker/src/index-v8.js');
 const secureWorker = read('cloudflare/app-core-worker/src/index-v9.js');
 const richEntryWorker = read('cloudflare/app-core-worker/src/index-v10.js');
-const socialEntryWorker = read('cloudflare/app-core-worker/src/index-v11.js');
+const profileEntryWorker = read('cloudflare/app-core-worker/src/index-v11.js');
+const socialEntryWorker = read('cloudflare/app-core-worker/src/index-v12.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const survey = read('web/js/referral-survey.js');
 const html = read('index.html');
@@ -33,9 +34,10 @@ requireText(inviteWorker, "from './index-v6.js'", 'v7 entrypoint must preserve r
 requireText(balanceWorker, "from './index-v7.js'", 'v8 entrypoint must preserve v7 runtime');
 requireText(secureWorker, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
 requireText(richEntryWorker, "from './index-v9.js'", 'v10 entrypoint must preserve hardened v9 runtime');
-requireText(socialEntryWorker, "from './index-v10.js'", 'v11 entrypoint must preserve referral/retention-enabled v10 runtime');
+requireText(profileEntryWorker, "from './index-v10.js'", 'v11 entrypoint must preserve referral/retention-enabled v10 runtime');
+requireText(socialEntryWorker, "from './index-v11.js'", 'v12 entrypoint must preserve referral/retention-enabled v11 runtime');
 
-requireText(wrangler, '"main": "src/index-v11.js"', 'v11 social-profile worker entry is not active');
+requireText(wrangler, '"main": "src/index-v12.js"', 'v12 public-social worker entry is not active');
 requireText(wrangler, '"crons"', 'daily cleanup cron is not configured');
 
 requireText(survey, 'Откуда вы узнали о «Библейских играх»?', 'survey question is missing');
@@ -46,4 +48,4 @@ requireText(survey, 'Позже', 'survey has no non-blocking defer action');
 forbidText(survey, '<select', 'survey must not replace free-text input with preset choices');
 requireText(html, 'referral-survey.js?v=1', 'survey script is not mounted');
 
-console.log('Referral survey and 30-day inactive account cleanup checks passed through the v11 social-profile entry chain.');
+console.log('Referral survey and 30-day inactive account cleanup checks passed through the v12 public-social entry chain.');
