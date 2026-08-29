@@ -25,6 +25,8 @@ const secureCore = read('cloudflare/app-core-worker/src/index-v9.js');
 const richEntryCore = read('cloudflare/app-core-worker/src/index-v10.js');
 const profileEntryCore = read('cloudflare/app-core-worker/src/index-v11.js');
 const socialEntryCore = read('cloudflare/app-core-worker/src/index-v12.js');
+const rbacEntryCore = read('cloudflare/app-core-worker/src/index-v13.js');
+const adminSessionEntryCore = read('cloudflare/app-core-worker/src/index-v14.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const html = read('index.html');
 
@@ -94,7 +96,9 @@ requireText(profileEntryCore, "from './index-v10.js'", 'v11 entrypoint must pres
 requireText(socialEntryCore, "from './index-v11.js'", 'v12 entrypoint must preserve v11 profile and Mini App invite runtime');
 requireText(socialEntryCore, "'profileInviteFriend'", 'v12 direct friend invitation action is missing');
 requireText(socialEntryCore, 'telegramSendInvite', 'v12 direct Telegram friend delivery is missing');
-requireText(wrangler, 'src/index-v12.js', 'v12 social/invite worker entrypoint is not active');
+requireText(rbacEntryCore, "from './index-v12.js'", 'v13 RBAC wrapper must preserve the social/invite runtime');
+requireText(adminSessionEntryCore, "from './index-v13.js'", 'v14 admin-session wrapper must preserve the social/invite runtime');
+requireText(wrangler, 'src/index-v14.js', 'v14 social/RBAC worker entrypoint is not active');
 
 requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
 requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
@@ -116,4 +120,4 @@ requireText(html, 'room-qr-addon.js?v=4', 'updated room QR addon is not mounted'
 requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
 requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
 
-console.log('Room QR, Telegram Mini App links and direct app-friend invitations are wired for Quartet and Bible Sketch through the v12 social entry chain.');
+console.log('Room QR, Telegram Mini App links and direct app-friend invitations are wired through the Core v14 RBAC/social entry chain.');
