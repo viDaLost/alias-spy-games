@@ -4,7 +4,7 @@
   const ASSET_VERSION = '18';
   const ASSET_ROOT = 'web/assets/home-gamehub-parallax-v1';
   const PORTAL_VERSION = '1';
-  const PORTAL_URL = `web/assets/startup-loader/portal-01.png?v=${PORTAL_VERSION}`;
+  const PORTAL_URL = `web/assets/startup-loader/portal-01.PNG?v=${PORTAL_VERSION}`;
   const MIN_VISIBLE_MS = 620;
   const EXIT_MS = 480;
   const INGEST_INTERVAL_MS = 760;
