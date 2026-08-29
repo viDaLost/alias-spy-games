@@ -9,6 +9,9 @@ const forbidText = (text, needle, label) => {
 };
 
 const invite = read('web/js/room-invite.js');
+const friendInvites = read('web/js/game-friend-invites.js');
+const friendInviteCss = read('web/styles/game-friend-invites.css');
+const launchContext = read('web/js/telegram-launch-context.js');
 const scanner = read('web/js/room-qr-scanner.js');
 const addon = read('web/js/room-qr-addon.js');
 const brand = read('web/js/room-qr-brand.js');
@@ -20,7 +23,8 @@ const inviteCore = read('cloudflare/app-core-worker/src/index-v7.js');
 const balanceCore = read('cloudflare/app-core-worker/src/index-v8.js');
 const secureCore = read('cloudflare/app-core-worker/src/index-v9.js');
 const richEntryCore = read('cloudflare/app-core-worker/src/index-v10.js');
-const socialEntryCore = read('cloudflare/app-core-worker/src/index-v11.js');
+const profileEntryCore = read('cloudflare/app-core-worker/src/index-v11.js');
+const socialEntryCore = read('cloudflare/app-core-worker/src/index-v12.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const html = read('index.html');
 
@@ -36,6 +40,17 @@ requireText(invite, 'acceptScanned', 'scanned QR cannot be accepted in-app');
 requireText(invite, 'QRCode', 'QR renderer is missing');
 requireText(invite, 'window.showGame', 'invite does not auto-open the target game');
 forbidText(invite, "searchParams.set('join'", 'new invitations must not point at the public website');
+
+requireText(friendInvites, '.qv2-room-actions', 'Quartet friend invite mount is missing');
+requireText(friendInvites, '.bsk-link-row', 'Bible Sketch friend invite mount is missing');
+requireText(friendInvites, "api('profileBootstrap')", 'friend picker does not load the app friend list');
+requireText(friendInvites, "api('profileInviteFriend'", 'friend picker does not send direct invitations');
+requireText(friendInvites, 'data-invite-friend', 'friend invite action buttons are missing');
+requireText(friendInvites, 'getShareUrl', 'friend picker must preserve generic Telegram sharing fallback');
+requireText(friendInviteCss, '.game-friend-invite-actions', 'lobby friend invite responsive action layout is missing');
+requireText(friendInviteCss, '.friend-invite-overlay', 'friend picker overlay styles are missing');
+requireText(launchContext, 'web/js/game-friend-invites.js?v=1', 'friend invitation client is not loaded for Telegram users');
+requireText(launchContext, 'web/styles/game-friend-invites.css?v=1', 'friend invitation styles are not loaded for Telegram users');
 
 requireText(scanner, 'showScanQrPopup', 'Telegram QR scanner is missing');
 requireText(scanner, "onEvent('qrTextReceived'", 'Telegram QR event fallback is missing');
@@ -75,8 +90,11 @@ requireText(inviteCore, '/getMe', 'core backend does not resolve Telegram bot us
 requireText(balanceCore, "from './index-v7.js'", 'v8 entrypoint must preserve Mini App config runtime');
 requireText(secureCore, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
 requireText(richEntryCore, "from './index-v9.js'", 'v10 entrypoint must preserve hardened v9 runtime');
-requireText(socialEntryCore, "from './index-v10.js'", 'v11 entrypoint must preserve the Mini App invite runtime');
-requireText(wrangler, 'src/index-v11.js', 'v11 Mini App config worker entrypoint is not active');
+requireText(profileEntryCore, "from './index-v10.js'", 'v11 entrypoint must preserve the Mini App invite runtime');
+requireText(socialEntryCore, "from './index-v11.js'", 'v12 entrypoint must preserve v11 profile and Mini App invite runtime');
+requireText(socialEntryCore, "'profileInviteFriend'", 'v12 direct friend invitation action is missing');
+requireText(socialEntryCore, 'telegramSendInvite', 'v12 direct Telegram friend delivery is missing');
+requireText(wrangler, 'src/index-v12.js', 'v12 social/invite worker entrypoint is not active');
 
 requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
 requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
@@ -98,4 +116,4 @@ requireText(html, 'room-qr-addon.js?v=4', 'updated room QR addon is not mounted'
 requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
 requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
 
-console.log('Room QR scanner, branded in-app QR payloads, Telegram Mini App links and Quartet swipe guard checks passed through the v11 social-profile entry chain.');
+console.log('Room QR, Telegram Mini App links and direct app-friend invitations are wired for Quartet and Bible Sketch through the v12 social entry chain.');
