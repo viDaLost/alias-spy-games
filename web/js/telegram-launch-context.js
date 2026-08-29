@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'telegram_launch_init_data_v1';
   const JSON_FIELDS = new Set(['user', 'receiver', 'chat']);
+  const PROFILE_BETA_ADMIN_ID = '1288379477';
 
   function safeSessionGet(key) {
     try { return sessionStorage.getItem(key) || ''; } catch { return ''; }
@@ -119,6 +120,24 @@
     return compat;
   }
 
+  function maybeLoadProfileBeta(user) {
+    if (String(user?.id || '') !== PROFILE_BETA_ADMIN_ID) return;
+    if (!document.querySelector('link[data-player-profile-beta]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'web/styles/player-profile.css?v=1';
+      link.dataset.playerProfileBeta = '1';
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('script[data-player-profile-beta]')) {
+      const script = document.createElement('script');
+      script.src = 'web/js/player-profile.js?v=1';
+      script.async = false;
+      script.dataset.playerProfileBeta = '1';
+      document.head.appendChild(script);
+    }
+  }
+
   function hydrate() {
     const launch = captureInitData();
     const webApp = createCompatWebApp(window.Telegram?.WebApp, launch);
@@ -135,6 +154,7 @@
       document.documentElement.dataset.telegramLaunchData = launch.source;
     }
 
+    maybeLoadProfileBeta(user);
     return webApp;
   }
 
@@ -147,6 +167,7 @@
       const tg = window.Telegram?.WebApp;
       tg?.ready?.();
       tg?.expand?.();
+      maybeLoadProfileBeta(tg?.initDataUnsafe?.user || null);
       window.dispatchEvent(new CustomEvent('telegram:sdk-ready'));
     } catch {}
   }, { once: true });
