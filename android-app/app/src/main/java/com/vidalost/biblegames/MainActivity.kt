@@ -19,15 +19,21 @@ class MainActivity : ComponentActivity() {
                 android.graphics.Color.TRANSPARENT,
             ),
             navigationBarStyle = SystemBarStyle.light(
-                android.graphics.Color.rgb(230, 246, 255),
-                android.graphics.Color.rgb(230, 246, 255),
+                android.graphics.Color.rgb(224, 242, 254),
+                android.graphics.Color.rgb(224, 242, 254),
             ),
         )
         val assets = AssetRepository(applicationContext)
         val sessionStore = AndroidSessionStore(applicationContext)
         val cloud = CloudRepository(sessionStore.load()?.token.orEmpty())
         setContent {
-            BibleGamesTheme { BibleGamesApp(assets = assets, cloud = cloud) }
+            BibleGamesTheme {
+                AndroidParityApp(
+                    assets = assets,
+                    cloud = cloud,
+                    sessionStore = sessionStore,
+                )
+            }
         }
     }
 }
