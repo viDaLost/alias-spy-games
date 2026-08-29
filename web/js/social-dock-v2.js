@@ -21,6 +21,7 @@
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 
   let state = null;
+  let bootstrapPromise = null;
   let dock = null;
   let overlay = null;
   let activeTab = 'profile';
@@ -62,10 +63,20 @@
 
   async function bootstrap(force = false) {
     if (state && !force) return state;
-    const data = await api('profileBootstrap');
-    state = data;
-    updateDock();
-    return state;
+    if (bootstrapPromise && !force) return bootstrapPromise;
+
+    const request = api('profileBootstrap').then((data) => {
+      state = data;
+      updateDock();
+      return state;
+    });
+
+    bootstrapPromise = request;
+    try {
+      return await request;
+    } finally {
+      if (bootstrapPromise === request) bootstrapPromise = null;
+    }
   }
 
   function initials(value) {
@@ -162,17 +173,25 @@
     ensureOverlay().classList.add('is-open');
     document.body.classList.add('social-sheet-open');
     syncTabs();
-    renderLoading();
-    try {
-      loading = true;
-      await bootstrap(!state);
+
+    if (state) {
       hydrateHeader();
       render();
+      return;
+    }
+
+    loading = true;
+    renderLoading();
+    try {
+      await bootstrap();
+      hydrateHeader();
     } catch (error) {
       renderError(error);
+      return;
     } finally {
       loading = false;
     }
+    render();
   }
 
   function close() {
