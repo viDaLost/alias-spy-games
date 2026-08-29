@@ -96,8 +96,10 @@
   }
 
   function ensureSocialFeatures() {
-    if (window.__APP_TELEMETRY_DISABLED__ === true) return;
     installIdentity();
+    // Social/profile functionality is part of the product UI and must never be
+    // coupled to telemetry. Tests and privacy modes may disable telemetry while
+    // Profile/Favorites remain fully operational.
     ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
     ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
     ensureScript('social-dock-v2-js', 'web/js/social-dock-v2.js?v=2');
