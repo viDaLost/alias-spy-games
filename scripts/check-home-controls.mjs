@@ -82,16 +82,21 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
 });
 
 await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
-// The branded Game Hub scene is now the intentional protected first frame.
-// Waiting for the legacy #main-loader can hold QA until the 9s watchdog and
-// inspect the fallback after it has already unlocked the page.
-await page.waitForSelector('#gamehub-boot-scene', { state: 'visible', timeout: 5_000 });
+// The branded scene exists in the static shell before its HQ artwork finishes
+// decoding. Waiting for CSS visibility here can consume the startup watchdog on
+// a busy runner, so inspect the attached protected shell immediately and choose
+// whichever startup overlay is actually visible in that frame.
+await page.waitForSelector('#gamehub-boot-scene', { state: 'attached', timeout: 5_000 });
 await page.waitForTimeout(80);
 const boot = await page.evaluate(() => {
   const menu = document.getElementById('menu-container');
   const legacyLoader = document.getElementById('main-loader');
   const brandedLoader = document.getElementById('gamehub-boot-scene');
-  const loader = brandedLoader || legacyLoader;
+  const candidates = [brandedLoader, legacyLoader].filter(Boolean);
+  const loader = candidates.find((node) => {
+    const style = getComputedStyle(node);
+    return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || 0) > 0;
+  }) || brandedLoader || legacyLoader;
   const header = document.querySelector('.app-header');
   const loaderStyle = loader ? getComputedStyle(loader) : null;
   const headerStyle = header ? getComputedStyle(header) : null;
@@ -102,6 +107,7 @@ const boot = await page.evaluate(() => {
     menuVisibility: menu ? getComputedStyle(menu).visibility : '',
     loaderId: loader?.id || '',
     loaderDisplay: loaderStyle?.display || 'none',
+    loaderVisibility: loaderStyle?.visibility || 'hidden',
     loaderOpacity: loaderStyle?.opacity || '0',
     loaderPosition: loaderStyle?.position || '',
     loaderCoversViewport: Boolean(loaderRect && loaderRect.top <= 0 && loaderRect.left <= 0 && loaderRect.right >= innerWidth && loaderRect.bottom >= innerHeight),
@@ -112,14 +118,26 @@ const boot = await page.evaluate(() => {
 if (!boot.booting) throw new Error(`Стартовый UI был разблокирован до окончания проверки доступа: ${JSON.stringify(boot)}`);
 if (!boot.menuHiddenClass && boot.menuVisibility !== 'hidden') throw new Error(`Главное меню попало в кадр во время проверки доступа: ${JSON.stringify(boot)}`);
 if (boot.headerVisibility !== 'hidden' && boot.headerOpacity > 0) throw new Error(`Шапка главного меню попала в первый кадр: ${JSON.stringify(boot)}`);
-if (boot.loaderDisplay === 'none' || Number(boot.loaderOpacity) <= 0) throw new Error(`Во время проверки доступа не показан startup overlay: ${JSON.stringify(boot)}`);
+if (boot.loaderDisplay === 'none' || boot.loaderVisibility === 'hidden' || Number(boot.loaderOpacity) <= 0) throw new Error(`Во время проверки доступа не показан startup overlay: ${JSON.stringify(boot)}`);
 if (boot.loaderPosition !== 'fixed' || !boot.loaderCoversViewport) throw new Error(`Startup overlay не перекрывает весь viewport: ${JSON.stringify(boot)}`);
 
 releaseSyncUser?.();
+// Wait for the complete hand-off, including the branded loader's 480ms exit
+// transition. This validates what the player can actually interact with rather
+// than a transient moment between app-ui-ready and overlay removal.
 await page.waitForFunction(() => {
   const root = document.documentElement;
   const menu = document.getElementById('menu-container');
-  return !root.classList.contains('app-booting') && !root.classList.contains('app-menu-preparing') && menu && !menu.classList.contains('hidden');
+  if (!menu) return false;
+  const style = getComputedStyle(menu);
+  return !root.classList.contains('app-booting') &&
+    !root.classList.contains('app-menu-preparing') &&
+    !menu.classList.contains('hidden') &&
+    style.visibility !== 'hidden' &&
+    style.pointerEvents !== 'none' &&
+    Number(style.opacity || 0) > 0 &&
+    !document.getElementById('main-loader') &&
+    !document.getElementById('gamehub-boot-scene');
 }, null, { timeout: 9000 });
 
 const startupState = await page.evaluate(() => {
@@ -149,7 +167,7 @@ const startupState = await page.evaluate(() => {
   };
 });
 console.log(`startup-state: ${JSON.stringify(startupState)}`);
-if (!startupState.menuClass || startupState.menuClass.split(/\s+/).includes('hidden') || startupState.menuVisibility === 'hidden' || startupState.menuPointerEvents === 'none') {
+if (!startupState.menuClass || startupState.menuClass.split(/\s+/).includes('hidden') || startupState.menuVisibility === 'hidden' || startupState.menuPointerEvents === 'none' || Number(startupState.menuOpacity || 0) <= 0) {
   throw new Error(`Главное меню не стало интерактивным после startup gate: ${JSON.stringify(startupState)}`);
 }
 if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.rootClass.split(/\s+/).includes('app-menu-preparing') || startupState.loaderExists) {
@@ -193,7 +211,7 @@ await page.waitForFunction(() => document.body?.dataset.mode === 'game', null, {
 await page.evaluate(() => window.goToMainMenu?.());
 await page.waitForFunction(() => !document.body?.dataset.mode, null, { timeout: 3000 });
 
-console.log('OK: access gate covers the first frame with the branded loader, menu becomes immediately interactive after access-check, home controls avoid animation mutation churn, hidden sections never flash, system icons and unified motion are active.');
+console.log('OK: access gate covers the first frame with the branded loader, menu becomes interactive only after the complete loader hand-off, hidden sections never flash, system icons and unified motion are active.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
