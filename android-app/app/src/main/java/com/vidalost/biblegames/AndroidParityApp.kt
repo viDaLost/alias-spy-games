@@ -3,12 +3,14 @@ package com.vidalost.biblegames
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.JsResult
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -55,8 +57,8 @@ import com.vidalost.biblegames.ui.InkSoft
 import com.vidalost.biblegames.ui.PrimaryButton
 import kotlinx.coroutines.delay
 
-private const val WEB_APP_ORIGIN = "vidalost.github.io"
-private const val WEB_APP_PATH_PREFIX = "/alias-spy-games/"
+private const val WEB_APP_ORIGIN = "appassets.androidplatform.net"
+private const val WEB_APP_PATH_PREFIX = "/assets/"
 private const val WEB_APP_URL = "https://$WEB_APP_ORIGIN${WEB_APP_PATH_PREFIX}index.html"
 private const val SESSION_POLL_MS = 120L
 private const val CAMERA_REQUEST_CODE = 7301
@@ -66,12 +68,11 @@ private const val WEB_REVEAL_WATCHDOG_MS = 1_500L
 private const val WEB_LOAD_TIMEOUT_MS = 8_000L
 
 /**
- * The native screen owns only the audited Telegram-code login. After a verified
- * Android session exists the APK always renders the production Web UI from
- * bundled assets. WebViewAssetLoader serves those local files under the same
- * HTTPS origin as production GitHub Pages, so worker CORS, multiplayer, profile
- * APIs and relative assets behave exactly like the web application without
- * depending on GitHub Pages being reachable at startup.
+ * The native screen owns the verified Android login. After a valid session
+ * exists the APK renders its bundled Web UI from WebViewAssetLoader under the
+ * private Android appassets HTTPS origin. The interface and all game assets are
+ * therefore loaded from the APK itself and never from GitHub Pages. Only the
+ * application API/Worker endpoints are contacted for online data and rooms.
  */
 @Composable
 fun AndroidParityApp(
@@ -210,7 +211,7 @@ private fun AndroidWebExperience(
                         setSupportZoom(false)
                         mediaPlaybackRequiresUserGesture = false
                         offscreenPreRaster = false
-                        userAgentString = "$userAgentString BibleGamesAndroid/${BuildConfig.VERSION_NAME} WebParity"
+                        userAgentString = "$userAgentString BibleGamesAndroid/${BuildConfig.VERSION_NAME} Standalone"
                     }
 
                     val cachePrefs = viewContext.getSharedPreferences(WEB_CACHE_PREFS, 0)
@@ -332,7 +333,7 @@ private fun AndroidWebExperience(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Игровой интерфейс встроен в APK. Повторите запуск — приложение не будет переключаться на устаревшую нативную версию игр.",
+                        "Игровой интерфейс встроен в APK. Повторите запуск — приложение не зависит от сайта или репозитория.",
                         color = InkSoft,
                         textAlign = TextAlign.Center,
                     )
@@ -370,6 +371,26 @@ private class AndroidParityChromeClient(private val activity: Activity?) : WebCh
 
         activity.requestPermissions(arrayOf(Manifest.permission.CAMERA), CAMERA_REQUEST_CODE)
         permissionRequest.deny()
+    }
+
+    override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+        val jsResult = result ?: return false
+        val hostActivity = activity
+        if (hostActivity == null || hostActivity.isFinishing || hostActivity.isDestroyed) {
+            jsResult.cancel()
+            return true
+        }
+
+        hostActivity.runOnUiThread {
+            AlertDialog.Builder(hostActivity)
+                .setTitle("Библейские игры")
+                .setMessage(message.orEmpty())
+                .setNegativeButton("Отмена") { _, _ -> jsResult.cancel() }
+                .setPositiveButton("OK") { _, _ -> jsResult.confirm() }
+                .setOnCancelListener { jsResult.cancel() }
+                .show()
+        }
+        return true
     }
 }
 
