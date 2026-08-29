@@ -1,0 +1,275 @@
+/* Game Hub startup scene. Visual-only overlay; app access/startup logic remains unchanged. */
+
+.gamehub-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(224,242,254,.96) 0%, rgba(219,234,254,.72) 31%, rgba(99,102,241,.34) 72%, rgba(49,46,129,.58) 100%),
+    #DBEAFE;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .46s ease, visibility .46s step-end;
+  isolation: isolate;
+}
+
+.gamehub-boot.is-exiting {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.gamehub-boot__art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.gamehub-boot__layer {
+  position: absolute;
+  inset: -3vh -4vw;
+  width: 108vw;
+  height: 106dvh;
+  max-width: none;
+  object-fit: cover;
+  object-position: 50% 50%;
+  opacity: 0;
+  transform: translate3d(0, 12px, 0) scale(1.035);
+  transition: opacity .62s ease, transform 1.05s cubic-bezier(.2,.75,.25,1);
+  user-select: none;
+  -webkit-user-select: none;
+  backface-visibility: hidden;
+}
+
+.gamehub-boot__layer.is-loaded {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1.015);
+}
+
+.gamehub-boot__layer--base { z-index: 1; }
+.gamehub-boot__layer--atmosphere { z-index: 2; transition-delay: .08s; }
+.gamehub-boot__layer--architecture { z-index: 3; transition-delay: .16s; }
+
+.gamehub-boot__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(224,242,254,.06) 0%, rgba(224,242,254,.08) 22%, rgba(49,46,129,.09) 100%),
+    linear-gradient(180deg, rgba(224,242,254,.10), rgba(49,46,129,.06));
+}
+
+.gamehub-boot__content {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(88vw, 430px);
+  padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.gamehub-boot__portal {
+  position: relative;
+  width: 158px;
+  height: 158px;
+  margin-bottom: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.gamehub-boot__ring,
+.gamehub-boot__ring::before,
+.gamehub-boot__ring::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  content: '';
+}
+
+.gamehub-boot__ring {
+  border: 1.5px solid rgba(99,102,241,.50);
+  box-shadow: 0 0 32px rgba(79,70,229,.14), inset 0 0 28px rgba(224,242,254,.52);
+  animation: gamehub-boot-spin 7s linear infinite;
+}
+
+.gamehub-boot__ring::before {
+  inset: 14px;
+  border: 1px solid rgba(219,234,254,.88);
+  border-left-color: rgba(79,70,229,.68);
+  border-right-color: rgba(99,102,241,.68);
+  animation: gamehub-boot-spin-reverse 5s linear infinite;
+}
+
+.gamehub-boot__ring::after {
+  inset: 30px;
+  border: 1px solid rgba(255,255,255,.86);
+  box-shadow: 0 0 28px rgba(224,242,254,.74);
+}
+
+.gamehub-boot__crystal {
+  position: relative;
+  z-index: 3;
+  width: 58px;
+  height: 72px;
+  transform: rotate(45deg);
+  border-radius: 15px 5px 15px 5px;
+  background: linear-gradient(135deg, #E0F2FE 4%, #DBEAFE 32%, #6366F1 70%, #4F46E5 100%);
+  border: 2px solid rgba(255,255,255,.88);
+  box-shadow:
+    0 0 18px rgba(224,242,254,.96),
+    0 0 44px rgba(99,102,241,.48),
+    0 12px 28px rgba(49,46,129,.24);
+  animation: gamehub-boot-crystal 2.15s ease-in-out infinite;
+}
+
+.gamehub-boot__crystal::after {
+  content: '';
+  position: absolute;
+  inset: 7px 19px 7px 7px;
+  border-radius: 10px 3px 10px 3px;
+  background: linear-gradient(135deg, rgba(255,255,255,.78), rgba(224,242,254,.04));
+}
+
+.gamehub-boot__icons {
+  position: absolute;
+  inset: -24px;
+  z-index: 5;
+  opacity: 0;
+  transform: scale(.88);
+  transition: opacity .45s ease .22s, transform .65s cubic-bezier(.2,.8,.2,1) .18s;
+}
+
+.gamehub-boot.is-icons-ready .gamehub-boot__icons {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.gamehub-boot__icon {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 13px;
+  filter: drop-shadow(0 8px 14px rgba(49,46,129,.18));
+  animation: gamehub-boot-float 3.2s ease-in-out infinite;
+}
+
+.gamehub-boot__icon:nth-child(1) { left: 50%; top: -3px; transform: translateX(-50%); animation-delay: -.2s; }
+.gamehub-boot__icon:nth-child(2) { right: -2px; top: 50px; animation-delay: -.8s; }
+.gamehub-boot__icon:nth-child(3) { right: 21px; bottom: 0; animation-delay: -1.4s; }
+.gamehub-boot__icon:nth-child(4) { left: 21px; bottom: 0; animation-delay: -2s; }
+.gamehub-boot__icon:nth-child(5) { left: -2px; top: 50px; animation-delay: -2.6s; }
+
+.gamehub-boot__eyebrow {
+  margin: 0 0 8px;
+  color: #6366F1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+}
+
+.gamehub-boot__title {
+  margin: 0;
+  color: #312E81;
+  font-size: clamp(29px, 8vw, 42px);
+  line-height: 1.02;
+  font-weight: 900;
+  letter-spacing: -.035em;
+  text-shadow: 0 2px 14px rgba(224,242,254,.90);
+}
+
+.gamehub-boot__status {
+  min-height: 24px;
+  margin: 13px 0 0;
+  color: rgba(49,46,129,.76);
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 700;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.gamehub-boot__status.is-changing {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.gamehub-boot__progress {
+  position: relative;
+  width: min(210px, 58vw);
+  height: 4px;
+  margin-top: 19px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(224,242,254,.62);
+  box-shadow: inset 0 0 0 1px rgba(99,102,241,.08);
+}
+
+.gamehub-boot__progress::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6366F1, #4F46E5, #E0F2FE, #6366F1);
+  background-size: 230% 100%;
+  box-shadow: 0 0 12px rgba(99,102,241,.46);
+  animation: gamehub-boot-progress 1.35s ease-in-out infinite;
+}
+
+.gamehub-boot__retry {
+  display: none;
+  margin-top: 18px;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #4F46E5;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 10px 24px rgba(49,46,129,.20);
+}
+
+.gamehub-boot.is-error .gamehub-boot__progress { display: none; }
+.gamehub-boot.is-error .gamehub-boot__retry { display: inline-flex; align-items: center; justify-content: center; }
+.gamehub-boot.is-error .gamehub-boot__crystal { animation: none; }
+
+@keyframes gamehub-boot-spin { to { transform: rotate(360deg); } }
+@keyframes gamehub-boot-spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes gamehub-boot-crystal {
+  0%, 100% { transform: rotate(45deg) translate3d(0, 0, 0) scale(.96); }
+  50% { transform: rotate(45deg) translate3d(-3px, -3px, 0) scale(1.04); }
+}
+@keyframes gamehub-boot-float {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -5px; }
+}
+@keyframes gamehub-boot-progress {
+  0% { transform: translateX(-110%); background-position: 0 0; }
+  55% { transform: translateX(115%); }
+  100% { transform: translateX(260%); background-position: 100% 0; }
+}
+
+@media (max-width: 430px) {
+  .gamehub-boot__portal { width: 146px; height: 146px; }
+  .gamehub-boot__icon { width: 39px; height: 39px; }
+  .gamehub-boot__layer { inset: -2.5dvh -5vw; width: 110vw; height: 105dvh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gamehub-boot *, .gamehub-boot *::before, .gamehub-boot *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}
