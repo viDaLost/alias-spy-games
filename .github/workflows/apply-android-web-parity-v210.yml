@@ -1,0 +1,38 @@
+name: Apply Android web parity v2.10
+
+on:
+  push:
+    branches: [android-web-parity-v210]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: android-web-parity-v210
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply deterministic parity patches
+        run: node scripts/apply-android-web-parity-v210.mjs
+      - name: Commit generated parity changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No parity changes left to apply.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add android-app/app/src/main/java/com/vidalost/biblegames/App.kt \
+                  android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeEngine.kt \
+                  android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeGame.kt \
+                  android-app/app/src/main/java/com/vidalost/biblegames/games/OnlineGames.kt
+          git commit -m 'feat(android): synchronize runtime with current web app'
+          git push origin HEAD:android-web-parity-v210
