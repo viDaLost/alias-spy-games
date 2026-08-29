@@ -47,7 +47,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
-import androidx.webkit.WebViewClientCompat
 import com.vidalost.biblegames.data.AndroidSessionStore
 import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.data.CloudRepository
@@ -88,8 +87,6 @@ fun AndroidParityApp(
         cloud.setSessionToken(session?.token.orEmpty())
     }
 
-    // BibleGamesApp owns the audited OTP flow. As soon as it stores the
-    // encrypted session, switch to the shared Web UI without reopening the APK.
     LaunchedEffect(session == null, nativeFallback) {
         if (session != null || nativeFallback) return@LaunchedEffect
         while (true) {
@@ -153,8 +150,6 @@ private fun AndroidWebExperience(
     var committed by remember(session.userId) { mutableStateOf(false) }
     var reloadKey by remember { mutableIntStateOf(0) }
 
-    // A few vendor WebViews can omit onPageCommitVisible. Since the main HTML is
-    // local now, a bounded watchdog is enough to avoid a permanent startup veil.
     LaunchedEffect(webView, reloadKey, session.userId) {
         val view = webView ?: return@LaunchedEffect
 
@@ -181,9 +176,6 @@ private fun AndroidWebExperience(
         }
     }
 
-    // Important: this effect must NOT be keyed by webView. Keying it by the
-    // instance destroys the freshly-created WebView when state changes null ->
-    // instance during the first composition. Cleanup belongs to screen disposal.
     DisposableEffect(Unit) {
         onDispose {
             webView?.apply {
@@ -249,7 +241,7 @@ private fun AndroidWebExperience(
                     )
 
                     webChromeClient = AndroidParityChromeClient(activity)
-                    webViewClient = object : WebViewClientCompat() {
+                    webViewClient = object : android.webkit.WebViewClient() {
                         override fun shouldInterceptRequest(
                             view: WebView,
                             request: WebResourceRequest,
