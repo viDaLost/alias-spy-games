@@ -26,6 +26,18 @@
     sacred: `web/assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.png?v=${ICON_VERSION}`,
   };
 
+  const SUPPORT_URL = 'https://t.me/tribute/app?startapp=dPzg';
+  const SUPPORT_TEXT = `💙 Спасибо, что пользуетесь нашим проектом!
+Нам очень приятно, что вы выбираете наши игры и проводите с ними время 😊
+
+Мы продолжаем развивать проект: улучшаем уже существующие игры 🎮 и создаём новые ✨
+
+Если вам хочется поддержать нашу работу — будем искренне благодарны за любую помощь 💙
+Все пожертвования помогают нам уделять больше времени развитию, улучшениям и созданию новых игр.
+
+Спасибо за вашу поддержку! 🥰💙
+Благодаря вам проект может становиться лучше! ✨`;
+
   const HIDDEN_KEY = 'home_hidden_sections_v1';
   const ALLOWED_HIDDEN = new Set(['continue', 'recent', 'progress']);
   let lastSignature = '';
@@ -75,6 +87,16 @@
     if (typeof window.showGame === 'function') window.showGame(game.key);
   }
 
+  function openSupport() {
+    try {
+      if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(SUPPORT_URL);
+        return;
+      }
+    } catch {}
+    window.open(SUPPORT_URL, '_blank', 'noopener,noreferrer');
+  }
+
   function render() {
     const menu = document.getElementById('menu-container');
     if (!menu || document.body.dataset.mode) return;
@@ -95,6 +117,15 @@
         <span class="home-continue__arrow" aria-hidden="true">→</span>
       </button>` : '';
     const recentHtml = recent.length ? `<div class="home-dashboard__label home-dashboard__label--recent${hiddenClass(hidden, 'recent')}">Недавние игры</div><div class="home-recent${hiddenClass(hidden, 'recent')}">${recent.map((title) => `<button type="button" class="home-recent__item" data-home-game="${escapeAttr(title)}">${escapeText(title)}</button>`).join('')}</div>` : '';
+    const supportHtml = `
+      <article class="home-support-card" aria-labelledby="home-support-title">
+        <img class="home-support-card__poster" src="web/assets/support-project.svg?v=1" alt="Поддержи проект" loading="lazy" decoding="async">
+        <div class="home-support-card__body">
+          <h2 id="home-support-title">Поддержать проект 💙</h2>
+          <p>${escapeText(SUPPORT_TEXT).replace(/\n/g, '<br>')}</p>
+          <button type="button" class="home-support-card__button" data-support-project>ПОДДЕРЖАТЬ</button>
+        </div>
+      </article>`;
     dashboard.innerHTML = `
       ${continueHtml}${recentHtml}
       <div class="home-dashboard__label home-dashboard__label--progress${hiddenClass(hidden, 'progress')}">Ваш прогресс</div>
@@ -102,8 +133,10 @@
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.stars))} ⭐</strong><span class="home-progress__name">Общие звёзды</span></div>
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.wow))}</strong><span class="home-progress__name">Монеты «Библейских слов»</span></div>
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.sacred))}</strong><span class="home-progress__name">Уровень «Священного слова»</span></div>
-      </div>`;
+      </div>
+      ${supportHtml}`;
     dashboard.querySelectorAll('[data-home-game]').forEach((node) => node.addEventListener('click', () => openGame(node.dataset.homeGame || '')));
+    dashboard.querySelector('[data-support-project]')?.addEventListener('click', openSupport);
     if (!existing) menu.prepend(dashboard);
     dashboard.dataset.contentReady = '1'; window.__homeControlsApply?.(); window.dispatchEvent(new CustomEvent('app:home-dashboard-ready'));
   }
