@@ -26,6 +26,8 @@ reject(app, 'LaunchedEffect(userId, accessChecked)', 'cached banned users cannot
 need(parityShell, 'sessionStore.load()', 'Web parity shell can start without an encrypted verified session');
 need(parityShell, 'if (activeSession == null)', 'Web parity shell does not retain the native login gate');
 need(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'native verified-session fallback is missing');
+need(parityShell, 'WebViewAssetLoader', 'bundled Web parity shell is missing');
+need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle can destroy the active instance during startup');
 need(cloud, 'callTimeout(11, TimeUnit.SECONDS)', 'bounded primary access deadline missing');
 need(cloud, 'accessFallbackClient', 'fallback access transport missing');
 need(cloud, 'protocols(listOf(Protocol.HTTP_1_1))', 'access transport is not VPN-friendly HTTP/1.1');
@@ -42,7 +44,7 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, 'versionCode 27', 'Android versionCode was not bumped');
-need(gradle, "versionName '3.0.0-web-parity'", 'Android version was not bumped');
+need(gradle, 'versionCode 29', 'Android versionCode was not bumped');
+need(gradle, "versionName '3.0.2-web-parity'", 'Android version was not bumped');
 
-console.log('Android 3.0 verified-session access, Web parity gate and ban refresh checks passed.');
+console.log('Android 3.0.2 verified-session access, bundled Web parity gate and ban refresh checks passed.');
