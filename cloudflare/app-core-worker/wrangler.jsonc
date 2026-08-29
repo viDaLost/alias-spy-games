@@ -23,7 +23,7 @@
     }
   },
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net",
     "ADMIN_TELEGRAM_ID": "1288379477",
     "ADMIN_AUTH_CODE_COPY_ENABLED": "true"
   }
