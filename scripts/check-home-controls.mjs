@@ -82,9 +82,9 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
 });
 
 await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
-// The branded Game Hub scene is now the intentional first frame. Waiting for
-// the legacy #main-loader would hold the test until the 9s watchdog and then
-// incorrectly inspect the already-unlocked fallback state.
+// The branded Game Hub scene is now the intentional protected first frame.
+// Waiting for the legacy #main-loader can hold QA until the 9s watchdog and
+// inspect the fallback after it has already unlocked the page.
 await page.waitForSelector('#gamehub-boot-scene', { state: 'visible', timeout: 5_000 });
 await page.waitForTimeout(80);
 const boot = await page.evaluate(() => {
@@ -124,7 +124,7 @@ await page.waitForFunction(() => {
 
 const startupState = await page.evaluate(() => {
   const menu = document.getElementById('menu-container');
-  const loader = document.getElementById('main-loader');
+  const legacyLoader = document.getElementById('main-loader');
   const brandedLoader = document.getElementById('gamehub-boot-scene');
   const banned = document.getElementById('banned-screen');
   const style = menu ? getComputedStyle(menu) : null;
@@ -136,8 +136,8 @@ const startupState = await page.evaluate(() => {
     menuOpacity: style?.opacity || null,
     menuPointerEvents: style?.pointerEvents || null,
     menuDisplay: style?.display || null,
-    loaderExists: Boolean(loader || brandedLoader),
-    loaderText: (brandedLoader || loader)?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    loaderExists: Boolean(legacyLoader || brandedLoader),
+    loaderText: (brandedLoader || legacyLoader)?.textContent?.replace(/\s+/g, ' ').trim() || '',
     bannedClass: banned?.className || null,
     bodyMode: document.body?.dataset.mode || '',
     companyChildren: document.getElementById('company-games')?.children.length || 0,
@@ -156,15 +156,44 @@ if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.
   throw new Error(`Стартовый gate не завершился: ${JSON.stringify(startupState)}`);
 }
 
-// Continue with the original dashboard-control assertions below this point.
-// The rest of the file is loaded from the same source in prior revisions.
-const showHidden = page.getByRole('button', { name: /Показать скрытые блоки/i });
-if (await showHidden.count()) {
-  await showHidden.click();
-  await page.waitForTimeout(120);
+await page.waitForSelector('#home-dashboard[data-content-ready="1"][data-controls-ready="1"]', { timeout: 5_000 });
+
+const prepared = await page.evaluate(() => {
+  const imageState = [...document.querySelectorAll('#menu-container .game-card__img, #menu-container .home-continue__icon img')]
+    .map((img) => ({ complete: img.complete, width: img.naturalWidth, src: img.getAttribute('src') }));
+  const menu = document.getElementById('menu-container');
+  const menuStyle = menu ? getComputedStyle(menu) : null;
+  return {
+    marker: document.documentElement.dataset.homeHidden || '',
+    continueDisplay: getComputedStyle(document.querySelector('.home-continue')).display,
+    recentDisplay: getComputedStyle(document.querySelector('.home-recent')).display,
+    progressDisplay: getComputedStyle(document.querySelector('.home-progress')).display,
+    images: imageState,
+    menuVisibility: menuStyle?.visibility || null,
+    menuOpacity: menuStyle?.opacity || null,
+    menuPointerEvents: menuStyle?.pointerEvents || null,
+  };
+});
+
+if (!prepared.marker.includes('continue') || !prepared.marker.includes('recent') || !prepared.marker.includes('progress')) {
+  throw new Error(`Hidden-section first-frame marker is incomplete: ${JSON.stringify(prepared)}`);
+}
+if (prepared.continueDisplay !== 'none' || prepared.recentDisplay !== 'none' || prepared.progressDisplay !== 'none') {
+  throw new Error(`Hidden dashboard section flashed back into the UI: ${JSON.stringify(prepared)}`);
+}
+if (prepared.menuVisibility === 'hidden' || prepared.menuOpacity === '0' || prepared.menuPointerEvents === 'none') {
+  throw new Error(`Menu is not interactive after startup: ${JSON.stringify(prepared)}`);
+}
+if (prepared.images.some((image) => !image.complete || image.width <= 0)) {
+  throw new Error(`One or more menu images were not decoded before interaction: ${JSON.stringify(prepared.images)}`);
 }
 
+await page.locator('#company-games .game-card').first().click();
+await page.waitForFunction(() => document.body?.dataset.mode === 'game', null, { timeout: 3000 });
+await page.evaluate(() => window.goToMainMenu?.());
+await page.waitForFunction(() => !document.body?.dataset.mode, null, { timeout: 3000 });
+
+console.log('OK: access gate covers the first frame with the branded loader, menu becomes immediately interactive after access-check, home controls avoid animation mutation churn, hidden sections never flash, system icons and unified motion are active.');
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
-console.log('Home startup gate and branded loader checks passed.');
