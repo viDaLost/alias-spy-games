@@ -1,8 +1,8 @@
-// Core v11 production deployment verification marker.
+// Core v12 production social profiles + direct friend game invites.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
-  "main": "src/index-v11.js",
+  "main": "src/index-v12.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "triggers": {
