@@ -1,13 +1,16 @@
 package com.vidalost.biblegames
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -58,6 +61,9 @@ import kotlinx.coroutines.delay
 
 private const val WEB_APP_URL = "https://vidalost.github.io/alias-spy-games/"
 private const val SESSION_POLL_MS = 120L
+private const val CAMERA_REQUEST_CODE = 7301
+private const val WEB_CACHE_PREFS = "android_web_parity_runtime"
+private const val WEB_CACHE_VERSION = "cache_version"
 
 /**
  * Android keeps the existing Telegram-code login as the trusted identity gate,
@@ -139,8 +145,20 @@ private fun AndroidWebExperience(
     var committed by remember(session.userId) { mutableStateOf(false) }
     var reloadKey by remember { mutableIntStateOf(0) }
 
-    BackHandler(enabled = webView?.canGoBack() == true) {
-        webView?.goBack()
+    // The Web client is a DOM-routed SPA, so WebView history alone cannot return
+    // from a game. Try the same visible back/menu control a player would tap;
+    // only leave the Activity when the main menu itself is already visible.
+    BackHandler(enabled = true) {
+        val view = webView
+        if (view == null) {
+            activity?.finish()
+        } else {
+            view.evaluateJavascript(JS_BACK_TO_MENU) { result ->
+                if (result != "\"handled\"") {
+                    if (view.canGoBack()) view.goBack() else activity?.finish()
+                }
+            }
+        }
     }
 
     DisposableEffect(webView) {
@@ -187,6 +205,15 @@ private fun AndroidWebExperience(
                         userAgentString = "$userAgentString BibleGamesAndroid/${BuildConfig.VERSION_NAME} WebParity"
                     }
 
+                    // Clear stale JS/CSS exactly once after an APK upgrade. Later
+                    // launches keep normal WebView caching so the HQ parallax art
+                    // does not have to be downloaded on every start.
+                    val cachePrefs = viewContext.getSharedPreferences(WEB_CACHE_PREFS, 0)
+                    if (cachePrefs.getInt(WEB_CACHE_VERSION, 0) != BuildConfig.VERSION_CODE) {
+                        clearCache(true)
+                        cachePrefs.edit().putInt(WEB_CACHE_VERSION, BuildConfig.VERSION_CODE).apply()
+                    }
+
                     CookieManager.getInstance().apply {
                         setAcceptCookie(true)
                         setAcceptThirdPartyCookies(appWebView, false)
@@ -201,7 +228,7 @@ private fun AndroidWebExperience(
                         "AndroidApp",
                     )
 
-                    webChromeClient = WebChromeClient()
+                    webChromeClient = AndroidParityChromeClient(activity)
                     webViewClient = object : WebViewClient() {
                         override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                             committed = false
@@ -307,6 +334,28 @@ private fun AndroidWebExperience(
     }
 }
 
+private class AndroidParityChromeClient(private val activity: Activity?) : WebChromeClient() {
+    override fun onPermissionRequest(request: PermissionRequest?) {
+        val permissionRequest = request ?: return
+        val wantsCamera = permissionRequest.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)
+        if (!wantsCamera || activity == null) {
+            permissionRequest.deny()
+            return
+        }
+
+        if (activity.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            permissionRequest.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+            return
+        }
+
+        // The first scanner attempt opens Android's permission dialog. WebView's
+        // current request is denied safely; after the user grants access, tapping
+        // "Сканировать QR" again starts the camera immediately.
+        activity.requestPermissions(arrayOf(Manifest.permission.CAMERA), CAMERA_REQUEST_CODE)
+        permissionRequest.deny()
+    }
+}
+
 private fun webUrl(reloadKey: Int): String =
     "$WEB_APP_URL?android=1&apk=${BuildConfig.VERSION_CODE}&native=web-parity&r=$reloadKey"
 
@@ -337,3 +386,39 @@ private class AndroidWebBridge(
         activity?.runOnUiThread(onLogout)
     }
 }
+
+private const val JS_BACK_TO_MENU = """
+(() => {
+  const root = document.getElementById('game-container');
+  const inGame = document.body?.dataset?.mode === 'game' ||
+    Boolean(document.body?.dataset?.currentGame) ||
+    Boolean(root && root.childElementCount > 0);
+  if (!inGame) return 'menu';
+
+  const controls = root ? [...root.querySelectorAll('button,[role="button"],a')] : [];
+  const back = controls.find((node) => {
+    const text = String(node.textContent || '').trim();
+    const aria = String(node.getAttribute?.('aria-label') || '').toLowerCase();
+    return text === '←' || text === '‹' || /^назад$/i.test(text) || /^в меню$/i.test(text) ||
+      aria.includes('назад') || aria.includes('back') || aria.includes('в меню');
+  });
+  if (back) {
+    back.click();
+    return 'handled';
+  }
+
+  try { window.__biblicalMatchThreeCleanup?.(); } catch (_) {}
+  if (typeof window.renderMainMenu === 'function') {
+    try {
+      if (root) root.innerHTML = '';
+      document.getElementById('menu-container')?.classList.remove('hidden');
+      document.body.dataset.mode = 'menu';
+      delete document.body.dataset.currentGame;
+      window.renderMainMenu();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return 'handled';
+    } catch (_) {}
+  }
+  return 'menu';
+})()
+"""
