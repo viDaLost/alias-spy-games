@@ -62,12 +62,13 @@ requireText(android, 'SupportScreen(cloud = cloud', 'Android login/native suppor
 requireText(android, 'AccessRestrictedScreen(', 'blocked-user support route missing');
 requireText(repo, 'createSupportTicket', 'Android create API missing');
 requireText(repo, 'listSupportTickets', 'Android list API missing');
-requireText(gradle, "versionCode 30", 'Android release versionCode is not current');
-requireText(gradle, "versionName '3.0.3-web-parity'", 'Android release version is not current');
+requireText(gradle, "versionCode 31", 'Android release versionCode is not current');
+requireText(gradle, "versionName '3.0.4-standalone'", 'Android release version is not current');
 requireText(parityShell, 'AndroidParityApp(', 'Android production parity shell missing');
 requireText(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'Android verified login/support gate missing');
-requireText(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android Web support UI does not use production origin');
+requireText(parityShell, 'WEB_APP_ORIGIN = "appassets.androidplatform.net"', 'Android Web support UI does not use standalone APK origin');
+if (parityShell.includes('WEB_APP_ORIGIN = "vidalost.github.io"')) throw new Error('Android parity shell still impersonates the GitHub Pages origin');
 if (android.includes('t.me/D_a_n_Vi')) throw new Error('Personal Telegram support link is still in Android app');
 if (android.includes('openSupport(')) throw new Error('Legacy Android support callback is still present');
 
-console.log('Support center integration checks passed through the v12 social wrapper and Android 3.0.3 production-origin Web Parity.');
+console.log('Support center integration checks passed through the v12 social wrapper and Android 3.0.4 standalone appassets runtime.');
