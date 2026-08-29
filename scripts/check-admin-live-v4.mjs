@@ -12,6 +12,8 @@ const files = [
   'web/js/presence-identity.js',
   'web/js/presence-game-bridge.js',
   'web/js/bmt-stars-cloud-sync.js',
+  'cloudflare/app-core-worker/src/index-v14.js',
+  'cloudflare/app-core-worker/src/index-v13.js',
   'cloudflare/app-core-worker/src/index-v12.js',
   'cloudflare/app-core-worker/src/index-v11.js',
   'cloudflare/app-core-worker/src/index-v10.js',
@@ -26,7 +28,10 @@ for (const file of files) {
   assert(result.status === 0, `${file} syntax check failed:\n${result.stderr || result.stdout}`);
 }
 
-includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v12.js', 'Core must run v12');
+includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v14.js', 'Core must run v14 RBAC');
+includes('cloudflare/app-core-worker/src/index-v14.js', "from './index-v13.js'", 'Core v14 must preserve delegated-admin RBAC');
+includes('cloudflare/app-core-worker/src/index-v14.js', 'requireAdminRole(store, session.userId)', 'Core v14 must recheck delegated roles for existing admin sessions');
+includes('cloudflare/app-core-worker/src/index-v13.js', "from './index-v12.js'", 'Core v13 must preserve v12 social runtime');
 includes('cloudflare/app-core-worker/src/index-v12.js', "from './index-v11.js'", 'Core v12 must preserve v11 profile runtime');
 includes('cloudflare/app-core-worker/src/index-v11.js', "from './index-v10.js'", 'Core v11 must preserve hardened v10 runtime');
 includes('cloudflare/app-core-worker/src/index-v10.js', "from './index-v9.js'", 'Core v10 must preserve hardened v9 runtime');
@@ -35,7 +40,9 @@ includes('cloudflare/app-observability-worker/src/index-v7.js', "from './index-v
 includes('cloudflare/quartet-worker/wrangler.jsonc', 'index-admin-observer-v2.js', 'Quartet must run secure observer v2');
 includes('cloudflare/bible-sketch-worker/wrangler.jsonc', 'index-admin-observer-v2.js', 'Bible Sketch must run secure observer v2');
 
-includes('cloudflare/app-core-worker/src/index-v9.js', "url.pathname === '/web/session'", 'Core must issue scoped web sessions');
+includes('cloudflare/app-core-worker/src/index-v14.js', "url.pathname === '/web/session'", 'Core v14 must intercept admin scoped web sessions');
+includes('cloudflare/app-core-worker/src/index-v14.js', "url.pathname === '/web/session/verify'", 'Core v14 must verify and re-authorize admin sessions');
+includes('cloudflare/app-core-worker/src/index-v9.js', "url.pathname === '/web/session'", 'Core v9 must retain base scoped web session support');
 includes('cloudflare/app-core-worker/src/index-v9.js', "url.pathname === '/android/compat'", 'Core must support Android BMT sync');
 includes('cloudflare/app-core-worker/src/index-v9.js', 'bmt_mutations', 'BMT mutations must be idempotent');
 includes('cloudflare/app-core-worker/src/index-v9.js', 'expectedRevision', 'BMT mutations must use optimistic revision checks');
@@ -92,4 +99,4 @@ includes('index.html', 'presence-identity.js?v=7', 'Presence cache key must be b
 includes('index.html', 'presence-game-bridge.js?v=1', 'Presence game bridge must be loaded');
 includes('index.html', 'bmt-stars-cloud-sync.js?v=49', 'BMT sync cache key must be bumped');
 
-console.log('Admin live, compact layout, current-game presence, v12 social wrapper and Cloudflare request-budget regression checks passed.');
+console.log('Admin live, compact layout, current-game presence, Core v14 RBAC session chain and Cloudflare request-budget regression checks passed.');
