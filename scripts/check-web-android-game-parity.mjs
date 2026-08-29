@@ -91,7 +91,9 @@ const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
 const androidWorkflow = read('.github/workflows/build-android-apk.yml');
 assert(gradle.includes('versionCode 27') && gradle.includes("versionName '2.10.0-native'"), 'APK version must be 2.10.0-native (27)');
-assert(gradle.includes("include 'web/assets/**', 'web/data/**'"), 'Android asset sync is not tracking the complete Web asset catalog');
+assert(gradle.includes("'web/assets/quartet/**'"), 'Android asset sync no longer tracks Quartet artwork');
+assert(gradle.includes("'web/assets/home-gamehub-parallax-v1/**'"), 'Android asset sync does not track Web home parallax layers');
+assert(gradle.includes("'web/assets/biblical-match-three/**'"), 'Android asset sync no longer tracks Biblical Treasures artwork');
 assert(androidMenu.includes('BibleGames-Android-2.10.0-native.apk'), 'Web download menu does not point to APK 2.10.0');
 assert(androidWorkflow.includes('BibleGames-Android-2.10.0-native.apk'), 'Signed Android workflow still publishes the previous APK filename');
 
