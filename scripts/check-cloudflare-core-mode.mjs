@@ -5,6 +5,8 @@ const fail = (message) => { throw new Error(message); };
 
 const html = read('index.html');
 const bridge = read('web/js/backend-bridge.js');
+const adminSessionEntryWorker = read('cloudflare/app-core-worker/src/index-v14.js');
+const adminRbacEntryWorker = read('cloudflare/app-core-worker/src/index-v13.js');
 const socialEntryWorker = read('cloudflare/app-core-worker/src/index-v12.js');
 const profileEntryWorker = read('cloudflare/app-core-worker/src/index-v11.js');
 const richEntryWorker = read('cloudflare/app-core-worker/src/index-v10.js');
@@ -45,7 +47,54 @@ if (bridge.includes('coreHealthy = response.ok')) {
   fail('HTTP 4xx responses must not put the whole Core bridge into failure cooldown.');
 }
 
-if (!wrangler.includes('"main": "src/index-v12.js"')) fail('Core Worker must use the v12 public social/invite production entrypoint.');
+if (!wrangler.includes('"main": "src/index-v14.js"')) fail('Core Worker must use the v14 RBAC/admin-session production entrypoint.');
+if (!adminSessionEntryWorker.includes("from './index-v13.js'")) fail('v14 must preserve the v13 server-side RBAC runtime.');
+if (!adminRbacEntryWorker.includes("from './index-v12.js'")) fail('v13 must preserve the validated v12 public social runtime.');
+
+for (const required of [
+  'CREATE TABLE IF NOT EXISTS admin_roles',
+  'CREATE TABLE IF NOT EXISTS admin_role_audit',
+  'CREATE TABLE IF NOT EXISTS admin_action_audit',
+  "'adminRoleStatus'",
+  "'adminRoleList'",
+  "'adminRoleGrant'",
+  "'adminRoleRevoke'",
+  "actorId !== ownerId",
+  "targetId === ownerId",
+  "revoked_at = 0",
+  "'/admin-role/check'",
+  "'/admin-role/grant'",
+  "'/admin-role/revoke'",
+  'verifyAdminInitData',
+  'ADMIN_AUTH_MAX_AGE_SECONDS = 30 * 60',
+  "role.isRoot !== true && targetRole.isAdmin === true",
+]) {
+  if (!adminRbacEntryWorker.includes(required)) fail(`v13 delegated-admin RBAC is incomplete: ${required}`);
+}
+if (/payload\.?adminId|body\.?adminId/.test(adminRbacEntryWorker)) {
+  fail('v13 must never authorize an administrator from a client-supplied adminId.');
+}
+
+for (const required of [
+  "url.pathname === '/admin/verify'",
+  "url.pathname === '/web/session'",
+  "url.pathname === '/web/session/verify'",
+  'verifyFreshAdminInitData',
+  'ADMIN_INIT_DATA_MAX_AGE_SECONDS = 30 * 60',
+  'requireAdminRole(store, session.userId)',
+  "scope: 'admin'",
+  "action === 'getAdminUsersByIds'",
+  "action === 'adminMessageUser'",
+  "type === 'stars_bmt'",
+  "'/admin-users-brief-v2'",
+  "'/admin-bmt-update-v2'",
+]) {
+  if (!adminSessionEntryWorker.includes(required)) fail(`v14 delegated-admin session/parity boundary is incomplete: ${required}`);
+}
+if (/payload\.?adminId|body\.?adminId/.test(adminSessionEntryWorker)) {
+  fail('v14 must never authorize an administrator from a client-supplied adminId.');
+}
+
 if (!socialEntryWorker.includes("from './index-v11.js'")) fail('v12 entrypoint must preserve the validated v11 profile runtime.');
 for (const required of [
   "'profileBootstrap'",
@@ -102,7 +151,7 @@ if (baseWorker.includes('BROADCAST_GAS_URL') || baseWorker.includes("action === 
 }
 
 for (const forbidden of ['importGoogleSheet', 'docs.google.com', 'mirrorLegacy(', 'callLegacy(']) {
-  if ([socialEntryWorker, profileEntryWorker, richEntryWorker, secureEntryWorker, balanceEntryWorker, entryWorker, retentionEntryWorker, supportEntryWorker, worker, baseWorker].some((source) => source.includes(forbidden))) {
+  if ([adminSessionEntryWorker, adminRbacEntryWorker, socialEntryWorker, profileEntryWorker, richEntryWorker, secureEntryWorker, balanceEntryWorker, entryWorker, retentionEntryWorker, supportEntryWorker, worker, baseWorker].some((source) => source.includes(forbidden))) {
     fail(`Cloudflare-only Worker still contains forbidden runtime dependency: ${forbidden}`);
   }
 }
@@ -133,4 +182,4 @@ for (const required of [
 }
 if (broadcastStore.includes('script.google.com')) fail('Broadcast engine must not call Apps Script.');
 
-console.log('OK: Core v12 exposes authenticated social profiles and direct friend room invites while preserving v11 profile storage, v10 rich messaging, Cloudflare-only SQL and direct Telegram delivery.');
+console.log('OK: Core v14 adds immutable-root delegated-admin RBAC and revocable admin sessions while preserving v12 social, v11 profiles, v10 rich messaging, Cloudflare SQL and direct Telegram delivery.');
