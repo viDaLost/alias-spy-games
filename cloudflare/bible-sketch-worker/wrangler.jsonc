@@ -25,7 +25,7 @@
     }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net",
     "ALLOW_GUESTS": "true"
   }
 }
