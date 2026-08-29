@@ -3,6 +3,7 @@
   const coreUrl = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
   if (!coreUrl || typeof window.fetch !== 'function') return;
 
+  const coreCompatUrl = `${coreUrl}/compat`;
   const originalFetch = window.fetch.bind(window);
   const ACCESS_TIMEOUT_MS = 5000;
   const DEFAULT_TIMEOUT_MS = 20000;
@@ -39,6 +40,15 @@
     return jsonResponse({ success: false, error: `Cloudflare backend is ${reason}` }, 503);
   }
 
+  function androidSessionToken() {
+    if (window.__ANDROID_APK__ !== true) return '';
+    try {
+      return String(window.AndroidApp?.getSessionToken?.() || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
   function requestPolicy(body) {
     const action = String(body?.payload?.action || '');
     const isAccessCheck = action === 'syncUser';
@@ -49,7 +59,7 @@
     };
   }
 
-  async function callCore(path, body) {
+  async function callCore(path, body, authToken = '') {
     const policy = requestPolicy(body);
     const now = Date.now();
     if (policy.useFailureCooldown && !coreHealthy && lastFailureAt && now - lastFailureAt < FAILURE_COOLDOWN_MS) {
@@ -68,9 +78,11 @@
     });
 
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (authToken) headers.Authorization = `Bearer ${authToken}`;
       const request = originalFetch(`${coreUrl}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
         cache: 'no-store',
         ...(controller ? { signal: controller.signal } : {}),
@@ -99,16 +111,24 @@
   window.fetch = async function bridgedFetch(input, init = {}) {
     const requestUrl = typeof input === 'string' || input instanceof URL ? String(input) : String(input?.url || '');
     const method = String(init?.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const isLegacyRequest = requestUrl === legacyUrl;
+    const isCoreCompatRequest = requestUrl === coreCompatUrl;
 
-    if (requestUrl !== legacyUrl || method !== 'POST') return originalFetch(input, init);
+    if (method !== 'POST' || (!isLegacyRequest && !isCoreCompatRequest)) {
+      return originalFetch(input, init);
+    }
 
-    let payload;
+    let parsedBody;
     try {
       const rawBody = init?.body !== undefined ? init.body : (input instanceof Request ? await input.clone().text() : '');
-      payload = typeof rawBody === 'string' ? JSON.parse(rawBody || '{}') : rawBody;
+      parsedBody = typeof rawBody === 'string' ? JSON.parse(rawBody || '{}') : rawBody;
     } catch {
       return jsonResponse({ success: false, error: 'Invalid API payload' }, 400);
     }
+
+    const payload = isCoreCompatRequest
+      ? (parsedBody?.payload && typeof parsedBody.payload === 'object' ? parsedBody.payload : {})
+      : parsedBody;
 
     if (!payload || typeof payload !== 'object' || !payload.action) {
       return jsonResponse({ success: false, error: 'API action required' }, 400);
@@ -116,8 +136,14 @@
 
     const androidId = String(window.__ANDROID_TELEGRAM_ID__ || '').trim();
     if (window.__ANDROID_APK__ === true && /^\d{5,20}$/.test(androidId)) {
-      return callCore('/android/compat', { payload, androidUserId: androidId });
+      const token = androidSessionToken();
+      if (!token) return jsonResponse({ success: false, ok: false, error: 'Android session unavailable' }, 401);
+      return callCore('/android/compat', { payload, androidUserId: androidId }, token);
     }
+
+    // Native web callers already target /compat and should keep their original
+    // Telegram-authenticated request untouched.
+    if (isCoreCompatRequest) return originalFetch(input, init);
 
     const telegramInitData = String(window.Telegram?.WebApp?.initData || '');
     if (!telegramInitData) return guestResponse(payload);
@@ -129,6 +155,7 @@
     backend: coreUrl,
     source: 'cloudflare',
     legacyFallbackEnabled: false,
+    androidAuthenticated: window.__ANDROID_APK__ === true,
     timeoutMs: ACCESS_TIMEOUT_MS,
     defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
     status() {
@@ -136,6 +163,7 @@
         coreHealthy,
         lastFailureAt,
         legacyFallbackEnabled: false,
+        androidAuthenticated: window.__ANDROID_APK__ === true && Boolean(androidSessionToken()),
         timeoutMs: ACCESS_TIMEOUT_MS,
         defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
       };
