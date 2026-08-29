@@ -19,8 +19,8 @@ android {
         applicationId 'com.vidalost.biblegames'
         minSdk 24
         targetSdk 36
-        versionCode 26
-        versionName '2.9.1-native'
+        versionCode 27
+        versionName '3.0.0-web-parity'
         vectorDrawables.useSupportLibrary = true
     }
 
