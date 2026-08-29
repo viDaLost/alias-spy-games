@@ -3,7 +3,6 @@
 
   const STORAGE_KEY = 'telegram_launch_init_data_v1';
   const JSON_FIELDS = new Set(['user', 'receiver', 'chat']);
-  const PROFILE_BETA_ADMIN_ID = '1288379477';
 
   function safeSessionGet(key) {
     try { return sessionStorage.getItem(key) || ''; } catch { return ''; }
@@ -120,33 +119,34 @@
     return compat;
   }
 
-  function maybeLoadProfileBeta(user) {
-    // Browser QA intentionally disables auxiliary telemetry/features so request
+  function ensureStyle(id, href) {
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  function ensureScript(id, src) {
+    if (document.getElementById(id)) return;
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.async = false;
+    document.head.appendChild(script);
+  }
+
+  function maybeLoadSocialFeatures(user) {
+    // Browser QA intentionally disables auxiliary network/features so request
     // budget and startup checks only measure the production core path under test.
     if (window.__APP_TELEMETRY_DISABLED__ === true) return;
-    if (String(user?.id || '') !== PROFILE_BETA_ADMIN_ID) return;
+    if (!/^\d{5,20}$/.test(String(user?.id || ''))) return;
 
-    if (!document.getElementById('player-profile-beta-runtime-style')) {
-      const style = document.createElement('style');
-      style.id = 'player-profile-beta-runtime-style';
-      style.textContent = 'body[data-mode] .player-profile-launcher{display:none!important}';
-      document.head.appendChild(style);
-    }
-
-    if (!document.querySelector('link[data-player-profile-beta]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'web/styles/player-profile.css?v=1';
-      link.dataset.playerProfileBeta = '1';
-      document.head.appendChild(link);
-    }
-    if (!document.querySelector('script[data-player-profile-beta]')) {
-      const script = document.createElement('script');
-      script.src = 'web/js/player-profile.js?v=1';
-      script.async = false;
-      script.dataset.playerProfileBeta = '1';
-      document.head.appendChild(script);
-    }
+    ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
+    ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
+    ensureScript('social-dock-v2-js', 'web/js/social-dock-v2.js?v=1');
+    ensureScript('game-friend-invites-js', 'web/js/game-friend-invites.js?v=1');
   }
 
   function hydrate() {
@@ -165,7 +165,7 @@
       document.documentElement.dataset.telegramLaunchData = launch.source;
     }
 
-    maybeLoadProfileBeta(user);
+    maybeLoadSocialFeatures(user);
     return webApp;
   }
 
@@ -178,7 +178,7 @@
       const tg = window.Telegram?.WebApp;
       tg?.ready?.();
       tg?.expand?.();
-      maybeLoadProfileBeta(tg?.initDataUnsafe?.user || null);
+      maybeLoadSocialFeatures(tg?.initDataUnsafe?.user || null);
       window.dispatchEvent(new CustomEvent('telegram:sdk-ready'));
     } catch {}
   }, { once: true });
