@@ -73,7 +73,7 @@ assert(observabilityWrangler.includes('"main": "src/index-v7.js"'), 'Observabili
 assert(observabilityV7.includes('const PRESENCE_STALE_MS = 75_000;'), 'server stale window must tolerate the lower heartbeat rate');
 assert(observabilityV7.includes("from './index-v6.js'"), 'v7 must preserve secure v6 routes');
 assert(html.includes('telemetry.js?v=3'), 'event-only telemetry cache key must be fresh');
-assert(html.includes('request-storm-v2-20260824'), 'production build marker must identify request-budget release');
+assert(html.includes('telegram-desktop-bootstrap-20260828'), 'production build marker must identify the current production bootstrap release');
 
 const appIndex = html.indexOf('web/js/app.js?v=25');
 const budgetIndex = html.indexOf('web/js/cloudflare-request-budget.js?v=2');
