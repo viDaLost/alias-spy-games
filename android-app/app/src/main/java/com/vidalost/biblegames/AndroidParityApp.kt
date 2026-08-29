@@ -17,7 +17,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -47,6 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
+import androidx.webkit.WebViewClientCompat
 import com.vidalost.biblegames.data.AndroidSessionStore
 import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.data.CloudRepository
@@ -59,19 +60,20 @@ import com.vidalost.biblegames.ui.PrimaryButton
 import com.vidalost.biblegames.ui.SecondaryButton
 import kotlinx.coroutines.delay
 
-private const val WEB_APP_URL = "https://vidalost.github.io/alias-spy-games/"
+private const val WEB_APP_ORIGIN = "appassets.androidplatform.net"
+private const val WEB_APP_URL = "https://$WEB_APP_ORIGIN/assets/index.html"
 private const val SESSION_POLL_MS = 120L
 private const val CAMERA_REQUEST_CODE = 7301
 private const val WEB_CACHE_PREFS = "android_web_parity_runtime"
 private const val WEB_CACHE_VERSION = "cache_version"
-private const val WEB_REVEAL_WATCHDOG_MS = 3_500L
-private const val WEB_LOAD_TIMEOUT_MS = 12_000L
+private const val WEB_REVEAL_WATCHDOG_MS = 2_500L
+private const val WEB_LOAD_TIMEOUT_MS = 10_000L
 
 /**
  * Android keeps the existing Telegram-code login as the trusted identity gate,
- * then renders the exact production Web UI inside a hardened WebView. This
- * removes the permanent visual/feature drift that existed between Compose and
- * the Telegram/GitHub Pages client while preserving encrypted native sessions.
+ * then renders the same production Web UI from APK-bundled assets through
+ * WebViewAssetLoader. The UI no longer depends on GitHub Pages being reachable
+ * at startup, while cloud APIs and multiplayer continue to use HTTPS normally.
  */
 @Composable
 fun AndroidParityApp(
@@ -86,9 +88,8 @@ fun AndroidParityApp(
         cloud.setSessionToken(session?.token.orEmpty())
     }
 
-    // BibleGamesApp owns the already audited OTP flow. As soon as it stores the
-    // encrypted session, switch to the production Web UI without requiring the
-    // user to reopen the APK.
+    // BibleGamesApp owns the audited OTP flow. As soon as it stores the
+    // encrypted session, switch to the shared Web UI without reopening the APK.
     LaunchedEffect(session == null, nativeFallback) {
         if (session != null || nativeFallback) return@LaunchedEffect
         while (true) {
@@ -108,8 +109,6 @@ fun AndroidParityApp(
 
     val activeSession = session
     if (activeSession == null) {
-        // Reuse the current secure native login screen. It will only be visible
-        // until verifyLoginCode saves the encrypted bearer session.
         BibleGamesApp(assets = assets, cloud = cloud)
         return
     }
@@ -141,15 +140,21 @@ private fun AndroidWebExperience(
     onNativeFallback: () -> Unit,
 ) {
     val context = LocalContext.current
+    val appContext = context.applicationContext
     val activity = context as? Activity
+    val assetLoader = remember(appContext) {
+        WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(appContext))
+            .build()
+    }
+
     var webView by remember { mutableStateOf<WebView?>(null) }
     var loadFailed by remember(session.userId) { mutableStateOf(false) }
     var committed by remember(session.userId) { mutableStateOf(false) }
     var reloadKey by remember { mutableIntStateOf(0) }
 
-    // Some vendor WebView builds do not reliably dispatch onPageCommitVisible,
-    // especially when the document is served from cache. Never allow the native
-    // first-frame veil to cover an otherwise loaded web app forever.
+    // A few vendor WebViews can omit onPageCommitVisible. Since the main HTML is
+    // local now, a bounded watchdog is enough to avoid a permanent startup veil.
     LaunchedEffect(webView, reloadKey, session.userId) {
         val view = webView ?: return@LaunchedEffect
 
@@ -163,9 +168,6 @@ private fun AndroidWebExperience(
         if (!committed && !loadFailed) loadFailed = true
     }
 
-    // The Web client is a DOM-routed SPA, so WebView history alone cannot return
-    // from a game. Try the same visible back/menu control a player would tap;
-    // only leave the Activity when the main menu itself is already visible.
     BackHandler(enabled = true) {
         val view = webView
         if (view == null) {
@@ -179,7 +181,10 @@ private fun AndroidWebExperience(
         }
     }
 
-    DisposableEffect(webView) {
+    // Important: this effect must NOT be keyed by webView. Keying it by the
+    // instance destroys the freshly-created WebView when state changes null ->
+    // instance during the first composition. Cleanup belongs to screen disposal.
+    DisposableEffect(Unit) {
         onDispose {
             webView?.apply {
                 stopLoading()
@@ -223,9 +228,6 @@ private fun AndroidWebExperience(
                         userAgentString = "$userAgentString BibleGamesAndroid/${BuildConfig.VERSION_NAME} WebParity"
                     }
 
-                    // Clear stale JS/CSS exactly once after an APK upgrade. Later
-                    // launches keep normal WebView caching so the HQ parallax art
-                    // does not have to be downloaded on every start.
                     val cachePrefs = viewContext.getSharedPreferences(WEB_CACHE_PREFS, 0)
                     if (cachePrefs.getInt(WEB_CACHE_VERSION, 0) != BuildConfig.VERSION_CODE) {
                         clearCache(true)
@@ -247,7 +249,15 @@ private fun AndroidWebExperience(
                     )
 
                     webChromeClient = AndroidParityChromeClient(activity)
-                    webViewClient = object : WebViewClient() {
+                    webViewClient = object : WebViewClientCompat() {
+                        override fun shouldInterceptRequest(
+                            view: WebView,
+                            request: WebResourceRequest,
+                        ): WebResourceResponse? {
+                            return assetLoader.shouldInterceptRequest(request.url)
+                                ?: super.shouldInterceptRequest(view, request)
+                        }
+
                         override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
                             committed = false
                             loadFailed = false
@@ -274,14 +284,14 @@ private fun AndroidWebExperience(
                             request: WebResourceRequest?,
                             errorResponse: WebResourceResponse?,
                         ) {
-                            if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 0) >= 500) {
+                            if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 0) >= 400) {
                                 loadFailed = true
                             }
                         }
 
                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                             val uri = request?.url ?: return false
-                            val sameApp = uri.scheme == "https" && uri.host.equals("vidalost.github.io", ignoreCase = true)
+                            val sameApp = uri.scheme == "https" && uri.host.equals(WEB_APP_ORIGIN, ignoreCase = true)
                             if (sameApp) return false
                             return openExternal(activity, uri)
                         }
@@ -292,13 +302,12 @@ private fun AndroidWebExperience(
                 }
             },
             update = { view ->
-                if (view.url.isNullOrBlank() || view.url == "about:blank") view.loadUrl(webUrl(reloadKey))
+                if (view.url.isNullOrBlank() || view.url == "about:blank") {
+                    view.loadUrl(webUrl(reloadKey))
+                }
             },
         )
 
-        // Prevent the white WebView first-frame flash. onPageFinished and the
-        // bounded watchdog are fallbacks for vendor WebViews that never deliver
-        // onPageCommitVisible, so this veil can no longer remain indefinitely.
         if (!committed && !loadFailed) {
             Box(
                 Modifier
@@ -327,7 +336,7 @@ private fun AndroidWebExperience(
             ) {
                 GlassCard(Modifier.fillMaxWidth()) {
                     Text(
-                        "Не удалось открыть игровую версию",
+                        "Не удалось запустить интерфейс",
                         color = Ink,
                         fontSize = 23.sp,
                         fontWeight = FontWeight.Black,
@@ -335,13 +344,13 @@ private fun AndroidWebExperience(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Проверьте интернет или VPN. Если экран снова не откроется, обновите Android System WebView или Chrome и повторите загрузку.",
+                        "Интерфейс уже встроен в приложение и не зависит от GitHub Pages. Повторите запуск; если проблема сохранится, можно открыть автономный режим.",
                         color = InkSoft,
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(16.dp))
                     PrimaryButton(
-                        text = "Повторить загрузку",
+                        text = "Повторить запуск",
                         onClick = {
                             loadFailed = false
                             committed = false
@@ -379,16 +388,13 @@ private class AndroidParityChromeClient(private val activity: Activity?) : WebCh
             return
         }
 
-        // The first scanner attempt opens Android's permission dialog. WebView's
-        // current request is denied safely; after the user grants access, tapping
-        // "Сканировать QR" again starts the camera immediately.
         activity.requestPermissions(arrayOf(Manifest.permission.CAMERA), CAMERA_REQUEST_CODE)
         permissionRequest.deny()
     }
 }
 
 private fun webUrl(reloadKey: Int): String =
-    "$WEB_APP_URL?android=1&apk=${BuildConfig.VERSION_CODE}&native=web-parity&r=$reloadKey"
+    "$WEB_APP_URL?android=1&apk=${BuildConfig.VERSION_CODE}&native=bundled-web&r=$reloadKey"
 
 private fun openExternal(activity: Activity?, uri: Uri): Boolean {
     if (activity == null) return false
