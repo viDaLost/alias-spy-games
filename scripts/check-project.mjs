@@ -69,7 +69,7 @@ const dynamicPublishedFiles = new Set([
   'web/assets/home-gamehub-parallax-v1/    03-architecture.PNG',
   'web/assets/home-gamehub-parallax-v1/    04-game-icons.PNG',
   'web/assets/home-gamehub-parallax-v1/    05-game-library.PNG',
-  'web/assets/startup-loader/portal-01.png',
+  'web/assets/startup-loader/portal-01.PNG',
 ]);
 
 // Runtime catalogs may point at media directly (for example one illustration per
@@ -105,7 +105,7 @@ const legacyOversizedImages = new Set([
 // The Game Hub background intentionally ships its original high-resolution PNG masters.
 // Keep these visible as warnings rather than silently bypassing the image-size policy.
 const sourceResolutionImagePrefixes = ['web/assets/home-gamehub-parallax-v1/'];
-const sourceResolutionImages = new Set(['web/assets/startup-loader/portal-01.png']);
+const sourceResolutionImages = new Set(['web/assets/startup-loader/portal-01.PNG']);
 const isSourceResolutionImage = (name) =>
   sourceResolutionImages.has(name) || sourceResolutionImagePrefixes.some((prefix) => name.startsWith(prefix));
 
