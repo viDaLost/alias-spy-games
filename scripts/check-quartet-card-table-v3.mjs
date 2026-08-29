@@ -99,6 +99,8 @@ for (const [needle, message] of [
   ['ContentScale.Crop', 'Android artwork must use a stable crop'],
 ]) requireText(android, needle, message);
 requireText(repository, 'raw.optString("art").removePrefix("web/")', 'Android does not parse shared card artwork paths');
-requireText(androidBuild, "include 'web/assets/icons/**', 'web/assets/cards/**', 'web/assets/biblical-match-three/**', 'web/assets/quartet/**', 'web/data/**'", 'Android Gradle inputs do not include Quartet artwork');
+const bundlesWholeWebTree = androidBuild.includes("include 'web/**'");
+const bundlesLegacyArtworkSet = androidBuild.includes("include 'web/assets/icons/**', 'web/assets/cards/**', 'web/assets/biblical-match-three/**', 'web/assets/quartet/**', 'web/data/**'");
+if (!bundlesWholeWebTree && !bundlesLegacyArtworkSet) fail('Android Gradle inputs do not include Quartet artwork');
 
 console.log(`OK: Quartet v3 has ${catalog.quartets.length} categories, ${cards.length} unique illustrated cards and ${(totalBytes / 1024 / 1024).toFixed(2)} MiB of WebP artwork.`);
