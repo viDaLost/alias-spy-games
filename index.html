@@ -42,10 +42,17 @@
           menu.classList.remove('hidden');
           root.classList.remove('app-booting', 'app-menu-preparing');
           root.classList.add('app-ui-ready');
+          window.__gamehubBoot?.finish?.();
           return;
         }
 
         if (!loader) return;
+        if (window.__gamehubBoot?.fail) {
+          window.__gamehubBoot.fail('Не удалось завершить запуск приложения.');
+          return;
+        }
+
+        document.getElementById('gamehub-boot-scene')?.remove();
         loader.innerHTML = `
           <div class="app-loader__ring"></div>
           <p>Не удалось завершить запуск приложения.</p>
@@ -55,33 +62,28 @@
     })();
   </script>
   <style>
-    html.app-booting,html.app-booting body{background:#fdfaf4!important}
+    html.app-booting,html.app-booting body{
+      background:radial-gradient(circle at 50% 30%,#E0F2FE 0%,#DBEAFE 48%,#6366F1 100%)!important
+    }
     html.app-booting .app-header,
     html.app-menu-preparing .app-header,
     html.app-booting #menu-container,
     html.app-menu-preparing #menu-container,
     html.app-booting #banned-screen,
     html.app-booting #game-container{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-    html.app-booting #main-loader{
-      position:fixed!important;
-      inset:0!important;
-      z-index:2147483647!important;
-      display:flex!important;
-      flex-direction:column!important;
-      align-items:center!important;
-      justify-content:center!important;
-      width:100%!important;
-      min-width:100%!important;
-      height:100vh!important;
-      min-height:100dvh!important;
-      margin:0!important;
-      padding:0 24px!important;
-      visibility:visible!important;
-      opacity:1!important;
-      pointer-events:auto!important;
-      background:#fdfaf4!important;
+    #gamehub-boot-scene{
+      position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;min-height:100vh;min-height:100dvh;
+      background:radial-gradient(circle at 50% 32%,rgba(224,242,254,.96) 0%,rgba(219,234,254,.78) 38%,rgba(99,102,241,.44) 100%),#DBEAFE;
+    }
+    html.app-booting #main-loader,
+    html.app-menu-preparing #main-loader{
+      position:fixed!important;inset:0!important;z-index:2147483646!important;display:flex!important;flex-direction:column!important;
+      align-items:center!important;justify-content:center!important;width:100%!important;min-width:100%!important;height:100vh!important;
+      min-height:100dvh!important;margin:0!important;padding:0 24px!important;visibility:visible!important;opacity:1!important;
+      pointer-events:auto!important;background:radial-gradient(circle at 50% 30%,#E0F2FE 0%,#DBEAFE 48%,#6366F1 100%)!important;
     }
   </style>
+  <link rel="stylesheet" href="web/styles/startup-gamehub-loader.css?v=1" />
   <link rel="stylesheet" href="web/styles/style.css?v=23" />
   <link rel="stylesheet" href="web/styles/admin-enhancements.css?v=24" />
   <link rel="stylesheet" href="web/styles/home-enhancements.css?v=1" />
@@ -108,6 +110,34 @@
   <link rel="stylesheet" href="web/styles/biblical-match-three-v38.css?v=41" />
 </head>
 <body>
+  <div id="gamehub-boot-scene" class="gamehub-boot" role="status" aria-live="polite" aria-label="Запуск Библейских игр">
+    <div class="gamehub-boot__art" aria-hidden="true">
+      <img class="gamehub-boot__layer gamehub-boot__layer--base" data-gamehub-layer-file="    01-gamehub-base.PNG" alt="" decoding="async" />
+      <img class="gamehub-boot__layer gamehub-boot__layer--atmosphere" data-gamehub-layer-file="    02-atmosphere.PNG" alt="" decoding="async" />
+      <img class="gamehub-boot__layer gamehub-boot__layer--architecture" data-gamehub-layer-file="    03-architecture.PNG" alt="" decoding="async" />
+      <div class="gamehub-boot__veil"></div>
+    </div>
+
+    <div class="gamehub-boot__content">
+      <div class="gamehub-boot__portal" aria-hidden="true">
+        <div class="gamehub-boot__ring"></div>
+        <div class="gamehub-boot__crystal"></div>
+        <div class="gamehub-boot__icons">
+          <img class="gamehub-boot__icon" src="web/assets/icons/alias.png?v=1" alt="" decoding="async" />
+          <img class="gamehub-boot__icon" src="web/assets/icons/spy.png?v=1" alt="" decoding="async" />
+          <img class="gamehub-boot__icon" src="web/assets/icons/quartet.png?v=1" alt="" decoding="async" />
+          <img class="gamehub-boot__icon" src="web/assets/icons/idea.png?v=1" alt="" decoding="async" />
+          <img class="gamehub-boot__icon" src="web/assets/icons/words.png?v=1" alt="" decoding="async" />
+        </div>
+      </div>
+      <p class="gamehub-boot__eyebrow">Игровой мир</p>
+      <h1 class="gamehub-boot__title" data-gamehub-boot-title>Библейские игры</h1>
+      <p class="gamehub-boot__status" data-gamehub-boot-status>Открываем игровой мир…</p>
+      <div class="gamehub-boot__progress" aria-hidden="true"></div>
+      <button class="gamehub-boot__retry" type="button" data-gamehub-boot-retry>Попробовать снова</button>
+    </div>
+  </div>
+
   <header class="app-header">
     <p class="app-kicker">Мини-игры для компании</p>
     <h1>Библейские игры</h1>
@@ -116,7 +146,7 @@
 
   <div id="main-loader" class="app-loader" aria-live="polite">
     <div class="app-loader__ring"></div>
-    <p>Проверка доступа...</p>
+    <p>Запускаем игры…</p>
   </div>
 
   <main class="menu-container hidden" id="menu-container">
@@ -154,6 +184,7 @@
   <script src="web/js/backend-bridge.js?v=5" defer></script>
   <script src="web/js/referral-survey.js?v=1" defer></script>
   <script src="web/js/error-system.js?v=3" defer></script>
+  <script src="web/js/startup-gamehub-loader.js?v=1" defer></script>
   <script src="web/js/startup-coordinator.js?v=3" defer></script>
   <script src="web/games/kids-ark-pairs.js?v=21" defer></script>
   <script src="web/js/quartet-production-v43-loader.js?v=44" defer></script>
