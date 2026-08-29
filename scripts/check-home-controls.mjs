@@ -58,9 +58,6 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
     action = String(route.request().postDataJSON()?.payload?.action || '');
   } catch {}
 
-  // The referral survey is independent from the startup/menu interaction test.
-  // Mark it answered so its intentional modal does not intercept the tap we use
-  // to prove that the main menu is genuinely interactive.
   if (action === 'referralStatus') {
     await route.fulfill({
       status: 200,
@@ -70,9 +67,8 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
     return;
   }
 
-  // Keep access verification pending deterministically until the test has
-  // inspected the first protected frame. This avoids timing flakes on busy CI
-  // runners and does not affect production startup behaviour.
+  // Hold access verification until the first protected frame has been inspected.
+  // This makes the assertion deterministic without changing production startup.
   if (action === 'syncUser') await syncUserGate;
   await route.fulfill({
     status: 200,
@@ -150,6 +146,14 @@ if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.
 }
 
 await page.waitForSelector('#home-dashboard[data-content-ready="1"][data-controls-ready="1"]', { timeout: 5_000 });
+// The menu intentionally fades in. Wait for a visible animation frame before
+// asserting interaction instead of sampling exactly at opacity:0 on a busy CI runner.
+await page.waitForFunction(() => {
+  const menu = document.getElementById('menu-container');
+  if (!menu) return false;
+  const style = getComputedStyle(menu);
+  return style.visibility !== 'hidden' && style.pointerEvents !== 'none' && Number(style.opacity || 0) > 0.2;
+}, null, { timeout: 3_000 });
 
 const prepared = await page.evaluate(() => {
   const imageState = [...document.querySelectorAll('#menu-container .game-card__img, #menu-container .home-continue__icon img')]
