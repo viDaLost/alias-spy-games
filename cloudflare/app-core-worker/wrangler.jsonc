@@ -1,3 +1,4 @@
+// Core v11 production deployment verification marker.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
