@@ -611,9 +611,16 @@ private fun BmtBoardScreen(
     fun useTargetBooster(index: Int) {
         val booster = targetBooster ?: return
         if (busy || result != null || boardWallet < booster.cost || board.getOrNull(index) == null) return
+        if (booster == BmtBooster.RAINBOW && blockers.containsKey(index)) return
         updateWallet(boardWallet - booster.cost)
         targetBooster = null
         selected = null
+        hint = null
+        if (booster == BmtBooster.RAINBOW) {
+            val cell = board.getOrNull(index) ?: return
+            board = board.toMutableList().also { it[index] = cell.copy(special = BmtSpecial.RAINBOW) }
+            return
+        }
         busy = true
         scope.launch {
             applyTurn(BmtEngine.resolveBooster(board, blockers, config, booster, index))
@@ -625,12 +632,7 @@ private fun BmtBoardScreen(
 
     fun chooseBooster(booster: BmtBooster) {
         if (busy || result != null || boardWallet < booster.cost) return
-        if (booster == BmtBooster.ARK) {
-            updateWallet(boardWallet - booster.cost)
-            board = BmtEngine.reshuffle(board, config, addArkSpecials = true)
-            selected = null
-            hint = null
-        } else targetBooster = if (targetBooster == booster) null else booster
+        targetBooster = if (targetBooster == booster) null else booster
     }
 
     fun reset() {

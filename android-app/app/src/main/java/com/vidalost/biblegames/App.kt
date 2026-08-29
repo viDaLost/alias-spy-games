@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -88,6 +89,9 @@ import com.vidalost.biblegames.ui.AppBackground
 import com.vidalost.biblegames.ui.AssetImage
 import com.vidalost.biblegames.ui.Cyan
 import com.vidalost.biblegames.ui.GlassCard
+import com.vidalost.biblegames.ui.HomeContinueCard
+import com.vidalost.biblegames.ui.HomeParallaxBackground
+import com.vidalost.biblegames.ui.HomeProgressSummary
 import com.vidalost.biblegames.ui.Indigo
 import com.vidalost.biblegames.ui.Ink
 import com.vidalost.biblegames.ui.InkSoft
@@ -547,15 +551,17 @@ private fun HomeScreen(
     }
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val fontScale = LocalDensity.current.fontScale
+    val listState = rememberLazyListState()
     val columns = when {
         screenWidth < 380 || fontScale > 1.15f -> 1
         screenWidth >= 840 -> 4
         screenWidth >= 600 -> 3
         else -> 2
     }
-    AppBackground {
+    HomeParallaxBackground(assets, listState) {
         LazyColumn(
             Modifier.fillMaxSize(),
+            state = listState,
             contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 34.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -579,6 +585,10 @@ private fun HomeScreen(
                     }
                 }
             }
+            history.firstOrNull()?.let(GameKey::fromRoute)?.let { latest ->
+                item { HomeContinueCard(latest, assets) { onOpenGame(latest) } }
+            }
+            item { HomeProgressSummary(profile) }
             if (history.isNotEmpty()) {
                 if (!recentHidden) {
                     item { SectionTitle("Недавно открытые") }

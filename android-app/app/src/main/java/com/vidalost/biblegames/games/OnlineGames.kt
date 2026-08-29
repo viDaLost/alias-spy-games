@@ -122,6 +122,7 @@ fun QuartetGame(assets: AssetRepository, cloud: CloudRepository, userId: String,
     var lastLobbyAction by rememberSaveable { mutableStateOf("create") }
     var selectedTarget by rememberSaveable { mutableStateOf("") }
     var selectedCard by rememberSaveable { mutableStateOf("") }
+    var chat by rememberSaveable { mutableStateOf("") }
     val state = session.state
     val status = state?.optString("status").orEmpty()
 
@@ -174,6 +175,22 @@ fun QuartetGame(assets: AssetRepository, cloud: CloudRepository, userId: String,
                     )
                     target == "finished" -> QuartetResults(renderState, { session.action("restartGame") }, { session.leave() })
                     else -> LoadingCard("Получаем состояние комнаты…")
+                }
+            }
+        }
+        val chatState = state
+        if (session.roomId.isNotBlank() && chatState != null) {
+            Spacer(Modifier.height(10.dp))
+            SketchChat(
+                chatState.optJSONArray("chat").objects(),
+                chatState.optJSONObject("me")?.optString("playerId").orEmpty(),
+                chat,
+                { chat = it.take(500) },
+            ) {
+                val text = chat.trim()
+                if (text.isNotEmpty()) {
+                    session.action("chat", JSONObject().put("text", text))
+                    chat = ""
                 }
             }
         }
