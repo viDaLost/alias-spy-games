@@ -1,8 +1,8 @@
-// Core v13 hardened RBAC: immutable root admin + server-managed delegated administrators.
+// Core v14 hardened RBAC: immutable root, delegated admins, revocable admin sessions.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
-  "main": "src/index-v13.js",
+  "main": "src/index-v14.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "triggers": {
