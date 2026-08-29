@@ -1,5 +1,5 @@
 BibleGames Android release trigger
 version=3.0.2-web-parity
 versionCode=29
-requested=2026-08-29T16:15:00+03:00
-reason=fix-kotlin-webkit-build-and-publish-bundled-webview
+requested=2026-08-29T16:26:00+03:00
+reason=fix-webviewclient-compile-and-publish-bundled-webview
