@@ -1,8 +1,8 @@
-// Core v12 production social profiles + direct friend game invites.
+// Core v13 hardened RBAC: immutable root admin + server-managed delegated administrators.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
-  "main": "src/index-v12.js",
+  "main": "src/index-v13.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "triggers": {
