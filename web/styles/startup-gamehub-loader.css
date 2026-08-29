@@ -73,18 +73,42 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: min(88vw, 430px);
-  padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+  width: min(92vw, 460px);
+  padding: 18px 18px calc(22px + env(safe-area-inset-bottom));
   text-align: center;
 }
 
 .gamehub-boot__portal {
   position: relative;
-  width: 158px;
-  height: 158px;
-  margin-bottom: 24px;
+  width: 210px;
+  height: 210px;
+  margin-bottom: 22px;
   display: grid;
   place-items: center;
+  isolation: isolate;
+}
+
+.gamehub-boot__portal-image {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 4;
+  width: 194px;
+  height: 194px;
+  object-fit: contain;
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0) scale(.88) rotate(-2deg);
+  filter:
+    drop-shadow(0 14px 28px rgba(49,46,129,.22))
+    drop-shadow(0 0 26px rgba(99,102,241,.28));
+  transition: opacity .42s ease, transform .7s cubic-bezier(.2,.8,.2,1);
+  animation: gamehub-boot-portal-breathe 2.35s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.gamehub-boot__portal.has-portal-image .gamehub-boot__portal-image {
+  opacity: 1;
+  transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg);
 }
 
 .gamehub-boot__ring,
@@ -97,13 +121,15 @@
 }
 
 .gamehub-boot__ring {
+  z-index: 1;
   border: 1.5px solid rgba(99,102,241,.50);
   box-shadow: 0 0 32px rgba(79,70,229,.14), inset 0 0 28px rgba(224,242,254,.52);
   animation: gamehub-boot-spin 7s linear infinite;
+  transition: opacity .35s ease;
 }
 
 .gamehub-boot__ring::before {
-  inset: 14px;
+  inset: 20px;
   border: 1px solid rgba(219,234,254,.88);
   border-left-color: rgba(79,70,229,.68);
   border-right-color: rgba(99,102,241,.68);
@@ -111,7 +137,7 @@
 }
 
 .gamehub-boot__ring::after {
-  inset: 30px;
+  inset: 42px;
   border: 1px solid rgba(255,255,255,.86);
   box-shadow: 0 0 28px rgba(224,242,254,.74);
 }
@@ -119,8 +145,8 @@
 .gamehub-boot__crystal {
   position: relative;
   z-index: 3;
-  width: 58px;
-  height: 72px;
+  width: 64px;
+  height: 78px;
   transform: rotate(45deg);
   border-radius: 15px 5px 15px 5px;
   background: linear-gradient(135deg, #E0F2FE 4%, #DBEAFE 32%, #6366F1 70%, #4F46E5 100%);
@@ -130,6 +156,7 @@
     0 0 44px rgba(99,102,241,.48),
     0 12px 28px rgba(49,46,129,.24);
   animation: gamehub-boot-crystal 2.15s ease-in-out infinite;
+  transition: opacity .35s ease, transform .35s ease;
 }
 
 .gamehub-boot__crystal::after {
@@ -140,13 +167,24 @@
   background: linear-gradient(135deg, rgba(255,255,255,.78), rgba(224,242,254,.04));
 }
 
+/* The CSS portal stays as a fallback until portal-01.png exists. */
+.gamehub-boot__portal.has-portal-image .gamehub-boot__crystal {
+  opacity: 0;
+  transform: rotate(45deg) scale(.68);
+}
+
+.gamehub-boot__portal.has-portal-image .gamehub-boot__ring {
+  opacity: .28;
+}
+
 .gamehub-boot__icons {
   position: absolute;
-  inset: -24px;
-  z-index: 5;
+  inset: -82px;
+  z-index: 6;
   opacity: 0;
-  transform: scale(.88);
-  transition: opacity .45s ease .22s, transform .65s cubic-bezier(.2,.8,.2,1) .18s;
+  transform: scale(.92);
+  transition: opacity .38s ease .18s, transform .62s cubic-bezier(.2,.8,.2,1) .14s;
+  pointer-events: none;
 }
 
 .gamehub-boot.is-icons-ready .gamehub-boot__icons {
@@ -156,19 +194,26 @@
 
 .gamehub-boot__icon {
   position: absolute;
-  width: 42px;
-  height: 42px;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
   object-fit: contain;
   border-radius: 13px;
-  filter: drop-shadow(0 8px 14px rgba(49,46,129,.18));
-  animation: gamehub-boot-float 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 14px rgba(49,46,129,.20));
+  transform-origin: center center;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.gamehub-boot__icon:nth-child(1) { left: 50%; top: -3px; transform: translateX(-50%); animation-delay: -.2s; }
-.gamehub-boot__icon:nth-child(2) { right: -2px; top: 50px; animation-delay: -.8s; }
-.gamehub-boot__icon:nth-child(3) { right: 21px; bottom: 0; animation-delay: -1.4s; }
-.gamehub-boot__icon:nth-child(4) { left: 21px; bottom: 0; animation-delay: -2s; }
-.gamehub-boot__icon:nth-child(5) { left: -2px; top: 50px; animation-delay: -2.6s; }
+.gamehub-boot__icon.is-ingesting {
+  z-index: 9;
+  filter:
+    drop-shadow(0 0 10px rgba(224,242,254,.92))
+    drop-shadow(0 0 18px rgba(99,102,241,.52));
+}
 
 .gamehub-boot__eyebrow {
   margin: 0 0 8px;
@@ -251,9 +296,9 @@
   0%, 100% { transform: rotate(45deg) translate3d(0, 0, 0) scale(.96); }
   50% { transform: rotate(45deg) translate3d(-3px, -3px, 0) scale(1.04); }
 }
-@keyframes gamehub-boot-float {
-  0%, 100% { margin-top: 0; }
-  50% { margin-top: -5px; }
+@keyframes gamehub-boot-portal-breathe {
+  0%, 100% { filter: drop-shadow(0 14px 28px rgba(49,46,129,.22)) drop-shadow(0 0 22px rgba(99,102,241,.24)); }
+  50% { filter: drop-shadow(0 16px 32px rgba(49,46,129,.26)) drop-shadow(0 0 34px rgba(99,102,241,.42)); }
 }
 @keyframes gamehub-boot-progress {
   0% { transform: translateX(-110%); background-position: 0 0; }
@@ -262,9 +307,22 @@
 }
 
 @media (max-width: 430px) {
-  .gamehub-boot__portal { width: 146px; height: 146px; }
-  .gamehub-boot__icon { width: 39px; height: 39px; }
+  .gamehub-boot__content { width: min(94vw, 430px); padding-top: 12px; }
+  .gamehub-boot__portal { width: 188px; height: 188px; margin-bottom: 20px; }
+  .gamehub-boot__portal-image { width: 178px; height: 178px; }
+  .gamehub-boot__icons { inset: -70px; }
+  .gamehub-boot__icon { width: 37px; height: 37px; margin: -18.5px 0 0 -18.5px; }
   .gamehub-boot__layer { inset: -2.5dvh -5vw; width: 110vw; height: 105dvh; }
+}
+
+@media (max-height: 700px) {
+  .gamehub-boot__portal { width: 174px; height: 174px; margin-bottom: 14px; }
+  .gamehub-boot__portal-image { width: 164px; height: 164px; }
+  .gamehub-boot__icons { inset: -62px; }
+  .gamehub-boot__icon { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
+  .gamehub-boot__title { font-size: clamp(27px, 7vw, 36px); }
+  .gamehub-boot__status { margin-top: 10px; }
+  .gamehub-boot__progress { margin-top: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -272,4 +330,5 @@
     animation: none !important;
     transition-duration: .01ms !important;
   }
+  .gamehub-boot__portal-image { opacity: 1; }
 }
