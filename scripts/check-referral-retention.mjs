@@ -15,6 +15,8 @@ const secureWorker = read('cloudflare/app-core-worker/src/index-v9.js');
 const richEntryWorker = read('cloudflare/app-core-worker/src/index-v10.js');
 const profileEntryWorker = read('cloudflare/app-core-worker/src/index-v11.js');
 const socialEntryWorker = read('cloudflare/app-core-worker/src/index-v12.js');
+const rbacEntryWorker = read('cloudflare/app-core-worker/src/index-v13.js');
+const adminSessionEntryWorker = read('cloudflare/app-core-worker/src/index-v14.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const survey = read('web/js/referral-survey.js');
 const html = read('index.html');
@@ -36,8 +38,10 @@ requireText(secureWorker, "from './index-v8.js'", 'v9 entrypoint must preserve v
 requireText(richEntryWorker, "from './index-v9.js'", 'v10 entrypoint must preserve hardened v9 runtime');
 requireText(profileEntryWorker, "from './index-v10.js'", 'v11 entrypoint must preserve referral/retention-enabled v10 runtime');
 requireText(socialEntryWorker, "from './index-v11.js'", 'v12 entrypoint must preserve referral/retention-enabled v11 runtime');
+requireText(rbacEntryWorker, "from './index-v12.js'", 'v13 RBAC wrapper must preserve referral/retention-enabled v12 runtime');
+requireText(adminSessionEntryWorker, "from './index-v13.js'", 'v14 admin-session wrapper must preserve referral/retention runtime');
 
-requireText(wrangler, '"main": "src/index-v12.js"', 'v12 public-social worker entry is not active');
+requireText(wrangler, '"main": "src/index-v14.js"', 'v14 RBAC worker entry is not active');
 requireText(wrangler, '"crons"', 'daily cleanup cron is not configured');
 
 requireText(survey, 'Откуда вы узнали о «Библейских играх»?', 'survey question is missing');
@@ -48,4 +52,4 @@ requireText(survey, 'Позже', 'survey has no non-blocking defer action');
 forbidText(survey, '<select', 'survey must not replace free-text input with preset choices');
 requireText(html, 'referral-survey.js?v=1', 'survey script is not mounted');
 
-console.log('Referral survey and 30-day inactive account cleanup checks passed through the v12 public-social entry chain.');
+console.log('Referral survey and 30-day inactive account cleanup checks passed through the Core v14 RBAC entry chain.');
