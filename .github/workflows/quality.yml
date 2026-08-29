@@ -89,6 +89,8 @@ jobs:
           fi
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
           echo "Using $CHROME_BIN"
+      - name: Check Android ID login runtime and Bible Sketch foreground
+        run: npm run check:android
       - name: Check home dashboard startup and controls
         run: npm run check:home
       - name: Check admin live recovery on mobile
@@ -109,7 +111,5 @@ jobs:
         run: npm run check:nile-v75
       - name: Check 390px and 320px phone layouts
         run: npm run check:mobile
-      - name: Check Android ID login runtime
-        run: npm run check:android
       - name: Check friendly error boundary
         run: npm run check:errors
