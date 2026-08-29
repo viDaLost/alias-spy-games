@@ -160,12 +160,13 @@ if (!favoritesState.visible || favoritesState.selected !== 2 || !favoritesState.
 }
 await page.locator('[data-social-close]').click();
 
-// Regression for the Android-only "header over blank gradient" failure. The
-// entire Bible Sketch home surface must be composited above the menu parallax,
-// not just its sticky topbar.
+// Regression for the Android-only "header over blank gradient" failure. Invoke
+// the production game router directly so this check measures WebView rendering
+// rather than Playwright's pointer-action bookkeeping. Physical menu clicking
+// remains covered by the general all-games smoke suite.
 await page.evaluate(() => localStorage.removeItem('bible_sketch_room_id_v1'));
 await page.waitForSelector('#bible-sketch-card', { timeout: 8_000 });
-await page.locator('#bible-sketch-card').click();
+await page.evaluate(() => { window.showGame?.('bible-sketch'); });
 await page.waitForSelector('#bsk-root #bsk-content .bsk-home', { timeout: 8_000 });
 await page.waitForFunction(() => {
   const content = document.getElementById('bsk-content');
