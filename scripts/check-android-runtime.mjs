@@ -28,12 +28,14 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
 await context.addInitScript(() => {
+  // Telemetry is intentionally disabled in CI. Product functionality such as
+  // Profile/Favorites must remain enabled independently from that preference.
   window.__APP_TELEMETRY_DISABLED__ = true;
   window.AndroidApp = {
     getTelegramId() { return '555555555'; },
     getSessionToken() { return 'bgs_android_runtime_test_token'; },
     isAndroidApp() { return true; },
-    getAppVersion() { return '3.0.3-web-parity'; },
+    getAppVersion() { return '3.0.4-standalone'; },
     logout() {},
   };
 });
@@ -41,6 +43,7 @@ await context.addInitScript(() => {
 const page = await context.newPage();
 let androidCalls = 0;
 let telegramCompatCalls = 0;
+const androidActions = [];
 
 await page.route('https://telegram.org/js/telegram-web-app.js*', (route) => route.fulfill({
   status: 200,
@@ -56,12 +59,39 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
   if (request.headers().authorization !== 'Bearer bgs_android_runtime_test_token') {
     throw new Error(`Missing Android bearer: ${request.headers().authorization || '(none)'}`);
   }
+
   const action = String(body.payload?.action || '');
-  if (!['syncUser', 'updateHistory'].includes(action)) throw new Error(`Unexpected Android action: ${action}`);
+  androidActions.push(action);
+  if (!['syncUser', 'updateHistory', 'profileBootstrap'].includes(action)) {
+    throw new Error(`Unexpected Android action: ${action}`);
+  }
+
+  const response = action === 'profileBootstrap'
+    ? {
+        success: true,
+        source: 'cloudflare-android',
+        user: {
+          id: '555555555',
+          username: 'android_runtime_test',
+          displayName: 'Android Runtime',
+          wowStars: 20,
+          wsStars: 7,
+          swLevel: 3,
+          bmtStars: 12,
+        },
+        profile: {
+          gamesPlayed: 9,
+          favorites: ['quartet', 'bible-sketch'],
+          gameStats: { quartet: 4, 'bible-sketch': 3 },
+        },
+        friends: [],
+      }
+    : { success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [], source: 'cloudflare-android' };
+
   await route.fulfill({
     status: 200,
     contentType: 'application/json; charset=utf-8',
-    body: JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [], source: 'cloudflare-android' }),
+    body: JSON.stringify(response),
   });
 });
 
@@ -70,9 +100,10 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'APK must not use Telegram compat route' }) });
 });
 
-await page.goto(`${baseURL}/?android=1&apk=103`, { waitUntil: 'commit', timeout: 20_000 });
+await page.goto(`${baseURL}/?android=1&apk=31&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
+await page.waitForSelector('[data-social-open="profile"]', { timeout: 10_000 });
 
 const state = await page.evaluate(() => ({
   android: window.__ANDROID_APK__ === true,
@@ -81,6 +112,7 @@ const state = await page.evaluate(() => ({
   adminVisible: Boolean(document.getElementById('admin-btn')),
   source: window.AppCoreBridge?.source || '',
   authenticated: window.AppCoreBridge?.status?.().androidAuthenticated === true,
+  socialMounted: document.documentElement.classList.contains('social-dock-mounted'),
 }));
 
 if (!state.android) throw new Error('Android runtime marker was not enabled.');
@@ -88,10 +120,50 @@ if (state.id !== '555555555' || state.telegramId !== '555555555') throw new Erro
 if (state.adminVisible) throw new Error('Admin button must never be visible in standalone Android mode.');
 if (state.source !== 'cloudflare') throw new Error(`Cloudflare bridge is missing: ${state.source}`);
 if (!state.authenticated) throw new Error('Android Web bridge did not expose an authenticated session state.');
-if (androidCalls < 1) throw new Error('Authenticated Android Cloudflare sync route was never called.');
+if (!state.socialMounted) throw new Error('Android social dock did not mount while telemetry was disabled.');
+
+await page.locator('[data-social-open="profile"]').click();
+await page.waitForSelector('.social-sheet-overlay.is-open .social-hero', { timeout: 8_000 });
+await page.waitForFunction(() => document.querySelector('.social-sheet-overlay.is-open')?.textContent?.includes('Android Runtime'), null, { timeout: 8_000 });
+
+const profileLayout = await page.evaluate(() => {
+  const sheet = document.querySelector('.social-sheet-overlay.is-open .social-sheet');
+  if (!sheet) return null;
+  const rect = sheet.getBoundingClientRect();
+  return {
+    top: rect.top,
+    bottom: rect.bottom,
+    left: rect.left,
+    right: rect.right,
+    width: rect.width,
+    height: rect.height,
+    viewportWidth: innerWidth,
+    viewportHeight: innerHeight,
+  };
+});
+if (!profileLayout) throw new Error('Profile sheet was not rendered.');
+if (profileLayout.width < 250 || profileLayout.height < 180) throw new Error(`Profile sheet is collapsed: ${JSON.stringify(profileLayout)}`);
+if (profileLayout.top < -2 || profileLayout.left < -2 || profileLayout.bottom > profileLayout.viewportHeight + 2 || profileLayout.right > profileLayout.viewportWidth + 2) {
+  throw new Error(`Profile sheet is outside Android viewport: ${JSON.stringify(profileLayout)}`);
+}
+
+await page.locator('[data-social-close]').click();
+await page.locator('[data-social-open="favorites"]').click();
+await page.waitForSelector('.social-sheet-overlay.is-open .social-favorites-grid', { timeout: 8_000 });
+const favoritesState = await page.evaluate(() => ({
+  visible: Boolean(document.querySelector('.social-sheet-overlay.is-open .social-favorites-grid')),
+  selected: document.querySelectorAll('.social-sheet-overlay.is-open .social-favorite.is-selected').length,
+  text: String(document.querySelector('.social-sheet-overlay.is-open [data-social-content]')?.textContent || ''),
+}));
+if (!favoritesState.visible || favoritesState.selected !== 2 || !favoritesState.text.includes('Библейский художник')) {
+  throw new Error(`Favorites did not render Android profile data: ${JSON.stringify(favoritesState)}`);
+}
+
+if (androidCalls < 2) throw new Error(`Expected Android sync + profile calls, got ${androidCalls}.`);
+if (!androidActions.includes('profileBootstrap')) throw new Error(`profileBootstrap was not routed through Android bearer API: ${androidActions.join(', ')}`);
 if (telegramCompatCalls !== 0) throw new Error(`APK incorrectly called Telegram /compat ${telegramCompatCalls} time(s).`);
 
-console.log(`OK: Android verified session reached the menu and used authenticated Cloudflare Android route (${androidCalls} call(s)).`);
+console.log(`OK: Android standalone session rendered Profile/Favorites inside viewport and used bearer Cloudflare routes (${androidActions.join(', ')}).`);
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
