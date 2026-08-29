@@ -53,7 +53,7 @@ assert(errors.includes('document.hidden'), 'error feed must pause in background'
 
 assert(app.includes('script.src = `${fileName}?v=21`;'), 'dynamic game cache key must expose the patched Quartet source');
 assert(sketchLauncher.includes("script.src = 'web/games/bible-sketch.js?v=3';"), 'Bible Sketch patched source cache key is stale');
-assert(html.includes('request-storm-v2-20260824'), 'production build marker is stale');
+assert(html.includes('telegram-desktop-bootstrap-20260828'), 'production build marker is stale');
 assert(html.includes('web/js/cloudflare-request-budget.js?v=2'), 'request budget cache key is stale');
 assert(html.includes('web/js/presence-identity.js?v=7'), 'presence cache key is stale');
 assert(html.includes('web/js/error-system.js?v=3'), 'error-system cache key is stale');
