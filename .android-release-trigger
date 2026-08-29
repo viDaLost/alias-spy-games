@@ -1,5 +1,5 @@
 BibleGames Android release trigger
-version=3.0.4-standalone
-versionCode=31
-requested=quality-green-1139deacbe666c1e3e34d590f4c496e93caad117
-reason=publish-android-3.0.4-standalone
+version=3.0.5-standalone
+versionCode=32
+requested=c18274757329582554dcfccfa46609917804aaeb
+reason=fix-bible-sketch-android-foreground-stacking
