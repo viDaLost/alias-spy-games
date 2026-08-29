@@ -121,7 +121,14 @@
     showPatched = true;
     const originalShowGame = window.showGame;
     const wrapped = function(gameName) {
-      if (String(gameName) === GAME_KEY) return openGame();
+      if (String(gameName) === GAME_KEY) {
+        // Keep the global navigation contract synchronous. The rest of the app
+        // treats showGame() as an immediate route change; returning openGame()'s
+        // Promise can make WebView/automation callers wait on the dynamic game
+        // bootstrap instead of observing the already-mounted loading surface.
+        void openGame();
+        return undefined;
+      }
       return originalShowGame.apply(this, arguments);
     };
     wrapped.__bibleSketchWrapped = true;
