@@ -7,7 +7,7 @@ const root = process.cwd();
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
   ['.css', 'text/css; charset=utf-8'], ['.json', 'application/json; charset=utf-8'],
-  ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
+  ['.png', 'image/png'], ['.jpg', 'image/jpg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
 ]);
 
 const server = http.createServer((req, res) => {
@@ -31,8 +31,9 @@ await context.addInitScript(() => {
   window.__APP_TELEMETRY_DISABLED__ = true;
   window.AndroidApp = {
     getTelegramId() { return '555555555'; },
+    getSessionToken() { return 'bgs_android_runtime_test_token'; },
     isAndroidApp() { return true; },
-    getAppVersion() { return '1.0.1'; },
+    getAppVersion() { return '3.0.3-web-parity'; },
     logout() {},
   };
 });
@@ -52,6 +53,9 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
   const request = route.request();
   const body = JSON.parse(request.postData() || '{}');
   if (String(body.androidUserId) !== '555555555') throw new Error(`Wrong Android ID: ${body.androidUserId}`);
+  if (request.headers().authorization !== 'Bearer bgs_android_runtime_test_token') {
+    throw new Error(`Missing Android bearer: ${request.headers().authorization || '(none)'}`);
+  }
   const action = String(body.payload?.action || '');
   if (!['syncUser', 'updateHistory'].includes(action)) throw new Error(`Unexpected Android action: ${action}`);
   await route.fulfill({
@@ -66,7 +70,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat'
   await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'APK must not use Telegram compat route' }) });
 });
 
-await page.goto(`${baseURL}/?android=1&apk=101`, { waitUntil: 'commit', timeout: 20_000 });
+await page.goto(`${baseURL}/?android=1&apk=103`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
 
@@ -76,16 +80,18 @@ const state = await page.evaluate(() => ({
   telegramId: String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || ''),
   adminVisible: Boolean(document.getElementById('admin-btn')),
   source: window.AppCoreBridge?.source || '',
+  authenticated: window.AppCoreBridge?.status?.().androidAuthenticated === true,
 }));
 
 if (!state.android) throw new Error('Android runtime marker was not enabled.');
 if (state.id !== '555555555' || state.telegramId !== '555555555') throw new Error(`Android ID was not installed into runtime: ${JSON.stringify(state)}`);
-if (state.adminVisible) throw new Error('Admin button must never be visible in ID-only Android mode.');
+if (state.adminVisible) throw new Error('Admin button must never be visible in standalone Android mode.');
 if (state.source !== 'cloudflare') throw new Error(`Cloudflare bridge is missing: ${state.source}`);
-if (androidCalls < 1) throw new Error('Android Cloudflare sync route was never called.');
+if (!state.authenticated) throw new Error('Android Web bridge did not expose an authenticated session state.');
+if (androidCalls < 1) throw new Error('Authenticated Android Cloudflare sync route was never called.');
 if (telegramCompatCalls !== 0) throw new Error(`APK incorrectly called Telegram /compat ${telegramCompatCalls} time(s).`);
 
-console.log(`OK: Android ID login reached the menu and used Cloudflare Android route (${androidCalls} call(s)).`);
+console.log(`OK: Android verified session reached the menu and used authenticated Cloudflare Android route (${androidCalls} call(s)).`);
 await context.close();
 await browser.close();
 await new Promise((resolve) => server.close(resolve));
