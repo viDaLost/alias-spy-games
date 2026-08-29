@@ -88,7 +88,7 @@ internal enum class BmtBooster(
     SLING("Праща Давида", "Праща", "Убирает одну клетку", 5, "assets/biblical-match-three/icons-v17/sling.webp", true),
     STAFF("Посох Моисея", "Посох", "Очищает столбец", 7, "assets/biblical-match-three/icons-v17/staff.webp", true),
     JERICHO("Трубы Иерихона", "Трубы", "Очищают область 3×3", 10, "assets/biblical-match-three/icons-v17/jericho.webp", true),
-    ARK("Ноев ковчег", "Ковчег", "Перемешивает и даёт две особые", 8, "assets/biblical-match-three/icons-v17/ark.webp", false),
+    RAINBOW("Радуга Завета", "Радуга", "Превращает выбранную фишку в радужную", 8, "assets/biblical-match-three/icons-v17/covenant.webp", true),
 }
 
 internal data class BmtCell(val symbol: BmtSymbol, val special: BmtSpecial? = null)
@@ -366,7 +366,7 @@ internal object BmtEngine {
             BmtBooster.SLING -> setOf(index)
             BmtBooster.STAFF -> (0 until config.rows).map { it * config.cols + index % config.cols }.filter { config.mask[it] }.toSet()
             BmtBooster.JERICHO -> areaIndices(index, config).toSet()
-            BmtBooster.ARK -> emptySet()
+            BmtBooster.RAINBOW -> emptySet()
         }
         return resolveTurn(board, blockers, config, forcedClear = clear)
     }

@@ -1,6 +1,6 @@
 (() => {
-  const APK_URL = 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-2.9.1-native.apk';
-  const APK_NAME = 'BibleGames-Android-2.9.1-native.apk';
+  const APK_URL = 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-2.10.0-native.apk';
+  const APK_NAME = 'BibleGames-Android-2.10.0-native.apk';
   const BUTTON_ID = 'android-download-btn';
   const ICON_VERSION = '25';
 

@@ -19,8 +19,8 @@ android {
         applicationId 'com.vidalost.biblegames'
         minSdk 24
         targetSdk 36
-        versionCode 26
-        versionName '2.9.1-native'
+        versionCode 27
+        versionName '2.10.0-native'
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -100,6 +100,7 @@ tasks.register('syncNativeAssets', Exec) {
     commandLine 'node', new File(repositoryRoot, 'scripts/sync-android-assets.mjs').absolutePath, generatedNativeAssets.get().asFile.absolutePath
     inputs.files(fileTree(repositoryRoot) {
         include 'web/assets/icons/**', 'web/assets/cards/**', 'web/assets/biblical-match-three/**', 'web/assets/quartet/**', 'web/data/**'
+        include 'web/assets/home-gamehub-parallax-v1/**'
         exclude 'node_modules/**', 'android-app/**'
     })
     outputs.dir(generatedNativeAssets)
