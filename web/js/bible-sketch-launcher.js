@@ -41,19 +41,21 @@
   function forceForegroundSurface() {
     const scene = document.querySelector('.home-gamehub-parallax__scene');
     if (scene) {
-      scene.hidden = true;
-      scene.setAttribute('aria-hidden', 'true');
-      scene.classList.remove('is-ready');
-      if (window.__ANDROID_APK__ === true) scene.style.display = 'none';
+      if (!scene.hidden) scene.hidden = true;
+      if (scene.getAttribute('aria-hidden') !== 'true') scene.setAttribute('aria-hidden', 'true');
+      if (scene.classList.contains('is-ready')) scene.classList.remove('is-ready');
+      if (window.__ANDROID_APK__ === true && scene.style.display !== 'none') scene.style.display = 'none';
     }
-    document.documentElement.classList.remove('home-gamehub-parallax-active');
+    if (document.documentElement.classList.contains('home-gamehub-parallax-active')) {
+      document.documentElement.classList.remove('home-gamehub-parallax-active');
+    }
 
     const container = document.getElementById('game-container');
     if (container && window.__ANDROID_APK__ === true) {
-      container.style.visibility = 'visible';
-      container.style.opacity = '1';
-      container.style.position = 'relative';
-      container.style.zIndex = '100';
+      if (container.style.visibility !== 'visible') container.style.visibility = 'visible';
+      if (container.style.opacity !== '1') container.style.opacity = '1';
+      if (container.style.position !== 'relative') container.style.position = 'relative';
+      if (container.style.zIndex !== '100') container.style.zIndex = '100';
     }
   }
 
@@ -140,12 +142,21 @@
     return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
 
+  // Do not observe arbitrary class changes across the whole document. Bible
+  // Sketch itself updates button/connection classes while rendering; watching
+  // those mutations and then touching parallax classes again can create a
+  // self-sustaining MutationObserver/compositor loop in Android WebView.
   const observer = new MutationObserver(() => {
     patchShowGameOnce();
     ensureCard();
     trackCleanup();
   });
-  observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-ready', 'class', 'data-mode', 'data-current-game'] });
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['data-ready', 'data-mode', 'data-current-game'],
+  });
 
   patchShowGameOnce();
   ensureCard();
