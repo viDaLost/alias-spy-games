@@ -1,4 +1,4 @@
-/* Home screen v2 — continue, recent games and compact progress. */
+/* Home screen v2 — continue, recent games, compact support trigger and support modal. */
 .home-dashboard {
   display: grid;
   gap: 10px;
@@ -41,25 +41,92 @@
 .home-progress__value { display: block; color: #312e81; font-size: .95rem; line-height: 1; font-weight: 900; font-variant-numeric: tabular-nums; }
 .home-progress__name { display: block; margin-top: 5px; color: #7c8494; font-size: .59rem; line-height: 1.2; font-weight: 750; }
 
-.home-support-card {
-  overflow: hidden;
-  margin-top: 12px;
-  border: 1px solid rgba(37,99,235,.18);
-  border-radius: 26px;
-  background: linear-gradient(145deg, rgba(248,251,255,.98), rgba(232,241,255,.96));
-  box-shadow: 0 16px 38px rgba(30,64,175,.13), inset 0 1px 0 rgba(255,255,255,.95);
+/* Compact support button shown on the home screen. The full poster opens only after tapping it. */
+.home-support-trigger {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  margin: 3px auto 0;
+  border: 2px solid #e5a52d;
+  border-radius: 13px;
+  padding: 7px 18px;
+  background: linear-gradient(180deg, #4b88f4, #2456ca);
+  color: #fff8df;
+  box-shadow: 0 7px 16px rgba(37,80,190,.18), inset 0 1px 0 rgba(255,255,255,.3);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .015em;
+  cursor: pointer;
+  touch-action: manipulation;
 }
-.home-support-card__poster {
+.home-support-trigger__heart { font-size: .95rem; line-height: 1; }
+.home-support-trigger:active { transform: translateY(1px) scale(.98); }
+
+/* Full support poster dialog. */
+body.home-support-modal-open { overflow: hidden; }
+.home-support-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+.home-support-modal.is-open { display: flex; }
+.home-support-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15,23,42,.58);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.home-support-modal__dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 520px);
+  max-height: min(92vh, 900px);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 25px;
+  background: linear-gradient(145deg, #f7fbff, #e9f1ff);
+  box-shadow: 0 24px 70px rgba(15,23,42,.35), inset 0 1px 0 rgba(255,255,255,.9);
+  animation: homeSupportIn .2s ease-out;
+}
+.home-support-modal__scroll { max-height: inherit; overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.home-support-modal__close {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.85);
+  border-radius: 50%;
+  background: rgba(20,50,130,.72);
+  color: #fff;
+  font: inherit;
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(15,23,42,.2);
+}
+.home-support-modal__poster {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: auto;
+  max-height: 47vh;
   object-fit: cover;
   background: #dbe8ff;
 }
-.home-support-card__body { padding: 16px 16px 18px; }
-.home-support-card__body h2 { margin: 0 0 10px; color: #173a9a; font-size: 1.05rem; line-height: 1.2; font-weight: 900; }
-.home-support-card__body p { margin: 0; color: #475569; font-size: .78rem; line-height: 1.52; font-weight: 600; }
-.home-support-card__button {
+.home-support-modal__body { padding: 16px 17px 18px; }
+.home-support-modal__body h2 { margin: 0 0 10px; color: #173a9a; font-size: 1.05rem; line-height: 1.2; font-weight: 900; }
+.home-support-modal__body p { margin: 0; color: #475569; font-size: .78rem; line-height: 1.52; font-weight: 600; }
+.home-support-modal__button {
   display: block;
   width: 100%;
   margin-top: 15px;
@@ -77,7 +144,9 @@
   cursor: pointer;
   touch-action: manipulation;
 }
-.home-support-card__button:active { transform: translateY(1px) scale(.99); }
+.home-support-modal__button:active { transform: translateY(1px) scale(.99); }
+
+@keyframes homeSupportIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .menu-section { position: relative; }
 .menu-section-title { display: flex; align-items: center; gap: 8px; margin-top: .9rem !important; color: #64748b !important; font-size: .72rem !important; font-weight: 850 !important; letter-spacing: .08em !important; }
@@ -91,6 +160,9 @@
   .home-progress__item { padding: 8px 6px; }
   .home-progress__value { font-size: .86rem; }
   .home-progress__name { font-size: .55rem; }
-  .home-support-card__body { padding: 14px 13px 15px; }
-  .home-support-card__body p { font-size: .74rem; }
+  .home-support-trigger { min-height: 38px; padding: 7px 15px; font-size: .74rem; }
+  .home-support-modal { padding: 9px; }
+  .home-support-modal__dialog { border-radius: 21px; }
+  .home-support-modal__body { padding: 14px 13px 15px; }
+  .home-support-modal__body p { font-size: .74rem; }
 }
