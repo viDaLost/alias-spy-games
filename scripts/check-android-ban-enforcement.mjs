@@ -5,6 +5,7 @@ const need = (text, needle, label) => { if (!text.includes(needle)) throw new Er
 const reject = (text, needle, label) => { if (text.includes(needle)) throw new Error(`Ban enforcement check failed: ${label}`); };
 
 const app = read('android-app/app/src/main/java/com/vidalost/biblegames/App.kt');
+const parityShell = read('android-app/app/src/main/java/com/vidalost/biblegames/AndroidParityApp.kt');
 const cloud = read('android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt');
 const core = read('cloudflare/app-core-worker/src/index-v4.js');
 const authStore = read('cloudflare/app-core-worker/src/android-auth-user-store.js');
@@ -12,6 +13,9 @@ const legacy = read('cloudflare/app-core-worker/src/legacy.js');
 const sql = read('cloudflare/app-core-worker/src/sql-user-store.js');
 const gradle = read('android-app/app/build.gradle');
 
+// The audited native OTP gate and offline fallback still own verified-session
+// access/ban enforcement. Android 3.x only switches to the shared production
+// Web UI after AndroidSessionStore contains that verified encrypted session.
 need(app, 'ACCESS_POLL_MS = 3_000L', 'Android does not poll account status quickly');
 need(app, 'LaunchedEffect(userId) {', 'access polling still depends on accessChecked');
 need(app, 'delay(if (result.isSuccess) ACCESS_POLL_MS else ACCESS_RETRY_MS)', 'automatic access retry loop missing');
@@ -19,6 +23,9 @@ need(app, 'if (!accessChecked) {', 'game launch is not gated by verified access'
 reject(app, 'if (userId.isNotBlank() && !accessChecked && !isBanned)', 'startup still blocks on verification screen');
 need(app, 'targetState = Triple(userId.isNotBlank(), currentGame, isBanned)', 'root navigation does not use live ban state');
 reject(app, 'LaunchedEffect(userId, accessChecked)', 'cached banned users cannot recover automatically');
+need(parityShell, 'sessionStore.load()', 'Web parity shell can start without an encrypted verified session');
+need(parityShell, 'if (activeSession == null)', 'Web parity shell does not retain the native login gate');
+need(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'native verified-session fallback is missing');
 need(cloud, 'callTimeout(11, TimeUnit.SECONDS)', 'bounded primary access deadline missing');
 need(cloud, 'accessFallbackClient', 'fallback access transport missing');
 need(cloud, 'protocols(listOf(Protocol.HTTP_1_1))', 'access transport is not VPN-friendly HTTP/1.1');
@@ -35,6 +42,7 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, "versionName '2.9.1-native'", 'Android version was not bumped');
+need(gradle, 'versionCode 27', 'Android versionCode was not bumped');
+need(gradle, "versionName '3.0.0-web-parity'", 'Android version was not bumped');
 
-console.log('Android verified-session access and ban refresh checks passed.');
+console.log('Android 3.0 verified-session access, Web parity gate and ban refresh checks passed.');
