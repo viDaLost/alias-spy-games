@@ -40,10 +40,12 @@ need(parityShell, 'addJavascriptInterface(', 'verified identity is not bridged t
 need(parityShell, 'getTelegramId(): String = userId', 'Web bridge can select a different Telegram identity');
 need(parityShell, 'getSessionToken(): String = sessionToken', 'Web bridge cannot authenticate Android API calls');
 need(parityShell, 'WebViewAssetLoader', 'Web parity shell is not using safe bundled HTTPS assets');
-need(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'bundled WebView does not use the production HTTPS origin');
-need(parityShell, '.setDomain(WEB_APP_ORIGIN)', 'local assets are not bound to the production origin');
+need(parityShell, 'WEB_APP_ORIGIN = "appassets.androidplatform.net"', 'bundled WebView does not use Android standalone HTTPS origin');
+need(parityShell, 'WEB_APP_PATH_PREFIX = "/assets/"', 'bundled WebView is not scoped to the APK asset path');
+need(parityShell, '.setDomain(WEB_APP_ORIGIN)', 'local assets are not bound to the standalone Android origin');
 need(parityShell, '.setHttpAllowed(false)', 'local asset loader permits cleartext HTTP');
-reject(parityShell, 'appassets.androidplatform.net', 'legacy Android asset origin would break production worker CORS');
+reject(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android auth shell still impersonates GitHub Pages');
+reject(parityShell, 'https://vidalost.github.io', 'Android auth shell still contains a GitHub Pages runtime URL');
 reject(parityShell, 'nativeFallback', 'signed-in sessions can still enter divergent native games');
 need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle cleanup can still destroy the instance during startup');
 reject(parityShell, 'DisposableEffect(webView)', 'WebView cleanup is incorrectly keyed by the WebView instance');
@@ -105,8 +107,8 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '3.0.3-web-parity'", 'secure auth release version is not current');
-need(gradle, 'versionCode 30', 'secure auth versionCode is not current');
+need(gradle, "versionName '3.0.4-standalone'", 'secure auth release version is not current');
+need(gradle, 'versionCode 31', 'secure auth versionCode is not current');
 need(gradle, "implementation 'androidx.webkit:webkit:1.14.0'", 'Kotlin-compatible local WebView asset dependency is missing');
 
-console.log('Android 3.0.3 ownership, encrypted session, authenticated social API and production-origin Web parity security checks passed.');
+console.log('Android 3.0.4 ownership, encrypted bearer session, authenticated social API and standalone appassets security checks passed without GitHub Pages runtime dependency.');
