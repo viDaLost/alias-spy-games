@@ -38,6 +38,25 @@
     }
   }
 
+  function forceForegroundSurface() {
+    const scene = document.querySelector('.home-gamehub-parallax__scene');
+    if (scene) {
+      scene.hidden = true;
+      scene.setAttribute('aria-hidden', 'true');
+      scene.classList.remove('is-ready');
+      if (window.__ANDROID_APK__ === true) scene.style.display = 'none';
+    }
+    document.documentElement.classList.remove('home-gamehub-parallax-active');
+
+    const container = document.getElementById('game-container');
+    if (container && window.__ANDROID_APK__ === true) {
+      container.style.visibility = 'visible';
+      container.style.opacity = '1';
+      container.style.position = 'relative';
+      container.style.zIndex = '100';
+    }
+  }
+
   function ensureLandscapeStyles() {
     let link = document.getElementById('bible-sketch-landscape-v2-css');
     if (!link) {
@@ -79,13 +98,16 @@
     if (container) container.innerHTML = `<div class="app-game-loading"><div class="app-loader__ring"></div><p>Загрузка игры...</p></div>`;
     document.body.dataset.mode = 'game';
     document.body.dataset.currentGame = GAME_KEY;
+    forceForegroundSurface();
     wasSketch = true;
     window.scrollTo({ top: 0, behavior: 'auto' });
     try {
       ensureLandscapeStyles();
       await loadGameScript();
       if (document.body.dataset.currentGame !== GAME_KEY) return;
+      forceForegroundSurface();
       window.startBibleSketchGame?.();
+      forceForegroundSurface();
     } catch (error) {
       console.error('Bible Sketch launcher error', error);
       if (container) container.innerHTML = `<section class="app-error-card fade-in"><h2>Не удалось открыть игру</h2><p>${escapeText(error?.message || error)}</p><button class="back-button" onclick="goToMainMenu()">В главное меню</button></section>`;
@@ -106,6 +128,7 @@
 
   function trackCleanup() {
     const isSketch = document.body?.dataset.currentGame === GAME_KEY;
+    if (isSketch) forceForegroundSurface();
     if (wasSketch && !isSketch) {
       wasSketch = false;
       try { window.__bibleSketchCleanup?.(); } catch {}
