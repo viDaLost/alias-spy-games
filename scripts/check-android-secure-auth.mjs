@@ -19,6 +19,7 @@ const authNotifications = read('cloudflare/app-core-worker/src/auth-notification
 const authStore = read('cloudflare/app-core-worker/src/android-auth-user-store.js');
 const observability = read('cloudflare/app-observability-worker/src/index-v3.js');
 const gradle = read('android-app/app/build.gradle');
+const assetSync = read('scripts/sync-android-assets.mjs');
 
 need(app, 'requestLoginCode(id)', 'login does not request a Telegram ownership code');
 need(app, 'verifyLoginCode(current, code)', 'login does not verify the Telegram code');
@@ -34,6 +35,12 @@ need(parityShell, 'sessionStore.load()', 'Web parity shell can start without the
 need(parityShell, 'if (activeSession == null)', 'Web parity shell bypasses the native OTP gate');
 need(parityShell, 'addJavascriptInterface(', 'verified identity is not bridged to the shared Web UI');
 need(parityShell, 'getTelegramId(): String = userId', 'Web bridge can select a different Telegram identity');
+need(parityShell, 'WebViewAssetLoader', 'Web parity shell is not using safe bundled HTTPS assets');
+need(parityShell, 'appassets.androidplatform.net', 'bundled WebView origin is not the reserved Android app-assets origin');
+need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle cleanup can still destroy the instance during startup');
+reject(parityShell, 'DisposableEffect(webView)', 'WebView cleanup is incorrectly keyed by the WebView instance');
+need(assetSync, "['index.html', 'index.html']", 'APK bundle does not include index.html');
+need(assetSync, "['web', 'web']", 'APK bundle does not include the production web tree');
 
 need(cloud, '/android/auth/request', 'auth request endpoint missing in Android client');
 need(cloud, '/android/auth/verify', 'auth verify endpoint missing in Android client');
@@ -85,7 +92,8 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '3.0.0-web-parity'", 'secure auth release version is not current');
-need(gradle, 'versionCode 27', 'secure auth versionCode is not current');
+need(gradle, "versionName '3.0.2-web-parity'", 'secure auth release version is not current');
+need(gradle, 'versionCode 29', 'secure auth versionCode is not current');
+need(gradle, "implementation 'androidx.webkit:webkit:1.17.0'", 'safe local WebView asset dependency is missing');
 
-console.log('Android 3.0 Telegram ownership, encrypted bearer session and Web parity bridge security checks passed.');
+console.log('Android 3.0.2 ownership, encrypted session and bundled Web parity security checks passed.');
