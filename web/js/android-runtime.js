@@ -96,6 +96,7 @@
   }
 
   function ensureSocialFeatures() {
+    if (window.__APP_TELEMETRY_DISABLED__ === true) return;
     installIdentity();
     ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
     ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
