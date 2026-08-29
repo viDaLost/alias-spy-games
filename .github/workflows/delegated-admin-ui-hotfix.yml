@@ -1,0 +1,58 @@
+name: Delegated admin UI hotfix
+
+on:
+  push:
+    paths:
+      - .github/workflows/delegated-admin-ui-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch delegated-admin frontend gate
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'web/js/admin-enhancements.js';
+          let source = fs.readFileSync(path, 'utf8');
+          if (source.includes('delegated-admin-ui-hotfix-v1')) process.exit(0);
+
+          const oldConst = 'const ADMIN_ID = "1288379477";';
+          const newConst = `${oldConst}\n  // delegated-admin-ui-hotfix-v1\n  let delegatedAdmin = false;`;
+          if (!source.includes(oldConst)) throw new Error('ADMIN_ID anchor not found');
+          source = source.replace(oldConst, newConst);
+
+          const oldIsAdmin = `function isAdmin() {\n    return String(currentUser().id) === ADMIN_ID;\n  }`;
+          const newIsAdmin = `function isAdmin() {\n    return delegatedAdmin || String(currentUser().id) === ADMIN_ID;\n  }\n\n  async function resolveAdminRole() {\n    try {\n      const response = await adminApi({ action: "adminRoleStatus" });\n      return response?.success === true && response?.isAdmin === true;\n    } catch {\n      return false;\n    }\n  }`;
+          if (!source.includes(oldIsAdmin)) throw new Error('isAdmin anchor not found');
+          source = source.replace(oldIsAdmin, newIsAdmin);
+
+          source = source.replace('adminId: ADMIN_ID,', 'adminId: String(currentUser().id || ADMIN_ID),');
+          source = source.replace('ADMIN • Telegram ID ${escapeHTML(ADMIN_ID)}', 'ADMIN • Telegram ID ${escapeHTML(currentUser().id || ADMIN_ID)}');
+
+          const oldBoot = `function boot() {\n    enhanceAdminButton();`;
+          const newBoot = `async function boot() {\n    delegatedAdmin = await resolveAdminRole();\n    enhanceAdminButton();`;
+          if (!source.includes(oldBoot)) throw new Error('boot anchor not found');
+          source = source.replace(oldBoot, newBoot);
+
+          fs.writeFileSync(path, source);
+          NODE
+
+      - name: Commit delegated-admin UI hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/js/admin-enhancements.js
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git commit -m "Fix delegated admin UI authorization"
+          git push
