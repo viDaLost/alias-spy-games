@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.net.Uri
-import android.view.View
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
@@ -33,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,27 +50,28 @@ import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.data.CloudRepository
 import com.vidalost.biblegames.data.StoredAndroidSession
 import com.vidalost.biblegames.ui.GlassCard
-import com.vidalost.biblegames.ui.Indigo
 import com.vidalost.biblegames.ui.Ink
 import com.vidalost.biblegames.ui.InkSoft
 import com.vidalost.biblegames.ui.PrimaryButton
-import com.vidalost.biblegames.ui.SecondaryButton
 import kotlinx.coroutines.delay
 
-private const val WEB_APP_ORIGIN = "appassets.androidplatform.net"
-private const val WEB_APP_URL = "https://$WEB_APP_ORIGIN/assets/index.html"
+private const val WEB_APP_ORIGIN = "vidalost.github.io"
+private const val WEB_APP_PATH_PREFIX = "/alias-spy-games/"
+private const val WEB_APP_URL = "https://$WEB_APP_ORIGIN${WEB_APP_PATH_PREFIX}index.html"
 private const val SESSION_POLL_MS = 120L
 private const val CAMERA_REQUEST_CODE = 7301
 private const val WEB_CACHE_PREFS = "android_web_parity_runtime"
 private const val WEB_CACHE_VERSION = "cache_version"
-private const val WEB_REVEAL_WATCHDOG_MS = 2_500L
-private const val WEB_LOAD_TIMEOUT_MS = 10_000L
+private const val WEB_REVEAL_WATCHDOG_MS = 1_500L
+private const val WEB_LOAD_TIMEOUT_MS = 8_000L
 
 /**
- * Android keeps the existing Telegram-code login as the trusted identity gate,
- * then renders the same production Web UI from APK-bundled assets through
- * WebViewAssetLoader. The UI no longer depends on GitHub Pages being reachable
- * at startup, while cloud APIs and multiplayer continue to use HTTPS normally.
+ * The native screen owns only the audited Telegram-code login. After a verified
+ * Android session exists the APK always renders the production Web UI from
+ * bundled assets. WebViewAssetLoader serves those local files under the same
+ * HTTPS origin as production GitHub Pages, so worker CORS, multiplayer, profile
+ * APIs and relative assets behave exactly like the web application without
+ * depending on GitHub Pages being reachable at startup.
  */
 @Composable
 fun AndroidParityApp(
@@ -81,14 +80,13 @@ fun AndroidParityApp(
     sessionStore: AndroidSessionStore,
 ) {
     var session by remember { mutableStateOf(sessionStore.load()) }
-    var nativeFallback by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(session?.token) {
         cloud.setSessionToken(session?.token.orEmpty())
     }
 
-    LaunchedEffect(session == null, nativeFallback) {
-        if (session != null || nativeFallback) return@LaunchedEffect
+    LaunchedEffect(session == null) {
+        if (session != null) return@LaunchedEffect
         while (true) {
             delay(SESSION_POLL_MS)
             val restored = sessionStore.load()
@@ -97,11 +95,6 @@ fun AndroidParityApp(
                 return@LaunchedEffect
             }
         }
-    }
-
-    if (nativeFallback) {
-        BibleGamesApp(assets = assets, cloud = cloud)
-        return
     }
 
     val activeSession = session
@@ -125,7 +118,6 @@ fun AndroidParityApp(
             cloud.setSessionToken("")
             session = null
         },
-        onNativeFallback = { nativeFallback = true },
     )
 }
 
@@ -134,14 +126,15 @@ fun AndroidParityApp(
 private fun AndroidWebExperience(
     session: StoredAndroidSession,
     onLogout: () -> Unit,
-    onNativeFallback: () -> Unit,
 ) {
     val context = LocalContext.current
     val appContext = context.applicationContext
     val activity = context as? Activity
     val assetLoader = remember(appContext) {
         WebViewAssetLoader.Builder()
-            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(appContext))
+            .setDomain(WEB_APP_ORIGIN)
+            .setHttpAllowed(false)
+            .addPathHandler(WEB_APP_PATH_PREFIX, WebViewAssetLoader.AssetsPathHandler(appContext))
             .build()
     }
 
@@ -204,7 +197,6 @@ private fun AndroidWebExperience(
                 WebView(viewContext).apply {
                     val appWebView = this
                     setBackgroundColor(AndroidColor.rgb(224, 242, 254))
-                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
@@ -217,6 +209,7 @@ private fun AndroidWebExperience(
                         displayZoomControls = false
                         setSupportZoom(false)
                         mediaPlaybackRequiresUserGesture = false
+                        offscreenPreRaster = false
                         userAgentString = "$userAgentString BibleGamesAndroid/${BuildConfig.VERSION_NAME} WebParity"
                     }
 
@@ -235,6 +228,7 @@ private fun AndroidWebExperience(
                         AndroidWebBridge(
                             activity = activity,
                             userId = session.userId,
+                            sessionToken = session.token,
                             onLogout = onLogout,
                         ),
                         "AndroidApp",
@@ -283,8 +277,10 @@ private fun AndroidWebExperience(
 
                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                             val uri = request?.url ?: return false
-                            val sameApp = uri.scheme == "https" && uri.host.equals(WEB_APP_ORIGIN, ignoreCase = true)
-                            if (sameApp) return false
+                            val sameBundledApp = uri.scheme == "https" &&
+                                uri.host.equals(WEB_APP_ORIGIN, ignoreCase = true) &&
+                                (uri.path ?: "").startsWith(WEB_APP_PATH_PREFIX)
+                            if (sameBundledApp) return false
                             return openExternal(activity, uri)
                         }
                     }
@@ -336,7 +332,7 @@ private fun AndroidWebExperience(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Интерфейс уже встроен в приложение и не зависит от GitHub Pages. Повторите запуск; если проблема сохранится, можно открыть автономный режим.",
+                        "Игровой интерфейс встроен в APK. Повторите запуск — приложение не будет переключаться на устаревшую нативную версию игр.",
                         color = InkSoft,
                         textAlign = TextAlign.Center,
                     )
@@ -351,14 +347,6 @@ private fun AndroidWebExperience(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         icon = "↻",
-                    )
-                    Spacer(Modifier.height(9.dp))
-                    SecondaryButton(
-                        text = "Открыть автономную версию",
-                        onClick = onNativeFallback,
-                        modifier = Modifier.fillMaxWidth(),
-                        accent = Indigo,
-                        icon = "◆",
                     )
                 }
             }
@@ -399,10 +387,14 @@ private fun openExternal(activity: Activity?, uri: Uri): Boolean {
 private class AndroidWebBridge(
     private val activity: Activity?,
     private val userId: String,
+    private val sessionToken: String,
     private val onLogout: () -> Unit,
 ) {
     @JavascriptInterface
     fun getTelegramId(): String = userId
+
+    @JavascriptInterface
+    fun getSessionToken(): String = sessionToken
 
     @JavascriptInterface
     fun isAndroidApp(): Boolean = true
