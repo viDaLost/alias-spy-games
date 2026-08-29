@@ -1,8 +1,8 @@
-// Core v14 hardened RBAC: immutable root, delegated admins, revocable admin sessions.
+// Core v15 support routing wrapped around src/index-v14.js RBAC: delegated admins receive and can answer support tickets.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
-  "main": "src/index-v14.js",
+  "main": "src/index-v15.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "triggers": {
