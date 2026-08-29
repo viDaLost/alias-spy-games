@@ -12,6 +12,7 @@ const files = [
   'web/js/presence-identity.js',
   'web/js/presence-game-bridge.js',
   'web/js/bmt-stars-cloud-sync.js',
+  'cloudflare/app-core-worker/src/index-v12.js',
   'cloudflare/app-core-worker/src/index-v11.js',
   'cloudflare/app-core-worker/src/index-v10.js',
   'cloudflare/app-core-worker/src/index-v9.js',
@@ -25,7 +26,8 @@ for (const file of files) {
   assert(result.status === 0, `${file} syntax check failed:\n${result.stderr || result.stdout}`);
 }
 
-includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v11.js', 'Core must run v11');
+includes('cloudflare/app-core-worker/wrangler.jsonc', 'src/index-v12.js', 'Core must run v12');
+includes('cloudflare/app-core-worker/src/index-v12.js', "from './index-v11.js'", 'Core v12 must preserve v11 profile runtime');
 includes('cloudflare/app-core-worker/src/index-v11.js', "from './index-v10.js'", 'Core v11 must preserve hardened v10 runtime');
 includes('cloudflare/app-core-worker/src/index-v10.js', "from './index-v9.js'", 'Core v10 must preserve hardened v9 runtime');
 includes('cloudflare/app-observability-worker/wrangler.jsonc', 'src/index-v7.js', 'Observability must run optimized v7');
@@ -90,4 +92,4 @@ includes('index.html', 'presence-identity.js?v=7', 'Presence cache key must be b
 includes('index.html', 'presence-game-bridge.js?v=1', 'Presence game bridge must be loaded');
 includes('index.html', 'bmt-stars-cloud-sync.js?v=49', 'BMT sync cache key must be bumped');
 
-console.log('Admin live, compact layout, current-game presence and Cloudflare request-budget regression checks passed.');
+console.log('Admin live, compact layout, current-game presence, v12 social wrapper and Cloudflare request-budget regression checks passed.');
