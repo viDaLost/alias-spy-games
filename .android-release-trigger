@@ -1,5 +1,5 @@
 BibleGames Android release trigger
-version=3.0.0-web-parity
-versionCode=27
+version=3.0.1-web-parity
+versionCode=28
 requested=2026-08-29
-reason=web-apk-parity-production-ui-buildconfig-fix
+reason=android-webview-blank-screen-watchdog-fix
