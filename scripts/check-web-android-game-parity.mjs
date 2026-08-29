@@ -29,10 +29,10 @@ const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
 assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
 
-// APK 3.0.3 uses the actual production Web UI after the encrypted native OTP
-// gate. The web tree is bundled into the APK, but WebViewAssetLoader serves it
-// under the real GitHub Pages HTTPS origin so CORS, online rooms and the profile
-// API see exactly the same origin as the production web application.
+// Android 3.0.4 uses the exact production Web catalog copied into the APK after
+// the encrypted native OTP gate. WebViewAssetLoader serves those packaged bytes
+// from Android's private HTTPS appassets origin. This gives Web/Android feature
+// parity without using GitHub Pages as an origin alias or runtime dependency.
 const mainActivity = read('android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt');
 const parityShell = read('android-app/app/src/main/java/com/vidalost/biblegames/AndroidParityApp.kt');
 const androidRuntime = read('web/js/android-runtime.js');
@@ -40,12 +40,13 @@ const backendBridge = read('web/js/backend-bridge.js');
 const assetSync = read('scripts/sync-android-assets.mjs');
 assert(mainActivity.includes('AndroidParityApp('), 'MainActivity does not launch the Web parity shell');
 assert(parityShell.includes('WebViewAssetLoader'), 'APK parity shell does not use WebViewAssetLoader');
-assert(parityShell.includes('WEB_APP_ORIGIN = "vidalost.github.io"'), 'APK does not use the production HTTPS origin');
-assert(parityShell.includes('WEB_APP_PATH_PREFIX = "/alias-spy-games/"'), 'APK bundled path does not mirror GitHub Pages');
-assert(parityShell.includes('.setDomain(WEB_APP_ORIGIN)'), 'WebViewAssetLoader is not bound to the production domain');
+assert(parityShell.includes('WEB_APP_ORIGIN = "appassets.androidplatform.net"'), 'APK does not use the standalone Android HTTPS origin');
+assert(parityShell.includes('WEB_APP_PATH_PREFIX = "/assets/"'), 'APK bundled path does not use the Android asset namespace');
+assert(parityShell.includes('.setDomain(WEB_APP_ORIGIN)'), 'WebViewAssetLoader is not bound to the standalone Android domain');
 assert(parityShell.includes('.setHttpAllowed(false)'), 'bundled Web UI can fall back to cleartext HTTP');
-assert(parityShell.includes('https://$WEB_APP_ORIGIN${WEB_APP_PATH_PREFIX}index.html'), 'APK parity shell does not load the bundled production app path');
-assert(!parityShell.includes('appassets.androidplatform.net'), 'legacy appassets origin still breaks worker CORS parity');
+assert(parityShell.includes('https://$WEB_APP_ORIGIN${WEB_APP_PATH_PREFIX}index.html'), 'APK parity shell does not load the bundled app path');
+assert(!parityShell.includes('WEB_APP_ORIGIN = "vidalost.github.io"'), 'APK still impersonates the GitHub Pages origin');
+assert(!parityShell.includes('https://vidalost.github.io'), 'APK shell still contains a GitHub Pages runtime URL');
 assert(parityShell.includes('sessionStore.load()'), 'APK parity shell bypasses the encrypted native login session');
 assert(parityShell.includes('addJavascriptInterface(') && parityShell.includes('"AndroidApp"'), 'APK parity shell does not expose the audited Android bridge');
 assert(parityShell.includes('getTelegramId()'), 'Android bridge does not provide the verified Telegram ID');
@@ -84,10 +85,10 @@ assert(exists('web/assets/biblical-match-three/board-background-v35.webp'), 'sou
 const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
 const releaseWorkflow = read('.github/workflows/build-android-apk.yml');
-assert(gradle.includes('versionCode 30') && gradle.includes("versionName '3.0.3-web-parity'"), 'APK version must be 3.0.3-web-parity (30)');
+assert(gradle.includes('versionCode 31') && gradle.includes("versionName '3.0.4-standalone'"), 'APK version must be 3.0.4-standalone (31)');
 assert(gradle.includes("implementation 'androidx.webkit:webkit:1.14.0'"), 'APK is missing the Kotlin-compatible AndroidX WebKit');
 assert(androidMenu.includes('BibleGames-Android-latest.apk'), 'Web download menu does not point to the stable latest APK');
-assert(releaseWorkflow.includes('BibleGames-Android-3.0.3-web-parity.apk'), 'Android release workflow does not publish the versioned 3.0.3 APK');
+assert(releaseWorkflow.includes('BibleGames-Android-3.0.4-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.4 standalone APK');
 assert(releaseWorkflow.includes('BibleGames-Android-latest.apk'), 'Android release workflow does not publish the stable latest APK alias');
 
-console.log(`Web/Android parity passed: production-origin bundled Web UI + ${androidRoutes.size} packaged native routes`);
+console.log(`Web/Android parity passed: standalone bundled Web UI + ${androidRoutes.size} packaged native compatibility routes, with no GitHub Pages runtime origin.`);
