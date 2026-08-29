@@ -6,12 +6,22 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDir, '..');
 const defaultOutput = path.join(repositoryRoot, 'android-app', 'app', 'build', 'generated', 'assets', 'native');
 const outputRoot = path.resolve(process.argv[2] || defaultOutput);
-const assetMappings = [
-  ['web/assets', 'assets'],
-  ['web/data', 'data'],
-];
-const apkExcludedFiles = new Set();
 
+// The Android WebView now boots from a bundled copy of the production web app.
+// Keep the same repository-relative layout so every relative URL in index.html
+// behaves exactly as it does on GitHub Pages:
+//   index.html
+//   web/js/...
+//   web/styles/...
+//   web/games/...
+//   web/assets/...
+//   web/data/...
+const assetMappings = [
+  ['index.html', 'index.html'],
+  ['web', 'web'],
+];
+
+const apkExcludedFiles = new Set();
 let fileCount = 0;
 let totalBytes = 0;
 
@@ -41,11 +51,35 @@ function copyTree(sourceRoot, destinationRoot) {
   }
 }
 
+function copyMapping(sourceRelative, destinationRelative) {
+  const source = path.join(repositoryRoot, sourceRelative);
+  const destination = path.join(outputRoot, destinationRelative);
+  if (!fs.existsSync(source)) {
+    throw new Error(`Required Android web asset is missing: ${sourceRelative}`);
+  }
+  const stat = fs.statSync(source);
+  if (stat.isDirectory()) copyTree(source, destination);
+  else if (stat.isFile()) copyFile(source, destination);
+}
+
 fs.rmSync(outputRoot, { recursive: true, force: true });
 fs.mkdirSync(outputRoot, { recursive: true });
 
 for (const [source, destination] of assetMappings) {
-  copyTree(path.join(repositoryRoot, source), path.join(outputRoot, destination));
+  copyMapping(source, destination);
 }
 
-console.log(`Android native assets: ${fileCount} files, ${(totalBytes / 1024 / 1024).toFixed(2)} MiB -> ${outputRoot}`);
+for (const required of [
+  'index.html',
+  'web/js/app.js',
+  'web/js/android-runtime.js',
+  'web/js/backend-bridge.js',
+  'web/styles/style.css',
+]) {
+  const target = path.join(outputRoot, required);
+  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
+    throw new Error(`Android web bundle is incomplete: ${required}`);
+  }
+}
+
+console.log(`Android bundled web app: ${fileCount} files, ${(totalBytes / 1024 / 1024).toFixed(2)} MiB -> ${outputRoot}`);
