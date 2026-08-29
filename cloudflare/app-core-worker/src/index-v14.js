@@ -1,7 +1,5 @@
 import coreV13, { UserStore as V13UserStore } from './index-v13.js';
 
-export { UserStore };
-
 const encoder = new TextEncoder();
 const ADMIN_INIT_DATA_MAX_AGE_SECONDS = 30 * 60;
 const ADMIN_SESSION_TTL_MS = 15 * 60 * 1000;
