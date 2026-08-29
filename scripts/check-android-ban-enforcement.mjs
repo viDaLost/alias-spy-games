@@ -14,8 +14,9 @@ const sql = read('cloudflare/app-core-worker/src/sql-user-store.js');
 const gradle = read('android-app/app/build.gradle');
 
 // The audited native OTP gate owns verified-session access/ban enforcement.
-// After AndroidSessionStore contains a verified encrypted session, 3.0.3 always
-// switches to the shared production Web UI and never to divergent native games.
+// After AndroidSessionStore contains a verified encrypted session, 3.0.4 serves
+// the shared Web UI from APK assets under Android's private HTTPS appassets
+// origin. GitHub Pages is neither an origin alias nor a runtime fallback.
 need(app, 'ACCESS_POLL_MS = 3_000L', 'Android does not poll account status quickly');
 need(app, 'LaunchedEffect(userId) {', 'access polling still depends on accessChecked');
 need(app, 'delay(if (result.isSuccess) ACCESS_POLL_MS else ACCESS_RETRY_MS)', 'automatic access retry loop missing');
@@ -26,8 +27,11 @@ reject(app, 'LaunchedEffect(userId, accessChecked)', 'cached banned users cannot
 need(parityShell, 'sessionStore.load()', 'Web parity shell can start without an encrypted verified session');
 need(parityShell, 'if (activeSession == null)', 'Web parity shell does not retain the native login gate');
 need(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'native verified login gate is missing');
-need(parityShell, 'WebViewAssetLoader', 'bundled Web parity shell is missing');
-need(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'bundled Web UI is not served under the production origin');
+need(parityShell, 'WebViewAssetLoader', 'bundled standalone Web shell is missing');
+need(parityShell, 'WEB_APP_ORIGIN = "appassets.androidplatform.net"', 'bundled Web UI is not served from the private Android asset origin');
+need(parityShell, 'WEB_APP_PATH_PREFIX = "/assets/"', 'bundled Web UI does not use the Android asset-loader path');
+reject(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android still impersonates the GitHub Pages origin');
+reject(parityShell, 'https://vidalost.github.io', 'Android shell still contains a GitHub Pages runtime URL');
 need(parityShell, 'getSessionToken(): String = sessionToken', 'Web parity requests cannot use the verified bearer');
 reject(parityShell, 'nativeFallback', 'signed-in Android can still switch to divergent native games');
 need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle can destroy the active instance during startup');
@@ -47,7 +51,7 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, 'versionCode 30', 'Android versionCode was not bumped');
-need(gradle, "versionName '3.0.3-web-parity'", 'Android version was not bumped');
+need(gradle, 'versionCode 31', 'Android versionCode is not current');
+need(gradle, "versionName '3.0.4-standalone'", 'Android version is not current');
 
-console.log('Android 3.0.3 verified-session access, production-origin Web parity and ban refresh checks passed.');
+console.log('Android 3.0.4 verified-session access, standalone appassets Web runtime and ban refresh checks passed.');
