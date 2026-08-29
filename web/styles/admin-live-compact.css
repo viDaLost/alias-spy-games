@@ -93,6 +93,257 @@
   padding: 8px;
 }
 
+/* Admin RBAC: the entry point is invisible until the Core Worker confirms a
+   signed Telegram identity and an active server-side role. */
+html:not(.admin-rbac-authorized) #admin-btn {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.admin-rbac-manager {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid rgba(91,79,241,.14);
+  border-radius: 22px;
+  background: linear-gradient(145deg,rgba(255,255,255,.98),rgba(241,244,255,.98));
+  box-shadow: 0 14px 34px rgba(49,46,129,.08);
+  scroll-margin-top: 106px;
+}
+
+.admin-rbac-manager__head {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.admin-rbac-manager__eyebrow {
+  display: inline-flex;
+  margin-bottom: 4px;
+  color: #6d5df6;
+  font-size: .58rem;
+  font-weight: 950;
+  letter-spacing: .14em;
+}
+
+.admin-rbac-manager h3 {
+  margin: 0;
+  color: #1f255e;
+  font-size: 1.04rem;
+}
+
+.admin-rbac-manager__head p {
+  margin: 4px 0 0;
+  color: #718096;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.admin-rbac-manager__shield {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg,#5b4ff1,#3979f6);
+  color: #fff;
+  box-shadow: 0 9px 20px rgba(79,70,229,.22);
+}
+
+.admin-rbac-manager__grant {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.admin-rbac-manager__grant label {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.admin-rbac-manager__grant label > span {
+  color: #667085;
+  font-size: .66rem;
+  font-weight: 850;
+}
+
+.admin-rbac-manager__grant input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #dfe4f5;
+  border-radius: 14px;
+  outline: none;
+  background: #f8faff;
+  color: #111827;
+  font: inherit;
+}
+
+.admin-rbac-manager__grant input:focus {
+  border-color: #7167f2;
+  box-shadow: 0 0 0 3px rgba(91,79,241,.10);
+}
+
+.admin-rbac-manager__grant button,
+.admin-rbac-admin__revoke {
+  min-height: 46px;
+  border: 0;
+  border-radius: 14px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-rbac-manager__grant button {
+  background: linear-gradient(135deg,#5b4ff1,#3979f6);
+  color: #fff;
+  box-shadow: 0 9px 18px rgba(79,70,229,.18);
+}
+
+.admin-rbac-manager__grant button:disabled,
+.admin-rbac-admin__revoke:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.admin-rbac-manager__note {
+  padding: 9px 10px;
+  border-radius: 13px;
+  background: rgba(91,79,241,.06);
+  color: #5c6380;
+  font-size: .66rem;
+  line-height: 1.45;
+}
+
+.admin-rbac-manager__list {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-rbac-admin {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 40px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid #e6e9f6;
+  border-radius: 15px;
+  background: rgba(255,255,255,.86);
+}
+
+.admin-rbac-admin.is-root {
+  border-color: rgba(91,79,241,.20);
+  background: linear-gradient(135deg,rgba(91,79,241,.07),rgba(45,127,249,.05));
+}
+
+.admin-rbac-admin__avatar {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eef1ff;
+  color: #5147d8;
+  font-size: .8rem;
+  font-weight: 950;
+}
+
+.admin-rbac-admin__body {
+  min-width: 0;
+}
+
+.admin-rbac-admin__title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.admin-rbac-admin__title b {
+  min-width: 0;
+  overflow: hidden;
+  color: #20245e;
+  font-size: .78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-rbac-admin__title span {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eef1ff;
+  color: #6258de;
+  font-size: .54rem;
+  font-weight: 900;
+}
+
+.admin-rbac-admin__body small {
+  display: block;
+  margin-top: 2px;
+  color: #8a93a8;
+  font-size: .61rem;
+}
+
+.admin-rbac-admin__locked {
+  padding: 7px 9px;
+  border-radius: 11px;
+  background: #eefaf3;
+  color: #16834b;
+  font-size: .61rem;
+  font-weight: 900;
+}
+
+.admin-rbac-admin__revoke {
+  min-height: 40px;
+  background: #fff0f1;
+  color: #b42332;
+}
+
+.admin-rbac-manager__loading,
+.admin-rbac-manager__empty {
+  padding: 13px;
+  border-radius: 13px;
+  background: #f8f9fd;
+  color: #7c849a;
+  text-align: center;
+  font-size: .7rem;
+}
+
+.admin-rbac-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom,0px) + 22px);
+  z-index: 2147483600;
+  max-width: min(90vw,520px);
+  padding: 10px 14px;
+  border-radius: 13px;
+  background: #17203d;
+  color: #fff;
+  box-shadow: 0 14px 35px rgba(15,23,42,.28);
+  font-size: .76rem;
+  font-weight: 800;
+  opacity: 0;
+  transform: translate(-50%,8px);
+  transition: opacity .16s ease,transform .16s ease;
+}
+
+.admin-rbac-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%,0);
+}
+
+.admin-rbac-toast--error { background: #8f2330; }
+.admin-rbac-toast--neutral { background: #4b5563; }
+
 @media (max-width: 520px) {
   .admin-live-v3__balances {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -115,6 +366,14 @@
   .admin-live-v3__balance > span {
     font-size: .59rem;
   }
+
+  .admin-rbac-manager { padding: 12px; }
+  .admin-rbac-manager__grant { grid-template-columns: 1fr; }
+  .admin-rbac-manager__grant button { width: 100%; }
+  .admin-rbac-admin { grid-template-columns: 38px minmax(0,1fr); }
+  .admin-rbac-admin__avatar { width: 38px; height: 38px; }
+  .admin-rbac-admin__locked,
+  .admin-rbac-admin__revoke { grid-column: 1 / -1; width: 100%; text-align: center; }
 }
 
 @media (max-width: 340px) {
