@@ -99,7 +99,13 @@ for (const gameKey of gameKeys) {
   const session = await makePage();
   const { page, context, pageErrors, consoleErrors } = session;
   try {
-    await page.evaluate((key) => window.showGame(key), gameKey);
+    // Do not return showGame() from page.evaluate. Bible Sketch deliberately
+    // uses an async launcher, and Playwright would otherwise await that Promise
+    // instead of observing the rendered game with the bounded checks below.
+    await page.evaluate((key) => {
+      window.showGame(key);
+      return true;
+    }, gameKey);
     await page.waitForFunction((key) => document.body.dataset.currentGame === key, gameKey, { timeout: 10_000 });
     await page.waitForFunction(() => {
       const container = document.getElementById('game-container');
