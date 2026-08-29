@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -90,9 +89,6 @@ import com.vidalost.biblegames.ui.AppBackground
 import com.vidalost.biblegames.ui.AssetImage
 import com.vidalost.biblegames.ui.Cyan
 import com.vidalost.biblegames.ui.GlassCard
-import com.vidalost.biblegames.ui.HomeContinueCard
-import com.vidalost.biblegames.ui.HomeParallaxBackground
-import com.vidalost.biblegames.ui.HomeProgressSummary
 import com.vidalost.biblegames.ui.HomeContinueCard
 import com.vidalost.biblegames.ui.HomeParallaxBackground
 import com.vidalost.biblegames.ui.HomeProgressSummary
@@ -589,10 +585,6 @@ private fun HomeScreen(
                     }
                 }
             }
-            history.firstOrNull()?.let(GameKey::fromRoute)?.let { latest ->
-                item { HomeContinueCard(latest, assets) { onOpenGame(latest) } }
-            }
-            item { HomeProgressSummary(profile) }
             history.firstOrNull()?.let(GameKey::fromRoute)?.let { latest ->
                 item { HomeContinueCard(latest, assets) { onOpenGame(latest) } }
             }
