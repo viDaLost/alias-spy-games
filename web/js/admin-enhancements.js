@@ -2,6 +2,8 @@
   "use strict";
 
   const ADMIN_ID = "1288379477";
+  // delegated-admin-ui-hotfix-v1
+  let delegatedAdmin = false;
   const PAGE_SIZE = 12;
   const state = {
     users: [],
@@ -31,14 +33,23 @@
   }
 
   function isAdmin() {
-    return String(currentUser().id) === ADMIN_ID;
+    return delegatedAdmin || String(currentUser().id) === ADMIN_ID;
+  }
+
+  async function resolveAdminRole() {
+    try {
+      const response = await adminApi({ action: "adminRoleStatus" });
+      return response?.success === true && response?.isAdmin === true;
+    } catch {
+      return false;
+    }
   }
 
   async function adminApi(payload) {
     if (!window.apiRequest) throw new Error("API приложения недоступен");
     return window.apiRequest({
       ...payload,
-      adminId: ADMIN_ID,
+      adminId: String(currentUser().id || ADMIN_ID),
       telegramInitData: window.Telegram?.WebApp?.initData || "",
     });
   }
@@ -116,7 +127,7 @@
         <header class="admin-v2__header">
           <button type="button" class="admin-v2__icon-btn" data-admin-action="back" aria-label="Вернуться в меню">←</button>
           <div class="admin-v2__heading">
-            <div class="admin-v2__eyebrow">ADMIN • Telegram ID ${escapeHTML(ADMIN_ID)}</div>
+            <div class="admin-v2__eyebrow">ADMIN • Telegram ID ${escapeHTML(currentUser().id || ADMIN_ID)}</div>
             <h2>Управление приложением</h2>
             <p>Обновлено: <span data-admin-loaded-at>${formatLoadedAt()}</span></p>
           </div>
@@ -521,7 +532,8 @@
     return true;
   }
 
-  function boot() {
+  async function boot() {
+    delegatedAdmin = await resolveAdminRole();
     enhanceAdminButton();
 
     const observer = new MutationObserver(() => {
