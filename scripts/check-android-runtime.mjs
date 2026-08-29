@@ -41,7 +41,7 @@ const page = await context.newPage();
 let androidCalls = 0;
 let telegramCompatCalls = 0;
 
-await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
+await page.route('https://telegram.org/js/telegram-web-app.js*', (route) => route.fulfill({
   status: 200,
   contentType: 'text/javascript; charset=utf-8',
   body: '/* standalone Android test: Telegram SDK intentionally absent */',
