@@ -12,7 +12,8 @@ const inviteCore = read('cloudflare/app-core-worker/src/index-v7.js');
 const balanceCore = read('cloudflare/app-core-worker/src/index-v8.js');
 const secureCore = read('cloudflare/app-core-worker/src/index-v9.js');
 const richEntryCore = read('cloudflare/app-core-worker/src/index-v10.js');
-const socialEntryCore = read('cloudflare/app-core-worker/src/index-v11.js');
+const profileEntryCore = read('cloudflare/app-core-worker/src/index-v11.js');
+const socialEntryCore = read('cloudflare/app-core-worker/src/index-v12.js');
 const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const deploy = read('.github/workflows/deploy-core-cloudflare.yml');
 const webhookFix = read('.github/workflows/configure-telegram-webhook.yml');
@@ -40,9 +41,10 @@ requireText(balanceCore, "from './index-v7.js'", 'v8 entrypoint must preserve v7
 requireText(secureCore, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');
 requireText(richEntryCore, "from './index-v9.js'", 'v10 entrypoint must preserve v9 runtime');
 requireText(richEntryCore, "callback_data: 'support:start'", 'Rich Message support button is missing');
-requireText(socialEntryCore, "from './index-v10.js'", 'v11 entrypoint must preserve the support-enabled v10 runtime');
-requireText(socialEntryCore, "url.pathname === '/telegram/webhook'", 'v11 Telegram webhook wrapper must preserve support routing');
-requireText(wrangler, 'src/index-v11.js', 'support-enabled v11 core entrypoint is not active');
+requireText(profileEntryCore, "from './index-v10.js'", 'v11 entrypoint must preserve the support-enabled v10 runtime');
+requireText(profileEntryCore, "url.pathname === '/telegram/webhook'", 'v11 Telegram webhook wrapper must preserve support routing');
+requireText(socialEntryCore, "from './index-v11.js'", 'v12 entrypoint must preserve the support-enabled v11 runtime');
+requireText(wrangler, 'src/index-v12.js', 'support-enabled v12 core entrypoint is not active');
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');
@@ -66,4 +68,4 @@ requireText(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'Andro
 if (android.includes('t.me/D_a_n_Vi')) throw new Error('Personal Telegram support link is still in Android app');
 if (android.includes('openSupport(')) throw new Error('Legacy Android support callback is still present');
 
-console.log('Support center integration checks passed through the v11 social-profile wrapper, including Android 3.0 Web Parity and offline fallback.');
+console.log('Support center integration checks passed through the v12 public-social wrapper, including Android 3.0 Web Parity and offline fallback.');
