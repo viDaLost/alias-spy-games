@@ -10,6 +10,7 @@ const reject = (text, needle, label) => {
 
 const app = read('android-app/app/src/main/java/com/vidalost/biblegames/App.kt');
 const main = read('android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt');
+const parityShell = read('android-app/app/src/main/java/com/vidalost/biblegames/AndroidParityApp.kt');
 const cloud = read('android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt');
 const sessionStore = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AndroidSessionStore.kt');
 const presence = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AppPresenceClient.kt');
@@ -28,6 +29,11 @@ need(app, 'TELEGRAM_BOT_USERNAME = "bibleiskie_bot"', 'verification bot link is 
 reject(app, 'ADMIN_ID', 'Android still special-cases the administrator account');
 reject(app, 'Вход администратора через Android недоступен', 'Android still blocks the administrator account');
 need(main, 'AndroidSessionStore(applicationContext)', 'bearer is not restored before access checks');
+need(main, 'AndroidParityApp(', 'verified Android sessions do not enter the production parity shell');
+need(parityShell, 'sessionStore.load()', 'Web parity shell can start without the encrypted Android session');
+need(parityShell, 'if (activeSession == null)', 'Web parity shell bypasses the native OTP gate');
+need(parityShell, 'addJavascriptInterface(', 'verified identity is not bridged to the shared Web UI');
+need(parityShell, 'getTelegramId(): String = userId', 'Web bridge can select a different Telegram identity');
 
 need(cloud, '/android/auth/request', 'auth request endpoint missing in Android client');
 need(cloud, '/android/auth/verify', 'auth verify endpoint missing in Android client');
@@ -79,7 +85,7 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '2.9.1-native'", 'secure auth release version is not current');
-need(gradle, 'versionCode 26', 'secure auth versionCode is not current');
+need(gradle, "versionName '3.0.0-web-parity'", 'secure auth release version is not current');
+need(gradle, 'versionCode 27', 'secure auth versionCode is not current');
 
-console.log('Android Telegram ownership + bearer session security checks passed.');
+console.log('Android 3.0 Telegram ownership, encrypted bearer session and Web parity bridge security checks passed.');
