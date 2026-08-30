@@ -15,11 +15,14 @@ assert.doesNotThrow(() => new Function(launcherSource), 'V45 launcher must parse
 assert.doesNotThrow(() => new Function(rulesSource), 'V45 special rules must parse');
 assert.match(launcherSource, /const VERSION="45"/);
 assert.match(launcherSource, /v45-biblical-treasures-special-swipe\.js/);
-assert.match(launcherSource, /rainbow: \{ label: \"Радуга Завета\"/);
-assert.match(launcherSource, /id === \"rainbow\"/);
-assert.match(launcherSource, /special:\"rainbow\"/);
-assert.match(launcherSource, /patchGameSource/);
-assert.match(launcherSource, /useNoahArk/); // old source signature exists only as a guarded removal target
+// The rainbow booster used to be spliced into the game source by the launcher at
+// runtime; it now lives in the game source itself, so assert it there.
+const gameSource = read('web/games/biblical-match-three.js');
+assert.match(gameSource, /rainbow: \{ label: \"Радуга Завета\"/);
+assert.match(gameSource, /id === \"rainbow\"/);
+assert.match(gameSource, /special:\"rainbow\"/);
+assert.doesNotMatch(launcherSource, /patchGameSource/, 'the launcher must not rewrite the game source at runtime');
+assert.doesNotMatch(gameSource, /function useNoahArk/, 'the replaced Ark booster must be gone from the game source');
 assert.match(rulesSource, /\[data-booster=\"ark\"\]/);
 assert.match(rulesSource, /arkBoosterRemoved: true/);
 assert.match(rulesSource, /biblical-match-three-v45\.css\?v=45/);

@@ -40,7 +40,7 @@ const IN_BOOSTERS = {
   sling: { label: "Праща Давида", cost: 5, asset: "web/assets/biblical-match-three/crown.svg", desc: "Точный удар по одной клетке.", target: true },
   staff: { label: "Посох Моисея", cost: 7, asset: "web/assets/biblical-match-three/tablets.svg", desc: "Очищает выбранный столбец.", target: true },
   jericho: { label: "Трубы Иерихона", cost: 10, asset: "web/assets/biblical-match-three/lamp.svg", desc: "Мощная ударная волна 3×3.", target: true },
-  ark: { label: "Ноев ковчег", cost: 8, asset: "web/assets/biblical-match-three/ark.svg", desc: "Перемешивает поле и дарит две особые фишки.", target: false },
+  rainbow: { label: "Радуга Завета", cost: 8, asset: "web/assets/biblical-match-three/icons-v17/covenant.webp", desc: "Превращает выбранную фишку в радужную.", target: true },
 };
 
 const BLOCKER_META = {
@@ -490,7 +490,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
   shell.append(boosters);
   const actions = el("div", "bmt-actions-v2"); const hint = button("Подсказка", "bmt-action-button", showHint); hint.innerHTML = `<span>✦</span><strong>Подсказка</strong>`; const pauseButton = button(mode === "free" ? "Завершить" : "Пауза", "bmt-action-button", mode === "free" ? openFreeExit : openPause); pauseButton.innerHTML = `<span>${mode === "free" ? "✓" : "Ⅱ"}</span><strong>${mode === "free" ? "Завершить" : "Пауза"}</strong>`; actions.append(hint, pauseButton); shell.append(actions);
   container.append(shell); updateAllTiles(); updateHud(); animateEntrance(); scheduleHint();
-  if (runtime.seededGoalSpecials > 0) setTimeout(() => toast("Особые фишки уже на поле — соедините соседнюю пару", "info"), 560);
+  if (runtime.seededGoalSpecials > 0) setTimeout(() => toast("Особые фишки уже на поле — просто смахните нужную фишку", "info"), 560);
   if (!runtime.progress.tutorialSeen?.["v18-first-run"]) setTimeout(showTutorial, 420);
 }
 
@@ -706,7 +706,6 @@ function openPause() {
 
 function activateBooster(id) {
   if (!runtime || runtime.busy) return; clearHint(); const booster = IN_BOOSTERS[id]; if (!booster) return;
-  if (!booster.target) { useNoahArk(); return; }
   if (runtime.activeBooster === id) { runtime.activeBooster = null; updateBoosterState(); toast("Бустер отменён"); return; }
   runtime.activeBooster = id; runtime.selected = null; updateSelection(); updateBoosterState(); toast(`${booster.label}: выберите клетку`, "info"); FX.haptic?.();
 }
@@ -724,20 +723,22 @@ function spendBooster(id) {
 
 async function useTargetBooster(id, index) {
   if (!runtime || runtime.busy || !isActive(index)) return;
+  if (id === "rainbow" && runtime.blockers.has(index)) { toast("Выберите фишку без препятствия", "info"); FX.haptic?.("error"); return; }
   if (!spendBooster(id)) { runtime.activeBooster = null; updateBoosterState(); return; }
   runtime.activeBooster = null; updateBoosterState(); setBusy(true);
+  if (id === "rainbow") {
+    const cell = runtime.board[index];
+    if (!cell) { setBusy(false); scheduleHint(); return; }
+    runtime.board[index] = { ...cell, special:"rainbow" };
+    updateTile(runtime.tileNodes[index], runtime.board[index], runtime.blockers.get(index));
+    FX.ring?.(index, "rainbow"); FX.floatText?.(index, "РАДУГА", "violet"); FX.haptic?.("success");
+    toast("Радуга готова — смахните её с нужным символом", "success");
+    setBusy(false); scheduleHint(); return;
+  }
   if (id === "sling") { FX.floatText?.(index, "ПРАЩА", "gold"); FX.ring?.(index, "gold"); await clearAndCascade(new Set([index]), 1, new Map(), { booster: id }); }
   else if (id === "staff") { FX.floatText?.(index, "ПОСОХ", "blue"); FX.beam?.(index, "v"); await clearAndCascade(new Set(Core.columnIndices(index, ROWS, COLS)), 1, new Map(), { booster: id }); }
   else if (id === "jericho") { FX.floatText?.(index, "ИЕРИХОН", "violet"); FX.ring?.(index, "violet"); await clearAndCascade(new Set(Core.areaIndices(index, 1, ROWS, COLS)), 1, new Map(), { booster: id }); }
   finishTurn();
-}
-
-function useNoahArk() {
-  if (!runtime || runtime.busy) return; if (!spendBooster("ark")) return; setBusy(true); FX.haptic?.("success"); document.querySelector(".bmt-board")?.classList.add("is-ark-shuffling"); setTimeout(() => document.querySelector(".bmt-board")?.classList.remove("is-ark-shuffling"), 520);
-  runtime.board = reshufflePlayable(); const available = runtime.board.map((cell, index) => (!cell.special ? index : -1)).filter((index) => index >= 0);
-  if (available.length) { const first = available.splice(Math.floor(Math.random() * available.length), 1)[0]; runtime.board[first].special = "lineH"; }
-  if (available.length) { const second = available[Math.floor(Math.random() * available.length)]; runtime.board[second].special = "lineV"; }
-  updateAllTiles(); toast("Ковчег сохранил поле и принёс две особые фишки", "success"); setTimeout(() => { setBusy(false); scheduleHint(); }, 480);
 }
 
 function playComboEffect(combo, a, b) {
