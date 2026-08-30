@@ -520,7 +520,7 @@ body[data-current-game="biblical-match-three"]>.bmt-result-overlay,
 body[data-current-game="biblical-match-three"]>.bmt-pause-overlay,
 body[data-current-game="biblical-match-three"]>.bmt-tutorial{
   position:fixed!important;
-  z-index:2147483000!important;
+  z-index:1250!important;
   top:var(--bmt-v13-top,0px)!important;
   right:0!important;
   bottom:0!important;

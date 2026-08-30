@@ -674,7 +674,7 @@ body[data-current-game="kids-ark-pairs"] .kids-complete .kids-progress-card {
 .kids-particle-layer {
   position: fixed;
   inset: 0;
-  z-index: 10020;
+  z-index: 1100;
   overflow: hidden;
   pointer-events: none;
 }

@@ -201,7 +201,7 @@ body[data-match-three="2"] > .bmt-sheet-overlay,
 body[data-match-three="2"] > .bmt-result-overlay,
 body[data-match-three="2"] > .bmt-pause-overlay,
 body[data-match-three="2"] > .bmt-tutorial{
-  position:fixed!important;inset:0!important;z-index:2147483000!important;box-sizing:border-box!important;
+  position:fixed!important;inset:0!important;z-index:1250!important;box-sizing:border-box!important;
   padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;
   background:rgba(17,24,39,.38)!important;backdrop-filter:none!important;
 }

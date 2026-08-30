@@ -36,7 +36,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       .referral-survey-open{overflow:hidden!important}
-      .referral-survey-overlay{position:fixed;inset:0;z-index:2147483200;display:grid;place-items:center;padding:18px;background:rgba(30,41,59,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+      .referral-survey-overlay{position:fixed;inset:0;z-index:1300;display:grid;place-items:center;padding:18px;background:rgba(30,41,59,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
       .referral-survey-card{width:min(440px,100%);box-sizing:border-box;padding:24px;border-radius:28px;background:linear-gradient(155deg,rgba(255,255,255,.98),rgba(244,247,255,.97) 58%,rgba(238,252,255,.96));border:1px solid rgba(99,102,241,.14);box-shadow:0 28px 80px rgba(30,41,59,.28);color:#1e293b;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
       .referral-survey-icon{width:54px;height:54px;margin:0 auto 12px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(145deg,#eef2ff,#e0f2fe);box-shadow:inset 0 0 0 1px rgba(79,70,229,.09);font-size:26px}
       .referral-survey-kicker{text-align:center;color:#4f46e5;font-size:.68rem;font-weight:950;letter-spacing:.1em;text-transform:uppercase}

@@ -84,7 +84,7 @@ body[data-current-game="biblical-match-three"] .bmt-free-card__mode,
 body[data-current-game="biblical-match-three"] .bmt-free-card>strong,
 body[data-current-game="biblical-match-three"] .bmt-free-card__record{position:relative!important;z-index:2!important;max-width:100%!important}
 
-body[data-current-game="biblical-match-three"] .is-tutorial-focus{position:relative!important;z-index:2147483001!important;filter:drop-shadow(0 0 8px rgba(79,70,229,.45))!important}
+body[data-current-game="biblical-match-three"] .is-tutorial-focus{position:relative!important;z-index:1260!important;filter:drop-shadow(0 0 8px rgba(79,70,229,.45))!important}
 body[data-current-game="biblical-match-three"] .bmt-v18-tutorial-step{display:block;margin-bottom:5px;font-weight:900;letter-spacing:.12em;color:#635bdf}
 body[data-current-game="biblical-match-three"] .bmt-v18-tutorial-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
 @media(max-width:360px){body[data-current-game="biblical-match-three"] .bmt-free-card{padding-right:68px!important}body[data-current-game="biblical-match-three"] .bmt-v15-free-icon{width:50px!important;height:50px!important;right:9px!important}}

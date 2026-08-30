@@ -139,7 +139,7 @@
       .qchat-backdrop-v44{
         position:fixed!important;
         inset:0!important;
-        z-index:2147482400!important;
+        z-index:1230!important;
         background:rgba(25,38,67,.34)!important;
         backdrop-filter:blur(5px)!important;
         -webkit-backdrop-filter:blur(5px)!important;
@@ -155,7 +155,7 @@
       }
       body.qv43-quartet-active #qchat-drawer{
         position:fixed!important;
-        z-index:2147482500!important;
+        z-index:1240!important;
         left:50%!important;
         right:auto!important;
         top:auto!important;

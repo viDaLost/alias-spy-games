@@ -446,7 +446,7 @@ body[data-current-game="quartet"] #game-container {
 
 .qv2-turn-notice {
   position: fixed;
-  z-index: 100006;
+  z-index: 1180;
   left: 50%;
   top: calc(env(safe-area-inset-top,0px) + 88px);
   width: min(440px, calc(100vw - 28px));
@@ -474,7 +474,7 @@ body[data-current-game="quartet"] #game-container {
 
 .qv2-toast {
   position: fixed;
-  z-index: 100007;
+  z-index: 1190;
   left: 50%;
   bottom: calc(22px + env(safe-area-inset-bottom,0px));
   transform: translate(-50%,18px);
@@ -514,7 +514,7 @@ body[data-current-game="quartet"] #game-container {
 .qv2-modal {
   position: fixed;
   inset: 0;
-  z-index: 100008;
+  z-index: 1200;
   display: grid;
   place-items: center;
   padding: 18px;

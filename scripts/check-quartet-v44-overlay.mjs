@@ -21,8 +21,13 @@ ok(fix.includes("event.stopImmediatePropagation()"), 'Broken V43 QR handler is n
 ok(fix.includes("document.body.appendChild(drawer)"), 'Chat drawer is not moved to the body viewport layer');
 ok(fix.includes("document.body.appendChild(fab)"), 'Chat FAB is not moved out of the transformed game root');
 ok(chat.includes("root.appendChild(drawer)"), 'Chat source structure changed; V44 relocation target needs review');
-ok(dockCss.includes('z-index:9300'), 'V43 dock z-index changed; V44 overlay ordering needs review');
-ok(fix.includes('z-index:2147482500!important'), 'Chat drawer is not guaranteed above the V43 dock');
+// What matters is the ordering, not the specific numbers on the layer scale.
+const layerOf = (source, label) => {
+  const value = source.match(/z-index\s*:\s*(\d+)/)?.[1];
+  ok(value, `${label} does not declare a z-index`);
+  return Number(value);
+};
+ok(layerOf(fix, 'Chat drawer') > layerOf(dockCss, 'V43 dock'), 'Chat drawer is not guaranteed above the V43 dock');
 ok(fix.includes('qchat-backdrop-v44'), 'Chat modal backdrop is missing');
 ok(fix.includes("document.getElementById('qchat-close')?.click()"), 'Chat backdrop/Escape close path is missing');
 ok(fix.includes("body.qv44-chat-open #qv43-fixed-dock"), 'Quick dock is not visually de-emphasized while chat is open');

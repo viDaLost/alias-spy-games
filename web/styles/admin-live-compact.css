@@ -322,7 +322,7 @@ html:not(.admin-rbac-authorized) #admin-btn {
   position: fixed;
   left: 50%;
   bottom: calc(env(safe-area-inset-bottom,0px) + 22px);
-  z-index: 2147483600;
+  z-index: 1320;
   max-width: min(90vw,520px);
   padding: 10px 14px;
   border-radius: 13px;

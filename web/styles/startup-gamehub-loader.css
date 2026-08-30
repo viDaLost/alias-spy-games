@@ -3,7 +3,7 @@
 .gamehub-boot {
   position: fixed;
   inset: 0;
-  z-index: 2147483647;
+  z-index: 1340;
   overflow: hidden;
   display: grid;
   place-items: center;

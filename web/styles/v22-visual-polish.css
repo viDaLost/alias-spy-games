@@ -48,7 +48,7 @@ body[data-current-game="biblical-match-three"] .bmt-board.is-v22-boundary-demo::
 body[data-current-game="biblical-match-three"] .bmt-booster-tray__label span{letter-spacing:.16em}
 
 /* V22 tutorial */
-.bmt-v22-tutorial{position:fixed;inset:0;z-index:2147483000;pointer-events:none;background:rgba(24,31,67,.48);backdrop-filter:blur(2px)}
+.bmt-v22-tutorial{position:fixed;inset:0;z-index:1250;pointer-events:none;background:rgba(24,31,67,.48);backdrop-filter:blur(2px)}
 .bmt-v22-tutorial-card{position:absolute;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:10;pointer-events:auto;padding:17px 17px 15px;border-radius:25px;background:rgba(255,255,255,.97);border:1px solid rgba(113,105,215,.24);box-shadow:0 18px 52px rgba(24,31,67,.3);color:#1f2946}
 .bmt-v22-tutorial-card h3{margin:5px 0 7px;font-size:22px;line-height:1.08;color:#273274}
 .bmt-v22-tutorial-card p{margin:0;font-size:14px;line-height:1.42;color:#5b6681;font-weight:650}
@@ -66,9 +66,9 @@ body[data-current-game="biblical-match-three"] .bmt-booster-tray__label span{let
 .bmt-v22-tutorial-obstacles{display:flex;justify-content:center;gap:13px;margin-top:10px}
 .bmt-v22-tutorial-obstacles span{display:grid;place-items:center;gap:2px;font-size:10px;font-weight:800;color:#6a6f87}
 .bmt-v22-tutorial-obstacles img{width:43px;height:43px;object-fit:contain;filter:drop-shadow(0 4px 5px rgba(74,60,40,.16))}
-.bmt-v22-tutorial .is-v22-tutorial-focus{position:relative!important;z-index:2147483002!important;pointer-events:none!important;filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 8px rgba(69,98,255,.9))!important}
-.bmt-v22-focus-label{position:absolute;z-index:2147483004;width:180px;padding:8px 10px;border-radius:12px;background:#5546e8;color:#fff;font-size:11px;line-height:1.15;font-weight:900;text-align:center;box-shadow:0 7px 18px rgba(48,51,141,.28);pointer-events:none}
-.bmt-v22-swipe-demo{position:absolute;z-index:2147483005;width:max(48px,var(--bmt-v22-swipe-x));height:48px;transform:translate(-12px,-22px);pointer-events:none}
+.bmt-v22-tutorial .is-v22-tutorial-focus{position:relative!important;z-index:1270!important;pointer-events:none!important;filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 8px rgba(69,98,255,.9))!important}
+.bmt-v22-focus-label{position:absolute;z-index:1280;width:180px;padding:8px 10px;border-radius:12px;background:#5546e8;color:#fff;font-size:11px;line-height:1.15;font-weight:900;text-align:center;box-shadow:0 7px 18px rgba(48,51,141,.28);pointer-events:none}
+.bmt-v22-swipe-demo{position:absolute;z-index:1290;width:max(48px,var(--bmt-v22-swipe-x));height:48px;transform:translate(-12px,-22px);pointer-events:none}
 .bmt-v22-swipe-hand{position:absolute;left:0;top:5px;font-size:27px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2));animation:bmtV22SwipeHand 1.2s ease-in-out infinite}
 .bmt-v22-swipe-arrow{position:absolute;left:22px;top:5px;width:calc(var(--bmt-v22-swipe-x) - 12px);overflow:hidden;color:#4e48e6;font-size:26px;font-weight:1000;letter-spacing:.2em}
 .bmt-tile.is-v22-demo-tile .bmt-piece{filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px #5f4ff3)!important}

@@ -133,7 +133,7 @@
 /* Individual letters travel from the big word display to the exact cells of that word. */
 .wow-letter-flight {
   position: fixed;
-  z-index: 4000;
+  z-index: 1020;
   width: 38px;
   height: 38px;
   margin-left: -19px;

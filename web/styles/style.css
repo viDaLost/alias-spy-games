@@ -1,42 +1,6 @@
 
-/* ========================
-   ДИЗАЙН-СИСТЕМА / ПЕРЕМЕННЫЕ
-   ======================== */
-:root {
-  /* Оригинальные цвета сохранены */
-  --bg-color: #fdfaf4;               
-  --accent-color: #dbeafe;           
-  --accent-hover: #bfdbfe;
-  --accent-active: #4f46e5;          
-  --text-color: #2d2d2d;
-  --card-bg: #ffffff;
+/* Палитра, скругления, тени и слои живут в web/styles/tokens.css. */
 
-  --correct-color: #22c55e;
-  --correct-hover: #16a34a;
-  --wrong-color: #ef4444;
-  --wrong-hover: #dc2626;
-
-  --skip-color: #fbbf24;
-  --skip-hover: #f59e0b;
-  --skip-text: #1f2937;
-
-  /* Нативные скругления и тени */
-  --button-radius: 16px;
-  --modal-radius: 24px;
-  --input-radius: 14px;
-  
-  --shadow-app: 0 4px 12px rgba(79, 70, 229, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.15);
-
-  /* ЕДИНЫЕ ПОЛЯ ВВОДА */
-  --field-bg: #ffffff;
-  --field-border: #e5e7eb;
-  --field-focus: rgba(79, 70, 229, 0.25);
-  --field-text: #111827;
-  --field-placeholder: #9ca3af;
-  --field-invalid: #ef4444;
-  --field-valid: #22c55e;
-}
 
 /* ========================
    ГЛОБАЛЬНЫЕ СБРОСЫ И БАЗА
@@ -291,7 +255,7 @@ input:disabled, textarea:disabled, select:disabled {
   background: rgba(0, 0, 0, 0.3); 
   backdrop-filter: blur(5px); /* Эффект матового стекла iOS */
   -webkit-backdrop-filter: blur(5px);
-  z-index: 9999; 
+  z-index: 1080; 
   animation: fadeInModal 0.2s ease-out forwards;
 }
 .quartet-modal.hidden, .kids-modal.hidden, .ws-modal.hidden, .ws-win.hidden { display: none; }
@@ -458,7 +422,7 @@ input:disabled, textarea:disabled, select:disabled {
   opacity: 0; padding: 12px 20px; border-radius: 999px; 
   background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
   color: #fff; font-weight: 600; font-size: 0.95rem;
-  box-shadow: var(--shadow-modal); z-index: 10000; 
+  box-shadow: var(--shadow-modal); z-index: 1090; 
   transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
 }
 .ws-toast--in { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -546,21 +510,6 @@ input:disabled, textarea:disabled, select:disabled {
 /* =========================================================
    TELEGRAM 2026 REFRESH — compact cards, safe areas, SVG menu
    ========================================================= */
-:root {
-  --app-bg-1: #f6fbff;
-  --app-bg-2: #dff4ff;
-  --app-bg-3: #dfe8ff;
-  --app-ink: #111827;
-  --app-muted: #667085;
-  --app-primary: #4f46e5;
-  --app-primary-2: #0ea5e9;
-  --app-card: rgba(255, 255, 255, 0.74);
-  --app-card-strong: rgba(255, 255, 255, 0.92);
-  --app-border: rgba(99, 102, 241, 0.16);
-  --app-shadow: 0 18px 45px rgba(79, 70, 229, 0.12), 0 4px 14px rgba(15, 23, 42, 0.06);
-  --app-radius: 28px;
-  --tg-top-gap: calc(env(safe-area-inset-top, 0px) + 82px);
-}
 
 html {
   background: linear-gradient(165deg, var(--app-bg-1) 0%, var(--app-bg-3) 42%, var(--app-bg-2) 100%);
@@ -757,7 +706,7 @@ main.menu-container {
 .admin-loading {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: 1150;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -827,7 +776,7 @@ body[data-mode="admin"] #game-container h2:first-child {
 .support-overlay {
   position: fixed;
   inset: 0;
-  z-index: 100000;
+  z-index: 1160;
   display: grid;
   place-items: center;
   padding: 22px;
@@ -1010,7 +959,7 @@ body[data-mode="admin"] #game-container h2:first-child {
   position: fixed;
   left: 50%;
   bottom: calc(22px + env(safe-area-inset-bottom, 0px));
-  z-index: 100001;
+  z-index: 1170;
   transform: translate(-50%, 18px) scale(.98);
   opacity: 0;
   padding: 12px 18px;
@@ -1029,7 +978,6 @@ body[data-mode="admin"] #game-container h2:first-child {
 @keyframes supportOut { from { opacity: 1; } to { opacity: 0; } }
 
 @media (max-width: 480px) {
-  :root { --tg-top-gap: calc(env(safe-area-inset-top, 0px) + 92px); }
   body { padding-left: 12px; padding-right: 12px; }
   .menu-grid, .menu-grid--single { gap: 12px; }
   .game-card { min-height: 152px; border-radius: 25px; padding: 16px 10px 14px; }
@@ -1054,24 +1002,6 @@ body[data-mode="admin"] #game-container h2:first-child {
 /* =========================================================
    TELEGRAM GAME POLISH v14 — bugfix + unified game styling
    ========================================================= */
-:root {
-  --tg-top-gap: calc(env(safe-area-inset-top, 0px) + 96px);
-  --surface: rgba(255,255,255,.74);
-  --surface-strong: rgba(255,255,255,.94);
-  --surface-soft: rgba(239,246,255,.68);
-  --line: rgba(99,102,241,.16);
-  --ink: #111827;
-  --ink-soft: #667085;
-  --primary: #4f46e5;
-  --primary-2: #0ea5e9;
-  --success: #22c55e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --radius-lg: 28px;
-  --radius-md: 22px;
-  --shadow-soft: 0 18px 45px rgba(79,70,229,.12), 0 4px 14px rgba(15,23,42,.06);
-  --shadow-card: 0 16px 38px rgba(79,70,229,.11), inset 0 1px 0 rgba(255,255,255,.86);
-}
 
 html {
   min-height: 100%;

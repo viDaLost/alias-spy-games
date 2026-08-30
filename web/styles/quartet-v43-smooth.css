@@ -5,7 +5,7 @@ body.qv43-quartet-active .qv2-action-dock.qv43-source-dock{display:none!importan
 
 #qv43-fixed-dock{
   position:fixed;
-  z-index:9300;
+  z-index:1060;
   left:50%;
   right:auto;
   bottom:max(10px,env(safe-area-inset-bottom));

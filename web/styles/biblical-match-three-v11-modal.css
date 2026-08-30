@@ -30,7 +30,7 @@ body[data-match-three="2"] .bmt-pause-overlay,
 body[data-match-three="2"] .bmt-tutorial{
   position:fixed!important;
   inset:0!important;
-  z-index:2147483000!important;
+  z-index:1250!important;
   width:100vw!important;
   height:var(--bmt-v11-viewport-height,100dvh)!important;
   min-height:0!important;

@@ -1,0 +1,121 @@
+/* ============================================================
+   ДИЗАЙН-ТОКЕНЫ
+   ============================================================
+
+   Единственное место, где живут палитра, скругления, тени и слои.
+
+   Раньше style.css содержал три конкурирующих блока :root, каждый со своим
+   набором имён для одних и тех же цветов. Здесь они сведены в один слой:
+   сверху — канонические токены, ниже — исторические имена как псевдонимы.
+   Значения совпадают с тем, что давал прежний каскад, поэтому подключение
+   этого файла ничего не меняет визуально.
+
+   Псевдонимы существуют потому, что на старые имена ссылается ~240 мест в
+   стилях. Новый код должен брать канонические токены; исторические имена
+   исчезнут, когда исчезнут последние ссылки на них.
+
+   Тёмной темы здесь пока нет намеренно: 84% цветов в подключаемых стилях
+   заданы литералами, а не токенами, поэтому переключение этого слоя дало бы
+   тёмную обвязку поверх светлых карточек. Сначала литералы, потом тема.
+   ============================================================ */
+
+:root {
+  /* --- Текст --- */
+  --ink: #111827;
+  --ink-soft: #667085;
+  --ink-warm: #2d2d2d;
+
+  /* --- Бренд и статусы --- */
+  --primary: #4f46e5;
+  --primary-2: #0ea5e9;
+  --primary-tint: #dbeafe;
+  --primary-tint-strong: #bfdbfe;
+  --success: #22c55e;
+  --success-strong: #16a34a;
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --warning: #f59e0b;
+  --warning-soft: #fbbf24;
+
+  /* --- Поверхности --- */
+  --surface-solid: #ffffff;
+  --surface: rgba(255, 255, 255, 0.74);
+  --surface-strong: rgba(255, 255, 255, 0.94);
+  --surface-card-strong: rgba(255, 255, 255, 0.92);
+  --surface-soft: rgba(239, 246, 255, 0.68);
+  --line: rgba(99, 102, 241, 0.16);
+
+  /* --- Фон приложения --- */
+  --bg-1: #f6fbff;
+  --bg-2: #dff4ff;
+  --bg-3: #dfe8ff;
+  --bg-warm: #fdfaf4;
+
+  /* --- Скругления --- */
+  --radius-sm: 14px;
+  --radius-button: 16px;
+  --radius-modal: 24px;
+  --radius-md: 22px;
+  --radius-lg: 28px;
+
+  /* --- Тени --- */
+  --shadow-soft: 0 18px 45px rgba(79, 70, 229, 0.12), 0 4px 14px rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 16px 38px rgba(79, 70, 229, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  --shadow-app: 0 4px 12px rgba(79, 70, 229, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.15);
+
+  /* --- Поля ввода --- */
+  --field-bg: #ffffff;
+  --field-border: #e5e7eb;
+  --field-focus: rgba(79, 70, 229, 0.25);
+  --field-text: #111827;
+  --field-placeholder: #9ca3af;
+  --field-invalid: #ef4444;
+  --field-valid: #22c55e;
+
+  /* --- Раскладка --- */
+  --tg-top-gap: calc(env(safe-area-inset-top, 0px) + 96px);
+
+  /* --- Слои ---
+     Шкала вместо гонки к 2147483647. Каждая ступень — отдельная роль;
+     внутри роли разводите элементы соседними целыми, а не новым порядком. */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 100;
+  --z-dock: 200;
+  --z-overlay: 1000;
+  --z-modal: 2000;
+  --z-toast: 3000;
+  --z-boot: 4000;
+
+  /* --- Исторические имена ---
+     Не использовать в новом коде. */
+  --text-color: var(--ink-warm);
+  --bg-color: var(--bg-warm);
+  --card-bg: var(--surface-solid);
+  --accent-color: var(--primary-tint);
+  --accent-hover: var(--primary-tint-strong);
+  --accent-active: var(--primary);
+  --correct-color: var(--success);
+  --correct-hover: var(--success-strong);
+  --wrong-color: var(--danger);
+  --wrong-hover: var(--danger-strong);
+  --skip-color: var(--warning-soft);
+  --skip-hover: var(--warning);
+  --skip-text: #1f2937;
+  --button-radius: var(--radius-button);
+  --modal-radius: var(--radius-modal);
+  --input-radius: var(--radius-sm);
+  --app-bg-1: var(--bg-1);
+  --app-bg-2: var(--bg-2);
+  --app-bg-3: var(--bg-3);
+  --app-ink: var(--ink);
+  --app-muted: var(--ink-soft);
+  --app-primary: var(--primary);
+  --app-primary-2: var(--primary-2);
+  --app-card: var(--surface);
+  --app-card-strong: var(--surface-card-strong);
+  --app-border: var(--line);
+  --app-shadow: var(--shadow-soft);
+  --app-radius: var(--radius-lg);
+}

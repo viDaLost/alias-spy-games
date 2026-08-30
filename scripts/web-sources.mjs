@@ -4,6 +4,7 @@
 // classic scripts that share one global scope, exactly as the old <script defer> tags did.
 
 export const styleSources = [
+  'web/styles/tokens.css',
   'web/styles/startup-gamehub-loader.css',
   'web/styles/style.css',
   'web/styles/admin-enhancements.css',
