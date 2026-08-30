@@ -1,0 +1,106 @@
+/* ============================================================
+   АДМИН-ПАНЕЛЬ — УДОБСТВО
+   ============================================================
+
+   Замер до правки: 12 пользователей на странице занимали 6274 px прокрутки.
+   Каждая карточка была развёрнута всегда — имя, история, три поля ввода и
+   три кнопки, около 450 px на человека. Чтобы найти нужного, приходилось
+   листать мимо всех остальных, а поиск и постраничная навигация оставались
+   вверху и уезжали из вида.
+
+   Карточка теперь свёрнута: видно имя, статус и сводку баллов; поля и
+   действия раскрываются по нажатию. Панель поиска липнет к верху.
+   Палитра не меняется.
+   ============================================================ */
+
+.admin-v2-user__disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-md);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.admin-v2-user__disclosure > summary::-webkit-details-marker { display: none; }
+.admin-v2-user__disclosure > summary:hover { background: rgba(99, 102, 241, .06); }
+.admin-v2-user__disclosure > summary:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+}
+
+/* Сводка баллов прямо в свёрнутой строке: чаще всего админу нужно именно
+   посмотреть, а не править. */
+.admin-v2-user__summary-meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-v2-user__chevron {
+  flex: 0 0 auto;
+  width: .5em;
+  height: .5em;
+  margin-right: 4px;
+  border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft);
+  transform: rotate(45deg);
+  transition: transform var(--dur-base) var(--ease-out);
+  opacity: .65;
+}
+
+.admin-v2-user__disclosure[open] .admin-v2-user__chevron {
+  transform: rotate(-135deg);
+}
+
+.admin-v2-user__disclosure[open] > summary {
+  background: rgba(99, 102, 241, .07);
+}
+
+/* Раскрытая часть отделяется от строки, чтобы было видно, что к чему
+   относится, когда открыто несколько карточек подряд. */
+.admin-v2-user__disclosure > :not(summary) {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.admin-v2-user__disclosure > .admin-v2-user__id {
+  margin-top: 8px;
+}
+
+.admin-v2-user__disclosure[open] > .admin-v2-user__actions {
+  padding-bottom: 12px;
+}
+
+/* Свёрнутая карточка не должна занимать столько же, сколько раскрытая. */
+.admin-v2-user {
+  padding: 0 !important;
+}
+
+/* --- Липкий поиск ----------------------------------------------------- */
+
+/* Поиск и фильтры остаются на экране: при 24 пользователях список длиннее
+   экрана, и возвращаться наверх за строкой поиска приходилось постоянно. */
+.admin-v2__users-section .admin-v2__search,
+.admin-v2__users-section [data-admin-search],
+.admin-v2__filters {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky, 100);
+  background: var(--surface-strong);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-v2-user__chevron,
+  .admin-v2-user__disclosure > summary { transition: none; }
+}

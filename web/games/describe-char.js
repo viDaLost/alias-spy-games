@@ -73,7 +73,7 @@ function showNextDescribePlayer() {
       <strong>Игрок ${describeIndex + 1} из ${describePlayers.length}</strong>
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Посмотрите своё слово так, чтобы остальные не увидели экран.</p>
     </div>
-    <button onclick="revealDescribeCard(${describeIndex})" class="menu-button">👁 Показать слово</button>
+    <button onclick="revealDescribeCard(${describeIndex})" class="menu-button">Показать слово</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
@@ -89,7 +89,7 @@ function revealDescribeCard(index) {
       <h3>${describeSafe(character)}</h3>
       <small>Не называйте слово напрямую — объясняйте через признаки.</small>
     </div>
-    <button onclick="nextDescribePlayer()" class="correct-button">➡️ Следующий игрок</button>
+    <button onclick="nextDescribePlayer()" class="correct-button">Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 

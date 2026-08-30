@@ -202,16 +202,20 @@
 
     return `
       <article class="admin-v2-user ${user.isBanned ? "is-banned" : ""}" data-admin-user="${escapeHTML(user.id)}">
-        <div class="admin-v2-user__head">
+      <details class="admin-v2-user__disclosure">
+        <summary class="admin-v2-user__head">
           <div class="admin-v2-user__avatar">${escapeHTML((hasUsername ? user.username : user.id).slice(0, 1).toUpperCase() || "?")}</div>
           <div class="admin-v2-user__identity">
             <div class="admin-v2-user__name-row">
               <b>${escapeHTML(displayName)}</b>
               <span class="admin-v2-user__status">${user.isBanned ? "Заблокирован" : "Активен"}</span>
             </div>
-            <button type="button" class="admin-v2-user__id" data-copy-id="${escapeHTML(user.id)}" title="Скопировать ID">ID ${escapeHTML(user.id)} <span>⧉</span></button>
+            <span class="admin-v2-user__summary-meta">ID ${escapeHTML(user.id)} • ${escapeHTML(summaryScores(user))}</span>
           </div>
-        </div>
+          <span class="admin-v2-user__chevron" aria-hidden="true"></span>
+        </summary>
+
+        <button type="button" class="admin-v2-user__id" data-copy-id="${escapeHTML(user.id)}" title="Скопировать ID">ID ${escapeHTML(user.id)} <span>⧉</span></button>
 
         <div class="admin-v2-user__history" aria-label="Последние игры">${historyMarkup(user)}</div>
 
@@ -237,8 +241,15 @@
             : '<span class="admin-v2-user__chat is-disabled">Чат недоступен</span>'}
           <button type="button" class="admin-v2-user__ban ${user.isBanned ? "is-restore" : ""}" data-toggle-ban="${escapeHTML(user.id)}" data-ban-value="${user.isBanned ? "false" : "true"}">${user.isBanned ? "Разблокировать" : "Заблокировать"}</button>
         </div>
+      </details>
       </article>
     `;
+  }
+
+  // Строка под именем показывает главное, не раскрывая карточку:
+  // сколько у игрока звёзд по каждой игре.
+  function summaryScores(user) {
+    return `${safeNumber(user.wowStars)}/${safeNumber(user.wsStars)}/${safeNumber(user.swLevel)}`;
   }
 
   function renderUsers() {

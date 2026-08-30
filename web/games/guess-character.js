@@ -57,7 +57,7 @@ function displayPlayerButton() {
       <strong>Игрок ${guessCurrentPlayer}</strong>
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Нажмите кнопку, посмотрите персонажа и никому его не показывайте.</p>
     </div>
-    <button onclick="revealCharacter()" class="menu-button">👁 Показать персонажа</button>
+    <button onclick="revealCharacter()" class="menu-button">Показать персонажа</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
@@ -73,7 +73,7 @@ function revealCharacter() {
       <h3>${guessSafe(character)}</h3>
       <small>Опишите персонажа так, чтобы другой игрок смог угадать.</small>
     </div>
-    <button onclick="nextGuessPlayer()" class="correct-button">➡️ Следующий игрок</button>
+    <button onclick="nextGuessPlayer()" class="correct-button">Следующий игрок</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 

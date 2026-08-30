@@ -393,8 +393,8 @@ function showNextPlayerRole() {
       </button>
 
       <div class="spy-role-actions">
-        <button id="spy-reveal-btn" onclick="revealRole(${player.id})" class="menu-button spy-role-reveal">👁 Перевернуть карточку</button>
-        <button id="spy-next-btn" onclick="showNextSpyPlayer()" class="menu-button spy-role-next" hidden>➡️ Передать следующему</button>
+        <button id="spy-reveal-btn" onclick="revealRole(${player.id})" class="menu-button spy-role-reveal">Перевернуть карточку</button>
+        <button id="spy-next-btn" onclick="showNextSpyPlayer()" class="menu-button spy-role-next" hidden>Передать следующему</button>
         <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
       </div>
     </section>
@@ -453,7 +453,7 @@ function showDiscussionScreen() {
   container.innerHTML = `
     <h2>🗣 Раунд общения</h2>
     <div class="card"><strong>Обсуждение началось</strong><p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Задавайте вопросы и ищите игроков, которые не знают локацию.</p></div>
-    <button onclick="showFinalScreen()" class="correct-button">🎯 Голосование</button>
+    <button onclick="showFinalScreen()" class="correct-button">Голосование</button>
     <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Новая игра</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
@@ -469,8 +469,8 @@ function showFinalScreen() {
         ${spyPlayers.map(p => `<option value="${p.id}">Игрок ${p.id}</option>`).join("")}
       </select>
     </div>
-    <button onclick="submitVote()" class="correct-button">🗳 Проголосовать</button>
-    <button onclick="tryGuessLocation()" class="menu-button">🔍 Шпион угадывает локацию</button>
+    <button onclick="submitVote()" class="correct-button">Проголосовать</button>
+    <button onclick="tryGuessLocation()" class="menu-button">Шпион угадывает локацию</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }

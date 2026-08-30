@@ -494,7 +494,7 @@ function aliasShowResults() {
 
     <div class="row-center actions-bottom">
       <button onclick="aliasStartNextRound()" class="btn btn-primary btn-xl">Начать следующий раунд</button>
-      <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔘 Выбрать уровень</button>
+      <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">Выбрать уровень</button>
       <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
     </div>
   `;
@@ -574,7 +574,7 @@ function aliasShowAllWordsMessage() {
     <p class="hint">Можно начать заново или сбросить использованные слова.</p>
     <div class="row-center">
       <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">Новая игра</button>
-      <button onclick="aliasResetGuessedAndContinue()" class="btn btn-primary btn-xl">🧹 Сбросить использованные</button>
+      <button onclick="aliasResetGuessedAndContinue()" class="btn btn-primary btn-xl">Сбросить использованные</button>
       <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
     </div>
   `;

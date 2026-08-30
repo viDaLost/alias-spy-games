@@ -643,8 +643,8 @@ function startBibleWowGame(levelsUrl) {
       <div class="wow-wrap">
         <div class="wow-head">
            <div class="wow-head-row">
-             <div class="wow-chip btn" id="wow-menu">⬅ Меню</div>
-             <div class="wow-chip btn" id="wow-levels-open">▦ Уровни</div>
+             <div class="wow-chip btn" id="wow-menu">Меню</div>
+             <div class="wow-chip btn" id="wow-levels-open">Уровни</div>
            </div>
            <div class="wow-stars wow-stars-floating">⭐ <span id="wow-score">${st.coins}</span></div>
         </div>
@@ -675,9 +675,9 @@ function startBibleWowGame(levelsUrl) {
            <div class="wow-actions">
              <div class="wow-chip btn" id="wow-shuffle">⟲ Микс</div>
              <div class="wow-chip btn" id="wow-hint">Подсказка 6⭐</div>
-             <div class="wow-chip btn" id="wow-reveal">👁 Слово 20⭐</div>
+             <div class="wow-chip btn" id="wow-reveal">Слово 20⭐</div>
              <div class="wow-chip btn" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
-             <div class="wow-chip" id="wow-reset">↺ Сброс</div>
+             <div class="wow-chip" id="wow-reset">Сброс</div>
            </div>
         </div>
 

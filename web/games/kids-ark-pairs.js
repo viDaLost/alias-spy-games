@@ -402,8 +402,8 @@
         </div>
 
         <div class="kids-setup-footer">
-          <button class="menu-button" id="kids-best-btn" type="button">🏆 Результаты</button>
-          <button class="back-button" id="kids-back" type="button">⬅ В меню</button>
+          <button class="menu-button" id="kids-best-btn" type="button">Результаты</button>
+          <button class="back-button" id="kids-back" type="button">В меню</button>
         </div>
         <p class="kids-total-note">Уже сыграно: <strong>${stats.games}</strong> · найдено пар: <strong>${stats.pairs}</strong></p>
       </section>
@@ -538,7 +538,7 @@
 
         <div class="kids-game-actions">
           <button class="menu-button kids-hint-button" id="kids-hint" type="button">Подсказка · ${hintsLeft}</button>
-          <button class="back-button" id="kids-exit" type="button">⬅ Настройки</button>
+          <button class="back-button" id="kids-exit" type="button">Настройки</button>
         </div>
         <p class="kids-rule-note">${hasBonus ? `Среди карточек спрятан сюрприз ${collection.bonus} — он сразу отправится на борт.` : "Каждый ход — это две открытые карточки."}</p>
       </section>

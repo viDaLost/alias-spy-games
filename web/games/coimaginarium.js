@@ -99,8 +99,8 @@ function displayCoimaginariumUI() {
     </div>
 
     <div class="premium-actions">
-      <button onclick="changeCoimaginariumLetter()" class="menu-button">🔁 Сменить букву</button>
-      <button onclick="nextCoimaginariumRound()" class="correct-button">➡️ Новый раунд</button>
+      <button onclick="changeCoimaginariumLetter()" class="menu-button">Сменить букву</button>
+      <button onclick="nextCoimaginariumRound()" class="correct-button">Новый раунд</button>
       <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
     </div>
   `;

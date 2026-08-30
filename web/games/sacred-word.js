@@ -461,7 +461,7 @@ function startSacredWordGame(wordsUrl) {
     let actionButtons = '';
     
     if (state.finished && state.won) {
-      actionButtons = `<button class="start-button" id="sw-next-level" style="background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; max-width: 320px; margin: 0 auto; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">➡️ Следующий уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-next-level" style="background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; max-width: 320px; margin: 0 auto; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">Следующий уровень</button>`;
     } else {
       actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1; max-width: 320px; margin: 0 auto;">Сбросить уровень</button>`;
     }

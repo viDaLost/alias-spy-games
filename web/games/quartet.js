@@ -467,7 +467,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
           <div class="qv2-room-code">${escapeHtml(roomId)}</div>
           <div class="qv2-room-actions">
             <button class="qv2-btn qv2-btn--secondary" data-action="copy-room">⧉ Скопировать</button>
-            <button class="qv2-btn qv2-btn--secondary" data-action="share-room">↗ Поделиться</button>
+            <button class="qv2-btn qv2-btn--secondary" data-action="share-room">Поделиться</button>
           </div>
         </section>
 

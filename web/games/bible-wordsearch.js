@@ -124,7 +124,7 @@ function startBibleWordSearchGame(levelsUrl) {
           </div>
           <div class="ws-actions">
             <button class="start-button" id="ws-hint" onclick="window.__wsHint()">Подсказка (-${HINT_COST}⭐)</button>
-            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс</button>
+            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">Сброс</button>
           </div>
           <div class="ws-progress" id="ws-progress"></div>
         </div>
@@ -795,7 +795,7 @@ function startBibleWordSearchGame(levelsUrl) {
             <span style="opacity: 0.8; font-family: monospace; white-space: pre-wrap;">${e.stack ? e.stack.substring(0, 200) : 'Стэктрейс недоступен'}</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 10px;">
-             <button class="wrong-button" onclick="localStorage.removeItem('${STORAGE_KEY}'); localStorage.removeItem('${STARS_KEY}'); location.reload();" style="margin: 0;">♻️ Очистить кэш игры</button>
+             <button class="wrong-button" onclick="localStorage.removeItem('${STORAGE_KEY}'); localStorage.removeItem('${STARS_KEY}'); location.reload();" style="margin: 0;">Очистить кэш игры</button>
             <button class="back-button" onclick="goToMainMenu()" style="margin: 0;">В меню</button>
           </div>
         </div>

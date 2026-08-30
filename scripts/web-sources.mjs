@@ -33,6 +33,8 @@ export const styleSources = [
   // Оформление идёт последним: оно задаёт вид поверх исторических слоёв.
   'web/styles/typography.css',
   'web/styles/surfaces.css',
+  'web/styles/game-shell.css',
+  'web/styles/admin-usability.css',
 ];
 
 export const scriptSources = [
@@ -58,6 +60,7 @@ export const scriptSources = [
   'web/js/room-qr-scanner.js',
   'web/js/room-qr-addon.js',
   'web/js/telegram-gesture-guard.js',
+  'web/js/game-shell.js',
   'web/js/quartet-chat-addon.js',
   'web/js/quartet-v43-smooth-ui.js',
   'web/js/quartet-v45-card-id-fix.js',

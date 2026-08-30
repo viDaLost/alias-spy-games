@@ -1,0 +1,152 @@
+/* ============================================================
+   ИГРОВОЙ ЭКРАН — ОБЩИЙ ВИД
+   ============================================================
+
+   Главная и игры выглядели как два разных приложения: на главной —
+   насыщенный арт со стеклянными карточками, внутри игры — плоский
+   пастельный градиент и белые «плашки» без края.
+
+   Здесь игровые экраны получают тот же материал, ту же глубину и тот же
+   ритм, что и меню. Палитра не меняется: всё из tokens.css.
+   ============================================================ */
+
+/* --- Заголовок игры --------------------------------------------------- */
+
+body[data-mode="game"] #game-container > h2:first-child,
+body[data-mode="game"] #game-container .alias-title {
+  margin-bottom: 4px;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+/* Тонкая линия под заголовком вместо пустоты: отделяет шапку от содержимого
+   и задаёт экрану верх.
+
+   Позиционируется абсолютно, а не потоком: часть заголовков — flex-контейнеры
+   (у «Алиаса» это иконка плюс текст), и обычный блок с margin:auto становился
+   там очередным элементом строки и уезжал вбок. */
+body[data-mode="game"] #game-container > h2:first-child,
+body[data-mode="game"] #game-container .alias-title {
+  position: relative;
+  padding-bottom: 13px;
+}
+
+body[data-mode="game"] #game-container > h2:first-child::after,
+body[data-mode="game"] #game-container .alias-title::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 46px;
+  height: 3px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  opacity: .7;
+}
+
+/* --- Плашки ----------------------------------------------------------- */
+
+body[data-mode="game"] .card {
+  background: linear-gradient(158deg, rgba(255, 255, 255, .94), rgba(232, 240, 255, .82)) !important;
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--elev-2), var(--rim) !important;
+}
+
+/* Вложенность «плашка в плашке» была слышна визуально: у «Шпиона» поле ввода
+   лежало в карточке внутри карточки. Внутренние теряют собственную тень. */
+body[data-mode="game"] .card .card {
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, .6) !important;
+}
+
+/* --- Поля ------------------------------------------------------------- */
+
+body[data-mode="game"] input[type="number"],
+body[data-mode="game"] input[type="text"] {
+  font-family: var(--font-ui);
+  font-size: var(--text-lg) !important;
+  font-weight: var(--weight-strong) !important;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px var(--field-border);
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+
+body[data-mode="game"] input:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--primary), 0 0 0 4px var(--field-focus);
+}
+
+/* --- Кнопки ----------------------------------------------------------- */
+
+body[data-mode="game"] .btn,
+body[data-mode="game"] .start-button,
+body[data-mode="game"] .back-button {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.008em;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+body[data-mode="game"] .btn:active,
+body[data-mode="game"] .start-button:active,
+body[data-mode="game"] .back-button:active {
+  transform: translateY(1px) scale(.985);
+}
+
+/* Возврат в меню — вспомогательное действие, а не равноправная кнопка:
+   раньше он был такой же широкой белой плашкой, как «Начать игру». */
+body[data-mode="game"] .back-button {
+  background: rgba(255, 255, 255, .62) !important;
+  box-shadow: var(--elev-1), inset 0 0 0 1px rgba(99, 102, 241, .12) !important;
+  color: var(--primary) !important;
+  font-weight: var(--weight-medium) !important;
+}
+
+/* --- Появление -------------------------------------------------------- */
+
+@keyframes game-screen-in {
+  from { opacity: 0; transform: translateY(10px) scale(.995); }
+  to { opacity: 1; transform: none; }
+}
+
+body[data-mode="game"] #game-container > * {
+  animation: game-screen-in .34s var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-mode="game"] #game-container > * { animation: none; }
+  body[data-mode="game"] .btn,
+  body[data-mode="game"] .start-button,
+  body[data-mode="game"] .back-button { transition: none; }
+}
+
+/* Иконка игры в заголовке — та же, что на карточке в меню. */
+.game-shell__icon {
+  width: 1.5em;
+  height: 1.5em;
+  margin-right: .38em;
+  vertical-align: -.34em;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 10px rgba(49, 46, 129, .3));
+}
+
+/* --- Фон игрового экрана ---------------------------------------------
+   Был плоский пастельный градиент, никак не связанный с миром главной.
+   Те же цвета, но с глубиной: тёплый верх, холодный низ и мягкое
+   индиговое свечение по краям — экран перестаёт быть «белым листом»,
+   при этом не спорит с игровым полем. */
+body[data-mode="game"] {
+  background:
+    radial-gradient(88% 52% at 50% -8%, rgba(255, 255, 255, .95), transparent 62%),
+    radial-gradient(64% 40% at 6% 22%, rgba(191, 219, 254, .5), transparent 66%),
+    radial-gradient(70% 46% at 98% 34%, rgba(165, 214, 245, .42), transparent 68%),
+    linear-gradient(178deg, var(--bg-1) 0%, var(--bg-3) 46%, var(--bg-2) 100%) !important;
+  background-attachment: fixed !important;
+}
