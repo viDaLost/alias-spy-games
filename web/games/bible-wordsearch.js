@@ -106,7 +106,7 @@ function startBibleWordSearchGame(levelsUrl) {
       </style>
       <div class="ws-wrap fade-in">
         <div class="ws-topbar">
-          <button class="back-button" style="width:auto; padding: 10px 14px; margin:0;" onclick="goToMainMenu()">⬅️ Назад</button>
+          <button class="back-button" style="width:auto; padding: 10px 14px; margin:0;" onclick="goToMainMenu()">Назад</button>
           <div class="ws-title">
             <div class="ws-title__name">Поиск слов</div>
             <div class="ws-title__meta">
@@ -123,7 +123,7 @@ function startBibleWordSearchGame(levelsUrl) {
             </div>
           </div>
           <div class="ws-actions">
-            <button class="start-button" id="ws-hint" onclick="window.__wsHint()">💡 Подсказка (-${HINT_COST}⭐)</button>
+            <button class="start-button" id="ws-hint" onclick="window.__wsHint()">Подсказка (-${HINT_COST}⭐)</button>
             <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">♻️ Сброс</button>
           </div>
           <div class="ws-progress" id="ws-progress"></div>
@@ -132,7 +132,7 @@ function startBibleWordSearchGame(levelsUrl) {
         <div class="ws-board" id="ws-board" aria-label="Игровое поле"></div>
 
         <div class="ws-bottom">
-          <button class="start-button" id="ws-prev" onclick="window.__wsPrev()">⬅️ Пред.</button>
+          <button class="start-button" id="ws-prev" onclick="window.__wsPrev()">Пред.</button>
           <button class="start-button" id="ws-next" onclick="window.__wsNext()">След. ➡️</button>
         </div>
 
@@ -576,7 +576,7 @@ function startBibleWordSearchGame(levelsUrl) {
         <div class="ws-win__text" style="margin-bottom: 20px;">Тема: <b>${level.theme}</b></div>
         <div class="ws-win__actions" style="display: flex; flex-direction: column; gap: 10px;">
           <button class="start-button" id="ws-win-next">Следующий уровень ➡️</button>
-          <button class="back-button" id="ws-win-menu">⬅️ В меню игры</button>
+          <button class="back-button" id="ws-win-menu">В меню игры</button>
         </div>
       </div>
     `;
@@ -796,7 +796,7 @@ function startBibleWordSearchGame(levelsUrl) {
           </div>
           <div style="display: flex; flex-direction: column; gap: 10px;">
              <button class="wrong-button" onclick="localStorage.removeItem('${STORAGE_KEY}'); localStorage.removeItem('${STARS_KEY}'); location.reload();" style="margin: 0;">♻️ Очистить кэш игры</button>
-            <button class="back-button" onclick="goToMainMenu()" style="margin: 0;">⬅️ В меню</button>
+            <button class="back-button" onclick="goToMainMenu()" style="margin: 0;">В меню</button>
           </div>
         </div>
       `;

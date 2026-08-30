@@ -463,7 +463,7 @@ function startSacredWordGame(wordsUrl) {
     if (state.finished && state.won) {
       actionButtons = `<button class="start-button" id="sw-next-level" style="background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; max-width: 320px; margin: 0 auto; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">➡️ Следующий уровень</button>`;
     } else {
-      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1; max-width: 320px; margin: 0 auto;">🔄 Сбросить уровень</button>`;
+      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1; max-width: 320px; margin: 0 auto;">Сбросить уровень</button>`;
     }
 
     const levelSelectHtml = `
@@ -475,7 +475,7 @@ function startSacredWordGame(wordsUrl) {
     container.innerHTML = `
       <div class="sw-wrap">
         <div class="sw-topbar">
-          <button class="back-button" style="width:auto; padding:10px 14px; margin:0; border: 1px solid #cbd5e1;" id="sw-back-btn">⬅️ Назад</button>
+          <button class="back-button" style="width:auto; padding:10px 14px; margin:0; border: 1px solid #cbd5e1;" id="sw-back-btn">Назад</button>
           <div class="sw-titlebox">
             <div class="sw-title">Священное слово</div>
             <div class="sw-subtitle">${levelSelectHtml}</div>
@@ -580,7 +580,7 @@ function startSacredWordGame(wordsUrl) {
       container.innerHTML = `
         <div class="card" style="max-width:640px; margin: 1rem auto; background:#fff; padding:20px;">
           <p style="margin-bottom:12px; color:#991b1b; font-weight:700;">❌ Не удалось загрузить игру «Священное слово».</p>
-          <button class="back-button" onclick="goToMainMenu()" style="border: 1px solid #cbd5e1;">⬅️ В меню</button>
+          <button class="back-button" onclick="goToMainMenu()" style="border: 1px solid #cbd5e1;">В меню</button>
         </div>
       `;
     });

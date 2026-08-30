@@ -35,7 +35,7 @@ function startCoimaginariumGame(themesUrl) {
             <div class="app-error-icon">!</div>
             <h2>Не удалось загрузить темы</h2>
             <p>Проверьте файл с темами и подключение.</p>
-            <button onclick="goToMainMenu()" class="back-button">⬅️ В меню</button>
+            <button onclick="goToMainMenu()" class="back-button">В меню</button>
           </section>
         `;
       }
@@ -81,8 +81,8 @@ function displayCoimaginariumUI() {
         <strong>Темы закончились</strong>
         <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Можно начать новый набор тем или вернуться в меню.</p>
       </div>
-      <button onclick="startCoimaginariumGame('${themesUrlGlobal}')" class="menu-button">🔄 Начать заново</button>
-      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+      <button onclick="startCoimaginariumGame('${themesUrlGlobal}')" class="menu-button">Начать заново</button>
+      <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
     `;
     return;
   }
@@ -101,7 +101,7 @@ function displayCoimaginariumUI() {
     <div class="premium-actions">
       <button onclick="changeCoimaginariumLetter()" class="menu-button">🔁 Сменить букву</button>
       <button onclick="nextCoimaginariumRound()" class="correct-button">➡️ Новый раунд</button>
-      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+      <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
     </div>
   `;
 }

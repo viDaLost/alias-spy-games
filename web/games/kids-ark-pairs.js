@@ -537,7 +537,7 @@
         </div>
 
         <div class="kids-game-actions">
-          <button class="menu-button kids-hint-button" id="kids-hint" type="button">💡 Подсказка · ${hintsLeft}</button>
+          <button class="menu-button kids-hint-button" id="kids-hint" type="button">Подсказка · ${hintsLeft}</button>
           <button class="back-button" id="kids-exit" type="button">⬅ Настройки</button>
         </div>
         <p class="kids-rule-note">${hasBonus ? `Среди карточек спрятан сюрприз ${collection.bonus} — он сразу отправится на борт.` : "Каждый ход — это две открытые карточки."}</p>

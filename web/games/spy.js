@@ -286,8 +286,8 @@ async function startSpyGame(locationsUrl) {
         </div>
       </div>
 
-      <button onclick="handleStartGame()" class="menu-button">▶️ Начать игру</button>
-      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+      <button onclick="handleStartGame()" class="menu-button">Начать игру</button>
+      <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
     `;
   } catch (e) {
     console.error(e);
@@ -296,7 +296,7 @@ async function startSpyGame(locationsUrl) {
         <div class="app-error-icon">!</div>
         <h2>Не удалось загрузить локации</h2>
         <p>Проверьте файл ` + spySafe(locationsUrl) + ` и попробуйте снова.</p>
-        <button onclick="goToMainMenu()" class="back-button">⬅️ В меню</button>
+        <button onclick="goToMainMenu()" class="back-button">В меню</button>
       </section>
     `;
   }
@@ -395,7 +395,7 @@ function showNextPlayerRole() {
       <div class="spy-role-actions">
         <button id="spy-reveal-btn" onclick="revealRole(${player.id})" class="menu-button spy-role-reveal">👁 Перевернуть карточку</button>
         <button id="spy-next-btn" onclick="showNextSpyPlayer()" class="menu-button spy-role-next" hidden>➡️ Передать следующему</button>
-        <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+        <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
       </div>
     </section>
   `;
@@ -454,8 +454,8 @@ function showDiscussionScreen() {
     <h2>🗣 Раунд общения</h2>
     <div class="card"><strong>Обсуждение началось</strong><p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Задавайте вопросы и ищите игроков, которые не знают локацию.</p></div>
     <button onclick="showFinalScreen()" class="correct-button">🎯 Голосование</button>
-    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Новая игра</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
 
@@ -471,7 +471,7 @@ function showFinalScreen() {
     </div>
     <button onclick="submitVote()" class="correct-button">🗳 Проголосовать</button>
     <button onclick="tryGuessLocation()" class="menu-button">🔍 Шпион угадывает локацию</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
 
@@ -488,8 +488,8 @@ function tryGuessLocation() {
       <label for="locationInput" class="setup-label">Вариант шпиона</label>
       <input type="text" id="locationInput" placeholder="Введите локацию" class="input input-lg" />
     </div>
-    <button onclick="checkGuessedLocation()" class="correct-button">✅ Проверить</button>
-    <button onclick="showFinalScreen()" class="back-button">⬅️ Назад</button>
+    <button onclick="checkGuessedLocation()" class="correct-button">Проверить</button>
+    <button onclick="showFinalScreen()" class="back-button">Назад</button>
   `;
 }
 
@@ -511,8 +511,8 @@ function showResults(votedId) {
       <strong>${guessedCorrectly ? "Шпионы найдены" : "Шпионы скрылись"}</strong>
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;"><b>Шпионы:</b> ${spies.join(", ")}<br><b>Локация:</b> ${spySafe(sharedLocation)}</p>
     </div>
-    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">🔄 Новая игра</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Новая игра</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
 

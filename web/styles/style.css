@@ -2121,3 +2121,21 @@ body[data-current-game="quartet"] .action-panel { position: relative !important;
 }
 
 #system-actions .game-card__desc { display: none; }
+
+/* Стрелка возврата рисуется CSS, а не эмодзи ⬅️: раньше она приходила
+   системным цветным шрифтом и выбивалась из ряда прорисованных иконок.
+   Теперь она наследует цвет текста кнопки и одинакова во всех играх. */
+.back-button::before,
+.btn-ghost::before {
+  content: "";
+  display: inline-block;
+  width: 0.62em;
+  height: 0.62em;
+  margin-right: 0.5em;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  border-radius: 1px;
+  transform: rotate(45deg) translate(1px, -1px);
+  vertical-align: baseline;
+  opacity: 0.75;
+}

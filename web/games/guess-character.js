@@ -28,7 +28,7 @@ function startGuessCharacterGame(charsUrl) {
           <div class="app-error-icon">!</div>
           <h2>Ошибка загрузки персонажей</h2>
           <p>Файл персонажей не загрузился или содержит неверный формат.</p>
-          <button onclick="goToMainMenu()" class="back-button">⬅️ В меню</button>
+          <button onclick="goToMainMenu()" class="back-button">В меню</button>
         </section>
       `;
     });
@@ -45,8 +45,8 @@ function displayPlayerButton() {
         <strong>Оба игрока получили персонажей</strong>
         <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Теперь можно играть в отгадывание или начать новый раунд.</p>
       </div>
-      <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">🔄 Новый раунд</button>
-      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+      <button onclick="startGuessCharacterGame('${currentCharsUrl}')" class="menu-button">Новый раунд</button>
+      <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
     `;
     return;
   }
@@ -58,7 +58,7 @@ function displayPlayerButton() {
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Нажмите кнопку, посмотрите персонажа и никому его не показывайте.</p>
     </div>
     <button onclick="revealCharacter()" class="menu-button">👁 Показать персонажа</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
 
@@ -74,7 +74,7 @@ function revealCharacter() {
       <small>Опишите персонажа так, чтобы другой игрок смог угадать.</small>
     </div>
     <button onclick="nextGuessPlayer()" class="correct-button">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 
   guessCurrentPlayer++;

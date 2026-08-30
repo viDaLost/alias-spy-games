@@ -674,7 +674,7 @@ function startBibleWowGame(levelsUrl) {
 
            <div class="wow-actions">
              <div class="wow-chip btn" id="wow-shuffle">⟲ Микс</div>
-             <div class="wow-chip btn" id="wow-hint">💡 Подсказка 6⭐</div>
+             <div class="wow-chip btn" id="wow-hint">Подсказка 6⭐</div>
              <div class="wow-chip btn" id="wow-reveal">👁 Слово 20⭐</div>
              <div class="wow-chip btn" id="wow-bonus-open">Бонус: <span id="wow-bonus-count">${st.bonusWordsFound.size}</span></div>
              <div class="wow-chip" id="wow-reset">↺ Сброс</div>
@@ -1307,7 +1307,7 @@ function startBibleWowGame(levelsUrl) {
         <div style="padding:16px; text-align:center;">
           <p style="color:#ffb3b3; font-weight:700;">❌ Не удалось загрузить уровни.</p>
           <p style="opacity:.9;">Проверь файл уровней.</p>
-          <button class="back-button" onclick="goToMainMenu()">⬅️ В меню</button>
+          <button class="back-button" onclick="goToMainMenu()">В меню</button>
         </div>
       `;
     });

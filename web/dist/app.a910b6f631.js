@@ -188,7 +188,7 @@
         </div>
 
         <div class="kids-game-actions">
-          <button class="menu-button kids-hint-button" id="kids-hint" type="button">\u{1F4A1} \u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0430 \xB7 ${hintsLeft}</button>
+          <button class="menu-button kids-hint-button" id="kids-hint" type="button">\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0430 \xB7 ${hintsLeft}</button>
           <button class="back-button" id="kids-exit" type="button">\u2B05 \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438</button>
         </div>
         <p class="kids-rule-note">${hasBonus?`\u0421\u0440\u0435\u0434\u0438 \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A \u0441\u043F\u0440\u044F\u0442\u0430\u043D \u0441\u044E\u0440\u043F\u0440\u0438\u0437 ${collection.bonus} \u2014 \u043E\u043D \u0441\u0440\u0430\u0437\u0443 \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u0441\u044F \u043D\u0430 \u0431\u043E\u0440\u0442.`:"\u041A\u0430\u0436\u0434\u044B\u0439 \u0445\u043E\u0434 \u2014 \u044D\u0442\u043E \u0434\u0432\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438."}</p>

@@ -94,7 +94,7 @@ function startAliasGame() {
       <button onclick="loadAliasWords('hard')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--hard"></span>Тяжёлый</button>
     </div>
 
-    <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+    <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
   `;
 
   const menu = document.querySelector('.menu-container');
@@ -174,8 +174,8 @@ function aliasShowSetup(words, difficulty) {
     </div>
 
     <div class="row-center">
-      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">▶️ Начать раунд</button>
-      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">Начать раунд</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
     </div>
   `;
 }
@@ -265,14 +265,14 @@ async function startAliasTimer(difficulty) {
       <div id="alias-word" class="card word-card" aria-live="polite"></div>
 
       <div class="actions">
-        <button onclick="markGuessed(true)" class="btn btn-good btn-xl">✅ Отгадано (Enter)</button>
-        <button onclick="markGuessed(false)" class="btn btn-bad btn-xl">❌ Не отгадано (Backspace)</button>
-        <button onclick="aliasSkipWord()" class="btn btn-skip btn-xl">⏭️ Пропустить (Space)</button>
+        <button onclick="markGuessed(true)" class="btn btn-good btn-xl">Отгадано (Enter)</button>
+        <button onclick="markGuessed(false)" class="btn btn-bad btn-xl">Не отгадано (Backspace)</button>
+        <button onclick="aliasSkipWord()" class="btn btn-skip btn-xl">Пропустить (Space)</button>
       </div>
 
       <div class="row-center">
         <button onclick="aliasRestartRoundSameSettings()" class="btn btn-ghost btn-lg">⟲ Начать этот раунд заново</button>
-        <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+        <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
       </div>
     `;
 
@@ -421,8 +421,8 @@ function aliasShowResults() {
     container.innerHTML += `
       <p class="hint">Нет результатов. Начните игру снова.</p>
       <div class="row-center">
-        <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔄 Новая игра</button>
-        <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+        <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">Новая игра</button>
+        <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
       </div>`;
     return;
   }
@@ -493,9 +493,9 @@ function aliasShowResults() {
     </div>
 
     <div class="row-center actions-bottom">
-      <button onclick="aliasStartNextRound()" class="btn btn-primary btn-xl">▶️ Начать следующий раунд</button>
+      <button onclick="aliasStartNextRound()" class="btn btn-primary btn-xl">Начать следующий раунд</button>
       <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔘 Выбрать уровень</button>
-      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
     </div>
   `;
   container.appendChild(nextBlock);
@@ -558,8 +558,8 @@ function aliasShowSetupWithNewTime(difficulty) {
     </div>
 
     <div class="row-center">
-      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">▶️ Начать раунд</button>
-      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="startAliasTimer('${difficulty}')" class="btn btn-primary btn-xl">Начать раунд</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
     </div>
   `;
 }
@@ -573,9 +573,9 @@ function aliasShowAllWordsMessage() {
     <h2 class="alias-title">Все слова показаны</h2>
     <p class="hint">Можно начать заново или сбросить использованные слова.</p>
     <div class="row-center">
-      <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">🔄 Новая игра</button>
+      <button onclick="startAliasGame()" class="btn btn-neutral btn-lg">Новая игра</button>
       <button onclick="aliasResetGuessedAndContinue()" class="btn btn-primary btn-xl">🧹 Сбросить использованные</button>
-      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">⬅️ В главное меню</button>
+      <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">В главное меню</button>
     </div>
   `;
 }

@@ -23,8 +23,8 @@ function startDescribeCharacterGame(charsUrl) {
       <p class="hint">От 2 до 15 участников</p>
     </div>
 
-    <button onclick="startDescribeNewGame()" class="menu-button">▶️ Начать игру</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="startDescribeNewGame()" class="menu-button">Начать игру</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
 
@@ -61,8 +61,8 @@ function showNextDescribePlayer() {
     container.innerHTML = `
       <h2>🎉 Все слова розданы</h2>
       <div class="card"><strong>Начинайте объяснение по очереди</strong></div>
-      <button onclick="startDescribeCharacterGame('${window.charsUrl}')" class="menu-button">🔄 Новая игра</button>
-      <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+      <button onclick="startDescribeCharacterGame('${window.charsUrl}')" class="menu-button">Новая игра</button>
+      <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
     `;
     return;
   }
@@ -74,7 +74,7 @@ function showNextDescribePlayer() {
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Посмотрите своё слово так, чтобы остальные не увидели экран.</p>
     </div>
     <button onclick="revealDescribeCard(${describeIndex})" class="menu-button">👁 Показать слово</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
 
@@ -90,7 +90,7 @@ function revealDescribeCard(index) {
       <small>Не называйте слово напрямую — объясняйте через признаки.</small>
     </div>
     <button onclick="nextDescribePlayer()" class="correct-button">➡️ Следующий игрок</button>
-    <button onclick="goToMainMenu()" class="back-button">⬅️ Главное меню</button>
+    <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 
   describeIndex++;
