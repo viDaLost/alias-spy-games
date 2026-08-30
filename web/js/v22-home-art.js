@@ -4,7 +4,7 @@
   const VERSION = '22';
   const BIBLICAL_VERSION = '39';
   const ICONS = {
-    biblical: `web/assets/icons/biblical-treasures-v38.png?v=${BIBLICAL_VERSION}`,
+    biblical: `web/assets/icons/biblical-treasures-v38.webp?v=${BIBLICAL_VERSION}`,
     support: `web/assets/icons/support.webp?v=${VERSION}`,
     android: `web/assets/icons/android-download.webp?v=${VERSION}`,
     admin: `web/assets/icons/admin.webp?v=${VERSION}`,

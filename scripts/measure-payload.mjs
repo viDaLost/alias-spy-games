@@ -1,0 +1,22 @@
+import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {chromium} from 'playwright-core';
+const root=process.cwd();const served=new Map();
+const mime=new Map([['.html','text/html'],['.js','text/javascript'],['.css','text/css'],['.json','application/json'],['.png','image/png'],['.jpg','image/jpeg'],['.webp','image/webp'],['.svg','image/svg+xml'],['.obj','text/plain']]);
+const server=http.createServer((req,res)=>{try{const u=new URL(req.url||'/','http://x');const p=decodeURIComponent(u.pathname==='/'?'/index.html':u.pathname);const t=path.resolve(root,'.'+p);if(!t.startsWith(root+path.sep)||!fs.existsSync(t)||!fs.statSync(t).isFile()){res.writeHead(404).end();return;}const size=fs.statSync(t).size;served.set(p,size);res.writeHead(200,{'Content-Type':mime.get(path.extname(t).toLowerCase())||'application/octet-stream','Content-Length':size});fs.createReadStream(t).pipe(res);}catch(e){res.writeHead(500).end();}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${server.address().port}`;
+const b=await chromium.launch({headless:true,executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--no-sandbox','--disable-dev-shm-usage','--enable-unsafe-swiftshader']});
+const ctx=await b.newContext({viewport:{width:390,height:800},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+await ctx.addInitScript(()=>{window.__APP_TELEMETRY_DISABLED__=true;});
+const page=await ctx.newPage();
+await page.route('https://telegram.org/**',r=>r.fulfill({status:200,contentType:'text/javascript',body:'window.Telegram={WebApp:{initData:"",initDataUnsafe:{user:{id:999999,first_name:"QA"}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};'}));
+await page.route('https://script.google*.com/**',r=>r.fulfill({status:200,contentType:'application/json',body:'{"success":true,"isBanned":false,"wowStars":20,"lastGames":[]}'}));
+await page.route('https://*.workers.dev/**',r=>r.fulfill({status:200,contentType:'application/json',body:'{"ok":true}'}));
+await page.goto(base,{waitUntil:'commit'});
+await page.waitForSelector('#menu-container:not(.hidden)',{timeout:25000});
+await page.waitForTimeout(5000);
+let total=0;const byExt={};const big=[];
+for(const [p,s] of served){total+=s;const e=path.extname(p).toLowerCase()||'other';byExt[e]=(byExt[e]||0)+s;if(s>100000)big.push([s,p]);}
+console.log('файлов:',served.size,' всего:',(total/1048576).toFixed(2),'МБ');
+console.log(Object.entries(byExt).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k}=${(v/1024).toFixed(0)}КБ`).join('  '));
+console.log('крупнее 100 КБ:'); console.log(big.sort((a,b)=>b[0]-a[0]).map(([s,p])=>`  ${(s/1024).toFixed(0)}КБ ${p}`).join('\n')||'  нет');
+if(process.env.SHOT) await page.screenshot({path:process.env.SHOT,type:'jpeg',quality:62});
+await b.close();server.close();

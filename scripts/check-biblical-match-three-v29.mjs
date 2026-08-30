@@ -22,7 +22,7 @@ const COMPLETION_ART = [
   'web/assets/biblical-match-three/completion-3-stars-v40.webp',
 ];
 const required = [
-  'web/assets/icons/biblical-treasures-v38.png',
+  'web/assets/icons/biblical-treasures-v38.webp',
   BOARD_BACKGROUND,
   ...COMPLETION_ART,
   'web/assets/biblical-match-three/icons-v29/lamp-unlit.webp',
@@ -30,7 +30,6 @@ const required = [
 ];
 for (const file of required) ok(exists(file), `Biblical Treasures asset missing: ${file}`);
 for (const file of required.filter((f) => f.endsWith('.webp'))) ok(WEBP(file), `Biblical Treasures WebP has invalid bytes: ${file}`);
-ok(bytes('web/assets/icons/biblical-treasures-v38.png').subarray(1, 4).toString('ascii') === 'PNG', 'V38 transparent menu icon has invalid bytes');
 for (const file of COMPLETION_ART) {
   ok(bytes(file).length >= 160_000, `V40 completion artwork is unexpectedly compressed: ${file}`);
   ok(bytes(file).length < 600 * 1024, `V40 completion artwork exceeds the project image-size limit: ${file}`);
@@ -66,9 +65,9 @@ ok(index.includes('v24-biblical-treasures-board.js?v=29'), 'Stable V29 board wir
 ok(!index.includes('v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
 ok(loader.includes("const VERSION = '41'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(loader.includes('v37-biblical-treasures-lamp-swipe.js?v=37') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
-ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.png') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
-ok(launcher.includes('const VERSION="42"') && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.png') && launcher.includes('data-bmt-menu-art="v39"'), 'V42 canonical launcher icon source missing');
-ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.png'), 'Legacy hotfix can still revert the V39 menu icon');
+ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.webp') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
+ok(launcher.includes('const VERSION="42"') && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.webp') && launcher.includes('data-bmt-menu-art="v39"'), 'V42 canonical launcher icon source missing');
+ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.webp'), 'Legacy hotfix can still revert the V39 menu icon');
 ok(!read('web/games/biblical-match-three-v15-polish.js').includes('patchAppCard'), 'Game polish can still replace the app icon after returning to the menu');
 ok(game.includes('applyLevelGoalSpecials') && game.includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
 ok(result.includes('completion-1-star-v40.webp') && result.includes('completion-2-stars-v40.webp') && result.includes('completion-3-stars-v40.webp') && result.includes('dataset.resultStars'), 'HQ star-specific completion art wiring missing');

@@ -17,17 +17,17 @@
 
   const ICON_VERSION = '1';
   const ICONS = {
-    alias: `web/assets/icons/alias.png?v=${ICON_VERSION}`, idea: `web/assets/icons/idea.png?v=${ICON_VERSION}`,
-    character: `web/assets/icons/character.png?v=${ICON_VERSION}`, describe: `web/assets/icons/describe.png?v=${ICON_VERSION}`,
-    spy: `web/assets/icons/spy.png?v=${ICON_VERSION}`, quartet: `web/assets/icons/quartet.png?v=${ICON_VERSION}`,
+    alias: `web/assets/icons/alias.webp?v=${ICON_VERSION}`, idea: `web/assets/icons/idea.webp?v=${ICON_VERSION}`,
+    character: `web/assets/icons/character.webp?v=${ICON_VERSION}`, describe: `web/assets/icons/describe.webp?v=${ICON_VERSION}`,
+    spy: `web/assets/icons/spy.webp?v=${ICON_VERSION}`, quartet: `web/assets/icons/quartet.webp?v=${ICON_VERSION}`,
     bibleSketch: `web/assets/icons/bible-sketch.svg?v=${ICON_VERSION}`,
-    words: `web/assets/icons/words.png?v=${ICON_VERSION}`, search: `web/assets/icons/search.png?v=${ICON_VERSION}`,
-    matchThree: 'web/assets/icons/biblical-treasures-v38.png?v=39',
-    sacred: `web/assets/icons/sacred.png?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.png?v=${ICON_VERSION}`,
+    words: `web/assets/icons/words.webp?v=${ICON_VERSION}`, search: `web/assets/icons/search.webp?v=${ICON_VERSION}`,
+    matchThree: 'web/assets/icons/biblical-treasures-v38.webp?v=39',
+    sacred: `web/assets/icons/sacred.webp?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.webp?v=${ICON_VERSION}`,
   };
 
   const SUPPORT_URL = 'https://t.me/tribute/app?startapp=dPzg';
-  const SUPPORT_POSTER = 'web/assets/support-project.jpg?v=2';
+  const SUPPORT_POSTER = 'web/assets/support-project.webp?v=3';
   const SUPPORT_TEXT = `💙 Спасибо, что пользуетесь нашим проектом!\nНам очень приятно, что вы выбираете наши игры и проводите с ними время 😊\n\nМы продолжаем развивать проект: улучшаем уже существующие игры 🎮 и создаём новые ✨\n\nЕсли вам хочется поддержать нашу работу — будем искренне благодарны за любую помощь 💙\nВсе пожертвования помогают нам уделять больше времени развитию, улучшениям и созданию новых игр.\n\nСпасибо за вашу поддержку! 🥰💙\nБлагодаря вам проект может становиться лучше! ✨`;
 
   const HIDDEN_KEY = 'home_hidden_sections_v1';

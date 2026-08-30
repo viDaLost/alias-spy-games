@@ -269,9 +269,9 @@ private fun SpyRoleCard(
     val rotation by animateFloatAsState(if (revealed) 180f else 0f, tween(540), label = "spyCardFlip")
     val showFront = revealed && rotation > 90f
     val facePath = when {
-        !showFront -> "assets/cards/spy-card-back.png"
-        isSpy -> "assets/cards/spy-card-spy.png"
-        else -> "assets/cards/spy-card-player.png"
+        !showFront -> "assets/cards/spy-card-back.webp"
+        isSpy -> "assets/cards/spy-card-spy.webp"
+        else -> "assets/cards/spy-card-player.webp"
     }
     val mainText = if (isSpy) "Вы — шпион" else location
     val mainFontSize = when {

@@ -71,7 +71,7 @@ const host = read('android-app/app/src/main/java/com/vidalost/biblegames/games/G
 assert(host.includes('GameKey.SKETCH -> BibleSketchGame('), 'packaged Bible Sketch route is missing');
 assert(host.includes('GameKey.MATCH_THREE -> BiblicalMatchThreeGame(assets, profile, onProfileChange, onBack)'), 'packaged Biblical Treasures route is missing');
 assert(models.includes('MATCH_THREE("biblical-match-three", "Библейские сокровища"'), 'APK uses the wrong Biblical Treasures title');
-assert(models.includes('assets/icons/biblical-treasures-v38.png'), 'APK uses a placeholder Biblical Treasures menu icon');
+assert(models.includes('assets/icons/biblical-treasures-v38.webp'), 'APK uses a placeholder Biblical Treasures menu icon');
 
 const matchThree = read('android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeGame.kt');
 const matchThreeEngine = read('android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeEngine.kt');

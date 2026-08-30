@@ -10,11 +10,11 @@
   // Reference the exact binary names to keep the original PNGs untouched.
   // Foreground pedestal layer remains intentionally omitted from rendering.
   const LAYERS = [
-    { key: 'base',         file: '    01-gamehub-base.PNG',   depthY:  0.0015, depthX:  0.0000, scale: 1.000, opacity: 1.00, offsetY:  0 },
-    { key: 'atmosphere',   file: '    02-atmosphere.PNG',     depthY: -0.0055, depthX:  0.0012, scale: 1.004, opacity: 0.78, offsetY: -2 },
-    { key: 'architecture', file: '    03-architecture.PNG',   depthY: -0.0110, depthX: -0.0018, scale: 1.006, opacity: 0.94, offsetY:  2 },
-    { key: 'game-icons',   file: '    04-game-icons.PNG',     depthY: -0.0160, depthX:  0.0018, scale: 1.000, opacity: 1.00, offsetY: -8 },
-    { key: 'game-library', file: '    05-game-library.PNG',   depthY: -0.0210, depthX: -0.0020, scale: 1.005, opacity: 1.00, offsetY: 10 },
+    { key: 'base',         file: '01-gamehub-base.webp',   depthY:  0.0015, depthX:  0.0000, scale: 1.000, opacity: 1.00, offsetY:  0 },
+    { key: 'atmosphere',   file: '02-atmosphere.webp',     depthY: -0.0055, depthX:  0.0012, scale: 1.004, opacity: 0.78, offsetY: -2 },
+    { key: 'architecture', file: '03-architecture.webp',   depthY: -0.0110, depthX: -0.0018, scale: 1.006, opacity: 0.94, offsetY:  2 },
+    { key: 'game-icons',   file: '04-game-icons.webp',     depthY: -0.0160, depthX:  0.0018, scale: 1.000, opacity: 1.00, offsetY: -8 },
+    { key: 'game-library', file: '05-game-library.webp',   depthY: -0.0210, depthX: -0.0020, scale: 1.005, opacity: 1.00, offsetY: 10 },
   ];
 
   let scene = null;

@@ -64,12 +64,12 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
 // Some art is assembled at runtime from ASSET_ROOT + filename, so the full path never
 // appears as one literal string in a source file. Keep the allowlist narrow and explicit.
 const dynamicPublishedFiles = new Set([
-  'web/assets/home-gamehub-parallax-v1/    01-gamehub-base.PNG',
-  'web/assets/home-gamehub-parallax-v1/    02-atmosphere.PNG',
-  'web/assets/home-gamehub-parallax-v1/    03-architecture.PNG',
-  'web/assets/home-gamehub-parallax-v1/    04-game-icons.PNG',
-  'web/assets/home-gamehub-parallax-v1/    05-game-library.PNG',
-  'web/assets/startup-loader/portal-01.PNG',
+  'web/assets/home-gamehub-parallax-v1/01-gamehub-base.webp',
+  'web/assets/home-gamehub-parallax-v1/02-atmosphere.webp',
+  'web/assets/home-gamehub-parallax-v1/03-architecture.webp',
+  'web/assets/home-gamehub-parallax-v1/04-game-icons.webp',
+  'web/assets/home-gamehub-parallax-v1/05-game-library.webp',
+  'web/assets/startup-loader/portal-01.webp',
 ]);
 
 // Runtime catalogs may point at media directly (for example one illustration per
@@ -96,27 +96,12 @@ for (const file of publishedFiles) {
   }
 }
 
-const legacyOversizedImages = new Set([
-  'web/assets/cards/spy-card-back.png',
-  'web/assets/cards/spy-card-player.png',
-  'web/assets/cards/spy-card-spy.png',
-]);
-
-// The Game Hub background intentionally ships its original high-resolution PNG masters.
-// Keep these visible as warnings rather than silently bypassing the image-size policy.
-const sourceResolutionImagePrefixes = ['web/assets/home-gamehub-parallax-v1/'];
-const sourceResolutionImages = new Set(['web/assets/startup-loader/portal-01.PNG']);
-const isSourceResolutionImage = (name) =>
-  sourceResolutionImages.has(name) || sourceResolutionImagePrefixes.some((prefix) => name.startsWith(prefix));
-
+// Every published raster now ships in WebP at its display resolution, so the
+// 600 KiB budget applies without exemptions.
 for (const file of files.filter((f) => /\.(?:png|jpe?g|webp)$/i.test(f))) {
   const size = fs.statSync(file).size;
   if (size <= 600 * 1024) continue;
-  const name = rel(file);
-  const message = `Image over 600 KiB: ${name} (${Math.round(size / 1024)} KiB)`;
-  if (legacyOversizedImages.has(name)) warnings.push(`Legacy ${message}`);
-  else if (isSourceResolutionImage(name)) warnings.push(`Source-resolution ${message}`);
-  else failures.push(message);
+  failures.push(`Image over 600 KiB: ${rel(file)} (${Math.round(size / 1024)} KiB)`);
 }
 
 if (warnings.length) console.warn(`Project warnings (${warnings.length}):\n\n${warnings.join('\n\n')}`);

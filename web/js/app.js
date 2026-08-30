@@ -57,16 +57,16 @@ const GAME_TITLES = Object.fromEntries(
 
 const MENU_ICON_VERSION = "1";
 const MENU_ICON_SOURCES = {
-  alias: "web/assets/icons/alias.png",
-  idea: "web/assets/icons/idea.png",
-  character: "web/assets/icons/character.png",
-  describe: "web/assets/icons/describe.png",
-  spy: "web/assets/icons/spy.png",
-  quartet: "web/assets/icons/quartet.png",
-  words: "web/assets/icons/words.png",
-  search: "web/assets/icons/search.png",
-  sacred: "web/assets/icons/sacred.png",
-  ark: "web/assets/icons/ark.png",
+  alias: "web/assets/icons/alias.webp",
+  idea: "web/assets/icons/idea.webp",
+  character: "web/assets/icons/character.webp",
+  describe: "web/assets/icons/describe.webp",
+  spy: "web/assets/icons/spy.webp",
+  quartet: "web/assets/icons/quartet.webp",
+  words: "web/assets/icons/words.webp",
+  search: "web/assets/icons/search.webp",
+  sacred: "web/assets/icons/sacred.webp",
+  ark: "web/assets/icons/ark.webp",
 };
 
 function menuIconHTML(type, title = "") {

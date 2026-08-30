@@ -4,7 +4,7 @@
   const ASSET_VERSION = '18';
   const ASSET_ROOT = 'web/assets/home-gamehub-parallax-v1';
   const PORTAL_VERSION = '1';
-  const PORTAL_URL = `web/assets/startup-loader/portal-01.PNG?v=${PORTAL_VERSION}`;
+  const PORTAL_URL = `web/assets/startup-loader/portal-01.webp?v=${PORTAL_VERSION}`;
   const MIN_VISIBLE_MS = 620;
   const EXIT_MS = 480;
   const INGEST_INTERVAL_MS = 760;
@@ -13,18 +13,18 @@
   const startedAt = performance.now();
 
   const GAME_ICONS = [
-    { key: 'alias', src: 'web/assets/icons/alias.png?v=1' },
-    { key: 'idea', src: 'web/assets/icons/idea.png?v=1' },
-    { key: 'character', src: 'web/assets/icons/character.png?v=1' },
-    { key: 'describe', src: 'web/assets/icons/describe.png?v=1' },
-    { key: 'spy', src: 'web/assets/icons/spy.png?v=1' },
-    { key: 'quartet', src: 'web/assets/icons/quartet.png?v=1' },
+    { key: 'alias', src: 'web/assets/icons/alias.webp?v=1' },
+    { key: 'idea', src: 'web/assets/icons/idea.webp?v=1' },
+    { key: 'character', src: 'web/assets/icons/character.webp?v=1' },
+    { key: 'describe', src: 'web/assets/icons/describe.webp?v=1' },
+    { key: 'spy', src: 'web/assets/icons/spy.webp?v=1' },
+    { key: 'quartet', src: 'web/assets/icons/quartet.webp?v=1' },
     { key: 'artist', src: 'web/assets/icons/bible-sketch.webp?v=3' },
-    { key: 'words', src: 'web/assets/icons/words.png?v=1' },
-    { key: 'search', src: 'web/assets/icons/search.png?v=1' },
-    { key: 'sacred', src: 'web/assets/icons/sacred.png?v=1' },
-    { key: 'ark', src: 'web/assets/icons/ark.png?v=1' },
-    { key: 'treasures', src: 'web/assets/icons/biblical-treasures-v38.png?v=39' },
+    { key: 'words', src: 'web/assets/icons/words.webp?v=1' },
+    { key: 'search', src: 'web/assets/icons/search.webp?v=1' },
+    { key: 'sacred', src: 'web/assets/icons/sacred.webp?v=1' },
+    { key: 'ark', src: 'web/assets/icons/ark.webp?v=1' },
+    { key: 'treasures', src: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
   ];
 
   const scene = document.getElementById('gamehub-boot-scene');

@@ -5,9 +5,9 @@ let allLocations = [];
 
 const SPY_ROLE_CARD_VERSION = "2";
 const SPY_ROLE_CARD_ASSETS = Object.freeze({
-  back: `web/assets/cards/spy-card-back.png?v=${SPY_ROLE_CARD_VERSION}`,
-  player: `web/assets/cards/spy-card-player.png?v=${SPY_ROLE_CARD_VERSION}`,
-  spy: `web/assets/cards/spy-card-spy.png?v=${SPY_ROLE_CARD_VERSION}`,
+  back: `web/assets/cards/spy-card-back.webp?v=${SPY_ROLE_CARD_VERSION}`,
+  player: `web/assets/cards/spy-card-player.webp?v=${SPY_ROLE_CARD_VERSION}`,
+  spy: `web/assets/cards/spy-card-spy.webp?v=${SPY_ROLE_CARD_VERSION}`,
 });
 
 function spySafe(value) {

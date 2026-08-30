@@ -14,7 +14,7 @@ const RUNTIME_SRC=`web/games/biblical-match-three-v10-runtime.js?v=${VERSION}`;
 const UI_SRC=`web/games/biblical-match-three-v15-ui.js?v=${VERSION}`;
 const POLISH_SRC=`web/games/biblical-match-three-v15-polish.js?v=${VERSION}`;
 const LEVELS_SRC=`web/data/biblical_match_three_levels.json?v=${VERSION}`;
-const MENU_ICON=`web/assets/icons/biblical-treasures-v38.png?v=${MENU_ART_VERSION}`;
+const MENU_ICON=`web/assets/icons/biblical-treasures-v38.webp?v=${MENU_ART_VERSION}`;
 const STYLE_SOURCES=[
  `web/styles/biblical-match-three-v2.css?v=${VERSION}`,
  `web/styles/biblical-match-three-v2-polish.css?v=${VERSION}`,

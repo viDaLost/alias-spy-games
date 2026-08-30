@@ -5,18 +5,18 @@
 
   const CORE = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
   const GAME_CATALOG = [
-    { id: 'alias', title: 'Алиас', icon: 'web/assets/icons/alias.png?v=1' },
-    { id: 'coimaginarium', title: 'Соображариум', icon: 'web/assets/icons/idea.png?v=1' },
-    { id: 'guess', title: 'Угадай персонажа', icon: 'web/assets/icons/character.png?v=1' },
-    { id: 'describe', title: 'Опиши, но не называй', icon: 'web/assets/icons/describe.png?v=1' },
-    { id: 'spy', title: 'Шпион', icon: 'web/assets/icons/spy.png?v=1' },
-    { id: 'quartet', title: 'Квартет', icon: 'web/assets/icons/quartet.png?v=1' },
+    { id: 'alias', title: 'Алиас', icon: 'web/assets/icons/alias.webp?v=1' },
+    { id: 'coimaginarium', title: 'Соображариум', icon: 'web/assets/icons/idea.webp?v=1' },
+    { id: 'guess', title: 'Угадай персонажа', icon: 'web/assets/icons/character.webp?v=1' },
+    { id: 'describe', title: 'Опиши, но не называй', icon: 'web/assets/icons/describe.webp?v=1' },
+    { id: 'spy', title: 'Шпион', icon: 'web/assets/icons/spy.webp?v=1' },
+    { id: 'quartet', title: 'Квартет', icon: 'web/assets/icons/quartet.webp?v=1' },
     { id: 'bible-sketch', title: 'Библейский художник', icon: 'web/assets/icons/bible-sketch.webp?v=3' },
-    { id: 'bible-wow', title: 'Библейские слова', icon: 'web/assets/icons/words.png?v=1' },
-    { id: 'bible-wordsearch', title: 'Поиск библейских слов', icon: 'web/assets/icons/search.png?v=1' },
-    { id: 'sacred-word', title: 'Священное слово', icon: 'web/assets/icons/sacred.png?v=1' },
-    { id: 'kids-ark-pairs', title: 'Найди пару', icon: 'web/assets/icons/ark.png?v=1' },
-    { id: 'biblical-match-three', title: 'Библейские сокровища', icon: 'web/assets/icons/biblical-treasures-v38.png?v=39' },
+    { id: 'bible-wow', title: 'Библейские слова', icon: 'web/assets/icons/words.webp?v=1' },
+    { id: 'bible-wordsearch', title: 'Поиск библейских слов', icon: 'web/assets/icons/search.webp?v=1' },
+    { id: 'sacred-word', title: 'Священное слово', icon: 'web/assets/icons/sacred.webp?v=1' },
+    { id: 'kids-ark-pairs', title: 'Найди пару', icon: 'web/assets/icons/ark.webp?v=1' },
+    { id: 'biblical-match-three', title: 'Библейские сокровища', icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 

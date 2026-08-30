@@ -41,7 +41,7 @@ try{
       load('/web/assets/biblical-match-three/completion-1-star-v40.webp?v=40'),
       load('/web/assets/biblical-match-three/completion-2-stars-v40.webp?v=40'),
       load('/web/assets/biblical-match-three/completion-3-stars-v40.webp?v=40'),
-      load('/web/assets/icons/biblical-treasures-v38.png?v=39')
+      load('/web/assets/icons/biblical-treasures-v38.webp?v=39')
     ]);
     return{bg,background,lamp,one,two,three,menu,label:label?.textContent||'',boardClass:board?.classList.contains('bmt-v24-board'),wrapClass:wrap?.classList.contains('bmt-v24-board-wrap'),shape:board?.dataset.shape||''};
   });

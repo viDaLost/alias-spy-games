@@ -10,27 +10,27 @@
   const GAMES = Object.freeze({
     alias: {
       title: 'Алиас', eyebrow: 'Игра на скорость', status: 'Перемешиваем слова…', status2: 'Запускаем таймер…',
-      icon: 'web/assets/icons/alias.png?v=1', motif: 'alias',
+      icon: 'web/assets/icons/alias.webp?v=1', motif: 'alias',
     },
     coimaginarium: {
       title: 'Соображариум', eyebrow: 'Игра идей', status: 'Зажигаем идеи…', status2: 'Готовим ассоциации…',
-      icon: 'web/assets/icons/idea.png?v=1', motif: 'coimaginarium',
+      icon: 'web/assets/icons/idea.webp?v=1', motif: 'coimaginarium',
     },
     guess: {
       title: 'Угадай персонажа', eyebrow: 'Игра вопросов', status: 'Выбираем персонажа…', status2: 'Готовим подсказки…',
-      icon: 'web/assets/icons/character.png?v=1', motif: 'guess',
+      icon: 'web/assets/icons/character.webp?v=1', motif: 'guess',
     },
     describe: {
       title: 'Опиши, но не называй', eyebrow: 'Игра подсказок', status: 'Готовим слова…', status2: 'Настраиваем подсказки…',
-      icon: 'web/assets/icons/describe.png?v=1', motif: 'describe',
+      icon: 'web/assets/icons/describe.webp?v=1', motif: 'describe',
     },
     spy: {
       title: 'Шпион', eyebrow: 'Секретная игра', status: 'Шифруем роли…', status2: 'Выбираем тайную локацию…',
-      icon: 'web/assets/icons/spy.png?v=1', motif: 'spy',
+      icon: 'web/assets/icons/spy.webp?v=1', motif: 'spy',
     },
     quartet: {
       title: 'Квартет', eyebrow: 'Карточная игра', status: 'Тасуем колоду…', status2: 'Раздаём карты…',
-      icon: 'web/assets/icons/quartet.png?v=1', motif: 'quartet',
+      icon: 'web/assets/icons/quartet.webp?v=1', motif: 'quartet',
     },
     'bible-sketch': {
       title: 'Библейский художник', eyebrow: 'Рисуй и угадывай', status: 'Готовим холст…', status2: 'Затачиваем карандаши…',
@@ -38,23 +38,23 @@
     },
     'bible-wow': {
       title: 'Библейские слова', eyebrow: 'Игра со словами', status: 'Собираем буквы…', status2: 'Готовим уровень…',
-      icon: 'web/assets/icons/words.png?v=1', motif: 'bible-wow',
+      icon: 'web/assets/icons/words.webp?v=1', motif: 'bible-wow',
     },
     'bible-wordsearch': {
       title: 'Поиск библейских слов', eyebrow: 'Найди скрытое', status: 'Строим сетку…', status2: 'Прячем слова…',
-      icon: 'web/assets/icons/search.png?v=1', motif: 'bible-wordsearch',
+      icon: 'web/assets/icons/search.webp?v=1', motif: 'bible-wordsearch',
     },
     'sacred-word': {
       title: 'Священное слово', eyebrow: 'Открой слово', status: 'Зажигаем свет подсказок…', status2: 'Готовим загадку…',
-      icon: 'web/assets/icons/sacred.png?v=1', motif: 'sacred-word',
+      icon: 'web/assets/icons/sacred.webp?v=1', motif: 'sacred-word',
     },
     'kids-ark-pairs': {
       title: 'Найди пару', eyebrow: 'Игра на память', status: 'Перемешиваем пары…', status2: 'Прячем карточки…',
-      icon: 'web/assets/icons/ark.png?v=1', motif: 'kids-ark-pairs',
+      icon: 'web/assets/icons/ark.webp?v=1', motif: 'kids-ark-pairs',
     },
     'biblical-match-three': {
       title: 'Библейские сокровища', eyebrow: 'Собирай сокровища', status: 'Открываем сокровищницу…', status2: 'Расставляем драгоценности…',
-      icon: 'web/assets/icons/biblical-treasures-v38.png?v=39', motif: 'biblical-match-three',
+      icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39', motif: 'biblical-match-three',
     },
   });
 
