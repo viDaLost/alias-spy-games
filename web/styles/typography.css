@@ -1,0 +1,107 @@
+/* ============================================================
+   ТИПОГРАФИКА
+   ============================================================
+
+   Onest — вариативное начертание 400–900 с кириллицей, лежит в репозитории
+   (web/assets/fonts). Никаких внешних запросов и правок CSP: font-src 'self'.
+   Кириллический срез 15,5 КБ, латинский 33 КБ.
+
+   До этого приложение жило на системном шрифте, а весь текст был набран
+   весами 750–950 — из-за чего заголовок, подпись, кнопка и подсказка
+   выглядели одинаково важными. Здесь задаётся шкала размеров и весов;
+   палитра не затрагивается, она целиком в tokens.css.
+   ============================================================ */
+
+@font-face {
+  font-family: 'Onest';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../assets/fonts/onest-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: 'Onest';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('../assets/fonts/onest-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --font-ui: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+
+  /* Шкала: шаг ×1.2, привязана к 16px. Между соседними ступенями видна
+     разница, поэтому иерархия читается без утяжеления. */
+  --text-2xs: 0.69rem;
+  --text-xs: 0.78rem;
+  --text-sm: 0.86rem;
+  --text-md: 1rem;
+  --text-lg: 1.18rem;
+  --text-xl: 1.42rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: clamp(2rem, 8vw, 2.85rem);
+
+  /* Веса: обычный текст держится на 500, акцент — 700, заголовки — 800.
+     900 остаётся для одного заголовка на экран, а не для каждой подписи. */
+  --weight-body: 500;
+  --weight-medium: 600;
+  --weight-strong: 700;
+  --weight-heading: 800;
+  --weight-display: 900;
+
+  --leading-tight: 1.12;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+
+  --tracking-display: -0.035em;
+  --tracking-wide: 0.08em;
+}
+
+html body {
+  font-family: var(--font-ui);
+  font-weight: var(--weight-body);
+  letter-spacing: -0.005em;
+}
+
+/* Цифры в счётчиках, таймерах и балансах не должны дёргать соседей
+   при смене значения. */
+.timer, .app-progress-value, .bmt-wallet strong, .bmt-stats-v2 strong,
+[class*="score"], [class*="stars"], [class*="count"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Заголовки экранов: одна крупная строка с плотным трекингом. */
+.app-header h1, header.app-header h1 {
+  font-weight: var(--weight-display);
+  letter-spacing: var(--tracking-display);
+}
+
+.app-kicker, .menu-section-title {
+  font-weight: var(--weight-strong);
+  letter-spacing: var(--tracking-wide);
+}
+
+.game-card__title {
+  font-weight: var(--weight-heading);
+  letter-spacing: -0.012em;
+}
+
+.game-card__desc {
+  font-weight: var(--weight-body);
+  line-height: var(--leading-snug);
+}
+
+/* Исторические слои задают размеры и веса напрямую и с !important.
+   Здесь возвращается иерархия там, где всё было набрано одним весом. */
+.app-header h1, header.app-header h1 { letter-spacing: var(--tracking-display) !important; }
+.app-kicker { font-size: var(--text-2xs) !important; font-weight: var(--weight-strong) !important; }
+.app-subtitle { font-size: var(--text-sm) !important; font-weight: var(--weight-medium) !important; }
+.menu-section-title { font-size: var(--text-2xs) !important; font-weight: var(--weight-strong) !important; }
+.game-card__title { font-size: var(--text-md) !important; font-weight: var(--weight-heading) !important; }
+.game-card__desc { font-size: var(--text-xs) !important; font-weight: var(--weight-body) !important; opacity: .78 !important; }

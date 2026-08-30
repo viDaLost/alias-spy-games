@@ -1,0 +1,124 @@
+/* ============================================================
+   ПОВЕРХНОСТИ, ГЛУБИНА И ДВИЖЕНИЕ
+   ============================================================
+
+   Единый язык «стекла поверх арта» для всего приложения. Ни один цвет здесь
+   не вводится заново — всё берётся из tokens.css; меняются только плотность,
+   край, тень и поведение при нажатии.
+
+   Что не работало раньше:
+   — карточки были полупрозрачными без выраженного края, поэтому расплывались
+     на пёстром фоне и выглядели блёклыми;
+   — подпись шапки и заголовки секций шли по светлому арту с прозрачностью
+     0,62 и терялись;
+   — у нажатия не было отклика, тени были одинаковыми у всего.
+   ============================================================ */
+
+:root {
+  /* Ступени глубины: чем выше элемент, тем мягче и дальше тень. */
+  --elev-1: 0 1px 2px rgba(31, 41, 84, .05), 0 6px 16px -8px rgba(49, 46, 129, .18);
+  --elev-2: 0 2px 4px rgba(31, 41, 84, .06), 0 14px 30px -12px rgba(49, 46, 129, .26);
+  --elev-3: 0 4px 8px rgba(31, 41, 84, .07), 0 28px 56px -18px rgba(49, 46, 129, .34);
+
+  /* Светлый край сверху и тонкая линия по контуру — то, что отделяет
+     стекло от фона и даёт ощущение материала. */
+  --rim: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 0 0 1px rgba(99, 102, 241, .13);
+  --rim-strong: inset 0 1px 0 rgba(255, 255, 255, .95), inset 0 0 0 1px rgba(99, 102, 241, .2);
+
+  --ease-out: cubic-bezier(.22, .78, .3, 1);
+  --ease-spring: cubic-bezier(.2, .9, .28, 1.2);
+  --dur-fast: .16s;
+  --dur-base: .26s;
+}
+
+/* --- Карточка игры --------------------------------------------------- */
+
+.game-card {
+  background: linear-gradient(158deg, rgba(255, 255, 255, .9), rgba(219, 234, 254, .74));
+  box-shadow: var(--elev-2), var(--rim);
+  border-color: transparent;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.game-card:active {
+  transform: translateY(1px) scale(.982);
+  box-shadow: var(--elev-1), var(--rim-strong);
+}
+
+.game-card__icon--image {
+  filter: drop-shadow(0 8px 14px rgba(49, 46, 129, .26));
+}
+
+/* --- Шапка поверх арта ------------------------------------------------ */
+
+/* Мягкая подложка под заголовком: арт остаётся виден, текст перестаёт
+   конкурировать с узором за ним. */
+.app-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(120% 78% at 50% 22%,
+    rgba(255, 255, 255, .82) 0%,
+    rgba(233, 240, 255, .52) 46%,
+    transparent 78%);
+  pointer-events: none;
+}
+
+.app-kicker {
+  color: var(--primary);
+  opacity: .82;
+}
+
+.app-subtitle {
+  color: var(--ink);
+  opacity: .72;
+}
+
+.menu-section-title {
+  color: var(--primary);
+}
+
+/* --- Появление экрана ------------------------------------------------- */
+
+/* Карточки и секции проявляются лесенкой сверху вниз, а не все разом.
+   Задержка нарастает только по первым восьми — дальше это уже не читается
+   как хореография, а как задержка отрисовки. */
+@keyframes app-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+html.app-ui-ready .menu-section {
+  animation: app-rise .5s var(--ease-out) both;
+}
+
+html.app-ui-ready .menu-section:nth-of-type(2) { animation-delay: .06s; }
+html.app-ui-ready .menu-section:nth-of-type(3) { animation-delay: .12s; }
+html.app-ui-ready .menu-section:nth-of-type(4) { animation-delay: .18s; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.app-ui-ready .menu-section { animation: none; }
+  .game-card { transition: none; }
+}
+
+/* --- Фокус ------------------------------------------------------------ */
+
+/* Раньше видимого состояния фокуса почти не было: три файла на всё
+   приложение. Клавиатура и озвучка теперь видят, где находятся. */
+.game-card:focus-visible,
+.back-button:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* Подложка под шапкой и контраст поверх арта — с !important, потому что
+   исторические слои задают эти цвета напрямую. */
+.app-header { background: radial-gradient(126% 80% at 50% 20%, rgba(255,255,255,.86) 0%, rgba(232,239,255,.58) 44%, rgba(232,239,255,0) 76%) !important; }
+.app-kicker { color: var(--primary) !important; opacity: .9 !important; }
+.app-subtitle { color: #312e81 !important; opacity: .8 !important; }
+.menu-section-title { color: var(--primary) !important; opacity: .92 !important; }
+.game-card { background: linear-gradient(158deg, rgba(255,255,255,.92), rgba(219,234,254,.76)) !important; box-shadow: var(--elev-2), var(--rim) !important; }

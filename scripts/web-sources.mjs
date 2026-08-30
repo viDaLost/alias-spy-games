@@ -30,6 +30,9 @@ export const styleSources = [
   'web/styles/word-games-upgrade.css',
   'web/styles/bible-wow-word-flow.css',
   'web/styles/biblical-match-three-v38.css',
+  // Оформление идёт последним: оно задаёт вид поверх исторических слоёв.
+  'web/styles/typography.css',
+  'web/styles/surfaces.css',
 ];
 
 export const scriptSources = [
