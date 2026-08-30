@@ -2,6 +2,12 @@
 node_modules/
 dist/
 coverage/
+
+# web/dist is the opposite: GitHub Pages serves main:/ verbatim, so the built
+# bundle has to be committed for the site to work at all.
+!web/dist/
+!web/dist/**
+
 preview-dist/
 *.log
 
