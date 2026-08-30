@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isBundled } from './web-sources.mjs';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -14,11 +15,11 @@ const css = read('web/styles/quartet-v43-smooth.css');
 new Function(loader);
 new Function(ui);
 
-ok(index.includes('quartet-production-v43-loader.js?v=44'), 'V43 production loader cache-bust is not wired');
-ok(index.includes('quartet-v43-smooth-ui.js?v=43'), 'V43 viewport UI is not wired');
-ok(index.includes('quartet-v43-smooth.css?v=43'), 'V43 smooth CSS is not wired');
-ok(!index.includes('quartet-production-v42-loader.js?v=42'), 'Old V42 production loader is still active');
-ok(!index.includes('quartet-v4-preview-addon.js?v=42'), 'Old V42 DOM enhancer is still active');
+ok(isBundled('web/js/quartet-production-v43-loader.js'), 'V43 production loader is not wired');
+ok(isBundled('web/js/quartet-v43-smooth-ui.js'), 'V43 viewport UI is not wired');
+ok(isBundled('web/styles/quartet-v43-smooth.css'), 'V43 smooth CSS is not wired');
+ok(!isBundled('web/js/quartet-production-v42-loader.js'), 'Old V42 production loader is still active');
+ok(!isBundled('web/js/quartet-v4-preview-addon.js'), 'Old V42 DOM enhancer is still active');
 
 ok(core.includes("selectedTargetId = String(button.dataset.playerId || '');\n    renderState();"), 'Core selection patch target changed');
 ok(core.includes("reconcileSelection(previousState, state);\n        renderState();\n        handleStateTransition(previousState, state);"), 'Core realtime patch target changed');

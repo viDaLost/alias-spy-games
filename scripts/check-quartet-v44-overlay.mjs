@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { isBundled } from './web-sources.mjs';
 
 const root = process.cwd();
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -13,7 +14,7 @@ const dockCss = read('web/styles/quartet-v43-smooth.css');
 
 new Function(fix);
 
-ok(index.includes('quartet-v44-overlay-fix.js?v=44'), 'Quartet V44 overlay fix is not wired');
+ok(isBundled('web/js/quartet-v44-overlay-fix.js'), 'Quartet V44 overlay fix is not wired');
 ok(invite.includes('async function openQr(game, room, title'), 'RoomInvite QR signature changed');
 ok(fix.includes("RoomInvite.openQr('quartet', roomId"), 'Quartet QR does not call RoomInvite with the canonical signature');
 ok(fix.includes("event.stopImmediatePropagation()"), 'Broken V43 QR handler is not intercepted');

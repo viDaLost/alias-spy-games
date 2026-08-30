@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { isBundled } from './web-sources.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const coreSource = read('web/games/biblical-match-three-core.js');
@@ -23,7 +24,7 @@ assert.match(rulesSource, /\[data-booster=\"ark\"\]/);
 assert.match(rulesSource, /arkBoosterRemoved: true/);
 assert.match(rulesSource, /biblical-match-three-v45\.css\?v=45/);
 assert.match(styleSource, /data-booster="rainbow"/);
-assert.match(indexSource, /biblical-match-three-launcher\.js\?v=45/);
+assert.ok(isBundled('web/js/biblical-match-three-launcher.js'), 'biblical-match-three-launcher.js must ship in the bundle');
 assert.match(artSource, /rainbow:file\("covenant"\)/);
 assert.doesNotMatch(artSource, /boosters:\{[^\n]*ark:file\("ark"\)/);
 

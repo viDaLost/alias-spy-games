@@ -70,8 +70,19 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
 
   const action = String(body.payload?.action || '');
   androidActions.push(action);
-  if (!['syncUser', 'updateHistory', 'profileBootstrap'].includes(action)) {
+  // adminRoleStatus is the server-side role lookup the admin UI performs on boot.
+  // The Android test user is not an administrator, so the worker answers "no role".
+  if (!['syncUser', 'updateHistory', 'profileBootstrap', 'adminRoleStatus'].includes(action)) {
     throw new Error(`Unexpected Android action: ${action}`);
+  }
+
+  if (action === 'adminRoleStatus') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      body: JSON.stringify({ success: true, role: { isAdmin: false, isRoot: false }, source: 'cloudflare-android' }),
+    });
+    return;
   }
 
   const response = action === 'profileBootstrap'

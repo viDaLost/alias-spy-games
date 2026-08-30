@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import { isBundled, scriptSources } from './web-sources.mjs';
+import { coreWorkerHasLayer } from './core-worker-chain.mjs';
 
 const read = (file) => fs.readFileSync(file, 'utf8');
 const fail = (message) => { throw new Error(message); };
@@ -28,7 +30,7 @@ if (/script\.google\.com|script\.googleusercontent\.com|googleusercontent\.com/.
 
 if (!bridge.includes('legacyFallbackEnabled: false')) fail('Core bridge must explicitly disable legacy fallback.');
 if (!bridge.includes("source: 'cloudflare'")) fail('Core bridge must identify Cloudflare as canonical source.');
-if (!html.includes('web/js/backend-bridge.js?v=5')) fail('Admin-safe timeout bridge must be cache-busted in the production HTML.');
+if (!isBundled('web/js/backend-bridge.js')) fail('Admin-safe timeout bridge does not ship in the bundle.');
 for (const required of [
   'ACCESS_TIMEOUT_MS = 5000',
   'DEFAULT_TIMEOUT_MS = 20000',
@@ -47,7 +49,7 @@ if (bridge.includes('coreHealthy = response.ok')) {
   fail('HTTP 4xx responses must not put the whole Core bridge into failure cooldown.');
 }
 
-if (!wrangler.includes('"main": "src/index-v14.js"')) fail('Core Worker must use the v14 RBAC/admin-session production entrypoint.');
+if (!coreWorkerHasLayer('index-v14.js')) fail('Core Worker entrypoint does not reach the v14 RBAC/admin-session facade.');
 if (!adminSessionEntryWorker.includes("from './index-v13.js'")) fail('v14 must preserve the v13 server-side RBAC runtime.');
 if (!adminRbacEntryWorker.includes("from './index-v12.js'")) fail('v13 must preserve the validated v12 public social runtime.');
 

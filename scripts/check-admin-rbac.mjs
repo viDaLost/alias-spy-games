@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { coreWorkerChain } from './core-worker-chain.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const requireText = (source, text, label) => {
@@ -14,18 +15,9 @@ const wrangler = read('cloudflare/app-core-worker/wrangler.jsonc');
 const client = read('web/js/admin-live-modal-safety.js');
 const css = read('web/styles/admin-live-compact.css');
 
-// The production entrypoint moves forward as layers are added, so resolve the import
-// chain from wrangler.jsonc instead of pinning one version number here.
-const coreEntry = wrangler.match(/"main"\s*:\s*"src\/([^"]+)"/)?.[1];
-if (!coreEntry) throw new Error('Admin RBAC check failed: Core worker entrypoint is not declared in wrangler.jsonc');
-const coreChain = [];
-for (let file = coreEntry; file && !coreChain.includes(file); ) {
-  coreChain.push(file);
-  const src = read(`cloudflare/app-core-worker/src/${file}`);
-  file = src.match(/^import\s+[^;]*from\s+'\.\/(index-v\d+\.js)'/m)?.[1];
-}
-requireText(coreChain.join(' '), 'index-v14.js', 'production Core entrypoint does not reach the RBAC session facade');
-requireText(coreChain.join(' '), 'index-v13.js', 'production Core entrypoint does not reach the RBAC layer');
+requireText(coreWorkerChain.join(' '), 'index-v14.js', 'production Core entrypoint does not reach the RBAC session facade');
+requireText(coreWorkerChain.join(' '), 'index-v13.js', 'production Core entrypoint does not reach the RBAC layer');
+
 requireText(rbac, 'CREATE TABLE IF NOT EXISTS admin_roles', 'delegated roles are not persisted server-side');
 requireText(rbac, 'CREATE TABLE IF NOT EXISTS admin_role_audit', 'role grants/revokes are not audited');
 requireText(rbac, 'CREATE TABLE IF NOT EXISTS admin_action_audit', 'privileged actions are not audited');

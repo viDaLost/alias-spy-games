@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
+import { isBundled } from './web-sources.mjs';
 
 const css = fs.readFileSync('web/games/bible-sketch-landscape-v2.css', 'utf8');
 const launcher = fs.readFileSync('web/js/bible-sketch-launcher.js', 'utf8');
@@ -18,7 +19,7 @@ assert.match(launcher, /bible-sketch-landscape-v2\.css\?v=2/);
 assert.match(launcher, /bible-sketch\.js\?v=3/);
 assert.match(launcher, /if\s*\(!link\.isConnected\)\s*document\.head\.appendChild\(link\)/);
 assert.doesNotMatch(launcher, /if\s*\(isSketch\)\s*\{[\s\S]{0,180}?ensureLandscapeStyles\(\)/);
-assert.match(html, /bible-sketch-launcher\.js\?v=6/);
+assert.ok(isBundled('web/js/bible-sketch-launcher.js'), 'bible-sketch-launcher.js must ship in the bundle');
 
 const entryMatch = wrangler.match(/"main"\s*:\s*"([^"]+)"/);
 assert.ok(entryMatch, 'Bible Sketch Wrangler entrypoint is missing');

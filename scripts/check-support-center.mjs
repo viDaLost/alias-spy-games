@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import { isBundled } from './web-sources.mjs';
+import { coreWorkerHasLayer } from './core-worker-chain.mjs';
+const require = (condition, message) => { if (!condition) throw new Error(message); };
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const requireText = (text, needle, label) => {
@@ -49,7 +52,7 @@ requireText(socialEntryCore, "from './index-v11.js'", 'v12 entrypoint must prese
 requireText(socialEntryCore, "url.pathname === '/android/compat'", 'v12 Android social/profile wrapper is missing');
 requireText(rbacEntryCore, "from './index-v12.js'", 'v13 RBAC wrapper must preserve support-enabled v12 runtime');
 requireText(adminSessionEntryCore, "from './index-v13.js'", 'v14 admin-session wrapper must preserve v13 and support runtime');
-requireText(wrangler, 'src/index-v14.js', 'support-enabled v14 core entrypoint is not active');
+require(coreWorkerHasLayer('index-v14.js'), 'support-enabled v14 core entrypoint is not active');
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');
@@ -60,8 +63,8 @@ requireText(store, 'CREATE TABLE IF NOT EXISTS support_messages', 'message SQL m
 requireText(web, 'window.openSupportChat = openSupportCenter', 'legacy web support callback not replaced');
 requireText(web, 'supportAdminList', 'admin support panel missing');
 requireText(web, 'supportReply', 'admin reply action missing');
-requireText(html, 'support-center.js?v=1', 'support JS not mounted');
-requireText(html, 'support-center.css?v=1', 'support CSS not mounted');
+require(isBundled('web/js/support-center.js'), 'support JS not mounted');
+require(isBundled('web/styles/support-center.css'), 'support CSS not mounted');
 requireText(android, 'SupportScreen(cloud = cloud', 'Android login/native support navigation missing');
 requireText(android, 'AccessRestrictedScreen(', 'blocked-user support route missing');
 requireText(repo, 'createSupportTicket', 'Android create API missing');

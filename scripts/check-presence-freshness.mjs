@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import { isBundled } from './web-sources.mjs';
+import { coreWorkerHasLayer } from './core-worker-chain.mjs';
+const require = (condition, message) => { if (!condition) throw new Error(message); };
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const requireText = (text, needle, label) => {
@@ -75,14 +78,14 @@ forbidText(rescue, '?initData=', 'recovery live requests must not expose Telegra
 requireText(rescue, "'X-Telegram-Init-Data': initData", 'recovery live fallback must use a request header');
 requireText(shell, "page.dataset.adminVersion = '3'", 'admin shell v3 must stamp its runtime version');
 requireText(shell, "livePanel(page)", 'admin shell v3 must place live monitoring in the dashboard');
-requireText(html, 'presence-identity.js?v=7', 'fresh optimized WebApp presence client is not mounted');
-requireText(html, 'presence-game-bridge.js?v=1', 'game-navigation presence bridge is not mounted');
-requireText(html, 'admin-live-v3.js?v=7', 'admin live v3 monitor is not mounted with fresh cache key');
-requireText(html, 'admin-live-v3.css?v=6', 'admin live v3 styles are not mounted with fresh cache key');
-requireText(html, 'admin-live-compact.css?v=1', 'compact live user-card styles are not mounted');
-requireText(html, 'admin-live-rescue.js?v=2', 'admin live recovery client is not mounted');
-requireText(html, 'admin-shell-v3.js?v=1', 'admin shell v3 is not mounted');
-requireText(html, 'admin-shell-v3.css?v=1', 'admin shell v3 styles are not mounted');
-requireText(html, 'cloudflare-request-budget.js?v=2', 'Cloudflare request-budget client is not mounted');
+require(isBundled('web/js/presence-identity.js'), 'fresh optimized WebApp presence client is not mounted');
+require(isBundled('web/js/presence-game-bridge.js'), 'game-navigation presence bridge is not mounted');
+require(isBundled('web/js/admin-live-v3.js'), 'admin live v3 monitor is not mounted with fresh cache key');
+require(isBundled('web/styles/admin-live-v3.css'), 'admin live v3 styles are not mounted with fresh cache key');
+require(isBundled('web/styles/admin-live-compact.css'), 'compact live user-card styles are not mounted');
+require(isBundled('web/js/admin-live-rescue.js'), 'admin live recovery client is not mounted');
+require(isBundled('web/js/admin-shell-v3.js'), 'admin shell v3 is not mounted');
+require(isBundled('web/styles/admin-shell-v3.css'), 'admin shell v3 styles are not mounted');
+require(isBundled('web/js/cloudflare-request-budget.js'), 'Cloudflare request-budget client is not mounted');
 
 console.log('Verified presence, current-game tracking, scoped sessions and lower-frequency request budget checks passed');

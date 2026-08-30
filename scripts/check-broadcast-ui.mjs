@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { isBundled, scriptSources } from './web-sources.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const fail = (message) => { throw new Error(message); };
@@ -15,13 +16,13 @@ if (!mount.includes("querySelectorAll('.admin-v2__broadcast')")) fail('Broadcast
 if (!mount.includes("classList.add('admin-broadcast')")) fail('Broadcast mount bridge does not normalize the Cloudflare target class.');
 if (!broadcast.includes("document.querySelector('.admin-broadcast')")) fail('Cloudflare broadcast module does not hydrate the normalized target.');
 
-const mountIndex = html.indexOf('broadcast-admin-mount.js?v=1');
-const broadcastIndex = html.indexOf('broadcast-cloudflare.js?v=2');
-if (mountIndex < 0) fail('Broadcast mount bridge is not loaded by index.html.');
-if (broadcastIndex < 0) fail('Fresh Cloudflare broadcast bundle is not loaded by index.html.');
-if (mountIndex > broadcastIndex) fail('Broadcast mount bridge must load before the Cloudflare broadcast module.');
-if (!html.includes('admin-enhancements.js?v=24')) fail('Admin compatibility bundle cache version was not bumped to v24.');
-if (!html.includes('admin-shell-v3.js?v=1')) fail('Admin shell v3 is not loaded.');
-if (!html.includes('broadcast-cloudflare.css?v=2')) fail('Broadcast stylesheet cache version was not bumped.');
+const mountIndex = scriptSources.indexOf('web/js/broadcast-admin-mount.js');
+const broadcastIndex = scriptSources.indexOf('web/js/broadcast-cloudflare.js');
+if (mountIndex < 0) fail('Broadcast mount bridge does not ship in the bundle.');
+if (broadcastIndex < 0) fail('Cloudflare broadcast module does not ship in the bundle.');
+if (mountIndex > broadcastIndex) fail('Broadcast mount bridge must execute before the Cloudflare broadcast module.');
+if (!isBundled('web/js/admin-enhancements.js')) fail('Admin compatibility bundle does not ship in the bundle.');
+if (!isBundled('web/js/admin-shell-v3.js')) fail('Admin shell v3 is not loaded.');
+if (!isBundled('web/styles/broadcast-cloudflare.css')) fail('Broadcast stylesheet cache version was not bumped.');
 
 console.log('OK: admin shell v3 preserves the rich Cloudflare broadcast UI and bypasses stale Telegram cache.');

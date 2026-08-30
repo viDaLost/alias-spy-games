@@ -1,16 +1,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { styleSources, scriptSources } from './web-sources.mjs';
 
 const root = process.cwd();
 const failures = [];
 const warnings = [];
+// Installed dependencies are not project sources: they carry their own broken-looking
+// relative references and bundled vendor HTML, and scanning them makes the result depend
+// on whether `npm install` has run.
+const ignoredDirs = new Set(['.git', 'node_modules', 'build', '.gradle']);
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+  if (entry.isDirectory() && ignoredDirs.has(entry.name)) return [];
   const full = path.join(dir, entry.name);
   return entry.isDirectory() ? walk(full) : [full];
 });
 const rel = (file) => path.relative(root, file).replaceAll(path.sep, '/');
-const files = walk(root).filter((f) => !rel(f).startsWith('.git/'));
+const files = walk(root);
 
 // Standalone preview sources are copied into an isolated Cloudflare bundle by their
 // deployment workflow. Their vendor files are injected at build time and the subtree is
@@ -78,6 +84,7 @@ const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|json|kt|g
 const runtimeReferenceText = new Map(
   runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
 );
+const bundledSources = new Set([...styleSources, ...scriptSources]);
 const publishedFiles = files.filter((file) => rel(file).startsWith('web/') && !isPreviewOnly(file));
 
 for (const file of publishedFiles) {
@@ -91,10 +98,25 @@ for (const file of publishedFiles) {
     return aliases.some((alias) => text.includes(alias));
   });
 
-  if (!referenced && !dynamicPublishedFiles.has(name)) {
+  if (!referenced && !dynamicPublishedFiles.has(name) && !bundledSources.has(name)) {
     failures.push(`Unreferenced published file: ${name}`);
   }
 }
+
+// The eager stylesheets and scripts reach the browser through web/dist, so their own
+// paths no longer appear in index.html. They are reachable by being in the bundle.
+const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+for (const [kind, pattern] of [['stylesheet', /<link rel="stylesheet" href="(web\/dist\/app\.[0-9a-f]+\.css)"/], ['script', /<script src="(web\/dist\/app\.[0-9a-f]+\.js)" defer><\/script>/]]) {
+  const built = indexHtml.match(pattern)?.[1];
+  if (!built) failures.push(`index.html does not reference a built bundle ${kind}`);
+  else if (!fs.existsSync(path.join(root, built))) failures.push(`Built bundle ${kind} is missing: ${built}`);
+}
+for (const source of [...styleSources, ...scriptSources]) {
+  if (!fs.existsSync(path.join(root, source))) failures.push(`Bundle source is missing: ${source}`);
+}
+const distFiles = files.filter((f) => rel(f).startsWith('web/dist/')).map(rel);
+const staleDist = distFiles.filter((name) => !indexHtml.includes(name));
+if (staleDist.length) failures.push(`Stale build output not referenced by index.html: ${staleDist.join(', ')}`);
 
 // Every published raster now ships in WebP at its display resolution, so the
 // 600 KiB budget applies without exemptions.

@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import { isBundled } from './web-sources.mjs';
+import { coreWorkerHasLayer } from './core-worker-chain.mjs';
+const require = (condition, message) => { if (!condition) throw new Error(message); };
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const requireText = (text, needle, label) => {
@@ -41,7 +44,7 @@ requireText(socialEntryWorker, "from './index-v11.js'", 'v12 entrypoint must pre
 requireText(rbacEntryWorker, "from './index-v12.js'", 'v13 RBAC wrapper must preserve referral/retention-enabled v12 runtime');
 requireText(adminSessionEntryWorker, "from './index-v13.js'", 'v14 admin-session wrapper must preserve referral/retention runtime');
 
-requireText(wrangler, '"main": "src/index-v14.js"', 'v14 RBAC worker entry is not active');
+require(coreWorkerHasLayer('index-v14.js'), 'v14 RBAC worker entry is not active');
 requireText(wrangler, '"crons"', 'daily cleanup cron is not configured');
 
 requireText(survey, 'Откуда вы узнали о «Библейских играх»?', 'survey question is missing');
@@ -50,6 +53,6 @@ requireText(survey, "api('referralStatus')", 'survey does not check whether the 
 requireText(survey, "api('referralSubmit'", 'survey does not submit an answer');
 requireText(survey, 'Позже', 'survey has no non-blocking defer action');
 forbidText(survey, '<select', 'survey must not replace free-text input with preset choices');
-requireText(html, 'referral-survey.js?v=1', 'survey script is not mounted');
+require(isBundled('web/js/referral-survey.js'), 'survey script is not mounted');
 
 console.log('Referral survey and 30-day inactive account cleanup checks passed through the Core v14 RBAC entry chain.');

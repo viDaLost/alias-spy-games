@@ -1,4 +1,7 @@
 import fs from 'node:fs';
+import { isBundled } from './web-sources.mjs';
+import { coreWorkerHasLayer } from './core-worker-chain.mjs';
+const require = (condition, message) => { if (!condition) throw new Error(message); };
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const requireText = (text, needle, label) => {
@@ -98,7 +101,7 @@ requireText(socialEntryCore, "'profileInviteFriend'", 'v12 direct friend invitat
 requireText(socialEntryCore, 'telegramSendInvite', 'v12 direct Telegram friend delivery is missing');
 requireText(rbacEntryCore, "from './index-v12.js'", 'v13 RBAC wrapper must preserve the social/invite runtime');
 requireText(adminSessionEntryCore, "from './index-v13.js'", 'v14 admin-session wrapper must preserve the social/invite runtime');
-requireText(wrangler, 'src/index-v14.js', 'v14 social/RBAC worker entrypoint is not active');
+require(coreWorkerHasLayer('index-v14.js'), 'v14 social/RBAC worker entrypoint is not active');
 
 requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
 requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
@@ -111,13 +114,13 @@ requireText(css, '.bsk-room-head', 'Bible Sketch room header mobile fix is missi
 requireText(css, 'grid-template-columns:repeat(3,minmax(0,1fr))', 'Bible Sketch room actions are not laid out responsively');
 forbidText(css, '.room-scan-camera', 'obsolete custom camera scanner styles must be removed');
 
-requireText(html, 'room-invite.css?v=3', 'updated QR base styles are not mounted');
-requireText(html, 'room-qr-brand.css?v=1', 'branded QR styles are not mounted');
-requireText(html, 'room-invite.js?v=3', 'updated room invite helper is not mounted');
-requireText(html, 'room-qr-brand.js?v=1', 'branded QR renderer is not mounted');
-requireText(html, 'room-qr-scanner.js?v=4', 'fixed Telegram QR scanner is not mounted');
-requireText(html, 'room-qr-addon.js?v=4', 'updated room QR addon is not mounted');
-requireText(html, 'telegram-gesture-guard.js?v=1', 'Telegram gesture guard is not mounted');
-requireText(html, 'quartet-gesture-guard.css?v=1', 'Quartet gesture styles are not mounted');
+require(isBundled('web/styles/room-invite.css'), 'updated QR base styles are not mounted');
+require(isBundled('web/styles/room-qr-brand.css'), 'branded QR styles are not mounted');
+require(isBundled('web/js/room-invite.js'), 'updated room invite helper is not mounted');
+require(isBundled('web/js/room-qr-brand.js'), 'branded QR renderer is not mounted');
+require(isBundled('web/js/room-qr-scanner.js'), 'fixed Telegram QR scanner is not mounted');
+require(isBundled('web/js/room-qr-addon.js'), 'updated room QR addon is not mounted');
+require(isBundled('web/js/telegram-gesture-guard.js'), 'Telegram gesture guard is not mounted');
+require(isBundled('web/styles/quartet-gesture-guard.css'), 'Quartet gesture styles are not mounted');
 
 console.log('Room QR, Telegram Mini App links and direct app-friend invitations are wired through the Core v14 RBAC/social entry chain.');

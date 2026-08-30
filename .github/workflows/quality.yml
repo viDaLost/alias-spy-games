@@ -80,6 +80,8 @@ jobs:
           node-version: 22
       - name: Install browser test tooling
         run: npm install --no-audit --no-fund
+      - name: Verify the committed bundle matches its sources
+        run: npm run check:build
       - name: Locate Chrome
         run: |
           CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { isBundled } from './web-sources.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
@@ -91,12 +92,12 @@ includes('web/styles/admin-live-v3.css', 'width:44px;height:44px', 'Admin contro
 includes('web/styles/admin-live-v3.css', 'admin-live-modal-open', 'Admin modals must lock background scrolling');
 includes('web/styles/admin-live-compact.css', 'grid-template-columns: repeat(2, minmax(0, 1fr));', 'Online balances must stay in a compact two-column grid');
 includes('web/styles/admin-live-compact.css', 'grid-template-columns: 44px minmax(24px, 1fr) 44px;', 'Compact balance controls must preserve 44px touch targets');
-includes('index.html', 'admin-live-v3.js?v=7', 'Admin live cache key must remain current');
-includes('index.html', 'admin-live-compact.css?v=1', 'Compact admin live stylesheet must be loaded');
+assert(isBundled('web/js/admin-live-v3.js'), 'Admin live runtime must ship in the bundle');
+assert(isBundled('web/styles/admin-live-compact.css'), 'Compact admin live stylesheet must ship in the bundle');
 includes('index.html', 'telegram-desktop-bootstrap-20260828', 'Build marker must identify the current production bootstrap release');
-includes('index.html', 'cloudflare-request-budget.js?v=2', 'Cloudflare request-budget client must be loaded');
-includes('index.html', 'presence-identity.js?v=7', 'Presence cache key must be bumped');
-includes('index.html', 'presence-game-bridge.js?v=1', 'Presence game bridge must be loaded');
-includes('index.html', 'bmt-stars-cloud-sync.js?v=49', 'BMT sync cache key must be bumped');
+assert(isBundled('web/js/cloudflare-request-budget.js'), 'Cloudflare request-budget client must ship in the bundle');
+assert(isBundled('web/js/presence-identity.js'), 'Presence identity must ship in the bundle');
+assert(isBundled('web/js/presence-game-bridge.js'), 'Presence game bridge must ship in the bundle');
+assert(isBundled('web/js/bmt-stars-cloud-sync.js'), 'BMT star sync must ship in the bundle');
 
 console.log('Admin live, compact layout, current-game presence, Core v14 RBAC session chain and Cloudflare request-budget regression checks passed.');

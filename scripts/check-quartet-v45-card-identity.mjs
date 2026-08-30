@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { isBundled } from './web-sources.mjs';
 
 const catalog = JSON.parse(fs.readFileSync('web/data/quartet_bible.json', 'utf8'));
 const source = fs.readFileSync('web/js/quartet-v45-card-id-fix.js', 'utf8');
@@ -17,7 +18,7 @@ for (const quartet of catalog.quartets || []) {
 
 assert.deepEqual(byTitle.get('Иоанн')?.map((item) => item.cardId).sort(), ['apostles_john', 'evangelists_john']);
 assert.deepEqual(byTitle.get('Иаков')?.map((item) => item.cardId).sort(), ['apostles_james', 'patriarchs_jacob']);
-assert.match(index, /quartet-v45-card-id-fix\.js\?v=45/);
+assert.ok(isBundled('web/js/quartet-v45-card-id-fix.js'), 'card identity fix must ship in the bundle');
 assert.match(source, /qv2-group-/);
 assert.match(source, /document\.addEventListener\('click', repairBeforeSelection, true\)/);
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { isBundled } from './web-sources.mjs';
 
 const root = process.cwd();
 const require = createRequire(import.meta.url);
@@ -163,11 +164,11 @@ ok(css21.includes('board-background-v35.webp') && css21.includes('.bmt-board-wra
 ok(systemIcons.includes('support.webp') && systemIcons.includes('admin.webp') && !systemIcons.includes('<svg'), 'V21 support/admin artwork wiring missing');
 ok(androidMenu.includes('android-download.webp') && !androidMenu.includes('<svg'), 'V21 Android artwork wiring missing');
 ok(qrAddon.includes('qr-scanner.webp'), 'V21 QR artwork wiring missing');
-ok(indexHtml.includes('biblical-match-three-launcher.js?v=42') && indexHtml.includes('system-icons.js?v=22') && indexHtml.includes('android-download-menu.js?v=25') && indexHtml.includes('room-qr-addon.js?v=4'), 'current cache bust wiring missing');
+ok(isBundled('web/js/biblical-match-three-launcher.js') && isBundled('web/js/system-icons.js') && isBundled('web/js/android-download-menu.js') && isBundled('web/js/room-qr-addon.js'), 'current cache bust wiring missing');
 
 const v22Assets = ['web/assets/icons/biblical-treasures-v38.webp', 'web/assets/icons/support.webp', 'web/assets/icons/android-download.webp', 'web/assets/icons/admin.webp', 'web/assets/biblical-match-three/board-background-v35.webp'];
 for (const f of v22Assets) ok(exists(f), `V22 artwork missing: ${f}`);
-ok(indexHtml.includes('v22-home-art.js?v=39') && indexHtml.includes('v22-game-loader.js?v=41'), 'current UI loader wiring missing');
+ok(isBundled('web/js/v22-home-art.js') && isBundled('web/js/v22-game-loader.js'), 'current UI loader wiring missing');
 
 const syms = ['bible', 'fish', 'dove', 'lamp', 'crown', 'ark'];
 for (const rows of [5, 6, 7, 8]) {
