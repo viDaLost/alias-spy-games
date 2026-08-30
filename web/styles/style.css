@@ -2037,3 +2037,87 @@ body[data-current-game="quartet"] .action-panel { position: relative !important;
   body[data-current-game="quartet"] .players-ring { grid-template-columns: 1fr !important; }
   body[data-current-game="quartet"] .quartet-play-guide { grid-template-columns: 1fr !important; }
 }
+
+/* =========================================================
+   МЕНЮ v47 — сетка, описания, системные действия
+   =========================================================
+   Правки к тому, что было видно на скриншотах главного экрана:
+
+   1. Нечётные ряды оставляли пустую половину — «Библейский художник»,
+      «Священное слово» и «Сканировать QR» висели в одиночестве рядом с
+      дырой. Последняя карточка нечётного ряда занимает всю ширину.
+
+   2. Описание карточки было скрыто на ширинах ≤480px, но снова показано
+      на ≤360px, где раскладка вдобавок менялась с колонки на строку.
+      Получались два разных дизайна на соседних размерах экрана.
+      Теперь описание видно всегда, а раскладка одна.
+
+   3. Системные действия (поддержка, скачивание, QR, админка) лежали в
+      общей сетке карточками того же размера, что и игры. Они не игры —
+      им отдельная компактная строка. */
+
+.menu-grid > .game-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+/* Одна раскладка на всех телефонах: иконка сверху, заголовок, описание. */
+@media (max-width: 480px) {
+  .game-card__desc { display: block; }
+}
+
+@media (max-width: 360px) {
+  .game-card {
+    min-height: 150px;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    padding: 16px 10px 14px;
+  }
+}
+
+/* Заголовок карточки не должен рвать слово пополам. */
+.game-card__title {
+  text-wrap: balance;
+  hyphens: none;
+}
+
+/* --- Системные действия --- */
+#system-actions {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+#system-actions .game-card,
+#system-actions .game-card--system,
+#system-actions .game-card--admin {
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  text-align: left;
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  box-shadow: none;
+}
+
+#system-actions .game-card:last-child:nth-child(odd) {
+  grid-column: auto;
+}
+
+#system-actions .game-card__icon,
+#system-actions .game-card__icon--image,
+#system-actions .game-card__svg {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  margin: 0;
+}
+
+#system-actions .game-card__title {
+  font-size: 0.83rem;
+  line-height: 1.2;
+}
+
+#system-actions .game-card__desc { display: none; }
