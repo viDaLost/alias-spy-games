@@ -101,6 +101,8 @@ jobs:
         run: npm run check:presence:browser
       - name: Check Cloudflare request budget in browser
         run: npm run check:request-budget:browser
+      - name: Check Telegram swipe guard on game boards
+        run: npm run check:swipe-guard
       - name: Open every game and return to menu
         run: npm run smoke:games
       - name: Test Biblical Treasures HQ icons and swipe

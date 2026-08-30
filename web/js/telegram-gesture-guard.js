@@ -1,6 +1,28 @@
 (() => {
+  // Keeps Telegram's pull-down-to-close gesture from stealing swipes that belong to
+  // a game board.
+  //
+  // Two things went wrong for Biblical Treasures:
+  //
+  // 1. The guard only recognised Quartet, so a downward swipe on a match-three tile
+  //    was never protected and Telegram collapsed the Mini App instead.
+  // 2. disableVerticalSwipes() ran once on DOMContentLoaded, but the Telegram SDK is
+  //    loaded with `async`. When it arrived after that point -- which is exactly what
+  //    a slow connection produces -- window.Telegram did not exist yet and the call
+  //    was silently skipped for the whole session.
+  //
+  // The board already sets touch-action: none, so the browser is not the one scrolling;
+  // the close gesture is native to the Telegram client. disableVerticalSwipes is the
+  // API for it (Bot API 7.7+), and the touchmove fallback below covers older clients
+  // that do not implement it.
+
+  const GESTURE_GAMES = new Set(['quartet', 'biblical-match-three']);
+  const SDK_RETRY_LIMIT = 40;
+  const SDK_RETRY_MS = 150;
+
   let touchStartX = 0;
   let touchStartY = 0;
+  let sdkRetries = 0;
 
   function telegramWebApp() {
     return window.Telegram?.WebApp || null;
@@ -8,13 +30,22 @@
 
   function disableTelegramVerticalSwipes() {
     const tg = telegramWebApp();
-    if (!tg) return;
+    if (!tg) return false;
     try { tg.expand?.(); } catch {}
     try { tg.disableVerticalSwipes?.(); } catch {}
+    return true;
   }
 
-  function isQuartetOpen() {
-    return document.body?.dataset?.currentGame === 'quartet';
+  /** Calls through as soon as the async-loaded Telegram SDK actually exists. */
+  function disableWhenSdkReady() {
+    if (disableTelegramVerticalSwipes()) return;
+    if (sdkRetries >= SDK_RETRY_LIMIT) return;
+    sdkRetries += 1;
+    window.setTimeout(disableWhenSdkReady, SDK_RETRY_MS);
+  }
+
+  function isGestureGame() {
+    return GESTURE_GAMES.has(String(document.body?.dataset?.currentGame || ''));
   }
 
   function pageScrollTop() {
@@ -30,11 +61,11 @@
     if (!touch) return;
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
-    if (isQuartetOpen()) disableTelegramVerticalSwipes();
+    if (isGestureGame()) disableTelegramVerticalSwipes();
   }
 
   function onTouchMove(event) {
-    if (!isQuartetOpen() || pageScrollTop() > 1) return;
+    if (!isGestureGame() || pageScrollTop() > 1) return;
     const touch = event.touches?.[0];
     if (!touch) return;
 
@@ -46,7 +77,7 @@
   }
 
   function syncGuard() {
-    if (isQuartetOpen()) disableTelegramVerticalSwipes();
+    if (isGestureGame()) disableTelegramVerticalSwipes();
   }
 
   document.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -59,10 +90,14 @@
     attributeFilter: ['data-current-game', 'data-mode', 'class'],
   });
 
+  // The SDK tag is async, so it may still be in flight: take whichever comes first.
+  document.getElementById('telegram-web-app-sdk')
+    ?.addEventListener('load', disableWhenSdkReady, { once: true });
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', disableTelegramVerticalSwipes, { once: true });
+    document.addEventListener('DOMContentLoaded', disableWhenSdkReady, { once: true });
   } else {
-    disableTelegramVerticalSwipes();
+    disableWhenSdkReady();
   }
 
   window.addEventListener('pagehide', () => observer.disconnect(), { once: true });

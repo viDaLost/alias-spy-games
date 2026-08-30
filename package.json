@@ -17,6 +17,7 @@
     "check:nile-v75": "node scripts/check-moses-nile-v75.mjs",
     "check:mobile": "node scripts/check-mobile-layout.mjs",
     "check:errors": "node scripts/check-error-system.mjs",
+    "check:swipe-guard": "node scripts/check-telegram-swipe-guard.mjs",
     "check:home": "node scripts/check-home-controls.mjs",
     "check:quartet": "node scripts/check-quartet-card-table-v3.mjs && node scripts/check-quartet-v43-smooth.mjs && node scripts/check-quartet-v44-overlay.mjs && node scripts/check-quartet-v45-card-identity.mjs",
     "check:bible-sketch": "node scripts/check-bible-sketch-landscape-v2.mjs",
