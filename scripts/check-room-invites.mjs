@@ -104,8 +104,12 @@ requireText(adminSessionEntryCore, "from './index-v13.js'", 'v14 admin-session w
 require(coreWorkerHasLayer('index-v14.js'), 'v14 social/RBAC worker entrypoint is not active');
 
 requireText(gestureJs, 'disableVerticalSwipes', 'Telegram vertical swipe guard is missing');
-requireText(gestureJs, "dataset?.currentGame === 'quartet'", 'Quartet-specific pull-down fallback is missing');
-requireText(gestureJs, "event.preventDefault()", 'Quartet pull-down fallback does not block top overscroll');
+// The guard covers a set of games that own their board gestures rather than
+// naming Quartet inline, so assert Quartet is in that set.
+requireText(gestureJs, 'GESTURE_GAMES', 'the pull-down fallback no longer keeps a set of guarded games');
+requireText(gestureJs, "'quartet'", 'Quartet is not among the games guarded against the pull-down gesture');
+requireText(gestureJs, 'dataset?.currentGame', 'the guard no longer keys off the current game');
+requireText(gestureJs, "event.preventDefault()", 'the pull-down fallback does not block top overscroll');
 requireText(gestureCss, 'overscroll-behavior-y: none', 'Quartet vertical overscroll containment is missing');
 
 requireText(css, '.room-invite-qr>canvas', 'QR overflow containment styles are missing');

@@ -7,6 +7,7 @@
     "build": "node scripts/build-web.mjs",
     "check:build": "node scripts/check-build-freshness.mjs",
     "check": "node scripts/check-telegram-desktop-bootstrap.mjs && node scripts/check-project-ci.mjs && node scripts/check-admin-rbac.mjs && node scripts/check-admin-live-v4.mjs && node scripts/check-admin-live-modal-safety.mjs && node scripts/check-admin-live-rescue.mjs && node scripts/check-admin-observer-cors.mjs && node scripts/check-cloudflare-request-budget.mjs && node scripts/check-reconnect-storm.mjs && node scripts/check-quartet-card-table-v3.mjs && node scripts/check-quartet-v43-smooth.mjs && node scripts/check-quartet-v44-overlay.mjs && node scripts/check-quartet-v45-card-identity.mjs && node scripts/check-bible-sketch-landscape-v2.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v45-compat.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs && node scripts/check-bmt-v45-source-patch.mjs && node scripts/check-bmt-special-swipe-v45.mjs",
+    "ci": "node scripts/run-ci-locally.mjs",
     "measure:payload": "node scripts/measure-payload.mjs",
     "encode:assets": "node scripts/encode-assets.mjs",
     "smoke:games": "node scripts/smoke-all-games.mjs",
