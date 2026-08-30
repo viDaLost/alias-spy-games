@@ -16,16 +16,7 @@ const POLISH_SRC=`web/games/biblical-match-three-v15-polish.js?v=${VERSION}`;
 const LEVELS_SRC=`web/data/biblical_match_three_levels.json?v=${VERSION}`;
 const MENU_ICON=`web/assets/icons/biblical-treasures-v38.webp?v=${MENU_ART_VERSION}`;
 const STYLE_SOURCES=[
- `web/styles/biblical-match-three-v2.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v2-polish.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v4.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v5.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v9.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v10.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v11-modal.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v13.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v15-polish.css?v=${VERSION}`,
- `web/styles/biblical-match-three-v21-art.css?v=${VERSION}`
+ `web/styles/biblical-match-three.css?v=${VERSION}`
 ];
 const SCRIPT_TIMEOUT=12000;
 let launchPromise=null,launchAttempt=0,installed=false,patchedGamePromise=null;

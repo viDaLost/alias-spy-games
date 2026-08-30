@@ -31,6 +31,8 @@ const SCREENS = [
   { id: 'bible-wordsearch', open: 'bible-wordsearch' },
   { id: 'sacred-word', open: 'sacred-word' },
   { id: 'kids-ark-pairs', open: 'kids-ark-pairs' },
+  // Biblical Treasures has its own launcher card rather than a showGame key.
+  { id: 'biblical-treasures', click: '#biblical-match-three-card', settleMs: 6000 },
 ];
 
 const mime = new Map([
@@ -214,13 +216,16 @@ for (const screen of SCREENS) {
     if (screen.open) {
       await page.evaluate((key) => window.showGame(key), screen.open);
       await page.waitForTimeout(2600);
+    } else if (screen.click) {
+      await page.click(screen.click, { timeout: 8000 });
+      await page.waitForTimeout(screen.settleMs || 2600);
     }
     await settle();
     await page.screenshot({ path: path.join(outDir, `${screen.id}.png`) });
     captured.push(screen.id);
-    if (screen.open) {
+    if (screen.open || screen.click) {
       await page.evaluate(() => window.goToMainMenu?.());
-      await page.waitForTimeout(1400);
+      await page.waitForTimeout(1600);
     }
   } catch (error) {
     console.warn(`не удалось снять ${screen.id}: ${String(error).slice(0, 120)}`);

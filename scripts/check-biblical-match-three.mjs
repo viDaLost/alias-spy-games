@@ -30,8 +30,8 @@ const effects = read('web/games/biblical-match-three-effects.js');
 const game = read('web/games/biblical-match-three.js');
 const ui15 = read('web/games/biblical-match-three-v15-ui.js');
 const polish15 = read('web/games/biblical-match-three-v15-polish.js');
-const css15 = read('web/styles/biblical-match-three-v15-polish.css');
-const css21 = read('web/styles/biblical-match-three-v21-art.css');
+const css15 = read('web/styles/biblical-match-three.css');
+const css21 = read('web/styles/biblical-match-three.css');
 const launcher = read('web/js/biblical-match-three-launcher.js');
 const systemIcons = read('web/js/system-icons.js');
 const androidMenu = read('web/js/android-download-menu.js');
@@ -56,7 +56,7 @@ ok(launcher.includes('file-webp-v17') && launcher.includes('transport!=="file"')
 const icons = ['ark', 'bible', 'bread', 'candle', 'chains', 'covenant', 'crown', 'dove', 'fish', 'grapes', 'jericho', 'score', 'sling', 'staff', 'tablets'];
 for (const name of icons) ok(exists(`web/assets/biblical-match-three/icons-v17/${name}.webp`), `V17 ${name}.webp missing`);
 for (const f of ['web/assets/biblical-match-three/hq-v5/atlas-00.txt', 'web/assets/biblical-match-three/hq-v5/atlas-10.txt', 'web/assets/biblical-match-three/hq-v5/symbols/fish.webp']) ok(!exists(f), `obsolete V16 art must be deleted: ${f}`);
-for (const f of ['web/games/biblical-match-three-v15-ui.js', 'web/games/biblical-match-three-v15-polish.js', 'web/styles/biblical-match-three-v15-polish.css']) ok(exists(f), `${f} missing`);
+for (const f of ['web/games/biblical-match-three-v15-ui.js', 'web/games/biblical-match-three-v15-polish.js', 'web/styles/biblical-match-three.css']) ok(exists(f), `${f} missing`);
 ok(!exists('web/games/biblical-match-three-v14-raster-pack.js'), 'V14 low-quality raster pack must stay deleted');
 
 const campaignSymbols = ['bible', 'fish', 'dove', 'lamp', 'crown', 'ark', 'bread', 'grapes', 'tablets'];
