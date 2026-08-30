@@ -38,20 +38,22 @@
 
   async function resolveAdminRole() {
     try {
-      const response = await adminApi({ action: "adminRoleStatus" });
+      // Everyone runs this on boot and almost everyone is refused, so a refusal
+      // is the expected answer here, not something to report.
+      const response = await adminApi({ action: "adminRoleStatus" }, { quiet: true });
       return response?.success === true && response?.isAdmin === true;
     } catch {
       return false;
     }
   }
 
-  async function adminApi(payload) {
+  async function adminApi(payload, options) {
     if (!window.apiRequest) throw new Error("API приложения недоступен");
     return window.apiRequest({
       ...payload,
       adminId: String(currentUser().id || ADMIN_ID),
       telegramInitData: window.Telegram?.WebApp?.initData || "",
-    });
+    }, options);
   }
 
   function notify(message, type = "success") {
