@@ -172,7 +172,9 @@
     const nativeConfirm = sourceDock.querySelector('.qv2-confirm-ask');
 
     titleStrong.textContent = active ? 'Ваш ход' : 'Ожидайте хода';
-    titleSmall.textContent = active ? 'Карта и соперник — в любом порядке' : 'Панель обновится автоматически';
+    // The caption shares its row with two icon buttons, so anything longer than a
+    // few words reaches the reader as an ellipsis.
+    titleSmall.textContent = active ? 'В любом порядке' : 'Панель обновится';
     targetStrong.textContent = targetName;
     targetStrong.title = targetName;
     cardStrong.textContent = cardName;

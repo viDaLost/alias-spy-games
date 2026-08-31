@@ -75,8 +75,12 @@ const android = read('android-app/app/src/main/java/com/vidalost/biblegames/game
 const repository = read('android-app/app/src/main/java/com/vidalost/biblegames/data/AssetRepository.kt');
 const androidBuild = read('android-app/app/build.gradle');
 
+// The web table dropped its step rail: the sticky action dock shows the same two
+// selections permanently, and carrying both pushed the hand off the phone screen.
+// What has to stay true is that the dock is there and that the cards come first.
+// (Android keeps its own rail -- it has no dock -- and is asserted separately below.)
 for (const [needle, message] of [
-  ['renderTurnSteps(myTurn)', 'Web turn step rail is missing'],
+  ['renderActionDock(myTurn)', 'Web action dock is missing'],
   ['qv3-card-fan', 'Web opponent card fan is missing'],
   ['cardArtUrl(card)', 'Web card artwork resolver is missing'],
   ['qv3-card-back', 'Web missing-card back is missing'],
@@ -84,7 +88,8 @@ for (const [needle, message] of [
 ]) requireText(web, needle, message);
 
 for (const [needle, message] of [
-  ['.qv3-step-rail', 'Web step rail styles are missing'],
+  ['.qv2-game > .qv3-hand-table { order: 3; }', 'Web phone layout no longer puts the hand ahead of the roster'],
+  ['.qv2-action-dock', 'Web action dock styles are missing'],
   ['grid-template-columns: repeat(4,minmax(0,1fr))', 'Web card row must show a full quartet'],
   ['.qv3-card-art img', 'Web card artwork styles are missing'],
   ['.qv3-card-back', 'Web card-back styles are missing'],

@@ -107,24 +107,6 @@ const newSelectionHandlers = `  function selectTarget(button) {
       confirm.textContent = ready ? 'Спросить карту' : 'Сделайте 2 выбора';
     }
 
-    const steps = [...(ui.root?.querySelectorAll('.qv3-step') || [])];
-    if (steps[0]) {
-      steps[0].classList.toggle('is-done', !!target);
-      steps[0].classList.toggle('is-active', !target);
-      const strong = steps[0].querySelector('strong');
-      if (strong) strong.textContent = target?.name || 'Выберите';
-    }
-    if (steps[1]) {
-      steps[1].classList.toggle('is-done', !!card);
-      steps[1].classList.toggle('is-active', !!target && !card);
-      const strong = steps[1].querySelector('strong');
-      if (strong) strong.textContent = card?.title || 'Выберите';
-    }
-    if (steps[2]) {
-      steps[2].classList.toggle('is-active', ready);
-      const strong = steps[2].querySelector('strong');
-      if (strong) strong.textContent = ready ? 'Готов' : 'Подтвердить';
-    }
 
     window.dispatchEvent(new CustomEvent('quartetselectionchange', {
       detail: { targetId: selectedTargetId, cardId: selectedCardId },

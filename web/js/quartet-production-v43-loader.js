@@ -77,24 +77,6 @@
       confirm.textContent = ready ? 'Спросить карту' : 'Сделайте 2 выбора';
     }
 
-    const steps = [...(ui.root?.querySelectorAll('.qv3-step') || [])];
-    if (steps[0]) {
-      steps[0].classList.toggle('is-done', !!target);
-      steps[0].classList.toggle('is-active', !target && isMyTurn());
-      const strong = steps[0].querySelector('strong');
-      if (strong) strong.textContent = target?.name || (isMyTurn() ? 'Выберите' : 'Ожидание');
-    }
-    if (steps[1]) {
-      steps[1].classList.toggle('is-done', !!card);
-      steps[1].classList.toggle('is-active', isMyTurn() && !card);
-      const strong = steps[1].querySelector('strong');
-      if (strong) strong.textContent = card?.title || (isMyTurn() ? 'Выберите' : 'Ожидание');
-    }
-    if (steps[2]) {
-      steps[2].classList.toggle('is-active', ready);
-      const strong = steps[2].querySelector('strong');
-      if (strong) strong.textContent = ready ? 'Готов' : 'Подтвердить';
-    }
 
     window.dispatchEvent(new CustomEvent('quartetselectionchange', {
       detail: { targetId: selectedTargetId, cardId: selectedCardId },
@@ -133,8 +115,6 @@
     if (turnSignature !== previousTurnSignature) {
       const banner = game.querySelector('#qv2-turn-banner');
       if (banner) banner.outerHTML = renderTurnBanner(myTurn);
-      const steps = game.querySelector('.qv3-step-rail');
-      if (steps) steps.outerHTML = renderTurnSteps(myTurn);
       const dock = game.querySelector('.qv2-action-dock');
       if (dock) dock.outerHTML = renderActionDock(myTurn);
       game.classList.toggle('is-my-turn', myTurn);

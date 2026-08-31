@@ -515,8 +515,6 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       <div class="qv2-game ${myTurn ? 'is-my-turn' : 'is-waiting-turn'}">
         ${renderTurnBanner(myTurn)}
 
-        ${renderTurnSteps(myTurn)}
-
         <section class="qv2-section qv2-glass qv2-players-section qv3-opponents">
           <div class="qv2-section-head">
             <div><h3 class="qv2-section-title">Игроки</h3><div class="qv2-section-caption">${myTurn ? 'Шаг 1 · выбери, у кого спросить карту' : `Сейчас действует ${escapeHtml(state.turnPlayerName || 'игрок')}`}</div></div>
@@ -551,19 +549,6 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       </div>
     `;
     updateTurnTimer();
-  }
-
-  function renderTurnSteps(myTurn) {
-    const target = (state.players || []).find((player) => player.playerId === selectedTargetId);
-    const card = cardById.get(selectedCardId);
-    return `
-      <div class="qv3-step-rail ${myTurn ? '' : 'is-locked'}" aria-label="Этапы игрового хода">
-        <div class="qv3-step ${target ? 'is-done' : myTurn ? 'is-active' : ''}"><span>1</span><div><small>Игрок</small><strong>${target ? escapeHtml(target.name) : myTurn ? 'Выберите' : 'Ожидание'}</strong></div></div>
-        <i aria-hidden="true"></i>
-        <div class="qv3-step ${card ? 'is-done' : target ? 'is-active' : ''}"><span>2</span><div><small>Карта</small><strong>${card ? escapeHtml(card.title) : target ? 'Выберите' : 'После игрока'}</strong></div></div>
-        <i aria-hidden="true"></i>
-        <div class="qv3-step ${target && card ? 'is-active' : ''}"><span>3</span><div><small>Запрос</small><strong>${target && card ? 'Готов' : 'Подтвердить'}</strong></div></div>
-      </div>`;
   }
 
   function renderTurnBanner(myTurn) {

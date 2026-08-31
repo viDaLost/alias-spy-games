@@ -612,20 +612,6 @@ body[data-current-game="quartet"] #game-container { width: min(940px,100%) !impo
 .qv2-turn-timer { font-size: 1rem; color: #173f7a; }
 .qv2-turn-progress { height: 4px; }
 
-.qv3-step-rail { min-height: 54px; padding: 7px 9px; border-radius: 20px; display: grid; grid-template-columns: minmax(0,1fr) 18px minmax(0,1fr) 18px minmax(0,1fr); align-items: center; gap: 5px; background: rgba(255,255,255,.84); border: 1px solid rgba(255,255,255,.94); box-shadow: 0 9px 25px rgba(37,99,235,.08); }
-.qv3-step-rail > i { height: 2px; border-radius: 999px; background: #cbdcf0; }
-.qv3-step { min-width: 0; display: grid; grid-template-columns: 28px minmax(0,1fr); align-items: center; gap: 6px; opacity: .56; }
-.qv3-step > span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #e5eef8; color: #52708d; font-size: .7rem; font-weight: 950; }
-.qv3-step small,.qv3-step strong { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qv3-step small { color: #7890a8; font-size: .53rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
-.qv3-step strong { margin-top: 1px; color: #284969; font-size: .67rem; }
-.qv3-step.is-active,.qv3-step.is-done { opacity: 1; }
-.qv3-step.is-active > span { background: linear-gradient(135deg,#2563eb,#0ea5e9); color: #fff; box-shadow: 0 0 0 3px rgba(14,165,233,.12); }
-.qv3-step.is-done > span { background: #ccfbf1; color: #0f766e; }
-.qv3-step.is-done > span::after { content: "✓"; }
-.qv3-step.is-done > span { font-size: 0; }
-.qv3-step.is-done > span::after { font-size: .72rem; }
-.qv3-step-rail.is-locked { filter: saturate(.7); }
 
 .qv3-opponents { padding: 9px 10px; border-radius: 22px; }
 .qv3-opponents .qv2-section-head { margin-bottom: 7px; align-items: center; }
@@ -706,9 +692,6 @@ body[data-current-game="quartet"] #game-container { width: min(940px,100%) !impo
   .qv2-topbar { position: relative; top: auto; }
   .qv2-turn-banner { min-height: 66px; padding: 8px 10px; }
   .qv2-turn-text { max-width: 48ch; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .qv3-step-rail { min-height: 49px; padding: 6px 7px; }
-  .qv3-step { grid-template-columns: 25px minmax(0,1fr); gap: 4px; }
-  .qv3-step > span { width: 25px; height: 25px; }
   .qv3-opponents { padding: 8px; }
   .qv3-opponents .qv2-section-head { margin-bottom: 5px; }
   .qv2-score-player { flex-basis: 132px; min-height: 76px; padding: 6px; }
@@ -727,12 +710,68 @@ body[data-current-game="quartet"] #game-container { width: min(940px,100%) !impo
 
 @media (max-width: 390px) {
   .qv2-connection span:last-child { display: none; }
-  .qv3-step small { display: none; }
-  .qv3-step strong { font-size: .6rem; }
   .qv3-opponents .qv2-section-meta { display: none; }
   .qv2-score-player { flex-basis: 121px; }
   .qv2-quartet-heading small { display: none; }
   .qv2-playing-card { min-height: 145px; }
   .qv2-card-grid { gap: 5px; }
   .qv2-card-corner { top: 6px; left: 6px; right: 6px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Card table, phone layout.
+
+   The table opened on a stack of panels that all said the same thing -- a turn
+   toast over the title, a turn banner, a step rail, an event line -- and the
+   hand itself began 561px down, behind the sticky action dock. Nothing here
+   changes a colour: every value below is already in the file. What changes is
+   how much room each band gets, and in what order they come.
+   --------------------------------------------------------------------------- */
+
+/* The turn announcement is a transient toast, so it belongs where transient
+   things live: above the dock, not on top of the game's own title. */
+.qv2-turn-notice {
+  top: auto;
+  bottom: calc(var(--qv43-dock-space, 0px) + 14px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 16px) scale(.97);
+}
+.qv2-turn-notice.is-visible { transform: translate(-50%, 0) scale(1); }
+
+@media (max-width: 640px) {
+  /* Cards first. The scoreboard and the activity log are reference, not play,
+     so they follow the hand instead of pushing it under the fold. */
+  .qv2-game > * { order: 5; }
+  .qv2-game > .qv2-turn-banner { order: 1; }
+  .qv2-game > .qv2-event { order: 2; }
+  .qv2-game > .qv3-hand-table { order: 3; }
+  .qv2-game > .qv3-opponents { order: 4; }
+
+  /* The banner keeps what only it can say -- whose turn, how long is left. The
+     "ВАШ ХОД" badge repeated the title beside it and the instruction repeated the
+     dock underneath, so both go and the rest fits on one row. */
+  .qv2-turn-banner {
+    min-height: 0;
+    padding: 9px 11px;
+    gap: 5px 9px;
+    grid-template-columns: minmax(0,1fr) 58px;
+    grid-template-areas: "main timer" "progress progress";
+  }
+  .qv2-turn-badge { display: none; }
+  .qv2-turn-text { display: none; }
+  .qv2-turn-avatar { width: 32px; height: 32px; font-size: .86rem; }
+  .qv2-turn-main { grid-template-columns: 32px minmax(0,1fr); align-items: center; }
+  .qv2-turn-title { font-size: .95rem; }
+
+  /* "Осталось" wrapped to two lines inside a 64px box and pushed the banner
+     taller than the timer it framed. */
+  .qv2-turn-timer-wrap { min-width: 58px; padding: 5px 4px; }
+  .qv2-turn-timer-wrap > span { font-size: .5rem; letter-spacing: .02em; white-space: nowrap; }
+
+  /* One glance at the score, not a third of the screen. */
+  .qv3-opponents { padding: 9px 10px; }
+  .qv3-opponents .qv2-section-caption { display: none; }
+  .qv2-score-player { flex-basis: 108px; }
+
+  /* The event line is one sentence; it does not need a card's worth of padding. */
+  .qv2-event { padding: 8px 11px; font-size: .72rem; }
 }

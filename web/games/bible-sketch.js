@@ -377,7 +377,7 @@ function startBibleSketchGame() {
 
     document.getElementById('bsk-content').innerHTML = `
       <div class="bsk-game-layout">
-        <aside class="bsk-side">${statusCard}<section class="bsk-card bsk-glass" style="padding:10px"><div class="bsk-section-title">Игроки</div><div class="bsk-player-list">${players}</div></section>${phasePanel}</aside>
+        <aside class="bsk-side">${statusCard}<section class="bsk-card bsk-glass bsk-roster"><div class="bsk-section-title">Игроки</div><div class="bsk-player-list">${players}</div></section>${phasePanel}</aside>
         <main class="bsk-canvas-card"><div class="bsk-canvas-wrap"><canvas id="bsk-canvas" class="bsk-canvas" aria-label="Общий холст"></canvas><div class="bsk-canvas-cover" id="bsk-canvas-cover" ${state.status === 'drawing' ? 'hidden' : ''}>${canvasCoverText()}</div></div>${renderTools()}</main>
         ${renderChat()}
       </div>`;

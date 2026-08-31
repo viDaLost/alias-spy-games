@@ -5,3 +5,72 @@
 @media(orientation:portrait) and (max-width:640px){.bsk-root[data-active-round="1"] .bsk-rotate{display:flex;position:fixed;inset:0;z-index:1070;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,rgba(238,242,255,.98),rgba(224,242,254,.98));text-align:center}.bsk-rotate-card{max-width:360px;padding:22px;border-radius:28px;background:#fff;box-shadow:0 22px 60px rgba(49,46,129,.14)}.bsk-rotate-icon{font-size:2.7rem;display:block;animation:bsk-rotate 1.8s ease-in-out infinite}.bsk-rotate h3{margin:8px 0 5px;color:#312e81}.bsk-rotate p{margin:0 0 12px;color:#64748b;font-size:.8rem;line-height:1.4;font-weight:700}.bsk-root.allow-portrait-round .bsk-rotate{display:none}}
 @keyframes bsk-rotate{0%,100%{transform:rotate(0)}50%{transform:rotate(90deg)}}
 @media(prefers-reduced-motion:reduce){.bsk-root *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+/* ---------------------------------------------------------------------------
+   Drawing round, phone layout.
+
+   The canvas is the game, and it used to start 713px down: on a 844px phone you
+   scrolled past a status card and a four-row roster before seeing a single line.
+   The three columns of the desktop layout stack in DOM order on a phone, and the
+   canvas is the third of them. Making .bsk-side transparent to the grid lets the
+   canvas move up without moving anything in the markup. No colour changes here;
+   every value is one the file already uses.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  /* .bsk-side is a desktop column. On a phone its three panels belong to the
+     page grid directly, so each can take its own place in the order. */
+  .bsk-game-layout > .bsk-side { display: contents; }
+  /* A grid item defaults to min-width:auto, so the side-scrolling rows below would
+     otherwise widen the whole page instead of scrolling inside their own panel. */
+  .bsk-game-layout > *, .bsk-game-layout > .bsk-side > * { min-width: 0; }
+  .bsk-game-layout > * { order: 6; }
+  .bsk-game-layout > .bsk-side > .bsk-status { order: 1; }
+  .bsk-game-layout > .bsk-canvas-card { order: 2; }
+  .bsk-game-layout > .bsk-side > .bsk-guess { order: 3; }
+  .bsk-game-layout > .bsk-side > .bsk-roster { order: 4; }
+  .bsk-game-layout > .bsk-chat { order: 5; }
+
+  /* The status card carried the round, the turn, the secret word and the clock
+     in four stacked blocks. The word is the part worth the space. */
+  .bsk-status { padding: 10px 11px; }
+  .bsk-status h3 { margin: 5px 0 2px; font-size: .92rem; }
+  .bsk-status > p { display: none; }
+  .bsk-secret { margin-top: 7px; padding: 8px 10px; }
+  .bsk-secret b { font-size: .95rem; }
+  .bsk-turn { margin-top: 7px; }
+  .bsk-timer { min-width: 48px; padding: 5px; font-size: .9rem; }
+
+  /* A roster is a glance, not a list: names in a row that scrolls sideways. */
+  .bsk-roster { padding: 9px 10px; }
+  .bsk-roster .bsk-section-title { margin-bottom: 7px; }
+  .bsk-roster .bsk-player-list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(132px, 1fr);
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .bsk-roster .bsk-player-list::-webkit-scrollbar { display: none; }
+  .bsk-roster .bsk-player { grid-template-columns: 30px minmax(0,1fr); padding: 7px; }
+  .bsk-roster .bsk-avatar { width: 30px; height: 30px; border-radius: 11px; font-size: .8rem; }
+  .bsk-roster .bsk-host { display: none; }
+
+  /* The tool row wrapped, stranding two brush sizes on a line of their own next
+     to the button that ends the turn. Colours and sizes scroll together instead. */
+  .bsk-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .bsk-tools::-webkit-scrollbar { display: none; }
+  .bsk-tools > * { flex: 0 0 auto; }
+  /* Ending the turn stays reachable without scrolling the strip back, and the fade
+     makes the tools pass under it rather than look chopped off. */
+  .bsk-finish-turn {
+    margin-left: auto;
+    position: sticky;
+    right: 0;
+    box-shadow: -14px 0 14px 6px rgba(255,255,255,.92), 0 9px 24px rgba(37,99,235,.2);
+  }
+
+  /* An empty chat does not deserve a screenful. */
+  .bsk-chat { min-height: 0; max-height: 260px; }
+  .bsk-chat-list { min-height: 84px; }
+}
