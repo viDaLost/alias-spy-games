@@ -1862,10 +1862,6 @@ body[data-current-game="biblical-match-three"] .bmt-tile.has-vine .bmt-blocker-a
   filter: drop-shadow(0 3px 4px rgba(24, 58, 35, .42)) !important;
 }
 
-body[data-current-game="biblical-match-three"] .bmt-tile.has-vine {
-  box-shadow: inset 0 0 0 2px rgba(53, 112, 74, .5) !important;
-}
-
 body[data-current-game="biblical-match-three"] .bmt-tile.has-vine .bmt-piece {
   filter: saturate(.74) brightness(.93) !important;
 }
@@ -1876,12 +1872,6 @@ body[data-current-game="biblical-match-three"] .bmt-tile.has-vine .bmt-piece {
    они уже заняты слоями выше. */
 body[data-current-game="biblical-match-three"] .bmt-tile.is-relic {
   cursor: default !important;
-}
-
-body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece-wrap {
-  border-radius: 24% !important;
-  box-shadow: 0 0 0 2px rgba(244, 201, 93, .8), 0 0 14px rgba(244, 201, 93, .4) !important;
-  animation: bmt-v46-relic-halo 2.2s ease-in-out infinite !important;
 }
 
 /* Стрелка вниз объясняет всё правило разом: ковчег не двигают, его опускают. */
@@ -1920,7 +1910,6 @@ body[data-current-game="biblical-match-three"] .bmt-board.has-relic-gate .bmt-ti
   animation: bmt-v46-gate 1.9s ease-in-out infinite !important;
 }
 
-@keyframes bmt-v46-relic-halo { 0%, 100% { opacity: .75 } 50% { opacity: 1 } }
 @keyframes bmt-v46-relic-idle { from { transform: translateY(0) rotate(-1.5deg) } to { transform: translateY(-2px) rotate(1.5deg) } }
 @keyframes bmt-v46-gate { 0%, 100% { opacity: .62 } 50% { opacity: 1 } }
 
@@ -2106,7 +2095,6 @@ body[data-current-game="biblical-match-three"] .bmt-board.has-relic-gate .bmt-ti
   .bmt-fx-covenant-sweep, .bmt-fx-covenant-arc, .bmt-fx-prism,
   .bmt-fx-forge, .bmt-fx-pillar, .bmt-fx-vine-sprout { display: none !important }
   .bmt-board.is-quaking, .bmt-board.is-quaking-hard { animation: none !important }
-  body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece-wrap,
   body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece,
   body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-special-mark,
   body[data-current-game="biblical-match-three"] .bmt-board.has-relic-gate .bmt-tile.is-relic-gate { animation: none !important }

@@ -1,6 +1,6 @@
 (() => {
 "use strict";
-const VERSION="17";
+const VERSION="46";
 const FILES={
  ark:"web/assets/biblical-match-three/icons-v17/ark.webp",
  bible:"web/assets/biblical-match-three/icons-v17/bible.webp",
