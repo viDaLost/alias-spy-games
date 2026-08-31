@@ -89,7 +89,7 @@ const GAMES = [
     view: quartetView(),
     storage: { quartet_v2_player_name: 'Иван', quartet_v2_guest_id: ME, quartet_v2_room_id: 'QA01' },
     waitFor: '.qv2-game',
-    probe: () => ['.qv3-hand-table .qv2-section-head', '.qv2-group-tabs', '.qv2-quartet-card-head', '.qv2-playing-card, .qv2-card'].map((selector) => {
+    probe: () => ['.qv2-turn-badge', '.qv2-turn-main', '.qv2-turn-timer-wrap', '.qv2-turn-progress', '.qv2-quartet-symbol', '.qv2-quartet-heading', '.qv2-quartet-progress', '.qv2-playing-card, .qv2-card'].map((selector) => {
       const node = document.querySelector(selector);
       if (!node) return `${selector}: —`;
       const box = node.getBoundingClientRect();

@@ -780,3 +780,29 @@ body[data-current-game="quartet"] #game-container { width: min(940px,100%) !impo
   /* The event line is one sentence; it does not need a card's worth of padding. */
   .qv2-event { padding: 8px 11px; font-size: .72rem; }
 }
+
+/* На телефоне карта из руки не помещалась целиком между баннером хода и доком:
+   она кончалась на 59px ниже его верхнего края. Верхняя обвязка ужата ровно
+   настолько, чтобы карту стало видно, и в первую очередь за счёт полосы события:
+   при старте партии она повторяет баннер строкой выше, поэтому теряет собственную
+   карточку и становится его подписью. */
+@media (max-width: 480px) {
+  .qv2-game { gap: 7px; }
+
+  .qv2-game > .qv2-event {
+    margin-top: -7px;
+    padding: 5px 12px 7px;
+    border: 0;
+    background: none;
+    border-radius: 0;
+    font-size: .74rem;
+    grid-template-columns: 22px 1fr;
+    gap: 7px;
+  }
+  .qv2-event-icon { width: 22px; height: 22px; border-radius: 8px; font-size: .7rem; }
+
+  .qv3-hand-table .qv2-section-head { margin-bottom: 5px; }
+  .qv2-group-tabs { padding: 0 1px 5px; }
+  .qv3-hand-table .qv2-section-title { font-size: .92rem; }
+  .qv3-hand-table .qv2-section-caption { margin-top: 2px; font-size: .66rem; }
+}

@@ -316,3 +316,35 @@ body[data-current-game="quartet"] .qv2-log-item {
     overflow-x: hidden;
   }
 }
+
+/* Карта из руки не помещалась целиком между баннером хода и закреплённым доком —
+   кончалась на 59px ниже его края, и выбирать приходилось из половины карты.
+   Обвязка над рукой ужимается ровно настолько, чтобы карту стало видно целиком.
+   Правила живут здесь, а не в quartet-v2.css: там их перебивает специфичность
+   body[data-current-game="quartet"] этого файла. */
+@media (max-width: 480px) {
+  body[data-current-game="quartet"] .qv2-turn-banner {
+    padding: 9px 10px;
+    gap: 5px 8px;
+    min-height: 0;
+  }
+  body[data-current-game="quartet"] .qv2-turn-main { grid-template-columns: 32px minmax(0, 1fr); gap: 7px; }
+  body[data-current-game="quartet"] .qv2-turn-avatar { width: 32px; height: 32px; border-radius: 11px; font-size: .85rem; }
+  body[data-current-game="quartet"] .qv2-turn-timer-wrap { min-width: 58px; padding: 4px; }
+  body[data-current-game="quartet"] .qv2-turn-title { font-size: .86rem; }
+  body[data-current-game="quartet"] .qv2-turn-progress { height: 4px; }
+
+  body[data-current-game="quartet"] .qv2-quartet-card-head { grid-template-columns: 32px 1fr auto; gap: 7px; }
+  body[data-current-game="quartet"] .qv2-quartet-symbol { width: 32px; height: 32px; border-radius: 11px; font-size: .95rem; }
+  body[data-current-game="quartet"] .qv2-quartet-heading > span { font-size: .56rem; }
+  body[data-current-game="quartet"] .qv2-quartet-heading strong { margin-top: 1px; font-size: .88rem; }
+  /* Счётчик «1/4» был выше символа квартета и в одиночку держал высоту шапки. */
+  body[data-current-game="quartet"] .qv2-quartet-progress { padding: 5px 8px; }
+  body[data-current-game="quartet"] .qv2-quartet-progress strong { font-size: .95rem; }
+  body[data-current-game="quartet"] .qv2-group-tab { min-height: 30px; padding: 5px 8px; }
+  /* Последние миллиметры берём из промежутков, а не из самой карты: у неё
+     aspect-ratio, и любое изменение высоты меняет пропорцию карты. */
+  body[data-current-game="quartet"] .qv2-game { gap: 5px; }
+  body[data-current-game="quartet"] .qv2-topbar { min-height: 52px; padding: 6px 8px; }
+  body[data-current-game="quartet"] .qv2-icon-btn { width: 38px; height: 38px; }
+}
