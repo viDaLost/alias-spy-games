@@ -38,6 +38,8 @@ jobs:
         run: npm run check:wordsearch
       - name: Check Bible WOW levels
         run: npm run check:bible-wow
+      - name: Verify the dark theme matches its sources
+        run: npm run check:dark
       - name: Check Android ban enforcement
         run: node scripts/check-android-ban-enforcement.mjs
       - name: Check Android verified Telegram authentication

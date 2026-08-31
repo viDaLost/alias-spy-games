@@ -39,6 +39,9 @@ export const styleSources = [
   'web/styles/game-titles-polish.css',
   'web/styles/sacred-word-polish.css',
   'web/styles/lobby-polish.css',
+  // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
+  // поэтому обязана идти последней.
+  'web/styles/dark-theme.css',
 ];
 
 export const scriptSources = [

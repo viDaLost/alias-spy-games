@@ -155,7 +155,11 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-unsafe-swiftshader', '--force-prefers-reduced-motion'],
 });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+const context = await browser.newContext({
+  viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
+  // SCREENS_DARK=1 снимает те же экраны в тёмной теме.
+  colorScheme: process.env.SCREENS_DARK ? 'dark' : 'light',
+});
 await context.addInitScript(() => {
   window.__APP_TELEMETRY_DISABLED__ = true;
   // Freeze anything time-based so two captures of the same code match exactly.
