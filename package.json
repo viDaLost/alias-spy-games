@@ -34,7 +34,8 @@
     "check:telegram-desktop": "node scripts/check-telegram-desktop-bootstrap.mjs",
     "check:admin-sections": "node scripts/check-admin-sections.mjs",
     "check:wordsearch": "node scripts/check-wordsearch-levels.mjs",
-    "check:level-modal": "node scripts/check-level-modal.mjs"
+    "check:level-modal": "node scripts/check-level-modal.mjs",
+    "check:bible-wow": "node scripts/check-bible-wow-levels.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",
