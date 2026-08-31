@@ -117,3 +117,5 @@ jobs:
         run: npm run check:mobile
       - name: Check friendly error boundary
         run: npm run check:errors
+      - name: Check admin panel sections
+        run: npm run check:admin-sections

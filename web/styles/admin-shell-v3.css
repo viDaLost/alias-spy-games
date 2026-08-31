@@ -375,3 +375,34 @@ body[data-mode="admin"] #game-container {
   .admin-v3-header .admin-v2__refresh,
   .admin-v3-header .admin-v2__icon-btn { transition:none !important; }
 }
+/* Разделы панели: видно только тот, который выбран в навигации. Пока раздел не
+   назначен (первый кадр до enhance()), показываем всё — так панель никогда не
+   оказывается пустой, если скрипт не успел отработать. */
+.admin-v3-shell[data-admin-v3-section] [data-admin-v3-owner] {
+  display: none;
+}
+.admin-v3-shell[data-admin-v3-section="overview"] [data-admin-v3-owner="overview"],
+.admin-v3-shell[data-admin-v3-section="support"] [data-admin-v3-owner="support"],
+.admin-v3-shell[data-admin-v3-section="users"] [data-admin-v3-owner="users"],
+.admin-v3-shell[data-admin-v3-section="broadcast"] [data-admin-v3-owner="broadcast"] {
+  display: revert;
+}
+
+/* Четвёртая вкладка не помещалась в строку и просто обрезалась. На узком экране
+   ужимаем кнопки так, чтобы поместились все четыре, а прокрутка остаётся
+   страховкой для совсем узких телефонов. */
+.admin-v3-nav {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.admin-v3-nav::-webkit-scrollbar { display: none; }
+
+@media (max-width: 480px) {
+  .admin-v3-nav { gap: 4px; padding: 5px; }
+  .admin-v3-nav [data-admin-v3-target] {
+    padding: 8px 9px;
+    font-size: 11.5px;
+    letter-spacing: -.01em;
+  }
+  .admin-v3-nav [data-admin-v3-target] > span:first-child { display: none; }
+}

@@ -35,10 +35,8 @@
     nav.addEventListener('click', (event) => {
       const button = event.target.closest('[data-admin-v3-target]');
       if (!button) return;
-      const target = resolveTarget(page, button.dataset.adminV3Target || 'overview');
-      if (!target) return;
-      nav.querySelectorAll('[data-admin-v3-target]').forEach((item) => item.classList.toggle('is-active', item === button));
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setSection(page, button.dataset.adminV3Target || 'overview');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     const header = first('.admin-v2__header', page);
@@ -46,12 +44,31 @@
     return nav;
   }
 
-  function resolveTarget(page, key) {
-    if (key === 'overview') return livePanel(page) || first('.admin-v2__stats', page) || page;
-    if (key === 'support') return first('#support-admin-panel', page) || livePanel(page) || page;
-    if (key === 'users') return first('.admin-v2__toolbar', page) || first('.admin-v2__users-section', page) || page;
-    if (key === 'broadcast') return first('.admin-broadcast', page) || first('.admin-v2__broadcast', page) || page;
-    return page;
+  // The four buttons looked like tabs but only scrolled: every section stayed on the
+  // page, so picking "Пользователи" still left the stats, the support queue and the
+  // broadcast form between you and the list. Now a tab shows its own sections and
+  // hides the rest. The choice lives on the page element, so it survives the
+  // re-render that follows every filter change and every refresh.
+  const SECTIONS = ['overview', 'support', 'users', 'broadcast'];
+
+  function currentSection(page) {
+    const value = String(page.dataset.adminV3Section || '');
+    return SECTIONS.includes(value) ? value : 'overview';
+  }
+
+  function setSection(page, key) {
+    const next = SECTIONS.includes(key) ? key : 'overview';
+    page.dataset.adminV3Section = next;
+    const nav = first('.admin-v3-nav', page);
+    nav?.querySelectorAll('[data-admin-v3-target]').forEach((item) => {
+      item.classList.toggle('is-active', item.dataset.adminV3Target === next);
+      item.setAttribute('aria-current', item.dataset.adminV3Target === next ? 'true' : 'false');
+    });
+
+    // The broadcast form is a <details> that made sense collapsed among other
+    // sections. On a tab of its own, collapsed leaves the screen empty.
+    const broadcast = first('.admin-broadcast', page) || first('.admin-v2__broadcast', page);
+    if (broadcast?.tagName === 'DETAILS' && next === 'broadcast') broadcast.open = true;
   }
 
   function upgradeHeader(page) {
@@ -132,6 +149,19 @@
     if (broadcast) broadcast.classList.add('admin-v3-section', 'admin-v3-broadcast');
     const live = livePanel(page);
     if (live) live.classList.add('admin-v3-section', 'admin-v3-live');
+
+    // Which tab each section belongs to. The stats block stays with the overview.
+    const owners = [
+      [first('.admin-v2__stats', page), 'overview'],
+      [live, 'overview'],
+      [support, 'support'],
+      [toolbar, 'users'],
+      [users, 'users'],
+      [broadcast, 'broadcast'],
+    ];
+    for (const [node, owner] of owners) {
+      if (node && node.dataset.adminV3Owner !== owner) node.dataset.adminV3Owner = owner;
+    }
   }
 
   function updateNavState(page) {
@@ -161,6 +191,7 @@
     upgradeStats(page);
     decorateSections(page);
     reorder(page);
+    setSection(page, currentSection(page));
     updateNavState(page);
   }
 
