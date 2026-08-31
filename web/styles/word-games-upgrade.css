@@ -3,11 +3,19 @@
 /* ===== Word Search ===== */
 .ws-upgrade-strip {
   display: grid;
+  /* The second column exists for the combo pill, but auto-placement never put it
+     there: the full-width live word sits between them in the DOM and pushed the
+     pill onto a row of its own. Naming the areas gives the layout its intent back. */
   grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "mode combo" "word word" "track track";
   gap: 8px 10px;
   align-items: center;
   margin-top: 10px;
 }
+.ws-mode-switch { grid-area: mode; }
+.ws-combo-pill { grid-area: combo; }
+.ws-live-word { grid-area: word; }
+.ws-progress-track { grid-area: track; }
 .ws-mode-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -368,8 +376,15 @@
   }
 }
 @media (max-width: 520px) {
-  .ws-upgrade-strip { grid-template-columns: 1fr; }
-  .ws-combo-pill { justify-self: stretch; }
+  /* The strip used to break into one column here, which stacked the mode switch,
+     the combo pill, the live word and the progress bar into four full-width bands
+     and pushed the last rows of the board off the phone screen. The switch is two
+     short buttons and the pill is 88px: they fit beside each other at 390px. */
+  .ws-upgrade-strip { gap: 7px 8px; margin-top: 8px; }
+  .ws-mode-switch button { min-height: 32px; font-size: 11.5px; padding: 6px 8px; }
+  .ws-combo-pill { min-width: 76px; padding: 7px 9px; }
+  .ws-live-word { min-height: 28px; padding: 4px 10px; }
+  .ws-progress-track { height: 6px; }
   .ws-map-levels { grid-template-columns: repeat(5, minmax(0,1fr)); gap: 6px; }
   .ws-map-chapter { padding: 9px; }
   .wow-level-map { grid-template-columns: 1fr; }
