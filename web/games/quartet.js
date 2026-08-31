@@ -975,6 +975,11 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     if (mode === 'online') ui.connection.classList.add('is-online');
     if (mode === 'offline') ui.connection.classList.add('is-offline');
     if (ui.connectionText) ui.connectionText.textContent = text;
+    // На узких экранах подпись скрывается вёрсткой и остаётся только цветная
+    // точка. Без имени она ничего не сообщает — ни глазами, ни озвучкой.
+    ui.connection.setAttribute('role', 'status');
+    ui.connection.setAttribute('title', text);
+    ui.connection.setAttribute('aria-label', `Связь: ${text}`);
   }
 
   function setButtonBusy(button, busy, text = '') {

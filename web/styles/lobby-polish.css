@@ -1,0 +1,53 @@
+/* ============================================================
+   ЛОББИ «КВАРТЕТА» И «БИБЛЕЙСКОГО ХУДОЖНИКА»
+   ============================================================
+   Две игры делят один сценарий — комната, игроки, realtime — но их лобби
+   были свёрстаны по-разному. Здесь общее: состояние связи и шаги правил.
+   Палитра прежняя.
+   ============================================================ */
+
+/* Состояние связи. Подпись пряталась на узких экранах, оставляя цветную
+   точку без объяснения. Она возвращается компактной: короткое слово читается
+   и не ломает шапку. Имя элемента задаётся в JS, поэтому смысл доступен
+   и озвучке, и долгому нажатию. */
+@media (max-width: 480px) {
+  .qv2-connection span:last-child,
+  .bsk-connection span:last-child {
+    display: inline !important;
+    font-size: .58rem;
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.01em;
+  }
+
+  .qv2-connection,
+  .bsk-connection {
+    padding: 6px 9px !important;
+    gap: 5px !important;
+  }
+}
+
+/* Точка должна читаться как индикатор, а не как случайный кружок. */
+.qv2-dot,
+.bsk-dot {
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, .16);
+}
+
+.qv2-connection.is-offline .qv2-dot,
+.bsk-connection.is-offline .bsk-dot {
+  background: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .16) !important;
+}
+
+/* Шаги правил: у «Квартета» это ряд «номер — подсказка», у «Художника» —
+   центрированные блоки. Один вид на обе игры. */
+.bsk-steps > *,
+.qv3-step {
+  text-align: left;
+}
+
+.bsk-steps > * {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 10px;
+}

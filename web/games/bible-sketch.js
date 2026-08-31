@@ -636,7 +636,12 @@ function startBibleSketchGame() {
   function setConnection(kind, text) {
     const box = document.getElementById('bsk-connection');
     const label = document.getElementById('bsk-connection-text');
-    if (box) box.className = `bsk-connection ${kind ? `is-${kind}` : ''}`;
+    if (box) {
+      box.className = `bsk-connection ${kind ? `is-${kind}` : ''}`;
+      box.setAttribute('role', 'status');
+      box.setAttribute('title', text);
+      box.setAttribute('aria-label', `Связь: ${text}`);
+    }
     if (label) label.textContent = text;
   }
 
