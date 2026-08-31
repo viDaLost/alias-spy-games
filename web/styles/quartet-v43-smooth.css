@@ -89,6 +89,33 @@ body.qv43-quartet-active .qv3-card-art img{transform:translateZ(0);will-change:a
   #qv43-fixed-dock{width:calc(100vw - 16px)}
   .qv43-dock-copy small{max-width:145px}.qv43-target{flex-basis:103px;padding:7px}.qv43-target-copy b{font-size:.64rem}.qv43-choice{padding:6px 8px}.qv43-choice strong{font-size:.63rem}.qv43-icon-btn{min-width:38px;padding-inline:8px}.qv43-icon-btn span{display:none}
 }
+
+/* На телефоне док занимал 225px -- четверть экрана -- и закрывал ровно тот ряд карт,
+   из которого нужно выбирать. Его шапка при этом повторяла баннер хода, который висит
+   строкой выше: «Ваш ход» было написано трижды на одном экране. Убираем строку шапки
+   целиком, а QR и чат переносим в ряд с главной кнопкой -- ближе к большому пальцу.
+   Текст шапки остаётся в DOM: он в aria-live-области и озвучивается при смене хода. */
+@media(max-width:480px){
+  .qv43-dock-inner{
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"targets targets" "summary summary" "confirm actions" "waiting waiting";
+    gap:7px;
+  }
+  .qv43-dock-head{display:contents}
+  .qv43-dock-copy{
+    position:absolute;
+    width:1px;height:1px;
+    margin:-1px;padding:0;border:0;
+    clip-path:inset(50%);
+    overflow:hidden;white-space:nowrap;
+  }
+  .qv43-dock-actions{grid-area:actions;align-self:stretch}
+  .qv43-targets{grid-area:targets}
+  .qv43-summary{grid-area:summary}
+  .qv43-confirm{grid-area:confirm}
+  .qv43-waiting{grid-area:waiting}
+  .qv43-icon-btn{height:100%}
+}
 @media(prefers-reduced-motion:reduce){
   #qv43-fixed-dock,.qv43-target,.qv43-icon-btn,.qv43-confirm,body.qv43-quartet-active .qv2-playing-card{transition:none!important;animation:none!important}
 }

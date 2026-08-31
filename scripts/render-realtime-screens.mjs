@@ -87,7 +87,7 @@ const GAMES = [
     view: quartetView(),
     storage: { quartet_v2_player_name: 'Вы', quartet_v2_guest_id: ME, quartet_v2_room_id: 'QA01' },
     waitFor: '.qv2-game',
-    measure: ['.qv2-topbar', '.qv2-turn-banner', '.qv2-turn-badge', '.qv2-turn-main', '.qv2-turn-text', '.qv2-turn-timer-wrap', '.qv3-opponents', '.qv2-event', '.qv3-hand-table', '.qv2-activity'],
+    measure: ['.qv2-topbar', '.qv2-turn-banner', '.qv2-event', '.qv3-hand-table', '.qv3-opponents', '.qv2-activity', '.qv2-action-dock', '[class*="dock"]', '.qv2-game'],
   },
   {
     id: 'bible-sketch-canvas',
@@ -99,7 +99,12 @@ const GAMES = [
     // path a portrait player takes to the canvas.
     prepare: (target) => target.click('[data-action="allow-portrait"]', { timeout: 5000 }).catch(() => {}),
     waitFor: '#bsk-canvas',
-    measure: ['.bsk-topbar', '.bsk-status', '.bsk-players', '.bsk-canvas-card', '.bsk-tools', '.bsk-chat'],
+    measure: ['.bsk-topbar', '.bsk-status', '.bsk-canvas-card', '.bsk-tools', '.bsk-colors', '.bsk-chat'],
+    probe: () => [...document.querySelectorAll('.bsk-tools > *, .bsk-colors > *')].map((node) => {
+      const box = node.getBoundingClientRect();
+      const clipped = box.right > (node.parentElement.getBoundingClientRect().right + 1) || box.width < 1;
+      return `${node.textContent.trim().slice(0, 12).padEnd(13)} ${Math.round(box.left)}..${Math.round(box.right)} ${clipped ? 'ОБРЕЗАНО' : ''}`;
+    }),
   },
 ];
 
@@ -247,6 +252,23 @@ for (const game of GAMES) {
         return `${selector}: ${Math.round(box.top + window.scrollY)}..${Math.round(box.bottom + window.scrollY)} (h${Math.round(box.height)})`;
       }), game.measure);
       for (const row of rows) console.log(`    ${row}`);
+    }
+    if (game.probe) {
+      for (const row of await page.evaluate(game.probe)) console.log(`    ${row}`);
+    }
+    if (process.env.RT_FIXED) {
+      // Fixed and sticky bars sit outside the flow, so they never show up in the
+      // band list even when they cover half the screen.
+      const bars = await page.evaluate(() => [...document.querySelectorAll('body *')]
+        .filter((node) => {
+          const style = getComputedStyle(node);
+          return (style.position === 'fixed' || style.position === 'sticky') && node.getClientRects().length;
+        })
+        .map((node) => {
+          const box = node.getBoundingClientRect();
+          return `${Math.round(box.top)}..${Math.round(box.bottom)} (h${Math.round(box.height)})  ${String(node.className).slice(0, 55)}`;
+        }));
+      for (const bar of bars) console.log(`    закреплено ${bar}`);
     }
     captured.push(game.id);
   } catch (error) {

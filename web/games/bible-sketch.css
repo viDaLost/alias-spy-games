@@ -56,19 +56,21 @@
   .bsk-roster .bsk-avatar { width: 30px; height: 30px; border-radius: 11px; font-size: .8rem; }
   .bsk-roster .bsk-host { display: none; }
 
-  /* The tool row wrapped, stranding two brush sizes on a line of their own next
-     to the button that ends the turn. Colours and sizes scroll together instead. */
-  .bsk-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
-  .bsk-tools::-webkit-scrollbar { display: none; }
+  /* The tool row scrolled sideways with the finish button pinned over its right end.
+     It worked, but nothing said so: at 390px the seven colours fill the visible width
+     exactly, so the eraser, the three brush sizes and undo sat entirely behind the
+     button and read as though they did not exist -- you could not change stroke width
+     or undo a line without discovering a scroll with no affordance.
+     Now the strip wraps on purpose: colours and the eraser on one line, sizes and undo
+     on the next, and the turn button full width below them. Everything is on screen. */
+  .bsk-tools { flex-wrap: wrap; gap: 5px; padding-bottom: 2px; }
   .bsk-tools > * { flex: 0 0 auto; }
-  /* Ending the turn stays reachable without scrolling the strip back, and the fade
-     makes the tools pass under it rather than look chopped off. */
-  .bsk-finish-turn {
-    margin-left: auto;
-    position: sticky;
-    right: 0;
-    box-shadow: -14px 0 14px 6px rgba(255,255,255,.92), 0 9px 24px rgba(37,99,235,.2);
-  }
+  /* Colours take a line of their own, so the eraser, the three sizes and undo stay
+     together on the next one instead of one size being orphaned up beside the palette.
+     They scroll only if a narrower phone cannot fit all seven. */
+  .bsk-colors { flex: 1 0 100%; overflow-x: auto; scrollbar-width: none; }
+  .bsk-colors::-webkit-scrollbar { display: none; }
+  .bsk-finish-turn { flex: 1 0 100%; margin-left: 0; }
 
   /* An empty chat does not deserve a screenful. */
   .bsk-chat { min-height: 0; max-height: 260px; }
