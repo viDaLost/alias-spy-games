@@ -100,12 +100,27 @@
     const buttons = Array.from(grid.children).filter((el) => el.classList?.contains('ws-level-item'));
     if (!buttons.length) return;
 
-    const chapters = [
-      ['Глава 1 · Основы', 0, 10],
-      ['Глава 2 · Мир Библии', 10, 20],
-      ['Глава 3 · Люди и места', 20, 30],
-      ['Глава 4 · Истории и вера', 30, 40],
+    // Границы глав были записаны вручную и заканчивались на сороковом уровне, а
+    // grid.innerHTML = '' стирает всё, что в них не попало: любой уровень после
+    // сорокового пропадал из списка целиком. Теперь главы нарезаются по факту.
+    const CHAPTER_SIZE = 10;
+    const CHAPTER_TITLES = [
+      'Глава 1 · Основы',
+      'Глава 2 · Мир Библии',
+      'Глава 3 · Люди и места',
+      'Глава 4 · Истории и вера',
+      'Глава 5 · Судьи, цари и книги',
+      'Глава 6 · Живой мир',
+      'Глава 7 · Святилище и служение',
+      'Глава 8 · Земля Библии',
+      'Глава 9 · Новый Завет и грядущее',
     ];
+    const chapters = [];
+    for (let start = 0; start < buttons.length; start += CHAPTER_SIZE) {
+      const index = chapters.length;
+      chapters.push([CHAPTER_TITLES[index] || `Глава ${index + 1}`, start, start + CHAPTER_SIZE]);
+    }
+
     grid.innerHTML = '';
     grid.classList.add('ws-level-map');
 

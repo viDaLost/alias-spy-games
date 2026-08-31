@@ -32,7 +32,8 @@
     "check:request-budget:browser": "node scripts/check-request-budget-browser.mjs",
     "check:reconnect-storm": "node scripts/check-reconnect-storm.mjs",
     "check:telegram-desktop": "node scripts/check-telegram-desktop-bootstrap.mjs",
-    "check:admin-sections": "node scripts/check-admin-sections.mjs"
+    "check:admin-sections": "node scripts/check-admin-sections.mjs",
+    "check:wordsearch": "node scripts/check-wordsearch-levels.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

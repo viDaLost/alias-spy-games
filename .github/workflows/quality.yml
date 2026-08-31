@@ -34,6 +34,8 @@ jobs:
         run: node scripts/check-referral-retention.mjs
       - name: Check room QR invites
         run: node scripts/check-room-invites.mjs
+      - name: Check Bible word search levels
+        run: npm run check:wordsearch
       - name: Check Android ban enforcement
         run: node scripts/check-android-ban-enforcement.mjs
       - name: Check Android verified Telegram authentication
