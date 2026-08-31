@@ -127,3 +127,5 @@ jobs:
         run: npm run check:admin-sections
       - name: Check word search level picker
         run: npm run check:level-modal
+      - name: Check Sacred Word without WebGL
+        run: npm run check:sacred-fallback

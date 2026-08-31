@@ -37,7 +37,8 @@
     "check:level-modal": "node scripts/check-level-modal.mjs",
     "check:bible-wow": "node scripts/check-bible-wow-levels.mjs",
     "build:dark": "node scripts/build-dark-theme.mjs",
-    "check:dark": "node scripts/build-dark-theme.mjs --check"
+    "check:dark": "node scripts/build-dark-theme.mjs --check",
+    "check:sacred-fallback": "node scripts/check-sacred-word-fallback.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

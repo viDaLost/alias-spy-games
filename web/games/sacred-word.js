@@ -515,7 +515,17 @@ function startSacredWordGame(wordsUrl) {
 
     const lampContainer = document.getElementById("sw-lamp-container");
     if (!threeCanvas) {
-      initThreeJS();
+      // Единственная игра с WebGL: контекста может не оказаться вовсе — их у браузера
+      // ограниченное число, а на слабой машине или при отключённом ускорении его не
+      // дадут совсем. Раньше это роняло весь экран игры; теперь она просто идёт без
+      // трёхмерной меноры. Саму потерю уже пережитого контекста three.js обрабатывает
+      // сам — в r128 обработчик webglcontextlost вызывает preventDefault.
+      try {
+        initThreeJS();
+      } catch (error) {
+        console.warn("Sacred Word: не удалось запустить 3D-сцену, играем без неё:", error);
+        threeCanvas = null;
+      }
     }
     if (threeCanvas && lampContainer) {
       lampContainer.appendChild(threeCanvas);
