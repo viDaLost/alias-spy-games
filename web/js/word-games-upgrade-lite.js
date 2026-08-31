@@ -66,8 +66,8 @@
     ui.className = 'ws-upgrade-strip';
     ui.innerHTML = `
       <div class="ws-mode-switch" role="group" aria-label="Режим поля">
-        <button type="button" data-ws-mode="classic">▦ Классика</button>
-        <button type="button" data-ws-mode="snake">〰 Змейка</button>
+        <button type="button" data-ws-mode="classic">Классика</button>
+        <button type="button" data-ws-mode="snake">Змейка</button>
       </div>
       <div class="ws-live-word" aria-live="polite">Проведите по буквам</div>
       <div class="ws-combo-pill" aria-live="polite">Комбо ×1</div>

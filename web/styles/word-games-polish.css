@@ -1,0 +1,142 @@
+/* ============================================================
+   СЛОВЕСНЫЕ ИГРЫ — ОТДЕЛЬНАЯ ПРОРАБОТКА
+   ============================================================
+
+   «Поиск слов» выбивался сильнее прочих: поле выглядело таблицей — жирные
+   тёмные буквы на белых квадратах с жёсткой тенью, — шапка была сжата в две
+   строки, а «Сброс» кричал красным наравне с подсказкой, хотя это откат, а
+   не основное действие.
+
+   Палитра прежняя: буквы получают фирменный индиго вместо near-black,
+   поверхности — тот же стеклянный материал, что и везде.
+   ============================================================ */
+
+/* --- Поле --- */
+
+.ws-cell {
+  color: #312e81 !important;
+  font-weight: var(--weight-strong) !important;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .96), rgba(232, 240, 255, .9)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 0 0 1px rgba(99, 102, 241, .1),
+    0 2px 5px rgba(49, 46, 129, .07) !important;
+}
+
+/* Выбранные буквы ведут за пальцем — заливка бренда, не серая подсветка. */
+.ws-cell.ws-cell--sel {
+  color: #fff !important;
+  background: linear-gradient(160deg, var(--primary), var(--primary-2)) !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, .34) !important;
+  transform: scale(.94) !important;
+}
+
+/* Найденное слово гаснет, но остаётся читаемым — раньше уходило в серый
+   #9ca3af на сером и почти пропадало. */
+.ws-cell.ws-cell--solved {
+  color: rgba(49, 46, 129, .46) !important;
+  background: rgba(219, 234, 254, .58) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, .09) !important;
+}
+
+/* --- Шапка --- */
+
+/* Шапка содержит кнопку и блок заголовка, внутри которого имя и звёзды
+   стояли друг под другом — из-за чего «Назад» наезжал на название, а
+   счётчик уезжал на третью строку. Теперь всё в один ряд. */
+.ws-topbar {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.ws-title {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ws-title__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--text-lg) !important;
+  font-weight: var(--weight-heading) !important;
+  letter-spacing: -0.02em;
+}
+
+.ws-title__meta { flex: 0 0 auto; margin: 0 !important; }
+.ws-stars { font-variant-numeric: tabular-nums; }
+
+/* --- Действия --- */
+
+/* Подсказка — основное действие, сброс — вспомогательное.
+   Раньше оба были градиентными кнопками во всю ширину. */
+.ws-actions #ws-reset,
+.ws-actions .wrong-button {
+  background: rgba(255, 255, 255, .74) !important;
+  color: var(--danger) !important;
+  font-weight: var(--weight-medium) !important;
+  box-shadow: var(--elev-1), inset 0 0 0 1px rgba(239, 68, 68, .22) !important;
+}
+
+.ws-actions #ws-hint {
+  font-weight: var(--weight-strong) !important;
+}
+
+/* ============================================================
+   «Библейские слова»
+   ============================================================
+   Колесо было набором белых кружков без связи с остальным приложением,
+   а клетки кроссворда — плоскими прямоугольниками. Тот же материал и тот
+   же индиго, что и везде; цвета из tokens.css. */
+
+.wow-btn-let {
+  color: #312e81 !important;
+  font-weight: var(--weight-heading) !important;
+  background: linear-gradient(160deg, #fff, rgba(232, 240, 255, .94)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 0 0 1px rgba(99, 102, 241, .12),
+    0 5px 12px rgba(49, 46, 129, .16) !important;
+  transition: transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-fast) var(--ease-out) !important;
+}
+
+/* Нажатая буква окрашивается брендом — видно, что она попала в набор. */
+.wow-btn-let.active,
+.wow-btn-let:active {
+  color: #fff !important;
+  background: linear-gradient(160deg, var(--primary), var(--primary-2)) !important;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, .36) !important;
+  transform: scale(.93) !important;
+}
+
+/* Подложка колеса — мягкий круг, а не серое пятно. */
+.wow-wheel-bg {
+  background: radial-gradient(circle at 50% 42%,
+    rgba(255, 255, 255, .92) 0%,
+    rgba(226, 236, 255, .7) 58%,
+    rgba(219, 234, 254, .38) 100%) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, .1), var(--elev-1) !important;
+}
+
+/* Клетки кроссворда: пустая — намёк, открытая — читаемая. */
+.wow-cell {
+  background: rgba(255, 255, 255, .78) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    inset 0 0 0 1px rgba(99, 102, 241, .1) !important;
+}
+
+.wow-cell.solved {
+  color: #312e81 !important;
+  font-weight: var(--weight-heading) !important;
+  background: linear-gradient(160deg, #fff, rgba(219, 234, 254, .95)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(79, 70, 229, .2),
+    0 3px 8px rgba(49, 46, 129, .12) !important;
+}

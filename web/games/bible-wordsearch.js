@@ -119,7 +119,7 @@ function startBibleWordSearchGame(levelsUrl) {
           <div class="ws-levelrow">
             <div id="ws-level-btn" class="ws-level-btn">
                <div>Тема: <b id="ws-theme-label">...</b> <span class="ws-level-num">(Ур. <span id="ws-lvl-label">1</span>)</span></div>
-               <div style="font-size:0.85rem; opacity:0.8;">📋 Меню</div>
+               <div style="font-size:0.85rem; opacity:0.8;">Меню</div>
             </div>
           </div>
           <div class="ws-actions">
@@ -133,7 +133,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
         <div class="ws-bottom">
           <button class="start-button" id="ws-prev" onclick="window.__wsPrev()">Пред.</button>
-          <button class="start-button" id="ws-next" onclick="window.__wsNext()">След. ➡️</button>
+          <button class="start-button" id="ws-next" onclick="window.__wsNext()">След.</button>
         </div>
 
         <div id="ws-level-modal" class="ws-modal hidden">
@@ -572,10 +572,10 @@ function startBibleWordSearchGame(levelsUrl) {
     done.className = "ws-win";
     done.innerHTML = `
       <div class="ws-win__card" style="background-color: var(--tg-theme-bg-color, #ffffff); color: var(--tg-theme-text-color, #000000); border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <div class="ws-win__title" style="margin-bottom: 8px; font-size: 1.25rem; font-weight: bold;">✅ Уровень пройден!</div>
+        <div class="ws-win__title" style="margin-bottom: 8px; font-size: 1.25rem; font-weight: bold;">Уровень пройден!</div>
         <div class="ws-win__text" style="margin-bottom: 20px;">Тема: <b>${level.theme}</b></div>
         <div class="ws-win__actions" style="display: flex; flex-direction: column; gap: 10px;">
-          <button class="start-button" id="ws-win-next">Следующий уровень ➡️</button>
+          <button class="start-button" id="ws-win-next">Следующий уровень</button>
           <button class="back-button" id="ws-win-menu">В меню игры</button>
         </div>
       </div>
@@ -721,7 +721,7 @@ function startBibleWordSearchGame(levelsUrl) {
     if (resetBtn) {
       const manualFoundCount = Math.max(0, (st.found || []).length - (st.revealed || []).length);
       const penalty = manualFoundCount * STAR_PER_WORD;
-      resetBtn.textContent = penalty > 0 ? `♻️ Сброс (-${penalty}⭐)` : `♻️ Сброс`;
+      resetBtn.textContent = penalty > 0 ? `Сброс (-${penalty}⭐)` : `Сброс`;
     }
 
     if (withEvents) {
