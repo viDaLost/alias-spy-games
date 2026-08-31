@@ -767,10 +767,15 @@ body[data-current-game="quartet"] #game-container { width: min(940px,100%) !impo
   .qv2-turn-timer-wrap { min-width: 58px; padding: 5px 4px; }
   .qv2-turn-timer-wrap > span { font-size: .5rem; letter-spacing: .02em; white-space: nowrap; }
 
-  /* One glance at the score, not a third of the screen. */
+  /* One glance at the score, not a third of the screen. The strip scrolls, so it
+     fades at the edge instead of ending on a chip sliced by the panel border. */
   .qv3-opponents { padding: 9px 10px; }
   .qv3-opponents .qv2-section-caption { display: none; }
   .qv2-score-player { flex-basis: 108px; }
+  .qv2-score-strip {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+  }
 
   /* The event line is one sentence; it does not need a card's worth of padding. */
   .qv2-event { padding: 8px 11px; font-size: .72rem; }
