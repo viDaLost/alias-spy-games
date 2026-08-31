@@ -3,7 +3,7 @@
   const isAndroidApk = window.__ANDROID_APK__ === true;
   const ICON_VERSION = '1';
   const ICON_NAMES = ['alias', 'idea', 'character', 'describe', 'spy', 'quartet', 'words', 'search', 'sacred', 'ark'];
-  const ICON_URLS = ICON_NAMES.map((name) => `web/assets/icons/${name}.png?v=${ICON_VERSION}`);
+  const ICON_URLS = ICON_NAMES.map((name) => `web/assets/icons/${name}.webp?v=${ICON_VERSION}`);
   let menuReady = false;
   let warmupRunning = false;
 

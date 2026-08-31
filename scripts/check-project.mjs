@@ -67,6 +67,32 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   }
 }
 
+// A path built with a template literal -- `web/assets/icons/${name}.webp` -- is invisible
+// to the check above, which skips anything containing a placeholder. That is how a whole
+// set of icon preloads kept 404ing after the files were converted to WebP: no literal
+// string ever named them. The placeholder cannot be resolved, but the parts around it can:
+// the directory has to exist, and something in it has to carry the literal extension.
+const templateRefRegex = /`(web\/(?:assets|data|games)\/[A-Za-z0-9_./-]*)\$\{[^`]*?\}([A-Za-z0-9_.?=&${}-]*)`/g;
+for (const file of searchable.filter((f) => /\.(?:html|js)$/i.test(f))) {
+  const text = fs.readFileSync(file, 'utf8');
+  for (const match of text.matchAll(templateRefRegex)) {
+    const dir = match[1].replace(/[^/]*$/, '');
+    const suffix = match[2].split('?')[0];
+    const target = path.join(root, dir);
+    if (!fs.existsSync(target) || !fs.statSync(target).isDirectory()) {
+      failures.push(`Broken composed reference in ${rel(file)}: no such directory ${dir}`);
+      continue;
+    }
+    // path.extname('.webp') is '' -- a leading dot reads as a dotfile -- so take the
+    // extension off the suffix directly.
+    const extension = suffix.match(/\.[A-Za-z0-9]+$/)?.[0];
+    if (!extension) continue;
+    if (!fs.readdirSync(target).some((entry) => entry.toLowerCase().endsWith(extension.toLowerCase()))) {
+      failures.push(`Broken composed reference in ${rel(file)}: ${dir}\${...}${suffix} matches no ${extension} file`);
+    }
+  }
+}
+
 // Some art is assembled at runtime from ASSET_ROOT + filename, so the full path never
 // appears as one literal string in a source file. Keep the allowlist narrow and explicit.
 const dynamicPublishedFiles = new Set([
