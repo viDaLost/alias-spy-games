@@ -98,9 +98,6 @@ function bestPlacement(level) {
 
 if (!Array.isArray(levels) || !levels.length) failures.push('levels must be a non-empty array');
 
-// Levels up to here predate the rule below and keep their overlapping words.
-const GRANDFATHERED_THROUGH = 40;
-
 const seenIds = new Set();
 const wordOwners = new Map();
 const CYRILLIC = /^[А-ЯЁ]+$/;
@@ -126,15 +123,13 @@ for (const [index, level] of levels.entries()) {
       continue;
     }
     if (word.length < 3) failures.push(`${where}: "${word}" is too short to hunt for`);
-    // A word that turns up on two levels is found twice for the same thought. The
-    // first forty levels already repeat 45 words between them; that is theirs to
-    // keep, but nothing added after them may repeat anything -- its own words or
-    // theirs.
+    // A word that turns up on two levels is found twice for the same thought. Where a
+    // word belongs to two themes, it stays with the one that falls apart without it --
+    // ЩИТ and ШЛЕМ are Ephesians 6, not just royal regalia -- and the broader theme
+    // takes something else from the same family.
     const owner = wordOwners.get(word);
     if (owner === undefined) wordOwners.set(word, level.id);
-    else if (level.id > GRANDFATHERED_THROUGH || owner > GRANDFATHERED_THROUGH) {
-      failures.push(`${where}: "${word}" already appears on level ${owner}`);
-    }
+    else failures.push(`${where}: "${word}" already appears on level ${owner}`);
   }
 }
 

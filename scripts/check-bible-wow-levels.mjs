@@ -27,8 +27,6 @@ const levels = data.levels;
 const failures = [];
 const warnings = [];
 
-// Levels up to here predate the rules below and keep what they have.
-const GRANDFATHERED_THROUGH = 100;
 const MIN_WORDS = 4;
 
 // --- crossword layout, mirroring web/games/bible-wow.js -----------------------
@@ -137,8 +135,6 @@ const rows = [];
 
 for (const [index, level] of levels.entries()) {
   const where = `уровень ${level?.id ?? `#${index + 1}`}`;
-  const isNew = Number(level?.id) > GRANDFATHERED_THROUGH;
-
   if (!Number.isInteger(level.id) || level.id < 1) failures.push(`${where}: id must be a positive integer`);
   if (seenIds.has(level.id)) failures.push(`${where}: duplicate id`);
   seenIds.add(level.id);
@@ -152,9 +148,18 @@ for (const [index, level] of levels.entries()) {
     continue;
   }
 
-  const all = [...level.words, ...(level.bonus || [])];
+  const bonus = level.bonus || [];
+  const all = [...level.words, ...bonus];
   const pool = new Map();
   for (const letter of level.letters) pool.set(letter, (pool.get(letter) || 0) + 1);
+
+  // A bonus word is a find on top of the board, not part of the level's task, so the
+  // one-level-owns-a-word rule does not reach it -- it only must be spellable and must
+  // not repeat a word already on this level's own board.
+  const onBoard = new Set(level.words);
+  for (const word of bonus) {
+    if (onBoard.has(word)) failures.push(`${where}: bonus "${word}" is already on the board`);
+  }
 
   for (const word of all) {
     if (typeof word !== 'string' || !CYRILLIC.test(word)) {
@@ -162,9 +167,7 @@ for (const [index, level] of levels.entries()) {
       continue;
     }
     // The loader drops anything under three letters before the level is even built.
-    if (word.length < 3) {
-      (isNew ? failures : warnings).push(`${where}: "${word}" is shorter than three letters, so the game discards it`);
-    }
+    if (word.length < 3) failures.push(`${where}: "${word}" is shorter than three letters, so the game discards it`);
 
     const need = new Map();
     for (const letter of word) need.set(letter, (need.get(letter) || 0) + 1);
@@ -175,23 +178,22 @@ for (const [index, level] of levels.entries()) {
       }
     }
 
+    if (bonus.includes(word) && !onBoard.has(word)) continue;
     const owner = wordOwners.get(word);
     if (owner === undefined) wordOwners.set(word, level.id);
-    else if (isNew || owner > GRANDFATHERED_THROUGH) {
-      failures.push(`${where}: "${word}" already appears on level ${owner}`);
-    }
+    else failures.push(`${where}: "${word}" already appears on level ${owner}`);
   }
 
   // What the crossword really seats, in the worse of the two starting directions.
   const gridWords = level.words.filter((word) => typeof word === 'string' && word.length >= 3);
   const seated = Math.min(seatedWords(gridWords, 0).size, seatedWords(gridWords, 1).size);
 
-  if (isNew && seated < MIN_WORDS) {
+  if (seated < MIN_WORDS) {
     failures.push(
       `${where}: the crossword seats only ${seated} of ${level.words.length} words — `
       + `a level must put at least ${MIN_WORDS} on the board`,
     );
-  } else if (isNew && seated < gridWords.length) {
+  } else if (seated < gridWords.length) {
     failures.push(
       `${where}: the crossword seats ${seated} of ${gridWords.length} words; `
       + `the rest silently become bonus words instead of appearing on the board`,
@@ -212,4 +214,4 @@ if (failures.length) {
 
 const total = levels.reduce((sum, level) => sum + level.words.length, 0);
 console.log(`Bible WOW levels OK: ${levels.length} уровней, ${total} слов, все складываются из своих букв, `
-  + `новые уникальны и целиком попадают на поле.`);
+  + `слова уникальны, и на каждом уровне их не меньше четырёх на поле.`);
