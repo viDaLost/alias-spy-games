@@ -2,6 +2,7 @@
 
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec";
 const ADMIN_ID = "1288379477";
+window.APP_ROOT_ADMIN_ID = ADMIN_ID;
 const SUPPORT_LINK = "https://t.me/D_a_n_Vi";
 const ADMIN_PAGE_SIZE = 10;
 

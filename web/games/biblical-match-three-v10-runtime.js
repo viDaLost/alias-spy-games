@@ -5,12 +5,19 @@ window.__bmtV10RuntimeInstalled = true;
 window.__bmtV9RuntimeInstalled = true;
 window.__bmtV6RuntimeInstalled = true;
 
-const TEST_UNLOCK = (() => {
+const TEST_HOST_UNLOCK = (() => {
   try {
     const url = new URL(location.href);
     return url.searchParams.get("unlockAll") === "1" || /workers\.dev$/i.test(location.hostname) || /preview/i.test(location.hostname);
   } catch { return true; }
 })();
+function isRootAdmin() {
+  const root = String(window.APP_ROOT_ADMIN_ID || "").trim();
+  if (!/^\d{5,20}$/.test(root)) return false;
+  return [window.Telegram?.WebApp?.initDataUnsafe?.user?.id, window.__ANDROID_TELEGRAM_ID__]
+    .some((value) => String(value ?? "").trim() === root);
+}
+function unlockAllLevels() { return TEST_HOST_UNLOCK || isRootAdmin(); }
 const TIMED_SECONDS = 90;
 const TIMED_KEY = "biblical_match_three_timed_v1";
 const IMPORTANT_NODE = ".bmt-shell,.bmt-free-grid,.bmt-board,.bmt-result-overlay,.bmt-result-card,.bmt-map";
@@ -62,7 +69,7 @@ function patchProgress() {
   const originalLoad = P.load.bind(P);
   P.load = function() {
     const progress = originalLoad();
-    if (TEST_UNLOCK) progress.unlocked = Math.max(Number(progress.unlocked || 1), 999);
+    if (unlockAllLevels()) progress.unlocked = Math.max(Number(progress.unlocked || 1), 999);
     return progress;
   };
   const originalBegin = P.beginFreeRun.bind(P);
@@ -91,7 +98,7 @@ function renameGame(root = document) {
   if (hero && /Собирайте|символ/i.test(hero.textContent || "")) hero.textContent = "Собирайте библейские сокровища и проходите Путь света";
 }
 function unlockMap(root = document) {
-  if (!TEST_UNLOCK) return;
+  if (!unlockAllLevels()) return;
   root.querySelectorAll?.(".bmt-map-node,.bmt-journey-node").forEach((node) => {
     node.disabled = false;
     node.removeAttribute("disabled");
@@ -222,7 +229,7 @@ const observer = new MutationObserver((mutations) => {
 });
 observer.observe(document.documentElement, { childList:true, subtree:true });
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => enhance(document), { once:true }); else enhance(document);
-window.BiblicalMatchThreeV10 = { enhance, testUnlock:TEST_UNLOCK, timedSeconds:TIMED_SECONDS };
+window.BiblicalMatchThreeV10 = { enhance, testUnlock:TEST_HOST_UNLOCK, unlockAllLevels, isRootAdmin, timedSeconds:TIMED_SECONDS };
 window.BiblicalMatchThreeV9 = window.BiblicalMatchThreeV10;
 window.BiblicalMatchThreeV6 = window.BiblicalMatchThreeV10;
 })();
