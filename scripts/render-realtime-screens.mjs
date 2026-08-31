@@ -39,22 +39,24 @@ function seededRandom() {
   };
 }
 
-/** Quartet, mid-game: four players, cards dealt, my turn. */
-function quartetView() {
+/** A dealt four-player Quartet game, seen through one player's eyes. */
+function quartetView(viewer = ME) {
   // joinRoom mutates and reports whether the player rejoined; it does not return
   // the state. The worker's own tests use it exactly this way.
-  const state = quartet.createRoomState('QA01', { playerId: ME, name: 'Вы' });
+  const state = quartet.createRoomState('QA01', { playerId: ME, name: 'Иван' });
   for (const [playerId, name] of OTHERS) quartet.joinRoom(state, { playerId, name });
   quartet.startGame(state, ME, NOW, seededRandom());
-  return quartet.buildView(state, ME, EVERYONE);
+  // Viewing as anyone but the starting player gives the waiting state -- the one a
+  // player is in for most of the game, and the one that renders a different dock.
+  return quartet.buildView(state, viewer, EVERYONE);
 }
 
-/** Bible Sketch, mid-round: my turn to draw, with lines already on the canvas. */
-function sketchView() {
+/** Bible Sketch mid-round, with lines already on the canvas, seen by one player. */
+function sketchView(viewer = ME) {
   const random = seededRandom();
   const rng = (max) => Math.floor(random() * max);
 
-  const state = sketch.createRoomState('QA02', { playerId: ME, name: 'Вы' }, 'objects', NOW);
+  const state = sketch.createRoomState('QA02', { playerId: ME, name: 'Иван' }, 'objects', NOW);
   for (const [playerId, name] of OTHERS) sketch.joinRoom(state, { playerId, name }, NOW);
   sketch.startRound(state, ME, NOW, rng);
 
@@ -76,7 +78,7 @@ function sketchView() {
   ];
   for (const stroke of strokes) sketch.commitStroke(state, ME, stroke, NOW);
 
-  return sketch.buildView(state, ME, EVERYONE);
+  return sketch.buildView(state, viewer, EVERYONE);
 }
 
 const GAMES = [
@@ -85,16 +87,31 @@ const GAMES = [
     open: 'quartet',
     host: 'alias-spy-games-quartet',
     view: quartetView(),
-    storage: { quartet_v2_player_name: 'Вы', quartet_v2_guest_id: ME, quartet_v2_room_id: 'QA01' },
+    storage: { quartet_v2_player_name: 'Иван', quartet_v2_guest_id: ME, quartet_v2_room_id: 'QA01' },
     waitFor: '.qv2-game',
+    probe: () => ['.qv3-hand-table .qv2-section-head', '.qv2-group-tabs', '.qv2-quartet-card-head', '.qv2-playing-card, .qv2-card'].map((selector) => {
+      const node = document.querySelector(selector);
+      if (!node) return `${selector}: —`;
+      const box = node.getBoundingClientRect();
+      return `${selector}: ${Math.round(box.top + window.scrollY)}..${Math.round(box.bottom + window.scrollY)} (h${Math.round(box.height)})`;
+    }),
     measure: ['.qv2-topbar', '.qv2-turn-banner', '.qv2-event', '.qv3-hand-table', '.qv3-opponents', '.qv2-activity', '.qv2-action-dock', '[class*="dock"]', '.qv2-game'],
+  },
+  {
+    id: 'quartet-table-waiting',
+    open: 'quartet',
+    host: 'alias-spy-games-quartet',
+    view: quartetView('qa-2'),
+    storage: { quartet_v2_player_name: 'Мария', quartet_v2_guest_id: 'qa-2', quartet_v2_room_id: 'QA01' },
+    waitFor: '.qv2-game',
+    measure: ['.qv2-turn-banner', '.qv3-hand-table', '.qv2-game'],
   },
   {
     id: 'bible-sketch-canvas',
     open: 'bible-sketch',
     host: 'alias-spy-games-bible-sketch',
     view: sketchView(),
-    storage: { bible_sketch_player_name_v1: 'Вы', bible_sketch_guest_id_v1: ME, bible_sketch_room_id_v1: 'QA02' },
+    storage: { bible_sketch_player_name_v1: 'Иван', bible_sketch_guest_id_v1: ME, bible_sketch_room_id_v1: 'QA02' },
     // A drawing turn asks to be held in landscape first; dismissing that is the
     // path a portrait player takes to the canvas.
     prepare: (target) => target.click('[data-action="allow-portrait"]', { timeout: 5000 }).catch(() => {}),
@@ -105,6 +122,16 @@ const GAMES = [
       const clipped = box.right > (node.parentElement.getBoundingClientRect().right + 1) || box.width < 1;
       return `${node.textContent.trim().slice(0, 12).padEnd(13)} ${Math.round(box.left)}..${Math.round(box.right)} ${clipped ? 'ОБРЕЗАНО' : ''}`;
     }),
+  },
+  {
+    id: 'bible-sketch-watching',
+    open: 'bible-sketch',
+    host: 'alias-spy-games-bible-sketch',
+    view: sketchView('qa-3'),
+    storage: { bible_sketch_player_name_v1: 'Пётр', bible_sketch_guest_id_v1: 'qa-3', bible_sketch_room_id_v1: 'QA02' },
+    prepare: (target) => target.click('[data-action="allow-portrait"]', { timeout: 5000 }).catch(() => {}),
+    waitFor: '#bsk-canvas',
+    measure: ['.bsk-status', '.bsk-canvas-card', '.bsk-tools', '.bsk-chat'],
   },
 ];
 
@@ -136,114 +163,117 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-unsafe-swiftshader', '--force-prefers-reduced-motion'],
 });
-const context = await browser.newContext({
-  viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
-});
 
-const byHost = Object.fromEntries(GAMES.map((game) => [game.host, game.view]));
-const storage = Object.assign({}, ...GAMES.map((game) => game.storage));
-
-await context.addInitScript(({ views, entries, me, NOW_MS }) => {
-  window.__APP_TELEMETRY_DISABLED__ = true;
-  // Freeze anything time-based so two captures of the same code match exactly. The
-  // clock is pinned to the moment the states were built, so their turn deadlines
-  // read as a full turn remaining rather than as expired.
-  Math.random = () => 0.42;
-  const RealDate = Date;
-  window.Date = class extends RealDate {
-    constructor(...args) { super(...(args.length ? args : [NOW_MS])); }
-    static now() { return NOW_MS; }
-  };
-
-  const viewFor = (url) => Object.entries(views).find(([host]) => String(url).includes(host))?.[1] || null;
-
-  // Stand-in socket: opens, then delivers the state that game's engine produced.
-  class StubSocket extends EventTarget {
-    constructor(url) {
-      super();
-      this.url = String(url);
-      this.readyState = 1;
-      const state = viewFor(this.url);
-      setTimeout(() => {
-        this.dispatchEvent(new Event('open'));
-        // Bible Sketch awaits the open event and only then subscribes to messages, so
-        // the state has to arrive in a later task -- delivered in this one it is lost.
-        if (state) {
-          setTimeout(() => this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify({ type: 'state', state }) })), 0);
-        }
-      }, 40);
-    }
-    send() {}
-    close() { this.readyState = 3; this.dispatchEvent(new Event('close')); }
-    set onopen(fn) { this.addEventListener('open', fn); }
-    set onmessage(fn) { this.addEventListener('message', fn); }
-    set onclose(fn) { this.addEventListener('close', fn); }
-    set onerror(fn) { this.addEventListener('error', fn); }
-  }
-  // Both clients compare readyState against WebSocket.OPEN, so the stand-in has to
-  // carry the same constants as the real constructor.
-  StubSocket.CONNECTING = 0;
-  StubSocket.OPEN = 1;
-  StubSocket.CLOSING = 2;
-  StubSocket.CLOSED = 3;
-  window.WebSocket = StubSocket;
-
-  try { for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value); } catch {}
-  window.__qaMe = me;
-}, { views: byHost, entries: storage, me: ME, NOW_MS: NOW });
-
-const page = await context.newPage();
-page.on('pageerror', (error) => console.log(`  ошибка страницы: ${String(error).slice(0, 140)}`));
-page.on('response', (response) => {
-  if (response.status() >= 400) console.log(`  ${response.status()} ${response.url().replace(baseURL, '').slice(0, 90)}`);
-});
-
-await page.route('https://telegram.org/**', (route) => route.fulfill({
-  status: 200, contentType: 'text/javascript; charset=utf-8',
-  body: 'window.Telegram={WebApp:{initData:"",initDataUnsafe:{user:{id:999999,username:"qa",first_name:"QA"}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},disableVerticalSwipes(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};',
-}));
+const telegramStub = 'window.Telegram={WebApp:{initData:"",initDataUnsafe:{user:{id:999999,username:"qa",first_name:"QA"}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},disableVerticalSwipes(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};';
 const gas = JSON.stringify({ success: true, isBanned: false, wowStars: 20, lastGames: [] });
-for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
-  await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gas }));
-}
-// The join call has to answer with the worker's shape: connectSocket() bails without
-// a session token, and the resume then falls back to the lobby.
-await page.route('https://*.workers.dev/**', (route) => {
-  const url = route.request().url();
-  const game = GAMES.find((item) => url.includes(item.host));
-  route.fulfill({
+
+// Each capture gets its own page: the waiting screens are the same games seen through
+// another player's eyes, so they need their own stored identity and their own state.
+async function openPage(game) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
+  });
+
+  await context.addInitScript(({ view, host, entries, NOW_MS }) => {
+    window.__APP_TELEMETRY_DISABLED__ = true;
+    // Freeze anything time-based so two captures of the same code match exactly. The
+    // clock is pinned to the moment the state was built, so its turn deadline reads
+    // as a full turn remaining rather than as expired.
+    Math.random = () => 0.42;
+    const RealDate = Date;
+    window.Date = class extends RealDate {
+      constructor(...args) { super(...(args.length ? args : [NOW_MS])); }
+      static now() { return NOW_MS; }
+    };
+
+    // Stand-in socket: opens, then delivers the state the engine produced.
+    class StubSocket extends EventTarget {
+      constructor(url) {
+        super();
+        this.url = String(url);
+        this.readyState = 1;
+        const deliver = this.url.includes(host);
+        setTimeout(() => {
+          this.dispatchEvent(new Event('open'));
+          // Bible Sketch awaits the open event and only then subscribes to messages,
+          // so the state has to arrive in a later task -- sent in this one it is lost.
+          if (deliver) {
+            setTimeout(() => this.dispatchEvent(new MessageEvent('message', {
+              data: JSON.stringify({ type: 'state', state: view }),
+            })), 0);
+          }
+        }, 40);
+      }
+      send() {}
+      close() { this.readyState = 3; this.dispatchEvent(new Event('close')); }
+      set onopen(fn) { this.addEventListener('open', fn); }
+      set onmessage(fn) { this.addEventListener('message', fn); }
+      set onclose(fn) { this.addEventListener('close', fn); }
+      set onerror(fn) { this.addEventListener('error', fn); }
+    }
+    // Both clients compare readyState against WebSocket.OPEN, so the stand-in has to
+    // carry the same constants as the real constructor.
+    StubSocket.CONNECTING = 0;
+    StubSocket.OPEN = 1;
+    StubSocket.CLOSING = 2;
+    StubSocket.CLOSED = 3;
+    window.WebSocket = StubSocket;
+
+    try { for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value); } catch {}
+  }, { view: game.view, host: game.host, entries: game.storage, NOW_MS: NOW });
+
+  const page = await context.newPage();
+  page.on('pageerror', (error) => console.log(`  ошибка страницы: ${String(error).slice(0, 140)}`));
+  page.on('response', (response) => {
+    if (response.status() >= 400) console.log(`  ${response.status()} ${response.url().replace(baseURL, '').slice(0, 90)}`);
+  });
+
+  await page.route('https://telegram.org/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/javascript; charset=utf-8', body: telegramStub,
+  }));
+  for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
+    await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gas }));
+  }
+  // The join call has to answer with the worker's shape: connectSocket() bails without
+  // a session token, and the resume then falls back to the lobby.
+  await page.route('https://*.workers.dev/**', (route) => route.fulfill({
     status: 200, contentType: 'application/json; charset=utf-8',
     body: JSON.stringify({
-      ok: true, rooms: [], roomId: game?.view?.roomId || 'QA01',
-      playerId: ME, sessionToken: 'qa-token', state: game?.view || null,
+      ok: true, rooms: [], roomId: game.view?.roomId || 'QA01',
+      playerId: game.storage[Object.keys(game.storage).find((key) => key.includes('guest'))],
+      sessionToken: 'qa-token', state: game.view,
     }),
-  });
-});
+  }));
 
-await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
-await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
-await page.waitForTimeout(3000);
+  await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
+  await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+  await page.waitForTimeout(3000);
+  return { context, page };
+}
 
 const captured = [];
 for (const game of GAMES) {
+  const { context, page } = await openPage(game);
   try {
     await page.evaluate((key) => window.showGame(key), game.open);
     if (game.prepare) await game.prepare(page);
     await page.waitForSelector(game.waitFor, { timeout: 15_000 });
-    // Quartet's turn toast lives for 2.3s. Capturing while it is fading makes two
-    // runs of the same code differ, and it covers the cards the capture is for.
+    // Quartet's turn toast lives for 2.3s. Capturing while it fades makes two runs of
+    // the same code differ, and it covers the cards the capture is for.
     await page.waitForTimeout(3500);
     await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}' });
-    // The first screen is what the redesign is judged on, so capture it on its own
-    // as well as the whole scroll length.
+    // The first screen is what the redesign is judged on, so capture it on its own as
+    // well as the whole scroll length.
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: path.join(outDir, `${game.id}-fold.png`) });
     await page.screenshot({ path: path.join(outDir, `${game.id}.png`), fullPage: true });
+
     const { height, overflow } = await page.evaluate(() => ({
       height: document.documentElement.scrollHeight,
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     }));
-    console.log(`${game.id.padEnd(22)} ${height}px${overflow > 0 ? `  ГОРИЗОНТАЛЬНОЕ ПЕРЕПОЛНЕНИЕ +${overflow}px` : ''}`);
+    console.log(`${game.id.padEnd(24)} ${height}px${overflow > 0 ? `  ГОРИЗОНТАЛЬНОЕ ПЕРЕПОЛНЕНИЕ +${overflow}px` : ''}`);
+
     if (game.measure) {
       const rows = await page.evaluate((selectors) => selectors.map((selector) => {
         const node = document.querySelector(selector);
@@ -257,8 +287,8 @@ for (const game of GAMES) {
       for (const row of await page.evaluate(game.probe)) console.log(`    ${row}`);
     }
     if (process.env.RT_FIXED) {
-      // Fixed and sticky bars sit outside the flow, so they never show up in the
-      // band list even when they cover half the screen.
+      // Fixed and sticky bars sit outside the flow, so they never appear in the band
+      // list even when they cover half the screen.
       const bars = await page.evaluate(() => [...document.querySelectorAll('body *')]
         .filter((node) => {
           const style = getComputedStyle(node);
@@ -277,8 +307,7 @@ for (const game of GAMES) {
       console.warn('  DOM:', await page.evaluate(() => document.querySelector('#game-container')?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 300)));
     }
   }
-  await page.evaluate(() => window.goToMainMenu?.()).catch(() => {});
-  await page.waitForTimeout(1500);
+  await context.close();
 }
 
 console.log(`снято ${captured.length}/${GAMES.length}: ${captured.join(', ')}`);

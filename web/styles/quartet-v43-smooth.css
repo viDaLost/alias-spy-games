@@ -102,13 +102,20 @@ body.qv43-quartet-active .qv3-card-art img{transform:translateZ(0);will-change:a
     gap:7px;
   }
   .qv43-dock-head{display:contents}
-  .qv43-dock-copy{
+  /* Only during your own turn: the banner one row above already says "Ваш ход".
+     The text stays in the DOM -- it is inside the dock's aria-live region and is
+     announced when the turn changes. */
+  #qv43-fixed-dock:not(.is-waiting-turn) .qv43-dock-copy{
     position:absolute;
     width:1px;height:1px;
     margin:-1px;padding:0;border:0;
     clip-path:inset(50%);
     overflow:hidden;white-space:nowrap;
   }
+  /* Waiting for someone else: the targets, the summary and the turn button are all
+     hidden, so the heading takes the row that the button would have had and the
+     icons keep their place beside it. */
+  #qv43-fixed-dock.is-waiting-turn .qv43-dock-copy{grid-area:confirm;align-self:center;min-width:0}
   .qv43-dock-actions{grid-area:actions;align-self:stretch}
   .qv43-targets{grid-area:targets}
   .qv43-summary{grid-area:summary}

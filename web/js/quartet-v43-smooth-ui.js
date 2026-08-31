@@ -184,6 +184,11 @@
     portal.querySelector('.qv43-summary').hidden = !active;
     confirmButton.hidden = !active;
     portal.querySelector('.qv43-waiting').hidden = active;
+    // On a phone the dock drops its heading during your own turn -- the turn banner
+    // one row above already says the same thing. While you are waiting there is no
+    // such duplicate and the heading is the only label the dock has, so the layout
+    // has to know which of the two states it is in.
+    portal.classList.toggle('is-waiting-turn', !active);
 
     if (active) syncTargets(root);
     if (nativeConfirm) {
