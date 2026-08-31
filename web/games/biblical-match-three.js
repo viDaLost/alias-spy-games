@@ -47,7 +47,13 @@ const BLOCKER_META = {
   tablet: { label: "Скрижали", icon: "▦" },
   chain: { label: "Цепи", icon: "◇" },
   lamp: { label: "Светильники", icon: "✦" },
+  vine: { label: "Тернии", icon: "✤" },
 };
+
+// Ковчег не участвует в совпадениях, поэтому его тип не должен встречаться среди
+// обычных символов: каждому дают свой номер, и три одинаковых уже не сложатся.
+const RELIC_TYPE = "__relic";
+const RELIC_SCORE = 260;
 
 let runtime = null;
 
@@ -73,14 +79,18 @@ function getSymbolSet(count) {
   return SYMBOLS.slice(0, Math.max(3, Math.min(SYMBOLS.length, Number(count || 6)))).map((item) => item.id);
 }
 
+function levelRelicCells(level) { return (level?.relics || []).map(Number).filter((index) => Number.isInteger(index) && index >= 0); }
+
 function requiredCollectSymbols(level) {
   return [...new Set((level?.goals || []).filter((goal) => goal.type === "collect" && SYMBOL_BY_ID[goal.symbol]).map((goal) => goal.symbol))];
 }
 
 function getLevelSymbolSet(level) {
-  const requested = Math.max(3, Math.min(SYMBOLS.length, Number(level?.symbolCount || 6)));
   const required = requiredCollectSymbols(level);
-  const pool = getSymbolSet(requested);
+  const barred = levelRelicCells(level).length && !required.includes("ark") ? "ark" : "";
+  const source = SYMBOLS.map((item) => item.id).filter((id) => id !== barred);
+  const requested = Math.max(3, Math.min(source.length, Number(level?.symbolCount || 6)));
+  const pool = source.slice(0, requested);
   for (const symbol of required) {
     if (pool.includes(symbol)) continue;
     let slot = -1;
@@ -88,7 +98,7 @@ function getLevelSymbolSet(level) {
       if (!required.includes(pool[index])) { slot = index; break; }
     }
     if (slot >= 0) pool[slot] = symbol;
-    else if (pool.length < SYMBOLS.length) pool.push(symbol);
+    else if (pool.length < source.length) pool.push(symbol);
   }
   return [...new Set(pool)];
 }
@@ -105,7 +115,7 @@ function boardShapeFor(mode, level, difficulty) {
     if (window.__bmtTimedRequested || window.__bmtTimedActive) return "rect";
     return difficulty === "hard" ? "cross" : difficulty === "medium" ? "bowl" : "oval";
   }
-  return LEVEL_SHAPES[Number(level?.id || 1)] || "rect";
+  return level?.shape || LEVEL_SHAPES[Number(level?.id || 1)] || "rect";
 }
 
 function makeActiveMask(shape, rows, cols, level = null) {
@@ -126,17 +136,23 @@ function makeActiveMask(shape, rows, cols, level = null) {
 }
 
 function isActive(index) { return !runtime?.activeMask || runtime.activeMask[index] !== false; }
-function canSwapActive(a, b) { return isActive(a) && isActive(b); }
+function isRelic(index) { return Boolean(runtime?.board?.[index]?.relic); }
+// Ковчег двигают не рукой, а тем, что убирают из-под него, поэтому он выпадает
+// и из свайпов, и из подсказок, и из проверки на мёртвое поле.
+function canSwapActive(a, b) { return isActive(a) && isActive(b) && !isRelic(a) && !isRelic(b); }
+function bottomActiveIndex(col) { for (let row = ROWS - 1; row >= 0; row -= 1) { const index = row * COLS + col; if (isActive(index)) return index; } return -1; }
 function findPlayableMoves(board = runtime?.board, limit = Infinity) { return board ? Core.findMoves(board, ROWS, COLS, canSwapActive, limit) : []; }
 function countPlayableMoves(board = runtime?.board, limit = Infinity) { return findPlayableMoves(board, limit).length; }
 function findPlayableHint(board = runtime?.board) { return findPlayableMoves(board, 1)[0] || null; }
 
-function createPlayableBoard(rows, cols, symbolIds, mask, required = []) {
+function createPlayableBoard(rows, cols, symbolIds, mask, required = [], relicCells = []) {
   for (let attempt = 0; attempt < 360; attempt += 1) {
     const board = Core.createBoard(rows, cols, symbolIds);
     board.forEach((_, index) => { if (mask[index] === false) board[index] = null; });
+    let relicNumber = 0;
+    for (const index of relicCells) { if (mask[index] === false || !board[index]) continue; board[index] = { type: `${RELIC_TYPE}${relicNumber += 1}`, special: null, relic: true }; }
     const hasRequired = required.every((symbol) => board.reduce((count, cell) => count + (cell?.type === symbol ? 1 : 0), 0) >= 3);
-    const startMoves = Core.findMoves(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false, MIN_START_MOVES).length;
+    const startMoves = Core.findMoves(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false && !board[a]?.relic && !board[b]?.relic, MIN_START_MOVES).length;
     if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && startMoves >= MIN_START_MOVES) return board;
   }
   throw new Error(`Could not generate a shaped board with ${MIN_START_MOVES} starting moves`);
@@ -145,9 +161,11 @@ function createPlayableBoard(rows, cols, symbolIds, mask, required = []) {
 function reshufflePlayable() {
   const required = runtime.mode === "level" ? requiredCollectSymbols(runtime.level) : [];
   const specials = runtime.board.filter((cell) => cell?.special).map((cell) => cell.special);
-  const fresh = createPlayableBoard(ROWS, COLS, runtime.symbolIds, runtime.activeMask, required);
+  // Перемешивание не должно телепортировать ковчег: он остаётся там, куда упал.
+  const relicCells = runtime.board.map((cell, index) => (cell?.relic ? index : -1)).filter((index) => index >= 0);
+  const fresh = createPlayableBoard(ROWS, COLS, runtime.symbolIds, runtime.activeMask, required, relicCells);
   for (const special of specials) {
-    const available = fresh.map((cell,index) => (cell && !cell.special ? index : -1)).filter((index) => index >= 0);
+    const available = fresh.map((cell,index) => (cell && !cell.special && !cell.relic ? index : -1)).filter((index) => index >= 0);
     if (!available.length) break;
     fresh[available[Math.floor(Math.random() * available.length)]].special = special;
   }
@@ -193,6 +211,9 @@ function currentSymbolAsset(id) {
 }
 
 function currentBlockerAsset(type) {
+  // У терний нет растровой картинки в наборе, а слой доски прячет знаковые
+  // подстановки: без своего файла препятствие осталось бы вовсе без рисунка.
+  if (type === "vine") return "web/assets/biblical-match-three/vine.svg";
   const obstacles = window.BiblicalMatchThreeV5Art?.obstacles || window.BiblicalMatchThreeV4Art?.obstacles || {};
   const key = type === "chain" ? "chains" : type === "tablet" ? "tablets" : type === "lamp" ? "candle" : "";
   return key ? (obstacles[key] || "") : "";
@@ -252,6 +273,7 @@ function goalText(goal) {
   if (goal.type === "lightLamps") return `Зажечь светильники ×${goal.count}`;
   if (goal.type === "activateSpecials") return `Активировать особые фишки ×${goal.count}`;
   if (goal.type === "cascade") return `Достичь каскада ×${goal.count}`;
+  if (goal.type === "deliver") return `Опустить ковчег ×${goal.count}`;
   return "Выполнить цель";
 }
 
@@ -262,6 +284,7 @@ function goalIcon(goal) {
   if (goal.type === "lightLamps") return "✦";
   if (goal.type === "activateSpecials") return "✺";
   if (goal.type === "cascade") return "↯";
+  if (goal.type === "deliver") return `<img src="${currentSymbolAsset("ark")}" alt="">`;
   return "•";
 }
 
@@ -273,6 +296,7 @@ function currentGoalValue(goal) {
   if (goal.type === "lightLamps") return lampLitCount();
   if (goal.type === "activateSpecials") return runtime.specialsActivated;
   if (goal.type === "cascade") return runtime.maxCascade;
+  if (goal.type === "deliver") return runtime.relicsDelivered;
   return 0;
 }
 
@@ -286,7 +310,7 @@ async function start(levelsUrl) {
   runtime = {
     abort: new AbortController(), levels: [], levelConfig: {}, progress: Progress.load(), screen: "loading", board: [], tileNodes: [], selected: null, busy: false,
     score: 0, moves: 0, collected: {}, mode: null, level: null, difficulty: null, symbolIds: [], hintTimer: null, lastSwap: null, cascade: 0, maxCascade: 1,
-    specialsActivated: 0, blockers: new Map(), initialBlockerCounts: {}, preBoosters: new Set(), activeBooster: null, freeSessionReward: 0, freeStarted: false, lastGoalSnapshot: new Map(), activeMask: [], boardShape: "rect",
+    specialsActivated: 0, blockers: new Map(), initialBlockerCounts: {}, blockerCleared: {}, relicsDelivered: 0, relicTotal: 0, vineGrow: 0, vineCap: 0, vineTurns: 0, preBoosters: new Set(), activeBooster: null, freeSessionReward: 0, freeStarted: false, lastGoalSnapshot: new Map(), activeMask: [], boardShape: "rect",
   };
   document.body.dataset.matchThree = "2";
   try {
@@ -314,7 +338,7 @@ function renderMenu() {
   const title = el("div", "bmt-heading-wrap"); title.innerHTML = `<p class="bmt-kicker">Библейская головоломка</p><h2 class="bmt-title">Три в ряд</h2>`;
   top.append(back, title, walletBadge()); shell.append(top);
   const hero = el("section", "bmt-hero-v2");
-  hero.innerHTML = `<div class="bmt-hero-v2__glow"></div><div class="bmt-hero-v2__icon"><img src="web/assets/biblical-match-three/bible.svg" alt=""></div><div class="bmt-hero-v2__copy"><span class="bmt-hero-v2__eyebrow">Путь, символы и комбинации</span><strong>Собирайте, создавайте усиления и проходите испытания</strong><span>30 уровней · особые фишки · библейские бустеры</span></div>`;
+  hero.innerHTML = `<div class="bmt-hero-v2__glow"></div><div class="bmt-hero-v2__icon"><img src="web/assets/biblical-match-three/bible.svg" alt=""></div><div class="bmt-hero-v2__copy"><span class="bmt-hero-v2__eyebrow">Путь, символы и комбинации</span><strong>Собирайте, создавайте усиления и проходите испытания</strong><span>${runtime.levels.length} уровней · особые фишки · библейские бустеры</span></div>`;
   shell.append(hero, renderDailyBlessing(), renderCampaignMap(), renderFreeModePanel());
   container.append(shell);
 }
@@ -435,9 +459,15 @@ function beginFree(difficulty) {
 }
 
 function initBlockers(level) {
-  runtime.blockers = new Map(); runtime.initialBlockerCounts = {};
+  runtime.blockers = new Map(); runtime.initialBlockerCounts = {}; runtime.blockerCleared = {};
+  runtime.vineGrow = 0; runtime.vineCap = 0; runtime.vineTurns = 0;
   for (const group of level?.blockers || []) {
     const type = group.type;
+    if (type === "vine") {
+      const seeded = (group.cells || []).length;
+      runtime.vineGrow = Math.max(1, Number(group.grow || 2));
+      runtime.vineCap = Math.max(seeded, Number(group.max || seeded * 2));
+    }
     for (const index of group.cells || []) {
       runtime.blockers.set(Number(index), { type, layers: Math.max(1, Number(group.layers || 1)), maxLayers: Math.max(1, Number(group.layers || 1)), lit: false });
       runtime.initialBlockerCounts[type] = (runtime.initialBlockerCounts[type] || 0) + 1;
@@ -450,7 +480,7 @@ function applyLevelGoalSpecials(level) {
   if (!goal) return 0;
   const target = Math.min(10, Math.ceil(Math.max(2, Number(goal.count || 0)) / 2) * 2);
   const used = new Set(); let placed = 0;
-  const available = (index) => isActive(index) && runtime.board[index] && !runtime.board[index].special && !runtime.blockers.has(index) && !used.has(index);
+  const available = (index) => isActive(index) && runtime.board[index] && !runtime.board[index].special && !runtime.board[index].relic && !runtime.blockers.has(index) && !used.has(index);
   const pairs = [];
   for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS - 1; col += 1) pairs.push([row * COLS + col, row * COLS + col + 1]);
   for (let col = 0; col < COLS; col += 1) for (let row = 0; row < ROWS - 1; row += 1) pairs.push([row * COLS + col, (row + 1) * COLS + col]);
@@ -467,7 +497,12 @@ function applyLevelGoalSpecials(level) {
 function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBoosters }) {
   clearHint(); runtime.screen = "board"; runtime.mode = mode; runtime.level = level; runtime.difficulty = difficulty; runtime.symbolIds = symbolIds;
   ROWS = resolveBoardRows(mode, level, difficulty); runtime.boardShape = boardShapeFor(mode, level, difficulty); runtime.activeMask = makeActiveMask(runtime.boardShape, ROWS, COLS, level);
-  runtime.board = createPlayableBoard(ROWS, COLS, symbolIds, runtime.activeMask, mode === "level" ? requiredCollectSymbols(level) : []); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.seededGoalSpecials = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
+  const relicCells = mode === "level" ? levelRelicCells(level) : [];
+  runtime.relicTotal = relicCells.length; runtime.relicsDelivered = 0;
+  runtime.board = createPlayableBoard(ROWS, COLS, symbolIds, runtime.activeMask, mode === "level" ? requiredCollectSymbols(level) : [], relicCells); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.seededGoalSpecials = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
+  // Ковчег на закрытой клетке фигурного поля не появится, поэтому цель считают
+  // по тому, сколько их реально встало на доску.
+  runtime.relicTotal = runtime.board.filter((cell) => cell?.relic).length;
   initBlockers(mode === "free" ? freeChallengeConfig(difficulty) : level); if (mode === "level") applyLevelGoalSpecials(level); applyPreBoosters(selectedBoosters || new Set());
   const container = document.getElementById("game-container"); container.innerHTML = ""; const shell = el("section", "bmt-shell bmt-board-screen bmt-v2");
   const top = el("header", "bmt-gamebar"); const back = button("←", "bmt-icon-button", () => runtime.mode === "free" ? openFreeExit() : openPause()); back.setAttribute("aria-label", runtime.mode === "free" ? "Завершить свободную игру" : "Пауза");
@@ -482,6 +517,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
     const piece = el("span", "bmt-piece-wrap"); const img = new Image(); img.className = "bmt-piece"; img.draggable = false; img.alt = ""; piece.append(img); tile.append(piece, el("span", "bmt-special-mark"), el("span", "bmt-blocker"));
     tile.addEventListener("click", () => chooseTile(index), { signal: runtime.abort.signal }); runtime.tileNodes.push(tile); board.append(tile);
   }
+  if (runtime.relicTotal) { board.classList.add("has-relic-gate"); for (let col = 0; col < COLS; col += 1) { const gate = bottomActiveIndex(col); if (gate >= 0) runtime.tileNodes[gate]?.classList.add("is-relic-gate"); } }
   boardWrap.append(board); shell.append(boardWrap);
   const boosters = el("section", "bmt-booster-tray"); boosters.innerHTML = `<div class="bmt-booster-tray__label"><span>Помощь</span><small>за звёзды</small></div>`;
   for (const [id, booster] of Object.entries(IN_BOOSTERS)) {
@@ -498,7 +534,7 @@ function applyPreBoosters(selected) {
   if (!selected?.size) return;
   const randomEmpty = () => {
     const candidates = runtime.board
-      .map((cell, index) => (cell && !cell.special && isActive(index) && !runtime.blockers.has(index) ? index : -1))
+      .map((cell, index) => (cell && !cell.special && !cell.relic && isActive(index) && !runtime.blockers.has(index) ? index : -1))
       .filter((index) => index >= 0);
     return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : -1;
   };
@@ -519,6 +555,7 @@ function showTutorial() {
     { title:"Соберите три", text:"Смахните фишку к соседней. Совпадение из трёх исчезнет, а новые фишки упадут сверху.", focus:".bmt-board" },
     { title:"Смотрите на цели", text:"В кампании сверху показаны все условия уровня. Нужный символ всегда входит в набор фишек этого уровня.", focus:".bmt-goals-v2" },
     { title:"Форма поля и препятствия", text:"На следующих уровнях поле станет овальным, полукруглым, ромбом, крестом или щитом. Цепи и скрижали разрушаются совпадениями рядом или прямо на них.", focus:".bmt-board" },
+    { title:"Тернии и ковчег", text:"Тернии сами разрастаются на соседние клетки, если их не выжигать совпадениями прямо на них. Ковчег двигать нельзя — убирайте фишки под ним, чтобы он опустился на нижний ряд.", focus:".bmt-board" },
     { title:"Особые фишки и помощь", text:"Четыре и пять одинаковых создают усиления. Бустеры снизу помогают пройти сложный момент и не тратят ход.", focus:".bmt-booster-tray" }
   ];
   const shell = document.querySelector(".bmt-shell"); if (!shell) return; const overlay = el("div", "bmt-tutorial bmt-v18-tutorial");
@@ -532,6 +569,7 @@ function showTutorial() {
 function chooseTile(index) {
   if (!runtime || runtime.busy || !isActive(index)) return; clearHint();
   if (runtime.activeBooster) { useTargetBooster(runtime.activeBooster, index); return; }
+  if (isRelic(index)) { toast("Ковчег не двигают — убирайте фишки под ним", "info"); FX.haptic?.("error"); return; }
   if (runtime.selected == null) { runtime.selected = index; FX.haptic?.(); updateSelection(); scheduleHint(); return; }
   if (runtime.selected === index) { runtime.selected = null; updateSelection(); scheduleHint(); return; }
   if (!Core.areAdjacent(runtime.selected, index, COLS)) { runtime.selected = index; FX.haptic?.(); updateSelection(); scheduleHint(); return; }
@@ -569,12 +607,13 @@ function expandSpecials(initialSet) {
   const clearSet = new Set(initialSet); const queue = [...clearSet]; const activated = new Set();
   while (queue.length) {
     const index = queue.shift(); const cell = runtime.board[index]; if (!cell?.special || activated.has(index)) continue; activated.add(index);
-    const add = (candidate) => { if (candidate < 0 || candidate >= runtime.board.length || clearSet.has(candidate)) return; clearSet.add(candidate); queue.push(candidate); };
-    if (cell.special === "lineH") { Core.rowIndices(index, ROWS, COLS).forEach(add); FX.beam?.(index, "h"); }
-    else if (cell.special === "lineV") { Core.columnIndices(index, ROWS, COLS).forEach(add); FX.beam?.(index, "v"); }
-    else if (cell.special === "burst") { Core.areaIndices(index, 1, ROWS, COLS).forEach(add); FX.ring?.(index, "gold"); }
-    else if (cell.special === "rainbow") FX.ring?.(index, "rainbow");
+    const add = (candidate) => { if (candidate < 0 || candidate >= runtime.board.length || clearSet.has(candidate) || runtime.board[candidate]?.relic) return; clearSet.add(candidate); queue.push(candidate); };
+    if (cell.special === "lineH") { Core.rowIndices(index, ROWS, COLS).forEach(add); FX.trumpet?.(index, "h"); }
+    else if (cell.special === "lineV") { Core.columnIndices(index, ROWS, COLS).forEach(add); FX.trumpet?.(index, "v"); }
+    else if (cell.special === "burst") { Core.areaIndices(index, 1, ROWS, COLS).forEach(add); FX.lightBurst?.(index); }
+    else if (cell.special === "rainbow") FX.covenant?.(index, [...clearSet].filter((target) => target !== index));
   }
+  for (const index of [...clearSet]) if (runtime.board[index]?.relic) clearSet.delete(index);
   return { clearSet, activated };
 }
 
@@ -588,8 +627,9 @@ async function clearAndCascade(initialSet, cascade, creations = new Map(), meta 
   for (const [type, count] of Object.entries(clearedByType)) runtime.collected[type] = (runtime.collected[type] || 0) + count;
   updateHud(true); await pause(205);
   for (const index of clearSet) runtime.board[index] = null;
-  for (const [index, special] of creations.entries()) if (runtime.board[index]) { runtime.board[index].special = special; FX.particleBurst?.(index, special === "rainbow" ? "rainbow" : "gold", 12); FX.floatText?.(index, specialLabel(special), "gold"); }
+  for (const [index, special] of creations.entries()) if (runtime.board[index] && !runtime.board[index].relic) { runtime.board[index].special = special; FX.forge?.(index, special); FX.floatText?.(index, specialLabel(special), special === "rainbow" ? "violet" : "gold"); }
   const motion = collapseBoard(); updateAllTiles(); animateDropMotion(motion); await pause(motion.maxDistance > 2 ? 300 : 240);
+  if (deliverRelics()) { const landing = collapseBoard(); updateAllTiles(); animateDropMotion(landing); updateHud(true); await pause(260); }
   const next = Core.findMatchGroups(runtime.board, ROWS, COLS); if (next.length) await resolveMatches(cascade + 1);
 }
 
@@ -614,6 +654,47 @@ function animateDropMotion(motion) {
   setTimeout(() => runtime?.tileNodes?.forEach((tile) => tile.classList.remove("is-dropping")), 420);
 }
 
+// Ковчег считается доставленным, когда падение приносит его на нижнюю живую
+// клетку своего столбца: у фигурных полей это не обязательно последний ряд.
+function deliverRelics() {
+  if (!runtime?.relicTotal) return 0;
+  let delivered = 0;
+  for (let index = 0; index < runtime.board.length; index += 1) {
+    if (!runtime.board[index]?.relic) continue;
+    if (index !== bottomActiveIndex(index % COLS)) continue;
+    runtime.board[index] = null; runtime.relicsDelivered += 1; delivered += 1; runtime.score += RELIC_SCORE;
+    FX.relicLanded?.(index); FX.floatText?.(index, "КОВЧЕГ", "gold"); FX.haptic?.("success");
+  }
+  return delivered;
+}
+
+// Тернии — единственное препятствие, которое растёт само: пока их выжигают
+// медленнее, чем они разрастаются, поле постепенно зарастает.
+function spreadVines() {
+  if (!runtime?.vineGrow) return 0;
+  const vines = [...runtime.blockers.entries()].filter(([, blocker]) => blocker.type === "vine");
+  if (!vines.length) return 0;
+  runtime.vineTurns += 1;
+  if (runtime.vineTurns % runtime.vineGrow !== 0 || vines.length >= runtime.vineCap) return 0;
+  const options = [];
+  for (const [index] of vines) {
+    const { row, col } = Core.coordinates(index, COLS);
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const rr = row + dr; const cc = col + dc;
+      if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
+      const target = rr * COLS + cc;
+      if (runtime.blockers.has(target) || !isActive(target) || !runtime.board[target] || runtime.board[target].relic) continue;
+      options.push(target);
+    }
+  }
+  if (!options.length) return 0;
+  const target = options[Math.floor(Math.random() * options.length)];
+  runtime.blockers.set(target, { type:"vine", layers:1, maxLayers:1, lit:false });
+  updateTile(runtime.tileNodes[target], runtime.board[target], runtime.blockers.get(target));
+  FX.vineSprout?.(target); FX.haptic?.();
+  return 1;
+}
+
 function damageBlockers(clearSet) {
   if (!runtime.blockers.size) return 0;
   const direct = new Set(clearSet); const adjacent = new Set();
@@ -621,13 +702,13 @@ function damageBlockers(clearSet) {
   let score = 0;
   for (const [index, blocker] of [...runtime.blockers.entries()]) {
     if (blocker.type === "lamp") { if (!blocker.lit && (direct.has(index) || adjacent.has(index))) { blocker.lit = true; runtime.tileNodes[index]?.classList.add("is-blocker-lit"); setTimeout(() => runtime?.tileNodes?.[index]?.classList.remove("is-blocker-lit"), 360); score += 80; FX.ring?.(index, "gold"); FX.floatText?.(index, "СВЕТ", "gold"); } continue; }
-    const hit = blocker.type === "tablet" ? direct.has(index) : (direct.has(index) || adjacent.has(index)); if (!hit) continue; blocker.layers -= 1; const tile = runtime.tileNodes[index]; tile?.classList.remove("is-blocker-hit", "is-blocker-breaking"); if (tile) { void tile.offsetWidth; tile.classList.add(blocker.layers <= 0 ? "is-blocker-breaking" : "is-blocker-hit"); setTimeout(() => tile.classList.remove("is-blocker-hit", "is-blocker-breaking"), 360); } score += 45; FX.particleBurst?.(index, blocker.type === "chain" ? "blue" : "gold", 7);
-    if (blocker.layers <= 0) { runtime.blockers.delete(index); score += 90; FX.floatText?.(index, "ОЧИЩЕНО", "green"); }
+    const hit = blocker.type === "tablet" || blocker.type === "vine" ? direct.has(index) : (direct.has(index) || adjacent.has(index)); if (!hit) continue; blocker.layers -= 1; const tile = runtime.tileNodes[index]; tile?.classList.remove("is-blocker-hit", "is-blocker-breaking"); if (tile) { void tile.offsetWidth; tile.classList.add(blocker.layers <= 0 ? "is-blocker-breaking" : "is-blocker-hit"); setTimeout(() => tile.classList.remove("is-blocker-hit", "is-blocker-breaking"), 360); } score += 45; FX.particleBurst?.(index, blocker.type === "chain" ? "blue" : blocker.type === "vine" ? "green" : "gold", 7);
+    if (blocker.layers <= 0) { runtime.blockers.delete(index); runtime.blockerCleared[blocker.type] = (runtime.blockerCleared[blocker.type] || 0) + 1; score += 90; FX.floatText?.(index, blocker.type === "vine" ? "ВЫЖЖЕНО" : "ОЧИЩЕНО", "green"); }
   }
   return score;
 }
 
-function blockerClearedCount(type) { const initial = Number(runtime.initialBlockerCounts?.[type] || 0); if (!initial) return 0; let remaining = 0; for (const blocker of runtime.blockers.values()) if (blocker.type === type) remaining += 1; return Math.max(0, initial - remaining); }
+function blockerClearedCount(type) { return Number(runtime?.blockerCleared?.[type] || 0); }
 function lampLitCount() { let count = 0; for (const blocker of runtime.blockers.values()) if (blocker.type === "lamp" && blocker.lit) count += 1; return count; }
 
 function finishIfNoMoves() {
@@ -659,6 +740,7 @@ function finishTurn() {
   if (!runtime) return; runtime.lastSwap = null; runtime.cascade = 0; updateHud();
   if (runtime.mode === "level" && allGoalsComplete()) { finishLevel(true); return; }
   if (runtime.mode === "level" && runtime.moves <= 0) { finishLevel(false); return; }
+  if (runtime.mode === "level") spreadVines();
   if (runtime.mode === "free") { persistFreeRecord(true); if (Number.isFinite(runtime.moves) && runtime.moves <= 0) { setBusy(false); openFreeExit("moves"); return; } }
   if (finishIfNoMoves()) return;
   setBusy(false); scheduleHint();
@@ -723,7 +805,7 @@ function spendBooster(id) {
 
 async function useTargetBooster(id, index) {
   if (!runtime || runtime.busy || !isActive(index)) return;
-  if (id === "rainbow" && runtime.blockers.has(index)) { toast("Выберите фишку без препятствия", "info"); FX.haptic?.("error"); return; }
+  if (id === "rainbow" && (runtime.blockers.has(index) || isRelic(index))) { toast("Выберите фишку без препятствия", "info"); FX.haptic?.("error"); return; }
   if (!spendBooster(id)) { runtime.activeBooster = null; updateBoosterState(); return; }
   runtime.activeBooster = null; updateBoosterState(); setBusy(true);
   if (id === "rainbow") {
@@ -736,18 +818,19 @@ async function useTargetBooster(id, index) {
     setBusy(false); scheduleHint(); return;
   }
   if (id === "sling") { FX.floatText?.(index, "ПРАЩА", "gold"); FX.ring?.(index, "gold"); await clearAndCascade(new Set([index]), 1, new Map(), { booster: id }); }
-  else if (id === "staff") { FX.floatText?.(index, "ПОСОХ", "blue"); FX.beam?.(index, "v"); await clearAndCascade(new Set(Core.columnIndices(index, ROWS, COLS)), 1, new Map(), { booster: id }); }
-  else if (id === "jericho") { FX.floatText?.(index, "ИЕРИХОН", "violet"); FX.ring?.(index, "violet"); await clearAndCascade(new Set(Core.areaIndices(index, 1, ROWS, COLS)), 1, new Map(), { booster: id }); }
+  else if (id === "staff") { FX.floatText?.(index, "ПОСОХ", "blue"); FX.trumpet?.(index, "v"); await clearAndCascade(new Set(Core.columnIndices(index, ROWS, COLS)), 1, new Map(), { booster: id }); }
+  else if (id === "jericho") { FX.floatText?.(index, "ИЕРИХОН", "violet"); FX.lightBurst?.(index); await clearAndCascade(new Set(Core.areaIndices(index, 1, ROWS, COLS)), 1, new Map(), { booster: id }); }
   finishTurn();
 }
 
 function playComboEffect(combo, a, b) {
   const index = b ?? a;
-  if (combo === "doubleRainbow") { FX.ring?.(index, "rainbow"); FX.floatText?.(index, "РАДУГА ЗАВЕТА", "violet"); }
-  else if (combo === "rainbowSpecial") { FX.ring?.(index, "rainbow"); FX.floatText?.(index, "СИЛА ЗАВЕТА", "violet"); }
-  else if (combo === "doubleLine") { FX.beam?.(index, "h"); FX.beam?.(index, "v"); FX.floatText?.(index, "ДВОЙНЫЕ ТРУБЫ", "gold"); }
-  else if (combo === "lineBurst") { FX.ring?.(index, "gold"); FX.floatText?.(index, "СВЕТ И ТРУБЫ", "gold"); }
-  else if (combo === "doubleBurst") { FX.ring?.(a, "gold"); FX.ring?.(b, "gold"); FX.floatText?.(index, "ДВОЙНОЙ СВЕТ", "gold"); }
+  const everything = runtime?.board?.map((_, position) => position).filter((position) => position !== index && isActive(position)) || [];
+  if (combo === "doubleRainbow") { FX.covenant?.(index, everything); FX.floatText?.(index, "РАДУГА ЗАВЕТА", "violet"); }
+  else if (combo === "rainbowSpecial") { FX.covenant?.(index, everything.slice(0, 12)); FX.floatText?.(index, "СИЛА ЗАВЕТА", "violet"); }
+  else if (combo === "doubleLine") { FX.trumpet?.(index, "h"); FX.trumpet?.(index, "v"); FX.floatText?.(index, "ДВОЙНЫЕ ТРУБЫ", "gold"); }
+  else if (combo === "lineBurst") { FX.lightBurst?.(index); FX.trumpet?.(index, "h"); FX.floatText?.(index, "СВЕТ И ТРУБЫ", "gold"); }
+  else if (combo === "doubleBurst") { FX.lightBurst?.(a); FX.lightBurst?.(b); FX.floatText?.(index, "ДВОЙНОЙ СВЕТ", "gold"); }
   else FX.floatText?.(index, "КОМБИНАЦИЯ", "gold");
   return pause(180);
 }
@@ -759,6 +842,8 @@ function updateHud(pulseGoals = false) {
 
 function renderGoals(pulseChanged = false) {
   const root = document.getElementById("bmt-goals"); if (!root || runtime.mode !== "level") return; const goals = runtime.level.goals || [];
+  // Четыре цели не помещаются в три колонки: подпись срезалась многоточием.
+  root.dataset.count = String(goals.length);
   root.innerHTML = goals.map((goal, index) => { const current = currentGoalValue(goal); const capped = Math.min(Number(goal.count || 0), current); const done = goalComplete(goal); return `<div class="bmt-goal${done ? " is-done" : ""}" data-goal="${index}"><span class="bmt-goal__icon">${goalIcon(goal)}</span><span class="bmt-goal__copy"><small>${escapeHtml(goalText(goal).replace(/ ×\d+$/, ""))}</small><strong>${capped}/${goal.count}</strong></span><span class="bmt-goal__check">✓</span></div>`; }).join("");
   if (pulseChanged) goals.forEach((goal, index) => { const value = currentGoalValue(goal); const before = runtime.lastGoalSnapshot.get(index); if (before != null && value > before) FX.pulseGoal?.(root.querySelector(`[data-goal="${index}"]`)); runtime.lastGoalSnapshot.set(index, value); }); else goals.forEach((goal, index) => runtime.lastGoalSnapshot.set(index, currentGoalValue(goal)));
 }
@@ -767,10 +852,16 @@ function updateSelection() { runtime.tileNodes.forEach((tile, index) => tile.cla
 function updateAllTiles() { runtime.tileNodes.forEach((tile, index) => updateTile(tile, runtime.board[index], runtime.blockers.get(index))); updateSelection(); updateBoosterState(); }
 
 function updateTile(tile, cell, blocker) {
-  tile.classList.remove("is-clearing", "is-invalid", "is-line-h", "is-line-v", "is-burst", "is-rainbow", "has-tablet", "has-chain", "has-lamp", "is-lamp-lit", "is-layer-2", "is-layer-3");
+  tile.classList.remove("is-clearing", "is-invalid", "is-line-h", "is-line-v", "is-burst", "is-rainbow", "has-tablet", "has-chain", "has-lamp", "has-vine", "is-relic", "is-lamp-lit", "is-layer-2", "is-layer-3");
   const img = tile.querySelector(".bmt-piece"); const specialMark = tile.querySelector(".bmt-special-mark"); const blockerMark = tile.querySelector(".bmt-blocker"); const index = Number(tile.dataset.index); const active = isActive(index); tile.classList.toggle("is-hole", !active); tile.disabled = !active;
   if (!active) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; if (blockerMark) blockerMark.innerHTML = ""; return; }
   if (!cell) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; }
+  else if (cell.relic) {
+    tile.classList.remove("is-empty"); tile.classList.add("is-relic");
+    const asset = currentSymbolAsset("ark"); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = "Ковчег";
+    if (specialMark) specialMark.textContent = "▼";
+    tile.setAttribute("aria-label", "Ковчег, опустите его на нижний ряд");
+  }
   else { tile.classList.remove("is-empty"); const symbol = SYMBOL_BY_ID[cell.type]; const asset = currentSymbolAsset(cell.type); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = symbol.label; tile.setAttribute("aria-label", `${symbol.label}${cell.special ? ", особая фишка" : ""}`); if (cell.special) tile.classList.add(`is-${cell.special.replace("lineH", "line-h").replace("lineV", "line-v")}`); if (specialMark) specialMark.textContent = cell.special === "rainbow" ? "✦" : cell.special === "burst" ? "✺" : cell.special ? "↯" : ""; }
   if (blocker && blockerMark) { tile.classList.add(`has-${blocker.type}`); if (blocker.layers >= 2) tile.classList.add("is-layer-2"); if (blocker.layers >= 3) tile.classList.add("is-layer-3"); if (blocker.type === "lamp" && blocker.lit) tile.classList.add("is-lamp-lit"); blockerMark.innerHTML = blockerMarkup(blocker); const label = BLOCKER_META[blocker.type]?.label || blocker.type; tile.setAttribute("aria-label", `${tile.getAttribute("aria-label") || "Фишка"}, препятствие ${label}${blocker.layers > 1 ? `, ${blocker.layers} слоя` : ""}`); } else if (blockerMark) blockerMark.innerHTML = "";
 }
@@ -781,6 +872,7 @@ function blockerMarkup(blocker) {
   const badge = blocker.layers > 1 ? `<b class="bmt-blocker__layers" aria-hidden="true">${blocker.layers}</b>` : "";
   if (blocker.type === "tablet") return `<span class="bmt-blocker__tablet" data-blocker-type="tablet">${art || '<i class="bmt-blocker-fallback">▦</i>'}${badge}</span>`;
   if (blocker.type === "chain") return `<span class="bmt-blocker__chain" data-blocker-type="chain">${art || '<i class="bmt-blocker-fallback">◇</i>'}${badge}</span>`;
+  if (blocker.type === "vine") return `<span class="bmt-blocker__vine" data-blocker-type="vine">${art || '<i class="bmt-blocker-fallback">✤</i>'}${badge}</span>`;
   if (blocker.type === "lamp") return `<span class="bmt-blocker__lamp" data-blocker-type="lamp" data-blocker-lit="${blocker.lit ? "true" : "false"}">${blocker.lit ? '<i class="bmt-blocker__lamp-state" aria-hidden="true">✦</i>' : (art || '<i class="bmt-blocker-fallback">✦</i>')}</span>`;
   return "";
 }
@@ -793,7 +885,7 @@ function pause(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 window.addEventListener("app:stars-changed", updateWallet);
 window.startBiblicalMatchThreeGame = start;
 window.__biblicalMatchThreeCleanup = cleanup;
-const rulesApi = { version:20, minStartMoves:MIN_START_MOVES, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS, findPlayableMoves:(limit=Infinity)=>findPlayableMoves(runtime?.board,limit), countPlayableMoves:(limit=Infinity)=>countPlayableMoves(runtime?.board,limit), checkDeadBoard:finishIfNoMoves };
+const rulesApi = { version:21, minStartMoves:MIN_START_MOVES, blockerTypes:Object.keys(BLOCKER_META), levelRelicCells, bottomActiveIndex, spreadVines, deliverRelics, getLevelSymbolSet, requiredCollectSymbols, makeActiveMask, boardShapeFor, levelShapes:LEVEL_SHAPES, shapeLabels:SHAPE_LABELS, findPlayableMoves:(limit=Infinity)=>findPlayableMoves(runtime?.board,limit), countPlayableMoves:(limit=Infinity)=>countPlayableMoves(runtime?.board,limit), checkDeadBoard:finishIfNoMoves };
 window.BiblicalMatchThreeV18Rules = rulesApi;
 window.BiblicalMatchThreeV20Rules = rulesApi;
 })();

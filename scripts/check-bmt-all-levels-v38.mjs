@@ -15,7 +15,10 @@ function assert(value, message) { if (!value) throw new Error(message); }
 function requiredSymbols(level) { return [...new Set(level.goals.filter(goal => goal.type === 'collect').map(goal => goal.symbol))]; }
 function symbolPool(level) {
   const required = requiredSymbols(level);
-  const pool = SYMBOLS.slice(0, Math.max(3, Math.min(SYMBOLS.length, Number(level.symbolCount || 6))));
+  // На уровнях с ковчегом рядовой символ «Ковчег» из набора убран.
+  const barred = (level.relics || []).length && !required.includes('ark') ? 'ark' : '';
+  const source = SYMBOLS.filter(id => id !== barred);
+  const pool = source.slice(0, Math.max(3, Math.min(source.length, Number(level.symbolCount || 6))));
   for (const symbol of required) {
     if (pool.includes(symbol)) continue;
     const slot = pool.findLastIndex(item => !required.includes(item));
@@ -26,7 +29,7 @@ function symbolPool(level) {
 }
 function maskFor(level) {
   const rows = level.rows;
-  const shape = SHAPES[level.id] || 'rect';
+  const shape = level.shape || SHAPES[level.id] || 'rect';
   const mask = new Array(rows * COLS).fill(true);
   const cx = (COLS - 1) / 2, cy = (rows - 1) / 2;
   for (let row = 0; row < rows; row += 1) for (let col = 0; col < COLS; col += 1) {
@@ -47,14 +50,24 @@ function maskFor(level) {
 }
 function generate(level, mask) {
   const pool = symbolPool(level), required = requiredSymbols(level);
+  const relics = (level.relics || []).map(Number);
   for (let attempt = 0; attempt < 360; attempt += 1) {
     const board = Core.createBoard(level.rows, COLS, pool);
     board.forEach((_, index) => { if (!mask[index]) board[index] = null; });
+    let relicNumber = 0;
+    for (const index of relics) { if (!mask[index] || !board[index]) continue; board[index] = { type: `__relic${relicNumber += 1}`, special: null, relic: true }; }
     const enoughRequired = required.every(symbol => board.filter(cell => cell?.type === symbol).length >= 3);
-    const moves = Core.findMoves(board, level.rows, COLS, (a,b) => mask[a] && mask[b], 3);
+    const canSwap = (a, b) => mask[a] && mask[b] && !board[a]?.relic && !board[b]?.relic;
+    const moves = Core.findMoves(board, level.rows, COLS, canSwap, 3);
     if (enoughRequired && !Core.findMatches(board, level.rows, COLS).length && moves.length >= 3) return board;
   }
   return null;
+}
+
+// Нижняя живая клетка столбца — то место, куда должен опуститься ковчег.
+function bottomActive(mask, rows, col) {
+  for (let row = rows - 1; row >= 0; row -= 1) { const index = row * COLS + col; if (mask[index]) return index; }
+  return -1;
 }
 function seedGoalSpecials(level, board, mask) {
   const goal = level.goals.find(item => item.type === 'activateSpecials');
@@ -62,7 +75,7 @@ function seedGoalSpecials(level, board, mask) {
   const blockers = new Set((level.blockers || []).flatMap(group => group.cells || []).map(Number));
   const target = Math.min(10, Math.ceil(Math.max(2, Number(goal.count || 0)) / 2) * 2);
   const used = new Set(); let placed = 0;
-  const available = index => mask[index] && board[index] && !board[index].special && !blockers.has(index) && !used.has(index);
+  const available = index => mask[index] && board[index] && !board[index].special && !board[index].relic && !blockers.has(index) && !used.has(index);
   const pairs = [];
   for (let row = 0; row < level.rows; row += 1) for (let col = 0; col < COLS - 1; col += 1) pairs.push([row * COLS + col, row * COLS + col + 1]);
   for (let col = 0; col < COLS; col += 1) for (let row = 0; row < level.rows - 1; row += 1) pairs.push([row * COLS + col, (row + 1) * COLS + col]);
@@ -74,7 +87,7 @@ function seedGoalSpecials(level, board, mask) {
   return placed;
 }
 
-assert(levels.length === 30, 'Expected 30 campaign levels');
+assert(levels.length === 50, 'Expected 50 campaign levels');
 for (const [offset, level] of levels.entries()) {
   assert(level.id === offset + 1, `Level ids are not continuous at ${level.id}`);
   assert(level.rows >= 5 && level.rows <= 8, `Level ${level.id}: invalid row count`);
@@ -87,12 +100,48 @@ for (const [offset, level] of levels.entries()) {
     assert(!occupied.has(index), `Level ${level.id}: overlapping blockers at ${index}`);
     occupied.add(index);
   }
+
+  // Ковчег: игрок его не двигает, поэтому клетка должна быть живой, свободной
+  // от препятствия и не совпадать с той, куда ковчег и так уже опущен.
+  const relics = (level.relics || []).map(Number);
+  assert(new Set(relics).size === relics.length, `Level ${level.id}: duplicate relic cells`);
+  for (const index of relics) {
+    assert(Number.isInteger(index) && index >= 0 && index < level.rows * COLS, `Level ${level.id}: relic outside the board`);
+    assert(mask[index], `Level ${level.id}: relic ${index} sits on a hole and would never appear`);
+    assert(!occupied.has(index), `Level ${level.id}: relic ${index} shares a cell with a blocker`);
+    assert(index !== bottomActive(mask, level.rows, index % COLS), `Level ${level.id}: relic ${index} already starts at its gate`);
+  }
+  // Ходов должно хватать: ковчегу нужен как минимум весь его столбец.
+  if (relics.length) {
+    const drop = Math.max(...relics.map(index => Math.floor(bottomActive(mask, level.rows, index % COLS) / COLS) - Math.floor(index / COLS)));
+    assert(level.moves >= drop * 2, `Level ${level.id}: ${level.moves} moves is thin for a ${drop}-row ark descent`);
+  }
+  const relicShape = level.shape || SHAPES[level.id] || 'rect';
+  if (relics.length) for (let col = 0; col < COLS; col += 1) {
+    const gate = bottomActive(mask, level.rows, col);
+    assert(gate < 0 || Math.floor(gate / COLS) === level.rows - 1,
+      `Level ${level.id}: shape ${relicShape} puts column ${col}'s gate above the bottom row, so a delivery would look wrong`);
+  }
   for (const goal of level.goals) {
     assert(goal.count > 0, `Level ${level.id}: non-positive goal`);
     if (goal.type === 'collect') assert(symbolPool(level).includes(goal.symbol), `Level ${level.id}: required symbol is unavailable`);
     if (goal.type === 'clearBlockers') {
-      const available = (level.blockers || []).filter(group => group.type === goal.blocker).flatMap(group => group.cells).length;
-      assert(available >= goal.count, `Level ${level.id}: blocker goal ${goal.count} exceeds ${available}`);
+      const groups = (level.blockers || []).filter(group => group.type === goal.blocker);
+      const seeded = groups.flatMap(group => group.cells).length;
+      // Тернии сами разрастаются, поэтому очистить можно больше, чем посеяно, —
+      // но не больше предела, на котором рост останавливается.
+      const reachable = goal.blocker === 'vine'
+        ? Math.max(seeded, ...groups.map(group => Number(group.max || seeded)))
+        : seeded;
+      assert(reachable >= goal.count, `Level ${level.id}: blocker goal ${goal.count} exceeds ${reachable}`);
+      if (goal.blocker === 'vine') for (const group of groups) {
+        assert(Number(group.grow || 2) >= 1, `Level ${level.id}: vine growth interval must be at least one move`);
+        assert(Number(group.max || seeded) >= seeded, `Level ${level.id}: vine cap is below the seeded count`);
+      }
+    }
+    if (goal.type === 'deliver') {
+      const placed = (level.relics || []).filter(index => mask[Number(index)]).length;
+      assert(placed >= goal.count, `Level ${level.id}: deliver goal ${goal.count} exceeds the ${placed} arks on the board`);
     }
     if (goal.type === 'lightLamps') {
       const available = (level.blockers || []).filter(group => group.type === 'lamp').flatMap(group => group.cells).length;
@@ -114,4 +163,7 @@ for (const [offset, level] of levels.entries()) {
     }
   }
 }
-console.log(`OK: all ${levels.length} Biblical Treasures levels passed structural, goal-budget, special-goal and 3-starting-moves checks (3,600 boards)`);
+const withVines = levels.filter(level => (level.blockers || []).some(group => group.type === 'vine')).length;
+const withRelics = levels.filter(level => (level.relics || []).length).length;
+console.log(`OK: все ${levels.length} уровней «Библейских сокровищ» прошли проверку структуры, бюджета целей, особых фишек и трёх стартовых ходов `
+  + `(${levels.length * 120} досок); терний на ${withVines} уровнях, ковчегов на ${withRelics}.`);

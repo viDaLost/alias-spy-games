@@ -56,18 +56,20 @@ const experienceCss = read('web/styles/biblical-match-three-v38.css');
 const motionCss = read('web/styles/app-motion.css');
 const levels = JSON.parse(read('web/data/biblical_match_three_levels.json'));
 
-ok(levels.version === 4, 'Biblical Treasures level balance version missing');
-ok(levels.levels?.length === 30, 'Biblical Treasures must keep 30 levels');
+const versionAtLeast = (source, pattern, minimum) => Number(source.match(pattern)?.[1]) >= minimum;
+
+ok(levels.version >= 4, 'Biblical Treasures level balance version missing');
+ok(levels.levels?.length >= 30, 'Biblical Treasures must keep its campaign');
 ok(levels.levels.some((level) => (level.blockers || []).some((group) => group.type === 'lamp')), 'Lamp levels missing');
 ok(isBundled('web/js/biblical-match-three-launcher.js') && isBundled('web/js/v22-home-art.js'), 'Biblical Treasures public launcher/menu icon wiring missing');
 ok(isBundled('web/js/v22-game-loader.js') && isBundled('web/js/v29-biblical-treasures-hotfix.js') && isBundled('web/js/v37-biblical-treasures-lamp-swipe.js'), 'Experience/lamp wiring missing');
 ok(isBundled('web/styles/app-motion.css') && isBundled('web/styles/biblical-match-three-v38.css'), 'Layout/menu motion wiring missing');
 ok(isBundled('web/js/v24-biblical-treasures-board.js'), 'Stable V29 board wiring changed unexpectedly');
 ok(!isBundled('web/js/v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
-ok(loader.includes("const VERSION = '41'") && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
+ok(versionAtLeast(loader, /const VERSION = '(\d+)'/, 41) && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(isBundled('web/js/v37-biblical-treasures-lamp-swipe.js') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
 ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.webp') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
-ok(launcher.includes('const VERSION="42"') && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.webp') && launcher.includes('data-bmt-menu-art="v39"'), 'V42 canonical launcher icon source missing');
+ok(versionAtLeast(launcher, /const VERSION="(\d+)"/, 42) && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.webp') && launcher.includes('data-bmt-menu-art="v39"'), 'V42 canonical launcher icon source missing');
 ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.webp'), 'Legacy hotfix can still revert the V39 menu icon');
 ok(!read('web/games/biblical-match-three-v15-polish.js').includes('patchAppCard'), 'Game polish can still replace the app icon after returning to the menu');
 ok(game.includes('applyLevelGoalSpecials') && game.includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
@@ -95,7 +97,7 @@ ok(lampSwipe.includes("tile.classList.remove('has-lamp', 'is-lamp-lit')") && lam
 ok(lampSwipe.includes('edgeFallback') && lampSwipe.includes('fallbackIndex') && lampSwipe.includes('document.addEventListener(\'pointermove\''), 'V37 edge swipe fallback missing');
 ok(lampSwipe.includes('validSwapTile') && lampSwipe.includes('!unlitLamp(tile)'), 'V37 must keep unlit lamp obstacles protected');
 
-ok(launcher.includes('const VERSION="42"') && launcher.includes('function isAllowedUser(){return true}') && launcher.includes('publicAccess:true') && launcher.includes('installPublic') && launcher.includes('MENU_ICON'), 'Biblical Treasures public launcher wiring missing');
+ok(versionAtLeast(launcher, /const VERSION="(\d+)"/, 42) && launcher.includes('function isAllowedUser(){return true}') && launcher.includes('publicAccess:true') && launcher.includes('installPublic') && launcher.includes('MENU_ICON'), 'Biblical Treasures public launcher wiring missing');
 ok(!launcher.includes('ALLOWED_USER_ID') && !launcher.includes('removeMenuCard') && !launcher.includes('installAuthorized') && !launcher.includes('eligibilityTimer'), 'Biblical Treasures still contains a private-user access gate');
 const launcherNodes = new Map();
 const launcherMenuRoot = { append: (node) => launcherNodes.set(node.id, node) };
@@ -173,7 +175,13 @@ for (const level of levels.levels) {
     if (goal.type === 'activateSpecials') ok(count <= Math.ceil(moves / 3), `Level ${level.id}: special activation goal is too high for the move budget`);
     if (goal.type === 'cascade') ok(count <= 4, `Level ${level.id}: cascade goal is outside the supported balanced range`);
     if (goal.type === 'clearBlockers') {
-      const available = (level.blockers || []).filter((group) => group.type === goal.blocker).reduce((sum, group) => sum + (group.cells || []).length, 0);
+      const groups = (level.blockers || []).filter((group) => group.type === goal.blocker);
+      const seeded = groups.reduce((sum, group) => sum + (group.cells || []).length, 0);
+      // Тернии разрастаются сами, поэтому очистить их можно больше, чем посеяно,
+      // но не больше предела, на котором рост останавливается.
+      const available = goal.blocker === 'vine'
+        ? Math.max(seeded, ...groups.map((group) => Number(group.max || seeded)))
+        : seeded;
       ok(available >= count, `Level ${level.id}: blocker goal requests more blockers than exist`);
     }
     if (goal.type === 'lightLamps') {

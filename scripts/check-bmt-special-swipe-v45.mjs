@@ -13,7 +13,11 @@ const styleSource = read('web/styles/biblical-match-three-v45.css');
 
 assert.doesNotThrow(() => new Function(launcherSource), 'V45 launcher must parse');
 assert.doesNotThrow(() => new Function(rulesSource), 'V45 special rules must parse');
-assert.match(launcherSource, /const VERSION="45"/);
+// Версия лаунчера — это ключ сброса кэша: она обязана расти при каждом
+// изменении файлов игры, поэтому проверяется её нижняя граница, а не точное
+// значение. Патч v45 при этом никуда не девается — его ищут по имени файла.
+const launcherVersion = Number(launcherSource.match(/const VERSION="(\d+)"/)?.[1]);
+assert.ok(launcherVersion >= 45, `launcher VERSION must be at least 45, got ${launcherVersion}`);
 assert.match(launcherSource, /v45-biblical-treasures-special-swipe\.js/);
 // The rainbow booster used to be spliced into the game source by the launcher at
 // runtime; it now lives in the game source itself, so assert it there.

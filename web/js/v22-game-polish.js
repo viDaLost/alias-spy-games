@@ -13,6 +13,7 @@
     chains: `web/assets/biblical-match-three/icons-v17/chains.webp?v=${VERSION}`,
     tablets: `web/assets/biblical-match-three/icons-v17/tablets.webp?v=${VERSION}`,
     candle: `web/assets/biblical-match-three/icons-v17/candle.webp?v=${VERSION}`,
+    ark: `web/assets/biblical-match-three/icons-v17/ark.webp?v=${VERSION}`,
   };
 
   let tutorialActive = false;
@@ -162,6 +163,14 @@
       <span><img src="${ASSETS.chains}" alt=""><small>Цепь</small></span>
       <span><img src="${ASSETS.tablets}" alt=""><small>Скрижаль</small></span>
       <span><img src="${ASSETS.candle}" alt=""><small>Лампада</small></span>
+      <span><i class="bmt-v22-tutorial-vine" aria-hidden="true">✤</i><small>Тернии</small></span>
+    </div>`;
+  }
+
+  function relicDemoHtml() {
+    return `<div class="bmt-v22-tutorial-obstacles" aria-hidden="true">
+      <span><img src="${ASSETS.ark}" alt=""><small>Ковчег</small></span>
+      <span><i class="bmt-v22-tutorial-gate" aria-hidden="true">▁</i><small>Ворота</small></span>
     </div>`;
   }
 
@@ -185,7 +194,8 @@
       {title:'Сделайте свайп',text:'Проведите одну фишку к соседней. Если после обмена получится ряд из 3 и более одинаковых символов, они исчезнут, а новые фишки упадут сверху.',selector:'.bmt-board',label:'Свайпните соседние фишки',kind:'swipe'},
       {title:'Следите за целями',text:'Перед каждым ходом смотрите сюда: уровень может требовать очки, определённый символ или разрушение препятствий. Победа засчитывается только после выполнения всех целей.',selector:'.bmt-goals-v2',label:'Цели текущего уровня',kind:'goals'},
       {title:'У поля есть границы',text:'Играть можно только внутри подсвеченного контура. На следующих уровнях поле меняет форму: овал, ромб, крест, полукруг или щит. Пустые зоны за контуром недоступны.',selector:'.bmt-board',label:'Граница игрового поля',kind:'boundary'},
-      {title:'Разрушайте препятствия',text:'Цепи, скрижали и лампады усложняют поле. Скрижаль получает урон при очистке своей клетки, цепь — от подходящего воздействия, лампаду нужно зажечь. Цифра показывает оставшиеся слои.',selector:'.bmt-board',label:'Препятствия на фишках',kind:'blockers',visual:blockerDemoHtml()},
+      {title:'Разрушайте препятствия',text:'Цепи, скрижали, лампады и тернии усложняют поле. Скрижаль получает урон при очистке своей клетки, цепь — от подходящего воздействия, лампаду нужно зажечь. Тернии выжигаются только совпадением прямо на них — и, пока их не трогают, сами разрастаются на соседние клетки. Цифра показывает оставшиеся слои.',selector:'.bmt-board',label:'Препятствия на фишках',kind:'blockers',visual:blockerDemoHtml()},
+      {title:'Опускайте ковчег',text:'Ковчег двигать нельзя. Убирайте фишки под ним, чтобы он падал всё ниже, — цель засчитывается, когда ковчег дойдёт до подсвеченного нижнего ряда.',selector:'.bmt-board',label:'Ковчег идёт вниз',kind:'blockers',visual:relicDemoHtml()},
       {title:'Используйте усилители',text:'Праща, Посох, Трубы и Ноев ковчег помогают в сложный момент. Они тратят звёзды, но не расходуют игровой ход.',selector:'.bmt-booster-tray',label:'Усилители',kind:'boosters'},
     ];
 

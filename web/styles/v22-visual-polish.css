@@ -66,6 +66,10 @@ body[data-current-game="biblical-match-three"] .bmt-booster-tray__label span{let
 .bmt-v22-tutorial-obstacles{display:flex;justify-content:center;gap:13px;margin-top:10px}
 .bmt-v22-tutorial-obstacles span{display:grid;place-items:center;gap:2px;font-size:10px;font-weight:800;color:#6a6f87}
 .bmt-v22-tutorial-obstacles img{width:43px;height:43px;object-fit:contain;filter:drop-shadow(0 4px 5px rgba(74,60,40,.16))}
+/* У терний и ворот ковчега нет своей картинки: на поле их рисует такой же знак. */
+.bmt-v22-tutorial-obstacles i{display:grid;place-items:center;width:43px;height:43px;border-radius:24%;font-style:normal;font-size:26px;font-weight:950;line-height:1}
+.bmt-v22-tutorial-vine{color:#35704a;background:radial-gradient(circle at 32% 28%,rgba(150,206,168,.52),transparent 62%),radial-gradient(circle at 70% 72%,rgba(53,112,74,.4),transparent 60%)}
+.bmt-v22-tutorial-gate{align-items:end;color:#d29a2e;background:linear-gradient(180deg,transparent 62%,rgba(244,201,93,.3));box-shadow:inset 0 -3px 0 0 rgba(244,201,93,.9)}
 .bmt-v22-tutorial .is-v22-tutorial-focus{position:relative!important;z-index:1270!important;pointer-events:none!important;filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 8px rgba(69,98,255,.9))!important}
 .bmt-v22-focus-label{position:absolute;z-index:1280;width:180px;padding:8px 10px;border-radius:12px;background:#5546e8;color:#fff;font-size:11px;line-height:1.15;font-weight:900;text-align:center;box-shadow:0 7px 18px rgba(48,51,141,.28);pointer-events:none}
 .bmt-v22-swipe-demo{position:absolute;z-index:1290;width:max(48px,var(--bmt-v22-swipe-x));height:48px;transform:translate(-12px,-22px);pointer-events:none}

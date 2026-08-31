@@ -2,7 +2,7 @@
 "use strict";
 const GAME_KEY="biblical-match-three";
 const TITLE="Библейские сокровища";
-const VERSION="45";
+const VERSION="46";
 const MENU_ART_VERSION="39";
 const ART_SRC=`web/games/biblical-match-three-v5-loader.js?v=${VERSION}`;
 const CORE_SRC=`web/games/biblical-match-three-core.js?v=${VERSION}`;

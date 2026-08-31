@@ -63,7 +63,13 @@ internal enum class BmtGoalType {
     }
 }
 
-internal enum class BmtBoardShape { RECT, OVAL, BOWL, DIAMOND, CROSS, SHIELD }
+internal enum class BmtBoardShape {
+    RECT, OVAL, BOWL, DIAMOND, CROSS, SHIELD;
+
+    companion object {
+        fun fromId(id: String?) = entries.firstOrNull { it.name.equals(id, ignoreCase = true) }
+    }
+}
 
 internal enum class BmtPreBooster(
     val title: String,

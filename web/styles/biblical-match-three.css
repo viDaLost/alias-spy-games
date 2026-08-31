@@ -1832,3 +1832,298 @@ body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled small,
 body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled span {
   color: rgba(100, 116, 139, .86) !important;
 }
+
+
+/* ============================================================
+   V46 · Тернии, ковчег и эффекты особых фишек
+   Слой добавлен последним, поэтому при равной специфичности он
+   перебивает всё выше по файлу.
+   ============================================================ */
+
+/* --- Тернии ---------------------------------------------------------
+   Четвёртое препятствие после скрижалей, цепей и светильников. Своей
+   картинки у него нет, поэтому знак рисуется символом, а разрастание
+   читается по зелёной рамке клетки. */
+body[data-current-game="biblical-match-three"] .bmt-blocker__vine {
+  position: absolute !important;
+  inset: -4% !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+body[data-current-game="biblical-match-three"] .bmt-blocker__vine::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  border-radius: 24%;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(150, 206, 168, .5), transparent 62%),
+    radial-gradient(circle at 72% 74%, rgba(63, 124, 84, .42), transparent 60%);
+}
+
+/* Слой доски прячет знаковые подстановки, поэтому у терний есть свой файл;
+   размер подбирается так же, как у цепей и скрижалей. */
+body[data-current-game="biblical-match-three"] .bmt-tile.has-vine .bmt-blocker-art {
+  width: 106% !important;
+  height: 106% !important;
+  filter: drop-shadow(0 3px 4px rgba(24, 58, 35, .42)) !important;
+}
+
+body[data-current-game="biblical-match-three"] .bmt-tile.has-vine {
+  box-shadow: inset 0 0 0 2px rgba(53, 112, 74, .5) !important;
+}
+
+body[data-current-game="biblical-match-three"] .bmt-tile.has-vine .bmt-piece {
+  filter: saturate(.74) brightness(.93) !important;
+}
+
+/* --- Ковчег ---------------------------------------------------------
+   Фишку нельзя двигать: её опускают, убирая фишки снизу. Ореол рисует
+   пустой слой препятствия, чтобы не занимать ::before/::after клетки —
+   они уже заняты слоями выше. */
+body[data-current-game="biblical-match-three"] .bmt-tile.is-relic {
+  cursor: default !important;
+}
+
+body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece-wrap {
+  border-radius: 24% !important;
+  box-shadow: 0 0 0 2px rgba(244, 201, 93, .8), 0 0 14px rgba(244, 201, 93, .4) !important;
+  animation: bmt-v46-relic-halo 2.2s ease-in-out infinite !important;
+}
+
+/* Стрелка вниз объясняет всё правило разом: ковчег не двигают, его опускают. */
+body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-special-mark {
+  position: absolute !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 6 !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 17px !important;
+  height: 17px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid rgba(255, 255, 255, .96) !important;
+  background: #f4c95d !important;
+  color: #7d5708 !important;
+  font-size: 9px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
+  animation: bmt-v46-relic-arrow 1.6s ease-in-out infinite !important;
+}
+
+@keyframes bmt-v46-relic-arrow { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(2px) } }
+
+body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece {
+  filter: drop-shadow(0 4px 7px rgba(150, 104, 12, .45)) !important;
+  animation: bmt-v46-relic-idle 2.4s ease-in-out infinite alternate !important;
+}
+
+/* Нижний живой ряд — это «ворота»: именно туда должен опуститься ковчег. */
+body[data-current-game="biblical-match-three"] .bmt-board.has-relic-gate .bmt-tile.is-relic-gate {
+  box-shadow: inset 0 -3px 0 0 rgba(244, 201, 93, .85), inset 0 0 0 1px rgba(244, 201, 93, .32) !important;
+  animation: bmt-v46-gate 1.9s ease-in-out infinite !important;
+}
+
+@keyframes bmt-v46-relic-halo { 0%, 100% { opacity: .75 } 50% { opacity: 1 } }
+@keyframes bmt-v46-relic-idle { from { transform: translateY(0) rotate(-1.5deg) } to { transform: translateY(-2px) rotate(1.5deg) } }
+@keyframes bmt-v46-gate { 0%, 100% { opacity: .62 } 50% { opacity: 1 } }
+
+/* --- Тряска поля ----------------------------------------------------
+   Без fill-mode: доигранная анимация не должна оставлять на доске
+   единичную матрицу transform — иначе доска станет содержащим блоком
+   для любого position:fixed внутри неё. */
+.bmt-board.is-quaking { animation: bmt-v46-quake .34s ease-in-out }
+.bmt-board.is-quaking-hard { animation: bmt-v46-quake-hard .5s ease-in-out }
+@keyframes bmt-v46-quake { 0%, 100% { transform: translate3d(0, 0, 0) } 25% { transform: translate3d(-3px, 1px, 0) } 55% { transform: translate3d(3px, -1px, 0) } 80% { transform: translate3d(-1px, 0, 0) } }
+@keyframes bmt-v46-quake-hard { 0%, 100% { transform: translate3d(0, 0, 0) } 18% { transform: translate3d(-6px, 2px, 0) rotate(-.35deg) } 42% { transform: translate3d(6px, -2px, 0) rotate(.35deg) } 68% { transform: translate3d(-3px, 1px, 0) } 86% { transform: translate3d(2px, 0, 0) } }
+
+/* --- Трубы: ударная волна вдоль ряда или столбца --------------------- */
+.bmt-fx-blast {
+  position: absolute;
+  z-index: 23;
+  pointer-events: none;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, .95), rgba(255, 206, 94, .85) 45%, transparent 72%);
+  box-shadow: 0 0 22px rgba(255, 196, 60, .7);
+}
+.bmt-fx-blast--h { width: 26px; height: 14px; margin: -7px 0 0 -13px; animation: bmt-v46-blast-h .46s cubic-bezier(.2, .75, .25, 1) forwards }
+.bmt-fx-blast--v { width: 14px; height: 26px; margin: -13px 0 0 -7px; animation: bmt-v46-blast-v .46s cubic-bezier(.2, .75, .25, 1) forwards }
+@keyframes bmt-v46-blast-h { 0% { opacity: 0; transform: translateX(0) scaleX(.4) } 18% { opacity: 1 } 100% { opacity: 0; transform: translateX(var(--bmt-blast-run, 0px)) scaleX(2.6) } }
+@keyframes bmt-v46-blast-v { 0% { opacity: 0; transform: translateY(0) scaleY(.4) } 18% { opacity: 1 } 100% { opacity: 0; transform: translateY(var(--bmt-blast-run, 0px)) scaleY(2.6) } }
+
+.bmt-fx-trumpet-halo {
+  position: absolute;
+  z-index: 24;
+  pointer-events: none;
+  width: var(--bmt-halo-size, 60px);
+  height: var(--bmt-halo-size, 60px);
+  margin-left: calc(var(--bmt-halo-size, 60px) / -2);
+  margin-top: calc(var(--bmt-halo-size, 60px) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .92), rgba(255, 203, 80, .5) 40%, transparent 70%);
+  animation: bmt-v46-pop .44s ease-out forwards;
+}
+@keyframes bmt-v46-pop { 0% { opacity: 0; transform: scale(.2) } 30% { opacity: 1; transform: scale(1.05) } 100% { opacity: 0; transform: scale(1.6) } }
+
+/* --- Свет: вспышка и лучи ------------------------------------------- */
+.bmt-fx-flash {
+  position: absolute;
+  z-index: 25;
+  pointer-events: none;
+  width: var(--bmt-flash-size, 120px);
+  height: var(--bmt-flash-size, 120px);
+  margin-left: calc(var(--bmt-flash-size, 120px) / -2);
+  margin-top: calc(var(--bmt-flash-size, 120px) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, .96), rgba(255, 214, 107, .6) 32%, rgba(255, 190, 54, .18) 55%, transparent 72%);
+  animation: bmt-v46-flash .42s ease-out forwards;
+}
+@keyframes bmt-v46-flash { 0% { opacity: 0; transform: scale(.25) } 22% { opacity: 1; transform: scale(1) } 100% { opacity: 0; transform: scale(1.28) } }
+
+.bmt-fx-ray {
+  position: absolute;
+  z-index: 24;
+  pointer-events: none;
+  width: 4px;
+  height: var(--bmt-ray-length, 70px);
+  margin-left: -2px;
+  transform-origin: 50% 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 246, 205, .98), rgba(255, 199, 64, .5), transparent);
+  animation: bmt-v46-ray .5s cubic-bezier(.2, .8, .25, 1) forwards;
+}
+@keyframes bmt-v46-ray {
+  0% { opacity: 0; transform: rotate(var(--bmt-ray-angle, 0deg)) scaleY(.15) }
+  30% { opacity: 1 }
+  100% { opacity: 0; transform: rotate(var(--bmt-ray-angle, 0deg)) scaleY(1.2) }
+}
+
+/* --- Завет: радуга через всё поле ------------------------------------ */
+.bmt-fx-covenant-sweep {
+  position: absolute;
+  top: -15%;
+  bottom: -15%;
+  left: 0;
+  width: 52%;
+  z-index: 26;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 120, 140, .5) 18%, rgba(255, 206, 94, .55) 34%, rgba(255, 255, 255, .72) 50%, rgba(126, 224, 164, .55) 66%, rgba(126, 190, 255, .5) 82%, transparent);
+  filter: blur(1px);
+  animation: bmt-v46-sweep .72s cubic-bezier(.3, .7, .3, 1) forwards;
+}
+@keyframes bmt-v46-sweep { 0% { opacity: 0; transform: translateX(-110%) } 18% { opacity: 1 } 100% { opacity: 0; transform: translateX(215%) } }
+
+/* Настоящая радуга-арка над полем: центр круга сажают на нижнюю кромку доски,
+   а нижнюю половину срезают — иначе от кольца читается только тонкий обруч. */
+.bmt-fx-covenant-arc {
+  position: absolute;
+  z-index: 25;
+  pointer-events: none;
+  width: var(--bmt-arc-size, 320px);
+  height: var(--bmt-arc-size, 320px);
+  margin-left: calc(var(--bmt-arc-size, 320px) / -2);
+  margin-top: calc(var(--bmt-arc-size, 320px) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    transparent 0 57%,
+    rgba(255, 120, 140, .82) 57% 63%,
+    rgba(255, 190, 90, .82) 63% 69%,
+    rgba(255, 240, 140, .82) 69% 75%,
+    rgba(126, 224, 164, .82) 75% 81%,
+    rgba(126, 190, 255, .82) 81% 87%,
+    rgba(186, 148, 240, .8) 87% 93%,
+    transparent 93%);
+  clip-path: inset(0 0 50% 0);
+  animation: bmt-v46-arc .78s cubic-bezier(.2, .8, .25, 1) forwards;
+}
+@keyframes bmt-v46-arc { 0% { opacity: 0; transform: scale(.32) } 30% { opacity: 1 } 100% { opacity: 0; transform: scale(1.08) } }
+
+.bmt-fx-prism {
+  position: absolute;
+  z-index: 26;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 3px;
+  background: conic-gradient(from 0deg, #ff8fa3, #ffd06b, #8ee6b4, #8ecdff, #c3a4f5, #ff8fa3);
+  box-shadow: 0 0 12px rgba(190, 170, 240, .55);
+  animation: bmt-v46-prism .46s ease-out forwards;
+}
+@keyframes bmt-v46-prism { 0% { opacity: 0; transform: scale(.2) rotate(0) } 35% { opacity: 1; transform: scale(1.15) rotate(90deg) } 100% { opacity: 0; transform: scale(.4) rotate(220deg) } }
+
+/* --- Рождение особой фишки ------------------------------------------- */
+.bmt-fx-forge {
+  position: absolute;
+  z-index: 25;
+  pointer-events: none;
+  width: var(--bmt-forge-size, 60px);
+  height: var(--bmt-forge-size, 60px);
+  margin-left: calc(var(--bmt-forge-size, 60px) / -2);
+  margin-top: calc(var(--bmt-forge-size, 60px) / -2);
+  border-radius: 50%;
+  border: 3px solid rgba(244, 201, 93, .9);
+  box-shadow: 0 0 18px rgba(244, 201, 93, .48), inset 0 0 18px rgba(255, 236, 176, .62);
+  animation: bmt-v46-forge .58s cubic-bezier(.2, .8, .25, 1) forwards;
+}
+.bmt-fx-forge--blue { border-color: rgba(142, 215, 255, .9); box-shadow: 0 0 18px rgba(99, 187, 239, .48), inset 0 0 18px rgba(205, 238, 255, .62) }
+.bmt-fx-forge--rainbow { border-color: rgba(220, 164, 233, .95); box-shadow: 0 0 20px rgba(150, 190, 240, .52), inset 0 0 18px rgba(255, 225, 250, .62) }
+@keyframes bmt-v46-forge { 0% { opacity: 0; transform: scale(1.5) rotate(-25deg) } 40% { opacity: 1; transform: scale(.85) rotate(0) } 70% { transform: scale(1.05) } 100% { opacity: 0; transform: scale(.95) } }
+
+/* --- Ковчег дошёл до ворот ------------------------------------------- */
+.bmt-fx-pillar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 24;
+  pointer-events: none;
+  width: var(--bmt-pillar-width, 40px);
+  margin-left: calc(var(--bmt-pillar-width, 40px) / -2);
+  border-radius: 999px;
+  transform-origin: 50% 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(255, 229, 150, .5) 40%, rgba(255, 203, 80, .82));
+  box-shadow: 0 0 26px rgba(255, 198, 61, .55);
+  animation: bmt-v46-pillar .68s ease-out forwards;
+}
+@keyframes bmt-v46-pillar { 0% { opacity: 0; transform: scaleY(.2) } 25% { opacity: 1; transform: scaleY(1) } 100% { opacity: 0; transform: scaleY(1.04) scaleX(1.6) } }
+
+/* --- Тернии разрослись ------------------------------------------------ */
+.bmt-fx-vine-sprout {
+  position: absolute;
+  z-index: 24;
+  pointer-events: none;
+  width: var(--bmt-sprout-size, 44px);
+  height: var(--bmt-sprout-size, 44px);
+  margin-left: calc(var(--bmt-sprout-size, 44px) / -2);
+  margin-top: calc(var(--bmt-sprout-size, 44px) / -2);
+  border-radius: 26%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(150, 206, 168, .82), transparent 62%),
+    radial-gradient(circle at 70% 72%, rgba(53, 112, 74, .78), transparent 60%);
+  box-shadow: 0 0 16px rgba(53, 112, 74, .38);
+  animation: bmt-v46-sprout .58s cubic-bezier(.2, .8, .25, 1) forwards;
+}
+@keyframes bmt-v46-sprout { 0% { opacity: 0; transform: scale(.1) rotate(-30deg) } 45% { opacity: 1; transform: scale(1.12) rotate(6deg) } 100% { opacity: 0; transform: scale(1) rotate(0) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bmt-fx-blast, .bmt-fx-trumpet-halo, .bmt-fx-flash, .bmt-fx-ray,
+  .bmt-fx-covenant-sweep, .bmt-fx-covenant-arc, .bmt-fx-prism,
+  .bmt-fx-forge, .bmt-fx-pillar, .bmt-fx-vine-sprout { display: none !important }
+  .bmt-board.is-quaking, .bmt-board.is-quaking-hard { animation: none !important }
+  body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece-wrap,
+  body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-piece,
+  body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-special-mark,
+  body[data-current-game="biblical-match-three"] .bmt-board.has-relic-gate .bmt-tile.is-relic-gate { animation: none !important }
+}
+
+/* Четыре цели в трёхколоночной сетке срезались многоточием: на уровнях 40, 49 и
+   50 их именно четыре, поэтому такая сетка складывается в 2×2. */
+body[data-current-game="biblical-match-three"] .bmt-goals-v2[data-count="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}

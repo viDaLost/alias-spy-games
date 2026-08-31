@@ -10,12 +10,29 @@ const data = read('android-app/app/src/main/java/com/vidalost/biblegames/games/B
 const ui = read('android-app/app/src/main/java/com/vidalost/biblegames/games/BiblicalMatchThreeGame.kt');
 const host = read('android-app/app/src/main/java/com/vidalost/biblegames/games/GameHost.kt');
 
-if (levels.length !== 30 || levels.some((level, index) => level.id !== index + 1)) {
-  throw new Error('Biblical Treasures must expose the same ordered 30-level campaign in Web and Android');
+if (levels.length < 30 || levels.some((level, index) => level.id !== index + 1)) {
+  throw new Error('Biblical Treasures must expose the same ordered campaign in Web and Android');
 }
 
+// Веб ушёл вперёд: у него есть тернии, ковчег и цель «опустить ковчег», которых
+// в этом движке пока нет. Такие уровни загрузчик пропускает целиком — иначе цель
+// молча выпала бы и уровень прошёлся бы без неё. Проверяется ровно этот договор:
+// то, что Android берёт, он обязан уметь, и взять он должен не меньше 30 уровней
+// подряд с начала кампании.
 const supportedGoals = new Set(['score', 'collect', 'clearBlockers', 'lightLamps', 'activateSpecials', 'cascade']);
-for (const level of levels) {
+const supportedBlockers = new Set(['tablet', 'chain', 'lamp']);
+const native = levels.filter((level) => (level.goals || []).every((goal) => supportedGoals.has(goal.type))
+  && (level.blockers || []).every((group) => supportedBlockers.has(group.type))
+  && !(level.relics || []).length);
+
+if (native.length < 30) {
+  throw new Error(`Android understands only ${native.length} of ${levels.length} levels; its campaign must keep at least 30`);
+}
+if (native.some((level, index) => level.id !== index + 1)) {
+  throw new Error('Android must take a continuous run of levels from the start of the campaign, not a scattered subset');
+}
+
+for (const level of native) {
   if (level.rows < 5 || level.rows > 8 || level.moves < 1 || level.symbolCount < 3 || level.symbolCount > 9) {
     throw new Error(`Level ${level.id} has an unsupported board configuration`);
   }
@@ -44,7 +61,7 @@ for (const level of levels) {
 for (const token of ['LINE_H', 'LINE_V', 'BURST', 'RAINBOW', 'specialComboClearSet', 'expandSpecials', 'seedSpecials', 'damageBlockers', 'createPlayableBoard']) {
   need(engine, token, `Android Biblical Treasures engine is missing ${token}`);
 }
-for (const token of ['require(levels.size == 30)', 'data/biblical_match_three_levels.json']) {
+for (const token of ['require(levels.size >= 30)', 'BmtBoardShape.fromId(raw.optString("shape"))', 'if (!understood) continue', 'data/biblical_match_three_levels.json']) {
   need(data, token, `Android does not use the shared campaign source: ${token}`);
 }
 for (const token of [
@@ -69,4 +86,5 @@ assets.forEach((asset) => {
   if (!fs.existsSync(asset) || fs.statSync(asset).size < 100) throw new Error(`Required real game asset is missing: ${asset}`);
 });
 
-console.log(`Android Biblical Treasures parity OK: ${levels.length} levels, swipe, specials, blockers, boosters and HQ art.`);
+console.log(`Android Biblical Treasures parity OK: из ${levels.length} уровней кампании нативный движок берёт ${native.length} `
+  + `(остальные требуют терний или ковчега, которых в нём пока нет); свайп, особые фишки, препятствия, бустеры и артворк на месте.`);

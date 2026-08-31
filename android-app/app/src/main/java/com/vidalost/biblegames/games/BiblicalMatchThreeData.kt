@@ -14,7 +14,8 @@ internal data class BmtCatalog(val levels: List<BmtLevel>) {
                 for (index in 0 until rawLevels.length()) {
                     val raw = rawLevels.getJSONObject(index)
                     val id = raw.getInt("id")
-                    val goals = raw.optJSONArray("goals").objects().mapNotNull { goal ->
+                    val rawGoals = raw.optJSONArray("goals").objects()
+                    val goals = rawGoals.mapNotNull { goal ->
                         val type = BmtGoalType.fromId(goal.optString("type")) ?: return@mapNotNull null
                         BmtGoal(
                             type = type,
@@ -23,7 +24,8 @@ internal data class BmtCatalog(val levels: List<BmtLevel>) {
                             blocker = BmtBlockerType.fromId(goal.optString("blocker")),
                         )
                     }
-                    val blockerSeeds = raw.optJSONArray("blockers").objects().mapNotNull { group ->
+                    val rawBlockers = raw.optJSONArray("blockers").objects()
+                    val blockerSeeds = rawBlockers.mapNotNull { group ->
                         val type = BmtBlockerType.fromId(group.optString("type")) ?: return@mapNotNull null
                         BmtBlockerSeed(
                             type = type,
@@ -31,6 +33,10 @@ internal data class BmtCatalog(val levels: List<BmtLevel>) {
                             layers = group.optInt("layers", 1).coerceIn(1, 3),
                         )
                     }
+                    val understood = goals.size == rawGoals.size &&
+                        blockerSeeds.size == rawBlockers.size &&
+                        (raw.optJSONArray("relics")?.length() ?: 0) == 0
+                    if (!understood) continue
                     add(
                         BmtLevel(
                             id = id,
@@ -42,12 +48,12 @@ internal data class BmtCatalog(val levels: List<BmtLevel>) {
                             starThresholds = raw.optJSONArray("starThresholds").ints(),
                             goals = goals,
                             blockerSeeds = blockerSeeds,
-                            shape = BmtEngine.shapeForLevel(id),
+                            shape = BmtBoardShape.fromId(raw.optString("shape")) ?: BmtEngine.shapeForLevel(id),
                         ),
                     )
                 }
             }
-            require(levels.size == 30) { "В кампании должно быть 30 уровней" }
+            require(levels.size >= 30) { "В кампании должно быть не меньше 30 уровней" }
             return BmtCatalog(levels)
         }
     }
