@@ -1766,3 +1766,69 @@ body[data-current-game="biblical-match-three"] .bmt-board {
   border-color:transparent!important;
   box-shadow:none!important;
 }
+
+/* ============================================================
+   ПРАВКИ ОФОРМЛЕНИЯ (после слияния слоёв)
+   ============================================================
+   Лаунчер подключает этот файл после общего бандла, поэтому правки вида
+   игры должны лежать здесь: иначе их перебивают слои выше.
+   ============================================================ */
+
+/* --- «Библейские сокровища» ------------------------------------------
+   Заголовок стоит в сетке «кнопка · название · кошелёк» и обрезался
+   многоточием, потому что ему запрещён перенос при фиксированном кегле.
+
+   Селектор повторяет специфичность слоя v13 выше по файлу
+   (body[data-current-game] .bmt-v13-menu .bmt-homebar .bmt-title) —
+   иначе тот выигрывает и многоточие возвращается. */
+body[data-current-game="biblical-match-three"] .bmt-v13-menu .bmt-homebar .bmt-title,
+body[data-current-game="biblical-match-three"] .bmt-gamebar .bmt-title,
+body[data-match-three="2"] .bmt-title,
+.bmt-title {
+  font-size: clamp(17px, 4.9vw, 30px) !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.06 !important;
+  text-wrap: balance;
+}
+
+.bmt-kicker { font-weight: var(--weight-strong) !important; }
+
+/* Закрытые уровни были почти невидимы: серый текст на светлом с opacity .52.
+   Замок остаётся понятен, но название уровня читается. */
+.bmt-map-node.is-locked .bmt-map-node__body {
+  opacity: 1 !important;
+  background: rgba(240, 244, 250, .72) !important;
+}
+
+.bmt-map-node.is-locked .bmt-map-node__body strong {
+  color: rgba(49, 46, 129, .62) !important;
+}
+
+.bmt-map-node.is-locked .bmt-map-node__body span {
+  color: rgba(100, 116, 139, .82) !important;
+}
+
+/* Текущий уровень заметнее остальных — это точка, куда игрок вернётся. */
+.bmt-map-node.is-current .bmt-map-node__body {
+  background: linear-gradient(150deg, #fff, rgba(232, 240, 255, .95)) !important;
+  box-shadow: var(--elev-2), inset 0 0 0 1px rgba(79, 70, 229, .22) !important;
+}
+
+/* Закрытые уровни: название пряталось почти полностью — его нельзя было
+   прочитать, хотя игроку полезно видеть, что впереди. Замок и приглушённая
+   иконка по-прежнему говорят, что уровень недоступен. */
+body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled {
+  opacity: 1 !important;
+}
+
+body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled .bmt-v13-level__name,
+body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled strong {
+  color: rgba(49, 46, 129, .66) !important;
+}
+
+body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled small,
+body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled span {
+  color: rgba(100, 116, 139, .86) !important;
+}

@@ -1,0 +1,21 @@
+/* ============================================================
+   ЗАГОЛОВКИ ИГР И «БИБЛЕЙСКИЕ СОКРОВИЩА»
+   ============================================================
+
+   Длинные названия с новым шрифтом упирались в край экрана
+   («Угадай персонажа») или обрезались многоточием («Библейские сокров…»).
+   Размер теперь зависит от ширины экрана, а перенос — сбалансированный.
+   ============================================================ */
+
+body[data-mode="game"] #game-container > h2:first-child,
+body[data-mode="game"] #game-container .alias-title {
+  max-width: min(100%, 620px);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: clamp(1.24rem, 6.4vw, 1.75rem) !important;
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}

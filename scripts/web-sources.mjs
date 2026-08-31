@@ -36,6 +36,7 @@ export const styleSources = [
   'web/styles/game-shell.css',
   'web/styles/admin-usability.css',
   'web/styles/word-games-polish.css',
+  'web/styles/game-titles-polish.css',
 ];
 
 export const scriptSources = [
