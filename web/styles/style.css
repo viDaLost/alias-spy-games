@@ -1083,7 +1083,10 @@ body[data-mode="admin"] #game-container {
   padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)) !important;
   display: grid;
   gap: 14px;
-  animation: softPop .18s ease-out both;
+  /* backwards: удерживать конечный кадр нечего, а forwards оставил бы на main
+     единичную матрицу transform, из-за которой position: fixed внутри игры
+     привязывается к main, а не к экрану. */
+  animation: softPop .18s ease-out backwards;
 }
 
 #game-container > h2,

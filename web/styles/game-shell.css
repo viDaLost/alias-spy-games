@@ -117,7 +117,14 @@ body[data-mode="game"] .back-button {
 }
 
 body[data-mode="game"] #game-container > * {
-  animation: game-screen-in .34s var(--ease-out) both;
+  /* backwards, а не both. Конечный кадр анимации совпадает с обычным состоянием
+     элемента, так что удерживать его нечем -- зато forwards оставляет в computed
+     style единичную матрицу transform навсегда («transform: none» в кадре тоже
+     вычисляется как matrix). Элемент с любым transform становится containing block
+     для position: fixed внутри себя, и модальные окна игры начинают позиционироваться
+     относительно него, а не относительно экрана: окно выбора уровня уезжало за оба
+     края и не прокручивалось. */
+  animation: game-screen-in .34s var(--ease-out) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

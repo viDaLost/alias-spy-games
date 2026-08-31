@@ -404,3 +404,34 @@
   .wow-word-flight,
   .word-celebration i { animation: none !important; }
 }
+
+/* Окно выбора уровня: карточка растёт вместе со списком, а прокрутки у неё нет.
+   При сорока уровнях она ещё помещалась в экран; при девяноста вырастает до
+   ~1550px в окне 844px, центрируется — и уходит за оба края разом. Нижние главы
+   становятся недостижимы, а кнопки за границей окна не удаётся нажать. Высоту
+   ограничиваем экраном и прокручиваем сам список, оставляя заголовок с крестиком
+   на месте. */
+.ws-modal {
+  align-items: flex-start;
+  overflow: hidden;
+}
+.ws-modal .ws-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 3rem);
+  margin: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.ws-modal .ws-modal-header {
+  flex: 0 0 auto;
+}
+.ws-modal .ws-levels-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Место под инерционную прокрутку, чтобы последняя глава не липла к краю. */
+  padding-bottom: 4px;
+}

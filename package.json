@@ -33,7 +33,8 @@
     "check:reconnect-storm": "node scripts/check-reconnect-storm.mjs",
     "check:telegram-desktop": "node scripts/check-telegram-desktop-bootstrap.mjs",
     "check:admin-sections": "node scripts/check-admin-sections.mjs",
-    "check:wordsearch": "node scripts/check-wordsearch-levels.mjs"
+    "check:wordsearch": "node scripts/check-wordsearch-levels.mjs",
+    "check:level-modal": "node scripts/check-level-modal.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

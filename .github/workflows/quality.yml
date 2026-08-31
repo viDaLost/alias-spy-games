@@ -121,3 +121,5 @@ jobs:
         run: npm run check:errors
       - name: Check admin panel sections
         run: npm run check:admin-sections
+      - name: Check word search level picker
+        run: npm run check:level-modal
