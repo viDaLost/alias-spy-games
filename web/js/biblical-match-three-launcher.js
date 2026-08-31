@@ -2,7 +2,7 @@
 "use strict";
 const GAME_KEY="biblical-match-three";
 const TITLE="Библейские сокровища";
-const VERSION="46";
+const VERSION="47";
 const MENU_ART_VERSION="39";
 const ART_SRC=`web/games/biblical-match-three-v5-loader.js?v=${VERSION}`;
 const CORE_SRC=`web/games/biblical-match-three-core.js?v=${VERSION}`;
@@ -31,7 +31,7 @@ function waitForExisting(script,marker){if(markerReady(marker)||script.dataset.l
 function createScript(src,marker){return new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=src;script.dataset.bmtSrc=canonicalOf(src);const timer=setTimeout(()=>{script.dataset.bmtFailed="1";reject(new Error(`script timeout: ${src}`))},SCRIPT_TIMEOUT);script.addEventListener("load",()=>{clearTimeout(timer);script.dataset.loaded="1";if(marker&&!window[marker]){script.dataset.bmtFailed="1";reject(new Error(`script marker missing: ${marker}`));return}resolve()},{once:true});script.addEventListener("error",()=>{clearTimeout(timer);script.dataset.bmtFailed="1";reject(new Error(`script failed: ${src}`))},{once:true});document.body.appendChild(script)})}
 async function loadScriptOnce(src,marker){if(markerReady(marker))return;let existing=findScript(src);if(existing){if(existing.dataset.bmtFailed==="1"){existing.remove();existing=null}else{try{await waitForExisting(existing,marker);if(markerReady(marker))return}catch{existing.remove();existing=null}}}await createScript(src,marker)}
 function purgeFailedScripts(){document.querySelectorAll('script[data-bmt-failed="1"]').forEach(script=>script.remove())}
-async function ensureArt(){await loadScriptOnce(ART_SRC,"BiblicalMatchThreeV5ArtReady");const art=await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise((_,reject)=>setTimeout(()=>reject(new Error("WebP art timeout")),12000))]);if(!art?.symbols?.bible||!art?.symbols?.ark||!art?.boosters?.covenant||art.kind!=="file-webp-v17"||art.transport!=="file")throw new Error("V17 WebP art incomplete");return art}
+async function ensureArt(){await loadScriptOnce(ART_SRC,"BiblicalMatchThreeV5ArtReady");const art=await Promise.race([window.BiblicalMatchThreeV5ArtReady,new Promise((_,reject)=>setTimeout(()=>reject(new Error("WebP art timeout")),12000))]);if(!art?.symbols?.bible||!art?.symbols?.ark||!art?.boosters?.covenant||!art?.obstacles?.vine||!art?.relics?.covenantArk||art.kind!=="file-webp-v17"||art.transport!=="file")throw new Error("V17 WebP art incomplete");return art}
 
 // Патч v45 вшит прямо в biblical-match-three.js. Раньше здесь скачивался
 // исходник игры и переписывался десятью строковыми заменами перед вставкой

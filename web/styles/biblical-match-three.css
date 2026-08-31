@@ -1854,16 +1854,6 @@ body[data-current-game="biblical-match-three"] .bmt-blocker__vine {
   overflow: visible !important;
 }
 
-body[data-current-game="biblical-match-three"] .bmt-blocker__vine::before {
-  content: "";
-  position: absolute;
-  inset: 4%;
-  border-radius: 24%;
-  background:
-    radial-gradient(circle at 30% 26%, rgba(150, 206, 168, .5), transparent 62%),
-    radial-gradient(circle at 72% 74%, rgba(63, 124, 84, .42), transparent 60%);
-}
-
 /* Слой доски прячет знаковые подстановки, поэтому у терний есть свой файл;
    размер подбирается так же, как у цепей и скрижалей. */
 body[data-current-game="biblical-match-three"] .bmt-tile.has-vine .bmt-blocker-art {

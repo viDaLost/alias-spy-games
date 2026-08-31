@@ -15,10 +15,7 @@ function assert(value, message) { if (!value) throw new Error(message); }
 function requiredSymbols(level) { return [...new Set(level.goals.filter(goal => goal.type === 'collect').map(goal => goal.symbol))]; }
 function symbolPool(level) {
   const required = requiredSymbols(level);
-  // На уровнях с ковчегом рядовой символ «Ковчег» из набора убран.
-  const barred = (level.relics || []).length && !required.includes('ark') ? 'ark' : '';
-  const source = SYMBOLS.filter(id => id !== barred);
-  const pool = source.slice(0, Math.max(3, Math.min(source.length, Number(level.symbolCount || 6))));
+  const pool = SYMBOLS.slice(0, Math.max(3, Math.min(SYMBOLS.length, Number(level.symbolCount || 6))));
   for (const symbol of required) {
     if (pool.includes(symbol)) continue;
     const slot = pool.findLastIndex(item => !required.includes(item));

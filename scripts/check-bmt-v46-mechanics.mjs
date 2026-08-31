@@ -52,6 +52,12 @@ const context = await browser.newContext({ viewport: { width: 390, height: 844 }
 await context.addInitScript(() => { window.__APP_TELEMETRY_DISABLED__ = true; });
 const page = await context.newPage();
 
+// Первая же поломка ковчега пришла не из механики, а из отрисовки: клон фишки
+// терял признак святыни, и падал весь экран игры. Поэтому любое необработанное
+// исключение на странице — провал проверки, где бы оно ни случилось.
+const crashes = [];
+page.on('pageerror', (error) => crashes.push(String(error?.stack || error).split('\n').slice(0, 3).join(' | ')));
+
 const fail = async (message) => {
   await browser.close();
   server.close();
@@ -129,6 +135,30 @@ const refusal = await page.evaluate(() => ({
 }));
 await expect(/Ковчег не двигают/.test(refusal.toast), `тапом по ковчегу игра не объясняет отказ: «${refusal.toast}»`);
 await expect(refusal.selected === 0, 'ковчег выделился как обычная фишка');
+
+// Настоящие ходы: свайп клонирует доску, а бустер — нет, поэтому именно здесь
+// ковчег и терял признак святыни, превращаясь в фишку с несуществующим символом.
+for (let move = 0; move < 5; move += 1) {
+  const played = await page.evaluate(() => {
+    const hint = window.BiblicalMatchThreeV20Rules.findPlayableMoves(1)[0];
+    if (!hint) return false;
+    for (const index of hint) document.querySelector(`.bmt-tile[data-index="${index}"]`)?.click();
+    return true;
+  });
+  if (!played) await fail(`после ${move} ходов на поле не осталось ни одного допустимого хода`);
+  await page.waitForTimeout(1500);
+  if (crashes.length) await fail(`ход ${move + 1} уронил игру: ${crashes[0]}`);
+  const alive = await page.evaluate(() => ({
+    tiles: document.querySelectorAll('.bmt-tile').length,
+    relics: document.querySelectorAll('.bmt-tile.is-relic').length,
+    delivered: [...document.querySelectorAll('.bmt-goal')].some((node) => /Опустить ковчег/.test(node.textContent) && /[1-9]\d*\//.test(node.textContent)),
+    broken: document.body.innerText.includes('Не удалось продолжить'),
+  }));
+  if (alive.broken || !alive.tiles) await fail(`после хода ${move + 1} доска исчезла`);
+  // Ковчег мог и дойти до ворот сам — тогда его нет на доске законно.
+  if (!alive.relics && !alive.delivered) await fail(`ковчег пропал с доски после хода ${move + 1}, не дойдя до ворот`);
+  if (alive.delivered) break;
+}
 
 // «Посох Моисея» очищает столбец — ковчег падает в ворота и засчитывается.
 const column = ark.relics[0] % 8;
@@ -226,7 +256,9 @@ await expect(vines.waiting === 6, `тернии разрослись раньш�
 await expect(vines.grown === 7, `тернии не разрослись за свой интервал: ${vines.grown}`);
 await expect(vines.sprout === 1, 'разрастание прошло без анимации');
 
-console.log('Механики v46 в порядке: ковчег опускается в ворота и не двигается руками, '
+if (crashes.length) await fail(`страница поймала необработанное исключение: ${crashes[0]}`);
+
+console.log('Механики v46 в порядке: ковчег переживает обычные ходы, опускается в ворота и не двигается руками, '
   + `тернии разрастаются строго по своему интервалу (${vines.seeded} → ${vines.grown}), `
   + 'все новые эффекты особых фишек получают анимацию из CSS и не оставляют transform на доске.');
 

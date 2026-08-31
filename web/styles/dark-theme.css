@@ -4273,10 +4273,6 @@ html body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled smal
 html body[data-current-game="biblical-match-three"] .bmt-v13-level:disabled span {
   color: rgba(115, 131, 154, 0.86) !important;
 }
-html body[data-current-game="biblical-match-three"] .bmt-blocker__vine::before {
-  background: radial-gradient(circle at 30% 26%, rgba(54, 116, 74, 0.5), transparent 62%),
-    radial-gradient(circle at 72% 74%, rgba(63, 124, 84, .42), transparent 60%) !important;
-}
 html body[data-current-game="biblical-match-three"] .bmt-tile.is-relic .bmt-special-mark {
   border: 1.5px solid rgba(20, 20, 20, 0.96) !important;
   background: #ae800c !important;

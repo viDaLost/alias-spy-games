@@ -16,7 +16,9 @@ const FILES={
  score:"web/assets/biblical-match-three/icons-v17/score.webp",
  sling:"web/assets/biblical-match-three/icons-v17/sling.webp",
  staff:"web/assets/biblical-match-three/icons-v17/staff.webp",
- tablets:"web/assets/biblical-match-three/icons-v17/tablets.webp"
+ tablets:"web/assets/biblical-match-three/icons-v17/tablets.webp",
+ vine:"web/assets/biblical-match-three/icons-v17/vine.webp",
+ covenantArk:"web/assets/biblical-match-three/icons-v17/covenant-ark.webp"
 };
 const file=(name)=>`${FILES[name]}?v=${VERSION}`;
 const art={
@@ -24,10 +26,11 @@ const art={
  symbols:{bible:file("bible"),fish:file("fish"),dove:file("dove"),candle:file("candle"),crown:file("crown"),ark:file("ark"),bread:file("bread"),grapes:file("grapes"),tablets:file("tablets")},
  boosters:{manna:file("bread"),oil:file("candle"),covenant:file("covenant"),sling:file("sling"),staff:file("staff"),jericho:file("jericho"),rainbow:file("covenant"),ark:file("covenant")},
  goals:{score:file("score"),collect:file("bible"),cascade:file("crown"),special:file("covenant"),blockers:file("chains"),light:file("candle")},
- obstacles:{chains:file("chains"),tablets:file("tablets"),candle:file("candle"),cracked:file("chains")}
+ obstacles:{chains:file("chains"),tablets:file("tablets"),candle:file("candle"),cracked:file("chains"),vine:file("vine")},
+ relics:{covenantArk:file("covenantArk")}
 };
 function waitForImage(src,timeout=10000){return new Promise((resolve,reject)=>{const img=new Image();img.decoding="async";img.loading="eager";let done=false;const finish=(ok,error)=>{if(done)return;done=true;clearTimeout(timer);img.onload=null;img.onerror=null;ok?resolve(img):reject(error||new Error(`Image load failed: ${src}`))};const timer=setTimeout(()=>finish(false,new Error(`WebP decode timeout: ${src}`)),timeout);img.onload=()=>finish(true);img.onerror=()=>finish(false,new Error(`WebP image failed: ${src}`));img.src=src;if(img.complete&&img.naturalWidth>0)finish(true);else img.decode?.().then(()=>finish(true),()=>{})})}
-function allSources(){return [...new Set([...Object.values(art.symbols),...Object.values(art.boosters),...Object.values(art.goals),...Object.values(art.obstacles)])]}
+function allSources(){return [...new Set([...Object.values(art.symbols),...Object.values(art.boosters),...Object.values(art.goals),...Object.values(art.obstacles),...Object.values(art.relics)])]}
 async function warmArt(){const results=await Promise.allSettled(allSources().map(waitForImage));const failures=results.filter(result=>result.status==="rejected");if(failures.length)console.warn(`Biblical Treasures V17: ${failures.length} icon preload(s) failed; browser will retry ordinary WebP files on render`,failures.map(result=>String(result.reason?.message||result.reason)));return art}
 function symbolSource(id){return art.symbols[id==="lamp"?"candle":id]||""}
 function boosterSource(id){return art.boosters[id==="lampOil"?"oil":id]||""}

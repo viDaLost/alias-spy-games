@@ -87,8 +87,7 @@ function requiredCollectSymbols(level) {
 
 function getLevelSymbolSet(level) {
   const required = requiredCollectSymbols(level);
-  const barred = levelRelicCells(level).length && !required.includes("ark") ? "ark" : "";
-  const source = SYMBOLS.map((item) => item.id).filter((id) => id !== barred);
+  const source = SYMBOLS.map((item) => item.id);
   const requested = Math.max(3, Math.min(source.length, Number(level?.symbolCount || 6)));
   const pool = source.slice(0, requested);
   for (const symbol of required) {
@@ -136,7 +135,8 @@ function makeActiveMask(shape, rows, cols, level = null) {
 }
 
 function isActive(index) { return !runtime?.activeMask || runtime.activeMask[index] !== false; }
-function isRelic(index) { return Boolean(runtime?.board?.[index]?.relic); }
+function isRelicCell(cell) { return Boolean(cell) && (cell.relic === true || String(cell.type || "").startsWith(RELIC_TYPE)); }
+function isRelic(index) { return isRelicCell(runtime?.board?.[index]); }
 // Ковчег двигают не рукой, а тем, что убирают из-под него, поэтому он выпадает
 // и из свайпов, и из подсказок, и из проверки на мёртвое поле.
 function canSwapActive(a, b) { return isActive(a) && isActive(b) && !isRelic(a) && !isRelic(b); }
@@ -152,7 +152,7 @@ function createPlayableBoard(rows, cols, symbolIds, mask, required = [], relicCe
     let relicNumber = 0;
     for (const index of relicCells) { if (mask[index] === false || !board[index]) continue; board[index] = { type: `${RELIC_TYPE}${relicNumber += 1}`, special: null, relic: true }; }
     const hasRequired = required.every((symbol) => board.reduce((count, cell) => count + (cell?.type === symbol ? 1 : 0), 0) >= 3);
-    const startMoves = Core.findMoves(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false && !board[a]?.relic && !board[b]?.relic, MIN_START_MOVES).length;
+    const startMoves = Core.findMoves(board, rows, cols, (a,b) => mask[a] !== false && mask[b] !== false && !isRelicCell(board[a]) && !isRelicCell(board[b]), MIN_START_MOVES).length;
     if (hasRequired && Core.findMatches(board, rows, cols).length === 0 && startMoves >= MIN_START_MOVES) return board;
   }
   throw new Error(`Could not generate a shaped board with ${MIN_START_MOVES} starting moves`);
@@ -162,10 +162,10 @@ function reshufflePlayable() {
   const required = runtime.mode === "level" ? requiredCollectSymbols(runtime.level) : [];
   const specials = runtime.board.filter((cell) => cell?.special).map((cell) => cell.special);
   // Перемешивание не должно телепортировать ковчег: он остаётся там, куда упал.
-  const relicCells = runtime.board.map((cell, index) => (cell?.relic ? index : -1)).filter((index) => index >= 0);
+  const relicCells = runtime.board.map((cell, index) => (isRelicCell(cell) ? index : -1)).filter((index) => index >= 0);
   const fresh = createPlayableBoard(ROWS, COLS, runtime.symbolIds, runtime.activeMask, required, relicCells);
   for (const special of specials) {
-    const available = fresh.map((cell,index) => (cell && !cell.special && !cell.relic ? index : -1)).filter((index) => index >= 0);
+    const available = fresh.map((cell,index) => (cell && !cell.special && !isRelicCell(cell) ? index : -1)).filter((index) => index >= 0);
     if (!available.length) break;
     fresh[available[Math.floor(Math.random() * available.length)]].special = special;
   }
@@ -211,12 +211,16 @@ function currentSymbolAsset(id) {
 }
 
 function currentBlockerAsset(type) {
-  // У терний нет растровой картинки в наборе, а слой доски прячет знаковые
-  // подстановки: без своего файла препятствие осталось бы вовсе без рисунка.
-  if (type === "vine") return "web/assets/biblical-match-three/vine.svg";
   const obstacles = window.BiblicalMatchThreeV5Art?.obstacles || window.BiblicalMatchThreeV4Art?.obstacles || {};
-  const key = type === "chain" ? "chains" : type === "tablet" ? "tablets" : type === "lamp" ? "candle" : "";
+  const key = type === "chain" ? "chains" : type === "tablet" ? "tablets" : type === "lamp" ? "candle" : type === "vine" ? "vine" : "";
   return key ? (obstacles[key] || "") : "";
+}
+
+// У ковчега завета своя модель: рядовой «Ковчег» — это ковчег Ноя, и на доске
+// их было не различить.
+function currentRelicAsset() {
+  const relics = window.BiblicalMatchThreeV5Art?.relics || {};
+  return relics.covenantArk || "web/assets/biblical-match-three/icons-v17/covenant-ark.webp";
 }
 
 function cleanup() {
@@ -284,7 +288,7 @@ function goalIcon(goal) {
   if (goal.type === "lightLamps") return "✦";
   if (goal.type === "activateSpecials") return "✺";
   if (goal.type === "cascade") return "↯";
-  if (goal.type === "deliver") return `<img src="${currentSymbolAsset("ark")}" alt="">`;
+  if (goal.type === "deliver") return `<img src="${currentRelicAsset()}" alt="">`;
   return "•";
 }
 
@@ -480,7 +484,7 @@ function applyLevelGoalSpecials(level) {
   if (!goal) return 0;
   const target = Math.min(10, Math.ceil(Math.max(2, Number(goal.count || 0)) / 2) * 2);
   const used = new Set(); let placed = 0;
-  const available = (index) => isActive(index) && runtime.board[index] && !runtime.board[index].special && !runtime.board[index].relic && !runtime.blockers.has(index) && !used.has(index);
+  const available = (index) => isActive(index) && runtime.board[index] && !runtime.board[index].special && !isRelicCell(runtime.board[index]) && !runtime.blockers.has(index) && !used.has(index);
   const pairs = [];
   for (let row = 0; row < ROWS; row += 1) for (let col = 0; col < COLS - 1; col += 1) pairs.push([row * COLS + col, row * COLS + col + 1]);
   for (let col = 0; col < COLS; col += 1) for (let row = 0; row < ROWS - 1; row += 1) pairs.push([row * COLS + col, (row + 1) * COLS + col]);
@@ -502,7 +506,7 @@ function setupBoard({ mode, level, difficulty, symbolIds, moves, selectedBooster
   runtime.board = createPlayableBoard(ROWS, COLS, symbolIds, runtime.activeMask, mode === "level" ? requiredCollectSymbols(level) : [], relicCells); runtime.score = 0; runtime.moves = moves; runtime.collected = {}; runtime.selected = null; runtime.cascade = 0; runtime.maxCascade = 1; runtime.specialsActivated = 0; runtime.seededGoalSpecials = 0; runtime.lastSwap = null; runtime.tileNodes = []; runtime.activeBooster = null; runtime.freeSessionReward = 0; runtime.lastGoalSnapshot = new Map();
   // Ковчег на закрытой клетке фигурного поля не появится, поэтому цель считают
   // по тому, сколько их реально встало на доску.
-  runtime.relicTotal = runtime.board.filter((cell) => cell?.relic).length;
+  runtime.relicTotal = runtime.board.filter(isRelicCell).length;
   initBlockers(mode === "free" ? freeChallengeConfig(difficulty) : level); if (mode === "level") applyLevelGoalSpecials(level); applyPreBoosters(selectedBoosters || new Set());
   const container = document.getElementById("game-container"); container.innerHTML = ""; const shell = el("section", "bmt-shell bmt-board-screen bmt-v2");
   const top = el("header", "bmt-gamebar"); const back = button("←", "bmt-icon-button", () => runtime.mode === "free" ? openFreeExit() : openPause()); back.setAttribute("aria-label", runtime.mode === "free" ? "Завершить свободную игру" : "Пауза");
@@ -534,7 +538,7 @@ function applyPreBoosters(selected) {
   if (!selected?.size) return;
   const randomEmpty = () => {
     const candidates = runtime.board
-      .map((cell, index) => (cell && !cell.special && !cell.relic && isActive(index) && !runtime.blockers.has(index) ? index : -1))
+      .map((cell, index) => (cell && !cell.special && !isRelicCell(cell) && isActive(index) && !runtime.blockers.has(index) ? index : -1))
       .filter((index) => index >= 0);
     return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : -1;
   };
@@ -607,13 +611,13 @@ function expandSpecials(initialSet) {
   const clearSet = new Set(initialSet); const queue = [...clearSet]; const activated = new Set();
   while (queue.length) {
     const index = queue.shift(); const cell = runtime.board[index]; if (!cell?.special || activated.has(index)) continue; activated.add(index);
-    const add = (candidate) => { if (candidate < 0 || candidate >= runtime.board.length || clearSet.has(candidate) || runtime.board[candidate]?.relic) return; clearSet.add(candidate); queue.push(candidate); };
+    const add = (candidate) => { if (candidate < 0 || candidate >= runtime.board.length || clearSet.has(candidate) || isRelicCell(runtime.board[candidate])) return; clearSet.add(candidate); queue.push(candidate); };
     if (cell.special === "lineH") { Core.rowIndices(index, ROWS, COLS).forEach(add); FX.trumpet?.(index, "h"); }
     else if (cell.special === "lineV") { Core.columnIndices(index, ROWS, COLS).forEach(add); FX.trumpet?.(index, "v"); }
     else if (cell.special === "burst") { Core.areaIndices(index, 1, ROWS, COLS).forEach(add); FX.lightBurst?.(index); }
     else if (cell.special === "rainbow") FX.covenant?.(index, [...clearSet].filter((target) => target !== index));
   }
-  for (const index of [...clearSet]) if (runtime.board[index]?.relic) clearSet.delete(index);
+  for (const index of [...clearSet]) if (isRelicCell(runtime.board[index])) clearSet.delete(index);
   return { clearSet, activated };
 }
 
@@ -627,7 +631,7 @@ async function clearAndCascade(initialSet, cascade, creations = new Map(), meta 
   for (const [type, count] of Object.entries(clearedByType)) runtime.collected[type] = (runtime.collected[type] || 0) + count;
   updateHud(true); await pause(205);
   for (const index of clearSet) runtime.board[index] = null;
-  for (const [index, special] of creations.entries()) if (runtime.board[index] && !runtime.board[index].relic) { runtime.board[index].special = special; FX.forge?.(index, special); FX.floatText?.(index, specialLabel(special), special === "rainbow" ? "violet" : "gold"); }
+  for (const [index, special] of creations.entries()) if (runtime.board[index] && !isRelicCell(runtime.board[index])) { runtime.board[index].special = special; FX.forge?.(index, special); FX.floatText?.(index, specialLabel(special), special === "rainbow" ? "violet" : "gold"); }
   const motion = collapseBoard(); updateAllTiles(); animateDropMotion(motion); await pause(motion.maxDistance > 2 ? 300 : 240);
   if (deliverRelics()) { const landing = collapseBoard(); updateAllTiles(); animateDropMotion(landing); updateHud(true); await pause(260); }
   const next = Core.findMatchGroups(runtime.board, ROWS, COLS); if (next.length) await resolveMatches(cascade + 1);
@@ -660,7 +664,7 @@ function deliverRelics() {
   if (!runtime?.relicTotal) return 0;
   let delivered = 0;
   for (let index = 0; index < runtime.board.length; index += 1) {
-    if (!runtime.board[index]?.relic) continue;
+    if (!isRelicCell(runtime.board[index])) continue;
     if (index !== bottomActiveIndex(index % COLS)) continue;
     runtime.board[index] = null; runtime.relicsDelivered += 1; delivered += 1; runtime.score += RELIC_SCORE;
     FX.relicLanded?.(index); FX.floatText?.(index, "КОВЧЕГ", "gold"); FX.haptic?.("success");
@@ -683,7 +687,7 @@ function spreadVines() {
       const rr = row + dr; const cc = col + dc;
       if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS) continue;
       const target = rr * COLS + cc;
-      if (runtime.blockers.has(target) || !isActive(target) || !runtime.board[target] || runtime.board[target].relic) continue;
+      if (runtime.blockers.has(target) || !isActive(target) || !runtime.board[target] || isRelicCell(runtime.board[target])) continue;
       options.push(target);
     }
   }
@@ -856,9 +860,11 @@ function updateTile(tile, cell, blocker) {
   const img = tile.querySelector(".bmt-piece"); const specialMark = tile.querySelector(".bmt-special-mark"); const blockerMark = tile.querySelector(".bmt-blocker"); const index = Number(tile.dataset.index); const active = isActive(index); tile.classList.toggle("is-hole", !active); tile.disabled = !active;
   if (!active) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; if (blockerMark) blockerMark.innerHTML = ""; return; }
   if (!cell) { tile.classList.add("is-empty"); if (img) img.removeAttribute("src"); if (specialMark) specialMark.textContent = ""; }
-  else if (cell.relic) {
+  else if (isRelicCell(cell)) {
     tile.classList.remove("is-empty"); tile.classList.add("is-relic");
-    const asset = currentSymbolAsset("ark"); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = "Ковчег";
+    // Подпись не «Ковчег»: по ней загрузчик набора подменяет картинку фишки, и
+    // святыня снова стала бы ковчегом Ноя.
+    const asset = currentRelicAsset(); if (img && img.getAttribute("src") !== asset) img.src = asset; if (img) img.alt = "Ковчег завета";
     if (specialMark) specialMark.textContent = "▼";
     tile.setAttribute("aria-label", "Ковчег, опустите его на нижний ряд");
   }

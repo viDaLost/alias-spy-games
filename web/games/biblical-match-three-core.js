@@ -7,7 +7,11 @@
 
   function cloneCell(cell) {
     if (!cell) return null;
-    return { type: cell.type, special: cell.special || null };
+    // Ковчег отличается от рядовой фишки только этим полем. Клон обязан его
+    // сохранять: swap клонирует доску на каждом ходу.
+    const next = { type: cell.type, special: cell.special || null };
+    if (cell.relic) next.relic = true;
+    return next;
   }
 
   function cloneBoard(board) { return board.map(cloneCell); }
