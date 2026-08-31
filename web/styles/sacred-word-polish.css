@@ -1,0 +1,103 @@
+/* ============================================================
+   «СВЯЩЕННОЕ СЛОВО»
+   ============================================================
+   Шапка разъезжалась на три строки: кнопка «Назад», под ней название,
+   под ним выбор уровня — каждая в своей плашке. Клавиатура была набором
+   белых клавиш вне общего языка приложения.
+
+   Палитра прежняя; буквы переходят на фирменный индиго.
+   ============================================================ */
+
+.sw-topbar {
+  display: grid !important;
+  /* Выбор уровня лежит внутри блока заголовка, а не отдельным элементом,
+     поэтому колонок две: кнопка и всё остальное. */
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 9px 11px !important;
+  background: linear-gradient(158deg, rgba(255, 255, 255, .94), rgba(232, 240, 255, .84)) !important;
+  border: 0 !important;
+  box-shadow: var(--elev-2), var(--rim) !important;
+}
+
+.sw-titlebox {
+  flex-direction: row !important;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sw-title {
+  font-size: clamp(.86rem, 3.9vw, 1.06rem) !important;
+  font-weight: var(--weight-heading) !important;
+  letter-spacing: -0.022em;
+  white-space: nowrap;
+}
+
+/* Кнопка возврата не должна забирать место у названия. */
+.sw-topbar .back-button {
+  padding: 8px 12px !important;
+  font-size: var(--text-xs) !important;
+}
+
+.sw-subtitle { margin-top: 0 !important; font-size: var(--text-2xs) !important; }
+
+/* --- Клавиатура ---
+   Клавиши получают тот же материал, что поле «Поиска слов»: стекло, индиго,
+   заметное нажатие. Раньше это были плоские белые прямоугольники. */
+.sw-keyboard {
+  background: rgba(255, 255, 255, .58) !important;
+  border: 0 !important;
+  box-shadow: var(--elev-1) !important;
+}
+
+.sw-kb-key {
+  color: #312e81 !important;
+  font-family: var(--font-ui) !important;
+  font-weight: var(--weight-strong) !important;
+  background: linear-gradient(160deg, #fff, rgba(232, 240, 255, .92)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 0 0 1px rgba(99, 102, 241, .12),
+    0 2px 5px rgba(49, 46, 129, .1) !important;
+  transition: transform var(--dur-fast) var(--ease-spring),
+              box-shadow var(--dur-fast) var(--ease-out) !important;
+}
+
+.sw-kb-key:active {
+  color: #fff !important;
+  background: linear-gradient(160deg, var(--primary), var(--primary-2)) !important;
+  transform: scale(.93) !important;
+}
+
+/* Уже нажатая буква гаснет, но остаётся различимой. */
+.sw-kb-key:disabled,
+.sw-kb-key.is-used {
+  color: rgba(49, 46, 129, .38) !important;
+  background: rgba(226, 232, 240, .72) !important;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, .08) !important;
+}
+
+/* --- Плашки и подсказка --- */
+
+.sw-card, .sw-keyboard { border: 0 !important; }
+
+.sw-card {
+  background: linear-gradient(158deg, rgba(255, 255, 255, .94), rgba(232, 240, 255, .84)) !important;
+  box-shadow: var(--elev-2), var(--rim) !important;
+}
+
+.sw-pill {
+  background: rgba(219, 234, 254, .9) !important;
+  color: #312e81 !important;
+  font-weight: var(--weight-medium) !important;
+  font-size: var(--text-xs) !important;
+}
+
+/* Открытые буквы слова — акцент, а не серые прочерки. */
+.sw-letter {
+  font-family: var(--font-ui) !important;
+  font-weight: var(--weight-heading) !important;
+  color: #312e81 !important;
+}

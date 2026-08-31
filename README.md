@@ -71,3 +71,4 @@ node --test cloudflare/bible-sketch-worker/test/*.test.mjs
 - [Пользовательские данные в Cloudflare](docs/cloudflare-user-data.md)
 - [Игра «Найди пару для ковчега»](docs/kids-ark-pairs.md)
 - [Подпись Android release](android-app/SIGNING.md)
+- [Локальная копия three.js](docs/vendor-three.md)

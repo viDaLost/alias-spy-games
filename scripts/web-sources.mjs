@@ -37,6 +37,7 @@ export const styleSources = [
   'web/styles/admin-usability.css',
   'web/styles/word-games-polish.css',
   'web/styles/game-titles-polish.css',
+  'web/styles/sacred-word-polish.css',
 ];
 
 export const scriptSources = [
