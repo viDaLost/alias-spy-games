@@ -70,6 +70,14 @@ const stub = (route) => route.fulfill({
   status: 200, contentType: 'application/json',
   body: JSON.stringify({ success: true, isBanned: false, lastGames: [], answered: true, rooms: [] }),
 });
+// На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
+// здесь личность: прогресс начинает читаться под чужим ключом, и проверка
+// падает только в CI. Отдаём вместо него ту же заглушку.
+const telegramSdkStub = (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: `window.Telegram=window.Telegram||{WebApp:{initData:"user=%7B%22id%22%3A5883903220%7D&hash=qa",initDataUnsafe:{user:{id:5883903220,first_name:"Тест"}},ready(){},expand(){},colorScheme:"light",onEvent(){},offEvent(){},MainButton:{show(){},hide(){}},BackButton:{show(){},hide(){},onClick(){}},HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};`,
+});
+await page.route('https://telegram.org/**', telegramSdkStub);
 for (const pattern of ['https://*.workers.dev/**', 'https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
   await page.route(pattern, stub);
 }

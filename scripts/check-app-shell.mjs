@@ -211,6 +211,12 @@ const stub = (route) => route.fulfill({
   status: 200, contentType: 'application/json',
   body: JSON.stringify({ success: true, isBanned: false, lastGames: [], answered: true }),
 });
+// На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
+// здесь личность: тест начинает видеть чужое состояние и падает только в CI.
+await page.route('https://telegram.org/**', (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: 'window.Telegram=window.Telegram||{WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){}}};',
+}));
 for (const pattern of ['https://*.workers.dev/**', 'https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
   await page.route(pattern, stub);
 }

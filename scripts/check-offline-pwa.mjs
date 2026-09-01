@@ -105,6 +105,12 @@ const fail = async (message) => {
 };
 
 const calls = [];
+// На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
+// здесь личность: тест начинает видеть чужое состояние и падает только в CI.
+await page.route('https://telegram.org/**', (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: 'window.Telegram=window.Telegram||{WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){}}};',
+}));
 await page.route('https://*.workers.dev/**', async (route) => {
   const body = JSON.parse(route.request().postData() || '{}');
   calls.push({ url: route.request().url(), auth: route.request().headers().authorization || '', body });
@@ -264,6 +270,12 @@ if (!/^Bearer bgs_/.test(flushed.auth)) await fail('отложенный зап�
 
 // --- 7. внутри Telegram вход по коду не показывается ------------------------------------
 const telegramPage = await context.newPage();
+// На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
+// здесь личность: тест начинает видеть чужое состояние и падает только в CI.
+await telegramPage.route('https://telegram.org/**', (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: 'window.Telegram=window.Telegram||{WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){}}};',
+}));
 await telegramPage.addInitScript(() => {
   window.Telegram = {
     WebApp: {
@@ -313,6 +325,12 @@ await ownerPage.route('https://*.workers.dev/**', (route) => {
     body: JSON.stringify({ success: true, isBanned: false, lastGames: [], answered: true }),
   });
 });
+// На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
+// здесь личность: тест начинает видеть чужое состояние и падает только в CI.
+await ownerPage.route('https://telegram.org/**', (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: 'window.Telegram=window.Telegram||{WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){}}};',
+}));
 await ownerPage.addInitScript(() => {
   window.Telegram = {
     WebApp: {
