@@ -1331,6 +1331,13 @@ html .broadcast-v2__stats {
 html .broadcast-v2__progress small {
   color: #b45a65 !important;
 }
+html .broadcast-v2__reasons li {
+  background: rgba(45, 8, 11, 0.9) !important;
+  color: #c35c6e !important;
+}
+html .broadcast-v2__reasons li b {
+  color: #ec3a66 !important;
+}
 html .broadcast-v2__progress button,
 html .broadcast-v2__history button {
   background: #08112f !important;

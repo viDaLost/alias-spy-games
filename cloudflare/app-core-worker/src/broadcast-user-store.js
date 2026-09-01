@@ -132,9 +132,23 @@ export class BroadcastUserStore extends SqlUserStore {
     await this.ensureMigrated();
     const id = String(jobId || '').trim();
     const job = id ? this.getJob(id) : this.getLatestJob();
-    return job
-      ? { ok: true, success: true, job }
-      : { ok: false, success: false, error: 'Рассылка не найдена' };
+    if (!job) return { ok: false, success: false, error: 'Рассылка не найдена' };
+    return { ok: true, success: true, job: { ...job, errorBreakdown: this.errorBreakdown(job.id) } };
+  }
+
+  /** Из-за чего именно не дошли сообщения: причина и сколько раз она встретилась. */
+  errorBreakdown(jobId) {
+    return this.sql.exec(`
+      SELECT error, COUNT(*) AS count
+      FROM broadcast_recipients
+      WHERE job_id = ? AND status = 'failed' AND error <> ''
+      GROUP BY error
+      ORDER BY count DESC
+      LIMIT 6
+    `, String(jobId || '')).toArray().map((row) => ({
+      error: String(row.error || ''),
+      count: Number(row.count || 0),
+    }));
   }
 
   async broadcastHistory() {

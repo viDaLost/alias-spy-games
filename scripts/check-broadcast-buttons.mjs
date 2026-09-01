@@ -75,10 +75,31 @@ assert.equal(keyboardFor({ buttons: 'сломанный json' }), null, 'исп�
 const many = JSON.stringify({ layout: 'row', items: [1, 2, 3].map((n) => ({ text: `К${n}`, url: `https://${n}` })) });
 assert.equal(keyboardFor({ buttons: many })[0].length, 2, 'кнопок в сообщении должно быть не больше двух');
 
+// --- разбор причин недоставки ---------------------------------------------------------
+// Telegram отвечает по-английски и по-своему. Раньше наверх уезжала одна
+// последняя строка вроде «Bad Request: chat not found», и по ней нельзя было
+// понять, сломалась рассылка или это обычные недоступные получатели.
+const failureReason = new Function(`
+  ${client.match(/const FAILURE_REASONS = \[[\s\S]*?\n  \];/)[0]}
+  ${client.match(/function failureReason\(message\) \{[\s\S]*?\n  \}/)[0]}
+  return failureReason;
+`)();
+
+assert.equal(failureReason('Bad Request: chat not found'), 'не начинали диалог с ботом');
+assert.equal(failureReason('Forbidden: bot was blocked by the user'), 'заблокировали бота');
+assert.equal(failureReason('Forbidden: user is deactivated'), 'аккаунт удалён');
+assert.equal(failureReason('Too Many Requests: retry after 5'), 'Telegram придержал отправку');
+assert.equal(failureReason(''), 'причина неизвестна');
+assert.equal(failureReason('Совсем новая ошибка'), 'Совсем новая ошибка', 'незнакомую причину нельзя прятать');
+
+assert.ok(store.includes('errorBreakdown(job.id)'), 'статус рассылки не отдаёт разбор причин');
+assert.ok(/GROUP BY error/.test(store), 'разбор причин не группируется по ошибке');
+assert.ok(client.includes('renderBreakdown(job)'), 'панель не показывает разбор причин');
+
 // --- миграция -----------------------------------------------------------------------
 assert.ok(/ALTER TABLE broadcast_jobs ADD COLUMN buttons/.test(store),
   'новой колонке нет миграции, а таблица создаётся через CREATE TABLE IF NOT EXISTS');
 assert.ok(store.includes('buttons TEXT NOT NULL DEFAULT'), 'колонка buttons не объявлена');
 
 console.log('Кнопки рассылки в порядке: две кнопки с раскладкой доезжают до Telegram, старые рассылки '
-  + 'не теряют свою кнопку, а обрыв связи объясняется человеческими словами вместо «Load failed».');
+  + 'не теряют свою кнопку, недоставка объясняется по причинам, а обрыв связи — человеческими словами вместо «Load failed».');

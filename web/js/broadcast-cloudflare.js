@@ -405,6 +405,40 @@
     el.classList.remove('hidden');
   }
 
+  // Telegram отвечает по-английски и по-своему. Чаще всего это не поломка
+  // рассылки, а получатель, до которого бот дотянуться не может.
+  const FAILURE_REASONS = [
+    [/chat not found/i, 'не начинали диалог с ботом'],
+    [/bot was blocked by the user/i, 'заблокировали бота'],
+    [/user is deactivated/i, 'аккаунт удалён'],
+    [/bot can'?t initiate conversation/i, 'не начинали диалог с ботом'],
+    [/chat_write_forbidden|not enough rights/i, 'бот не может писать в этот чат'],
+    [/too many requests|retry after/i, 'Telegram придержал отправку'],
+    [/user_is_bot/i, 'это бот, а не человек'],
+  ];
+
+  function failureReason(message) {
+    const text = String(message || '').trim();
+    if (!text) return 'причина неизвестна';
+    for (const [pattern, label] of FAILURE_REASONS) if (pattern.test(text)) return label;
+    return text;
+  }
+
+  function renderBreakdown(job) {
+    const rows = Array.isArray(job?.errorBreakdown) ? job.errorBreakdown : [];
+    if (!rows.length) return job?.lastError ? `<small>${escapeHTML(failureReason(job.lastError))}</small>` : '';
+    const merged = new Map();
+    for (const row of rows) {
+      const label = failureReason(row.error);
+      merged.set(label, (merged.get(label) || 0) + Number(row.count || 0));
+    }
+    const items = [...merged.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, count]) => `<li><span>${escapeHTML(label)}</span><b>${count}</b></li>`)
+      .join('');
+    return `<ul class="broadcast-v2__reasons">${items}</ul>`;
+  }
+
   function renderProgress(job) {
     const el = root()?.querySelector('#bc-progress'); if (!el || !job) return;
     const total = Number(job.total || 0);
@@ -417,7 +451,7 @@
       <div class="broadcast-v2__progress-head"><b>${statusLabel(job.status)}</b><span>${done} / ${total}</span></div>
       <div class="broadcast-v2__bar"><i style="width:${pct}%"></i></div>
       <div class="broadcast-v2__stats"><span>✅ Доставлено: ${sent}</span><span>⚠️ Ошибок: ${failed}</span></div>
-      ${job.lastError ? `<small>${escapeHTML(job.lastError)}</small>` : ''}
+      ${failed ? renderBreakdown(job) : ''}
       ${['queued','sending'].includes(job.status) ? `<button type="button" data-cancel-job="${escapeHTML(job.id)}">Остановить</button>` : ''}
     `;
   }
