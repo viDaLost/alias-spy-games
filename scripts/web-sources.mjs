@@ -44,6 +44,7 @@ export const styleSources = [
   'web/styles/progress-reset.css',
   'web/styles/web-session.css',
   'web/styles/outside-telegram.css',
+  'web/styles/more-screen.css',
   // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
@@ -116,6 +117,7 @@ export const scriptSources = [
   'web/js/game-rules.js',
   'web/js/leaderboard.js',
   'web/js/leaderboard-admin.js',
+  'web/js/more-screen.js',
 ];
 const bundled = new Set([...styleSources, ...scriptSources]);
 

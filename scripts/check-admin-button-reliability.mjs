@@ -122,17 +122,30 @@ async function boot({ idDelayMs = 0, role = 'admin' } = {}) {
   return { page, context, control };
 }
 
-/** Кнопка считается доступной, только если её реально видно на экране. */
-const buttonState = (page) => page.evaluate(() => {
-  const button = document.getElementById('admin-btn');
-  if (!button) return { present: false, visible: false };
-  const box = button.getBoundingClientRect();
-  const style = getComputedStyle(button);
-  return {
-    present: true,
-    visible: !button.hidden && style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0,
-  };
-});
+/**
+ * Кнопка считается доступной, только если её реально видно на экране.
+ *
+ * Системные пункты переехали из главного меню в раздел «Ещё», поэтому замер
+ * идёт там же, куда за ними пойдёт человек: сначала открывается раздел, потом
+ * проверяется, видно ли кнопку. Так инвариант остался прежним — администратор
+ * доберётся до панели, — а не превратился в проверку конкретного места в меню.
+ */
+const buttonState = async (page) => {
+  await page.evaluate(() => {
+    if (!document.getElementById('more-screen')) document.getElementById('more-entry')?.click();
+  });
+  await page.waitForTimeout(400);
+  return page.evaluate(() => {
+    const button = document.getElementById('admin-btn');
+    if (!button) return { present: false, visible: false };
+    const box = button.getBoundingClientRect();
+    const style = getComputedStyle(button);
+    return {
+      present: true,
+      visible: !button.hidden && style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0,
+    };
+  });
+};
 
 // --- 1. Telegram отдаёт id с опозданием ---------------------------------------
 {

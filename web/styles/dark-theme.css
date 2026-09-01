@@ -2934,6 +2934,22 @@ html .install-sheet__ok {
   color: #141414 !important;
 }
 
+/* web/styles/more-screen.css */
+html .more-screen {
+  background: linear-gradient(180deg, #08162f 0%, #091735 52%, #0a173a 100%) !important;
+}
+html .game-card__chevron {
+  color: #474d78 !important;
+}
+html .more-topbar {
+  background: linear-gradient(135deg, #3730a3, #241bbf 55%, #1453dc) !important;
+  color: #141414 !important;
+}
+html .more-back {
+  background: rgba(20, 20, 20, 0.18) !important;
+  color: #141414 !important;
+}
+
 /* web/games/quartet-v2.css */
 html .qv2-root {
   --qv2-ink: #c2cde4 !important;

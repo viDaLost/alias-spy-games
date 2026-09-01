@@ -289,33 +289,62 @@
 
   const CARD_ICON = 'web/assets/icons/profile.webp?v=1';
 
+  /** Кто сейчас играет — тем языком, каким это стоит показать человеку. */
+  function profileState() {
+    if (window.__ANDROID_APK__ === true) {
+      const id = String(window.__ANDROID_TELEGRAM_ID__ || '');
+      return { kind: 'android', title: 'Профиль', desc: id ? `Вход подтверждён, Telegram ID ${id}` : 'Вход подтверждён' };
+    }
+    if (insideTelegram()) {
+      const user = window.Telegram?.WebApp?.initDataUnsafe?.user || {};
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ')
+        || (user.username ? `@${user.username}` : '');
+      return {
+        kind: 'telegram',
+        title: 'Профиль',
+        desc: name ? `${name} · вход через Telegram` : 'Вход через Telegram',
+      };
+    }
+    if (read()) {
+      return { kind: 'web', title: 'Выйти из профиля', desc: `Прогресс синхронизируется с Telegram ID ${read().userId}` };
+    }
+    return { kind: 'guest', title: 'Вход в профиль', desc: 'Код из бота — и звёзды с уровнями будут те же, что в Telegram' };
+  }
+
   function addMenuCard() {
     const root = document.getElementById('system-actions');
-    if (!root) return false;
-    if (insideTelegram() || window.__ANDROID_APK__ === true || !coreUrl) return true;
+    if (!root || !coreUrl) return Boolean(root);
 
+    // Карточка есть всегда, но делает разное. Внутри Telegram и в
+    // Android-приложении вход уже подтверждён, и она просто показывает, под кем
+    // играют: раньше её там не было вовсе, и раздел выглядел так, будто профиля
+    // у приложения нет.
+    const profile = profileState();
     const existing = document.getElementById('web-session-btn');
-    const active = Boolean(read());
-    if (existing && existing.dataset.wsActive === String(active)) return true;
+    if (existing && existing.dataset.wsKind === profile.kind && existing.dataset.wsDesc === profile.desc) return true;
     existing?.remove();
 
     const card = document.createElement('button');
     card.type = 'button';
     card.id = 'web-session-btn';
     card.className = 'game-card game-card--web-session';
-    card.dataset.wsActive = String(active);
+    card.dataset.wsKind = profile.kind;
+    card.dataset.wsDesc = profile.desc;
     card.innerHTML = `
       <span class="game-card__icon game-card__icon--image">
-        <img class="game-card__img" src="${CARD_ICON}" alt="Иконка входа в профиль"
+        <img class="game-card__img" src="${CARD_ICON}" alt="Иконка профиля"
              loading="eager" decoding="async" draggable="false" />
       </span>
       <span class="game-card__body">
-        <span class="game-card__title">${active ? 'Выйти из профиля' : 'Вход в профиль'}</span>
-        <span class="game-card__desc">${active
-          ? `Прогресс синхронизируется с Telegram ID ${escapeHTML(read()?.userId || '')}`
-          : 'Код из бота — и звёзды с уровнями будут те же, что в Telegram'}</span>
+        <span class="game-card__title">${escapeHTML(profile.title)}</span>
+        <span class="game-card__desc">${escapeHTML(profile.desc)}</span>
       </span>`;
-    card.addEventListener('click', () => (active ? logout() : open()));
+    card.addEventListener('click', () => {
+      if (profile.kind === 'web') { logout(); return; }
+      if (profile.kind === 'guest') { open(); return; }
+      // Внутри Telegram выходить некуда: личность приходит из мессенджера.
+      window.showToast?.(profile.desc);
+    });
 
     const after = document.getElementById('game-rules-btn') || document.getElementById('leaderboard-btn')
       || document.getElementById('admin-btn');

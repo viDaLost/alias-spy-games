@@ -1,0 +1,100 @@
+/* Раздел «Ещё»: в главном меню остаются только игры.
+   Палитра приложения не меняется. */
+
+.more-screen-open { overflow: hidden }
+
+/* Слой поверх страницы, а не содержимое игрового контейнера: карточки внутри
+   открывают экраны, которые переписывают контейнер целиком. */
+.more-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 720;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 14px calc(28px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, #eef4ff 0%, #e6eeff 52%, #dfe8ff 100%);
+  animation: more-fade .22s ease-out;
+}
+
+@keyframes more-fade { from { opacity: 0 } to { opacity: 1 } }
+
+/* Секция, где карточки живут, пока раздел закрыт. Она остаётся в разметке —
+   семь модулей дописывают карточки именно туда. */
+.more-hidden-section { display: none !important }
+
+.more-entry-section { margin-top: 4px }
+
+#more-entry.game-card--more {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+#more-entry .game-card__body { display: grid; gap: 2px; text-align: left }
+#more-entry .game-card__title { text-align: left }
+#more-entry .game-card__desc { text-align: left }
+
+.game-card__chevron {
+  font-size: 22px;
+  font-weight: 900;
+  color: #8f95bd;
+  padding-right: 4px;
+}
+
+.more-shell,
+.more-shell * { text-align: left }
+
+.more-shell {
+  display: grid;
+  gap: 14px;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 0 0 12px;
+  animation: more-enter .28s ease-out;
+}
+
+@keyframes more-enter { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+.more-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #3730a3, #4f46e5 55%, #2563eb);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(48, 55, 150, .26);
+}
+
+.more-back {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.more-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+.more-title { margin: 2px 0 0; font-size: 22px; font-weight: 900; line-height: 1.1 }
+
+/* Карточки переезжают сюда как есть — сетка та же, что в меню. */
+.more-slot #system-actions { display: grid }
+
+@media (prefers-reduced-motion: reduce) {
+  .more-shell, .more-screen { animation: none !important }
+}
