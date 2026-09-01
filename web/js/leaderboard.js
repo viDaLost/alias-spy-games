@@ -215,7 +215,8 @@
       ${state.me?.published ? `<div class="lb-manage">
         <button type="button" class="lb-ghost" data-lb-rename>Сменить имя</button>
         <button type="button" class="lb-ghost lb-ghost--quiet" data-lb-leave>Убрать из рейтинга</button>
-      </div>` : ''}`);
+      </div>` : ''}
+      <button type="button" class="lb-ghost lb-ghost--quiet" data-lb-reset>Начать игры заново</button>`);
   }
 
   // --- поведение ------------------------------------------------------------------
@@ -234,6 +235,8 @@
     root.querySelector('[data-lb-open-intro]')?.addEventListener('click', () => paint(introMarkup(state)));
     root.querySelector('[data-lb-rename]')?.addEventListener('click', rename);
     root.querySelector('[data-lb-leave]')?.addEventListener('click', leave);
+    // Сброс живёт рядом с очками: именно они за него откатываются.
+    root.querySelector('[data-lb-reset]')?.addEventListener('click', () => window.openProgressReset?.());
 
     const total = root.querySelector('[data-lb-total]');
     const points = Number(state.player?.points || 0);

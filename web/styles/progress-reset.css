@@ -1,0 +1,186 @@
+/* Сброс прогресса. Палитра приложения не меняется. */
+
+body[data-mode="reset"] header.app-header { display: none }
+
+.pr-shell,
+.pr-shell * { text-align: left }
+
+.pr-shell {
+  display: grid;
+  gap: 14px;
+  padding: 12px 0 28px;
+  animation: pr-enter .3s ease-out;
+}
+
+@keyframes pr-enter { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+.pr-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #3730a3, #4f46e5 55%, #2563eb);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(48, 55, 150, .26);
+}
+
+.pr-back {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.pr-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+.pr-title { margin: 2px 0 0; font-size: 22px; font-weight: 900; line-height: 1.1 }
+
+.pr-lead { margin: 0 4px; font-size: 13.5px; line-height: 1.5; color: #5b6180 }
+.pr-lead b { color: #1f2352 }
+
+.pr-list { display: grid; gap: 10px }
+
+.pr-game {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #fff, #f4f7ff);
+  border: 1px solid rgba(79, 70, 229, .14);
+  box-shadow: 0 10px 22px rgba(60, 70, 150, .07);
+}
+
+.pr-game__icon { width: 44px; height: 44px; object-fit: contain; display: block }
+.pr-game__body { display: grid; gap: 2px; min-width: 0 }
+.pr-game__body strong { font-size: 14.5px; font-weight: 900; color: #1f2352 }
+.pr-game__progress { font-size: 12px; font-weight: 700; color: #4f46e5 }
+.pr-game__note { font-size: 11.5px; line-height: 1.35; color: #6a7090 }
+
+.pr-game__button {
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 13px;
+  background: rgba(163, 36, 63, .09);
+  color: #a3243f;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pr-all {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 13px;
+  background: linear-gradient(135deg, #a3243f, #7f1d2f);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(120, 25, 45, .24);
+  text-align: center !important;
+}
+
+.pr-fine { margin: 0 4px; font-size: 11.5px; line-height: 1.45; color: #7a80a0 }
+
+/* Подтверждение: сброс необратим, поэтому спрашиваем прямо, а не тостом. */
+.pr-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 20, 45, .55);
+  animation: pr-fade .2s ease-out;
+}
+
+@keyframes pr-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.pr-confirm__card {
+  width: min(100%, 360px);
+  padding: 20px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(20, 25, 60, .34);
+}
+
+.pr-confirm__card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 900; color: #1f2352 }
+.pr-confirm__card p { margin: 0 0 16px; font-size: 13.5px; line-height: 1.5; color: #5b6180 }
+
+.pr-confirm__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+
+.pr-confirm__cancel,
+.pr-confirm__ok {
+  border: 0;
+  border-radius: 13px;
+  padding: 11px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center !important;
+}
+
+.pr-confirm__cancel { background: rgba(79, 70, 229, .09); color: #4a5081 }
+.pr-confirm__ok { background: linear-gradient(135deg, #a3243f, #7f1d2f); color: #fff }
+
+.pr-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 950;
+  max-width: min(92vw, 380px);
+  padding: 11px 16px;
+  border-radius: 14px;
+  background: #1f2352;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center !important;
+  box-shadow: 0 12px 26px rgba(30, 36, 90, .3);
+}
+
+/* Вход в сброс из справочника. */
+.rules-reset {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #fff8f8, #fff1f3);
+  border: 1px solid rgba(163, 36, 63, .16);
+}
+
+.rules-reset strong { font-size: 14.5px; font-weight: 900; color: #7f1d2f }
+.rules-reset p { margin: 0 !important; font-size: 12.5px !important; line-height: 1.45; color: #8a5563 !important }
+
+.rules-reset__button {
+  justify-self: start;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 14px;
+  background: rgba(163, 36, 63, .1);
+  color: #a3243f;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pr-shell, .pr-confirm { animation: none !important }
+}

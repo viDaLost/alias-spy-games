@@ -364,6 +364,14 @@
         </div>
         <p class="rules-lead">Выберите игру, чтобы раскрыть правила. Всё, что здесь написано, — то, как игра считает на самом деле.</p>
         <div class="rules-list">${GAMES.map(gameMarkup).join('')}</div>
+        <section class="rules-reset">
+          <strong>Пройти всё заново</strong>
+          <p>
+            Сброс убирает пройденные уровни и откатывает очки рейтинга за них, а звёзды оставляет.
+            В словесных играх слова после сброса перераспределяются между уровнями.
+          </p>
+          <button type="button" class="rules-reset__button" data-rules-reset>Сброс прогресса</button>
+        </section>
       </section>`;
   }
 
@@ -403,6 +411,9 @@
     window.scrollTo({ top: 0, behavior: 'auto' });
 
     root.querySelector('[data-rules-back]')?.addEventListener('click', close);
+    root.querySelector('[data-rules-reset]')?.addEventListener('click', () => {
+      if (typeof window.openProgressReset === 'function') window.openProgressReset();
+    });
     root.addEventListener('click', (event) => {
       const head = event.target.closest('[data-rules-toggle]');
       if (!head) return;
@@ -459,7 +470,7 @@
       <span class="game-card__icon">${menuIcon()}</span>
       <span class="game-card__body">
         <span class="game-card__title">Правила игр</span>
-        <span class="game-card__desc">Как играть в каждую игру, с числами и комбинациями</span>
+        <span class="game-card__desc">Правила, разбор механик и сброс прогресса</span>
       </span>`;
     card.addEventListener('click', () => open());
     // Рейтинг и кнопка админа приходят позже и должны остаться после справочника.

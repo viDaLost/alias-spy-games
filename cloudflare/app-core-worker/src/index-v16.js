@@ -12,6 +12,7 @@ import coreV15, { UserStore as V15UserStore } from './index-v15.js';
 
 const PUBLIC_ACTIONS = new Set([
   'ratingSync',
+  'ratingReset',
   'ratingTop',
   'ratingJoin',
   'ratingLeave',
@@ -60,6 +61,7 @@ export class UserStore extends V15UserStore {
     if (request.method === 'POST' && url.pathname.startsWith('/rating/')) {
       const body = await request.json().catch(() => ({}));
       if (url.pathname === '/rating/sync') return ratingResponse(this.ratingSync(body));
+      if (url.pathname === '/rating/reset') return ratingResponse(this.ratingReset(body));
       if (url.pathname === '/rating/top') return ratingResponse(this.ratingTop(body));
       if (url.pathname === '/rating/join') return ratingResponse(this.ratingJoin(body));
       if (url.pathname === '/rating/leave') return ratingResponse(this.ratingLeave(body));
@@ -119,6 +121,37 @@ export class UserStore extends V15UserStore {
       player: this.publicSelf(this.ratingRow(id)),
       breakdown: scored.breakdown,
       throttled,
+    };
+  }
+
+  /**
+   * Пересчитывает очки вниз после сброса прогресса.
+   *
+   * Обычная синхронизация очки только повышает: снимок с меньшим прогрессом —
+   * это другое устройство, а не потерянные достижения. Сброс — единственный
+   * случай, когда игрок сам просит убавить, поэтому у него отдельный путь без
+   * этой защиты. Надбавка администратора остаётся: её выдали человеку, а не
+   * его уровням.
+   */
+  ratingReset({ userId, snapshot, username }) {
+    const id = cleanUserId(userId);
+    if (!id) return { ok: false, success: false, error: 'Не удалось определить игрока' };
+
+    const row = this.ensureRatingRow(id, username);
+    const scored = scoreSnapshot(snapshot);
+    const now = Date.now();
+
+    this.sql.exec(
+      'UPDATE rating_players SET points = ?, breakdown = ?, updated_at = ? WHERE user_id = ?',
+      scored.points, JSON.stringify(scored.breakdown), now, id,
+    );
+
+    return {
+      ok: true,
+      success: true,
+      player: this.publicSelf(this.ratingRow(id)),
+      breakdown: scored.breakdown,
+      removed: Math.max(0, Number(row.points || 0) - scored.points),
     };
   }
 
@@ -311,6 +344,7 @@ async function handleRatingCompat(request, env, body, payload, action) {
 
     const routes = {
       ratingSync: '/rating/sync',
+      ratingReset: '/rating/reset',
       ratingTop: '/rating/top',
       ratingJoin: '/rating/join',
       ratingLeave: '/rating/leave',

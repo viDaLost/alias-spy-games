@@ -2734,6 +2734,75 @@ html .rd-card.is-open {
   background: #141414 !important;
 }
 
+/* web/styles/progress-reset.css */
+html .pr-topbar {
+  background: linear-gradient(135deg, #3730a3, #241bbf 55%, #1453dc) !important;
+  color: #141414 !important;
+}
+html .pr-back {
+  background: rgba(20, 20, 20, 0.18) !important;
+  color: #141414 !important;
+}
+html .pr-lead {
+  color: #7c82a2 !important;
+}
+html .pr-lead b {
+  color: #9da1da !important;
+}
+html .pr-game {
+  background: linear-gradient(160deg, #141414, #08112b) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+}
+html .pr-game__body strong {
+  color: #9da1da !important;
+}
+html .pr-game__progress {
+  color: #241bbf !important;
+}
+html .pr-game__note {
+  color: #6f7595 !important;
+}
+html .pr-game__button {
+  color: #d95571 !important;
+}
+html .pr-all {
+  color: #141414 !important;
+}
+html .pr-fine {
+  color: #616788 !important;
+}
+html .pr-confirm__card {
+  background: #141414 !important;
+}
+html .pr-confirm__card h3 {
+  color: #9da1da !important;
+}
+html .pr-confirm__card p {
+  color: #7c82a2 !important;
+}
+html .pr-confirm__cancel {
+  background: rgba(36, 27, 191, 0.09) !important;
+  color: #797fb2 !important;
+}
+html .pr-confirm__ok {
+  color: #141414 !important;
+}
+html .pr-toast {
+  color: #141414 !important;
+}
+html .rules-reset {
+  background: linear-gradient(160deg, #280707, #2d080d) !important;
+}
+html .rules-reset strong {
+  color: #df7387 !important;
+}
+html .rules-reset p {
+  color: #a87280 !important;
+}
+html .rules-reset__button {
+  color: #d95571 !important;
+}
+
 /* web/games/quartet-v2.css */
 html .qv2-root {
   --qv2-ink: #c2cde4 !important;

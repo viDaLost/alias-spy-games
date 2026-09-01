@@ -1297,6 +1297,9 @@ function startBibleWowGame(levelsUrl) {
   loadJSON(levelsUrl)
     .then(data => {
       st.levels = (data && Array.isArray(data.levels)) ? data.levels : [];
+      // После сброса прогресса слова перераспределяются между уровнями: набор
+      // букв тот же, а какие слова из него основные — решает web/js/word-games-shuffle.js.
+      st.levels = window.WordGameShuffle?.wow(st.levels) || st.levels;
       if (!st.levels.length) throw new Error("No levels");
       if (st.levelIndex >= st.levels.length) st.levelIndex = 0;
       startLevel();

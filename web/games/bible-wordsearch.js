@@ -739,6 +739,9 @@ function startBibleWordSearchGame(levelsUrl) {
   loadJSON(urlWithCacheBuster)
     .then((data) => {
       LEVELS = (data && data.levels) ? data.levels : [];
+      // После сброса прогресса уровни идут в другом порядке: темы те же, но
+      // встречаются не в той последовательности, что в прошлый раз.
+      LEVELS = window.WordGameShuffle?.wordsearch(LEVELS) || LEVELS;
       if (!LEVELS.length) throw new Error("NETWORK_OR_EMPTY: Пустой список уровней или неверный формат JSON");
 
       // 2. Изолируем логику инициализации состояния, чтобы отлавливать TypeErrors
