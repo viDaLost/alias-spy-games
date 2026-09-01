@@ -104,6 +104,10 @@ const menu = await page.evaluate(() => {
       return host ? visible(host) : 'нет узла';
     })(),
     entry: Boolean(document.getElementById('more-entry')),
+    entryIcon: (() => {
+      const img = document.querySelector('#more-entry img');
+      return img ? { src: img.getAttribute('src') || '', loaded: img.naturalWidth > 0 } : null;
+    })(),
     strayCards: [...document.querySelectorAll('#menu-container .game-card')]
       .filter((card) => visible(card) && card.id !== 'more-entry')
       .filter((card) => !card.closest('#company-games, #word-games, #kids-games'))
@@ -113,6 +117,11 @@ const menu = await page.evaluate(() => {
 });
 if (menu.systemVisible !== false) await fail(`служебные карточки всё ещё видны в главном меню (${menu.systemVisible})`);
 if (!menu.entry) await fail('в меню нет двери в раздел «Ещё»');
+if (!menu.entryIcon) await fail('у двери в раздел нет картинки-иконки');
+if (!menu.entryIcon.src.startsWith('web/assets/icons/more.webp')) {
+  await fail(`иконка двери берётся не из набора: ${menu.entryIcon.src}`);
+}
+if (!menu.entryIcon.loaded) await fail('иконка двери не загрузилась');
 if (menu.strayCards.length) await fail(`в меню остались служебные карточки: ${menu.strayCards.join(', ')}`);
 if (menu.games < 10) await fail(`в меню собралось всего ${menu.games} карточек игр`);
 

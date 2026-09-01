@@ -15,19 +15,29 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = path.resolve(import.meta.dirname, '..');
-const source = path.join(root, 'scripts/art/system-icons-source.jpg');
 const outDir = path.join(root, 'web/assets/icons');
 const SIZE = 224;
 
-// Порядок слева направо на исходнике.
-const icons = [
-  { name: 'profile', label: 'вход в профиль' },
-  { name: 'install-ios', label: 'установка на iPhone' },
-  { name: 'rules', label: 'правила игр' },
+// Исходники приходили по-разному: три плитки в ряд одной картинкой и одна
+// отдельно. Скрипт режет любой ряд — сколько имён, столько равных долей.
+const sheets = [
+  {
+    source: 'scripts/art/system-icons-source.jpg',
+    icons: [
+      { name: 'profile', label: 'вход в профиль' },
+      { name: 'install-ios', label: 'установка на iPhone' },
+      { name: 'rules', label: 'правила игр' },
+    ],
+  },
+  {
+    source: 'scripts/art/more-icon-source.jpg',
+    icons: [{ name: 'more', label: 'раздел «Ещё»' }],
+  },
 ];
+const allIcons = sheets.flatMap((sheet) => sheet.icons);
 
 if (process.argv.includes('--check')) {
-  const missing = icons.filter(({ name }) => {
+  const missing = allIcons.filter(({ name }) => {
     const file = path.join(outDir, `${name}.webp`);
     return !fs.existsSync(file) || fs.statSync(file).size < 3000;
   });
@@ -36,7 +46,7 @@ if (process.argv.includes('--check')) {
       + 'Запустите node scripts/build-system-menu-icons.mjs');
     process.exit(1);
   }
-  console.log(`Иконки системных пунктов меню на месте: ${icons.map((icon) => `${icon.name}.webp`).join(', ')}.`);
+  console.log(`Иконки системных пунктов меню на месте: ${allIcons.map((icon) => `${icon.name}.webp`).join(', ')}.`);
   process.exit(0);
 }
 
@@ -47,7 +57,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage();
 
-const results = await page.evaluate(async ({ dataUrl, size, count }) => {
+const cut = async ({ dataUrl, size, count }) => page.evaluate(async ({ dataUrl, size, count }) => {
   const image = new Image();
   await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = dataUrl; });
 
@@ -162,15 +172,24 @@ const results = await page.evaluate(async ({ dataUrl, size, count }) => {
     out.push({ url: canvas.toDataURL('image/webp', 0.92), box: `${boxW}×${boxH}` });
   }
   return out;
-}, { dataUrl: `data:image/jpeg;base64,${fs.readFileSync(source).toString('base64')}`, size: SIZE, count: icons.length });
+}, { dataUrl, size, count });
 
 fs.mkdirSync(outDir, { recursive: true });
-results.forEach(({ url, box }, index) => {
-  if (!url.startsWith('data:image/webp')) throw new Error('WebP не поддержан');
-  const buffer = Buffer.from(url.split(',')[1], 'base64');
-  const { name, label } = icons[index];
-  fs.writeFileSync(path.join(outDir, `${name}.webp`), buffer);
-  console.log(`${name}.webp  (${label})  вырезано ${box} → ${SIZE}×${SIZE}  ${(buffer.length / 1024).toFixed(1)} КБ`);
-});
+for (const sheet of sheets) {
+  const file = path.join(root, sheet.source);
+  if (!fs.existsSync(file)) throw new Error(`нет исходника ${sheet.source}`);
+  const results = await cut({
+    dataUrl: `data:image/jpeg;base64,${fs.readFileSync(file).toString('base64')}`,
+    size: SIZE,
+    count: sheet.icons.length,
+  });
+  results.forEach(({ url, box }, index) => {
+    if (!url.startsWith('data:image/webp')) throw new Error('WebP не поддержан');
+    const buffer = Buffer.from(url.split(',')[1], 'base64');
+    const { name, label } = sheet.icons[index];
+    fs.writeFileSync(path.join(outDir, `${name}.webp`), buffer);
+    console.log(`${name}.webp  (${label})  вырезано ${box} → ${SIZE}×${SIZE}  ${(buffer.length / 1024).toFixed(1)} КБ`);
+  });
+}
 
 await browser.close();
