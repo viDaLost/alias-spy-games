@@ -182,7 +182,8 @@ try {
       version: shell?.dataset.adminVersion || '',
       title: shell?.querySelector('.admin-v2__heading h2')?.textContent || '',
       eyebrow: shell?.querySelector('.admin-v2__eyebrow')?.textContent || '',
-      navButtons: shell?.querySelectorAll('.admin-v3-nav button').length || 0,
+      navTabs: [...(shell?.querySelectorAll('.admin-v3-nav [data-admin-v3-target]') || [])]
+        .map((button) => button.dataset.adminV3Target),
       order,
       text: rescue?.innerText || '',
       width: shell?.getBoundingClientRect().width || 0,
@@ -193,7 +194,13 @@ try {
   if (state.version !== '3') throw new Error(`Admin shell version is ${state.version || 'missing'}, expected 3`);
   if (state.title !== 'Панель управления') throw new Error(`Admin shell title was not upgraded: ${state.title}`);
   if (!state.eyebrow.includes('V3')) throw new Error(`Admin V3 marker is missing: ${state.eyebrow}`);
-  if (state.navButtons !== 4) throw new Error(`Admin V3 navigation has ${state.navButtons} buttons, expected 4`);
+  // Разделы проверяются по именам, а не по их числу: счётчик ломался на каждой
+  // новой вкладке, ничего при этом не проверяя.
+  for (const tab of ['overview', 'support', 'users', 'broadcast', 'rating']) {
+    if (!state.navTabs.includes(tab)) {
+      throw new Error(`Admin V3 navigation is missing the "${tab}" tab: ${state.navTabs.join(', ') || 'none'}`);
+    }
+  }
   if (state.order.some((index) => index < 0) || state.order.some((index, i) => i > 0 && index <= state.order[i - 1])) {
     throw new Error(`Admin sections are in the wrong order: ${state.order.join(',')}`);
   }

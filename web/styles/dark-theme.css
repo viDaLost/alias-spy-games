@@ -2347,6 +2347,239 @@ html .sw-letter {
   color: #7875ce !important;
 }
 
+/* web/styles/leaderboard.css */
+html .lb-topbar {
+  background: linear-gradient(135deg, #3730a3, #241bbf 55%, #1453dc) !important;
+  color: #141414 !important;
+}
+html .lb-back {
+  background: rgba(20, 20, 20, 0.18) !important;
+  color: #141414 !important;
+}
+html .lb-score {
+  background: linear-gradient(160deg, #141414, #08122d) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+}
+html .lb-score::after {
+  background: radial-gradient(ellipse at 50% 45%, rgba(174, 128, 12, 0.3), transparent 62%) !important;
+}
+html .lb-score__label {
+  color: #565e79 !important;
+}
+html .lb-score__value {
+  color: #7f85cc !important;
+}
+html .lb-score-row {
+  background: rgba(20, 20, 20, 0.8) !important;
+  border: 1px solid rgba(84, 94, 175, 0.1) !important;
+}
+html .lb-score-row__name {
+  color: #8189c7 !important;
+}
+html .lb-score-row__levels {
+  color: #565e79 !important;
+}
+html .lb-score-row__levels b {
+  color: #7c83a3 !important;
+}
+html .lb-score-row__points {
+  color: #efbb3f !important;
+}
+html .lb-score__note {
+  color: #676f8a !important;
+}
+html .lb-score__note b {
+  color: #6971c2 !important;
+}
+html .lb-intro {
+  background: #141414 !important;
+  border: 1px solid rgba(84, 94, 175, 0.12) !important;
+}
+html .lb-intro h3 {
+  color: #7f85cc !important;
+}
+html .lb-intro p {
+  color: #7c84a1 !important;
+}
+html .lb-intro p b {
+  color: #7f85cc !important;
+}
+html .lb-name > span {
+  color: #565e79 !important;
+}
+html .lb-name input {
+  background: #071028 !important;
+  color: #afb4d6 !important;
+}
+html .lb-name input:focus {
+  border-color: #1827b4 !important;
+}
+html .lb-name small {
+  color: #525972 !important;
+}
+html .lb-intro__fine {
+  color: #4e566d !important;
+}
+html .lb-primary {
+  background: linear-gradient(120deg, #241bbf, #1453dc 60%, #12b9d6) !important;
+  color: #141414 !important;
+}
+html .lb-ghost {
+  border: 1px solid rgba(84, 94, 175, 0.16) !important;
+  background: #141414 !important;
+  color: #737cb9 !important;
+}
+html .lb-ghost--quiet {
+  color: #a96372 !important;
+}
+html .lb-link {
+  color: #241bbf !important;
+}
+html .lb-board {
+  background: #141414 !important;
+  border: 1px solid rgba(84, 94, 175, 0.12) !important;
+}
+html .lb-board__head h3 {
+  color: #7f85cc !important;
+}
+html .lb-board__head span {
+  color: #525972 !important;
+}
+html .lb-mine {
+  background: linear-gradient(120deg, #08112f, #092535) !important;
+  border: 1px solid rgba(36, 27, 191, 0.2) !important;
+}
+html .lb-mine__place {
+  color: #241bbf !important;
+}
+html .lb-mine__name {
+  color: #7f85cc !important;
+}
+html .lb-mine__points {
+  color: #efbb3f !important;
+}
+html .lb-mine--hidden {
+  color: #6f7694 !important;
+}
+html .lb-row {
+  background: rgba(7, 15, 41, 0.8) !important;
+}
+html .lb-row__place {
+  color: #565e79 !important;
+}
+html .lb-row__name {
+  color: #8189c7 !important;
+}
+html .lb-row__name i {
+  background: #241bbf !important;
+  color: #141414 !important;
+}
+html .lb-row__points {
+  color: #8188b1 !important;
+}
+html .lb-row.is-me {
+  background: #08112f !important;
+  border-color: rgba(36, 27, 191, 0.28) !important;
+}
+html .lb-row.is-podium .lb-row__place {
+  color: #141414 !important;
+}
+html .lb-row.is-place-1 .lb-row__place {
+  background: linear-gradient(140deg, #9e760a, #d1992d) !important;
+}
+html .lb-row.is-place-2 .lb-row__place {
+  background: linear-gradient(140deg, #262c39, #4c566d) !important;
+}
+html .lb-row.is-place-3 .lb-row__place {
+  background: linear-gradient(140deg, #8a501d, #ba804a) !important;
+}
+html .lb-row.is-place-1 {
+  background: linear-gradient(120deg, #352809, #42330e) !important;
+}
+html .lb-row.is-place-1 .lb-row__points {
+  color: #f1be50 !important;
+}
+html .lb-empty {
+  color: #525972 !important;
+}
+html .lb-loading,
+html .lb-error {
+  color: #7c84a1 !important;
+}
+html .lb-error h3 {
+  color: #7f85cc !important;
+}
+html .lb-toast {
+  color: #141414 !important;
+}
+html .lb-card-icon {
+  color: #d1992d !important;
+  background: linear-gradient(140deg, #392b0a, #55400f) !important;
+}
+html .admin-rating {
+  background: rgba(20, 20, 20, 0.82) !important;
+  border: 1px solid rgba(84, 94, 175, 0.12) !important;
+}
+html .admin-rating__eyebrow {
+  color: #525972 !important;
+}
+html .admin-rating__head h3 {
+  color: #8189c7 !important;
+}
+html .admin-rating__refresh {
+  background: #08112f !important;
+  color: #4035c7 !important;
+}
+html .admin-rating__search {
+  background: rgba(20, 20, 20, 0.9) !important;
+  color: #afb4d6 !important;
+}
+html .admin-rating__search:focus {
+  border-color: #1827b4 !important;
+}
+html .admin-rating__hint {
+  color: #525972 !important;
+}
+html .admin-rating__hint--error {
+  color: #ec3a66 !important;
+}
+html .admin-rating-row {
+  background: #141414 !important;
+  border: 1px solid rgba(84, 94, 175, 0.1) !important;
+}
+html .admin-rating-row.is-hidden-player {
+  background: rgba(7, 15, 41, 0.8) !important;
+}
+html .admin-rating-row__place {
+  color: #565e79 !important;
+}
+html .admin-rating-row__main small {
+  color: #4f566c !important;
+}
+html .admin-rating-row__name,
+html .admin-rating-row__points {
+  background: #071028 !important;
+  color: #afb4d6 !important;
+}
+html .admin-rating-row__name:focus,
+html .admin-rating-row__points:focus {
+  border-color: #1827b4 !important;
+}
+html .admin-rating-row__actions button {
+  background: #08112f !important;
+  color: #4035c7 !important;
+}
+html .admin-rating-row__actions button[data-rating-toggle] {
+  background: #2d080b !important;
+  color: #d95571 !important;
+}
+html .admin-rating__note {
+  color: #525972 !important;
+}
+html .admin-rating__toast {
+  color: #141414 !important;
+}
+
 /* web/games/quartet-v2.css */
 html .qv2-root {
   --qv2-ink: #c2cde4 !important;

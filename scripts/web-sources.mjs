@@ -39,6 +39,7 @@ export const styleSources = [
   'web/styles/game-titles-polish.css',
   'web/styles/sacred-word-polish.css',
   'web/styles/lobby-polish.css',
+  'web/styles/leaderboard.css',
   // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
@@ -102,6 +103,8 @@ export const scriptSources = [
   'web/js/admin-shell-v3.js',
   'web/js/admin-live-modal-safety.js',
   'web/js/support-center.js',
+  'web/js/leaderboard.js',
+  'web/js/leaderboard-admin.js',
 ];
 const bundled = new Set([...styleSources, ...scriptSources]);
 

@@ -2,7 +2,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
-  "main": "src/index-v15.js",
+  "main": "src/index-v16.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "triggers": {

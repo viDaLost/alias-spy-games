@@ -384,7 +384,8 @@ body[data-mode="admin"] #game-container {
 .admin-v3-shell[data-admin-v3-section="overview"] [data-admin-v3-owner="overview"],
 .admin-v3-shell[data-admin-v3-section="support"] [data-admin-v3-owner="support"],
 .admin-v3-shell[data-admin-v3-section="users"] [data-admin-v3-owner="users"],
-.admin-v3-shell[data-admin-v3-section="broadcast"] [data-admin-v3-owner="broadcast"] {
+.admin-v3-shell[data-admin-v3-section="broadcast"] [data-admin-v3-owner="broadcast"],
+.admin-v3-shell[data-admin-v3-section="rating"] [data-admin-v3-owner="rating"] {
   display: revert;
 }
 
