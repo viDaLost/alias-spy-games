@@ -42,8 +42,15 @@
     userId: '',
     lastCheckedAt: 0,
     managersLoading: false,
+    // Последняя проверка не дошла до сервера: роль не понижаем, повторяем позже.
+    offline: false,
   };
   const ROLE_CACHE_MS = 45_000;
+  // Повтор после обрыва связи: сеть в Telegram отваливается на секунды, и без
+  // повторной проверки кнопка не вернулась бы до перезапуска приложения.
+  const RETRY_DELAYS = [1500, 4000, 10_000, 20_000];
+  let retryTimer = 0;
+  let retryStep = 0;
   const managerObserver = new MutationObserver(() => mountRoleManager());
 
   const escapeHTML = (value) => String(value ?? '')
@@ -68,6 +75,9 @@
 
   function applyRole(data = {}) {
     state.loaded = true;
+    state.offline = false;
+    retryStep = 0;
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = 0; }
     state.isAdmin = data?.isAdmin === true;
     state.isRoot = data?.isRoot === true;
     state.role = state.isRoot ? 'owner' : (state.isAdmin ? 'admin' : 'none');
@@ -89,6 +99,29 @@
     return applyRole({ isAdmin: false, isRoot: false, role: 'none', userId: '' });
   }
 
+  // Молчание сервера — не отказ. Раньше обрыв связи и явный ответ «не админ»
+  // обрабатывались одинаково, и у настоящего администратора кнопка исчезала от
+  // одного неудачного запроса — в том числе при каждом возврате в приложение,
+  // потому что pageshow и visibilitychange перепроверяют роль принудительно.
+  // Права это не расширяет: каждое привилегированное действие всё равно
+  // проверяет сервер, здесь решается только судьба уже подтверждённой роли.
+  function keepRole() {
+    state.offline = true;
+    if (!state.loaded) return clearRole();
+    scheduleRetry();
+    return publicState();
+  }
+
+  function scheduleRetry() {
+    if (retryTimer || retryStep >= RETRY_DELAYS.length) return;
+    const delay = RETRY_DELAYS[retryStep];
+    retryStep += 1;
+    retryTimer = setTimeout(() => {
+      retryTimer = 0;
+      refreshRole({ force: true });
+    }, delay);
+  }
+
   function publicState() {
     return Object.freeze({
       loaded: state.loaded,
@@ -97,24 +130,28 @@
       role: state.role,
       userId: state.userId,
       lastCheckedAt: state.lastCheckedAt,
+      offline: state.offline === true,
     });
   }
 
   async function refreshRole({ force = false } = {}) {
     if (isStandaloneAndroid()) return clearRole();
     const initData = currentInitData();
-    if (!initData) return clearRole();
+    if (!initData) return state.loaded ? publicState() : clearRole();
     if (!force && state.loaded && Date.now() - state.lastCheckedAt < ROLE_CACHE_MS) return publicState();
     if (state.loading) return state.loading;
 
     state.loading = (async () => {
       try {
         const result = await callAdmin('adminRoleStatus');
-        if (!result || result.success !== true) return clearRole();
+        // apiRequest отдаёт null на любой сетевой сбой и на не-200 — это
+        // «ответа не было», а не «прав нет».
+        if (result == null) return keepRole();
+        if (result.success !== true) return clearRole();
         return applyRole(result);
       } catch (error) {
         console.warn('Admin RBAC verification:', error);
-        return clearRole();
+        return keepRole();
       }
     })().finally(() => { state.loading = null; });
     return state.loading;
@@ -151,6 +188,14 @@
   async function openVerifiedAdminPanel() {
     const role = await refreshRole({ force: true });
     if (!role.isAdmin) {
+      // Прятать кнопку можно только по явному ответу сервера. При обрыве связи
+      // администратор иначе терял вход молча: панель не открывалась и кнопка
+      // пропадала.
+      if (role.offline) {
+        notify('Сервер не ответил. Проверьте связь и попробуйте ещё раз', 'error');
+        scheduleRetry();
+        return;
+      }
       notify('Права администратора не подтверждены сервером', 'error');
       removeAdminButton();
       return;

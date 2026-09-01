@@ -1116,6 +1116,7 @@ window.showGame = showGame;
 window.openSupportChat = openSupportChat;
 window.showSupportModal = showSupportModal;
 window.openAdminPanel = openAdminPanel;
+window.renderAdminButton = renderAdminButton;
 window.updateUserStars = updateUserStars;
 window.toggleBan = toggleBan;
 window.sendBroadcast = sendBroadcast;
