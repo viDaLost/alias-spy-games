@@ -131,7 +131,7 @@ await page.waitForSelector('#more-screen', { timeout: 10_000 });
 await page.waitForTimeout(600);
 const titles = await page.evaluate(() => [...document.querySelectorAll('#more-screen .game-card')]
   .map((card) => card.querySelector('.game-card__title')?.textContent?.trim() || card.id));
-const expected = ['Тех-поддержка', 'Профиль', 'Правила игр', 'Рейтинг', 'Админ-панель'];
+const expected = ['Тех-поддержка', 'Правила игр', 'Рейтинг', 'Админ-панель'];
 const missing = expected.filter((title) => !titles.includes(title));
 if (missing.length) await fail(`в разделе «Ещё» нет пунктов: ${missing.join(', ')} (есть: ${titles.join(', ')})`);
 
@@ -178,30 +178,23 @@ if (closed.layer) await fail('раздел не закрывается кноп�
 if (!closed.home) await fail('после закрытия карточки не вернулись в свою секцию');
 if (!closed.menu) await fail('после закрытия раздела не видно главного меню');
 
-// 6. профиль виден и внутри Telegram
+// 6. внутри Telegram профиля в разделе нет
+//
+// Вход там подтверждён мессенджером: ни войти, ни выйти из профиля нельзя, и
+// пункт про него только занимает место. Вне Telegram он нужен и проверяется в
+// check-offline-pwa.
 await page.evaluate(() => document.getElementById('more-entry').click());
 await page.waitForSelector('#more-screen', { timeout: 10_000 });
 await page.waitForTimeout(500);
-const profile = await page.evaluate(() => {
-  const card = document.getElementById('web-session-btn');
-  if (!card) return null;
-  return {
-    title: card.querySelector('.game-card__title')?.textContent?.trim() || '',
-    desc: card.querySelector('.game-card__desc')?.textContent?.trim() || '',
-    icon: card.querySelector('img')?.getAttribute('src') || '',
-    loaded: (card.querySelector('img')?.naturalWidth || 0) > 0,
-  };
-});
-if (!profile) await fail('внутри Telegram нет карточки профиля');
-if (!/Виталий/.test(profile.desc)) await fail(`карточка профиля не показывает, кто играет: «${profile.desc}»`);
-if (!profile.icon.startsWith('web/assets/icons/profile.webp')) await fail(`иконка профиля берётся не из набора: ${profile.icon}`);
-if (!profile.loaded) await fail('иконка профиля не загрузилась');
+if (await page.locator('#more-screen #web-session-btn').count()) {
+  await fail('внутри Telegram в разделе показывается пункт профиля, хотя войти или выйти там нельзя');
+}
 
 if (crashes.length) await fail(`страница поймала исключение: ${crashes[0]}`);
 
 console.log('Раздел «Ещё» в порядке: в главном меню остались только игры и одна дверь, '
   + 'за ней все служебные пункты, они работают после переезда, '
-  + 'открытие админки не стирает их вместе с экраном, а профиль виден и внутри Telegram.');
+  + 'открытие админки не стирает их вместе с экраном, а профиля внутри Telegram нет — там он бесполезен.');
 
 await browser.close();
 server.close();

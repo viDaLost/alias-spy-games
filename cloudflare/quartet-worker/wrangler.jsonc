@@ -25,7 +25,7 @@
     }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev",
     "ALLOW_GUESTS": "true"
   }
 }

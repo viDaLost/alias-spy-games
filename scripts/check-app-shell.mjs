@@ -33,7 +33,26 @@ assert.ok(shellUrl.startsWith('https://'), 'в index.html нет адреса в
 assert.ok(shellUrl.includes(shellName), `адрес витрины «${shellUrl}» не совпадает с именем воркера «${shellName}»`);
 assert.ok(!/github/i.test(shellUrl), 'адрес витрины сам ссылается на GitHub');
 
-// Приложение с витрины обращается к серверу — иначе оно увидит только гостя.
+// Приложение с витрины обращается ко всем своим воркерам, и каждый сверяет
+// Origin. Забытый в одном списке адрес молча ломает то, что этим воркером
+// живёт: онлайн-игры перестают подключаться, а понять почему можно только по
+// консоли браузера с чужого телефона.
+const backends = [...html.matchAll(/name="(app-core-backend|quartet-backend|bible-sketch-backend|app-observability)" content="https:\/\/([^."]+)\./g)]
+  .map((match) => ({ meta: match[1], worker: match[2] }));
+assert.ok(backends.length >= 4, `в index.html нашлось только ${backends.length} бэкендов — список воркеров изменился`);
+
+const configs = fs.readdirSync(path.join(root, 'cloudflare'))
+  .map((dir) => path.join(root, 'cloudflare', dir, 'wrangler.jsonc'))
+  .filter((file) => fs.existsSync(file))
+  .map((file) => ({ file, text: fs.readFileSync(file, 'utf8') }));
+
+for (const backend of backends) {
+  const config = configs.find(({ text }) => new RegExp(`"name":\\s*"${backend.worker}"`).test(text));
+  assert.ok(config, `не нашёлся wrangler.jsonc воркера ${backend.worker}`);
+  const origins = config.text.match(/"ALLOWED_ORIGINS": "([^"]+)"/)?.[1] || '';
+  assert.ok(origins.split(',').includes(shellUrl),
+    `origin витрины не разрешён в ${backend.worker}: приложение с неё не сможет пользоваться этим сервером`);
+}
 assert.ok(core.includes(shellUrl), `origin витрины ${shellUrl} не разрешён в ALLOWED_ORIGINS основного воркера`);
 
 // --- поведение витрины -------------------------------------------------------
@@ -57,6 +76,11 @@ assert.ok(/location\.replace\('\.\/index\.html'\)/.test(install),
   'страница установки не уводит на игру, когда её открыли ярлыком — на старых iOS человек попадёт в инструкцию');
 assert.ok(/navigator\.standalone/.test(install), 'страница установки не отличает запуск ярлыком от обычной вкладки');
 assert.ok(/Safari/.test(install), 'страница установки не говорит, что ярлык умеет создавать только Safari');
+// В новом Safari «Поделиться» спрятано за тремя точками, и без этого шага
+// человек ищет кнопку, которой на экране нет.
+assert.ok(/•••/.test(install), 'в инструкции нет шага с тремя точками — «Поделиться» в новом Safari спрятано за ними');
+assert.ok(install.indexOf('•••') < install.indexOf('Поделиться'),
+  'шаг с тремя точками стоит после «Поделиться», хотя открывает его');
 
 // --- витрина в деле: поднимаем её поверх локальной копии приложения ------------
 const mime = new Map([
@@ -228,7 +252,8 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log('Витрина в порядке: приложение отдаётся под своим адресом, GitHub не виден ни в теле, '
+console.log('Витрина в порядке: приложение отдаётся под своим адресом, её origin разрешён всеми воркерами, '
+  + 'GitHub не виден ни в теле, '
   + 'ни в заголовках, страницы и работник не кешируются, работник получает корневой охват, '
   + 'из Telegram кнопка уводит в Safari на страницу установки, '
   + 'а поставленный с неё ярлык открывает игру, а не инструкцию.');

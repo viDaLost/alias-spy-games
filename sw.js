@@ -19,13 +19,13 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '0eed0f2fe8';
+const VERSION = '93e2aebcea';
 const PRECACHE = [
   'index.html',
   'install.html',
   'manifest.webmanifest',
   'web/dist/app.11676fb6ca.css',
-  'web/dist/app.18994b5b3b.js',
+  'web/dist/app.338bcb1d25.js',
   'web/games/alias.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',

@@ -24,6 +24,7 @@
   let targetScroll = 0;
   let rafId = 0;
   let active = false;
+  let revealed = false;
   let reducedMotion = false;
   let visibilityObserver = null;
 
@@ -67,7 +68,7 @@
     document.documentElement.classList.add(ROOT_CLASS);
 
     const base = layers[0]?.element;
-    const reveal = () => scene?.classList.add('is-ready');
+    const reveal = () => { revealed = true; scene?.classList.add('is-ready'); };
     if (base?.decode) {
       base.decode().then(reveal).catch(() => {
         base.addEventListener('load', reveal, { once: true });
@@ -99,6 +100,10 @@
 
     active = shouldBeActive;
     scene?.toggleAttribute('hidden', !active);
+    // Видимость сцены возвращается вместе с активностью. Игры, которые прячут
+    // фон под собой, снимают is-ready, и без этого меню возвращалось без фона:
+    // сцена снова в разметке, но прозрачная.
+    if (active && revealed) scene?.classList.add('is-ready');
     document.documentElement.classList.toggle(`${ROOT_CLASS}-active`, active);
 
     for (const layer of layers) {

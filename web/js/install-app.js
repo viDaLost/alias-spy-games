@@ -93,8 +93,9 @@
         <button type="button" class="install-sheet__safari" data-install-safari>Открыть в Safari</button>
         <p class="install-sheet__then">Дальше — в открывшемся Safari:</p>` : ''}
         <ol class="install-sheet__steps">
-          <li>Нажмите <b>«Поделиться»</b> — квадрат со стрелкой вверх внизу экрана Safari.</li>
-          <li>Пролистайте список и выберите <b>«На экран „Домой“»</b>.</li>
+          <li>Нажмите <b>«•••»</b> — три точки в правом нижнем углу Safari.</li>
+          <li>В списке нажмите <b>«Поделиться»</b>.</li>
+          <li>Пролистайте и выберите <b>«На экран „Домой“»</b>.</li>
           <li>Нажмите <b>«Добавить»</b> — появится значок «Библейские игры».</li>
         </ol>
         <p class="install-sheet__note">

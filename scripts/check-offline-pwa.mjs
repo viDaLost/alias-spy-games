@@ -281,24 +281,11 @@ await telegramPage.waitForTimeout(2500);
 if (await telegramPage.locator('#web-session-overlay').count()) {
   await fail('внутри Telegram открылось окно с просьбой ввести Telegram ID');
 }
-// Карточка профиля внутри Telegram есть, но входом по коду не притворяется:
-// личность там приходит от мессенджера, и просьба ввести Telegram ID выглядела
-// бы как фишинг.
-const telegramProfile = await telegramPage.evaluate(() => {
-  const card = document.getElementById('web-session-btn');
-  return card ? {
-    title: card.querySelector('.game-card__title')?.textContent?.trim() || '',
-    desc: card.querySelector('.game-card__desc')?.textContent?.trim() || '',
-  } : null;
-});
-if (!telegramProfile) await fail('внутри Telegram нет карточки профиля');
-if (/Вход в профиль|Выйти/.test(telegramProfile.title) || /Код из бота/.test(telegramProfile.desc)) {
-  await fail(`внутри Telegram карточка предлагает вход по коду: «${telegramProfile.title}» / «${telegramProfile.desc}»`);
-}
-await telegramPage.evaluate(() => document.getElementById('web-session-btn').click());
-await telegramPage.waitForTimeout(700);
-if (await telegramPage.locator('#web-session-overlay').count()) {
-  await fail('внутри Telegram по карточке профиля открылось окно с просьбой ввести Telegram ID');
+// Внутри Telegram карточки профиля нет вовсе: личность приходит от мессенджера,
+// войти или выйти нельзя, а просьба ввести Telegram ID у человека, которого
+// сервер и так знает, выглядела бы как фишинг.
+if (await telegramPage.locator('#web-session-btn').count()) {
+  await fail('внутри Telegram показывается пункт профиля, хотя войти или выйти там нельзя');
 }
 // На не-iPhone внутри Telegram установка не предлагается: мессенджер сам умеет
 // класть ярлык на экран. Случай iPhone проверяется в check-app-shell — там
@@ -367,7 +354,7 @@ if (crashes.length) await fail(`страница поймала исключен
 console.log('Офлайн и установка в порядке: список кеша собран сборкой и знает текущие бандлы, '
   + 'ответы сервера не кешируются, без сети открывается меню и запускается игра, '
   + 'обращения к серверу ждут связи в очереди и уходят сами, '
-  + 'подтверждённая веб-сессия подписывает запросы, внутри Telegram профиль показывается, но вход по коду не предлагается, '
+  + 'подтверждённая веб-сессия подписывает запросы, внутри Telegram профиля и вход по коду не предлагаются, '
   + 'а главный администратор видит карточку установки, чтобы проверить её сам.');
 
 await browser.close();

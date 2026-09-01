@@ -43,7 +43,8 @@
     if (scene) {
       if (!scene.hidden) scene.hidden = true;
       if (scene.getAttribute('aria-hidden') !== 'true') scene.setAttribute('aria-hidden', 'true');
-      if (scene.classList.contains('is-ready')) scene.classList.remove('is-ready');
+      // is-ready не трогаем: он отвечает за видимость сцены, а прячет её
+      // hidden. Снятый класс никто не возвращал, и меню открывалось без фона.
       if (window.__ANDROID_APK__ === true && scene.style.display !== 'none') scene.style.display = 'none';
     }
     if (document.documentElement.classList.contains('home-gamehub-parallax-active')) {
