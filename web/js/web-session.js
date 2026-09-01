@@ -287,22 +287,7 @@
 
   // --- карточка в меню ----------------------------------------------------------------
 
-  function cardIcon(active) {
-    return `<svg class="game-card__svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="ws_bg_${active ? 'on' : 'off'}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${active ? '#0f5132' : '#1E3A8A'}"/>
-          <stop offset="100%" stop-color="${active ? '#17734a' : '#3B82F6'}"/>
-        </linearGradient>
-        <linearGradient id="ws_gold_${active ? 'on' : 'off'}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FFE259"/><stop offset="100%" stop-color="#FFA751"/>
-        </linearGradient>
-      </defs>
-      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#ws_bg_${active ? 'on' : 'off'})"/>
-      <circle cx="32" cy="26" r="9" fill="url(#ws_gold_${active ? 'on' : 'off'})"/>
-      <path d="M16 50c2-9 8-13 16-13s14 4 16 13z" fill="url(#ws_gold_${active ? 'on' : 'off'})"/>
-    </svg>`;
-  }
+  const CARD_ICON = 'web/assets/icons/profile.webp?v=1';
 
   function addMenuCard() {
     const root = document.getElementById('system-actions');
@@ -320,7 +305,10 @@
     card.className = 'game-card game-card--web-session';
     card.dataset.wsActive = String(active);
     card.innerHTML = `
-      <span class="game-card__icon">${cardIcon(active)}</span>
+      <span class="game-card__icon game-card__icon--image">
+        <img class="game-card__img" src="${CARD_ICON}" alt="Иконка входа в профиль"
+             loading="eager" decoding="async" draggable="false" />
+      </span>
       <span class="game-card__body">
         <span class="game-card__title">${active ? 'Выйти из профиля' : 'Вход в профиль'}</span>
         <span class="game-card__desc">${active

@@ -134,6 +134,21 @@ if (await page.locator('#web-session-overlay').count()) {
 }
 if (!(await page.locator('#web-session-btn').count())) await fail('вне Telegram нет карточки входа в профиль');
 
+// Иконки системных карточек — из набора: рисованная заглушка выбивается из
+// ряда прорисованных плиток, а битый путь оставит пустое место.
+const systemIcons = await page.evaluate(() => Object.fromEntries(
+  ['web-session-btn', 'game-rules-btn'].map((id) => {
+    const img = document.querySelector(`#${id} img`);
+    return [id, img ? { src: img.getAttribute('src') || '', width: img.naturalWidth } : null];
+  }),
+));
+for (const [id, expected] of [['web-session-btn', 'web/assets/icons/profile.webp'], ['game-rules-btn', 'web/assets/icons/rules.webp']]) {
+  const icon = systemIcons[id];
+  if (!icon) await fail(`у карточки ${id} нет картинки-иконки`);
+  if (!icon.src.startsWith(expected)) await fail(`иконка ${id} берётся не из набора: ${icon.src}`);
+  if (!icon.width) await fail(`иконка ${id} не загрузилась`);
+}
+
 // --- 2. работник встал и держит оболочку ------------------------------------------
 const registered = await page.evaluate(async () => {
   if (!('serviceWorker' in navigator)) return 'нет поддержки';
@@ -312,6 +327,15 @@ if (!(await ownerPage.locator('html.admin-rbac-root').count())) {
 if (!(await ownerPage.locator('#install-app-btn').count())) {
   await fail('главному администратору не показана карточка установки на iPhone');
 }
+const installIcon = await ownerPage.evaluate(() => {
+  const img = document.querySelector('#install-app-btn img');
+  return img ? { src: img.getAttribute('src') || '', width: img.naturalWidth } : null;
+});
+if (!installIcon) await fail('у карточки установки нет картинки-иконки');
+if (!installIcon.src.startsWith('web/assets/icons/install-ios.webp')) {
+  await fail(`иконка установки берётся не из набора: ${installIcon.src}`);
+}
+if (!installIcon.width) await fail('иконка установки не загрузилась');
 await ownerPage.evaluate(() => document.getElementById('install-app-btn').click());
 await ownerPage.waitForTimeout(600);
 const sheetText = await ownerPage.evaluate(() => document.getElementById('install-ios-sheet')?.innerText || '');

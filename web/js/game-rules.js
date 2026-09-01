@@ -446,25 +446,7 @@
 
   // --- вход из меню -----------------------------------------------------------
 
-  function menuIcon() {
-    return `<svg class="game-card__svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="rules_bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1E3A8A"/><stop offset="100%" stop-color="#3B82F6"/>
-        </linearGradient>
-        <linearGradient id="rules_gold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FFE259"/><stop offset="100%" stop-color="#FFA751"/>
-        </linearGradient>
-      </defs>
-      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#rules_bg)"/>
-      <path d="M12 18c6-3 12-3 20 1v29c-8-4-14-4-20-1z" fill="#fff" opacity=".92"/>
-      <path d="M52 18c-6-3-12-3-20 1v29c8-4 14-4 20-1z" fill="#fff" opacity=".72"/>
-      <path d="M32 19v29" stroke="url(#rules_gold)" stroke-width="3" stroke-linecap="round"/>
-      <path d="M28 30c0-3 2-5 5-5s5 2 5 4c0 3-4 3-4 6" stroke="url(#rules_gold)" stroke-width="3.4"
-            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      <circle cx="34" cy="41" r="2.1" fill="url(#rules_gold)"/>
-    </svg>`;
-  }
+  const MENU_ICON = 'web/assets/icons/rules.webp?v=1';
 
   function addMenuCard() {
     const root = document.getElementById('system-actions');
@@ -474,7 +456,10 @@
     card.id = 'game-rules-btn';
     card.className = 'game-card game-card--rules';
     card.innerHTML = `
-      <span class="game-card__icon">${menuIcon()}</span>
+      <span class="game-card__icon game-card__icon--image">
+        <img class="game-card__img" src="${MENU_ICON}" alt="Иконка раздела Правила игр"
+             loading="eager" decoding="async" draggable="false" />
+      </span>
       <span class="game-card__body">
         <span class="game-card__title">Правила игр</span>
         <span class="game-card__desc">Правила, разбор механик и сброс прогресса</span>

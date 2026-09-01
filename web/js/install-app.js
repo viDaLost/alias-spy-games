@@ -102,23 +102,7 @@
     iosSheet();
   }
 
-  function icon() {
-    return `<svg class="game-card__svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="install_bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#1E3A8A"/><stop offset="100%" stop-color="#3B82F6"/>
-        </linearGradient>
-        <linearGradient id="install_gold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#FFE259"/><stop offset="100%" stop-color="#FFA751"/>
-        </linearGradient>
-      </defs>
-      <rect x="4" y="4" width="56" height="56" rx="18" fill="url(#install_bg)"/>
-      <rect x="20" y="12" width="24" height="34" rx="5" fill="none" stroke="url(#install_gold)" stroke-width="3"/>
-      <path d="M32 20v14m0 0l-5-5m5 5l5-5" stroke="url(#install_gold)" stroke-width="3.4"
-            stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M25 41h14" stroke="url(#install_gold)" stroke-width="3" stroke-linecap="round"/>
-    </svg>`;
-  }
+  const CARD_ICON = 'web/assets/icons/install-ios.webp?v=1';
 
   function mount() {
     const root = document.getElementById('system-actions');
@@ -142,7 +126,10 @@
     card.className = 'game-card game-card--install';
     card.dataset.installOwner = String(owner);
     card.innerHTML = `
-      <span class="game-card__icon">${icon()}</span>
+      <span class="game-card__icon game-card__icon--image">
+        <img class="game-card__img" src="${CARD_ICON}" alt="Иконка установки на iPhone"
+             loading="eager" decoding="async" draggable="false" />
+      </span>
       <span class="game-card__body">
         <span class="game-card__title">Установить на iPhone</span>
         <span class="game-card__desc">${owner

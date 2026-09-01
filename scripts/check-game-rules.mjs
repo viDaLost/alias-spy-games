@@ -145,6 +145,17 @@ await page.waitForTimeout(2500);
 
 // 1. вход из меню
 if (!(await page.locator('#game-rules-btn').count())) await fail('в меню нет пункта «Правила игр»');
+
+// Иконка из набора, а не рисованная заглушка: битый путь молча оставит пустое место.
+const menuIcon = await page.evaluate(() => {
+  const img = document.querySelector('#game-rules-btn img');
+  return img ? { src: img.getAttribute('src') || '', width: img.naturalWidth } : null;
+});
+if (!menuIcon) await fail('у пункта «Правила игр» нет картинки-иконки');
+if (!menuIcon.src.startsWith('web/assets/icons/rules.webp')) {
+  await fail(`иконка правил берётся не из набора: ${menuIcon.src}`);
+}
+if (!menuIcon.width) await fail('иконка правил не загрузилась');
 await page.evaluate(() => document.getElementById('game-rules-btn').click());
 await page.waitForSelector('.rules-shell', { timeout: 10_000 });
 
