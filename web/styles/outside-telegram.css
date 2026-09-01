@@ -1,0 +1,44 @@
+/* Приложение вне Telegram: браузер и ярлык на главном экране.
+   Палитра и раскладка не меняются — снимается только то, что зарезервировано
+   под интерфейс мессенджера. */
+
+/* Сверху приложение держит 96 пикселей под кнопки Telegram. В браузере и в
+   установленном приложении этих кнопок нет, и на их месте остаётся пустая
+   полоса над каждым экраном. Здесь остаётся только вырез экрана. */
+html.app-outside-telegram {
+  --tg-top-gap: calc(env(safe-area-inset-top, 0px) + 26px);
+}
+
+/* Safari считает 100vh по высоте экрана без учёта своих панелей: экран,
+   рассчитанный «ровно в высоту», уезжает под панель и даёт лишнюю прокрутку.
+   dvh считает по видимой области и меняется вместе с ней. */
+@supports (height: 100dvh) {
+  html.app-outside-telegram body { min-height: 100dvh }
+  html.app-outside-telegram .menu-container,
+  html.app-outside-telegram #game-container { min-height: auto }
+}
+
+/* В установленном приложении шапки браузера нет вовсе, и запас сверху нужен
+   только под вырез. Снизу — под полосу жестов. */
+html.app-standalone {
+  --tg-top-gap: calc(env(safe-area-inset-top, 0px) + 16px);
+}
+
+html.app-standalone body {
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Ярлык открывается как приложение, и случайное выделение текста при
+   долгом нажатии выглядит поломкой, а не выделением. Поля ввода не трогаем. */
+html.app-standalone body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html.app-standalone input,
+html.app-standalone textarea,
+html.app-standalone [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}

@@ -144,6 +144,13 @@
   color: #6b5313;
 }
 
+.install-sheet__note--quiet {
+  background: rgba(79, 70, 229, .07);
+  border: 1px solid rgba(79, 70, 229, .14);
+  color: #4a5081;
+  margin-top: 8px;
+}
+
 .install-sheet__ok {
   width: 100%;
   margin-top: 16px;

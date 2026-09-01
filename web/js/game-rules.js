@@ -16,6 +16,13 @@
   // сети показывать нечего — там правила описывают людей, а не экран.
 
   const STORAGE_OPEN = 'game_rules_last_v1';
+  const STORAGE_SEEN = 'game_rules_seen_v1';
+
+  // Игры, у которых есть что сбрасывать. Для игр за столом прогресса нет, и
+  // кнопка сброса в их правилах была бы обещанием, которое нечем выполнить.
+  const RESETTABLE = new Set(['biblical-match-three', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs']);
+
+  const REMINDER = 'Эти правила всегда под рукой: в главном меню внизу, кнопка «Правила игр».';
 
   const escapeHTML = (value) => String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
@@ -500,18 +507,132 @@
     button.dataset.rulesKey = key;
     button.setAttribute('aria-label', 'Правила этой игры');
     button.textContent = '?';
-    button.addEventListener('click', () => {
-      const wanted = button.dataset.rulesKey || '';
-      // Из игры выходим её же способом, иначе останется живой цикл анимаций.
-      try { (window.appGoToMainMenu || window.goToMainMenu)?.(); } catch { /* игра уже закрыта */ }
-      window.setTimeout(() => open(wanted), 0);
-    });
+    // Правила открываются поверх игры, а не вместо неё: выход в справочник
+    // прерывал бы партию, а спрашивают о правилах как раз посреди партии.
+    button.addEventListener('click', () => openSheet(button.dataset.rulesKey || ''));
     document.body.append(button);
+  }
+
+  // --- правила поверх игры ------------------------------------------------------
+  //
+  // Показывается один раз при первом входе в игру и дальше — по кнопке «?».
+  // Отметка ставится при закрытии, а не при показе: свёрнутое на полуслове
+  // приложение иначе съело бы правила молча.
+
+  function seen() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_SEEN) || '{}');
+      return raw && typeof raw === 'object' ? raw : {};
+    } catch { return {}; }
+  }
+
+  function markSeen(key) {
+    const all = seen();
+    all[key] = Date.now();
+    try { localStorage.setItem(STORAGE_SEEN, JSON.stringify(all)); } catch { /* приватный режим */ }
+    // У «Сокровищ» есть свой пошаговый разбор при первом запуске. Показывать его
+    // сразу после этих правил — значит объяснить одно и то же дважды подряд.
+    if (key === 'biblical-match-three') {
+      try {
+        const progress = window.BiblicalMatchThreeProgress;
+        const state = progress?.load?.();
+        if (state) {
+          state.tutorialSeen = { ...(state.tutorialSeen || {}), 'v18-first-run': true };
+          progress.save(state);
+        }
+      } catch { /* прогресс недоступен — покажется штатный разбор, это не ошибка */ }
+    }
+  }
+
+  function sheetMarkup(game, first) {
+    const reset = RESETTABLE.has(game.key) ? `
+      <section class="rules-sheet__reset">
+        <strong>Начать эту игру заново</strong>
+        <p>Пройденные уровни забудутся, очки рейтинга за них откатятся, звёзды останутся.</p>
+        <button type="button" class="rules-sheet__reset-button" data-sheet-reset>Сбросить прогресс</button>
+      </section>` : '';
+    return `
+      <div class="rules-sheet__card" role="dialog" aria-modal="true" aria-label="Правила игры ${escapeHTML(game.title)}">
+        <div class="rules-sheet__head">
+          <img class="rules-sheet__icon" src="${escapeHTML(game.icon)}" alt="" loading="eager" decoding="async" draggable="false" />
+          <div>
+            <p class="rules-sheet__kicker">${first ? 'Как играть' : 'Правила'}</p>
+            <h3 class="rules-sheet__title">${escapeHTML(game.title)}</h3>
+          </div>
+          <button type="button" class="rules-sheet__close" data-sheet-close aria-label="Закрыть">×</button>
+        </div>
+        <div class="rules-sheet__body">
+          ${game.blocks.map(blockMarkup).join('')}
+          ${reset}
+          <p class="rules-sheet__reminder">${escapeHTML(REMINDER)}</p>
+        </div>
+        <div class="rules-sheet__actions">
+          <button type="button" class="rules-sheet__all" data-sheet-all>Все правила</button>
+          <button type="button" class="rules-sheet__ok" data-sheet-close>${first ? 'Начать игру' : 'Понятно'}</button>
+        </div>
+      </div>`;
+  }
+
+  function closeSheet(node, key) {
+    markSeen(key);
+    node.remove();
+    document.documentElement.classList.remove('rules-sheet-open');
+  }
+
+  function openSheet(key, { first = false } = {}) {
+    const game = BY_KEY.get(key);
+    if (!game || document.getElementById('game-rules-sheet')) return false;
+
+    const node = document.createElement('div');
+    node.id = 'game-rules-sheet';
+    node.className = 'rules-sheet';
+    node.innerHTML = sheetMarkup(game, first);
+    document.body.append(node);
+    document.documentElement.classList.add('rules-sheet-open');
+
+    node.addEventListener('click', (event) => {
+      if (event.target.closest('[data-sheet-reset]')) {
+        closeSheet(node, key);
+        // Сброс живёт на своём экране: там подтверждение и видно, что именно
+        // пропадёт. Из игры выходим её же способом, иначе останутся её таймеры.
+        try { (window.appGoToMainMenu || window.goToMainMenu)?.(); } catch { /* игра уже закрыта */ }
+        window.setTimeout(() => window.openProgressReset?.(), 0);
+        return;
+      }
+      if (event.target.closest('[data-sheet-all]')) {
+        closeSheet(node, key);
+        try { (window.appGoToMainMenu || window.goToMainMenu)?.(); } catch { /* игра уже закрыта */ }
+        window.setTimeout(() => open(key), 0);
+        return;
+      }
+      if (event.target.closest('[data-sheet-close]') || event.target === node) closeSheet(node, key);
+    });
+
+    window.GameRulesDemos?.scan();
+    return true;
+  }
+
+  // Наблюдатель дёргает install() на каждое изменение разметки, а показ нужен
+  // один: без этого признака на игру набегали бы десятки отложенных показов.
+  let pendingEntry = '';
+
+  function offerOnEntry() {
+    const key = currentGameKey();
+    if (!key || seen()[key] || pendingEntry === key) return;
+    pendingEntry = key;
+    // Игра рисует свой экран не мгновенно: правила поверх пустого контейнера
+    // выглядят как ошибка загрузки.
+    window.setTimeout(() => {
+      pendingEntry = '';
+      if (currentGameKey() !== key || seen()[key]) return;
+      openSheet(key, { first: true });
+    }, 700);
   }
 
   function install() {
     addMenuCard();
     syncHelpButton();
+    offerOnEntry();
   }
 
   const observer = new MutationObserver(install);
@@ -520,6 +641,7 @@
   });
 
   window.openGameRules = open;
+  window.openGameRulesSheet = openSheet;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
   else install();

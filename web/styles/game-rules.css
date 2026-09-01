@@ -395,3 +395,162 @@ body[data-mode="rules"] header.app-header { display: none }
   .rd-beam, .rd-finger { animation: none !important }
   .rd-finger { display: none }
 }
+
+/* --- правила поверх открытой игры --- */
+
+.rules-sheet-open { overflow: hidden }
+
+.rules-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+  background: rgba(20, 25, 55, .55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: rules-sheet-in .24s ease-out;
+}
+
+@keyframes rules-sheet-in { from { opacity: 0 } to { opacity: 1 } }
+
+.rules-sheet__card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(460px, 100%);
+  max-height: min(88vh, 88dvh);
+  box-sizing: border-box;
+  border-radius: 24px;
+  background: linear-gradient(160deg, #fff, #f4f7ff);
+  box-shadow: 0 24px 60px rgba(20, 25, 60, .34);
+  overflow: hidden;
+  animation: rules-sheet-rise .28s cubic-bezier(.2, .8, .3, 1);
+}
+
+@keyframes rules-sheet-rise { from { transform: translateY(22px) } to { transform: none } }
+
+.rules-sheet__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid rgba(79, 70, 229, .12);
+}
+
+.rules-sheet__icon { width: 44px; height: 44px; object-fit: contain; display: block }
+
+.rules-sheet__kicker {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #4f46e5;
+  text-align: left;
+}
+
+.rules-sheet__title { margin: 2px 0 0; font-size: 17px; font-weight: 900; color: #1f2352; text-align: left }
+
+.rules-sheet__close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(79, 70, 229, .08);
+  color: #5b62a8;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Прокручивается только содержимое: шапка и кнопки должны оставаться на месте,
+   иначе на длинных правилах «Начать игру» уезжает за экран. */
+.rules-sheet__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 16px 14px;
+  text-align: left;
+}
+
+.rules-sheet__body h4 {
+  margin: 15px 0 6px;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #3730a3;
+  text-align: left;
+}
+
+.rules-sheet__body p,
+.rules-sheet__body li { font-size: 13.5px; line-height: 1.55; color: #4a5068; text-align: left }
+.rules-sheet__body p { margin: 0 0 6px }
+.rules-sheet__body ul { margin: 6px 0 0; padding-left: 20px }
+.rules-sheet__body li { margin-bottom: 5px }
+.rules-sheet__body b { color: #1f2352 }
+
+.rules-sheet__reminder {
+  margin: 16px 0 0 !important;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(79, 70, 229, .07);
+  border: 1px solid rgba(79, 70, 229, .14);
+  font-size: 12.5px !important;
+  font-weight: 700;
+  color: #4a5081 !important;
+}
+
+.rules-sheet__reset {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #fff8f8, #fff1f3);
+  border: 1px solid rgba(163, 36, 63, .16);
+}
+
+.rules-sheet__reset strong { font-size: 13.5px; font-weight: 900; color: #7f1d2f; text-align: left }
+.rules-sheet__reset p { margin: 0 !important; font-size: 12.5px !important; color: #8a5563 !important }
+
+.rules-sheet__reset-button {
+  justify-self: start;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 14px;
+  background: rgba(163, 36, 63, .1);
+  color: #a3243f;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rules-sheet__actions {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(79, 70, 229, .12);
+  background: rgba(255, 255, 255, .8);
+}
+
+.rules-sheet__all,
+.rules-sheet__ok {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: center;
+}
+
+.rules-sheet__all { background: rgba(79, 70, 229, .09); color: #4a5081 }
+.rules-sheet__ok { background: linear-gradient(135deg, #4f46e5, #2563eb); color: #fff }
+
+/* Разбор внутри шторки уже: он делит ширину с полями карточки. */
+.rules-sheet__body .rd-stage { padding: 12px 8px 10px }
+
+@media (prefers-reduced-motion: reduce) {
+  .rules-sheet, .rules-sheet__card { animation: none !important }
+}

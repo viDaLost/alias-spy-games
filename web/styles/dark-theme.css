@@ -2733,6 +2733,61 @@ html .rd-card {
 html .rd-card.is-open {
   background: #141414 !important;
 }
+html .rules-sheet__card {
+  background: linear-gradient(160deg, #141414, #08112b) !important;
+}
+html .rules-sheet__head {
+  border-bottom: 1px solid rgba(36, 27, 191, 0.12) !important;
+}
+html .rules-sheet__kicker {
+  color: #241bbf !important;
+}
+html .rules-sheet__title {
+  color: #9da1da !important;
+}
+html .rules-sheet__close {
+  background: rgba(36, 27, 191, 0.08) !important;
+  color: #575ea4 !important;
+}
+html .rules-sheet__body h4 {
+  color: #5e57cd !important;
+}
+html .rules-sheet__body p,
+html .rules-sheet__body li {
+  color: #9096b0 !important;
+}
+html .rules-sheet__body b {
+  color: #9da1da !important;
+}
+html .rules-sheet__reminder {
+  background: rgba(36, 27, 191, 0.07) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+  color: #797fb2 !important;
+}
+html .rules-sheet__reset {
+  background: linear-gradient(160deg, #280707, #2d080d) !important;
+}
+html .rules-sheet__reset strong {
+  color: #df7387 !important;
+}
+html .rules-sheet__reset p {
+  color: #a87280 !important;
+}
+html .rules-sheet__reset-button {
+  color: #d95571 !important;
+}
+html .rules-sheet__actions {
+  border-top: 1px solid rgba(36, 27, 191, 0.12) !important;
+  background: rgba(20, 20, 20, 0.8) !important;
+}
+html .rules-sheet__all {
+  background: rgba(36, 27, 191, 0.09) !important;
+  color: #797fb2 !important;
+}
+html .rules-sheet__ok {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
 
 /* web/styles/progress-reset.css */
 html .pr-topbar {
@@ -2868,6 +2923,11 @@ html .install-sheet__steps b {
 html .install-sheet__note {
   background: rgba(174, 128, 12, 0.16) !important;
   color: #e9cd82 !important;
+}
+html .install-sheet__note--quiet {
+  background: rgba(36, 27, 191, 0.07) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+  color: #797fb2 !important;
 }
 html .install-sheet__ok {
   background: linear-gradient(135deg, #241bbf, #1453dc) !important;

@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
+import { skipFirstRunRules } from './lib/rules-sheet.mjs';
 
 const root = process.cwd();
 const widths = [390, 320];
@@ -41,6 +42,7 @@ const browser = await chromium.launch({
 async function pageFor(width) {
   const context = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await context.addInitScript(() => { window.__APP_TELEMETRY_DISABLED__ = true; });
+  await skipFirstRunRules(context);
   const page = await context.newPage();
   await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
     status: 200,

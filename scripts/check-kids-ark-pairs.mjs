@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
+import { skipFirstRunRules } from './lib/rules-sheet.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -64,6 +65,7 @@ try {
     localStorage.removeItem('kids_ark_pairs_stats_v2');
     localStorage.removeItem('kids_ark_pairs_prefs_v2');
   });
+  await skipFirstRunRules(context);
 
   const page = await context.newPage();
   const pageErrors = [];

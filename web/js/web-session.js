@@ -59,6 +59,31 @@
     return data;
   }
 
+  // --- признак «мы не в Telegram» --------------------------------------------------
+  //
+  // Вёрстка приложения рассчитана на Telegram: сверху зарезервировано место под
+  // его кнопки. В браузере и в ярлыке на главном экране этих кнопок нет, и
+  // резерв превращается в пустую полосу над каждым экраном.
+  //
+  // Признак ставится по data-telegram-launch-data, который telegram-launch-context.js
+  // выставляет синхронно из параметров запуска, — SDK Telegram грузится
+  // асинхронно, и ждать его значило бы показать неправильную вёрстку и потом
+  // дёрнуть её на глазах у человека.
+
+  function markEnvironment() {
+    const root = document.documentElement;
+    const launched = Boolean(root.dataset.telegramLaunchData) || insideTelegram();
+    const outside = !launched && window.__ANDROID_APK__ !== true;
+    root.classList.toggle('app-outside-telegram', outside);
+    root.classList.toggle('app-standalone', outside && (
+      window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true
+    ));
+  }
+
+  markEnvironment();
+  // SDK может доехать позже и принести подпись: тогда признак снимается.
+  window.addEventListener('telegram:sdk-ready', markEnvironment);
+
   const state = { challengeId: '', telegramId: '', busy: false };
 
   // --- экран входа -----------------------------------------------------------------

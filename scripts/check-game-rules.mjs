@@ -186,17 +186,71 @@ const second = await page.evaluate(() => document.querySelector('.rd-stage .rd-b
 if (!first) await fail('разбор не отрисовался');
 if (first === second) await fail('разбор не проигрывается — кадры не меняются');
 
-// 6. кнопка «?» внутри игры ведёт в раздел этой игры
-await page.evaluate(() => document.querySelector('[data-rules-back]').click());
+// 6. правила при первом входе в игру, повторно — только по кнопке
+//
+// Обучение, показанное один раз и навсегда исчезнувшее, — исходная жалоба из
+// поддержки. Поэтому проверяется и то, что правила приходят сами, и то, что
+// второй раз они не мешают, и то, что вернуть их можно.
+await page.evaluate(() => document.querySelector('[data-rules-back]')?.click());
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
-await page.evaluate(() => window.showGame('spy'));
-await page.waitForTimeout(2500);
-if (!(await page.locator('#game-rules-help').count())) await fail('в открытой игре нет кнопки «?»');
+await page.evaluate(() => {
+  try { localStorage.removeItem('game_rules_seen_v1'); } catch { /* приватный режим */ }
+});
+
+await page.evaluate(() => window.showGame('bible-wow'));
+await page.waitForTimeout(4000);
+if (!(await page.locator('#game-rules-sheet').count())) {
+  await fail('при первом входе в игру правила не показались');
+}
+if (await page.evaluate(() => document.body.dataset.currentGame) !== 'bible-wow') {
+  await fail('показ правил выкинул человека из игры');
+}
+const sheet = await page.evaluate(() => ({
+  text: document.querySelector('.rules-sheet__body')?.innerText || '',
+  demos: document.querySelectorAll('#game-rules-sheet .rd-stage').length,
+  reset: document.querySelectorAll('#game-rules-sheet [data-sheet-reset]').length,
+  all: document.querySelectorAll('#game-rules-sheet [data-sheet-all]').length,
+}));
+if (!/главном меню/i.test(sheet.text) || !/Правила игр/.test(sheet.text)) {
+  await fail('в правилах нет напоминания, где их найти снова');
+}
+if (!sheet.demos) await fail('в правилах при входе в игру нет наглядного разбора');
+if (!sheet.reset) await fail('в правилах «Библейских слов» нет кнопки сброса прогресса');
+if (!sheet.all) await fail('из правил игры не попасть в общий справочник');
+
+await page.evaluate(() => document.querySelector('#game-rules-sheet [data-sheet-close]').click());
+await page.waitForTimeout(600);
+if (await page.locator('#game-rules-sheet').count()) await fail('правила не закрываются');
+
+await page.evaluate(() => (window.appGoToMainMenu || window.goToMainMenu)?.());
+await page.waitForTimeout(800);
+await page.evaluate(() => window.showGame('bible-wow'));
+await page.waitForTimeout(3000);
+if (await page.locator('#game-rules-sheet').count()) {
+  await fail('правила показались второй раз — они должны приходить сами только при первом входе');
+}
 await page.evaluate(() => document.getElementById('game-rules-help').click());
+await page.waitForTimeout(700);
+if (!(await page.locator('#game-rules-sheet').count())) await fail('кнопка «?» не открывает правила');
+if (await page.evaluate(() => document.body.dataset.currentGame) !== 'bible-wow') {
+  await fail('кнопка «?» выкинула человека из игры вместо показа правил поверх неё');
+}
+
+// У игр за столом сбрасывать нечего, и кнопка была бы обещанием без покрытия.
+await page.evaluate(() => document.querySelector('#game-rules-sheet [data-sheet-close]').click());
+await page.evaluate(() => (window.appGoToMainMenu || window.goToMainMenu)?.());
+await page.waitForTimeout(800);
+await page.evaluate(() => window.showGame('spy'));
+await page.waitForTimeout(4000);
+if (!(await page.locator('#game-rules-sheet').count())) await fail('в игре за столом правила при входе не показались');
+if (await page.locator('#game-rules-sheet [data-sheet-reset]').count()) {
+  await fail('в игре за столом предлагается сброс прогресса, которого у неё нет');
+}
+await page.evaluate(() => document.querySelector('#game-rules-sheet [data-sheet-close]').click());
+await page.evaluate(() => (window.appGoToMainMenu || window.goToMainMenu)?.());
+await page.waitForTimeout(600);
+await page.evaluate(() => document.getElementById('game-rules-btn').click());
 await page.waitForSelector('.rules-shell', { timeout: 10_000 });
-const opened = await page.evaluate(() => document.querySelector('.rules-game.is-open')?.dataset.rulesGame);
-if (opened !== 'spy') await fail(`кнопка «?» открыла раздел «${opened}» вместо «spy»`);
-if (await page.locator('#game-rules-help').count()) await fail('кнопка «?» осталась висеть поверх справочника');
 
 // 7. таблицы не растягивают страницу
 const spills = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
@@ -206,7 +260,8 @@ if (crashes.length) await fail(`страница поймала исключен
 
 console.log('Справочник в порядке: цены бустеров и награды совпадают с кодом игр, '
   + 'каждая игра меню описана, разборы механик показывают настоящие совпадения и проигрываются, '
-  + 'у игр за столом разбора экрана нет, а кнопка «?» открывает раздел текущей игры.');
+  + 'у игр за столом разбора экрана нет, правила приходят сами при первом входе и возвращаются по кнопке «?» '
+  + 'поверх игры, напоминают, где их найти, и дают сбросить прогресс там, где он есть.');
 
 await browser.close();
 server.close();

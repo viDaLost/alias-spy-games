@@ -273,12 +273,59 @@ if (await telegramPage.locator('#install-app-btn').count()) {
   await fail('внутри Telegram предлагается установка на главный экран');
 }
 
+// --- 8. главному администратору установка показывается всегда ---------------------
+//
+// Ему она нужна, чтобы посмотреть, что увидит человек с iPhone. Признак роли
+// ставит серверная проверка — тот же шлюз, что у кнопки админки.
+const ownerPage = await context.newPage();
+await ownerPage.route('https://*.workers.dev/**', (route) => {
+  const body = JSON.parse(route.request().postData() || '{}');
+  const action = String(body?.payload?.action || '');
+  if (action === 'adminRoleStatus') {
+    return route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ success: true, isAdmin: true, isRoot: true, userId: '1288379477' }),
+    });
+  }
+  return route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ success: true, isBanned: false, lastGames: [], answered: true }),
+  });
+});
+await ownerPage.addInitScript(() => {
+  window.Telegram = {
+    WebApp: {
+      initData: 'query_id=stub&user=%7B%22id%22%3A1288379477%7D&hash=stub',
+      initDataUnsafe: { user: { id: 1288379477, first_name: 'Владелец' } },
+      ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
+      MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
+      HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
+    },
+  };
+});
+await ownerPage.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
+await ownerPage.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+await ownerPage.waitForTimeout(3000);
+if (!(await ownerPage.locator('html.admin-rbac-root').count())) {
+  await fail('серверная проверка роли не подтвердила главного администратора — дальше проверять нечего');
+}
+if (!(await ownerPage.locator('#install-app-btn').count())) {
+  await fail('главному администратору не показана карточка установки на iPhone');
+}
+await ownerPage.evaluate(() => document.getElementById('install-app-btn').click());
+await ownerPage.waitForTimeout(600);
+const sheetText = await ownerPage.evaluate(() => document.getElementById('install-ios-sheet')?.innerText || '');
+if (!/Поделиться/.test(sheetText) || !/На экран/.test(sheetText)) {
+  await fail('карточка установки не показывает, куда нажимать в Safari');
+}
+
 if (crashes.length) await fail(`страница поймала исключение: ${crashes[0]}`);
 
 console.log('Офлайн и установка в порядке: список кеша собран сборкой и знает текущие бандлы, '
   + 'ответы сервера не кешируются, без сети открывается меню и запускается игра, '
   + 'обращения к серверу ждут связи в очереди и уходят сами, '
-  + 'подтверждённая веб-сессия подписывает запросы, а внутри Telegram вход по коду не предлагается.');
+  + 'подтверждённая веб-сессия подписывает запросы, внутри Telegram вход по коду не предлагается, '
+  + 'а главный администратор видит карточку установки, чтобы проверить её сам.');
 
 await browser.close();
 server.close();
