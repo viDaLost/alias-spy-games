@@ -23,7 +23,7 @@
     }
   },
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev",
     "ADMIN_TELEGRAM_ID": "1288379477",
     "ADMIN_AUTH_CODE_COPY_ENABLED": "true"
   }

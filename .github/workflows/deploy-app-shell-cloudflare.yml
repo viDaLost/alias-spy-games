@@ -1,0 +1,33 @@
+name: Deploy app shell
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/app-shell-worker/**'
+      - '.github/workflows/deploy-app-shell-cloudflare.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare/app-shell-worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Worker tooling
+        run: npm install --no-audit --no-fund
+      - name: Validate Worker bundle
+        run: npx wrangler deploy --dry-run --outdir /tmp/app-shell-worker-build
+      - name: Create or update Worker
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

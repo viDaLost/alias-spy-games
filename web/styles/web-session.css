@@ -130,6 +130,35 @@
 }
 
 .install-sheet__card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 900; color: #1f2352 }
+.install-sheet__lead {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #5b6180;
+}
+
+.install-sheet__safari {
+  width: 100%;
+  border: 0;
+  border-radius: 15px;
+  padding: 13px;
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(48, 55, 150, .24);
+}
+
+.install-sheet__then {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #7a80a0;
+}
+
 .install-sheet__steps { margin: 0; padding-left: 20px }
 .install-sheet__steps li { margin-bottom: 8px; font-size: 13.5px; line-height: 1.5; color: #4a5068 }
 .install-sheet__steps b { color: #1f2352 }

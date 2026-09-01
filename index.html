@@ -22,6 +22,10 @@
   <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
   <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev" />
+  <!-- Витрина: те же файлы под своим адресом. Нужна для установки на главный
+       экран iPhone — Safari показывает адрес сайта, и приложение не должно
+       представляться репозиторием. -->
+  <meta name="app-shell" content="https://alias-spy-games-app.vitaledanilov.workers.dev" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
   <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
   <script src="web/js/telegram-launch-context.js?v=2"></script>
@@ -93,7 +97,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.3088981d6e.css" />
+  <link rel="stylesheet" href="web/dist/app.11676fb6ca.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -170,7 +174,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script src="web/dist/app.a5404fe294.js" defer></script>
+  <script src="web/dist/app.8e61611c40.js" defer></script>
   <!-- /build:js -->
 </body>
 </html>

@@ -20,6 +20,11 @@
 
   const SEEN_KEY = 'install_hint_seen_v1';
 
+  // Адрес витрины: те же файлы приложения, отданные Cloudflare под своим
+  // именем. Safari показывает адрес открытого сайта и запоминает его при
+  // установке, поэтому ярлык ставится оттуда, а не с github.io.
+  const SHELL_URL = String(document.querySelector('meta[name="app-shell"]')?.content || '').replace(/\/+$/, '');
+
   let deferredPrompt = null;
 
   function insideTelegram() {
@@ -54,14 +59,35 @@
     document.getElementById('install-app-btn')?.remove();
   });
 
+  /** Мы уже на витрине — значит Safari открыт там, куда нужно. */
+  const onShell = () => Boolean(SHELL_URL) && location.origin === SHELL_URL;
+
+  function openInSafari() {
+    if (!SHELL_URL) return false;
+    const telegram = window.Telegram?.WebApp;
+    // openLink уводит из мессенджера во внешний браузер — на iPhone это Safari,
+    // единственный, кто умеет ставить ярлык на главный экран.
+    if (typeof telegram?.openLink === 'function') {
+      try { telegram.openLink(SHELL_URL, { try_instant_view: false }); return true; } catch { /* откроем обычной ссылкой */ }
+    }
+    try { window.open(SHELL_URL, '_blank', 'noopener'); return true; } catch { return false; }
+  }
+
   function iosSheet() {
     if (document.getElementById('install-ios-sheet')) return;
+    const needsSafari = !onShell();
     const node = document.createElement('div');
     node.id = 'install-ios-sheet';
     node.className = 'install-sheet';
     node.innerHTML = `
       <div class="install-sheet__card">
         <h3>Приложение на главный экран</h3>
+        ${needsSafari ? `
+        <p class="install-sheet__lead">
+          Ярлык умеет создавать только Safari, поэтому сначала откройте приложение в нём.
+        </p>
+        <button type="button" class="install-sheet__safari" data-install-safari>Открыть в Safari</button>
+        <p class="install-sheet__then">Дальше — в открывшемся Safari:</p>` : ''}
         <ol class="install-sheet__steps">
           <li>Нажмите <b>«Поделиться»</b> — квадрат со стрелкой вверх внизу экрана Safari.</li>
           <li>Пролистайте список и выберите <b>«На экран „Домой“»</b>.</li>
@@ -80,6 +106,7 @@
         <button type="button" class="install-sheet__ok" data-install-close>Понятно</button>
       </div>`;
     node.addEventListener('click', (event) => {
+      if (event.target.closest('[data-install-safari]')) { openInSafari(); return; }
       if (event.target.closest('[data-install-close]') || event.target === node) {
         markDismissed();
         node.remove();
@@ -114,10 +141,14 @@
       existing.remove();
     }
     if (!owner) {
-      if (insideTelegram() || window.__ANDROID_APK__ === true) return true;
+      // В Android-приложении ярлык уже есть, и ставить второй незачем.
+      if (window.__ANDROID_APK__ === true) return true;
       if (standalone() || dismissed()) return true;
-      // Ни события установки, ни Safari на iPhone — предлагать нечего.
-      if (!deferredPrompt && !isIOS()) return true;
+      // Внутри Telegram карточка нужна только на iPhone: именно оттуда человек
+      // и приходит, а увести его в Safari можно лишь отсюда. На остальных
+      // платформах Telegram сам умеет класть ярлык на экран.
+      if (insideTelegram()) { if (!isIOS() || !SHELL_URL) return true; }
+      else if (!deferredPrompt && !isIOS()) return true;
     }
 
     const card = document.createElement('button');
@@ -145,7 +176,7 @@
     return true;
   }
 
-  window.InstallApp = { mount, canPrompt: () => Boolean(deferredPrompt), isIOS };
+  window.InstallApp = { mount, canPrompt: () => Boolean(deferredPrompt), isIOS, shellUrl: () => SHELL_URL, openInSafari };
 
   const observer = new MutationObserver(() => { mount(); });
   observer.observe(document.documentElement, { childList: true, subtree: true });

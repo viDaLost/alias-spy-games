@@ -2914,6 +2914,16 @@ html .install-sheet__card {
 html .install-sheet__card h3 {
   color: #9da1da !important;
 }
+html .install-sheet__lead {
+  color: #7c82a2 !important;
+}
+html .install-sheet__safari {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
+html .install-sheet__then {
+  color: #616788 !important;
+}
 html .install-sheet__steps li {
   color: #9096b0 !important;
 }

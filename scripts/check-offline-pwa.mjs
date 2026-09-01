@@ -300,8 +300,11 @@ await telegramPage.waitForTimeout(700);
 if (await telegramPage.locator('#web-session-overlay').count()) {
   await fail('внутри Telegram по карточке профиля открылось окно с просьбой ввести Telegram ID');
 }
+// На не-iPhone внутри Telegram установка не предлагается: мессенджер сам умеет
+// класть ярлык на экран. Случай iPhone проверяется в check-app-shell — там
+// карточка обязана быть и уводить в Safari.
 if (await telegramPage.locator('#install-app-btn').count()) {
-  await fail('внутри Telegram предлагается установка на главный экран');
+  await fail('внутри Telegram установка предлагается там, где мессенджер справляется сам');
 }
 
 // --- 8. главному администратору установка показывается всегда ---------------------
