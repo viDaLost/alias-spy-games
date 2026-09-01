@@ -28,6 +28,25 @@ const scoreSnapshot = new Function(`
   return scoreSnapshot;
 `)();
 
+// --- рейтинг доступен обеим дорогам входа --------------------------------------
+//
+// В Telegram приложение приходит на /compat с подписью initData. Android-версия
+// и веб-версия, установленная на главный экран, — на /android/compat с токеном
+// подтверждённой сессии: подписи у них нет. Пока рейтинг слушал только первую
+// дорогу, за пределами Telegram его просто не было.
+{
+  assert.ok(worker.includes("'/android/compat'"),
+    'рейтинг не обслуживает /android/compat — в Android-приложении и веб-версии его не будет');
+  assert.ok(/function handleRatingSession/.test(worker), 'нет обработчика рейтинга для подтверждённой сессии');
+  const session = worker.slice(worker.indexOf('async function handleRatingSession'), worker.indexOf('async function ratingDispatch'));
+  assert.ok(/Authorization/.test(session), 'личность сессии берётся не из заголовка авторизации');
+  assert.ok(/android-auth\/session/.test(session), 'токен сессии не проверяется у хранилища');
+  // Тело запроса не должно решать, чей это рейтинг.
+  const claimsIdentity = /const userId = cleanUserId\(\s*body[^)]*\)/.test(session);
+  assert.ok(!claimsIdentity, 'личность берётся из тела запроса — так можно попросить чужой рейтинг');
+  assert.ok(/Запрос не соответствует сессии/.test(session), 'id из тела не сверяется с сессией');
+}
+
 {
   const full = scoreSnapshot({
     bmt: { completed: 50, stars: 150 },

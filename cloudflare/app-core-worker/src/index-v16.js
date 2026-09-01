@@ -301,12 +301,21 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    if (url.pathname === '/compat' && request.method === 'POST') {
+    // Приложение приходит двумя дорогами. В Telegram — на /compat с подписью
+    // initData. Android-приложение и веб-версия, установленная на главный
+    // экран, — на /android/compat с токеном подтверждённой сессии: подписи у
+    // них нет, личность выдана кодом из бота. Рейтинг обязан понимать обе,
+    // иначе за пределами Telegram его просто нет.
+    const compat = url.pathname === '/compat';
+    const sessionCompat = url.pathname === '/android/compat';
+    if ((compat || sessionCompat) && request.method === 'POST') {
       const body = await request.clone().json().catch(() => ({}));
       const payload = body?.payload && typeof body.payload === 'object' ? body.payload : {};
       const action = String(payload.action || '');
       if (PUBLIC_ACTIONS.has(action) || ADMIN_RATING_ACTIONS.has(action)) {
-        return handleRatingCompat(request, env, body, payload, action);
+        return compat
+          ? handleRatingCompat(request, env, body, payload, action)
+          : handleRatingSession(request, env, body, payload, action);
       }
     }
 
@@ -326,38 +335,14 @@ async function handleRatingCompat(request, env, body, payload, action) {
     if (!userId) return ratingJson({ success: false, error: 'Требуется вход через Telegram' }, 401, cors);
 
     const store = env.USERS.get(env.USERS.idFromName('global'));
-
-    if (ADMIN_RATING_ACTIONS.has(action)) {
-      const role = await callRatingStore(store, '/admin-role/check', { userId });
-      if (role?.isAdmin !== true) return ratingJson({ success: false, error: 'Только для администратора' }, 403, cors);
-      const path = action === 'ratingAdminList' ? '/rating/admin-list' : '/rating/admin-update';
-      const result = await callRatingStore(store, path, {
-        query: payload.query,
-        limit: payload.limit,
-        targetId: payload.targetId,
-        name: payload.name,
-        published: payload.published,
-        total: payload.total,
-      });
-      return ratingJson(result, result?.success === false ? 400 : 200, cors);
-    }
-
-    const routes = {
-      ratingSync: '/rating/sync',
-      ratingReset: '/rating/reset',
-      ratingTop: '/rating/top',
-      ratingJoin: '/rating/join',
-      ratingLeave: '/rating/leave',
-      ratingSetName: '/rating/name',
-    };
-    const result = await callRatingStore(store, routes[action], {
+    return ratingDispatch({
+      store,
       userId,
       username: verified?.user?.username || verified?.user?.first_name || '',
-      snapshot: payload.snapshot,
-      name: payload.name,
-      limit: payload.limit,
+      payload,
+      action,
+      cors,
     });
-    return ratingJson(result, result?.success === false ? 400 : 200, cors);
   } catch (error) {
     return ratingJson({ success: false, error: String(error?.message || 'Рейтинг недоступен') }, Number(error?.status || 500), cors);
   }
@@ -418,6 +403,76 @@ function ratingResponse(value) {
   return new Response(JSON.stringify(value ?? {}), {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
+}
+
+/**
+ * Рейтинг для подтверждённой сессии: Android-приложение и веб-версия.
+ *
+ * Личность берётся из токена, выданного тем же /android/auth/verify, что и
+ * остальным запросам этой дороги, — а не из тела запроса: иначе достаточно было
+ * бы прислать чужой id и получить чужой рейтинг.
+ */
+async function handleRatingSession(request, env, body, payload, action) {
+  const cors = ratingCors(request, env);
+  try {
+    const header = String(request.headers.get('Authorization') || '');
+    const token = header.match(/^Bearer\s+(bgs_[A-Za-z0-9_-]{40,80})$/i)?.[1] || '';
+    if (!token) return ratingJson({ success: false, error: 'Требуется подтверждённый вход' }, 401, cors);
+
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token)));
+    const tokenHash = [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+
+    const store = env.USERS.get(env.USERS.idFromName('global'));
+    const session = await callRatingStore(store, '/android-auth/session', { tokenHash });
+    const userId = cleanUserId(session?.userId);
+    if (!userId) return ratingJson({ success: false, error: 'Сессия истекла. Подтвердите вход снова.' }, 401, cors);
+
+    // Тело запроса называет игрока само; расходится с сессией — значит запрос
+    // собран не тем, чей это токен.
+    const claimed = cleanUserId(body?.androidUserId);
+    if (claimed && claimed !== userId) {
+      return ratingJson({ success: false, error: 'Запрос не соответствует сессии' }, 403, cors);
+    }
+
+    return ratingDispatch({ store, userId, username: '', payload, action, cors });
+  } catch (error) {
+    return ratingJson({ success: false, error: String(error?.message || 'Рейтинг недоступен') }, Number(error?.status || 500), cors);
+  }
+}
+
+/** Общая часть обеих дорог: сама работа с рейтингом после того, как игрок опознан. */
+async function ratingDispatch({ store, userId, username, payload, action, cors }) {
+  if (ADMIN_RATING_ACTIONS.has(action)) {
+    const role = await callRatingStore(store, '/admin-role/check', { userId });
+    if (role?.isAdmin !== true) return ratingJson({ success: false, error: 'Только для администратора' }, 403, cors);
+    const path = action === 'ratingAdminList' ? '/rating/admin-list' : '/rating/admin-update';
+    const result = await callRatingStore(store, path, {
+      query: payload.query,
+      limit: payload.limit,
+      targetId: payload.targetId,
+      name: payload.name,
+      published: payload.published,
+      total: payload.total,
+    });
+    return ratingJson(result, result?.success === false ? 400 : 200, cors);
+  }
+
+  const routes = {
+    ratingSync: '/rating/sync',
+    ratingReset: '/rating/reset',
+    ratingTop: '/rating/top',
+    ratingJoin: '/rating/join',
+    ratingLeave: '/rating/leave',
+    ratingSetName: '/rating/name',
+  };
+  const result = await callRatingStore(store, routes[action], {
+    userId,
+    username,
+    snapshot: payload.snapshot,
+    name: payload.name,
+    limit: payload.limit,
+  });
+  return ratingJson(result, result?.success === false ? 400 : 200, cors);
 }
 
 function ratingJson(value, status = 200, extraHeaders = {}) {

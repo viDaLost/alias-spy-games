@@ -12,7 +12,6 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
 
 const root = path.resolve(import.meta.dirname, '..');
 const source = path.join(root, 'android-app/app/src/main/res/drawable-nodpi/ic_launcher_art.webp');
@@ -38,6 +37,10 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 }
 
+// Браузер нужен только для сборки. Режим --check выше сюда не доходит, и
+// импортировать playwright-core на верхнем уровне нельзя: в проверочной
+// задаче CI зависимости не установлены, и падал бы даже --check.
+const { chromium } = await import('playwright-core');
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',

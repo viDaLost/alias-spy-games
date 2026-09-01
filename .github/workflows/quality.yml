@@ -127,5 +127,10 @@ jobs:
         run: npm run check:admin-sections
       - name: Check word search level picker
         run: npm run check:level-modal
+      # Проверки, которым нужен настоящий браузер. В задаче validate его нет —
+      # там и зависимости не ставятся, — поэтому они живут здесь, рядом с
+      # остальными браузерными.
+      - name: Run browser-backed project checks
+        run: npm run check:browser
       - name: Check Sacred Word without WebGL
         run: npm run check:sacred-fallback
