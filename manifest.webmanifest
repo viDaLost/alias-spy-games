@@ -1,0 +1,21 @@
+{
+  "name": "Библейские игры",
+  "short_name": "Библейские игры",
+  "description": "Библейские мини-игры для компании, друзей и семьи",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#DBEAFE",
+  "theme_color": "#eaf3ff",
+  "categories": ["games", "education"],
+  "icons": [
+    { "src": "web/assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "web/assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "web/assets/pwa/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "maskable" }
+  ]
+}

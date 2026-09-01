@@ -1,0 +1,163 @@
+/* Вход в профиль для веб-приложения и подсказка по установке.
+   Палитра приложения не меняется. */
+
+.web-session-open { overflow: hidden }
+
+.ws-login {
+  position: fixed;
+  inset: 0;
+  z-index: 1290;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(24, 30, 62, .58);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: ws-fade .22s ease-out;
+}
+
+@keyframes ws-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.ws-login__card {
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  padding: 24px;
+  border-radius: 26px;
+  background: linear-gradient(155deg, #fff, #f4f7ff 60%, #eef4ff);
+  border: 1px solid rgba(79, 70, 229, .14);
+  box-shadow: 0 26px 70px rgba(24, 30, 62, .32);
+  text-align: left;
+}
+
+.ws-login__kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: #4f46e5;
+}
+
+.ws-login__title { margin: 6px 0 8px; font-size: 20px; font-weight: 900; line-height: 1.15; color: #1f2352 }
+.ws-login__text { margin: 0 0 16px; font-size: 13.5px; line-height: 1.5; color: #5b6180 }
+
+.ws-login__label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #475069;
+}
+
+.ws-login__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 14px;
+  border: 1px solid rgba(79, 70, 229, .2);
+  border-radius: 14px;
+  background: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2352;
+}
+
+.ws-login__input:focus { outline: 2px solid rgba(79, 70, 229, .4); outline-offset: 1px }
+
+.ws-login__input--code {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: .34em;
+  text-indent: .34em;
+}
+
+.ws-login__hint { margin: 7px 0 16px; font-size: 11.5px; line-height: 1.4; color: #7a80a0 }
+
+.ws-login__primary,
+.ws-login__ghost {
+  width: 100%;
+  border: 0;
+  border-radius: 15px;
+  padding: 13px;
+  font-size: 14.5px;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: center;
+}
+
+.ws-login__primary {
+  margin-top: 14px;
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(48, 55, 150, .24);
+}
+
+.ws-login__primary[disabled] { opacity: .6 }
+.ws-login__ghost { margin-top: 8px; background: rgba(79, 70, 229, .08); color: #4a5081 }
+
+.ws-login__error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* Подсказка по установке на iPhone. */
+.install-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1280;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(24, 30, 62, .5);
+  animation: ws-fade .22s ease-out;
+}
+
+.install-sheet__card {
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  padding: 22px;
+  border-radius: 24px;
+  background: linear-gradient(155deg, #fff, #f4f7ff);
+  box-shadow: 0 26px 70px rgba(24, 30, 62, .32);
+  text-align: left;
+}
+
+.install-sheet__card h3 { margin: 0 0 12px; font-size: 18px; font-weight: 900; color: #1f2352 }
+.install-sheet__steps { margin: 0; padding-left: 20px }
+.install-sheet__steps li { margin-bottom: 8px; font-size: 13.5px; line-height: 1.5; color: #4a5068 }
+.install-sheet__steps b { color: #1f2352 }
+
+.install-sheet__note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(244, 201, 93, .16);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #6b5313;
+}
+
+.install-sheet__ok {
+  width: 100%;
+  margin-top: 16px;
+  border: 0;
+  border-radius: 15px;
+  padding: 13px;
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 900;
+  cursor: pointer;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-login, .install-sheet { animation: none !important }
+}

@@ -40,13 +40,26 @@
     return jsonResponse({ success: false, error: `Cloudflare backend is ${reason}` }, 503);
   }
 
+  // Подтверждённая сессия бывает двух видов, и запрос у них один и тот же:
+  // Android-обёртка отдаёт токен через мост, а веб-приложение, установленное на
+  // главный экран, хранит свой в localStorage. Сервер их не различает — обе
+  // сессии выданы одним и тем же /android/auth/verify.
   function androidSessionToken() {
-    if (window.__ANDROID_APK__ !== true) return '';
-    try {
-      return String(window.AndroidApp?.getSessionToken?.() || '').trim();
-    } catch {
-      return '';
+    if (window.__ANDROID_APK__ === true) {
+      try {
+        return String(window.AndroidApp?.getSessionToken?.() || '').trim();
+      } catch {
+        return '';
+      }
     }
+    if (window.__WEB_SESSION__ === true) {
+      try { return String(window.WebSession?.token?.() || '').trim(); } catch { return ''; }
+    }
+    return '';
+  }
+
+  function hasVerifiedSession() {
+    return window.__ANDROID_APK__ === true || window.__WEB_SESSION__ === true;
   }
 
   function requestPolicy(body) {
@@ -134,8 +147,17 @@
       return jsonResponse({ success: false, error: 'API action required' }, 400);
     }
 
+    // Без сети запрос к серверу всё равно не доедет. Те действия, которые
+    // сервер принимает как полное состояние, откладываются в очередь и уходят,
+    // когда связь вернётся; игра при этом продолжается, а не показывает ошибку.
+    if (navigator.onLine === false && window.OfflineQueue?.queueable(String(payload.action || ''))) {
+      if (window.OfflineQueue.push(payload)) {
+        return jsonResponse({ success: true, queued: true, source: 'offline-queue' });
+      }
+    }
+
     const androidId = String(window.__ANDROID_TELEGRAM_ID__ || '').trim();
-    if (window.__ANDROID_APK__ === true && /^\d{5,20}$/.test(androidId)) {
+    if (hasVerifiedSession() && /^\d{5,20}$/.test(androidId)) {
       const token = androidSessionToken();
       if (!token) return jsonResponse({ success: false, ok: false, error: 'Android session unavailable' }, 401);
       return callCore('/android/compat', { payload, androidUserId: androidId }, token);
@@ -163,7 +185,7 @@
         coreHealthy,
         lastFailureAt,
         legacyFallbackEnabled: false,
-        androidAuthenticated: window.__ANDROID_APK__ === true && Boolean(androidSessionToken()),
+        androidAuthenticated: hasVerifiedSession() && Boolean(androidSessionToken()),
         timeoutMs: ACCESS_TIMEOUT_MS,
         defaultTimeoutMs: DEFAULT_TIMEOUT_MS,
       };

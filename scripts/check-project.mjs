@@ -34,18 +34,29 @@ for (const file of files.filter((f) => f.endsWith('.json'))) {
   catch (error) { failures.push(`JSON invalid: ${rel(file)} — ${error.message}`); }
 }
 
-const forbidden = ['manifest.webmanifest', 'sw.js', 'PWA_INSTALL.md'];
-for (const name of forbidden) {
-  if (fs.existsSync(path.join(root, name))) failures.push(`PWA file must stay removed: ${name}`);
+// Раньше здесь стоял запрет: manifest.webmanifest, sw.js и любые упоминания
+// service worker считались ошибкой. Запрет снят по прямой просьбе владельца
+// проекта — на iPhone своего приложения нет, и ярлык на главном экране с игрой
+// без интернета остаётся единственным способом получить то же, что даёт
+// Android-приложение.
+//
+// Вместо запрета проверяется целостность: половина обвязки хуже, чем её
+// отсутствие. Манифест без работника не даст офлайна, работник без манифеста —
+// ярлыка, а забытая регистрация оставит и то и другое мёртвым грузом.
+const pwaFiles = ['manifest.webmanifest', 'sw.js'];
+const pwaPresent = pwaFiles.filter((name) => fs.existsSync(path.join(root, name)));
+if (pwaPresent.length && pwaPresent.length !== pwaFiles.length) {
+  failures.push(`PWA is half-wired: found ${pwaPresent.join(', ')} without ${pwaFiles.filter((name) => !pwaPresent.includes(name)).join(', ')}`);
+}
+if (pwaPresent.length === pwaFiles.length) {
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  if (!html.includes('rel="manifest"')) failures.push('index.html does not link manifest.webmanifest');
+  if (!html.includes('apple-touch-icon')) failures.push('index.html has no apple-touch-icon for the iOS home screen');
+  const registers = scriptSources.some((src) => /navigator\.serviceWorker\.register/.test(fs.readFileSync(path.join(root, src), 'utf8')));
+  if (!registers) failures.push('sw.js ships but nothing in the bundle registers it');
 }
 
 const searchable = files.filter((f) => /\.(?:html|js|css|md)$/i.test(f) && !isPreviewOnly(f));
-for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
-  const text = fs.readFileSync(file, 'utf8');
-  if (/manifest\.webmanifest|navigator\.serviceWorker|beforeinstallprompt|appinstalled/i.test(text)) {
-    failures.push(`PWA reference found in ${rel(file)}`);
-  }
-}
 
 const markdownLinkRegex = /\[[^\]]*\]\((?!https?:|mailto:|#)([^)#\s]+)(?:#[^)]+)?\)/g;
 for (const file of files.filter((f) => f.endsWith('.md'))) {
@@ -106,7 +117,9 @@ const dynamicPublishedFiles = new Set([
 
 // Runtime catalogs may point at media directly (for example one illustration per
 // Quartet card), so JSON participates in the published-file reachability graph.
-const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|json|kt|gradle)$/i.test(file));
+// .webmanifest тоже ссылается на опубликованные файлы: иконки главного экрана
+// живут только в нём, и без него они выглядят брошенными.
+const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|json|webmanifest|kt|gradle)$/i.test(file));
 const runtimeReferenceText = new Map(
   runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
 );
@@ -157,4 +170,4 @@ if (failures.length) {
   console.error(`Project check failed (${failures.length}):\n\n${failures.join('\n\n')}`);
   process.exit(1);
 }
-console.log(`OK: ${files.length} files checked; syntax, JSON, links, published-file reachability and non-PWA constraints are valid.`);
+console.log(`OK: ${files.length} files checked; syntax, JSON, links, published-file reachability and PWA wiring are valid.`);

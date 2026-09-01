@@ -9,6 +9,15 @@
   <meta name="application-name" content="Библейские игры" />
   <meta name="app-build" content="telegram-desktop-bootstrap-20260828" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <!-- Установка ярлыком на главный экран. iOS не читает манифест целиком,
+       поэтому имя, иконка и полноэкранный режим для неё задаются отдельно. -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="web/assets/pwa/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="web/assets/pwa/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Библейские игры" />
   <meta name="quartet-backend" content="https://alias-spy-games-quartet.vitaledanilov.workers.dev" />
   <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
@@ -84,7 +93,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.121b3b764c.css" />
+  <link rel="stylesheet" href="web/dist/app.55342c547e.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -161,7 +170,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script src="web/dist/app.70edd25b1a.js" defer></script>
+  <script src="web/dist/app.3cfa3bb96f.js" defer></script>
   <!-- /build:js -->
 </body>
 </html>

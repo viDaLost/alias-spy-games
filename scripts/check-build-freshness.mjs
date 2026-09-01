@@ -23,6 +23,11 @@ compare(`web/dist/${fresh.jsName}`, fresh.js);
 if (fs.readFileSync(path.join(root, 'index.html'), 'utf8') !== fresh.html) {
   problems.push('index.html does not reference the current bundle');
 }
+// Список кеша офлайн-работника собирается той же сборкой. Отстанет он — в
+// дороге откроется вчерашнее приложение, и заметить это будет некому.
+if (fs.readFileSync(path.join(root, 'sw.js'), 'utf8') !== fresh.sw) {
+  problems.push('sw.js precache list is stale');
+}
 
 const dist = fs.existsSync(path.join(root, 'web/dist')) ? fs.readdirSync(path.join(root, 'web/dist')) : [];
 const extra = dist.filter((name) => name !== fresh.cssName && name !== fresh.jsName);

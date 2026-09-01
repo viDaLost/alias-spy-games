@@ -2802,6 +2802,77 @@ html .rules-reset p {
 html .rules-reset__button {
   color: #d95571 !important;
 }
+html .offline-bar {
+  color: #141414 !important;
+}
+html .offline-update {
+  color: #141414 !important;
+}
+html .offline-update button {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
+
+/* web/styles/web-session.css */
+html .ws-login__card {
+  background: linear-gradient(155deg, #141414, #08112b 60%, #08162f) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+}
+html .ws-login__kicker {
+  color: #241bbf !important;
+}
+html .ws-login__title {
+  color: #9da1da !important;
+}
+html .ws-login__text {
+  color: #7c82a2 !important;
+}
+html .ws-login__label {
+  color: #8e98b3 !important;
+}
+html .ws-login__input {
+  border: 1px solid rgba(36, 27, 191, 0.2) !important;
+  background: #141414 !important;
+  color: #9da1da !important;
+}
+html .ws-login__input:focus {
+  outline: 2px solid rgba(36, 27, 191, 0.4) !important;
+}
+html .ws-login__hint {
+  color: #616788 !important;
+}
+html .ws-login__primary {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
+html .ws-login__ghost {
+  background: rgba(36, 27, 191, 0.08) !important;
+  color: #797fb2 !important;
+}
+html .ws-login__error {
+  background: #370b0b !important;
+  color: #e25c5c !important;
+}
+html .install-sheet__card {
+  background: linear-gradient(155deg, #141414, #08112b) !important;
+}
+html .install-sheet__card h3 {
+  color: #9da1da !important;
+}
+html .install-sheet__steps li {
+  color: #9096b0 !important;
+}
+html .install-sheet__steps b {
+  color: #9da1da !important;
+}
+html .install-sheet__note {
+  background: rgba(174, 128, 12, 0.16) !important;
+  color: #e9cd82 !important;
+}
+html .install-sheet__ok {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
 
 /* web/games/quartet-v2.css */
 html .qv2-root {

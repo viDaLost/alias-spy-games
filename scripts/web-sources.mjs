@@ -42,6 +42,7 @@ export const styleSources = [
   'web/styles/leaderboard.css',
   'web/styles/game-rules.css',
   'web/styles/progress-reset.css',
+  'web/styles/web-session.css',
   // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
@@ -49,6 +50,7 @@ export const styleSources = [
 
 export const scriptSources = [
   'web/js/android-runtime.js',
+  'web/js/web-session.js',
   'web/js/backend-bridge.js',
   'web/js/referral-survey.js',
   'web/js/error-system.js',
@@ -105,6 +107,8 @@ export const scriptSources = [
   'web/js/admin-shell-v3.js',
   'web/js/admin-live-modal-safety.js',
   'web/js/support-center.js',
+  'web/js/offline.js',
+  'web/js/install-app.js',
   'web/js/word-games-shuffle.js',
   'web/js/progress-reset.js',
   'web/js/game-rules-demos.js',
