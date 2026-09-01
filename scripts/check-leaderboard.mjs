@@ -180,6 +180,47 @@ await page.waitForTimeout(2500);
 // --- 1. пункт меню --------------------------------------------------------------
 if (!(await page.locator('#leaderboard-btn').count())) await fail('в меню нет пункта «Рейтинг»');
 
+// Иконка набора, а не текстовая заглушка: битый путь молча оставит пустое место.
+const cardIcon = await page.evaluate(() => {
+  const img = document.querySelector('#leaderboard-btn img');
+  if (!img) return null;
+  return { src: img.getAttribute('src') || '', width: img.naturalWidth, height: img.naturalHeight };
+});
+if (!cardIcon) await fail('у пункта «Рейтинг» нет картинки-иконки');
+if (!cardIcon.src.startsWith('web/assets/icons/rating.webp')) {
+  await fail(`иконка рейтинга берётся не из набора: ${cardIcon.src}`);
+}
+if (!cardIcon.width || !cardIcon.height) await fail('иконка рейтинга не загрузилась');
+
+// --- 1.5. одноразовое уведомление о новом разделе ---------------------------------
+const news = await page.evaluate(() => {
+  const node = document.getElementById('leaderboard-news');
+  if (!node) return null;
+  return {
+    text: node.innerText || '',
+    first: document.getElementById('menu-container')?.firstElementChild?.id === 'leaderboard-news',
+    icon: node.querySelector('img')?.getAttribute('src') || '',
+    open: Boolean(node.querySelector('[data-lb-news-open]')),
+  };
+});
+if (!news) await fail('в главном меню нет уведомления о новом разделе «Рейтинг»');
+if (!/рейтинг/i.test(news.text)) await fail('уведомление не говорит, что появился рейтинг игроков');
+if (!news.first) await fail('уведомление показывается не первым в меню');
+if (!news.icon.startsWith('web/assets/icons/rating.webp')) await fail('в уведомлении не та иконка');
+if (!news.open) await fail('из уведомления нельзя открыть рейтинг');
+
+await page.evaluate(() => document.querySelector('#leaderboard-news [data-lb-news-close]').click());
+await page.waitForTimeout(900);
+if (await page.locator('#leaderboard-news').count()) await fail('уведомление не закрывается');
+
+await page.reload({ waitUntil: 'commit', timeout: 30_000 });
+await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+await page.waitForTimeout(2000);
+if (await page.locator('#leaderboard-news').count()) {
+  await fail('уведомление показалось второй раз — оно должно быть одноразовым');
+}
+if (!(await page.locator('#leaderboard-btn').count())) await fail('после перезагрузки пропал пункт «Рейтинг»');
+
 // --- 2. первое открытие: знакомство, а не список ---------------------------------
 await page.evaluate(() => document.getElementById('leaderboard-btn').click());
 await page.waitForSelector('.lb-intro', { timeout: 15_000 });
@@ -293,7 +334,8 @@ if (crashes.length) await fail(`страница поймала исключен
 console.log('Рейтинг в порядке: очки считает сервер, снимок прогресса собирается верно, '
   + 'до согласия игрока нет в списке, публикация идёт под выбранным именем, '
   + 'Telegram ID не показывается, выйти из рейтинга можно в одно нажатие, '
-  + 'а администратор правит имена и очки из своей вкладки.');
+  + 'администратор правит имена и очки из своей вкладки, '
+  + 'в меню стоит иконка набора, а уведомление о новом разделе показывается один раз.');
 
 await browser.close();
 server.close();

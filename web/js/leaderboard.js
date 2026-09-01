@@ -12,7 +12,9 @@
   // себе счёт не может.
 
   const STORAGE_SEEN = 'leaderboard_intro_seen_v1';
+  const STORAGE_NEWS = 'leaderboard_news_seen_v1';
   const COUNT_MS = 1400;
+  const MENU_ICON = 'web/assets/icons/rating.webp?v=1';
 
   const GAME_ORDER = [
     ['bmt', 'Библейские сокровища', 'уровней'],
@@ -361,7 +363,10 @@
     card.id = 'leaderboard-btn';
     card.className = 'game-card game-card--leaderboard';
     card.innerHTML = `
-      <span class="game-card__icon lb-card-icon" aria-hidden="true">★</span>
+      <span class="game-card__icon game-card__icon--image lb-card-icon">
+        <img class="game-card__img" src="${MENU_ICON}" alt="Иконка раздела Рейтинг"
+             loading="eager" decoding="async" draggable="false" />
+      </span>
       <span class="game-card__body">
         <span class="game-card__title">Рейтинг</span>
         <span class="game-card__desc">Очки за все игры и общий список игроков</span>
@@ -374,9 +379,70 @@
     return true;
   }
 
+  // --- одноразовое уведомление о новом разделе -------------------------------
+  //
+  // Показывается один раз и только тому, кто ещё не заходил в рейтинг: тем, кто
+  // уже там был, новость нечего сообщать. Отметка ставится при закрытии, а не
+  // при показе, — иначе свёрнутое на полуслове приложение съело бы уведомление.
+
+  function newsSeen() {
+    try {
+      return localStorage.getItem(STORAGE_NEWS) === '1' || localStorage.getItem(STORAGE_SEEN) === '1';
+    } catch { return true; }
+  }
+
+  function markNewsSeen() {
+    try { localStorage.setItem(STORAGE_NEWS, '1'); } catch { /* приватный режим */ }
+  }
+
+  function dismissNews(node) {
+    markNewsSeen();
+    node.classList.remove('is-visible');
+    node.addEventListener('transitionend', () => node.remove(), { once: true });
+    setTimeout(() => node.remove(), 600);
+  }
+
+  function addMenuNews() {
+    const menu = document.getElementById('menu-container');
+    if (!menu || document.getElementById('leaderboard-news')) return Boolean(menu);
+    if (newsSeen()) return true;
+
+    const note = document.createElement('section');
+    note.id = 'leaderboard-news';
+    note.className = 'lb-news';
+    note.setAttribute('role', 'status');
+    note.innerHTML = `
+      <button type="button" class="lb-news__close" data-lb-news-close aria-label="Скрыть уведомление">×</button>
+      <span class="lb-news__icon">
+        <img src="${MENU_ICON}" alt="" loading="eager" decoding="async" draggable="false" />
+      </span>
+      <div class="lb-news__body">
+        <p class="lb-news__kicker">Новое</p>
+        <h3 class="lb-news__title">Рейтинг игроков</h3>
+        <p class="lb-news__text">
+          Очки за все пройденные уровни теперь складываются в один счёт. Посмотрите свой
+          результат и, если захотите, встаньте в общий список под любым именем.
+        </p>
+        <div class="lb-news__actions">
+          <button type="button" class="lb-news__open" data-lb-news-open>Посмотреть рейтинг</button>
+          <button type="button" class="lb-news__later" data-lb-news-close>Позже</button>
+        </div>
+      </div>`;
+
+    note.addEventListener('click', (event) => {
+      if (event.target.closest('[data-lb-news-open]')) { markNewsSeen(); note.remove(); open(); return; }
+      if (event.target.closest('[data-lb-news-close]')) dismissNews(note);
+    });
+
+    menu.prepend(note);
+    requestAnimationFrame(() => note.classList.add('is-visible'));
+    return true;
+  }
+
   function install() {
-    if (addMenuCard()) return;
-    const observer = new MutationObserver(() => { if (addMenuCard()) observer.disconnect(); });
+    const done = () => addMenuCard() && addMenuNews();
+    if (done()) return;
+    const observer = new MutationObserver(() => { if (done()) observer.disconnect(); });
     observer.observe(document.documentElement, { childList: true, subtree: true });
     setTimeout(() => observer.disconnect(), 12000);
   }

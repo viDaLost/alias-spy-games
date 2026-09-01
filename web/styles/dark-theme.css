@@ -2512,9 +2512,30 @@ html .lb-error h3 {
 html .lb-toast {
   color: #141414 !important;
 }
-html .lb-card-icon {
-  color: #d1992d !important;
-  background: linear-gradient(140deg, #392b0a, #55400f) !important;
+html .lb-news {
+  background: linear-gradient(150deg, #282007, #08102c) !important;
+  border: 1px solid rgba(36, 27, 191, 0.16) !important;
+}
+html .lb-news__close {
+  background: rgba(36, 27, 191, 0.08) !important;
+  color: #575ea4 !important;
+}
+html .lb-news__kicker {
+  color: #dfa83b !important;
+}
+html .lb-news__title {
+  color: #9da1da !important;
+}
+html .lb-news__text {
+  color: #7c82a2 !important;
+}
+html .lb-news__open {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
+html .lb-news__later {
+  background: rgba(36, 27, 191, 0.09) !important;
+  color: #797fb2 !important;
 }
 html .admin-rating {
   background: rgba(20, 20, 20, 0.82) !important;
