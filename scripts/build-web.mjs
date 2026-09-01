@@ -31,7 +31,7 @@ const PRECACHE_DIRS = [
   'web/assets/biblical-match-three/icons-v17',
   'web/assets/biblical-match-three/icons-v29',
 ];
-const PRECACHE_FILES = ['index.html', 'manifest.webmanifest'];
+const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest'];
 
 function walk(dir) {
   const out = [];

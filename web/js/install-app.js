@@ -24,6 +24,10 @@
   // именем. Safari показывает адрес открытого сайта и запоминает его при
   // установке, поэтому ярлык ставится оттуда, а не с github.io.
   const SHELL_URL = String(document.querySelector('meta[name="app-shell"]')?.content || '').replace(/\/+$/, '');
+  // В Safari уходит не игра, а страница установки: человек попадает туда, чтобы
+  // поставить ярлык, и объяснять это надо на самой странице, а не в мессенджере,
+  // который к тому времени уже закрыт. Ярлык при этом ведёт на саму игру.
+  const INSTALL_PAGE = SHELL_URL ? `${SHELL_URL}/install.html` : '';
 
   let deferredPrompt = null;
 
@@ -63,14 +67,14 @@
   const onShell = () => Boolean(SHELL_URL) && location.origin === SHELL_URL;
 
   function openInSafari() {
-    if (!SHELL_URL) return false;
+    if (!INSTALL_PAGE) return false;
     const telegram = window.Telegram?.WebApp;
     // openLink уводит из мессенджера во внешний браузер — на iPhone это Safari,
     // единственный, кто умеет ставить ярлык на главный экран.
     if (typeof telegram?.openLink === 'function') {
-      try { telegram.openLink(SHELL_URL, { try_instant_view: false }); return true; } catch { /* откроем обычной ссылкой */ }
+      try { telegram.openLink(INSTALL_PAGE, { try_instant_view: false }); return true; } catch { /* откроем обычной ссылкой */ }
     }
-    try { window.open(SHELL_URL, '_blank', 'noopener'); return true; } catch { return false; }
+    try { window.open(INSTALL_PAGE, '_blank', 'noopener'); return true; } catch { return false; }
   }
 
   function iosSheet() {
@@ -147,7 +151,7 @@
       // Внутри Telegram карточка нужна только на iPhone: именно оттуда человек
       // и приходит, а увести его в Safari можно лишь отсюда. На остальных
       // платформах Telegram сам умеет класть ярлык на экран.
-      if (insideTelegram()) { if (!isIOS() || !SHELL_URL) return true; }
+      if (insideTelegram()) { if (!isIOS() || !INSTALL_PAGE) return true; }
       else if (!deferredPrompt && !isIOS()) return true;
     }
 
@@ -176,7 +180,10 @@
     return true;
   }
 
-  window.InstallApp = { mount, canPrompt: () => Boolean(deferredPrompt), isIOS, shellUrl: () => SHELL_URL, openInSafari };
+  window.InstallApp = {
+    mount, canPrompt: () => Boolean(deferredPrompt), isIOS,
+    shellUrl: () => SHELL_URL, installPage: () => INSTALL_PAGE, openInSafari,
+  };
 
   const observer = new MutationObserver(() => { mount(); });
   observer.observe(document.documentElement, { childList: true, subtree: true });

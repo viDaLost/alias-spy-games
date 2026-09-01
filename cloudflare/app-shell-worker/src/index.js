@@ -19,7 +19,7 @@ const UPSTREAM = 'https://vidalost.github.io/alias-spy-games';
 // имени и не меняются никогда; index.html и работник обязаны приезжать свежими,
 // иначе установленное приложение застрянет на старой сборке.
 const IMMUTABLE = /\/web\/(?:dist|assets)\//;
-const NEVER_CACHE = /^\/(?:index\.html)?$|^\/sw\.js$|^\/manifest\.webmanifest$/;
+const NEVER_CACHE = /^\/(?:index\.html|install\.html)?$|^\/sw\.js$|^\/manifest\.webmanifest$/;
 
 export default {
   async fetch(request, env, ctx) {

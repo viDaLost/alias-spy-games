@@ -43,6 +43,21 @@ for (const header of ['server', 'x-served-by', 'via']) {
   assert.ok(worker.includes(`'${header}'`), `витрина не снимает заголовок ${header}, по которому виден источник`);
 }
 
+// --- страница установки ------------------------------------------------------
+const install = fs.readFileSync(path.join(root, 'install.html'), 'utf8');
+const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8'));
+
+assert.ok(/rel="manifest"/.test(install), 'страница установки не подключает манифест — ярлык получится без имени и значка');
+assert.ok(/apple-touch-icon/.test(install), 'у страницы установки нет значка для главного экрана');
+assert.ok(/apple-mobile-web-app-title/.test(install), 'у ярлыка не будет имени');
+// Ярлык должен запускать игру, а не инструкцию по установке.
+assert.ok(/index\.html/.test(String(manifest.start_url || '')),
+  `start_url манифеста «${manifest.start_url}» ведёт не на приложение — ярлык откроет страницу установки`);
+assert.ok(/location\.replace\('\.\/index\.html'\)/.test(install),
+  'страница установки не уводит на игру, когда её открыли ярлыком — на старых iOS человек попадёт в инструкцию');
+assert.ok(/navigator\.standalone/.test(install), 'страница установки не отличает запуск ярлыком от обычной вкладки');
+assert.ok(/Safari/.test(install), 'страница установки не говорит, что ярлык умеет создавать только Safari');
+
 // --- витрина в деле: поднимаем её поверх локальной копии приложения ------------
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
@@ -99,7 +114,7 @@ const shellLocal = `http://127.0.0.1:${shell.address().port}`;
 const problems = [];
 
 // Витрина не должна проговариваться об источнике ни телом, ни заголовками.
-for (const route of ['/', '/index.html', '/manifest.webmanifest', '/sw.js']) {
+for (const route of ['/', '/index.html', '/install.html', '/manifest.webmanifest', '/sw.js']) {
   const response = await fetch(`${shellLocal}${route}`);
   if (!response.ok) { problems.push(`витрина отдала ${response.status} на ${route}`); continue; }
   const text = await response.text();
@@ -112,7 +127,7 @@ for (const route of ['/', '/index.html', '/manifest.webmanifest', '/sw.js']) {
   if (route === '/sw.js' && response.headers.get('service-worker-allowed') !== '/') {
     problems.push('работник получил не корневой охват — он не будет управлять приложением');
   }
-  if ((route === '/' || route === '/index.html' || route === '/sw.js')
+  if ((route === '/' || route === '/index.html' || route === '/install.html' || route === '/sw.js')
       && !/no-cache/.test(response.headers.get('cache-control') || '')) {
     problems.push(`${route} отдаётся с кешированием — обновление до приложения не доедет`);
   }
@@ -198,8 +213,9 @@ if (!(await page.locator('#install-app-btn').count())) {
     if (opened.length && /github/i.test(opened[0])) {
       problems.push(`в Safari уходит адрес с GitHub: ${opened[0]}`);
     }
-    if (opened.length && opened[0] !== shellUrl) {
-      problems.push(`в Safari уходит ${opened[0]} вместо витрины ${shellUrl}`);
+    const expectedLink = `${shellUrl}/install.html`;
+    if (opened.length && opened[0] !== expectedLink) {
+      problems.push(`в Safari уходит ${opened[0]} вместо страницы установки ${expectedLink}`);
     }
   }
 }
@@ -213,5 +229,6 @@ if (problems.length) {
 }
 
 console.log('Витрина в порядке: приложение отдаётся под своим адресом, GitHub не виден ни в теле, '
-  + 'ни в заголовках, index.html и работник не кешируются, работник получает корневой охват, '
-  + 'а на iPhone внутри Telegram есть кнопка, уводящая в Safari именно на витрину.');
+  + 'ни в заголовках, страницы и работник не кешируются, работник получает корневой охват, '
+  + 'из Telegram кнопка уводит в Safari на страницу установки, '
+  + 'а поставленный с неё ярлык открывает игру, а не инструкцию.');
