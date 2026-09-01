@@ -3,6 +3,7 @@ import { SqlUserStore } from './sql-user-store.js';
 const ACTIVE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 12;
 const MAX_ATTEMPTS = 3;
+const MAX_BUTTONS = 2;
 
 export class BroadcastUserStore extends SqlUserStore {
   constructor(ctx, env) {
@@ -45,6 +46,11 @@ export class BroadcastUserStore extends SqlUserStore {
       CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_queue
         ON broadcast_recipients(job_id, status, next_attempt_at);
     `);
+    try {
+      this.sql.exec("ALTER TABLE broadcast_jobs ADD COLUMN buttons TEXT NOT NULL DEFAULT '[]'");
+    } catch {
+      // Колонка уже есть — это обычный путь на всех запусках после первого.
+    }
   }
 
   async fetch(request) {
@@ -91,8 +97,8 @@ export class BroadcastUserStore extends SqlUserStore {
       this.sql.exec(`
         INSERT INTO broadcast_jobs (
           id, kind, text, media_file_id, media_name, audience, selected_ids,
-          silent, html, button_text, button_url, status, total, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?)
+          silent, html, button_text, button_url, buttons, status, total, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?)
       `,
         id,
         config.kind,
@@ -105,6 +111,7 @@ export class BroadcastUserStore extends SqlUserStore {
         config.html ? 1 : 0,
         config.buttonText,
         config.buttonUrl,
+        JSON.stringify({ layout: config.buttonsLayout, items: config.buttons }),
         recipients.length,
         now,
       );
@@ -321,6 +328,23 @@ function normalizeConfig(raw = {}) {
     .filter((id) => /^\d{5,20}$/.test(id)))].slice(0, 5000);
   const buttonText = String(raw.buttonText || '').replace(/[\r\n<>]/g, '').trim().slice(0, 64);
   const buttonUrl = String(raw.buttonUrl || '').trim().slice(0, 512);
+  // Панель присылает список кнопок; одиночные buttonText/buttonUrl остаются для
+  // совместимости со старым клиентом и повторами прежних рассылок.
+  const rawButtons = Array.isArray(raw.buttons) && raw.buttons.length
+    ? raw.buttons
+    : (buttonText || buttonUrl ? [{ text: buttonText, url: buttonUrl }] : []);
+  const buttons = [];
+  for (const item of rawButtons.slice(0, MAX_BUTTONS)) {
+    const label = String(item?.text || '').replace(/[\r\n<>]/g, '').trim().slice(0, 64);
+    const link = String(item?.url || '').trim().slice(0, 512);
+    if (!label && !link) continue;
+    if (!label || !link) return { ok: false, success: false, error: 'Для кнопки нужны и текст, и ссылка' };
+    if (!/^https:\/\//i.test(link) && !/^tg:\/\//i.test(link)) {
+      return { ok: false, success: false, error: 'Ссылка кнопки должна начинаться с https:// или tg://' };
+    }
+    buttons.push({ text: label, url: link });
+  }
+  const buttonsLayout = String(raw.buttonsLayout) === 'stack' ? 'stack' : 'row';
 
   if (kind === 'text' && !text) return { ok: false, success: false, error: 'Введите текст сообщения' };
   if (kind !== 'text' && !mediaFileId) return { ok: false, success: false, error: 'Сначала прикрепите файл' };
@@ -340,9 +364,39 @@ function normalizeConfig(raw = {}) {
     selectedIds,
     silent: Boolean(raw.silent),
     html: Boolean(raw.html),
-    buttonText,
-    buttonUrl,
+    buttonText: buttons[0]?.text || '',
+    buttonUrl: buttons[0]?.url || '',
+    buttons,
+    buttonsLayout,
   };
+}
+
+/**
+ * Клавиатура рассылки. У рассылок, созданных до появления списка кнопок, в
+ * строке есть только button_text и button_url — их и берём.
+ */
+function keyboardFor(job = {}) {
+  const parsed = parseButtons(job.buttons);
+  const items = parsed.items.length
+    ? parsed.items
+    : (job.button_text && job.button_url ? [{ text: job.button_text, url: job.button_url }] : []);
+  if (!items.length) return null;
+  if (items.length === 1) return [[items[0]]];
+  return parsed.layout === 'stack' ? items.map((item) => [item]) : [items];
+}
+
+function parseButtons(value) {
+  try {
+    const parsed = JSON.parse(String(value || '[]'));
+    const items = (Array.isArray(parsed) ? parsed : parsed?.items || [])
+      .filter((item) => item && item.text && item.url)
+      .slice(0, MAX_BUTTONS)
+      .map((item) => ({ text: String(item.text), url: String(item.url) }));
+    const layout = (Array.isArray(parsed) ? 'row' : String(parsed?.layout || 'row')) === 'stack' ? 'stack' : 'row';
+    return { items, layout };
+  } catch {
+    return { items: [], layout: 'row' };
+  }
 }
 
 function toPublicJob(row = {}) {
@@ -357,6 +411,8 @@ function toPublicJob(row = {}) {
     html: Boolean(row.html),
     buttonText: String(row.button_text || ''),
     buttonUrl: String(row.button_url || ''),
+    buttons: parseButtons(row.buttons).items,
+    buttonsLayout: parseButtons(row.buttons).layout,
     status: String(row.status || 'queued'),
     total: Number(row.total || 0),
     sent: Number(row.sent || 0),
@@ -389,11 +445,8 @@ async function sendTelegram(token, chatId, job) {
   }
 
   if (job.html) payload.parse_mode = 'HTML';
-  if (job.button_text && job.button_url) {
-    payload.reply_markup = {
-      inline_keyboard: [[{ text: job.button_text, url: job.button_url }]],
-    };
-  }
+  const keyboard = keyboardFor(job);
+  if (keyboard) payload.reply_markup = { inline_keyboard: keyboard };
 
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',

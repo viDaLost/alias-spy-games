@@ -1276,6 +1276,22 @@ html .broadcast-v2__options {
 html .broadcast-v2__options details summary {
   color: #6c75bd !important;
 }
+html .broadcast-v2__button-row>b {
+  color: #6c75bd !important;
+}
+html .broadcast-v2__button-emoji {
+  color: #767c92 !important;
+}
+html .broadcast-v2__button-emoji button {
+  border: 1px solid rgba(75, 85, 176, 0.16) !important;
+  background: #141414 !important;
+}
+html .broadcast-v2__button-emoji button:active {
+  background: #08112f !important;
+}
+html .broadcast-v2__button-note {
+  color: #5c6379 !important;
+}
 html .broadcast-v2__preview>small {
   color: #4f566c !important;
 }

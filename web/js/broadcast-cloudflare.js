@@ -88,10 +88,37 @@
         <div class="broadcast-v2__options">
           <label><input id="bc-html" type="checkbox" /> Разрешить HTML-разметку Telegram</label>
           <details>
-            <summary>Кнопка под сообщением</summary>
+            <summary>Кнопки под сообщением</summary>
             <div class="broadcast-v2__button-fields">
-              <input id="bc-button-text" maxlength="64" placeholder="Текст кнопки, например: Открыть приложение" />
-              <input id="bc-button-url" inputmode="url" placeholder="https://..." />
+              <div class="broadcast-v2__button-row">
+                <b>Кнопка 1</b>
+                <input id="bc-button-text" maxlength="64" placeholder="Текст, например: Открыть приложение" />
+                <input id="bc-button-url" inputmode="url" placeholder="https://..." />
+              </div>
+              <div class="broadcast-v2__button-row">
+                <b>Кнопка 2</b>
+                <input id="bc-button2-text" maxlength="64" placeholder="Текст, например: Читать канал" />
+                <input id="bc-button2-url" inputmode="url" placeholder="https://..." />
+              </div>
+              <label class="broadcast-v2__button-layout">Расположение
+                <select id="bc-buttons-layout">
+                  <option value="row">Рядом, в одну строку</option>
+                  <option value="stack">Друг под другом</option>
+                </select>
+              </label>
+              <div class="broadcast-v2__button-emoji">
+                <span>Значок в начало текста:</span>
+                <button type="button" data-bc-emoji="🎮">🎮</button>
+                <button type="button" data-bc-emoji="📖">📖</button>
+                <button type="button" data-bc-emoji="✨">✨</button>
+                <button type="button" data-bc-emoji="▶️">▶️</button>
+                <button type="button" data-bc-emoji="🎁">🎁</button>
+              </div>
+              <small class="broadcast-v2__button-note">
+                Цвет кнопок задать нельзя: Telegram рисует их в теме получателя и
+                поля цвета в его API нет. Выделить кнопку можно значком в начале
+                текста — так делают в каналах.
+              </small>
             </div>
           </details>
         </div>
@@ -135,8 +162,21 @@
     text?.addEventListener('input', () => { updateCounter(); updatePreview(); });
     file?.addEventListener('change', () => { updateFileInfo(); updatePreview(); });
     search?.addEventListener('input', renderSelectedUsers);
-    root.querySelector('#bc-button-text')?.addEventListener('input', updatePreview);
-    root.querySelector('#bc-button-url')?.addEventListener('input', updatePreview);
+    for (const id of ['#bc-button-text', '#bc-button-url', '#bc-button2-text', '#bc-button2-url']) {
+      root.querySelector(id)?.addEventListener('input', updatePreview);
+    }
+    root.querySelector('#bc-buttons-layout')?.addEventListener('change', updatePreview);
+    // Значок подставляется в то поле текста, где стоял курсор, а по умолчанию — в первое.
+    root.querySelector('.broadcast-v2__button-emoji')?.addEventListener('click', (event) => {
+      const emoji = event.target?.dataset?.bcEmoji;
+      if (!emoji) return;
+      const active = document.activeElement;
+      const target = active?.id === 'bc-button2-text' ? active : root.querySelector('#bc-button-text');
+      if (!target) return;
+      target.value = `${emoji} ${target.value.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '')}`.trim().slice(0, 64);
+      target.focus();
+      updatePreview();
+    });
     root.querySelector('#broadcast-btn')?.addEventListener('click', submitBroadcast);
     root.querySelector('#bc-history-refresh')?.addEventListener('click', loadHistory);
     root.querySelector('#bc-history-list')?.addEventListener('click', onHistoryClick);
@@ -182,16 +222,42 @@
     info.textContent = `${file.name} • ${(file.size / 1024 / 1024).toFixed(file.size > 1024 * 1024 ? 1 : 2)} МБ`;
   }
 
+  function previewButtons() {
+    const { items, layout } = buttonsConfig();
+    const ready = items.filter((item) => item.text && item.url);
+    if (!ready.length) return '';
+    const cells = ready.map((item) => `<span class="broadcast-v2__preview-button">${escapeHTML(item.text)}</span>`);
+    const rows = ready.length === 2 && layout === 'stack' ? cells.map((cell) => `<div>${cell}</div>`) : [`<div>${cells.join('')}</div>`];
+    return `<div class="broadcast-v2__preview-buttons">${rows.join('')}</div>`;
+  }
+
   function updatePreview() {
     const r = root(); if (!r) return;
     const kind = r.querySelector('#bc-kind')?.value || 'text';
     const text = r.querySelector('#broadcast-text')?.value || '';
     const file = r.querySelector('#bc-file')?.files?.[0];
-    const buttonText = r.querySelector('#bc-button-text')?.value.trim() || '';
     const preview = r.querySelector('#bc-preview');
     if (!preview) return;
     const media = kind === 'photo' ? '🖼️ Фото' : kind === 'document' ? `📎 ${escapeHTML(file?.name || 'Файл')}` : '';
-    preview.innerHTML = `${media ? `<b>${media}</b>` : ''}${text ? `<p>${escapeHTML(text).replace(/\n/g, '<br>')}</p>` : ''}${buttonText ? `<span class="broadcast-v2__preview-button">${escapeHTML(buttonText)}</span>` : ''}` || 'Введите сообщение или выберите файл';
+    const body = `${media ? `<b>${media}</b>` : ''}${text ? `<p>${escapeHTML(text).replace(/\n/g, '<br>')}</p>` : ''}${previewButtons()}`;
+    preview.innerHTML = body || 'Введите сообщение или выберите файл';
+  }
+
+  /** Кнопки в порядке полей; пустые пары просто пропускаются. */
+  function buttonsConfig() {
+    const r = root();
+    const pairs = [
+      [r?.querySelector('#bc-button-text'), r?.querySelector('#bc-button-url')],
+      [r?.querySelector('#bc-button2-text'), r?.querySelector('#bc-button2-url')],
+    ];
+    const items = [];
+    for (const [textNode, urlNode] of pairs) {
+      const text = textNode?.value.trim() || '';
+      const url = urlNode?.value.trim() || '';
+      if (!text && !url) continue;
+      items.push({ text, url });
+    }
+    return { items, layout: r?.querySelector('#bc-buttons-layout')?.value === 'stack' ? 'stack' : 'row' };
   }
 
   function selectedIds() {
@@ -216,6 +282,14 @@
     }).join('');
   }
 
+  const UPLOAD_TIMEOUT_MS = 90_000;
+
+  /**
+   * Загрузка вложения. Мобильная сеть рвёт длинные запросы, а браузер сообщает
+   * об этом одной строкой вроде «Load failed» — раньше она и уезжала админу в
+   * красную плашку. Теперь запрос ограничен по времени, один раз повторяется и
+   * объясняет, что именно случилось.
+   */
   async function uploadMedia(file, kind) {
     const backend = String(window.AppCoreBridge?.backend || '').replace(/\/+$/, '');
     const initData = String(window.Telegram?.WebApp?.initData || '');
@@ -223,14 +297,39 @@
     const max = kind === 'photo' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
     if (file.size > max) throw new Error(kind === 'photo' ? 'Фото должно быть не больше 10 МБ' : 'Файл должен быть не больше 50 МБ');
 
-    const form = new FormData();
-    form.append('telegramInitData', initData);
-    form.append('kind', kind);
-    form.append('file', file, file.name);
-    const response = await fetch(`${backend}/broadcast/upload`, { method: 'POST', body: form, cache: 'no-store' });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.success === false) throw new Error(data.error || 'Не удалось загрузить вложение');
-    return data;
+    let lastNetworkError = null;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const form = new FormData();
+      form.append('telegramInitData', initData);
+      form.append('kind', kind);
+      form.append('file', file, file.name);
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+      let response;
+      try {
+        response = await fetch(`${backend}/broadcast/upload`, {
+          method: 'POST', body: form, cache: 'no-store', signal: controller.signal,
+        });
+      } catch (error) {
+        // Сюда попадают обрыв связи, таймаут и отказ по CORS — всё то, о чём
+        // браузер не говорит ничего внятного.
+        lastNetworkError = error;
+        continue;
+      } finally {
+        clearTimeout(timer);
+      }
+
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success !== false) return data;
+      // Сервер ответил — повторять незачем, он объяснил причину.
+      throw new Error(data.error || `Сервер отклонил вложение (код ${response.status})`);
+    }
+
+    const aborted = lastNetworkError?.name === 'AbortError';
+    throw new Error(aborted
+      ? `Загрузка вложения не уложилась в ${Math.round(UPLOAD_TIMEOUT_MS / 1000)} секунд. Попробуйте файл поменьше или сеть получше`
+      : 'Не удалось связаться с сервером для загрузки вложения. Проверьте связь и попробуйте ещё раз');
   }
 
   async function submitBroadcast() {
@@ -241,14 +340,18 @@
     const text = r.querySelector('#broadcast-text')?.value.trim() || '';
     const audience = r.querySelector('#bc-audience')?.value || 'all';
     const file = r.querySelector('#bc-file')?.files?.[0];
-    const buttonText = r.querySelector('#bc-button-text')?.value.trim() || '';
-    const buttonUrl = r.querySelector('#bc-button-url')?.value.trim() || '';
+    const buttons = buttonsConfig();
 
     error?.classList.add('hidden');
     if (kind === 'text' && !text) return showError('Введите текст сообщения');
     if (kind !== 'text' && !file) return showError('Выберите вложение');
     if (audience === 'selected' && !selectedIds().length) return showError('Выберите хотя бы одного пользователя');
-    if ((buttonText && !buttonUrl) || (!buttonText && buttonUrl)) return showError('Заполните и текст кнопки, и ссылку');
+    for (const [index, item] of buttons.items.entries()) {
+      if (!item.text || !item.url) return showError(`Заполните и текст, и ссылку у кнопки ${index + 1}`);
+      if (!/^https:\/\//i.test(item.url) && !/^tg:\/\//i.test(item.url)) {
+        return showError(`Ссылка кнопки ${index + 1} должна начинаться с https:// или tg://`);
+      }
+    }
 
     if (!confirm('Начать рассылку? Отправка будет выполняться в фоне, страницу можно закрыть.')) return;
 
@@ -265,8 +368,8 @@
         selectedIds: audience === 'selected' ? selectedIds() : [],
         silent: Boolean(r.querySelector('#bc-silent')?.checked),
         html: Boolean(r.querySelector('#bc-html')?.checked),
-        buttonText,
-        buttonUrl,
+        buttons: buttons.items,
+        buttonsLayout: buttons.layout,
       };
       if (btn) btn.textContent = 'Запускаем...';
       const result = await api('broadcastCreate', { config });
@@ -275,10 +378,24 @@
       await loadHistory();
       if (typeof window.showToast === 'function') window.showToast('Рассылка запущена');
     } catch (e) {
-      showError(e.message || 'Не удалось начать рассылку');
+      showError(humanError(e));
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Начать рассылку'; }
     }
+  }
+
+  /**
+   * Сообщения вроде «Load failed» или «NetworkError» приходят от браузера и
+   * администратору ничего не объясняют.
+   */
+  function humanError(error) {
+    const message = String(error?.message || '').trim();
+    if (!message) return 'Не удалось начать рассылку';
+    if (error?.name === 'AbortError') return 'Запрос слишком долго не отвечал. Попробуйте ещё раз';
+    if (/^(load failed|failed to fetch|networkerror|network error)/i.test(message)) {
+      return 'Нет связи с сервером рассылки. Проверьте интернет и попробуйте ещё раз';
+    }
+    return message;
   }
 
   function showError(message) {
