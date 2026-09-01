@@ -40,6 +40,7 @@ export const styleSources = [
   'web/styles/sacred-word-polish.css',
   'web/styles/lobby-polish.css',
   'web/styles/leaderboard.css',
+  'web/styles/game-rules.css',
   // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
@@ -103,6 +104,8 @@ export const scriptSources = [
   'web/js/admin-shell-v3.js',
   'web/js/admin-live-modal-safety.js',
   'web/js/support-center.js',
+  'web/js/game-rules-demos.js',
+  'web/js/game-rules.js',
   'web/js/leaderboard.js',
   'web/js/leaderboard-admin.js',
 ];

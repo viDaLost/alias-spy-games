@@ -2601,6 +2601,139 @@ html .admin-rating__toast {
   color: #141414 !important;
 }
 
+/* web/styles/game-rules.css */
+html .rules-topbar {
+  background: linear-gradient(135deg, #3730a3, #241bbf 55%, #1453dc) !important;
+  color: #141414 !important;
+}
+html .rules-back {
+  background: rgba(20, 20, 20, 0.18) !important;
+  color: #141414 !important;
+}
+html .rules-lead {
+  color: #7c82a2 !important;
+}
+html .rules-game {
+  background: linear-gradient(160deg, #141414, #08112b) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+}
+html .rules-game__label strong {
+  color: #9da1da !important;
+}
+html .rules-game__label small {
+  color: #6f7595 !important;
+}
+html .rules-game__chevron {
+  color: #545b89 !important;
+}
+html .rules-game__body {
+  border-top: 1px solid rgba(36, 27, 191, 0.1) !important;
+}
+html .rules-game__body h4 {
+  color: #5e57cd !important;
+}
+html .rules-game__body p {
+  color: #9096b0 !important;
+}
+html .rules-game__body li {
+  color: #9096b0 !important;
+}
+html .rules-game__body b {
+  color: #9da1da !important;
+}
+html .rules-note {
+  background: rgba(174, 128, 12, 0.16) !important;
+  color: #e9cd82 !important;
+}
+html .rules-table th {
+  background: rgba(36, 27, 191, 0.08) !important;
+  color: #5e57cd !important;
+}
+html .rules-table td {
+  border-top: 1px solid rgba(36, 27, 191, 0.1) !important;
+  color: #9096b0 !important;
+}
+html .rules-table th:first-child,
+html .rules-table td:first-child {
+  color: #9da1da !important;
+}
+html .rules-help {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
+html .rd-stage {
+  background: radial-gradient(circle at 50% 12%, #08162f, #0a1737 70%, #101c3a) !important;
+  border: 1px solid rgba(36, 27, 191, 0.14) !important;
+}
+html .rd-caption {
+  color: #8189bc !important;
+}
+html .rd-tile {
+  background: rgba(20, 20, 20, 0.72) !important;
+}
+html .rd-tile.is-special {
+  background: rgba(64, 52, 11, 0.95) !important;
+}
+html .rd-beam--row {
+  background: linear-gradient(90deg, transparent, rgba(193, 144, 8, 0.85), transparent) !important;
+}
+html .rd-beam--col {
+  background: linear-gradient(180deg, transparent, rgba(193, 144, 8, 0.85), transparent) !important;
+}
+html .rd-beam--flash {
+  background: radial-gradient(circle at 50% 50%, rgba(49, 25, 117, 0.7), transparent 70%) !important;
+}
+html .rd-letter {
+  background: #141414 !important;
+  color: #5e57cd !important;
+}
+html .rd-letter.is-on {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+  color: #141414 !important;
+}
+html .rd-word {
+  background: rgba(20, 20, 20, 0.92) !important;
+  color: #9da1da !important;
+}
+html .rd-word.is-ok {
+  color: #141414 !important;
+}
+html .rd-cell {
+  background: #141414 !important;
+  color: #9096b0 !important;
+}
+html .rd-cell.is-on {
+  background: #0e1a4a !important;
+  color: #9da1da !important;
+}
+html .rd-cell.is-ok {
+  color: #141414 !important;
+}
+html .rd-slot {
+  background: #141414 !important;
+  border-bottom: 3px solid #0e1a4a !important;
+  color: #9da1da !important;
+}
+html .rd-slots.is-ok .rd-slot {
+  background: #1a3928 !important;
+}
+html .rd-flame {
+  background: #2d3641 !important;
+}
+html .rd-flame.is-on {
+  background: #c19008 !important;
+}
+html .rd-miss {
+  background: #370b0b !important;
+  color: #e25c5c !important;
+}
+html .rd-card {
+  background: linear-gradient(140deg, #241bbf, #1453dc) !important;
+}
+html .rd-card.is-open {
+  background: #141414 !important;
+}
+
 /* web/games/quartet-v2.css */
 html .qv2-root {
   --qv2-ink: #c2cde4 !important;

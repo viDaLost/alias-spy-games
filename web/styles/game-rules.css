@@ -1,0 +1,397 @@
+/* Справочник правил. Палитра приложения не меняется — те же карточки,
+   синий и золото. */
+
+/* Свой заголовок у справочника уже есть: шапка приложения над ним дублирует
+   название и съедает экран. Игры прячут её через data-mode, здесь то же самое. */
+body[data-mode="rules"] header.app-header { display: none }
+
+/* #game-container центрирует текст всех игр. Справочник — сплошной текст,
+   и по центру он нечитаем, поэтому выравнивание задаётся явно. */
+.rules-shell,
+.rules-shell * {
+  text-align: left;
+}
+
+.rules-shell {
+  display: grid;
+  gap: 14px;
+  padding: 12px 0 28px;
+  animation: rules-enter .3s ease-out;
+}
+
+@keyframes rules-enter { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+.rules-topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #3730a3, #4f46e5 55%, #2563eb);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(48, 55, 150, .26);
+}
+
+.rules-back {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .18);
+  color: #fff;
+  font-size: 19px;
+  cursor: pointer;
+}
+
+.rules-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: .72;
+}
+
+.rules-title { margin: 2px 0 0; font-size: 22px; font-weight: 900; line-height: 1.1 }
+
+.rules-lead { margin: 0 4px; font-size: 13.5px; line-height: 1.5; color: #5b6180 }
+
+.rules-list { display: grid; gap: 10px }
+
+.rules-game {
+  border-radius: 20px;
+  background: linear-gradient(160deg, #fff, #f4f7ff);
+  border: 1px solid rgba(79, 70, 229, .14);
+  box-shadow: 0 10px 24px rgba(60, 70, 150, .08);
+  overflow: hidden;
+}
+
+.rules-game__head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.rules-game__icon { width: 46px; height: 46px; object-fit: contain; display: block }
+
+.rules-game__label { display: grid; gap: 2px; min-width: 0 }
+.rules-game__label strong { font-size: 15.5px; font-weight: 900; color: #1f2352 }
+.rules-game__label small { font-size: 12px; line-height: 1.35; color: #6a7090 }
+
+.rules-game__chevron {
+  font-size: 15px;
+  color: #7a80ad;
+  transition: transform .2s ease;
+}
+
+.rules-game.is-open .rules-game__chevron { transform: rotate(180deg) }
+
+.rules-game__body {
+  padding: 2px 16px 16px;
+  border-top: 1px solid rgba(79, 70, 229, .1);
+  animation: rules-open .24s ease-out;
+}
+
+@keyframes rules-open { from { opacity: 0 } to { opacity: 1 } }
+
+.rules-game__body h4 {
+  margin: 16px 0 6px;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #3730a3;
+}
+
+.rules-game__body p { margin: 0 0 6px; font-size: 13.5px; line-height: 1.55; color: #4a5068 }
+.rules-game__body ul { margin: 6px 0 0; padding-left: 20px }
+.rules-game__body li { font-size: 13.5px; line-height: 1.55; color: #4a5068; margin-bottom: 5px }
+.rules-game__body b { color: #1f2352 }
+
+.rules-note {
+  margin-top: 8px !important;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: rgba(244, 201, 93, .16);
+  border: 1px solid rgba(200, 150, 30, .2);
+  font-size: 12.5px !important;
+  color: #6b5313 !important;
+}
+
+/* Таблицы шире экрана прокручиваются внутри себя, а не тянут страницу вбок. */
+.rules-table__scroll { margin: 8px 0 2px; overflow-x: auto; -webkit-overflow-scrolling: touch }
+
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.rules-table th {
+  text-align: left;
+  padding: 7px 9px;
+  background: rgba(79, 70, 229, .08);
+  color: #3730a3;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.rules-table td {
+  padding: 8px 9px;
+  border-top: 1px solid rgba(79, 70, 229, .1);
+  color: #4a5068;
+  line-height: 1.45;
+  vertical-align: top;
+}
+
+.rules-table th:first-child, .rules-table td:first-child { width: 38%; color: #1f2352; font-weight: 700 }
+
+/* Кнопка «?» поверх открытой игры. */
+.rules-help {
+  position: fixed;
+  right: 12px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 640;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(48, 55, 150, .34);
+  opacity: .82;
+}
+
+.rules-help:active { transform: scale(.94) }
+
+@media (prefers-reduced-motion: reduce) {
+  .rules-shell, .rules-game__body { animation: none !important }
+  .rules-game__chevron { transition: none !important }
+}
+
+/* --- наглядные разборы механик --- */
+
+.rd-stage {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding: 14px 12px 12px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 12%, #eef4ff, #e3ebff 70%, #dbe4fb);
+  border: 1px solid rgba(79, 70, 229, .14);
+  overflow: hidden;
+}
+
+.rd-board { position: relative; margin: 0 auto }
+
+.rd-caption {
+  margin: 0 !important;
+  min-height: 2.6em;
+  font-size: 12px !important;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #3f4676 !important;
+  text-align: center !important;
+}
+
+.rd-tile {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .72);
+  box-shadow: inset 0 0 0 1px rgba(79, 70, 229, .1);
+  transition: transform .42s cubic-bezier(.3, .8, .35, 1), opacity .28s ease;
+}
+
+.rd-piece { width: 82%; height: 82%; object-fit: contain; display: block }
+
+.rd-tile.is-dim { opacity: .45 }
+.rd-tile.is-flash { box-shadow: 0 0 0 2px #f7c948, 0 0 14px rgba(247, 201, 72, .8) }
+.rd-tile.is-leaving { opacity: 0; transform: scale(.4) }
+
+/* Особая фишка светится: в игре её видно по свечению, а не по значку. */
+.rd-tile.is-special {
+  background: rgba(255, 246, 214, .95);
+  box-shadow: inset 0 0 0 1px rgba(200, 150, 30, .45), 0 0 12px rgba(247, 201, 72, .7);
+}
+
+.rd-blocker {
+  position: absolute;
+  inset: 6%;
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  opacity: .96;
+}
+
+.rd-tile.has-chain .rd-piece, .rd-tile.has-tablet .rd-piece,
+.rd-tile.has-vine .rd-piece, .rd-tile.has-relic .rd-piece { opacity: .3 }
+.rd-tile.has-lamp .rd-piece { opacity: .45 }
+.rd-tile.is-lit .rd-blocker { filter: drop-shadow(0 0 8px rgba(255, 204, 92, .95)) }
+
+/* Луч трубы и вспышка радуги. */
+.rd-beam {
+  position: absolute;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: rd-beam .5s ease-out;
+}
+
+.rd-beam--row { left: 0; background: linear-gradient(90deg, transparent, rgba(247, 201, 72, .85), transparent) }
+.rd-beam--col { top: 0; background: linear-gradient(180deg, transparent, rgba(247, 201, 72, .85), transparent) }
+.rd-beam--flash { inset: 0; background: radial-gradient(circle at 50% 50%, rgba(167, 139, 250, .7), transparent 70%) }
+
+@keyframes rd-beam { from { opacity: 0 } 40% { opacity: 1 } to { opacity: .25 } }
+
+/* Палец: кружок едет от одной фишки к другой ровно за время кадра. */
+.rd-finger {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: rgba(31, 35, 82, .28);
+  box-shadow: 0 0 0 4px rgba(31, 35, 82, .12);
+  pointer-events: none;
+  animation: rd-finger .6s ease-in-out forwards;
+}
+
+@keyframes rd-finger {
+  from { left: var(--x1); top: var(--y1); opacity: 0 }
+  20% { opacity: 1 }
+  to { left: var(--x2); top: var(--y2); opacity: 1 }
+}
+
+/* Буквенные разборы. */
+.rd-circle {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  display: grid;
+  place-items: center;
+}
+
+.rd-letter {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(60, 70, 150, .16);
+  font-size: 14px;
+  font-weight: 900;
+  color: #3730a3;
+  transition: background .25s ease, color .25s ease, transform .3s ease;
+}
+
+.rd-letter.is-on { background: linear-gradient(135deg, #4f46e5, #2563eb); color: #fff }
+
+.rd-word {
+  min-width: 92px;
+  padding: 5px 10px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .92);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  color: #1f2352;
+  text-align: center !important;
+}
+
+.rd-word.is-ok { background: #17734a; color: #fff }
+
+.rd-grid { display: grid; gap: 3px }
+
+.rd-cell {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #4a5068;
+  transition: background .25s ease, color .25s ease;
+}
+
+.rd-cell.is-on { background: #c7d2fe; color: #1f2352 }
+.rd-cell.is-ok { background: #17734a; color: #fff }
+
+.rd-word-scene { display: grid; justify-items: center; gap: 8px; position: relative }
+.rd-slots { display: flex; gap: 4px }
+
+.rd-slot {
+  width: 24px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #fff;
+  border-bottom: 3px solid #c7d2fe;
+  font-size: 15px;
+  font-weight: 900;
+  color: #1f2352;
+}
+
+.rd-slots.is-ok .rd-slot { background: #d8f3e4; border-bottom-color: #17734a }
+.rd-lamp { display: flex; gap: 4px }
+
+.rd-flame {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background .25s ease, box-shadow .25s ease;
+}
+
+.rd-flame.is-on { background: #f7c948; box-shadow: 0 0 6px rgba(247, 201, 72, .9) }
+
+.rd-miss {
+  padding: 2px 9px;
+  border-radius: 9px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.rd-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px }
+
+.rd-card {
+  width: 40px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(140deg, #4f46e5, #2563eb);
+  font-size: 20px;
+  transition: background .28s ease, transform .28s ease;
+}
+
+.rd-card.is-open { background: #fff; box-shadow: inset 0 0 0 2px #c7d2fe }
+.rd-card.is-match { box-shadow: inset 0 0 0 2px #17734a }
+.rd-card.is-miss { box-shadow: inset 0 0 0 2px #d97706 }
+.rd-card.is-done { opacity: .55 }
+
+@media (prefers-reduced-motion: reduce) {
+  .rd-tile, .rd-letter, .rd-cell, .rd-card, .rd-flame { transition: none !important }
+  .rd-beam, .rd-finger { animation: none !important }
+  .rd-finger { display: none }
+}
