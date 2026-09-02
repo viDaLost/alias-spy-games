@@ -72,8 +72,23 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
   androidActions.push(action);
   // adminRoleStatus is the server-side role lookup the admin UI performs on boot.
   // The Android test user is not an administrator, so the worker answers "no role".
-  if (!['syncUser', 'updateHistory', 'profileBootstrap', 'adminRoleStatus'].includes(action)) {
+  //
+  // feedbackStatus is the one-off app survey asking whether this player has already
+  // answered. It runs on every start on every platform -- the Android wrapper included,
+  // since the survey serves the session route too.
+  if (!['syncUser', 'updateHistory', 'profileBootstrap', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
     throw new Error(`Unexpected Android action: ${action}`);
+  }
+
+  // Answered already: this check is about the Android runtime, and a survey sheet
+  // covering the screen would only get in its way.
+  if (action === 'feedbackStatus') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      body: JSON.stringify({ ok: true, success: true, answered: true, eligible: false }),
+    });
+    return;
   }
 
   if (action === 'adminRoleStatus') {
