@@ -95,10 +95,53 @@ const USER_ID = '5883903220';
   assert.equal(feedbackReplyTarget(null), '', 'обычное сообщение без ответа принято за ответ на отзыв');
 }
 
+// --- 1.55. команда «написать пользователю» --------------------------------------------
+//
+// Команда пишет человеку от имени приложения по номеру, набранному руками.
+// Ошибиться здесь дороже всего: сообщение уйдёт постороннему.
+{
+  const { directMessageRequest, WRITE_PROMPT_PREFIX } = await import('../cloudflare/app-core-worker/src/admin-direct-message.js');
+  const prompt = { from: { is_bot: true }, text: `${WRITE_PROMPT_PREFIX} 302262405\n\nНапишите текст ответом.` };
+
+  assert.deepEqual(directMessageRequest('/write 302262405 Спасибо за отзыв', null),
+    { kind: 'send', target: '302262405', body: 'Спасибо за отзыв' },
+    'команда с номером и текстом разобрана неверно');
+  assert.deepEqual(directMessageRequest('/write 302262405', null), { kind: 'prompt', target: '302262405' },
+    'команда без текста должна спрашивать текст, а не отправлять пустоту');
+  assert.equal(directMessageRequest('/write', null).kind, 'usage',
+    'команда без номера не объясняет, как ею пользоваться');
+
+  // Telegram дописывает имя бота к командам в группах, и такая команда обязана
+  // работать так же.
+  assert.deepEqual(directMessageRequest('/write@SomeBot 302262405 Привет', null),
+    { kind: 'send', target: '302262405', body: 'Привет' }, 'команда с именем бота не разбирается');
+
+  // Номер, набранный руками, легко испортить. Отправлять «куда-нибудь» нельзя.
+  assert.equal(directMessageRequest('/write @somebody Привет', null).kind, 'badId',
+    'вместо номера принят username — сообщение ушло бы не туда');
+  assert.equal(directMessageRequest('/write 12 Привет', null).kind, 'badId',
+    'слишком короткий номер принят за Telegram ID');
+
+  // Второй шаг: текст пишется ответом на подсказку.
+  assert.deepEqual(directMessageRequest('Спасибо, поправим', prompt),
+    { kind: 'send', target: '302262405', body: 'Спасибо, поправим' },
+    'ответ на подсказку не находит, кому отправлять');
+  assert.equal(directMessageRequest('/cancel', prompt).kind, 'cancel', 'на подсказке нельзя отменить отправку');
+
+  // Подсказку присылает бот. Своё сообщение с таким же текстом может написать
+  // кто угодно, и отвечать на него нельзя.
+  assert.equal(directMessageRequest('Привет', { from: { is_bot: false }, text: `${WRITE_PROMPT_PREFIX} 302262405` }), null,
+    'подсказкой признано сообщение человека, а не бота');
+
+  // Чужие сообщения проходят мимо: их разбирает поддержка ниже по цепочке.
+  assert.equal(directMessageRequest('/support не работает вход', null), null, 'команда поддержки перехвачена');
+  assert.equal(directMessageRequest('обычное сообщение', null), null, 'обычное сообщение принято за команду');
+}
+
 // --- 1.6. сам обработчик ответа ------------------------------------------------------
 {
   const worker = fs.readFileSync(path.join(root, 'cloudflare/app-core-worker/src/index-v17.js'), 'utf8');
-  const handler = worker.slice(worker.indexOf('async function takeFeedbackReply'), worker.indexOf('function rememberUpdate'));
+  const handler = worker.slice(worker.indexOf('async function takeAdminBotAction'), worker.indexOf('async function runDirectMessage'));
 
   // Подпись вебхука проверяет слой поддержки — но он ниже, и до перехваченного
   // здесь обновления уже не доберётся.
@@ -110,6 +153,12 @@ const USER_ID = '5883903220';
     'повторную доставку обновления Telegram отправит второй ответ');
   assert.ok(/feedback\/reply/.test(handler),
     'ответ не сохраняется — при сбое доставки он пропадёт');
+
+  // Права проверяются один раз на оба действия, до отправки чего бы то ни было.
+  assert.ok(handler.indexOf('admin-role/check') < handler.indexOf('runDirectMessage'),
+    'команда «написать пользователю» выполняется до проверки прав администратора');
+  assert.ok(/directMessageRequest/.test(handler),
+    'команда «написать пользователю» не разбирается в обработчике');
   assert.ok(/Telegram не доставил/.test(handler),
     'администратору не сообщают, что ответ не дошёл');
 
@@ -117,7 +166,7 @@ const USER_ID = '5883903220';
   // бота и вся техподдержка.
   assert.ok(/if \(taken\) return new Response\('OK'\);/.test(worker),
     'слой отвечает на вебхук сам, даже когда это не ответ на отзыв');
-  assert.ok(/takeFeedbackReply\(request\.clone\(\)/.test(worker),
+  assert.ok(/takeAdminBotAction\(request\.clone\(\)/.test(worker),
     'тело вебхука читается из самого запроса — слою поддержки достанется пустое');
 
   const notify = worker.slice(worker.indexOf('async function notifyFeedbackAdmin'), worker.indexOf('async function callFeedbackStore'));
@@ -125,6 +174,23 @@ const USER_ID = '5883903220';
     'в сообщении администратору нет метки, по которой ответ находит адресата');
   assert.ok(/Ответьте на это сообщение/.test(notify),
     'администратору не сказано, что на отзыв можно ответить');
+
+  // Отказ доставки должен доходить до администратора обоими путями: и на отзыв,
+  // и на прямое сообщение. Иначе «отправлено» будет означать «может быть».
+  const send = worker.slice(worker.indexOf('async function runDirectMessage'), worker.indexOf('async function deliver'));
+  assert.ok(/Не доставлено пользователю/.test(send),
+    'при отказе доставки администратору говорят, что сообщение отправлено');
+  assert.ok(/force_reply/.test(send), 'подсказка не просит ответить на себя — второй шаг не сработает');
+}
+
+// --- 1.7. команда видна только администратору -----------------------------------------
+{
+  const deploy = fs.readFileSync(path.join(root, '.github/workflows/deploy-core-cloudflare.yml'), 'utf8');
+  assert.ok(/command: 'write'/.test(deploy), 'команда /write не регистрируется в боте');
+  assert.ok(/scope: \{ type: 'chat', chat_id/.test(deploy),
+    'команда /write попадает в общее меню бота — её увидят все');
+  const publicList = deploy.slice(deploy.indexOf('const publicCommands'), deploy.indexOf('setMyCommands', deploy.indexOf('const publicCommands')));
+  assert.ok(!/write/.test(publicList), 'команда /write перечислена среди общедоступных');
 }
 
 // --- сервер для страницы ---------------------------------------------------------
@@ -344,7 +410,8 @@ console.log('Опрос о приложении в порядке: приход�
   + 'спрашивает мнение и пожелания, пустой ответ не отправляет, доезжает до администратора '
   + 'ровно одним сообщением, второй раз не показывается, новичка не трогает, '
   + 'не наезжает на вопрос «откуда узнали», работает вне Telegram по токену сессии, '
-  + 'а на сам отзыв можно ответить свайпом — и ответ уходит только тому, чей это отзыв.');
+  + 'на сам отзыв можно ответить свайпом — и ответ уходит только тому, чей это отзыв, '
+  + 'а команда /write пишет человеку по номеру, видна только администратору и не молчит об отказе доставки.');
 
 await browser.close();
 server.close();

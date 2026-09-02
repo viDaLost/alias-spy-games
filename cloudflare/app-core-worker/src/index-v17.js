@@ -16,6 +16,7 @@
 
 import coreV16, { UserStore as V16UserStore } from './index-v16.js';
 import { feedbackReplyTarget } from './feedback-reply-target.js';
+import { directMessageRequest, WRITE_PROMPT_PREFIX } from './admin-direct-message.js';
 
 const encoder = new TextEncoder();
 const FEEDBACK_ACTIONS = new Set(['feedbackStatus', 'feedbackSubmit']);
@@ -141,11 +142,11 @@ export default {
     // отзывах не знает, поэтому свои ответы этот слой забирает первым, а всё
     // остальное отдаёт дальше нетронутым.
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
-      const taken = await takeFeedbackReply(request.clone(), env).catch(async (error) => {
+      const taken = await takeAdminBotAction(request.clone(), env).catch(async (error) => {
         const adminId = String(env.ADMIN_TELEGRAM_ID || '');
         if (adminId && env.TELEGRAM_BOT_TOKEN) {
           await feedbackSendMessage(env, adminId,
-            `⚠️ Не удалось обработать ответ на отзыв: ${String(error?.message || error).slice(0, 400)}`).catch(() => {});
+            `⚠️ Не удалось обработать сообщение бота: ${String(error?.message || error).slice(0, 400)}`).catch(() => {});
         }
         return true;
       });
@@ -171,13 +172,15 @@ export default {
 };
 
 /**
- * Ответ администратора свайпом — тем же жестом, что и в техподдержке: он
- * отвечает на сообщение бота, а бот пересылает написанное человеку.
+ * Два действия администратора в самом боте: ответ свайпом на отзыв и команда
+ * «написать пользователю по его номеру». Оба пишут человеку от имени
+ * приложения, поэтому и живут рядом, за одной проверкой прав.
  *
- * Возвращает true, только если это действительно ответ на отзыв. Всё прочее —
- * команды, обращения в поддержку, любые другие сообщения — уходит дальше.
+ * Возвращает true, только если сообщение действительно одно из этих двух. Всё
+ * прочее — команды бота, обращения в поддержку, любые другие сообщения —
+ * уходит дальше нетронутым.
  */
-async function takeFeedbackReply(request, env) {
+async function takeAdminBotAction(request, env) {
   if (!env.TELEGRAM_BOT_TOKEN) return false;
 
   // Подпись вебхука проверяется здесь же: слой поддержки, который делает это
@@ -199,16 +202,25 @@ async function takeFeedbackReply(request, env) {
   if (!text) return false;
 
   const targetId = feedbackReplyTarget(message.reply_to_message);
-  if (!targetId) return false;
+  const direct = targetId ? null : directMessageRequest(text, message.reply_to_message);
+  if (!targetId && !direct) return false;
 
   const updateId = Number(update.update_id || 0);
   if (updateId && rememberUpdate(updateId)) return true;
 
   const store = env.USERS.get(env.USERS.idFromName('global'));
   const role = await callFeedbackStore(store, '/admin-role/check', { userId: senderId }).catch(() => ({}));
-  // Отвечать может только администратор: сообщение бота можно переслать кому
-  // угодно, и без этой проверки ответить от имени приложения смог бы любой.
+  // Писать от имени приложения может только администратор. Сообщение бота можно
+  // переслать кому угодно, а команду набрать может любой — без этой проверки
+  // писать чужим людям от имени приложения смог бы кто угодно.
+  //
+  // Отказ молчаливый: рассказывать постороннему, что такая команда есть, незачем.
   if (role?.isAdmin !== true || (role?.isBanned === true && role?.isRoot !== true)) return false;
+
+  if (direct) {
+    await runDirectMessage(env, chatId, message.message_id, direct);
+    return true;
+  }
 
   const saved = await callFeedbackStore(store, '/feedback/reply', { userId: targetId, reply: text })
     .catch((error) => ({ error: String(error?.message || 'Не удалось сохранить ответ') }));
@@ -217,24 +229,83 @@ async function takeFeedbackReply(request, env) {
     return true;
   }
 
-  let delivered = true;
-  let reason = '';
-  try {
-    await feedbackSendMessage(env, targetId, [
-      '💬 Ответ на ваш отзыв о «Библейских играх»',
-      '',
-      String(saved.reply || text),
-    ].join('\n'));
-  } catch (error) {
-    delivered = false;
-    reason = String(error?.message || 'Telegram отклонил отправку');
-  }
-
-  await feedbackSendMessage(env, chatId, delivered
+  const sent = await deliver(env, targetId, [
+    '💬 Ответ на ваш отзыв о «Библейских играх»',
+    '',
+    String(saved.reply || text),
+  ]);
+  await feedbackSendMessage(env, chatId, sent.ok
     ? '✅ Ответ отправлен человеку в бот.'
-    : `✅ Ответ сохранён, но Telegram не доставил его: ${reason}`,
+    : `✅ Ответ сохранён, но Telegram не доставил его: ${sent.reason}`,
   message.message_id);
   return true;
+}
+
+/** Команда «написать пользователю»: подсказка, отправка и внятный отказ. */
+async function runDirectMessage(env, chatId, replyToMessageId, request) {
+  if (request.kind === 'usage') {
+    await feedbackSendMessage(env, chatId, [
+      'Напишите номер человека, которому нужно отправить сообщение:',
+      '',
+      '/write 123456789 — бот спросит текст',
+      '/write 123456789 текст — отправить сразу',
+      '',
+      'Номер видно в сообщении с отзывом и в панели управления.',
+    ].join('\n'), replyToMessageId);
+    return;
+  }
+
+  if (request.kind === 'badId') {
+    await feedbackSendMessage(env, chatId,
+      `«${request.value}» не похоже на Telegram ID. Это число из пяти и более цифр.`, replyToMessageId);
+    return;
+  }
+
+  if (request.kind === 'cancel') {
+    await feedbackSendMessage(env, chatId, 'Отправка отменена.', replyToMessageId);
+    return;
+  }
+
+  if (request.kind === 'prompt') {
+    await telegramSend(env, {
+      chat_id: String(chatId),
+      text: [
+        `${WRITE_PROMPT_PREFIX} ${request.target}`,
+        '',
+        'Напишите текст ответом на это сообщение.',
+        'Для отмены — /cancel.',
+      ].join('\n'),
+      reply_markup: { force_reply: true, selective: true, input_field_placeholder: 'Текст сообщения…' },
+      ...(replyToMessageId ? { reply_parameters: { message_id: replyToMessageId, allow_sending_without_reply: true } } : {}),
+    });
+    return;
+  }
+
+  const sent = await deliver(env, request.target, [
+    '✉️ Сообщение от разработчика «Библейских игр»',
+    '',
+    request.body,
+    '',
+    'Ответить можно командой /support.',
+  ]);
+  await feedbackSendMessage(env, chatId, sent.ok
+    ? `✅ Отправлено пользователю ${request.target}.`
+    : `Не доставлено пользователю ${request.target}: ${sent.reason}`,
+  replyToMessageId);
+}
+
+/**
+ * Доставка человеку. Она нередко не проходит по причинам, за которые никто не
+ * виноват: человек мог не начинать диалог с ботом или заблокировать его. Тогда
+ * администратору важно увидеть причину, а не бодрое «отправлено».
+ */
+async function deliver(env, chatId, lines) {
+  try {
+    await feedbackSendMessage(env, chatId, lines.join('\n'));
+    return { ok: true, reason: '' };
+  } catch (error) {
+    return { ok: false, reason: String(error?.message || 'Telegram отклонил отправку') };
+  }
 }
 
 function rememberUpdate(updateId) {
@@ -338,16 +409,20 @@ async function callFeedbackStore(stub, pathname, body) {
   return data;
 }
 
-async function feedbackSendMessage(env, chatId, text, replyToMessageId = 0) {
+function feedbackSendMessage(env, chatId, text, replyToMessageId = 0) {
+  return telegramSend(env, {
+    chat_id: String(chatId),
+    text: String(text || '').slice(0, 4096),
+    disable_web_page_preview: true,
+    ...(replyToMessageId ? { reply_to_message_id: Number(replyToMessageId) } : {}),
+  });
+}
+
+async function telegramSend(env, payload) {
   const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: String(chatId),
-      text: String(text || '').slice(0, 4096),
-      disable_web_page_preview: true,
-      ...(replyToMessageId ? { reply_to_message_id: Number(replyToMessageId) } : {}),
-    }),
+    body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data?.ok !== true) throw new Error(String(data?.description || `Telegram HTTP ${response.status}`));

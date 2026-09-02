@@ -76,13 +76,28 @@ jobs:
             drop_pending_updates: false,
           });
 
-          await telegram('setMyCommands', {
-            commands: [
-              { command: 'support', description: 'Написать в техподдержку' },
-              { command: 'cancel', description: 'Отменить отправку обращения' },
-              { command: 'help', description: 'Помощь по командам бота' },
-            ],
-          });
+          const publicCommands = [
+            { command: 'support', description: 'Написать в техподдержку' },
+            { command: 'cancel', description: 'Отменить отправку обращения' },
+            { command: 'help', description: 'Помощь по командам бота' },
+          ];
+          await telegram('setMyCommands', { commands: publicCommands });
+
+          // /write видит только главный администратор: команда пишет человеку от
+          // имени приложения, и показывать её всем в меню бота незачем. Номер
+          // берётся из настроек воркера, чтобы он был записан в одном месте.
+          const fs = await import('node:fs');
+          const wrangler = fs.readFileSync('cloudflare/app-core-worker/wrangler.jsonc', 'utf8');
+          const adminId = wrangler.match(/"ADMIN_TELEGRAM_ID":\s*"(\d{5,20})"/)?.[1] || '';
+          if (adminId) {
+            await telegram('setMyCommands', {
+              commands: [...publicCommands, { command: 'write', description: 'Написать пользователю по его ID' }],
+              scope: { type: 'chat', chat_id: Number(adminId) },
+            });
+            console.log(`Admin-only /write command registered for ${adminId}`);
+          } else {
+            throw new Error('ADMIN_TELEGRAM_ID not found in wrangler.jsonc');
+          }
 
           const configured = await telegram('getWebhookInfo');
           if (configured?.url !== webhookUrl) {
