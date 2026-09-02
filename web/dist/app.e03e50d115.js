@@ -46,6 +46,22 @@
       .referral-survey-submit{background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;box-shadow:0 10px 24px rgba(37,99,235,.2)}
       .referral-survey-submit:disabled{opacity:.55;box-shadow:none}
       .referral-survey-later{background:#eef2ff;color:#4338ca}
+      /* \u042D\u0442\u0438 \u0441\u0442\u0438\u043B\u0438 \u0432\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442 \u0441\u043A\u0440\u0438\u043F\u0442, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0433\u0435\u043D\u0435\u0440\u0430\u0442\u043E\u0440 \u0442\u0451\u043C\u043D\u043E\u0439 \u0442\u0435\u043C\u044B \u0438\u0445 \u043D\u0435 \u0432\u0438\u0434\u0438\u0442:
+         \u043E\u043D \u0447\u0438\u0442\u0430\u0435\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u044B \u0441\u0442\u0438\u043B\u0435\u0439. \u0411\u0435\u0437 \u0441\u0432\u043E\u0435\u0433\u043E \u0431\u043B\u043E\u043A\u0430 \u043E\u043A\u043D\u043E \u043E\u0441\u0442\u0430\u0432\u0430\u043B\u043E\u0441\u044C \u0431\u0435\u043B\u044B\u043C
+         \u043B\u0438\u0441\u0442\u043E\u043C \u043F\u043E\u0441\u0440\u0435\u0434\u0438 \u0442\u0451\u043C\u043D\u043E\u0433\u043E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F. */
+      @media (prefers-color-scheme: dark) {
+        .referral-survey-card{background:linear-gradient(155deg,#17181c,#131519 58%,#101519);border-color:rgba(99,102,241,.22);box-shadow:0 28px 80px rgba(0,0,0,.55);color:#c2cde4}
+        .referral-survey-icon{background:linear-gradient(145deg,#161a2e,#0d1f2c);box-shadow:inset 0 0 0 1px rgba(99,102,241,.22)}
+        .referral-survey-kicker{color:#8f96ff}
+        .referral-survey-title{color:#ccd5ee}
+        .referral-survey-text{color:#98a2b8}
+        .referral-survey-label{color:#a5aec4}
+        .referral-survey-input{background:#101114;border-color:#282c33;color:#c9d3e6}
+        .referral-survey-input::placeholder{color:#6d7689}
+        .referral-survey-meta{color:#8b94a8}
+        .referral-survey-error{color:#ff8199}
+        .referral-survey-later{background:#1b2033;color:#a9b2ff}
+      }
       @media(max-width:430px){.referral-survey-overlay{align-items:end;padding:0}.referral-survey-card{width:100%;border-radius:28px 28px 0 0;padding:22px 16px calc(18px + env(safe-area-inset-bottom))}.referral-survey-title{font-size:1.2rem}.referral-survey-actions{grid-template-columns:1fr}.referral-survey-later{order:2}}
     `,document.head.appendChild(style)}function closeModal(){document.getElementById(MODAL_ID)?.remove(),document.body.classList.remove("referral-survey-open")}function showModal(){if(dismissedThisSession||document.getElementById(MODAL_ID))return;ensureStyles();const overlay=document.createElement("div");overlay.id=MODAL_ID,overlay.className="referral-survey-overlay",overlay.innerHTML=`
       <section class="referral-survey-card" role="dialog" aria-modal="true" aria-labelledby="referral-survey-title">
@@ -82,6 +98,22 @@
       .feedback-survey-submit{background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;box-shadow:0 10px 24px rgba(37,99,235,.2)}
       .feedback-survey-submit:disabled{opacity:.55;box-shadow:none}
       .feedback-survey-later{background:#eef2ff;color:#4338ca}
+      /* \u042D\u0442\u0438 \u0441\u0442\u0438\u043B\u0438 \u0432\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442 \u0441\u043A\u0440\u0438\u043F\u0442, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0433\u0435\u043D\u0435\u0440\u0430\u0442\u043E\u0440 \u0442\u0451\u043C\u043D\u043E\u0439 \u0442\u0435\u043C\u044B \u0438\u0445 \u043D\u0435 \u0432\u0438\u0434\u0438\u0442:
+         \u043E\u043D \u0447\u0438\u0442\u0430\u0435\u0442 \u0442\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u044B \u0441\u0442\u0438\u043B\u0435\u0439. \u0411\u0435\u0437 \u0441\u0432\u043E\u0435\u0433\u043E \u0431\u043B\u043E\u043A\u0430 \u043E\u043A\u043D\u043E \u043E\u0441\u0442\u0430\u0432\u0430\u043B\u043E\u0441\u044C \u0431\u0435\u043B\u044B\u043C
+         \u043B\u0438\u0441\u0442\u043E\u043C \u043F\u043E\u0441\u0440\u0435\u0434\u0438 \u0442\u0451\u043C\u043D\u043E\u0433\u043E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F. */
+      @media (prefers-color-scheme: dark) {
+        .feedback-survey-card{background:linear-gradient(155deg,#17181c,#131519 58%,#101519);border-color:rgba(99,102,241,.22);box-shadow:0 28px 80px rgba(0,0,0,.55);color:#c2cde4}
+        .feedback-survey-icon{background:linear-gradient(145deg,#161a2e,#0d1f2c);box-shadow:inset 0 0 0 1px rgba(99,102,241,.22)}
+        .feedback-survey-kicker{color:#8f96ff}
+        .feedback-survey-title{color:#ccd5ee}
+        .feedback-survey-text{color:#98a2b8}
+        .feedback-survey-label{color:#a5aec4}
+        .feedback-survey-input{background:#101114;border-color:#282c33;color:#c9d3e6}
+        .feedback-survey-input::placeholder{color:#6d7689}
+        .feedback-survey-meta{color:#8b94a8}
+        .feedback-survey-error{color:#ff8199}
+        .feedback-survey-later{background:#1b2033;color:#a9b2ff}
+      }
       @media(max-width:430px){.feedback-survey-overlay{align-items:end;padding:0}.feedback-survey-card{width:100%;max-height:92vh;border-radius:28px 28px 0 0;padding:22px 16px calc(18px + env(safe-area-inset-bottom))}.feedback-survey-title{font-size:1.2rem}.feedback-survey-actions{grid-template-columns:1fr}.feedback-survey-later{order:2}}
     `,document.head.appendChild(style)}function closeModal(){document.getElementById(MODAL_ID)?.remove(),document.body.classList.remove("feedback-survey-open")}function showModal(){if(dismissedThisSession||document.getElementById(MODAL_ID))return;ensureStyles();const overlay=document.createElement("div");overlay.id=MODAL_ID,overlay.className="feedback-survey-overlay",overlay.innerHTML=`
       <section class="feedback-survey-card" role="dialog" aria-modal="true" aria-labelledby="feedback-survey-title">

@@ -52,6 +52,22 @@
       .referral-survey-submit{background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;box-shadow:0 10px 24px rgba(37,99,235,.2)}
       .referral-survey-submit:disabled{opacity:.55;box-shadow:none}
       .referral-survey-later{background:#eef2ff;color:#4338ca}
+      /* Эти стили вставляет скрипт, поэтому генератор тёмной темы их не видит:
+         он читает только файлы стилей. Без своего блока окно оставалось белым
+         листом посреди тёмного приложения. */
+      @media (prefers-color-scheme: dark) {
+        .referral-survey-card{background:linear-gradient(155deg,#17181c,#131519 58%,#101519);border-color:rgba(99,102,241,.22);box-shadow:0 28px 80px rgba(0,0,0,.55);color:#c2cde4}
+        .referral-survey-icon{background:linear-gradient(145deg,#161a2e,#0d1f2c);box-shadow:inset 0 0 0 1px rgba(99,102,241,.22)}
+        .referral-survey-kicker{color:#8f96ff}
+        .referral-survey-title{color:#ccd5ee}
+        .referral-survey-text{color:#98a2b8}
+        .referral-survey-label{color:#a5aec4}
+        .referral-survey-input{background:#101114;border-color:#282c33;color:#c9d3e6}
+        .referral-survey-input::placeholder{color:#6d7689}
+        .referral-survey-meta{color:#8b94a8}
+        .referral-survey-error{color:#ff8199}
+        .referral-survey-later{background:#1b2033;color:#a9b2ff}
+      }
       @media(max-width:430px){.referral-survey-overlay{align-items:end;padding:0}.referral-survey-card{width:100%;border-radius:28px 28px 0 0;padding:22px 16px calc(18px + env(safe-area-inset-bottom))}.referral-survey-title{font-size:1.2rem}.referral-survey-actions{grid-template-columns:1fr}.referral-survey-later{order:2}}
     `;
     document.head.appendChild(style);

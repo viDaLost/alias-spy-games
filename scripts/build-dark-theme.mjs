@@ -101,9 +101,16 @@ function toRgb({ h, s, l }) {
  * выжечь на экране светлое пятно. Для текста это не так: тёмный текст обязан стать
  * светлым, иначе его не прочесть.
  */
-function invert(color, { surface = false } = {}) {
+function invert(color, { surface = false, ink = false } = {}) {
   const hsl = toHsl(color);
   if (surface && hsl.l < 0.46) return null;
+  // Обратное правило для текста. Белые буквы в светлой теме белые не случайно:
+  // под ними цветная или тёмная кнопка — на белом фоне их было бы не видно, и
+  // такого в исходниках просто нет. Фон под ними тёмным и остаётся: правило
+  // поверхности выше не пускает тёмное в светлое, а цветное темнеет. Значит и
+  // буквы должны остаться светлыми. Отражённые, они превращались в #141414 —
+  // почти чёрное на тёмно-синей кнопке.
+  if (ink && hsl.l > 0.62) return null;
   const l = 0.08 + (1 - hsl.l) * 0.84;
   // У очень тёмных поверхностей гасим насыщенность: иначе подложка читается как
   // заливка цветом, а не как поверхность.
@@ -196,12 +203,15 @@ function darkDeclarations(body) {
     // Переменные могут значить что угодно, поэтому к ним правило поверхности не
     // применяется — иначе тёмный токен текста остался бы тёмным.
     const surface = /^(?:background|background-color|border|border-[a-z-]+|outline|outline-color)$/.test(prop);
+    // Только color: переменная с тем же белым может оказаться фоном карточки
+    // (--surface-solid), и оставить её светлой значит выжечь белое пятно.
+    const ink = prop === 'color';
     let changed = false;
     let kept = false;
     const next = value.replace(COLOR_TOKEN, (match) => {
       const parsed = parseColor(match);
       if (!parsed) return match;
-      const inverted = invert(parsed, { surface });
+      const inverted = invert(parsed, { surface, ink });
       if (inverted === null) { kept = true; return match; }
       changed = true;
       return inverted;
