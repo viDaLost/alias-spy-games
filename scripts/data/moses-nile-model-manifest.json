@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "delivery": "same-origin-build-extraction",
   "package": {
     "ref": "8887faf7638a4168d37583f17b1c8eec9c46dd3f",
@@ -8,8 +8,8 @@
   },
   "limits": {
     "largestAssetBytes": 3000000,
-    "totalModelBytes": 3000000,
-    "measuredTotalModelBytes": 2799955,
+    "totalModelBytes": 3600000,
+    "measuredTotalModelBytes": 3499059,
     "measuredLargestAssetBytes": 2551260,
     "note": "Пределы документационные: их держит сборка превью, а не рантайм."
   },
@@ -99,6 +99,15 @@
       "bytes": 26560,
       "license": "CC0",
       "source": "Quaternius Nature Pack"
+    },
+    {
+      "key": "human",
+      "path": "web/games/moses-nile-v7/models/v73/human.glb",
+      "bytes": 699104,
+      "triangles": 5476,
+      "bones": 49,
+      "license": "CC0",
+      "source": "Quaternius Ultimate Modular Men / Farmer"
     }
   ],
   "usage": {
@@ -129,6 +138,7 @@
       "ankh"
     ],
     "sky": "procedural-sandstorm-shader",
-    "note": "Фотографической подложки в игре больше нет: небо, дюны и пирамиды рисуются шейдером и геометрией. Растительность берега — инстансы тех же GLB, что и препятствия, новых лицензий не появляется."
+    "note": "Фотографической подложки в игре нет: небо, дюны и пирамиды рисуются шейдером и геометрией. Растительность берега и люди — модели из того же архива. Бегемот и папирусная арка остаются процедурными: подходящих моделей в пакете нет.",
+    "riverFolk": "human (skinned, cloned via SkeletonUtils, merged to two meshes per figure)"
   }
 }

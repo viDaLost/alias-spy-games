@@ -145,7 +145,7 @@
   const OBSTACLES = {
     rock:   { clearance: 'ground', radius: 1.02, size: 1.75, fail: 'Корзинка ударилась о камень посреди течения.' },
     log:    { clearance: 'low',    radius: 1.12, size: 2.75, fail: 'Течение вынесло корзинку прямо на бревно.' },
-    croc:   { clearance: 'ground', radius: 1.18, size: 3.9, fail: 'Крокодил преградил путь по реке.' },
+    croc:   { clearance: 'ground', radius: 1.2, size: 5.2, fail: 'Крокодил преградил путь по реке.' },
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Корзинка запуталась в нависших зарослях папируса.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Водоворот затянул корзинку под воду.' },
     hippo:  { clearance: 'ground', radius: 1.32, size: 3.1,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
@@ -241,6 +241,7 @@
     biomeBlend: 1,
     lastTime: 0,
     elapsed: 0,
+    scroll: 0,
     runTime: 0,
     milestone: 0,
     best: { score: 0, distance: 0, lotuses: 0 },
@@ -254,6 +255,7 @@
    * ------------------------------------------------------------------ */
 
   const MESH_RANGE = -168;   // дальше этой отметки предметы ещё не рисуются
+  const SCROLL_TILE = 250;   // длина повторяющегося участка берега
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const mix = (a, b, t) => a + (b - a) * t;
@@ -263,8 +265,14 @@
     return x - Math.floor(x);
   };
 
-  function riverCenter(z) {
-    return Math.sin(z * .013) * .22 + Math.sin(z * .031 + .8) * .09;
+  /*
+    Русло прямое, и это осознанный размен. Пока берег «извивался» по z,
+    растительность нельзя было гнать конвейером: сдвинутый куст переставал
+    совпадать с линией песка. Извив давал 5% полуширины и почти не читался,
+    а движение берега — единственное, что создаёт ощущение хода вперёд.
+  */
+  function riverCenter() {
+    return 0;
   }
 
   function bankRise(offset) {
@@ -272,8 +280,8 @@
     return Math.min(2.1, .02 + o * .092 - o * o * .0012);
   }
 
-  function riverHalf(z) {
-    return RIVER_HALF + Math.sin(z * .021 + 1.7) * .16 + Math.sin(z * .057) * .07;
+  function riverHalf() {
+    return RIVER_HALF;
   }
 
   function haptic(type = 'light') {
@@ -340,6 +348,8 @@
   let waterNormal = null;
   let waterDetailNormal = null;
   let shorelines = [];
+  let scrollLayers = [];
+  let bankMaterials = [];
   let sky = null;
   let dustSheets = [];
   let godrays = null;
@@ -586,6 +596,8 @@
     ribbon.receiveShadow = true;
     ribbon.renderOrder = 1;
     scene.add(ribbon);
+    // Сама лента статична, движение песка показывает бегущая текстура.
+    bankMaterials.push({ material, metresPerRepeat: (NEAR_Z + 9 - FAR_Z) / 52 });
     return ribbon;
   }
 
@@ -685,13 +697,15 @@
       geometry: spec.fallbackGeometry(),
       material: spec.fallbackMaterial(),
     }];
+    const half = spec.count;
+    const total = half * 2;
     const meshes = parts.map((part, index) => {
       if (spec.wind) window.NileShaders?.applyWind?.(THREE, part.material, timeUniform, windUniform, spec.wind);
-      return makeInstanced(part.geometry, part.material, spec.count, index ? `${spec.name}Part${index}` : spec.name);
+      return makeInstanced(part.geometry, part.material, total, index ? `${spec.name}Part${index}` : spec.name);
     });
     const dummy = new THREE.Object3D();
-    for (let i = 0; i < spec.count; i += 1) {
-      spec.place(i, dummy);
+    for (let i = 0; i < total; i += 1) {
+      spec.place(i, dummy, half);
       dummy.updateMatrix();
       for (const mesh of meshes) mesh.setMatrixAt(i, dummy.matrix);
     }
@@ -699,18 +713,26 @@
       mesh.instanceMatrix.needsUpdate = true;
       mesh.castShadow = spec.castShadow ?? false;
       scene.add(mesh);
+      scrollLayers.push(mesh);
     }
     return meshes;
   }
 
-  function bankPlace(i, dummy, options) {
-    const side = i % 2 ? -1 : 1;
-    const z = options.zFrom - hash(i, options.salt) * options.zSpan;
-    const offset = options.near + hash(i, options.salt + 1) * (options.far - options.near);
-    const x = riverCenter(z) + side * (riverHalf(z) + offset);
-    const scale = options.minScale + hash(i, options.salt + 2) * (options.maxScale - options.minScale);
+  /*
+    Каждый слой раскладывается двумя копиями одного тайла: пока первая уезжает
+    за камеру, вторая уже входит в кадр. Меш двигается целиком, поэтому
+    прокрутка сотен растений стоит одного изменения position.z.
+  */
+  function bankPlace(i, dummy, options, half) {
+    const index = i % half;
+    const tile = i < half ? 0 : SCROLL_TILE;
+    const side = index % 2 ? -1 : 1;
+    const z = -hash(index, options.salt) * SCROLL_TILE - tile;
+    const offset = options.near + hash(index, options.salt + 1) * (options.far - options.near);
+    const x = side * (riverHalf() + offset);
+    const scale = options.minScale + hash(index, options.salt + 2) * (options.maxScale - options.minScale);
     dummy.position.set(x, options.lift + bankRise(offset), z);
-    dummy.rotation.set(0, hash(i, options.salt + 3) * Math.PI * 2, (hash(i, options.salt + 4) - .5) * (options.tilt || 0));
+    dummy.rotation.set(0, hash(index, options.salt + 3) * Math.PI * 2, (hash(index, options.salt + 4) - .5) * (options.tilt || 0));
     dummy.scale.set(scale, scale * (options.stretch || 1), scale);
   }
 
@@ -754,56 +776,56 @@
     const specs = [
       {
         key: 'reeds', name: 'V75ReedsInstanced', size: 2.3, wind: 1.6,
-        count: Math.round(260 * density),
+        count: Math.round(155 * density),
         fallbackGeometry: reedGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x6d7a48, roughness: .98 }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 1, zFrom: 4, zSpan: 258, near: .2, far: 2.6, lift: .02, minScale: .7, maxScale: 1.6, tilt: .18, stretch: 1.1 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 1, zFrom: 4, zSpan: 258, near: .2, far: 2.6, lift: .02, minScale: .7, maxScale: 1.6, tilt: .18, stretch: 1.1 }, half),
       },
       {
         key: 'bankPlant', name: 'V75BankPlants', size: 1.7, wind: 1.2,
-        count: Math.round(130 * density),
+        count: Math.round(78 * density),
         fallbackGeometry: grassGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x5f6b3e, roughness: 1 }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 7, zFrom: 3, zSpan: 260, near: 1.2, far: 5.4, lift: .04, minScale: .7, maxScale: 1.5, tilt: .1 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 7, zFrom: 3, zSpan: 260, near: 1.2, far: 5.4, lift: .04, minScale: .7, maxScale: 1.5, tilt: .1 }, half),
       },
       {
         key: 'grass', name: 'V75GrassInstanced', size: 1.15, wind: 1,
-        count: Math.round(280 * density),
+        count: Math.round(165 * density),
         fallbackGeometry: grassGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x7a7e54, roughness: 1 }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 13, zFrom: 3, zSpan: 262, near: 1.5, far: 17, lift: .05, minScale: .6, maxScale: 1.8 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 13, zFrom: 3, zSpan: 262, near: 1.5, far: 17, lift: .05, minScale: .6, maxScale: 1.8 }, half),
       },
       {
         key: 'bush', name: 'V75BushesInstanced', size: 1.6, wind: .6,
-        count: Math.round(96 * density),
+        count: Math.round(58 * density),
         fallbackGeometry: () => new THREE.IcosahedronGeometry(.48, 1),
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x5a6440, roughness: 1, flatShading: true }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 20, zFrom: 2, zSpan: 262, near: 6, far: 25, lift: .04, minScale: .6, maxScale: 2.6 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 20, zFrom: 2, zSpan: 262, near: 6, far: 25, lift: .04, minScale: .6, maxScale: 2.6 }, half),
       },
       {
         key: 'rock', name: 'V75RocksInstanced', size: 1.05, wind: 0,
-        count: Math.round(140 * density),
+        count: Math.round(82 * density),
         fallbackGeometry: () => new THREE.IcosahedronGeometry(.5, 1),
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x7d6e58, roughness: 1, flatShading: true }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 31, zFrom: 2, zSpan: 262, near: 3.2, far: 28, lift: .02, minScale: .35, maxScale: 2.3, tilt: .5, stretch: .7 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 31, zFrom: 2, zSpan: 262, near: 3.2, far: 28, lift: .02, minScale: .35, maxScale: 2.3, tilt: .5, stretch: .7 }, half),
       },
       {
         key: 'flowers', name: 'V75BankFlowers', size: .95, wind: 1.3,
-        count: Math.round(120 * density),
+        count: Math.round(72 * density),
         fallbackGeometry: () => {
           const geometry = new THREE.ConeGeometry(.12, .38, 5, 1);
           geometry.translate(0, .19, 0);
           return geometry;
         },
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0xc98aa4, roughness: .85 }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 61, zFrom: 3, zSpan: 258, near: .4, far: 4.2, lift: .03, minScale: .7, maxScale: 1.6 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 61, zFrom: 3, zSpan: 258, near: .4, far: 4.2, lift: .03, minScale: .7, maxScale: 1.6 }, half),
       },
       {
         key: 'palm', name: 'V75PalmCrowns', size: 11.5, wind: .55, castShadow: false,
-        count: Math.round(40 * density),
+        count: Math.round(24 * density),
         fallbackGeometry: palmGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x4d6234, roughness: .96, flatShading: true }),
-        place: (i, dummy) => bankPlace(i, dummy, { salt: 41, zFrom: -10, zSpan: 236, near: 9, far: 27, lift: .05, minScale: .7, maxScale: 1.3, tilt: .16 }),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 41, zFrom: -10, zSpan: 236, near: 9, far: 27, lift: .05, minScale: .7, maxScale: 1.3, tilt: .16 }, half),
       },
     ];
     for (const spec of specs) buildInstancedLayer(spec);
@@ -815,42 +837,51 @@
     Через туман они бы просто слились с небом.
   */
   function buildPyramids() {
+    /*
+      Пирамиды вынесены на передний план и раскрашены закатом: грань к солнцу
+      тёплая, противоположная уходит в холодную тень. Свет считается один раз
+      в вершинные цвета — материал остаётся самосветящимся, без тумана, иначе
+      силуэт слился бы с дымкой.
+    */
+    // Центр кадра оставлен руслу: пирамиды стоят по сторонам от него.
     const specs = [
-      [-42, -168, 22, 36],
-      [36, -186, 18, 28],
-      [-8, -214, 13, 19],
-      [64, -228, 11, 15],
-      [-78, -236, 9, 12.5],
+      [-23, -124, 24, 40],
+      [25, -146, 20, 33],
+      [-13, -178, 16, 26],
+      [34, -196, 14, 21],
+      [-40, -212, 12, 18],
     ];
+    const sunDir = new THREE.Vector3(-.62, .34, .71).normalize();
+    const shadowTint = new THREE.Vector3(.38, .42, .56);
+    const sunTint = new THREE.Vector3(1.9, 1.45, .92);
     for (const [x, z, radius, height] of specs) {
       const group = new THREE.Group();
       group.name = 'V75DistantPyramid';
       const material = new THREE.MeshBasicMaterial({
         color: 0x8a7250,
         transparent: true,
-        opacity: .82,
+        opacity: .9,
         depthWrite: false,
         fog: false,
       });
-      for (let tier = 0; tier < 4; tier += 1) {
-        const t = tier / 4;
-        const tierHeight = height / 4;
-        const cone = new THREE.Mesh(new THREE.ConeGeometry(radius * (1 - t), tierHeight * 1.06, 4), material);
-        cone.position.y = tierHeight * (tier + .5);
-        cone.rotation.y = Math.PI / 4;
-        group.add(cone);
-      }
-      mergeByMaterial(group);
+      // Одно тело вместо четырёх ярусов: ступени читались как ёлка.
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 4), material);
+      cone.position.y = height * .5;
+      cone.rotation.y = Math.PI / 4;
+      group.add(cone);
+      const normal = new THREE.Vector3();
       for (const child of group.children) {
         if (!child.isMesh) continue;
         const position = child.geometry.attributes.position;
+        const normals = child.geometry.attributes.normal;
         const colors = new Float32Array(position.count * 3);
         for (let i = 0; i < position.count; i += 1) {
-          const t = clamp(position.getY(i) / height, 0, 1);
-          const shade = mix(.58, 1, t * t);
-          colors[i * 3] = shade;
-          colors[i * 3 + 1] = shade;
-          colors[i * 3 + 2] = shade;
+          const fade = mix(.72, 1.06, clamp(position.getY(i) / height, 0, 1) ** 2);
+          normal.set(normals.getX(i), normals.getY(i), normals.getZ(i));
+          const lambert = clamp(normal.dot(sunDir) * .5 + .5, 0, 1) ** 2.2;
+          colors[i * 3] = mix(shadowTint.x, sunTint.x, lambert) * fade;
+          colors[i * 3 + 1] = mix(shadowTint.y, sunTint.y, lambert) * fade;
+          colors[i * 3 + 2] = mix(shadowTint.z, sunTint.z, lambert) * fade;
         }
         child.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         child.material.vertexColors = true;
@@ -859,7 +890,7 @@
       group.position.set(x, .15, z);
       group.renderOrder = -6;
       scene.add(group);
-      decor.push({ kind: 'pyramid', object: group, material, shade: .62 });
+      decor.push({ kind: 'pyramid', object: group, material, shade: .5 });
     }
   }
 
@@ -954,41 +985,136 @@
     }
   }
 
-  /* Люди на берегу: низкополигональные силуэты, которые машут рукой. */
-  function buildBankPeople() {
+  /*
+    Люди на берегу. Берётся настоящая скинованная модель из пакета
+    (Quaternius, CC0) и клонируется через SkeletonUtils — обычный clone
+    поделил бы скелет между копиями, и все фигуры двигались бы одинаково.
+    Каждой достаётся роль со своим поведением: машущий, рыбак, носильщик и
+    прачка. Если модель не приехала, работают прежние процедурные силуэты.
+  */
+  const FOLK_ROLES = ['waver', 'fisher', 'carrier', 'washer'];
+  const FOLK_CLOTH = [0xd6c39a, 0xb98f5f, 0xa8663f, 0xc9b48b, 0x8d6a48];
+
+  function findBone(root, name) {
+    return root.getObjectByName(name) || null;
+  }
+
+  function dressFolk(root, colorIndex) {
+    const cloth = new THREE.MeshStandardMaterial({
+      color: FOLK_CLOTH[colorIndex % FOLK_CLOTH.length],
+      roughness: .92,
+      metalness: 0,
+    });
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc08b62, roughness: .86, metalness: 0 });
+    root.traverse((child) => {
+      if (!child.isMesh && !child.isSkinnedMesh) return;
+      child.material = /skin/i.test(child.name) ? skin : cloth;
+    });
+  }
+
+  /* Модель приходит в T-позе: без этого фигуры стоят с раскинутыми руками. */
+  function restFolkPose(bones) {
+    if (bones.armR) { bones.armR.rotation.set(0, 0, -1.32); }
+    if (bones.armL) { bones.armL.rotation.set(0, 0, 1.32); }
+    if (bones.foreR) bones.foreR.rotation.set(.12, 0, -.16);
+    if (bones.foreL) bones.foreL.rotation.set(.12, 0, .16);
+  }
+
+  function buildProceduralFolk(colorIndex) {
+    const group = new THREE.Group();
     const skin = new THREE.MeshStandardMaterial({ color: 0xd7a37a, roughness: .85 });
-    const linen = new THREE.MeshStandardMaterial({ color: 0xe8ddc4, roughness: .95 });
-    for (let i = 0; i < 7; i += 1) {
+    const linen = new THREE.MeshStandardMaterial({ color: FOLK_CLOTH[colorIndex % FOLK_CLOTH.length], roughness: .95 });
+    const robe = new THREE.Mesh(new THREE.CylinderGeometry(.16, .26, .95, 7), linen);
+    robe.position.y = .48;
+    group.add(robe);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), skin);
+    head.position.y = 1.08;
+    group.add(head);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(.05, .045, .58, 5), skin);
+    arm.geometry.translate(0, -.29, 0);
+    arm.position.set(-.2, 1, 0);
+    group.add(arm);
+    group.userData.simpleArm = arm;
+    return group;
+  }
+
+  function buildBankPeople() {
+    for (let i = 0; i < 6; i += 1) {
       const side = i % 2 ? -1 : 1;
-      const z = -18 - hash(i, 41) * 190;
-      const offset = 2.6 + hash(i, 42) * 5.5;
-      const x = riverCenter(z) + side * (riverHalf(z) + offset);
+      const z = -hash(i, 41) * SCROLL_TILE;
+      const offset = 1.9 + hash(i, 42) * 5.2;
+      const x = side * (riverHalf() + offset);
+      const role = FOLK_ROLES[Math.floor(hash(i, 45) * FOLK_ROLES.length) % FOLK_ROLES.length];
+
+      const figure = window.assetManager?.cloneRigged?.('human', 1.86) || buildProceduralFolk(i);
+      dressFolk(figure, i);
+
       const group = new THREE.Group();
-      const robe = new THREE.Mesh(new THREE.CylinderGeometry(.16, .26, .95, 7), linen);
-      robe.position.y = .48;
-      group.add(robe);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), skin);
-      head.position.y = 1.08;
-      group.add(head);
-      const arm = new THREE.Mesh(new THREE.CylinderGeometry(.05, .045, .58, 5), skin);
-      arm.geometry.translate(0, .29, 0);
-      arm.position.set(side * -.2, .78, 0);
-      arm.userData.noMerge = true;
-      group.add(arm);
-      mergeByMaterial(group);
+      group.name = 'V751RiverFolk';
+      group.add(figure);
       group.position.set(x, .04 + bankRise(offset), z);
-      group.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
-      group.scale.setScalar(.9 + hash(i, 43) * .35);
+      // Лицом к реке; носильщик идёт вдоль берега, поэтому развёрнут вдоль.
+      group.rotation.y = role === 'carrier'
+        ? 0
+        : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
+      group.scale.setScalar(.92 + hash(i, 43) * .22);
       scene.add(group);
-      decor.push({ kind: 'person', object: group, arm, phase: hash(i, 44) * 8, side });
+
+      const bones = {
+        torso: findBone(figure, 'Torso'),
+        chest: findBone(figure, 'Chest'),
+        head: findBone(figure, 'Head'),
+        armR: findBone(figure, 'UpperArmR'),
+        armL: findBone(figure, 'UpperArmL'),
+        foreR: findBone(figure, 'LowerArmR'),
+        foreL: findBone(figure, 'LowerArmL'),
+        legR: findBone(figure, 'UpperLegR'),
+        legL: findBone(figure, 'UpperLegL'),
+      };
+
+      // Реквизит по роли: удочка рыбаку, кувшин носильщику.
+      let prop = null;
+      if (role === 'fisher') {
+        prop = new THREE.Mesh(
+          new THREE.CylinderGeometry(.018, .012, 1.8, 5),
+          new THREE.MeshStandardMaterial({ color: 0x7d5a30, roughness: .95 }),
+        );
+        prop.position.set(.22, 1.05, .35);
+        prop.rotation.set(-.9, 0, .2);
+        group.add(prop);
+      } else if (role === 'carrier') {
+        prop = new THREE.Mesh(
+          new THREE.SphereGeometry(.19, 10, 8),
+          new THREE.MeshStandardMaterial({ color: 0xa9663c, roughness: .9 }),
+        );
+        prop.scale.set(1, 1.25, 1);
+        prop.position.set(.2, 1.5, 0);
+        group.add(prop);
+      }
+
+      restFolkPose(bones);
+      decor.push({
+        kind: 'folk',
+        role,
+        object: group,
+        figure,
+        bones,
+        prop,
+        simpleArm: figure.userData.simpleArm || null,
+        phase: hash(i, 44) * 8,
+        side,
+        baseZ: z,
+        walk: role === 'carrier' ? (hash(i, 46) > .5 ? 1 : -1) : 0,
+        scroll: true,
+      });
     }
   }
 
   /* Ночные факелы на берегу: подсвечиваются только в тёмном биоме. */
   function buildTorches() {
-    for (let i = 0; i < 9; i += 1) {
+    for (let i = 0; i < 11; i += 1) {
       const side = i % 2 ? -1 : 1;
-      const z = -14 - hash(i, 51) * 200;
+      const z = -hash(i, 51) * SCROLL_TILE;
       const offset = 1.9 + hash(i, 52) * 3.4;
       const x = riverCenter(z) + side * (riverHalf(z) + offset);
       const group = new THREE.Group();
@@ -1003,7 +1129,7 @@
       group.add(flame);
       group.position.set(x, .04 + bankRise(offset), z);
       scene.add(group);
-      decor.push({ kind: 'torch', object: group, flame, phase: hash(i, 53) * 9 });
+      decor.push({ kind: 'torch', object: group, flame, phase: hash(i, 53) * 9, baseZ: z, scroll: true });
     }
   }
 
@@ -1140,49 +1266,101 @@
   }
 
   /*
-    Носовая волна. Корзинку несёт течением вперёд, поэтому вода расходится
-    перед ней, а не тянется сзади: клин пены уходит в сторону горизонта, по
-    бокам от него — два расходящихся уса.
+    След корзинки. Основной шлейф уходит НАЗАД, к камере, — так и должно быть
+    у плывущего по течению предмета. Впереди остаётся только короткий бурун:
+    нос режет воду, и без него корзинка выглядит приклеенной к поверхности.
   */
   function makeWake() {
     const group = new THREE.Group();
     const material = window.NileShaders?.createWakeMaterial?.(THREE);
     if (material) {
-      const geometry = new THREE.PlaneGeometry(3.1, 8.4, 1, 14);
+      const geometry = new THREE.PlaneGeometry(3.4, 9.5, 1, 14);
       const mesh = new THREE.Mesh(geometry, material);
       mesh.rotation.x = -Math.PI / 2;
-      mesh.rotation.z = Math.PI;
-      mesh.position.set(0, -.02, -4.5);
+      mesh.position.set(0, -.02, 5.1);
       mesh.renderOrder = 5;
       group.add(mesh);
       group.userData.shaderWake = mesh;
     }
-    const streakMaterial = new THREE.MeshBasicMaterial({
-      color: 0xf7efd6,
-      transparent: true,
-      opacity: .16,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
+    // Два расходящихся уса за кормой — на том же шейдере пены, чтобы они
+    // растворялись к концу, а не тянулись ровными рельсами.
     for (const side of [-1, 1]) {
-      const streak = new THREE.Mesh(new THREE.PlaneGeometry(.13, 4.2), streakMaterial.clone());
+      const streakMaterial = window.NileShaders?.createWakeMaterial?.(THREE, 0xfbf4de)
+        || new THREE.MeshBasicMaterial({ color: 0xfbf4de, transparent: true, opacity: .16, depthWrite: false, side: THREE.DoubleSide });
+      if (streakMaterial.uniforms) streakMaterial.uniforms.uStrength.value = .38;
+      const streak = new THREE.Mesh(new THREE.PlaneGeometry(.5, 4.4, 1, 6), streakMaterial);
       streak.rotation.x = -Math.PI / 2;
-      streak.position.set(side * .62, -.016, -2.3);
-      streak.rotation.z = -side * .17;
+      streak.position.set(side * .62, -.016, 2.6);
+      streak.rotation.z = side * .2;
+      streak.renderOrder = 5;
       group.add(streak);
       group.userData[side < 0 ? 'leftStreak' : 'rightStreak'] = streak;
     }
-    // Бурун у самого носа: короткая яркая дуга.
     const bow = new THREE.Mesh(
-      new THREE.RingGeometry(.52, .84, 22, 1, Math.PI * .18, Math.PI * .64),
-      new THREE.MeshBasicMaterial({ color: 0xfff6e0, transparent: true, opacity: .2, depthWrite: false, side: THREE.DoubleSide }),
+      new THREE.RingGeometry(.5, .78, 22, 1, Math.PI * .18, Math.PI * .64),
+      new THREE.MeshBasicMaterial({ color: 0xfff6e0, transparent: true, opacity: .18, depthWrite: false, side: THREE.DoubleSide }),
     );
     bow.rotation.x = -Math.PI / 2;
     bow.rotation.z = Math.PI * .5;
-    bow.position.set(0, -.012, -.72);
+    bow.position.set(0, -.012, -.7);
     group.add(bow);
     group.userData.bow = bow;
     return group;
+  }
+
+  /*
+    Волны от манёвра. При смене дорожки на воде остаётся косая полоса пены:
+    она дрейфует вместе с течением и гаснет. Пул фиксированный, ничего не
+    создаётся во время игры.
+  */
+  const swipeWaves = [];
+  function buildSwipeWaves() {
+    const material = window.NileShaders?.createWakeMaterial?.(THREE, 0xfdf3dc);
+    for (let i = 0; i < 6; i += 1) {
+      const waveMaterial = material ? material.clone() : new THREE.MeshBasicMaterial({ color: 0xfdf3dc, transparent: true, opacity: .3, depthWrite: false, side: THREE.DoubleSide });
+      if (waveMaterial.uniforms) waveMaterial.uniforms.uStrength.value = 0;
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.4, 1, 4), waveMaterial);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = -.015;
+      mesh.visible = false;
+      mesh.renderOrder = 6;
+      mesh.frustumCulled = false;
+      scene.add(mesh);
+      swipeWaves.push({ mesh, life: 0, maxLife: 1.35 });
+    }
+  }
+
+  let swipeWaveCursor = 0;
+  function emitSwipeWave(x, direction) {
+    if (!swipeWaves.length) return;
+    const slot = swipeWaves[swipeWaveCursor % swipeWaves.length];
+    swipeWaveCursor += 1;
+    slot.life = slot.maxLife;
+    slot.mesh.visible = true;
+    slot.mesh.position.set(x - direction * .5, -.015, .6);
+    slot.mesh.rotation.z = direction * .5;
+    slot.mesh.scale.set(1, 1, 1);
+  }
+
+  function updateSwipeWaves(dt, flow, t) {
+    for (const slot of swipeWaves) {
+      if (slot.life <= 0) {
+        if (slot.mesh.visible) slot.mesh.visible = false;
+        continue;
+      }
+      slot.life -= dt;
+      slot.mesh.position.z += flow * dt;
+      const fade = clamp(slot.life / slot.maxLife, 0, 1);
+      slot.mesh.scale.set(1 + (1 - fade) * 1.1, 1, 1 + (1 - fade) * .7);
+      const material = slot.mesh.material;
+      if (material.uniforms) {
+        material.uniforms.uTime.value = t;
+        material.uniforms.uStrength.value = fade * .7;
+      } else {
+        material.opacity = fade * .35;
+      }
+      if (slot.life <= 0) slot.mesh.visible = false;
+    }
   }
 
   function installBasket(visual) {
@@ -1416,10 +1594,10 @@
       wrap.userData.crocUniforms = uniforms;
       wrap.userData.assetSource = 'models/v73/crocodile.glb';
 
-      // Крокодил лежит поперёк течения: вдоль него камера видела бы только торец,
-      // и вместо рептилии получалось тёмное пятно.
+      // Крокодил идёт навстречу корзинке, носом к камере.
       const body = new THREE.Group();
-      body.rotation.y = Math.PI * .57;
+      body.rotation.y = 0;
+      body.rotation.x = -.06;
       body.add(model);
       wrap.add(body);
       wrap.userData.body = body;
@@ -1445,7 +1623,7 @@
         trailMaterial.uniforms.uStrength.value = .32;
         const trail = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 5.4, 1, 8), trailMaterial);
         trail.rotation.x = -Math.PI / 2;
-        trail.position.set(0, -.04, -2.2);
+        trail.position.set(0, -.04, -3.2);
         trail.renderOrder = 4;
         wrap.add(trail);
         wrap.userData.trail = trailMaterial;
@@ -1505,12 +1683,21 @@
     beam.rotation.z = Math.PI / 2;
     beam.position.y = 2.55;
     group.add(beam);
-    for (let i = 0; i < 11; i += 1) {
-      const t = i / 10;
-      const blade = new THREE.Mesh(new THREE.PlaneGeometry(.24, 1.5), frond);
-      blade.position.set(mix(-1.15, 1.15, t), 1.8, (hash(i, 81) - .5) * .3);
-      blade.rotation.set(.12 + hash(i, 82) * .2, (hash(i, 83) - .5) * .8, (hash(i, 84) - .5) * .5);
+    for (let i = 0; i < 22; i += 1) {
+      const t = i / 21;
+      const blade = new THREE.Mesh(new THREE.PlaneGeometry(.22, 1.35 + hash(i, 86) * .8), frond);
+      const sag = Math.sin(t * Math.PI) * .34;
+      blade.position.set(mix(-1.2, 1.2, t), 2.05 - sag, (hash(i, 81) - .5) * .5);
+      blade.rotation.set(.14 + hash(i, 82) * .3, (hash(i, 83) - .5) * 1.1, (hash(i, 84) - .5) * .7);
       group.add(blade);
+    }
+    // Провисающие стебли: по ним читается, что под аркой надо нырять.
+    for (let i = 0; i < 7; i += 1) {
+      const t = i / 6;
+      const vine = new THREE.Mesh(new THREE.CylinderGeometry(.022, .014, .9 + hash(i, 87) * .6, 4), stem);
+      vine.position.set(mix(-1.05, 1.05, t), 2.05, (hash(i, 88) - .5) * .35);
+      vine.rotation.z = (hash(i, 89) - .5) * .3;
+      group.add(vine);
     }
     const bulbMaterial = new THREE.MeshStandardMaterial({ color: 0x93a05c, roughness: .95 });
     for (let i = 0; i < 5; i += 1) {
@@ -1556,33 +1743,78 @@
     return group;
   }
 
-  /* Бегемот: показывается из воды спиной, ушами и ноздрями. */
+  /*
+    Бегемот. Внешней модели в пакете нет, поэтому он собран из примитивов, но
+    собран как силуэт: широкая морда, покатая спина, уши и ноздри над водой.
+    Нижняя челюсть вынесена отдельно — он разевает пасть при приближении.
+  */
   function createHippo() {
     const group = new THREE.Group();
-    const hide = new THREE.MeshStandardMaterial({ color: 0x6b5a63, roughness: .92 });
-    const inner = new THREE.MeshStandardMaterial({ color: 0xa9757f, roughness: .85 });
-    const back = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), hide);
-    back.scale.set(1, .58, 1.5);
+    const hide = new THREE.MeshStandardMaterial({ color: 0x7b6670, roughness: .93 });
+    const inner = new THREE.MeshStandardMaterial({ color: 0xb37c86, roughness: .82 });
+    const tooth = new THREE.MeshStandardMaterial({ color: 0xf2ead6, roughness: .55 });
+
+    const back = new THREE.Mesh(new THREE.SphereGeometry(1.08, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2), hide);
+    back.scale.set(1, .62, 1.55);
     group.add(back);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.62, 14, 10), hide);
-    head.scale.set(1, .72, 1.15);
-    head.position.set(0, .12, 1.42);
+    const rump = new THREE.Mesh(new THREE.SphereGeometry(.72, 14, 10), hide);
+    rump.scale.set(1, .7, 1);
+    rump.position.set(0, .12, -1.35);
+    group.add(rump);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.66, 16, 12), hide);
+    head.scale.set(1.05, .78, 1.1);
+    head.position.set(0, .16, 1.45);
     group.add(head);
-    const snout = new THREE.Mesh(new THREE.SphereGeometry(.42, 12, 8), hide);
-    snout.scale.set(1.15, .62, .9);
-    snout.position.set(0, .02, 1.95);
+
+    // Морда бегемота — почти прямоугольная, это её главный признак.
+    const snout = new THREE.Mesh(new THREE.CylinderGeometry(.46, .52, .62, 12), hide);
+    snout.rotation.x = Math.PI / 2;
+    snout.scale.set(1.15, 1, .78);
+    snout.position.set(0, .08, 2.05);
     group.add(snout);
+    const lip = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), hide);
+    lip.scale.set(1.15, .5, .8);
+    lip.position.set(0, .1, 2.28);
+    group.add(lip);
+
+    const jaw = new THREE.Group();
+    const jawBody = new THREE.Mesh(new THREE.SphereGeometry(.46, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), inner);
+    jawBody.scale.set(1.1, .42, .78);
+    jawBody.rotation.x = Math.PI;
+    jawBody.position.set(0, -.02, .1);
+    jaw.add(jawBody);
     for (const side of [-1, 1]) {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), hide);
-      ear.position.set(side * .38, .46, 1.15);
-      group.add(ear);
-      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.09, 7, 6), inner);
-      nostril.position.set(side * .16, .22, 2.25);
-      group.add(nostril);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(.08, 7, 6), new THREE.MeshStandardMaterial({ color: 0x241c14, roughness: .4 }));
-      eye.position.set(side * .34, .34, 1.62);
-      group.add(eye);
+      const tusk = new THREE.Mesh(new THREE.ConeGeometry(.07, .26, 6), tooth);
+      tusk.position.set(side * .3, .1, .3);
+      jaw.add(tusk);
     }
+    jaw.position.set(0, .02, 2.05);
+    jaw.userData.noMerge = true;
+    group.add(jaw);
+    group.userData.jaw = jaw;
+
+    for (const side of [-1, 1]) {
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(.15, 8, 6), hide);
+      ear.scale.set(1, 1.15, .7);
+      ear.position.set(side * .42, .52, 1.1);
+      group.add(ear);
+      const earInner = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), inner);
+      earInner.position.set(side * .44, .54, 1.16);
+      group.add(earInner);
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.11, 8, 6), inner);
+      nostril.scale.set(1, .7, 1);
+      nostril.position.set(side * .19, .3, 2.28);
+      group.add(nostril);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), new THREE.MeshStandardMaterial({ color: 0x241c14, roughness: .35 }));
+      eye.position.set(side * .38, .42, 1.7);
+      group.add(eye);
+      const brow = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), hide);
+      brow.scale.set(1, .6, 1);
+      brow.position.set(side * .38, .38, 1.68);
+      group.add(brow);
+    }
+
     group.name = 'V751NileHippo';
     group.userData.assetSource = 'project-procedural';
     return mergeByMaterial(group);
@@ -1983,6 +2215,7 @@
       surface: 1,
       bite: 0,
       lunged: false,
+      surfaced: false,
       mesh: null,
     };
     if (z > MESH_RANGE) attachMesh(item);
@@ -2194,8 +2427,10 @@
     state.inputLock = TUNE.inputCooldown;
     window.gameAudio?.playSplash?.();
     if (!state.fallback && player) {
-      fx?.splash?.(player.position.x, .05, player.position.z - .3, .55);
-      fx?.ripple?.(state.x, .015, .2, .6, 2.4, .7, .3);
+      fx?.splash?.(state.x, .05, .3, .8);
+      fx?.ripple?.(state.x, .015, .4, .6, 3.2, .9, .34);
+      fx?.ripple?.(state.x - direction * 1.2, .015, .1, .5, 2.4, .8, .24);
+      emitSwipeWave(state.x, direction);
     }
     haptic('light');
   }
@@ -2430,21 +2665,33 @@
         }
       }
       if (item.type === 'croc') {
-        // Всплывает по мере приближения: сначала рябь, потом спина, потом бросок.
-        const approach = clamp((item.z + 86) / 34, 0, 1);
+        /*
+          Крокодил идёт под водой почти до самой корзинки: издали видна только
+          рябь, за сорок метров показывается спина, за двадцать он всплывает
+          целиком и начинает хлопать пастью.
+        */
+        const approach = clamp((item.z + 46) / 28, 0, 1);
         item.surface = approach;
-        item.bite = clamp((item.z + 30) / 26, 0, 1) * approach;
+        const closing = clamp((item.z + 22) / 20, 0, 1);
+        item.bite = closing * (.45 + .55 * Math.sin(state.elapsed * 7.5 + item.phase));
         if (difficulty() > .3 && item.z < -16 && item.z > -70) {
           // Подкрадывается к дорожке игрока, но перестаёт за шестнадцать метров.
           item.x = damp(item.x, state.x, .55 + difficulty() * .9, dt);
         }
-        if (approach > .05 && approach < .95 && Math.random() < .05) {
-          fx?.ripple?.(item.x, .015, item.z, .5, 3.2, 1.1, .3);
+        if (approach < .6 && Math.random() < .09) {
+          // Под водой его выдаёт только расходящаяся рябь.
+          fx?.ripple?.(item.x, .015, item.z, .4, 2.8, 1.2, .26);
         }
-        if (!item.lunged && item.z > -13 && Math.abs(item.x - state.x) < 2.6) {
+        if (!item.surfaced && approach > .5) {
+          item.surfaced = true;
+          window.gameAudio?.playGrowl?.();
+          fx?.splash?.(item.x, .06, item.z, 1.8, [.55, .62, .44]);
+          fx?.ripple?.(item.x, .015, item.z, .8, 4.4, 1, .45);
+        }
+        if (!item.lunged && closing > .55 && Math.abs(item.x - state.x) < 2.6) {
           item.lunged = true;
           window.gameAudio?.playGrowl?.();
-          fx?.splash?.(item.x, .06, item.z, 1.5, [.55, .62, .44]);
+          fx?.splash?.(item.x, .06, item.z, 1.4, [.62, .66, .5]);
         }
       }
       if (item.type === 'vortex' && Math.abs(item.z) < 9 && Math.abs(item.x - state.x) < 4.2) {
@@ -2661,6 +2908,7 @@
     buildTorches();
     buildBirds();
     buildPlayer();
+    buildSwipeWaves();
 
     window.__mosesV75Scene = scene;
     window.__mosesV75Camera = camera;
@@ -2701,12 +2949,15 @@
         }
         case 'croc': {
           const surface = item.surface ?? 1;
-          const bite = item.bite ?? 0;
-          mesh.position.y = mix(-1.15, -.16, surface) + Math.sin(t * 2.6 + item.phase) * .045;
-          mesh.rotation.z = Math.sin(t * 1.7 + item.phase) * .028 + bite * .06;
-          // Доворачивается мордой к добыче, оставаясь поперёк русла.
-          mesh.rotation.y = clamp((state.x - item.x) * .05, -.26, .26) * surface;
-          if (mesh.userData.body) mesh.userData.body.rotation.z = Math.sin(t * 1.3 + item.phase) * .05;
+          const bite = clamp(item.bite ?? 0, 0, 1);
+          mesh.position.y = mix(-1.35, -.14, surface) + Math.sin(t * 2.6 + item.phase) * .04;
+          mesh.rotation.z = Math.sin(t * 1.7 + item.phase) * .03;
+          // Доворачивается мордой к добыче.
+          mesh.rotation.y = clamp((state.x - item.x) * .09, -.4, .4) * surface;
+          if (mesh.userData.body) {
+            mesh.userData.body.rotation.x = -.06 - bite * .12;
+            mesh.userData.body.rotation.z = Math.sin(t * 1.3 + item.phase) * .05;
+          }
           if (mesh.userData.trail) mesh.userData.trail.uniforms.uTime.value = t + item.phase;
           if (mesh.userData.eyes) mesh.userData.eyes.visible = surface > .45;
           const swim = mesh.userData.crocUniforms;
@@ -2733,10 +2984,17 @@
           if (rings) for (let i = 0; i < rings.length; i += 1) rings[i].rotation.z += dt * (2.6 - i * .45);
           break;
         }
-        case 'hippo':
-          mesh.position.y = -.26 + Math.abs(Math.sin(t * .8 + item.phase)) * .5;
+        case 'hippo': {
+          const rise = clamp((item.z + 52) / 30, 0, 1);
+          mesh.position.y = mix(-1.1, -.22, rise) + Math.abs(Math.sin(t * .8 + item.phase)) * .16;
           mesh.rotation.y = Math.PI + Math.sin(t * .5 + item.phase) * .1;
+          const gape = rise * Math.max(0, Math.sin(t * 1.6 + item.phase));
+          if (mesh.userData.jaw) mesh.userData.jaw.rotation.x = gape * .85;
+          if (rise > .2 && rise < .9 && Math.random() < .04) {
+            fx?.splash?.(item.x, .05, item.z + 2, 1.1, [.72, .68, .7]);
+          }
           break;
+        }
         case 'boat':
           mesh.position.y = -.16 + Math.sin(t * 1.5 + item.phase) * .05;
           mesh.rotation.z = Math.sin(t * 1.2 + item.phase) * .04;
@@ -2747,12 +3005,82 @@
     }
   }
 
+  /*
+    Поведение фигур на берегу. Кости ищутся по именам один раз при сборке,
+    здесь остаются только повороты — это дешевле любой готовой анимации и
+    позволяет каждой фигуре жить в своём ритме.
+  */
+  function animateFolk(entry, t) {
+    const phase = t + entry.phase;
+    const bones = entry.bones;
+    if (entry.simpleArm) {
+      const wave = Math.sin(phase * 2.2);
+      entry.simpleArm.rotation.z = wave > .3 ? entry.side * (-.6 - wave * .8) : entry.side * -.1;
+      return;
+    }
+    if (!bones?.armR) return;
+
+    switch (entry.role) {
+      case 'waver': {
+        // Машет поднятой рукой, вторая опущена, корпус слегка качается.
+        const swing = Math.sin(phase * 4.2);
+        bones.armR.rotation.z = -2.65 + swing * .3;
+        bones.armR.rotation.x = .1;
+        if (bones.foreR) bones.foreR.rotation.z = -.35 + swing * .25;
+        if (bones.armL) bones.armL.rotation.z = 1.24;
+        if (bones.torso) bones.torso.rotation.y = Math.sin(phase * 1.1) * .09;
+        if (bones.head) bones.head.rotation.y = Math.sin(phase * .9) * .18;
+        break;
+      }
+      case 'fisher': {
+        // Стоит с удочкой, изредка подсекает.
+        const strike = Math.max(0, Math.sin(phase * .55) - .82) * 6;
+        if (bones.torso) bones.torso.rotation.x = .16 - strike * .22;
+        bones.armR.rotation.set(-1.0 - strike * .45, 0, -1.15);
+        if (bones.armL) bones.armL.rotation.set(-.8, 0, 1.1);
+        if (bones.foreR) bones.foreR.rotation.x = -.5;
+        if (entry.prop) entry.prop.rotation.x = -.9 - strike * .5;
+        break;
+      }
+      case 'carrier': {
+        // Шагает вдоль берега с кувшином на плече.
+        const step = Math.sin(phase * 3.1);
+        if (bones.legR) bones.legR.rotation.x = step * .5;
+        if (bones.legL) bones.legL.rotation.x = -step * .5;
+        bones.armR.rotation.set(.1, 0, -2.4);
+        if (bones.foreR) bones.foreR.rotation.x = -1.1;
+        if (bones.armL) bones.armL.rotation.set(-step * .32, 0, 1.28);
+        if (bones.torso) bones.torso.rotation.z = step * .05;
+        entry.object.position.y = .04 + Math.abs(step) * .035;
+        break;
+      }
+      default: {
+        // Полощет бельё: наклоняется к воде и распрямляется.
+        const dip = (Math.sin(phase * 1.6) * .5 + .5) ** 1.6;
+        if (bones.torso) bones.torso.rotation.x = .25 + dip * .75;
+        bones.armR.rotation.set(-.35 - dip * .7, 0, -1.15);
+        if (bones.armL) bones.armL.rotation.set(-.35 - dip * .7, 0, 1.15);
+        if (bones.head) bones.head.rotation.x = dip * .3;
+        break;
+      }
+    }
+  }
+
   function updateDecor(dt, t) {
     const night = currentLook.sky ? currentLook.sky.stars : 0;
     for (const entry of decor) {
-      if (entry.kind === 'person') {
-        const wave = Math.sin(t * 2.2 + entry.phase);
-        entry.arm.rotation.z = wave > .3 ? entry.side * (-.6 - wave * .8) : entry.side * -.1;
+      if (entry.scroll) {
+        if (entry.walk) {
+          entry.baseZ += entry.walk * dt * 1.1;
+          if (entry.baseZ > 0) entry.baseZ -= SCROLL_TILE;
+          if (entry.baseZ < -SCROLL_TILE) entry.baseZ += SCROLL_TILE;
+        }
+        let z = entry.baseZ + state.scroll;
+        if (z > 18) z -= SCROLL_TILE;
+        entry.object.position.z = z;
+      }
+      if (entry.kind === 'folk') {
+        animateFolk(entry, t);
       } else if (entry.kind === 'torch') {
         const flicker = .55 + Math.sin(t * 9 + entry.phase) * .18 + Math.sin(t * 21 + entry.phase) * .1;
         entry.flame.material.opacity = night * flicker;
@@ -2775,6 +3103,17 @@
     if (!scene || !player) return;
     const t = state.elapsed;
     timeUniform.value = t;
+
+    // Мир едет навстречу: без этого предметы плыли к неподвижному берегу и
+    // казалось, что корзинка стоит на месте.
+    const flow = state.playing && !state.paused ? state.speed : TUNE.baseSpeed * .35;
+    state.scroll = (state.scroll + flow * dt) % SCROLL_TILE;
+    for (const mesh of scrollLayers) mesh.position.z = state.scroll;
+    for (const entry of bankMaterials) {
+      const step = (flow * dt) / entry.metresPerRepeat;
+      if (entry.material.map) entry.material.map.offset.y = (entry.material.map.offset.y - step) % 1;
+      if (entry.material.normalMap) entry.material.normalMap.offset.y = (entry.material.normalMap.offset.y - step) % 1;
+    }
 
     // Плавный переход между биомами занимает около трёх секунд.
     if (state.biomeBlend < 1) {
@@ -2823,8 +3162,14 @@
         bow.scale.setScalar(1 + Math.sin(t * 4.3) * .06 + speedT * .18);
       }
       for (const child of wake.children) {
-        if (child === shaderWake || child === bow || !child.material?.opacity) continue;
-        child.material.opacity = (.16 + Math.sin(t * 2.3) * .03) * (state.playing ? 1 : .5);
+        if (child === shaderWake || child === bow) continue;
+        if (child.material?.uniforms) {
+          child.material.uniforms.uTime.value = t;
+          child.material.uniforms.uSpeed.value = state.speed / TUNE.baseSpeed;
+          child.material.uniforms.uStrength.value = (.34 + Math.sin(t * 2.3) * .05) * (state.playing ? 1 : .45);
+        } else if (child.material?.opacity !== undefined) {
+          child.material.opacity = (.16 + Math.sin(t * 2.3) * .03) * (state.playing ? 1 : .5);
+        }
       }
     }
 
@@ -2832,7 +3177,7 @@
     const shake = fx?.shakeOffset;
     camera.position.x = damp(camera.position.x, state.x * .74, 6, dt) + (shake?.x || 0);
     camera.position.y = damp(camera.position.y, 4.34 + state.y * .3 - speedT * .2, 5, dt) + (shake?.y || 0);
-    camera.position.z = damp(camera.position.z, 10.4 - speedT * .55, 5, dt) + (shake?.z || 0);
+    camera.position.z = damp(camera.position.z, 10.4 - speedT * .55, 5, dt) + (shake?.z || 0) + Math.sin(t * 3.1) * speedT * .06;
     camera.rotation.z = fx?.shakeRoll || 0;
     const targetFov = 52 + speedT * 9 + (state.rush > 0 ? 5 : 0);
     if (Math.abs(camera.fov - targetFov) > .05) {
@@ -2845,7 +3190,7 @@
       const u = waterMaterial.uniforms;
       u.uTime.value = t;
       u.uFlow.value = .8 + speedT * .9;
-      u.uPlayer.value.set(state.x, 0, -1.6);
+      u.uPlayer.value.set(state.x, 0, 1.1);
       u.uWakeStrength.value = state.playing ? clamp(.55 - state.y * .4, 0, .6) : .2;
       if (waterNormal) {
         waterNormal.offset.x = (waterNormal.offset.x + dt * .0022) % 1;
@@ -2885,14 +3230,34 @@
 
     updateItems3D(dt, t);
     updateDecor(dt, t);
+    updateSwipeWaves(dt, flow, t);
 
     // Живые мелочи: брызги из-под корзинки и висящая в воздухе пыльца.
     if (state.playing && !state.paused) {
-      fx?.spray?.(state.x, .04, 0, .3 + speedT * .8);
+      fx?.spray?.(state.x, .04, .6, .3 + speedT * .8);
+      const night = currentLook.sky ? currentLook.sky.stars : 0;
       if (Math.random() < .22) {
-        const night = currentLook.sky ? currentLook.sky.stars : 0;
         const color = night > .5 ? [1, .86, .45] : [1, .93, .74];
         fx?.mote?.(state.x + (Math.random() - .5) * 16, .6 + Math.random() * 3.4, -22 - Math.random() * 30, color, night > .5 ? .13 : .07, 3.2);
+      }
+      // Взвесь, проносящаяся мимо камеры: без неё скорость не читается.
+      const rushChance = .35 + speedT * .55;
+      if (Math.random() < rushChance) {
+        const dust = night > .5 ? [.72, .78, .95] : [1, .95, .82];
+        fx?.spawn?.(
+          state.x + (Math.random() - .5) * 22,
+          .2 + Math.random() * 4.2,
+          -34 - Math.random() * 26,
+          (Math.random() - .5) * 1.2,
+          (Math.random() - .5) * .6,
+          flow * (.85 + Math.random() * .5),
+          .05 + Math.random() * .09,
+          1.5,
+          dust,
+          .5,
+          .1,
+          .08,
+        );
       }
     }
     fx?.update?.(dt, t);

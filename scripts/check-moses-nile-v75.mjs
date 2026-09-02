@@ -20,6 +20,7 @@ for (const token of [
   'aria-label="Двигаться влево"',
   'js/shaders.js',
   'js/fx.js',
+  'SkeletonUtils-r128.js',
   'id="btn-jump"',
   'id="btn-dive"',
   'id="hearts"',
@@ -57,6 +58,10 @@ for (const token of [
   'mergeByMaterial',
   'V751SandstormSky',
   'V751HorizonDunes',
+  'V751RiverFolk',
+  'SCROLL_TILE',
+  'scrollLayers',
+  'emitSwipeWave',
   'buildDunes();',
   'proceduralSkyVisible: true',
   "const LANES = [-3.75, 0, 3.75]",
@@ -64,7 +69,7 @@ for (const token of [
   if (!game.includes(token)) throw new Error(`V7.5.1 engine is missing ${token}`);
 }
 if (game.includes('OctahedronGeometry')) throw new Error('The placeholder octahedron power-up is still present');
-for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj']) {
+for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj', 'models/v73/human.glb', 'cloneRigged', '_mergeSkinned']) {
   if (!assets.includes(token)) throw new Error(`V7.5.1 asset manager is missing ${token}`);
 }
 for (const token of ['createRiverMaterial', 'createSkyMaterial', 'createDustSheetMaterial', 'applyCrocodileSwim', 'createShieldMaterial', 'createParticleMaterial', 'applyWind', 'window.NileShaders']) {
