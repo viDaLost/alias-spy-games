@@ -93,9 +93,45 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+
+// Сеть здесь рвётся по-настоящему: локальный сервер рвёт сокеты, а контекст
+// переводится в офлайн. Но признак navigator.onLine настоящий Chrome на CI при
+// этом не опускает — там он остаётся true, хотя ни один запрос не проходит.
+// Приложение спрашивает именно его, как и положено, и проверка падала на том,
+// чего эмуляция не даёт, а не на поведении приложения.
+//
+// Поэтому признак подставляется здесь — ровно так, как его подаёт настоящий
+// телефон: значение плюс событие online/offline. Всё остальное — что меню
+// собирается из кеша, что игра открывается, что запросы ждут в очереди —
+// проверяется на честно оборванной сети.
+await context.addInitScript(() => {
+  Object.defineProperty(navigator, 'onLine', {
+    configurable: true,
+    get() {
+      try { return localStorage.getItem('__probe_offline') !== '1'; } catch { return true; }
+    },
+  });
+});
+
 const page = await context.newPage();
 const crashes = [];
 page.on('pageerror', (error) => crashes.push(String(error?.message || error)));
+
+/** Уводит в офлайн и обратно: и сеть, и признак браузера, и его событие. */
+async function switchNetwork(offline) {
+  unplugged = offline;
+  await context.setOffline(offline);
+  for (const target of context.pages()) {
+    if (!target.url().startsWith('http')) continue;
+    await target.evaluate((isOffline) => {
+      try {
+        if (isOffline) localStorage.setItem('__probe_offline', '1');
+        else localStorage.removeItem('__probe_offline');
+      } catch { /* приватный режим */ }
+      window.dispatchEvent(new Event(isOffline ? 'offline' : 'online'));
+    }, offline).catch(() => {});
+  }
+}
 
 const fail = async (message) => {
   console.error(`Проверка офлайна не прошла: ${message}`);
@@ -190,8 +226,7 @@ if (!cached.has.wow) await fail('в кеше нет данных уровней'
 if (cached.has.foreign) await fail('работник закешировал ответ сервера — офлайн покажет чужой прогресс');
 
 // --- 3. приложение открывается без сети --------------------------------------------
-await context.setOffline(true);
-unplugged = true;
+await switchNetwork(true);
 served = 0;
 await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
@@ -234,8 +269,7 @@ await page.waitForTimeout(600);
 //
 // Дальше нужен настоящий запрос к серверу, а гостя приложение обслуживает
 // локально и никуда не ходит. Поэтому сначала вход, потом очередь.
-unplugged = false;
-await context.setOffline(false);
+await switchNetwork(false);
 await page.evaluate(() => {
   localStorage.setItem('web_session_v1', JSON.stringify({
     token: `bgs_${'a'.repeat(64)}`, userId: '5883903220', expiresAt: Date.now() + 86_400_000,
@@ -258,8 +292,7 @@ const cardText = await page.evaluate(() => document.getElementById('web-session-
 if (!/Выйти/.test(cardText)) await fail(`карточка профиля с активной сессией говорит «${cardText.split('\n')[0]}»`);
 
 // --- 6. обращения к серверу ждут связи в очереди и уходят сами -------------------------
-await context.setOffline(true);
-unplugged = true;
+await switchNetwork(true);
 const queued = await page.evaluate(async () => {
   const before = window.OfflineQueue.size();
   await window.apiRequest({ action: 'updateHistory', game: 'bible-wow', at: Date.now() }, { quiet: true });
@@ -271,8 +304,7 @@ if (!(await page.evaluate(() => document.getElementById('offline-bar')?.textCont
 }
 
 const historyBefore = calls.filter((call) => call.body?.payload?.action === 'updateHistory').length;
-unplugged = false;
-await context.setOffline(false);
+await switchNetwork(false);
 await page.evaluate(() => { window.dispatchEvent(new Event('online')); });
 await page.waitForTimeout(2500);
 const historyAfter = calls.filter((call) => call.body?.payload?.action === 'updateHistory').length;
