@@ -15,6 +15,7 @@
 // просто нет; повторять это в новом опросе незачем.
 
 import coreV16, { UserStore as V16UserStore } from './index-v16.js';
+import { feedbackReplyTarget } from './feedback-reply-target.js';
 
 const encoder = new TextEncoder();
 const FEEDBACK_ACTIONS = new Set(['feedbackStatus', 'feedbackSubmit']);
@@ -33,11 +34,18 @@ export class UserStore extends V16UserStore {
         opinion TEXT NOT NULL DEFAULT '',
         wishes TEXT NOT NULL DEFAULT '',
         source TEXT NOT NULL DEFAULT 'web',
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        reply TEXT NOT NULL DEFAULT '',
+        replied_at INTEGER NOT NULL DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_feedback_notes_created
         ON feedback_notes(created_at DESC);
     `);
+    // Таблица создаётся через IF NOT EXISTS, поэтому у отзывов, собранных до
+    // появления ответов, этих колонок нет — их добавляет отдельная миграция.
+    for (const column of ["reply TEXT NOT NULL DEFAULT ''", 'replied_at INTEGER NOT NULL DEFAULT 0']) {
+      try { this.sql.exec(`ALTER TABLE feedback_notes ADD COLUMN ${column}`); } catch { /* уже есть */ }
+    }
   }
 
   async fetch(request) {
@@ -46,6 +54,7 @@ export class UserStore extends V16UserStore {
       const body = await request.json().catch(() => ({}));
       if (url.pathname === '/feedback/status') return feedbackStoreResponse(await this.feedbackStatus(body));
       if (url.pathname === '/feedback/submit') return feedbackStoreResponse(await this.submitFeedback(body));
+      if (url.pathname === '/feedback/reply') return feedbackStoreResponse(await this.replyToFeedback(body));
     }
     return super.fetch(request);
   }
@@ -96,11 +105,53 @@ export class UserStore extends V16UserStore {
     );
     return { ok: true, success: true, created: true, answered: true, opinion, wishes, createdAt: now };
   }
+
+  /**
+   * Ответ администратора на отзыв. Хранится рядом с самим отзывом: доставка в
+   * Telegram может не пройти — человек мог не начинать диалог с ботом или
+   * заблокировать его, — и тогда написанное не должно пропасть.
+   */
+  async replyToFeedback(raw = {}) {
+    const userId = cleanUserId(raw.userId);
+    const reply = cleanFeedbackText(raw.reply);
+    if (!userId) return feedbackFail('Некорректный Telegram ID');
+    if (reply.length < 2) return feedbackFail('Ответ слишком короткий');
+
+    const existing = this.sql.exec(
+      'SELECT opinion, wishes FROM feedback_notes WHERE user_id = ?', userId,
+    ).toArray()[0];
+    if (!existing) return feedbackFail('Отзыв не найден');
+
+    const now = Date.now();
+    this.sql.exec('UPDATE feedback_notes SET reply = ?, replied_at = ? WHERE user_id = ?', reply, now, userId);
+    return { ok: true, success: true, userId, reply, repliedAt: now };
+  }
 }
+
+// Обновления, уже разобранные этим слоем. Telegram повторяет доставку, пока не
+// получит ответ, а свой список повторов есть только у слоя поддержки — до него
+// ответ на отзыв не доходит.
+const handledUpdates = new Map();
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Ответ свайпом. Слой поддержки разбирает вебхук ниже по цепочке и об
+    // отзывах не знает, поэтому свои ответы этот слой забирает первым, а всё
+    // остальное отдаёт дальше нетронутым.
+    if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
+      const taken = await takeFeedbackReply(request.clone(), env).catch(async (error) => {
+        const adminId = String(env.ADMIN_TELEGRAM_ID || '');
+        if (adminId && env.TELEGRAM_BOT_TOKEN) {
+          await feedbackSendMessage(env, adminId,
+            `⚠️ Не удалось обработать ответ на отзыв: ${String(error?.message || error).slice(0, 400)}`).catch(() => {});
+        }
+        return true;
+      });
+      if (taken) return new Response('OK');
+    }
+
     const compat = url.pathname === '/compat';
     const sessionCompat = url.pathname === '/android/compat';
     if ((compat || sessionCompat) && request.method === 'POST') {
@@ -118,6 +169,85 @@ export default {
     if (typeof coreV16.scheduled === 'function') return coreV16.scheduled(controller, env, ctx);
   },
 };
+
+/**
+ * Ответ администратора свайпом — тем же жестом, что и в техподдержке: он
+ * отвечает на сообщение бота, а бот пересылает написанное человеку.
+ *
+ * Возвращает true, только если это действительно ответ на отзыв. Всё прочее —
+ * команды, обращения в поддержку, любые другие сообщения — уходит дальше.
+ */
+async function takeFeedbackReply(request, env) {
+  if (!env.TELEGRAM_BOT_TOKEN) return false;
+
+  // Подпись вебхука проверяется здесь же: слой поддержки, который делает это
+  // ниже, до неподошедшего обновления уже не доберётся.
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(String(env.TELEGRAM_BOT_TOKEN))));
+  const expected = [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  const received = String(request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '');
+  if (!received || !feedbackEqual(encoder.encode(expected), encoder.encode(received))) return false;
+
+  const update = await request.json().catch(() => null);
+  const message = update?.message;
+  if (!message?.chat || message.chat.type !== 'private') return false;
+
+  const chatId = cleanUserId(message.chat.id);
+  const senderId = cleanUserId(message.from?.id);
+  if (!chatId || !senderId || chatId !== senderId) return false;
+
+  const text = String(message.text || message.caption || '').trim();
+  if (!text) return false;
+
+  const targetId = feedbackReplyTarget(message.reply_to_message);
+  if (!targetId) return false;
+
+  const updateId = Number(update.update_id || 0);
+  if (updateId && rememberUpdate(updateId)) return true;
+
+  const store = env.USERS.get(env.USERS.idFromName('global'));
+  const role = await callFeedbackStore(store, '/admin-role/check', { userId: senderId }).catch(() => ({}));
+  // Отвечать может только администратор: сообщение бота можно переслать кому
+  // угодно, и без этой проверки ответить от имени приложения смог бы любой.
+  if (role?.isAdmin !== true || (role?.isBanned === true && role?.isRoot !== true)) return false;
+
+  const saved = await callFeedbackStore(store, '/feedback/reply', { userId: targetId, reply: text })
+    .catch((error) => ({ error: String(error?.message || 'Не удалось сохранить ответ') }));
+  if (saved?.error) {
+    await feedbackSendMessage(env, chatId, `Не удалось сохранить ответ: ${saved.error}`, message.message_id);
+    return true;
+  }
+
+  let delivered = true;
+  let reason = '';
+  try {
+    await feedbackSendMessage(env, targetId, [
+      '💬 Ответ на ваш отзыв о «Библейских играх»',
+      '',
+      String(saved.reply || text),
+    ].join('\n'));
+  } catch (error) {
+    delivered = false;
+    reason = String(error?.message || 'Telegram отклонил отправку');
+  }
+
+  await feedbackSendMessage(env, chatId, delivered
+    ? '✅ Ответ отправлен человеку в бот.'
+    : `✅ Ответ сохранён, но Telegram не доставил его: ${reason}`,
+  message.message_id);
+  return true;
+}
+
+function rememberUpdate(updateId) {
+  const now = Date.now();
+  const seen = Number(handledUpdates.get(String(updateId)) || 0);
+  if (seen && now - seen < 10 * 60_000) return true;
+  handledUpdates.set(String(updateId), now);
+  if (handledUpdates.size > 500) {
+    const cutoff = now - 10 * 60_000;
+    for (const [key, at] of handledUpdates) if (at < cutoff) handledUpdates.delete(key);
+  }
+  return false;
+}
 
 async function handleFeedback(request, env, ctx, body, payload, action, compat) {
   const cors = feedbackCors(request, env);
@@ -187,6 +317,9 @@ async function notifyFeedbackAdmin(env, who, result) {
     '',
     'Что добавил бы или изменил:',
     String(result.wishes || '').slice(0, 1200) || '— не ответил',
+    '',
+    'Ответьте на это сообщение — ответ придёт человеку в бот.',
+    `ID отзыва: fb_${who.userId}`,
   ].join('\n'));
 }
 
@@ -205,11 +338,16 @@ async function callFeedbackStore(stub, pathname, body) {
   return data;
 }
 
-async function feedbackSendMessage(env, chatId, text) {
+async function feedbackSendMessage(env, chatId, text, replyToMessageId = 0) {
   const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: String(chatId), text: String(text || '').slice(0, 4096), disable_web_page_preview: true }),
+    body: JSON.stringify({
+      chat_id: String(chatId),
+      text: String(text || '').slice(0, 4096),
+      disable_web_page_preview: true,
+      ...(replyToMessageId ? { reply_to_message_id: Number(replyToMessageId) } : {}),
+    }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data?.ok !== true) throw new Error(String(data?.description || `Telegram HTTP ${response.status}`));
