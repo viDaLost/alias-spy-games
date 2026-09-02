@@ -196,13 +196,27 @@ served = 0;
 await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
 await page.waitForTimeout(2500);
-const offlineMenu = await page.evaluate(() => ({
-  cards: document.querySelectorAll('.menu-grid .game-card').length,
-  bar: document.getElementById('offline-bar')?.classList.contains('is-visible') || false,
-}));
+const offlineMenu = await page.evaluate(() => {
+  const node = document.getElementById('offline-bar');
+  return {
+    cards: document.querySelectorAll('.menu-grid .game-card').length,
+    bar: node?.classList.contains('is-visible') || false,
+    // Полоска не появилась — причин ровно три, и они лечатся по-разному:
+    // браузер считает, что сеть есть; модуль офлайна не доехал; полоску
+    // создали, но её унесло перерисовкой экрана. Без этого различить их по
+    // логу чужой машины нельзя.
+    online: navigator.onLine,
+    queue: typeof window.OfflineQueue?.size === 'function',
+    node: node ? node.className : '(нет узла)',
+  };
+});
 if (served > 0) await fail('сервер отвечал, хотя должен был молчать — офлайн не проверен');
 if (offlineMenu.cards < 8) await fail(`без сети меню собралось из ${offlineMenu.cards} карточек`);
-if (!offlineMenu.bar) await fail('без сети приложение не сообщает, что играет офлайн');
+if (!offlineMenu.bar) {
+  await fail('без сети приложение не сообщает, что играет офлайн'
+    + ` (navigator.onLine=${offlineMenu.online}, модуль офлайна ${offlineMenu.queue ? 'загружен' : 'не загружен'},`
+    + ` полоска: ${offlineMenu.node})`);
+}
 
 // --- 4. игра запускается без сети ----------------------------------------------------
 await page.evaluate(() => window.showGame('bible-wow'));
