@@ -1,20 +1,20 @@
 /* Переключатель темы в шапке главного меню.
    Стоит на виду, а не в настройках: о теме вспоминают, когда экран уже режет
-   глаза, и искать её в этот момент по разделам — последнее, чего хочется. */
+   глаза, и искать её в этот момент по разделам — последнее, чего хочется.
 
-.app-header {
-  position: relative;
-}
+   Кнопка идёт обычной строкой под подзаголовком, а не приколота к углу.
+   Приколотая залезала под собственные кнопки Telegram: сверху у шапки
+   зарезервирован отступ --tg-top-gap ровно под них, а «прижать к верху» — это
+   прижать внутрь этого отступа. Заодно ей приходилось освобождать место
+   отступом справа, и от этого заголовок ломался на две строки. */
 
 .theme-switch {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  margin: 14px auto 0;
   min-height: 40px;
-  padding: 8px 14px 8px 11px;
+  padding: 8px 16px 8px 13px;
   border: 0;
   border-radius: 999px;
   /* Цветная, а не белая. Во-первых, её просят заметить. Во-вторых, белый текст
@@ -27,7 +27,7 @@
   font-size: 13px;
   font-weight: 800;
   line-height: 1;
-  box-shadow: 0 8px 20px rgba(48, 55, 150, 0.14);
+  box-shadow: 0 8px 20px rgba(48, 55, 150, 0.18);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -48,32 +48,4 @@
   width: 20px;
   height: 20px;
   display: block;
-}
-
-/* На узких экранах подпись уходит: там дорог каждый пиксель ширины, а солнце и
-   месяц понятны и без слова. */
-@media (max-width: 380px) {
-  .theme-switch {
-    gap: 0;
-    padding: 8px 10px;
-  }
-
-  .theme-switch__label {
-    display: none;
-  }
-}
-
-/* Заголовку нужно место под кнопку, иначе длинный подзаголовок заезжает под неё. */
-.app-header .app-kicker,
-.app-header h1,
-.app-header .app-subtitle {
-  padding-right: 124px;
-}
-
-@media (max-width: 380px) {
-  .app-header .app-kicker,
-  .app-header h1,
-  .app-header .app-subtitle {
-    padding-right: 56px;
-  }
 }

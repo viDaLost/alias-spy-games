@@ -1,0 +1,8 @@
+{
+  "name": "alias-spy-games-legacy-v1",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": {
+    "wrangler": "^4.42.0"
+  }
+}

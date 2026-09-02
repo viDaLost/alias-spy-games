@@ -10,9 +10,15 @@ const warnings = [];
 // relative references and bundled vendor HTML, and scanning them makes the result depend
 // on whether `npm install` has run.
 const ignoredDirs = new Set(['.git', 'node_modules', 'build', '.gradle']);
+// Замороженная копия старой версии приложения. Это музейный экспонат, а не
+// исходники: ссылки в ней относительны её собственного корня, а часть данных
+// была повреждена ещё тогда. Чинить их значило бы показывать в превью не ту
+// версию, которую просили посмотреть.
+const frozenDirs = ['cloudflare/legacy-v1-worker/public'];
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
   if (entry.isDirectory() && ignoredDirs.has(entry.name)) return [];
   const full = path.join(dir, entry.name);
+  if (frozenDirs.includes(path.relative(root, full).replaceAll(path.sep, '/'))) return [];
   return entry.isDirectory() ? walk(full) : [full];
 });
 const rel = (file) => path.relative(root, file).replaceAll(path.sep, '/');

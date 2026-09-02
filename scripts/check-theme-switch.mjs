@@ -82,14 +82,24 @@ async function openApp(colorScheme) {
 const state = (page) => page.evaluate(() => {
   const node = document.getElementById('theme-switch');
   const box = node?.getBoundingClientRect();
+  const header = document.querySelector('.app-header');
+  const title = document.querySelector('.app-header h1');
+  const reserved = header ? parseFloat(getComputedStyle(header).paddingTop) : 0;
+  const titleBox = title?.getBoundingClientRect();
+  const titleLine = title ? parseFloat(getComputedStyle(title).lineHeight) : 0;
   return {
     dark: document.documentElement.classList.contains('theme-dark'),
     choice: localStorage.getItem('theme_choice_v1'),
     label: (node?.innerText || '').trim(),
     hasIcon: Boolean(node?.querySelector('svg')),
     // «Заметная» — это про размер и место на первом экране, а не про наличие узла.
-    onScreen: Boolean(box && box.width >= 36 && box.height >= 32 && box.top >= 0 && box.top < 420
+    onScreen: Boolean(box && box.width >= 36 && box.height >= 32 && box.top >= 0 && box.top < 480
       && box.right <= window.innerWidth + 1),
+    // Сверху у шапки зарезервирован отступ ровно под кнопки самого Telegram.
+    // Всё, что попадает в него, оказывается под ними.
+    underTelegram: Boolean(box && box.top < reserved),
+    titleLines: titleBox && titleLine ? Math.round(titleBox.height / titleLine) : 0,
+    titleText: (title?.textContent || '').trim(),
   };
 });
 
@@ -99,6 +109,14 @@ let now = await state(light.page);
 if (!now.label) await fail('переключателя темы нет в шапке главного меню');
 if (!now.onScreen) await fail('переключатель есть, но его не видно на первом экране');
 if (!now.hasIcon) await fail('у переключателя нет значка — одной подписи мало');
+
+// Обе беды первой раскладки, когда кнопка была приколота к правому верхнему углу.
+if (now.underTelegram) {
+  await fail('переключатель попал в отступ под кнопки Telegram — там он ими и перекрыт');
+}
+if (now.titleLines > 1) {
+  await fail(`переключатель поджал заголовок: «${now.titleText}» разорвался на ${now.titleLines} строки`);
+}
 if (now.dark) await fail('при светлой настройке телефона приложение открылось тёмным');
 if (!/Тёмная/i.test(now.label)) await fail(`кнопка в светлой теме подписана «${now.label}» вместо «Тёмная»`);
 if (now.choice) await fail('выбор темы записан, хотя человек ничего не нажимал');
@@ -153,7 +171,7 @@ await early.close();
 
 console.log('Переключатель темы в порядке: кнопка видна в шапке меню, переключает в обе стороны, '
   + 'выбор переживает перезапуск, без выбора приложение идёт за настройкой телефона, '
-  + 'а тема ставится до первой отрисовки.');
+  + 'тема ставится до первой отрисовки, кнопка не лезет под кнопки Telegram и не ломает заголовок.');
 
 await browser.close();
 server.close();
