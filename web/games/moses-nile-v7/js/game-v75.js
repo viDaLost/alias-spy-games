@@ -76,7 +76,7 @@
       sky: { zenith: 0x7d6440, haze: 0xc9a874, horizon: 0xe6c894, sun: 0xffe6ae, storm: .5, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
-      wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
+      exposure: .96, wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
     },
     {
       id: 'open',
@@ -90,7 +90,7 @@
       sky: { zenith: 0x8b7c50, haze: 0xd3bd88, horizon: 0xefd9a6, sun: 0xfff2cf, storm: .38, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
-      wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
+      exposure: 1.02, wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
     },
     {
       id: 'rapids',
@@ -104,7 +104,7 @@
       sky: { zenith: 0x515f58, haze: 0x92a294, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .85, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(40,60,60,.20), transparent 30%, transparent 66%, rgba(16,26,26,.30))',
-      wind: 1.9, weights: { rock: 6, log: 3, croc: 3, gate: 2, vortex: 4, hippo: 1, boat: 0 },
+      exposure: .88, wind: 1.9, weights: { rock: 6, log: 3, croc: 3, gate: 2, vortex: 4, hippo: 1, boat: 0 },
     },
     {
       id: 'night',
@@ -118,7 +118,7 @@
       sky: { zenith: 0x0e1626, haze: 0x1d2b40, horizon: 0x33445e, sun: 0xbcd2ff, storm: .55, stars: 1 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(8,14,28,.52), rgba(10,16,30,.28) 34%, rgba(8,12,24,.34) 70%, rgba(4,8,18,.60))',
-      wind: 1.1, weights: { rock: 4, log: 3, croc: 5, gate: 3, vortex: 2, hippo: 2, boat: 1 },
+      exposure: .52, wind: 1.1, weights: { rock: 4, log: 3, croc: 5, gate: 3, vortex: 2, hippo: 2, boat: 1 },
     },
     {
       id: 'delta',
@@ -132,7 +132,7 @@
       sky: { zenith: 0x7d4c2c, haze: 0xc98d58, horizon: 0xf0c288, sun: 0xffcf9a, storm: .58, stars: .1 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(150,84,26,.16), transparent 32%, transparent 70%, rgba(50,26,10,.26))',
-      wind: 1.4, weights: { rock: 4, log: 4, croc: 4, gate: 3, vortex: 3, hippo: 2, boat: 2 },
+      exposure: .98, wind: 1.4, weights: { rock: 4, log: 4, croc: 4, gate: 3, vortex: 3, hippo: 2, boat: 2 },
     },
   ];
 
@@ -148,7 +148,7 @@
     croc:   { clearance: 'ground', radius: 1.2, size: 5.2, fail: 'Крокодил преградил путь по реке.' },
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Корзинка запуталась в нависших зарослях папируса.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Водоворот затянул корзинку под воду.' },
-    hippo:  { clearance: 'ground', radius: 1.32, size: 3.1,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
+    hippo:  { clearance: 'ground', radius: 1.36, size: 4.3,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
     boat:   { clearance: 'ground', radius: 1.42, size: 3.4,  fail: 'Корзинка врезалась в борт рыбацкой лодки.' },
   };
 
@@ -356,6 +356,7 @@
   let sun = null;
   let hemi = null;
   let rimLight = null;
+  let backLight = null;
   let player = null;
   let basketVisual = null;
   let wake = null;
@@ -372,7 +373,7 @@
     fog: null, fogNear: 54, fogFar: 248,
     hemiSky: null, hemiGround: null, hemiPower: .86,
     sunColor: null, sunPower: .9,
-    water: null, sky: null,
+    water: null, sky: null, exposure: .96,
   };
 
   function detectTier() {
@@ -776,10 +777,10 @@
     const specs = [
       {
         key: 'reeds', name: 'V75ReedsInstanced', size: 2.3, wind: 1.6,
-        count: Math.round(155 * density),
+        count: Math.round(215 * density),
         fallbackGeometry: reedGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x6d7a48, roughness: .98 }),
-        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 1, zFrom: 4, zSpan: 258, near: .2, far: 2.6, lift: .02, minScale: .7, maxScale: 1.6, tilt: .18, stretch: 1.1 }, half),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 1, zFrom: 4, zSpan: 258, near: -.35, far: 2.2, lift: .02, minScale: .8, maxScale: 1.9, tilt: .2, stretch: 1.25 }, half),
       },
       {
         key: 'bankPlant', name: 'V75BankPlants', size: 1.7, wind: 1.2,
@@ -807,7 +808,7 @@
         count: Math.round(82 * density),
         fallbackGeometry: () => new THREE.IcosahedronGeometry(.5, 1),
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x7d6e58, roughness: 1, flatShading: true }),
-        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 31, zFrom: 2, zSpan: 262, near: 3.2, far: 28, lift: .02, minScale: .35, maxScale: 2.3, tilt: .5, stretch: .7 }, half),
+        place: (i, dummy, half) => bankPlace(i, dummy, { salt: 31, zFrom: 2, zSpan: 262, near: -.2, far: 26, lift: .02, minScale: .3, maxScale: 2.4, tilt: .5, stretch: .7 }, half),
       },
       {
         key: 'flowers', name: 'V75BankFlowers', size: .95, wind: 1.3,
@@ -1445,12 +1446,12 @@
   function createLotus() {
     const group = new THREE.Group();
     const pad = new THREE.Mesh(
-      new THREE.CylinderGeometry(.58, .64, .05, 20),
-      new THREE.MeshStandardMaterial({ color: 0x4a6f3f, roughness: .86 }),
+      new THREE.CylinderGeometry(.72, .78, .05, 20),
+      new THREE.MeshStandardMaterial({ color: 0x3f6636, roughness: .84 }),
     );
     pad.name = 'V751LilyPad';
     group.add(pad);
-    const model = window.assetManager?.cloneModel?.('lotus', .88);
+    const model = window.assetManager?.cloneModel?.('lotus', 1.15);
     if (model) {
       model.position.y += .055;
       model.rotation.y = Math.PI * .15;
@@ -1668,77 +1669,142 @@
     return mergeByMaterial(group);
   }
 
-  /* Нависшие заросли папируса: перекрывают верх дорожки, проходятся нырком. */
+  /*
+    Заросли папируса, под которыми надо нырять. Раньше это были две палки с
+    перекладиной — читалось как строительные леса. Теперь настоящий папирус:
+    трёхгранные стебли, склонённые над водой, с зонтиками-соцветиями наверху и
+    свисающими метёлками. Проход внизу оставлен открытым.
+  */
+  function papyrusStalk(height, lean, material, umbrella) {
+    const group = new THREE.Group();
+    const segments = 5;
+    let prevY = 0;
+    for (let i = 0; i < segments; i += 1) {
+      const t = i / segments;
+      const segHeight = height / segments;
+      // Трёхгранный стебель — характерная черта папируса.
+      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(.075 * (1 - t * .45), .088 * (1 - t * .4), segHeight * 1.04, 3), material);
+      const bend = lean * t * t;
+      stalk.position.set(bend, prevY + segHeight * .5, 0);
+      stalk.rotation.z = -lean * t * .55;
+      group.add(stalk);
+      prevY += segHeight;
+    }
+    // Зонтик: лучи расходятся веером и опадают вниз.
+    const crown = new THREE.Group();
+    for (let i = 0; i < 14; i += 1) {
+      const angle = (i / 14) * Math.PI * 2;
+      const ray = new THREE.Mesh(new THREE.CylinderGeometry(.012, .006, .68, 3), umbrella);
+      ray.position.set(Math.cos(angle) * .22, .24, Math.sin(angle) * .22);
+      ray.rotation.set(Math.PI * .34 * Math.cos(angle + 1.2), angle, Math.PI * .34 * Math.sin(angle));
+      crown.add(ray);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(.032, 5, 4), umbrella);
+      tip.position.set(Math.cos(angle) * .45, .06, Math.sin(angle) * .45);
+      crown.add(tip);
+    }
+    crown.position.set(lean, prevY, 0);
+    group.add(crown);
+    return group;
+  }
+
   function createGate() {
     const group = new THREE.Group();
-    const stem = new THREE.MeshStandardMaterial({ color: 0x6d7a45, roughness: .98 });
-    const frond = new THREE.MeshStandardMaterial({ color: 0x53663a, roughness: .96, side: THREE.DoubleSide });
+    const stem = new THREE.MeshStandardMaterial({ color: 0x2a3714, roughness: .93 });
+    const umbrella = new THREE.MeshStandardMaterial({ color: 0x3c4d19, roughness: .9 });
+    const frond = new THREE.MeshStandardMaterial({ color: 0x1f2d10, roughness: .92, side: THREE.DoubleSide });
+
+    // Два куста по берегам дорожки, склонённых навстречу друг другу.
     for (const side of [-1, 1]) {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.09, .13, 2.9, 6), stem);
-      pole.position.set(side * 1.15, 1.45, 0);
-      pole.rotation.z = side * .18;
-      group.add(pole);
+      for (let i = 0; i < 9; i += 1) {
+        const height = 2.4 + hash(i, 81 + side) * 1.1;
+        const stalk = papyrusStalk(height, side * (.55 + hash(i, 83) * .5), stem, umbrella);
+        stalk.position.set(side * (.92 + hash(i, 84) * .7), 0, (hash(i, 85) - .5) * 1.3);
+        stalk.rotation.y = hash(i, 86) * Math.PI;
+        stalk.scale.setScalar(.85 + hash(i, 87) * .35);
+        group.add(stalk);
+      }
     }
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, 2.6, 6), stem);
-    beam.rotation.z = Math.PI / 2;
-    beam.position.y = 2.55;
-    group.add(beam);
-    for (let i = 0; i < 22; i += 1) {
-      const t = i / 21;
-      const blade = new THREE.Mesh(new THREE.PlaneGeometry(.22, 1.35 + hash(i, 86) * .8), frond);
-      const sag = Math.sin(t * Math.PI) * .34;
-      blade.position.set(mix(-1.2, 1.2, t), 2.05 - sag, (hash(i, 81) - .5) * .5);
-      blade.rotation.set(.14 + hash(i, 82) * .3, (hash(i, 83) - .5) * 1.1, (hash(i, 84) - .5) * .7);
+
+    // Полог из свисающих метёлок: по нему сразу видно, что надо нырять.
+    for (let i = 0; i < 26; i += 1) {
+      const t = i / 25;
+      const droop = Math.sin(t * Math.PI);
+      const blade = new THREE.Mesh(new THREE.PlaneGeometry(.2, 1.05 + droop * .9), frond);
+      blade.position.set(mix(-1.25, 1.25, t), 2.35 - droop * .55, (hash(i, 88) - .5) * .5);
+      blade.rotation.set(.1 + hash(i, 89) * .25, (hash(i, 90) - .5) * 1.2, (hash(i, 91) - .5) * .5);
       group.add(blade);
     }
-    // Провисающие стебли: по ним читается, что под аркой надо нырять.
-    for (let i = 0; i < 7; i += 1) {
-      const t = i / 6;
-      const vine = new THREE.Mesh(new THREE.CylinderGeometry(.022, .014, .9 + hash(i, 87) * .6, 4), stem);
-      vine.position.set(mix(-1.05, 1.05, t), 2.05, (hash(i, 88) - .5) * .35);
-      vine.rotation.z = (hash(i, 89) - .5) * .3;
+    for (let i = 0; i < 9; i += 1) {
+      const t = i / 8;
+      const droop = Math.sin(t * Math.PI);
+      const vine = new THREE.Mesh(new THREE.CylinderGeometry(.02, .01, .7 + droop * .7, 4), stem);
+      vine.position.set(mix(-1.15, 1.15, t), 2.3 - droop * .45, (hash(i, 92) - .5) * .4);
+      vine.rotation.z = (hash(i, 93) - .5) * .35;
       group.add(vine);
     }
-    const bulbMaterial = new THREE.MeshStandardMaterial({ color: 0x93a05c, roughness: .95 });
-    for (let i = 0; i < 5; i += 1) {
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(.16, 7, 6), bulbMaterial);
-      bulb.position.set(mix(-1, 1, i / 4), 2.75, (hash(i, 85) - .5) * .25);
-      bulb.scale.set(1, .7, 1);
-      group.add(bulb);
-    }
+
     group.name = 'V751PapyrusGate';
     group.userData.assetSource = 'project-procedural';
     return mergeByMaterial(group);
   }
 
-  /* Водоворот: вложенные кольца, крутятся с разной скоростью. */
+  /*
+    Водоворот. Раньше это были четыре плоских кольца, которые почти не читались.
+    Теперь настоящая воронка: гранёный конус уходит под воду, по нему бежит
+    спираль пены, сверху лежат вращающиеся кольца ряби.
+  */
   function createVortex() {
     const group = new THREE.Group();
-    for (let i = 0; i < 4; i += 1) {
+    const deep = new THREE.MeshStandardMaterial({
+      color: 0x2c3a33, roughness: .35, metalness: .1,
+      transparent: true, opacity: .92, side: THREE.DoubleSide, depthWrite: false,
+    });
+    const foam = new THREE.MeshStandardMaterial({
+      color: 0xe9f0e2, roughness: .5, emissive: 0x2c3a33, emissiveIntensity: .1,
+      transparent: true, opacity: .85, side: THREE.DoubleSide, depthWrite: false,
+    });
+
+    const funnel = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1.5, 20, 4, true), deep);
+    funnel.position.y = -.72;
+    funnel.userData.noMerge = true;
+    group.add(funnel);
+    group.userData.funnel = funnel;
+
+    // Спираль пены по стенке воронки.
+    const spiral = new THREE.Group();
+    const turns = 34;
+    for (let i = 0; i < turns; i += 1) {
+      const t = i / turns;
+      const angle = t * Math.PI * 5.2;
+      const radius = mix(1.0, .16, t);
+      const fleck = new THREE.Mesh(new THREE.SphereGeometry(.075 * (1 - t * .55), 6, 5), foam);
+      fleck.position.set(Math.cos(angle) * radius, -t * 1.25, Math.sin(angle) * radius);
+      fleck.scale.set(1.7, .55, 1);
+      fleck.rotation.y = -angle;
+      spiral.add(fleck);
+    }
+    spiral.userData.noMerge = true;
+    group.add(spiral);
+    group.userData.spiral = spiral;
+
+    const rings = [];
+    for (let i = 0; i < 3; i += 1) {
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(.42 + i * .32, .06 - i * .008, 6, 26),
+        new THREE.TorusGeometry(.68 + i * .36, .055 - i * .012, 6, 26),
         new THREE.MeshStandardMaterial({
-          color: i % 2 ? 0x93a58c : 0x6d7f70,
-          roughness: .5,
-          transparent: true,
-          opacity: .68 - i * .1,
-          depthWrite: false,
+          color: 0xd8e2d2, roughness: .45,
+          transparent: true, opacity: .55 - i * .13, depthWrite: false,
         }),
       );
       ring.rotation.x = Math.PI / 2;
-      ring.position.y = .02 - i * .06;
+      ring.position.y = .015 - i * .012;
       ring.scale.y = .8;
       ring.userData.noMerge = true;
       group.add(ring);
+      rings.push(ring);
     }
-    const funnel = new THREE.Mesh(
-      new THREE.ConeGeometry(.62, 1.1, 18, 1, true),
-      new THREE.MeshStandardMaterial({ color: 0x2f3b33, roughness: .45, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }),
-    );
-    funnel.position.y = -.5;
-    group.add(funnel);
+    group.userData.rings = rings;
     group.name = 'V751Whirlpool';
-    group.userData.rings = group.children.slice(0, 4);
     group.userData.assetSource = 'project-procedural';
     return group;
   }
@@ -1750,8 +1816,8 @@
   */
   function createHippo() {
     const group = new THREE.Group();
-    const hide = new THREE.MeshStandardMaterial({ color: 0x7b6670, roughness: .93 });
-    const inner = new THREE.MeshStandardMaterial({ color: 0xb37c86, roughness: .82 });
+    const hide = new THREE.MeshStandardMaterial({ color: 0x33272e, roughness: .5, metalness: .08 });
+    const inner = new THREE.MeshStandardMaterial({ color: 0x8f5964, roughness: .74 });
     const tooth = new THREE.MeshStandardMaterial({ color: 0xf2ead6, roughness: .55 });
 
     const back = new THREE.Mesh(new THREE.SphereGeometry(1.08, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2), hide);
@@ -1802,12 +1868,12 @@
       const earInner = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), inner);
       earInner.position.set(side * .44, .54, 1.16);
       group.add(earInner);
-      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.11, 8, 6), inner);
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.13, 8, 6), inner);
       nostril.scale.set(1, .7, 1);
-      nostril.position.set(side * .19, .3, 2.28);
+      nostril.position.set(side * .21, .32, 2.3);
       group.add(nostril);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), new THREE.MeshStandardMaterial({ color: 0x241c14, roughness: .35 }));
-      eye.position.set(side * .38, .42, 1.7);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), new THREE.MeshStandardMaterial({ color: 0xf0e2b4, emissive: 0x6b5a20, emissiveIntensity: .5, roughness: .3 }));
+      eye.position.set(side * .4, .46, 1.72);
       group.add(eye);
       const brow = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), hide);
       brow.scale.set(1, .6, 1);
@@ -1828,7 +1894,62 @@
       model.position.y = -.2;
       model.name = 'V751QuaterniusBoatModel';
       model.userData.assetSource = 'models/v73/Boat.glb';
-      return model;
+
+      /*
+        Корпус из пакета — двести треугольников без единой детали. Достраиваем
+        оснастку: мачту с парусом, вёсла, сеть и корзины, чтобы лодка не
+        читалась как пустая ванна.
+      */
+      const rig = new THREE.Group();
+      const wood = new THREE.MeshStandardMaterial({ color: 0x7a5330, roughness: .92 });
+      const rope = new THREE.MeshStandardMaterial({ color: 0xb4a077, roughness: .95 });
+      const linen = new THREE.MeshStandardMaterial({ color: 0xe8dcbd, roughness: .95, side: THREE.DoubleSide });
+
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(.045, .06, 2.3, 6), wood);
+      mast.position.set(0, 1.15, 0);
+      rig.add(mast);
+      const yard = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.7, 5), wood);
+      yard.rotation.z = Math.PI / 2;
+      yard.position.set(0, 2.05, 0);
+      rig.add(yard);
+      const sail = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.35, 4, 3), linen);
+      sail.position.set(0, 1.42, .06);
+      rig.add(sail);
+      rig.userData.sail = sail;
+
+      for (const side of [-1, 1]) {
+        const oar = new THREE.Mesh(new THREE.CylinderGeometry(.03, .025, 1.9, 5), wood);
+        oar.position.set(side * .55, .34, -.35);
+        oar.rotation.set(.35, 0, side * 1.05);
+        rig.add(oar);
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(.14, .02, .42), wood);
+        blade.position.set(side * 1.28, -.1, -.62);
+        blade.rotation.z = side * .3;
+        rig.add(blade);
+      }
+      for (let i = 0; i < 3; i += 1) {
+        const basket = new THREE.Mesh(new THREE.CylinderGeometry(.2, .16, .26, 9), rope);
+        basket.position.set((hash(i, 71) - .5) * .5, .3, -.9 + i * .5);
+        rig.add(basket);
+      }
+      const net = new THREE.Mesh(new THREE.PlaneGeometry(.9, .55), rope);
+      net.material = rope.clone();
+      net.material.transparent = true;
+      net.material.opacity = .55;
+      net.material.side = THREE.DoubleSide;
+      net.position.set(.42, .18, .75);
+      net.rotation.set(-.5, .3, 0);
+      rig.add(net);
+
+      mergeByMaterial(rig);
+      const wrap = new THREE.Group();
+      wrap.name = 'V751RiverBoatRig';
+      wrap.add(model);
+      wrap.add(rig);
+      rig.position.y = .25;
+      wrap.userData.sail = rig.userData.sail;
+      wrap.userData.assetSource = 'models/v73/Boat.glb';
+      return wrap;
     }
     const group = new THREE.Group();
     const wood = new THREE.MeshStandardMaterial({ color: 0x8a6236, roughness: .95, side: THREE.DoubleSide });
@@ -2217,6 +2338,7 @@
       lunged: false,
       surfaced: false,
       mesh: null,
+      shadow: null,
     };
     if (z > MESH_RANGE) attachMesh(item);
     state.items.push(item);
@@ -2227,6 +2349,21 @@
     Меш создаётся только когда ряд подходит на дистанцию видимости.
     Так одновременно живёт полтора десятка объектов вместо шести десятков.
   */
+  const contactGeometry = { value: null };
+  function makeContactShadow(radius) {
+    if (!contactGeometry.value) contactGeometry.value = new THREE.CircleGeometry(1, 20);
+    const shadow = new THREE.Mesh(
+      contactGeometry.value,
+      new THREE.MeshBasicMaterial({ color: 0x121a12, transparent: true, opacity: .26, depthWrite: false }),
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.scale.set(radius, radius * .62, 1);
+    shadow.position.y = .012;
+    shadow.renderOrder = 4;
+    shadow.name = 'V751ContactPatch';
+    return shadow;
+  }
+
   function attachMesh(item) {
     if (item.mesh || !scene || state.fallback) return;
     const mesh = acquireMesh(item.type);
@@ -2242,15 +2379,24 @@
     });
     scene.add(mesh);
     item.mesh = mesh;
+    if (!item.shadow && item.type !== 'gate') {
+      item.shadow = makeContactShadow((OBSTACLES[item.type]?.radius || .9) * 1.15);
+      scene.add(item.shadow);
+    }
   }
 
   function removeItem(index) {
     const [item] = state.items.splice(index, 1);
     if (item?.mesh) releaseMesh(item.type, item.mesh);
+    if (item?.shadow) { scene.remove(item.shadow); item.shadow = null; }
   }
 
   function clearItems() {
-    for (const item of state.items) if (item.mesh) releaseMesh(item.type, item.mesh);
+    for (const item of state.items) {
+      if (item.mesh) releaseMesh(item.type, item.mesh);
+      if (item.shadow) scene.remove(item.shadow);
+      item.shadow = null;
+    }
     state.items.length = 0;
   }
 
@@ -2766,6 +2912,7 @@
         glitter: biome.water.glitter,
         opacity: biome.water.opacity,
       };
+      currentLook.exposure = biome.exposure;
       currentLook.sky = {
         zenith: new THREE.Color(biome.sky.zenith),
         haze: new THREE.Color(biome.sky.haze),
@@ -2822,6 +2969,10 @@
       );
     }
     if (rimLight) rimLight.intensity = mix(.16, .34, air.stars);
+    if (backLight) {
+      backLight.color.copy(air.sun);
+      backLight.intensity = mix(.62, .3, air.stars);
+    }
     if (waterMaterial?.uniforms) {
       const u = waterMaterial.uniforms;
       u.uDeep.value.copy(water.deep);
@@ -2856,6 +3007,8 @@
       godrays.material.uniforms.uColor.value.copy(air.sun);
       godrays.material.uniforms.uStrength.value = mix(.24, .05, air.stars);
     }
+    currentLook.exposure = mix(currentLook.exposure, biome.exposure, t);
+    if (renderer) renderer.toneMappingExposure = currentLook.exposure;
     windUniform.value = mix(windUniform.value, biome.wind, t);
     applyLookCss(biome);
   }
@@ -2897,6 +3050,10 @@
     rimLight = new THREE.DirectionalLight(0x93afa0, .2);
     rimLight.position.set(9, 8, -15);
     scene.add(rimLight);
+    // Контровой свет от горизонта: даёт объектам светящуюся кромку.
+    backLight = new THREE.DirectionalLight(0xffd9a0, .5);
+    backLight.position.set(-6, 4.5, -26);
+    scene.add(backLight);
 
     buildSky();
     buildDunes();
@@ -2925,6 +3082,16 @@
       if (!mesh) continue;
       mesh.position.x = item.x;
       mesh.position.z = item.z;
+      if (item.shadow) {
+        // Пятно на воде живёт своей жизнью: сжимается, когда предмет уходит
+        // под воду, и растёт, когда он поднимается над ней.
+        item.shadow.position.set(item.x, .012, item.z);
+        const lift = clamp(mesh.position.y + .3, 0, 2);
+        item.shadow.material.opacity = clamp(.3 - lift * .12, .04, .3);
+        const spread = 1 + lift * .25;
+        const radius = (OBSTACLES[item.type]?.radius || .9) * 1.15;
+        item.shadow.scale.set(radius * spread, radius * .62 * spread, 1);
+      }
       switch (item.type) {
         case 'lotus':
           mesh.rotation.y += dt * 1.15;
@@ -2979,15 +3146,21 @@
           mesh.rotation.z = Math.sin(t * 1.1 + item.phase) * .035;
           break;
         case 'vortex': {
-          mesh.position.y = -.06 + Math.sin(t * 1.6 + item.phase) * .02;
+          mesh.position.y = -.04 + Math.sin(t * 1.6 + item.phase) * .02;
           const rings = mesh.userData.rings;
-          if (rings) for (let i = 0; i < rings.length; i += 1) rings[i].rotation.z += dt * (2.6 - i * .45);
+          if (rings) for (let i = 0; i < rings.length; i += 1) rings[i].rotation.z += dt * (2.2 - i * .4);
+          // Воронка и пена крутятся с разной скоростью — так читается затягивание.
+          if (mesh.userData.spiral) {
+            mesh.userData.spiral.rotation.y -= dt * 3.4;
+            mesh.userData.spiral.position.y = Math.sin(t * 2.2 + item.phase) * .04;
+          }
+          if (mesh.userData.funnel) mesh.userData.funnel.rotation.y += dt * 1.8;
           break;
         }
         case 'hippo': {
           const rise = clamp((item.z + 52) / 30, 0, 1);
-          mesh.position.y = mix(-1.1, -.22, rise) + Math.abs(Math.sin(t * .8 + item.phase)) * .16;
-          mesh.rotation.y = Math.PI + Math.sin(t * .5 + item.phase) * .1;
+          mesh.position.y = mix(-1.3, .06, rise) + Math.abs(Math.sin(t * .8 + item.phase)) * .16;
+          mesh.rotation.y = Math.PI + Math.sin(t * .5 + item.phase) * .1 + clamp((state.x - item.x) * .05, -.3, .3) * rise;
           const gape = rise * Math.max(0, Math.sin(t * 1.6 + item.phase));
           if (mesh.userData.jaw) mesh.userData.jaw.rotation.x = gape * .85;
           if (rise > .2 && rise < .9 && Math.random() < .04) {
@@ -2997,7 +3170,9 @@
         }
         case 'boat':
           mesh.position.y = -.16 + Math.sin(t * 1.5 + item.phase) * .05;
-          mesh.rotation.z = Math.sin(t * 1.2 + item.phase) * .04;
+          mesh.rotation.z = Math.sin(t * 1.2 + item.phase) * .045;
+          mesh.rotation.x = Math.sin(t * .9 + item.phase) * .025;
+          if (mesh.userData.sail) mesh.userData.sail.rotation.y = Math.sin(t * 1.4 + item.phase) * .12;
           break;
         default:
           break;
@@ -3107,6 +3282,7 @@
     // Мир едет навстречу: без этого предметы плыли к неподвижному берегу и
     // казалось, что корзинка стоит на месте.
     const flow = state.playing && !state.paused ? state.speed : TUNE.baseSpeed * .35;
+    const speedT = clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed), 0, 1);
     state.scroll = (state.scroll + flow * dt) % SCROLL_TILE;
     for (const mesh of scrollLayers) mesh.position.z = state.scroll;
     for (const entry of bankMaterials) {
@@ -3115,20 +3291,42 @@
       if (entry.material.normalMap) entry.material.normalMap.offset.y = (entry.material.normalMap.offset.y - step) % 1;
     }
 
-    // Плавный переход между биомами занимает около трёх секунд.
+    /*
+      Переход между биомами. Раньше сюда уходил шаг dt/3, и на просевших
+      кадрах смена времени суток растягивалась на десятки секунд: ночью вода
+      оставалась дневной. Теперь это честное экспоненциальное сближение —
+      скорость не зависит от частоты кадров.
+    */
     if (state.biomeBlend < 1) {
-      state.biomeBlend = Math.min(1, state.biomeBlend + dt / 3);
-      applyLook(BIOMES[state.biome], dt / 3);
+      state.biomeBlend = Math.min(1, state.biomeBlend + dt / 2.6);
+      applyLook(BIOMES[state.biome], 1 - Math.exp(-dt / .55));
     }
 
+    /*
+      Корзинку качает так же, как воду под ней: та же сумма синусов, что в
+      вершинном шейдере реки, плюс крен от манёвра и дифферент от скорости.
+      Раньше она просто чуть-чуть подрагивала и выглядела приклеенной.
+    */
     player.position.x = state.x;
-    const bob = Math.sin(t * 2.25) * .026 + Math.sin(t * 3.7) * .01;
-    player.position.y = .085 + state.y + bob * (state.airborne ? .2 : 1);
-    player.rotation.z = Math.sin(t * 1.55) * .014 - (state.targetX - state.x) * .075;
-    player.rotation.x = Math.sin(t * 1.15) * .008 - state.vy * .012;
+    const waveT = t * (waterMaterial?.uniforms ? waterMaterial.uniforms.uFlow.value : 1);
+    const chop = waterMaterial?.uniforms ? waterMaterial.uniforms.uChop.value : 1;
+    const swellA = Math.sin(state.x * 0.42 + waveT * 1.05) * .085;
+    const swellB = Math.sin(-state.x * 0.31 + waveT * 1.42 + .8) * .052;
+    const swell = (swellA + swellB) * chop;
+    const bob = swell + Math.sin(t * 3.7) * .012;
+    player.position.y = .085 + state.y + bob * (state.airborne ? .18 : 1);
+
+    const drift = state.targetX - state.x;
+    const rollTarget = Math.sin(waveT * 1.35 + state.x * .3) * .055 * chop - drift * .16;
+    const pitchTarget = Math.cos(waveT * 1.15) * .038 * chop - state.vy * .022 + speedT * .045;
+    player.rotation.z = damp(player.rotation.z, state.airborne ? -drift * .1 : rollTarget, 7, dt);
+    player.rotation.x = damp(player.rotation.x, state.airborne ? -state.vy * .05 : pitchTarget, 7, dt);
+    player.rotation.y = damp(player.rotation.y, -drift * .12, 6, dt);
     if (basketVisual) {
-      const squash = state.dive > 0 ? .86 : state.airborne ? 1.04 : 1;
+      const squash = state.dive > 0 ? .84 : state.airborne ? 1.05 : 1;
       basketVisual.scale.setScalar(damp(basketVisual.scale.x, .62 * squash, 9, dt));
+      // На прыжке корзинку слегка проворачивает вокруг оси — заметно на глаз.
+      basketVisual.rotation.y = damp(basketVisual.rotation.y, Math.PI + (state.airborne ? Math.sin(t * 5) * .16 : 0), 6, dt);
     }
     if (player.userData.contact) {
       player.userData.contact.material.opacity = clamp(.22 - state.y * .12, .02, .24);
@@ -3146,8 +3344,6 @@
     if (player.userData.aura?.visible && player.userData.aura.material.uniforms) {
       player.userData.aura.material.uniforms.uTime.value = t;
     }
-
-    const speedT = clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed), 0, 1);
 
     if (wake) {
       const shaderWake = wake.userData.shaderWake;
@@ -3192,6 +3388,19 @@
       u.uFlow.value = .8 + speedT * .9;
       u.uPlayer.value.set(state.x, 0, 1.1);
       u.uWakeStrength.value = state.playing ? clamp(.55 - state.y * .4, 0, .6) : .2;
+      // Шесть ближайших препятствий передаются в шейдер воды: вокруг них
+      // расходится своя рябь, иначе объекты выглядят вклеенными в поверхность.
+      const disturb = u.uDisturb.value;
+      let slot = 0;
+      for (const item of state.items) {
+        if (slot >= disturb.length) break;
+        if (!item.clearance || item.z < -34 || item.z > 10) continue;
+        const near = clamp(1 - Math.abs(item.z) / 34, 0, 1);
+        disturb[slot].set(item.x, item.z, near * (item.type === 'vortex' ? 1.1 : .72));
+        slot += 1;
+      }
+      for (let i = slot; i < disturb.length; i += 1) disturb[i].set(0, 0, 0);
+
       if (waterNormal) {
         waterNormal.offset.x = (waterNormal.offset.x + dt * .0022) % 1;
         waterNormal.offset.y = (waterNormal.offset.y - dt * (.05 + speedT * .16)) % 1;

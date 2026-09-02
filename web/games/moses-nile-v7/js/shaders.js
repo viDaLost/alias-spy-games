@@ -105,6 +105,8 @@
     uniform vec3 uSunDir;
     uniform vec3 uFoamColor;
     uniform vec3 uPlayer;
+    // Возмущения от препятствий: xy — позиция в мире, z — сила.
+    uniform vec3 uDisturb[6];
     uniform sampler2D uNormalA;
     uniform sampler2D uNormalB;
     varying vec2 vUv;
@@ -136,7 +138,10 @@
       float depthMix = smoothstep(0.15, 0.95, vShore);
       float horizon = smoothstep(0.25, 0.98, vUv.y);
 
+      // Русло темнее по центру — это читается как глубина.
+      float channel = smoothstep(0.62, 0.0, vShore);
       vec3 base = mix(uDeep, uShallow, depthMix * 0.62 + vCrest * 0.10);
+      base = mix(base, uDeep * 0.72, channel * 0.34);
       base = mix(base, uSky, fresnel * 0.34 + horizon * 0.52);
 
       // Солнечный блик: узкий Блинн-Фонг плюс мерцающая крошка.
@@ -144,7 +149,16 @@
       float spec = pow(max(dot(normal, halfDir), 0.0), 128.0);
       float sparkle = pow(max(dot(normal, halfDir), 0.0), 900.0);
       float glint = nnoise(vUv * vec2(60.0, 420.0) + vec2(uTime * 0.4, uTime * -3.1));
-      vec3 color = base + uSunColor * (spec * 0.34 + sparkle * glint * 1.5) * uGlitter;
+      // Блики: широкий отсвет, узкая искра и крошка по гребням волн.
+      float crestGlint = smoothstep(0.55, 1.0, vCrest) * glint;
+      vec3 color = base + uSunColor * (spec * 0.42 + sparkle * glint * 1.9 + crestGlint * 0.22) * uGlitter;
+
+      // Крупные пятна ила и отмелей: без них река — одна ровная заливка.
+      float silt = fbm(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
+      color = mix(color, color * (0.78 + silt * 0.5), 0.55);
+      // Солнечная дорожка вдоль русла.
+      float sunLane = exp(-pow((vUv.x - 0.5) * 5.2, 2.0));
+      color += uSunColor * sunLane * horizon * 0.22 * uGlitter;
 
       // Рельеф ряби читается не только бликом: слегка притеняем склоны волн.
       float lambert = clamp(dot(normal, normalize(uSunDir)) * 0.5 + 0.5, 0.0, 1.0);
@@ -160,6 +174,16 @@
       float crestFoam = smoothstep(0.72, 0.98, vCrest) * uFoam;
       float wakeDist = length(vWorld.xz - uPlayer.xz);
       float wake = smoothstep(3.2, 0.55, wakeDist) * uWakeStrength;
+      // Каждое препятствие расталкивает воду вокруг себя.
+      for (int i = 0; i < 6; i++) {
+        float power = uDisturb[i].z;
+        if (power > 0.001) {
+          float d = length(vWorld.xz - uDisturb[i].xy);
+          float ring = smoothstep(2.9, 0.5, d) * power;
+          float ripple = 0.5 + 0.5 * sin(d * 6.5 - uTime * 5.0);
+          wake += ring * (0.45 + ripple * 0.55);
+        }
+      }
       float foamNoise = fbm(vUv * vec2(22.0, 190.0) + vec2(uTime * 0.2, uTime * -1.5));
       float foam = clamp((bankFoam * 0.62 + crestFoam * 0.55 + wake) * (0.34 + foamNoise * 0.72), 0.0, 1.0);
       color = mix(color, uFoamColor, foam * 0.72);
@@ -199,6 +223,7 @@
         uFoamColor: { value: new THREE.Color(options.foamColor ?? 0xf4ecd6) },
         uSunDir: { value: new THREE.Vector3(-.42, .78, .46).normalize() },
         uPlayer: { value: new THREE.Vector3() },
+        uDisturb: { value: Array.from({ length: 6 }, () => new THREE.Vector3()) },
         uNormalA: { value: empty },
         uNormalB: { value: empty },
       });
