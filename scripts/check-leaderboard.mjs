@@ -348,13 +348,111 @@ await page.waitForTimeout(700);
 const toggled = store.adminEdits.at(-1);
 if (toggled?.published !== true) await fail('кнопка показа скрытого игрока не работает');
 
+// --- 8. веб-версия без входа в профиль ---------------------------------------------
+//
+// Ярлык на главном экране открывает приложение вне Telegram: подписи нет,
+// личность появляется только после входа по коду из бота. Пока входа нет,
+// рейтинг показывал «нет связи с сервером» — запрос действительно не уходил, но
+// интернет был ни при чём, и дороги ко входу с того экрана не было.
+
+const guest = await context.newPage();
+guest.on('pageerror', (error) => crashes.push(String(error?.message || error)));
+await guest.addInitScript(() => {
+  // Личность из общей заготовки этому сценарию не нужна: он про её отсутствие.
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith('web_session')) localStorage.removeItem(key);
+  }
+});
+// SDK Telegram доезжает и вне мессенджера — но без личности.
+await guest.route('https://telegram.org/**', (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: 'window.Telegram={WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},openLink(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};',
+}));
+let guestReached = false;
+for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**', 'https://*.workers.dev/**']) {
+  await guest.route(pattern, (route) => {
+    let payload = {};
+    try { const parsed = JSON.parse(route.request().postData() || '{}'); payload = parsed?.payload || parsed || {}; } catch {}
+    if (String(payload.action || '').startsWith('rating')) guestReached = true;
+    return answer(route, { success: true, isBanned: false, lastGames: [] });
+  });
+}
+
+await guest.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
+await guest.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+await guest.waitForTimeout(2500);
+await guest.evaluate(() => document.getElementById('leaderboard-btn')?.click());
+await guest.waitForTimeout(2500);
+
+const guestScreen = await guest.evaluate(() => ({
+  text: document.getElementById('game-container')?.innerText || '',
+  login: Boolean(document.querySelector('[data-lb-login]')),
+}));
+if (/нет связи с сервером/i.test(guestScreen.text)) {
+  await fail('без входа в профиль рейтинг винит интернет, хотя дело во входе');
+}
+if (!/профил/i.test(guestScreen.text)) await fail('экран не объясняет, что рейтинг привязан к профилю');
+if (!/код/i.test(guestScreen.text)) await fail('экран не говорит, что вход идёт по коду из бота');
+if (!guestScreen.login) await fail('с экрана рейтинга нельзя перейти ко входу в профиль');
+if (guestReached) await fail('рейтинг ушёл на сервер без личности — сервер всё равно откажет');
+
+await guest.evaluate(() => document.querySelector('[data-lb-login]').click());
+await guest.waitForTimeout(900);
+if (!(await guest.locator('#web-session-overlay').count())) {
+  await fail('кнопка входа с экрана рейтинга не открывает вход по коду');
+}
+
+// --- 9. вход истёк, пока человек играл --------------------------------------------
+//
+// Токен лежит в браузере до своего срока, но сервер может отозвать сессию
+// раньше. Отказ сервера — это не обрыв связи, и предлагать «повторить» бесполезно.
+
+const expired = await context.newPage();
+expired.on('pageerror', (error) => crashes.push(String(error?.message || error)));
+await expired.addInitScript(({ id }) => {
+  localStorage.setItem('web_session_v1', JSON.stringify({
+    token: `bgs_${'a'.repeat(48)}`, userId: String(id), expiresAt: Date.now() + 86_400_000,
+  }));
+}, { id: ADMIN_ID });
+await expired.route('https://telegram.org/**', (route) => route.fulfill({
+  status: 200, contentType: 'text/javascript; charset=utf-8',
+  body: 'window.Telegram={WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},openLink(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};',
+}));
+for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**', 'https://*.workers.dev/**']) {
+  await expired.route(pattern, (route) => {
+    let payload = {};
+    try { const parsed = JSON.parse(route.request().postData() || '{}'); payload = parsed?.payload || parsed || {}; } catch {}
+    if (String(payload.action || '').startsWith('rating')) {
+      return route.fulfill({
+        status: 401, contentType: 'application/json; charset=utf-8',
+        body: JSON.stringify({ success: false, error: 'Сессия истекла. Подтвердите вход снова.' }),
+      });
+    }
+    return answer(route, { success: true, isBanned: false, lastGames: [] });
+  });
+}
+await expired.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
+await expired.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+await expired.waitForTimeout(2500);
+await expired.evaluate(() => document.getElementById('leaderboard-btn')?.click());
+await expired.waitForTimeout(3000);
+const expiredScreen = await expired.evaluate(() => ({
+  text: document.getElementById('game-container')?.innerText || '',
+  login: Boolean(document.querySelector('[data-lb-login]')),
+}));
+if (/нет связи с сервером/i.test(expiredScreen.text)) {
+  await fail('отказ сервера показан как обрыв связи');
+}
+if (!expiredScreen.login) await fail('после отказа сервера нет кнопки повторного входа');
+
 if (crashes.length) await fail(`страница поймала исключение: ${crashes[0]}`);
 
 console.log('Рейтинг в порядке: очки считает сервер, снимок прогресса собирается верно, '
   + 'до согласия игрока нет в списке, публикация идёт под выбранным именем, '
   + 'Telegram ID не показывается, выйти из рейтинга можно в одно нажатие, '
   + 'администратор правит имена и очки из своей вкладки, '
-  + 'в меню стоит иконка набора, а уведомление о новом разделе показывается один раз.');
+  + 'в меню стоит иконка набора, уведомление о новом разделе показывается один раз, '
+  + 'а вне Telegram рейтинг зовёт войти по коду из бота вместо жалобы на интернет.');
 
 await browser.close();
 server.close();

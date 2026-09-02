@@ -350,7 +350,13 @@ function safeNumber(value, fallback = 0) {
 // `quiet` is for probes whose failure is an ordinary answer rather than a fault --
 // the admin role check is one, and it runs for every visitor, so logging its 401
 // as an error filled the console of every non-administrator.
-async function apiRequest(payload, { quiet = false } = {}) {
+//
+// `raw` отдаёт исход запроса целиком: код ответа и тело. Обычный режим на любую
+// беду возвращает null, и отказ сервера становится неотличим от обрыва связи —
+// а это разные вещи, и человеку про них надо говорить по-разному. Просить об
+// этом должен вызывающий: остальные проверяют результат на null и от смены
+// формата сломались бы.
+async function apiRequest(payload, { quiet = false, raw = false } = {}) {
   try {
     const res = await fetch(GAS_API_URL, {
       method: "POST",
@@ -358,12 +364,19 @@ async function apiRequest(payload, { quiet = false } = {}) {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
+    if (!res.ok) {
+      if (raw) {
+        const data = await res.json().catch(() => null);
+        return { ok: false, status: res.status, data };
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return raw ? { ok: true, status: res.status, data } : data;
   } catch (error) {
     if (quiet) console.debug("API request declined:", error);
     else console.error("API Error:", error);
-    return null;
+    return raw ? { ok: false, status: 0, data: null, offline: true } : null;
   }
 }
 

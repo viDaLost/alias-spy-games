@@ -264,6 +264,9 @@
 .lb-error h3 { margin: 0; color: #2f3576; font-size: 18px; font-weight: 900 }
 .lb-error p { margin: 0; font-size: 14px }
 .lb-error button { min-width: 220px }
+/* Экран входа объясняет причину, а не сообщает об ошибке: текста больше. */
+.lb-error--login { padding: 36px 20px; max-width: 460px; margin: 0 auto }
+.lb-error--login p { line-height: 1.55; text-align: left }
 
 .lb-toast {
   position: fixed;

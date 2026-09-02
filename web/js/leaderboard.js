@@ -80,9 +80,24 @@
     };
   }
 
+  /**
+   * Рейтинг привязан к профилю, а профиль за пределами Telegram появляется
+   * только после входа по коду из бота. Пока входа нет, сервер отвечает 401 —
+   * и это не поломка связи, а понятный ответ, о котором и надо сказать прямо.
+   */
+  function loginError(message) {
+    const error = new Error(message);
+    error.needsLogin = true;
+    return error;
+  }
+
   async function api(action, extra = {}) {
     if (typeof window.apiRequest !== 'function') throw new Error('Приложение ещё не готово');
-    const result = await window.apiRequest({ action, ...extra });
+    const outcome = await window.apiRequest({ action, ...extra }, { raw: true });
+    if (outcome?.status === 401 || outcome?.status === 403) {
+      throw loginError(String(outcome?.data?.error || 'Нужен вход в профиль'));
+    }
+    const result = outcome?.ok ? outcome.data : null;
     if (!result) throw new Error('Нет связи с сервером. Проверьте интернет и попробуйте ещё раз');
     if (result.success === false) throw new Error(result.error || 'Не удалось выполнить запрос');
     return result;
@@ -249,6 +264,33 @@
     }
   }
 
+  /**
+   * Экран для тех, у кого профиля ещё нет. Раньше здесь показывалось «нет связи
+   * с сервером»: запрос действительно не уходил, но интернет был ни при чём, и
+   * дороги к решению с того экрана не было.
+   */
+  function paintLogin(reason = '') {
+    const root = container();
+    if (!root) return;
+    const canLogin = typeof window.WebSession?.open === 'function';
+    const expired = Boolean(reason) && /истекл|сесси/i.test(reason);
+    root.innerHTML = shell(`<section class="lb-error lb-error--login">
+      <h3>${expired ? 'Вход в профиль истёк' : 'Рейтинг привязан к профилю'}</h3>
+      <p>
+        Очки собираются по вашему профилю Telegram — иначе сервер не знает, чей это
+        прогресс. В приложении на главном экране профиль подключается кодом из бота:
+        после входа рейтинг, звёзды и уровни будут те же, что в Telegram.
+      </p>
+      ${canLogin
+        ? '<button type="button" class="lb-primary" data-lb-login>Войти по коду из бота</button>'
+        : '<p class="lb-intro__fine">Откройте приложение в Telegram — там вход не нужен.</p>'}
+      <button type="button" class="lb-ghost" data-lb-back>В меню</button>
+    </section>`);
+    root.querySelector('[data-lb-login]')?.addEventListener('click', () => window.WebSession.open());
+    // Кнопок «назад» здесь две: стрелка в шапке и кнопка внизу.
+    root.querySelectorAll('[data-lb-back]').forEach((node) => node.addEventListener('click', close));
+  }
+
   function toast(message, tone = 'info') {
     document.querySelector('.lb-toast')?.remove();
     const node = document.createElement('div');
@@ -336,20 +378,28 @@
     window.scrollTo({ top: 0, behavior: 'auto' });
     loading('Считаем ваши очки…');
 
+    if (!userId()) {
+      paintLogin();
+      return;
+    }
+
     try {
       await refresh();
     } catch (error) {
       const root = container();
-      if (root) {
-        root.innerHTML = `<section class="lb-shell"><div class="lb-error">
-          <h3>Рейтинг сейчас недоступен</h3>
-          <p>${escapeHTML(error.message || 'Попробуйте позже')}</p>
-          <button type="button" class="lb-primary" data-lb-retry>Повторить</button>
-          <button type="button" class="lb-ghost" data-lb-back>В меню</button>
-        </div></section>`;
-        root.querySelector('[data-lb-retry]')?.addEventListener('click', open);
-        root.querySelector('[data-lb-back]')?.addEventListener('click', close);
+      if (!root) return;
+      if (error?.needsLogin) {
+        paintLogin(error.message);
+        return;
       }
+      root.innerHTML = `<section class="lb-shell"><div class="lb-error">
+        <h3>Рейтинг сейчас недоступен</h3>
+        <p>${escapeHTML(error.message || 'Попробуйте позже')}</p>
+        <button type="button" class="lb-primary" data-lb-retry>Повторить</button>
+        <button type="button" class="lb-ghost" data-lb-back>В меню</button>
+      </div></section>`;
+      root.querySelector('[data-lb-retry]')?.addEventListener('click', open);
+      root.querySelector('[data-lb-back]')?.addEventListener('click', close);
       return;
     }
 
