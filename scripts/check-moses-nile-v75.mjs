@@ -8,6 +8,8 @@ const gameRoot = path.join(root, 'web/games/moses-nile-v7');
 const index = fs.readFileSync(path.join(gameRoot, 'index.html'), 'utf8');
 const game = fs.readFileSync(path.join(gameRoot, 'js/game-v75.js'), 'utf8');
 const assets = fs.readFileSync(path.join(gameRoot, 'js/assets.js'), 'utf8');
+const shaders = fs.readFileSync(path.join(gameRoot, 'js/shaders.js'), 'utf8');
+const effects = fs.readFileSync(path.join(gameRoot, 'js/fx.js'), 'utf8');
 const background = path.join(gameRoot, 'assets/nile-reference-bg-v75.webp');
 const deployWorkflow = fs.readFileSync(path.join(root, '.github/workflows/deploy-moses-nile-v740-preview.yml'), 'utf8');
 const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
@@ -18,6 +20,12 @@ for (const token of [
   'game-v75.js?v=752',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
+  'js/shaders.js',
+  'js/fx.js',
+  'id="btn-jump"',
+  'id="btn-dive"',
+  'id="hearts"',
+  'id="pause-screen"',
 ]) {
   if (!index.includes(token)) throw new Error(`V7.5.1 index is missing ${token}`);
 }
@@ -36,6 +44,13 @@ for (const token of [
   'V751DetailedCrocodileModel',
   "cloneModel?.('lotus'",
   'buildBanks();',
+  'function jump()',
+  'function dive()',
+  'V751PapyrusGate',
+  'V751Whirlpool',
+  'V751NileHippo',
+  'MESH_RANGE',
+  'mergeByMaterial',
   'cinematicBackgroundVisible: true',
   "const LANES = [-3.75, 0, 3.75]",
 ]) {
@@ -44,6 +59,12 @@ for (const token of [
 if (game.includes('OctahedronGeometry')) throw new Error('The placeholder octahedron power-up is still present');
 for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj']) {
   if (!assets.includes(token)) throw new Error(`V7.5.1 asset manager is missing ${token}`);
+}
+for (const token of ['createRiverMaterial', 'createShieldMaterial', 'createParticleMaterial', 'applyWind', 'window.NileShaders']) {
+  if (!shaders.includes(token)) throw new Error(`The Nile shader library is missing ${token}`);
+}
+for (const token of ['window.NileFX', 'splash(', 'ripple(', 'shake(']) {
+  if (!effects.includes(token)) throw new Error(`The Nile effects system is missing ${token}`);
 }
 if (!fs.existsSync(background)) throw new Error('Cinematic Nile background is missing');
 const backgroundBytes = fs.statSync(background).size;
@@ -138,6 +159,16 @@ try {
   await page.locator('#start-btn').click();
   await page.waitForFunction(() => Number(document.getElementById('dist-txt')?.textContent || 0) >= 8, null, { timeout: 3_000 });
   await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(220);
+  await page.keyboard.press('ArrowUp');
+  await page.waitForTimeout(140);
+  const airborne = await page.evaluate(() => ({ y: window.__mosesV75State?.y ?? 0, air: !!window.__mosesV75State?.airborne }));
+  if (!airborne.air || airborne.y <= 0) throw new Error(`The wave jump does not lift the basket: ${JSON.stringify(airborne)}`);
+  await page.waitForTimeout(700);
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(140);
+  const diving = await page.evaluate(() => ({ y: window.__mosesV75State?.y ?? 0, dive: window.__mosesV75State?.dive ?? 0 }));
+  if (diving.dive <= 0 || diving.y >= 0) throw new Error(`The dive does not submerge the basket: ${JSON.stringify(diving)}`);
   await page.waitForTimeout(350);
   const running = await page.evaluate(() => {
     const canvas = document.getElementById('fallback-canvas');
@@ -149,12 +180,14 @@ try {
       playing: document.body.classList.contains('is-playing'),
       startHidden: document.getElementById('start-screen').classList.contains('hidden'),
       distance: Number(document.getElementById('dist-txt').textContent || 0),
+      hearts: document.querySelectorAll('#hearts span').length,
       painted,
     };
   });
   if (!running.playing || !running.startHidden || running.distance < 8 || running.painted < 200) throw new Error(`Fallback gameplay is not visibly running: ${JSON.stringify(running)}`);
+  if (running.hearts !== 3) throw new Error(`The run should start with three hearts, got ${running.hearts}`);
   if (errors.length) throw new Error(`Fallback page errors: ${errors.join(' | ')}`);
-  console.log(`OK: Moses Nile V7.5.1 uses local 3D models and relief textures in WebGL, plus an unclipped playable no-WebGL fallback.`);
+  console.log(`OK: Moses Nile V7.5.1 uses local 3D models, GLSL water/wind shaders and lane+jump+dive gameplay, plus an unclipped playable no-WebGL fallback.`);
 } finally {
   await context.close();
   await browser.close();

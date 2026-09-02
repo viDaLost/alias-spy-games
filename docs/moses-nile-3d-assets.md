@@ -56,9 +56,59 @@ V7.5.1 restores the packaged water, damp-sand, sand and pebble normal maps from 
 - License: **CC0 1.0**.
 - V7.3.1 uses the upright low-poly character as the body and adds lightweight project-owned linen-like tunics/robes, belts and optional collars at runtime. Clothing is stylised ancient-Egypt-inspired game art rather than an archaeological reconstruction.
 - Characters are placed on both banks and periodically wave one arm. If a compatible arm bone exists it is animated directly; otherwise V7.3.1 adds a lightweight articulated fallback arm so waving is always visible. Timing is randomized per character.
+- **V7.5.1 не грузит этот GLB.** Сборка превью его не распаковывает (нужен ещё и
+  `SkeletonUtils` для клонирования скинов), поэтому фигуры на берегах строятся
+  процедурно: цилиндрическая льняная накидка, голова и одна подвижная рука,
+  которая машет проходящей корзинке. Скелетной анимации нет. Запись оставлена
+  как история происхождения силуэта.
+
+## Рыбацкая лодка
+
+- Модель: **Boat** из Quaternius Cute Fish Pack (`models/v73/Boat.glb`, 13.7 КБ).
+- Лицензия: **CC0 1.0**.
+- Раннер V7.5.1 использует её как препятствие «лодка» на реке. Если пакет
+  моделей недоступен, вместо неё строится процедурный корпус с парусом.
+
+## Растительность берега через InstancedMesh
+
+V7.5.1 больше не расставляет по берегам процедурные цилиндры и конусы. Геометрия
+берётся из уже лицензированных моделей Quaternius (`Plant_2`, `Plant_1`, `Grass`,
+`Bush_1`, `Rock_1`, `PalmTree_4`), нормализуется по габаритам и раскладывается
+через `THREE.InstancedMesh` — по одному вызову отрисовки на материал вместо
+сотен объектов. Новых внешних ассетов это не добавляет: используются те же
+файлы из проверенного архива. Материалы клонируются, слегка приглушаются по
+насыщенности под закатную палитру эталонного фона и получают вершинный шейдер
+ветра из `js/shaders.js`.
+
+Если пакет моделей не приехал (например, при локальном открытии без сборки),
+каждый слой падает на процедурную заглушку той же формы, поэтому берег никогда
+не остаётся пустым.
+
+## Шейдеры V7.5.1
+
+Все шейдеры проекта — собственные, лежат в `web/games/moses-nile-v7/js/shaders.js`:
+
+- **Поверхность Нила** — сумма четырёх направленных волн в вершинном шейдере,
+  две независимо ползущие карты нормалей из пакета текстур (с процедурным
+  запасным вариантом), Френель, солнечный блик и мерцание, каустика на
+  мелководье, пена у берега, на гребнях и вокруг корзинки.
+- **Плёнка бликов** — второй слой воды с бегущими светлыми полосами.
+- **Кромка прибоя** — узкая лента вдоль каждого берега с бегущей пеной.
+- **Атмосфера** — градиентная полоса за сценой с солнечным ореолом и звёздами
+  для ночного биома; подкрашивает эталонный фон, не перекрывая его.
+- **Столбы света**, **купол «Щита веры»**, **ореолы бонусов**, **след корзинки**,
+  **кольца ряби** и **материал частиц** — отдельные небольшие программы.
+- **Ветер** — инъекция в вершинный шейдер `MeshStandardMaterial` через
+  `onBeforeCompile`; работает и для InstancedMesh, фаза берётся из мировой
+  позиции экземпляра, поэтому растения качаются вразнобой.
 
 ## Project-owned environment graphics
 
 The V7.3 river banks are generated as sloped, irregular Three.js `BufferGeometry` meshes rather than flat planes. The game applies a project-owned procedural sand texture, darker wet shoreline strips and green riparian strips. Existing Quaternius rocks, grasses, bushes, plants and palms dress the bank geometry.
 
 The animated Nile surface, contact effects, stepped Giza-inspired background pyramids, UI and gameplay logic remain project-owned procedural/runtime graphics.
+
+Препятствия «нависший папирус» (`V751PapyrusGate`), «водоворот» (`V751Whirlpool`)
+и «бегемот» (`V751NileHippo`), а также люди и факелы на берегах — собственная
+процедурная геометрия проекта. Она собирается в один меш на материал
+(`mergeByMaterial`), чтобы каждое препятствие стоило один-два вызова отрисовки.

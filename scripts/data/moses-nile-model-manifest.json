@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "delivery": "same-origin-build-extraction",
   "package": {
     "ref": "8887faf7638a4168d37583f17b1c8eec9c46dd3f",
@@ -8,7 +8,9 @@
   },
   "limits": {
     "largestAssetBytes": 3000000,
-    "totalModelBytes": 2800000
+    "totalModelBytes": 2800000,
+    "measuredTotalModelBytes": 2773395,
+    "measuredLargestAssetBytes": 2551260
   },
   "models": [
     {
@@ -82,6 +84,35 @@
       "bytes": 2551260,
       "license": "CC BY 4.0",
       "source": "Beerus / crocodile high quality"
+    },
+    {
+      "key": "boat",
+      "path": "web/games/moses-nile-v7/models/v73/Boat.glb",
+      "bytes": 13720,
+      "license": "CC0",
+      "source": "Quaternius Cute Fish Pack"
     }
-  ]
+  ],
+  "usage": {
+    "instancedBankDetail": [
+      "reeds",
+      "bankPlant",
+      "grass",
+      "bush",
+      "rock",
+      "palm"
+    ],
+    "gameplayObstacles": [
+      "rock",
+      "log",
+      "croc",
+      "boat"
+    ],
+    "proceduralObstacles": [
+      "gate",
+      "vortex",
+      "hippo"
+    ],
+    "note": "Растительность берега раскладывается через InstancedMesh: геометрия берётся из тех же GLB, что и препятствия, поэтому новых лицензий не появляется."
+  }
 }

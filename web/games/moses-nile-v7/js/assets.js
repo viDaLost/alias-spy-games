@@ -54,7 +54,8 @@ class AssetManager {
       grass:'models/environment/nature_pack/Grass.glb',
       bankPlant:'models/environment/nature_pack/Plant_1.glb',
       palm:'models/environment/nature_pack/PalmTree_4.glb',
-      log:'models/environment/survival_pack/WoodLog.glb'
+      log:'models/environment/survival_pack/WoodLog.glb',
+      boat:'models/v73/Boat.glb'
     };
     this.environmentPromise=Promise.all(Object.entries(sources).map(async([key,url])=>{
       try{
@@ -95,18 +96,41 @@ class AssetManager {
 
   hasModel(name){return !!this.models[name];}
 
-  cloneModel(name,targetSize=1){
+  modelKeys(){return Object.keys(this.models);}
+
+  /*
+    Клонирование с кешированными габаритами: Box3 по исходной модели считается
+    один раз, дальше работает только умножение. На спавне это заметно —
+    крокодил из GLB иначе перебирает тысячи вершин на каждом появлении.
+  */
+  _metrics(name){
+    if(this._metricsCache&&this._metricsCache[name])return this._metricsCache[name];
+    this._metricsCache=this._metricsCache||{};
     const source=this.models[name];
     if(!source)return null;
-    const clone=source.clone(true);
-    const box=new THREE.Box3().setFromObject(clone);
+    const box=new THREE.Box3().setFromObject(source);
     const size=new THREE.Vector3();
     box.getSize(size);
-    const maxDim=Math.max(size.x,size.y,size.z)||1;
-    clone.scale.multiplyScalar(targetSize/maxDim);
-    const adjustedBox=new THREE.Box3().setFromObject(clone);
-    clone.position.y-=adjustedBox.min.y;
-    clone.traverse(child=>{if(child.isMesh){child.castShadow=true;child.receiveShadow=true;}});
+    const metrics={
+      maxDim:Math.max(size.x,size.y,size.z)||1,
+      minY:box.min.y,
+      size:size.clone()
+    };
+    this._metricsCache[name]=metrics;
+    return metrics;
+  }
+
+  cloneModel(name,targetSize=1,options={}){
+    const source=this.models[name];
+    if(!source)return null;
+    const metrics=this._metrics(name);
+    const clone=source.clone(true);
+    const scale=targetSize/metrics.maxDim;
+    clone.scale.multiplyScalar(scale);
+    if(options.ground!==false)clone.position.y-=metrics.minY*scale;
+    clone.userData.fittedSize=metrics.size.clone().multiplyScalar(scale);
+    const castShadow=options.castShadow!==false;
+    clone.traverse(child=>{if(child.isMesh){child.castShadow=castShadow;child.receiveShadow=true;}});
     return clone;
   }
 
@@ -138,6 +162,12 @@ class AssetManager {
     return root;
   }
 
+  /*
+    Лотос из OBJ приезжает разбитым на несколько десятков групп — по одной
+    на лепесток. В сцене это давало под сорок вызовов отрисовки на каждый
+    цветок. Здесь всё сливается в один меш, а цвет лепестковых слоёв
+    переезжает в вершинные цвета.
+  */
   _prepareLotus(root){
     const lotusColor=name=>{
       const id=String(name||'').toLowerCase();
@@ -147,19 +177,57 @@ class AssetManager {
       if(id.includes('outer'))return 0xd95d8e;
       return 0xee91b8;
     };
-    root.name='ProjectOwnedNileLotus';
-    root.traverse(child=>{
-      if(!child.isMesh)return;
-      child.castShadow=true;
-      child.receiveShadow=true;
-      child.material=new THREE.MeshStandardMaterial({
-        color:lotusColor(child.name||child.parent?.name),
-        roughness:.72,
-        metalness:0,
-        side:THREE.DoubleSide
-      });
+    root.updateMatrixWorld(true);
+    const parts=[];
+    root.traverse(child=>{if(child.isMesh)parts.push(child);});
+    if(!parts.length)return root;
+
+    let total=0;
+    const prepared=parts.map(child=>{
+      const geometry=(child.geometry.index?child.geometry.toNonIndexed():child.geometry.clone());
+      geometry.applyMatrix4(child.matrixWorld);
+      if(!geometry.attributes.normal)geometry.computeVertexNormals();
+      total+=geometry.attributes.position.count;
+      return {geometry,color:new THREE.Color(lotusColor(child.name||child.parent?.name))};
     });
-    return root;
+
+    const position=new Float32Array(total*3);
+    const normal=new Float32Array(total*3);
+    const color=new Float32Array(total*3);
+    let cursor=0;
+    for(const part of prepared){
+      const pos=part.geometry.attributes.position;
+      const nor=part.geometry.attributes.normal;
+      for(let i=0;i<pos.count;i++){
+        const at=(cursor+i)*3;
+        position[at]=pos.getX(i);position[at+1]=pos.getY(i);position[at+2]=pos.getZ(i);
+        if(nor){normal[at]=nor.getX(i);normal[at+1]=nor.getY(i);normal[at+2]=nor.getZ(i);}
+        color[at]=part.color.r;color[at+1]=part.color.g;color[at+2]=part.color.b;
+      }
+      cursor+=pos.count;
+      part.geometry.dispose?.();
+    }
+
+    const merged=new THREE.BufferGeometry();
+    merged.setAttribute('position',new THREE.Float32BufferAttribute(position,3));
+    merged.setAttribute('normal',new THREE.Float32BufferAttribute(normal,3));
+    merged.setAttribute('color',new THREE.Float32BufferAttribute(color,3));
+    merged.computeBoundingSphere();
+
+    const mesh=new THREE.Mesh(merged,new THREE.MeshStandardMaterial({
+      vertexColors:true,
+      roughness:.7,
+      metalness:0,
+      emissive:0x3a1420,
+      emissiveIntensity:.12,
+      side:THREE.DoubleSide
+    }));
+    mesh.castShadow=true;
+    mesh.receiveShadow=true;
+    const wrapper=new THREE.Group();
+    wrapper.name='ProjectOwnedNileLotus';
+    wrapper.add(mesh);
+    return wrapper;
   }
 
   _makeBasketTexture(){
@@ -183,14 +251,41 @@ class AssetManager {
     return texture;
   }
 
+  _makeBasketNormalTexture(){
+    const canvas=document.createElement('canvas');
+    canvas.width=canvas.height=128;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#8080ff';ctx.fillRect(0,0,128,128);
+    ctx.lineCap='round';
+    for(let x=-128;x<256;x+=18){
+      ctx.strokeStyle='#5a5aff';ctx.lineWidth=6;
+      ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+128,128);ctx.stroke();
+      ctx.strokeStyle='#a6a6ff';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(x+4,0);ctx.lineTo(x+132,128);ctx.stroke();
+    }
+    for(let y=7;y<128;y+=15){
+      ctx.strokeStyle='#7d7dff';ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(128,y);ctx.stroke();
+    }
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+    texture.repeat.set(3.2,2.1);
+    return texture;
+  }
+
   _basketMaterial(){
-    return new THREE.MeshStandardMaterial({
-      color:0xc17a34,
-      map:this._makeBasketTexture(),
-      roughness:.9,
-      metalness:0,
-      side:THREE.DoubleSide
-    });
+    if(!this._basketMaterialCache){
+      this._basketMaterialCache=new THREE.MeshStandardMaterial({
+        color:0xc17a34,
+        map:this._makeBasketTexture(),
+        normalMap:this._makeBasketNormalTexture(),
+        normalScale:new THREE.Vector2(.75,.75),
+        roughness:.88,
+        metalness:0,
+        side:THREE.DoubleSide
+      });
+    }
+    return this._basketMaterialCache.clone();
   }
 
   _parseBasketObj(text){

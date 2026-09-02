@@ -1,3 +1,6 @@
-Moses Nile V7.3.8 standalone package trigger.
-This file is intentionally included in the game directory so the packaging workflow builds the complete archive with runtime JS, vendor libraries, textures, basket OBJ, lotus OBJ and all GLB environment/character/crocodile models.
-Archive build trigger: 2026-08-19 17:22 Europe/Moscow.
+Moses Nile standalone package trigger.
+Этот файл лежит в каталоге игры, чтобы сборка превью собирала полный архив:
+рантайм (index.html, js/sound.js, js/shaders.js, js/fx.js, js/assets.js,
+js/game-v75.js), библиотеки three.js r128 с загрузчиками, карты нормалей воды
+и берега, OBJ корзинки и лотоса, GLB окружения, крокодила и лодки.
+Archive build trigger: 2026-09-02 (переработка раннера V7.5.1 · RUNNER II).

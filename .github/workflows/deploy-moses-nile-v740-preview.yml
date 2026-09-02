@@ -59,6 +59,7 @@ jobs:
           cp "$ASSET_DIR/models/environment/survival_pack/WoodLog.glb" .preview-v7/models/environment/survival_pack/
           cp "$ASSET_DIR/models/v73/crocodile.glb" .preview-v7/models/v73/
           cp "$ASSET_DIR/models/v73/lotus-flower.obj" .preview-v7/models/v73/
+          cp "$ASSET_DIR/models/v73/Boat.glb" .preview-v7/models/v73/
 
           optimize_texture() {
             local source="$1" destination="$2" quality="$3"
@@ -86,6 +87,13 @@ jobs:
           grep -q "cloneModel?.('crocodile'" .preview-v7/js/game-v75.js
           grep -q 'preloadGameplayModels' .preview-v7/js/assets.js
           grep -q 'water-normal-detail.jpg' .preview-v7/js/game-v75.js
+          grep -q 'createRiverMaterial' .preview-v7/js/shaders.js
+          grep -q 'applyWind' .preview-v7/js/shaders.js
+          grep -q 'window.NileFX' .preview-v7/js/fx.js
+          grep -q 'js/shaders.js' .preview-v7/index.html
+          grep -q 'js/fx.js' .preview-v7/index.html
+          grep -q 'btn-jump' .preview-v7/index.html
+          grep -q 'btn-dive' .preview-v7/index.html
           ! grep -q 'OctahedronGeometry' .preview-v7/js/game-v75.js
           grep -q 'cinematicBackgroundVisible: true' .preview-v7/js/game-v75.js
           grep -q 'oneRenderLoop: true' .preview-v7/js/game-v75.js
@@ -94,12 +102,13 @@ jobs:
           test "$(stat -c %s .preview-v7/assets/nile-reference-bg-v75.webp)" -lt 250000
           ! grep -q 'type="module"' .preview-v7/index.html
           ! grep -q 'v740-visual-overhaul.js' .preview-v7/index.html
-          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 3
+          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 5
           for asset in \
             models/environment/nature_pack/Rock_1.glb \
             models/environment/survival_pack/WoodLog.glb \
             models/v73/crocodile.glb \
             models/v73/lotus-flower.obj \
+            models/v73/Boat.glb \
             textures/water/water-normal-primary.jpg \
             textures/water/water-normal-detail.jpg \
             textures/terrain/damp-sand-normal.jpg \
