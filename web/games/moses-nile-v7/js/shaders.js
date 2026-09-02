@@ -137,7 +137,7 @@
       float horizon = smoothstep(0.25, 0.98, vUv.y);
 
       vec3 base = mix(uDeep, uShallow, depthMix * 0.62 + vCrest * 0.10);
-      base = mix(base, uSky, fresnel * 0.42 + horizon * 0.45);
+      base = mix(base, uSky, fresnel * 0.34 + horizon * 0.52);
 
       // Солнечный блик: узкий Блинн-Фонг плюс мерцающая крошка.
       vec3 halfDir = normalize(uSunDir + viewDir);
@@ -164,7 +164,7 @@
       float foam = clamp((bankFoam * 0.62 + crestFoam * 0.55 + wake) * (0.34 + foamNoise * 0.72), 0.0, 1.0);
       color = mix(color, uFoamColor, foam * 0.72);
 
-      float alpha = clamp(uOpacity + fresnel * 0.20 + foam * 0.42 + spec * 0.16 - horizon * 0.10, 0.0, 0.92);
+      float alpha = clamp(uOpacity + fresnel * 0.06 + foam * 0.20, 0.0, 1.0);
       gl_FragColor = vec4(color, alpha);
       #include <fog_fragment>
     }
@@ -610,6 +610,175 @@
         side: THREE.DoubleSide,
       });
       material.name = 'NileShorelineShader';
+      return material;
+    },
+
+
+    /*
+      Небо песчаной бури. Заменяет фотографический фон: вертикальный градиент,
+      придушенное дымкой солнце, слоистая пыль и мутный горизонт. Рисуется
+      куполом вокруг камеры, поэтому всегда закрывает кадр целиком.
+    */
+    createSkyMaterial(THREE, options = {}) {
+      const uniforms = {
+        uTime: { value: 0 },
+        uZenith: { value: new THREE.Color(options.zenith ?? 0xa98a5e) },
+        uHaze: { value: new THREE.Color(options.haze ?? 0xdcbc86) },
+        uHorizon: { value: new THREE.Color(options.horizon ?? 0xe8cf9c) },
+        uSunColor: { value: new THREE.Color(options.sun ?? 0xffe6ae) },
+        uSunDir: { value: new THREE.Vector3(-.42, .35, -.84).normalize() },
+        uStorm: { value: options.storm ?? .7 },
+        uStars: { value: 0 },
+      };
+      const material = new THREE.ShaderMaterial({
+        uniforms,
+        vertexShader: `
+          varying vec3 vDir;
+          void main(){
+            vDir = normalize(position);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform float uStorm;
+          uniform float uStars;
+          uniform vec3 uZenith;
+          uniform vec3 uHaze;
+          uniform vec3 uHorizon;
+          uniform vec3 uSunColor;
+          uniform vec3 uSunDir;
+          varying vec3 vDir;
+          ${NOISE}
+          void main(){
+            vec3 dir = normalize(vDir);
+            float height = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
+
+            // Три пояса: зенит, дымка, мутный горизонт.
+            vec3 sky = mix(uHorizon, uHaze, smoothstep(0.48, 0.62, height));
+            sky = mix(sky, uZenith, smoothstep(0.60, 0.92, height));
+
+            // Солнце едва пробивается сквозь взвесь.
+            float sun = max(dot(dir, normalize(uSunDir)), 0.0);
+            sky += uSunColor * pow(sun, 220.0) * 0.55;
+            sky += uSunColor * pow(sun, 6.0) * 0.30;
+            sky += uSunColor * pow(sun, 1.6) * 0.10 * uStorm;
+
+            // Пыль: два слоя шума, ползущие поперёк с разной скоростью.
+            vec2 flow = vec2(atan(dir.z, dir.x) * 1.6, height * 3.4);
+            float dustA = fbm(flow * vec2(1.0, 2.2) + vec2(uTime * 0.030, uTime * -0.010));
+            float dustB = fbm(flow * vec2(2.6, 4.1) + vec2(uTime * -0.055, uTime * 0.014));
+            float dust = clamp(dustA * 0.62 + dustB * 0.38, 0.0, 1.0);
+            float lowBand = smoothstep(0.80, 0.44, height);
+            sky = mix(sky, uHorizon * 1.06, dust * lowBand * uStorm * 0.80);
+
+            // Плотная взвесь у самой земли, куда уходит вся геометрия.
+            sky = mix(sky, uHorizon, smoothstep(0.52, 0.40, height));
+
+            if (uStars > 0.01) {
+              vec2 grid = floor(vec2(atan(dir.z, dir.x) * 34.0, height * 150.0));
+              float seed = nhash(grid);
+              float twinkle = 0.55 + 0.45 * sin(uTime * 2.0 + seed * 40.0);
+              sky += vec3(step(0.992, seed) * twinkle * uStars * smoothstep(0.52, 1.0, height));
+            }
+            gl_FragColor = vec4(sky, 1.0);
+          }
+        `,
+        side: THREE.BackSide,
+        depthWrite: false,
+        depthTest: false,
+        fog: false,
+      });
+      material.name = 'NileSandstormSkyShader';
+      return material;
+    },
+
+    /*
+      Полотнище пыли: вертикальная плоскость с бегущим шумом. Несколько таких
+      на разной глубине дают параллакс и ощущение хамсина.
+    */
+    createDustSheetMaterial(THREE, options = {}) {
+      const uniforms = Object.assign(fogUniforms(THREE), {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(options.color ?? 0xe3c795) },
+        uStrength: { value: options.strength ?? .3 },
+        uSpeed: { value: options.speed ?? .06 },
+        uScale: { value: options.scale ?? 1 },
+      });
+      const material = new THREE.ShaderMaterial({
+        uniforms,
+        vertexShader: `
+          varying vec2 vUv;
+          void main(){
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform float uStrength;
+          uniform float uSpeed;
+          uniform float uScale;
+          uniform vec3 uColor;
+          varying vec2 vUv;
+          ${NOISE}
+          void main(){
+            vec2 p = vec2(vUv.x * 4.0 * uScale + uTime * uSpeed, vUv.y * 2.2 * uScale);
+            float veil = fbm(p) * 0.7 + fbm(p * 2.7 + 11.0) * 0.3;
+            float fade = smoothstep(0.0, 0.30, vUv.y) * smoothstep(1.0, 0.55, vUv.y);
+            float alpha = pow(clamp(veil, 0.0, 1.0), 1.7) * fade * uStrength;
+            if (alpha < 0.004) discard;
+            gl_FragColor = vec4(uColor, alpha);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        fog: false,
+        side: THREE.DoubleSide,
+      });
+      material.name = 'NileDustSheetShader';
+      return material;
+    },
+
+    /*
+      Изгиб тела крокодила. Модель не риггована и лежит вдоль своей локальной
+      оси, поэтому направление волны задаётся масками: uCrocAxis — вдоль тела,
+      uCrocSide — куда вилять, uCrocLift — куда приподнимать морду.
+    */
+    applyCrocodileSwim(THREE, material, uniforms) {
+      material.onBeforeCompile = (shader) => {
+        shader.uniforms.uCrocTime = uniforms.time;
+        shader.uniforms.uCrocSwim = uniforms.swim;
+        shader.uniforms.uCrocBite = uniforms.bite;
+        shader.uniforms.uCrocAxis = uniforms.axis;
+        shader.uniforms.uCrocSide = uniforms.side;
+        shader.uniforms.uCrocLift = uniforms.lift;
+        shader.uniforms.uCrocMin = uniforms.min;
+        shader.uniforms.uCrocRange = uniforms.range;
+        shader.vertexShader = `uniform float uCrocTime;
+uniform float uCrocSwim;
+uniform float uCrocBite;
+uniform float uCrocMin;
+uniform float uCrocRange;
+uniform vec3 uCrocAxis;
+uniform vec3 uCrocSide;
+uniform vec3 uCrocLift;
+${shader.vertexShader}`;
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+           float crocT = clamp((dot(transformed, uCrocAxis) - uCrocMin) / max(1.0, uCrocRange), 0.0, 1.0);
+           // Хвост виляет сильнее всего, к голове волна затухает.
+           float crocTail = pow(1.0 - crocT, 1.7);
+           float crocWave = sin(uCrocTime * 3.2 - crocT * 5.6);
+           transformed += uCrocSide * (crocWave * crocTail * uCrocSwim);
+           transformed += uCrocLift * (sin(uCrocTime * 2.0 - crocT * 3.1) * crocTail * uCrocSwim * 0.28);
+           // Пасть: передняя десятая часть приподнимается при броске.
+           float crocJaw = smoothstep(0.86, 1.0, crocT);
+           transformed += uCrocLift * (crocJaw * uCrocBite);`,
+        );
+      };
+      material.customProgramCacheKey = () => 'nile-croc-swim';
       return material;
     },
 

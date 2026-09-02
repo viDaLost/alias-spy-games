@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '983e99dd8a';
+const VERSION = '4403c688bd';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -46,7 +46,6 @@ const PRECACHE = [
   'web/games/kids-ark-pairs.css',
   'web/games/kids-ark-pairs.js',
   'web/games/moses-nile-v7/PACKAGE.txt',
-  'web/games/moses-nile-v7/assets/nile-reference-bg-v75.webp',
   'web/games/moses-nile-v7/index.html',
   'web/games/moses-nile-v7/js/assets.js',
   'web/games/moses-nile-v7/js/fx.js',

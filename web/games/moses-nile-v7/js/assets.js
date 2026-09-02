@@ -55,7 +55,8 @@ class AssetManager {
       bankPlant:'models/environment/nature_pack/Plant_1.glb',
       palm:'models/environment/nature_pack/PalmTree_4.glb',
       log:'models/environment/survival_pack/WoodLog.glb',
-      boat:'models/v73/Boat.glb'
+      boat:'models/v73/Boat.glb',
+      flowers:'models/v73/Flowers.glb'
     };
     this.environmentPromise=Promise.all(Object.entries(sources).map(async([key,url])=>{
       try{
@@ -111,9 +112,13 @@ class AssetManager {
     const box=new THREE.Box3().setFromObject(source);
     const size=new THREE.Vector3();
     box.getSize(size);
+    const center=new THREE.Vector3();
+    box.getCenter(center);
     const metrics={
       maxDim:Math.max(size.x,size.y,size.z)||1,
       minY:box.min.y,
+      centerX:center.x,
+      centerZ:center.z,
       size:size.clone()
     };
     this._metricsCache[name]=metrics;
@@ -128,6 +133,7 @@ class AssetManager {
     const scale=targetSize/metrics.maxDim;
     clone.scale.multiplyScalar(scale);
     if(options.ground!==false)clone.position.y-=metrics.minY*scale;
+    if(options.center!==false){clone.position.x-=metrics.centerX*scale;clone.position.z-=metrics.centerZ*scale;}
     clone.userData.fittedSize=metrics.size.clone().multiplyScalar(scale);
     const castShadow=options.castShadow!==false;
     clone.traverse(child=>{if(child.isMesh){child.castShadow=castShadow;child.receiveShadow=true;}});

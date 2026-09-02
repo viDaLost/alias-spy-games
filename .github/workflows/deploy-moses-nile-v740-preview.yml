@@ -26,7 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .preview-v7
-          mkdir -p .preview-v7/js .preview-v7/assets .preview-v7/vendor \
+          mkdir -p .preview-v7/js .preview-v7/vendor \
             .preview-v7/models/environment/nature_pack \
             .preview-v7/models/environment/survival_pack \
             .preview-v7/models/v73 \
@@ -34,7 +34,6 @@ jobs:
             .preview-v7/textures/terrain
           cp web/games/moses-nile-v7/index.html .preview-v7/index.html
           cp -R web/games/moses-nile-v7/js/. .preview-v7/js/
-          cp -R web/games/moses-nile-v7/assets/. .preview-v7/assets/
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/basket.obj
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
           printf '{"commit":"%s","version":"V7.5.1"}\n' "$GITHUB_SHA" > .preview-v7/build.json
@@ -60,6 +59,7 @@ jobs:
           cp "$ASSET_DIR/models/v73/crocodile.glb" .preview-v7/models/v73/
           cp "$ASSET_DIR/models/v73/lotus-flower.obj" .preview-v7/models/v73/
           cp "$ASSET_DIR/models/v73/Boat.glb" .preview-v7/models/v73/
+          cp "$ASSET_DIR/models/v73/Flowers.glb" .preview-v7/models/v73/
 
           optimize_texture() {
             local source="$1" destination="$2" quality="$3"
@@ -95,11 +95,12 @@ jobs:
           grep -q 'btn-jump' .preview-v7/index.html
           grep -q 'btn-dive' .preview-v7/index.html
           ! grep -q 'OctahedronGeometry' .preview-v7/js/game-v75.js
-          grep -q 'cinematicBackgroundVisible: true' .preview-v7/js/game-v75.js
+          grep -q 'proceduralSkyVisible: true' .preview-v7/js/game-v75.js
+          grep -q 'createSkyMaterial' .preview-v7/js/shaders.js
+          grep -q 'V751SandstormSky' .preview-v7/js/game-v75.js
+          ! grep -q 'nile-reference-bg-v75' .preview-v7/index.html
           grep -q 'oneRenderLoop: true' .preview-v7/js/game-v75.js
           grep -q 'fallback-mode' .preview-v7/index.html
-          test -s .preview-v7/assets/nile-reference-bg-v75.webp
-          test "$(stat -c %s .preview-v7/assets/nile-reference-bg-v75.webp)" -lt 250000
           ! grep -q 'type="module"' .preview-v7/index.html
           ! grep -q 'v740-visual-overhaul.js' .preview-v7/index.html
           test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 5
@@ -109,6 +110,7 @@ jobs:
             models/v73/crocodile.glb \
             models/v73/lotus-flower.obj \
             models/v73/Boat.glb \
+            models/v73/Flowers.glb \
             textures/water/water-normal-primary.jpg \
             textures/water/water-normal-detail.jpg \
             textures/terrain/damp-sand-normal.jpg \
@@ -156,7 +158,6 @@ jobs:
               && curl -fsSL --max-time 20 "${P}js/game-v75.js${q}" -o /tmp/v && grep -q '__mosesV75ReferenceRebuild' /tmp/v \
               && curl -fsSL --max-time 20 "${P}models/v73/crocodile.glb${q}" -o /tmp/croc && test "$(stat -c %s /tmp/croc)" -gt 2000000 \
               && curl -fsSL --max-time 20 "${P}textures/terrain/sand-normal.jpg${q}" -o /tmp/normal && test -s /tmp/normal \
-              && curl -fsSL --max-time 20 "${P}assets/nile-reference-bg-v75.webp${q}" -o /tmp/bg && test -s /tmp/bg \
               && curl -fsSL --max-time 20 "${P}build.json${q}" | grep -q "$GITHUB_SHA"; then exit 0; fi
             sleep 5
           done
@@ -169,7 +170,7 @@ jobs:
           V: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=reference-driven\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=752\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=752\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v750
           mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v750.txt

@@ -14,23 +14,31 @@
       --gold-deep: #a9762c;
       --chip: rgba(43, 37, 27, .74);
       --panel: rgba(255, 250, 238, .94);
+      --sky-zenith: #9c7f57;
+      --sky-haze: #d6b784;
+      --sky-horizon: #e7cf9d;
+      --sky-sun: #ffe6ae;
       --safe-top: max(12px, env(safe-area-inset-top));
       --safe-bottom: max(16px, env(safe-area-inset-bottom));
     }
     *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #8d795b; font-family: Inter, "Segoe UI", Roboto, system-ui, sans-serif; color: var(--ivory); }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--sky-horizon); font-family: Inter, "Segoe UI", Roboto, system-ui, sans-serif; color: var(--ivory); }
     button { font: inherit; touch-action: manipulation; }
 
     /* ---- слои сцены ---- */
     #scene-bg, #game-canvas, #fallback-canvas, #scene-grade { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* Небо песчаной бури. Тот же градиент, что в шейдере купола, — он держит
+       кадр, пока WebGL ещё поднимается, и служит фоном запасного 2D-режима. */
     #scene-bg {
       z-index: 0;
-      background: #8d795b url("assets/nile-reference-bg-v75.webp") center center / cover no-repeat;
-      transform: scale(1.012);
-      filter: saturate(.92) contrast(1.02) brightness(.95);
-      transition: transform 9s linear, filter 2.6s ease;
+      background:
+        radial-gradient(120% 60% at 34% 74%, color-mix(in srgb, var(--sky-sun) 55%, transparent), transparent 62%),
+        linear-gradient(180deg, var(--sky-zenith) 0%, var(--sky-haze) 44%, var(--sky-horizon) 70%, var(--sky-horizon) 100%);
+      transition: background 2.4s ease, filter 2.4s ease;
     }
-    body.is-playing #scene-bg { transform: scale(1.05) translateY(1.4%); }
+    @supports not (background: color-mix(in srgb, red, blue)) {
+      #scene-bg { background: linear-gradient(180deg, var(--sky-zenith) 0%, var(--sky-haze) 44%, var(--sky-horizon) 70%, var(--sky-horizon) 100%); }
+    }
     #scene-grade {
       z-index: 4; pointer-events: none;
       background-image: linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20));
@@ -76,7 +84,7 @@
     .toast-green b { color: #a9e5ac; } .toast-red b { color: #f0a08c; }
     .toast-teal b { color: #93e2d4; } .toast-blue b { color: #9dc9f2; } .toast-pink b { color: #f3aabd; }
 
-    #hint-layer { position: absolute; left: 50%; bottom: calc(var(--safe-bottom) + 205px); z-index: 12; display: grid; grid-auto-flow: column; gap: 12px; padding: 10px 16px; border-radius: 16px; background: rgba(28, 24, 16, .62); border: 1px solid rgba(232, 202, 138, .24); transform: translateX(-50%) translateY(10px); opacity: 0; visibility: hidden; transition: opacity .35s, transform .35s, visibility .35s; pointer-events: none; backdrop-filter: blur(8px); }
+    #hint-layer { position: absolute; left: 50%; bottom: calc(var(--safe-bottom) + 300px); z-index: 12; display: grid; grid-auto-flow: column; gap: 12px; padding: 10px 16px; border-radius: 16px; background: rgba(28, 24, 16, .62); border: 1px solid rgba(232, 202, 138, .24); transform: translateX(-50%) translateY(10px); opacity: 0; visibility: hidden; transition: opacity .35s, transform .35s, visibility .35s; pointer-events: none; backdrop-filter: blur(8px); }
     #hint-layer.is-visible { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
     #hint-layer div { text-align: center; font-size: 10px; font-weight: 800; letter-spacing: .04em; color: rgba(255, 244, 216, .8); }
     #hint-layer div b { display: block; font-size: 17px; color: var(--gold); }
@@ -156,7 +164,7 @@
   </script>
 </head>
 <body class="is-loading">
-  <div id="scene-bg" role="img" aria-label="Река Нил на закате с пальмами и пирамидами"></div>
+  <div id="scene-bg" role="img" aria-label="Небо над Нилом в песчаной буре"></div>
   <canvas id="game-canvas" aria-label="Игровая сцена Нила"></canvas>
   <canvas id="fallback-canvas" aria-label="Облегчённая игровая сцена Нила"></canvas>
   <div id="scene-grade"></div>

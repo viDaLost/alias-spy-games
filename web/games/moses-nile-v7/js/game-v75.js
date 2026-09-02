@@ -69,12 +69,12 @@
       title: 'Заводь папируса',
       subtitle: 'Тихая вода, густой тростник',
       from: 0,
-      fog: 0xbba782, fogNear: 54, fogFar: 248,
-      hemiSky: 0xffe8bd, hemiGround: 0x4f4838, hemiPower: .86,
-      sunColor: 0xffd39b, sunPower: .92, sunPos: [-22, 35, 18],
-      water: { deep: 0x6a6334, shallow: 0xb6a468, sky: 0xe7d4a4, sun: 0xffe3ae, foam: 0xf3ecd7, chop: .85, glitter: .9, opacity: .27 },
-      atmosphere: { top: 0xe9d6a6, bottom: 0xf7e8c0, sun: 0xffe6b0, strength: .22, stars: 0 },
-      grade: 'saturate(.92) contrast(1.02) brightness(.95)',
+      fog: 0xe7cf9d, fogNear: 62, fogFar: 240,
+      hemiSky: 0xf3dcae, hemiGround: 0x3d3526, hemiPower: .58,
+      sunColor: 0xffd08e, sunPower: 1.5, sunPos: [-22, 35, 18],
+      water: { deep: 0x3f4a20, shallow: 0x84803e, sky: 0xd9c391, sun: 0xffe3ae, foam: 0xf3ecd7, chop: .85, glitter: .9, opacity: .93 },
+      sky: { zenith: 0x7d6440, haze: 0xc9a874, horizon: 0xe6c894, sun: 0xffe6ae, storm: .5, stars: 0 },
+      grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
       wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
     },
@@ -83,12 +83,12 @@
       title: 'Открытый Нил',
       subtitle: 'Полдень над широкой водой',
       from: 700,
-      fog: 0xd8c79c, fogNear: 62, fogFar: 268,
-      hemiSky: 0xfff3d8, hemiGround: 0x5c5540, hemiPower: 1.02,
-      sunColor: 0xfff0c8, sunPower: 1.12, sunPos: [-16, 42, 14],
-      water: { deep: 0x5e6a3c, shallow: 0xc2b478, sky: 0xf0e2ba, sun: 0xfff2cf, foam: 0xfbf5e4, chop: 1, glitter: 1.25, opacity: .26 },
-      atmosphere: { top: 0xdfe4c8, bottom: 0xfaf0d2, sun: 0xfff4d4, strength: .18, stars: 0 },
-      grade: 'saturate(1.02) contrast(1.02) brightness(1.06)',
+      fog: 0xf0dcae, fogNear: 70, fogFar: 262,
+      hemiSky: 0xf7ead0, hemiGround: 0x494330, hemiPower: .66,
+      sunColor: 0xfff0c8, sunPower: 1.62, sunPos: [-16, 42, 14],
+      water: { deep: 0x3a5124, shallow: 0x8b8748, sky: 0xe4d3a4, sun: 0xfff2cf, foam: 0xfbf5e4, chop: 1, glitter: 1.25, opacity: .93 },
+      sky: { zenith: 0x8b7c50, haze: 0xd3bd88, horizon: 0xefd9a6, sun: 0xfff2cf, storm: .38, stars: 0 },
+      grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
       wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
     },
@@ -97,12 +97,12 @@
       title: 'Пороги Нила',
       subtitle: 'Течение рвётся между камней',
       from: 1500,
-      fog: 0x9fae9a, fogNear: 44, fogFar: 210,
-      hemiSky: 0xdce9e2, hemiGround: 0x3f4a42, hemiPower: .84,
-      sunColor: 0xdce7d8, sunPower: .82, sunPos: [-28, 30, 22],
-      water: { deep: 0x3a5750, shallow: 0x9fb096, sky: 0xd3e0d4, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .36 },
-      atmosphere: { top: 0xb9c9c0, bottom: 0xdfe8dd, sun: 0xf0f6ec, strength: .3, stars: 0 },
-      grade: 'saturate(.78) contrast(1.10) brightness(.88)',
+      fog: 0xc9d3c6, fogNear: 46, fogFar: 200,
+      hemiSky: 0xcedcd4, hemiGround: 0x2f3a34, hemiPower: .56,
+      sunColor: 0xdce7d8, sunPower: 1.22, sunPos: [-28, 30, 22],
+      water: { deep: 0x1b3831, shallow: 0x5f7a67, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .95 },
+      sky: { zenith: 0x515f58, haze: 0x92a294, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .85, stars: 0 },
+      grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(40,60,60,.20), transparent 30%, transparent 66%, rgba(16,26,26,.30))',
       wind: 1.9, weights: { rock: 6, log: 3, croc: 3, gate: 2, vortex: 4, hippo: 1, boat: 0 },
     },
@@ -111,12 +111,12 @@
       title: 'Ночная переправа',
       subtitle: 'Только луна и огни на берегу',
       from: 2400,
-      fog: 0x1d2836, fogNear: 30, fogFar: 165,
-      hemiSky: 0x33507a, hemiGround: 0x10161f, hemiPower: .58,
-      sunColor: 0x9fc0ff, sunPower: .46, sunPos: [18, 30, -6],
-      water: { deep: 0x131f2c, shallow: 0x33485e, sky: 0x4a6690, sun: 0xcfe0ff, foam: 0xcddcf2, chop: 1.2, glitter: 1.9, opacity: .46 },
-      atmosphere: { top: 0x14203a, bottom: 0x2f4364, sun: 0xbcd2ff, strength: .55, stars: 1 },
-      grade: 'saturate(.55) contrast(1.16) brightness(.42) hue-rotate(-14deg)',
+      fog: 0x2a3a52, fogNear: 34, fogFar: 168,
+      hemiSky: 0x2a4266, hemiGround: 0x080c13, hemiPower: .40,
+      sunColor: 0x9fc0ff, sunPower: .78, sunPos: [18, 30, -6],
+      water: { deep: 0x0b1420, shallow: 0x22364c, sky: 0x3d566f, sun: 0xcfe0ff, foam: 0xcddcf2, chop: 1.2, glitter: 1.9, opacity: .96 },
+      sky: { zenith: 0x0e1626, haze: 0x1d2b40, horizon: 0x33445e, sun: 0xbcd2ff, storm: .55, stars: 1 },
+      grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(8,14,28,.52), rgba(10,16,30,.28) 34%, rgba(8,12,24,.34) 70%, rgba(4,8,18,.60))',
       wind: 1.1, weights: { rock: 4, log: 3, croc: 5, gate: 3, vortex: 2, hippo: 2, boat: 1 },
     },
@@ -125,12 +125,12 @@
       title: 'Рассвет над дельтой',
       subtitle: 'Река выносит корзинку к людям',
       from: 3300,
-      fog: 0xe0b688, fogNear: 58, fogFar: 250,
-      hemiSky: 0xffe0c0, hemiGround: 0x584434, hemiPower: .95,
-      sunColor: 0xffc98d, sunPower: 1.2, sunPos: [10, 22, -22],
-      water: { deep: 0x6b5730, shallow: 0xcda66c, sky: 0xf7d9a8, sun: 0xffd9a0, foam: 0xfff0d8, chop: 1.15, glitter: 1.6, opacity: .30 },
-      atmosphere: { top: 0xe7bc8e, bottom: 0xffdcae, sun: 0xffcf9a, strength: .34, stars: .12 },
-      grade: 'saturate(1.10) contrast(1.05) brightness(1.02) hue-rotate(6deg)',
+      fog: 0xf3cb95, fogNear: 60, fogFar: 245,
+      hemiSky: 0xf6d5b4, hemiGround: 0x453424, hemiPower: .62,
+      sunColor: 0xffc98d, sunPower: 1.68, sunPos: [10, 22, -22],
+      water: { deep: 0x453a1c, shallow: 0x8e6d3e, sky: 0xe0b783, sun: 0xffd9a0, foam: 0xfff0d8, chop: 1.15, glitter: 1.6, opacity: .93 },
+      sky: { zenith: 0x7d4c2c, haze: 0xc98d58, horizon: 0xf0c288, sun: 0xffcf9a, storm: .58, stars: .1 },
+      grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(150,84,26,.16), transparent 32%, transparent 70%, rgba(50,26,10,.26))',
       wind: 1.4, weights: { rock: 4, log: 4, croc: 4, gate: 3, vortex: 3, hippo: 2, boat: 2 },
     },
@@ -145,7 +145,7 @@
   const OBSTACLES = {
     rock:   { clearance: 'ground', radius: 1.02, size: 1.75, fail: 'Корзинка ударилась о камень посреди течения.' },
     log:    { clearance: 'low',    radius: 1.12, size: 2.75, fail: 'Течение вынесло корзинку прямо на бревно.' },
-    croc:   { clearance: 'ground', radius: 1.15, size: 3.35, fail: 'Крокодил преградил путь по реке.' },
+    croc:   { clearance: 'ground', radius: 1.18, size: 3.9, fail: 'Крокодил преградил путь по реке.' },
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Корзинка запуталась в нависших зарослях папируса.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Водоворот затянул корзинку под воду.' },
     hippo:  { clearance: 'ground', radius: 1.32, size: 3.1,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
@@ -340,7 +340,8 @@
   let waterNormal = null;
   let waterDetailNormal = null;
   let shorelines = [];
-  let atmosphere = null;
+  let sky = null;
+  let dustSheets = [];
   let godrays = null;
   let sun = null;
   let hemi = null;
@@ -361,7 +362,7 @@
     fog: null, fogNear: 54, fogFar: 248,
     hemiSky: null, hemiGround: null, hemiPower: .86,
     sunColor: null, sunPower: .9,
-    water: null, atmosphere: null,
+    water: null, sky: null,
   };
 
   function detectTier() {
@@ -384,7 +385,7 @@
       next.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
       next.setSize(window.innerWidth, window.innerHeight, false);
       next.toneMapping = THREE.ACESFilmicToneMapping;
-      next.toneMappingExposure = 1.04;
+      next.toneMappingExposure = .96;
       if ('outputEncoding' in next) next.outputEncoding = THREE.sRGBEncoding;
       shadowsOn = detectTier() >= 1;
       next.shadowMap.enabled = shadowsOn;
@@ -573,9 +574,9 @@
       roughness: .96,
       metalness: 0,
       side: THREE.DoubleSide,
-      transparent: true,
+      transparent: opacity < 1,
       opacity,
-      depthWrite: false,
+      depthWrite: opacity >= 1,
     });
     material.userData.normalStrength = .55;
     if (texturePath) makeTexture(texturePath, 1.15, 52, material);
@@ -622,9 +623,9 @@
 
   function buildBanks() {
     for (const side of [-1, 1]) {
-      buildRibbon('V751DampShore', side, -.1, 1.15, [0x4b4028, 0x6d5c41], 'textures/terrain/damp-sand-color.jpg', 'textures/terrain/damp-sand-normal.jpg', .006, .62);
-      buildRibbon('V751WarmSand', side, 1.10, 4.2, [0x84693f, 0xa78754], 'textures/terrain/sand-color.jpg', 'textures/terrain/sand-normal.jpg', .028, .50);
-      buildRibbon('V751PebbleBank', side, 4.1, 16, [0x8a7458, 0x9d8763], 'textures/terrain/pebbles-color.jpg', 'textures/terrain/pebbles-normal.jpg', .06, .34);
+      buildRibbon('V751DampShore', side, -.1, 1.15, [0x6b5533, 0x94794f], 'textures/terrain/damp-sand-color.jpg', 'textures/terrain/damp-sand-normal.jpg', .006, 1);
+      buildRibbon('V751WarmSand', side, 1.10, 4.2, [0xac8a56, 0xcfad76], 'textures/terrain/sand-color.jpg', 'textures/terrain/sand-normal.jpg', .028, 1);
+      buildRibbon('V751PebbleBank', side, 4.1, 16, [0xb59a75, 0xc7b18b], 'textures/terrain/pebbles-color.jpg', 'textures/terrain/pebbles-normal.jpg', .06, 1);
       buildShoreline(side);
     }
   }
@@ -753,42 +754,53 @@
     const specs = [
       {
         key: 'reeds', name: 'V75ReedsInstanced', size: 2.3, wind: 1.6,
-        count: Math.round(190 * density),
+        count: Math.round(260 * density),
         fallbackGeometry: reedGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x6d7a48, roughness: .98 }),
         place: (i, dummy) => bankPlace(i, dummy, { salt: 1, zFrom: 4, zSpan: 258, near: .2, far: 2.6, lift: .02, minScale: .7, maxScale: 1.6, tilt: .18, stretch: 1.1 }),
       },
       {
         key: 'bankPlant', name: 'V75BankPlants', size: 1.7, wind: 1.2,
-        count: Math.round(80 * density),
+        count: Math.round(130 * density),
         fallbackGeometry: grassGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x5f6b3e, roughness: 1 }),
         place: (i, dummy) => bankPlace(i, dummy, { salt: 7, zFrom: 3, zSpan: 260, near: 1.2, far: 5.4, lift: .04, minScale: .7, maxScale: 1.5, tilt: .1 }),
       },
       {
         key: 'grass', name: 'V75GrassInstanced', size: 1.15, wind: 1,
-        count: Math.round(210 * density),
+        count: Math.round(280 * density),
         fallbackGeometry: grassGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x7a7e54, roughness: 1 }),
         place: (i, dummy) => bankPlace(i, dummy, { salt: 13, zFrom: 3, zSpan: 262, near: 1.5, far: 17, lift: .05, minScale: .6, maxScale: 1.8 }),
       },
       {
         key: 'bush', name: 'V75BushesInstanced', size: 1.6, wind: .6,
-        count: Math.round(62 * density),
+        count: Math.round(96 * density),
         fallbackGeometry: () => new THREE.IcosahedronGeometry(.48, 1),
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x5a6440, roughness: 1, flatShading: true }),
         place: (i, dummy) => bankPlace(i, dummy, { salt: 20, zFrom: 2, zSpan: 262, near: 6, far: 25, lift: .04, minScale: .6, maxScale: 2.6 }),
       },
       {
         key: 'rock', name: 'V75RocksInstanced', size: 1.05, wind: 0,
-        count: Math.round(105 * density),
+        count: Math.round(140 * density),
         fallbackGeometry: () => new THREE.IcosahedronGeometry(.5, 1),
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x7d6e58, roughness: 1, flatShading: true }),
         place: (i, dummy) => bankPlace(i, dummy, { salt: 31, zFrom: 2, zSpan: 262, near: 3.2, far: 28, lift: .02, minScale: .35, maxScale: 2.3, tilt: .5, stretch: .7 }),
       },
       {
+        key: 'flowers', name: 'V75BankFlowers', size: .95, wind: 1.3,
+        count: Math.round(120 * density),
+        fallbackGeometry: () => {
+          const geometry = new THREE.ConeGeometry(.12, .38, 5, 1);
+          geometry.translate(0, .19, 0);
+          return geometry;
+        },
+        fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0xc98aa4, roughness: .85 }),
+        place: (i, dummy) => bankPlace(i, dummy, { salt: 61, zFrom: 3, zSpan: 258, near: .4, far: 4.2, lift: .03, minScale: .7, maxScale: 1.6 }),
+      },
+      {
         key: 'palm', name: 'V75PalmCrowns', size: 11.5, wind: .55, castShadow: false,
-        count: Math.round(30 * density),
+        count: Math.round(40 * density),
         fallbackGeometry: palmGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x4d6234, roughness: .96, flatShading: true }),
         place: (i, dummy) => bankPlace(i, dummy, { salt: 41, zFrom: -10, zSpan: 236, near: 9, far: 27, lift: .05, minScale: .7, maxScale: 1.3, tilt: .16 }),
@@ -797,22 +809,28 @@
     for (const spec of specs) buildInstancedLayer(spec);
   }
 
-  /* Ступенчатые пирамиды на горизонте: три тела, каждое из четырёх ярусов. */
+  /*
+    Пирамиды на горизонте. В буре они читаются силуэтом, поэтому это
+    самосветящийся материал без тумана: цвет берётся от дымки и затемняется.
+    Через туман они бы просто слились с небом.
+  */
   function buildPyramids() {
     const specs = [
-      [-36, -196, 15, 24, 0xac8f66],
-      [33, -216, 12, 18.5, 0xa0845f],
-      [-5, -238, 8, 11.5, 0x957a5b],
+      [-42, -168, 22, 36],
+      [36, -186, 18, 28],
+      [-8, -214, 13, 19],
+      [64, -228, 11, 15],
+      [-78, -236, 9, 12.5],
     ];
-    for (const [x, z, radius, height, color] of specs) {
+    for (const [x, z, radius, height] of specs) {
       const group = new THREE.Group();
       group.name = 'V75DistantPyramid';
-      const material = new THREE.MeshStandardMaterial({
-        color,
-        roughness: 1,
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x8a7250,
         transparent: true,
-        opacity: .44,
+        opacity: .82,
         depthWrite: false,
+        fog: false,
       });
       for (let tier = 0; tier < 4; tier += 1) {
         const t = tier / 4;
@@ -823,31 +841,116 @@
         group.add(cone);
       }
       mergeByMaterial(group);
+      for (const child of group.children) {
+        if (!child.isMesh) continue;
+        const position = child.geometry.attributes.position;
+        const colors = new Float32Array(position.count * 3);
+        for (let i = 0; i < position.count; i += 1) {
+          const t = clamp(position.getY(i) / height, 0, 1);
+          const shade = mix(.58, 1, t * t);
+          colors[i * 3] = shade;
+          colors[i * 3 + 1] = shade;
+          colors[i * 3 + 2] = shade;
+        }
+        child.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        child.material.vertexColors = true;
+        child.material.needsUpdate = true;
+      }
       group.position.set(x, .15, z);
+      group.renderOrder = -6;
       scene.add(group);
-      decor.push({ kind: 'pyramid', object: group });
+      decor.push({ kind: 'pyramid', object: group, material, shade: .62 });
     }
   }
 
-  function buildAtmosphere() {
-    const material = window.NileShaders?.createAtmosphereMaterial?.(THREE);
-    if (!material) return;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(620, 260), material);
-    mesh.position.set(0, 82, -300);
-    mesh.renderOrder = -2;
-    mesh.frustumCulled = false;
-    scene.add(mesh);
-    atmosphere = mesh;
+  /*
+    Небо песчаной бури. Купол едет вместе с камерой, поэтому кадр всегда
+    закрыт целиком — фотографическая подложка больше не нужна. Поверх идут
+    полотнища пыли на разной глубине: они дают параллакс хамсина.
+  */
+  function buildSky() {
+    const material = window.NileShaders?.createSkyMaterial?.(THREE);
+    if (material) {
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 20), material);
+      dome.name = 'V751SandstormSky';
+      dome.frustumCulled = false;
+      dome.renderOrder = -100;
+      scene.add(dome);
+      sky = dome;
+    }
+
+    const sheetSpecs = [
+      { z: -232, width: 620, height: 150, y: 44, strength: .30, speed: .020, scale: .7 },
+      { z: -168, width: 480, height: 104, y: 26, strength: .24, speed: .045, scale: 1.1 },
+      { z: -96, width: 340, height: 62, y: 13, strength: .26, speed: .085, scale: 1.7 },
+      { z: -42, width: 210, height: 30, y: 5.5, strength: .19, speed: .150, scale: 2.4 },
+    ];
+    for (const spec of sheetSpecs) {
+      const sheetMaterial = window.NileShaders?.createDustSheetMaterial?.(THREE, {
+        strength: spec.strength,
+        speed: spec.speed,
+        scale: spec.scale,
+      });
+      if (!sheetMaterial) break;
+      const sheet = new THREE.Mesh(new THREE.PlaneGeometry(spec.width, spec.height), sheetMaterial);
+      sheet.position.set(0, spec.y, spec.z);
+      sheet.renderOrder = -3;
+      sheet.frustumCulled = false;
+      scene.add(sheet);
+      dustSheets.push(sheet);
+    }
 
     const rayMaterial = window.NileShaders?.createGodrayMaterial?.(THREE);
     if (rayMaterial) {
-      const rays = new THREE.Mesh(new THREE.PlaneGeometry(150, 120), rayMaterial);
-      rays.position.set(-26, 44, -190);
+      const rays = new THREE.Mesh(new THREE.PlaneGeometry(170, 130), rayMaterial);
+      rays.position.set(-30, 48, -200);
       rays.rotation.z = .16;
-      rays.renderOrder = -1;
+      rays.renderOrder = -2;
       rays.frustumCulled = false;
       scene.add(rays);
       godrays = rays;
+    }
+  }
+
+  /*
+    Дальние дюны. Профиль нарочно низкочастотный: пара пологих гребней вдоль
+    горизонта. Раньше в нём был высокочастотный член, и вместо песка
+    получалась пила из треугольников.
+  */
+  function buildDunes() {
+    for (const [depth, height, opacity, shade] of [[-258, 7.5, .62, .46], [-224, 4.6, .44, .34]]) {
+      const positions = [];
+      const span = 520;
+      const steps = 60;
+      const crestAt = (t) => (Math.sin(t * 2.6 + depth * .01) * .55 + Math.sin(t * 1.3 + 1.7) * .45 + 1.4) * height * .5;
+      for (let i = 0; i < steps; i += 1) {
+        const t0 = i / steps;
+        const t1 = (i + 1) / steps;
+        const x0 = mix(-span / 2, span / 2, t0);
+        const x1 = mix(-span / 2, span / 2, t1);
+        const y0 = crestAt(t0);
+        const y1 = crestAt(t1);
+        positions.push(x0, 0, 0, x1, 0, 0, x1, y1, 0);
+        positions.push(x0, 0, 0, x1, y1, 0, x0, y0, 0);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xbfa176,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        fog: false,
+      });
+      const ridge = new THREE.Mesh(geometry, material);
+      ridge.name = 'V751HorizonDunes';
+      ridge.position.set(0, -1.4, depth);
+      ridge.renderOrder = -5;
+      ridge.frustumCulled = false;
+      scene.add(ridge);
+      decor.push({ kind: 'dune', object: ridge, material, shade });
     }
   }
 
@@ -1036,19 +1139,49 @@
     return root;
   }
 
-  /* След за корзинкой: клин из двух треугольников с шейдером пены. */
+  /*
+    Носовая волна. Корзинку несёт течением вперёд, поэтому вода расходится
+    перед ней, а не тянется сзади: клин пены уходит в сторону горизонта, по
+    бокам от него — два расходящихся уса.
+  */
   function makeWake() {
     const group = new THREE.Group();
     const material = window.NileShaders?.createWakeMaterial?.(THREE);
     if (material) {
-      const geometry = new THREE.PlaneGeometry(2.6, 7.5, 1, 12);
+      const geometry = new THREE.PlaneGeometry(3.1, 8.4, 1, 14);
       const mesh = new THREE.Mesh(geometry, material);
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(0, -.02, -3.4);
+      mesh.rotation.z = Math.PI;
+      mesh.position.set(0, -.02, -4.5);
       mesh.renderOrder = 5;
       group.add(mesh);
       group.userData.shaderWake = mesh;
     }
+    const streakMaterial = new THREE.MeshBasicMaterial({
+      color: 0xf7efd6,
+      transparent: true,
+      opacity: .16,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    for (const side of [-1, 1]) {
+      const streak = new THREE.Mesh(new THREE.PlaneGeometry(.13, 4.2), streakMaterial.clone());
+      streak.rotation.x = -Math.PI / 2;
+      streak.position.set(side * .62, -.016, -2.3);
+      streak.rotation.z = -side * .17;
+      group.add(streak);
+      group.userData[side < 0 ? 'leftStreak' : 'rightStreak'] = streak;
+    }
+    // Бурун у самого носа: короткая яркая дуга.
+    const bow = new THREE.Mesh(
+      new THREE.RingGeometry(.52, .84, 22, 1, Math.PI * .18, Math.PI * .64),
+      new THREE.MeshBasicMaterial({ color: 0xfff6e0, transparent: true, opacity: .2, depthWrite: false, side: THREE.DoubleSide }),
+    );
+    bow.rotation.x = -Math.PI / 2;
+    bow.rotation.z = Math.PI * .5;
+    bow.position.set(0, -.012, -.72);
+    group.add(bow);
+    group.userData.bow = bow;
     return group;
   }
 
@@ -1170,11 +1303,22 @@
   }
 
   function createRock() {
+    const seed = state.elapsed + state.items.length;
     const model = window.assetManager?.cloneModel?.('rock', OBSTACLES.rock.size);
     if (model) {
-      model.rotation.set(.08, hash(state.elapsed + state.items.length, 91) * Math.PI * 2, .05);
+      model.rotation.set(.08, hash(seed, 91) * Math.PI * 2, .05);
       model.name = 'V751QuaterniusRockModel';
       model.userData.assetSource = 'models/environment/nature_pack/Rock_1.glb';
+      // Гряда вместо одинокого валуна: пара обломков помельче рядом.
+      const shards = 1 + Math.floor(hash(seed, 93) * 3);
+      for (let i = 0; i < shards; i += 1) {
+        const shard = window.assetManager?.cloneModel?.('rock', OBSTACLES.rock.size * (.3 + hash(seed, 94 + i) * .34));
+        if (!shard) break;
+        const angle = hash(seed, 96 + i) * Math.PI * 2;
+        shard.position.set(Math.cos(angle) * (.5 + hash(seed, 98 + i) * .5), -.12, Math.sin(angle) * (.4 + hash(seed, 99 + i) * .5));
+        shard.rotation.set(hash(seed, 101 + i) * 2, hash(seed, 102 + i) * 6, hash(seed, 103 + i) * 2);
+        model.add(shard);
+      }
       return model;
     }
     const group = new THREE.Group();
@@ -1216,14 +1360,97 @@
     return mergeByMaterial(group);
   }
 
+  /*
+    Крокодил. Модель одна на всю игру, поэтому «качество» ей добавляет не
+    новый файл, а движение: волна по телу в вершинном шейдере, бросок с
+    приоткрытой пастью и подводный подход. Оси волны считаются по геометрии,
+    так что привязки к конкретной ориентации модели нет.
+  */
+  function crocodileUniforms(mesh) {
+    mesh.geometry.computeBoundingBox();
+    const box = mesh.geometry.boundingBox;
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const dims = [size.x, size.y, size.z];
+    const longest = dims.indexOf(Math.max(...dims));
+    const rest = [0, 1, 2].filter((i) => i !== longest);
+    const side = dims[rest[0]] >= dims[rest[1]] ? rest[0] : rest[1];
+    const lift = rest[0] === side ? rest[1] : rest[0];
+    const mask = (index) => new THREE.Vector3(index === 0 ? 1 : 0, index === 1 ? 1 : 0, index === 2 ? 1 : 0);
+    const min = [box.min.x, box.min.y, box.min.z][longest];
+    return {
+      time: { value: 0 },
+      swim: { value: dims[side] * .085 },
+      bite: { value: 0 },
+      axis: { value: mask(longest) },
+      side: { value: mask(side) },
+      lift: { value: mask(lift) },
+      min: { value: min },
+      range: { value: dims[longest] },
+      amplitude: dims[side] * .085,
+      biteRange: dims[lift] * .22,
+    };
+  }
+
   function createCrocodile() {
     const model = window.assetManager?.cloneModel?.('crocodile', OBSTACLES.croc.size);
     if (model) {
-      model.rotation.y = Math.PI;
-      model.position.y = -.26;
+      model.rotation.y = 0;
+      model.position.y = -.24;
       model.name = 'V751DetailedCrocodileModel';
       model.userData.assetSource = 'models/v73/crocodile.glb';
-      return model;
+      let uniforms = null;
+      model.traverse((node) => {
+        if (!node.isMesh) return;
+        if (!uniforms) uniforms = crocodileUniforms(node);
+        node.material = node.material.clone();
+        // Текстуры модели тёмные: в дымке она превращалась в пятно.
+        if (node.material.color) node.material.color.multiplyScalar(1.55);
+        if ('roughness' in node.material) node.material.roughness = Math.min(.9, (node.material.roughness ?? .8) + .1);
+        window.NileShaders?.applyCrocodileSwim?.(THREE, node.material, uniforms);
+      });
+      model.userData.crocUniforms = uniforms;
+
+      const wrap = new THREE.Group();
+      wrap.name = 'V751CrocodileRig';
+      wrap.userData.crocUniforms = uniforms;
+      wrap.userData.assetSource = 'models/v73/crocodile.glb';
+
+      // Крокодил лежит поперёк течения: вдоль него камера видела бы только торец,
+      // и вместо рептилии получалось тёмное пятно.
+      const body = new THREE.Group();
+      body.rotation.y = Math.PI * .57;
+      body.add(model);
+      wrap.add(body);
+      wrap.userData.body = body;
+
+      // Глаза над водой — по ним крокодил читается мгновенно.
+      const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffe9a8 });
+      const eyes = new THREE.Group();
+      for (const side of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(.085, 8, 6), eyeMaterial);
+        eye.position.set(side * .17, .2, 1.42);
+        eyes.add(eye);
+        const brow = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshStandardMaterial({ color: 0x53644a, roughness: .9 }));
+        brow.scale.set(1, .6, 1.1);
+        brow.position.set(side * .17, .15, 1.4);
+        eyes.add(brow);
+      }
+      body.add(eyes);
+      wrap.userData.eyes = eyes;
+
+      // Расходящийся след: видно, что он плывёт, а не лежит на воде.
+      const trailMaterial = window.NileShaders?.createWakeMaterial?.(THREE, 0xdfe6cf);
+      if (trailMaterial) {
+        trailMaterial.uniforms.uStrength.value = .32;
+        const trail = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 5.4, 1, 8), trailMaterial);
+        trail.rotation.x = -Math.PI / 2;
+        trail.position.set(0, -.04, -2.2);
+        trail.renderOrder = 4;
+        wrap.add(trail);
+        wrap.userData.trail = trailMaterial;
+      }
+      return wrap;
     }
     const group = new THREE.Group();
     const hide = new THREE.MeshStandardMaterial({ color: 0x3a5238, roughness: .9, flatShading: true });
@@ -1256,7 +1483,9 @@
       group.add(ridge);
     }
     jawBottom.userData.noMerge = true;
+    tail.userData.noMerge = true;
     group.userData.jaw = jawBottom;
+    group.userData.tail = tail;
     group.userData.assetSource = 'emergency-procedural';
     return mergeByMaterial(group);
   }
@@ -1391,104 +1620,172 @@
     return mergeByMaterial(group);
   }
 
-  function makePowerupTexture(type) {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    const palette = {
-      shield: ['#efffff', '#78b8b1', '#d9f1ea', '#315e5c'],
-      magnet: ['#fff8cc', '#e3b94d', '#ffe9a0', '#805f18'],
-      rush: ['#e8f6ff', '#61a8dd', '#d7ecff', '#2c5f86'],
-      mercy: ['#ffeef1', '#d16b86', '#ffd9e0', '#8d3550'],
+  /*
+    Усилители — не иконки, а маленькие предметы египетской пластики.
+    Каждый собирается из примитивов и схлопывается в один-два меша.
+  */
+  const shrineMaterials = {};
+  function shrineMaterial(kind) {
+    if (shrineMaterials[kind]) return shrineMaterials[kind];
+    const presets = {
+      gold: { color: 0xe0b44a, metalness: .58, roughness: .28, emissive: 0x5a3b06, emissiveIntensity: .3 },
+      darkGold: { color: 0xa87c25, metalness: .5, roughness: .38, emissive: 0x3a2704, emissiveIntensity: .22 },
+      lapis: { color: 0x2f5ea8, metalness: .18, roughness: .42, emissive: 0x0d1d3d, emissiveIntensity: .3 },
+      turquoise: { color: 0x54bfae, metalness: .2, roughness: .38, emissive: 0x0f3b36, emissiveIntensity: .35 },
+      carnelian: { color: 0xbe5340, metalness: .16, roughness: .44, emissive: 0x431410, emissiveIntensity: .3 },
+      linen: { color: 0xf1e3c2, metalness: .04, roughness: .72 },
     };
-    const tone = palette[type] || palette.magnet;
-    const glow = ctx.createRadialGradient(64, 58, 4, 64, 64, 58);
-    glow.addColorStop(0, tone[0]);
-    glow.addColorStop(.48, tone[1]);
-    glow.addColorStop(1, 'rgba(35,42,35,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, 128, 128);
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.fillStyle = tone[2];
-    ctx.strokeStyle = tone[3];
-    ctx.lineWidth = 8;
-    if (type === 'shield') {
-      ctx.beginPath();
-      ctx.moveTo(64, 24); ctx.lineTo(96, 37); ctx.lineTo(91, 77);
-      ctx.quadraticCurveTo(83, 99, 64, 108);
-      ctx.quadraticCurveTo(45, 99, 37, 77);
-      ctx.lineTo(32, 37); ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = '#c99b37'; ctx.lineWidth = 7;
-      ctx.beginPath(); ctx.moveTo(64, 43); ctx.lineTo(64, 88); ctx.moveTo(47, 61); ctx.lineTo(81, 61); ctx.stroke();
-    } else if (type === 'rush') {
-      ctx.lineWidth = 10;
-      for (let i = 0; i < 3; i += 1) {
-        const y = 44 + i * 20;
-        ctx.beginPath();
-        ctx.moveTo(28 + i * 6, y);
-        ctx.quadraticCurveTo(64, y - 14, 100 - i * 4, y);
-        ctx.stroke();
-      }
-      ctx.fillStyle = tone[2];
-      ctx.beginPath(); ctx.moveTo(96, 30); ctx.lineTo(112, 44); ctx.lineTo(94, 52); ctx.closePath(); ctx.fill();
-    } else if (type === 'mercy') {
-      ctx.beginPath();
-      ctx.moveTo(64, 100);
-      ctx.bezierCurveTo(20, 70, 30, 34, 52, 34);
-      ctx.bezierCurveTo(62, 34, 64, 44, 64, 48);
-      ctx.bezierCurveTo(64, 44, 66, 34, 76, 34);
-      ctx.bezierCurveTo(98, 34, 108, 70, 64, 100);
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-    } else {
-      ctx.beginPath();
-      for (let i = 0; i < 16; i += 1) {
-        const radius = i % 2 ? 15 : 39;
-        const angle = -Math.PI / 2 + i * Math.PI / 8;
-        const x = 64 + Math.cos(angle) * radius;
-        const y = 64 + Math.sin(angle) * radius;
-        if (!i) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.closePath(); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#fff8d7'; ctx.beginPath(); ctx.arc(64, 64, 10, 0, Math.PI * 2); ctx.fill();
-    }
-    const texture = new THREE.CanvasTexture(canvas);
-    if ('encoding' in texture) texture.encoding = THREE.sRGBEncoding;
-    return texture;
+    shrineMaterials[kind] = new THREE.MeshStandardMaterial(presets[kind] || presets.gold);
+    return shrineMaterials[kind];
   }
 
-  const powerupTextures = {};
-  function powerupTexture(type) {
-    if (!powerupTextures[type]) powerupTextures[type] = makePowerupTexture(type);
-    return powerupTextures[type];
+  /* Щит веры — скарабей с лазуритовыми надкрыльями. */
+  function buildScarab() {
+    const group = new THREE.Group();
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(.34, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), shrineMaterial('lapis'));
+    shell.scale.set(1, .62, 1.28);
+    group.add(shell);
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(.03, .06, .84), shrineMaterial('gold'));
+    seam.position.y = .2;
+    group.add(seam);
+    const head = new THREE.Mesh(new THREE.CylinderGeometry(.2, .15, .12, 7), shrineMaterial('gold'));
+    head.position.set(0, .06, .42);
+    group.add(head);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 3; i += 1) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(.05, .04, .3), shrineMaterial('darkGold'));
+        leg.position.set(side * .34, .02, .2 - i * .28);
+        leg.rotation.y = side * (.5 - i * .3);
+        group.add(leg);
+      }
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(.34, .03, .62), shrineMaterial('turquoise'));
+      wing.position.set(side * .38, .16, -.1);
+      wing.rotation.z = side * -.42;
+      group.add(wing);
+    }
+    const sun = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 10), shrineMaterial('carnelian'));
+    sun.position.set(0, .2, .62);
+    group.add(sun);
+    group.name = 'V751ScarabToken';
+    return mergeByMaterial(group);
   }
+
+  /* Свет Мириам — систр: рамка с перекладинами и звенящими дисками. */
+  function buildSistrum() {
+    const group = new THREE.Group();
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(.055, .075, .5, 8), shrineMaterial('darkGold'));
+    handle.position.y = -.1;
+    group.add(group.children.length ? handle : handle);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(.09, .028, 6, 14), shrineMaterial('gold'));
+    collar.rotation.x = Math.PI / 2;
+    collar.position.y = .16;
+    group.add(collar);
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(.27, .038, 8, 22, Math.PI), shrineMaterial('gold'));
+    arch.position.y = .44;
+    group.add(arch);
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(.036, .036, .3, 7), shrineMaterial('gold'));
+      post.position.set(side * .27, .3, 0);
+      group.add(post);
+    }
+    for (let i = 0; i < 3; i += 1) {
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .54, 6), shrineMaterial('darkGold'));
+      bar.rotation.z = Math.PI / 2;
+      bar.position.y = .36 + i * .13;
+      group.add(bar);
+      for (const offset of [-.16, 0, .16]) {
+        const disc = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .016, 10), shrineMaterial('turquoise'));
+        disc.rotation.x = Math.PI / 2;
+        disc.rotation.z = Math.PI / 2;
+        disc.position.set(offset, .36 + i * .13, 0);
+        group.add(disc);
+      }
+    }
+    group.name = 'V751SistrumToken';
+    return mergeByMaterial(group);
+  }
+
+  /* Дыхание ветра — распахнутые крылья Исиды. */
+  function buildWings() {
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(new THREE.SphereGeometry(.14, 12, 10), shrineMaterial('carnelian'));
+    core.position.y = .3;
+    group.add(core);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.19, .035, 7, 18), shrineMaterial('gold'));
+    ring.position.y = .3;
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 5; i += 1) {
+        const t = i / 4;
+        const feather = new THREE.Mesh(new THREE.BoxGeometry(.5 - t * .14, .035, .1), i % 2 ? shrineMaterial('turquoise') : shrineMaterial('gold'));
+        feather.position.set(side * (.28 + t * .22), .3 + t * .13, -t * .05);
+        feather.rotation.z = side * (-.12 - t * .28);
+        feather.rotation.y = side * t * .2;
+        group.add(feather);
+      }
+    }
+    group.name = 'V751WingsToken';
+    return mergeByMaterial(group);
+  }
+
+  /* Милость — анкх. */
+  function buildAnkh() {
+    const group = new THREE.Group();
+    const loop = new THREE.Mesh(new THREE.TorusGeometry(.17, .05, 8, 20), shrineMaterial('gold'));
+    loop.position.y = .58;
+    group.add(loop);
+    const stem = new THREE.Mesh(new THREE.BoxGeometry(.09, .52, .07), shrineMaterial('gold'));
+    stem.position.y = .18;
+    group.add(stem);
+    const arms = new THREE.Mesh(new THREE.BoxGeometry(.52, .09, .07), shrineMaterial('gold'));
+    arms.position.y = .38;
+    group.add(arms);
+    const heart = new THREE.Mesh(new THREE.SphereGeometry(.09, 10, 8), shrineMaterial('carnelian'));
+    heart.scale.set(1, .9, .6);
+    heart.position.set(0, .38, .07);
+    group.add(heart);
+    group.name = 'V751AnkhToken';
+    return mergeByMaterial(group);
+  }
+
+  const TOKEN_BUILDERS = {
+    shield: buildScarab,
+    magnet: buildSistrum,
+    rush: buildWings,
+    mercy: buildAnkh,
+  };
 
   function createPowerup(type) {
     const group = new THREE.Group();
-    const colors = { shield: 0x7fc6bc, magnet: 0xe5be64, rush: 0x6fb2e6, mercy: 0xe58aa0 };
+    const colors = { shield: 0x7fc6bc, magnet: 0xe5be64, rush: 0x8fd3e6, mercy: 0xe58aa0 };
     const color = colors[type] || 0xe5be64;
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: powerupTexture(type), color: 0xffffff, transparent: true, depthWrite: false }));
-    sprite.scale.set(1.25, 1.25, 1.25);
-    sprite.position.y = .62;
-    group.add(sprite);
+
+    const token = (TOKEN_BUILDERS[type] || buildAnkh)();
+    token.position.y = .62;
+    token.scale.setScalar(1.75);
+    group.add(token);
+    group.userData.token = token;
+
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(.44, .045, 8, 30),
-      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: .32, roughness: .42 }),
+      new THREE.TorusGeometry(.62, .055, 8, 30),
+      new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.1, roughness: .34, metalness: .25 }),
     );
     ring.rotation.x = Math.PI / 2;
     ring.position.y = .1;
     group.add(ring);
+    group.userData.ring = ring;
+
     const haloMaterial = window.NileShaders?.createHaloMaterial?.(THREE, color);
     if (haloMaterial) {
-      haloMaterial.uniforms.uStrength.value = .5;
-      const halo = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), haloMaterial);
+      haloMaterial.uniforms.uStrength.value = .85;
+      const halo = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4), haloMaterial);
       halo.rotation.x = -Math.PI / 2;
       halo.position.y = .06;
       group.add(halo);
       group.userData.halo = haloMaterial;
     }
-    group.userData.ring = ring;
-    group.userData.assetSource = 'designed-powerup-token';
+    group.userData.assetSource = 'project-owned-egyptian-token';
     return group;
   }
 
@@ -1683,7 +1980,9 @@
       hover: 0,
       phase: hash(z, laneIndex) * Math.PI * 2,
       scored: false,
-      growled: false,
+      surface: 1,
+      bite: 0,
+      lunged: false,
       mesh: null,
     };
     if (z > MESH_RANGE) attachMesh(item);
@@ -2119,8 +2418,34 @@
       item.z += state.speed * dt;
       if (!item.mesh && item.z > MESH_RANGE) attachMesh(item);
 
-      if (state.magnet > 0 && item.type === 'lotus' && item.z > -20) {
-        item.x = damp(item.x, state.x, 5.5, dt);
+      if (item.type === 'lotus') {
+        if (state.magnet > 0 && item.z > -16) {
+          // Тянет тем сильнее, чем ближе цветок: раньше он прыгал под корзинку рывком.
+          const pull = clamp((item.z + 16) / 16, 0, 1);
+          item.x = damp(item.x, state.x, 1.2 + pull * 2.4, dt);
+          if (Math.random() < .12) fx?.mote?.(item.x, .35, item.z, [1, .88, .62], .07, .5);
+        } else if (Math.abs(item.x - LANES[item.lane]) > .01) {
+          // Магнит кончился — цветок плавно возвращается на свою дорожку.
+          item.x = damp(item.x, LANES[item.lane], 1.8, dt);
+        }
+      }
+      if (item.type === 'croc') {
+        // Всплывает по мере приближения: сначала рябь, потом спина, потом бросок.
+        const approach = clamp((item.z + 86) / 34, 0, 1);
+        item.surface = approach;
+        item.bite = clamp((item.z + 30) / 26, 0, 1) * approach;
+        if (difficulty() > .3 && item.z < -16 && item.z > -70) {
+          // Подкрадывается к дорожке игрока, но перестаёт за шестнадцать метров.
+          item.x = damp(item.x, state.x, .55 + difficulty() * .9, dt);
+        }
+        if (approach > .05 && approach < .95 && Math.random() < .05) {
+          fx?.ripple?.(item.x, .015, item.z, .5, 3.2, 1.1, .3);
+        }
+        if (!item.lunged && item.z > -13 && Math.abs(item.x - state.x) < 2.6) {
+          item.lunged = true;
+          window.gameAudio?.playGrowl?.();
+          fx?.splash?.(item.x, .06, item.z, 1.5, [.55, .62, .44]);
+        }
       }
       if (item.type === 'vortex' && Math.abs(item.z) < 9 && Math.abs(item.x - state.x) < 4.2) {
         // Водоворот тянет корзинку к своей оси.
@@ -2174,6 +2499,7 @@
    * ------------------------------------------------------------------ */
 
   const tmpColor = THREE ? new THREE.Color() : null;
+  const BLACK = THREE ? new THREE.Color(0x0b0d10) : null;
 
   function applyLook(biome, blend) {
     if (!scene) return;
@@ -2193,12 +2519,13 @@
         glitter: biome.water.glitter,
         opacity: biome.water.opacity,
       };
-      currentLook.atmosphere = {
-        top: new THREE.Color(biome.atmosphere.top),
-        bottom: new THREE.Color(biome.atmosphere.bottom),
-        sun: new THREE.Color(biome.atmosphere.sun),
-        strength: biome.atmosphere.strength,
-        stars: biome.atmosphere.stars,
+      currentLook.sky = {
+        zenith: new THREE.Color(biome.sky.zenith),
+        haze: new THREE.Color(biome.sky.haze),
+        horizon: new THREE.Color(biome.sky.horizon),
+        sun: new THREE.Color(biome.sky.sun),
+        storm: biome.sky.storm,
+        stars: biome.sky.stars,
       };
     }
     currentLook.fog.lerp(tmpColor.set(biome.fog), t);
@@ -2220,12 +2547,13 @@
     water.glitter = mix(water.glitter, biome.water.glitter, t);
     water.opacity = mix(water.opacity, biome.water.opacity, t);
 
-    const sky = currentLook.atmosphere;
-    sky.top.lerp(tmpColor.set(biome.atmosphere.top), t);
-    sky.bottom.lerp(tmpColor.set(biome.atmosphere.bottom), t);
-    sky.sun.lerp(tmpColor.set(biome.atmosphere.sun), t);
-    sky.strength = mix(sky.strength, biome.atmosphere.strength, t);
-    sky.stars = mix(sky.stars, biome.atmosphere.stars, t);
+    const air = currentLook.sky;
+    air.zenith.lerp(tmpColor.set(biome.sky.zenith), t);
+    air.haze.lerp(tmpColor.set(biome.sky.haze), t);
+    air.horizon.lerp(tmpColor.set(biome.sky.horizon), t);
+    air.sun.lerp(tmpColor.set(biome.sky.sun), t);
+    air.storm = mix(air.storm, biome.sky.storm, t);
+    air.stars = mix(air.stars, biome.sky.stars, t);
 
     if (scene.fog) {
       scene.fog.color.copy(currentLook.fog);
@@ -2246,7 +2574,7 @@
         damp(sun.position.z, biome.sunPos[2], 2, t),
       );
     }
-    if (rimLight) rimLight.intensity = mix(.16, .34, sky.stars);
+    if (rimLight) rimLight.intensity = mix(.16, .34, air.stars);
     if (waterMaterial?.uniforms) {
       const u = waterMaterial.uniforms;
       u.uDeep.value.copy(water.deep);
@@ -2259,26 +2587,42 @@
       u.uOpacity.value = water.opacity;
       if (sun) u.uSunDir.value.copy(sun.position).normalize();
     }
-    if (atmosphere?.material?.uniforms) {
-      const u = atmosphere.material.uniforms;
-      u.uTop.value.copy(sky.top);
-      u.uBottom.value.copy(sky.bottom);
-      u.uSunColor.value.copy(sky.sun);
-      u.uStrength.value = sky.strength;
-      u.uStars.value = sky.stars;
+    if (sky?.material?.uniforms) {
+      const u = sky.material.uniforms;
+      u.uZenith.value.copy(air.zenith);
+      u.uHaze.value.copy(air.haze);
+      u.uHorizon.value.copy(air.horizon);
+      u.uSunColor.value.copy(air.sun);
+      u.uStorm.value = air.storm;
+      u.uStars.value = air.stars;
+      if (sun) u.uSunDir.value.copy(sun.position).normalize();
+    }
+    for (const sheet of dustSheets) {
+      if (!sheet.material.uniforms) continue;
+      sheet.material.uniforms.uColor.value.copy(air.haze);
+    }
+    for (const entry of decor) {
+      if (entry.kind !== 'dune' && entry.kind !== 'pyramid') continue;
+      entry.material.color.copy(air.haze).lerp(BLACK, entry.shade);
     }
     if (godrays?.material?.uniforms) {
-      godrays.material.uniforms.uColor.value.copy(sky.sun);
-      godrays.material.uniforms.uStrength.value = mix(.24, .05, sky.stars);
+      godrays.material.uniforms.uColor.value.copy(air.sun);
+      godrays.material.uniforms.uStrength.value = mix(.24, .05, air.stars);
     }
     windUniform.value = mix(windUniform.value, biome.wind, t);
     applyLookCss(biome);
   }
 
   let lastCssBiome = -1;
+  const hex = (value) => `#${value.toString(16).padStart(6, '0')}`;
   function applyLookCss(biome) {
     if (lastCssBiome === biome.id) return;
     lastCssBiome = biome.id;
+    const root = dom.body.style;
+    root.setProperty('--sky-zenith', hex(biome.sky.zenith));
+    root.setProperty('--sky-haze', hex(biome.sky.haze));
+    root.setProperty('--sky-horizon', hex(biome.sky.horizon));
+    root.setProperty('--sky-sun', hex(biome.sky.sun));
     if (dom.sceneBg) dom.sceneBg.style.filter = biome.grade;
     if (dom.grade) dom.grade.style.backgroundImage = biome.overlay;
     dom.body.dataset.biome = biome.id;
@@ -2288,7 +2632,7 @@
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0xbba782, 54, 248);
     camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, .1, 420);
-    camera.position.set(0, 4.78, 9.6);
+    camera.position.set(0, 4.34, 10.4);
 
     hemi = new THREE.HemisphereLight(0xffe8bd, 0x4f4838, .86);
     scene.add(hemi);
@@ -2307,7 +2651,8 @@
     rimLight.position.set(9, 8, -15);
     scene.add(rimLight);
 
-    buildAtmosphere();
+    buildSky();
+    buildDunes();
     buildWater();
     buildBanks();
     buildBankDetail();
@@ -2340,21 +2685,38 @@
         case 'shield':
         case 'magnet':
         case 'rush':
-        case 'mercy':
-          mesh.rotation.y += dt * 1.5;
+        case 'mercy': {
           mesh.position.y = .06 + Math.sin(t * 2.6 + item.phase) * .07;
-          if (mesh.userData.ring) mesh.userData.ring.rotation.z += dt * 2.2;
+          const token = mesh.userData.token;
+          if (token) {
+            token.rotation.y += dt * 1.35;
+            token.rotation.z = Math.sin(t * 1.9 + item.phase) * .09;
+          }
+          if (mesh.userData.ring) {
+            mesh.userData.ring.rotation.z += dt * 2.2;
+            mesh.userData.ring.scale.setScalar(1 + Math.sin(t * 3.1 + item.phase) * .05);
+          }
           if (mesh.userData.halo) mesh.userData.halo.uniforms.uTime.value = t;
           break;
+        }
         case 'croc': {
-          if (!item.growled && item.z > -26) {
-            item.growled = true;
-            window.gameAudio?.playGrowl?.();
+          const surface = item.surface ?? 1;
+          const bite = item.bite ?? 0;
+          mesh.position.y = mix(-1.15, -.16, surface) + Math.sin(t * 2.6 + item.phase) * .045;
+          mesh.rotation.z = Math.sin(t * 1.7 + item.phase) * .028 + bite * .06;
+          // Доворачивается мордой к добыче, оставаясь поперёк русла.
+          mesh.rotation.y = clamp((state.x - item.x) * .05, -.26, .26) * surface;
+          if (mesh.userData.body) mesh.userData.body.rotation.z = Math.sin(t * 1.3 + item.phase) * .05;
+          if (mesh.userData.trail) mesh.userData.trail.uniforms.uTime.value = t + item.phase;
+          if (mesh.userData.eyes) mesh.userData.eyes.visible = surface > .45;
+          const swim = mesh.userData.crocUniforms;
+          if (swim) {
+            swim.time.value = t * 1.05 + item.phase;
+            swim.swim.value = swim.amplitude * (.45 + surface * .85 + bite * .5);
+            swim.bite.value = swim.biteRange * bite;
           }
-          mesh.position.y = -.16 + Math.sin(t * 2.6 + item.phase) * .045;
-          mesh.rotation.z = Math.sin(t * 1.7 + item.phase) * .022;
           const jaw = mesh.userData.jaw;
-          if (jaw) jaw.rotation.x = Math.max(0, Math.sin(t * 1.4 + item.phase)) * .32;
+          if (jaw) jaw.rotation.x = bite * .55 + Math.max(0, Math.sin(t * 1.4 + item.phase)) * .12;
           break;
         }
         case 'log':
@@ -2386,7 +2748,7 @@
   }
 
   function updateDecor(dt, t) {
-    const night = currentLook.atmosphere ? currentLook.atmosphere.stars : 0;
+    const night = currentLook.sky ? currentLook.sky.stars : 0;
     for (const entry of decor) {
       if (entry.kind === 'person') {
         const wave = Math.sin(t * 2.2 + entry.phase);
@@ -2446,6 +2808,8 @@
       player.userData.aura.material.uniforms.uTime.value = t;
     }
 
+    const speedT = clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed), 0, 1);
+
     if (wake) {
       const shaderWake = wake.userData.shaderWake;
       if (shaderWake?.material?.uniforms) {
@@ -2453,31 +2817,35 @@
         shaderWake.material.uniforms.uSpeed.value = state.speed / TUNE.baseSpeed;
         shaderWake.material.uniforms.uStrength.value = (state.playing ? .55 : .28) * clamp(1 - state.y, .25, 1);
       }
+      const bow = wake.userData.bow;
+      if (bow) {
+        bow.material.opacity = (.20 + Math.sin(t * 5.1) * .05) * (state.playing ? 1 : .45) * clamp(1 - state.y, .2, 1);
+        bow.scale.setScalar(1 + Math.sin(t * 4.3) * .06 + speedT * .18);
+      }
       for (const child of wake.children) {
-        if (child === shaderWake || !child.material?.opacity) continue;
-        child.material.opacity = (.14 + Math.sin(t * 2.3) * .03) * (state.playing ? 1 : .5);
+        if (child === shaderWake || child === bow || !child.material?.opacity) continue;
+        child.material.opacity = (.16 + Math.sin(t * 2.3) * .03) * (state.playing ? 1 : .5);
       }
     }
 
     // Камера: тянется за корзинкой, шире смотрит на скорости, дрожит от ударов.
-    const speedT = clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed), 0, 1);
     const shake = fx?.shakeOffset;
-    camera.position.x = damp(camera.position.x, state.x * .14, 4, dt) + (shake?.x || 0);
-    camera.position.y = damp(camera.position.y, 4.78 + state.y * .3 - speedT * .2, 5, dt) + (shake?.y || 0);
-    camera.position.z = damp(camera.position.z, 9.6 - speedT * .55, 5, dt) + (shake?.z || 0);
+    camera.position.x = damp(camera.position.x, state.x * .74, 6, dt) + (shake?.x || 0);
+    camera.position.y = damp(camera.position.y, 4.34 + state.y * .3 - speedT * .2, 5, dt) + (shake?.y || 0);
+    camera.position.z = damp(camera.position.z, 10.4 - speedT * .55, 5, dt) + (shake?.z || 0);
     camera.rotation.z = fx?.shakeRoll || 0;
     const targetFov = 52 + speedT * 9 + (state.rush > 0 ? 5 : 0);
     if (Math.abs(camera.fov - targetFov) > .05) {
       camera.fov = damp(camera.fov, targetFov, 3, dt);
       camera.updateProjectionMatrix();
     }
-    camera.lookAt(state.x * .18, .82 + state.y * .35, -16.5);
+    camera.lookAt(state.x * .84, .1 + state.y * .35, -16.5);
 
     if (waterMaterial?.uniforms) {
       const u = waterMaterial.uniforms;
       u.uTime.value = t;
       u.uFlow.value = .8 + speedT * .9;
-      u.uPlayer.value.set(state.x, 0, 0);
+      u.uPlayer.value.set(state.x, 0, -1.6);
       u.uWakeStrength.value = state.playing ? clamp(.55 - state.y * .4, 0, .6) : .2;
       if (waterNormal) {
         waterNormal.offset.x = (waterNormal.offset.x + dt * .0022) % 1;
@@ -2505,7 +2873,14 @@
     for (const shoreline of shorelines) {
       if (shoreline.material.uniforms) shoreline.material.uniforms.uTime.value = t;
     }
-    if (atmosphere?.material?.uniforms) atmosphere.material.uniforms.uTime.value = t;
+    if (sky) {
+      // Купол едет за камерой, поэтому горизонт не «убегает» на поворотах.
+      sky.position.copy(camera.position);
+      if (sky.material.uniforms) sky.material.uniforms.uTime.value = t;
+    }
+    for (const sheet of dustSheets) {
+      if (sheet.material.uniforms) sheet.material.uniforms.uTime.value = t;
+    }
     if (godrays?.material?.uniforms) godrays.material.uniforms.uTime.value = t;
 
     updateItems3D(dt, t);
@@ -2515,7 +2890,7 @@
     if (state.playing && !state.paused) {
       fx?.spray?.(state.x, .04, 0, .3 + speedT * .8);
       if (Math.random() < .22) {
-        const night = currentLook.atmosphere ? currentLook.atmosphere.stars : 0;
+        const night = currentLook.sky ? currentLook.sky.stars : 0;
         const color = night > .5 ? [1, .86, .45] : [1, .93, .74];
         fx?.mote?.(state.x + (Math.random() - .5) * 16, .6 + Math.random() * 3.4, -22 - Math.random() * 30, color, night > .5 ? .13 : .07, 3.2);
       }
@@ -2576,11 +2951,88 @@
     };
   }
 
+  function skyTone(key, alpha) {
+    const style = getComputedStyle(dom.body);
+    const value = style.getPropertyValue(key).trim() || '#d6b784';
+    if (alpha === undefined) return value;
+    const hexValue = value.replace('#', '');
+    const r = parseInt(hexValue.slice(0, 2), 16);
+    const g = parseInt(hexValue.slice(2, 4), 16);
+    const b = parseInt(hexValue.slice(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  /* Горизонт запасного режима: дюны, силуэты пирамид и полосы пыли. */
+  function drawFallbackSky(ctx) {
+    const w = window.innerWidth;
+    const hy = horizonY();
+    const t = state.elapsed;
+
+    const pyramids = [
+      [.28, .30, .17], [.52, .40, .23], [.71, .26, .15], [.86, .17, .10], [.12, .15, .09],
+    ];
+    ctx.save();
+    ctx.fillStyle = skyTone('--sky-haze', .55);
+    for (const [cx, width, height] of pyramids) {
+      const baseX = w * cx;
+      const halfWidth = w * width * .5;
+      const peak = hy - hy * height * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(baseX - halfWidth, hy);
+      ctx.lineTo(baseX, peak);
+      ctx.lineTo(baseX + halfWidth, hy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Освещённая грань — иначе силуэты читаются как плоские треугольники.
+    ctx.fillStyle = skyTone('--sky-sun', .16);
+    for (const [cx, width, height] of pyramids) {
+      const baseX = w * cx;
+      const halfWidth = w * width * .5;
+      const peak = hy - hy * height * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(baseX, peak);
+      ctx.lineTo(baseX + halfWidth, hy);
+      ctx.lineTo(baseX, hy);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.fillStyle = skyTone('--sky-horizon', .5);
+    ctx.beginPath();
+    ctx.moveTo(0, hy);
+    for (let i = 0; i <= 24; i += 1) {
+      const x = (i / 24) * w;
+      const crest = hy - (Math.sin(i * .9) * .5 + Math.sin(i * 2.3) * .3 + .8) * hy * .045;
+      ctx.lineTo(x, crest);
+    }
+    ctx.lineTo(w, hy);
+    ctx.closePath();
+    ctx.fill();
+
+    // Пыль: три полосы, ползущие с разной скоростью.
+    for (let layer = 0; layer < 3; layer += 1) {
+      ctx.fillStyle = skyTone('--sky-haze', .10 - layer * .022);
+      const speed = .008 + layer * .02;
+      const offset = ((t * speed) % 1) * w;
+      const bandY = hy * (.42 + layer * .17);
+      const bandH = hy * (.18 - layer * .03);
+      for (let i = -1; i < 3; i += 1) {
+        const x = i * w * .7 + offset;
+        ctx.beginPath();
+        ctx.ellipse(x, bandY, w * .42, bandH, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
   function drawFallbackWorld(ctx) {
     const w = window.innerWidth;
     const h = window.innerHeight;
     const hy = horizonY();
     const t = state.elapsed;
+    drawFallbackSky(ctx);
 
     // Река: трапеция от горизонта к нижнему краю, полупрозрачная — эталонный
     // фон под ней остаётся виден.
@@ -2597,9 +3049,9 @@
 
     const river = ctx.createLinearGradient(0, hy, 0, h);
     const night = state.biome === 3;
-    river.addColorStop(0, night ? 'rgba(28,42,62,.42)' : 'rgba(190,172,116,.30)');
-    river.addColorStop(.45, night ? 'rgba(16,26,40,.50)' : 'rgba(126,120,62,.36)');
-    river.addColorStop(1, night ? 'rgba(8,14,24,.58)' : 'rgba(74,74,36,.44)');
+    river.addColorStop(0, skyTone('--sky-horizon', .95));
+    river.addColorStop(.34, night ? 'rgba(30,48,70,.94)' : 'rgba(150,140,84,.94)');
+    river.addColorStop(1, night ? 'rgba(12,20,32,.98)' : 'rgba(78,76,40,.98)');
     ctx.fillStyle = river;
     ctx.fillRect(0, hy, w, h - hy);
 
@@ -2642,7 +3094,7 @@
       ctx.lineTo(w * .5 + side * w, h);
       ctx.lineTo(w * .5 + side * w, hy);
       ctx.closePath();
-      ctx.fillStyle = night ? 'rgba(14,20,28,.34)' : 'rgba(92,74,44,.16)';
+      ctx.fillStyle = night ? 'rgba(16,22,32,.72)' : 'rgba(150,124,80,.62)';
       ctx.fill();
       ctx.strokeStyle = night ? 'rgba(30,48,40,.5)' : 'rgba(78,86,52,.42)';
       ctx.lineWidth = 2;
@@ -2945,7 +3397,7 @@
         items: state.items.length,
         hearts: state.hearts,
         biome: BIOMES[state.biome].id,
-        cinematicBackgroundVisible: true,
+        proceduralSkyVisible: true,
         modelSources: window.__mosesV75ModelSources || {},
       };
       fallbackFrame = requestAnimationFrame(frame);
@@ -2968,7 +3420,7 @@
       quality: state.quality,
       fps: Math.round(state.fpsAverage),
       pixelRatio: renderer.getPixelRatio(),
-      cinematicBackgroundVisible: true,
+      proceduralSkyVisible: true,
       modelSources: window.__mosesV75ModelSources || {},
     };
   }

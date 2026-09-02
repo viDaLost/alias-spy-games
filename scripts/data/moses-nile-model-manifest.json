@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "delivery": "same-origin-build-extraction",
   "package": {
     "ref": "8887faf7638a4168d37583f17b1c8eec9c46dd3f",
@@ -8,9 +8,10 @@
   },
   "limits": {
     "largestAssetBytes": 3000000,
-    "totalModelBytes": 2800000,
-    "measuredTotalModelBytes": 2773395,
-    "measuredLargestAssetBytes": 2551260
+    "totalModelBytes": 3000000,
+    "measuredTotalModelBytes": 2799955,
+    "measuredLargestAssetBytes": 2551260,
+    "note": "Пределы документационные: их держит сборка превью, а не рантайм."
   },
   "models": [
     {
@@ -91,6 +92,13 @@
       "bytes": 13720,
       "license": "CC0",
       "source": "Quaternius Cute Fish Pack"
+    },
+    {
+      "key": "flowers",
+      "path": "web/games/moses-nile-v7/models/v73/Flowers.glb",
+      "bytes": 26560,
+      "license": "CC0",
+      "source": "Quaternius Nature Pack"
     }
   ],
   "usage": {
@@ -100,6 +108,7 @@
       "grass",
       "bush",
       "rock",
+      "flowers",
       "palm"
     ],
     "gameplayObstacles": [
@@ -113,6 +122,13 @@
       "vortex",
       "hippo"
     ],
-    "note": "Растительность берега раскладывается через InstancedMesh: геометрия берётся из тех же GLB, что и препятствия, поэтому новых лицензий не появляется."
+    "proceduralTokens": [
+      "scarab",
+      "sistrum",
+      "wings",
+      "ankh"
+    ],
+    "sky": "procedural-sandstorm-shader",
+    "note": "Фотографической подложки в игре больше нет: небо, дюны и пирамиды рисуются шейдером и геометрией. Растительность берега — инстансы тех же GLB, что и препятствия, новых лицензий не появляется."
   }
 }
