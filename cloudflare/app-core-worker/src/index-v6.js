@@ -146,6 +146,7 @@ export class UserStore extends V5UserStore {
         );
         this.sql.exec('DELETE FROM support_tickets WHERE user_id = ?', id);
         this.sql.exec('DELETE FROM acquisition_sources WHERE user_id = ?', id);
+        this.sql.exec('DELETE FROM feedback_notes WHERE user_id = ?', id);
         this.sql.exec('DELETE FROM android_sessions WHERE telegram_id = ?', id);
         this.sql.exec('DELETE FROM android_auth_challenges WHERE telegram_id = ?', id);
         this.sql.exec('DELETE FROM broadcast_recipients WHERE telegram_id = ?', id);

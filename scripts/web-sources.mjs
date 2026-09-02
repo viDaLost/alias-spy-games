@@ -55,6 +55,7 @@ export const scriptSources = [
   'web/js/web-session.js',
   'web/js/backend-bridge.js',
   'web/js/referral-survey.js',
+  'web/js/feedback-survey.js',
   'web/js/error-system.js',
   'web/js/startup-gamehub-loader.js',
   'web/js/startup-coordinator.js',

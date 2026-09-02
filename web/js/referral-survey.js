@@ -139,8 +139,11 @@
   }
 
   async function checkAndShow(attempt = 0) {
-    if (dismissedThisSession || !isTelegramUser()) return;
-    if (!isAppReady()) {
+    if (dismissedThisSession) return;
+    // SDK Telegram грузится с их сервера и нередко доезжает уже после страницы.
+    // Раньше проверка на первом же заходе видела пустые initData и молча
+    // сдавалась навсегда — на медленной связи вопрос не показывался вообще.
+    if (!isTelegramUser() || !isAppReady()) {
       if (attempt < 40) window.setTimeout(() => checkAndShow(attempt + 1), 250);
       return;
     }
@@ -155,7 +158,6 @@
   function start() {
     if (started) return;
     started = true;
-    if (!isTelegramUser()) return;
     window.setTimeout(() => checkAndShow(0), 350);
   }
 

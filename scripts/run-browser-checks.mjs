@@ -23,6 +23,7 @@ const CHECKS = [
   'check-more-screen.mjs',
   'check-app-shell.mjs',
   'check-menu-background.mjs',
+  'check-feedback-survey.mjs',
 ];
 
 const failed = [];
