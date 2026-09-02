@@ -76,28 +76,52 @@ jobs:
             drop_pending_updates: false,
           });
 
+          // Команды бота. /start раньше в списке не значился, хотя это первое,
+          // что человек набирает, — в меню он показывался сам по себе, и рядом
+          // с ним не было ничего.
           const publicCommands = [
+            { command: 'start', description: 'Открыть приложение' },
             { command: 'support', description: 'Написать в техподдержку' },
             { command: 'cancel', description: 'Отменить отправку обращения' },
-            { command: 'help', description: 'Помощь по командам бота' },
+            { command: 'help', description: 'Список команд' },
           ];
+          const adminCommands = [
+            ...publicCommands,
+            { command: 'write', description: 'Написать пользователю по его ID' },
+          ];
+
+          // Список ставится в две области сразу. Область по умолчанию — запас на
+          // случай клиента, который не спросил про личные чаты; all_private_chats
+          // старше её по важности и отвечает за то, что человек видит в боте.
           await telegram('setMyCommands', { commands: publicCommands });
+          await telegram('setMyCommands', { commands: publicCommands, scope: { type: 'all_private_chats' } });
 
           // /write видит только главный администратор: команда пишет человеку от
-          // имени приложения, и показывать её всем в меню бота незачем. Номер
+          // имени приложения, и показывать её всем в меню бота незачем. Область
+          // чата старше остальных, поэтому его список полностью свой. Номер
           // берётся из настроек воркера, чтобы он был записан в одном месте.
           const fs = await import('node:fs');
           const wrangler = fs.readFileSync('cloudflare/app-core-worker/wrangler.jsonc', 'utf8');
           const adminId = wrangler.match(/"ADMIN_TELEGRAM_ID":\s*"(\d{5,20})"/)?.[1] || '';
-          if (adminId) {
-            await telegram('setMyCommands', {
-              commands: [...publicCommands, { command: 'write', description: 'Написать пользователю по его ID' }],
-              scope: { type: 'chat', chat_id: Number(adminId) },
-            });
-            console.log(`Admin-only /write command registered for ${adminId}`);
-          } else {
-            throw new Error('ADMIN_TELEGRAM_ID not found in wrangler.jsonc');
+          if (!adminId) throw new Error('ADMIN_TELEGRAM_ID not found in wrangler.jsonc');
+          await telegram('setMyCommands', {
+            commands: adminCommands,
+            scope: { type: 'chat', chat_id: Number(adminId) },
+          });
+
+          // Список молча не применяется: область могла оказаться занята прежней
+          // настройкой, и тогда в меню остаётся старое. Раз проверить это можно,
+          // деплой должен падать, а не оставлять бота без команд.
+          const names = (list) => (list || []).map((item) => item.command).join(',');
+          const seenPublic = await telegram('getMyCommands', { scope: { type: 'all_private_chats' } });
+          if (names(seenPublic) !== names(publicCommands)) {
+            throw new Error(`Bot commands mismatch: expected ${names(publicCommands)}, got ${names(seenPublic) || 'empty'}`);
           }
+          const seenAdmin = await telegram('getMyCommands', { scope: { type: 'chat', chat_id: Number(adminId) } });
+          if (names(seenAdmin) !== names(adminCommands)) {
+            throw new Error(`Admin bot commands mismatch: expected ${names(adminCommands)}, got ${names(seenAdmin) || 'empty'}`);
+          }
+          console.log(`Bot commands: ${names(publicCommands)}; admin ${adminId}: ${names(adminCommands)}`);
 
           const configured = await telegram('getWebhookInfo');
           if (configured?.url !== webhookUrl) {

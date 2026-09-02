@@ -141,13 +141,16 @@ const USER_ID = '5883903220';
 // --- 1.6. сам обработчик ответа ------------------------------------------------------
 {
   const worker = fs.readFileSync(path.join(root, 'cloudflare/app-core-worker/src/index-v17.js'), 'utf8');
-  const handler = worker.slice(worker.indexOf('async function takeAdminBotAction'), worker.indexOf('async function runDirectMessage'));
+  const handler = worker.slice(worker.indexOf('async function takeBotMessage'), worker.indexOf('async function runDirectMessage'));
 
   // Подпись вебхука проверяет слой поддержки — но он ниже, и до перехваченного
   // здесь обновления уже не доберётся.
   assert.ok(/X-Telegram-Bot-Api-Secret-Token/.test(handler),
     'ответ на отзыв разбирается без проверки подписи вебхука — писать боту сможет кто угодно');
-  assert.ok(/admin-role\/check/.test(handler) && /isAdmin !== true/.test(handler),
+  assert.ok(/admin-role\/check/.test(handler), 'права администратора не проверяются вовсе');
+  assert.ok(handler.indexOf('admin-role/check') < handler.indexOf('if (!isAdmin) return false;'),
+    'проверка прав стоит после действий, которые она должна закрывать');
+  assert.ok(handler.indexOf('if (!isAdmin) return false;') < handler.indexOf('/feedback/reply'),
     'отвечать на отзыв может не только администратор');
   assert.ok(/rememberUpdate/.test(handler),
     'повторную доставку обновления Telegram отправит второй ответ');
@@ -166,7 +169,7 @@ const USER_ID = '5883903220';
   // бота и вся техподдержка.
   assert.ok(/if \(taken\) return new Response\('OK'\);/.test(worker),
     'слой отвечает на вебхук сам, даже когда это не ответ на отзыв');
-  assert.ok(/takeAdminBotAction\(request\.clone\(\)/.test(worker),
+  assert.ok(/takeBotMessage\(request\.clone\(\)/.test(worker),
     'тело вебхука читается из самого запроса — слою поддержки достанется пустое');
 
   const notify = worker.slice(worker.indexOf('async function notifyFeedbackAdmin'), worker.indexOf('async function callFeedbackStore'));
@@ -183,14 +186,50 @@ const USER_ID = '5883903220';
   assert.ok(/force_reply/.test(send), 'подсказка не просит ответить на себя — второй шаг не сработает');
 }
 
-// --- 1.7. команда видна только администратору -----------------------------------------
+// --- 1.7. команды бота: список у всех, админские — только у админа --------------------
 {
   const deploy = fs.readFileSync(path.join(root, '.github/workflows/deploy-core-cloudflare.yml'), 'utf8');
+  const publicList = deploy.slice(deploy.indexOf('const publicCommands'), deploy.indexOf('const adminCommands'));
+
+  for (const command of ['start', 'support', 'cancel', 'help']) {
+    assert.ok(new RegExp(`command: '${command}'`).test(publicList),
+      `команда /${command} не показывается людям в меню бота`);
+  }
+  assert.ok(!/write/.test(publicList), 'команда /write перечислена среди общедоступных');
+
+  // Область личных чатов старше области по умолчанию: без неё меню у людей
+  // может остаться прежним.
+  assert.ok(/scope: \{ type: 'all_private_chats' \}/.test(deploy),
+    'общий список команд ставится только в область по умолчанию');
   assert.ok(/command: 'write'/.test(deploy), 'команда /write не регистрируется в боте');
   assert.ok(/scope: \{ type: 'chat', chat_id/.test(deploy),
     'команда /write попадает в общее меню бота — её увидят все');
-  const publicList = deploy.slice(deploy.indexOf('const publicCommands'), deploy.indexOf('setMyCommands', deploy.indexOf('const publicCommands')));
-  assert.ok(!/write/.test(publicList), 'команда /write перечислена среди общедоступных');
+
+  // Область могла оказаться занята прежней настройкой, и тогда список молча не
+  // применится. Раз это можно проверить, деплой обязан падать.
+  assert.ok(/getMyCommands/.test(deploy) && /commands mismatch/i.test(deploy),
+    'деплой не проверяет, что список команд действительно применился');
+}
+
+// --- 1.8. /help перечисляет команды --------------------------------------------------
+{
+  const worker = fs.readFileSync(path.join(root, 'cloudflare/app-core-worker/src/index-v17.js'), 'utf8');
+  const helpText = worker.slice(worker.indexOf('async function sendCommandHelp'), worker.indexOf('/** Команда «написать пользователю»'));
+  for (const command of ['/start', '/support', '/cancel', '/help']) {
+    assert.ok(helpText.includes(command), `в справке нет команды ${command}`);
+  }
+  // Не «где-то ниже по тексту», а именно вне общего списка и под условием:
+  // параметр isAdmin в заголовке функции стоит выше любого /write сам по себе.
+  const commonList = helpText.slice(helpText.indexOf('const lines = ['), helpText.indexOf('];'));
+  assert.ok(!commonList.includes('/write'), 'админская команда показана в справке всем подряд');
+  assert.ok(/if \(isAdmin\)[\s\S]{0,240}\/write/.test(helpText),
+    'админская команда не дописывается администратору');
+
+  // Справка нужна каждому: если её спрятать за проверкой прав, обычный человек
+  // так и не узнает, что у бота есть команды.
+  const handler = worker.slice(worker.indexOf('async function takeBotMessage'), worker.indexOf('async function sendCommandHelp'));
+  assert.ok(handler.indexOf('sendCommandHelp') < handler.indexOf('if (!isAdmin) return false;'),
+    'справка отдаётся только администратору');
 }
 
 // --- сервер для страницы ---------------------------------------------------------
@@ -411,7 +450,8 @@ console.log('Опрос о приложении в порядке: приход�
   + 'ровно одним сообщением, второй раз не показывается, новичка не трогает, '
   + 'не наезжает на вопрос «откуда узнали», работает вне Telegram по токену сессии, '
   + 'на сам отзыв можно ответить свайпом — и ответ уходит только тому, чей это отзыв, '
-  + 'а команда /write пишет человеку по номеру, видна только администратору и не молчит об отказе доставки.');
+  + 'команда /write пишет человеку по номеру, видна только администратору и не молчит об отказе доставки, '
+  + 'а /help перечисляет команды каждому и дописывает админские только администратору.');
 
 await browser.close();
 server.close();

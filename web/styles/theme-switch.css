@@ -1,0 +1,79 @@
+/* Переключатель темы в шапке главного меню.
+   Стоит на виду, а не в настройках: о теме вспоминают, когда экран уже режет
+   глаза, и искать её в этот момент по разделам — последнее, чего хочется. */
+
+.app-header {
+  position: relative;
+}
+
+.theme-switch {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 14px 8px 11px;
+  border: 0;
+  border-radius: 999px;
+  /* Цветная, а не белая. Во-первых, её просят заметить. Во-вторых, белый текст
+     на цветном фоне тема оставляет светлым, а тёмный фон делает ещё темнее —
+     кнопка читается и в светлой, и в тёмной. Белая же в тёмной теме гасла до
+     контраста 3.5 при пороге 4.5. */
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 8px 20px rgba(48, 55, 150, 0.14);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-switch:active {
+  transform: scale(0.96);
+}
+
+.theme-switch__icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+}
+
+.theme-switch__icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* На узких экранах подпись уходит: там дорог каждый пиксель ширины, а солнце и
+   месяц понятны и без слова. */
+@media (max-width: 380px) {
+  .theme-switch {
+    gap: 0;
+    padding: 8px 10px;
+  }
+
+  .theme-switch__label {
+    display: none;
+  }
+}
+
+/* Заголовку нужно место под кнопку, иначе длинный подзаголовок заезжает под неё. */
+.app-header .app-kicker,
+.app-header h1,
+.app-header .app-subtitle {
+  padding-right: 124px;
+}
+
+@media (max-width: 380px) {
+  .app-header .app-kicker,
+  .app-header h1,
+  .app-header .app-subtitle {
+    padding-right: 56px;
+  }
+}

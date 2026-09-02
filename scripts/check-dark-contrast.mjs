@@ -47,6 +47,21 @@ const lightness = (hex) => {
   const generator = fs.readFileSync(path.join(root, 'scripts/build-dark-theme.mjs'), 'utf8');
   assert.ok(/ink && hsl\.l >/.test(generator),
     'генератор снова отражает светлоту текста — белые буквы на кнопках станут чёрными');
+
+  // Тема включается классом, а не медиазапросом: медиазапрос переключателю не
+  // подчиняется, и кнопка в приложении перестала бы работать.
+  assert.ok(/^html\.theme-dark \{ color-scheme: dark; \}$/m.test(css),
+    'тёмная тема не включается классом theme-dark');
+  assert.ok(!/prefers-color-scheme/.test(css),
+    'палитра снова заперта в медиазапросе — переключатель на неё не повлияет');
+
+  // Класс ставится до первой отрисовки, иначе тёмное приложение мелькнёт светлым.
+  const page = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const head = page.slice(0, page.indexOf('</head>'));
+  assert.ok(head.includes("classList.toggle('theme-dark'"),
+    'тема ставится не в <head> — при запуске будет вспышка светлого');
+  assert.ok(head.indexOf('theme_choice_v1') < head.indexOf('app.'),
+    'выбор темы читается позже загрузки бандла — вспышки не избежать');
 }
 
 // --- 2. у вставляемых скриптом окон есть свой тёмный вид -------------------------

@@ -121,6 +121,17 @@ function invert(color, { surface = false, ink = false } = {}) {
     : `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
+/**
+ * Селектор темы. Тема выигрывает у светлых правил специфичностью: часть игровых
+ * стилей подключается лаунчером уже после бандла, и при равном !important они
+ * побеждали бы просто порядком. Класс на html даёт и это, и переключение.
+ */
+function scoped(selector) {
+  if (/^html\b/.test(selector)) return selector.replace(/^html\b/, 'html.theme-dark');
+  if (/^:root\b/.test(selector)) return selector.replace(/^:root\b/, 'html.theme-dark');
+  return `html.theme-dark ${selector}`;
+}
+
 // --- разбор CSS ----------------------------------------------------------------
 
 const COLOR_PROPERTIES = /^(?:background|background-color|color|border|border-[a-z]+|border-[a-z]+-color|outline|outline-color|fill|stroke|caret-color|text-decoration-color|column-rule-color|accent-color|--[\w-]+)$/;
@@ -263,7 +274,7 @@ for (const source of sources) {
       .split(',')
       .map((one) => one.trim())
       .filter(Boolean)
-      .map((one) => (/^(?:html|:root)\b/.test(one) ? one : `html ${one}`))
+      .map(scoped)
       .join(',\n');
     const block = `${selector} {\n  ${declarations.join(';\n  ')};\n}`;
     parts.push(rule.at.length ? `${rule.at.join(' {\n')} {\n${block}\n${'}'.repeat(rule.at.length)}` : block);
@@ -274,37 +285,33 @@ for (const source of sources) {
 // «html body», а не «body»: typography.css красит текст именно так, и простой
 // селектор ему проигрывает по специфичности. Заголовки карточек своего цвета не
 // имеют и наследуют его отсюда.
-const tail = `
-/* Подложка и наследуемый цвет текста. */
-html, html body {
-  background: #12151c !important;
-  color: #d6dae3 !important;
-}
-
-/* Иконки и картинки нарисованы для светлого фона: на тёмном они выжигают экран. */
-img, video, .game-card__img, .home-continue__icon img {
-  filter: brightness(.88) contrast(1.02) !important;
-}
-/* Фон главного меню — светлая иллюстрация во весь экран, и прямо по ней идут
-   подписи секций. Без затемнения они тонут в её подсветке. */
-.home-gamehub-parallax__scene,
-.home-gamehub-parallax__layer,
-.gamehub-boot__scene,
-.gamehub-boot__layer {
-  filter: brightness(.4) saturate(.88) !important;
-}
-`;
+const tail = [
+  ['html, html body', `background: #12151c !important;
+  color: #d6dae3 !important;`,
+  'Подложка и наследуемый цвет текста.'],
+  ['img, video, .game-card__img, .home-continue__icon img',
+    'filter: brightness(.88) contrast(1.02) !important;',
+    'Иконки и картинки нарисованы для светлого фона: на тёмном они выжигают экран.'],
+  ['.home-gamehub-parallax__scene, .home-gamehub-parallax__layer, .gamehub-boot__scene, .gamehub-boot__layer',
+    'filter: brightness(.4) saturate(.88) !important;',
+    `Фон главного меню — светлая иллюстрация во весь экран, и прямо по ней идут
+   подписи секций. Без затемнения они тонут в её подсветке.`],
+].map(([selector, body, note]) => `/* ${note} */\n${selector.split(',').map((one) => scoped(one.trim())).join(',\n')} {\n  ${body}\n}`)
+  .join('\n\n');
 
 const content = `/* Собрано scripts/build-dark-theme.mjs — не редактируйте вручную.
    Светлота каждого цвета отражена, тон и насыщенность сохранены. */
 
-:root[data-theme="dark"] { color-scheme: dark; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { color-scheme: dark; }
+/* Тема включается классом на html, а не медиазапросом. Медиазапрос отражает
+   настройку телефона и переключателю в приложении не подчиняется: палитру
+   пришлось бы держать вторым экземпляром — плюс 160 КБ к бандлу. Класс ставит
+   короткий скрипт в <head>: по выбору человека, а если выбора не было — по
+   настройке системы, как и раньше. */
+html.theme-dark { color-scheme: dark; }
 
 ${chunks.join('\n\n')}
+
 ${tail}
-}
 `;
 
 const target = path.join(root, output);

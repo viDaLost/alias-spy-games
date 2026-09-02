@@ -2,6 +2,21 @@
 <html lang="ru" class="app-booting">
 <head>
   <meta charset="UTF-8" />
+  <!-- Тема ставится до первой отрисовки и до загрузки стилей: иначе тёмное
+       приложение на мгновение мелькнёт светлым. Поэтому здесь, а не в бандле,
+       который грузится в конце страницы. Выбор человека главнее настройки
+       системы; пока выбора нет — идём за системой, как было всегда. -->
+  <script>
+    (() => {
+      try {
+        var choice = localStorage.getItem('theme_choice_v1');
+        var dark = choice === 'dark'
+          || (choice !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('theme-dark', dark);
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      } catch (error) { /* приватный режим: остаёмся на светлой */ }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Библейские игры</title>
   <meta name="theme-color" content="#eaf3ff" />
@@ -97,7 +112,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.7385d4f6fb.css" />
+  <link rel="stylesheet" href="web/dist/app.2dd0a0ebdd.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -174,7 +189,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script src="web/dist/app.e03e50d115.js" defer></script>
+  <script src="web/dist/app.9f3ba01d48.js" defer></script>
   <!-- /build:js -->
 </body>
 </html>

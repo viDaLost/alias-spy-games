@@ -142,7 +142,7 @@ export default {
     // отзывах не знает, поэтому свои ответы этот слой забирает первым, а всё
     // остальное отдаёт дальше нетронутым.
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
-      const taken = await takeAdminBotAction(request.clone(), env).catch(async (error) => {
+      const taken = await takeBotMessage(request.clone(), env).catch(async (error) => {
         const adminId = String(env.ADMIN_TELEGRAM_ID || '');
         if (adminId && env.TELEGRAM_BOT_TOKEN) {
           await feedbackSendMessage(env, adminId,
@@ -172,15 +172,15 @@ export default {
 };
 
 /**
- * Два действия администратора в самом боте: ответ свайпом на отзыв и команда
- * «написать пользователю по его номеру». Оба пишут человеку от имени
- * приложения, поэтому и живут рядом, за одной проверкой прав.
+ * Сообщения бота, которые разбирает этот слой: справка по командам — для всех,
+ * ответ свайпом на отзыв и команда «написать пользователю» — для администратора.
+ * Права проверяются один раз, до любого действия.
  *
- * Возвращает true, только если сообщение действительно одно из этих двух. Всё
- * прочее — команды бота, обращения в поддержку, любые другие сообщения —
- * уходит дальше нетронутым.
+ * Возвращает true, только если сообщение действительно одно из этих. Всё прочее —
+ * приветствие, обращения в поддержку, любые другие сообщения — уходит дальше
+ * нетронутым.
  */
-async function takeAdminBotAction(request, env) {
+async function takeBotMessage(request, env) {
   if (!env.TELEGRAM_BOT_TOKEN) return false;
 
   // Подпись вебхука проверяется здесь же: слой поддержки, который делает это
@@ -201,21 +201,31 @@ async function takeAdminBotAction(request, env) {
   const text = String(message.text || message.caption || '').trim();
   if (!text) return false;
 
-  const targetId = feedbackReplyTarget(message.reply_to_message);
-  const direct = targetId ? null : directMessageRequest(text, message.reply_to_message);
-  if (!targetId && !direct) return false;
+  const help = /^\/help(?:@[A-Za-z0-9_]+)?$/i.test(text);
+  const targetId = help ? '' : feedbackReplyTarget(message.reply_to_message);
+  const direct = help || targetId ? null : directMessageRequest(text, message.reply_to_message);
+  if (!help && !targetId && !direct) return false;
 
   const updateId = Number(update.update_id || 0);
   if (updateId && rememberUpdate(updateId)) return true;
 
   const store = env.USERS.get(env.USERS.idFromName('global'));
   const role = await callFeedbackStore(store, '/admin-role/check', { userId: senderId }).catch(() => ({}));
+  const isAdmin = role?.isAdmin === true && (role?.isBanned !== true || role?.isRoot === true);
+
+  // Справка нужна всем — с ней человек и узнаёт, что у бота есть команды.
+  // Администратору в ней дописаны его собственные.
+  if (help) {
+    await sendCommandHelp(env, chatId, isAdmin, message.message_id);
+    return true;
+  }
+
   // Писать от имени приложения может только администратор. Сообщение бота можно
   // переслать кому угодно, а команду набрать может любой — без этой проверки
   // писать чужим людям от имени приложения смог бы кто угодно.
   //
   // Отказ молчаливый: рассказывать постороннему, что такая команда есть, незачем.
-  if (role?.isAdmin !== true || (role?.isBanned === true && role?.isRoot !== true)) return false;
+  if (!isAdmin) return false;
 
   if (direct) {
     await runDirectMessage(env, chatId, message.message_id, direct);
@@ -239,6 +249,25 @@ async function takeAdminBotAction(request, env) {
     : `✅ Ответ сохранён, но Telegram не доставил его: ${sent.reason}`,
   message.message_id);
   return true;
+}
+
+/**
+ * Справка по командам. Раньше /help показывал ту же карточку приветствия, что и
+ * /start, и узнать из бота, что у него вообще есть команды, было неоткуда.
+ */
+async function sendCommandHelp(env, chatId, isAdmin, replyToMessageId) {
+  const lines = [
+    '📖 Команды бота «Библейские игры»',
+    '',
+    '/start — открыть приложение',
+    '/support — написать в техподдержку',
+    '/cancel — отменить начатое обращение',
+    '/help — этот список',
+  ];
+  if (isAdmin) {
+    lines.push('', 'Для администратора:', '/write <ID> — написать человеку по его Telegram ID');
+  }
+  await feedbackSendMessage(env, chatId, lines.join('\n'), replyToMessageId);
 }
 
 /** Команда «написать пользователю»: подсказка, отправка и внятный отказ. */

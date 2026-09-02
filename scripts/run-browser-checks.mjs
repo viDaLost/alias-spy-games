@@ -25,6 +25,7 @@ const CHECKS = [
   'check-menu-background.mjs',
   'check-feedback-survey.mjs',
   'check-dark-contrast.mjs',
+  'check-theme-switch.mjs',
 ];
 
 const failed = [];
