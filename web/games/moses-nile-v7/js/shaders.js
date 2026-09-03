@@ -142,7 +142,14 @@
       float channel = smoothstep(0.62, 0.0, vShore);
       vec3 base = mix(uDeep, uShallow, depthMix * 0.62 + vCrest * 0.10);
       base = mix(base, uDeep * 0.72, channel * 0.34);
-      base = mix(base, uSky, fresnel * 0.34 + horizon * 0.52);
+
+      // Отражение неба по отражённому лучу, а не единым цветом: у горизонта
+      // вода уходит в небо, вблизи остаётся мутно-зелёной. Без этого
+      // поверхность читалась как ровная зелёная заливка.
+      vec3 reflected = reflect(-viewDir, normal);
+      float skyward = clamp(reflected.y, 0.0, 1.0);
+      vec3 skyGradient = mix(uSky, uSky * 0.66 + uSunColor * 0.26, pow(skyward, 0.7));
+      base = mix(base, skyGradient, clamp(fresnel * 0.62 + horizon * 0.5, 0.0, 0.92));
 
       // Солнечный блик: узкий Блинн-Фонг плюс мерцающая крошка.
       vec3 halfDir = normalize(uSunDir + viewDir);
@@ -155,7 +162,9 @@
 
       // Крупные пятна ила и отмелей: без них река — одна ровная заливка.
       float silt = fbm(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
-      color = mix(color, color * (0.78 + silt * 0.5), 0.55);
+      float siltFine = fbm(vUv * vec2(7.5, 34.0) + vec2(uTime * 0.02, uTime * -0.12));
+      color = mix(color, color * (0.70 + silt * 0.66), 0.62);
+      color *= 0.93 + siltFine * 0.16;
       // Солнечная дорожка вдоль русла.
       float sunLane = exp(-pow((vUv.x - 0.5) * 5.2, 2.0));
       color += uSunColor * sunLane * horizon * 0.22 * uGlitter;

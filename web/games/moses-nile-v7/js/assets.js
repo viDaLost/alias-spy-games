@@ -242,7 +242,14 @@ class AssetManager {
     });
   }
 
+  /*
+    Модели Quaternius приходят без UV-развёртки и с плоской заливкой — из-за
+    этого они читались как пластмасса. Здесь каждой геометрии считается
+    проекционная развёртка, а материалу выдаются процедурные карты цвета,
+    нормалей и шероховатости из NileMaterials.
+  */
   _prepareEnvironment(root,minRoughness=.55){
+    const pbr=window.NileMaterials;
     root.traverse(child=>{
       if(child.isMesh){
         child.castShadow=true;
@@ -253,6 +260,12 @@ class AssetManager {
             if('roughness' in next)next.roughness=Math.max(minRoughness,next.roughness??.8);
             if('metalness' in next)next.metalness=Math.min(.12,next.metalness??0);
             next.side=THREE.DoubleSide;
+            pbr?.dress?.(next,child.geometry,{
+              name:material.name||child.name,
+              uvScale:.85,
+              normalScale:.9,
+              bleach:.42
+            });
             return next;
           });
           child.material=Array.isArray(child.material)?materials:materials[0];

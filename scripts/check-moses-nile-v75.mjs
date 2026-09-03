@@ -10,6 +10,8 @@ const game = fs.readFileSync(path.join(gameRoot, 'js/game-v75.js'), 'utf8');
 const assets = fs.readFileSync(path.join(gameRoot, 'js/assets.js'), 'utf8');
 const shaders = fs.readFileSync(path.join(gameRoot, 'js/shaders.js'), 'utf8');
 const effects = fs.readFileSync(path.join(gameRoot, 'js/fx.js'), 'utf8');
+const materials = fs.readFileSync(path.join(gameRoot, 'js/materials.js'), 'utf8');
+const runtimeFiles = fs.readdirSync(path.join(gameRoot, 'js')).filter((name) => name.endsWith('.js')).sort();
 const deployWorkflow = fs.readFileSync(path.join(root, '.github/workflows/deploy-moses-nile-v740-preview.yml'), 'utf8');
 const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
@@ -20,6 +22,7 @@ for (const token of [
   'aria-label="Двигаться влево"',
   'js/shaders.js',
   'js/fx.js',
+  'js/materials.js',
   'SkeletonUtils-r128.js',
   'id="btn-jump"',
   'id="btn-dive"',
@@ -74,6 +77,34 @@ for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'model
 }
 for (const token of ['createRiverMaterial', 'createSkyMaterial', 'createDustSheetMaterial', 'applyCrocodileSwim', 'createShieldMaterial', 'createParticleMaterial', 'applyWind', 'window.NileShaders']) {
   if (!shaders.includes(token)) throw new Error(`The Nile shader library is missing ${token}`);
+}
+
+// Процедурный PBR и освещение небом: без них модели без UV-развёртки
+// оставались плоской заливкой, из-за которой сцена выглядела пластмассовой.
+for (const token of [
+  'window.NileMaterials',
+  'buildLightProbe',
+  'SphericalHarmonics3',
+  'addSkyReflection',
+  'applyBoxUV',
+  'roughnessMap',
+  'normalMap',
+]) {
+  if (!materials.includes(token)) throw new Error(`The Nile material library is missing ${token}`);
+}
+// Библиотеки — без собственного кадрового цикла: слои V7.3.x однажды уже
+// подрались за один экран, и возвращать многослойность нельзя.
+for (const [name, source] of [['materials.js', materials], ['shaders.js', shaders], ['fx.js', effects]]) {
+  if (/setAnimationLoop/.test(source)) throw new Error(`${name} must stay a library without its own render loop`);
+}
+const expectedRuntime = ['assets.js', 'fx.js', 'game-v75.js', 'materials.js', 'shaders.js', 'sound.js'];
+if (runtimeFiles.join(',') !== expectedRuntime.join(',')) {
+  throw new Error(`Unexpected runtime files: ${runtimeFiles.join(', ')}`);
+}
+// Пирамиды: ступенчатая кладка и известняковая облицовка вместо плоских
+// самосветящихся конусов, которые читались как бумажные треугольники.
+for (const token of ['stepPyramidGeometry', 'V75DistantPyramid', 'V751NileHippo', "pbr?.('sandstone'"]) {
+  if (!game.includes(token)) throw new Error(`The Nile scene is missing ${token}`);
 }
 for (const token of ['window.NileFX', 'splash(', 'ripple(', 'shake(']) {
   if (!effects.includes(token)) throw new Error(`The Nile effects system is missing ${token}`);

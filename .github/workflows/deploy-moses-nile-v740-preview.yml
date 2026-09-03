@@ -92,8 +92,16 @@ jobs:
           grep -q 'createRiverMaterial' .preview-v7/js/shaders.js
           grep -q 'applyWind' .preview-v7/js/shaders.js
           grep -q 'window.NileFX' .preview-v7/js/fx.js
+          grep -q 'window.NileMaterials' .preview-v7/js/materials.js
+          grep -q 'buildLightProbe' .preview-v7/js/materials.js
+          grep -q 'applyBoxUV' .preview-v7/js/materials.js
+          grep -q 'stepPyramidGeometry' .preview-v7/js/game-v75.js
           grep -q 'js/shaders.js' .preview-v7/index.html
           grep -q 'js/fx.js' .preview-v7/index.html
+          grep -q 'js/materials.js' .preview-v7/index.html
+          # Библиотека материалов не заводит свою петлю рендера: кадр
+          # запускает только game-v75.js.
+          ! grep -q 'setAnimationLoop\|requestAnimationFrame' .preview-v7/js/materials.js
           grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
           grep -q 'V751RiverFolk' .preview-v7/js/game-v75.js
           grep -q 'btn-jump' .preview-v7/index.html
@@ -107,7 +115,7 @@ jobs:
           grep -q 'fallback-mode' .preview-v7/index.html
           ! grep -q 'type="module"' .preview-v7/index.html
           ! grep -q 'v740-visual-overhaul.js' .preview-v7/index.html
-          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 5
+          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 6
           for asset in \
             models/environment/nature_pack/Rock_1.glb \
             models/environment/survival_pack/WoodLog.glb \
@@ -162,6 +170,7 @@ jobs:
             q="?v751=${GITHUB_SHA}-${i}"
             if curl -fsSL --max-time 20 "${P}${q}" -o /tmp/i && grep -q 'V7.5.1 · LOADING' /tmp/i \
               && curl -fsSL --max-time 20 "${P}js/game-v75.js${q}" -o /tmp/v && grep -q '__mosesV75ReferenceRebuild' /tmp/v \
+              && curl -fsSL --max-time 20 "${P}js/materials.js${q}" -o /tmp/m && grep -q 'window.NileMaterials' /tmp/m \
               && curl -fsSL --max-time 20 "${P}models/v73/crocodile.glb${q}" -o /tmp/croc && test "$(stat -c %s /tmp/croc)" -gt 2000000 \
               && curl -fsSL --max-time 20 "${P}textures/terrain/sand-normal.jpg${q}" -o /tmp/normal && test -s /tmp/normal \
               && curl -fsSL --max-time 20 "${P}build.json${q}" | grep -q "$GITHUB_SHA"; then exit 0; fi

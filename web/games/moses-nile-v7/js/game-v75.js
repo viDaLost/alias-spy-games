@@ -72,7 +72,7 @@
       fog: 0xe7cf9d, fogNear: 62, fogFar: 240,
       hemiSky: 0xf3dcae, hemiGround: 0x3d3526, hemiPower: .58,
       sunColor: 0xffd08e, sunPower: 1.5, sunPos: [-22, 35, 18],
-      water: { deep: 0x3f4a20, shallow: 0x84803e, sky: 0xd9c391, sun: 0xffe3ae, foam: 0xf3ecd7, chop: .85, glitter: .9, opacity: .93 },
+      water: { deep: 0x35401f, shallow: 0x7a7442, sky: 0xd9c391, sun: 0xffe3ae, foam: 0xf3ecd7, chop: .85, glitter: 1.05, opacity: .88 },
       sky: { zenith: 0x7d6440, haze: 0xc9a874, horizon: 0xe6c894, sun: 0xffe6ae, storm: .5, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
@@ -86,7 +86,7 @@
       fog: 0xf0dcae, fogNear: 70, fogFar: 262,
       hemiSky: 0xf7ead0, hemiGround: 0x494330, hemiPower: .66,
       sunColor: 0xfff0c8, sunPower: 1.62, sunPos: [-16, 42, 14],
-      water: { deep: 0x3a5124, shallow: 0x8b8748, sky: 0xe4d3a4, sun: 0xfff2cf, foam: 0xfbf5e4, chop: 1, glitter: 1.25, opacity: .93 },
+      water: { deep: 0x33481f, shallow: 0x827c48, sky: 0xe4d3a4, sun: 0xfff2cf, foam: 0xfbf5e4, chop: 1, glitter: 1.4, opacity: .88 },
       sky: { zenith: 0x8b7c50, haze: 0xd3bd88, horizon: 0xefd9a6, sun: 0xfff2cf, storm: .38, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
@@ -398,9 +398,11 @@
       next.toneMapping = THREE.ACESFilmicToneMapping;
       next.toneMappingExposure = .96;
       if ('outputEncoding' in next) next.outputEncoding = THREE.sRGBEncoding;
-      shadowsOn = detectTier() >= 1;
-      next.shadowMap.enabled = shadowsOn;
-      next.shadowMap.type = THREE.PCFSoftShadowMap;
+      // Тени теперь есть на всех уровнях: слабым устройствам достаётся
+      // меньшая карта и более дешёвая фильтрация, но объекты перестают висеть.
+      shadowsOn = true;
+      next.shadowMap.enabled = true;
+      next.shadowMap.type = detectTier() >= 1 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
       dom.canvas.addEventListener('webglcontextlost', (event) => {
         event.preventDefault();
         activateFallback('LITE READY');
@@ -665,6 +667,18 @@
     InstancedMesh — один вызов отрисовки на материал вместо сотен объектов.
     Без пакета работают процедурные заглушки той же формы.
   */
+  /*
+    Палитра берега: стебли и листва по видам растений. Без неё тростник
+    приезжал коричневым «деревом» из исходного набора моделей.
+  */
+  const BANK_TONES = {
+    reeds: { stem: 0x7c8a46, leaf: 0x93a355 },
+    bankPlant: { stem: 0x6f7a41, leaf: 0x86924c },
+    grass: { stem: 0x8a8f56, leaf: 0x9aa05f },
+    bush: { stem: 0x5e6a3a, leaf: 0x6e7b41 },
+    palm: { stem: 0x7a5c36, leaf: 0x5f7a3c },
+  };
+
   function extractInstanceParts(key, targetSize) {
     const source = window.assetManager?.models?.[key];
     if (!source) return null;
@@ -684,10 +698,23 @@
       geometry.applyMatrix4(matrix);
       geometry.translate(-center.x * norm, -box.min.y * norm, -center.z * norm);
       geometry.computeBoundingSphere();
-      const material = (Array.isArray(child.material) ? child.material[0] : child.material).clone();
+      const source = Array.isArray(child.material) ? child.material[0] : child.material;
+      const material = source.clone();
       material.side = THREE.DoubleSide;
-      if (material.color) material.color.offsetHSL(.012, -.24, -.01);
+      // У Quaternius стебли покрашены в «дерево», и заросли папируса читались
+      // как поле сухих прутьев. Тростнику и траве задаётся своя палитра.
+      const tone = BANK_TONES[key]?.[/wood|trunk|bark/i.test(source.name || '') ? 'stem' : 'leaf'];
+      if (tone) material.color = new THREE.Color(tone);
+      else if (material.color) material.color.offsetHSL(.012, -.16, .02);
       if ('roughness' in material) material.roughness = Math.max(.85, material.roughness ?? .9);
+      // Развёртка и процедурные карты: без них листва и камни остаются
+      // плоской заливкой, из-за которой берег выглядел пластмассовым.
+      window.NileMaterials?.dress?.(material, geometry, {
+        name: (Array.isArray(child.material) ? child.material[0] : child.material)?.name || child.name,
+        uvScale: key === 'palm' ? .5 : .9,
+        normalScale: .95,
+        bleach: .4,
+      });
       parts.push({ geometry, material });
     });
     return parts.length ? parts : null;
@@ -837,57 +864,172 @@
     самосветящийся материал без тумана: цвет берётся от дымки и затемняется.
     Через туман они бы просто слились с небом.
   */
+  /**
+   * Оболочка вращения по набору сечений: сечение задаётся суперэллипсом,
+   * поэтому одной функцией получаются и ступенчатая пирамида (степень 1 и
+   * четыре сегмента дают квадрат), и округлая туша бегемота.
+   */
+  function loft(sections, radialSegments = 20, { capFront = true, capBack = true } = {}) {
+    const positions = [];
+    const uvs = [];
+    const indices = [];
+    const rings = sections.length;
+    for (let s = 0; s < rings; s += 1) {
+      const section = sections[s];
+      const power = section.power ?? .78;
+      const belly = section.belly ?? 1;
+      for (let i = 0; i <= radialSegments; i += 1) {
+        const angle = (i / radialSegments) * Math.PI * 2;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const x = section.rx * Math.sign(cos) * Math.pow(Math.abs(cos), power);
+        let y = section.ry * Math.sign(sin) * Math.pow(Math.abs(sin), power);
+        if (y < 0) y *= belly;
+        positions.push(x, section.y + y, section.z);
+        uvs.push(i / radialSegments, s / Math.max(1, rings - 1));
+      }
+    }
+    const row = radialSegments + 1;
+    for (let s = 0; s < rings - 1; s += 1) {
+      for (let i = 0; i < radialSegments; i += 1) {
+        const a = s * row + i;
+        // Обход против часовой стрелки: иначе нормали смотрят внутрь.
+        indices.push(a, a + 1, a + row, a + 1, a + row + 1, a + row);
+      }
+    }
+    const addCap = (ringIndex, forward) => {
+      const section = sections[ringIndex];
+      const center = positions.length / 3;
+      positions.push(0, section.y, section.z);
+      uvs.push(.5, ringIndex / Math.max(1, rings - 1));
+      const base = ringIndex * row;
+      for (let i = 0; i < radialSegments; i += 1) {
+        if (forward) indices.push(center, base + i, base + i + 1);
+        else indices.push(center, base + i + 1, base + i);
+      }
+    };
+    if (capBack) addCap(0, false);
+    if (capFront) addCap(rings - 1, true);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
+  /**
+   * Ступенчатая кладка: каждый ряд даёт вертикальную стену и горизонтальную
+   * приступку. Ряды намеренно мелкие — вблизи видна кладка, издали силуэт
+   * остаётся гладким и не превращается в «ёлку», как было у четырёх ярусов.
+   */
+  function stepPyramidGeometry(baseHalf, height, courses) {
+    const sections = [];
+    const courseHeight = height / courses;
+    for (let i = 0; i < courses; i += 1) {
+      const radius = baseHalf * (1 - i / courses);
+      const nextRadius = baseHalf * (1 - (i + 1) / courses);
+      const bottom = i * courseHeight;
+      const top = bottom + courseHeight * .94;
+      sections.push({ z: bottom, y: 0, rx: radius, ry: radius, power: 1 });
+      sections.push({ z: top, y: 0, rx: radius * .997, ry: radius * .997, power: 1 });
+      sections.push({ z: top, y: 0, rx: nextRadius, ry: nextRadius, power: 1 });
+    }
+    sections.push({ z: height, y: 0, rx: baseHalf * .01, ry: baseHalf * .01, power: 1 });
+    const geometry = loft(sections, 4, { capFront: true, capBack: true });
+    geometry.rotateX(-Math.PI / 2);
+    geometry.rotateY(Math.PI / 4);
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
   function buildPyramids() {
     /*
-      Пирамиды вынесены на передний план и раскрашены закатом: грань к солнцу
-      тёплая, противоположная уходит в холодную тень. Свет считается один раз
-      в вершинные цвета — материал остаётся самосветящимся, без тумана, иначе
-      силуэт слился бы с дымкой.
+      Раньше это были плоские самосветящиеся конусы с раскраской по вершинам —
+      издали они читались как бумажные треугольники. Теперь у пирамид
+      настоящая ступенчатая кладка, песчаниковые PBR-карты и остатки
+      полированной облицовки на вершине, как у пирамиды Хафра. Закатная
+      раскраска сохранена в вершинных цветах и домножается на текстуру.
     */
     // Центр кадра оставлен руслу: пирамиды стоят по сторонам от него.
     const specs = [
-      [-23, -124, 24, 40],
-      [25, -146, 20, 33],
-      [-13, -178, 16, 26],
-      [34, -196, 14, 21],
-      [-40, -212, 12, 18],
+      [-23, -124, 24, 40, 30, .26],
+      [25, -146, 20, 33, 26, .22],
+      [-13, -178, 16, 26, 22, .18],
+      [34, -196, 14, 21, 18, 0],
+      [-40, -212, 12, 18, 16, 0],
     ];
     const sunDir = new THREE.Vector3(-.62, .34, .71).normalize();
-    const shadowTint = new THREE.Vector3(.38, .42, .56);
-    const sunTint = new THREE.Vector3(1.9, 1.45, .92);
-    for (const [x, z, radius, height] of specs) {
+    const shadowTint = new THREE.Vector3(.46, .49, .60);
+    const sunTint = new THREE.Vector3(1.42, 1.20, .92);
+    const normal = new THREE.Vector3();
+    const shadeGeometry = (geometry, height) => {
+      const position = geometry.attributes.position;
+      const normals = geometry.attributes.normal;
+      const colors = new Float32Array(position.count * 3);
+      for (let i = 0; i < position.count; i += 1) {
+        const fade = mix(.78, 1.06, clamp(position.getY(i) / height, 0, 1) ** 2);
+        normal.set(normals.getX(i), normals.getY(i), normals.getZ(i));
+        const lambert = clamp(normal.dot(sunDir) * .5 + .5, 0, 1) ** 2.2;
+        colors[i * 3] = mix(shadowTint.x, sunTint.x, lambert) * fade;
+        colors[i * 3 + 1] = mix(shadowTint.y, sunTint.y, lambert) * fade;
+        colors[i * 3 + 2] = mix(shadowTint.z, sunTint.z, lambert) * fade;
+      }
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    };
+
+    for (const [x, z, radius, height, courses, casing] of specs) {
       const group = new THREE.Group();
       group.name = 'V75DistantPyramid';
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x8a7250,
-        transparent: true,
-        opacity: .9,
-        depthWrite: false,
-        fog: false,
-      });
-      // Одно тело вместо четырёх ярусов: ступени читались как ёлка.
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 4), material);
-      cone.position.y = height * .5;
-      cone.rotation.y = Math.PI / 4;
-      group.add(cone);
-      const normal = new THREE.Vector3();
-      for (const child of group.children) {
-        if (!child.isMesh) continue;
-        const position = child.geometry.attributes.position;
-        const normals = child.geometry.attributes.normal;
-        const colors = new Float32Array(position.count * 3);
-        for (let i = 0; i < position.count; i += 1) {
-          const fade = mix(.72, 1.06, clamp(position.getY(i) / height, 0, 1) ** 2);
-          normal.set(normals.getX(i), normals.getY(i), normals.getZ(i));
-          const lambert = clamp(normal.dot(sunDir) * .5 + .5, 0, 1) ** 2.2;
-          colors[i * 3] = mix(shadowTint.x, sunTint.x, lambert) * fade;
-          colors[i * 3 + 1] = mix(shadowTint.y, sunTint.y, lambert) * fade;
-          colors[i * 3 + 2] = mix(shadowTint.z, sunTint.z, lambert) * fade;
-        }
-        child.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-        child.material.vertexColors = true;
-        child.material.needsUpdate = true;
+
+      const material = window.NileMaterials?.pbr?.('sandstone', {
+        color: 0xbda37a,
+        roughness: .97,
+        repeat: Math.max(3, Math.round(radius / 4)),
+        normalScale: 1.15,
+        envMapIntensity: .5,
+        skyReflection: .45,
+      }) || new THREE.MeshStandardMaterial({ color: 0xbda37a, roughness: .97 });
+      material.vertexColors = true;
+      material.fog = true;
+      material.needsUpdate = true;
+
+      const core = new THREE.Mesh(stepPyramidGeometry(radius, height, courses), material);
+      shadeGeometry(core.geometry, height);
+      core.receiveShadow = true;
+      group.add(core);
+
+      // Остатки известняковой облицовки у вершины.
+      if (casing > 0) {
+        const casingHeight = height * casing;
+        const casingMaterial = window.NileMaterials?.pbr?.('limestone', {
+          color: 0xe0d2b0,
+          roughness: .68,
+          repeat: 3,
+          envMapIntensity: .7,
+          skyReflection: .7,
+        }) || new THREE.MeshStandardMaterial({ color: 0xe0d2b0, roughness: .68 });
+        casingMaterial.vertexColors = true;
+        casingMaterial.needsUpdate = true;
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.04, casingHeight, 4), casingMaterial);
+        cap.geometry.rotateY(Math.PI / 4);
+        window.NileMaterials?.applyBoxUV?.(cap.geometry, .12);
+        shadeGeometry(cap.geometry, height);
+        cap.position.y = height - casingHeight * .5;
+        group.add(cap);
       }
+
+      // Осыпь у подножия: без неё пирамида стоит на плоскости как вырезанная.
+      const rubble = new THREE.Mesh(
+        new THREE.ConeGeometry(radius * 1.2, height * .09, 4),
+        material,
+      );
+      rubble.geometry.rotateY(Math.PI / 4);
+      window.NileMaterials?.applyBoxUV?.(rubble.geometry, .1);
+      shadeGeometry(rubble.geometry, height);
+      rubble.position.y = height * .045;
+      group.add(rubble);
+
       group.position.set(x, .15, z);
       group.renderOrder = -6;
       scene.add(group);
@@ -895,11 +1037,6 @@
     }
   }
 
-  /*
-    Небо песчаной бури. Купол едет вместе с камерой, поэтому кадр всегда
-    закрыт целиком — фотографическая подложка больше не нужна. Поверх идут
-    полотнища пыли на разной глубине: они дают параллакс хамсина.
-  */
   function buildSky() {
     const material = window.NileShaders?.createSkyMaterial?.(THREE);
     if (material) {
@@ -1040,7 +1177,11 @@
   }
 
   function buildBankPeople() {
-    for (let i = 0; i < 6; i += 1) {
+    // Берег стал заметно живее, поэтому людей больше — но на слабых
+    // устройствах их число режется вместе с остальной массовкой.
+    const tier = detectTier();
+    const count = tier >= 2 ? 11 : tier >= 1 ? 9 : 6;
+    for (let i = 0; i < count; i += 1) {
       const side = i % 2 ? -1 : 1;
       const z = -hash(i, 41) * SCROLL_TILE;
       const offset = 1.9 + hash(i, 42) * 5.2;
@@ -1105,6 +1246,8 @@
         phase: hash(i, 44) * 8,
         side,
         baseZ: z,
+        // Базовая высота нужна слою дыхания: иначе фигура уползает вниз.
+        baseY: group.position.y,
         walk: role === 'carrier' ? (hash(i, 46) > .5 ? 1 : -1) : 0,
         scroll: true,
       });
@@ -1815,78 +1958,139 @@
     Нижняя челюсть вынесена отдельно — он разевает пасть при приближении.
   */
   function createHippo() {
+    /*
+      Раньше бегемот был склеен из шаров и цилиндра: силуэт разваливался на
+      части, а морда читалась как труба. Теперь туша и череп вылеплены одной
+      непрерывной оболочкой (loft по хребту), нижняя челюсть сидит на своём
+      шарнире, а шкура мокрая — тёмная, с низкой шероховатостью во впадинах.
+      Морда смотрит в +Z, как и у прежней модели, поэтому анимация пасти в
+      updateItems3D продолжает работать без правок.
+    */
     const group = new THREE.Group();
-    const hide = new THREE.MeshStandardMaterial({ color: 0x33272e, roughness: .5, metalness: .08 });
-    const inner = new THREE.MeshStandardMaterial({ color: 0x8f5964, roughness: .74 });
-    const tooth = new THREE.MeshStandardMaterial({ color: 0xf2ead6, roughness: .55 });
+    const hide = window.NileMaterials?.pbr?.('hide', {
+      color: 0x6d5a58,
+      roughness: .52,
+      metalness: .03,
+      repeat: 2,
+      normalScale: .8,
+      envMapIntensity: .9,
+      skyReflection: 1.1,
+    }) || new THREE.MeshStandardMaterial({ color: 0x4a3a3c, roughness: .5, metalness: .06 });
+    const inner = new THREE.MeshStandardMaterial({ color: 0x8f4a52, roughness: .34, metalness: 0, side: THREE.DoubleSide });
+    const tooth = new THREE.MeshStandardMaterial({ color: 0xf2ead6, roughness: .32, metalness: .02 });
 
-    const back = new THREE.Mesh(new THREE.SphereGeometry(1.08, 18, 14, 0, Math.PI * 2, 0, Math.PI / 2), hide);
-    back.scale.set(1, .62, 1.55);
-    group.add(back);
-    const rump = new THREE.Mesh(new THREE.SphereGeometry(.72, 14, 10), hide);
-    rump.scale.set(1, .7, 1);
-    rump.position.set(0, .12, -1.35);
-    group.add(rump);
+    // Туша от хвоста до затылка: шеи у бегемота почти нет, сечения к голове
+    // сужаются едва заметно — иначе силуэт читается как свиной.
+    const body = new THREE.Mesh(loft([
+      { z: -2.10, y: .40, rx: .20, ry: .19, power: .92, belly: 1 },
+      { z: -1.80, y: .33, rx: .50, ry: .44, power: .86, belly: .95 },
+      { z: -1.30, y: .26, rx: .82, ry: .68, power: .80, belly: .86 },
+      { z: -0.70, y: .20, rx: .99, ry: .80, power: .76, belly: .80 },
+      { z: -0.10, y: .18, rx: 1.04, ry: .85, power: .74, belly: .78 },
+      { z: 0.40, y: .20, rx: 1.01, ry: .82, power: .74, belly: .80 },
+      { z: 0.76, y: .24, rx: .94, ry: .75, power: .78, belly: .84 },
+    ], 22, { capFront: false }), hide);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    group.add(body);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.66, 16, 12), hide);
-    head.scale.set(1.05, .78, 1.1);
-    head.position.set(0, .16, 1.45);
-    group.add(head);
+    // Череп и морда: широкие скулы и тупой обрубленный нос.
+    const muzzle = new THREE.Mesh(loft([
+      { z: 0.68, y: .25, rx: .92, ry: .71, power: .80, belly: .86 },
+      { z: 1.02, y: .26, rx: .99, ry: .64, power: .72, belly: .70 },
+      { z: 1.38, y: .26, rx: 1.01, ry: .55, power: .66, belly: .58 },
+      { z: 1.74, y: .26, rx: .97, ry: .47, power: .64, belly: .54 },
+      { z: 2.01, y: .26, rx: .80, ry: .40, power: .68, belly: .56 },
+      { z: 2.16, y: .26, rx: .50, ry: .27, power: .78, belly: .64 },
+    ], 22, { capBack: false }), hide);
+    muzzle.castShadow = true;
+    muzzle.receiveShadow = true;
+    group.add(muzzle);
 
-    // Морда бегемота — почти прямоугольная, это её главный признак.
-    const snout = new THREE.Mesh(new THREE.CylinderGeometry(.46, .52, .62, 12), hide);
-    snout.rotation.x = Math.PI / 2;
-    snout.scale.set(1.15, 1, .78);
-    snout.position.set(0, .08, 2.05);
-    group.add(snout);
-    const lip = new THREE.Mesh(new THREE.SphereGeometry(.5, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), hide);
-    lip.scale.set(1.15, .5, .8);
-    lip.position.set(0, .1, 2.28);
-    group.add(lip);
-
+    // Нижняя челюсть на шарнире у скулы: положительный поворот по X опускает
+    // её вниз — ровно то, что ждёт анимация в updateItems3D.
     const jaw = new THREE.Group();
-    const jawBody = new THREE.Mesh(new THREE.SphereGeometry(.46, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), inner);
-    jawBody.scale.set(1.1, .42, .78);
-    jawBody.rotation.x = Math.PI;
-    jawBody.position.set(0, -.02, .1);
-    jaw.add(jawBody);
+    jaw.position.set(0, .07, .74);
+    const jawMesh = new THREE.Mesh(loft([
+      { z: 0.00, y: 0, rx: .73, ry: .20, power: .76, belly: .9 },
+      { z: 0.42, y: 0, rx: .87, ry: .21, power: .66, belly: .95 },
+      { z: 0.86, y: 0, rx: .92, ry: .20, power: .62, belly: .95 },
+      { z: 1.22, y: 0, rx: .83, ry: .18, power: .64, belly: .92 },
+      { z: 1.41, y: 0, rx: .48, ry: .13, power: .78, belly: .9 },
+    ], 20), hide);
+    jawMesh.castShadow = true;
+    jaw.add(jawMesh);
+    const tongue = new THREE.Mesh(new THREE.SphereGeometry(.38, 14, 9), inner);
+    tongue.scale.set(1.1, .22, 1.9);
+    tongue.position.set(0, .07, .62);
+    jaw.add(tongue);
     for (const side of [-1, 1]) {
-      const tusk = new THREE.Mesh(new THREE.ConeGeometry(.07, .26, 6), tooth);
-      tusk.position.set(side * .3, .1, .3);
-      jaw.add(tusk);
+      const canine = new THREE.Mesh(new THREE.ConeGeometry(.13, .58, 9), tooth);
+      canine.position.set(side * .58, .30, .22);
+      canine.rotation.z = side * -.13;
+      jaw.add(canine);
+      const incisor = new THREE.Mesh(new THREE.ConeGeometry(.07, .3, 7), tooth);
+      incisor.position.set(side * .19, .2, 1.14);
+      incisor.rotation.x = -.2;
+      jaw.add(incisor);
     }
-    jaw.position.set(0, .02, 2.05);
     jaw.userData.noMerge = true;
     group.add(jaw);
     group.userData.jaw = jaw;
 
+    // Нёбо: без него в раскрытой пасти видно небо насквозь.
+    const palate = new THREE.Mesh(new THREE.SphereGeometry(.72, 16, 9, 0, Math.PI * 2, 0, Math.PI * .5), inner);
+    palate.scale.set(1.14, .32, 1.55);
+    palate.position.set(0, .2, 1.24);
+    palate.rotation.x = Math.PI;
+    group.add(palate);
+
+    // Глаза-перископы и ноздри на макушке: бегемот смотрит и дышит,
+    // не поднимаясь из воды, — этот силуэт и делает его узнаваемым.
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xf0e2b4, emissive: 0x6b5a20, emissiveIntensity: .4, roughness: .26 });
+    const pupil = new THREE.MeshStandardMaterial({ color: 0x150f0c, roughness: .1, metalness: .1 });
     for (const side of [-1, 1]) {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(.15, 8, 6), hide);
-      ear.scale.set(1, 1.15, .7);
-      ear.position.set(side * .42, .52, 1.1);
-      group.add(ear);
-      const earInner = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), inner);
-      earInner.position.set(side * .44, .54, 1.16);
-      group.add(earInner);
-      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.13, 8, 6), inner);
-      nostril.scale.set(1, .7, 1);
-      nostril.position.set(side * .21, .32, 2.3);
-      group.add(nostril);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), new THREE.MeshStandardMaterial({ color: 0xf0e2b4, emissive: 0x6b5a20, emissiveIntensity: .5, roughness: .3 }));
-      eye.position.set(side * .4, .46, 1.72);
+      const socket = new THREE.Mesh(new THREE.SphereGeometry(.25, 14, 10), hide);
+      socket.position.set(side * .55, .82, .96);
+      socket.scale.set(1, .9, 1.05);
+      socket.castShadow = true;
+      group.add(socket);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 9), eyeMaterial);
+      eye.position.set(side * .56, .94, 1.06);
       group.add(eye);
-      const brow = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), hide);
-      brow.scale.set(1, .6, 1);
-      brow.position.set(side * .38, .38, 1.68);
-      group.add(brow);
+      const iris = new THREE.Mesh(new THREE.SphereGeometry(.072, 10, 8), pupil);
+      iris.position.set(side * .57, .95, 1.14);
+      group.add(iris);
+
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(.19, 12, 9, 0, Math.PI * 2, 0, Math.PI * .6), hide);
+      ear.scale.set(.8, 1.2, .5);
+      ear.rotation.set(-.35, 0, side * .35);
+      ear.position.set(side * .64, .82, .38);
+      group.add(ear);
+
+      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 9), hide);
+      nostril.position.set(side * .27, .58, 1.92);
+      nostril.scale.set(1, .74, .95);
+      group.add(nostril);
+      const hole = new THREE.Mesh(new THREE.SphereGeometry(.08, 10, 8), new THREE.MeshStandardMaterial({ color: 0x241a18, roughness: .45 }));
+      hole.position.set(side * .27, .70, 1.95);
+      hole.scale.set(1, .5, .8);
+      group.add(hole);
+    }
+
+    // Складки на загривке — мелочь, по которой силуэт читается вблизи.
+    for (let i = 0; i < 3; i += 1) {
+      const fold = new THREE.Mesh(new THREE.TorusGeometry(.78 - i * .06, .055, 8, 20, Math.PI), hide);
+      fold.rotation.set(Math.PI / 2, 0, 0);
+      fold.position.set(0, .36, .24 - i * .28);
+      group.add(fold);
     }
 
     group.name = 'V751NileHippo';
-    group.userData.assetSource = 'project-procedural';
+    group.userData.assetSource = 'project-procedural-loft';
     return mergeByMaterial(group);
   }
 
-  /* Рыбацкая лодка: модель Quaternius, а без пакета — свой корпус. */
   function createBoat() {
     const model = window.assetManager?.cloneModel?.('boat', OBSTACLES.boat.size);
     if (model) {
@@ -3034,19 +3238,29 @@
     camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, .1, 420);
     camera.position.set(0, 4.34, 10.4);
 
-    hemi = new THREE.HemisphereLight(0xffe8bd, 0x4f4838, .86);
+    // Небо задаёт рассеянный свет сферическими гармониками: без него
+    // MeshStandardMaterial отражает пустоту и всё выглядит пластмассовым.
+    window.NileMaterials?.init?.(renderer, scene);
+
+    hemi = new THREE.HemisphereLight(0xffe8bd, 0x4f4838, .42);
     scene.add(hemi);
     sun = new THREE.DirectionalLight(0xffd39b, .92);
     sun.position.set(-22, 35, 18);
     sun.castShadow = renderer.shadowMap.enabled;
-    sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.left = -16;
-    sun.shadow.camera.right = 16;
-    sun.shadow.camera.top = 20;
-    sun.shadow.camera.bottom = -10;
-    sun.shadow.camera.far = 80;
-    sun.shadow.bias = -.0008;
+    sun.shadow.mapSize.set(shadowsOn && detectTier() >= 1 ? 2048 : 1024, shadowsOn && detectTier() >= 1 ? 2048 : 1024);
+    // Рамка тени держится вокруг корзинки: чем она плотнее, тем чётче край.
+    sun.shadow.camera.left = -14;
+    sun.shadow.camera.right = 14;
+    sun.shadow.camera.top = 18;
+    sun.shadow.camera.bottom = -12;
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 88;
+    sun.shadow.bias = -.0006;
+    sun.shadow.normalBias = .022;
+    sun.shadow.radius = 2.2;
+    sun.target.position.set(0, 0, -12);
     scene.add(sun);
+    scene.add(sun.target);
     rimLight = new THREE.DirectionalLight(0x93afa0, .2);
     rimLight.position.set(9, 8, -15);
     scene.add(rimLight);
@@ -3160,7 +3374,9 @@
         case 'hippo': {
           const rise = clamp((item.z + 52) / 30, 0, 1);
           mesh.position.y = mix(-1.3, .06, rise) + Math.abs(Math.sin(t * .8 + item.phase)) * .16;
-          mesh.rotation.y = Math.PI + Math.sin(t * .5 + item.phase) * .1 + clamp((state.x - item.x) * .05, -.3, .3) * rise;
+          // Модель смотрит в +Z, поэтому разворот на 180° убран: бегемот
+          // встречает корзинку мордой и раскрытой пастью, а не кормой.
+          mesh.rotation.y = Math.sin(t * .5 + item.phase) * .1 + clamp((state.x - item.x) * .05, -.3, .3) * rise;
           const gape = rise * Math.max(0, Math.sin(t * 1.6 + item.phase));
           if (mesh.userData.jaw) mesh.userData.jaw.rotation.x = gape * .85;
           if (rise > .2 && rise < .9 && Math.random() < .04) {
@@ -3195,6 +3411,21 @@
     }
     if (!bones?.armR) return;
 
+    // Общий слой живости поверх ролевой позы: дыхание, перенос веса и
+    // медленный поворот головы. Без него фигуры замирали в одной позе и
+    // читались как манекены на берегу.
+    const breath = Math.sin(phase * 1.5) * .05;
+    if (bones.chest) {
+      bones.chest.rotation.x = breath;
+      bones.chest.rotation.z = Math.sin(phase * .7) * .03;
+    }
+    if (bones.head) {
+      bones.head.rotation.y = Math.sin(phase * .58) * .22;
+      bones.head.rotation.z = Math.sin(phase * .41) * .06;
+    }
+    if (bones.torso) bones.torso.rotation.z = Math.sin(phase * .9) * .04;
+    entry.object.position.y = (entry.baseY ?? entry.object.position.y) + Math.sin(phase * 1.5) * .012;
+
     switch (entry.role) {
       case 'waver': {
         // Машет поднятой рукой, вторая опущена, корпус слегка качается.
@@ -3226,7 +3457,8 @@
         if (bones.foreR) bones.foreR.rotation.x = -1.1;
         if (bones.armL) bones.armL.rotation.set(-step * .32, 0, 1.28);
         if (bones.torso) bones.torso.rotation.z = step * .05;
-        entry.object.position.y = .04 + Math.abs(step) * .035;
+        // Шаг считается от высоты своего места на берегу, а не от нуля.
+        entry.object.position.y = (entry.baseY ?? .04) + Math.abs(step) * .035;
         break;
       }
       default: {
@@ -3381,6 +3613,13 @@
       camera.updateProjectionMatrix();
     }
     camera.lookAt(state.x * .84, .1 + state.y * .35, -16.5);
+
+    // Источник тени едет за корзинкой: карта тени тратится на то, что в кадре.
+    if (sun) {
+      sun.position.set(state.x - 22, 35, 6);
+      sun.target.position.set(state.x, 0, -14);
+      sun.target.updateMatrixWorld();
+    }
 
     if (waterMaterial?.uniforms) {
       const u = waterMaterial.uniforms;
