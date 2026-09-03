@@ -114,8 +114,22 @@ for (const token of [
   // папирус вместо широколистного Plant_2 у самой воды.
   'V751NileBed', 'papyrusClumpParts', 'V751BankBroadleaf',
   'textures/terrain/pebbles-color.jpg',
+  // Рельеф песка едет вместе с растительностью, иначе деревья идут сквозь
+  // барханы; камень русла — на настоящей фотограмметрии.
+  'applyDuneRelief', 'uDuneScroll', 'riverStoneMaterial', 'textures/terrain/rock-color.jpg',
 ]) {
   if (!game.includes(token)) throw new Error(`The Nile scene is missing ${token}`);
+}
+/*
+  Фаза течения копится, а не считается как время × скорость: множитель
+  сдвигал всю картину воды при каждом изменении скорости, и на сбросе
+  ускорения пена прыгала назад. Проверка держит это состояние.
+*/
+if (!shaders.includes('float t = uPhase;') || shaders.includes('float t = uTime * uFlow;')) {
+  throw new Error('The river shader must read an accumulated flow phase, not uTime * uFlow');
+}
+if (!game.includes('state.flowPhase += state.flowRate * dt')) {
+  throw new Error('The engine must accumulate the river flow phase on the CPU');
 }
 for (const token of ['window.NileFX', 'splash(', 'ripple(', 'shake(']) {
   if (!effects.includes(token)) throw new Error(`The Nile effects system is missing ${token}`);

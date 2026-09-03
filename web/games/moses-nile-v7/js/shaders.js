@@ -59,7 +59,7 @@
   const RIVER_VERT = `
     uniform float uTime;
     uniform float uChop;
-    uniform float uFlow;
+    uniform float uPhase;
     varying vec2 vUv;
     varying vec3 vWorld;
     varying vec3 vWaveNormal;
@@ -72,7 +72,11 @@
       vShore = abs(uv.x - 0.5) * 2.0;
       vec3 transformed = position;
       vec4 worldBase = modelMatrix * vec4(transformed, 1.0);
-      float t = uTime * uFlow;
+      // Фаза течения приходит уже накопленной. Раньше здесь стояло
+      // uTime * uFlow, и при сбросе ускорения uFlow падал — а вместе с ним
+      // и вся фаза, на uTime * dFlow секунд назад. На минуте заплыва это
+      // швыряло пену на десяток секунд против течения.
+      float t = uPhase;
       vec3 w = nileWave(worldBase.xz, t, uChop);
       transformed.y += w.x;
       vCrest = clamp(w.x / max(0.0001, 0.14 * uChop) * 0.5 + 0.5, 0.0, 1.0);
@@ -215,6 +219,7 @@
       const uniforms = Object.assign(fogUniforms(THREE), {
         uTime: { value: 0 },
         uFlow: { value: 1 },
+        uPhase: { value: 0 },
         uChop: { value: 1 },
         uOpacity: { value: options.opacity ?? .30 },
         uGlitter: { value: options.glitter ?? 1 },

@@ -38,6 +38,9 @@ const workDir = path.resolve(flag('--work', path.join(os.tmpdir(), 'moses-nile-p
 const ASSET_PACKAGE_REV = '8887faf7638a4168d37583f17b1c8eec9c46dd3f';
 const ASSET_PACKAGE_URL = `https://raw.githubusercontent.com/viDaLost/alias-spy-games/${ASSET_PACKAGE_REV}/downloads/moses-nile-v737-full.zip`;
 const THREE_RAW = 'https://raw.githubusercontent.com/mrdoob/three.js/r128';
+// Настоящий камень русла — та же закреплённая ревизия, что и в воркфлоу.
+const BJS_REV = '8be9384c7f8728cb45d27975ac92a412f97a98dd';
+const BJS_RAW = `https://raw.githubusercontent.com/BabylonJS/Assets/${BJS_REV}/textures`;
 
 const game = path.join(repo, 'web/games/moses-nile-v7');
 const site = path.join(workDir, 'site');
@@ -104,6 +107,18 @@ function build() {
     ['ganges-pebbles-normal-gl-1k.jpg', 'terrain/pebbles-normal.jpg'],
   ];
   for (const [from, to] of textures) copy(path.join(pkg, 'textures', from), path.join(site, 'textures', to));
+
+  const stone = [
+    ['rockyGround_basecolor.png', 'rock-color.jpg'],
+    ['rockyGround_normal.png', 'rock-normal.jpg'],
+    ['rockyGround_metalRough.png', 'rock-orm.jpg'],
+  ];
+  fs.mkdirSync(path.join(workDir, 'stone'), { recursive: true });
+  for (const [remote, local] of stone) {
+    const cached = path.join(workDir, 'stone', local);
+    if (!fs.existsSync(cached)) sh('curl', ['-fsSL', '--retry', '3', `${BJS_RAW}/${remote}`, '-o', cached]);
+    copy(cached, path.join(site, 'textures/terrain', local));
+  }
   console.log(`Собрано: ${site}`);
 }
 

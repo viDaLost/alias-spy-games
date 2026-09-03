@@ -562,7 +562,7 @@
     }
     const norm = (4 * Math.PI) / samples;
     for (const vector of coefficients) vector.multiplyScalar(norm);
-    probe.intensity = .62;
+    probe.intensity = .74;
     probe.name = 'V76NileSkyProbe';
     return probe;
   }

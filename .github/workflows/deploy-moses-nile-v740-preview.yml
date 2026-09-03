@@ -80,6 +80,23 @@ jobs:
           optimize_texture "$ASSET_DIR/textures/ganges-pebbles-diffuse-1k.jpg" .preview-v7/textures/terrain/pebbles-color.jpg 76
           optimize_texture "$ASSET_DIR/textures/ganges-pebbles-normal-gl-1k.jpg" .preview-v7/textures/terrain/pebbles-normal.jpg 82
 
+          # Настоящий камень русла: фотограмметрическая съёмка из BabylonJS/Assets
+          # (CC BY 4.0), закреплена по коммиту и хешу как и основной архив.
+          # Процедурный гранит читался крашеным пенопластом: у него нет ни
+          # зерна породы, ни сколов.
+          BJS_REV=8be9384c7f8728cb45d27975ac92a412f97a98dd
+          BJS_RAW="https://raw.githubusercontent.com/BabylonJS/Assets/${BJS_REV}/textures"
+          BJS_DIR=$(mktemp -d /tmp/moses-nile-stone.XXXXXX)
+          curl -fsSL --retry 3 "$BJS_RAW/rockyGround_basecolor.png" -o "$BJS_DIR/rock-color.png"
+          curl -fsSL --retry 3 "$BJS_RAW/rockyGround_normal.png" -o "$BJS_DIR/rock-normal.png"
+          curl -fsSL --retry 3 "$BJS_RAW/rockyGround_metalRough.png" -o "$BJS_DIR/rock-orm.png"
+          printf '%s  %s\n' e0f9375b366c3bd3375581a329af36fe70ded07ffee8e1156aa6a210c16f486b "$BJS_DIR/rock-color.png" | sha256sum -c -
+          printf '%s  %s\n' 66fccd4db45e00fcc713907208b42aa9b64f4f26db35e9b5251b36756558b7a1 "$BJS_DIR/rock-normal.png" | sha256sum -c -
+          printf '%s  %s\n' 9c92d4710faa18a7e0f547ba0ac7a312732087656b079d9548062f1df09674e8 "$BJS_DIR/rock-orm.png" | sha256sum -c -
+          optimize_texture "$BJS_DIR/rock-color.png" .preview-v7/textures/terrain/rock-color.jpg 78
+          optimize_texture "$BJS_DIR/rock-normal.png" .preview-v7/textures/terrain/rock-normal.jpg 82
+          optimize_texture "$BJS_DIR/rock-orm.png" .preview-v7/textures/terrain/rock-orm.jpg 80
+
           for file in .preview-v7/js/*.js; do node --check "$file"; done
           grep -q 'V7.5.1 · LOADING' .preview-v7/index.html
           grep -q 'game-v75.js?v=752' .preview-v7/index.html
@@ -123,7 +140,10 @@ jobs:
             textures/water/water-normal-detail.jpg \
             textures/terrain/damp-sand-normal.jpg \
             textures/terrain/sand-normal.jpg \
-            textures/terrain/pebbles-normal.jpg; do
+            textures/terrain/pebbles-normal.jpg \
+            textures/terrain/rock-color.jpg \
+            textures/terrain/rock-normal.jpg \
+            textures/terrain/rock-orm.jpg; do
             test -s ".preview-v7/$asset"
           done
           node - <<'NODE'
