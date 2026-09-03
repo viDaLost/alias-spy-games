@@ -480,8 +480,8 @@
       }
       material.normalScale = new THREE.Vector2(options.normalScale ?? 1, options.normalScale ?? 1);
     }
-    material.envMapIntensity = options.envMapIntensity ?? 1;
-    if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? 1 });
+    material.envMapIntensity = options.envMapIntensity ?? .6;
+    if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? .34 });
     if (options.emissive !== undefined) {
       material.emissive = new THREE.Color(options.emissive);
       material.emissiveIntensity = options.emissiveIntensity ?? .3;
@@ -562,7 +562,7 @@
     }
     const norm = (4 * Math.PI) / samples;
     for (const vector of coefficients) vector.multiplyScalar(norm);
-    probe.intensity = 1;
+    probe.intensity = .62;
     probe.name = 'V76NileSkyProbe';
     return probe;
   }
@@ -610,7 +610,7 @@
           vec3 mosesSky = mix(mosesSkyRadiance(mosesReflect), mosesSkyRadiance(mosesUp), roughnessFactor * 0.85);
           float mosesFresnel = pow(1.0 - clamp(dot(mosesNormal, mosesView), 0.0, 1.0), 4.0);
           float mosesGloss = 1.0 - roughnessFactor * 0.82;
-          gl_FragColor.rgb += mosesSky * mosesGloss * (0.06 + 0.55 * mosesFresnel) * ${strength.toFixed(3)};
+          gl_FragColor.rgb += mosesSky * mosesGloss * (0.03 + 0.34 * mosesFresnel) * ${strength.toFixed(3)};
         }
         #include <dithering_fragment>`,
       );
@@ -649,13 +649,13 @@
           material.roughness = clamp01(lerp(material.roughness ?? .8, options.roughness ?? .72, options.roughnessMix ?? .65));
         }
         if ('metalness' in material) material.metalness = options.metalness ?? .05;
-        if ('envMapIntensity' in material) material.envMapIntensity = options.envMapIntensity ?? .45;
+        if ('envMapIntensity' in material) material.envMapIntensity = options.envMapIntensity ?? .38;
         if (detail && !material.normalMap && child.geometry?.attributes?.uv) {
           material.normalMap = detail.normalMap;
           material.normalScale = new THREE.Vector2(options.normalScale ?? .55, options.normalScale ?? .55);
           if (!material.roughnessMap) material.roughnessMap = detail.roughnessMap;
         }
-        if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? 1 });
+        if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? .3 });
         if (options.color !== undefined && material.color) material.color = new THREE.Color(options.color);
         if (options.tint !== undefined && material.color) material.color.lerp(new THREE.Color(options.tint), options.tintAmount ?? .3);
         material.side = options.side ?? THREE.FrontSide;
@@ -752,7 +752,10 @@
     const id = String(name || '').toLowerCase();
     if (id.includes('rock') || id.includes('stone')) return 'granite';
     if (id.includes('wood') || id.includes('trunk') || id.includes('bark') || id.includes('log')) return 'bark';
-    if (id.includes('green') || id.includes('leaf') || id.includes('leaves') || id.includes('coconut') || id.includes('plant')) return 'foliage';
+    // Названия из наборов моделей и собственные ярлыки берега: без папируса,
+    // тростника и травы в этом списке зелень получала песчаниковую карту и
+    // выцветала в солому.
+    if (/green|leaf|leaves|coconut|plant|foliage|papyrus|reed|grass|frond|palm|bush|moss|flower/.test(id)) return 'foliage';
     if (id.includes('skin') || id.includes('hide')) return 'hide';
     if (id.includes('cloth') || id.includes('linen') || id.includes('beige')) return 'linen';
     return 'sandstone';
@@ -792,12 +795,14 @@
     // тон модели осветляется — иначе после умножения всё уходит в черноту.
     // Модели со своей текстурой цвет не меняют.
     if (material.color && !hasOwnMap && options.keepColor !== true) {
-      material.color.lerp(new THREE.Color(0xffffff), options.bleach ?? .45);
+      material.color.lerp(new THREE.Color(0xffffff), options.bleach ?? .2);
     }
     if ('roughness' in material && !hasOwnMap) material.roughness = options.roughness ?? material.roughness ?? .9;
     if ('metalness' in material) material.metalness = options.metalness ?? .03;
-    if ('envMapIntensity' in material) material.envMapIntensity = options.envMapIntensity ?? 1;
-    if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? .8 });
+    if ('envMapIntensity' in material) material.envMapIntensity = options.envMapIntensity ?? .7;
+    // Отражение неба даёт кромку блеска. На матовых поверхностях его нужно
+    // совсем немного: при 0.8 растительность и камни выглядели покрытыми лаком.
+    if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? .28 });
     material.needsUpdate = true;
     return material;
   }

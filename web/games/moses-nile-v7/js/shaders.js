@@ -362,7 +362,7 @@
       const uniforms = {
         uTime: { value: 0 },
         uColor: { value: new THREE.Color(color) },
-        uStrength: { value: .22 },
+        uStrength: { value: .10 },
       };
       const material = new THREE.ShaderMaterial({
         uniforms,
@@ -514,7 +514,10 @@
           void main(){
             float along = vUv.y;
             float across = abs(vUv.x - 0.5) * 2.0;
-            float bubbles = fbm(vec2(vUv.x * 8.0, vUv.y * 26.0 - uTime * uSpeed * 3.2));
+            // Плоскость следа развёрнута так, что vUv.y растёт вперёд по
+            // курсу. Пена должна отставать от корзинки, поэтому координата
+            // сдвигается в плюс: иначе след уезжает против течения.
+            float bubbles = fbm(vec2(vUv.x * 8.0, vUv.y * 26.0 + uTime * uSpeed * 3.2));
             float edge = smoothstep(1.0, 0.35, across);
             float tail = smoothstep(0.0, 0.28, along) * smoothstep(1.0, 0.32, along);
             float alpha = bubbles * edge * tail * uStrength;
@@ -688,26 +691,31 @@
             vec3 dir = normalize(vDir);
             float height = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
 
-            // Три пояса: зенит, дымка, мутный горизонт.
-            vec3 sky = mix(uHorizon, uHaze, smoothstep(0.48, 0.62, height));
-            sky = mix(sky, uZenith, smoothstep(0.60, 0.92, height));
+            // Три пояса: зенит, дымка, мутный горизонт. Синева начинается
+            // ниже и набирается быстрее: раньше зенит поднимался так высоко,
+            // что в кадр попадала только песочная дымка и небо выглядело
+            // пересвеченной заливкой без глубины.
+            vec3 sky = mix(uHorizon, uHaze, smoothstep(0.47, 0.57, height));
+            sky = mix(sky, uZenith, smoothstep(0.48, 0.68, height));
 
-            // Солнце едва пробивается сквозь взвесь.
+            // Солнце едва пробивается сквозь взвесь. Ореол убавлен: широкое
+            // гало засвечивало верх кадра целиком.
             float sun = max(dot(dir, normalize(uSunDir)), 0.0);
-            sky += uSunColor * pow(sun, 220.0) * 0.55;
-            sky += uSunColor * pow(sun, 6.0) * 0.30;
-            sky += uSunColor * pow(sun, 1.6) * 0.10 * uStorm;
+            sky += uSunColor * pow(sun, 220.0) * 0.42;
+            sky += uSunColor * pow(sun, 10.0) * 0.16;
+            sky += uSunColor * pow(sun, 2.4) * 0.06 * uStorm;
 
             // Пыль: два слоя шума, ползущие поперёк с разной скоростью.
             vec2 flow = vec2(atan(dir.z, dir.x) * 1.6, height * 3.4);
             float dustA = fbm(flow * vec2(1.0, 2.2) + vec2(uTime * 0.030, uTime * -0.010));
             float dustB = fbm(flow * vec2(2.6, 4.1) + vec2(uTime * -0.055, uTime * 0.014));
             float dust = clamp(dustA * 0.62 + dustB * 0.38, 0.0, 1.0);
-            float lowBand = smoothstep(0.80, 0.44, height);
-            sky = mix(sky, uHorizon * 1.06, dust * lowBand * uStorm * 0.80);
+            float lowBand = smoothstep(0.72, 0.44, height);
+            sky = mix(sky, uHorizon * 1.02, dust * lowBand * uStorm * 0.72);
 
-            // Плотная взвесь у самой земли, куда уходит вся геометрия.
-            sky = mix(sky, uHorizon, smoothstep(0.52, 0.40, height));
+            // Плотная взвесь у самой земли, куда уходит вся геометрия. Мешаем
+            // не до конца, иначе нижняя треть неба становится ровной плитой.
+            sky = mix(sky, uHorizon, smoothstep(0.50, 0.41, height) * 0.86);
 
             if (uStars > 0.01) {
               vec2 grid = floor(vec2(atan(dir.z, dir.x) * 34.0, height * 150.0));

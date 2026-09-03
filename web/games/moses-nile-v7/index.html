@@ -76,11 +76,12 @@
     @keyframes buffPulse { 0%, 100% { box-shadow: 0 5px 18px rgba(0,0,0,.24); } 50% { box-shadow: 0 5px 22px rgba(255, 220, 150, .35); } }
 
     /* ---- всплывающие сообщения ---- */
-    #toast-layer { position: absolute; top: 34%; left: 0; right: 0; z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
-    .toast { padding: 9px 18px; border-radius: 14px; text-align: center; background: rgba(30, 25, 17, .70); border: 1px solid rgba(232, 202, 138, .30); box-shadow: 0 10px 30px rgba(18, 12, 4, .34); backdrop-filter: blur(10px); opacity: 0; transform: translateY(14px) scale(.94); transition: opacity .3s ease, transform .3s cubic-bezier(.2,.9,.3,1.4); }
+    /* Плашки висят сразу под HUD: на трети экрана они закрывали дорогу. */
+    #toast-layer { position: absolute; top: calc(var(--safe-top) + 92px); left: 0; right: 0; z-index: 12; display: flex; flex-direction: column; align-items: center; gap: 5px; pointer-events: none; }
+    .toast { padding: 5px 12px; border-radius: 11px; text-align: center; background: rgba(30, 25, 17, .52); border: 1px solid rgba(232, 202, 138, .30); box-shadow: 0 10px 30px rgba(18, 12, 4, .34); backdrop-filter: blur(10px); opacity: 0; transform: translateY(14px) scale(.94); transition: opacity .3s ease, transform .3s cubic-bezier(.2,.9,.3,1.4); }
     .toast.is-in { opacity: 1; transform: translateY(0) scale(1); }
-    .toast b { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 18px; color: var(--gold); letter-spacing: .01em; }
-    .toast span { display: block; margin-top: 2px; font-size: 11px; color: rgba(255, 244, 218, .74); }
+    .toast b { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 13px; color: var(--gold); letter-spacing: .01em; }
+    .toast span { display: block; margin-top: 1px; font-size: 9px; color: rgba(255, 244, 218, .66); }
     .toast-green b { color: #a9e5ac; } .toast-red b { color: #f0a08c; }
     .toast-teal b { color: #93e2d4; } .toast-blue b { color: #9dc9f2; } .toast-pink b { color: #f3aabd; }
 
@@ -257,12 +258,12 @@
 
   <div id="version-badge">V7.5.1 · LOADING</div>
   <script>window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};</script>
-  <script src="js/sound.js?v=752&r=761"></script>
-  <script src="js/materials.js?v=761"></script>
-  <script src="js/shaders.js?v=761"></script>
-  <script src="js/fx.js?v=761"></script>
-  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=752&r=761"><\/script>');else window.assetManager={};</script>
-  <script src="js/game-v75.js?v=752&r=761"></script>
+  <script src="js/sound.js?v=752&r=762"></script>
+  <script src="js/materials.js?v=762"></script>
+  <script src="js/shaders.js?v=762"></script>
+  <script src="js/fx.js?v=762"></script>
+  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=752&r=762"><\/script>');else window.assetManager={};</script>
+  <script src="js/game-v75.js?v=752&r=762"></script>
   <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){setTimeout(()=>document.getElementById('start-btn')?.click(),1600)}</script>
 </body>
 </html>

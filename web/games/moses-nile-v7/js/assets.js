@@ -49,7 +49,7 @@ class AssetManager {
     if(this.environmentPromise)return this.environmentPromise;
     const sources={
       rock:'models/environment/nature_pack/Rock_1.glb',
-      reeds:'models/environment/nature_pack/Plant_2.glb',
+      broadleaf:'models/environment/nature_pack/Plant_2.glb',
       bush:'models/environment/nature_pack/Bush_1.glb',
       grass:'models/environment/nature_pack/Grass.glb',
       bankPlant:'models/environment/nature_pack/Plant_1.glb',
@@ -170,7 +170,7 @@ class AssetManager {
               name:material.name||child.name,
               uvScale:.85,
               normalScale:.9,
-              bleach:.42
+              bleach:.18
             });
             return next;
           });

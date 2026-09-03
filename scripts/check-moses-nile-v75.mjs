@@ -44,7 +44,7 @@ for (const token of [
   'oneRenderLoop: true',
   'activateFallback',
   'V75DistantPyramid',
-  'V75ReedsInstanced',
+  'V751PapyrusBank',
   'V75ClosedBasketLid',
   'waterNormal.offset',
   'waterDetailNormal.offset',
@@ -108,7 +108,13 @@ for (const token of ['V751RiverFolk', 'buildBankPeople', 'animateFolk', 'cloneRi
 }
 // Пирамиды: ступенчатая кладка и известняковая облицовка вместо плоских
 // самосветящихся конусов, которые читались как бумажные треугольники.
-for (const token of ['stepPyramidGeometry', 'V75DistantPyramid', 'V751NileHippo', 'duneHeight', 'contactShadowTexture']) {
+for (const token of [
+  'stepPyramidGeometry', 'V75DistantPyramid', 'V751NileHippo', 'duneHeight', 'contactShadowTexture',
+  // Дно Нила из настоящих фотограмметрических карт и собранный вручную
+  // папирус вместо широколистного Plant_2 у самой воды.
+  'V751NileBed', 'papyrusClumpParts', 'V751BankBroadleaf',
+  'textures/terrain/pebbles-color.jpg',
+]) {
   if (!game.includes(token)) throw new Error(`The Nile scene is missing ${token}`);
 }
 for (const token of ['window.NileFX', 'splash(', 'ripple(', 'shake(']) {
