@@ -62,6 +62,12 @@
     Биомы сменяются по дистанции и тянут за собой свет, туман, цвет воды,
     плотность берега и набор препятствий. Между биомами всё интерполируется,
     поэтому переход читается как смена времени суток, а не как склейка.
+
+    Свет переведён к естественному: небо в зените голубое, а не песочное,
+    заполняющий свет ослаблен (его половину теперь даёт световой зонд неба из
+    materials.js), солнце сделано сильнее. Раньше все три источника были
+    одного бежевого тона и одинаковой силы — сцена превращалась в ровную
+    песчаную заливку без теней и объёма.
   */
   const BIOMES = [
     {
@@ -69,42 +75,42 @@
       title: 'Заводь папируса',
       subtitle: 'Тихая вода, густой тростник',
       from: 0,
-      fog: 0xe7cf9d, fogNear: 62, fogFar: 240,
-      hemiSky: 0xf3dcae, hemiGround: 0x3d3526, hemiPower: .58,
-      sunColor: 0xffd08e, sunPower: 1.5, sunPos: [-22, 35, 18],
+      fog: 0xd9cdb0, fogNear: 74, fogFar: 268,
+      hemiSky: 0xc8dcf0, hemiGround: 0x4a4234, hemiPower: .30,
+      sunColor: 0xffe8c4, sunPower: 2.15, sunPos: [-24, 38, 16],
       water: { deep: 0x35401f, shallow: 0x7a7442, sky: 0xd9c391, sun: 0xffe3ae, foam: 0xf3ecd7, chop: .85, glitter: 1.05, opacity: .88 },
-      sky: { zenith: 0x7d6440, haze: 0xc9a874, horizon: 0xe6c894, sun: 0xffe6ae, storm: .5, stars: 0 },
+      sky: { zenith: 0x5a7ea8, haze: 0xc4b28f, horizon: 0xe8d5ae, sun: 0xffe6ae, storm: .34, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
-      exposure: .96, wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
+      exposure: 1.0, wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
     },
     {
       id: 'open',
       title: 'Открытый Нил',
       subtitle: 'Полдень над широкой водой',
       from: 700,
-      fog: 0xf0dcae, fogNear: 70, fogFar: 262,
-      hemiSky: 0xf7ead0, hemiGround: 0x494330, hemiPower: .66,
-      sunColor: 0xfff0c8, sunPower: 1.62, sunPos: [-16, 42, 14],
+      fog: 0xdfd8be, fogNear: 84, fogFar: 292,
+      hemiSky: 0xd4e6f6, hemiGround: 0x554c38, hemiPower: .34,
+      sunColor: 0xfff4dc, sunPower: 2.35, sunPos: [-16, 46, 12],
       water: { deep: 0x33481f, shallow: 0x827c48, sky: 0xe4d3a4, sun: 0xfff2cf, foam: 0xfbf5e4, chop: 1, glitter: 1.4, opacity: .88 },
-      sky: { zenith: 0x8b7c50, haze: 0xd3bd88, horizon: 0xefd9a6, sun: 0xfff2cf, storm: .38, stars: 0 },
+      sky: { zenith: 0x4c78ab, haze: 0xcbbe9b, horizon: 0xf1e2bd, sun: 0xfff2cf, storm: .24, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
-      exposure: 1.02, wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
+      exposure: 1.06, wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
     },
     {
       id: 'rapids',
       title: 'Пороги Нила',
       subtitle: 'Течение рвётся между камней',
       from: 1500,
-      fog: 0xc9d3c6, fogNear: 46, fogFar: 200,
-      hemiSky: 0xcedcd4, hemiGround: 0x2f3a34, hemiPower: .56,
-      sunColor: 0xdce7d8, sunPower: 1.22, sunPos: [-28, 30, 22],
+      fog: 0xbdcbc4, fogNear: 56, fogFar: 224,
+      hemiSky: 0xb8cfdc, hemiGround: 0x333d36, hemiPower: .32,
+      sunColor: 0xe8f0e4, sunPower: 1.85, sunPos: [-28, 34, 20],
       water: { deep: 0x1b3831, shallow: 0x5f7a67, sky: 0xbccdbe, sun: 0xf2f7ef, foam: 0xffffff, chop: 2.1, glitter: 1.5, opacity: .95 },
-      sky: { zenith: 0x515f58, haze: 0x92a294, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .85, stars: 0 },
+      sky: { zenith: 0x3f5f74, haze: 0x8b9d96, horizon: 0xc2cec1, sun: 0xf2f7ef, storm: .62, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(40,60,60,.20), transparent 30%, transparent 66%, rgba(16,26,26,.30))',
-      exposure: .88, wind: 1.9, weights: { rock: 6, log: 3, croc: 3, gate: 2, vortex: 4, hippo: 1, boat: 0 },
+      exposure: .94, wind: 1.9, weights: { rock: 6, log: 3, croc: 3, gate: 2, vortex: 4, hippo: 1, boat: 0 },
     },
     {
       id: 'night',
@@ -112,27 +118,27 @@
       subtitle: 'Только луна и огни на берегу',
       from: 2400,
       fog: 0x2a3a52, fogNear: 34, fogFar: 168,
-      hemiSky: 0x2a4266, hemiGround: 0x080c13, hemiPower: .40,
-      sunColor: 0x9fc0ff, sunPower: .78, sunPos: [18, 30, -6],
+      hemiSky: 0x243c60, hemiGround: 0x070a11, hemiPower: .22,
+      sunColor: 0xa8c8ff, sunPower: 1.15, sunPos: [18, 34, -6],
       water: { deep: 0x0b1420, shallow: 0x22364c, sky: 0x3d566f, sun: 0xcfe0ff, foam: 0xcddcf2, chop: 1.2, glitter: 1.9, opacity: .96 },
       sky: { zenith: 0x0e1626, haze: 0x1d2b40, horizon: 0x33445e, sun: 0xbcd2ff, storm: .55, stars: 1 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(8,14,28,.52), rgba(10,16,30,.28) 34%, rgba(8,12,24,.34) 70%, rgba(4,8,18,.60))',
-      exposure: .52, wind: 1.1, weights: { rock: 4, log: 3, croc: 5, gate: 3, vortex: 2, hippo: 2, boat: 1 },
+      exposure: .58, wind: 1.1, weights: { rock: 4, log: 3, croc: 5, gate: 3, vortex: 2, hippo: 2, boat: 1 },
     },
     {
       id: 'delta',
       title: 'Рассвет над дельтой',
       subtitle: 'Река выносит корзинку к людям',
       from: 3300,
-      fog: 0xf3cb95, fogNear: 60, fogFar: 245,
-      hemiSky: 0xf6d5b4, hemiGround: 0x453424, hemiPower: .62,
-      sunColor: 0xffc98d, sunPower: 1.68, sunPos: [10, 22, -22],
+      fog: 0xe4c8a2, fogNear: 72, fogFar: 268,
+      hemiSky: 0xa9bcd8, hemiGround: 0x4a3a28, hemiPower: .30,
+      sunColor: 0xffc487, sunPower: 2.25, sunPos: [10, 24, -22],
       water: { deep: 0x453a1c, shallow: 0x8e6d3e, sky: 0xe0b783, sun: 0xffd9a0, foam: 0xfff0d8, chop: 1.15, glitter: 1.6, opacity: .93 },
-      sky: { zenith: 0x7d4c2c, haze: 0xc98d58, horizon: 0xf0c288, sun: 0xffcf9a, storm: .58, stars: .1 },
+      sky: { zenith: 0x4a5a86, haze: 0xc09068, horizon: 0xf2c68e, sun: 0xffcf9a, storm: .40, stars: .1 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(150,84,26,.16), transparent 32%, transparent 70%, rgba(50,26,10,.26))',
-      exposure: .98, wind: 1.4, weights: { rock: 4, log: 4, croc: 4, gate: 3, vortex: 3, hippo: 2, boat: 2 },
+      exposure: 1.0, wind: 1.4, weights: { rock: 4, log: 4, croc: 4, gate: 3, vortex: 3, hippo: 2, boat: 2 },
     },
   ];
 
@@ -145,7 +151,7 @@
   const OBSTACLES = {
     rock:   { clearance: 'ground', radius: 1.02, size: 1.75, fail: 'Корзинка ударилась о камень посреди течения.' },
     log:    { clearance: 'low',    radius: 1.12, size: 2.75, fail: 'Течение вынесло корзинку прямо на бревно.' },
-    croc:   { clearance: 'ground', radius: 1.2, size: 5.2, fail: 'Крокодил преградил путь по реке.' },
+    croc:   { clearance: 'ground', radius: 1.34, size: 6.6, fail: 'Крокодил преградил путь по реке.' },
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Корзинка запуталась в нависших зарослях папируса.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Водоворот затянул корзинку под воду.' },
     hippo:  { clearance: 'ground', radius: 1.36, size: 4.3,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
@@ -549,7 +555,21 @@
     вершинных цветах: это надёжнее инъекций в шейдер стандартного материала,
     потому что не зависит от того, доехала ли текстура.
   */
-  function buildRibbon(name, side, innerOffset, outerOffset, colors, texturePath, normalPath, yOffset = 0, opacity = .38) {
+  /*
+    Рельеф песка поперёк берега. У самой воды он плоский, дальше от русла
+    поднимается барханами — амплитуда растёт с удалением. Без него берег был
+    ровной наклонной пластиной: карта нормалей на двух вершинах не читалась.
+  */
+  function duneHeight(offset, z, side) {
+    const away = Math.max(0, offset - 2.4);
+    if (away <= 0) return 0;
+    const amplitude = Math.min(1.45, away * .115);
+    return (Math.sin(z * .085 + offset * .42 + side * 1.7) * .55
+      + Math.sin(z * .027 - offset * .21 + side * .6) * .45
+      + Math.sin(z * .19 + offset * .9) * .12) * amplitude;
+  }
+
+  function buildRibbon(name, side, innerOffset, outerOffset, colors, texturePath, normalPath, yOffset = 0, opacity = .38, cross = 6) {
     const segments = 130;
     const positions = [];
     const uvs = [];
@@ -557,23 +577,34 @@
     const indices = [];
     const inner = new THREE.Color(colors[0]);
     const outer = new THREE.Color(colors[1]);
+    const tone = new THREE.Color();
     for (let i = 0; i <= segments; i += 1) {
       const v = i / segments;
       const z = mix(NEAR_Z + 9, FAR_Z, v);
       const center = riverCenter(z);
       const half = riverHalf(z);
       const edgeNoise = (hash(i, innerOffset * 13) - .5) * .34;
-      const lift = hash(i, outerOffset * 7) * .12;
-      const innerX = center + side * (half + innerOffset + edgeNoise);
-      const outerX = center + side * (half + outerOffset + edgeNoise * .55);
       const baseY = -.035 + yOffset + Math.sin(z * .047 + side) * .022;
-      positions.push(innerX, baseY + bankRise(innerOffset), z, outerX, baseY + bankRise(outerOffset) + lift, z);
-      uvs.push(0, v * 52, 1, v * 52);
-      colorData.push(inner.r, inner.g, inner.b, outer.r, outer.g, outer.b);
-      if (i < segments) {
-        const a = i * 2;
-        if (side < 0) indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
-        else indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+      for (let j = 0; j <= cross; j += 1) {
+        const u = j / cross;
+        const offset = mix(innerOffset, outerOffset, u);
+        const x = center + side * (half + offset + edgeNoise * mix(1, .55, u));
+        const lift = hash(i * 7 + j, outerOffset * 7) * .06 * u;
+        positions.push(x, baseY + bankRise(offset) + duneHeight(offset, z, side) + lift, z);
+        uvs.push(u, v * 52);
+        tone.copy(inner).lerp(outer, u);
+        colorData.push(tone.r, tone.g, tone.b);
+      }
+    }
+    const row = cross + 1;
+    for (let i = 0; i < segments; i += 1) {
+      for (let j = 0; j < cross; j += 1) {
+        const a = i * row + j;
+        const b = a + 1;
+        const c = a + row;
+        const d = c + 1;
+        if (side < 0) indices.push(a, c, b, b, c, d);
+        else indices.push(a, b, c, b, d, c);
       }
     }
     const geometry = new THREE.BufferGeometry();
@@ -591,9 +622,11 @@
       opacity,
       depthWrite: opacity >= 1,
     });
-    material.userData.normalStrength = .55;
+    material.userData.normalStrength = .95;
     if (texturePath) makeTexture(texturePath, 1.15, 52, material);
     if (normalPath) makeTexture(normalPath, 1.15, 52, material, 'normalMap');
+    // Отражения неба по касательной: сухой песок на солнце заметно светлеет.
+    window.NileMaterials?.addSkyReflection?.(material, { strength: .5 });
     const ribbon = new THREE.Mesh(geometry, material);
     ribbon.name = name;
     ribbon.receiveShadow = true;
@@ -640,7 +673,7 @@
     for (const side of [-1, 1]) {
       buildRibbon('V751DampShore', side, -.1, 1.15, [0x6b5533, 0x94794f], 'textures/terrain/damp-sand-color.jpg', 'textures/terrain/damp-sand-normal.jpg', .006, 1);
       buildRibbon('V751WarmSand', side, 1.10, 4.2, [0xac8a56, 0xcfad76], 'textures/terrain/sand-color.jpg', 'textures/terrain/sand-normal.jpg', .028, 1);
-      buildRibbon('V751PebbleBank', side, 4.1, 16, [0xb59a75, 0xc7b18b], 'textures/terrain/pebbles-color.jpg', 'textures/terrain/pebbles-normal.jpg', .06, 1);
+      buildRibbon('V751PebbleBank', side, 4.1, 26, [0xb59a75, 0xc9b189], 'textures/terrain/pebbles-color.jpg', 'textures/terrain/pebbles-normal.jpg', .06, 1, 9);
       buildShoreline(side);
     }
   }
@@ -759,14 +792,15 @@
     const offset = options.near + hash(index, options.salt + 1) * (options.far - options.near);
     const x = side * (riverHalf() + offset);
     const scale = options.minScale + hash(index, options.salt + 2) * (options.maxScale - options.minScale);
-    dummy.position.set(x, options.lift + bankRise(offset), z);
+    // Растения садятся на рельеф песка, иначе висят над барханами.
+    dummy.position.set(x, options.lift + bankRise(offset) + duneHeight(offset, z, side), z);
     dummy.rotation.set(0, hash(index, options.salt + 3) * Math.PI * 2, (hash(index, options.salt + 4) - .5) * (options.tilt || 0));
     dummy.scale.set(scale, scale * (options.stretch || 1), scale);
   }
 
   function buildBankDetail() {
     const tier = detectTier();
-    const density = tier >= 2 ? 1.35 : tier >= 1 ? 1 : .58;
+    const density = tier >= 2 ? 1.9 : tier >= 1 ? 1.45 : .8;
     const grassGeometry = () => {
       const geometry = new THREE.ConeGeometry(.2, .82, 5, 2);
       geometry.translate(0, .41, 0);
@@ -951,13 +985,21 @@
       полированной облицовки на вершине, как у пирамиды Хафра. Закатная
       раскраска сохранена в вершинных цветах и домножается на текстуру.
     */
-    // Центр кадра оставлен руслу: пирамиды стоят по сторонам от него.
+    /*
+      Пирамиды — дальний фон, а не декорация у самой воды: раньше они стояли
+      в сотне метров, перекрывали полкадра и спорили с рекой. Теперь они
+      отнесены за горизонтальные дюны, которые закрывают их основания, и
+      растворяются в дымке тем сильнее, чем дальше стоят (параметр shade).
+      Центр кадра по-прежнему оставлен руслу.
+    */
     const specs = [
-      [-23, -124, 24, 40, 30, .26],
-      [25, -146, 20, 33, 26, .22],
-      [-13, -178, 16, 26, 22, .18],
-      [34, -196, 14, 21, 18, 0],
-      [-40, -212, 12, 18, 16, 0],
+      // x, z, полуоснование, высота, рядов кладки, доля облицовки, дымка
+      [-46, -282, 34, 54, 30, .24, .46],
+      [52, -304, 29, 46, 27, .20, .40],
+      [-24, -332, 24, 38, 24, .16, .34],
+      [30, -356, 20, 31, 20, 0, .29],
+      [-64, -378, 17, 26, 18, 0, .24],
+      [10, -394, 13, 20, 16, 0, .20],
     ];
     const sunDir = new THREE.Vector3(-.62, .34, .71).normalize();
     const shadowTint = new THREE.Vector3(.46, .49, .60);
@@ -978,20 +1020,36 @@
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     };
 
-    for (const [x, z, radius, height, courses, casing] of specs) {
+    for (const [x, z, radius, height, courses, casing, shade] of specs) {
       const group = new THREE.Group();
       group.name = 'V75DistantPyramid';
 
-      const material = window.NileMaterials?.pbr?.('sandstone', {
+      /*
+        Материал намеренно несветящийся. Освещённый камень на таком удалении
+        выводится ровно в яркость дымки и силуэт пропадает — проверено. Весь
+        объём здесь несут вершинные цвета (закатная раскладка света) и карта
+        кладки, а дальность задаёт applyLook, подмешивая цвет дымки по shade.
+      */
+      const stone = window.NileMaterials?.surface?.('sandstone');
+      const material = new THREE.MeshBasicMaterial({
         color: 0xbda37a,
-        roughness: .97,
-        repeat: Math.max(3, Math.round(radius / 4)),
-        normalScale: 1.15,
-        envMapIntensity: .5,
-        skyReflection: .45,
-      }) || new THREE.MeshStandardMaterial({ color: 0xbda37a, roughness: .97 });
-      material.vertexColors = true;
-      material.fog = true;
+        vertexColors: true,
+        fog: false,
+        // Прозрачность здесь не ради полупрозрачности, а ради порядка вывода.
+        // renderOrder у группы задаёт groupOrder, который сравнивается раньше
+        // renderOrder отдельных мешей: непрозрачные пирамиды с groupOrder −6
+        // рисовались до купола неба, и небо закрашивало их целиком.
+        // В прозрачном проходе они выводятся после купола, но раньше дюн и
+        // полотнищ пыли, поэтому те закрывают их основания.
+        transparent: true,
+        opacity: 1,
+        depthWrite: false,
+      });
+      if (stone) {
+        material.map = stone.map.clone();
+        material.map.repeat.set(Math.max(3, Math.round(radius / 4)), Math.max(3, Math.round(radius / 4)));
+        material.map.needsUpdate = true;
+      }
       material.needsUpdate = true;
 
       const core = new THREE.Mesh(stepPyramidGeometry(radius, height, courses), material);
@@ -999,41 +1057,42 @@
       core.receiveShadow = true;
       group.add(core);
 
-      // Остатки известняковой облицовки у вершины.
+      // Остатки полированной облицовки у вершины. Материал тот же, что у
+      // кладки: дымку на всю пирамиду подмешивает applyLook, и отдельный
+      // материал выпадал бы из этого перекрашивания. Отличие даёт геометрия
+      // и осветлённые вершинные цвета.
       if (casing > 0) {
         const casingHeight = height * casing;
-        const casingMaterial = window.NileMaterials?.pbr?.('limestone', {
-          color: 0xe0d2b0,
-          roughness: .68,
-          repeat: 3,
-          envMapIntensity: .7,
-          skyReflection: .7,
-        }) || new THREE.MeshStandardMaterial({ color: 0xe0d2b0, roughness: .68 });
-        casingMaterial.vertexColors = true;
-        casingMaterial.needsUpdate = true;
-        const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.04, casingHeight, 4), casingMaterial);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.04, casingHeight, 4), material);
         cap.geometry.rotateY(Math.PI / 4);
         window.NileMaterials?.applyBoxUV?.(cap.geometry, .12);
         shadeGeometry(cap.geometry, height);
+        const capColors = cap.geometry.attributes.color;
+        for (let i = 0; i < capColors.count; i += 1) {
+          capColors.setXYZ(i, capColors.getX(i) * 1.22, capColors.getY(i) * 1.2, capColors.getZ(i) * 1.16);
+        }
+        capColors.needsUpdate = true;
         cap.position.y = height - casingHeight * .5;
         group.add(cap);
       }
 
-      // Осыпь у подножия: без неё пирамида стоит на плоскости как вырезанная.
-      const rubble = new THREE.Mesh(
-        new THREE.ConeGeometry(radius * 1.2, height * .09, 4),
+      // Песчаный занос у подножия: пологий вал вокруг нижних рядов кладки.
+      // Без него пирамида выглядит вырезанной и приставленной к горизонту.
+      const drift = new THREE.Mesh(
+        new THREE.ConeGeometry(radius * 1.62, height * .26, 4),
         material,
       );
-      rubble.geometry.rotateY(Math.PI / 4);
-      window.NileMaterials?.applyBoxUV?.(rubble.geometry, .1);
-      shadeGeometry(rubble.geometry, height);
-      rubble.position.y = height * .045;
-      group.add(rubble);
+      drift.geometry.rotateY(Math.PI / 4);
+      window.NileMaterials?.applyBoxUV?.(drift.geometry, .08);
+      shadeGeometry(drift.geometry, height);
+      drift.position.y = height * .13 - height * .06;
+      group.add(drift);
 
       group.position.set(x, .15, z);
+      // Рисуются раньше дюн и полотнищ пыли, поэтому те закрывают основания.
       group.renderOrder = -6;
       scene.add(group);
-      decor.push({ kind: 'pyramid', object: group, material, shade: .5 });
+      decor.push({ kind: 'pyramid', object: group, material, shade });
     }
   }
 
@@ -1049,6 +1108,9 @@
     }
 
     const sheetSpecs = [
+      // Медленная пелена перед самими пирамидами: она и создаёт ощущение,
+      // что их заносит бурей.
+      { z: -286, width: 900, height: 210, y: 52, strength: .40, speed: .012, scale: .5 },
       { z: -232, width: 620, height: 150, y: 44, strength: .30, speed: .020, scale: .7 },
       { z: -168, width: 480, height: 104, y: 26, strength: .24, speed: .045, scale: 1.1 },
       { z: -96, width: 340, height: 62, y: 13, strength: .26, speed: .085, scale: 1.7 },
@@ -1123,138 +1185,6 @@
     }
   }
 
-  /*
-    Люди на берегу. Берётся настоящая скинованная модель из пакета
-    (Quaternius, CC0) и клонируется через SkeletonUtils — обычный clone
-    поделил бы скелет между копиями, и все фигуры двигались бы одинаково.
-    Каждой достаётся роль со своим поведением: машущий, рыбак, носильщик и
-    прачка. Если модель не приехала, работают прежние процедурные силуэты.
-  */
-  const FOLK_ROLES = ['waver', 'fisher', 'carrier', 'washer'];
-  const FOLK_CLOTH = [0xd6c39a, 0xb98f5f, 0xa8663f, 0xc9b48b, 0x8d6a48];
-
-  function findBone(root, name) {
-    return root.getObjectByName(name) || null;
-  }
-
-  function dressFolk(root, colorIndex) {
-    const cloth = new THREE.MeshStandardMaterial({
-      color: FOLK_CLOTH[colorIndex % FOLK_CLOTH.length],
-      roughness: .92,
-      metalness: 0,
-    });
-    const skin = new THREE.MeshStandardMaterial({ color: 0xc08b62, roughness: .86, metalness: 0 });
-    root.traverse((child) => {
-      if (!child.isMesh && !child.isSkinnedMesh) return;
-      child.material = /skin/i.test(child.name) ? skin : cloth;
-    });
-  }
-
-  /* Модель приходит в T-позе: без этого фигуры стоят с раскинутыми руками. */
-  function restFolkPose(bones) {
-    if (bones.armR) { bones.armR.rotation.set(0, 0, -1.32); }
-    if (bones.armL) { bones.armL.rotation.set(0, 0, 1.32); }
-    if (bones.foreR) bones.foreR.rotation.set(.12, 0, -.16);
-    if (bones.foreL) bones.foreL.rotation.set(.12, 0, .16);
-  }
-
-  function buildProceduralFolk(colorIndex) {
-    const group = new THREE.Group();
-    const skin = new THREE.MeshStandardMaterial({ color: 0xd7a37a, roughness: .85 });
-    const linen = new THREE.MeshStandardMaterial({ color: FOLK_CLOTH[colorIndex % FOLK_CLOTH.length], roughness: .95 });
-    const robe = new THREE.Mesh(new THREE.CylinderGeometry(.16, .26, .95, 7), linen);
-    robe.position.y = .48;
-    group.add(robe);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), skin);
-    head.position.y = 1.08;
-    group.add(head);
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(.05, .045, .58, 5), skin);
-    arm.geometry.translate(0, -.29, 0);
-    arm.position.set(-.2, 1, 0);
-    group.add(arm);
-    group.userData.simpleArm = arm;
-    return group;
-  }
-
-  function buildBankPeople() {
-    // Берег стал заметно живее, поэтому людей больше — но на слабых
-    // устройствах их число режется вместе с остальной массовкой.
-    const tier = detectTier();
-    const count = tier >= 2 ? 11 : tier >= 1 ? 9 : 6;
-    for (let i = 0; i < count; i += 1) {
-      const side = i % 2 ? -1 : 1;
-      const z = -hash(i, 41) * SCROLL_TILE;
-      const offset = 1.9 + hash(i, 42) * 5.2;
-      const x = side * (riverHalf() + offset);
-      const role = FOLK_ROLES[Math.floor(hash(i, 45) * FOLK_ROLES.length) % FOLK_ROLES.length];
-
-      const figure = window.assetManager?.cloneRigged?.('human', 1.86) || buildProceduralFolk(i);
-      dressFolk(figure, i);
-
-      const group = new THREE.Group();
-      group.name = 'V751RiverFolk';
-      group.add(figure);
-      group.position.set(x, .04 + bankRise(offset), z);
-      // Лицом к реке; носильщик идёт вдоль берега, поэтому развёрнут вдоль.
-      group.rotation.y = role === 'carrier'
-        ? 0
-        : (side > 0 ? -Math.PI / 2 : Math.PI / 2);
-      group.scale.setScalar(.92 + hash(i, 43) * .22);
-      scene.add(group);
-
-      const bones = {
-        torso: findBone(figure, 'Torso'),
-        chest: findBone(figure, 'Chest'),
-        head: findBone(figure, 'Head'),
-        armR: findBone(figure, 'UpperArmR'),
-        armL: findBone(figure, 'UpperArmL'),
-        foreR: findBone(figure, 'LowerArmR'),
-        foreL: findBone(figure, 'LowerArmL'),
-        legR: findBone(figure, 'UpperLegR'),
-        legL: findBone(figure, 'UpperLegL'),
-      };
-
-      // Реквизит по роли: удочка рыбаку, кувшин носильщику.
-      let prop = null;
-      if (role === 'fisher') {
-        prop = new THREE.Mesh(
-          new THREE.CylinderGeometry(.018, .012, 1.8, 5),
-          new THREE.MeshStandardMaterial({ color: 0x7d5a30, roughness: .95 }),
-        );
-        prop.position.set(.22, 1.05, .35);
-        prop.rotation.set(-.9, 0, .2);
-        group.add(prop);
-      } else if (role === 'carrier') {
-        prop = new THREE.Mesh(
-          new THREE.SphereGeometry(.19, 10, 8),
-          new THREE.MeshStandardMaterial({ color: 0xa9663c, roughness: .9 }),
-        );
-        prop.scale.set(1, 1.25, 1);
-        prop.position.set(.2, 1.5, 0);
-        group.add(prop);
-      }
-
-      restFolkPose(bones);
-      decor.push({
-        kind: 'folk',
-        role,
-        object: group,
-        figure,
-        bones,
-        prop,
-        simpleArm: figure.userData.simpleArm || null,
-        phase: hash(i, 44) * 8,
-        side,
-        baseZ: z,
-        // Базовая высота нужна слою дыхания: иначе фигура уползает вниз.
-        baseY: group.position.y,
-        walk: role === 'carrier' ? (hash(i, 46) > .5 ? 1 : -1) : 0,
-        scroll: true,
-      });
-    }
-  }
-
-  /* Ночные факелы на берегу: подсвечиваются только в тёмном биоме. */
   function buildTorches() {
     for (let i = 0; i < 11; i += 1) {
       const side = i % 2 ? -1 : 1;
@@ -1546,9 +1476,17 @@
     wake = makeWake();
     player.add(wake);
 
+    // Тень корзинки — тем же мягким пятном с умножением, что и у препятствий:
+    // ровный тёмный круг читался как приклеенный к воде блин.
     const contact = new THREE.Mesh(
-      new THREE.CircleGeometry(.86, 28),
-      new THREE.MeshBasicMaterial({ color: 0x172018, transparent: true, opacity: .2, depthWrite: false }),
+      new THREE.PlaneGeometry(1.9, 1.9),
+      new THREE.MeshBasicMaterial({
+        map: contactShadowTexture(),
+        transparent: true,
+        opacity: .85,
+        depthWrite: false,
+        fog: false,
+      }),
     );
     contact.scale.y = .52;
     contact.rotation.x = -Math.PI / 2;
@@ -2541,6 +2479,8 @@
       bite: 0,
       lunged: false,
       surfaced: false,
+      snap: 0,
+      snapped: false,
       mesh: null,
       shadow: null,
     };
@@ -2554,15 +2494,50 @@
     Так одновременно живёт полтора десятка объектов вместо шести десятков.
   */
   const contactGeometry = { value: null };
+  const contactShadowMap = { value: null };
+  /*
+    Контактное пятно под объектом. Раньше это был ровный тёмный круг поверх
+    воды: он читался как приклеенный блин, из-за него объекты казались
+    парящими, а подводных крокодилов было видно сквозь него. Теперь это
+    мягкий градиент, который перемножается с водой, а не закрашивает её.
+  */
+  function contactShadowTexture() {
+    if (contactShadowMap.value) return contactShadowMap.value;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 128, 128);
+    // Тень живёт в альфе, а не в цвете. Умножение здесь не годится: холст
+    // прозрачный и лежит поверх страницы, поэтому blendFunc(ZERO, SRC_COLOR)
+    // выедает альфу кадра и вместо тени появляется светлый прямоугольник.
+    const gradient = ctx.createRadialGradient(64, 64, 2, 64, 64, 63);
+    gradient.addColorStop(0, 'rgba(22, 30, 20, .55)');
+    gradient.addColorStop(.45, 'rgba(24, 32, 22, .30)');
+    gradient.addColorStop(.78, 'rgba(26, 34, 24, .08)');
+    gradient.addColorStop(1, 'rgba(26, 34, 24, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    contactShadowMap.value = texture;
+    return texture;
+  }
+
   function makeContactShadow(radius) {
-    if (!contactGeometry.value) contactGeometry.value = new THREE.CircleGeometry(1, 20);
+    if (!contactGeometry.value) contactGeometry.value = new THREE.PlaneGeometry(2, 2);
     const shadow = new THREE.Mesh(
       contactGeometry.value,
-      new THREE.MeshBasicMaterial({ color: 0x121a12, transparent: true, opacity: .26, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        map: contactShadowTexture(),
+        transparent: true,
+        opacity: .9,
+        depthWrite: false,
+        fog: false,
+      }),
     );
     shadow.rotation.x = -Math.PI / 2;
-    shadow.scale.set(radius, radius * .62, 1);
-    shadow.position.y = .012;
+    shadow.scale.set(radius * 1.15, radius * .78, 1);
+    shadow.position.y = .008;
     shadow.renderOrder = 4;
     shadow.name = 'V751ContactPatch';
     return shadow;
@@ -3037,6 +3012,21 @@
           window.gameAudio?.playGrowl?.();
           fx?.splash?.(item.x, .06, item.z, 1.8, [.55, .62, .44]);
           fx?.ripple?.(item.x, .015, item.z, .8, 4.4, 1, .45);
+          // Всплыв, крокодил один раз широко распахивает и с силой
+          // захлопывает пасть — этот щелчок и выдаёт его игроку.
+          item.snap = 1;
+        }
+        if (item.snap > 0) {
+          item.snap = Math.max(0, item.snap - dt * 1.7);
+          const stage = 1 - item.snap;
+          // Быстрый замах, резкий хлопок, короткое послесвечение.
+          item.bite = stage < .42 ? (stage / .42) : Math.max(0, 1 - (stage - .42) / .2);
+          if (!item.snapped && stage > .6) {
+            item.snapped = true;
+            window.gameAudio?.playHit?.();
+            fx?.splash?.(item.x, .1, item.z + .8, 1.2, [.68, .7, .56]);
+            fx?.ripple?.(item.x, .015, item.z + .6, .5, 3.2, 1.3, .38);
+          }
         }
         if (!item.lunged && closing > .55 && Math.abs(item.x - state.x) < 2.6) {
           item.lunged = true;
@@ -3235,7 +3225,7 @@
   function buildScene() {
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0xbba782, 54, 248);
-    camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, .1, 420);
+    camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, .1, 560);
     camera.position.set(0, 4.34, 10.4);
 
     // Небо задаёт рассеянный свет сферическими гармониками: без него
@@ -3275,7 +3265,6 @@
     buildBanks();
     buildBankDetail();
     buildPyramids();
-    buildBankPeople();
     buildTorches();
     buildBirds();
     buildPlayer();
@@ -3401,78 +3390,6 @@
     здесь остаются только повороты — это дешевле любой готовой анимации и
     позволяет каждой фигуре жить в своём ритме.
   */
-  function animateFolk(entry, t) {
-    const phase = t + entry.phase;
-    const bones = entry.bones;
-    if (entry.simpleArm) {
-      const wave = Math.sin(phase * 2.2);
-      entry.simpleArm.rotation.z = wave > .3 ? entry.side * (-.6 - wave * .8) : entry.side * -.1;
-      return;
-    }
-    if (!bones?.armR) return;
-
-    // Общий слой живости поверх ролевой позы: дыхание, перенос веса и
-    // медленный поворот головы. Без него фигуры замирали в одной позе и
-    // читались как манекены на берегу.
-    const breath = Math.sin(phase * 1.5) * .05;
-    if (bones.chest) {
-      bones.chest.rotation.x = breath;
-      bones.chest.rotation.z = Math.sin(phase * .7) * .03;
-    }
-    if (bones.head) {
-      bones.head.rotation.y = Math.sin(phase * .58) * .22;
-      bones.head.rotation.z = Math.sin(phase * .41) * .06;
-    }
-    if (bones.torso) bones.torso.rotation.z = Math.sin(phase * .9) * .04;
-    entry.object.position.y = (entry.baseY ?? entry.object.position.y) + Math.sin(phase * 1.5) * .012;
-
-    switch (entry.role) {
-      case 'waver': {
-        // Машет поднятой рукой, вторая опущена, корпус слегка качается.
-        const swing = Math.sin(phase * 4.2);
-        bones.armR.rotation.z = -2.65 + swing * .3;
-        bones.armR.rotation.x = .1;
-        if (bones.foreR) bones.foreR.rotation.z = -.35 + swing * .25;
-        if (bones.armL) bones.armL.rotation.z = 1.24;
-        if (bones.torso) bones.torso.rotation.y = Math.sin(phase * 1.1) * .09;
-        if (bones.head) bones.head.rotation.y = Math.sin(phase * .9) * .18;
-        break;
-      }
-      case 'fisher': {
-        // Стоит с удочкой, изредка подсекает.
-        const strike = Math.max(0, Math.sin(phase * .55) - .82) * 6;
-        if (bones.torso) bones.torso.rotation.x = .16 - strike * .22;
-        bones.armR.rotation.set(-1.0 - strike * .45, 0, -1.15);
-        if (bones.armL) bones.armL.rotation.set(-.8, 0, 1.1);
-        if (bones.foreR) bones.foreR.rotation.x = -.5;
-        if (entry.prop) entry.prop.rotation.x = -.9 - strike * .5;
-        break;
-      }
-      case 'carrier': {
-        // Шагает вдоль берега с кувшином на плече.
-        const step = Math.sin(phase * 3.1);
-        if (bones.legR) bones.legR.rotation.x = step * .5;
-        if (bones.legL) bones.legL.rotation.x = -step * .5;
-        bones.armR.rotation.set(.1, 0, -2.4);
-        if (bones.foreR) bones.foreR.rotation.x = -1.1;
-        if (bones.armL) bones.armL.rotation.set(-step * .32, 0, 1.28);
-        if (bones.torso) bones.torso.rotation.z = step * .05;
-        // Шаг считается от высоты своего места на берегу, а не от нуля.
-        entry.object.position.y = (entry.baseY ?? .04) + Math.abs(step) * .035;
-        break;
-      }
-      default: {
-        // Полощет бельё: наклоняется к воде и распрямляется.
-        const dip = (Math.sin(phase * 1.6) * .5 + .5) ** 1.6;
-        if (bones.torso) bones.torso.rotation.x = .25 + dip * .75;
-        bones.armR.rotation.set(-.35 - dip * .7, 0, -1.15);
-        if (bones.armL) bones.armL.rotation.set(-.35 - dip * .7, 0, 1.15);
-        if (bones.head) bones.head.rotation.x = dip * .3;
-        break;
-      }
-    }
-  }
-
   function updateDecor(dt, t) {
     const night = currentLook.sky ? currentLook.sky.stars : 0;
     for (const entry of decor) {
@@ -3486,9 +3403,7 @@
         if (z > 18) z -= SCROLL_TILE;
         entry.object.position.z = z;
       }
-      if (entry.kind === 'folk') {
-        animateFolk(entry, t);
-      } else if (entry.kind === 'torch') {
+      if (entry.kind === 'torch') {
         const flicker = .55 + Math.sin(t * 9 + entry.phase) * .18 + Math.sin(t * 21 + entry.phase) * .1;
         entry.flame.material.opacity = night * flicker;
         entry.flame.scale.setScalar(.85 + flicker * .35);

@@ -56,8 +56,7 @@ class AssetManager {
       palm:'models/environment/nature_pack/PalmTree_4.glb',
       log:'models/environment/survival_pack/WoodLog.glb',
       boat:'models/v73/Boat.glb',
-      flowers:'models/v73/Flowers.glb',
-      human:'models/v73/human.glb'
+      flowers:'models/v73/Flowers.glb'
     };
     this.environmentPromise=Promise.all(Object.entries(sources).map(async([key,url])=>{
       try{
@@ -97,99 +96,6 @@ class AssetManager {
   }
 
   hasModel(name){return !!this.models[name];}
-
-  /*
-    Клон скинованной модели. Обычный clone() у three делит скелет между
-    копиями, поэтому все фигуры двигались бы одинаково; SkeletonUtils
-    пересобирает привязку костей на каждую копию.
-  */
-  cloneRigged(name,targetSize){
-    const source=this.models[name];
-    if(!source)return null;
-    const cloneFn=THREE.SkeletonUtils?.clone;
-    if(!cloneFn){console.warn('[AssetManager] SkeletonUtils недоступен, скины не клонируются');return null;}
-    const clone=cloneFn(source);
-    if(targetSize){
-      const metrics=this._metrics(name);
-      const scale=targetSize/metrics.maxDim;
-      clone.scale.setScalar(scale);
-      clone.position.y-=metrics.minY*scale;
-    }
-    clone.traverse(child=>{if(child.isMesh||child.isSkinnedMesh){child.castShadow=false;child.receiveShadow=true;child.frustumCulled=false;}});
-    this._mergeSkinned(clone);
-    return clone;
-  }
-
-  /*
-    Фигура из модульного пака состоит из дюжины скинованных кусков — это
-    дюжина вызовов отрисовки на человека. Куски делят один скелет, поэтому их
-    можно слить в два меша: кожа и ткань.
-  */
-  _mergeSkinned(root){
-    const parts=[];
-    root.traverse(child=>{if(child.isSkinnedMesh)parts.push(child);});
-    if(parts.length<2)return root;
-    const skeleton=parts[0].skeleton;
-    const bindMatrix=parts[0].bindMatrix.clone();
-    const buckets=new Map();
-    for(const part of parts){
-      if(part.skeleton?.bones?.[0]!==skeleton.bones[0])return root;
-      const key=/Head_[12]\b/.test(part.name)?'skin':'cloth';
-      if(!buckets.has(key))buckets.set(key,[]);
-      buckets.get(key).push(part);
-    }
-    const parent=parts[0].parent;
-    for(const [key,list] of buckets){
-      const merged=this._mergeSkinnedGeometries(list.map(part=>part.geometry));
-      if(!merged)continue;
-      const mesh=new THREE.SkinnedMesh(merged,list[0].material.clone());
-      mesh.name=`NileFolk_${key}`;
-      mesh.frustumCulled=false;
-      mesh.receiveShadow=true;
-      mesh.castShadow=false;
-      parent.add(mesh);
-      mesh.bind(skeleton,bindMatrix);
-    }
-    for(const part of parts)part.parent?.remove(part);
-    return root;
-  }
-
-  _mergeSkinnedGeometries(list){
-    const plain=list.map(geometry=>geometry.index?geometry.toNonIndexed():geometry);
-    let total=0;
-    for(const geometry of plain)total+=geometry.attributes.position.count;
-    if(!total)return null;
-    const position=new Float32Array(total*3);
-    const normal=new Float32Array(total*3);
-    const uv=new Float32Array(total*2);
-    const skinIndex=new Uint16Array(total*4);
-    const skinWeight=new Float32Array(total*4);
-    let cursor=0;
-    for(const geometry of plain){
-      const pos=geometry.attributes.position;
-      const nor=geometry.attributes.normal;
-      const tex=geometry.attributes.uv;
-      const si=geometry.attributes.skinIndex;
-      const sw=geometry.attributes.skinWeight;
-      for(let i=0;i<pos.count;i++){
-        const at=cursor+i;
-        position[at*3]=pos.getX(i);position[at*3+1]=pos.getY(i);position[at*3+2]=pos.getZ(i);
-        if(nor){normal[at*3]=nor.getX(i);normal[at*3+1]=nor.getY(i);normal[at*3+2]=nor.getZ(i);}
-        if(tex){uv[at*2]=tex.getX(i);uv[at*2+1]=tex.getY(i);}
-        if(si){skinIndex[at*4]=si.getX(i);skinIndex[at*4+1]=si.getY(i);skinIndex[at*4+2]=si.getZ(i);skinIndex[at*4+3]=si.getW(i);}
-        if(sw){skinWeight[at*4]=sw.getX(i);skinWeight[at*4+1]=sw.getY(i);skinWeight[at*4+2]=sw.getZ(i);skinWeight[at*4+3]=sw.getW(i);}
-      }
-      cursor+=pos.count;
-    }
-    const merged=new THREE.BufferGeometry();
-    merged.setAttribute('position',new THREE.Float32BufferAttribute(position,3));
-    merged.setAttribute('normal',new THREE.Float32BufferAttribute(normal,3));
-    merged.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
-    merged.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(skinIndex,4));
-    merged.setAttribute('skinWeight',new THREE.Float32BufferAttribute(skinWeight,4));
-    merged.computeBoundingSphere();
-    return merged;
-  }
 
   modelKeys(){return Object.keys(this.models);}
 

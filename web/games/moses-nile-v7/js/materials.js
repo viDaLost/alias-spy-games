@@ -772,22 +772,29 @@
     if (!geometry?.attributes?.uv) return material;
     const repeat = options.repeat || 1;
     const clone = repeat !== 1;
-    material.map = clone ? maps.map.clone() : maps.map;
-    material.normalMap = clone ? maps.normalMap.clone() : maps.normalMap;
-    material.roughnessMap = clone ? maps.roughnessMap.clone() : maps.roughnessMap;
-    if (clone) {
-      for (const texture of [material.map, material.normalMap, material.roughnessMap]) {
-        texture.repeat.set(repeat, repeat);
-        texture.needsUpdate = true;
-      }
-    }
-    material.normalScale = new THREE.Vector2(options.normalScale ?? .85, options.normalScale ?? .85);
+    const pick = (texture) => {
+      if (!clone) return texture;
+      const copy = texture.clone();
+      copy.repeat.set(repeat, repeat);
+      copy.needsUpdate = true;
+      return copy;
+    };
+    // Своя запечённая текстура модели важнее процедурной: у крокодила есть
+    // настоящая карта чешуи, и подмена превращала его в жёлтое пятно.
+    // Таким моделям достаются только рельеф и шероховатость, если их нет.
+    const hasOwnMap = Boolean(material.map);
+    if (!hasOwnMap) material.map = pick(maps.map);
+    if (!material.normalMap) material.normalMap = pick(maps.normalMap);
+    if (!material.roughnessMap) material.roughnessMap = pick(maps.roughnessMap);
+    const strength = options.normalScale ?? (hasOwnMap ? .4 : .85);
+    material.normalScale = new THREE.Vector2(strength, strength);
     // Карта цвета уже несёт светлоту камня или листвы, поэтому собственный
     // тон модели осветляется — иначе после умножения всё уходит в черноту.
-    if (material.color && options.keepColor !== true) {
+    // Модели со своей текстурой цвет не меняют.
+    if (material.color && !hasOwnMap && options.keepColor !== true) {
       material.color.lerp(new THREE.Color(0xffffff), options.bleach ?? .45);
     }
-    if ('roughness' in material) material.roughness = options.roughness ?? material.roughness ?? .9;
+    if ('roughness' in material && !hasOwnMap) material.roughness = options.roughness ?? material.roughness ?? .9;
     if ('metalness' in material) material.metalness = options.metalness ?? .03;
     if ('envMapIntensity' in material) material.envMapIntensity = options.envMapIntensity ?? 1;
     if (options.skyReflection !== false) addSkyReflection(material, { strength: options.skyReflection ?? .8 });

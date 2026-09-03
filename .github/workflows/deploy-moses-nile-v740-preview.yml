@@ -43,7 +43,6 @@ jobs:
           curl -fsSL --retry 3 "$RAW/build/three.min.js" -o .preview-v7/vendor/three-r128.min.js
           curl -fsSL --retry 3 "$RAW/examples/js/loaders/GLTFLoader.js" -o .preview-v7/vendor/GLTFLoader-r128.js
           curl -fsSL --retry 3 "$RAW/examples/js/loaders/OBJLoader.js" -o .preview-v7/vendor/OBJLoader-r128.js
-          curl -fsSL --retry 3 "$RAW/examples/js/utils/SkeletonUtils.js" -o .preview-v7/vendor/SkeletonUtils-r128.js
 
           # Reuse the verified real-model package already stored in this repository.
           ASSET_PACKAGE_REV=8887faf7638a4168d37583f17b1c8eec9c46dd3f
@@ -61,7 +60,6 @@ jobs:
           cp "$ASSET_DIR/models/v73/lotus-flower.obj" .preview-v7/models/v73/
           cp "$ASSET_DIR/models/v73/Boat.glb" .preview-v7/models/v73/
           cp "$ASSET_DIR/models/v73/Flowers.glb" .preview-v7/models/v73/
-          cp "$ASSET_DIR/models/v73/human.glb" .preview-v7/models/v73/
 
           optimize_texture() {
             local source="$1" destination="$2" quality="$3"
@@ -102,8 +100,6 @@ jobs:
           # Библиотека материалов не заводит свою петлю рендера: кадр
           # запускает только game-v75.js.
           ! grep -q 'setAnimationLoop\|requestAnimationFrame' .preview-v7/js/materials.js
-          grep -q 'SkeletonUtils-r128.js' .preview-v7/index.html
-          grep -q 'V751RiverFolk' .preview-v7/js/game-v75.js
           grep -q 'btn-jump' .preview-v7/index.html
           grep -q 'btn-dive' .preview-v7/index.html
           ! grep -q 'OctahedronGeometry' .preview-v7/js/game-v75.js
@@ -123,8 +119,6 @@ jobs:
             models/v73/lotus-flower.obj \
             models/v73/Boat.glb \
             models/v73/Flowers.glb \
-            models/v73/human.glb \
-            vendor/SkeletonUtils-r128.js \
             textures/water/water-normal-primary.jpg \
             textures/water/water-normal-detail.jpg \
             textures/terrain/damp-sand-normal.jpg \

@@ -23,7 +23,6 @@ for (const token of [
   'js/shaders.js',
   'js/fx.js',
   'js/materials.js',
-  'SkeletonUtils-r128.js',
   'id="btn-jump"',
   'id="btn-dive"',
   'id="hearts"',
@@ -61,7 +60,6 @@ for (const token of [
   'mergeByMaterial',
   'V751SandstormSky',
   'V751HorizonDunes',
-  'V751RiverFolk',
   'SCROLL_TILE',
   'scrollLayers',
   'emitSwipeWave',
@@ -72,7 +70,7 @@ for (const token of [
   if (!game.includes(token)) throw new Error(`V7.5.1 engine is missing ${token}`);
 }
 if (game.includes('OctahedronGeometry')) throw new Error('The placeholder octahedron power-up is still present');
-for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj', 'models/v73/human.glb', 'cloneRigged', '_mergeSkinned']) {
+for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj']) {
   if (!assets.includes(token)) throw new Error(`V7.5.1 asset manager is missing ${token}`);
 }
 for (const token of ['createRiverMaterial', 'createSkyMaterial', 'createDustSheetMaterial', 'applyCrocodileSwim', 'createShieldMaterial', 'createParticleMaterial', 'applyWind', 'window.NileShaders']) {
@@ -101,9 +99,16 @@ const expectedRuntime = ['assets.js', 'fx.js', 'game-v75.js', 'materials.js', 's
 if (runtimeFiles.join(',') !== expectedRuntime.join(',')) {
   throw new Error(`Unexpected runtime files: ${runtimeFiles.join(', ')}`);
 }
+// Людей с берегов убрали намеренно: проверка держит это состояние, чтобы
+// скелетная модель и её анимация не вернулись вместе с чужой правкой.
+for (const token of ['V751RiverFolk', 'buildBankPeople', 'animateFolk', 'cloneRigged', 'human.glb']) {
+  if (game.includes(token) || assets.includes(token)) {
+    throw new Error(`The bank people were removed on request but ${token} is back`);
+  }
+}
 // Пирамиды: ступенчатая кладка и известняковая облицовка вместо плоских
 // самосветящихся конусов, которые читались как бумажные треугольники.
-for (const token of ['stepPyramidGeometry', 'V75DistantPyramid', 'V751NileHippo', "pbr?.('sandstone'"]) {
+for (const token of ['stepPyramidGeometry', 'V75DistantPyramid', 'V751NileHippo', 'duneHeight', 'contactShadowTexture']) {
   if (!game.includes(token)) throw new Error(`The Nile scene is missing ${token}`);
 }
 for (const token of ['window.NileFX', 'splash(', 'ripple(', 'shake(']) {
