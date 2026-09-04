@@ -1,0 +1,56 @@
+name: Deploy Spy Cloudflare backend
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/spy-worker/**'
+      - '.github/workflows/deploy-spy-cloudflare.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare/spy-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Test game engine
+        run: npm run check
+
+      - name: Create or update Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Configure Worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          SESSION_SECRET: ${{ secrets.SPY_SESSION_SECRET }}
+        run: |
+          printf '%s' "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN
+          printf '%s' "$SESSION_SECRET" | npx wrangler secret put SESSION_SECRET
+      - name: Verify room service
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 20 "https://alias-spy-games-spy.vitaledanilov.workers.dev/health" -o /tmp/spy-health; then
+              grep -q '"ok":true' /tmp/spy-health && grep -q '"voice":true' /tmp/spy-health && exit 0
+            fi
+            sleep 5
+          done
+          echo "Комната Шпиона не отвечает"; cat /tmp/spy-health 2>/dev/null; exit 1

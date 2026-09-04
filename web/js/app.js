@@ -756,6 +756,10 @@ function cleanupActiveGame() {
   try { window.__sacredWordCleanup?.(); } catch {}
   try { window.__kidsArkPairsCleanup?.(); } catch {}
   try { window.__quartetCleanup?.(); } catch {}
+  // Онлайн-Шпион держит сокет, таймеры и живые WebRTC-соединения с
+  // микрофоном: без явной уборки микрофон остался бы включённым после
+  // выхода в меню.
+  try { window.__spyOnlineCleanup?.(); } catch {}
 }
 
 function goToMainMenu() {

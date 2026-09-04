@@ -19,13 +19,13 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '4403c688bd';
+const VERSION = 'bf1f1795e7';
 const PRECACHE = [
   'index.html',
   'install.html',
   'manifest.webmanifest',
   'web/dist/app.f427d10ba1.css',
-  'web/dist/app.9f3ba01d48.js',
+  'web/dist/app.ed5b9a0a8f.js',
   'web/games/alias.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',
@@ -50,6 +50,7 @@ const PRECACHE = [
   'web/games/moses-nile-v7/js/assets.js',
   'web/games/moses-nile-v7/js/fx.js',
   'web/games/moses-nile-v7/js/game-v75.js',
+  'web/games/moses-nile-v7/js/materials.js',
   'web/games/moses-nile-v7/js/shaders.js',
   'web/games/moses-nile-v7/js/sound.js',
   'web/games/quartet-mobile.css',
@@ -57,6 +58,7 @@ const PRECACHE = [
   'web/games/quartet-v4-preview.css',
   'web/games/quartet.js',
   'web/games/sacred-word.js',
+  'web/games/spy-online.js',
   'web/games/spy.js',
   'web/data/bible_wordsearch_levels.json',
   'web/data/bible_wow_levels.json',

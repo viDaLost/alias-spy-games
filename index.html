@@ -35,13 +35,14 @@
   <meta name="apple-mobile-web-app-title" content="Библейские игры" />
   <meta name="quartet-backend" content="https://alias-spy-games-quartet.vitaledanilov.workers.dev" />
   <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
+  <meta name="spy-backend" content="https://alias-spy-games-spy.vitaledanilov.workers.dev" />
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
   <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev" />
   <!-- Витрина: те же файлы под своим адресом. Нужна для установки на главный
        экран iPhone — Safari показывает адрес сайта, и приложение не должно
        представляться репозиторием. -->
   <meta name="app-shell" content="https://alias-spy-games-app.vitaledanilov.workers.dev" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
   <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
   <script src="web/js/telegram-launch-context.js?v=2"></script>
   <script>
@@ -189,7 +190,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script src="web/dist/app.9f3ba01d48.js" defer></script>
+  <script src="web/dist/app.ed5b9a0a8f.js" defer></script>
   <!-- /build:js -->
 </body>
 </html>

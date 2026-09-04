@@ -254,12 +254,172 @@ function ensureSpyRoleCardStyles() {
       .spy-card-shell__inner {
         transition: none;
       }
+      .spy-mode-card {
+        transition: none;
+      }
+    }
+
+    /* ---- выбор режима ---- */
+    .spy-mode-wrap {
+      width: min(100%, 540px);
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+      padding-bottom: 24px;
+    }
+
+    .spy-mode-wrap h2 {
+      margin: 0;
+      color: #312e81;
+      font-size: clamp(1.72rem, 7vw, 2.32rem);
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+    }
+
+    .spy-mode-lead {
+      margin: 0;
+      color: rgba(49, 46, 129, .66);
+      font-size: .98rem;
+      line-height: 1.42;
+      font-weight: 700;
+    }
+
+    .spy-mode-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      padding: 18px 18px;
+      border: 2px solid rgba(79, 70, 229, .16);
+      border-radius: 22px;
+      background: #fff;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(49, 46, 129, .10);
+      transition: transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .spy-mode-card:active {
+      transform: scale(.98);
+      border-color: rgba(79, 70, 229, .42);
+    }
+
+    .spy-mode-icon {
+      flex: none;
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      background: linear-gradient(140deg, rgba(79, 70, 229, .14), rgba(124, 58, 237, .16));
+      font-size: 1.7rem;
+    }
+
+    .spy-mode-body {
+      display: grid;
+      gap: 4px;
+    }
+
+    .spy-mode-title {
+      color: #312e81;
+      font-size: 1.06rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .spy-mode-note {
+      color: rgba(49, 46, 129, .58);
+      font-size: .88rem;
+      font-weight: 650;
+      line-height: 1.34;
     }
   `;
   document.head.appendChild(style);
 }
 
-async function startSpyGame(locationsUrl) {
+/*
+  Точка входа в «Шпиона». Режима два: на одном телефоне (карта передаётся из
+  рук в руки — так игра работала всегда) и по сети, где каждый смотрит свою
+  роль на своём экране и разговаривает в голосовом чате.
+
+  Второй аргумент нужен, чтобы вернуться к раздаче, не показывая выбор снова:
+  кнопка «Новая игра» внутри партии зовёт startSpyGame(url, 'single').
+*/
+async function startSpyGame(locationsUrl, mode) {
+  if (mode !== 'single') return showSpyModePicker(locationsUrl);
+  return startSpySingleDevice(locationsUrl);
+}
+
+function showSpyModePicker(locationsUrl) {
+  const container = document.getElementById('game-container');
+  if (!container) return;
+  ensureSpyRoleCardStyles();
+  container.innerHTML = `
+    <div class="spy-mode-wrap fade-in">
+      <h2>🕵️ Шпион</h2>
+      <p class="spy-mode-lead">Один или несколько игроков — шпионы. Остальные знают локацию. Задача горожан — вычислить шпиона, задача шпиона — не выдать себя и угадать место.</p>
+
+      <button class="spy-mode-card" data-spy-mode="single" type="button">
+        <span class="spy-mode-icon">📱</span>
+        <span class="spy-mode-body">
+          <span class="spy-mode-title">На одном телефоне</span>
+          <span class="spy-mode-note">Передавайте устройство по кругу. Ничего настраивать не нужно.</span>
+        </span>
+      </button>
+
+      <button class="spy-mode-card" data-spy-mode="online" type="button">
+        <span class="spy-mode-icon">🌐</span>
+        <span class="spy-mode-body">
+          <span class="spy-mode-title">Онлайн, у каждого свой телефон</span>
+          <span class="spy-mode-note">Комната по коду, роль видит только её хозяин, встроенный голосовой чат.</span>
+        </span>
+      </button>
+
+      <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
+    </div>
+  `;
+  container.querySelectorAll('[data-spy-mode]').forEach(node => {
+    node.addEventListener('click', () => {
+      spyHaptic('light');
+      if (node.dataset.spyMode === 'single') return startSpySingleDevice(locationsUrl);
+      openSpyOnline();
+    });
+  });
+}
+
+/*
+  Онлайн живёт в отдельном файле: он тянет за собой WebRTC, транспорт и своё
+  оформление, и грузить всё это тем, кто играет на одном телефоне, незачем.
+*/
+function openSpyOnline() {
+  const container = document.getElementById('game-container');
+  if (window.startSpyOnlineGame) return window.startSpyOnlineGame();
+  if (container) {
+    container.innerHTML = '<div class="app-game-loading"><div class="app-loader__ring"></div><p>Загружаем онлайн-режим…</p></div>';
+  }
+  if (typeof loadGameScript === 'function') {
+    loadGameScript('web/games/spy-online.js', () => window.startSpyOnlineGame?.());
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = 'web/games/spy-online.js';
+  script.onload = () => window.startSpyOnlineGame?.();
+  script.onerror = () => {
+    if (container) {
+      container.innerHTML = `
+        <section class="app-error-card fade-in">
+          <div class="app-error-icon">!</div>
+          <h2>Онлайн-режим не загрузился</h2>
+          <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Назад</button>
+        </section>`;
+    }
+  };
+  document.head.appendChild(script);
+}
+
+async function startSpySingleDevice(locationsUrl) {
   ensureSpyRoleCardStyles();
 
   try {
@@ -454,7 +614,8 @@ function showDiscussionScreen() {
     <h2>🗣 Раунд общения</h2>
     <div class="card"><strong>Обсуждение началось</strong><p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Задавайте вопросы и ищите игроков, которые не знают локацию.</p></div>
     <button onclick="showFinalScreen()" class="correct-button">Голосование</button>
-    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Новая игра</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json', 'single')" class="menu-button">Новая игра</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Сменить режим</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
@@ -511,7 +672,8 @@ function showResults(votedId) {
       <strong>${guessedCorrectly ? "Шпионы найдены" : "Шпионы скрылись"}</strong>
       <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;"><b>Шпионы:</b> ${spies.join(", ")}<br><b>Локация:</b> ${spySafe(sharedLocation)}</p>
     </div>
-    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Новая игра</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json', 'single')" class="menu-button">Новая игра</button>
+    <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Сменить режим</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
