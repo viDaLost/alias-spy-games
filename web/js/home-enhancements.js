@@ -13,6 +13,7 @@
     'Библейские три в ряд': { key: 'biblical-match-three', desc: 'Комбинации, бустеры и путь из 50 уровней', icon: 'matchThree' },
     'Священное слово': { key: 'sacred-word', desc: 'Открой слово по подсказкам', icon: 'sacred' },
     'Найди пару': { key: 'kids-ark-pairs', desc: 'Соберите животных попарно', icon: 'ark' },
+    'Моисей: Путь по Нилу': { key: 'moses-nile', desc: 'Ведите корзинку по течению', icon: 'moses-nile' },
   };
 
   const ICON_VERSION = '1';
@@ -24,6 +25,7 @@
     words: `web/assets/icons/words.webp?v=${ICON_VERSION}`, search: `web/assets/icons/search.webp?v=${ICON_VERSION}`,
     matchThree: 'web/assets/icons/biblical-treasures-v38.webp?v=39',
     sacred: `web/assets/icons/sacred.webp?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.webp?v=${ICON_VERSION}`,
+    'moses-nile': `web/assets/icons/moses-nile.webp?v=${ICON_VERSION}`,
   };
 
   const SUPPORT_URL = 'https://t.me/tribute/app?startapp=dPzg';

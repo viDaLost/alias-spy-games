@@ -46,7 +46,8 @@ export function createRoomState(roomId, host, now = Date.now()) {
     roundDeadlineMs: 0,
     votes: {},
     outcome: null,
-    voice: {},
+    chat: [],
+    chatSeq: 0,
   };
 }
 
@@ -93,7 +94,6 @@ export function leaveRoom(room, playerId, now = Date.now()) {
     room.hostPlayerId = remaining[0].playerId;
   }
   delete room.votes[playerId];
-  delete room.voice[playerId];
   touch(room, now);
   return { deleted: false };
 }
@@ -277,15 +277,37 @@ export function backToLobby(room, playerId, now = Date.now()) {
   touch(room, now);
 }
 
-export function setVoiceState(room, playerId, voice, now = Date.now()) {
-  activePlayer(room, playerId);
-  const current = room.voice[playerId] || {};
-  room.voice[playerId] = {
-    joined: voice.joined === undefined ? Boolean(current.joined) : Boolean(voice.joined),
-    muted: voice.muted === undefined ? Boolean(current.muted) : Boolean(voice.muted),
-    at: now,
-  };
+export const MAX_CHAT_MESSAGES = 80;
+
+/*
+  Текстовый чат комнаты. Он же и есть обсуждение: игроки спрашивают друг друга
+  и ищут того, кто локации не знает. Из-за этого чат нельзя чистить между
+  этапами — переписка и есть улика, по которой голосуют.
+*/
+export function addChatMessage(room, playerId, rawText, now = Date.now()) {
+  const player = activePlayer(room, playerId);
+  const text = sanitizeChat(rawText);
+  if (!text) throw fail('Сообщение пустое', 'EMPTY_CHAT');
+  room.chatSeq = Number(room.chatSeq || 0) + 1;
+  room.chat.push({ id: String(room.chatSeq), playerId, name: player.name, text, at: now });
+  if (room.chat.length > MAX_CHAT_MESSAGES) room.chat.splice(0, room.chat.length - MAX_CHAT_MESSAGES);
   touch(room, now);
+}
+
+export function sanitizeChat(value) {
+  return String(value || '')
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f<>]/g, ' ')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[^\S\n]{3,}/g, '  ')
+    .trim()
+    .slice(0, 300);
+}
+
+// Старые комнаты в хранилище чата не знают: без этого push упал бы на undefined.
+export function ensureChat(room) {
+  if (!Array.isArray(room.chat)) room.chat = [];
+  room.chatSeq = Number(room.chatSeq || 0);
 }
 
 /*
@@ -336,11 +358,9 @@ export function buildView(room, viewerId, connectedIds = new Set()) {
         voted: Boolean(room.votes[item.playerId]),
         // Роль чужого игрока видна только на итогах.
         role: finished ? item.role : null,
-        voice: room.voice[item.playerId]
-          ? { joined: Boolean(room.voice[item.playerId].joined), muted: Boolean(room.voice[item.playerId].muted) }
-          : { joined: false, muted: false },
       })),
     outcome: room.outcome ? { ...room.outcome } : null,
+    chat: (room.chat || []).map((entry) => ({ ...entry })),
   };
 }
 

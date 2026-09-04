@@ -16,6 +16,7 @@
     { id: 'bible-wordsearch', title: 'Поиск библейских слов', icon: 'web/assets/icons/search.webp?v=1' },
     { id: 'sacred-word', title: 'Священное слово', icon: 'web/assets/icons/sacred.webp?v=1' },
     { id: 'kids-ark-pairs', title: 'Найди пару', icon: 'web/assets/icons/ark.webp?v=1' },
+    { id: 'moses-nile', title: 'Моисей: Путь по Нилу', icon: 'web/assets/icons/moses-nile.webp?v=1' },
     { id: 'biblical-match-three', title: 'Библейские сокровища', icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));

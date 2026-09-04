@@ -16,7 +16,10 @@
   // API for it (Bot API 7.7+), and the touchmove fallback below covers older clients
   // that do not implement it.
 
-  const GESTURE_GAMES = new Set(['quartet', 'biblical-match-three']);
+  // «Моисей на Ниле» открывается фреймом с адреса воркера, то есть с чужого
+  // источника: дотянуться до Telegram SDK изнутри он не может. Отключить жест
+  // обязана оболочка — здесь, как только игра стала текущей.
+  const GESTURE_GAMES = new Set(['quartet', 'biblical-match-three', 'moses-nile']);
   const SDK_RETRY_LIMIT = 40;
   const SDK_RETRY_MS = 150;
 
@@ -79,6 +82,16 @@
   function syncGuard() {
     if (isGestureGame()) disableTelegramVerticalSwipes();
   }
+
+  /*
+    Игра во фрейме чужого источника не видит ни Telegram SDK, ни касаний
+    родителя: touchstart до оболочки не доходит. Поэтому она просит отключить
+    жест сообщением, а не рассчитывает, что мы сами заметим её свайп.
+  */
+  window.addEventListener('message', (event) => {
+    if (event?.data?.type !== 'moses-nile:lock-swipes') return;
+    disableTelegramVerticalSwipes();
+  });
 
   document.addEventListener('touchstart', onTouchStart, { passive: true });
   document.addEventListener('touchmove', onTouchMove, { passive: false });

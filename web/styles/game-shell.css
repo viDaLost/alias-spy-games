@@ -157,3 +157,46 @@ body[data-mode="game"] {
     linear-gradient(178deg, var(--bg-1) 0%, var(--bg-3) 46%, var(--bg-2) 100%) !important;
   background-attachment: fixed !important;
 }
+
+/* ---- игра во фрейме ----
+   «Моисей: Путь по Нилу» открывается отдельной страницей во фрейме: у неё
+   свой three.js и свой цикл кадров, в общую область видимости её не внести.
+   Фрейм занимает весь экран под HUD оболочки, кнопка выхода лежит поверх. */
+.game-frame-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: block;
+  background: #0f1216;
+}
+
+.game-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.game-frame-exit {
+  position: absolute;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 6;
+  width: auto;
+  min-height: 38px;
+  padding: 8px 18px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(18, 20, 26, .62);
+  color: #f2e6c8;
+  border: 1px solid rgba(255, 240, 205, .28);
+  font-size: 12px;
+  font-weight: 800;
+  backdrop-filter: blur(10px);
+  opacity: .55;
+  transition: opacity .18s;
+}
+
+.game-frame-exit:active { opacity: 1; }

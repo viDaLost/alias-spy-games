@@ -23,6 +23,7 @@ const GAMES = new Map([
   ['sacred-word', 'Священное слово'],
   ['kids-ark-pairs', 'Найди пару'],
   ['biblical-match-three', 'Библейские сокровища'],
+  ['moses-nile', 'Моисей: Путь по Нилу'],
 ]);
 
 export class UserStore extends V10UserStore {

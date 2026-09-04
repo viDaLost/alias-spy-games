@@ -48,6 +48,7 @@ const GAME_GROUPS = [
     id: "kids-games",
     items: [
       { key: "kids-ark-pairs", title: "Найди пару", desc: "Соберите животных попарно", icon: "ark" },
+      { key: "moses-nile", title: "Моисей: Путь по Нилу", desc: "Ведите корзинку по течению", icon: "moses-nile" },
     ],
   },
 ];
@@ -68,6 +69,7 @@ const MENU_ICON_SOURCES = {
   search: "web/assets/icons/search.webp",
   sacred: "web/assets/icons/sacred.webp",
   ark: "web/assets/icons/ark.webp",
+  "moses-nile": "web/assets/icons/moses-nile.webp",
 };
 
 function menuIconHTML(type, title = "") {
@@ -660,6 +662,37 @@ function showGame(gameName) {
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
   };
+
+  /*
+    «Моисей: Путь по Нилу» — отдельная страница со своим three.js, шейдерами и
+    циклом кадров. Остальные игры подключаются скриптом в общую область
+    видимости; для этой так нельзя — она принесла бы за собой вторую копию
+    three и собственный рендер-цикл. Поэтому она открывается во фрейме того же
+    источника: CSP это разрешает ('self'), а игра внутри дотягивается до
+    Telegram у родителя, чтобы отключить жест закрытия.
+  */
+  if (gameName === "moses-nile") {
+    if (menu) menu.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    document.body.dataset.currentGame = gameName;
+    activeGameName = gameName;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    if (container) {
+      // Игра раздаётся отдельным воркером: в репозитории лежит только её
+      // рантайм, а модели, текстуры и three.js кладёт сборка превью. По
+      // локальному пути игра ушла бы в запасной 2D-режим.
+      const configured = String(document.querySelector('meta[name="moses-nile-app"]')?.content || '').trim();
+      const src = configured || 'web/games/moses-nile-v7/index.html?v=770';
+      container.innerHTML = `
+        <div class="game-frame-wrap">
+          <iframe class="game-frame" src="${escapeHTML(src)}"
+                  title="Моисей: Путь по Нилу" allow="autoplay; fullscreen"
+                  loading="eager"></iframe>
+          <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
+        </div>`;
+    }
+    return;
+  }
 
   const route = routes[gameName];
   if (!route) {

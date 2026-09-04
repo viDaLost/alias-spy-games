@@ -24,6 +24,7 @@
     { key: 'search', src: 'web/assets/icons/search.webp?v=1' },
     { key: 'sacred', src: 'web/assets/icons/sacred.webp?v=1' },
     { key: 'ark', src: 'web/assets/icons/ark.webp?v=1' },
+    { key: 'moses-nile', src: 'web/assets/icons/moses-nile.webp?v=1' },
     { key: 'treasures', src: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
   ];
 

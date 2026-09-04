@@ -4946,7 +4946,46 @@
     });
   }
 
+  /*
+    Жест закрытия Telegram против нырка.
+
+    Мини-приложение сворачивается по свайпу вниз — тому самому, которым в
+    игре топят корзинку. Отменить это движением недостаточно: жест обрабатывает
+    сам клиент Telegram, и отключается он только через disableVerticalSwipes
+    (Bot API 7.7+). Вызвать один раз на старте нельзя — SDK подключён с async
+    и на медленной сети приезжает уже после запуска игры, поэтому попытка
+    повторяется при каждом касании, пока не удастся.
+  */
+  let telegramSwipesLocked = false;
+  function telegramApp() {
+    // Из меню игра открывается во фрейме, и настоящий SDK живёт у родителя:
+    // внутри фрейма лежит лишь заглушка гаптики. Источник тот же, поэтому до
+    // родителя можно дотянуться напрямую — но обращение всё равно в try,
+    // на случай чужого источника.
+    if (window.parent && window.parent !== window) {
+      try {
+        const parentApp = window.parent.Telegram?.WebApp;
+        if (parentApp && typeof parentApp.disableVerticalSwipes === 'function') return parentApp;
+      } catch { /* фрейм с другого источника — читаем только своё окно */ }
+    }
+    return window.Telegram?.WebApp || null;
+  }
+  function lockTelegramSwipes() {
+    if (telegramSwipesLocked) return;
+    const tg = telegramApp();
+    if (tg && typeof tg.disableVerticalSwipes === 'function') {
+      try { tg.expand?.(); } catch { /* вне Telegram метода нет */ }
+      try { tg.disableVerticalSwipes(); telegramSwipesLocked = true; return; } catch { /* старый клиент */ }
+    }
+    // Фрейм с чужого источника до SDK не достаёт — просим оболочку сделать
+    // это за нас. Она слушает сообщение в telegram-gesture-guard.js.
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage({ type: 'moses-nile:lock-swipes' }, '*'); } catch { /* нечего слушать */ }
+    }
+  }
+
   function bindControls() {
+    lockTelegramSwipes();
     bindPress(dom.left, () => steer(-1));
     bindPress(dom.right, () => steer(1));
     bindPress(dom.jump, jump);
@@ -4994,7 +5033,26 @@
       touchX = event.touches[0]?.clientX || 0;
       touchY = event.touches[0]?.clientY || 0;
       touchTime = performance.now();
+      // Каждое касание — повод убедиться, что жест закрытия отключён: SDK
+      // Telegram грузится асинхронно и мог доехать уже после старта игры.
+      lockTelegramSwipes();
     }, { passive: true });
+    /*
+      Свайп вниз — это нырок, и он же родной жест Telegram «потянуть, чтобы
+      закрыть». Без отмены движения мини-приложение сворачивалось прямо
+      посреди заплыва. Обработчик обязан быть непассивным: у пассивного
+      preventDefault не действует.
+    */
+    window.addEventListener('touchmove', (event) => {
+      if (tutorialOpen) return;
+      const point = event.touches[0];
+      if (!point) return;
+      const dx = point.clientX - touchX;
+      const dy = point.clientY - touchY;
+      if (dy > 6 && Math.abs(dy) > Math.abs(dx) * 1.15 && event.cancelable) {
+        event.preventDefault();
+      }
+    }, { passive: false });
     window.addEventListener('touchend', (event) => {
       if (tutorialOpen) return;
       const point = event.changedTouches[0];

@@ -36,6 +36,12 @@
   <meta name="quartet-backend" content="https://alias-spy-games-quartet.vitaledanilov.workers.dev" />
   <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
   <meta name="spy-backend" content="https://alias-spy-games-spy.vitaledanilov.workers.dev" />
+  <!--
+    «Моисей: Путь по Нилу» раздаётся отдельным воркером: в репозитории лежит
+    только рантайм игры, а модели, текстуры и three.js собирает воркфлоу
+    превью. Без этого адреса игра открылась бы в запасном 2D-режиме.
+  -->
+  <meta name="moses-nile-app" content="https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/" />
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
   <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev" />
   <!-- Витрина: те же файлы под своим адресом. Нужна для установки на главный
@@ -113,7 +119,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.f427d10ba1.css" />
+  <link rel="stylesheet" href="web/dist/app.f97e31d6c1.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -190,7 +196,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script src="web/dist/app.ed5b9a0a8f.js" defer></script>
+  <script src="web/dist/app.d87195bbec.js" defer></script>
   <!-- /build:js -->
 </body>
 </html>

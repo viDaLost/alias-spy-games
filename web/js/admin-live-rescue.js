@@ -12,6 +12,7 @@
     'bible-sketch': 'Библейский художник', 'bible-wow': 'Библейские слова',
     'bible-wordsearch': 'Поиск слов', 'sacred-word': 'Священное слово',
     'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
+    'moses-nile': 'Моисей: Путь по Нилу',
   };
 
   let refreshTimer = 0;

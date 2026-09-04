@@ -15,9 +15,11 @@ import {
   renamePlayer,
   sanitizeName,
   setSettings,
-  setVoiceState,
   spyGuess,
   startGame,
+  addChatMessage,
+  MAX_CHAT_MESSAGES,
+  sanitizeChat,
 } from '../src/engine.js';
 
 const LOCATIONS = ['Иерусалим', 'Вавилон', 'Египет'];
@@ -228,14 +230,45 @@ test('настройки меняет только ведущий и тольк�
   assert.throws(() => setSettings(room, 'p1', { spyCount: 2 }), /до начала/);
 });
 
-test('состояние голоса живёт в комнате и видно всем', () => {
+test('сообщение чата видно всем и подписано именем', () => {
   const room = roomWith(3);
-  setVoiceState(room, 'p2', { joined: true, muted: false });
+  addChatMessage(room, 'p2', '  Кто был там на рассвете?  ');
   const view = buildView(room, 'p1');
-  const entry = view.players.find((item) => item.playerId === 'p2');
-  assert.deepEqual(entry.voice, { joined: true, muted: false });
-  setVoiceState(room, 'p2', { muted: true });
-  assert.equal(buildView(room, 'p1').players.find((item) => item.playerId === 'p2').voice.muted, true);
+  assert.equal(view.chat.length, 1);
+  assert.equal(view.chat[0].text, 'Кто был там на рассвете?');
+  assert.equal(view.chat[0].name, 'Игрок 2');
+  assert.equal(view.chat[0].playerId, 'p2');
+});
+
+test('пустое сообщение и разметка не проходят', () => {
+  const room = roomWith(3);
+  assert.throws(() => addChatMessage(room, 'p1', '   '), /пусто/i);
+  addChatMessage(room, 'p1', '<b>тег</b>');
+  assert.equal(buildView(room, 'p1').chat[0].text, 'b тег /b');
+  assert.equal(sanitizeChat('x'.repeat(500)).length, 300);
+});
+
+test('чужой в комнате писать не может', () => {
+  const room = roomWith(3);
+  assert.throws(() => addChatMessage(room, 'нет-такого', 'привет'), /не найден/i);
+});
+
+test('лента чата не растёт без предела', () => {
+  const room = roomWith(3);
+  for (let i = 0; i < MAX_CHAT_MESSAGES + 25; i += 1) addChatMessage(room, 'p1', `реплика ${i}`);
+  const chat = buildView(room, 'p1').chat;
+  assert.equal(chat.length, MAX_CHAT_MESSAGES);
+  // Обрезается начало: последнее сказанное важнее первого.
+  assert.equal(chat[chat.length - 1].text, `реплика ${MAX_CHAT_MESSAGES + 24}`);
+});
+
+test('переписка переживает смену этапа — по ней и голосуют', () => {
+  const room = roomWith(3);
+  startGame(room, 'p1', LOCATIONS);
+  for (const player of room.players) markRoleSeen(room, player.playerId);
+  addChatMessage(room, 'p2', 'там было жарко');
+  beginVoting(room, 'p1');
+  assert.equal(buildView(room, 'p1').chat.length, 1);
 });
 
 test('переименование меняет имя в общем списке', () => {

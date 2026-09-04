@@ -9,9 +9,9 @@
 // игрока. Полное состояние комнаты не покидает воркер ни разу — иначе шпион
 // прочитал бы локацию во вкладке разработчика за две секунды.
 //
-// Второе: голосовой чат. Комната работает сигнальным сервером для WebRTC:
-// пересылает offer/answer/ICE между двумя игроками, не разбирая содержимое.
-// Сам звук идёт напрямую между телефонами и через воркер не проходит.
+// Второе: текстовый чат. Он и есть обсуждение — игроки задают вопросы и ищут
+// того, кто локации не знает, поэтому переписка не чистится между этапами:
+// она и есть улика, по которой голосуют.
 
 import { DurableObject } from 'cloudflare:workers';
 import {
@@ -28,9 +28,10 @@ import {
   renamePlayer,
   sanitizeName,
   setSettings,
-  setVoiceState,
   spyGuess,
   startGame,
+  addChatMessage,
+  ensureChat,
 } from './engine.js';
 import { LOCATIONS } from './locations.js';
 
@@ -52,7 +53,7 @@ export default {
 
     try {
       if (url.pathname === '/health') {
-        return json({ ok: true, service: 'alias-spy-games-spy', voice: true, locations: LOCATIONS.length, now: Date.now() }, 200, cors);
+        return json({ ok: true, service: 'alias-spy-games-spy', chat: true, locations: LOCATIONS.length, now: Date.now() }, 200, cors);
       }
 
       if (request.method === 'POST' && url.pathname === '/rooms') {
@@ -146,11 +147,9 @@ export class SpyRoom extends DurableObject {
     this.pollingPresence = new Map();
     this.pollingRateLimits = new Map();
     this.pollingActionIds = new Map();
-    // Сигналы WebRTC для тех, кто сидит на HTTP-опросе: у них нет сокета,
-    // в который можно толкнуть offer, поэтому он ждёт в очереди до опроса.
-    this.signalQueues = new Map();
     this.ctx.blockConcurrencyWhile(async () => {
       this.room = (await this.ctx.storage.get('room')) || null;
+      if (this.room) ensureChat(this.room);
     });
   }
 
@@ -193,7 +192,7 @@ export class SpyRoom extends DurableObject {
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
       this.ctx.acceptWebSocket(server);
-      server.serializeAttachment({ playerId, connectedAt: Date.now(), lastActionAt: 0, lastSignalAt: 0 });
+      server.serializeAttachment({ playerId, connectedAt: Date.now(), lastActionAt: 0 });
       queueMicrotask(() => this.broadcastState().catch(console.error));
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -207,15 +206,6 @@ export class SpyRoom extends DurableObject {
       const now = Date.now();
       this.pollingPresence.set(playerId, now);
       await this.scheduleAlarm();
-      // Сигнал WebRTC приезжает вместе с опросом: у клиента без сокета
-      // другого канала нет, а заводить ради него отдельный маршрут незачем.
-      if (payload.signal && typeof payload.signal === 'object') {
-        this.relaySignal(playerId, {
-          to: payload.signal.to,
-          kind: payload.signal.kind,
-          data: payload.signal.data,
-        });
-      }
       try {
         const action = String(payload.action || '');
         const requestId = String(payload.requestId || '').slice(0, 96);
@@ -232,7 +222,6 @@ export class SpyRoom extends DurableObject {
           ok: true,
           transport: 'https',
           state: buildView(this.room, playerId, this.connectedPlayerIds()),
-          signals: this.drainSignals(playerId),
         });
       } catch (error) {
         return json({ ok: false, error: String(error?.message || error), code: error?.code || 'ACTION_ERROR' }, Number(error?.status || 409));
@@ -260,15 +249,6 @@ export class SpyRoom extends DurableObject {
       return;
     }
 
-    // Сигналы WebRTC идут отдельным потоком: их много, они мелкие и
-    // состояние комнаты не меняют, поэтому и лимит у них свой.
-    if (payload.type === 'signal') {
-      if (now - Number(attachment.lastSignalAt || 0) < 20) return;
-      attachment.lastSignalAt = now;
-      webSocket.serializeAttachment(attachment);
-      return this.relaySignal(playerId, payload);
-    }
-
     if (payload.type !== 'action') return this.sendError(webSocket, 'Неизвестный тип сообщения', 'BAD_MESSAGE');
     /*
       Лимит ловит шторм, а не паузу между двумя осознанными нажатиями.
@@ -290,52 +270,9 @@ export class SpyRoom extends DurableObject {
     }
   }
 
-  /*
-    Пересылка сигнала одному адресату. Воркер не разбирает содержимое: для
-    него это непрозрачный blob от одного игрока другому. Проверяется только
-    то, что оба состоят в комнате — иначе комната стала бы открытым релеем.
-  */
-  relaySignal(fromId, payload) {
-    if (!this.room) return;
-    const toId = String(payload.to || '');
-    if (!toId || toId === fromId) return;
-    const target = this.room.players.find((item) => item.playerId === toId && item.isActive !== false);
-    const sender = this.room.players.find((item) => item.playerId === fromId && item.isActive !== false);
-    if (!target || !sender) return;
-    const envelope = {
-      type: 'signal',
-      from: fromId,
-      fromName: sender.name,
-      kind: String(payload.kind || '').slice(0, 24),
-      data: payload.data,
-    };
-    let delivered = false;
-    for (const socket of this.ctx.getWebSockets()) {
-      const attachment = socket.deserializeAttachment() || {};
-      if (String(attachment.playerId || '') !== toId) continue;
-      try { socket.send(JSON.stringify(envelope)); delivered = true; } catch {}
-    }
-    if (!delivered) this.queueSignal(toId, envelope);
-  }
-
-  queueSignal(playerId, envelope) {
-    const queue = this.signalQueues.get(playerId) || [];
-    queue.push(envelope);
-    // Очередь короткая намеренно: пропущенный ICE лучше потерять, чем
-    // копить мегабайты для игрока, который уже закрыл вкладку.
-    if (queue.length > 48) queue.splice(0, queue.length - 48);
-    this.signalQueues.set(playerId, queue);
-  }
-
-  drainSignals(playerId) {
-    const queue = this.signalQueues.get(playerId);
-    if (!queue?.length) return [];
-    this.signalQueues.set(playerId, []);
-    return queue;
-  }
-
   async applyAction(playerId, action, data, now) {
     if (!this.room) throw Object.assign(new Error('Сессия комнаты недоступна'), { code: 'NO_SESSION' });
+    ensureChat(this.room);
     await this.maybeExpireRound(now);
 
     if (action === 'setSettings') setSettings(this.room, playerId, data, now);
@@ -347,13 +284,12 @@ export class SpyRoom extends DurableObject {
     else if (action === 'vote') castVote(this.room, playerId, String(data.targetId || ''), now);
     else if (action === 'guess') spyGuess(this.room, playerId, String(data.guess || ''), now);
     else if (action === 'backToLobby') backToLobby(this.room, playerId, now);
-    else if (action === 'voice') setVoiceState(this.room, playerId, data, now);
+    else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
     else if (action === 'leave') {
       const result = leaveRoom(this.room, playerId, now);
       this.pollingPresence.delete(playerId);
       this.pollingRateLimits.delete(playerId);
       this.pollingActionIds.delete(playerId);
-      this.signalQueues.delete(playerId);
       if (result.deleted) {
         await this.ctx.storage.deleteAll();
         this.room = null;

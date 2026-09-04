@@ -56,6 +56,10 @@
       title: 'Библейские сокровища', eyebrow: 'Собирай сокровища', status: 'Открываем сокровищницу…', status2: 'Расставляем драгоценности…',
       icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39', motif: 'biblical-match-three',
     },
+    'moses-nile': {
+      title: 'Моисей: Путь по Нилу', eyebrow: 'Бегущая по реке', status: 'Наполняем русло…', status2: 'Расставляем заросли…',
+      icon: 'web/assets/icons/moses-nile.webp?v=1', motif: 'moses-nile',
+    },
   });
 
   const motifHTML = Object.freeze({
@@ -71,6 +75,7 @@
     'sacred-word': '<span class="gel-rays"></span>',
     'kids-ark-pairs': '<span class="gel-tile">✦</span><span class="gel-tile">✦</span><span class="gel-tile">◆</span><span class="gel-tile">◆</span>',
     'biblical-match-three': '<span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span>',
+    'moses-nile': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',
   });
 
   let root = null;

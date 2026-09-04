@@ -1,4 +1,4 @@
-// games/spy-online.js — «Шпион» по сети, с голосовым чатом.
+// games/spy-online.js — «Шпион» по сети, с текстовым чатом.
 //
 // Отличие от игры на одном телефоне: локацию и роли раздаёт воркер, и каждый
 // видит только свою. Клиент никогда не знает ни локацию (если он шпион), ни
@@ -6,12 +6,10 @@
 //
 // Транспорт двухуровневый, как в «Квартете»: WebSocket, а если он не встал
 // (корпоративный прокси, старый WebView), клиент переходит на HTTP-опрос и
-// партия продолжается. Голосовой чат при опросе тоже работает: сигналы
-// WebRTC складываются в очередь на сервере и забираются тем же опросом.
+// партия продолжается.
 //
-// Звук идёт напрямую между телефонами (WebRTC mesh) — через воркер проходят
-// только offer/answer/ICE. Меш выбран из-за размера комнаты: на 3–12 игроков
-// он не требует ни медиасервера, ни платного трафика.
+// Обсуждение идёт в текстовом чате — том же, что и в других играх набора.
+// Переписка не чистится между этапами: она и есть улика, по которой голосуют.
 
 function startSpyOnlineGame() {
   const container = document.getElementById('game-container');
@@ -49,11 +47,11 @@ function startSpyOnlineGame() {
   let toastTimer = null;
   let errorText = '';
 
-  const voice = createVoiceChat({
-    sendSignal: (to, kind, data) => sendSignal(to, kind, data),
-    onChange: () => { if (screen === 'room') renderRoom(); },
-    onError: (message) => toast(message),
-  });
+  // Черновик сообщения переживает перерисовку: состояние комнаты приходит
+  // каждую секунду, и без этого набранный текст стирался бы на полуслове.
+  let chatDraft = '';
+  let chatSeen = 0;
+  let chatOpen = false;
 
   injectStyles();
   window.__spyOnlineCleanup = cleanup;
@@ -213,7 +211,6 @@ function startSpyOnlineGame() {
         const payload = await response.json().catch(() => ({}));
         if (payload.closed) return handleRoomClosed();
         if (payload.state) applyState(payload.state);
-        for (const signal of payload.signals || []) voice.handleSignal(signal);
       } catch (error) {
         console.warn('Spy poll failed', error);
       }
@@ -230,25 +227,23 @@ function startSpyOnlineGame() {
 
   function handleServerMessage(payload) {
     if (payload.type === 'state') return applyState(payload.state);
-    if (payload.type === 'signal') return voice.handleSignal(payload);
     if (payload.type === 'error') return toast(payload.error || 'Ошибка комнаты');
   }
 
   function applyState(next) {
     const previous = state;
     state = next;
+    if (chatOpen) chatSeen = (next.chat || []).length;
     // Новая раздача — карта снова рубашкой вверх, иначе роль показалась бы
     // сама собой тому, кто просто не закрыл прошлый экран.
     if (previous && previous.round !== next.round) roleFaceUp = false;
     if (previous?.status !== next.status) roleFaceUp = next.status === 'roles' ? false : roleFaceUp;
-    voice.syncPeers(next);
     if (screen === 'room') renderRoom();
   }
 
   function handleRoomClosed() {
     stopPolling();
     closeSocket();
-    voice.leave();
     forgetRoom();
     state = null;
     screen = 'home';
@@ -274,22 +269,9 @@ function startSpyOnlineGame() {
         if (result.closed) return handleRoomClosed();
         if (result.ok === false) return toast(result.error || 'Действие не прошло');
         if (result.state) applyState(result.state);
-        for (const signal of result.signals || []) voice.handleSignal(signal);
       })
       .catch((error) => toast(String(error?.message || error)));
     if (!pollTimer) startPolling();
-  }
-
-  function sendSignal(to, kind, data) {
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'signal', to, kind, data }));
-      return;
-    }
-    fetch(`${backendBase}/rooms/${roomId}/poll?token=${encodeURIComponent(sessionToken)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signal: { to, kind, data } }),
-    }).catch(() => {});
   }
 
   function forgetRoom() {
@@ -303,7 +285,6 @@ function startSpyOnlineGame() {
     leaving = true;
     stopPolling();
     closeSocket();
-    voice.leave();
     if (reconnectTimer) clearTimeout(reconnectTimer);
     if (clockTimer) clearInterval(clockTimer);
     if (toastTimer) clearTimeout(toastTimer);
@@ -342,7 +323,7 @@ function startSpyOnlineGame() {
     container.innerHTML = `
       <div class="spy-online-wrap fade-in">
         <h2>🌐 Шпион по сети</h2>
-        <p class="spy-online-lead">Каждый играет со своего телефона. Роль видит только её хозяин, а разговаривать можно прямо в игре — голосовой чат встроен.</p>
+        <p class="spy-online-lead">Каждый играет со своего телефона. Роль видит только её хозяин, а обсуждать можно прямо в игре — чат встроен.</p>
 
         ${errorText ? `<div class="spy-online-alert">${esc(errorText)}</div>` : ''}
 
@@ -410,7 +391,7 @@ function startSpyOnlineGame() {
       <div class="spy-online-wrap fade-in">
         ${renderTopBar()}
         ${body()}
-        ${renderVoicePanel()}
+        ${renderChatPanel()}
         <button class="back-button" data-spy-room="leave">Выйти из комнаты</button>
       </div>`;
     bindRoom();
@@ -568,32 +549,40 @@ function startSpyOnlineGame() {
             ${item.role === 'spy' ? '<span class="spy-player-tag is-spy">шпион</span>' : ''}
             ${state.status === 'roles' && item.ready ? '<span class="spy-player-tag is-ok">готов</span>' : ''}
             ${state.status === 'voting' && item.voted ? '<span class="spy-player-tag is-ok">голос</span>' : ''}
-            ${item.voice.joined ? `<span class="spy-player-mic ${item.voice.muted ? 'is-muted' : ''}">${item.voice.muted ? '🔇' : '🎙'}</span>` : ''}
           </div>`).join('')}
       </div>`;
   }
 
-  function renderVoicePanel() {
-    const joined = voice.isJoined();
-    const speaking = voice.speakingIds();
-    const peers = state.players.filter((item) => item.voice.joined && item.playerId !== state.me?.playerId);
+  /*
+    Чат комнаты. Он же и есть обсуждение: игроки задают вопросы и ищут того,
+    кто локации не знает. В лобби чат тоже открыт — там договариваются о
+    составе, а лишний экран для этого заводить незачем.
+  */
+  function renderChatPanel() {
+    const messages = state.chat || [];
+    const unread = Math.max(0, messages.length - chatSeen);
     return `
-      <div class="spy-voice ${joined ? 'is-live' : ''}">
-        <div class="spy-voice-head">
-          <strong>Голосовой чат</strong>
-          <span class="spy-voice-count">${peers.length ? `${peers.length} рядом` : 'никого'}</span>
+      <div class="spy-chat">
+        <div class="spy-chat-head">
+          <strong>Чат</strong>
+          ${unread && !chatOpen ? `<span class="spy-chat-badge">${unread}</span>` : ''}
+          <button class="spy-chat-toggle" data-spy-room="chatToggle">${chatOpen ? 'Свернуть' : 'Открыть'}</button>
         </div>
-        ${voice.isSupported()
-          ? `<div class="spy-voice-actions">
-              <button class="spy-voice-btn ${joined ? 'is-on' : ''}" data-spy-room="voiceToggle">${joined ? 'Выйти из чата' : 'Подключить микрофон'}</button>
-              ${joined ? `<button class="spy-voice-btn ${voice.isMuted() ? 'is-muted' : ''}" data-spy-room="voiceMute">${voice.isMuted() ? 'Включить' : 'Заглушить'}</button>` : ''}
-             </div>
-             ${joined && peers.length ? `
-               <div class="spy-voice-peers">
-                 ${peers.map((item) => `<span class="spy-voice-peer ${speaking.has(item.playerId) ? 'is-talking' : ''}">${esc(item.name)}</span>`).join('')}
-               </div>` : ''}
-             ${joined ? '<p class="hint">Звук идёт напрямую между телефонами, сервер его не слышит.</p>' : ''}`
-          : '<p class="hint">Этот браузер не поддерживает голосовой чат.</p>'}
+        ${chatOpen ? `
+          <div class="spy-chat-log" data-spy-chat-log>
+            ${messages.length
+              ? messages.map((entry) => `
+                  <div class="spy-chat-line ${entry.playerId === state.me?.playerId ? 'is-mine' : ''}">
+                    <span class="spy-chat-author">${esc(entry.name)}</span>
+                    <span class="spy-chat-text">${esc(entry.text)}</span>
+                  </div>`).join('')
+              : '<p class="spy-chat-empty">Пока тихо. Задайте первый вопрос.</p>'}
+          </div>
+          <form class="spy-chat-form" data-spy-chat-form>
+            <input class="spy-chat-input" data-spy-chat-input maxlength="300"
+                   placeholder="Спросить у стола…" autocomplete="off" value="${esc(chatDraft)}">
+            <button class="spy-chat-send" type="submit" aria-label="Отправить">➤</button>
+          </form>` : ''}
       </div>`;
   }
 
@@ -601,6 +590,21 @@ function startSpyOnlineGame() {
     container.querySelectorAll('[data-spy-room]').forEach((node) => {
       node.addEventListener('click', () => onRoomAction(node.dataset.spyRoom, node));
     });
+
+    const chatInput = container.querySelector('[data-spy-chat-input]');
+    chatInput?.addEventListener('input', () => { chatDraft = chatInput.value; });
+    container.querySelector('[data-spy-chat-form]')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const text = String(chatInput?.value || '').trim();
+      if (!text) return;
+      send('chat', { text });
+      chatDraft = '';
+      if (chatInput) chatInput.value = '';
+    });
+    // Лента открывается на последнем сообщении: листать вручную к свежему
+    // после каждого обновления никто не станет.
+    const log = container.querySelector('[data-spy-chat-log]');
+    if (log) log.scrollTop = log.scrollHeight;
     container.querySelectorAll('[data-spy-vote]').forEach((node) => {
       node.addEventListener('click', () => send('vote', { targetId: node.dataset.spyVote }));
     });
@@ -625,34 +629,16 @@ function startSpyOnlineGame() {
       return send('guess', { guess });
     }
     if (action === 'leave') return leaveRoomAndGoHome();
-    if (action === 'voiceToggle') {
-      node.disabled = true;
-      try {
-        if (voice.isJoined()) {
-          voice.leave();
-          send('voice', { joined: false, muted: false });
-        } else {
-          await voice.join();
-          send('voice', { joined: true, muted: voice.isMuted() });
-        }
-      } catch (error) {
-        toast(String(error?.message || error));
-      } finally {
-        node.disabled = false;
-        renderRoom();
-      }
-      return;
-    }
-    if (action === 'voiceMute') {
-      const muted = voice.toggleMute();
-      send('voice', { joined: true, muted });
+    if (action === 'chatToggle') {
+      chatOpen = !chatOpen;
+      if (chatOpen) chatSeen = (state.chat || []).length;
       renderRoom();
+      if (chatOpen) container.querySelector('[data-spy-chat-input]')?.focus({ preventScroll: true });
     }
   }
 
   function leaveRoomAndGoHome() {
     leaving = true;
-    voice.leave();
     send('leave');
     stopPolling();
     closeSocket();
@@ -718,275 +704,12 @@ function startSpyOnlineGame() {
 
 window.startSpyOnlineGame = startSpyOnlineGame;
 
-/* -------------------------------------------------------------------- *
- * Голосовой чат                                                         *
- * -------------------------------------------------------------------- *
- *
- * Полносвязный меш: у каждого игрока по одному RTCPeerConnection на
- * собеседника. Для комнаты на 3–12 человек это дешевле медиасервера и не
- * требует ни платного трафика, ни отдельной инфраструктуры — сигналы идут
- * через тот же Durable Object, что и состояние партии.
- *
- * Кто кому звонит, решает сравнение идентификаторов: инициатор всегда тот,
- * у кого id меньше. Без этого правила оба конца начинают переговоры
- * одновременно и соединение разваливается на «glare».
- *
- * Ограничение, о котором честно сказано в интерфейсе: TURN-сервера нет,
- * только публичные STUN. За симметричным NAT (часть мобильных операторов)
- * прямое соединение может не встать — тогда собеседник просто не появится
- * в списке говорящих.
- */
-function createVoiceChat({ sendSignal, onChange, onError }) {
-  const ICE_SERVERS = [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-  ];
-
-  const peers = new Map(); // playerId -> { pc, audio, analyser, speaking }
-  let localStream = null;
-  let joined = false;
-  let muted = false;
-  let selfId = '';
-  let audioContext = null;
-  let levelTimer = null;
-  const speaking = new Set();
-
-  function isSupported() {
-    return Boolean(navigator.mediaDevices?.getUserMedia && window.RTCPeerConnection);
-  }
-
-  async function join() {
-    if (joined) return;
-    if (!isSupported()) throw new Error('Браузер не умеет голосовой чат');
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false,
-      });
-    } catch (error) {
-      // Отказ в доступе — самая частая причина, и сообщение должно быть
-      // человеческим, а не NotAllowedError.
-      if (error?.name === 'NotAllowedError') throw new Error('Доступ к микрофону запрещён');
-      if (error?.name === 'NotFoundError') throw new Error('Микрофон не найден');
-      throw new Error('Не удалось включить микрофон');
-    }
-    joined = true;
-    muted = false;
-    startLevelMeter();
-    onChange?.();
-  }
-
-  function leave() {
-    for (const [playerId] of peers) dropPeer(playerId);
-    peers.clear();
-    speaking.clear();
-    if (localStream) for (const track of localStream.getTracks()) track.stop();
-    localStream = null;
-    joined = false;
-    muted = false;
-    stopLevelMeter();
-    onChange?.();
-  }
-
-  function toggleMute() {
-    if (!joined || !localStream) return muted;
-    muted = !muted;
-    for (const track of localStream.getAudioTracks()) track.enabled = !muted;
-    onChange?.();
-    return muted;
-  }
-
-  /*
-    Сверка списка собеседников с состоянием комнаты. Соединение поднимается
-    только с теми, кто сам включил микрофон: звонить тому, кто в чат не
-    заходил, значит просить у него разрешение, которого он не давал.
-  */
-  function syncPeers(state) {
-    selfId = String(state?.me?.playerId || '');
-    if (!joined || !selfId) {
-      if (!joined && peers.size) { for (const [playerId] of peers) dropPeer(playerId); peers.clear(); }
-      return;
-    }
-    const wanted = new Set(
-      (state.players || [])
-        .filter((item) => item.voice?.joined && item.playerId !== selfId)
-        .map((item) => item.playerId),
-    );
-    for (const [playerId] of peers) if (!wanted.has(playerId)) dropPeer(playerId);
-    for (const playerId of wanted) {
-      if (peers.has(playerId)) continue;
-      // Инициатор — тот, у кого идентификатор меньше. Иначе оба шлют offer
-      // одновременно и соединение не встаёт.
-      const initiator = selfId < playerId;
-      createPeer(playerId, initiator);
-    }
-  }
-
-  function createPeer(playerId, initiator) {
-    let pc;
-    try {
-      pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-    } catch {
-      onError?.('Голосовой чат недоступен в этом браузере');
-      return null;
-    }
-
-    const audio = document.createElement('audio');
-    audio.autoplay = true;
-    audio.playsInline = true;
-    audio.dataset.spyVoicePeer = playerId;
-    document.body.appendChild(audio);
-
-    const entry = { pc, audio, analyser: null, source: null, pending: [], polite: !initiator };
-    peers.set(playerId, entry);
-
-    if (localStream) for (const track of localStream.getTracks()) pc.addTrack(track, localStream);
-
-    pc.addEventListener('icecandidate', (event) => {
-      if (event.candidate) sendSignal(playerId, 'ice', event.candidate.toJSON());
-    });
-    pc.addEventListener('track', (event) => {
-      const [stream] = event.streams;
-      if (!stream) return;
-      audio.srcObject = stream;
-      audio.play?.().catch(() => {});
-      attachAnalyser(playerId, stream);
-    });
-    pc.addEventListener('connectionstatechange', () => {
-      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        speaking.delete(playerId);
-        onChange?.();
-      }
-    });
-
-    if (initiator) {
-      pc.createOffer()
-        .then((offer) => pc.setLocalDescription(offer).then(() => sendSignal(playerId, 'offer', offer)))
-        .catch(() => {});
-    }
-    return entry;
-  }
-
-  function dropPeer(playerId) {
-    const entry = peers.get(playerId);
-    if (!entry) return;
-    try { entry.pc.close(); } catch {}
-    try { entry.source?.disconnect(); } catch {}
-    entry.audio?.remove();
-    peers.delete(playerId);
-    speaking.delete(playerId);
-  }
-
-  async function handleSignal(message) {
-    if (!joined) return;
-    const from = String(message?.from || '');
-    if (!from || from === selfId) return;
-    let entry = peers.get(from);
-    if (!entry) entry = createPeer(from, false);
-    if (!entry) return;
-    const { pc } = entry;
-
-    try {
-      if (message.kind === 'offer') {
-        await pc.setRemoteDescription(new RTCSessionDescription(message.data));
-        await flushPending(entry);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        sendSignal(from, 'answer', answer);
-        return;
-      }
-      if (message.kind === 'answer') {
-        if (pc.signalingState !== 'have-local-offer') return;
-        await pc.setRemoteDescription(new RTCSessionDescription(message.data));
-        await flushPending(entry);
-        return;
-      }
-      if (message.kind === 'ice') {
-        // Кандидат может обогнать описание сессии — тогда его надо
-        // придержать, иначе addIceCandidate бросит исключение.
-        if (!pc.remoteDescription || !pc.remoteDescription.type) {
-          entry.pending.push(message.data);
-          return;
-        }
-        await pc.addIceCandidate(new RTCIceCandidate(message.data));
-      }
-    } catch (error) {
-      console.warn('Spy voice signal failed', message.kind, error);
-    }
-  }
-
-  async function flushPending(entry) {
-    const queued = entry.pending.splice(0);
-    for (const candidate of queued) {
-      try { await entry.pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
-    }
-  }
-
-  /*
-    Индикатор говорящего. Считается по громкости входящего потока: рисовать
-    рамку вокруг того, кто сейчас говорит, — единственный способ понять в
-    голосовой комнате, кто именно подал голос.
-  */
-  function attachAnalyser(playerId, stream) {
-    const entry = peers.get(playerId);
-    if (!entry) return;
-    try {
-      audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.6;
-      source.connect(analyser);
-      entry.source = source;
-      entry.analyser = analyser;
-      entry.levels = new Uint8Array(analyser.frequencyBinCount);
-    } catch {
-      // Без индикатора чат работает — это украшение, а не механика.
-    }
-  }
-
-  function startLevelMeter() {
-    if (levelTimer) return;
-    levelTimer = setInterval(() => {
-      let changed = false;
-      for (const [playerId, entry] of peers) {
-        if (!entry.analyser || !entry.levels) continue;
-        entry.analyser.getByteFrequencyData(entry.levels);
-        let sum = 0;
-        for (let i = 0; i < entry.levels.length; i += 1) sum += entry.levels[i];
-        const average = sum / entry.levels.length;
-        const talking = average > 14;
-        if (talking && !speaking.has(playerId)) { speaking.add(playerId); changed = true; }
-        else if (!talking && speaking.has(playerId)) { speaking.delete(playerId); changed = true; }
-      }
-      if (changed) onChange?.();
-    }, 320);
-  }
-
-  function stopLevelMeter() {
-    if (!levelTimer) return;
-    clearInterval(levelTimer);
-    levelTimer = null;
-  }
-
-  return {
-    isSupported,
-    isJoined: () => joined,
-    isMuted: () => muted,
-    speakingIds: () => speaking,
-    join,
-    leave,
-    toggleMute,
-    syncPeers,
-    handleSignal,
-  };
-}
-
 const SPY_ONLINE_CSS = `
   .spy-online-wrap { width: min(100%, 560px); margin: 0 auto; display: grid; gap: 14px; padding-bottom: 24px; }
   .spy-online-wrap h2 { margin: 0; color: #312e81; font-size: clamp(1.6rem, 6.4vw, 2.1rem); font-weight: 950; letter-spacing: -.045em; }
   .spy-online-lead { margin: 0; color: rgba(49,46,129,.66); font-size: .98rem; line-height: 1.4; font-weight: 650; }
   .spy-online-wrap .setup-label, .spy-online-wrap .hint { text-align: left; }
-  .spy-voice-head, .spy-tally-row, .spy-vote-option { text-align: left; }
+  .spy-chat-head, .spy-tally-row, .spy-vote-option { text-align: left; }
   .spy-online-alert { padding: 12px 14px; border-radius: 16px; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.28); color: #b91c1c; font-weight: 800; font-size: .94rem; }
   .spy-online-divider { display: flex; align-items: center; gap: 10px; color: rgba(49,46,129,.42); font-size: .82rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
   .spy-online-divider::before, .spy-online-divider::after { content: ''; flex: 1; height: 1px; background: rgba(49,46,129,.16); }
@@ -1038,20 +761,24 @@ const SPY_ONLINE_CSS = `
   .spy-player-mic { font-size: .92rem; }
   .spy-player-mic.is-muted { opacity: .5; }
 
-  .spy-voice { display: grid; gap: 10px; padding: 14px 16px; border-radius: 20px; background: rgba(15,23,42,.05); border: 1px solid rgba(49,46,129,.12); }
-  .spy-voice.is-live { background: rgba(34,197,94,.08); border-color: rgba(34,197,94,.28); }
-  .spy-voice-head { display: flex; align-items: center; justify-content: space-between; color: #312e81; font-size: .96rem; }
-  .spy-voice-count { color: rgba(49,46,129,.56); font-size: .84rem; font-weight: 800; }
-  .spy-voice-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  .spy-voice-btn { flex: 1 1 140px; min-height: 46px; border: 0; border-radius: 14px; background: #4f46e5; color: #fff; font-size: .96rem; font-weight: 900; cursor: pointer; transition: transform .12s, filter .12s; }
-  .spy-voice-btn:active { transform: scale(.97); }
-  .spy-voice-btn:disabled { opacity: .6; }
-  .spy-voice-btn.is-on { background: #15803d; }
-  .spy-voice-btn.is-muted { background: #b45309; }
-  .spy-voice-peers { display: flex; gap: 6px; flex-wrap: wrap; }
-  .spy-voice-peer { padding: 5px 11px; border-radius: 999px; background: rgba(79,70,229,.1); font-size: .84rem; font-weight: 850; color: #312e81; transition: background .18s, transform .18s; }
-  /* Рамка вокруг говорящего — иначе в голосовой комнате не понять, кто подал голос. */
-  .spy-voice-peer.is-talking { background: rgba(34,197,94,.22); box-shadow: 0 0 0 2px rgba(34,197,94,.4); transform: scale(1.04); }
+  .spy-chat { display: grid; gap: 10px; padding: 12px 14px; border-radius: 20px; background: rgba(15,23,42,.05); border: 1px solid rgba(49,46,129,.12); }
+  .spy-chat-head { display: flex; align-items: center; gap: 8px; color: #312e81; font-size: .96rem; }
+  .spy-chat-head strong { flex: 1; }
+  .spy-chat-badge { min-width: 20px; padding: 2px 7px; border-radius: 999px; background: #ef4444; color: #fff; font-size: .74rem; font-weight: 900; text-align: center; }
+  .spy-chat-toggle { border: 0; border-radius: 10px; padding: 6px 12px; background: rgba(79,70,229,.12); color: #4338ca; font-size: .84rem; font-weight: 850; cursor: pointer; }
+  /* Лента прокручивается сама, а не тянет за собой всю страницу: на телефоне
+     иначе экран уезжает при каждом новом сообщении. */
+  .spy-chat-log { max-height: 216px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 6px; padding-right: 2px; }
+  .spy-chat-line { display: grid; gap: 1px; padding: 7px 11px; border-radius: 12px; background: rgba(255,255,255,.72); text-align: left; }
+  .spy-chat-line.is-mine { background: rgba(79,70,229,.12); }
+  .spy-chat-author { color: rgba(49,46,129,.6); font-size: .74rem; font-weight: 900; letter-spacing: .02em; }
+  .spy-chat-text { color: #312e81; font-size: .94rem; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .spy-chat-empty { margin: 0; padding: 10px 2px; color: rgba(49,46,129,.5); font-size: .9rem; font-weight: 700; }
+  .spy-chat-form { display: flex; gap: 8px; }
+  .spy-chat-input { flex: 1; min-width: 0; min-height: 44px; padding: 10px 14px; border-radius: 14px; border: 2px solid rgba(79,70,229,.18); background: #fff; color: #312e81; font-size: 1rem; font-weight: 650; }
+  .spy-chat-input:focus { outline: none; border-color: #4f46e5; }
+  .spy-chat-send { flex: none; width: 46px; min-height: 44px; border: 0; border-radius: 14px; background: #4f46e5; color: #fff; font-size: 1.05rem; cursor: pointer; }
+  .spy-chat-send:active { transform: scale(.95); }
 
   .spy-online-outcome.is-spy { border-left: 5px solid #ef4444; }
   .spy-online-outcome.is-town { border-left: 5px solid #22c55e; }
@@ -1062,6 +789,6 @@ const SPY_ONLINE_CSS = `
   #spy-online-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
 
   @media (prefers-reduced-motion: reduce) {
-    .spy-online-card__face, .spy-online-clock, .spy-voice-peer { transition: none; animation: none; }
+    .spy-online-card__face, .spy-online-clock { transition: none; animation: none; }
   }
 `;
