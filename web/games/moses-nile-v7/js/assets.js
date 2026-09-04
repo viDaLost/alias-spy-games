@@ -321,11 +321,15 @@ class AssetManager {
     root.traverse(child=>{
       if(!child.isMesh)return;
       if(!child.geometry.attributes.normal)child.geometry.computeVertexNormals();
-      const list=Array.isArray(child.material)?child.material:[child.material];
-      child.material=list.map(source=>{
+      // Материал был массивом или одиночным — вернуть надо тем же. Массив на
+      // геометрии без групп не рисуется вовсе: жетон превращался в пустоту,
+      // от которой на воде оставалось одно кольцо.
+      const many=Array.isArray(child.material);
+      const list=many?child.material:[child.material];
+      const next=list.map(source=>{
         if(!source)return source;
         const transparent=source.transparent===true||source.alphaTest>0;
-        const next=new THREE.MeshStandardMaterial({
+        const material=new THREE.MeshStandardMaterial({
           map:source.map||null,
           color:(tint.color!==undefined?new THREE.Color(tint.color):(source.color?source.color.clone():new THREE.Color(0xffffff))),
           roughness:tint.roughness??(typeof source.roughness==='number'?source.roughness:.6),
@@ -338,10 +342,10 @@ class AssetManager {
           alphaTest:transparent?.42:0,
           side:transparent?THREE.DoubleSide:THREE.FrontSide,
         });
-        next.name=source.name||key;
-        return next;
+        material.name=source.name||key;
+        return material;
       });
-      if(!Array.isArray(list))child.material=child.material[0];
+      child.material=many?next:next[0];
       child.castShadow=false;
       child.receiveShadow=false;
     });
