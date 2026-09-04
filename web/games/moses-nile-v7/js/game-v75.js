@@ -155,7 +155,7 @@
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Корзинка запуталась в нависших зарослях папируса.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Водоворот затянул корзинку под воду.' },
     hippo:  { clearance: 'ground', radius: 1.5, size: 5.4,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
-    boat:   { clearance: 'ground', radius: 1.42, size: 3.4,  fail: 'Корзинка врезалась в борт рыбацкой лодки.' },
+    boat:   { clearance: 'ground', radius: 1.78, size: 6.4,  fail: 'Корзинка врезалась в борт рыбацкой лодки.' },
   };
 
   const PICKUPS = {
@@ -251,6 +251,8 @@
     scroll: 0,
     flowRate: 1,
     flowPhase: 0,
+    qualityWarmup: 0,
+    qualityHold: 0,
     runTime: 0,
     milestone: 0,
     best: { score: 0, distance: 0, lotuses: 0 },
@@ -433,15 +435,31 @@
     Менеджер качества. Если кадры проседают — снижаем плотность частиц,
     выключаем тени и режем разрешение. Если запас есть — возвращаем обратно.
   */
+  /*
+    Менеджер качества. Раньше он правил качество на каждом кадре: от единицы
+    до минимума доходило за шесть кадров, и каждый шаг звал setPixelRatio —
+    то есть переаллокацию буфера кадра. Шесть переаллокаций подряд на старте
+    и дёрганье туда-сюда на границе порога сами по себе давали рывки.
+
+    Теперь между правками есть пауза, первые секунды идут на замер, а шаг
+    вниз делается сразу крупным: если кадр просел, надо отдать разрешение
+    один раз, а не шесть.
+  */
   function updateQuality(dt) {
     if (!renderer || state.fallback) return;
     const fps = 1 / Math.max(.001, dt);
     state.fpsAverage = mix(state.fpsAverage, fps, .04);
-    if (state.fpsAverage < 50 && state.quality > .35) {
-      state.quality = Math.max(.35, state.quality - .12);
+    state.qualityWarmup = (state.qualityWarmup || 0) + dt;
+    if (state.qualityWarmup < 2.5) return;
+    state.qualityHold = (state.qualityHold || 0) - dt;
+    if (state.qualityHold > 0) return;
+    if (state.fpsAverage < 46 && state.quality > .35) {
+      state.quality = Math.max(.35, state.quality - .22);
+      state.qualityHold = 2.2;
       applyQuality();
-    } else if (state.fpsAverage > 58 && state.quality < 1) {
-      state.quality = Math.min(1, state.quality + .04);
+    } else if (state.fpsAverage > 57 && state.quality < 1) {
+      state.quality = Math.min(1, state.quality + .1);
+      state.qualityHold = 3.5;
       applyQuality();
     }
   }
@@ -1905,7 +1923,7 @@
         чтобы на поверхности лежал лист, а стебли ушли под воду.
       */
       const fitted = model.userData.fittedSize?.y || 0;
-      model.position.y += realLotus ? -fitted * .62 : .055;
+      model.position.y += realLotus ? -fitted * .48 : .055;
       model.rotation.y = Math.PI * .15;
       model.name = 'V751ProjectLotusModel';
       group.add(model);
@@ -2556,13 +2574,19 @@
       const wrap = new THREE.Group();
       wrap.name = 'V752EgyptianShip';
       // Модель развёрнута вдоль своей оси X, русло идёт по Z.
-      ship.rotation.y = Math.PI / 2 + (hash(state.elapsed, 88) - .5) * .34;
       /*
-        cloneModel ставит модель килем на ноль. Вся ладья вместе с мачтой и
-        парусом — полтора метра, из них корпус едва полметра: прежние −0.24
-        плюс −0.16 в анимации топили её целиком. Осадка теперь по корпусу.
+        Корпус модели вытянут вдоль своей оси Z, парус натянут поперёк —
+        плоскостью XY. Прежний разворот на 90° клал ладью поперёк русла, и
+        парус вставал к игроку ребром: в кадре оставались корпус да рея.
+        Без разворота ладья идёт навстречу течению и парус виден целиком.
       */
-      ship.position.y = 0;
+      ship.rotation.y = Math.PI + (hash(state.elapsed, 88) - .5) * .4;
+      /*
+        cloneModel уже поставил модель килем на ноль, сдвинув position.y на
+        −minY. Присвоение затирало этот сдвиг и роняло ладью на пол-корпуса
+        под воду — отсюда и «тонет». Осадку добавляем поверх посадки.
+      */
+      ship.position.y += -.05;
       wrap.add(ship);
       wrap.userData.assetSource = 'models/v75/ship.glb';
       return wrap;
@@ -2589,6 +2613,12 @@
     group.userData.assetSource = 'project-procedural';
     return mergeByMaterial(group);
   }
+
+  /*
+    Кэш материалов усилителей. Объявление было потеряно при переписывании
+    лодки, и первый же собранный усилитель ронял исключение прямо в кадре.
+  */
+  const shrineMaterials = {};
 
   function shrineMaterial(kind) {
     if (shrineMaterials[kind]) return shrineMaterials[kind];
@@ -2956,7 +2986,7 @@
       const arc = hash(z, 43) > .78;
       for (let i = 0; i < chainLength; i += 1) {
         const item = addItem('lotus', lane, z - 2.2 - i * 2.6);
-        if (arc) item.hover = Math.sin((i + 1) / (chainLength + 1) * Math.PI) * 1.15;
+        if (arc) item.hover = Math.sin((i + 1) / (chainLength + 1) * Math.PI) * .58;
       }
     }
   }
@@ -4689,7 +4719,40 @@
     if (state.fallback) resizeFallback();
   }
 
+  /*
+    Кадр целиком под защитой. three.js перезапрашивает следующий кадр ПОСЛЕ
+    вызова обработчика: одно исключение внутри — и requestAnimationFrame
+    больше не вызывается никогда. Игра застывает намертво, страница жива, но
+    ни на что не отвечает. Именно так и умирала игра на первом же усилителе
+    из-за потерянного объявления кэша материалов. Теперь сбойный кадр
+    пропускается, ошибка пишется один раз, а цикл продолжает крутиться; если
+    сбои идут подряд — уходим в запасной режим, а не висим.
+  */
+  let frameErrors = 0;
+  let frameErrorLogged = false;
+
   function frame(now) {
+    try {
+      frameBody(now);
+      frameErrors = 0;
+    } catch (error) {
+      frameErrors += 1;
+      if (!frameErrorLogged) {
+        frameErrorLogged = true;
+        console.error('[Moses] сбой в кадре:', error);
+      }
+      window.__mosesV75FrameError = String(error?.message || error);
+      // В запасном режиме цепочку кадров держит сама игра, и сбой обрывает
+      // её раньше, чем она успеет запросить следующий кадр.
+      if (state.fallback) fallbackFrame = requestAnimationFrame(frame);
+      if (frameErrors > 90 && !state.fallback) {
+        console.error('[Moses] кадр падает подряд, уходим в запасной режим');
+        activateFallback('LITE READY');
+      }
+    }
+  }
+
+  function frameBody(now) {
     const seconds = now * .001;
     const dt = state.lastTime ? Math.min(.05, Math.max(.001, seconds - state.lastTime)) : .016;
     state.lastTime = seconds;

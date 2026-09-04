@@ -177,10 +177,26 @@ class AssetManager {
     clone.scale.multiplyScalar(scale);
     if(options.ground!==false)clone.position.y-=metrics.minY*scale;
     if(options.center!==false){clone.position.x-=metrics.centerX*scale;clone.position.z-=metrics.centerZ*scale;}
-    clone.userData.fittedSize=metrics.size.clone().multiplyScalar(scale);
     const castShadow=options.castShadow!==false;
     clone.traverse(child=>{if(child.isMesh){child.castShadow=castShadow;child.receiveShadow=true;}});
-    return clone;
+    /*
+      Центровка сделана сдвигом позиции, и это работает ровно до первого
+      поворота: вращение идёт вокруг собственного начала координат объекта,
+      а геометрия внутри смещена на тот же вектор в другую сторону — модель
+      уносит на удвоенное смещение. У присланной ладьи центр геометрии стоит
+      в двух тысячах единиц от начала координат, и поворот выбрасывал её на
+      берег за пределы русла.
+
+      Поэтому наружу отдаётся оболочка: сдвиг центровки живёт внутри неё, а
+      поворот снаружи вращает модель вокруг неё самой. Все вызывающие ставят
+      rotation на то, что вернул cloneModel, так что чинится это здесь один
+      раз и для камней, брёвен, папируса и лотоса тоже.
+    */
+    const pivot=new THREE.Group();
+    pivot.name=clone.name||name;
+    pivot.add(clone);
+    pivot.userData.fittedSize=metrics.size.clone().multiplyScalar(scale);
+    return pivot;
   }
 
   _tryLoad(url){

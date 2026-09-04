@@ -126,6 +126,9 @@ for (const token of [
   // Модели, присланные владельцем игры: скинованный бегемот с костью челюсти,
   // египетская ладья, папирус и лотос.
   'buildRiggedHippo', 'HeadJaw_019', 'V752RiggedHippo', 'V752EgyptianShip',
+  // Кадр под защитой: three перезапрашивает следующий кадр ПОСЛЕ вызова
+  // обработчика, поэтому одно исключение внутри убивало игру навсегда.
+  'function frameBody(', 'window.__mosesV75FrameError',
 ]) {
   if (!game.includes(token)) throw new Error(`The Nile scene is missing ${token}`);
 }
@@ -238,6 +241,15 @@ try {
   await page.waitForTimeout(140);
   const diving = await page.evaluate(() => ({ y: window.__mosesV75State?.y ?? 0, dive: window.__mosesV75State?.dive ?? 0 }));
   if (diving.dive <= 0 || diving.y >= 0) throw new Error(`The dive does not submerge the basket: ${JSON.stringify(diving)}`);
+
+  /*
+    Любое исключение внутри кадра ловится защитой и записывается сюда.
+    Без защиты оно убивало игровой цикл навсегда: three перезапрашивает
+    следующий кадр после вызова обработчика. Так игра однажды и умирала на
+    первом же собранном усилителе.
+  */
+  const frameError = await page.evaluate(() => window.__mosesV75FrameError || null);
+  if (frameError) throw new Error(`A frame threw during play: ${frameError}`);
   await page.waitForTimeout(350);
   const running = await page.evaluate(() => {
     const canvas = document.getElementById('fallback-canvas');
