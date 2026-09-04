@@ -2666,7 +2666,9 @@
   const TOKEN_MODELS = {
     shield: { key: 'tokenShield', size: 1.32 },
     magnet: { key: 'tokenMagnet', size: 1.24 },
-    rush:   { key: 'tokenRush',   size: 1.62 },
+    // Крылья раскинуты вширь почти на четыре единицы при высоте меньше
+    // единицы: нормировка по длинной стороне делала их полоской.
+    rush:   { key: 'tokenRush',   size: 2.2 },
     mercy:  { key: 'tokenMercy',  size: 1.16 },
   };
 

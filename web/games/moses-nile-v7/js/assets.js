@@ -312,12 +312,28 @@ class AssetManager {
   */
   _prepareToken(root,key){
     const TINT={
-      tokenRush:{color:0xdcefff,emissive:0x5fa8d8,emissiveIntensity:.34,roughness:.52},
-      tokenMercy:{color:0xff5f76,emissive:0x8f1c33,emissiveIntensity:.22,roughness:.42},
-      tokenShield:{emissive:0x1d5c56,emissiveIntensity:.16},
-      tokenMagnet:{emissive:0x6b4a16,emissiveIntensity:.14},
+      tokenRush:{color:0xdcefff,emissive:0x5fa8d8,emissiveIntensity:.34,roughness:.52,metalness:0},
+      tokenMercy:{color:0xff5f76,emissive:0x8f1c33,emissiveIntensity:.22,roughness:.42,metalness:0},
+      // У щита собственные цвета почти чёрные (#1b0c03 и #222222): на воде он
+      // читался тёмным блином. Поднимаем яркость, не трогая разницу между
+      // деревом, ободом и рукоятью.
+      tokenShield:{emissive:0x2a1608,emissiveIntensity:.10,brighten:5.4,floor:.16},
+      // Корзинка приехала с metallicFactor 1, а карту металличности пришлось
+      // снять ради веса: полностью металлический материал без карты окружения
+      // рисуется чёрным.
+      tokenMagnet:{emissive:0x6b4a16,emissiveIntensity:.14,metalness:.05,brighten:1.35},
     };
     const tint=TINT[key]||{};
+    const lift=color=>{
+      if(tint.brighten)color.multiplyScalar(tint.brighten);
+      if(tint.floor){
+        color.r=Math.max(color.r,tint.floor);
+        color.g=Math.max(color.g,tint.floor);
+        color.b=Math.max(color.b,tint.floor);
+      }
+      color.r=Math.min(1,color.r);color.g=Math.min(1,color.g);color.b=Math.min(1,color.b);
+      return color;
+    };
     root.traverse(child=>{
       if(!child.isMesh)return;
       if(!child.geometry.attributes.normal)child.geometry.computeVertexNormals();
@@ -331,9 +347,11 @@ class AssetManager {
         const transparent=source.transparent===true||source.alphaTest>0;
         const material=new THREE.MeshStandardMaterial({
           map:source.map||null,
-          color:(tint.color!==undefined?new THREE.Color(tint.color):(source.color?source.color.clone():new THREE.Color(0xffffff))),
+          color:(tint.color!==undefined?new THREE.Color(tint.color):lift(source.color?source.color.clone():new THREE.Color(0xffffff))),
           roughness:tint.roughness??(typeof source.roughness==='number'?source.roughness:.6),
-          metalness:typeof source.metalness==='number'?source.metalness:0,
+          // Металличность без своей карты держим низкой: в этой сцене нет
+          // полноценного окружения, и единичный металл выходит чёрным пятном.
+          metalness:tint.metalness??(source.metalnessMap?(source.metalness??0):Math.min(.35,source.metalness??0)),
           emissive:new THREE.Color(tint.emissive??0x000000),
           emissiveIntensity:tint.emissiveIntensity??0,
           // Перья с альфой рисуем отсечением, а не смешиванием: полупрозрачный
