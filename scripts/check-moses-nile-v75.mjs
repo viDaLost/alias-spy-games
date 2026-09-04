@@ -17,7 +17,7 @@ const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/m
 
 for (const token of [
   'V7.5.1 · LOADING',
-  'game-v75.js?v=752',
+  'game-v75.js?v=770',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
@@ -29,6 +29,9 @@ for (const token of [
   'id="pause-screen"',
   'id="scene-bg"',
   '--sky-horizon',
+  // Свои иконки HUD, экран загрузки с прогрессом и обучение при первом старте.
+  'id="ico-heart"', 'id="ico-lotus"', 'id="ico-path"', 'id="ico-basket"',
+  'id="loading-screen"', 'id="load-fill"', 'id="tutorial-screen"', 'id="help-btn"',
 ]) {
   if (!index.includes(token)) throw new Error(`V7.5.1 index is missing ${token}`);
 }
@@ -55,7 +58,6 @@ for (const token of [
   'function dive()',
   'V751PapyrusGate',
   'V751Whirlpool',
-  'V751NileHippo',
   'MESH_RANGE',
   'mergeByMaterial',
   'V751SandstormSky',
@@ -76,6 +78,9 @@ for (const token of [
   // отдал бы всем экземплярам общий скелет, и бегемоты двигались бы синхронно.
   'preloadHippoRigs', 'models/v75/hippo.glb', 'models/v75/ship.glb',
   'models/v75/papyrus.glb', 'models/v75/lotus.glb',
+  // Жетоны усилителей — тоже настоящие модели, а не лепка из примитивов.
+  'models/v75/shield.glb', 'models/v75/basket-token.glb',
+  'models/v75/wings.glb', 'models/v75/heart.glb', '_prepareToken',
 ]) {
   if (!assets.includes(token)) throw new Error(`V7.5.1 asset manager is missing ${token}`);
 }
@@ -112,10 +117,17 @@ for (const token of ['V751RiverFolk', 'buildBankPeople', 'animateFolk', 'cloneRi
     throw new Error(`The bank people were removed on request but ${token} is back`);
   }
 }
+// Процедурный бегемот убран: он подменял настоящую модель всякий раз, когда
+// заготовленные скелеты кончались, и в заплыве попадались два разных зверя.
+for (const token of ['createSculptedHippo', 'V751NileHippo']) {
+  if (game.includes(token)) {
+    throw new Error(`The procedural hippo was removed but ${token} is back`);
+  }
+}
 // Пирамиды: ступенчатая кладка и известняковая облицовка вместо плоских
 // самосветящихся конусов, которые читались как бумажные треугольники.
 for (const token of [
-  'stepPyramidGeometry', 'V75DistantPyramid', 'V751NileHippo', 'duneHeight', 'contactShadowTexture',
+  'stepPyramidGeometry', 'V75DistantPyramid', 'duneHeight', 'contactShadowTexture',
   // Дно Нила из настоящих фотограмметрических карт и собранный вручную
   // папирус вместо широколистного Plant_2 у самой воды.
   'V751NileBed', 'papyrusClumpParts', 'V751BankBroadleaf',
@@ -126,6 +138,10 @@ for (const token of [
   // Модели, присланные владельцем игры: скинованный бегемот с костью челюсти,
   // египетская ладья, папирус и лотос.
   'buildRiggedHippo', 'HeadJaw_019', 'V752RiggedHippo', 'V752EgyptianShip',
+  'buildTokenModel', 'TOKEN_MODELS',
+  // Крокодилы больше не сходятся в одну точку, бегемот не приезжает напоказ.
+  'separateCrocs', 'CROC_KEEPOUT', 'HIPPO_REVEAL', 'hippoAvailable',
+  'openTutorialOnFirstRun', 'TUTORIAL_KEY', 'finishLoading', 'setProgress',
   // Кадр под защитой: three перезапрашивает следующий кадр ПОСЛЕ вызова
   // обработчика, поэтому одно исключение внутри убивало игру навсегда.
   'function frameBody(', 'window.__mosesV75FrameError',
@@ -227,6 +243,27 @@ try {
   if (!initial.background.includes('gradient')) throw new Error(`The procedural sky gradient is not applied: ${initial.background}`);
   if (!initial.controlsInsideViewport) throw new Error('Mobile controls are clipped');
   if (!initial.badge.startsWith('V7.5.1 · LITE READY')) throw new Error(`Unexpected fallback badge: ${initial.badge}`);
+
+  // Первый запуск открывает обучение поверх меню — проверка проходит его
+  // насквозь и заодно убеждается, что шаги листаются и экран закрывается.
+  const tutorialVisible = await page.evaluate(() => !document.getElementById('tutorial-screen')?.classList.contains('hidden'));
+  if (!tutorialVisible) throw new Error('The first-run tutorial did not open');
+  const tutorialSteps = await page.evaluate(() => document.querySelectorAll('#tut-dots i').length);
+  if (tutorialSteps < 6) throw new Error(`The tutorial must cover the controls and all four power-ups, got ${tutorialSteps} steps`);
+  await page.locator('#tut-next').click();
+  await page.waitForTimeout(120);
+  const secondStep = await page.evaluate(() => document.querySelector('#tut-dots i:nth-child(2)')?.classList.contains('is-live'));
+  if (!secondStep) throw new Error('The tutorial does not advance to the next step');
+  await page.locator('#tut-skip').click();
+  await page.waitForTimeout(320);
+  const tutorialClosed = await page.evaluate(() => ({
+    hidden: document.getElementById('tutorial-screen')?.classList.contains('hidden'),
+    seen: localStorage.getItem('moses-nile-tutorial-seen-v1'),
+    loading: document.body.classList.contains('is-loading'),
+    loadDone: document.getElementById('loading-screen')?.classList.contains('is-done'),
+  }));
+  if (!tutorialClosed.hidden || tutorialClosed.seen !== '1') throw new Error(`The tutorial did not close cleanly: ${JSON.stringify(tutorialClosed)}`);
+  if (tutorialClosed.loading || !tutorialClosed.loadDone) throw new Error(`The loading screen is still up after boot: ${JSON.stringify(tutorialClosed)}`);
 
   await page.locator('#start-btn').click();
   await page.waitForFunction(() => Number(document.getElementById('dist-txt')?.textContent || 0) >= 8, null, { timeout: 3_000 });

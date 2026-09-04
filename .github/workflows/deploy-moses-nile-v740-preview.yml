@@ -43,6 +43,11 @@ jobs:
           cp web/assets/models/moses-nile/nile-ship.glb .preview-v7/models/v75/ship.glb
           cp web/assets/models/moses-nile/nile-papyrus.glb .preview-v7/models/v75/papyrus.glb
           cp web/assets/models/moses-nile/nile-lotus.glb .preview-v7/models/v75/lotus.glb
+          # Жетоны усилителей: щит веры, корзинка Мириам, крылья ветра, сердце милости.
+          cp web/assets/models/moses-nile/nile-shield.glb .preview-v7/models/v75/shield.glb
+          cp web/assets/models/moses-nile/nile-basket-token.glb .preview-v7/models/v75/basket-token.glb
+          cp web/assets/models/moses-nile/nile-wings.glb .preview-v7/models/v75/wings.glb
+          cp web/assets/models/moses-nile/nile-heart.glb .preview-v7/models/v75/heart.glb
           printf '{"commit":"%s","version":"V7.5.1"}\n' "$GITHUB_SHA" > .preview-v7/build.json
           printf '/*\n  Cache-Control: no-store, no-cache, max-age=0, must-revalidate\n' > .preview-v7/_headers
 
@@ -154,7 +159,11 @@ jobs:
             models/v75/hippo.glb \
             models/v75/ship.glb \
             models/v75/papyrus.glb \
-            models/v75/lotus.glb; do
+            models/v75/lotus.glb \
+            models/v75/shield.glb \
+            models/v75/basket-token.glb \
+            models/v75/wings.glb \
+            models/v75/heart.glb; do
             test -s ".preview-v7/$asset"
           done
           node - <<'NODE'

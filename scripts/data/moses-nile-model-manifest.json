@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "delivery": "same-origin-build-extraction",
   "package": {
     "ref": "8887faf7638a4168d37583f17b1c8eec9c46dd3f",
@@ -8,10 +8,10 @@
   },
   "limits": {
     "largestAssetBytes": 3000000,
-    "totalModelBytes": 4600000,
-    "measuredTotalModelBytes": 4287307,
+    "totalModelBytes": 5000000,
+    "measuredTotalModelBytes": 4694289,
     "measuredLargestAssetBytes": 2551260,
-    "note": "Пределы документационные: их держит сборка превью, а не рантайм. Присланные владельцем модели ужаты с 19.5 МБ до 1.6 МБ."
+    "note": "Пределы документационные: их держит сборка превью, а не рантайм. Присланные владельцем модели ужаты с 24.6 МБ до 2.0 МБ."
   },
   "models": [
     {
@@ -136,6 +136,42 @@
       "license": "предоставлено владельцем игры (Sketchfab)",
       "source": "файл владельца lowpoly_lotus_flowers_and_leaves.glb, 86 КБ → 42 КБ",
       "note": "Цветок с листом кувшинки. Материал без освещения (KHR_materials_unlit) переведён в обычный PBR: иначе лотос был бы наклейкой, не реагирующей на время суток."
+    },
+    {
+      "key": "tokenShield",
+      "path": "web/assets/models/moses-nile/nile-shield.glb",
+      "triangles": 638,
+      "license": "владелец игры",
+      "source": "owner-supplied GLB (low_poly_shield.glb)",
+      "note": "Жетон «Щит веры». Ужат до одного примитива, текстур нет — только металлы материала.",
+      "bytes": 36336
+    },
+    {
+      "key": "tokenMagnet",
+      "path": "web/assets/models/moses-nile/nile-basket-token.glb",
+      "triangles": 2180,
+      "license": "владелец игры",
+      "source": "owner-supplied GLB (wicker_basket.glb)",
+      "note": "Жетон «Свет Мириам». 9456→2180 треугольников, карты до 256 px, касательные и карта металличности сняты: 4.25 МБ → 216 КБ.",
+      "bytes": 221384
+    },
+    {
+      "key": "tokenRush",
+      "path": "web/assets/models/moses-nile/nile-wings.glb",
+      "triangles": 2772,
+      "license": "владелец игры",
+      "source": "owner-supplied GLB (angel_wings.glb)",
+      "note": "Жетон «Дыхание ветра». Перо с альфой переведено в отсечение, оттенок бело-голубой по просьбе владельца.",
+      "bytes": 80336
+    },
+    {
+      "key": "tokenMercy",
+      "path": "web/assets/models/moses-nile/nile-heart.glb",
+      "triangles": 1506,
+      "license": "владелец игры",
+      "source": "owner-supplied GLB (blendertimer-heart-23.glb)",
+      "note": "Жетон «Милость». 5022→1506 треугольников, текстур нет.",
+      "bytes": 28276
     }
   ],
   "usage": {

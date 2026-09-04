@@ -6,6 +6,11 @@ class AssetManager {
     this.models={};
     this.environmentPromise=null;
     this.gameplayPromise=null;
+    this.hippoPromise=null;
+    this.hippoRigs=[];
+    this.hippoBuffer=null;
+    this.hippoTopUp=null;
+    this.hippoRigsMade=0;
     this.sources={};
   }
 
@@ -80,12 +85,19 @@ class AssetManager {
       const sources={
         crocodile:'models/v73/crocodile.glb',
         lotus:'models/v75/lotus.glb',
-        lotusFallback:'models/v73/lotus-flower.obj'
+        lotusFallback:'models/v73/lotus-flower.obj',
+        // Жетоны усилителей: щит веры, корзинка Мириам, крылья ветра и сердце
+        // милости. Раньше все четыре лепились из примитивов прямо в игре.
+        tokenShield:'models/v75/shield.glb',
+        tokenMagnet:'models/v75/basket-token.glb',
+        tokenRush:'models/v75/wings.glb',
+        tokenMercy:'models/v75/heart.glb'
       };
       await Promise.all(Object.entries(sources).map(async([key,url])=>{
         try{
           const model=await this._tryLoad(url);
-          this.models[key]=/^lotus/.test(key)?this._prepareLotus(model):this._prepareEnvironment(model,.58);
+          if(/^token/.test(key))this.models[key]=this._prepareToken(model,key);
+          else this.models[key]=/^lotus/.test(key)?this._prepareLotus(model):this._prepareEnvironment(model,.58);
           this.sources[key]=url;
           console.log(`[AssetManager] gameplay model loaded: ${key}`);
         }catch(err){
@@ -112,19 +124,21 @@ class AssetManager {
     разбирается заново под каждую копию, и у каждой свой скелет и свой микшер.
     Копий немного: больше двух-трёх бегемотов на экране не бывает.
   */
-  async preloadHippoRigs(copies=3){
+  async preloadHippoRigs(copies=5){
     if(this.hippoPromise)return this.hippoPromise;
     this.hippoPromise=(async()=>{
       const response=await fetch('models/v75/hippo.glb',{cache:'force-cache'});
       if(!response.ok)throw new Error(`hippo ${response.status}`);
-      const buffer=await response.arrayBuffer();
-      const parse=()=>new Promise((resolve,reject)=>this.gltfLoader.parse(buffer.slice(0),'',resolve,reject));
+      // Буфер держим при себе: пул скелетов доливается на ходу, когда на
+      // реке оказывается больше зверей, чем было заготовлено на загрузке.
+      this.hippoBuffer=await response.arrayBuffer();
       const rigs=[];
       for(let i=0;i<copies;i+=1){
-        const gltf=await parse();
-        rigs.push({scene:gltf.scene,animations:gltf.animations||[]});
+        const rig=await this._parseHippoRig();
+        if(rig)rigs.push(rig);
       }
       this.hippoRigs=rigs;
+      this.hippoRigsMade=rigs.length;
       this.sources.hippo='models/v75/hippo.glb';
       console.log(`[AssetManager] hippo rigs ready: ${rigs.length}`);
       return rigs;
@@ -136,7 +150,44 @@ class AssetManager {
     return this.hippoPromise;
   }
 
-  takeHippoRig(){return this.hippoRigs&&this.hippoRigs.length?this.hippoRigs.pop():null;}
+  async _parseHippoRig(){
+    if(!this.hippoBuffer)return null;
+    const gltf=await new Promise((resolve,reject)=>this.gltfLoader.parse(this.hippoBuffer.slice(0),'',resolve,reject));
+    return {scene:gltf.scene,animations:gltf.animations||[]};
+  }
+
+  /*
+    Долив скелетов. Старой процедурной модели бегемота больше нет, поэтому
+    пустой пул означал бы препятствие без вида — вместо этого пул тихо
+    доливается в фоне до потолка, а генератор рядов до тех пор просто не
+    ставит бегемота.
+  */
+  hippoRigCount(){return this.hippoRigs?this.hippoRigs.length:0;}
+
+  topUpHippoRigs(target=5,ceiling=8){
+    if(this.hippoTopUp||!this.hippoBuffer)return;
+    if(this.hippoRigsMade>=ceiling)return;
+    if(this.hippoRigCount()>=target)return;
+    this.hippoTopUp=(async()=>{
+      try{
+        const rig=await this._parseHippoRig();
+        if(rig){
+          this.hippoRigs.push(rig);
+          this.hippoRigsMade+=1;
+        }
+      }catch(err){
+        console.warn('[AssetManager] hippo rig top-up',err?.message||err);
+      }finally{
+        this.hippoTopUp=null;
+      }
+    })();
+  }
+
+  takeHippoRig(){
+    const rig=this.hippoRigs&&this.hippoRigs.length?this.hippoRigs.pop():null;
+    this.topUpHippoRigs();
+    return rig;
+  }
 
   hasModel(name){return !!this.models[name];}
 
@@ -251,6 +302,52 @@ class AssetManager {
     цветок. Здесь всё сливается в один меш, а цвет лепестковых слоёв
     переезжает в вершинные цвета.
   */
+  /*
+    Жетоны усилителей приезжают готовыми: у щита — свои металлы, у корзинки
+    запечённая плетёнка, у крыльев перо с альфой, у сердца чистый цвет. Их
+    нельзя гонять ни через _prepareEnvironment (он перекрашивает по именам
+    материалов), ни через _prepareLotus (бестекстурные модели он выкрасит в
+    розовый). Здесь только приведение к MeshStandardMaterial, нормали, если
+    их нет, и один целевой оттенок — крылья владелец просил бело-голубые.
+  */
+  _prepareToken(root,key){
+    const TINT={
+      tokenRush:{color:0xdcefff,emissive:0x5fa8d8,emissiveIntensity:.34,roughness:.52},
+      tokenMercy:{color:0xff5f76,emissive:0x8f1c33,emissiveIntensity:.22,roughness:.42},
+      tokenShield:{emissive:0x1d5c56,emissiveIntensity:.16},
+      tokenMagnet:{emissive:0x6b4a16,emissiveIntensity:.14},
+    };
+    const tint=TINT[key]||{};
+    root.traverse(child=>{
+      if(!child.isMesh)return;
+      if(!child.geometry.attributes.normal)child.geometry.computeVertexNormals();
+      const list=Array.isArray(child.material)?child.material:[child.material];
+      child.material=list.map(source=>{
+        if(!source)return source;
+        const transparent=source.transparent===true||source.alphaTest>0;
+        const next=new THREE.MeshStandardMaterial({
+          map:source.map||null,
+          color:(tint.color!==undefined?new THREE.Color(tint.color):(source.color?source.color.clone():new THREE.Color(0xffffff))),
+          roughness:tint.roughness??(typeof source.roughness==='number'?source.roughness:.6),
+          metalness:typeof source.metalness==='number'?source.metalness:0,
+          emissive:new THREE.Color(tint.emissive??0x000000),
+          emissiveIntensity:tint.emissiveIntensity??0,
+          // Перья с альфой рисуем отсечением, а не смешиванием: полупрозрачный
+          // жетон над водой сортируется поверх пены и мерцает.
+          transparent:false,
+          alphaTest:transparent?.42:0,
+          side:transparent?THREE.DoubleSide:THREE.FrontSide,
+        });
+        next.name=source.name||key;
+        return next;
+      });
+      if(!Array.isArray(list))child.material=child.material[0];
+      child.castShadow=false;
+      child.receiveShadow=false;
+    });
+    return root;
+  }
+
   _prepareLotus(root){
     /*
       Настоящая модель лотоса приезжает со своей запечённой текстурой и

@@ -72,6 +72,8 @@ function build() {
   for (const [from, to] of [
     ['nile-hippo.glb', 'hippo.glb'], ['nile-ship.glb', 'ship.glb'],
     ['nile-papyrus.glb', 'papyrus.glb'], ['nile-lotus.glb', 'lotus.glb'],
+    ['nile-shield.glb', 'shield.glb'], ['nile-basket-token.glb', 'basket-token.glb'],
+    ['nile-wings.glb', 'wings.glb'], ['nile-heart.glb', 'heart.glb'],
   ]) copy(path.join(repo, 'web/assets/models/moses-nile', from), path.join(site, 'models/v75', to));
   fs.writeFileSync(path.join(site, 'build.json'), '{"commit":"local","version":"V7.5.1"}\n');
 

@@ -34,6 +34,7 @@
   const THREE = window.THREE;
   const BEST_KEY = 'moses-nile-best-v2';
   const HINT_KEY = 'moses-nile-hint-seen-v2';
+  const TUTORIAL_KEY = 'moses-nile-tutorial-seen-v1';
 
   const TUNE = {
     baseSpeed: 18.5,
@@ -205,6 +206,20 @@
     rush: pick('rush-badge'),
     toast: pick('toast-layer'),
     loadingNote: pick('loading-note'),
+    loadingScreen: pick('loading-screen'),
+    tutorial: pick('tutorial-screen'),
+    tutTitle: pick('tut-title'),
+    tutText: pick('tut-text'),
+    tutEffect: pick('tut-effect'),
+    tutDots: pick('tut-dots'),
+    tutBack: pick('tut-back'),
+    tutNext: pick('tut-next'),
+    tutSkip: pick('tut-skip'),
+    tutScenes: Array.from(document.querySelectorAll('.tut-scene')),
+    help: pick('help-btn'),
+    loadFill: pick('load-fill'),
+    loadPercent: pick('load-percent'),
+    loadLabel: pick('load-label'),
     hint: pick('hint-layer'),
     badge: pick('version-badge'),
     grade: pick('scene-grade'),
@@ -491,20 +506,31 @@
     кадр вставал колом.
   */
   let texturesPending = 0;
+  let texturesTotal = 0;
   const textureWaiters = [];
   function textureSettled() {
     texturesPending = Math.max(0, texturesPending - 1);
+    onTextureProgress?.();
     if (texturesPending === 0) {
       while (textureWaiters.length) textureWaiters.pop()();
     }
   }
-  function waitForTextures(timeout = 9000) {
-    if (texturesPending === 0) return Promise.resolve();
+  /*
+    Пока карты песка, воды и камня едут, полоса загрузки идёт по-настоящему:
+    доля посчитанных к общему числу заявленных. Раньше на этом шаге экран
+    просто замирал на одной надписи, и загрузка выглядела зависшей.
+  */
+  let onTextureProgress = null;
+  function waitForTextures(timeout = 9000, onProgress = null) {
+    onTextureProgress = onProgress;
+    if (texturesPending === 0) { onTextureProgress = null; return Promise.resolve(); }
+    onProgress?.();
     return new Promise((resolve) => {
-      const done = () => { clearTimeout(timer); resolve(); };
+      const done = () => { clearTimeout(timer); onTextureProgress = null; resolve(); };
       const timer = setTimeout(() => {
         const at = textureWaiters.indexOf(done);
         if (at >= 0) textureWaiters.splice(at, 1);
+        onTextureProgress = null;
         resolve();
       }, timeout);
       textureWaiters.push(done);
@@ -514,6 +540,7 @@
   function makeTexture(path, repeatX, repeatY, material, kind = 'map', onLoad = null) {
     const loader = new THREE.TextureLoader();
     texturesPending += 1;
+    texturesTotal += 1;
     loader.load(path, (texture) => {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(repeatX, repeatY);
@@ -2352,6 +2379,15 @@
   const HIPPO_JAW_RANGE = .95;
   // Модель уже смотрит вдоль +Z, то есть навстречу игроку: доворачивать не надо.
   const HIPPO_FACING = 0;
+  /*
+    Засада бегемота. До HIPPO_REVEAL его нет в кадре совсем, дальше он
+    выходит из-под воды за HIPPO_RISE метров — рывком, а не всплывая издали.
+    Кривая с ускорением к концу: сначала под водой поднимается тень, у самой
+    поверхности зверь выходит разом.
+  */
+  const HIPPO_REVEAL = -40;
+  const HIPPO_RISE = 22;
+  const riseCurve = (v) => v * v * (3 - 2 * v);
 
   function buildRiggedHippo(rig) {
     const model = rig.scene;
@@ -2410,156 +2446,26 @@
     return group;
   }
 
+  /*
+    Бегемот бывает только один — тот, что приехал скинованным из hippo.glb.
+    Процедурной лепки из шаров и цилиндра больше нет: она подменяла настоящую
+    модель всякий раз, когда заготовленные скелеты кончались, и в заплыве
+    попадались два разных зверя. Если скелета нет, меша не будет — но и
+    бегемота в ряд не поставят, за этим следит hippoAvailable().
+  */
   function createHippo() {
     const rig = window.assetManager?.takeHippoRig?.();
-    if (rig) {
-      const built = buildRiggedHippo(rig);
-      if (built) return built;
-    }
-    return createSculptedHippo();
+    if (!rig) return null;
+    return buildRiggedHippo(rig);
   }
 
-  function createSculptedHippo() {
-    /*
-      Раньше бегемот был склеен из шаров и цилиндра: силуэт разваливался на
-      части, а морда читалась как труба. Теперь туша и череп вылеплены одной
-      непрерывной оболочкой (loft по хребту), нижняя челюсть сидит на своём
-      шарнире, а шкура мокрая — тёмная, с низкой шероховатостью во впадинах.
-      Морда смотрит в +Z, как и у прежней модели, поэтому анимация пасти в
-      updateItems3D продолжает работать без правок.
-    */
-    const group = new THREE.Group();
-    const hide = window.NileMaterials?.pbr?.('hide', {
-      color: 0x6c6159,
-      roughness: .78,
-      metalness: 0,
-      repeat: 6,
-      normalScale: .55,
-      envMapIntensity: .42,
-      skyReflection: .2,
-    }) || new THREE.MeshStandardMaterial({ color: 0x4a3a3c, roughness: .5, metalness: .06 });
-    const inner = new THREE.MeshStandardMaterial({ color: 0x8f4a52, roughness: .58, metalness: 0, side: THREE.DoubleSide });
-    const tooth = new THREE.MeshStandardMaterial({ color: 0xdfd4bc, roughness: .55, metalness: 0 });
-
-    // Туша от хвоста до затылка: шеи у бегемота почти нет, сечения к голове
-    // сужаются едва заметно — иначе силуэт читается как свиной.
-    const body = new THREE.Mesh(loft([
-      { z: -2.10, y: .40, rx: .20, ry: .19, power: .92, belly: 1 },
-      { z: -1.80, y: .33, rx: .50, ry: .44, power: .86, belly: .95 },
-      { z: -1.30, y: .26, rx: .82, ry: .68, power: .80, belly: .86 },
-      { z: -0.70, y: .20, rx: .99, ry: .80, power: .76, belly: .80 },
-      { z: -0.10, y: .18, rx: 1.04, ry: .85, power: .74, belly: .78 },
-      { z: 0.40, y: .20, rx: 1.01, ry: .82, power: .74, belly: .80 },
-      { z: 0.76, y: .24, rx: .94, ry: .75, power: .78, belly: .84 },
-    ], 22, { capFront: false }), hide);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    group.add(body);
-
-    /*
-      Череп и морда. Прежние сечения сужались к носу, и голова читалась
-      свиной. У бегемота наоборот: морда шире черепа и обрублена почти
-      прямоугольником — по этому силуэту его и узнают. Показатель степени
-      сечения снижен до 0.5, то есть сечение почти квадратное.
-    */
-    const muzzle = new THREE.Mesh(loft([
-      { z: 0.68, y: .25, rx: .92, ry: .71, power: .80, belly: .86 },
-      { z: 1.04, y: .26, rx: 1.00, ry: .60, power: .66, belly: .70 },
-      { z: 1.44, y: .26, rx: 1.10, ry: .52, power: .56, belly: .58 },
-      { z: 1.82, y: .26, rx: 1.16, ry: .48, power: .50, belly: .54 },
-      { z: 2.08, y: .26, rx: 1.14, ry: .45, power: .50, belly: .54 },
-      { z: 2.24, y: .26, rx: .92, ry: .38, power: .60, belly: .62 },
-    ], 22, { capBack: false }), hide);
-    muzzle.castShadow = true;
-    muzzle.receiveShadow = true;
-    group.add(muzzle);
-
-    // Нижняя челюсть на шарнире у скулы: положительный поворот по X опускает
-    // её вниз — ровно то, что ждёт анимация в updateItems3D.
-    const jaw = new THREE.Group();
-    jaw.position.set(0, .07, .74);
-    const jawMesh = new THREE.Mesh(loft([
-      { z: 0.00, y: 0, rx: .74, ry: .20, power: .74, belly: .9 },
-      { z: 0.44, y: 0, rx: .90, ry: .21, power: .62, belly: .95 },
-      { z: 0.90, y: 0, rx: 1.00, ry: .20, power: .56, belly: .95 },
-      { z: 1.28, y: 0, rx: 1.02, ry: .19, power: .54, belly: .92 },
-      { z: 1.52, y: 0, rx: .80, ry: .16, power: .62, belly: .9 },
-    ], 20), hide);
-    jawMesh.castShadow = true;
-    jaw.add(jawMesh);
-    const tongue = new THREE.Mesh(new THREE.SphereGeometry(.4, 14, 9), inner);
-    tongue.scale.set(1.25, .22, 2);
-    tongue.position.set(0, .07, .66);
-    jaw.add(tongue);
-    for (const side of [-1, 1]) {
-      // Клыки у бегемота огромные и загнуты наружу — в раскрытой пасти это
-      // первое, что читается.
-      const canine = new THREE.Mesh(new THREE.ConeGeometry(.155, .74, 9), tooth);
-      canine.position.set(side * .68, .36, .34);
-      canine.rotation.set(-.12, 0, side * -.2);
-      jaw.add(canine);
-      const incisor = new THREE.Mesh(new THREE.ConeGeometry(.075, .34, 7), tooth);
-      incisor.position.set(side * .22, .21, 1.2);
-      incisor.rotation.x = -.22;
-      jaw.add(incisor);
-    }
-    jaw.userData.noMerge = true;
-    group.add(jaw);
-    group.userData.jaw = jaw;
-
-    // Нёбо: без него в раскрытой пасти видно небо насквозь.
-    const palate = new THREE.Mesh(new THREE.SphereGeometry(.72, 16, 9, 0, Math.PI * 2, 0, Math.PI * .5), inner);
-    palate.scale.set(1.34, .32, 1.62);
-    palate.position.set(0, .2, 1.3);
-    palate.rotation.x = Math.PI;
-    group.add(palate);
-
-    // Глаза-перископы и ноздри на макушке: бегемот смотрит и дышит,
-    // не поднимаясь из воды, — этот силуэт и делает его узнаваемым.
-    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xd8c79a, emissive: 0x3a3010, emissiveIntensity: .16, roughness: .42 });
-    const pupil = new THREE.MeshStandardMaterial({ color: 0x150f0c, roughness: .3, metalness: 0 });
-    for (const side of [-1, 1]) {
-      const socket = new THREE.Mesh(new THREE.SphereGeometry(.24, 14, 10), hide);
-      socket.position.set(side * .6, .8, .82);
-      socket.scale.set(1.05, .82, 1.1);
-      socket.castShadow = true;
-      group.add(socket);
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(.098, 12, 9), eyeMaterial);
-      eye.position.set(side * .61, .9, .92);
-      group.add(eye);
-      const iris = new THREE.Mesh(new THREE.SphereGeometry(.055, 10, 8), pupil);
-      iris.position.set(side * .62, .9, .99);
-      group.add(iris);
-
-      // Уши у бегемота крошечные и сидят на самом затылке.
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(.16, 12, 9, 0, Math.PI * 2, 0, Math.PI * .6), hide);
-      ear.scale.set(.78, 1.15, .5);
-      ear.rotation.set(-.3, 0, side * .38);
-      ear.position.set(side * .58, .9, .18);
-      group.add(ear);
-
-      // Ноздри вынесены на передние углы морды: над водой видно именно их.
-      const nostril = new THREE.Mesh(new THREE.SphereGeometry(.21, 12, 9), hide);
-      nostril.position.set(side * .42, .56, 2.02);
-      nostril.scale.set(1, .74, .95);
-      group.add(nostril);
-      const hole = new THREE.Mesh(new THREE.SphereGeometry(.085, 10, 8), new THREE.MeshStandardMaterial({ color: 0x241a18, roughness: .45 }));
-      hole.position.set(side * .42, .68, 2.05);
-      hole.scale.set(1, .5, .8);
-      group.add(hole);
-    }
-
-    // Складки на загривке — мелочь, по которой силуэт читается вблизи.
-    for (let i = 0; i < 3; i += 1) {
-      const fold = new THREE.Mesh(new THREE.TorusGeometry(.78 - i * .06, .055, 8, 20, Math.PI), hide);
-      fold.rotation.set(Math.PI / 2, 0, 0);
-      fold.position.set(0, .36, .24 - i * .28);
-      group.add(fold);
-    }
-
-    group.name = 'V751NileHippo';
-    group.userData.assetSource = 'project-procedural-loft';
-    return mergeByMaterial(group);
+  // Есть ли из чего собрать бегемота: готовый меш в пуле или свободный скелет.
+  function hippoAvailable() {
+    // В запасном 2D-режиме меши не строятся вовсе — там бегемот рисуется
+    // на холсте, и скелет ему не нужен.
+    if (state.fallback) return true;
+    if (pools.get('hippo')?.length) return true;
+    return (window.assetManager?.hippoRigCount?.() || 0) > 0;
   }
 
   function createBoat() {
@@ -2744,21 +2650,51 @@
     return mergeByMaterial(group);
   }
 
+  /*
+    Жетон усилителя. Владелец прислал четыре модели — щит, корзинку Мириам,
+    крылья и сердце, — и они заменяют собой прежние процедурные скарабея,
+    систр, крылья Исиды и анкх. Лепка остаётся запасной: если пакет моделей
+    не приехал, игрок всё равно увидит жетон, а не пустое место.
+  */
   const TOKEN_BUILDERS = {
     shield: buildScarab,
     magnet: buildSistrum,
     rush: buildWings,
     mercy: buildAnkh,
   };
+  // Ключ модели в менеджере и высота жетона над водой, метры.
+  const TOKEN_MODELS = {
+    shield: { key: 'tokenShield', size: 1.32 },
+    magnet: { key: 'tokenMagnet', size: 1.24 },
+    rush:   { key: 'tokenRush',   size: 1.62 },
+    mercy:  { key: 'tokenMercy',  size: 1.16 },
+  };
+
+  function buildTokenModel(type) {
+    const spec = TOKEN_MODELS[type];
+    if (!spec) return null;
+    const model = window.assetManager?.cloneModel?.(spec.key, spec.size);
+    if (!model) return null;
+    // cloneModel сажает модель подошвой на ноль — жетон должен висеть
+    // серединой на оси кольца, иначе он проваливается сквозь ореол.
+    const fitted = model.userData.fittedSize?.y || spec.size;
+    model.position.y -= fitted * .5;
+    const wrap = new THREE.Group();
+    wrap.name = `V753Token_${type}`;
+    wrap.add(model);
+    wrap.userData.assetSource = `models/v75/${spec.key}`;
+    return wrap;
+  }
 
   function createPowerup(type) {
     const group = new THREE.Group();
     const colors = { shield: 0x7fc6bc, magnet: 0xe5be64, rush: 0x8fd3e6, mercy: 0xe58aa0 };
     const color = colors[type] || 0xe5be64;
 
-    const token = (TOKEN_BUILDERS[type] || buildAnkh)();
+    const real = buildTokenModel(type);
+    const token = real || (TOKEN_BUILDERS[type] || buildAnkh)();
     token.position.y = .62;
-    token.scale.setScalar(1.75);
+    token.scale.setScalar(real ? 1 : 1.75);
     group.add(token);
     group.userData.token = token;
 
@@ -2780,7 +2716,7 @@
       group.add(halo);
       group.userData.halo = haloMaterial;
     }
-    group.userData.assetSource = 'project-owned-egyptian-token';
+    group.userData.assetSource = real ? real.userData.assetSource : 'project-owned-egyptian-token';
     return group;
   }
 
@@ -2825,7 +2761,12 @@
     процедурные карты — и кадр вставал. Теперь всё это делается на загрузке,
     до того как игрок нажал «Отплыть», а в игре пул только выдаёт готовое.
   */
-  const PREWARM = { rock: 4, log: 3, croc: 2, gate: 2, vortex: 2, hippo: 3, boat: 2, lotus: 8 };
+  const PREWARM = {
+    rock: 4, log: 3, croc: 2, gate: 2, vortex: 2, hippo: 3, boat: 2, lotus: 8,
+    // Жетоны усилителей теперь настоящие модели: их клонирование и подготовка
+    // материалов должны пройти на заставке, а не в первый подбор посреди реки.
+    shield: 2, magnet: 2, rush: 2, mercy: 2,
+  };
 
   function prewarmPools() {
     for (const [type, count] of Object.entries(PREWARM)) {
@@ -2931,6 +2872,9 @@
       for (let i = 0; i < count; i += 1) {
         const lane = order[i];
         let type = weightedType(z + lane * 3.7 + rowIndex, weights);
+        // Скелеты бегемота ещё не подъехали — ставим камень, у него та же
+        // «наглухо» закрытая дорожка, поэтому проходимость ряда не меняется.
+        if (type === 'hippo' && !hippoAvailable()) type = 'rock';
         if (OBSTACLES[type].clearance === 'ground' && ground >= 2) {
           type = hash(z + lane, 17) > .5 ? 'log' : 'gate';
         }
@@ -3073,11 +3017,20 @@
     return shadow;
   }
 
+  /*
+    Высота, на которой предмет ждёт, пока до него не дошла анимация: дальше
+    ста восьми метров она не считается вовсе. Раньше все ждали на нуле, у
+    самой воды, и хищники ехали шестьдесят метров по поверхности, а на подходе
+    демонстративно ныряли — игрок видел засаду задолго до неё. Теперь
+    крокодил и бегемот ждут под водой, где им и место.
+  */
+  const IDLE_Y = { hippo: -4.2, croc: -1.35, lotus: -.02 };
+
   function attachMesh(item) {
     if (item.mesh || !scene || state.fallback) return;
     const mesh = acquireMesh(item.type);
     if (!mesh) return;
-    mesh.position.set(item.x, item.type === 'lotus' ? -.02 : .02, item.z);
+    mesh.position.set(item.x, IDLE_Y[item.type] ?? .02, item.z);
     mesh.userData.type = item.type;
     const cast = shadowsOn && !!item.clearance;
     mesh.traverse((node) => {
@@ -3138,7 +3091,8 @@
   }
 
   function setBuff(node, active) {
-    if (node) node.style.display = active ? 'block' : 'none';
+    // Плашка стала флексом ради иконки — block её бы разложил в строку.
+    if (node) node.style.display = active ? 'flex' : 'none';
   }
 
   function resetGame() {
@@ -3206,6 +3160,117 @@
     showHintOnce();
     toast(BIOMES[0].title, BIOMES[0].subtitle, 'gold');
     haptic('medium');
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7.1 Обучение                                                        *
+   * ------------------------------------------------------------------ */
+
+  /*
+    Шесть шагов: управление, лотосы и четыре усилителя. Числа берутся из
+    TUNE, а не переписываются руками, — иначе обучение и игра однажды
+    разъедутся, и щит будет держаться в тексте восемь секунд, а на воде пять.
+  */
+  const TUTORIAL = [
+    {
+      scene: 'move',
+      title: 'Ведите корзинку',
+      text: 'Три дорожки на реке. Меняйте дорожку кнопками, стрелками или свайпом. Свайп вверх поднимает корзинку на волне — через бревно; свайп вниз топит её — под нависшим папирусом.',
+      effect: '',
+    },
+    {
+      scene: 'lotus',
+      title: 'Лотосы',
+      text: 'Главная добыча. Каждый цветок наращивает комбо и множитель очков — собранные подряд стоят дороже, чем поодиночке.',
+      effect: '+12 очков за цветок, умножается на комбо',
+    },
+    {
+      scene: 'shield',
+      title: 'Щит веры',
+      text: 'Вокруг корзинки встаёт пузырь. Один удар — камень, крокодил, борт ладьи — пройдёт мимо, и путь продолжится без потери сердца.',
+      effect: () => `Держится ${TUNE.shieldTime} секунд · гасит один удар`,
+    },
+    {
+      scene: 'magnet',
+      title: 'Свет Мириам',
+      text: 'Корзинку окружает золотое сияние, и лотосы сами сворачивают к ней с соседних дорожек. Комбо при этом почти не рвётся.',
+      effect: () => `Держится ${TUNE.magnetTime} секунд · лотосы идут в руки`,
+    },
+    {
+      scene: 'rush',
+      title: 'Дыхание ветра',
+      text: 'Течение подхватывает корзинку и несёт вперёд. Метры набегают быстрее, но и препятствия подходят быстрее — смотрите на дорожку вперёд.',
+      effect: () => `Держится ${TUNE.rushTime} секунд · скорость ×${TUNE.rushBoost}`,
+    },
+    {
+      scene: 'mercy',
+      title: 'Милость',
+      text: 'Возвращает потерянное сердце. Если все три на месте, милость обращается в очки — подбирать её всё равно стоит.',
+      effect: () => `+1 сердце (до ${TUNE.maxHearts}) · иначе +120 очков`,
+    },
+  ];
+
+  let tutorialStep = 0;
+  let tutorialOpen = false;
+
+  function renderTutorial() {
+    const step = TUTORIAL[tutorialStep];
+    if (!step) return;
+    for (const scene of dom.tutScenes) {
+      scene.classList.toggle('is-live', scene.dataset.scene === step.scene);
+    }
+    if (dom.tutTitle) dom.tutTitle.textContent = step.title;
+    if (dom.tutText) dom.tutText.textContent = step.text;
+    if (dom.tutEffect) dom.tutEffect.textContent = typeof step.effect === 'function' ? step.effect() : step.effect;
+    if (dom.tutDots) {
+      dom.tutDots.innerHTML = '';
+      for (let i = 0; i < TUTORIAL.length; i += 1) {
+        const dot = document.createElement('i');
+        if (i === tutorialStep) dot.className = 'is-live';
+        dom.tutDots.appendChild(dot);
+      }
+    }
+    if (dom.tutBack) dom.tutBack.style.visibility = tutorialStep === 0 ? 'hidden' : 'visible';
+    if (dom.tutNext) dom.tutNext.textContent = tutorialStep === TUTORIAL.length - 1 ? 'ПОНЯТНО' : 'ДАЛЬШЕ';
+    if (dom.tutSkip) dom.tutSkip.style.visibility = tutorialStep === TUTORIAL.length - 1 ? 'hidden' : 'visible';
+  }
+
+  function openTutorial(step = 0) {
+    if (!dom.tutorial) return;
+    tutorialStep = clamp(step, 0, TUTORIAL.length - 1);
+    tutorialOpen = true;
+    renderTutorial();
+    dom.tutorial.classList.remove('hidden');
+    dom.body.classList.add('is-tutorial');
+    dom.startScreen?.classList.add('hidden');
+  }
+
+  function closeTutorial() {
+    if (!dom.tutorial) return;
+    tutorialOpen = false;
+    dom.tutorial.classList.add('hidden');
+    dom.body.classList.remove('is-tutorial');
+    // Анимации сцен не крутятся вхолостую, пока обучение закрыто.
+    for (const scene of dom.tutScenes) scene.classList.remove('is-live');
+    if (!state.playing) dom.startScreen?.classList.remove('hidden');
+    try { localStorage.setItem(TUTORIAL_KEY, '1'); } catch { /* приватный режим */ }
+  }
+
+  function stepTutorial(delta) {
+    const next = tutorialStep + delta;
+    if (next < 0) return;
+    if (next >= TUTORIAL.length) { closeTutorial(); return; }
+    tutorialStep = next;
+    renderTutorial();
+    haptic('light');
+  }
+
+  // Первый запуск: обучение открывается само, дальше — только по кнопке «?».
+  function openTutorialOnFirstRun() {
+    let seen = false;
+    try { seen = localStorage.getItem(TUTORIAL_KEY) === '1'; } catch { seen = false; }
+    if (seen) return;
+    openTutorial(0);
   }
 
   function showHintOnce() {
@@ -3446,6 +3511,41 @@
     window.gameAudio?.playMilestone?.();
   }
 
+  /*
+    Страховка от наложения. Крокодил длиной в шесть с половиной метров, и
+    даже с одним охотником два зверя из соседних рядов могут оказаться в
+    одной точке — например, когда ряды идут вплотную на разгоне. Проход
+    разводит тех, кто сошёлся ближе двух с половиной метров по X при разнице
+    по Z меньше длины тела: обоих отталкивает симметрично, поэтому охота
+    не ломается, а слипшейся пары на воде не бывает.
+  */
+  const CROC_KEEPOUT = 2.5;
+  function separateCrocs(dt) {
+    const crocs = [];
+    for (const item of state.items) {
+      if (item.type === 'croc' && item.z > MESH_RANGE && item.z < 14) crocs.push(item);
+    }
+    if (crocs.length < 2) return;
+    const push = Math.min(1, dt * 6);
+    for (let a = 0; a < crocs.length; a += 1) {
+      for (let b = a + 1; b < crocs.length; b += 1) {
+        const first = crocs[a];
+        const second = crocs[b];
+        if (Math.abs(first.z - second.z) > OBSTACLES.croc.size) continue;
+        const gap = second.x - first.x;
+        const distance = Math.abs(gap);
+        if (distance >= CROC_KEEPOUT) continue;
+        // Совпали в ноль — расталкиваем по знаку дорожек, иначе по текущему сдвигу.
+        const dir = distance > 1e-3 ? Math.sign(gap) : (second.lane >= first.lane ? 1 : -1);
+        const shift = (CROC_KEEPOUT - distance) * .5 * push;
+        first.x -= dir * shift;
+        second.x += dir * shift;
+      }
+    }
+    const edge = LANES[2] + 1.2;
+    for (const croc of crocs) croc.x = clamp(croc.x, -edge, edge);
+  }
+
   function updateGameplay(dt) {
     state.inputLock = Math.max(0, state.inputLock - dt);
     state.x = damp(state.x, state.targetX, TUNE.laneDamp, dt);
@@ -3503,6 +3603,18 @@
     checkBiome();
     streamWorld(dt);
 
+    /*
+      Право подкрадываться к дорожке игрока есть только у одного крокодила —
+      ближайшего. Раньше к state.x тянулись все сразу: два зверя из соседних
+      рядов сходились в одну точку и налезали друг на друга, а игрок видел
+      одну кашу вместо двух препятствий. Остальные держат свою дорожку.
+    */
+    let stalker = null;
+    for (const other of state.items) {
+      if (other.type !== 'croc' || other.z >= -16 || other.z <= -70) continue;
+      if (!stalker || other.z > stalker.z) stalker = other;
+    }
+
     for (let i = state.items.length - 1; i >= 0; i -= 1) {
       const item = state.items[i];
       item.z += state.speed * dt;
@@ -3529,9 +3641,11 @@
         item.surface = approach;
         const closing = clamp((item.z + 22) / 20, 0, 1);
         item.bite = closing * (.45 + .55 * Math.sin(state.elapsed * 7.5 + item.phase));
-        if (difficulty() > .3 && item.z < -16 && item.z > -70) {
+        if (difficulty() > .3 && item === stalker) {
           // Подкрадывается к дорожке игрока, но перестаёт за шестнадцать метров.
           item.x = damp(item.x, state.x, .55 + difficulty() * .9, dt);
+        } else if (Math.abs(item.x - LANES[item.lane]) > .01) {
+          item.x = damp(item.x, LANES[item.lane], 1.4, dt);
         }
         if (approach < .6 && Math.random() < .09) {
           // Под водой его выдаёт только расходящаяся рябь.
@@ -3562,6 +3676,17 @@
           item.lunged = true;
           window.gameAudio?.playGrowl?.();
           fx?.splash?.(item.x, .06, item.z, 1.4, [.62, .66, .5]);
+        }
+      }
+      if (item.type === 'hippo' && item.z > -74 && item.z < HIPPO_REVEAL + 6) {
+        /*
+          Честное предупреждение: самого зверя не видно, но вода над ним
+          ходит кругами. Ближе к всплытию рябь чаще и шире — по ней игрок и
+          понимает, что дорожку пора менять.
+        */
+        const near = clamp((item.z + 74) / 40, 0, 1);
+        if (Math.random() < .05 + near * .09) {
+          fx?.ripple?.(item.x, .015, item.z, .5 + near * .7, 3.2 + near * 3.4, 1.1, .2 + near * .22);
         }
       }
       if (item.type === 'vortex' && Math.abs(item.z) < 9 && Math.abs(item.x - state.x) < 4.2) {
@@ -3603,6 +3728,8 @@
       }
       if (item.z > 12) removeItem(i);
     }
+
+    separateCrocs(dt);
 
     // После водоворота корзинку медленно возвращает на свою дорожку.
     state.targetX = damp(state.targetX, LANES[state.lane], 1.1, dt);
@@ -3834,6 +3961,17 @@
         const radius = (OBSTACLES[item.type]?.radius || .9) * 1.15;
         item.shadow.scale.set(radius * spread, radius * .62 * spread, 1);
       }
+      if (item.type === 'hippo') {
+        /*
+          Бегемот — засада, а не декорация на горизонте. Пока корзинка не
+          подошла на HIPPO_REVEAL, его нет ни в кадре, ни на воде: не видно
+          ни туши, ни пятна под ней. Предупреждает только рябь.
+        */
+        const shown = item.z > HIPPO_REVEAL;
+        if (mesh.visible !== shown) mesh.visible = shown;
+        if (item.shadow) item.shadow.visible = shown;
+        if (!shown) continue;
+      }
       /*
         За горизонтом тумана анимация не читается, а считается: у крокодила
         это вершинный шейдер и пасть, у бегемота — всплытие и челюсть. На
@@ -3906,13 +4044,20 @@
           break;
         }
         case 'hippo': {
-          const rise = clamp((item.z + 52) / 30, 0, 1);
+          /*
+            Всплытие уложено в двадцать метров перед корзинкой: до этого зверь
+            стоит на дне и не показывается вовсе, спина ломает воду примерно
+            за двадцать шесть метров — секунда на смену дорожки на полном
+            ходу. Раньше подъём растягивался на тридцать метров начиная с
+            пятидесяти двух, и бегемот приезжал заранее и напоказ.
+          */
+          const rise = riseCurve(clamp((item.z - HIPPO_REVEAL) / HIPPO_RISE, 0, 1));
           const rig = mesh.userData.rig;
           if (rig) {
             // Сначала микшер прописывает кости, и только потом дописывается
             // челюсть: иначе анимация затрёт поворот в тот же кадр.
             rig.mixer?.update(dt);
-            const reachR = clamp((item.z + 34) / 26, 0, 1);
+            const reachR = clamp((item.z + 30) / 22, 0, 1);
             const aimR = clamp(1 - Math.abs(state.x - item.x) / 5.4, 0, 1);
             const passedR = clamp((item.z - .8) / 3.2, 0, 1);
             const targetR = rise * reachR * (1 - passedR) * (.42 + aimR * .58);
@@ -3930,8 +4075,16 @@
             }
             // Бегемот стоит на дне: над водой у него остаются спина и голова,
             // а не весь зверь целиком — модель высотой в два с половиной метра.
-            mesh.position.y = mix(-3.4, -1.32, rise) + Math.sin(t * .8 + item.phase) * .09;
+            mesh.position.y = mix(IDLE_Y.hippo, -1.32, rise) + Math.sin(t * .8 + item.phase) * .09 * rise;
             mesh.rotation.y = HIPPO_FACING + Math.sin(t * .4 + item.phase) * .06;
+            if (!item.surfaced && rise > .42) {
+              // Спина проламывает воду — только в этот момент игрок и узнаёт,
+              // что перед ним не пустая дорожка.
+              item.surfaced = true;
+              window.gameAudio?.playGrowl?.();
+              fx?.splash?.(item.x, .1, item.z, 2.6, [.82, .8, .76]);
+              fx?.ripple?.(item.x, .015, item.z, 1.1, 5.6, .9, .5);
+            }
             if (!item.clapped && passedR > .5 && rise > .5) {
               item.clapped = true;
               window.gameAudio?.playHit?.();
@@ -3942,37 +4095,7 @@
             }
             break;
           }
-          mesh.position.y = mix(-1.3, .06, rise) + Math.abs(Math.sin(t * .8 + item.phase)) * .16;
-          /*
-            Пасть открывается на приближение корзинки, а не по синусу времени.
-            Раньше бегемот зевал сам по себе и мимо: угроза не читалась.
-            Теперь замах начинается метров за тридцать, у самой корзинки пасть
-            раскрыта на полную, а как только та проходит мимо — челюсть
-            захлопывается разом. Хлопок озвучивается один раз.
-          */
-          const reach = clamp((item.z + 34) / 26, 0, 1);
-          const aim = clamp(1 - Math.abs(state.x - item.x) / 5.4, 0, 1);
-          const passed = clamp((item.z - .8) / 3.2, 0, 1);
-          const target = rise * reach * (1 - passed) * (.42 + aim * .58);
-          item.gape = damp(item.gape || 0, target, passed > 0 ? 22 : 5.5, dt);
-          if (mesh.userData.jaw) {
-            mesh.userData.jaw.rotation.x = item.gape * 1.35;
-            // Верхняя губа подаётся вверх вместе с челюстью: у бегемота
-            // раскрывается вся голова, а не отваливается нижняя половина.
-            mesh.rotation.x = -item.gape * .18;
-          }
-          if (!item.clapped && passed > .5 && rise > .5) {
-            item.clapped = true;
-            window.gameAudio?.playHit?.();
-            fx?.splash?.(item.x, .12, item.z, 1.5, [.78, .74, .72]);
-          }
-          // Голова доворачивается за корзинкой — по ней и видно, что бегемот
-          // не декорация, а следит.
-          const track = clamp((state.x - item.x) * .12, -.42, .42) * rise * reach;
-          mesh.rotation.y = damp(mesh.rotation.y, Math.sin(t * .5 + item.phase) * .08 + track, 4, dt);
-          if (rise > .2 && rise < .9 && Math.random() < .04) {
-            fx?.splash?.(item.x, .05, item.z + 2, 1.1, [.72, .68, .7]);
-          }
+          // Меш без скелета сюда не попадает: другого бегемота в игре нет.
           break;
         }
         case 'boat':
@@ -4695,9 +4818,12 @@
     renderer?.setAnimationLoop?.(null);
     resizeFallback();
     setBadge(label);
-    dom.body.classList.remove('is-loading');
+    // Запасной режим тоже проходит через заставку: без этого она осталась бы
+    // висеть поверх 2D-сцены и в игру было бы не попасть.
+    finishLoading();
     state.ready = true;
     if (dom.start) dom.start.disabled = false;
+    openTutorialOnFirstRun();
     window.__mosesV75Ready = true;
     window.__mosesV75Mode = 'fallback';
     window.__mosesV75ReferenceRebuild = true;
@@ -4833,8 +4959,19 @@
     dom.restart?.addEventListener('click', startGame);
     dom.resume?.addEventListener('click', () => togglePause(false));
     dom.quit?.addEventListener('click', quitToMenu);
+    dom.help?.addEventListener('click', () => openTutorial(0));
+    dom.tutNext?.addEventListener('click', () => stepTutorial(1));
+    dom.tutBack?.addEventListener('click', () => stepTutorial(-1));
+    dom.tutSkip?.addEventListener('click', closeTutorial);
 
     window.addEventListener('keydown', (event) => {
+      if (tutorialOpen) {
+        // Поверх обучения стрелки листают шаги, а не двигают корзинку.
+        if (event.code === 'ArrowRight' || event.code === 'Enter' || event.code === 'Space') { stepTutorial(1); event.preventDefault(); }
+        else if (event.code === 'ArrowLeft') { stepTutorial(-1); event.preventDefault(); }
+        else if (event.code === 'Escape') closeTutorial();
+        return;
+      }
       switch (event.code) {
         case 'ArrowLeft': case 'KeyA': steer(-1); break;
         case 'ArrowRight': case 'KeyD': steer(1); break;
@@ -4857,6 +4994,7 @@
       touchTime = performance.now();
     }, { passive: true });
     window.addEventListener('touchend', (event) => {
+      if (tutorialOpen) return;
       const point = event.changedTouches[0];
       if (!point || performance.now() - touchTime > 700) return;
       const dx = point.clientX - touchX;
@@ -4883,6 +5021,47 @@
     dom.startBest.classList.add('is-set');
   }
 
+  /*
+    Полоса загрузки. Веса шагов подобраны по замерам: модели тянутся дольше
+    всего, текстуры идут вторыми, а компиляция шейдеров и разогрев пулов
+    занимают доли секунды. Полоса не откатывается назад никогда — отдельные
+    шаги внутри отчитываются долей своего отрезка.
+  */
+  const LOAD_STEPS = [
+    { at: .04, label: 'ПОДНИМАЕМ ПАРУС…' },
+    { at: .46, label: 'ЗАГРУЖАЕМ МОДЕЛИ…' },
+    { at: .58, label: 'СОБИРАЕМ РУСЛО…' },
+    { at: .86, label: 'ГРУЗИМ ТЕКСТУРЫ…' },
+    { at: .93, label: 'ГОТОВИМ ПРЕПЯТСТВИЯ…' },
+    { at: 1, label: 'ПРОГРЕВАЕМ ШЕЙДЕРЫ…' },
+  ];
+  let loadShown = 0;
+  function setProgress(fraction, label) {
+    loadShown = Math.max(loadShown, clamp(fraction, 0, 1));
+    const percent = Math.round(loadShown * 100);
+    if (dom.loadFill) dom.loadFill.style.width = `${percent}%`;
+    if (dom.loadPercent) dom.loadPercent.textContent = `${percent}%`;
+    if (label) {
+      if (dom.loadLabel) dom.loadLabel.textContent = label;
+      if (dom.loadingNote) dom.loadingNote.textContent = label;
+    }
+  }
+
+  /*
+    Заставка уходит только здесь и только один раз — и из обычной сборки, и
+    из запасного 2D-режима. Полоса сначала доводится до сотни, чтобы уход не
+    выглядел обрывом на середине.
+  */
+  let loadingFinished = false;
+  function finishLoading() {
+    if (loadingFinished) return;
+    loadingFinished = true;
+    setProgress(1, 'ОТПРАВЛЯЕМСЯ');
+    dom.body.classList.remove('is-loading');
+    // Кадр на отрисовку сотни, потом полсекунды на растворение заставки.
+    requestAnimationFrame(() => dom.loadingScreen?.classList.add('is-done'));
+  }
+
   async function boot() {
     readBest();
     showBestOnStart();
@@ -4894,11 +5073,12 @@
       activateFallback('LITE READY');
       return;
     }
-    const note = (text) => { if (dom.loadingNote) dom.loadingNote.textContent = text; };
+    const note = (index) => setProgress(LOAD_STEPS[index].at, LOAD_STEPS[index].label);
     try {
-      note('ЗАГРУЖАЕМ МОДЕЛИ…');
+      note(0);
+      note(1);
       await window.assetManager?.preloadGameplayModels?.();
-      note('СОБИРАЕМ РУСЛО…');
+      note(2);
       buildScene();
       resize();
 
@@ -4917,11 +5097,16 @@
         клонирование модели, развёртка, процедурные карты — прямо посреди
         течения.
       */
-      note('ГРУЗИМ ТЕКСТУРЫ…');
-      await waitForTextures();
-      note('ГОТОВИМ ПРЕПЯТСТВИЯ…');
+      note(3);
+      const from = LOAD_STEPS[2].at;
+      const span = LOAD_STEPS[3].at - from;
+      await waitForTextures(9000, () => {
+        const done = texturesTotal - texturesPending;
+        setProgress(from + span * (texturesTotal ? done / texturesTotal : 1));
+      });
+      note(4);
       prewarmPools();
-      note('ПРОГРЕВАЕМ ШЕЙДЕРЫ…');
+      note(5);
       try { renderer.compile(scene, camera); } catch { /* не критично */ }
       // Один честный кадр до снятия заставки: всё, что осталось скомпилировать,
       // компилируется здесь, а не под пальцем игрока.
@@ -4929,10 +5114,11 @@
       await new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
       state.ready = true;
-      dom.body.classList.remove('is-loading');
+      finishLoading();
       // Кнопка запуска включается именно здесь. До этой правки WebGL-ветка
       // оставляла её заблокированной, и превью нельзя было начать.
       if (dom.start) dom.start.disabled = false;
+      openTutorialOnFirstRun();
       setBadge(EDITION);
       window.__mosesV75Ready = true;
       window.__mosesV75Mode = 'webgl';

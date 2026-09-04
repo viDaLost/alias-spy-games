@@ -61,6 +61,20 @@
     .hud-chip { min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 14px; border-radius: 999px; color: #f7e6bb; background: var(--chip); border: 1px solid rgba(255, 238, 196, .24); box-shadow: 0 8px 26px rgba(23, 16, 8, .28), inset 0 1px rgba(255,255,255,.08); backdrop-filter: blur(12px); font-weight: 800; font-size: 15px; }
     .hud-chip .icon { font-size: 20px; line-height: 1; }
     .hud-chip strong { font-size: 20px; color: var(--gold); font-variant-numeric: tabular-nums; }
+    /*
+      Иконки — векторы одного набора. currentColor берётся от чипа, поэтому
+      цвет везде один, а размер задаётся em и едет вместе со шрифтом.
+    */
+    .ico, .tut-boat, .tut-hero, .tut-token, .tut-flow, .tut-pull, #load-art .basket { fill: currentColor; }
+    .ico { width: 1.35em; height: 1.35em; flex: none; display: block; }
+    .hud-chip .ico { width: 22px; height: 22px; color: var(--gold); filter: drop-shadow(0 1px 2px rgba(0,0,0,.45)); }
+    /* Русло на иконке дистанции течёт: вехи ползут к горизонту. */
+    .ico-path g { animation: pathFlow 2.6s linear infinite; transform-origin: 50% 60%; }
+    @keyframes pathFlow { 0% { opacity: .12; transform: translateY(-5px) scale(.86); } 35% { opacity: .55; } 100% { opacity: 0; transform: translateY(6px) scale(1.12); } }
+    .ico-lotus { animation: lotusSway 3.4s ease-in-out infinite; transform-origin: 50% 88%; }
+    @keyframes lotusSway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+    .hud-mini .ico { width: 13px; height: 13px; margin-right: 4px; color: var(--gold); vertical-align: -2px; display: inline-block; }
+    #score-chip { display: flex; align-items: center; gap: 0; }
     .hud-sub { font-size: 12px; }
     .hud-mini { min-height: 30px; padding: 5px 11px; border-radius: 999px; background: rgba(38, 33, 24, .58); border: 1px solid rgba(255, 238, 196, .18); font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #f0dcae; backdrop-filter: blur(10px); }
     #score-chip strong { color: var(--gold); font-size: 14px; font-variant-numeric: tabular-nums; }
@@ -68,11 +82,18 @@
     #combo-chip.is-live { opacity: 1; color: #b9edc0; border-color: rgba(160, 240, 180, .4); transform: scale(1.06); }
     #biome-name { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: uppercase; }
     #hearts { display: flex; gap: 5px; }
-    #hearts span { width: 22px; height: 22px; display: grid; place-items: center; font-size: 17px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); transition: transform .25s, opacity .25s, filter .25s; }
-    #hearts span.is-lost { opacity: .26; transform: scale(.76); filter: grayscale(1); }
+    #hearts span { width: 24px; height: 24px; display: grid; place-items: center; color: #e2657a; filter: drop-shadow(0 2px 4px rgba(0,0,0,.42)); transition: transform .25s, opacity .25s, color .25s; }
+    #hearts span .ico { width: 24px; height: 24px; }
+    /* Живое сердце бьётся; потерянное гаснет и сжимается. */
+    #hearts span:not(.is-lost) { animation: heartBeat 1.9s ease-in-out infinite; }
+    #hearts span:nth-child(2) { animation-delay: .14s; }
+    #hearts span:nth-child(3) { animation-delay: .28s; }
+    @keyframes heartBeat { 0%, 62%, 100% { transform: scale(1); } 70% { transform: scale(1.16); } 78% { transform: scale(1); } 86% { transform: scale(1.09); } }
+    #hearts span.is-lost { opacity: .22; transform: scale(.74); color: #7d7568; animation: none; }
 
     #powerups-bar { position: absolute; top: calc(var(--safe-top) + 92px); left: 50%; z-index: 11; display: flex; gap: 5px; transform: translateX(-50%); pointer-events: none; }
-    .active-buff { display: none; white-space: nowrap; padding: 5px 9px; border-radius: 999px; color: #fff4ce; background: rgba(45, 60, 45, .82); border: 1px solid rgba(236, 212, 157, .32); box-shadow: 0 5px 18px rgba(0,0,0,.24); font-size: 9px; font-weight: 900; letter-spacing: .03em; animation: buffPulse 1.8s ease-in-out infinite; }
+    .active-buff .ico { width: 13px; height: 13px; }
+    .active-buff { display: none; align-items: center; gap: 5px; white-space: nowrap; padding: 5px 9px; border-radius: 999px; color: #fff4ce; background: rgba(45, 60, 45, .82); border: 1px solid rgba(236, 212, 157, .32); box-shadow: 0 5px 18px rgba(0,0,0,.24); font-size: 9px; font-weight: 900; letter-spacing: .03em; animation: buffPulse 1.8s ease-in-out infinite; }
     @keyframes buffPulse { 0%, 100% { box-shadow: 0 5px 18px rgba(0,0,0,.24); } 50% { box-shadow: 0 5px 22px rgba(255, 220, 150, .35); } }
 
     /* ---- всплывающие сообщения ---- */
@@ -126,6 +147,7 @@
     .legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin: 0 0 15px; }
     .legend div { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(150, 116, 60, .10); color: #5c4a35; font-size: 11px; font-weight: 700; text-align: left; line-height: 1.25; }
     .legend .key { flex: 0 0 auto; min-width: 26px; height: 26px; display: grid; place-items: center; border-radius: 8px; background: rgba(255, 250, 236, .9); border: 1px solid rgba(150, 116, 60, .28); font-size: 13px; }
+    .legend .key .ico { width: 16px; height: 16px; color: #d1566d; }
 
     #gameover-screen, #pause-screen { align-items: center; padding-bottom: 20px; background: rgba(21, 18, 13, .5); }
     #gameover-screen h1 { color: #733d2c; }
@@ -136,6 +158,112 @@
     #best-line.is-record { color: #b1741c; }
 
     #version-badge { position: fixed; z-index: 40; left: 50%; bottom: 2px; transform: translateX(-50%); padding: 4px 7px; border-radius: 999px; color: rgba(255,248,226,.62); background: rgba(35,31,22,.34); font: 800 8px/1 system-ui; letter-spacing: .08em; pointer-events: none; }
+    /* ---- экран загрузки ----
+       Раньше меню показывалось сразу, а модели, текстуры и шейдеры доезжали
+       за спиной: игрок жал «Отплыть» по неготовой сцене и первые секунды
+       заплыва уходили в рывки. Теперь заставка закрывает всё, показывает
+       честный прогресс по шагам и уходит, только когда всё собрано. */
+    #loading-screen { position: absolute; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 28px; text-align: center;
+      background: radial-gradient(150% 62% at 50% 104%, rgba(236,196,132,.55), transparent 64%), linear-gradient(180deg, #223244 0%, #4a4433 40%, #7a5f39 74%, #9a7647 100%);
+      transition: opacity .5s ease, visibility .5s ease; }
+    #loading-screen.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+    #load-title { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(23px, 6.4vw, 32px); line-height: 1.1; color: #f6e3b6; text-shadow: 0 3px 18px rgba(0,0,0,.45); }
+    #load-sub { margin: -12px 0 0; font-size: 11px; font-weight: 800; letter-spacing: .16em; color: rgba(246,227,182,.55); text-transform: uppercase; }
+
+    /* Заставка: корзинка идёт по реке между зарослями папируса. */
+    #load-art { position: relative; width: min(280px, 74vw); height: 132px; overflow: hidden; border-radius: 18px; background: linear-gradient(180deg, rgba(233,203,150,.22) 0 42%, rgba(86,124,128,.46) 42%, rgba(58,96,104,.6) 100%); border: 1px solid rgba(246,227,182,.16); }
+    /*
+      Течение — короткие горизонтальные штрихи, а не вертикальные полосы:
+      повторяющийся градиент под 90° даёт частокол, а не воду.
+    */
+    #load-art .river { position: absolute; left: -60%; right: -60%; height: 2px; border-radius: 2px;
+      background: repeating-linear-gradient(90deg, rgba(255,250,232,.42) 0 20px, transparent 20px 46px);
+      animation: loadFlow 2.4s linear infinite; }
+    #load-art .river.slow { opacity: .45; animation-duration: 4s; }
+    @keyframes loadFlow { from { transform: translateX(0); } to { transform: translateX(46px); } }
+    #load-art .reed { position: absolute; bottom: 44px; width: 3px; border-radius: 2px; background: linear-gradient(180deg, rgba(178,204,132,.95), rgba(96,120,70,.55)); transform-origin: 50% 100%; animation: loadReed 3.1s ease-in-out infinite; }
+    @keyframes loadReed { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(6deg); } }
+    #load-art .basket { position: absolute; left: 50%; bottom: 46px; width: 46px; height: 46px; margin-left: -23px; color: #edcb8c; filter: drop-shadow(0 4px 10px rgba(24,18,8,.45)); animation: loadBob 2.4s ease-in-out infinite; }
+    @keyframes loadBob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-7px) rotate(3deg); } }
+    #load-art .glow { position: absolute; inset: 0; background: radial-gradient(46% 60% at 50% 62%, rgba(255,228,168,.30), transparent 70%); animation: loadGlow 3.4s ease-in-out infinite; }
+    @keyframes loadGlow { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+
+    #load-bar { position: relative; width: min(280px, 74vw); height: 8px; border-radius: 999px; overflow: hidden; background: rgba(20,16,10,.46); box-shadow: inset 0 1px 3px rgba(0,0,0,.4); }
+    #load-fill { position: absolute; inset: 0 auto 0 0; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #b8853c, #f2d288 60%, #fff2cd); box-shadow: 0 0 14px rgba(242,210,136,.55); transition: width .4s cubic-bezier(.4,0,.2,1); }
+    #load-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent); animation: loadSheen 1.5s linear infinite; }
+    @keyframes loadSheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+    #load-step { display: flex; align-items: baseline; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .1em; color: rgba(246,227,182,.82); }
+    #load-percent { font-size: 15px; color: #f2d288; font-variant-numeric: tabular-nums; }
+    /* Пока идёт загрузка, ни меню, ни HUD не мешают заставке. */
+    body.is-loading #hud, body.is-loading .screen, body.is-loading #version-badge { opacity: 0 !important; visibility: hidden; pointer-events: none; }
+    body.is-tutorial #hud, body.is-tutorial #powerups-bar { opacity: 0; visibility: hidden; transition: opacity .2s; }
+
+    /* ---- обучение ----
+       Показывается один раз при первом запуске и по кнопке «?» в меню.
+       Каждый шаг со своей анимацией: усилитель словами не объяснишь, надо
+       показать, что он делает с корзинкой. */
+    #tutorial-screen { z-index: 34; align-items: center; padding: 20px; background: linear-gradient(180deg, rgba(17,15,10,.62), rgba(17,15,10,.82)); }
+    #tutorial-screen .panel { padding: 18px 18px 16px; }
+    #tut-stage { position: relative; width: 100%; height: 148px; margin-bottom: 14px; border-radius: 16px; overflow: hidden;
+      background: radial-gradient(120% 90% at 50% 118%, rgba(126,167,176,.42), transparent 62%), linear-gradient(180deg, #f2e3c2, #cdb489); }
+    /* Вода на сцене обучения — те же горизонтальные штрихи, что на заставке. */
+    #tut-stage::after { content: ''; position: absolute; left: -30%; right: -30%; bottom: 0; height: 46px; pointer-events: none;
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.34) 0 20px, transparent 20px 46px) 0 8px/100% 2px no-repeat,
+        repeating-linear-gradient(90deg, rgba(255,255,255,.26) 0 20px, transparent 20px 46px) 0 22px/100% 2px no-repeat,
+        repeating-linear-gradient(90deg, rgba(255,255,255,.20) 0 20px, transparent 20px 46px) 0 36px/100% 2px no-repeat;
+      animation: loadFlow 2.6s linear infinite; }
+    .tut-scene { position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .3s ease; }
+    .tut-scene.is-live { opacity: 1; visibility: visible; }
+    .tut-scene .lane { position: absolute; top: 12%; bottom: 22%; width: 1px; background: linear-gradient(180deg, transparent, rgba(90,70,40,.30)); }
+    .tut-boat { position: absolute; bottom: 26px; left: 50%; width: 40px; height: 40px; margin-left: -20px; color: #8a6231; filter: drop-shadow(0 3px 5px rgba(60,40,16,.3)); }
+    .tut-token { position: absolute; width: 30px; height: 30px; color: var(--gold-deep); }
+    /* 1. Дорожки: корзинка ходит влево-вправо, потом подпрыгивает и ныряет. */
+    .tut-scene[data-scene="move"] .tut-boat { animation: tutMove 4.4s cubic-bezier(.5,0,.5,1) infinite; }
+    @keyframes tutMove { 0%,12% { transform: translateX(0) translateY(0) scale(1); } 25%,32% { transform: translateX(-56px) translateY(0) scale(1); } 45%,52% { transform: translateX(56px) translateY(0) scale(1); } 64% { transform: translateX(0) translateY(-34px) scale(1.06); } 74% { transform: translateX(0) translateY(0) scale(1); } 86% { transform: translateX(0) translateY(9px) scale(.84); } 100% { transform: translateX(0) translateY(0) scale(1); } }
+    .tut-arrow { position: absolute; top: 50%; width: 22px; height: 22px; margin-top: -11px; color: rgba(120,88,40,.5); font-size: 20px; font-weight: 900; line-height: 1; animation: tutArrow 1.5s ease-in-out infinite; }
+    @keyframes tutArrow { 0%,100% { opacity: .25; } 50% { opacity: .8; } }
+    /* 2. Лотосы плывут навстречу и гаснут на корзинке. */
+    .tut-flow { position: absolute; width: 26px; height: 26px; color: #d9639a; animation: tutFlow 2.6s linear infinite; }
+    @keyframes tutFlow { 0% { transform: translateY(-70px) scale(.5); opacity: 0; } 20% { opacity: 1; } 78% { transform: translateY(56px) scale(1.1); opacity: 1; } 100% { transform: translateY(66px) scale(.3); opacity: 0; } }
+    /* 3. Щит: пузырь вокруг корзинки отбивает камень. */
+    .tut-bubble { position: absolute; left: 50%; bottom: 18px; width: 78px; height: 78px; margin-left: -39px; border-radius: 50%; border: 2px solid rgba(127,198,188,.85); background: radial-gradient(circle, rgba(127,198,188,.20), transparent 68%); animation: tutBubble 2.2s ease-in-out infinite; }
+    @keyframes tutBubble { 0%,100% { transform: scale(.92); opacity: .55; } 50% { transform: scale(1.06); opacity: 1; } }
+    .tut-rock { position: absolute; left: 50%; top: 8px; width: 20px; height: 20px; margin-left: -10px; border-radius: 42% 58% 50% 50%; background: #7d6a4e; animation: tutRock 2.2s cubic-bezier(.4,0,.7,1) infinite; }
+    @keyframes tutRock { 0% { transform: translateY(0) translateX(0); opacity: 1; } 52% { transform: translateY(56px) translateX(0); opacity: 1; } 100% { transform: translateY(30px) translateX(58px) rotate(120deg); opacity: 0; } }
+    /* 4. Свет Мириам: лотосы сворачивают к корзинке. */
+    .tut-pull { position: absolute; width: 22px; height: 22px; color: #d9639a; animation: tutPull 2.4s ease-in infinite; }
+    @keyframes tutPull { 0% { transform: translate(var(--fx), -60px) scale(.6); opacity: 0; } 22% { opacity: 1; } 100% { transform: translate(0, 44px) scale(1); opacity: 0; } }
+    .tut-aura { position: absolute; left: 50%; bottom: 22px; width: 66px; height: 66px; margin-left: -33px; border-radius: 50%; background: radial-gradient(circle, rgba(229,190,100,.42), transparent 70%); animation: tutBubble 2s ease-in-out infinite; }
+    /* 5. Ветер: линии скорости и рывок вперёд. */
+    .tut-scene[data-scene="rush"] .tut-boat { animation: tutRush 1.6s ease-in-out infinite; }
+    @keyframes tutRush { 0%,100% { transform: translateY(0) scale(1); } 45% { transform: translateY(-16px) scale(1.1); } }
+    .tut-speed { position: absolute; width: 2px; border-radius: 2px; background: linear-gradient(180deg, transparent, rgba(143,211,230,.95), transparent); animation: tutSpeed 1s linear infinite; }
+    @keyframes tutSpeed { 0% { transform: translateY(-40px) scaleY(.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(96px) scaleY(1.5); opacity: 0; } }
+    /* 6. Милость: пустое сердце загорается. */
+    .tut-hearts { position: absolute; left: 50%; top: 24px; display: flex; gap: 10px; transform: translateX(-50%); }
+    .tut-hearts .ico { width: 26px; height: 26px; color: #e2657a; }
+    .tut-hearts .dim { color: rgba(120,96,70,.34); animation: tutRefill 2.6s ease-in-out infinite; }
+    @keyframes tutRefill { 0%,45% { color: rgba(120,96,70,.34); transform: scale(.82); } 62% { color: #e2657a; transform: scale(1.2); } 100% { color: #e2657a; transform: scale(1); } }
+    .tut-scene[data-scene="mercy"] .tut-token { animation: tutRise 2.6s ease-in-out infinite; }
+    @keyframes tutRise { 0% { transform: translateY(30px) scale(.7); opacity: 0; } 40% { transform: translateY(0) scale(1); opacity: 1; } 70% { transform: translateY(-34px) scale(.7); opacity: 0; } 100% { opacity: 0; } }
+    /* Жетон в центре сцены — общий якорь для щита, ветра и милости. */
+    .tut-hero { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -30px 0 0 -22px; color: var(--gold-deep); filter: drop-shadow(0 4px 8px rgba(70,46,14,.28)); }
+    .tut-scene[data-scene="shield"] .tut-hero, .tut-scene[data-scene="magnet"] .tut-hero { animation: tutSpin 4s ease-in-out infinite; }
+    @keyframes tutSpin { 0%,100% { transform: rotate(-7deg) translateY(0); } 50% { transform: rotate(7deg) translateY(-6px); } }
+
+    #tut-title { margin: 0 0 4px; font-family: Georgia, "Times New Roman", serif; font-size: 21px; color: #2f2519; }
+    #tut-text { margin: 0 0 4px; font-size: 13.5px; line-height: 1.5; color: #55442f; min-height: 60px; }
+    #tut-effect { margin: 0 0 12px; font-size: 11.5px; font-weight: 800; letter-spacing: .04em; color: #a9762c; min-height: 16px; }
+    #tut-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; }
+    #tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(120,96,60,.26); transition: background .2s, transform .2s; }
+    #tut-dots i.is-live { background: var(--gold-deep); transform: scale(1.35); }
+    #tut-nav { display: flex; gap: 8px; }
+    #tut-nav .btn { margin: 0; }
+    #tut-back { flex: 0 0 38%; }
+    #tut-skip { margin-top: 8px; background: none; border: 0; color: #8a6d43; font-size: 11px; font-weight: 800; letter-spacing: .06em; cursor: pointer; text-decoration: underline; }
+    #help-btn { position: absolute; right: 14px; top: 14px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(150,116,60,.3); background: rgba(255,248,232,.7); color: #8a6d43; font-size: 15px; font-weight: 900; cursor: pointer; }
+
     #loading-note { position: absolute; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 8px 12px; border-radius: 999px; color: rgba(255,250,231,.86); background: rgba(41,36,27,.46); font-size: 11px; font-weight: 800; letter-spacing: .08em; opacity: 0; pointer-events: none; transition: opacity .25s; }
     body.is-loading #loading-note { opacity: 1; }
     body.is-paused #game-canvas, body.is-paused #fallback-canvas { filter: blur(3px) saturate(.7); }
@@ -171,25 +299,100 @@
   <div id="scene-grade"></div>
   <div id="loading-note">ГОТОВИМ ПУТЬ ПО НИЛУ…</div>
 
+  <!--
+    Свои иконки вместо системных эмодзи. Эмодзи на каждой платформе рисуются
+    по-своему: 🪷 на одном телефоне синий, на другом розовый, ❤️ где-то плоское,
+    где-то глянцевое, а 🌊 к пройденному пути отношения не имеет. Здесь это
+    векторы в одном египетском наборе: сердце-сосуд «иб», голубой лотос,
+    русло с вехами, и жетоны четырёх усилителей — скарабей, систр, крылья
+    Исиды и анкх. Все рисуются currentColor, поэтому подхватывают цвет чипа.
+  -->
+  <svg id="nile-icons" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <defs>
+      <symbol id="ico-heart" viewBox="0 0 32 32">
+        <path d="M16 29c-.6 0-1.2-.2-1.7-.6C7.7 23 2.4 18.3 2.4 12.3 2.4 7.3 6.2 3.4 11 3.4c2.1 0 4 .8 5 2.2 1-1.4 2.9-2.2 5-2.2 4.8 0 8.6 3.9 8.6 8.9 0 6-5.3 10.7-11.9 16-.5.4-1.1.6-1.7.6z"/>
+        <path d="M10.6 7.6c-2.2 0-4 1.8-4.2 4.2-.1.9-1.6.8-1.6-.2 0-3.3 2.6-5.9 5.8-5.9.9 0 1 1.9 0 1.9z" opacity=".42"/>
+      </symbol>
+      <symbol id="ico-lotus" viewBox="0 0 32 32">
+        <path d="M16 2.6c-2.2 3.3-3.3 6.7-3.3 10.2s1.1 6.9 3.3 10.2c2.2-3.3 3.3-6.7 3.3-10.2S18.2 5.9 16 2.6z"/>
+        <path d="M10.6 7.2C9.3 10.8 9.1 14.2 9.9 17.5c.8 3.3 2.7 6.1 5.4 8.4.5-3.7-.1-7.1-1.6-10.2-1.4-3.1-2.8-5.9-3.1-8.5z"/>
+        <path d="M21.4 7.2c-.3 2.6-1.7 5.4-3.1 8.5-1.5 3.1-2.1 6.5-1.6 10.2 2.7-2.3 4.6-5.1 5.4-8.4.8-3.3.6-6.7-.7-10.3z"/>
+        <path d="M3.8 13.2c.7 4.1 2.4 7.2 5.1 9.5 2.7 2.3 5.2 3.2 7.5 2.8-1.7-3-3.8-5.4-6.3-7.2-2.5-1.8-4.6-3.5-6.3-5.1z"/>
+        <path d="M28.2 13.2c-1.7 1.6-3.8 3.3-6.3 5.1-2.5 1.8-4.6 4.2-6.3 7.2 2.3.4 4.8-.5 7.5-2.8 2.7-2.3 4.4-5.4 5.1-9.5z"/>
+        <path d="M15.2 25.6h1.6v4.6h-1.6z" opacity=".5"/>
+      </symbol>
+      <symbol id="ico-path" viewBox="0 0 32 32">
+        <path fill-rule="evenodd" d="M10.6 3.6h10.8l7.2 25.2H2.4zM14.9 6.8h2.2l.5 2.8h-3.2zM13.8 12.8h4.4l.7 3.4h-5.8zM12.5 19.4h7l.9 4h-8.8z"/>
+      </symbol>
+      <symbol id="ico-shield" viewBox="0 0 32 32">
+        <path fill-rule="evenodd" d="M16 2.4 4.2 6.4c0 10 3.9 18.4 11.8 23.2 7.9-4.8 11.8-13.2 11.8-23.2zM16 5.7 7.3 8.6c0 8 3.1 14.7 8.7 18.6 5.6-3.9 8.7-10.6 8.7-18.6z"/>
+        <path d="M16 10.6l4.4 5.2-4.4 5.2-4.4-5.2z"/>
+      </symbol>
+      <symbol id="ico-magnet" viewBox="0 0 32 32">
+        <path d="M15.1 1.4h1.8v4.8h-1.8zM7.7 3.5l1.5-1 2.6 4-1.5 1zM22.8 2.5l1.5 1-2.6 4-1.5-1z"/>
+        <path d="M3.6 11h24.8v3.4H3.6z"/>
+        <path fill-rule="evenodd" d="M5.4 16h21.2l-2 11.2a3 3 0 0 1-3 2.5H10.4a3 3 0 0 1-3-2.5zm4.6 3 .9 7.8h1.5L11.5 19zm5.3 0v7.8h1.4V19zm5.4 0-.9 7.8h1.5l.9-7.8z"/>
+      </symbol>
+      <symbol id="ico-rush" viewBox="0 0 32 32">
+        <path d="M15.2 6.4h1.6v20.8h-1.6z"/>
+        <path d="M13.9 8.6c-.3 1.9-1.2 2.9-2.7 3.1-1.5.2-3.9-.5-7.2-2.1 1.1 2.9 2.6 4.8 4.6 5.7-1.9.4-3.8.2-5.7-.5 1.9 2.7 4.2 4.2 6.9 4.4-1.6.9-3.3 1.3-5.1 1.2 2.4 2.3 5.4 3.2 9.2 2.9z"/>
+        <path d="M18.1 8.6c.3 1.9 1.2 2.9 2.7 3.1 1.5.2 3.9-.5 7.2-2.1-1.1 2.9-2.6 4.8-4.6 5.7 1.9.4 3.8.2 5.7-.5-1.9 2.7-4.2 4.2-6.9 4.4 1.6.9 3.3 1.3 5.1 1.2-2.4 2.3-5.4 3.2-9.2 2.9z"/>
+      </symbol>
+      <symbol id="ico-mercy" viewBox="0 0 32 32">
+        <path fill-rule="evenodd" d="M16 29c-.6 0-1.2-.2-1.7-.6C7.7 23 2.4 18.3 2.4 12.3 2.4 7.3 6.2 3.4 11 3.4c2.1 0 4 .8 5 2.2 1-1.4 2.9-2.2 5-2.2 4.8 0 8.6 3.9 8.6 8.9 0 6-5.3 10.7-11.9 16-.5.4-1.1.6-1.7.6zm-1.6-19.4v3.6h-3.6v3.2h3.6v3.6h3.2v-3.6h3.6v-3.2h-3.6V9.6z"/>
+      </symbol>
+      <symbol id="ico-star" viewBox="0 0 32 32">
+        <path d="M16 2.6l3.4 8.6 9.2.6-7.1 5.9 2.3 8.9L16 21.8l-7.8 4.8 2.3-8.9-7.1-5.9 9.2-.6z"/>
+      </symbol>
+      <symbol id="ico-basket" viewBox="0 0 32 32">
+        <path d="M4.6 12h22.8l-2.1 13.4a3 3 0 0 1-3 2.6H9.7a3 3 0 0 1-3-2.6z"/>
+        <path d="M3.2 8.8h25.6v3.6H3.2z"/>
+        <path d="M10.4 8.8c0-3.6 2.5-6 5.6-6s5.6 2.4 5.6 6h-2.8c0-2.1-1.2-3.4-2.8-3.4s-2.8 1.3-2.8 3.4z" opacity=".55"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div id="loading-screen" role="status" aria-live="polite">
+    <h1 id="load-title">Моисей: Путь по Нилу</h1>
+    <p id="load-sub">Готовим реку</p>
+    <div id="load-art" aria-hidden="true">
+      <div class="glow"></div>
+      <div class="reed" style="left:9%;height:52px;animation-delay:-.4s"></div>
+      <div class="reed" style="left:14%;height:38px;animation-delay:-1.6s"></div>
+      <div class="reed" style="left:86%;height:46px;animation-delay:-.9s"></div>
+      <div class="reed" style="left:92%;height:60px;animation-delay:-2.2s"></div>
+      <svg class="basket" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+      <div class="river slow" style="bottom:82px;animation-delay:-1.1s"></div>
+      <div class="river slow" style="bottom:68px;animation-delay:-2.6s"></div>
+      <div class="river" style="bottom:40px;animation-delay:-.4s"></div>
+      <div class="river" style="bottom:26px;animation-delay:-1.7s"></div>
+      <div class="river" style="bottom:12px;animation-delay:-.9s"></div>
+    </div>
+    <div id="load-bar"><div id="load-fill"></div></div>
+    <div id="load-step"><span id="load-percent">0%</span><span id="load-label">ПОДНИМАЕМ ПАРУС…</span></div>
+  </div>
+
   <div id="hud">
     <div class="hud-row">
-      <div class="hud-chip"><span class="icon">🌊</span><strong id="dist-txt">0</strong><span>м</span></div>
+      <div class="hud-chip"><svg class="ico ico-path" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-path"/></svg><strong id="dist-txt">0</strong><span>м</span></div>
       <div id="hearts" aria-label="Запас сердец">
-        <span>❤️</span><span>❤️</span><span>❤️</span>
+        <span><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>
+        <span><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>
+        <span><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>
       </div>
-      <div class="hud-chip"><span class="icon">🪷</span><strong id="score-txt">0</strong></div>
+      <div class="hud-chip"><svg class="ico ico-lotus" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-lotus"/></svg><strong id="score-txt">0</strong></div>
     </div>
     <div class="hud-row hud-sub">
-      <div class="hud-mini" id="score-chip">⭑ <strong id="score-total">0</strong></div>
+      <div class="hud-mini" id="score-chip"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-star"/></svg><strong id="score-total">0</strong></div>
       <div class="hud-mini" id="biome-name">Заводь папируса</div>
       <div class="hud-mini" id="combo-chip"><span id="combo-mult">×1</span></div>
     </div>
   </div>
 
   <div id="powerups-bar">
-    <div id="shield-badge" class="active-buff">🛡 ЩИТ ВЕРЫ</div>
-    <div id="magnet-badge" class="active-buff">✨ СВЕТ МИРИАМ</div>
-    <div id="rush-badge" class="active-buff">🌬 ВЕТЕР</div>
+    <div id="shield-badge" class="active-buff"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-shield"/></svg>ЩИТ ВЕРЫ</div>
+    <div id="magnet-badge" class="active-buff"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-magnet"/></svg>СВЕТ МИРИАМ</div>
+    <div id="rush-badge" class="active-buff"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-rush"/></svg>ДЫХАНИЕ ВЕТРА</div>
   </div>
 
   <div id="toast-layer" aria-live="polite"></div>
@@ -223,11 +426,77 @@
         <div><span class="key">◀▶</span>смена дорожки</div>
         <div><span class="key">▲</span>волна: через бревно</div>
         <div><span class="key">▼</span>нырок: под папирус</div>
-        <div><span class="key">❤️</span>три сердца на путь</div>
+        <div><span class="key"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>три сердца на путь</div>
       </div>
+      <button id="help-btn" type="button" aria-label="Открыть обучение">?</button>
       <button class="btn" id="start-btn" type="button">ОТПЛЫТЬ</button>
       <div class="controls-hint" id="start-best">Ещё ни одного заплыва — самое время начать.</div>
       <div class="controls-hint">Кнопки, стрелки клавиатуры или свайп в любую сторону</div>
+    </div>
+  </div>
+
+  <!--
+    Обучение. Шесть шагов: управление, лотосы и четыре усилителя. Сцены
+    нарисованы CSS-анимацией поверх того же набора иконок, что и в HUD, —
+    игрок видит в обучении ровно тот значок, который потом встретит в игре.
+  -->
+  <div id="tutorial-screen" class="screen hidden">
+    <div class="panel">
+      <span class="eyebrow">Как пройти по реке</span>
+      <div id="tut-stage">
+        <div class="tut-scene" data-scene="move">
+          <div class="lane" style="left:33%"></div><div class="lane" style="left:67%"></div>
+          <div class="tut-arrow" style="left:12px">◀</div>
+          <div class="tut-arrow" style="right:12px">▶</div>
+          <svg class="tut-boat" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+        </div>
+        <div class="tut-scene" data-scene="lotus">
+          <svg class="tut-flow" style="left:26%;animation-delay:0s" viewBox="0 0 32 32"><use href="#ico-lotus"/></svg>
+          <svg class="tut-flow" style="left:46%;animation-delay:-.7s" viewBox="0 0 32 32"><use href="#ico-lotus"/></svg>
+          <svg class="tut-flow" style="left:66%;animation-delay:-1.5s" viewBox="0 0 32 32"><use href="#ico-lotus"/></svg>
+          <svg class="tut-boat" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+        </div>
+        <div class="tut-scene" data-scene="shield">
+          <div class="tut-rock"></div>
+          <div class="tut-bubble"></div>
+          <svg class="tut-hero" viewBox="0 0 32 32"><use href="#ico-shield"/></svg>
+          <svg class="tut-boat" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+        </div>
+        <div class="tut-scene" data-scene="magnet">
+          <svg class="tut-pull" style="left:18%;--fx:0px;animation-delay:0s" viewBox="0 0 32 32"><use href="#ico-lotus"/></svg>
+          <svg class="tut-pull" style="left:50%;--fx:-46px;animation-delay:-.8s" viewBox="0 0 32 32"><use href="#ico-lotus"/></svg>
+          <svg class="tut-pull" style="left:78%;--fx:-8px;animation-delay:-1.6s" viewBox="0 0 32 32"><use href="#ico-lotus"/></svg>
+          <div class="tut-aura"></div>
+          <svg class="tut-hero" viewBox="0 0 32 32"><use href="#ico-magnet"/></svg>
+          <svg class="tut-boat" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+        </div>
+        <div class="tut-scene" data-scene="rush">
+          <div class="tut-speed" style="left:22%;height:34px;animation-delay:0s"></div>
+          <div class="tut-speed" style="left:36%;height:26px;animation-delay:-.35s"></div>
+          <div class="tut-speed" style="left:64%;height:30px;animation-delay:-.6s"></div>
+          <div class="tut-speed" style="left:78%;height:22px;animation-delay:-.15s"></div>
+          <svg class="tut-hero" viewBox="0 0 32 32"><use href="#ico-rush"/></svg>
+          <svg class="tut-boat" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+        </div>
+        <div class="tut-scene" data-scene="mercy">
+          <div class="tut-hearts">
+            <svg class="ico" viewBox="0 0 32 32"><use href="#ico-heart"/></svg>
+            <svg class="ico" viewBox="0 0 32 32"><use href="#ico-heart"/></svg>
+            <svg class="ico dim" viewBox="0 0 32 32"><use href="#ico-heart"/></svg>
+          </div>
+          <svg class="tut-token tut-hero" viewBox="0 0 32 32"><use href="#ico-mercy"/></svg>
+          <svg class="tut-boat" viewBox="0 0 32 32"><use href="#ico-basket"/></svg>
+        </div>
+      </div>
+      <h1 id="tut-title">Ведите корзинку</h1>
+      <p id="tut-text">Три дорожки, волна и нырок.</p>
+      <p id="tut-effect"></p>
+      <div id="tut-dots"></div>
+      <div id="tut-nav">
+        <button class="btn btn-ghost" id="tut-back" type="button">НАЗАД</button>
+        <button class="btn" id="tut-next" type="button">ДАЛЬШЕ</button>
+      </div>
+      <button id="tut-skip" type="button">пропустить обучение</button>
     </div>
   </div>
 
@@ -258,12 +527,12 @@
 
   <div id="version-badge">V7.5.1 · LOADING</div>
   <script>window.Telegram=window.Telegram||{WebApp:{HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};</script>
-  <script src="js/sound.js?v=752&r=767"></script>
-  <script src="js/materials.js?v=767"></script>
-  <script src="js/shaders.js?v=767"></script>
-  <script src="js/fx.js?v=767"></script>
-  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=752&r=767"><\/script>');else window.assetManager={};</script>
-  <script src="js/game-v75.js?v=752&r=767"></script>
-  <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){setTimeout(()=>document.getElementById('start-btn')?.click(),1600)}</script>
+  <script src="js/sound.js?v=770&r=770"></script>
+  <script src="js/materials.js?v=770"></script>
+  <script src="js/shaders.js?v=770"></script>
+  <script src="js/fx.js?v=770"></script>
+  <script>if(window.THREE?.GLTFLoader&&window.THREE?.OBJLoader)document.write('<script src="js/assets.js?v=770&r=770"><\/script>');else window.assetManager={};</script>
+  <script src="js/game-v75.js?v=770&r=770"></script>
+  <script>if(new URLSearchParams(location.search).get('visualAudit')==='1'){try{localStorage.setItem('moses-nile-tutorial-seen-v1','1')}catch(e){}setTimeout(()=>{document.getElementById('tut-skip')?.click();document.getElementById('start-btn')?.click()},1600)}</script>
 </body>
 </html>
