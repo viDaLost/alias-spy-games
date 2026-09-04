@@ -2127,6 +2127,9 @@ html.theme-dark body[data-mode="game"] {
     radial-gradient(70% 46% at 98% 34%, rgba(27, 70, 97, 0.42), transparent 68%),
     linear-gradient(178deg, var(--bg-1) 0%, var(--bg-3) 46%, var(--bg-2) 100%) !important;
 }
+html.theme-dark .game-frame-exit {
+  border: 1px solid rgba(70, 53, 12, 0.28) !important;
+}
 
 /* web/styles/admin-usability.css */
 html.theme-dark .admin-v2-user__disclosure > summary:hover {
