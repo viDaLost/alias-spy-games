@@ -118,6 +118,7 @@
     varying vec3 vWaveNormal;
     varying float vCrest;
     varying float vShore;
+    uniform float uDetail;
     #include <fog_pars_fragment>
     ${NOISE}
     void main(){
@@ -164,11 +165,19 @@
       float crestGlint = smoothstep(0.55, 1.0, vCrest) * glint;
       vec3 color = base + uSunColor * (spec * 0.42 + sparkle * glint * 1.9 + crestGlint * 0.22) * uGlitter;
 
-      // Крупные пятна ила и отмелей: без них река — одна ровная заливка.
+      /*
+        Крупные пятна ила и отмелей: без них река — одна ровная заливка.
+        Вода занимает почти весь кадр, и каждый fbm здесь — это два десятка
+        выборок шума на пиксель. Мелкий ил и каустика снимаются, когда
+        адаптивное качество уже просело: на глаз это почти незаметно, а
+        фрагментный шейдер дешевеет на треть.
+      */
       float silt = fbm(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
-      float siltFine = fbm(vUv * vec2(7.5, 34.0) + vec2(uTime * 0.02, uTime * -0.12));
       color = mix(color, color * (0.70 + silt * 0.66), 0.62);
-      color *= 0.93 + siltFine * 0.16;
+      if (uDetail > 0.5) {
+        float siltFine = fbm(vUv * vec2(7.5, 34.0) + vec2(uTime * 0.02, uTime * -0.12));
+        color *= 0.93 + siltFine * 0.16;
+      }
       // Солнечная дорожка вдоль русла.
       float sunLane = exp(-pow((vUv.x - 0.5) * 5.2, 2.0));
       color += uSunColor * sunLane * horizon * 0.22 * uGlitter;
@@ -178,9 +187,11 @@
       color *= 0.86 + lambert * 0.28;
 
       // Каустика на мелководье.
-      float caustic = fbm(vUv * vec2(14.0, 90.0) + vec2(uTime * 0.11, uTime * -0.45));
-      caustic = pow(clamp(caustic, 0.0, 1.0), 3.0);
-      color += uSunColor * caustic * depthMix * 0.16;
+      if (uDetail > 0.5) {
+        float caustic = fbm(vUv * vec2(14.0, 90.0) + vec2(uTime * 0.11, uTime * -0.45));
+        caustic = pow(clamp(caustic, 0.0, 1.0), 3.0);
+        color += uSunColor * caustic * depthMix * 0.16;
+      }
 
       // Пена: у берега, на гребнях и вокруг корзинки.
       float bankFoam = smoothstep(0.90, 1.0, vShore);
@@ -228,6 +239,7 @@
         uTime: { value: 0 },
         uFlow: { value: 1 },
         uPhase: { value: 0 },
+        uDetail: { value: 1 },
         uChop: { value: 1 },
         uOpacity: { value: options.opacity ?? .30 },
         uGlitter: { value: options.glitter ?? 1 },

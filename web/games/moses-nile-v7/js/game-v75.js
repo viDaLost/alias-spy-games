@@ -55,7 +55,7 @@
     rushTime: 6,
     rushBoost: 1.42,
     nearMissWindow: .62,
-    spawnAhead: 205,
+    spawnAhead: 178,
   };
 
   /*
@@ -204,6 +204,7 @@
     magnet: pick('magnet-badge'),
     rush: pick('rush-badge'),
     toast: pick('toast-layer'),
+    loadingNote: pick('loading-note'),
     hint: pick('hint-layer'),
     badge: pick('version-badge'),
     grade: pick('scene-grade'),
@@ -436,10 +437,10 @@
     if (!renderer || state.fallback) return;
     const fps = 1 / Math.max(.001, dt);
     state.fpsAverage = mix(state.fpsAverage, fps, .04);
-    if (state.fpsAverage < 42 && state.quality > .5) {
-      state.quality = Math.max(.5, state.quality - .12);
+    if (state.fpsAverage < 50 && state.quality > .35) {
+      state.quality = Math.max(.35, state.quality - .12);
       applyQuality();
-    } else if (state.fpsAverage > 57 && state.quality < 1) {
+    } else if (state.fpsAverage > 58 && state.quality < 1) {
       state.quality = Math.min(1, state.quality + .04);
       applyQuality();
     }
@@ -447,7 +448,9 @@
 
   function applyQuality() {
     if (!renderer) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, MAX_DPR) * mix(.72, 1, state.quality);
+    // Нижняя граница опущена: на просевшем кадре разрешение — самый быстрый
+    // рычаг, а прежние 0.72 почти ничего не отыгрывали.
+    const ratio = Math.min(window.devicePixelRatio || 1, MAX_DPR) * mix(.55, 1, state.quality);
     renderer.setPixelRatio(ratio);
     fx?.setQuality?.(state.quality);
     fx?.setParticleScale?.(ratio);
@@ -463,8 +466,36 @@
     }
   }
 
+  /*
+    Счётчик незавершённых загрузок текстур. Кнопка «Отплыть» ждёт нуля:
+    раньше сцена собиралась мгновенно, а карты песка, воды и камня приезжали
+    уже во время заплыва — каждая догрузка перекомпилировала материал и
+    кадр вставал колом.
+  */
+  let texturesPending = 0;
+  const textureWaiters = [];
+  function textureSettled() {
+    texturesPending = Math.max(0, texturesPending - 1);
+    if (texturesPending === 0) {
+      while (textureWaiters.length) textureWaiters.pop()();
+    }
+  }
+  function waitForTextures(timeout = 9000) {
+    if (texturesPending === 0) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => { clearTimeout(timer); resolve(); };
+      const timer = setTimeout(() => {
+        const at = textureWaiters.indexOf(done);
+        if (at >= 0) textureWaiters.splice(at, 1);
+        resolve();
+      }, timeout);
+      textureWaiters.push(done);
+    });
+  }
+
   function makeTexture(path, repeatX, repeatY, material, kind = 'map', onLoad = null) {
     const loader = new THREE.TextureLoader();
+    texturesPending += 1;
     loader.load(path, (texture) => {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(repeatX, repeatY);
@@ -479,7 +510,8 @@
         material.needsUpdate = true;
       }
       onLoad?.(texture);
-    }, undefined, () => {});
+      textureSettled();
+    }, undefined, () => { textureSettled(); });
   }
 
   /* ------------------------------------------------------------------ *
@@ -1074,7 +1106,12 @@
 
   function buildBankDetail() {
     const tier = detectTier();
-    const density = tier >= 2 ? 1.9 : tier >= 1 ? 1.45 : .8;
+    /*
+      Плотность берега. На старших телефонах прежние 1.9 давали около
+      миллиона треугольников в кадре — отсюда и рывки. Замер: папирус один
+      съедал больше сорока процентов сцены.
+    */
+    const density = tier >= 2 ? 1.4 : tier >= 1 ? 1.05 : .65;
     const grassGeometry = () => {
       const geometry = new THREE.ConeGeometry(.2, .82, 5, 2);
       geometry.translate(0, .41, 0);
@@ -1117,7 +1154,7 @@
         // Настоящий папирус: пятнадцать стеблей с зонтиками одной моделью.
         // Куст плотнее собственной геометрии, поэтому кустов нужно меньше.
         key: 'papyrus', name: 'V751PapyrusBank', size: 2.9, wind: 1.6,
-        count: Math.round(62 * density),
+        count: Math.round(38 * density),
         fallbackParts: papyrusClumpParts,
         fallbackGeometry: reedGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x6d7a48, roughness: .98 }),
@@ -1861,7 +1898,14 @@
     if (!realLotus) group.add(pad);
     const model = window.assetManager?.cloneModel?.('lotus', realLotus ? 1.5 : 1.15);
     if (model) {
-      model.position.y += .055;
+      /*
+        У настоящей модели стебли уходят вниз от листа, а cloneModel ставит на
+        ноль самую нижнюю точку — то есть кончики стеблей. Лист оказывался на
+        две трети метра над водой, и кувшинка висела в воздухе. Топим её так,
+        чтобы на поверхности лежал лист, а стебли ушли под воду.
+      */
+      const fitted = model.userData.fittedSize?.y || 0;
+      model.position.y += realLotus ? -fitted * .62 : .055;
       model.rotation.y = Math.PI * .15;
       model.name = 'V751ProjectLotusModel';
       group.add(model);
@@ -2513,7 +2557,12 @@
       wrap.name = 'V752EgyptianShip';
       // Модель развёрнута вдоль своей оси X, русло идёт по Z.
       ship.rotation.y = Math.PI / 2 + (hash(state.elapsed, 88) - .5) * .34;
-      ship.position.y = -.24;
+      /*
+        cloneModel ставит модель килем на ноль. Вся ладья вместе с мачтой и
+        парусом — полтора метра, из них корпус едва полметра: прежние −0.24
+        плюс −0.16 в анимации топили её целиком. Осадка теперь по корпусу.
+      */
+      ship.position.y = 0;
       wrap.add(ship);
       wrap.userData.assetSource = 'models/v75/ship.glb';
       return wrap;
@@ -2738,6 +2787,26 @@
     const mesh = factory();
     if (mesh) mesh.userData.baseScale = mesh.scale.x;
     return mesh;
+  }
+
+  /*
+    Разогрев пулов. Раньше меш препятствия строился в тот момент, когда он
+    впервые понадобился прямо посреди заплыва: клонирование модели, развёртка,
+    процедурные карты — и кадр вставал. Теперь всё это делается на загрузке,
+    до того как игрок нажал «Отплыть», а в игре пул только выдаёт готовое.
+  */
+  const PREWARM = { rock: 4, log: 3, croc: 2, gate: 2, vortex: 2, hippo: 3, boat: 2, lotus: 8 };
+
+  function prewarmPools() {
+    for (const [type, count] of Object.entries(PREWARM)) {
+      const made = [];
+      for (let i = 0; i < count; i += 1) {
+        const mesh = acquireMesh(type);
+        if (!mesh) break;
+        made.push(mesh);
+      }
+      for (const mesh of made) releaseMesh(type, mesh);
+    }
   }
 
   function releaseMesh(type, mesh) {
@@ -3877,7 +3946,7 @@
           break;
         }
         case 'boat':
-          mesh.position.y = -.16 + Math.sin(t * 1.5 + item.phase) * .05;
+          mesh.position.y = -.12 + Math.sin(t * 1.5 + item.phase) * .04;
           mesh.rotation.z = Math.sin(t * 1.2 + item.phase) * .045;
           mesh.rotation.x = Math.sin(t * .9 + item.phase) * .025;
           if (mesh.userData.sail) mesh.userData.sail.rotation.y = Math.sin(t * 1.4 + item.phase) * .12;
@@ -4053,6 +4122,8 @@
       u.uTime.value = t;
       u.uFlow.value = state.flowRate;
       u.uPhase.value = state.flowPhase;
+      // Мелкая детализация воды снимается вместе с общим качеством.
+      if (u.uDetail) u.uDetail.value = state.quality > .82 ? 1 : 0;
       u.uPlayer.value.set(state.x, 0, 1.1);
       u.uWakeStrength.value = state.playing ? clamp(.55 - state.y * .4, 0, .6) : .2;
       // Шесть ближайших препятствий передаются в шейдер воды: вокруг них
@@ -4760,10 +4831,40 @@
       activateFallback('LITE READY');
       return;
     }
+    const note = (text) => { if (dom.loadingNote) dom.loadingNote.textContent = text; };
     try {
+      note('ЗАГРУЖАЕМ МОДЕЛИ…');
       await window.assetManager?.preloadGameplayModels?.();
+      note('СОБИРАЕМ РУСЛО…');
       buildScene();
       resize();
+
+      /*
+        Дальше — три шага, которые раньше приходились на первые секунды
+        заплыва и давали те самые рывки.
+
+        Текстуры: карты песка, воды и камня грузятся асинхронно, и каждая
+        приехавшая перекомпилировала материал уже в игре.
+
+        Компиляция шейдеров: three собирает программу при первой отрисовке
+        объекта. На сцене их полтора десятка, и все всплывали в первых кадрах.
+        renderer.compile проходит их разом, пока экран ещё под заставкой.
+
+        Пулы препятствий: меш строился в момент, когда впервые понадобился —
+        клонирование модели, развёртка, процедурные карты — прямо посреди
+        течения.
+      */
+      note('ГРУЗИМ ТЕКСТУРЫ…');
+      await waitForTextures();
+      note('ГОТОВИМ ПРЕПЯТСТВИЯ…');
+      prewarmPools();
+      note('ПРОГРЕВАЕМ ШЕЙДЕРЫ…');
+      try { renderer.compile(scene, camera); } catch { /* не критично */ }
+      // Один честный кадр до снятия заставки: всё, что осталось скомпилировать,
+      // компилируется здесь, а не под пальцем игрока.
+      renderer.render(scene, camera);
+      await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
       state.ready = true;
       dom.body.classList.remove('is-loading');
       // Кнопка запуска включается именно здесь. До этой правки WebGL-ветка
