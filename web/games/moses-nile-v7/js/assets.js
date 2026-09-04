@@ -56,7 +56,9 @@ class AssetManager {
       palm:'models/environment/nature_pack/PalmTree_4.glb',
       log:'models/environment/survival_pack/WoodLog.glb',
       boat:'models/v73/Boat.glb',
-      flowers:'models/v73/Flowers.glb'
+      flowers:'models/v73/Flowers.glb',
+      papyrus:'models/v75/papyrus.glb',
+      ship:'models/v75/ship.glb'
     };
     this.environmentPromise=Promise.all(Object.entries(sources).map(async([key,url])=>{
       try{
@@ -77,23 +79,64 @@ class AssetManager {
       await this.preloadEnvironmentModels();
       const sources={
         crocodile:'models/v73/crocodile.glb',
-        lotus:'models/v73/lotus-flower.obj'
+        lotus:'models/v75/lotus.glb',
+        lotusFallback:'models/v73/lotus-flower.obj'
       };
       await Promise.all(Object.entries(sources).map(async([key,url])=>{
         try{
           const model=await this._tryLoad(url);
-          this.models[key]=key==='lotus'?this._prepareLotus(model):this._prepareEnvironment(model,.58);
+          this.models[key]=/^lotus/.test(key)?this._prepareLotus(model):this._prepareEnvironment(model,.58);
           this.sources[key]=url;
           console.log(`[AssetManager] gameplay model loaded: ${key}`);
         }catch(err){
           console.warn(`[AssetManager] gameplay fallback: ${key}`,err?.message||err);
         }
       }));
+      // Настоящий лотос лежит в GLB; собственная OBJ-модель остаётся
+      // запасной на случай, если пакет не приехал.
+      if(!this.models.lotus&&this.models.lotusFallback){
+        this.models.lotus=this.models.lotusFallback;
+        this.sources.lotus=this.sources.lotusFallback;
+      }
+      await this.preloadHippoRigs();
       window.__mosesV75ModelSources={...this.sources};
       return this.models;
     })();
     return this.gameplayPromise;
   }
+
+  /*
+    Бегемот приезжает скинованным, со скелетом и пятью анимациями. Обычный
+    clone() отдал бы всем экземплярам общий скелет — они двигались бы
+    синхронно, как один зверь. SkeletonUtils для этого не нужен: файл
+    разбирается заново под каждую копию, и у каждой свой скелет и свой микшер.
+    Копий немного: больше двух-трёх бегемотов на экране не бывает.
+  */
+  async preloadHippoRigs(copies=3){
+    if(this.hippoPromise)return this.hippoPromise;
+    this.hippoPromise=(async()=>{
+      const response=await fetch('models/v75/hippo.glb',{cache:'force-cache'});
+      if(!response.ok)throw new Error(`hippo ${response.status}`);
+      const buffer=await response.arrayBuffer();
+      const parse=()=>new Promise((resolve,reject)=>this.gltfLoader.parse(buffer.slice(0),'',resolve,reject));
+      const rigs=[];
+      for(let i=0;i<copies;i+=1){
+        const gltf=await parse();
+        rigs.push({scene:gltf.scene,animations:gltf.animations||[]});
+      }
+      this.hippoRigs=rigs;
+      this.sources.hippo='models/v75/hippo.glb';
+      console.log(`[AssetManager] hippo rigs ready: ${rigs.length}`);
+      return rigs;
+    })().catch(err=>{
+      console.warn('[AssetManager] hippo rig fallback',err?.message||err);
+      this.hippoRigs=[];
+      return [];
+    });
+    return this.hippoPromise;
+  }
+
+  takeHippoRig(){return this.hippoRigs&&this.hippoRigs.length?this.hippoRigs.pop():null;}
 
   hasModel(name){return !!this.models[name];}
 
@@ -160,6 +203,11 @@ class AssetManager {
       if(child.isMesh){
         child.castShadow=true;
         child.receiveShadow=true;
+        // Без нормалей MeshStandardMaterial выводится чёрным силуэтом. Их
+        // может не быть: у моделей из SketchUp нормали приходится снимать,
+        // чтобы сварить вершины, а из материалов без освещения их вычищает
+        // сама оптимизация как неиспользуемый атрибут.
+        if(!child.geometry.attributes.normal)child.geometry.computeVertexNormals();
         if(child.material){
           const materials=(Array.isArray(child.material)?child.material:[child.material]).map(material=>{
             const next=material.clone();
@@ -188,6 +236,36 @@ class AssetManager {
     переезжает в вершинные цвета.
   */
   _prepareLotus(root){
+    /*
+      Настоящая модель лотоса приезжает со своей запечённой текстурой и
+      материалом без освещения (KHR_materials_unlit): на воде он выглядел бы
+      наклейкой, не реагирующей на время суток. Такую модель не перекрашиваем
+      по именам материалов — только переводим в обычный PBR, чтобы биомы и
+      закат ложились на неё как на всё остальное.
+    */
+    let textured=false;
+    root.traverse(child=>{if(child.isMesh&&(Array.isArray(child.material)?child.material[0]:child.material)?.map)textured=true;});
+    if(textured){
+      root.traverse(child=>{
+        if(!child.isMesh)return;
+        if(!child.geometry.attributes.normal)child.geometry.computeVertexNormals();
+        const source=Array.isArray(child.material)?child.material[0]:child.material;
+        const next=new THREE.MeshStandardMaterial({
+          map:source.map,
+          color:0xffffff,
+          roughness:.86,
+          metalness:0,
+          transparent:source.transparent===true,
+          alphaTest:source.transparent?.4:0,
+          side:THREE.DoubleSide,
+        });
+        next.name=source.name||'lotus';
+        child.material=next;
+        child.castShadow=false;
+        child.receiveShadow=true;
+      });
+      return root;
+    }
     const lotusColor=name=>{
       const id=String(name||'').toLowerCase();
       if(id.includes('center')||id.includes('stamen'))return 0xe7bd43;

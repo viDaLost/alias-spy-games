@@ -59,7 +59,7 @@ function build() {
   fs.rmSync(site, { recursive: true, force: true });
   for (const dir of [
     'js', 'vendor', 'models/environment/nature_pack', 'models/environment/survival_pack',
-    'models/v73', 'textures/water', 'textures/terrain',
+    'models/v73', 'models/v75', 'textures/water', 'textures/terrain',
   ]) fs.mkdirSync(path.join(site, dir), { recursive: true });
 
   copy(path.join(game, 'index.html'), path.join(site, 'index.html'));
@@ -69,6 +69,10 @@ function build() {
   const basket = path.join(repo, 'web/assets/models/moses-nile/woven-basket.obj');
   copy(basket, path.join(site, 'models/basket.obj'));
   copy(basket, path.join(site, 'models/woven-basket.obj'));
+  for (const [from, to] of [
+    ['nile-hippo.glb', 'hippo.glb'], ['nile-ship.glb', 'ship.glb'],
+    ['nile-papyrus.glb', 'papyrus.glb'], ['nile-lotus.glb', 'lotus.glb'],
+  ]) copy(path.join(repo, 'web/assets/models/moses-nile', from), path.join(site, 'models/v75', to));
   fs.writeFileSync(path.join(site, 'build.json'), '{"commit":"local","version":"V7.5.1"}\n');
 
   // Библиотеки и архив тянутся один раз и переиспользуются между запусками.

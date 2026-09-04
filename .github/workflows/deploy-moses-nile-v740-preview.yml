@@ -30,12 +30,19 @@ jobs:
             .preview-v7/models/environment/nature_pack \
             .preview-v7/models/environment/survival_pack \
             .preview-v7/models/v73 \
+            .preview-v7/models/v75 \
             .preview-v7/textures/water \
             .preview-v7/textures/terrain
           cp web/games/moses-nile-v7/index.html .preview-v7/index.html
           cp -R web/games/moses-nile-v7/js/. .preview-v7/js/
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/basket.obj
           cp web/assets/models/moses-nile/woven-basket.obj .preview-v7/models/woven-basket.obj
+          # Модели, присланные владельцем игры: корабль, бегемот со скелетом,
+          # папирус и лотос. Лежат в репозитории уже сжатыми до бюджета.
+          cp web/assets/models/moses-nile/nile-hippo.glb .preview-v7/models/v75/hippo.glb
+          cp web/assets/models/moses-nile/nile-ship.glb .preview-v7/models/v75/ship.glb
+          cp web/assets/models/moses-nile/nile-papyrus.glb .preview-v7/models/v75/papyrus.glb
+          cp web/assets/models/moses-nile/nile-lotus.glb .preview-v7/models/v75/lotus.glb
           printf '{"commit":"%s","version":"V7.5.1"}\n' "$GITHUB_SHA" > .preview-v7/build.json
           printf '/*\n  Cache-Control: no-store, no-cache, max-age=0, must-revalidate\n' > .preview-v7/_headers
 
@@ -143,7 +150,11 @@ jobs:
             textures/terrain/pebbles-normal.jpg \
             textures/terrain/rock-color.jpg \
             textures/terrain/rock-normal.jpg \
-            textures/terrain/rock-orm.jpg; do
+            textures/terrain/rock-orm.jpg \
+            models/v75/hippo.glb \
+            models/v75/ship.glb \
+            models/v75/papyrus.glb \
+            models/v75/lotus.glb; do
             test -s ".preview-v7/$asset"
           done
           node - <<'NODE'

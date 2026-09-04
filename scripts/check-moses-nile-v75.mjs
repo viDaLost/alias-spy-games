@@ -70,7 +70,13 @@ for (const token of [
   if (!game.includes(token)) throw new Error(`V7.5.1 engine is missing ${token}`);
 }
 if (game.includes('OctahedronGeometry')) throw new Error('The placeholder octahedron power-up is still present');
-for (const token of ['preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj']) {
+for (const token of [
+  'preloadGameplayModels', 'models/v73/crocodile.glb', 'models/v73/lotus-flower.obj',
+  // Скинованная модель разбирается заново под каждую копию: обычный clone()
+  // отдал бы всем экземплярам общий скелет, и бегемоты двигались бы синхронно.
+  'preloadHippoRigs', 'models/v75/hippo.glb', 'models/v75/ship.glb',
+  'models/v75/papyrus.glb', 'models/v75/lotus.glb',
+]) {
   if (!assets.includes(token)) throw new Error(`V7.5.1 asset manager is missing ${token}`);
 }
 for (const token of ['createRiverMaterial', 'createSkyMaterial', 'createDustSheetMaterial', 'applyCrocodileSwim', 'createShieldMaterial', 'createParticleMaterial', 'applyWind', 'window.NileShaders']) {
@@ -117,6 +123,9 @@ for (const token of [
   // Рельеф песка едет вместе с растительностью, иначе деревья идут сквозь
   // барханы; камень русла — на настоящей фотограмметрии.
   'applyDuneRelief', 'uDuneScroll', 'riverStoneMaterial', 'textures/terrain/rock-color.jpg',
+  // Модели, присланные владельцем игры: скинованный бегемот с костью челюсти,
+  // египетская ладья, папирус и лотос.
+  'buildRiggedHippo', 'HeadJaw_019', 'V752RiggedHippo', 'V752EgyptianShip',
 ]) {
   if (!game.includes(token)) throw new Error(`The Nile scene is missing ${token}`);
 }

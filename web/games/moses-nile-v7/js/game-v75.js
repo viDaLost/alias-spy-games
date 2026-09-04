@@ -154,7 +154,7 @@
     croc:   { clearance: 'ground', radius: 1.34, size: 6.6, fail: 'Крокодил преградил путь по реке.' },
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Корзинка запуталась в нависших зарослях папируса.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Водоворот затянул корзинку под воду.' },
-    hippo:  { clearance: 'ground', radius: 1.36, size: 4.3,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
+    hippo:  { clearance: 'ground', radius: 1.5, size: 5.4,  fail: 'Бегемот поднялся из воды прямо перед корзинкой.' },
     boat:   { clearance: 'ground', radius: 1.42, size: 3.4,  fail: 'Корзинка врезалась в борт рыбацкой лодки.' },
   };
 
@@ -876,6 +876,7 @@
     приезжал коричневым «деревом» из исходного набора моделей.
   */
   const BANK_TONES = {
+    papyrus: { stem: 0x4a6128, leaf: 0x4f6b2c },
     broadleaf: { stem: 0x7c8a46, leaf: 0x8fa04f },
     bankPlant: { stem: 0x6f7a41, leaf: 0x86924c },
     grass: { stem: 0x8a8f56, leaf: 0x9aa05f },
@@ -884,7 +885,7 @@
   };
 
   const BANK_SURFACES = {
-    reeds: 'foliage', broadleaf: 'foliage', bankPlant: 'foliage', grass: 'foliage',
+    papyrus: 'foliage', reeds: 'foliage', broadleaf: 'foliage', bankPlant: 'foliage', grass: 'foliage',
     bush: 'foliage', flowers: 'foliage', palm: 'foliage', rock: 'granite', log: 'bark',
   };
 
@@ -926,7 +927,9 @@
         name: (Array.isArray(child.material) ? child.material[0] : child.material)?.name || child.name,
         uvScale: key === 'palm' ? .5 : .9,
         normalScale: .95,
-        bleach: .1,
+        // Папирус — тонкие стебли, освещённые со всех сторон: отбеливание
+        // выгоняло их в солому.
+        bleach: key === 'papyrus' ? 0 : .1,
       });
       parts.push({ geometry, material });
     });
@@ -934,8 +937,8 @@
   }
 
   function buildInstancedLayer(spec) {
-    const parts = (spec.parts ? spec.parts() : null)
-      || extractInstanceParts(spec.key, spec.size)
+    const parts = extractInstanceParts(spec.key, spec.size)
+      || (spec.fallbackParts ? spec.fallbackParts() : null)
       || [{ geometry: spec.fallbackGeometry(), material: spec.fallbackMaterial() }];
     const half = spec.count;
     const total = half * 2;
@@ -1111,9 +1114,11 @@
         // В кусте семь стеблей, поэтому кустов нужно втрое меньше прежних
         // одиночных прутьев: иначе кромка превращалась в сплошную изгородь и
         // песка за ней было не видно. Полоса заодно расширена вглубь берега.
-        key: 'reeds', name: 'V751PapyrusBank', size: 2.3, wind: 1.6,
-        count: Math.round(84 * density),
-        parts: papyrusClumpParts,
+        // Настоящий папирус: пятнадцать стеблей с зонтиками одной моделью.
+        // Куст плотнее собственной геометрии, поэтому кустов нужно меньше.
+        key: 'papyrus', name: 'V751PapyrusBank', size: 2.9, wind: 1.6,
+        count: Math.round(62 * density),
+        fallbackParts: papyrusClumpParts,
         fallbackGeometry: reedGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x6d7a48, roughness: .98 }),
         place: (i, dummy, half) => bankPlace(i, dummy, { salt: 1, zFrom: 4, zSpan: 258, near: -.5, far: 3.4, lift: .02, minScale: .75, maxScale: 1.7, tilt: .16, stretch: 1.2 }, half),
@@ -1850,8 +1855,11 @@
       new THREE.MeshStandardMaterial({ color: 0x3f6636, roughness: .84 }),
     );
     pad.name = 'V751LilyPad';
-    group.add(pad);
-    const model = window.assetManager?.cloneModel?.('lotus', 1.15);
+    // У настоящей модели лотоса свой лист. Собственный диск остаётся только
+    // под запасной OBJ-моделью, иначе под цветком лежат два листа.
+    const realLotus = /\.glb$/i.test(window.assetManager?.sources?.lotus || '');
+    if (!realLotus) group.add(pad);
+    const model = window.assetManager?.cloneModel?.('lotus', realLotus ? 1.5 : 1.15);
     if (model) {
       model.position.y += .055;
       model.rotation.y = Math.PI * .15;
@@ -2138,15 +2146,33 @@
     const umbrella = new THREE.MeshStandardMaterial({ color: 0x3c4d19, roughness: .9 });
     const frond = new THREE.MeshStandardMaterial({ color: 0x1f2d10, roughness: .92, side: THREE.DoubleSide });
 
-    // Два куста по берегам дорожки, склонённых навстречу друг другу.
+    /*
+      Два куста по берегам дорожки, склонённых навстречу друг другу. Если
+      настоящая модель папируса приехала — берём её: у арки игрок проходит
+      вплотную, и здесь разница между настоящим растением и собранным из
+      цилиндров видна лучше всего.
+    */
+    let real = 0;
     for (const side of [-1, 1]) {
-      for (let i = 0; i < 9; i += 1) {
-        const height = 2.4 + hash(i, 81 + side) * 1.1;
-        const stalk = papyrusStalk(height, side * (.55 + hash(i, 83) * .5), stem, umbrella);
-        stalk.position.set(side * (.92 + hash(i, 84) * .7), 0, (hash(i, 85) - .5) * 1.3);
-        stalk.rotation.y = hash(i, 86) * Math.PI;
-        stalk.scale.setScalar(.85 + hash(i, 87) * .35);
-        group.add(stalk);
+      for (let i = 0; i < 3; i += 1) {
+        const clump = window.assetManager?.cloneModel?.('papyrus', 3.4 + hash(i, 77 + side) * .9);
+        if (!clump) break;
+        clump.position.set(side * (1.05 + hash(i, 84) * .6), -.1, (hash(i, 85) - .5) * 1.4);
+        clump.rotation.set(side * -.16, hash(i, 86) * Math.PI * 2, side * (.14 + hash(i, 83) * .12));
+        group.add(clump);
+        real += 1;
+      }
+    }
+    if (!real) {
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < 9; i += 1) {
+          const height = 2.4 + hash(i, 81 + side) * 1.1;
+          const stalk = papyrusStalk(height, side * (.55 + hash(i, 83) * .5), stem, umbrella);
+          stalk.position.set(side * (.92 + hash(i, 84) * .7), 0, (hash(i, 85) - .5) * 1.3);
+          stalk.rotation.y = hash(i, 86) * Math.PI;
+          stalk.scale.setScalar(.85 + hash(i, 87) * .35);
+          group.add(stalk);
+        }
       }
     }
 
@@ -2239,7 +2265,99 @@
     собран как силуэт: широкая морда, покатая спина, уши и ноздри над водой.
     Нижняя челюсть вынесена отдельно — он разевает пасть при приближении.
   */
+  /*
+    Настоящий бегемот: скинованная модель со скелетом и пятью анимациями.
+    Пасть открывается поворотом кости HeadJaw поверх проигрываемой анимации —
+    именно поэтому важен порядок: сначала микшер записывает кватернионы
+    костей, и только потом мы дописываем челюсть, иначе анимация затрёт её.
+
+    Габариты берутся у самого меша, а не через Box3 по сцене: у скинованной
+    модели Box3 считает по позе привязки вместе с костями и IK-целями и даёт
+    габарит втрое больше настоящего.
+  */
+  /*
+    Оси заводятся лениво: в запасном 2D-режиме библиотеки three на странице
+    нет вообще, и обращение к THREE на уровне модуля роняло бы весь файл ещё
+    до boot() — вместе с самим запасным режимом.
+  */
+  let hippoAxes = null;
+  function hippoAxis(kind) {
+    if (!hippoAxes) {
+      hippoAxes = { jaw: new THREE.Vector3(1, 0, 0), head: new THREE.Vector3(0, 0, 1) };
+    }
+    return hippoAxes[kind];
+  }
+  const HIPPO_JAW_RANGE = .95;
+  // Модель уже смотрит вдоль +Z, то есть навстречу игроку: доворачивать не надо.
+  const HIPPO_FACING = 0;
+
+  function buildRiggedHippo(rig) {
+    const model = rig.scene;
+    let skin = null;
+    model.traverse((child) => { if (child.isSkinnedMesh && !skin) skin = child; });
+    if (!skin) return null;
+    skin.geometry.computeBoundingBox();
+    const box = skin.geometry.boundingBox;
+    skin.updateWorldMatrix(true, false);
+    const worldScale = new THREE.Vector3();
+    skin.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), worldScale);
+    const length = (box.max.z - box.min.z) * Math.abs(worldScale.z) || 1;
+    const scale = OBSTACLES.hippo.size / length;
+
+    const group = new THREE.Group();
+    group.name = 'V752RiggedHippo';
+    model.scale.multiplyScalar(scale);
+    // Ноги на нуле, туша по центру: бегемот всплывает из-под воды, и точка
+    // отсчёта должна быть подошвой, а не серединой модели.
+    model.position.y = -box.min.y * Math.abs(worldScale.y) * scale;
+    group.add(model);
+
+    model.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = shadowsOn;
+      child.receiveShadow = true;
+      child.frustumCulled = false;
+      const material = Array.isArray(child.material) ? child.material[0] : child.material;
+      if (material) {
+        // Шкура у модели своя — процедурные карты её только испортят.
+        window.NileMaterials?.dress?.(material, child.geometry, {
+          name: 'hide', normalScale: .55, skyReflection: .18, envMapIntensity: .45,
+        });
+        if ('roughness' in material) material.roughness = Math.max(.62, material.roughness ?? .8);
+      }
+    });
+
+    const jaw = model.getObjectByName('HeadJaw_019') || model.getObjectByName('HeadJaw');
+    const head = model.getObjectByName('Head_018') || model.getObjectByName('Head');
+    const store = {
+      mixer: rig.animations.length ? new THREE.AnimationMixer(model) : null,
+      jaw,
+      jawRest: jaw ? jaw.quaternion.clone() : null,
+      head,
+      headRest: head ? head.quaternion.clone() : null,
+      spin: new THREE.Quaternion(),
+    };
+    if (store.mixer) {
+      const idle = rig.animations.find((clip) => /iddle|idle/i.test(clip.name)) || rig.animations[0];
+      const action = store.mixer.clipAction(idle);
+      action.timeScale = .55;
+      action.play();
+    }
+    group.userData.rig = store;
+    group.userData.assetSource = 'models/v75/hippo.glb';
+    return group;
+  }
+
   function createHippo() {
+    const rig = window.assetManager?.takeHippoRig?.();
+    if (rig) {
+      const built = buildRiggedHippo(rig);
+      if (built) return built;
+    }
+    return createSculptedHippo();
+  }
+
+  function createSculptedHippo() {
     /*
       Раньше бегемот был склеен из шаров и цилиндра: силуэт разваливался на
       части, а морда читалась как труба. Теперь туша и череп вылеплены одной
@@ -2383,118 +2501,24 @@
   }
 
   function createBoat() {
-    const model = window.assetManager?.cloneModel?.('boat', OBSTACLES.boat.size);
-    if (model) {
-      model.rotation.y = Math.PI / 2 + (hash(state.elapsed, 88) - .5) * .5;
-      model.position.y = -.2;
-      model.name = 'V751QuaterniusBoatModel';
-      model.userData.assetSource = 'models/v73/Boat.glb';
-
-      /*
-        Корпус из пакета — двести треугольников без единой детали. Достраиваем
-        оснастку: мачту с парусом, вёсла, сеть и корзины, чтобы лодка не
-        читалась как пустая ванна.
-      */
-      const rig = new THREE.Group();
-      const wood = new THREE.MeshStandardMaterial({ color: 0x7a5330, roughness: .92 });
-      const rope = new THREE.MeshStandardMaterial({ color: 0xb4a077, roughness: .95 });
-      // Парус был почти белым, и под солнцем в 1.7 стопа он выбивался в
-      // чистый белый пятном на полкадра. Тон приглушён, а ткань получила
-      // процедурную структуру льна — иначе это просто плоская заливка.
-      const linen = window.NileMaterials?.pbr?.('linen', {
-        color: 0xc9ba97, roughness: .97, metalness: 0, repeat: 2,
-        side: THREE.DoubleSide, envMapIntensity: .35, skyReflection: .1,
-      }) || new THREE.MeshStandardMaterial({ color: 0xc9ba97, roughness: .97, side: THREE.DoubleSide });
-
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(.045, .06, 2.3, 6), wood);
-      mast.position.set(0, 1.15, 0);
-      rig.add(mast);
-      const yard = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, 1.7, 5), wood);
-      yard.rotation.z = Math.PI / 2;
-      yard.position.set(0, 2.05, 0);
-      rig.add(yard);
-      const sail = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.35, 4, 3), linen);
-      sail.position.set(0, 1.42, .06);
-      rig.add(sail);
-      rig.userData.sail = sail;
-
-      for (const side of [-1, 1]) {
-        const oar = new THREE.Mesh(new THREE.CylinderGeometry(.03, .025, 1.9, 5), wood);
-        oar.position.set(side * .55, .34, -.35);
-        oar.rotation.set(.35, 0, side * 1.05);
-        rig.add(oar);
-        const blade = new THREE.Mesh(new THREE.BoxGeometry(.14, .02, .42), wood);
-        blade.position.set(side * 1.28, -.1, -.62);
-        blade.rotation.z = side * .3;
-        rig.add(blade);
-      }
-      for (let i = 0; i < 3; i += 1) {
-        const basket = new THREE.Mesh(new THREE.CylinderGeometry(.2, .16, .26, 9), rope);
-        basket.position.set((hash(i, 71) - .5) * .5, .3, -.9 + i * .5);
-        rig.add(basket);
-      }
-      const net = new THREE.Mesh(new THREE.PlaneGeometry(.9, .55), rope);
-      net.material = rope.clone();
-      net.material.transparent = true;
-      net.material.opacity = .55;
-      net.material.side = THREE.DoubleSide;
-      net.position.set(.42, .18, .75);
-      net.rotation.set(-.5, .3, 0);
-      rig.add(net);
-
-      /*
-        Нос и корма египетской лодки загнуты вверх и завершаются бутоном
-        лотоса: связку папируса стягивали к концам и поднимали над водой.
-        Корпус из пакета — обычная плоскодонка, и без этих двух завитков
-        лодка на Ниле читалась прогулочной шлюпкой откуда угодно.
-      */
-      const bundle = window.NileMaterials?.pbr?.('weave', {
-        color: 0xa08149, roughness: .96, metalness: 0, repeat: 3, skyReflection: .1,
-      }) || rope;
-      // Завитки ставятся вдоль корпуса: сам корпус развёрнут поперёк русла,
-      // и без этого поворота нос с кормой торчали бы у него из бортов.
-      const ends = new THREE.Group();
-      ends.rotation.y = model.rotation.y;
-      for (const end of [-1, 1]) {
-        const curl = new THREE.Group();
-        const links = 7;
-        for (let i = 0; i < links; i += 1) {
-          const t = i / (links - 1);
-          // Дуга: чем ближе к концу, тем круче подъём и тоньше связка.
-          const radius = mix(.17, .055, t);
-          const seg = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * .92, .3, 7), bundle);
-          const angle = t * t * 1.35;
-          seg.position.set(0, Math.sin(angle) * .95 * t + t * .12, end * (.9 + t * .78 - Math.cos(angle) * .12));
-          seg.rotation.x = end * (Math.PI / 2 - angle);
-          curl.add(seg);
-        }
-        // Бутон лотоса на самом конце — узнаваемая деталь речных судов.
-        const bud = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8), bundle);
-        bud.scale.set(1, 1.5, 1);
-        bud.position.set(0, .98, end * 1.5);
-        curl.add(bud);
-        // Перевязи: связку папируса стягивали верёвкой через равные шаги.
-        for (let i = 0; i < 3; i += 1) {
-          const lash = new THREE.Mesh(new THREE.TorusGeometry(.13 - i * .022, .018, 6, 12), rope);
-          lash.rotation.y = Math.PI / 2;
-          lash.rotation.z = end * (.5 + i * .25);
-          lash.position.set(0, .22 + i * .27, end * (1.02 + i * .18));
-          curl.add(lash);
-        }
-        ends.add(curl);
-      }
-      rig.add(ends);
-
-      mergeByMaterial(rig);
+    /*
+      Настоящая египетская ладья: корпус, мачта, рея и большой прямой парус
+      одной моделью со своими текстурами. Прежняя сборка — плоскодонка из
+      пакета плюс вручную достроенные мачта, вёсла и завитки носа — уходит:
+      всё это есть в самой модели и выглядит на порядок лучше.
+    */
+    const ship = window.assetManager?.cloneModel?.('ship', OBSTACLES.boat.size);
+    if (ship) {
       const wrap = new THREE.Group();
-      wrap.name = 'V751RiverBoatRig';
-      wrap.add(model);
-      wrap.add(rig);
-      rig.position.y = .25;
-      wrap.userData.sail = rig.userData.sail;
-      wrap.userData.assetSource = 'models/v73/Boat.glb';
+      wrap.name = 'V752EgyptianShip';
+      // Модель развёрнута вдоль своей оси X, русло идёт по Z.
+      ship.rotation.y = Math.PI / 2 + (hash(state.elapsed, 88) - .5) * .34;
+      ship.position.y = -.24;
+      wrap.add(ship);
+      wrap.userData.assetSource = 'models/v75/ship.glb';
       return wrap;
     }
+
     const group = new THREE.Group();
     const wood = new THREE.MeshStandardMaterial({ color: 0x8a6236, roughness: .95, side: THREE.DoubleSide });
     const hull = new THREE.Mesh(new THREE.SphereGeometry(1.1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), wood);
@@ -2517,11 +2541,6 @@
     return mergeByMaterial(group);
   }
 
-  /*
-    Усилители — не иконки, а маленькие предметы египетской пластики.
-    Каждый собирается из примитивов и схлопывается в один-два меша.
-  */
-  const shrineMaterials = {};
   function shrineMaterial(kind) {
     if (shrineMaterials[kind]) return shrineMaterials[kind];
     const presets = {
@@ -3789,6 +3808,41 @@
         }
         case 'hippo': {
           const rise = clamp((item.z + 52) / 30, 0, 1);
+          const rig = mesh.userData.rig;
+          if (rig) {
+            // Сначала микшер прописывает кости, и только потом дописывается
+            // челюсть: иначе анимация затрёт поворот в тот же кадр.
+            rig.mixer?.update(dt);
+            const reachR = clamp((item.z + 34) / 26, 0, 1);
+            const aimR = clamp(1 - Math.abs(state.x - item.x) / 5.4, 0, 1);
+            const passedR = clamp((item.z - .8) / 3.2, 0, 1);
+            const targetR = rise * reachR * (1 - passedR) * (.42 + aimR * .58);
+            item.gape = damp(item.gape || 0, targetR, passedR > 0 ? 22 : 5.5, dt);
+            if (rig.jaw && rig.jawRest) {
+              rig.spin.setFromAxisAngle(hippoAxis('jaw'), item.gape * HIPPO_JAW_RANGE);
+              rig.jaw.quaternion.copy(rig.jawRest).multiply(rig.spin);
+            }
+            if (rig.head && rig.headRest) {
+              // Голова доворачивается за корзинкой — по ней и видно, что
+              // бегемот следит, а не просто торчит из воды.
+              const track = clamp((state.x - item.x) * .1, -.36, .36) * rise * reachR;
+              rig.spin.setFromAxisAngle(hippoAxis('head'), track);
+              rig.head.quaternion.copy(rig.headRest).multiply(rig.spin);
+            }
+            // Бегемот стоит на дне: над водой у него остаются спина и голова,
+            // а не весь зверь целиком — модель высотой в два с половиной метра.
+            mesh.position.y = mix(-3.4, -1.32, rise) + Math.sin(t * .8 + item.phase) * .09;
+            mesh.rotation.y = HIPPO_FACING + Math.sin(t * .4 + item.phase) * .06;
+            if (!item.clapped && passedR > .5 && rise > .5) {
+              item.clapped = true;
+              window.gameAudio?.playHit?.();
+              fx?.splash?.(item.x, .12, item.z, 1.5, [.78, .74, .72]);
+            }
+            if (rise > .2 && rise < .9 && Math.random() < .04) {
+              fx?.splash?.(item.x, .05, item.z + 1.6, 1.1, [.72, .68, .7]);
+            }
+            break;
+          }
           mesh.position.y = mix(-1.3, .06, rise) + Math.abs(Math.sin(t * .8 + item.phase)) * .16;
           /*
             Пасть открывается на приближение корзинки, а не по синусу времени.
