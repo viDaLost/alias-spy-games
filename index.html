@@ -37,11 +37,12 @@
   <meta name="bible-sketch-backend" content="https://alias-spy-games-bible-sketch.vitaledanilov.workers.dev" />
   <meta name="spy-backend" content="https://alias-spy-games-spy.vitaledanilov.workers.dev" />
   <!--
-    «Моисей: Путь по Нилу» раздаётся отдельным воркером: в репозитории лежит
-    только рантайм игры, а модели, текстуры и three.js собирает воркфлоу
-    превью. Без этого адреса игра открылась бы в запасном 2D-режиме.
+    «Моисей: Путь по Нилу» лежит в приложении целиком — модели, текстуры и
+    three.js собраны рядом с игрой скриптом build-moses-nile-assets.mjs.
+    Пустое значение означает «играем локально»; адрес сюда вписывают, только
+    когда нужно временно увести игру на отдельный воркер.
   -->
-  <meta name="moses-nile-app" content="https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/" />
+  <meta name="moses-nile-app" content="" />
   <meta name="app-observability" content="https://alias-spy-games-observability.vitaledanilov.workers.dev" />
   <meta name="app-core-backend" content="https://alias-spy-games-core.vitaledanilov.workers.dev" />
   <!-- Витрина: те же файлы под своим адресом. Нужна для установки на главный

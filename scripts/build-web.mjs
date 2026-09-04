@@ -33,6 +33,16 @@ const PRECACHE_DIRS = [
 ];
 const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest'];
 
+// Тяжёлые ассеты «Моисея на Ниле» — модели, текстуры и three.js — весят почти
+// четыре мегабайта. Ставить их в кеш при установке нельзя: столько платит
+// каждый, кто открыл приложение, включая тех, кто в эту игру не заходит.
+// Рантайм игры в кеше остаётся, а ассеты осядут сами при первом запуске.
+const PRECACHE_SKIP = [
+  'web/games/moses-nile-v7/vendor/',
+  'web/games/moses-nile-v7/models/',
+  'web/games/moses-nile-v7/textures/',
+];
+
 function walk(dir) {
   const out = [];
   const absolute = path.join(root, dir);
@@ -95,7 +105,7 @@ export async function build({ write = true } = {}) {
     `web/dist/${cssName}`,
     `web/dist/${jsName}`,
     ...PRECACHE_DIRS.flatMap(walk),
-  ].filter((rel) => !rel.endsWith('.DS_Store'));
+  ].filter((rel) => !rel.endsWith('.DS_Store') && !PRECACHE_SKIP.some((prefix) => rel.startsWith(prefix)));
 
   // Версия кеша — от содержимого приложения, а не от времени сборки: пересборка
   // без изменений не должна сбрасывать кеш у всех разом.
