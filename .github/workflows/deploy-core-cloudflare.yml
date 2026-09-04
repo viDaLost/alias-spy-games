@@ -101,7 +101,10 @@ jobs:
           // чата старше остальных, поэтому его список полностью свой. Номер
           // берётся из настроек воркера, чтобы он был записан в одном месте.
           const fs = await import('node:fs');
-          const wrangler = fs.readFileSync('cloudflare/app-core-worker/wrangler.jsonc', 'utf8');
+          // Путь относительный: шаг уже выполняется в cloudflare/app-core-worker
+          // (defaults.run.working-directory). С полным путём он складывался сам
+          // с собой, и деплой падал на ENOENT при живых настройках.
+          const wrangler = fs.readFileSync('wrangler.jsonc', 'utf8');
           const adminId = wrangler.match(/"ADMIN_TELEGRAM_ID":\s*"(\d{5,20})"/)?.[1] || '';
           if (!adminId) throw new Error('ADMIN_TELEGRAM_ID not found in wrangler.jsonc');
           await telegram('setMyCommands', {
