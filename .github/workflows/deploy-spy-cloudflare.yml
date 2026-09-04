@@ -49,7 +49,7 @@ jobs:
         run: |
           for i in 1 2 3 4 5 6; do
             if curl -fsS --max-time 20 "https://alias-spy-games-spy.vitaledanilov.workers.dev/health" -o /tmp/spy-health; then
-              grep -q '"ok":true' /tmp/spy-health && grep -q '"voice":true' /tmp/spy-health && exit 0
+              grep -q '"ok":true' /tmp/spy-health && grep -q '"chat":true' /tmp/spy-health && exit 0
             fi
             sleep 5
           done
