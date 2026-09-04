@@ -19,15 +19,22 @@ for (const launcher of ['web/js/bible-sketch-launcher.js', 'web/js/biblical-matc
 
 const models = read('android-app/app/src/main/java/com/vidalost/biblegames/model/Models.kt');
 const androidRoutes = new Set([...models.matchAll(/^\s*[A-Z_]+\("([a-z0-9-]+)"/gm)].map((match) => match[1]));
-const expectedRoutes = new Set([
+const expectedNativeRoutes = new Set([
   'alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet',
   'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs',
   'bible-sketch', 'biblical-match-three',
 ]);
 
+// «Моисей: Путь по Нилу» живёт только в вебе. В APK он попадает вместе с
+// упакованным веб-приложением — тем же деревом web/, что и остальные экраны, —
+// и отдельной нативной реализации, как у списка выше, у него нет. Поэтому
+// каталоги сверяются раздельно: иначе либо не заметить лишний веб-маршрут,
+// либо требовать нативную игру там, где её и не должно быть.
+const expectedWebRoutes = new Set([...expectedNativeRoutes, 'moses-nile']);
+
 const sorted = (values) => [...values].sort();
-assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
-assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
+assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
+assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedNativeRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
 
 // Android 3.0.6 uses the exact production Web catalog copied into the APK after
 // the encrypted native OTP gate. WebViewAssetLoader serves those packaged bytes
@@ -91,4 +98,4 @@ assert(androidMenu.includes('BibleGames-Android-latest.apk'), 'Web download menu
 assert(releaseWorkflow.includes('BibleGames-Android-3.0.6-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.6 standalone APK');
 assert(releaseWorkflow.includes('BibleGames-Android-latest.apk'), 'Android release workflow does not publish the stable latest APK alias');
 
-console.log(`Web/Android parity passed: standalone bundled Web UI + ${androidRoutes.size} packaged native compatibility routes, with no GitHub Pages runtime origin.`);
+console.log(`Web/Android parity passed: standalone bundled Web UI with ${webRoutes.size} routes + ${androidRoutes.size} packaged native compatibility routes, with no GitHub Pages runtime origin.`);
