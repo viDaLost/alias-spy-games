@@ -72,6 +72,13 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
         await joinOrResume(roomId, true);
         return;
       } catch (error) {
+        if (error?.clientBackoff) {
+          // Комната цела, вход просто отложен: ждём, пока приложение вернётся
+          // на экран, и заходим снова.
+          showConnecting('Возвращаемся в комнату…');
+          scheduleReconnect();
+          return;
+        }
         console.warn('Quartet resume failed', error);
         clearRoomSession();
       }
@@ -185,22 +192,26 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       const action = target.dataset.action;
       if (action === 'close-modal' && event.target.closest('[data-modal-card]') && !event.target.closest('button[data-action="close-modal"]')) return;
 
+      // await обязателен. Без него «return createRoom(target)» отдаёт промис из
+      // try, а catch к тому времени уже пройден: беда уходила мимо него
+      // необработанным отказом — человек не видел ни причины, ни подсказки, зато
+      // администратору она прилетала как ошибка приложения.
       try {
-        if (action === 'back') return onBack();
-        if (action === 'create') return createRoom(target);
-        if (action === 'join') return joinRoomFromForm(target);
-        if (action === 'copy-room') return copyRoomCode();
-        if (action === 'share-room') return shareRoom();
-        if (action === 'start-game') return sendAction('startGame', {}, target);
-        if (action === 'restart-game') return sendAction('restartGame', {}, target);
-        if (action === 'leave-room') return confirmLeave();
-        if (action === 'select-target') return selectTarget(target);
-        if (action === 'select-card') return selectCard(target);
-        if (action === 'confirm-ask') return confirmAsk(target);
-        if (action === 'focus-group') return focusGroup(target.dataset.groupId || '');
-        if (action === 'open-rules') return openRules();
-        if (action === 'close-modal') return closeModal();
-        if (action === 'retry-connect') return retryConnect();
+        if (action === 'back') return await onBack();
+        if (action === 'create') return await createRoom(target);
+        if (action === 'join') return await joinRoomFromForm(target);
+        if (action === 'copy-room') return await copyRoomCode();
+        if (action === 'share-room') return await shareRoom();
+        if (action === 'start-game') return await sendAction('startGame', {}, target);
+        if (action === 'restart-game') return await sendAction('restartGame', {}, target);
+        if (action === 'leave-room') return await confirmLeave();
+        if (action === 'select-target') return await selectTarget(target);
+        if (action === 'select-card') return await selectCard(target);
+        if (action === 'confirm-ask') return await confirmAsk(target);
+        if (action === 'focus-group') return await focusGroup(target.dataset.groupId || '');
+        if (action === 'open-rules') return await openRules();
+        if (action === 'close-modal') return await closeModal();
+        if (action === 'retry-connect') return await retryConnect();
       } catch (error) {
         showToast(String(error?.message || error), 'error');
       }
@@ -365,6 +376,13 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       });
       let payload = null;
       try { payload = await response.json(); } catch {}
+      // Отказ бюджета запросов приходит с этой пометкой и означает «не сейчас»,
+      // а не «не вышло»: запрос придержал сам клиент — приложение свёрнуто или
+      // вход в комнату повторился слишком быстро. Это не беда, о которой нужно
+      // говорить человеку или администратору, и комнату по ней терять нельзя.
+      if (response.headers.get('X-Client-Backoff') === '1') {
+        throw Object.assign(new Error('Подключение отложено'), { clientBackoff: true });
+      }
       if (!response.ok || !payload?.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
       return payload;
     } catch (error) {
@@ -1055,8 +1073,27 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     if (schedule) scheduleReconnect();
   }
 
+  /*
+    Возврат на экран. Переподключение само себя не назначает, пока приложение
+    свёрнуто — и правильно делает: незачем ходить в сеть из фона. Но и назад оно
+    не возвращалось: таймер, доживший до сворачивания, отменялся, а нового не
+    ставил никто. Человек уходил в другой чат на минуту и возвращался в мёртвую
+    комнату. Отсчёт сбрасывается, чтобы вход был сразу, а не через полминуты.
+  */
+  function onVisible() {
+    if (destroyed || leaving || document.hidden || !roomId) return;
+    if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) return;
+    reconnectAttempt = 0;
+    reconnecting = false;
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    joinOrResume(roomId, true).catch(() => scheduleReconnect());
+  }
+  document.addEventListener('visibilitychange', onVisible);
+
   function cleanup() {
     destroyed = true;
+    document.removeEventListener('visibilitychange', onVisible);
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
     clearInterval(turnTimerInterval);

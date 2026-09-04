@@ -23,7 +23,13 @@
       || /ResizeObserver loop/i.test(message)
       || /^Script error\.?$/i.test(message.trim())
       || /AbortError/i.test(message)
-      || /The operation was aborted/i.test(message);
+      || /The operation was aborted/i.test(message)
+      // Решения бюджета запросов: клиент сам придержал обращение к воркеру,
+      // потому что приложение свёрнуто или вход в комнату повторился слишком
+      // быстро. Сервер тут ни при чём, приложение работает как задумано, и в
+      // списке ошибок администратора им делать нечего — за день их набегали
+      // сотни, и настоящие ошибки тонули среди них.
+      || /CLIENT_RECONNECT_BACKOFF|CLIENT_BACKGROUND_PAUSE/.test(message);
   }
 
   function cleanMessage(value) {

@@ -66,6 +66,12 @@ function startBibleSketchGame() {
         await joinOrResume(roomId, true);
         return;
       } catch (error) {
+        if (error?.clientBackoff) {
+          // Комната цела, вход просто отложен: ждём возвращения на экран.
+          showConnecting('Возвращаемся в комнату…');
+          scheduleReconnect();
+          return;
+        }
         console.warn('Bible Sketch resume failed', error);
         clearRoomSession();
       }
@@ -121,26 +127,30 @@ function startBibleSketchGame() {
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const action = button.dataset.action;
+      // await обязателен. Без него «return createRoom(button)» отдаёт промис из
+      // try, а catch к тому времени уже пройден: беда уходила мимо него
+      // необработанным отказом — человек не видел ни причины, ни подсказки, зато
+      // администратору она прилетала как ошибка приложения.
       try {
-        if (action === 'back') return onBack();
-        if (action === 'landscape') return requestLandscape();
+        if (action === 'back') return await onBack();
+        if (action === 'landscape') return await requestLandscape();
         if (action === 'allow-portrait') { allowPortrait = true; root.classList.add('allow-portrait-round'); return; }
-        if (action === 'category') { selectedCategory = button.dataset.category || 'objects'; return renderHome(); }
-        if (action === 'create-room') return createRoom(button);
-        if (action === 'join-room') return joinRoomFromForm(button);
-        if (action === 'copy-room') return copyRoomCode();
-        if (action === 'share-room') return shareRoom();
-        if (action === 'start-round') return sendAction('startRound', {}, button);
-        if (action === 'restart-round') return sendAction('restartRound', {}, button);
-        if (action === 'finish-turn') return sendAction('finishTurn', {}, button);
-        if (action === 'undo') return sendAction('undoStroke', {}, button);
-        if (action === 'brush-mode') { brushMode = button.dataset.mode || 'draw'; return renderState(); }
-        if (action === 'brush-color') { brushColor = button.dataset.color || '#111827'; brushMode = 'draw'; return renderState(); }
-        if (action === 'brush-width') { brushWidth = Number(button.dataset.width || 5); return renderState(); }
-        if (action === 'submit-guess') return submitGuess(button);
-        if (action === 'review-guess') return sendAction('reviewGuess', { accept: button.dataset.accept === '1' }, button);
-        if (action === 'vote-spy') return sendAction('voteSpy', { targetId: button.dataset.playerId || '' }, button);
-        if (action === 'leave-room') return leaveRoom();
+        if (action === 'category') { selectedCategory = button.dataset.category || 'objects'; return await renderHome(); }
+        if (action === 'create-room') return await createRoom(button);
+        if (action === 'join-room') return await joinRoomFromForm(button);
+        if (action === 'copy-room') return await copyRoomCode();
+        if (action === 'share-room') return await shareRoom();
+        if (action === 'start-round') return await sendAction('startRound', {}, button);
+        if (action === 'restart-round') return await sendAction('restartRound', {}, button);
+        if (action === 'finish-turn') return await sendAction('finishTurn', {}, button);
+        if (action === 'undo') return await sendAction('undoStroke', {}, button);
+        if (action === 'brush-mode') { brushMode = button.dataset.mode || 'draw'; return await renderState(); }
+        if (action === 'brush-color') { brushColor = button.dataset.color || '#111827'; brushMode = 'draw'; return await renderState(); }
+        if (action === 'brush-width') { brushWidth = Number(button.dataset.width || 5); return await renderState(); }
+        if (action === 'submit-guess') return await submitGuess(button);
+        if (action === 'review-guess') return await sendAction('reviewGuess', { accept: button.dataset.accept === '1' }, button);
+        if (action === 'vote-spy') return await sendAction('voteSpy', { targetId: button.dataset.playerId || '' }, button);
+        if (action === 'leave-room') return await leaveRoom();
       } catch (error) { showToast(String(error?.message || error), 'error'); }
     });
 
@@ -672,6 +682,12 @@ function startBibleSketchGame() {
     const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' });
     let data = {};
     try { data = await response.json(); } catch {}
+    // Отказ бюджета запросов означает «не сейчас», а не «не вышло»: запрос
+    // придержал сам клиент — приложение свёрнуто или вход в комнату повторился
+    // слишком быстро. Комнату по такому отказу терять нельзя.
+    if (response.headers.get('X-Client-Backoff') === '1') {
+      throw Object.assign(new Error('Подключение отложено'), { clientBackoff: true });
+    }
     if (!response.ok || !data?.ok) throw new Error(data?.error || `HTTP ${response.status}`);
     return data;
   }
@@ -703,9 +719,26 @@ function startBibleSketchGame() {
   function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
   function attr(value) { return esc(value).replace(/`/g, '&#96;'); }
 
+  /*
+    Возврат на экран. Переподключение не назначается из фона — и правильно, в
+    сеть оттуда ходить незачем. Но и обратно оно не возвращалось: таймер,
+    доживший до сворачивания, отменялся, нового не ставил никто, и человек
+    возвращался в мёртвую комнату. Отсчёт сбрасывается, чтобы вход был сразу.
+  */
+  function onVisible() {
+    if (destroyed || leaving || document.hidden || !roomId) return;
+    if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) return;
+    reconnectAttempt = 0;
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+    joinOrResume(roomId, true).catch(() => scheduleReconnect());
+  }
+  document.addEventListener('visibilitychange', onVisible);
+
   function cleanup() {
     window.GameChatToasts?.reset(`bible-sketch:${roomId}`);
     destroyed = true;
+    document.removeEventListener('visibilitychange', onVisible);
     clearTimeout(reconnectTimer);
     clearInterval(timerInterval);
     clearTimeout(toastTimer);

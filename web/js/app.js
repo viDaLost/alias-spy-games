@@ -376,7 +376,16 @@ async function apiRequest(payload, { quiet = false, raw = false } = {}) {
     const data = await res.json();
     return raw ? { ok: true, status: res.status, data } : data;
   } catch (error) {
+    // Обрыв связи не ошибка приложения: на мобильной сети он случается сам по
+    // себе, вызывающий получает null и уже умеет с этим жить. console.error
+    // отсюда попадал в список ошибок администратора наравне с настоящими
+    // поломками и забивал его. Разбор беды остаётся: непонятный отказ по-прежнему
+    // громкий, а обрыв связи — предупреждение.
+    const offline = error instanceof TypeError
+      || navigator.onLine === false
+      || /NetworkError|Failed to fetch|Load failed|network error/i.test(String(error?.message || ''));
     if (quiet) console.debug("API request declined:", error);
+    else if (offline) console.warn("API request failed (нет связи):", error);
     else console.error("API Error:", error);
     return raw ? { ok: false, status: 0, data: null, offline: true } : null;
   }
