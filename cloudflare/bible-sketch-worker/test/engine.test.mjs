@@ -26,7 +26,7 @@ function room(category = 'objects') {
 const zeroRng = () => 0;
 
 test('each category contains a substantial Synodal-reference catalog', () => {
-  assert.deepEqual(Object.keys(CATALOG).sort(), ['events', 'objects', 'people', 'places']);
+  assert.deepEqual(Object.keys(CATALOG).sort(), ['crafts', 'events', 'nature', 'objects', 'people', 'places']);
   for (const [category, words] of Object.entries(CATALOG)) {
     assert.ok(words.length >= 30, `${category} should contain at least 30 entries`);
     assert.equal(new Set(words.map((word) => word.id)).size, words.length, `${category} ids must be unique`);

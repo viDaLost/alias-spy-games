@@ -3,7 +3,7 @@
   const GAME_TITLE = 'Библейский художник';
   const GAME_DESC = 'Рисуйте по очереди и найдите шпиона';
   const ICON_URL = 'web/assets/icons/bible-sketch.webp?v=3';
-  const LANDSCAPE_STYLE_URL = 'web/games/bible-sketch-landscape-v2.css?v=2';
+  const LANDSCAPE_STYLE_URL = 'web/games/bible-sketch-landscape-v2.css?v=3';
   let gameScriptPromise = null;
   let showPatched = false;
   let wasSketch = false;
@@ -84,7 +84,7 @@
     if (gameScriptPromise) return gameScriptPromise;
     gameScriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'web/games/bible-sketch.js?v=3';
+      script.src = 'web/games/bible-sketch.js?v=4';
       script.dataset.gameScript = 'web/games/bible-sketch.js';
       script.onload = resolve;
       script.onerror = () => reject(new Error('Не удалось загрузить Библейского художника'));

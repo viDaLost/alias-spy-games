@@ -13,11 +13,17 @@ function startBibleSketchGame() {
     playerName: 'bible_sketch_player_name_v1',
     guestId: 'bible_sketch_guest_id_v1',
   };
+  // Список повторяет CATEGORY_META и CATALOG воркера: клиент рисует выбор
+  // категории до того, как узнает комнату, и спросить сервер ему негде.
+  // Расхождение ловит scripts/check-bible-sketch-catalog.mjs — руками эти два
+  // списка уже разъезжались.
   const CATEGORIES = [
-    { id: 'objects', title: 'Предметы', icon: '🪔', size: 32, hint: 'Ковчег, жезл, скрижали и другие предметы' },
+    { id: 'objects', title: 'Предметы', icon: '🪔', size: 31, hint: 'Ковчег, жезл, скрижали и другие предметы' },
     { id: 'places', title: 'Места', icon: '🗺️', size: 32, hint: 'Города, земли, горы и места событий' },
     { id: 'people', title: 'Люди', icon: '👤', size: 38, hint: 'Персонажи Ветхого и Нового Завета' },
     { id: 'events', title: 'События', icon: '✨', size: 30, hint: 'События и короткие фразы из библейского текста' },
+    { id: 'nature', title: 'Природа', icon: '🌿', size: 38, hint: 'Звери, птицы, деревья и небесные знамения' },
+    { id: 'crafts', title: 'Ремёсла', icon: '🛠️', size: 32, hint: 'Пастух, горшечник, сеятель и другие занятия' },
   ];
   const PHASE_MS = { drawing: 40_000, answerReview: 30_000, voting: 50_000, finalGuess: 30_000 };
   const backendBase = resolveBackendBase();
@@ -43,6 +49,7 @@ function startBibleSketchGame() {
   let guessDraft = '';
   let timerInterval = null;
   let toastTimer = null;
+  let previewFrame = 0;
   let allowPortrait = false;
   let activePointer = null;
   let activePoints = [];
@@ -95,15 +102,28 @@ function startBibleSketchGame() {
     return id;
   }
 
+  /*
+    Базовый лист обязан идти перед альбомным.
+
+    Альбомный подключает лаунчер, ещё до загрузки этого файла, а базовый мы
+    добавляли в конец головы — то есть после него. Правила у них одинаковой
+    специфичности, и при равенстве решает порядок: весь альбомный лист молча
+    проигрывал базовому везде, где они спорят. Полосу инструментов он просил не
+    переносить, база переносила; холст он растягивал на всю высоту, база держала
+    его в 5:3. Отсюда и «в горизонтальном не пролистнуть до кисти»: полоса
+    уезжала вторым рядом за нижний край, а холст оставался с ладонь.
+  */
   function injectStylesheet() {
     let link = document.getElementById('bible-sketch-css');
     if (!link) {
       link = document.createElement('link');
       link.id = 'bible-sketch-css';
       link.rel = 'stylesheet';
-      document.head.appendChild(link);
     }
-    link.href = 'web/games/bible-sketch.css?v=1';
+    link.href = 'web/games/bible-sketch.css?v=2';
+    const landscape = document.getElementById('bible-sketch-landscape-v2-css');
+    if (landscape?.parentNode === document.head) document.head.insertBefore(link, landscape);
+    else if (!link.isConnected) document.head.appendChild(link);
   }
 
   function renderRoot() {
@@ -403,13 +423,14 @@ function startBibleSketchGame() {
   }
 
   function renderStatusCard() {
+    const clock = clockValues();
     const me = state.me || {};
     const isSpy = me.role === 'spy';
     const turnName = state.currentDrawerName || 'Игрок';
     const secret = isSpy
       ? `<div class="bsk-secret bsk-spy-secret"><b>Вы — шпион 🕵️</b><small>Вы знаете только категорию: ${esc(state.category.title)}. Смотрите на рисунки и не выдавайте себя.</small></div>`
       : `<div class="bsk-secret"><small>Ваше слово</small><b>${esc(me.secret?.label || '—')}</b><small>${esc(me.secret?.ref || '')} · Синодальный перевод</small></div>`;
-    return `<section class="bsk-status bsk-glass"><span class="bsk-status-tag">Раунд ${state.roundNumber} · ${esc(state.category.title)}</span><h3>${state.status === 'drawing' ? (me.canDraw ? 'Ваш ход — рисуйте' : `Рисует ${esc(turnName)}`) : phaseTitle()}</h3><p>${state.status === 'drawing' ? `Ход ${Math.min(state.turnIndex + 1, state.turnCount)} из ${state.turnCount}` : phaseDescription()}</p>${secret}<div class="bsk-turn" style="margin-top:9px"><strong>${phaseTimerLabel()}</strong><span class="bsk-timer" id="bsk-timer">—</span></div><div class="bsk-progress"><span id="bsk-progress" style="width:100%"></span></div></section>`;
+    return `<section class="bsk-status bsk-glass"><span class="bsk-status-tag">Раунд ${state.roundNumber} · ${esc(state.category.title)}</span><h3>${state.status === 'drawing' ? (me.canDraw ? 'Ваш ход — рисуйте' : `Рисует ${esc(turnName)}`) : phaseTitle()}</h3><p>${state.status === 'drawing' ? `Ход ${Math.min(state.turnIndex + 1, state.turnCount)} из ${state.turnCount}` : phaseDescription()}</p>${secret}<div class="bsk-turn" style="margin-top:9px"><strong>${phaseTimerLabel()}</strong><span class="bsk-timer${clock.low ? ' is-low' : ''}" id="bsk-timer">${clock.text}</span></div><div class="bsk-progress"><span id="bsk-progress" style="width:${clock.percent}%"></span></div></section>`;
   }
 
   function phaseTitle() {
@@ -522,22 +543,52 @@ function startBibleSketchGame() {
     try { canvas.setPointerCapture(event.pointerId); } catch {}
     event.preventDefault();
   }
+  /*
+    Палец опрашивается чаще, чем экран успевает обновляться, и браузер копит
+    промежуточные события до кадра. Раньше из них брался только последний: на
+    быстром движении след срезал углы. Теперь берутся все, а холст
+    перерисовывается раз в кадр — до этого он переписывался на каждое событие
+    вместе со всеми уже нарисованными линиями, отчего к концу раунда рисование
+    и начинало тормозить.
+  */
   function onPointerMove(event) {
     if (activePointer !== event.pointerId || !activePoints.length) return;
     const canvas = event.currentTarget;
-    const point = pointFromEvent(canvas, event);
-    const last = activePoints[activePoints.length - 1];
-    if (Math.hypot(point[0] - last[0], point[1] - last[1]) < .0025) return;
-    activePoints.push(point);
-    drawCanvasFromState(activePoints);
+    const events = typeof event.getCoalescedEvents === 'function' ? event.getCoalescedEvents() : [];
+    for (const step of (events.length ? events : [event])) {
+      const point = pointFromEvent(canvas, step);
+      const last = activePoints[activePoints.length - 1];
+      if (Math.hypot(point[0] - last[0], point[1] - last[1]) < .0025) continue;
+      activePoints.push(point);
+    }
+    schedulePreview();
     event.preventDefault();
   }
-  function onPointerCancel() { activePointer = null; activePoints = []; drawCanvasFromState(); }
+
+  function schedulePreview() {
+    if (previewFrame) return;
+    previewFrame = requestAnimationFrame(() => {
+      previewFrame = 0;
+      if (activePoints.length) drawCanvasFromState(activePoints);
+    });
+  }
+
+  function cancelPreview() {
+    if (!previewFrame) return;
+    cancelAnimationFrame(previewFrame);
+    previewFrame = 0;
+  }
+
+  function onPointerCancel() { activePointer = null; activePoints = []; cancelPreview(); drawCanvasFromState(); }
   async function onPointerUp(event) {
     if (activePointer !== event.pointerId) return;
     const points = activePoints;
     activePointer = null;
     activePoints = [];
+    cancelPreview();
+    // Касание без ведения — точка. Сервер линию короче двух точек не примет,
+    // поэтому она отправляется как отрезок нулевой длины, а рисуется кругом.
+    if (points.length === 1) points.push([...points[0]]);
     if (points.length < 2) return drawCanvasFromState();
     const step = Math.max(1, Math.ceil(points.length / 300));
     const compact = points.filter((_, index) => index % step === 0);
@@ -568,20 +619,52 @@ function startBibleSketchGame() {
     if (previewPoints?.length > 1) drawStroke(ctx, { mode: brushMode, color: brushColor, width: brushWidth, points: previewPoints }, width, height, dpr);
   }
 
+  /*
+    Штрих ведётся кривой, а не ломаной.
+
+    Точки приходят с частотой опроса пальца, а перед отправкой прореживаются до
+    трёхсот: по прямым отрезкам такой след выходит гранёным, и на дуге видно
+    каждый излом. Кривая Безье через середины соседних точек убирает изломы,
+    ничего не искажая: она проходит ровно по тем же серединам, а сами точки
+    становятся направляющими.
+
+    Одна точка — это касание без ведения. Раньше оно не оставляло ничего: линию
+    короче двух точек рисовать было нечем. Теперь это круг радиусом в половину
+    кисти — то, чего человек и ждёт от тычка карандашом.
+  */
   function drawStroke(ctx, stroke, width, height, dpr) {
     const points = stroke.points || [];
-    if (points.length < 2) return;
+    if (!points.length) return;
+    const lineWidth = Math.max(2, Number(stroke.width || 5)) * dpr;
+    const paint = stroke.mode === 'erase' ? '#ffffff' : (stroke.color || '#111827');
+    const at = (index) => [points[index][0] * width, points[index][1] * height];
+
     ctx.save();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = stroke.mode === 'erase' ? '#ffffff' : (stroke.color || '#111827');
-    ctx.lineWidth = Math.max(2, Number(stroke.width || 5)) * dpr;
+    ctx.strokeStyle = paint;
+    ctx.fillStyle = paint;
+    ctx.lineWidth = lineWidth;
+
+    if (points.length === 1 || (points.length === 2 && points[0][0] === points[1][0] && points[0][1] === points[1][1])) {
+      const [x, y] = at(0);
+      ctx.beginPath();
+      ctx.arc(x, y, lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
     ctx.beginPath();
-    points.forEach((point, index) => {
-      const x = point[0] * width;
-      const y = point[1] * height;
-      if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
+    const [startX, startY] = at(0);
+    ctx.moveTo(startX, startY);
+    for (let index = 1; index < points.length - 1; index += 1) {
+      const [x, y] = at(index);
+      const [nextX, nextY] = at(index + 1);
+      ctx.quadraticCurveTo(x, y, (x + nextX) / 2, (y + nextY) / 2);
+    }
+    const [endX, endY] = at(points.length - 1);
+    ctx.lineTo(endX, endY);
     ctx.stroke();
     ctx.restore();
   }
@@ -590,17 +673,39 @@ function startBibleSketchGame() {
     clearInterval(timerInterval);
     timerInterval = setInterval(updateClock, 250);
   }
+
+  /*
+    Показания часов считаются в одном месте — и для разметки, и для тика.
+
+    Раньше разметка выдавала «—» и полосу на все сто, а настоящее время
+    появлялось только со следующим тиком. Состояние комнаты приходит на каждое
+    действие любого игрока — на каждый штрих, на очистку холста, — и каждый раз
+    экран собирался заново: часы прыгали на полное время и через четверть
+    секунды возвращались назад. Полоса при этом ещё и переезжала анимацией.
+    Отсюда и «при стирании таймер начинается заново».
+  */
+  function clockValues() {
+    const deadline = Number(state?.turnDeadlineMs || 0);
+    if (!deadline) return { text: '—', percent: 100, low: false };
+    const remaining = Math.max(0, deadline - Date.now());
+    const seconds = Math.ceil(remaining / 1000);
+    const total = PHASE_MS[state.status] || 40_000;
+    return {
+      text: `${seconds}с`,
+      percent: Math.max(0, Math.min(100, (remaining / total) * 100)),
+      low: seconds <= 8,
+    };
+  }
+
   function updateClock() {
     if (!state?.turnDeadlineMs) return;
     const timer = document.getElementById('bsk-timer');
     const progress = document.getElementById('bsk-progress');
     if (!timer || !progress) return;
-    const remaining = Math.max(0, Number(state.turnDeadlineMs) - Date.now());
-    const seconds = Math.ceil(remaining / 1000);
-    timer.textContent = `${seconds}с`;
-    timer.classList.toggle('is-low', seconds <= 8);
-    const total = PHASE_MS[state.status] || 40_000;
-    progress.style.width = `${Math.max(0, Math.min(100, remaining / total * 100))}%`;
+    const clock = clockValues();
+    if (timer.textContent !== clock.text) timer.textContent = clock.text;
+    timer.classList.toggle('is-low', clock.low);
+    progress.style.width = `${clock.percent}%`;
   }
 
   async function leaveRoom() {

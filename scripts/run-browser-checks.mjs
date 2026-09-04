@@ -29,6 +29,7 @@ const CHECKS = [
   'check-bible-wow-bonus.mjs',
   'check-game-chat-toasts.mjs',
   'check-room-backoff.mjs',
+  'check-bible-sketch-stage.mjs',
 ];
 
 const failed = [];

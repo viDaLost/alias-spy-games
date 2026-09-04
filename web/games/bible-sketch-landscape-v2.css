@@ -124,8 +124,25 @@
     min-height: 0;
     display: grid;
     grid-template-columns: clamp(152px, 18vw, 198px) minmax(0, 1fr) clamp(176px, 21vw, 232px);
+    grid-template-rows: minmax(0, 1fr);
     gap: 7px;
     align-items: stretch;
+  }
+
+  /*
+    Телефон в альбомной ориентации — это ширина около 850, и правило базового
+    листа «уже 880 — чат во всю строку» до сих пор срабатывало здесь. Чат уходил
+    во вторую строку, обе строки делили высоту по содержимому, и холсту
+    доставалось шестьдесят пикселей из трёхсот тридцати. Ради этой строки всё и
+    затевалось: здесь три колонки, и чат стоит в своей.
+  */
+  .bsk-game-layout > .bsk-chat {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .bsk-game-layout > * {
+    min-height: 0;
   }
 
   .bsk-side {
@@ -313,24 +330,33 @@
     height: 100%;
   }
 
+  /*
+    Полоса инструментов в две строки, без бокового прокручивания.
+
+    В одну строку набор не помещается: семь цветов, ластик, три толщины,
+    отмена и кнопка хода просят 554 пикселя при 447 доступных. Раньше лишнее
+    уезжало вправо в прокрутку, о которой ничто не сообщало, — до толщины кисти
+    и отмены было не добраться. Две строки стоят сорока пикселей высоты из
+    трёхсот тридцати, и это честная цена за то, что все инструменты на виду.
+  */
   .bsk-tools {
-    min-height: 42px;
     margin-top: 5px;
     padding: 4px 5px;
     gap: 5px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    overflow: visible;
     border-radius: 13px;
     background: var(--bsk-toolbar-bg);
     box-shadow: inset 0 0 0 1px rgba(99, 102, 241, .08);
   }
 
-  .bsk-tools::-webkit-scrollbar { display: none; }
+  .bsk-tools > * { flex: 0 0 auto; }
 
+  /* Цвета занимают первую строку целиком: иначе последний из них отрывается и
+     уходит вниз к ластику, а палитра читается как случайный набор. */
   .bsk-colors {
-    flex: 0 0 auto;
+    flex: 1 0 100%;
     gap: 4px;
   }
 
@@ -361,6 +387,9 @@
     min-height: 34px;
     white-space: nowrap;
   }
+
+  /* Холст — это и есть игра: всё, что осталось от высоты, достаётся ему. */
+  .bsk-canvas-card { grid-template-rows: minmax(0, 1fr) auto; }
 
   .bsk-chat {
     height: 100%;

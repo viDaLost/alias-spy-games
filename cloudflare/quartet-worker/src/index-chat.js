@@ -15,6 +15,11 @@ const encoder = new TextEncoder();
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SESSION_TTL_SECONDS = 12 * 60 * 60;
 const ROOM_IDLE_TTL_MS = 12 * 60 * 60 * 1000;
+// Опустевшая комната живёт полчаса, а не двенадцать часов. Вышедших по кнопке
+// движок убирает сам, но так уходят немногие: обычно приложение просто
+// закрывают, и в комнате остаются игроки, которых там уже нет. Полчаса — запас
+// на потерю связи и возвращение; после него держать комнату не для кого.
+const EMPTY_ROOM_TTL_MS = 30 * 60 * 1000;
 const POLL_PRESENCE_TTL_MS = 8_000;
 const MAX_CHAT_MESSAGES = 80;
 
@@ -110,8 +115,12 @@ export class QuartetRoom extends DurableObject {
     this.pollingPresence = new Map();
     this.pollingRateLimits = new Map();
     this.pollingActionIds = new Map();
+    // Отметка «здесь никого нет с этого момента». Переживает выгрузку объекта:
+    // без неё отсчёт начинался бы заново после каждой перезагрузки комнаты.
+    this.emptySince = 0;
     this.ctx.blockConcurrencyWhile(async () => {
       this.room = (await this.ctx.storage.get('room')) || null;
+      this.emptySince = Number(await this.ctx.storage.get('emptySince')) || 0;
       if (this.room) ensureChat(this.room);
     });
   }
@@ -162,6 +171,7 @@ export class QuartetRoom extends DurableObject {
       const [client, server] = Object.values(pair);
       this.ctx.acceptWebSocket(server);
       server.serializeAttachment({ playerId, connectedAt: Date.now(), lastActionAt: 0, lastChatAt: 0 });
+      await this.markOccupied();
       queueMicrotask(() => this.broadcastState().catch(console.error));
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -174,6 +184,7 @@ export class QuartetRoom extends DurableObject {
       const payload = await readJson(request);
       const now = Date.now();
       this.pollingPresence.set(playerId, now);
+      await this.markOccupied();
       await this.scheduleAlarm();
       try {
         const action = String(payload.action || '');
@@ -254,11 +265,35 @@ export class QuartetRoom extends DurableObject {
 
   async webSocketClose(webSocket, code, reason) {
     try { webSocket.close(code, reason); } catch {}
+    await this.markMaybeEmpty();
     if (this.room) await this.broadcastState();
   }
   async webSocketError(webSocket) {
     try { webSocket.close(1011, 'WebSocket error'); } catch {}
+    await this.markMaybeEmpty();
     if (this.room) await this.broadcastState();
+  }
+
+  /** Кто-то на связи: отсчёт пустоты сбрасывается. */
+  async markOccupied() {
+    if (!this.emptySince) return;
+    this.emptySince = 0;
+    await this.ctx.storage.put('emptySince', 0);
+  }
+
+  /*
+    Связь оборвалась — возможно, последняя. Проверить это прямо сейчас нельзя:
+    закрывающийся сокет ещё числится в списке. Поэтому ставится отметка и
+    назначается будильник, а был ли тот сокет последним, решает уже он: к его
+    сроку список честный.
+  */
+  async markMaybeEmpty() {
+    if (!this.room) return;
+    if (!this.emptySince) {
+      this.emptySince = Date.now();
+      await this.ctx.storage.put('emptySince', this.emptySince);
+    }
+    await this.scheduleAlarm();
   }
   async alarm() {
     if (!this.room) return;
@@ -270,6 +305,17 @@ export class QuartetRoom extends DurableObject {
       await this.ctx.storage.deleteAll();
       this.room = null;
       return;
+    }
+    // Здесь список подключений уже честный: закрытые сокеты из него ушли.
+    if (this.connectedPlayerIds().size) await this.markOccupied();
+    else if (this.emptySince && now - this.emptySince >= EMPTY_ROOM_TTL_MS) {
+      this.closeAllSockets(1001, 'Room empty');
+      await this.ctx.storage.deleteAll();
+      this.room = null;
+      return;
+    } else if (!this.emptySince) {
+      this.emptySince = now;
+      await this.ctx.storage.put('emptySince', this.emptySince);
     }
     if (changed) await this.persistAndBroadcast();
     else {
@@ -288,11 +334,12 @@ export class QuartetRoom extends DurableObject {
   async scheduleAlarm() {
     if (!this.room) return;
     const cleanupAt = Number(this.room.updatedAt || Date.now()) + ROOM_IDLE_TTL_MS;
+    const emptyAt = this.emptySince ? this.emptySince + EMPTY_ROOM_TTL_MS : Number.POSITIVE_INFINITY;
     const turnAt = this.room.status === 'playing' && this.room.turnDeadlineMs ? this.room.turnDeadlineMs : Number.POSITIVE_INFINITY;
     const pollExpiryAt = this.pollingPresence.size
       ? Math.min(...this.pollingPresence.values()) + POLL_PRESENCE_TTL_MS
       : Number.POSITIVE_INFINITY;
-    await this.ctx.storage.setAlarm(Math.min(cleanupAt, turnAt, pollExpiryAt));
+    await this.ctx.storage.setAlarm(Math.min(cleanupAt, emptyAt, turnAt, pollExpiryAt));
   }
   connectedPlayerIds() {
     const ids = new Set();
