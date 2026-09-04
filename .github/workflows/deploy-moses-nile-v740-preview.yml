@@ -111,7 +111,18 @@ jobs:
 
           for file in .preview-v7/js/*.js; do node --check "$file"; done
           grep -q 'V7.5.1 · LOADING' .preview-v7/index.html
-          grep -q 'game-v75.js?v=752' .preview-v7/index.html
+          # Достаточно того, что счётчик кэша вообще есть: закреплять его
+          # номер значит ронять сборку на каждой правке, что и случилось.
+          grep -q 'game-v75\.js?v=[0-9]' .preview-v7/index.html
+          # Свои иконки, экран загрузки и обучение — то же, что стережёт check:nile-v75.
+          grep -q 'id="loading-screen"' .preview-v7/index.html
+          grep -q 'id="tutorial-screen"' .preview-v7/index.html
+          grep -q 'id="ico-heart"' .preview-v7/index.html
+          grep -q 'openTutorialOnFirstRun' .preview-v7/js/game-v75.js
+          grep -q 'separateCrocs' .preview-v7/js/game-v75.js
+          grep -q 'HIPPO_REVEAL' .preview-v7/js/game-v75.js
+          ! grep -q 'createSculptedHippo' .preview-v7/js/game-v75.js
+          grep -q '_prepareToken' .preview-v7/js/assets.js
           grep -q '__mosesV75ReferenceRebuild' .preview-v7/js/game-v75.js
           grep -q "cloneModel?.('crocodile'" .preview-v7/js/game-v75.js
           grep -q 'preloadGameplayModels' .preview-v7/js/assets.js
@@ -219,7 +230,7 @@ jobs:
           V: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=752\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=770\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v750
           mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v750.txt
