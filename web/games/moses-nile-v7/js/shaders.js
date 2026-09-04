@@ -201,7 +201,15 @@
       float foam = clamp((bankFoam * 0.62 + crestFoam * 0.55 + wake) * (0.34 + foamNoise * 0.72), 0.0, 1.0);
       color = mix(color, uFoamColor, foam * 0.72);
 
-      float alpha = clamp(uOpacity + fresnel * 0.06 + foam * 0.20, 0.0, 1.0);
+      /*
+        Вода мутная, а не стеклянная: Нил несёт ил. Прозрачность теперь
+        зависит от глубины русла — на стрежне река непрозрачна, у берегов
+        мелко и дно чуть просвечивает. Раньше плотность была одинаковой от
+        берега до середины, и вся река читалась плёнкой поверх дна.
+      */
+      float mid = smoothstep(0.42, 0.06, abs(vUv.x - 0.5));
+      float alpha = clamp(uOpacity + fresnel * 0.05 + foam * 0.18
+        + mid * 0.03 - (1.0 - mid) * 0.08, 0.0, 1.0);
       gl_FragColor = vec4(color, alpha);
       #include <fog_fragment>
     }
