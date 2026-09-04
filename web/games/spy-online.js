@@ -234,6 +234,13 @@ function startSpyOnlineGame() {
     const previous = state;
     state = next;
     if (chatOpen) chatSeen = (next.chat || []).length;
+    window.GameChatToasts?.sync({
+      key: `spy:${roomId}`,
+      messages: next.chat || [],
+      selfId: next.me?.playerId || '',
+      chatVisible: () => chatOpen && onScreen(container.querySelector('[data-spy-chat-log]')),
+      onOpen: openChat,
+    });
     // Новая раздача — карта снова рубашкой вверх, иначе роль показалась бы
     // сама собой тому, кто просто не закрыл прошлый экран.
     if (previous && previous.round !== next.round) roleFaceUp = false;
@@ -281,6 +288,7 @@ function startSpyOnlineGame() {
   }
 
   function cleanup() {
+    window.GameChatToasts?.reset(`spy:${roomId}`);
     destroyed = true;
     leaving = true;
     stopPolling();
@@ -630,11 +638,31 @@ function startSpyOnlineGame() {
     }
     if (action === 'leave') return leaveRoomAndGoHome();
     if (action === 'chatToggle') {
-      chatOpen = !chatOpen;
-      if (chatOpen) chatSeen = (state.chat || []).length;
-      renderRoom();
-      if (chatOpen) container.querySelector('[data-spy-chat-input]')?.focus({ preventScroll: true });
+      if (chatOpen) {
+        chatOpen = false;
+        renderRoom();
+        return;
+      }
+      openChat();
     }
+  }
+
+  /** Раскрывает чат и подводит его к глазам — сюда же ведёт всплывшее уведомление. */
+  function openChat() {
+    chatOpen = true;
+    chatSeen = (state?.chat || []).length;
+    renderRoom();
+    const log = container.querySelector('[data-spy-chat-log]');
+    if (!onScreen(log)) log?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    container.querySelector('[data-spy-chat-input]')?.focus({ preventScroll: true });
+  }
+
+  /** Виден ли элемент в окне: у «Шпиона» чат легко уезжает за край при прокрутке. */
+  function onScreen(element) {
+    if (!element) return false;
+    const box = element.getBoundingClientRect();
+    if (!box.width || !box.height) return false;
+    return box.bottom > 0 && box.top < (window.innerHeight || document.documentElement.clientHeight);
   }
 
   function leaveRoomAndGoHome() {

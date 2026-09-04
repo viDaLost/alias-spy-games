@@ -27,6 +27,7 @@ const CHECKS = [
   'check-dark-contrast.mjs',
   'check-theme-switch.mjs',
   'check-bible-wow-bonus.mjs',
+  'check-game-chat-toasts.mjs',
 ];
 
 const failed = [];

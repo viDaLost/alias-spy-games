@@ -126,6 +126,13 @@
         messages = Array.isArray(payload.state?.chat) ? payload.state.chat : [];
         renderMessages();
         if (!drawerOpen && messages.length > before) showBadge(messages.length - before);
+        window.GameChatToasts?.sync({
+          key: `quartet:${roomId}`,
+          messages,
+          selfId: myPlayerId(),
+          chatVisible: drawerOpen,
+          onOpen: () => setDrawer(true),
+        });
       } else if (payload.type === 'error') {
         setStatus(payload.error || 'Ошибка чата', 'error');
       }
@@ -143,6 +150,7 @@
   }
 
   function disconnect() {
+    window.GameChatToasts?.reset(`quartet:${roomId}`);
     clearTimeout(reconnectTimer);
     connecting = false;
     token = '';
@@ -164,12 +172,16 @@
     if (input) input.value = '';
   }
 
+  function myPlayerId() {
+    const telegramId = String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+    return telegramId ? `tg:${telegramId}` : '';
+  }
+
   function renderMessages() {
     const list = document.getElementById('qchat-list');
     if (!list) return;
-    const myTelegramId = String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
-    const myPlayerId = myTelegramId ? `tg:${myTelegramId}` : '';
-    list.innerHTML = messages.length ? messages.map((message) => `<div class="qchat-message ${message.playerId === myPlayerId ? 'is-me' : ''}"><b>${esc(message.name)}</b>${esc(message.text)}<time>${formatTime(message.at)}</time></div>`).join('') : '<div class="qchat-empty">Сообщений пока нет</div>';
+    const mine = myPlayerId();
+    list.innerHTML = messages.length ? messages.map((message) => `<div class="qchat-message ${message.playerId === mine ? 'is-me' : ''}"><b>${esc(message.name)}</b>${esc(message.text)}<time>${formatTime(message.at)}</time></div>`).join('') : '<div class="qchat-empty">Сообщений пока нет</div>';
     if (drawerOpen) scrollBottom();
   }
 

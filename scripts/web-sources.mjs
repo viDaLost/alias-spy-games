@@ -46,6 +46,7 @@ export const styleSources = [
   'web/styles/web-session.css',
   'web/styles/outside-telegram.css',
   'web/styles/more-screen.css',
+  'web/styles/game-chat-toasts.css',
   // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
@@ -78,6 +79,7 @@ export const scriptSources = [
   'web/js/room-qr-addon.js',
   'web/js/telegram-gesture-guard.js',
   'web/js/game-shell.js',
+  'web/js/game-chat-toasts.js',
   'web/js/quartet-chat-addon.js',
   'web/js/quartet-v43-smooth-ui.js',
   'web/js/quartet-v45-card-id-fix.js',

@@ -262,6 +262,15 @@ function startBibleSketchGame() {
       state = payload.state;
       if (previousStatus !== state.status && state.status === 'drawing') allowPortrait = false;
       renderState();
+      window.GameChatToasts?.sync({
+        key: `bible-sketch:${roomId}`,
+        messages: state.chat || [],
+        selfId: state.me?.playerId || '',
+        // Чат тут не сворачивается, а стоит карточкой в раскладке: во время
+        // рисования он уезжает за край экрана, и уведомление как раз к месту.
+        chatVisible: () => chatOnScreen(),
+        onOpen: revealChat,
+      });
       return;
     }
     if (payload.type === 'error') showToast(payload.error || 'Ошибка комнаты', 'error');
@@ -671,12 +680,31 @@ function startBibleSketchGame() {
     const list = document.getElementById('bsk-chat-list');
     if (list) list.scrollTop = list.scrollHeight;
   }
+
+  /** Видно ли ленту чата в окне прямо сейчас. */
+  function chatOnScreen() {
+    const list = document.getElementById('bsk-chat-list');
+    if (!list) return false;
+    const box = list.getBoundingClientRect();
+    if (!box.width || !box.height) return false;
+    return box.bottom > 0 && box.top < (window.innerHeight || document.documentElement.clientHeight);
+  }
+
+  /** Подводит чат к глазам — сюда ведёт нажатие на всплывшее уведомление. */
+  function revealChat() {
+    const list = document.getElementById('bsk-chat-list');
+    if (!list) return;
+    list.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    scrollChatToBottom();
+    document.getElementById('bsk-chat-input')?.focus({ preventScroll: true });
+  }
   function normalizeRoomId(value) { return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10); }
   function formatTime(value) { try { return new Date(value || Date.now()).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }); } catch { return ''; } }
   function esc(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
   function attr(value) { return esc(value).replace(/`/g, '&#96;'); }
 
   function cleanup() {
+    window.GameChatToasts?.reset(`bible-sketch:${roomId}`);
     destroyed = true;
     clearTimeout(reconnectTimer);
     clearInterval(timerInterval);

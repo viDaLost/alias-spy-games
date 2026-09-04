@@ -1,0 +1,64 @@
+/* Всплывающие сообщения чата в групповых играх.
+
+   По просьбе игрока: «сообщения могли бы всплывать сверху как уведомления,
+   чтобы не отвлекаться во время игры на сам чат». Карточка живёт вверху экрана,
+   сама уходит и по нажатию открывает чат.
+
+   Сверху, а не снизу: внизу у «Квартета» кнопка чата, у «Шпиона» — кнопки
+   голосования, и всплывающее окно попадало бы под палец. */
+
+.chat-toasts {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+  /* Выше игрового слоя и ящика чата «Квартета» (1040), но ниже модальных окон
+     приложения (1150 и выше): уведомление не должно закрывать диалог. */
+  z-index: 1100;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.chat-toast {
+  pointer-events: auto;
+  width: min(460px, 100%);
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .18), inset 0 0 0 1px rgba(99, 102, 241, .16);
+  color: #1f2937;
+  text-align: left;
+  font: inherit;
+  font-size: .82rem;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity .18s ease, transform .22s cubic-bezier(.2, .8, .2, 1);
+}
+
+.chat-toast.is-shown { opacity: 1; transform: none; }
+.chat-toast.is-leaving { opacity: 0; transform: translateY(-8px); }
+
+.chat-toast__name {
+  color: #4338ca;
+  font-size: .68rem;
+  font-weight: 900;
+}
+
+/* Две строки: длинная реплика не должна занимать пол-экрана над доской. */
+.chat-toast__text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-toast { transition: none; }
+}

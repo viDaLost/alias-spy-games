@@ -2740,6 +2740,15 @@ html.theme-dark .more-back {
   background: rgba(20, 20, 20, 0.18) !important;
 }
 
+/* web/styles/game-chat-toasts.css */
+html.theme-dark .chat-toast {
+  background: rgba(20, 20, 20, 0.96) !important;
+  color: #b7c4d6 !important;
+}
+html.theme-dark .chat-toast__name {
+  color: #4035c7 !important;
+}
+
 /* web/games/quartet-v2.css */
 html.theme-dark .qv2-root {
   --qv2-ink: #c2cde4 !important;
