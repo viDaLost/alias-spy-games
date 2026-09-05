@@ -35,3 +35,4 @@ android-app/local.properties
 *.keystore
 *.apk
 *.aab
+psalms-app/web/data/

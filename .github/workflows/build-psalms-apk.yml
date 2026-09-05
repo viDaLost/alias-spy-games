@@ -1,0 +1,68 @@
+name: Build Psalms APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'claude/app-visual-redesign-**'
+    paths:
+      - 'psalms-app/**'
+      - '.github/workflows/build-psalms-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Generate song data
+        run: python3 psalms-app/tools/build_data.py
+
+      - name: Build APK
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/psalms.jks"
+            export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/psalms.jks"
+            gradle -p psalms-app/android :app:assembleRelease --no-daemon
+          else
+            echo "Release secrets are absent, building a debug-signed APK."
+            gradle -p psalms-app/android :app:assembleDebug --no-daemon
+          fi
+
+      - name: Collect APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          found=$(find psalms-app/android/app/build/outputs/apk -name '*.apk' | head -n 1)
+          test -n "$found"
+          cp "$found" dist/psalmy.apk
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psalmy-apk
+          path: dist/psalmy.apk
+          retention-days: 14
+          if-no-files-found: error

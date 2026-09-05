@@ -1,0 +1,94 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def releaseStoreFile = System.getenv('ANDROID_KEYSTORE_PATH')
+def releaseStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def releaseSigningReady = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword]
+        .every { it != null && !it.trim().isEmpty() }
+
+android {
+    namespace 'com.vidalost.psalmbook'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.vidalost.psalmbook'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '2.0'
+        vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        if (releaseSigningReady) {
+            production {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.production
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions { jvmTarget = '17' }
+
+    sourceSets {
+        main.assets.srcDir(layout.buildDirectory.dir('generated/assets/web'))
+    }
+
+    packaging {
+        // JSON со сборниками уже компактный, но пакуем со сжатием — оно даёт ~4x.
+        resources.excludes += ['META-INF/*.kotlin_module']
+    }
+}
+
+def appRoot = rootProject.projectDir.parentFile          // psalms-app/
+def webDir = new File(appRoot, 'web')
+def dataScript = new File(appRoot, 'tools/build_data.py')
+
+/* Пересобирает JSON сборников из исходной базы приложения. */
+tasks.register('buildSongData', Exec) {
+    workingDir appRoot
+    commandLine 'python3', dataScript.absolutePath
+    inputs.file(new File(appRoot, 'tools/Base_psal.db'))
+    inputs.file(dataScript)
+    outputs.dir(new File(webDir, 'data'))
+}
+
+/* Кладёт веб-часть приложения в assets. */
+tasks.register('syncWebAssets', Copy) {
+    dependsOn 'buildSongData'
+    from webDir
+    into layout.buildDirectory.dir('generated/assets/web')
+}
+
+tasks.named('preBuild').configure { dependsOn 'syncWebAssets' }
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.activity:activity-ktx:1.9.3'
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
