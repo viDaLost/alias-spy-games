@@ -173,12 +173,25 @@ await page.evaluate((col) => {
   const rows = Number(document.querySelector('.bmt-board').dataset.rows);
   document.querySelector(`.bmt-tile[data-index="${(rows - 1) * 8 + col}"]`)?.click();
 }, column);
-await page.waitForTimeout(2600);
-
-const delivered = await page.evaluate(() => ({
+/*
+  Ждём не «две с половиной секунды», а саму цель. Столбец рушится каскадом:
+  фишки падают, поле пересобирается, ковчег съезжает вниз рядами, и каждая
+  ступень — своя анимация. На нагруженном раннере всё это идёт медленнее, чем
+  на разработческой машине, и фиксированная пауза однажды кончилась раньше
+  ковчега: проверка упала в CI на коде, которого никто не трогал, а локально
+  прошла три раза подряд. Условие ждёт до десяти секунд и выходит сразу, как
+  только цель закрыта, так что обычный прогон от этого не удлиняется.
+*/
+const readGoals = () => page.evaluate(() => ({
   goals: [...document.querySelectorAll('.bmt-goal')].map((node) => node.textContent.replace(/\s+/g, ' ').trim()),
   relics: document.querySelectorAll('.bmt-tile.is-relic').length,
 }));
+let delivered = await readGoals();
+for (const deadline = Date.now() + 10_000; Date.now() < deadline;) {
+  if (delivered.goals.some((text) => text.includes('Опустить ковчег') && /1\/1/.test(text))) break;
+  await page.waitForTimeout(200);
+  delivered = await readGoals();
+}
 const deliverGoal = delivered.goals.find((text) => text.includes('Опустить ковчег')) || '';
 await expect(/1\/1/.test(deliverGoal), `ковчег не дошёл до ворот: «${deliverGoal}»`);
 await expect(delivered.relics === 0, 'доставленный ковчег остался на доске');
