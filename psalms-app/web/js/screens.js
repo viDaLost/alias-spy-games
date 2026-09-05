@@ -35,9 +35,10 @@ export function homeScreen(nav) {
     const recent = store.recent();
     const favorites = store.favorites();
 
-    const bar = el('header', { class: 'appbar' }, [
+    const bar = el('header', { class: 'appbar appbar--centered' }, [
+      el('span', { class: 'appbar__spacer', 'aria-hidden': 'true' }),
       el('div', { class: 'appbar__title' }, [
-        el('div', { text: 'Песенник' }),
+        el('div', { text: 'Сборник псалмов' }),
         el('div', { class: 'appbar__sub', text: greeting() }),
       ]),
       iconButton(ICONS.settings, 'Настройки', () => nav('#/settings')),
@@ -110,14 +111,14 @@ export function recentScreen(nav) {
 
   const render = () => {
     const items = store.recent();
-    const bar = el('header', { class: 'appbar' }, [
+    const bar = el('header', { class: 'appbar appbar--centered' }, [
       iconButton(ICONS.back, 'Назад', () => history.back()),
       el('div', { class: 'appbar__title appbar__title--compact', text: 'Недавние' }),
       items.length ? iconButton(ICONS.trash, 'Очистить историю', () => {
         store.forgetRecent();
         toast('История очищена');
         render();
-      }) : null,
+      }) : el('span', { class: 'appbar__spacer', 'aria-hidden': 'true' }),
     ]);
 
     screen.replaceChildren(
@@ -154,12 +155,13 @@ export function collectionScreen(collectionId, nav) {
     tabindex: '-1',
   });
 
-  const bar = el('header', { class: 'appbar' }, [
+  const bar = el('header', { class: 'appbar appbar--centered' }, [
     iconButton(ICONS.back, 'Назад', () => history.back()),
     el('div', { class: 'appbar__title' }, [
       el('div', { class: 'appbar__title--compact', text: meta ? meta.title : 'Сборник' }),
       el('div', { class: 'appbar__sub', text: songsWord(all.length) }),
     ]),
+    el('span', { class: 'appbar__spacer', 'aria-hidden': 'true' }),
   ]);
 
   const input = el('input', {
@@ -467,11 +469,13 @@ export function favoritesScreen(nav) {
 
   const render = () => {
     const items = store.favorites();
-    const bar = el('header', { class: 'appbar' }, [
+    const bar = el('header', { class: 'appbar appbar--centered' }, [
+      el('span', { class: 'appbar__spacer', 'aria-hidden': 'true' }),
       el('div', { class: 'appbar__title' }, [
         el('div', { text: 'Избранное' }),
         el('div', { class: 'appbar__sub', text: items.length ? songsWord(items.length) : 'пока пусто' }),
       ]),
+      el('span', { class: 'appbar__spacer', 'aria-hidden': 'true' }),
     ]);
 
     screen.replaceChildren(
@@ -511,9 +515,10 @@ export function settingsScreen(nav) {
   const screen = el('section', { class: 'screen', 'data-screen': 'settings', tabindex: '-1' });
 
   const render = () => {
-    const bar = el('header', { class: 'appbar' }, [
+    const bar = el('header', { class: 'appbar appbar--centered' }, [
       iconButton(ICONS.back, 'Назад', () => history.back()),
       el('div', { class: 'appbar__title appbar__title--compact', text: 'Настройки' }),
+      el('span', { class: 'appbar__spacer', 'aria-hidden': 'true' }),
     ]);
 
     screen.replaceChildren(
@@ -582,7 +587,8 @@ export function settingsScreen(nav) {
 
       el('p', {
         class: 'about',
-        text: `Песенник · ${data.totalCount()} песен в ${data.collections().length} сборниках. Работает без интернета.`,
+        text: `Сборник псалмов · ${data.totalCount()} песен в ${data.collections().length} сборниках. `
+          + 'Работает без интернета.',
       }),
     );
     watchStuck(screen, bar);
