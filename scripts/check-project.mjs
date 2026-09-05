@@ -163,12 +163,24 @@ const distFiles = files.filter((f) => rel(f).startsWith('web/dist/')).map(rel);
 const staleDist = distFiles.filter((name) => !indexHtml.includes(name));
 if (staleDist.length) failures.push(`Stale build output not referenced by index.html: ${staleDist.join(', ')}`);
 
-// Every published raster now ships in WebP at its display resolution, so the
-// 600 KiB budget applies without exemptions.
+/*
+  Every published raster ships in WebP at its display resolution, so the 600 KiB
+  budget applies to everything the браузер может запросить.
+
+  Исключение — исходники иконок в scripts/art: они не публикуются и в браузер не
+  попадают, из них сборочные скрипты режут WebP нужного размера. Присланная
+  картинка приходит как есть, с прозрачностью и в полном разрешении, и сжимать
+  её до бюджета страницы значило бы портить исходник ради правила, которое
+  описывает совсем другое. Свой потолок у них тоже есть — вчетверо больше.
+*/
+const ART_PREFIX = 'scripts/art/';
 for (const file of files.filter((f) => /\.(?:png|jpe?g|webp)$/i.test(f))) {
   const size = fs.statSync(file).size;
-  if (size <= 600 * 1024) continue;
-  failures.push(`Image over 600 KiB: ${rel(file)} (${Math.round(size / 1024)} KiB)`);
+  const source = rel(file).startsWith(ART_PREFIX);
+  const budget = (source ? 2400 : 600) * 1024;
+  if (size <= budget) continue;
+  failures.push(`${source ? 'Source image' : 'Image'} over ${budget / 1024} KiB: `
+    + `${rel(file)} (${Math.round(size / 1024)} KiB)`);
 }
 
 if (warnings.length) console.warn(`Project warnings (${warnings.length}):\n\n${warnings.join('\n\n')}`);
