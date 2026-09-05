@@ -691,7 +691,10 @@ function showGame(gameName) {
       // рантайм, а модели, текстуры и three.js кладёт сборка превью. По
       // локальному пути игра ушла бы в запасной 2D-режим.
       const configured = String(document.querySelector('meta[name="moses-nile-app"]')?.content || '').trim();
-      const src = configured || 'web/games/moses-nile-v7/index.html?v=770';
+      // Вырез экрана и кнопки Telegram фрейм увидеть не может — их размеры
+      // оболочка дописывает в адрес, чтобы HUD встал верно с первого кадра.
+      const base = configured || 'web/games/moses-nile-v7/index.html?v=770';
+      const src = window.__gameFrameInsets?.seedUrl?.(base) || base;
       container.innerHTML = `
         <div class="game-frame-wrap">
           <iframe class="game-frame" src="${escapeHTML(src)}"

@@ -123,6 +123,7 @@ export const scriptSources = [
   'web/js/leaderboard.js',
   'web/js/leaderboard-admin.js',
   'web/js/more-screen.js',
+  'web/js/game-frame-safe-area.js',
 ];
 const bundled = new Set([...styleSources, ...scriptSources]);
 

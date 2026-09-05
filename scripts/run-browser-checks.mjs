@@ -31,6 +31,7 @@ const CHECKS = [
   'check-room-backoff.mjs',
   'check-bible-sketch-stage.mjs',
   'check-moses-nile-crocs.mjs',
+  'check-moses-nile-safe-area.mjs',
 ];
 
 const failed = [];

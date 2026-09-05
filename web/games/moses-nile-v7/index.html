@@ -18,8 +18,22 @@
       --sky-haze: #d6b784;
       --sky-horizon: #e7cf9d;
       --sky-sun: #ffe6ae;
-      --safe-top: max(12px, env(safe-area-inset-top));
-      --safe-bottom: max(16px, env(safe-area-inset-bottom));
+      /*
+        Отступы под чужой интерфейс. Игра открывается во фрейме, а внутри
+        фрейма env(safe-area-inset-*) всегда ноль: вырез экрана и кнопки
+        Telegram принадлежат внешнему документу, и оттуда их не видно. HUD
+        уезжал под «Закрыть» и «⋯» — счётчик пройденного пути и счётчик
+        лотосов пропадали за ними целиком, — а «Нырок» ложился под кнопку
+        «Главное меню» оболочки.
+
+        Числа присылает оболочка сообщением game-frame:insets и, чтобы верным
+        был уже первый кадр, дублирует их в адресе. Значения по умолчанию —
+        для случая, когда игра открыта сама по себе, отдельной страницей.
+      */
+      --chrome-top: 0px;
+      --chrome-bottom: 0px;
+      --safe-top: calc(max(12px, env(safe-area-inset-top)) + var(--chrome-top));
+      --safe-bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--chrome-bottom));
     }
     *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     /* overscroll-behavior гасит «оттяжку» страницы, touch-action — жесты
@@ -285,6 +299,39 @@
       #scene-bg, .screen, .steer-btn, .toast, .active-buff { transition: none; animation: none; }
     }
   </style>
+  <script>
+    /*
+      Отступы под чужой интерфейс. Скрипт стоит до загрузки движка, чтобы HUD
+      встал на место сразу, а не переехал у игрока на глазах.
+
+      Адрес отвечает за первый кадр, сообщение — за всё остальное: оболочка
+      шлёт его заново, когда Telegram сообщает о смене безопасных зон и когда
+      меняется размер окна. Числа только про раскладку, поэтому источник
+      сообщения не проверяется, а сами значения ограничены сверху: чужая
+      вкладка, приславшая тысячу, не должна сдвинуть управление за экран.
+    */
+    (() => {
+      const MAX_INSET = 240;
+      const clamp = (value) => {
+        const number = Number(value);
+        return Number.isFinite(number) ? Math.min(Math.max(number, 0), MAX_INSET) : 0;
+      };
+      const apply = (top, bottom) => {
+        const style = document.documentElement.style;
+        style.setProperty('--chrome-top', `${clamp(top)}px`);
+        style.setProperty('--chrome-bottom', `${clamp(bottom)}px`);
+      };
+      const params = new URLSearchParams(location.search);
+      if (params.has('chromeTop') || params.has('chromeBottom')) {
+        apply(params.get('chromeTop'), params.get('chromeBottom'));
+      }
+      window.addEventListener('message', (event) => {
+        const data = event?.data;
+        if (!data || data.type !== 'game-frame:insets') return;
+        apply(data.top, data.bottom);
+      });
+    })();
+  </script>
   <script src="vendor/three-r128.min.js"></script>
   <script src="vendor/GLTFLoader-r128.js"></script>
   <script src="vendor/OBJLoader-r128.js"></script>
