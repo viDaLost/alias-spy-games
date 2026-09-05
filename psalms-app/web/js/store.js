@@ -16,8 +16,6 @@ const DEFAULTS = {
   lastRead: null,
 };
 
-let memory = null;
-
 function readRaw() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -36,7 +34,6 @@ function writeRaw(value) {
 }
 
 const state = Object.assign({}, DEFAULTS, readRaw() || {});
-memory = state;
 
 function persist() {
   writeRaw(state);
@@ -103,5 +100,3 @@ export const store = {
     persist();
   },
 };
-
-export { memory };

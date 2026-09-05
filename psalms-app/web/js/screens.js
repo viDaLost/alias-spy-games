@@ -517,7 +517,8 @@ export function searchScreen(nav) {
   renderChips();
   renderList();
   watchStuck(screen, bar, 2);
-  screen.focusInput = () => setTimeout(() => input.focus(), 220);
+  // Клавиатуру поднимаем только на пустом поиске, а не при возврате к результатам.
+  screen.focusInput = () => { if (!input.value) setTimeout(() => input.focus(), 220); };
   screen.refresh = () => { if (!query) renderList(); };
   screen.setQuery = (value) => { input.value = value; clear.hidden = !value; run(value); };
   return screen;

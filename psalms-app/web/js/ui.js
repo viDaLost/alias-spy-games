@@ -146,9 +146,3 @@ export function plural(count, one, few, many) {
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
   return many;
 }
-
-export function escapeHtml(value) {
-  return String(value).replace(/[&<>"]/g, (ch) => (
-    ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : '&quot;'
-  ));
-}

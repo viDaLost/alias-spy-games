@@ -152,15 +152,16 @@ svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width:
   transition: opacity .45s var(--ease), transform .45s var(--ease);
 }
 .boot.is-gone { opacity: 0; transform: scale(1.04); pointer-events: none; }
-.boot__mark { width: 76px; height: 76px; color: var(--accent); animation: bootIn .8s var(--ease-spring) both; }
-.boot__stroke { stroke-width: 2; opacity: .85; }
-.boot__note { stroke-width: 1.9; stroke-dasharray: 60; stroke-dashoffset: 60; animation: drawNote 1.1s .25s var(--ease) forwards; }
+.boot__mark {
+  width: 96px; height: 96px; border-radius: 24px; display: block;
+  box-shadow: var(--shadow-2);
+  animation: bootIn .8s var(--ease-spring) both;
+}
 .boot__title { font-size: 22px; font-weight: 650; letter-spacing: -.02em; animation: bootIn .7s .1s var(--ease-spring) both; }
 .boot__bar { width: 128px; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .boot__bar i { display: block; height: 100%; width: 40%; border-radius: 3px; background: var(--accent); animation: bootBar 1.1s var(--ease) infinite; }
 
 @keyframes bootIn { from { opacity: 0; transform: translateY(14px) scale(.9); } to { opacity: 1; transform: none; } }
-@keyframes drawNote { to { stroke-dashoffset: 0; } }
 @keyframes bootBar { 0% { transform: translateX(-110%); } 100% { transform: translateX(320%); } }
 
 /* --- Сцена и экраны ----------------------------------------------------- */
