@@ -19,6 +19,7 @@ import {
   startGame,
   addChatMessage,
   MAX_CHAT_MESSAGES,
+  ensureChat,
   sanitizeChat,
 } from '../src/engine.js';
 
@@ -136,7 +137,7 @@ test('за себя голосовать нельзя, а голоса всех 
   assert.equal(room.outcome.accusedId, spy.playerId);
 });
 
-test('ничья в голосовании — победа соглядатая', () => {
+test('ничья никого не выгоняет и возвращает комнату к обсуждению', () => {
   const room = roomWith(4);
   startGame(room, 'p1', LOCATIONS);
   for (const player of room.players) markRoleSeen(room, player.playerId);
@@ -145,10 +146,10 @@ test('ничья в голосовании — победа соглядатая
   castVote(room, 'p2', 'p1');
   castVote(room, 'p3', 'p4');
   castVote(room, 'p4', 'p3');
-  assert.equal(room.status, 'results');
-  assert.equal(room.outcome.tie, true);
-  assert.equal(room.outcome.spyWon, true);
-  assert.equal(room.outcome.accusedId, '');
+  assert.equal(room.status, 'discussion');
+  assert.equal(room.outcome, null);
+  assert.equal(room.players.filter((item) => item.eliminated).length, 0);
+  assert.deepEqual(room.votes, {});
 });
 
 test('соглядатай угадывает локацию без учёта регистра и буквы ё', () => {
@@ -282,4 +283,136 @@ test('версия комнаты растёт на каждом изменен�
   const before = room.version;
   setSettings(room, 'p1', { spyCount: 1 });
   assert.ok(room.version > before);
+});
+
+/*
+  Дальше — партия на двух соглядатаев. Раньше на ней ломалось всё: круг
+  голосования выгонял одного и сразу открывал обе роли, так что второй
+  соглядатай узнавал о своём поражении, ничего не сделав.
+*/
+
+/** Комната, где роли расставлены руками: случайная раздача тест бы расшатала. */
+function roomWithSpies(count, spyIds) {
+  const room = roomWith(count);
+  setSettings(room, 'p1', { spyCount: spyIds.length });
+  startGame(room, 'p1', LOCATIONS);
+  for (const player of room.players) player.role = spyIds.includes(player.playerId) ? 'spy' : 'citizen';
+  for (const player of room.players) markRoleSeen(room, player.playerId);
+  return room;
+}
+
+/** Все, кто ещё в игре, голосуют за одного. */
+function voteOut(room, targetId) {
+  beginVoting(room, room.hostPlayerId);
+  for (const player of room.players.filter((item) => !item.eliminated)) {
+    if (player.playerId !== targetId) castVote(room, player.playerId, targetId);
+  }
+  // Сам обвиняемый голосует последним — за кого угодно, кроме себя.
+  const fallback = room.players.find((item) => !item.eliminated && item.playerId !== targetId);
+  if (room.status === 'voting') castVote(room, targetId, fallback.playerId);
+}
+
+test('первый выгнанный соглядатай партию не заканчивает: второй ещё в игре', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  voteOut(room, 'p5');
+  assert.equal(room.status, 'discussion');
+  assert.equal(room.outcome, null);
+  assert.equal(room.players.find((item) => item.playerId === 'p5').eliminated, true);
+  assert.equal(buildView(room, 'p1').inPlayCount, 5);
+});
+
+test('изгнание не раскрывает роль — её видно только на итогах', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  voteOut(room, 'p5');
+  const view = buildView(room, 'p1');
+  const ejected = view.players.find((item) => item.playerId === 'p5');
+  assert.equal(ejected.eliminated, true);
+  assert.equal(ejected.role, null, 'роль изгнанного не должна уходить на клиент до итогов');
+  assert.equal(view.location, room.location, 'горожанин локацию знает и так');
+  assert.equal(buildView(room, 'p6').location, '', 'соглядатаю локацию по-прежнему не говорят');
+});
+
+test('партия кончается, когда выгнан последний соглядатай, и открывает роли', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  voteOut(room, 'p5');
+  voteOut(room, 'p6');
+  assert.equal(room.status, 'results');
+  assert.equal(room.outcome.spyWon, false);
+  assert.deepEqual(room.outcome.ejected.map((item) => item.playerId), ['p5', 'p6']);
+  assert.deepEqual(room.outcome.ejected.map((item) => item.role), ['spy', 'spy']);
+  const view = buildView(room, 'p1');
+  assert.equal(view.players.find((item) => item.playerId === 'p6').role, 'spy');
+});
+
+test('соглядатаи побеждают, когда их становится не меньше, чем горожан', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  voteOut(room, 'p1');
+  assert.equal(room.status, 'discussion', 'выгнали горожанина — партия идёт дальше');
+  voteOut(room, 'p2');
+  // Остались p3 и p4 против p5 и p6: голосованием соглядатаев уже не пересилить.
+  assert.equal(room.status, 'results');
+  assert.equal(room.outcome.spyWon, true);
+  assert.equal(room.outcome.ejected.length, 2);
+  assert.deepEqual(room.outcome.ejected.map((item) => item.role), ['citizen', 'citizen']);
+});
+
+test('изгнанный не голосует, не пишет и не называет локацию', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  voteOut(room, 'p5');
+  beginVoting(room, 'p1');
+  assert.throws(() => castVote(room, 'p5', 'p6'), /Изгнанный/);
+  assert.throws(() => addChatMessage(room, 'p5', 'это p6!'), /Изгнанный/);
+  assert.throws(() => spyGuess(room, 'p5', room.location), /Изгнанный/);
+});
+
+test('промах соглядатая выбивает только его: напарник доигрывает', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  spyGuess(room, 'p5', 'Не та локация');
+  assert.equal(room.status, 'discussion');
+  assert.equal(room.players.find((item) => item.playerId === 'p5').eliminated, true);
+  spyGuess(room, 'p6', 'И эта не та');
+  assert.equal(room.status, 'results');
+  assert.equal(room.outcome.spyWon, false, 'соглядатаев не осталось — победа горожан');
+});
+
+test('чат соглядатаев виден только соглядатаям', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  addChatMessage(room, 'p5', 'Я не знаю локацию, тяни время', 5000, 'spies');
+  addChatMessage(room, 'p1', 'Кто последний отвечал?', 5001);
+
+  const spyView = buildView(room, 'p6');
+  assert.equal(spyView.spyChat.length, 1);
+  assert.equal(spyView.spyChat[0].text, 'Я не знаю локацию, тяни время');
+  assert.equal(spyView.canWriteSpyChat, true);
+  assert.equal(spyView.chat.length, 1, 'общий чат общий для всех');
+
+  const citizenView = buildView(room, 'p1');
+  assert.deepEqual(citizenView.spyChat, [], 'горожанин закрытой переписки не получает');
+  assert.equal(citizenView.canWriteSpyChat, false);
+  assert.throws(() => addChatMessage(room, 'p1', 'подсмотрю', 5002, 'spies'), /соглядатаям/);
+});
+
+test('новая раздача стирает закрытый чат прошлых соглядатаев', () => {
+  const room = roomWithSpies(6, ['p5', 'p6']);
+  addChatMessage(room, 'p5', 'Локация мне неизвестна', 5000, 'spies');
+  voteOut(room, 'p5');
+  voteOut(room, 'p6');
+  assert.equal(room.status, 'results');
+  assert.equal(room.spyChat.length, 1, 'до конца партии переписка на месте');
+
+  startGame(room, 'p1', LOCATIONS);
+  assert.deepEqual(room.spyChat, [], 'иначе новый соглядатай прочитал бы прошлую партию');
+  assert.equal(room.players.every((item) => !item.eliminated), true, 'изгнания тоже сброшены');
+});
+
+test('комната из хранилища без новых полей не роняет движок', () => {
+  const room = roomWith(4);
+  delete room.spyChat;
+  delete room.spyChatSeq;
+  delete room.voteRound;
+  for (const player of room.players) delete player.eliminated;
+  ensureChat(room);
+  assert.deepEqual(room.spyChat, []);
+  assert.equal(room.voteRound, 0);
+  assert.equal(room.players.every((item) => item.eliminated === false), true);
 });

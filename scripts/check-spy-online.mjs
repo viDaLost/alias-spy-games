@@ -23,6 +23,7 @@ const {
   startGame,
   beginVoting,
   addChatMessage,
+  spyGuess,
 } = await import(engineUrl);
 const { LOCATIONS } = await import(new URL('../cloudflare/spy-worker/src/locations.js', import.meta.url));
 
@@ -46,6 +47,10 @@ for (const token of ['showSpyModePicker', 'startSpySingleDevice', 'openSpyOnline
   if (!spy.includes(token)) throw new Error(`web/games/spy.js потерял ${token}`);
 }
 for (const token of ['startSpyOnlineGame', 'renderChatPanel', 'data-spy-chat-form', "send('chat'", '__spyOnlineCleanup', 'spy-backend']) {
+  if (!online.includes(token)) throw new Error(`web/games/spy-online.js потерял ${token}`);
+}
+// Два чата и метка выбывших — из-за них переписывалась половина экрана комнаты.
+for (const token of ['data-spy-chat-tab', 'canSeeSpyChat', 'channelMessages', "channel: chatTab", 'renderEliminationNote']) {
   if (!online.includes(token)) throw new Error(`web/games/spy-online.js потерял ${token}`);
 }
 // Голосовой чат снят по просьбе владельца: проверка держит это состояние,
@@ -94,18 +99,37 @@ for (let attempt = 0; attempt < 40; attempt += 1) {
     if (view.players.some((item) => item.role)) throw new Error('Чужая роль утекла горожанину до итогов');
   }
 
-  // Партия доигрывается до итогов — там роли и локация открываются всем.
+  // Партия доигрывается до итогов. Соглядатаев двое, поэтому кругов
+  // голосования тоже два: после первого партия обязана продолжиться, а роль
+  // выгнанного — остаться закрытой.
   for (const player of room.players) markRoleSeen(room, player.playerId);
   if (room.status !== 'discussion') throw new Error('Обсуждение не стартовало после того, как все увидели роли');
-  beginVoting(room, 'p1');
-  const target = spies[0].playerId;
-  for (const player of room.players) {
-    castVote(room, player.playerId, player.playerId === target ? citizens[0].playerId : target);
-  }
-  if (room.status !== 'results') throw new Error('Партия не завершилась после голосования всех');
+
+  ejectPlayer(room, spies[0].playerId);
+  if (room.status !== 'discussion') throw new Error('После первого изгнания партия обязана продолжиться: второй соглядатай ещё в игре');
+  const midway = buildView(room, citizens[0].playerId);
+  const ejectedRow = midway.players.find((item) => item.playerId === spies[0].playerId);
+  if (!ejectedRow?.eliminated) throw new Error('Выгнанный игрок не помечен как выбывший');
+  if (ejectedRow.role) throw new Error('Роль выгнанного открылась до конца партии');
+  if (midway.players.some((item) => item.role)) throw new Error('Чужая роль утекла после изгнания');
+
+  ejectPlayer(room, spies[1].playerId);
+  if (room.status !== 'results') throw new Error('Партия не завершилась, хотя выгнаны оба соглядатая');
   const final = buildView(room, 'p1');
   if (final.location !== room.location) throw new Error('На итогах локация должна быть открыта');
   if (final.players.some((item) => !item.role)) throw new Error('На итогах роли должны быть открыты');
+  if (final.outcome.spyWon) throw new Error('Оба соглядатая выгнаны — победа должна быть за горожанами');
+  if ((final.outcome.ejected || []).length !== 2) throw new Error('На итогах не перечислены выгнанные');
+}
+
+/** Круг голосования, который выгоняет одного названного игрока. */
+function ejectPlayer(room, targetId) {
+  beginVoting(room, room.hostPlayerId);
+  const alive = room.players.filter((item) => item.isActive !== false && !item.eliminated);
+  const fallback = alive.find((item) => item.playerId !== targetId);
+  for (const player of alive) {
+    castVote(room, player.playerId, player.playerId === targetId ? fallback.playerId : targetId);
+  }
 }
 
 // 4а. Чат общий для всех и не раскрывает ролей: в нём только имя и текст.
@@ -121,6 +145,32 @@ for (let attempt = 0; attempt < 40; attempt += 1) {
   if (keys !== 'at,id,name,playerId,text') throw new Error(`В сообщении лишние поля: ${keys}`);
   const spyView = JSON.stringify(buildView(room, spy.playerId));
   if (spyView.includes(room.location)) throw new Error('Локация утекла через чат');
+}
+
+// 4б. Закрытый чат соглядатаев не доходит до горожан ни одним полем.
+{
+  const room = createRoomState('CHAT2', { playerId: 'p1', name: 'Хост' });
+  for (let i = 2; i <= 6; i += 1) joinRoom(room, { playerId: `p${i}`, name: `Игрок ${i}` });
+  room.spyCount = 2;
+  startGame(room, 'p1', LOCATIONS);
+  const spies = room.players.filter((item) => item.role === 'spy');
+  const citizens = room.players.filter((item) => item.role === 'citizen');
+  const secret = 'сговор соглядатаев про локацию';
+  addChatMessage(room, spies[0].playerId, secret, Date.now(), 'spies');
+
+  for (const citizen of citizens) {
+    const view = JSON.stringify(buildView(room, citizen.playerId));
+    if (view.includes(secret)) throw new Error('Переписка соглядатаев утекла горожанину');
+  }
+  if (buildView(room, spies[1].playerId).spyChat.length !== 1) throw new Error('Напарник не видит закрытый чат');
+  let refused = false;
+  try { addChatMessage(room, citizens[0].playerId, 'подслушал', Date.now(), 'spies'); } catch { refused = true; }
+  if (!refused) throw new Error('Горожанину позволили писать в чат соглядатаев');
+
+  // Промах одного соглядатая не должен заканчивать партию за второго.
+  for (const player of room.players) markRoleSeen(room, player.playerId);
+  spyGuess(room, spies[0].playerId, 'Заведомо не та локация');
+  if (room.status !== 'discussion') throw new Error('Промах соглядатая закончил партию, хотя напарник ещё в игре');
 }
 
 // 5. Раздача честная: за много партий соглядатаем побывает каждый.

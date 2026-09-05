@@ -284,7 +284,10 @@ export class SpyRoom extends DurableObject {
     else if (action === 'vote') castVote(this.room, playerId, String(data.targetId || ''), now);
     else if (action === 'guess') spyGuess(this.room, playerId, String(data.guess || ''), now);
     else if (action === 'backToLobby') backToLobby(this.room, playerId, now);
-    else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
+    else if (action === 'chat') {
+      // Канал приходит с клиента, поэтому решает движок: он же знает роль.
+      addChatMessage(this.room, playerId, String(data.text || ''), now, String(data.channel || 'common'));
+    }
     else if (action === 'leave') {
       const result = leaveRoom(this.room, playerId, now);
       this.pollingPresence.delete(playerId);

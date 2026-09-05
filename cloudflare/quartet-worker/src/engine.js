@@ -1,6 +1,6 @@
 import { ALL_CARD_IDS, CARD_BY_ID, CARD_TO_QUARTET, CATALOG } from './catalog.js';
 
-export const ROOM_LIMIT = 8;
+export const ROOM_LIMIT = 15;
 export const MIN_PLAYERS = 2;
 export const TURN_TIMEOUT_MS = 90_000;
 
@@ -47,7 +47,7 @@ export function joinRoom(state, player, now = Date.now()) {
 
   if (state.status !== 'lobby') throw gameError('Игра уже началась', 'GAME_STARTED');
   if (state.players.filter((item) => item.isActive !== false).length >= ROOM_LIMIT) {
-    throw gameError('В комнате уже максимум игроков', 'ROOM_FULL');
+    throw gameError(`В комнате уже максимум ${ROOM_LIMIT} игроков`, 'ROOM_FULL');
   }
 
   state.players.push({

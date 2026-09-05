@@ -356,7 +356,7 @@ function startBibleSketchGame() {
       </button>`).join('');
     document.getElementById('bsk-content').innerHTML = `
       <div class="bsk-home">
-        <section class="bsk-hero"><span class="bsk-kicker">Realtime · 3–8 игроков</span><h2>Рисуйте. Наблюдайте. Найдите шпиона.</h2><p>Все, кроме шпиона, знают библейское слово. Игроки по очереди продолжают общий рисунок, а шпион пытается понять ответ по подсказкам.</p>
+        <section class="bsk-hero"><span class="bsk-kicker">Realtime · 3–15 игроков</span><h2>Рисуйте. Наблюдайте. Найдите шпиона.</h2><p>Все, кроме шпиона, знают библейское слово. Игроки по очереди продолжают общий рисунок, а шпион пытается понять ответ по подсказкам.</p>
           <div class="bsk-rules"><div class="bsk-rule"><b>1 · Категория</b>Создатель комнаты выбирает одну из шести: Предметы, Места, Люди, События, Природа или Ремёсла.</div><div class="bsk-rule"><b>2 · По очереди</b>Каждый получает 40 секунд и добавляет линии на общий холст.</div><div class="bsk-rule"><b>3 · Шпион</b>Может рискнуть и назвать ответ раньше голосования.</div></div>
         </section>
         <div class="bsk-home-grid">

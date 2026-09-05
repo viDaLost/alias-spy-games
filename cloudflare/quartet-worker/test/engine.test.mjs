@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CATALOG } from '../src/catalog.js';
-import { askCard, buildView, createRoomState, joinRoom, startGame } from '../src/engine.js';
+import { askCard, buildView, createRoomState, joinRoom, ROOM_LIMIT, startGame } from '../src/engine.js';
 
 function deterministicRng(max) { return max - 1; }
 function player(id, name = id) { return { playerId: id, name }; }
@@ -48,4 +48,13 @@ test('miss passes the turn', () => {
   const event = askCard(state, 'p1', 'p2', 'apostles_john', 10);
   assert.equal(event.type, 'ask_miss');
   assert.equal(state.turnPlayerId, 'p2');
+});
+
+test('в комнату помещаются пятнадцать игроков, шестнадцатый получает отказ', () => {
+  const state = createRoomState('ROOM15', { playerId: 'p1', name: 'Игрок 1' }, 1000);
+  for (let index = 2; index <= ROOM_LIMIT; index += 1) {
+    joinRoom(state, { playerId: `p${index}`, name: `Игрок ${index}` }, 1000 + index);
+  }
+  assert.equal(state.players.length, 15);
+  assert.throws(() => joinRoom(state, { playerId: 'p99', name: 'Лишний' }, 2000), /максимум 15/);
 });

@@ -45,9 +45,12 @@ export function createRoomState(roomId, host, now = Date.now()) {
     roundStartedAt: 0,
     roundDeadlineMs: 0,
     votes: {},
+    voteRound: 0,
     outcome: null,
     chat: [],
     chatSeq: 0,
+    spyChat: [],
+    spyChatSeq: 0,
   };
 }
 
@@ -60,6 +63,10 @@ function makePlayer(player, now) {
     role: null, // 'citizen' | 'spy'
     seenRole: false,
     ready: false,
+    // Изгнанный голосованием остаётся в комнате и смотрит партию, но больше
+    // не голосует и не пишет: иначе он знает больше остальных и подсказывает.
+    eliminated: false,
+    eliminatedRound: 0,
   };
 }
 
@@ -95,6 +102,12 @@ export function leaveRoom(room, playerId, now = Date.now()) {
   }
   delete room.votes[playerId];
   touch(room, now);
+  // Ушедший мог быть последним, кого ждали: без этого голосование зависло бы
+  // до конца обсуждения, которого уже нет.
+  if (room.status === 'voting') {
+    const alive = inPlay(room);
+    if (alive.length && alive.every((item) => room.votes[item.playerId])) resolveVote(room, now);
+  }
   return { deleted: false };
 }
 
@@ -138,21 +151,29 @@ export function startGame(room, playerId, locations, now = Date.now()) {
   room.round = Number(room.round || 0) + 1;
   room.status = 'roles';
   room.votes = {};
+  room.voteRound = 0;
   room.outcome = null;
   room.roundStartedAt = 0;
   room.roundDeadlineMs = 0;
+  // Роли раздаются заново, а в закрытом чате лежит переписка прошлых
+  // соглядатаев. Не вычистить его — значит выдать прошлую партию новому составу.
+  room.spyChat = [];
 
   const spyIndices = pickUnique(active.length, spyCount);
   active.forEach((player, index) => {
     player.role = spyIndices.has(index) ? 'spy' : 'citizen';
     player.seenRole = false;
     player.ready = false;
+    player.eliminated = false;
+    player.eliminatedRound = 0;
   });
   for (const player of room.players) {
     if (player.isActive === false) {
       player.role = null;
       player.seenRole = false;
       player.ready = false;
+      player.eliminated = false;
+      player.eliminatedRound = 0;
     }
   }
   touch(room, now);
@@ -188,41 +209,48 @@ export function beginVoting(room, playerId, now = Date.now()) {
   if (room.status !== 'discussion') throw fail('Голосование доступно только после обсуждения', 'NOT_IN_DISCUSSION');
   room.status = 'voting';
   room.votes = {};
+  room.voteRound = Number(room.voteRound || 0) + 1;
   touch(room, now);
 }
 
 export function castVote(room, playerId, targetId, now = Date.now()) {
-  activePlayer(room, playerId);
+  const voter = activePlayer(room, playerId);
   if (room.status !== 'voting') throw fail('Сейчас не голосование', 'NOT_IN_VOTING');
+  if (voter.eliminated) throw fail('Изгнанный больше не голосует', 'ELIMINATED', 403);
   if (targetId === playerId) throw fail('За себя голосовать нельзя', 'SELF_VOTE');
-  const target = room.players.find((item) => item.playerId === targetId && item.isActive !== false);
+  const target = inPlay(room).find((item) => item.playerId === targetId);
   if (!target) throw fail('Игрок не найден', 'TARGET_NOT_FOUND');
   room.votes[playerId] = targetId;
   touch(room, now);
-  const active = room.players.filter((item) => item.isActive !== false);
-  if (active.every((item) => room.votes[item.playerId])) finishByVote(room, now);
+  if (inPlay(room).every((item) => room.votes[item.playerId])) resolveVote(room, now);
 }
 
 export function spyGuess(room, playerId, guess, now = Date.now()) {
   const player = activePlayer(room, playerId);
   if (player.role !== 'spy') throw fail('Угадывать локацию может только соглядатай', 'NOT_A_SPY', 403);
+  if (player.eliminated) throw fail('Изгнанный больше не называет локацию', 'ELIMINATED', 403);
   if (room.status !== 'discussion' && room.status !== 'voting') throw fail('Сейчас нельзя назвать локацию', 'BAD_STATUS');
   const correct = normalizeGuess(guess) === normalizeGuess(room.location);
-  room.status = 'results';
-  room.outcome = {
-    kind: 'guess',
-    spyWon: correct,
-    guess: String(guess || '').slice(0, 80),
-    location: room.location,
-    byPlayerId: playerId,
-    spies: spyIds(room),
-    tally: [],
-    accusedId: '',
-  };
+  const details = { guess: String(guess || '').slice(0, 80), byPlayerId: playerId, tally: [], accusedId: '' };
+
+  // Угадал — партия кончилась, и напарнику доигрывать нечего.
+  if (correct) { finish(room, 'guess', true, details, now); return; }
+
+  // Промахнулся — назвался сам, и с поля уходит только он. Второй соглядатай,
+  // если он есть, продолжает партию: чужая ошибка его не выдаёт.
+  eliminate(room, player, now);
+  if (!settleRound(room, 'guess', details, now)) beginDiscussion(room, now);
   touch(room, now);
 }
 
-function finishByVote(room, now) {
+/*
+  Итог круга голосования. Раньше на этом месте партия заканчивалась всегда, и
+  при двух соглядатаях второй оставался в игре, которой уже нет: голосование
+  выгоняло одного, экран итогов открывал обе роли. Теперь круг голосования
+  выгоняет одного игрока, а партия продолжается, пока соглядатаи не кончились
+  или пока их не стало столько же, сколько горожан.
+*/
+function resolveVote(room, now) {
   const tally = new Map();
   for (const target of Object.values(room.votes)) tally.set(target, (tally.get(target) || 0) + 1);
   let accusedId = '';
@@ -232,20 +260,60 @@ function finishByVote(room, now) {
     if (count > best) { best = count; accusedId = target; tie = false; }
     else if (count === best) tie = true;
   }
-  const spies = spyIds(room);
-  // Ничья — соглядатай остался неразоблачённым, это его победа.
-  const caught = !tie && accusedId && spies.includes(accusedId);
-  room.status = 'results';
-  room.outcome = {
-    kind: 'vote',
-    spyWon: !caught,
+  const details = {
     tie,
     accusedId: tie ? '' : accusedId,
-    location: room.location,
-    spies,
     tally: [...tally.entries()].map(([playerId, votes]) => ({ playerId, votes })).sort((a, b) => b.votes - a.votes),
     guess: '',
     byPlayerId: '',
+  };
+
+  // Ничья никого не выгоняет: обвинять наугад дороже, чем поговорить ещё круг.
+  const accused = tie ? null : inPlay(room).find((item) => item.playerId === accusedId);
+  if (accused) eliminate(room, accused, now);
+  room.votes = {};
+  if (!settleRound(room, 'vote', details, now)) beginDiscussion(room, now);
+  touch(room, now);
+}
+
+function eliminate(room, player, now) {
+  player.eliminated = true;
+  player.eliminatedRound = Number(room.voteRound || 0);
+  touch(room, now);
+}
+
+/*
+  Кончилась ли партия. Горожане побеждают, когда выгнан последний соглядатай;
+  соглядатаи — когда их стало не меньше, чем горожан: голосованием их уже не
+  пересилить. Пока ни то ни другое не сошлось, роли не раскрываются: игроки не
+  знают, выгнали они соглядатая или своего, и в этом весь следующий круг.
+*/
+function settleRound(room, kind, details, now) {
+  const spiesLeft = inPlay(room).filter((item) => item.role === 'spy');
+  const citizensLeft = inPlay(room).filter((item) => item.role !== 'spy');
+  if (!spiesLeft.length) { finish(room, kind, false, details, now); return true; }
+  if (spiesLeft.length >= citizensLeft.length) { finish(room, kind, true, details, now); return true; }
+  return false;
+}
+
+function finish(room, kind, spyWon, details, now) {
+  room.status = 'results';
+  room.outcome = {
+    kind,
+    spyWon,
+    tie: false,
+    accusedId: '',
+    guess: '',
+    byPlayerId: '',
+    ...details,
+    location: room.location,
+    spies: spyIds(room),
+    // Кого и в каком круге выгнали — единственное место, где роли называются
+    // вслух. До этого экрана они не уходят на клиент ни одним полем.
+    ejected: room.players
+      .filter((item) => item.eliminated)
+      .sort((a, b) => a.eliminatedRound - b.eliminatedRound)
+      .map((item) => ({ playerId: item.playerId, name: item.name, role: item.role, round: item.eliminatedRound })),
   };
   touch(room, now);
 }
@@ -255,6 +323,7 @@ export function endRoundByTimeout(room, now = Date.now()) {
   if (!room.roundDeadlineMs || room.roundDeadlineMs > now) return false;
   room.status = 'voting';
   room.votes = {};
+  room.voteRound = Number(room.voteRound || 0) + 1;
   touch(room, now);
   return true;
 }
@@ -263,14 +332,18 @@ export function backToLobby(room, playerId, now = Date.now()) {
   requireHost(room, playerId);
   room.status = 'lobby';
   room.votes = {};
+  room.voteRound = 0;
   room.outcome = null;
   room.location = '';
   room.roundStartedAt = 0;
   room.roundDeadlineMs = 0;
+  room.spyChat = [];
   for (const player of room.players) {
     player.role = null;
     player.seenRole = false;
     player.ready = false;
+    player.eliminated = false;
+    player.eliminatedRound = 0;
   }
   // Ушедшие в прошлой партии в лобби не возвращаются.
   room.players = room.players.filter((item) => item.isActive !== false);
@@ -279,18 +352,33 @@ export function backToLobby(room, playerId, now = Date.now()) {
 
 export const MAX_CHAT_MESSAGES = 80;
 
+export const CHAT_CHANNELS = ['common', 'spies'];
+
 /*
-  Текстовый чат комнаты. Он же и есть обсуждение: игроки спрашивают друг друга
-  и ищут того, кто локации не знает. Из-за этого чат нельзя чистить между
-  этапами — переписка и есть улика, по которой голосуют.
+  Два чата. Общий — он же и есть обсуждение: игроки спрашивают друг друга и
+  ищут того, кто локации не знает. Его нельзя чистить между этапами: переписка
+  и есть улика, по которой голосуют.
+
+  Закрытый чат соглядатаев нужен, потому что играют они за одну команду, а
+  сговориться им негде: в общем чате любое слово друг другу выдаёт обоих.
+  Читают и пишут в него только соглядатаи, и раздача новых ролей его стирает.
 */
-export function addChatMessage(room, playerId, rawText, now = Date.now()) {
+export function addChatMessage(room, playerId, rawText, now = Date.now(), channel = 'common') {
   const player = activePlayer(room, playerId);
+  if (!CHAT_CHANNELS.includes(channel)) throw fail('Неизвестный чат', 'BAD_CHANNEL', 400);
+  if (player.eliminated) throw fail('Изгнанный больше не пишет в чат', 'ELIMINATED', 403);
+  const spyChannel = channel === 'spies';
+  if (spyChannel && player.role !== 'spy') throw fail('Этот чат виден только соглядатаям', 'NOT_A_SPY', 403);
   const text = sanitizeChat(rawText);
   if (!text) throw fail('Сообщение пустое', 'EMPTY_CHAT');
-  room.chatSeq = Number(room.chatSeq || 0) + 1;
-  room.chat.push({ id: String(room.chatSeq), playerId, name: player.name, text, at: now });
-  if (room.chat.length > MAX_CHAT_MESSAGES) room.chat.splice(0, room.chat.length - MAX_CHAT_MESSAGES);
+
+  const seqKey = spyChannel ? 'spyChatSeq' : 'chatSeq';
+  const listKey = spyChannel ? 'spyChat' : 'chat';
+  room[seqKey] = Number(room[seqKey] || 0) + 1;
+  room[listKey].push({ id: String(room[seqKey]), playerId, name: player.name, text, at: now });
+  if (room[listKey].length > MAX_CHAT_MESSAGES) {
+    room[listKey].splice(0, room[listKey].length - MAX_CHAT_MESSAGES);
+  }
   touch(room, now);
 }
 
@@ -304,23 +392,33 @@ export function sanitizeChat(value) {
     .slice(0, 300);
 }
 
-// Старые комнаты в хранилище чата не знают: без этого push упал бы на undefined.
+// Старые комнаты в хранилище ни чатов, ни изгнаний не знают: без этого push
+// упал бы на undefined, а inPlay считал бы eliminated за истину.
 export function ensureChat(room) {
   if (!Array.isArray(room.chat)) room.chat = [];
   room.chatSeq = Number(room.chatSeq || 0);
+  if (!Array.isArray(room.spyChat)) room.spyChat = [];
+  room.spyChatSeq = Number(room.spyChatSeq || 0);
+  room.voteRound = Number(room.voteRound || 0);
+  for (const player of room.players || []) {
+    player.eliminated = Boolean(player.eliminated);
+    player.eliminatedRound = Number(player.eliminatedRound || 0);
+  }
 }
 
 /*
   Вид комнаты для одного игрока. Локация уходит только тем, кто её знает:
   горожанам во время партии и всем на экране итогов. Роли чужих игроков не
   раскрываются до конца партии — иначе смысл игры теряется на первом же
-  перехваченном сообщении.
+  перехваченном сообщении. Изгнание роли не раскрывает тоже: выгнали своего
+  или соглядатая, остальные узнают только на итогах.
 */
 export function buildView(room, viewerId, connectedIds = new Set()) {
   const me = room.players.find((item) => item.playerId === viewerId) || null;
   const finished = room.status === 'results';
   const iAmSpy = me?.role === 'spy';
   const showLocation = finished || (me && me.role === 'citizen' && room.status !== 'lobby');
+  const alive = inPlay(room);
 
   return {
     roomId: room.roomId,
@@ -336,6 +434,10 @@ export function buildView(room, viewerId, connectedIds = new Set()) {
     minPlayers: MIN_PLAYERS,
     maxPlayers: MAX_PLAYERS,
     location: showLocation ? room.location : '',
+    voteRound: Number(room.voteRound || 0),
+    // Сколько игроков ещё в игре: по этому числу клиент показывает, что партия
+    // идёт дальше. Сколько среди них соглядатаев — не говорит никто.
+    inPlayCount: alive.length,
     me: me
       ? {
         playerId: me.playerId,
@@ -343,6 +445,7 @@ export function buildView(room, viewerId, connectedIds = new Set()) {
         role: room.status === 'lobby' ? null : me.role,
         isSpy: room.status === 'lobby' ? false : iAmSpy,
         seenRole: Boolean(me.seenRole),
+        eliminated: Boolean(me.eliminated),
         voted: Boolean(room.votes[me.playerId]),
         votedFor: room.votes[me.playerId] || '',
       }
@@ -356,11 +459,16 @@ export function buildView(room, viewerId, connectedIds = new Set()) {
         online: connectedIds.has(item.playerId),
         ready: Boolean(item.ready),
         voted: Boolean(room.votes[item.playerId]),
+        eliminated: Boolean(item.eliminated),
         // Роль чужого игрока видна только на итогах.
         role: finished ? item.role : null,
       })),
     outcome: room.outcome ? { ...room.outcome } : null,
     chat: (room.chat || []).map((entry) => ({ ...entry })),
+    // Закрытый чат уходит только соглядатаю. Горожанин получает пустой список,
+    // а не признак того, что там что-то есть.
+    spyChat: iAmSpy ? (room.spyChat || []).map((entry) => ({ ...entry })) : [],
+    canWriteSpyChat: Boolean(iAmSpy && !me.eliminated && room.status !== 'lobby' && room.status !== 'results'),
   };
 }
 
@@ -372,6 +480,11 @@ function activePlayer(room, playerId) {
   const player = room.players.find((item) => item.playerId === playerId && item.isActive !== false);
   if (!player) throw fail('Игрок не найден в комнате', 'PLAYER_NOT_FOUND', 403);
   return player;
+}
+
+/** Кто ещё в игре: не вышел из комнаты и не изгнан голосованием. */
+function inPlay(room) {
+  return room.players.filter((item) => item.isActive !== false && !item.eliminated);
 }
 
 function spyIds(room) {

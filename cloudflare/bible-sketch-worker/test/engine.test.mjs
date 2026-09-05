@@ -6,6 +6,7 @@ import {
   commitStroke,
   createRoomState,
   joinRoom,
+  ROOM_LIMIT,
   startRound,
   submitSpyGuess,
   voteGuessReview,
@@ -122,4 +123,13 @@ test('chat is room-scoped and blocks leaking the active secret word', () => {
   const message = addChatMessage(state, artist, 'Красивый рисунок!', 2200);
   assert.equal(message.text, 'Красивый рисунок!');
   assert.equal(state.chat.length, 1);
+});
+
+test('в комнату помещаются пятнадцать игроков, шестнадцатый получает отказ', () => {
+  const state = createRoomState('ABC123', player('1', 'Игрок 1'), 'objects', 1000);
+  for (let index = 2; index <= ROOM_LIMIT; index += 1) {
+    joinRoom(state, player(String(index), `Игрок ${index}`), 1000 + index);
+  }
+  assert.equal(state.players.length, 15);
+  assert.throws(() => joinRoom(state, player('99', 'Лишний'), 2000), /максимум 15/);
 });

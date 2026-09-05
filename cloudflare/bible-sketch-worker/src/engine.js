@@ -1,6 +1,6 @@
 import { CATEGORY_META, CATALOG, answerMatches, getCategory, getWord, normalizeAnswer } from './catalog.js';
 
-export const ROOM_LIMIT = 8;
+export const ROOM_LIMIT = 15;
 export const MIN_PLAYERS = 3;
 export const DRAW_TURN_MS = 40_000;
 export const ANSWER_REVIEW_MS = 30_000;
@@ -59,7 +59,7 @@ export function joinRoom(state, player, now = Date.now()) {
     return { rejoined: true };
   }
   if (state.status !== 'lobby') throw gameError('Раунд уже начался', 'GAME_STARTED');
-  if (activePlayers(state).length >= ROOM_LIMIT) throw gameError('В комнате уже максимум 8 игроков', 'ROOM_FULL');
+  if (activePlayers(state).length >= ROOM_LIMIT) throw gameError(`В комнате уже максимум ${ROOM_LIMIT} игроков`, 'ROOM_FULL');
   const name = sanitizeName(player.name);
   state.players.push({ playerId: player.playerId, name, joinedAt: now, isActive: true });
   state.log.push(`${name} вошёл в комнату`);

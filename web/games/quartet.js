@@ -263,7 +263,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     ui.content.innerHTML = `
       <div class="qv2-home">
         <section class="qv2-hero qv2-glass">
-          <span class="qv2-kicker">Realtime · 2–8 игроков</span>
+          <span class="qv2-kicker">Realtime · 2–15 игроков</span>
           <h2>Собери больше квартетов</h2>
           <p>Выбирай соперника, отмечай нужную карту и собирай группы по четыре. Успешный запрос сохраняет ход за тобой.</p>
           <div class="qv2-steps">

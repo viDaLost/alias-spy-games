@@ -49,9 +49,12 @@ function startSpyOnlineGame() {
 
   // Черновик сообщения переживает перерисовку: состояние комнаты приходит
   // каждую секунду, и без этого набранный текст стирался бы на полуслове.
-  let chatDraft = '';
-  let chatSeen = 0;
+  // Каналов два, и у каждого свой черновик: соглядатай пишет напарнику одно,
+  // а столу — другое, и переключение вкладки не должно их путать.
+  const chatDraft = { common: '', spies: '' };
+  const chatSeen = { common: 0, spies: 0 };
   let chatOpen = false;
+  let chatTab = 'common';
 
   injectStyles();
   window.__spyOnlineCleanup = cleanup;
@@ -233,14 +236,19 @@ function startSpyOnlineGame() {
   function applyState(next) {
     const previous = state;
     state = next;
-    if (chatOpen) chatSeen = (next.chat || []).length;
-    window.GameChatToasts?.sync({
-      key: `spy:${roomId}`,
-      messages: next.chat || [],
-      selfId: next.me?.playerId || '',
-      chatVisible: () => chatOpen && onScreen(container.querySelector('[data-spy-chat-log]')),
-      onOpen: openChat,
-    });
+    // Соглядатая перевели из соглядатаев или партия началась заново — вкладка
+    // закрытого чата исчезает, и оставаться на ней нельзя.
+    if (!canSeeSpyChat(next)) chatTab = 'common';
+    if (chatOpen) chatSeen[chatTab] = channelMessages(next, chatTab).length;
+    for (const channel of ['common', 'spies']) {
+      window.GameChatToasts?.sync({
+        key: channel === 'common' ? `spy:${roomId}` : `spy:${roomId}:spies`,
+        messages: channelMessages(next, channel),
+        selfId: next.me?.playerId || '',
+        chatVisible: () => chatOpen && chatTab === channel && onScreen(container.querySelector('[data-spy-chat-log]')),
+        onOpen: () => openChat(channel),
+      });
+    }
     // Новая раздача — карта снова рубашкой вверх, иначе роль показалась бы
     // сама собой тому, кто просто не закрыл прошлый экран.
     if (previous && previous.round !== next.round) roleFaceUp = false;
@@ -289,6 +297,7 @@ function startSpyOnlineGame() {
 
   function cleanup() {
     window.GameChatToasts?.reset(`spy:${roomId}`);
+    window.GameChatToasts?.reset(`spy:${roomId}:spies`);
     destroyed = true;
     leaving = true;
     stopPolling();
@@ -474,21 +483,41 @@ function startSpyOnlineGame() {
 
   function renderDiscussion() {
     const me = state.me || {};
+    const round = Number(state.voteRound || 0);
     return `
-      <h2>🗣 Обсуждение</h2>
+      <h2>🗣 Обсуждение${round ? ` · круг ${round + 1}` : ''}</h2>
       <div class="spy-online-clock" data-spy-clock>—</div>
-      <p class="spy-online-lead">Задавайте вопросы по очереди. Соглядатай не знает локацию, но пытается её вычислить.</p>
+      <p class="spy-online-lead">${round
+        ? 'Кого-то уже выгнали, но роли откроются только в конце. Смотрите, кто остался.'
+        : 'Задавайте вопросы по очереди. Соглядатай не знает локацию, но пытается её вычислить.'}</p>
+      ${renderEliminationNote()}
       ${me.isSpy ? '' : `<div class="card"><strong>Локация</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1.05rem;">${esc(state.location)}</p></div>`}
-      ${me.isSpy ? renderGuessBlock() : ''}
+      ${me.isSpy && !me.eliminated ? renderGuessBlock() : ''}
       ${state.isHost ? '<button class="correct-button" data-spy-room="beginVoting">Перейти к голосованию</button>' : ''}
       ${renderPlayers()}`;
+  }
+
+  /** Строка про изгнанных. Роль не называется — её открывает только конец партии. */
+  function renderEliminationNote() {
+    const out = state.players.filter((item) => item.eliminated);
+    if (!out.length) return '';
+    const mine = state.me?.eliminated;
+    return `
+      <div class="card spy-online-ejected">
+        <strong>Выгнаны: ${out.map((item) => esc(item.name)).join(', ')}</strong>
+        <p style="margin-top:8px;color:var(--ink-soft);font-size:.98rem;">
+          ${mine
+            ? 'Вы выбыли: голосовать и писать больше нельзя, но партию досмотрите.'
+            : `Кем они были — станет известно в конце. За столом осталось ${state.inPlayCount} человек.`}
+        </p>
+      </div>`;
   }
 
   function renderGuessBlock() {
     return `
       <div class="card spy-online-guess">
         <strong>Назвать локацию</strong>
-        <p style="margin-top:6px;color:var(--ink-soft);font-size:.98rem;">Угадаете — победа ваша сразу. Ошибётесь — партия закончится не в вашу пользу.</p>
+        <p style="margin-top:6px;color:var(--ink-soft);font-size:.98rem;">Угадаете — победа ваша сразу. Ошибётесь — из-за стола уйдёте вы, а напарник доиграет.</p>
         <input id="spyGuessInput" class="input input-lg" maxlength="60" placeholder="Например: Иерусалим">
         <button class="menu-button" data-spy-room="guess">Назвать</button>
       </div>`;
@@ -496,43 +525,61 @@ function startSpyOnlineGame() {
 
   function renderVoting() {
     const me = state.me || {};
-    const options = state.players.filter((item) => item.playerId !== me.playerId);
-    const pending = state.players.filter((item) => !item.voted).length;
+    const alive = state.players.filter((item) => !item.eliminated);
+    const options = alive.filter((item) => item.playerId !== me.playerId);
+    const pending = alive.filter((item) => !item.voted).length;
     return `
-      <h2>🎯 Голосование</h2>
-      <p class="spy-online-lead">Кто, по-вашему, соглядатай? Голоса откроются, когда проголосуют все.</p>
-      <div class="spy-vote-list">
-        ${options.map((item) => `
-          <button class="spy-vote-option ${me.votedFor === item.playerId ? 'is-picked' : ''}" data-spy-vote="${esc(item.playerId)}">
-            <span class="spy-vote-name">${esc(item.name)}</span>
-            <span class="spy-vote-mark">${me.votedFor === item.playerId ? '✓' : ''}</span>
-          </button>`).join('')}
-      </div>
+      <h2>🎯 Голосование${state.voteRound > 1 ? ` · круг ${state.voteRound}` : ''}</h2>
+      <p class="spy-online-lead">Кто, по-вашему, соглядатай? Набравший больше всех голосов уходит из-за стола —
+        но его роль откроется только тогда, когда партия закончится.</p>
+      ${renderEliminationNote()}
+      ${me.eliminated ? '' : `
+        <div class="spy-vote-list">
+          ${options.map((item) => `
+            <button class="spy-vote-option ${me.votedFor === item.playerId ? 'is-picked' : ''}" data-spy-vote="${esc(item.playerId)}">
+              <span class="spy-vote-name">${esc(item.name)}</span>
+              <span class="spy-vote-mark">${me.votedFor === item.playerId ? '✓' : ''}</span>
+            </button>`).join('')}
+        </div>`}
       <p class="hint">${pending ? `Ждём ещё ${pending}` : 'Все проголосовали'}</p>
-      ${me.isSpy ? renderGuessBlock() : ''}
+      ${me.isSpy && !me.eliminated ? renderGuessBlock() : ''}
       ${renderPlayers()}`;
   }
 
   function renderResults() {
     const outcome = state.outcome || {};
     const spies = state.players.filter((item) => item.role === 'spy');
-    const accused = state.players.find((item) => item.playerId === outcome.accusedId);
+    const many = spies.length > 1;
     const guessed = outcome.kind === 'guess';
+    const ejected = outcome.ejected || [];
     return `
-      <h2>${outcome.spyWon ? '🕵️ Победа соглядатая' : '🎉 Соглядатай раскрыт'}</h2>
+      <h2>${outcome.spyWon
+        ? `🕵️ Победа соглядата${many ? 'ев' : 'я'}`
+        : `🎉 Соглядата${many ? 'и раскрыты' : 'й раскрыт'}`}</h2>
       <div class="card spy-online-outcome ${outcome.spyWon ? 'is-spy' : 'is-town'}">
         <strong>Локация: ${esc(outcome.location || state.location)}</strong>
         <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">
           ${guessed
             ? `Соглядатай назвал «${esc(outcome.guess)}» — ${outcome.spyWon ? 'и попал' : 'и промахнулся'}.`
-            : outcome.tie
-              ? 'Голоса разделились поровну, и соглядатай остался неразоблачённым.'
-              : `Больше всего голосов у игрока ${esc(accused?.name || '—')}.`}
+            : outcome.spyWon
+              ? 'Соглядатаев стало не меньше, чем горожан: голосованием их уже не пересилить.'
+              : 'Стол выгнал последнего соглядатая.'}
         </p>
       </div>
       <div class="card">
-        <strong>Соглядатай${spies.length > 1 ? 'ы' : ''}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
+        <strong>Соглядата${many ? 'и' : 'й'}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
       </div>
+      ${ejected.length ? `
+        <div class="card">
+          <strong>Кого выгнали</strong>
+          <div class="spy-tally" style="margin-top:8px;">
+            ${ejected.map((row) => `
+              <div class="spy-tally-row">
+                <span>${esc(row.name)}</span>
+                <b class="${row.role === 'spy' ? 'is-spy' : ''}">${row.role === 'spy' ? 'соглядатай' : 'горожанин'}</b>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
       ${outcome.tally?.length ? `
         <div class="spy-tally">
           ${outcome.tally.map((row) => {
@@ -550,10 +597,11 @@ function startSpyOnlineGame() {
     return `
       <div class="spy-player-list">
         ${state.players.map((item) => `
-          <div class="spy-player ${item.online ? '' : 'is-away'}">
+          <div class="spy-player ${item.online ? '' : 'is-away'} ${item.eliminated ? 'is-out' : ''}">
             <span class="spy-player-dot ${item.online ? 'is-online' : ''}"></span>
             <span class="spy-player-name">${esc(item.name)}</span>
             ${item.isHost ? '<span class="spy-player-tag">ведущий</span>' : ''}
+            ${item.eliminated ? '<span class="spy-player-tag is-out">выгнан</span>' : ''}
             ${item.role === 'spy' ? '<span class="spy-player-tag is-spy">соглядатай</span>' : ''}
             ${state.status === 'roles' && item.ready ? '<span class="spy-player-tag is-ok">готов</span>' : ''}
             ${state.status === 'voting' && item.voted ? '<span class="spy-player-tag is-ok">голос</span>' : ''}
@@ -566,31 +614,63 @@ function startSpyOnlineGame() {
     кто локации не знает. В лобби чат тоже открыт — там договариваются о
     составе, а лишний экран для этого заводить незачем.
   */
+  /** Сообщения одного канала: закрытый приходит пустым тем, кому он не положен. */
+  function channelMessages(source, channel) {
+    return (channel === 'spies' ? source?.spyChat : source?.chat) || [];
+  }
+
+  /** Вкладка соглядатаев есть только у соглядатая и только пока идёт партия. */
+  function canSeeSpyChat(source) {
+    return Boolean(source?.me?.isSpy && source.status !== 'lobby');
+  }
+
   function renderChatPanel() {
-    const messages = state.chat || [];
-    const unread = Math.max(0, messages.length - chatSeen);
+    const spyTab = canSeeSpyChat(state);
+    if (!spyTab && chatTab !== 'common') chatTab = 'common';
+    const messages = channelMessages(state, chatTab);
+    const unread = ['common', 'spies']
+      .filter((channel) => channel === 'common' || spyTab)
+      .reduce((sum, channel) => sum + Math.max(0, channelMessages(state, channel).length - chatSeen[channel]), 0);
+    const mine = state.me?.playerId || '';
+    const eliminated = Boolean(state.me?.eliminated);
+    const canWrite = chatTab === 'spies' ? Boolean(state.canWriteSpyChat) : !eliminated;
     return `
-      <div class="spy-chat">
+      <div class="spy-chat ${chatTab === 'spies' ? 'is-secret' : ''}">
         <div class="spy-chat-head">
-          <strong>Чат</strong>
+          <strong>${chatTab === 'spies' ? 'Чат соглядатаев' : 'Чат'}</strong>
           ${unread && !chatOpen ? `<span class="spy-chat-badge">${unread}</span>` : ''}
           <button class="spy-chat-toggle" data-spy-room="chatToggle">${chatOpen ? 'Свернуть' : 'Открыть'}</button>
         </div>
+        ${chatOpen && spyTab ? `
+          <div class="spy-chat-tabs" role="tablist">
+            ${['common', 'spies'].map((channel) => {
+              const count = Math.max(0, channelMessages(state, channel).length - chatSeen[channel]);
+              return `<button class="spy-chat-tab ${chatTab === channel ? 'is-active' : ''}"
+                data-spy-chat-tab="${channel}" role="tab" aria-selected="${chatTab === channel}">
+                ${channel === 'spies' ? '🕵️ Свои' : 'Общий'}
+                ${count && chatTab !== channel ? `<span class="spy-chat-badge">${count}</span>` : ''}
+              </button>`;
+            }).join('')}
+          </div>` : ''}
         ${chatOpen ? `
+          ${chatTab === 'spies' ? '<p class="spy-chat-note">Эту переписку видят только соглядатаи. Стол её не получает.</p>' : ''}
           <div class="spy-chat-log" data-spy-chat-log>
             ${messages.length
               ? messages.map((entry) => `
-                  <div class="spy-chat-line ${entry.playerId === state.me?.playerId ? 'is-mine' : ''}">
+                  <div class="spy-chat-line ${entry.playerId === mine ? 'is-mine' : ''}">
                     <span class="spy-chat-author">${esc(entry.name)}</span>
                     <span class="spy-chat-text">${esc(entry.text)}</span>
                   </div>`).join('')
-              : '<p class="spy-chat-empty">Пока тихо. Задайте первый вопрос.</p>'}
+              : `<p class="spy-chat-empty">${chatTab === 'spies' ? 'Здесь пока пусто. Договоритесь с напарником.' : 'Пока тихо. Задайте первый вопрос.'}</p>`}
           </div>
-          <form class="spy-chat-form" data-spy-chat-form>
-            <input class="spy-chat-input" data-spy-chat-input maxlength="300"
-                   placeholder="Спросить у стола…" autocomplete="off" value="${esc(chatDraft)}">
-            <button class="spy-chat-send" type="submit" aria-label="Отправить">➤</button>
-          </form>` : ''}
+          ${canWrite ? `
+            <form class="spy-chat-form" data-spy-chat-form>
+              <input class="spy-chat-input" data-spy-chat-input maxlength="300"
+                     placeholder="${chatTab === 'spies' ? 'Написать своим…' : 'Спросить у стола…'}" autocomplete="off"
+                     value="${esc(chatDraft[chatTab])}">
+              <button class="spy-chat-send" type="submit" aria-label="Отправить">➤</button>
+            </form>`
+            : `<p class="spy-chat-note">${eliminated ? 'Вас выгнали — дальше только смотрите.' : 'Сейчас писать сюда нельзя.'}</p>`}` : ''}
       </div>`;
   }
 
@@ -600,14 +680,17 @@ function startSpyOnlineGame() {
     });
 
     const chatInput = container.querySelector('[data-spy-chat-input]');
-    chatInput?.addEventListener('input', () => { chatDraft = chatInput.value; });
+    chatInput?.addEventListener('input', () => { chatDraft[chatTab] = chatInput.value; });
     container.querySelector('[data-spy-chat-form]')?.addEventListener('submit', (event) => {
       event.preventDefault();
       const text = String(chatInput?.value || '').trim();
       if (!text) return;
-      send('chat', { text });
-      chatDraft = '';
+      send('chat', { text, channel: chatTab });
+      chatDraft[chatTab] = '';
       if (chatInput) chatInput.value = '';
+    });
+    container.querySelectorAll('[data-spy-chat-tab]').forEach((node) => {
+      node.addEventListener('click', () => openChat(node.dataset.spyChatTab));
     });
     // Лента открывается на последнем сообщении: листать вручную к свежему
     // после каждого обновления никто не станет.
@@ -648,9 +731,10 @@ function startSpyOnlineGame() {
   }
 
   /** Раскрывает чат и подводит его к глазам — сюда же ведёт всплывшее уведомление. */
-  function openChat() {
+  function openChat(channel = chatTab) {
     chatOpen = true;
-    chatSeen = (state?.chat || []).length;
+    chatTab = channel === 'spies' && canSeeSpyChat(state) ? 'spies' : 'common';
+    chatSeen[chatTab] = channelMessages(state, chatTab).length;
     renderRoom();
     const log = container.querySelector('[data-spy-chat-log]');
     if (!onScreen(log)) log?.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -780,6 +864,20 @@ const SPY_ONLINE_CSS = `
   /* Оболочка центрирует текст, а список игроков должен читаться слева. */
   .spy-player { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 14px; background: rgba(79,70,229,.06); font-size: .96rem; font-weight: 800; color: #312e81; text-align: left; }
   .spy-player.is-away { opacity: .48; }
+  .spy-player.is-out { opacity: .55; }
+  .spy-player.is-out .spy-player-name { text-decoration: line-through; }
+  .spy-player-tag.is-out { background: rgba(120,120,130,.18); color: var(--ink-soft); }
+  .spy-chat-tabs { display: flex; gap: 6px; padding: 6px 10px 0; }
+  .spy-chat-tab {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 10px; border: 0; border-radius: 10px; cursor: pointer;
+    font: inherit; font-size: .92rem; color: var(--ink-soft); background: rgba(140,140,150,.14);
+  }
+  .spy-chat-tab.is-active { background: rgba(190,150,60,.22); color: var(--ink); font-weight: 600; }
+  .spy-chat-note { margin: 8px 10px 0; font-size: .88rem; color: var(--ink-soft); }
+  /* Закрытый канал отличается от общего с одного взгляда: писать не туда — проиграть партию. */
+  .spy-chat.is-secret { box-shadow: inset 0 0 0 2px rgba(190,90,90,.4); }
+  .spy-tally-row b.is-spy { color: #c0553f; }
   .spy-player-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(49,46,129,.24); flex: none; }
   .spy-player-dot.is-online { background: #22c55e; }
   .spy-player-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
