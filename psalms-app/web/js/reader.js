@@ -1,82 +1,80 @@
-/* Экран чтения песни: типографика, жесты, автопрокрутка и избранное. */
+/* Экран песни — главный экран приложения: спокойное чтение текста. */
 
-import { el, icon, ICONS, toast, haptic, share, copy, keepAwake, openSheet } from './ui.js';
+import {
+  el, icon, ICONS, iconButton, textButton, toast, haptic, share, copy, keepAwake,
+  openSheet, closeSheet,
+} from './ui.js';
+import { emptyState, skeletonList, segmented } from './components.js';
 import { store } from './store.js';
+import { typographySheet } from './typography.js';
 import * as data from './data.js';
 
-const REPEAT = /(\/:|:\/)/g;
+const REPEAT_MARK = /(\/:|:\/)/g;
+const AUTO_SPEEDS = [
+  { label: 'Медленно', value: 22 },
+  { label: 'Обычно', value: 34 },
+  { label: 'Быстро', value: 52 },
+];
 
 let host = null;
-let nav = null;
-let scroll = null;
+let navigate = null;
+let scroller = null;
 let page = null;
-let progress = null;
-let titleNode = null;
-let crumbNode = null;
-let favButton = null;
-let autoButton = null;
+let barTitle = null;
+let favoriteButton = null;
 let current = null;
 let autoTimer = 0;
-let immersive = false;
+let autoSpeed = 34;
 
-export function initReader(navigate) {
-  nav = navigate;
+export function initReader(navigateTo) {
+  navigate = navigateTo;
   host = document.getElementById('reader');
 
-  progress = el('span', { class: 'reader__progress' });
-  titleNode = el('div', { class: 'reader__title' });
-  crumbNode = el('div', { class: 'reader__crumb' });
+  barTitle = el('div', { class: 'reader__bar-title' });
+  favoriteButton = iconButton(ICONS.heart, 'В избранное', toggleFavorite, {
+    class: 'icon-button favorite-button',
+    'aria-pressed': 'false',
+  });
 
-  favButton = dockButton(ICONS.heart, 'В избранное', toggleFavorite);
-  autoButton = dockButton(ICONS.scroll, 'Автопрокрутка', toggleAuto);
-
-  const bar = el('div', { class: 'reader__bar' }, [
-    el('button', { class: 'icon-btn', html: icon(ICONS.back), 'aria-label': 'Назад', onclick: () => history.back() }),
-    el('div', { class: 'reader__heading' }, [titleNode, crumbNode]),
-    el('button', {
-      class: 'icon-btn',
-      html: icon(ICONS.text),
-      'aria-label': 'Вид текста',
-      onclick: () => import('./screens.js').then((module) => module.typographySheet()),
-    }),
-    progress,
+  const bar = el('header', { class: 'reader__bar' }, [
+    iconButton(ICONS.back, 'Назад', () => history.back()),
+    barTitle,
+    textButton('Аа', 'Оформление', () => typographySheet()),
+    favoriteButton,
+    iconButton(ICONS.more, 'Ещё', openActions),
   ]);
 
   page = el('article', { class: 'reader__page' });
-  scroll = el('div', { class: 'reader__scroll' }, [page]);
+  scroller = el('div', { class: 'reader__scroll' }, [page]);
+  host.append(bar, scroller);
 
-  const dock = el('div', { class: 'reader__dock' }, [
-    favButton,
-    autoButton,
-    dockButton(ICONS.copy, 'Копировать', () => {
-      if (current) copy(plainText(current));
-    }),
-    dockButton(ICONS.share, 'Поделиться', () => {
-      if (current) share(current.song.t, plainText(current));
-    }),
-    dockButton(ICONS.book, 'К сборнику', () => {
-      if (current) nav(`#/c/${current.collectionId}`);
-    }),
-  ]);
-
-  host.append(bar, scroll, dock);
-
-  scroll.addEventListener('scroll', () => {
-    const max = scroll.scrollHeight - scroll.clientHeight;
-    const ratio = max > 0 ? scroll.scrollTop / max : 0;
-    progress.style.width = `${Math.min(100, ratio * 100)}%`;
-    host.classList.toggle('is-stuck', scroll.scrollTop > 4);
+  scroller.addEventListener('scroll', () => {
+    host.classList.toggle('is-stuck', scroller.scrollTop > 24);
   }, { passive: true });
 
-  bindGestures();
+  bindSwipes();
 }
 
-function dockButton(path, label, onClick) {
-  return el('button', {
-    class: 'dock-btn',
-    'aria-label': label,
-    html: icon(path),
-    onclick: onClick,
+/* --- Содержимое ----------------------------------------------------------- */
+
+function escapeHtml(value) {
+  return value.replace(/[&<>"]/g, (ch) => (
+    ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : '&quot;'
+  ));
+}
+
+function renderVerses(song) {
+  return song.b.map((block) => {
+    const label = block.k === 'chorus'
+      ? 'Припев'
+      : block.k === 'verse' && block.n ? block.n : '';
+    const lines = block.l
+      .map((line) => escapeHtml(line).replace(REPEAT_MARK, '<span class="repeat-mark">$1</span>'))
+      .join('\n');
+    return el('section', { class: `verse${block.k === 'chorus' ? ' verse--chorus' : ''}` }, [
+      label ? el('span', { class: 'verse__label', text: label }) : null,
+      el('div', { class: 'verse__lines', html: lines }),
+    ]);
   });
 }
 
@@ -90,46 +88,85 @@ function plainText(entry) {
   return `${head}\n\n${body}`;
 }
 
-function renderBlocks(song) {
-  return song.b.map((block, position) => {
-    const label = block.k === 'chorus'
-      ? 'Припев'
-      : block.k === 'verse' && block.n ? `Куплет ${block.n}` : '';
-    const html = block.l
-      .map((line) => escapeHtml(line).replace(REPEAT, '<span class="repeat">$1</span>'))
-      .join('\n');
-    const node = el('section', { class: `block block--${block.k}` }, [
-      label ? el('span', { class: 'block__label', text: label }) : null,
-      el('div', { class: 'block__lines', html }),
-    ]);
-    node.style.animationDelay = `${Math.min(60 + position * 45, 420)}ms`;
-    return node;
-  });
-}
-
-function escapeHtml(value) {
-  return value.replace(/[&<>"]/g, (ch) => (
-    ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : '&quot;'
-  ));
-}
+/* --- Действия ------------------------------------------------------------- */
 
 function toggleFavorite() {
   if (!current) return;
-  const on = store.toggleFavorite({ c: current.collectionId, n: current.song.n, t: current.song.t });
-  favButton.classList.toggle('is-fav', on);
-  favButton.classList.remove('pop');
-  void favButton.offsetWidth;
-  favButton.classList.add('pop');
-  haptic(on ? 14 : 8);
-  toast(on ? 'Добавлено в избранное' : 'Убрано из избранного');
+  const active = store.toggleFavorite({
+    c: current.collectionId,
+    n: current.song.n,
+    t: current.song.t,
+  });
+  favoriteButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+  favoriteButton.setAttribute('aria-label', active ? 'Убрать из избранного' : 'В избранное');
+  favoriteButton.classList.add('is-bumped');
+  setTimeout(() => favoriteButton.classList.remove('is-bumped'), 200);
+  haptic(active ? 10 : 6);
+  toast(active ? 'Добавлено в избранное' : 'Убрано из избранного');
 }
 
-function toggleAuto() {
-  if (autoTimer) { stopAuto(); return; }
-  startAuto(store.get('autoSpeed') || 34);
-  autoButton.classList.add('is-on');
-  toast('Автопрокрутка · удерживайте кнопку для скорости');
-  haptic(10);
+function openActions() {
+  if (!current) return;
+  const collection = data.collectionById(current.collectionId);
+  const autoRow = el('button', {
+    type: 'button',
+    class: 'row',
+    onclick: () => {
+      if (autoTimer) { stopAuto(); toast('Автопрокрутка выключена'); }
+      else { startAuto(autoSpeed); toast('Автопрокрутка включена'); }
+      closeSheet();
+    },
+  }, [
+    el('span', { html: icon(ICONS.scroll), style: 'display:flex' }),
+    el('span', { class: 'row__body' }, [
+      el('span', { class: 'row__title', text: autoTimer ? 'Остановить прокрутку' : 'Автопрокрутка' }),
+      el('span', { class: 'row__meta', text: 'Текст плавно едет во время пения' }),
+    ]),
+  ]);
+
+  openSheet('Песня', el('div', {}, [
+    el('div', { class: 'panel', style: 'margin-top:0' }, [
+      autoRow,
+      el('div', { class: 'row row--stacked' }, [
+        el('span', { class: 'row__body' }, [
+          el('span', { class: 'row__title', text: 'Скорость прокрутки' }),
+        ]),
+        segmented(AUTO_SPEEDS, autoSpeed, (value) => {
+          autoSpeed = value;
+          if (autoTimer) startAuto(value);
+        }, 'Скорость прокрутки'),
+      ]),
+    ]),
+    el('div', { class: 'panel' }, [
+      el('button', {
+        type: 'button',
+        class: 'row',
+        onclick: () => { copy(plainText(current)); closeSheet(); },
+      }, [
+        el('span', { html: icon(ICONS.copy), style: 'display:flex' }),
+        el('span', { class: 'row__body' }, [el('span', { class: 'row__title', text: 'Копировать текст' })]),
+      ]),
+      el('button', {
+        type: 'button',
+        class: 'row',
+        onclick: () => { share(current.song.t, plainText(current)); closeSheet(); },
+      }, [
+        el('span', { html: icon(ICONS.share), style: 'display:flex' }),
+        el('span', { class: 'row__body' }, [el('span', { class: 'row__title', text: 'Поделиться' })]),
+      ]),
+      el('button', {
+        type: 'button',
+        class: 'row',
+        onclick: () => { closeSheet(); navigate(`#/c/${current.collectionId}`); },
+      }, [
+        el('span', { html: icon(ICONS.list), style: 'display:flex' }),
+        el('span', { class: 'row__body' }, [
+          el('span', { class: 'row__title', text: 'Открыть сборник' }),
+          el('span', { class: 'row__meta', text: collection ? collection.title : '' }),
+        ]),
+      ]),
+    ]),
+  ]));
 }
 
 function startAuto(speed) {
@@ -140,8 +177,8 @@ function startAuto(speed) {
     const step = Math.floor(carry);
     if (step >= 1) {
       carry -= step;
-      scroll.scrollTop += step;
-      if (scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 2) stopAuto();
+      scroller.scrollTop += step;
+      if (scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2) stopAuto();
     }
   }, 1000 / 60);
 }
@@ -149,155 +186,127 @@ function startAuto(speed) {
 function stopAuto() {
   if (autoTimer) clearInterval(autoTimer);
   autoTimer = 0;
-  autoButton.classList.remove('is-on');
 }
 
-export function autoSpeedSheet() {
-  const value = el('span', { class: 'stepper__value', text: String(store.get('autoSpeed') || 34) });
-  const change = (delta) => {
-    const next = Math.min(120, Math.max(10, (store.get('autoSpeed') || 34) + delta));
-    store.set('autoSpeed', next);
-    value.textContent = String(next);
-    if (autoTimer) startAuto(next);
-    haptic(6);
-  };
-  return openSheet('Скорость автопрокрутки', el('div', { class: 'card' }, [
-    el('div', { class: 'row' }, [
-      el('span', { class: 'row__icon', html: icon(ICONS.scroll) }),
-      el('span', { class: 'row__body' }, [
-        el('span', { class: 'row__title', text: 'Пикселей в секунду' }),
-        el('span', { class: 'row__sub', text: 'Удобно для пения по тексту' }),
-      ]),
-      el('span', { class: 'stepper' }, [
-        el('button', { text: '−', onclick: () => change(-6) }),
-        value,
-        el('button', { text: '+', onclick: () => change(6) }),
-      ]),
-    ]),
-  ]));
-}
+/* --- Жесты ---------------------------------------------------------------- */
 
-function bindGestures() {
+function bindSwipes() {
   let startX = 0;
   let startY = 0;
   let tracking = false;
-  let moved = false;
 
-  scroll.addEventListener('touchstart', (event) => {
+  scroller.addEventListener('touchstart', (event) => {
     if (event.touches.length !== 1) return;
     tracking = true;
-    moved = false;
     startX = event.touches[0].clientX;
     startY = event.touches[0].clientY;
   }, { passive: true });
 
-  scroll.addEventListener('touchmove', (event) => {
+  scroller.addEventListener('touchmove', (event) => {
     if (!tracking) return;
     const dx = event.touches[0].clientX - startX;
     const dy = event.touches[0].clientY - startY;
-    if (Math.abs(dx) > 12 || Math.abs(dy) > 12) moved = true;
-    if (Math.abs(dx) > 70 && Math.abs(dy) < 46) {
+    if (Math.abs(dx) > 72 && Math.abs(dy) < 42) {
       tracking = false;
       stopAuto();
       step(dx < 0 ? 1 : -1);
     }
   }, { passive: true });
 
-  scroll.addEventListener('touchend', () => { tracking = false; });
-
-  scroll.addEventListener('click', (event) => {
-    if (moved) return;
-    if (event.target.closest('a, button')) return;
-    immersive = !immersive;
-    host.classList.toggle('is-immersive', immersive);
-  });
-
-  autoButton.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-    autoSpeedSheet();
-  });
+  scroller.addEventListener('touchend', () => { tracking = false; });
 }
 
 function step(direction) {
   if (!current) return;
   const { prev, next } = data.neighboursOf(current.collectionId, current.song.n);
   const target = direction > 0 ? next : prev;
-  if (!target) { toast(direction > 0 ? 'Это последняя песня' : 'Это первая песня'); return; }
-  haptic(8);
-  nav(`#/s/${current.collectionId}/${target.n}`, { replace: true });
+  if (!target) {
+    toast(direction > 0 ? 'Это последняя песня сборника' : 'Это первая песня сборника');
+    return;
+  }
+  haptic();
+  navigate(`#/s/${current.collectionId}/${target.n}`, { replace: true });
 }
+
+/* --- Открытие и закрытие -------------------------------------------------- */
 
 export async function openReader(collectionId, number) {
   const collection = data.collectionById(collectionId);
   host.hidden = false;
   requestAnimationFrame(() => host.classList.add('is-open'));
-  immersive = false;
-  host.classList.remove('is-immersive');
   stopAuto();
 
   if (!data.corpusReady()) {
-    page.replaceChildren(el('div', { class: 'reader__hat' }, [
-      el('div', { class: 'skeleton', style: 'height:26px;width:60%' }),
-      el('div', { class: 'skeleton', style: 'height:16px;width:40%;margin-top:12px' }),
-      el('div', { class: 'skeleton', style: 'height:220px;margin-top:24px' }),
-    ]));
-    await data.loadCorpus();
+    page.replaceChildren(skeletonList(6));
+    try {
+      await data.loadCorpus();
+    } catch (error) {
+      page.replaceChildren(emptyState({
+        icon: ICONS.alert,
+        title: 'Не удалось открыть текст',
+        text: 'Попробуйте перезапустить приложение.',
+      }));
+      return;
+    }
   }
 
   const song = data.songOf(collectionId, number);
   if (!song) {
-    page.replaceChildren(el('div', { class: 'empty' }, [
-      el('div', { class: 'empty__title', text: 'Песня не найдена' }),
-    ]));
+    page.replaceChildren(emptyState({
+      icon: ICONS.alert,
+      title: 'Песня не найдена',
+      text: 'Возможно, номер указан неверно.',
+    }));
     return;
   }
 
   current = { collectionId, song };
-  titleNode.textContent = song.t;
-  crumbNode.textContent = `${collection ? collection.title : ''} · №${song.n}`
-    + (song.a ? ` · в «Юности» №${song.a}` : '');
+  barTitle.textContent = song.t;
 
-  const favorite = store.isFavorite(collectionId, song.n);
-  favButton.classList.toggle('is-fav', favorite);
+  const isFavorite = store.isFavorite(collectionId, song.n);
+  favoriteButton.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+  favoriteButton.setAttribute('aria-label', isFavorite ? 'Убрать из избранного' : 'В избранное');
 
   const { prev, next } = data.neighboursOf(collectionId, song.n);
-  const navRow = el('nav', { class: 'reader__nav' }, [
-    prev ? el('button', {
-      class: 'nav-btn',
-      onclick: () => step(-1),
-    }, [
-      el('span', { html: icon(ICONS.back) }),
-      el('span', { class: 'nav-btn__body' }, [
-        el('span', { class: 'nav-btn__kicker', text: `№${prev.n}` }),
-        el('span', { class: 'nav-btn__title', text: prev.t }),
-      ]),
-    ]) : null,
-    next ? el('button', {
-      class: 'nav-btn nav-btn--next',
-      onclick: () => step(1),
-    }, [
-      el('span', { html: icon(ICONS.chevron) }),
-      el('span', { class: 'nav-btn__body' }, [
-        el('span', { class: 'nav-btn__kicker', text: `№${next.n}` }),
-        el('span', { class: 'nav-btn__title', text: next.t }),
-      ]),
-    ]) : null,
-  ]);
+  const meta = [collection ? collection.title : '', `№${song.n}`]
+    .concat(song.a ? [`в «Песнях юности» №${song.a}`] : [])
+    .join(' · ');
 
   page.replaceChildren(
-    el('header', { class: 'reader__hat' }, [
-      el('span', {
-        class: `reader__num tint-${collectionId}`,
-        text: `${collection ? collection.title : ''} · №${song.n}`,
-      }),
-      el('h1', { class: 'reader__h1', text: song.t }),
+    el('header', { class: 'song-header' }, [
+      el('h1', { class: 'song-header__title', text: song.t }),
+      el('p', { class: 'song-header__meta', text: meta }),
+      el('div', { class: 'song-header__rule' }),
     ]),
-    ...renderBlocks(song),
-    navRow,
+    ...renderVerses(song),
+    el('nav', { class: 'reader__pager', 'aria-label': 'Соседние песни' }, [
+      prev ? el('button', {
+        type: 'button',
+        class: 'pager-button',
+        onclick: () => step(-1),
+      }, [
+        el('span', { html: icon(ICONS.back), style: 'display:flex' }),
+        el('span', { class: 'pager-button__body' }, [
+          el('span', { class: 'pager-button__label', text: `№${prev.n}` }),
+          el('span', { class: 'pager-button__title', text: prev.t }),
+        ]),
+      ]) : null,
+      next ? el('button', {
+        type: 'button',
+        class: 'pager-button pager-button--next',
+        onclick: () => step(1),
+      }, [
+        el('span', { html: icon(ICONS.chevron), style: 'display:flex' }),
+        el('span', { class: 'pager-button__body' }, [
+          el('span', { class: 'pager-button__label', text: `№${next.n}` }),
+          el('span', { class: 'pager-button__title', text: next.t }),
+        ]),
+      ]) : null,
+    ]),
   );
 
-  scroll.scrollTop = 0;
-  progress.style.width = '0%';
+  scroller.scrollTop = 0;
+  host.classList.remove('is-stuck');
   store.markRead({ c: collectionId, n: song.n, t: song.t });
   if (store.get('keepAwake')) keepAwake(true);
 }
@@ -307,7 +316,7 @@ export function closeReader() {
   stopAuto();
   keepAwake(false);
   host.classList.remove('is-open');
-  setTimeout(() => { host.hidden = true; }, 420);
+  setTimeout(() => { host.hidden = true; }, 200);
   current = null;
   return true;
 }

@@ -1,23 +1,21 @@
-/* Точка входа: маршрутизация, вкладки и запуск приложения. */
+/* Точка входа: маршруты, вкладки и запуск приложения. */
 
 import * as data from './data.js';
 import { store } from './store.js';
 import { closeSheet, sheetIsOpen, toast } from './ui.js';
+import { applyTheme, applyTypography } from './typography.js';
 import {
-  homeScreen, collectionScreen, searchScreen, favoritesScreen, settingsScreen,
-  applyTheme, applyTypography,
+  homeScreen, recentScreen, collectionScreen, searchScreen, favoritesScreen, settingsScreen,
 } from './screens.js';
 import { initReader, openReader, closeReader, readerIsOpen } from './reader.js';
 
 const stage = document.getElementById('stage');
-const tabbar = document.getElementById('tabbar');
-const pill = document.getElementById('tabPill');
-const TABS = ['#/home', '#/search', '#/favorites', '#/settings'];
+const nav = document.getElementById('nav');
+const TABS = ['#/home', '#/search', '#/favorites'];
 
 const screens = new Map();
 const scrollMemory = new Map();
 let activeKey = '';
-let lastPage = '#/home';
 
 function navigate(hash, options) {
   if (options && options.replace) {
@@ -36,20 +34,13 @@ function screenFor(key) {
   if (key === '#/home') node = homeScreen(navigate);
   else if (key === '#/search') node = searchScreen(navigate);
   else if (key === '#/favorites') node = favoritesScreen(navigate);
-  else if (key === '#/settings') node = settingsScreen();
+  else if (key === '#/settings') node = settingsScreen(navigate);
+  else if (key === '#/recent') node = recentScreen(navigate);
   else if (key.startsWith('#/c/')) node = collectionScreen(key.slice(4), navigate);
   if (!node) return null;
   screens.set(key, node);
   stage.append(node);
   return node;
-}
-
-/* Вкладки листаются вбок в сторону нажатой, остальные экраны — снизу вверх. */
-function slideDirection(from, to) {
-  const a = TABS.indexOf(from);
-  const b = TABS.indexOf(to);
-  if (a < 0 || b < 0 || a === b) return 0;
-  return b > a ? 1 : -1;
 }
 
 function activate(key) {
@@ -58,42 +49,32 @@ function activate(key) {
     if (same && same.refresh) same.refresh();
     return;
   }
-  const direction = slideDirection(activeKey, key);
   const previous = screens.get(activeKey);
   if (previous) {
     scrollMemory.set(activeKey, previous.scrollTop);
     previous.classList.remove('is-active');
-    previous.classList.add('is-back');
-    if (direction) previous.style.transform = `translate3d(${-direction * 26}px, 0, 0)`;
-    setTimeout(() => {
-      previous.classList.remove('is-back');
-      previous.style.transform = '';
-    }, 340);
   }
   const node = screenFor(key);
   if (!node) return;
   if (node.refresh) node.refresh();
-  if (direction) node.style.transform = `translate3d(${direction * 26}px, 0, 0)`;
   requestAnimationFrame(() => {
     node.classList.add('is-active');
-    node.style.transform = '';
     const saved = scrollMemory.get(key);
-    if (typeof saved === 'number') node.scrollTop = saved;
-    if (node.focusInput && key === '#/search') node.focusInput();
+    node.scrollTop = typeof saved === 'number' ? saved : 0;
+    if (node.focusInput) node.focusInput();
   });
   activeKey = key;
-  lastPage = key;
   syncTabs(key);
 }
 
+/* Вкладка «Главная» остаётся подсвеченной на её внутренних экранах. */
 function syncTabs(key) {
-  const base = key.startsWith('#/c/') ? '#/home' : key;
-  const buttons = Array.prototype.slice.call(tabbar.querySelectorAll('.tab'));
-  let index = TABS.indexOf(base);
-  if (index < 0) index = 0;
-  buttons.forEach((button, position) => button.classList.toggle('is-on', position === index));
-  const width = tabbar.clientWidth / TABS.length;
-  pill.style.transform = `translateX(${(index + 0.5) * width - 17}px)`;
+  const base = TABS.indexOf(key) >= 0 ? key : '#/home';
+  for (const button of nav.querySelectorAll('.nav__item')) {
+    const isCurrent = button.dataset.route === base;
+    if (isCurrent) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  }
 }
 
 function route() {
@@ -101,10 +82,8 @@ function route() {
   const parts = hash.replace(/^#\//, '').split('/');
 
   if (parts[0] === 's' && parts.length >= 3) {
-    const collectionId = parts[1];
-    const number = Number(parts[2]);
     if (!screens.size) activate('#/home');
-    openReader(collectionId, number);
+    openReader(parts[1], Number(parts[2]));
     return;
   }
 
@@ -115,11 +94,13 @@ function route() {
     return;
   }
 
-  const key = TABS.indexOf(hash) >= 0 ? hash : '#/home';
+  const key = ['#/home', '#/search', '#/favorites', '#/settings', '#/recent'].indexOf(hash) >= 0
+    ? hash
+    : '#/home';
   activate(key);
 }
 
-/* Аппаратная кнопка «назад» на Android: сначала закрываем то, что поверх. */
+/* Аппаратная кнопка «назад» на Android: сперва закрываем то, что поверх. */
 window.__psalmsBack = function handleBack() {
   if (sheetIsOpen()) { closeSheet(); return true; }
   return false;
@@ -131,21 +112,18 @@ document.addEventListener('keydown', (event) => {
   if (readerIsOpen()) history.back();
 });
 
-tabbar.addEventListener('click', (event) => {
-  const button = event.target.closest('.tab');
+nav.addEventListener('click', (event) => {
+  const button = event.target.closest('.nav__item');
   if (!button) return;
   const target = button.dataset.route;
   if (location.hash === target && screens.has(target)) {
-    const node = screens.get(target);
-    node.scrollTo({ top: 0, behavior: 'smooth' });
+    screens.get(target).scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
   navigate(target);
 });
 
 window.addEventListener('hashchange', route);
-window.addEventListener('resize', () => syncTabs(lastPage));
-
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (store.get('theme') === 'auto') applyTheme();
 });
@@ -159,22 +137,21 @@ async function boot() {
     await data.loadIndex();
   } catch (error) {
     document.getElementById('boot').innerHTML =
-      '<div class="empty"><div class="empty__title">Не удалось открыть сборники</div>'
-      + '<div class="empty__text">Переустановите приложение — файлы данных повреждены.</div></div>';
+      '<div class="empty"><p class="empty__title">Не удалось открыть сборники</p>'
+      + '<p class="empty__text">Переустановите приложение — файлы данных повреждены.</p></div>';
     return;
   }
 
   document.getElementById('app').hidden = false;
   route();
-  syncTabs(lastPage);
 
-  const bootNode = document.getElementById('boot');
-  bootNode.classList.add('is-gone');
-  setTimeout(() => bootNode.remove(), 500);
+  const boot = document.getElementById('boot');
+  boot.classList.add('is-gone');
+  setTimeout(() => boot.remove(), 280);
 
-  const warm = () => data.loadCorpus().catch(() => toast('Не удалось загрузить тексты'));
+  const warm = () => data.loadCorpus().catch(() => toast('Не удалось загрузить тексты песен'));
   if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 1200 });
-  else setTimeout(warm, 300);
+  else setTimeout(warm, 250);
 }
 
 boot();

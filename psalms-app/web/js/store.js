@@ -1,19 +1,22 @@
-/* Пользовательское состояние: настройки, избранное, история чтения и поиска. */
+/* Пользовательское состояние: настройки чтения, избранное, история.
+   Всё лежит в localStorage под одним ключом и переживает перезапуск. */
 
 const KEY = 'psalms.v1';
-const MAX_RECENT = 24;
-const MAX_QUERIES = 12;
+const MAX_RECENT = 12;
+const MAX_QUERIES = 8;
+
+export const FONT_SIZE_MIN = 15;
+export const FONT_SIZE_MAX = 28;
 
 const DEFAULTS = {
-  theme: 'auto',
+  theme: 'light',            // light | sepia | dark | auto
+  fontFamily: 'serif',       // system | serif | sans
   fontSize: 18,
-  leading: 1.62,
-  serif: false,
+  lineHeight: 1.7,
   keepAwake: true,
   favorites: [],
   recent: [],
   queries: [],
-  lastRead: null,
 };
 
 function readRaw() {
@@ -25,18 +28,35 @@ function readRaw() {
   }
 }
 
-function writeRaw(value) {
+/* Настройки прошлых версий переносим, чтобы ничего не сбросилось. */
+function migrate(saved) {
+  if (!saved) return {};
+  const next = Object.assign({}, saved);
+  if (typeof saved.serif === 'boolean' && !saved.fontFamily) {
+    next.fontFamily = saved.serif ? 'serif' : 'sans';
+  }
+  if (typeof saved.leading === 'number' && !saved.lineHeight) {
+    next.lineHeight = saved.leading;
+  }
+  if (saved.theme === 'auto' || saved.theme === 'light'
+    || saved.theme === 'dark' || saved.theme === 'sepia') {
+    next.theme = saved.theme;
+  }
+  delete next.serif;
+  delete next.leading;
+  delete next.lastRead;
+  delete next.autoSpeed;
+  return next;
+}
+
+const state = Object.assign({}, DEFAULTS, migrate(readRaw()));
+
+function persist() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(value));
+    localStorage.setItem(KEY, JSON.stringify(state));
   } catch (error) {
     /* приватный режим или переполнение — работаем из памяти */
   }
-}
-
-const state = Object.assign({}, DEFAULTS, readRaw() || {});
-
-function persist() {
-  writeRaw(state);
 }
 
 export const store = {
@@ -47,9 +67,6 @@ export const store = {
     state[key] = value;
     persist();
     return value;
-  },
-  all() {
-    return state;
   },
 
   /* --- избранное --- */
@@ -71,16 +88,19 @@ export const store = {
     return state.favorites.slice();
   },
 
-  /* --- история чтения --- */
+  /* --- недавно открытые --- */
   markRead(song) {
     state.recent = state.recent.filter((item) => !(item.c === song.c && item.n === song.n));
     state.recent.unshift({ c: song.c, n: song.n, t: song.t, ts: Date.now() });
     if (state.recent.length > MAX_RECENT) state.recent.length = MAX_RECENT;
-    state.lastRead = state.recent[0];
     persist();
   },
   recent() {
     return state.recent.slice();
+  },
+  forgetRecent() {
+    state.recent = [];
+    persist();
   },
 
   /* --- история поиска --- */
