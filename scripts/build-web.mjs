@@ -107,9 +107,23 @@ export async function build({ write = true } = {}) {
     ...PRECACHE_DIRS.flatMap(walk),
   ].filter((rel) => !rel.endsWith('.DS_Store') && !PRECACHE_SKIP.some((prefix) => rel.startsWith(prefix)));
 
-  // Версия кеша — от содержимого приложения, а не от времени сборки: пересборка
-  // без изменений не должна сбрасывать кеш у всех разом.
-  const swVersion = hash(`${css.code}${js.code}${precache.join(',')}`);
+  /*
+    Версия кеша — от содержимого приложения, а не от времени сборки: пересборка
+    без изменений не должна сбрасывать кеш у всех разом.
+
+    Считается по содержимому всех предзагружаемых файлов, а не только бандла.
+    Раньше в счёт шёл лишь их список, и правка данных версию не двигала: слова
+    игр лежат в web/data/*.json, при неизменной версии старый кеш установки не
+    удалялся, а его запись находилась раньше свежей — и исправленные слова до
+    вернувшегося игрока не доходили вовсе.
+  */
+  const digest = crypto.createHash('sha256').update(css.code).update(js.code);
+  for (const rel of precache) {
+    digest.update(rel);
+    const file = path.join(root, rel);
+    if (fs.existsSync(file)) digest.update(fs.readFileSync(file));
+  }
+  const swVersion = digest.digest('hex').slice(0, 10);
   let sw = read('sw.js');
   const swStart = sw.indexOf(SW_MARK[0]);
   const swEnd = sw.indexOf(SW_MARK[1]);

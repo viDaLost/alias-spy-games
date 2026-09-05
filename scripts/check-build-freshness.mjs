@@ -29,6 +29,26 @@ if (fs.readFileSync(path.join(root, 'sw.js'), 'utf8') !== fresh.sw) {
   problems.push('sw.js precache list is stale');
 }
 
+/*
+  Версия кеша обязана меняться, когда меняется предзагружаемый файл — не только
+  бандл. Слова игр лежат в web/data/*.json: пока версия считалась по списку
+  файлов, их правка её не двигала, старый кеш установки не удалялся, а его
+  запись находилась раньше свежей — и до вернувшегося игрока исправление не
+  доходило. Проверяется настоящей пересборкой с подменённым файлом.
+*/
+const probe = path.join(root, 'web/data/describe_words.json');
+const before = fs.readFileSync(probe);
+let mutated;
+try {
+  fs.writeFileSync(probe, `${before.toString('utf8').trimEnd()} `);
+  mutated = await build({ write: false });
+} finally {
+  fs.writeFileSync(probe, before);
+}
+if (mutated.sw === fresh.sw) {
+  problems.push('версия кеша не зависит от содержимого web/data — правка слов не дойдёт до игрока');
+}
+
 const dist = fs.existsSync(path.join(root, 'web/dist')) ? fs.readdirSync(path.join(root, 'web/dist')) : [];
 const extra = dist.filter((name) => name !== fresh.cssName && name !== fresh.jsName);
 if (extra.length) problems.push(`leftover build output: ${extra.join(', ')}`);

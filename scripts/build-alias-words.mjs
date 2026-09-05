@@ -7,19 +7,11 @@
 // синодального перевода — так просил владелец, и так же устроены бонусы в
 // «Библейских словах»: словарь словоформ там уже собран и лежит рядом.
 //
-// Слово принимается, если оно само есть в этом словаре. Когда именительного
-// падежа в тексте нет — а его нет у доброй половины: в Библии «верблюдов»,
-// «Матфея», «Галилее», — рядом со словом стоит форма-свидетель, которая в
-// словаре есть.
-//
-// Чего эта проверка не умеет. Свидетеля выбирал человек, и подтвердить строкой,
-// что две формы — одно слово, нельзя. «Мученик» ловится на «МУЧЕНИЕ», «Назарей»
-// — на «НАЗАРЕТ», «Поиск» — на «ПОИСТИНЕ»; все три ошибки настоящие, они
-// всплыли при подборе, и ни одно правило по буквам их не отсекает, не выбросив
-// заодно «Колодец» с его «КОЛОДЕЗЬ». Поэтому здесь стоит грубое условие —
-// расходиться свидетель со словом может только в двух последних буквах, — и оно
-// ловит описку и промах при копировании, но не подмену родственным словом. За
-// это отвечает тот, кто правит список.
+// Что каждое слово есть в синодальном переводе, проверяет не этот файл, а
+// scripts/check-bible-words.mjs — общая проверка всех девяти словесных списков
+// приложения. Здесь остаётся только раскладка по уровням: два независимых
+// списка свидетелей неминуемо разъехались бы, и один из них рано или поздно
+// пропустил бы слово из чужого перевода.
 //
 // Уровни сложности разные не по частоте слова, а по тому, кого о нём спрашивают:
 // «Каин» и «Верблюд» — лёгкие, «Массифа» и «Плащаница» — средние, «Мелхиседек»
@@ -30,14 +22,12 @@ import path from 'node:path';
 
 const root = path.resolve(import.meta.dirname, '..');
 const dataFile = path.join(root, 'scripts/data/alias-bible-words.json');
-const dictFile = path.join(root, 'scripts/data/bible-wow-bible-words.json');
 const levelFile = (level) => path.join(root, `web/data/${level}_bible_words.json`);
 
 const check = process.argv.includes('--check');
 const LEVELS = ['easy', 'medium', 'hard'];
 
 const norm = (value) => String(value || '').toUpperCase().replace(/Ё/g, 'Е').replace(/[^А-Я]/g, '');
-const dictionary = new Set(JSON.parse(fs.readFileSync(dictFile, 'utf8')).words);
 const data = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
 
 const failures = [];
@@ -45,21 +35,11 @@ const additions = new Map(LEVELS.map((level) => [level, []]));
 const claimed = new Set();
 
 for (const level of LEVELS) {
-  for (const entry of data.levels[level] || []) {
-    const [word, witness] = Array.isArray(entry) ? entry : [entry, ''];
+  for (const word of data.levels[level] || []) {
     const key = norm(word);
     if (!key) { failures.push(`пустое слово на уровне ${level}`); continue; }
     if (claimed.has(key)) { failures.push(`«${word}» добавлено дважды`); continue; }
     claimed.add(key);
-
-    if (!witness) {
-      if (!dictionary.has(key)) failures.push(`«${word}» не встречается в синодальном тексте`);
-    } else {
-      const form = norm(witness);
-      const stem = key.slice(0, Math.max(2, key.length - 2));
-      if (!dictionary.has(form)) failures.push(`форма «${witness}» для «${word}» не встречается в синодальном тексте`);
-      else if (!form.startsWith(stem)) failures.push(`форма «${witness}» расходится с «${word}» не только в окончании`);
-    }
     additions.get(level).push(word);
   }
 }

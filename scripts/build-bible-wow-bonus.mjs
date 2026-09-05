@@ -36,6 +36,8 @@ import crypto from 'node:crypto';
 const root = path.resolve(import.meta.dirname, '..');
 const levelsFile = path.join(root, 'web/data/bible_wow_levels.json');
 const dictFile = path.join(root, 'scripts/data/bible-wow-bible-words.json');
+// Все словоформы синодального текста — по ним проверяются слова всех игр.
+const formsFile = path.join(root, 'scripts/data/bible-synodal-forms.json');
 
 const check = process.argv.includes('--check');
 const refresh = process.argv.includes('--refresh');
@@ -58,9 +60,11 @@ const EDITIONS = [
 
 const MIN_FREQUENCY = 3;
 
-// Слова из прежнего ручного списка, которых в синодальном тексте нет ни в одной
-// форме: «дно», «стопа», «село». Они верные, их когда-то выбрали руками, и
-// терять их из-за смены правила незачем.
+// Слова из прежнего ручного списка, которые не проходят порог в три вхождения:
+// «дно» встречается реже, а «стопа» и «село» есть только в других формах —
+// «стопы» и «села». Все три верные, их когда-то выбрали руками, и терять их
+// из-за смены правила незачем; их форму-свидетеля держит общий файл
+// scripts/data/bible-word-witnesses.json.
 const HANDPICKED = {
   1: ['ДНО'],
   4: ['СТОПА'],
@@ -116,6 +120,19 @@ async function buildDictionary(maxLength) {
     counted.push(countForms(text));
     console.log(`${edition.id}: ${counted[counted.length - 1].size} словоформ`);
   }
+
+  /*
+    Второй файл — объединение изданий без порога частоты. Он отвечает на другой
+    вопрос: не «годится ли слово в бонусы», а «есть ли оно в Библии вообще».
+    Для проверки слов игр строгий список не годится дважды. Порог в три
+    вхождения выбрасывает настоящие редкости — «воробьи» встречаются дважды, —
+    а пересечение изданий выбрасывает то, что пропустило одно из них: слова
+    «Армагеддон» нет в первом издании, хотя в Откровении оно есть.
+  */
+  const union = [...new Set([...counted[0].keys(), ...counted[1].keys()])].sort();
+  fs.writeFileSync(formsFile, `${JSON.stringify(union)}\n`);
+  console.log(`Формы синодального текста: ${union.length}, ${(fs.statSync(formsFile).size / 1024).toFixed(0)} КБ`);
+
   const [first, ...rest] = counted;
   const words = [...first]
     .filter(([word, count]) => count >= MIN_FREQUENCY
