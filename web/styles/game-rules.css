@@ -174,6 +174,21 @@ body[data-mode="rules"] header.app-header { display: none }
 
 .rules-help:active { transform: scale(.94) }
 
+/*
+  «Моисей на Ниле»: кнопка правил уезжает наверх, к выходу из игры.
+
+  Внизу она лежала прямо на кнопке поворота — игрок целился в игру, а попадал
+  в правила. Перенос сделан только для этой игры: у остальных верх занят их
+  собственными шапками, и общий сдвиг спрятал бы кнопку под них.
+
+  Полосу под кнопками Telegram отмеряет game-frame-safe-area.js: он ставит
+  --game-chrome-top, ниже которого начинается свободное место.
+*/
+body[data-current-game="moses-nile"] .rules-help {
+  top: calc(var(--game-chrome-top, 0px) + 8px);
+  bottom: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rules-shell, .rules-game__body { animation: none !important }
   .rules-game__chevron { transition: none !important }

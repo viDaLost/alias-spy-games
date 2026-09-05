@@ -128,13 +128,21 @@
     #hint-layer div b { display: block; font-size: 17px; color: var(--gold); }
 
     /* ---- управление ---- */
-    .mobile-controls { position: absolute; z-index: 15; left: 0; right: 0; bottom: var(--safe-bottom); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 18px; pointer-events: none; }
-    .steer-btn { pointer-events: auto; width: 70px; height: 70px; border-radius: 50%; border: 1.5px solid rgba(255, 251, 230, .66); color: #fff9e8; background: rgba(30, 32, 25, .28); box-shadow: 0 10px 28px rgba(22,16,8,.20), inset 0 0 0 1px rgba(0,0,0,.10); backdrop-filter: blur(10px); font-size: 26px; font-weight: 900; cursor: pointer; transition: transform .12s, background .12s; }
-    .steer-btn:active { transform: scale(.9); background: rgba(44, 53, 38, .58); }
-    .vertical-controls { pointer-events: none; display: flex; flex-direction: column; gap: 9px; padding-bottom: 2px; }
-    .action-btn { pointer-events: auto; width: 58px; height: 58px; border-radius: 20px; border: 1.5px solid rgba(255, 246, 214, .42); color: #fff8e4; background: rgba(30, 26, 16, .16); text-shadow: 0 1px 4px rgba(0,0,0,.55); font-size: 13px; font-weight: 900; letter-spacing: .04em; cursor: pointer; display: grid; place-items: center; line-height: 1.05; transition: transform .12s, background .12s; }
-    .action-btn small { display: block; font-size: 9px; opacity: .74; font-weight: 700; }
-    .action-btn:active { transform: scale(.9); background: rgba(70, 62, 36, .5); }
+    /*
+      Управление. Кнопки крупные и подняты над самым краем экрана: у нижней
+      кромки телефон отдаёт касания системе — на iPhone там полоса «домой», —
+      и палец промахивался мимо. Прежние 70 и 58 пикселей были меньше того,
+      что берут за удобный размер (примерно 48 на 48), только на вид: круг
+      рисуется целиком, а нажимается всё, что внутри, поэтому запас нужен
+      именно на промах, а не на попадание.
+    */
+    .mobile-controls { position: absolute; z-index: 15; left: 0; right: 0; bottom: calc(var(--safe-bottom) + 10px); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 14px; pointer-events: none; }
+    .steer-btn { pointer-events: auto; width: 86px; height: 86px; border-radius: 50%; border: 1.5px solid rgba(255, 251, 230, .72); color: #fff9e8; background: rgba(30, 32, 25, .34); box-shadow: 0 12px 32px rgba(22,16,8,.26), inset 0 0 0 1px rgba(0,0,0,.10); backdrop-filter: blur(10px); font-size: 32px; font-weight: 900; cursor: pointer; transition: transform .12s, background .12s; }
+    .steer-btn:active { transform: scale(.92); background: rgba(44, 53, 38, .62); }
+    .vertical-controls { pointer-events: none; display: flex; flex-direction: column; gap: 12px; padding-bottom: 2px; }
+    .action-btn { pointer-events: auto; width: 74px; height: 74px; border-radius: 24px; border: 1.5px solid rgba(255, 246, 214, .5); color: #fff8e4; background: rgba(30, 26, 16, .24); backdrop-filter: blur(8px); text-shadow: 0 1px 4px rgba(0,0,0,.55); font-size: 16px; font-weight: 900; letter-spacing: .04em; cursor: pointer; display: grid; place-items: center; line-height: 1.05; transition: transform .12s, background .12s; }
+    .action-btn small { display: block; margin-top: 1px; font-size: 10px; opacity: .8; font-weight: 700; }
+    .action-btn:active { transform: scale(.92); background: rgba(70, 62, 36, .55); }
 
     #sys-controls { position: absolute; right: 12px; top: calc(var(--safe-top) + 92px); z-index: 16; display: flex; flex-direction: column; gap: 7px; }
     .sys-btn { width: 36px; height: 36px; border-radius: 12px; border: 1px solid rgba(255, 244, 214, .26); background: rgba(35, 31, 22, .55); color: #f4e5bd; font-size: 15px; cursor: pointer; backdrop-filter: blur(8px); display: grid; place-items: center; transition: transform .12s, opacity .12s; }
@@ -290,10 +298,18 @@
       .mobile-controls { padding: 0 42px; }
       #hud { left: 20px; right: 20px; }
     }
+    /* Низкий экран: кнопки ужимаются, но не ниже удобного размера. */
     @media (max-height: 700px) {
       #powerups-bar { top: calc(var(--safe-top) + 84px); }
-      .steer-btn { width: 62px; height: 62px; font-size: 23px; }
-      .action-btn { width: 52px; height: 52px; }
+      .steer-btn { width: 72px; height: 72px; font-size: 27px; }
+      .action-btn { width: 64px; height: 64px; }
+      .vertical-controls { gap: 9px; }
+    }
+    /* Узкий экран: три кнопки в ряд не должны наезжать друг на друга. */
+    @media (max-width: 360px) {
+      .mobile-controls { padding: 0 10px; }
+      .steer-btn { width: 76px; height: 76px; font-size: 29px; }
+      .action-btn { width: 66px; height: 66px; }
     }
     @media (prefers-reduced-motion: reduce) {
       #scene-bg, .screen, .steer-btn, .toast, .active-buff { transition: none; animation: none; }

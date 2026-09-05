@@ -60,27 +60,54 @@
     return num(tg?.contentSafeAreaInset?.top) || TELEGRAM_HEADER_FALLBACK;
   }
 
-  /** Высота собственных плашек оболочки внизу — по их настоящим размерам. */
-  function shellBottom() {
-    let reserved = 0;
-    for (const selector of ['.game-frame-exit', '.rules-help']) {
+  const SHELL_BUTTONS = ['.game-frame-exit', '.rules-help'];
+
+  /*
+    Плашки оболочки. Считается не «где они лежат по замыслу», а где они лежат
+    на самом деле: выход и «?» переехали наверх, но правило должно работать и
+    после следующего переезда, иначе игра однажды снова окажется под ними.
+
+    Верхние отодвигают HUD игры вниз, нижние поднимают её управление. Чужой
+    считается та плашка, что стоит в своей половине экрана.
+  */
+  function shellChrome(topBand) {
+    let top = 0;
+    let bottom = 0;
+    const middle = window.innerHeight / 2;
+    for (const selector of SHELL_BUTTONS) {
       const node = document.querySelector(selector);
       if (!node || node.offsetParent === null) continue;
       const box = node.getBoundingClientRect();
       if (!box.height) continue;
-      reserved = Math.max(reserved, window.innerHeight - box.top);
+      if (box.top < middle) top = Math.max(top, box.bottom - topBand);
+      else bottom = Math.max(bottom, window.innerHeight - box.top);
     }
-    // Небольшой зазор, чтобы кнопки не соприкасались краями.
-    return reserved ? Math.round(reserved + 8) : 0;
+    // Зазор, чтобы кнопки не соприкасались краями с чужими.
+    return { top: top > 0 ? Math.round(top + 8) : 0, bottom: bottom > 0 ? Math.round(bottom + 8) : 0 };
   }
+
+  /*
+    Сколько отвести сверху, пока мерить нечего. Адрес фрейма собирается до
+    того, как кнопка выхода попадёт в документ: она создаётся той же вставкой,
+    что и сам фрейм. Без запаса первый кадр игры нарисовал бы HUD под ней, и
+    он бы съехал на глазах у игрока — сообщение с настоящими числами приходит
+    следующим шагом. Столько занимает кнопка со своим отступом.
+  */
+  const SHELL_TOP_FALLBACK = 52;
 
   function measure() {
     const device = deviceInsets();
+    // Полоса сверху, занятая телефоном и клиентом Telegram. Ниже неё начинается
+    // свободное место — там оболочка и ставит свои кнопки.
+    const band = Math.round(Math.max(device.top, num(window.Telegram?.WebApp?.safeAreaInset?.top)) + telegramTop());
+    document.documentElement.style.setProperty('--game-chrome-top', `${band}px`);
+    const chrome = shellChrome(band);
     return {
-      top: Math.round(Math.max(device.top, num(window.Telegram?.WebApp?.safeAreaInset?.top)) + telegramTop()),
       // Нижний вырез фрейм добавит сам через свой env(): он равен нулю только
       // потому, что фрейм его не видит, — поэтому шлём и его.
-      bottom: Math.round(device.bottom + shellBottom()),
+      band,
+      top: band + chrome.top,
+      bottom: Math.round(device.bottom + chrome.bottom),
     };
   }
 
@@ -88,12 +115,12 @@
   function push(force) {
     const frame = document.querySelector(FRAME);
     if (!frame?.contentWindow) { last = ''; return; }
-    const insets = measure();
-    const key = `${insets.top}:${insets.bottom}`;
+    const { top, bottom } = measure();
+    const key = `${top}:${bottom}`;
     if (!force && key === last) return;
     last = key;
     try {
-      frame.contentWindow.postMessage({ type: 'game-frame:insets', ...insets }, '*');
+      frame.contentWindow.postMessage({ type: 'game-frame:insets', top, bottom }, '*');
     } catch { /* фрейм ещё не поднялся — придёт со следующим замером */ }
   }
 
@@ -106,7 +133,8 @@
     try {
       const url = new URL(String(src), location.href);
       const insets = measure();
-      url.searchParams.set('chromeTop', String(insets.top));
+      const top = insets.top > insets.band ? insets.top : insets.band + SHELL_TOP_FALLBACK;
+      url.searchParams.set('chromeTop', String(top));
       url.searchParams.set('chromeBottom', String(insets.bottom));
       return url.href;
     } catch { return String(src); }

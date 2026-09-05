@@ -179,15 +179,25 @@ body[data-mode="game"] {
   display: block;
 }
 
+/*
+  Выход из игры — вверху слева, а не внизу по центру.
+
+  Внизу он лежал ровно на кнопке «Нырок», а круглая «?» — на правой кнопке
+  поворота: обе клали руку игрока на чужую кнопку в самый неподходящий момент.
+  Внизу теперь только управление, вверху — только служебное.
+
+  Полосу под кнопками Telegram отмеряет game-frame-safe-area.js: он ставит
+  --game-chrome-top, ниже которого начинается свободное место, и он же
+  сообщает игре, с какой высоты начинать её собственный HUD.
+*/
 .game-frame-exit {
   position: absolute;
-  left: 50%;
-  bottom: max(10px, env(safe-area-inset-bottom));
+  left: 12px;
+  top: calc(var(--game-chrome-top, 0px) + 8px);
   z-index: 6;
   width: auto;
-  min-height: 38px;
-  padding: 8px 18px;
-  transform: translateX(-50%);
+  min-height: 36px;
+  padding: 7px 14px;
   border-radius: 999px;
   background: rgba(18, 20, 26, .62);
   color: #f2e6c8;
@@ -195,7 +205,7 @@ body[data-mode="game"] {
   font-size: 12px;
   font-weight: 800;
   backdrop-filter: blur(10px);
-  opacity: .55;
+  opacity: .72;
   transition: opacity .18s;
 }
 

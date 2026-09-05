@@ -2,7 +2,8 @@
 //
 // Отзыв владельца со скриншотом: «кнопки управления находятся под другими
 // кнопками, счётчик пройденного расстояния и счётчик собранных лотосов — под
-// кнопками Telegram мини-приложения».
+// кнопками Telegram мини-приложения». Следом: «выход в меню и правила перенеси
+// наверх, но так, чтобы они не перекрывали другие индикаторы и кнопки».
 //
 // Причина у обеих бед одна: игра открывается во фрейме, а внутри фрейма
 // env(safe-area-inset-*) всегда ноль. Вырез экрана принадлежит внешнему
@@ -24,6 +25,8 @@ import { chromium } from 'playwright-core';
 
 const root = process.cwd();
 const failures = [];
+let screen = null;
+const fail = (message) => failures.push(`${screen?.name || 'экран'}: ${message}`);
 
 // Кнопки клиента Telegram: столько занимает полоса с «Закрыть» и «⋯» под
 // вырезом экрана. Ровно это число отдаёт contentSafeAreaInset.top на клиентах
@@ -59,7 +62,22 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-webgl'],
 });
-const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+const SCREENS = [
+  { name: 'обычный телефон', width: 390, height: 844 },
+  /*
+    У игры два медиазапроса на кнопки — по высоте и по ширине, — и проверять
+    их надо порознь. На узком экране правило по ширине идёт в стилях позже и
+    при равной силе побеждает, так что низкий экран должен быть отдельным: на
+    одном лишь 320×640 ужатые до прежних размеров кнопки по высоте прошли бы
+    незамеченными.
+  */
+  { name: 'низкий экран', width: 390, height: 640 },
+  { name: 'узкий экран', width: 320, height: 720 },
+];
+
+for (const current of SCREENS) {
+screen = current;
+const context = await browser.newContext({ viewport: { width: screen.width, height: screen.height }, isMobile: true, hasTouch: true });
 const page = await context.newPage();
 
 /*
@@ -150,14 +168,66 @@ try {
     });
   });
   for (const row of topBoxes) {
-    if (row.top === null) { failures.push(`${row.name}: элемент не найден`); continue; }
+    if (row.top === null) { fail(`${row.name}: элемент не найден`); continue; }
     if (row.top < forbiddenTop) {
-      failures.push(`${row.name} начинается на ${Math.round(row.top)}px — под кнопками Telegram, `
+      fail(`${row.name} начинается на ${Math.round(row.top)}px — под кнопками Telegram, `
         + `которые занимают верхние ${forbiddenTop}px`);
     }
   }
 
-  // --- 2. Снизу: управление не под кнопками оболочки ---------------------------
+  // --- 2. Кнопки оболочки: наверху, ниже Telegram и ни на чём не лежат ---------
+  const shellTop = await page.evaluate((band) => {
+    const rect = (name, selector) => {
+      const node = document.querySelector(selector);
+      if (!node) return { name, box: null };
+      const box = node.getBoundingClientRect();
+      return { name, box: { left: box.left, right: box.right, top: box.top, bottom: box.bottom } };
+    };
+    return {
+      band,
+      items: [rect('Главное меню', '.game-frame-exit'), rect('правила «?»', '.rules-help')],
+      height: window.innerHeight,
+    };
+  }, forbiddenTop);
+  for (const item of shellTop.items) {
+    if (!item.box) { fail(`кнопка «${item.name}» не найдена`); continue; }
+    if (item.box.top < shellTop.band) {
+      fail(`кнопка «${item.name}» начинается на ${Math.round(item.box.top)}px — `
+        + `под кнопками Telegram, которые занимают верхние ${shellTop.band}px`);
+    }
+    if (item.box.top > shellTop.height / 2) {
+      fail(`кнопка «${item.name}» осталась в нижней половине экрана (${Math.round(item.box.top)}px)`);
+    }
+  }
+  if (shellTop.items[0].box && shellTop.items[1].box) {
+    const [exit, help] = shellTop.items.map((item) => item.box);
+    if (exit.left < help.right && help.left < exit.right && exit.top < help.bottom && help.top < exit.bottom) {
+      fail('кнопки «Главное меню» и «?» лежат друг на друге');
+    }
+  }
+
+  // Наверху у игры свой HUD и свои кнопки паузы и звука — их закрывать нельзя.
+  const frameTop = await frame.evaluate(() => {
+    const named = [
+      ['HUD', '#hud'],
+      ['пауза', '#btn-pause'],
+      ['звук', '#btn-sound'],
+    ];
+    return named.map(([name, selector]) => {
+      const box = document.querySelector(selector)?.getBoundingClientRect();
+      return box ? { name, left: box.left, right: box.right, top: box.top, bottom: box.bottom } : { name, left: null };
+    });
+  });
+  const hits = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  for (const item of shellTop.items) {
+    if (!item.box) continue;
+    for (const target of frameTop) {
+      if (target.left === null) { fail(`${target.name} игры не найден`); continue; }
+      if (hits(item.box, target)) fail(`кнопка «${item.name}» перекрывает ${target.name} игры`);
+    }
+  }
+
+  // --- 3. Снизу: управление не под кнопками оболочки ---------------------------
   const shell = await page.evaluate(() => {
     const rect = (selector) => {
       const node = document.querySelector(selector);
@@ -175,23 +245,43 @@ try {
     });
   });
   const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  // Удобный размер кнопки — сорок восемь точек в поперечнике. Управление
+  // корзинкой должно быть заметно крупнее: жмут его вслепую и на ходу.
+  const MIN_CONTROL = 62;
   for (const control of controls) {
-    if (control.left === null) { failures.push(`кнопка «${control.name}» не найдена`); continue; }
+    if (control.left === null) { fail(`кнопка «${control.name}» не найдена`); continue; }
     for (const [name, box] of Object.entries(shell)) {
       if (!box) continue;
       const title = name === 'exit' ? 'кнопкой «Главное меню»' : 'кнопкой «?»';
-      if (overlaps(control, box)) failures.push(`кнопка «${control.name}» перекрыта ${title}`);
+      if (overlaps(control, box)) fail(`кнопка «${control.name}» перекрыта ${title}`);
     }
-    if (control.bottom > 844) failures.push(`кнопка «${control.name}» уехала за нижний край экрана`);
+    if (control.bottom > screen.height) fail(`кнопка «${control.name}» уехала за нижний край экрана`);
+    const side = Math.min(control.right - control.left, control.bottom - control.top);
+    if (side < MIN_CONTROL) {
+      fail(`кнопка «${control.name}» мелковата: ${Math.round(side)}px при ${MIN_CONTROL}px`);
+    }
+  }
+  // Между собой кнопки управления тоже не должны соприкасаться.
+  for (let i = 0; i < controls.length; i += 1) {
+    for (let j = i + 1; j < controls.length; j += 1) {
+      const a = controls[i];
+      const b = controls[j];
+      if (a.left !== null && b.left !== null && overlaps(a, b)) {
+        fail(`кнопки «${a.name}» и «${b.name}» наезжают друг на друга`);
+      }
+    }
   }
 } finally {
-  await browser.close();
-  server.close();
+  await context.close();
 }
+}
+await browser.close();
+server.close();
 
 if (failures.length) {
   console.error(`Раскладка «Моисея на Ниле» не прошла проверку (${failures.length}):\n- ${failures.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`OK: HUD «Моисея на Ниле» ниже кнопок Telegram (${NOTCH}+${TELEGRAM_HEADER}px), `
-  + 'а «влево», «волна», «нырок» и «вправо» не перекрыты ни «Главным меню», ни «?».');
+console.log(`OK: у «Моисея на Ниле» HUD ниже кнопок Telegram (${NOTCH}+${TELEGRAM_HEADER}px), `
+  + '«Главное меню» и «?» стоят наверху и не закрывают ни HUD, ни паузу со звуком, '
+  + 'а «влево», «волна», «нырок» и «вправо» крупные, свободные и не наезжают друг на друга.');

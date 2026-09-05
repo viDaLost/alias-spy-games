@@ -109,6 +109,20 @@ try {
   //    прокрутке и не мельче того, во что можно попасть.
   check(layout.hiddenScroll <= 1, `Полоса инструментов прячет ${layout.hiddenScroll} px в боковой прокрутке`);
   const unreachable = layout.controls.filter((control) => !control.reachable || control.bottom > layout.viewport.height);
+  if (unreachable.length) {
+    // Кто именно закрыл кнопку — иначе про «не дотянуться» приходится гадать.
+    const blockers = await page.evaluate(() => [...document.querySelectorAll('.bsk-tool, .bsk-color, .bsk-finish-turn')]
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const centre = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        if (!centre || centre === element || element.contains(centre)) return null;
+        return `${(element.textContent || element.dataset.action || 'цвет').trim().slice(0, 12)} ← `
+          + `${centre.tagName.toLowerCase()}.${centre.className || '(без класса)'}`;
+      })
+      .filter(Boolean)
+      .slice(0, 4));
+    if (blockers.length) failures.push(`Поверх инструментов лежит: ${blockers.join(' | ')}`);
+  }
   check(!unreachable.length, `До инструментов не дотянуться: ${unreachable.map((c) => c.name).join(', ')}`);
   const tiny = layout.controls.filter((control) => control.size < 22);
   check(!tiny.length, `Слишком мелкие цели: ${tiny.map((c) => `${c.name} ${Math.round(c.size)}px`).join(', ')}`);

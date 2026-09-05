@@ -67,7 +67,57 @@ export async function openSketchStage(page, baseURL) {
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 25_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 20_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting'), null, { timeout: 20_000 });
+  /*
+    Экран запуска уходит позже, чем снимается класс app-booting: он держится
+    заданное время и ещё доигрывает уход. Пока он на экране, elementFromPoint
+    возвращает его, а не кнопки, и проверка «до инструментов не дотянуться»
+    падала через раз на коде, которого никто не трогал. Ждём, пока сцену
+    уберут из документа.
+  */
+  await page.waitForFunction(() => !document.getElementById('gamehub-boot-scene'), null, { timeout: 20_000 });
   await page.evaluate(() => window.showGame('bible-sketch'));
   await page.waitForSelector(process.env.SKETCH_STAGE_SELECTOR || '.bsk-canvas', { timeout: 20_000 });
-  await page.waitForTimeout(300);
+  /*
+    И заставка входа в игру: холст уже в документе, а поверх него ещё лежит
+    .game-entry-loader. Оба экрана — и запуска приложения, и входа в игру —
+    уходят по своим таймерам, а не по готовности игры, поэтому ждать надо
+    именно их ухода: иначе elementFromPoint отвечает про заставку.
+  */
+  await page.waitForFunction(
+    () => !document.querySelector('.game-entry-loader.is-active')
+      && !document.documentElement.classList.contains('game-entry-loading'),
+    null,
+    { timeout: 20_000 },
+  );
+  await waitForStableLayout(page);
+}
+
+/*
+  Ждать раскладку, а не секундомер.
+
+  Здесь стояла пауза в 300 миллисекунд, и её иногда не хватало: полоса
+  инструментов встаёт в две строки не сразу — сначала приезжает альбомный лист,
+  потом холст берёт свою высоту, и только после этого кнопки оказываются на
+  своих местах. На нагруженной машине замер попадал в середину этого движения,
+  и проверка падала на коде, которого никто не трогал.
+
+  Теперь измеряется сама полоса: раскладка считается устоявшейся, когда два
+  замера подряд совпали. Дольше обычного это не занимает — на спокойном прогоне
+  совпадение наступает со второго замера.
+*/
+export async function waitForStableLayout(page, { timeout = 6000, step = 120 } = {}) {
+  const read = () => page.evaluate(() => {
+    const box = (selector) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect();
+      return rect ? `${Math.round(rect.top)}:${Math.round(rect.height)}:${Math.round(rect.width)}` : 'нет';
+    };
+    return `${box('.bsk-tools')}|${box('.bsk-canvas')}|${document.querySelectorAll('.bsk-tool, .bsk-color').length}`;
+  });
+  let previous = await read();
+  for (const deadline = Date.now() + timeout; Date.now() < deadline;) {
+    await page.waitForTimeout(step);
+    const current = await read();
+    if (current === previous && !current.startsWith('нет')) return;
+    previous = current;
+  }
 }
