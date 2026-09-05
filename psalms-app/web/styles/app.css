@@ -46,6 +46,9 @@
   --c-gorlica-a: #fb7185; --c-gorlica-b: #9f1239;
   --c-sion-a: #7c8bf5;    --c-sion-b: #3730a3;
   --c-poems-a: #2dd4bf;   --c-poems-b: #0f766e;
+  --c-mus-a: #a78bfa;     --c-mus-b: #5b21b6;
+  --c-golosok-a: #38bdf8; --c-golosok-b: #075985;
+  --c-kuvshin-a: #a3e635; --c-kuvshin-b: #3f6212;
 
   --r-sm: 10px;
   --r-md: 16px;
@@ -263,12 +266,17 @@ svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width:
   font-size: 76px; font-weight: 800; line-height: 1;
   color: rgba(255, 255, 255, .22); letter-spacing: -.05em;
 }
-.book__title { font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+.book__title { font-size: 18px; font-weight: 700; letter-spacing: -.025em; line-height: 1.16; }
 .book__meta { font-size: 12px; opacity: .85; margin-top: 2px; }
 .book--unost { --a: var(--c-unost-a); --b: var(--c-unost-b); }
 .book--gorlica { --a: var(--c-gorlica-a); --b: var(--c-gorlica-b); }
 .book--sion { --a: var(--c-sion-a); --b: var(--c-sion-b); }
 .book--poems { --a: var(--c-poems-a); --b: var(--c-poems-b); }
+.book--mus { --a: var(--c-mus-a); --b: var(--c-mus-b); }
+.book--golosok { --a: var(--c-golosok-a); --b: var(--c-golosok-b); }
+.book--kuvshin { --a: var(--c-kuvshin-a); --b: var(--c-kuvshin-b); }
+/* Нечётную последнюю карточку растягиваем на ряд, чтобы сетка не обрывалась. */
+.grid .book:last-child:nth-child(odd) { grid-column: span 2; min-height: 104px; }
 
 .resume {
   margin: 0 20px; padding: 14px 16px;
@@ -312,15 +320,24 @@ svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width:
 .tint-gorlica { --tint: var(--c-gorlica-b); --tint-soft: rgba(251, 113, 133, .16); }
 .tint-sion { --tint: var(--c-sion-b); --tint-soft: rgba(124, 139, 245, .18); }
 .tint-poems { --tint: var(--c-poems-b); --tint-soft: rgba(45, 212, 191, .18); }
+.tint-mus { --tint: var(--c-mus-b); --tint-soft: rgba(167, 139, 250, .2); }
+.tint-golosok { --tint: var(--c-golosok-b); --tint-soft: rgba(56, 189, 248, .18); }
+.tint-kuvshin { --tint: var(--c-kuvshin-b); --tint-soft: rgba(163, 230, 53, .22); }
 html[data-theme='dark'] .tint-unost { --tint: var(--c-unost-a); }
 html[data-theme='dark'] .tint-gorlica { --tint: var(--c-gorlica-a); }
 html[data-theme='dark'] .tint-sion { --tint: var(--c-sion-a); }
 html[data-theme='dark'] .tint-poems { --tint: var(--c-poems-a); }
+html[data-theme='dark'] .tint-mus { --tint: var(--c-mus-a); }
+html[data-theme='dark'] .tint-golosok { --tint: var(--c-golosok-a); }
+html[data-theme='dark'] .tint-kuvshin { --tint: var(--c-kuvshin-a); }
 @media (prefers-color-scheme: dark) {
   html[data-theme='auto'] .tint-unost { --tint: var(--c-unost-a); }
   html[data-theme='auto'] .tint-gorlica { --tint: var(--c-gorlica-a); }
   html[data-theme='auto'] .tint-sion { --tint: var(--c-sion-a); }
   html[data-theme='auto'] .tint-poems { --tint: var(--c-poems-a); }
+  html[data-theme='auto'] .tint-mus { --tint: var(--c-mus-a); }
+  html[data-theme='auto'] .tint-golosok { --tint: var(--c-golosok-a); }
+  html[data-theme='auto'] .tint-kuvshin { --tint: var(--c-kuvshin-a); }
 }
 
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px; }
@@ -693,5 +710,6 @@ mark { background: var(--mark-bg); color: inherit; border-radius: 4px; padding: 
 
 @media (min-width: 620px) {
   .grid { grid-template-columns: repeat(4, 1fr); }
+  .grid .book:last-child:nth-child(odd) { grid-column: auto; }
   .hero__title { font-size: 34px; }
 }

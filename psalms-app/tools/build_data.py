@@ -21,14 +21,20 @@ DB_PATH = os.path.join(HERE, 'Base_psal.db')
 OUT_DIR = os.path.normpath(os.path.join(HERE, '..', 'web', 'data'))
 
 COLLECTIONS = [
-    {'id': 'unost', 'column': 'Unost', 'title': 'Юность', 'prefix': 'П',
-     'subtitle': 'Песнь возрождения', 'accent': 'amber'},
-    {'id': 'gorlica', 'column': 'Gorlica', 'title': 'Горлица', 'prefix': 'Г',
-     'subtitle': 'Сборник духовных песен', 'accent': 'rose'},
-    {'id': 'sion', 'column': 'Sion', 'title': 'Сион', 'prefix': 'С',
-     'subtitle': 'Песни хвалы и поклонения', 'accent': 'indigo'},
-    {'id': 'poems', 'column': 'My poem', 'title': 'Мои стихи', 'prefix': 'М',
-     'subtitle': 'Избранное и авторское', 'accent': 'teal'},
+    {'id': 'unost', 'column': 'Unost', 'title': 'Песни юности', 'prefix': 'Ю',
+     'subtitle': 'Классические гимны', 'accent': 'amber'},
+    {'id': 'gorlica', 'column': 'Gorlica', 'title': 'Голос горлицы', 'prefix': 'Г',
+     'subtitle': 'Песни поклонения', 'accent': 'rose'},
+    {'id': 'sion', 'column': 'Sion', 'title': 'Псалмы Сиона', 'prefix': 'С',
+     'subtitle': 'Гимны хвалы', 'accent': 'indigo'},
+    {'id': 'mus', 'column': 'Mus', 'title': 'Мелодия юных сердец', 'prefix': 'М',
+     'subtitle': 'Современное прославление', 'accent': 'violet'},
+    {'id': 'poems', 'column': 'My poem', 'title': 'Мы поём Господу', 'prefix': 'П',
+     'subtitle': 'Избранные песни', 'accent': 'teal'},
+    {'id': 'golosok', 'column': 'Golosok', 'title': 'Голосок хваления', 'prefix': 'Х',
+     'subtitle': 'Детские песни', 'accent': 'sky'},
+    {'id': 'kuvshin', 'column': 'Kuvshin', 'title': 'Кувшинчик', 'prefix': 'К',
+     'subtitle': 'Песни для малышей', 'accent': 'lime'},
 ]
 
 CHORUS_RE = re.compile(r'^\s*(?:припев|прип|пр)\s*[.:]+\s*', re.I)

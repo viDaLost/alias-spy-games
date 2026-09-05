@@ -470,7 +470,9 @@ export function searchScreen(nav) {
         el('div', { class: 'empty__title', text: 'Один поиск — все сборники' }),
         el('div', {
           class: 'empty__text',
-          text: `Юность, Горлица, Сион и Мои стихи — ${data.totalCount()} песен ищутся одновременно. Введите слово из текста или номер песни.`,
+          text: `${data.collections().map((item) => item.title).join(', ')} — `
+            + `${data.totalCount()} песен ищутся одновременно. `
+            + 'Введите слово из текста или номер песни.',
         }),
       ]),
     );
@@ -777,7 +779,10 @@ export function settingsScreen() {
 
       el('div', { class: 'about' }, [
         el('div', { text: 'Псалмы · офлайн-сборники духовных песен' }),
-        el('div', { text: `${data.totalCount()} песен из четырёх сборников. Работает без интернета.` }),
+        el('div', {
+          text: `${data.totalCount()} песен из ${data.collections().length} сборников. `
+            + 'Работает без интернета.',
+        }),
       ]),
     );
   };

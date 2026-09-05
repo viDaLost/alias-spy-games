@@ -32,7 +32,7 @@ t('поиск в латинской раскладке', lat>0, `${lat} резу
 // фразовый поиск + счётчики чипов
 await page.fill('.searchbar__field input','благодать'); await page.waitForTimeout(900);
 const chips = await page.$$eval('.chip', ns=>ns.map(n=>n.textContent.trim()));
-t('чипы со счётчиками по сборникам', chips.length===5 && chips[0].includes('Все'), chips.join(' | '));
+t('чипы со счётчиками по сборникам', chips.length===8 && chips[0].includes('Все'), chips.join(' | '));
 
 // открытие читалки и назад
 await page.click('.result'); await page.waitForTimeout(900);
