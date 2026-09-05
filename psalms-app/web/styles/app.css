@@ -543,7 +543,7 @@ mark { background: var(--mark-bg); color: inherit; border-radius: 4px; padding: 
 .reader[hidden] { display: none; }
 
 .reader__bar {
-  flex: none; display: flex; align-items: center; gap: 6px;
+  position: relative; flex: none; display: flex; align-items: center; gap: 6px;
   padding: calc(var(--sat) + 8px) 8px 8px;
   background: var(--surface-glass);
   backdrop-filter: saturate(1.6) blur(18px);

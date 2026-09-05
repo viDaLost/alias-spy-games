@@ -10,7 +10,7 @@ on:
       - '.github/workflows/build-psalms-apk.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -66,3 +66,23 @@ jobs:
           path: dist/psalmy.apk
           retention-days: 14
           if-no-files-found: error
+
+      # Готовый APK кладём в саму ветку: артефакты Actions живут две недели
+      # и недоступны без входа в GitHub, а файл в ветке скачивается напрямую.
+      - name: Publish APK into the working branch
+        if: github.ref_name != 'main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p psalms-app/dist
+          cp dist/psalmy.apk psalms-app/dist/psalmy.apk
+          sha256sum psalms-app/dist/psalmy.apk | tee psalms-app/dist/psalmy.apk.sha256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f psalms-app/dist/psalmy.apk psalms-app/dist/psalmy.apk.sha256
+          if git diff --cached --quiet; then
+            echo 'APK не изменился.'
+            exit 0
+          fi
+          git commit -m 'Сборка приложения «Псалмы» из текущего состояния ветки'
+          git push origin "HEAD:${GITHUB_REF_NAME}"

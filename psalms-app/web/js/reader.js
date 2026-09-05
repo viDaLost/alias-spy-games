@@ -128,7 +128,7 @@ function toggleAuto() {
   if (autoTimer) { stopAuto(); return; }
   startAuto(store.get('autoSpeed') || 34);
   autoButton.classList.add('is-on');
-  toast('Автопрокрутка включена');
+  toast('Автопрокрутка · удерживайте кнопку для скорости');
   haptic(10);
 }
 

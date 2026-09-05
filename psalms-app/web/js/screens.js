@@ -568,6 +568,12 @@ export function favoritesScreen(nav) {
         el('div', { class: 'empty__icon', html: icon(ICONS.heart) }),
         el('div', { class: 'empty__title', text: 'Здесь будут ваши песни' }),
         el('div', { class: 'empty__text', text: 'Откройте песню и нажмите сердце — она появится тут и будет доступна без интернета.' }),
+        el('button', {
+          class: 'suggest',
+          style: 'margin-top:18px',
+          text: 'Открыть библиотеку',
+          onclick: () => nav('#/home'),
+        }),
       ]);
 
     screen.replaceChildren(bar, body);
