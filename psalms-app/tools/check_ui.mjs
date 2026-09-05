@@ -134,7 +134,7 @@ check('шрифт меняется из режима чтения',
 
 await page.click('.toolbar__button[aria-label="Выбрать палитру"]');
 await page.waitForTimeout(250);
-check('палитры раскрываются', (await page.$$('.swatch')).length === 5);
+check('палитры раскрываются', (await page.$$('.swatch')).length === 6);
 await page.click('.swatch[aria-label="Палитра: Шоколад"]');
 await page.waitForTimeout(250);
 check('палитра меняется из режима чтения',

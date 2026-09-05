@@ -21,16 +21,18 @@ const SIZE_PRESETS = [
 const THEMES = [
   { label: 'Лаванда', value: 'lavender' },
   { label: 'Олива', value: 'olive' },
+  { label: 'Море', value: 'ocean' },
   { label: 'Шоколад', value: 'chocolate' },
   { label: 'Тёмная', value: 'dark' },
   { label: 'Система', value: 'auto' },
 ];
 
 const THEME_BAR_COLOR = {
-  lavender: '#f5f4fb',
-  olive: '#f0f3e9',
-  chocolate: '#211a16',
-  dark: '#121316',
+  lavender: '#f6f4fa',
+  olive: '#f8faf4',
+  ocean: '#f4f9fa',
+  chocolate: '#191410',
+  dark: '#101119',
 };
 
 const LINE_PRESETS = [
@@ -78,7 +80,7 @@ export function applyTheme() {
   const dark = isDarkTheme();
   const tag = document.querySelector('meta[name="theme-color"]');
   if (tag) {
-    tag.setAttribute('content', THEME_BAR_COLOR[theme] || (dark ? '#121316' : '#f5f4fb'));
+    tag.setAttribute('content', THEME_BAR_COLOR[theme] || (dark ? '#101119' : '#f6f4fa'));
   }
   setNativeTheme(dark);
 }
