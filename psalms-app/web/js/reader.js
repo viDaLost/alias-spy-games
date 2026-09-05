@@ -6,7 +6,10 @@ import {
 } from './ui.js';
 import { emptyState, skeletonList, segmented } from './components.js';
 import { store } from './store.js';
-import { typographySheet } from './typography.js';
+import {
+  typographySheet, changeFontSize, setFontFamily, setTheme, FONT_OPTIONS, THEME_OPTIONS,
+} from './typography.js';
+import { store as settings } from './store.js';
 import * as data from './data.js';
 
 const REPEAT_MARK = /(\/:|:\/)/g;
@@ -25,6 +28,9 @@ let favoriteButton = null;
 let current = null;
 let autoTimer = 0;
 let autoSpeed = 34;
+let toolbar = null;
+let toolbarHidden = false;
+let lastScrollTop = 0;
 
 export function initReader(navigateTo) {
   navigate = navigateTo;
@@ -46,13 +52,130 @@ export function initReader(navigateTo) {
 
   page = el('article', { class: 'reader__page' });
   scroller = el('div', { class: 'reader__scroll' }, [page]);
-  host.append(bar, scroller);
+  toolbar = buildToolbar();
+  host.append(bar, el('div', { class: 'reader__body' }, [scroller, toolbar]));
 
   scroller.addEventListener('scroll', () => {
-    host.classList.toggle('is-stuck', scroller.scrollTop > 24);
+    const top = scroller.scrollTop;
+    host.classList.toggle('is-stuck', top > 24);
+    if (top > lastScrollTop + 8 && top > 120) setToolbar(false);
+    else if (top < lastScrollTop - 8) setToolbar(true);
+    lastScrollTop = top;
   }, { passive: true });
 
   bindSwipes();
+}
+
+/* --- Панель управления чтением -------------------------------------------- */
+
+/** Размер, шрифт и палитра меняются прямо на экране песни, без захода в настройки. */
+function buildToolbar() {
+  const sizeValue = el('span', {
+    class: 'toolbar__value',
+    'aria-live': 'polite',
+    text: `${settings.get('fontSize')} pt`,
+  });
+
+  const minus = el('button', {
+    type: 'button', class: 'toolbar__button', 'aria-label': 'Уменьшить текст',
+    html: icon(ICONS.minus),
+  });
+  const plus = el('button', {
+    type: 'button', class: 'toolbar__button', 'aria-label': 'Увеличить текст',
+    html: icon(ICONS.plus),
+  });
+
+  const applySize = (delta) => {
+    const value = changeFontSize(delta);
+    sizeValue.textContent = `${value} pt`;
+    minus.disabled = value <= 15;
+    plus.disabled = value >= 28;
+    haptic(4);
+  };
+  minus.addEventListener('click', () => applySize(-1));
+  plus.addEventListener('click', () => applySize(1));
+  minus.disabled = settings.get('fontSize') <= 15;
+  plus.disabled = settings.get('fontSize') >= 28;
+
+  const fontPanel = el('div', { class: 'toolbar__panel', hidden: true });
+  const themePanel = el('div', { class: 'toolbar__panel', hidden: true });
+
+  const fontButton = el('button', {
+    type: 'button', class: 'toolbar__button', 'aria-expanded': 'false',
+    'aria-label': 'Выбрать шрифт',
+  }, [el('span', { text: 'Аа' })]);
+
+  const themeButton = el('button', {
+    type: 'button', class: 'toolbar__button', 'aria-expanded': 'false',
+    'aria-label': 'Выбрать палитру',
+  }, [el('span', { class: 'swatch__dot swatch__dot--auto', 'aria-hidden': 'true' })]);
+
+  const togglePanel = (panel, button, other, otherButton) => {
+    const open = panel.hidden;
+    panel.hidden = !open;
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    other.hidden = true;
+    otherButton.setAttribute('aria-expanded', 'false');
+    haptic(4);
+  };
+  fontButton.addEventListener('click', () => togglePanel(fontPanel, fontButton, themePanel, themeButton));
+  themeButton.addEventListener('click', () => togglePanel(themePanel, themeButton, fontPanel, fontButton));
+
+  const fontButtons = FONT_OPTIONS.map((option) => el('button', {
+    type: 'button',
+    class: `toolbar__option toolbar__option--${option.value}`,
+    text: option.label,
+    'aria-pressed': settings.get('fontFamily') === option.value ? 'true' : 'false',
+    onclick: () => {
+      setFontFamily(option.value);
+      for (const item of fontButtons) item.setAttribute('aria-pressed', 'false');
+      fontButtons[FONT_OPTIONS.indexOf(option)].setAttribute('aria-pressed', 'true');
+      haptic(4);
+      toast(`Шрифт: ${option.label.toLowerCase()}`);
+    },
+  }));
+  fontPanel.append(...fontButtons);
+
+  const themeButtons = THEME_OPTIONS.map((option) => el('button', {
+    type: 'button',
+    class: 'swatch',
+    'aria-pressed': settings.get('theme') === option.value ? 'true' : 'false',
+    'aria-label': `Палитра: ${option.label}`,
+    title: option.label,
+  }, [el('span', { class: `swatch__dot swatch__dot--${option.value}`, 'aria-hidden': 'true' })]));
+  themeButtons.forEach((button, index) => button.addEventListener('click', () => {
+    setTheme(THEME_OPTIONS[index].value);
+    for (const item of themeButtons) item.setAttribute('aria-pressed', 'false');
+    button.setAttribute('aria-pressed', 'true');
+    haptic(4);
+    toast(`Палитра: ${THEME_OPTIONS[index].label.toLowerCase()}`);
+  }));
+  themePanel.append(...themeButtons);
+
+  return el('div', { class: 'reader__toolbar' }, [
+    el('div', { class: 'toolbar__row' }, [
+      minus,
+      sizeValue,
+      plus,
+      el('span', { class: 'toolbar__divider', 'aria-hidden': 'true' }),
+      fontButton,
+      themeButton,
+    ]),
+    fontPanel,
+    themePanel,
+  ]);
+}
+
+function setToolbar(visible) {
+  if (!toolbar || toolbarHidden === !visible) return;
+  toolbarHidden = !visible;
+  toolbar.classList.toggle('is-hidden', toolbarHidden);
+  if (toolbarHidden) {
+    for (const panel of toolbar.querySelectorAll('.toolbar__panel')) panel.hidden = true;
+    for (const button of toolbar.querySelectorAll('[aria-expanded]')) {
+      button.setAttribute('aria-expanded', 'false');
+    }
+  }
 }
 
 /* --- Содержимое ----------------------------------------------------------- */
@@ -214,6 +337,11 @@ function bindSwipes() {
   }, { passive: true });
 
   scroller.addEventListener('touchend', () => { tracking = false; });
+
+  scroller.addEventListener('click', (event) => {
+    if (event.target.closest('button, a')) return;
+    setToolbar(toolbarHidden);
+  });
 }
 
 function step(direction) {
@@ -306,7 +434,9 @@ export async function openReader(collectionId, number) {
   );
 
   scroller.scrollTop = 0;
+  lastScrollTop = 0;
   host.classList.remove('is-stuck');
+  setToolbar(true);
   store.markRead({ c: collectionId, n: song.n, t: song.t });
   if (store.get('keepAwake')) keepAwake(true);
 }

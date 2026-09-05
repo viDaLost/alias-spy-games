@@ -18,22 +18,56 @@ const SIZE_PRESETS = [
   { label: 'Очень большой', value: 24 },
 ];
 
+const THEMES = [
+  { label: 'Лаванда', value: 'lavender' },
+  { label: 'Олива', value: 'olive' },
+  { label: 'Шоколад', value: 'chocolate' },
+  { label: 'Тёмная', value: 'dark' },
+  { label: 'Система', value: 'auto' },
+];
+
+const THEME_BAR_COLOR = {
+  lavender: '#f5f4fb',
+  olive: '#f0f3e9',
+  chocolate: '#211a16',
+  dark: '#121316',
+};
+
 const LINE_PRESETS = [
   { label: 'Плотный', value: 1.5 },
   { label: 'Обычный', value: 1.7 },
   { label: 'Свободный', value: 1.9 },
 ];
 
-const THEMES = [
-  { label: 'Светлая', value: 'light' },
-  { label: 'Сепия', value: 'sepia' },
-  { label: 'Тёмная', value: 'dark' },
-  { label: 'Система', value: 'auto' },
+export const FONT_OPTIONS = [
+  { label: 'Система', short: 'Аа', value: 'system' },
+  { label: 'С засечками', short: 'Аа', value: 'serif' },
+  { label: 'Без засечек', short: 'Аа', value: 'sans' },
 ];
+
+export const THEME_OPTIONS = THEMES;
+
+/** Меняет размер текста на шаг и возвращает получившееся значение. */
+export function changeFontSize(delta) {
+  const next = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, store.get('fontSize') + delta));
+  store.set('fontSize', next);
+  applyTypography();
+  return next;
+}
+
+export function setFontFamily(value) {
+  store.set('fontFamily', value);
+  applyTypography();
+}
+
+export function setTheme(value) {
+  store.set('theme', value);
+  applyTheme();
+}
 
 export function isDarkTheme() {
   const theme = store.get('theme');
-  if (theme === 'dark') return true;
+  if (theme === 'dark' || theme === 'chocolate') return true;
   if (theme === 'auto') return window.matchMedia('(prefers-color-scheme: dark)').matches;
   return false;
 }
@@ -44,7 +78,7 @@ export function applyTheme() {
   const dark = isDarkTheme();
   const tag = document.querySelector('meta[name="theme-color"]');
   if (tag) {
-    tag.setAttribute('content', dark ? '#121316' : theme === 'sepia' ? '#f5ecda' : '#faf9f6');
+    tag.setAttribute('content', THEME_BAR_COLOR[theme] || (dark ? '#121316' : '#f5f4fb'));
   }
   setNativeTheme(dark);
 }
@@ -63,7 +97,7 @@ export function fontLabel() {
 
 export function themeLabel() {
   const found = THEMES.find((item) => item.value === store.get('theme'));
-  return found ? found.label : 'Светлая';
+  return found ? found.label : 'Лаванда';
 }
 
 /** Панель «Оформление»: всё, что влияет на чтение, в одном месте. */

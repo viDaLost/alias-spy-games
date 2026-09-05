@@ -9,7 +9,7 @@ export const FONT_SIZE_MIN = 15;
 export const FONT_SIZE_MAX = 28;
 
 const DEFAULTS = {
-  theme: 'light',            // light | sepia | dark | auto
+  theme: 'lavender',         // lavender | olive | chocolate | dark | auto
   fontFamily: 'serif',       // system | serif | sans
   fontSize: 18,
   lineHeight: 1.7,
@@ -38,10 +38,11 @@ function migrate(saved) {
   if (typeof saved.leading === 'number' && !saved.lineHeight) {
     next.lineHeight = saved.leading;
   }
-  if (saved.theme === 'auto' || saved.theme === 'light'
-    || saved.theme === 'dark' || saved.theme === 'sepia') {
-    next.theme = saved.theme;
-  }
+  // Прежние названия тем: светлая стала лавандовой, сепия — шоколадной.
+  const renamed = { light: 'lavender', sepia: 'chocolate' };
+  const themes = ['lavender', 'olive', 'chocolate', 'dark', 'auto'];
+  const theme = renamed[saved.theme] || saved.theme;
+  next.theme = themes.indexOf(theme) >= 0 ? theme : 'lavender';
   delete next.serif;
   delete next.leading;
   delete next.lastRead;

@@ -36,8 +36,8 @@ await page.waitForTimeout(900);
 check('главная открывается', await page.isVisible('[data-screen="home"]'));
 check('заставка убрана', (await page.$('#boot')) === null);
 check('видна строка поиска', await page.isVisible('.searchfield'));
-check('сборники перечислены',
-  (await page.$$eval('[data-screen="home"] .list-item', (nodes) => nodes.length)) >= 7);
+check('сборники показаны карточками',
+  (await page.$$eval('[data-screen="home"] .book-card', (nodes) => nodes.length)) === 7);
 
 /* 2. Поиск и его состояния */
 await page.click('.searchfield');
@@ -106,14 +106,39 @@ await page.waitForTimeout(250);
 check('шрифт переключается',
   (await page.evaluate(() => JSON.parse(localStorage.getItem('psalms.v1')).fontFamily)) === 'sans');
 
-await page.click('.sheet .segmented button:has-text("Сепия")');
+await page.click('.sheet .segmented button:has-text("Олива")');
 await page.waitForTimeout(250);
-check('тема переключается',
-  (await page.evaluate(() => document.documentElement.dataset.theme)) === 'sepia');
+check('тема переключается в панели оформления',
+  (await page.evaluate(() => document.documentElement.dataset.theme)) === 'olive');
 
 await page.keyboard.press('Escape');
 await page.waitForTimeout(300);
 check('панель закрывается по Escape', await page.isHidden('.sheet-host'));
+
+/* 5б. Панель управления прямо в режиме чтения */
+check('панель чтения видна', await page.isVisible('.reader__toolbar'));
+const toolbarSize = await page.textContent('.toolbar__value');
+await page.click('.toolbar__button[aria-label="Увеличить текст"]');
+await page.waitForTimeout(200);
+check('размер меняется кнопкой в режиме чтения',
+  (await page.textContent('.toolbar__value')) !== toolbarSize,
+  `${toolbarSize} → ${await page.textContent('.toolbar__value')}`);
+
+await page.click('.toolbar__button[aria-label="Выбрать шрифт"]');
+await page.waitForTimeout(250);
+check('выбор шрифта раскрывается', await page.isVisible('.toolbar__option'));
+await page.click('.toolbar__option--serif');
+await page.waitForTimeout(250);
+check('шрифт меняется из режима чтения',
+  (await page.evaluate(() => JSON.parse(localStorage.getItem('psalms.v1')).fontFamily)) === 'serif');
+
+await page.click('.toolbar__button[aria-label="Выбрать палитру"]');
+await page.waitForTimeout(250);
+check('палитры раскрываются', (await page.$$('.swatch')).length === 5);
+await page.click('.swatch[aria-label="Палитра: Шоколад"]');
+await page.waitForTimeout(250);
+check('палитра меняется из режима чтения',
+  (await page.evaluate(() => document.documentElement.dataset.theme)) === 'chocolate');
 
 /* 6. Соседние песни и возврат */
 const before = await page.textContent('.song-header__title');
@@ -131,8 +156,10 @@ check('возврат закрывает песню', !(await page.isVisible('.r
 await page.evaluate(() => { location.hash = '#/home'; });
 await page.waitForTimeout(600);
 const homeText = await page.textContent('[data-screen="home"]');
-check('недавние показаны на главной', homeText.includes('Недавние'));
+check('карточка «продолжить» на главной', await page.isVisible('.resume-card'));
 check('избранное показано на главной', homeText.includes('Избранное'));
+check('избранное лентой карточек',
+  (await page.$$eval('[data-screen="home"] .song-card', (nodes) => nodes.length)) >= 1);
 
 await page.evaluate(() => { location.hash = '#/favorites'; });
 await page.waitForTimeout(500);
@@ -155,14 +182,17 @@ const small = await page.$$eval('.icon-button, .nav__item, .list-item', (nodes) 
 check('область нажатия не меньше 44px', small === 0, `мелких: ${small}`);
 
 /* 9. Настройки сохраняются после перезапуска */
+const sizeBeforeReload = await page.evaluate(
+  () => getComputedStyle(document.documentElement).getPropertyValue('--reader-size').trim(),
+);
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(900);
 check('тема сохранилась',
-  (await page.evaluate(() => document.documentElement.dataset.theme)) === 'sepia');
+  (await page.evaluate(() => document.documentElement.dataset.theme)) === 'chocolate');
 check('размер текста сохранился',
   (await page.evaluate(
     () => getComputedStyle(document.documentElement).getPropertyValue('--reader-size').trim(),
-  )) === sizeAfter);
+  )) === sizeBeforeReload, sizeBeforeReload);
 
 /* 10. Ширина текста на большом экране */
 await page.setViewportSize({ width: 1100, height: 900 });

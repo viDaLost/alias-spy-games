@@ -3,6 +3,7 @@
 import { el, icon, ICONS, iconButton, toast, haptic, watchStuck, songsWord } from './ui.js';
 import {
   sectionHeader, songListItem, emptyState, skeletonList, virtualList, toggleRow,
+  bookCard, songCard, resumeCard,
 } from './components.js';
 import { store } from './store.js';
 import { typographySheet, applyTheme, fontLabel, themeLabel } from './typography.js';
@@ -54,15 +55,26 @@ export function homeScreen(nav) {
     const parts = [bar, search];
 
     if (recent.length) {
+      parts.push(el('div', { class: 'section' }, [
+        resumeCard(recent[0], collectionTitle(recent[0].c), openSong, icon(ICONS.chevron)),
+      ]));
+    }
+
+    parts.push(el('section', { class: 'section' }, [
+      sectionHeader('Сборники'),
+      el('div', { class: 'card-grid' }, data.collections().map((meta, index, list) => (
+        bookCard(meta, (item) => nav(`#/c/${item.id}`), list.length % 2 === 1 && index === list.length - 1)
+      ))),
+    ]));
+
+    if (recent.length > 1) {
       parts.push(el('section', { class: 'section' }, [
         sectionHeader('Недавние', recent.length > HOME_PREVIEW ? {
           label: 'Все',
           onClick: () => nav('#/recent'),
         } : null),
-        el('div', { class: 'list' }, recent.slice(0, HOME_PREVIEW).map((item) => songListItem(item, {
-          onOpen: openSong,
-          meta: collectionTitle(item.c),
-        }))),
+        el('div', { class: 'rail' }, recent.slice(1, HOME_PREVIEW + 1)
+          .map((item) => songCard(item, collectionTitle(item.c), openSong))),
       ]));
     }
 
@@ -72,31 +84,14 @@ export function homeScreen(nav) {
         onClick: () => nav('#/favorites'),
       } : null),
       favorites.length
-        ? el('div', { class: 'list' }, favorites.slice(0, HOME_PREVIEW).map((item) => songListItem(item, {
-          onOpen: openSong,
-          meta: collectionTitle(item.c),
-        })))
+        ? el('div', { class: 'rail' }, favorites.slice(0, HOME_PREVIEW)
+          .map((item) => songCard(item, collectionTitle(item.c), openSong)))
         : emptyState({
           inline: true,
           icon: ICONS.heart,
           title: 'Здесь появятся ваши любимые песни',
           text: 'Добавляйте песни в избранное, чтобы быстро находить их.',
         }),
-    ]));
-
-    parts.push(el('section', { class: 'section' }, [
-      sectionHeader('Сборники'),
-      el('div', { class: 'list' }, data.collections().map((meta) => el('button', {
-        type: 'button',
-        class: 'list-item',
-        onclick: () => nav(`#/c/${meta.id}`),
-      }, [
-        el('span', { class: 'list-item__body' }, [
-          el('span', { class: 'list-item__title', text: meta.title }),
-          el('span', { class: 'list-item__meta', text: `${songsWord(meta.count)} · ${meta.subtitle}` }),
-        ]),
-        el('span', { class: 'list-item__trailing', 'aria-hidden': 'true', html: icon(ICONS.chevron) }),
-      ]))),
     ]));
 
     screen.replaceChildren(...parts);

@@ -48,6 +48,50 @@ export function songListItem(entry, options) {
   ]);
 }
 
+/** Карточка сборника: буква-обложка, название и число песен. */
+export function bookCard(meta, onOpen, wide) {
+  return el('button', {
+    type: 'button',
+    class: `book-card tint-${meta.id}${wide ? ' book-card--wide' : ''}`,
+    onclick: () => onOpen(meta),
+  }, [
+    el('span', { class: 'book-card__cover', 'aria-hidden': 'true', text: meta.prefix }),
+    el('span', { class: 'book-card__body' }, [
+      el('span', { class: 'book-card__title', text: meta.title }),
+      el('span', { class: 'book-card__meta', text: `${meta.count} · ${meta.subtitle}` }),
+    ]),
+  ]);
+}
+
+/** Карточка песни для горизонтальной ленты. */
+export function songCard(entry, collectionTitle, onOpen) {
+  return el('button', {
+    type: 'button',
+    class: `song-card tint-${entry.c}`,
+    onclick: () => onOpen(entry),
+  }, [
+    el('span', { class: 'song-card__badge', text: `№${entry.n}` }),
+    el('span', { class: 'song-card__title', text: entry.t }),
+    el('span', { class: 'song-card__meta', text: collectionTitle }),
+  ]);
+}
+
+/** Крупная карточка «продолжить чтение». */
+export function resumeCard(entry, collectionTitle, onOpen, arrow) {
+  return el('button', {
+    type: 'button',
+    class: `resume-card tint-${entry.c}`,
+    onclick: () => onOpen(entry),
+  }, [
+    el('span', { class: 'resume-card__body' }, [
+      el('span', { class: 'resume-card__label', text: 'Продолжить' }),
+      el('span', { class: 'resume-card__title', text: entry.t }),
+      el('span', { class: 'resume-card__meta', text: `${collectionTitle} · №${entry.n}` }),
+    ]),
+    el('span', { class: 'resume-card__go', 'aria-hidden': 'true', html: arrow }),
+  ]);
+}
+
 /** Пустое состояние: иконка, заголовок, пояснение и одно действие. */
 export function emptyState(options) {
   return el('div', { class: `empty${options.inline ? ' empty--inline' : ''}` }, [

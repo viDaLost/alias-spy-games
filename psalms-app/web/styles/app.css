@@ -69,49 +69,87 @@
   --reader-font: var(--font-serif);
 }
 
-/* --- Темы ---------------------------------------------------------------- */
-
-:root,
-[data-theme='light'] {
-  --bg: #faf9f6;
-  --surface: #ffffff;
-  --surface-2: #f1efe9;
-  --surface-hover: #f5f3ee;
-  --border: rgba(23, 23, 23, .09);
-  --border-strong: rgba(23, 23, 23, .16);
-  --text: #171717;
-  --text-2: #6b6b6b;
-  --text-3: #9a9a9a;
-  --accent: #3346a8;
-  --accent-soft: rgba(51, 70, 168, .1);
-  --accent-on: #ffffff;
-  --mark: rgba(51, 70, 168, .14);
-  --scrim: rgba(23, 23, 23, .34);
-  --shadow-1: 0 1px 2px rgba(23, 23, 23, .05);
-  --shadow-2: 0 4px 16px rgba(23, 23, 23, .08);
-  --shadow-3: 0 -6px 32px rgba(23, 23, 23, .16);
-  --status-bar: #faf9f6;
+/* Оттенки сборников: приглушённые, только для узнавания — не для украшения. */
+:root {
+  --tint-unost: #a8703a;
+  --tint-gorlica: #a8496a;
+  --tint-sion: #5852b8;
+  --tint-mus: #7d4fa8;
+  --tint-poems: #2f7a68;
+  --tint-golosok: #2f6d9c;
+  --tint-kuvshin: #5b7a34;
+  --tint-alpha: .1;
 }
 
-[data-theme='sepia'] {
-  --bg: #f5ecda;
-  --surface: #fbf5e8;
-  --surface-2: #eee2c9;
-  --surface-hover: #f2e8d3;
-  --border: rgba(60, 44, 24, .14);
-  --border-strong: rgba(60, 44, 24, .24);
-  --text: #2e2418;
-  --text-2: #6b5b45;
-  --text-3: #907e63;
-  --accent: #7a5230;
-  --accent-soft: rgba(122, 82, 48, .13);
-  --accent-on: #fdf8ee;
-  --mark: rgba(122, 82, 48, .18);
-  --scrim: rgba(46, 36, 24, .38);
-  --shadow-1: 0 1px 2px rgba(60, 44, 24, .07);
-  --shadow-2: 0 4px 16px rgba(60, 44, 24, .1);
-  --shadow-3: 0 -6px 32px rgba(60, 44, 24, .2);
-  --status-bar: #f5ecda;
+:root,
+[data-theme='lavender'] {
+  --bg: #f5f4fb;
+  --surface: #ffffff;
+  --surface-2: #eceaf7;
+  --surface-hover: #f1eff9;
+  --border: rgba(30, 27, 45, .1);
+  --border-strong: rgba(30, 27, 45, .2);
+  --text: #1d1b2b;
+  --text-2: #635f7a;
+  --text-3: #918da6;
+  --accent: #5a4bc4;
+  --accent-soft: rgba(90, 75, 196, .12);
+  --accent-on: #ffffff;
+  --mark: rgba(90, 75, 196, .16);
+  --scrim: rgba(24, 21, 38, .38);
+  --shadow-1: 0 1px 2px rgba(30, 27, 45, .06);
+  --shadow-2: 0 4px 18px rgba(30, 27, 45, .1);
+  --shadow-3: 0 -6px 32px rgba(30, 27, 45, .18);
+}
+
+[data-theme='olive'] {
+  --bg: #f0f3e9;
+  --surface: #fbfcf6;
+  --surface-2: #e3e8d7;
+  --surface-hover: #e9eee0;
+  --border: rgba(34, 42, 25, .13);
+  --border-strong: rgba(34, 42, 25, .24);
+  --text: #202718;
+  --text-2: #5a6350;
+  --text-3: #879079;
+  --accent: #4c7031;
+  --accent-soft: rgba(76, 112, 49, .14);
+  --accent-on: #f8fbf2;
+  --mark: rgba(76, 112, 49, .18);
+  --scrim: rgba(32, 39, 24, .4);
+  --shadow-1: 0 1px 2px rgba(34, 42, 25, .07);
+  --shadow-2: 0 4px 18px rgba(34, 42, 25, .11);
+  --shadow-3: 0 -6px 32px rgba(34, 42, 25, .2);
+  --tint-sion: #4a54a8;
+  --tint-mus: #6f4a9c;
+}
+
+[data-theme='chocolate'] {
+  --bg: #211a16;
+  --surface: #2b221d;
+  --surface-2: #362a23;
+  --surface-hover: #31261f;
+  --border: rgba(255, 245, 235, .11);
+  --border-strong: rgba(255, 245, 235, .22);
+  --text: #f1e8e0;
+  --text-2: #b6a598;
+  --text-3: #857569;
+  --accent: #e0a874;
+  --accent-soft: rgba(224, 168, 116, .16);
+  --accent-on: #211a16;
+  --mark: rgba(224, 168, 116, .24);
+  --scrim: rgba(0, 0, 0, .58);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-2: 0 4px 18px rgba(0, 0, 0, .45);
+  --shadow-3: 0 -6px 32px rgba(0, 0, 0, .55);
+  --tint-unost: #e0a874;
+  --tint-gorlica: #e58a9e;
+  --tint-sion: #9b95ee;
+  --tint-mus: #bd93e0;
+  --tint-poems: #63c2ac;
+  --tint-golosok: #6bb0d8;
+  --tint-kuvshin: #a5c469;
+  --tint-alpha: .15;
 }
 
 [data-theme='dark'] {
@@ -130,9 +168,16 @@
   --mark: rgba(157, 176, 255, .22);
   --scrim: rgba(0, 0, 0, .6);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
-  --shadow-2: 0 4px 16px rgba(0, 0, 0, .45);
+  --shadow-2: 0 4px 18px rgba(0, 0, 0, .45);
   --shadow-3: 0 -6px 32px rgba(0, 0, 0, .55);
-  --status-bar: #121316;
+  --tint-unost: #d99b4e;
+  --tint-gorlica: #e08292;
+  --tint-sion: #8f9df0;
+  --tint-mus: #b39ae8;
+  --tint-poems: #5fc4ae;
+  --tint-golosok: #63b3dd;
+  --tint-kuvshin: #9dc45c;
+  --tint-alpha: .15;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -152,9 +197,16 @@
     --mark: rgba(157, 176, 255, .22);
     --scrim: rgba(0, 0, 0, .6);
     --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
-    --shadow-2: 0 4px 16px rgba(0, 0, 0, .45);
+    --shadow-2: 0 4px 18px rgba(0, 0, 0, .45);
     --shadow-3: 0 -6px 32px rgba(0, 0, 0, .55);
-    --status-bar: #121316;
+    --tint-unost: #d99b4e;
+    --tint-gorlica: #e08292;
+    --tint-sion: #8f9df0;
+    --tint-mus: #b39ae8;
+    --tint-poems: #5fc4ae;
+    --tint-golosok: #63b3dd;
+    --tint-kuvshin: #9dc45c;
+    --tint-alpha: .15;
   }
 }
 
@@ -330,6 +382,121 @@ svg {
 }
 .searchfield__clear:active { background: var(--surface-2); }
 .searchfield__clear svg { width: 18px; height: 18px; }
+
+/* --- Карточки сборников --------------------------------------------------- */
+
+.card-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3);
+  padding: 0 var(--page-padding);
+}
+
+.book-card {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  min-height: 116px; padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(var(--tint-fill), var(--tint-fill)),
+    var(--surface);
+  text-align: left; color: var(--text);
+  transition: transform var(--dur-1) var(--ease), box-shadow var(--dur-2) var(--ease);
+}
+.book-card:active { transform: scale(.985); }
+.book-card__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.book-card__cover {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  display: grid; place-items: center;
+  background: var(--tint); color: #fff;
+  font-size: var(--text-md); font-weight: 650;
+}
+[data-theme='dark'] .book-card__cover,
+[data-theme='chocolate'] .book-card__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.book-card__cover { color: #1a140f; }
+.book-card__title {
+  font-size: var(--text-md); font-weight: 600; letter-spacing: -.015em; line-height: 1.25;
+}
+.book-card__meta { margin-top: auto; font-size: var(--text-sm); color: var(--text-2); }
+.book-card--wide { grid-column: span 2; flex-direction: row; align-items: center; min-height: 84px; }
+.book-card--wide .book-card__meta { margin-top: 0; }
+
+.tint-unost { --tint: var(--tint-unost); --tint-fill: color-mix(in srgb, var(--tint-unost) calc(var(--tint-alpha) * 100%), transparent); }
+.tint-gorlica { --tint: var(--tint-gorlica); --tint-fill: color-mix(in srgb, var(--tint-gorlica) calc(var(--tint-alpha) * 100%), transparent); }
+.tint-sion { --tint: var(--tint-sion); --tint-fill: color-mix(in srgb, var(--tint-sion) calc(var(--tint-alpha) * 100%), transparent); }
+.tint-mus { --tint: var(--tint-mus); --tint-fill: color-mix(in srgb, var(--tint-mus) calc(var(--tint-alpha) * 100%), transparent); }
+.tint-poems { --tint: var(--tint-poems); --tint-fill: color-mix(in srgb, var(--tint-poems) calc(var(--tint-alpha) * 100%), transparent); }
+.tint-golosok { --tint: var(--tint-golosok); --tint-fill: color-mix(in srgb, var(--tint-golosok) calc(var(--tint-alpha) * 100%), transparent); }
+.tint-kuvshin { --tint: var(--tint-kuvshin); --tint-fill: color-mix(in srgb, var(--tint-kuvshin) calc(var(--tint-alpha) * 100%), transparent); }
+
+/* --- Горизонтальные ленты ------------------------------------------------- */
+
+.rail {
+  display: flex; gap: var(--sp-3);
+  padding: var(--sp-1) var(--page-padding) var(--sp-2);
+  overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+
+.song-card {
+  flex: none; width: 168px; min-height: 104px;
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background:
+    linear-gradient(var(--tint-fill), var(--tint-fill)),
+    var(--surface);
+  text-align: left; color: var(--text);
+  scroll-snap-align: start;
+  transition: transform var(--dur-1) var(--ease);
+}
+.song-card:active { transform: scale(.98); }
+.song-card__badge {
+  align-self: flex-start;
+  padding: 2px var(--sp-2);
+  border-radius: var(--radius-full);
+  background: var(--tint); color: #fff;
+  font-size: 11px; font-weight: 600;
+}
+[data-theme='dark'] .song-card__badge,
+[data-theme='chocolate'] .song-card__badge { color: #1a140f; }
+.song-card__title {
+  font-size: var(--text-sm); font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.song-card__meta { margin-top: auto; font-size: var(--text-xs); color: var(--text-2); }
+
+/* Карточка «продолжить чтение» */
+.resume-card {
+  display: flex; align-items: center; gap: var(--sp-3);
+  width: calc(100% - var(--page-padding) * 2);
+  margin: 0 var(--page-padding);
+  padding: var(--sp-4);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background:
+    linear-gradient(var(--tint-fill), var(--tint-fill)),
+    var(--surface);
+  text-align: left; color: var(--text);
+  transition: transform var(--dur-1) var(--ease);
+}
+.resume-card:active { transform: scale(.99); }
+.resume-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.resume-card__label {
+  font-size: var(--text-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--tint);
+}
+.resume-card__title {
+  font-size: var(--text-lg); font-weight: 600; letter-spacing: -.02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.resume-card__meta { font-size: var(--text-sm); color: var(--text-2); }
+.resume-card__go {
+  flex: none; width: 40px; height: 40px; border-radius: var(--radius-full);
+  display: grid; place-items: center;
+  background: var(--tint); color: #fff;
+}
+[data-theme='dark'] .resume-card__go,
+[data-theme='chocolate'] .resume-card__go { color: #1a140f; }
+.resume-card__go svg { width: 20px; height: 20px; }
 
 /* --- Списки -------------------------------------------------------------- */
 
@@ -679,11 +846,12 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 }
 .reader.is-stuck .reader__bar-title { opacity: 1; }
 
-.reader__scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.reader__body { position: relative; flex: 1; min-height: 0; }
+.reader__scroll { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .reader__page {
   max-width: var(--reading-width);
   margin: 0 auto;
-  padding: var(--sp-5) var(--page-padding) calc(var(--safe-bottom) + var(--sp-12));
+  padding: var(--sp-5) var(--page-padding) calc(var(--safe-bottom) + 104px);
 }
 
 .song-header { padding-bottom: var(--sp-5); }
@@ -745,6 +913,83 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2
 .favorite-button svg { transition: transform var(--dur-2) var(--ease); }
 .favorite-button[aria-pressed='true'] svg { fill: currentColor; stroke: none; }
 .favorite-button.is-bumped svg { transform: scale(1.15); }
+
+/* --- Панель управления чтением -------------------------------------------- */
+
+.reader__toolbar {
+  position: absolute; left: 50%; bottom: calc(var(--safe-bottom) + var(--sp-3));
+  z-index: 2;
+  width: min(calc(100% - var(--sp-8)), 460px);
+  transform: translateX(-50%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease);
+}
+.reader__toolbar.is-hidden {
+  opacity: 0; pointer-events: none;
+  transform: translateX(-50%) translateY(16px);
+}
+
+.toolbar__row {
+  display: flex; align-items: center; gap: var(--sp-1);
+  padding: var(--sp-2);
+}
+.toolbar__button {
+  flex: 1; min-height: 40px;
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-1);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--text-sm); font-weight: 550;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.toolbar__button:active { background: var(--surface-2); }
+.toolbar__button:disabled { color: var(--text-3); }
+.toolbar__button[aria-expanded='true'] { background: var(--surface-2); }
+.toolbar__button svg { width: 20px; height: 20px; }
+.toolbar__divider { width: 1px; height: 24px; background: var(--border); flex: none; }
+.toolbar__value {
+  min-width: 46px; text-align: center;
+  font-size: var(--text-sm); color: var(--text-2); font-variant-numeric: tabular-nums;
+}
+
+.toolbar__panel {
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 0 var(--sp-2) var(--sp-2);
+  border-top: 1px solid var(--border);
+  margin-top: -1px; padding-top: var(--sp-2);
+}
+.toolbar__panel[hidden] { display: none; }
+.toolbar__option {
+  flex: 1; min-height: 40px; padding: 0 var(--sp-2);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: var(--text-sm); color: var(--text-2);
+  transition: border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.toolbar__option[aria-pressed='true'] { border-color: var(--text); color: var(--text); font-weight: 600; }
+.toolbar__option--serif { font-family: var(--font-serif); }
+.toolbar__option--sans { font-family: var(--font-sans); }
+.toolbar__option--system { font-family: var(--font-system); }
+
+.swatch {
+  flex: 1; min-height: 40px;
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-2);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  font-size: var(--text-sm); color: var(--text-2);
+  transition: border-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.swatch[aria-pressed='true'] { border-color: var(--text); color: var(--text); font-weight: 600; }
+.swatch__dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--border-strong);
+}
+.swatch__dot--lavender { background: #f0edfb; }
+.swatch__dot--olive { background: #dfe6cf; }
+.swatch__dot--chocolate { background: #3a2c23; }
+.swatch__dot--dark { background: #1a1c20; }
+.swatch__dot--auto { background: linear-gradient(90deg, #f0edfb 50%, #1a1c20 50%); }
 
 /* --- Адаптивность -------------------------------------------------------- */
 
