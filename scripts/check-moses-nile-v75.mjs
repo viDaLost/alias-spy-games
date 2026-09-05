@@ -17,7 +17,7 @@ const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/m
 
 for (const token of [
   'V7.5.1 · LOADING',
-  'game-v75.js?v=770',
+  'game-v75.js?v=771',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
@@ -139,8 +139,10 @@ for (const token of [
   // египетская ладья, папирус и лотос.
   'buildRiggedHippo', 'HeadJaw_019', 'V752RiggedHippo', 'V752EgyptianShip',
   'buildTokenModel', 'TOKEN_MODELS',
-  // Крокодилы больше не сходятся в одну точку, бегемот не приезжает напоказ.
-  'separateCrocs', 'CROC_KEEPOUT', 'HIPPO_REVEAL', 'hippoAvailable',
+  // Бегемот не приезжает напоказ. За неподвижностью крокодилов следит
+  // отдельная проверка: сдвинуть их можно из десятка мест, и словом в
+  // исходнике это не поймать — check-moses-nile-crocs.mjs играет забег.
+  'HIPPO_REVEAL', 'hippoAvailable',
   'openTutorialOnFirstRun', 'TUTORIAL_KEY', 'finishLoading', 'setProgress',
   // Кадр под защитой: three перезапрашивает следующий кадр ПОСЛЕ вызова
   // обработчика, поэтому одно исключение внутри убивало игру навсегда.

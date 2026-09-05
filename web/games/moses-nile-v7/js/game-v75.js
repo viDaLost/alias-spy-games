@@ -3513,41 +3513,6 @@
     window.gameAudio?.playMilestone?.();
   }
 
-  /*
-    Страховка от наложения. Крокодил длиной в шесть с половиной метров, и
-    даже с одним охотником два зверя из соседних рядов могут оказаться в
-    одной точке — например, когда ряды идут вплотную на разгоне. Проход
-    разводит тех, кто сошёлся ближе двух с половиной метров по X при разнице
-    по Z меньше длины тела: обоих отталкивает симметрично, поэтому охота
-    не ломается, а слипшейся пары на воде не бывает.
-  */
-  const CROC_KEEPOUT = 2.5;
-  function separateCrocs(dt) {
-    const crocs = [];
-    for (const item of state.items) {
-      if (item.type === 'croc' && item.z > MESH_RANGE && item.z < 14) crocs.push(item);
-    }
-    if (crocs.length < 2) return;
-    const push = Math.min(1, dt * 6);
-    for (let a = 0; a < crocs.length; a += 1) {
-      for (let b = a + 1; b < crocs.length; b += 1) {
-        const first = crocs[a];
-        const second = crocs[b];
-        if (Math.abs(first.z - second.z) > OBSTACLES.croc.size) continue;
-        const gap = second.x - first.x;
-        const distance = Math.abs(gap);
-        if (distance >= CROC_KEEPOUT) continue;
-        // Совпали в ноль — расталкиваем по знаку дорожек, иначе по текущему сдвигу.
-        const dir = distance > 1e-3 ? Math.sign(gap) : (second.lane >= first.lane ? 1 : -1);
-        const shift = (CROC_KEEPOUT - distance) * .5 * push;
-        first.x -= dir * shift;
-        second.x += dir * shift;
-      }
-    }
-    const edge = LANES[2] + 1.2;
-    for (const croc of crocs) croc.x = clamp(croc.x, -edge, edge);
-  }
-
   function updateGameplay(dt) {
     state.inputLock = Math.max(0, state.inputLock - dt);
     state.x = damp(state.x, state.targetX, TUNE.laneDamp, dt);
@@ -3605,18 +3570,6 @@
     checkBiome();
     streamWorld(dt);
 
-    /*
-      Право подкрадываться к дорожке игрока есть только у одного крокодила —
-      ближайшего. Раньше к state.x тянулись все сразу: два зверя из соседних
-      рядов сходились в одну точку и налезали друг на друга, а игрок видел
-      одну кашу вместо двух препятствий. Остальные держат свою дорожку.
-    */
-    let stalker = null;
-    for (const other of state.items) {
-      if (other.type !== 'croc' || other.z >= -16 || other.z <= -70) continue;
-      if (!stalker || other.z > stalker.z) stalker = other;
-    }
-
     for (let i = state.items.length - 1; i >= 0; i -= 1) {
       const item = state.items[i];
       item.z += state.speed * dt;
@@ -3643,12 +3596,21 @@
         item.surface = approach;
         const closing = clamp((item.z + 22) / 20, 0, 1);
         item.bite = closing * (.45 + .55 * Math.sin(state.elapsed * 7.5 + item.phase));
-        if (difficulty() > .3 && item === stalker) {
-          // Подкрадывается к дорожке игрока, но перестаёт за шестнадцать метров.
-          item.x = damp(item.x, state.x, .55 + difficulty() * .9, dt);
-        } else if (Math.abs(item.x - LANES[item.lane]) > .01) {
-          item.x = damp(item.x, LANES[item.lane], 1.4, dt);
-        }
+        /*
+          Крокодил стоит на своей дорожке и не сходит с неё — как бегемот.
+
+          Раньше ближайший из них подкрадывался к дорожке игрока. Со стороны
+          это читалось не как охота, а как поломка: зверь, встреченный на
+          соседней дорожке, вдруг сам ехал под корзинку — «резко напал», — а
+          когда двое сходились, страховка от наложения расталкивала их в
+          стороны, и второй так же необъяснимо отплывал прочь. Уклоняться от
+          препятствия, которое само выбирает, где оказаться, нельзя: игрок
+          принимает решение по тому, что видит, а видел он неправду.
+
+          Ряды идут не ближе шестнадцати метров друг от друга при длине тела в
+          шесть с половиной, поэтому неподвижные крокодилы одной дорожки не
+          налезают друг на друга сами по себе — расталкивать больше нечего.
+        */
         if (approach < .6 && Math.random() < .09) {
           // Под водой его выдаёт только расходящаяся рябь.
           fx?.ripple?.(item.x, .015, item.z, .4, 2.8, 1.2, .26);
@@ -3731,7 +3693,6 @@
       if (item.z > 12) removeItem(i);
     }
 
-    separateCrocs(dt);
 
     // После водоворота корзинку медленно возвращает на свою дорожку.
     state.targetX = damp(state.targetX, LANES[state.lane], 1.1, dt);
