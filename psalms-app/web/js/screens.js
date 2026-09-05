@@ -303,9 +303,10 @@ export function collectionScreen(collectionId, nav) {
     )));
   });
 
-  screen.append(bar, filterRow, listHost);
+  const head = el('div', { class: 'stickyhead' }, [bar, filterRow]);
+  screen.append(head, listHost);
   draw(all);
-  watchStuck(screen, bar, 2);
+  watchStuck(screen, head, 2);
   screen.refresh = () => {
     const runway = listHost.querySelector('.vlist__runway');
     if (runway && runway.refresh) runway.refresh();

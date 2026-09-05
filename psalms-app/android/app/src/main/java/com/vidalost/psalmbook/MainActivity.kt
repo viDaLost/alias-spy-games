@@ -30,6 +30,9 @@ import androidx.webkit.WebViewFeature
 class MainActivity : ComponentActivity() {
 
     private lateinit var web: WebView
+    private var insetTop = 0f
+    private var insetBottom = 0f
+    private var pageReady = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +67,12 @@ class MainActivity : ComponentActivity() {
                     view: WebView,
                     request: WebResourceRequest,
                 ): WebResourceResponse? = loader.shouldInterceptRequest(request.url)
+
+                override fun onPageFinished(view: WebView, url: String) {
+                    // Отступы приходят раньше, чем документ, — повторяем после загрузки.
+                    pageReady = true
+                    pushInsets()
+                }
             }
 
             addJavascriptInterface(NativeBridge(this@MainActivity), "PsalmsNative")
@@ -97,21 +106,32 @@ class MainActivity : ComponentActivity() {
             val keyboard = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             val density = resources.displayMetrics.density
             view.setPadding(0, 0, 0, if (keyboard > bars.bottom) keyboard else 0)
-            val top = bars.top / density
-            val bottom = if (keyboard > bars.bottom) 0f else bars.bottom / density
-            web.evaluateJavascript(
-                """
-                (function () {
-                  var root = document.documentElement;
-                  if (!root) return;
-                  root.style.setProperty('--sat', '${top}px');
-                  root.style.setProperty('--sab', '${bottom}px');
-                })();
-                """.trimIndent(),
-                null,
-            )
+            insetTop = bars.top / density
+            insetBottom = if (keyboard > bars.bottom) 0f else bars.bottom / density
+            pushInsets()
             insets
         }
+        ViewCompat.requestApplyInsets(web)
+    }
+
+    private fun pushInsets() {
+        if (!pageReady) return
+        web.evaluateJavascript(
+            """
+            (function () {
+              var root = document.documentElement;
+              if (!root) return;
+              root.style.setProperty('--sat', '${insetTop}px');
+              root.style.setProperty('--sab', '${insetBottom}px');
+            })();
+            """.trimIndent(),
+            null,
+        )
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        web.setBackgroundColor(resources.getColor(R.color.window_bg, theme))
         ViewCompat.requestApplyInsets(web)
     }
 

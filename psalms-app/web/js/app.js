@@ -44,24 +44,39 @@ function screenFor(key) {
   return node;
 }
 
+/* Вкладки листаются вбок в сторону нажатой, остальные экраны — снизу вверх. */
+function slideDirection(from, to) {
+  const a = TABS.indexOf(from);
+  const b = TABS.indexOf(to);
+  if (a < 0 || b < 0 || a === b) return 0;
+  return b > a ? 1 : -1;
+}
+
 function activate(key) {
   if (activeKey === key) {
     const same = screens.get(key);
     if (same && same.refresh) same.refresh();
     return;
   }
+  const direction = slideDirection(activeKey, key);
   const previous = screens.get(activeKey);
   if (previous) {
     scrollMemory.set(activeKey, previous.scrollTop);
     previous.classList.remove('is-active');
     previous.classList.add('is-back');
-    setTimeout(() => previous.classList.remove('is-back'), 340);
+    if (direction) previous.style.transform = `translate3d(${-direction * 26}px, 0, 0)`;
+    setTimeout(() => {
+      previous.classList.remove('is-back');
+      previous.style.transform = '';
+    }, 340);
   }
   const node = screenFor(key);
   if (!node) return;
   if (node.refresh) node.refresh();
+  if (direction) node.style.transform = `translate3d(${direction * 26}px, 0, 0)`;
   requestAnimationFrame(() => {
     node.classList.add('is-active');
+    node.style.transform = '';
     const saved = scrollMemory.get(key);
     if (typeof saved === 'number') node.scrollTop = saved;
     if (node.focusInput && key === '#/search') node.focusInput();
