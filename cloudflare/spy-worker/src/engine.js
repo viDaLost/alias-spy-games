@@ -1,4 +1,4 @@
-// Движок онлайн-Шпиона. Чистая логика без сети и хранилища: на входе состояние
+// Движок онлайн-Соглядатая. Чистая логика без сети и хранилища: на входе состояние
 // комнаты и действие, на выходе изменённое состояние. Всё, что связано с
 // Durable Object, WebSocket и подписями, живёт в index.js.
 //
@@ -103,7 +103,7 @@ export function setSettings(room, playerId, settings, now = Date.now()) {
   if (room.status !== 'lobby') throw fail('Настройки меняются только до начала партии', 'NOT_IN_LOBBY');
   if (settings.spyCount !== undefined) {
     const value = Math.floor(Number(settings.spyCount));
-    if (!Number.isFinite(value) || value < 1) throw fail('Шпионов должно быть хотя бы один', 'BAD_SPY_COUNT');
+    if (!Number.isFinite(value) || value < 1) throw fail('Соглядатаев должно быть хотя бы один', 'BAD_SPY_COUNT');
     room.spyCount = value;
   }
   if (settings.roundSeconds !== undefined) {
@@ -128,7 +128,7 @@ export function startGame(room, playerId, locations, now = Date.now()) {
   if (room.status !== 'lobby' && room.status !== 'results') throw fail('Партия уже идёт', 'ROOM_IN_PROGRESS');
   const active = room.players.filter((item) => item.isActive !== false);
   if (active.length < MIN_PLAYERS) throw fail(`Нужно минимум ${MIN_PLAYERS} игрока`, 'NOT_ENOUGH_PLAYERS');
-  // Шпионов всегда меньше, чем горожан: иначе локацию некому знать.
+  // Соглядатаев всегда меньше, чем горожан: иначе локацию некому знать.
   const spyCount = Math.min(Math.max(1, Math.floor(room.spyCount || 1)), active.length - 1);
   const pool = Array.isArray(locations) ? locations.filter((item) => typeof item === 'string' && item.trim()) : [];
   if (!pool.length) throw fail('Список локаций пуст', 'NO_LOCATIONS', 500);
@@ -205,7 +205,7 @@ export function castVote(room, playerId, targetId, now = Date.now()) {
 
 export function spyGuess(room, playerId, guess, now = Date.now()) {
   const player = activePlayer(room, playerId);
-  if (player.role !== 'spy') throw fail('Угадывать локацию может только шпион', 'NOT_A_SPY', 403);
+  if (player.role !== 'spy') throw fail('Угадывать локацию может только соглядатай', 'NOT_A_SPY', 403);
   if (room.status !== 'discussion' && room.status !== 'voting') throw fail('Сейчас нельзя назвать локацию', 'BAD_STATUS');
   const correct = normalizeGuess(guess) === normalizeGuess(room.location);
   room.status = 'results';
@@ -233,7 +233,7 @@ function finishByVote(room, now) {
     else if (count === best) tie = true;
   }
   const spies = spyIds(room);
-  // Ничья — шпион остался неразоблачённым, это его победа.
+  // Ничья — соглядатай остался неразоблачённым, это его победа.
   const caught = !tie && accusedId && spies.includes(accusedId);
   room.status = 'results';
   room.outcome = {
@@ -390,7 +390,7 @@ function touch(room, now) {
   room.updatedAt = now;
 }
 
-// Криптостойкий выбор: Math.random в раздаче ролей — это предсказуемый шпион.
+// Криптостойкий выбор: Math.random в раздаче ролей — это предсказуемый соглядатай.
 export function randomInt(maxExclusive) {
   if (maxExclusive <= 0) return 0;
   const limit = Math.floor(0x100000000 / maxExclusive) * maxExclusive;

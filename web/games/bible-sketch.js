@@ -357,7 +357,7 @@ function startBibleSketchGame() {
     document.getElementById('bsk-content').innerHTML = `
       <div class="bsk-home">
         <section class="bsk-hero"><span class="bsk-kicker">Realtime · 3–8 игроков</span><h2>Рисуйте. Наблюдайте. Найдите шпиона.</h2><p>Все, кроме шпиона, знают библейское слово. Игроки по очереди продолжают общий рисунок, а шпион пытается понять ответ по подсказкам.</p>
-          <div class="bsk-rules"><div class="bsk-rule"><b>1 · Категория</b>Создатель комнаты выбирает Предметы, Места, Людей или События.</div><div class="bsk-rule"><b>2 · По очереди</b>Каждый получает 40 секунд и добавляет линии на общий холст.</div><div class="bsk-rule"><b>3 · Шпион</b>Может рискнуть и назвать ответ раньше голосования.</div></div>
+          <div class="bsk-rules"><div class="bsk-rule"><b>1 · Категория</b>Создатель комнаты выбирает одну из шести: Предметы, Места, Люди, События, Природа или Ремёсла.</div><div class="bsk-rule"><b>2 · По очереди</b>Каждый получает 40 секунд и добавляет линии на общий холст.</div><div class="bsk-rule"><b>3 · Шпион</b>Может рискнуть и назвать ответ раньше голосования.</div></div>
         </section>
         <div class="bsk-home-grid">
           <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Создать комнату</h3><label class="bsk-field"><span>Ваше имя</span><input id="bsk-player-name" class="bsk-input" maxlength="32" value="${attr(playerName)}"></label><div class="bsk-category-grid">${categoryCards}</div><p class="bsk-note">Слово в одной комнате не повторяется, пока не будут использованы все слова выбранной категории. После этого колода начинается заново.</p><button type="button" class="bsk-primary" data-action="create-room" style="width:100%;margin-top:10px">Создать лобби</button></section>

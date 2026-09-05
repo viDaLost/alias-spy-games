@@ -9,7 +9,7 @@
     { id: 'coimaginarium', title: 'Соображариум', icon: 'web/assets/icons/idea.webp?v=1' },
     { id: 'guess', title: 'Угадай персонажа', icon: 'web/assets/icons/character.webp?v=1' },
     { id: 'describe', title: 'Опиши, но не называй', icon: 'web/assets/icons/describe.webp?v=1' },
-    { id: 'spy', title: 'Шпион', icon: 'web/assets/icons/spy.webp?v=1' },
+    { id: 'spy', title: 'Соглядатай', icon: 'web/assets/icons/spy.webp?v=1' },
     { id: 'quartet', title: 'Квартет', icon: 'web/assets/icons/quartet.webp?v=1' },
     { id: 'bible-sketch', title: 'Библейский художник', icon: 'web/assets/icons/bible-sketch.webp?v=3' },
     { id: 'bible-wow', title: 'Библейские слова', icon: 'web/assets/icons/words.webp?v=1' },

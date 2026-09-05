@@ -1,4 +1,4 @@
-// Проверка онлайн-Шпиона: секреты не утекают, режимы на месте, списки локаций
+// Проверка онлайн-Соглядатая: секреты не утекают, режимы на месте, списки локаций
 // на клиенте и на сервере совпадают.
 //
 // Главное, что здесь стережётся, — то, ради чего движок вынесен отдельным
@@ -50,19 +50,19 @@ for (const token of ['startSpyOnlineGame', 'renderChatPanel', 'data-spy-chat-for
 }
 // Голосовой чат снят по просьбе владельца: проверка держит это состояние,
 // чтобы WebRTC не вернулся вместе с чужой правкой.
-for (const [name, source] of [['spy-online.js', online], ['воркер Шпиона', worker], ['движок Шпиона', engineSource]]) {
+for (const [name, source] of [['spy-online.js', online], ['воркер Соглядатая', worker], ['движок Соглядатая', engineSource]]) {
   for (const token of ['RTCPeerConnection', 'getUserMedia', 'createVoiceChat', 'relaySignal', 'setVoiceState']) {
     if (source.includes(token)) throw new Error(`Голосовой чат удалён, но ${name} снова содержит ${token}`);
   }
 }
 if (!index.includes('name="spy-backend"')) throw new Error('index.html: нет meta spy-backend');
-if (!appJs.includes('__spyOnlineCleanup')) throw new Error('web/js/app.js не убирает онлайн-сессию Шпиона при выходе');
+if (!appJs.includes('__spyOnlineCleanup')) throw new Error('web/js/app.js не убирает онлайн-сессию Соглядатая при выходе');
 
 // 3. Воркер: сигналинг, лимиты и запасной транспорт.
 for (const token of ['addChatMessage', 'ensureChat', 'buildView', 'DurableObject', 'verifySessionToken', 'ROOM_IDLE_TTL_MS']) {
-  if (!worker.includes(token)) throw new Error(`Воркер Шпиона потерял ${token}`);
+  if (!worker.includes(token)) throw new Error(`Воркер Соглядатая потерял ${token}`);
 }
-// Локация выбирается на сервере. Если бы её выбирал клиент, шпиону хватило
+// Локация выбирается на сервере. Если бы её выбирал клиент, соглядатаю хватило
 // бы вкладки сети, чтобы прочитать ответ.
 if (!worker.includes("startGame(this.room, playerId, LOCATIONS, now)")) {
   throw new Error('Воркер должен сам выбирать локацию из серверного списка');
@@ -80,13 +80,13 @@ for (let attempt = 0; attempt < 40; attempt += 1) {
 
   const spies = room.players.filter((item) => item.role === 'spy');
   const citizens = room.players.filter((item) => item.role === 'citizen');
-  if (spies.length !== 2) throw new Error(`Ожидалось два шпиона, получено ${spies.length}`);
+  if (spies.length !== 2) throw new Error(`Ожидалось два соглядатая, получено ${spies.length}`);
   if (!citizens.length) throw new Error('Не осталось ни одного горожанина');
 
   for (const spyPlayer of spies) {
     const view = JSON.stringify(buildView(room, spyPlayer.playerId));
-    if (view.includes(room.location)) throw new Error('Локация утекла шпиону до итогов');
-    if (view.includes('"citizen"')) throw new Error('Чужая роль утекла шпиону до итогов');
+    if (view.includes(room.location)) throw new Error('Локация утекла соглядатаю до итогов');
+    if (view.includes('"citizen"')) throw new Error('Чужая роль утекла соглядатаю до итогов');
   }
   for (const citizen of citizens) {
     const view = buildView(room, citizen.playerId);
@@ -123,7 +123,7 @@ for (let attempt = 0; attempt < 40; attempt += 1) {
   if (spyView.includes(room.location)) throw new Error('Локация утекла через чат');
 }
 
-// 5. Раздача честная: за много партий шпионом побывает каждый.
+// 5. Раздача честная: за много партий соглядатаем побывает каждый.
 const seen = new Set();
 for (let attempt = 0; attempt < 300; attempt += 1) {
   const room = createRoomState('TEST2', { playerId: 'p1', name: 'Хост' });
@@ -131,6 +131,6 @@ for (let attempt = 0; attempt < 300; attempt += 1) {
   startGame(room, 'p1', LOCATIONS);
   for (const player of room.players) if (player.role === 'spy') seen.add(player.playerId);
 }
-if (seen.size !== 4) throw new Error(`Шпион выпадал не всем: ${[...seen].join(', ')}`);
+if (seen.size !== 4) throw new Error(`Соглядатай выпадал не всем: ${[...seen].join(', ')}`);
 
-console.log(`OK: онлайн-Шпион — режимы на месте, ${LOCATIONS.length} локаций совпадают, текстовый чат без утечек, голосового чата нет.`);
+console.log(`OK: онлайн-Соглядатай — режимы на месте, ${LOCATIONS.length} локаций совпадают, текстовый чат без утечек, голосового чата нет.`);

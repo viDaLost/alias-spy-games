@@ -25,7 +25,7 @@
       icon: 'web/assets/icons/describe.webp?v=1', motif: 'describe',
     },
     spy: {
-      title: 'Шпион', eyebrow: 'Секретная игра', status: 'Шифруем роли…', status2: 'Выбираем тайную локацию…',
+      title: 'Соглядатай', eyebrow: 'Секретная игра', status: 'Шифруем роли…', status2: 'Выбираем тайную локацию…',
       icon: 'web/assets/icons/spy.webp?v=1', motif: 'spy',
     },
     quartet: {

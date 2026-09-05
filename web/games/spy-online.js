@@ -1,7 +1,7 @@
-// games/spy-online.js — «Шпион» по сети, с текстовым чатом.
+// games/spy-online.js — «Соглядатай» по сети, с текстовым чатом.
 //
 // Отличие от игры на одном телефоне: локацию и роли раздаёт воркер, и каждый
-// видит только свою. Клиент никогда не знает ни локацию (если он шпион), ни
+// видит только свою. Клиент никогда не знает ни локацию (если он соглядатай), ни
 // чужие роли — до экрана итогов их просто нет в приходящем состоянии.
 //
 // Транспорт двухуровневый, как в «Квартете»: WebSocket, а если он не встал
@@ -330,7 +330,7 @@ function startSpyOnlineGame() {
     screen = 'home';
     container.innerHTML = `
       <div class="spy-online-wrap fade-in">
-        <h2>🌐 Шпион по сети</h2>
+        <h2>🌐 Соглядатай по сети</h2>
         <p class="spy-online-lead">Каждый играет со своего телефона. Роль видит только её хозяин, а обсуждать можно прямо в игре — чат встроен.</p>
 
         ${errorText ? `<div class="spy-online-alert">${esc(errorText)}</div>` : ''}
@@ -430,7 +430,7 @@ function startSpyOnlineGame() {
       ${state.isHost ? `
         <div class="setup-grid">
           <div class="setup-block">
-            <label class="setup-label" for="spySpyCount">Шпионов</label>
+            <label class="setup-label" for="spySpyCount">Соглядатаев</label>
             <input id="spySpyCount" type="number" class="number-input input-lg" min="1" max="${Math.max(1, state.players.length - 1)}" value="${state.spyCount}">
           </div>
           <div class="setup-block">
@@ -439,7 +439,7 @@ function startSpyOnlineGame() {
           </div>
         </div>` : `
         <div class="card"><strong>Настройки ведущего</strong>
-          <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">Шпионов: ${state.spyCount} · обсуждение ${Math.round(state.roundSeconds / 60)} мин</p>
+          <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">Соглядатаев: ${state.spyCount} · обсуждение ${Math.round(state.roundSeconds / 60)} мин</p>
         </div>`}
       ${state.isHost
         ? `<button class="correct-button" data-spy-room="start" ${canStart ? '' : 'disabled'}>Раздать роли</button>
@@ -460,7 +460,7 @@ function startSpyOnlineGame() {
         </span>
         <span class="spy-online-card__face spy-online-card__front ${me.isSpy ? 'is-spy' : 'is-citizen'}">
           ${me.isSpy
-            ? '<span class="spy-online-card__role">Вы шпион</span><span class="spy-online-card__value">Локация неизвестна</span><span class="spy-online-card__hint">Слушайте и не выдайте себя</span>'
+            ? '<span class="spy-online-card__role">Вы соглядатай</span><span class="spy-online-card__value">Локация неизвестна</span><span class="spy-online-card__hint">Слушайте и не выдайте себя</span>'
             : `<span class="spy-online-card__role">Локация</span><span class="spy-online-card__value">${esc(state.location)}</span><span class="spy-online-card__hint">Найдите того, кто её не знает</span>`}
         </span>
       </button>
@@ -477,7 +477,7 @@ function startSpyOnlineGame() {
     return `
       <h2>🗣 Обсуждение</h2>
       <div class="spy-online-clock" data-spy-clock>—</div>
-      <p class="spy-online-lead">Задавайте вопросы по очереди. Шпион не знает локацию, но пытается её вычислить.</p>
+      <p class="spy-online-lead">Задавайте вопросы по очереди. Соглядатай не знает локацию, но пытается её вычислить.</p>
       ${me.isSpy ? '' : `<div class="card"><strong>Локация</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1.05rem;">${esc(state.location)}</p></div>`}
       ${me.isSpy ? renderGuessBlock() : ''}
       ${state.isHost ? '<button class="correct-button" data-spy-room="beginVoting">Перейти к голосованию</button>' : ''}
@@ -500,7 +500,7 @@ function startSpyOnlineGame() {
     const pending = state.players.filter((item) => !item.voted).length;
     return `
       <h2>🎯 Голосование</h2>
-      <p class="spy-online-lead">Кто, по-вашему, шпион? Голоса откроются, когда проголосуют все.</p>
+      <p class="spy-online-lead">Кто, по-вашему, соглядатай? Голоса откроются, когда проголосуют все.</p>
       <div class="spy-vote-list">
         ${options.map((item) => `
           <button class="spy-vote-option ${me.votedFor === item.playerId ? 'is-picked' : ''}" data-spy-vote="${esc(item.playerId)}">
@@ -519,19 +519,19 @@ function startSpyOnlineGame() {
     const accused = state.players.find((item) => item.playerId === outcome.accusedId);
     const guessed = outcome.kind === 'guess';
     return `
-      <h2>${outcome.spyWon ? '🕵️ Победа шпиона' : '🎉 Шпион раскрыт'}</h2>
+      <h2>${outcome.spyWon ? '🕵️ Победа соглядатая' : '🎉 Соглядатай раскрыт'}</h2>
       <div class="card spy-online-outcome ${outcome.spyWon ? 'is-spy' : 'is-town'}">
         <strong>Локация: ${esc(outcome.location || state.location)}</strong>
         <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">
           ${guessed
-            ? `Шпион назвал «${esc(outcome.guess)}» — ${outcome.spyWon ? 'и попал' : 'и промахнулся'}.`
+            ? `Соглядатай назвал «${esc(outcome.guess)}» — ${outcome.spyWon ? 'и попал' : 'и промахнулся'}.`
             : outcome.tie
-              ? 'Голоса разделились поровну, и шпион остался неразоблачённым.'
+              ? 'Голоса разделились поровну, и соглядатай остался неразоблачённым.'
               : `Больше всего голосов у игрока ${esc(accused?.name || '—')}.`}
         </p>
       </div>
       <div class="card">
-        <strong>Шпион${spies.length > 1 ? 'ы' : ''}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
+        <strong>Соглядатай${spies.length > 1 ? 'ы' : ''}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
       </div>
       ${outcome.tally?.length ? `
         <div class="spy-tally">
@@ -554,7 +554,7 @@ function startSpyOnlineGame() {
             <span class="spy-player-dot ${item.online ? 'is-online' : ''}"></span>
             <span class="spy-player-name">${esc(item.name)}</span>
             ${item.isHost ? '<span class="spy-player-tag">ведущий</span>' : ''}
-            ${item.role === 'spy' ? '<span class="spy-player-tag is-spy">шпион</span>' : ''}
+            ${item.role === 'spy' ? '<span class="spy-player-tag is-spy">соглядатай</span>' : ''}
             ${state.status === 'roles' && item.ready ? '<span class="spy-player-tag is-ok">готов</span>' : ''}
             ${state.status === 'voting' && item.voted ? '<span class="spy-player-tag is-ok">голос</span>' : ''}
           </div>`).join('')}
@@ -657,7 +657,7 @@ function startSpyOnlineGame() {
     container.querySelector('[data-spy-chat-input]')?.focus({ preventScroll: true });
   }
 
-  /** Виден ли элемент в окне: у «Шпиона» чат легко уезжает за край при прокрутке. */
+  /** Виден ли элемент в окне: у «Соглядатая» чат легко уезжает за край при прокрутке. */
   function onScreen(element) {
     if (!element) return false;
     const box = element.getBoundingClientRect();

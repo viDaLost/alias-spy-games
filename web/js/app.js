@@ -32,7 +32,7 @@ const GAME_GROUPS = [
       { key: "coimaginarium", title: "Соображариум", desc: "Ассоциации и быстрые идеи", icon: "idea" },
       { key: "guess", title: "Угадай персонажа", desc: "Вопросы, версии, логика", icon: "character" },
       { key: "describe", title: "Опиши, но не называй", desc: "Подсказки без прямого ответа", icon: "describe" },
-      { key: "spy", title: "Шпион", desc: "Секретная роль и локация", icon: "spy" },
+      { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
     ],
   },
@@ -798,7 +798,7 @@ function cleanupActiveGame() {
   try { window.__sacredWordCleanup?.(); } catch {}
   try { window.__kidsArkPairsCleanup?.(); } catch {}
   try { window.__quartetCleanup?.(); } catch {}
-  // Онлайн-Шпион держит сокет, таймеры и живые WebRTC-соединения с
+  // Онлайн-Соглядатай держит сокет, таймеры и живые WebRTC-соединения с
   // микрофоном: без явной уборки микрофон остался бы включённым после
   // выхода в меню.
   try { window.__spyOnlineCleanup?.(); } catch {}

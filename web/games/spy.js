@@ -340,7 +340,7 @@ function ensureSpyRoleCardStyles() {
 }
 
 /*
-  Точка входа в «Шпиона». Режима два: на одном телефоне (карта передаётся из
+  Точка входа в «Соглядатая». Режима два: на одном телефоне (карта передаётся из
   рук в руки — так игра работала всегда) и по сети, где каждый смотрит свою
   роль на своём экране и обсуждает в общем чате.
 
@@ -358,8 +358,8 @@ function showSpyModePicker(locationsUrl) {
   ensureSpyRoleCardStyles();
   container.innerHTML = `
     <div class="spy-mode-wrap fade-in">
-      <h2>🕵️ Шпион</h2>
-      <p class="spy-mode-lead">Один или несколько игроков — шпионы. Остальные знают локацию. Задача горожан — вычислить шпиона, задача шпиона — не выдать себя и угадать место.</p>
+      <h2>🕵️ Соглядатай</h2>
+      <p class="spy-mode-lead">Один или несколько игроков — соглядатаи. Остальные знают локацию. Задача горожан — вычислить соглядатая, задача соглядатая — не выдать себя и угадать место.</p>
 
       <button class="spy-mode-card" data-spy-mode="single" type="button">
         <span class="spy-mode-icon">📱</span>
@@ -427,10 +427,10 @@ async function startSpySingleDevice(locationsUrl) {
     allLocations = Array.isArray(locations) ? locations : [];
 
     document.getElementById("game-container").innerHTML = `
-      <h2>🕵️ Шпион</h2>
+      <h2>🕵️ Соглядатай</h2>
       <div class="card">
         <strong>Правила</strong>
-        <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Один или несколько игроков — шпионы. Остальные знают локацию. После раздачи ролей обсуждайте и голосуйте.</p>
+        <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;">Один или несколько игроков — соглядатаи. Остальные знают локацию. После раздачи ролей обсуждайте и голосуйте.</p>
       </div>
 
       <div class="setup-grid">
@@ -440,7 +440,7 @@ async function startSpySingleDevice(locationsUrl) {
           <p class="hint">От 3 до 20</p>
         </div>
         <div class="setup-block">
-          <label for="spyCount" class="setup-label">Количество шпионов</label>
+          <label for="spyCount" class="setup-label">Количество соглядатаев</label>
           <input type="number" id="spyCount" min="1" max="19" value="1" class="number-input input-lg">
           <p class="hint">Должно быть меньше игроков</p>
         </div>
@@ -483,7 +483,7 @@ function handleStartGame() {
     return;
   }
   if (spyCount < 1 || spyCount >= playerCount) {
-    alert("Шпионов должно быть минимум 1 и меньше, чем игроков");
+    alert("Соглядатаев должно быть минимум 1 и меньше, чем игроков");
     return;
   }
   if (!allLocations.length) {
@@ -496,7 +496,7 @@ function handleStartGame() {
   const players = Array.from({ length: playerCount }, (_, i) => ({ id: i + 1, role: "локация", revealed: false }));
   const spyIndices = pickUniqueRandomIndices(playerCount, spyCount);
   spyIndices.forEach(index => {
-    players[index].role = "шпион";
+    players[index].role = "соглядатай";
   });
 
   spyPlayers = players;
@@ -517,7 +517,7 @@ function showNextPlayerRole() {
   const player = spyPlayers[currentSpyIndex];
   player.revealed = false;
 
-  const isSpy = player.role === "шпион";
+  const isSpy = player.role === "соглядатай";
   const frontAsset = isSpy ? SPY_ROLE_CARD_ASSETS.spy : SPY_ROLE_CARD_ASSETS.player;
   const valueHTML = getSpyRoleValueHTML(player);
 
@@ -562,10 +562,10 @@ function showNextPlayerRole() {
 }
 
 function getSpyRoleValueHTML(player) {
-  if (player.role === "шпион") {
+  if (player.role === "соглядатай") {
     return `
       <span class="spy-card-value__eyebrow">Ваша роль</span>
-      <span class="spy-card-value__main spy-card-value__main--spy">Вы — шпион</span>
+      <span class="spy-card-value__main spy-card-value__main--spy">Вы — соглядатай</span>
       <span class="spy-card-value__note">Узнайте локацию по ответам игроков</span>
     `;
   }
@@ -625,13 +625,13 @@ function showFinalScreen() {
   container.innerHTML = `
     <h2>🎯 Голосование</h2>
     <div class="setup-block">
-      <label for="voteSelect" class="setup-label">Кто шпион?</label>
+      <label for="voteSelect" class="setup-label">Кто соглядатай?</label>
       <select id="voteSelect" class="input select input-lg">
         ${spyPlayers.map(p => `<option value="${p.id}">Игрок ${p.id}</option>`).join("")}
       </select>
     </div>
     <button onclick="submitVote()" class="correct-button">Проголосовать</button>
-    <button onclick="tryGuessLocation()" class="menu-button">Шпион угадывает локацию</button>
+    <button onclick="tryGuessLocation()" class="menu-button">Соглядатай угадывает локацию</button>
     <button onclick="goToMainMenu()" class="back-button">Главное меню</button>
   `;
 }
@@ -646,7 +646,7 @@ function tryGuessLocation() {
   container.innerHTML = `
     <h2>🔍 Угадай локацию</h2>
     <div class="setup-block">
-      <label for="locationInput" class="setup-label">Вариант шпиона</label>
+      <label for="locationInput" class="setup-label">Вариант соглядатая</label>
       <input type="text" id="locationInput" placeholder="Введите локацию" class="input input-lg" />
     </div>
     <button onclick="checkGuessedLocation()" class="correct-button">Проверить</button>
@@ -657,20 +657,20 @@ function tryGuessLocation() {
 function checkGuessedLocation() {
   const guess = document.getElementById("locationInput").value.trim().toLowerCase();
   const correct = String(sharedLocation).toLowerCase();
-  alert((guess === correct ? "🎉 Шпион угадал!" : "❌ Шпион не угадал.") + "\nЛокация: " + sharedLocation);
+  alert((guess === correct ? "🎉 Соглядатай угадал!" : "❌ Соглядатай не угадал.") + "\nЛокация: " + sharedLocation);
   showFinalScreen();
 }
 
 function showResults(votedId) {
   const container = document.getElementById("game-container");
-  const spies = spyPlayers.filter(p => p.role === "шпион").map(p => p.id);
+  const spies = spyPlayers.filter(p => p.role === "соглядатай").map(p => p.id);
   const guessedCorrectly = spies.includes(Number(votedId));
 
   container.innerHTML = `
     <h2>🏁 Конец игры</h2>
     <div class="card">
-      <strong>${guessedCorrectly ? "Шпионы найдены" : "Шпионы скрылись"}</strong>
-      <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;"><b>Шпионы:</b> ${spies.join(", ")}<br><b>Локация:</b> ${spySafe(sharedLocation)}</p>
+      <strong>${guessedCorrectly ? "Соглядатаи найдены" : "Соглядатаи скрылись"}</strong>
+      <p style="margin-top:8px; color:var(--ink-soft); font-size:1rem;"><b>Соглядатаи:</b> ${spies.join(", ")}<br><b>Локация:</b> ${spySafe(sharedLocation)}</p>
     </div>
     <button onclick="startSpyGame('web/data/spy_locations.json', 'single')" class="menu-button">Новая игра</button>
     <button onclick="startSpyGame('web/data/spy_locations.json')" class="menu-button">Сменить режим</button>
@@ -688,7 +688,7 @@ function shuffleArray(arr) {
 
   // Fisher–Yates даёт равномерное распределение.
   // sort(() => Math.random() - 0.5) создаёт перекос и как раз может
-  // часто выбирать одни и те же позиции при одном шпионе.
+  // часто выбирать одни и те же позиции при одном соглядатае.
   for (let i = result.length - 1; i > 0; i--) {
     const j = randomInt(i + 1);
     [result[i], result[j]] = [result[j], result[i]];

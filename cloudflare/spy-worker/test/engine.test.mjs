@@ -61,7 +61,7 @@ test('начать партию может только ведущий', () => {
   assert.throws(() => startGame(room, 'p2', LOCATIONS), /ведущий/);
 });
 
-test('шпионов всегда меньше, чем игроков', () => {
+test('соглядатаев всегда меньше, чем игроков', () => {
   const room = roomWith(4);
   setSettings(room, 'p1', { spyCount: 9 });
   startGame(room, 'p1', LOCATIONS);
@@ -70,7 +70,7 @@ test('шпионов всегда меньше, чем игроков', () => {
   assert.ok(room.players.some((item) => item.role === 'citizen'));
 });
 
-test('вид игрока не раскрывает чужие роли и локацию шпиону', () => {
+test('вид игрока не раскрывает чужие роли и локацию соглядатаю', () => {
   const room = roomWith(5);
   startGame(room, 'p1', LOCATIONS);
   const spy = room.players.find((item) => item.role === 'spy');
@@ -92,7 +92,7 @@ test('вид не содержит секретов ни в одном поле'
   startGame(room, 'p1', LOCATIONS);
   const spy = room.players.find((item) => item.role === 'spy');
   const serialized = JSON.stringify(buildView(room, spy.playerId));
-  assert.ok(!serialized.includes(room.location), 'локация утекла шпиону');
+  assert.ok(!serialized.includes(room.location), 'локация утекла соглядатаю');
   assert.ok(!serialized.includes('"citizen"'), 'чужая роль утекла');
 });
 
@@ -136,7 +136,7 @@ test('за себя голосовать нельзя, а голоса всех 
   assert.equal(room.outcome.accusedId, spy.playerId);
 });
 
-test('ничья в голосовании — победа шпиона', () => {
+test('ничья в голосовании — победа соглядатая', () => {
   const room = roomWith(4);
   startGame(room, 'p1', LOCATIONS);
   for (const player of room.players) markRoleSeen(room, player.playerId);
@@ -151,7 +151,7 @@ test('ничья в голосовании — победа шпиона', () =>
   assert.equal(room.outcome.accusedId, '');
 });
 
-test('шпион угадывает локацию без учёта регистра и буквы ё', () => {
+test('соглядатай угадывает локацию без учёта регистра и буквы ё', () => {
   const room = roomWith(3);
   startGame(room, 'p1', LOCATIONS);
   for (const player of room.players) markRoleSeen(room, player.playerId);
@@ -162,12 +162,12 @@ test('шпион угадывает локацию без учёта регис�
   assert.equal(room.outcome.spyWon, true);
 });
 
-test('горожанин не может назвать локацию за шпиона', () => {
+test('горожанин не может назвать локацию за соглядатая', () => {
   const room = roomWith(3);
   startGame(room, 'p1', LOCATIONS);
   for (const player of room.players) markRoleSeen(room, player.playerId);
   const citizen = room.players.find((item) => item.role === 'citizen');
-  assert.throws(() => spyGuess(room, citizen.playerId, 'Вавилон'), /шпион/);
+  assert.throws(() => spyGuess(room, citizen.playerId, 'Вавилон'), /соглядатай/);
 });
 
 test('на итогах роли и локация открыты всем', () => {

@@ -8,7 +8,7 @@
 
   const GAME_NAMES = {
     alias: 'Алиас', coimaginarium: 'Соображариум', guess: 'Угадай персонажа',
-    describe: 'Опиши, но не называй', spy: 'Шпион', quartet: 'Квартет',
+    describe: 'Опиши, но не называй', spy: 'Соглядатай', quartet: 'Квартет',
     'bible-sketch': 'Библейский художник', 'bible-wow': 'Библейские слова',
     'bible-wordsearch': 'Поиск слов', 'sacred-word': 'Священное слово',
     'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
