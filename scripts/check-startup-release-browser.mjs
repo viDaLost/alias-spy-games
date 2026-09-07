@@ -72,6 +72,7 @@ try {
       assert.equal(requests.length, 0, 'Denied users must not load admin interfaces');
     }
     if (['root','delegated'].includes(role)) {
+      await page.click('#more-entry');
       await page.waitForSelector('#admin-btn:not([hidden])');
       await page.click('#admin-btn');
       if (role === 'root') {
@@ -82,12 +83,15 @@ try {
       await page.waitForSelector('.admin-v2, .admin-page:not(.admin-loading)');
       const expected = role === 'root' ? 2 : 1;
       assert.equal(requests.length, expected);
+      assert.equal(await page.locator('#admin-btn').getAttribute('aria-busy'), null, 'Admin entry must stop showing a loading state');
       await page.evaluate(() => window.goToMainMenu());
+      await page.click('#more-entry');
       await page.click('#admin-btn');
       await page.waitForSelector('.admin-v2, .admin-page:not(.admin-loading)');
       assert.equal(requests.length, expected, 'Reopening admin must reuse the loaded bundle');
     }
     assert.deepEqual(errors, [], `${role}: uncaught browser errors`);
+    console.log(`Startup browser scenario passed: ${role}`);
     await context.close();
   }
   console.log('Startup browser checks passed: 13 cards, mobile themes, guest/denied/root/delegated entry, retry and reuse.');

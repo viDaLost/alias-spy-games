@@ -210,7 +210,8 @@
       notify('Не удалось загрузить панель. Проверьте связь и нажмите ещё раз', 'error');
       return;
     } finally {
-      entry?.removeAttribute('aria-busy');
+      // Enhancements may replace the button while their bundle initializes.
+      document.getElementById('admin-btn')?.removeAttribute('aria-busy');
     }
 
     if (role.isRoot && typeof window.openAdminPanelV2 === 'function') {
