@@ -201,6 +201,19 @@
       return;
     }
 
+    const entry = document.getElementById('admin-btn');
+    entry?.setAttribute('aria-busy', 'true');
+    try {
+      await window.loadAdminFeatures();
+      await window.__adminEnhancementsReady;
+    } catch {
+      notify('Не удалось загрузить панель. Проверьте связь и нажмите ещё раз', 'error');
+      return;
+    } finally {
+      // Enhancements may replace the button while their bundle initializes.
+      document.getElementById('admin-btn')?.removeAttribute('aria-busy');
+    }
+
     if (role.isRoot && typeof window.openAdminPanelV2 === 'function') {
       await window.openAdminPanelV2();
       mountRoleManager();

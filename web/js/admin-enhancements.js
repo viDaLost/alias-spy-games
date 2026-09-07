@@ -559,5 +559,5 @@
   window.openAdminPanelV2 = openAdminPanelV2;
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
-  else boot();
+  else window.__adminEnhancementsReady = boot();
 })();

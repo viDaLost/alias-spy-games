@@ -20,6 +20,7 @@ const compare = (rel, expected) => {
 
 compare(`web/dist/${fresh.cssName}`, fresh.css);
 compare(`web/dist/${fresh.jsName}`, fresh.js);
+compare(`web/dist/${fresh.adminName}`, fresh.admin);
 if (fs.readFileSync(path.join(root, 'index.html'), 'utf8') !== fresh.html) {
   problems.push('index.html does not reference the current bundle');
 }
@@ -50,7 +51,7 @@ if (mutated.sw === fresh.sw) {
 }
 
 const dist = fs.existsSync(path.join(root, 'web/dist')) ? fs.readdirSync(path.join(root, 'web/dist')) : [];
-const extra = dist.filter((name) => name !== fresh.cssName && name !== fresh.jsName);
+const extra = dist.filter((name) => name !== fresh.cssName && name !== fresh.jsName && name !== fresh.adminName);
 if (extra.length) problems.push(`leftover build output: ${extra.join(', ')}`);
 
 if (problems.length) {

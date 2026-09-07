@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { isBundled, scriptSources } from './web-sources.mjs';
+import { isBundled, scriptSources, adminScriptSources } from './web-sources.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const assert = (condition, message) => { if (!condition) throw new Error(`Cloudflare request budget check failed: ${message}`); };
@@ -76,12 +76,12 @@ assert(observabilityV7.includes("from './index-v6.js'"), 'v7 must preserve secur
 assert(isBundled('web/js/telemetry.js'), 'event-only telemetry cache key must be fresh');
 assert(html.includes('telegram-desktop-bootstrap-20260828'), 'production build marker must identify the current production bootstrap release');
 
-// Execution order is now the order of scriptSources: the bundle concatenates them
-// in exactly that sequence into one classic script.
+// The request budget must be active before eager telemetry and the lazy admin loader.
 const appIndex = scriptSources.indexOf('web/js/app.js');
 const budgetIndex = scriptSources.indexOf('web/js/cloudflare-request-budget.js');
 const telemetryIndex = scriptSources.indexOf('web/js/telemetry.js');
-const adminIndex = scriptSources.indexOf('web/js/admin-live-v3.js');
+const adminIndex = scriptSources.indexOf('web/js/admin-loader.js');
+assert(adminScriptSources.includes('web/js/admin-live-v3.js'), 'admin monitoring must ship in the lazy bundle');
 assert(appIndex >= 0 && budgetIndex > appIndex, 'request budget must load after the app/backend bridge is established');
 assert(telemetryIndex > budgetIndex && adminIndex > budgetIndex, 'request budget must wrap fetch before telemetry/admin monitoring starts');
 
