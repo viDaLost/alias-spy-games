@@ -315,7 +315,11 @@ if (store.published) await fail('кнопка «Убрать из рейтинг
 // --- 7. правка рейтинга администратором ------------------------------------------------
 await page.evaluate(() => (window.appGoToMainMenu || window.goToMainMenu)?.());
 await page.waitForTimeout(600);
-await page.evaluate(() => (window.openAdminPanelV2 || window.openAdminPanel)?.());
+await page.evaluate(async () => {
+  await window.loadAdminFeatures();
+  await window.__adminEnhancementsReady;
+  await (window.openAdminPanelV2 || window.openAdminPanel)?.();
+});
 // Панель показывает только выбранный раздел, поэтому сначала вкладка.
 await page.waitForSelector('#admin-rating-panel', { state: 'attached', timeout: 15_000 });
 const tab = await page.evaluate(() => {

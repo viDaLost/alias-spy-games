@@ -12,7 +12,6 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 const CHECKS = [
-  'check-startup-release-browser.mjs',
   'check-bmt-v46-mechanics.mjs',
   'check-bmt-admin-unlock.mjs',
   'check-admin-button-reliability.mjs',

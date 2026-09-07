@@ -93,7 +93,11 @@ await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
 await page.waitForTimeout(2500);
 await page.click('.referral-survey-later', { timeout: 6000 }).catch(() => {});
 
-await page.evaluate(() => window.openAdminPanelV2());
+await page.evaluate(async () => {
+  await window.loadAdminFeatures();
+  await window.__adminEnhancementsReady;
+  await window.openAdminPanelV2();
+});
 await page.waitForSelector('.admin-v3-nav [data-admin-v3-target="users"]', { timeout: 20_000 })
   .catch(() => fail('the admin panel never rendered its section tabs'));
 
