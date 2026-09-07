@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { isBundled, scriptSources } from './web-sources.mjs';
+import { isBundled, adminScriptSources } from './web-sources.mjs';
 
 const read = (path) => fs.readFileSync(path, 'utf8');
 const fail = (message) => { throw new Error(message); };
@@ -16,8 +16,8 @@ if (!mount.includes("querySelectorAll('.admin-v2__broadcast')")) fail('Broadcast
 if (!mount.includes("classList.add('admin-broadcast')")) fail('Broadcast mount bridge does not normalize the Cloudflare target class.');
 if (!broadcast.includes("document.querySelector('.admin-broadcast')")) fail('Cloudflare broadcast module does not hydrate the normalized target.');
 
-const mountIndex = scriptSources.indexOf('web/js/broadcast-admin-mount.js');
-const broadcastIndex = scriptSources.indexOf('web/js/broadcast-cloudflare.js');
+const mountIndex = adminScriptSources.indexOf('web/js/broadcast-admin-mount.js');
+const broadcastIndex = adminScriptSources.indexOf('web/js/broadcast-cloudflare.js');
 if (mountIndex < 0) fail('Broadcast mount bridge does not ship in the bundle.');
 if (broadcastIndex < 0) fail('Cloudflare broadcast module does not ship in the bundle.');
 if (mountIndex > broadcastIndex) fail('Broadcast mount bridge must execute before the Cloudflare broadcast module.');

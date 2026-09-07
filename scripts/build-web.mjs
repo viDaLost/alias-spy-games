@@ -1,4 +1,4 @@
-// Builds the eager web bundle that index.html loads.
+// Builds the eager app bundle and the admin bundle loaded on demand.
 //
 // GitHub Pages serves main:/ verbatim, so the build output is committed alongside
 // the sources. Run `npm run build` after touching anything in scripts/web-sources.mjs
@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import * as esbuild from 'esbuild';
-import { styleSources, scriptSources } from './web-sources.mjs';
+import { styleSources, scriptSources, adminScriptSources } from './web-sources.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.join(root, 'web', 'dist');
@@ -63,7 +63,7 @@ function concat(sources) {
 }
 
 export async function build({ write = true } = {}) {
-  const missing = [...styleSources, ...scriptSources].filter((s) => !fs.existsSync(path.join(root, s)));
+  const missing = [...styleSources, ...scriptSources, ...adminScriptSources].filter((s) => !fs.existsSync(path.join(root, s)));
   if (missing.length) throw new Error(`Bundle sources are missing:\n  ${missing.join('\n  ')}`);
 
   // web/dist sits at the same depth as web/styles and web/games, so the handful of
@@ -74,14 +74,12 @@ export async function build({ write = true } = {}) {
   });
   // Whitespace and dead syntax only: identifiers stay untouched, because these files
   // publish globals to each other and to inline onclick handlers in the markup.
-  const js = await esbuild.transform(concat(scriptSources), {
-    loader: 'js',
-    target: 'es2020',
-    minifyWhitespace: true,
-    minifySyntax: true,
-    minifyIdentifiers: false,
-  });
-  for (const warning of [...css.warnings, ...js.warnings]) {
+  const jsOptions = { loader: 'js', target: 'es2020', minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false };
+  const admin = await esbuild.transform(concat(adminScriptSources), jsOptions);
+  const adminName = `admin.${hash(admin.code)}.js`;
+  const eagerSource = concat(scriptSources).replace('__ADMIN_BUNDLE_URL__', `web/dist/${adminName}`);
+  const js = await esbuild.transform(eagerSource, jsOptions);
+  for (const warning of [...css.warnings, ...js.warnings, ...admin.warnings]) {
     console.warn(`esbuild: ${warning.text} (${warning.location?.file || 'bundle'})`);
   }
 
@@ -121,7 +119,10 @@ export async function build({ write = true } = {}) {
   for (const rel of precache) {
     digest.update(rel);
     const file = path.join(root, rel);
-    if (fs.existsSync(file)) digest.update(fs.readFileSync(file));
+    if (rel === 'index.html') digest.update(html);
+    else if (rel === `web/dist/${cssName}`) digest.update(css.code);
+    else if (rel === `web/dist/${jsName}`) digest.update(js.code);
+    else if (fs.existsSync(file)) digest.update(fs.readFileSync(file));
   }
   const swVersion = digest.digest('hex').slice(0, 10);
   let sw = read('sw.js');
@@ -135,6 +136,7 @@ export async function build({ write = true } = {}) {
   const files = [
     [path.join(distDir, cssName), css.code],
     [path.join(distDir, jsName), js.code],
+    [path.join(distDir, adminName), admin.code],
     [path.join(root, 'index.html'), html],
     [path.join(root, 'sw.js'), sw],
   ];
@@ -143,13 +145,15 @@ export async function build({ write = true } = {}) {
     fs.rmSync(distDir, { recursive: true, force: true });
     fs.mkdirSync(distDir, { recursive: true });
     for (const [file, content] of files) fs.writeFileSync(file, content);
+    // Use UTF-8 bytes, including Cyrillic text, when reporting payload size.
     const kb = (n) => `${Math.round(n / 1024)} KiB`;
-    console.log(`web/dist/${cssName}  ${kb(css.code.length)}  (from ${styleSources.length} stylesheets)`);
-    console.log(`web/dist/${jsName}  ${kb(js.code.length)}  (from ${scriptSources.length} scripts)`);
+    console.log(`web/dist/${cssName}  ${kb(Buffer.byteLength(css.code))}  (from ${styleSources.length} stylesheets)`);
+    console.log(`web/dist/${jsName}  ${kb(Buffer.byteLength(js.code))}  (from ${scriptSources.length} scripts)`);
+    console.log(`web/dist/${adminName}  ${kb(Buffer.byteLength(admin.code))}  (loaded on demand)`);
     console.log(`sw.js  версия ${swVersion}, ${precache.length} файлов в кеше установки`);
   }
 
-  return { cssName, jsName, css: css.code, js: js.code, html, sw, swVersion, precache };
+  return { adminName, admin: admin.code, cssName, jsName, css: css.code, js: js.code, html, sw, swVersion, precache };
 }
 
 if (process.argv[1] === import.meta.filename) await build();

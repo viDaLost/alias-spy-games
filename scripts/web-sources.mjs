@@ -64,6 +64,7 @@ export const scriptSources = [
   'web/js/startup-coordinator.js',
   'web/games/kids-ark-pairs.js',
   'web/js/quartet-production-v43-loader.js',
+  'web/js/game-card-details.js',
   'web/js/app.js',
   'web/js/home-parallax-v1.js',
   'web/js/cloudflare-request-budget.js',
@@ -96,9 +97,6 @@ export const scriptSources = [
   'web/js/v36-biblical-treasures-special-art.js',
   'web/js/v37-biblical-treasures-lamp-swipe.js',
   'web/js/v38-biblical-treasures-experience.js',
-  'web/js/admin-enhancements.js',
-  'web/js/broadcast-admin-mount.js',
-  'web/js/broadcast-cloudflare.js',
   'web/js/home-enhancements.js',
   'web/js/home-controls.js',
   'web/js/app-motion.js',
@@ -109,9 +107,7 @@ export const scriptSources = [
   'web/js/telemetry.js',
   'web/js/presence-identity.js',
   'web/js/presence-game-bridge.js',
-  'web/js/admin-live-v3.js',
-  'web/js/admin-live-rescue.js',
-  'web/js/admin-shell-v3.js',
+  'web/js/admin-loader.js',
   'web/js/admin-live-modal-safety.js',
   'web/js/support-center.js',
   'web/js/offline.js',
@@ -121,11 +117,20 @@ export const scriptSources = [
   'web/js/game-rules-demos.js',
   'web/js/game-rules.js',
   'web/js/leaderboard.js',
-  'web/js/leaderboard-admin.js',
   'web/js/more-screen.js',
   'web/js/game-frame-safe-area.js',
 ];
-const bundled = new Set([...styleSources, ...scriptSources]);
+// Loaded only after the administrator opens the panel; order is significant.
+export const adminScriptSources = [
+  'web/js/admin-enhancements.js',
+  'web/js/broadcast-admin-mount.js',
+  'web/js/broadcast-cloudflare.js',
+  'web/js/admin-live-v3.js',
+  'web/js/admin-live-rescue.js',
+  'web/js/admin-shell-v3.js',
+  'web/js/leaderboard-admin.js',
+];
+const bundled = new Set([...styleSources, ...scriptSources, ...adminScriptSources]);
 
-/** True when a stylesheet or script ships to the browser inside the eager bundle. */
+/** True when a stylesheet or script ships to the browser inside either generated bundle. */
 export const isBundled = (source) => bundled.has(source);

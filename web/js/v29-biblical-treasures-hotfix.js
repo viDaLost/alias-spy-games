@@ -208,28 +208,6 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
     });
   }
 
-  function installArkGuard() {
-    document.addEventListener('click', (event) => {
-      const ark = event.target?.closest?.('[data-booster="ark"]');
-      if (!ark || !isBiblicalGame()) return;
-      const nativeMap = Array.prototype.map;
-      if (nativeMap.__bmtArkGuardV29) return;
-      function guardedMap(callback, thisArg) {
-        const array = this;
-        const shaped = Array.isArray(array) && array.some((value) => value === null) && array.some((value) => value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, 'type'));
-        if (!shaped || typeof callback !== 'function') return nativeMap.call(array, callback, thisArg);
-        return nativeMap.call(array, (value, index, source) => {
-          if (value !== null) return callback.call(thisArg, value, index, source);
-          try { return callback.call(thisArg, value, index, source); }
-          catch (error) { if (error instanceof TypeError) return -1; throw error; }
-        });
-      }
-      guardedMap.__bmtArkGuardV29 = true;
-      Array.prototype.map = guardedMap;
-      setTimeout(() => { if (Array.prototype.map === guardedMap) Array.prototype.map = nativeMap; }, 0);
-    }, true);
-  }
-
   function boardTargeting(board) { return board?.classList?.contains('is-targeting'); }
   function lampTile(node) { return node?.closest?.('.bmt-tile.has-lamp'); }
   function blockLampClick(event) {
@@ -288,7 +266,6 @@ body[data-current-game="biblical-match-three"] .bmt-v31-star-rules span{display:
     requestAnimationFrame(patchAll);
   }
   function start() {
-    installArkGuard();
     installLampGuards();
     patchAll();
     const progressTimer = window.setInterval(() => {

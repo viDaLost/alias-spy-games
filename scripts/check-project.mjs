@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { styleSources, scriptSources } from './web-sources.mjs';
+import { styleSources, scriptSources, adminScriptSources } from './web-sources.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -129,7 +129,7 @@ const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|json|webm
 const runtimeReferenceText = new Map(
   runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
 );
-const bundledSources = new Set([...styleSources, ...scriptSources]);
+const bundledSources = new Set([...styleSources, ...scriptSources, ...adminScriptSources]);
 const publishedFiles = files.filter((file) => rel(file).startsWith('web/') && !isPreviewOnly(file));
 
 for (const file of publishedFiles) {
@@ -156,11 +156,13 @@ for (const [kind, pattern] of [['stylesheet', /<link rel="stylesheet" href="(web
   if (!built) failures.push(`index.html does not reference a built bundle ${kind}`);
   else if (!fs.existsSync(path.join(root, built))) failures.push(`Built bundle ${kind} is missing: ${built}`);
 }
-for (const source of [...styleSources, ...scriptSources]) {
+for (const source of [...styleSources, ...scriptSources, ...adminScriptSources]) {
   if (!fs.existsSync(path.join(root, source))) failures.push(`Bundle source is missing: ${source}`);
 }
 const distFiles = files.filter((f) => rel(f).startsWith('web/dist/')).map(rel);
-const staleDist = distFiles.filter((name) => !indexHtml.includes(name));
+const eagerPath = indexHtml.match(/web\/dist\/app\.[0-9a-f]+\.js/)?.[0];
+const eagerText = eagerPath && fs.existsSync(eagerPath) ? fs.readFileSync(eagerPath, 'utf8') : '';
+const staleDist = distFiles.filter((name) => !indexHtml.includes(name) && !eagerText.includes(name));
 if (staleDist.length) failures.push(`Stale build output not referenced by index.html: ${staleDist.join(', ')}`);
 
 /*
