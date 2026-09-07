@@ -1,0 +1,114 @@
+/*
+  Живой фон игры — слои сцены под экраном игры.
+
+  Показывается только в тёмной теме: арт ночной, и за светлыми карточками
+  светлой темы он читался бы грязным пятном. Правило продублировано и здесь, и
+  в game-scene-parallax.js: скрипт сцену не создаёт, стили её не показывают —
+  ошибиться придётся дважды.
+*/
+.game-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  /* Сцена — картинка, а не элемент управления: касания идут сквозь неё. */
+  pointer-events: none;
+  isolation: isolate;
+  background: #07080f;
+  opacity: 0;
+  transition: opacity .42s ease;
+}
+
+.game-scene.is-ready { opacity: 1; }
+
+/* Светлая тема о сцене не знает — даже если её кто-то создал. */
+html:not(.theme-dark) .game-scene { display: none !important; }
+
+.game-scene__layer {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  object-fit: cover;
+  object-position: center;
+  opacity: var(--layer-opacity, 1);
+  filter: var(--layer-filter, none);
+  transform: translate3d(0, var(--layer-y, 0), 0) scale(var(--layer-scale, 1.06));
+  user-select: none;
+  -webkit-user-drag: none;
+  backface-visibility: hidden;
+}
+
+/*
+  Полог поверх слоёв.
+
+  Верх темнее низа, и это не вкусовщина. Заголовок игры и подпись под ним стоят
+  в первой трети экрана, а там на картинках как раз самое светлое: луна у
+  «Соглядатая», закатное небо у «Алиаса». Без плотного верха «Выберите уровень
+  сложности» пропадало в облаках — это видно на первом же снимке.
+*/
+.game-scene__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  background:
+    radial-gradient(circle at 50% 14%, rgba(236, 212, 146, .06), transparent 40%),
+    linear-gradient(180deg,
+      rgba(3, 5, 12, .74) 0%,
+      rgba(3, 5, 12, .58) 30%,
+      rgba(2, 4, 10, .5) 58%,
+      rgba(2, 4, 10, .66) 100%);
+}
+
+/* Светлее там, где поле игры само по себе тёмное и занимает почти весь экран. */
+.game-scene[data-scene="quartet"] .game-scene__veil,
+.game-scene[data-scene="bible-sketch"] .game-scene__veil,
+.game-scene[data-scene="bible-wordsearch"] .game-scene__veil {
+  background: linear-gradient(180deg, rgba(3, 8, 10, .56) 0%, rgba(3, 8, 10, .34) 40%, rgba(3, 8, 9, .5) 100%);
+}
+
+/*
+  Тень под буквами. Полог выравнивает фон, но не делает его ровным: под текстом
+  всё равно то камень, то небо. Тень стоит только там, где текст лежит прямо на
+  сцене, — внутри карточек и кнопок у него свой фон, и там она не нужна.
+*/
+body.has-game-scene #game-container > h1,
+body.has-game-scene #game-container > h2,
+body.has-game-scene #game-container > p,
+body.has-game-scene #game-container > .hint,
+body.has-game-scene #game-container > .theme-label,
+body.has-game-scene .app-header h1,
+body.has-game-scene .app-header .app-subtitle {
+  text-shadow: 0 2px 12px rgba(2, 4, 10, .92), 0 1px 3px rgba(2, 4, 10, .8);
+}
+
+/*
+  Приглушённый текст на сцене светлеет. Серый подзаголовок задумывался для
+  ровного тёмного фона; на картинке он теряется даже с тенью — «Один или
+  несколько игроков — соглядатаи» читалось через силу.
+*/
+body.has-game-scene #game-container > p,
+body.has-game-scene #game-container > .hint {
+  color: rgba(255, 250, 240, .86) !important;
+}
+
+/*
+  Экран игры поднимается над сценой. Без этого он остаётся в общем потоке
+  вместе с ней, и порядок отрисовки решает случай.
+*/
+body.has-game-scene .app-header,
+body.has-game-scene #menu-container,
+body.has-game-scene #game-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Плоский фон тёмной темы уступает место сцене. */
+html.theme-dark body.has-game-scene[data-mode="game"] {
+  background: transparent !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-scene { transition: none; }
+  .game-scene__layer { transform: scale(var(--layer-scale, 1.06)); }
+}

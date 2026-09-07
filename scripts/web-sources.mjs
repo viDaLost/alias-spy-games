@@ -50,6 +50,7 @@ export const styleSources = [
   // Собирается scripts/build-dark-theme.mjs из всех перечисленных выше файлов,
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
+  'web/styles/game-scene-parallax.css',
 ];
 
 export const scriptSources = [
@@ -119,6 +120,7 @@ export const scriptSources = [
   'web/js/leaderboard.js',
   'web/js/more-screen.js',
   'web/js/game-frame-safe-area.js',
+  'web/js/game-scene-parallax.js',
 ];
 // Loaded only after the administrator opens the panel; order is significant.
 export const adminScriptSources = [
