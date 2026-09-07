@@ -968,6 +968,9 @@ html.theme-dark .home-gamehub-parallax__scene {
   background: radial-gradient(circle at 50% 18%, rgba(12, 33, 60, 0.94), transparent 40%),
     linear-gradient(180deg, #0c2638 0%, #0c213c 46%, #0f12a8 100%) !important;
 }
+html.theme-dark:not(.theme-dark) .home-gamehub-parallax__scene::after {
+  background: linear-gradient(180deg, rgba(7, 21, 40, 0.64), rgba(8, 26, 47, 0.56)) !important;
+}
 html.theme-dark.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .game-card {
   background: rgba(20, 20, 20, 0.8) !important;
   border-color: rgba(12, 33, 60, 0.82) !important;
@@ -2747,6 +2750,25 @@ html.theme-dark .chat-toast {
 }
 html.theme-dark .chat-toast__name {
   color: #4035c7 !important;
+}
+
+/* web/styles/game-scene-parallax.css */
+html.theme-dark:not(.theme-dark) .game-scene {
+  background: #08142b !important;
+}
+html.theme-dark.theme-dark .game-scene__veil {
+  background: radial-gradient(circle at 50% 14%, rgba(111, 91, 38, 0.06), transparent 40%),
+    linear-gradient(180deg,
+      rgba(3, 5, 12, .74) 0%,
+      rgba(3, 5, 12, .58) 30%,
+      rgba(2, 4, 10, .5) 58%,
+      rgba(2, 4, 10, .66) 100%) !important;
+}
+html.theme-dark:not(.theme-dark) .game-scene__veil {
+  background: radial-gradient(88% 52% at 50% -8%, rgba(20, 20, 20, 0.96), transparent 62%),
+    radial-gradient(64% 40% at 6% 22%, rgba(15, 44, 80, 0.58), transparent 66%),
+    radial-gradient(70% 46% at 98% 34%, rgba(27, 70, 97, 0.5), transparent 68%),
+    linear-gradient(178deg, rgba(7, 20, 40, 0.9) 0%, rgba(13, 34, 54, 0.8) 46%, rgba(18, 43, 61, 0.88) 100%) !important;
 }
 
 /* web/games/quartet-v2.css */

@@ -292,18 +292,40 @@ try {
     }
   }
 
-  // 4. Своя сцена у каждой игры, а не одна на всех.
+  /*
+    4. Облегчённый полог отдельных игр жив. У «Квартета» и «Художника» поле
+    занимает почти весь экран и само по себе тёмное, поэтому полог им сделан
+    слабее общего. Правило это легко теряется молча: тёмную тему приложение
+    выводит из тех же файлов машинально и дописывает копиям !important, а копия
+    с !important сильнее любого правила без него. На вид разница неброская —
+    поймать её может только сравнение.
+  */
+  await setTheme(true);
+  const veilOf = async (key) => {
+    await openGame(key);
+    await page.waitForTimeout(300);
+    return page.evaluate(() => getComputedStyle(document.querySelector('.game-scene__veil')).backgroundImage);
+  };
+  const commonVeil = await veilOf('alias');
+  for (const key of ['quartet', 'bible-sketch', 'bible-wordsearch']) {
+    if (await veilOf(key) === commonVeil) {
+      fail(`У «${key}» полог стал общим — облегчённое правило проиграло тёмной теме`);
+    }
+  }
+  await setTheme(false);
+
+  // 5. Своя сцена у каждой игры, а не одна на всех.
   await openGame('spy');
   await page.waitForTimeout(300);
   state = await sceneState();
   if (state.key !== 'spy') fail(`При переходе в «Соглядатая» сцена осталась «${state.key}»`);
 
-  // 5. У «Моисея на Ниле» свой мир во весь экран — чужой фон под ним не нужен.
+  // 6. У «Моисея на Ниле» свой мир во весь экран — чужой фон под ним не нужен.
   await openGame('moses-nile');
   state = await sceneState();
   if (state.present && state.display !== 'none') fail('У «Моисея на Ниле» под трёхмерным миром висит лишняя сцена');
 
-  // 6. Возврат в меню сцену убирает: у меню свой параллакс.
+  // 7. Возврат в меню сцену убирает: у меню свой параллакс.
   await page.evaluate(() => window.goToMainMenu?.());
   await page.waitForTimeout(400);
   state = await sceneState();

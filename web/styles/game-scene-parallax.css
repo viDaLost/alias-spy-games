@@ -70,6 +70,19 @@ html:not(.theme-dark) .game-scene__layer {
   position: absolute;
   inset: 0;
   z-index: 90;
+}
+
+/*
+  Цвет полога всегда назван вместе с темой, общего правила у него нет.
+
+  Тёмную тему приложение выводит из этих же файлов машинально, и правило с
+  тёмным цветом оно копирует себе как есть, дописав !important. Копия сильнее
+  всего, что стоит ниже без !important, — поэтому облегчённый полог отдельных
+  игр тоже помечен им (специфичность у него выше, и при равном !important
+  побеждает он). Имя темы в селекторе не обязательно для этого, но оставляет
+  обе стороны симметричными и делает копию предсказуемой.
+*/
+html.theme-dark .game-scene__veil {
   background:
     radial-gradient(circle at 50% 14%, rgba(236, 212, 146, .06), transparent 40%),
     linear-gradient(180deg,
@@ -83,7 +96,7 @@ html:not(.theme-dark) .game-scene__layer {
 html.theme-dark .game-scene[data-scene="quartet"] .game-scene__veil,
 html.theme-dark .game-scene[data-scene="bible-sketch"] .game-scene__veil,
 html.theme-dark .game-scene[data-scene="bible-wordsearch"] .game-scene__veil {
-  background: linear-gradient(180deg, rgba(3, 8, 10, .56) 0%, rgba(3, 8, 10, .34) 40%, rgba(3, 8, 9, .5) 100%);
+  background: linear-gradient(180deg, rgba(3, 8, 10, .56) 0%, rgba(3, 8, 10, .34) 40%, rgba(3, 8, 9, .5) 100%) !important;
 }
 
 /*
