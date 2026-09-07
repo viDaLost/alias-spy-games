@@ -18,7 +18,7 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.id = 'bible-sketch-card';
-    button.className = 'game-card';button.setAttribute("aria-describedby", "game-details-bible-sketch game-network-note");
+    button.className = 'game-card';button.setAttribute("aria-describedby", "game-details-bible-sketch");
     button.dataset.gameKey = GAME_KEY;
     button.setAttribute('onclick', `showGame('${GAME_KEY}')`);
     button.setAttribute('aria-label', `Открыть игру ${GAME_TITLE}`);

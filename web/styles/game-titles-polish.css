@@ -23,7 +23,6 @@ body[data-mode="game"] #game-container .alias-title {
 /* Useful on narrow phones too: these are independent of the hidden description. */
 .game-card__details { display:flex; flex-wrap:wrap; justify-content:center; gap:3px 8px; margin-top:6px; font-size:11px; line-height:1.4; font-weight:500; color:var(--ink-soft); }
 .game-card__details > span { max-width:100%; }
-.game-network-note { margin:12px 4px; font-size:12px; line-height:1.5; color:var(--ink-soft); }
 @media (min-width: 720px) { .game-card__details { justify-content:flex-start; } }
 
 #admin-btn[aria-busy="true"] { opacity:.65; cursor:progress; }

@@ -437,7 +437,7 @@ function openSupportChat() {
 
 function renderGameButton(item) {
   return `
-    <button type="button" class="game-card" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key} game-network-note">
+    <button type="button" class="game-card" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
