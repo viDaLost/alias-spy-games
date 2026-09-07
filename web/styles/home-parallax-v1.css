@@ -88,6 +88,32 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
   object-position: 50% 52%;
 }
 
+/*
+  Светлая тема: иллюстрация уходит на шаг назад.
+
+  Картина нарисована светлой, но не ровной: тёмно-синяя архитектура и золото
+  ламп местами проваливаются до 0.29 яркости, а подписи секций идут тёмным
+  прямо по ней, без карточки под ними. Тёмная тема лечит ту же беду затемнением
+  до brightness(.4) — светлой нужно обратное: приподнять тёмные места, убавить
+  пестроту и накрыть всё той же светлой пеленой, что лежит под экраном игры.
+  Картина остаётся узнаваемой, но перестаёт спорить с текстом.
+
+  Пелена — отдельный слой поверх картинок, и z-index ей обязателен: слои сцены
+  пронумерованы от первого до пятого, и без своего номера она уходит под них и
+  не делает ничего.
+*/
+html:not(.theme-dark) .home-gamehub-parallax__layer {
+  filter: brightness(1.18) saturate(.78) contrast(.9) !important;
+}
+
+html:not(.theme-dark) .home-gamehub-parallax__scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  background: linear-gradient(180deg, rgba(248, 251, 255, .64), rgba(238, 246, 255, .56));
+}
+
 html.home-gamehub-parallax body > .app-header,
 html.home-gamehub-parallax body > #main-loader,
 html.home-gamehub-parallax body > #menu-container,

@@ -1,11 +1,15 @@
-// Живой фон игры: сцена появляется в тёмной теме и уходит из светлой.
+// Живой фон игры: одна и та же сцена в обеих темах.
 //
 // Перенос из превью-веток конца августа. Там у каждой игры была своя сцена со
 // слоями, но жила она рядом с полной переделкой приложения в тёмный вид — с
 // перекрытием заголовка, меню и панелей каждой игры через !important. Взята
-// только сцена, и только туда, где ночной арт уместен: в тёмную тему. Светлая
-// не меняется, и это здесь тоже проверяется — молча испорченный светлый вид
-// заметить некому.
+// только сцена; тему решают стили, и в каждой она решает свою задачу.
+//
+// Тёмная: арт ночной, полог гасит светлые места, чтобы белый заголовок игры не
+// пропал в облаках. Светлая: тот же арт высветляется и уходит под прозрачный
+// светлый градиент — картина проступает подмалёвком, а тёмный текст и белые
+// карточки читаются как читались. Обе стороны меряются по снимку экрана:
+// разметка тут ничего не докажет, элементы на месте и в нечитаемом виде.
 //
 // Проверяется поведением, а не чтением стилей: приложение поднимается целиком,
 // игры открываются по-настоящему, тема переключается на живой странице.
@@ -14,11 +18,13 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
-import { decodePng, meanLuminance } from './lib/png-luminance.mjs';
+import { decodePng, meanLuminance, blockLuminanceBounds, meanAbsoluteDifference } from './lib/png-luminance.mjs';
 
 const root = process.cwd();
 const failures = [];
-const fail = (message) => failures.push(message);
+// Повтор одной и той же жалобы ничего не добавляет: у сломанной сцены замер
+// повторяется для каждой игры, и список вырастает в четыре копии одной строки.
+const fail = (message) => { if (!failures.includes(message)) failures.push(message); };
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
@@ -111,6 +117,7 @@ const sceneState = () => page.evaluate(() => {
     present: true,
     key: scene.dataset.scene || '',
     display: style.display,
+    opacity: Number(style.opacity),
     pointerEvents: style.pointerEvents,
     zIndex: style.zIndex,
     layers: scene.querySelectorAll('.game-scene__layer').length,
@@ -139,93 +146,149 @@ const openGame = async (key) => {
   await page.waitForTimeout(350);
 };
 
+/*
+  Сцену видно и в тёмной, и в светлой теме, а вот условия читаемости у них
+  противоположные. Общая часть — «сцена стоит под экраном игры и не мешает» —
+  проверяется одинаково в обеих.
+*/
+const checkSceneShell = (state, theme) => {
+  if (!state.present) {
+    fail(`В ${theme} теме сцена не появилась`);
+    return false;
+  }
+  if (state.display === 'none' || !state.opacity) fail(`В ${theme} теме сцена есть в разметке, но не видна`);
+  if (!state.layers) fail(`У сцены нет ни одного слоя (${theme} тема)`);
+  if (!state.veil) fail(`У сцены нет полога — текст игры лёг бы прямо на рисунок (${theme} тема)`);
+  // Касания обязаны идти сквозь: сцена лежит поверх всей страницы.
+  if (state.pointerEvents !== 'none') fail(`Сцена ловит касания: pointer-events = ${state.pointerEvents} (${theme} тема)`);
+  if (Number(state.containerZ) <= Number(state.zIndex || 0)) {
+    fail(`Экран игры не поднят над сценой: контейнер ${state.containerZ}, сцена ${state.zIndex} (${theme} тема)`);
+  }
+  if (state.bodyBackgroundImage !== 'none') fail(`Плоский фон ${theme} темы остался поверх сцены`);
+  return true;
+};
+
+/*
+  Снимок одной только сцены: содержимое игры прячется, чтобы мерилась картина,
+  а не карточки поверх неё.
+*/
+const shootScene = async () => {
+  // Замер без этого шумит: часть слоёв помечена lazy и доезжает позже, и
+  // снимок ловил то полную сцену, то половину — числа скакали в обе стороны.
+  await page.waitForFunction(
+    () => [...document.querySelectorAll('.game-scene__layer')].every((img) => img.complete && img.naturalWidth > 0),
+    null,
+    { timeout: 15_000 },
+  ).catch(() => fail('Слои сцены не догрузились — яркость мерить не по чему'));
+  await page.evaluate(() => {
+    for (const node of document.querySelectorAll('#game-container, .app-header, .rules-help, .game-frame-exit')) {
+      node.style.visibility = 'hidden';
+    }
+  });
+  await page.waitForTimeout(120);
+  const shot = await page.screenshot({ type: 'png' });
+  await page.evaluate(() => {
+    for (const node of document.querySelectorAll('#game-container, .app-header, .rules-help, .game-frame-exit')) {
+      node.style.visibility = '';
+    }
+  });
+  return decodePng(shot);
+};
+
+/** Средняя яркость верхней трети — там стоят заголовок игры и подпись под ним. */
+const topBrightness = async () => {
+  const image = await shootScene();
+  return meanLuminance(image, { bottom: image.height / 3 });
+};
+
+/** То же, но без полога: видно, что именно он гасит. */
+const rawTopBrightness = async () => {
+  await page.evaluate(() => { document.querySelector('.game-scene__veil')?.style.setProperty('display', 'none'); });
+  const value = await topBrightness();
+  await page.evaluate(() => { document.querySelector('.game-scene__veil')?.style.removeProperty('display'); });
+  return value;
+};
+
+/** Тот же экран со слоями и без них: насколько картина проступает сквозь полог. */
+const artShowThrough = async () => {
+  const withArt = await shootScene();
+  await page.evaluate(() => {
+    for (const node of document.querySelectorAll('.game-scene__layer')) node.style.visibility = 'hidden';
+  });
+  await page.waitForTimeout(120);
+  const withoutArt = await shootScene();
+  await page.evaluate(() => {
+    for (const node of document.querySelectorAll('.game-scene__layer')) node.style.visibility = '';
+  });
+  return { showThrough: meanAbsoluteDifference(withArt, withoutArt), darkest: blockLuminanceBounds(withArt).min };
+};
+
+/*
+  Пороги подобраны замерами, а не на глаз.
+
+  Тёмная тема, верхняя треть. Без полога верх «Алиаса» светит на 0.25,
+  «Соглядатая» — на 0.14. Прежний слабый полог опускал их до 0.18 и 0.12, и на
+  первом же снимке «Выберите уровень сложности» тонуло в облаках. Нынешний даёт
+  0.12 и 0.09. Предел 0.15 проходит нынешний и не проходит прежний.
+
+  Светлая тема, самый тёмный квадрат экрана. Тёмные буквы боятся не яркого
+  пятна, а тёмного, и одно такое пятно в средней яркости растворяется — поэтому
+  меряется худшее место, а не общее. Сейчас по всем сценам выходит 0.83–0.84;
+  без светлого полога — 0.42–0.48. Предел 0.70 разделяет их с запасом.
+
+  Светлая тема, проступание. Полог можно сделать непрозрачным, и читаемость от
+  этого только выиграет — но тогда светлой темы не коснулись вовсе, а просто
+  спрятали от неё картину. Сейчас по играм выходит 0.044–0.065, у глухого
+  полога — 0.003. Предел 0.02 ловит именно этот случай.
+*/
+const MAX_TOP_BRIGHTNESS = 0.15;
+const MIN_LIGHT_DARKEST = 0.7;
+const MIN_LIGHT_SHOW_THROUGH = 0.02;
+
 try {
   await page.goto(`${baseURL}/#tgWebAppData=query_id%3Dstub`, { waitUntil: 'commit', timeout: 30_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 })
     .catch(() => fail(`Меню не открылось${pageErrors.length ? `: ${pageErrors[0]}` : ''}`));
   await page.waitForFunction(() => !document.getElementById('gamehub-boot-scene'), null, { timeout: 20_000 });
 
-  // 1. Светлая тема живёт как жила: сцены нет ни в меню, ни в игре.
-  await setTheme(false);
-  await openGame('alias');
-  let state = await sceneState();
-  if (state.present && state.display !== 'none') fail('В светлой теме сцена показывается, хотя ночной арт там не к месту');
-
-  // 2. Тёмная тема: сцена встаёт под экран игры.
+  // 1. Тёмная тема: сцена встаёт под экран игры.
   await setTheme(true);
+  await openGame('alias');
   await page.waitForTimeout(500);
-  state = await sceneState();
-  if (!state.present) fail('В тёмной теме сцена не появилась');
-  else {
-    if (state.key !== 'alias') fail(`Сцена показывает «${state.key}» вместо «alias»`);
-    if (!state.layers) fail('У сцены нет ни одного слоя');
-    if (!state.veil) fail('У сцены нет полога — текст игры лёг бы прямо на рисунок');
-    // Касания обязаны идти сквозь: сцена лежит поверх всей страницы.
-    if (state.pointerEvents !== 'none') fail(`Сцена ловит касания: pointer-events = ${state.pointerEvents}`);
-    if (Number(state.containerZ) <= Number(state.zIndex || 0)) {
-      fail(`Экран игры не поднят над сценой: контейнер ${state.containerZ}, сцена ${state.zIndex}`);
-    }
-    if (state.bodyBackgroundImage !== 'none') fail('Плоский фон тёмной темы остался поверх сцены');
+  let state = await sceneState();
+  if (checkSceneShell(state, 'тёмной') && state.key !== 'alias') {
+    fail(`Сцена показывает «${state.key}» вместо «alias»`);
   }
 
-  /*
-    3. Читаемость. Заголовок игры и подпись под ним стоят в верхней трети
-    экрана, а на картинках там самое светлое: полная луна у «Соглядатая»,
-    закатное небо у «Алиаса». Пока полог был слабым, «Выберите уровень
-    сложности» пропадало в облаках — и никакая проверка разметки этого не
-    видела: элементы на месте, цвета заданы, а прочесть нельзя.
-
-    Меряется сама сцена, без игры поверх: содержимое прячется, снимок
-    раскладывается на пиксели, берётся средняя яркость верхней трети.
-  */
-  const sceneBrightness = async () => {
-    // Замер без этого шумит: часть слоёв помечена lazy и доезжает позже, и
-    // снимок ловил то полную сцену, то половину — числа скакали в обе стороны.
-    await page.waitForFunction(
-      () => [...document.querySelectorAll('.game-scene__layer')].every((img) => img.complete && img.naturalWidth > 0),
-      null,
-      { timeout: 15_000 },
-    ).catch(() => fail('Слои сцены не догрузились — яркость мерить не по чему'));
-    await page.evaluate(() => {
-      for (const node of document.querySelectorAll('#game-container, .app-header, .rules-help, .game-frame-exit')) {
-        node.style.visibility = 'hidden';
-      }
-    });
-    await page.waitForTimeout(120);
-    const shot = await page.screenshot({ type: 'png' });
-    await page.evaluate(() => {
-      for (const node of document.querySelectorAll('#game-container, .app-header, .rules-help, .game-frame-exit')) {
-        node.style.visibility = '';
-      }
-    });
-    const image = decodePng(shot);
-    return meanLuminance(image, { bottom: image.height / 3 });
-  };
-
-  /** То же, но без полога: видно, что именно он гасит. */
-  const rawBrightness = async () => {
-    await page.evaluate(() => { document.querySelector('.game-scene__veil')?.style.setProperty('display', 'none'); });
-    const value = await sceneBrightness();
-    await page.evaluate(() => { document.querySelector('.game-scene__veil')?.style.removeProperty('display'); });
-    return value;
-  };
-
-  /*
-    Порог подобран замерами, а не на глаз. Без полога верх «Алиаса» светит на
-    0.25, «Соглядатая» — на 0.14. Прежний слабый полог опускал их до 0.18 и
-    0.12, и на первом же снимке «Выберите уровень сложности» тонуло в облаках.
-    Нынешний даёт 0.12 и 0.09. Предел 0.15 проходит нынешний и не проходит
-    прежний — и заодно поймает картину ярче, если такую однажды добавят.
-  */
-  const MAX_TOP_BRIGHTNESS = 0.15;
+  // 2. Тёмная тема, читаемость: белый заголовок игры не должен тонуть в облаках.
   for (const key of ['alias', 'spy']) {
     await openGame(key);
     await page.waitForTimeout(700);
-    const brightness = await sceneBrightness();
+    const brightness = await topBrightness();
     if (brightness > MAX_TOP_BRIGHTNESS) {
-      const raw = await rawBrightness();
+      const raw = await rawTopBrightness();
       fail(`Сцена «${key}» слишком светлая сверху: ${brightness.toFixed(3)} при пределе ${MAX_TOP_BRIGHTNESS} `
         + `(сама картина светит на ${raw.toFixed(3)}, полог гасит недостаточно) — заголовок игры на ней не прочесть`);
+    }
+  }
+
+  // 3. Светлая тема: та же сцена, но переосмысленная — картина видна, текст тёмный.
+  await setTheme(false);
+  await openGame('alias');
+  await page.waitForTimeout(500);
+  state = await sceneState();
+  checkSceneShell(state, 'светлой');
+  for (const key of ['alias', 'spy']) {
+    await openGame(key);
+    await page.waitForTimeout(700);
+    const { showThrough, darkest } = await artShowThrough();
+    if (darkest < MIN_LIGHT_DARKEST) {
+      fail(`Сцена «${key}» в светлой теме оставляет тёмное пятно: ${darkest.toFixed(3)} при минимуме `
+        + `${MIN_LIGHT_DARKEST} — тёмный текст на нём не прочесть`);
+    }
+    if (showThrough < MIN_LIGHT_SHOW_THROUGH) {
+      fail(`Сцена «${key}» в светлой теме не проступает сквозь полог: ${showThrough.toFixed(4)} при минимуме `
+        + `${MIN_LIGHT_SHOW_THROUGH} — картину просто закрасили, светлая тема её не получила`);
     }
   }
 
@@ -255,6 +318,6 @@ if (failures.length) {
   console.error(`Живой фон игр не прошёл проверку (${failures.length}):\n- ${failures.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`OK: живой фон игр — ${catalogKeys.length} сцен, в тёмной теме встают под экран игры и меняются вместе с ней, `
-  + 'в светлой теме их нет, верх сцены достаточно тёмен для заголовка, касания идут сквозь, '
-  + 'а меню и «Моисей на Ниле» остаются со своим.');
+console.log(`OK: живой фон игр — ${catalogKeys.length} сцен, встают под экран игры и меняются вместе с ней в обеих темах; `
+  + 'в тёмной верх сцены достаточно тёмен для белого заголовка, в светлой нет тёмных пятен под тёмным текстом, '
+  + 'но картина сквозь полог видна; касания идут сквозь, а меню и «Моисей на Ниле» остаются со своим.');

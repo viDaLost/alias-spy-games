@@ -7,6 +7,10 @@
   пропадало в облаках, и никакая проверка структуры этого не видела: элементы на
   месте, цвета заданы, а прочесть нельзя.
 
+  Светлой теме нужно ровно обратное: там текст тёмный, и опасно уже не светлое
+  пятно, а тёмное. Поэтому рядом со средней яркостью живут самый тёмный квадрат
+  и сравнение двух снимков.
+
   Готового декодера в проекте нет, а тянуть зависимость ради одного замера
   незачем: PNG от Playwright всегда восьмибитный RGBA без чересстрочности, и
   такой разбирается двумя десятками строк — заголовок, склейка IDAT, inflate и
@@ -95,6 +99,48 @@ export function meanLuminance(image, box = {}) {
       sum += (0.2126 * pixels[index] + 0.7152 * pixels[index + 1] + 0.0722 * pixels[index + 2]) / 255;
       count += 1;
     }
+  }
+  return count ? sum / count : 0;
+}
+
+/*
+  Самый тёмный и самый светлый квадрат снимка.
+
+  Средняя яркость по всему экрану лжёт в обе стороны: одно тёмное пятно под
+  строкой текста в ней тонет, а на общем числе не сказывается. Читаемости важно
+  именно худшее место — тёмное там, где текст тёмный, светлое там, где светлый.
+*/
+export function blockLuminanceBounds(image, size = 48) {
+  let min = 1;
+  let max = 0;
+  for (let top = 0; top + size <= image.height; top += size) {
+    for (let left = 0; left + size <= image.width; left += size) {
+      const value = meanLuminance(image, { left, top, right: left + size, bottom: top + size });
+      if (value < min) min = value;
+      if (value > max) max = value;
+    }
+  }
+  return { min, max };
+}
+
+/*
+  Насколько два снимка расходятся по яркости — среднее по всем точкам.
+
+  Нужно, чтобы отличить «картина проступает сквозь полог» от «полог закрасил
+  её насмерть». Яркость этого не покажет: белый лист и лист с бледным рисунком
+  светят одинаково. Сравнение со снимком без слоёв показывает.
+*/
+export function meanAbsoluteDifference(first, second) {
+  if (first.width !== second.width || first.height !== second.height) {
+    throw new Error('снимки разного размера — сравнивать нечего');
+  }
+  const count = first.width * first.height;
+  let sum = 0;
+  for (let index = 0; index < count; index += 1) {
+    const at = index * first.channels;
+    const a = (0.2126 * first.pixels[at] + 0.7152 * first.pixels[at + 1] + 0.0722 * first.pixels[at + 2]) / 255;
+    const b = (0.2126 * second.pixels[at] + 0.7152 * second.pixels[at + 1] + 0.0722 * second.pixels[at + 2]) / 255;
+    sum += Math.abs(a - b);
   }
   return count ? sum / count : 0;
 }

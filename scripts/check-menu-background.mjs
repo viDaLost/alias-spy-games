@@ -1,15 +1,23 @@
-// Проверяет, что фон главного меню возвращается после выхода из игры.
+// Проверяет фон главного меню: что он возвращается после выхода из игры и что
+// подписи секций читаются на нём в обеих темах.
 //
 // Фон меню — отдельная сцена поверх страницы, и её видимость держится на классе
 // is-ready. Игры, которые рисуют своё во весь экран, прячут сцену под собой; та,
 // что снимала класс, не возвращала его обратно — сцена возвращалась в разметку,
 // но оставалась прозрачной, и меню открывалось на голом фоне. Заметить это можно
 // только глазами, поэтому проверяется отдельно.
+//
+// Вторая беда того же рода — читаемость. «Ваш прогресс» и «Игры для компании»
+// идут прямо по иллюстрации, без карточки под ними, а иллюстрация неровная:
+// тёмно-синяя архитектура и золото ламп. Тёмная тема гасит её до brightness(.4),
+// светлая — высветляет и накрывает пеленой. Обе дозы меряются по снимку: в
+// разметке всё это выглядит одинаково исправным.
 
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
+import { decodePng, blockLuminanceBounds } from './lib/png-luminance.mjs';
 
 const root = process.cwd();
 const mime = new Map([
@@ -128,10 +136,54 @@ for (const [label, open] of [
   }
 }
 
+/*
+  Читаемость подписей на фоне. Мерится сама сцена: всё остальное на странице
+  прячется, иначе в замер попадают карточки и кнопки поверх неё.
+
+  Пороги подобраны замерами. Светлая тема: подписи тёмные, и опасно тёмное
+  пятно — с нынешней пеленой самый тёмный квадрат светит на 0.70, без неё на
+  0.29. Тёмная: подписи светлые, и опасно светлое — с затемнением самый светлый
+  квадрат даёт 0.15, без него 0.92. Пороги 0.55 и 0.35 стоят между.
+*/
+const MIN_LIGHT_DARKEST = 0.55;
+const MAX_DARK_BRIGHTEST = 0.35;
+
+const sceneBounds = async () => {
+  await page.evaluate(() => {
+    for (const node of document.body.children) {
+      if (!node.classList.contains('home-gamehub-parallax__scene')) node.style.visibility = 'hidden';
+    }
+  });
+  await page.waitForTimeout(250);
+  const shot = await page.screenshot({ type: 'png' });
+  await page.evaluate(() => {
+    for (const node of document.body.children) node.style.visibility = '';
+  });
+  return blockLuminanceBounds(decodePng(shot));
+};
+
+await page.evaluate(() => document.documentElement.classList.remove('theme-dark'));
+await page.waitForTimeout(600);
+const light = await sceneBounds();
+if (light.min < MIN_LIGHT_DARKEST) {
+  await fail(`в светлой теме фон меню оставляет тёмное пятно: ${light.min.toFixed(3)} при минимуме `
+    + `${MIN_LIGHT_DARKEST} — тёмные подписи секций на нём не прочесть`);
+}
+
+await page.evaluate(() => document.documentElement.classList.add('theme-dark'));
+await page.waitForTimeout(600);
+const dark = await sceneBounds();
+if (dark.max > MAX_DARK_BRIGHTEST) {
+  await fail(`в тёмной теме фон меню светит на ${dark.max.toFixed(3)} при пределе ${MAX_DARK_BRIGHTEST} `
+    + '— светлые подписи секций тонут в его подсветке');
+}
+await page.evaluate(() => document.documentElement.classList.remove('theme-dark'));
+
 if (crashes.length) await fail(`страница поймала исключение: ${crashes[0]}`);
 
-console.log('Фон меню в порядке: он виден при открытии и возвращается после выхода '
-  + 'и из обычной игры, и из «Библейского художника».');
+console.log('Фон меню в порядке: он виден при открытии, возвращается после выхода '
+  + 'и из обычной игры, и из «Библейского художника», а подписи секций читаются на нём '
+  + 'и в светлой теме, и в тёмной.');
 
 await browser.close();
 server.close();
