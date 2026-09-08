@@ -54,7 +54,9 @@ requireText(friendInvites, 'data-invite-friend', 'friend invite action buttons a
 requireText(friendInvites, 'getShareUrl', 'friend picker must preserve generic Telegram sharing fallback');
 requireText(friendInviteCss, '.game-friend-invite-actions', 'lobby friend invite responsive action layout is missing');
 requireText(friendInviteCss, '.friend-invite-overlay', 'friend picker overlay styles are missing');
-requireText(launchContext, 'web/js/game-friend-invites.js?v=1', 'friend invitation client is not loaded for Telegram users');
+// Адрес собирается из переведённой копии, метка версии дописывается рядом.
+requireText(launchContext, "'web/js/game-friend-invites.js'", 'friend invitation client is not loaded for Telegram users');
+requireText(launchContext, "game-friend-invites.js')}?v=1`", 'friend invitation client lost its cache key');
 requireText(launchContext, 'web/styles/game-friend-invites.css?v=1', 'friend invitation styles are not loaded for Telegram users');
 
 requireText(scanner, 'showScanQrPopup', 'Telegram QR scanner is missing');
