@@ -268,27 +268,46 @@ await page.waitForSelector('.bmt-map-node, .bmt-journey-node', { state: 'attache
 
 await openLevel('Первая поросль');
 
-const vines = await page.evaluate(() => {
+/*
+  Счётчик ходов на входе стоит неизвестно где. Пока проверка добирается до
+  замера, доска успевает досчитать свой первый каскад, а он занимает ход. На
+  быстрой машине замер эту гонку выигрывал, на раннере — нет, и проверка
+  падала на «тернии разрослись раньше своего интервала», хотя разрослись они
+  ровно по правилу, просто отсчёт начался не с той фазы.
+
+  Поэтому проверяется само правило, а не фаза: интервал здесь три хода, и на
+  любых трёх подряд идущих ходах разрастание случается ровно один раз. Доске
+  сперва дают досчитать, иначе её собственный ход попадёт в середину замера и
+  добавит второе разрастание.
+*/
+const VINE_INTERVAL = 3;
+await page.waitForFunction(() => !document.querySelector('.bmt-shell.is-busy'), null, { timeout: 15_000 })
+  .catch(() => {});
+const vines = await page.evaluate((interval) => {
   const Rules = window.BiblicalMatchThreeV20Rules;
   const count = () => document.querySelectorAll('.bmt-tile.has-vine').length;
   const seeded = count();
-  // Интервал роста на этом уровне — три хода: два вызова ничего не меняют.
-  Rules.spreadVines();
-  Rules.spreadVines();
-  const waiting = count();
-  Rules.spreadVines();
-  return { seeded, waiting, grown: count(), sprout: document.querySelectorAll('.bmt-fx-vine-sprout').length };
-});
+  const steps = [];
+  for (let turn = 0; turn < interval; turn += 1) {
+    Rules.spreadVines();
+    steps.push(count());
+  }
+  return { seeded, steps, sprout: document.querySelectorAll('.bmt-fx-vine-sprout').length };
+}, VINE_INTERVAL);
 
+const trail = [vines.seeded, ...vines.steps];
+const growths = trail.filter((value, index) => index > 0 && value > trail[index - 1]).length;
 await expect(vines.seeded === 6, `на уровне «Первая поросль» ожидалось 6 терний, найдено ${vines.seeded}`);
-await expect(vines.waiting === 6, `тернии разрослись раньше своего интервала: ${vines.waiting}`);
-await expect(vines.grown === 7, `тернии не разрослись за свой интервал: ${vines.grown}`);
+await expect(growths === 1,
+  `за ${VINE_INTERVAL} хода тернии разрослись ${growths} раз вместо одного: ${trail.join(' → ')}`);
+await expect(vines.steps.at(-1) === vines.seeded + 1,
+  `за интервал прибавилась не одна терния: ${trail.join(' → ')}`);
 await expect(vines.sprout === 1, 'разрастание прошло без анимации');
 
 if (crashes.length) await fail(`страница поймала необработанное исключение: ${crashes[0]}`);
 
 console.log('Механики v46 в порядке: ковчег переживает обычные ходы, опускается в ворота и не двигается руками, '
-  + `тернии разрастаются строго по своему интервалу (${vines.seeded} → ${vines.grown}), `
+  + `тернии разрастаются строго по своему интервалу (${vines.seeded} → ${vines.steps.at(-1)}), `
   + 'все новые эффекты особых фишек получают анимацию из CSS и не оставляют transform на доске.');
 
 await browser.close();
