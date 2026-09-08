@@ -2,7 +2,6 @@
 <html lang="ru" class="app-booting">
 <head>
   <meta charset="UTF-8" />
-  <script src="web/js/language-choice.js"></script>
   <!-- Тема ставится до первой отрисовки и до загрузки стилей: иначе тёмное
        приложение на мгновение мелькнёт светлым. Поэтому здесь, а не в бандле,
        который грузится в конце страницы. Выбор человека главнее настройки
@@ -18,6 +17,7 @@
       } catch (error) { /* приватный режим: остаёмся на светлой */ }
     })();
   </script>
+  <script src="web/js/language-choice.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Библейские игры</title>
   <meta name="theme-color" content="#eaf3ff" />
