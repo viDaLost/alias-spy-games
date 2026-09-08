@@ -28,7 +28,14 @@ requireText(worker, 'CREATE TABLE IF NOT EXISTS acquisition_sources', 'survey an
 requireText(worker, "'referralStatus'", 'referral status action is missing');
 requireText(worker, "'referralSubmit'", 'referral submit action is missing');
 requireText(worker, 'notifyReferralAdmin', 'survey answers are not delivered to the admin bot');
-requireText(worker, '30 * 24 * 60 * 60 * 1000', '30-day inactivity threshold is missing');
+// Срок бездействия — пятнадцать суток. Число проверяется вместе с тем, как оно
+// написано: и порог, и строка письма админу обязаны считаться от одной
+// константы. Раньше срок стоял в письме отдельным числом, и разойтись им ничто
+// не мешало — письмо сообщало бы владельцу не тот критерий, по которому удалило.
+requireText(worker, 'const INACTIVE_ACCOUNT_DAYS = 15;', 'inactivity window is not 15 days');
+requireText(worker, 'INACTIVE_ACCOUNT_DAYS * 24 * 60 * 60 * 1000', 'inactivity threshold is not derived from the day count');
+requireText(worker, '${INACTIVE_ACCOUNT_DAYS} ${daysWord(INACTIVE_ACCOUNT_DAYS)}', 'admin cleanup report does not take the window from the constant');
+forbidText(worker, 'более 30 дней', 'admin cleanup report still names the old 30-day window');
 requireText(worker, 'u.is_banned = 0', 'banned accounts are not protected from cleanup');
 requireText(worker, 'u.telegram_id <> ?', 'admin account is not protected from cleanup');
 requireText(worker, 'DELETE FROM support_tickets WHERE user_id = ?', 'support data is not removed with an inactive account');
@@ -55,4 +62,4 @@ requireText(survey, 'Позже', 'survey has no non-blocking defer action');
 forbidText(survey, '<select', 'survey must not replace free-text input with preset choices');
 require(isBundled('web/js/referral-survey.js'), 'survey script is not mounted');
 
-console.log('Referral survey and 30-day inactive account cleanup checks passed through the Core v14 RBAC entry chain.');
+console.log('Referral survey and 15-day inactive account cleanup checks passed through the Core v14 RBAC entry chain.');

@@ -1,7 +1,21 @@
 import coreV5, { UserStore as V5UserStore } from './index-v5.js';
 
 const encoder = new TextEncoder();
-const INACTIVE_ACCOUNT_MS = 30 * 24 * 60 * 60 * 1000;
+/*
+  Через сколько без активности аккаунт удаляется. Срок сокращён с тридцати
+  суток до пятнадцати по просьбе владельца.
+
+  Число дней вынесено отдельно, потому что оно же стоит в письме админу.
+  Раньше срок был записан там отдельным числом: поменяв константу, легко
+  оставить в тексте прежнее — и письмо сообщало бы владельцу не тот критерий,
+  по которому аккаунты на самом деле удалены.
+*/
+const INACTIVE_ACCOUNT_DAYS = 15;
+const INACTIVE_ACCOUNT_MS = INACTIVE_ACCOUNT_DAYS * 24 * 60 * 60 * 1000;
+// «более 21 дня», но «более 15 дней»: после «более» стоит родительный падеж,
+// и единственное число он берёт только у чисел, кончающихся на один — кроме
+// одиннадцати.
+const daysWord = (count) => (count % 10 === 1 && count % 100 !== 11 ? 'дня' : 'дней');
 const REFERRAL_ACTIONS = new Set(['referralStatus', 'referralSubmit']);
 
 export class UserStore extends V5UserStore {
@@ -239,7 +253,7 @@ async function runInactiveCleanup(env) {
     await telegramSendMessage(env, String(env.ADMIN_TELEGRAM_ID), [
       '🧹 Очистка неактивных аккаунтов',
       `Удалено: ${Number(result.deleted || 0)}`,
-      'Критерий: более 30 дней без активности.',
+      `Критерий: более ${INACTIVE_ACCOUNT_DAYS} ${daysWord(INACTIVE_ACCOUNT_DAYS)} без активности.`,
       'Заблокированные аккаунты и аккаунт администратора не удаляются.',
     ].join('\n')).catch(() => {});
   }
