@@ -16,6 +16,8 @@ const server = http.createServer((req, res) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
+const failures=[];
+const check=(condition,message)=>{if(!condition)failures.push(message);};
 let browser;
 try {
   browser = await chromium.launch({ headless:true, executablePath:process.env.CHROME_BIN || '/usr/bin/google-chrome', args:['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -61,7 +63,7 @@ try {
         await page.waitForFunction(key=>document.body.dataset.currentGame===key,key);
         await page.waitForFunction(()=>{const node=document.getElementById('game-container');return node?.children.length && !node.querySelector('.app-game-loading');});
         const content=await page.locator('#game-container').innerText();
-        assert.ok(!/[А-Яа-яЁё]/.test(content),`${lang}/${key}: untranslated content: ${content.slice(0,1000)}`);
+        check(!/[А-Яа-яЁё]/.test(content),`${lang}/${key}: untranslated content: ${content.slice(0,1000)}`);
         assert.equal(await page.locator('#game-container .app-error-card').count(),0,`${lang}/${key}: error screen`);
         if(key==='sacred-word') {
           const keys=await page.locator('.sw-kb-key').allTextContents();
@@ -73,8 +75,9 @@ try {
       await page.selectOption('#app-language','ru');
       await page.waitForFunction(()=>document.documentElement.dataset.languageReady==='ru');
     }
-    assert.deepEqual(errors,[],`${role}/${lang}: page errors`);
+    check(errors.length===0,`${role}/${lang}: page errors: ${errors.join(' | ')}`);
     await context.close();
   }
+  assert.deepEqual(failures,[]);
   console.log('Browser language checks: root preview, all denied roles, welcome, mobile selector and five games in EN/DE/ES passed.');
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

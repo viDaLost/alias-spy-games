@@ -84,7 +84,7 @@ function startAliasGame() {
   const container = document.getElementById("game-container");
   if (!container) return;
 
-  container.innerHTML = `\n    <h2 class="alias-title"><span class="alias-title-icon">А</span> Alias</h2>\n    <p class="alias-sub">Choose difficulty</p>\n\n    <div class="alias-buttons">\n      <button onclick="loadAliasWords('easy')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--easy"></span>Easy</button>\n      <button onclick="loadAliasWords('medium')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--medium"></span>Medium</button>\n      <button onclick="loadAliasWords('hard')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--hard"></span>Hard</button>\n    </div>\n\n    <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">Main menu</button>\n  `;
+  container.innerHTML = `\n    <h2 class="alias-title"><span class="alias-title-icon">A</span> Alias</h2>\n    <p class="alias-sub">Choose difficulty</p>\n\n    <div class="alias-buttons">\n      <button onclick="loadAliasWords('easy')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--easy"></span>Easy</button>\n      <button onclick="loadAliasWords('medium')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--medium"></span>Medium</button>\n      <button onclick="loadAliasWords('hard')" class="btn btn-neutral btn-lg"><span class="difficulty-dot difficulty-dot--hard"></span>Hard</button>\n    </div>\n\n    <button onclick="aliasExitToMenu()" class="btn btn-ghost btn-lg">Main menu</button>\n  `;
 
   const menu = document.querySelector('.menu-container');
   if (menu) menu.classList.add('hidden');
