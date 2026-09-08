@@ -30,8 +30,7 @@
       <button type="button" data-admin-v3-target="overview" class="is-active"><span>◉</span>Обзор</button>
       <button type="button" data-admin-v3-target="support"><span>◌</span>Поддержка</button>
       <button type="button" data-admin-v3-target="users"><span>◎</span>Пользователи</button>
-      <button type="button" data-admin-v3-target="broadcast"><span>↗</span>Рассылка</button>
-      <button type="button" data-admin-v3-target="rating"><span>★</span>Рейтинг</button>`;
+      <button type="button" data-admin-v3-target="broadcast"><span>↗</span>Рассылка</button>`;
 
     nav.addEventListener('click', (event) => {
       const button = event.target.closest('[data-admin-v3-target]');
@@ -50,7 +49,7 @@
   // broadcast form between you and the list. Now a tab shows its own sections and
   // hides the rest. The choice lives on the page element, so it survives the
   // re-render that follows every filter change and every refresh.
-  const SECTIONS = ['overview', 'support', 'users', 'broadcast', 'rating'];
+  const SECTIONS = ['overview', 'support', 'users', 'broadcast'];
 
   function currentSection(page) {
     const value = String(page.dataset.adminV3Section || '');
@@ -148,8 +147,6 @@
     if (users) users.classList.add('admin-v3-section', 'admin-v3-users');
     const broadcast = first('.admin-broadcast', page) || first('.admin-v2__broadcast', page);
     if (broadcast) broadcast.classList.add('admin-v3-section', 'admin-v3-broadcast');
-    const rating = first('.admin-rating', page);
-    if (rating) rating.classList.add('admin-v3-section', 'admin-v3-rating');
     const live = livePanel(page);
     if (live) live.classList.add('admin-v3-section', 'admin-v3-live');
 
@@ -161,7 +158,6 @@
       [toolbar, 'users'],
       [users, 'users'],
       [broadcast, 'broadcast'],
-      [rating, 'rating'],
     ];
     for (const [node, owner] of owners) {
       if (node && node.dataset.adminV3Owner !== owner) node.dataset.adminV3Owner = owner;

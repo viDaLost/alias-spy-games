@@ -54,7 +54,6 @@ async function openApp(insideTelegram, width = 390) {
   await page.addInitScript((tg) => {
     window.__APP_TELEMETRY_DISABLED__ = true;
     try {
-      localStorage.setItem('leaderboard_news_seen_v1', '1');
       const seen = {};
       for (const key of ['spy', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'biblical-match-three']) seen[key] = 1;
       localStorage.setItem('game_rules_seen_v1', JSON.stringify(seen));
@@ -151,7 +150,6 @@ for (const [name, snapshot] of [['Telegram', tg], ['браузер', web]]) {
 
 // Экраны, которые открываются поверх меню, тоже должны помещаться.
 const screens = [
-  ['рейтинг', () => window.openGameRules && document.getElementById('leaderboard-btn')?.click(), '.lb-shell'],
   ['справочник', () => document.getElementById('game-rules-btn')?.click(), '.rules-shell'],
   ['сброс', () => window.openProgressReset?.(), '.pr-shell'],
 ];
@@ -203,4 +201,4 @@ if (problems.length) {
 
 console.log('Вне Telegram всё на месте: место под кнопки мессенджера не резервируется, '
   + 'заголовок не уходит под вырез, страница никуда не уезжает вбок ни на 390, ни на 320 пикселях, '
-  + 'а рейтинг, справочник и сброс открываются так же, как в Telegram.');
+  + 'а справочник и сброс открываются так же, как в Telegram.');

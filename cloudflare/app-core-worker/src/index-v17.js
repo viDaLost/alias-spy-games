@@ -14,7 +14,7 @@
 // Вопрос «откуда узнали» слушает только первую, и за пределами Telegram его
 // просто нет; повторять это в новом опросе незачем.
 
-import coreV16, { UserStore as V16UserStore } from './index-v16.js';
+import coreV15, { UserStore as V15UserStore } from './index-v15.js';
 import { feedbackReplyTarget } from './feedback-reply-target.js';
 import { directMessageRequest, WRITE_PROMPT_PREFIX } from './admin-direct-message.js';
 
@@ -26,7 +26,7 @@ const FEEDBACK_ACTIONS = new Set(['feedbackStatus', 'feedbackSubmit']);
 // человек поиграет.
 const ELIGIBLE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
 
-export class UserStore extends V16UserStore {
+export class UserStore extends V15UserStore {
   constructor(ctx, env) {
     super(ctx, env);
     this.sql.exec(`
@@ -47,6 +47,18 @@ export class UserStore extends V16UserStore {
     for (const column of ["reply TEXT NOT NULL DEFAULT ''", 'replied_at INTEGER NOT NULL DEFAULT 0']) {
       try { this.sql.exec(`ALTER TABLE feedback_notes ADD COLUMN ${column}`); } catch { /* уже есть */ }
     }
+    /*
+      Уборка за удалённым рейтингом. Слой рейтинга снят целиком, но таблицу он
+      после себя оставил: хранилище Durable Object живёт своей жизнью и само
+      ничего не забывает. Владелец просил удалить и данные — опубликованные
+      имена и очки, — поэтому таблица сносится здесь, в единственном месте,
+      которое ещё выполняется при подъёме хранилища.
+
+      Строка идемпотентна и на пустом хранилище ничего не делает, так что
+      оставить её насовсем безопасно; убрать можно, когда станет ясно, что все
+      хранилища подняты хотя бы раз после этого выпуска.
+    */
+    try { this.sql.exec('DROP TABLE IF EXISTS rating_players'); } catch { /* уже снесена */ }
   }
 
   async fetch(request) {
@@ -163,11 +175,11 @@ export default {
         return handleFeedback(request, env, ctx, body, payload, action, compat);
       }
     }
-    return coreV16.fetch(request, env, ctx);
+    return coreV15.fetch(request, env, ctx);
   },
 
   async scheduled(controller, env, ctx) {
-    if (typeof coreV16.scheduled === 'function') return coreV16.scheduled(controller, env, ctx);
+    if (typeof coreV15.scheduled === 'function') return coreV15.scheduled(controller, env, ctx);
   },
 };
 

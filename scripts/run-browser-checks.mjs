@@ -15,7 +15,6 @@ const CHECKS = [
   'check-bmt-v46-mechanics.mjs',
   'check-bmt-admin-unlock.mjs',
   'check-admin-button-reliability.mjs',
-  'check-leaderboard.mjs',
   'check-game-rules.mjs',
   'check-progress-reset.mjs',
   'check-offline-pwa.mjs',

@@ -408,7 +408,7 @@
         <section class="rules-reset">
           <strong>Пройти всё заново</strong>
           <p>
-            Сброс убирает пройденные уровни и откатывает очки рейтинга за них, а звёзды оставляет.
+            Сброс убирает пройденные уровни, а звёзды оставляет.
             В словесных играх слова после сброса перераспределяются между уровнями.
           </p>
           <button type="button" class="rules-reset__button" data-rules-reset>Сброс прогресса</button>
@@ -499,8 +499,8 @@
         <span class="game-card__desc">Правила, разбор механик и сброс прогресса</span>
       </span>`;
     card.addEventListener('click', () => open());
-    // Рейтинг и кнопка админа приходят позже и должны остаться после справочника.
-    const after = document.getElementById('leaderboard-btn') || document.getElementById('admin-btn');
+    // Кнопка админа приходит позже и должна остаться после справочника.
+    const after = document.getElementById('admin-btn');
     if (after) root.insertBefore(card, after);
     else root.append(card);
     return true;
@@ -567,7 +567,7 @@
     const reset = RESETTABLE.has(game.key) ? `
       <section class="rules-sheet__reset">
         <strong>Начать эту игру заново</strong>
-        <p>Пройденные уровни забудутся, очки рейтинга за них откатятся, звёзды останутся.</p>
+        <p>Пройденные уровни забудутся, звёзды останутся.</p>
         <button type="button" class="rules-sheet__reset-button" data-sheet-reset>Сбросить прогресс</button>
       </section>` : '';
     return `

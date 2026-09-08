@@ -101,7 +101,7 @@
       <h2 class="ws-login__title">Свой прогресс на этом устройстве</h2>
       <p class="ws-login__text">
         Введите свой Telegram ID — бот пришлёт код подтверждения.
-        После входа звёзды, уровни и рейтинг будут те же, что в Telegram.
+        После входа звёзды и уровни будут те же, что в Telegram.
       </p>
       <label class="ws-login__label" for="ws-login-id">Telegram ID</label>
       <input id="ws-login-id" class="ws-login__input" type="text" inputmode="numeric" autocomplete="off"
@@ -331,8 +331,7 @@
       </span>`;
     card.addEventListener('click', () => (profile.kind === 'web' ? logout() : open()));
 
-    const after = document.getElementById('game-rules-btn') || document.getElementById('leaderboard-btn')
-      || document.getElementById('admin-btn');
+    const after = document.getElementById('game-rules-btn') || document.getElementById('admin-btn');
     if (after) root.insertBefore(card, after);
     else root.append(card);
     return true;

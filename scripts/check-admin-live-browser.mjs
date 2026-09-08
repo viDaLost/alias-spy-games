@@ -196,7 +196,7 @@ try {
   if (!state.eyebrow.includes('V3')) throw new Error(`Admin V3 marker is missing: ${state.eyebrow}`);
   // Разделы проверяются по именам, а не по их числу: счётчик ломался на каждой
   // новой вкладке, ничего при этом не проверяя.
-  for (const tab of ['overview', 'support', 'users', 'broadcast', 'rating']) {
+  for (const tab of ['overview', 'support', 'users', 'broadcast']) {
     if (!state.navTabs.includes(tab)) {
       throw new Error(`Admin V3 navigation is missing the "${tab}" tab: ${state.navTabs.join(', ') || 'none'}`);
     }

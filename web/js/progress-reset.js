@@ -6,11 +6,6 @@
   // Сброс идёт по одной игре или сразу по всем. Звёзды при этом остаются: их
   // заработали, а не выдали за уровни, и отбирать их никто не просил.
   //
-  // Очки рейтинга откатываются. Обычная синхронизация поднимает счёт и никогда
-  // не опускает — снимок с меньшим прогрессом сервер считает вторым устройством,
-  // а не потерей достижений. Поэтому у сброса отдельное действие ratingReset,
-  // которое пересчитывает очки по свежему снимку вниз.
-  //
   // Словесные игры после сброса пересобираются: слова перераспределяются между
   // уровнями, уровни «Поиска слов» идут в новом порядке. Иначе «начать заново»
   // означало бы пройти то же самое второй раз.
@@ -129,26 +124,13 @@
 
   const BY_KEY = new Map(GAMES.map((game) => [game.key, game]));
 
-  // --- рейтинг --------------------------------------------------------------------
-
-  async function rollbackRating() {
-    if (typeof window.apiRequest !== 'function' || typeof window.LeaderboardSnapshot !== 'function') return null;
-    try {
-      const result = await window.apiRequest({ action: 'ratingReset', snapshot: window.LeaderboardSnapshot() });
-      if (!result || result.success === false) return null;
-      return result;
-    } catch { return null; }
-  }
-
-  async function reset(keys) {
+  function reset(keys) {
     const games = keys.map((key) => BY_KEY.get(key)).filter(Boolean);
     for (const game of games) {
       game.keys().forEach(drop);
       game.after?.();
     }
-    const rating = await rollbackRating();
     window.dispatchEvent(new CustomEvent('app:progress-reset', { detail: { games: games.map((game) => game.key) } }));
-    return rating;
   }
 
   // --- экран ------------------------------------------------------------------------
@@ -187,7 +169,7 @@
           </div>
         </div>
         <p class="pr-lead">
-          Сброс убирает пройденные уровни и <b>откатывает очки рейтинга</b> за них.
+          Сброс убирает <b>пройденные уровни</b>.
           Заработанные звёзды остаются — их не отбираем.
         </p>
         <div class="pr-list">${GAMES.map(cardMarkup).join('')}</div>
@@ -246,11 +228,9 @@
 
   async function run(keys, title, text) {
     if (!(await ask(title, text))) return;
-    const rating = await reset(keys);
+    reset(keys);
     repaint();
-    if (rating && Number(rating.removed) > 0) toast(`Сброшено. Из рейтинга ушло ${rating.removed} очков`);
-    else if (rating) toast('Сброшено, рейтинг пересчитан');
-    else toast('Сброшено. Рейтинг пересчитается, когда появится связь');
+    toast('Сброшено');
   }
 
   function open() {
@@ -267,12 +247,12 @@
       if (one) {
         const card = one.closest('[data-reset-game]');
         const game = BY_KEY.get(card?.dataset.resetGame || '');
-        if (game) run([game.key], `Сбросить «${game.title}»?`, `${game.note} Очки рейтинга за пройденные уровни этой игры вернутся к нулю.`);
+        if (game) run([game.key], `Сбросить «${game.title}»?`, game.note);
         return;
       }
       if (event.target.closest('[data-reset-all]')) {
         run(GAMES.map((game) => game.key), 'Сбросить весь прогресс?',
-          'Все пройденные уровни всех игр будут забыты, а очки рейтинга пересчитаны с нуля. Звёзды останутся.');
+          'Все пройденные уровни всех игр будут забыты. Звёзды останутся.');
       }
     });
   }

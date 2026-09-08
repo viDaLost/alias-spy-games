@@ -212,7 +212,6 @@ await page.addInitScript(() => {
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
     },
   };
-  try { localStorage.setItem('leaderboard_news_seen_v1', '1'); } catch { /* приватный режим */ }
 });
 const stub = (route) => route.fulfill({
   status: 200, contentType: 'application/json',

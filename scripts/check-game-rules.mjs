@@ -129,7 +129,6 @@ await page.addInitScript(() => {
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
     },
   };
-  try { localStorage.setItem('leaderboard_news_seen_v1', '1'); } catch { /* приватный режим */ }
 });
 const stub = (route) => route.fulfill({
   status: 200, contentType: 'application/json',
@@ -172,7 +171,7 @@ const coverage = await page.evaluate(() => {
   const described = new Set([...document.querySelectorAll('[data-rules-game]')].map((node) => node.dataset.rulesGame));
   const menu = [...document.querySelectorAll('.menu-grid .game-card')]
     .map((card) => card.id.replace(/-card$/, ''))
-    .filter((id) => id && !['support-btn', 'admin-btn', 'leaderboard-btn', 'game-rules-btn', 'android-download-btn'].includes(id));
+    .filter((id) => id && !['support-btn', 'admin-btn', 'game-rules-btn', 'android-download-btn'].includes(id));
   return { described: [...described], menu };
 });
 // Карточки игр строятся без id, поэтому список сверяется с известным набором.

@@ -39,7 +39,6 @@ export const styleSources = [
   'web/styles/game-titles-polish.css',
   'web/styles/sacred-word-polish.css',
   'web/styles/lobby-polish.css',
-  'web/styles/leaderboard.css',
   'web/styles/theme-switch.css',
   'web/styles/game-rules.css',
   'web/styles/progress-reset.css',
@@ -117,7 +116,6 @@ export const scriptSources = [
   'web/js/progress-reset.js',
   'web/js/game-rules-demos.js',
   'web/js/game-rules.js',
-  'web/js/leaderboard.js',
   'web/js/more-screen.js',
   'web/js/game-frame-safe-area.js',
   'web/js/game-scene-parallax.js',
@@ -130,7 +128,6 @@ export const adminScriptSources = [
   'web/js/admin-live-v3.js',
   'web/js/admin-live-rescue.js',
   'web/js/admin-shell-v3.js',
-  'web/js/leaderboard-admin.js',
 ];
 const bundled = new Set([...styleSources, ...scriptSources, ...adminScriptSources]);
 

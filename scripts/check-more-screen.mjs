@@ -67,7 +67,6 @@ await page.addInitScript((id) => {
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
     },
   };
-  try { localStorage.setItem('leaderboard_news_seen_v1', '1'); } catch { /* приватный режим */ }
 }, ADMIN_ID);
 
 // На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
@@ -139,7 +138,7 @@ await page.waitForSelector('#more-screen', { timeout: 10_000 });
 await page.waitForTimeout(600);
 const titles = await page.evaluate(() => [...document.querySelectorAll('#more-screen .game-card')]
   .map((card) => card.querySelector('.game-card__title')?.textContent?.trim() || card.id));
-const expected = ['Тех-поддержка', 'Правила игр', 'Рейтинг', 'Админ-панель'];
+const expected = ['Тех-поддержка', 'Правила игр', 'Админ-панель'];
 const missing = expected.filter((title) => !titles.includes(title));
 if (missing.length) await fail(`в разделе «Ещё» нет пунктов: ${missing.join(', ')} (есть: ${titles.join(', ')})`);
 

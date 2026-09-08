@@ -1,10 +1,14 @@
 // Проверяет читаемость текста в тёмной теме.
 //
 // Тема выводится механически: генератор отражает светлоту каждого цвета. Для
-// фона это верно, для текста — почти всегда, но не для белых букв на цветной
-// кнопке: там белый превращался в #141414, и «Опубликовать мой рейтинг»
-// показывала почти чёрные буквы на тёмно-синем — контраст 1.74 при пороге 4.5.
-// Так и написал человек в отзыве: «сделать светлее шрифт на тёмных кнопках».
+// фона это верно, для текста — почти всегда, но не для светлых букв на цветной
+// кнопке: там белый превращался в #141414, и кнопка показывала почти чёрные
+// буквы на тёмно-синем — контраст 1.74 при пороге 4.5. Так и написал человек в
+// отзыве: «сделать светлее шрифт на тёмных кнопках».
+//
+// Нашлось это на кнопке рейтинга; рейтинг из приложения убран, и сторожит
+// теперь «Поддержать проект» — та же светлая надпись на том же синем градиенте,
+// и стоит она прямо в меню.
 //
 // Дефект этого рода не виден в светлой теме, не ломает ни одной проверки и
 // возвращается от любой правки генератора — поэтому он закреплён здесь.
@@ -135,10 +139,6 @@ for (const pattern of ['https://script.google.com/**', 'https://script.googleuse
     });
     // Вопрос «откуда узнали» ещё не отвечен — окно выйдет, и его будет чем мерить.
     if (action === 'referralStatus') return answer({ ok: true, success: true, answered: false });
-    if (action === 'ratingSync') {
-      return answer({ success: true, player: { name: '', published: false, points: 40, breakdown: {} }, breakdown: {} });
-    }
-    if (action === 'ratingTop') return answer({ success: true, top: [], totalPublished: 0, me: { published: false, points: 40 } });
     return answer({ success: true, isBanned: false, lastGames: [] });
   });
 }
@@ -192,20 +192,18 @@ if (survey.backgroundLightness > 0.5) {
   await fail(`окно опроса в тёмной теме белое (${survey.background}) — оно вставляет свои стили и требует своего тёмного блока`);
 }
 
-// --- 4. главная кнопка читается ------------------------------------------------------
+// --- 4. цветная кнопка читается ------------------------------------------------------
 await page.evaluate(() => document.querySelector('.referral-survey-later')?.click());
-await page.waitForTimeout(400);
-await page.evaluate(() => document.getElementById('leaderboard-btn')?.click());
-await page.waitForTimeout(3500);
+await page.waitForTimeout(600);
 
-const primary = await measure('.lb-primary');
-if (!primary) await fail('главная кнопка рейтинга не найдена');
+const primary = await measure('.home-support-trigger');
+if (!primary) await fail('кнопка «Поддержать проект» не найдена — мерить нечего');
 if (primary.ratio < MIN_BUTTON_CONTRAST) {
-  await fail(`«Опубликовать мой рейтинг»: ${primary.color} на ${primary.background} — контраст ${primary.ratio} при пороге ${MIN_BUTTON_CONTRAST}`);
+  await fail(`«Поддержать проект»: ${primary.color} на ${primary.background} — контраст ${primary.ratio} при пороге ${MIN_BUTTON_CONTRAST}`);
 }
 
 console.log('Контраст тёмной темы в порядке: тёмного текста в теме нет, генератор оставляет светлые буквы '
-  + `светлыми, окна опросов не белые, а главная кнопка рейтинга читается с контрастом ${primary.ratio}.`);
+  + `светлыми, окна опросов не белые, а цветная кнопка меню читается с контрастом ${primary.ratio}.`);
 
 await browser.close();
 server.close();

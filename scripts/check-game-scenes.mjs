@@ -89,7 +89,6 @@ await page.addInitScript(() => {
     },
   };
   try {
-    localStorage.setItem('leaderboard_news_seen_v1', '1');
     const seen = {};
     for (const key of ['alias', 'spy', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs',
       'biblical-match-three', 'coimaginarium', 'guess', 'describe', 'quartet', 'bible-sketch']) seen[key] = 1;

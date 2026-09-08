@@ -68,7 +68,6 @@ await page.addInitScript(() => {
     },
   };
   try {
-    localStorage.setItem('leaderboard_news_seen_v1', '1');
     const seen = {};
     for (const key of ['spy', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'biblical-match-three']) seen[key] = 1;
     localStorage.setItem('game_rules_seen_v1', JSON.stringify(seen));
