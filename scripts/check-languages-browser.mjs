@@ -52,11 +52,35 @@ try {
     } else {
       await page.waitForSelector('#app-language-control');
       assert.equal(await page.locator('#app-language').inputValue(),lang);
-      const introduction=await page.locator('.language-welcome').innerText();
-      assert.ok(!/[А-Яа-яЁё]/.test(introduction),`${lang}: untranslated welcome: ${introduction}`);
+      // Флаг страны выбранного языка — по нему выбор видно, не читая названия.
+      const flags={en:'🇬🇧',de:'🇩🇪',es:'🇪🇸'};
+      assert.equal((await page.locator('.language-pill__flag').innerText()).trim(),flags[lang],`${lang}: wrong flag`);
+      /*
+        Скрипты, которые подключаются на ходу, должны браться из переведённой
+        копии. Нижняя панель грузилась по русскому адресу и оставалась русской
+        под английским приложением: файл, который её подключает, намеренно не
+        локализуется, а язык к тому моменту ещё не подтверждён.
+      */
+      for(const file of ['web/js/social-dock-v2.js','web/js/game-friend-invites.js','web/games/spy-online.js','web/games/bible-sketch.js']) {
+        const resolved=await page.evaluate(path=>window.AppLanguage?.asset?.(path),file);
+        check(resolved===`web/locales/${lang}/${file.slice(4)}`,`${lang}: ${file} resolves to ${resolved}`);
+      }
+
+      // Приветствие с главного экрана убрано: язык выбирают один раз.
+      assert.equal(await page.locator('.language-welcome, .language-panel').count(),0,`${lang}: welcome panel is back`);
+      // Оговорка о машинном переводе — на языке, на котором её будут читать.
+      // Наличие проверяется отдельно: без этого пропавшая строка приводила к
+      // таймауту ожидания, и падение говорило про locator, а не про оговорку.
+      const hasNotice=await page.locator('#app-language-notice').count()===1;
+      check(hasNotice,`${lang}: machine-translation notice is missing`);
+      const disclaimer=hasNotice?await page.locator('#app-language-notice').innerText():'';
+      check(!hasNotice||disclaimer.trim().length>=20,`${lang}: notice is too short: ${disclaimer}`);
+      check(!/[А-Яа-яЁё]/.test(disclaimer),`${lang}: untranslated notice: ${disclaimer}`);
       for(const width of [320,390]) {
         await page.setViewportSize({width,height:844});
-        assert.ok(await page.locator('.language-panel').evaluate(node=>node.scrollWidth<=node.clientWidth+1));
+        assert.ok(await page.locator('.language-pill').evaluate(node=>node.scrollWidth<=node.clientWidth+1));
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),
+          `${lang}: header overflows at ${width}px`);
       }
       for(const key of ['alias','quartet','bible-wow','bible-wordsearch','sacred-word']) {
         await page.evaluate(key=>{window.showGame(key);},key);
@@ -72,6 +96,31 @@ try {
         await page.evaluate(()=>window.goToMainMenu());
         await page.waitForSelector('#menu-container:not(.hidden)');
       }
+      /*
+        «Моисей: путь по Ниле» открывается отдельной страницей во фрейме, и его
+        текст в #game-container не попадает — проверять надо внутри фрейма.
+        Именно там дольше всего и оставался русский: шапка игры была переведена,
+        а окно «Путь начинается» — нет.
+      */
+      await page.evaluate(()=>{window.showGame('moses-nile');});
+      await page.waitForFunction(()=>document.body.dataset.currentGame==='moses-nile');
+      const frame=await (await page.waitForSelector('#game-container iframe')).contentFrame();
+      /*
+        Ждём именно окно запуска: пустой кадр молча прошёл бы любую проверку на
+        русские буквы, и «перевод в порядке» значило бы «мерить было нечего».
+
+        Ждём разметку, а не видимость: окно показывается только когда доедет
+        трёхмерная сцена, а в headless её может не быть вовсе. Переводится же
+        сама разметка, и textContent читает её независимо от того, показана ли
+        она сейчас на экране.
+      */
+      await frame.waitForSelector('#start-screen .panel h1',{state:'attached',timeout:30000});
+      const nile=await frame.evaluate(()=>document.getElementById('start-screen').textContent);
+      check(nile.trim().length>=40,`${lang}/moses-nile: start screen is empty, nothing to audit`);
+      check(!/[А-Яа-яЁё]/.test(nile),`${lang}/moses-nile: untranslated content: ${nile.replace(/\s+/g,' ').slice(0,400)}`);
+      await page.evaluate(()=>window.goToMainMenu());
+      await page.waitForSelector('#menu-container:not(.hidden)');
+
       await page.selectOption('#app-language','ru');
       await page.waitForFunction(()=>document.documentElement.dataset.languageReady==='ru');
     }
@@ -79,5 +128,5 @@ try {
     await context.close();
   }
   assert.deepEqual(failures,[]);
-  console.log('Browser language checks: root preview, all denied roles, welcome, mobile selector and five games in EN/DE/ES passed.');
+  console.log('Browser language checks: root preview, all denied roles, compact selector with flag, machine-translation notice, five games and the Nile frame in EN/DE/ES passed.');
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

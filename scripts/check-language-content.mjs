@@ -18,7 +18,18 @@ for(const lang of ['en','de','es']) {
   for(const level of ws)for(const word of level.wordsList)assert.ok(word.length<=level.cols);
   const sacred=JSON.parse(fs.readFileSync(base+'sacred_words.json'));
   for(const item of sacred)assert.match(item.word,/^[A-Z]+$/);
-  for(const source of ['Добро пожаловать!','Язык приложения','Играй вместе с друзьями и открывай Библию по-новому.'])assert.ok(dictionaries[lang][source]);
+  // Строки самого переключателя и оговорка про машинный перевод: без них
+  // шапка на чужом языке заговорит по-русски.
+  for(const source of ['Язык приложения','Перевод сделан нейросетью и местами может быть неточным.'])assert.ok(dictionaries[lang][source],`${lang}: ${source}`);
+  // Скрипты, подключаемые на ходу, живут отдельными файлами: без переведённой
+  // копии нижняя панель и «Художник» останутся русскими под чужим языком.
+  for(const file of ['js/social-dock-v2.js','js/game-friend-invites.js','games/spy-online.js','games/bible-sketch.js']) {
+    const text=fs.readFileSync(`web/locales/${lang}/${file}`,'utf8');
+    assert.ok(text.includes('function')||text.includes('=>'),`${lang}/${file}: localized copy is empty`);
+  }
+  // «Моисей на Ниле» открывается во фрейме и переводится отдельным файлом —
+  // его окно запуска дольше всех оставалось русским.
+  for(const source of ['Моисей на Ниле','Путь начинается','отплыть','смена дорожки','Кнопки, стрелки клавиатуры или свайп в любую сторону'])assert.ok(dictionaries[lang][source],`${lang}: ${source}`);
   const input="const username = 'Неизвестное имя';const message = `Привет ${username}`;";
   const output=translateJS(input,dictionaries[lang]);
   assert.ok(output.includes('${username}'));assert.ok(output.includes('Неизвестное имя'));

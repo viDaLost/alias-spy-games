@@ -102,8 +102,9 @@
     // Profile/Favorites remain fully operational.
     ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
     ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
-    ensureScript('social-dock-v2-js', 'web/js/social-dock-v2.js?v=2');
-    ensureScript('game-friend-invites-js', 'web/js/game-friend-invites.js?v=2');
+    const localized = (path) => window.AppLanguage?.asset?.(path) || path;
+    ensureScript('social-dock-v2-js', `${localized('web/js/social-dock-v2.js')}?v=2`);
+    ensureScript('game-friend-invites-js', `${localized('web/js/game-friend-invites.js')}?v=2`);
   }
 
   installIdentity();

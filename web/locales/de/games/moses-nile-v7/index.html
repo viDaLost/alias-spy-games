@@ -359,11 +359,11 @@
   </script>
 </head>
 <body class="is-loading">
-  <div id="scene-bg" role="img" aria-label="Небо над Нилом в песчаной буре"></div>
-  <canvas id="game-canvas" aria-label="Игровая сцена Нила"></canvas>
-  <canvas id="fallback-canvas" aria-label="Облегчённая игровая сцена Нила"></canvas>
+  <div id="scene-bg" role="img" aria-label="Himmel über dem Nil im Sandsturm"></div>
+  <canvas id="game-canvas" aria-label="Nil-Spielszene"></canvas>
+  <canvas id="fallback-canvas" aria-label="Vereinfachte Nil-Spielszene"></canvas>
   <div id="scene-grade"></div>
-  <div id="loading-note">ГОТОВИМ ПУТЬ ПО НИЛУ…</div>
+  <div id="loading-note">DER WEG ÜBER DEN NIL WIRD VORBEREITET…</div>
 
   <!--
     Свои иконки вместо системных эмодзи. Эмодзи на каждой платформе рисуются
@@ -420,7 +420,7 @@
 
   <div id="loading-screen" role="status" aria-live="polite">
     <h1 id="load-title">Mose: Reise auf dem Nil</h1>
-    <p id="load-sub">Готовим реку</p>
+    <p id="load-sub">Der Fluss wird vorbereitet</p>
     <div id="load-art" aria-hidden="true">
       <div class="glow"></div>
       <div class="reed" style="left:9%;height:52px;animation-delay:-.4s"></div>
@@ -441,7 +441,7 @@
   <div id="hud">
     <div class="hud-row">
       <div class="hud-chip"><svg class="ico ico-path" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-path"/></svg><strong id="dist-txt">0</strong><span>м</span></div>
-      <div id="hearts" aria-label="Запас сердец">
+      <div id="hearts" aria-label="Verbleibende Herzen">
         <span><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>
         <span><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>
         <span><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>
@@ -464,9 +464,9 @@
   <div id="toast-layer" aria-live="polite"></div>
 
   <div id="hint-layer">
-    <div><b>◀ ▶</b>дорожка</div>
+    <div><b>◀ ▶</b>Bahn</div>
     <div><b>▲</b>welle</div>
-    <div><b>▼</b>нырок</div>
+    <div><b>▼</b>Tauchen</div>
   </div>
 
   <div id="sys-controls">
@@ -475,29 +475,29 @@
   </div>
 
   <div class="mobile-controls">
-    <button class="steer-btn" id="btn-left" type="button" aria-label="Двигаться влево">◀</button>
+    <button class="steer-btn" id="btn-left" type="button" aria-label="Nach links bewegen">◀</button>
     <div class="vertical-controls">
-      <button class="action-btn" id="btn-jump" type="button" aria-label="Прыжок на волне">▲<small>WELLE</small></button>
-      <button class="action-btn" id="btn-dive" type="button" aria-label="Нырок под препятствие">▼<small>НЫРОК</small></button>
+      <button class="action-btn" id="btn-jump" type="button" aria-label="Sprung auf der Welle">▲<small>WELLE</small></button>
+      <button class="action-btn" id="btn-dive" type="button" aria-label="Unter ein Hindernis tauchen">▼<small>TAUCHEN</small></button>
     </div>
-    <button class="steer-btn" id="btn-right" type="button" aria-label="Двигаться вправо">▶</button>
+    <button class="steer-btn" id="btn-right" type="button" aria-label="Nach rechts bewegen">▶</button>
   </div>
 
   <div id="start-screen" class="screen">
     <div class="panel">
-      <span class="eyebrow">Путь начинается</span>
-      <h1>Моисей на Ниле</h1>
-      <p>Ведите закрытую корзинку по течению: меняйте дорожку, поднимайтесь на волне, ныряйте под заросли и собирайте лотосы.</p>
+      <span class="eyebrow">Der Weg beginnt</span>
+      <h1>Mose auf dem Nil</h1>
+      <p>Führe das verschlossene Körbchen mit der Strömung: wechsle die Bahn, reite die Welle, tauche unter das Dickicht und sammle Lotusblüten.</p>
       <div class="legend">
-        <div><span class="key">◀▶</span>смена дорожки</div>
-        <div><span class="key">▲</span>волна: через бревно</div>
-        <div><span class="key">▼</span>нырок: под папирус</div>
-        <div><span class="key"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>три сердца на путь</div>
+        <div><span class="key">◀▶</span>Bahnwechsel</div>
+        <div><span class="key">▲</span>Welle: über den Baumstamm</div>
+        <div><span class="key">▼</span>Tauchen: unter den Papyrus</div>
+        <div><span class="key"><svg class="ico" viewBox="0 0 32 32" aria-hidden="true"><use href="#ico-heart"/></svg></span>drei Herzen für den Weg</div>
       </div>
-      <button id="help-btn" type="button" aria-label="Открыть обучение">?</button>
-      <button class="btn" id="start-btn" type="button">ОТПЛЫТЬ</button>
+      <button id="help-btn" type="button" aria-label="Tutorial öffnen">?</button>
+      <button class="btn" id="start-btn" type="button">ABLEGEN</button>
       <div class="controls-hint" id="start-best">Noch keine Fahrt — Zeit zu starten.</div>
-      <div class="controls-hint">Кнопки, стрелки клавиатуры или свайп в любую сторону</div>
+      <div class="controls-hint">Tasten, Pfeiltasten oder Wischen in jede Richtung</div>
     </div>
   </div>
 
@@ -508,7 +508,7 @@
   -->
   <div id="tutorial-screen" class="screen hidden">
     <div class="panel">
-      <span class="eyebrow">Как пройти по реке</span>
+      <span class="eyebrow">So meisterst du den Fluss</span>
       <div id="tut-stage">
         <div class="tut-scene" data-scene="move">
           <div class="lane" style="left:33%"></div><div class="lane" style="left:67%"></div>
@@ -555,38 +555,38 @@
         </div>
       </div>
       <h1 id="tut-title">Lenke das Körbchen</h1>
-      <p id="tut-text">Три дорожки, волна и нырок.</p>
+      <p id="tut-text">Drei Bahnen, eine Welle und ein Tauchgang.</p>
       <p id="tut-effect"></p>
       <div id="tut-dots"></div>
       <div id="tut-nav">
         <button class="btn btn-ghost" id="tut-back" type="button">ZURÜCK</button>
         <button class="btn" id="tut-next" type="button">WEITER</button>
       </div>
-      <button id="tut-skip" type="button">пропустить обучение</button>
+      <button id="tut-skip" type="button">Tutorial überspringen</button>
     </div>
   </div>
 
   <div id="pause-screen" class="screen hidden">
     <div class="panel">
-      <span class="eyebrow">Течение остановлено</span>
+      <span class="eyebrow">Die Strömung ist angehalten</span>
       <h1>Pause</h1>
-      <p>Река подождёт. Продолжайте, когда будете готовы.</p>
+      <p>Der Fluss wartet. Mach weiter, wenn du bereit bist.</p>
       <button class="btn" id="resume-btn" type="button">WEITER</button>
-      <button class="btn btn-ghost" id="quit-btn" type="button">ЗАВЕРШИТЬ ЗАПЛЫВ</button>
+      <button class="btn btn-ghost" id="quit-btn" type="button">FAHRT BEENDEN</button>
     </div>
   </div>
 
   <div id="gameover-screen" class="screen hidden">
     <div class="panel">
-      <span class="eyebrow">Путешествие окончено</span>
-      <h1>Путь прерван</h1>
-      <p id="fail-desc">Корзинка столкнулась с опасностью реки.</p>
+      <span class="eyebrow">Die Reise ist zu Ende</span>
+      <h1>Der Weg wurde unterbrochen</h1>
+      <p id="fail-desc">Das Körbchen traf auf eine Gefahr des Flusses.</p>
       <div class="result">
-        <div>Дистанция<b id="final-dist">0 м</b></div>
+        <div>Distanz<b id="final-dist">0 м</b></div>
         <div>Lotusblüten<b id="final-score">0</b></div>
         <div>Punkte<b id="final-total">0</b></div>
       </div>
-      <p id="best-line">Лучший результат: 0</p>
+      <p id="best-line">Bestwert: 0</p>
       <button class="btn" id="restart-btn" type="button">ERNEUT VERSUCHEN</button>
     </div>
   </div>

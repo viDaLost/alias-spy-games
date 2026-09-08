@@ -48,6 +48,20 @@
       return lang;
     },
     keyboard: () => lang==='ru' ? ['ЙЦУКЕНГШЩЗХЪ','ФЫВАПРОЛДЖЭ','ЯЧСМИТЬБЮЁ'] : ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'],
+    /*
+      Путь к переведённой копии файла. Основной бандл подменяется целиком, но
+      часть скриптов подключается уже на ходу — нижняя панель, приглашения
+      друзей, «Художник», сетевой «Соглядатай». Они грузились по своему
+      исходному адресу, то есть всегда по-русски: приложение говорило на
+      выбранном языке, а панель под ним оставалась русской.
+    */
+    asset(path) {
+      const source=String(path||'');
+      // Часть файлов сборка переписывает сама, и адрес приходит уже готовым.
+      // Возвращаем его как есть: иначе к пути припишется второй такой же.
+      if(lang==='ru' || !source.startsWith('web/') || source.startsWith('web/locales/'))return source;
+      return `web/locales/${lang}/${source.slice(4)}`;
+    },
     // Templates are trusted application strings, not user messages or HTML.
     text: value => {
       const source=String(value??'');

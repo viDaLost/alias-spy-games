@@ -1,23 +1,76 @@
 (() => {
   'use strict';
-  const language=window.AppLanguage;
-  if(!language)return;
+
+  /*
+    Переключатель языка в шапке главного меню.
+
+    Компактный и рядом с переключателем темы: язык выбирают один раз, и
+    отдельная карточка во весь экран под заголовком забирала место у игр.
+    Показывается только главному администратору — языки пока превью, и решает
+    это сервер, а не разметка.
+
+    Внутри пилюли лежит настоящий <select>, растянутый на неё и прозрачный:
+    нажатие открывает системный список телефона, а видимыми остаются флаг и
+    название. Своё выпадающее меню на мобильном вело бы себя хуже родного и
+    ничего не добавляло.
+  */
+
+  const language = window.AppLanguage;
+  if (!language) return;
+
+  /*
+    Названия языков — самоназвания, и переводить их нельзя: «Deutsch» в
+    английском списке остаётся «Deutsch». В словарь они не внесены намеренно.
+    Флаг — страны, по которой язык назван.
+  */
+  const LANGUAGES = [
+    { code: 'ru', flag: '🇷🇺', name: 'Русский' },
+    { code: 'en', flag: '🇬🇧', name: 'English' },
+    { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+    { code: 'es', flag: '🇪🇸', name: 'Español' },
+  ];
+
+  // Оговорка честная и нужная: словари игр и весь интерфейс переведены
+  // машиной. В русской сборке этой строки нет — там переводить нечего.
+  const NOTICE = 'Перевод сделан нейросетью и местами может быть неточным.';
+
+  const control = () => document.getElementById('app-language-control');
+  const notice = () => document.getElementById('app-language-notice');
+
   function install() {
-    const menu=document.getElementById('menu-container');
-    if(!language.authorized) {document.getElementById('app-language-control')?.remove();return;}
-    if(!menu||document.getElementById('app-language-control'))return;
-    const section=document.createElement('section');
-    section.className='language-panel';
-    section.id='app-language-control';
-    section.innerHTML=`<div class="language-panel__row"><label for="app-language">Язык приложения</label><select id="app-language" aria-label="Язык приложения"><option value="ru" lang="ru">Русский</option><option value="en" lang="en">English</option><option value="de" lang="de">Deutsch</option><option value="es" lang="es">Español</option></select></div><details class="language-welcome"><summary>Добро пожаловать!</summary><p>Играй вместе с друзьями и открывай Библию по-новому.</p><p>Выберите игру и начните партию. Язык можно изменить в главном меню в любой момент.</p></details>`;
-    const select=section.querySelector('select');
-    select.value=language.lang;
-    select.addEventListener('change',()=>language.choose(select.value));
-    menu.prepend(section);
-    // New visitors see the introduction; it stays available without blocking a game.
-    let seen=false;try {seen=localStorage.getItem('app_welcome_seen_v1')==='1';}catch{}
-    if(!seen) {section.querySelector('details').open=true;try{localStorage.setItem('app_welcome_seen_v1','1');}catch{}}
+    const header = document.querySelector('.app-header');
+    if (!language.authorized) {
+      control()?.remove();
+      notice()?.remove();
+      return;
+    }
+    if (!header || control()) return;
+
+    const current = LANGUAGES.find((item) => item.code === language.lang) || LANGUAGES[0];
+    const pill = document.createElement('span');
+    pill.className = 'language-pill';
+    pill.id = 'app-language-control';
+    pill.innerHTML = `<span class="language-pill__flag" aria-hidden="true">${current.flag}</span>`
+      + `<span class="language-pill__name">${current.name}</span>`
+      + '<select class="language-pill__select" id="app-language" aria-label="Язык приложения">'
+      + LANGUAGES.map((item) => `<option value="${item.code}" lang="${item.code}">${item.flag} ${item.name}</option>`).join('')
+      + '</select>';
+
+    const select = pill.querySelector('select');
+    select.value = language.lang;
+    select.addEventListener('change', () => language.choose(select.value));
+    header.append(pill);
+
+    if (language.lang !== 'ru' && !notice()) {
+      const note = document.createElement('p');
+      note.className = 'language-note';
+      note.id = 'app-language-notice';
+      note.textContent = NOTICE;
+      header.append(note);
+    }
   }
-  window.addEventListener('app-language-access',install);
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+
+  window.addEventListener('app-language-access', install);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
+  else install();
 })();

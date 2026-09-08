@@ -68,11 +68,11 @@ function openSpyOnline() {
     container.innerHTML = '<div class="app-game-loading"><div class="app-loader__ring"></div><p>Loading online mode…</p></div>';
   }
   if (typeof loadGameScript === 'function') {
-    loadGameScript('web/locales/en/games/spy-online.js', () => window.startSpyOnlineGame?.());
+    loadGameScript(window.AppLanguage?.asset?.('web/locales/en/games/spy-online.js') || 'web/locales/en/games/spy-online.js', () => window.startSpyOnlineGame?.());
     return;
   }
   const script = document.createElement('script');
-  script.src = 'web/locales/en/games/spy-online.js';
+  script.src = window.AppLanguage?.asset?.('web/locales/en/games/spy-online.js') || 'web/locales/en/games/spy-online.js';
   script.onload = () => window.startSpyOnlineGame?.();
   script.onerror = () => {
     if (container) {

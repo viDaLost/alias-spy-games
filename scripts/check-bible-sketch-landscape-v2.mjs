@@ -16,7 +16,9 @@ assert.match(css, /data-width="3"/);
 assert.match(css, /data-width="6"/);
 assert.match(css, /data-width="11"/);
 assert.match(launcher, /bible-sketch-landscape-v2\.css\?v=3/);
-assert.match(launcher, /bible-sketch\.js\?v=4/);
+// Адрес игры собирается из переведённой копии, но метка версии остаётся на месте.
+assert.match(launcher, /'web\/games\/bible-sketch\.js'/);
+assert.match(launcher, /\?v=4`/);
 assert.match(launcher, /if\s*\(!link\.isConnected\)\s*document\.head\.appendChild\(link\)/);
 assert.doesNotMatch(launcher, /if\s*\(isSketch\)\s*\{[\s\S]{0,180}?ensureLandscapeStyles\(\)/);
 assert.ok(isBundled('web/js/bible-sketch-launcher.js'), 'bible-sketch-launcher.js must ship in the bundle');

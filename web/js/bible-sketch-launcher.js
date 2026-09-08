@@ -84,7 +84,7 @@
     if (gameScriptPromise) return gameScriptPromise;
     gameScriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'web/games/bible-sketch.js?v=4';
+      script.src = `${window.AppLanguage?.asset?.('web/games/bible-sketch.js') || 'web/games/bible-sketch.js'}?v=4`;
       script.dataset.gameScript = 'web/games/bible-sketch.js';
       script.onload = resolve;
       script.onerror = () => reject(new Error('Не удалось загрузить Библейского художника'));

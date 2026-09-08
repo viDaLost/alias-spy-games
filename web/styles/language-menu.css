@@ -1,13 +1,79 @@
-.language-panel { margin: 0 0 18px; padding: 14px 16px; color: var(--ink); background: var(--card,rgba(255,255,255,.92)); border: 1px solid var(--line,rgba(99,102,241,.18)); border-radius: 18px; }
-.language-panel__row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; }
-.language-panel label { font-size:14px; font-weight:650; }
-.language-panel select { max-width:100%; min-height:44px; padding:8px 30px 8px 12px; border:1px solid var(--line,#cbd5e1); border-radius:12px; background:var(--card,#fff); color:var(--ink,#1e293b); font:inherit; }
-.language-panel select:focus-visible, .language-welcome summary:focus-visible { outline:3px solid #818cf8; outline-offset:3px; }
-.language-welcome { margin-top:10px; font-size:14px; line-height:1.55; }
-.language-welcome summary { cursor:pointer; padding:6px 0; font-weight:600; }
-.language-welcome p { margin:8px 0 0; }
-.theme-dark .language-panel { background:#172338; color:#e2e8f0; border-color:#334155; }
-.theme-dark .language-panel select { background:#1e293b; color:#f1f5f9; border-color:#475569; }
+/*
+  Переключатель языка — пилюля в шапке, рядом с переключателем темы.
+
+  Раньше здесь стояла карточка во весь экран с подписью, крупным списком и
+  раскрывающимся приветствием. Она занимала первый экран целиком, а выбирают
+  язык один раз. Теперь это флаг и название в одну строку.
+
+  Настоящий <select> лежит поверх пилюли и прозрачен: нажатие открывает
+  системный список телефона, а видимыми остаются флаг и название.
+*/
+
+.language-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 14px 0 0 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--card, rgba(255, 255, 255, .92));
+  border: 1px solid var(--line, rgba(99, 102, 241, .22));
+  color: var(--ink, #312e81);
+  box-shadow: 0 8px 20px rgba(48, 55, 150, .12);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: top;
+}
+
+.language-pill__flag { font-size: 16px; line-height: 1; }
+
+/*
+  Список во всю пилюлю и невидим: нажатие в любое её место должно открывать
+  выбор. Прозрачность, а не display:none — спрятанный список телефон не
+  откроет, и выбрать язык станет нечем.
+*/
+.language-pill__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.language-pill:has(.language-pill__select:focus-visible) {
+  outline: 3px solid #818cf8;
+  outline-offset: 3px;
+}
+
+.language-pill:active { transform: scale(.96); }
+
+/* Оговорка про машинный перевод: строкой под пилюлями, тише остального. */
+.language-note {
+  margin: 8px auto 0;
+  max-width: 34em;
+  color: var(--muted, #64748b);
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.45;
+  opacity: .9;
+}
+
+html.theme-dark .language-pill {
+  background: #172338;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
 html:not([lang="ru"]) .game-card__title { overflow-wrap:anywhere; }
 html:lang(en) .wow-wrap .wow-preview:empty::before { content: 'Swipe across the letters'; }
 html:lang(de) .wow-wrap .wow-preview:empty::before { content: 'Über die Buchstaben wischen'; }

@@ -145,8 +145,32 @@
 
     ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
     ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
-    ensureScript('social-dock-v2-js', 'web/js/social-dock-v2.js?v=1');
-    ensureScript('game-friend-invites-js', 'web/js/game-friend-invites.js?v=1');
+
+    /*
+      Нижняя панель и приглашения подключаются на ходу, и переведённая копия у
+      них своя. Но язык к этому моменту ещё не обязательно известен: его
+      подтверждает сервер, а этот файл намеренно не локализуется — он должен
+      отработать одинаково до того, как язык выбран.
+
+      Поэтому дожидаемся отметки о готовности языка и только потом берём адрес.
+      Раньше панель грузилась сразу и всегда по русскому адресу: приложение
+      говорило по-английски, а «Избранное» и «Профиль» под ним — по-русски.
+
+      Ожидание со сроком: если отметка почему-то не появится, панель всё равно
+      подключится — пусть на русском, но подключится. Пропасть она не должна.
+    */
+    const mount = () => {
+      const localized = (path) => window.AppLanguage?.asset?.(path) || path;
+      ensureScript('social-dock-v2-js', `${localized('web/js/social-dock-v2.js')}?v=1`);
+      ensureScript('game-friend-invites-js', `${localized('web/js/game-friend-invites.js')}?v=1`);
+    };
+    const ready = () => Boolean(document.documentElement.dataset.languageReady);
+    if (ready()) { mount(); return; }
+    let done = false;
+    const finish = () => { if (done) return; done = true; observer.disconnect(); clearTimeout(timer); mount(); };
+    const observer = new MutationObserver(() => { if (ready()) finish(); });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-language-ready'] });
+    const timer = setTimeout(finish, 4000);
   }
 
   function hydrate() {

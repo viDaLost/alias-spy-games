@@ -53,7 +53,10 @@ assert(!errors.includes('/admin/stats?initData='), 'error feed must not expose i
 assert(errors.includes('document.hidden'), 'error feed must pause in background');
 
 assert(app.includes('script.src = `${fileName}?v=21`;'), 'dynamic game cache key must expose the patched Quartet source');
-assert(sketchLauncher.includes("script.src = 'web/games/bible-sketch.js?v=4';"), 'Bible Sketch patched source cache key is stale');
+// Адрес «Художника» проходит через выбор языка — у него есть переведённая
+// копия, — но метка версии обязана остаться: без неё браузер отдаст старый файл.
+assert(sketchLauncher.includes("'web/games/bible-sketch.js'") && /script\.src = `\$\{[^`]+\}\?v=4`;/.test(sketchLauncher),
+  'Bible Sketch patched source cache key is stale');
 assert(html.includes('telegram-desktop-bootstrap-20260828'), 'production build marker is stale');
 assert(isBundled('web/js/cloudflare-request-budget.js'), 'request budget must ship in the bundle');
 assert(isBundled('web/js/presence-identity.js'), 'presence must ship in the bundle');
