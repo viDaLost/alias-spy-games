@@ -44,7 +44,7 @@
   function normaliseWords(level) {
     return (level.wordsList || level.words || [])
       .map((item) => typeof item === 'string' ? item : item?.text)
-      .map((word) => String(word || '').toUpperCase().replace(/Ё/g, 'Е').replace(/[^А-Я]/g, ''))
+      .map((word) => String(word || '').toUpperCase().replace(/Ё/g, 'Е').replace(/[^A-ZА-Я]/g, ''))
       .filter((word) => word.length >= 2);
   }
 

@@ -1,3 +1,4 @@
+import { wordAlternatives } from '../../shared/localized-words.js';
 // Слова и короткие фразы собраны по Синодальному переводу (1876).
 // Источник текста для сверки: https://ebible.org/russyn/ (Public Domain).
 // ref хранится рядом с каждой карточкой, чтобы происхождение слова можно было проверить.
@@ -249,7 +250,7 @@ export function getWord(categoryId, wordId) {
 
 export function normalizeAnswer(value) {
   return String(value ?? '')
-    .toLocaleLowerCase('ru-RU')
+    .normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('ru-RU').replace(/ß/g, 'ss')
     .replace(/ё/g, 'е')
     .replace(/[«»“”„"'`´!?.,:;()\[\]{}—–\-]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -260,7 +261,7 @@ export function answerMatches(entry, input) {
   if (!entry) return false;
   const answer = normalizeAnswer(input);
   if (!answer) return false;
-  const candidates = [entry.label, ...(entry.aliases || [])].map(normalizeAnswer).filter(Boolean);
+  const candidates = [...wordAlternatives(entry.label), ...(entry.aliases || [])].map(normalizeAnswer).filter(Boolean);
   return candidates.some((candidate) => {
     if (candidate === answer) return true;
     const maxDistance = candidate.length >= 12 ? 2 : candidate.length >= 6 ? 1 : 0;

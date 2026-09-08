@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'cloudflare/shared/**'
       - 'cloudflare/spy-worker/**'
       - '.github/workflows/deploy-spy-cloudflare.yml'
 

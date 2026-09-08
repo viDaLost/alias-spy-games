@@ -2205,6 +2205,21 @@ html.theme-dark .theme-switch {
   background: linear-gradient(135deg, #241bbf, #1453dc) !important;
 }
 
+/* web/styles/language-menu.css */
+html.theme-dark .language-panel {
+  background: var(--card,rgba(20, 20, 20, 0.92)) !important;
+  border: 1px solid var(--line,rgba(15, 18, 168, 0.18)) !important;
+}
+html.theme-dark .language-panel select {
+  border: 1px solid var(--line,#2d3641) !important;
+  background: var(--card,#141414) !important;
+  color: var(--ink,#b2c1d8) !important;
+}
+html.theme-dark .language-panel select:focus-visible,
+html.theme-dark .language-welcome summary:focus-visible {
+  outline: 3px solid #1c257c !important;
+}
+
 /* web/styles/game-rules.css */
 html.theme-dark .rules-topbar {
   background: linear-gradient(135deg, #3730a3, #241bbf 55%, #1453dc) !important;

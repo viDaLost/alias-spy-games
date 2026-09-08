@@ -13,7 +13,7 @@ function startSacredWordGame(wordsUrl) {
   // Используем v4, чтобы синхронизация с вашим app.js работала корректно
   const STORAGE_KEY = `sacred_word_levels_v4_${tgUser.id}`;
   const MAX_ERRORS = 7; 
-  const KEYBOARD_ROWS = [
+  const KEYBOARD_ROWS = window.AppLanguage?.keyboard?.().map(row => [...row]) || [
     ["Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х","Ъ"],
     ["Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"],
     ["Я","Ч","С","М","И","Т","Ь","Б","Ю","Ё"]
@@ -364,7 +364,7 @@ function startSacredWordGame(wordsUrl) {
   }
 
   function normalizeLetter(letter) { return (letter || "").toUpperCase().replace(/\s+/g, ""); }
-  function sanitizeWord(word) { return normalizeLetter(word).replace(/[^А-ЯЁ-]/g, ""); }
+  function sanitizeWord(word) { return normalizeLetter(word).replace(/[^A-ZА-ЯЁ-]/g, ""); }
   function loadSavedState() { try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
   function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
 
@@ -391,6 +391,7 @@ function startSacredWordGame(wordsUrl) {
   function ensureStateValid() {
     const saved = loadSavedState();
     if (!saved || saved.level === undefined || !saved.word) return createRound(0);
+    if (sanitizeWord(words[saved.level % words.length]?.word) !== saved.word) return createRound(saved.level);
     state = saved;
     render();
   }
@@ -407,7 +408,7 @@ function startSacredWordGame(wordsUrl) {
 
   function pressLetter(letter) {
     if (!letter || state.finished) return;
-    letter = normalizeLetter(letter);
+    letter = window.AppLanguage?.lang !== 'ru' && window.AppLanguage?.normalizeWord ? window.AppLanguage.normalizeWord(letter) : normalizeLetter(letter);
     if (state.used.includes(letter)) return;
     
     state.used.push(letter);
@@ -556,8 +557,8 @@ function startSacredWordGame(wordsUrl) {
 
   function handlePhysicalKeyboard(event) {
     if (!state || state.finished) return;
-    const letter = normalizeLetter(event.key);
-    if (/^[А-ЯЁ]$/.test(letter)) {
+    const letter = window.AppLanguage?.lang !== 'ru' && window.AppLanguage?.normalizeWord ? window.AppLanguage.normalizeWord(event.key) : normalizeLetter(event.key);
+    if (/^[A-ZА-ЯЁ]$/.test(letter)) {
       event.preventDefault();
       pressLetter(letter);
     }

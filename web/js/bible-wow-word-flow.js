@@ -18,7 +18,7 @@
     return String(value || '')
       .toUpperCase()
       .replace(/Ё/g, 'Е')
-      .replace(/[^А-Я]/g, '');
+      .replace(/[^A-ZА-Я]/g, '');
   }
 
   function readPreviewWord(wrap) {

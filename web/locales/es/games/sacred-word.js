@@ -1,0 +1,574 @@
+/* global loadJSON, goToMainMenu, THREE, getTelegramUser */
+
+function startSacredWordGame(wordsUrl) {
+  const container = document.getElementById("game-container");
+  if (!container) return;
+
+  if (typeof THREE === 'undefined') {
+    container.innerHTML = `<div style="padding: 20px; color: red;">Error: biblioteca Three.js no está cargada!</div>`;
+    return;
+  }
+
+  const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
+  // Используем v4, чтобы синхронизация с вашим app.js работала корректно
+  const STORAGE_KEY = `sacred_word_levels_v4_${tgUser.id}`;
+  const MAX_ERRORS = 7; 
+  const KEYBOARD_ROWS = window.AppLanguage?.keyboard?.().map(row => [...row]) || [
+    ["Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х","Ъ"],
+    ["Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"],
+    ["Я","Ч","С","М","И","Т","Ь","Б","Ю","Ё"]
+  ];
+
+  let words = [];
+  let state = null; 
+
+  // --- THREE.JS ПЕРЕМЕННЫЕ ---
+  let threeCanvas = null;
+  let scene, camera, renderer, menorahGroup;
+  let flames3D = [];
+  let smokeParticles = [];
+  let animationFrameId;
+
+  function injectStyles() {
+    const old = document.getElementById("sacred-word-style");
+    if (old) old.remove();
+    const style = document.createElement("style");
+    style.id = "sacred-word-style";
+    style.textContent = `
+      .sw-wrap { width: min(100%, 860px); margin: 0 auto; display: grid; gap: 14px; padding: 6px 0 24px; color: #1e293b; }
+      .sw-topbar, .sw-card, .sw-keyboard { background: #ffffff; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.08); border: 1px solid rgba(79,70,229,.08); }
+      .sw-topbar { padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .sw-titlebox { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; }
+      .sw-title { font-size: 1.3rem; font-weight: 800; color: #312e81; }
+      .sw-subtitle { font-size: .92rem; color: #475569; margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+      .sw-level-select { background: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 6px; padding: 2px 6px; font-family: inherit; font-size: 0.9rem; font-weight: 700; color: #312e81; cursor: pointer; outline: none; }
+      .sw-card { padding: 16px; }
+      .sw-grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 16px; align-items: center; }
+      .sw-lamp-card { background: radial-gradient(circle at center, #1e293b, #020617); border-radius: 20px; padding: 0; min-height: 290px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+      .sw-info { display: grid; gap: 12px; }
+      .sw-pillrow { display: flex; flex-wrap: wrap; gap: 8px; }
+      .sw-pill { background: #dbeafe; color: #1e293b; border-radius: 999px; padding: 8px 12px; font-size: .94rem; font-weight: 700; }
+      .sw-hintbox { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; border-radius: 16px; padding: 12px 14px; line-height: 1.45; font-size: 1rem; font-style: italic; }
+      .sw-word { display: flex; flex-wrap: wrap; gap: 8px; min-height: 66px; }
+      .sw-letter { width: 44px; height: 52px; border-radius: 14px; background: #fff; border: 2px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,.05); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 800; color: #0f172a; transition: transform .2s ease, background-color .2s ease; }
+      .sw-letter.revealed { background: #dbeafe; border-color: #818cf8; transform: translateY(-2px); }
+      .sw-letter.space { width: 18px; background: transparent; border: none; box-shadow: none; }
+      .sw-message { min-height: 24px; font-weight: 700; color: #312e81; }
+      .sw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      .sw-actions button { flex: 1; min-width: 168px; margin: 0; padding: 10px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; }
+      .sw-actions button:active { transform: scale(0.95); }
+      .sw-keyboard { padding: 14px 8px; box-sizing: border-box; }
+      .sw-kb-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 6px; width: 100%; }
+      .sw-kb-key { flex: 1 1 auto; max-width: 44px; height: 48px; border-radius: 10px; border: none; background: #f1f5f9; color: #0f172a; box-shadow: 0 4px 6px rgba(0,0,0,.08); font-weight: 800; font-size: 1.1rem; padding: 0; display: flex; align-items: center; justify-content: center; touch-action: manipulation; transition: transform .1s ease, opacity .2s ease, background-color .2s ease; }
+      .sw-kb-key.good { background: #dcfce7; color: #166534; box-shadow: none; }
+      .sw-kb-key.bad { background: #fee2e2; color: #991b1b; box-shadow: none; }
+      .sw-kb-key.used { opacity: .6; }
+      .sw-kb-key:disabled { cursor: not-allowed; }
+      .sw-kb-key:active:not(:disabled) { transform: scale(.92); }
+      /* v15 compact mobile game board: no empty vertical gaps, all controls stay visible */
+      .sw-wrap { gap: 10px; padding: 0 0 14px; }
+      .sw-topbar { padding: 8px; border-radius: 22px; }
+      .sw-card { padding: 10px; border-radius: 24px; }
+      .sw-grid { grid-template-columns: minmax(170px, 235px) minmax(0,1fr); gap: 10px; align-items: stretch; }
+      .sw-lamp-card { min-height: 190px; border-radius: 22px; }
+      .sw-info { gap: 8px; }
+      .sw-pillrow { gap: 6px; }
+      .sw-pill { padding: 7px 10px; font-size: .86rem; }
+      .sw-hintbox { padding: 10px 12px; font-size: .92rem; }
+      .sw-word { min-height: 46px; gap: 5px; align-items: center; justify-content: center; }
+      .sw-letter { width: 34px; height: 42px; border-radius: 12px; font-size: 1.1rem; }
+      .sw-keyboard { padding: 10px 6px; border-radius: 24px; }
+      .sw-kb-row { gap: 4px; margin-bottom: 5px; }
+      .sw-kb-key { max-width: 38px; height: 42px; border-radius: 13px; font-size: 1rem; }
+      .sw-message { min-height: 18px; margin-bottom: 8px !important; }
+      @media (max-width: 500px) {
+        .sw-wrap { gap: 9px; }
+        .sw-grid { grid-template-columns: minmax(128px, 38vw) minmax(0,1fr); gap: 8px; }
+        .sw-lamp-card { min-height: 166px; }
+        .sw-title { font-size: 1.04rem; }
+        .sw-topbar { padding: 8px; }
+        .sw-card { padding: 9px; }
+        .sw-pill { font-size: .8rem; padding: 6px 8px; }
+        .sw-hintbox { font-size: .82rem; padding: 8px 10px; }
+        .sw-letter { width: 28px; height: 36px; font-size: .98rem; border-radius: 10px; }
+        .sw-subtitle { font-size: .78rem; }
+        .sw-kb-key { height: 38px; font-size: .93rem; max-width: 31px; }
+        .sw-kb-row { gap: 3px; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Генерация текстур для огня и дыма (Canvas 2D)
+  function createRadialGradientTexture(color1, color2) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, color1);
+    grad.addColorStop(1, color2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  // --- ИНИЦИАЛИЗАЦИЯ THREE.JS ---
+  function initThreeJS() {
+    scene = new THREE.Scene();
+    
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(260, 260);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+    if ('toneMapping' in renderer) renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    if ('toneMappingExposure' in renderer) renderer.toneMappingExposure = 1.18;
+    threeCanvas = renderer.domElement;
+    threeCanvas.style.width = "100%";
+    threeCanvas.style.height = "auto";
+    threeCanvas.style.maxWidth = "260px";
+    threeCanvas.style.aspectRatio = "1 / 1";
+
+    camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+    camera.position.set(0, 2.35, 14.2);
+    camera.lookAt(0, 1.35, 0);
+    scene.fog = new THREE.FogExp2(0xdbeafe, 0.018);
+
+    // Сложное освещение
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.58);
+    scene.add(ambientLight);
+    
+    const mainLight = new THREE.DirectionalLight(0xfff1d6, 1.45);
+    mainLight.position.set(5, 10, 8);
+    mainLight.castShadow = true;
+    scene.add(mainLight);
+
+    const backLight = new THREE.DirectionalLight(0x8fd3ff, 1.05);
+    backLight.position.set(-5, 5, -8);
+    scene.add(backLight);
+
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffc24d,
+      emissive: 0x3a1f00,
+      emissiveIntensity: 0.16,
+      metalness: 0.96,
+      roughness: 0.18,
+    });
+
+    menorahGroup = new THREE.Group();
+    menorahGroup.position.y = -1;
+
+    // --- БАЗА И СТВОЛ ---
+    const base1 = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 2.8, 0.4, 32), goldMat);
+    base1.position.y = -3;
+    menorahGroup.add(base1);
+    
+    const base2 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2.2, 0.4, 32), goldMat);
+    base2.position.y = -2.6;
+    menorahGroup.add(base2);
+
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 6.5, 16), goldMat);
+    stem.position.y = 0;
+    menorahGroup.add(stem);
+
+    [-1.5, 0, 1.5].forEach(yPos => {
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), goldMat);
+      knob.position.y = yPos;
+      knob.scale.y = 0.8;
+      menorahGroup.add(knob);
+    });
+
+    // --- ВЕТВИ (U-образные) ---
+    const radii = [1.2, 2.4, 3.6];
+    const branchYCenter = 2.0; 
+
+    addCandleCupAndFire(0, branchYCenter, menorahGroup);
+
+    radii.forEach((r, idx) => {
+      const branchGeo = new THREE.TorusGeometry(r, 0.18, 16, 48, Math.PI);
+      const branch = new THREE.Mesh(branchGeo, goldMat);
+      branch.position.y = branchYCenter;
+      branch.rotation.z = Math.PI; 
+      menorahGroup.add(branch);
+
+      const bottomKnob = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), goldMat);
+      bottomKnob.position.set(0, branchYCenter - r, 0);
+      menorahGroup.add(bottomKnob);
+
+      addCandleCupAndFire(r, branchYCenter, menorahGroup);
+      addCandleCupAndFire(-r, branchYCenter, menorahGroup);
+    });
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(4.6, 64),
+      new THREE.MeshBasicMaterial({ color: 0xfff2bf, transparent: true, opacity: 0.14, depthWrite: false })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -3.25;
+    scene.add(floor);
+
+    scene.add(menorahGroup);
+    animateThreeJS();
+  }
+
+  const texCore = createRadialGradientTexture('rgba(255, 255, 255, 1)', 'rgba(255, 220, 100, 0)');
+  const texHalo = createRadialGradientTexture('rgba(255, 120, 0, 0.8)', 'rgba(255, 50, 0, 0)');
+  const texSmoke = createRadialGradientTexture('rgba(200, 200, 200, 0.6)', 'rgba(100, 100, 100, 0)');
+  const smokeMat = new THREE.SpriteMaterial({ map: texSmoke, transparent: true });
+
+  function addCandleCupAndFire(x, y, parentGroup) {
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc24d, emissive: 0x3a1f00, emissiveIntensity: 0.14, metalness: 0.96, roughness: 0.18 });
+    const candleMat = new THREE.MeshStandardMaterial({ color: 0xfdfbf7, roughness: 0.9, metalness: 0.0 });
+    const wickMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.2, 0.4, 16), goldMat);
+    cup.position.set(x, y + 0.2, 0);
+    parentGroup.add(cup);
+
+    const cupBase = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), goldMat);
+    cupBase.position.set(x, y, 0);
+    parentGroup.add(cupBase);
+
+    const candleY = y + 0.8;
+    const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 1.2, 16), candleMat);
+    candle.position.set(x, candleY, 0);
+    parentGroup.add(candle);
+
+    const wick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2, 4), wickMat);
+    wick.position.set(x, candleY + 0.65, 0);
+    parentGroup.add(wick);
+
+    const flameGroup = new THREE.Group();
+    const flameY = candleY + 0.9;
+    flameGroup.position.set(x, flameY, 0);
+
+    const light = new THREE.PointLight(0xffb020, 2.1, 7.4);
+    flameGroup.add(light);
+
+    const coreMat = new THREE.SpriteMaterial({ map: texCore, blending: THREE.AdditiveBlending, depthWrite: false });
+    const coreSprite = new THREE.Sprite(coreMat);
+    coreSprite.scale.set(0.6, 1.0, 1);
+    
+    const haloMat = new THREE.SpriteMaterial({ map: texHalo, blending: THREE.AdditiveBlending, depthWrite: false });
+    const haloSprite = new THREE.Sprite(haloMat);
+    haloSprite.scale.set(1.2, 1.8, 1);
+    haloSprite.position.y = 0.2;
+
+    flameGroup.add(haloSprite);
+    flameGroup.add(coreSprite);
+
+    parentGroup.add(flameGroup);
+
+    flames3D.push({
+      xPosition: x, 
+      group: flameGroup,
+      core: coreSprite,
+      halo: haloSprite,
+      light: light,
+      baseY: flameY,
+      active: true,
+      randomOffset: Math.random() * 100 
+    });
+  }
+
+  function spawnSmokeCloud(x, y, z) {
+    for(let i=0; i<8; i++) {
+      const sprite = new THREE.Sprite(smokeMat.clone());
+      sprite.position.set(x + (Math.random()-0.5)*0.2, y, z + (Math.random()-0.5)*0.2);
+      sprite.scale.set(0.5, 0.5, 0.5);
+      scene.add(sprite);
+      
+      smokeParticles.push({
+        sprite: sprite,
+        life: 1.0,
+        velY: 0.02 + Math.random() * 0.02,
+        velX: (Math.random() - 0.5) * 0.02,
+        scaleSpeed: 0.02 + Math.random() * 0.02
+      });
+    }
+  }
+
+  function animateThreeJS() {
+    if (!scene) return;
+    animationFrameId = requestAnimationFrame(animateThreeJS);
+    const time = Date.now() * 0.005;
+
+    flames3D.forEach((flame) => {
+      if (flame.active) {
+        const slow = Math.sin(time * 0.45 + flame.randomOffset) * 0.06;
+        const fast = Math.sin(time * 2.8 + flame.randomOffset) * 0.13;
+        const flicker = 0.9 + slow + fast;
+        flame.core.scale.set(0.54 * flicker, 0.98 * flicker, 1);
+        flame.halo.scale.set(1.35 * flicker, 2.05 * flicker, 1);
+        flame.light.intensity = 1.55 + flicker * 0.82;
+        flame.group.position.y = flame.baseY + Math.sin(time * 2.2 + flame.randomOffset) * 0.045;
+        flame.group.position.x = flame.xPosition + Math.sin(time * 1.1 + flame.randomOffset) * 0.018;
+      }
+    });
+
+    for (let i = smokeParticles.length - 1; i >= 0; i--) {
+      const p = smokeParticles[i];
+      p.life -= 0.015;
+      p.sprite.position.y += p.velY;
+      p.sprite.position.x += p.velX;
+      const currentScale = p.sprite.scale.x + p.scaleSpeed;
+      p.sprite.scale.set(currentScale, currentScale, 1);
+      p.sprite.material.opacity = p.life;
+
+      if (p.life <= 0) {
+        scene.remove(p.sprite);
+        p.sprite.material.dispose();
+        smokeParticles.splice(i, 1);
+      }
+    }
+
+    if (menorahGroup) {
+      menorahGroup.rotation.y = Math.sin(time * 0.12) * 0.12;
+      menorahGroup.position.y = -1 + Math.sin(time * 0.22) * 0.055;
+    }
+    camera.position.x = Math.sin(time * 0.04) * 1.15;
+    camera.position.z = 14.2 + Math.cos(time * 0.04) * 0.55;
+    camera.lookAt(0, 1.35, 0);
+
+    renderer.render(scene, camera);
+  }
+
+  function syncFlamesWithState() {
+    if (!flames3D.length) return;
+    
+    const sortedFlames = [...flames3D].sort((a,b) => a.xPosition - b.xPosition);
+    const extinctOrder = [0, 6, 1, 5, 2, 4, 3]; 
+    
+    for (let idx = 0; idx < 7; idx++) {
+      const extinguishErrorLevel = extinctOrder.indexOf(idx) + 1; 
+      const shouldBeOff = state.errors >= extinguishErrorLevel;
+      
+      const flame = sortedFlames[idx];
+      
+      if (shouldBeOff && flame.active) {
+         flame.active = false;
+         flame.core.visible = false;
+         flame.halo.visible = false;
+         flame.light.intensity = 0;
+         const worldPos = new THREE.Vector3();
+         flame.group.getWorldPosition(worldPos);
+         spawnSmokeCloud(worldPos.x, worldPos.y, worldPos.z);
+      } else if (!shouldBeOff && !flame.active) {
+         flame.active = true;
+         flame.core.visible = true;
+         flame.halo.visible = true;
+      }
+    }
+  }
+
+  function normalizeLetter(letter) { return (letter || "").toUpperCase().replace(/\s+/g, ""); }
+  function sanitizeWord(word) { return normalizeLetter(word).replace(/[^A-ZА-ЯЁ-]/g, ""); }
+  function loadSavedState() { try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+  function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+
+  function createRound(targetLevel) {
+    let lvl = targetLevel !== undefined ? targetLevel : (state ? state.level : 0);
+    const safeIndex = lvl % words.length; 
+    
+    const wordObj = words[safeIndex];
+    state = {
+      level: safeIndex,
+      word: sanitizeWord(wordObj.word),
+      category: wordObj.category,
+      hint: wordObj.hint,
+      errors: 0,
+      used: [],
+      revealed: [],
+      finished: false,
+      won: false
+    };
+    saveState();
+    render();
+  }
+
+  function ensureStateValid() {
+    const saved = loadSavedState();
+    if (!saved || saved.level === undefined || !saved.word) return createRound(0);
+    if (sanitizeWord(words[saved.level % words.length]?.word) !== saved.word) return createRound(saved.level);
+    state = saved;
+    render();
+  }
+
+  function revealAllByLetter(letter) {
+    [...state.word].forEach((ch, idx) => {
+      if (ch === letter && !state.revealed.includes(idx)) state.revealed.push(idx);
+    });
+  }
+
+  function getSolved() {
+    return [...state.word].every((ch, idx) => ch === "-" || ch === " " || state.revealed.includes(idx));
+  }
+
+  function pressLetter(letter) {
+    if (!letter || state.finished) return;
+    letter = window.AppLanguage?.lang !== 'ru' && window.AppLanguage?.normalizeWord ? window.AppLanguage.normalizeWord(letter) : normalizeLetter(letter);
+    if (state.used.includes(letter)) return;
+    
+    state.used.push(letter);
+    
+    if (state.word.includes(letter)) {
+      revealAllByLetter(letter);
+      if (getSolved()) {
+        state.finished = true;
+        state.won = true;
+      }
+    } else {
+      state.errors += 1;
+      if (state.errors >= MAX_ERRORS) {
+        state.errors = MAX_ERRORS;
+        state.finished = true;
+        state.won = false;
+      }
+    }
+    saveState();
+    render();
+  }
+
+  function getMessage() {
+    if (!state.finished) return "Revela letras y protege la llama de la menorá.";
+    if (state.won) return "¡Victoria! La luz está a salvo.";
+    return `La lámpara se apagó. La palabra era: ${state.word}.`;
+  }
+
+  function renderWord() {
+    return [...state.word].map((ch, idx) => {
+      if (ch === " " || ch === "-") return `<div class="sw-letter ${ch === " " ? "space" : "revealed"}">${ch === "-" ? "–" : ""}</div>`;
+      const visible = state.revealed.includes(idx) || (!state.won && state.finished);
+      return `<div class="sw-letter ${visible ? "revealed" : ""}">${visible ? ch : "_"}</div>`;
+    }).join("");
+  }
+
+  function renderKeyboard() {
+    return KEYBOARD_ROWS.map(row => `
+      <div class="sw-kb-row">
+        ${row.map(letter => {
+          const used = state.used.includes(letter);
+          const hit = used && state.word.includes(letter);
+          const miss = used && !state.word.includes(letter);
+          return `<button class="sw-kb-key ${used ? "used" : ""} ${hit ? "good" : ""} ${miss ? "bad" : ""}" data-letter="${letter}" ${used || state.finished ? "disabled" : ""}>${letter}</button>`;
+        }).join("")}
+      </div>
+    `).join("");
+  }
+
+  function render() {
+    let actionButtons = '';
+    
+    if (state.finished && state.won) {
+      actionButtons = `<button class="start-button" id="sw-next-level" style="background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; max-width: 320px; margin: 0 auto; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">Siguiente nivel</button>`;
+    } else {
+      actionButtons = `<button class="start-button" id="sw-reset-btn" style="background:#f1f5f9; color:#0f172a; border: 1px solid #cbd5e1; max-width: 320px; margin: 0 auto;">Reiniciar nivel</button>`;
+    }
+
+    const levelSelectHtml = `
+      <select id="sw-level-select" class="sw-level-select">
+        ${words.map((w, i) => `<option value="${i}" ${i === state.level ? "selected" : ""}>Nivel ${i + 1}</option>`).join("")}
+      </select>
+    `;
+
+    container.innerHTML = `\n      <div class="sw-wrap">\n        <div class="sw-topbar">\n          <button class="back-button" style="width:auto; padding:10px 14px; margin:0; border: 1px solid #cbd5e1;" id="sw-back-btn">Atrás</button>\n          <div class="sw-titlebox">\n            <div class="sw-title">Palabra sagrada</div>\n            <div class="sw-subtitle">${levelSelectHtml}</div>\n          </div>\n          <div style="width:96px"></div>\n        </div>\n\n        <div class="sw-card">\n          <div class="sw-grid">\n            <div class="sw-lamp-card" id="sw-lamp-container"></div>\n            <div class="sw-info">\n              <div class="sw-pillrow">\n                <div class="sw-pill">Categoría: ${state.category}</div>
+                <div class="sw-pill" style="background:${state.errors >= MAX_ERRORS ? '#fee2e2' : '#dbeafe'}; color:${state.errors >= MAX_ERRORS ? '#991b1b' : '#1e293b'};">Llamas apagadas: ${state.errors} / ${MAX_ERRORS}</div>
+              </div>
+              <div class="sw-hintbox">${state.hint}</div>\n              <div>\n                <div class="sw-subtitle" style="margin-bottom:8px; text-align:left;">Palabra oculta abajo, pistas relacionadas arriba</div>\n                <div class="sw-word">${renderWord()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sw-keyboard">
+          ${renderKeyboard()}
+        </div>
+
+        <div style="padding: 10px 16px; text-align: center;">
+          <div class="sw-message" style="margin-bottom: 12px; min-height: 24px;">${getMessage()}</div>
+          <div class="sw-actions" style="display: flex; justify-content: center;">
+            ${actionButtons}
+          </div>
+        </div>
+      </div>
+    `;
+
+    const lampContainer = document.getElementById("sw-lamp-container");
+    if (!threeCanvas) {
+      // Единственная игра с WebGL: контекста может не оказаться вовсе — их у браузера
+      // ограниченное число, а на слабой машине или при отключённом ускорении его не
+      // дадут совсем. Раньше это роняло весь экран игры; теперь она просто идёт без
+      // трёхмерной меноры. Саму потерю уже пережитого контекста three.js обрабатывает
+      // сам — в r128 обработчик webglcontextlost вызывает preventDefault.
+      try {
+        initThreeJS();
+      } catch (error) {
+        console.warn("Sacred Word: no se pudo iniciar 3D-escena; se juega sin ella:", error);
+        threeCanvas = null;
+      }
+    }
+    if (threeCanvas && lampContainer) {
+      lampContainer.appendChild(threeCanvas);
+    }
+    syncFlamesWithState();
+
+    container.querySelectorAll(".sw-kb-key").forEach(btn => {
+      btn.addEventListener("click", () => pressLetter(btn.dataset.letter));
+    });
+
+    container.querySelector("#sw-next-level")?.addEventListener("click", () => {
+      createRound(state.level + 1);
+    });
+
+    container.querySelector("#sw-reset-btn")?.addEventListener("click", () => {
+      createRound(state.level);
+    });
+
+    container.querySelector("#sw-level-select")?.addEventListener("change", (e) => {
+      createRound(parseInt(e.target.value, 10));
+    });
+    
+    container.querySelector("#sw-back-btn")?.addEventListener("click", () => {
+       cleanupThreeJS();
+       goToMainMenu();
+    });
+  }
+
+  function handlePhysicalKeyboard(event) {
+    if (!state || state.finished) return;
+    const letter = window.AppLanguage?.lang !== 'ru' && window.AppLanguage?.normalizeWord ? window.AppLanguage.normalizeWord(event.key) : normalizeLetter(event.key);
+    if (/^[A-ZА-ЯЁ]$/.test(letter)) {
+      event.preventDefault();
+      pressLetter(letter);
+    }
+  }
+
+  function cleanupThreeJS() {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    smokeParticles = []; 
+    if (renderer) {
+      renderer.dispose();
+      renderer.forceContextLoss();
+    }
+    document.removeEventListener("keydown", handlePhysicalKeyboard);
+  }
+
+  injectStyles();
+  loadJSON(wordsUrl)
+    .then(data => {
+      words = Array.isArray(data) ? data.filter(item => item && item.word && item.category && item.hint) : [];
+      if (!words.length) throw new Error("No se pudieron cargar las palabras.");
+      
+      if (window.__sacredWordCleanup) window.__sacredWordCleanup();
+      
+      document.addEventListener("keydown", handlePhysicalKeyboard);
+      window.__sacredWordCleanup = cleanupThreeJS;
+      ensureStateValid();
+    })
+    .catch(err => {
+      console.error(err);
+      container.innerHTML = `\n        <div class="card" style="max-width:640px; margin: 1rem auto; background:#fff; padding:20px;">\n          <p style="margin-bottom:12px; color:#991b1b; font-weight:700;">❌ No se pudo cargar Palabra sagrada.</p>\n          <button class="back-button" onclick="goToMainMenu()" style="border: 1px solid #cbd5e1;">Al menú</button>\n        </div>\n      `;
+    });
+}

@@ -67,7 +67,7 @@
       key: 'bible-wow',
       title: 'Библейские слова',
       icon: 'web/assets/icons/words.webp',
-      keys: () => ['bibleWowCompleted', 'bibleWowBonusByLevel', 'bibleWowProgressByLevel_v1'],
+      keys: () => ['bibleWowCompleted', 'bibleWowBonusByLevel', 'bibleWowProgressByLevel_v1', ...['en','de','es'].map(lang=>`bibleWowProgressByLevel_v1_${lang}`)],
       // Монеты лежат в одном ключе с номером уровня, поэтому ключ не удаляется,
       // а переписывается: уровень в начало, монеты на месте.
       after() {

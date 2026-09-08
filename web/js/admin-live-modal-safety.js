@@ -92,6 +92,7 @@
     if (state.isAdmin) ensureAdminButton();
     else removeAdminButton();
     mountRoleManager();
+    window.AppLanguage?.applyRole?.({success:true,isRoot:state.isRoot,isAdmin:state.isAdmin});
     return publicState();
   }
 

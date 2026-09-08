@@ -317,7 +317,7 @@ function startBibleWowGame(levelsUrl) {
   const LS_DATA = "bibleWowData_v5";         // { coins, levelIndex }
   const LS_COMPLETED = "bibleWowCompleted";  // [levelId]
   const LS_BONUS = "bibleWowBonusByLevel";   // { [levelId]: [words...] }
-  const LS_PROGRESS = "bibleWowProgressByLevel_v1"; // { [levelId]: { foundWords:[..], hintedCells:[..] } }
+  const LS_PROGRESS = "bibleWowProgressByLevel_v1" + ((window.AppLanguage?.lang && window.AppLanguage.lang !== "ru") ? `_${window.AppLanguage.lang}` : ""); // { [levelId]: { foundWords:[..], hintedCells:[..] } }
   const LS_COINS_FIX = "bibleWowCoinsFix_v1"; // Флаг для одноразового фикса баланса
 
   function loadPersisted(st) {
@@ -413,7 +413,7 @@ function startBibleWowGame(levelsUrl) {
       .toUpperCase()
       .replace(/Ё/g, "Е")
       .trim()
-      .replace(/[^А-Я]/g, "");
+      .replace(/[^A-ZА-Я]/g, "");
   }
 
   // -------------------- STRICT GRID GENERATION (FIXED) --------------------

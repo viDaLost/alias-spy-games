@@ -1,3 +1,4 @@
+import { wordAlternatives } from '../../shared/localized-words.js';
 import { CATEGORY_META, CATALOG, answerMatches, getCategory, getWord, normalizeAnswer } from './catalog.js';
 
 export const ROOM_LIMIT = 15;
@@ -443,7 +444,7 @@ function containsSecret(state, text) {
   const word = getWord(state.categoryId, state.wordId);
   if (!word) return false;
   const haystack = ` ${normalizeAnswer(text)} `;
-  return [word.label, ...(word.aliases || [])]
+  return [...wordAlternatives(word.label), ...(word.aliases || [])]
     .map(normalizeAnswer)
     .filter((candidate) => candidate.length >= 4)
     .some((candidate) => haystack.includes(` ${candidate} `) || haystack.trim() === candidate);

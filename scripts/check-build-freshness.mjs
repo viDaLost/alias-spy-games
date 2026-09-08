@@ -51,7 +51,8 @@ if (mutated.sw === fresh.sw) {
 }
 
 const dist = fs.existsSync(path.join(root, 'web/dist')) ? fs.readdirSync(path.join(root, 'web/dist')) : [];
-const extra = dist.filter((name) => name !== fresh.cssName && name !== fresh.jsName && name !== fresh.adminName);
+for (const [file,content] of fresh.localized) compare(file,content);
+const extra = dist.filter((name) => !fresh.localized.has(`web/dist/${name}`) && name !== fresh.cssName && name !== fresh.jsName && name !== fresh.adminName);
 if (extra.length) problems.push(`leftover build output: ${extra.join(', ')}`);
 
 if (problems.length) {

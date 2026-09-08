@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'cloudflare/shared/**'
       - 'cloudflare/bible-sketch-worker/**'
       - '.github/workflows/deploy-bible-sketch-cloudflare.yml'
 

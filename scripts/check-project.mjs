@@ -27,7 +27,7 @@ const files = walk(root);
 // Standalone preview sources are copied into an isolated Cloudflare bundle by their
 // deployment workflow. Their vendor files are injected at build time and the subtree is
 // intentionally not part of the production web reachability graph.
-const previewOnlyPrefixes = ['web/games/moses-nile-v7/'];
+const previewOnlyPrefixes = ['web/games/moses-nile-v7/', ...['en','de','es'].map(lang=>`web/locales/${lang}/games/moses-nile-v7/`)];
 const isPreviewOnly = (file) => previewOnlyPrefixes.some((prefix) => rel(file).startsWith(prefix));
 
 for (const file of files.filter((f) => f.endsWith('.js'))) {
@@ -129,7 +129,8 @@ const runtimeReferenceFiles = files.filter((file) => /\.(?:html|js|css|json|webm
 const runtimeReferenceText = new Map(
   runtimeReferenceFiles.map((file) => [file, fs.readFileSync(file, 'utf8')])
 );
-const bundledSources = new Set([...styleSources, ...scriptSources, ...adminScriptSources]);
+const bundleInputs = [...styleSources, ...scriptSources, ...adminScriptSources];
+const bundledSources = new Set([...bundleInputs, ...['en','de','es'].flatMap(lang=>bundleInputs.map(file=>`web/locales/${lang}/${file.replace(/^web\//,'')}`))]);
 const publishedFiles = files.filter((file) => rel(file).startsWith('web/') && !isPreviewOnly(file));
 
 for (const file of publishedFiles) {
@@ -151,7 +152,7 @@ for (const file of publishedFiles) {
 // The eager stylesheets and scripts reach the browser through web/dist, so their own
 // paths no longer appear in index.html. They are reachable by being in the bundle.
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-for (const [kind, pattern] of [['stylesheet', /<link rel="stylesheet" href="(web\/dist\/app\.[0-9a-f]+\.css)"/], ['script', /<script src="(web\/dist\/app\.[0-9a-f]+\.js)" defer><\/script>/]]) {
+for (const [kind, pattern] of [['stylesheet', /<link rel="stylesheet" href="(web\/dist\/app\.[0-9a-f]+\.css)"/], ['script', /"ru":"(web\/dist\/app\.[0-9a-f]+\.js)"/]]) {
   const built = indexHtml.match(pattern)?.[1];
   if (!built) failures.push(`index.html does not reference a built bundle ${kind}`);
   else if (!fs.existsSync(path.join(root, built))) failures.push(`Built bundle ${kind} is missing: ${built}`);
@@ -160,8 +161,8 @@ for (const source of [...styleSources, ...scriptSources, ...adminScriptSources])
   if (!fs.existsSync(path.join(root, source))) failures.push(`Bundle source is missing: ${source}`);
 }
 const distFiles = files.filter((f) => rel(f).startsWith('web/dist/')).map(rel);
-const eagerPath = indexHtml.match(/web\/dist\/app\.[0-9a-f]+\.js/)?.[0];
-const eagerText = eagerPath && fs.existsSync(eagerPath) ? fs.readFileSync(eagerPath, 'utf8') : '';
+const eagerPaths = [...indexHtml.matchAll(/web\/dist\/app\.(?:(?:en|de|es)\.)?[0-9a-f]+\.js/g)].map(match=>match[0]);
+const eagerText = eagerPaths.filter(file=>fs.existsSync(file)).map(file=>fs.readFileSync(file,'utf8')).join('\n');
 const staleDist = distFiles.filter((name) => !indexHtml.includes(name) && !eagerText.includes(name));
 if (staleDist.length) failures.push(`Stale build output not referenced by index.html: ${staleDist.join(', ')}`);
 

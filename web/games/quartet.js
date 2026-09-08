@@ -746,14 +746,14 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       const actor = event.actorId === meId ? 'Вы' : escapeHtml(event.actorName || 'Игрок');
       const target = event.targetId === meId ? 'у вас' : `у ${escapeHtml(event.targetName || 'игрока')}`;
       const extra = Array.isArray(event.completedQuartets) && event.completedQuartets.length
-        ? ` Собран квартет «${escapeHtml(event.completedQuartets.join(', '))}» 🏆`
+        ? ` Собран квартет «${escapeHtml(event.completedQuartets.map(title=>window.AppLanguage?.text(title)||title).join(', '))}» 🏆`
         : '';
       const verb = event.actorId === meId ? 'получили' : 'получил';
-      return { className: 'is-success', icon: '✓', text: `${actor} ${verb} карту «${escapeHtml(event.cardTitle)}» ${target}.${extra}` };
+      return { className: 'is-success', icon: '✓', text: `${actor} ${verb} карту «${escapeHtml(cardById.get(event.cardId)?.title || window.AppLanguage?.text(event.cardTitle) || event.cardTitle)}» ${target}.${extra}` };
     }
     if (event.type === 'ask_miss') {
       const actor = event.actorId === meId ? 'Ваш запрос' : `Запрос игрока ${escapeHtml(event.actorName || '')}`;
-      return { className: 'is-miss', icon: '↻', text: `${actor}: карты «${escapeHtml(event.cardTitle)}» нет. Предыдущий ход завершён.` };
+      return { className: 'is-miss', icon: '↻', text: `${actor}: карты «${escapeHtml(cardById.get(event.cardId)?.title || window.AppLanguage?.text(event.cardTitle) || event.cardTitle)}» нет. Предыдущий ход завершён.` };
     }
     if (event.type === 'turn_timeout') return { className: 'is-miss', icon: '⌛', text: `${escapeHtml(event.actorName || 'Игрок')} не успел сделать ход. Очередь переключена.` };
     if (event.type === 'game_started') return { className: 'is-info', icon: '▶', text: 'Партия началась. Первый ход уже активен.' };
@@ -819,9 +819,9 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   function handleServerEvent(event, nextState) {
     const meId = nextState?.me?.playerId;
     if (event.type === 'ask_success') {
-      if (event.actorId === meId) showToast(`Карта «${event.cardTitle}» получена`, 'success');
+      if (event.actorId === meId) showToast(`Карта «${cardById.get(event.cardId)?.title || window.AppLanguage?.text(event.cardTitle) || event.cardTitle}» получена`, 'success');
       else if (event.targetId === meId) {
-        showToast(`${event.actorName} получил у вас «${event.cardTitle}»`, 'info');
+        showToast(`${event.actorName} получил у вас «${cardById.get(event.cardId)?.title || window.AppLanguage?.text(event.cardTitle) || event.cardTitle}»`, 'info');
         haptic('warning');
       }
     } else if (event.type === 'ask_miss' && event.actorId === meId) {
