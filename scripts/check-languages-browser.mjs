@@ -43,13 +43,20 @@ try {
       return route.fulfill({contentType:'application/json',body:JSON.stringify(response)});
     });
     await page.goto(`${base}/?lang=${lang}`,{waitUntil:'domcontentloaded'});
-    const expected=role==='root'?lang:'ru';
-    await page.waitForFunction(lang=>document.documentElement.dataset.languageReady===lang,expected);
+    // Роль больше ничего не решает: язык у всех тот, который выбрали.
+    const expected=lang;
+    // С понятным сообщением: если язык снова запрут за ролью, падение должно
+    // называть роль и язык, а не голый таймаут ожидания.
+    const started=await page.waitForFunction(lang=>document.documentElement.dataset.languageReady===lang,expected)
+      .then(()=>true).catch(()=>false);
+    if(!started) {
+      const actual=await page.evaluate(()=>document.documentElement.dataset.languageReady||'');
+      check(false,`${role}: asked for ${expected}, app started in ${actual||'nothing'}`);
+      await context.close();
+      continue;
+    }
     await page.waitForSelector('#menu-container:not(.hidden)');
-    if(role!=='root') {
-      assert.equal(await page.locator('#app-language-control').count(),0,`${role}: language selector must be absent`);
-      assert.ok(!downloads.some(url=>/\/locales\/|\/app\.(en|de|es)\./.test(url)),`${role}: unauthorized locale download`);
-    } else {
+    {
       await page.waitForSelector('#app-language-control');
       assert.equal(await page.locator('#app-language').inputValue(),lang);
       // Флаг страны выбранного языка — по нему выбор видно, не читая названия.
@@ -82,6 +89,15 @@ try {
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),
           `${lang}: header overflows at ${width}px`);
       }
+      /*
+        Тяжёлый разбор — игры и кадр «Моисея» — гоняется один раз на язык, от
+        лица обычного гостя. Раньше он доставался только главному
+        администратору, потому что переводы были превью; теперь важно как раз
+        обратное — что их видит человек без всяких прав. Повторять то же самое
+        ещё для трёх ролей нечего: роль на язык больше не влияет, и это
+        проверено выше.
+      */
+      if(role!=='guest') { await context.close(); continue; }
       for(const key of ['alias','quartet','bible-wow','bible-wordsearch','sacred-word']) {
         await page.evaluate(key=>{window.showGame(key);},key);
         await page.waitForFunction(key=>document.body.dataset.currentGame===key,key);
@@ -128,5 +144,5 @@ try {
     await context.close();
   }
   assert.deepEqual(failures,[]);
-  console.log('Browser language checks: root preview, all denied roles, compact selector with flag, machine-translation notice, five games and the Nile frame in EN/DE/ES passed.');
+  console.log('Browser language checks: every role gets the chosen language, compact selector with flag, machine-translation notice, and for a plain guest — five games and the Nile frame in EN/DE/ES.');
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

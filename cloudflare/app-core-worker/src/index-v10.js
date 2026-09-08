@@ -46,10 +46,12 @@ async function tryHandleRichWelcome(request, env, ctx) {
   const text = String(message.text || '').trim();
   if (!/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) return false;
 
-  const isRoot=Boolean(env.ADMIN_TELEGRAM_ID) && senderId===String(env.ADMIN_TELEGRAM_ID);
+  // Язык приветствия выбирает сам человек кнопкой под сообщением. Раньше выбор
+  // был только у главного администратора — переводы были превью; теперь они
+  // открыты всем, и приветствие приходит на том языке, который попросили.
   const requested=/\s+lang_(ru|en|de|es)$/i.exec(text)?.[1]?.toLowerCase();
-  const language=isRoot && requested ? requested : 'ru';
-  ctx.waitUntil(sendRichWelcomeMessage(env, chatId, language, isRoot).catch(async (error) => {
+  const language=requested || 'ru';
+  ctx.waitUntil(sendRichWelcomeMessage(env, chatId, language).catch(async (error) => {
     const adminId = String(env.ADMIN_TELEGRAM_ID || '');
     if (adminId) {
       await telegramSendMessage(
@@ -69,12 +71,13 @@ export const WELCOME_LANGUAGES = {
   de: ['Bibelspiele','Spiele mit Freunden und entdecke die Bibel auf neue Weise.',' Spielen',' Hilfe','Minispiele • Räume • Fortschritt'],
   es: ['Juegos bíblicos','Juega con amigos y descubre la Biblia de una nueva manera.',' Jugar',' Ayuda','Minijuegos • salas • progreso'],
 };
-async function sendRichWelcomeMessage(env, chatId, language='ru', isRoot=false) {
-  const miniAppUrl = await getMainMiniAppUrl(env) + (isRoot ? `=lang_${language}` : '');
+async function sendRichWelcomeMessage(env, chatId, language='ru') {
+  const miniAppUrl = await getMainMiniAppUrl(env) + `=lang_${language}`;
   const copy=WELCOME_LANGUAGES[language] || WELCOME_LANGUAGES.ru;
-  const languageButtons=isRoot ? [{type:'buttons',align:'center',buttons:
+  // Названия языков — самоназвания и не переводятся.
+  const languageButtons=[{type:'buttons',align:'center',buttons:
     Object.entries({ru:'Русский',en:'English',de:'Deutsch',es:'Español'}).map(([lang,text])=>({text, url:miniAppUrl.replace(/\?startapp.*$/,`?start=lang_${lang}`)}))
-  }] : [];
+  }];
 
   return telegramApi(env, 'sendRichMessage', {
     chat_id: String(chatId),

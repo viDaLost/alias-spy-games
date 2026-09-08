@@ -19,24 +19,39 @@ function fixture({lang='en',role,initData='signed-data',fail=false,stored='de',q
   return {sandbox,requests,scripts,navigations,events,values,language:window.AppLanguage};
 }
 for(const lang of ['en','de','es']) {
-  for(const role of [undefined,{success:false,isAdmin:true,isRoot:true},{success:true,isAdmin:false,isRoot:false},{success:true,isAdmin:true,isRoot:false}]) {
+  // Язык берётся у всех одинаково: роль больше не спрашивается вовсе.
+  for(const role of [undefined,{success:false},{success:true,isAdmin:false,isRoot:false},{success:true,isAdmin:true,isRoot:true}]) {
     const f=fixture({lang,role});await vm.runInNewContext(bootstrap,f.sandbox);
-    assert.equal(f.language.lang,'ru');assert.equal(f.scripts[0].src,'ru.js');
-    f.language.choose(lang);assert.equal(f.navigations.length,0);
+    assert.equal(f.language.lang,lang,`${lang}: language must not depend on the role`);
+    assert.equal(f.scripts[0].src,`${lang}.js`);
+    assert.equal(f.sandbox.document.documentElement.lang,lang);
+    assert.equal(f.requests.length,0,'startup must not ask the server for a role');
   }
-  const f=fixture({lang,role:{success:true,isAdmin:true,isRoot:true}});
-  await vm.runInNewContext(bootstrap,f.sandbox);
-  assert.equal(f.language.lang,lang);assert.equal(f.scripts[0].src,`${lang}.js`);
-  assert.equal(f.sandbox.document.documentElement.lang,lang);
-  assert.equal(f.requests.length,1);
-  assert.deepEqual(JSON.parse(f.requests[0].body),{payload:{action:'adminRoleStatus'},telegramInitData:'signed-data'});
-  f.language.choose('ru');assert.equal(f.values.get('app_language_v1'),'ru');
-  f.language.applyRole({success:true,isAdmin:true,isRoot:false});assert.equal(f.language.lang,'ru');
+  const f=fixture({lang});await vm.runInNewContext(bootstrap,f.sandbox);
+  f.language.choose('ru');
+  assert.equal(f.values.get('app_language_v1'),'ru');
+  assert.equal(f.navigations.length,1,'choosing a language must reload the app with it');
 }
-for(const options of [{initData:''},{fail:true},{query:false,stored:'es',role:{success:true,isAdmin:true,isRoot:false}}]) {
-  const f=fixture(options);await vm.runInNewContext(bootstrap,f.sandbox);assert.equal(f.scripts[0].src,'ru.js');
+// Сохранённый выбор работает и без ссылки, а неизвестный язык откатывается к русскому.
+{
+  const f=fixture({query:false,stored:'es'});await vm.runInNewContext(bootstrap,f.sandbox);
+  assert.equal(f.scripts[0].src,'es.js');
+  assert.equal(f.requests.length,0);
+}
+{
+  const f=fixture({query:false,stored:'xx'});await vm.runInNewContext(bootstrap,f.sandbox);
+  assert.equal(f.scripts[0].src,'ru.js');
+  const before=f.values.get('app_language_v1');
+  f.language.choose('xx');
+  assert.equal(f.values.get('app_language_v1'),before,'unknown languages must not be stored');
+  assert.equal(f.navigations.length,0);
+}
+// Вне сети язык остаётся выбранным: спрашивать теперь не у кого.
+{
+  const f=fixture({lang:'de',fail:true});await vm.runInNewContext(bootstrap,f.sandbox);
+  assert.equal(f.scripts[0].src,'de.js');
 }
 const russian=fixture({lang:'ru'});await vm.runInNewContext(bootstrap,russian.sandbox);
-assert.equal(russian.requests.length,0,'Russian startup must not wait for an extra role request');
-russian.language.applyRole({success:true,isAdmin:true,isRoot:true});russian.language.choose('es');assert.equal(russian.values.get('app_language_v1'),'es');
-console.log('Language access: root, delegated, denied, guest, saved preference, links and offline fallback passed.');
+assert.equal(russian.requests.length,0,'Russian startup must not wait for an extra request');
+russian.language.choose('es');assert.equal(russian.values.get('app_language_v1'),'es');
+console.log('Language access: every visitor gets the chosen language, saved preference, links, unknown values and offline start passed.');

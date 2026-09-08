@@ -6,8 +6,7 @@
 
     Компактный и рядом с переключателем темы: язык выбирают один раз, и
     отдельная карточка во весь экран под заголовком забирала место у игр.
-    Показывается только главному администратору — языки пока превью, и решает
-    это сервер, а не разметка.
+    Виден всем: переводы больше не превью для одного администратора.
 
     Внутри пилюли лежит настоящий <select>, растянутый на неё и прозрачный:
     нажатие открывает системный список телефона, а видимыми остаются флаг и
@@ -39,12 +38,8 @@
 
   function install() {
     const header = document.querySelector('.app-header');
-    if (!language.authorized) {
-      control()?.remove();
-      notice()?.remove();
-      return;
-    }
-    if (!header || control()) return;
+    if (!header) return false;
+    if (control()) return true;
 
     const current = LANGUAGES.find((item) => item.code === language.lang) || LANGUAGES[0];
     const pill = document.createElement('span');
@@ -68,9 +63,13 @@
       note.textContent = NOTICE;
       header.append(note);
     }
+    return true;
   }
 
-  window.addEventListener('app-language-access', install);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
-  else install();
+  // Шапка появляется вместе с меню, а меню собирается уже после загрузки.
+  if (!install()) {
+    const observer = new MutationObserver(() => { if (control()) observer.disconnect(); else install(); });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    setTimeout(() => observer.disconnect(), 12_000);
+  }
 })();

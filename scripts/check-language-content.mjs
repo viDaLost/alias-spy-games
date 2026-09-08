@@ -57,7 +57,11 @@ for(const id of ['123','456'])for(const lang of ['ru','en','de','es']) {
   assert.equal(await context.testHandle(request,env,{waitUntil:p=>pending.push(p)}),true);await Promise.all(pending);
   const blocks=calls.find(call=>call.url.endsWith('/sendRichMessage')).body.rich_message.blocks;
   const heading=blocks.find(block=>block.type==='heading').text;
-  assert.equal(heading,{ru:'Библейские игры',en:'Bible Games',de:'Bibelspiele',es:'Juegos bíblicos'}[id==='123'?lang:'ru']);
-  assert.equal(blocks.filter(block=>block.type==='buttons').length,id==='123'?2:1);
+  // Приветствие приходит на запрошенном языке кому угодно, а не только
+  // администратору: переводы больше не превью.
+  assert.equal(heading,{ru:'Библейские игры',en:'Bible Games',de:'Bibelspiele',es:'Juegos bíblicos'}[lang],`${id}/${lang}: welcome heading`);
+  assert.equal(blocks.filter(block=>block.type==='buttons').length,2,`${id}/${lang}: language buttons are missing`);
+  const languageButtons=blocks.filter(block=>block.type==='buttons').at(-1).buttons;
+  assert.deepEqual(languageButtons.map(button=>button.text),['Русский','English','Deutsch','Español'],`${id}/${lang}: language buttons`);
 }
-console.log('Localized dictionaries, playable letters, online answers and root-only bot welcome passed.');
+console.log('Localized dictionaries, playable letters, online answers and the bot welcome for every visitor passed.');
