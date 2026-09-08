@@ -338,6 +338,28 @@
     },
   };
 
+  // Keep demonstration gestures aligned with the actual localized letters.
+  if (window.AppLanguage && window.AppLanguage.lang !== 'ru') {
+    const lang=window.AppLanguage.lang;
+    const wheel=LETTER_SCENES['wow-word'];
+    wheel.letters=[...'JORDAN'];
+    wheel.steps[1].word='JO';wheel.steps[2].word='JOR';
+    wheel.steps[3].trace=[0,1,2,3,4,5];wheel.steps[3].word='JORDAN';
+    const grid=LETTER_SCENES['ws-find'];
+    const word=lang==='es' ? 'NOE' : 'NOAH';
+    const diagonal=lang==='de' ? 'HIOB' : 'JOB';
+    grid.letters=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZABCD'];
+    [...word].forEach((letter,i)=>grid.letters[i]=letter);
+    [...diagonal].forEach((letter,i)=>grid.letters[7+i*7]=letter);
+    grid.steps[1].path=[0,1];grid.steps[2].path=[...word].map((_,i)=>i);
+    grid.steps[3].path=[...diagonal].map((_,i)=>7+i*7);
+    const sacred=LETTER_SCENES['sacred-letters'];
+    sacred.word=lang==='de'?'TEMPEL':lang==='es'?'TEMPLO':'TEMPLE';
+    const repeated=lang==='es'?'T':'E';
+    sacred.steps[1].open=[repeated];sacred.steps[2].open=[repeated];sacred.steps[2].miss='Z';
+    sacred.steps[3].open=[repeated,'M','P'];sacred.steps[4].open=[...sacred.word];
+  }
+
   // --- проигрыватель -----------------------------------------------------------
 
   const players = new Map();

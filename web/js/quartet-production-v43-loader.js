@@ -4,7 +4,7 @@
   window.__QUARTET_PRODUCTION_V43_LOADER__ = true;
 
   const originalAppendChild = Node.prototype.appendChild;
-  const quartetScriptPattern = /\/web\/games\/quartet\.js(?:\?|$)/;
+  const quartetScriptPattern = /\/web\/(?:locales\/(?:en|de|es)\/)?games\/quartet\.js(?:\?|$)/;
 
   const oldSelectionHandlers = `  function selectTarget(button) {
     if (!isMyTurn()) return;

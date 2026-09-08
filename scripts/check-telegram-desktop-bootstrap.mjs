@@ -27,7 +27,8 @@ assert(!/telegram-launch-context\.js[^>]*\s(?:defer|async)(?:\s|>)/.test(index),
 assert(!scriptSources.includes('web/js/telegram-launch-context.js'),
   'launch context must not be bundled: the bundle is deferred and would run too late.');
 
-const bundleTagIndex = index.search(/<script src="web\/dist\/app\.[0-9a-f]+\.js" defer><\/script>/);
+const bundleTagIndex = index.search(/<script src="web\/i18n\/bootstrap\.js" defer><\/script>/);
+assert(/id="app-language-bundles"[^>]*>[^<]*"ru":"web\/dist\/app\.[0-9a-f]+\.js"/.test(index), "Russian bundle must remain available through the language bootstrap.");
 assert(bundleTagIndex >= 0, 'the built bundle is not referenced from index.html.');
 assert(bundleTagIndex > launchIndex, 'launch context must be declared before the bundle.');
 

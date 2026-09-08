@@ -748,6 +748,9 @@ function startBibleWordSearchGame(levelsUrl) {
       function initGameLogic() {
         progress = loadProgress() || defaultProgress(LEVELS.length);
         
+        const language = window.AppLanguage?.lang || 'ru';
+        if ((progress.language || 'ru') !== language) progress.state = {};
+        progress.language = language;
         if (progress.version !== 5) {
           if (progress.state) {
             Object.keys(progress.state).forEach(k => {

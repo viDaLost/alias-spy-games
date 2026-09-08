@@ -1,0 +1,17 @@
+.language-panel { margin: 0 0 18px; padding: 14px 16px; color: var(--ink); background: var(--card,rgba(255,255,255,.92)); border: 1px solid var(--line,rgba(99,102,241,.18)); border-radius: 18px; }
+.language-panel__row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; }
+.language-panel label { font-size:14px; font-weight:650; }
+.language-panel select { max-width:100%; min-height:44px; padding:8px 30px 8px 12px; border:1px solid var(--line,#cbd5e1); border-radius:12px; background:var(--card,#fff); color:var(--ink,#1e293b); font:inherit; }
+.language-panel select:focus-visible, .language-welcome summary:focus-visible { outline:3px solid #818cf8; outline-offset:3px; }
+.language-welcome { margin-top:10px; font-size:14px; line-height:1.55; }
+.language-welcome summary { cursor:pointer; padding:6px 0; font-weight:600; }
+.language-welcome p { margin:8px 0 0; }
+.theme-dark .language-panel { background:#172338; color:#e2e8f0; border-color:#334155; }
+.theme-dark .language-panel select { background:#1e293b; color:#f1f5f9; border-color:#475569; }
+html:not([lang="ru"]) .game-card__title { overflow-wrap:anywhere; }
+html:lang(en) .wow-wrap .wow-preview:empty::before { content: 'Swipe across the letters'; }
+html:lang(de) .wow-wrap .wow-preview:empty::before { content: 'Über die Buchstaben wischen'; }
+html:lang(es) .wow-wrap .wow-preview:empty::before { content: 'Desliza por las letras'; }
+html:lang(en) .bmt-v2 .bmt-booster-tray::before { content: 'Boosters'; }
+html:lang(de) .bmt-v2 .bmt-booster-tray::before { content: 'Booster'; }
+html:lang(es) .bmt-v2 .bmt-booster-tray::before { content: 'Potenciadores'; }

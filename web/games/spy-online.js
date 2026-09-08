@@ -470,7 +470,7 @@ function startSpyOnlineGame() {
         <span class="spy-online-card__face spy-online-card__front ${me.isSpy ? 'is-spy' : 'is-citizen'}">
           ${me.isSpy
             ? '<span class="spy-online-card__role">Вы соглядатай</span><span class="spy-online-card__value">Локация неизвестна</span><span class="spy-online-card__hint">Слушайте и не выдайте себя</span>'
-            : `<span class="spy-online-card__role">Локация</span><span class="spy-online-card__value">${esc(state.location)}</span><span class="spy-online-card__hint">Найдите того, кто её не знает</span>`}
+            : `<span class="spy-online-card__role">Локация</span><span class="spy-online-card__value">${esc(window.AppLanguage?.text(state.location) || state.location)}</span><span class="spy-online-card__hint">Найдите того, кто её не знает</span>`}
         </span>
       </button>
       ${roleFaceUp
@@ -491,7 +491,7 @@ function startSpyOnlineGame() {
         ? 'Кого-то уже выгнали, но роли откроются только в конце. Смотрите, кто остался.'
         : 'Задавайте вопросы по очереди. Соглядатай не знает локацию, но пытается её вычислить.'}</p>
       ${renderEliminationNote()}
-      ${me.isSpy ? '' : `<div class="card"><strong>Локация</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1.05rem;">${esc(state.location)}</p></div>`}
+      ${me.isSpy ? '' : `<div class="card"><strong>Локация</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1.05rem;">${esc(window.AppLanguage?.text(state.location) || state.location)}</p></div>`}
       ${me.isSpy && !me.eliminated ? renderGuessBlock() : ''}
       ${state.isHost ? '<button class="correct-button" data-spy-room="beginVoting">Перейти к голосованию</button>' : ''}
       ${renderPlayers()}`;
@@ -554,10 +554,10 @@ function startSpyOnlineGame() {
     const ejected = outcome.ejected || [];
     return `
       <h2>${outcome.spyWon
-        ? `🕵️ Победа соглядата${many ? 'ев' : 'я'}`
-        : `🎉 Соглядата${many ? 'и раскрыты' : 'й раскрыт'}`}</h2>
+        ? (many ? '🕵️ Победа соглядатаев' : '🕵️ Победа соглядатая')
+        : (many ? '🎉 Соглядатаи раскрыты' : '🎉 Соглядатай раскрыт')}</h2>
       <div class="card spy-online-outcome ${outcome.spyWon ? 'is-spy' : 'is-town'}">
-        <strong>Локация: ${esc(outcome.location || state.location)}</strong>
+        <strong>Локация: ${esc(window.AppLanguage?.text(outcome.location || state.location) || outcome.location || state.location)}</strong>
         <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">
           ${guessed
             ? `Соглядатай назвал «${esc(outcome.guess)}» — ${outcome.spyWon ? 'и попал' : 'и промахнулся'}.`
@@ -567,7 +567,7 @@ function startSpyOnlineGame() {
         </p>
       </div>
       <div class="card">
-        <strong>Соглядата${many ? 'и' : 'й'}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
+        <strong>${many ? 'Соглядатаи' : 'Соглядатай'}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
       </div>
       ${ejected.length ? `
         <div class="card">

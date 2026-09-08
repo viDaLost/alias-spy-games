@@ -1,0 +1,841 @@
+// games/spy-online.js — «Соглядатай» по сети, с текстовым чатом.
+//
+// Отличие от игры на одном телефоне: локацию и роли раздаёт воркер, и каждый
+// видит только свою. Клиент никогда не знает ни локацию (если он соглядатай), ни
+// чужие роли — до экрана итогов их просто нет в приходящем состоянии.
+//
+// Транспорт двухуровневый, как в «Квартете»: WebSocket, а если он не встал
+// (корпоративный прокси, старый WebView), клиент переходит на HTTP-опрос и
+// партия продолжается.
+//
+// Обсуждение идёт в текстовом чате — том же, что и в других играх набора.
+// Переписка не чистится между этапами: она и есть улика, по которой голосуют.
+
+function startSpyOnlineGame() {
+  const container = document.getElementById('game-container');
+  if (!container) return;
+
+  const tg = window.Telegram?.WebApp || null;
+  try { tg?.expand?.(); } catch {}
+
+  const LS = {
+    roomId: 'spy_online_room_id',
+    name: 'spy_online_player_name',
+    guestId: 'spy_online_guest_id',
+  };
+
+  const backendBase = resolveBackendBase();
+  const guestId = getOrCreateGuestId();
+  const telegramInitData = String(tg?.initData || '');
+  const telegramUser = tg?.initDataUnsafe?.user || {};
+  const defaultName = String(telegramUser.first_name || telegramUser.username || '').trim();
+
+  let state = null;
+  let roomId = localStorage.getItem(LS.roomId) || '';
+  let playerName = localStorage.getItem(LS.name) || defaultName;
+  let sessionToken = '';
+  let socket = null;
+  let pollTimer = null;
+  let reconnectTimer = null;
+  let reconnectAttempt = 0;
+  let transport = 'ws';
+  let destroyed = false;
+  let leaving = false;
+  let screen = 'home';
+  let roleFaceUp = false;
+  let clockTimer = null;
+  let toastTimer = null;
+  let errorText = '';
+
+  // Черновик сообщения переживает перерисовку: состояние комнаты приходит
+  // каждую секунду, и без этого набранный текст стирался бы на полуслове.
+  // Каналов два, и у каждого свой черновик: соглядатай пишет напарнику одно,
+  // а столу — другое, и переключение вкладки не должно их путать.
+  const chatDraft = { common: '', spies: '' };
+  const chatSeen = { common: 0, spies: 0 };
+  let chatOpen = false;
+  let chatTab = 'common';
+
+  injectStyles();
+  window.__spyOnlineCleanup = cleanup;
+
+  boot();
+
+  async function boot() {
+    if (!backendBase) return renderBackendMissing();
+    if (roomId) {
+      renderConnecting('Zurück zum Raum…');
+      try {
+        await joinRoom(roomId, true);
+        return;
+      } catch (error) {
+        console.warn('Spy online resume failed', error);
+        forgetRoom();
+      }
+    }
+    renderHome();
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Транспорт                                                           *
+   * ------------------------------------------------------------------ */
+
+  function resolveBackendBase() {
+    const fromWindow = String(window.SPY_BACKEND_URL || '').trim();
+    const fromMeta = String(document.querySelector('meta[name="spy-backend"]')?.content || '').trim();
+    return (fromWindow || fromMeta).replace(/\/+$/, '');
+  }
+
+  function getOrCreateGuestId() {
+    let id = localStorage.getItem(LS.guestId);
+    if (!id) {
+      const bytes = new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      id = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem(LS.guestId, id);
+    }
+    return id;
+  }
+
+  function identity() {
+    return { name: playerName || 'Spieler', guestId, telegramInitData: telegramInitData || undefined };
+  }
+
+  async function api(path, body) {
+    const response = await fetch(`${backendBase}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.ok === false) {
+      throw Object.assign(new Error(payload.error || `Server antwortete ${response.status}`), { code: payload.code });
+    }
+    return payload;
+  }
+
+  async function createRoom() {
+    const requestId = `${guestId}-${Date.now()}`;
+    const payload = await api('/rooms', { ...identity(), requestId });
+    adoptSession(payload);
+  }
+
+  async function joinRoom(code, silent = false) {
+    const normalized = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (normalized.length < 4) throw new Error('Raumcode muss mindestens vier Zeichen haben');
+    if (!silent) renderConnecting('Raum wird betreten…');
+    const payload = await api(`/rooms/${normalized}`.concat('/join'), identity());
+    adoptSession(payload);
+  }
+
+  function adoptSession(payload) {
+    roomId = String(payload.roomId || '');
+    sessionToken = String(payload.sessionToken || '');
+    state = payload.state || null;
+    localStorage.setItem(LS.roomId, roomId);
+    localStorage.setItem(LS.name, playerName || 'Spieler');
+    screen = 'room';
+    roleFaceUp = false;
+    openSocket();
+    renderRoom();
+  }
+
+  function openSocket() {
+    if (destroyed || !roomId || !sessionToken) return;
+    closeSocket();
+    let url;
+    try {
+      url = new URL(`${backendBase}/rooms/${roomId}/ws`);
+    } catch {
+      return startPolling();
+    }
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    url.searchParams.set('token', sessionToken);
+
+    try {
+      socket = new WebSocket(url.toString());
+    } catch {
+      return startPolling();
+    }
+
+    socket.addEventListener('open', () => {
+      transport = 'ws';
+      reconnectAttempt = 0;
+      stopPolling();
+      renderRoom();
+    });
+    socket.addEventListener('message', (event) => {
+      let payload;
+      try { payload = JSON.parse(event.data); } catch { return; }
+      handleServerMessage(payload);
+    });
+    socket.addEventListener('close', () => {
+      socket = null;
+      if (destroyed || leaving) return;
+      scheduleReconnect();
+    });
+    socket.addEventListener('error', () => { try { socket?.close(); } catch {} });
+  }
+
+  function closeSocket() {
+    if (!socket) return;
+    try { socket.close(); } catch {}
+    socket = null;
+  }
+
+  function scheduleReconnect() {
+    if (destroyed || leaving || reconnectTimer) return;
+    reconnectAttempt += 1;
+    // Три неудачных попытки — значит WebSocket в этой сети не пройдёт.
+    // Партию это ронять не должно: уходим на опрос и играем дальше.
+    if (reconnectAttempt > 3) {
+      startPolling();
+      return;
+    }
+    const delay = Math.min(6000, 600 * reconnectAttempt);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      openSocket();
+    }, delay);
+  }
+
+  function startPolling() {
+    if (destroyed || pollTimer) return;
+    transport = 'poll';
+    renderRoom();
+    const tick = async () => {
+      if (destroyed || !roomId || !sessionToken) return;
+      try {
+        const response = await fetch(`${backendBase}/rooms/${roomId}/poll?token=${encodeURIComponent(sessionToken)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (payload.closed) return handleRoomClosed();
+        if (payload.state) applyState(payload.state);
+      } catch (error) {
+        console.warn('Spy poll failed', error);
+      }
+    };
+    pollTimer = setInterval(tick, 1500);
+    tick();
+  }
+
+  function stopPolling() {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  function handleServerMessage(payload) {
+    if (payload.type === 'state') return applyState(payload.state);
+    if (payload.type === 'error') return toast(payload.error || 'Raumfehler');
+  }
+
+  function applyState(next) {
+    const previous = state;
+    state = next;
+    // Соглядатая перевели из соглядатаев или партия началась заново — вкладка
+    // закрытого чата исчезает, и оставаться на ней нельзя.
+    if (!canSeeSpyChat(next)) chatTab = 'common';
+    if (chatOpen) chatSeen[chatTab] = channelMessages(next, chatTab).length;
+    for (const channel of ['common', 'spies']) {
+      window.GameChatToasts?.sync({
+        key: channel === 'common' ? `spy:${roomId}` : `spy:${roomId}:spies`,
+        messages: channelMessages(next, channel),
+        selfId: next.me?.playerId || '',
+        chatVisible: () => chatOpen && chatTab === channel && onScreen(container.querySelector('[data-spy-chat-log]')),
+        onOpen: () => openChat(channel),
+      });
+    }
+    // Новая раздача — карта снова рубашкой вверх, иначе роль показалась бы
+    // сама собой тому, кто просто не закрыл прошлый экран.
+    if (previous && previous.round !== next.round) roleFaceUp = false;
+    if (previous?.status !== next.status) roleFaceUp = next.status === 'roles' ? false : roleFaceUp;
+    if (screen === 'room') renderRoom();
+  }
+
+  function handleRoomClosed() {
+    stopPolling();
+    closeSocket();
+    forgetRoom();
+    state = null;
+    screen = 'home';
+    toast('Raum geschlossen');
+    renderHome();
+  }
+
+  function send(action, payload = {}) {
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'action', action, payload }));
+      return;
+    }
+    // На опросе действие уходит отдельным запросом с идентификатором, чтобы
+    // повтор при обрыве не сыграл его дважды.
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    fetch(`${backendBase}/rooms/${roomId}/poll?token=${encodeURIComponent(sessionToken)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, payload, requestId }),
+    })
+      .then((response) => response.json().catch(() => ({})))
+      .then((result) => {
+        if (result.closed) return handleRoomClosed();
+        if (result.ok === false) return toast(result.error || 'Aktion fehlgeschlagen');
+        if (result.state) applyState(result.state);
+      })
+      .catch((error) => toast(String(error?.message || error)));
+    if (!pollTimer) startPolling();
+  }
+
+  function forgetRoom() {
+    localStorage.removeItem(LS.roomId);
+    roomId = '';
+    sessionToken = '';
+  }
+
+  function cleanup() {
+    window.GameChatToasts?.reset(`spy:${roomId}`);
+    window.GameChatToasts?.reset(`spy:${roomId}:spies`);
+    destroyed = true;
+    leaving = true;
+    stopPolling();
+    closeSocket();
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (clockTimer) clearInterval(clockTimer);
+    if (toastTimer) clearTimeout(toastTimer);
+    reconnectTimer = null;
+    clockTimer = null;
+    toastTimer = null;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Экраны                                                              *
+   * ------------------------------------------------------------------ */
+
+  function renderBackendMissing() {
+    screen = 'home';
+    container.innerHTML = `\n      <section class="app-error-card fade-in">\n        <div class="app-error-icon">!</div>\n        <h2>Onlinemodus noch nicht eingerichtet</h2>\n        <p>В <code>index.html</code> Worker-Adresse erforderlich in meta <b>spy-backend</b>.</p>\n        <button class="menu-button" data-spy-online="single">Auf einem Handy spielen</button>\n        <button class="back-button" data-spy-online="menu">Zum Menü</button>\n      </section>`;
+    bindHome();
+  }
+
+  function renderConnecting(text) {
+    screen = 'connecting';
+    container.innerHTML = `
+      <div class="spy-online-wrap fade-in">
+        <div class="app-game-loading"><div class="app-loader__ring"></div><p>${esc(text)}</p></div>
+      </div>`;
+  }
+
+  function renderHome() {
+    screen = 'home';
+    container.innerHTML = `\n      <div class="spy-online-wrap fade-in">\n        <h2>🌐 Spion online</h2>\n        <p class="spy-online-lead">Jeder spielt auf dem eigenen Handy. Nur du siehst deine Rolle; diskutiert im integrierten Chat.</p>\n\n        ${errorText ? `<div class="spy-online-alert">${esc(errorText)}</div>` : ''}\n\n        <label class="setup-label" for="spyOnlineName">Dein Name</label>\n        <input id="spyOnlineName" class="input input-lg" maxlength="24" placeholder="Dein Name" value="${esc(playerName)}">\n\n        <button class="menu-button" data-spy-online="create">Raum erstellen</button>\n\n        <div class="spy-online-divider"><span>oder mit Code beitreten</span></div>\n\n        <label class="setup-label" for="spyOnlineCode">Raumcode</label>\n        <input id="spyOnlineCode" class="input input-lg spy-online-code-input" maxlength="10" autocomplete="off"\n               autocapitalize="characters" spellcheck="false" placeholder="ABCDE">\n        <button class="correct-button" data-spy-online="join">Anmelden</button>\n\n        <button class="menu-button" data-spy-online="single">Auf einem Handy spielen</button>\n        <button class="back-button" data-spy-online="menu">Hauptmenü</button>\n      </div>`;
+    bindHome();
+  }
+
+  function bindHome() {
+    const nameInput = container.querySelector('#spyOnlineName');
+    nameInput?.addEventListener('input', () => { playerName = nameInput.value.trim(); });
+    const codeInput = container.querySelector('#spyOnlineCode');
+    codeInput?.addEventListener('input', () => {
+      codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    codeInput?.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') container.querySelector('[data-spy-online="join"]')?.click();
+    });
+
+    container.querySelectorAll('[data-spy-online]').forEach((node) => {
+      node.addEventListener('click', async () => {
+        const action = node.dataset.spyOnline;
+        if (action === 'menu') return window.goToMainMenu?.();
+        if (action === 'single') return window.startSpyGame?.('web/locales/de/data/spy_locations.json', 'single');
+        errorText = '';
+        node.disabled = true;
+        try {
+          if (action === 'create') await createRoom();
+          if (action === 'join') await joinRoom(codeInput?.value || '');
+        } catch (error) {
+          errorText = String(error?.message || error);
+          renderHome();
+        } finally {
+          node.disabled = false;
+        }
+      });
+    });
+  }
+
+  function renderRoom() {
+    screen = 'room';
+    if (!state) return renderConnecting('Warten auf Raum…');
+    const body = {
+      lobby: renderLobby,
+      roles: renderRoles,
+      discussion: renderDiscussion,
+      voting: renderVoting,
+      results: renderResults,
+    }[state.status] || renderLobby;
+
+    container.innerHTML = `
+      <div class="spy-online-wrap fade-in">
+        ${renderTopBar()}
+        ${body()}
+        ${renderChatPanel()}\n        <button class="back-button" data-spy-room="leave">Raum verlassen</button>\n      </div>`;
+    bindRoom();
+    startClock();
+  }
+
+  function renderTopBar() {
+    const online = state.players.filter((item) => item.online).length;
+    return `\n      <div class="spy-room-top">\n        <button class="spy-room-code" data-spy-room="copy" title="Code kopieren">\n          <span class="spy-room-code__label">Raum</span>\n          <strong>${esc(state.roomId)}</strong>
+        </button>
+        <div class="spy-room-meta">
+          <span class="spy-room-dot ${transport === 'ws' ? 'is-live' : 'is-poll'}"></span>
+          ${online} von ${state.players.length} verbunden\n        </div>\n      </div>`;
+  }
+
+  function renderLobby() {
+    const canStart = state.isHost && state.players.length >= state.minPlayers;
+    return `\n      <h2>Spieler sammeln sich</h2>\n      <p class="spy-online-lead">Teile den Code mit Freunden. Das Spiel beginnt, wenn der Gastgeber Rollen verteilen antippt.</p>\n      ${renderPlayers()}
+      ${state.isHost ? `\n        <div class="setup-grid">\n          <div class="setup-block">\n            <label class="setup-label" for="spySpyCount">Spione</label>\n            <input id="spySpyCount" type="number" class="number-input input-lg" min="1" max="${Math.max(1, state.players.length - 1)}" value="${state.spyCount}">\n          </div>\n          <div class="setup-block">\n            <label class="setup-label" for="spyRoundMinutes">Diskussion, Min.</label>\n            <input id="spyRoundMinutes" type="number" class="number-input input-lg" min="1" max="20" value="${Math.round(state.roundSeconds / 60)}">
+          </div>
+        </div>` : `\n        <div class="card"><strong>Gastgebereinstellungen</strong>\n          <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">Spione: ${state.spyCount} · Diskussion ${Math.round(state.roundSeconds / 60)} Min.</p>\n        </div>`}
+      ${state.isHost
+        ? `<button class="correct-button" data-spy-room="start" ${canStart ? '' : 'disabled'}>Rollen verteilen</button>\n           ${canStart ? '' : `<p class="hint">Mindestens benötigt ${state.minPlayers} Spieler</p>`}`
+        : '<div class="card"><strong>Warten auf Gastgeber</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">Der Gastgeber verteilt die Rollen, wenn alle da sind.</p></div>'}`;
+  }
+
+  function renderRoles() {
+    const me = state.me || {};
+    const waiting = state.players.filter((item) => !item.ready).length;
+    return `\n      <h2>Deine Rolle</h2>\n      <p class="spy-online-lead">Sieh nur auf deinen Bildschirm. Niemand sonst sieht deine Rolle.</p>\n      <button class="spy-online-card ${roleFaceUp ? 'is-open' : ''}" data-spy-room="flip" type="button">\n        <span class="spy-online-card__face spy-online-card__back">\n          <span class="spy-online-card__crest">🕵️</span>\n          <span class="spy-online-card__hint">Zum Ansehen tippen</span>\n        </span>\n        <span class="spy-online-card__face spy-online-card__front ${me.isSpy ? 'is-spy' : 'is-citizen'}">
+          ${me.isSpy
+            ? '<span class="spy-online-card__role">Du bist ein Spion</span><span class="spy-online-card__value">Ort unbekannt</span><span class="spy-online-card__hint">Höre zu und verrate dich nicht</span>'
+            : `<span class="spy-online-card__role">Ort</span><span class="spy-online-card__value">${esc(window.AppLanguage?.text(state.location) || state.location)}</span><span class="spy-online-card__hint">Finde die Person, die ihn nicht kennt</span>`}
+        </span>
+      </button>
+      ${roleFaceUp
+        ? `<button class="correct-button" data-spy-room="roleSeen">Gemerkt</button>`
+        : ''}
+      <p class="hint">${waiting ? `Noch nicht bereit: ${waiting}` : 'Alle bereit'}</p>
+      ${state.isHost ? '<button class="menu-button" data-spy-room="forceDiscussion">Diskussion starten</button>' : ''}
+      ${renderPlayers()}`;
+  }
+
+  function renderDiscussion() {
+    const me = state.me || {};
+    const round = Number(state.voteRound || 0);
+    return `\n      <h2>🗣 Diskussion${round ? ` · Runde ${round + 1}` : ''}</h2>
+      <div class="spy-online-clock" data-spy-clock>—</div>
+      <p class="spy-online-lead">${round
+        ? 'Jemand wurde ausgeschlossen, aber die Rollen bleiben bis zum Ende geheim. Achte auf die übrigen Spieler.'
+        : 'Stellt abwechselnd Fragen. Der Spion kennt den Ort nicht und versucht ihn herauszufinden.'}</p>
+      ${renderEliminationNote()}
+      ${me.isSpy ? '' : `<div class="card"><strong>Ort</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1.05rem;">${esc(window.AppLanguage?.text(state.location) || state.location)}</p></div>`}
+      ${me.isSpy && !me.eliminated ? renderGuessBlock() : ''}
+      ${state.isHost ? '<button class="correct-button" data-spy-room="beginVoting">Zur Abstimmung</button>' : ''}
+      ${renderPlayers()}`;
+  }
+
+  /** Строка про изгнанных. Роль не называется — её открывает только конец партии. */
+  function renderEliminationNote() {
+    const out = state.players.filter((item) => item.eliminated);
+    if (!out.length) return '';
+    const mine = state.me?.eliminated;
+    return `\n      <div class="card spy-online-ejected">\n        <strong>Ausgeschieden: ${out.map((item) => esc(item.name)).join(', ')}</strong>
+        <p style="margin-top:8px;color:var(--ink-soft);font-size:.98rem;">
+          ${mine
+            ? 'Du bist ausgeschieden: Du kannst nicht mehr abstimmen oder schreiben, aber zuschauen.'
+            : `Ihre Rollen werden am Ende aufgedeckt. Verbleibende Spieler: ${state.inPlayCount} Personen.`}
+        </p>
+      </div>`;
+  }
+
+  function renderGuessBlock() {
+    return `\n      <div class="card spy-online-guess">\n        <strong>Ort nennen</strong>\n        <p style="margin-top:6px;color:var(--ink-soft);font-size:.98rem;">Rate richtig und gewinne sofort. Bei einer falschen Antwort scheidest du aus; dein Partner spielt weiter.</p>\n        <input id="spyGuessInput" class="input input-lg" maxlength="60" placeholder="Zum Beispiel: Jerusalem">\n        <button class="menu-button" data-spy-room="guess">Antwort nennen</button>\n      </div>`;
+  }
+
+  function renderVoting() {
+    const me = state.me || {};
+    const alive = state.players.filter((item) => !item.eliminated);
+    const options = alive.filter((item) => item.playerId !== me.playerId);
+    const pending = alive.filter((item) => !item.voted).length;
+    return `\n      <h2>🎯 Abstimmung${state.voteRound > 1 ? ` · Runde ${state.voteRound}` : ''}</h2>\n      <p class="spy-online-lead">Wer ist deiner Meinung nach ein Spion? Wer die meisten Stimmen erhält, scheidet aus —\n        aber seine Rolle wird erst am Spielende aufgedeckt.</p>\n      ${renderEliminationNote()}
+      ${me.eliminated ? '' : `
+        <div class="spy-vote-list">
+          ${options.map((item) => `
+            <button class="spy-vote-option ${me.votedFor === item.playerId ? 'is-picked' : ''}" data-spy-vote="${esc(item.playerId)}">
+              <span class="spy-vote-name">${esc(item.name)}</span>
+              <span class="spy-vote-mark">${me.votedFor === item.playerId ? '✓' : ''}</span>
+            </button>`).join('')}
+        </div>`}
+      <p class="hint">${pending ? `Warten noch auf ${pending}` : 'Alle haben abgestimmt'}</p>
+      ${me.isSpy && !me.eliminated ? renderGuessBlock() : ''}
+      ${renderPlayers()}`;
+  }
+
+  function renderResults() {
+    const outcome = state.outcome || {};
+    const spies = state.players.filter((item) => item.role === 'spy');
+    const many = spies.length > 1;
+    const guessed = outcome.kind === 'guess';
+    const ejected = outcome.ejected || [];
+    return `
+      <h2>${outcome.spyWon
+        ? (many ? '🕵️ Die Spione gewinnen' : '🕵️ Der Spion gewinnt')
+        : (many ? '🎉 Spione enttarnt' : '🎉 Spion enttarnt')}</h2>
+      <div class="card spy-online-outcome ${outcome.spyWon ? 'is-spy' : 'is-town'}">\n        <strong>Ort: ${esc(window.AppLanguage?.text(outcome.location || state.location) || outcome.location || state.location)}</strong>
+        <p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">
+          ${guessed
+            ? `Der Spion nannte «${esc(outcome.guess)}» — ${outcome.spyWon ? 'richtig' : 'falsch'}.`
+            : outcome.spyWon
+              ? 'Es gibt mindestens so viele Spione wie Bürger. Sie können nicht mehr überstimmt werden.'
+              : 'Der letzte Spion wurde ausgeschlossen.'}
+        </p>
+      </div>
+      <div class="card">
+        <strong>${many ? 'Spione' : 'Spion'}: ${spies.map((item) => esc(item.name)).join(', ') || '—'}</strong>
+      </div>
+      ${ejected.length ? `\n        <div class="card">\n          <strong>Wer ausgeschieden ist</strong>\n          <div class="spy-tally" style="margin-top:8px;">\n            ${ejected.map((row) => `
+              <div class="spy-tally-row">
+                <span>${esc(row.name)}</span>
+                <b class="${row.role === 'spy' ? 'is-spy' : ''}">${row.role === 'spy' ? 'Spion' : 'Bürger'}</b>
+              </div>`).join('')}
+          </div>
+        </div>` : ''}
+      ${outcome.tally?.length ? `
+        <div class="spy-tally">
+          ${outcome.tally.map((row) => {
+            const player = state.players.find((item) => item.playerId === row.playerId);
+            return `<div class="spy-tally-row"><span>${esc(player?.name || '—')}</span><b>${row.votes}</b></div>`;
+          }).join('')}
+        </div>` : ''}
+      ${state.isHost
+        ? '<button class="correct-button" data-spy-room="start">Noch eine Partie</button><button class="menu-button" data-spy-room="backToLobby">Zur Lobby</button>'
+        : '<div class="card"><strong>Warten auf Gastgeber</strong><p style="margin-top:8px;color:var(--ink-soft);font-size:1rem;">Der Gastgeber startet die nächste Partie.</p></div>'}
+      ${renderPlayers()}`;
+  }
+
+  function renderPlayers() {
+    return `
+      <div class="spy-player-list">
+        ${state.players.map((item) => `
+          <div class="spy-player ${item.online ? '' : 'is-away'} ${item.eliminated ? 'is-out' : ''}">
+            <span class="spy-player-dot ${item.online ? 'is-online' : ''}"></span>
+            <span class="spy-player-name">${esc(item.name)}</span>
+            ${item.isHost ? '<span class="spy-player-tag">Gastgeber</span>' : ''}
+            ${item.eliminated ? '<span class="spy-player-tag is-out">ausgeschieden</span>' : ''}
+            ${item.role === 'spy' ? '<span class="spy-player-tag is-spy">Spion</span>' : ''}
+            ${state.status === 'roles' && item.ready ? '<span class="spy-player-tag is-ok">bereit</span>' : ''}
+            ${state.status === 'voting' && item.voted ? '<span class="spy-player-tag is-ok">Stimme</span>' : ''}
+          </div>`).join('')}
+      </div>`;
+  }
+
+  /*
+    Чат комнаты. Он же и есть обсуждение: игроки задают вопросы и ищут того,
+    кто локации не знает. В лобби чат тоже открыт — там договариваются о
+    составе, а лишний экран для этого заводить незачем.
+  */
+  /** Сообщения одного канала: закрытый приходит пустым тем, кому он не положен. */
+  function channelMessages(source, channel) {
+    return (channel === 'spies' ? source?.spyChat : source?.chat) || [];
+  }
+
+  /** Вкладка соглядатаев есть только у соглядатая и только пока идёт партия. */
+  function canSeeSpyChat(source) {
+    return Boolean(source?.me?.isSpy && source.status !== 'lobby');
+  }
+
+  function renderChatPanel() {
+    const spyTab = canSeeSpyChat(state);
+    if (!spyTab && chatTab !== 'common') chatTab = 'common';
+    const messages = channelMessages(state, chatTab);
+    const unread = ['common', 'spies']
+      .filter((channel) => channel === 'common' || spyTab)
+      .reduce((sum, channel) => sum + Math.max(0, channelMessages(state, channel).length - chatSeen[channel]), 0);
+    const mine = state.me?.playerId || '';
+    const eliminated = Boolean(state.me?.eliminated);
+    const canWrite = chatTab === 'spies' ? Boolean(state.canWriteSpyChat) : !eliminated;
+    return `
+      <div class="spy-chat ${chatTab === 'spies' ? 'is-secret' : ''}">
+        <div class="spy-chat-head">
+          <strong>${chatTab === 'spies' ? 'Spionchat' : 'Chat'}</strong>
+          ${unread && !chatOpen ? `<span class="spy-chat-badge">${unread}</span>` : ''}
+          <button class="spy-chat-toggle" data-spy-room="chatToggle">${chatOpen ? 'Einklappen' : 'Öffnen'}</button>
+        </div>
+        ${chatOpen && spyTab ? `
+          <div class="spy-chat-tabs" role="tablist">
+            ${['common', 'spies'].map((channel) => {
+              const count = Math.max(0, channelMessages(state, channel).length - chatSeen[channel]);
+              return `<button class="spy-chat-tab ${chatTab === channel ? 'is-active' : ''}"
+                data-spy-chat-tab="${channel}" role="tab" aria-selected="${chatTab === channel}">
+                ${channel === 'spies' ? '🕵️ Spione' : 'Alle'}
+                ${count && chatTab !== channel ? `<span class="spy-chat-badge">${count}</span>` : ''}
+              </button>`;
+            }).join('')}
+          </div>` : ''}
+        ${chatOpen ? `
+          ${chatTab === 'spies' ? '<p class="spy-chat-note">Nur Spione sehen diesen Chat. Andere Spieler können ihn nicht lesen.</p>' : ''}
+          <div class="spy-chat-log" data-spy-chat-log>
+            ${messages.length
+              ? messages.map((entry) => `
+                  <div class="spy-chat-line ${entry.playerId === mine ? 'is-mine' : ''}">
+                    <span class="spy-chat-author">${esc(entry.name)}</span>
+                    <span class="spy-chat-text">${esc(entry.text)}</span>
+                  </div>`).join('')
+              : `<p class="spy-chat-empty">${chatTab === 'spies' ? 'Noch leer. Sprich dich mit deinem Partner ab.' : 'Noch ruhig. Stelle die erste Frage.'}</p>`}
+          </div>
+          ${canWrite ? `
+            <form class="spy-chat-form" data-spy-chat-form>
+              <input class="spy-chat-input" data-spy-chat-input maxlength="300"
+                     placeholder="${chatTab === 'spies' ? 'An Spione schreiben…' : 'Die Runde fragen…'}" autocomplete="off"
+                     value="${esc(chatDraft[chatTab])}">\n              <button class="spy-chat-send" type="submit" aria-label="Senden">➤</button>\n            </form>`
+            : `<p class="spy-chat-note">${eliminated ? 'Du bist ausgeschieden — schaue weiter zu.' : 'Du kannst hier gerade nicht schreiben.'}</p>`}` : ''}
+      </div>`;
+  }
+
+  function bindRoom() {
+    container.querySelectorAll('[data-spy-room]').forEach((node) => {
+      node.addEventListener('click', () => onRoomAction(node.dataset.spyRoom, node));
+    });
+
+    const chatInput = container.querySelector('[data-spy-chat-input]');
+    chatInput?.addEventListener('input', () => { chatDraft[chatTab] = chatInput.value; });
+    container.querySelector('[data-spy-chat-form]')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const text = String(chatInput?.value || '').trim();
+      if (!text) return;
+      send('chat', { text, channel: chatTab });
+      chatDraft[chatTab] = '';
+      if (chatInput) chatInput.value = '';
+    });
+    container.querySelectorAll('[data-spy-chat-tab]').forEach((node) => {
+      node.addEventListener('click', () => openChat(node.dataset.spyChatTab));
+    });
+    // Лента открывается на последнем сообщении: листать вручную к свежему
+    // после каждого обновления никто не станет.
+    const log = container.querySelector('[data-spy-chat-log]');
+    if (log) log.scrollTop = log.scrollHeight;
+    container.querySelectorAll('[data-spy-vote]').forEach((node) => {
+      node.addEventListener('click', () => send('vote', { targetId: node.dataset.spyVote }));
+    });
+    const spyCount = container.querySelector('#spySpyCount');
+    spyCount?.addEventListener('change', () => send('setSettings', { spyCount: Number(spyCount.value) }));
+    const minutes = container.querySelector('#spyRoundMinutes');
+    minutes?.addEventListener('change', () => send('setSettings', { roundSeconds: Math.round(Number(minutes.value) * 60) }));
+  }
+
+  async function onRoomAction(action, node) {
+    if (action === 'copy') return copyRoomCode();
+    if (action === 'flip') { roleFaceUp = !roleFaceUp; return renderRoom(); }
+    if (action === 'roleSeen') return send('roleSeen');
+    if (action === 'start') return send('startGame');
+    if (action === 'forceDiscussion') return send('forceDiscussion');
+    if (action === 'beginVoting') return send('beginVoting');
+    if (action === 'backToLobby') return send('backToLobby');
+    if (action === 'guess') {
+      const input = container.querySelector('#spyGuessInput');
+      const guess = String(input?.value || '').trim();
+      if (!guess) return toast('Ort eingeben');
+      return send('guess', { guess });
+    }
+    if (action === 'leave') return leaveRoomAndGoHome();
+    if (action === 'chatToggle') {
+      if (chatOpen) {
+        chatOpen = false;
+        renderRoom();
+        return;
+      }
+      openChat();
+    }
+  }
+
+  /** Раскрывает чат и подводит его к глазам — сюда же ведёт всплывшее уведомление. */
+  function openChat(channel = chatTab) {
+    chatOpen = true;
+    chatTab = channel === 'spies' && canSeeSpyChat(state) ? 'spies' : 'common';
+    chatSeen[chatTab] = channelMessages(state, chatTab).length;
+    renderRoom();
+    const log = container.querySelector('[data-spy-chat-log]');
+    if (!onScreen(log)) log?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    container.querySelector('[data-spy-chat-input]')?.focus({ preventScroll: true });
+  }
+
+  /** Виден ли элемент в окне: у «Соглядатая» чат легко уезжает за край при прокрутке. */
+  function onScreen(element) {
+    if (!element) return false;
+    const box = element.getBoundingClientRect();
+    if (!box.width || !box.height) return false;
+    return box.bottom > 0 && box.top < (window.innerHeight || document.documentElement.clientHeight);
+  }
+
+  function leaveRoomAndGoHome() {
+    leaving = true;
+    send('leave');
+    stopPolling();
+    closeSocket();
+    forgetRoom();
+    state = null;
+    leaving = false;
+    renderHome();
+  }
+
+  async function copyRoomCode() {
+    try {
+      await navigator.clipboard.writeText(state.roomId);
+      toast('Code kopiert');
+    } catch {
+      toast(`Raumcode: ${state.roomId}`);
+    }
+  }
+
+  function startClock() {
+    if (clockTimer) clearInterval(clockTimer);
+    const node = container.querySelector('[data-spy-clock]');
+    if (!node) return;
+    // Отсчёт ведётся от серверного дедлайна с поправкой на расхождение
+    // часов: у телефонов оно бывает в минуты, и без поправки таймер
+    // показывал бы у разных игроков разное время.
+    const skew = Number(state.serverNow || 0) - Date.now();
+    const tick = () => {
+      const left = Math.max(0, Math.round((Number(state.roundDeadlineMs || 0) - (Date.now() + skew)) / 1000));
+      const minutes = String(Math.floor(left / 60)).padStart(2, '0');
+      const seconds = String(left % 60).padStart(2, '0');
+      node.textContent = `${minutes}:${seconds}`;
+      node.classList.toggle('is-urgent', left <= 30);
+    };
+    tick();
+    clockTimer = setInterval(tick, 500);
+  }
+
+  function toast(message) {
+    let node = document.getElementById('spy-online-toast');
+    if (!node) {
+      node = document.createElement('div');
+      node.id = 'spy-online-toast';
+      document.body.appendChild(node);
+    }
+    node.textContent = message;
+    node.classList.add('is-visible');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => node.classList.remove('is-visible'), 2600);
+  }
+
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
+  }
+
+  function injectStyles() {
+    if (document.getElementById('spy-online-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'spy-online-styles';
+    style.textContent = SPY_ONLINE_CSS;
+    document.head.appendChild(style);
+  }
+}
+
+window.startSpyOnlineGame = startSpyOnlineGame;
+
+const SPY_ONLINE_CSS = `
+  .spy-online-wrap { width: min(100%, 560px); margin: 0 auto; display: grid; gap: 14px; padding-bottom: 24px; }
+  .spy-online-wrap h2 { margin: 0; color: #312e81; font-size: clamp(1.6rem, 6.4vw, 2.1rem); font-weight: 950; letter-spacing: -.045em; }
+  .spy-online-lead { margin: 0; color: rgba(49,46,129,.66); font-size: .98rem; line-height: 1.4; font-weight: 650; }
+  .spy-online-wrap .setup-label, .spy-online-wrap .hint { text-align: left; }
+  .spy-chat-head, .spy-tally-row, .spy-vote-option { text-align: left; }
+  .spy-online-alert { padding: 12px 14px; border-radius: 16px; background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.28); color: #b91c1c; font-weight: 800; font-size: .94rem; }
+  .spy-online-divider { display: flex; align-items: center; gap: 10px; color: rgba(49,46,129,.42); font-size: .82rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+  .spy-online-divider::before, .spy-online-divider::after { content: ''; flex: 1; height: 1px; background: rgba(49,46,129,.16); }
+  .spy-online-code-input { text-transform: uppercase; letter-spacing: .32em; text-align: center; font-weight: 900; }
+
+  .spy-room-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .spy-room-code { display: grid; gap: 2px; padding: 10px 16px; border: 0; border-radius: 18px; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: #fff; cursor: pointer; text-align: left; }
+  .spy-room-code__label { font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; opacity: .74; }
+  .spy-room-code strong { font-size: 1.5rem; font-weight: 950; letter-spacing: .2em; }
+  .spy-room-meta { display: flex; align-items: center; gap: 7px; color: rgba(49,46,129,.6); font-size: .84rem; font-weight: 800; }
+  .spy-room-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
+  .spy-room-dot.is-poll { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.18); }
+
+  /* Карта роли: рубашка вверх, пока игрок сам её не перевернул. */
+  .spy-online-card { width: min(80vw, 320px); aspect-ratio: 5/7; margin: 4px auto; border: 0; padding: 0; background: transparent; perspective: 1200px; cursor: pointer; display: block; -webkit-tap-highlight-color: transparent; }
+  .spy-online-card__face { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 10px; padding: 22px; border-radius: 26px; backface-visibility: hidden; transition: transform .52s cubic-bezier(.4,0,.2,1); box-shadow: 0 18px 36px rgba(49,46,129,.2); }
+  .spy-online-card { position: relative; }
+  .spy-online-card__back { background: linear-gradient(150deg,#4338ca,#6d28d9); color: #ede9fe; transform: rotateY(0deg); }
+  .spy-online-card__front { background: linear-gradient(150deg,#fef3c7,#fde68a); color: #78350f; transform: rotateY(180deg); }
+  .spy-online-card__front.is-spy { background: linear-gradient(150deg,#fecaca,#fca5a5); color: #7f1d1d; }
+  .spy-online-card.is-open .spy-online-card__back { transform: rotateY(-180deg); }
+  .spy-online-card.is-open .spy-online-card__front { transform: rotateY(0deg); }
+  .spy-online-card__crest { font-size: 3.4rem; }
+  .spy-online-card__role { font-size: .82rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; opacity: .68; }
+  .spy-online-card__value { font-size: clamp(1.3rem, 6vw, 1.9rem); font-weight: 950; line-height: 1.1; text-align: center; }
+  .spy-online-card__hint { font-size: .84rem; font-weight: 700; opacity: .66; text-align: center; }
+
+  .spy-online-clock { margin: 0 auto; padding: 8px 22px; border-radius: 999px; background: rgba(79,70,229,.1); color: #4338ca; font-size: 2rem; font-weight: 950; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+  .spy-online-clock.is-urgent { background: rgba(239,68,68,.14); color: #b91c1c; animation: spyClockPulse 1s ease-in-out infinite; }
+  @keyframes spyClockPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+  .spy-online-guess { display: grid; gap: 10px; }
+  .spy-vote-list { display: grid; gap: 8px; }
+  .spy-vote-option { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border: 2px solid rgba(79,70,229,.18); border-radius: 18px; background: #fff; color: #312e81; font-size: 1.02rem; font-weight: 850; cursor: pointer; transition: transform .12s, border-color .12s, background .12s; }
+  .spy-vote-option:active { transform: scale(.98); }
+  .spy-vote-option.is-picked { border-color: #4f46e5; background: rgba(79,70,229,.1); }
+  .spy-vote-mark { color: #4f46e5; font-weight: 950; }
+
+  .spy-player-list { display: grid; gap: 6px; }
+  /* Оболочка центрирует текст, а список игроков должен читаться слева. */
+  .spy-player { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 14px; background: rgba(79,70,229,.06); font-size: .96rem; font-weight: 800; color: #312e81; text-align: left; }
+  .spy-player.is-away { opacity: .48; }
+  .spy-player.is-out { opacity: .55; }
+  .spy-player.is-out .spy-player-name { text-decoration: line-through; }
+  .spy-player-tag.is-out { background: rgba(120,120,130,.18); color: var(--ink-soft); }
+  .spy-chat-tabs { display: flex; gap: 6px; padding: 6px 10px 0; }
+  .spy-chat-tab {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 7px 10px; border: 0; border-radius: 10px; cursor: pointer;
+    font: inherit; font-size: .92rem; color: var(--ink-soft); background: rgba(140,140,150,.14);
+  }
+  .spy-chat-tab.is-active { background: rgba(190,150,60,.22); color: var(--ink); font-weight: 600; }
+  .spy-chat-note { margin: 8px 10px 0; font-size: .88rem; color: var(--ink-soft); }
+  /* Закрытый канал отличается от общего с одного взгляда: писать не туда — проиграть партию. */
+  .spy-chat.is-secret { box-shadow: inset 0 0 0 2px rgba(190,90,90,.4); }
+  .spy-tally-row b.is-spy { color: #c0553f; }
+  .spy-player-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(49,46,129,.24); flex: none; }
+  .spy-player-dot.is-online { background: #22c55e; }
+  .spy-player-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spy-player-tag { padding: 2px 8px; border-radius: 999px; background: rgba(79,70,229,.16); font-size: .7rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+  .spy-player-tag.is-spy { background: rgba(239,68,68,.18); color: #b91c1c; }
+  .spy-player-tag.is-ok { background: rgba(34,197,94,.18); color: #15803d; }
+  .spy-player-mic { font-size: .92rem; }
+  .spy-player-mic.is-muted { opacity: .5; }
+
+  .spy-chat { display: grid; gap: 10px; padding: 12px 14px; border-radius: 20px; background: rgba(15,23,42,.05); border: 1px solid rgba(49,46,129,.12); }
+  .spy-chat-head { display: flex; align-items: center; gap: 8px; color: #312e81; font-size: .96rem; }
+  .spy-chat-head strong { flex: 1; }
+  .spy-chat-badge { min-width: 20px; padding: 2px 7px; border-radius: 999px; background: #ef4444; color: #fff; font-size: .74rem; font-weight: 900; text-align: center; }
+  .spy-chat-toggle { border: 0; border-radius: 10px; padding: 6px 12px; background: rgba(79,70,229,.12); color: #4338ca; font-size: .84rem; font-weight: 850; cursor: pointer; }
+  /* Лента прокручивается сама, а не тянет за собой всю страницу: на телефоне
+     иначе экран уезжает при каждом новом сообщении. */
+  .spy-chat-log { max-height: 216px; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 6px; padding-right: 2px; }
+  .spy-chat-line { display: grid; gap: 1px; padding: 7px 11px; border-radius: 12px; background: rgba(255,255,255,.72); text-align: left; }
+  .spy-chat-line.is-mine { background: rgba(79,70,229,.12); }
+  .spy-chat-author { color: rgba(49,46,129,.6); font-size: .74rem; font-weight: 900; letter-spacing: .02em; }
+  .spy-chat-text { color: #312e81; font-size: .94rem; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .spy-chat-empty { margin: 0; padding: 10px 2px; color: rgba(49,46,129,.5); font-size: .9rem; font-weight: 700; }
+  .spy-chat-form { display: flex; gap: 8px; }
+  .spy-chat-input { flex: 1; min-width: 0; min-height: 44px; padding: 10px 14px; border-radius: 14px; border: 2px solid rgba(79,70,229,.18); background: #fff; color: #312e81; font-size: 1rem; font-weight: 650; }
+  .spy-chat-input:focus { outline: none; border-color: #4f46e5; }
+  .spy-chat-send { flex: none; width: 46px; min-height: 44px; border: 0; border-radius: 14px; background: #4f46e5; color: #fff; font-size: 1.05rem; cursor: pointer; }
+  .spy-chat-send:active { transform: scale(.95); }
+
+  .spy-online-outcome.is-spy { border-left: 5px solid #ef4444; }
+  .spy-online-outcome.is-town { border-left: 5px solid #22c55e; }
+  .spy-tally { display: grid; gap: 5px; }
+  .spy-tally-row { display: flex; justify-content: space-between; padding: 8px 14px; border-radius: 12px; background: rgba(79,70,229,.07); font-weight: 800; color: #312e81; }
+
+  #spy-online-toast { position: fixed; left: 50%; bottom: 26px; z-index: 60; transform: translate(-50%, 14px); padding: 11px 18px; border-radius: 999px; background: rgba(30,27,75,.92); color: #ede9fe; font-size: .92rem; font-weight: 800; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  #spy-online-toast.is-visible { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spy-online-card__face, .spy-online-clock { transition: none; animation: none; }
+  }
+`;

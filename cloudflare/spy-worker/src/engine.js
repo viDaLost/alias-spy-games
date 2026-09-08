@@ -1,3 +1,4 @@
+import { wordAlternatives } from '../../shared/localized-words.js';
 // Движок онлайн-Соглядатая. Чистая логика без сети и хранилища: на входе состояние
 // комнаты и действие, на выходе изменённое состояние. Всё, что связано с
 // Durable Object, WebSocket и подписями, живёт в index.js.
@@ -230,7 +231,7 @@ export function spyGuess(room, playerId, guess, now = Date.now()) {
   if (player.role !== 'spy') throw fail('Угадывать локацию может только соглядатай', 'NOT_A_SPY', 403);
   if (player.eliminated) throw fail('Изгнанный больше не называет локацию', 'ELIMINATED', 403);
   if (room.status !== 'discussion' && room.status !== 'voting') throw fail('Сейчас нельзя назвать локацию', 'BAD_STATUS');
-  const correct = normalizeGuess(guess) === normalizeGuess(room.location);
+  const correct = wordAlternatives(room.location).some(candidate => normalizeGuess(guess) === normalizeGuess(candidate));
   const details = { guess: String(guess || '').slice(0, 80), byPlayerId: playerId, tally: [], accusedId: '' };
 
   // Угадал — партия кончилась, и напарнику доигрывать нечего.
@@ -493,6 +494,7 @@ function spyIds(room) {
 
 function normalizeGuess(value) {
   return String(value || '')
+    .normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss')
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/[^a-zа-я0-9]+/gi, '');

@@ -46,7 +46,10 @@ async function tryHandleRichWelcome(request, env, ctx) {
   const text = String(message.text || '').trim();
   if (!/^\/(?:start|help)(?:@[A-Za-z0-9_]+)?(?:\s+.*)?$/i.test(text)) return false;
 
-  ctx.waitUntil(sendRichWelcomeMessage(env, chatId).catch(async (error) => {
+  const isRoot=Boolean(env.ADMIN_TELEGRAM_ID) && senderId===String(env.ADMIN_TELEGRAM_ID);
+  const requested=/\s+lang_(ru|en|de|es)$/i.exec(text)?.[1]?.toLowerCase();
+  const language=isRoot && requested ? requested : 'ru';
+  ctx.waitUntil(sendRichWelcomeMessage(env, chatId, language, isRoot).catch(async (error) => {
     const adminId = String(env.ADMIN_TELEGRAM_ID || '');
     if (adminId) {
       await telegramSendMessage(
@@ -60,8 +63,18 @@ async function tryHandleRichWelcome(request, env, ctx) {
   return true;
 }
 
-async function sendRichWelcomeMessage(env, chatId) {
-  const miniAppUrl = await getMainMiniAppUrl(env);
+export const WELCOME_LANGUAGES = {
+  ru: ['Библейские игры','Играй вместе с друзьями и открывай Библию по-новому.',' Играть',' Поддержка','Мини-игры • комнаты • прогресс'],
+  en: ['Bible Games','Play with friends and discover the Bible in a new way.',' Play',' Support','Mini-games • rooms • progress'],
+  de: ['Bibelspiele','Spiele mit Freunden und entdecke die Bibel auf neue Weise.',' Spielen',' Hilfe','Minispiele • Räume • Fortschritt'],
+  es: ['Juegos bíblicos','Juega con amigos y descubre la Biblia de una nueva manera.',' Jugar',' Ayuda','Minijuegos • salas • progreso'],
+};
+async function sendRichWelcomeMessage(env, chatId, language='ru', isRoot=false) {
+  const miniAppUrl = await getMainMiniAppUrl(env) + (isRoot ? `=lang_${language}` : '');
+  const copy=WELCOME_LANGUAGES[language] || WELCOME_LANGUAGES.ru;
+  const languageButtons=isRoot ? [{type:'buttons',align:'center',buttons:
+    Object.entries({ru:'Русский',en:'English',de:'Deutsch',es:'Español'}).map(([lang,text])=>({text, url:miniAppUrl.replace(/\?startapp.*$/,`?start=lang_${lang}`)}))
+  }] : [];
 
   return telegramApi(env, 'sendRichMessage', {
     chat_id: String(chatId),
@@ -77,11 +90,11 @@ async function sendRichWelcomeMessage(env, chatId) {
         {
           type: 'heading',
           size: 1,
-          text: 'Библейские игры',
+          text: copy[0],
         },
         {
           type: 'paragraph',
-          text: 'Играй вместе с друзьями и открывай Библию по-новому.',
+          text: copy[1],
         },
         {
           type: 'buttons',
@@ -94,7 +107,7 @@ async function sendRichWelcomeMessage(env, chatId) {
                   custom_emoji_id: PLAY_CUSTOM_EMOJI_ID,
                   alternative_text: '▶️',
                 },
-                ' Играть',
+                copy[2],
               ],
               style: 'primary',
               url: miniAppUrl,
@@ -106,17 +119,18 @@ async function sendRichWelcomeMessage(env, chatId) {
                   custom_emoji_id: SUPPORT_CUSTOM_EMOJI_ID,
                   alternative_text: '🎧',
                 },
-                ' Поддержка',
+                copy[3],
               ],
               style: 'primary',
               callback_data: 'support:start',
             },
           ],
         },
+        ...languageButtons,
         { type: 'divider' },
         {
           type: 'footer',
-          text: 'Мини-игры • комнаты • прогресс',
+          text: copy[4],
         },
       ],
       skip_entity_detection: true,

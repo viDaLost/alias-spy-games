@@ -85,7 +85,7 @@ function startAliasGame() {
   if (!container) return;
 
   container.innerHTML = `
-    <h2 class="alias-title"><span class="alias-title-icon">А</span> Алиас</h2>
+    <h2 class="alias-title"><span class="alias-title-icon">A</span> Алиас</h2>
     <p class="alias-sub">Выберите уровень сложности</p>
 
     <div class="alias-buttons">

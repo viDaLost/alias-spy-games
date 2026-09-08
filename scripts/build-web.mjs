@@ -13,6 +13,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import * as esbuild from 'esbuild';
 import { styleSources, scriptSources, adminScriptSources } from './web-sources.mjs';
+import { buildLocales } from './build-locales.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.join(root, 'web', 'dist');
@@ -31,7 +32,7 @@ const PRECACHE_DIRS = [
   'web/assets/biblical-match-three/icons-v17',
   'web/assets/biblical-match-three/icons-v29',
 ];
-const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest'];
+const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest', 'web/js/language-choice.js', 'web/i18n/bootstrap.js'];
 
 // Тяжёлые ассеты «Моисея на Ниле» — модели, текстуры и three.js — весят почти
 // четыре мегабайта. Ставить их в кеш при установке нельзя: столько платит
@@ -86,7 +87,8 @@ export async function build({ write = true } = {}) {
   const cssName = `app.${hash(css.code)}.css`;
   const jsName = `app.${hash(js.code)}.js`;
   const cssTag = `  <link rel="stylesheet" href="web/dist/${cssName}" />`;
-  const jsTag = `  <script src="web/dist/${jsName}" defer></script>`;
+  const localized = await buildLocales(root, jsOptions);
+  const jsTag = `  <script id="app-language-bundles" type="application/json">${JSON.stringify({ru:`web/dist/${jsName}`,...localized.entries})}</script>\n  <script src="web/i18n/bootstrap.js" defer></script>`;
 
   let html = read('index.html');
   for (const [[open, close], tag] of [[CSS_MARK, cssTag], [JS_MARK, jsTag]]) {
@@ -116,6 +118,7 @@ export async function build({ write = true } = {}) {
     вернувшегося игрока не доходили вовсе.
   */
   const digest = crypto.createHash('sha256').update(css.code).update(js.code);
+  for (const [file, content] of localized.outputs) digest.update(file).update(content);
   for (const rel of precache) {
     digest.update(rel);
     const file = path.join(root, rel);
@@ -139,12 +142,14 @@ export async function build({ write = true } = {}) {
     [path.join(distDir, adminName), admin.code],
     [path.join(root, 'index.html'), html],
     [path.join(root, 'sw.js'), sw],
+    ...[...localized.outputs].map(([file,content])=>[path.join(root,file),content]),
   ];
 
   if (write) {
     fs.rmSync(distDir, { recursive: true, force: true });
     fs.mkdirSync(distDir, { recursive: true });
-    for (const [file, content] of files) fs.writeFileSync(file, content);
+    fs.rmSync(path.join(root,'web/locales'), {recursive:true,force:true});
+    for (const [file, content] of files) {fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file, content);}
     // Use UTF-8 bytes, including Cyrillic text, when reporting payload size.
     const kb = (n) => `${Math.round(n / 1024)} KiB`;
     console.log(`web/dist/${cssName}  ${kb(Buffer.byteLength(css.code))}  (from ${styleSources.length} stylesheets)`);
@@ -153,7 +158,7 @@ export async function build({ write = true } = {}) {
     console.log(`sw.js  версия ${swVersion}, ${precache.length} файлов в кеше установки`);
   }
 
-  return { adminName, admin: admin.code, cssName, jsName, css: css.code, js: js.code, html, sw, swVersion, precache };
+  return { localized:localized.outputs, localeEntries:localized.entries, adminName, admin: admin.code, cssName, jsName, css: css.code, js: js.code, html, sw, swVersion, precache };
 }
 
 if (process.argv[1] === import.meta.filename) await build();
