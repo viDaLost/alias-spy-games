@@ -166,9 +166,25 @@ const column = ark.relics[0] % 8;
 // и общий кошелёк тут же возвращает серверный ноль. Поэтому для проверки
 // баланс кладётся прямо в хранилище игры, без события.
 await page.evaluate(() => localStorage.setItem(window.BiblicalMatchThreeProgress.starsKey(), '400'));
-await page.waitForTimeout(200);
+/*
+  Доска принимает нажатия, только когда досчитала предыдущий ход: и посох, и
+  клетка проходят через одну и ту же проверку runtime.busy, а она видна в
+  разметке классом is-busy на .bmt-shell.
+
+  Раньше здесь стояли фиксированные паузы в 200 и 250 мс. На загруженном
+  раннере каскад от последнего хода в них не укладывался: нажатие на посох
+  молча пропадало, клик по клетке уходил как обычный ход, столбец оставался
+  цел — и проверка падала на «ковчег не дошёл до ворот», хотя ковчегу просто
+  не дали упасть. Ждём сами состояния, а не время.
+*/
+await page.waitForFunction(() => !document.querySelector('.bmt-shell.is-busy'), null, { timeout: 15_000 })
+  .catch(() => {});
+await expect(!(await page.$('.bmt-shell.is-busy')), 'доска не досчитала ход и не принимает нажатия');
 await page.evaluate(() => document.querySelector('[data-booster="staff"]')?.click());
-await page.waitForTimeout(250);
+// Взведённый бустер помечает себя сам — тем же нажатием, синхронно.
+await page.waitForFunction(() => document.querySelector('[data-booster="staff"].is-active'), null, { timeout: 10_000 })
+  .catch(() => {});
+await expect(Boolean(await page.$('[data-booster="staff"].is-active')), 'посох не взвёлся — нажатие до доски не дошло');
 await page.evaluate((col) => {
   const rows = Number(document.querySelector('.bmt-board').dataset.rows);
   document.querySelector(`.bmt-tile[data-index="${(rows - 1) * 8 + col}"]`)?.click();
