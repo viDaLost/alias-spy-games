@@ -1,0 +1,57 @@
+name: Deploy Bible Find 9 Cloudflare preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/bible-find9-preview
+    paths:
+      - 'cloudflare/bible-find9-preview/**'
+      - '.github/workflows/deploy-bible-find9-preview.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bible-find9-cloudflare-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate preview files
+        run: |
+          test -f cloudflare/bible-find9-preview/public/index.html
+          test -f cloudflare/bible-find9-preview/public/assets/00_base_scene.svg
+          for n in 01_dove_olive 02_scroll 03_clay_jar 04_fish 05_grapes 06_oil_lamp 07_bread 08_harp 09_rainbow; do
+            test -f "cloudflare/bible-find9-preview/public/assets/${n}.svg"
+          done
+          grep -Fq 'Найди 9 деталей' cloudflare/bible-find9-preview/public/index.html
+      - name: Deploy isolated Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy --config cloudflare/bible-find9-preview/wrangler.jsonc
+      - name: Verify deployed preview
+        env:
+          PREVIEW_URL: https://alias-spy-games-bible-find9-preview.vitaledanilov.workers.dev/
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/preview.html \
+              && grep -Fq 'Найди 9 деталей' /tmp/preview.html; then
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}health" | grep -Fq 'bible-find9'
+              curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}assets/00_base_scene.svg" -o /tmp/base.svg
+              test -s /tmp/base.svg
+              echo "Bible Find 9 preview verified: ${PREVIEW_URL}"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo 'Cloudflare Bible Find 9 preview verification failed' >&2
+          exit 1
