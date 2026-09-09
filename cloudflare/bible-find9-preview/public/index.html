@@ -23,12 +23,12 @@ body{min-height:100dvh;overflow-x:hidden}.app{width:min(1180px,100%);margin:auto
 <body>
 <main class="app">
   <header class="top">
-    <div class="heading"><div class="eyebrow">Библейская игра · Preview</div><h1>Найди 9 деталей</h1><p>Рассмотри сцену с Ноевым ковчегом и найди все спрятанные предметы.</p></div>
+    <div class="heading"><div class="eyebrow">Библейская игра · Preview</div><h1>Найди 9 деталей</h1><p>Рассмотри созданную сцену с Ноевым ковчегом и найди все спрятанные предметы. В превью используются готовые PNG-изображения, а не SVG.</p></div>
     <div class="progress" aria-live="polite"><strong id="count">0/9</strong><span>найдено</span></div>
   </header>
   <section class="board-shell">
     <div id="board" class="board" aria-label="Игровая сцена">
-      <img id="scene" class="scene" src="assets/00_base_scene.svg" alt="Ноев ковчег и животные">
+      <img id="scene" class="scene" src="assets/00_base_scene.png" alt="Ноев ковчег и животные">
       <div id="loading" class="loading"><div class="loader"><div class="spinner"></div><strong>Готовим сцену…</strong></div></div>
     </div>
   </section>
@@ -41,7 +41,7 @@ body{min-height:100dvh;overflow-x:hidden}.app{width:min(1180px,100%);margin:auto
 <div id="win" class="modal" role="dialog" aria-modal="true"><div class="card"><div class="trophy">🏆</div><h2>Все детали найдены!</h2><p>Ты отлично рассмотрел библейскую сцену.</p><button id="again" class="again">Сыграть ещё раз</button></div></div>
 <script>
 const LEVEL={width:1536,height:1024,targets:[
-['dove','Голубь с ветвью','assets/01_dove_olive.svg'],['scroll','Свиток','assets/02_scroll.svg'],['jar','Глиняный кувшин','assets/03_clay_jar.svg'],['fish','Рыба','assets/04_fish.svg'],['grapes','Виноград','assets/05_grapes.svg'],['lamp','Светильник','assets/06_oil_lamp.svg'],['bread','Хлеб','assets/07_bread.svg'],['harp','Арфа','assets/08_harp.svg'],['rainbow','Радуга','assets/09_rainbow.svg']
+['dove','Голубь с ветвью','assets/01_dove_olive.png'],['scroll','Свиток','assets/02_scroll.png'],['jar','Глиняный кувшин','assets/03_clay_jar.png'],['fish','Рыба','assets/04_fish.png'],['grapes','Виноград','assets/05_grapes.png'],['lamp','Светильник','assets/06_oil_lamp.png'],['bread','Хлеб','assets/07_bread.png'],['harp','Арфа','assets/08_harp.png'],['rainbow','Радуга','assets/09_rainbow.png']
 ]};
 const board=document.querySelector('#board'),targetsEl=document.querySelector('#targets'),countEl=document.querySelector('#count'),loading=document.querySelector('#loading'),win=document.querySelector('#win');
 let targets=[];let ready=false;
