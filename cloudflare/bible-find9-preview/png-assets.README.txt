@@ -1,1 +1,0 @@
-PNG preview bundle is decoded by the deploy workflow from png-assets.zip into public/assets before Wrangler deploys the Worker. The bundle contains the created 1536x1024 base scene plus nine transparent PNG target layers.

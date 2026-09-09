@@ -18,41 +18,52 @@ body{min-height:100dvh;overflow-x:hidden}.app{width:min(1180px,100%);margin:auto
 .loading{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(160deg,#274c87,#11244b);transition:.35s}.loading.hidden{opacity:0;pointer-events:none}.loader{text-align:center}.spinner{width:42px;height:42px;margin:0 auto 12px;border:4px solid rgba(255,255,255,.18);border-top-color:#ffd778;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .modal{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:20px;background:rgba(4,10,25,.72);backdrop-filter:blur(8px)}.modal.show{display:grid}.card{width:min(420px,100%);padding:28px 22px;border-radius:28px;background:linear-gradient(180deg,#fffdf8,#f4e8cd);color:#2b2c36;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.45)}.trophy{font-size:54px}.card h2{margin:8px 0 6px;font-size:28px}.card p{margin:0 0 18px;color:#665d50}.again{border:0;border-radius:15px;padding:12px 18px;background:#244f91;color:white;font-weight:850;cursor:pointer}
 @media(max-width:700px){.app{padding-left:8px;padding-right:8px}.top{align-items:flex-start}.heading p{font-size:12px}.progress{padding:8px 10px}.progress span{display:none}.board-shell{border-radius:18px;padding:5px}.board{border-radius:14px}.panel{padding:10px}.targets{grid-template-columns:repeat(2,1fr)}.target{font-size:12px;min-height:42px}.marker{width:32px;height:32px}}
+
+.viewport{width:100%;aspect-ratio:3/2;overflow:auto;border-radius:18px;overscroll-behavior:contain;touch-action:pan-x pan-y pinch-zoom}.board{flex-shrink:0;touch-action:pan-x pan-y pinch-zoom}.zoom-controls{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:10px}.zoom-controls span{font-size:12px;color:#c6d6f3;margin-right:auto}.zoom-controls button{min-width:44px;min-height:44px;border:1px solid #ffffff30;border-radius:12px;background:#ffffff10;color:white;font-weight:800}.zoom-controls button[aria-pressed=true]{background:#f2c76b;color:#302715}.reset,.again{min-height:44px}.scene{pointer-events:none}.target{min-width:0}.target .label{overflow-wrap:anywhere}button:focus-visible{outline:3px solid #ffd778;outline-offset:3px}.heading p{max-width:650px;line-height:1.4}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 <main class="app">
   <header class="top">
-    <div class="heading"><div class="eyebrow">Библейская игра · Preview</div><h1>Найди 9 деталей</h1><p>Рассмотри созданную сцену с Ноевым ковчегом и найди все спрятанные предметы. В превью используются готовые PNG-изображения, а не SVG.</p></div>
+    <div class="heading"><div class="eyebrow">Ноев ковчег · После дождя</div><h1>Найди 9 деталей</h1><p>Дождь закончился. Найди девять деталей среди чудес нового мира.</p></div>
     <div class="progress" aria-live="polite"><strong id="count">0/9</strong><span>найдено</span></div>
   </header>
   <section class="board-shell">
-    <div id="board" class="board" aria-label="Игровая сцена">
+    <div id="viewport" class="viewport"><div id="board" class="board" aria-label="Игровая сцена">
       <img id="scene" class="scene" src="assets/00_base_scene.png" alt="Ноев ковчег и животные">
       <div id="loading" class="loading"><div class="loader"><div class="spinner"></div><strong>Готовим сцену…</strong></div></div>
     </div>
+    </div>
   </section>
+  <div class="zoom-controls" aria-label="Масштаб сцены"><span>Рассмотреть ближе</span><button type="button" data-zoom="1" aria-pressed="true">1×</button><button type="button" data-zoom="2" aria-pressed="false">2×</button><button type="button" data-zoom="3" aria-pressed="false">3×</button></div>
   <section class="panel">
     <div class="panel-title"><strong>Что нужно найти</strong><span class="hint">Нажимай прямо на предмет</span></div>
     <div id="targets" class="targets"></div>
     <div class="actions"><button id="reset" class="reset" type="button">Начать заново</button></div>
   </section>
 </main>
-<div id="win" class="modal" role="dialog" aria-modal="true"><div class="card"><div class="trophy">🏆</div><h2>Все детали найдены!</h2><p>Ты отлично рассмотрел библейскую сцену.</p><button id="again" class="again">Сыграть ещё раз</button></div></div>
+<div id="win" class="modal" role="dialog" aria-modal="true" aria-labelledby="win-title"><div class="card"><div class="trophy">🏆</div><h2 id="win-title">Все детали найдены!</h2><p>Ты отлично рассмотрел библейскую сцену.</p><button id="again" class="again">Сыграть ещё раз</button></div></div>
 <script>
 const LEVEL={width:1536,height:1024,targets:[
 ['dove','Голубь с ветвью','assets/01_dove_olive.png'],['scroll','Свиток','assets/02_scroll.png'],['jar','Глиняный кувшин','assets/03_clay_jar.png'],['fish','Рыба','assets/04_fish.png'],['grapes','Виноград','assets/05_grapes.png'],['lamp','Светильник','assets/06_oil_lamp.png'],['bread','Хлеб','assets/07_bread.png'],['harp','Арфа','assets/08_harp.png'],['rainbow','Радуга','assets/09_rainbow.png']
 ]};
 const board=document.querySelector('#board'),targetsEl=document.querySelector('#targets'),countEl=document.querySelector('#count'),loading=document.querySelector('#loading'),win=document.querySelector('#win');
-let targets=[];let ready=false;
+let targets=[];let ready=false;let victoryTimer;
 const img=(src)=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src});
 function centerOf(ctx){const im=ctx.getImageData(0,0,LEVEL.width,LEVEL.height).data;let minX=LEVEL.width,minY=LEVEL.height,maxX=0,maxY=0,n=0;for(let y=0;y<LEVEL.height;y+=4){for(let x=0;x<LEVEL.width;x+=4){if(im[(y*LEVEL.width+x)*4+3]>16){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);n++}}}return n?{x:(minX+maxX)/2,y:(minY+maxY)/2}:{x:LEVEL.width/2,y:LEVEL.height/2}}
-function renderList(){targetsEl.innerHTML=targets.map((t,i)=>`<div class="target ${t.found?'found':''}"><span class="num">${t.found?'✓':i+1}</span><span class="label">${t.label}</span></div>`).join('');const n=targets.filter(t=>t.found).length;countEl.textContent=`${n}/9`;if(n===targets.length&&targets.length){setTimeout(()=>win.classList.add('show'),350)}}
+function renderList(){targetsEl.innerHTML=targets.map((t,i)=>`<div class="target ${t.found?'found':''}"><span class="num">${t.found?'✓':i+1}</span><span class="label">${t.label}</span></div>`).join('');const n=targets.filter(t=>t.found).length;countEl.textContent=`${n}/9`;if(n===targets.length&&targets.length){clearTimeout(victoryTimer);victoryTimer=setTimeout(()=>{win.classList.add('show');document.querySelector('#again').focus()},350)}}
 function addMarker(t){const m=document.createElement('span');m.className='marker';m.style.left=`${t.center.x/LEVEL.width*100}%`;m.style.top=`${t.center.y/LEVEL.height*100}%`;m.dataset.id=t.id;board.appendChild(m)}
 function miss(x,y){const m=document.createElement('span');m.className='miss';m.style.left=`${x/LEVEL.width*100}%`;m.style.top=`${y/LEVEL.height*100}%`;board.appendChild(m);setTimeout(()=>m.remove(),600)}
-function reset(){targets.forEach(t=>t.found=false);board.querySelectorAll('.marker').forEach(n=>n.remove());win.classList.remove('show');renderList()}
-async function boot(){try{targets=[];for(const [id,label,src] of LEVEL.targets){const image=await img(src),c=document.createElement('canvas');c.width=LEVEL.width;c.height=LEVEL.height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);targets.push({id,label,src,ctx,center:centerOf(ctx),found:false})}ready=true;renderList();loading.classList.add('hidden');setTimeout(()=>loading.remove(),400)}catch(e){loading.innerHTML='<div class="loader"><strong>Не удалось загрузить слои</strong></div>';console.error(e)}}
-board.addEventListener('pointerup',e=>{if(!ready)return;const r=board.getBoundingClientRect();const x=Math.max(0,Math.min(LEVEL.width-1,Math.floor((e.clientX-r.left)/r.width*LEVEL.width)));const y=Math.max(0,Math.min(LEVEL.height-1,Math.floor((e.clientY-r.top)/r.height*LEVEL.height)));let hit=null;for(const t of targets){if(t.found)continue;const a=t.ctx.getImageData(x,y,1,1).data[3];if(a>16){hit=t;break}}if(hit){hit.found=true;addMarker(hit);renderList();if(navigator.vibrate)navigator.vibrate(35)}else miss(x,y)});
-document.querySelector('#reset').addEventListener('click',reset);document.querySelector('#again').addEventListener('click',reset);boot();
+function reset(){clearTimeout(victoryTimer);targets.forEach(t=>t.found=false);board.querySelectorAll('.marker,.miss').forEach(n=>n.remove());win.classList.remove('show');renderList()}
+async function boot(){try{const base=await img(document.querySelector('#scene').src);if(base.naturalWidth!==LEVEL.width||base.naturalHeight!==LEVEL.height)throw new Error('Invalid scene dimensions');targets=[];for(const [id,label,src] of LEVEL.targets){const image=await img(src),c=document.createElement('canvas');if(image.naturalWidth!==LEVEL.width||image.naturalHeight!==LEVEL.height)throw new Error('Invalid layer dimensions: '+id);c.width=LEVEL.width;c.height=LEVEL.height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(image,0,0);targets.push({id,label,src,ctx,center:centerOf(ctx),found:false})}ready=true;renderList();loading.classList.add('hidden');setTimeout(()=>loading.remove(),400)}catch(e){loading.innerHTML='<div class="loader"><strong>Не удалось загрузить слои</strong></div>';console.error(e)}}
+let pointerStart=null;
+board.addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY,id:e.pointerId}});
+board.addEventListener('pointercancel',()=>{pointerStart=null});
+board.addEventListener('pointerup',e=>{const start=pointerStart;pointerStart=null;if(!ready||!start||start.id!==e.pointerId||Math.hypot(e.clientX-start.x,e.clientY-start.y)>10||win.classList.contains('show'))return;const r=board.getBoundingClientRect();const x=Math.max(0,Math.min(LEVEL.width-1,Math.floor((e.clientX-r.left)/r.width*LEVEL.width)));const y=Math.max(0,Math.min(LEVEL.height-1,Math.floor((e.clientY-r.top)/r.height*LEVEL.height)));let hit=null;for(const t of targets){if(t.found)continue;const a=t.ctx.getImageData(x,y,1,1).data[3];if(a>16){hit=t;break}}if(hit){hit.found=true;hit.center={x,y};addMarker(hit);renderList();try{navigator.vibrate?.(35)}catch{}}else miss(x,y)});
+const viewport=document.querySelector('#viewport');
+document.querySelectorAll('[data-zoom]').forEach(button=>button.addEventListener('click',()=>{const zoom=Number(button.dataset.zoom);const old=board.getBoundingClientRect();const cx=(viewport.scrollLeft+viewport.clientWidth/2)/old.width,cy=(viewport.scrollTop+viewport.clientHeight/2)/old.height;board.style.width=`${zoom*100}%`;viewport.scrollLeft=cx*board.clientWidth-viewport.clientWidth/2;viewport.scrollTop=cy*board.clientHeight-viewport.clientHeight/2;document.querySelectorAll('[data-zoom]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)))}));
+win.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();document.querySelector('#again').focus()}});
+document.querySelector('#reset').addEventListener('click',reset);document.querySelector('#again').addEventListener('click',()=>{reset();document.querySelector('#reset').focus()});boot();
 </script>
 </body></html>
