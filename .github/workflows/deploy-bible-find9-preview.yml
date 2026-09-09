@@ -32,9 +32,10 @@ jobs:
         run: |
           mkdir -p /tmp/find9-test
           npm install --prefix /tmp/find9-test playwright@1.58.2
-          /tmp/find9-test/node_modules/.bin/playwright install --with-deps chromium
+          /tmp/find9-test/node_modules/.bin/playwright install --with-deps chromium webkit
           python -m http.server 8765 --directory cloudflare/bible-find9-preview/public > /tmp/find9-server.log 2>&1 &
           NODE_PATH=/tmp/find9-test/node_modules node cloudflare/bible-find9-preview/scripts/test_game.cjs
+          ENGINE=webkit NODE_PATH=/tmp/find9-test/node_modules node cloudflare/bible-find9-preview/scripts/test_game.cjs
       - name: Deploy isolated Cloudflare Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -42,4 +43,6 @@ jobs:
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --config cloudflare/bible-find9-preview/wrangler.jsonc
       - name: Verify every deployed asset against new artwork
-        run: python cloudflare/bible-find9-preview/scripts/verify_live.py
+        run: |
+          python cloudflare/bible-find9-preview/scripts/verify_live.py
+          PREVIEW_URL=https://alias-spy-games-bible-find9-preview.vitaledanilov.workers.dev/ NODE_PATH=/tmp/find9-test/node_modules node cloudflare/bible-find9-preview/scripts/test_game.cjs

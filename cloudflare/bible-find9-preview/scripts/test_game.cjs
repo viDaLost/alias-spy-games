@@ -2,14 +2,14 @@ const {chromium,webkit}=require('playwright');
 const fs=require('fs');const path=require('path');
 const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'../assets-manifest.json')));
 const assert=(v,m)=>{if(!v)throw Error(m)};
-(async()=>{const engine=process.env.ENGINE==='webkit'?webkit:chromium;const browser=await engine.launch({headless:true,args:['--no-sandbox']});
+(async()=>{const engine=process.env.ENGINE==='webkit'?webkit:chromium;const browser=await engine.launch({headless:true,executablePath:process.env.CHROMIUM_PATH,args:process.env.ENGINE==='webkit'?[]:['--no-sandbox']});
 for(const width of [390,1180]){
  const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:width===390?3:1,hasTouch:width===390,isMobile:width===390});
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(process.env.PREVIEW_URL||'http://127.0.0.1:8765');await page.waitForSelector('.loading',{state:'detached'});
  assert(await page.locator('#count').innerText()==='0/9','initial count');
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'horizontal overflow');
- const click=async([x,y])=>{const box=await page.locator('#board').boundingBox();await page.mouse.click(box.x+x/1536*box.width,box.y+y/1024*box.height)};
+ const click=async([x,y])=>{await page.evaluate(({y})=>{const r=document.querySelector('#board').getBoundingClientRect();const py=r.y+y/1024*r.height;if(py<10||py>innerHeight-10)window.scrollBy(0,py-innerHeight/2)},{y});const box=await page.locator('#board').boundingBox();await (width===390?page.touchscreen.tap(box.x+x/1536*box.width,box.y+y/1024*box.height):page.mouse.click(box.x+x/1536*box.width,box.y+y/1024*box.height))};
  for(const p of manifest.misses)await click(p);
  assert(await page.locator('#count').innerText()==='0/9','miss counted');
  for(let i=0;i<9;i++){
