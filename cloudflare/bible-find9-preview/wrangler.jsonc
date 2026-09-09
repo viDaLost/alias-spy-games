@@ -1,0 +1,10 @@
+{
+  "name": "alias-spy-games-bible-find9-preview",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-09",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  }
+}
