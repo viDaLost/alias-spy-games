@@ -18,9 +18,11 @@ for(const width of [390,1180]){
  }
  await page.waitForSelector('#win.show');assert(await page.locator('.marker').count()===9,'markers');assert(await page.locator('.target.found').count()===9,'list');
  await page.locator('#again').click();assert(await page.locator('#count').innerText()==='0/9','replay');assert(await page.locator('.marker').count()===0,'reset markers');
- // Reset during delayed victory must cancel the modal.
+ // Dispatch the real reset button in the same event turn as the ninth hit,
+ // so browser automation latency cannot accidentally wait past the 350ms window.
+ await page.evaluate(()=>{const board=document.querySelector('#board');const resetOnWin=()=>{if(document.querySelector('#count').textContent==='9/9'){document.querySelector('#reset').click();board.removeEventListener('pointerup',resetOnWin)}};board.addEventListener('pointerup',resetOnWin)});
  for(const p of manifest.targets)await click(p.point);
- await page.locator('#reset').click();await page.waitForTimeout(450);assert(await page.locator('#win.show').count()===0,'stale victory timeout');
+ assert(await page.locator('#count').innerText()==='0/9','immediate reset');await page.waitForTimeout(450);assert(await page.locator('#win.show').count()===0,'stale victory timeout');
  await page.locator('[data-zoom="3"]').click();
  await page.evaluate(()=>{const v=document.querySelector('#viewport');v.scrollLeft=0;v.scrollTop=0});
  await click(manifest.targets[0].point);assert(await page.locator('#count').innerText()==='1/9','zoom hit mapping');
