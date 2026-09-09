@@ -2218,6 +2218,30 @@ html.theme-dark .language-note {
   color: var(--muted, #73839a) !important;
 }
 
+/* web/styles/channel-promo.css */
+html.theme-dark .channel-promo {
+  background: var(--card, rgba(20, 20, 20, 0.92)) !important;
+  border: 1px solid var(--line, rgba(15, 18, 168, 0.18)) !important;
+}
+html.theme-dark .channel-promo__title {
+  color: var(--ink, #7875ce) !important;
+}
+html.theme-dark .channel-promo__text {
+  color: var(--muted, #73839a) !important;
+}
+html.theme-dark .channel-promo__join {
+  background: linear-gradient(135deg, #241bbf, #1453dc) !important;
+}
+html.theme-dark .channel-promo__later {
+  background: rgba(15, 18, 168, 0.1) !important;
+  color: var(--ink, #7875ce) !important;
+}
+html.theme-dark .home-channel-trigger {
+  border: 2px solid #d5941a !important;
+  background: linear-gradient(180deg, #071528, #0d1c33) !important;
+  color: #7875ce !important;
+}
+
 /* web/styles/game-rules.css */
 html.theme-dark .rules-topbar {
   background: linear-gradient(135deg, #3730a3, #241bbf 55%, #1453dc) !important;

@@ -41,6 +41,7 @@ export const styleSources = [
   'web/styles/lobby-polish.css',
   'web/styles/theme-switch.css',
   'web/styles/language-menu.css',
+  'web/styles/channel-promo.css',
   'web/styles/game-rules.css',
   'web/styles/progress-reset.css',
   'web/styles/web-session.css',
@@ -120,6 +121,7 @@ export const scriptSources = [
   'web/js/more-screen.js',
   'web/js/game-frame-safe-area.js',
   'web/js/language-menu.js',
+  'web/js/channel-promo.js',
   'web/js/game-scene-parallax.js',
 ];
 // Loaded only after the administrator opens the panel; order is significant.

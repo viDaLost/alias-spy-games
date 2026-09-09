@@ -1,0 +1,125 @@
+/*
+  Канал обновлений: одноразовый баннер в меню и кнопка в ряду с «Поддержать
+  проект».
+
+  Баннер намеренно не кричит: светлая карточка того же покроя, что и остальные
+  в меню, логотип слева, две кнопки справа. Реклама внутри приложения
+  раздражает ровно тогда, когда выглядит рекламой.
+*/
+
+.channel-promo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: var(--card, rgba(255, 255, 255, .92));
+  border: 1px solid var(--line, rgba(99, 102, 241, .18));
+  box-shadow: 0 12px 28px rgba(48, 55, 150, .12);
+  /* Появляется мягко и так же уходит: резкий скачок посреди меню читается как сбой. */
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .24s ease, transform .24s ease;
+}
+
+.channel-promo.is-visible { opacity: 1; transform: none; }
+
+.channel-promo__art {
+  width: 76px;
+  height: auto;
+  display: block;
+}
+
+.channel-promo__title {
+  display: block;
+  color: var(--ink, #312e81);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.channel-promo__text {
+  margin: 4px 0 0;
+  color: var(--muted, #64748b);
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.channel-promo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.channel-promo__join,
+.channel-promo__later {
+  min-height: 38px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.channel-promo__join {
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(48, 55, 150, .2);
+}
+
+.channel-promo__later {
+  background: rgba(99, 102, 241, .1);
+  color: var(--ink, #312e81);
+}
+
+.channel-promo__join:active,
+.channel-promo__later:active { transform: scale(.97); }
+
+/* --- кнопка в ряду с «Поддержать проект» ------------------------------------ */
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 3px auto 0;
+}
+
+.home-actions .home-support-trigger { margin: 0; }
+
+.home-channel-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 7px 16px 7px 12px;
+  border: 2px solid #e5a52d;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #f8fbff, #e6effd);
+  color: #312e81;
+  box-shadow: 0 7px 16px rgba(37, 80, 190, .14), inset 0 1px 0 rgba(255, 255, 255, .8);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .015em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.home-channel-trigger__icon { display: grid; place-items: center; }
+.home-channel-trigger__icon img { display: block; width: 20px; height: 20px; }
+.home-channel-trigger:active { transform: translateY(1px) scale(.98); }
+
+@media (max-width: 430px) {
+  .channel-promo__art { width: 64px; }
+  .home-channel-trigger { min-height: 38px; padding: 6px 13px 6px 10px; font-size: .74rem; }
+}

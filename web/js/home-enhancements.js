@@ -154,7 +154,13 @@
         <span class="home-continue__arrow" aria-hidden="true">→</span>
       </button>` : '';
     const recentHtml = recent.length ? `<div class="home-dashboard__label home-dashboard__label--recent${hiddenClass(hidden, 'recent')}">Недавние игры</div><div class="home-recent${hiddenClass(hidden, 'recent')}">${recent.map((title) => `<button type="button" class="home-recent__item" data-home-game="${escapeAttr(title)}">${escapeText(title)}</button>`).join('')}</div>` : '';
-    const supportHtml = `<button type="button" class="home-support-trigger" data-support-open aria-haspopup="dialog"><span class="home-support-trigger__heart">💙</span><span>Поддержать проект</span></button>`;
+    // Две кнопки в один ряд: поддержать проект и подписаться на канал.
+    // Канал живёт здесь, а не за дверью «Ещё»: за дверью его никто не найдёт,
+    // а объявления об обновлениях — единственная причина туда заглядывать.
+    const supportHtml = `<div class="home-actions">`
+      + `<button type="button" class="home-support-trigger" data-support-open aria-haspopup="dialog"><span class="home-support-trigger__heart">💙</span><span>Поддержать проект</span></button>`
+      + `<button type="button" class="home-channel-trigger" data-channel-open><span class="home-channel-trigger__icon"><img src="web/assets/icons/channel.webp?v=1" alt="" width="20" height="20" loading="lazy" decoding="async" draggable="false"></span><span>Канал обновлений</span></button>`
+      + `</div>`;
     dashboard.innerHTML = `
       ${continueHtml}${recentHtml}
       <div class="home-dashboard__label home-dashboard__label--progress${hiddenClass(hidden, 'progress')}">Ваш прогресс</div>
@@ -166,6 +172,7 @@
       ${supportHtml}`;
     dashboard.querySelectorAll('[data-home-game]').forEach((node) => node.addEventListener('click', () => openGame(node.dataset.homeGame || '')));
     dashboard.querySelector('[data-support-open]')?.addEventListener('click', openSupport);
+    dashboard.querySelector('[data-channel-open]')?.addEventListener('click', () => window.ChannelPromo?.open?.());
     if (!existing) menu.prepend(dashboard);
     dashboard.dataset.contentReady = '1'; window.__homeControlsApply?.(); window.dispatchEvent(new CustomEvent('app:home-dashboard-ready'));
   }
