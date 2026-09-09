@@ -24,22 +24,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Restore PNG preview assets
         run: |
+          set -euo pipefail
           rm -f cloudflare/bible-find9-preview/public/assets/*.svg
           rm -f cloudflare/bible-find9-preview/public/assets/*.png
-          cat cloudflare/bible-find9-preview/png-src/assets.zip.b64.* \
+          cat cloudflare/bible-find9-preview/png-parts/png-assets.part.* \
             | tr -d '\n\r' \
             | base64 -d > /tmp/bible-find9-png-assets.zip
+          unzip -t /tmp/bible-find9-png-assets.zip
           unzip -o /tmp/bible-find9-png-assets.zip -d cloudflare/bible-find9-preview/public/assets
+
       - name: Validate PNG preview files
         run: |
+          set -euo pipefail
           test -f cloudflare/bible-find9-preview/public/index.html
           test -f cloudflare/bible-find9-preview/public/assets/00_base_scene.png
           for n in 01_dove_olive 02_scroll 03_clay_jar 04_fish 05_grapes 06_oil_lamp 07_bread 08_harp 09_rainbow; do
             test -f "cloudflare/bible-find9-preview/public/assets/${n}.png"
           done
           test "$(find cloudflare/bible-find9-preview/public/assets -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 10
+          test "$(find cloudflare/bible-find9-preview/public/assets -maxdepth 1 -type f -name '*.svg' | wc -l)" -eq 0
           if grep -Fq '.svg' cloudflare/bible-find9-preview/public/index.html; then
             echo 'SVG reference found in PNG preview' >&2
             exit 1
@@ -47,17 +53,21 @@ jobs:
           grep -Fq 'assets/00_base_scene.png' cloudflare/bible-find9-preview/public/index.html
           grep -Fq 'assets/09_rainbow.png' cloudflare/bible-find9-preview/public/index.html
           grep -Fq 'Найди 9 деталей' cloudflare/bible-find9-preview/public/index.html
+          python -c "from pathlib import Path; sig=b'\\x89PNG\\r\\n\\x1a\\n'; root=Path('cloudflare/bible-find9-preview/public/assets'); names=['00_base_scene.png','01_dove_olive.png','02_scroll.png','03_clay_jar.png','04_fish.png','05_grapes.png','06_oil_lamp.png','07_bread.png','08_harp.png','09_rainbow.png']; assert all((root/n).read_bytes().startswith(sig) for n in names); print('PNG bundle verified:', len(names), 'files')"
           file cloudflare/bible-find9-preview/public/assets/00_base_scene.png | grep -Fq 'PNG image data, 1536 x 1024'
+
       - name: Deploy isolated Cloudflare Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           npm_config_cache: /tmp/npm-cache
         run: npx --yes wrangler@4.102.0 deploy --config cloudflare/bible-find9-preview/wrangler.jsonc
+
       - name: Verify deployed PNG preview
         env:
           PREVIEW_URL: https://alias-spy-games-bible-find9-preview.vitaledanilov.workers.dev/
         run: |
+          set -euo pipefail
           for attempt in 1 2 3 4 5 6; do
             if curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}?build=${GITHUB_SHA}&attempt=${attempt}" -o /tmp/preview.html \
               && grep -Fq 'Найди 9 деталей' /tmp/preview.html \
@@ -70,6 +80,7 @@ jobs:
               grep -Fq '"assets":"png"' /tmp/health.json
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}assets/00_base_scene.png?build=${GITHUB_SHA}" -o /tmp/base.png
               curl -fsSL --retry 2 --max-time 20 "${PREVIEW_URL}assets/01_dove_olive.png?build=${GITHUB_SHA}" -o /tmp/layer.png
+              python -c "from pathlib import Path; sig=b'\\x89PNG\\r\\n\\x1a\\n'; assert Path('/tmp/base.png').read_bytes().startswith(sig); assert Path('/tmp/layer.png').read_bytes().startswith(sig)"
               file /tmp/base.png | grep -Fq 'PNG image data, 1536 x 1024'
               file /tmp/layer.png | grep -Fq 'PNG image data, 1536 x 1024'
               echo "Bible Find 9 PNG preview verified: ${PREVIEW_URL}"
