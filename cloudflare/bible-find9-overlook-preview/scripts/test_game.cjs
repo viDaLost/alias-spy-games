@@ -9,8 +9,14 @@ for(const width of [390,1180]){
  await page.goto(process.env.PREVIEW_URL||'http://127.0.0.1:8765');await page.waitForSelector('.loading',{state:'detached'});
  assert(await page.locator('#count').innerText()==='0/9','initial count');
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'horizontal overflow');
- const click=async([x,y])=>{await page.evaluate(({y})=>{const r=document.querySelector('#board').getBoundingClientRect();const py=r.y+y/1024*r.height;if(py<10||py>innerHeight-10)window.scrollBy(0,py-innerHeight/2)},{y});const box=await page.locator('#board').boundingBox();await (width===390?page.touchscreen.tap(box.x+x/1536*box.width,box.y+y/1024*box.height):page.mouse.click(box.x+x/1536*box.width,box.y+y/1024*box.height))};
- for(const p of manifest.misses)await click(p);
+ const click=async([x,y])=>{await page.evaluate(({y})=>{const r=document.querySelector('#board').getBoundingClientRect();const py=r.y+y/1024*r.height;if(py<10||py>innerHeight-10)window.scrollBy(0,py-innerHeight/2)},{y});const box=await page.locator('#board').boundingBox();await (width===390?page.touchscreen.tap(box.x+(x+.5)/1536*box.width,box.y+(y+.5)/1024*box.height):page.mouse.click(box.x+(x+.5)/1536*box.width,box.y+(y+.5)/1024*box.height))};
+ for(const p of manifest.misses){
+  // This 4-pixel-wide opening is subpixel at phone scale; test it zoomed in.
+  const fineHole=p[0]===1375&&p[1]===498;
+  if(fineHole){await page.locator('[data-zoom="4"]').click();await page.evaluate(point=>{const v=document.querySelector('#viewport'),b=document.querySelector('#board');v.scrollLeft=point[0]/1536*b.clientWidth-v.clientWidth/2;v.scrollTop=point[1]/1024*b.clientHeight-v.clientHeight/2},p);await page.waitForTimeout(100)}
+  await click(p);assert(await page.locator('#count').innerText()==='0/9','miss counted at '+p.join(','));
+  if(fineHole)await page.locator('[data-zoom="1"]').click();
+ }
  assert(await page.locator('#count').innerText()==='0/9','miss counted');
  for(let i=0;i<9;i++){
   await click(manifest.targets[i].point);assert(await page.locator('#count').innerText()===`${i+1}/9`,'target '+manifest.targets[i].id);
