@@ -1,0 +1,48 @@
+name: Deploy Bible Find 9 overhead preview
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/bible-find9-overlook-preview]
+    paths:
+      - 'cloudflare/bible-find9-overlook-preview/**'
+      - '.github/workflows/deploy-bible-find9-overlook-preview.yml'
+permissions:
+  contents: read
+concurrency:
+  group: bible-find9-overlook-cloudflare-preview
+  cancel-in-progress: true
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore committed artistic PNG assets
+        run: git restore --source=HEAD -- cloudflare/bible-find9-overlook-preview/public/assets
+      - name: Validate PNG alpha, alignment, hashes and absence of SVG
+        run: |
+          python -m pip install Pillow==11.3.0 numpy==2.2.6
+          python cloudflare/bible-find9-overlook-preview/scripts/validate_assets.py
+      - name: Test all nine objects and game behavior
+        run: |
+          mkdir -p /tmp/find9-test
+          npm install --prefix /tmp/find9-test playwright@1.58.2
+          /tmp/find9-test/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --directory cloudflare/bible-find9-overlook-preview/public > /tmp/find9-server.log 2>&1 &
+          NODE_PATH=/tmp/find9-test/node_modules node cloudflare/bible-find9-overlook-preview/scripts/test_game.cjs
+          ENGINE=webkit NODE_PATH=/tmp/find9-test/node_modules node cloudflare/bible-find9-overlook-preview/scripts/test_game.cjs
+      - name: Deploy isolated Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          npm_config_cache: /tmp/npm-cache
+        run: npx --yes wrangler@4.102.0 deploy --config cloudflare/bible-find9-overlook-preview/wrangler.jsonc
+      - name: Verify every deployed asset against new artwork
+        run: |
+          python cloudflare/bible-find9-overlook-preview/scripts/verify_live.py
+          PREVIEW_URL=https://alias-spy-games-bible-find9-overlook-preview.vitaledanilov.workers.dev/ NODE_PATH=/tmp/find9-test/node_modules node cloudflare/bible-find9-overlook-preview/scripts/test_game.cjs

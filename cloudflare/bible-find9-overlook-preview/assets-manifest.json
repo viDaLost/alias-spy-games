@@ -1,0 +1,117 @@
+{
+  "version": "overlook-1",
+  "width": 1536,
+  "height": 1024,
+  "sha256": {
+    "00_base_scene.png": "f08ba00e193bd5f3112279c79c0dd22d8de7a6d5cf58a091fe4bc397ed4909a2",
+    "01_dove_olive.png": "8e056b9473082029cb60459320492307b4f6859825020472e0168dbefa17fb58",
+    "02_scroll.png": "69a2ca929ad363244306c68f6aa7b82dd5104f6d1e270f0e00247d3cfe48404d",
+    "03_clay_jar.png": "b381cd8f4f17193a0c6f06c9cd642c2a00b1ee9e38ff2c2d199d9f90e6626f20",
+    "04_fish.png": "b6f0c50ea765f0153f99171b4bfd411324ad20a9f1373db2e6a8fdb5e9a9a212",
+    "05_grapes.png": "274846e808cacb57fcc06746e10ab5e31d44e65bc198d8ca1e8b6e7f3c1f9c5b",
+    "06_oil_lamp.png": "b2c1dd9cf0a035f1119bef1bc8abb2aab9377cbe00fef6b675b580e25a4535dc",
+    "07_bread.png": "a8f6db69fef648446ae1f65d47cd0e2fc9a6b0cd98c5f39a53f745c44ff7e786",
+    "08_harp.png": "bbda781c3121de1f5e249d8ed15e712dc7b3173758e7b8a58b16099d34debd1b",
+    "09_rainbow.png": "4f3ff442a419869bba801543fcb21abff47d310fea856f96c795d610b3ddf0d5"
+  },
+  "targets": [
+    {
+      "id": "dove",
+      "file": "01_dove_olive.png",
+      "point": [
+        649,
+        170
+      ]
+    },
+    {
+      "id": "scroll",
+      "file": "02_scroll.png",
+      "point": [
+        720,
+        449
+      ]
+    },
+    {
+      "id": "jar",
+      "file": "03_clay_jar.png",
+      "point": [
+        966,
+        731
+      ]
+    },
+    {
+      "id": "fish",
+      "file": "04_fish.png",
+      "point": [
+        1350,
+        747
+      ]
+    },
+    {
+      "id": "grapes",
+      "file": "05_grapes.png",
+      "point": [
+        219,
+        667
+      ]
+    },
+    {
+      "id": "lamp",
+      "file": "06_oil_lamp.png",
+      "point": [
+        836,
+        484
+      ]
+    },
+    {
+      "id": "bread",
+      "file": "07_bread.png",
+      "point": [
+        193,
+        273
+      ]
+    },
+    {
+      "id": "harp",
+      "file": "08_harp.png",
+      "point": [
+        591,
+        770
+      ]
+    },
+    {
+      "id": "rainbow",
+      "file": "09_rainbow.png",
+      "point": [
+        1290,
+        117
+      ]
+    }
+  ],
+  "misses": [
+    [
+      20,
+      20
+    ],
+    [
+      780,
+      180
+    ],
+    [
+      1280,
+      160
+    ],
+    [
+      981,
+      715
+    ],
+    [
+      1150,
+      670
+    ],
+    [
+      1100,
+      850
+    ]
+  ]
+}
