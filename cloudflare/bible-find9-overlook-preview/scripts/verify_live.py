@@ -4,7 +4,7 @@ root=Path(__file__).resolve().parents[1];manifest=json.loads((root/'assets-manif
 url=os.environ.get('PREVIEW_URL','https://alias-spy-games-bible-find9-overlook-preview.vitaledanilov.workers.dev/').rstrip('/')+'/'
 def get(p):
  # Use the same HTTP client as the previously verified deployment workflow.
- return subprocess.check_output(['curl','-fsSL','--retry','4','--retry-delay','2',
+ return subprocess.check_output(['curl','-fsSL','--retry','10','--retry-all-errors','--retry-delay','3','--retry-max-time','90',
      '--max-time','30',url+p+'?build='+os.environ.get('GITHUB_SHA','overlook-1')])
 health=json.loads(get('health'));assert health['version']==manifest['version'],health
 html=get('').decode();assert 'assets/00_base_scene.png' in html and '.svg' not in html
