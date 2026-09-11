@@ -1,8 +1,10 @@
 // app.js — Telegram-friendly launcher, access cache, image menu icons and compact admin panel
 
 const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec";
-const ADMIN_ID = "1288379477";
-window.APP_ROOT_ADMIN_ID = ADMIN_ID;
+// Роль администратора приходит с сервера: он выводит её из подписи Telegram,
+// поэтому номер администратора в коде приложения больше не нужен. До ответа
+// сервера приложение считает, что перед ним обычный игрок.
+window.APP_IS_ROOT_ADMIN = false;
 const SUPPORT_LINK = "https://t.me/D_a_n_Vi";
 const ADMIN_PAGE_SIZE = 10;
 
@@ -602,8 +604,9 @@ async function initializeApp() {
   prepareTelegramWebApp();
   renderMainMenu();
 
-  const tgUser = getTelegramUser();
-  if (String(tgUser.id) === ADMIN_ID) renderAdminButton();
+  // Кнопку администратора рисует не догадка о номере, а ответ сервера:
+  // admin-live-modal-safety.js спрашивает adminRoleStatus, держит последний
+  // подтверждённый ответ и сам зовёт renderAdminButton.
 
   try {
     const state = await syncCurrentUser();
@@ -876,7 +879,7 @@ async function openAdminPanel() {
     </section>
   `;
 
-  const res = await apiRequest({ action: "getAdminData", adminId: ADMIN_ID });
+  const res = await apiRequest({ action: "getAdminData" });
   if (!res || !Array.isArray(res.users)) {
     container.innerHTML = `
       <section class="app-error-card fade-in">
@@ -1075,7 +1078,7 @@ async function updateUserStars(targetId, type, inputId) {
   const raw = input?.value ?? "0";
   const value = safeNumber(raw, 0);
 
-  const res = await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type, value } });
+  const res = await apiRequest({ action: "updateUser", updateData: { targetId, type, value } });
   if (!res) {
     showToast("Не удалось обновить", "error");
     return;
@@ -1112,7 +1115,7 @@ async function toggleBan(targetId, banStatus) {
   const action = banStatus ? "заблокировать" : "разблокировать";
   if (!confirm(`Вы уверены, что хотите ${action} пользователя?`)) return;
 
-  const res = await apiRequest({ action: "updateUser", adminId: ADMIN_ID, updateData: { targetId, type: "ban", value: banStatus } });
+  const res = await apiRequest({ action: "updateUser", updateData: { targetId, type: "ban", value: banStatus } });
   if (!res) {
     showToast("Не удалось изменить блокировку", "error");
     return;
@@ -1141,7 +1144,7 @@ async function sendBroadcast() {
     btn.textContent = "Отправка...";
   }
 
-  const res = await apiRequest({ action: "broadcast", adminId: ADMIN_ID, text });
+  const res = await apiRequest({ action: "broadcast", text });
 
   if (btn) {
     btn.disabled = false;

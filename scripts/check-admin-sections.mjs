@@ -13,7 +13,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
-const ADMIN_ID = 1288379477;
+const ADMIN_ID = 500000001;
 
 const users = ['anna_k', 'petr_i', 'maria_s', 'guest_9921'].map((username, index) => ({
   id: String(700100200 + index * 37),

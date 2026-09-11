@@ -5,7 +5,7 @@ import { chromium } from 'playwright-core';
 
 const root=process.cwd();
 const V='42';
-const QA_USER='1288379477';
+const QA_USER='500000001';
 // V45 replaced the Noah's Ark booster with the Rainbow one. That change used to be
 // applied by the launcher at runtime, so this page -- which loads the game source
 // directly -- was the only place the Ark booster still appeared. The change is in

@@ -1,6 +1,5 @@
 (() => {
   const API = 'https://script.google.com/macros/s/AKfycbx0o9HmRIF6vNuBUB2N4H3YuabJzYbRmAxvHCCwqnbMPn29Crv5W3FT1XGDF6VyFSn9/exec';
-  const ADMIN_ID = '1288379477';
   const SUBJECTS = ['Техническая проблема', 'Проблема с игрой', 'Аккаунт и прогресс', 'Предложение', 'Другое'];
   const STATUS_NAMES = { new: 'Новое', in_progress: 'В работе', answered: 'Есть ответ', closed: 'Закрыто' };
   let adminTimer = null;
@@ -117,9 +116,28 @@
   window.openSupportChat = openSupportCenter;
   window.openSupportCenter = openSupportCenter;
 
+  // Панель поддержки показывается администратору, и кто он — решает сервер:
+  // он проверяет подпись Telegram. Номер администратора здесь не хранится.
+  // Ответ уже держит общий сторож admin-live-modal-safety.js — свой запрос
+  // нужен, только пока сторож молчит, и делается он один раз за сеанс.
+  let adminRolePromise = null;
+  function isSupportAdmin() {
+    const shared = window.AdminRBAC?.state;
+    if (shared?.loaded) return Promise.resolve(shared.isAdmin === true);
+    if (!adminRolePromise) {
+      adminRolePromise = api({ action: 'adminRoleStatus' })
+        .then((data) => data?.isAdmin === true)
+        .catch(() => false);
+    }
+    return adminRolePromise;
+  }
+
   function ensureAdminPanel() {
-    const user = telegramUser();
-    if (String(user?.id || '') !== ADMIN_ID) return;
+    if (!telegramUser()) return;
+    isSupportAdmin().then((allowed) => { if (allowed) mountAdminPanel(); });
+  }
+
+  function mountAdminPanel() {
     const page = document.querySelector('.admin-v2, .admin-page');
     if (!page || document.getElementById('support-admin-panel')) return;
     const panel = document.createElement('section');

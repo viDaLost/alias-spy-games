@@ -38,7 +38,7 @@ try {
         return route.continue();
       }
       if (url.startsWith('https://telegram.org/')) {
-        const id = role === 'root' ? 1288379477 : 999999;
+        const id = role === 'root' ? 500000001 : 999999;
         const initData = role === 'guest' ? '' : 'signed-test-data';
         return route.fulfill({ contentType:'text/javascript', body:`window.Telegram={WebApp:{initData:${JSON.stringify(initData)},initDataUnsafe:{user:{id:${id},username:'qa',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};` });
       }
@@ -46,7 +46,7 @@ try {
       try { body = route.request().postDataJSON() || {}; } catch {}
       const action = (body.payload || body).action;
       let response = { success:true, isBanned:false, lastGames:[], items:[], users:[] };
-      if (action === 'adminRoleStatus') response = { success:true, isAdmin:['root','delegated'].includes(role), isRoot:role === 'root', userId:role === 'root' ? '1288379477' : '999999' };
+      if (action === 'adminRoleStatus') response = { success:true, isAdmin:['root','delegated'].includes(role), isRoot:role === 'root', userId:role === 'root' ? '500000001' : '999999' };
       if (action === 'getAdminData') response.users = [{id:'123456', username:'test_player', wowStars:3, isBanned:false}];
       if (action === 'referralStatus') response = { success:true, required:false, answered:true };
       return route.fulfill({ contentType:'application/json', body:JSON.stringify(response) });

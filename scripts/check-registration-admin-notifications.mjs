@@ -4,6 +4,8 @@ import { deliverRegistrationCode, notifyRegistrationConfirmed } from '../cloudfl
 const core = fs.readFileSync('cloudflare/app-core-worker/src/index-v4.js', 'utf8');
 const wrangler = fs.readFileSync('cloudflare/app-core-worker/wrangler.jsonc', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/deploy-core-cloudflare.yml', 'utf8');
+// Вымышленный номер: проверке нужен любой похожий на Telegram ID.
+const ADMIN_ID = '500000001';
 const requireText = (text, token, label) => {
   if (!text.includes(token)) throw new Error(`Registration notification check failed: ${label}`);
 };
@@ -12,7 +14,14 @@ requireText(core, 'deliverRegistrationCode(env, { telegramId, code, challengeId 
 requireText(core, 'notifyRegistrationConfirmed(env, { telegramId, challengeId })', 'confirmation notification is not used');
 requireText(core, 'adminCopyDelivered', 'auth request does not report administrative delivery');
 requireText(core, 'adminConfirmationDelivered', 'auth verification does not report administrative confirmation');
-requireText(wrangler, '"ADMIN_TELEGRAM_ID": "1288379477"', 'administrator Telegram ID is not configured');
+const refuseText = (text, token, label) => {
+  if (text.includes(token)) throw new Error(`Registration notification check failed: ${label}`);
+};
+
+// Номер администратора не должен лежать в открытых настройках: воркер получает
+// его секретом, который выставляет деплой.
+refuseText(wrangler, 'ADMIN_TELEGRAM_ID', 'administrator Telegram ID is exposed in wrangler.jsonc');
+requireText(workflow, 'wrangler secret put ADMIN_TELEGRAM_ID', 'deployment does not configure the administrator secret');
 requireText(wrangler, '"ADMIN_AUTH_CODE_COPY_ENABLED": "true"', 'administrator code copy is not explicitly enabled');
 requireText(workflow, 'Verify registration code delivery to administrator', 'deployed registration delivery is not checked');
 
@@ -29,7 +38,7 @@ globalThis.fetch = async (_url, options = {}) => {
 try {
   const env = {
     TELEGRAM_BOT_TOKEN: 'test-token',
-    ADMIN_TELEGRAM_ID: '1288379477',
+    ADMIN_TELEGRAM_ID: ADMIN_ID,
     ADMIN_AUTH_CODE_COPY_ENABLED: 'true',
   };
   const challengeId = 'ach_12345678901234567890123456789012';
@@ -44,7 +53,7 @@ try {
   if (String(deliveries[0].chat_id) !== '555555555' || !deliveries[0].text.includes('314159')) {
     throw new Error('the player did not receive the expected code');
   }
-  if (String(deliveries[1].chat_id) !== '1288379477'
+  if (String(deliveries[1].chat_id) !== ADMIN_ID
       || !deliveries[1].text.includes('314159')
       || !deliveries[1].text.includes('555555555')) {
     throw new Error('the administrator copy lacks the code or source Telegram ID');
@@ -55,7 +64,7 @@ try {
     challengeId,
   });
   if (!confirmation.ok || deliveries.length !== 3
-      || String(deliveries[2].chat_id) !== '1288379477'
+      || String(deliveries[2].chat_id) !== ADMIN_ID
       || !deliveries[2].text.includes('555555555')) {
     throw new Error('the administrator confirmation lacks the verified Telegram ID');
   }

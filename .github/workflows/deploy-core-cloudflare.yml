@@ -37,9 +37,24 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - name: Configure administrator identity secret
+        run: |
+          # Номер администратора больше не лежит в wrangler.jsonc — он хранится
+          # секретом. Если секрета нет, деплой должен падать: молча оставленный
+          # без владельца воркер закрывает панель управления для всех.
+          if ! printf '%s' "$ADMIN_TELEGRAM_ID" | grep -Eq '^[0-9]{5,20}$'; then
+            echo "::error::Секрет ADMIN_TELEGRAM_ID не задан или не похож на Telegram ID. Задайте его в Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          printf '%s' "$ADMIN_TELEGRAM_ID" | npx wrangler secret put ADMIN_TELEGRAM_ID
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
       - name: Configure Telegram support webhook and commands
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
         run: |
           node <<'NODE'
@@ -99,14 +114,10 @@ jobs:
           // /write видит только главный администратор: команда пишет человеку от
           // имени приложения, и показывать её всем в меню бота незачем. Область
           // чата старше остальных, поэтому его список полностью свой. Номер
-          // берётся из настроек воркера, чтобы он был записан в одном месте.
-          const fs = await import('node:fs');
-          // Путь относительный: шаг уже выполняется в cloudflare/app-core-worker
-          // (defaults.run.working-directory). С полным путём он складывался сам
-          // с собой, и деплой падал на ENOENT при живых настройках.
-          const wrangler = fs.readFileSync('wrangler.jsonc', 'utf8');
-          const adminId = wrangler.match(/"ADMIN_TELEGRAM_ID":\s*"(\d{5,20})"/)?.[1] || '';
-          if (!adminId) throw new Error('ADMIN_TELEGRAM_ID not found in wrangler.jsonc');
+          // берётся из секрета репозитория, а не из настроек в коде: в открытом
+          // файле ему не место, а воркеру он тоже приходит секретом.
+          const adminId = String(process.env.ADMIN_TELEGRAM_ID || '').trim();
+          if (!/^\d{5,20}$/.test(adminId)) throw new Error('Секрет ADMIN_TELEGRAM_ID не задан');
           await telegram('setMyCommands', {
             commands: adminCommands,
             scope: { type: 'chat', chat_id: Number(adminId) },
@@ -187,7 +198,7 @@ jobs:
       - name: Verify hardened admin RBAC boundary
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          ADMIN_TELEGRAM_ID: '1288379477'
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
         run: |
           node <<'NODE'
@@ -237,7 +248,7 @@ jobs:
           }
 
           result = await compat({
-            telegramInitData: 'auth_date=1&user=%7B%22id%22%3A1288379477%7D&hash=' + '0'.repeat(64),
+            telegramInitData: `auth_date=1&user=${encodeURIComponent(JSON.stringify({ id: Number(adminId) }))}&hash=${'0'.repeat(64)}`,
             payload: { action: 'adminRoleGrant', targetId: adminId, adminId },
           });
           if (result.response.status !== 401) {
@@ -248,12 +259,13 @@ jobs:
           NODE
       - name: Verify registration code delivery to administrator
         env:
-          ADMIN_TELEGRAM_ID: '1288379477'
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
         run: |
           node <<'NODE'
-          const adminId = process.env.ADMIN_TELEGRAM_ID;
+          const adminId = String(process.env.ADMIN_TELEGRAM_ID || '').trim();
           const workerUrl = process.env.CORE_WORKER_URL;
+          if (!/^\d{5,20}$/.test(adminId) || !workerUrl) throw new Error('Registration verification environment is incomplete');
           const challengeId = `ach_${crypto.randomUUID().replaceAll('-', '')}`;
           const response = await fetch(`${workerUrl}/android/auth/request`, {
             method: 'POST',
@@ -275,7 +287,7 @@ jobs:
       - name: Verify SQL user migration
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          ADMIN_TELEGRAM_ID: '1288379477'
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
         run: |
           node <<'NODE'

@@ -16,7 +16,7 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
-const ADMIN_ID = '1288379477';
+const ADMIN_ID = '500000001';
 
 // --- перераздача слов: считается тем же кодом, что уедет в браузер ---------------
 {

@@ -26,7 +26,7 @@ function testPage() {
   <script>
     window.Telegram = { WebApp: {
       initData: 'signed_test_init_data',
-      initDataUnsafe: { user: { id: 1288379477, username: 'admin_test', first_name: 'Admin' } },
+      initDataUnsafe: { user: { id: 500000001, username: 'admin_test', first_name: 'Admin' } },
       HapticFeedback: { selectionChanged(){}, notificationOccurred(){} },
     }};
     window.apiRequest = async (payload) => {

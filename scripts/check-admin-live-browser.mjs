@@ -29,7 +29,7 @@ function testPage() {
       <header class="admin-v2__header">
         <button class="admin-v2__icon-btn" type="button">←</button>
         <div class="admin-v2__heading">
-          <div class="admin-v2__eyebrow">ADMIN • Telegram ID 1288379477</div>
+          <div class="admin-v2__eyebrow">ADMIN • Telegram ID 500000001</div>
           <h2>Управление приложением</h2>
           <p>Обновлено: <span data-admin-loaded-at>17:33</span></p>
         </div>
@@ -46,7 +46,7 @@ function testPage() {
       <section class="admin-v2__users-section"><div class="admin-v2__list-title"><b>Пользователи</b></div><div class="admin-v2__list"></div></section>
     </section>
   </main>
-  <script>window.Telegram={WebApp:{initData:'signed_test_init_data',initDataUnsafe:{user:{id:1288379477,username:'admin_test',first_name:'Admin'}}}};</script>
+  <script>window.Telegram={WebApp:{initData:'signed_test_init_data',initDataUnsafe:{user:{id:500000001,username:'admin_test',first_name:'Admin'}}}};</script>
   <script src="/web/js/admin-live-rescue.js?v=2"></script>
   <script src="/web/js/admin-shell-v3.js?v=1"></script>
 </body>

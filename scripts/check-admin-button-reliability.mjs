@@ -22,11 +22,9 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
-const ADMIN_ID = fs.readFileSync(path.join(root, 'web/js/app.js'), 'utf8').match(/const ADMIN_ID = "(\d+)"/)?.[1];
-if (!ADMIN_ID) {
-  console.error('Admin button check failed: в web/js/app.js не нашёлся id главного админа');
-  process.exit(1);
-}
+// Номер администратора в приложении больше не зашит: роль подтверждает сервер.
+// Проверке нужен лишь какой-нибудь Telegram-id, от лица которого идёт вход.
+const ADMIN_ID = '500000001';
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
