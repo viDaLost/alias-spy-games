@@ -1,4 +1,5 @@
 import coreV14, { UserStore as V14UserStore } from './index-v14.js';
+import { userFacingError } from './support-rules.js';
 
 const encoder = new TextEncoder();
 const SUPPORT_PROMPT_PREFIX = '🎧 Техподдержка';
@@ -227,15 +228,27 @@ async function createTicketFromTelegram(env, message, userMessage) {
   const store = env.USERS.get(env.USERS.idFromName('global'));
   // continueOpen: пока прошлое обращение не закрыто, следующие сообщения человека
   // дописываются в него — иначе уточнения множили тикеты и упирались в лимит.
-  const result = await callStore(store, '/support/create', {
-    userId: chatId,
-    source: 'web',
-    subject: 'Обращение из Telegram',
-    message: cleanMessage,
-    continueOpen: true,
-  });
+  //
+  // callStore бросает на любой отказ хранилища, поэтому ловим здесь: иначе отказ
+  // всплывал в обработчик вебхука, уходил администратору как «ошибка обработчика»,
+  // а человек, написавший в поддержку, не получал вообще ничего.
+  let result;
+  try {
+    result = await callStore(store, '/support/create', {
+      userId: chatId,
+      source: 'web',
+      subject: 'Обращение из Telegram',
+      message: cleanMessage,
+      continueOpen: true,
+    });
+  } catch (error) {
+    await telegramSendMessage(env, chatId, userFacingError(error), {
+      replyToMessageId: message.message_id,
+    });
+    return;
+  }
   if (!result?.ticket) {
-    await telegramSendMessage(env, chatId, String(result?.error || 'Не удалось создать обращение. Попробуйте позже.'));
+    await telegramSendMessage(env, chatId, userFacingError(result?.error));
     return;
   }
   const appended = result.appended === true;
@@ -249,7 +262,13 @@ async function createTicketFromTelegram(env, message, userMessage) {
 }
 
 async function handleAdminTelegramReply(env, store, adminChatId, ticketId, answer, replyToMessageId) {
-  const result = await callStore(store, '/support/reply', { ticketId, message: answer.slice(0, 2000) });
+  let result;
+  try {
+    result = await callStore(store, '/support/reply', { ticketId, message: answer.slice(0, 2000) });
+  } catch (error) {
+    await telegramSendMessage(env, adminChatId, userFacingError(error), { replyToMessageId });
+    return;
+  }
   if (!result?.ticket) {
     await telegramSendMessage(env, adminChatId, `Не удалось найти обращение ${ticketId}.`, { replyToMessageId });
     return;

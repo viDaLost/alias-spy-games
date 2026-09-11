@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { openTicketFor, rateLimitMessage } from '../src/support-rules.js';
+import { openTicketFor, rateLimitMessage, userFacingError } from '../src/support-rules.js';
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -42,4 +42,20 @@ test('отказ называет точное время ожидания', () 
 
 test('отказ подсказывает, что делать вместо нового обращения', () => {
   assert.match(rateLimitMessage(Date.now(), Date.now()), /допишите в открытое обращение/);
+});
+
+test('отказ хранилища показывается человеку как есть', () => {
+  const error = new Error('Вы отправили 3 обращения подряд. Следующее можно создать через 6 минут.');
+  assert.match(userFacingError(error), /через 6 минут/);
+});
+
+test('внутренний сбой прячется за понятной фразой', () => {
+  assert.equal(
+    userFacingError(new Error('Store HTTP 500')),
+    'Не удалось отправить обращение. Попробуйте ещё раз через минуту.',
+  );
+  assert.equal(
+    userFacingError(null),
+    'Не удалось отправить обращение. Попробуйте ещё раз через минуту.',
+  );
 });

@@ -27,3 +27,19 @@ export function rateLimitMessage(oldestCreatedAt, now) {
   return `Вы отправили ${MAX_TICKETS_PER_WINDOW} обращения подряд. `
     + `Следующее можно создать через ${minutes} ${word}, а пока просто допишите в открытое обращение.`;
 }
+
+/**
+ * Текст для человека по ошибке хранилища.
+ *
+ * Хранилище отвечает отказом в двух разных случаях: на понятную человеку причину
+ * («опишите подробнее», «слишком много обращений») и на внутренний сбой. Первую
+ * показываем как есть, вторую прячем за общей фразой — про «Store HTTP 500»
+ * пользователю знать нечего.
+ */
+export function userFacingError(error) {
+  const text = String(error?.message || error || '').trim();
+  if (!text || /^Store HTTP|fetch failed|network|internal error/i.test(text)) {
+    return 'Не удалось отправить обращение. Попробуйте ещё раз через минуту.';
+  }
+  return text.slice(0, 400);
+}
