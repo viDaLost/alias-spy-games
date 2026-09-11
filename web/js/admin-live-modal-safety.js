@@ -88,6 +88,9 @@
     root.classList.toggle('admin-rbac-authorized', state.isAdmin);
     root.classList.toggle('admin-rbac-root', state.isRoot);
     root.dataset.adminRole = state.role;
+    // Единственное место, где роль записана в приложении: остальным частям
+    // сравнивать Telegram-id с зашитым номером больше не нужно.
+    window.APP_IS_ROOT_ADMIN = state.isRoot;
 
     if (state.isAdmin) ensureAdminButton();
     else removeAdminButton();

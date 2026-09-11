@@ -46,7 +46,7 @@ page.on('requestfailed', (request) => console.log(`[requestfailed] ${request.url
 await page.route('https://telegram.org/js/telegram-web-app.js*', (route) => route.fulfill({
   status: 200,
   contentType: 'text/javascript; charset=utf-8',
-  body: `window.Telegram={WebApp:{initData:'qa-init-data',initDataUnsafe:{user:{id:1288379477,username:'qa_admin',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
+  body: `window.Telegram={WebApp:{initData:'qa-init-data',initDataUnsafe:{user:{id:500000001,username:'qa_admin',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
 }));
 
 let releaseSyncUser = null;

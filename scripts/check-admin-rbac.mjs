@@ -56,4 +56,22 @@ requireText(client, "if (isStandaloneAndroid()) return clearRole()", 'Android mu
 requireText(css, 'html:not(.admin-rbac-authorized) #admin-btn', 'admin button is not hidden before server authorization');
 requireText(css, '.admin-rbac-manager', 'root administrator manager UI is not styled/mounted');
 
+// Номер администратора не должен вернуться ни в открытые настройки воркера, ни
+// в код приложения: роль целиком выводится из подписи Telegram на сервере, а
+// воркер получает номер секретом. Зашитый номер — это и подсказка постороннему,
+// и вторая, расходящаяся с сервером правда о том, кто здесь главный.
+forbidText(wrangler, 'ADMIN_TELEGRAM_ID', 'administrator Telegram ID is exposed in the open Worker config');
+
+for (const file of [
+  'web/js/app.js',
+  'web/js/admin-enhancements.js',
+  'web/js/admin-live-v3.js',
+  'web/js/admin-live-modal-safety.js',
+  'web/js/broadcast-cloudflare.js',
+  'web/js/support-center.js',
+]) {
+  const baked = read(file).match(/["'](\d{8,20})["']/);
+  if (baked) throw new Error(`Admin RBAC check failed: ${file} держит зашитый Telegram ID ${baked[1]}`);
+}
+
 console.log('Admin RBAC checks passed: immutable root, server-only delegated roles, fresh Telegram proof, revocable sessions, privileged-target isolation and server-gated UI.');

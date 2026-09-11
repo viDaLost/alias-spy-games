@@ -1,9 +1,9 @@
 (() => {
   "use strict";
 
-  const ADMIN_ID = "1288379477";
-  // delegated-admin-ui-hotfix-v1
-  let delegatedAdmin = false;
+  // Кто перед нами, решает сервер: он проверяет подпись Telegram и отвечает
+  // на adminRoleStatus. Номер администратора в коде приложения не хранится.
+  let serverAdmin = false;
   const PAGE_SIZE = 12;
   const state = {
     users: [],
@@ -32,11 +32,18 @@
     return window.getTelegramUser?.() || { id: "аноним", username: "без_ника", link: "неизвестно" };
   }
 
+  // Роль держит общий сторож admin-live-modal-safety.js: он уже спросил сервер
+  // и не теряет подтверждённый ответ от одного обрыва связи. Пока его нет,
+  // остаётся ответ, полученный при загрузке этой панели.
   function isAdmin() {
-    return delegatedAdmin || String(currentUser().id) === ADMIN_ID;
+    const shared = window.AdminRBAC?.state;
+    if (shared?.loaded) return shared.isAdmin === true;
+    return serverAdmin;
   }
 
   async function resolveAdminRole() {
+    const shared = window.AdminRBAC?.state;
+    if (shared?.loaded) return shared.isAdmin === true;
     try {
       // Everyone runs this on boot and almost everyone is refused, so a refusal
       // is the expected answer here, not something to report.
@@ -51,7 +58,6 @@
     if (!window.apiRequest) throw new Error("API приложения недоступен");
     return window.apiRequest({
       ...payload,
-      adminId: String(currentUser().id || ADMIN_ID),
       telegramInitData: window.Telegram?.WebApp?.initData || "",
     }, options);
   }
@@ -129,7 +135,7 @@
         <header class="admin-v2__header">
           <button type="button" class="admin-v2__icon-btn" data-admin-action="back" aria-label="Вернуться в меню">←</button>
           <div class="admin-v2__heading">
-            <div class="admin-v2__eyebrow">ADMIN • Telegram ID ${escapeHTML(currentUser().id || ADMIN_ID)}</div>
+            <div class="admin-v2__eyebrow">ADMIN • Telegram ID ${escapeHTML(currentUser().id)}</div>
             <h2>Управление приложением</h2>
             <p>Обновлено: <span data-admin-loaded-at>${formatLoadedAt()}</span></p>
           </div>
@@ -546,7 +552,7 @@
   }
 
   async function boot() {
-    delegatedAdmin = await resolveAdminRole();
+    serverAdmin = await resolveAdminRole();
     enhanceAdminButton();
 
     const observer = new MutationObserver(() => {

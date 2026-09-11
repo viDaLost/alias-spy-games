@@ -23,7 +23,9 @@
 
   async function api(action, payload = {}) {
     if (typeof window.apiRequest !== 'function') throw new Error('API недоступен');
-    const result = await window.apiRequest({ action, adminId: '1288379477', ...payload });
+    // Личность сервер берёт из подписи Telegram, а не из тела запроса,
+    // поэтому номер администратора здесь не передаётся.
+    const result = await window.apiRequest({ action, ...payload });
     if (!result || result.success === false || result.ok === false) throw new Error(result?.error || 'Не удалось выполнить запрос');
     return result;
   }

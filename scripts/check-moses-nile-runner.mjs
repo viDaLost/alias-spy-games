@@ -71,7 +71,7 @@ page.on('request', (request) => {
 await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
   status: 200,
   contentType: 'text/javascript; charset=utf-8',
-  body: `window.Telegram={WebApp:{initData:'qa',initDataUnsafe:{user:{id:1288379477,username:'qa'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};`,
+  body: `window.Telegram={WebApp:{initData:'qa',initDataUnsafe:{user:{id:500000001,username:'qa'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},openTelegramLink(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){}}}};`,
 }));
 await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/compat', (route) => route.fulfill({
   status: 200,

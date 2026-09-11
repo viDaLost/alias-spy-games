@@ -18,7 +18,7 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
-const ADMIN_ID = '1288379477';
+const ADMIN_ID = '500000001';
 
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],

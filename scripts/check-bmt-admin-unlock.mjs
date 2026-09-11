@@ -14,11 +14,9 @@ import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
-const ADMIN_ID = fs.readFileSync(path.join(root, 'web/js/app.js'), 'utf8').match(/const ADMIN_ID = "(\d+)"/)?.[1];
-if (!ADMIN_ID) {
-  console.error('Admin unlock check failed: в web/js/app.js не нашёлся id главного админа');
-  process.exit(1);
-}
+// Номер администратора в приложении больше не зашит: роль подтверждает сервер.
+// Проверке нужен лишь какой-нибудь Telegram-id, от лица которого идёт вход.
+const ADMIN_ID = '500000001';
 const levels = JSON.parse(fs.readFileSync(path.join(root, 'web/data/biblical_match_three_levels.json'), 'utf8')).levels;
 
 const mime = new Map([
@@ -57,20 +55,36 @@ const fail = async (message) => {
   process.exit(1);
 };
 
-/** Открывает игру от лица заданного Telegram-id и считает доступные узлы карты. */
-async function mapFor(telegramId) {
+/**
+ * Открывает игру от лица заданного Telegram-id и считает доступные узлы карты.
+ * root — что отвечает сервер на adminRoleStatus: владелец приложения или нет.
+ * Роль в приложении не зашита номером, её подтверждает сервер по подписи.
+ */
+async function mapFor(telegramId, { root = false } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   await context.addInitScript(() => { window.__APP_TELEMETRY_DISABLED__ = true; });
   const page = await context.newPage();
   await page.route('https://telegram.org/**', (route) => route.fulfill({
     status: 200, contentType: 'text/javascript; charset=utf-8',
-    body: `window.Telegram={WebApp:{initData:"",initDataUnsafe:{user:{id:${telegramId},username:"qa",first_name:"QA"}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
+    body: `window.Telegram={WebApp:{initData:"user=%7B%22id%22%3A${telegramId}%7D&auth_date=1&hash=qa",initDataUnsafe:{user:{id:${telegramId},username:"qa",first_name:"QA"}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
   }));
   const gas = JSON.stringify({ success: true, isBanned: false, wowStars: 0, wsStars: 0, swLevel: 0, lastGames: [] });
   for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**']) {
     await page.route(pattern, (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: gas }));
   }
-  await page.route('https://*.workers.dev/**', (route) => route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: '{"ok":true}' }));
+  // Настоящий адрес запроса — не Apps Script: backend-bridge перехватывает fetch
+  // и отправляет всё на Cloudflare Worker в /compat, завернув действие в payload.
+  await page.route('https://*.workers.dev/**', (route) => {
+    let action = '';
+    try {
+      const raw = JSON.parse(route.request().postData() || '{}');
+      action = raw?.payload?.action || raw?.action || '';
+    } catch {}
+    const body = action === 'adminRoleStatus'
+      ? JSON.stringify({ success: true, ok: true, isAdmin: root, isRoot: root, userId: String(telegramId) })
+      : '{"ok":true,"success":true}';
+    return route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body });
+  });
 
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
@@ -92,7 +106,7 @@ async function mapFor(telegramId) {
   return state;
 }
 
-const asAdmin = await mapFor(ADMIN_ID);
+const asAdmin = await mapFor(ADMIN_ID, { root: true });
 if (asAdmin.hostUnlock) await fail('локальный хост сам по себе открыл кампанию — проверка не измерила бы права админа');
 if (!asAdmin.admin) await fail(`id ${ADMIN_ID} не опознан как главный админ`);
 if (asAdmin.total !== levels.length) await fail(`на карте ${asAdmin.total} узлов вместо ${levels.length}`);

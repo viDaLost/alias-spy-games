@@ -37,3 +37,17 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - name: Configure administrator identity secret
+        run: |
+          # Номер администратора больше не лежит в wrangler.jsonc — он хранится
+          # секретом. Если секрета нет, деплой должен падать: молча оставленный
+          # без владельца воркер закрывает панель управления для всех.
+          if ! printf '%s' "$ADMIN_TELEGRAM_ID" | grep -Eq '^[0-9]{5,20}$'; then
+            echo "::error::Секрет ADMIN_TELEGRAM_ID не задан или не похож на Telegram ID. Задайте его в Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          printf '%s' "$ADMIN_TELEGRAM_ID" | npx wrangler secret put ADMIN_TELEGRAM_ID
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN_TELEGRAM_ID: ${{ secrets.ADMIN_TELEGRAM_ID }}

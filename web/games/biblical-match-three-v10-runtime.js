@@ -11,11 +11,10 @@ const TEST_HOST_UNLOCK = (() => {
     return url.searchParams.get("unlockAll") === "1" || /workers\.dev$/i.test(location.hostname) || /preview/i.test(location.hostname);
   } catch { return true; }
 })();
+// Роль владельца подтверждает сервер по подписи Telegram, а приложение
+// выставляет флаг. Своего номера администратора у игры нет.
 function isRootAdmin() {
-  const root = String(window.APP_ROOT_ADMIN_ID || "").trim();
-  if (!/^\d{5,20}$/.test(root)) return false;
-  return [window.Telegram?.WebApp?.initDataUnsafe?.user?.id, window.__ANDROID_TELEGRAM_ID__]
-    .some((value) => String(value ?? "").trim() === root);
+  return window.APP_IS_ROOT_ADMIN === true;
 }
 function unlockAllLevels() { return TEST_HOST_UNLOCK || isRootAdmin(); }
 const TIMED_SECONDS = 90;

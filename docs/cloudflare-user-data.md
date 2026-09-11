@@ -38,7 +38,7 @@ ORDER BY last_seen_at DESC;
 
 ```sql
 SELECT * FROM users
-WHERE telegram_id = '1288379477';
+WHERE telegram_id = '123456789';
 ```
 
 Изменить прогресс:
@@ -47,7 +47,7 @@ WHERE telegram_id = '1288379477';
 UPDATE users
 SET wow_stars = 25,
     updated_at = unixepoch('subsec') * 1000
-WHERE telegram_id = '1288379477';
+WHERE telegram_id = '123456789';
 ```
 
 Заблокировать пользователя:

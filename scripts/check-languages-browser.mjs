@@ -27,7 +27,7 @@ try {
     await context.addInitScript(({initData,lang})=>{
       window.__APP_TELEMETRY_DISABLED__=true;
       localStorage.setItem('app_language_v1',lang);
-      window.Telegram={WebApp:{initData,initDataUnsafe:{user:{id:1288379477,first_name:'QA',username:'qa'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};
+      window.Telegram={WebApp:{initData,initDataUnsafe:{user:{id:500000001,first_name:'QA',username:'qa'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},disableVerticalSwipes(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};
     },{initData,lang});
     const page=await context.newPage();const errors=[],downloads=[];
     page.on('pageerror',error=>errors.push(error.message));
@@ -38,7 +38,7 @@ try {
       let body={};try{body=route.request().postDataJSON()||{};}catch{}
       const action=(body.payload||body).action;
       let response={success:true,isBanned:false,lastGames:[],items:[],users:[],wowStars:20,wsStars:0};
-      if(action==='adminRoleStatus')response={success:true,isRoot:role==='root',isAdmin:['root','delegated'].includes(role),userId:role==='root'?'1288379477':'999999'};
+      if(action==='adminRoleStatus')response={success:true,isRoot:role==='root',isAdmin:['root','delegated'].includes(role),userId:role==='root'?'500000001':'999999'};
       if(action==='referralStatus')response={success:true,required:false,answered:true};
       return route.fulfill({contentType:'application/json',body:JSON.stringify(response)});
     });

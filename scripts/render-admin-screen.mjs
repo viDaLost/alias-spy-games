@@ -23,7 +23,7 @@ fs.mkdirSync(outDir, { recursive: true });
 // The id the panel checks for. Kept in step with ADMIN_ID in admin-enhancements.js.
 // initData below only has to be non-empty: backend-bridge answers locally with a
 // 401 for anyone it reads as a guest, and never reaches the stubbed endpoints.
-const ADMIN_ID = 1288379477;
+const ADMIN_ID = 500000001;
 
 const NAMES = ['anna_k', 'petr.ivanov', 'maria_s', 'guest_9921', 'daniil', 'sofia_v', 'igor', 'lev_m', 'nadia', 'roman_p', 'yulia', 'artem'];
 const users = NAMES.map((username, index) => ({

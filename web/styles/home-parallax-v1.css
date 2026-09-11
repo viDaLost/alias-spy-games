@@ -1,5 +1,5 @@
 /* Game Hub parallax — 1 background + 4 source-resolution overlays.
-   The whole scene is gated in JS to Telegram user 1288379477. */
+   The whole scene is gated in JS to the administrator role confirmed by the server. */
 
 html.home-gamehub-parallax.home-gamehub-parallax-active body {
   background: #E0F2FE;

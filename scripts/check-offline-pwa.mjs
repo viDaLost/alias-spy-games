@@ -325,8 +325,8 @@ await telegramPage.route('https://telegram.org/**', (route) => route.fulfill({
 await telegramPage.addInitScript(() => {
   window.Telegram = {
     WebApp: {
-      initData: 'query_id=stub&user=%7B%22id%22%3A1288379477%7D&hash=stub',
-      initDataUnsafe: { user: { id: 1288379477, first_name: 'Тест' } },
+      initData: 'query_id=stub&user=%7B%22id%22%3A500000001%7D&hash=stub',
+      initDataUnsafe: { user: { id: 500000001, first_name: 'Тест' } },
       ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
       MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
@@ -363,7 +363,7 @@ await ownerPage.route('https://*.workers.dev/**', (route) => {
   if (action === 'adminRoleStatus') {
     return route.fulfill({
       status: 200, contentType: 'application/json',
-      body: JSON.stringify({ success: true, isAdmin: true, isRoot: true, userId: '1288379477' }),
+      body: JSON.stringify({ success: true, isAdmin: true, isRoot: true, userId: '500000001' }),
     });
   }
   return route.fulfill({
@@ -380,8 +380,8 @@ await ownerPage.route('https://telegram.org/**', (route) => route.fulfill({
 await ownerPage.addInitScript(() => {
   window.Telegram = {
     WebApp: {
-      initData: 'query_id=stub&user=%7B%22id%22%3A1288379477%7D&hash=stub',
-      initDataUnsafe: { user: { id: 1288379477, first_name: 'Владелец' } },
+      initData: 'query_id=stub&user=%7B%22id%22%3A500000001%7D&hash=stub',
+      initDataUnsafe: { user: { id: 500000001, first_name: 'Владелец' } },
       ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
       MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
