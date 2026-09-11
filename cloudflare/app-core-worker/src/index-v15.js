@@ -225,23 +225,27 @@ async function createTicketFromTelegram(env, message, userMessage) {
     return;
   }
   const store = env.USERS.get(env.USERS.idFromName('global'));
+  // continueOpen: пока прошлое обращение не закрыто, следующие сообщения человека
+  // дописываются в него — иначе уточнения множили тикеты и упирались в лимит.
   const result = await callStore(store, '/support/create', {
     userId: chatId,
     source: 'web',
     subject: 'Обращение из Telegram',
     message: cleanMessage,
+    continueOpen: true,
   });
   if (!result?.ticket) {
     await telegramSendMessage(env, chatId, String(result?.error || 'Не удалось создать обращение. Попробуйте позже.'));
     return;
   }
+  const appended = result.appended === true;
   await telegramSendMessage(env, chatId, [
-    '✅ Обращение отправлено',
+    appended ? '✅ Сообщение добавлено к обращению' : '✅ Обращение отправлено',
     `№ ${result.ticket.id}`,
     '',
     'Ответ техподдержки придёт прямо в этот чат.',
   ].join('\n'), { replyToMessageId: message.message_id });
-  await notifyAllActiveAdmins(env, store, result.ticket, message.from || {});
+  await notifyAllActiveAdmins(env, store, result.ticket, message.from || {}, { appended });
 }
 
 async function handleAdminTelegramReply(env, store, adminChatId, ticketId, answer, replyToMessageId) {
@@ -258,7 +262,7 @@ async function handleAdminTelegramReply(env, store, adminChatId, ticketId, answe
     { replyToMessageId });
 }
 
-async function notifyAllActiveAdmins(env, store, ticket, from = {}) {
+async function notifyAllActiveAdmins(env, store, ticket, from = {}, options = {}) {
   const ownerId = cleanUserId(env.ADMIN_TELEGRAM_ID);
   const admins = new Map();
   if (ownerId) admins.set(ownerId, true);
@@ -272,11 +276,14 @@ async function notifyAllActiveAdmins(env, store, ticket, from = {}) {
   }
 
   const username = cleanUsername(from?.username);
-  const firstMessage = Array.isArray(ticket?.messages)
-    ? String(ticket.messages.find((item) => item.sender === 'user')?.body || '')
-    : '';
+  const userMessages = Array.isArray(ticket?.messages)
+    ? ticket.messages.filter((item) => item.sender === 'user')
+    : [];
+  const firstMessage = String(userMessages[userMessages.length - 1]?.body || '');
   const text = [
-    '🎧 Новое обращение в техподдержку',
+    options.appended === true
+      ? '💬 Новое сообщение в обращении'
+      : '🎧 Новое обращение в техподдержку',
     `№ ${String(ticket?.id || '')}`,
     `Пользователь: ${String(ticket?.userId || '')}${username ? ` · @${username}` : ''}`,
     `Источник: ${String(ticket?.source || 'web')}`,

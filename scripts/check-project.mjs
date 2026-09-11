@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { styleSources, scriptSources } from './web-sources.mjs';
 
@@ -31,8 +32,22 @@ const previewOnlyPrefixes = ['web/games/moses-nile-v7/'];
 const isPreviewOnly = (file) => previewOnlyPrefixes.some((prefix) => rel(file).startsWith(prefix));
 
 for (const file of files.filter((f) => f.endsWith('.js'))) {
-  try { execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }); }
+  // Файл с import/export — это ES-модуль, и обычный --check разбирает его как
+  // старый скрипт, спотыкаясь на первой же строке. Разбираем такие отдельно.
+  const source = fs.readFileSync(file, 'utf8');
+  const isModule = /^\s*(?:import|export)\s/m.test(source);
+  // node --check разбирает .js как старый скрипт, поэтому модуль сначала кладём
+  // во временный .mjs — иначе проверка спотыкается на первом же import.
+  let target = file;
+  let temporary = '';
+  if (isModule) {
+    temporary = path.join(os.tmpdir(), `check-${process.pid}-${path.basename(file)}.mjs`);
+    fs.writeFileSync(temporary, source);
+    target = temporary;
+  }
+  try { execFileSync(process.execPath, ['--check', target], { stdio: 'pipe' }); }
   catch (error) { failures.push(`JS syntax: ${rel(file)}\n${error.stderr?.toString() || error.message}`); }
+  finally { if (temporary) fs.rmSync(temporary, { force: true }); }
 }
 
 for (const file of files.filter((f) => f.endsWith('.json'))) {
@@ -79,7 +94,11 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   for (const match of text.matchAll(localRefRegex)) {
     const ref = match[1] || match[2];
     if (!ref || ref.startsWith('javascript:') || ref.includes('${')) continue;
-    const target = path.resolve(root, ref);
+    // Пути вида web/... адресуют корень сайта, всё остальное — соседние файлы.
+    // Раньше от корня резолвилось и то и другое, поэтому вложенные приложения
+    // (psalms-app/web/index.html) выглядели сломанными, хотя ссылки верные.
+    const base = ref.startsWith('web/') ? root : path.dirname(file);
+    const target = path.resolve(base, ref);
     if (!fs.existsSync(target)) failures.push(`Broken local reference in ${rel(file)}: ${ref}`);
   }
 }
