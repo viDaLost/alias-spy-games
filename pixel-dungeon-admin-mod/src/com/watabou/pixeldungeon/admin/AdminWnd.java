@@ -12,6 +12,10 @@ class AdminWnd extends Window {
 	static final int BTN_HEIGHT = 18;
 	static final int GAP        = 2;
 
+	static final int GREEN = 0x44FF44;
+	static final int RED   = 0xFF4444;
+	static final int DIM   = 0xBBBBBB;
+
 	/** Текущая вертикальная позиция укладки внутри окна. */
 	int pos = 0;
 
@@ -49,6 +53,11 @@ class AdminWnd extends Window {
 		add( button );
 		button.setRect( 0, pos, WIDTH, BTN_HEIGHT );
 		pos += BTN_HEIGHT + GAP;
+	}
+
+	void place( RedButton button, float x, float y, float w, float h ) {
+		add( button );
+		button.setRect( x, y, w, h );
 	}
 
 	void finish() {

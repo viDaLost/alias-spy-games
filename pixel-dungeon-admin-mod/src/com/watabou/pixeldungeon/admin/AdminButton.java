@@ -1,6 +1,5 @@
 package com.watabou.pixeldungeon.admin;
 
-import com.watabou.pixeldungeon.scenes.GameScene;
 import com.watabou.pixeldungeon.ui.RedButton;
 import com.watabou.pixeldungeon.ui.Window;
 
@@ -19,6 +18,6 @@ public class AdminButton extends RedButton {
 		if (parent != null) {
 			parent.hide();
 		}
-		GameScene.show( AdminCore.unlocked ? (Window)new WndAdmin() : (Window)new WndAdminLogin() );
+		AdminCore.openPanel();
 	}
 }

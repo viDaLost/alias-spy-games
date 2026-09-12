@@ -1,164 +1,180 @@
 package com.watabou.pixeldungeon.admin;
 
-import com.watabou.pixeldungeon.items.Amulet;
-import com.watabou.pixeldungeon.items.Ankh;
-import com.watabou.pixeldungeon.items.ArmorKit;
-import com.watabou.pixeldungeon.items.Bomb;
-import com.watabou.pixeldungeon.items.DewVial;
-import com.watabou.pixeldungeon.items.Honeypot;
-import com.watabou.pixeldungeon.items.LloydsBeacon;
-import com.watabou.pixeldungeon.items.TomeOfMastery;
-import com.watabou.pixeldungeon.items.Torch;
-import com.watabou.pixeldungeon.items.Weightstone;
-import com.watabou.pixeldungeon.items.armor.ClothArmor;
-import com.watabou.pixeldungeon.items.armor.HuntressArmor;
-import com.watabou.pixeldungeon.items.armor.LeatherArmor;
-import com.watabou.pixeldungeon.items.armor.MageArmor;
-import com.watabou.pixeldungeon.items.armor.MailArmor;
-import com.watabou.pixeldungeon.items.armor.PlateArmor;
-import com.watabou.pixeldungeon.items.armor.RogueArmor;
-import com.watabou.pixeldungeon.items.armor.ScaleArmor;
-import com.watabou.pixeldungeon.items.armor.WarriorArmor;
-import com.watabou.pixeldungeon.items.bags.Keyring;
-import com.watabou.pixeldungeon.items.bags.PotionBelt;
-import com.watabou.pixeldungeon.items.bags.ScrollHolder;
-import com.watabou.pixeldungeon.items.bags.SeedPouch;
-import com.watabou.pixeldungeon.items.bags.WandHolster;
-import com.watabou.pixeldungeon.items.keys.SkeletonKey;
-import com.watabou.pixeldungeon.items.potions.PotionOfExperience;
-import com.watabou.pixeldungeon.items.potions.PotionOfFrost;
-import com.watabou.pixeldungeon.items.potions.PotionOfHealing;
-import com.watabou.pixeldungeon.items.potions.PotionOfInvisibility;
-import com.watabou.pixeldungeon.items.potions.PotionOfLevitation;
-import com.watabou.pixeldungeon.items.potions.PotionOfLiquidFlame;
-import com.watabou.pixeldungeon.items.potions.PotionOfMight;
-import com.watabou.pixeldungeon.items.potions.PotionOfMindVision;
-import com.watabou.pixeldungeon.items.potions.PotionOfParalyticGas;
-import com.watabou.pixeldungeon.items.potions.PotionOfPurity;
-import com.watabou.pixeldungeon.items.potions.PotionOfStrength;
-import com.watabou.pixeldungeon.items.potions.PotionOfToxicGas;
-import com.watabou.pixeldungeon.items.quest.DriedRose;
-import com.watabou.pixeldungeon.items.quest.Pickaxe;
-import com.watabou.pixeldungeon.items.rings.RingOfAccuracy;
-import com.watabou.pixeldungeon.items.rings.RingOfDetection;
-import com.watabou.pixeldungeon.items.rings.RingOfElements;
-import com.watabou.pixeldungeon.items.rings.RingOfEvasion;
-import com.watabou.pixeldungeon.items.rings.RingOfHaggler;
-import com.watabou.pixeldungeon.items.rings.RingOfHaste;
-import com.watabou.pixeldungeon.items.rings.RingOfHerbalism;
-import com.watabou.pixeldungeon.items.rings.RingOfMending;
-import com.watabou.pixeldungeon.items.rings.RingOfPower;
-import com.watabou.pixeldungeon.items.rings.RingOfSatiety;
-import com.watabou.pixeldungeon.items.rings.RingOfShadows;
-import com.watabou.pixeldungeon.items.rings.RingOfThorns;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfChallenge;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfEnchantment;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfIdentify;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfLullaby;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfMagicMapping;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfMirrorImage;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfPsionicBlast;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfRecharging;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfRemoveCurse;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfTeleportation;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfTerror;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfUpgrade;
-import com.watabou.pixeldungeon.items.scrolls.ScrollOfWipeOut;
-import com.watabou.pixeldungeon.items.wands.WandOfAmok;
-import com.watabou.pixeldungeon.items.wands.WandOfAvalanche;
-import com.watabou.pixeldungeon.items.wands.WandOfBlink;
-import com.watabou.pixeldungeon.items.wands.WandOfDisintegration;
-import com.watabou.pixeldungeon.items.wands.WandOfFirebolt;
-import com.watabou.pixeldungeon.items.wands.WandOfFlock;
-import com.watabou.pixeldungeon.items.wands.WandOfLightning;
-import com.watabou.pixeldungeon.items.wands.WandOfMagicMissile;
-import com.watabou.pixeldungeon.items.wands.WandOfPoison;
-import com.watabou.pixeldungeon.items.wands.WandOfReach;
-import com.watabou.pixeldungeon.items.wands.WandOfRegrowth;
-import com.watabou.pixeldungeon.items.wands.WandOfSlowness;
-import com.watabou.pixeldungeon.items.wands.WandOfTeleportation;
-import com.watabou.pixeldungeon.items.weapon.melee.BattleAxe;
-import com.watabou.pixeldungeon.items.weapon.melee.Dagger;
-import com.watabou.pixeldungeon.items.weapon.melee.Glaive;
-import com.watabou.pixeldungeon.items.weapon.melee.Knuckles;
-import com.watabou.pixeldungeon.items.weapon.melee.Longsword;
-import com.watabou.pixeldungeon.items.weapon.melee.Mace;
-import com.watabou.pixeldungeon.items.weapon.melee.Quarterstaff;
-import com.watabou.pixeldungeon.items.weapon.melee.ShortSword;
-import com.watabou.pixeldungeon.items.weapon.melee.Spear;
-import com.watabou.pixeldungeon.items.weapon.melee.Sword;
-import com.watabou.pixeldungeon.items.weapon.melee.WarHammer;
-import com.watabou.pixeldungeon.items.weapon.missiles.Boomerang;
-import com.watabou.pixeldungeon.items.weapon.missiles.CurareDart;
-import com.watabou.pixeldungeon.items.weapon.missiles.Dart;
-import com.watabou.pixeldungeon.items.weapon.missiles.IncendiaryDart;
-import com.watabou.pixeldungeon.items.weapon.missiles.Javelin;
-import com.watabou.pixeldungeon.items.weapon.missiles.Shuriken;
-import com.watabou.pixeldungeon.items.weapon.missiles.Tamahawk;
-
-/** Всё, что умеет выдавать админ-панель, разбитое по категориям. */
+/**
+ * Каталог всех предметов игры. Файл собирается скриптом build/gencatalog.py
+ * по дизассемблированному коду, поэтому в списке оказывается каждый предмет,
+ * который игра вообще умеет создавать.
+ */
 final class AdminCatalog {
 
 	static final String[] CATEGORIES = {
-		"ОРУЖИЕ", "МЕТАТЕЛЬНОЕ", "БРОНЯ", "ЖЕЗЛЫ", "КОЛЬЦА", "АРТЕФАКТЫ", "ЗЕЛЬЯ", "СВИТКИ"
+		"ОРУЖИЕ", "МЕТАТЕЛЬНОЕ", "БРОНЯ", "ЖЕЗЛЫ", "КОЛЬЦА", "ЗЕЛЬЯ", "СВИТКИ", "СЕМЕНА", "ЕДА", "КЛЮЧИ", "КВЕСТОВЫЕ", "СУМКИ", "ПРОЧЕЕ"
 	};
 
-	private static final Class[] WEAPONS = {
-		Knuckles.class, Dagger.class, ShortSword.class, Quarterstaff.class, Spear.class,
-		Sword.class, Mace.class, Longsword.class, BattleAxe.class, Glaive.class, WarHammer.class
+	private static final String[] C0 = {   // ОРУЖИЕ
+		"com.watabou.pixeldungeon.items.weapon.melee.BattleAxe",
+		"com.watabou.pixeldungeon.items.weapon.melee.Dagger",
+		"com.watabou.pixeldungeon.items.weapon.melee.Glaive",
+		"com.watabou.pixeldungeon.items.weapon.melee.Knuckles",
+		"com.watabou.pixeldungeon.items.weapon.melee.Longsword",
+		"com.watabou.pixeldungeon.items.weapon.melee.Mace",
+		"com.watabou.pixeldungeon.items.weapon.melee.Quarterstaff",
+		"com.watabou.pixeldungeon.items.weapon.melee.ShortSword",
+		"com.watabou.pixeldungeon.items.weapon.melee.Spear",
+		"com.watabou.pixeldungeon.items.weapon.melee.Sword",
+		"com.watabou.pixeldungeon.items.weapon.melee.WarHammer",
 	};
 
-	private static final Class[] MISSILES = {
-		Dart.class, IncendiaryDart.class, CurareDart.class, Shuriken.class,
-		Javelin.class, Tamahawk.class, Boomerang.class
+	private static final String[] C1 = {   // МЕТАТЕЛЬНОЕ
+		"com.watabou.pixeldungeon.items.weapon.missiles.Boomerang",
+		"com.watabou.pixeldungeon.items.weapon.missiles.CurareDart",
+		"com.watabou.pixeldungeon.items.weapon.missiles.Dart",
+		"com.watabou.pixeldungeon.items.weapon.missiles.IncendiaryDart",
+		"com.watabou.pixeldungeon.items.weapon.missiles.Javelin",
+		"com.watabou.pixeldungeon.items.weapon.missiles.Shuriken",
+		"com.watabou.pixeldungeon.items.weapon.missiles.Tamahawk",
 	};
 
-	private static final Class[] ARMOR = {
-		ClothArmor.class, LeatherArmor.class, MailArmor.class, ScaleArmor.class, PlateArmor.class,
-		WarriorArmor.class, MageArmor.class, RogueArmor.class, HuntressArmor.class
+	private static final String[] C2 = {   // БРОНЯ
+		"com.watabou.pixeldungeon.items.armor.ClothArmor",
+		"com.watabou.pixeldungeon.items.armor.HuntressArmor",
+		"com.watabou.pixeldungeon.items.armor.LeatherArmor",
+		"com.watabou.pixeldungeon.items.armor.MageArmor",
+		"com.watabou.pixeldungeon.items.armor.MailArmor",
+		"com.watabou.pixeldungeon.items.armor.PlateArmor",
+		"com.watabou.pixeldungeon.items.armor.RogueArmor",
+		"com.watabou.pixeldungeon.items.armor.ScaleArmor",
+		"com.watabou.pixeldungeon.items.armor.WarriorArmor",
 	};
 
-	private static final Class[] WANDS = {
-		WandOfMagicMissile.class, WandOfFirebolt.class, WandOfLightning.class, WandOfDisintegration.class,
-		WandOfPoison.class, WandOfSlowness.class, WandOfAmok.class, WandOfBlink.class,
-		WandOfTeleportation.class, WandOfAvalanche.class, WandOfFlock.class, WandOfReach.class,
-		WandOfRegrowth.class
+	private static final String[] C3 = {   // ЖЕЗЛЫ
+		"com.watabou.pixeldungeon.items.wands.WandOfAmok",
+		"com.watabou.pixeldungeon.items.wands.WandOfAvalanche",
+		"com.watabou.pixeldungeon.items.wands.WandOfBlink",
+		"com.watabou.pixeldungeon.items.wands.WandOfDisintegration",
+		"com.watabou.pixeldungeon.items.wands.WandOfFirebolt",
+		"com.watabou.pixeldungeon.items.wands.WandOfFlock",
+		"com.watabou.pixeldungeon.items.wands.WandOfLightning",
+		"com.watabou.pixeldungeon.items.wands.WandOfMagicMissile",
+		"com.watabou.pixeldungeon.items.wands.WandOfPoison",
+		"com.watabou.pixeldungeon.items.wands.WandOfReach",
+		"com.watabou.pixeldungeon.items.wands.WandOfRegrowth",
+		"com.watabou.pixeldungeon.items.wands.WandOfSlowness",
+		"com.watabou.pixeldungeon.items.wands.WandOfTeleportation",
 	};
 
-	private static final Class[] RINGS = {
-		RingOfPower.class, RingOfAccuracy.class, RingOfEvasion.class, RingOfHaste.class,
-		RingOfMending.class, RingOfDetection.class, RingOfElements.class, RingOfShadows.class,
-		RingOfSatiety.class, RingOfThorns.class, RingOfHaggler.class, RingOfHerbalism.class
+	private static final String[] C4 = {   // КОЛЬЦА
+		"com.watabou.pixeldungeon.items.rings.RingOfAccuracy",
+		"com.watabou.pixeldungeon.items.rings.RingOfDetection",
+		"com.watabou.pixeldungeon.items.rings.RingOfElements",
+		"com.watabou.pixeldungeon.items.rings.RingOfEvasion",
+		"com.watabou.pixeldungeon.items.rings.RingOfHaggler",
+		"com.watabou.pixeldungeon.items.rings.RingOfHaste",
+		"com.watabou.pixeldungeon.items.rings.RingOfHerbalism",
+		"com.watabou.pixeldungeon.items.rings.RingOfMending",
+		"com.watabou.pixeldungeon.items.rings.RingOfPower",
+		"com.watabou.pixeldungeon.items.rings.RingOfSatiety",
+		"com.watabou.pixeldungeon.items.rings.RingOfShadows",
+		"com.watabou.pixeldungeon.items.rings.RingOfThorns",
 	};
 
-	private static final Class[] ARTIFACTS = {
-		Amulet.class, TomeOfMastery.class, ArmorKit.class, Weightstone.class, LloydsBeacon.class,
-		DewVial.class, Ankh.class, SkeletonKey.class, Pickaxe.class, DriedRose.class,
-		Torch.class, Bomb.class, Honeypot.class,
-		Keyring.class, SeedPouch.class, ScrollHolder.class, WandHolster.class, PotionBelt.class
+	private static final String[] C5 = {   // ЗЕЛЬЯ
+		"com.watabou.pixeldungeon.items.potions.PotionOfExperience",
+		"com.watabou.pixeldungeon.items.potions.PotionOfFrost",
+		"com.watabou.pixeldungeon.items.potions.PotionOfHealing",
+		"com.watabou.pixeldungeon.items.potions.PotionOfInvisibility",
+		"com.watabou.pixeldungeon.items.potions.PotionOfLevitation",
+		"com.watabou.pixeldungeon.items.potions.PotionOfLiquidFlame",
+		"com.watabou.pixeldungeon.items.potions.PotionOfMight",
+		"com.watabou.pixeldungeon.items.potions.PotionOfMindVision",
+		"com.watabou.pixeldungeon.items.potions.PotionOfParalyticGas",
+		"com.watabou.pixeldungeon.items.potions.PotionOfPurity",
+		"com.watabou.pixeldungeon.items.potions.PotionOfStrength",
+		"com.watabou.pixeldungeon.items.potions.PotionOfToxicGas",
 	};
 
-	private static final Class[] POTIONS = {
-		PotionOfStrength.class, PotionOfMight.class, PotionOfHealing.class, PotionOfExperience.class,
-		PotionOfMindVision.class, PotionOfInvisibility.class, PotionOfLevitation.class, PotionOfPurity.class,
-		PotionOfFrost.class, PotionOfLiquidFlame.class, PotionOfToxicGas.class, PotionOfParalyticGas.class
+	private static final String[] C6 = {   // СВИТКИ
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfChallenge",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfEnchantment",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfIdentify",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfLullaby",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfMagicMapping",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfMirrorImage",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfPsionicBlast",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfRecharging",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfRemoveCurse",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfTeleportation",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfTerror",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfUpgrade",
+		"com.watabou.pixeldungeon.items.scrolls.ScrollOfWipeOut",
 	};
 
-	private static final Class[] SCROLLS = {
-		ScrollOfUpgrade.class, ScrollOfEnchantment.class, ScrollOfMagicMapping.class, ScrollOfIdentify.class,
-		ScrollOfRemoveCurse.class, ScrollOfRecharging.class, ScrollOfMirrorImage.class, ScrollOfTeleportation.class,
-		ScrollOfTerror.class, ScrollOfLullaby.class, ScrollOfChallenge.class, ScrollOfPsionicBlast.class,
-		ScrollOfWipeOut.class
+	private static final String[] C7 = {   // СЕМЕНА
+		"com.watabou.pixeldungeon.plants.Dreamweed$Seed",
+		"com.watabou.pixeldungeon.plants.Earthroot$Seed",
+		"com.watabou.pixeldungeon.plants.Fadeleaf$Seed",
+		"com.watabou.pixeldungeon.plants.Firebloom$Seed",
+		"com.watabou.pixeldungeon.plants.Icecap$Seed",
+		"com.watabou.pixeldungeon.plants.Rotberry$Seed",
+		"com.watabou.pixeldungeon.plants.Sorrowmoss$Seed",
+		"com.watabou.pixeldungeon.plants.Sungrass$Seed",
 	};
 
-	private static final Class[][] ALL = {
-		WEAPONS, MISSILES, ARMOR, WANDS, RINGS, ARTIFACTS, POTIONS, SCROLLS
+	private static final String[] C8 = {   // ЕДА
+		"com.watabou.pixeldungeon.items.food.ChargrilledMeat",
+		"com.watabou.pixeldungeon.items.food.FrozenCarpaccio",
+		"com.watabou.pixeldungeon.items.food.MysteryMeat",
+		"com.watabou.pixeldungeon.items.food.OverpricedRation",
+		"com.watabou.pixeldungeon.items.food.Pasty",
+	};
+
+	private static final String[] C9 = {   // КЛЮЧИ
+		"com.watabou.pixeldungeon.items.keys.GoldenKey",
+		"com.watabou.pixeldungeon.items.keys.IronKey",
+		"com.watabou.pixeldungeon.items.keys.SkeletonKey",
+	};
+
+	private static final String[] C10 = {   // КВЕСТОВЫЕ
+		"com.watabou.pixeldungeon.items.quest.CorpseDust",
+		"com.watabou.pixeldungeon.items.quest.DarkGold",
+		"com.watabou.pixeldungeon.items.quest.DriedRose",
+		"com.watabou.pixeldungeon.items.quest.DwarfToken",
+		"com.watabou.pixeldungeon.items.quest.PhantomFish",
+		"com.watabou.pixeldungeon.items.quest.Pickaxe",
+		"com.watabou.pixeldungeon.items.quest.RatSkull",
+	};
+
+	private static final String[] C11 = {   // СУМКИ
+		"com.watabou.pixeldungeon.items.bags.Keyring",
+		"com.watabou.pixeldungeon.items.bags.PotionBelt",
+		"com.watabou.pixeldungeon.items.bags.ScrollHolder",
+		"com.watabou.pixeldungeon.items.bags.SeedPouch",
+		"com.watabou.pixeldungeon.items.bags.WandHolster",
+	};
+
+	private static final String[] C12 = {   // ПРОЧЕЕ
+		"com.watabou.pixeldungeon.items.Amulet",
+		"com.watabou.pixeldungeon.items.Ankh",
+		"com.watabou.pixeldungeon.items.ArmorKit",
+		"com.watabou.pixeldungeon.items.Bomb",
+		"com.watabou.pixeldungeon.items.DewVial",
+		"com.watabou.pixeldungeon.items.Dewdrop",
+		"com.watabou.pixeldungeon.items.Gold",
+		"com.watabou.pixeldungeon.items.Honeypot",
+		"com.watabou.pixeldungeon.items.LloydsBeacon",
+		"com.watabou.pixeldungeon.items.TomeOfMastery",
+		"com.watabou.pixeldungeon.items.Torch",
+		"com.watabou.pixeldungeon.items.Weightstone",
+	};
+
+	private static final String[][] ALL = {
+		C0, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12
 	};
 
 	private AdminCatalog() {
 	}
 
-	static Class[] items( int category ) {
+	static String[] items( int category ) {
 		return ALL[category];
 	}
 }

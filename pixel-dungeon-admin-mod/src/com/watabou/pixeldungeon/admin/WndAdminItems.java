@@ -1,43 +1,40 @@
 package com.watabou.pixeldungeon.admin;
 
-import com.watabou.pixeldungeon.scenes.GameScene;
 import com.watabou.pixeldungeon.ui.RedButton;
 
 /** Выбор категории на экране выдачи предметов. */
 public class WndAdminItems extends AdminWnd {
 
-	/** Строки здесь ниже обычных: категорий много, окно должно влезать в экран. */
 	private static final int ROW_H = 16;
+	private static final int COL_W = (WIDTH - GAP) / 2;
 
 	public WndAdminItems() {
-		addTitle( "ВЫДАТЬ ПРЕДМЕТ" );
-		addLabel( "СНАРЯЖЕНИЕ ИДЁТ +" + AdminCore.MAX_UPGRADE, 0xBBBBBB, 7 );
+		AdminCore.remember( AdminCore.SCREEN_ITEMS, AdminCore.category, AdminCore.page );
 
-		for (int i = 0; i < AdminCatalog.CATEGORIES.length; i++) {
+		addTitle( "ВЫДАТЬ ПРЕДМЕТ" );
+		addLabel( "СНАРЯЖЕНИЕ ИДЁТ +" + AdminCore.MAX_UPGRADE, DIM, 7 );
+
+		int top = pos;
+		String[] categories = AdminCatalog.CATEGORIES;
+		for (int i = 0; i < categories.length; i++) {
 			final int category = i;
-			row( new RedButton( AdminCatalog.CATEGORIES[i] ) {
+			place( new RedButton( categories[i] ) {
 				@Override
 				public void onClick() {
-					hide();
-					GameScene.show( new WndAdminList( category ) );
+					AdminCore.swap( WndAdminItems.this, new WndAdminList( category, 0 ) );
 				}
-			} );
+			}, (i % 2) * (COL_W + GAP), top + (i / 2) * (ROW_H + GAP), COL_W, ROW_H );
 		}
 
-		row( new RedButton( "НАЗАД" ) {
+		pos = top + ((categories.length + 1) / 2) * (ROW_H + GAP);
+
+		addRow( new RedButton( "НАЗАД" ) {
 			@Override
 			public void onClick() {
-				hide();
-				GameScene.show( new WndAdmin() );
+				AdminCore.swap( WndAdminItems.this, new WndAdmin() );
 			}
 		} );
 
 		finish();
-	}
-
-	private void row( RedButton button ) {
-		add( button );
-		button.setRect( 0, pos, WIDTH, ROW_H );
-		pos += ROW_H + GAP;
 	}
 }

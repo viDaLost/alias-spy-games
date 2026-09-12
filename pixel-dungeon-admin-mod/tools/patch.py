@@ -63,7 +63,22 @@ insert_at_head(
 ''',
     'бессмертие в die()')
 
-# --- 3. Кнопка в игровом меню --------------------------------------------
+# --- 3. Износ вещей: Item.use() ничего не тратит --------------------------
+insert_at_head(
+    'com/watabou/pixeldungeon/items/Item.smali',
+    '.method public use()V',
+    '''
+    sget-boolean v0, Lcom/watabou/pixeldungeon/admin/AdminCore;->unbreakable:Z
+
+    if-eqz v0, :admin_use_normal
+
+    return-void
+
+    :admin_use_normal
+''',
+    'вещи не изнашиваются')
+
+# --- 4. Кнопка в игровом меню --------------------------------------------
 path = 'com/watabou/pixeldungeon/windows/WndGame.smali'
 text = read(path)
 body, end = method_bounds(text, '.method public constructor <init>()V')
@@ -80,7 +95,7 @@ button = '''
 write(path, text[:i] + button + text[i:])
 print('  + %s: кнопка АДМИН-ПАНЕЛЬ в меню' % path)
 
-# --- 4. Автооткрытие при входе на уровень --------------------------------
+# --- 5. Ярлык и автооткрытие при входе на уровень --------------------------------
 path = 'com/watabou/pixeldungeon/scenes/GameScene.smali'
 text = read(path)
 body, end = method_bounds(text, '.method public create()V')
@@ -94,7 +109,7 @@ text = text[:body] + segment.replace('    return-void\n', hook) + text[end:]
 write(path, text)
 print('  + %s: показ панели при входе на уровень' % path)
 
-# --- 5. Все герои разблокированы ----------------------------------------
+# --- 6. Все герои разблокированы ----------------------------------------
 path = 'com/watabou/pixeldungeon/scenes/StartScene.smali'
 lines = read(path).split('\n')
 target = [n for n, l in enumerate(lines)

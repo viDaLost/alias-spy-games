@@ -1,7 +1,6 @@
 package com.watabou.pixeldungeon.admin;
 
 import com.watabou.noosa.BitmapText;
-import com.watabou.pixeldungeon.scenes.GameScene;
 import com.watabou.pixeldungeon.ui.RedButton;
 
 /** Цифровая клавиатура, закрывающая доступ ко всем админ-функциям. */
@@ -28,7 +27,7 @@ public class WndAdminLogin extends AdminWnd {
 	public WndAdminLogin() {
 		addTitle( "ДОСТУП АДМИНА" );
 		display = addLabel( "_", 0xFFFFFF, 9 );
-		status = addLabel( "ВВЕДИТЕ ПАРОЛЬ", 0xBBBBBB, 7 );
+		status = addLabel( "ВВЕДИТЕ ПАРОЛЬ", DIM, 7 );
 
 		int top = pos + 1;
 		for (int i = 0; i < KEYS.length; i++) {
@@ -51,15 +50,14 @@ public class WndAdminLogin extends AdminWnd {
 	void press( String key ) {
 		if ("C".equals( key )) {
 			entered.setLength( 0 );
-			center( status, "ВВЕДИТЕ ПАРОЛЬ", 0xBBBBBB );
+			center( status, "ВВЕДИТЕ ПАРОЛЬ", DIM );
 		} else if ("OK".equals( key )) {
 			if (AdminCore.unlock( entered.toString() )) {
-				hide();
-				GameScene.show( new WndAdmin() );
+				AdminCore.swap( this, new WndAdmin() );
 				return;
 			}
 			entered.setLength( 0 );
-			center( status, "НЕВЕРНЫЙ ПАРОЛЬ", 0xFF4444 );
+			center( status, "НЕВЕРНЫЙ ПАРОЛЬ", RED );
 		} else if (entered.length() < MAX_LEN) {
 			entered.append( key );
 		}
