@@ -2288,10 +2288,29 @@
     return mergeByMaterial(group);
   }
 
+  // Пятно водоворота и доля его радиуса, на которой стоит обод. Обод обязан
+  // совпадать с радиусом поражения из ITEM_SPEC — иначе игрок читает границу
+  // опасности не там, где она есть.
+  const VORTEX_DISC = 3;
+  const VORTEX_HIT = .7;
+
   /*
-    Водоворот. Раньше это были четыре плоских кольца, которые почти не читались.
-    Теперь настоящая воронка: гранёный конус уходит под воду, по нему бежит
-    спираль пены, сверху лежат вращающиеся кольца ряби.
+    Водоворот.
+
+    Объёмная воронка — гранёный конус под водой, спираль пены по нему и кольца
+    ряби сверху — осталась, но опознаётся водоворот уже не по ней.
+
+    Отзыв владельца: водовороты очень плохо заметны. Так и было, и причина
+    измерима: меш занимал по высоте от −1.51 до +0.02 — над водой торчали два
+    сантиметра. Конус, спираль пены и почти все кольца живут ниже поверхности,
+    и река их закрывала. Оставались три бледных полупрозрачных кольца цвета
+    #d8e2d2 на воде, у которой своей белой пены хватает: на экране водоворот
+    сливался с ней и издали, и вблизи.
+
+    Поэтому главным стало плоское пятно на самой поверхности — тёмное жерло с
+    закрученными рукавами пены и ободом. Тёмное на светлой воде читается с
+    любого расстояния, а обод стоит ровно по радиусу поражения. Объёмная часть
+    осталась: вблизи она даёт глубину, но опознаётся водоворот уже не по ней.
   */
   function createVortex() {
     const group = new THREE.Group();
@@ -2303,6 +2322,45 @@
       color: 0xe9f0e2, roughness: .5, emissive: 0x2c3a33, emissiveIntensity: .1,
       transparent: true, opacity: .85, side: THREE.DoubleSide, depthWrite: false,
     });
+
+    /*
+      Пятно шире радиуса поражения ровно настолько, чтобы обод не срезался
+      краем плоскости: VORTEX_HIT — доля радиуса пятна, на которой стоит обод.
+    */
+    const whirl = window.NileShaders?.createWhirlMaterial?.(THREE, { edge: VORTEX_HIT });
+    if (whirl) {
+      const disc = new THREE.Mesh(new THREE.PlaneGeometry(VORTEX_DISC, VORTEX_DISC), whirl);
+      disc.rotation.x = -Math.PI / 2;
+      disc.position.y = .07;
+      disc.renderOrder = 3;
+      disc.userData.noMerge = true;
+      group.add(disc);
+      group.userData.whirl = whirl;
+    } else {
+      /*
+        Без шейдера игра не должна остаться с невидимым препятствием: тот же
+        силуэт собирается из двух плоских колец — тёмного жерла и пенного обода.
+      */
+      const maw = new THREE.Mesh(
+        new THREE.CircleGeometry(VORTEX_DISC * .5 * VORTEX_HIT, 28),
+        new THREE.MeshBasicMaterial({ color: 0x16211c, transparent: true, opacity: .72, depthWrite: false }),
+      );
+      maw.rotation.x = -Math.PI / 2;
+      maw.position.y = .07;
+      maw.renderOrder = 3;
+      maw.userData.noMerge = true;
+      group.add(maw);
+
+      const brim = new THREE.Mesh(
+        new THREE.RingGeometry(VORTEX_DISC * .5 * VORTEX_HIT * .92, VORTEX_DISC * .5 * VORTEX_HIT * 1.1, 30),
+        new THREE.MeshBasicMaterial({ color: 0xf4f8ec, transparent: true, opacity: .9, depthWrite: false }),
+      );
+      brim.rotation.x = -Math.PI / 2;
+      brim.position.y = .08;
+      brim.renderOrder = 4;
+      brim.userData.noMerge = true;
+      group.add(brim);
+    }
 
     const funnel = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1.5, 20, 4, true), deep);
     funnel.position.y = -.72;
@@ -2330,15 +2388,15 @@
     const rings = [];
     for (let i = 0; i < 3; i += 1) {
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(.68 + i * .36, .055 - i * .012, 6, 26),
+        new THREE.TorusGeometry(.68 + i * .36, .085 - i * .016, 6, 26),
         new THREE.MeshStandardMaterial({
-          color: 0xd8e2d2, roughness: .45,
-          transparent: true, opacity: .55 - i * .13, depthWrite: false,
+          color: 0xf2f7e8, roughness: .4, emissive: 0x6f7d63, emissiveIntensity: .35,
+          transparent: true, opacity: .92 - i * .16, depthWrite: false,
         }),
       );
       ring.rotation.x = Math.PI / 2;
-      ring.position.y = .015 - i * .012;
-      ring.scale.y = .8;
+      // Над водой, а не вровень с ней: вровень их съедала поверхность реки.
+      ring.position.y = .11 - i * .022;
       ring.userData.noMerge = true;
       group.add(ring);
       rings.push(ring);
@@ -3996,6 +4054,9 @@
           break;
         case 'vortex': {
           mesh.position.y = -.04 + Math.sin(t * 1.6 + item.phase) * .02;
+          // Пятно на поверхности вращается само, в шейдере: одна плоскость
+          // вместо трёх десятков вращаемых мешей.
+          if (mesh.userData.whirl) mesh.userData.whirl.uniforms.uTime.value = t + item.phase;
           const rings = mesh.userData.rings;
           if (rings) for (let i = 0; i < rings.length; i += 1) rings[i].rotation.z += dt * (2.2 - i * .4);
           // Воронка и пена крутятся с разной скоростью — так читается затягивание.
@@ -4603,11 +4664,36 @@
         ctx.beginPath(); ctx.moveTo(x, -p.size * .8); ctx.lineTo(x + (hash(i, 91) - .5) * p.size * .1, -p.size * .35); ctx.stroke();
       }
     } else if (item.type === 'vortex') {
-      ctx.strokeStyle = 'rgba(190,210,190,.7)';
-      for (let i = 0; i < 4; i += 1) {
-        ctx.lineWidth = Math.max(1, p.size * (.05 - i * .008));
+      /*
+        Здесь была та же беда, что и в объёмном режиме: четыре бледных
+        полупрозрачных дуги без заливки. У всех соседей — крокодила, бегемота,
+        ладьи — есть тёмное тело, и только водоворот был одним контуром на воде,
+        у которой своей пены хватает.
+
+        Теперь тело есть: тёмное жерло с растушёвкой, пенный обод по границе
+        поражения и закрученные дуги поверх.
+      */
+      const rx = p.size * .46;
+      const ry = p.size * .2;
+      const maw = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      maw.addColorStop(0, 'rgba(14,22,19,.9)');
+      maw.addColorStop(.55, 'rgba(22,34,28,.66)');
+      maw.addColorStop(1, 'rgba(30,44,36,0)');
+      ctx.save();
+      ctx.scale(1, ry / rx);
+      ctx.fillStyle = maw;
+      ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+
+      ctx.strokeStyle = 'rgba(244,248,236,.95)';
+      ctx.lineWidth = Math.max(1.6, p.size * .045);
+      ctx.beginPath(); ctx.ellipse(0, 0, rx * .92, ry * .92, 0, 0, Math.PI * 2); ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(236,244,226,.8)';
+      for (let i = 0; i < 3; i += 1) {
+        ctx.lineWidth = Math.max(1.2, p.size * (.036 - i * .008));
         ctx.beginPath();
-        ctx.ellipse(0, 0, p.size * (.14 + i * .1), p.size * (.06 + i * .045), state.elapsed * (1.6 - i * .3), 0, Math.PI * 1.7);
+        ctx.ellipse(0, 0, rx * (.28 + i * .2), ry * (.28 + i * .2), state.elapsed * (2.4 - i * .5), .3, Math.PI * 1.55);
         ctx.stroke();
       }
     } else if (item.type === 'hippo') {

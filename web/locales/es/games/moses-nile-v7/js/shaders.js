@@ -850,6 +850,89 @@ ${shader.vertexShader}`;
     },
 
     /* Свечение подбираемых предметов — мягкий ореол вокруг спрайта. */
+    /*
+      Водоворот, каким он виден сверху.
+
+      Раньше воронка была только объёмной: конус, спираль пены и кольца. Всё это
+      живёт ниже уровня воды — от поверхности наружу торчало два сантиметра, и
+      река их закрывала. На экране оставались три бледных полупрозрачных кольца
+      на бледной пенной воде, то есть почти ничего.
+
+      Этот материал рисует воронку плоским пятном на самой поверхности: тёмное
+      жерло, закрученные рукава пены и яркий обод. Тёмное на светлой воде видно
+      с любого расстояния, а обод стоит ровно по радиусу поражения — игрок видит
+      не «украшение», а границу, за которую нельзя.
+    */
+    createWhirlMaterial(THREE, options = {}) {
+      const uniforms = Object.assign(fogUniforms(THREE), {
+        uTime: { value: 0 },
+        uDeep: { value: new THREE.Color(options.deep || 0x121c18) },
+        uFoam: { value: new THREE.Color(options.foam || 0xf4f8ec) },
+        uAlpha: { value: options.alpha === undefined ? 1 : options.alpha },
+        // Доля радиуса пятна, на которой стоит обод. Совпадает с радиусом
+        // поражения: пятно шире него ровно настолько, чтобы обод не срезался.
+        uEdge: { value: options.edge === undefined ? .7 : options.edge },
+      });
+      const material = new THREE.ShaderMaterial({
+        uniforms,
+        vertexShader: `
+          varying vec2 vUv;
+          #include <fog_pars_vertex>
+          void main(){
+            vUv = uv;
+            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            gl_Position = projectionMatrix * mv;
+            #ifdef USE_FOG
+              fogDepth = -mv.z;
+            #endif
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform float uAlpha;
+          uniform float uEdge;
+          uniform vec3 uDeep;
+          uniform vec3 uFoam;
+          varying vec2 vUv;
+          #include <fog_pars_fragment>
+          void main(){
+            vec2 p = vUv - vec2(0.5);
+            float r = length(p) * 2.0;
+            if (r > 1.0) discard;
+            float a = atan(p.y, p.x);
+
+            // Жерло: чем ближе к центру, тем темнее и плотнее.
+            float maw = pow(clamp(1.0 - r / uEdge, 0.0, 1.0), 1.7);
+
+            // Рукава пены закручены внутрь и вращаются.
+            float swirl = sin(a * 3.0 - r * 11.0 + uTime * 4.2);
+            float arms = smoothstep(0.15, 0.95, swirl)
+                       * smoothstep(0.10, 0.34, r)
+                       * smoothstep(uEdge + 0.04, uEdge - 0.24, r);
+
+            // Обод — граница поражения.
+            float rim = smoothstep(uEdge - 0.11, uEdge, r) * smoothstep(uEdge + 0.09, uEdge, r);
+
+            // Наружная дымка: подсказывает размер, но не врёт про опасность.
+            float haze = smoothstep(1.0, uEdge, r) * smoothstep(uEdge - 0.02, uEdge + 0.16, r) * 0.32;
+
+            float light = clamp(arms * 0.9 + rim, 0.0, 1.0);
+            vec3 color = mix(uDeep, uFoam, light);
+            float alpha = clamp(maw * 0.96 + light * 0.95 + haze, 0.0, 1.0) * uAlpha;
+            if (alpha < 0.004) discard;
+            gl_FragColor = vec4(color, alpha);
+            #include <fog_fragment>
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        fog: true,
+        side: THREE.DoubleSide,
+      });
+      material.name = 'NileWhirlShader';
+      return material;
+    },
+
     createHaloMaterial(THREE, color = 0xffe6a8) {
       const uniforms = {
         uTime: { value: 0 },
