@@ -1407,6 +1407,9 @@
 Например: Иерусалим	For example: Jerusalem	Zum Beispiel: Jerusalem	Por ejemplo: Jerusalén
 Назвать	Submit guess	Antwort nennen	Responder
 Ждём ещё	Still waiting for	Warten noch auf	Faltan
+одного игрока	one more player	einen weiteren Spieler	un jugador más
+двух игроков	two more players	zwei weitere Spieler	dos jugadores más
+трёх игроков	three more players	drei weitere Spieler	tres jugadores más
 Все проголосовали	Everyone has voted	Alle haben abgestimmt	Todos han votado
 Голосование	Voting	Abstimmung	Votación
 Кто, по-вашему, соглядатай? Набравший больше всех голосов уходит из-за стола	Who do you think is a spy? The player with the most votes is eliminated	Wer ist deiner Meinung nach ein Spion? Wer die meisten Stimmen erhält, scheidet aus	¿Quién crees que es el espía? Quien reciba más votos queda eliminado
@@ -1776,6 +1779,7 @@
 Соглядатаям в онлайне доступен свой закрытый чат — стол его не видит.	Online spies have a private chat hidden from other players.	Onlinespione haben einen privaten Chat, den andere Spieler nicht sehen.	Los espías en línea tienen un chat privado oculto a los demás.
 Соберите четыре карты одной группы	Collect four cards in a group	Sammle vier Karten einer Gruppe	Reúne cuatro cartas de un grupo
 В каждой группе четыре карты. Побеждает тот, кто соберёт больше полных квартетов.	Each group has four cards. The player with the most complete quartets wins.	Jede Gruppe hat vier Karten. Wer die meisten vollständigen Quartette sammelt, gewinnt.	Cada grupo tiene cuatro cartas. Gana quien reúna más cuartetos completos.
+От 3 до 15 игроков: вдвоём спрашивать некого, выбор соперника начинается с третьего.	3 to 15 players: with only two there is nobody to ask, the choice of opponent starts with the third.	3 bis 15 Spieler: zu zweit gibt es niemanden zu fragen, die Wahl des Gegners beginnt beim dritten.	De 3 a 15 jugadores: entre dos no hay a quién preguntar, la elección de rival empieza con el tercero.
 В свой ход выберите соперника, затем недостающую карту из своей группы и спросите её.	On your turn, choose an opponent and ask for a missing card from your group.	Wähle bei deinem Zug einen Mitspieler und frage nach einer fehlenden Karte deiner Gruppe.	En tu turno, elige un rival y pide una carta que te falte de tu grupo.
 Карта есть у соперника — она сразу переходит к вам, и ход продолжается.	If the opponent has it, you receive it and keep your turn.	Hat der Mitspieler sie, bekommst du sie und bleibst dran.	Si el rival la tiene, la recibes y conservas el turno.
 Карты нет или вышло время — ход переходит следующему игроку.	If the card is missing or time runs out, the next player takes over.	Fehlt die Karte oder läuft die Zeit ab, ist der Nächste dran.	Si no la tiene o se acaba el tiempo, pasa el turno al siguiente.

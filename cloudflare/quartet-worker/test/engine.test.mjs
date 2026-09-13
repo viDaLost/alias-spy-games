@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CATALOG } from '../src/catalog.js';
-import { askCard, buildView, createRoomState, joinRoom, ROOM_LIMIT, startGame } from '../src/engine.js';
+import { MIN_PLAYERS, ROOM_LIMIT, askCard, buildView, createRoomState, joinRoom, startGame } from '../src/engine.js';
 
 function deterministicRng(max) { return max - 1; }
 function player(id, name = id) { return { playerId: id, name }; }
@@ -16,12 +16,27 @@ test('room can be created and joined', () => {
 test('start deals all cards without leaking opponents hands in view', () => {
   const state = createRoomState('ABC123', player('p1'), 1);
   joinRoom(state, player('p2'), 2);
-  startGame(state, 'p1', 3, deterministicRng);
+  joinRoom(state, player('p3'), 3);
+  startGame(state, 'p1', 4, deterministicRng);
   const total = state.players.reduce((sum, item) => sum + item.hand.length + item.completedQuartets.length * 4, 0);
   assert.equal(total, CATALOG.length * 4);
-  const view = buildView(state, 'p1', new Set(['p1', 'p2']));
+  const view = buildView(state, 'p1', new Set(['p1', 'p2', 'p3']));
   assert.ok(Array.isArray(view.me.hand));
   assert.equal('hand' in view.players[1], false);
+});
+
+test('game needs three players', () => {
+  assert.equal(MIN_PLAYERS, 3);
+
+  // Вдвоём игра вырождается: соперник всего один, и выбирать не из кого.
+  const pair = createRoomState('ABC123', player('p1'), 1);
+  joinRoom(pair, player('p2'), 2);
+  assert.throws(() => startGame(pair, 'p1', 3, deterministicRng), /минимум 3/);
+
+  // Третий игрок — и партия начинается.
+  joinRoom(pair, player('p3'), 3);
+  startGame(pair, 'p1', 4, deterministicRng);
+  assert.equal(pair.status, 'playing');
 });
 
 test('successful ask transfers a card and keeps the turn', () => {

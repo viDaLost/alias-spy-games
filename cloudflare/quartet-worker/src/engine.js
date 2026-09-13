@@ -1,7 +1,10 @@
 import { ALL_CARD_IDS, CARD_BY_ID, CARD_TO_QUARTET, CATALOG } from './catalog.js';
 
 export const ROOM_LIMIT = 15;
-export const MIN_PLAYERS = 2;
+// Втроём и больше. Вдвоём «Квартет» вырождается: спрашивать можно только
+// одного соперника, и каждый ход — это перебор его руки, пока карта не найдётся.
+// Выбор, у кого спросить, появляется начиная с третьего игрока.
+export const MIN_PLAYERS = 3;
 export const TURN_TIMEOUT_MS = 90_000;
 
 export function sanitizeName(value) {
@@ -68,7 +71,9 @@ export function joinRoom(state, player, now = Date.now()) {
 export function startGame(state, actorId, now = Date.now(), rng = cryptoRandomInt) {
   assertHost(state, actorId);
   const players = activePlayers(state);
-  if (players.length < MIN_PLAYERS) throw gameError('Нужно минимум 2 игрока', 'NOT_ENOUGH_PLAYERS');
+  if (players.length < MIN_PLAYERS) {
+    throw gameError(`Нужно минимум ${MIN_PLAYERS} игрока`, 'NOT_ENOUGH_PLAYERS');
+  }
 
   for (const player of state.players) {
     player.hand = [];

@@ -472,11 +472,26 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     if (ui.subtitle) ui.subtitle.textContent = roomId ? `Комната ${roomId}` : 'Онлайн-игра';
   }
 
+  // Столько же, сколько требует сервер: engine.js, MIN_PLAYERS и ROOM_LIMIT.
+  // Разойдётся минимум — кнопка станет активной, а запуск вернёт отказ, и
+  // человек не поймёт почему. Разойдётся потолок — счётчик в лобби соврёт.
+  const MIN_PLAYERS = 3;
+  const ROOM_LIMIT = 15;
+
+  /** «одного игрока» / «двух игроков» — чтобы кнопка читалась как фраза. */
+  function playersNeeded(count) {
+    if (count === 1) return 'одного игрока';
+    if (count === 2) return 'двух игроков';
+    if (count === 3) return 'трёх игроков';
+    return `${count} игроков`;
+  }
+
   function renderLobby() {
     currentScreen = 'lobby';
     const me = state.me || {};
     const activePlayers = (state.players || []).filter((player) => player.isActive !== false);
-    const canStart = !!me.isHost && activePlayers.length >= 2;
+    const canStart = !!me.isHost && activePlayers.length >= MIN_PLAYERS;
+    const missing = Math.max(0, MIN_PLAYERS - activePlayers.length);
 
     ui.content.innerHTML = `
       <div class="qv2-lobby">
@@ -490,13 +505,13 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
         </section>
 
         <section class="qv2-section qv2-glass">
-          <div class="qv2-section-head"><h3 class="qv2-section-title">Игроки</h3><div class="qv2-section-meta">${activePlayers.length}/8</div></div>
+          <div class="qv2-section-head"><h3 class="qv2-section-title">Игроки</h3><div class="qv2-section-meta">${activePlayers.length}/${ROOM_LIMIT}</div></div>
           <div class="qv2-player-list">${activePlayers.map(renderLobbyPlayer).join('')}</div>
         </section>
 
         <section class="qv2-section qv2-glass">
           ${me.isHost
-            ? `<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="start-game" ${canStart ? '' : 'disabled'}>${canStart ? 'Начать игру' : 'Ждём ещё игрока'}</button>`
+            ? `<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="start-game" ${canStart ? '' : 'disabled'}>${canStart ? 'Начать игру' : `Ждём ещё ${playersNeeded(missing)}`}</button>`
             : `<div class="qv2-empty">Ведущий начнёт игру, когда все будут готовы.</div>`}
           <button class="qv2-btn qv2-btn--danger qv2-btn--full qv2-mt-sm" data-action="leave-room">Выйти из комнаты</button>
         </section>

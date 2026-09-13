@@ -410,19 +410,34 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json')
     if (ui.subtitle) ui.subtitle.textContent = roomId ? `Raum ${roomId}` : 'Onlinespiel';
   }
 
+  // Столько же, сколько требует сервер: engine.js, MIN_PLAYERS и ROOM_LIMIT.
+  // Разойдётся минимум — кнопка станет активной, а запуск вернёт отказ, и
+  // человек не поймёт почему. Разойдётся потолок — счётчик в лобби соврёт.
+  const MIN_PLAYERS = 3;
+  const ROOM_LIMIT = 15;
+
+  /** «одного игрока» / «двух игроков» — чтобы кнопка читалась как фраза. */
+  function playersNeeded(count) {
+    if (count === 1) return 'einen weiteren Spieler';
+    if (count === 2) return 'zwei weitere Spieler';
+    if (count === 3) return 'drei weitere Spieler';
+    return `${count} Spieler`;
+  }
+
   function renderLobby() {
     currentScreen = 'lobby';
     const me = state.me || {};
     const activePlayers = (state.players || []).filter((player) => player.isActive !== false);
-    const canStart = !!me.isHost && activePlayers.length >= 2;
+    const canStart = !!me.isHost && activePlayers.length >= MIN_PLAYERS;
+    const missing = Math.max(0, MIN_PLAYERS - activePlayers.length);
 
-    ui.content.innerHTML = `\n      <div class="qv2-lobby">\n        <section class="qv2-room-card qv2-glass">\n          <div class="qv2-room-label">Raumcode</div>\n          <div class="qv2-room-code">${escapeHtml(roomId)}</div>\n          <div class="qv2-room-actions">\n            <button class="qv2-btn qv2-btn--secondary" data-action="copy-room">⧉ Kopieren</button>\n            <button class="qv2-btn qv2-btn--secondary" data-action="share-room">Teilen</button>\n          </div>\n        </section>\n\n        <section class="qv2-section qv2-glass">\n          <div class="qv2-section-head"><h3 class="qv2-section-title">Spieler</h3><div class="qv2-section-meta">${activePlayers.length}/8</div></div>
+    ui.content.innerHTML = `\n      <div class="qv2-lobby">\n        <section class="qv2-room-card qv2-glass">\n          <div class="qv2-room-label">Raumcode</div>\n          <div class="qv2-room-code">${escapeHtml(roomId)}</div>\n          <div class="qv2-room-actions">\n            <button class="qv2-btn qv2-btn--secondary" data-action="copy-room">⧉ Kopieren</button>\n            <button class="qv2-btn qv2-btn--secondary" data-action="share-room">Teilen</button>\n          </div>\n        </section>\n\n        <section class="qv2-section qv2-glass">\n          <div class="qv2-section-head"><h3 class="qv2-section-title">Spieler</h3><div class="qv2-section-meta">${activePlayers.length}/${ROOM_LIMIT}</div></div>
           <div class="qv2-player-list">${activePlayers.map(renderLobbyPlayer).join('')}</div>
         </section>
 
         <section class="qv2-section qv2-glass">
           ${me.isHost
-            ? `<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="start-game" ${canStart ? '' : 'disabled'}>${canStart ? 'Spiel starten' : 'Warten auf einen weiteren Spieler'}</button>`
+            ? `<button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="start-game" ${canStart ? '' : 'disabled'}>${canStart ? 'Spiel starten' : `Warten noch auf ${playersNeeded(missing)}`}</button>`
             : `<div class="qv2-empty">Der Gastgeber startet, wenn alle bereit sind.</div>`}\n          <button class="qv2-btn qv2-btn--danger qv2-btn--full qv2-mt-sm" data-action="leave-room">Raum verlassen</button>\n        </section>\n      </div>\n    `;
   }
 

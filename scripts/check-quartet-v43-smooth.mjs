@@ -46,4 +46,31 @@ ok(css.includes('transform:translate3d(-50%,0,0)'), 'Dock animation is not compo
 ok(css.includes('body.qv43-quartet-active #qv2-root{padding-bottom:var(--qv43-dock-space)!important}'), 'Game content does not reserve viewport-dock space');
 ok(css.includes('@media(prefers-reduced-motion:reduce)'), 'V43 motion must respect reduced-motion');
 
-console.log('OK: Quartet V43 uses a body-owned viewport dock, local selection updates, incremental realtime rendering, and composited motion.');
+// Минимум игроков знают двое: сервер и кнопка «Начать игру». Разойдутся —
+// кнопка станет активной раньше времени, запуск вернёт отказ, и ведущий не
+// поймёт, почему игра не началась.
+const engine = read('cloudflare/quartet-worker/src/engine.js');
+const serverMinimum = Number(engine.match(/export const MIN_PLAYERS = (\d+);/)?.[1]);
+const clientMinimum = Number(core.match(/const MIN_PLAYERS = (\d+);/)?.[1]);
+ok(Number.isInteger(serverMinimum), 'Server MIN_PLAYERS is missing from the Quartet engine');
+ok(Number.isInteger(clientMinimum), 'Client MIN_PLAYERS is missing from the Quartet lobby');
+ok(serverMinimum === clientMinimum,
+  `Quartet lobby allows ${clientMinimum} players while the server demands ${serverMinimum}`);
+ok(core.includes('activePlayers.length >= MIN_PLAYERS'),
+  'Quartet start button no longer checks the player minimum through the shared constant');
+
+// Потолок комнаты тоже знают двое. Разойдутся — счётчик в лобби покажет не то
+// число мест, что готов принять сервер.
+const serverLimit = Number(engine.match(/export const ROOM_LIMIT = (\d+);/)?.[1]);
+const clientLimit = Number(core.match(/const ROOM_LIMIT = (\d+);/)?.[1]);
+ok(Number.isInteger(serverLimit), 'Server ROOM_LIMIT is missing from the Quartet engine');
+ok(Number.isInteger(clientLimit), 'Client ROOM_LIMIT is missing from the Quartet lobby');
+ok(serverLimit === clientLimit,
+  `Quartet lobby counts seats up to ${clientLimit} while the server accepts ${serverLimit}`);
+ok(core.includes('${activePlayers.length}/${ROOM_LIMIT}'),
+  'Quartet lobby seat counter spells the room limit out by hand and can drift');
+ok(engine.includes('`Нужно минимум ${MIN_PLAYERS} игрока`'),
+  'Server refusal spells the minimum out by hand and can drift from the constant');
+
+console.log('OK: Quartet V43 uses a body-owned viewport dock, local selection updates, incremental realtime rendering, '
+  + `and composited motion; the lobby and the server agree on ${serverMinimum}-${serverLimit} players.`);
