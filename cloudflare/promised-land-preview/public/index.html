@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="Земля обетованная — Монополия в библейском формате. Превью: юбилей вместо бесконечной партии, наёмник вместо банкрота, наследие вместо капитала." />
+<title>Земля обетованная — превью</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f46e5'/%3E%3Crect x='6' y='6' width='20' height='20' rx='3' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3Crect x='13' y='13' width='6' height='6' rx='1' fill='%23e0a44a'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ——— начало партии ——— -->
+<main id="setup" class="screen">
+  <header class="intro">
+    <p class="eyebrow">Превью · Библейские игры</p>
+    <h1>Земля обетованная</h1>
+    <p class="lede">Монополия, у которой библейский закон о земле чинит ровно то, что в ней сломано:
+      партия не тянется часами, проигравший не выбывает, и побеждает не тот, кто всех разорил.</p>
+  </header>
+
+  <section class="setup-block">
+    <h2>Людей за столом</h2>
+    <p class="hint">Играют по очереди на одном устройстве.</p>
+    <div class="choice" data-key="humans" role="group" aria-label="Людей за столом">
+      <button type="button" data-value="1" aria-pressed="true">1</button>
+      <button type="button" data-value="2" aria-pressed="false">2</button>
+      <button type="button" data-value="3" aria-pressed="false">3</button>
+      <button type="button" data-value="4" aria-pressed="false">4</button>
+    </div>
+  </section>
+
+  <section class="setup-block">
+    <h2>Соперников-ботов</h2>
+    <p class="hint">Всего за столом от двух до шести.</p>
+    <div class="choice" data-key="bots" role="group" aria-label="Ботов">
+      <button type="button" data-value="0" aria-pressed="false">0</button>
+      <button type="button" data-value="1" aria-pressed="false">1</button>
+      <button type="button" data-value="2" aria-pressed="true">2</button>
+      <button type="button" data-value="3" aria-pressed="false">3</button>
+      <button type="button" data-value="4" aria-pressed="false">4</button>
+    </div>
+  </section>
+
+  <section class="setup-block">
+    <h2>Сколько лет до юбилея</h2>
+    <p class="hint">Последний год — субботний: аренда не взимается, долги прощаются.</p>
+    <div class="choice choice--wide" data-key="years" role="group" aria-label="Лет до юбилея">
+      <button type="button" data-value="3" aria-pressed="true">3 года<small>быстрая</small></button>
+      <button type="button" data-value="5" aria-pressed="false">5 лет<small>обычная</small></button>
+      <button type="button" data-value="7" aria-pressed="false">7 лет<small>седмица</small></button>
+    </div>
+  </section>
+
+  <div class="setup-actions">
+    <button type="button" id="start-btn" class="btn btn--primary btn--big">Начать партию</button>
+    <button type="button" id="rules-btn" class="btn btn--ghost">Правила</button>
+  </div>
+
+  <p class="note">Превью: партия идёт за одним столом, сеть не нужна.
+    Онлайн-комнаты — следующий этап.</p>
+</main>
+
+<!-- ——— игра ——— -->
+<main id="game" class="screen" hidden>
+  <div class="hud">
+    <span id="year" class="hud-year">Год 1</span>
+    <span id="pot" class="hud-pot">Котёл 0</span>
+  </div>
+
+  <div class="ring-wrap">
+    <div id="ring" class="ring" role="img" aria-label="Игровое поле, 36 клеток"></div>
+  </div>
+
+  <div id="actions" class="actions"></div>
+  <div id="sheet" class="sheet" hidden></div>
+  <div id="players" class="players"></div>
+  <div id="feed" class="feed"></div>
+</main>
+
+<!-- ——— юбилей ——— -->
+<main id="jubilee" class="screen" hidden>
+  <header class="intro">
+    <p class="eyebrow">Юбилей</p>
+    <h1>Земля возвращается</h1>
+    <p class="lede">Наёмники свободны, уделы вернулись к своим. Считается не серебро, а наследие.</p>
+    <p id="winner" class="winner"></p>
+  </header>
+  <div id="scores" class="scores"></div>
+  <button type="button" id="again-btn" class="btn btn--primary btn--big">Ещё партию</button>
+</main>
+
+<!-- ——— правила ——— -->
+<div id="rules" class="modal" hidden>
+  <div class="modal-card">
+    <button type="button" id="rules-close" class="modal-close" aria-label="Закрыть">×</button>
+    <h2>Правила</h2>
+    <div id="rules-body" class="rules-body">
+      <h3>Что не как в «Монополии»</h3>
+      <ul>
+        <li><b>Юбилей.</b> Партия длится заданное число лет. Год сменяется, когда «Исход» прошёл
+          <i>каждый</i> игрок, — так у всех поровну кругов.</li>
+        <li><b>Субботний год.</b> Последний год аренда не взимается вовсе: земля отдыхает,
+          долги наёмников прощаются. Лидер не может добить, отстающий успевает достроить.</li>
+        <li><b>Наёмник вместо банкрота.</b> Разорившийся не выбывает: он идёт в наём к кредитору,
+          продолжает ходить, половина урожая гасит долг, а в юбилей он свободен и земля возвращается.</li>
+        <li><b>Выкуп.</b> Заплатить долг за чужого наёмника — самый дорогой источник очков в игре.</li>
+        <li><b>Наследие вместо капитала.</b> Побеждает не богатейший.</li>
+      </ul>
+
+      <h3>Наследие</h3>
+      <ul>
+        <li>Ступень поселения — +1, и навсегда, даже если удел потом уйдёт</li>
+        <li>Жертвенник — +3, но удел перестаёт приносить аренду</li>
+        <li>Каждые 100 сиклей десятины — +1</li>
+        <li>Приношение и «Шатёр Авраама» — по +1</li>
+        <li>Выкуп наёмника — +5</li>
+        <li>Удел в юбилей — +1; каждые 500 сиклей серебра — +1</li>
+      </ul>
+
+      <h3>Поселение</h3>
+      <p>Пять ступеней: колодец, шатёр, дом, ограда, башня. Строить можно только на полном уделе
+        и только вровень. Вместо застройки на пустом уделе можно поставить жертвенник —
+        это главный выбор игры: доход или след.</p>
+
+      <h3>Уделы</h3>
+      <div id="rules-rents" class="rules-rents"></div>
+      <p>Караванные пути — 200 сиклей, аренда 25/50/100/200 по числу путей.
+        Источники — 150, аренда по костям: ×4 за один, ×10 за оба.
+        Старт 1500 сиклей, урожай за круг 200. В колодах <span class="cards-count"></span>.</p>
+    </div>
+  </div>
+</div>
+
+<script src="board.js"></script>
+<script src="cards.js"></script>
+<script src="engine.js"></script>
+<script src="bots.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

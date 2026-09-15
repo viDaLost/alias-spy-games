@@ -74,12 +74,28 @@ for (const file of files.filter((f) => f.endsWith('.md'))) {
 }
 
 const localRefRegex = /(?:src|href)=["'](?!https?:|data:|#|mailto:|tel:)([^"'?]+)|["'`](web\/(?:assets|data|games)\/[A-Za-z0-9_./-]+)[?"'`]/g;
+
+/*
+  Ссылка считается от корня того сайта, где файл живёт, а не от корня
+  репозитория. Приложение раздаётся из корня, и там это одно и то же; а вот
+  превью на Cloudflare — самодостаточный бандл: `cloudflare/<воркер>/public`
+  для него и есть «/», и «style.css» в нём указывает на соседа. Считать такую
+  ссылку от корня репозитория — значит объявить сломанным то, что работает.
+*/
+const siteRootOf = (file) => {
+  const parts = rel(file).split('/');
+  if (parts[0] === 'cloudflare' && parts[2] === 'public') {
+    return path.join(root, parts[0], parts[1], parts[2]);
+  }
+  return root;
+};
+
 for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   const text = fs.readFileSync(file, 'utf8');
   for (const match of text.matchAll(localRefRegex)) {
     const ref = match[1] || match[2];
     if (!ref || ref.startsWith('javascript:') || ref.includes('${')) continue;
-    const target = path.resolve(root, ref);
+    const target = path.resolve(siteRootOf(file), ref);
     if (!fs.existsSync(target)) failures.push(`Broken local reference in ${rel(file)}: ${ref}`);
   }
 }

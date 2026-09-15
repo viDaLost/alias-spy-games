@@ -50,6 +50,8 @@ jobs:
         run: node scripts/check-web-android-game-parity.mjs
       - name: Check Android Biblical Treasures parity and level reachability
         run: node scripts/check-android-biblical-treasures.mjs
+      - name: Play out Promised Land rules
+        run: node scripts/check-promised-land.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund

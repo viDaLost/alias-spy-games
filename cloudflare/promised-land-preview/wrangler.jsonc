@@ -1,0 +1,15 @@
+// Превью «Земли обетованной» — Монополии в библейском формате.
+//
+// Отдельный воркер со статикой: игра ничего не просит у сети и живёт целиком
+// в public/. Онлайн-комнаты — следующий этап, и у них будет свой воркер с
+// Durable Object; смешивать их с превью незачем.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "alias-spy-games-promised-land-preview",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "single-page-application"
+  }
+}
