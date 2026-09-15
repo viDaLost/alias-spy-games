@@ -35,3 +35,8 @@ android-app/local.properties
 *.keystore
 *.apk
 *.aab
+
+# Копия картинок «Земли обетованной» для превью: собирается
+# scripts/sync-promised-land-art.mjs из web/assets/promised-land.
+# В репозитории эти файлы уже есть — второй раз они тут не нужны.
+cloudflare/promised-land-preview/public/art/

@@ -59,7 +59,11 @@ html, body { height: 100%; }
 body {
   margin: 0;
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
-  background: linear-gradient(180deg, var(--bg-1), var(--bg-2));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 88%, transparent),
+      color-mix(in srgb, var(--bg-2) 96%, transparent)),
+    url('art/scene.webp') center top / cover no-repeat fixed,
+    linear-gradient(180deg, var(--bg-1), var(--bg-2));
   color: var(--ink);
   font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-text-size-adjust: 100%;
@@ -124,13 +128,18 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .btn--small.ghost { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
 .btn:focus-visible { outline: 3px solid var(--primary-2); outline-offset: 2px; }
 
+/* ——— картинки ——— */
+.brand { display: flex; }
+.brand-icon { width: 76px; height: 76px; border-radius: 20px; display: block; }
+
 /* ——— шапка партии ——— */
 .hud {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   font-size: 13px; font-weight: 600; color: var(--ink-soft);
 }
 .hud-year.is-sabbath { color: var(--gold); }
-.hud-pot { font-variant-numeric: tabular-nums; }
+.hud-pot { font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
+.hud-icon { width: 18px; height: 18px; object-fit: contain; }
 
 /* ——— кольцо ——— */
 .ring-wrap { display: flex; justify-content: center; }
@@ -152,11 +161,12 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .6) 0 2px, transparent 2px 5px);
 }
 .cell.is-spot .band { height: 0; }
+/* Картинка на клетке: крупно, но не впритык к полосе цвета удела. */
 .cell .mark {
-  font-size: 9px; line-height: 1; color: var(--ink-soft); font-weight: 400;
-  padding-bottom: 7px; letter-spacing: -1px;
+  width: 74%; height: 62%; object-fit: contain; margin-bottom: 8%;
+  display: block; pointer-events: none;
 }
-.cell .mark.is-altar { color: var(--gold); font-size: 11px; }
+.cell.is-spot .mark { width: 78%; height: 72%; margin-bottom: 4%; }
 .cell.kind-exodus, .cell.kind-tent { background: var(--primary-tint); }
 .cell.kind-prison, .cell.kind-slander { background: var(--sunk); }
 .cell .tokens {
@@ -174,6 +184,15 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; padding: 10px; text-align: center; min-width: 0; min-height: 0; overflow: hidden;
 }
+/*
+  Иллюстрация в середине кольца делит место с текстом, поэтому у неё гибкая
+  высота: на узком экране она ужимается, а не выталкивает подпись за край.
+*/
+.core-art {
+  width: 100%; max-width: 190px; min-height: 0; flex: 0 1 auto;
+  height: clamp(70px, 26vw, 150px); object-fit: contain; display: block;
+}
+.core-art--small { height: clamp(44px, 15vw, 82px); }
 .core-kind {
   font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase;
   color: var(--ink-soft); font-weight: 700;
@@ -204,11 +223,14 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
 }
 .player.is-turn { border-color: var(--who); background: var(--primary-tint); }
+.player-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.player-token { width: 20px; height: 20px; object-fit: contain; flex: none; }
 .player-name { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-figs { display: flex; gap: 10px; font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.fig-silver::before { content: '◈ '; color: var(--primary-2); }
-.fig-heritage::before { content: '✦ '; color: var(--gold); }
-.player-tag { font-size: 11px; color: var(--danger); }
+.fig { display: inline-flex; align-items: center; gap: 4px; }
+.fig-icon { width: 15px; height: 15px; object-fit: contain; }
+.player-tag { font-size: 11px; color: var(--danger); display: flex; align-items: center; gap: 4px; }
+.tag-icon { width: 13px; height: 13px; object-fit: contain; }
 
 /* ——— лента событий ——— */
 .feed {
@@ -227,8 +249,10 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .empty { margin: 0; color: var(--ink-soft); font-size: 14px; }
 .holding { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .holding:last-of-type { border-bottom: 0; }
-.holding > i { width: 10px; height: 26px; border-radius: 3px; flex: none; }
-.holding > i.muted { background: var(--ink-soft); opacity: .4; }
+.holding-art {
+  width: 46px; height: 46px; object-fit: contain; flex: none; border-radius: 10px;
+  background: var(--surface-soft); box-shadow: inset 3px 0 0 0 var(--band, transparent);
+}
 .holding-info { display: flex; flex-direction: column; min-width: 0; flex: 1 1 130px; }
 .holding-info b { font-size: 14.5px; }
 .holding-info span { font-size: 12px; color: var(--ink-soft); }
@@ -237,7 +261,11 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .log-line { font-size: 12.5px; color: var(--ink-soft); }
 
 /* ——— юбилей ——— */
-.winner { margin: 6px 0 0; font-size: 19px; font-weight: 700; color: var(--primary); }
+.winner {
+  margin: 6px 0 0; font-size: 19px; font-weight: 700; color: var(--primary);
+  display: flex; align-items: center; gap: 8px;
+}
+.winner-icon { width: 30px; height: 30px; object-fit: contain; }
 .scores { display: flex; flex-direction: column; gap: 8px; }
 .score {
   background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--who);
@@ -275,6 +303,13 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .rule-group div { display: flex; flex-direction: column; min-width: 0; }
 .rule-group b { font-size: 14px; }
 .rule-group span { font-size: 12px; color: var(--ink-soft); }
+.rules-backs { display: flex; gap: 14px; margin-top: 10px; }
+.deck { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.deck-back {
+  width: 88px; height: 132px; object-fit: cover; border-radius: 10px;
+  border: 1px solid var(--line-strong);
+}
+.deck figcaption { font-size: 12px; color: var(--ink-soft); }
 
 @media (max-width: 360px) {
   .screen { padding: 12px 12px 22px; }

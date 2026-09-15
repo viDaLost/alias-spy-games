@@ -17,6 +17,31 @@
   const PLAYER_COLORS = ['#4f46e5', '#e11d48', '#0f9d58', '#d97706', '#7c3aed', '#0891b2'];
   const BOT_NAMES = ['Ефрем', 'Асаф', 'Овадия', 'Иеффай', 'Варух'];
 
+  /*
+    Картинки живут в web/assets/promised-land, а превью раздаёт только своё
+    public/, поэтому сюда их кладёт scripts/sync-promised-land-art.mjs. Путь
+    берётся из меты: когда игра переедет в приложение, поменяется одна строка
+    в разметке, а не пути по всему файлу.
+  */
+  const ART = String(document.querySelector('meta[name="promised-land-art"]')?.content || 'art/')
+    .replace(/\/*$/, '/');
+  const art = (dir, name) => `${ART}${dir}/${name}.webp`;
+  // Порядок тот же, что у B.LEVELS: колодец, шатёр, дом, ограда, башня.
+  const BUILD_ART = ['build-well', 'build-tent', 'build-house', 'build-wall', 'build-tower'];
+  const TOKEN_ART = ['token-staff', 'token-jar', 'token-sheaf', 'token-lamp', 'token-scroll', 'token-sling'];
+  const tokenOf = (player) => TOKEN_ART[state.players.indexOf(player) % TOKEN_ART.length];
+
+  /** Картинка, которая молча исчезает, если файла нет: дыра лучше крестика. */
+  const img = (src, className, alt = '') => {
+    const node = el('img', className);
+    node.src = src;
+    node.alt = alt;
+    node.loading = 'lazy';
+    node.decoding = 'async';
+    node.addEventListener('error', () => { node.hidden = true; }, { once: true });
+    return node;
+  };
+
   const $ = (id) => document.getElementById(id);
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -28,6 +53,7 @@
   let state = null;
   let botTimer = 0;
   let sheetOpen = false;
+  let lastHumanId = '';
 
   // ————————————————————————————————————————————————— начало партии
 
@@ -104,7 +130,7 @@
       band.style.background = B.colorOf(spec) || 'transparent';
       if (spec.kind === 'well') band.classList.add('hatch');
       node.appendChild(band);
-      node.appendChild(el('b', 'mark'));
+      node.appendChild(img('', 'mark'));
       node.appendChild(el('span', 'tokens'));
       if (!B.OWNABLE.has(spec.kind)) node.classList.add('is-spot', 'kind-' + spec.kind);
       ring.appendChild(node);
@@ -115,11 +141,6 @@
     ring.appendChild(core);
   }
 
-  const ICONS = {
-    exodus: '→', prison: '▤', tent: '△', slander: '!',
-    tithe: '✦', offering: '✧', providence: '?', mercy: '♡',
-  };
-
   function updateRing() {
     for (const spec of B.BOARD) {
       const node = cellNodes[spec.n];
@@ -128,10 +149,18 @@
       node.classList.toggle('is-owned', Boolean(cell.owner));
       node.style.setProperty('--owner', owner ? colorOfPlayer(owner) : 'transparent');
 
+      /*
+        На клетке видно ровно одно: что на ней стоит. Жертвенник, ступень
+        поселения — или, если клетка не удел, её собственный значок. У пустого
+        удела нет ничего: полосы цвета группы достаточно, а рисунок пейзажа в
+        тридцать один пиксель превратился бы в грязь.
+      */
       const mark = node.querySelector('.mark');
-      if (cell.altar) mark.textContent = '▲';
-      else if (cell.level > 0) mark.textContent = '▪'.repeat(Math.min(cell.level, 5));
-      else mark.textContent = ICONS[spec.kind] || '';
+      const source = cell.altar ? art('build', 'build-altar')
+        : (cell.level > 0 ? art('build', BUILD_ART[cell.level - 1])
+          : (B.OWNABLE.has(spec.kind) ? '' : art('icons', spec.slug)));
+      mark.hidden = !source;
+      if (source && mark.getAttribute('src') !== source) mark.src = source;
       mark.className = 'mark' + (cell.altar ? ' is-altar' : '');
 
       const tokens = node.querySelector('.tokens');
@@ -140,6 +169,7 @@
         if (player.pos !== spec.n || player.out) return;
         const dot = el('u');
         dot.style.background = colorOfPlayer(player);
+        dot.title = player.name;
         if (player.id === E.current(state).id) dot.className = 'is-turn';
         tokens.appendChild(dot);
       });
@@ -156,6 +186,12 @@
     const player = E.current(state);
 
     if (state.phase === 'roll') {
+      // Пока ждём броска, середина показывает место, на котором стоит фишка:
+      // иначе самая большая часть экрана пустует весь ход соперника.
+      const here = B.BOARD[player.pos];
+      core.appendChild(B.OWNABLE.has(here.kind)
+        ? img(art('plots', here.slug), 'core-art', here.name)
+        : img(art('icons', here.slug), 'core-art core-art--small', here.name));
       core.appendChild(el('div', 'core-kind', state.sabbath ? 'Субботний год' : 'Ход'));
       core.appendChild(el('div', 'core-name', player.name));
       core.appendChild(el('div', 'core-note',
@@ -173,17 +209,24 @@
 
     const pending = state.pending;
     if (!pending) {
+      core.appendChild(img(art('tokens', tokenOf(player)), 'core-art core-art--small', ''));
       core.appendChild(el('div', 'core-name', player.name));
       core.appendChild(el('div', 'core-note', 'Стройте или заканчивайте ход.'));
       return;
     }
     if (pending.type === 'buy') {
       const spec = B.BOARD[pending.cell];
+      core.appendChild(img(art('plots', spec.slug), 'core-art', spec.name));
       core.appendChild(el('div', 'core-kind', kindLabel(spec)));
       core.appendChild(el('div', 'core-name', spec.name));
       core.appendChild(el('div', 'core-note', `Свободен. Цена ${spec.price} сиклей.`));
       return;
     }
+    // Клетка, на которой стоим, — её рисунок и показывается; у карты свой.
+    const here = B.BOARD[player.pos];
+    if (pending.art) core.appendChild(img(art('cards', pending.art), 'core-art', pending.title));
+    else if (B.OWNABLE.has(here.kind)) core.appendChild(img(art('plots', here.slug), 'core-art', here.name));
+    else core.appendChild(img(art('icons', here.slug), 'core-art core-art--small', here.name));
     core.appendChild(el('div', 'core-kind', pending.title || ''));
     core.appendChild(el('div', 'core-note', pending.text || ''));
     if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
@@ -204,7 +247,10 @@
       ? `Субботний год ${state.year} из ${state.years}`
       : `Год ${state.year} из ${state.years}`;
     $('year').classList.toggle('is-sabbath', state.sabbath);
-    $('pot').textContent = `Котёл ${state.pot}`;
+    const pot = $('pot');
+    pot.innerHTML = '';
+    pot.appendChild(img(art('icons', state.sabbath ? 'ui-sabbath' : 'ui-pot'), 'hud-icon', ''));
+    pot.appendChild(el('span', null, `Котёл ${state.pot}`));
 
     const strip = $('players');
     strip.innerHTML = '';
@@ -212,16 +258,31 @@
       const card = el('div', 'player');
       if (player.id === E.current(state).id) card.classList.add('is-turn');
       card.style.setProperty('--who', colorOfPlayer(player));
-      card.appendChild(el('b', 'player-name', player.name));
+      const head = el('div', 'player-head');
+      head.appendChild(img(art('tokens', tokenOf(player)), 'player-token', ''));
+      head.appendChild(el('b', 'player-name', player.name));
+      card.appendChild(head);
       const figures = el('div', 'player-figs');
-      figures.appendChild(el('span', 'fig-silver', String(player.silver)));
-      figures.appendChild(el('span', 'fig-heritage', String(player.heritage)));
+      const silver = el('span', 'fig');
+      silver.appendChild(img(art('icons', 'ui-shekel'), 'fig-icon', 'сиклей'));
+      silver.appendChild(el('b', null, String(player.silver)));
+      const heritage = el('span', 'fig');
+      heritage.appendChild(img(art('icons', 'ui-heritage'), 'fig-icon', 'наследия'));
+      heritage.appendChild(el('b', null, String(player.heritage)));
+      figures.appendChild(silver);
+      figures.appendChild(heritage);
       card.appendChild(figures);
       if (player.servantOf) {
         const master = state.players.find((p) => p.id === player.servantOf);
-        card.appendChild(el('div', 'player-tag', `в найме у ${master ? master.name : '—'} · долг ${player.debt}`));
+        const tag = el('div', 'player-tag');
+        tag.appendChild(img(art('icons', 'ui-servant'), 'tag-icon', ''));
+        tag.appendChild(el('span', null, `в найме у ${master ? master.name : '—'} · долг ${player.debt}`));
+        card.appendChild(tag);
       } else if (player.prison > 0) {
-        card.appendChild(el('div', 'player-tag', 'в темнице'));
+        const tag = el('div', 'player-tag');
+        tag.appendChild(img(art('icons', 'icon-prison'), 'tag-icon', ''));
+        tag.appendChild(el('span', null, 'в темнице'));
+        card.appendChild(tag);
       }
       strip.appendChild(card);
     });
@@ -267,9 +328,12 @@
     sheet.hidden = !sheetOpen;
     if (!sheetOpen) return;
     sheet.innerHTML = '';
-    const player = E.current(state);
-    const busy = player.isBot || state.phase === 'decide';
-    if (player.isBot) sheet.appendChild(el('p', 'empty', 'Сейчас ход бота — действия появятся в ваш ход.'));
+    const turnPlayer = E.current(state);
+    const player = turnPlayer.isBot
+      ? (state.players.find((p) => p.id === lastHumanId) || turnPlayer)
+      : turnPlayer;
+    const busy = turnPlayer.isBot || state.phase === 'decide';
+    if (turnPlayer.isBot) sheet.appendChild(el('p', 'empty', `Ходит ${turnPlayer.name}. Действия появятся в ваш ход.`));
 
     const mine = state.cells
       .map((cell, n) => n)
@@ -282,9 +346,9 @@
       const spec = B.BOARD[n];
       const cell = state.cells[n];
       const row = el('div', 'holding');
-      const dot = el('i');
-      dot.style.background = B.colorOf(spec);
-      row.appendChild(dot);
+      const thumb = img(art('plots', spec.slug), 'holding-art', spec.name);
+      thumb.style.setProperty('--band', B.colorOf(spec));
+      row.appendChild(thumb);
 
       const info = el('div', 'holding-info');
       info.appendChild(el('b', null, spec.name));
@@ -313,7 +377,7 @@
       sheet.appendChild(el('h3', null, 'Выкуп'));
       for (const debtor of debtors) {
         const row = el('div', 'holding');
-        row.appendChild(el('i', 'muted'));
+        row.appendChild(img(art('icons', 'ui-redeem'), 'holding-art', ''));
         const info = el('div', 'holding-info');
         info.appendChild(el('b', null, debtor.name));
         info.appendChild(el('span', null, `долг ${debtor.debt} · выкуп даёт +${B.HERITAGE_REDEEM} наследия`));
@@ -327,12 +391,8 @@
       }
     }
 
-    sheet.appendChild(el('h3', null, 'Ход событий'));
-    const list = el('div', 'log');
-    for (const entry of state.log.slice(-14).reverse()) {
-      list.appendChild(el('div', 'log-line', entry.text));
-    }
-    sheet.appendChild(list);
+    // Ленты событий здесь нет намеренно: она и так стоит под полосой игроков,
+    // и в шторке была вторым её экземпляром.
   }
 
   // ————————————————————————————————————————————————— юбилей
@@ -376,13 +436,18 @@
       row.appendChild(breakdown);
       table.appendChild(row);
     });
-    $('winner').textContent = `${state.scores[0].name} — ${state.scores[0].total} наследия`;
+    const winner = $('winner');
+    winner.innerHTML = '';
+    winner.appendChild(img(art('icons', 'ui-jubilee'), 'winner-icon', ''));
+    winner.appendChild(el('span', null, `${state.scores[0].name} — ${state.scores[0].total} наследия`));
     $('again-btn').onclick = () => location.reload();
   }
 
   // ————————————————————————————————————————————————— цикл
 
   function render() {
+    const turnPlayer = state.players[state.turn];
+    if (turnPlayer && !turnPlayer.isBot) lastHumanId = turnPlayer.id;
     if (state.status === 'jubilee') { showJubilee(); return; }
     updateRing();
     updateCore();
@@ -443,6 +508,17 @@
     }
     box.querySelector('.cards-count').textContent =
       `${CARDS.PROVIDENCE.length} карт «Провидения» и ${CARDS.MERCY.length} «Милости»`;
+
+    // Рубашки колод — здесь им и место: в партии игрок видит только лицевую
+    // сторону, а разглядеть колоду хочется.
+    const backs = $('rules-backs');
+    for (const [name, label] of [['back-providence', 'Провидение'], ['back-mercy', 'Милость']]) {
+      const figure = el('figure', 'deck');
+      figure.appendChild(img(art('cards', name), 'deck-back', label));
+      figure.appendChild(el('figcaption', null, label));
+      backs.appendChild(figure);
+    }
+    $('brand').appendChild(img(`${ART}menu-icon.webp`, 'brand-icon', 'Земля обетованная'));
 
     $('rules-btn').addEventListener('click', () => { $('rules').hidden = false; });
     $('rules-close').addEventListener('click', () => { $('rules').hidden = true; });

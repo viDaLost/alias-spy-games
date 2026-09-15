@@ -137,6 +137,24 @@ const dynamicPublishedFiles = new Set([
   'web/assets/startup-loader/portal-01.webp',
 ]);
 
+/*
+  Каталоги, где имя файла собирается в коде целиком: `art/${dir}/${slug}.webp`
+  у «Земли обетованной» никогда не встречается в исходниках как готовая строка,
+  а перечислять восемьдесят четыре имени поимённо — значит завести список,
+  который разъедется с папкой при первом же переименовании.
+
+  Сюда же две одиночные картинки игры: они лежат среди файлов других игр, но
+  на них пока ничто не ссылается — игра живёт в превью и в само приложение ещё
+  не подключена. Когда подключится, ссылки появятся, и эти две строки уйдут.
+*/
+const dynamicPublishedPrefixes = [
+  'web/assets/promised-land/',
+];
+const dynamicSingles = new Set([
+  'web/assets/icons/promised-land.webp',
+  'web/assets/game-scenes/scenes/promised-land.webp',
+]);
+
 // Runtime catalogs may point at media directly (for example one illustration per
 // Quartet card), so JSON participates in the published-file reachability graph.
 // .webmanifest тоже ссылается на опубликованные файлы: иконки главного экрана
@@ -167,7 +185,9 @@ for (const file of publishedFiles) {
     return aliases.some((alias) => text.includes(alias));
   });
 
-  if (!referenced && !dynamicPublishedFiles.has(name) && !bundledSources.has(name)) {
+  const dynamic = dynamicPublishedFiles.has(name) || dynamicSingles.has(name)
+    || dynamicPublishedPrefixes.some((prefix) => name.startsWith(prefix));
+  if (!referenced && !dynamic && !bundledSources.has(name)) {
     failures.push(`Unreferenced published file: ${name}`);
   }
 }

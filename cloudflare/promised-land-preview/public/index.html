@@ -7,6 +7,10 @@
 <meta name="description" content="Земля обетованная — Монополия в библейском формате. Превью: юбилей вместо бесконечной партии, наёмник вместо банкрота, наследие вместо капитала." />
 <title>Земля обетованная — превью</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f46e5'/%3E%3Crect x='6' y='6' width='20' height='20' rx='3' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3Crect x='13' y='13' width='6' height='6' rx='1' fill='%23e0a44a'/%3E%3C/svg%3E" />
+<!-- Откуда игра берёт картинки. В превью их кладёт рядом
+     scripts/sync-promised-land-art.mjs; в приложении здесь будет
+     web/assets/promised-land/, и больше менять ничего не придётся. -->
+<meta name="promised-land-art" content="art/" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -14,6 +18,7 @@
 <!-- ——— начало партии ——— -->
 <main id="setup" class="screen">
   <header class="intro">
+    <div id="brand" class="brand"></div>
     <p class="eyebrow">Превью · Библейские игры</p>
     <h1>Земля обетованная</h1>
     <p class="lede">Монополия, у которой библейский закон о земле чинит ровно то, что в ней сломано:
@@ -129,6 +134,7 @@
       <p>Караванные пути — 200 сиклей, аренда 25/50/100/200 по числу путей.
         Источники — 150, аренда по костям: ×4 за один, ×10 за оба.
         Старт 1500 сиклей, урожай за круг 200. В колодах <span class="cards-count"></span>.</p>
+      <div id="rules-backs" class="rules-backs"></div>
     </div>
   </div>
 </div>

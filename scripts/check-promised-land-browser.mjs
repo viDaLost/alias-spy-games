@@ -9,14 +9,23 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright-core';
 
 const root = process.cwd();
 const dir = path.join(root, 'cloudflare/promised-land-preview/public');
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
-  ['.css', 'text/css; charset=utf-8'],
+  ['.css', 'text/css; charset=utf-8'], ['.webp', 'image/webp'], ['.png', 'image/png'],
 ]);
+
+/*
+  Картинки лежат в web/assets/promised-land, а игра ищет их рядом с собой.
+  Копию кладёт тот же скрипт, что и перед выкладкой: проверять надо ровно то,
+  что поедет на Cloudflare, а не отдельно собранную для проверки сборку.
+*/
+execFileSync(process.execPath, [path.join(root, 'scripts/sync-promised-land-art.mjs')],
+  { cwd: root, stdio: 'pipe' });
 
 const server = http.createServer((req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://127.0.0.1').pathname);
@@ -123,6 +132,21 @@ async function play(width, height, years) {
   }
 
   need(errors.length === 0, `${width}px: ошибки в консоли — ${errors.slice(0, 2).join(' | ')}`);
+
+  /*
+    Картинка, которой нет, ошибку в консоль даёт, но браузер её иногда
+    проглатывает молча. Поэтому отдельно спрашивается у самой страницы,
+    сколько её картинок не загрузилось: имя собирается из slug, и одна
+    опечатка тихо вынимает рисунок из игры.
+  */
+  const brokenImages = await page.evaluate(() => [...document.images]
+    // complete && naturalWidth === 0 — это именно неудача. Ленивая картинка в
+    // скрытом окне ещё не начинала грузиться, у неё complete === false, и
+    // считать её сломанной нельзя.
+    .filter((node) => node.getAttribute('src') && node.complete && node.naturalWidth === 0)
+    .map((node) => node.getAttribute('src')));
+  need(brokenImages.length === 0,
+    `${width}px: не загрузились картинки — ${[...new Set(brokenImages)].slice(0, 3).join(', ')}`);
 
   const shot = `/tmp/promised-land-${width}.png`;
   await page.screenshot({ path: shot });

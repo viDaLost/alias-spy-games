@@ -22,6 +22,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Картинки живут в web/assets/promised-land, а воркер раздаёт только своё
+      # public/. Копия собирается здесь и не коммитится: иначе те же три с
+      # половиной мегабайта лежали бы в репозитории дважды.
+      - name: Copy game art into the bundle
+        working-directory: .
+        run: node scripts/sync-promised-land-art.mjs
       - name: Install Worker tooling
         run: npm install --no-audit --no-fund
       - name: Validate Worker bundle

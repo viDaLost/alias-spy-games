@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '125f6399c3';
+const VERSION = '559b5a6490';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -89,6 +89,7 @@ const PRECACHE = [
   'web/assets/icons/more.webp',
   'web/assets/icons/moses-nile.webp',
   'web/assets/icons/profile.webp',
+  'web/assets/icons/promised-land.webp',
   'web/assets/icons/qr-scanner.webp',
   'web/assets/icons/quartet.webp',
   'web/assets/icons/rules.webp',

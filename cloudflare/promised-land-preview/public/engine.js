@@ -496,6 +496,9 @@ window.PromisedLandEngine = (() => {
       state.pending = {
         type: 'note',
         title: spec.kind === 'providence' ? 'Провидение' : 'Милость',
+        // Имя картинки собирается из колоды и номера карты: интерфейсу иначе
+        // неоткуда узнать, какой рисунок показывать.
+        art: `${spec.kind}-${card.id}`,
         text: card.text, ref: card.ref, extra: notes.join(', '),
       };
       return;

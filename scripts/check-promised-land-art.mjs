@@ -15,6 +15,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { minSide } from './promised-land-art-spec.mjs';
 
 const root = process.cwd();
 const gameDir = path.join(root, 'cloudflare/promised-land-preview/public');
@@ -50,18 +51,18 @@ const BACKS = ['back-providence', 'back-mercy'];
   превратилась в миниатюру.
 */
 const GROUPS = [
-  { dir: 'plots', names: ownableSlugs, square: true, alpha: true, min: 768, what: 'уделы, пути и источники' },
-  { dir: 'icons', names: [...iconSlugs, ...UI_ICONS], square: true, alpha: true, min: 384, what: 'значки клеток и интерфейса' },
-  { dir: 'build', names: BUILDS, square: true, alpha: true, min: 384, what: 'ступени поселения' },
-  { dir: 'tokens', names: TOKENS, square: true, alpha: true, min: 384, what: 'фишки игроков' },
-  { dir: 'cards', names: [...cardSlugs, ...BACKS], square: false, alpha: true, min: 768, what: 'карты и рубашки' },
+  { dir: 'plots', names: ownableSlugs, square: true, alpha: true, min: minSide('plots'), what: 'уделы, пути и источники' },
+  { dir: 'icons', names: [...iconSlugs, ...UI_ICONS], square: true, alpha: true, min: minSide('icons'), what: 'значки клеток и интерфейса' },
+  { dir: 'build', names: BUILDS, square: true, alpha: true, min: minSide('build'), what: 'ступени поселения' },
+  { dir: 'tokens', names: TOKENS, square: true, alpha: true, min: minSide('tokens'), what: 'фишки игроков' },
+  { dir: 'cards', names: [...cardSlugs, ...BACKS], square: false, alpha: true, min: minSide('cards'), what: 'карты и рубашки' },
 ];
 // Рубашка — не иллюстрация, а фон: прозрачность ей не нужна, а форма другая.
 const BACK_RATIO = 1536 / 1024;
 
 const SINGLES = [
-  { file: 'web/assets/icons/promised-land.webp', square: true, alpha: false, min: 256, what: 'иконка игры в меню' },
-  { file: 'web/assets/game-scenes/scenes/promised-land.webp', square: false, alpha: false, min: 1024, what: 'фон сцены игры' },
+  { file: 'web/assets/icons/promised-land.webp', square: true, alpha: false, min: minSide('menu'), what: 'иконка игры в меню' },
+  { file: 'web/assets/game-scenes/scenes/promised-land.webp', square: false, alpha: false, min: minSide('scene'), what: 'фон сцены игры' },
 ];
 
 // ————————————————————————————————————————————— чтение заголовков
@@ -136,8 +137,13 @@ function inspect(file, rule, label) {
   if (rule.square && info.width !== info.height) {
     wrong.push(`${shown} — не квадрат: ${info.width}×${info.height}`);
   }
-  if (Math.min(info.width, info.height) < rule.min) {
-    wrong.push(`${shown} — мелковата: ${info.width}×${info.height}, нужно от ${rule.min}`);
+  /*
+    Меряется длинная сторона: перегон вписывает картинку в квадрат по ней, и
+    у рубашки 512×768 короткая сторона заведомо меньше порога. Раньше здесь
+    стояла короткая — и проверка ругалась на правильные файлы.
+  */
+  if (Math.max(info.width, info.height) < rule.min) {
+    wrong.push(`${shown} — мелковата: ${info.width}×${info.height}, нужно от ${rule.min} по длинной стороне`);
   }
   if (rule.alpha && !info.alpha) {
     wrong.push(`${shown} — без прозрачного фона (${label}); в тёмной теме это будет светлое пятно`);
@@ -179,8 +185,12 @@ for (const group of GROUPS) {
 
 for (const single of SINGLES) {
   total += 1;
-  const file = path.join(root, single.file);
-  if (!fs.existsSync(file)) { missing.push(`${single.file} — ${single.what}`); continue; }
+  // Одиночные файлы искались только как .webp, тогда как у всех остальных
+  // принимался и .png. Из-за этого лежащая рядом иконка считалась пропавшей.
+  const dir = path.dirname(path.join(root, single.file));
+  const name = path.basename(single.file).replace(/\.[^.]+$/, '');
+  const file = locate(dir, name);
+  if (!file) { missing.push(`${single.file} — ${single.what}`); continue; }
   found += 1;
   inspect(file, single, single.what);
 }
