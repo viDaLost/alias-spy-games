@@ -35,6 +35,14 @@
   --edge-in: inset 0 2px 5px rgba(17, 24, 39, .1);
   --tilt: linear-gradient(180deg, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 62%);
   --art-drop: drop-shadow(0 3px 5px rgba(17, 24, 39, .22));
+
+  /*
+    Наклон доски. Он один на всё: доска поворачивается на этот угол, а всё,
+    что на ней стоит, — на него обратно, чтобы смотреть на игрока. Держать это
+    число в двух местах — значит однажды получить фишки, лежащие на боку.
+  */
+  --board-tilt: 19deg;
+  --tile-side: rgba(17, 24, 39, .28);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -61,6 +69,7 @@
     --edge-in: inset 0 2px 6px rgba(0, 0, 0, .55);
     --tilt: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 62%);
     --art-drop: drop-shadow(0 3px 6px rgba(0, 0, 0, .6));
+    --tile-side: rgba(0, 0, 0, .6);
   }
 }
 
@@ -176,7 +185,21 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .hud-icon { width: 18px; height: 18px; object-fit: contain; }
 
 /* ——— кольцо ——— */
-.ring-wrap { display: flex; justify-content: center; }
+/*
+  Перспектива живёт на обёртке, наклон — на самой доске. Наклонённая доска
+  рисуется ниже своей коробки, поэтому коробка подтянута отрицательным полем:
+  иначе под ней зияет пустота.
+*/
+.ring-wrap {
+  position: relative; display: flex; justify-content: center;
+  perspective: 1150px; perspective-origin: 50% 38%;
+  /*
+    Наклонённая доска рисуется ниже своей коробки, и её тень наезжала на
+    кнопку хода. Замерено: при нуле остаётся 7 точек зазора, при двух
+    процентах — четырнадцать, и кнопка стоит свободно.
+  */
+  margin-block: 2px 2%;
+}
 .ring {
   width: 100%; max-width: 420px; aspect-ratio: 1; display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
@@ -185,32 +208,50 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   background: linear-gradient(160deg, var(--sunk), color-mix(in srgb, var(--sunk) 86%, var(--ink)));
   border: 1px solid var(--line-strong);
   box-shadow: var(--lift-3), var(--edge-in);
+  transform: rotateX(var(--board-tilt)) scale(1.03);
+  transform-style: preserve-3d;
 }
 .cell {
   position: relative; border-radius: 4px; padding: 0; border: 0; cursor: pointer;
   background: var(--surface); background-image: var(--tilt);
-  min-width: 0; overflow: hidden; font: inherit; color: inherit;
+  min-width: 0; font: inherit; color: inherit;
   display: flex; align-items: flex-end; justify-content: center;
-  box-shadow: var(--lift-1), var(--edge-top);
+  /* Толщина плитки: тень без размытия читается как её боковая стенка. */
+  box-shadow: 0 3px 0 0 var(--tile-side), var(--lift-1), var(--edge-top);
+  transform-style: preserve-3d;
+  /*
+    Плитка приподнята над доской. Это не украшение: в одной плоскости с доской
+    она с ней и спорит — палец попадает в доску, а плитка не нажимается, хотя
+    выглядит нажимаемой.
+  */
+  transform: translateZ(2px);
   transition: transform .12s ease, box-shadow .12s ease;
 }
-.cell:hover { transform: translateY(-1px); box-shadow: var(--lift-2), var(--edge-top); z-index: 3; }
-.cell:active { transform: translateY(0); box-shadow: var(--lift-1); }
+.cell:hover { transform: translateZ(7px); box-shadow: 0 4px 0 0 var(--tile-side), var(--lift-2), var(--edge-top); }
+.cell:active { transform: translateZ(1px); box-shadow: 0 2px 0 0 var(--tile-side), var(--lift-1); }
 .cell:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; z-index: 4; }
-.cell.is-owned { box-shadow: var(--lift-1), var(--edge-top), inset 0 -3px 0 0 var(--owner); }
+.cell.is-owned { box-shadow: 0 3px 0 0 var(--owner), var(--lift-1), var(--edge-top); }
 .cell .band {
   position: absolute; inset: 0 0 auto 0; height: 32%; display: block;
+  border-radius: 3px 3px 0 0;   /* overflow:hidden снят, углы режет сама полоса */
   box-shadow: inset 0 -1px 2px rgba(17, 24, 39, .22);
 }
 .cell .band.hatch {
   background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .6) 0 2px, transparent 2px 5px);
 }
 .cell.is-spot .band { height: 0; }
-/* Картинка на клетке: крупно, но не впритык к полосе цвета удела. */
-.cell .mark { filter: var(--art-drop); }
+/*
+  Строение и фишка стоят на плитке, а не лежат на ней: они поворачиваются на
+  угол доски обратно и оказываются лицом к игроку. Точка поворота — нижний
+  край, иначе предмет всплывает над доской вместо того, чтобы стоять на ней.
+*/
+.cell .mark, .cell .tokens {
+  transform: rotateX(calc(-1 * var(--board-tilt)));
+  transform-origin: 50% 100%;
+}
 .cell .mark {
-  width: 74%; height: 62%; object-fit: contain; margin-bottom: 8%;
-  display: block; pointer-events: none;
+  width: 78%; height: 72%; object-fit: contain; margin-bottom: 10%;
+  display: block; pointer-events: none; filter: var(--art-drop);
 }
 .cell.is-spot .mark { width: 78%; height: 72%; margin-bottom: 4%; }
 .cell.kind-exodus, .cell.kind-tent { background: var(--primary-tint); }
@@ -225,8 +266,13 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 .cell .tokens u.is-turn { box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 2.5px currentColor; }
 
+/*
+  Карточка вынута из доски: доска наклонена, и текст на ней мылился бы. Здесь
+  она висит над доской и смотрит на игрока прямо.
+*/
 .ring-core {
-  grid-column: 2 / 10; grid-row: 2 / 10;
+  position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
+  width: 63%; max-height: 60%; z-index: 5;
   background: var(--surface); background-image: var(--tilt);
   border: 1px solid var(--line); border-radius: 14px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -251,23 +297,37 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .core-note { font-size: clamp(12px, 3.4vw, 14px); color: var(--ink-soft); line-height: 1.35; max-width: 26ch; }
 .core-extra { color: var(--primary); font-weight: 600; }
 .core-ref { font-size: 11px; color: var(--ink-soft); opacity: .8; }
-.dice { display: flex; gap: 8px; perspective: 260px; }
+/*
+  Кость — настоящий кубик: шесть граней в объёме, повёрнутый нужной стороной.
+  Во время броска грань меняется каждые 70 мс, а короткий переход превращает
+  подмену в кувырок. Отдельная анимация поворота тут только мешала бы: угол
+  задаётся из кода.
+*/
+.dice { display: flex; gap: 14px; perspective: 420px; padding: 3px 0 5px; }
 .die {
-  width: 32px; height: 32px; border-radius: 9px;
-  background: linear-gradient(155deg, var(--surface), color-mix(in srgb, var(--surface) 82%, var(--ink)));
+  position: relative; width: 34px; height: 34px; flex: none;
+  transform-style: preserve-3d; transition: transform .11s ease-out;
+}
+.die-face {
+  position: absolute; inset: 0; border-radius: 8px;
+  background: linear-gradient(155deg, var(--surface), color-mix(in srgb, var(--surface) 84%, var(--ink)));
   border: 1px solid var(--line-strong);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
-  box-shadow: var(--lift-2), inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 -2px 4px rgba(17, 24, 39, .14);
+  display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  padding: 5px; gap: 1px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
 }
-.dice.is-rolling .die { animation: tumble .42s linear infinite; }
-.dice.is-rolling .die:last-child { animation-duration: .34s; animation-direction: reverse; }
-@keyframes tumble {
-  0%   { transform: rotateX(0deg) rotateZ(0deg) translateY(0); }
-  30%  { transform: rotateX(160deg) rotateZ(90deg) translateY(-7px); }
-  60%  { transform: rotateX(300deg) rotateZ(190deg) translateY(-3px); }
-  100% { transform: rotateX(360deg) rotateZ(360deg) translateY(0); }
+.die-face u {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--ink);
+  align-self: center; justify-self: center;
 }
+.die-face--1 { transform: translateZ(17px); }
+.die-face--2 { transform: rotateY(90deg) translateZ(17px); }
+.die-face--3 { transform: rotateY(180deg) translateZ(17px); }
+.die-face--4 { transform: rotateY(-90deg) translateZ(17px); }
+.die-face--5 { transform: rotateX(90deg) translateZ(17px); }
+.die-face--6 { transform: rotateX(-90deg) translateZ(17px); }
+.dice.is-rolling { animation: shake .26s ease-in-out infinite alternate; }
+@keyframes shake { from { transform: translateY(0); } to { transform: translateY(-5px); } }
 
 /* ——— действия ——— */
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -445,6 +505,84 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   border: 1px solid var(--line-strong);
 }
 .deck figcaption { font-size: 12px; color: var(--ink-soft); }
+
+/* ——— телефон боком ———————————————————————————————————————————————
+  Вертикально всё стоит в столбик: доска сверху, панель под ней. Боком высоты
+  всего около 390 точек, и в столбик не влезает ничего — пришлось бы крутить
+  экран туда-сюда посреди хода. Поэтому боком раскладка в две колонки: доска
+  слева во всю высоту, ход, игроки и лента — справа. Доска при этом выходит
+  чуть меньше вертикальной (≈335 против 358 точек), зато прокручивать нечего.
+*/
+@media (orientation: landscape) and (max-height: 620px) {
+  .screen { max-width: none; padding: 10px 14px 14px; gap: 10px; }
+
+  #game {
+    display: grid;
+    grid-template-columns: min(86vh, 44vw) minmax(0, 1fr);
+    align-content: start;
+    gap: 8px 14px;
+  }
+  /*
+    Селектор доски обязан быть не слабее общего: «#game > *» весит столько же,
+    сколько «#game > .ring-wrap», и при равенстве побеждает последний — а при
+    классе он бы проиграл, и доска уехала бы во вторую колонку вместе со всем
+    остальным.
+  */
+  #game > * { grid-column: 2; }
+  #game > .ring-wrap {
+    grid-column: 1; grid-row: 1 / span 9;
+    align-self: start; margin-block: 0 -4%;
+  }
+  #game > .ring-wrap .ring { max-width: none; }
+  .hud { padding-top: 2px; }
+  /* Лента короче: место справа дороже, а нужны последние события, не все. */
+  .feed .feed-line:nth-child(n + 3) { display: none; }
+  .players { gap: 6px; }
+  .player { flex: 1 1 96px; padding: 6px 8px; }
+  .player-figs { font-size: 12px; }
+
+  /*
+    Начальный экран — в три колонки: все три набора настроек встают в ряд, и
+    экран перестаёт прокручиваться. Заголовок при этом ложится в строку с
+    эмблемой: вертикально он съедал треть высоты.
+  */
+  #setup {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start; gap: 8px 12px;
+  }
+  #setup .intro, #setup .setup-actions, #setup .note { grid-column: 1 / -1; }
+  #setup .intro {
+    flex-direction: row; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding-top: 0;
+  }
+  #setup .lede { flex: 1 1 320px; font-size: 13.5px; }
+  #setup .eyebrow { display: none; }
+  #setup .setup-block { padding: 10px; gap: 7px; }
+  #setup .hint { font-size: 12px; }
+  #setup h2 { font-size: 15px; }
+  #setup .choice button { min-height: 42px; }
+  /*
+    Приписка внизу и подсказки под заголовками уходят: боком каждая строка
+    стоит высоты, а всё, что они объясняют, есть в правилах — кнопка рядом.
+  */
+  #setup .note { display: none; }
+  #setup .hint { display: none; }
+  #setup .lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  /* Боком места вдоволь: «В путь» и «Правила» встают в одну строку. */
+  #setup .btn--big { flex: 1 1 auto; }
+  .brand-icon { width: 48px; height: 48px; border-radius: 13px; }
+  h1 { font-size: 26px; }
+
+  #jubilee .scores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+  /* Окна в узкий по высоте экран не влезают: отдаём им почти всю высоту. */
+  .modal { align-items: center; padding: 8px 12px; }
+  .modal-card { max-height: 94vh; padding: 14px; }
+  .modal-card--cell { max-width: 520px; }
+  .cell-art { height: 120px; }
+  .cell-art--icon { height: 92px; }
+}
 
 @media (max-width: 360px) {
   .screen { padding: 12px 12px 22px; }

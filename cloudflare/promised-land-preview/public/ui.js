@@ -43,6 +43,52 @@
   };
 
   const $ = (id) => document.getElementById(id);
+
+  /*
+    Кость — кубик из шести граней, а не квадратик с цифрой. Точки раскладываются
+    по сетке 3×3: так их читают на настоящих костях, и считать их не надо —
+    рисунок узнаётся целиком.
+  */
+  const PIPS = {
+    1: ['2 / 2'],
+    2: ['1 / 1', '3 / 3'],
+    3: ['1 / 1', '2 / 2', '3 / 3'],
+    4: ['1 / 1', '1 / 3', '3 / 1', '3 / 3'],
+    5: ['1 / 1', '1 / 3', '2 / 2', '3 / 1', '3 / 3'],
+    6: ['1 / 1', '1 / 3', '2 / 1', '2 / 3', '3 / 1', '3 / 3'],
+  };
+  /** Кубик, повёрнутый нужной гранью к игроку. */
+  const die = (value) => {
+    const cube = document.createElement('b');
+    cube.className = 'die';
+    for (let face = 1; face <= 6; face += 1) {
+      const side = document.createElement('i');
+      side.className = 'die-face die-face--' + face;
+      for (const area of PIPS[face]) {
+        const pip = document.createElement('u');
+        pip.style.gridArea = area;
+        side.appendChild(pip);
+      }
+      cube.appendChild(side);
+    }
+    showFace(cube, value);
+    return cube;
+  };
+
+  /* Поворот, при котором нужная грань смотрит на игрока. */
+  const FACE_TURN = {
+    1: 'rotateX(0deg) rotateY(0deg)',
+    2: 'rotateY(-90deg)',
+    3: 'rotateY(180deg)',
+    4: 'rotateY(90deg)',
+    5: 'rotateX(-90deg)',
+    6: 'rotateX(90deg)',
+  };
+  const showFace = (cube, value) => {
+    cube.dataset.value = String(value);
+    cube.style.transform = FACE_TURN[value] || FACE_TURN[1];
+  };
+
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -139,9 +185,19 @@
       ring.appendChild(node);
       cellNodes[spec.n] = node;
     }
-    const core = el('div', 'ring-core');
-    core.id = 'core';
-    ring.appendChild(core);
+    /*
+      Карточка вынимается из доски наружу. Доска наклонена в перспективе, и
+      всё, что лежит на ней, наклонено вместе с ней: текст на такой плоскости
+      мылится и читается тяжело. Карточка висит над доской и смотрит прямо на
+      игрока — как если бы её держали в руке над столом.
+    */
+    let core = $('core');
+    if (!core) {
+      core = el('div', 'ring-core');
+      core.id = 'core';
+      ring.parentElement.appendChild(core);
+    }
+    core.innerHTML = '';
   }
 
   function updateRing() {
@@ -206,7 +262,7 @@
     const dice = el('div', 'dice');
     for (const value of state.dice) {
       if (!value) continue;
-      dice.appendChild(el('b', 'die', String(value)));
+      dice.appendChild(die(value));
     }
     if (dice.childElementCount) core.appendChild(dice);
 
@@ -544,8 +600,8 @@
       const player = E.current(state);
       core.innerHTML = '';
       const box = el('div', 'dice is-rolling');
-      const first = el('b', 'die');
-      const second = el('b', 'die');
+      const first = die(1);
+      const second = die(1);
       box.appendChild(first);
       box.appendChild(second);
       core.appendChild(box);
@@ -554,8 +610,8 @@
 
       const started = Date.now();
       const timer = setInterval(() => {
-        first.textContent = String(1 + Math.floor(Math.random() * 6));
-        second.textContent = String(1 + Math.floor(Math.random() * 6));
+        showFace(first, 1 + Math.floor(Math.random() * 6));
+        showFace(second, 1 + Math.floor(Math.random() * 6));
         if (Date.now() - started < ms) return;
         clearInterval(timer);
         rolling = false;

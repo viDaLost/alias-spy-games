@@ -71,6 +71,17 @@ async function play(width, height, years) {
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   need(await overflow() === 0, `${width}px: страница уехала вбок сразу после начала партии`);
 
+  /*
+    Боком раскладка обязана умещаться целиком: ради этого она и делалась.
+    Прокрутка на телефоне, лежащем в руке, означает, что половина игры за
+    краем, а крутить экран посреди хода — ровно то, от чего уходили.
+  */
+  if (width > height) {
+    const down = await page.evaluate(() =>
+      document.documentElement.scrollHeight - document.documentElement.clientHeight);
+    need(down === 0, `${width}×${height}: боком экран прокручивается на ${down}px`);
+  }
+
   // Кольцо обязано остаться квадратным: карточка в его середине легко
   // растягивает строки сетки под свой текст, и поле перестаёт быть полем.
   const ring = await page.evaluate(() => {
@@ -84,6 +95,21 @@ async function play(width, height, years) {
     };
   });
   need(ring.count === 36, `${width}px: на поле ${ring.count} клеток вместо 36`);
+
+  /*
+    Палец должен попадать в плитку, а не в доску под ней. Доска наклонена в
+    перспективе, и плитка, лежащая с ней в одной плоскости, перестаёт
+    нажиматься, оставаясь при этом на вид нажимаемой: ни ошибки, ни следа —
+    просто карточка клетки не открывается.
+  */
+  const hitsTile = await page.evaluate(() => {
+    const cell = document.querySelector('.cell[aria-label="Хеврон"]');
+    if (!cell) return false;
+    const box = cell.getBoundingClientRect();
+    const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    return Boolean(top) && (top === cell || cell.contains(top));
+  });
+  need(hitsTile, `${width}px: нажатие в середину клетки уходит мимо неё`);
   need(ring.ratio < 1.25 && ring.ratio > 0.8,
     `${width}px: клетки кольца вытянулись, отношение сторон ${ring.ratio.toFixed(2)}`);
 
@@ -158,9 +184,13 @@ async function play(width, height, years) {
 
 let narrow = null;
 let wide = null;
+let side = null;
 try {
   wide = await play(390, 844, 3);
   narrow = await play(320, 720, 3);
+  // Телефон боком: партия должна доигрываться и в этой раскладке, а не только
+  // в вертикальной. Проверяется тем же прогоном — другой здесь ничего не даст.
+  side = await play(844, 390, 3);
 
   // Правила и карточка клетки — то, по чему новичок разбирается в игре.
   // Если они не открываются или пусты, игра остаётся непонятной, а больше
@@ -178,25 +208,39 @@ try {
     'в правилах осталась отсылка к другой игре');
   await page.locator('#rules-close').click();
 
-  // Карточка клетки: открылась, показала название, цену и лестницу платы.
+  /*
+    Карточка клетки: открылась, показала название, цену и лестницу платы.
+    Открытие обёрнуто: если клетка перестала нажиматься, проверка должна
+    сказать об этом словами, а не рухнуть с таймаутом посреди списка.
+  */
   await page.locator('#start-btn').click();
   await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
-  await page.locator('.cell[aria-label="Хеврон"]').click();
-  await page.waitForSelector('#cell-card:not([hidden])', { timeout: 3_000 });
-  const card = await page.locator('#cell-body').innerText();
-  need(/Хеврон/.test(card), `карточка клетки открылась без названия: «${card.slice(0, 40)}»`);
-  need(/400/.test(card), 'в карточке удела нет его цены');
-  need(await page.locator('#cell-ladder, .cell-row').count() >= 6,
-    'в карточке удела нет лестницы платы по ступеням');
-  const cardArt = await page.locator('.cell-art').getAttribute('src');
-  need(/plots\/hebron\.webp$/.test(cardArt || ''), `в карточке чужая картинка: ${cardArt}`);
+  let cardOpened = true;
+  try {
+    await page.locator('.cell[aria-label="Хеврон"]').click({ timeout: 4_000 });
+    await page.waitForSelector('#cell-card:not([hidden])', { timeout: 3_000 });
+  } catch {
+    cardOpened = false;
+    need(false, 'карточка клетки не открылась по нажатию на поле');
+  }
+  const card = cardOpened ? await page.locator('#cell-body').innerText() : '';
+  if (cardOpened) {
+    need(/Хеврон/.test(card), `карточка клетки открылась без названия: «${card.slice(0, 40)}»`);
+    need(/400/.test(card), 'в карточке удела нет его цены');
+    need(await page.locator('.cell-row').count() >= 6,
+      'в карточке удела нет лестницы платы по ступеням');
+    const cardArt = await page.locator('.cell-art').getAttribute('src');
+    need(/plots\/hebron\.webp$/.test(cardArt || ''), `в карточке чужая картинка: ${cardArt}`);
+  }
 
   // Особая клетка объясняет себя словами, а не значком.
-  await page.locator('#cell-close').click();
-  await page.locator('.cell[aria-label="Темница"]').click();
-  await page.waitForSelector('#cell-card:not([hidden])', { timeout: 3_000 });
-  const prison = await page.locator('#cell-body').innerText();
-  need(prison.length > 120, `особая клетка почти ничего не объясняет: «${prison}»`);
+  if (cardOpened) {
+    await page.locator('#cell-close').click();
+    await page.locator('.cell[aria-label="Темница"]').click();
+    await page.waitForSelector('#cell-card:not([hidden])', { timeout: 3_000 });
+    const prison = await page.locator('#cell-body').innerText();
+    need(prison.length > 120, `особая клетка почти ничего не объясняет: «${prison}»`);
+  }
   await context.close();
 } finally {
   await browser.close();
@@ -209,7 +253,8 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`OK: партия доигрывается до юбилея пальцем — ${wide.clicks} нажатий на 390px `
-  + `и ${narrow.clicks} на 320px, победитель объявлен («${wide.winner}»), `
-  + `в таблице ${wide.rows} игроков. Кольцо осталось квадратным из 36 клеток, `
-  + 'страница никуда не уехала вбок, консоль чистая, правила открываются.');
+console.log('OK: партия доигрывается до юбилея пальцем в трёх раскладках — '
+  + `${wide.clicks} нажатий на 390×844, ${narrow.clicks} на 320×720 и ${side.clicks} на 844×390 боком; `
+  + `победитель объявлен («${wide.winner}»), в таблице ${wide.rows} игроков. `
+  + 'Кольцо осталось квадратным из 36 клеток, нажатие попадает в плитку, боком ничего '
+  + 'не прокручивается, консоль чистая, карточка клетки и правила открываются.');
