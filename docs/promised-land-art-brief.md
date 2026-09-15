@@ -5,6 +5,15 @@
 (`cloudflare/promised-land-preview/public/board.js` и `cards.js`), поэтому
 готовые файлы лягут в проект без переименований.
 
+> **Куда класть готовые файлы.** Папки уже созданы:
+> `web/assets/promised-land/{plots,icons,build,tokens,cards}` плюс два
+> отдельных файла — `web/assets/icons/promised-land.webp` и
+> `web/assets/game-scenes/scenes/promised-land.webp`.
+> Разложив, запустите `node scripts/check-promised-land-art.mjs`: она скажет,
+> чего не хватает, что названо иначе, что без прозрачности и что не той формы.
+> Имена файлов берутся из кода — `slug` у клетки в `board.js` и `id` у карты в
+> `cards.js`, — переименовывать их нельзя: игра ищет файл по этому имени.
+
 ---
 
 ## 1. Сколько всего и чего

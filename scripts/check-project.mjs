@@ -147,7 +147,14 @@ const runtimeReferenceText = new Map(
 );
 const bundleInputs = [...styleSources, ...scriptSources, ...adminScriptSources];
 const bundledSources = new Set([...bundleInputs, ...['en','de','es'].flatMap(lang=>bundleInputs.map(file=>`web/locales/${lang}/${file.replace(/^web\//,'')}`))]);
-const publishedFiles = files.filter((file) => rel(file).startsWith('web/') && !isPreviewOnly(file));
+/*
+  Точечные файлы — не опубликованные картинки, а служебные метки: .gitkeep
+  держит в git пустую папку, куда картинки только собираются положить. Требовать
+  на них ссылку из кода бессмысленно.
+*/
+const publishedFiles = files.filter((file) => rel(file).startsWith('web/')
+  && !isPreviewOnly(file)
+  && !path.basename(file).startsWith('.'));
 
 for (const file of publishedFiles) {
   const name = rel(file);

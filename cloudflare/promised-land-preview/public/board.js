@@ -48,48 +48,54 @@ window.PromisedLandBoard = (() => {
   const ROAD_COLOR = '#8a8577';
   const WELL_COLOR = '#2e6a7e';
 
-  const plot = (n, group, name, price, base) => ({ n, kind: 'plot', group, name, price, base });
-  const road = (n, name) => ({ n, kind: 'road', name, price: ROAD_PRICE });
-  const well = (n, name) => ({ n, kind: 'well', name, price: WELL_PRICE });
-  const spot = (n, kind, name, note) => ({ n, kind, name, note });
+  /*
+    slug — имя файла картинки для клетки. Оно лежит здесь, рядом с клеткой, а
+    не отдельным списком: отдельный список разъедется с полем при первой же
+    правке, и игра начнёт показывать чужой рисунок. У «Десятины», «Провидения»
+    и «Милости» клеток несколько, а рисунок один — slug у них общий.
+  */
+  const plot = (n, slug, group, name, price, base) => ({ n, slug, kind: 'plot', group, name, price, base });
+  const road = (n, slug, name) => ({ n, slug, kind: 'road', name, price: ROAD_PRICE });
+  const well = (n, slug, name) => ({ n, slug, kind: 'well', name, price: WELL_PRICE });
+  const spot = (n, slug, kind, name, note) => ({ n, slug, kind, name, note });
 
   const BOARD = [
-    spot(0, 'exodus', 'Исход', 'Начало пути. Прошли круг — собрали урожай.'),
-    plot(1, 'negev', 'Вирсавия', 60, 2),
-    spot(2, 'mercy', 'Милость', 'Дела милосердия.'),
-    plot(3, 'negev', 'Герар', 80, 4),
-    spot(4, 'tithe', 'Десятина', 'Десятая часть серебра.'),
-    road(5, 'Путь патриархов'),
-    plot(6, 'judah', 'Фекоя', 100, 6),
-    spot(7, 'providence', 'Провидение', 'События и перемещения.'),
-    plot(8, 'judah', 'Вифлеем', 120, 6),
-    spot(9, 'prison', 'Темница', 'Мимоходом — ничего.'),
-    plot(10, 'judah', 'Ен-Геди', 140, 10),
-    well(11, 'Колодец Иакова'),
-    plot(12, 'benjamin', 'Гива', 160, 12),
-    plot(13, 'benjamin', 'Рама', 180, 12),
-    road(14, 'Царский путь'),
-    plot(15, 'benjamin', 'Вефиль', 200, 16),
-    spot(16, 'providence', 'Провидение', 'События и перемещения.'),
-    plot(17, 'ephraim', 'Силом', 220, 20),
-    spot(18, 'tent', 'Шатёр Авраама', 'Гостеприимство: котёл ваш.'),
-    plot(19, 'ephraim', 'Фирца', 240, 20),
-    spot(20, 'providence', 'Провидение', 'События и перемещения.'),
-    plot(21, 'ephraim', 'Сокхоф', 260, 24),
-    spot(22, 'offering', 'Приношение', 'Сто сиклей в котёл.'),
-    road(23, 'Путь моря'),
-    plot(24, 'galilee', 'Кана', 280, 28),
-    well(25, 'Источник Гихон'),
-    plot(26, 'galilee', 'Назарет', 300, 28),
-    spot(27, 'slander', 'Навет', 'Оговорили перед царём — в темницу.'),
-    plot(28, 'galilee', 'Капернаум', 320, 32),
-    spot(29, 'mercy', 'Милость', 'Дела милосердия.'),
-    plot(30, 'fathers', 'Сихем', 350, 40),
-    spot(31, 'tithe', 'Десятина', 'Десятая часть серебра.'),
-    road(32, 'Путь пустыни'),
-    spot(33, 'providence', 'Провидение', 'События и перемещения.'),
-    plot(34, 'fathers', 'Хеврон', 400, 50),
-    spot(35, 'mercy', 'Милость', 'Дела милосердия.'),
+    spot(0, 'icon-exodus', 'exodus', 'Исход', 'Начало пути. Прошли круг — собрали урожай.'),
+    plot(1, 'beersheba', 'negev', 'Вирсавия', 60, 2),
+    spot(2, 'icon-mercy', 'mercy', 'Милость', 'Дела милосердия.'),
+    plot(3, 'gerar', 'negev', 'Герар', 80, 4),
+    spot(4, 'icon-tithe', 'tithe', 'Десятина', 'Десятая часть серебра.'),
+    road(5, 'road-patriarchs', 'Путь патриархов'),
+    plot(6, 'tekoa', 'judah', 'Фекоя', 100, 6),
+    spot(7, 'icon-providence', 'providence', 'Провидение', 'События и перемещения.'),
+    plot(8, 'bethlehem', 'judah', 'Вифлеем', 120, 6),
+    spot(9, 'icon-prison', 'prison', 'Темница', 'Мимоходом — ничего.'),
+    plot(10, 'engedi', 'judah', 'Ен-Геди', 140, 10),
+    well(11, 'well-jacob', 'Колодец Иакова'),
+    plot(12, 'gibeah', 'benjamin', 'Гива', 160, 12),
+    plot(13, 'ramah', 'benjamin', 'Рама', 180, 12),
+    road(14, 'road-kings', 'Царский путь'),
+    plot(15, 'bethel', 'benjamin', 'Вефиль', 200, 16),
+    spot(16, 'icon-providence', 'providence', 'Провидение', 'События и перемещения.'),
+    plot(17, 'shiloh', 'ephraim', 'Силом', 220, 20),
+    spot(18, 'icon-tent', 'tent', 'Шатёр Авраама', 'Гостеприимство: котёл ваш.'),
+    plot(19, 'tirzah', 'ephraim', 'Фирца', 240, 20),
+    spot(20, 'icon-providence', 'providence', 'Провидение', 'События и перемещения.'),
+    plot(21, 'succoth', 'ephraim', 'Сокхоф', 260, 24),
+    spot(22, 'icon-offering', 'offering', 'Приношение', 'Сто сиклей в котёл.'),
+    road(23, 'road-sea', 'Путь моря'),
+    plot(24, 'cana', 'galilee', 'Кана', 280, 28),
+    well(25, 'well-gihon', 'Источник Гихон'),
+    plot(26, 'nazareth', 'galilee', 'Назарет', 300, 28),
+    spot(27, 'icon-slander', 'slander', 'Навет', 'Оговорили перед царём — в темницу.'),
+    plot(28, 'capernaum', 'galilee', 'Капернаум', 320, 32),
+    spot(29, 'icon-mercy', 'mercy', 'Милость', 'Дела милосердия.'),
+    plot(30, 'shechem', 'fathers', 'Сихем', 350, 40),
+    spot(31, 'icon-tithe', 'tithe', 'Десятина', 'Десятая часть серебра.'),
+    road(32, 'road-desert', 'Путь пустыни'),
+    spot(33, 'icon-providence', 'providence', 'Провидение', 'События и перемещения.'),
+    plot(34, 'hebron', 'fathers', 'Хеврон', 400, 50),
+    spot(35, 'icon-mercy', 'mercy', 'Милость', 'Дела милосердия.'),
   ];
 
   const CORNERS = [0, 9, 18, 27];
