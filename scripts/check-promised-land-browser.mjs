@@ -93,7 +93,9 @@ async function play(width, height, years) {
   while (guard < 1400) {
     guard += 1;
     if (await page.locator('#jubilee:not([hidden])').count()) break;
-    const primary = page.locator('#actions .btn--primary');
+    // Кнопка броска гаснет на время кувырка костей: жать в неё в этот миг —
+    // значит считать нажатия, которых игрок не сделал бы.
+    const primary = page.locator('#actions .btn--primary:not([disabled])');
     if (await primary.count()) {
       const box = await primary.first().boundingBox();
       if (box && box.height < 44) {
@@ -160,8 +162,9 @@ try {
   wide = await play(390, 844, 3);
   narrow = await play(320, 720, 3);
 
-  // Правила должны открываться: без них новичок не поймёт, чем это отличается
-  // от «Монополии», а отличается оно в основном правилами.
+  // Правила и карточка клетки — то, по чему новичок разбирается в игре.
+  // Если они не открываются или пусты, игра остаётся непонятной, а больше
+  // ничего при этом не ломается: поле рисуется, ходы идут.
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
@@ -171,6 +174,29 @@ try {
   need(groups === 6, `в правилах ${groups} уделов вместо шести`);
   const cardsLine = await page.locator('.cards-count').textContent();
   need(/16.*14/.test(cardsLine || ''), `строка про колоды не сходится с ними: «${cardsLine}»`);
+  need(!/онопол/i.test(await page.locator('#rules-body').innerText()),
+    'в правилах осталась отсылка к другой игре');
+  await page.locator('#rules-close').click();
+
+  // Карточка клетки: открылась, показала название, цену и лестницу платы.
+  await page.locator('#start-btn').click();
+  await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  await page.locator('.cell[aria-label="Хеврон"]').click();
+  await page.waitForSelector('#cell-card:not([hidden])', { timeout: 3_000 });
+  const card = await page.locator('#cell-body').innerText();
+  need(/Хеврон/.test(card), `карточка клетки открылась без названия: «${card.slice(0, 40)}»`);
+  need(/400/.test(card), 'в карточке удела нет его цены');
+  need(await page.locator('#cell-ladder, .cell-row').count() >= 6,
+    'в карточке удела нет лестницы платы по ступеням');
+  const cardArt = await page.locator('.cell-art').getAttribute('src');
+  need(/plots\/hebron\.webp$/.test(cardArt || ''), `в карточке чужая картинка: ${cardArt}`);
+
+  // Особая клетка объясняет себя словами, а не значком.
+  await page.locator('#cell-close').click();
+  await page.locator('.cell[aria-label="Темница"]').click();
+  await page.waitForSelector('#cell-card:not([hidden])', { timeout: 3_000 });
+  const prison = await page.locator('#cell-body').innerText();
+  need(prison.length > 120, `особая клетка почти ничего не объясняет: «${prison}»`);
   await context.close();
 } finally {
   await browser.close();

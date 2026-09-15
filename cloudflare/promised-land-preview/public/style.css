@@ -22,6 +22,19 @@
   --radius: 16px;
   --radius-lg: 24px;
   --shadow: 0 1px 2px rgba(17, 24, 39, .06), 0 12px 28px -18px rgba(17, 24, 39, .45);
+
+  /*
+    Рельеф. Плоскую картинку поднимают три вещи разом: тень снизу, светлая
+    кромка сверху и лёгкий уклон заливки. Поодиночке каждая почти не видна,
+    вместе — предмет отрывается от фона.
+  */
+  --lift-1: 0 1px 1px rgba(17, 24, 39, .05), 0 2px 6px -2px rgba(17, 24, 39, .18);
+  --lift-2: 0 1px 2px rgba(17, 24, 39, .06), 0 6px 14px -6px rgba(17, 24, 39, .28);
+  --lift-3: 0 2px 4px rgba(17, 24, 39, .07), 0 18px 34px -16px rgba(17, 24, 39, .36);
+  --edge-top: inset 0 1px 0 rgba(255, 255, 255, .9);
+  --edge-in: inset 0 2px 5px rgba(17, 24, 39, .1);
+  --tilt: linear-gradient(180deg, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 62%);
+  --art-drop: drop-shadow(0 3px 5px rgba(17, 24, 39, .22));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,6 +54,13 @@
     --bg-1: #0f121a;
     --bg-2: #141926;
     --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 14px 32px -20px #000;
+    --lift-1: 0 1px 1px rgba(0, 0, 0, .5), 0 2px 6px -2px rgba(0, 0, 0, .6);
+    --lift-2: 0 1px 2px rgba(0, 0, 0, .55), 0 7px 16px -6px rgba(0, 0, 0, .7);
+    --lift-3: 0 2px 4px rgba(0, 0, 0, .6), 0 20px 38px -16px rgba(0, 0, 0, .8);
+    --edge-top: inset 0 1px 0 rgba(255, 255, 255, .09);
+    --edge-in: inset 0 2px 6px rgba(0, 0, 0, .55);
+    --tilt: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 62%);
+    --art-drop: drop-shadow(0 3px 6px rgba(0, 0, 0, .6));
   }
 }
 
@@ -92,8 +112,10 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 
 /* ——— начало партии ——— */
 .setup-block {
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 14px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow);
+  background: var(--surface); background-image: var(--tilt);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: var(--lift-2), var(--edge-top);
 }
 .hint { margin: -4px 0 0; font-size: 13px; color: var(--ink-soft); }
 .choice { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -120,8 +142,17 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   font: inherit; font-weight: 600; cursor: pointer; display: inline-flex;
   align-items: center; justify-content: center; gap: 6px;
 }
-.btn--primary { background: var(--primary); color: #fff; flex: 1 1 auto; }
-.btn--ghost { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.btn--primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 88%, #fff), var(--primary));
+  color: #fff; flex: 1 1 auto;
+  box-shadow: var(--lift-2), inset 0 1px 0 rgba(255, 255, 255, .34);
+}
+.btn--primary:active { transform: translateY(1px); box-shadow: var(--lift-1); }
+.btn--ghost {
+  background: var(--surface); background-image: var(--tilt);
+  color: var(--ink); border-color: var(--line-strong); box-shadow: var(--lift-1);
+}
+.btn--ghost:active { transform: translateY(1px); box-shadow: none; }
 .btn--big { flex: 1 1 100%; font-size: 17px; }
 .btn--small { min-height: 38px; padding: 0 11px; font-size: 13px; background: var(--primary); color: #fff; }
 .btn--small.alt { background: var(--gold); }
@@ -130,7 +161,10 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 
 /* ——— картинки ——— */
 .brand { display: flex; }
-.brand-icon { width: 76px; height: 76px; border-radius: 20px; display: block; }
+.brand-icon {
+  width: 76px; height: 76px; border-radius: 20px; display: block;
+  box-shadow: var(--lift-3), var(--edge-top);
+}
 
 /* ——— шапка партии ——— */
 .hud {
@@ -147,21 +181,33 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   width: 100%; max-width: 420px; aspect-ratio: 1; display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
   grid-template-rows: repeat(10, minmax(0, 1fr));
-  gap: 2px; padding: 3px; background: var(--sunk);
-  border: 1px solid var(--line); border-radius: 10px;
+  gap: 3px; padding: 6px; border-radius: 16px;
+  background: linear-gradient(160deg, var(--sunk), color-mix(in srgb, var(--sunk) 86%, var(--ink)));
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--lift-3), var(--edge-in);
 }
 .cell {
-  position: relative; background: var(--surface); border-radius: 2px;
-  min-width: 0; overflow: hidden;
+  position: relative; border-radius: 4px; padding: 0; border: 0; cursor: pointer;
+  background: var(--surface); background-image: var(--tilt);
+  min-width: 0; overflow: hidden; font: inherit; color: inherit;
   display: flex; align-items: flex-end; justify-content: center;
+  box-shadow: var(--lift-1), var(--edge-top);
+  transition: transform .12s ease, box-shadow .12s ease;
 }
-.cell.is-owned { box-shadow: inset 0 -3px 0 0 var(--owner); }
-.cell .band { position: absolute; inset: 0 0 auto 0; height: 32%; display: block; }
+.cell:hover { transform: translateY(-1px); box-shadow: var(--lift-2), var(--edge-top); z-index: 3; }
+.cell:active { transform: translateY(0); box-shadow: var(--lift-1); }
+.cell:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; z-index: 4; }
+.cell.is-owned { box-shadow: var(--lift-1), var(--edge-top), inset 0 -3px 0 0 var(--owner); }
+.cell .band {
+  position: absolute; inset: 0 0 auto 0; height: 32%; display: block;
+  box-shadow: inset 0 -1px 2px rgba(17, 24, 39, .22);
+}
 .cell .band.hatch {
   background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, .6) 0 2px, transparent 2px 5px);
 }
 .cell.is-spot .band { height: 0; }
 /* Картинка на клетке: крупно, но не впритык к полосе цвета удела. */
+.cell .mark { filter: var(--art-drop); }
 .cell .mark {
   width: 74%; height: 62%; object-fit: contain; margin-bottom: 8%;
   display: block; pointer-events: none;
@@ -174,15 +220,18 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   justify-content: center; flex-wrap: wrap;
 }
 .cell .tokens u {
-  width: 5px; height: 5px; border-radius: 50%; display: block;
+  width: 6px; height: 6px; border-radius: 50%; display: block;
+  box-shadow: 0 0 0 1px var(--surface), 0 1px 2px rgba(17, 24, 39, .5);
 }
 .cell .tokens u.is-turn { box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 2.5px currentColor; }
 
 .ring-core {
   grid-column: 2 / 10; grid-row: 2 / 10;
-  background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); background-image: var(--tilt);
+  border: 1px solid var(--line); border-radius: 14px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; padding: 10px; text-align: center; min-width: 0; min-height: 0; overflow: hidden;
+  box-shadow: var(--lift-3), var(--edge-top);
 }
 /*
   Иллюстрация в середине кольца делит место с текстом, поэтому у неё гибкая
@@ -191,6 +240,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .core-art {
   width: 100%; max-width: 190px; min-height: 0; flex: 0 1 auto;
   height: clamp(70px, 26vw, 150px); object-fit: contain; display: block;
+  filter: var(--art-drop);
 }
 .core-art--small { height: clamp(44px, 15vw, 82px); }
 .core-kind {
@@ -201,11 +251,22 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .core-note { font-size: clamp(12px, 3.4vw, 14px); color: var(--ink-soft); line-height: 1.35; max-width: 26ch; }
 .core-extra { color: var(--primary); font-weight: 600; }
 .core-ref { font-size: 11px; color: var(--ink-soft); opacity: .8; }
-.dice { display: flex; gap: 6px; }
+.dice { display: flex; gap: 8px; perspective: 260px; }
 .die {
-  width: 26px; height: 26px; border-radius: 7px; background: var(--surface);
-  border: 1px solid var(--line-strong); display: flex; align-items: center;
-  justify-content: center; font-size: 14px; font-weight: 700;
+  width: 32px; height: 32px; border-radius: 9px;
+  background: linear-gradient(155deg, var(--surface), color-mix(in srgb, var(--surface) 82%, var(--ink)));
+  border: 1px solid var(--line-strong);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums;
+  box-shadow: var(--lift-2), inset 0 1px 0 rgba(255, 255, 255, .75), inset 0 -2px 4px rgba(17, 24, 39, .14);
+}
+.dice.is-rolling .die { animation: tumble .42s linear infinite; }
+.dice.is-rolling .die:last-child { animation-duration: .34s; animation-direction: reverse; }
+@keyframes tumble {
+  0%   { transform: rotateX(0deg) rotateZ(0deg) translateY(0); }
+  30%  { transform: rotateX(160deg) rotateZ(90deg) translateY(-7px); }
+  60%  { transform: rotateX(300deg) rotateZ(190deg) translateY(-3px); }
+  100% { transform: rotateX(360deg) rotateZ(360deg) translateY(0); }
 }
 
 /* ——— действия ——— */
@@ -218,10 +279,14 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 /* ——— игроки ——— */
 .players { display: flex; gap: 8px; flex-wrap: wrap; }
 .player {
-  flex: 1 1 108px; background: var(--surface); border: 1px solid var(--line);
+  flex: 1 1 108px; background: var(--surface); background-image: var(--tilt);
+  border: 1px solid var(--line);
   border-left: 3px solid var(--who); border-radius: 12px; padding: 8px 10px;
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  box-shadow: var(--lift-1), var(--edge-top);
 }
+.player.is-turn { box-shadow: var(--lift-2), var(--edge-top), 0 0 0 1px var(--who); }
+.player-token { filter: var(--art-drop); }
 .player.is-turn { border-color: var(--who); background: var(--primary-tint); }
 .player-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .player-token { width: 20px; height: 20px; object-fit: contain; flex: none; }
@@ -236,6 +301,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .feed {
   display: flex; flex-direction: column; gap: 3px; padding: 10px 12px;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--lift-1);
 }
 .feed-line { font-size: 12.5px; color: var(--ink-soft); }
 .feed-line:first-child { color: var(--ink); font-weight: 600; }
@@ -250,8 +316,10 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .holding { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .holding:last-of-type { border-bottom: 0; }
 .holding-art {
-  width: 46px; height: 46px; object-fit: contain; flex: none; border-radius: 10px;
-  background: var(--surface-soft); box-shadow: inset 3px 0 0 0 var(--band, transparent);
+  width: 48px; height: 48px; object-fit: contain; flex: none; border-radius: 12px;
+  background: var(--surface-soft); background-image: var(--tilt);
+  box-shadow: inset 3px 0 0 0 var(--band, transparent), var(--lift-1);
+  padding: 3px;
 }
 .holding-info { display: flex; flex-direction: column; min-width: 0; flex: 1 1 130px; }
 .holding-info b { font-size: 14.5px; }
@@ -268,8 +336,10 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .winner-icon { width: 30px; height: 30px; object-fit: contain; }
 .scores { display: flex; flex-direction: column; gap: 8px; }
 .score {
-  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--who);
+  background: var(--surface); background-image: var(--tilt);
+  border: 1px solid var(--line); border-left: 4px solid var(--who);
   border-radius: var(--radius); padding: 11px 13px; display: flex; flex-direction: column; gap: 5px;
+  box-shadow: var(--lift-2), var(--edge-top);
 }
 .score.is-winner { background: var(--primary-tint); border-color: var(--who); border-left-color: var(--who); }
 .score-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
@@ -277,6 +347,50 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .score-total { font-size: 24px; font-variant-numeric: tabular-nums; color: var(--primary); }
 .score-parts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--ink-soft); }
 .score-parts span { font-variant-numeric: tabular-nums; }
+
+/* ——— карточка клетки ——— */
+.modal-card--cell { max-width: 420px; }
+.cell-body { display: flex; flex-direction: column; gap: 8px; }
+.cell-art {
+  width: 100%; height: 168px; object-fit: contain; display: block;
+  filter: var(--art-drop); margin-bottom: 2px;
+}
+.cell-art--icon { height: 112px; }
+.cell-kind {
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 700; display: flex; align-items: center; gap: 7px;
+}
+.cell-kind::before {
+  content: ''; width: 12px; height: 12px; border-radius: 3px;
+  background: var(--band, var(--ink-soft)); box-shadow: var(--lift-1);
+}
+.cell-name { margin: 0; font-size: 23px; }
+.cell-text { margin: 0; font-size: 14.5px; color: var(--ink-soft); }
+.cell-figs { display: flex; gap: 8px; margin-top: 2px; }
+.cell-fig {
+  flex: 1 1 0; background: var(--surface-soft); background-image: var(--tilt);
+  border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  box-shadow: var(--lift-1), var(--edge-top);
+}
+.cell-fig b { font-size: 19px; font-variant-numeric: tabular-nums; }
+.cell-fig span { font-size: 11px; color: var(--ink-soft); text-align: center; }
+.cell-cap {
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 700; margin-top: 6px;
+}
+.cell-ladder {
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  box-shadow: var(--lift-1);
+}
+.cell-row {
+  display: flex; justify-content: space-between; gap: 12px; padding: 7px 12px;
+  font-size: 14px; background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.cell-row:last-child { border-bottom: 0; }
+.cell-row b { font-variant-numeric: tabular-nums; }
+.cell-row.is-now { background: var(--primary-tint); font-weight: 600; }
+.cell-note { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-soft); }
 
 /* ——— правила ——— */
 .modal {
@@ -287,16 +401,37 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .modal-card {
   position: relative; background: var(--surface); border-radius: var(--radius-lg);
   padding: 18px 16px; max-width: 520px; width: 100%; max-height: 82vh; overflow-y: auto;
-  box-shadow: var(--shadow);
+  box-shadow: var(--lift-3), var(--edge-top);
+  animation: rise .2s ease-out;
 }
+@keyframes rise { from { transform: translateY(14px); opacity: 0; } }
 .modal-close {
-  position: absolute; top: 8px; right: 8px; width: 40px; height: 40px;
+  /*
+    z-index обязателен. Иллюстрация в карточке нарисована с тенью через filter,
+    а элемент с фильтром образует слой и ложится поверх позиционированного
+    соседа без z-index — то есть поверх этого крестика. Нажать его тогда
+    нельзя, хотя видно его прекрасно.
+  */
+  position: absolute; top: 8px; right: 8px; z-index: 2; width: 40px; height: 40px;
   border: 0; border-radius: 12px; background: var(--surface-soft); color: var(--ink);
   font-size: 22px; line-height: 1; cursor: pointer;
+  box-shadow: var(--lift-1);
 }
 .rules-body ul { margin: 0 0 8px; padding-left: 18px; }
 .rules-body li { margin-bottom: 5px; font-size: 14.5px; }
 .rules-body p { font-size: 14.5px; color: var(--ink-soft); }
+.rules-body ol { margin: 0 0 8px; padding-left: 20px; }
+.rules-body ol li { margin-bottom: 5px; font-size: 14.5px; }
+.rules-body .ladder {
+  text-align: center; font-size: 15.5px; color: var(--ink);
+  background: var(--surface-soft); border: 1px solid var(--line);
+  border-radius: 12px; padding: 9px; margin: 8px 0; box-shadow: var(--lift-1);
+}
+.rules-body .tip {
+  border-left: 3px solid var(--primary); padding: 6px 0 6px 11px;
+  color: var(--ink); background: var(--primary-tint);
+  border-radius: 0 10px 10px 0;
+}
 .rules-rents { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
 .rule-group { display: flex; gap: 9px; align-items: flex-start; }
 .rule-group i { width: 10px; height: 30px; border-radius: 3px; flex: none; }
@@ -317,4 +452,5 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
+  .cell:hover { transform: none; }
 }

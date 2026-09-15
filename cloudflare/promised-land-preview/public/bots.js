@@ -69,7 +69,7 @@ window.PromisedLandBots = (() => {
         .sort((a, b) => B.BOARD[b].price - B.BOARD[a].price);
       if (buildable.length && E.build(state, buildable[0])) return 'build';
 
-      // В субботний год аренды нет, и лишнее серебро обращается в наследие.
+      // В субботний год платы нет, и лишнее серебро обращается в наследие.
       if (profile.legacy && state.sabbath) {
         const spot = state.cells
           .map((cell, n) => n)

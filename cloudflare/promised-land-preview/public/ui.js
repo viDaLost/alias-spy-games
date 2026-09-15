@@ -121,7 +121,10 @@
     cellNodes.length = 0;
     for (const spec of B.BOARD) {
       const [row, col] = B.gridPlace(spec.n);
-      const node = el('div', 'cell');
+      const node = el('button', 'cell');
+      node.type = 'button';
+      node.setAttribute('aria-label', spec.name);
+      node.addEventListener('click', () => showCellCard(spec.n));
       node.style.gridRow = String(row);
       node.style.gridColumn = String(col);
       node.dataset.n = String(spec.n);
@@ -196,7 +199,7 @@
       core.appendChild(el('div', 'core-name', player.name));
       core.appendChild(el('div', 'core-note',
         player.prison > 0 ? `В темнице. Дубль освобождает, попыток: ${player.prison}.`
-          : (player.isBot ? 'Думает…' : 'Бросьте кости.')));
+          : (player.isBot ? 'Думает…' : 'Бросьте жребий.')));
       return;
     }
 
@@ -233,11 +236,38 @@
     if (pending.ref) core.appendChild(el('div', 'core-ref', pending.ref));
   }
 
+  /*
+    Объяснение каждой особой клетки. Игрок, который видит поле впервые, должен
+    узнать, что она делает, не выходя в правила: значок этого не говорит.
+  */
+  const CELL_HELP = {
+    exodus: 'Начало пути. Каждый раз, проходя эту клетку, вы собираете урожай — 200 сиклей.',
+    prison: 'Просто стоя здесь, вы ничего не теряете. А попав сюда по «Навету», карте или трём '
+      + 'одинаковым жребиям подряд, выходите так: выбросив два одинаковых числа, заплатив выкуп '
+      + 'в 50 сиклей или картой «Ангел отворил двери».',
+    tent: 'Гостеприимство. Всё, что собралось в казне с десятин и приношений, достаётся вам, '
+      + 'и сверх того — одно очко наследия.',
+    slander: 'Вас оговорили перед царём: отправляйтесь в темницу. Урожай по дороге не собирается.',
+    tithe: 'Десятая часть вашего серебра уходит в казну — не меньше 50 и не больше 400. '
+      + 'Отданное не пропадает: каждые полные 100 сиклей десятины дают очко наследия.',
+    offering: 'Сто сиклей в казну и одно очко наследия.',
+    providence: 'Колода событий: засухи и урожаи, дороги и встречи. Шестнадцать карт.',
+    mercy: 'Колода дел милосердия. Почти каждая её карта приносит наследие. Четырнадцать карт.',
+  };
+
+  // Род клетки — то, что стоит над её названием. У особой клетки возвращать
+  // само название бессмысленно: оно и так написано строкой ниже.
+  const SPOT_KIND = {
+    exodus: 'Угол поля', prison: 'Угол поля', tent: 'Угол поля', slander: 'Угол поля',
+    tithe: 'Отдать в казну', offering: 'Отдать в казну',
+    providence: 'Колода событий', mercy: 'Колода милосердия',
+  };
+
   function kindLabel(spec) {
     if (spec.kind === 'plot') return B.GROUPS[spec.group].name;
     if (spec.kind === 'road') return 'Караванный путь';
     if (spec.kind === 'well') return 'Источник';
-    return spec.name;
+    return SPOT_KIND[spec.kind] || spec.name;
   }
 
   // ————————————————————————————————————————————————— шапка, игроки, кнопки
@@ -247,10 +277,10 @@
       ? `Субботний год ${state.year} из ${state.years}`
       : `Год ${state.year} из ${state.years}`;
     $('year').classList.toggle('is-sabbath', state.sabbath);
-    const pot = $('pot');
+    const pot = $('treasury');
     pot.innerHTML = '';
     pot.appendChild(img(art('icons', state.sabbath ? 'ui-sabbath' : 'ui-pot'), 'hud-icon', ''));
-    pot.appendChild(el('span', null, `Котёл ${state.pot}`));
+    pot.appendChild(el('span', null, `Казна ${state.treasury}`));
 
     const strip = $('players');
     strip.innerHTML = '';
@@ -303,7 +333,14 @@
     }
 
     if (state.phase === 'roll') {
-      bar.appendChild(button('Бросить кости', 'primary', () => { E.roll(state); after(); }));
+      const cast = button('Бросить жребий', 'primary', async () => {
+        if (rolling) return;
+        cast.disabled = true;
+        await tumble();
+        E.roll(state);
+        after();
+      });
+      bar.appendChild(cast);
     } else if (state.pending && state.pending.type === 'buy') {
       const spec = B.BOARD[state.pending.cell];
       bar.appendChild(button(`Купить за ${spec.price}`, 'primary', () => { E.buy(state); after(); }));
@@ -352,10 +389,10 @@
 
       const info = el('div', 'holding-info');
       info.appendChild(el('b', null, spec.name));
-      const status = cell.altar ? 'жертвенник, аренды нет'
+      const status = cell.altar ? 'жертвенник, платы нет'
         : (cell.level > 0 ? B.LEVELS[cell.level - 1] : 'без построек');
       const rent = E.rentFor(state, n, 7);
-      info.appendChild(el('span', null, `${status} · аренда ${rent}`));
+      info.appendChild(el('span', null, `${status} · плата ${rent}`));
       row.appendChild(info);
 
       const acts = el('div', 'holding-acts');
@@ -479,7 +516,9 @@
     clearTimeout(botTimer);
     if (state.status !== 'playing') return;
     if (!E.current(state).isBot) return;
-    botTimer = setTimeout(() => {
+    botTimer = setTimeout(async () => {
+      if (state.phase === 'roll' && !E.current(state).skip) await tumble(460);
+      if (state.status !== 'playing') return;
       const done = Bots.step(state);
       render();
       if (state.status === 'playing') scheduleBot();
@@ -488,6 +527,130 @@
   }
 
   // ————————————————————————————————————————————————— правила и запуск
+
+  /*
+    Бросок жребия. Числа во время кувырка случайны и ни на что не влияют —
+    настоящий бросок делает движок после. Показывать сразу готовый результат
+    нельзя: тогда кости не бросают, а просто объявляют.
+  */
+  let rolling = false;
+  const REDUCED = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+  function tumble(ms = 620) {
+    if (REDUCED) return Promise.resolve();
+    return new Promise((resolve) => {
+      rolling = true;
+      const core = $('core');
+      const player = E.current(state);
+      core.innerHTML = '';
+      const box = el('div', 'dice is-rolling');
+      const first = el('b', 'die');
+      const second = el('b', 'die');
+      box.appendChild(first);
+      box.appendChild(second);
+      core.appendChild(box);
+      core.appendChild(el('div', 'core-kind', 'Жребий брошен'));
+      core.appendChild(el('div', 'core-name', player.name));
+
+      const started = Date.now();
+      const timer = setInterval(() => {
+        first.textContent = String(1 + Math.floor(Math.random() * 6));
+        second.textContent = String(1 + Math.floor(Math.random() * 6));
+        if (Date.now() - started < ms) return;
+        clearInterval(timer);
+        rolling = false;
+        resolve();
+      }, 70);
+    });
+  }
+
+  // ——— карточка клетки ———
+
+  function showCellCard(n) {
+    $('cell-card').hidden = false;
+    const spec = B.BOARD[n];
+    const cell = state ? state.cells[n] : null;
+    const body = $('cell-body');
+    body.innerHTML = '';
+
+    body.appendChild(B.OWNABLE.has(spec.kind)
+      ? img(art('plots', spec.slug), 'cell-art', spec.name)
+      : img(art('icons', spec.slug), 'cell-art cell-art--icon', spec.name));
+
+    const kind = el('div', 'cell-kind', kindLabel(spec));
+    if (spec.kind === 'plot') kind.style.setProperty('--band', B.colorOf(spec));
+    body.appendChild(kind);
+    body.appendChild(el('h3', 'cell-name', spec.name));
+
+    if (!B.OWNABLE.has(spec.kind)) {
+      body.appendChild(el('p', 'cell-text', CELL_HELP[spec.kind] || spec.note || ''));
+      return;
+    }
+
+    const owner = cell && state.players.find((p) => p.id === (cell.heldFrom || cell.owner));
+    body.appendChild(el('p', 'cell-text', owner
+      ? (cell.altar ? `Здесь жертвенник ${owner.name}: платы за эту землю нет.`
+        : (cell.level > 0 ? `Земля ${owner.name}. Обжита: ${B.LEVELS[cell.level - 1].toLowerCase()}.`
+          : `Земля ${owner.name}. Построек пока нет.`))
+      : (spec.kind === 'plot' ? 'Свободный удел. Купив его, вы начнёте брать плату с тех, кто сюда ступит.'
+        : (spec.kind === 'road'
+          ? 'Свободный караванный путь. Плата за него растёт от того, сколько путей у одного хозяина.'
+          : 'Свободный источник. Плата за него считается по жребию.'))));
+
+    const figures = el('div', 'cell-figs');
+    const fig = (label, value) => {
+      const box = el('div', 'cell-fig');
+      box.appendChild(el('b', null, String(value)));
+      box.appendChild(el('span', null, label));
+      figures.appendChild(box);
+    };
+    fig('цена', spec.price);
+    if (spec.kind === 'plot') fig('ступень', B.GROUPS[spec.group].build);
+    // «Плата сейчас» имеет смысл только у чужой земли: на свободной она всегда
+    // ноль, и этот ноль читается как «проход бесплатный навсегда».
+    if (state && owner) fig('платят сейчас', E.rentFor(state, n, 7));
+    body.appendChild(figures);
+
+    if (spec.kind === 'plot') {
+      const ladder = B.ladderOf(spec);
+      const table = el('div', 'cell-ladder');
+      const rows = ['Без построек', ...B.LEVELS];
+      rows.forEach((label, index) => {
+        const row = el('div', 'cell-row');
+        if (cell && (cell.level === index) && !cell.altar) row.classList.add('is-now');
+        row.appendChild(el('span', null, label));
+        row.appendChild(el('b', null, String(ladder[index])));
+        table.appendChild(row);
+      });
+      body.appendChild(el('div', 'cell-cap', 'Плата за проход'));
+      body.appendChild(table);
+      body.appendChild(el('p', 'cell-note',
+        `Обживать можно, только собрав все уделы цвета «${B.GROUPS[spec.group].name}». `
+        + 'Пока построек нет, а весь цвет у одного хозяина, плата удваивается.'));
+    } else if (spec.kind === 'road') {
+      const table = el('div', 'cell-ladder');
+      B.ROAD_RENT.forEach((value, index) => {
+        const row = el('div', 'cell-row');
+        if (state && cell.owner && E.ownedCount(state, cell.owner, 'road') === index + 1) row.classList.add('is-now');
+        row.appendChild(el('span', null, `${index + 1} ${index ? 'пути' : 'путь'} у хозяина`));
+        row.appendChild(el('b', null, String(value)));
+        table.appendChild(row);
+      });
+      body.appendChild(el('div', 'cell-cap', 'Плата за проход'));
+      body.appendChild(table);
+    } else {
+      body.appendChild(el('div', 'cell-cap', 'Плата за проход'));
+      const table = el('div', 'cell-ladder');
+      B.WELL_MULT.forEach((value, index) => {
+        const row = el('div', 'cell-row');
+        if (state && cell.owner && E.ownedCount(state, cell.owner, 'well') === index + 1) row.classList.add('is-now');
+        row.appendChild(el('span', null, index ? 'оба источника у хозяина' : 'один источник у хозяина'));
+        row.appendChild(el('b', null, `жребий ×${value}`));
+        table.appendChild(row);
+      });
+      body.appendChild(table);
+    }
+  }
 
   function fillRules() {
     const box = $('rules-body');
@@ -522,6 +685,14 @@
 
     $('rules-btn').addEventListener('click', () => { $('rules').hidden = false; });
     $('rules-close').addEventListener('click', () => { $('rules').hidden = true; });
+    $('cell-close').addEventListener('click', () => { $('cell-card').hidden = true; });
+    // Нажатие мимо карточки тоже закрывает: иначе на телефоне придётся целиться
+    // в крестик, а он маленький.
+    for (const id of ['rules', 'cell-card']) {
+      $(id).addEventListener('click', (event) => {
+        if (event.target === $(id)) $(id).hidden = true;
+      });
+    }
   }
 
   setupScreen();

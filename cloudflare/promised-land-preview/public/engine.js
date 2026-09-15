@@ -42,7 +42,7 @@ window.PromisedLandEngine = (() => {
       years,
       year: 1,
       sabbath: years === 1,
-      pot: 0,
+      treasury: 0,
       turn: 0,
       phase: 'roll',
       dice: [0, 0],
@@ -142,8 +142,8 @@ window.PromisedLandEngine = (() => {
   /*
     Наёмник вместо банкрота (Лев. 25:39-41). Разорившийся не выбывает: он идёт
     в наём к тому, кому должен. Уделы переходят кредитору до юбилея, половина
-    урожая гасит долг, аренду с наёмника не берут — а в юбилей он свободен, и
-    земля возвращается. Ради этого правила игра и переделывалась: в «Монополии»
+    урожая гасит долг, плату с наёмника не берут — а в юбилей он свободен, и
+    земля возвращается. Ради этого правила игра и строилась: иначе
     проигравший встаёт из-за стола и полчаса смотрит, как играют другие.
   */
   function becomeServant(state, player, creditor, debt) {
@@ -181,13 +181,13 @@ window.PromisedLandEngine = (() => {
     if (player.silver < amount) raiseFunds(state, player, amount);
     if (player.silver < amount) {
       const short = amount - player.silver;
-      if (target && target !== 'pot') target.silver += player.silver;
-      else if (target === 'pot') state.pot += player.silver;
-      becomeServant(state, player, target && target !== 'pot' ? target : null, short);
+      if (target && target !== 'treasury') target.silver += player.silver;
+      else if (target === 'treasury') state.treasury += player.silver;
+      becomeServant(state, player, target && target !== 'treasury' ? target : null, short);
       return;
     }
     player.silver -= amount;
-    if (target === 'pot') state.pot += amount;
+    if (target === 'treasury') state.treasury += amount;
     else if (target) target.silver += amount;
   }
 
@@ -306,7 +306,7 @@ window.PromisedLandEngine = (() => {
     const notes = [];
     if (card.silver) {
       if (card.silver > 0) player.silver += card.silver;
-      else pay(state, player, -card.silver, card.toPot ? 'pot' : null);
+      else pay(state, player, -card.silver, card.toTreasury ? 'treasury' : null);
     }
     if (card.heritage) player.heritage += card.heritage;
     if (card.key) player.keys += card.key;
@@ -317,7 +317,7 @@ window.PromisedLandEngine = (() => {
 
     if (card.perBuilding) {
       const amount = settlementSteps(state, player.id) * -card.perBuilding;
-      if (amount > 0) { pay(state, player, amount, 'pot'); notes.push(`${amount} сиклей`); }
+      if (amount > 0) { pay(state, player, amount, 'treasury'); notes.push(`${amount} сиклей`); }
     }
     if (card.perSettlement) {
       const amount = settlementSteps(state, player.id) * card.perSettlement;
@@ -330,18 +330,18 @@ window.PromisedLandEngine = (() => {
         pay(state, player, card.toEach, other);
       }
     }
-    if (card.takePot) {
-      notes.push(`${state.pot} сиклей из котла`);
-      player.silver += state.pot;
-      state.pot = 0;
+    if (card.takeTreasury) {
+      notes.push(`${state.treasury} сиклей из казны`);
+      player.silver += state.treasury;
+      state.treasury = 0;
     }
-    if (card.overToPot) {
-      const excess = Math.max(0, player.silver - card.overToPot);
+    if (card.overToTreasury) {
+      const excess = Math.max(0, player.silver - card.overToTreasury);
       if (excess > 0) {
         player.silver -= excess;
-        state.pot += excess;
+        state.treasury += excess;
         player.heritage += Math.floor(excess / (card.heritagePer || 100));
-        notes.push(`${excess} сиклей в котёл`);
+        notes.push(`${excess} сиклей в казну`);
       }
     }
     if (card.giveToPoorest) {
@@ -353,7 +353,7 @@ window.PromisedLandEngine = (() => {
       if (debtor) {
         const amount = Math.min(card.payDebtor, debtor.debt);
         const creditor = state.players.find((p) => p.id === debtor.servantOf);
-        pay(state, player, amount, creditor || 'pot');
+        pay(state, player, amount, creditor || 'treasury');
         debtor.debt -= amount;
         if (debtor.debt <= 0) releaseServant(state, debtor);
         notes.push(`долг ${debtor.name} уменьшен на ${amount}`);
@@ -363,7 +363,7 @@ window.PromisedLandEngine = (() => {
     }
     if (card.titheNow) {
       const amount = titheAmount(player);
-      pay(state, player, amount, 'pot');
+      pay(state, player, amount, 'treasury');
       player.tithePaid += card.doubleHeritage ? amount * 2 : amount;
       notes.push(`десятина ${amount}`);
     }
@@ -438,7 +438,7 @@ window.PromisedLandEngine = (() => {
         return;
       }
       if (player.noRent) {
-        state.pending = { type: 'note', title: spec.name, text: 'В этом круге вы не платите аренду.' };
+        state.pending = { type: 'note', title: spec.name, text: 'В этом круге вы не платите за проход.' };
         return;
       }
       const owner = state.players.find((p) => p.id === cell.owner);
@@ -446,20 +446,20 @@ window.PromisedLandEngine = (() => {
       if (rent <= 0) {
         state.pending = {
           type: 'note', title: spec.name,
-          text: state.sabbath ? 'Субботний год: земля отдыхает, аренды нет.'
-            : (cell.altar ? 'Здесь жертвенник: аренды нет.' : 'Аренды нет.'),
+          text: state.sabbath ? 'Субботний год: земля отдыхает, платы нет.'
+            : (cell.altar ? 'Здесь жертвенник: платы нет.' : 'Платы нет.'),
         };
         return;
       }
       pay(state, player, rent, owner);
       log(state, `${player.name} платит ${owner.name} ${rent} за «${spec.name}»`);
-      state.pending = { type: 'note', title: spec.name, text: `Аренда ${rent} сиклей для ${owner.name}.` };
+      state.pending = { type: 'note', title: spec.name, text: `Плата ${rent} сиклей для ${owner.name}.` };
       return;
     }
 
     if (spec.kind === 'tithe') {
       const amount = titheAmount(player);
-      pay(state, player, amount, 'pot');
+      pay(state, player, amount, 'treasury');
       player.tithePaid += amount;
       log(state, `${player.name} отдаёт десятину ${amount}`);
       state.pending = {
@@ -469,21 +469,21 @@ window.PromisedLandEngine = (() => {
       return;
     }
     if (spec.kind === 'offering') {
-      pay(state, player, B.OFFERING, 'pot');
+      pay(state, player, B.OFFERING, 'treasury');
       player.offerings += 1;
       player.heritage += 1;
-      state.pending = { type: 'note', title: 'Приношение', text: `${B.OFFERING} сиклей в котёл, +1 наследия.` };
+      state.pending = { type: 'note', title: 'Приношение', text: `${B.OFFERING} сиклей в казну, +1 наследия.` };
       return;
     }
     if (spec.kind === 'tent') {
-      const taken = state.pot;
+      const taken = state.treasury;
       player.silver += taken;
-      state.pot = 0;
+      state.treasury = 0;
       player.hospitality += 1;
       player.heritage += 1;
       state.pending = {
         type: 'note', title: 'Шатёр Авраама',
-        text: taken ? `Котёл ваш: ${taken} сиклей, +1 наследия.` : 'Котёл пуст, но +1 наследия.',
+        text: taken ? `Казна ваша: ${taken} сиклей, +1 наследия.` : 'Казна пуст, но +1 наследия.',
       };
       return;
     }
@@ -532,7 +532,7 @@ window.PromisedLandEngine = (() => {
       } else {
         player.prison -= 1;
         if (player.prison === 0) {
-          pay(state, player, B.RANSOM, 'pot');
+          pay(state, player, B.RANSOM, 'treasury');
           log(state, `${player.name} платит выкуп ${B.RANSOM}`);
         } else {
           state.pending = { type: 'note', title: 'Темница', text: `Дубля нет. Осталось попыток: ${player.prison}.` };
@@ -699,7 +699,7 @@ window.PromisedLandEngine = (() => {
       state.sabbath = state.year === state.years;
       if (state.sabbath) {
         freeServants(state, 'субботний год прощает долги');
-        log(state, `Субботний год: земля отдыхает, аренды нет.`);
+        log(state, `Субботний год: земля отдыхает, платы нет.`);
       } else {
         log(state, `Год ${state.year}.`);
       }
