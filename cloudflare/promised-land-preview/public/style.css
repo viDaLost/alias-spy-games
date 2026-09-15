@@ -200,6 +200,32 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   */
   margin-block: 2px 2%;
 }
+/*
+  Поле в объёме занимает место разметочного целиком. Само разметочное при этом
+  остаётся в разметке, но не показывается: на нём держится всё, что вокруг, и
+  оно же выходит вперёд, если WebGL не дали.
+*/
+.board3d { display: block; width: 100%; height: 100%; }
+/*
+  Доска квадратная, но смотрим мы на неё сверху под углом: глубина сжимается,
+  и в кадре доска шире, чем выше. Квадратная коробка оставляла бы сверху и
+  снизу по полосе пустоты — отношение сторон подобрано под ровно тот угол, под
+  которым стоит камера.
+*/
+.ring-wrap.is-3d {
+  display: block; width: 100%; max-width: 460px; aspect-ratio: 1.32;
+  margin-inline: auto; margin-block: 0 2px; perspective: none;
+  /*
+    Коробка — элемент колонки, а у таких минимальная высота считается по
+    содержимому. Холст в потоке возвращал бы ей свою квадратную высоту, и
+    отношение сторон не значило бы ничего: поэтому холст вынут из потока, а
+    минимум снят явно.
+  */
+  min-height: 0;
+}
+.ring-wrap.is-3d .board3d { position: absolute; inset: 0; }
+.ring-wrap.is-3d .ring { display: none; }
+
 .ring {
   width: 100%; max-width: 420px; aspect-ratio: 1; display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
@@ -278,6 +304,15 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px; padding: 10px; text-align: center; min-width: 0; min-height: 0; overflow: hidden;
   box-shadow: var(--lift-3), var(--edge-top);
+}
+/*
+  Карточка под доской: у поля в объёме середина занята самой доской, и висеть
+  над ней карточке негде. Правило стоит после «.ring-core» намеренно — сила у
+  них одинаковая, и решает порядок.
+*/
+.ring-core--below {
+  position: static; transform: none; width: 100%; max-width: 420px;
+  max-height: none; margin: 0 auto 8px; z-index: auto;
 }
 /*
   Иллюстрация в середине кольца делит место с текстом, поэтому у неё гибкая
@@ -533,6 +568,28 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     grid-column: 1; grid-row: 1 / span 9;
     align-self: start; margin-block: 0 -4%;
   }
+  /*
+    Кольцу колонку считают по высоте: оно квадратное, и по ширине экрана оно
+    бы в неё не влезло. Доска в объёме ниже своей ширины — ей колонка считается
+    по ширине, иначе под ней остаётся сотня точек пустоты.
+  */
+  #game.has-3d { grid-template-columns: min(128vh, 46vw) minmax(0, 1fr); }
+  #game > .ring-wrap.is-3d { margin-block: 0; }
+  /*
+    Карточка под доской боком ложится строкой: столбиком она съедает полторы
+    сотни точек высоты, и на них экран начинает прокручиваться. Рисунок уходит
+    влево, подписи — вправо, и вся она укладывается в высоту собственной
+    картинки.
+  */
+  #game > .ring-core--below {
+    flex-direction: row; align-items: center; gap: 12px;
+    text-align: left; padding: 8px 12px; max-width: none;
+  }
+  .ring-core--below .core-art { width: auto; height: 58px; flex: 0 0 auto; }
+  .ring-core--below .core-art--small { height: 46px; }
+  .ring-core--below .core-name { font-size: 18px; }
+  .ring-core--below .core-note { font-size: 12px; max-width: none; }
+  .ring-core--below .dice { padding: 0; }
   #game > .ring-wrap .ring { max-width: none; }
   .hud { padding-top: 2px; }
   /* Лента короче: место справа дороже, а нужны последние события, не все. */

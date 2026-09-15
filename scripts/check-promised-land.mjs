@@ -139,6 +139,55 @@ function playOut(seed, years, playerCount) {
   };
 }
 
+/*
+  Платит игрок, а не игра. Движок только выставляет счёт: до решения игрока
+  серебро не двигается, а по решению уходит ровно сумма счёта. Раньше плата
+  списывалась сама, и разницу между «спросили» и «списали» на экране было не
+  видно — поэтому здесь она считается, а не подразумевается.
+*/
+function paymentWaits(seed) {
+  const rng = seeded(seed);
+  const state = E.createGame({
+    players: [{ name: 'Человек' }, { name: 'Бот', isBot: true, botLevel: 'elder' }],
+    years: 7,
+    rng,
+  });
+  for (let step = 0; step < 20000 && state.status === 'playing'; step += 1) {
+    const player = E.current(state);
+    if (player.isBot) {
+      if (!Bots.step(state, rng)) E.endTurn(state);
+      continue;
+    }
+    if (state.phase === 'roll') {
+      E.roll(state);
+      if (!state.pending || state.pending.type !== 'pay') continue;
+      /*
+        Счёт выставлен — значит движок спросил, а не взял: пока он висит, ход
+        стоит в фазе решения и деньги на месте. Сравнивать серебро до и после
+        броска нельзя: тот же бросок мог принести двести за пройденный Исход.
+      */
+      const owed = state.pending.amount;
+      const held = player.silver;
+      if (state.phase !== 'settle') {
+        return { why: `счёт выставлен, а ход уже в фазе «${state.phase}»` };
+      }
+      if (!(owed > 0)) return { why: `счёт выставлен на ${owed}` };
+      E.settle(state);
+      if (player.silver !== held - owed) {
+        return { why: `по решению игрока списали ${held - player.silver} вместо ${owed}` };
+      }
+      return { owed, held };
+    }
+    if (state.pending && state.pending.type === 'buy') E.decline(state);
+    else E.endTurn(state);
+  }
+  return { why: 'за всю партию счёт игроку не выставили ни разу' };
+}
+
+const asked = [1, 2, 3, 4, 5].map((seed) => paymentWaits(seed));
+const brokenAsk = asked.find((result) => result.why);
+need(!brokenAsk, `плата мимо решения игрока: ${brokenAsk?.why}`);
+
 const GAMES = 600;
 const results = [];
 for (let seed = 1; seed <= GAMES; seed += 1) {
@@ -198,4 +247,6 @@ console.log(`OK: ${GAMES} партий дошли до юбилея и конч�
   + `Ходов в партии (медиана): ${turnsBy(3)} за три года, ${turnsBy(5)} за пять, ${turnsBy(7)} за семь. `
   + `Наём сработал в ${withServants} партиях, никто не выбыл из-за стола, `
   + `в субботний год плата нулевая, а богатейший побеждает лишь в ${richestShare.toFixed(0)}% случаев. `
-  + `Поле: 36 клеток, лестница платы монотонна по всем ступеням.`);
+  + `Поле: 36 клеток, лестница платы монотонна по всем ступеням. `
+  + `Счёт игроку выставляется, а не списывается: в пяти прогонах серебро тронулось `
+  + `только после решения и ровно на сумму счёта (${asked.map((r) => r.owed).join(', ')}).`);

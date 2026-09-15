@@ -45,14 +45,21 @@ function walk(source, destination) {
   }
 }
 
-// Файлы, которых в источнике больше нет, из копии убираются: иначе
-// переименованная картинка осталась бы в превью под старым именем навсегда.
+/*
+  Файлы, которых в источнике больше нет, из копии убираются: иначе
+  переименованная картинка осталась бы в превью под старым именем навсегда.
+  Одиночные файлы — исключение: они приходят из других мест и своего двойника
+  в общей папке не имеют, так что уборка сносила бы их на каждом прогоне.
+*/
+const SINGLES = new Set(['scene.webp', 'menu-icon.webp', 'three-r128.min.js']);
+
 function prune(source, destination) {
   if (!fs.existsSync(destination)) return;
   for (const entry of fs.readdirSync(destination, { withFileTypes: true })) {
     const src = path.join(source, entry.name);
     const dst = path.join(destination, entry.name);
     if (entry.isDirectory()) { prune(src, dst); continue; }
+    if (SINGLES.has(entry.name)) continue;
     if (!fs.existsSync(src)) { fs.unlinkSync(dst); console.log(`убрано лишнее: art/${entry.name}`); }
   }
 }
@@ -68,6 +75,9 @@ prune(from, to);
 for (const [source, name] of [
   ['web/assets/game-scenes/scenes/promised-land.webp', 'scene.webp'],
   ['web/assets/icons/promised-land.webp', 'menu-icon.webp'],
+  // three.js уже лежит в репозитории — у «Моисея на Ниле». Второй копии в
+  // git быть не должно: шестьсот килобайт одного и того же разойдутся.
+  ['web/games/moses-nile-v7/vendor/three-r128.min.js', 'three-r128.min.js'],
 ]) {
   const src = path.join(root, source);
   const dst = path.join(to, name);

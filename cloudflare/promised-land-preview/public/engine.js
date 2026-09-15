@@ -174,6 +174,66 @@ window.PromisedLandEngine = (() => {
     });
   }
 
+  /*
+    Счёт игроку. Раньше плата списывалась молча: игрок видел уже уменьшившееся
+    серебро и должен был догадаться, за что. Теперь счёт выставляется и ждёт —
+    заплатить, продать что-нибудь и заплатить или пойти в наём решает человек.
+    Соперники под управлением игры платят сразу: за них решать нечего.
+  */
+  function requestPayment(state, player, amount, target, title, text) {
+    if (amount <= 0 || player.servantOf) return;
+    state.pending = {
+      type: 'pay',
+      amount,
+      toId: target && target !== 'treasury' ? target.id : null,
+      toTreasury: target === 'treasury',
+      title,
+      text,
+    };
+    state.phase = 'settle';
+  }
+
+  /** Кому уходит то, что выставлено счётом. */
+  const payee = (state) => {
+    const pending = state.pending;
+    if (!pending) return null;
+    if (pending.toTreasury) return 'treasury';
+    return state.players.find((p) => p.id === pending.toId) || null;
+  };
+
+  /**
+   * Заплатить по счёту. `sell` — сперва распродать постройки и уделы: без него
+   * платёж не тронет имущество, и не хватившему предложат наём.
+   */
+  function settle(state, sell = false) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'pay') return false;
+    const player = current(state);
+    if (sell) raiseFunds(state, player, pending.amount);
+    if (player.silver < pending.amount) return false;
+    pay(state, player, pending.amount, payee(state));
+    log(state, `${player.name} платит ${pending.amount}: ${pending.title}`);
+    state.pending = { type: 'note', title: pending.title, text: pending.text, art: pending.art };
+    state.phase = 'act';
+    return true;
+  }
+
+  /** Пойти в наём вместо уплаты (Лев. 25:39-41). */
+  function serve(state) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'pay') return false;
+    const player = current(state);
+    const target = payee(state);
+    const creditor = target && target !== 'treasury' ? target : null;
+    const short = pending.amount - player.silver;
+    if (creditor) creditor.silver += player.silver;
+    else if (target === 'treasury') state.treasury += player.silver;
+    becomeServant(state, player, creditor, short);
+    state.pending = { type: 'note', title: pending.title, text: 'Платить нечем — вы идёте в наём.' };
+    state.phase = 'act';
+    return true;
+  }
+
   /** Платёж. Не хватило — распродажа, а если и её мало — наём. */
   function pay(state, player, amount, target) {
     if (amount <= 0) return;
@@ -451,28 +511,25 @@ window.PromisedLandEngine = (() => {
         };
         return;
       }
-      pay(state, player, rent, owner);
-      log(state, `${player.name} платит ${owner.name} ${rent} за «${spec.name}»`);
-      state.pending = { type: 'note', title: spec.name, text: `Плата ${rent} сиклей для ${owner.name}.` };
+      requestPayment(state, player, rent, owner, spec.name,
+        `Плата ${rent} сиклей ушла ${owner.name}.`);
       return;
     }
 
     if (spec.kind === 'tithe') {
       const amount = titheAmount(player);
-      pay(state, player, amount, 'treasury');
+      // Наследие за десятину начисляется сразу: платить всё равно придётся, а
+      // видеть, ради чего платишь, стоит до того, как нажал.
       player.tithePaid += amount;
-      log(state, `${player.name} отдаёт десятину ${amount}`);
-      state.pending = {
-        type: 'note', title: 'Десятина',
-        text: `${amount} сиклей. Наследие за десятину: ${Math.floor(player.tithePaid / B.HERITAGE_PER_TITHE)}.`,
-      };
+      requestPayment(state, player, amount, 'treasury', 'Десятина',
+        `${amount} сиклей в казну. Наследие за десятину: ${Math.floor(player.tithePaid / B.HERITAGE_PER_TITHE)}.`);
       return;
     }
     if (spec.kind === 'offering') {
-      pay(state, player, B.OFFERING, 'treasury');
       player.offerings += 1;
       player.heritage += 1;
-      state.pending = { type: 'note', title: 'Приношение', text: `${B.OFFERING} сиклей в казну, +1 наследия.` };
+      requestPayment(state, player, B.OFFERING, 'treasury', 'Приношение',
+        `${B.OFFERING} сиклей в казну, +1 наследия.`);
       return;
     }
     if (spec.kind === 'tent') {
@@ -532,8 +589,9 @@ window.PromisedLandEngine = (() => {
       } else {
         player.prison -= 1;
         if (player.prison === 0) {
-          pay(state, player, B.RANSOM, 'treasury');
-          log(state, `${player.name} платит выкуп ${B.RANSOM}`);
+          requestPayment(state, player, B.RANSOM, 'treasury', 'Выкуп из темницы',
+            `${B.RANSOM} сиклей — и вы свободны.`);
+          return true;
         } else {
           state.pending = { type: 'note', title: 'Темница', text: `Дубля нет. Осталось попыток: ${player.prison}.` };
           state.phase = 'act';
@@ -558,7 +616,13 @@ window.PromisedLandEngine = (() => {
 
     goTo(state, player, (player.pos + d1 + d2) % SIZE);
     resolveLanding(state, player, rng);
-    if (state.phase !== 'decide') state.phase = 'act';
+    /*
+      Фаза после приземления говорит, чего ход ждёт. «Решить» — выбора игрока
+      по карте, «счёт» — его решения по плате. Затирать их общим «ход идёт»
+      нельзя: тогда ход выглядит законченным при невыплаченном счёте, и
+      endTurn ниже нечем его удержать.
+    */
+    if (state.phase !== 'decide' && state.phase !== 'settle') state.phase = 'act';
     return true;
   }
 
@@ -679,6 +743,13 @@ window.PromisedLandEngine = (() => {
   function endTurn(state) {
     if (state.status !== 'playing') return false;
     const player = current(state);
+    /*
+      Невыплаченный счёт ход не закрывает. Сама разметка этого и не предложит —
+      при счёте на экране только «заплатить», «продать и заплатить» и «наём», —
+      но правило должно держаться движком, а не тем, какие кнопки нарисованы:
+      иначе один лишний вызов молча прощает долг.
+    */
+    if (state.pending && state.pending.type === 'pay') return false;
     state.pending = null;
 
     if (player.extraRoll && player.prison === 0 && !player.skip) {
@@ -756,6 +827,7 @@ window.PromisedLandEngine = (() => {
 
   return {
     createGame, current, roll, buy, decline, build, altar, sell, redeem, endTurn,
+    settle, serve, payee,
     canBuild, canAltar, canSell, canRedeem, rentFor, ownsWholeGroup, ownedCount,
     scoreOf, titheAmount, liquidValue, settlementSteps, clone,
   };

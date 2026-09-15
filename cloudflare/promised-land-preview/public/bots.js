@@ -47,6 +47,18 @@ window.PromisedLandBots = (() => {
 
     if (state.phase === 'roll') return E.roll(state, rng) && 'roll';
 
+    /*
+      Счёт оплачивается сразу: за соперника под управлением игры решать нечего,
+      а человеку это же место отдаёт выбор — заплатить, продать что-нибудь или
+      пойти в наём. Порядок тот же, что выбрал бы осторожный игрок: сперва из
+      кошелька, потом с распродажей, и лишь потом наём.
+    */
+    if (state.pending && state.pending.type === 'pay') {
+      if (E.settle(state)) return 'pay';
+      if (E.settle(state, true)) return 'sell-pay';
+      return E.serve(state) && 'serve';
+    }
+
     if (state.pending && state.pending.type === 'buy') {
       const n = state.pending.cell;
       return (wantsToBuy(state, player, n, profile) ? E.buy(state) : E.decline(state)) && 'buy';

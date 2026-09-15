@@ -76,6 +76,9 @@
   </div>
 
   <div class="ring-wrap">
+    <!-- Поле в объёме. Если WebGL не дадут, холст остаётся пустым и игра
+         показывает поле разметкой — оно ниже и работает всегда. -->
+    <canvas id="board3d" class="board3d" hidden></canvas>
     <div id="ring" class="ring" role="group" aria-label="Игровое поле, 36 клеток"></div>
   </div>
 
@@ -223,10 +226,12 @@
   </div>
 </div>
 
+<script src="art/three-r128.min.js"></script>
 <script src="board.js"></script>
 <script src="cards.js"></script>
 <script src="engine.js"></script>
 <script src="bots.js"></script>
+<script src="board3d.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

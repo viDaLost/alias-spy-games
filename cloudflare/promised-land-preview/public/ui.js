@@ -100,6 +100,12 @@
   let botTimer = 0;
   let sheetOpen = false;
   let lastHumanId = '';
+  // Автоигра: ходы человека тоже ведёт разум соперников. Нужна, чтобы досмотреть
+  // партию до юбилея, не нажимая, и чтобы попробовать правила, не разбираясь.
+  let autoPlay = false;
+  // Сцена в объёме. Её может не быть: WebGL на слабом устройстве не дают, и
+  // тогда игра идёт на поле из разметки — оно работает всегда.
+  let scene = null;
 
   // ————————————————————————————————————————————————— начало партии
 
@@ -153,6 +159,7 @@
     $('setup').hidden = true;
     $('game').hidden = false;
     buildRing();
+    setupScene();
     render();
     scheduleBot();
   }
@@ -160,6 +167,59 @@
   // ————————————————————————————————————————————————— кольцо
 
   const cellNodes = [];
+
+  /*
+    Поле в объёме, если его есть на чём показать. Разметочное поле при этом не
+    выбрасывается: на нём держится вёрстка вокруг, и оно остаётся единственным,
+    если WebGL откажут.
+  */
+  function setupScene() {
+    const canvas = $('board3d');
+    if (!canvas || scene || !window.PromisedLand3D || !window.PromisedLand3D.supported()) return;
+    const style = getComputedStyle(document.body);
+    const pick = (name, fallback) => (style.getPropertyValue(name) || fallback).trim();
+    try {
+      scene = window.PromisedLand3D.create({
+        canvas,
+        art,
+        sceneArt: ART + 'scene.webp',
+        onCellTap: showCellCard,
+        theme: {
+          board: pick('--sunk', '#e8eefc'),
+          field: pick('--surface-soft', '#f3f7ff'),
+          tile: pick('--surface', '#ffffff'),
+          tileSide: pick('--line-strong', '#c7c9e8'),
+          ink: pick('--ink', '#111827'),
+          muted: pick('--ink-soft', '#667085'),
+          ground: pick('--bg-2', '#dfe8ff'),
+          dice: pick('--surface', '#ffffff'),
+        },
+      });
+    } catch (error) {
+      console.warn('Поле в объёме не поднялось, играем на разметке', error);
+      scene = null;
+      return;
+    }
+    canvas.hidden = false;
+    const wrap = canvas.parentElement;
+    wrap.classList.add('is-3d');
+    // Метка на самом экране партии: боком ширина колонки под доску считается
+    // по-разному для плоского кольца и для доски в объёме, а ширину колонки
+    // задаёт сетка — то есть родитель, а не коробка холста.
+    $('game').classList.add('has-3d');
+    /*
+      На разметочном поле карточка висела в дырке кольца — там пусто. У поля в
+      объёме середина занята: доска сплошная, и карточка закрывала бы дальнюю
+      половину подписей. Поэтому здесь она выходит из-под доски вниз, в тот
+      самый зазор, который иначе пустует между полем и кнопками.
+    */
+    const core = $('core');
+    if (core) {
+      core.classList.add('ring-core--below');
+      wrap.insertAdjacentElement('afterend', core);
+    }
+    window.addEventListener('resize', () => { if (scene) scene.resize(); });
+  }
 
   function buildRing() {
     const ring = $('ring');
@@ -264,7 +324,9 @@
       if (!value) continue;
       dice.appendChild(die(value));
     }
-    if (dice.childElementCount) core.appendChild(dice);
+    // Кости из разметки нужны только без объёма: в объёме они кувыркаются на
+    // самой доске и там же остаются лежать выпавшими числами вверх.
+    if (dice.childElementCount && !scene) core.appendChild(dice);
 
     const pending = state.pending;
     if (!pending) {
@@ -382,9 +444,30 @@
       sheetOpen = !sheetOpen;
       render();
     });
-    if (player.isBot) {
-      bar.appendChild(el('div', 'waiting', `${player.name} ходит…`));
+    if (player.isBot || autoPlay) {
+      bar.appendChild(el('div', 'waiting',
+        player.isBot ? `${player.name} ходит…` : 'Играю за вас…'));
       bar.appendChild(sheetButton);
+      bar.appendChild(autoButton());
+      return;
+    }
+
+    /*
+      Счёт ждёт решения. Заплатить, продать что-нибудь и заплатить или пойти в
+      наём — это выбор, а не следствие, и делает его человек.
+    */
+    if (state.pending && state.pending.type === 'pay') {
+      const owed = state.pending.amount;
+      if (player.silver >= owed) {
+        bar.appendChild(button(`Заплатить ${owed}`, 'primary', () => { E.settle(state); after(); }));
+      } else {
+        if (E.liquidValue(state, player) >= owed) {
+          bar.appendChild(button(`Продать и заплатить ${owed}`, 'primary', () => { E.settle(state, true); after(); }));
+        }
+        bar.appendChild(button('Пойти в наём', 'ghost', () => { E.serve(state); after(); }));
+      }
+      bar.appendChild(sheetButton);
+      bar.appendChild(autoButton());
       return;
     }
 
@@ -392,8 +475,9 @@
       const cast = button('Бросить жребий', 'primary', async () => {
         if (rolling) return;
         cast.disabled = true;
-        await tumble();
-        E.roll(state);
+        rolling = true;
+        await animatedRoll(() => E.roll(state));
+        rolling = false;
         after();
       });
       bar.appendChild(cast);
@@ -405,6 +489,18 @@
       bar.appendChild(button('Закончить ход', 'primary', () => { E.endTurn(state); after(); }));
     }
     bar.appendChild(sheetButton);
+    bar.appendChild(autoButton());
+  }
+
+  /** Переключатель автоигры. */
+  function autoButton() {
+    const node = button(autoPlay ? 'Играю сам' : 'Авто', autoPlay ? 'ghost' : 'ghost auto', () => {
+      autoPlay = !autoPlay;
+      render();
+      scheduleBot();
+    });
+    node.setAttribute('aria-pressed', String(autoPlay));
+    return node;
   }
 
   function button(label, kind, onClick) {
@@ -543,6 +639,7 @@
     if (turnPlayer && !turnPlayer.isBot) lastHumanId = turnPlayer.id;
     if (state.status === 'jubilee') { showJubilee(); return; }
     updateRing();
+    if (scene) scene.sync(state, colorOfPlayer);
     updateCore();
     updateHud();
     updateActions();
@@ -571,14 +668,22 @@
   function scheduleBot() {
     clearTimeout(botTimer);
     if (state.status !== 'playing') return;
-    if (!E.current(state).isBot) return;
+    if (!E.current(state).isBot && !autoPlay) return;
     botTimer = setTimeout(async () => {
-      if (state.phase === 'roll' && !E.current(state).skip) await tumble(460);
       if (state.status !== 'playing') return;
-      const done = Bots.step(state);
+      let done;
+      if (state.phase === 'roll' && !E.current(state).skip) {
+        rolling = true;
+        await animatedRoll(() => { done = Bots.step(state); });
+        rolling = false;
+      } else {
+        done = Bots.step(state);
+      }
+      // Ход закрывается до перерисовки: иначе на экране на один кадр остаётся
+      // уже сделанный ход, а следующий шаг планируется от него же.
+      if (!done) E.endTurn(state);
       render();
       if (state.status === 'playing') scheduleBot();
-      if (!done) E.endTurn(state);
     }, 620);
   }
 
@@ -591,6 +696,24 @@
   */
   let rolling = false;
   const REDUCED = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+
+  /**
+   * Бросок с показом. В объёме кости кувыркаются и ложатся выпавшими числами,
+   * а фишка идёт по клеткам: ход должно быть видно, а не угадываться по цифрам.
+   * Карта может увести фишку не по жребию — такой прыжок шагами не отыгрывается,
+   * иначе фишка пошла бы через полполя вместо того, чтобы очутиться там разом.
+   */
+  async function animatedRoll(doRoll) {
+    const index = state.turn;
+    const before = state.players[index].pos;
+    if (!scene) await tumble();
+    doRoll();
+    if (!scene) return;
+    const sum = state.dice[0] + state.dice[1];
+    const steps = (state.players[index].pos - before + B.BOARD.length) % B.BOARD.length;
+    await scene.roll(state.dice[0], state.dice[1]);
+    if (steps > 0 && steps === sum) await scene.walk(state, index, before, steps);
+  }
 
   function tumble(ms = 620) {
     if (REDUCED) return Promise.resolve();

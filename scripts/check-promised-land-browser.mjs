@@ -43,10 +43,17 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${server.address().port}/`;
 
+/*
+  Без WebGL — намеренно. У игры два поля: сцена на three.js и та же партия на
+  разметке, которая остаётся ей, когда WebGL не дают. Здесь проверяется вторая:
+  клетки как элементы страницы, попадание пальцем по ним, кольцо, не поехавшее
+  от собственного текста. Дай браузеру WebGL — и всё это проверять будет не на
+  чем: поле подменится холстом. Сцену проверяет check-promised-land-3d.mjs.
+*/
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-webgl'],
 });
 
 const problems = [];
