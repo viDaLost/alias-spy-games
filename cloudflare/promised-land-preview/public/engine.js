@@ -579,6 +579,26 @@ window.PromisedLandEngine = (() => {
     });
   }
 
+  /*
+    Досрочный выкуп. Дубль выпадает не всякий раз, а ждать освобождения — это
+    до трёх ходов на круге, где чужие уделы растут. Кому ходы нужнее серебра,
+    тот платит выкуп и выходит сразу же, в свой ход и до броска: серебро уходит
+    в казну, а бросок остаётся при игроке.
+  */
+  function canBail(state, player) {
+    return Boolean(player && player.prison > 0 && state.phase === 'roll'
+      && !player.servantOf && !state.pending && player.silver >= B.BAIL);
+  }
+
+  function bail(state) {
+    const player = current(state);
+    if (!canBail(state, player)) return false;
+    player.silver -= B.BAIL;
+    player.prison = 0;
+    log(state, `${player.name} выкупился из темницы за ${B.BAIL}`);
+    return true;
+  }
+
   function toPrison(state, player) {
     player.pos = 9;
     player.prison = B.PRISON_TURNS;
@@ -1182,6 +1202,7 @@ window.PromisedLandEngine = (() => {
   return {
     createGame, current, roll, buy, decline, build, altar, sell, redeem, endTurn,
     settle, serve, payee, takeCard, dealBuild, keepPromise, breakPromise,
+    canBail, bail,
     pledgeable, pledge, pledgesOf, canRedeemPledge, redeemPledge,
     canBuild, canAltar, canSell, canRedeem, rentFor, ownsWholeGroup, ownedCount,
     scoreOf, titheAmount, liquidValue, settlementSteps, standing, clone,

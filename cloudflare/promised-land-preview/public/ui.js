@@ -701,6 +701,17 @@
         after();
       });
       main.appendChild(cast);
+      /*
+        Выкуп из темницы. Дубль выпадает не всякий раз, и сидеть можно до трёх
+        ходов — на круге, где чужие уделы растут, это дорого. Кнопка стоит
+        рядом с жребием, а не вместо него: выкупился — и бросаешь тем же ходом.
+      */
+      if (E.canBail(state, player)) {
+        main.appendChild(button(`Выкуп ${B.BAIL} — выйти из темницы`, 'ghost', () => {
+          E.bail(state);
+          after();
+        }));
+      }
     } else if (state.pending && state.pending.type === 'buy') {
       const spec = B.BOARD[state.pending.cell];
       main.appendChild(button(`Купить за ${spec.price}`, 'primary', () => { E.buy(state); after(); }));
@@ -909,6 +920,18 @@
     dealtCard = key;
     scene.dealCard(pending.deck, art('cards', pending.art));
   }
+
+  /*
+    Ход наружу для проверок. Правила и сцена уже наружу: без них проверить их
+    нечем. Партия — то же самое: до темницы человека не доводит ни один
+    осмысленный путь нажатиями, а спросить, стоит ли там кнопка выкупа, надо.
+    Отсюда только чтение состояния и просьба перерисовать: играть за игрока
+    этот ход не умеет.
+  */
+  window.PromisedLandGame = {
+    state: () => state,
+    refresh: () => render(),
+  };
 
   function render() {
     const turnPlayer = state.players[state.turn];

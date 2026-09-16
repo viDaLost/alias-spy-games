@@ -45,7 +45,15 @@ window.PromisedLandBots = (() => {
     const player = E.current(state);
     const profile = LEVELS[player.botLevel] || LEVELS.elder;
 
-    if (state.phase === 'roll') return E.roll(state, rng) && 'roll';
+    if (state.phase === 'roll') {
+      /*
+        Выкуп из темницы. Соперник платит за него, только когда серебро у него
+        лишнее: сотня — это половина дешёвого удела, и отдавать её за один ход
+        стоит лишь тому, кому есть на что тратить и по выходе.
+      */
+      if (E.canBail(state, player) && player.silver > B.BAIL * 6 && E.bail(state)) return 'bail';
+      return E.roll(state, rng) && 'roll';
+    }
 
     /*
       Счёт оплачивается сразу: за соперника под управлением игры решать нечего,

@@ -403,6 +403,57 @@ function dealsWork() {
   return { rent, half, build };
 }
 
+/*
+  Выкуп из темницы. Сидеть там можно до трёх ходов, и досрочный выход стоит
+  сотни. Проверяется, что выкуп берут ровно раз и ровно столько, что без денег
+  он не предлагается, что после него игрок свободен и может бросать тем же
+  ходом, и что даром выйти нельзя — второй вызов подряд ничего не делает.
+*/
+function bailWorks() {
+  const rng = seeded(77);
+  const state = E.createGame({ players: [{ name: 'Узник' }, { name: 'Сосед' }], years: 7, rng });
+  const player = state.players[0];
+  state.turn = 0;
+  state.phase = 'roll';
+  player.prison = B.PRISON_TURNS;
+  player.pos = 9;
+
+  // Без денег выкупа не предлагают: кнопки быть не должно, и вызов не проходит.
+  player.silver = B.BAIL - 1;
+  if (E.canBail(state, player)) return { why: 'выкуп предложен тому, кому нечем платить' };
+  if (E.bail(state)) return { why: 'выкуп прошёл при нехватке серебра' };
+  if (player.prison !== B.PRISON_TURNS) return { why: 'неудавшийся выкуп всё же выпустил' };
+
+  player.silver = 900;
+  if (!E.canBail(state, player)) return { why: 'выкуп не предложен тому, у кого есть чем' };
+  const had = player.silver;
+  if (!E.bail(state)) return { why: 'выкуп не прошёл' };
+  if (player.prison !== 0) return { why: 'после выкупа игрок остался в темнице' };
+  if (player.silver !== had - B.BAIL) {
+    return { why: `за выкуп взяли ${had - player.silver} вместо ${B.BAIL}` };
+  }
+  if (state.phase !== 'roll') return { why: `после выкупа ход перешёл в «${state.phase}»` };
+  // Второй выкуп подряд — деньги на ветер: свободному платить не за что.
+  if (E.bail(state)) return { why: 'выкупиться можно и на свободе' };
+  if (player.silver !== had - B.BAIL) return { why: 'повторный выкуп всё же взял серебро' };
+
+  // Выкупившийся бросает тем же ходом — ход ему выкуп не съедает.
+  if (!E.roll(state, rng)) return { why: 'после выкупа не дают бросить жребий' };
+  if (player.pos === 9 && state.dice[0] !== state.dice[1]) {
+    return { why: 'после выкупа фишка осталась в темнице' };
+  }
+
+  // На чужом ходу выкупаться нельзя: касса не открыта для зрителя.
+  const other = state.players[1];
+  other.prison = 1;
+  other.silver = 900;
+  if (E.canBail(state, other)) return { why: 'выкуп предложен не тому, чей ход' };
+  return { paid: B.BAIL };
+}
+
+const bailed = bailWorks();
+need(!bailed.why, `выкуп из темницы работает не так, как обещано: ${bailed.why}`);
+
 const deals = dealsWork();
 need(!deals.why, `договоры работают не так, как обещано: ${deals.why}`);
 
@@ -506,6 +557,7 @@ console.log(`OK: ${GAMES} партий дошли до юбилея и конч�
   + `только после решения и ровно на сумму счёта (${asked.map((r) => r.owed).join(', ')}). `
   + `За ${quiet.length} прогонов у человека не убыло ни сикля помимо счетов `
   + `(${quiet.reduce((sum, r) => sum + r.bills, 0)} счетов на всех). `
+  + `Темница: досрочный выкуп стоит ${bailed.paid}, берётся один раз и ход не съедает. `
   + `Договоры: плата ${deals.rent} уходит целиком, со ступенью за ${deals.build} — `
   + `половиной (${deals.half}), а по уговору не уходит вовсе, и хозяин отвечает ступенью. `
   + `Залог: удел дешевле долга в залог не идёт, дорогой уходит кредитору и выкупается `

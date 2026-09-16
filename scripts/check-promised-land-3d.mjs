@@ -380,6 +380,9 @@ try {
   need(labels[0] === 'Вы', `над своей фишкой написано «${labels[0]}»`);
   need(labels.length >= 3 && labels.slice(1).every((name) => name && name !== 'Вы'),
     `над чужими фишками подписи ${JSON.stringify(labels.slice(1))}`);
+  // Подпись у человека одна на двоих: и над фишкой, и на вывеске его уделов.
+  need(JSON.stringify(drawn.bannerNames) === JSON.stringify(labels),
+    `над фишками ${JSON.stringify(labels)}, а на вывесках ${JSON.stringify(drawn.bannerNames)}`);
 
   const webgl = await page.evaluate(() => {
     const probe = document.createElement('canvas');
@@ -568,15 +571,93 @@ try {
       `застроенное поле — ${cost.full.triangles} треугольников`);
 
     /*
-      Перед замером покоя надо дождаться, пока улягутся сами постройки: они
-      вырастают почти полсекунды, и мерить «сцена в покое» посреди этого —
-      мерить не покой.
+      Вывески хозяев. Над занятым уделом висит доска с именем, над свободной
+      клеткой не висит ничего: на шестерых за столом цвет подставки под фишкой
+      приходится вспоминать, а имя читается.
+
+      Спрашивается это у самой сцены, а не у пикселей: вывеска на телефоне
+      размером с ноготь, и глазом такую проверку не сделать. Считается по
+      ячейке полотна, назначенной клетке: −1 — вывески нет.
     */
-    await page.waitForTimeout(900);
-    const quiet = await page.evaluate(() => window.PromisedLandScene.stats().frames);
+    const signs = await page.evaluate(() => {
+      const scene = window.PromisedLandScene;
+      const B = window.PromisedLandBoard;
+      const drawnNow = scene.stats();
+      const ownable = B.BOARD.filter((spec) => B.OWNABLE.has(spec.kind)).length;
+      const hung = drawnNow.banners.filter((slot) => slot >= 0).length;
+      const stray = B.BOARD.filter((spec, n) => !B.OWNABLE.has(spec.kind)
+        && drawnNow.banners[n] >= 0).length;
+      return { ownable, hung, stray, names: drawnNow.bannerNames, turn: drawnNow.bannerTurn, yaw: drawnNow.yaw };
+    });
+    need(signs.hung === signs.ownable,
+      `вывеска висит над ${signs.hung} уделами из ${signs.ownable} занятых`);
+    need(signs.stray === 0,
+      `вывеска висит над ${signs.stray} клетками, которых никто не покупал`);
+    need(signs.names.length === 6 && signs.names.every((name) => name),
+      `на полотне вывесок имена ${JSON.stringify(signs.names)}`);
+    // Вывеска смотрит на игрока: её четверть — та же, на которой стоит камера.
+    const quarter = ((Math.round(signs.yaw / (Math.PI / 2)) % 4) + 4) % 4;
+    need(signs.turn === quarter,
+      `вывески развёрнуты на четверть ${signs.turn}, а камера стоит на ${quarter}`);
+
+    // Свободный удел вывеской не подписывается: проверяется тем же счётом, но
+    // на чистом поле, куда сцена возвращается следующей же передачей состояния.
+    const bare = await page.evaluate(() => {
+      const scene = window.PromisedLandScene;
+      const B = window.PromisedLandBoard;
+      const players = Array.from({ length: 6 }, (unused, i) => (
+        { id: 'p' + i, name: 'И' + i, pos: i * 3, silver: 100, heritage: 0 }));
+      const cells = B.BOARD.map(() => ({ owner: null, level: 0, altar: false, heldFrom: null }));
+      scene.sync({ players, cells }, () => '#4f46e5');
+      return scene.stats().banners.filter((slot) => slot >= 0).length;
+    });
+    need(bare === 0, `на пустом поле осталось ${bare} вывесок`);
+
+    /*
+      Покой надо сперва дождаться, а потом мерить. Постройки вырастают почти
+      полсекунды, а рядом идёт сама партия: соперник шагает фишкой, ставит
+      колодец, тянет карту. Мерить «сцену в покое» посреди чужого хода —
+      мерить не покой, и проверка падала бы через раз не по делу.
+
+      Поэтому сначала ждём тишины: два замера подряд с одинаковым числом
+      кадров — значит, никто не двигается. И только тогда спрашиваем главное:
+      что за полторы секунды ничегонеделания сцена не рисует вовсе.
+    */
+    /*
+      Счётчик кадров спрашивается отдельным ходом, а не через stats(): тот
+      рисует кадр сам, иначе ему нечего сказать о вызовах отрисовки. Спрашивать
+      им покой — мерить собственный вопрос, и проверка так и делала: два её
+      обращения и составляли те самые «не больше двух кадров», которые она
+      считала допустимым запасом. Теперь запаса не нужно вовсе.
+    */
+    const framesNow = () => page.evaluate(() => window.PromisedLandScene.frames());
+    /*
+      Сперва дожидаемся хода человека. Пока ходит соперник, сцена и обязана
+      рисоваться — это не течь, а игра: фишка идёт, постройка встаёт, кости
+      падают. Покой наступает там, где игра ждёт нажатия, и мерить его надо
+      именно там.
+    */
+    for (let tick = 0; tick < 80; tick += 1) {
+      const mine = await page.locator('#actions .btn--primary:not([disabled])').count();
+      const bot = await page.locator('#actions .waiting').count();
+      if (mine > 0 && bot === 0) break;
+      await page.waitForTimeout(250);
+    }
+    need(await page.locator('#actions .waiting').count() === 0,
+      'за двадцать секунд ход так и не дошёл до человека');
+    let settled = 0;
+    let seen = await framesNow();
+    for (let tick = 0; tick < 40 && settled < 2; tick += 1) {
+      await page.waitForTimeout(250);
+      const now = await framesNow();
+      settled = now === seen ? settled + 1 : 0;
+      seen = now;
+    }
+    need(settled >= 2, 'сцена не унялась за десять секунд — что-то рисуется без остановки');
+    const quiet = await framesNow();
     await page.waitForTimeout(1500);
-    const stillQuiet = await page.evaluate(() => window.PromisedLandScene.stats().frames);
-    need(stillQuiet - quiet <= 2,
+    const stillQuiet = await framesNow();
+    need(stillQuiet === quiet,
       `за полторы секунды покоя сцена нарисовала ${stillQuiet - quiet} кадров`);
     spend = cost;
   }
@@ -726,6 +807,48 @@ try {
     `на узком экране за край вышли: ${crowd.over.join(', ') || crowd.aside + 'px'}`);
   need(/держатся\s+6/.test(crowd.year),
     `в партии «до последнего» шапка показывает «${crowd.year}»`);
+  /*
+    Выкуп из темницы. Человека туда не доводит ни один осмысленный путь
+    нажатиями, поэтому он сажается прямо: партия спрашивается у страницы,
+    игрок сажается в темницу и экран перерисовывается. Делается это здесь, на
+    столе шестерых, а не в главной партии: спрошенное состояние сбивает чужой
+    ход, а этой странице дальше играть уже нечего.
+  */
+  const jail = await table.evaluate(() => {
+    const game = window.PromisedLandGame;
+    const B = window.PromisedLandBoard;
+    const state = game.state();
+    const player = state.players[0];
+    state.turn = 0;
+    state.phase = 'roll';
+    state.pending = null;
+    player.prison = B.PRISON_TURNS;
+    player.pos = 9;
+    player.silver = 900;
+    game.refresh();
+    return B.BAIL;
+  });
+  const bailBtn = table.locator('#actions button', { hasText: /^Выкуп \d+/ });
+  const bailCount = await bailBtn.count();
+  need(bailCount === 1, `в темнице кнопок выкупа ${bailCount}, а нужна одна`);
+  // Дальше спрашивать нечего, если кнопки нет: без неё всё остальное — падение
+  // с трассировкой вместо внятного «кнопки выкупа нет».
+  if (bailCount === 1) {
+    need((await bailBtn.first().textContent()).includes(String(jail)),
+      `на кнопке выкупа не цена в ${jail} сиклей`);
+    need(await table.locator('#actions button', { hasText: /^Бросить жребий$/ }).count() === 1,
+      'в темнице пропал жребий: выкуп не должен съедать ход');
+    await bailBtn.first().click();
+    need(await table.locator('#actions button', { hasText: /^Выкуп \d+/ }).count() === 0,
+      'после выкупа кнопка выкупа осталась на экране');
+    const freed = await table.evaluate(() => {
+      const state = window.PromisedLandGame.state();
+      return { prison: state.players[0].prison, silver: state.players[0].silver };
+    });
+    need(freed.prison === 0, 'после выкупа игрок остался в темнице');
+    need(freed.silver === 900 - jail, `за выкуп сняли ${900 - freed.silver} вместо ${jail}`);
+  }
+
   need(tableErrors.length === 0, `на столе шестерых ошибки — ${tableErrors.slice(0, 2).join(' | ')}`);
   await many.close();
 
@@ -775,7 +898,8 @@ console.log(ran
     + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '
     + 'возвращает прежний. Долг ждёт нажатия игрока, «Авто» играет ход человека сам, боком '
     + 'экран не прокручивается, за столом помещаются шестеро, над фишками стоят имена, '
-    + 'темп соперников переключается, консоль чистая. Кадр стоит '
+    + 'над занятыми уделами — вывески хозяев, темп соперников переключается, выкуп из '
+    + 'темницы предлагается кнопкой, консоль чистая. Кадр стоит '
     + `${spend ? spend.idle.calls : '?'} вызовов отрисовки на пустом поле и `
     + `${spend ? spend.full.calls : '?'} на застроенном (${spend ? spend.full.triangles : '?'} `
     + 'треугольников), а в покое не рисуется вовсе. Карта, уходя со стола, меняет '

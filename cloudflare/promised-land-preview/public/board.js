@@ -19,7 +19,14 @@ window.PromisedLandBoard = (() => {
     против 191 у партии на семь лет, и самая долгая укладывается в 442.
   */
   const TRIBUTE_STEP = 200;
-  const RANSOM = 50;            // выкуп из темницы
+  const RANSOM = 50;            // плата при выходе по истечении срока
+  /*
+    Досрочный выкуп. Он дороже платы по истечении срока (50), и это не описка:
+    за нетерпение доплачивают. Сидеть в темнице — потерять до трёх ходов на
+    круге, где чужие уделы дорожают; кому эти ходы нужнее ста сиклей, тот
+    платит и выходит сразу.
+  */
+  const BAIL = 100;
   const PRISON_TURNS = 3;
   const ROAD_PRICE = 200;
   const ROAD_RENT = [25, 50, 100, 200];
@@ -146,7 +153,7 @@ window.PromisedLandBoard = (() => {
 
   return {
     BOARD, GROUPS, LEVELS, CORNERS, OWNABLE,
-    START_SILVER, HARVEST, TRIBUTE_STEP, RANSOM, PRISON_TURNS,
+    START_SILVER, HARVEST, TRIBUTE_STEP, RANSOM, BAIL, PRISON_TURNS,
     ROAD_PRICE, ROAD_RENT, WELL_PRICE, WELL_MULT,
     OFFERING, TITHE_RATE, TITHE_MIN, TITHE_MAX,
     HERITAGE_PER_TITHE, HERITAGE_PER_SILVER, HERITAGE_ALTAR, HERITAGE_REDEEM,

@@ -201,6 +201,59 @@ window.PromisedLand3D = (() => {
     поверни доску. Цвет таблички — цвет игрока: по нему фишка и находится на
     поле, а имя только подтверждает.
   */
+  /** Прямоугольник со скруглёнными углами: его просят и табличка, и вывеска. */
+  function roundedPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  /*
+    Полотно вывесок: по ячейке на игрока и одна пустая про запас. Вывеска у
+    всех уделов одного хозяина одинаковая, и держать её отдельной текстурой на
+    каждый удел незачем — шестнадцать вывесок берут одно полотно и рисуются
+    одной сеткой.
+  */
+  const BANNER_COLS = 4;
+  const BANNER_ROWS = 2;
+  function bannerAtlas(faces) {
+    const cw = 256;
+    const ch = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = cw * BANNER_COLS;
+    canvas.height = ch * BANNER_ROWS;
+    const ctx = canvas.getContext('2d');
+    faces.forEach((face, i) => {
+      if (!face) return;
+      const x = (i % BANNER_COLS) * cw;
+      const y = Math.floor(i / BANNER_COLS) * ch;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = face.color;
+      roundedPath(ctx, 5, 7, cw - 10, ch - 14, 10);
+      ctx.fill();
+      // Тёмная кромка: без неё светлая вывеска сливается с песком под доской.
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      let size = 34;
+      do {
+        ctx.font = `700 ${size}px system-ui, sans-serif`;
+        size -= 2;
+      } while (size > 14 && ctx.measureText(face.text).width > cw - 34);
+      ctx.fillText(face.text, cw / 2, ch / 2);
+      ctx.restore();
+    });
+    return canvas;
+  }
+
   function nameCanvas(text, color) {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -495,6 +548,139 @@ window.PromisedLand3D = (() => {
       strip.visible = false;
       scene.add(strip);
       owners.push(strip);
+    }
+
+    /*
+      Вывеска хозяина. Полоса под плиткой говорит, что удел занят, но не чей
+      он: на шестерых за столом цвет подставки приходится вспоминать. Поэтому
+      над занятым уделом во всю его ширину встаёт доска с именем хозяина в его
+      же цвете.
+
+      Все вывески — одна сетка и одно полотно: тридцать шесть отдельных
+      пластин стоили бы тридцати шести вызовов отрисовки, а так они стоят
+      одного. Незанятый удел не прячется видимостью — у него просто нет
+      площади: четыре его вершины сходятся в одну точку под доской, и
+      рисовать там нечего.
+    */
+    const BANNER_W = TILE * 0.96;
+    const BANNER_H = 0.38;
+    // Чуть выше кромки доски: стоящая вплотную вывеска сливается с её белым
+    // бортом, а поднятая читается и на песке, и на борту.
+    const BANNER_FOOT = TILE_H + 0.12;
+    const BANNER_OUT = TILE * 0.82;
+    const bannerSlot = new Int8Array(B.BOARD.length).fill(-1);
+    const bannerPos = new Float32Array(B.BOARD.length * 12);
+    const bannerUv = new Float32Array(B.BOARD.length * 8);
+    const bannerIdx = [];
+    for (let n = 0; n < B.BOARD.length; n += 1) {
+      const o = n * 4;
+      bannerIdx.push(o, o + 2, o + 1, o + 2, o + 3, o + 1);
+    }
+    const bannerGeo = new THREE.BufferGeometry();
+    bannerGeo.setAttribute('position', new THREE.BufferAttribute(bannerPos, 3));
+    bannerGeo.setAttribute('uv', new THREE.BufferAttribute(bannerUv, 2));
+    bannerGeo.setIndex(bannerIdx);
+    const bannerTex = new THREE.CanvasTexture(bannerAtlas([]));
+    bannerTex.encoding = THREE.sRGBEncoding;
+    const bannerMesh = new THREE.Mesh(bannerGeo, new THREE.MeshBasicMaterial({
+      map: bannerTex,
+      transparent: true,
+      // Порог вместо смешивания: вывеска не полупрозрачна, ей нужен только
+      // вырез вокруг доски, а порог не заставляет сортировать её с постройками.
+      alphaTest: 0.45,
+      side: THREE.DoubleSide,
+    }));
+    // Вершины двигаются руками, и границы сетки за ними не поспевают.
+    bannerMesh.frustumCulled = false;
+    scene.add(bannerMesh);
+
+    let bannerQuarter = 0;
+
+    /*
+      Где стоит вывеска. Не на самой плитке: доска, стоящая над карточкой,
+      на пологом взгляде сверху проецируется прямо на её лицо и закрывает имя
+      с ценой — что с ней ни делай, поднимай или опускай. Поэтому вывеска
+      вынесена наружу кольца, на песок за краем доски: там ей ничего не
+      мешает и она ничего не заслоняет.
+
+      А смотрит она на игрока: разворачивается по той же четверти, что и
+      подписи клеток, и, обойдя доску кругом, читается всё так же.
+    */
+    function outward(n) {
+      const at = cellPosition(n);
+      return Math.abs(at.x) >= Math.abs(at.z)
+        ? { x: Math.sign(at.x), z: 0 }
+        : { x: 0, z: Math.sign(at.z) };
+    }
+
+    function placeBanners() {
+      const dx = Math.round(Math.sin(bannerQuarter * Math.PI / 2));
+      const dz = Math.round(Math.cos(bannerQuarter * Math.PI / 2));
+      const rx = dz * BANNER_W / 2;
+      const rz = -dx * BANNER_W / 2;
+      for (let n = 0; n < B.BOARD.length; n += 1) {
+        const o = n * 12;
+        if (bannerSlot[n] < 0) {
+          for (let i = 0; i < 12; i += 3) {
+            bannerPos[o + i] = 0;
+            bannerPos[o + i + 1] = -12;
+            bannerPos[o + i + 2] = 0;
+          }
+          continue;
+        }
+        const at = cellPosition(n);
+        const out = outward(n);
+        const cx = at.x + out.x * BANNER_OUT;
+        const cz = at.z + out.z * BANNER_OUT;
+        const top = BANNER_FOOT + BANNER_H;
+        const corners = [
+          [cx - rx, top, cz - rz],
+          [cx + rx, top, cz + rz],
+          [cx - rx, BANNER_FOOT, cz - rz],
+          [cx + rx, BANNER_FOOT, cz + rz],
+        ];
+        for (let i = 0; i < 4; i += 1) {
+          bannerPos[o + i * 3] = corners[i][0];
+          bannerPos[o + i * 3 + 1] = corners[i][1];
+          bannerPos[o + i * 3 + 2] = corners[i][2];
+        }
+      }
+      bannerGeo.attributes.position.needsUpdate = true;
+      bannerGeo.computeBoundingSphere();
+    }
+
+    /** Чья вывеска висит над уделом: ячейка полотна или ничья. */
+    function bannerFace(n, slot) {
+      if (bannerSlot[n] === slot) return false;
+      bannerSlot[n] = slot;
+      if (slot < 0) return true;
+      const col = slot % BANNER_COLS;
+      const row = Math.floor(slot / BANNER_COLS);
+      const u0 = col / BANNER_COLS;
+      const u1 = (col + 1) / BANNER_COLS;
+      const v1 = 1 - row / BANNER_ROWS;
+      const v0 = 1 - (row + 1) / BANNER_ROWS;
+      const o = n * 8;
+      const uv = [[u0, v1], [u1, v1], [u0, v0], [u1, v0]];
+      for (let i = 0; i < 4; i += 1) {
+        bannerUv[o + i * 2] = uv[i][0];
+        bannerUv[o + i * 2 + 1] = uv[i][1];
+      }
+      bannerGeo.attributes.uv.needsUpdate = true;
+      return true;
+    }
+
+    /** Перерисовать полотно вывесок: имена и цвета сидящих за столом. */
+    let bannerNames = '';
+    function bannerPeople(state) {
+      const faces = state.players.map((player) => ({
+        text: nameOf(state, player), color: colorOfPlayer(player),
+      }));
+      const key = faces.map((face) => `${face.text}|${face.color}`).join('/');
+      if (key === bannerNames) return;
+      bannerNames = key;
+      bannerTex.image = bannerAtlas(faces);
+      bannerTex.needsUpdate = true;
     }
 
     /*
@@ -974,6 +1160,10 @@ window.PromisedLand3D = (() => {
       // разворачиваются подписи, чтобы они смотрели на игрока.
       const quarter = Math.round(view.yaw / (Math.PI / 2));
       turnLabels(((-quarter % 4) + 4) % 4);
+      // Вывески разворачиваются по той же четверти, но своим ходом: у них не
+      // текстура едет по вершинам, а сами вершины переезжают на ближний край.
+      const turn = ((quarter % 4) + 4) % 4;
+      if (turn !== bannerQuarter) { bannerQuarter = turn; placeBanners(); }
       if (view.cell == null) { fit(); return; }
       axes();
       /*
@@ -1243,13 +1433,23 @@ window.PromisedLand3D = (() => {
       }
     }
 
+    /*
+      Как игрок подписан на доске. За одним человеком у стола имя не нужно —
+      нужно «Вы»: своё место ищут не по имени. Их двое и больше — у каждого
+      своё имя, иначе «Вы» будет висеть над чужой фишкой. Это же имя стоит и
+      на вывесках уделов: одна подпись на человека, а не две разные.
+    */
+    function nameOf(state, player) {
+      const alone = state.players.filter((one) => !one.isBot).length === 1;
+      return alone && !player.isBot ? 'Вы' : player.name;
+    }
+
     /** Подписать фишки: «Вы» своей, имена — чужим. */
     function nameTokens(state) {
-      const alone = state.players.filter((player) => !player.isBot).length === 1;
       state.players.forEach((player, index) => {
         const plate = plates[index];
         if (!plate) return;
-        const text = alone && !player.isBot ? 'Вы' : player.name;
+        const text = nameOf(state, player);
         const color = colorOfPlayer(player);
         if (plate.userData.text === text && plate.userData.color === color) return;
         plate.userData.text = text;
@@ -1306,11 +1506,16 @@ window.PromisedLand3D = (() => {
         if (base) base.material.color.set(colorOfPlayer(player));
       });
 
+      bannerPeople(state);
+      let bannersMoved = false;
       state.cells.forEach((cell, n) => {
         const ownerId = cell.heldFrom || cell.owner;
         const owner = ownerId && state.players.find((p) => p.id === ownerId);
         owners[n].visible = Boolean(owner);
         if (owner) owners[n].material.color.set(colorOfPlayer(owner));
+        // Вывеска висит над тем, у чего есть хозяин: заложенный удел
+        // подписывается кредитором — он сейчас и получает с него плату.
+        if (bannerFace(n, owner ? state.players.indexOf(owner) : -1)) bannersMoved = true;
 
         const holder = builds[n];
         const kind = cell.altar ? 'altar'
@@ -1336,6 +1541,7 @@ window.PromisedLand3D = (() => {
         });
       });
 
+      if (bannersMoved) placeBanners();
       placeTokens(state);
       touch();
     }
@@ -1510,6 +1716,8 @@ window.PromisedLand3D = (() => {
       if (watcher) watcher.disconnect();
       running = false;
       jobs.length = 0;
+      bannerGeo.dispose();
+      bannerTex.dispose();
       renderer.dispose();
     }
 
@@ -1521,6 +1729,16 @@ window.PromisedLand3D = (() => {
       — та величина, которой телефон и меряет цену картинки, и держать её в
       узде стоит счётом, а не обещанием.
     */
+    /*
+      Сколько кадров сцена нарисовала за свою жизнь. Спрашивается отдельно от
+      stats(), и не зря: stats() рисует кадр сам — иначе ему нечего сказать о
+      вызовах отрисовки, счётчик обнуляется на каждом кадре. Спрашивать им же
+      покой означало бы мерить собственный вопрос.
+    */
+    function frames() {
+      return renderer.info.render.frame;
+    }
+
     function stats() {
       renderer.render(scene, camera);
       return {
@@ -1530,6 +1748,13 @@ window.PromisedLand3D = (() => {
         frames: renderer.info.render.frame,
         icons: iconsDrawn,
         labels: plates.map((plate) => plate.userData.text || ''),
+        /*
+          Вывески: чей удел и где. Проверке этого довольно, чтобы спросить, что
+          над занятым уделом висит имя хозяина, а над свободным не висит ничего.
+        */
+        banners: [...bannerSlot],
+        bannerNames: bannerNames.split('/').map((face) => face.split('|')[0]),
+        bannerTurn: bannerQuarter,
         coins: coinsDrawn,
         labelTurn,
         yaw: view.yaw,
@@ -1539,7 +1764,7 @@ window.PromisedLand3D = (() => {
     return {
       sync, walk, roll, resize, dispose, highlight, focus, home,
       dealCard, returnCard, demoWalk, demoBuild, demoLadder, orbit, setSpeed,
-      atHome, stats, render: touch,
+      atHome, stats, frames, render: touch,
     };
   }
 
