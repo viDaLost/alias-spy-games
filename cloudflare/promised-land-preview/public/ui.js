@@ -106,6 +106,14 @@
   let teachAsked = false;
   let teachWanted = false;
   let dealtCard = null;
+  /*
+    Темп соперников. По умолчанию они ходят неспешно: за быстрым ходом не
+    уследить — фишка прыгает, карта мелькает, и человек видит уже результат.
+    Кому это не нужно, тот жмёт «Быстрее», и всё — пауза между шагами, кости,
+    ход фишки — ускоряется вдвое с лишним.
+  */
+  const PACE = { calm: { wait: 900, speed: 1 }, quick: { wait: 260, speed: 0.42 } };
+  let hurry = false;
   // Сцена в объёме. Её может не быть: WebGL на слабом устройстве не дают, и
   // тогда игра идёт на поле из разметки — оно работает всегда.
   let scene = null;
@@ -463,7 +471,7 @@
       закладывать своё, ему приходилось лезть в карточку клетки отдельно.
     */
     if (B.OWNABLE.has(B.BOARD[player.pos].kind)
-      && (pending.type === 'pay' || pending.type === 'note')) {
+      && (pending.type === 'pay' || pending.type === 'note' || pending.type === 'promise')) {
       showLand(core, player.pos, pending.text || '');
       if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
       return;
@@ -569,6 +577,12 @@
     Кнопки складываются не подряд, а в свой ярус, и место у них поэтому не
     зависит от того, сколько их сегодня.
   */
+  /** Приписка к карточке в середине: её пишет полоса действий, а не карточка. */
+  function noteOnCard(text) {
+    const core = $('core');
+    if (core) core.appendChild(el('div', 'core-note core-extra', text));
+  }
+
   function updateActions() {
     const bar = $('actions');
     bar.innerHTML = '';
@@ -586,6 +600,7 @@
         player.isBot ? `${player.name} ходит…` : 'Играю за вас…'));
       side.appendChild(sheetButton);
       side.appendChild(autoButton());
+      side.appendChild(paceButton());
       return;
     }
 
@@ -606,11 +621,51 @@
       }));
       side.appendChild(sheetButton);
       side.appendChild(autoButton());
+      side.appendChild(paceButton());
+      return;
+    }
+
+    /*
+      Обещанная ступень. Уговор был: он тебе строит сейчас, ты ему — когда
+      встанешь на его землю. Вот его земля; слово можно сдержать, а можно
+      отложить и заплатить за проход как обычно — обещание останется висеть.
+    */
+    if (state.pending && state.pending.type === 'promise') {
+      const cost = state.pending.cost;
+      if (player.silver >= cost) {
+        main.appendChild(button(`Сдержать слово: ступень ${cost}`, 'primary',
+          () => { E.keepPromise(state); after(); }));
+      }
+      main.appendChild(button('Отложить слово и заплатить', player.silver >= cost ? 'ghost' : 'primary',
+        () => { E.breakPromise(state); after(); }));
+      side.appendChild(sheetButton);
+      side.appendChild(autoButton());
+      side.appendChild(paceButton());
       return;
     }
 
     if (state.pending && state.pending.type === 'pay') {
       const owed = state.pending.amount;
+      /*
+        Договор вместо платы: вложиться в чужую землю и заплатить половину — или
+        не платить вовсе, взяв с хозяина встречное слово. Кнопки появляются
+        только там, где ступень поставить можно и денег на неё хватает.
+      */
+      const deal = state.pending.deal;
+      if (deal) {
+        const holder = state.players.find((p) => p.id === deal.ownerId);
+        if (player.silver >= deal.build + deal.half) {
+          main.appendChild(button(`Построить ${deal.build} и заплатить ${deal.half}`, 'ghost',
+            () => { E.dealBuild(state, true); after(); }));
+        }
+        if (player.silver >= deal.build) {
+          main.appendChild(button(`Уговор: построить ${deal.build}, платы нет`, 'ghost',
+            () => { E.dealBuild(state, false); after(); }));
+        }
+        if (holder) {
+          noteOnCard(`По уговору ${holder.name} ответит вам ступенью на вашей земле.`);
+        }
+      }
       if (player.silver >= owed) {
         main.appendChild(button(`Заплатить ${owed}`, 'primary', () => { E.settle(state); after(); }));
       } else {
@@ -632,6 +687,7 @@
       }
       side.appendChild(sheetButton);
       side.appendChild(autoButton());
+      side.appendChild(paceButton());
       return;
     }
 
@@ -654,6 +710,19 @@
     }
     side.appendChild(sheetButton);
     side.appendChild(autoButton());
+    side.appendChild(paceButton());
+  }
+
+  /** Переключатель темпа соперников. */
+  function paceButton() {
+    const node = button(hurry ? 'Помедленнее' : 'Быстрее', 'ghost', () => {
+      hurry = !hurry;
+      if (scene) scene.setSpeed(PACE[hurry ? 'quick' : 'calm'].speed);
+      render();
+      scheduleBot();
+    });
+    node.setAttribute('aria-pressed', String(hurry));
+    return node;
   }
 
   /** Переключатель автоигры. */
@@ -897,7 +966,7 @@
       if (!done) E.endTurn(state);
       render();
       if (state.status === 'playing') scheduleBot();
-    }, 620);
+    }, PACE[hurry ? 'quick' : 'calm'].wait);
   }
 
   // ————————————————————————————————————————————————— правила и запуск

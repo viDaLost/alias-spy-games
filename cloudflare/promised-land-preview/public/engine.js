@@ -75,6 +75,7 @@ window.PromisedLandEngine = (() => {
         keys: 0,
         passed: false,     // прошёл «Исход» в этом году
         tribute: 0,        // подать за год, накопленная к следующему ходу
+        promises: [],      // кому обещана ступень по уговору
         servantOf: null,
         debt: 0,
         extraRoll: false,
@@ -371,6 +372,98 @@ window.PromisedLandEngine = (() => {
       text: card.text, ref: card.ref, extra: notes.join(', '),
     };
     state.phase = 'act';
+    return true;
+  }
+
+  /**
+   * Договор «строю и плачу половину»: гость ставит хозяину ступень за свой
+   * счёт и отдаёт половину платы. Хозяину достаётся земля дороже прежней,
+   * гостю — половина счёта; наследие за ступень идёт тому, кто её оплатил.
+   */
+  function dealBuild(state, half = true) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'pay' || !pending.deal) return false;
+    const player = current(state);
+    const { cell: n, build, ownerId } = pending.deal;
+    const owner = state.players.find((p) => p.id === ownerId);
+    const owed = half ? pending.deal.half : 0;
+    if (!owner || player.silver < build + owed) return false;
+    if (!canBuild(state, owner, n, true)) return false;
+
+    player.silver -= build;
+    state.cells[n].level += 1;
+    player.steps += 1;
+    player.heritage += 1;
+    if (half) {
+      player.silver -= owed;
+      owner.silver += owed;
+      log(state, `${player.name} строит ступень в «${B.BOARD[n].name}» за ${build} `
+        + `и платит половину: ${owed}`);
+      state.pending = {
+        type: 'note', title: B.BOARD[n].name,
+        text: `Ступень поставлена за ваш счёт, платы ушла половина — ${owed}.`,
+      };
+    } else {
+      owner.promises.push(player.id);
+      log(state, `${player.name} строит ступень в «${B.BOARD[n].name}» за ${build}; `
+        + `${owner.name} обязан ответить тем же`);
+      state.pending = {
+        type: 'note', title: B.BOARD[n].name,
+        text: `Ступень поставлена за ваш счёт, платы нет. ${owner.name} построит вам `
+          + 'ступень, когда встанет на вашу землю.',
+      };
+    }
+    state.phase = 'act';
+    return true;
+  }
+
+  /** Исполнить обещание: ступень на земле того, кому обещали. */
+  function keepPromise(state) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'promise') return false;
+    const player = current(state);
+    const owner = state.players.find((p) => p.id === pending.toId);
+    if (!owner || player.silver < pending.cost) return false;
+    if (!canBuild(state, owner, pending.cell, true)) return false;
+    player.silver -= pending.cost;
+    state.cells[pending.cell].level += 1;
+    player.steps += 1;
+    player.heritage += 1;
+    const at = player.promises.indexOf(owner.id);
+    if (at >= 0) player.promises.splice(at, 1);
+    log(state, `${player.name} держит слово: ступень в «${B.BOARD[pending.cell].name}» `
+      + `за ${pending.cost}`);
+    state.pending = {
+      type: 'note', title: B.BOARD[pending.cell].name,
+      text: 'Слово сдержано: ступень поставлена, платы за проход нет.',
+    };
+    state.phase = 'act';
+    return true;
+  }
+
+  /**
+   * Откупиться от обещания деньгами: платится плата за проход, как если бы
+   * уговора не было, а обещание остаётся висеть до следующего раза.
+   */
+  function breakPromise(state) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'promise') return false;
+    const player = current(state);
+    const owner = state.players.find((p) => p.id === pending.toId);
+    // Плата считается по тому же жребию, каким сюда и пришли.
+    const rent = rentFor(state, pending.cell, (state.dice[0] || 3) + (state.dice[1] || 4));
+    state.pending = null;
+    state.phase = 'act';
+    if (rent > 0 && owner) {
+      requestPayment(state, player, rent, owner, B.BOARD[pending.cell].name,
+        `Слово отложено: плата ${rent} сиклей ушла ${owner.name}.`);
+    }
+    if (!state.pending) {
+      state.pending = {
+        type: 'note', title: B.BOARD[pending.cell].name,
+        text: 'Слово отложено до следующего раза.',
+      };
+    }
     return true;
   }
 
@@ -689,6 +782,23 @@ window.PromisedLandEngine = (() => {
       }
       const owner = state.players.find((p) => p.id === cell.owner);
       const rent = rentFor(state, n, diceSum, multiplier);
+      /*
+        Долг по уговору идёт прежде платы: вы обещали этому хозяину ступень —
+        вот его земля, вот и стройте. Плата за проход в этот раз не берётся:
+        стройка её и заменяет.
+      */
+      const owed = player.promises.indexOf(owner.id);
+      if (owed >= 0 && canBuild(state, owner, n, true) && !player.servantOf) {
+        const cost = B.GROUPS[spec.group].build;
+        state.pending = {
+          type: 'promise', cell: n, cost, toId: owner.id,
+          title: spec.name,
+          text: `Уговор с ${owner.name}: ступень здесь за ваш счёт, ${cost} сиклей. `
+            + 'Платы за проход в этот раз нет.',
+        };
+        state.phase = 'promise';
+        return;
+      }
       if (rent <= 0) {
         state.pending = {
           type: 'note', title: spec.name,
@@ -699,6 +809,21 @@ window.PromisedLandEngine = (() => {
       }
       requestPayment(state, player, rent, owner, spec.name,
         `Плата ${rent} сиклей ушла ${owner.name}.`);
+      /*
+        Договор вместо платы. Он возможен там, где на этой земле вообще можно
+        поставить ступень: тогда гость волен не просто отдать плату, а вложиться
+        в чужую землю — и заплатить половину или не платить вовсе, взяв на
+        хозяина встречное обещание.
+      */
+      if (state.pending && state.pending.type === 'pay'
+        && canBuild(state, owner, n, true)) {
+        state.pending.deal = {
+          cell: n,
+          build: B.GROUPS[spec.group].build,
+          half: Math.ceil(rent / 2),
+          ownerId: owner.id,
+        };
+      }
       return;
     }
 
@@ -942,7 +1067,8 @@ window.PromisedLandEngine = (() => {
       но правило должно держаться движком, а не тем, какие кнопки нарисованы:
       иначе один лишний вызов молча прощает долг.
     */
-    if (state.pending && (state.pending.type === 'pay' || state.pending.type === 'card')) return false;
+    if (state.pending && (state.pending.type === 'pay' || state.pending.type === 'card'
+      || state.pending.type === 'promise')) return false;
     state.pending = null;
 
     if (player.extraRoll && player.prison === 0 && !player.skip) {
@@ -1055,7 +1181,7 @@ window.PromisedLandEngine = (() => {
 
   return {
     createGame, current, roll, buy, decline, build, altar, sell, redeem, endTurn,
-    settle, serve, payee, takeCard,
+    settle, serve, payee, takeCard, dealBuild, keepPromise, breakPromise,
     pledgeable, pledge, pledgesOf, canRedeemPledge, redeemPledge,
     canBuild, canAltar, canSell, canRedeem, rentFor, ownsWholeGroup, ownedCount,
     scoreOf, titheAmount, liquidValue, settlementSteps, standing, clone,

@@ -298,6 +298,114 @@ function pledgeWorks() {
   return { owed };
 }
 
+/*
+  Договоры. Гость, вставший на чужую землю, волен не просто заплатить: он может
+  поставить хозяину ступень за свой счёт и отдать половину платы — или не
+  платить вовсе, взяв с хозяина встречное обещание построить ему такую же
+  ступень. Каждое из трёх обещаний проверяется числами: сколько ушло, сколько
+  пришло, что стало с землёй и с самим обещанием.
+*/
+function dealsWork() {
+  const rng = seeded(2024);
+  const group = Object.keys(B.GROUPS).find((key) => B.groupCells(key).length >= 2);
+  const cells = B.groupCells(group);
+  const build = B.GROUPS[group].build;
+
+  const setup = () => {
+    const state = E.createGame({
+      players: [{ name: 'Гость' }, { name: 'Хозяин' }], years: 7, rng,
+    });
+    const [guest, owner] = state.players;
+    for (const n of cells) state.cells[n].owner = owner.id;
+    guest.silver = 3000;
+    owner.silver = 100;
+    state.turn = 0;
+    state.phase = 'roll';
+    return { state, guest, owner, n: cells[0] };
+  };
+
+  /*
+    Приземление на нужную клетку. Кости бросает сам движок, поэтому сюда
+    передаётся зерно, дающее двойку на каждой: ход выходит ровно на четыре
+    клетки вперёд, и гость встаёт туда, куда нужно проверке.
+  */
+  const TWO = () => 0.25;
+  function stand(kit, who, cell) {
+    kit.state.turn = kit.state.players.indexOf(who);
+    kit.state.phase = 'roll';
+    kit.state.pending = null;
+    who.pos = (cell - 4 + B.BOARD.length) % B.BOARD.length;
+    E.roll(kit.state, TWO);
+    return kit.state.pending;
+  }
+
+  const one = setup();
+  let pending = stand(one, one.guest, one.n);
+  if (!pending || pending.type !== 'pay') return { why: `на чужой земле выставили «${pending?.type}»` };
+  if (!pending.deal) return { why: 'к счёту не приложен договор' };
+  const rent = pending.amount;
+  const half = pending.deal.half;
+  if (half !== Math.ceil(rent / 2)) return { why: `половина платы посчитана как ${half} от ${rent}` };
+
+  // 1. Просто заплатить.
+  const beforeGuest = one.guest.silver;
+  const beforeOwner = one.owner.silver;
+  if (!E.settle(one.state)) return { why: 'простая уплата не прошла' };
+  if (one.guest.silver !== beforeGuest - rent || one.owner.silver !== beforeOwner + rent) {
+    return { why: 'простая уплата сдвинула не те деньги' };
+  }
+
+  // 2. Построить и заплатить половину.
+  const two = setup();
+  pending = stand(two, two.guest, two.n);
+  const levelBefore = two.state.cells[two.n].level;
+  const guestBefore = two.guest.silver;
+  const ownerBefore = two.owner.silver;
+  if (!E.dealBuild(two.state, true)) return { why: 'договор «строю и плачу половину» не прошёл' };
+  if (two.state.cells[two.n].level !== levelBefore + 1) return { why: 'ступень не выросла' };
+  if (two.guest.silver !== guestBefore - build - pending.deal.half) {
+    return { why: `у гостя ушло ${guestBefore - two.guest.silver} вместо ${build + pending.deal.half}` };
+  }
+  if (two.owner.silver !== ownerBefore + pending.deal.half) {
+    return { why: `хозяину пришло ${two.owner.silver - ownerBefore} вместо ${pending.deal.half}` };
+  }
+  if (two.owner.promises.length) return { why: 'за половину платы на хозяина повис долг' };
+
+  // 3. Уговор: строю сейчас, платы нет, хозяин должен ответить.
+  const three = setup();
+  stand(three, three.guest, three.n);
+  const guestHad = three.guest.silver;
+  const ownerHad = three.owner.silver;
+  if (!E.dealBuild(three.state, false)) return { why: 'уговор не прошёл' };
+  if (three.guest.silver !== guestHad - build) {
+    return { why: `по уговору с гостя взяли ${guestHad - three.guest.silver} вместо ${build}` };
+  }
+  if (three.owner.silver !== ownerHad) return { why: 'по уговору хозяину что-то заплатили' };
+  if (!three.owner.promises.includes(three.guest.id)) return { why: 'обещание хозяина не записано' };
+
+  // 4. Обещание спрашивается на земле того, кому обещали.
+  const four = three;
+  const mine = B.BOARD.find((spec) => spec.kind === 'plot' && !cells.includes(spec.n));
+  four.state.cells[mine.n].owner = four.guest.id;
+  for (const n of B.groupCells(mine.group)) four.state.cells[n].owner = four.guest.id;
+  four.owner.silver = 3000;
+  const asked = stand(four, four.owner, mine.n);
+  if (!asked || asked.type !== 'promise') {
+    return { why: `на земле того, кому обещали, выставили «${asked?.type}»` };
+  }
+  const payerHad = four.owner.silver;
+  const levelHad = four.state.cells[mine.n].level;
+  if (!E.keepPromise(four.state)) return { why: 'обещание не исполнилось' };
+  if (four.state.cells[mine.n].level !== levelHad + 1) return { why: 'обещанная ступень не выросла' };
+  if (four.owner.silver !== payerHad - asked.cost) return { why: 'за обещание взяли не столько' };
+  if (four.owner.promises.includes(four.guest.id)) return { why: 'исполненное обещание осталось висеть' };
+
+  return { rent, half, build };
+}
+
+const deals = dealsWork();
+need(!deals.why, `договоры работают не так, как обещано: ${deals.why}`);
+
 const pledged = pledgeWorks();
 need(!pledged.why, `залог работает не так, как обещано: ${pledged.why}`);
 
@@ -398,6 +506,8 @@ console.log(`OK: ${GAMES} партий дошли до юбилея и конч�
   + `только после решения и ровно на сумму счёта (${asked.map((r) => r.owed).join(', ')}). `
   + `За ${quiet.length} прогонов у человека не убыло ни сикля помимо счетов `
   + `(${quiet.reduce((sum, r) => sum + r.bills, 0)} счетов на всех). `
+  + `Договоры: плата ${deals.rent} уходит целиком, со ступенью за ${deals.build} — `
+  + `половиной (${deals.half}), а по уговору не уходит вовсе, и хозяин отвечает ступенью. `
   + `Залог: удел дешевле долга в залог не идёт, дорогой уходит кредитору и выкупается `
   + `за ту же сумму (${pledged.owed}). «До последнего»: ${lastGames.length} партий дошли до `
   + `конца, в каждой остался один, медиана ${median(lastGames.map((game) => game.turns))} ходов.`);

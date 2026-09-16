@@ -57,7 +57,28 @@ window.PromisedLandBots = (() => {
     // вылетает из колоды и переворачивается; боту показывать нечего.
     if (state.pending && state.pending.type === 'card') return E.takeCard(state, rng) && 'card';
 
+    /*
+      Обещанная ступень. Соперник держит слово, если есть чем: земля от этого
+      дорожает у него же в памяти, а вот платить за проход потом всё равно
+      придётся. Нечем — обещание откладывается, и он просто платит.
+    */
+    if (state.pending && state.pending.type === 'promise') {
+      if (player.silver > state.pending.cost + 250 && E.keepPromise(state)) return 'promise';
+      return E.breakPromise(state) && 'break';
+    }
+
     if (state.pending && state.pending.type === 'pay') {
+      /*
+        Договор вместо платы. Считается просто: во что обойдётся каждый путь.
+        Уговор без платы дороже деньгами, но оставляет за хозяином встречный
+        долг, поэтому берётся, когда плата велика, а серебра вдоволь.
+      */
+      const deal = state.pending.deal;
+      if (deal && player.silver > deal.build + deal.half + 400) {
+        const straight = state.pending.amount;
+        if (deal.build + deal.half < straight && E.dealBuild(state, true)) return 'deal-half';
+        if (deal.build < straight * 0.8 && E.dealBuild(state, false)) return 'deal-barter';
+      }
       if (E.settle(state)) return 'pay';
       /*
         Заложить дешевле, чем продать: заложенное можно выкупить, проданное —

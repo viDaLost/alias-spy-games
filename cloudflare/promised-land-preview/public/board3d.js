@@ -195,6 +195,39 @@ window.PromisedLand3D = (() => {
     return canvas;
   }
 
+  /*
+    Табличка с именем над фишкой. Рисуется полотном и вешается спрайтом: спрайт
+    всегда повёрнут к камере, поэтому имя читается с любой стороны, как ни
+    поверни доску. Цвет таблички — цвет игрока: по нему фишка и находится на
+    поле, а имя только подтверждает.
+  */
+  function nameCanvas(text, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 96;
+    const ctx = canvas.getContext('2d');
+    const radius = 30;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(radius, 8);
+    ctx.arcTo(248, 8, 248, 88, radius);
+    ctx.arcTo(248, 88, 8, 88, radius);
+    ctx.arcTo(8, 88, 8, 8, radius);
+    ctx.arcTo(8, 8, 248, 8, radius);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    let size = 46;
+    do {
+      ctx.font = `700 ${size}px system-ui, sans-serif`;
+      size -= 2;
+    } while (size > 20 && ctx.measureText(text).width > 212);
+    ctx.fillText(text, 128, 50);
+    return canvas;
+  }
+
   function dieFaceCanvas(value, theme) {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
@@ -565,6 +598,7 @@ window.PromisedLand3D = (() => {
 
     const tokens = [];
     const shadows = [];
+    const plates = [];
 
     // ————————————————————————————————————————————— две колоды на доске
 
@@ -775,9 +809,17 @@ window.PromisedLand3D = (() => {
       else running = false;
     }
 
+    /*
+      Общий множитель длительности. Им управляет кнопка «Быстрее»: она не
+      пропускает движения, а проигрывает их короче — фишка всё так же идёт по
+      клеткам, просто быстрее.
+    */
+    let speed = 1;
+    const setSpeed = (value) => { speed = Math.max(0.15, Math.min(2, value || 1)); };
+
     function animate(life, step) {
       return new Promise((resolve) => {
-        jobs.push({ time: 0, life, step, finish: () => { step(1); resolve(); } });
+        jobs.push({ time: 0, life: Math.max(0.05, life * speed), step, finish: () => { step(1); resolve(); } });
         if (!running) { running = true; clock.getDelta(); requestAnimationFrame(pump); }
       });
     }
@@ -1188,7 +1230,35 @@ window.PromisedLand3D = (() => {
         disc.visible = false;
         scene.add(disc);
         shadows.push(disc);
+        const plate = new THREE.Sprite(new THREE.SpriteMaterial({
+          map: new THREE.CanvasTexture(nameCanvas('…', '#4f46e5')),
+          depthTest: false,
+          transparent: true,
+        }));
+        plate.scale.set(1.28, 0.48, 1);
+        plate.renderOrder = 4;
+        plate.visible = false;
+        scene.add(plate);
+        plates.push(plate);
       }
+    }
+
+    /** Подписать фишки: «Вы» своей, имена — чужим. */
+    function nameTokens(state) {
+      const alone = state.players.filter((player) => !player.isBot).length === 1;
+      state.players.forEach((player, index) => {
+        const plate = plates[index];
+        if (!plate) return;
+        const text = alone && !player.isBot ? 'Вы' : player.name;
+        const color = colorOfPlayer(player);
+        if (plate.userData.text === text && plate.userData.color === color) return;
+        plate.userData.text = text;
+        plate.userData.color = color;
+        if (plate.material.map) plate.material.map.dispose();
+        plate.material.map = new THREE.CanvasTexture(nameCanvas(text, color));
+        plate.material.map.encoding = THREE.sRGBEncoding;
+        plate.material.needsUpdate = true;
+      });
     }
 
     /** Куда встаёт фишка игрока: по кругу вокруг середины клетки. */
@@ -1216,12 +1286,21 @@ window.PromisedLand3D = (() => {
         figure.visible = true;
         shadows[index].position.set(spot.x, TILE_H + 0.006, spot.z);
         shadows[index].visible = true;
+        /*
+          Таблички соседей по клетке встают лесенкой: иначе они наползают друг
+          на друга и не читается ни одна. Первый по очереди — выше всех: своя
+          фишка должна находиться первой, а она у человека обычно первая.
+        */
+        plates[index].position.set(spot.x,
+          TILE_H + 1.02 + (count - 1 - order) * 0.34, spot.z);
+        plates[index].visible = true;
       });
     }
 
     function sync(state, colorFn) {
       if (colorFn) colorOfPlayer = colorFn;
       ensureTokens(state);
+      nameTokens(state);
       state.players.forEach((player, index) => {
         const base = tokens[index] && tokens[index].userData.base;
         if (base) base.material.color.set(colorOfPlayer(player));
@@ -1288,6 +1367,7 @@ window.PromisedLand3D = (() => {
         figure.rotation.x = -(b.z - a.z) * Math.sin(Math.PI * part) * 0.18;
         shadows[index].position.set(figure.position.x, TILE_H + 0.006, figure.position.z);
         shadows[index].material.opacity = 0.22 - Math.sin(Math.PI * part) * 0.1;
+        plates[index].position.set(figure.position.x, figure.position.y + 0.78, figure.position.z);
       }).then(() => {
         figure.rotation.set(0, 0, 0);
         shadows[index].material.opacity = 0.22;
@@ -1367,6 +1447,7 @@ window.PromisedLand3D = (() => {
         figure.position.z = a.z + (b.z - a.z) * part;
         figure.position.y = TILE_H + Math.sin(Math.PI * part) * 0.3;
         shadows[index].position.set(figure.position.x, TILE_H + 0.006, figure.position.z);
+        plates[index].position.set(figure.position.x, figure.position.y + 0.78, figure.position.z);
       });
     }
 
@@ -1396,14 +1477,26 @@ window.PromisedLand3D = (() => {
       return chain;
     }
 
-    /** Полный оборот вокруг доски: показать, что она стоит на земле кругом. */
+    /*
+      Полный оборот вокруг доски: показать, что она стоит на земле кругом. Как
+      и всякий перелёт, он уступает следующему: нажали «Пропустить» посреди
+      оборота — камера идёт домой, а оборот замолкает, не досказав своё.
+    */
     function orbit(life = 2.6) {
+      const mine = flight + 1;
+      flight = mine;
       const from = view.yaw;
       view.cell = null;
       return animate(life, (t) => {
+        if (mine !== flight) return true;
         view.yaw = from + FULL * smooth(t);
         place();
-      }).then(() => { view.yaw = from; place(); report(); });
+      }).then(() => {
+        if (mine !== flight) return;
+        view.yaw = from;
+        place();
+        report();
+      });
     }
 
     function focus(cell, life) {
@@ -1436,6 +1529,7 @@ window.PromisedLand3D = (() => {
         objects: scene.children.length,
         frames: renderer.info.render.frame,
         icons: iconsDrawn,
+        labels: plates.map((plate) => plate.userData.text || ''),
         coins: coinsDrawn,
         labelTurn,
         yaw: view.yaw,
@@ -1444,7 +1538,7 @@ window.PromisedLand3D = (() => {
 
     return {
       sync, walk, roll, resize, dispose, highlight, focus, home,
-      dealCard, returnCard, demoWalk, demoBuild, demoLadder, orbit,
+      dealCard, returnCard, demoWalk, demoBuild, demoLadder, orbit, setSpeed,
       atHome, stats, render: touch,
     };
   }
