@@ -39,6 +39,16 @@ const need = (condition, message) => { if (!condition) problems.push(message); }
 const LADDER = ['well', 'tent', 'house', 'wall', 'tower'];
 const RISING = ['well', 'tent', 'house', 'tower'];
 
+/*
+  Фишки игроков — шесть человек. Ростом они одинаковы намеренно: фишки стоят на
+  клетке рядом, и разный рост читался бы как разная важность, которой в
+  правилах нет. Здесь это и спрашивается — вместе с тем, что у каждого на месте
+  голова: она приходит отдельным файлом и садится на шею по скелету, а
+  промахнуться мимо шеи легче лёгкого.
+*/
+const PEOPLE = ['citizen', 'healer', 'fisher', 'archer', 'spearman', 'javelin'];
+const FIGURE_TALL = 0.42;
+
 const TILE = 0.94;
 const MAX_TALL = 0.5;
 const MAX_WIDE = 0.46;
@@ -177,6 +187,77 @@ for (const kind of ['wall', 'tower']) {
     + 'похоже, фундамент не прижат к нулю и выставлен наружу');
 }
 
+for (const kind of PEOPLE) {
+  const file = path.join(dir, `token-${kind}.glb`);
+  if (!fs.existsSync(file)) {
+    need(false, `нет фишки token-${kind}.glb`);
+    continue;
+  }
+  let glb;
+  try {
+    glb = readGlb(file);
+  } catch (error) {
+    need(false, `token-${kind}.glb не читается: ${error.message}`);
+    continue;
+  }
+  need(glb.bytes <= MAX_BYTES,
+    `token-${kind}.glb весит ${Math.round(glb.bytes / 1024)} КБ при пределе ${MAX_BYTES / 1024}`);
+  need(Array.isArray(glb.json.images) && glb.json.images[0]?.bufferView !== undefined,
+    `у token-${kind}.glb нет вшитой текстуры`);
+  /*
+    Тело и голова сшиты в одну сетку, а их текстуры — в одно полотно вдвое
+    шире высоты. Отдельными материалами это стоило бы двух вызовов отрисовки
+    на каждую фишку, а их на доске шесть.
+  */
+  need(glb.json.meshes[0].primitives.length === 1,
+    `token-${kind}.glb собран из ${glb.json.meshes[0].primitives.length} кусков, а нужен один`);
+  /*
+    Прозрачность у людей выключена намеренно: 0 A.D. держит в ней маску цвета
+    игрока, а не вырез. Резать по ней — значит проделать в тунике дыры; цвет
+    игрока фишке даёт круглая подставка под ногами.
+  */
+  need(glb.json.materials[0]?.alphaMode === 'OPAQUE',
+    `token-${kind}.glb режется по прозрачности — в одежде будут дыры`);
+
+  const points = positionsOf(glb);
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  for (let i = 0; i < points.length; i += 3) {
+    minX = Math.min(minX, points[i]); maxX = Math.max(maxX, points[i]);
+    minY = Math.min(minY, points[i + 1]); maxY = Math.max(maxY, points[i + 1]);
+  }
+  const tall = maxY - minY;
+  need(Math.abs(minY) < 1e-4, `token-${kind}.glb стоит на высоте ${minY.toFixed(3)}, а не на нуле`);
+  need(Math.abs(tall - FIGURE_TALL) < 0.01,
+    `token-${kind}.glb ростом ${tall.toFixed(2)} вместо ${FIGURE_TALL}`);
+  need(maxX - minX < tall, `token-${kind}.glb шире, чем выше — на человека не похоже`);
+
+  /*
+    Голова на месте. Она приходит отдельным файлом и ставится на шею по узлу
+    скелета — промахнуться легче лёгкого, и тогда фигура либо остаётся без
+    головы, либо носит её у ног.
+
+    Узнаётся это по ширине макушки. У фигуры с головой верхние четырнадцать
+    процентов роста — это череп, и он узкий. У фигуры без головы там плечи, и
+    они втрое шире. Замерено: с головой макушка шириной 0.018–0.019 при росте
+    0.42, то есть 4–5 процентов роста; без головы — 0.057, то есть 14. Порог
+    в восемь процентов лежит ровно между, с запасом в обе стороны.
+  */
+  let crown = 0;
+  let crownWide = 0;
+  for (let i = 0; i < points.length; i += 3) {
+    if (points[i + 1] < tall * 0.86) continue;
+    crown += 1;
+    crownWide = Math.max(crownWide, Math.abs(points[i]));
+  }
+  need(crown > 100, `у token-${kind}.glb под макушкой ${crown} точек — похоже, головы нет`);
+  need(crownWide < tall * 0.08,
+    `макушка token-${kind}.glb шириной ${(crownWide / tall * 100).toFixed(0)}% роста — `
+    + 'это плечи, а не голова: голова не села на шею');
+}
+
 // Лицензия едет вместе с моделями: CC BY-SA 3.0 требует указать авторство.
 const licence = path.join(dir, 'LICENSE.txt');
 need(fs.existsSync(licence), 'рядом с моделями нет LICENSE.txt');
@@ -194,9 +275,10 @@ if (problems.length) {
 }
 
 const total = [...sizes.values()].reduce((sum, one) => sum + one.bytes, 0);
-console.log(`OK: пять построек на месте, ${Math.round(total / 1024)} КБ всего. `
+console.log(`OK: пять построек и шесть фишек на месте, ${Math.round(total / 1024)} КБ построек. `
   + [...sizes.entries()].map(([kind, one]) => `${kind} ${one.tall.toFixed(2)}×${one.wide.toFixed(2)}`).join(', ')
   + `. Каждая стоит на нуле, влезает в клетку и везёт свою текстуру; лестница читается `
   + `силуэтом, у стены и башни фундамент прижат к земле `
   + `(${(sizes.get('wall').share * 100).toFixed(0)}% и ${(sizes.get('tower').share * 100).toFixed(0)}% точек на подошве). `
+  + 'У каждой фишки одна сетка, непрозрачная одежда и голова над серединой. '
   + 'Авторство и лицензия лежат рядом.');

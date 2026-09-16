@@ -48,6 +48,49 @@ const MODELS = [
   { kind: 'tower', mesh: 'structural/pers_scout_tower_a.dae', texture: 'skins/structural/pers_struct.png', height: 0.44 },
 ];
 
+/*
+  Фишки игроков — шесть персонажей. Устроены они сложнее построек: тело и
+  голова лежат в разных файлах, а соединяет их скелет — у тела есть узел
+  «prop-head», и голова ставится туда. Поз в архиве целая библиотека, но фишке
+  на доске поза не нужна: берётся опорная, в которой тело и записано.
+
+  Ростом все одинаковы: фишки на клетке стоят рядом, и разный рост читался бы
+  как разная важность, которой в правилах нет.
+*/
+const FIGURE_TALL = 0.42;
+const FIGURES = [
+  {
+    kind: 'citizen',
+    body: { mesh: 'skeletal/new/f_dress.dae', texture: 'skins/skeletal/pers/dress_female_01_01.dds' },
+    head: { mesh: 'props/new/dudette_head_a.dae', texture: 'skins/props/head/pers_fem_a.dds' },
+  },
+  {
+    kind: 'healer',
+    body: { mesh: 'skeletal/new/m_dress_sleeves.dae', texture: 'skins/skeletal/pers/robes_healer_01.png' },
+    head: { mesh: 'props/new/head_beard_small.dae', texture: 'skins/props/head/pers_face_h_mouth.dds' },
+  },
+  {
+    kind: 'fisher',
+    body: { mesh: 'skeletal/new/m_tunic_short.dae', texture: 'skins/skeletal/pers/tunic_basic_01_01.png' },
+    head: { mesh: 'props/new/head_beard_small.dae', texture: 'skins/props/head/pers_face_a.png' },
+  },
+  {
+    kind: 'archer',
+    body: { mesh: 'skeletal/new/m_tunic_short.dae', texture: 'skins/skeletal/scyth/tunic_coat_01_01.png' },
+    head: { mesh: 'props/new/head_beard_small.dae', texture: 'skins/props/head/pers_face_a.png' },
+  },
+  {
+    kind: 'spearman',
+    body: { mesh: 'skeletal/new/m_tunic_long.dae', texture: 'skins/skeletal/pers/tunic_basic_01_03.png' },
+    head: { mesh: 'props/new/head_beard_small.dae', texture: 'skins/props/head/pers_face_f_y.dds' },
+  },
+  {
+    kind: 'javelin',
+    body: { mesh: 'skeletal/new/m_tunic_short.dae', texture: 'skins/skeletal/pers/tunic_basic_01_07.png' },
+    head: { mesh: 'props/new/head_beard_small.dae', texture: 'skins/props/head/pers_face_a.png' },
+  },
+];
+
 const TEX_SIDE = 256;
 
 // ————————————————————————————————————————————————— разбор COLLADA
@@ -231,6 +274,125 @@ function readMesh(file) {
     }
   }
   return { positions, normals, uvs, indices };
+}
+
+/*
+  Узлы сцены с учётом вложенности. Обычный поиск по тегу здесь не годится:
+  скелет — это дерево из сотни узлов, вложенных друг в друга, и первый
+  встречный «</node>» закрывает вовсе не тот узел, который открылся.
+*/
+function nodesOf(chunk) {
+  const out = [];
+  const open = /<node\b([^>]*?)(\/?)>/g;
+  let match;
+  while ((match = open.exec(chunk))) {
+    const attrs = {};
+    for (const [, key, value] of match[1].matchAll(/([\w:]+)\s*=\s*"([^"]*)"/g)) attrs[key] = value;
+    if (match[2] === '/') { out.push({ attrs, body: '' }); continue; }
+    let depth = 1;
+    const scan = /<node\b[^>]*?(\/?)>|<\/node>/g;
+    scan.lastIndex = open.lastIndex;
+    let step;
+    while ((step = scan.exec(chunk))) {
+      if (step[0].startsWith('</')) { depth -= 1; if (!depth) break; }
+      else if (step[1] !== '/') depth += 1;
+    }
+    out.push({ attrs, body: chunk.slice(open.lastIndex, step ? step.index : undefined) });
+    if (step) open.lastIndex = scan.lastIndex;
+  }
+  return out;
+}
+
+const mulMatrix = (a, b) => {
+  const out = new Array(16).fill(0);
+  for (let row = 0; row < 4; row += 1) {
+    for (let col = 0; col < 4; col += 1) {
+      for (let k = 0; k < 4; k += 1) out[row * 4 + col] += a[row * 4 + k] * b[k * 4 + col];
+    }
+  }
+  return out;
+};
+
+const UNIT = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+
+/**
+ * Скелет: где какой узел стоит в опорной позе. Нужен ради одного — точки
+ * «prop-head»: голова у этих моделей лежит отдельным файлом, и поставить её
+ * на место можно только зная, где у тела шея.
+ */
+function skeletonOf(xml) {
+  const scenes = tags(xml, 'library_visual_scenes')[0];
+  const found = new Map();
+  if (!scenes) return found;
+  const walk = (chunk, parent) => {
+    for (const node of nodesOf(chunk)) {
+      const own = tags(node.body, 'matrix')[0];
+      const here = own ? mulMatrix(parent, floats(own.body)) : parent;
+      const name = node.attrs.name || node.attrs.sid || node.attrs.id;
+      if (name) found.set(name, here);
+      walk(node.body, here);
+    }
+  };
+  walk(scenes.body, UNIT);
+  return found;
+}
+
+/** Передвинуть сетку матрицей: ею голова и садится на шею. */
+function moveMesh(mesh, matrix) {
+  for (let i = 0; i < mesh.positions.length; i += 3) {
+    const [x, y, z] = applyMatrix(matrix, mesh.positions[i], mesh.positions[i + 1], mesh.positions[i + 2]);
+    mesh.positions[i] = x;
+    mesh.positions[i + 1] = y;
+    mesh.positions[i + 2] = z;
+    const [nx, ny, nz] = applyRotation(matrix, mesh.normals[i], mesh.normals[i + 1], mesh.normals[i + 2]);
+    const len = Math.hypot(nx, ny, nz) || 1;
+    mesh.normals[i] = nx / len;
+    mesh.normals[i + 1] = ny / len;
+    mesh.normals[i + 2] = nz / len;
+  }
+}
+
+/*
+  Тело и голова сшиваются в одну сетку, а их текстуры — в одно полотно: слева
+  тело, справа голова. Развёртка при этом сжимается вдвое по ширине и
+  сдвигается. Ради чего: фишка с двумя материалами — это два вызова отрисовки
+  на каждую, а их на доске шесть, и каждая ещё и в движении.
+
+  Развёртки у этих сеток лежат внутри единичного квадрата (замерено: от 0 до
+  1.002), поэтому половинки не перетекают друг в друга. Крохотный вылет за
+  единицу подрезается.
+*/
+function stitch(body, head) {
+  const shift = (mesh, half) => {
+    for (let i = 0; i < mesh.uvs.length; i += 2) {
+      const u = Math.min(1, Math.max(0, mesh.uvs[i]));
+      mesh.uvs[i] = u / 2 + half * 0.5;
+      mesh.uvs[i + 1] = Math.min(1, Math.max(0, mesh.uvs[i + 1]));
+    }
+  };
+  shift(body, 0);
+  shift(head, 1);
+  const at = body.positions.length / 3;
+  return {
+    positions: [...body.positions, ...head.positions],
+    normals: [...body.normals, ...head.normals],
+    uvs: [...body.uvs, ...head.uvs],
+    indices: [...body.indices, ...head.indices.map((i) => i + at)],
+  };
+}
+
+/** Два квадратных полотна рядом: слева первое, справа второе. */
+function sideBySide(left, right) {
+  const side = TEX_SIDE;
+  const rgba = Buffer.alloc(side * 2 * side * 4);
+  for (let y = 0; y < side; y += 1) {
+    for (let x = 0; x < side; x += 1) {
+      const from = (y * side + x) * 4;
+      left.rgba.copy(rgba, (y * side * 2 + x) * 4, from, from + 4);
+      right.rgba.copy(rgba, (y * side * 2 + side + x) * 4, from, from + 4);
+    }
+  }
+  return { width: side * 2, height: side, rgba };
 }
 
 // ————————————————————————————————————————————————— текстуры
@@ -477,7 +639,7 @@ const pad4 = (n) => (n + 3) & ~3;
  * одним файлом: у выкладки и так хватает путей, по которым что-то может не
  * доехать, а текстура без модели или модель без текстуры одинаково бесполезны.
  */
-function writeGlb(mesh, png) {
+function writeGlb(mesh, png, cutout = true) {
   const index = new Uint32Array(mesh.indices);
   const position = new Float32Array(mesh.positions);
   const normal = new Float32Array(mesh.normals);
@@ -529,9 +691,15 @@ function writeGlb(mesh, png) {
         metallicFactor: 0,
         roughnessFactor: 0.92,
       },
-      // Шатёр и растительность по краям текстуры вырезаны прозрачностью.
-      alphaMode: 'MASK',
-      alphaCutoff: 0.5,
+      /*
+        У построек прозрачностью вырезаны края полога и растительность — там
+        она значит именно прозрачность. У людей она значит другое: 0 A.D.
+        держит в ней маску, по которой движок подмешивает цвет игрока, и
+        вырезать по ней — значит проделать в тунике дыры. Поэтому фигуры
+        собираются непрозрачными, а цвет игрока у них и без того есть — в
+        круглой подставке под ногами.
+      */
+      ...(cutout ? { alphaMode: 'MASK', alphaCutoff: 0.5 } : { alphaMode: 'OPAQUE' }),
       doubleSided: true,
     }],
     textures: [{ source: 0, sampler: 0 }],
@@ -631,6 +799,66 @@ for (const item of MODELS) {
   // Имя с приставкой: в public/art/models/ эти файлы лежат рядом с пальмами и
   // камнями от «Моисея на Ниле», и «tower.glb» там ничего не объяснит.
   const out = path.join(outDir, `build-${item.kind}.glb`);
+  fs.writeFileSync(out, glb);
+
+  report.push({
+    kind: item.kind,
+    triangles: mesh.indices.length / 3,
+    vertices: mesh.positions.length / 3,
+    tall: size.tall,
+    wide: size.wide,
+    bytes: glb.length,
+  });
+}
+
+/*
+  Фишки игроков. Тело и голова читаются порознь, голова ставится на своё место
+  по скелету тела, обе сетки сшиваются в одну, обе текстуры — в одно полотно.
+*/
+for (const item of FIGURES) {
+  const bodyFile = path.join(art, 'meshes', item.body.mesh);
+  const headFile = path.join(art, 'meshes', item.head.mesh);
+  if (!fs.existsSync(bodyFile)) throw new Error(`нет тела ${item.body.mesh}`);
+  if (!fs.existsSync(headFile)) throw new Error(`нет головы ${item.head.mesh}`);
+
+  const body = readMesh(bodyFile);
+  const head = readMesh(headFile);
+
+  /*
+    Где у тела шея. Узел «prop-head» лежит в скелете в системе координат
+    исходника — Z вверх, — а сетки к этому месту уже переведены в Y вверх.
+    Поэтому матрица узла применяется к голове до перевода: голова читается
+    тем же readMesh, то есть уже переведённой, и матрицу надо перевести
+    тоже. Проще и надёжнее взять из матрицы только её сдвиг: голова у этих
+    моделей ни повёрнута, ни смасштабирована относительно тела — она просто
+    приставляется к шее.
+  */
+  const bones = skeletonOf(fs.readFileSync(bodyFile, 'utf8'));
+  const neck = bones.get('prop-head') || bones.get('head');
+  if (!neck) throw new Error(`у ${item.body.mesh} нет узла головы`);
+  moveMesh(head, [
+    1, 0, 0, neck[3],
+    0, 1, 0, neck[11],
+    0, 0, 1, -neck[7],
+    0, 0, 0, 1,
+  ]);
+
+  const mesh = stitch(body, head);
+  const size = fit(mesh, FIGURE_TALL);
+
+  const skin = (file) => {
+    const full = path.join(art, 'textures', file);
+    if (!fs.existsSync(full)) throw new Error(`нет текстуры ${file}`);
+    const raw = full.endsWith('.dds') ? decodeDds(fs.readFileSync(full)) : decodePng(fs.readFileSync(full));
+    return resize(raw, TEX_SIDE);
+  };
+  const cloth = sideBySide(skin(item.body.texture), skin(item.head.texture));
+  // Маска цвета игрока — не прозрачность: без этого туника уходит дырами.
+  for (let i = 3; i < cloth.rgba.length; i += 4) cloth.rgba[i] = 255;
+  const png = encodePng(cloth);
+
+  const glb = writeGlb(mesh, png, false);
+  const out = path.join(outDir, `token-${item.kind}.glb`);
   fs.writeFileSync(out, glb);
 
   report.push({

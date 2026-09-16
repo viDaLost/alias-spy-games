@@ -102,6 +102,13 @@ for (const [source, name] of [
   ['web/assets/promised-land/models/build-house.glb', 'models/build-house.glb'],
   ['web/assets/promised-land/models/build-wall.glb', 'models/build-wall.glb'],
   ['web/assets/promised-land/models/build-tower.glb', 'models/build-tower.glb'],
+  // Фишки игроков: шесть людей, по одному на место за столом.
+  ['web/assets/promised-land/models/token-citizen.glb', 'models/token-citizen.glb'],
+  ['web/assets/promised-land/models/token-healer.glb', 'models/token-healer.glb'],
+  ['web/assets/promised-land/models/token-fisher.glb', 'models/token-fisher.glb'],
+  ['web/assets/promised-land/models/token-archer.glb', 'models/token-archer.glb'],
+  ['web/assets/promised-land/models/token-spearman.glb', 'models/token-spearman.glb'],
+  ['web/assets/promised-land/models/token-javelin.glb', 'models/token-javelin.glb'],
   ['web/assets/promised-land/models/LICENSE.txt', 'models/LICENSE.txt'],
 ]) {
   const src = path.join(root, source);

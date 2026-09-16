@@ -736,6 +736,13 @@ window.PromisedLand3D = (() => {
     const Figures = window.PromisedLandFigures;
     const BUILD_KINDS = ['well', 'tent', 'house', 'wall', 'tower'];
     const TOKEN_KINDS = ['staff', 'jar', 'sheaf', 'lamp', 'scroll', 'sling'];
+    /*
+      Фишки игроков — шесть людей, по одному на место за столом. Приходят они
+      моделями и встают на ту же круглую подставку цвета игрока, на которой
+      прежде стоял предмет: цвет фишки — это подставка, а не одежда, и
+      подменять надо только то, что на ней стоит.
+    */
+    const PEOPLE = ['citizen', 'spearman', 'archer', 'healer', 'javelin', 'fisher'];
 
     /*
       Прообразы построек. Каждая собирается один раз, а на клетки ставятся её
@@ -760,6 +767,9 @@ window.PromisedLand3D = (() => {
       по-прежнему собирается из примитивов.
     */
     const carved = new Set();
+    // Пришедшие модели людей: по месту за столом. Фишка может появиться
+    // позже модели — тогда человек встаёт на неё при создании фишки.
+    const people = new Map();
 
     function restock(kind) {
       let touched = false;
@@ -1424,6 +1434,18 @@ window.PromisedLand3D = (() => {
 
     if (modelsAt && THREE.GLTFLoader) {
       const gltf = new THREE.GLTFLoader();
+      for (let index = 0; index < PEOPLE.length; index += 1) {
+        const kind = PEOPLE[index];
+        gltf.load(`${modelsAt}token-${kind}.glb`, (loaded) => {
+          const model = loaded.scene;
+          model.traverse((node) => {
+            if (node.isMesh && node.material) node.material.roughness = 1;
+          });
+          people.set(index, model);
+          standUp(index, model);
+          touch();
+        }, undefined, () => { /* нет модели — на подставке остаётся предмет */ });
+      }
       for (const kind of BUILD_KINDS) {
         gltf.load(`${modelsAt}build-${kind}.glb`, (loaded) => {
           const model = loaded.scene;
@@ -1478,6 +1500,7 @@ window.PromisedLand3D = (() => {
         plate.visible = false;
         scene.add(plate);
         plates.push(plate);
+        if (people.has(index)) standUp(index, people.get(index));
       }
     }
 
@@ -1490,6 +1513,23 @@ window.PromisedLand3D = (() => {
     function nameOf(state, player) {
       const alone = state.players.filter((one) => !one.isBot).length === 1;
       return alone && !player.isBot ? 'Вы' : player.name;
+    }
+
+    /*
+      Поставить человека на подставку вместо предмета. Модель приходит уже
+      вписанной в клетку и стоящей подошвой на нуле, поэтому ей остаётся
+      подняться на толщину подставки. Прежний предмет снимается, подставка
+      остаётся: она и красит фишку в цвет игрока.
+    */
+    function standUp(index, model) {
+      const figure = tokens[index];
+      if (!figure) return;
+      const old = figure.userData.piece;
+      if (old) figure.remove(old);
+      const piece = model.clone(true);
+      piece.position.y = 0.05;
+      figure.add(piece);
+      figure.userData.piece = piece;
     }
 
     /** Подписать фишки: «Вы» своей, имена — чужим. */
@@ -1802,6 +1842,8 @@ window.PromisedLand3D = (() => {
         */
         // Какие ступени уже стоят настоящей моделью, а не фигуркой из примитивов.
         carved: [...carved],
+        // Сколько фишек стоят человеком, а не предметом.
+        people: people.size,
         banners: [...bannerSlot],
         bannerNames: bannerNames.split('/').map((face) => face.split('|')[0]),
         bannerTurn: bannerQuarter,
