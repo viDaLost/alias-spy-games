@@ -158,8 +158,11 @@ function paymentWaits(seed) {
       if (!Bots.step(state, rng)) E.endTurn(state);
       continue;
     }
+    // Карта только выпала — её принимают нажатием, и лишь тогда она срабатывает.
+    if (state.pending && state.pending.type === 'card') { E.takeCard(state, rng); continue; }
     if (state.phase === 'roll') {
       E.roll(state);
+      if (state.pending && state.pending.type === 'card') E.takeCard(state, rng);
       if (!state.pending || state.pending.type !== 'pay') continue;
       /*
         Счёт выставлен — значит движок спросил, а не взял: пока он висит, ход
@@ -187,6 +190,96 @@ function paymentWaits(seed) {
 const asked = [1, 2, 3, 4, 5].map((seed) => paymentWaits(seed));
 const brokenAsk = asked.find((result) => result.why);
 need(!brokenAsk, `плата мимо решения игрока: ${brokenAsk?.why}`);
+
+/*
+  Залог. Правило обещает три вещи: заложить можно удел не дешевле долга, счёт
+  при этом закрывается, а выкуп возвращает землю за ту же сумму. Проверяется
+  каждая: на слово тут верить нечему — залог легко превратить в способ закрыть
+  любой счёт любым клочком земли.
+*/
+function pledgeWorks() {
+  const rng = seeded(77);
+  const state = E.createGame({
+    players: [{ name: 'Должник' }, { name: 'Кредитор' }], years: 7, rng,
+  });
+  const [debtor, creditor] = state.players;
+  const plots = B.BOARD.filter((cell) => cell.kind === 'plot');
+  const cheap = plots[0];
+  const dear = plots[plots.length - 1];
+  state.cells[cheap.n].owner = debtor.id;
+  state.cells[dear.n].owner = debtor.id;
+  debtor.silver = 10;
+
+  const owed = Math.floor((cheap.price + dear.price) / 2);
+  state.pending = {
+    type: 'pay', amount: owed, toId: creditor.id, toTreasury: false,
+    title: 'Плата за проход', text: '',
+  };
+  state.phase = 'settle';
+
+  const offered = E.pledgeable(state, debtor, owed);
+  if (offered.includes(cheap.n)) {
+    return { why: `в залог предложен «${cheap.name}» за ${cheap.price} под долг ${owed}` };
+  }
+  if (!offered.includes(dear.n)) return { why: `дорогой удел в залог не предложен` };
+
+  const creditorBefore = creditor.silver;
+  if (!E.pledge(state, dear.n)) return { why: 'залог не принят' };
+  if (state.pending && state.pending.type === 'pay') return { why: 'счёт после залога остался' };
+  if (state.cells[dear.n].owner !== creditor.id) return { why: 'заложенное не ушло кредитору' };
+  if (state.cells[dear.n].pledge.debt !== owed) return { why: 'долг по залогу записан другой' };
+  if (debtor.silver !== 10) return { why: `залог тронул серебро: ${debtor.silver}` };
+
+  // Выкуп: денег не хватает — нельзя, хватает — земля возвращается.
+  if (E.canRedeemPledge(state, debtor, dear.n)) return { why: 'выкуп разрешён без денег' };
+  debtor.silver = owed + 5;
+  state.turn = state.players.indexOf(debtor);
+  state.phase = 'act';
+  if (!E.redeemPledge(state, dear.n)) return { why: 'выкуп не сработал при деньгах' };
+  if (state.cells[dear.n].owner !== debtor.id) return { why: 'выкупленное не вернулось' };
+  if (state.cells[dear.n].pledge) return { why: 'залог остался после выкупа' };
+  if (debtor.silver !== 5) return { why: `за выкуп списали ${owed + 5 - debtor.silver}` };
+  if (creditor.silver !== creditorBefore + owed) {
+    return { why: `кредитор получил ${creditor.silver - creditorBefore} вместо ${owed}` };
+  }
+  return { owed };
+}
+
+const pledged = pledgeWorks();
+need(!pledged.why, `залог работает не так, как обещано: ${pledged.why}`);
+
+/*
+  «До последнего». Партия без объявленного срока обязана всё-таки кончаться —
+  и кончаться тем, ради чего затевалась: за столом остаётся один
+  платёжеспособный. Если она не кончается, режим не режим, а вечный круг.
+*/
+function playLast(seed, playerCount) {
+  const rng = seeded(seed);
+  const players = Array.from({ length: playerCount }, (unused, i) => ({
+    name: 'И' + i, isBot: true, botLevel: i % 2 ? 'scribe' : 'elder',
+  }));
+  const state = E.createGame({ players, mode: 'last', rng });
+  let steps = 0;
+  let turns = 0;
+  while (state.status === 'playing' && steps < 60000) {
+    steps += 1;
+    const before = state.turn;
+    if (!Bots.step(state, rng)) E.endTurn(state);
+    if (state.turn !== before) turns += 1;
+  }
+  return { finished: state.status === 'jubilee', turns, left: E.standing(state).length, state };
+}
+
+const lastGames = [];
+for (let seed = 1; seed <= 120; seed += 1) {
+  lastGames.push(playLast(seed * 7, 2 + (seed % 5)));
+}
+const stuck = lastGames.filter((game) => !game.finished).length;
+need(stuck === 0, `${stuck} партий «до последнего» из ${lastGames.length} не кончились`);
+const wrongLeft = lastGames.filter((game) => game.finished && game.left > 1).length;
+need(wrongLeft === 0, `${wrongLeft} партий «до последнего» кончились, пока держались двое`);
+const lastSabbath = lastGames.filter((game) => game.state.sabbath).length;
+need(lastSabbath === 0, `${lastSabbath} партий «до последнего» встретили субботний год`);
 
 const GAMES = 600;
 const results = [];
@@ -249,4 +342,7 @@ console.log(`OK: ${GAMES} партий дошли до юбилея и конч�
   + `в субботний год плата нулевая, а богатейший побеждает лишь в ${richestShare.toFixed(0)}% случаев. `
   + `Поле: 36 клеток, лестница платы монотонна по всем ступеням. `
   + `Счёт игроку выставляется, а не списывается: в пяти прогонах серебро тронулось `
-  + `только после решения и ровно на сумму счёта (${asked.map((r) => r.owed).join(', ')}).`);
+  + `только после решения и ровно на сумму счёта (${asked.map((r) => r.owed).join(', ')}). `
+  + `Залог: удел дешевле долга в залог не идёт, дорогой уходит кредитору и выкупается `
+  + `за ту же сумму (${pledged.owed}). «До последнего»: ${lastGames.length} партий дошли до `
+  + `конца, в каждой остался один, медиана ${median(lastGames.map((game) => game.turns))} ходов.`);

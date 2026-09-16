@@ -12,6 +12,13 @@ window.PromisedLandBoard = (() => {
 
   const START_SILVER = 1500;
   const HARVEST = 200;          // урожай за прохождение «Исхода»
+  /*
+    Шаг подати в режиме «до последнего»: за каждый прожитый год земля просит
+    на столько больше. Число подобрано счётом — см. check-promised-land.mjs:
+    при нём все партии кончаются разорением, а не усталостью: медиана 165 ходов
+    против 191 у партии на семь лет, и самая долгая укладывается в 442.
+  */
+  const TRIBUTE_STEP = 200;
   const RANSOM = 50;            // выкуп из темницы
   const PRISON_TURNS = 3;
   const ROAD_PRICE = 200;
@@ -139,7 +146,7 @@ window.PromisedLandBoard = (() => {
 
   return {
     BOARD, GROUPS, LEVELS, CORNERS, OWNABLE,
-    START_SILVER, HARVEST, RANSOM, PRISON_TURNS,
+    START_SILVER, HARVEST, TRIBUTE_STEP, RANSOM, PRISON_TURNS,
     ROAD_PRICE, ROAD_RENT, WELL_PRICE, WELL_MULT,
     OFFERING, TITHE_RATE, TITHE_MIN, TITHE_MAX,
     HERITAGE_PER_TITHE, HERITAGE_PER_SILVER, HERITAGE_ALTAR, HERITAGE_REDEEM,

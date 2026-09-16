@@ -103,7 +103,7 @@ window.PromisedLand3D = (() => {
         font -= 2;
       } while (font > 20 && lines.some((line) => ctx.measureText(line).width > ATLAS_CELL - 24));
 
-      const top = ATLAS_CELL * (spec.price ? 0.5 : 0.62);
+      const top = ATLAS_CELL * (spec.price ? 0.5 : 0.72);
       lines.forEach((line, i) => {
         ctx.fillText(line, ATLAS_CELL / 2, top + (i - (lines.length - 1) / 2) * (font + 6));
       });
@@ -128,6 +128,48 @@ window.PromisedLand3D = (() => {
     5: [[0, 0], [0, 2], [1, 1], [2, 0], [2, 2]],
     6: [[0, 0], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2]],
   };
+
+  /*
+    Рубашка колоды. Рисуется полотном, а не картинкой: нужен не рисунок, а
+    узнаваемая спина — цвет колоды, рамка и её имя. Двум колодам хватает двух
+    полотен по сто двадцать восемь на сто семьдесят точек.
+  */
+  const DECK_LOOK = {
+    providence: { back: '#4a4fa8', ink: '#eef0ff', name: 'ПРОВИДЕНИЕ' },
+    mercy: { back: '#b07b2e', ink: '#fff6e4', name: 'МИЛОСТЬ' },
+  };
+
+  function deckBackCanvas(kind) {
+    const look = DECK_LOOK[kind] || DECK_LOOK.providence;
+    const canvas = document.createElement('canvas');
+    canvas.width = 192;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = look.back;
+    ctx.fillRect(0, 0, 192, 256);
+    ctx.strokeStyle = look.ink;
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 5;
+    ctx.strokeRect(13, 13, 166, 230);
+    ctx.globalAlpha = 0.22;
+    // Сетка ромбов: спина карты должна читаться спиной и с двух шагов.
+    ctx.beginPath();
+    for (let i = -6; i < 12; i += 1) {
+      ctx.moveTo(i * 26, 0);
+      ctx.lineTo(i * 26 + 256, 256);
+      ctx.moveTo(i * 26, 256);
+      ctx.lineTo(i * 26 + 256, 0);
+    }
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = look.ink;
+    ctx.font = '700 19px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(look.name, 96, 128);
+    return canvas;
+  }
 
   function dieFaceCanvas(value, theme) {
     const canvas = document.createElement('canvas');
@@ -179,7 +221,7 @@ window.PromisedLand3D = (() => {
 
   // ————————————————————————————————————————————— сцена
 
-  function create({ canvas, sceneArt, modelsAt, onCellTap, onViewChange, frameOf, theme }) {
+  function create({ canvas, art, sceneArt, modelsAt, onCellTap, onViewChange, frameOf, theme }) {
     const THREE = window.THREE;
     /*
       Холст непрозрачен, и за землёй стоит не страница, а тёплая дымка. Раньше
@@ -203,9 +245,17 @@ window.PromisedLand3D = (() => {
       уронить половину поля за край.
     */
     const HOME = { yaw: 0, pitch: 0.9425, zoom: 1 };
-    const LIMITS = {
-      yaw: [-0.85, 0.85], pitch: [0.46, 1.38], zoom: [0.82, 1.9],
-    };
+    /*
+      Поворот не ограничен ничем: доску можно обойти кругом и посмотреть с
+      любой стороны — она для того и стоит на земле. А вот подниматься выше
+      шестидесяти четырёх градусов нельзя: оттуда в кадре остаётся одна доска,
+      земля с пальмами и камнями уходит за край, и сцена превращается в чертёж.
+      Нижняя граница — чтобы доска не вырождалась в полоску.
+    */
+    const LIMITS = { pitch: [0.42, 1.12], zoom: [0.82, 1.9] };
+    const FULL = Math.PI * 2;
+    // Разница углов, приведённая к ближайшей: поворот на 350° — это −10°.
+    const shortest = (angle) => angle - Math.round(angle / FULL) * FULL;
     const view = { ...HOME };
     const TARGET = new THREE.Vector3(0, 0, 0.35);
     const clamp = (value, [low, high]) => Math.min(high, Math.max(low, value));
@@ -291,10 +341,42 @@ window.PromisedLand3D = (() => {
     }
 
     // ——— плитки с подписями ———
-    const atlas = new THREE.CanvasTexture(buildLabelAtlas(theme));
+    const sheet = buildLabelAtlas(theme);
+    const atlas = new THREE.CanvasTexture(sheet);
     atlas.encoding = THREE.sRGBEncoding;
     atlas.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
     const topMat = new THREE.MeshLambertMaterial({ map: atlas });
+
+    /*
+      Значки особых клеток. По одному названию «Провидение» или «Милость» не
+      понять, чем они друг от друга отличаются, — а по рисунку понятно сразу.
+      Значки дорисовываются в то же полотно, когда загрузятся: полотно у плиток
+      одно, и добавить в него картинку дешевле, чем завести ещё тридцать шесть
+      материалов ради восьми рисунков.
+    */
+    const ICON_KINDS = new Set(['exodus', 'prison', 'tent', 'slander',
+      'tithe', 'offering', 'providence', 'mercy']);
+    let iconsDrawn = 0;
+    if (art) {
+      const paint = sheet.getContext('2d');
+      for (const spec of B.BOARD) {
+        if (!ICON_KINDS.has(spec.kind)) continue;
+        const picture = new Image();
+        picture.onload = () => {
+          const col = spec.n % ATLAS_COLS;
+          const row = Math.floor(spec.n / ATLAS_COLS);
+          const side = ATLAS_CELL * 0.46;
+          paint.drawImage(picture,
+            col * ATLAS_CELL + (ATLAS_CELL - side) / 2,
+            row * ATLAS_CELL + ATLAS_CELL * 0.09,
+            side, side);
+          atlas.needsUpdate = true;
+          iconsDrawn += 1;
+          touch();
+        };
+        picture.src = art('icons', `icon-${spec.kind}`);
+      }
+    }
 
     const tiles = [];
     const owners = [];
@@ -399,6 +481,137 @@ window.PromisedLand3D = (() => {
 
     const tokens = [];
     const shadows = [];
+
+    // ————————————————————————————————————————————— две колоды на доске
+
+    /*
+      Стопки стоят в середине доски рубашкой вверх — там, где им и место за
+      настоящим столом. Карта из них не появляется в окне: верхняя поднимается,
+      летит на середину, по дороге переворачивается лицом и ждёт, пока прочтут.
+      По нажатию она уходит обратно и ложится под низ своей стопки.
+    */
+    const CARD = { w: 1.46, h: 0.035, d: 1.94 };
+    const DECK_AT = { providence: -1.75, mercy: 1.75 };
+    const DECK_Z = -2.25;
+    const STACK = 5;
+
+    const cardGeometry = new THREE.BoxGeometry(CARD.w, CARD.h, CARD.d);
+    const cardEdge = new THREE.MeshLambertMaterial({ color: 0xf2eee4 });
+    const decks = {};
+    for (const kind of ['providence', 'mercy']) {
+      const back = new THREE.CanvasTexture(deckBackCanvas(kind));
+      back.encoding = THREE.sRGBEncoding;
+      const backMat = new THREE.MeshLambertMaterial({ map: back });
+      const pile = [];
+      for (let i = 0; i < STACK; i += 1) {
+        const card = new THREE.Mesh(cardGeometry, backMat);
+        card.position.set(DECK_AT[kind], 0.06 + i * CARD.h, DECK_Z);
+        scene.add(card);
+        pile.push(card);
+      }
+      decks[kind] = { pile, backMat, back };
+    }
+
+    /*
+      Летающая карта одна на обе колоды: в воздухе их никогда не бывает двух.
+      Верх у неё — лицо, низ — рубашка, поэтому переворот это поворот на пол-
+      оборота вокруг длинной стороны, а не подмена картинки.
+    */
+    const faceMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const flyer = new THREE.Mesh(cardGeometry, [
+      cardEdge, cardEdge, faceMat, decks.providence.backMat, cardEdge, cardEdge,
+    ]);
+    flyer.visible = false;
+    scene.add(flyer);
+    const faces = new Map();
+    let flying = null;
+
+    /*
+      Лицо карты собирается полотном, а не берётся картинкой напрямую: у
+      рисунков карт прозрачный фон, и на карте он выходил чёрным провалом.
+      Здесь под рисунок кладётся пергамент с рамкой цвета колоды — и карта
+      выглядит картой, а не дырой в столе.
+    */
+    function faceTexture(url, kind) {
+      const key = `${kind}|${url}`;
+      if (faces.has(key)) return faces.get(key);
+      const look = DECK_LOOK[kind] || DECK_LOOK.providence;
+      const canvas = document.createElement('canvas');
+      canvas.width = 192;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f7f2e6';
+      ctx.fillRect(0, 0, 192, 256);
+      ctx.strokeStyle = look.back;
+      ctx.lineWidth = 6;
+      ctx.strokeRect(9, 9, 174, 238);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.encoding = THREE.sRGBEncoding;
+      const picture = new Image();
+      picture.onload = () => {
+        const side = 130;
+        ctx.drawImage(picture, (192 - side) / 2, 34, side, side);
+        ctx.fillStyle = look.back;
+        ctx.font = '700 15px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(look.name, 96, 196);
+        texture.needsUpdate = true;
+        touch();
+      };
+      picture.src = url;
+      faces.set(key, texture);
+      return texture;
+    }
+
+    /** Карта выходит из колоды: поднялась, долетела, перевернулась лицом. */
+    function dealCard(kind, faceUrl) {
+      const deck = decks[kind] || decks.providence;
+      if (flying) returnCard();
+      flying = { kind };
+      flyer.material[3] = deck.backMat;
+      faceMat.map = faceUrl ? faceTexture(faceUrl, kind) : null;
+      faceMat.needsUpdate = true;
+      const top = deck.pile[deck.pile.length - 1];
+      top.visible = false;
+      const from = top.position.clone();
+      const to = new THREE.Vector3(0, 0.62, -0.25);
+      flyer.position.copy(from);
+      flyer.rotation.set(Math.PI, 0, 0);
+      flyer.visible = true;
+      return animate(0.78, (t) => {
+        const k = smooth(t);
+        flyer.position.lerpVectors(from, to, k);
+        flyer.position.y += Math.sin(Math.PI * k) * 0.85;
+        // Переворот идёт во второй половине пути: сперва долететь, потом
+        // показать лицо — так глаз успевает за картой.
+        const turn = Math.min(1, Math.max(0, (k - 0.25) / 0.75));
+        flyer.rotation.x = Math.PI * (1 - smooth(turn));
+        flyer.rotation.y = Math.sin(Math.PI * k) * 0.35;
+      });
+    }
+
+    /** И обратно: перевернулась рубашкой и легла под низ своей стопки. */
+    function returnCard() {
+      if (!flying) return Promise.resolve();
+      const deck = decks[flying.kind] || decks.providence;
+      flying = null;
+      const from = flyer.position.clone();
+      const at = deck.pile[deck.pile.length - 1].position;
+      const to = new THREE.Vector3(at.x, 0.06, at.z);
+      const startTurn = flyer.rotation.x;
+      return animate(0.6, (t) => {
+        const k = smooth(t);
+        flyer.position.lerpVectors(from, to, k);
+        flyer.position.y += Math.sin(Math.PI * k) * 0.55;
+        flyer.rotation.x = startTurn + (Math.PI - startTurn) * k;
+        flyer.rotation.y = Math.sin(Math.PI * k) * -0.3;
+      }).then(() => {
+        flyer.visible = false;
+        // Стопка поднимается на одну карту: ушедшая легла под низ.
+        for (const card of deck.pile) card.visible = true;
+      });
+    }
 
     // ————————————————————————————————————————————— кости
 
@@ -655,19 +868,30 @@ window.PromisedLand3D = (() => {
 
     const fromPos = new THREE.Vector3();
     const fromLook = new THREE.Vector3();
+    /*
+      Номер перелёта. Перелёты обгоняют друг друга: обучение ушло к клетке, а
+      игрок тут же нажал «Пропустить» — и возврат домой начался, не дождавшись
+      конца. Без номера доигрывающий предыдущий перелёт в конце присваивал свой
+      вид, и камера оставалась у клетки, хотя летела уже домой.
+    */
+    let flight = 0;
 
     /** Перелёт камеры: не рывком, а по дуге разгона и торможения. */
     function flyTo(next, life = 0.68) {
+      const mine = flight + 1;
+      flight = mine;
       const shot = stateFor(next);
       fromPos.copy(camera.position);
       fromLook.copy(aim);
       return animate(life, (t) => {
+        if (mine !== flight) return true;
         const k = smooth(t);
         camera.position.lerpVectors(fromPos, shot.pos, k);
         aim.lerpVectors(fromLook, shot.look, k);
         camera.lookAt(aim);
         camera.updateMatrixWorld(true);
       }).then(() => {
+        if (mine !== flight) return;
         Object.assign(view, next);
         place();
         report();
@@ -675,7 +899,7 @@ window.PromisedLand3D = (() => {
     }
 
     const atHome = () => view.cell == null
-      && Math.abs(view.yaw - HOME.yaw) < 0.02
+      && Math.abs(shortest(view.yaw - HOME.yaw)) < 0.02
       && Math.abs(view.pitch - HOME.pitch) < 0.02
       && Math.abs(view.zoom - HOME.zoom) < 0.02;
     const report = () => { if (onViewChange) onViewChange(atHome()); };
@@ -734,7 +958,7 @@ window.PromisedLand3D = (() => {
       travel = Math.max(travel, Math.hypot(dx, dy));
       if (travel < 8) return;
       view.cell = null;
-      view.yaw = clamp(startView.yaw - dx * 0.0055, LIMITS.yaw);
+      view.yaw = startView.yaw - dx * 0.0055;
       view.pitch = clamp(startView.pitch + dy * 0.005, LIMITS.pitch);
       place();
       touch();
@@ -762,9 +986,35 @@ window.PromisedLand3D = (() => {
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
 
-    /** Вернуть доску в исходный вид — кнопкой, а не угаданным жестом. */
+    /*
+      Вернуть доску в исходный вид — кнопкой, а не угаданным жестом. Здесь
+      двигаются сами углы, а не точка камеры: при перелёте по прямой возврат с
+      обратной стороны прошёл бы сквозь доску, а поворот идёт кратчайшей
+      дугой — как её и повернули бы рукой.
+    */
     function home() {
-      return flyTo({ ...HOME, cell: null }, 0.5);
+      const mine = flight + 1;
+      flight = mine;
+      const from = { yaw: view.yaw, pitch: view.pitch, zoom: view.zoom };
+      const to = {
+        yaw: view.yaw - shortest(view.yaw - HOME.yaw),
+        pitch: HOME.pitch,
+        zoom: HOME.zoom,
+      };
+      view.cell = null;
+      return animate(0.55, (t) => {
+        if (mine !== flight) return true;
+        const k = smooth(t);
+        view.yaw = from.yaw + (to.yaw - from.yaw) * k;
+        view.pitch = from.pitch + (to.pitch - from.pitch) * k;
+        view.zoom = from.zoom + (to.zoom - from.zoom) * k;
+        place();
+      }).then(() => {
+        if (mine !== flight) return;
+        Object.assign(view, to, { cell: null });
+        place();
+        report();
+      });
     }
 
     // ————————————————————————————————————————————— окружение
@@ -999,8 +1249,60 @@ window.PromisedLand3D = (() => {
       beat();
     }
 
+    /*
+      Показательные движения — ими пользуется обучение. Состояние партии они не
+      трогают: фишка идёт, постройка встаёт, доска поворачивается, а следующий
+      же sync() возвращает всё как есть. Поэтому здесь нет ни правил, ни
+      проверок — только движение.
+    */
+    function demoWalk(index, from, steps) {
+      const figure = tokens[index];
+      if (!figure || steps <= 0) return Promise.resolve();
+      const path = [from];
+      for (let i = 1; i <= steps; i += 1) path.push((from + i) % B.BOARD.length);
+      const spots = path.map((cell) => cellPosition(cell));
+      return animate(0.3 + steps * 0.17, (t) => {
+        const along = smooth(t) * steps;
+        const leg = Math.min(steps - 1, Math.floor(along));
+        const part = along - leg;
+        const a = spots[leg];
+        const b = spots[leg + 1];
+        figure.position.x = a.x + (b.x - a.x) * part;
+        figure.position.z = a.z + (b.z - a.z) * part;
+        figure.position.y = TILE_H + Math.sin(Math.PI * part) * 0.3;
+        shadows[index].position.set(figure.position.x, TILE_H + 0.006, figure.position.z);
+      });
+    }
+
+    function demoBuild(n, kind) {
+      const holder = builds[n];
+      if (!holder) return Promise.resolve();
+      for (let i = holder.children.length - 1; i >= 1; i -= 1) holder.remove(holder.children[i]);
+      holder.userData.kind = kind;
+      holder.visible = true;
+      const piece = buildingOf(kind);
+      holder.add(piece);
+      piece.scale.setScalar(0.01);
+      return animate(0.5, (t) => {
+        const k = t < 0.72 ? smooth(t / 0.72) * 1.12 : 1.12 - smooth((t - 0.72) / 0.28) * 0.12;
+        piece.scale.setScalar(Math.max(0.01, k));
+      });
+    }
+
+    /** Полный оборот вокруг доски: показать, что она стоит на земле кругом. */
+    function orbit(life = 2.6) {
+      const from = view.yaw;
+      view.cell = null;
+      return animate(life, (t) => {
+        view.yaw = from + FULL * smooth(t);
+        place();
+      }).then(() => { view.yaw = from; place(); report(); });
+    }
+
     function focus(cell, life) {
-      return flyTo({ yaw: HOME.yaw, pitch: 1.02, zoom: 1, cell }, life == null ? 0.72 : life);
+      // Угол обзора сохраняется: если доску повернули, обучение показывает
+      // клетку с той же стороны, с которой на неё и смотрят.
+      return flyTo({ yaw: view.yaw, pitch: 1.02, zoom: 1, cell }, life == null ? 0.72 : life);
     }
 
     function dispose() {
@@ -1026,11 +1328,13 @@ window.PromisedLand3D = (() => {
         triangles: renderer.info.render.triangles,
         objects: scene.children.length,
         frames: renderer.info.render.frame,
+        icons: iconsDrawn,
       };
     }
 
     return {
       sync, walk, roll, resize, dispose, highlight, focus, home,
+      dealCard, returnCard, demoWalk, demoBuild, orbit,
       atHome, stats, render: touch,
     };
   }

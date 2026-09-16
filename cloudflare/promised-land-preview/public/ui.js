@@ -105,6 +105,7 @@
   let autoPlay = false;
   let teachAsked = false;
   let teachWanted = false;
+  let dealtCard = null;
   // Сцена в объёме. Её может не быть: WebGL на слабом устройстве не дают, и
   // тогда игра идёт на поле из разметки — оно работает всегда.
   let scene = null;
@@ -128,10 +129,11 @@
     syncPlayerCount();
   }
 
-  const chosen = (key) => {
+  const picked = (key) => {
     const group = document.querySelector(`.choice[data-key="${key}"]`);
-    return Number(group.querySelector('[aria-pressed="true"]').dataset.value);
+    return group.querySelector('[aria-pressed="true"]').dataset.value;
   };
+  const chosen = (key) => Number(picked(key));
 
   // Игроков за столом не больше шести: дальше кольцо не держит фишки.
   function syncPlayerCount() {
@@ -151,13 +153,17 @@
   function startGame() {
     const humans = chosen('humans');
     const bots = chosen('bots');
-    const years = chosen('years');
+    // Один и тот же выбор отвечает за два вопроса: срок партии и её правило
+    // конца. «До последнего» — не год, поэтому читается строкой, а не числом.
+    const ending = picked('years');
+    const mode = ending === 'last' ? 'last' : 'jubilee';
+    const years = ending === 'last' ? 7 : Number(ending);
     const players = [];
     for (let i = 0; i < humans; i += 1) players.push({ name: humans === 1 ? 'Игрок' : `Игрок ${i + 1}` });
     for (let i = 0; i < bots; i += 1) {
       players.push({ name: BOT_NAMES[i], isBot: true, botLevel: i % 2 ? 'scribe' : 'elder' });
     }
-    state = E.createGame({ players, years });
+    state = E.createGame({ players, years, mode });
     $('setup').hidden = true;
     $('game').hidden = false;
     buildRing();
@@ -184,6 +190,8 @@
     $('game').classList.add('is-teaching');
     window.PromisedLandTutorial.run({
       scene,
+      art,
+      mode: state.mode,
       box: $('teach'),
       title: $('teach-title'),
       text: $('teach-text'),
@@ -215,6 +223,7 @@
     try {
       scene = window.PromisedLand3D.create({
         canvas,
+        art,
         sceneArt: ART + 'scene.webp',
         modelsAt: ART + 'models/',
         /*
@@ -449,9 +458,12 @@
   // ————————————————————————————————————————————————— шапка, игроки, кнопки
 
   function updateHud() {
-    $('year').textContent = state.sabbath
-      ? `Субботний год ${state.year} из ${state.years}`
-      : `Год ${state.year} из ${state.years}`;
+    const left = state.mode === 'last' ? E.standing(state).length : 0;
+    $('year').textContent = state.mode === 'last'
+      ? `Год ${state.year} · держатся ${left}`
+      : (state.sabbath
+        ? `Субботний год ${state.year} из ${state.years}`
+        : `Год ${state.year} из ${state.years}`);
     $('year').classList.toggle('is-sabbath', state.sabbath);
     const pot = $('treasury');
     pot.innerHTML = '';
@@ -494,19 +506,28 @@
     });
   }
 
+  /*
+    Полоса действий делится надвое: решение этого хода и то, что есть всегда.
+    Кнопки складываются не подряд, а в свой ярус, и место у них поэтому не
+    зависит от того, сколько их сегодня.
+  */
   function updateActions() {
     const bar = $('actions');
     bar.innerHTML = '';
+    const main = el('div', 'actions-main');
+    const side = el('div', 'actions-side');
+    bar.appendChild(main);
+    bar.appendChild(side);
     const player = E.current(state);
     const sheetButton = button(sheetOpen ? 'Скрыть уделы' : 'Мои уделы', 'ghost', () => {
       sheetOpen = !sheetOpen;
       render();
     });
     if (player.isBot || autoPlay) {
-      bar.appendChild(el('div', 'waiting',
+      main.appendChild(el('div', 'waiting',
         player.isBot ? `${player.name} ходит…` : 'Играю за вас…'));
-      bar.appendChild(sheetButton);
-      bar.appendChild(autoButton());
+      side.appendChild(sheetButton);
+      side.appendChild(autoButton());
       return;
     }
 
@@ -514,18 +535,45 @@
       Счёт ждёт решения. Заплатить, продать что-нибудь и заплатить или пойти в
       наём — это выбор, а не следствие, и делает его человек.
     */
+    /*
+      Карта выпала и ждёт. Пока её не приняли, не случилось ничего: ни подарка,
+      ни счёта. Нажатие здесь — это и есть тот миг, когда карта срабатывает, и
+      на доске она в это время долетает до места.
+    */
+    if (state.pending && state.pending.type === 'card') {
+      main.appendChild(button('Принять', 'primary', async () => {
+        if (scene) { await scene.returnCard(); dealtCard = null; }
+        E.takeCard(state);
+        after();
+      }));
+      side.appendChild(sheetButton);
+      side.appendChild(autoButton());
+      return;
+    }
+
     if (state.pending && state.pending.type === 'pay') {
       const owed = state.pending.amount;
       if (player.silver >= owed) {
-        bar.appendChild(button(`Заплатить ${owed}`, 'primary', () => { E.settle(state); after(); }));
+        main.appendChild(button(`Заплатить ${owed}`, 'primary', () => { E.settle(state); after(); }));
       } else {
-        if (E.liquidValue(state, player) >= owed) {
-          bar.appendChild(button(`Продать и заплатить ${owed}`, 'primary', () => { E.settle(state, true); after(); }));
+        /*
+          Заложить — прежде чем продавать: заложенное можно выкупить, проданное
+          нет. Предлагается самый дешёвый из подходящих уделов, остальные — в
+          списке «Мои уделы», где у каждого своя кнопка.
+        */
+        const offers = E.pledgeable(state, player, owed);
+        if (offers.length) {
+          const n = offers[0];
+          main.appendChild(button(`Заложить «${B.BOARD[n].name}»`, 'primary',
+            () => { E.pledge(state, n); after(); }));
         }
-        bar.appendChild(button('Пойти в наём', 'ghost', () => { E.serve(state); after(); }));
+        if (E.liquidValue(state, player) >= owed) {
+          main.appendChild(button(`Продать и заплатить ${owed}`, 'ghost', () => { E.settle(state, true); after(); }));
+        }
+        main.appendChild(button('Пойти в наём', 'ghost', () => { E.serve(state); after(); }));
       }
-      bar.appendChild(sheetButton);
-      bar.appendChild(autoButton());
+      side.appendChild(sheetButton);
+      side.appendChild(autoButton());
       return;
     }
 
@@ -538,16 +586,16 @@
         rolling = false;
         after();
       });
-      bar.appendChild(cast);
+      main.appendChild(cast);
     } else if (state.pending && state.pending.type === 'buy') {
       const spec = B.BOARD[state.pending.cell];
-      bar.appendChild(button(`Купить за ${spec.price}`, 'primary', () => { E.buy(state); after(); }));
-      bar.appendChild(button('Отказаться', 'ghost', () => { E.decline(state); after(); }));
+      main.appendChild(button(`Купить за ${spec.price}`, 'primary', () => { E.buy(state); after(); }));
+      main.appendChild(button('Отказаться', 'ghost', () => { E.decline(state); after(); }));
     } else {
-      bar.appendChild(button('Закончить ход', 'primary', () => { E.endTurn(state); after(); }));
+      main.appendChild(button('Закончить ход', 'primary', () => { E.endTurn(state); after(); }));
     }
-    bar.appendChild(sheetButton);
-    bar.appendChild(autoButton());
+    side.appendChild(sheetButton);
+    side.appendChild(autoButton());
   }
 
   /** Переключатель автоигры. */
@@ -588,6 +636,34 @@
 
     sheet.appendChild(el('h3', null, `Уделы: ${player.name}`));
     if (!mine.length) sheet.appendChild(el('p', 'empty', 'Пока ничего не куплено.'));
+
+    /*
+      Заложенное — отдельной строкой сверху: оно уже не ваше, но ещё вернётся.
+      Пока удел в залоге, плату за проход по нему берёт кредитор, поэтому выкуп
+      стоит впереди любой стройки.
+    */
+    const pledged = E.pledgesOf(state, player.id);
+    for (const n of pledged) {
+      const spec = B.BOARD[n];
+      const cell = state.cells[n];
+      const holder = state.players.find((p) => p.id === cell.owner);
+      const row = el('div', 'holding holding--pledged');
+      const thumb = img(art('plots', spec.slug), 'holding-art', spec.name);
+      thumb.style.setProperty('--band', B.colorOf(spec));
+      row.appendChild(thumb);
+      const info = el('div', 'holding-info');
+      info.appendChild(el('b', null, spec.name));
+      info.appendChild(el('span', null,
+        `в залоге у ${holder ? holder.name : 'казны'} · выкуп ${cell.pledge.debt}`));
+      row.appendChild(info);
+      const acts = el('div', 'holding-acts');
+      if (E.canRedeemPledge(state, player, n) && !busy) {
+        acts.appendChild(button(`Выкупить ${cell.pledge.debt}`, 'small',
+          () => { E.redeemPledge(state, n); render(); }));
+      }
+      row.appendChild(acts);
+      sheet.appendChild(row);
+    }
 
     for (const n of mine) {
       const spec = B.BOARD[n];
@@ -692,12 +768,28 @@
 
   // ————————————————————————————————————————————————— цикл
 
+  /*
+    Карта на доске. Вылетает она по появлению, а не по нажатию: нажатие её
+    принимает, то есть отправляет обратно. Ключ из колоды и номера нужен, чтобы
+    не выпускать ту же карту второй раз на каждой перерисовке.
+  */
+  function syncCardTable() {
+    if (!scene) return;
+    const pending = state.pending;
+    const key = pending && pending.type === 'card' ? `${pending.deck}:${pending.cardId}` : null;
+    if (key === dealtCard) return;
+    if (!key) { scene.returnCard(); dealtCard = null; return; }
+    dealtCard = key;
+    scene.dealCard(pending.deck, art('cards', pending.art));
+  }
+
   function render() {
     const turnPlayer = state.players[state.turn];
     if (turnPlayer && !turnPlayer.isBot) lastHumanId = turnPlayer.id;
     if (state.status === 'jubilee') { showJubilee(); return; }
     updateRing();
     if (scene) scene.sync(state, colorOfPlayer);
+    syncCardTable();
     updateCore();
     updateHud();
     updateActions();
@@ -730,7 +822,12 @@
     botTimer = setTimeout(async () => {
       if (state.status !== 'playing') return;
       let done;
-      if (state.phase === 'roll' && !E.current(state).skip) {
+      if (state.pending && state.pending.type === 'card') {
+        // Карта уже вылетела на доску — её видно. Бот принимает её только
+        // после того, как она вернётся: иначе ход обгонит собственный показ.
+        if (scene) { await scene.returnCard(); dealtCard = null; }
+        done = Bots.step(state);
+      } else if (state.phase === 'roll' && !E.current(state).skip) {
         rolling = true;
         await animatedRoll(() => { done = Bots.step(state); });
         rolling = false;

@@ -100,9 +100,15 @@ body {
 }
 
 .screen {
+  /*
+    Поле экрана объявлено переменной: доска выходит за него на эту же величину,
+    и на узком телефоне, где поле меньше, она выходит ровно настолько же. При
+    зашитой шестнадцатке страница становилась на четыре точки шире экрана.
+  */
+  --gutter: 16px;
   max-width: 560px;
   margin: 0 auto;
-  padding: 16px 16px 28px;
+  padding: 16px var(--gutter) 28px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -219,8 +225,8 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   ширину, а не в высоту, и занимает кадр почти целиком.
 */
 .ring-wrap.is-3d {
-  display: block; width: calc(100% + 32px); max-width: none; aspect-ratio: 1.24;
-  margin-inline: -16px; margin-block: 0 2px; perspective: none;
+  display: block; width: calc(100% + 2 * var(--gutter)); max-width: none; aspect-ratio: 1.24;
+  margin-inline: calc(-1 * var(--gutter)); margin-block: 0 2px; perspective: none;
   /*
     Коробка — элемент колонки, а у таких минимальная высота считается по
     содержимому. Холст в потоке возвращал бы ей свою квадратную высоту, и
@@ -417,16 +423,31 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 @keyframes shake { from { transform: translateY(0); } to { transform: translateY(-5px); } }
 
 /* ——— действия ——— */
-.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/*
+  Полоса управления собрана на сетке, а не на переносе по месту. Раньше кнопки
+  разного веса стояли в один ряд и переносились как придётся: главное действие
+  оказывалось то во всю ширину, то половинкой, то во второй строке. Теперь у
+  полосы два яруса — решение хода и постоянные кнопки, — и место у каждой
+  кнопки одно и то же от хода к ходу.
+*/
+.actions { display: flex; flex-direction: column; gap: 8px; }
+.actions-main {
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.actions-side { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.actions-main:empty, .actions-side:empty { display: none; }
+.actions .btn { width: 100%; }
 .waiting {
-  flex: 1 1 auto; min-height: 48px; display: flex; align-items: center; justify-content: center;
+  grid-column: 1 / -1; min-height: 48px; display: flex; align-items: center; justify-content: center;
   color: var(--ink-soft); font-size: 14px; font-weight: 600;
 }
 
 /* ——— игроки ——— */
-.players { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Шестеро за столом встают сеткой равных карточек, а не как выйдет. */
+.players { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
 .player {
-  flex: 1 1 108px; background: var(--surface); background-image: var(--tilt);
+  background: var(--surface); background-image: var(--tilt);
   border: 1px solid var(--line);
   border-left: 3px solid var(--who); border-radius: 12px; padding: 8px 10px;
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
@@ -471,6 +492,9 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .holding-info { display: flex; flex-direction: column; min-width: 0; flex: 1 1 130px; }
 .holding-info b { font-size: 14.5px; }
 .holding-info span { font-size: 12px; color: var(--ink-soft); }
+/* Заложенный удел: он ваш, но пока не у вас — и видно это сразу. */
+.holding--pledged { opacity: .92; border-style: dashed; }
+.holding--pledged .holding-art { filter: grayscale(.45); }
 .holding-acts { display: flex; gap: 6px; flex-wrap: wrap; }
 .log { display: flex; flex-direction: column; gap: 3px; }
 .log-line { font-size: 12.5px; color: var(--ink-soft); }
@@ -601,7 +625,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   чуть меньше вертикальной (≈335 против 358 точек), зато прокручивать нечего.
 */
 @media (orientation: landscape) and (max-height: 620px) {
-  .screen { max-width: none; padding: 10px 14px 14px; gap: 10px; }
+  .screen { --gutter: 14px; max-width: none; padding: 10px var(--gutter) 14px; gap: 10px; }
 
   #game {
     display: grid;
@@ -755,7 +779,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 
 @media (max-width: 360px) {
-  .screen { padding: 12px 12px 22px; }
+  .screen { --gutter: 12px; padding: 12px var(--gutter) 22px; }
   .cell .mark { font-size: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {

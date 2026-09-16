@@ -35,13 +35,21 @@ window.PromisedLandEngine = (() => {
 
   // ————————————————————————————————————————————————— создание партии
 
-  function createGame({ players, years = 5, rng = Math.random }) {
+  /*
+    Два способа кончить партию. Обычный — юбилей: объявленное число лет, и
+    считается наследие. Второй — «до последнего»: лет нет, партия идёт, пока за
+    столом не останется один платёжеспособный. В нём нет и субботнего года:
+    прощение долгов там означало бы, что партия не кончится никогда.
+  */
+  function createGame({ players, years = 5, mode = 'jubilee', rng = Math.random }) {
+    const last = mode === 'last';
     const state = {
       version: 1,
       status: 'playing',
+      mode: last ? 'last' : 'jubilee',
       years,
       year: 1,
-      sabbath: years === 1,
+      sabbath: !last && years === 1,
       treasury: 0,
       turn: 0,
       phase: 'roll',
@@ -66,6 +74,7 @@ window.PromisedLandEngine = (() => {
         prison: 0,
         keys: 0,
         passed: false,     // прошёл «Исход» в этом году
+        tribute: 0,        // подать за год, накопленная к следующему ходу
         servantOf: null,
         debt: 0,
         extraRoll: false,
@@ -73,7 +82,7 @@ window.PromisedLandEngine = (() => {
         noRent: false,
         out: false,
       })),
-      cells: B.BOARD.map(() => ({ owner: null, level: 0, altar: false, heldFrom: null })),
+      cells: B.BOARD.map(() => ({ owner: null, level: 0, altar: false, heldFrom: null, pledge: null })),
       decks: {
         providence: shuffle(DECKS.PROVIDENCE.map((c) => c.id), rng),
         mercy: shuffle(DECKS.MERCY.map((c) => c.id), rng),
@@ -160,6 +169,86 @@ window.PromisedLandEngine = (() => {
       : `${player.name} разорён и ждёт юбилея`);
   }
 
+  /*
+    Залог. Платить нечем, но земля есть — удел уходит кредитору, и счёт закрыт.
+    Потом, когда серебро появится, удел выкупается за ту самую сумму долга.
+    Это не продажа: проданное не вернётся, а заложенное ждёт. Закладывать можно
+    удел не дешевле долга — иначе шестидесятисиклевым клочком закрывался бы
+    любой счёт, и плата за проход перестала бы что-либо значить.
+  */
+  function pledgeable(state, player, amount) {
+    const out = [];
+    state.cells.forEach((cell, n) => {
+      if (cell.owner !== player.id || cell.pledge || cell.heldFrom) return;
+      if (!B.OWNABLE.has(B.BOARD[n].kind)) return;
+      if (B.BOARD[n].price < amount) return;
+      out.push(n);
+    });
+    return out.sort((a, b) => B.BOARD[a].price - B.BOARD[b].price);
+  }
+
+  function pledge(state, n) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'pay') return false;
+    const player = current(state);
+    if (!pledgeable(state, player, pending.amount).includes(n)) return false;
+    const target = payee(state);
+    const cell = state.cells[n];
+    cell.pledge = { by: player.id, debt: pending.amount };
+    cell.owner = target && target !== 'treasury' ? target.id : null;
+    const to = target && target !== 'treasury' ? target.name : 'казна';
+    log(state, `${player.name} закладывает «${B.BOARD[n].name}» за ${pending.amount} (${to})`);
+    state.pending = {
+      type: 'note',
+      title: B.BOARD[n].name,
+      text: `Удел в залоге за ${pending.amount} сиклей. Выкупите его, когда появится серебро.`,
+    };
+    state.phase = 'act';
+    return true;
+  }
+
+  /** Свои заложенные уделы: их можно выкупить назад. */
+  function pledgesOf(state, playerId) {
+    const out = [];
+    state.cells.forEach((cell, n) => {
+      if (cell.pledge && cell.pledge.by === playerId) out.push(n);
+    });
+    return out;
+  }
+
+  function canRedeemPledge(state, player, n) {
+    const cell = state.cells[n];
+    return Boolean(cell && cell.pledge && cell.pledge.by === player.id
+      && player.silver >= cell.pledge.debt);
+  }
+
+  function redeemPledge(state, n) {
+    const player = current(state);
+    if (state.phase === 'decide' || !canRedeemPledge(state, player, n)) return false;
+    const cell = state.cells[n];
+    const amount = cell.pledge.debt;
+    const holder = state.players.find((p) => p.id === cell.owner);
+    player.silver -= amount;
+    if (holder) holder.silver += amount;
+    else state.treasury += amount;
+    cell.owner = player.id;
+    cell.pledge = null;
+    log(state, `${player.name} выкупает «${B.BOARD[n].name}» за ${amount}`);
+    return true;
+  }
+
+  /** В юбилей заложенное возвращается домой — как и земля наёмника. */
+  function returnPledges(state, reason) {
+    let back = 0;
+    state.cells.forEach((cell) => {
+      if (!cell.pledge) return;
+      cell.owner = cell.pledge.by;
+      cell.pledge = null;
+      back += 1;
+    });
+    if (back) log(state, `${reason}: заложенное возвращается (${back})`);
+  }
+
   function freeServants(state, reason) {
     for (const player of state.players) {
       if (!player.servantOf && !player.debt) continue;
@@ -180,8 +269,16 @@ window.PromisedLandEngine = (() => {
     заплатить, продать что-нибудь и заплатить или пойти в наём решает человек.
     Соперники под управлением игры платят сразу: за них решать нечего.
   */
+  /*
+    Разорившийся — это не только наёмник. Тот, кто не смог заплатить казне,
+    остаётся без хозяина, но с долгом: `servantOf` у него пуст. Считать такого
+    платёжеспособным значит выставлять ему счёт за счётом до скончания века —
+    и в режиме «до последнего» партия на этом и застревала.
+  */
+  const ruined = (player) => Boolean(player.servantOf) || player.debt > 0;
+
   function requestPayment(state, player, amount, target, title, text) {
-    if (amount <= 0 || player.servantOf) return;
+    if (amount <= 0 || ruined(player)) return;
     state.pending = {
       type: 'pay',
       amount,
@@ -213,7 +310,54 @@ window.PromisedLandEngine = (() => {
     if (player.silver < pending.amount) return false;
     pay(state, player, pending.amount, payee(state));
     log(state, `${player.name} платит ${pending.amount}: ${pending.title}`);
+    /*
+      Счёт «за должника» — не просто платёж: на эту же сумму уменьшается чужой
+      долг, а погашенный целиком освобождает наёмника. Дело доводится здесь,
+      при уплате: до неё ничего не случилось.
+    */
+    if (pending.debtor) {
+      const debtor = state.players.find((p) => p.id === pending.debtor.id);
+      if (debtor && debtor.debt > 0) {
+        debtor.debt -= pending.debtor.amount;
+        if (debtor.debt <= 0) releaseServant(state, debtor);
+      }
+    }
     state.pending = { type: 'note', title: pending.title, text: pending.text, art: pending.art };
+    state.phase = 'act';
+    return true;
+  }
+
+  /**
+   * Принять выпавшую карту: вот теперь она срабатывает. Если карта требует
+   * серебра, вместо списания выставляется счёт — платит игрок, а не игра.
+   */
+  function takeCard(state, rng = Math.random) {
+    const pending = state.pending;
+    if (!pending || pending.type !== 'card') return false;
+    const player = current(state);
+    const source = pending.deck === 'providence' ? DECKS.PROVIDENCE : DECKS.MERCY;
+    const card = source.find((item) => item.id === pending.cardId);
+    if (!card) return false;
+    state.pending = null;
+    const { notes, bill } = applyCard(state, player, card, rng);
+    log(state, `${player.name}: ${card.text}`);
+    // Карта увела на другую клетку — что там, уже решено разбором приземления.
+    if (state.pending) return true;
+    if (bill.amount > 0) {
+      const target = bill.to === 'treasury' ? 'treasury'
+        : state.players.find((p) => p.id === bill.to);
+      requestPayment(state, player, bill.amount, target || 'treasury', pending.title, card.text);
+      if (state.pending) {
+        state.pending.art = pending.art;
+        state.pending.ref = card.ref;
+        if (bill.debtor) state.pending.debtor = bill.debtor;
+        return true;
+      }
+    }
+    state.pending = {
+      type: 'note', title: pending.title, art: pending.art,
+      text: card.text, ref: card.ref, extra: notes.join(', '),
+    };
     state.phase = 'act';
     return true;
   }
@@ -237,7 +381,7 @@ window.PromisedLandEngine = (() => {
   /** Платёж. Не хватило — распродажа, а если и её мало — наём. */
   function pay(state, player, amount, target) {
     if (amount <= 0) return;
-    if (player.servantOf) return;                 // с наёмника взять нечего
+    if (ruined(player)) return;                   // с разорённого взять нечего
     if (player.silver < amount) raiseFunds(state, player, amount);
     if (player.silver < amount) {
       const short = amount - player.silver;
@@ -292,9 +436,18 @@ window.PromisedLandEngine = (() => {
     player.pos = target;
   }
 
+  /*
+    Подать за год — только в режиме «до последнего», и она растёт: год умножается
+    на шаг подати. Без неё этот режим не кончается вовсе. Проверено счётом:
+    круг замкнут, земля вся разобрана, плата за проход по неполным уделам мала,
+    и партия ходит по кругу тысячами ходов, никого не разоряя. Подать — та
+    растущая тяжесть, которая рано или поздно ломает слабейшего; в первые годы
+    она меньше урожая, и разницы почти не видно.
+  */
   function passExodus(state, player) {
     player.silver += B.HARVEST;
     player.passed = true;
+    if (state.mode === 'last') player.tribute += state.year * B.TRIBUTE_STEP;
     if (player.servantOf) {
       // Половина урожая наёмника гасит долг перед хозяином.
       const share = Math.min(Math.floor(B.HARVEST / 2), player.debt);
@@ -362,11 +515,19 @@ window.PromisedLandEngine = (() => {
     return player.pos;
   }
 
+  /**
+   * Действие карты. Всё, что карта даёт, она даёт сразу — решать тут нечего.
+   * Всё, что карта берёт, она не берёт сама: сумма собирается в `bill`, и
+   * счёт по ней выставляется игроку, как за проход по чужой земле. Денежное
+   * требование у карты ровно одно — колода так и написана, — поэтому счёт
+   * один, а не список.
+   */
   function applyCard(state, player, card, rng) {
     const notes = [];
+    const bill = { amount: 0, to: null, debtor: null };
     if (card.silver) {
       if (card.silver > 0) player.silver += card.silver;
-      else pay(state, player, -card.silver, card.toTreasury ? 'treasury' : null);
+      else { bill.amount = -card.silver; bill.to = card.toTreasury ? 'treasury' : null; }
     }
     if (card.heritage) player.heritage += card.heritage;
     if (card.key) player.keys += card.key;
@@ -377,7 +538,7 @@ window.PromisedLandEngine = (() => {
 
     if (card.perBuilding) {
       const amount = settlementSteps(state, player.id) * -card.perBuilding;
-      if (amount > 0) { pay(state, player, amount, 'treasury'); notes.push(`${amount} сиклей`); }
+      if (amount > 0) { bill.amount = amount; bill.to = 'treasury'; notes.push(`${amount} сиклей`); }
     }
     if (card.perSettlement) {
       const amount = settlementSteps(state, player.id) * card.perSettlement;
@@ -398,33 +559,40 @@ window.PromisedLandEngine = (() => {
     if (card.overToTreasury) {
       const excess = Math.max(0, player.silver - card.overToTreasury);
       if (excess > 0) {
-        player.silver -= excess;
-        state.treasury += excess;
+        // Наследие за отданное считается сразу: отдать придётся в любом случае,
+        // а вот нажать на «заплатить» — игроку.
         player.heritage += Math.floor(excess / (card.heritagePer || 100));
+        bill.amount = excess;
+        bill.to = 'treasury';
         notes.push(`${excess} сиклей в казну`);
       }
     }
     if (card.giveToPoorest) {
       const target = poorest(state, player.id);
-      if (target) { pay(state, player, card.giveToPoorest, target); notes.push(`${target.name} получает ${card.giveToPoorest}`); }
+      if (target) {
+        bill.amount = card.giveToPoorest;
+        bill.to = target.id;
+        notes.push(`${target.name} получает ${card.giveToPoorest}`);
+      }
     }
     if (card.payDebtor) {
       const debtor = activePlayers(state).find((p) => p.debt > 0 && p.id !== player.id);
       if (debtor) {
         const amount = Math.min(card.payDebtor, debtor.debt);
         const creditor = state.players.find((p) => p.id === debtor.servantOf);
-        pay(state, player, amount, creditor || 'treasury');
-        debtor.debt -= amount;
-        if (debtor.debt <= 0) releaseServant(state, debtor);
-        notes.push(`долг ${debtor.name} уменьшен на ${amount}`);
+        bill.amount = amount;
+        bill.to = creditor ? creditor.id : 'treasury';
+        bill.debtor = { id: debtor.id, amount };
+        notes.push(`долг ${debtor.name} уменьшится на ${amount}`);
       } else {
         notes.push('должников нет');
       }
     }
     if (card.titheNow) {
       const amount = titheAmount(player);
-      pay(state, player, amount, 'treasury');
       player.tithePaid += card.doubleHeritage ? amount * 2 : amount;
+      bill.amount = amount;
+      bill.to = 'treasury';
       notes.push(`десятина ${amount}`);
     }
     if (card.freeStep) {
@@ -447,18 +615,18 @@ window.PromisedLandEngine = (() => {
       } else { player.heritage += 1; notes.push('ставить негде, +1 наследия'); }
     }
 
-    if (card.prison) { toPrison(state, player); return notes; }
+    if (card.prison) { toPrison(state, player); return { notes, bill }; }
     if (typeof card.moveTo === 'number') {
       goTo(state, player, card.moveTo);
       resolveLanding(state, player, rng, 1);
-      return notes;
+      return { notes, bill, moved: true };
     }
     if (card.nearest) {
       goTo(state, player, nearestOfKind(state, player, card.nearest));
       resolveLanding(state, player, rng, card.payMult || 1);
-      return notes;
+      return { notes, bill, moved: true };
     }
-    return notes;
+    return { notes, bill };
   }
 
   function bestFreeStep(state, player) {
@@ -546,18 +714,25 @@ window.PromisedLandEngine = (() => {
     }
     if (spec.kind === 'slander') { toPrison(state, player); state.pending = { type: 'note', title: 'Навет', text: 'Оговорили перед царём — в темницу.' }; return; }
     if (spec.kind === 'providence' || spec.kind === 'mercy') {
+      /*
+        Карта только вынимается из колоды — и ждёт. Раньше она в тот же миг и
+        применялась: игрок видел уже случившееся и читал объяснение задним
+        числом. Теперь между «выпала» и «сработала» стоит нажатие, и между ними
+        же успевает пролететь сама карта на доске.
+      */
       const card = drawCard(state, spec.kind, rng);
-      const notes = applyCard(state, player, card, rng);
-      log(state, `${player.name}: ${card.text}`);
-      if (state.pending && state.pending.type === 'buy') return;   // карта увела на свободный удел
       state.pending = {
-        type: 'note',
+        type: 'card',
+        deck: spec.kind,
+        cardId: card.id,
         title: spec.kind === 'providence' ? 'Провидение' : 'Милость',
         // Имя картинки собирается из колоды и номера карты: интерфейсу иначе
         // неоткуда узнать, какой рисунок показывать.
         art: `${spec.kind}-${card.id}`,
-        text: card.text, ref: card.ref, extra: notes.join(', '),
+        text: card.text,
+        ref: card.ref,
       };
+      state.phase = 'card';
       return;
     }
     state.pending = { type: 'note', title: spec.name, text: spec.note || '' };
@@ -749,7 +924,7 @@ window.PromisedLandEngine = (() => {
       но правило должно держаться движком, а не тем, какие кнопки нарисованы:
       иначе один лишний вызов молча прощает долг.
     */
-    if (state.pending && state.pending.type === 'pay') return false;
+    if (state.pending && (state.pending.type === 'pay' || state.pending.type === 'card')) return false;
     state.pending = null;
 
     if (player.extraRoll && player.prison === 0 && !player.skip) {
@@ -766,15 +941,19 @@ window.PromisedLandEngine = (() => {
     if (alive.length && alive.every((p) => p.passed)) {
       for (const p of state.players) p.passed = false;
       state.year += 1;
-      if (state.year > state.years) return jubilee(state);
-      state.sabbath = state.year === state.years;
+      if (state.mode !== 'last' && state.year > state.years) return jubilee(state);
+      state.sabbath = state.mode !== 'last' && state.year === state.years;
       if (state.sabbath) {
         freeServants(state, 'субботний год прощает долги');
+        returnPledges(state, 'Субботний год');
         log(state, `Субботний год: земля отдыхает, платы нет.`);
       } else {
         log(state, `Год ${state.year}.`);
       }
     }
+
+    // «До последнего»: партия кончается, когда платёжеспособный остался один.
+    if (state.mode === 'last' && standing(state).length <= 1) return lastOne(state);
 
     let next = (state.turn + 1) % state.players.length;
     let guard = 0;
@@ -785,6 +964,36 @@ window.PromisedLandEngine = (() => {
     state.turn = next;
     state.phase = 'roll';
     state.doubles = 0;
+
+    /*
+      Подать спрашивается в начале хода, а не посреди движения: пройденный
+      «Исход» только записывает её, а счёт выставляется тому, чей ход начался.
+      Иначе плата случалась бы прямо во время шага фишки — то есть сама.
+    */
+    const ahead = state.players[next];
+    if (state.mode === 'last' && ahead.tribute > 0 && !ahead.servantOf) {
+      const owed = ahead.tribute;
+      ahead.tribute = 0;
+      requestPayment(state, ahead, owed, 'treasury', 'Подать за год',
+        `Земля просит своё: ${owed} сиклей в казну.`);
+    }
+    return true;
+  }
+
+  /** Кто ещё держится на своих ногах: не в наёме и не выбыл. */
+  const standing = (state) => activePlayers(state).filter((player) => !ruined(player));
+
+  /** Конец партии «до последнего»: победил уцелевший, прочие — по наследию. */
+  function lastOne(state) {
+    const left = standing(state).map((player) => player.id);
+    state.status = 'jubilee';
+    state.phase = 'done';
+    state.scores = state.players.map((player) => ({
+      id: player.id, name: player.name, ...scoreOf(state, player), tithePaid: player.tithePaid,
+    }));
+    state.scores.sort((a, b) => (left.includes(b.id) ? 1 : 0) - (left.includes(a.id) ? 1 : 0)
+      || b.total - a.total || b.tithePaid - a.tithePaid);
+    log(state, `За столом остался один: ${state.scores[0].name}.`);
     return true;
   }
 
@@ -814,6 +1023,7 @@ window.PromisedLandEngine = (() => {
 
   function jubilee(state) {
     freeServants(state, 'юбилей возвращает землю');
+    returnPledges(state, 'Юбилей');
     state.status = 'jubilee';
     state.phase = 'done';
     state.scores = state.players.map((player) => ({
@@ -827,8 +1037,9 @@ window.PromisedLandEngine = (() => {
 
   return {
     createGame, current, roll, buy, decline, build, altar, sell, redeem, endTurn,
-    settle, serve, payee,
+    settle, serve, payee, takeCard,
+    pledgeable, pledge, pledgesOf, canRedeemPledge, redeemPledge,
     canBuild, canAltar, canSell, canRedeem, rentFor, ownsWholeGroup, ownedCount,
-    scoreOf, titheAmount, liquidValue, settlementSteps, clone,
+    scoreOf, titheAmount, liquidValue, settlementSteps, standing, clone,
   };
 })();

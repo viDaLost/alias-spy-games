@@ -53,8 +53,19 @@ window.PromisedLandBots = (() => {
       пойти в наём. Порядок тот же, что выбрал бы осторожный игрок: сперва из
       кошелька, потом с распродажей, и лишь потом наём.
     */
+    // Карта только выпала — её надо принять. Человеку здесь показывают, как она
+    // вылетает из колоды и переворачивается; боту показывать нечего.
+    if (state.pending && state.pending.type === 'card') return E.takeCard(state, rng) && 'card';
+
     if (state.pending && state.pending.type === 'pay') {
       if (E.settle(state)) return 'pay';
+      /*
+        Заложить дешевле, чем продать: заложенное можно выкупить, проданное —
+        нет. Поэтому залог идёт раньше распродажи, и закладывается самый дешёвый
+        из подходящих уделов — тот, которого не так жалко.
+      */
+      const pledges = E.pledgeable(state, player, state.pending.amount);
+      if (pledges.length && E.pledge(state, pledges[0])) return 'pledge';
       if (E.settle(state, true)) return 'sell-pay';
       return E.serve(state) && 'serve';
     }
@@ -72,6 +83,13 @@ window.PromisedLandBots = (() => {
           && E.canRedeem(state, player, p.id) && player.silver - p.debt > 400);
         if (debtor && E.redeem(state, debtor.id)) return 'redeem';
       }
+
+      // Выкуп своего заложенного удела — прежде новой стройки: пока он в залоге,
+      // плату за проход по нему берёт кредитор.
+      const mine = E.pledgesOf(state, player.id)
+        .filter((n) => E.canRedeemPledge(state, player, n)
+          && player.silver - state.cells[n].pledge.debt > 300);
+      if (mine.length && E.redeemPledge(state, mine[0])) return 'unpledge';
 
       // Застройка: пока остаётся запас на пару чужих аренд.
       const buildable = state.cells

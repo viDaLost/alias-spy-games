@@ -224,21 +224,32 @@ async function snap(page, file) {
 
 const shot = path.join(shots, 'promised-land-3d.png');
 
-/** Насколько два снимка холста разошлись: доля заметно изменившихся точек. */
-function differ(one, two) {
+/**
+ * Насколько два снимка холста разошлись: доля заметно изменившихся точек.
+ * `middle` сужает сравнение до середины кадра — там лежит вылетевшая карта, а
+ * по краям в это же время двигаются фишки, и они бы считались за неё.
+ */
+function differ(one, two, middle = false) {
   const a = decodePng(one);
   const b = decodePng(two);
   if (a.width !== b.width || a.height !== b.height) return 1;
+  const fromX = middle ? Math.round(a.width * 0.3) : 0;
+  const toX = middle ? Math.round(a.width * 0.7) : a.width;
+  const fromY = middle ? Math.round(a.height * 0.22) : 0;
+  const toY = middle ? Math.round(a.height * 0.62) : a.height;
   let apart = 0;
-  const total = a.width * a.height;
-  for (let i = 0; i < total; i += 1) {
-    const at = i * a.channels;
-    const gap = Math.abs(a.pixels[at] - b.pixels[at])
-      + Math.abs(a.pixels[at + 1] - b.pixels[at + 1])
-      + Math.abs(a.pixels[at + 2] - b.pixels[at + 2]);
-    if (gap > 24) apart += 1;
+  let total = 0;
+  for (let y = fromY; y < toY; y += 1) {
+    for (let x = fromX; x < toX; x += 1) {
+      const at = (y * a.width + x) * a.channels;
+      const gap = Math.abs(a.pixels[at] - b.pixels[at])
+        + Math.abs(a.pixels[at + 1] - b.pixels[at + 1])
+        + Math.abs(a.pixels[at + 2] - b.pixels[at + 2]);
+      total += 1;
+      if (gap > 24) apart += 1;
+    }
   }
-  return apart / total;
+  return total ? apart / total : 0;
 }
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
@@ -251,6 +262,7 @@ page.on('pageerror', (error) => errors.push(String(error)));
 let ran = false;
 let side = null;
 let spend = null;
+let card = null;
 try {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
   await page.locator('#start-btn').click();
@@ -272,15 +284,22 @@ try {
     const numbers = (text) => (text.match(/(\d+)\D+(\d+)/) || []).slice(1).map(Number);
     const [at, steps] = numbers(await counter());
     need(at === 1, `счётчик шагов начинается с «${await counter()}»`);
-    need(steps >= 5, `в обучении ${steps} шагов — слишком коротко для первого знакомства`);
-    await page.waitForTimeout(1200);
+    need(steps >= 10, `в обучении ${steps} шагов — этого мало, чтобы объяснить игру`);
+    await page.waitForTimeout(3200);        // первый шаг обходит доску кругом
     const first = path.join(shots, 'teach-1.png');
     const second = path.join(shots, 'teach-2.png');
     await snap(page, first);
-    await page.locator('#teach-next').click();
-    await page.waitForTimeout(1500);
-    need(numbers(await counter())[0] === 2,
-      `после «Дальше» счётчик показывает «${await counter()}»`);
+    /*
+      Первые шаги показывают доску целиком, шаг про удел — одну клетку вплотную.
+      Сравниваются именно они: между двумя общими видами разница мала и о
+      работе камеры ничего не говорит.
+    */
+    for (let i = 0; i < 3; i += 1) {
+      await page.locator('#teach-next').click();
+      await page.waitForTimeout(1300);
+    }
+    need(numbers(await counter())[0] === 4,
+      `после трёх «Дальше» счётчик показывает «${await counter()}»`);
     await snap(page, second);
     const moved = differ(first, second);
     need(moved > 0.06,
@@ -325,6 +344,15 @@ try {
     return bad;
   });
   need(flat.length === 0, `плоские фигурки: ${flat.join(', ')}`);
+
+  /*
+    Значки особых клеток. Считаются не по пикселям, а по числу дорисованных в
+    полотно подписей картинок: на доске они размером с ноготь, и глазом такую
+    проверку не сделать, а счёт — точный.
+  */
+  const icons = await page.evaluate(() => (window.PromisedLandScene
+    ? window.PromisedLandScene.stats().icons : -1));
+  need(icons >= 8, `на клетки лёг ${icons} значок из восьми`);
 
   const webgl = await page.evaluate(() => {
     const probe = document.createElement('canvas');
@@ -424,6 +452,27 @@ try {
     await drag(0, box.height * 0.2);
     const turned = await look('turned');
     need(differ(spun.file, turned.file) > 0.04, 'доска не наклоняется пальцем вдоль');
+
+    /*
+      Кругом — значит кругом. Проверяется это не одним рывком, а цепочкой: пять
+      поворотов подряд в одну сторону, и каждый обязан менять картинку. Упрись
+      поворот в границу — второй же ничего не изменит, а доска при этом всё так
+      же будет в кадре, и проверка «влезает ли» ничего не заметит.
+    */
+    let step = await look('turn-0');
+    let stuck = 0;
+    for (let i = 1; i <= 5; i += 1) {
+      await drag(box.width * 0.55, 0);
+      const now = await look(`turn-${i}`);
+      if (differ(step.file, now.file) < 0.04) stuck += 1;
+      need(now.boardWidth > 0 && now.minX >= 1 && now.minY >= 1
+        && now.maxX <= now.width - 2,
+        `на повороте ${i} доска ушла за край холста`);
+      step = now;
+    }
+    need(stuck === 0, `из пяти поворотов подряд ${stuck} не сдвинули доску — обзор упёрся в край`);
+    need(Math.abs(step.boardWidth - before.boardWidth) < before.boardWidth * 0.35,
+      `после оборота доска стала ${step.boardWidth} точек против ${before.boardWidth}`);
     need(turned.minX >= 1 && turned.minY >= 1
       && turned.maxX <= turned.width - 2 && turned.maxY <= turned.height - 2,
       'повёрнутая доска вылезла за край холста');
@@ -511,7 +560,8 @@ try {
     место, где видно разницу между «спросили» и «списали сами».
   */
   let asked = null;
-  for (let step = 0; step < 900 && !asked; step += 1) {
+  // Партия идёт, пока не покажет и счёт, и карту: что раньше выпадет, не нам решать.
+  for (let step = 0; step < 1400 && (!asked || (ran && !card)); step += 1) {
     if (await page.locator('#jubilee:not([hidden])').count()) break;
     /*
       Главная кнопка читается и нажимается одним и тем же обращением к ней.
@@ -522,6 +572,19 @@ try {
     */
     const primary = page.locator('#actions .btn--primary:not([disabled])').first();
     const label = await primary.innerText({ timeout: 2_500 }).catch(() => '');
+    /*
+      Карта на доске. Пока её не приняли, она лежит на середине лицом вверх —
+      и это видно в пикселях: между «карта на столе» и «карта вернулась в
+      колоду» кадр обязан измениться. Иначе полёт есть только на словах.
+    */
+    if (label.trim() === 'Принять' && !card) {
+      const out = await snap(page, path.join(shots, 'card-out.png'));
+      await primary.click({ timeout: 4_000 });
+      await page.waitForTimeout(1100);
+      const back = await snap(page, path.join(shots, 'card-back.png'));
+      card = { gone: differ(out.file, back.file, true) };
+      continue;
+    }
     const owed = /^Заплатить (\d+)$/.exec(label.trim());
     if (!owed) {
       if (label) await primary.click({ timeout: 4_000 }).catch(() => {});
@@ -536,6 +599,19 @@ try {
     asked = { owed: Number(owed[1]), before, waited, after: await silverOf(page) };
   }
   need(asked !== null, 'за всю партию игроку ни разу не предложили заплатить самому');
+  if (ran) {
+    need(card !== null, 'за всю партию ни разу не выпала карта из колоды');
+    if (card) {
+      /*
+        Порог взят с запасом от замера: карта, уходя со стола, меняет от 1.8 до
+        4.1 процента середины поля — в зависимости от того, какая выпала и что
+        она сделала. Без карты на столе разница ровно нулевая.
+      */
+      need(card.gone > 0.008,
+        `карта ушла со стола, изменив ${(card.gone * 100).toFixed(2)}% середины поля — `
+        + 'её там и не было');
+    }
+  }
   if (asked) {
     need(asked.waited === asked.before,
       `серебро списали без нажатия: было ${asked.before}, стало ${asked.waited}`);
@@ -579,6 +655,52 @@ try {
   }
 
   need(errors.length === 0, `ошибки в консоли — ${errors.slice(0, 2).join(' | ')}`);
+
+  /*
+    Шестеро за столом и партия «до последнего». Стол на шестерых — предел, на
+    который рассчитано поле, и раскладка обязана его выдержать на узком экране:
+    шесть карточек, ни одна не за краем. А режим без срока должен и называться
+    иначе: в шапке вместо «год из трёх» стоит, сколько игроков ещё держится.
+  */
+  const many = await browser.newContext({
+    viewport: { width: 320, height: 720 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
+  });
+  const table = await many.newPage();
+  const tableErrors = [];
+  table.on('pageerror', (error) => tableErrors.push(String(error)));
+  await table.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  await table.locator('.choice[data-key="bots"] button[data-value="5"]').click();
+  await table.locator('.choice[data-key="years"] button[data-value="last"]').click();
+  await table.locator('#start-btn').click();
+  await table.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  const skipMany = table.locator('#teach-skip');
+  if (await skipMany.count() && await skipMany.isVisible()) {
+    await skipMany.click();
+    await table.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+  }
+  await table.waitForTimeout(700);
+  const crowd = await table.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    const over = [...document.querySelectorAll('#game *')]
+      .filter((node) => {
+        const box = node.getBoundingClientRect();
+        return box.width > 0 && (box.right > width + 0.5 || box.left < -0.5);
+      })
+      .map((node) => `${node.tagName}.${node.className}`.slice(0, 40));
+    return {
+      players: document.querySelectorAll('.player').length,
+      year: document.getElementById('year').textContent,
+      aside: document.documentElement.scrollWidth - width,
+      over: [...new Set(over)].slice(0, 4),
+    };
+  });
+  need(crowd.players === 6, `за столом ${crowd.players} карточек игроков вместо шести`);
+  need(crowd.aside === 0 && crowd.over.length === 0,
+    `на узком экране за край вышли: ${crowd.over.join(', ') || crowd.aside + 'px'}`);
+  need(/держатся\s+6/.test(crowd.year),
+    `в партии «до последнего» шапка показывает «${crowd.year}»`);
+  need(tableErrors.length === 0, `на столе шестерых ошибки — ${tableErrors.slice(0, 2).join(' | ')}`);
+  await many.close();
 
   /*
     Телефон боком. Раскладка делалась ради того, чтобы вся партия помещалась на
@@ -625,8 +747,9 @@ console.log(ran
     + 'весь, на ближнем ряду плиток есть подписи, луч различает клетки поимённо. Доска '
     + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '
     + 'возвращает прежний. Долг ждёт нажатия игрока, «Авто» играет ход человека сам, боком '
-    + 'экран не прокручивается, консоль чистая. Кадр стоит '
+    + 'экран не прокручивается, за столом помещаются шестеро, консоль чистая. Кадр стоит '
     + `${spend ? spend.idle.calls : '?'} вызовов отрисовки на пустом поле и `
     + `${spend ? spend.full.calls : '?'} на застроенном (${spend ? spend.full.triangles : '?'} `
-    + 'треугольников), а в покое не рисуется вовсе.'
+    + 'треугольников), а в покое не рисуется вовсе. Карта, уходя со стола, меняет '
+    + `${card ? (card.gone * 100).toFixed(1) : '?'}% середины поля.`
   : 'OK: поле в объёме пропущено (нет WebGL), но плата по нажатию и «Авто» проверены.');
