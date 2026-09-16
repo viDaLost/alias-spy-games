@@ -95,6 +95,14 @@ for (const [source, name] of [
   ['web/games/moses-nile-v7/models/environment/nature_pack/Plant_1.glb', 'models/Plant_1.glb'],
   ['web/games/moses-nile-v7/models/environment/nature_pack/Plant_2.glb', 'models/Plant_2.glb'],
   ['web/games/moses-nile-v7/models/environment/survival_pack/WoodLog.glb', 'models/WoodLog.glb'],
+  // Постройки: пять ступеней поселения. Собраны из исходников 0 A.D.
+  // скриптом build-promised-land-models.mjs, лицензия лежит рядом с ними.
+  ['web/assets/promised-land/models/build-well.glb', 'models/build-well.glb'],
+  ['web/assets/promised-land/models/build-tent.glb', 'models/build-tent.glb'],
+  ['web/assets/promised-land/models/build-house.glb', 'models/build-house.glb'],
+  ['web/assets/promised-land/models/build-wall.glb', 'models/build-wall.glb'],
+  ['web/assets/promised-land/models/build-tower.glb', 'models/build-tower.glb'],
+  ['web/assets/promised-land/models/LICENSE.txt', 'models/LICENSE.txt'],
 ]) {
   const src = path.join(root, source);
   const dst = path.join(to, name);

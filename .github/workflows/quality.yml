@@ -52,6 +52,8 @@ jobs:
         run: node scripts/check-android-biblical-treasures.mjs
       - name: Play out Promised Land rules
         run: node scripts/check-promised-land.mjs
+      - name: Check Promised Land building models
+        run: node scripts/check-promised-land-models.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund

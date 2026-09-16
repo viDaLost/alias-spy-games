@@ -748,6 +748,30 @@ window.PromisedLand3D = (() => {
       return prototypes.get(kind).clone(true);
     }
 
+    /*
+      Настоящие модели построек. Пять ступеней приходят готовыми .glb — по
+      сетке и текстуре на каждую, — и заменяют собранные из примитивов
+      фигурки. Замена, а не выбор: модели грузятся после того, как доска уже
+      стоит на экране, и до их приезда игра идёт на прежних фигурках. Не
+      доехали вовсе — так на них и останется; постройка на клетке важнее
+      того, из чего она сделана.
+
+      Жертвенника среди моделей нет — в исходниках его не оказалось, — и он
+      по-прежнему собирается из примитивов.
+    */
+    const carved = new Set();
+
+    function restock(kind) {
+      let touched = false;
+      builds.forEach((holder) => {
+        if (holder.userData.kind !== kind) return;
+        for (let i = holder.children.length - 1; i >= 1; i -= 1) holder.remove(holder.children[i]);
+        holder.add(buildingOf(kind));
+        touched = true;
+      });
+      if (touched) touch();
+    }
+
     /** Мягкое пятно под предметом: тень без карты теней. */
     function shade(radius, opacity) {
       const disc = new THREE.Mesh(
@@ -766,12 +790,15 @@ window.PromisedLand3D = (() => {
       /*
         Постройка стоит не в середине плитки, а на цветной полосе удела — там,
         где у настольных игр и стоят домики. Полоса обращена к середине доски,
-        и постройка на ней ничего не закрывает: имя клетки и цена остаются
-        читаемыми. Повёрнута она лицом к игроку, то есть наружу от доски.
+        и постройка отодвинута к самому её краю: чем дальше она от середины
+        карточки, тем меньше накрывает имя удела и цену. Совсем не накрывать
+        она не может — доску видно под углом, и всё, что на ней стоит,
+        проецируется на то, что за ним; так же лежат домики и на картонном
+        поле. Повёрнута постройка лицом к игроку, то есть наружу от доски.
       */
       const band = Math.abs(at.x) > Math.abs(at.z)
-        ? { x: -Math.sign(at.x) * 0.26, z: 0 }
-        : { x: 0, z: -Math.sign(at.z) * 0.26 };
+        ? { x: -Math.sign(at.x) * 0.34, z: 0 }
+        : { x: 0, z: -Math.sign(at.z) * 0.34 };
       holder.position.set(at.x + band.x, TILE_H, at.z + band.z);
       holder.rotation.y = Math.atan2(-band.x, -band.z);
       holder.visible = false;
@@ -1397,6 +1424,26 @@ window.PromisedLand3D = (() => {
 
     if (modelsAt && THREE.GLTFLoader) {
       const gltf = new THREE.GLTFLoader();
+      for (const kind of BUILD_KINDS) {
+        gltf.load(`${modelsAt}build-${kind}.glb`, (loaded) => {
+          const model = loaded.scene;
+          /*
+            Модель уже вписана в клетку сборщиком: середина в нуле, низ на
+            нуле, высота задана. Здесь остаётся только унять блеск — сцена
+            освещена мягко, и глянцевая стена под таким светом выглядит
+            мокрой.
+          */
+          model.traverse((node) => {
+            if (!node.isMesh) return;
+            node.castShadow = false;
+            node.receiveShadow = false;
+            if (node.material) node.material.roughness = 1;
+          });
+          prototypes.set(kind, model);
+          carved.add(kind);
+          restock(kind);
+        }, undefined, () => { /* нет модели — остаётся фигурка из примитивов */ });
+      }
       for (const item of SCENERY) {
         gltf.load(`${modelsAt}${item.file}`, (loaded) => {
           scatter(loaded.scene, item);
@@ -1753,6 +1800,8 @@ window.PromisedLand3D = (() => {
           Вывески: чей удел и где. Проверке этого довольно, чтобы спросить, что
           над занятым уделом висит имя хозяина, а над свободным не висит ничего.
         */
+        // Какие ступени уже стоят настоящей моделью, а не фигуркой из примитивов.
+        carved: [...carved],
         banners: [...bannerSlot],
         bannerNames: bannerNames.split('/').map((face) => face.split('|')[0]),
         bannerTurn: bannerQuarter,
