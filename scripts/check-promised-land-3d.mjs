@@ -380,9 +380,9 @@ try {
   need(labels[0] === 'Вы', `над своей фишкой написано «${labels[0]}»`);
   need(labels.length >= 3 && labels.slice(1).every((name) => name && name !== 'Вы'),
     `над чужими фишками подписи ${JSON.stringify(labels.slice(1))}`);
-  // Подпись у человека одна на двоих: и над фишкой, и на вывеске его уделов.
+  // Подпись у человека одна на двоих: и над фишкой, и на его уделах.
   need(JSON.stringify(drawn.bannerNames) === JSON.stringify(labels),
-    `над фишками ${JSON.stringify(labels)}, а на вывесках ${JSON.stringify(drawn.bannerNames)}`);
+    `над фишками ${JSON.stringify(labels)}, а на уделах ${JSON.stringify(drawn.bannerNames)}`);
 
   const webgl = await page.evaluate(() => {
     const probe = document.createElement('canvas');
@@ -501,6 +501,30 @@ try {
       step = now;
     }
     need(stuck === 0, `из пяти поворотов подряд ${stuck} не сдвинули доску — обзор упёрся в край`);
+
+    /*
+      Подписи хозяев разворачиваются вместе с доской. Спрашивается это здесь, а
+      не на домашнем виде: дома камера стоит на нулевой четверти, и подпись,
+      которая не поворачивается вовсе, ответила бы тем же нулём и прошла бы
+      проверку насквозь. После пяти поворотов подряд камера заведомо не дома.
+    */
+    const spinState = async () => {
+      const drawnNow = await page.evaluate(() => {
+        const one = window.PromisedLandScene.stats();
+        return { turn: one.bannerTurn, yaw: one.yaw };
+      });
+      return { turn: drawnNow.turn, quarter: ((Math.round(drawnNow.yaw / (Math.PI / 2)) % 4) + 4) % 4 };
+    };
+    // Пять поворотов подряд могут сложиться и в полный круг: тогда камера
+    // снова дома, и спрашивать не о чем. Доворачиваем, пока не сойдёт с нуля.
+    let spun4 = await spinState();
+    for (let i = 0; i < 4 && spun4.quarter === 0; i += 1) {
+      await drag(box.width * 0.3, 0);
+      spun4 = await spinState();
+    }
+    need(spun4.quarter !== 0, 'доска не сошла с нулевой четверти — поворот не спросить');
+    need(spun4.turn === spun4.quarter,
+      `подписи развёрнуты на четверть ${spun4.turn}, а камера стоит на ${spun4.quarter}`);
     need(Math.abs(step.boardWidth - before.boardWidth) < before.boardWidth * 0.35,
       `после оборота доска стала ${step.boardWidth} точек против ${before.boardWidth}`);
     need(turned.minX >= 1 && turned.minY >= 1
@@ -571,13 +595,13 @@ try {
       `застроенное поле — ${cost.full.triangles} треугольников`);
 
     /*
-      Вывески хозяев. Над занятым уделом висит доска с именем, над свободной
-      клеткой не висит ничего: на шестерых за столом цвет подставки под фишкой
+      Подписи хозяев. На занятом уделе лежит плашка с именем, на свободной
+      клетке не лежит ничего: на шестерых за столом цвет подставки под фишкой
       приходится вспоминать, а имя читается.
 
-      Спрашивается это у самой сцены, а не у пикселей: вывеска на телефоне
+      Спрашивается это у самой сцены, а не у пикселей: плашка на телефоне
       размером с ноготь, и глазом такую проверку не сделать. Считается по
-      ячейке полотна, назначенной клетке: −1 — вывески нет.
+      ячейке полотна, назначенной клетке: −1 — подписи нет.
     */
     const signs = await page.evaluate(() => {
       const scene = window.PromisedLandScene;
@@ -587,20 +611,16 @@ try {
       const hung = drawnNow.banners.filter((slot) => slot >= 0).length;
       const stray = B.BOARD.filter((spec, n) => !B.OWNABLE.has(spec.kind)
         && drawnNow.banners[n] >= 0).length;
-      return { ownable, hung, stray, names: drawnNow.bannerNames, turn: drawnNow.bannerTurn, yaw: drawnNow.yaw };
+      return { ownable, hung, stray, names: drawnNow.bannerNames };
     });
     need(signs.hung === signs.ownable,
-      `вывеска висит над ${signs.hung} уделами из ${signs.ownable} занятых`);
+      `подпись лежит на ${signs.hung} уделах из ${signs.ownable} занятых`);
     need(signs.stray === 0,
-      `вывеска висит над ${signs.stray} клетками, которых никто не покупал`);
+      `подпись лежит на ${signs.stray} клетках, которых никто не покупал`);
     need(signs.names.length === 6 && signs.names.every((name) => name),
-      `на полотне вывесок имена ${JSON.stringify(signs.names)}`);
-    // Вывеска смотрит на игрока: её четверть — та же, на которой стоит камера.
-    const quarter = ((Math.round(signs.yaw / (Math.PI / 2)) % 4) + 4) % 4;
-    need(signs.turn === quarter,
-      `вывески развёрнуты на четверть ${signs.turn}, а камера стоит на ${quarter}`);
+      `на полотне подписей имена ${JSON.stringify(signs.names)}`);
 
-    // Свободный удел вывеской не подписывается: проверяется тем же счётом, но
+    // Свободный удел не подписывается вовсе: проверяется тем же счётом, но
     // на чистом поле, куда сцена возвращается следующей же передачей состояния.
     const bare = await page.evaluate(() => {
       const scene = window.PromisedLandScene;
@@ -611,7 +631,7 @@ try {
       scene.sync({ players, cells }, () => '#4f46e5');
       return scene.stats().banners.filter((slot) => slot >= 0).length;
     });
-    need(bare === 0, `на пустом поле осталось ${bare} вывесок`);
+    need(bare === 0, `на пустом поле осталось ${bare} подписей`);
 
     /*
       Покой надо сперва дождаться, а потом мерить. Постройки вырастают почти
@@ -898,7 +918,7 @@ console.log(ran
     + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '
     + 'возвращает прежний. Долг ждёт нажатия игрока, «Авто» играет ход человека сам, боком '
     + 'экран не прокручивается, за столом помещаются шестеро, над фишками стоят имена, '
-    + 'над занятыми уделами — вывески хозяев, темп соперников переключается, выкуп из '
+    + 'на занятых уделах подписаны хозяева, темп соперников переключается, выкуп из '
     + 'темницы предлагается кнопкой, консоль чистая. Кадр стоит '
     + `${spend ? spend.idle.calls : '?'} вызовов отрисовки на пустом поле и `
     + `${spend ? spend.full.calls : '?'} на застроенном (${spend ? spend.full.triangles : '?'} `

@@ -115,7 +115,11 @@ window.PromisedLand3D = (() => {
         font -= 2;
       } while (font > 20 && lines.some((line) => ctx.measureText(line).width > ATLAS_CELL - 24));
 
-      const top = ATLAS_CELL * (spec.price ? 0.5 : 0.72);
+      /*
+        Низ карточки оставлен пустым: там ляжет подпись хозяина, когда удел
+        купят. Поэтому имя и цена подняты — иначе подпись накрыла бы цену.
+      */
+      const top = ATLAS_CELL * (spec.price ? 0.42 : 0.6);
       lines.forEach((line, i) => {
         ctx.fillText(line, ATLAS_CELL / 2, top + (i - (lines.length - 1) / 2) * (font + 6));
       });
@@ -133,9 +137,9 @@ window.PromisedLand3D = (() => {
         const coinSide = 34;
         const left = (ATLAS_CELL - width - coinSide - 8) / 2;
         ctx.textAlign = 'left';
-        ctx.fillText(price, left + coinSide + 8, ATLAS_CELL * 0.84);
+        ctx.fillText(price, left + coinSide + 8, ATLAS_CELL * 0.66);
         ctx.textAlign = 'center';
-        coins.push({ x: x + left, y: y + ATLAS_CELL * 0.84 - coinSide / 2, side: coinSide });
+        coins.push({ x: x + left, y: y + ATLAS_CELL * 0.66 - coinSide / 2, side: coinSide });
       }
       ctx.restore();
     });
@@ -551,23 +555,28 @@ window.PromisedLand3D = (() => {
     }
 
     /*
-      Вывеска хозяина. Полоса под плиткой говорит, что удел занят, но не чей
+      Подпись хозяина. Полоса под плиткой говорит, что удел занят, но не чей
       он: на шестерых за столом цвет подставки приходится вспоминать. Поэтому
-      над занятым уделом во всю его ширину встаёт доска с именем хозяина в его
-      же цвете.
+      на самой карточке, вдоль её нижнего края, лежит цветная плашка с именем
+      хозяина.
 
-      Все вывески — одна сетка и одно полотно: тридцать шесть отдельных
+      Лежит, а не стоит. Стоячую доску видно только сбоку, а на доску смотрят
+      сверху: подпись должна читаться там же, где и имя удела, — на карточке.
+      Место под неё освобождено в самом полотне подписей: имя и цена подняты,
+      и нижняя четверть карточки пустует, пока удел ничей.
+
+      Все подписи — одна сетка и одно полотно: тридцать шесть отдельных
       пластин стоили бы тридцати шести вызовов отрисовки, а так они стоят
       одного. Незанятый удел не прячется видимостью — у него просто нет
       площади: четыре его вершины сходятся в одну точку под доской, и
       рисовать там нечего.
     */
-    const BANNER_W = TILE * 0.96;
-    const BANNER_H = 0.38;
-    // Чуть выше кромки доски: стоящая вплотную вывеска сливается с её белым
-    // бортом, а поднятая читается и на песке, и на борту.
-    const BANNER_FOOT = TILE_H + 0.12;
-    const BANNER_OUT = TILE * 0.82;
+    const BANNER_W = TILE * 0.9;
+    const BANNER_D = TILE * 0.23;
+    // Отступ от середины плитки к её нижнему краю — тому, что ближе к игроку.
+    const BANNER_SHIFT = TILE * 0.345;
+    // Впритык над лицом плитки: ниже — мерцание от совпадения плоскостей.
+    const BANNER_LIFT = TILE_H + 0.005;
     const bannerSlot = new Int8Array(B.BOARD.length).fill(-1);
     const bannerPos = new Float32Array(B.BOARD.length * 12);
     const bannerUv = new Float32Array(B.BOARD.length * 8);
@@ -597,27 +606,21 @@ window.PromisedLand3D = (() => {
     let bannerQuarter = 0;
 
     /*
-      Где стоит вывеска. Не на самой плитке: доска, стоящая над карточкой,
-      на пологом взгляде сверху проецируется прямо на её лицо и закрывает имя
-      с ценой — что с ней ни делай, поднимай или опускай. Поэтому вывеска
-      вынесена наружу кольца, на песок за краем доски: там ей ничего не
-      мешает и она ничего не заслоняет.
-
-      А смотрит она на игрока: разворачивается по той же четверти, что и
-      подписи клеток, и, обойдя доску кругом, читается всё так же.
+      Куда ложится подпись. Подписи клеток развёрнуты к игроку все разом: на
+      доске нет «своей» стороны у карточки — верх у всех тридцати шести один,
+      экранный, и он переезжает вслед за камерой. Подпись хозяина живёт по
+      тому же правилу: она всегда у нижнего края карточки, как её ни поверни,
+      и читается вместе с именем удела.
     */
-    function outward(n) {
-      const at = cellPosition(n);
-      return Math.abs(at.x) >= Math.abs(at.z)
-        ? { x: Math.sign(at.x), z: 0 }
-        : { x: 0, z: Math.sign(at.z) };
-    }
-
     function placeBanners() {
+      // Куда на доске смотрит «вниз по экрану»: в сторону игрока.
       const dx = Math.round(Math.sin(bannerQuarter * Math.PI / 2));
       const dz = Math.round(Math.cos(bannerQuarter * Math.PI / 2));
+      // И «вправо по экрану» — перпендикуляр к нему.
       const rx = dz * BANNER_W / 2;
       const rz = -dx * BANNER_W / 2;
+      const px = dx * BANNER_D / 2;
+      const pz = dz * BANNER_D / 2;
       for (let n = 0; n < B.BOARD.length; n += 1) {
         const o = n * 12;
         if (bannerSlot[n] < 0) {
@@ -629,15 +632,13 @@ window.PromisedLand3D = (() => {
           continue;
         }
         const at = cellPosition(n);
-        const out = outward(n);
-        const cx = at.x + out.x * BANNER_OUT;
-        const cz = at.z + out.z * BANNER_OUT;
-        const top = BANNER_FOOT + BANNER_H;
+        const cx = at.x + dx * BANNER_SHIFT;
+        const cz = at.z + dz * BANNER_SHIFT;
         const corners = [
-          [cx - rx, top, cz - rz],
-          [cx + rx, top, cz + rz],
-          [cx - rx, BANNER_FOOT, cz - rz],
-          [cx + rx, BANNER_FOOT, cz + rz],
+          [cx - rx - px, BANNER_LIFT, cz - rz - pz],
+          [cx + rx - px, BANNER_LIFT, cz + rz - pz],
+          [cx - rx + px, BANNER_LIFT, cz - rz + pz],
+          [cx + rx + px, BANNER_LIFT, cz + rz + pz],
         ];
         for (let i = 0; i < 4; i += 1) {
           bannerPos[o + i * 3] = corners[i][0];
