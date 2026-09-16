@@ -212,9 +212,15 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   снизу по полосе пустоты — отношение сторон подобрано под ровно тот угол, под
   которым стоит камера.
 */
+/*
+  Доска забирает всю ширину экрана, включая поля: она здесь главное, и
+  шестнадцать точек с каждой стороны — это шестнадцать точек доски. Отношение
+  сторон чуть ниже прежнего: свободнее по высоте — значит доска упирается в
+  ширину, а не в высоту, и занимает кадр почти целиком.
+*/
 .ring-wrap.is-3d {
-  display: block; width: 100%; max-width: 460px; aspect-ratio: 1.32;
-  margin-inline: auto; margin-block: 0 2px; perspective: none;
+  display: block; width: calc(100% + 32px); max-width: none; aspect-ratio: 1.24;
+  margin-inline: -16px; margin-block: 0 2px; perspective: none;
   /*
     Коробка — элемент колонки, а у таких минимальная высота считается по
     содержимому. Холст в потоке возвращал бы ей свою квадратную высоту, и
@@ -225,6 +231,47 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 .ring-wrap.is-3d .board3d { position: absolute; inset: 0; }
 .ring-wrap.is-3d .ring { display: none; }
+/*
+  Кнопка возврата вида. Висит поверх доски в углу, появляется только когда
+  доску повернули: пока вид исходный, возвращать нечего.
+*/
+.view-home {
+  position: absolute; right: 6px; top: 6px; z-index: 3;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--ink); font: inherit; font-size: 12px; font-weight: 600;
+  padding: 7px 12px; min-height: 34px; cursor: pointer;
+  box-shadow: var(--lift-1);
+}
+.view-home[hidden] { display: none; }
+.view-home:active { transform: translateY(1px); }
+
+/*
+  Окно обучения. Не модальное намеренно: оно говорит о том, что в этот миг
+  показывает доска, и закрывать её собой ему нельзя. Поэтому — полоса под
+  доской, на месте карточки, а доска работает выше.
+*/
+.teach {
+  background: var(--surface); background-image: var(--tilt);
+  border: 1px solid var(--line); border-radius: 16px;
+  padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px;
+  box-shadow: var(--lift-3), var(--edge-top);
+}
+.teach[hidden] { display: none; }
+.teach-head { display: flex; align-items: baseline; gap: 10px; }
+.teach-count {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-soft); flex: 0 0 auto;
+}
+.teach-title { font-size: 19px; font-weight: 700; line-height: 1.1; }
+.teach-text { font-size: 14px; line-height: 1.45; color: var(--ink-soft); margin: 0; }
+.teach-row { display: flex; gap: 8px; }
+.teach-row .btn { flex: 1 1 auto; min-height: 46px; }
+.teach-row .btn--ghost { flex: 0 1 auto; }
+/* Пока идёт показ, кнопки хода и карточка уходят: место занято объяснением. */
+#game.is-teaching .actions,
+#game.is-teaching .view-home,
+#game.is-teaching .ring-core--below { display: none; }
 
 .ring {
   width: 100%; max-width: 420px; aspect-ratio: 1; display: grid;
@@ -311,8 +358,13 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   них одинаковая, и решает порядок.
 */
 .ring-core--below {
-  position: static; transform: none; width: 100%; max-width: 420px;
-  max-height: none; margin: 0 auto 8px; z-index: auto;
+  /*
+    Смещения сбрасываются вместе с положением: «left: 50%» досталось карточке
+    от висячего варианта, и стоит вернуть ей «position: relative» хоть чем-то
+    сверху — она уедет на пол-экрана вправо, оставаясь на вид обычной строкой.
+  */
+  position: static; inset: auto; transform: none;
+  width: 100%; max-width: 420px; max-height: none; margin: 0 auto 8px; z-index: auto;
 }
 /*
   Иллюстрация в середине кольца делит место с текстом, поэтому у неё гибкая
@@ -569,11 +621,72 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     align-self: start; margin-block: 0 -4%;
   }
   /*
-    Кольцу колонку считают по высоте: оно квадратное, и по ширине экрана оно
-    бы в неё не влезло. Доска в объёме ниже своей ширины — ей колонка считается
-    по ширине, иначе под ней остаётся сотня точек пустоты.
+    Боком доска больше не делит экран с колонкой управления. Колонка справа
+    отнимала у неё половину ширины, а доске нужна именно ширина: под нашим
+    углом она в полтора раза шире, чем выше. Поэтому здесь доска лежит на всём
+    экране, а управление — полосой поверх её нижнего края. Насколько полоса
+    заходит на доску, разметка сообщает сцене, и доска вписывается в то, что
+    осталось выше: под кнопки уходит её пустое поле, а не ряд клеток.
   */
-  #game.has-3d { grid-template-columns: min(128vh, 46vw) minmax(0, 1fr); }
+  /*
+    Поля у экрана снимаются, а не обходятся отрицательными отступами: доска,
+    вылезшая за край на четырнадцать точек, делает страницу на эти четырнадцать
+    точек шире, и телефон начинает возить её вбок. Отступы возвращаются тем,
+    кому они нужны, — шапке, кнопкам и карточкам.
+  */
+  #game.has-3d {
+    display: flex; flex-direction: column; position: relative;
+    gap: 6px; padding: 0; min-height: 100vh;
+  }
+  #game.has-3d > .hud { padding: 9px 14px 0; }
+  #game.has-3d > .actions { padding-inline: 14px; }
+  #game.has-3d > .players { padding: 0 14px 10px; }
+
+  #game.has-3d > .teach { margin-inline: 14px; }
+  #game.has-3d > .ring-wrap.is-3d {
+    /*
+      Высота задана прямо, а не парой «сверху-снизу»: у элемента, вынутого из
+      потока внутри флексовой колонки, выравнивание по колонке побеждает, и
+      высота по краям остаётся нулевой. Проценты считаются от той же коробки и
+      этого вопроса не задают.
+    */
+    position: absolute; top: 0; left: 0; right: 0;
+    width: auto; height: 100%; max-width: none; aspect-ratio: auto;
+    align-self: stretch; margin: 0; z-index: 0;
+  }
+  #game.has-3d > * { grid-column: auto; position: relative; z-index: 1; }
+  /* Всё, что ниже карточки, прижимается к низу экрана одной полосой. */
+  /*
+    Боком карточка уходит наверх, к шапке: там свободно, и доске она не мешает.
+    Вниз прижимается всё начиная с кнопок — это и есть полоса управления.
+  */
+  #game.has-3d > .actions { margin-top: auto; }
+  #game.has-3d > .feed { display: none; }
+  #game.has-3d > .players { gap: 6px; }
+  #game.has-3d .player { padding: 5px 8px; flex: 1 1 90px; }
+  #game.has-3d .player-figs { font-size: 11.5px; }
+  #game.has-3d > .actions { gap: 6px; }
+  /*
+    Карточка боком — короткая табличка по содержимому, а не полоса во весь
+    экран: пустая её часть закрывала бы доску ни за чем.
+  */
+  #game.has-3d > .ring-core--below {
+    /*
+      Карточка уходит влево: справа под ней оказывается угол доски, а слева —
+      только песок. Двигать доску ради карточки было бы наоборот.
+    */
+    width: fit-content; max-width: min(28%, 240px);
+    margin: 0 auto 0 14px; padding: 6px 12px 6px 6px;
+    gap: 10px; align-items: center; justify-content: flex-start;
+  }
+  #game.has-3d .ring-core--below .core-art { height: 46px; }
+  #game.has-3d .ring-core--below .core-art--small { height: 38px; }
+  #game.has-3d .ring-core--below .core-kind { font-size: 10px; }
+  #game.has-3d .ring-core--below .core-name { font-size: 16px; }
+  #game.has-3d .ring-core--below .core-note { font-size: 12px; }
+  /* Полоса обучения боком тоже не во весь экран: доска рядом и работает. */
+  #game.has-3d > .teach { margin-top: auto; max-width: min(78%, 620px); }
+  #game.has-3d.is-teaching > .ring-core--below { display: none; }
   #game > .ring-wrap.is-3d { margin-block: 0; }
   /*
     Карточка под доской боком ложится строкой: столбиком она съедает полторы

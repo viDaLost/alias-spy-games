@@ -62,6 +62,7 @@
   <div class="setup-actions">
     <button type="button" id="start-btn" class="btn btn--primary btn--big">В путь</button>
     <button type="button" id="rules-btn" class="btn btn--ghost">Правила</button>
+    <button type="button" id="teach-btn" class="btn btn--ghost">Обучение</button>
   </div>
 
   <p class="note">Партия идёт за одним столом, сеть не нужна.
@@ -80,6 +81,27 @@
          показывает поле разметкой — оно ниже и работает всегда. -->
     <canvas id="board3d" class="board3d" hidden></canvas>
     <div id="ring" class="ring" role="group" aria-label="Игровое поле, 36 клеток"></div>
+    <!--
+      Доску поворачивают пальцем, и обратно её тоже надо чем-то вернуть. Кнопка
+      появляется только когда вид сбит: висеть на экране постоянно ей незачем.
+    -->
+    <button type="button" id="view-home" class="view-home" hidden>Вернуть вид</button>
+  </div>
+
+  <!--
+    Обучение говорит о том, что в этот миг показывает доска, поэтому окно не
+    закрывает её собой: оно стоит полосой снизу, а камера работает выше.
+  -->
+  <div id="teach" class="teach" hidden>
+    <div class="teach-head">
+      <span id="teach-count" class="teach-count"></span>
+      <b id="teach-title" class="teach-title"></b>
+    </div>
+    <p id="teach-text" class="teach-text"></p>
+    <div class="teach-row">
+      <button type="button" id="teach-next" class="btn btn--primary">Дальше</button>
+      <button type="button" id="teach-skip" class="btn btn--ghost">Пропустить</button>
+    </div>
   </div>
 
   <div id="actions" class="actions"></div>
@@ -227,11 +249,15 @@
 </div>
 
 <script src="art/three-r128.min.js"></script>
+<!-- Загрузчик моделей: им приходит окружение доски — пальмы, камни, трава. -->
+<script src="art/GLTFLoader-r128.js"></script>
 <script src="board.js"></script>
 <script src="cards.js"></script>
 <script src="engine.js"></script>
 <script src="bots.js"></script>
+<script src="figures3d.js"></script>
 <script src="board3d.js"></script>
+<script src="tutorial.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

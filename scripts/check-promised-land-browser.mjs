@@ -59,6 +59,14 @@ const browser = await chromium.launch({
 const problems = [];
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
+/** Пропустить обучение, если оно открылось: партия проверяется отдельно. */
+async function skipTeaching(page) {
+  const skip = page.locator('#teach-skip');
+  if (!(await skip.count()) || !(await skip.isVisible())) return;
+  await skip.click();
+  await page.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+}
+
 /** Партия целиком на экране заданной ширины. Возвращает, чем она кончилась. */
 async function play(width, height, years) {
   const context = await browser.newContext({
@@ -73,6 +81,9 @@ async function play(width, height, years) {
   await page.locator(`.choice[data-key="years"] button[data-value="${years}"]`).click();
   await page.locator('#start-btn').click();
   await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  // Первую партию встречает обучение. Здесь проверяется сама игра, поэтому
+  // показ пропускается — его проверяет check-promised-land-3d.mjs.
+  await skipTeaching(page);
 
   const overflow = async () => page.evaluate(() =>
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -222,6 +233,7 @@ try {
   */
   await page.locator('#start-btn').click();
   await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  await skipTeaching(page);
   let cardOpened = true;
   try {
     await page.locator('.cell[aria-label="Хеврон"]').click({ timeout: 4_000 });

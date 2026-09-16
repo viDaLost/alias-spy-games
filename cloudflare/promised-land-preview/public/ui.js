@@ -103,6 +103,8 @@
   // Автоигра: ходы человека тоже ведёт разум соперников. Нужна, чтобы досмотреть
   // партию до юбилея, не нажимая, и чтобы попробовать правила, не разбираясь.
   let autoPlay = false;
+  let teachAsked = false;
+  let teachWanted = false;
   // Сцена в объёме. Её может не быть: WebGL на слабом устройстве не дают, и
   // тогда игра идёт на поле из разметки — оно работает всегда.
   let scene = null;
@@ -161,7 +163,39 @@
     buildRing();
     setupScene();
     render();
+    // Первую партию новичок начинает с показа на доске, а не с чистого поля.
+    // Дальше обучение не навязывается: его зовут кнопкой на первом экране.
+    if (window.PromisedLandTutorial
+      && (teachWanted || (!teachAsked && !window.PromisedLandTutorial.seen()))) {
+      teach();
+      return;
+    }
     scheduleBot();
+  }
+
+  /** Обучение: показ на доске. Ходы на это время не идут — они подождут. */
+  function teach() {
+    if (!window.PromisedLandTutorial) return;
+    teachAsked = true;
+    teachWanted = false;
+    clearTimeout(botTimer);
+    // Кнопки хода на время показа убираются: жать их посреди обучения незачем,
+    // а стоять они будут ровно там, где идёт объяснение.
+    $('game').classList.add('is-teaching');
+    window.PromisedLandTutorial.run({
+      scene,
+      box: $('teach'),
+      title: $('teach-title'),
+      text: $('teach-text'),
+      counter: $('teach-count'),
+      next: $('teach-next'),
+      skip: $('teach-skip'),
+      onEnd: () => {
+        $('game').classList.remove('is-teaching');
+        render();
+        scheduleBot();
+      },
+    });
   }
 
   // ————————————————————————————————————————————————— кольцо
@@ -181,9 +215,30 @@
     try {
       scene = window.PromisedLand3D.create({
         canvas,
-        art,
         sceneArt: ART + 'scene.webp',
+        modelsAt: ART + 'models/',
+        /*
+          Сколько холста занято разметкой. Боком карточка и кнопки лежат поверх
+          нижнего края доски, и вписывать доску надо в то, что осталось выше.
+          Замер берётся у самих узлов: они и решают, где что лежит.
+        */
+        frameOf: () => {
+          const box = canvas.getBoundingClientRect();
+          let bottom = 0;
+          // Полоса управления — всё, что лежит внизу поперёк экрана. Узкую
+          // карточку сюда не берём: она стоит сбоку и клеток не закрывает.
+          for (const id of ['teach', 'actions', 'players', 'feed', 'core']) {
+            const node = $(id);
+            if (!node || node.hidden || !node.offsetParent) continue;
+            const rect = node.getBoundingClientRect();
+            if (rect.height === 0 || rect.width < box.width * 0.62) continue;
+            if (rect.top <= box.top) continue;
+            bottom = Math.max(bottom, box.bottom - rect.top);
+          }
+          return { top: 0, bottom: Math.max(0, bottom) };
+        },
         onCellTap: showCellCard,
+        onViewChange: (home) => { $('view-home').hidden = home; },
         theme: {
           board: pick('--sunk', '#e8eefc'),
           field: pick('--surface-soft', '#f3f7ff'),
@@ -218,6 +273,9 @@
       core.classList.add('ring-core--below');
       wrap.insertAdjacentElement('afterend', core);
     }
+    $('view-home').addEventListener('click', () => { if (scene) scene.home(); });
+    // Ход наружу для проверки: сцена сама себя не меряет, а мерить её надо.
+    window.PromisedLandScene = scene;
     window.addEventListener('resize', () => { if (scene) scene.resize(); });
   }
 
@@ -863,6 +921,14 @@
     $('brand').appendChild(img(`${ART}menu-icon.webp`, 'brand-icon', 'Земля обетованная'));
 
     $('rules-btn').addEventListener('click', () => { $('rules').hidden = false; });
+    /*
+      Обучение с первого экрана начинает партию и сразу ведёт по доске: без
+      партии показывать нечего — ни фишек, ни клеток под ними.
+    */
+    $('teach-btn').addEventListener('click', () => {
+      if ($('game').hidden) { teachWanted = true; startGame(); return; }
+      teach();
+    });
     $('rules-close').addEventListener('click', () => { $('rules').hidden = true; });
     $('cell-close').addEventListener('click', () => { $('cell-card').hidden = true; });
     // Нажатие мимо карточки тоже закрывает: иначе на телефоне придётся целиться

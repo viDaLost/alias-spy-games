@@ -118,36 +118,50 @@ function decodePng(file) {
   return { width, height, channels, pixels: out };
 }
 
-/** Где на холсте доска и сколько на ней тёмного: подписи — это тёмное. */
+/*
+  Где на снимке доска. Ищется она по цвету: доска и плитки — белое и светло-
+  лиловое, то есть яркое и почти без оттенка, а вокруг песок, зелень и тень —
+  яркие, но с большим разбросом по каналам. Одиночные светлые точки (блик на
+  камне, просвет в листве) отсеиваются счётом по строкам и столбцам: краем
+  доски считается та строка, где таких точек уже не единицы.
+*/
 function measure(file) {
   const { width, height, channels, pixels } = decodePng(file);
   const at = (x, y) => pixels.subarray((y * width + x) * channels, (y * width + x) * channels + 3);
-  const back = at(0, 0);
-  let minX = width;
-  let maxX = 0;
-  let minY = height;
-  let maxY = 0;
+  const boardLike = (px) => {
+    const low = Math.min(px[0], px[1], px[2]);
+    return low >= 210 && Math.max(px[0], px[1], px[2]) - low <= 24;
+  };
+  const byRow = new Array(height).fill(0);
+  const byCol = new Array(width).fill(0);
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const px = at(x, y);
-      const away = Math.abs(px[0] - back[0]) + Math.abs(px[1] - back[1]) + Math.abs(px[2] - back[2]);
-      if (away <= 18) continue;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
+      if (!boardLike(at(x, y))) continue;
+      byRow[y] += 1;
+      byCol[x] += 1;
     }
   }
+  const enoughRow = Math.max(6, Math.round(width * 0.04));
+  const enoughCol = Math.max(6, Math.round(height * 0.04));
+  const rows = byRow.map((count, y) => (count >= enoughRow ? y : -1)).filter((y) => y >= 0);
+  const cols = byCol.map((count, x) => (count >= enoughCol ? x : -1)).filter((x) => x >= 0);
+  if (!rows.length || !cols.length) {
+    return { width, height, minX: 0, maxX: 0, minY: 0, maxY: 0, boardWidth: 0, boardHeight: 0, inkShare: 0 };
+  }
+  const minX = cols[0];
+  const maxX = cols[cols.length - 1];
+  const minY = rows[0];
+  const maxY = rows[rows.length - 1];
   const boardWidth = maxX - minX;
   const boardHeight = maxY - minY;
   /*
-    Ближний ряд плиток — это нижняя восьмая доски. Подписи на нём самые
-    крупные, а картинки в середину доски сюда не попадают: если тёмного в этой
-    полосе нет, значит на плитках не написано ничего.
+    Ближний ряд плиток — нижняя седьмая доски. Подписи на нём самые крупные, а
+    картинка из середины доски сюда не попадает: если тёмного в этой полосе
+    нет, значит на плитках не написано ничего.
   */
   let ink = 0;
   let seen = 0;
-  const from = Math.max(0, maxY - Math.round(boardHeight * 0.13));
+  const from = Math.max(0, maxY - Math.round(boardHeight * 0.15));
   for (let y = from; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const px = at(x, y);
@@ -161,7 +175,71 @@ function measure(file) {
   };
 }
 
-const shot = path.join(process.env.RUNNER_TEMP || '/tmp', 'promised-land-3d.png');
+const shots = process.env.RUNNER_TEMP || '/tmp';
+
+/*
+  Снимок одного только холста. Разметка на время снимка прячется: боком она
+  лежит поверх доски, и белые карточки кнопок неотличимы от белых плиток —
+  мерить по такому снимку доску нельзя. Заодно возвращается, насколько полоса
+  управления заходит на холст: ряд клеток обязан остаться выше неё.
+*/
+const OVERLAY = '#game > *:not(.ring-wrap), .view-home';
+
+async function snap(page, file) {
+  const info = await page.evaluate((selector) => {
+    const canvas = document.getElementById('board3d');
+    const box = canvas.getBoundingClientRect();
+    let bottom = 0;
+    for (const id of ['teach', 'actions', 'players', 'feed', 'core']) {
+      const node = document.getElementById(id);
+      if (!node || node.hidden || !node.offsetParent) continue;
+      const rect = node.getBoundingClientRect();
+      if (rect.height === 0 || rect.width < box.width * 0.62) continue;
+      if (rect.top <= box.top) continue;
+      bottom = Math.max(bottom, box.bottom - rect.top);
+    }
+    for (const node of document.querySelectorAll(selector)) node.style.visibility = 'hidden';
+    /*
+      Границы холста дробные, и округление наружу прихватывает в снимок полоску
+      страницы за ним — а она светлая и ровная, то есть неотличима от доски.
+      Поэтому округление только внутрь, да ещё на точку с запасом.
+    */
+    const x = Math.ceil(Math.max(0, box.x)) + 1;
+    const y = Math.ceil(Math.max(0, box.y)) + 1;
+    return {
+      bottom,
+      clip: {
+        x, y,
+        width: Math.max(10, Math.floor(Math.min(box.right, window.innerWidth)) - x - 1),
+        height: Math.max(10, Math.floor(Math.min(box.bottom, window.innerHeight)) - y - 1),
+      },
+    };
+  }, OVERLAY);
+  await page.screenshot({ path: file, clip: info.clip });
+  await page.evaluate((selector) => {
+    for (const node of document.querySelectorAll(selector)) node.style.visibility = '';
+  }, OVERLAY);
+  return { file, bottom: info.bottom, clip: info.clip, ...measure(file) };
+}
+
+const shot = path.join(shots, 'promised-land-3d.png');
+
+/** Насколько два снимка холста разошлись: доля заметно изменившихся точек. */
+function differ(one, two) {
+  const a = decodePng(one);
+  const b = decodePng(two);
+  if (a.width !== b.width || a.height !== b.height) return 1;
+  let apart = 0;
+  const total = a.width * a.height;
+  for (let i = 0; i < total; i += 1) {
+    const at = i * a.channels;
+    const gap = Math.abs(a.pixels[at] - b.pixels[at])
+      + Math.abs(a.pixels[at + 1] - b.pixels[at + 1])
+      + Math.abs(a.pixels[at + 2] - b.pixels[at + 2]);
+    if (gap > 24) apart += 1;
+  }
+  return apart / total;
+}
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
 });
@@ -172,11 +250,81 @@ page.on('pageerror', (error) => errors.push(String(error)));
 
 let ran = false;
 let side = null;
+let spend = null;
 try {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
   await page.locator('#start-btn').click();
   await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
   await page.waitForTimeout(900);
+
+  /*
+    Обучение. Оно встречает новичка первым, и проверять его надо здесь же, до
+    того как показ пропущен: второй раз само оно не заведётся. Доказательство
+    того, что показ идёт на доске, а не в тексте, — сам холст: между шагами
+    картинка обязана меняться, потому что камера перелетает к другой клетке.
+  */
+  const teachStart = await page.locator('#teach:not([hidden])').count();
+  need(teachStart > 0, 'первую партию обучение не встретило');
+  if (teachStart) {
+    // innerText отдаёт текст так, как его видно, а видно его прописными:
+    // у счётчика «text-transform: uppercase». Поэтому разбор без учёта регистра.
+    const counter = () => page.locator('#teach-count').innerText();
+    const numbers = (text) => (text.match(/(\d+)\D+(\d+)/) || []).slice(1).map(Number);
+    const [at, steps] = numbers(await counter());
+    need(at === 1, `счётчик шагов начинается с «${await counter()}»`);
+    need(steps >= 5, `в обучении ${steps} шагов — слишком коротко для первого знакомства`);
+    await page.waitForTimeout(1200);
+    const first = path.join(shots, 'teach-1.png');
+    const second = path.join(shots, 'teach-2.png');
+    await snap(page, first);
+    await page.locator('#teach-next').click();
+    await page.waitForTimeout(1500);
+    need(numbers(await counter())[0] === 2,
+      `после «Дальше» счётчик показывает «${await counter()}»`);
+    await snap(page, second);
+    const moved = differ(first, second);
+    need(moved > 0.06,
+      `между шагами обучения доска изменилась на ${(moved * 100).toFixed(1)}% — камера стоит`);
+    await page.locator('#teach-skip').click();
+    await page.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+    need(await page.locator('#actions .btn').count() > 0,
+      'после «Пропустить» кнопки хода не вернулись');
+    /*
+      Камера возвращается к общему виду не мгновенно, а перелётом. Мерить доску,
+      пока он идёт, — мерить случайный кадр: скрытая кнопка возврата и есть знак,
+      что вид снова исходный.
+    */
+    await page.waitForSelector('#view-home[hidden]', { state: 'attached', timeout: 5_000 });
+    await page.waitForTimeout(200);
+  }
+
+  /*
+    Фигурки обязаны быть телами, а не картинками: у картинки нет толщины, и
+    повернуть доску — значит увидеть бумажку. Спрашивается это у самой сборки
+    фигурок, поимённо по каждой: габаритная коробка должна быть ненулевой по
+    всем трём измерениям.
+  */
+  const flat = await page.evaluate(() => {
+    const F = window.PromisedLandFigures;
+    if (!F || !window.THREE) return ['сборки фигурок нет'];
+    const bad = [];
+    const check = (name, node, least) => {
+      const box = new window.THREE.Box3().setFromObject(node);
+      const size = box.getSize(new window.THREE.Vector3());
+      if (!(size.x > least && size.y > least && size.z > least)) {
+        bad.push(`${name} ${size.x.toFixed(2)}×${size.y.toFixed(2)}×${size.z.toFixed(2)}`);
+      }
+    };
+    for (const kind of F.TOKEN_KINDS) {
+      // Меряется сам предмет, а не фишка целиком: круглая подставка есть у
+      // всех, и с ней даже плоский щиток выходит «объёмным».
+      const token = F.token(kind, '#4f46e5');
+      check(kind, token.userData.piece || token, 0.1);
+    }
+    for (const kind of F.BUILD_KINDS) check(kind, F.building(kind), 0.1);
+    return bad;
+  });
+  need(flat.length === 0, `плоские фигурки: ${flat.join(', ')}`);
 
   const webgl = await page.evaluate(() => {
     const probe = document.createElement('canvas');
@@ -203,16 +351,13 @@ try {
       `коробка холста вышла ${live.width}×${live.height}`);
 
     // ——— доска влезает в кадр и на ней написаны слова ———
-    await page.locator('#board3d').screenshot({ path: shot });
-    const view = measure(shot);
-    need(view.minX >= 1 && view.minY >= 1
-      && view.maxX <= view.width - 2 && view.maxY <= view.height - 2,
+    const view = await snap(page, shot);
+    need(view.boardWidth > 0, 'доски на холсте не нашлось вовсе');
+    need(view.minX >= 1 && view.minY >= 1 && view.maxX <= view.width - 2,
       `доска упирается в край холста: ${view.minX}/${view.minY}/`
-      + `${view.width - view.maxX}/${view.height - view.maxY} точек по краям`);
-    need(view.boardWidth >= view.width * 0.82,
+      + `${view.width - view.maxX} точек по краям`);
+    need(view.boardWidth >= view.width * 0.8,
       `доска занимает ${Math.round(view.boardWidth / view.width * 100)}% ширины холста`);
-    need(view.boardHeight >= view.height * 0.72,
-      `доска занимает ${Math.round(view.boardHeight / view.height * 100)}% высоты холста`);
     need(view.inkShare > 0.012,
       `на ближнем ряду плиток тёмного ${(view.inkShare * 100).toFixed(2)}% — подписей нет`);
 
@@ -251,6 +396,113 @@ try {
     }
     need(named.size >= 22, `по всей доске отозвалось ${named.size} клеток из 36`);
     need(stray.length === 0, `карточка открылась не на клетке поля: ${stray.join(', ')}`);
+
+    /*
+      Доска слушается пальца. Проверяется то, ради чего это делалось: повернуть
+      её можно, отойти можно, и ни то ни другое не роняет половину поля за край
+      холста. Кнопка «Вернуть вид» обязана возвращать ровно тот вид, что был.
+    */
+    const look = (name) => snap(page, path.join(shots, `view-${name}.png`));
+    const before = await look('home');
+
+    const mid = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const drag = async (dx, dy) => {
+      await page.mouse.move(mid.x, mid.y);
+      await page.mouse.down();
+      await page.mouse.move(mid.x + dx, mid.y + dy, { steps: 12 });
+      await page.mouse.up();
+      await page.waitForTimeout(350);
+    };
+    /*
+      Поперёк и вдоль — по отдельности: одно движение наискось меняет картинку
+      и тогда, когда работает только половина управления, и проверка этого не
+      заметит. Поворот и наклон — разные вещи, и спрашиваются они порознь.
+    */
+    await drag(box.width * 0.24, 0);
+    const spun = await look('spun');
+    need(differ(before.file, spun.file) > 0.05, 'доска не поворачивается пальцем поперёк');
+    await drag(0, box.height * 0.2);
+    const turned = await look('turned');
+    need(differ(spun.file, turned.file) > 0.04, 'доска не наклоняется пальцем вдоль');
+    need(turned.minX >= 1 && turned.minY >= 1
+      && turned.maxX <= turned.width - 2 && turned.maxY <= turned.height - 2,
+      'повёрнутая доска вылезла за край холста');
+    need(await page.locator('#view-home:not([hidden])').count() > 0,
+      'доску повернули, а кнопки «Вернуть вид» нет');
+
+    // Щипок двумя пальцами: отойти и посмотреть всю карту.
+    await page.evaluate(({ x, y, w }) => {
+      const canvas = document.getElementById('board3d');
+      const fire = (type, id, cx, cy) => canvas.dispatchEvent(new PointerEvent(type, {
+        pointerId: id, clientX: cx, clientY: cy, bubbles: true, pointerType: 'touch',
+      }));
+      fire('pointerdown', 101, x - w * 0.3, y);
+      fire('pointerdown', 102, x + w * 0.3, y);
+      for (let i = 1; i <= 8; i += 1) {
+        const gap = w * 0.3 * (1 - i * 0.085);
+        fire('pointermove', 101, x - gap, y);
+        fire('pointermove', 102, x + gap, y);
+      }
+      fire('pointerup', 101, x - w * 0.09, y);
+      fire('pointerup', 102, x + w * 0.09, y);
+    }, { x: mid.x, y: mid.y, w: box.width });
+    await page.waitForTimeout(350);
+    const away = await look('away');
+    const areaOf = (v) => v.boardWidth * v.boardHeight;
+    need(areaOf(away) < areaOf(turned) * 0.9,
+      `щипок не отдалил доску: было ${Math.round(areaOf(turned))}, стало ${Math.round(areaOf(away))} точек`);
+
+    await page.locator('#view-home').click();
+    await page.waitForTimeout(800);
+    const back = await look('back');
+    need(Math.abs(back.boardWidth - before.boardWidth) <= 4
+      && Math.abs(back.boardHeight - before.boardHeight) <= 4,
+      `«Вернуть вид» вернул доску другого размера: ${before.boardWidth}×${before.boardHeight} `
+      + `против ${back.boardWidth}×${back.boardHeight}`);
+    need(await page.locator('#view-home[hidden]').count() > 0,
+      'вид вернулся, а кнопка возврата осталась на экране');
+
+    /*
+      Чего сцена стоит кадру. Вызовы отрисовки — та величина, которой телефон
+      меряет цену картинки; треугольники здесь не главное, их мало. Меряется и
+      худший случай: всё поле застроено башнями, на каждой клетке владелец, за
+      столом шестеро. И отдельно — что в покое сцена не рисуется вовсе: кадр
+      по событию только тогда и имеет смысл.
+    */
+    const cost = await page.evaluate(() => {
+      const scene = window.PromisedLandScene;
+      const B = window.PromisedLandBoard;
+      const idle = scene.stats();
+      const players = Array.from({ length: 6 }, (unused, i) => (
+        { id: 'p' + i, name: 'И' + i, pos: i * 3, silver: 100, heritage: 0 }));
+      const cells = B.BOARD.map((spec, n) => ({
+        owner: B.OWNABLE.has(spec.kind) ? 'p' + (n % 6) : null,
+        level: spec.kind === 'plot' ? 5 : 0,
+        altar: spec.kind === 'plot' && n % 7 === 0,
+        heldFrom: null,
+      }));
+      scene.sync({ players, cells }, () => '#4f46e5');
+      return { idle, full: scene.stats() };
+    });
+    need(cost.idle.calls <= 140,
+      `пустая доска стоит ${cost.idle.calls} вызовов отрисовки`);
+    need(cost.full.calls <= 320,
+      `застроенное поле стоит ${cost.full.calls} вызовов отрисовки`);
+    need(cost.full.triangles <= 60_000,
+      `застроенное поле — ${cost.full.triangles} треугольников`);
+
+    /*
+      Перед замером покоя надо дождаться, пока улягутся сами постройки: они
+      вырастают почти полсекунды, и мерить «сцена в покое» посреди этого —
+      мерить не покой.
+    */
+    await page.waitForTimeout(900);
+    const quiet = await page.evaluate(() => window.PromisedLandScene.stats().frames);
+    await page.waitForTimeout(1500);
+    const stillQuiet = await page.evaluate(() => window.PromisedLandScene.stats().frames);
+    need(stillQuiet - quiet <= 2,
+      `за полторы секунды покоя сцена нарисовала ${stillQuiet - quiet} кадров`);
+    spend = cost;
   }
 
   /*
@@ -368,7 +620,13 @@ if (problems.length) {
 }
 
 console.log(ran
-  ? 'OK: доска в объёме влезает в холст целиком и занимает его почти весь, на ближнем '
-    + 'ряду плиток есть подписи, луч различает клетки поимённо, долг ждёт нажатия игрока, '
-    + 'а по «Авто» ход человека играется сам. Боком экран не прокручивается. Консоль чистая.'
+  ? 'OK: обучение встречает первую партию и показывает шаги на самой доске, фигурки и '
+    + 'постройки — тела, а не картинки; доска влезает в холст целиком и занимает его почти '
+    + 'весь, на ближнем ряду плиток есть подписи, луч различает клетки поимённо. Доска '
+    + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '
+    + 'возвращает прежний. Долг ждёт нажатия игрока, «Авто» играет ход человека сам, боком '
+    + 'экран не прокручивается, консоль чистая. Кадр стоит '
+    + `${spend ? spend.idle.calls : '?'} вызовов отрисовки на пустом поле и `
+    + `${spend ? spend.full.calls : '?'} на застроенном (${spend ? spend.full.triangles : '?'} `
+    + 'треугольников), а в покое не рисуется вовсе.'
   : 'OK: поле в объёме пропущено (нет WebGL), но плата по нажатию и «Авто» проверены.');

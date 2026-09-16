@@ -51,11 +51,15 @@ function walk(source, destination) {
   Одиночные файлы — исключение: они приходят из других мест и своего двойника
   в общей папке не имеют, так что уборка сносила бы их на каждом прогоне.
 */
-const SINGLES = new Set(['scene.webp', 'menu-icon.webp', 'three-r128.min.js']);
+const SINGLES = new Set(['scene.webp', 'menu-icon.webp', 'three-r128.min.js',
+  'GLTFLoader-r128.js']);
+
+const KEPT_DIRS = new Set(['models']);
 
 function prune(source, destination) {
   if (!fs.existsSync(destination)) return;
   for (const entry of fs.readdirSync(destination, { withFileTypes: true })) {
+    if (entry.isDirectory() && KEPT_DIRS.has(entry.name)) continue;
     const src = path.join(source, entry.name);
     const dst = path.join(destination, entry.name);
     if (entry.isDirectory()) { prune(src, dst); continue; }
@@ -78,10 +82,24 @@ for (const [source, name] of [
   // three.js уже лежит в репозитории — у «Моисея на Ниле». Второй копии в
   // git быть не должно: шестьсот килобайт одного и того же разойдутся.
   ['web/games/moses-nile-v7/vendor/three-r128.min.js', 'three-r128.min.js'],
+  ['web/games/moses-nile-v7/vendor/GLTFLoader-r128.js', 'GLTFLoader-r128.js'],
+  /*
+    Окружение доски: пальмы, камни, кусты и трава. Модели тоже уже лежат в
+    репозитории — у «Моисея на Ниле», и второй копии в git им не нужно, как и
+    самой библиотеке. Все семеро вместе весят полторы сотни килобайт.
+  */
+  ['web/games/moses-nile-v7/models/environment/nature_pack/PalmTree_4.glb', 'models/PalmTree_4.glb'],
+  ['web/games/moses-nile-v7/models/environment/nature_pack/Bush_1.glb', 'models/Bush_1.glb'],
+  ['web/games/moses-nile-v7/models/environment/nature_pack/Rock_1.glb', 'models/Rock_1.glb'],
+  ['web/games/moses-nile-v7/models/environment/nature_pack/Grass.glb', 'models/Grass.glb'],
+  ['web/games/moses-nile-v7/models/environment/nature_pack/Plant_1.glb', 'models/Plant_1.glb'],
+  ['web/games/moses-nile-v7/models/environment/nature_pack/Plant_2.glb', 'models/Plant_2.glb'],
+  ['web/games/moses-nile-v7/models/environment/survival_pack/WoodLog.glb', 'models/WoodLog.glb'],
 ]) {
   const src = path.join(root, source);
   const dst = path.join(to, name);
   if (!fs.existsSync(src)) continue;
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
   if (fs.existsSync(dst) && fs.statSync(dst).size === fs.statSync(src).size) continue;
   fs.copyFileSync(src, dst);
   copied += 1;
