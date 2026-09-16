@@ -282,8 +282,9 @@ window.PromisedLandEngine = (() => {
     state.pending = {
       type: 'pay',
       amount,
-      toId: target && target !== 'treasury' ? target.id : null,
+      toId: target && target !== 'treasury' && target !== 'each' ? target.id : null,
       toTreasury: target === 'treasury',
+      toEach: target === 'each',
       title,
       text,
     };
@@ -294,6 +295,7 @@ window.PromisedLandEngine = (() => {
   const payee = (state) => {
     const pending = state.pending;
     if (!pending) return null;
+    if (pending.toEach) return 'each';
     if (pending.toTreasury) return 'treasury';
     return state.players.find((p) => p.id === pending.toId) || null;
   };
@@ -308,7 +310,15 @@ window.PromisedLandEngine = (() => {
     const player = current(state);
     if (sell) raiseFunds(state, player, pending.amount);
     if (player.silver < pending.amount) return false;
-    pay(state, player, pending.amount, payee(state));
+    if (pending.each) {
+      // Счёт всем сразу: у плательщика уходит целое, а приходит по доле.
+      player.silver -= pending.amount;
+      for (const other of activePlayers(state)) {
+        if (other.id !== player.id) other.silver += pending.each;
+      }
+    } else {
+      pay(state, player, pending.amount, payee(state));
+    }
     log(state, `${player.name} платит ${pending.amount}: ${pending.title}`);
     /*
       Счёт «за должника» — не просто платёж: на эту же сумму уменьшается чужой
@@ -346,11 +356,13 @@ window.PromisedLandEngine = (() => {
     if (bill.amount > 0) {
       const target = bill.to === 'treasury' ? 'treasury'
         : state.players.find((p) => p.id === bill.to);
-      requestPayment(state, player, bill.amount, target || 'treasury', pending.title, card.text);
+      requestPayment(state, player, bill.amount,
+        bill.to === 'each' ? 'each' : (target || 'treasury'), pending.title, card.text);
       if (state.pending) {
         state.pending.art = pending.art;
         state.pending.ref = card.ref;
         if (bill.debtor) state.pending.debtor = bill.debtor;
+        if (bill.each) state.pending.each = bill.each;
         return true;
       }
     }
@@ -368,10 +380,10 @@ window.PromisedLandEngine = (() => {
     if (!pending || pending.type !== 'pay') return false;
     const player = current(state);
     const target = payee(state);
-    const creditor = target && target !== 'treasury' ? target : null;
+    const creditor = target && target !== 'treasury' && target !== 'each' ? target : null;
     const short = pending.amount - player.silver;
     if (creditor) creditor.silver += player.silver;
-    else if (target === 'treasury') state.treasury += player.silver;
+    else state.treasury += player.silver;
     becomeServant(state, player, creditor, short);
     state.pending = { type: 'note', title: pending.title, text: 'Платить нечем — вы идёте в наём.' };
     state.phase = 'act';
@@ -524,7 +536,7 @@ window.PromisedLandEngine = (() => {
    */
   function applyCard(state, player, card, rng) {
     const notes = [];
-    const bill = { amount: 0, to: null, debtor: null };
+    const bill = { amount: 0, to: null, debtor: null, each: 0 };
     if (card.silver) {
       if (card.silver > 0) player.silver += card.silver;
       else { bill.amount = -card.silver; bill.to = card.toTreasury ? 'treasury' : null; }
@@ -546,9 +558,15 @@ window.PromisedLandEngine = (() => {
       notes.push(`${amount} сиклей`);
     }
     if (card.toEach) {
-      for (const other of activePlayers(state)) {
-        if (other.id === player.id) continue;
-        pay(state, player, card.toEach, other);
+      // Единственная карта, которая платит всем сразу. Счёт один на всех, а
+      // делится он при уплате: списывать по кругу значило бы брать деньги
+      // столько раз, сколько за столом народу, и ни разу не спросив.
+      const others = activePlayers(state).filter((other) => other.id !== player.id);
+      if (others.length) {
+        bill.amount = card.toEach * others.length;
+        bill.to = 'each';
+        bill.each = card.toEach;
+        notes.push(`по ${card.toEach} каждому — всего ${bill.amount}`);
       }
     }
     if (card.takeTreasury) {

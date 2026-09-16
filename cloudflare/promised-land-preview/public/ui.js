@@ -366,6 +366,56 @@
 
   // ————————————————————————————————————————————————— середина кольца
 
+  /** Значок сикля рядом с числом — цена читается монетой, а не словом. */
+  function coin(value, label) {
+    const box = el('span', 'core-fig');
+    box.appendChild(img(art('icons', 'ui-shekel'), 'core-coin', 'сиклей'));
+    box.appendChild(el('b', null, String(value)));
+    if (label) box.appendChild(el('span', 'core-fig-label', label));
+    return box;
+  }
+
+  /**
+   * Всё про удел в середине экрана: рисунок, удел, имя, хозяин и постройка,
+   * цена, плата сейчас и вся лестница платы по ступеням. Это та же выкладка,
+   * что и в карточке клетки, — только собранная в полосу.
+   */
+  function showLand(core, n, lead) {
+    const spec = B.BOARD[n];
+    const cell = state.cells[n];
+    const owner = state.players.find((p) => p.id === (cell.heldFrom || cell.owner));
+    core.appendChild(img(art('plots', spec.slug), 'core-art', spec.name));
+    const kind = el('div', 'core-kind', kindLabel(spec));
+    if (spec.kind === 'plot') kind.style.setProperty('--band', B.colorOf(spec));
+    core.appendChild(kind);
+    core.appendChild(el('div', 'core-name', spec.name));
+
+    const state_line = cell.altar ? `Жертвенник ${owner ? owner.name : ''}: платы нет.`
+      : (owner
+        ? `Земля ${owner.name}${cell.level > 0 ? `, ${B.LEVELS[cell.level - 1].toLowerCase()}` : ', без построек'}.`
+        : 'Ничья земля.');
+    core.appendChild(el('div', 'core-note', `${lead ? lead + ' ' : ''}${state_line}`));
+    if (cell.pledge) {
+      const from = state.players.find((p) => p.id === cell.pledge.by);
+      core.appendChild(el('div', 'core-note core-extra',
+        `В залоге у ${owner ? owner.name : 'казны'} за ${cell.pledge.debt}` +
+        `${from ? `, заложил ${from.name}` : ''}.`));
+    }
+
+    const figs = el('div', 'core-figs');
+    figs.appendChild(coin(spec.price, 'цена'));
+    if (spec.kind === 'plot') figs.appendChild(coin(B.GROUPS[spec.group].build, 'ступень'));
+    figs.appendChild(coin(E.rentFor(state, n, 7), 'плата'));
+    core.appendChild(figs);
+
+    if (spec.kind === 'plot') {
+      const ladder = B.ladderOf(spec);
+      const names = ['пусто', ...B.LEVELS.map((step) => step.toLowerCase())];
+      core.appendChild(el('div', 'core-ladder',
+        ladder.map((rent, i) => `${names[i]} ${rent}`).join(' · ')));
+    }
+  }
+
   function updateCore() {
     const core = $('core');
     core.innerHTML = '';
@@ -403,11 +453,19 @@
       return;
     }
     if (pending.type === 'buy') {
-      const spec = B.BOARD[pending.cell];
-      core.appendChild(img(art('plots', spec.slug), 'core-art', spec.name));
-      core.appendChild(el('div', 'core-kind', kindLabel(spec)));
-      core.appendChild(el('div', 'core-name', spec.name));
-      core.appendChild(el('div', 'core-note', `Свободен. Цена ${spec.price} сиклей.`));
+      showLand(core, pending.cell, 'Свободен.');
+      return;
+    }
+    /*
+      Встали на удел — покажите о нём всё. Раньше здесь была одна строка, и
+      игрок, которому выставили счёт, не видел ни ступени поселения, ни того,
+      сколько эта земля берёт дальше: чтобы решить, стоит ли её выкупать или
+      закладывать своё, ему приходилось лезть в карточку клетки отдельно.
+    */
+    if (B.OWNABLE.has(B.BOARD[player.pos].kind)
+      && (pending.type === 'pay' || pending.type === 'note')) {
+      showLand(core, player.pos, pending.text || '');
+      if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
       return;
     }
     // Клетка, на которой стоим, — её рисунок и показывается; у карты свой.

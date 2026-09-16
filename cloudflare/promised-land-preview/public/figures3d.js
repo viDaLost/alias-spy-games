@@ -26,20 +26,30 @@ window.PromisedLandFigures = (() => {
   */
   const MAT = {
     wood: 0x8a5a33,
-    woodDark: 0x6b4423,
+    woodDark: 0x5d3a1c,
     clay: 0xb4643c,
     clayDark: 0x8d4a2b,
-    stone: 0xa8a29a,
-    stoneDark: 0x807b73,
-    sand: 0xd8c39a,
-    cloth: 0xc9a06a,
-    clothDark: 0x9c7645,
+    /*
+      Камень тёмный намеренно. Светлые постройки на белой плитке сливались с
+      ней: на снимке они были пятнами, а не домами. Каждая ступень теперь
+      отличается не только высотой, но и цветом — колодец серый с водой, шатёр
+      охряный, дом песчаный под красной кровлей, ограда серо-синяя, башня
+      тёмная, жертвенник почти чёрный с огнём.
+    */
+    stone: 0x8d8b86,
+    stoneDark: 0x5f5e5b,
+    slate: 0x6b7480,
+    slateDark: 0x4a525c,
+    sand: 0xcbb083,
+    roof: 0xa8452c,
+    cloth: 0xc9913f,
+    clothDark: 0x8a5f22,
     grain: 0xd8a441,
     brass: 0xc8912f,
     flame: 0xffa631,
     parchment: 0xefe3c6,
     leaf: 0x4f7a3a,
-    water: 0x3f78a8,
+    water: 0x2f6f9e,
   };
 
   const cache = new Map();
@@ -189,40 +199,46 @@ window.PromisedLandFigures = (() => {
 
   // ————————————————————————————————————————————————— постройки
 
-  /** Колодец: сруб, две стойки, навес и ведро. */
+  /** Первая ступень — колодец: низкий сруб с водой, стойки и навес. */
   function well() {
     const group = new THREE.Group();
-    group.add(put(mesh(new THREE.CylinderGeometry(0.19, 0.2, 0.14, 14), MAT.stone), 0, 0.07, 0));
-    group.add(put(mesh(new THREE.CylinderGeometry(0.155, 0.155, 0.02, 12), MAT.water), 0, 0.135, 0));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.16, 14), MAT.stoneDark), 0, 0.08, 0));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.02, 12), MAT.water), 0, 0.155, 0));
     for (const side of [-1, 1]) {
-      group.add(put(mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.26, 6), MAT.wood), side * 0.16, 0.27, 0));
+      group.add(put(mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.24, 6), MAT.wood), side * 0.17, 0.28, 0));
     }
-    const roof = mesh(new THREE.ConeGeometry(0.27, 0.16, 4), MAT.woodDark);
+    const roof = mesh(new THREE.ConeGeometry(0.3, 0.14, 4), MAT.roof);
     roof.rotation.y = Math.PI / 4;
-    group.add(put(roof, 0, 0.47, 0));
-    group.add(put(mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.07, 8), MAT.wood), 0, 0.33, 0));
+    group.add(put(roof, 0, 0.45, 0));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.08, 8), MAT.woodDark), 0, 0.34, 0));
     return group;
   }
 
-  /** Шатёр: полотнище на кольях и тёмный вход. */
+  /** Вторая — шатёр: охряное полотнище, растяжки и тёмный вход. */
   function tent() {
     const group = new THREE.Group();
-    const cloth = mesh(new THREE.ConeGeometry(0.3, 0.42, 7), MAT.cloth);
-    group.add(put(cloth, 0, 0.21, 0));
-    const door = mesh(new THREE.ConeGeometry(0.1, 0.2, 3), MAT.clothDark);
-    group.add(put(door, 0, 0.1, 0.23));
-    group.add(put(mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.1, 5), MAT.wood), 0, 0.46, 0));
+    const cloth = mesh(new THREE.ConeGeometry(0.31, 0.46, 6), MAT.cloth);
+    group.add(put(cloth, 0, 0.23, 0));
+    const door = mesh(new THREE.ConeGeometry(0.11, 0.24, 3), MAT.clothDark);
+    group.add(put(door, 0, 0.12, 0.23));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 5), MAT.woodDark), 0, 0.5, 0));
+    for (const side of [-1, 1]) {
+      const rope = mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.34, 4), MAT.clothDark);
+      rope.rotation.z = side * 0.75;
+      group.add(put(rope, side * 0.24, 0.16, -0.12));
+    }
     return group;
   }
 
-  /** Дом: стены, дверь и двускатная кровля. */
+  /** Третья — дом: песчаные стены, красная кровля, дверь и окно. */
   function house() {
     const group = new THREE.Group();
-    group.add(put(mesh(new THREE.BoxGeometry(0.42, 0.26, 0.34), MAT.sand), 0, 0.13, 0));
-    const roof = mesh(new THREE.ConeGeometry(0.33, 0.18, 4), MAT.clayDark);
+    group.add(put(mesh(new THREE.BoxGeometry(0.44, 0.3, 0.36), MAT.sand), 0, 0.15, 0));
+    const roof = mesh(new THREE.ConeGeometry(0.36, 0.22, 4), MAT.roof);
     roof.rotation.y = Math.PI / 4;
-    group.add(put(roof, 0, 0.35, 0));
-    group.add(put(mesh(new THREE.BoxGeometry(0.1, 0.16, 0.02), MAT.woodDark), 0, 0.08, 0.18));
+    group.add(put(roof, 0, 0.41, 0));
+    group.add(put(mesh(new THREE.BoxGeometry(0.11, 0.18, 0.02), MAT.woodDark), 0, 0.09, 0.19));
+    group.add(put(mesh(new THREE.BoxGeometry(0.08, 0.08, 0.02), MAT.slateDark), 0.14, 0.21, 0.19));
     return group;
   }
 
@@ -234,43 +250,45 @@ window.PromisedLandFigures = (() => {
   function wall() {
     const group = new THREE.Group();
     const ring = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.27, 0.29, 0.22, 20, 1, true, Math.PI * 0.32, Math.PI * 1.55),
-      new THREE.MeshLambertMaterial({ color: MAT.stone, side: THREE.DoubleSide }),
+      new THREE.CylinderGeometry(0.28, 0.3, 0.3, 20, 1, true, Math.PI * 0.32, Math.PI * 1.55),
+      new THREE.MeshLambertMaterial({ color: MAT.slate, side: THREE.DoubleSide }),
     );
-    group.add(put(ring, 0, 0.11, 0));
-    const cap = mesh(new THREE.TorusGeometry(0.275, 0.018, 5, 20, Math.PI * 1.55), MAT.stoneDark);
+    group.add(put(ring, 0, 0.15, 0));
+    const cap = mesh(new THREE.TorusGeometry(0.285, 0.022, 5, 20, Math.PI * 1.55), MAT.slateDark);
     cap.rotation.x = Math.PI / 2;
     cap.rotation.z = -Math.PI * 0.32;
-    group.add(put(cap, 0, 0.22, 0));
+    group.add(put(cap, 0, 0.3, 0));
     for (const side of [-1, 1]) {
-      group.add(put(mesh(new THREE.BoxGeometry(0.07, 0.32, 0.07), MAT.stoneDark),
-        side * 0.13, 0.16, 0.25));
+      group.add(put(mesh(new THREE.BoxGeometry(0.08, 0.4, 0.08), MAT.slateDark),
+        side * 0.14, 0.2, 0.25));
     }
     return group;
   }
 
-  /** Башня: круглый ствол и зубцы поверху. */
+  /** Пятая — башня: самая высокая из построек, с зубцами и флагом. */
   function tower() {
     const group = new THREE.Group();
-    group.add(put(mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.52, 12), MAT.stone), 0, 0.26, 0));
-    group.add(put(mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.05, 12), MAT.stoneDark), 0, 0.54, 0));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.17, 0.21, 0.66, 12), MAT.slateDark), 0, 0.33, 0));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 12), MAT.slate), 0, 0.68, 0));
     for (let i = 0; i < 4; i += 1) {
       const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      const tooth = mesh(new THREE.BoxGeometry(0.09, 0.09, 0.07), MAT.stone);
-      tooth.position.set(Math.cos(angle) * 0.16, 0.6, Math.sin(angle) * 0.16);
+      const tooth = mesh(new THREE.BoxGeometry(0.1, 0.1, 0.08), MAT.slateDark);
+      tooth.position.set(Math.cos(angle) * 0.17, 0.75, Math.sin(angle) * 0.17);
       tooth.rotation.y = -angle;
       group.add(tooth);
     }
-    group.add(put(mesh(new THREE.BoxGeometry(0.07, 0.12, 0.02), MAT.woodDark), 0, 0.22, 0.2));
+    group.add(put(mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2, 4), MAT.woodDark), 0, 0.85, 0));
+    group.add(put(mesh(new THREE.BoxGeometry(0.12, 0.08, 0.01), MAT.roof), 0.06, 0.9, 0));
+    group.add(put(mesh(new THREE.BoxGeometry(0.08, 0.14, 0.02), MAT.woodDark), 0, 0.27, 0.21));
     return group;
   }
 
-  /** Жертвенник: сложенные камни и огонь над ними. */
+  /** Жертвенник: сложенные камни и огонь над ними — платы с него не берут. */
   function altar() {
     const group = new THREE.Group();
-    group.add(put(mesh(new THREE.BoxGeometry(0.38, 0.1, 0.38), MAT.stoneDark), 0, 0.05, 0));
-    group.add(put(mesh(new THREE.BoxGeometry(0.3, 0.1, 0.3), MAT.stone), 0, 0.15, 0));
-    group.add(put(mesh(new THREE.BoxGeometry(0.22, 0.08, 0.22), MAT.stoneDark), 0, 0.24, 0));
+    group.add(put(mesh(new THREE.BoxGeometry(0.4, 0.11, 0.4), MAT.stoneDark), 0, 0.055, 0));
+    group.add(put(mesh(new THREE.BoxGeometry(0.31, 0.1, 0.31), MAT.slateDark), 0, 0.16, 0));
+    group.add(put(mesh(new THREE.BoxGeometry(0.22, 0.09, 0.22), MAT.stoneDark), 0, 0.25, 0));
     const fire = mesh(new THREE.ConeGeometry(0.1, 0.22, 7), MAT.flame, true);
     group.add(put(fire, 0, 0.39, 0));
     group.userData.flame = fire;

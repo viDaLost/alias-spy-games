@@ -37,6 +37,17 @@ window.PromisedLand3D = (() => {
   */
   const ATLAS_ROWS = 7;
   const SIDE_ROW = 6;
+  /*
+    Четыре разложения углов клетки полотна по вершинам верхней грани: ноль —
+    подпись смотрит на игрока, дальше по четверти оборота. Меняется не плитка,
+    а то, какой угол картинки куда попадает.
+  */
+  const LABEL_TURNS = [
+    [[0, 1], [1, 1], [0, 0], [1, 0]],
+    [[0, 0], [0, 1], [1, 0], [1, 1]],
+    [[1, 0], [0, 0], [1, 1], [0, 1]],
+    [[1, 1], [1, 0], [0, 1], [0, 0]],
+  ];
 
   /** Есть ли на устройстве WebGL. Контекстов конечное число, и их могут не дать. */
   function supported() {
@@ -69,6 +80,7 @@ window.PromisedLand3D = (() => {
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = theme.tileSide;
     ctx.fillRect(0, SIDE_ROW * ATLAS_CELL, canvas.width, ATLAS_CELL);
+    const coins = [];
 
     B.BOARD.forEach((spec, index) => {
       const x = (index % ATLAS_COLS) * ATLAS_CELL;
@@ -111,12 +123,24 @@ window.PromisedLand3D = (() => {
       if (spec.price) {
         ctx.font = '600 38px system-ui, sans-serif';
         ctx.fillStyle = theme.muted;
-        ctx.fillText(String(spec.price), ATLAS_CELL / 2, ATLAS_CELL * 0.84);
+        /*
+          Цена сдвинута вправо, а слева оставлено место под монету: сама монета
+          — картинка, она придёт позже, и рисовать её будет уже загрузчик. Где
+          именно — записано здесь, пока известна ширина числа.
+        */
+        const price = String(spec.price);
+        const width = ctx.measureText(price).width;
+        const coinSide = 34;
+        const left = (ATLAS_CELL - width - coinSide - 8) / 2;
+        ctx.textAlign = 'left';
+        ctx.fillText(price, left + coinSide + 8, ATLAS_CELL * 0.84);
+        ctx.textAlign = 'center';
+        coins.push({ x: x + left, y: y + ATLAS_CELL * 0.84 - coinSide / 2, side: coinSide });
       }
       ctx.restore();
     });
 
-    return canvas;
+    return { canvas, coins };
   }
 
   /** Грань кости: точки по сетке 3×3, как на настоящей. */
@@ -336,12 +360,16 @@ window.PromisedLand3D = (() => {
         inlay.rotation.x = -Math.PI / 2;
         inlay.position.set(0, 0.03, 0);
         scene.add(inlay);
+        // Картина в середине доски поворачивается вместе с подписями: вверх
+        // ногами пейзаж смотрится хуже, чем повёрнутым на четверть.
+        middleArt = inlay;
+        inlay.rotation.z = -labelTurn * Math.PI / 2;
         touch();
       });
     }
 
     // ——— плитки с подписями ———
-    const sheet = buildLabelAtlas(theme);
+    const { canvas: sheet, coins } = buildLabelAtlas(theme);
     const atlas = new THREE.CanvasTexture(sheet);
     atlas.encoding = THREE.sRGBEncoding;
     atlas.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
@@ -357,6 +385,7 @@ window.PromisedLand3D = (() => {
     const ICON_KINDS = new Set(['exodus', 'prison', 'tent', 'slander',
       'tithe', 'offering', 'providence', 'mercy']);
     let iconsDrawn = 0;
+    let coinsDrawn = 0;
     if (art) {
       const paint = sheet.getContext('2d');
       for (const spec of B.BOARD) {
@@ -376,6 +405,15 @@ window.PromisedLand3D = (() => {
         };
         picture.src = art('icons', `icon-${spec.kind}`);
       }
+      // Монета к цене: один рисунок на все шестнадцать уделов и шесть путей.
+      const shekel = new Image();
+      shekel.onload = () => {
+        for (const spot of coins) paint.drawImage(shekel, spot.x, spot.y, spot.side, spot.side);
+        atlas.needsUpdate = true;
+        coinsDrawn = coins.length;
+        touch();
+      };
+      shekel.src = art('icons', 'ui-shekel');
     }
 
     const tiles = [];
@@ -392,9 +430,9 @@ window.PromisedLand3D = (() => {
       const row = Math.floor(spec.n / ATLAS_COLS);
       const stepX = 1 / ATLAS_COLS;
       const stepY = 1 / ATLAS_ROWS;
-      const corners = [[0, 1], [1, 1], [0, 0], [1, 0]];
       for (let i = 0; i < 4; i += 1) {
-        uv.setXY(8 + i, (col + corners[i][0]) * stepX, 1 - (row + 1 - corners[i][1]) * stepY);
+        const corner = LABEL_TURNS[0][i];
+        uv.setXY(8 + i, (col + corner[0]) * stepX, 1 - (row + 1 - corner[1]) * stepY);
       }
       // Остальные двадцать вершин смотрят в ровный седьмой ряд: боковины у
       // плитки одноцветные, и материал у неё поэтому один.
@@ -410,6 +448,8 @@ window.PromisedLand3D = (() => {
       const at = cellPosition(spec.n);
       tile.position.set(at.x, TILE_H / 2, at.z);
       tile.userData.cell = spec.n;
+      tile.userData.col = col;
+      tile.userData.row = row;
       scene.add(tile);
       tiles.push(tile);
 
@@ -422,6 +462,40 @@ window.PromisedLand3D = (() => {
       strip.visible = false;
       scene.add(strip);
       owners.push(strip);
+    }
+
+    /*
+      Подписи впечатаны в полотно одной стороной, и, обойдя доску кругом, игрок
+      читал бы их вверх ногами. Разворачивать сами плитки нельзя — повернётся
+      и цветная полоса удела, и постройка на ней. Поэтому поворачивается
+      текстура: четыре набора углов, по одному на четверть оборота, и на каждой
+      четверти подписи снова смотрят на игрока.
+    */
+    let labelTurn = 0;
+    let middleArt = null;
+    let turnDecks = () => {};
+
+    function turnLabels(index) {
+      if (index === labelTurn) return;
+      labelTurn = index;
+      // Имена колод написаны на их рубашках, и они поворачиваются вместе с
+      // подписями клеток: иначе, обойдя доску, игрок читает «ПРОВИДЕНИЕ» вбок.
+      // Сами колоды собираются ниже по файлу, поэтому поворот им передаётся
+      // через крючок, а не прямой ссылкой: иначе это обращение к ещё не
+      // объявленному.
+      turnDecks(-index * Math.PI / 2);
+      if (middleArt) middleArt.rotation.z = -index * Math.PI / 2;
+      const stepX = 1 / ATLAS_COLS;
+      const stepY = 1 / ATLAS_ROWS;
+      for (const tile of tiles) {
+        const uv = tile.geometry.attributes.uv;
+        const { col, row } = tile.userData;
+        for (let i = 0; i < 4; i += 1) {
+          const corner = LABEL_TURNS[index][i];
+          uv.setXY(8 + i, (col + corner[0]) * stepX, 1 - (row + 1 - corner[1]) * stepY);
+        }
+        uv.needsUpdate = true;
+      }
     }
 
     /*
@@ -469,7 +543,17 @@ window.PromisedLand3D = (() => {
     const builds = B.BOARD.map((spec) => {
       const holder = new THREE.Group();
       const at = cellPosition(spec.n);
-      holder.position.set(at.x, TILE_H, at.z);
+      /*
+        Постройка стоит не в середине плитки, а на цветной полосе удела — там,
+        где у настольных игр и стоят домики. Полоса обращена к середине доски,
+        и постройка на ней ничего не закрывает: имя клетки и цена остаются
+        читаемыми. Повёрнута она лицом к игроку, то есть наружу от доски.
+      */
+      const band = Math.abs(at.x) > Math.abs(at.z)
+        ? { x: -Math.sign(at.x) * 0.26, z: 0 }
+        : { x: 0, z: -Math.sign(at.z) * 0.26 };
+      holder.position.set(at.x + band.x, TILE_H, at.z + band.z);
+      holder.rotation.y = Math.atan2(-band.x, -band.z);
       holder.visible = false;
       const disc = shade(0.3, 0.2);
       disc.position.y = 0.005;
@@ -498,6 +582,7 @@ window.PromisedLand3D = (() => {
     const cardGeometry = new THREE.BoxGeometry(CARD.w, CARD.h, CARD.d);
     const cardEdge = new THREE.MeshLambertMaterial({ color: 0xf2eee4 });
     const decks = {};
+    // (turnLabels обращается к ним же — объявлены выше по файлу)
     for (const kind of ['providence', 'mercy']) {
       const back = new THREE.CanvasTexture(deckBackCanvas(kind));
       back.encoding = THREE.sRGBEncoding;
@@ -525,6 +610,13 @@ window.PromisedLand3D = (() => {
     scene.add(flyer);
     const faces = new Map();
     let flying = null;
+
+    turnDecks = (angle) => {
+      for (const kind of Object.keys(decks)) {
+        for (const card of decks[kind].pile) card.rotation.y = angle;
+      }
+      flyer.userData.turn = angle;
+    };
 
     /*
       Лицо карты собирается полотном, а не берётся картинкой напрямую: у
@@ -587,7 +679,7 @@ window.PromisedLand3D = (() => {
         // показать лицо — так глаз успевает за картой.
         const turn = Math.min(1, Math.max(0, (k - 0.25) / 0.75));
         flyer.rotation.x = Math.PI * (1 - smooth(turn));
-        flyer.rotation.y = Math.sin(Math.PI * k) * 0.35;
+        flyer.rotation.y = (flyer.userData.turn || 0) + Math.sin(Math.PI * k) * 0.35;
       });
     }
 
@@ -605,7 +697,7 @@ window.PromisedLand3D = (() => {
         flyer.position.lerpVectors(from, to, k);
         flyer.position.y += Math.sin(Math.PI * k) * 0.55;
         flyer.rotation.x = startTurn + (Math.PI - startTurn) * k;
-        flyer.rotation.y = Math.sin(Math.PI * k) * -0.3;
+        flyer.rotation.y = (flyer.userData.turn || 0) + Math.sin(Math.PI * k) * -0.3;
       }).then(() => {
         flyer.visible = false;
         // Стопка поднимается на одну карту: ушедшая легла под низ.
@@ -836,6 +928,10 @@ window.PromisedLand3D = (() => {
       общее для обоих.
     */
     function place() {
+      // Четверть оборота, на которой сейчас стоит камера: по ней и
+      // разворачиваются подписи, чтобы они смотрели на игрока.
+      const quarter = Math.round(view.yaw / (Math.PI / 2));
+      turnLabels(((-quarter % 4) + 4) % 4);
       if (view.cell == null) { fit(); return; }
       axes();
       /*
@@ -1289,6 +1385,17 @@ window.PromisedLand3D = (() => {
       });
     }
 
+    /** Пять ступеней подряд на одной клетке: колодец, шатёр, дом, ограда, башня. */
+    function demoLadder(n) {
+      let chain = Promise.resolve();
+      BUILD_KINDS.forEach((kind, i) => {
+        chain = chain.then(() => new Promise((resolve) => {
+          setTimeout(resolve, i === 0 ? 0 : 520);
+        })).then(() => demoBuild(n, kind));
+      });
+      return chain;
+    }
+
     /** Полный оборот вокруг доски: показать, что она стоит на земле кругом. */
     function orbit(life = 2.6) {
       const from = view.yaw;
@@ -1329,12 +1436,15 @@ window.PromisedLand3D = (() => {
         objects: scene.children.length,
         frames: renderer.info.render.frame,
         icons: iconsDrawn,
+        coins: coinsDrawn,
+        labelTurn,
+        yaw: view.yaw,
       };
     }
 
     return {
       sync, walk, roll, resize, dispose, highlight, focus, home,
-      dealCard, returnCard, demoWalk, demoBuild, orbit,
+      dealCard, returnCard, demoWalk, demoBuild, demoLadder, orbit,
       atHome, stats, render: touch,
     };
   }

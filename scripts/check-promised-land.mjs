@@ -187,6 +187,59 @@ function paymentWaits(seed) {
   return { why: 'за всю партию счёт игроку не выставили ни разу' };
 }
 
+/*
+  Ничего не уходит без нажатия. Это правило шире, чем «плата выставляется
+  счётом»: у человека серебро не должно убывать ни от броска, ни от принятой
+  карты, ни от конца хода — только от того нажатия, которым он сам закрывает
+  счёт, и ровно на сумму счёта. Проверяется это прогоном, где человек не делает
+  ничего, кроме обязательного: бросает, принимает карту, отказывается от
+  покупки и платит по счёту.
+*/
+function nothingTakenQuietly(seed) {
+  const rng = seeded(seed);
+  const state = E.createGame({
+    players: [{ name: 'Человек' }, { name: 'Бот', isBot: true, botLevel: 'scribe' }],
+    years: 7,
+    rng,
+  });
+  const human = state.players[0];
+  let bills = 0;
+  for (let step = 0; step < 20000 && state.status === 'playing'; step += 1) {
+    const player = E.current(state);
+    if (player.isBot) {
+      if (!Bots.step(state, rng)) E.endTurn(state);
+      continue;
+    }
+    const had = human.silver;
+    if (state.pending && state.pending.type === 'pay') {
+      const owed = state.pending.amount;
+      if (E.settle(state)) {
+        bills += 1;
+        if (human.silver !== had - owed) {
+          return { why: `по счёту на ${owed} списали ${had - human.silver}` };
+        }
+      } else if (!E.serve(state)) {
+        return { why: 'счёт нечем закрыть и в наём не берут' };
+      }
+      continue;
+    }
+    if (state.pending && state.pending.type === 'card') E.takeCard(state, rng);
+    else if (state.phase === 'roll') E.roll(state, rng);
+    else if (state.pending && state.pending.type === 'buy') E.decline(state);
+    else E.endTurn(state);
+    if (human.silver < had) {
+      return { why: `серебро убыло на ${had - human.silver} без счёта` };
+    }
+  }
+  return { bills };
+}
+
+const quiet = [11, 22, 33, 44, 55, 66].map((seed) => nothingTakenQuietly(seed));
+const noisy = quiet.find((result) => result.why);
+need(!noisy, `у человека берут молча: ${noisy?.why}`);
+need(quiet.every((result) => result.bills > 0),
+  'ни в одном прогоне человеку не выставили ни одного счёта — проверять нечего');
+
 const asked = [1, 2, 3, 4, 5].map((seed) => paymentWaits(seed));
 const brokenAsk = asked.find((result) => result.why);
 need(!brokenAsk, `плата мимо решения игрока: ${brokenAsk?.why}`);
@@ -343,6 +396,8 @@ console.log(`OK: ${GAMES} партий дошли до юбилея и конч�
   + `Поле: 36 клеток, лестница платы монотонна по всем ступеням. `
   + `Счёт игроку выставляется, а не списывается: в пяти прогонах серебро тронулось `
   + `только после решения и ровно на сумму счёта (${asked.map((r) => r.owed).join(', ')}). `
+  + `За ${quiet.length} прогонов у человека не убыло ни сикля помимо счетов `
+  + `(${quiet.reduce((sum, r) => sum + r.bills, 0)} счетов на всех). `
   + `Залог: удел дешевле долга в залог не идёт, дорогой уходит кредитору и выкупается `
   + `за ту же сумму (${pledged.owed}). «До последнего»: ${lastGames.length} партий дошли до `
   + `конца, в каждой остался один, медиана ${median(lastGames.map((game) => game.turns))} ходов.`);

@@ -284,7 +284,7 @@ try {
     const numbers = (text) => (text.match(/(\d+)\D+(\d+)/) || []).slice(1).map(Number);
     const [at, steps] = numbers(await counter());
     need(at === 1, `счётчик шагов начинается с «${await counter()}»`);
-    need(steps >= 10, `в обучении ${steps} шагов — этого мало, чтобы объяснить игру`);
+    need(steps >= 15, `в обучении ${steps} шагов — этого мало, чтобы объяснить игру`);
     await page.waitForTimeout(3200);        // первый шаг обходит доску кругом
     const first = path.join(shots, 'teach-1.png');
     const second = path.join(shots, 'teach-2.png');
@@ -350,9 +350,14 @@ try {
     полотно подписей картинок: на доске они размером с ноготь, и глазом такую
     проверку не сделать, а счёт — точный.
   */
-  const icons = await page.evaluate(() => (window.PromisedLandScene
-    ? window.PromisedLandScene.stats().icons : -1));
-  need(icons >= 8, `на клетки лёг ${icons} значок из восьми`);
+  const drawn = await page.evaluate(() => (window.PromisedLandScene
+    ? window.PromisedLandScene.stats() : { icons: -1, coins: -1 }));
+  need(drawn.icons >= 8, `на клетки лёг ${drawn.icons} значок из восьми`);
+  // Монета рисуется у каждой цены — то есть у всех уделов, путей и источников.
+  const priced = await page.evaluate(() => window.PromisedLandBoard.BOARD
+    .filter((cell) => cell.price).length);
+  need(drawn.coins >= priced,
+    `монета легла к ${drawn.coins} ценам из ${priced}`);
 
   const webgl = await page.evaluate(() => {
     const probe = document.createElement('canvas');
