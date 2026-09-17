@@ -34,15 +34,9 @@ const GAME_GROUPS = [
       { key: "describe", title: "Опиши, но не называй", desc: "Подсказки без прямого ответа", icon: "describe" },
       { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
-      /*
-        «Земля обетованная» пока открыта только главному администратору: игра
-        готова, но в общий список ещё не выпущена. Признак owner прячет
-        карточку у всех остальных и закрывает вход даже по прямому вызову —
-        см. renderGameButton и showGame.
-      */
       {
         key: "promised-land", title: "Земля обетованная",
-        desc: "Уделы, поселения и юбилей", icon: "promised-land", owner: true,
+        desc: "Уделы, поселения и юбилей", icon: "promised-land",
       },
     ],
   },
@@ -82,14 +76,6 @@ const MENU_ICON_SOURCES = {
   "moses-nile": "web/assets/icons/moses-nile.webp",
   "promised-land": "web/assets/icons/promised-land.webp",
 };
-
-/*
-  Главный администратор. Роль ставит серверная проверка — та же, что у кнопки
-  админки (admin-rbac-root в admin-live-modal-safety.js), и приходит она
-  позже первой отрисовки меню. Поэтому карточка не «не рисуется», а рисуется
-  скрытой: появится, когда придёт роль, и не потребует перерисовывать меню.
-*/
-const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
 
 function menuIconHTML(type, title = "") {
   const src = MENU_ICON_SOURCES[type];
@@ -455,9 +441,8 @@ function openSupportChat() {
 }
 
 function renderGameButton(item) {
-  const gate = item.owner ? " game-card--owner" : "";
   return `
-    <button type="button" class="game-card${gate}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
+    <button type="button" class="game-card" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
@@ -706,28 +691,11 @@ function showGame(gameName) {
     и циклом кадров, и открывается тем же способом, что «Моисей на Ниле»:
     фреймом того же происхождения, которое разрешает CSP.
 
-    Перед этим — замок. Игра пока открыта только главному администратору, и
-    скрытой карточки для этого мало: до showGame можно добраться и мимо неё.
-    Замок этот не от злоумышленника — в игре нечего красть, она раздаётся
-    статикой всем, у кого есть адрес, — а от того, чтобы игра не появилась у
-    людей раньше времени.
+    Обкатка кончилась: игра открыта всем наравне с остальными. Прежний замок —
+    скрытая карточка и отказ в showGame — снят целиком, а не оставлен
+    выключенным: выключенный замок однажды включается сам, от чужой правки.
   */
   if (gameName === "promised-land") {
-    if (!isOwner()) {
-      if (menu) menu.classList.add("hidden");
-      document.body.dataset.mode = "game";
-      activeGameName = gameName;
-      document.body.dataset.currentGame = gameName;
-      if (container) {
-        container.innerHTML = `
-          <section class="app-error-card fade-in">
-            <h2>Игра ещё не открыта</h2>
-            <p>«Земля обетованная» пока проходит обкатку и доступна только администратору.</p>
-            <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
-          </section>`;
-      }
-      return;
-    }
     if (menu) menu.classList.add("hidden");
     document.body.dataset.mode = "game";
     document.body.dataset.currentGame = gameName;
