@@ -43,6 +43,15 @@
   */
   --board-tilt: 19deg;
   --tile-side: rgba(17, 24, 39, .28);
+
+  /*
+    Полосы, занятые чужим интерфейсом сверху и снизу. Их присылает оболочка
+    приложения (см. скрипт в index.html); сама по себе игра о них не знает —
+    во фрейме env(safe-area-inset-*) всегда ноль. Ноль здесь означает «игра
+    открыта отдельной страницей», и тогда всё меряет env().
+  */
+  --chrome-top: 0px;
+  --chrome-bottom: 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -87,7 +96,14 @@ html, body { height: 100%; }
 
 body {
   margin: 0;
-  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  /*
+    Отступ берётся на теле, а не на экранах: у .screen padding переписывают три
+    медиазапроса подряд, и вписываться в каждый значило бы однажды забыть про
+    четвёртый. Тело же одно на всю игру.
+  */
+  padding:
+    calc(env(safe-area-inset-top, 0px) + var(--chrome-top)) 0
+    calc(env(safe-area-inset-bottom, 0px) + var(--chrome-bottom));
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 88%, transparent),
       color-mix(in srgb, var(--bg-2) 96%, transparent)),
@@ -148,7 +164,28 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .choice button[aria-pressed="true"] small { color: rgba(255, 255, 255, .82); }
 .choice button:disabled { opacity: .34; cursor: not-allowed; }
 .choice--wide button { min-width: 96px; }
-.setup-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+/*
+  Полоса действий липнет к низу экрана.
+
+  Это не украшение. Боком на 740×360 кнопка «В путь» оказывалась ниже края, а
+  стоймя на 320×568 ниже края оказывались и «Правила» на первом экране: страница
+  настроек длиннее любого телефона, а прокрутку на ней не ищут — её там не ждут,
+  и человек упирается в экран, на котором нечего нажать.
+
+  Липкая полоса решает это, ничего не отнимая: всё остальное по-прежнему
+  прокручивается, только под ней, а не мимо неё. Заливка снизу вверх — чтобы
+  проезжающее под полосой не читалось сквозь неё. Отступ снизу считает и чужие
+  кнопки: во фрейме под полосой может лежать край клиента.
+*/
+.setup-actions {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  position: sticky; bottom: 0; z-index: 2;
+  margin-top: auto;
+  padding: 8px 0 calc(4px + var(--chrome-bottom));
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bg-2) 0%, transparent),
+    color-mix(in srgb, var(--bg-2) 92%, transparent) 34%);
+}
 .note { margin: 0; font-size: 13px; color: var(--ink-soft); }
 
 /* ——— выбор способа игры ——— */
@@ -284,6 +321,21 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 
 /* ——— шапка партии ——— */
+/*
+  Кнопка обучения стоит в шапке между годом и казной — ровно там, где до неё
+  было пусто. Приглушена нарочно: её ищут раз за партию, а год и казну читают
+  каждый ход, и спорить с ними за взгляд ей незачем.
+*/
+.hud-teach {
+  font: inherit; font-size: 12px; font-weight: 600;
+  min-height: 30px; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: var(--surface-soft);
+  color: var(--ink-soft); cursor: pointer;
+}
+.hud-teach:active { transform: translateY(1px); }
+.hud-teach:focus-visible { outline: 3px solid var(--primary-2); outline-offset: 2px; }
+/* Во время показа кнопка себя же и прячет: нажимать её посреди показа незачем. */
+#game.is-teaching .hud-teach { visibility: hidden; }
 .hud {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   font-size: 13px; font-weight: 600; color: var(--ink-soft);
@@ -784,9 +836,24 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     точек шире, и телефон начинает возить её вбок. Отступы возвращаются тем,
     кому они нужны, — шапке, кнопкам и карточкам.
   */
+  /*
+    Высота — сто процентов тела, а не сто единиц высоты окна. Разница видна
+    ровно тогда, когда игра открыта кадром в приложении: тело отступает сверху
+    и снизу под чужие кнопки, а 100vh этих отступов не знает — и нижняя полоса
+    управления вместе с карточками игроков уезжала под край экрана целиком.
+
+    А верхний отступ партия боком забирает назад. Он стоит на теле и нужен
+    остальным экранам: там под кнопкой «Главное меню» оказался бы заголовок.
+    Партии же под ней оказывается доска — песок по краю поля, — и отдавать ей
+    восемьдесят точек из трёхсот девяноста не за что. Поэтому партия
+    поднимается на эту полосу обратно, а отступает от неё только шапка: она
+    одна и стоит в том углу, где лежит чужая кнопка.
+  */
   #game.has-3d {
     display: flex; flex-direction: column; position: relative;
-    gap: 6px; padding: 0; min-height: 100vh;
+    gap: 6px; padding: 0;
+    margin-top: calc(-1 * var(--chrome-top));
+    min-height: calc(100% + var(--chrome-top));
   }
   /*
     Шапка боком лежит прямо на песке: доска занимает весь холст, и подложки у
@@ -794,7 +861,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     не под всей строкой: середина шапки пуста, и плашка во всю ширину закрыла
     бы доску ни за чем.
   */
-  #game.has-3d > .hud { padding: 9px 14px 0; pointer-events: none; }
+  #game.has-3d > .hud { padding: calc(9px + var(--chrome-top)) 14px 0; pointer-events: none; }
   #game.has-3d > .hud > * {
     background: var(--surface); color: var(--ink); border-radius: 999px;
     padding: 4px 12px; box-shadow: var(--lift-1);
@@ -1022,10 +1089,25 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 */
 @media (orientation: portrait) {
   .screen { padding-bottom: 16px; }
-  /* The document scrolls; cards must never compete for leftover screen height. */
+  /*
+    Партия стоймя помещается в экран целиком.
+
+    Раньше здесь стояло «страница прокручивается, и пусть». Стоила эта строчка
+    пятидесяти восьми точек: нижняя карточка игрока уходила под край, а вместе
+    с ней и часть кнопок, — при том что прокрутки на этом экране никто не
+    ищет. Хуже того, уехавшая за край раскладка заставляла холст мерить себя
+    заново раз за разом: сцена рисовала кадры в полном покое, когда игра ждала
+    нажатия, и телефон грелся на ровном месте.
+
+    Поэтому высота задана экраном. Доска, шапка, кнопки и карточки игроков
+    держат свой размер, а остаток делят между собой карточка клетки и журнал:
+    они и только они умеют ужаться и прокрутиться внутри себя. Шторка «Мои
+    уделы» из этого уговора выходит нарочно — это длинный список, его и
+    листают.
+  */
   #game.has-3d {
     display: flex; flex-direction: column; gap: 10px;
-    height: auto; min-height: 0;
+    height: 100%; min-height: 0;
     padding-top: 8px;
   }
   #game.has-3d > * { flex-shrink: 0; }
@@ -1035,18 +1117,60 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     height: clamp(220px, 38vh, 380px); min-height: 0;
     margin-block: 0;
   }
+  /*
+    Карточка клетки берёт столько, сколько ей нужно, но не больше остатка:
+    «0 1 auto» — расти не смей, ужаться можешь. Длинная прокручивается внутри
+    себя, короткая просто занимает меньше, а доска при этом не шевелится.
+  */
   #game.has-3d > .ring-core--below {
-    flex: 0 0 auto; min-height: 0; height: auto; max-height: none;
-    overflow: visible; justify-content: flex-start;
+    flex: 0 1 auto; height: auto; max-height: none;
+    overflow-y: auto; overscroll-behavior: contain; justify-content: flex-start;
     padding: 14px; margin-bottom: 0;
+    /*
+      Ниже этого карточка не ужимается. Без порога на совсем маленьком экране —
+      320×568 — она сжималась до тридцати точек: название удела и цена
+      оказывались в щели, которую надо прокручивать. Пусть лучше на таком
+      экране прокрутится страница: это привычнее, чем окошко в три строки.
+    */
+    min-height: 120px;
   }
   #game.has-3d .core-name { font-size: 22px; line-height: 1.2; }
   #game.has-3d .core-note { font-size: 16px; line-height: 1.5; max-width: none; }
+  /*
+    Журнал — вторая уступчивая полоса. Потолка в точках у него больше нет: он
+    его и подводил. Двести двадцать точек журнал набирал за десяток ходов и
+    выталкивал карточки игроков под край экрана — тот самый уход за край,
+    только отложенный на середину партии. Теперь он делит остаток с карточкой
+    клетки и дальше остатка не растёт.
+  */
   #game.has-3d > .feed {
-    display: flex; order: 1; max-height: 220px;
+    display: flex; order: 1; flex: 0 1 auto; min-height: 0;
     overflow-y: auto; overscroll-behavior: contain;
   }
+  /*
+    Заголовок журнала стоймя не рисуется, но и не выбрасывается: строки под ним
+    сами говорят, что это за список, а двадцать семь точек на слове «Журнал
+    ходов» — это полторы строки самого журнала. Экранному диктору он
+    по-прежнему виден.
+  */
+  #game.has-3d > .feed .feed-title {
+    position: absolute; width: 1px; height: 1px; margin: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
   #game.has-3d > .players { order: 2; }
+  /*
+    Карточки игроков стоймя встают по трое в ряд, а не по двое.
+
+    Сама карточка не изменилась — имя сверху, серебро и наследие под ним, — но
+    просить под неё сто тридцать две точки на экране в триста девяносто
+    значило укладывать троих в два ряда и отдавать им сто восемнадцать точек
+    вместо пятидесяти пяти. Ста четырёх хватает: имя длиннее укорачивается
+    многоточием, а числа стоят своей строкой и не жмутся.
+
+    Шестерым это тоже впрок: было три ряда, стало два.
+  */
+  #game.has-3d > .players { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+  #game.has-3d > .players .player { padding: 6px 8px; }
   #game .feed-line { font-size: 15px; line-height: 1.5; color: var(--ink); }
   /*
     Ярус мелких кнопок стоймя делится на три, и на узком телефоне «Мои уделы»
@@ -1073,10 +1197,31 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .lobby-player__name, .lobby-chat__line, .lobby-link { overflow-wrap: anywhere; }
 .choice button, .btn { white-space: normal; overflow-wrap: anywhere; height: auto; }
 .lobby-chat__form input { width: 0; flex: 1 1 0; }
+/*
+  Совет про горизонт лежит поверх доски, а не строкой над ней.
+
+  Строкой в потоке он отнимал у вертикальной раскладки девяносто одну точку:
+  доска съезжала вниз, нижняя карточка игрока уходила за край, и экран
+  начинал прокручиваться на сто сорок восемь точек. То есть подсказка о том,
+  как играть удобнее, сама ломала ту раскладку, в которой её читают. Поверх
+  доски она не отнимает ничего, закрывается той же кнопкой, а до неё —
+  висит над песком по краю поля, где всё равно ничего не нажимают.
+
+  Место выбрано ниже кнопки «Вернуть вид». Она висит в правом верхнем углу
+  доски — шесть точек от края, тридцать четыре в высоту, — и совет во всю
+  ширину накрывал её целиком: кнопка переставала нажиматься, и вернуть
+  сбитый вид было нечем, пока совет не закроют. А закрывают его не сразу.
+  Девяносто две точки — первая строка ниже этой кнопки, и рядом с ней
+  в проверке поля стоит прямой вопрос: не задевает ли одно другое.
+*/
+#game { position: relative; }
 .orientation-tip {
-  position: relative;
-  grid-column: 1 / -1;
-  flex: 0 0 auto;
+  position: absolute;
+  z-index: 6;
+  top: 92px;
+  left: var(--gutter);
+  right: var(--gutter);
+  box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1086,15 +1231,31 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   border-radius: 16px;
   font-size: 13px;
 }
+/*
+  Совет лежит поверх доски и потому нажатий не берёт: палец проходит сквозь
+  него к плитке, а берёт нажатие только кнопка «Понятно». Без этого совет
+  закрывал собой дальний ряд клеток — они переставали отзываться на касание,
+  и игрок, не сообразивший сперва закрыть подсказку, решил бы, что доска
+  сломана. Проверка поля насчитала тогда двадцать отозвавшихся клеток из
+  тридцати шести.
+*/
+.orientation-tip { pointer-events: none; }
 .orientation-tip p { margin: 0; flex: 1; }
-.orientation-tip .btn { flex: 0 0 auto; }
+.orientation-tip .btn { flex: 0 0 auto; pointer-events: auto; }
 @media (orientation: landscape) { .orientation-tip { display: none; } }
 @media (max-width: 360px) {
   .choice--wide button { flex-basis: 100%; }
   .lobby-code .btn { flex: 1 1 100%; }
 }
 
-/* The parent already reserves Telegram chrome above the embedded document. */
-body.is-embedded { padding-top: 0; }
+/*
+  Раньше здесь отступ сверху снимался: оболочка резервировала полосу под кнопки
+  сама, отодвигая кадр вниз. Боком это стоило больше трети высоты экрана — под
+  белой полосой не было ничего, а доска играла в оставшейся щели. Теперь кадр
+  занимает всё, а полосу отмеряет сама игра, и снимать отступ нельзя: под ним
+  окажется шапка партии, а на ней — кнопка «Главное меню».
+*/
+/* Строка об авторах материалов: обязательство лицензии, а не часть правил. */
+.rules-credit { margin: 14px 0 0; font-size: 11.5px; color: var(--ink-soft); opacity: .8; }
 .feed-title { margin: 0 0 6px; font-size: 15px; line-height: 1.4; }
 .feed-title + .feed-line { font-weight: 600; }

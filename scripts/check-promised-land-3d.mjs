@@ -57,6 +57,20 @@ const browser = await chromium.launch({
     '--enable-unsafe-swiftshader', '--use-angle=swiftshader'],
 });
 
+/*
+  Сколько ждать первый кадр партии. На телефоне доска встаёт мгновенно, а здесь
+  её рисует SwiftShader — видеокарта, собранная из обычных вычислений. Первая
+  сборка сцены занимает главный поток страницы на четыре-пять секунд целиком, и
+  всё это время браузер не отвечает даже на вопрос «видно ли уже поле»: ответ
+  приходит задним числом, когда поток освободится. Мерено: 4.1, 4.3, 4.5 и 5.5
+  секунды на четырёх прогонах подряд. Прежние пять секунд стояли ровно поперёк
+  этого разброса — проверка падала то на вертикальной раскладке, то на
+  горизонтальной, и падала на том, что работает. Запас взят с четырёхкратным
+  перекрытием: столько эта сборка не занимала ни разу, а настоящий отказ —
+  партия, которая не начинается, — не начнётся и за двадцать секунд.
+*/
+const BOARD_WAIT = 20_000;
+
 const problems = [];
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
@@ -267,8 +281,14 @@ try {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
   // Первый экран — выбор способа игры; настройки партии за ним.
   await page.locator('.mode-card[data-mode="solo"]').click();
-  await page.locator('#start-btn').click();
-  await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  /*
+    Нажатие вызовом, а не пальцем. Полоса действий на экране настроек липнет
+    к низу, и Playwright, доводя до неё «палец», ждёт, пока элемент замрёт, —
+    а липкий элемент при доводке и двигается. Пальцем кнопка нажимается: под
+    её серединой лежит она сама, и это проверяет check-promised-land-frame-fit.
+  */
+  await page.evaluate(() => document.getElementById('start-btn').click());
+  await page.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
   await page.waitForTimeout(900);
 
   /*
@@ -277,8 +297,51 @@ try {
     того, что показ идёт на доске, а не в тексте, — сам холст: между шагами
     картинка обязана меняться, потому что камера перелетает к другой клетке.
   */
+  /*
+    Показ больше не встречает партию сам — и это проверяется первым. Отметку
+    «уже видел» игра хранила у себя, а живёт она кадром на чужом сайте: такую
+    память браузер делит по сайтам и чистит между запусками, и показ начинался
+    заново каждую партию. Теперь его зовут кнопкой, и кнопка эта — в шапке
+    партии, чтобы позвать можно было и посреди неё.
+  */
+  need(await page.locator('#teach:not([hidden])').count() === 0,
+    'обучение завелось само, без просьбы');
+  const teachOpen = page.locator('#teach-open');
+  need(await teachOpen.count() === 1 && await teachOpen.isVisible(),
+    'в шапке партии нет кнопки обучения');
+
+  /*
+    Совет про горизонт и кнопка «Вернуть вид» стоят в одном углу, и накрыть
+    вторую первым ничего не стоит: совет — полоса во всю ширину поверх доски,
+    кнопка — кружок в её правом верхнем углу. Накрытая кнопка не нажимается
+    вовсе: сбитый вид вернуть нечем, пока совет не закроют, — а закрывают его
+    не сразу, и человек к этому времени уже покрутил доску.
+
+    Кнопка на этот вопрос сама не отвечает: пока вид исходный, её нет на
+    экране. Поэтому она показывается на один замер и прячется обратно.
+  */
+  const tipClash = await page.evaluate(() => {
+    const tip = document.getElementById('orientation-tip');
+    const home = document.getElementById('view-home');
+    if (!tip || !home) return null;
+    const was = home.hidden;
+    home.hidden = false;
+    const a = tip.getBoundingClientRect();
+    const b = home.getBoundingClientRect();
+    home.hidden = was;
+    return {
+      over: !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom),
+      tip: [Math.round(a.top), Math.round(a.bottom)],
+      home: [Math.round(b.top), Math.round(b.bottom)],
+    };
+  });
+  need(tipClash !== null, 'на первом ходу нет совета про горизонт или кнопки возврата вида');
+  need(tipClash === null || !tipClash.over,
+    `совет про горизонт накрывает «Вернуть вид»: совет ${tipClash?.tip}, кнопка ${tipClash?.home}`);
+  await teachOpen.click();
+  await page.waitForSelector('#teach:not([hidden])', { timeout: BOARD_WAIT });
   const teachStart = await page.locator('#teach:not([hidden])').count();
-  need(teachStart > 0, 'первую партию обучение не встретило');
+  need(teachStart > 0, 'обучение не открылось по кнопке в шапке');
   if (teachStart) {
     // innerText отдаёт текст так, как его видно, а видно его прописными:
     // у счётчика «text-transform: uppercase». Поэтому разбор без учёта регистра.
@@ -307,7 +370,7 @@ try {
     need(moved > 0.06,
       `между шагами обучения доска изменилась на ${(moved * 100).toFixed(1)}% — камера стоит`);
     await page.locator('#teach-skip').click();
-    await page.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+    await page.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
     need(await page.locator('#actions .btn').count() > 0,
       'после «Пропустить» кнопки хода не вернулись');
     /*
@@ -315,7 +378,7 @@ try {
       пока он идёт, — мерить случайный кадр: скрытая кнопка возврата и есть знак,
       что вид снова исходный.
     */
-    await page.waitForSelector('#view-home[hidden]', { state: 'attached', timeout: 5_000 });
+    await page.waitForSelector('#view-home[hidden]', { state: 'attached', timeout: BOARD_WAIT });
     await page.waitForTimeout(200);
   }
 
@@ -451,8 +514,22 @@ try {
   const near = await pinchIn(80, 620);
   need(near <= 0.45,
     `щипок подпустил только до ${near.toFixed(2)} — клетку вблизи не рассмотреть`);
-  await page.locator('#view-home').click({ timeout: 4_000 }).catch(() => {});
-  await page.waitForTimeout(900);
+  /*
+    Возврат домой ждётся по кнопке, а не по часам. Щипок только что подвёл
+    камеру к клетке вплотную, и всё, что меряется дальше, — доска в холсте,
+    подписи на ближнем ряду, попадание луча по клеткам — меряется от того, что
+    камера действительно вернулась. Девятисот миллисекунд на это хватало, пока
+    кадры рисовала видеокарта; здесь их рисует SwiftShader, и проверка начинала
+    мерить доску вплотную: «доска упирается в край холста», «подписей нет», «из
+    36 клеток отозвалось 0» — все четыре разом и ни одна по делу.
+  */
+  const homeMiss = await page.locator('#view-home').click({ timeout: 10_000 })
+    .then(() => '', (error) => ` (нажатие: ${String(error.message).split('\n')[0]})`);
+  await page.waitForSelector('#view-home[hidden]', { state: 'attached', timeout: BOARD_WAIT })
+    .catch(() => {});
+  await page.waitForTimeout(300);
+  need(await page.locator('#view-home[hidden]').count() > 0,
+    `после щипка «Вернуть вид» не вернул камеру домой${homeMiss}`);
 
   /*
     Значки особых клеток. Считаются не по пикселям, а по числу дорисованных в
@@ -651,7 +728,18 @@ try {
       `щипок не отдалил доску: было ${Math.round(areaOf(turned))}, стало ${Math.round(areaOf(away))} точек`);
 
     await page.locator('#view-home').click();
-    await page.waitForTimeout(800);
+    /*
+      Вид возвращается перелётом, а не рывком, и мерить его на полпути — мерить
+      случайный кадр. Ждать фиксированную долю секунды тут нельзя: перелёт
+      идёт кадрами, а кадры здесь рисует SwiftShader — на сборочной машине их
+      впятеро меньше, чем на телефоне, и восьмисот миллисекунд не хватало.
+      Знак прилёта у игры уже есть: кнопка возврата прячется сама, когда вид
+      снова домашний. Его и ждём — а если не дождались, об этом скажет
+      следующая проверка, а не обрыв с трассировкой.
+    */
+    await page.waitForSelector('#view-home[hidden]', { state: 'attached', timeout: BOARD_WAIT })
+      .catch(() => {});
+    await page.waitForTimeout(200);
     const back = await look('back');
     need(Math.abs(back.boardWidth - before.boardWidth) <= 4
       && Math.abs(back.boardHeight - before.boardHeight) <= 4,
@@ -858,8 +946,18 @@ try {
     партия обязана дойти до юбилея сама — иначе кнопка есть, а толку нет.
   */
   const auto = page.locator('#actions button', { hasText: /^Авто$/ });
-  need(await auto.count() > 0, 'кнопки «Авто» нет на экране хода');
-  if (await auto.count()) {
+  /*
+    Кнопка ждётся видимой, а не просто найденной в разметке. «Авто» стоит на
+    полосе хода человека, и пока ходит соперник, полоса показывает ожидание, а
+    кнопки на ней спрятаны: найти такую кнопку можно и тогда, нажать — нет.
+    Проверка на этом и падала: сосчитала кнопку на ходу человека, а нажать
+    успела уже на ходу соперника — «element is not visible» шестьдесят раз
+    подряд и обрыв с трассировкой вместо внятного ответа.
+  */
+  const autoReady = await auto.first().waitFor({ state: 'visible', timeout: BOARD_WAIT })
+    .then(() => true, () => false);
+  need(autoReady, 'кнопки «Авто» нет на экране хода человека');
+  if (autoReady) {
     await auto.first().click();
     need(await page.locator('#actions button', { hasText: /^Играю сам$/ }).count() > 0,
       'кнопка «Авто» не переключилась в «Играю сам»');
@@ -873,7 +971,15 @@ try {
     let last = '';
     let changes = 0;
     let humanPassed = 0;
-    for (let step = 0; step < 240 && humanPassed < 2; step += 1) {
+    /*
+      Запас по времени тут щедрый нарочно. Ходы соперников идут с задержкой, и
+      два хода человека подряд набираются за полминуты, когда проверка идёт
+      одна. В общем прогоне, где браузер поднимают двадцать восемь проверок по
+      очереди, те же два хода не укладывались в сорок восемь секунд — и падало
+      не «Авто», а часы. Здоровому прогону запас ничего не стоит: цикл
+      обрывается сразу, как только оба хода сыграны.
+    */
+    for (let step = 0; step < 600 && humanPassed < 2; step += 1) {
       const who = await whoseTurn();
       if (who && who !== last) {
         changes += 1;
@@ -907,12 +1013,18 @@ try {
   await table.locator('.mode-card[data-mode="solo"]').click();
   await table.locator('.choice[data-key="bots"] button[data-value="5"]').click();
   await table.locator('.choice[data-key="years"] button[data-value="last"]').click();
-  await table.locator('#start-btn').click();
-  await table.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  /*
+    Нажатие вызовом, а не пальцем. Полоса действий на экране настроек липнет
+    к низу, и Playwright, доводя до неё «палец», ждёт, пока элемент замрёт, —
+    а липкий элемент при доводке и двигается. Пальцем кнопка нажимается: под
+    её серединой лежит она сама, и это проверяет check-promised-land-frame-fit.
+  */
+  await table.evaluate(() => document.getElementById('start-btn').click());
+  await table.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
   const skipMany = table.locator('#teach-skip');
   if (await skipMany.count() && await skipMany.isVisible()) {
     await skipMany.click();
-    await table.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+    await table.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
   }
   await table.waitForTimeout(700);
   const crowd = await table.evaluate(() => {
@@ -994,8 +1106,14 @@ try {
   await wide.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
   // Первый экран — выбор способа игры; настройки партии за ним.
   await wide.locator('.mode-card[data-mode="solo"]').click();
-  await wide.locator('#start-btn').click();
-  await wide.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  /*
+    Нажатие вызовом, а не пальцем. Полоса действий на экране настроек липнет
+    к низу, и Playwright, доводя до неё «палец», ждёт, пока элемент замрёт, —
+    а липкий элемент при доводке и двигается. Пальцем кнопка нажимается: под
+    её серединой лежит она сама, и это проверяет check-promised-land-frame-fit.
+  */
+  await wide.evaluate(() => document.getElementById('start-btn').click());
+  await wide.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
   await wide.waitForTimeout(700);
   const lying = await wide.evaluate(() => ({
     down: document.documentElement.scrollHeight - document.documentElement.clientHeight,
@@ -1031,12 +1149,18 @@ try {
   await tall.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
   // Первый экран — выбор способа игры; настройки партии за ним.
   await tall.locator('.mode-card[data-mode="solo"]').click();
-  await tall.locator('#start-btn').click();
-  await tall.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  /*
+    Нажатие вызовом, а не пальцем. Полоса действий на экране настроек липнет
+    к низу, и Playwright, доводя до неё «палец», ждёт, пока элемент замрёт, —
+    а липкий элемент при доводке и двигается. Пальцем кнопка нажимается: под
+    её серединой лежит она сама, и это проверяет check-promised-land-frame-fit.
+  */
+  await tall.evaluate(() => document.getElementById('start-btn').click());
+  await tall.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
   const skipTall = tall.locator('#teach-skip');
   if (await skipTall.count() && await skipTall.isVisible()) {
     await skipTall.click();
-    await tall.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+    await tall.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
   }
   await tall.waitForTimeout(900);
   const roomy = await tall.evaluate(() => {
@@ -1082,12 +1206,18 @@ try {
   await upright.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
   // Первый экран — выбор способа игры; настройки партии за ним.
   await upright.locator('.mode-card[data-mode="solo"]').click();
-  await upright.locator('#start-btn').click();
-  await upright.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  /*
+    Нажатие вызовом, а не пальцем. Полоса действий на экране настроек липнет
+    к низу, и Playwright, доводя до неё «палец», ждёт, пока элемент замрёт, —
+    а липкий элемент при доводке и двигается. Пальцем кнопка нажимается: под
+    её серединой лежит она сама, и это проверяет check-promised-land-frame-fit.
+  */
+  await upright.evaluate(() => document.getElementById('start-btn').click());
+  await upright.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
   const skipUp = upright.locator('#teach-skip');
   if (await skipUp.count() && await skipUp.isVisible()) {
     await skipUp.click();
-    await upright.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+    await upright.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
   }
   await upright.waitForTimeout(900);
   const board = () => upright.evaluate(() => {
@@ -1131,7 +1261,8 @@ if (problems.length) {
 }
 
 console.log(ran
-  ? 'OK: обучение встречает первую партию и показывает шаги на самой доске, фигурки и '
+  ? 'OK: обучение не заводится само, но открывается кнопкой в шапке партии и показывает '
+  + 'шаги на самой доске; фигурки и '
     + 'постройки — тела, а не картинки; доска влезает в холст целиком и занимает его почти '
     + 'весь, на ближнем ряду плиток есть подписи, луч различает клетки поимённо. Доска '
     + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '

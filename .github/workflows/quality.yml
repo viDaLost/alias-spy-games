@@ -56,6 +56,10 @@ jobs:
         run: node scripts/check-promised-land-models.mjs
       - name: Check Promised Land room state
         run: node scripts/check-promised-land-room.mjs
+      - name: Measure Promised Land dice fairness
+        run: node scripts/check-promised-land-dice.mjs
+      - name: Play new Promised Land bots against the old ones
+        run: node scripts/check-promised-land-bots.mjs
       - name: Install Promised Land preview tooling
         working-directory: cloudflare/promised-land-preview
         run: npm install --no-audit --no-fund

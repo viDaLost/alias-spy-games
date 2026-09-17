@@ -74,7 +74,7 @@ const MENU_ICON_SOURCES = {
   sacred: "web/assets/icons/sacred.webp",
   ark: "web/assets/icons/ark.webp",
   "moses-nile": "web/assets/icons/moses-nile.webp",
-  "promised-land": "web/assets/icons/promised-land.webp",
+  "promised-land": "web/assets/icons/promised-land-v2.webp",
 };
 
 function menuIconHTML(type, title = "") {
@@ -719,7 +719,14 @@ function showGame(gameName) {
         return `${address}${glue}player=tg${encodeURIComponent(String(player.id))}`
           + `&name=${encodeURIComponent(shown)}`;
       };
-      const frameUrl = new URL(named(base), location.href);
+      /*
+        Отступы под чужой интерфейс — в адресе кадра. Их же оболочка шлёт
+        сообщением, но сообщение приходит вторым шагом, а первый кадр игра
+        должна нарисовать уже правильно: иначе шапка партии успевает мигнуть
+        под кнопкой «Главное меню» и съехать на глазах у игрока.
+      */
+      const frameUrl = new URL(window.__gameFrameInsets?.seedUrl?.(named(base)) || named(base),
+        location.href);
       frameUrl.searchParams.set('parentOrigin', location.origin);
       const invite = window.RoomInvite?.peek?.();
       if (invite?.game === 'promised-land') frameUrl.searchParams.set('room', invite.room);

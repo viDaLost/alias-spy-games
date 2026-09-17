@@ -72,6 +72,55 @@ need(/indices\.length >= 5.*rainbow/.test(core), 'в движке изменил
 need(/indices\.length === 4/.test(core), 'в движке изменился порог линейной фишки');
 need(rules.includes('5 и больше в ряд') && rules.includes('4 в ряд'), 'справочник разошёлся с порогами особых фишек');
 
+/*
+  «Земля обетованная». Её числа живут в board.js, и справочник переписывает их
+  словами — ровно тот случай, ради которого вся эта проверка и написана:
+  разошлись — человек читает одну цену, а платит другую.
+*/
+const land = fs.readFileSync(path.join(root, 'cloudflare/promised-land-preview/public/board.js'), 'utf8');
+const landConstant = (name) => {
+  const match = land.match(new RegExp(`const ${name} = (\\d+)`));
+  return match ? Number(match[1]) : null;
+};
+for (const [name, phrase] of [
+  ['START_SILVER', (value) => `<b>${value} сиклей</b>`],
+  ['HARVEST', (value) => `прибавляется <b>${value}</b>`],
+  ['ROAD_PRICE', (value) => `путь стоит <b>${value}</b>`],
+  ['WELL_PRICE', (value) => `источник — <b>${value}</b>`],
+  ['BAIL', (value) => `Выкуп из темницы — <b>${value} сиклей</b>`],
+  ['OFFERING', (value) => `приношение — <b>${value}</b> сиклей`],
+  ['HERITAGE_PER_TITHE', (value) => `полные ${value} сиклей уплаченной подати`],
+  ['HERITAGE_PER_SILVER', (value) => `полные ${value} сиклей серебра`],
+  ['HERITAGE_ALTAR', (value) => `<b>+${value} наследия</b>`],
+  ['HERITAGE_REDEEM', (value) => `<b>+${value} наследия</b>`],
+]) {
+  const value = landConstant(name);
+  need(value !== null, `не нашлось ${name} в коде «Земли обетованной»`);
+  if (value === null) continue;
+  need(rules.includes(phrase(value)),
+    `в справочнике нет ${name} = ${value}: искали «${phrase(value)}»`);
+}
+const roadRent = land.match(/const ROAD_RENT = \[([^\]]+)\]/)?.[1].split(',').map((one) => one.trim());
+need(Boolean(roadRent), 'не нашлась плата за караванные пути');
+if (roadRent) {
+  // В коде это список, в тексте — перечисление: «25, 50, 100 или 200».
+  const said = `${roadRent.slice(0, -1).join(', ')} или ${roadRent.at(-1)} сиклей`;
+  need(rules.includes(said), `в справочнике не та плата за пути: в коде «${said}»`);
+}
+const wellMult = land.match(/const WELL_MULT = \[(\d+), (\d+)\]/);
+need(Boolean(wellMult), 'не нашлись множители источников');
+if (wellMult) {
+  need(rules.includes(`костей ×${wellMult[1]}`) && rules.includes(`хозяина — ×${wellMult[2]}`),
+    `в справочнике не те множители источников: в коде ×${wellMult[1]} и ×${wellMult[2]}`);
+}
+const ladder = land.match(/const LEVELS = \[([^\]]+)\]/)?.[1]
+  .split(',').map((one) => one.trim().replace(/^'|'$/g, '').toLowerCase());
+need(Boolean(ladder), 'не нашлась лестница построек');
+if (ladder) {
+  need(rules.includes(ladder.join(' → ')),
+    `в справочнике не та лестница построек: в коде ${ladder.join(' → ')}`);
+}
+
 // Множитель каскада.
 const cascade = bmt.match(/\(1 \+ Math\.max\(0, cascade - 1\) \* ([\d.]+)\)/)?.[1];
 need(cascade === '0.55', `множитель каскада в игре стал ${cascade}, а в справочнике написано ×1,55`);
@@ -175,7 +224,7 @@ const coverage = await page.evaluate(() => {
   return { described: [...described], menu };
 });
 // Карточки игр строятся без id, поэтому список сверяется с известным набором.
-const expected = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet',
+const expected = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet', 'promised-land',
   'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'biblical-match-three'];
 const missing = expected.filter((key) => !coverage.described.includes(key));
 if (missing.length) await fail(`в справочнике нет разделов: ${missing.join(', ')}`);
@@ -186,7 +235,14 @@ if (audit.length) await fail(`разборы механик расходятся
 
 // 4. одиночные игры получают разбор, онлайн — нет
 const SOLO = ['biblical-match-three', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs'];
-const ONLINE = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet'];
+/*
+  «Земля обетованная» стоит здесь не потому, что в неё играют только по сети —
+  в неё играют и против соперников от игры. Она здесь потому, что разбор ей не
+  нужен и был бы хуже того, что у неё есть: обучение идёт прямо на её доске,
+  камерой по клеткам, а плоская сцена в справочнике оказалась бы бледной
+  копией. Список этот спрашивает ровно одно — нет ли у игры лишнего разбора.
+*/
+const ONLINE = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet', 'promised-land'];
 const demos = await page.evaluate(() => Object.fromEntries(
   [...document.querySelectorAll('[data-rules-game]')].map((node) => [
     node.dataset.rulesGame, node.querySelectorAll('.rd-stage').length,

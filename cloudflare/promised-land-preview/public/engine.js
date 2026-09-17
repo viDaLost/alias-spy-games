@@ -19,6 +19,32 @@ window.PromisedLandEngine = (() => {
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const activePlayers = (state) => state.players.filter((p) => !p.out);
 
+  /*
+    Случайность по умолчанию. Math.random в браузере — хороший генератор, но
+    это генератор: одно состояние на всю вкладку, и его же крутят анимации,
+    перемешивание колод и всё прочее. Здесь берётся источник самой системы —
+    тот, из которого делают ключи; у него нет ни состояния, которое можно
+    угадать, ни соседей, с которыми он это состояние делит.
+
+    Тридцать два бита на число — не про точность, а про равномерность: доля от
+    2^32 раскладывается на шесть граней с перекосом меньше одной тысячной доли
+    процента. Math.random остаётся запасным на случай, когда crypto недоступен
+    (старый веб-вид, страница без защищённого источника).
+
+    Параметр rng при этом никуда не делся: проверки подают свой, с зерном, и
+    получают тот же прогон дважды. Случайность настоящая там, где играют, и
+    предсказуемая там, где считают.
+  */
+  function systemRandom() {
+    const source = typeof crypto !== 'undefined' ? crypto : null;
+    if (source && typeof source.getRandomValues === 'function') {
+      const bits = new Uint32Array(1);
+      source.getRandomValues(bits);
+      return bits[0] / 4294967296;
+    }
+    return Math.random();
+  }
+
   function shuffle(items, rng) {
     const copy = items.slice();
     for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -41,7 +67,7 @@ window.PromisedLandEngine = (() => {
     столом не останется один платёжеспособный. В нём нет и субботнего года:
     прощение долгов там означало бы, что партия не кончится никогда.
   */
-  function createGame({ players, years = 5, mode = 'jubilee', rng = Math.random }) {
+  function createGame({ players, years = 5, mode = 'jubilee', rng = systemRandom }) {
     const last = mode === 'last';
     const state = {
       version: 1,
@@ -342,7 +368,7 @@ window.PromisedLandEngine = (() => {
    * Принять выпавшую карту: вот теперь она срабатывает. Если карта требует
    * серебра, вместо списания выставляется счёт — платит игрок, а не игра.
    */
-  function takeCard(state, rng = Math.random) {
+  function takeCard(state, rng = systemRandom) {
     const pending = state.pending;
     if (!pending || pending.type !== 'card') return false;
     const player = current(state);
@@ -903,7 +929,7 @@ window.PromisedLandEngine = (() => {
 
   // ————————————————————————————————————————————————— действия игрока
 
-  function roll(state, rng = Math.random) {
+  function roll(state, rng = systemRandom) {
     if (state.phase !== 'roll' || state.status !== 'playing') return false;
     const player = current(state);
 
@@ -915,6 +941,8 @@ window.PromisedLandEngine = (() => {
       return true;
     }
 
+    // Каждая кость — свой запрос к источнику. Одно число, разобранное на две
+    // грани, связало бы их между собой: по первой кости читалась бы вторая.
     const d1 = 1 + Math.floor(rng() * 6);
     const d2 = 1 + Math.floor(rng() * 6);
     state.dice = [d1, d2];

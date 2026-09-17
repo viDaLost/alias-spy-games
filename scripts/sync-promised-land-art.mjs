@@ -78,7 +78,7 @@ prune(from, to);
 */
 for (const [source, name] of [
   ['web/assets/game-scenes/scenes/promised-land.webp', 'scene.webp'],
-  ['web/assets/icons/promised-land.webp', 'menu-icon.webp'],
+  ['web/assets/icons/promised-land-v2.webp', 'menu-icon.webp'],
   // three.js уже лежит в репозитории — у «Моисея на Ниле». Второй копии в
   // git быть не должно: шестьсот килобайт одного и того же разойдутся.
   ['web/games/moses-nile-v7/vendor/three-r128.min.js', 'three-r128.min.js'],

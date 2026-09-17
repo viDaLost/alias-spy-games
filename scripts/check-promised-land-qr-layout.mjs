@@ -30,18 +30,33 @@ try {
   await page.addScriptTag({ content: '// Only the active, trusted game frame' + bridge });
   const frame = page.frames().find(f => f !== page.mainFrame());
   await frame.waitForSelector('[data-mode="online"]');
+  /*
+    Кадру отдан весь экран, а кнопка «Главное меню» снова лежит поверх него.
+    Раньше здесь спрашивалось обратное — чтобы кнопка кончалась выше кадра, — и
+    оболочка честно отодвигала кадр вниз. Боком это стоило больше трети высоты:
+    под белой полосой наверху не было ничего, а доска играла в оставшейся щели.
+    Теперь полосу отмеряет сама игра и отступает от неё только тем, что под
+    кнопкой оказаться не должно; проверяет это check-promised-land-frame-fit.
+    Здесь остаётся то, что этой проверке и положено: кадру отдана вся высота, и
+    поперёк ничего не вылезает.
+  */
   for (const [width, height] of [[320, 568], [390, 844], [844, 390]]) {
     await page.setViewportSize({ width, height });
     const boxes = await page.evaluate(() => {
-      const button = document.querySelector('.game-frame-exit').getBoundingClientRect();
       const frame = document.querySelector('.game-frame').getBoundingClientRect();
-      return { bottom: button.bottom, top: frame.top, height: frame.height };
+      return { top: frame.top, height: frame.height };
     });
-    assert(boxes.bottom <= boxes.top && boxes.height > 0, 'Menu overlaps frame');
+    assert(boxes.top <= 1 && boxes.height >= height - 1, 'Frame does not fill the screen');
     assert(await frame.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Horizontal overflow');
   }
   await frame.click('[data-mode="online"]');
   await frame.click('#online-scan');
+  /*
+    Нажатие и сканер разделены сообщением: кадр просит, оболочка открывает.
+    Спрашивать сразу после нажатия — значит спрашивать раньше, чем просьба
+    пересекла границу кадра; проверка так падала примерно в половине прогонов.
+  */
+  await page.waitForFunction(() => window.scans === 1, null, { timeout: 5000 });
   assert.equal(await page.evaluate(() => window.scans), 1);
   await page.evaluate(() => window.RoomInvite.acceptScanned('biblegames:promised-land:ABCDE'));
   await frame.waitForFunction(() => document.getElementById('online-code').value === 'ABCDE');

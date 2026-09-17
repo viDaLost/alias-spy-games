@@ -151,7 +151,7 @@ const dynamicPublishedPrefixes = [
   'web/assets/promised-land/',
 ];
 const dynamicSingles = new Set([
-  'web/assets/icons/promised-land.webp',
+  'web/assets/icons/promised-land-v2.webp',
   'web/assets/game-scenes/scenes/promised-land.webp',
 ]);
 

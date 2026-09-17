@@ -7,7 +7,7 @@
 
 > **Куда класть готовые файлы.** Папки уже созданы:
 > `web/assets/promised-land/{plots,icons,build,tokens,cards}` плюс два
-> отдельных файла — `web/assets/icons/promised-land.webp` и
+> отдельных файла — `web/assets/icons/promised-land-v2.webp` и
 > `web/assets/game-scenes/scenes/promised-land.webp`.
 > Разложив, запустите `node scripts/check-promised-land-art.mjs`: она скажет,
 > чего не хватает, что названо иначе, что без прозрачности и что не той формы.
@@ -28,7 +28,7 @@
 | Карты «Провидение» | 16 | 1024×1024 | прозрачный | `web/assets/promised-land/cards/` |
 | Карты «Милость» | 14 | 1024×1024 | прозрачный | `web/assets/promised-land/cards/` |
 | Рубашки колод | 2 | 1024×1536 | непрозрачный | `web/assets/promised-land/cards/` |
-| Иконка игры для меню | 1 | 1024×1024 | непрозрачный | `web/assets/icons/promised-land.webp` |
+| Иконка игры для меню | 1 | 1024×1024 | непрозрачный | `web/assets/icons/promised-land-v2.webp` |
 | Фон сцены игры | 1 | 1536×1024 | непрозрачный | `web/assets/game-scenes/scenes/promised-land.webp` |
 | Поле целиком, для витрины | 1 | 2048×2048 | непрозрачный | `docs/` или магазин |
 | **Всего** | **85** | | | |
@@ -394,7 +394,7 @@
    номером, а картинке нужно имя. Значения `slug` — те же, что в запросах 1, 2
    и 6 (`beersheba`, `gerar`, …, `well-gihon`).
 6. **Иконка меню** — отдельно: у неё в проекте своё место и свой размер,
-   `web/assets/icons/promised-land.webp`, и она должна быть узнаваема рядом с
+   `web/assets/icons/promised-land-v2.webp`, и она должна быть узнаваема рядом с
    иконками остальных игр.
 
 Вес всего набора после WebP — ориентировочно 2.5–3.5 МБ. Это много для

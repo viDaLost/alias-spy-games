@@ -319,7 +319,7 @@ web/games/promised-land/
   bots.js       соперники для игры за одним столом
   ui.js         отрисовка и ввод
 web/games/promised-land.css      стили (именно файлом, не вставкой из скрипта)
-web/assets/icons/promised-land.webp
+web/assets/icons/promised-land-v2.webp
 ```
 
 Этап 2 добавляет:
@@ -485,7 +485,7 @@ HUD обязан лежать ниже кнопок Telegram: в приложе�
 | `web/js/game-scene-parallax.js` | слой фона + `web/assets/game-scenes/scenes/promised-land.webp` |
 | `scripts/web-sources.mjs` | `styleSources` — `web/games/promised-land.css` |
 | `scripts/i18n/translations.tsv` | строки игры |
-| `web/assets/icons/promised-land.webp` | значок, сборочным скриптом по образцу `build-menu-moses-nile-icon.mjs` |
+| `web/assets/icons/promised-land-v2.webp` | значок, сборочным скриптом по образцу `build-menu-moses-nile-icon.mjs` |
 | `scripts/check-web-android-game-parity.mjs` | маршрут в `expectedNativeRoutes` или в веб-исключения, как у `moses-nile` |
 
 **Этап 2 добавляет:**

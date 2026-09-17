@@ -145,7 +145,6 @@
   // Автоигра: ходы человека тоже ведёт разум соперников. Нужна, чтобы досмотреть
   // партию до юбилея, не нажимая, и чтобы попробовать правила, не разбираясь.
   let autoPlay = false;
-  let teachAsked = false;
   let teachWanted = false;
   let dealtCard = null;
   /*
@@ -554,10 +553,20 @@
     buildRing();
     setupScene();
     render();
-    // Первую партию новичок начинает с показа на доске, а не с чистого поля.
-    // Дальше обучение не навязывается: его зовут кнопкой на первом экране.
-    if (window.PromisedLandTutorial
-      && (teachWanted || (!teachAsked && !window.PromisedLandTutorial.seen()))) {
+    /*
+      Обучение больше не встречает партию само.
+
+      Раньше первая партия начиналась показом, а «первая» определялась отметкой
+      в localStorage. Внутри приложения игра живёт кадром на своём адресе, и
+      память у такого кадра чужая: браузеры её делят по сайтам, а на телефоне
+      ещё и чистят между запусками. Отметка терялась, и показ начинался снова —
+      каждую партию, у человека, прошедшего его десять раз.
+
+      Чинить это хранилищем значило бы гадать, доживёт ли оно до завтра.
+      Поэтому показ теперь только по просьбе: кнопкой на первом экране — до
+      партии, и кнопкой в шапке — посреди неё. Просьба не теряется никогда.
+    */
+    if (window.PromisedLandTutorial && teachWanted) {
       teach();
       return;
     }
@@ -565,9 +574,21 @@
   }
 
   /** Обучение: показ на доске. Ходы на это время не идут — они подождут. */
+  /** Кнопка обучения в шапке: зовёт показ прямо посреди партии. */
+  function bindTeachButton() {
+    const button = $('teach-open');
+    if (!button) return;
+    button.hidden = !window.PromisedLandTutorial;
+    button.addEventListener('click', () => {
+      // Посреди хода соперника показ начинать нельзя: он говорит о том, что
+      // на доске сейчас, а доска в этот миг движется сама.
+      if (rolling) return;
+      teach();
+    });
+  }
+
   function teach() {
     if (!window.PromisedLandTutorial) return;
-    teachAsked = true;
     teachWanted = false;
     clearTimeout(botTimer);
     // Кнопки хода на время показа убираются: жать их посреди обучения незачем,
@@ -1618,6 +1639,7 @@
 
   setupScreen();
   modeScreen();
+  bindTeachButton();
   fillRules();
   if (/^[A-Z0-9]{5}$/i.test(new URLSearchParams(location.search).get('room') || '')) {
     showScreen('online');

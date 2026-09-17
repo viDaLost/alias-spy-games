@@ -61,7 +61,7 @@ const GROUPS = [
 const BACK_RATIO = 1536 / 1024;
 
 const SINGLES = [
-  { file: 'web/assets/icons/promised-land.webp', square: true, alpha: false, min: minSide('menu'), what: 'иконка игры в меню' },
+  { file: 'web/assets/icons/promised-land-v2.webp', square: true, alpha: false, min: minSide('menu'), what: 'иконка игры в меню' },
   { file: 'web/assets/game-scenes/scenes/promised-land.webp', square: false, alpha: false, min: minSide('scene'), what: 'фон сцены игры' },
 ];
 

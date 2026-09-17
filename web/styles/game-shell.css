@@ -211,27 +211,23 @@ body[data-mode="game"] {
 
 .game-frame-exit:active { opacity: 1; }
 
-/* Reserve real space for the menu and Telegram chrome above this game. */
-body[data-current-game="promised-land"] .game-frame-wrap {
-  display: flex;
-  flex-direction: column;
-  padding-top: var(--game-chrome-top, env(safe-area-inset-top, 0px));
-  box-sizing: border-box;
-  background: var(--surface, #eef4ff);
-}
+/*
+  «Земля обетованная» сама отступает под чужой интерфейс.
+
+  Место под кнопку выхода и кнопки Telegram можно занять двумя способами.
+  Первый — отодвинуть сам кадр вниз: просто, но вся эта полоса выпадает из
+  игры навсегда. Боком это особенно дорого: там под шапку клиента и кнопку
+  выхода уходило больше трети высоты экрана, и доска играла в оставшейся
+  щели, а под пустой белой полосой наверху не было ничего.
+
+  Второй — сказать игре, где кончается чужое, и дать ей отступить самой. Так
+  доска занимает кадр целиком, а под кнопками оказывается её песок, а не
+  клетки: числа туда шлёт game-frame-safe-area.js, а игра разбирает их в
+  --chrome-top и --chrome-bottom. Поэтому здесь кнопка снова лежит поверх
+  кадра — только читается она у этой игры лучше, чем у остальных: доска
+  светлая, и полупрозрачная плашка на ней терялась.
+*/
 body[data-current-game="promised-land"] .game-frame-exit {
-  position: static;
-  order: -1;
-  flex: 0 0 auto;
-  align-self: flex-start;
-  margin: 8px 12px;
-  max-width: calc(100% - 24px);
   min-height: 40px;
   opacity: 1;
-}
-body[data-current-game="promised-land"] .game-frame {
-  position: static;
-  flex: 1 1 0;
-  min-height: 0;
-  height: 0;
 }
