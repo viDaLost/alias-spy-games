@@ -173,7 +173,7 @@
     addSketchScannerButton();
     replaceLegacyShareButtons();
     const invite = window.RoomInvite.peek();
-    if (!invite) return;
+    if (!invite || invite.game === 'promised-land') return;
     if (finishInviteIfLobbyOpened(invite)) return;
     fallbackJoinFromForm(invite);
   }

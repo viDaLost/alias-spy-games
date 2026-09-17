@@ -751,7 +751,11 @@ function showGame(gameName) {
         return `${address}${glue}player=tg${encodeURIComponent(String(player.id))}`
           + `&name=${encodeURIComponent(shown)}`;
       };
-      const src = named(window.__gameFrameInsets?.seedUrl?.(base) || base);
+      const frameUrl = new URL(named(base), location.href);
+      frameUrl.searchParams.set('parentOrigin', location.origin);
+      const invite = window.RoomInvite?.peek?.();
+      if (invite?.game === 'promised-land') frameUrl.searchParams.set('room', invite.room);
+      const src = frameUrl.href;
       container.innerHTML = `
         <div class="game-frame-wrap">
           <iframe class="game-frame" src="${escapeHTML(src)}"
@@ -1273,3 +1277,25 @@ if (document.readyState === "loading") {
 } else {
   initializeApp();
 }
+
+// Only the active, trusted game frame can use the application's QR controls.
+window.addEventListener('message', (event) => {
+  if (document.body.dataset.currentGame !== 'promised-land') return;
+  const frame = document.querySelector('iframe.game-frame');
+  if (!frame || event.source !== frame.contentWindow || event.origin !== new URL(frame.src).origin) return;
+  const data = event.data;
+  if (data?.type === 'promised-land:scan') window.RoomQrScanner?.open?.();
+  if (data?.type === 'promised-land:qr' && /^[A-Z0-9]{5}$/.test(data.room || '')) {
+    window.RoomInvite?.openQr?.('promised-land', data.room, 'Земля обетованная · подключение к комнате');
+  }
+  if (data?.type === 'promised-land:ready') sendPromisedLandInvite();
+});
+function sendPromisedLandInvite() {
+  if (document.body.dataset.currentGame !== 'promised-land') return;
+  const frame = document.querySelector('iframe.game-frame');
+  const invite = window.RoomInvite?.peek?.();
+  if (!frame || invite?.game !== 'promised-land') return;
+  frame.contentWindow.postMessage({ type: 'promised-land:invite', room: invite.room }, new URL(frame.src).origin);
+  window.RoomInvite.consume('promised-land');
+}
+window.addEventListener('roominvitechange', sendPromisedLandInvite);
