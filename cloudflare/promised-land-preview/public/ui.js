@@ -49,6 +49,7 @@
     catch { return ''; }
   })();
   const inApp = window.parent !== window && Boolean(parentOrigin);
+  document.body.classList.toggle('is-embedded', inApp);
   const askApp = (type, room) => {
     if (inApp) window.parent.postMessage({ type: `promised-land:${type}`, room }, parentOrigin);
   };
@@ -1374,6 +1375,7 @@
   function updateFeed() {
     const feed = $('feed');
     feed.innerHTML = '';
+    feed.appendChild(el('h2', 'feed-title', 'Журнал ходов'));
     for (const entry of state.log.slice(-4).reverse()) {
       feed.appendChild(el('div', 'feed-line', entry.text));
     }
