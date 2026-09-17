@@ -137,12 +137,15 @@ try {
     5. Кнопки хода — у того, чей ход. Это и есть очередь, видимая глазами: у
     второго на их месте стоит «такой-то ходит…».
   */
-  const rolls = (page) => page.locator('#actions button', { hasText: 'Бросить жребий' });
+  // Жребий бросают в фазе броска — карточки клетки в этот миг нет, и кнопка
+  // стоит в нижней полосе. Ищем её по группе решений, а не по полосе: когда
+  // клетка о чём-то спрашивает, вся группа переезжает под карточку.
+  const rolls = (page) => page.locator('.actions-main button', { hasText: 'Бросить жребий' });
   const hostRolls = await rolls(host).count() > 0;
   const mover = hostRolls ? host : guest;
   const waiter = hostRolls ? guest : host;
   need(await rolls(waiter).count() === 0, 'жребий предложен обоим разом');
-  need(await waiter.locator('#actions .waiting').count() > 0,
+  need(await waiter.locator('.waiting').count() > 0,
     'тому, чей ход не сейчас, не сказано, кого ждать');
 
   /*

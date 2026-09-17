@@ -431,7 +431,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 /* Пока идёт показ, кнопки хода и карточка уходят: место занято объяснением. */
 #game.is-teaching .actions,
 #game.is-teaching .view-home,
-#game.is-teaching .ring-core--below { display: none; }
+#game.is-teaching .ring-core { display: none; }
 
 .ring {
   width: 100%; max-width: 420px; aspect-ratio: 1; display: grid;
@@ -503,29 +503,94 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   Карточка вынута из доски: доска наклонена, и текст на ней мылился бы. Здесь
   она висит над доской и смотрит на игрока прямо.
 */
+/*
+  Карточка клетки — карта, которую положили на середину стола.
+
+  Она лежит поверх доски и появляется только тогда, когда клетке есть что
+  сказать: встали на удел, вытянули карту, выставили счёт. Всё остальное
+  время её нет вовсе, и доске достаётся весь холст.
+
+  Положение задано отдельным свойством «translate», а не «transform»: полёт
+  (см. «is-lifting») пишет именно transform, и будь центрирование там же, оно
+  бы стёрлось на первом же кадре анимации. Два свойства складываются, и
+  смещение полёта считается уже от середины.
+*/
 .ring-core {
-  position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
-  width: 63%; max-height: 60%; z-index: 5;
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  width: min(330px, calc(100% - 32px)); max-height: calc(100% - 20px); z-index: 5;
   background: var(--surface); background-image: var(--tilt);
-  border: 1px solid var(--line); border-radius: 14px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; padding: 10px; text-align: center; min-width: 0; min-height: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 18px;
+  /*
+    Содержимое прижато к верху, а не выровнено по середине. Выравнивание по
+    середине в колонке, которая прокручивается, отрезает начало: браузер
+    выносит первый элемент выше области прокрутки, и добраться до него нельзя
+    ничем — рисунок удела просто исчезал под верхним краем. Высота карточки и
+    так по содержимому, пока оно не упрётся в потолок, так что разницы, кроме
+    этой, нет никакой.
+  */
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 6px; padding: 12px; text-align: center; min-width: 0; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
   box-shadow: var(--lift-3), var(--edge-top);
 }
+.ring-core[hidden] { display: none; }
 /*
-  Карточка под доской: у поля в объёме середина занята самой доской, и висеть
-  над ней карточке негде. Правило стоит после «.ring-core» намеренно — сила у
-  них одинаковая, и решает порядок.
+  Карточка выше совета про горизонт: совет висит над доской в той же полосе,
+  и накрыть им название удела с ценой значило бы спрятать то, ради чего
+  карточка и взлетела. Сам совет к этому мигу уже не нужен — партия идёт, —
+  и разметка его убирает (см. updateCore).
 */
-.ring-core--below {
-  /*
-    Смещения сбрасываются вместе с положением: «left: 50%» досталось карточке
-    от висячего варианта, и стоит вернуть ей «position: relative» хоть чем-то
-    сверху — она уедет на пол-экрана вправо, оставаясь на вид обычной строкой.
-  */
-  position: static; inset: auto; transform: none;
-  width: 100%; max-width: 420px; max-height: none; margin: 0 auto 8px; z-index: auto;
+.ring-core { z-index: 7; }
+/*
+  Содержимое карточки не ужимается — оно прокручивается.
+
+  Пока карточка была строкой под доской, рисунку удела разрешалось сжиматься:
+  места было мало, и лучше мелкая картинка, чем выдавленный за край текст.
+  У карточки с потолком высоты это выходит иначе: рисунок сжимался до
+  десятка точек, то есть пропадал совсем, а место всё равно не сходилось.
+  Теперь каждая часть держит свой размер, лишнее уезжает под прокрутку, а
+  решения остаются прилипшими к низу и никуда не деваются.
+*/
+.ring-core > * { flex-shrink: 0; }
+.ring-core .core-art { flex: 0 0 auto; }
+/*
+  Взлёт. Карточка вырастает из плитки, на которую встала фишка: смещение до
+  неё считает разметка (liftCard) и кладёт сюда двумя числами. Масштаб взят
+  маленьким нарочно — с половины карточка выглядит не взлётом, а рывком.
+*/
+@keyframes core-lift {
+  from { transform: translate(var(--from-x, 0px), var(--from-y, 0px)) scale(.16); opacity: 0; }
+  to { transform: none; opacity: 1; }
 }
+.ring-core.is-lifting { animation: core-lift 400ms cubic-bezier(.22, .8, .24, 1) both; }
+@media (prefers-reduced-motion: reduce) { .ring-core.is-lifting { animation: none; } }
+/*
+  Решения — под карточкой, внутри неё же. Полоса на всю ширину карточки, а не
+  сетка равных долей: «Построить 150 и заплатить 40» и «Заплатить 40» в одной
+  строке не уживаются, а выбирать из них надо читая, а не на скорость.
+*/
+/*
+  Решения прилипают к низу карточки.
+
+  У карточки есть потолок высоты, и содержимое длинного удела — рисунок,
+  название, цены, лестница построек — в него не всегда влезает: карточка
+  прокручивается внутри себя. Прокручиваться вместе с текстом кнопкам нельзя:
+  игрок, не догадавшийся пролистать карточку до конца, решил бы, что решения
+  ему не предложили вовсе. Поэтому они стоят на месте, а текст едет под ними.
+
+  Отрицательный отступ снизу — чтобы прилипшая полоса закрывала и поле
+  карточки: иначе под ней в просвете едут строки.
+*/
+.core-acts {
+  display: grid; gap: 6px; width: 100%;
+  margin-top: 4px; padding-top: 10px;
+  border-top: 1px solid var(--line);
+  position: sticky; bottom: calc(-1 * var(--card-pad, 12px));
+  padding-bottom: var(--card-pad, 12px);
+  margin-bottom: calc(-1 * var(--card-pad, 12px));
+  background: var(--surface);
+}
+.core-acts .btn { width: 100%; }
 /*
   Иллюстрация в середине кольца делит место с текстом, поэтому у неё гибкая
   высота: на узком экране она ужимается, а не выталкивает подпись за край.
@@ -607,6 +672,17 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 .actions-side { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+/*
+  Ящик «Ещё». Открывается под своей кнопкой и занимает всю ширину полосы: это
+  не ярус равных кнопок, а список того, что нужно изредка, и растягивать его
+  по три в ряд не за чем — на узком телефоне «Скрыть игроков» в такую треть
+  не помещается.
+*/
+.actions-more {
+  grid-column: 1 / -1;
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+}
 .actions-main:empty, .actions-side:empty { display: none; }
 .actions .btn { width: 100%; }
 .waiting {
@@ -861,7 +937,21 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     не под всей строкой: середина шапки пуста, и плашка во всю ширину закрыла
     бы доску ни за чем.
   */
-  #game.has-3d > .hud { padding: calc(9px + var(--chrome-top)) 14px 0; pointer-events: none; }
+  /*
+    Шапка боком жмётся к краям, а не расходится поровну.
+
+    Боком шапка лежит прямо на доске и тянется во всю ширину экрана. Раскладка
+    «поровну между тремя» ставила среднюю кнопку — «Обучение» — ровно в
+    середину, то есть на середину игрового поля: она закрывала колоды и стояла
+    там всю партию. Год и обучение теперь стоят слева одной парой, казна
+    справа, а середина экрана остаётся доске. Стоймя шапка лежит над доской,
+    и делить её поровну по-прежнему правильно.
+  */
+  #game.has-3d > .hud {
+    padding: calc(9px + var(--chrome-top)) 14px 0; pointer-events: none;
+    justify-content: flex-start;
+  }
+  #game.has-3d > .hud > .hud-pot { margin-left: auto; }
   #game.has-3d > .hud > * {
     background: var(--surface); color: var(--ink); border-radius: 999px;
     padding: 4px 12px; box-shadow: var(--lift-1);
@@ -903,7 +993,6 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     align-content: stretch;
   }
   #game.has-3d > .hud { grid-column: 1 / -1; grid-row: 1; }
-  #game.has-3d > .ring-core--below { grid-column: 1; grid-row: 2; align-self: start; }
   #game.has-3d > .teach { grid-column: 1 / -1; grid-row: 2; align-self: end; }
   #game.has-3d > .players { grid-column: 1; grid-row: 3; align-self: end; }
   #game.has-3d > .actions {
@@ -944,36 +1033,41 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   #game.has-3d .player-figs { font-size: 11.5px; }
   #game.has-3d > .actions { gap: 6px; }
   /*
-    Карточка боком — короткая табличка по содержимому, а не полоса во весь
-    экран: пустая её часть закрывала бы доску ни за чем.
+    Карточка боком уже, чем стоймя: боком под ней ещё и решения, а высоты у
+    такого экрана мало. Рисунку в ней тоже отведено меньше.
   */
-  #game.has-3d > .ring-core--below {
-    /*
-      Карточка уходит влево: справа под ней оказывается угол доски, а слева —
-      только песок. Двигать доску ради карточки было бы наоборот.
-    */
-    width: fit-content; max-width: min(46%, 400px);
-    margin: 0 auto 0 14px; padding: 6px 12px 6px 6px;
-    gap: 10px; align-items: center; justify-content: flex-start;
-  }
-  #game.has-3d .ring-core--below .core-art { height: 46px; }
-  #game.has-3d .ring-core--below .core-art--small { height: 38px; }
-  #game.has-3d .ring-core--below .core-kind { font-size: 10px; }
-  #game.has-3d .ring-core--below .core-name { font-size: 16px; }
-  #game.has-3d .ring-core--below .core-note { font-size: 12px; }
   /*
-    Карточка боком стоит строкой, и подпись в ней — такой же её член, как
-    рисунок и имя. Без своей доли ширины она сжимается до одной буквы в строку
-    и рассыпается столбиком: «Бро-сь-те». Поэтому ей задан запас, от которого
-    она и переносится — по словам, а не по буквам.
+    Боком карточка стоит левее середины экрана — но посередине того, что от
+    экрана остаётся. Правая его треть отдана кнопкам: боком телефон держат
+    двумя руками, и большой палец достаёт как раз до нижнего правого угла.
+    Карточка, поставленная ровно по центру, ложилась правым краем на «Ещё» —
+    то есть закрывала собой единственный путь к «Моим уделам» и прочему.
   */
-  #game.has-3d .ring-core--below { flex-wrap: wrap; }
-  #game.has-3d .ring-core--below .core-note {
-    flex: 1 0 100%; min-width: 0; max-width: none; margin-left: 56px;
+  #game.has-3d > .ring-wrap .ring-core {
+    width: min(300px, 44%); padding: 10px; --card-pad: 10px;
+    /*
+      Потолок высоты и место по вертикали выбраны так, чтобы карточка не
+      доставала ни до шапки сверху, ни до края снизу: боком между ними всего
+      триста девяносто точек, и карточка во всю высоту накрывала бы и «Год»,
+      и «Обучение» — те самые кнопки, из-за которых доску и расчищали.
+    */
+    left: 36%; top: 52%; max-height: calc(100% - 110px);
   }
+  #game.has-3d .ring-core .core-art { height: clamp(44px, 11vh, 80px); }
+  #game.has-3d .ring-core .core-name { font-size: 18px; }
+  #game.has-3d .ring-core .core-note { font-size: 13px; }
+  /*
+    Лестница построек боком с карточки уходит. Между шапкой и низом экрана на
+    карточку остаётся двести восемьдесят точек, и строка «пусто 2 · колодец 10
+    · шатёр 30 · дом 90 · ограда 125 · башня 150» — единственное в ней, без
+    чего решение «брать или не брать» принимается: цена, ступень и плата
+    остаются на месте. Кому нужна вся лестница, тот открывает карточку клетки
+    нажатием по самой плитке — там она есть всегда.
+  */
+  #game.has-3d .ring-core .core-ladder { display: none; }
+  #game.has-3d .ring-core .core-acts .btn { min-height: 42px; }
   /* Полоса обучения боком тоже не во весь экран: доска рядом и работает. */
   #game.has-3d > .teach { margin-top: auto; max-width: min(78%, 620px); }
-  #game.has-3d.is-teaching > .ring-core--below { display: none; }
   #game > .ring-wrap.is-3d { margin-block: 0; }
   /*
     Карточка под доской боком ложится строкой: столбиком она съедает полторы
@@ -981,15 +1075,6 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     влево, подписи — вправо, и вся она укладывается в высоту собственной
     картинки.
   */
-  #game > .ring-core--below {
-    flex-direction: row; align-items: center; gap: 12px;
-    text-align: left; padding: 8px 12px; max-width: none;
-  }
-  .ring-core--below .core-art { width: auto; height: 58px; flex: 0 0 auto; }
-  .ring-core--below .core-art--small { height: 46px; }
-  .ring-core--below .core-name { font-size: 18px; }
-  .ring-core--below .core-note { font-size: 12px; max-width: none; }
-  .ring-core--below .dice { padding: 0; }
   #game > .ring-wrap .ring { max-width: none; }
   .hud { padding-top: 2px; }
   .players { gap: 6px; }
@@ -1112,27 +1197,40 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   }
   #game.has-3d > * { flex-shrink: 0; }
   #game.has-3d > .hud { margin: 0; padding-top: 0; }
-  #game.has-3d > .ring-wrap.is-3d {
-    flex: 0 0 auto; aspect-ratio: auto;
-    height: clamp(220px, 38vh, 380px); min-height: 0;
-    margin-block: 0;
-  }
   /*
-    Карточка клетки берёт столько, сколько ей нужно, но не больше остатка:
-    «0 1 auto» — расти не смей, ужаться можешь. Длинная прокручивается внутри
-    себя, короткая просто занимает меньше, а доска при этом не шевелится.
+    Нижняя полоса держит свою высоту, даже когда кнопок в ней нет.
+
+    Решения клетки переезжают под карточку, и полоса внизу худеет со ста
+    четырёх точек до сорока восьми. Доска берёт остаток экрана — и на эти
+    пятьдесят шесть точек вырастает, а потом на столько же опадает: каждая
+    остановка фишки заканчивалась бы скачком поля и пересчётом всей сцены.
+    Сто четыре — её собственная высота в фазе броска: жребий и «Ещё». То
+    есть место не резервируется сверх нужного, а просто не отдаётся обратно
+    на те несколько секунд, пока карточка держит кнопки у себя.
   */
-  #game.has-3d > .ring-core--below {
-    flex: 0 1 auto; height: auto; max-height: none;
-    overflow-y: auto; overscroll-behavior: contain; justify-content: flex-start;
-    padding: 14px; margin-bottom: 0;
-    /*
-      Ниже этого карточка не ужимается. Без порога на совсем маленьком экране —
-      320×568 — она сжималась до тридцати точек: название удела и цена
-      оказывались в щели, которую надо прокручивать. Пусть лучше на таком
-      экране прокрутится страница: это привычнее, чем окошко в три строки.
-    */
-    min-height: 120px;
+  #game.has-3d > .actions { min-height: 104px; }
+  /*
+    Доска стоймя: шире и выше, но не во всю высоту.
+
+    Освободившееся от карточки место нельзя просто отдать полю целиком. Доска
+    квадратная, и стоймя её размер упирается в ширину экрана, а не в высоту:
+    холст в шестьсот точек показывает ту же доску в двести семьдесят, а
+    оставшиеся триста — песок вокруг неё. Померено: при высоте холста 591
+    доска занимала 275.
+
+    Поэтому высоты прибавлено столько, сколько доска умеет взять (было 38
+    сотых экрана, стало 46), а по-настоящему её увеличивает другое — полная
+    ширина. Поля экрана в шестнадцать точек с каждой стороны доске не нужны:
+    по её краю идёт песок, и обрезать его нечем. Плюс тридцать две точки
+    ширины — это и есть прибавка к самой доске.
+  */
+  #game.has-3d > .ring-wrap.is-3d {
+    flex: 1 1 auto; aspect-ratio: auto;
+    height: auto; min-height: 200px;
+    margin-block: 0;
+    margin-inline: calc(-1 * var(--gutter));
+    width: calc(100% + var(--gutter) * 2);
+    max-width: none;
   }
   #game.has-3d .core-name { font-size: 22px; line-height: 1.2; }
   #game.has-3d .core-note { font-size: 16px; line-height: 1.5; max-width: none; }
@@ -1143,8 +1241,18 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     только отложенный на середину партии. Теперь он делит остаток с карточкой
     клетки и дальше остатка не растёт.
   */
+  /*
+    Журнал — узкая полоса постоянной высоты, а не то, что осталось. Остаток
+    отдан холсту: доска на нём шире не станет (её держит ширина экрана), но
+    вокруг неё живёт поселение — пальмы, дома, зрители, — и место под него
+    тратится не впустую. Журнал же, растянутый на полэкрана, был бы белым
+    полем с одной строкой наверху.
+
+    В полосу помещаются две записи, остальные шесть прокручиваются.
+  */
   #game.has-3d > .feed {
-    display: flex; order: 1; flex: 0 1 auto; min-height: 0;
+    display: flex; order: 1; flex: 0 0 auto;
+    height: 62px; min-height: 0;
     overflow-y: auto; overscroll-behavior: contain;
   }
   /*

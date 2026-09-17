@@ -141,6 +141,20 @@
   let state = null;
   let botTimer = 0;
   let sheetOpen = false;
+  /*
+    Два ящика, которые по умолчанию закрыты.
+
+    На экране партии всё время висело то, что нужно раз в несколько ходов:
+    три кнопки второго яруса и полоса карточек игроков. Стоймя они забирали
+    двести с лишним точек высоты, боком — нижнюю полосу целиком, и всё это у
+    доски, ради которой в игру и смотрят. Теперь они открываются кнопкой
+    «Ещё» — и закрываются ею же.
+
+    Открытое состояние живёт до конца партии, а не до следующего хода: тот,
+    кому карточки игроков нужны постоянно, открывает их один раз.
+  */
+  let moreOpen = false;
+  let playersOpen = false;
   let lastHumanId = '';
   // Автоигра: ходы человека тоже ведёт разум соперников. Нужна, чтобы досмотреть
   // партию до юбилея, не нажимая, и чтобы попробовать правила, не разбираясь.
@@ -684,16 +698,16 @@
     // задаёт сетка — то есть родитель, а не коробка холста.
     $('game').classList.add('has-3d');
     /*
-      На разметочном поле карточка висела в дырке кольца — там пусто. У поля в
-      объёме середина занята: доска сплошная, и карточка закрывала бы дальнюю
-      половину подписей. Поэтому здесь она выходит из-под доски вниз, в тот
-      самый зазор, который иначе пустует между полем и кнопками.
+      Карточка остаётся над доской.
+
+      Раньше она уезжала из-под доски вниз отдельной строкой — и стояла там
+      всю партию, даже когда сказать ей было нечего: «ход, Игрок, бросьте
+      жребий» дублировало кнопку под собой и забирало у поля полторы сотни
+      точек. Теперь она появляется, только когда клетка что-то говорит, и
+      взлетает с той самой плитки, на которую встала фишка (см. liftCard).
+      Место посреди доски она закрывает — но ровно на то время, пока её
+      читают, а дальний край подписей всё равно читается хуже ближнего.
     */
-    const core = $('core');
-    if (core) {
-      core.classList.add('ring-core--below');
-      wrap.insertAdjacentElement('afterend', core);
-    }
     $('view-home').addEventListener('click', () => { if (scene) scene.home(); });
     // Ход наружу для проверки: сцена сама себя не меряет, а мерить её надо.
     window.PromisedLandScene = scene;
@@ -828,42 +842,52 @@
     }
   }
 
+  /*
+    Карточка клетки — как настоящая карта со стола.
+
+    Правило одно: карточка есть тогда и только тогда, когда клетка чего-то от
+    игрока хочет или о чём-то ему сообщает. Ни «ход, Игрок, бросьте жребий»,
+    ни «стройте или заканчивайте ход» карточками не были — это подписи к
+    кнопкам, и стояли они под самими кнопками, занимая место весь ход.
+
+    Отсюда и поведение, которое видно глазом: фишка встала на клетку —
+    карточка взлетела с этой плитки на середину экрана. Ход чужой — её просто
+    читают, и она уходит вместе с ходом. Ход свой — под ней встают все
+    решения, какие эта клетка предлагает (см. placeActions).
+  */
   function updateCore() {
     const core = $('core');
     core.innerHTML = '';
     const player = E.current(state);
+    const pending = state.pending;
 
-    if (state.phase === 'roll') {
-      // Пока ждём броска, середина показывает место, на котором стоит фишка:
-      // иначе самая большая часть экрана пустует весь ход соперника.
-      const here = B.BOARD[player.pos];
-      core.appendChild(B.OWNABLE.has(here.kind)
-        ? img(art('plots', here.slug), 'core-art', here.name)
-        : img(art('icons', here.slug), 'core-art core-art--small', here.name));
-      core.appendChild(el('div', 'core-kind', state.sabbath ? 'Субботний год' : 'Ход'));
-      core.appendChild(el('div', 'core-name', player.name));
-      core.appendChild(el('div', 'core-note',
-        player.prison > 0 ? `В темнице. Дубль освобождает, попыток: ${player.prison}.`
-          : (player.isBot ? 'Думает…' : 'Бросьте жребий.')));
+    if (!pending) {
+      core.hidden = true;
+      delete core.dataset.from;
       return;
     }
+    core.hidden = false;
+    /*
+      Совет про горизонт своё отслужил: раз клетка о чём-то спрашивает, партия
+      идёт, и держать над доской подсказку о том, как её держать, незачем.
+      Убирается он здесь, а не по часам: часы не знают, прочитали его или нет.
+    */
+    document.getElementById('orientation-tip')?.remove();
+    // С какой плитки взлетать. Покупка называет клетку сама — при залоге и
+    // продаже фишка может стоять уже не на ней.
+    core.dataset.from = String(pending.type === 'buy' ? pending.cell : player.pos);
 
-    const dice = el('div', 'dice');
-    for (const value of state.dice) {
-      if (!value) continue;
-      dice.appendChild(die(value));
-    }
     // Кости из разметки нужны только без объёма: в объёме они кувыркаются на
     // самой доске и там же остаются лежать выпавшими числами вверх.
-    if (dice.childElementCount && !scene) core.appendChild(dice);
-
-    const pending = state.pending;
-    if (!pending) {
-      core.appendChild(img(art('tokens', tokenOf(player)), 'core-art core-art--small', ''));
-      core.appendChild(el('div', 'core-name', player.name));
-      core.appendChild(el('div', 'core-note', 'Стройте или заканчивайте ход.'));
-      return;
+    if (!scene) {
+      const dice = el('div', 'dice');
+      for (const value of state.dice) {
+        if (!value) continue;
+        dice.appendChild(die(value));
+      }
+      if (dice.childElementCount) core.appendChild(dice);
     }
+
     if (pending.type === 'buy') {
       showLand(core, pending.cell, 'Свободен.');
       return;
@@ -942,6 +966,13 @@
 
     const strip = $('players');
     strip.innerHTML = '';
+    /*
+      Полоса игроков собирается только когда открыта. Собирать её в скрытую
+      коробку значило бы перебирать шестерых и рисовать двенадцать картинок на
+      каждом ходу впустую, а на ходу соперника ходы идут один за другим.
+    */
+    strip.hidden = !playersOpen;
+    if (!playersOpen) return;
     state.players.forEach((player) => {
       const card = el('div', 'player');
       if (player.id === E.current(state).id) card.classList.add('is-turn');
@@ -1140,11 +1171,43 @@
     столом: по сети темпом правит сервер, один на всех, а автоигра ходила бы за
     живого человека, пока он думает.
   */
+  /*
+    Второй ярус — под одной кнопкой.
+
+    «Мои уделы», «Авто», «Быстрее» и карточки игроков нужны не каждый ход, а
+    место занимали каждый. Здесь остаётся одна кнопка «Ещё», а за ней —
+    всё остальное. По сети «Авто» и «Быстрее» не показываются и в открытом
+    ящике: темпом там распоряжается комната, а не телефон.
+  */
   function addSide(side, sheetButton) {
-    side.appendChild(sheetButton);
-    if (link) return;
-    side.appendChild(autoButton());
-    side.appendChild(paceButton());
+    const toggle = button(moreOpen ? 'Скрыть' : 'Ещё', 'ghost', () => {
+      moreOpen = !moreOpen;
+      render();
+    });
+    toggle.id = 'more-open';
+    toggle.setAttribute('aria-expanded', String(moreOpen));
+    side.appendChild(toggle);
+    if (!moreOpen) return;
+    const menu = el('div', 'actions-more');
+    menu.id = 'more';
+    menu.appendChild(sheetButton);
+    menu.appendChild(playersButton());
+    if (!link) {
+      menu.appendChild(autoButton());
+      menu.appendChild(paceButton());
+    }
+    side.appendChild(menu);
+  }
+
+  /** Переключатель полосы с серебром и наследием. */
+  function playersButton() {
+    const node = button(playersOpen ? 'Скрыть игроков' : 'Игроки', 'ghost', () => {
+      playersOpen = !playersOpen;
+      render();
+    });
+    node.id = 'players-open';
+    node.setAttribute('aria-pressed', String(playersOpen));
+    return node;
   }
 
   /** Переключатель темпа соперников. */
@@ -1389,15 +1452,77 @@
     updateCore();
     updateHud();
     updateActions();
+    placeActions();
+    liftCard();
     updateSheet();
     updateFeed();
+  }
+
+  /*
+    Решения встают под карточку, а не отдельной полосой внизу.
+
+    Карточка говорит, на что вы встали, кнопки — что с этим можно сделать, и
+    разносить их по разным концам экрана незачем: глаз всё равно ходит от
+    одного к другому. Внизу остаётся то, что к клетке не привязано, — жребий,
+    конец хода и кнопка «Ещё».
+
+    Второй ярус («Ещё») не переезжает никогда: он про партию, а не про клетку.
+  */
+  function placeActions() {
+    const core = $('core');
+    const bar = $('actions');
+    const main = bar.querySelector('.actions-main');
+    if (!core || !main) return;
+    const toCard = !core.hidden && main.childElementCount > 0 && !main.querySelector('.waiting');
+    main.classList.toggle('core-acts', toCard);
+    if (toCard) core.appendChild(main);
+  }
+
+  /*
+    Полёт карточки. Она не появляется на середине экрана из ниоткуда — она
+    взлетает с той плитки, на которую встала фишка, и вырастает по дороге.
+    Так видно, о какой клетке речь, даже не читая названия: взгляд уже там.
+
+    Полёт запускается один раз на клетку, а не на каждую перерисовку: за один
+    ход карточка обновляется несколько раз — пришла плата, изменился кошелёк,
+    открылся ящик, — и дёргаться при каждом обновлении ей незачем.
+  */
+  let cardFrom = null;
+
+  function liftCard() {
+    const core = $('core');
+    if (!core) return;
+    const from = core.hidden ? null : (core.dataset.from ?? null);
+    if (from === cardFrom) return;
+    cardFrom = from;
+    core.classList.remove('is-lifting');
+    const canvas = $('board3d');
+    // Без объёмной доски взлетать неоткуда: у разметочного поля нет плиток на
+    // экране, карточка висит в дырке кольца и просто появляется.
+    if (from === null || !scene || canvas.hidden || REDUCED) return;
+    const spot = scene.screenOf(Number(from));
+    if (!spot) return;
+    const frame = canvas.getBoundingClientRect();
+    const box = core.getBoundingClientRect();
+    if (!box.width) return;
+    core.style.setProperty('--from-x',
+      `${Math.round(frame.left + spot.x - (box.left + box.width / 2))}px`);
+    core.style.setProperty('--from-y',
+      `${Math.round(frame.top + spot.y - (box.top + box.height / 2))}px`);
+    // Перезапуск проигранной анимации: без принудительного пересчёта браузер
+    // считает, что класс и не снимался, и второй раз её не показывает.
+    void core.offsetWidth;
+    core.classList.add('is-lifting');
   }
 
   function updateFeed() {
     const feed = $('feed');
     feed.innerHTML = '';
     feed.appendChild(el('h2', 'feed-title', 'Журнал ходов'));
-    for (const entry of state.log.slice(-4).reverse()) {
+    // Восемь записей, а не четыре: стоймя журналу досталось место, которое
+    // доска взять не смогла, и заполнять его пустотой незачем. Что не влезло —
+    // прокручивается, самое свежее сверху.
+    for (const entry of state.log.slice(-8).reverse()) {
       feed.appendChild(el('div', 'feed-line', entry.text));
     }
   }
@@ -1477,6 +1602,11 @@
       const core = $('core');
       const player = E.current(state);
       core.innerHTML = '';
+      // Кости катятся на самой карточке, а она к этому мигу закрыта: клетка
+      // ещё ничего не сказала. Открываем её под бросок и не помечаем, откуда
+      // она взялась, — взлетать ей неоткуда, жребий бросают не с клетки.
+      core.hidden = false;
+      delete core.dataset.from;
       const box = el('div', 'dice is-rolling');
       const first = die(1);
       const second = die(1);

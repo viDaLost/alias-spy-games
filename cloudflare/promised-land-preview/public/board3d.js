@@ -1911,6 +1911,31 @@ window.PromisedLand3D = (() => {
       });
     }
 
+    /*
+      Где клетка на экране.
+
+      Нужно это карточке: она взлетает с той самой плитки, на которую встала
+      фишка, а не появляется ниоткуда. Плитка живёт в сцене, карточка — в
+      разметке поверх холста, и перевести одну в другую умеет только камера.
+
+      Считается по верхней грани плитки, а не по её середине: карточка
+      «отрывается» от поверхности доски, и полточки толщины тут видны.
+      Ответ — в точках разметки от левого верхнего угла холста; клетка за
+      спиной камеры (такое бывает при сильном приближении) отвечает null,
+      и тогда карточка просто появляется без полёта.
+    */
+    function screenOf(cell) {
+      const at = cellPosition(cell);
+      const point = new THREE.Vector3(at.x, TILE_H, at.z).project(camera);
+      if (point.z > 1) return null;
+      return {
+        x: (point.x + 1) / 2 * width,
+        y: (1 - point.y) / 2 * height,
+        width,
+        height,
+      };
+    }
+
     function focus(cell, life) {
       // Угол обзора сохраняется: если доску повернули, обучение показывает
       // клетку с той же стороны, с которой на неё и смотрят.
@@ -1977,7 +2002,7 @@ window.PromisedLand3D = (() => {
     }
 
     return {
-      sync, walk, roll, resize, dispose, highlight, focus, home,
+      sync, walk, roll, resize, dispose, highlight, focus, home, screenOf,
       dealCard, returnCard, demoWalk, demoBuild, demoLadder, orbit, setSpeed,
       atHome, stats, frames, render: touch,
     };

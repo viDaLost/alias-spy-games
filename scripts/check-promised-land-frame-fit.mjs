@@ -113,6 +113,20 @@ async function openGame(width, height) {
   await frame.evaluate(() => document.getElementById('teach-skip')?.click());
   // Сцена поднимается не мгновенно, а вся раскладка партии висит на её классе.
   await frame.waitForSelector('#game.has-3d', { timeout: 90_000 });
+  /*
+    Оба ящика открываются до замеров. Закрытые, они прячут ровно то, ради чего
+    эта проверка и написана: второй ярус кнопок и карточки игроков. Мерить
+    посадку кадра по одной кнопке «Ещё» значило бы мерить пустой экран и
+    всякий раз получать «всё поместилось».
+  */
+  const more = frame.locator('#more-open');
+  if (await more.count() && await more.getAttribute('aria-expanded') === 'false') {
+    await more.first().click().catch(() => {});
+  }
+  const showPlayers = frame.locator('#players-open');
+  if (await showPlayers.count() && await showPlayers.getAttribute('aria-pressed') === 'false') {
+    await showPlayers.first().click().catch(() => {});
+  }
   await page.waitForTimeout(1600);
   return { context, page, frame, errors };
 }
@@ -150,8 +164,8 @@ try {
     const cut = await frame.evaluate((all) => {
       const out = [];
       const selector = all
-        ? '#actions button, .players .player, .hud > *'
-        : '#actions button, .hud > *';
+        ? '#actions button, #more button, .players .player, .hud > *'
+        : '#actions button, #more button, .hud > *';
       for (const node of document.querySelectorAll(selector)) {
         const rect = node.getBoundingClientRect();
         if (!rect.width || !rect.height) continue;
@@ -172,7 +186,8 @@ try {
     const exit = await page.locator('.game-frame-exit').boundingBox();
     const overlap = await frame.evaluate(({ left, top, right, bottom }) => {
       const hits = [];
-      for (const node of document.querySelectorAll('#actions button, .players .player, .hud > *')) {
+      for (const node of document.querySelectorAll(
+        '#actions button, #more button, .players .player, .hud > *')) {
         const rect = node.getBoundingClientRect();
         if (rect.right < left || rect.left > right || rect.bottom < top || rect.top > bottom) continue;
         hits.push(node.textContent.trim().slice(0, 18));

@@ -74,6 +74,32 @@ const BOARD_WAIT = 20_000;
 const problems = [];
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
+/*
+  Два ящика, которые надо открыть, чтобы спросить их содержимое.
+
+  «Мои уделы», «Авто», «Быстрее» ушли под кнопку «Ещё», а карточки игроков с
+  серебром и наследием — под кнопку «Игроки»: на экране партии им место не
+  каждый ход. Проверке от этого не легче и не труднее — она открывает их так
+  же, как открыл бы человек, и спрашивает уже открытыми.
+*/
+async function openMore(target) {
+  const toggle = target.locator('#more-open');
+  if (!(await toggle.count())) return false;
+  if (await toggle.getAttribute('aria-expanded') === 'true') return true;
+  await toggle.first().click({ timeout: 4_000 }).catch(() => {});
+  return (await target.locator('#more').count()) > 0;
+}
+
+async function openPlayers(target) {
+  if (!(await openMore(target))) return false;
+  const toggle = target.locator('#players-open');
+  if (!(await toggle.count())) return false;
+  if (await toggle.getAttribute('aria-pressed') === 'false') {
+    await toggle.first().click({ timeout: 4_000 }).catch(() => {});
+  }
+  return (await target.locator('.player').count()) > 0;
+}
+
 /** Серебро человека — то самое число, на которое он смотрит, решая, платить ли. */
 const silverOf = (page) => page.evaluate(() => {
   const card = [...document.querySelectorAll('.player')]
@@ -371,7 +397,7 @@ try {
       `между шагами обучения доска изменилась на ${(moved * 100).toFixed(1)}% — камера стоит`);
     await page.locator('#teach-skip').click();
     await page.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
-    need(await page.locator('#actions .btn').count() > 0,
+    need(await page.locator('.actions-main .btn, .actions-side .btn').count() > 0,
       'после «Пропустить» кнопки хода не вернулись');
     /*
       Камера возвращается к общему виду не мгновенно, а перелётом. Мерить доску,
@@ -386,15 +412,22 @@ try {
     Темп соперников. Кнопка спрашивается на ходу человека — там, где он её и
     ищет: по умолчанию соперники ходят неспешно, а она разгоняет их вдвое.
   */
-  const faster = page.locator('#actions button', { hasText: /^Быстрее$/ });
+  need(await openMore(page), 'ящик «Ещё» не открылся — второго яруса кнопок не достать');
+  const faster = page.locator('#more button', { hasText: /^Быстрее$/ });
   const pace = await faster.count();
-  need(pace === 1, `кнопок «Быстрее» на ходу человека ${pace}, а нужна одна`);
+  need(pace === 1, `кнопок «Быстрее» в ящике «Ещё» ${pace}, а нужна одна`);
   if (pace) {
     await faster.first().click();
-    need(await page.locator('#actions button', { hasText: /^Помедленнее$/ }).count() > 0,
+    need(await page.locator('#more button', { hasText: /^Помедленнее$/ }).count() > 0,
       'кнопка «Быстрее» не переключилась в «Помедленнее»');
-    await page.locator('#actions button', { hasText: /^Помедленнее$/ }).first().click();
+    await page.locator('#more button', { hasText: /^Помедленнее$/ }).first().click();
   }
+  /*
+    Карточки игроков открываются своей кнопкой — и это проверяется сразу: без
+    них человеку негде увидеть, сколько у него серебра, а дальше по ним и
+    меряют его кошелёк.
+  */
+  need(await openPlayers(page), 'кнопка «Игроки» не показала карточек за столом');
 
   /*
     Фигурки обязаны быть телами, а не картинками: у картинки нет толщины, и
@@ -852,12 +885,12 @@ try {
       именно там.
     */
     for (let tick = 0; tick < 80; tick += 1) {
-      const mine = await page.locator('#actions .btn--primary:not([disabled])').count();
-      const bot = await page.locator('#actions .waiting').count();
+      const mine = await page.locator('.actions-main .btn--primary:not([disabled])').count();
+      const bot = await page.locator('.waiting').count();
       if (mine > 0 && bot === 0) break;
       await page.waitForTimeout(250);
     }
-    need(await page.locator('#actions .waiting').count() === 0,
+    need(await page.locator('.waiting').count() === 0,
       'за двадцать секунд ход так и не дошёл до человека');
     let settled = 0;
     let seen = await framesNow();
@@ -892,7 +925,12 @@ try {
       не попав в проверку. Долг при этом списывался, и проверка честно
       сообщала, что платить ей никто не предлагал.
     */
-    const primary = page.locator('#actions .btn--primary:not([disabled])').first();
+    /*
+      Главная кнопка ищется по своей группе, а не по полосе внизу: когда клетка
+      о чём-то спрашивает, вся группа решений переезжает под карточку на
+      середине экрана, и внизу её уже нет.
+    */
+    const primary = page.locator('.actions-main .btn--primary:not([disabled])').first();
     const label = await primary.innerText({ timeout: 2_500 }).catch(() => '');
     /*
       Карта на доске. Пока её не приняли, она лежит на середине лицом вверх —
@@ -945,7 +983,8 @@ try {
     Кнопка «Авто» отдаёт ход тому же боту, что играет за соперников. После неё
     партия обязана дойти до юбилея сама — иначе кнопка есть, а толку нет.
   */
-  const auto = page.locator('#actions button', { hasText: /^Авто$/ });
+  need(await openMore(page), 'ящик «Ещё» не открылся — «Авто» не достать');
+  const auto = page.locator('#more button', { hasText: /^Авто$/ });
   /*
     Кнопка ждётся видимой, а не просто найденной в разметке. «Авто» стоит на
     полосе хода человека, и пока ходит соперник, полоса показывает ожидание, а
@@ -959,13 +998,19 @@ try {
   need(autoReady, 'кнопки «Авто» нет на экране хода человека');
   if (autoReady) {
     await auto.first().click();
-    need(await page.locator('#actions button', { hasText: /^Играю сам$/ }).count() > 0,
+    need(await page.locator('#more button', { hasText: /^Играю сам$/ }).count() > 0,
       'кнопка «Авто» не переключилась в «Играю сам»');
     /*
       Доказательство простое: дождаться хода человека и увидеть, что он прошёл
       сам. Ждать юбилея целиком здесь незачем — партия идёт минутами, а сказать
       она способна ровно это же одним ходом.
     */
+    /*
+      Чей ход — читается по подсвеченной карточке игрока. Открыть их полосу
+      надо заранее: закрытая, она ничего не расскажет, и проверка решила бы,
+      что ход не меняется вовсе.
+    */
+    await openPlayers(page);
     const whoseTurn = () => page.evaluate(() => document
       .querySelector('.player.is-turn .player-name')?.textContent || '');
     let last = '';
@@ -1027,6 +1072,7 @@ try {
     await table.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
   }
   await table.waitForTimeout(700);
+  need(await openPlayers(table), 'на столе шестерых кнопка «Игроки» не показала карточек');
   const crowd = await table.evaluate(() => {
     const width = document.documentElement.clientWidth;
     const over = [...document.querySelectorAll('#game *')]
@@ -1068,7 +1114,7 @@ try {
     game.refresh();
     return B.BAIL;
   });
-  const bailBtn = table.locator('#actions button', { hasText: /^Выкуп \d+/ });
+  const bailBtn = table.locator('.actions-main button', { hasText: /^Выкуп \d+/ });
   const bailCount = await bailBtn.count();
   need(bailCount === 1, `в темнице кнопок выкупа ${bailCount}, а нужна одна`);
   // Дальше спрашивать нечего, если кнопки нет: без неё всё остальное — падение
@@ -1076,10 +1122,10 @@ try {
   if (bailCount === 1) {
     need((await bailBtn.first().textContent()).includes(String(jail)),
       `на кнопке выкупа не цена в ${jail} сиклей`);
-    need(await table.locator('#actions button', { hasText: /^Бросить жребий$/ }).count() === 1,
+    need(await table.locator('.actions-main button', { hasText: /^Бросить жребий$/ }).count() === 1,
       'в темнице пропал жребий: выкуп не должен съедать ход');
     await bailBtn.first().click();
-    need(await table.locator('#actions button', { hasText: /^Выкуп \d+/ }).count() === 0,
+    need(await table.locator('.actions-main button', { hasText: /^Выкуп \d+/ }).count() === 0,
       'после выкупа кнопка выкупа осталась на экране');
     const freed = await table.evaluate(() => {
       const state = window.PromisedLandGame.state();
@@ -1120,7 +1166,22 @@ try {
     aside: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     board: !document.getElementById('board3d').hidden,
     height: Math.round(document.getElementById('board3d').getBoundingClientRect().height),
+    /*
+      Что из шапки лезет на середину экрана. Боком шапка лежит прямо на доске
+      и тянется во всю ширину, а середина этой ширины — середина игрового
+      поля: колоды, фишки, центральный пейзаж. Кнопка «Обучение» стояла там
+      ровно посередине и закрывала их всю партию.
+    */
+    middle: [...document.querySelectorAll('.hud > *')]
+      .filter((node) => {
+        const box = node.getBoundingClientRect();
+        const mid = window.innerWidth / 2;
+        return box.width > 0 && box.left < mid && box.right > mid;
+      })
+      .map((node) => node.id || node.textContent.trim().slice(0, 16)),
   }));
+  need(lying.middle.length === 0,
+    `боком на середину поля залезла шапка: ${lying.middle.join(', ')}`);
   if (ran) need(lying.board, 'боком поле в объёме не включилось');
   need(lying.down === 0, `боком экран прокручивается вниз на ${lying.down}px`);
   need(lying.aside === 0, `боком экран уехал вбок на ${lying.aside}px`);
@@ -1163,6 +1224,9 @@ try {
     await tall.waitForSelector('#teach[hidden]', { state: 'attached', timeout: BOARD_WAIT });
   }
   await tall.waitForTimeout(900);
+  // Ящик открывается до замера: кнопки в нём и считаются.
+  need(await openMore(tall), 'боком на высоком экране ящик «Ещё» не открылся');
+  await tall.waitForTimeout(250);
   const roomy = await tall.evaluate(() => {
     const doc = document.documentElement;
     const canvas = document.getElementById('board3d').getBoundingClientRect();
@@ -1174,7 +1238,14 @@ try {
       fromRight: doc.clientWidth - actions.right,
       fromBottom: doc.clientHeight - actions.bottom,
       actionWidth: actions.width / doc.clientWidth,
-      buttons: document.querySelectorAll('#actions button').length,
+      /*
+        Кнопки самой полосы — без содержимого ящика: ящик тоже лежит внутри
+        полосы, и, открытый, он считался бы вместе с ней. Считать их вместе
+        значило бы никогда не заметить, что полоса снова заросла.
+      */
+      buttons: document.querySelectorAll('#actions button').length
+        - document.querySelectorAll('#more button').length,
+      inDrawer: document.querySelectorAll('#more button').length,
     };
   });
   need(roomy.down === 0 && roomy.aside === 0,
@@ -1186,7 +1257,15 @@ try {
     + 'большому пальцу не достать');
   need(roomy.actionWidth < 0.5,
     `кнопки боком заняли ${(roomy.actionWidth * 100).toFixed(0)}% ширины — это полоса, а не кучка`);
-  need(roomy.buttons >= 4, `боком на экране ${roomy.buttons} кнопок — часть потерялась`);
+  /*
+    Кнопок внизу стало мало нарочно: жребий да «Ещё». Всё остальное — в ящике,
+    и спрашивается оно там же. Если внизу снова окажется целый ярус, значит
+    ящик перестал работать и экран опять зарос кнопками.
+  */
+  need(roomy.buttons >= 2 && roomy.buttons <= 3,
+    `боком внизу ${roomy.buttons} кнопок — полоса снова заросла`);
+  need(roomy.inDrawer >= 3,
+    `в ящике «Ещё» боком ${roomy.inDrawer} кнопок — часть потерялась`);
   need(tallErrors.length === 0,
     `боком на высоком экране ошибки — ${tallErrors.slice(0, 2).join(' | ')}`);
   await side.close();
@@ -1228,6 +1307,17 @@ try {
     };
   });
   const plain = await board();
+
+  /*
+    Карточка клетки. Правило, ради которого всё это делалось: пока клетка
+    молчит, карточки нет вовсе — ни пустой рамки, ни строки «ход, Игрок,
+    бросьте жребий» под кнопкой, которая говорит то же самое. Спрашивается
+    это первым: карточка, висящая всегда, съедает у доски столько же места,
+    сколько съедала прежняя, и вся затея теряет смысл.
+  */
+  need(await upright.locator('#core[hidden]').count() === 1,
+    'стоймя карточка висит на экране, когда клетке сказать нечего');
+
   await upright.evaluate(() => {
     const game = window.PromisedLandGame;
     const B = window.PromisedLandBoard;
@@ -1235,16 +1325,71 @@ try {
     const plot = B.BOARD.find((cell) => cell.kind === 'plot');
     state.players[0].pos = plot.n;
     state.phase = 'act';
-    state.pending = { type: 'note', title: plot.name, text: 'Свободен. Ничья земля.' };
+    state.pending = { type: 'buy', cell: plot.n };
     game.refresh();
   });
-  await upright.waitForTimeout(400);
+  await upright.waitForTimeout(700);
   const landed = await board();
   need(plain.down === 0 && landed.down === 0,
     `стоймя экран прокручивается: ${plain.down} до карточки, ${landed.down} с карточкой`);
   need(plain.height === landed.height,
     `стоймя доска прыгает с ${plain.height} на ${landed.height} точек, когда открывается карточка`);
   need(plain.height > 300, `стоймя доске досталось ${plain.height} точек`);
+
+  /*
+    Карточка встала на середину, взлетев с плитки, и решения стоят под ней.
+
+    Спрашивается четыре вещи разом, и каждая ломается сама по себе: карточка
+    видна; смещение полёта посчитано от настоящего места клетки на экране, а
+    не осталось нулём; решения лежат внутри карточки, а не полосой внизу; и
+    вся она целиком помещается на экран, не наезжая ни на шапку, ни на нижние
+    кнопки. Наезд тут не мелочь: карточка лежит поверх всего, и накрытую ею
+    кнопку не нажать вовсе.
+  */
+  const flew = await upright.evaluate(() => {
+    const core = document.getElementById('core');
+    const box = core.getBoundingClientRect();
+    const acts = core.querySelector('.actions-main');
+    const over = [...document.querySelectorAll('#actions button, .hud > *')]
+      .filter((node) => {
+        const other = node.getBoundingClientRect();
+        return !(box.right <= other.left || box.left >= other.right
+          || box.bottom <= other.top || box.top >= other.bottom);
+      })
+      .map((node) => node.id || node.textContent.trim().slice(0, 16));
+    return {
+      shown: !core.hidden,
+      from: core.dataset.from || '',
+      shift: [core.style.getPropertyValue('--from-x'), core.style.getPropertyValue('--from-y')],
+      buttons: acts ? [...acts.querySelectorAll('button')].map((one) => one.textContent.trim()) : [],
+      outside: box.top < -1 || box.left < -1
+        || box.bottom > innerHeight + 1 || box.right > innerWidth + 1,
+      over,
+    };
+  });
+  need(flew.shown, 'встали на удел, а карточки нет');
+  need(flew.from !== '', 'карточка не помнит, с какой клетки взлетела');
+  need(flew.shift.every((value) => value && value !== '0px'),
+    `смещение полёта не посчитано: ${flew.shift.join(' / ') || 'пусто'}`);
+  need(flew.buttons.some((label) => /^Купить за \d+/.test(label)),
+    `под карточкой не предложили купить: ${JSON.stringify(flew.buttons)}`);
+  need(!flew.outside, 'карточка не помещается на экран целиком');
+  need(flew.over.length === 0, `карточка накрыла собой: ${flew.over.join(', ')}`);
+
+  /*
+    Ход кончился — карточка ушла. Читать её после чужого хода не по чему:
+    клетка уже другая, и висящая карточка врала бы о том, где стоят фишки.
+  */
+  await upright.evaluate(() => {
+    const game = window.PromisedLandGame;
+    const state = game.state();
+    state.pending = null;
+    game.refresh();
+  });
+  await upright.waitForTimeout(300);
+  need(await upright.locator('#core[hidden]').count() === 1,
+    'ход кончился, а карточка осталась на экране');
+
   await side.close();
   side = null;
 } finally {
@@ -1262,7 +1407,10 @@ if (problems.length) {
 
 console.log(ran
   ? 'OK: обучение не заводится само, но открывается кнопкой в шапке партии и показывает '
-  + 'шаги на самой доске; фигурки и '
+  + 'шаги на самой доске; карточка клетки появляется, только когда клетке есть что '
+  + 'сказать, взлетает с той самой плитки, держит решения под собой и уходит вместе с '
+  + 'ходом; второй ярус кнопок и карточки игроков открываются своими кнопками, а не '
+  + 'занимают экран всегда; шапка боком не лезет на середину поля; фигурки и '
     + 'постройки — тела, а не картинки; доска влезает в холст целиком и занимает его почти '
     + 'весь, на ближнем ряду плиток есть подписи, луч различает клетки поимённо. Доска '
     + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '

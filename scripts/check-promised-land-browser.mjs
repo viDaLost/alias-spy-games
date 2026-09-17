@@ -141,10 +141,19 @@ async function play(width, height, years) {
     поле из разметки, где объёмной сцены нет вовсе и торопить нечего, кроме
     пауз между ходами.
   */
-  const faster = page.locator('#actions button', { hasText: /^Быстрее$/ });
-  need(await faster.count() === 1, `${width}px: кнопки «Быстрее» нет на ходу человека`);
+  /*
+    Темп соперников переехал под кнопку «Ещё» вместе со вторым ярусом: на
+    экране партии этим кнопкам место не каждый ход. Открывается ящик так же,
+    как его открыл бы человек, — нажатием.
+  */
+  const more = page.locator('#more-open');
+  if (await more.count() && await more.getAttribute('aria-expanded') === 'false') {
+    await more.first().click();
+  }
+  const faster = page.locator('#more button', { hasText: /^Быстрее$/ });
+  need(await faster.count() === 1, `${width}px: кнопки «Быстрее» нет в ящике «Ещё»`);
   await faster.first().click({ timeout: 4_000 });
-  need(await page.locator('#actions button', { hasText: /^Помедленнее$/ }).count() === 1,
+  need(await page.locator('#more button', { hasText: /^Помедленнее$/ }).count() === 1,
     `${width}px: «Быстрее» не переключилась в «Помедленнее»`);
 
   // Ход человека и ходы ботов идут вперемешку: жать надо то, что появилось.
@@ -155,7 +164,9 @@ async function play(width, height, years) {
     if (await page.locator('#jubilee:not([hidden])').count()) break;
     // Кнопка броска гаснет на время кувырка костей: жать в неё в этот миг —
     // значит считать нажатия, которых игрок не сделал бы.
-    const primary = page.locator('#actions .btn--primary:not([disabled])');
+    // Решения клетки переехали под карточку на середине экрана, и внизу их
+    // больше нет: ищем главную кнопку по её группе, а не по полосе.
+    const primary = page.locator('.actions-main .btn--primary:not([disabled])');
     if (await primary.count()) {
       const box = await primary.first().boundingBox();
       if (box && box.height < 44) {
