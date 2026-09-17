@@ -724,7 +724,7 @@ window.PromisedLandEngine = (() => {
       player.tithePaid += card.doubleHeritage ? amount * 2 : amount;
       bill.amount = amount;
       bill.to = 'treasury';
-      notes.push(`десятина ${amount}`);
+      notes.push(`подать ${amount}`);
     }
     if (card.freeStep) {
       const target = bestFreeStep(state, player);
@@ -849,11 +849,11 @@ window.PromisedLandEngine = (() => {
 
     if (spec.kind === 'tithe') {
       const amount = titheAmount(player);
-      // Наследие за десятину начисляется сразу: платить всё равно придётся, а
+      // Наследие за подать начисляется сразу: платить всё равно придётся, а
       // видеть, ради чего платишь, стоит до того, как нажал.
       player.tithePaid += amount;
-      requestPayment(state, player, amount, 'treasury', 'Десятина',
-        `${amount} сиклей в казну. Наследие за десятину: ${Math.floor(player.tithePaid / B.HERITAGE_PER_TITHE)}.`);
+      requestPayment(state, player, amount, 'treasury', 'Подать',
+        `${amount} сиклей в казну. Наследие за подать: ${Math.floor(player.tithePaid / B.HERITAGE_PER_TITHE)}.`);
       return;
     }
     if (spec.kind === 'offering') {
@@ -1193,7 +1193,7 @@ window.PromisedLandEngine = (() => {
     state.scores = state.players.map((player) => ({
       id: player.id, name: player.name, ...scoreOf(state, player), tithePaid: player.tithePaid,
     }));
-    // При равенстве наследия выигрывает тот, кто больше отдал десятиной.
+    // При равенстве наследия выигрывает тот, кто больше отдал податью.
     state.scores.sort((a, b) => b.total - a.total || b.tithePaid - a.tithePaid);
     log(state, `Юбилей. Побеждает ${state.scores[0].name}: ${state.scores[0].total} наследия.`);
     return true;

@@ -46,7 +46,7 @@ window.PromisedLandCards = (() => {
     { id: 'abel', text: 'Жертва Авеля: жертвенник даром.', ref: 'Быт. 4:4', freeAltar: true },
     { id: 'sabbath', text: 'Субботний год раньше срока: в этом круге вы не платите за проход.', ref: 'Исх. 23:11', noRent: true },
     { id: 'joseph', text: 'Иосиф открылся братьям: 100 сиклей беднейшему.', ref: 'Быт. 45:4', giveToPoorest: 100, heritage: 2 },
-    { id: 'melchizedek', text: 'Десятина Мелхиседеку: платите её сейчас, наследие за неё вдвое.', ref: 'Быт. 14:20', titheNow: true, doubleHeritage: true },
+    { id: 'melchizedek', text: 'Десятина Мелхиседеку: платите подать сейчас, наследие за неё вдвое.', ref: 'Быт. 14:20', titheNow: true, doubleHeritage: true },
     { id: 'oil', text: 'Елей вдовы не иссяк: 150 сиклей.', ref: '4 Цар. 4:6', silver: 150 },
   ];
 

@@ -38,7 +38,7 @@ window.PromisedLandBoard = (() => {
   const TITHE_MAX = 400;
 
   // Наследие
-  const HERITAGE_PER_TITHE = 100;   // сиклей десятины за одно очко
+  const HERITAGE_PER_TITHE = 100;   // сиклей подати за одно очко
   const HERITAGE_PER_SILVER = 500;  // сиклей в юбилей за одно очко
   const HERITAGE_ALTAR = 3;
   const HERITAGE_REDEEM = 5;
@@ -65,7 +65,7 @@ window.PromisedLandBoard = (() => {
   /*
     slug — имя файла картинки для клетки. Оно лежит здесь, рядом с клеткой, а
     не отдельным списком: отдельный список разъедется с полем при первой же
-    правке, и игра начнёт показывать чужой рисунок. У «Десятины», «Провидения»
+    правке, и игра начнёт показывать чужой рисунок. У «Подати», «Провидения»
     и «Милости» клеток несколько, а рисунок один — slug у них общий.
   */
   const plot = (n, slug, group, name, price, base) => ({ n, slug, kind: 'plot', group, name, price, base });
@@ -78,7 +78,7 @@ window.PromisedLandBoard = (() => {
     plot(1, 'beersheba', 'negev', 'Вирсавия', 60, 2),
     spot(2, 'icon-mercy', 'mercy', 'Милость', 'Дела милосердия.'),
     plot(3, 'gerar', 'negev', 'Герар', 80, 4),
-    spot(4, 'icon-tithe', 'tithe', 'Десятина', 'Десятая часть серебра.'),
+    spot(4, 'icon-tithe', 'tithe', 'Подать', 'Десятая часть серебра.'),
     road(5, 'road-patriarchs', 'Путь патриархов'),
     plot(6, 'tekoa', 'judah', 'Фекоя', 100, 6),
     spot(7, 'icon-providence', 'providence', 'Провидение', 'События и перемещения.'),
@@ -105,7 +105,7 @@ window.PromisedLandBoard = (() => {
     plot(28, 'capernaum', 'galilee', 'Капернаум', 320, 32),
     spot(29, 'icon-mercy', 'mercy', 'Милость', 'Дела милосердия.'),
     plot(30, 'shechem', 'fathers', 'Сихем', 350, 40),
-    spot(31, 'icon-tithe', 'tithe', 'Десятина', 'Десятая часть серебра.'),
+    spot(31, 'icon-tithe', 'tithe', 'Подать', 'Десятая часть серебра.'),
     road(32, 'road-desert', 'Путь пустыни'),
     spot(33, 'icon-providence', 'providence', 'Провидение', 'События и перемещения.'),
     plot(34, 'hebron', 'fathers', 'Хеврон', 400, 50),
