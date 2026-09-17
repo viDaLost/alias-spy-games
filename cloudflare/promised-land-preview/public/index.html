@@ -143,6 +143,7 @@
       <input id="online-code" type="text" maxlength="5" autocapitalize="characters"
              autocomplete="off" spellcheck="false" inputmode="text" placeholder="ABCDE" />
     </label>
+    <button type="button" id="online-scan" class="btn btn--ghost btn--big" hidden>Сканировать QR-код</button>
     <button type="button" id="online-join" class="btn btn--ghost btn--big">Войти по коду</button>
   </section>
 
@@ -151,6 +152,7 @@
       <span class="lobby-code__label">Код комнаты</span>
       <b id="lobby-code" class="lobby-code__value">—</b>
       <button type="button" id="lobby-share" class="btn btn--ghost">Позвать друзей</button>
+      <button type="button" id="lobby-qr" class="btn btn--ghost" hidden>QR-код комнаты</button>
       <span id="lobby-link" class="lobby-link" role="status"></span>
     </div>
 

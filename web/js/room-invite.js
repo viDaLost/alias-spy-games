@@ -6,6 +6,7 @@
   ).replace(/\/+$/, '');
   const GAME_KEYS = Object.freeze({
     quartet: 'quartet',
+    'promised-land': 'promised-land',
     q: 'quartet',
     sketch: 'bible-sketch',
     'bible-sketch': 'bible-sketch',

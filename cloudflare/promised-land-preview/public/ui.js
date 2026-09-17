@@ -44,6 +44,47 @@
 
   const $ = (id) => document.getElementById(id);
 
+  const parentOrigin = (() => {
+    try { return new URL(new URLSearchParams(location.search).get('parentOrigin')).origin; }
+    catch { return ''; }
+  })();
+  const inApp = window.parent !== window && Boolean(parentOrigin);
+  const askApp = (type, room) => {
+    if (inApp) window.parent.postMessage({ type: `promised-land:${type}`, room }, parentOrigin);
+  };
+  window.addEventListener('message', (event) => {
+    if (!inApp || event.source !== window.parent || event.origin !== parentOrigin) return;
+    if (event.data?.type !== 'promised-land:invite' || !/^[A-Z0-9]{5}$/.test(event.data.room || '')) return;
+    showScreen('online');
+    startOnline();
+    $('online-code').value = event.data.room;
+  });
+  if (inApp) {
+    $('online-scan').hidden = false;
+    $('lobby-qr').hidden = false;
+    $('online-scan').addEventListener('click', () => askApp('scan'));
+    $('lobby-qr').addEventListener('click', () => askApp('qr', roomView?.roomId));
+    askApp('ready');
+  }
+
+  function orientationTip() {
+    document.getElementById('orientation-tip')?.remove();
+    if (!window.matchMedia('(orientation: portrait)').matches) return;
+    const tip = document.createElement('div');
+    tip.id = 'orientation-tip';
+    tip.className = 'orientation-tip';
+    tip.setAttribute('role', 'status');
+    const text = document.createElement('p');
+    text.textContent = 'Совет: горизонтально играть удобнее — поле будет крупнее. Можно продолжить и вертикально.';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn btn--ghost';
+    close.textContent = 'Понятно';
+    close.addEventListener('click', () => tip.remove());
+    tip.append(text, close);
+    $('game').prepend(tip);
+  }
+
   /*
     Кость — кубик из шести граней, а не квадратик с цифрой. Точки раскладываются
     по сетке 3×3: так их читают на настоящих костях, и считать их не надо —
@@ -332,6 +373,7 @@
       for (const id of ['mode', 'setup', 'online']) { const node = $(id); if (node) node.hidden = true; }
       $('jubilee').hidden = true;
       $('game').hidden = false;
+      orientationTip();
       state = view.game;
       buildRing();
       setupScene();
@@ -428,6 +470,7 @@
   async function shareRoom() {
     const code = roomView?.roomId || '';
     if (!code) return;
+    if (inApp) { askApp('qr', code); return; }
     const address = `${location.origin}${location.pathname}?room=${code}`;
     const text = `Заходите в «Землю обетованную». Код комнаты: ${code}`;
     try {
@@ -506,6 +549,7 @@
     state = E.createGame({ players, years, mode });
     for (const id of ['mode', 'setup', 'online']) { const node = $(id); if (node) node.hidden = true; }
     $('game').hidden = false;
+    orientationTip();
     buildRing();
     setupScene();
     render();
@@ -1573,4 +1617,8 @@
   setupScreen();
   modeScreen();
   fillRules();
+  if (/^[A-Z0-9]{5}$/i.test(new URLSearchParams(location.search).get('room') || '')) {
+    showScreen('online');
+    startOnline();
+  }
 })();
