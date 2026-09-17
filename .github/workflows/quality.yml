@@ -54,6 +54,16 @@ jobs:
         run: node scripts/check-promised-land.mjs
       - name: Check Promised Land building models
         run: node scripts/check-promised-land-models.mjs
+      - name: Check Promised Land room state
+        run: node scripts/check-promised-land-room.mjs
+      - name: Install Promised Land preview tooling
+        working-directory: cloudflare/promised-land-preview
+        run: npm install --no-audit --no-fund
+      - name: Validate Promised Land Worker bundle
+        working-directory: cloudflare/promised-land-preview
+        run: npx wrangler deploy --dry-run --outdir /tmp/promised-land-build
+      - name: Play Promised Land over the network
+        run: node scripts/check-promised-land-online.mjs
       - name: Install Quartet Worker tooling
         working-directory: cloudflare/quartet-worker
         run: npm install --no-audit --no-fund
@@ -82,7 +92,7 @@ jobs:
   smoke-games:
     name: Browser, mobile, home and error checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -133,6 +143,11 @@ jobs:
         run: npm run check:admin-sections
       - name: Check word search level picker
         run: npm run check:level-modal
+      # Игра по сети проверяется на настоящем воркере: проверка поднимает его
+      # локально через wrangler, и без его зависимостей ей не на чем играть.
+      - name: Install Promised Land preview tooling
+        working-directory: cloudflare/promised-land-preview
+        run: npm install --no-audit --no-fund
       # Проверки, которым нужен настоящий браузер. В задаче validate его нет —
       # там и зависимости не ставятся, — поэтому они живут здесь, рядом с
       # остальными браузерными.

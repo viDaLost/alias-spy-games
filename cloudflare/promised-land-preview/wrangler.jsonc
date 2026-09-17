@@ -1,15 +1,37 @@
 // Превью «Земли обетованной» — настольной игры об уделах и юбилее.
 //
-// Отдельный воркер со статикой: игра ничего не просит у сети и живёт целиком
-// в public/. Онлайн-комнаты — следующий этап, и у них будет свой воркер с
-// Durable Object; смешивать их с превью незачем.
+// Один воркер на всё: страница игры лежит в public/, комнаты для игры по сети
+// живут в Durable Object рядом. Так игра и её запросы оказываются на одном
+// адресе — значит, ни CORS, ни разрешённых источников, ни версии превью,
+// разошедшейся с версией комнат.
+//
+// run_worker_first нужен именно для этого: без него раздатчик файлов увидел бы
+// /api/… , не нашёл такого файла и, по правилу single-page-application, вернул
+// бы на запрос комнаты страницу index.html.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-promised-land-preview",
+  "main": "src/index.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "assets": {
     "directory": "./public",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "PromisedLandRoom"
+      }
+    ]
+  },
+  "exports": {
+    "PromisedLandRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
   }
 }

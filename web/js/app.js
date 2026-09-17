@@ -736,7 +736,22 @@ function showGame(gameName) {
     if (container) {
       const configured = String(document.querySelector('meta[name="promised-land-app"]')?.content || '').trim();
       const base = configured || 'cloudflare/promised-land-preview/public/index.html';
-      const src = window.__gameFrameInsets?.seedUrl?.(base) || base;
+      /*
+        Кто играет. Игра живёт в кадре на своём адресе, и про вход в приложение
+        ей оттуда ничего не видно. Без этого номера вернувшийся в комнату
+        получил бы новое место вместо своего, с чужими уделами. Передаётся
+        только номер и имя: прятать в них нечего, а комната и так открыта
+        каждому, кто знает её код.
+      */
+      const player = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      const named = (address) => {
+        if (!player?.id) return address;
+        const glue = address.includes("?") ? "&" : "?";
+        const shown = String(player.first_name || player.username || "Игрок").slice(0, 24);
+        return `${address}${glue}player=tg${encodeURIComponent(String(player.id))}`
+          + `&name=${encodeURIComponent(shown)}`;
+      };
+      const src = named(window.__gameFrameInsets?.seedUrl?.(base) || base);
       container.innerHTML = `
         <div class="game-frame-wrap">
           <iframe class="game-frame" src="${escapeHTML(src)}"

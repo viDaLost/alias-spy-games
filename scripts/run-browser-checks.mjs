@@ -34,6 +34,7 @@ const CHECKS = [
   'check-promised-land-app.mjs',
   'check-promised-land-browser.mjs',
   'check-promised-land-3d.mjs',
+  'check-promised-land-online-browser.mjs',
   'check-moses-nile-safe-area.mjs',
   'check-game-scenes.mjs',
   'check-channel-promo.mjs',

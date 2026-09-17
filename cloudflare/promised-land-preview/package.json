@@ -1,6 +1,7 @@
 {
   "name": "alias-spy-games-promised-land-preview",
   "private": true,
+  "type": "module",
   "version": "1.0.0",
   "devDependencies": {
     "wrangler": "^4.42.0"

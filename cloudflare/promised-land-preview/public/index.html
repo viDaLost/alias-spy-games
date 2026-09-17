@@ -16,7 +16,41 @@
 <body>
 
 <!-- ——— начало партии ——— -->
-<main id="setup" class="screen">
+<!--
+  Выбор способа игры. Он стоит перед настройками, а не среди них: за одним
+  столом и по сети — это две разные партии, и спрашивать про число соперников
+  у того, кто идёт играть с друзьями, незачем.
+-->
+<main id="mode" class="screen">
+  <header class="intro">
+    <div id="mode-brand" class="brand"></div>
+    <p class="eyebrow">Библейские игры</p>
+    <h1>Земля обетованная</h1>
+    <p class="lede">Странствие по земле уделов: покупайте землю, обживайте её, платите десятину.
+      В юбилей земля возвращается — и считается не серебро, а след, который вы оставили.</p>
+  </header>
+
+  <div class="mode-cards">
+    <button type="button" class="mode-card" data-mode="solo">
+      <span class="mode-card__kind">За одним столом</span>
+      <span class="mode-card__title">Против компьютера</span>
+      <span class="mode-card__note">Соперниками правит игра. Можно сесть и вдвоём за одно
+        устройство — ходить по очереди.</span>
+    </button>
+    <button type="button" class="mode-card" data-mode="online">
+      <span class="mode-card__kind">Каждый со своего телефона</span>
+      <span class="mode-card__title">По сети</span>
+      <span class="mode-card__note">Комната с кодом: позовите друзей, и доска у всех будет
+        одна. Разговаривать можно прямо в игре.</span>
+    </button>
+  </div>
+
+  <div class="setup-actions">
+    <button type="button" id="mode-rules-btn" class="btn btn--ghost">Правила</button>
+  </div>
+</main>
+
+<main id="setup" class="screen" hidden>
   <header class="intro">
     <div id="brand" class="brand"></div>
     <p class="eyebrow">Библейские игры</p>
@@ -68,10 +102,103 @@
     <button type="button" id="start-btn" class="btn btn--primary btn--big">В путь</button>
     <button type="button" id="rules-btn" class="btn btn--ghost">Правила</button>
     <button type="button" id="teach-btn" class="btn btn--ghost">Обучение</button>
+    <button type="button" id="setup-back" class="btn btn--ghost">Назад</button>
   </div>
 
-  <p class="note">Партия идёт за одним столом, сеть не нужна.
-    Игра по сети с друзьями — следующий шаг.</p>
+  <p class="note">Партия идёт за одним столом, сеть не нужна.</p>
+</main>
+
+<!--
+  Комната для игры по сети. Два состояния на одном экране: пока комнаты нет —
+  «завести» и «войти по коду»; когда есть — стол, настройки и переписка.
+  Разными экранами их делать не за чем: переход между ними мгновенный, а
+  заголовок и кнопка «назад» у них общие.
+-->
+<main id="online" class="screen" hidden>
+  <header class="intro intro--tight">
+    <p class="eyebrow">Игра по сети</p>
+    <h1 id="online-head">Комната</h1>
+    <p class="lede" id="online-lede">Заведите комнату и назовите друзьям её код — или войдите
+      в чужую. Доска будет у всех одна, а ходить можно каждому со своего телефона.</p>
+  </header>
+
+  <p id="online-error" class="online-error" role="alert" hidden></p>
+
+  <section id="online-gate" class="lobby-gate">
+    <!--
+      Возвращение в свою же комнату. Кнопка появляется только тогда, когда
+      возвращаться есть куда: закрытую вкладку и упавшее приложение здесь ждут
+      уделы, долги и фишка, а кода комнаты игрок наизусть не помнит.
+    -->
+    <button type="button" id="online-resume" class="btn btn--primary btn--big" hidden></button>
+    <label class="lobby-field">
+      <span>Как вас звать за столом</span>
+      <input id="online-name" type="text" maxlength="24" autocomplete="nickname"
+             spellcheck="false" placeholder="Странник" />
+    </label>
+    <button type="button" id="online-create" class="btn btn--primary btn--big">Завести комнату</button>
+    <div class="lobby-or"><span>или</span></div>
+    <label class="lobby-field">
+      <span>Код комнаты</span>
+      <input id="online-code" type="text" maxlength="5" autocapitalize="characters"
+             autocomplete="off" spellcheck="false" inputmode="text" placeholder="ABCDE" />
+    </label>
+    <button type="button" id="online-join" class="btn btn--ghost btn--big">Войти по коду</button>
+  </section>
+
+  <section id="online-room" class="lobby" hidden>
+    <div class="lobby-code">
+      <span class="lobby-code__label">Код комнаты</span>
+      <b id="lobby-code" class="lobby-code__value">—</b>
+      <button type="button" id="lobby-share" class="btn btn--ghost">Позвать друзей</button>
+      <span id="lobby-link" class="lobby-link" role="status"></span>
+    </div>
+
+    <ul id="lobby-players" class="lobby-players"></ul>
+
+    <div id="lobby-settings" class="lobby-settings">
+      <div class="lobby-setting">
+        <span class="lobby-setting__name">Чем кончится партия</span>
+        <div class="choice choice--wide" data-lobby="years" role="group" aria-label="Чем кончится партия">
+          <button type="button" data-value="3" aria-pressed="true">Юбилей на 3 год<small>≈ 12 мин</small></button>
+          <button type="button" data-value="5" aria-pressed="false">Юбилей на 5 год<small>≈ 20 мин</small></button>
+          <button type="button" data-value="7" aria-pressed="false">Юбилей на 7 год<small>≈ 35 мин</small></button>
+          <button type="button" data-value="last" aria-pressed="false">До последнего<small>пока кто-то не разорится</small></button>
+        </div>
+      </div>
+      <div class="lobby-setting">
+        <span class="lobby-setting__name">Соперников от игры</span>
+        <div class="choice" data-lobby="bots" role="group" aria-label="Соперников от игры">
+          <button type="button" data-value="0" aria-pressed="true">0</button>
+          <button type="button" data-value="1" aria-pressed="false">1</button>
+          <button type="button" data-value="2" aria-pressed="false">2</button>
+          <button type="button" data-value="3" aria-pressed="false">3</button>
+          <button type="button" data-value="4" aria-pressed="false">4</button>
+        </div>
+      </div>
+      <p id="lobby-hint" class="hint">Настройки меняет хозяин комнаты. За столом от двух до шести.</p>
+    </div>
+
+    <div class="lobby-actions">
+      <button type="button" id="lobby-ready" class="btn btn--ghost" aria-pressed="false">Я готов</button>
+      <button type="button" id="lobby-start" class="btn btn--primary btn--big">Начать партию</button>
+    </div>
+
+    <div class="lobby-chat">
+      <div id="lobby-chat-lines" class="lobby-chat__lines" aria-live="polite"></div>
+      <form id="lobby-chat-form" class="lobby-chat__form">
+        <input id="lobby-chat-text" type="text" maxlength="200" autocomplete="off"
+               placeholder="Сказать за столом" />
+        <button type="submit" class="btn btn--ghost">Сказать</button>
+      </form>
+    </div>
+
+    <p id="lobby-link-state" class="note"></p>
+  </section>
+
+  <div class="setup-actions">
+    <button type="button" id="online-back" class="btn btn--ghost">Назад</button>
+  </div>
 </main>
 
 <!-- ——— игра ——— -->
@@ -273,6 +400,23 @@
       <p>Серебро считается дёшево намеренно: в этой игре оно средство, а не цель. При равном
         наследии выигрывает тот, кто больше отдал десятиной.</p>
 
+      <h3>Игра по сети</h3>
+      <p>Кроме игры за одним столом есть игра по сети: каждый со своего телефона.
+        Кто-то один заводит комнату и называет остальным её код из пяти знаков —
+        или посылает ссылку кнопкой «Позвать друзей». За столом по-прежнему от двух
+        до шести; недостающих можно добрать соперниками от игры.</p>
+      <p>Партию начинает хозяин комнаты — тот, кто её завёл, — и только когда
+        остальные объявили себя готовыми. Он же выбирает срок партии. Если хозяин
+        уйдёт, комната не замирает: хозяином становится следующий из оставшихся.</p>
+      <p>Ходят по очереди, и кнопки хода есть только у того, чей ход; остальные
+        видят, кого ждут. Доска, деньги и уделы считаются не на телефоне, а в
+        комнате, одинаково для всех — поэтому сделать чужой ход или поправить себе
+        серебро нельзя даже в обход кнопок.</p>
+      <p>Если связь пропала, ход не теряется: он уйдёт, как только связь вернётся,
+        а вернувшийся в комнату получает своё место со всеми своими уделами и
+        долгами. Ушедший посреди партии остаётся за столом: его земля никуда не
+        девается, и юбилей считает её.</p>
+
       <h3>Уделы и цены</h3>
       <div id="rules-rents" class="rules-rents"></div>
       <p>Караванные пути — 200 сиклей, источники — 150. В начале у каждого 1500 сиклей,
@@ -296,6 +440,7 @@
 <script src="cards.js"></script>
 <script src="engine.js"></script>
 <script src="bots.js"></script>
+<script src="net.js"></script>
 <script src="figures3d.js"></script>
 <script src="board3d.js"></script>
 <script src="tutorial.js"></script>

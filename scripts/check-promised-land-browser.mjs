@@ -78,6 +78,9 @@ async function play(width, height, years) {
   page.on('pageerror', (error) => errors.push(String(error)));
 
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; настройки партии за ним, и до выбора
+  // они скрыты: нажимать в них что-либо раньше нечего.
+  await page.locator('.mode-card[data-mode="solo"]').click();
   await page.locator(`.choice[data-key="years"] button[data-value="${years}"]`).click();
   await page.locator('#start-btn').click();
   await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
@@ -229,6 +232,8 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; правила и настройки за ним.
+  await page.locator('.mode-card[data-mode="solo"]').click();
   await page.locator('#rules-btn').click();
   await page.waitForSelector('#rules:not([hidden])', { timeout: 3_000 });
   const groups = await page.locator('.rule-group').count();

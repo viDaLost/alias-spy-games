@@ -120,10 +120,342 @@
 
   // ————————————————————————————————————————————————— начало партии
 
-  function setupScreen() {
-    $('setup').hidden = false;
+  /*
+    Экраны до партии. Их три: выбор способа игры, настройки партии за одним
+    столом и комната для игры по сети. Показывается всегда ровно один — иначе
+    на телефоне они лягут друг под другом и экран поедет.
+  */
+  function showScreen(name) {
+    for (const id of ['mode', 'setup', 'online']) {
+      const node = $(id);
+      if (node) node.hidden = id !== name;
+    }
     $('game').hidden = true;
     $('jubilee').hidden = true;
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function modeScreen() {
+    showScreen('mode');
+    for (const card of document.querySelectorAll('.mode-card')) {
+      card.addEventListener('click', () => {
+        if (card.dataset.mode === 'online') { showScreen('online'); startOnline(); return; }
+        // Уходя за один стол, комнату надо оставить: иначе место в ней держится
+        // за ушедшим, а стол на шестерых считает и его.
+        leaveRoom();
+        showScreen('setup');
+      });
+    }
+    $('mode-rules-btn')?.addEventListener('click', () => { $('rules').hidden = false; });
+  }
+
+  // ————————————————————————————————————————————————— комната по сети
+
+  /*
+    Игра по сети. Партию здесь не считают: доска, деньги и уделы живут на
+    сервере, а отсюда уходит только имя хода — «бросить», «купить», «строить
+    вот здесь». Иначе честной игры не выйдет: состояние, лежащее в браузере,
+    правится во вкладке разработчика за полминуты.
+
+    Поэтому кнопки хода ниже не раздваиваются на «за столом» и «по сети». Они
+    просят ход по имени у act, и одно это место решает, звать ли движок рядом
+    или отнести просьбу на сервер.
+  */
+  const Net = window.PromisedLandNet;
+
+  let link = null;      // связь с комнатой; она же признак того, что игра по сети
+  let roomView = null;  // последний присланный вид комнаты
+  let mySeat = '';      // моё место за столом: «p0», «p1» …
+  let onlineBound = false;
+  // Гость, ушедший со счётного экрана ждать в комнату. Без этой отметки его
+  // возвращала бы на счёт каждая рассылка: партия кончилась, а комната всё ещё
+  // числится играющей, пока хозяин не вернёт в неё всех.
+  let waitingInLobby = false;
+  // Состояния приходят чередой, а показ хода занимает секунду с лишним. Без
+  // очереди второй ход начал бы рисоваться поверх первого, и фишка поехала бы
+  // из места, в котором её уже нет.
+  let viewChain = Promise.resolve();
+
+  function act(name, ...args) {
+    if (link) { link.send('game', { name, args }); return true; }
+    return E[name](state, ...args);
+  }
+
+  function startOnline() {
+    if (!Net) { onlineFail('Игра по сети здесь недоступна.'); return; }
+    if (!onlineBound) { bindOnline(); onlineBound = true; }
+    onlineFail('');
+    const me = Net.identity();
+    if (!$('online-name').value) $('online-name').value = me.name || '';
+    // Позвали ссылкой — код уже в адресе, и набирать его руками незачем.
+    const invited = new URLSearchParams(location.search).get('room');
+    if (invited && !$('online-code').value) {
+      $('online-code').value = String(invited).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5);
+    }
+    showResume();
+  }
+
+  /** Кнопка возвращения — только когда возвращаться есть куда. */
+  function showResume() {
+    const saved = Net.lastRoom();
+    const button = $('online-resume');
+    button.hidden = !saved;
+    if (saved) button.textContent = `Вернуться в комнату ${saved.roomId}`;
+  }
+
+  function bindOnline() {
+    $('online-back').addEventListener('click', () => { leaveRoom(); showScreen('mode'); });
+    $('online-resume').addEventListener('click', async () => {
+      const saved = Net.lastRoom();
+      if (!saved) { showResume(); return; }
+      const returned = await enterRoom(() => Net.rejoin(saved.roomId, saved.token));
+      // Комнаты уже нет или ключ протух — незачем звать туда второй раз.
+      if (!returned) { Net.forgetRoom(); showResume(); }
+    });
+    $('online-create').addEventListener('click', () => enterRoom(() => Net.createRoom(nameField())));
+    $('online-join').addEventListener('click', () => {
+      const code = $('online-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (code.length < 4) { onlineFail('Код комнаты — пять знаков.'); return; }
+      enterRoom(() => Net.joinRoom(code, nameField()));
+    });
+    $('lobby-ready').addEventListener('click', () => link?.send('ready', { ready: !roomView?.you?.ready }));
+    $('lobby-start').addEventListener('click', () => link?.send('start'));
+    $('lobby-share').addEventListener('click', shareRoom);
+    $('lobby-chat-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const field = $('lobby-chat-text');
+      const text = field.value.trim();
+      if (!text) return;
+      link?.send('chat', { text });
+      field.value = '';
+    });
+    /*
+      Настройки нажимаются у всех, а меняет их хозяин. Кнопки гостю не просто
+      не отвечают — они выключены: нажимать то, что ничего не делает, хуже, чем
+      видеть, что нажимать нельзя.
+    */
+    $('lobby-settings').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-value]');
+      if (!button || !roomView?.youAreHost) return;
+      const group = button.closest('.choice');
+      const ending = group?.dataset.lobby === 'years' ? button.dataset.value : endingOf(roomView.settings);
+      const bots = group?.dataset.lobby === 'bots'
+        ? Number(button.dataset.value)
+        : Number(roomView.settings.bots || 0);
+      link?.send('settings', {
+        mode: ending === 'last' ? 'last' : 'jubilee',
+        years: ending === 'last' ? 7 : Number(ending),
+        bots,
+      });
+    });
+  }
+
+  const endingOf = (settings) => (settings?.mode === 'last' ? 'last' : String(settings?.years || 3));
+
+  function nameField() {
+    const value = $('online-name').value.trim();
+    Net.rememberName(value);
+    return value;
+  }
+
+  async function enterRoom(run) {
+    onlineFail('');
+    $('online-create').disabled = true;
+    $('online-join').disabled = true;
+    try {
+      const answer = await run();
+      link = Net.open({
+        roomId: answer.roomId,
+        token: answer.token,
+        onView: applyRoom,
+        onError: (error) => onlineFail(error?.error || error?.message || ''),
+        onLink: (mode) => {
+          $('lobby-link-state').textContent = mode === 'socket'
+            ? '' : 'Связь держится опросом: ход дойдёт за секунду.';
+        },
+      });
+      Net.remember(answer.roomId, answer.token);
+      $('online-gate').hidden = true;
+      $('online-room').hidden = false;
+      if (answer.view) applyRoom(answer.view);
+      return true;
+    } catch (error) {
+      onlineFail(error?.message || 'Комната не отозвалась.');
+      return false;
+    } finally {
+      $('online-create').disabled = false;
+      $('online-join').disabled = false;
+    }
+  }
+
+  function leaveRoom() {
+    if (!link) return;
+    const closing = link;
+    closing.send('leave');
+    link = null;
+    roomView = null;
+    mySeat = '';
+    waitingInLobby = false;
+    state = null;
+    // Связь рвётся не сразу: «ушёл» надо донести, а закрытая связь его не донесёт.
+    setTimeout(() => closing.close(), 500);
+    Net.forgetRoom();
+    $('online-gate').hidden = false;
+    $('online-room').hidden = true;
+    $('lobby-link-state').textContent = '';
+    showResume();
+  }
+
+  function applyRoom(view) {
+    if (!view) return;
+    roomView = view;
+    mySeat = view.seat || '';
+    const over = Boolean(view.game) && view.game.status !== 'playing';
+    if (view.phase === 'playing' && view.game && !(waitingInLobby && over)) {
+      waitingInLobby = false;
+      showOnlineGame(view);
+      return;
+    }
+    // Хозяин вернул всех в комнату: партия кончилась или прервана.
+    if ($('online').hidden) {
+      state = null;
+      $('game').hidden = true;
+      $('jubilee').hidden = true;
+      $('online').hidden = false;
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    renderLobby(view);
+  }
+
+  function showOnlineGame(view) {
+    if ($('game').hidden) {
+      for (const id of ['mode', 'setup', 'online']) { const node = $(id); if (node) node.hidden = true; }
+      $('jubilee').hidden = true;
+      $('game').hidden = false;
+      state = view.game;
+      buildRing();
+      setupScene();
+      render();
+      return;
+    }
+    viewChain = viewChain.then(() => showIncoming(view.game)).catch(() => {});
+  }
+
+  /*
+    Пришедший ход. Показывается он так же, как свой: кости кувыркаются, фишка
+    идёт по клеткам. Иначе чужой ход выглядел бы телепортацией — фишка просто
+    оказывается в другом месте, и почему она там, никто не понял бы.
+
+    Не всякая перемена — бросок: карта уводит фишку через полполя, и отыгрывать
+    такое шагами нельзя. Признак настоящего броска один: до хода ждали жребия, а
+    прошло ровно столько клеток, сколько выпало.
+  */
+  async function showIncoming(next) {
+    if (!next) return;
+    const before = state;
+    state = next;
+    if (!before || !scene || rolling || before.turn !== next.turn) { render(); return; }
+    const index = next.turn;
+    const from = before.players[index].pos;
+    const steps = (next.players[index].pos - from + B.BOARD.length) % B.BOARD.length;
+    if (before.phase === 'roll' && steps > 0 && steps === next.dice[0] + next.dice[1]) {
+      rolling = true;
+      await scene.roll(next.dice[0], next.dice[1]);
+      await scene.walk(next, index, from, steps);
+      rolling = false;
+    }
+    render();
+  }
+
+  function renderLobby(view) {
+    $('lobby-code').textContent = view.roomId || '—';
+    const list = $('lobby-players');
+    list.innerHTML = '';
+    view.players.forEach((one, index) => {
+      const row = el('li', 'lobby-player');
+      row.style.setProperty('--who', PLAYER_COLORS[index % PLAYER_COLORS.length]);
+      row.appendChild(el('b', 'lobby-player__name', one.name));
+      const tags = el('span', 'lobby-player__tags');
+      if (one.host) tags.appendChild(el('i', 'lobby-tag is-host', 'хозяин'));
+      if (!one.online) tags.appendChild(el('i', 'lobby-tag is-away', 'нет связи'));
+      if (one.ready && !one.host) tags.appendChild(el('i', 'lobby-tag is-ready', 'готов'));
+      row.appendChild(tags);
+      list.appendChild(row);
+    });
+    const bots = Number(view.settings?.bots || 0);
+    for (let i = 0; i < bots; i += 1) {
+      const row = el('li', 'lobby-player is-bot');
+      row.appendChild(el('b', 'lobby-player__name', BOT_NAMES[i]));
+      row.appendChild(el('span', 'lobby-player__tags', 'от игры'));
+      list.appendChild(row);
+    }
+
+    for (const group of $('lobby-settings').querySelectorAll('.choice')) {
+      const value = group.dataset.lobby === 'years' ? endingOf(view.settings) : String(bots);
+      for (const button of group.querySelectorAll('button[data-value]')) {
+        button.setAttribute('aria-pressed', String(button.dataset.value === value));
+        button.disabled = !view.youAreHost;
+      }
+    }
+    $('lobby-hint').textContent = view.youAreHost
+      ? `За столом ${view.tableSize} из ${view.maxPlayers}. Партия идёт от двоих.`
+      : 'Срок партии и число соперников выбирает хозяин комнаты.';
+
+    const ready = $('lobby-ready');
+    ready.hidden = Boolean(view.youAreHost);
+    ready.textContent = view.you?.ready ? 'Я ещё не готов' : 'Я готов';
+    ready.setAttribute('aria-pressed', String(Boolean(view.you?.ready)));
+    const start = $('lobby-start');
+    start.hidden = !view.youAreHost;
+    start.disabled = !view.canStart;
+
+    const lines = $('lobby-chat-lines');
+    lines.innerHTML = '';
+    for (const line of (view.chat || []).slice(-30)) {
+      const row = el('div', 'lobby-chat__line');
+      row.appendChild(el('b', null, line.name));
+      row.appendChild(el('span', null, line.text));
+      lines.appendChild(row);
+    }
+    lines.scrollTop = lines.scrollHeight;
+  }
+
+  /*
+    Позвать друзей. Внутри приложения ни «поделиться», ни буфер обмена могут
+    быть недоступны — кадру их не всегда дают. Поэтому отказ здесь не ошибка:
+    код комнаты просто показывается рядом, и его продиктуют вслух.
+  */
+  async function shareRoom() {
+    const code = roomView?.roomId || '';
+    if (!code) return;
+    const address = `${location.origin}${location.pathname}?room=${code}`;
+    const text = `Заходите в «Землю обетованную». Код комнаты: ${code}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Земля обетованная', text, url: address }); return; }
+      await navigator.clipboard.writeText(`${text}\n${address}`);
+      linkNote('Ссылка и код скопированы.');
+    } catch {
+      linkNote(`Код комнаты: ${code}`);
+    }
+  }
+
+  let linkNoteTimer = 0;
+  function linkNote(text) {
+    $('lobby-link').textContent = text;
+    clearTimeout(linkNoteTimer);
+    linkNoteTimer = setTimeout(() => { $('lobby-link').textContent = ''; }, 5000);
+  }
+
+  function onlineFail(text) {
+    const node = $('online-error');
+    node.textContent = text || '';
+    node.hidden = !text;
+  }
+
+  function setupScreen() {
+    $('game').hidden = true;
+    $('jubilee').hidden = true;
+    $('setup-back')?.addEventListener('click', () => showScreen('mode'));
     $('start-btn').addEventListener('click', startGame);
     for (const group of document.querySelectorAll('.choice')) {
       group.addEventListener('click', (event) => {
@@ -172,7 +504,7 @@
       players.push({ name: BOT_NAMES[i], isBot: true, botLevel: i % 2 ? 'scribe' : 'elder' });
     }
     state = E.createGame({ players, years, mode });
-    $('setup').hidden = true;
+    for (const id of ['mode', 'setup', 'online']) { const node = $(id); if (node) node.hidden = true; }
     $('game').hidden = false;
     buildRing();
     setupScene();
@@ -601,12 +933,20 @@
       sheetOpen = !sheetOpen;
       render();
     });
+    /*
+      По сети кнопки хода есть только у того, чей ход. Сервер чужой ход и так не
+      примет, но узнавать об этом, нажав и получив отказ, — плохо: за одним
+      столом очередь видна сама собой, а тут её должно быть видно на экране.
+    */
+    if (link && player.id !== mySeat) {
+      main.appendChild(el('div', 'waiting', `${player.name} ходит…`));
+      addSide(side, sheetButton);
+      return;
+    }
     if (player.isBot || autoPlay) {
       main.appendChild(el('div', 'waiting',
         player.isBot ? `${player.name} ходит…` : 'Играю за вас…'));
-      side.appendChild(sheetButton);
-      side.appendChild(autoButton());
-      side.appendChild(paceButton());
+      addSide(side, sheetButton);
       return;
     }
 
@@ -622,12 +962,10 @@
     if (state.pending && state.pending.type === 'card') {
       main.appendChild(button('Принять', 'primary', async () => {
         if (scene) { await scene.returnCard(); dealtCard = null; }
-        E.takeCard(state);
+        act('takeCard');
         after();
       }));
-      side.appendChild(sheetButton);
-      side.appendChild(autoButton());
-      side.appendChild(paceButton());
+      addSide(side, sheetButton);
       return;
     }
 
@@ -640,13 +978,11 @@
       const cost = state.pending.cost;
       if (player.silver >= cost) {
         main.appendChild(button(`Сдержать слово: ступень ${cost}`, 'primary',
-          () => { E.keepPromise(state); after(); }));
+          () => { act('keepPromise'); after(); }));
       }
       main.appendChild(button('Отложить слово и заплатить', player.silver >= cost ? 'ghost' : 'primary',
-        () => { E.breakPromise(state); after(); }));
-      side.appendChild(sheetButton);
-      side.appendChild(autoButton());
-      side.appendChild(paceButton());
+        () => { act('breakPromise'); after(); }));
+      addSide(side, sheetButton);
       return;
     }
 
@@ -662,18 +998,18 @@
         const holder = state.players.find((p) => p.id === deal.ownerId);
         if (player.silver >= deal.build + deal.half) {
           main.appendChild(button(`Построить ${deal.build} и заплатить ${deal.half}`, 'ghost',
-            () => { E.dealBuild(state, true); after(); }));
+            () => { act('dealBuild', true); after(); }));
         }
         if (player.silver >= deal.build) {
           main.appendChild(button(`Уговор: построить ${deal.build}, платы нет`, 'ghost',
-            () => { E.dealBuild(state, false); after(); }));
+            () => { act('dealBuild', false); after(); }));
         }
         if (holder) {
           noteOnCard(`По уговору ${holder.name} ответит вам ступенью на вашей земле.`);
         }
       }
       if (player.silver >= owed) {
-        main.appendChild(button(`Заплатить ${owed}`, 'primary', () => { E.settle(state); after(); }));
+        main.appendChild(button(`Заплатить ${owed}`, 'primary', () => { act('settle'); after(); }));
       } else {
         /*
           Заложить — прежде чем продавать: заложенное можно выкупить, проданное
@@ -684,16 +1020,14 @@
         if (offers.length) {
           const n = offers[0];
           main.appendChild(button(`Заложить «${B.BOARD[n].name}»`, 'primary',
-            () => { E.pledge(state, n); after(); }));
+            () => { act('pledge', n); after(); }));
         }
         if (E.liquidValue(state, player) >= owed) {
-          main.appendChild(button(`Продать и заплатить ${owed}`, 'ghost', () => { E.settle(state, true); after(); }));
+          main.appendChild(button(`Продать и заплатить ${owed}`, 'ghost', () => { act('settle', true); after(); }));
         }
-        main.appendChild(button('Пойти в наём', 'ghost', () => { E.serve(state); after(); }));
+        main.appendChild(button('Пойти в наём', 'ghost', () => { act('serve'); after(); }));
       }
-      side.appendChild(sheetButton);
-      side.appendChild(autoButton());
-      side.appendChild(paceButton());
+      addSide(side, sheetButton);
       return;
     }
 
@@ -701,6 +1035,13 @@
       const cast = button('Бросить жребий', 'primary', async () => {
         if (rolling) return;
         cast.disabled = true;
+        /*
+          По сети жребий бросает сервер, а показывают его все разом — и тот,
+          кто бросил, и остальные, когда придёт новое состояние (см.
+          showIncoming). Крутить кости здесь значило бы показать бросок раньше,
+          чем он случился, и вдобавок не тот.
+        */
+        if (link) { act('roll'); return; }
         rolling = true;
         await animatedRoll(() => E.roll(state));
         rolling = false;
@@ -714,18 +1055,28 @@
       */
       if (E.canBail(state, player)) {
         main.appendChild(button(`Выкуп ${B.BAIL} — выйти из темницы`, 'ghost', () => {
-          E.bail(state);
+          act('bail');
           after();
         }));
       }
     } else if (state.pending && state.pending.type === 'buy') {
       const spec = B.BOARD[state.pending.cell];
-      main.appendChild(button(`Купить за ${spec.price}`, 'primary', () => { E.buy(state); after(); }));
-      main.appendChild(button('Отказаться', 'ghost', () => { E.decline(state); after(); }));
+      main.appendChild(button(`Купить за ${spec.price}`, 'primary', () => { act('buy'); after(); }));
+      main.appendChild(button('Отказаться', 'ghost', () => { act('decline'); after(); }));
     } else {
-      main.appendChild(button('Закончить ход', 'primary', () => { E.endTurn(state); after(); }));
+      main.appendChild(button('Закончить ход', 'primary', () => { act('endTurn'); after(); }));
     }
+    addSide(side, sheetButton);
+  }
+
+  /*
+    Правая полка кнопок. Уделы там всегда, а темп и автоигра — только за одним
+    столом: по сети темпом правит сервер, один на всех, а автоигра ходила бы за
+    живого человека, пока он думает.
+  */
+  function addSide(side, sheetButton) {
     side.appendChild(sheetButton);
+    if (link) return;
     side.appendChild(autoButton());
     side.appendChild(paceButton());
   }
@@ -768,10 +1119,19 @@
     if (!sheetOpen) return;
     sheet.innerHTML = '';
     const turnPlayer = E.current(state);
-    const player = turnPlayer.isBot
-      ? (state.players.find((p) => p.id === lastHumanId) || turnPlayer)
-      : turnPlayer;
-    const busy = turnPlayer.isBot || state.phase === 'decide';
+    /*
+      Чьи уделы показывать. За одним столом — того, чей ход (а пока ходит
+      соперник, последнего живого). По сети — всегда свои: чужой кошелёк тут не
+      мой, и показывать его вместо своего значит показывать чужое.
+    */
+    const player = link
+      ? (state.players.find((p) => p.id === mySeat) || turnPlayer)
+      : (turnPlayer.isBot
+        ? (state.players.find((p) => p.id === lastHumanId) || turnPlayer)
+        : turnPlayer);
+    const busy = link
+      ? (turnPlayer.id !== mySeat || state.phase === 'decide')
+      : (turnPlayer.isBot || state.phase === 'decide');
     if (turnPlayer.isBot) sheet.appendChild(el('p', 'empty', `Ходит ${turnPlayer.name}. Действия появятся в ваш ход.`));
 
     const mine = state.cells
@@ -803,7 +1163,7 @@
       const acts = el('div', 'holding-acts');
       if (E.canRedeemPledge(state, player, n) && !busy) {
         acts.appendChild(button(`Выкупить ${cell.pledge.debt}`, 'small',
-          () => { E.redeemPledge(state, n); render(); }));
+          () => { act('redeemPledge', n); render(); }));
       }
       row.appendChild(acts);
       sheet.appendChild(row);
@@ -827,13 +1187,13 @@
 
       const acts = el('div', 'holding-acts');
       if (E.canBuild(state, player, n) && !busy) {
-        acts.appendChild(button(`Строить ${B.GROUPS[spec.group].build}`, 'small', () => { E.build(state, n); render(); }));
+        acts.appendChild(button(`Строить ${B.GROUPS[spec.group].build}`, 'small', () => { act('build', n); render(); }));
       }
       if (E.canAltar(state, player, n) && !busy) {
-        acts.appendChild(button(`Жертвенник ${B.GROUPS[spec.group].build}`, 'small alt', () => { E.altar(state, n); render(); }));
+        acts.appendChild(button(`Жертвенник ${B.GROUPS[spec.group].build}`, 'small alt', () => { act('altar', n); render(); }));
       }
       if (E.canSell(state, player, n) && !busy) {
-        acts.appendChild(button('Продать', 'small ghost', () => { E.sell(state, n); render(); }));
+        acts.appendChild(button('Продать', 'small ghost', () => { act('sell', n); render(); }));
       }
       row.appendChild(acts);
       sheet.appendChild(row);
@@ -851,7 +1211,7 @@
         row.appendChild(info);
         const acts = el('div', 'holding-acts');
         if (E.canRedeem(state, player, debtor.id) && !busy) {
-          acts.appendChild(button(`Выкупить ${debtor.debt}`, 'small', () => { E.redeem(state, debtor.id); render(); }));
+          acts.appendChild(button(`Выкупить ${debtor.debt}`, 'small', () => { act('redeem', debtor.id); render(); }));
         }
         row.appendChild(acts);
         sheet.appendChild(row);
@@ -907,7 +1267,21 @@
     winner.innerHTML = '';
     winner.appendChild(img(art('icons', 'ui-jubilee'), 'winner-icon', ''));
     winner.appendChild(el('span', null, `${state.scores[0].name} — ${state.scores[0].total} наследия`));
-    $('again-btn').onclick = () => location.reload();
+    const again = $('again-btn');
+    /*
+      «Ещё раз» по сети — не перезагрузка страницы: та выкинула бы игрока из
+      комнаты, где остались остальные. Хозяин возвращает в комнату всех, гость —
+      только себя, и ждёт там нового начала.
+    */
+    again.textContent = link ? (roomView?.youAreHost ? 'Вернуться в комнату' : 'В комнату') : 'Ещё раз';
+    again.onclick = () => {
+      if (!link) { location.reload(); return; }
+      if (roomView?.youAreHost) { link.send('backToLobby'); return; }
+      waitingInLobby = true;
+      $('jubilee').hidden = true;
+      $('online').hidden = false;
+      if (roomView) renderLobby(roomView);
+    };
   }
 
   // ————————————————————————————————————————————————— цикл
@@ -973,6 +1347,9 @@
   */
   function scheduleBot() {
     clearTimeout(botTimer);
+    // По сети соперников ведёт сервер: шесть устройств, каждое со своим
+    // таймером, ходили бы за одного и того же соперника наперегонки.
+    if (link || !state) return;
     if (state.status !== 'playing') return;
     if (!E.current(state).isBot && !autoPlay) return;
     botTimer = setTimeout(async () => {
@@ -1194,5 +1571,6 @@
   }
 
   setupScreen();
+  modeScreen();
   fillRules();
 })();

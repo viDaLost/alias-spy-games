@@ -151,6 +151,108 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .setup-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .note { margin: 0; font-size: 13px; color: var(--ink-soft); }
 
+/* ——— выбор способа игры ——— */
+.mode-cards {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.mode-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  min-height: 116px; padding: 16px; border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--surface); background-image: var(--tilt);
+  box-shadow: var(--lift-2), var(--edge-top);
+  color: var(--ink); font: inherit; cursor: pointer;
+}
+.mode-card:active { transform: translateY(1px); box-shadow: var(--lift-1); }
+.mode-card:focus-visible { outline: 3px solid var(--primary-2); outline-offset: 2px; }
+.mode-card__kind {
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 600;
+}
+.mode-card__title { font-size: 21px; font-weight: 700; line-height: 1.1; }
+.mode-card__note { font-size: 13.5px; color: var(--ink-soft); line-height: 1.4; }
+
+/* ——— комната по сети ——— */
+.intro--tight { padding-top: 6px; }
+.online-error {
+  margin: 0; padding: 10px 12px; border-radius: 12px; font-size: 13.5px;
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+}
+.lobby-gate, .lobby { display: flex; flex-direction: column; gap: 12px; }
+.lobby-field {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--ink-soft);
+}
+/*
+  Шестнадцать точек в поле ввода — не вкус: Safari на iPhone приближает страницу
+  к любому полю мельче, и после набора имени доска оказывалась увеличенной.
+*/
+.lobby-field input {
+  min-height: 48px; padding: 0 14px; border-radius: 14px;
+  border: 1px solid var(--line-strong); background: var(--surface-soft);
+  color: var(--ink); font: inherit; font-size: 16px;
+}
+#online-code { text-transform: uppercase; letter-spacing: .22em; font-weight: 700; }
+.lobby-or { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-soft); }
+.lobby-or::before, .lobby-or::after { content: ''; flex: 1 1 auto; height: 1px; background: var(--line); }
+
+.lobby-code {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 14px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--surface); background-image: var(--tilt);
+  box-shadow: var(--lift-1);
+}
+.lobby-code__label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.lobby-code__value { font-size: 26px; font-weight: 800; letter-spacing: .2em; }
+.lobby-link { flex: 1 1 100%; font-size: 12.5px; color: var(--ink-soft); }
+
+.lobby-players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.lobby-player {
+  --who: var(--primary);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; border-radius: 14px;
+  border: 1px solid var(--line); border-left: 4px solid var(--who);
+  background: var(--surface-soft);
+}
+.lobby-player.is-bot { opacity: .72; border-left-color: var(--ink-soft); }
+.lobby-player__name { font-size: 15px; }
+.lobby-player__tags {
+  margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--ink-soft);
+}
+.lobby-tag { font-style: normal; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); }
+.lobby-tag.is-host { color: var(--ink); }
+.lobby-tag.is-ready { background: var(--primary); color: #fff; border-color: transparent; }
+.lobby-tag.is-away { opacity: .7; }
+
+.lobby-settings {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); background-image: var(--tilt);
+}
+.lobby-setting { display: flex; flex-direction: column; gap: 8px; }
+.lobby-setting__name { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.lobby-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.lobby-chat { display: flex; flex-direction: column; gap: 8px; }
+.lobby-chat__lines {
+  min-height: 92px; max-height: 32vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px; border-radius: 14px; font-size: 13.5px;
+  border: 1px solid var(--line); background: var(--surface-soft);
+}
+.lobby-chat__line { display: flex; gap: 8px; }
+.lobby-chat__line b { flex: 0 0 auto; font-weight: 600; color: var(--ink-soft); }
+.lobby-chat__line span { min-width: 0; overflow-wrap: anywhere; }
+.lobby-chat__form { display: flex; gap: 8px; }
+.lobby-chat__form input {
+  flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--line-strong); border-radius: 14px;
+  background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 16px;
+}
+
 /* ——— кнопки ——— */
 .btn {
   min-height: 48px; padding: 0 18px; border-radius: 14px; border: 1px solid transparent;
@@ -865,6 +967,32 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   .modal-card--cell { max-width: 520px; }
   .cell-art { height: 120px; }
   .cell-art--icon { height: 92px; }
+
+  /*
+    Комната боком. Стол и настройки встают рядом, а переписка — во всю ширину
+    под ними: читать её в колонке шириной в половину экрана, где и так низко,
+    нечем.
+  */
+  .mode-cards { grid-template-columns: 1fr 1fr; }
+  #online {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: start; gap: 10px 14px;
+  }
+  #online .intro, #online .setup-actions, #online-error, #online-room {
+    grid-column: 1 / -1;
+  }
+  #online .intro { flex-direction: row; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 0; }
+  #online .lede { flex: 1 1 300px; font-size: 13px; }
+  #online .eyebrow { display: none; }
+  #online-gate { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; align-items: end; }
+  #online-gate .lobby-or { grid-column: 1 / -1; }
+  #online-room {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px 14px; align-items: start;
+  }
+  #online-room .lobby-code, #online-room .lobby-actions,
+  #online-room .lobby-chat, #online-room .note { grid-column: 1 / -1; }
+  .lobby-chat__lines { max-height: 22vh; }
 }
 
 /*

@@ -265,6 +265,8 @@ let spend = null;
 let card = null;
 try {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; настройки партии за ним.
+  await page.locator('.mode-card[data-mode="solo"]').click();
   await page.locator('#start-btn').click();
   await page.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
   await page.waitForTimeout(900);
@@ -901,6 +903,8 @@ try {
   const tableErrors = [];
   table.on('pageerror', (error) => tableErrors.push(String(error)));
   await table.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; настройки партии за ним.
+  await table.locator('.mode-card[data-mode="solo"]').click();
   await table.locator('.choice[data-key="bots"] button[data-value="5"]').click();
   await table.locator('.choice[data-key="years"] button[data-value="last"]').click();
   await table.locator('#start-btn').click();
@@ -988,6 +992,8 @@ try {
   const sideErrors = [];
   wide.on('pageerror', (error) => sideErrors.push(String(error)));
   await wide.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; настройки партии за ним.
+  await wide.locator('.mode-card[data-mode="solo"]').click();
   await wide.locator('#start-btn').click();
   await wide.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
   await wide.waitForTimeout(700);
@@ -1023,6 +1029,8 @@ try {
   const tallErrors = [];
   tall.on('pageerror', (error) => tallErrors.push(String(error)));
   await tall.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; настройки партии за ним.
+  await tall.locator('.mode-card[data-mode="solo"]').click();
   await tall.locator('#start-btn').click();
   await tall.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
   const skipTall = tall.locator('#teach-skip');
@@ -1072,6 +1080,8 @@ try {
   });
   const upright = await side.newPage();
   await upright.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  // Первый экран — выбор способа игры; настройки партии за ним.
+  await upright.locator('.mode-card[data-mode="solo"]').click();
   await upright.locator('#start-btn').click();
   await upright.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
   const skipUp = upright.locator('#teach-skip');
