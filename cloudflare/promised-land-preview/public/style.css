@@ -1022,34 +1022,32 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 */
 @media (orientation: portrait) {
   .screen { padding-bottom: 16px; }
-  /*
-    Экран партии — сам себе колонка во всю высоту. Колонкой он и был, но без
-    заданной высоты: колонка кончалась там же, где содержимое, и доске нечего
-    было занимать. Теперь у неё есть высота экрана, и лишнее достаётся доске.
-
-    Высота задаётся здесь же, а не наследуется от .screen: у этого правила вес
-    больше, и любое «min-height» отсюда перебивает общее — в том числе ноль,
-    которым я сам его однажды и обнулил.
-  */
+  /* The document scrolls; cards must never compete for leftover screen height. */
   #game.has-3d {
-    display: flex; flex-direction: column; gap: 12px;
-    /*
-      Высота задана, а не «не меньше»: от «не меньше» колонка растёт под
-      содержимое, и длинная карточка удела не прокручивается внутри себя, а
-      выталкивает страницу за край экрана. С заданной высотой сжиматься
-      приходится тому, кому велено, — карточке.
-    */
-    height: 100%; min-height: 100%;
+    display: flex; flex-direction: column; gap: 10px;
+    height: auto; min-height: 0;
+    padding-top: 8px;
   }
+  #game.has-3d > * { flex-shrink: 0; }
+  #game.has-3d > .hud { margin: 0; padding-top: 0; }
   #game.has-3d > .ring-wrap.is-3d {
-    flex: 0 0 auto; aspect-ratio: auto; height: 42vh; min-height: 190px;
+    flex: 0 0 auto; aspect-ratio: auto;
+    height: clamp(220px, 38vh, 380px); min-height: 0;
     margin-block: 0;
   }
   #game.has-3d > .ring-core--below {
-    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    flex: 0 0 auto; min-height: 0; height: auto; max-height: none;
+    overflow: visible; justify-content: flex-start;
+    padding: 14px; margin-bottom: 0;
   }
-  /* Лента событий стоймя уходит: последние события и так видны в карточке. */
-  #game.has-3d > .feed { display: none; }
+  #game.has-3d .core-name { font-size: 22px; line-height: 1.2; }
+  #game.has-3d .core-note { font-size: 16px; line-height: 1.5; max-width: none; }
+  #game.has-3d > .feed {
+    display: flex; order: 1; max-height: 220px;
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  #game.has-3d > .players { order: 2; }
+  #game .feed-line { font-size: 15px; line-height: 1.5; color: var(--ink); }
   /*
     Ярус мелких кнопок стоймя делится на три, и на узком телефоне «Мои уделы»
     в них не помещается в строку. Кегль здесь мельче главной кнопки не по
@@ -1068,3 +1066,35 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   * { transition: none !important; animation: none !important; }
   .cell:hover { transform: none; }
 }
+
+/* Content remains in flow, including long names and compact phone controls. */
+.lobby-code { flex-wrap: wrap; }
+.lobby-code > *, .lobby-player > *, .lobby-chat__form > * { min-width: 0; }
+.lobby-player__name, .lobby-chat__line, .lobby-link { overflow-wrap: anywhere; }
+.choice button, .btn { white-space: normal; overflow-wrap: anywhere; height: auto; }
+.lobby-chat__form input { width: 0; flex: 1 1 0; }
+.orientation-tip {
+  position: relative;
+  grid-column: 1 / -1;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  font-size: 13px;
+}
+.orientation-tip p { margin: 0; flex: 1; }
+.orientation-tip .btn { flex: 0 0 auto; }
+@media (orientation: landscape) { .orientation-tip { display: none; } }
+@media (max-width: 360px) {
+  .choice--wide button { flex-basis: 100%; }
+  .lobby-code .btn { flex: 1 1 100%; }
+}
+
+/* The parent already reserves Telegram chrome above the embedded document. */
+body.is-embedded { padding-top: 0; }
+.feed-title { margin: 0 0 6px; font-size: 15px; line-height: 1.4; }
+.feed-title + .feed-line { font-weight: 600; }
