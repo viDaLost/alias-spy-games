@@ -31,6 +31,7 @@ const CHECKS = [
   'check-bible-sketch-stage.mjs',
   'check-moses-nile-crocs.mjs',
   'check-moses-nile-vortex.mjs',
+  'check-promised-land-app.mjs',
   'check-promised-land-browser.mjs',
   'check-promised-land-3d.mjs',
   'check-moses-nile-safe-area.mjs',

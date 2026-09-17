@@ -34,6 +34,16 @@ const GAME_GROUPS = [
       { key: "describe", title: "Опиши, но не называй", desc: "Подсказки без прямого ответа", icon: "describe" },
       { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
+      /*
+        «Земля обетованная» пока открыта только главному администратору: игра
+        готова, но в общий список ещё не выпущена. Признак owner прячет
+        карточку у всех остальных и закрывает вход даже по прямому вызову —
+        см. renderGameButton и showGame.
+      */
+      {
+        key: "promised-land", title: "Земля обетованная",
+        desc: "Уделы, поселения и юбилей", icon: "promised-land", owner: true,
+      },
     ],
   },
   {
@@ -70,7 +80,16 @@ const MENU_ICON_SOURCES = {
   sacred: "web/assets/icons/sacred.webp",
   ark: "web/assets/icons/ark.webp",
   "moses-nile": "web/assets/icons/moses-nile.webp",
+  "promised-land": "web/assets/icons/promised-land.webp",
 };
+
+/*
+  Главный администратор. Роль ставит серверная проверка — та же, что у кнопки
+  админки (admin-rbac-root в admin-live-modal-safety.js), и приходит она
+  позже первой отрисовки меню. Поэтому карточка не «не рисуется», а рисуется
+  скрытой: появится, когда придёт роль, и не потребует перерисовывать меню.
+*/
+const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
 
 function menuIconHTML(type, title = "") {
   const src = MENU_ICON_SOURCES[type];
@@ -436,8 +455,9 @@ function openSupportChat() {
 }
 
 function renderGameButton(item) {
+  const gate = item.owner ? " game-card--owner" : "";
   return `
-    <button type="button" class="game-card" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
+    <button type="button" class="game-card${gate}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
@@ -681,6 +701,53 @@ function showGame(gameName) {
     источника: CSP это разрешает ('self'), а игра внутри дотягивается до
     Telegram у родителя, чтобы отключить жест закрытия.
   */
+  /*
+    «Земля обетованная» — тоже отдельная страница со своим three.js, моделями
+    и циклом кадров, и открывается тем же способом, что «Моисей на Ниле»:
+    фреймом того же происхождения, которое разрешает CSP.
+
+    Перед этим — замок. Игра пока открыта только главному администратору, и
+    скрытой карточки для этого мало: до showGame можно добраться и мимо неё.
+    Замок этот не от злоумышленника — в игре нечего красть, она раздаётся
+    статикой всем, у кого есть адрес, — а от того, чтобы игра не появилась у
+    людей раньше времени.
+  */
+  if (gameName === "promised-land") {
+    if (!isOwner()) {
+      if (menu) menu.classList.add("hidden");
+      document.body.dataset.mode = "game";
+      activeGameName = gameName;
+      document.body.dataset.currentGame = gameName;
+      if (container) {
+        container.innerHTML = `
+          <section class="app-error-card fade-in">
+            <h2>Игра ещё не открыта</h2>
+            <p>«Земля обетованная» пока проходит обкатку и доступна только администратору.</p>
+            <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
+          </section>`;
+      }
+      return;
+    }
+    if (menu) menu.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    document.body.dataset.currentGame = gameName;
+    activeGameName = gameName;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    if (container) {
+      const configured = String(document.querySelector('meta[name="promised-land-app"]')?.content || '').trim();
+      const base = configured || 'cloudflare/promised-land-preview/public/index.html';
+      const src = window.__gameFrameInsets?.seedUrl?.(base) || base;
+      container.innerHTML = `
+        <div class="game-frame-wrap">
+          <iframe class="game-frame" src="${escapeHTML(src)}"
+                  title="Земля обетованная" allow="autoplay; fullscreen"
+                  loading="eager"></iframe>
+          <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
+        </div>`;
+    }
+    return;
+  }
+
   if (gameName === "moses-nile") {
     if (menu) menu.classList.add("hidden");
     document.body.dataset.mode = "game";
