@@ -242,13 +242,19 @@
         frameOf: () => {
           const box = canvas.getBoundingClientRect();
           let bottom = 0;
-          // Полоса управления — всё, что лежит внизу поперёк экрана. Узкую
-          // карточку сюда не берём: она стоит сбоку и клеток не закрывает.
+          /*
+            Полоса управления — всё, что лежит внизу и закрывает доску.
+            Исключение одно: карточка клетки. Она стоит сбоку, клеток не
+            закрывает, и считать её полосой значило бы отдать ей высоту ни за
+            чем. Кнопки же считаются всегда, даже когда они собраны в угол:
+            узкие они или во всю ширину, доске под них заезжать нельзя.
+          */
           for (const id of ['teach', 'actions', 'players', 'feed', 'core']) {
             const node = $(id);
             if (!node || node.hidden || !node.offsetParent) continue;
             const rect = node.getBoundingClientRect();
-            if (rect.height === 0 || rect.width < box.width * 0.62) continue;
+            if (rect.height === 0) continue;
+            if (id === 'core' && rect.width < box.width * 0.62) continue;
             if (rect.top <= box.top) continue;
             bottom = Math.max(bottom, box.bottom - rect.top);
           }

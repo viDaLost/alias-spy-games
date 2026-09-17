@@ -381,6 +381,78 @@ try {
   need(people === 6, `из шести фишек людьми пришли ${people}`);
 
   /*
+    Зрители. Вокруг доски стоят люди и следят за игрой: поворачиваются к той
+    фишке, чей сейчас ход. Спрашивается и то, что они там есть, и то, что они
+    смотрят туда, куда надо, — иначе это не зрители, а восемь столбов.
+  */
+  const crowdWatch = await page.waitForFunction(() => {
+    const got = window.PromisedLandScene.stats();
+    return got.watchers === 8 ? got.watchers : false;
+  }, { timeout: 15_000 }).then((handle) => handle.jsonValue()).catch(() => 0);
+  need(crowdWatch === 8, `вокруг доски стоит ${crowdWatch} зрителей из восьми`);
+  // Спрашивать, куда они смотрят, есть смысл только когда они есть.
+  const looked = crowdWatch !== 8 ? null : await page.evaluate(async () => {
+    const scene = window.PromisedLandScene;
+    const before = scene.stats().watchAt;
+    const game = window.PromisedLandGame;
+    const state = game.state();
+    // Увести фишку подальше от того места, куда зрители смотрят сейчас.
+    const away = ((before == null ? 0 : before) + 12) % 36;
+    state.players[0].pos = away;
+    game.refresh();
+    await new Promise((done) => setTimeout(done, 1200));
+    return { before, after: scene.stats().watchAt, away };
+  });
+  if (looked) {
+    need(looked.after === looked.away,
+      `фишка ушла на клетку ${looked.away}, а зрители смотрят на ${looked.after}`);
+  }
+
+  /*
+    Приближение. Щипок обязан подпускать к клетке вплотную: постройку на ней
+    надо разглядывать, а не угадывать. Меряется это тем самым множителем, на
+    который умножается подобранное fit() расстояние: меньше значит ближе.
+
+    Щипок делается пальцами, а не заданием числа: числу можно присвоить что
+    угодно, а проверить надо, что до этого числа доводит палец.
+  */
+  const grip = await page.locator('#board3d').boundingBox();
+  const mid = { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 };
+  const pinchIn = async (from, to) => {
+    const one = await page.context().newPage().catch(() => null);
+    if (one) await one.close();
+    await page.touchscreen.tap(mid.x, mid.y).catch(() => {});
+    await page.evaluate(({ centre, start, end }) => {
+      const canvas = document.getElementById('board3d');
+      const send = (type, points) => {
+        for (const point of points) {
+          canvas.dispatchEvent(new PointerEvent(type, {
+            pointerId: point.id, clientX: point.x, clientY: point.y,
+            bubbles: true, cancelable: true, pointerType: 'touch',
+          }));
+        }
+      };
+      const pair = (gap) => ([
+        { id: 1, x: centre.x - gap / 2, y: centre.y },
+        { id: 2, x: centre.x + gap / 2, y: centre.y },
+      ]);
+      send('pointerdown', pair(start));
+      for (let i = 1; i <= 10; i += 1) {
+        send('pointermove', pair(start + (end - start) * (i / 10)));
+      }
+      send('pointerup', pair(end));
+    }, { centre: mid, start: from, end: to });
+    await page.waitForTimeout(250);
+    return page.evaluate(() => window.PromisedLandScene.stats().zoom);
+  };
+  // Пальцы разводятся — доска приближается: множитель расстояния падает.
+  const near = await pinchIn(80, 620);
+  need(near <= 0.45,
+    `щипок подпустил только до ${near.toFixed(2)} — клетку вблизи не рассмотреть`);
+  await page.locator('#view-home').click({ timeout: 4_000 }).catch(() => {});
+  await page.waitForTimeout(900);
+
+  /*
     Значки особых клеток. Считаются не по пикселям, а по числу дорисованных в
     полотно подписей картинок: на доске они размером с ноготь, и глазом такую
     проверку не сделать, а счёт — точный.
@@ -612,7 +684,18 @@ try {
       `пустая доска стоит ${cost.idle.calls} вызовов отрисовки`);
     need(cost.full.calls <= 320,
       `застроенное поле стоит ${cost.full.calls} вызовов отрисовки`);
-    need(cost.full.triangles <= 60_000,
+    /*
+      Треугольников теперь втрое больше прежнего: вокруг доски стоит поселение,
+      восемь зрителей и шесть фишек-людей, и все они настоящие модели. Предел
+      поднят с шестидесяти тысяч до девяноста намеренно.
+
+      Треугольники — не та величина, которой меряется цена картинки на
+      телефоне. Их считает видеокарта, и шестьдесят тысяч ей столько же, сколько
+      двадцать; дорог процессор, а его считают вызовы отрисовки, и у них предел
+      остался прежним. Поднимать его вслед за треугольниками нельзя — на нём всё
+      и держится.
+    */
+    need(cost.full.triangles <= 90_000,
       `застроенное поле — ${cost.full.triangles} треугольников`);
 
     /*
@@ -919,6 +1002,111 @@ try {
   need(lying.aside === 0, `боком экран уехал вбок на ${lying.aside}px`);
   need(lying.height > 120, `боком доска сжалась до ${lying.height}px`);
   need(sideErrors.length === 0, `боком ошибки на странице — ${sideErrors.slice(0, 2).join(' | ')}`);
+  await side.close();
+  side = null;
+
+  /*
+    Боком на высоком экране. Раскладка боком когда-то включалась только на
+    низком экране — до 620 точек, — и всё, что выше, получало вертикальную
+    раскладку, растянутую вширь: доска мелкая посередине, кнопки во всю ширину,
+    низ уезжал за край. Спрашивается здесь именно высокий экран, потому что
+    низкий работал и тогда.
+
+    И спрашивается место кнопок. Боком телефон держат двумя руками, и большой
+    палец достаёт до нижнего угла, а не до середины экрана: кнопки обязаны
+    стоять там, а не полосой во всю ширину.
+  */
+  side = await browser.newContext({
+    viewport: { width: 1180, height: 640 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
+  });
+  const tall = await side.newPage();
+  const tallErrors = [];
+  tall.on('pageerror', (error) => tallErrors.push(String(error)));
+  await tall.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  await tall.locator('#start-btn').click();
+  await tall.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  const skipTall = tall.locator('#teach-skip');
+  if (await skipTall.count() && await skipTall.isVisible()) {
+    await skipTall.click();
+    await tall.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+  }
+  await tall.waitForTimeout(900);
+  const roomy = await tall.evaluate(() => {
+    const doc = document.documentElement;
+    const canvas = document.getElementById('board3d').getBoundingClientRect();
+    const actions = document.getElementById('actions').getBoundingClientRect();
+    return {
+      down: doc.scrollHeight - doc.clientHeight,
+      aside: doc.scrollWidth - doc.clientWidth,
+      canvasShare: (canvas.width * canvas.height) / (doc.clientWidth * doc.clientHeight),
+      fromRight: doc.clientWidth - actions.right,
+      fromBottom: doc.clientHeight - actions.bottom,
+      actionWidth: actions.width / doc.clientWidth,
+      buttons: document.querySelectorAll('#actions button').length,
+    };
+  });
+  need(roomy.down === 0 && roomy.aside === 0,
+    `боком на высоком экране прокрутка ${roomy.down}/${roomy.aside}`);
+  need(roomy.canvasShare > 0.9,
+    `боком на высоком экране доске отдано ${(roomy.canvasShare * 100).toFixed(0)}% экрана`);
+  need(roomy.fromRight < 24 && roomy.fromBottom < 24,
+    `кнопки боком стоят в ${Math.round(roomy.fromRight)}×${Math.round(roomy.fromBottom)} от угла — `
+    + 'большому пальцу не достать');
+  need(roomy.actionWidth < 0.5,
+    `кнопки боком заняли ${(roomy.actionWidth * 100).toFixed(0)}% ширины — это полоса, а не кучка`);
+  need(roomy.buttons >= 4, `боком на экране ${roomy.buttons} кнопок — часть потерялась`);
+  need(tallErrors.length === 0,
+    `боком на высоком экране ошибки — ${tallErrors.slice(0, 2).join(' | ')}`);
+  await side.close();
+  side = null;
+
+  /*
+    Стоймя партия обязана помещаться в экран целиком и не прыгать. Прокрутка на
+    каждом ходу — лишнее движение: то доска уехала, то кнопка. А доска, которая
+    меняет размер вслед за карточкой, — то же самое, только хуже: карточка
+    удела вдвое выше простой подписи, и поле скакало с 350 точек до 216 и
+    обратно на каждой остановке.
+  */
+  side = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
+  });
+  const upright = await side.newPage();
+  await upright.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  await upright.locator('#start-btn').click();
+  await upright.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+  const skipUp = upright.locator('#teach-skip');
+  if (await skipUp.count() && await skipUp.isVisible()) {
+    await skipUp.click();
+    await upright.waitForSelector('#teach[hidden]', { state: 'attached', timeout: 3_000 });
+  }
+  await upright.waitForTimeout(900);
+  const board = () => upright.evaluate(() => {
+    const doc = document.documentElement;
+    return {
+      height: Math.round(document.getElementById('board3d').getBoundingClientRect().height),
+      down: doc.scrollHeight - doc.clientHeight,
+    };
+  });
+  const plain = await board();
+  await upright.evaluate(() => {
+    const game = window.PromisedLandGame;
+    const B = window.PromisedLandBoard;
+    const state = game.state();
+    const plot = B.BOARD.find((cell) => cell.kind === 'plot');
+    state.players[0].pos = plot.n;
+    state.phase = 'act';
+    state.pending = { type: 'note', title: plot.name, text: 'Свободен. Ничья земля.' };
+    game.refresh();
+  });
+  await upright.waitForTimeout(400);
+  const landed = await board();
+  need(plain.down === 0 && landed.down === 0,
+    `стоймя экран прокручивается: ${plain.down} до карточки, ${landed.down} с карточкой`);
+  need(plain.height === landed.height,
+    `стоймя доска прыгает с ${plain.height} на ${landed.height} точек, когда открывается карточка`);
+  need(plain.height > 300, `стоймя доске досталось ${plain.height} точек`);
+  await side.close();
+  side = null;
 } finally {
   await context.close();
   if (side) await side.close();
@@ -937,12 +1125,16 @@ console.log(ran
     + 'постройки — тела, а не картинки; доска влезает в холст целиком и занимает его почти '
     + 'весь, на ближнем ряду плиток есть подписи, луч различает клетки поимённо. Доска '
     + 'поворачивается пальцем и не вылезает за край, щипок отдаляет её, «Вернуть вид» '
-    + 'возвращает прежний. Долг ждёт нажатия игрока, «Авто» играет ход человека сам, боком '
-    + 'экран не прокручивается, за столом помещаются шестеро, над фишками стоят имена, '
+    + 'возвращает прежний. Долг ждёт нажатия игрока, «Авто» играет ход человека сам, '
+    + 'за столом помещаются шестеро, над фишками стоят имена, '
     + 'на занятых уделах подписаны хозяева, все пять ступеней и все шесть фишек стоят '
     + 'настоящими моделями, '
     + 'темп соперников переключается, выкуп из '
-    + 'темницы предлагается кнопкой, консоль чистая. Кадр стоит '
+    + 'темницы предлагается кнопкой, вокруг доски стоит поселение и восемь зрителей, '
+    + 'которые поворачиваются к ходящей фишке, щипок подпускает к клетке вплотную, '
+    + 'а боком на высоком экране доске отдан весь холст и кнопки собраны в угол под '
+    + 'большой палец; стоймя партия влезает в экран и доска не прыгает под карточкой. '
+    + 'Консоль чистая. Кадр стоит '
     + `${spend ? spend.idle.calls : '?'} вызовов отрисовки на пустом поле и `
     + `${spend ? spend.full.calls : '?'} на застроенном (${spend ? spend.full.triangles : '?'} `
     + 'треугольников), а в покое не рисуется вовсе. Карта, уходя со стола, меняет '

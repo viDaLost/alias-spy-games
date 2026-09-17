@@ -641,7 +641,14 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   слева во всю высоту, ход, игроки и лента — справа. Доска при этом выходит
   чуть меньше вертикальной (≈335 против 358 точек), зато прокручивать нечего.
 */
-@media (orientation: landscape) and (max-height: 620px) {
+/*
+  Положение боком. Прежде эти правила включались только на низком экране — до
+  620 точек высоты, — и всё, что выше, получало вертикальную раскладку,
+  растянутую вширь: доска мелкая посередине, кнопки во всю ширину, а низ
+  экрана уезжал за край. Теперь раскладка одна на всё положение боком, а
+  отдельной теснотой занят блок ниже.
+*/
+@media (orientation: landscape) {
   .screen { --gutter: 14px; max-width: none; padding: 10px var(--gutter) 14px; gap: 10px; }
 
   #game {
@@ -679,7 +686,18 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     display: flex; flex-direction: column; position: relative;
     gap: 6px; padding: 0; min-height: 100vh;
   }
-  #game.has-3d > .hud { padding: 9px 14px 0; }
+  /*
+    Шапка боком лежит прямо на песке: доска занимает весь холст, и подложки у
+    неё нет. Поэтому подложка своя — светлая плашка под каждым краем шапки, а
+    не под всей строкой: середина шапки пуста, и плашка во всю ширину закрыла
+    бы доску ни за чем.
+  */
+  #game.has-3d > .hud { padding: 9px 14px 0; pointer-events: none; }
+  #game.has-3d > .hud > * {
+    background: var(--surface); color: var(--ink); border-radius: 999px;
+    padding: 4px 12px; box-shadow: var(--lift-1);
+    pointer-events: auto;
+  }
   #game.has-3d > .actions { padding-inline: 14px; }
   #game.has-3d > .players { padding: 0 14px 10px; }
 
@@ -701,7 +719,56 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     Боком карточка уходит наверх, к шапке: там свободно, и доске она не мешает.
     Вниз прижимается всё начиная с кнопок — это и есть полоса управления.
   */
-  #game.has-3d > .actions { margin-top: auto; }
+  /*
+    Низ экрана боком — одна полоса в два места. Слева карточки игроков: их
+    читают, но не нажимают. Справа кнопки: боком телефон держат двумя руками,
+    и большой палец правой достаёт как раз до правого нижнего угла — дальше
+    него тянуться некуда. Поэтому кнопки собраны туда кучкой, а не растянуты
+    во всю ширину: на широком экране такая полоса требует убрать руку с
+    телефона и тянуться через весь экран.
+  */
+  #game.has-3d {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr auto;
+    align-content: stretch;
+  }
+  #game.has-3d > .hud { grid-column: 1 / -1; grid-row: 1; }
+  #game.has-3d > .ring-core--below { grid-column: 1; grid-row: 2; align-self: start; }
+  #game.has-3d > .teach { grid-column: 1 / -1; grid-row: 2; align-self: end; }
+  #game.has-3d > .players { grid-column: 1; grid-row: 3; align-self: end; }
+  #game.has-3d > .actions {
+    grid-column: 2; grid-row: 3; align-self: end;
+    width: min(420px, 46vw); margin-left: auto;
+  }
+  /*
+    Кнопки в кучке складываются в два яруса: главное действие во всю ширину,
+    остальные — тремя столбцами в одну строку. Двумя столбцами они занимали бы
+    ещё один ярус, а каждый ярус здесь отнимается у доски: под полосу
+    управления она не заезжает, и чем полоса выше, тем меньше поле.
+  */
+  #game.has-3d > .actions .actions-main { grid-template-columns: minmax(0, 1fr); }
+  #game.has-3d > .actions .actions-side { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #game.has-3d > .actions .btn { min-height: 46px; padding: 8px 10px; font-size: 14px; }
+  #game.has-3d > .actions .actions-main .btn { min-height: 52px; font-size: 16px; }
+  /*
+    Карточки игроков боком — одной строкой, без переноса: второй строкой они
+    отнимают у доски столько же, сколько целый ярус кнопок, а прочитать по
+    ним надо только серебро и наследие.
+  */
+  /*
+    Карточки лежат сеткой, а не строкой, поэтому одной строки от них добиваются
+    не запретом переноса, а потоком по столбцам: сетка с auto-fit сама
+    переносит шестую карточку вниз, сколько ей ни запрещай.
+  */
+  #game.has-3d > .players {
+    max-width: 100%;
+    grid-template-columns: none; grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+  #game.has-3d > .players .player { min-width: 0; padding: 4px 7px; }
+  #game.has-3d > .players .player-name { font-size: 12.5px; }
+  #game.has-3d > .players .player-figs { font-size: 11px; }
   #game.has-3d > .feed { display: none; }
   #game.has-3d > .players { gap: 6px; }
   #game.has-3d .player { padding: 5px 8px; flex: 1 1 90px; }
@@ -716,7 +783,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
       Карточка уходит влево: справа под ней оказывается угол доски, а слева —
       только песок. Двигать доску ради карточки было бы наоборот.
     */
-    width: fit-content; max-width: min(28%, 240px);
+    width: fit-content; max-width: min(46%, 400px);
     margin: 0 auto 0 14px; padding: 6px 12px 6px 6px;
     gap: 10px; align-items: center; justify-content: flex-start;
   }
@@ -725,6 +792,16 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   #game.has-3d .ring-core--below .core-kind { font-size: 10px; }
   #game.has-3d .ring-core--below .core-name { font-size: 16px; }
   #game.has-3d .ring-core--below .core-note { font-size: 12px; }
+  /*
+    Карточка боком стоит строкой, и подпись в ней — такой же её член, как
+    рисунок и имя. Без своей доли ширины она сжимается до одной буквы в строку
+    и рассыпается столбиком: «Бро-сь-те». Поэтому ей задан запас, от которого
+    она и переносится — по словам, а не по буквам.
+  */
+  #game.has-3d .ring-core--below { flex-wrap: wrap; }
+  #game.has-3d .ring-core--below .core-note {
+    flex: 1 0 100%; min-width: 0; max-width: none; margin-left: 56px;
+  }
   /* Полоса обучения боком тоже не во весь экран: доска рядом и работает. */
   #game.has-3d > .teach { margin-top: auto; max-width: min(78%, 620px); }
   #game.has-3d.is-teaching > .ring-core--below { display: none; }
@@ -746,8 +823,6 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   .ring-core--below .dice { padding: 0; }
   #game > .ring-wrap .ring { max-width: none; }
   .hud { padding-top: 2px; }
-  /* Лента короче: место справа дороже, а нужны последние события, не все. */
-  .feed .feed-line:nth-child(n + 3) { display: none; }
   .players { gap: 6px; }
   .player { flex: 1 1 96px; padding: 6px 8px; }
   .player-figs { font-size: 12px; }
@@ -777,9 +852,6 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     Приписка внизу и подсказки под заголовками уходят: боком каждая строка
     стоит высоты, а всё, что они объясняют, есть в правилах — кнопка рядом.
   */
-  #setup .note { display: none; }
-  #setup .hint { display: none; }
-  #setup .lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   /* Боком места вдоволь: «В путь» и «Правила» встают в одну строку. */
   #setup .btn--big { flex: 1 1 auto; }
   .brand-icon { width: 48px; height: 48px; border-radius: 13px; }
@@ -793,6 +865,71 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   .modal-card--cell { max-width: 520px; }
   .cell-art { height: 120px; }
   .cell-art--icon { height: 92px; }
+}
+
+/*
+  Низкий экран боком — телефон в руках. Здесь тесно по-настоящему: лента
+  событий укорачивается, а с первого экрана уходят приписки и подсказки. Всё,
+  что они объясняют, есть в правилах — кнопка рядом.
+*/
+@media (orientation: landscape) and (max-height: 620px) {
+  .feed .feed-line:nth-child(n + 3) { display: none; }
+  #setup .note { display: none; }
+  #setup .hint { display: none; }
+  #setup .lede { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+
+/*
+  Стоймя телефон держат одной рукой, и прокручивать игру в этом положении —
+  лишнее движение на каждом ходу: то доска уехала, то кнопка. Поэтому партия
+  укладывается в экран целиком, а лишнюю высоту отдаёт доска: она одна здесь
+  тянется, всё остальное — текст и кнопки, которым сжиматься некуда.
+
+  Высоту при этом держит доска, а не карточка. Сперва было наоборот — доска
+  брала остаток, — и вышло хуже прежнего: карточка удела вдвое выше простой
+  подписи, и на каждой остановке доска прыгала с 350 точек до 216 и обратно.
+  Поэтому доске отдана постоянная доля экрана, а остаток и вся изменчивость
+  достались карточке: длинная прокручивается внутри себя, короткая просто
+  занимает меньше. Доска при этом не шевелится вовсе.
+*/
+@media (orientation: portrait) {
+  .screen { padding-bottom: 16px; }
+  /*
+    Экран партии — сам себе колонка во всю высоту. Колонкой он и был, но без
+    заданной высоты: колонка кончалась там же, где содержимое, и доске нечего
+    было занимать. Теперь у неё есть высота экрана, и лишнее достаётся доске.
+
+    Высота задаётся здесь же, а не наследуется от .screen: у этого правила вес
+    больше, и любое «min-height» отсюда перебивает общее — в том числе ноль,
+    которым я сам его однажды и обнулил.
+  */
+  #game.has-3d {
+    display: flex; flex-direction: column; gap: 12px;
+    /*
+      Высота задана, а не «не меньше»: от «не меньше» колонка растёт под
+      содержимое, и длинная карточка удела не прокручивается внутри себя, а
+      выталкивает страницу за край экрана. С заданной высотой сжиматься
+      приходится тому, кому велено, — карточке.
+    */
+    height: 100%; min-height: 100%;
+  }
+  #game.has-3d > .ring-wrap.is-3d {
+    flex: 0 0 auto; aspect-ratio: auto; height: 42vh; min-height: 190px;
+    margin-block: 0;
+  }
+  #game.has-3d > .ring-core--below {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  }
+  /* Лента событий стоймя уходит: последние события и так видны в карточке. */
+  #game.has-3d > .feed { display: none; }
+  /*
+    Ярус мелких кнопок стоймя делится на три, и на узком телефоне «Мои уделы»
+    в них не помещается в строку. Кегль здесь мельче главной кнопки не по
+    небрежности: главную ищут глазами, а эти три — по месту.
+  */
+  #game.has-3d > .actions .actions-side .btn {
+    font-size: 14px; padding-inline: 6px; text-wrap: balance;
+  }
 }
 
 @media (max-width: 360px) {

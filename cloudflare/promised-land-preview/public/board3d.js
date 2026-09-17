@@ -366,7 +366,13 @@ window.PromisedLand3D = (() => {
       земля с пальмами и камнями уходит за край, и сцена превращается в чертёж.
       Нижняя граница — чтобы доска не вырождалась в полоску.
     */
-    const LIMITS = { pitch: [0.42, 1.12], zoom: [0.82, 1.9] };
+    /*
+      Приближение — это множитель к расстоянию, которое подобрал fit(): меньше
+      значит ближе. Нижняя граница опущена до 0.4 — с неё клетка занимает
+      треть экрана, и постройку на ней видно в подробностях. Ниже уходить
+      незачем: на 0.3 камера ныряет под кромку доски и смотрит ей в бок.
+    */
+    const LIMITS = { pitch: [0.42, 1.12], zoom: [0.4, 1.9] };
     const FULL = Math.PI * 2;
     // Разница углов, приведённая к ближайшей: поворот на 350° — это −10°.
     const shortest = (angle) => angle - Math.round(angle / FULL) * FULL;
@@ -1396,15 +1402,95 @@ window.PromisedLand3D = (() => {
       Расстановка не случайная от запуска к запуску: зерно постоянное, поэтому
       сцена у всех одна и та же, и проверка может на неё смотреть.
     */
+    /*
+      Что стоит вокруг доски. Боком доска занимает середину экрана, а по краям
+      остаётся земля, и одного песка с редкими пальмами на неё мало — выходит
+      пустыня. Поэтому вокруг доски стоит поселение: дома, шатры, стена, башня
+      и колодец из того же набора, что и постройки на клетках, только крупнее —
+      там они размером с фишку, здесь в человеческий рост и выше.
+
+      Порядок в списке — это порядок вглубь: сперва то, что ближе к доске,
+      потом дальнее. Дальнее и крупнее: башня видна из-за домов, а не наоборот.
+    */
     const SCENERY = [
-      { file: 'PalmTree_4.glb', count: 5, height: 2.6, spread: [7.6, 10.4] },
-      { file: 'Bush_1.glb', count: 9, height: 0.62, spread: [6.6, 10.8] },
-      { file: 'Rock_1.glb', count: 8, height: 0.5, spread: [6.5, 11.2] },
-      { file: 'Grass.glb', count: 11, height: 0.34, spread: [6.3, 11.4] },
-      { file: 'Plant_1.glb', count: 5, height: 0.45, spread: [6.4, 10.6] },
-      { file: 'Plant_2.glb', count: 5, height: 0.42, spread: [6.4, 10.6] },
+      { file: 'Grass.glb', count: 14, height: 0.34, spread: [6.3, 12.4] },
+      { file: 'Bush_1.glb', count: 11, height: 0.62, spread: [6.6, 12.2] },
+      { file: 'Rock_1.glb', count: 10, height: 0.5, spread: [6.5, 12.6] },
+      { file: 'Plant_1.glb', count: 7, height: 0.45, spread: [6.4, 11.6] },
+      { file: 'Plant_2.glb', count: 7, height: 0.42, spread: [6.4, 11.6] },
       { file: 'WoodLog.glb', count: 3, height: 0.36, spread: [6.8, 9.8] },
+      { file: 'build-tent.glb', count: 3, height: 1.6, spread: [7.4, 9.4] },
+      { file: 'build-well.glb', count: 2, height: 0.85, spread: [7.2, 9.0] },
+      { file: 'build-house.glb', count: 4, height: 2.1, spread: [8.6, 11.4] },
+      { file: 'build-wall.glb', count: 4, height: 2.2, spread: [9.4, 12.4] },
+      { file: 'PalmTree_4.glb', count: 7, height: 2.6, spread: [7.6, 12.8] },
+      { file: 'build-tower.glb', count: 2, height: 2.6, spread: [10.4, 12.8] },
     ];
+
+    /*
+      Зрители. Вокруг доски стоят люди — те же модели, что и фишки, только в
+      свой рост, — и следят за игрой: поворачиваются к той фишке, чей сейчас
+      ход. Мест ровно восемь, по два с каждой стороны доски, и расставлены они
+      не случаем, а по кругу с постоянным шагом: сцена у всех одинаковая, и
+      проверка может на неё смотреть.
+
+      Поворачиваются они не сами по себе. Кадр здесь рисуется по событию, и
+      зритель, который качается вечно, не давал бы сцене уснуть: телефон грелся
+      бы в кармане ради того, что никто не смотрит. Поэтому зрители двигаются
+      только вместе с ходом — когда сцена и так рисует, — и замирают вместе с
+      ним.
+    */
+    const WATCHERS = 8;
+    const WATCH_RING = 6.6;
+    const watchers = [];
+    let watchAt = null;
+
+    function seatWatchers(model, index) {
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const tall = size.y > 0.001 ? 1.05 / size.y : 1;
+      const copy = model.clone(true);
+      copy.scale.setScalar(tall);
+      // По кругу с постоянным шагом, но каждый чуть дальше или ближе своего
+      // места: ровный строй вокруг доски смотрелся бы оцеплением.
+      const angle = (index / WATCHERS) * FULL + 0.39;
+      const radius = WATCH_RING + ((index % 3) - 1) * 0.42;
+      const spot = pushOut(Math.cos(angle) * radius, Math.sin(angle) * radius);
+      copy.position.set(spot.x, -0.52 - box.min.y * tall, spot.z);
+      copy.userData.home = copy.position.clone();
+      copy.rotation.y = Math.atan2(-copy.position.x, -copy.position.z);
+      scene.add(copy);
+      watchers[index] = copy;
+    }
+
+    /*
+      Повернуться к клетке. Зовётся оттуда, где ход и так двигает сцену: с
+      броском, с шагом фишки, со сменой хода. Поворот берётся кратчайший — иначе
+      зритель, которому надо на десять градусов вправо, едет через всю спину, —
+      а к нему добавлено лёгкое покачивание: ровно поворачивающаяся фигура
+      выглядит дверью, а не человеком.
+    */
+    function watch(cell) {
+      if (cell == null || !watchers.length) return null;
+      if (watchAt === cell) return null;
+      watchAt = cell;
+      const at = cellPosition(cell);
+      const turns = watchers.map((one) => {
+        if (!one) return null;
+        const want = Math.atan2(at.x - one.position.x, at.z - one.position.z);
+        return { one, from: one.rotation.y, delta: shortest(want - one.rotation.y) };
+      }).filter(Boolean);
+      if (!turns.length) return null;
+      return animate(0.9, (t) => {
+        const k = smooth(t);
+        const sway = Math.sin(t * Math.PI) * 0.035;
+        for (let i = 0; i < turns.length; i += 1) {
+          const turn = turns[i];
+          turn.one.rotation.y = turn.from + turn.delta * k;
+          turn.one.position.y = turn.one.userData.home.y + sway * (i % 2 ? 1 : -1);
+        }
+      });
+    }
 
     let scatterSeed = 987654321;
     const nextRandom = () => {
@@ -1412,10 +1498,31 @@ window.PromisedLand3D = (() => {
       return scatterSeed / 4294967296;
     };
 
+    /*
+      Доска квадратная, а разброс круговой, и на углах круг заходит внутрь
+      квадрата: пальма вырастает на клетке «Навет», а дом накрывает угол поля.
+      Поэтому место проверяется по квадрату — насколько оно отстоит от
+      середины по дальней из двух осей, — и слишком близкое отодвигается
+      наружу по тому же лучу.
+    */
+    const BOARD_EDGE = 6.1;
+    function pushOut(x, z) {
+      const far = Math.max(Math.abs(x), Math.abs(z));
+      if (far >= BOARD_EDGE) return { x, z };
+      const push = BOARD_EDGE / (far || 0.001);
+      return { x: x * push, z: z * push };
+    }
+
     function scatter(model, { count, height, spread }) {
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
-      const scale = size.y > 0.001 ? height / size.y : 1;
+      /*
+        Размер берётся по самой длинной стороне, а не по высоте. Колодец — это
+        низкое широкое кольцо: подогнав его по высоте, получаешь кольцо в
+        полтора шага шириной, из которого впору пить верблюду.
+      */
+      const longest = Math.max(size.x, size.y, size.z);
+      const scale = longest > 0.001 ? height / longest : 1;
       for (let i = 0; i < count; i += 1) {
         const copy = model.clone(true);
         const angle = nextRandom() * Math.PI * 2;
@@ -1423,11 +1530,8 @@ window.PromisedLand3D = (() => {
         const vary = scale * (0.82 + nextRandom() * 0.42);
         copy.scale.setScalar(vary);
         copy.rotation.y = nextRandom() * Math.PI * 2;
-        copy.position.set(
-          Math.cos(angle) * radius,
-          -0.52 - box.min.y * vary,
-          Math.sin(angle) * radius,
-        );
+        const spot = pushOut(Math.cos(angle) * radius, Math.sin(angle) * radius);
+        copy.position.set(spot.x, -0.52 - box.min.y * vary, spot.z);
         scene.add(copy);
       }
     }
@@ -1443,6 +1547,13 @@ window.PromisedLand3D = (() => {
           });
           people.set(index, model);
           standUp(index, model);
+          /*
+            Тот же человек садится и в зрители. Мест восемь, а моделей шесть:
+            двое повторяются — на толпе вокруг доски это не читается, а два
+            лишних файла ради двух лишних лиц читались бы на счётчике.
+          */
+          seatWatchers(model, index);
+          if (index < WATCHERS - PEOPLE.length) seatWatchers(model, PEOPLE.length + index);
           touch();
         }, undefined, () => { /* нет модели — на подставке остаётся предмет */ });
       }
@@ -1631,6 +1742,10 @@ window.PromisedLand3D = (() => {
 
       if (bannersMoved) placeBanners();
       placeTokens(state);
+      // Зрители смотрят на того, чей ход. Поворот случается только при смене
+      // клетки — сам по себе sync() их не трогает.
+      const turn = state.players[state.turn];
+      if (turn) watch(turn.pos);
       touch();
     }
 
@@ -1647,6 +1762,9 @@ window.PromisedLand3D = (() => {
       for (let i = 1; i <= steps; i += 1) path.push((from + i) % B.BOARD.length);
       const life = Math.min(1.9, 0.26 + steps * 0.135);
       const spots = path.map((cell) => cellPosition(cell));
+      // Зрители провожают фишку взглядом: поворот идёт вместе с ходом, а не
+      // после него, иначе они оборачиваются к уже остановившейся фишке.
+      watch(path[path.length - 1]);
       return animate(life, (t) => {
         const along = smooth(t) * steps;
         const leg = Math.min(steps - 1, Math.floor(along));
@@ -1844,12 +1962,17 @@ window.PromisedLand3D = (() => {
         carved: [...carved],
         // Сколько фишек стоят человеком, а не предметом.
         people: people.size,
+        // Сколько зрителей стоит вокруг доски и куда они смотрят.
+        watchers: watchers.filter(Boolean).length,
+        watchAt,
         banners: [...bannerSlot],
         bannerNames: bannerNames.split('/').map((face) => face.split('|')[0]),
         bannerTurn: bannerQuarter,
         coins: coinsDrawn,
         labelTurn,
         yaw: view.yaw,
+        // Приближение: множитель к расстоянию, которое подобрал fit().
+        zoom: view.zoom,
       };
     }
 
