@@ -62,6 +62,8 @@ jobs:
         run: node scripts/check-promised-land-bots.mjs
       - name: Audit Promised Land mechanics turn by turn
         run: node scripts/check-promised-land-logic.mjs
+      - name: Audit Twelve Tribes card rules round by round
+        run: node scripts/check-twelve-tribes.mjs
       - name: Install Promised Land preview tooling
         working-directory: cloudflare/promised-land-preview
         run: npm install --no-audit --no-fund

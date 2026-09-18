@@ -225,6 +225,7 @@ const coverage = await page.evaluate(() => {
 });
 // Карточки игр строятся без id, поэтому список сверяется с известным набором.
 const expected = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet', 'promised-land',
+  'twelve-tribes',
   'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'biblical-match-three'];
 const missing = expected.filter((key) => !coverage.described.includes(key));
 if (missing.length) await fail(`в справочнике нет разделов: ${missing.join(', ')}`);
@@ -242,7 +243,14 @@ const SOLO = ['biblical-match-three', 'bible-wow', 'bible-wordsearch', 'sacred-w
   камерой по клеткам, а плоская сцена в справочнике оказалась бы бледной
   копией. Список этот спрашивает ровно одно — нет ли у игры лишнего разбора.
 */
-const ONLINE = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet', 'promised-land'];
+/*
+  «Двенадцать колен» стоят в этом же списке. Разбор экрана им не нужен и был бы
+  третьим родом сцены — карточным, поверх плиточного и буквенного, — ради того,
+  что в справочнике и так сказано таблицей: подходит карта того же стана или
+  того же жребия. Правило это читается за один взгляд, а не проигрывается.
+*/
+const ONLINE = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet', 'promised-land',
+  'twelve-tribes'];
 const demos = await page.evaluate(() => Object.fromEntries(
   [...document.querySelectorAll('[data-rules-game]')].map((node) => [
     node.dataset.rulesGame, node.querySelectorAll('.rd-stage').length,

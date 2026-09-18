@@ -1,0 +1,284 @@
+/* «Двенадцать колен» — стол, карты и рука.
+
+   Цвета станов — данные игры, а не палитра приложения: это масти, и в них
+   нельзя ничего «подкрутить под фон», не сломав игру. Взяты четыре предельно
+   несхожих тона — так же, как в родительской игре.
+
+   Но одним цветом масть здесь не задаётся никогда. У каждой карты есть ещё и
+   знак стана (лев, человек, телец, орёл) и его имя словом. Это не украшение:
+   красный и зелёный неразличимы для каждого двенадцатого мужчины, и карточная
+   игра, где масть только цвет, для него не игра. Знак и подпись читаются без
+   цвета вовсе. */
+
+.tt-wrap {
+  --judah: #c0392b;
+  --reuben: #1d4ed8;
+  --ephraim: #15803d;
+  --dan: #b7791f;
+  --felt: #16613f;
+  --felt-deep: #0e4a30;
+
+  width: min(100%, 720px);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /*
+    Рука прижата к низу экрана, а стол — к верху. Иначе игра собирается в
+    комок наверху, под ней остаётся пустая половина страницы, и карты
+    оказываются посреди экрана — там, куда большой палец не дотягивается.
+  */
+  min-height: min(82vh, 760px);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  color: var(--ink, #111827);
+}
+
+/* ——— начало партии ——— */
+.tt-setup {
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line, rgba(99, 102, 241, .16));
+  border-radius: var(--radius-lg, 24px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 10px 28px -18px rgba(17, 24, 39, .45);
+}
+.tt-setup h2 { margin: 0; font-size: 22px; }
+.tt-setup p { margin: 0; color: var(--ink-soft, #667085); font-size: 14.5px; line-height: 1.45; }
+.tt-choice { display: flex; flex-direction: column; gap: 7px; }
+.tt-choice > span { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft, #667085); }
+.tt-choice div { display: flex; gap: 8px; flex-wrap: wrap; }
+.tt-choice button {
+  flex: 1 1 auto; min-width: 64px; min-height: 48px;
+  border: 1px solid rgba(99, 102, 241, .3); border-radius: 14px;
+  background: var(--surface-soft, #f3f7ff); color: inherit;
+  font: inherit; font-weight: 600; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.tt-choice button small { font-size: 11px; font-weight: 400; color: var(--ink-soft, #667085); }
+.tt-choice button[aria-pressed="true"] { background: var(--primary, #4f46e5); border-color: var(--primary, #4f46e5); color: #fff; }
+.tt-choice button[aria-pressed="true"] small { color: rgba(255, 255, 255, .82); }
+
+.tt-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.tt-btn {
+  flex: 1 1 auto; min-height: 50px; padding: 0 18px;
+  border-radius: 16px; border: 1px solid transparent;
+  background: var(--primary, #4f46e5); color: #fff;
+  font: inherit; font-weight: 700; font-size: 16px; cursor: pointer;
+}
+.tt-btn--ghost { background: var(--surface-strong, #fff); color: var(--ink, #111827); border-color: rgba(99, 102, 241, .3); }
+.tt-btn:disabled { opacity: .45; cursor: not-allowed; }
+.tt-btn:active:not(:disabled) { transform: translateY(1px); }
+
+/* ——— стол ——— */
+/*
+   Сукно. Карточная игра без стола читается как список кнопок: карта должна
+   лежать на чём-то, иначе она не карта. Тёмная зелень выбрана не для красоты —
+   на ней разом читаются все четыре масти, включая золотую, которая на белом
+   фоне теряется.
+*/
+.tt-table {
+  position: relative;
+  /*
+    Сукно тянется на всё свободное место: доска и рука по краям экрана, а
+    между ними пустая светлая полоса выглядела дырой в столе. Колода со
+    сбросом при этом остаются посередине — там, где им и место.
+  */
+  flex: 1 1 auto; justify-content: space-between;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, .14), transparent 62%),
+    linear-gradient(180deg, var(--felt), var(--felt-deep));
+  border-radius: 22px;
+  padding: 12px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 16px 34px -22px rgba(17, 24, 39, .7);
+  color: #f8fafc;
+}
+
+.tt-foes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.tt-foe {
+  flex: 0 1 132px; min-width: 96px;
+  background: rgba(255, 255, 255, .1);
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 14px; padding: 7px 9px;
+  display: grid; gap: 2px; justify-items: center;
+  font-size: 13px; position: relative;
+}
+.tt-foe.is-turn { background: rgba(255, 255, 255, .22); border-color: rgba(255, 255, 255, .5); }
+.tt-foe b { font-size: 14px; font-weight: 700; }
+.tt-foe span { font-size: 12px; opacity: .82; }
+.tt-foe-cards { display: flex; gap: 2px; margin-top: 2px; }
+.tt-foe-cards i { width: 7px; height: 11px; border-radius: 2px; background: rgba(255, 255, 255, .55); display: block; }
+/*
+   Кнопка поимки. Она появляется только тогда, когда соперник забыл затрубить,
+   и висит на его же карточке: ловят конкретного человека, а не «кого-то».
+*/
+.tt-catch {
+  position: absolute; inset: auto -6px -12px auto;
+  border: 0; border-radius: 999px; padding: 4px 10px;
+  background: var(--warning, #f59e0b); color: #1f2937;
+  font: inherit; font-size: 12px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .6);
+  animation: tt-pulse 1s ease-in-out infinite;
+}
+@keyframes tt-pulse { 50% { transform: scale(1.08); } }
+
+/* ——— колода и сброс ——— */
+.tt-middle { display: flex; align-items: center; justify-content: center; gap: 18px; flex: 1 1 auto; }
+.tt-deck, .tt-pile { position: relative; width: 74px; height: 108px; }
+.tt-deck button {
+  position: absolute; inset: 0; border: 0; padding: 0; cursor: pointer;
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .1) 0 5px, transparent 5px 10px),
+    linear-gradient(160deg, #1e293b, #0f172a);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, .12) inset, 0 10px 20px -12px rgba(0, 0, 0, .8);
+  color: #e2e8f0; font: inherit; font-size: 11px; font-weight: 700;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px;
+}
+.tt-deck button:disabled { cursor: not-allowed; opacity: .6; }
+.tt-deck::before, .tt-deck::after {
+  content: ''; position: absolute; inset: 0; border-radius: 12px;
+  background: linear-gradient(160deg, #1e293b, #0f172a);
+  box-shadow: 0 8px 16px -12px rgba(0, 0, 0, .8);
+}
+.tt-deck::before { transform: translate(4px, 4px); }
+.tt-deck::after { transform: translate(2px, 2px); }
+.tt-deck button { z-index: 1; }
+
+/* Текущий стан — ободок вокруг сброса и подпись под ним. */
+.tt-pile { display: flex; align-items: center; justify-content: center; }
+.tt-camp {
+  text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  display: grid; gap: 3px; justify-items: center;
+}
+.tt-camp-dot {
+  width: 30px; height: 30px; border-radius: 10px; background: var(--camp, #fff);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .5), 0 6px 14px -8px rgba(0, 0, 0, .8);
+  display: grid; place-items: center;
+}
+.tt-camp-dot svg { width: 20px; height: 20px; }
+
+/* ——— carta ——— */
+.tt-card {
+  position: relative; border-radius: 11px; border: 0; padding: 0;
+  background: var(--camp, #64748b);
+  color: #fff; font: inherit; cursor: default;
+  width: 74px; height: 108px; flex: 0 0 auto;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .3) inset, 0 10px 18px -12px rgba(0, 0, 0, .8);
+  overflow: hidden;
+  display: grid; place-items: center;
+}
+/* Белое поле внутри рамки — как на игральной карте. */
+.tt-card::before {
+  content: ''; position: absolute; inset: 5px; border-radius: 8px;
+  background: rgba(255, 255, 255, .93);
+}
+.tt-face { position: relative; display: grid; place-items: center; gap: 1px; color: var(--camp, #334155); width: 100%; }
+.tt-rank { font-size: 32px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+/*
+  Название действия пишется целиком и мельче, а не обрезается: «СТРАНСТВ» на
+  карте — это не сокращение, это поломка. Перенос по словам разрешён, потому
+  что «Жребий колен» в одну строку на карту шириной в палец не встанет.
+*/
+.tt-kind {
+  font-size: 9.5px; font-weight: 800; line-height: 1.08; text-align: center;
+  padding: 0 3px; text-transform: uppercase; letter-spacing: .01em;
+  overflow-wrap: anywhere; max-width: 100%;
+}
+.tt-sign { width: 26px; height: 26px; }
+.tt-name {
+  position: absolute; left: 0; right: 0; bottom: 8px; text-align: center;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--camp, #334155); opacity: .78;
+}
+/* Жребий и плен — все четыре стана на одной карте: масти у неё нет. */
+.tt-card--wild { background: #1f2937; }
+.tt-quarters { position: absolute; inset: 5px; border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
+.tt-quarters i { display: block; }
+.tt-card--wild .tt-face { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.tt-card--wild .tt-name { color: #fff; opacity: .9; }
+
+/* ——— mano ——— */
+.tt-hand-wrap { display: grid; gap: 6px; margin-top: auto; }
+.tt-hand-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; color: var(--ink-soft, #667085); }
+.tt-hand {
+  display: flex; gap: 6px; overflow-x: auto; padding: 8px 2px 12px;
+  scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+}
+/*
+  Рука в дюжину карт по ширине экрана не помещается никак. Она прокручивается —
+  но прокрутка, о которой не догадались, это спрятанные карты, поэтому
+  вдобавок карты наезжают друг на друга, как в руке: видно, что их много, и
+  видно край каждой.
+*/
+.tt-hand[data-many="true"] .tt-card { margin-right: -22px; }
+.tt-hand[data-many="true"] .tt-card:last-child { margin-right: 0; }
+.tt-hand .tt-card { scroll-snap-align: center; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
+.tt-hand .tt-card:disabled { cursor: not-allowed; }
+/* Чем можно пойти — то и приподнято. Тусклое трогать не надо. */
+.tt-hand .tt-card.is-dim { filter: grayscale(.35); opacity: .74; }
+.tt-hand .tt-card.is-live:hover, .tt-hand .tt-card.is-live:focus-visible { transform: translateY(-8px); }
+.tt-hand .tt-card.is-fresh { animation: tt-drawn .5s ease; }
+@keyframes tt-drawn {
+  from { transform: translateY(-26px) scale(.86) rotate(-6deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+/* Сыгранная карта прилетает на сброс, а не возникает на нём. */
+.tt-pile .tt-card.is-landing { animation: tt-land .34s cubic-bezier(.2, .7, .25, 1); }
+@keyframes tt-land {
+  from { transform: translate(var(--from-x, 0), var(--from-y, 120px)) scale(.8) rotate(-8deg); }
+  to { transform: none; }
+}
+
+.tt-status { min-height: 22px; text-align: center; font-size: 14px; font-weight: 600; margin: 0; color: #eef7f1; }
+.tt-status b { color: #fff; }
+/*
+  Правый край руки притенён: карт больше, чем помещается в ширину, и лента
+  прокручивается. Без края прокрутку не видно — а не видно её значит, что
+  части карт для игрока нет вовсе.
+*/
+.tt-hand-wrap { position: relative; }
+.tt-hand-wrap::after {
+  content: ''; position: absolute; right: 0; bottom: 12px; width: 26px; top: 26px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--bg-2, #dfe8ff));
+}
+
+/* ——— выбор стана ——— */
+.tt-sheet {
+  position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(15, 23, 42, .55); padding: 16px;
+}
+.tt-sheet-card {
+  width: min(100%, 420px); background: var(--surface-strong, #fff); color: var(--ink, #111827);
+  border-radius: 22px; padding: 16px; display: grid; gap: 12px;
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, .6);
+}
+.tt-sheet-card h3 { margin: 0; font-size: 18px; }
+.tt-camps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.tt-camps button {
+  min-height: 62px; border-radius: 14px; border: 2px solid transparent;
+  background: var(--camp); color: #fff; font: inherit; font-weight: 800; cursor: pointer;
+  display: grid; gap: 2px; place-items: center;
+}
+.tt-camps button small { font-size: 11px; font-weight: 600; opacity: .9; }
+.tt-camps button svg { width: 22px; height: 22px; }
+
+/* ——— итоги раздачи ——— */
+.tt-over { display: grid; gap: 10px; }
+.tt-score { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border-radius: 12px; background: var(--surface-soft, #f3f7ff); font-size: 15px; }
+.tt-score.is-you { background: var(--primary-tint, #dbeafe); font-weight: 700; }
+.tt-log { display: grid; gap: 3px; max-height: 148px; overflow-y: auto; font-size: 12.5px; color: var(--ink-soft, #667085); }
+
+@media (max-width: 380px) {
+  .tt-card { width: 64px; height: 94px; }
+  .tt-rank { font-size: 27px; }
+  .tt-deck, .tt-pile { width: 64px; height: 94px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tt-catch, .tt-hand .tt-card.is-fresh, .tt-pile .tt-card.is-landing { animation: none; }
+}

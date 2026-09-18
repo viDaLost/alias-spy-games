@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = 'ea80853d6e';
+const VERSION = '54d70b038c';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -27,7 +27,7 @@ const PRECACHE = [
   'web/js/language-choice.js',
   'web/i18n/bootstrap.js',
   'web/dist/app.4b15383e8c.css',
-  'web/dist/app.1230023f68.js',
+  'web/dist/app.9be3259eb2.js',
   'web/games/alias.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',
@@ -62,6 +62,11 @@ const PRECACHE = [
   'web/games/sacred-word.js',
   'web/games/spy-online.js',
   'web/games/spy.js',
+  'web/games/twelve-tribes-bots.js',
+  'web/games/twelve-tribes-engine.js',
+  'web/games/twelve-tribes-rules.js',
+  'web/games/twelve-tribes.css',
+  'web/games/twelve-tribes.js',
   'web/data/bible_wordsearch_levels.json',
   'web/data/bible_wow_levels.json',
   'web/data/biblical_match_three_levels.json',
@@ -97,6 +102,7 @@ const PRECACHE = [
   'web/assets/icons/search.webp',
   'web/assets/icons/spy.webp',
   'web/assets/icons/support.webp',
+  'web/assets/icons/twelve-tribes.svg',
   'web/assets/icons/words.webp',
   'web/assets/biblical-match-three/icons-v17/ark.webp',
   'web/assets/biblical-match-three/icons-v17/bible.webp',

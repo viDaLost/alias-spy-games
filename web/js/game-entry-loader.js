@@ -32,6 +32,10 @@
       title: 'Квартет', eyebrow: 'Карточная игра', status: 'Тасуем колоду…', status2: 'Раздаём карты…',
       icon: 'web/assets/icons/quartet.webp?v=1', motif: 'quartet',
     },
+    'twelve-tribes': {
+      title: 'Двенадцать колен', eyebrow: 'Карточная игра', status: 'Собираем станы…', status2: 'Раздаём по семь…',
+      icon: 'web/assets/icons/twelve-tribes.svg?v=1', motif: 'twelve-tribes',
+    },
     'bible-sketch': {
       title: 'Библейский художник', eyebrow: 'Рисуй и угадывай', status: 'Готовим холст…', status2: 'Затачиваем карандаши…',
       icon: 'web/assets/icons/bible-sketch.webp?v=3', motif: 'bible-sketch',
@@ -95,6 +99,9 @@
     'moses-nile': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',
     // Кость и две карты: во что играют, видно до того, как игра открылась.
     'promised-land': '<span class="gel-die"></span><span class="gel-card"></span><span class="gel-card"></span>',
+    // Четыре карты — по одной на стан: игра узнаётся до того, как открылась.
+    'twelve-tribes': '<span class="gel-card"></span><span class="gel-card"></span>'
+      + '<span class="gel-card"></span><span class="gel-card"></span>',
   });
 
   let root = null;

@@ -35,6 +35,10 @@ const GAME_GROUPS = [
       { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
       {
+        key: "twelve-tribes", title: "Двенадцать колен",
+        desc: "Станы и жребии: сбросьте карты первым", icon: "twelve-tribes",
+      },
+      {
         key: "promised-land", title: "Земля обетованная",
         desc: "Уделы, поселения и юбилей", icon: "promised-land",
       },
@@ -75,6 +79,12 @@ const MENU_ICON_SOURCES = {
   ark: "web/assets/icons/ark.webp",
   "moses-nile": "web/assets/icons/moses-nile.webp",
   "promised-land": "web/assets/icons/promised-land-v2.webp",
+  /*
+    Иконка «Двенадцати колен» — рисунок, а не снимок: четыре карты веером в
+    цветах четырёх станов. Полтора килобайта против тридцати четырёх у соседей
+    по набору, и на любом экране она остаётся чёткой.
+  */
+  "twelve-tribes": "web/assets/icons/twelve-tribes.svg",
 };
 
 function menuIconHTML(type, title = "") {
@@ -673,6 +683,12 @@ function showGame(gameName) {
     spy: ["web/games/spy.js", () => window.startSpyGame?.("web/data/spy_locations.json")],
     "kids-ark-pairs": ["web/games/kids-ark-pairs.js", () => window.startKidsArkPairsGame?.()],
     quartet: ["web/games/quartet.js", () => window.startQuartetGame?.("web/data/quartet_bible.json")],
+    /*
+      «Двенадцать колен» подтягивают свои правила сами: движок, колода и
+      соперники лежат отдельными файлами, чтобы их можно было проверить
+      машиной без браузера, а оболочка умеет загружать только один файл.
+    */
+    "twelve-tribes": ["web/games/twelve-tribes.js", () => window.startTwelveTribesGame?.()],
     "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
@@ -863,6 +879,9 @@ function cleanupActiveGame() {
   try { window.__sacredWordCleanup?.(); } catch {}
   try { window.__kidsArkPairsCleanup?.(); } catch {}
   try { window.__quartetCleanup?.(); } catch {}
+  // Соперники в «Двенадцати коленах» ходят по таймеру: без уборки они
+  // продолжают ходить в закрытой игре и дорисовывают стол поверх меню.
+  try { window.__twelveTribesCleanup?.(); } catch {}
   // Онлайн-Соглядатай держит сокет, таймеры и живые WebRTC-соединения с
   // микрофоном: без явной уборки микрофон остался бы включённым после
   // выхода в меню.
