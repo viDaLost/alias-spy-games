@@ -70,7 +70,21 @@
 
   async function callAdmin(action, extra = {}) {
     if (typeof window.apiRequest !== 'function') throw new Error('API приложения недоступен');
-    return window.apiRequest({ action, ...extra });
+    // Preserve the server's reason on HTTP 400/401/403. The default API
+    // helper returns null for these responses, hiding actionable failures.
+    const response = await window.apiRequest({ action, ...extra }, { quiet: true, raw: true });
+    if (!response || response.offline || response.status === 0) {
+      throw new Error('Нет связи с сервером. Проверьте интернет и повторите попытку.');
+    }
+    const data = response.data;
+    if (!response.ok || data?.success === false || data?.ok === false) {
+      const reason = String(data?.error || '');
+      if (response.status === 401 || /expired|auth_date|too old/i.test(reason)) {
+        throw new Error('Срок подтверждения Telegram истёк. Закройте приложение и откройте его заново из бота, затем повторите действие.');
+      }
+      throw new Error(reason || `Сервер отклонил запрос (HTTP ${response.status}). Повторите попытку позже.`);
+    }
+    return data;
   }
 
   function applyRole(data = {}) {
