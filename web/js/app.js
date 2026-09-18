@@ -34,9 +34,16 @@ const GAME_GROUPS = [
       { key: "describe", title: "Опиши, но не называй", desc: "Подсказки без прямого ответа", icon: "describe" },
       { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
+      /*
+        «Двенадцать колен» пока открыты только главному администратору: игра
+        готова, но в общий список ещё не выпущена. Признак owner прячет
+        карточку у всех остальных и закрывает вход даже по прямому вызову —
+        см. renderGameButton и showGame.
+      */
       {
         key: "twelve-tribes", title: "Двенадцать колен",
         desc: "Станы и жребии: сбросьте карты первым", icon: "twelve-tribes",
+        owner: true,
       },
       {
         key: "promised-land", title: "Земля обетованная",
@@ -450,9 +457,18 @@ function openSupportChat() {
   }
 }
 
+/*
+  Главный администратор. Роль ставит серверная проверка — та же, что у кнопки
+  админки (admin-rbac-root в admin-live-modal-safety.js), и приходит она позже
+  первой отрисовки меню. Поэтому карточка не «не рисуется», а рисуется
+  скрытой: появится, когда придёт роль, и не потребует перерисовывать меню.
+*/
+const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
+
 function renderGameButton(item) {
+  const gate = item.owner ? " game-card--owner" : "";
   return `
-    <button type="button" class="game-card" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
+    <button type="button" class="game-card${gate}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
@@ -780,6 +796,31 @@ function showGame(gameName) {
                   loading="eager"></iframe>
           <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
         </div>`;
+    }
+    return;
+  }
+
+  /*
+    Замок «Двенадцати колен». Игра пока открыта только главному
+    администратору, и скрытой карточки для этого мало: до showGame можно
+    добраться и мимо неё — историей, ссылкой, чужим вызовом из консоли.
+
+    Замок этот не от злоумышленника: в игре нечего красть, её файлы раздаются
+    статикой всем, у кого есть адрес. Он от того, чтобы игра не появилась у
+    людей раньше времени.
+  */
+  if (gameName === "twelve-tribes" && !isOwner()) {
+    if (menu) menu.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    activeGameName = gameName;
+    document.body.dataset.currentGame = gameName;
+    if (container) {
+      container.innerHTML = `
+        <section class="app-error-card fade-in">
+          <h2>Игра ещё не открыта</h2>
+          <p>«Двенадцать колен» пока проходят обкатку и доступны только администратору.</p>
+          <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
+        </section>`;
     }
     return;
   }

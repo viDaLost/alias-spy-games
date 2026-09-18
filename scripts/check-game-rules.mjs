@@ -172,16 +172,33 @@ const fail = async (message) => {
 await page.addInitScript(() => {
   window.Telegram = {
     WebApp: {
-      initData: '', initDataUnsafe: { user: { id: 1288379477, first_name: 'Тест' } },
+      /*
+        Подпись Telegram непустая нарочно: проверка роли у приложения
+        начинается именно с неё — без подписи оно даже не спрашивает сервер.
+        А роль здесь нужна: игра на обкатке («Двенадцать колен») открыта
+        только главному администратору, и её раздел справочник показывает
+        только ему.
+      */
+      initData: 'user=%7B%22id%22%3A1288379477%7D&hash=qa',
+      initDataUnsafe: { user: { id: 1288379477, first_name: 'Тест' } },
       ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
       MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
     },
   };
 });
+/*
+  Проверка смотрит справочник глазами главного администратора. Причина одна:
+  игра на обкатке («Двенадцать колен») открыта только ему, и её раздел
+  справочник обычному человеку не показывает — как не показывает и меню.
+  Спрашивать «описана ли каждая игра меню» надо у того, кто видит их все.
+*/
 const stub = (route) => route.fulfill({
   status: 200, contentType: 'application/json',
-  body: JSON.stringify({ success: true, isBanned: false, lastGames: [], users: [] }),
+  body: JSON.stringify({
+    success: true, isBanned: false, lastGames: [], users: [],
+    isAdmin: true, isRoot: true, role: 'owner', userId: '1288379477',
+  }),
 });
 // На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
 // здесь личность: прогресс начинает читаться под чужим ключом, и проверка

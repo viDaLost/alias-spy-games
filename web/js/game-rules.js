@@ -532,6 +532,20 @@
     },
   ];
 
+  /*
+    Игра на обкатке — «Двенадцать колен» — открыта только главному
+    администратору, и справочник обязан молчать о ней ровно так же, как меню.
+    Раздел про игру, которой у человека нет, — это не вежливость, а
+    недоумение: он прочтёт правила и не найдёт, где играть.
+
+    Роль спрашивается у того же признака, что и в меню (admin-rbac-root ставит
+    серверная проверка), и спрашивается при каждой сборке списка, а не один раз
+    при загрузке: роль приходит позже первой отрисовки.
+  */
+  const OWNER_ONLY = new Set(['twelve-tribes']);
+  const isOwner = () => document.documentElement.classList.contains('admin-rbac-root');
+  const shownGames = () => GAMES.filter((game) => !OWNER_ONLY.has(game.key) || isOwner());
+
   const BY_KEY = new Map(GAMES.map((game) => [game.key, game]));
 
   // --- разметка ---------------------------------------------------------------
@@ -577,7 +591,7 @@
           </div>
         </div>
         <p class="rules-lead">Выберите игру, чтобы раскрыть правила. Всё, что здесь написано, — то, как игра считает на самом деле.</p>
-        <div class="rules-list">${GAMES.map(gameMarkup).join('')}</div>
+        <div class="rules-list">${shownGames().map(gameMarkup).join('')}</div>
         <section class="rules-reset">
           <strong>Пройти всё заново</strong>
           <p>

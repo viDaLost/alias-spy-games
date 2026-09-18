@@ -5,6 +5,12 @@
 // игра открывается из меню, что карту видно и по ней можно попасть пальцем,
 // что соперники ходят сами и раздача доходит до итогов, и что при этом ничего
 // не вылезает за край и не падает в консоль.
+//
+// И отдельно — замок. Игра идёт обкатку и открыта только главному
+// администратору: у всех остальных карточки в меню нет, а прямой вызов
+// showGame отвечает отказом. Замок этот проверяется первым: игра, открывшаяся
+// не тому, кому положено, — это не мелкая оплошность, а ровно то, чего
+// просили не допустить.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -44,7 +50,7 @@ const problems = [];
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
 /** Партия на экране заданного размера. Возвращает, чем она кончилась. */
-async function play(width, height) {
+async function play(width, height, owner = true) {
   const context = await browser.newContext({
     viewport: { width, height }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
   });
@@ -56,16 +62,37 @@ async function play(width, height) {
   await page.addInitScript(() => {
     window.Telegram = {
       WebApp: {
-        initData: '', initDataUnsafe: { user: { id: 1288379477, first_name: 'Тест' } },
+        /*
+          initData непустая нарочно: проверка роли у приложения начинается
+          именно с неё — без подписи Telegram она даже не спрашивает сервер,
+          и главный администратор остался бы без своей роли.
+        */
+        initData: 'user=%7B%22id%22%3A1288379477%7D&hash=qa',
+        initDataUnsafe: { user: { id: 1288379477, first_name: 'Тест' } },
         ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
         MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
         HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
       },
     };
   });
+  /*
+    Роль приходит с сервера — той же проверкой, что зажигает кнопку админки.
+    Здесь её отдаёт заглушка: «владелец» для прогона партии и «обычный
+    человек» для проверки замка.
+  */
   const stub = (route) => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ success: true, isBanned: false, lastGames: [], users: [] }),
+    body: JSON.stringify({
+      success: true, isBanned: false, lastGames: [], users: [],
+      isAdmin: owner, isRoot: owner, role: owner ? 'owner' : 'none', userId: '1288379477',
+      /*
+        «Уже отвечено» — про два опроса, которые приложение показывает новичку:
+        «откуда узнали» и отзыв. Оба приходят через пару секунд после меню и
+        накрывают его собой; проверяют их свои проверки, а здесь они только
+        заслоняют карточку игры.
+      */
+      answered: true, skip: true, eligible: false,
+    }),
   });
   await page.route('https://telegram.org/**', (route) => route.fulfill({
     status: 200, contentType: 'text/javascript; charset=utf-8', body: 'window.Telegram=window.Telegram||{};',
@@ -93,13 +120,15 @@ async function play(width, height) {
     } catch { /* приватный режим */ }
   });
 
+  // Роль приходит запросом, и карточка до неё скрыта у всех: ждём ответа.
+  await page.waitForSelector('html.admin-rbac-root', { timeout: 15_000 });
   /*
     Вход именно из меню, а не вызовом showGame: карточка игры — это и есть
     дверь, и её отсутствие никак иначе не заметить.
   */
-  const card = page.locator('[data-game="twelve-tribes"], [onclick*="twelve-tribes"]').first();
-  if (await card.count()) await card.click();
-  else await page.evaluate(() => window.showGame('twelve-tribes'));
+  const card = page.locator('[onclick*="twelve-tribes"]').first();
+  need(await card.isVisible(), 'у главного администратора карточка игры не видна');
+  await card.click();
 
   await page.waitForSelector('.tt-setup [data-start]', { timeout: 20_000 });
     await page.locator('[data-foes] button[data-value="2"]').click();
@@ -197,6 +226,67 @@ async function play(width, height) {
   return { errors, steps, wilds, shofar };
 }
 
+/*
+  Замок. Обычный человек не видит карточку в меню и не попадает в игру даже
+  прямым вызовом showGame — вместо стола он получает отказ и кнопку в меню.
+*/
+async function locked() {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    window.Telegram = {
+      WebApp: {
+        initData: 'user=%7B%22id%22%3A777000%7D&hash=qa',
+        initDataUnsafe: { user: { id: 777000, first_name: 'Гость' } },
+        ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
+        MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
+        HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
+      },
+    };
+  });
+  const plain = (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({
+      success: true, isBanned: false, lastGames: [], users: [],
+      isAdmin: false, isRoot: false, role: 'none', userId: '777000',
+      answered: true, skip: true, eligible: false,
+    }),
+  });
+  await page.route('https://telegram.org/**', (route) => route.fulfill({
+    status: 200, contentType: 'text/javascript; charset=utf-8', body: 'window.Telegram=window.Telegram||{};',
+  }));
+  for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**',
+    'https://*.workers.dev/**']) await page.route(pattern, plain);
+  await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
+  await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+  await page.waitForTimeout(2500);
+
+  const seen = await page.evaluate(() => {
+    const card = document.querySelector('[onclick*="twelve-tribes"]');
+    return {
+      exists: Boolean(card),
+      shown: card ? getComputedStyle(card).display !== 'none' : false,
+      root: document.documentElement.classList.contains('admin-rbac-root'),
+      others: document.querySelectorAll('[onclick*="quartet"]').length,
+    };
+  });
+  need(!seen.root, 'обычному человеку выдали роль главного администратора');
+  need(seen.others > 0, 'у обычного человека пропали и прочие игры — дело не в замке');
+  need(!seen.shown, 'карточка «Двенадцати колен» видна тому, кому игра ещё не открыта');
+
+  await page.evaluate(() => window.showGame('twelve-tribes'));
+  await page.waitForTimeout(1500);
+  const refused = await page.evaluate(() => ({
+    text: document.getElementById('game-container')?.innerText || '',
+    table: document.querySelectorAll('.tt-wrap').length,
+  }));
+  need(/ещё не открыта/i.test(refused.text),
+    `прямой вызов игры не отказал: «${refused.text.slice(0, 60)}»`);
+  need(refused.table === 0, 'по прямому вызову игра всё-таки открылась');
+  await context.close();
+}
+
+await locked();
 const phone = await play(390, 844);
 need(phone.errors.length === 0, `ошибки в консоли: ${phone.errors.slice(0, 2).join(' | ')}`);
 const narrow = await play(320, 568);
@@ -211,6 +301,7 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log('OK: игра открывается из меню, раздача сдана по семь карт на троих, карта и колода крупнее пальца, '
+console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов; '
+  + 'у главного администратора игра открывается из меню, раздача сдана по семь карт на троих, карта и колода крупнее пальца, '
   + `раздача доиграна до итогов за ${phone.steps} нажатий (жребиев со сменой стана ${phone.wilds}, `
   + `шофаров ${phone.shofar}); на 390 и на 320 ничего не вылезло за край, консоль чистая.`);
