@@ -222,10 +222,13 @@ const shots = process.env.RUNNER_TEMP || '/tmp';
 /*
   Снимок одного только холста. Разметка на время снимка прячется: боком она
   лежит поверх доски, и белые карточки кнопок неотличимы от белых плиток —
-  мерить по такому снимку доску нельзя. Заодно возвращается, насколько полоса
-  управления заходит на холст: ряд клеток обязан остаться выше неё.
+  мерить по такому снимку доску нельзя. Вместе с ней прячется и то, что лежит
+  не рядом с холстом, а прямо на нём, — карточка удела и совет про горизонт:
+  они тоже белые и во всю ширину, и доска, измеренная сквозь них, выходит
+  размером с карточку. Заодно возвращается, насколько полоса управления
+  заходит на холст: ряд клеток обязан остаться выше неё.
 */
-const OVERLAY = '#game > *:not(.ring-wrap), .view-home';
+const OVERLAY = '#game > *:not(.ring-wrap), .view-home, #core, #orientation-tip';
 
 async function snap(page, file) {
   const info = await page.evaluate((selector) => {
@@ -646,6 +649,19 @@ try {
     need(live.width > 200 && live.height > 140,
       `коробка холста вышла ${live.width}×${live.height}`);
 
+    /*
+      Карточка удела убирается с холста на время замеров и обхода. Она висит на
+      середине доски, и мешает она дважды: в снимке она белая и считается
+      доской, а под пальцем перехватывает касание вместо плитки. Игре она нужна
+      — но спрашивают тут не её, а доску, и её собственную работу проверяют
+      отдельно, разметкой и снимками полёта.
+    */
+    const veil = (shown) => page.evaluate((on) => {
+      const node = document.getElementById('core');
+      if (node) node.style.visibility = on ? '' : 'hidden';
+    }, shown);
+    await veil(false);
+
     // ——— доска влезает в кадр и на ней написаны слова ———
     const view = await snap(page, shot);
     need(view.boardWidth > 0, 'доски на холсте не нашлось вовсе');
@@ -664,20 +680,7 @@ try {
       что луч упирается не в плитки, а во что-то одно.
     */
     const known = await page.evaluate(() => window.PromisedLandBoard.BOARD.map((cell) => cell.name));
-    /*
-    Карточка убирается перед обходом клеток. Она лежит поверх доски и закрывает
-    часть плиток — это её работа, и игрок в этот миг занят ею, а не доской.
-    Обход же спрашивает другое: отзывается ли каждая плитка на касание. Мерить
-    это через закрытую карточкой доску значит мерить карточку.
-  */
-  await page.evaluate(() => {
-    const game = window.PromisedLandGame;
-    if (!game.state().pending) return;
-    game.state().pending = null;
-    game.refresh();
-  });
-  await page.waitForTimeout(250);
-  const named = new Set();
+    const named = new Set();
     const stray = [];
     const box = await page.locator('#board3d').boundingBox();
     const scale = box.width / view.width;            // снимок снят в двойном масштабе
@@ -705,6 +708,7 @@ try {
     }
     need(named.size >= 22, `по всей доске отозвалось ${named.size} клеток из 36`);
     need(stray.length === 0, `карточка открылась не на клетке поля: ${stray.join(', ')}`);
+    await veil(true);
 
     /*
       Доска слушается пальца. Проверяется то, ради чего это делалось: повернуть
