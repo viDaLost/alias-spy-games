@@ -1166,7 +1166,13 @@ window.PromisedLand3D = (() => {
           ringWest = Math.min(ringWest, probe.x);
           ringEast = Math.max(ringEast, probe.x);
         }
-        const wide = Math.max(Math.abs(allWest - centreX), Math.abs(allEast - centreX));
+        /*
+          Доска целиком остаётся в холсте — это меряется от середины холста, а
+          не от середины свободного места. От середины свободного считалась
+          прежде, и вот к чему это вело: сдвинутая влево доска «помещалась»,
+          считая от своей новой середины, а левым краем уходила за экран.
+        */
+        const wide = Math.max(Math.abs(allWest), Math.abs(allEast));
         const ringWide = Math.max(Math.abs(ringWest - centreX), Math.abs(ringEast - centreX));
         /*
           Кадр ставится так, чтобы кольцо клеток встало по середине свободной

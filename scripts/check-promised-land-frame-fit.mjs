@@ -114,18 +114,16 @@ async function openGame(width, height) {
   // Сцена поднимается не мгновенно, а вся раскладка партии висит на её классе.
   await frame.waitForSelector('#game.has-3d', { timeout: 90_000 });
   /*
-    Оба ящика открываются до замеров. Закрытые, они прячут ровно то, ради чего
-    эта проверка и написана: второй ярус кнопок и карточки игроков. Мерить
-    посадку кадра по одной кнопке «Ещё» значило бы мерить пустой экран и
-    всякий раз получать «всё поместилось».
+    Всё, что открывается, открывается до замеров. Закрытыми карточки игроков и
+    журнал прячут ровно то, ради чего эта проверка и написана, и мерить
+    посадку кадра по пустому экрану значило бы всякий раз получать «всё
+    поместилось».
   */
-  const more = frame.locator('#more-open');
-  if (await more.count() && await more.getAttribute('aria-expanded') === 'false') {
-    await more.first().click().catch(() => {});
-  }
-  const showPlayers = frame.locator('#players-open');
-  if (await showPlayers.count() && await showPlayers.getAttribute('aria-pressed') === 'false') {
-    await showPlayers.first().click().catch(() => {});
+  for (const id of ['players-open', 'feed-open']) {
+    const tab = frame.locator(`#${id}`);
+    if (await tab.count() && await tab.getAttribute('aria-pressed') === 'false') {
+      await tab.first().click().catch(() => {});
+    }
   }
   await page.waitForTimeout(1600);
   return { context, page, frame, errors };
@@ -164,8 +162,8 @@ try {
     const cut = await frame.evaluate((all) => {
       const out = [];
       const selector = all
-        ? '#actions button, #more button, .players .player, .hud > *'
-        : '#actions button, #more button, .hud > *';
+        ? '.actions-main button, #tools .tab, .players .player, .hud-bar > *'
+        : '.actions-main button, #tools .tab, .hud-bar > *';
       for (const node of document.querySelectorAll(selector)) {
         const rect = node.getBoundingClientRect();
         if (!rect.width || !rect.height) continue;
@@ -187,7 +185,7 @@ try {
     const overlap = await frame.evaluate(({ left, top, right, bottom }) => {
       const hits = [];
       for (const node of document.querySelectorAll(
-        '#actions button, #more button, .players .player, .hud > *')) {
+        '.actions-main button, #tools .tab, .players .player, .hud-bar > *')) {
         const rect = node.getBoundingClientRect();
         if (rect.right < left || rect.left > right || rect.bottom < top || rect.top > bottom) continue;
         hits.push(node.textContent.trim().slice(0, 18));

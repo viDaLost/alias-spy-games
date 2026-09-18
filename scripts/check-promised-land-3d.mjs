@@ -77,25 +77,28 @@ const need = (condition, message) => { if (!condition) problems.push(message); }
 /*
   Два ящика, которые надо открыть, чтобы спросить их содержимое.
 
-  «Мои уделы», обучение и карточки игроков ушли под кнопку «Ещё»: на экране
-  партии им место не каждый ход. Проверке от этого не легче и не труднее — она открывает их так
+  «Мои уделы», карточки игроков, журнал и обучение стоят пунктами панели внизу
+  экрана. Открытое видно по самому пункту, и проверка открывает их так же, как
+  открыл бы человек, — нажатием. Проверке от этого не легче и не труднее — она открывает их так
   же, как открыл бы человек, и спрашивает уже открытыми.
 */
-async function openMore(target) {
-  const toggle = target.locator('#more-open');
-  if (!(await toggle.count())) return false;
-  if (await toggle.getAttribute('aria-expanded') === 'true') return true;
-  await toggle.first().click({ timeout: 4_000 }).catch(() => {});
-  return (await target.locator('#more').count()) > 0;
+/** Панель управления внизу: четыре постоянных пункта, ящика «Ещё» больше нет. */
+async function tools(target) {
+  return (await target.locator('#tools .tab').count()) >= 3;
+}
+
+/** Нажать пункт панели, если он ещё не нажат. */
+async function openTool(target, id) {
+  const tab = target.locator(`#${id}`);
+  if (!(await tab.count())) return false;
+  if (await tab.getAttribute('aria-pressed') === 'false') {
+    await tab.first().click({ timeout: 4_000 }).catch(() => {});
+  }
+  return true;
 }
 
 async function openPlayers(target) {
-  if (!(await openMore(target))) return false;
-  const toggle = target.locator('#players-open');
-  if (!(await toggle.count())) return false;
-  if (await toggle.getAttribute('aria-pressed') === 'false') {
-    await toggle.first().click({ timeout: 4_000 }).catch(() => {});
-  }
+  if (!(await openTool(target, 'players-open'))) return false;
   return (await target.locator('.player').count()) > 0;
 }
 
@@ -349,18 +352,22 @@ try {
       numbers,
       silver: mine.silver,
       heritage: mine.heritage,
-      turnHidden: document.getElementById('turn').hidden,
+      // Чей ход — в строке под главной кнопкой; свой ход не подписывается.
+      turnHidden: !document.querySelector('#turnline .turnline-who'),
+      year: document.querySelector('#turnline .turnline-year')?.textContent || '',
     };
   });
   need(status.shown, 'кошелька нет в шапке партии — серебро можно узнать только нажатием');
   need(status.numbers[0] === status.silver && status.numbers[1] === status.heritage,
     `в шапке ${JSON.stringify(status.numbers)}, а в партии ${status.silver}/${status.heritage}`);
-  need(status.turnHidden, 'на своём ходу шапка всё равно подписывает, чей ход');
+  need(status.turnHidden, 'на своём ходу игра всё равно подписывает, чей ход');
+  need(/Год\s+\d+\s+из\s+\d+/.test(status.year),
+    `под кнопкой не видно, какой идёт год: «${status.year}»`);
 
-  need(await openMore(page), 'ящик «Ещё» не открылся — обучения не достать');
+  need(await tools(page), 'панели управления нет на экране партии');
   const teachOpen = page.locator('#teach-open');
   need(await teachOpen.count() === 1 && await teachOpen.isVisible(),
-    'в ящике «Ещё» нет кнопки обучения');
+    'в панели управления нет пункта обучения');
 
   /*
     Совет про горизонт и кнопка «Вернуть вид» стоят в одном углу, и накрыть
@@ -438,7 +445,7 @@ try {
     Темп соперников. Кнопка спрашивается на ходу человека — там, где он её и
     ищет: по умолчанию соперники ходят неспешно, а она разгоняет их вдвое.
   */
-  need(await openMore(page), 'ящик «Ещё» не открылся — второго яруса кнопок не достать');
+  need(await tools(page), 'панель управления пропала с экрана партии');
   /*
     «Быстрее» и «Авто» убраны из игры целиком, и здесь спрашивается именно
     это. Обе кнопки решали одну задачу — «мне скучно смотреть», — и решали её
@@ -657,7 +664,20 @@ try {
       что луч упирается не в плитки, а во что-то одно.
     */
     const known = await page.evaluate(() => window.PromisedLandBoard.BOARD.map((cell) => cell.name));
-    const named = new Set();
+    /*
+    Карточка убирается перед обходом клеток. Она лежит поверх доски и закрывает
+    часть плиток — это её работа, и игрок в этот миг занят ею, а не доской.
+    Обход же спрашивает другое: отзывается ли каждая плитка на касание. Мерить
+    это через закрытую карточкой доску значит мерить карточку.
+  */
+  await page.evaluate(() => {
+    const game = window.PromisedLandGame;
+    if (!game.state().pending) return;
+    game.state().pending = null;
+    game.refresh();
+  });
+  await page.waitForTimeout(250);
+  const named = new Set();
     const stray = [];
     const box = await page.locator('#board3d').boundingBox();
     const scale = box.width / view.width;            // снимок снят в двойном масштабе
@@ -1050,7 +1070,8 @@ try {
       .map((node) => `${node.tagName}.${node.className}`.slice(0, 40));
     return {
       players: document.querySelectorAll('.player').length,
-      year: document.getElementById('year').textContent,
+      // Год переехал из шапки в строку под главной кнопкой.
+      year: document.querySelector('#turnline .turnline-year')?.textContent || '',
       aside: document.documentElement.scrollWidth - width,
       over: [...new Set(over)].slice(0, 4),
     };
@@ -1059,7 +1080,7 @@ try {
   need(crowd.aside === 0 && crowd.over.length === 0,
     `на узком экране за край вышли: ${crowd.over.join(', ') || crowd.aside + 'px'}`);
   need(/держатся\s+6/.test(crowd.year),
-    `в партии «до последнего» шапка показывает «${crowd.year}»`);
+    `в партии «до последнего» под кнопкой написано «${crowd.year}»`);
   /*
     Выкуп из темницы. Человека туда не доводит ни один осмысленный путь
     нажатиями, поэтому он сажается прямо: партия спрашивается у страницы,
@@ -1192,7 +1213,7 @@ try {
   }
   await tall.waitForTimeout(900);
   // Ящик открывается до замера: кнопки в нём и считаются.
-  need(await openMore(tall), 'боком на высоком экране ящик «Ещё» не открылся');
+  need(await tools(tall), 'боком на высоком экране нет панели управления');
   await tall.waitForTimeout(250);
   const roomy = await tall.evaluate(() => {
     const doc = document.documentElement;
@@ -1206,13 +1227,12 @@ try {
       fromBottom: doc.clientHeight - actions.bottom,
       actionWidth: actions.width / doc.clientWidth,
       /*
-        Кнопки самой полосы — без содержимого ящика: ящик тоже лежит внутри
-        полосы, и, открытый, он считался бы вместе с ней. Считать их вместе
-        значило бы никогда не заметить, что полоса снова заросла.
+        Решения этого хода — отдельно от постоянной панели: панель лежит в той
+        же полосе, и считать их вместе значило бы никогда не заметить, что
+        полоса снова заросла кнопками.
       */
-      buttons: document.querySelectorAll('#actions button').length
-        - document.querySelectorAll('#more button').length,
-      inDrawer: document.querySelectorAll('#more button').length,
+      buttons: document.querySelectorAll('.actions-main button').length,
+      inDrawer: document.querySelectorAll('#tools .tab').length,
     };
   });
   need(roomy.down === 0 && roomy.aside === 0,
@@ -1229,10 +1249,10 @@ try {
     и спрашивается оно там же. Если внизу снова окажется целый ярус, значит
     ящик перестал работать и экран опять зарос кнопками.
   */
-  need(roomy.buttons >= 2 && roomy.buttons <= 3,
-    `боком внизу ${roomy.buttons} кнопок — полоса снова заросла`);
+  need(roomy.buttons >= 1 && roomy.buttons <= 2,
+    `боком решений этого хода ${roomy.buttons} — полоса снова заросла кнопками`);
   need(roomy.inDrawer >= 3,
-    `в ящике «Ещё» боком ${roomy.inDrawer} кнопок — часть потерялась`);
+    `в панели управления боком ${roomy.inDrawer} пунктов — часть потерялась`);
   need(tallErrors.length === 0,
     `боком на высоком экране ошибки — ${tallErrors.slice(0, 2).join(' | ')}`);
   await side.close();

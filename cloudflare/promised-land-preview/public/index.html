@@ -263,11 +263,14 @@
     ушло в ящик «Ещё», где ему и место: его зовут раз за партию.
   -->
   <div class="hud">
-    <div class="hud-side">
-      <span id="year" class="hud-year">Год 1</span>
-      <span id="turn" class="hud-turn"></span>
-    </div>
-    <div class="hud-side hud-side--end">
+    <!--
+      Фишка игрока выступает из плашки влево — так на неё смотрят первой и так
+      видно, чей это счёт. Внутри плашки — только числа: серебро, наследие,
+      казна. Год и чей ход ушли под главную кнопку, ближе к тому месту, где их
+      спрашивают.
+    -->
+    <img id="face" class="hud-face" alt="" />
+    <div class="hud-bar">
       <span id="purse" class="hud-purse"></span>
       <span id="treasury" class="hud-pot">Казна 0</span>
     </div>

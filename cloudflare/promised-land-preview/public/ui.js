@@ -83,7 +83,15 @@
     close.textContent = 'Понятно';
     close.addEventListener('click', () => tip.remove());
     tip.append(text, close);
-    $('game').prepend(tip);
+    /*
+      Совет живёт в коробке доски, а не экрана партии. Там же висит кнопка
+      «Вернуть вид», и, пока они были в разных коробках, место совету
+      приходилось назначать числом — от края экрана. Число это разошлось с
+      явью, как только шапка стала ниже: кнопка уехала вверх, а совет остался,
+      и накрыл её собой. В одной коробке им обоим хватает одного правила:
+      кнопка сверху, совет под ней.
+    */
+    (document.querySelector('#game .ring-wrap') || $('game')).appendChild(tip);
   }
 
   /*
@@ -142,19 +150,18 @@
   let botTimer = 0;
   let sheetOpen = false;
   /*
-    Два ящика, которые по умолчанию закрыты.
+    Что сейчас открыто на экране партии.
 
-    На экране партии всё время висело то, что нужно раз в несколько ходов:
-    три кнопки второго яруса и полоса карточек игроков. Стоймя они забирали
-    двести с лишним точек высоты, боком — нижнюю полосу целиком, и всё это у
-    доски, ради которой в игру и смотрят. Теперь они открываются кнопкой
-    «Ещё» — и закрываются ею же.
+    Три вещи — свои уделы, карточки игроков и журнал ходов — нужны не каждый
+    ход, а место занимали каждый: стоймя они забирали двести с лишним точек
+    высоты, боком — нижнюю полосу целиком, и всё это у доски, ради которой в
+    игру и смотрят. Теперь каждая открывается своим пунктом панели внизу.
 
-    Открытое состояние живёт до конца партии, а не до следующего хода: тот,
-    кому карточки игроков нужны постоянно, открывает их один раз.
+    Открытое живёт до конца партии, а не до следующего хода: тому, кому
+    карточки игроков нужны постоянно, хватит одного нажатия за партию.
   */
-  let moreOpen = false;
   let playersOpen = false;
+  let feedOpen = false;
   let lastHumanId = '';
   // Автоигра: ходы человека тоже ведёт разум соперников. Нужна, чтобы досмотреть
   // партию до юбилея, не нажимая, и чтобы попробовать правила, не разбираясь.
@@ -591,24 +598,6 @@
   }
 
   /** Обучение: показ на доске. Ходы на это время не идут — они подождут. */
-  /*
-    Кнопка обучения живёт в ящике «Ещё». В шапке она стояла посередине — и
-    посередине же оказывалась игрового поля, когда телефон поворачивали боком.
-    Зовут её раз за партию, а место она занимала всю партию; шапка теперь
-    отвечает на вопросы, а не предлагает нажать.
-  */
-  function teachButton() {
-    const node = button('Обучение', 'ghost', () => {
-      // Посреди хода соперника показ начинать нельзя: он говорит о том, что
-      // на доске сейчас, а доска в этот миг движется сама.
-      if (rolling) return;
-      moreOpen = false;
-      teach();
-    });
-    node.id = 'teach-open';
-    return node;
-  }
-
   function teach() {
     if (!window.PromisedLandTutorial) return;
     teachWanted = false;
@@ -664,21 +653,22 @@
           const out = { top: 0, bottom: 0, left: 0, right: 0 };
           if (!box.width || !box.height) return out;
           /*
-            Что занято на холсте — и с какой стороны.
+            Что занято на холсте и с какой стороны.
 
-            Прежде считалось только «занято снизу», и всё, что лежало поверх
-            доски, объявлялось нижней полосой. Боком это было прямой неправдой:
-            кнопки там собраны в правый нижний угол и занимают меньше половины
-            ширины, а доска из-за них уезжала под шапку, оставляя под собой
-            треть экрана пустого песка.
+            Правило простое и разное для двух вещей, и это не непоследователь-
+            ность, а разная их природа.
 
-            Теперь широкое считается полосой (сверху или снизу — смотря к
-            какому краю ближе), узкое — столбцом (слева или справа). Доля в
-            семь десятых ширины выбрана по делу: шапка и полоса кнопок стоймя
-            тянутся во всю ширину, а боком кнопки занимают меньше половины.
+            Шапка — полоса поверху: она тянется вдоль верхнего края и мешает
+            ровно настолько, насколько его закрывает. Поэтому её высота идёт в
+            запас с весом: узкая плашка в треть ширины отнимает треть своей
+            высоты, растянутая во всю ширину — всю.
+
+            Управление — то, под что доске заезжать нельзя вовсе: там нажимают.
+            Стоймя оно лежит полосой внизу, боком собрано в правый угол, и
+            запас берётся целиком, без веса. Иначе доска уезжает под кнопки
+            краем — тем самым, по которому и нажимают клетки.
           */
-          const BAND = 0.7;
-          const mark = (node) => {
+          const fit = (node, band) => {
             if (!node || node.hidden || !node.offsetParent) return;
             const rect = node.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
@@ -687,22 +677,32 @@
             const top = Math.max(rect.top, box.top);
             const bottom = Math.min(rect.bottom, box.bottom);
             if (right <= left || bottom <= top) return;
-            if ((right - left) / box.width >= BAND) {
+            if (band) {
+              const weight = (right - left) / box.width;
               if (top - box.top <= box.bottom - bottom) {
-                out.top = Math.max(out.top, bottom - box.top);
+                out.top = Math.max(out.top, (bottom - box.top) * weight);
               } else {
-                out.bottom = Math.max(out.bottom, box.bottom - top);
+                out.bottom = Math.max(out.bottom, (box.bottom - top) * weight);
               }
               return;
             }
-            if (left - box.left <= box.right - right) {
-              out.left = Math.max(out.left, right - box.left);
+            // Управление: на широком холсте — столбец, на высоком — полоса.
+            if (box.width > box.height) {
+              if (left - box.left <= box.right - right) {
+                out.left = Math.max(out.left, right - box.left);
+              } else {
+                out.right = Math.max(out.right, box.right - left);
+              }
+              return;
+            }
+            if (top - box.top <= box.bottom - bottom) {
+              out.top = Math.max(out.top, bottom - box.top);
             } else {
-              out.right = Math.max(out.right, box.right - left);
+              out.bottom = Math.max(out.bottom, box.bottom - top);
             }
           };
-          for (const id of ['teach', 'actions', 'players', 'feed']) mark($(id));
-          mark(document.querySelector('#game .hud'));
+          for (const id of ['teach', 'actions', 'players', 'feed']) fit($(id), false);
+          fit(document.querySelector('#game .hud'), true);
           return out;
         },
         frameOfOld: () => {
@@ -1059,14 +1059,12 @@
       || turnPlayer;
   }
 
+  /*
+    Шапка теперь — только счёт: серебро, наследие, казна. Год и чей ход ушли
+    вниз, под главную кнопку: их спрашивают, решая, что нажать, и смотреть за
+    ними через весь экран не за чем.
+  */
   function updateHud() {
-    const left = state.mode === 'last' ? E.standing(state).length : 0;
-    $('year').textContent = state.mode === 'last'
-      ? `Год ${state.year} · держатся ${left}`
-      : (state.sabbath
-        ? `Субботний год ${state.year} из ${state.years}`
-        : `Год ${state.year} из ${state.years}`);
-    $('year').classList.toggle('is-sabbath', state.sabbath);
     const pot = $('treasury');
     pot.innerHTML = '';
     pot.appendChild(img(art('icons', state.sabbath ? 'ui-sabbath' : 'ui-pot'), 'hud-icon', ''));
@@ -1082,6 +1080,19 @@
       состояния всегда, рядом с годом и казной.
     */
     const mine = whoAmI();
+    /*
+      Фишка игрока у левого края плашки. Она отвечает на вопрос «чей это
+      счёт» быстрее любой подписи: ту же фишку игрок видит на доске.
+    */
+    const face = $('face');
+    if (mine) {
+      face.src = art('tokens', tokenOf(mine));
+      face.alt = mine.name;
+      face.style.setProperty('--who', colorOfPlayer(mine));
+      face.hidden = false;
+    } else {
+      face.hidden = true;
+    }
     const purse = $('purse');
     purse.innerHTML = '';
     if (mine) {
@@ -1094,22 +1105,6 @@
       heritage.appendChild(el('b', null, String(mine.heritage)));
       purse.append(silver, heritage);
       purse.title = `${mine.name}: ${mine.silver} сиклей, ${mine.heritage} наследия`;
-    }
-
-    /*
-      Чей ход — тоже сообщение, а не догадка по тому, какие кнопки на экране.
-      Свой ход не подписывается: он и так виден по тому, что игра чего-то ждёт
-      от вас, а лишняя строка «ваш ход» в шапке — шум на каждом втором ходу.
-    */
-    const turnNode = $('turn');
-    const turnPlayer = E.current(state);
-    const mineTurn = mine && turnPlayer.id === mine.id;
-    turnNode.innerHTML = '';
-    turnNode.hidden = Boolean(mineTurn);
-    if (!mineTurn) {
-      turnNode.style.setProperty('--who', colorOfPlayer(turnPlayer));
-      turnNode.appendChild(el('i', 'hud-dot'));
-      turnNode.appendChild(el('span', null, `ходит ${turnPlayer.name}`));
     }
 
     const strip = $('players');
@@ -1170,14 +1165,16 @@
     const bar = $('actions');
     bar.innerHTML = '';
     const main = el('div', 'actions-main');
-    const side = el('div', 'actions-side');
     bar.appendChild(main);
-    bar.appendChild(side);
+    /*
+      Полоска с годом и чьим ходом и панель управления строятся один раз и в
+      одном месте — а не в каждой из шести веток ниже, как было со вторым
+      ярусом кнопок. Ветки заняты решениями этого хода, и им незачем помнить
+      про то, что на экране есть всегда.
+    */
+    bar.appendChild(turnLine());
+    bar.appendChild(toolsBar());
     const player = E.current(state);
-    const sheetButton = button(sheetOpen ? 'Скрыть уделы' : 'Мои уделы', 'ghost', () => {
-      sheetOpen = !sheetOpen;
-      render();
-    });
     /*
       По сети кнопки хода есть только у того, чей ход. Сервер чужой ход и так не
       примет, но узнавать об этом, нажав и получив отказ, — плохо: за одним
@@ -1185,12 +1182,10 @@
     */
     if (link && player.id !== mySeat) {
       main.appendChild(el('div', 'waiting', `${player.name} ходит…`));
-      addSide(side, sheetButton);
       return;
     }
     if (player.isBot) {
       main.appendChild(el('div', 'waiting', `${player.name} ходит…`));
-      addSide(side, sheetButton);
       return;
     }
 
@@ -1209,7 +1204,6 @@
         act('takeCard');
         after();
       }));
-      addSide(side, sheetButton);
       return;
     }
 
@@ -1226,7 +1220,6 @@
       }
       main.appendChild(button('Отложить слово и заплатить', player.silver >= cost ? 'ghost' : 'primary',
         () => { act('breakPromise'); after(); }));
-      addSide(side, sheetButton);
       return;
     }
 
@@ -1271,7 +1264,6 @@
         }
         main.appendChild(button('Пойти в наём', 'ghost', () => { act('serve'); after(); }));
       }
-      addSide(side, sheetButton);
       return;
     }
 
@@ -1310,7 +1302,6 @@
     } else {
       main.appendChild(button('Закончить ход', 'primary', () => { act('endTurn'); after(); }));
     }
-    addSide(side, sheetButton);
   }
 
   /*
@@ -1319,40 +1310,86 @@
     живого человека, пока он думает.
   */
   /*
-    Второй ярус — под одной кнопкой.
-
-    «Мои уделы», карточки игроков и обучение нужны не каждый ход, а место
-    занимали каждый. Здесь остаётся одна кнопка «Ещё», а за ней — всё
-    остальное.
+    Значки панели. Рисуются разметкой, а не картинками: четыре знака размером
+    с ноготь, и заводить ради них четыре файла — платить весом за то, что
+    рисуется десятком строк. Цвет наследуется от кнопки, поэтому открытый
+    пункт подсвечивается сам собой.
   */
-  function addSide(side, sheetButton) {
-    const toggle = button(moreOpen ? 'Скрыть' : 'Ещё', 'ghost', () => {
-      moreOpen = !moreOpen;
-      render();
-    });
-    toggle.id = 'more-open';
-    toggle.setAttribute('aria-expanded', String(moreOpen));
-    side.appendChild(toggle);
-    if (!moreOpen) return;
-    const menu = el('div', 'actions-more');
-    menu.id = 'more';
-    menu.appendChild(sheetButton);
-    menu.appendChild(playersButton());
-    if (window.PromisedLandTutorial) menu.appendChild(teachButton());
-    if (!link) {
-    }
-    side.appendChild(menu);
-  }
+  const TOOL_ICON = {
+    plots: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="7.5" width="17" height="11" rx="2.5"/>'
+      + '<path d="M3.5 11.5h17"/><path d="M8.5 7.5v-2h7v2"/></svg>',
+    players: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/>'
+      + '<circle cx="17" cy="9.5" r="2.4"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>'
+      + '<path d="M16 14.4c2.4.2 4.2 2 4.5 4.6"/></svg>',
+    feed: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2.5"/>'
+      + '<path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+    teach: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5l8.5 4-8.5 4-8.5-4z"/>'
+      + '<path d="M7.5 11v4c0 1.5 2 2.6 4.5 2.6s4.5-1.1 4.5-2.6v-4"/></svg>',
+  };
 
-  /** Переключатель полосы с серебром и наследием. */
-  function playersButton() {
-    const node = button(playersOpen ? 'Скрыть игроков' : 'Игроки', 'ghost', () => {
+  /*
+    Панель управления — четыре постоянных пункта внизу экрана.
+
+    Ящика «Ещё» больше нет: за ним пряталось ровно это, и каждая вещь стоила
+    двух нажатий вместо одного. У каждого пункта теперь своё место, оно не
+    меняется от хода к ходу, и палец находит нужный, не читая. Открытый пункт
+    подсвечен — видно состояние, а не только возможность нажать.
+  */
+  function toolsBar() {
+    const nav = el('nav', 'tabbar');
+    nav.id = 'tools';
+    nav.setAttribute('aria-label', 'Управление партией');
+    const tab = (id, icon, label, on, onClick) => {
+      const node = document.createElement('button');
+      node.type = 'button';
+      node.className = on ? 'tab is-on' : 'tab';
+      node.id = id;
+      node.setAttribute('aria-pressed', String(Boolean(on)));
+      const glyph = el('span', 'tab-icon');
+      glyph.innerHTML = TOOL_ICON[icon];
+      node.appendChild(glyph);
+      node.appendChild(el('span', 'tab-label', label));
+      node.addEventListener('click', onClick);
+      nav.appendChild(node);
+    };
+    tab('sheet-open', 'plots', 'Уделы', sheetOpen, () => { sheetOpen = !sheetOpen; render(); });
+    tab('players-open', 'players', 'Игроки', playersOpen, () => {
       playersOpen = !playersOpen;
       render();
     });
-    node.id = 'players-open';
-    node.setAttribute('aria-pressed', String(playersOpen));
-    return node;
+    tab('feed-open', 'feed', 'Журнал', feedOpen, () => { feedOpen = !feedOpen; render(); });
+    if (window.PromisedLandTutorial) {
+      tab('teach-open', 'teach', 'Обучение', false, () => {
+        // Посреди хода соперника показ начинать нельзя: он говорит о том, что
+        // на доске сейчас, а доска в этот миг движется сама.
+        if (rolling) return;
+        teach();
+      });
+    }
+    return nav;
+  }
+
+  /*
+    Полоска под главной кнопкой: год и чей ход. Место для неё выбрано там же,
+    где его ищет глаз, — сразу под тем, что нажимают, — а не в шапке, где
+    рядом стоят числа, которые читают совсем для другого.
+  */
+  function turnLine() {
+    const line = el('div', 'turnline');
+    line.id = 'turnline';
+    const turnPlayer = E.current(state);
+    line.appendChild(el('span', 'turnline-year', state.mode === 'last'
+      ? `Год ${state.year} · держатся ${E.standing(state).length}`
+      : (state.sabbath ? `Субботний год ${state.year} из ${state.years}`
+        : `Год ${state.year} из ${state.years}`)));
+    if (!myTurn()) {
+      const who = el('span', 'turnline-who');
+      who.style.setProperty('--who', colorOfPlayer(turnPlayer));
+      who.appendChild(el('i', 'hud-dot'));
+      who.appendChild(el('span', null, `ходит ${turnPlayer.name}`));
+      line.appendChild(who);
+    }
+    return line;
   }
 
   function button(label, kind, onClick) {
@@ -1595,7 +1632,20 @@
     if (!core || !main) return;
     const toCard = !core.hidden && main.childElementCount > 0 && !main.querySelector('.waiting');
     main.classList.toggle('core-acts', toCard);
-    if (toCard) core.appendChild(main);
+    if (!toCard) return;
+    /*
+      На место уехавшей группы решений встаёт распорка её высоты.
+
+      Без неё полоса внизу худеет ровно на главную кнопку, доска берёт остаток
+      экрана и на столько же вырастает — а потом опадает: каждая остановка
+      фишки кончалась бы скачком поля. Раньше здесь стоял запас числом, и
+      число это разошлось с явью дважды подряд, стоило кнопкам подрасти.
+      Распорка не расходится: она и есть та самая высота.
+    */
+    const hold = el('div', 'actions-hold');
+    hold.setAttribute('aria-hidden', 'true');
+    core.appendChild(main);
+    bar.insertBefore(hold, bar.firstChild);
   }
 
   /*
@@ -1638,6 +1688,12 @@
   function updateFeed() {
     const feed = $('feed');
     feed.innerHTML = '';
+    /*
+      Журнал открывается вкладкой, как уделы и игроки. Висеть на экране всегда
+      ему незачем: читают его редко, а место он занимал каждый ход.
+    */
+    feed.hidden = !feedOpen;
+    if (!feedOpen) return;
     feed.appendChild(el('h2', 'feed-title', 'Журнал ходов'));
     // Восемь записей, а не четыре: стоймя журналу досталось место, которое
     // доска взять не смогла, и заполнять его пустотой незачем. Что не влезло —

@@ -333,9 +333,34 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   font-size: 13px; font-weight: 600; color: var(--ink-soft);
 }
-.hud-side { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.hud-side--end { justify-content: flex-end; }
-.hud-year.is-sabbath { color: var(--gold); }
+/*
+  Счёт партии — одна плашка, из которой влево выступает фишка игрока.
+
+  Три отдельных чипа по краям шапки читались как три несвязанные надписи.
+  Одна плашка читается как счёт: слева тот, чей он, дальше — его серебро и
+  наследие, за чертой — казна стола.
+*/
+.hud { position: relative; justify-content: flex-start; gap: 0; }
+.hud-face {
+  width: 42px; height: 42px; flex: none; border-radius: 50%;
+  object-fit: contain; padding: 4px;
+  background: var(--surface); border: 2px solid var(--who, var(--primary));
+  box-shadow: var(--lift-2);
+  position: relative; z-index: 2;
+}
+.hud-face[hidden] { display: none; }
+.hud-bar {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-left: -14px; padding: 5px 14px 5px 22px;
+  border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--lift-1), var(--edge-top);
+}
+.hud-bar .hud-pot {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
 .hud-pot { font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
 .hud-icon { width: 18px; height: 18px; object-fit: contain; }
 /*
@@ -345,18 +370,21 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   кошелёк, видно без имени.
 */
 .hud-purse {
-  display: inline-flex; align-items: center; gap: 10px;
-  padding: 3px 10px 3px 8px; border-radius: 999px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--who, var(--primary));
-  background: var(--surface);
+  display: inline-flex; align-items: center; gap: 12px; min-width: 0;
   color: var(--ink); font-variant-numeric: tabular-nums;
 }
 .hud-fig { display: inline-flex; align-items: center; gap: 4px; }
 .hud-fig b { font-size: 14.5px; }
-/* Чей ход: точка цвета фишки и имя. Свой ход не подписывается вовсе. */
-.hud-turn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
-.hud-turn[hidden] { display: none; }
+/*
+  Полоска под главной кнопкой: год слева, чей ход справа. Читается тем же
+  взглядом, что и кнопка, — не надо поднимать глаза к шапке.
+*/
+.turnline {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+  padding: 2px 4px;
+}
+.turnline-who { display: inline-flex; align-items: center; gap: 6px; }
 .hud-dot {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--who, var(--primary));
@@ -554,7 +582,16 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 */
 .ring-core {
   position: absolute; left: 50%; top: 50%; translate: -50% -50%;
-  width: min(330px, calc(100% - 32px)); max-height: calc(100% - 20px); z-index: 5;
+  width: min(330px, calc(100% - 32px)); z-index: 5;
+  /*
+    Карточка — карта на столе, а не лист во весь экран. Полное описание удела
+    сделало её высокой: цена, ступень, плата на каждой ступени поселения — и
+    стоймя она закрывала собой почти всё поле, так что доски за ней не
+    оставалось. Две трети — тот предел, за которым карта перестаёт быть
+    картой; что не влезло, прокручивается внутри, а решения всё равно прилипли
+    к низу и никуда не уезжают.
+  */
+  max-height: min(66%, 470px);
   background: var(--surface); background-image: var(--tilt);
   border: 1px solid var(--line); border-radius: 18px;
   /*
@@ -765,23 +802,44 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   отводилось три равные доли, сколько бы кнопок в нём ни стояло. Теперь доля
   одна на кнопку, и единственная кнопка занимает всю ширину — как главная.
 */
-.actions-side { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
-/* Одна высота на ярус: главная кнопка выше прочих ровно настолько, чтобы её
-   находили глазом, а не настолько, чтобы ярусы казались разной породы. */
-.actions .btn { min-height: 48px; }
-.actions .actions-main > .btn { min-height: 54px; font-size: 16px; }
 /*
-  Ящик «Ещё». Открывается под своей кнопкой и занимает всю ширину полосы: это
-  не ярус равных кнопок, а список того, что нужно изредка, и растягивать его
-  по три в ряд не за чем — на узком телефоне «Скрыть игроков» в такую треть
-  не помещается.
+  Панель управления — полка на четыре пункта.
+
+  Так её и узнают: ряд равных клеток внизу экрана, у каждой свой значок и своя
+  подпись, открытая подсвечена. Кнопки на этом экране больше не появляются и
+  не исчезают — появляются и исчезают только решения по клетке, и те на самой
+  карточке.
 */
-.actions-more {
-  grid-column: 1 / -1;
-  display: grid; gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+.tabbar {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+  gap: 4px; padding: 4px;
+  border-radius: 16px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
 }
-.actions-main:empty, .actions-side:empty { display: none; }
+.tab {
+  display: grid; justify-items: center; gap: 3px;
+  padding: 7px 4px 6px; min-height: 52px;
+  border: 0; border-radius: 12px; background: transparent;
+  color: var(--ink-soft); font: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer;
+}
+.tab-icon { width: 22px; height: 22px; display: block; }
+.tab-icon svg {
+  width: 100%; height: 100%; display: block;
+  fill: none; stroke: currentColor; stroke-width: 1.7;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.tab-label { line-height: 1.1; text-align: center; }
+.tab.is-on { background: var(--primary-tint); color: var(--primary); }
+.tab:active { transform: translateY(1px); }
+.tab:focus-visible { outline: 3px solid var(--primary-2); outline-offset: 2px; }
+/*
+  Главная кнопка — самая крупная вещь на экране после доски: её ищут каждый
+  ход и нажимают не глядя. Поэтому она выше прочего, шире прочего и одна.
+*/
+.actions .actions-main > .btn { min-height: 58px; font-size: 17px; border-radius: 18px; }
+.actions-main:empty { display: none; }
 /*
   Нижняя полоса партии держит свою высоту, даже когда кнопок в ней нет.
 
@@ -791,13 +849,12 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   сколько холста занято, и отъезжала на освободившееся место. И то и другое
   выглядело одинаково: поле дёргается на каждой остановке фишки.
 
-  Запас — собственная высота полосы в фазе броска: главная кнопка, зазор и
-  ярус под ней. Он записан слагаемыми, а не одним числом, нарочно: как только
-  кнопки подросли на шесть точек, прежнее «сто четыре» разошлось с явью, и
-  доска снова начала прыгать — ровно на эти шесть. Слагаемые видно рядом с
-  теми правилами, которые их задают, и разойтись им труднее.
+  Держит её распорка, а не запас числом. Числом пробовали дважды, и дважды
+  оно расходилось с явью, стоило кнопкам подрасти: доска начинала прыгать на
+  разницу. Распорка не расходится — она и есть высота уехавшей кнопки.
 */
-#game.has-3d > .actions { min-height: calc(54px + 8px + 48px); }
+/* Распорка на месте уехавшей под карточку группы решений: ровно её высота. */
+.actions-hold { min-height: 58px; }
 .actions .btn { width: 100%; }
 .waiting {
   grid-column: 1 / -1; min-height: 48px; display: flex; align-items: center; justify-content: center;
@@ -1089,6 +1146,12 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     и делить её поровну по-прежнему правильно.
   */
   #game.has-3d > .hud { padding: calc(9px + var(--chrome-top)) 14px 0; pointer-events: none; }
+  /*
+    Боком плашка счёта не тянется во всю ширину: там она лежит прямо на доске,
+    и растянутая — закрывает её верх целиком. По содержимому ей хватает трети
+    экрана, а остальное остаётся полю.
+  */
+  #game.has-3d > .hud .hud-bar { flex: 0 1 auto; max-width: min(46%, 420px); }
   /*
     Боком шапка лежит на песке, и подложка нужна каждому её углу по
     отдельности: середина шапки пуста, и плашка во всю ширину закрыла бы
@@ -1413,14 +1476,6 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   #game.has-3d > .players { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
   #game.has-3d > .players .player { padding: 6px 8px; }
   #game .feed-line { font-size: 15px; line-height: 1.5; color: var(--ink); }
-  /*
-    Ярус мелких кнопок стоймя делится на три, и на узком телефоне «Мои уделы»
-    в них не помещается в строку. Кегль здесь мельче главной кнопки не по
-    небрежности: главную ищут глазами, а эти три — по месту.
-  */
-  #game.has-3d > .actions .actions-side .btn {
-    font-size: 14px; padding-inline: 6px; text-wrap: balance;
-  }
 }
 
 @media (max-width: 360px) {
@@ -1452,16 +1507,17 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   доски — шесть точек от края, тридцать четыре в высоту, — и совет во всю
   ширину накрывал её целиком: кнопка переставала нажиматься, и вернуть
   сбитый вид было нечем, пока совет не закроют. А закрывают его не сразу.
-  Девяносто две точки — первая строка ниже этой кнопки, и рядом с ней
-  в проверке поля стоит прямой вопрос: не задевает ли одно другое.
+  Оба теперь считают от одного края — от верха доски, — и сорок восемь точек
+  ниже кнопки остаются ниже неё, куда бы доска ни переехала. Рядом в проверке
+  поля стоит прямой вопрос: не задевает ли одно другое.
 */
 #game { position: relative; }
 .orientation-tip {
   position: absolute;
   z-index: 6;
-  top: 92px;
-  left: var(--gutter);
-  right: var(--gutter);
+  top: 48px;
+  left: 12px;
+  right: 12px;
   box-shadow: var(--shadow);
   display: flex;
   align-items: center;
