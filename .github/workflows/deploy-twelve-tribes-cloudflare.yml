@@ -1,0 +1,71 @@
+name: Deploy Twelve Tribes Cloudflare backend
+
+# Комнаты «Двенадцати колен».
+#
+# Правила партии воркер берёт из web/games — теми же файлами, что отдаются
+# браузеру. Поэтому развёртывание слушает и их: поправили правила в приложении —
+# сервер обязан уехать следом, иначе он останется со вчерашней игрой.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/twelve-tribes-worker/**'
+      - 'web/games/twelve-tribes-rules.js'
+      - 'web/games/twelve-tribes-engine.js'
+      - 'web/games/twelve-tribes-bots.js'
+      - '.github/workflows/deploy-twelve-tribes-cloudflare.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare/twelve-tribes-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Test room
+        run: npm test
+
+      - name: Create or update Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Configure Worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          SESSION_SECRET: ${{ secrets.TRIBES_SESSION_SECRET }}
+        run: |
+          if [ -z "$SESSION_SECRET" ]; then
+            echo "Нет секрета TRIBES_SESSION_SECRET: добавьте его в настройках репозитория"
+            echo "(Settings → Secrets and variables → Actions → New repository secret)."
+            exit 1
+          fi
+          printf '%s' "$TELEGRAM_BOT_TOKEN" | npx wrangler secret put TELEGRAM_BOT_TOKEN
+          printf '%s' "$SESSION_SECRET" | npx wrangler secret put SESSION_SECRET
+
+      - name: Verify room service
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 20 "https://alias-spy-games-twelve-tribes.vitaledanilov.workers.dev/health" -o /tmp/tribes-health; then
+              grep -q '"ok":true' /tmp/tribes-health && grep -q '"chat":true' /tmp/tribes-health && exit 0
+            fi
+            sleep 5
+          done
+          echo "Комната «Двенадцати колен» не отвечает"; cat /tmp/tribes-health 2>/dev/null; exit 1
