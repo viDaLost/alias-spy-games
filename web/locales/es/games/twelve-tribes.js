@@ -272,6 +272,7 @@
       this.fresh = null;     // только что взятая карта: её видно по подсветке
       this.landing = null;   // место, с которого летит карта на сброс, или null
       this.sawReshuffle = -1; // какую перетасовку стол уже показал
+      this.sawDir = 1;       // в какую сторону шёл круг, когда стол рисовали
       this.flash = null;     // строка состояния на один раз
     }
 
@@ -442,31 +443,60 @@
       /*
         ——— места за столом ———
 
-        Соперники сидят дугой вокруг стола, а не стоят строкой: место у
-        каждого своё и постоянное, и по нему видно, чья очередь и откуда
-        прилетела карта. Дуга считается от середины — крайние места опущены
-        тем ниже, чем дальше они от центра.
+        Места стоят не как попало, а по очереди хода: первым ваше, за ним
+        тот, кто ходит следом за вами, и так до того, кто ходит перед вами.
+        Читать стол слева направо — то же самое, что читать очередь.
 
-        Восьмером мест семь, и каждое ужимается: на телефоне поместиться
+        Зачем это нужно. Почти всё, что делает карта, она делает с тем, кто
+        ходит следом: суббота гонит мимо него, странствие выдаёт ему две
+        карты, плен — четыре. Не зная, кто это, карту кладут вслепую. А
+        «Иордан» ещё и оборачивает круг — и очередь меняется целиком.
+
+        Поэтому порядок здесь считается движком (E.nextSeat), а не берётся
+        из порядка мест в раздаче: после иордана первое место занимает уже
+        другой человек, и стол это показывает сам.
+
+        Восьмером мест восемь, и каждое ужимается: на телефоне поместиться
         обязаны все, иначе двое последних оказываются за краем экрана и в
         игре их как бы нет.
       */
       const foeBox = this.root.querySelector('[data-foes]');
-      const others = state.players.slice(1);
-      foeBox.dataset.seats = String(others.length);
-      foeBox.innerHTML = others.map((player, at) => {
+      const queue = [];
+      for (let step = 1; step < state.players.length; step += 1) {
+        queue.push(state.players[E.nextSeat(state, 0, step)]);
+      }
+      foeBox.dataset.seats = String(queue.length);
+      const place = (at, many) => (many > 1 ? (at - (many - 1) / 2) / ((many - 1) / 2) : 0);
+      const seats = [];
+      /*
+        Своё место — такое же место за столом, только первое и отмеченное.
+        Без него очередь висит в воздухе: видно, кто за кем, и не видно, где
+        в этом кругу вы сами.
+      */
+      seats.push(`<div class="tt-foe tt-foe--me${
+  state.turn === 0 && state.status === 'playing' ? ' is-turn' : ''}" data-seat="0"
+        style="--away:${place(0, queue.length + 1).toFixed(3)}">\n        <b>Tú</b>\n        <span class="tt-foe-meta">${me.hand.length} ${cardsWord(me.hand.length)}${
+  me.said ? ' · шабат' : ''}${state.target && me.score ? ` · ${me.score}` : ''}</span>
+      </div>`);
+      seats.push(...queue.map((player, at) => {
         const turn = state.turn === player.id && state.status === 'playing' ? ' is-turn' : '';
         const backs = new Array(Math.min(player.hand.length, 7)).fill('<i></i>').join('');
         const risk = E.riskOpen(state) && state.risk.seat === player.id;
-        const away = others.length > 1 ? (at - (others.length - 1) / 2) / ((others.length - 1) / 2) : 0;
-        return `<div class="tt-foe${turn}" data-seat="${player.id}" style="--away:${away.toFixed(3)}">
+        // Первый за вами и последний перед вами названы словами: это два
+        // места, которые в карточной игре решают всё.
+        const tag = at === 0 ? 'следом' : at === queue.length - 1 ? 'перед вами' : '';
+        return `<div class="tt-foe${turn}${at === 0 ? ' is-next' : ''}" data-seat="${player.id}"
+          data-place="${at + 1}" style="--away:${place(at + 1, queue.length + 1).toFixed(3)}">
+          <span class="tt-order">${at + 1}</span>
           <b>${player.name}</b>
           <span class="tt-foe-cards">${backs}</span>
           <span class="tt-foe-meta">${player.hand.length} ${cardsWord(player.hand.length)}${
-  player.said ? ' · шабат' : ''}${state.target ? ` · ${player.score} оч.` : ''}</span>
+  player.said ? ' · шабат' : ''}${state.target && player.score ? ` · ${player.score}` : ''}</span>
+          ${tag ? `<span class="tt-foe-tag">${tag}</span>` : ''}
           ${risk ? `<button type="button" class="tt-catch" data-catch="${player.id}">Перебить!</button>` : ''}
         </div>`;
-      }).join('');
+      }));
+      foeBox.innerHTML = seats.join('');
 
       /*
         Сброс — стопка, а не одна карта. Под верхней видны две прошлые, каждая
@@ -536,6 +566,15 @@
         отметки колода просто вдруг толстеет: игрок решает, что игра
         обсчиталась.
       */
+      /*
+        Круг обернулся — об этом говорится словами. Очередь на столе
+        перестраивается сама, и без объяснения это выглядит так, будто места
+        перепутались: человек ищет соседа там, где тот был ходом раньше.
+      */
+      if (state.dir !== this.sawDir) {
+        this.sawDir = state.dir;
+        this.flash = 'Иордан обратился назад: круг пошёл в другую сторону';
+      }
       if (state.reshuffled >= 0 && state.reshuffled !== this.sawReshuffle) {
         this.sawReshuffle = state.reshuffled;
         deckBox.classList.remove('is-refilled');
@@ -557,7 +596,13 @@
       const status = this.root.querySelector('[data-status]');
       if (this.flash) { status.textContent = this.flash; this.flash = null; }
       else if (state.status !== 'playing') status.textContent = '';
-      else if (!mine) status.innerHTML = `Juega <b>${state.players[state.turn].name}</b>`;
+      else if (!mine) {
+        // Следом вы — это стоит сказать: значит, действие чужой карты придёт
+        // именно вам, и руку надо готовить сейчас.
+        const next = E.nextSeat(state, state.turn);
+        status.innerHTML = `Juega <b>${state.players[state.turn].name}</b>`
+          + (next === 0 ? ' — следом <b>tú</b>' : '');
+      }
       else if (state.phase === 'drawn') status.textContent = 'Взяли карту: сыграйте её или оставьте себе';
       else if (legal.size) status.innerHTML = 'Tu turno — <b>кладите карту</b>';
       else status.innerHTML = 'Нечем ходить — <b>возьмите карту</b>';
@@ -629,7 +674,14 @@
     */
     showHints() {
       const R = this.R;
-      const camp = this.state.camp || R.CAMP_IDS[0];
+      const state = this.state;
+      const camp = state.camp || R.CAMP_IDS[0];
+      /*
+        «Сосед» в правилах — это конкретный человек за этим столом, и подсказка
+        называет его по имени. Знать, кому достанутся четыре карты, надо до
+        хода, а не после.
+      */
+      const neighbour = state.players[this.E.nextSeat(state, 0)];
       const rows = ['number', 'sabbath', 'jordan', 'journey', 'lot', 'exile'].map((id) => {
         const kind = R.KINDS[id];
         const face = id === 'number' ? '<span class="tt-tip-rank">7</span>'
@@ -637,16 +689,24 @@
             ? `<span class="tt-tip-quarters">${R.CAMP_IDS.map((one) => `<i style="background:var(--${one})"></i>`).join('')}</span>`
             : actionHTML(id, camp, 26);
         const plus = kind.draw ? ` <span class="tt-plus tt-plus--inline">+${kind.draw}</span>` : '';
+        /*
+          Граница слова (\b) здесь не работает: для кириллицы она в
+          javascript не срабатывает вовсе — «сосед» так и оставался словом
+          «сосед». Поэтому подставляется по пробелу, просто и наверняка.
+        */
+        const note = neighbour && neighbour.id !== 0
+          ? kind.note.replace(/^Сосед /, `${neighbour.name} `).replace(/ сосед /, ` ${neighbour.name} `)
+          : kind.note;
         return `<div class="tt-tip">
           <span class="tt-tip-sign" style="--camp:var(--${camp})">${face}</span>
-          <span class="tt-tip-text"><b>${kind.title}${plus}</b><small>${kind.note}</small></span>
+          <span class="tt-tip-text"><b>${kind.title}${plus}</b><small>${note}</small></span>
         </div>`;
       }).join('');
       const sheet = document.createElement('div');
       sheet.className = 'tt-sheet';
       sheet.innerHTML = `<div class="tt-sheet-card">
         <h3>Что делают карты</h3>
-        <div class="tt-tips">${rows}</div>\n        <p class="tt-tip-foot">Оставшись с одной картой, скажите <b>Шабат!</b> — иначе сосед перебьёт\n          вас, и вы возьмёте две.</p>\n        <button type="button" class="tt-btn tt-btn--ghost" data-cancel>Entendido</button>\n      </div>`;
+        <div class="tt-tips">${rows}</div>\n        <p class="tt-tip-foot">Места на столе стоят по очереди хода: первое ваше, за ним тот, кто\n          ходит следом за вами. Почти всё, что делает карта, она делает с ним.<br>\n          Оставшись с одной картой, скажите <b>Шабат!</b> — иначе сосед перебьёт вас, и вы\n          возьмёте две.</p>\n        <button type="button" class="tt-btn tt-btn--ghost" data-cancel>Entendido</button>\n      </div>`;
       sheet.addEventListener('click', (event) => {
         if (event.target.closest('[data-cancel]') || event.target === sheet) sheet.remove();
       });

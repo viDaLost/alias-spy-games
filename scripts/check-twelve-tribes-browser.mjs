@@ -141,7 +141,8 @@ async function play(width, height, foes = 2) {
     const state = window.TwelveTribesEngine ? null : null;
     return {
       hand: document.querySelectorAll('.tt-hand .tt-card').length,
-      foes: document.querySelectorAll('.tt-foe').length,
+      // Своё место тоже стоит в ряду — соперники считаются без него.
+      foes: document.querySelectorAll('.tt-foe:not(.tt-foe--me)').length,
       pile: document.querySelectorAll('.tt-pile .tt-card').length,
       camp: document.querySelector('.tt-camp')?.textContent?.trim() || '',
     };
@@ -162,9 +163,60 @@ async function play(width, height, foes = 2) {
     `карта в руке ${touch.card.join('×')} — меньше пальца`);
   need(touch.deck[0] >= 56 && touch.deck[1] >= 84, `колода ${touch.deck.join('×')} — меньше пальца`);
 
-  // ——— за столом столько мест, сколько заказано ———
-  const seats = await page.evaluate(() => document.querySelectorAll('.tt-foe').length);
-  need(seats === foes, `за столом ${seats} соперников вместо ${foes}`);
+  /*
+    ——— за столом видна очередь хода ———
+
+    Мест на одно больше, чем соперников: первое — ваше. Дальше они стоят в том
+    порядке, в каком будут ходить, и порядок этот спрашивается у самого движка,
+    а не пересчитывается здесь заново: проверка, которая считает то же самое
+    своим способом, проверяет только собственную арифметику.
+
+    Проверяется и то, что круг оборачивается: «Иордан» меняет сторону хода, и
+    очередь на столе обязана перестроиться целиком — иначе игрок кладёт
+    странствие, глядя на вчерашнего соседа.
+  */
+  const queueNow = () => page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    const size = state.players.length;
+    const want = [0];
+    for (let step = 1; step < size; step += 1) {
+      want.push(((0 + state.dir * step) % size + size) % size);
+    }
+    const chips = [...document.querySelectorAll('.tt-foe')];
+    return {
+      want,
+      shown: chips.map((one) => Number(one.dataset.seat)),
+      places: chips.slice(1).map((one) => one.querySelector('.tt-order')?.textContent || ''),
+      next: chips.filter((one) => one.classList.contains('is-next')).map((one) => Number(one.dataset.seat)),
+      tags: chips.map((one) => one.querySelector('.tt-foe-tag')?.textContent || ''),
+    };
+  });
+  const order = await queueNow();
+  need(order.shown.length === foes + 1, `на столе ${order.shown.length} мест вместо ${foes + 1}`);
+  need(order.shown[0] === 0, 'первое место за столом не ваше');
+  need(order.shown.join(',') === order.want.join(','),
+    `очередь на столе ${order.shown.join('→')}, а движок ведёт ход ${order.want.join('→')}`);
+  need(order.places.join(',') === order.want.slice(1).map((one, at) => String(at + 1)).join(','),
+    `номера мест идут не подряд: ${order.places.join(',')}`);
+  need(order.next.length === 1 && order.next[0] === order.want[1],
+    `«следом» отмечен ${order.next.join(',')}, а ходит следом ${order.want[1]}`);
+
+  // Круг оборачивается — очередь перестраивается вместе с ним.
+  await page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    state.dir *= -1;
+    window.TwelveTribesGame.refresh();
+  });
+  const back = await queueNow();
+  need(back.shown.join(',') === back.want.join(','),
+    `после иордана очередь ${back.shown.join('→')}, а ход идёт ${back.want.join('→')}`);
+  need(foes < 2 || back.shown[1] !== order.shown[1],
+    'круг обернулся, а следом за вами остался тот же игрок');
+  await page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    state.dir *= -1;
+    window.TwelveTribesGame.refresh();
+  });
 
   /*
     ——— рука разложена по станам ———
@@ -232,6 +284,20 @@ async function play(width, height, foes = 2) {
   need(/\+2/.test(tips.text) && /\+4/.test(tips.text),
     'в подсказках не сказано, сколько карт выдают странствие и плен');
   need(/Шабат/.test(tips.text), 'в подсказках не сказано про «Шабат»');
+  /*
+    Сосед в подсказке назван по имени. Это не мелочь: карта действует на того,
+    кто ходит следом, и «сосед берёт четыре» не отвечает на вопрос «кто». Имя
+    сюда подставляет разметка, и однажды оно уже не подставилось: граница слова
+    в регулярном выражении для кириллицы не срабатывает.
+  */
+  const neighbourName = await page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    const size = state.players.length;
+    return state.players[((state.dir % size) + size) % size].name;
+  });
+  need(tips.text.includes(neighbourName),
+    `в подсказках сосед не назван по имени (${neighbourName}): «${tips.text.slice(0, 80)}»`);
+  need(!/Сосед берёт две/.test(tips.text), 'в подсказках остался безымянный «сосед»');
   await page.locator('.tt-sheet [data-cancel]').click({ timeout: 4_000 });
   await page.waitForTimeout(200);
   need(await page.locator('.tt-sheet').count() === 0, 'лист подсказок не закрылся');
@@ -315,7 +381,12 @@ async function play(width, height, foes = 2) {
     });
     watch.observe(pile, { childList: true, subtree: true });
   });
-  const live = page.locator('.tt-hand .tt-card.is-live').first();
+  /*
+    Карта берётся простая, не жребий колен: тот вместо хода спрашивает стан и
+    открывает лист — и полёта в этот миг не случается вовсе. Проверка на этом
+    честно спотыкалась через раз, пока не научилась отличать одно от другого.
+  */
+  const live = page.locator('.tt-hand .tt-card.is-live:not(.tt-card--wild)').first();
   if (await live.count()) {
     await live.click({ timeout: 4_000 }).catch(() => {});
     // Ход соперников — чтобы поймать и чужой полёт, с другого края стола.
@@ -527,6 +598,7 @@ if (problems.length) {
 console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов; '
   + 'у главного администратора игра открывается из меню, раздача сдана по семь карт на троих, карта и колода крупнее пальца, '
   + `раздача доиграна до итогов за ${phone.steps} нажатий (жребиев со сменой стана ${phone.wilds}, `
-  + `«Шабат» сказан ${phone.shabbat} раз); рука разложена по станам, взятая карта летит из колоды, `
+  + `«Шабат» сказан ${phone.shabbat} раз); места стоят по очереди хода и переставляются после иордана, `
+  + 'рука разложена по станам, взятая карта летит из колоды, '
   + 'подсказки открываются и знают все шесть родов карт, кнопки станов цветные и крупные; '
   + 'стол на восьмерых сыгран целиком; на 390 и на 320 ничего не вылезло за край, консоль чистая.');
