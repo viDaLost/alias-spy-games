@@ -163,6 +163,42 @@ async function play(width, height, owner = true) {
   need(touch.deck[0] >= 56 && touch.deck[1] >= 84, `колода ${touch.deck.join('×')} — меньше пальца`);
 
   /*
+    ——— масть видна на самой карте ———
+
+    Проверка не про красоту. Место карты в веере и в стопке сброса когда-то
+    дописывалось к уже собранной разметке вторым атрибутом style: браузер
+    молча оставлял только первый — вместе с цветом стана, — и вся колода
+    становилась серой. Ошибок в консоли при этом не было, раздача шла, счёт
+    считался: поломку было видно только глазами. Теперь её видно отсюда.
+
+    Цвета не переписаны сюда числами: они берутся из самой игры и сравниваются
+    с тем, что браузер на карте нарисовал. Сменится палитра станов — проверка
+    сменится вместе с ней, а серую карту всё равно поймает.
+  */
+  const suits = await page.evaluate(() => {
+    const wrap = document.querySelector('.tt-wrap');
+    const probe = document.createElement('span');
+    document.body.appendChild(probe);
+    const want = new Set(['judah', 'reuben', 'ephraim', 'dan'].map((id) => {
+      probe.style.backgroundColor = getComputedStyle(wrap).getPropertyValue(`--${id}`).trim();
+      return getComputedStyle(probe).backgroundColor;
+    }));
+    probe.remove();
+    const cards = [...document.querySelectorAll('.tt-hand .tt-card, .tt-pile .tt-card')]
+      .filter((card) => !card.classList.contains('tt-card--wild'));
+    return {
+      total: cards.length,
+      grey: cards.filter((card) => !want.has(getComputedStyle(card).backgroundColor)).length,
+      marked: cards.filter((card) => card.querySelectorAll('.tt-corner').length === 2).length,
+      named: cards.filter((card) => (card.querySelector('.tt-name')?.textContent || '').trim().length > 1).length,
+    };
+  });
+  need(suits.total > 0, 'на столе не нашлось ни одной карты стана');
+  need(suits.grey === 0, `${suits.grey} карт из ${suits.total} потеряли цвет стана`);
+  need(suits.marked === suits.total, `у ${suits.total - suits.marked} карт нет метки в углу`);
+  need(suits.named === suits.total, `у ${suits.total - suits.named} карт нет имени стана на ленте`);
+
+  /*
     Раздача доигрывается до итогов. Ходы человека здесь простые: чем можно
     пойти, тем и ходим; нечем — берём карту. Это же и есть самый частый способ
     играть, и если он застревает, играть в игру нельзя.

@@ -86,12 +86,7 @@ const MENU_ICON_SOURCES = {
   ark: "web/assets/icons/ark.webp",
   "moses-nile": "web/assets/icons/moses-nile.webp",
   "promised-land": "web/assets/icons/promised-land-v2.webp",
-  /*
-    Иконка «Двенадцати колен» — рисунок, а не снимок: четыре карты веером в
-    цветах четырёх станов. Полтора килобайта против тридцати четырёх у соседей
-    по набору, и на любом экране она остаётся чёткой.
-  */
-  "twelve-tribes": "web/assets/icons/twelve-tribes.svg",
+  "twelve-tribes": "web/assets/icons/twelve-tribes.webp",
 };
 
 function menuIconHTML(type, title = "") {

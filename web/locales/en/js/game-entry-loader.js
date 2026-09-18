@@ -34,7 +34,7 @@
     },
     'twelve-tribes': {
       title: 'Двенадцать колен', eyebrow: 'Card game', status: 'Собираем станы…', status2: 'Раздаём по семь…',
-      icon: 'web/assets/icons/twelve-tribes.svg?v=1', motif: 'twelve-tribes',
+      icon: 'web/assets/icons/twelve-tribes.webp?v=1', motif: 'twelve-tribes',
     },
     'bible-sketch': {
       title: 'Bible Artist', eyebrow: 'Draw and guess', status: 'Preparing canvas…', status2: 'Sharpening pencils…',

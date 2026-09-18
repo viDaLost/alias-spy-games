@@ -128,61 +128,155 @@
 
 /* ——— колода и сброс ——— */
 .tt-middle { display: flex; align-items: center; justify-content: center; gap: 18px; flex: 1 1 auto; }
-.tt-deck, .tt-pile { position: relative; width: 74px; height: 108px; }
+.tt-deck, .tt-pile { position: relative; width: 78px; height: 112px; }
+
+/*
+  Колода — стопка, а не картинка стопки.
+
+  Четыре слоя лежат друг под другом со сдвигом в точку-полторы, у каждого своя
+  тень и светлая кромка по верхнему краю. Это и есть толщина бумаги: одной
+  тенью её не показать — тень читается как «предмет висит», а не «карт много».
+  Когда колода тает, слои уходят: под конец раздачи видно, что тянуть уже
+  почти нечего.
+*/
+.tt-deck-layer {
+  position: absolute; inset: 0; border-radius: 12px; display: block;
+  background: var(--back, none) center / cover no-repeat,
+    linear-gradient(160deg, #1e293b, #0f172a);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .16) inset, 0 6px 12px -8px rgba(0, 0, 0, .9);
+  transition: transform .28s cubic-bezier(.2, .7, .3, 1), opacity .28s ease;
+}
+.tt-deck-layer:nth-child(1) { transform: translate(6px, 6px) rotate(1.4deg); }
+.tt-deck-layer:nth-child(2) { transform: translate(4px, 4px) rotate(.8deg); }
+.tt-deck-layer:nth-child(3) { transform: translate(2.5px, 2.5px) rotate(.3deg); }
+.tt-deck-layer:nth-child(4) { transform: translate(1px, 1px); }
+/* Колода на исходе: остаются две карты, и это видно раньше, чем кончится. */
+.tt-deck[data-thin="true"] .tt-deck-layer:nth-child(1),
+.tt-deck[data-thin="true"] .tt-deck-layer:nth-child(2) { opacity: 0; transform: none; }
+
 .tt-deck button {
-  position: absolute; inset: 0; border: 0; padding: 0; cursor: pointer;
+  position: absolute; inset: 0; z-index: 1; border: 0; padding: 0; cursor: pointer;
   border-radius: 12px;
-  background:
+  background: var(--back, none) center / cover no-repeat,
     repeating-linear-gradient(135deg, rgba(255, 255, 255, .1) 0 5px, transparent 5px 10px),
     linear-gradient(160deg, #1e293b, #0f172a);
-  box-shadow: 0 2px 0 rgba(255, 255, 255, .12) inset, 0 10px 20px -12px rgba(0, 0, 0, .8);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 10px 20px -12px rgba(0, 0, 0, .85);
   color: #e2e8f0; font: inherit; font-size: 11px; font-weight: 700;
   display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px;
+  transition: transform .18s cubic-bezier(.2, .7, .3, 1), box-shadow .18s ease;
 }
-.tt-deck button:disabled { cursor: not-allowed; opacity: .6; }
-.tt-deck::before, .tt-deck::after {
-  content: ''; position: absolute; inset: 0; border-radius: 12px;
-  background: linear-gradient(160deg, #1e293b, #0f172a);
-  box-shadow: 0 8px 16px -12px rgba(0, 0, 0, .8);
+.tt-deck button span {
+  /* Подпись лежит на рубашке — под ней нужна подложка, иначе она теряется в узоре. */
+  background: rgba(15, 23, 42, .64); border-radius: 999px; padding: 2px 9px;
+  backdrop-filter: blur(2px);
 }
-.tt-deck::before { transform: translate(4px, 4px); }
-.tt-deck::after { transform: translate(2px, 2px); }
-.tt-deck button { z-index: 1; }
+.tt-deck button:disabled { cursor: not-allowed; opacity: .72; }
+.tt-deck button:not(:disabled):hover { transform: translateY(-3px); }
+.tt-deck button:not(:disabled):active { transform: translateY(1px) scale(.985); }
+/* Сколько карт осталось — цифрой на углу колоды. */
+.tt-deck-count {
+  position: absolute; z-index: 2; right: -7px; top: -7px;
+  min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px;
+  background: #f8fafc; color: #0f172a;
+  font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 10px -4px rgba(0, 0, 0, .7);
+}
 
-/* Текущий стан — ободок вокруг сброса и подпись под ним. */
-.tt-pile { display: flex; align-items: center; justify-content: center; }
+/*
+  Сброс — стопка сыгранного. Прошлые карты видны из-под верхней, каждая под
+  своим углом: стол становится столом, а не одной карточкой посередине.
+*/
+.tt-pile { display: grid; place-items: center; }
+.tt-pile .tt-card {
+  grid-area: 1 / 1;
+  transform: rotate(var(--tilt, 0deg)) translate(calc(var(--depth, 0) * -4px), calc(var(--depth, 0) * 3px));
+}
+.tt-pile .tt-card.is-buried { filter: brightness(.94); }
+
+/* Текущий стан — маленькая карта той же масти рядом со сбросом. */
 .tt-camp {
   text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .04em;
-  display: grid; gap: 3px; justify-items: center;
+  display: grid; gap: 4px; justify-items: center;
 }
 .tt-camp-dot {
-  width: 30px; height: 30px; border-radius: 10px; background: var(--camp, #fff);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, .5), 0 6px 14px -8px rgba(0, 0, 0, .8);
-  display: grid; place-items: center;
+  width: 42px; height: 58px; border-radius: 8px;
+  background: var(--camp, #fff);
+  display: grid; place-items: center; padding: 3px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 8px 16px -10px rgba(0, 0, 0, .9);
 }
-.tt-camp-dot svg { width: 20px; height: 20px; }
+.tt-camp-dot::before {
+  content: ''; position: absolute; inset: 0; border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .45);
+}
+.tt-camp-dot { position: relative; }
+.tt-camp-dot svg, .tt-camp-dot img {
+  width: 100%; height: 100%; object-fit: contain;
+  background: rgba(255, 255, 255, .94); border-radius: 6px; padding: 3px;
+}
 
 /* ——— карта ——— */
+/*
+  Карта собрана как настоящая игральная: поле цвета стана, в нём белое поле с
+  волосяной рамкой, в середине крупный знак, по двум углам мелкие метки.
+  Объём даётся не тенью, а тремя вещами разом — светлой кромкой сверху,
+  тёмной полосой снизу (толщина бумаги) и тенью, лежащей вбок, а не вокруг.
+*/
 .tt-card {
-  position: relative; border-radius: 11px; border: 0; padding: 0;
-  background: var(--camp, #64748b);
+  position: relative; border-radius: 12px; border: 0; padding: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(0, 0, 0, .14)),
+    var(--camp, #64748b);
   color: #fff; font: inherit; cursor: default;
-  width: 74px; height: 108px; flex: 0 0 auto;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .3) inset, 0 10px 18px -12px rgba(0, 0, 0, .8);
+  box-sizing: border-box; width: 78px; height: 112px; flex: 0 0 auto;
+  /* Низ занят лентой стана — середина карты считается выше её. */
+  padding-bottom: 13px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .45) inset,
+    0 -2px 0 rgba(0, 0, 0, .22) inset,
+    0 10px 18px -12px rgba(0, 0, 0, .85);
   overflow: hidden;
   display: grid; place-items: center;
+  transition: transform .2s cubic-bezier(.2, .7, .3, 1), box-shadow .2s ease, filter .2s ease;
 }
-/* Белое поле внутри рамки — как на игральной карте. */
+/* Белое поле внутри рамки и волосяная линия по нему — как на игральной карте. */
 .tt-card::before {
   content: ''; position: absolute; inset: 5px; border-radius: 8px;
-  background: rgba(255, 255, 255, .93);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 1), rgba(255, 255, 255, .88) 70%),
+    #fff;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--camp, #64748b) 22%, transparent);
 }
 .tt-face { position: relative; display: grid; place-items: center; gap: 1px; color: var(--camp, #334155); width: 100%; }
-.tt-rank { font-size: 32px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.tt-rank { font-size: 34px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+/*
+  Знак стана водяным знаком за цифрой: масть видна, не читая подписи, а цифра
+  остаётся главным на карте.
+*/
+.tt-water {
+  position: absolute; inset: 15px 12px auto; margin: auto; width: 70%; height: auto;
+  opacity: .1; pointer-events: none;
+}
+/*
+  Метки по углам. По ним карту узнают, когда она лежит в руке веером и видна
+  одним уголком, — ради этого веер вообще возможен.
+*/
+.tt-corner {
+  position: absolute; z-index: 1; font-size: 12px; font-weight: 800; line-height: 1;
+  color: var(--camp, #334155); font-variant-numeric: tabular-nums;
+  display: grid; place-items: center; min-width: 12px;
+}
+/* Знак в углу мелкий: общее правило знака задаёт 26 точек, здесь нужно 12. */
+.tt-corner .tt-sign { width: 12px; height: 12px; }
+.tt-corner--tl { left: 8px; top: 7px; }
+/*
+  Нижняя метка стоит над лентой стана, а не в самом углу: в углу она налезала
+  на название и читалась как лишняя буква в нём.
+*/
+.tt-corner--br { right: 8px; bottom: 22px; transform: rotate(180deg); }
 /*
   Название действия пишется целиком и мельче, а не обрезается: «СТРАНСТВ» на
-  карте — это не сокращение, это поломка. Перенос по словам разрешён, потому
-  что «Жребий колен» в одну строку на карту шириной в палец не встанет.
+  карте — это не сокращение, это поломка.
 */
 .tt-kind {
   font-size: 9.5px; font-weight: 800; line-height: 1.08; text-align: center;
@@ -190,48 +284,109 @@
   overflow-wrap: anywhere; max-width: 100%;
 }
 .tt-sign { width: 26px; height: 26px; }
-.tt-name {
-  position: absolute; left: 0; right: 0; bottom: 8px; text-align: center;
-  font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  color: var(--camp, #334155); opacity: .78;
+img.tt-sign { object-fit: contain; display: block; }
+/*
+  Знак действия — маска, а не картинка.
+
+  Одна и та же «Суббота» лежит в четырёх станах и обязана быть их цвета.
+  Картинку перекрасить нельзя, маску — можно: от файла берётся только форма, а
+  цвет даёт карта. Поэтому в набор и просились одноцветные силуэты.
+*/
+.tt-act {
+  display: block; width: var(--size, 22px); height: var(--size, 22px);
+  background: currentColor;
+  -webkit-mask: var(--art) center / contain no-repeat;
+  mask: var(--art) center / contain no-repeat;
 }
-/* Жребий и плен — все четыре стана на одной карте: масти у неё нет. */
-.tt-card--wild { background: #1f2937; }
+/*
+  Лицо жребия и плена лежит поверх четырёх цветных четвертей, поэтому у
+  картинки прозрачный фон, а подпись остаётся разметкой: название карты должно
+  читаться на любом языке, а не быть запечённым в рисунок.
+*/
+.tt-wild-art {
+  width: 72%; height: auto; display: block; margin: 0 auto -2px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45));
+}
+/*
+  Название стана — лентой по нижнему краю, в цвет стана. Так у карты появляется
+  низ: до этого подпись висела в белом поле и спорила с нижней меткой угла.
+  Лента заодно повторяет цвет там, где карту держат пальцами.
+*/
+.tt-name {
+  position: absolute; left: 5px; right: 5px; bottom: 5px; height: 15px; z-index: 1;
+  display: grid; place-items: center; border-radius: 0 0 8px 8px;
+  background: var(--camp, #64748b); color: #fff;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; padding: 0 3px;
+}
+/*
+  Жребий и плен — все четыре стана на одной карте: масти у неё нет. Название
+  карты написано под рисунком, и низ ей нужен свободнее обычного: иначе слово
+  «ЖРЕБИЙ» упирается в угловую метку и читается вместе с ней.
+*/
+.tt-card--wild { background: #1f2937; padding-bottom: 26px; }
 .tt-quarters { position: absolute; inset: 5px; border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; }
 .tt-quarters i { display: block; }
 .tt-card--wild .tt-face { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
-.tt-card--wild .tt-name { color: #fff; opacity: .9; }
+.tt-card--wild .tt-corner { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.tt-card--wild .tt-name { background: rgba(15, 23, 42, .88); color: #fff; }
 
 /* ——— рука ——— */
-.tt-hand-wrap { display: grid; gap: 6px; margin-top: auto; }
+.tt-hand-wrap { display: grid; gap: 6px; margin-top: auto; position: relative; }
 .tt-hand-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; color: var(--ink-soft, #667085); }
+/*
+  Рука держится веером. Каждая карта повёрнута тем сильнее, чем дальше она от
+  середины, и тем ниже опущена, — так держат карты в руке, и так рука
+  перестаёт быть рядом прямоугольников.
+
+  Поворот считается из одной переменной --away: −1 у левого края, 0 в
+  середине, +1 у правого. Подъём — её квадрат: это и даёт дугу.
+*/
 .tt-hand {
-  display: flex; gap: 6px; overflow-x: auto; padding: 8px 2px 12px;
+  display: flex; gap: 6px; overflow-x: auto; padding: 22px 10px 16px;
   scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+  perspective: 900px;
+}
+.tt-hand .tt-card {
+  scroll-snap-align: center; cursor: pointer; will-change: transform;
+  transform-origin: 50% 130%;
+  transform: rotate(calc(var(--away, 0) * 6deg))
+    translateY(calc(var(--away, 0) * var(--away, 0) * 10px));
+}
+.tt-hand[data-many="true"] .tt-card { margin-right: -26px; }
+.tt-hand[data-many="true"] .tt-card:last-child { margin-right: 0; }
+.tt-hand .tt-card:disabled { cursor: not-allowed; }
+/* Чем можно пойти — то и живое. Тусклое трогать не надо. */
+.tt-hand .tt-card.is-dim { filter: grayscale(.35); opacity: .74; }
+.tt-hand .tt-card.is-live:hover,
+.tt-hand .tt-card.is-live:focus-visible {
+  transform: rotate(calc(var(--away, 0) * 3deg)) translateY(-16px) scale(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .5) inset,
+    0 -2px 0 rgba(0, 0, 0, .22) inset,
+    0 18px 26px -14px rgba(0, 0, 0, .85);
+  z-index: 2;
+}
+.tt-hand .tt-card:active { transition-duration: .09s; }
+/*
+  Взятая карта приходит из колоды, а не появляется в руке. Полёт короткий и с
+  доворотом: так видно, откуда карта, и рука не дёргается.
+*/
+.tt-hand .tt-card.is-fresh { animation: tt-drawn .42s cubic-bezier(.2, .72, .25, 1) both; }
+@keyframes tt-drawn {
+  from { transform: translate(-40px, -120px) rotate(-14deg) scale(.82); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: rotate(calc(var(--away, 0) * 6deg)) translateY(calc(var(--away, 0) * var(--away, 0) * 10px)); opacity: 1; }
 }
 /*
-  Рука в дюжину карт по ширине экрана не помещается никак. Она прокручивается —
-  но прокрутка, о которой не догадались, это спрятанные карты, поэтому
-  вдобавок карты наезжают друг на друга, как в руке: видно, что их много, и
-  видно край каждой.
+  Сыгранная карта прилетает на сброс, а не возникает на нём. Дуга и доворот —
+  чтобы движение читалось как «карту положили», а не «картинка сменилась».
 */
-.tt-hand[data-many="true"] .tt-card { margin-right: -22px; }
-.tt-hand[data-many="true"] .tt-card:last-child { margin-right: 0; }
-.tt-hand .tt-card { scroll-snap-align: center; cursor: pointer; transition: transform .16s ease, box-shadow .16s ease; }
-.tt-hand .tt-card:disabled { cursor: not-allowed; }
-/* Чем можно пойти — то и приподнято. Тусклое трогать не надо. */
-.tt-hand .tt-card.is-dim { filter: grayscale(.35); opacity: .74; }
-.tt-hand .tt-card.is-live:hover, .tt-hand .tt-card.is-live:focus-visible { transform: translateY(-8px); }
-.tt-hand .tt-card.is-fresh { animation: tt-drawn .5s ease; }
-@keyframes tt-drawn {
-  from { transform: translateY(-26px) scale(.86) rotate(-6deg); opacity: 0; }
-  to { transform: none; opacity: 1; }
-}
-/* Сыгранная карта прилетает на сброс, а не возникает на нём. */
-.tt-pile .tt-card.is-landing { animation: tt-land .34s cubic-bezier(.2, .7, .25, 1); }
+.tt-pile .tt-card.is-landing { animation: tt-land .46s cubic-bezier(.2, .72, .25, 1) both; }
 @keyframes tt-land {
-  from { transform: translate(var(--from-x, 0), var(--from-y, 120px)) scale(.8) rotate(-8deg); }
-  to { transform: none; }
+  from { transform: translate(var(--from-x, -10px), 150px) rotate(-16deg) scale(.86); opacity: .6; }
+  55% { opacity: 1; }
+  to { transform: rotate(var(--tilt, 0deg)); }
 }
 
 .tt-status { min-height: 22px; text-align: center; font-size: 14px; font-weight: 600; margin: 0; color: #eef7f1; }
@@ -241,9 +396,8 @@
   прокручивается. Без края прокрутку не видно — а не видно её значит, что
   части карт для игрока нет вовсе.
 */
-.tt-hand-wrap { position: relative; }
 .tt-hand-wrap::after {
-  content: ''; position: absolute; right: 0; bottom: 12px; width: 26px; top: 26px;
+  content: ''; position: absolute; right: 0; bottom: 16px; width: 26px; top: 40px;
   pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--bg-2, #dfe8ff));
 }
@@ -275,7 +429,10 @@
 .tt-log { display: grid; gap: 3px; max-height: 148px; overflow-y: auto; font-size: 12.5px; color: var(--ink-soft, #667085); }
 
 @media (max-width: 380px) {
-  .tt-card { width: 64px; height: 94px; }
+  .tt-card { width: 64px; height: 94px; padding-bottom: 11px; }
+  .tt-card--wild { padding-bottom: 22px; }
+  .tt-name { height: 13px; font-size: 8px; }
+  .tt-corner--br { bottom: 19px; }
   .tt-rank { font-size: 27px; }
   .tt-deck, .tt-pile { width: 64px; height: 94px; }
 }

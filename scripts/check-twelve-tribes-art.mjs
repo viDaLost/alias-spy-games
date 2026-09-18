@@ -77,7 +77,7 @@ for (const rule of EXPECT) {
     if (!info) { problems.push(`${shown} — не PNG и не WebP`); continue; }
     const bytes = fs.statSync(file).size;
     weight += bytes;
-    manifest[rule.dir].push(path.basename(file));
+    manifest[rule.dir].push(path.relative(root, file).split(path.sep).join('/'));
 
     if (rule.alpha && !info.alpha) {
       problems.push(`${shown} — без прозрачного фона: на карте вокруг рисунка будет белый прямоугольник`);
@@ -124,7 +124,8 @@ for (const dir of ['signs', 'actions', 'cards']) {
 if (write) {
   const file = path.join(artDir, 'art.json');
   const body = {
-    note: 'Что из набора уже лежит в папках. Пересобирается сама: node scripts/check-twelve-tribes-art.mjs --write',
+    note: 'Что из набора уже лежит в папках. Пересобирается сама: node scripts/check-twelve-tribes-art.mjs --write.'
+      + ' Пути написаны целиком: по ним же проверка целостности ссылок узнаёт, что картинки не брошены.',
     ...manifest,
   };
   fs.writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);

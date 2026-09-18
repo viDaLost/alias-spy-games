@@ -1,6 +1,19 @@
 {
-  "note": "Что из набора уже лежит в папках. Пересобирается сама: node scripts/check-twelve-tribes-art.mjs --write",
-  "signs": [],
-  "actions": [],
-  "cards": []
+  "note": "Что из набора уже лежит в папках. Пересобирается сама: node scripts/check-twelve-tribes-art.mjs --write. Пути написаны целиком: по ним же проверка целостности ссылок узнаёт, что картинки не брошены.",
+  "signs": [
+    "web/assets/twelve-tribes/signs/judah.webp",
+    "web/assets/twelve-tribes/signs/reuben.webp",
+    "web/assets/twelve-tribes/signs/ephraim.webp",
+    "web/assets/twelve-tribes/signs/dan.webp"
+  ],
+  "actions": [
+    "web/assets/twelve-tribes/actions/sabbath.webp",
+    "web/assets/twelve-tribes/actions/jordan.webp",
+    "web/assets/twelve-tribes/actions/journey.webp"
+  ],
+  "cards": [
+    "web/assets/twelve-tribes/cards/lot.webp",
+    "web/assets/twelve-tribes/cards/exile.webp",
+    "web/assets/twelve-tribes/cards/back.webp"
+  ]
 }

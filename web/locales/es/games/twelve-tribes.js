@@ -78,9 +78,82 @@
     dan: '<path d="M12 8.5 8.6 11v4"/><circle cx="12" cy="6" r="2"/><path d="M12 9c-2.6 3-6 4.6-9 4.8 2.4 1.6 5.6 2 9 1.2 3.4.8 6.6.4 9-1.2-3-.2-6.4-1.8-9-4.8z"/>',
   };
 
-  const signHTML = (camp, size = 26) => `<svg class="tt-sign" viewBox="0 0 24 24" width="${size}" height="${size}"`
+  const drawnSign = (camp, size = 26) => `<svg class="tt-sign" viewBox="0 0 24 24" width="${size}" height="${size}"`
     + ' fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"'
     + ` aria-hidden="true">${SIGNS[camp] || ''}</svg>`;
+
+  // ————————————————————————————————————————————— рисованный набор
+
+  const ART = 'web/assets/twelve-tribes/';
+  /*
+    Что из набора уже нарисовано, игра спрашивает у списка, а не пробует
+    картинки наугад. Причина простая: у файла, которого нет, браузер оставляет
+    ошибку в консоли — и она была бы у каждого игрока, пока набор не собран
+    целиком. Список лежит рядом с картинками и пересобирается проверкой
+    (scripts/check-twelve-tribes-art.mjs --write).
+
+    Набор приходит частями, и каждая часть включается сама собой: чего нет,
+    то по-прежнему рисуется линиями.
+  */
+  const have = { signs: new Map(), actions: new Map(), cards: new Map() };
+
+  async function loadArt() {
+    try {
+      const answer = await fetch(`${ART}art.json`, { cache: 'no-cache' });
+      if (!answer.ok) return;
+      const list = await answer.json();
+      for (const part of ['signs', 'actions', 'cards']) {
+        for (const file of list[part] || []) {
+          const name = String(file).split('/').pop().replace(/\.(?:webp|png)$/i, '');
+          have[part].set(name, String(file));
+        }
+      }
+    } catch {
+      // Списка нет или он битый — игра рисует знаки линиями, как и раньше.
+    }
+  }
+
+  /*
+    Путь к картинке возвращается полным, а не относительным.
+
+    Относительный путь в свойстве CSS браузер считает не от страницы, а от той
+    таблицы стилей, где свойство пригодилось, — и «web/assets/…» превращалось
+    в «web/games/web/assets/…»: рубашка колоды и знаки действий не находились.
+    У картинок в разметке той же беды нет, поэтому поломка была наполовину
+    невидимой: станы рисовались, а действия — нет.
+  */
+  const artUrl = (part, name) => (have[part].has(name)
+    ? new URL(have[part].get(name), document.baseURI).href : null);
+
+  /*
+    Рубашка колоды. Это единственная картинка набора, которая рисуется целиком,
+    вместе с рамкой: у стопки карт рубашка и есть её лицо. Нет файла — остаётся
+    прежняя штриховка.
+  */
+  const deckStyle = () => {
+    const url = artUrl('cards', 'back');
+    return url ? ` style="--back:url('${url}')"` : '';
+  };
+
+  /** Знак стана: нарисованный, если он есть, иначе линиями. */
+  const signHTML = (camp, size = 26) => {
+    const url = artUrl('signs', camp);
+    if (!url) return drawnSign(camp, size);
+    return `<img class="tt-sign" src="${url}" width="${size}" height="${size}" alt="" `
+      + 'loading="eager" decoding="async" />';
+  };
+
+  /*
+    Знак действия. Одна и та же «Суббота» бывает красной, синей, зелёной и
+    золотой: цвет ей даёт стан карты, на которой она лежит. Поэтому рисунок
+    берётся маской, а не картинкой — маска красится в цвет карты, картинка
+    осталась бы чернильной на всех четырёх.
+  */
+  const actionHTML = (kind, camp, size = 22) => {
+    const url = artUrl('actions', kind);
+    if (!url) return drawnSign(camp, size);
+    return `<span class="tt-act" style="--art:url('${url}');--size:${size}px" aria-hidden="true"></span>`;
+  };
 
   // ————————————————————————————————————————————— запуск
 
@@ -105,6 +178,7 @@
     container.innerHTML = '<div class="tt-wrap"><p style="padding:24px;text-align:center">Repartiendo cartas…</p></div>';
 
     PARTS.reduce((chain, file) => chain.then(() => loadPart(file)), Promise.resolve())
+      .then(() => loadArt())
       .then(() => { new Table(container).setup(); })
       .catch((error) => {
         console.error('«Двенадцать колен» не запустились', error);
@@ -188,7 +262,12 @@
 
     /* ——— разметка стола ——— */
     buildTable() {
-      this.root.innerHTML = `\n        <div class="tt-wrap">\n          <div class="tt-table">\n            <div class="tt-foes" data-foes></div>\n            <div class="tt-middle">\n              <div class="tt-deck"><button type="button" data-draw>взять</button></div>\n              <div class="tt-pile" data-pile></div>\n              <div class="tt-camp" data-camp></div>\n            </div>\n            <p class="tt-status" data-status></p>\n          </div>\n          <div class="tt-hand-wrap">\n            <div class="tt-hand-head"><span data-hand-title>Ваши карты</span><span data-score></span></div>\n            <div class="tt-hand" data-hand></div>\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>\n            <button type="button" class="tt-btn" data-shofar hidden>Шофар!</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-menu>Al menú</button>\n          </div>\n        </div>`;
+      this.root.innerHTML = `
+        <div class="tt-wrap">
+          <div class="tt-table">
+            <div class="tt-foes" data-foes></div>
+            <div class="tt-middle">
+              <div class="tt-deck" data-deck${deckStyle().slice(1) ? ' ' + deckStyle().trim() : ''}>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <button type="button" data-draw><span>взять</span></button>\n                <span class="tt-deck-count" data-deck-count></span>\n              </div>\n              <div class="tt-pile" data-pile></div>\n              <div class="tt-camp" data-camp></div>\n            </div>\n            <p class="tt-status" data-status></p>\n          </div>\n          <div class="tt-hand-wrap">\n            <div class="tt-hand-head"><span data-hand-title>Ваши карты</span><span data-score></span></div>\n            <div class="tt-hand" data-hand></div>\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>\n            <button type="button" class="tt-btn" data-shofar hidden>Шофар!</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-menu>Al menú</button>\n          </div>\n        </div>`;
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`).addEventListener('click', fn);
       on('draw', () => this.humanDraw());
       on('pass', () => this.humanPass());
@@ -204,24 +283,63 @@
       });
     }
 
-    /* ——— карта ——— */
-    cardHTML(card, extra = '') {
+    /*
+      ——— карта ———
+
+      Собрана как настоящая игральная: поле цвета стана, внутри белое поле с
+      волосяной рамкой, в середине крупный знак, а по двум углам — мелкие
+      метки, повёрнутые друг к другу на пол-оборота. Метки — не украшение: по
+      ним карту узнают, когда она лежит в руке веером и видна только уголком.
+
+      Место карты в веере и в стопке сброса передаётся сюда, а не дописывается
+      к готовой разметке снаружи. Дописывалось — и получалось у карты два
+      атрибута style подряд: второй браузер молча отбрасывал вместе с цветом
+      стана, и вся колода становилась серой. Один тег собирается в одном месте.
+    */
+    cardHTML(card, extra = '', style = '', attrs = '') {
       const R = this.R;
       const kind = R.KINDS[card.kind];
+      /*
+        Метка угла. У жребия это цифра, у действия — его собственный знак, а не
+        первая буква: «Суббота» и «Странствие» начинаются на одну, «Странствие»
+        и «Плен» — тоже, и по такой метке карта не узнаётся вовсе. Знак в углу
+        тот же, что в середине, только мелкий.
+      */
+      const tag = card.kind === 'number' ? String(card.rank)
+        : kind.wild ? (card.kind === 'lot' ? 'Ж' : 'П')
+          : actionHTML(card.kind, card.camp, 12);
+      const corners = `<span class="tt-corner tt-corner--tl">${tag}</span>`
+        + `<span class="tt-corner tt-corner--br">${tag}</span>`;
+
       if (kind.wild) {
         const quarters = R.CAMP_IDS.map((id) => `<i style="background:var(--${id})"></i>`).join('');
         const label = card.kind === 'lot' ? 'Suerte' : 'Cautiverio';
-        return `<div class="tt-card tt-card--wild ${extra}">
+        const art = artUrl('cards', card.kind);
+        const face = art
+          ? `<img class="tt-wild-art" src="${art}" alt="" loading="eager" decoding="async" />`
+          : '';
+        return `<div ${attrs}class="tt-card tt-card--wild ${extra}" style="${style}">
           <div class="tt-quarters">${quarters}</div>
-          <span class="tt-face"><span class="tt-kind">${label}</span></span>
+          ${corners}
+          <span class="tt-face">${face}<span class="tt-kind">${label}</span></span>
           <span class="tt-name">${card.camp ? R.campOf(card.camp).name : 'все станы'}</span>
         </div>`;
       }
       const camp = R.campOf(card.camp);
+      /*
+        Знак стана лежит на карте водяным знаком — бледно, за цифрой. Так масть
+        видна и не читая подписи, а цифра при этом остаётся главной.
+
+        Только за цифрой: у карты действия в середине и так рисунок, и второй
+        под ним превращает лицо карты в мешанину из двух картинок.
+      */
+      const mark = card.kind === 'number' ? artUrl('signs', card.camp) : null;
+      const water = mark ? `<img class="tt-water" src="${mark}" alt="" loading="eager" decoding="async" />` : '';
       const face = card.kind === 'number'
         ? `<span class="tt-rank">${card.rank}</span>`
-        : `${signHTML(card.camp, 22)}<span class="tt-kind">${kind.title}</span>`;
-      return `<div class="tt-card ${extra}" style="--camp:var(--${card.camp})">
+        : `${actionHTML(card.kind, card.camp, 26)}<span class="tt-kind">${kind.title}</span>`;
+      return `<div ${attrs}class="tt-card ${extra}" style="--camp:var(--${card.camp});${style}">
+        ${water}${corners}
         <span class="tt-face">${face}</span>
         <span class="tt-name">${camp.name}</span>
       </div>`;
@@ -248,14 +366,26 @@
       }).join('');
       this.root.querySelector('[data-foes]').innerHTML = foes;
 
-      // стол
-      const top = state.pile[state.pile.length - 1];
+      /*
+        Сброс — стопка, а не одна карта. Под верхней видны две прошлые, каждая
+        под своим углом: так на столе видно, что игра идёт, и стопка растёт.
+        Угол у карты свой и постоянный — он считается от её номера, а не
+        выбирается заново на каждой перерисовке: иначе стопка дёргалась бы при
+        каждом обновлении экрана.
+      */
       const pile = this.root.querySelector('[data-pile]');
-      pile.innerHTML = this.cardHTML(top, this.landing ? 'is-landing' : '');
+      const shown = state.pile.slice(-3);
+      pile.innerHTML = shown.map((card, at) => {
+        const last = at === shown.length - 1;
+        const tilt = ((Number(String(card.id).replace(/\D/g, '')) % 11) - 5) * (last ? 0.6 : 1.7);
+        const extra = `${last && this.landing ? 'is-landing' : ''}${last ? '' : ' is-buried'}`;
+        return this.cardHTML(card, extra, `--tilt:${tilt.toFixed(1)}deg;--depth:${shown.length - 1 - at}`);
+      }).join('');
       this.landing = false;
       const camp = R.campOf(state.camp);
+      // Кружок стана — маленькая карта той же масти: на столе всё карты.
       this.root.querySelector('[data-camp]').innerHTML = `
-        <span class="tt-camp-dot" style="--camp:var(--${state.camp})">${signHTML(state.camp, 20)}</span>
+        <span class="tt-camp-dot" style="--camp:var(--${state.camp})">${signHTML(state.camp, 26)}</span>
         <span>${camp.name}</span>
         <span style="opacity:.75;font-weight:600">${camp.side}</span>`;
 
@@ -265,13 +395,33 @@
       // Восемь карт — тот предел, за которым рука перестаёт помещаться в
       // ширину телефона: дальше карты наезжают друг на друга.
       handBox.dataset.many = String(me.hand.length > 8);
+      /*
+        Рука держится веером. Каждой карте даётся её место в дуге — поворот и
+        подъём считаются от середины руки, — и рука перестаёт быть рядом
+        прямоугольников: она выглядит тем, чем и является, картами в руке.
+
+        Числа передаются переменными, а не классами: углов столько же, сколько
+        карт, и заводить под них классы значило бы писать таблицу стилей на
+        двенадцать случаев.
+      */
+      const many = me.hand.length;
+      handBox.style.setProperty('--hand', String(many));
       handBox.innerHTML = me.hand.map((card, index) => {
         const live = mine && legal.has(index);
         const extra = `${live ? 'is-live' : 'is-dim'}${card.id === this.fresh ? ' is-fresh' : ''}`;
-        return this.cardHTML(card, extra).replace('<div class="tt-card',
-          `<div role="button" tabindex="0" data-index="${index}" class="tt-card`);
+        // Середина руки — ноль; края — крайние углы веера.
+        const away = many > 1 ? (index - (many - 1) / 2) / ((many - 1) / 2) : 0;
+        return this.cardHTML(card, extra, `--away:${away.toFixed(3)}`,
+          `role="button" tabindex="0" data-index="${index}" `);
       }).join('');
       this.fresh = null;
+      /*
+        Сколько карт в колоде — видно на самой колоде. В карточной игре это
+        знание общее: по нему решают, тянуть ли до последнего, и по нему же
+        понятно, что сейчас сброс уйдёт обратно под колоду.
+      */
+      this.root.querySelector('[data-deck-count]').textContent = String(state.deck.length);
+      this.root.querySelector('[data-deck]').dataset.thin = String(state.deck.length < 8);
       this.root.querySelector('[data-hand-title]').textContent = `Ваши карты: ${me.hand.length}`;
       this.root.querySelector('[data-score]').textContent = state.target
         ? `${me.score} de ${state.target} puntos` : '';

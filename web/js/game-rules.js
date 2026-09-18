@@ -426,7 +426,7 @@
     {
       key: 'twelve-tribes',
       title: 'Двенадцать колен',
-      icon: 'web/assets/icons/twelve-tribes.svg',
+      icon: 'web/assets/icons/twelve-tribes.webp',
       tagline: 'Станы и жребии: сбросьте карты первым',
       blocks: [
         {
