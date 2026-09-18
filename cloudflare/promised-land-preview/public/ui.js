@@ -150,6 +150,12 @@
   let botTimer = 0;
   let sheetOpen = false;
   /*
+    Черновик уговора: с кем меняемся, что отдаём, что берём и сколько сверху.
+    Он живёт на экране, а не в партии: пока человек тыкает в уделы, за столом
+    ничего не происходит, и знать об этом соперникам незачем.
+  */
+  let tradeDraft = null;
+  /*
     Что сейчас открыто на экране партии.
 
     Три вещи — свои уделы, карточки игроков и журнал ходов — нужны не каждый
@@ -1238,6 +1244,40 @@
     bar.appendChild(turnLine());
     bar.appendChild(toolsBar());
     const player = E.current(state);
+
+    /*
+      Уговор об обмене ждёт ответа — и ждёт он не того, чей ход. Поэтому он
+      показывается раньше всех кнопок хода: для того, кому предложили, это
+      сейчас единственное, что можно сделать, и он как раз сидит и смотрит на
+      чужой ход.
+    */
+    if (state.trade) {
+      const offer = state.trade;
+      const from = playerById(offer.from);
+      const to = playerById(offer.to);
+      const me = meId();
+      const names = (list) => (list.length
+        ? list.map((n) => B.BOARD[n].name).join(', ') : 'ничего');
+      const line = el('div', 'trade-offer');
+      line.appendChild(el('b', null, `${from ? from.name : 'Сосед'} предлагает уговор`));
+      line.appendChild(el('span', null, `отдаёт: ${names(offer.give)}`));
+      line.appendChild(el('span', null, `просит: ${names(offer.take)}`));
+      if (offer.silver) {
+        line.appendChild(el('span', 'trade-silver', offer.silver > 0
+          ? `и доплачивает ${offer.silver}`
+          : `и просит сверху ${-offer.silver}`));
+      }
+      main.appendChild(line);
+      if (offer.to === me && (!to || !to.isBot)) {
+        main.appendChild(button('Принять', 'primary', () => { act('tradeAccept'); after(); }));
+        main.appendChild(button('Отказаться', 'ghost', () => { act('tradeDecline'); after(); }));
+      } else {
+        main.appendChild(el('div', 'waiting', `${to ? to.name : 'Сосед'} думает…`));
+        askBotAboutTrade();
+      }
+      return;
+    }
+
     /*
       По сети кнопки хода есть только у того, чей ход. Сервер чужой ход и так не
       примет, но узнавать об этом, нажав и получив отказ, — плохо: за одним
@@ -1464,11 +1504,109 @@
 
   // ————————————————————————————————————————————————— шторка уделов
 
+  /*
+    ——— составление уговора ———
+
+    Шторка уделов на время становится столом переговоров: слева своё, справа
+    чужое, снизу доплата. Отдельного экрана нет нарочно — уделы выбирают там же,
+    где их обычно смотрят, и по дороге видно, что у кого заложено и застроено.
+  */
+  function renderTradeComposer(sheet) {
+    const me = playerById(meId());
+    const others = state.players.filter((one) => !one.out && !one.servantOf && one.id !== me.id);
+    if (!tradeDraft.to && others.length) tradeDraft.to = others[0].id;
+    const mate = playerById(tradeDraft.to);
+
+    sheet.appendChild(el('h3', null, 'Уговор об обмене'));
+    sheet.appendChild(el('p', 'empty', 'Заложенное и застроенное в обмен не идёт: сначала выкупите '
+      + 'или продайте ступени.'));
+
+    const who = el('div', 'trade-row');
+    for (const one of others) {
+      const chip = button(one.name, one.id === tradeDraft.to ? 'chip chip--on' : 'chip', () => {
+        tradeDraft = { to: one.id, give: tradeDraft.give, take: [], silver: 0 };
+        updateSheet();
+      });
+      who.appendChild(chip);
+    }
+    sheet.appendChild(el('h4', null, 'С кем'));
+    sheet.appendChild(who);
+
+    const side = (title, ownerId, picked) => {
+      sheet.appendChild(el('h4', null, title));
+      const list = E.tradables(state, ownerId);
+      if (!list.length) { sheet.appendChild(el('p', 'empty', 'Менять нечего.')); return; }
+      const row = el('div', 'trade-row');
+      for (const n of list) {
+        const spec = B.BOARD[n];
+        const on = picked.includes(n);
+        row.appendChild(button(`${spec.name} · ${spec.price}`, on ? 'chip chip--on' : 'chip', () => {
+          const at = picked.indexOf(n);
+          if (at >= 0) picked.splice(at, 1); else picked.push(n);
+          updateSheet();
+        }));
+      }
+      sheet.appendChild(row);
+    };
+    side('Вы отдаёте', me.id, tradeDraft.give);
+    // Имя соседа уже названо строкой «С кем», и склонять его тут не за чем:
+    // «Просите у Ефрем» — не по-русски, а подбирать падеж каждому имени игры
+    // дороже, чем просто не повторять имя.
+    if (mate) side('Просите взамен', mate.id, tradeDraft.take);
+
+    /*
+      Доплата одной строкой и в обе стороны: положительная — доплачиваю я,
+      отрицательная — просят с соседа. Шаг в полсотни, потому что торг в этой
+      игре идёт сотнями, а не единицами.
+    */
+    sheet.appendChild(el('h4', null, 'Доплата серебром'));
+    const money = el('div', 'trade-money');
+    const step = (delta) => {
+      const limit = delta > 0 ? me.silver : (mate ? mate.silver : 0);
+      const next = tradeDraft.silver + delta;
+      tradeDraft.silver = Math.max(-(mate ? mate.silver : 0), Math.min(me.silver, next));
+      if (Math.abs(tradeDraft.silver) > limit && delta > 0) tradeDraft.silver = limit;
+      updateSheet();
+    };
+    money.appendChild(button('−50', 'small ghost', () => step(-50)));
+    const amount = el('b', 'trade-amount', tradeDraft.silver === 0
+      ? 'без доплаты'
+      : tradeDraft.silver > 0
+        ? `вы даёте ${tradeDraft.silver}`
+        : `просите ${-tradeDraft.silver}`);
+    money.appendChild(amount);
+    money.appendChild(button('+50', 'small', () => step(50)));
+    sheet.appendChild(money);
+
+    // Счёт по цене — самое понятное мерило: сколько стоит то и другое в кассе.
+    const price = (list) => list.reduce((sum, n) => sum + B.BOARD[n].price, 0);
+    const mineSum = price(tradeDraft.give) + Math.max(0, tradeDraft.silver);
+    const theirSum = price(tradeDraft.take) + Math.max(0, -tradeDraft.silver);
+    sheet.appendChild(el('p', 'trade-sum',
+      `По цене: вы отдаёте на ${mineSum} сиклей, получаете на ${theirSum}.`));
+
+    const ready = Boolean(mate) && (tradeDraft.give.length || tradeDraft.take.length);
+    const acts = el('div', 'trade-row');
+    const send = button('Предложить', 'primary', () => {
+      const draft = { to: tradeDraft.to, give: [...tradeDraft.give], take: [...tradeDraft.take], silver: tradeDraft.silver };
+      tradeDraft = null;
+      sheetOpen = false;
+      act('tradeOffer', draft);
+      render();
+      askBotAboutTrade();
+    });
+    send.disabled = !ready;
+    acts.appendChild(send);
+    acts.appendChild(button('Отмена', 'ghost', () => { tradeDraft = null; updateSheet(); }));
+    sheet.appendChild(acts);
+  }
+
   function updateSheet() {
     const sheet = $('sheet');
     sheet.hidden = !sheetOpen;
     if (!sheetOpen) return;
     sheet.innerHTML = '';
+    if (tradeDraft) { renderTradeComposer(sheet); return; }
     const turnPlayer = E.current(state);
     /*
       Чьи уделы показывать. За одним столом — того, чей ход (а пока ходит
@@ -1490,6 +1628,20 @@
       .filter((n) => state.cells[n].owner === player.id);
 
     sheet.appendChild(el('h3', null, `Уделы: ${player.name}`));
+    /*
+      Обмен предлагают отсюда: он про уделы, и звать его надо там, где на них
+      смотрят. Кнопка появляется только в свой ход и только когда меняться
+      вообще есть чем — своим или чужим.
+    */
+    if (!busy && E.canOfferTrade(state) && player.id === meId()
+      && state.players.some((one) => one.id !== player.id && !one.out && E.tradables(state, one.id).length)) {
+      const start = button('Предложить уговор об обмене', 'primary', () => {
+        tradeDraft = { to: '', give: [], take: [], silver: 0 };
+        updateSheet();
+      });
+      start.classList.add('trade-start');
+      sheet.appendChild(start);
+    }
     if (!mine.length) sheet.appendChild(el('p', 'empty', 'Пока ничего не куплено.'));
 
     /*
@@ -1782,6 +1934,35 @@
   }
 
   /*
+    Кто здесь я. По сети — моё место за столом. За одним столом — тот, чей ход,
+    а пока ходит соперник, последний живой человек: экран один на всех, и
+    отвечать на уговор с него будет тот, кто сидит перед ним.
+  */
+  function meId() {
+    if (link) return mySeat;
+    const turnPlayer = E.current(state);
+    return turnPlayer.isBot ? (lastHumanId || turnPlayer.id) : turnPlayer.id;
+  }
+
+  const playerById = (id) => state.players.find((one) => one.id === id) || null;
+
+  /*
+    Ответ соперника от игры на уговор. За одним столом его даёт эта же вкладка —
+    но не мгновенно: уговор, отклонённый в тот же миг, читается как поломка
+    кнопки, а не как ответ. По сети отвечает сервер, и здесь делать нечего.
+  */
+  function askBotAboutTrade() {
+    if (link || !state.trade) return;
+    const to = playerById(state.trade.to);
+    if (!to || !to.isBot) return;
+    setTimeout(() => {
+      if (!state.trade || link) return;
+      Bots.judgeTrade(state);
+      render();
+    }, 900);
+  }
+
+  /*
     Ходы ботов раскладываются по таймеру, а не выполняются разом: иначе между
     двумя нажатиями человека происходит десяток событий, и понять, что на поле
     изменилось и почему, невозможно.
@@ -2036,6 +2217,14 @@
       });
     }
   }
+
+  /*
+    Ход наружу для проверок. Партия живёт внутри этого файла, и спросить у неё
+    «чей ход, у кого какой удел» иначе нельзя: проверка видит только разметку и
+    не отличает «уговор не дошёл» от «уговор дошёл, но не нарисовался».
+    Наружу отдаётся чтение и перерисовка — ходов здесь нет.
+  */
+  window.PromisedLandGame = { state: () => state, refresh: () => render() };
 
   setupScreen();
   modeScreen();

@@ -32,7 +32,7 @@ import {
   startGame,
   seated,
 } from './room.js';
-import { B, E, Bots, GAME_ACTIONS, sanitizeArgs } from './rules.js';
+import { B, E, Bots, GAME_ACTIONS, TRADE_ANSWERS, sanitizeArgs, sanitizeTrade } from './rules.js';
 
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_IDLE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -290,10 +290,26 @@ export class PromisedLandRoom extends DurableObject {
     const seat = this.room.seats.indexOf(playerId);
     if (seat < 0) throw fail('Вас нет за столом', 'NOT_SEATED');
     /*
+      Ответ на уговор — единственный ход, который делают не в свою очередь: его
+      и ждут от того, чей ход не идёт. Права здесь проверяются не по очереди, а
+      по самому уговору: отвечает тот, кому он предложен, и никто больше.
+    */
+    if (TRADE_ANSWERS.has(name)) {
+      const offer = this.game.trade;
+      if (!offer) throw fail('Уговора нет', 'NO_TRADE');
+      if (offer.to !== `p${seat}`) throw fail('Этот уговор предложен не вам', 'NOT_YOUR_TRADE');
+      E[name](this.game);
+      return;
+    }
+    /*
       Чужой ход не сделать ничьими руками. Движок и сам ходит только текущим
       игроком — но он верит тому, кто его позвал, а верить можно лишь здесь.
     */
     if (E.current(this.game).id !== `p${seat}`) throw fail('Сейчас не ваш ход', 'NOT_YOUR_TURN');
+    if (name === 'tradeOffer') {
+      E.tradeOffer(this.game, sanitizeTrade(data.args?.[0]));
+      return;
+    }
     E[name](this.game, ...sanitizeArgs(data.args));
   }
 
@@ -304,6 +320,21 @@ export class PromisedLandRoom extends DurableObject {
   */
   async stepBots() {
     if (!this.game || this.game.status !== 'playing') return false;
+    /*
+      Уговор, предложенный сопернику от игры, отвечается здесь же — с той же
+      паузой, что и ход. Мгновенный отказ читается как поломка кнопки, а не
+      как ответ, а ответ через минуту — как зависшая партия.
+    */
+    if (this.game.trade) {
+      const to = this.game.players.find((one) => one.id === this.game.trade.to);
+      if (to && to.isBot) {
+        Bots.judgeTrade(this.game);
+        this.botAt = 0;
+        await this.persist();
+        return true;
+      }
+      return false;
+    }
     const player = E.current(this.game);
     if (!player.isBot) return false;
     if (!Bots.step(this.game)) E.endTurn(this.game);
@@ -346,7 +377,15 @@ export class PromisedLandRoom extends DurableObject {
     вовсе, и партия вставала на его ходу навсегда.
   */
   botDeadline() {
-    if (!this.game || this.game.status !== 'playing' || !E.current(this.game).isBot) {
+    if (!this.game || this.game.status !== 'playing') { this.botAt = 0; return Number.POSITIVE_INFINITY; }
+    /*
+      Соперник от игры просыпается и ради уговора, а не только ради своего хода:
+      уговор предложен на чужом ходу, и без этого он висел бы до следующей
+      побудки комнаты — то есть до чужого броска.
+    */
+    const waiting = this.game.trade
+      && this.game.players.find((one) => one.id === this.game.trade.to)?.isBot;
+    if (!waiting && !E.current(this.game).isBot) {
       this.botAt = 0;
       return Number.POSITIVE_INFINITY;
     }

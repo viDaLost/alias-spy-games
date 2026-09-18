@@ -35,6 +35,7 @@ const CHECKS = [
   'check-promised-land-browser.mjs',
   'check-promised-land-3d.mjs',
   'check-promised-land-online-browser.mjs',
+  'check-promised-land-trade-browser.mjs',
   'check-promised-land-frame-fit.mjs',
   'check-promised-land-qr-layout.mjs',
   'check-moses-nile-safe-area.mjs',

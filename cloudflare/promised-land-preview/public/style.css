@@ -1059,6 +1059,16 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
 }
 .sheet > h3, .sheet > .empty, .sheet > .log, .sheet > .note { grid-column: 1 / -1; }
+/*
+  Шторка разложена колонками под карточки уделов, но уговор об обмене
+  карточками не набирается: это разговор строками — «с кем», «что отдаёте»,
+  «что просите». Попав в колонку, подпись вставала слева от бирок, а
+  «доплата серебром» ломалась на три строки рядом с кнопками. Поэтому все
+  части уговора занимают ширину целиком.
+*/
+.sheet > h4, .sheet > .trade-row, .sheet > .trade-money,
+.sheet > .trade-sum, .sheet > .trade-start { grid-column: 1 / -1; }
+.sheet h4 { margin: 4px 0 6px; font-size: 13.5px; }
 .sheet h3 { margin: 6px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); }
 .empty { margin: 0; color: var(--ink-soft); font-size: 14px; }
 .holding {
@@ -1080,6 +1090,44 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .holding--pledged { opacity: .92; border-style: dashed; }
 .holding--pledged .holding-art { filter: grayscale(.45); }
 .holding-acts { display: grid; gap: 6px; margin-top: auto; }
+
+/* ——— уговор об обмене ——— */
+/*
+  Уголки переговоров. Уделы выбираются кружками-бирками, а не списком с
+  галочками: их десяток, они короткие, и нажимать по ним быстрее, чем целиться
+  в квадратик. Выбранное видно цветом, а не значком — на телефоне значок в углу
+  бирки читается хуже, чем сама бирка, ставшая тёмной.
+*/
+.trade-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.trade-row .btn { flex: 0 1 auto; }
+/*
+  Бирка невыбранная — тоже бирка: на светлой теме белёсая подложка сливалась с
+  карточкой, и невыбранное читалось просто текстом. Поэтому цвета берутся из
+  темы, а не белым по прозрачному.
+*/
+.btn--chip {
+  padding: 7px 11px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  background: var(--surface-soft); border: 1px solid var(--line-strong); color: var(--ink);
+}
+.btn--chip.chip--on {
+  background: var(--gold); border-color: var(--gold); color: var(--surface); font-weight: 700;
+}
+.trade-money { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.trade-amount { font-size: 15px; }
+.trade-sum { margin: 0 0 12px; font-size: 13px; opacity: .75; }
+.trade-start { margin-bottom: 12px; }
+/*
+  Предложение соперника — не кнопка, а письмо: сначала читают, потом отвечают.
+  Поэтому оно стоит над кнопками и набрано строками, а не одной длинной фразой.
+*/
+.trade-offer {
+  display: grid; gap: 3px; margin-bottom: 10px; padding: 10px 12px;
+  border-radius: 14px; background: var(--surface-soft);
+  border: 1px solid var(--gold);
+  font-size: 13.5px; line-height: 1.35;
+}
+.trade-offer b { font-size: 15px; }
+.trade-silver { color: var(--gold, #d8b25f); font-weight: 600; }
 .log { display: flex; flex-direction: column; gap: 3px; }
 .log-line { font-size: 12.5px; color: var(--ink-soft); }
 
