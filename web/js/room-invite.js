@@ -11,14 +11,22 @@
     sketch: 'bible-sketch',
     'bible-sketch': 'bible-sketch',
     bible_sketch: 'bible-sketch',
+    // «Двенадцать колен»: короткое имя нужно в ссылке и в QR — там дорога
+    // каждая буква, и «twelve-tribes» в коде читалось бы вдвое дольше.
+    tribes: 'twelve-tribes',
+    tt: 'twelve-tribes',
+    'twelve-tribes': 'twelve-tribes',
+    twelve_tribes: 'twelve-tribes',
   });
   const STORAGE_KEYS = Object.freeze({
     quartet: 'quartet_v2_room_id',
     'bible-sketch': 'bible_sketch_room_id_v1',
+    'twelve-tribes': 'tt_room_id',
   });
   const INVITE_NAMES = Object.freeze({
     quartet: 'quartet',
     'bible-sketch': 'sketch',
+    'twelve-tribes': 'tribes',
   });
 
   let pendingInvite = readInvite();

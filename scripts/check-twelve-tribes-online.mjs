@@ -191,6 +191,9 @@ async function openPlayer(user) {
         ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
         MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
         HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
+        // Сканер камеры в Telegram есть — значит, кнопка обязана быть.
+        showScanQrPopup(params) { window.__scanAsked = params || {}; },
+        closeScanQrPopup() { window.__scanClosed = true; },
       },
     };
   }, [initData, user]);
@@ -206,6 +209,24 @@ async function openPlayer(user) {
   await page.route('https://telegram.org/**', (route) => route.fulfill({
     status: 200, contentType: 'text/javascript; charset=utf-8', body: 'window.Telegram=window.Telegram||{};',
   }));
+  /*
+    Рисовалка QR приходит со стороны, и в проверке её подменяет пустышка: в
+    сети проверки нет, а проверять чужую библиотеку и не нужно. Наше здесь —
+    что её вообще зовут, зовут с верной строкой и что нарисованное попадает в
+    окно; пустышка это и показывает.
+  */
+  await page.route('https://cdnjs.cloudflare.com/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'text/javascript; charset=utf-8',
+    body: `window.QRCode = function (node, options) {
+      const canvas = document.createElement('canvas');
+      canvas.width = options.width || 184;
+      canvas.height = options.height || 184;
+      canvas.dataset.text = String(options.text || '');
+      node.appendChild(canvas);
+    };
+    window.QRCode.CorrectLevel = { L: 1, M: 0, Q: 3, H: 2 };`,
+  }));
   for (const pattern of ['https://script.google.com/**', 'https://script.googleusercontent.com/**',
     'https://*.workers.dev/**']) await page.route(pattern, stub);
 
@@ -220,6 +241,13 @@ async function openPlayer(user) {
   await page.waitForSelector('.tt-setup [data-mode="online"]', { timeout: 20_000 });
   await page.locator('.tt-wrap [data-mode="online"]').click();
   await page.waitForSelector('.tt-wrap [data-create]', { timeout: 10_000 });
+  /*
+    Сканер камеры предлагается на входе — там, где вводят код: человеку с
+    открытым QR на чужом телефоне не нужно ничего набирать руками. Кнопка
+    появляется только там, где сканер вообще есть, — в Telegram.
+  */
+  need(await page.locator('.tt-wrap [data-scan]').count() === 1,
+    `${user.first_name}: на входе нет кнопки сканера QR`);
   return { context, page };
 }
 
@@ -261,6 +289,58 @@ await host.page.waitForFunction(() => /мир вам/.test(document.querySelecto
 const chatSeen = await host.page.evaluate(() => document.querySelector('.tt-wrap [data-lines]')?.textContent || '');
 need(/мир вам/.test(chatSeen), `сообщение гостя не дошло до хозяина: «${chatSeen.slice(0, 60)}»`);
 need(/Гость/.test(chatSeen), 'в переписке не видно, кто написал');
+
+/*
+  ——— позвать в комнату ———
+
+  Три дороги: показать QR, позвать друзей из избранных, отправить ссылку. Все
+  три общие для приложения, и проверяется здесь именно связка: код комнаты
+  доходит до общего механизма приглашений и возвращается из него тем же.
+*/
+need(await host.page.locator('.tt-wrap .tt-room-code').textContent() === roomCode,
+  'код комнаты не показан отдельной строкой');
+need(await host.page.locator('.tt-wrap [data-scan]').count() === 0,
+  'сканер предлагается в лобби, хотя нужен на входе');
+
+await host.page.locator('.tt-wrap [data-qr]').click();
+await host.page.waitForSelector('#room-invite-overlay', { timeout: 10_000 }).catch(() => {});
+const qr = await host.page.evaluate((code) => ({
+  shown: document.querySelector('#room-invite-code')?.textContent || '',
+  payload: window.RoomInvite?.buildQrPayload?.('twelve-tribes', code) || '',
+  start: window.RoomInvite?.buildStartParam?.('twelve-tribes', code) || '',
+  back: window.RoomInvite?.parseInvite?.(`biblegames:tribes:${code}`) || null,
+  fromLink: window.RoomInvite?.parseInvite?.(`https://t.me/bot?startapp=join_tribes_${code}`) || null,
+}), roomCode);
+need(qr.shown === roomCode, `в окне QR код комнаты «${qr.shown}» вместо «${roomCode}»`);
+need(qr.payload === `biblegames:tribes:${roomCode}`, `QR несёт «${qr.payload}»`);
+need(qr.start === `join_tribes_${roomCode}`, `ссылка-приглашение несёт «${qr.start}»`);
+/*
+  Обратная дорога важнее прямой: по этому разбору сканер и ссылка приводят
+  человека именно в «Двенадцать колен», а не в другую игру и не в пустоту.
+*/
+need(qr.back?.game === 'twelve-tribes' && qr.back?.room === roomCode,
+  `прочитанный QR разобрался как ${JSON.stringify(qr.back)}`);
+need(qr.fromLink?.game === 'twelve-tribes' && qr.fromLink?.room === roomCode,
+  `ссылка разобралась как ${JSON.stringify(qr.fromLink)}`);
+const drawn = await host.page.evaluate(() => {
+  const canvas = document.querySelector('#room-invite-qr canvas');
+  return { drawn: Boolean(canvas), text: canvas?.dataset?.text || '' };
+});
+need(drawn.drawn, 'QR-код не нарисовался в окне');
+need(drawn.text.includes(roomCode), `в QR закодировано «${drawn.text}» без кода комнаты`);
+await host.page.locator('#room-invite-overlay .room-invite-close').click().catch(() => {});
+await host.page.waitForTimeout(300);
+
+await host.page.locator('.tt-wrap [data-friends]').click();
+await host.page.waitForSelector('.friend-invite-overlay.is-open', { timeout: 10_000 }).catch(() => {});
+const friends = await host.page.evaluate(() => ({
+  open: Boolean(document.querySelector('.friend-invite-overlay.is-open')),
+  room: document.querySelector('[data-invite-room]')?.textContent || '',
+}));
+need(friends.open, 'список друзей не открылся');
+need(friends.room.includes(roomCode), `в списке друзей комната «${friends.room}»`);
+await host.page.locator('[data-invite-close]').click().catch(() => {});
+await host.page.waitForTimeout(300);
 
 // ——— настройки меняет только хозяин ———
 need(await guest.page.locator('.tt-wrap [data-bots]').count() === 0, 'гость видит настройки хозяина');
@@ -390,6 +470,8 @@ if (problems.length) {
 }
 
 console.log('OK: комната поднялась на настоящем воркере; хозяин создал её, гость вошёл по коду, '
-  + 'оба видят друг друга и переписку; настройки у хозяина, партия начинается по его нажатию; '
+  + 'оба видят друг друга и переписку; QR несёт код комнаты и читается обратно, друзья и ссылка '
+  + 'зовут в ту же комнату, на входе есть сканер; '
+  + 'настройки у хозяина, партия начинается по его нажатию; '
   + 'каждому сдана своя рука и чужих карт на телефоне нет; чужим ходом не походить; '
   + 'ход одного доходит до другого, а ушедшего доигрывает сервер.');

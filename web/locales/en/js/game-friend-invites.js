@@ -19,6 +19,19 @@
       storageKey: 'bible_sketch_room_id_v1',
       buttonClass: 'bsk-secondary',
     },
+    /*
+      «Двенадцать колен» зовут друзей своей кнопкой в лобби, а не подставленной
+      сюда: лобби перерисовывается на каждый чужой ход, и кнопка, вставленная
+      наблюдателем, мигала бы при каждом. Поэтому actionSelector указывает на
+      место, которого в разметке нет, — а всё остальное берётся отсюда.
+    */
+    'twelve-tribes': {
+      title: 'Двенадцать колен',
+      actionSelector: '.tt-friend-slot',
+      roomSelector: '.tt-room-code',
+      storageKey: 'tt_room_id',
+      buttonClass: 'tt-btn tt-btn--ghost',
+    },
   });
 
   let overlay = null;

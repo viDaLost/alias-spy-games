@@ -260,11 +260,49 @@
       this.error = '';
       this.seenChat = 0;
       this.chatOpen = false;
+      this.inviteWatcher = null;
     }
 
     start() {
       if (!backendBase()) { this.renderNoBackend(); return; }
+      /*
+        Пришли по ссылке или отсканировали код — входим сразу, не спрашивая
+        ничего: человек уже сказал, куда идёт, и второй экран с полем для кода
+        был бы издевательством.
+      */
+      this.watchInvites();
+      const invite = window.RoomInvite?.consume?.('twelve-tribes');
+      if (invite?.room) { this.enterRoom(invite.room); return; }
       this.renderEntry();
+    }
+
+    /*
+      Код, прочитанный камерой, приходит событием — сканер общий на всё
+      приложение и раскладывает ссылку сам. Если игра не наша, он же уведёт в
+      нужный экран, а здесь останется тишина.
+    */
+    watchInvites() {
+      if (this.inviteWatcher) return;
+      this.inviteWatcher = (event) => {
+        const detail = event?.detail || {};
+        if (detail.game !== 'twelve-tribes' || !detail.room) return;
+        window.RoomInvite?.consume?.('twelve-tribes');
+        this.enterRoom(detail.room);
+      };
+      window.addEventListener('roominvitechange', this.inviteWatcher);
+    }
+
+    async enterRoom(code) {
+      this.renderEntry(`Входим в комнату ${code}…`);
+      try {
+        this.link?.close();
+        this.link = this.makeLink(defaultName());
+        await this.link.join(code);
+      } catch (error) {
+        this.link?.close();
+        this.link = null;
+        this.renderEntry(String(error?.message || error));
+      }
     }
 
     /* ——— нет адреса сервера ——— */
@@ -284,7 +322,8 @@
     /* ——— вход: создать комнату или войти по коду ——— */
     renderEntry(message = '') {
       const saved = (() => { try { return localStorage.getItem(LS.room) || ''; } catch { return ''; } })();
-      this.root.innerHTML = `\n        <div class="tt-wrap"><section class="tt-setup">\n          <h2>Игра по сети</h2>\n          <p>Соберите стол с друзьями: хозяин создаёт комнату и говорит код, остальные входят\n            по нему. Свободные места можно занять соперниками от игры.</p>\n          <label class="tt-field">\n            <span>Dein Name</span>\n            <input type="text" data-name maxlength="24" value="${escapeHTML(defaultName())}" />\n          </label>\n          <div class="tt-row">\n            <button type="button" class="tt-btn" data-create>Raum erstellen</button>\n          </div>\n          <label class="tt-field">\n            <span>Raumcode</span>\n            <input type="text" data-code maxlength="10" autocapitalize="characters"\n              placeholder="например, KJ7QW" value="${escapeHTML(saved)}" />\n          </label>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-join>Mit Code beitreten</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-back>Zurück</button>\n          </div>\n          <p class="tt-note" data-message>${escapeHTML(message)}</p>
+      this.root.innerHTML = `\n        <div class="tt-wrap"><section class="tt-setup">\n          <h2>Игра по сети</h2>\n          <p>Соберите стол с друзьями: хозяин создаёт комнату и говорит код, остальные входят\n            по нему. Свободные места можно занять соперниками от игры.</p>\n          <label class="tt-field">\n            <span>Dein Name</span>\n            <input type="text" data-name maxlength="24" value="${escapeHTML(defaultName())}" />\n          </label>\n          <div class="tt-row">\n            <button type="button" class="tt-btn" data-create>Raum erstellen</button>\n          </div>\n          <label class="tt-field">\n            <span>Raumcode</span>\n            <input type="text" data-code maxlength="10" autocapitalize="characters"\n              placeholder="например, KJ7QW" value="${escapeHTML(saved)}" />\n          </label>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-join>Mit Code beitreten</button>\n            ${window.RoomQrScanner?.isAvailable?.()
+    ? '<button type="button" class="tt-btn tt-btn--ghost" data-scan>Scannen QR</button>' : ''}\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-back>Zurück</button>\n          </div>\n          <p class="tt-note" data-message>${escapeHTML(message)}</p>
         </section></div>`;
 
       const nameField = this.root.querySelector('[data-name]');
@@ -311,6 +350,16 @@
       this.root.querySelector('[data-create]').addEventListener('click', () => open(() => this.link.create()));
       this.root.querySelector('[data-join]').addEventListener('click', () => open(() => this.link.join(codeField.value)));
       this.root.querySelector('[data-back]').addEventListener('click', () => { this.destroy(); this.back(); });
+      /*
+        Сканер камеры — общий на всё приложение: он же читает коды «Квартета» и
+        «Библейского художника». Прочитанный код приходит сюда не ответом, а
+        событием: сканер сначала раскладывает ссылку на игру и комнату, и если
+        игра не наша — уводит в её экран.
+      */
+      this.root.querySelector('[data-scan]')?.addEventListener('click', () => {
+        say('Richte die Kamera auf QR-код комнаты…');
+        window.RoomQrScanner?.open?.();
+      });
     }
 
     makeLink(name) {
@@ -356,6 +405,14 @@
     renderLobby() {
       const view = this.view;
       if (!view) return;
+      /*
+        Лобби перерисовывается на каждую весть из комнаты — вошёл человек,
+        сказал слово, хозяин передвинул настройку. Недописанное сообщение при
+        этом пропадало: набранное надо сохранить и вернуть, вместе с курсором.
+      */
+      const typing = this.root.querySelector('[data-chat-text]');
+      const draft = typing ? typing.value : '';
+      const wasTyping = typing === document.activeElement;
       const you = view.you || {};
       const host = view.youAreHost;
       const seats = view.players.filter((one) => !one.left);
@@ -367,7 +424,12 @@
         </div>`).join('');
 
       this.root.innerHTML = `\n        <div class="tt-wrap"><section class="tt-setup tt-lobby">\n          <div class="tt-lobby-head">\n            <div>\n              <h2>Raum ${escapeHTML(view.roomId)}</h2>
-              <p class="tt-note">За столом ${view.tableSize} von ${view.maxPlayers}</p>\n            </div>\n            <span class="tt-link-state" data-state></span>\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-copy>Code kopieren</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-share>Позвать друзей</button>\n          </div>\n          <div class="tt-seats">${rows}</div>
+              <p class="tt-note">За столом ${view.tableSize} von ${view.maxPlayers}</p>
+            </div>
+            <span class="tt-link-state" data-state></span>
+          </div>
+          <div class="tt-room-line">
+            <span class="tt-room-code" data-room-code>${escapeHTML(view.roomId)}</span>\n            <button type="button" class="tt-btn tt-btn--ghost" data-copy>Kopieren</button>\n          </div>\n          <div class="tt-invites">\n            <button type="button" class="tt-invite" data-qr><b>▦</b>QR-Code</button>\n            <button type="button" class="tt-invite" data-friends><b>👥</b>Freunde</button>\n            <button type="button" class="tt-invite" data-share><b>↗</b>Ссылка</button>\n          </div>\n          <div class="tt-seats">${rows}</div>
           ${host ? `
             <label class="tt-choice">
               <span>Соперников от игры</span>
@@ -388,9 +450,18 @@
 
       this.paintStatus();
       this.paintChat();
+      if (draft) {
+        const field = this.root.querySelector('[data-chat-text]');
+        if (field) {
+          field.value = draft;
+          if (wasTyping) { field.focus(); field.setSelectionRange(draft.length, draft.length); }
+        }
+      }
 
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`)?.addEventListener('click', fn);
       on('copy', () => this.copyCode());
+      on('qr', () => this.showQr());
+      on('friends', () => this.inviteFriends());
       on('share', () => this.shareCode());
       on('leave', () => { this.link.send('leave'); this.destroy(); this.back(); });
       on('start', () => this.link.send('startGame'));
@@ -479,6 +550,53 @@
       this.paintChat(sheet.querySelector('[data-lines]'));
     }
 
+    /* ——— позвать в комнату ——— */
+    /*
+      Три дороги к одной комнате, и все три — общие для приложения: QR рисует
+      RoomInvite (он же знает, как превратить код в ссылку мини-приложения),
+      друзей зовёт GameFriendInvites из списка избранных, ссылку отдаёт Telegram.
+      Своего здесь ничего нет нарочно: человек, позвавший друга в «Квартет»,
+      зовёт его сюда теми же тремя кнопками.
+    */
+    showQr() {
+      const code = this.view?.roomId || '';
+      if (!code) return;
+      if (!window.RoomInvite?.openQr) { this.say('QR-код недоступен без сети'); return; }
+      window.RoomInvite.openQr('twelve-tribes', code, 'Двенадцать колен · вход в комнату');
+    }
+
+    inviteFriends() {
+      const code = this.view?.roomId || '';
+      if (!code) return;
+      if (!window.GameFriendInvites?.open) { this.say('Список друзей пока недоступен'); return; }
+      window.GameFriendInvites.open('twelve-tribes', code);
+    }
+
+    async shareCode() {
+      const code = this.view?.roomId || '';
+      if (!code) return;
+      let url = '';
+      try { url = await window.RoomInvite?.getShareUrl?.('twelve-tribes', code) || ''; } catch { url = ''; }
+      const text = url
+        ? `Играем в «Двенадцать колен». Комната ${code}: ${url}`
+        : `Играем в «Двенадцать колен». Код комнаты: ${code}`;
+      const tg = telegram();
+      if (url && tg?.openTelegramLink) {
+        tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`Raum ${code}`)}`);
+        return;
+      }
+      if (navigator.share) { navigator.share({ text }).catch(() => this.copyText(text)); return; }
+      this.copyText(text);
+    }
+
+    copyText(text) {
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(() => this.say('Скопировано')).catch(() => this.say(text));
+        return;
+      }
+      this.say(text);
+    }
+
     /* ——— мелочи ——— */
     copyCode() {
       const code = this.view?.roomId || '';
@@ -486,19 +604,6 @@
       const done = () => this.say(`Code ${code} kopiert`);
       if (navigator.clipboard?.writeText) navigator.clipboard.writeText(code).then(done).catch(() => this.say(`Raumcode: ${code}`));
       else this.say(`Raumcode: ${code}`);
-    }
-
-    shareCode() {
-      const code = this.view?.roomId || '';
-      if (!code) return;
-      const text = `Играем в «Двенадцать колен». Код комнаты: ${code}`;
-      const tg = telegram();
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(text)}`);
-        return;
-      }
-      if (navigator.share) { navigator.share({ text }).catch(() => this.say(text)); return; }
-      this.say(text);
     }
 
     say(text) {
@@ -527,6 +632,10 @@
     }
 
     destroy() {
+      if (this.inviteWatcher) {
+        window.removeEventListener('roominvitechange', this.inviteWatcher);
+        this.inviteWatcher = null;
+      }
       this.link?.close();
       this.link = null;
       this.table = null;
