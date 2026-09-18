@@ -263,6 +263,37 @@
 .game-entry-loader[data-game="spy"] .gel-radar::after{content:'';position:absolute;left:50%;top:50%;width:48%;height:1.5px;transform-origin:left center;background:linear-gradient(90deg,#6366F1,transparent);animation:gel-radar 2.8s linear infinite;}
 
 /* Quartet — four cards */
+/*
+  «Земля обетованная» — настольная игра, и заставка у неё про стол: кость и
+  две карты. Кость крупнее карт и лежит по центру слева: её узнают первой.
+*/
+.game-entry-loader[data-game="promised-land"] { --gel-a:#7C74F2; --gel-b:#E0A44A; }
+.game-entry-loader[data-game="promised-land"] .gel-die {
+  position: absolute; display: grid; place-items: center; box-sizing: border-box;
+  width: 46px; height: 46px; left: 9%; top: 30%;
+  background: #fff; border-radius: 11px;
+  border: 1px solid rgba(17, 24, 39, .12);
+  box-shadow: 0 8px 18px -10px rgba(17, 24, 39, .6);
+  animation: gel-die-roll 3.1s ease-in-out infinite;
+}
+.game-entry-loader[data-game="promised-land"] .gel-die::after {
+  content: '⁙'; color: #4F46E5; font-size: 22px; line-height: 1;
+}
+.game-entry-loader[data-game="promised-land"] .gel-card {
+  width: 38px; height: 52px; border-radius: 8px;
+  background: #fff; border: 1px solid rgba(17, 24, 39, .12);
+  box-shadow: 0 8px 18px -10px rgba(17, 24, 39, .6);
+  animation: gel-card-deal 3.4s ease-in-out infinite;
+}
+.game-entry-loader[data-game="promised-land"] .gel-card::after {
+  content: '◆'; color: #E0A44A; font-size: 15px;
+}
+.game-entry-loader[data-game="promised-land"] .gel-card:nth-child(2) {
+  right: 10%; top: 26%; transform: rotate(12deg); animation-delay: -1.1s;
+}
+.game-entry-loader[data-game="promised-land"] .gel-card:nth-child(3) {
+  right: 18%; bottom: 22%; transform: rotate(-7deg) scale(.86); animation-delay: -2.2s;
+}
 .game-entry-loader[data-game="quartet"] { --gel-a:#6366F1; --gel-b:#4F46E5; }
 .game-entry-loader[data-game="quartet"] .gel-card {
   width:48px;height:68px;border-radius:12px;background:linear-gradient(155deg,rgba(255,255,255,.84),rgba(219,234,254,.64));
@@ -347,6 +378,11 @@
 @keyframes gel-letter { 0%,100%{translate:0 6px;rotate:-4deg} 50%{translate:5px -8px;rotate:5deg} }
 @keyframes gel-grid-scan { 0%{top:4%;opacity:0} 15%{opacity:1} 85%{opacity:1} 100%{top:94%;opacity:0} }
 @keyframes gel-tile-flip { 0%,100%{transform:perspective(200px) rotateY(0deg) translateY(4px)} 50%{transform:perspective(200px) rotateY(180deg) translateY(-5px)} }
+/* Кость покачивается, будто её только что бросили и она ещё не улеглась. */
+@keyframes gel-die-roll {
+  0%, 100% { transform: rotate(-9deg) translateY(4px); opacity: .72; }
+  50% { transform: rotate(6deg) translateY(-7px); opacity: 1; }
+}
 @keyframes gel-gem { 0%,100%{translate:0 6px;rotate:45deg;opacity:.55} 50%{translate:0 -9px;rotate:135deg;opacity:1} }
 
 @media (max-width:430px){

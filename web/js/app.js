@@ -1263,7 +1263,15 @@ window.addEventListener('message', (event) => {
   if (data?.type === 'promised-land:qr' && /^[A-Z0-9]{5}$/.test(data.room || '')) {
     window.RoomInvite?.openQr?.('promised-land', data.room, 'Земля обетованная · подключение к комнате');
   }
-  if (data?.type === 'promised-land:ready') sendPromisedLandInvite();
+  if (data?.type === 'promised-land:ready') {
+    sendPromisedLandInvite();
+    /*
+      Игра поднялась. Заставке входа об этом иначе не узнать: кадр появляется
+      в контейнере сразу, и по разметке оболочки игра «готова» ещё до того,
+      как внутри что-нибудь нарисовано.
+    */
+    document.dispatchEvent(new CustomEvent('game-entry:ready', { detail: 'promised-land' }));
+  }
 });
 function sendPromisedLandInvite() {
   if (document.body.dataset.currentGame !== 'promised-land') return;

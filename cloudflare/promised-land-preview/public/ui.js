@@ -158,17 +158,20 @@
   let lastHumanId = '';
   // Автоигра: ходы человека тоже ведёт разум соперников. Нужна, чтобы досмотреть
   // партию до юбилея, не нажимая, и чтобы попробовать правила, не разбираясь.
-  let autoPlay = false;
+
   let teachWanted = false;
   let dealtCard = null;
   /*
-    Темп соперников. По умолчанию они ходят неспешно: за быстрым ходом не
-    уследить — фишка прыгает, карта мелькает, и человек видит уже результат.
-    Кому это не нужно, тот жмёт «Быстрее», и всё — пауза между шагами, кости,
-    ход фишки — ускоряется вдвое с лишним.
+    Темп соперников. Один на всю игру: соперники ходят неспешно, чтобы за ходом
+    можно было уследить — фишка идёт, карта летит, кости падают.
+
+    Переключателя «Быстрее» больше нет, как нет и «Авто». Обе кнопки решали
+    одну задачу — «мне скучно смотреть», — и решали её тем, что отбирали у
+    человека ход: одна торопила чужой, вторая играла за него самого. Игре, в
+    которой каждое действие ждёт нажатия, такие кнопки противоречат в самой
+    основе; а место на экране они занимали наравне с настоящими.
   */
-  const PACE = { calm: { wait: 900, speed: 1 }, quick: { wait: 260, speed: 0.42 } };
-  let hurry = false;
+  const PACE = { wait: 900 };
   // Сцена в объёме. Её может не быть: WebGL на слабом устройстве не дают, и
   // тогда игра идёт на поле из разметки — оно работает всегда.
   let scene = null;
@@ -658,6 +661,52 @@
         */
         frameOf: () => {
           const box = canvas.getBoundingClientRect();
+          const out = { top: 0, bottom: 0, left: 0, right: 0 };
+          if (!box.width || !box.height) return out;
+          /*
+            Что занято на холсте — и с какой стороны.
+
+            Прежде считалось только «занято снизу», и всё, что лежало поверх
+            доски, объявлялось нижней полосой. Боком это было прямой неправдой:
+            кнопки там собраны в правый нижний угол и занимают меньше половины
+            ширины, а доска из-за них уезжала под шапку, оставляя под собой
+            треть экрана пустого песка.
+
+            Теперь широкое считается полосой (сверху или снизу — смотря к
+            какому краю ближе), узкое — столбцом (слева или справа). Доля в
+            семь десятых ширины выбрана по делу: шапка и полоса кнопок стоймя
+            тянутся во всю ширину, а боком кнопки занимают меньше половины.
+          */
+          const BAND = 0.7;
+          const mark = (node) => {
+            if (!node || node.hidden || !node.offsetParent) return;
+            const rect = node.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const left = Math.max(rect.left, box.left);
+            const right = Math.min(rect.right, box.right);
+            const top = Math.max(rect.top, box.top);
+            const bottom = Math.min(rect.bottom, box.bottom);
+            if (right <= left || bottom <= top) return;
+            if ((right - left) / box.width >= BAND) {
+              if (top - box.top <= box.bottom - bottom) {
+                out.top = Math.max(out.top, bottom - box.top);
+              } else {
+                out.bottom = Math.max(out.bottom, box.bottom - top);
+              }
+              return;
+            }
+            if (left - box.left <= box.right - right) {
+              out.left = Math.max(out.left, right - box.left);
+            } else {
+              out.right = Math.max(out.right, box.right - left);
+            }
+          };
+          for (const id of ['teach', 'actions', 'players', 'feed']) mark($(id));
+          mark(document.querySelector('#game .hud'));
+          return out;
+        },
+        frameOfOld: () => {
+          const box = canvas.getBoundingClientRect();
           let bottom = 0;
           /*
             Полоса управления — всё, что лежит внизу и закрывает доску. Под
@@ -879,6 +928,7 @@
       return;
     }
     core.hidden = false;
+    const from = pending.type === 'buy' ? pending.cell : player.pos;
     /*
       Совет про горизонт своё отслужил: раз клетка о чём-то спрашивает, партия
       идёт, и держать над доской подсказку о том, как её держать, незачем.
@@ -887,7 +937,7 @@
     document.getElementById('orientation-tip')?.remove();
     // С какой плитки взлетать. Покупка называет клетку сама — при залоге и
     // продаже фишка может стоять уже не на ней.
-    core.dataset.from = String(pending.type === 'buy' ? pending.cell : player.pos);
+    core.dataset.from = String(from);
 
     // Кости из разметки нужны только без объёма: в объёме они кувыркаются на
     // самой доске и там же остаются лежать выпавшими числами вверх.
@@ -900,6 +950,24 @@
       if (dice.childElementCount) core.appendChild(dice);
     }
 
+    /*
+      На своём ходу — всё, что известно о клетке; на чужом — коротко.
+
+      Решение принимают по полной карточке: цена, ступень, плата на каждой
+      ступени поселения, правило цвета. Раньше на покупке показывали
+      сокращённую, и «брать или не брать» решалось по двум числам из семи.
+    */
+    const full = B.OWNABLE.has(B.BOARD[from].kind) && myTurn()
+      && (pending.type === 'buy' || pending.type === 'pay'
+        || pending.type === 'note' || pending.type === 'promise');
+    if (full) {
+      describeCell(core, from);
+      if (pending.type !== 'buy' && pending.text) {
+        core.appendChild(el('div', 'core-note core-extra', pending.text));
+      }
+      if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
+      return;
+    }
     if (pending.type === 'buy') {
       showLand(core, pending.cell, 'Свободен.');
       return;
@@ -975,6 +1043,13 @@
     человек, который ходил. Если людей за столом нет вовсе (партия смотрится
     на «Авто»), кошелёк показывает того, чей ход.
   */
+  /** Мой ли сейчас ход: по сети — своё место, за одним столом — не соперник. */
+  function myTurn() {
+    const turnPlayer = E.current(state);
+    if (turnPlayer.isBot) return false;
+    return !link || turnPlayer.id === mySeat;
+  }
+
   function whoAmI() {
     const turnPlayer = E.current(state);
     if (link) return state.players.find((one) => one.id === mySeat) || turnPlayer;
@@ -1113,9 +1188,8 @@
       addSide(side, sheetButton);
       return;
     }
-    if (player.isBot || autoPlay) {
-      main.appendChild(el('div', 'waiting',
-        player.isBot ? `${player.name} ходит…` : 'Играю за вас…'));
+    if (player.isBot) {
+      main.appendChild(el('div', 'waiting', `${player.name} ходит…`));
       addSide(side, sheetButton);
       return;
     }
@@ -1247,10 +1321,9 @@
   /*
     Второй ярус — под одной кнопкой.
 
-    «Мои уделы», «Авто», «Быстрее» и карточки игроков нужны не каждый ход, а
-    место занимали каждый. Здесь остаётся одна кнопка «Ещё», а за ней —
-    всё остальное. По сети «Авто» и «Быстрее» не показываются и в открытом
-    ящике: темпом там распоряжается комната, а не телефон.
+    «Мои уделы», карточки игроков и обучение нужны не каждый ход, а место
+    занимали каждый. Здесь остаётся одна кнопка «Ещё», а за ней — всё
+    остальное.
   */
   function addSide(side, sheetButton) {
     const toggle = button(moreOpen ? 'Скрыть' : 'Ещё', 'ghost', () => {
@@ -1267,8 +1340,6 @@
     menu.appendChild(playersButton());
     if (window.PromisedLandTutorial) menu.appendChild(teachButton());
     if (!link) {
-      menu.appendChild(autoButton());
-      menu.appendChild(paceButton());
     }
     side.appendChild(menu);
   }
@@ -1281,29 +1352,6 @@
     });
     node.id = 'players-open';
     node.setAttribute('aria-pressed', String(playersOpen));
-    return node;
-  }
-
-  /** Переключатель темпа соперников. */
-  function paceButton() {
-    const node = button(hurry ? 'Помедленнее' : 'Быстрее', 'ghost', () => {
-      hurry = !hurry;
-      if (scene) scene.setSpeed(PACE[hurry ? 'quick' : 'calm'].speed);
-      render();
-      scheduleBot();
-    });
-    node.setAttribute('aria-pressed', String(hurry));
-    return node;
-  }
-
-  /** Переключатель автоигры. */
-  function autoButton() {
-    const node = button(autoPlay ? 'Играю сам' : 'Авто', autoPlay ? 'ghost' : 'ghost auto', () => {
-      autoPlay = !autoPlay;
-      render();
-      scheduleBot();
-    });
-    node.setAttribute('aria-pressed', String(autoPlay));
     return node;
   }
 
@@ -1355,9 +1403,8 @@
       const cell = state.cells[n];
       const holder = state.players.find((p) => p.id === cell.owner);
       const row = el('div', 'holding holding--pledged');
-      const thumb = img(art('plots', spec.slug), 'holding-art', spec.name);
-      thumb.style.setProperty('--band', B.colorOf(spec));
-      row.appendChild(thumb);
+      row.style.setProperty('--band', B.colorOf(spec) || 'transparent');
+      row.appendChild(img(art('plots', spec.slug), 'holding-art', spec.name));
       const info = el('div', 'holding-info');
       info.appendChild(el('b', null, spec.name));
       info.appendChild(el('span', null,
@@ -1376,9 +1423,8 @@
       const spec = B.BOARD[n];
       const cell = state.cells[n];
       const row = el('div', 'holding');
-      const thumb = img(art('plots', spec.slug), 'holding-art', spec.name);
-      thumb.style.setProperty('--band', B.colorOf(spec));
-      row.appendChild(thumb);
+      row.style.setProperty('--band', B.colorOf(spec) || 'transparent');
+      row.appendChild(img(art('plots', spec.slug), 'holding-art', spec.name));
 
       const info = el('div', 'holding-info');
       info.appendChild(el('b', null, spec.name));
@@ -1617,7 +1663,7 @@
     // таймером, ходили бы за одного и того же соперника наперегонки.
     if (link || !state) return;
     if (state.status !== 'playing') return;
-    if (!E.current(state).isBot && !autoPlay) return;
+    if (!E.current(state).isBot) return;
     botTimer = setTimeout(async () => {
       if (state.status !== 'playing') return;
       let done;
@@ -1638,7 +1684,7 @@
       if (!done) E.endTurn(state);
       render();
       if (state.status === 'playing') scheduleBot();
-    }, PACE[hurry ? 'quick' : 'calm'].wait);
+    }, PACE.wait);
   }
 
   // ————————————————————————————————————————————————— правила и запуск
@@ -1706,10 +1752,25 @@
 
   function showCellCard(n) {
     $('cell-card').hidden = false;
-    const spec = B.BOARD[n];
-    const cell = state ? state.cells[n] : null;
     const body = $('cell-body');
     body.innerHTML = '';
+    describeCell(body, n);
+  }
+
+  /*
+    Полное описание клетки — одно на всю игру.
+
+    Раньше их было два: подробное в окне, которое открывается нажатием по
+    плитке, и короткое на карточке, которая прилетает, когда на клетку встали.
+    Короткое и подводило: покупать удел приходилось, видя цену и ступень, но
+    не видя, сколько он будет брать с гостей на каждой ступени, — а это и есть
+    то, ради чего его покупают. Теперь описание одно, и на своём ходу карточка
+    показывает его целиком. Коротким оно остаётся только на чужом ходу: там
+    его читают мельком, из любопытства, а не чтобы решать.
+  */
+  function describeCell(body, n) {
+    const spec = B.BOARD[n];
+    const cell = state ? state.cells[n] : null;
 
     body.appendChild(B.OWNABLE.has(spec.kind)
       ? img(art('plots', spec.slug), 'cell-art', spec.name)

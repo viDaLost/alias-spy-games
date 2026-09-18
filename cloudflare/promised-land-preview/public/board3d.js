@@ -1114,28 +1114,60 @@ window.PromisedLand3D = (() => {
       const middle = (low + high) / 2;
       const room = Math.max(0.15, (high - low) / 2);
 
+      /*
+        Свободное место считается и вширь.
+
+        Боком кнопки собраны в правый нижний угол — это не полоса во всю
+        ширину, а столбец. Пока камера знала только про «занято снизу», такой
+        столбец объявлял занятой всю нижнюю полосу: доска уезжала вверх, под
+        самую шапку, а под ней оставалась треть экрана пустого песка. Померено
+        на прежнем коде: доска занимала 230 точек по высоте из 390, начиналась
+        на тридцать первой — то есть лезла под шапку — и кончалась на 261-й.
+
+        Теперь занятый столбец сдвигает доску вбок, а не вверх: она встаёт
+        посередине того, что осталось, и берёт всю высоту.
+      */
+      const west = -1 + (inset && width ? 2 * Math.max(0, inset.left || 0) / width : 0);
+      const east = 1 - (inset && width ? 2 * Math.max(0, inset.right || 0) / width : 0);
+      const centreX = (west + east) / 2;
+      const span = Math.max(0.15, (east - west) / 2);
+
       let distance = 20;
       let lift = 0;
+      let slide = 0;
+      /*
+        Вправо по экрану. DIR смотрит от доски на камеру, поэтому «вправо» —
+        это UP×DIR, а не DIR×UP: с обратным порядком сдвиг шёл в другую
+        сторону, сам себя усиливал и за десять проходов уносил камеру так, что
+        доска оказывалась у неё за спиной.
+      */
+      const RIGHT = new THREE.Vector3().crossVectors(UP, DIR).normalize();
       for (let pass = 0; pass < 10; pass += 1) {
-        aim.copy(TARGET).addScaledVector(UP, lift);
+        aim.copy(TARGET).addScaledVector(UP, lift).addScaledVector(RIGHT, slide);
         camera.position.copy(aim).addScaledVector(DIR, distance);
         camera.lookAt(aim);
         camera.updateMatrixWorld(true);
         camera.updateProjectionMatrix();
-        let allLow = Infinity; let allHigh = -Infinity; let wide = 0;
+        let allLow = Infinity; let allHigh = -Infinity;
+        let allWest = Infinity; let allEast = -Infinity;
         for (const corner of boxCorners) {
           probe.copy(corner).project(camera);
           allLow = Math.min(allLow, probe.y);
           allHigh = Math.max(allHigh, probe.y);
-          wide = Math.max(wide, Math.abs(probe.x));
+          allWest = Math.min(allWest, probe.x);
+          allEast = Math.max(allEast, probe.x);
         }
-        let ringLow = Infinity; let ringHigh = -Infinity; let ringWide = 0;
+        let ringLow = Infinity; let ringHigh = -Infinity;
+        let ringWest = Infinity; let ringEast = -Infinity;
         for (const corner of tileCorners) {
           probe.copy(corner).project(camera);
           ringLow = Math.min(ringLow, probe.y);
           ringHigh = Math.max(ringHigh, probe.y);
-          ringWide = Math.max(ringWide, Math.abs(probe.x));
+          ringWest = Math.min(ringWest, probe.x);
+          ringEast = Math.max(ringEast, probe.x);
         }
+        const wide = Math.max(Math.abs(allWest - centreX), Math.abs(allEast - centreX));
+        const ringWide = Math.max(Math.abs(ringWest - centreX), Math.abs(ringEast - centreX));
         /*
           Кадр ставится так, чтобы кольцо клеток встало по середине свободной
           части, а вся доска — по середине холста. Между двумя этими желаниями
@@ -1154,16 +1186,24 @@ window.PromisedLand3D = (() => {
         const limit = [allHigh - 0.98, allLow + 0.98];
         if (limit[0] <= limit[1]) off = Math.min(limit[1], Math.max(limit[0], off));
         lift += off * distance * Math.tan(camera.fov * Math.PI / 360);
+        /*
+          Тот же приём вбок: доска съезжает к середине свободной ширины. Сдвиг
+          ограничен краями холста, чтобы доска не уехала за них целиком.
+        */
+        let aside = (allEast + allWest) / 2 - centreX;
+        const bounds = [allEast - 0.98, allWest + 0.98];
+        if (bounds[0] <= bounds[1]) aside = Math.min(bounds[1], Math.max(bounds[0], aside));
+        slide += aside * distance * Math.tan(camera.fov * Math.PI / 360) * camera.aspect;
         const factor = Math.max(
           wide / 0.98, (allHigh - allLow) / 2 / 0.98,
-          ringWide / 0.98, (ringHigh - ringLow) / 2 / room,
+          ringWide / span, (ringHigh - ringLow) / 2 / room,
         );
         if (!(factor > 1e-4)) break;
         distance *= factor;
-        if (Math.abs(factor - 1) < 0.002 && Math.abs(off) < 0.004) break;
+        if (Math.abs(factor - 1) < 0.002 && Math.abs(off) < 0.004 && Math.abs(aside) < 0.004) break;
       }
       // Отдаление пальцем поверх подобранного расстояния.
-      aim.copy(TARGET).addScaledVector(UP, lift);
+      aim.copy(TARGET).addScaledVector(UP, lift).addScaledVector(RIGHT, slide);
       camera.position.copy(aim).addScaledVector(DIR, distance * view.zoom);
       camera.lookAt(aim);
       camera.updateMatrixWorld(true);

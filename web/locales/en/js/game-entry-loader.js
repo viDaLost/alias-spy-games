@@ -60,7 +60,24 @@
       title: 'Moses: Journey on the Nile', eyebrow: 'Down the river', status: 'Filling the river…', status2: 'Planting river reeds…',
       icon: 'web/assets/icons/moses-nile.webp?v=1', motif: 'moses-nile',
     },
+    'promised-land': {
+      title: 'Земля обетованная', eyebrow: 'Настольная игра', status: 'Расставляем фишки…', status2: 'Тасуем колоды…',
+      icon: 'web/assets/icons/promised-land-v2.webp?v=1', motif: 'promised-land',
+    },
   });
+
+  /*
+    Игры, которые живут в кадре на своём адресе.
+
+    Для них «готово» нельзя понять по разметке: кадр появляется в контейнере
+    сразу, вместе с кнопкой выхода, — то есть по всем признакам готов, когда
+    внутри ещё пусто. Отсюда и брался провал: заставки не было вовсе, а под
+    ней виднелась тёмная подложка кадра, и вход в игру начинался вспышкой
+    ночного режима. Такая игра говорит о своей готовности сама, сообщением;
+    оболочка пересказывает его событием, а здесь оно ждётся.
+  */
+  const FRAMED = new Set(['promised-land']);
+  const readySeen = new Set();
 
   const motifHTML = Object.freeze({
     alias: '<span class="gel-chip">WORD</span><span class="gel-chip">TIME</span><span class="gel-chip">+1</span>',
@@ -76,6 +93,8 @@
     'kids-ark-pairs': '<span class="gel-tile">✦</span><span class="gel-tile">✦</span><span class="gel-tile">◆</span><span class="gel-tile">◆</span>',
     'biblical-match-three': '<span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span>',
     'moses-nile': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',
+    // Кость и две карты: во что играют, видно до того, как игра открылась.
+    'promised-land': '<span class="gel-die"></span><span class="gel-card"></span><span class="gel-card"></span>',
   });
 
   let root = null;
@@ -157,6 +176,8 @@
     if (currentKey && currentKey !== key) return false;
     if (container.querySelector('.app-game-loading')) return false;
     if (!container.childElementCount) return false;
+    // Игра в кадре отвечает за себя сама: разметка оболочки о ней не знает.
+    if (FRAMED.has(key)) return readySeen.has(key);
 
     const html = container.innerHTML;
     const changed = mutationSeen || html !== baseline;
@@ -221,6 +242,7 @@
     activeKey = key;
     startedAt = performance.now();
     mutationSeen = false;
+    readySeen.delete(key);
     baseline = getContainer()?.innerHTML || '';
 
     const el = render(key);
@@ -289,6 +311,17 @@
     document.addEventListener('click', handleGameIntent, true);
     watchBodyGame();
   }
+
+  /*
+    Сигнал готовности от игры в кадре. Шлёт его сама игра, оболочка проверяет
+    отправителя и пересказывает событием — здесь остаётся только дождаться.
+  */
+  document.addEventListener('game-entry:ready', (event) => {
+    const key = normalizeKey(event?.detail);
+    if (!key) return;
+    readySeen.add(key);
+    if (activeKey === key) finish(key);
+  });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
