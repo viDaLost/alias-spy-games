@@ -955,6 +955,27 @@
     core.hidden = false;
     if (shape !== coreShape) {
       coreShape = shape;
+      /*
+        Уже загруженная картинка переезжает в новую сборку, а не заводится
+        заново. Содержимое карточки меняется и на той же самой клетке — купили
+        удел, и «Свободный удел» стало «Хозяин: такой-то», — а рисунок при этом
+        тот же самый. Новая картинка с тем же адресом берётся из кеша, но
+        браузер всё равно успевает показать пустое место: на телефоне это
+        и есть то самое мигание.
+      */
+      const loaded = new Map();
+      for (const node of core.querySelectorAll('img')) {
+        if (node.complete && node.naturalWidth) loaded.set(node.src, node);
+      }
+      for (const fresh of draft.querySelectorAll('img')) {
+        const kept = loaded.get(fresh.src);
+        if (!kept) continue;
+        loaded.delete(fresh.src);
+        kept.className = fresh.className;
+        kept.alt = fresh.alt;
+        kept.hidden = false;
+        fresh.replaceWith(kept);
+      }
       for (const node of [...core.children]) {
         if (!node.classList.contains('actions-main')) node.remove();
       }

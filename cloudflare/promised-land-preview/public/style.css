@@ -787,16 +787,34 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 */
 @keyframes core-lift {
   from {
-    transform: translate(var(--from-x, 0px), var(--from-y, 0px)) rotate(-14deg) scale(.16);
+    transform: translate(var(--from-x, 0px), var(--from-y, 0px)) rotate(-12deg) scale(.18);
     opacity: 0;
   }
-  62% {
-    transform: translate(0, -6px) rotate(1.4deg) scale(1.04);
+  /*
+    Треть пути карта уже видна целиком. Прежде она проявлялась вдвое дольше и
+    последнюю половину полёта ехала полупрозрачной: читать её в это время было
+    нельзя, а глаз уже на ней — от того движение и казалось дёрганым.
+  */
+  34% { opacity: 1; }
+  66% {
+    transform: translate(0, -5px) rotate(1deg) scale(1.03);
     opacity: 1;
   }
   to { transform: none; opacity: 1; }
 }
-.ring-core.is-lifting { animation: core-lift 460ms cubic-bezier(.2, .72, .24, 1) both; }
+/*
+  Полёт длиннее и мягче: 520 мс вместо 460 и кривая с более пологим концом.
+  Разница видна не в скорости, а в остановке — карта приходит на место, а не
+  втыкается в него.
+
+  «will-change» здесь не украшение: без него браузер заводит слой под карточку
+  на первом же кадре анимации, и этот кадр пропадает — карта начинала полёт
+  рывком.
+*/
+.ring-core.is-lifting {
+  animation: core-lift 520ms cubic-bezier(.18, .66, .2, 1) both;
+  will-change: transform, opacity;
+}
 @media (prefers-reduced-motion: reduce) { .ring-core.is-lifting { animation: none; } }
 /*
   Решения — под карточкой, внутри неё же. Полоса на всю ширину карточки, а не
