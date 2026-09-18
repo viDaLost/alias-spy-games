@@ -50,7 +50,7 @@ const problems = [];
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
 /** Партия на экране заданного размера. Возвращает, чем она кончилась. */
-async function play(width, height, owner = true) {
+async function play(width, height, foes = 2) {
   const context = await browser.newContext({
     viewport: { width, height }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
   });
@@ -77,14 +77,14 @@ async function play(width, height, owner = true) {
   });
   /*
     Роль приходит с сервера — той же проверкой, что зажигает кнопку админки.
-    Здесь её отдаёт заглушка: «владелец» для прогона партии и «обычный
-    человек» для проверки замка.
+    Здесь её отдаёт заглушка: партию всегда играет главный администратор, а
+    «обычного человека» проверяет отдельный прогон locked() со своей заглушкой.
   */
   const stub = (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({
       success: true, isBanned: false, lastGames: [], users: [],
-      isAdmin: owner, isRoot: owner, role: owner ? 'owner' : 'none', userId: '1288379477',
+      isAdmin: true, isRoot: true, role: 'owner', userId: '1288379477',
       /*
         «Уже отвечено» — про два опроса, которые приложение показывает новичку:
         «откуда узнали» и отзыв. Оба приходят через пару секунд после меню и
@@ -131,7 +131,7 @@ async function play(width, height, owner = true) {
   await card.click();
 
   await page.waitForSelector('.tt-setup [data-start]', { timeout: 20_000 });
-    await page.locator('[data-foes] button[data-value="2"]').click();
+    await page.locator(`[data-foes] button[data-value="${foes}"]`).click();
   await page.locator('[data-target] button[data-value="0"]').click();
   await page.locator('[data-start]').click();
   await page.waitForSelector('.tt-hand .tt-card', { timeout: 10_000 });
@@ -147,7 +147,7 @@ async function play(width, height, owner = true) {
     };
   });
   need(dealt.hand === 7, `на руке ${dealt.hand} карт вместо семи`);
-  need(dealt.foes === 2, `за столом ${dealt.foes} соперника вместо двух`);
+  need(dealt.foes === foes, `за столом ${dealt.foes} соперников вместо ${foes}`);
   need(dealt.pile === 1, 'на сбросе не лежит верхняя карта');
   need(/Иуда|Рувим|Ефрем|Дан/.test(dealt.camp), `стан стола не назван: «${dealt.camp}»`);
 
@@ -161,6 +161,173 @@ async function play(width, height, owner = true) {
   need(touch.card[0] >= 56 && touch.card[1] >= 84,
     `карта в руке ${touch.card.join('×')} — меньше пальца`);
   need(touch.deck[0] >= 56 && touch.deck[1] >= 84, `колода ${touch.deck.join('×')} — меньше пальца`);
+
+  // ——— за столом столько мест, сколько заказано ———
+  const seats = await page.evaluate(() => document.querySelectorAll('.tt-foe').length);
+  need(seats === foes, `за столом ${seats} соперников вместо ${foes}`);
+
+  /*
+    ——— рука разложена по станам ———
+
+    Карты одного стана лежат рядом, а не вперемешку. Проверяется не порядок
+    станов между собой, а именно это: стан, встретившийся дважды с разрывом,
+    значит, что рука не разложена и игрок ищет цвет глазами каждый ход.
+  */
+  const grouped = await page.evaluate(() => {
+    const names = [...document.querySelectorAll('.tt-hand .tt-card .tt-name')]
+      .map((node) => node.textContent.trim());
+    const seen = new Set();
+    let last = null;
+    let broken = 0;
+    for (const name of names) {
+      if (name === last) continue;
+      if (seen.has(name)) broken += 1;
+      seen.add(name);
+      last = name;
+    }
+    return { broken, names };
+  });
+  need(grouped.broken === 0,
+    `рука не разложена по станам: ${grouped.names.join(', ')}`);
+
+  /*
+    ——— карта прилетает из колоды ———
+
+    Полёт живёт в таблице стилей, но откуда лететь, считает разметка — и
+    считает по настоящим местам на экране. Если счёт сломается, карта будет
+    появляться в руке сама собой, и заметить это глазами почти нельзя: движение
+    короткое. Поэтому спрашивается само число.
+  */
+  if (!(await page.locator('[data-draw]').isDisabled())) {
+    await page.locator('[data-draw]').click({ timeout: 4_000 }).catch(() => {});
+    const flight = await page.evaluate(() => {
+      const card = document.querySelector('.tt-hand .tt-card.is-fresh');
+      if (!card) return null;
+      return {
+        x: card.style.getPropertyValue('--fly-x'),
+        y: card.style.getPropertyValue('--fly-y'),
+      };
+    });
+    need(flight !== null, 'взятая карта не отмечена как только что взятая');
+    if (flight) {
+      need(/-?\d+px/.test(flight.x) && /-?\d+px/.test(flight.y),
+        `полёт из колоды не рассчитан: x=${flight.x}, y=${flight.y}`);
+      need(Math.abs(parseInt(flight.y, 10)) > 20,
+        `колода и рука оказались в одной точке: y=${flight.y}`);
+    }
+  }
+
+  /*
+    ——— быстрые подсказки ———
+    Лист «Что делают карты» открывается с самого стола и знает все шесть родов
+    карт. Тексты берутся из правил игры, поэтому проверяется их число, а не
+    буквы: разойтись им негде, а вот пропасть — можно.
+  */
+  await page.locator('[data-hints]').click({ timeout: 4_000 });
+  const tips = await page.evaluate(() => ({
+    rows: document.querySelectorAll('.tt-sheet .tt-tip').length,
+    text: document.querySelector('.tt-sheet')?.innerText || '',
+  }));
+  need(tips.rows === 6, `в подсказках ${tips.rows} карт вместо шести`);
+  need(/\+2/.test(tips.text) && /\+4/.test(tips.text),
+    'в подсказках не сказано, сколько карт выдают странствие и плен');
+  need(/Шабат/.test(tips.text), 'в подсказках не сказано про «Шабат»');
+  await page.locator('.tt-sheet [data-cancel]').click({ timeout: 4_000 });
+  await page.waitForTimeout(200);
+  need(await page.locator('.tt-sheet').count() === 0, 'лист подсказок не закрылся');
+
+  /*
+    ——— выбор стана виден ———
+
+    Лист выбора живёт вне стола, в body, — и переменные цвета, объявленные на
+    столе, до него не доходили: кнопки станов оставались прозрачными, а знак на
+    них был с ноготь. Жребий кладётся в руку нарочно: ждать его в игре можно
+    полпартии, а спросить надо сейчас.
+  */
+  await page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    state.players[0].hand.unshift({ id: 'lot-check', kind: 'lot', camp: null, rank: null });
+    window.TwelveTribesGame.refresh();
+  });
+  await page.locator('.tt-hand .tt-card--wild').first().click({ timeout: 4_000 });
+  const camps = await page.evaluate(() => {
+    const wrap = document.querySelector('.tt-wrap');
+    const probe = document.createElement('span');
+    document.body.appendChild(probe);
+    const want = new Set(['judah', 'reuben', 'ephraim', 'dan'].map((id) => {
+      probe.style.backgroundColor = getComputedStyle(wrap).getPropertyValue(`--${id}`).trim();
+      return getComputedStyle(probe).backgroundColor;
+    }));
+    probe.remove();
+    const buttons = [...document.querySelectorAll('.tt-camps button')];
+    const paints = buttons.map((one) => getComputedStyle(one).backgroundColor);
+    const small = buttons.filter((one) => {
+      const sign = one.querySelector('svg, img');
+      const box = sign ? sign.getBoundingClientRect() : { width: 0 };
+      return box.width < 30;
+    }).length;
+    return {
+      total: buttons.length,
+      wrong: paints.filter((paint) => !want.has(paint)).length,
+      distinct: new Set(paints).size,
+      small,
+      paints,
+    };
+  });
+  need(camps.total === 4, `в листе выбора ${camps.total} станов вместо четырёх`);
+  /*
+    Цвет спрашивается не «хоть какой», а именно цвет стана: у кнопки есть
+    запасной серый на случай, когда переменная не дошла, — и без сверки с
+    палитрой все четыре кнопки могли быть одинаково серыми, а проверка бы
+    молчала. Ровно это и случилось: лист живёт вне стола, и переменные до него
+    не доходили.
+  */
+  need(camps.wrong === 0, `${camps.wrong} кнопок стана не в цвет стана: ${camps.paints.join(', ')}`);
+  need(camps.distinct === 4, `четыре стана покрашены в ${camps.distinct} цвета`);
+  need(camps.small === 0, `${camps.small} знаков стана мельче тридцати точек`);
+  await page.locator('.tt-sheet [data-cancel]').click({ timeout: 4_000 });
+  await page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    const at = state.players[0].hand.findIndex((one) => one.id === 'lot-check');
+    if (at >= 0) state.players[0].hand.splice(at, 1);
+    window.TwelveTribesGame.refresh();
+  });
+
+  /*
+    ——— сыгранная карта прилетает со своего места ———
+
+    Своя карта летит снизу, из руки; чужая — с края стола, где сидит соперник.
+    След полёта живёт до следующей перерисовки, а перерисовывает стол ещё и
+    таймер соперников, — спрашивать «что сейчас на сбросе» поздно уже через
+    полсекунды. Поэтому за сбросом ставится наблюдатель: он ловит карту в тот
+    миг, когда она легла, и запоминает, откуда она летела.
+  */
+  await page.evaluate(() => {
+    window.__ttLandings = [];
+    const pile = document.querySelector('[data-pile]');
+    const watch = new MutationObserver(() => {
+      const card = pile.querySelector('.tt-card.is-landing');
+      if (!card) return;
+      window.__ttLandings.push({
+        x: card.style.getPropertyValue('--fly-x'),
+        y: card.style.getPropertyValue('--fly-y'),
+      });
+    });
+    watch.observe(pile, { childList: true, subtree: true });
+  });
+  const live = page.locator('.tt-hand .tt-card.is-live').first();
+  if (await live.count()) {
+    await live.click({ timeout: 4_000 }).catch(() => {});
+    // Ход соперников — чтобы поймать и чужой полёт, с другого края стола.
+    await page.waitForTimeout(2_500);
+    const landings = await page.evaluate(() => window.__ttLandings || []);
+    need(landings.length > 0, 'ни одна сыгранная карта не легла на сброс с полётом');
+    const nowhere = landings.filter((one) => !/-?\d+px/.test(one.y)).length;
+    need(nowhere === 0, `${nowhere} карт из ${landings.length} легли на сброс ниоткуда`);
+    const far = landings.filter((one) => Math.abs(parseInt(one.y, 10)) > 20).length;
+    need(far === landings.length,
+      `${landings.length - far} карт прилетели из точки, где лежит сам сброс`);
+  }
 
   /*
     ——— масть видна на самой карте ———
@@ -205,8 +372,14 @@ async function play(width, height, owner = true) {
   */
   let steps = 0;
   let wilds = 0;
-  let shofar = 0;
-  while (steps < 900) {
+  let shabbat = 0;
+  /*
+    Нажатий столько, сколько может понадобиться за столом такого размера: за
+    восьмерых раздача идёт втрое дольше, чем втроём, и общий предел в девятьсот
+    обрывал её на середине — не потому, что игра встала.
+  */
+  const limit = 700 + foes * 200;
+  while (steps < limit) {
     if (await page.locator('.tt-setup [data-next]').count()) break;
     const live = page.locator('.tt-hand .tt-card.is-live').first();
     if (await live.count()) {
@@ -230,10 +403,10 @@ async function play(width, height, owner = true) {
     } else {
       await page.waitForTimeout(220);
     }
-    // Осталась одна карта — трубим в шофар. Кнопка обязана быть видна.
-    if (await page.locator('[data-shofar]:not([hidden])').count()) {
-      shofar += 1;
-      await page.locator('[data-shofar]').click({ timeout: 4_000 }).catch(() => {});
+    // Осталась одна карта — говорим «Шабат». Кнопка обязана быть видна.
+    if (await page.locator('[data-shabbat]:not([hidden])').count()) {
+      shabbat += 1;
+      await page.locator('[data-shabbat]').click({ timeout: 4_000 }).catch(() => {});
     }
     steps += 1;
   }
@@ -245,13 +418,20 @@ async function play(width, height, owner = true) {
       rows: document.querySelectorAll('.tt-score').length,
     }));
     need(/раздачу|берёт/i.test(result.title), `итоги не названы: «${result.title}»`);
-    need(result.rows === 3, `в итогах ${result.rows} строк вместо трёх`);
+    // В итогах строка на каждого, кто сидел за столом, — вместе с вами.
+    need(result.rows === foes + 1, `в итогах ${result.rows} строк вместо ${foes + 1}`);
   }
 
   // ——— ничего не вылезло за край ———
   const spill = await page.evaluate(() => {
     const doc = document.documentElement;
+    /*
+      Рука — лента с прокруткой: когда карт много, дальние честно лежат за
+      правым краем, и это не поломка, а способ показать двенадцать карт на
+      экране в триста двадцать точек. Считается всё остальное.
+    */
     const wide = [...document.querySelectorAll('.tt-wrap *')]
+      .filter((node) => !node.closest('.tt-hand'))
       .filter((node) => node.getBoundingClientRect().right > doc.clientWidth + 1).length;
     return { wide, scroll: doc.scrollWidth - doc.clientWidth };
   });
@@ -259,7 +439,7 @@ async function play(width, height, owner = true) {
   need(spill.wide === 0, `${spill.wide} частей игры вылезли за правый край`);
 
   await context.close();
-  return { errors, steps, wilds, shofar };
+  return { errors, steps, wilds, shabbat };
 }
 
 /*
@@ -327,6 +507,13 @@ const phone = await play(390, 844);
 need(phone.errors.length === 0, `ошибки в консоли: ${phone.errors.slice(0, 2).join(' | ')}`);
 const narrow = await play(320, 568);
 need(narrow.errors.length === 0, `на узком экране ошибки: ${narrow.errors.slice(0, 2).join(' | ')}`);
+/*
+  Стол на восьмерых — отдельная раздача: семь мест обязаны поместиться на
+  телефоне целиком, вместе с колодой, сбросом и рукой. Без этого двое крайних
+  соперников оказываются за краем экрана, и в игре их как бы нет.
+*/
+const crowd = await play(390, 844, 7);
+need(crowd.errors.length === 0, `восьмером ошибки: ${crowd.errors.slice(0, 2).join(' | ')}`);
 
 await browser.close();
 server.close();
@@ -340,4 +527,6 @@ if (problems.length) {
 console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов; '
   + 'у главного администратора игра открывается из меню, раздача сдана по семь карт на троих, карта и колода крупнее пальца, '
   + `раздача доиграна до итогов за ${phone.steps} нажатий (жребиев со сменой стана ${phone.wilds}, `
-  + `шофаров ${phone.shofar}); на 390 и на 320 ничего не вылезло за край, консоль чистая.`);
+  + `«Шабат» сказан ${phone.shabbat} раз); рука разложена по станам, взятая карта летит из колоды, `
+  + 'подсказки открываются и знают все шесть родов карт, кнопки станов цветные и крупные; '
+  + 'стол на восьмерых сыгран целиком; на 390 и на 320 ничего не вылезло за край, консоль чистая.');

@@ -55,13 +55,28 @@
     игрока от того, чтобы копить сильные карты до конца раздачи.
   */
   const KINDS = {
-    number: { title: 'Suerte', cost: null, wild: false },
-    sabbath: { title: 'Sábado', cost: 20, wild: false, note: 'Сосед покоится — ход мимо него.' },
-    jordan: { title: 'Jordán', cost: 20, wild: false, note: 'Иордан обратился назад: ход меняет сторону.' },
-    journey: { title: 'Странствие', cost: 20, wild: false, note: 'Сосед берёт две карты и пропускает ход.' },
-    lot: { title: 'Жребий колен', cost: 50, wild: true, note: 'Выпадает жребий: вы называете стан.' },
-    exile: { title: 'Cautiverio', cost: 50, wild: true, note: 'Вы называете стан, сосед берёт четыре и пропускает ход.' },
+    number: { title: 'Suerte', cost: null, wild: false, draw: 0,
+      note: 'Кладётся на свой стан или на такой же жребий.' },
+    sabbath: { title: 'Sábado', cost: 20, wild: false, draw: 0,
+      note: 'Сосед покоится — ход мимо него.' },
+    jordan: { title: 'Jordán', cost: 20, wild: false, draw: 0,
+      note: 'Иордан обратился назад: ход меняет сторону.' },
+    journey: { title: 'Странствие', cost: 20, wild: false, draw: 2,
+      note: 'Сосед берёт две карты и пропускает ход.' },
+    lot: { title: 'Жребий колен', cost: 50, wild: true, draw: 0,
+      note: 'Кладётся на что угодно: вы называете стан.' },
+    exile: { title: 'Cautiverio', cost: 50, wild: true, draw: 4,
+      note: 'Вы называете стан, сосед берёт четыре и пропускает ход.' },
   };
+
+  /*
+    Сколько карт карта выдаёт соседу — свойство карты, а не знание движка.
+
+    Раньше двойку странствия и четвёрку плена знал движок, а на экране их не
+    было вовсе: игрок узнавал цену карты, только сыграв её. Теперь число живёт
+    в одном месте — отсюда его берёт и движок, и надпись на самой карте.
+  */
+  const drawsOf = (card) => KINDS[card.kind].draw || 0;
 
   /** Сколько очков стоит карта на руке проигравшего. */
   const costOf = (card) => (card.kind === 'number' ? card.rank : KINDS[card.kind].cost);
@@ -137,7 +152,10 @@
   }
 
   window.TwelveTribesRules = {
-    CAMPS, CAMP_IDS, KINDS, campOf, costOf, buildDeck, shuffle, playable, legalMoves,
+    CAMPS, CAMP_IDS, KINDS, campOf, costOf, drawsOf, buildDeck, shuffle, playable, legalMoves,
     HAND: 7,
+    // Сколько человек садится за стол. Восемь — предел колоды: по семь карт на
+    // руки это 56 карт из 108, и на игру остаётся ровно половина.
+    SEATS_MAX: 8,
   };
 }());

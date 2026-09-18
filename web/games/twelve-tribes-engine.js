@@ -1,7 +1,7 @@
 // «Двенадцать колен» — ход партии. Тоже без единого слова про экран.
 //
 // Движок держит всё, что можно проверить машиной: раздачу, законность хода,
-// действия карт, объявление «Шофар», подсчёт очков и конец раздачи. Разметка
+// действия карт, объявление «Шабат», подсчёт очков и конец раздачи. Разметка
 // его только спрашивает и показывает — своих правил у неё нет ни одного.
 //
 // Случайность приходит снаружи (createGame({ random })). Это не педантизм: без
@@ -48,7 +48,13 @@
     for (const card of back) if (R.KINDS[card.kind].wild) card.camp = null;
     state.deck = R.shuffle(back, state.random);
     state.pile = [top];
-    note(state, 'Сброс ушёл в колоду и перетасован.');
+    /*
+      Перетасовка отмечается ходом, на котором случилась. Стол по этой отметке
+      показывает, что колода собралась заново: без неё колода просто
+      «вдруг» толстеет, и игрок думает, что игра ошиблась в счёте.
+    */
+    state.reshuffled = state.moves;
+    note(state, `Колода кончилась: сброс перевёрнут и перетасован — ${state.deck.length} карт.`);
   }
 
   /** Одна карта в руку. Возвращает её или null, если брать нечего. */
@@ -59,7 +65,7 @@
     const player = state.players[seat];
     player.hand.push(card);
     /*
-      Взял карты — объявление больше не в силе. «Шофар» говорит «у меня одна
+      Взял карты — объявление больше не в силе. «Шабат» говорит «у меня одна
       карта», и говорит он это про сейчас: тот, кого накрыло странствием или
       пленом, держит уже три или пять, и прошлое объявление за него не
       отвечает. Оставленная метка молчала бы потом, когда игрок снова дойдёт
@@ -120,7 +126,7 @@
       players, random,
       deck: [], pile: [], camp: null,
       turn: 0, dealer: 0, dir: 1,
-      phase: 'play', drawn: null, risk: null,
+      phase: 'play', drawn: null, risk: null, reshuffled: -1,
       round: 1, moves: 0,
       // Ноль значит «одна раздача»: выиграл тот, кто первым остался без карт.
       target: Number(options.target) || 0,
@@ -132,8 +138,8 @@
   }
 
   /*
-    Объявление. Оставшись с одной картой, игрок обязан затрубить в шофар —
-    иначе соперник ловит его и выдаёт две карты.
+    Объявление. Оставшись с одной картой, игрок обязан сказать «Шабат!» —
+    иначе соперник перебивает его и выдаёт две карты.
 
     Окно поимки закрывается не по часам, а по ходу: поймать можно, пока
     следующий игрок не сделал свой ход. Часы тут были бы несправедливы к тому,
@@ -147,17 +153,17 @@
     && state.players[state.risk.seat].hand.length === 1
     && !state.players[state.risk.seat].said;
 
-  /** Может ли этот игрок поймать соседа на необъявленном шофаре. */
+  /** Может ли этот игрок перебить соседа, не сказавшего «Шабат». */
   function canCatch(state, accuser) {
     return riskOpen(state) && state.risk.seat !== accuser;
   }
 
-  function shofar(state, seat) {
+  function shabbat(state, seat) {
     const player = state.players[seat];
     if (player.hand.length !== 1 || player.said) return false;
     player.said = true;
     state.risk = null;
-    note(state, `${player.name}: шофар — осталась одна карта.`);
+    note(state, `${player.name}: Шабат! — осталась одна карта.`);
     return true;
   }
 
@@ -167,7 +173,7 @@
     drawMany(state, seat, 2);
     caught.said = false;
     state.risk = null;
-    note(state, `${state.players[accuser].name} поймал: ${caught.name} не затрубил и берёт две.`);
+    note(state, `${state.players[accuser].name} перебил: ${caught.name} не сказал «Шабат» и берёт две.`);
     return true;
   }
 
@@ -186,7 +192,7 @@
     winner.score += gain;
     state.risk = null;
     /*
-      Объявление снимается со всех. «Шофар» говорит «у меня последняя карта», и
+      Объявление снимается со всех. «Шабат» говорит «у меня последняя карта», и
       карты этой больше нет ни у кого: победитель её сбросил, остальные пойдут
       в новую раздачу с семью. Оставленная метка соврала бы в следующей же
       раздаче — и соперник поймал бы человека за то, чего тот не делал.
@@ -239,10 +245,9 @@
       note(state, `${state.players[nextSeat(state)].name} покоится и пропускает ход.`);
       return { skip: true };
     }
-    if (card.kind === 'journey' || card.kind === 'exile') {
+    if (R.drawsOf(card)) {
       const seat = nextSeat(state);
-      const count = card.kind === 'journey' ? 2 : 4;
-      const taken = drawMany(state, seat, count);
+      const taken = drawMany(state, seat, R.drawsOf(card));
       note(state, `${state.players[seat].name} берёт ${taken} и пропускает ход.`);
       return { skip: true };
     }
@@ -319,7 +324,7 @@
 
   window.TwelveTribesEngine = {
     createGame, deal, nextRound, current, nextSeat,
-    play, draw, pass, shofar, canCatch, catchOut,
+    play, draw, pass, shabbat, canCatch, catchOut,
     legalMoves: (state, seat) => R.legalMoves(state, seat),
     riskOpen,
   };

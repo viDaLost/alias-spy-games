@@ -110,7 +110,7 @@ function audit(state, where) {
   // 5. Объявление стоит только на том, у кого одна карта.
   for (const player of state.players) {
     if (player.said && player.hand.length !== 1) {
-      fault('шофар объявлен не на последней карте', `${player.name}: ${player.hand.length} карт`);
+      fault('«Шабат» объявлен не на последней карте', `${player.name}: ${player.hand.length} карт`);
     }
   }
 }
@@ -153,7 +153,7 @@ function playRound(state, random, tale) {
     // Объявление и поимка — ботами же, по их забывчивости.
     for (const one of state.players) {
       if (one.hand.length === 1 && !one.said && Bots.remembers(one.botLevel, random)) {
-        E.shofar(state, one.id);
+        E.shabbat(state, one.id);
       }
     }
     if (E.riskOpen(state)) {
@@ -183,7 +183,13 @@ const tale = { rounds: 0, moves: 0, caught: 0, refills: 0, longest: 0, wins: new
 const GAMES = 240;
 for (let game = 0; game < GAMES; game += 1) {
   const random = seeded(1917 + game * 7919);
-  const seats = 2 + (game % 3);
+  /*
+    За столом от двоих до восьмерых. Восьмером колода уходит на руки почти
+    наполовину (56 карт из 108), перетасовка сброса случается в каждой второй
+    раздаче, а «Иордан» меняет сторону там, где сторон много, — то есть ровно
+    то, что вдвоём и втроём не проверяется вовсе.
+  */
+  const seats = 2 + (game % (R.SEATS_MAX - 1));
   const state = E.createGame({
     random,
     target: game % 2 ? 300 : 0,
@@ -305,7 +311,7 @@ function bench({ hands, camp, kind = 'number', rank = 5, seats = 2 }) {
   need(state.turn === 0, 'вдвоём иордан отдал ход сопернику вместо возврата');
 }
 
-// 4. Шофар: объявившего не поймать, забывшего — поймать и выдать две.
+// 4. «Шабат»: объявившего не перебить, забывшего — перебить и выдать две.
 {
   const state = bench({
     camp: 'judah', seats: 2,
@@ -315,7 +321,7 @@ function bench({ hands, camp, kind = 'number', rank = 5, seats = 2 }) {
   need(E.riskOpen(state), 'после хода на последнюю карту окно поимки не открылось');
   need(E.canCatch(state, 1), 'соперник не может поймать забывшего');
   need(!E.canCatch(state, 0), 'игрок может поймать сам себя');
-  need(E.shofar(state, 0), 'шофар не принят у того, у кого одна карта');
+  need(E.shabbat(state, 0), '«Шабат» не принят у того, у кого одна карта');
   need(!E.canCatch(state, 1), 'объявившего всё ещё можно поймать');
 
   const late = bench({
@@ -341,8 +347,32 @@ function bench({ hands, camp, kind = 'number', rank = 5, seats = 2 }) {
   const card = E.draw(state, 0);
   need(card !== null, 'при пустой колоде карта не взялась даже после перетасовки');
   need(state.pile.length === 1, `после перетасовки в сбросе осталось ${state.pile.length} карт`);
+  /*
+    Верхняя карта остаётся верхней. Это и есть смысл правила: игра не
+    прерывается, ход продолжается с той же карты, а под колоду уходит только
+    то, что уже отыграно.
+  */
+  need(state.pile[0].id === top.id, 'перетасовка унесла под колоду верхнюю карту, с которой идёт игра');
+  need(state.camp === top.camp, 'после перетасовки стан стола разошёлся с верхней картой');
   need(state.deck.length > 90, 'сброс не вернулся в колоду');
+  need(state.reshuffled >= 0, 'перетасовка не отмечена — столу нечего показать игроку');
   tale.refills += 1;
+}
+
+// 7. Стол на восьмерых: раздача сдаётся всем, и колода этого не замечает.
+{
+  const state = E.createGame({
+    random: seeded(20250918),
+    players: Array.from({ length: R.SEATS_MAX }, (_, i) => ({ name: `Место ${i + 1}`, isBot: true })),
+  });
+  need(state.players.length === 8, `за стол село ${state.players.length} вместо восьми`);
+  for (const player of state.players) {
+    need(player.hand.length === R.HAND, `${player.name} получил ${player.hand.length} карт вместо семи`);
+  }
+  const onHands = state.players.reduce((sum, one) => sum + one.hand.length, 0);
+  need(onHands === 56, `на руках ${onHands} карт вместо пятидесяти шести`);
+  need(state.deck.length + state.pile.length + onHands === 108,
+    'восьмером колода не сошлась в сто восемь карт');
 }
 
 // 6. Пустой стол: брать нечего — ход просто уходит дальше, а не зависает.
@@ -364,5 +394,5 @@ const spread = [...tale.wins.entries()].map(([name, many]) => `${name} ${many}`)
 console.log(`OK: колода из 108 карт собрана верно (76 жребиев, 24 действия, 8 без стана); `
   + `${GAMES} партий и ${tale.rounds} раздач сыграны до конца — ${tale.moves} ходов, `
   + `самая длинная раздача ${tale.longest}; после каждого хода сходятся все карты, стан стола и `
-  + `объявления. Поймано на шофаре: ${tale.caught}. Суббота, иордан, плен и перетасовка сброса `
+  + `объявления. Перебито на «Шабате»: ${tale.caught}. Суббота, иордан, плен и перетасовка сброса `
   + `проверены нарочно. Победы по местам: ${spread}.`);

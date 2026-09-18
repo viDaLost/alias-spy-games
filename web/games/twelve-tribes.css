@@ -10,7 +10,13 @@
    игра, где масть только цвет, для него не игра. Знак и подпись читаются без
    цвета вовсе. */
 
-.tt-wrap {
+/*
+  Палитра станов нужна двоим: столу и листу выбора стана. Лист открывается
+  поверх всего экрана и живёт в body, а не внутри стола, — и переменные,
+  объявленные только на столе, до него не доходили: кнопки станов оставались
+  без цвета вовсе.
+*/
+.tt-wrap, .tt-sheet {
   --judah: #c0392b;
   --reuben: #1d4ed8;
   --ephraim: #15803d;
@@ -57,6 +63,9 @@
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
 }
 .tt-choice button small { font-size: 11px; font-weight: 400; color: var(--ink-soft, #667085); }
+/* Соперников до семи: кнопкам в ряд тесно, и они делят ширину поровну. */
+.tt-choice--wide button { min-width: 0; flex: 1 1 40px; padding: 0; }
+.tt-choice-note { font-size: 12.5px; color: var(--ink-soft, #667085); }
 .tt-choice button[aria-pressed="true"] { background: var(--primary, #4f46e5); border-color: var(--primary, #4f46e5); color: #fff; }
 .tt-choice button[aria-pressed="true"] small { color: rgba(255, 255, 255, .82); }
 
@@ -68,6 +77,19 @@
   font: inherit; font-weight: 700; font-size: 16px; cursor: pointer;
 }
 .tt-btn--ghost { background: var(--surface-strong, #fff); color: var(--ink, #111827); border-color: rgba(99, 102, 241, .3); }
+/*
+  «Шабат!» — кнопка на один миг: она появляется, когда осталась одна карта, и
+  её надо заметить раньше, чем сосед. Поэтому цвет у неё свой и она зовёт
+  свечением, а не движением: движущаяся кнопка уезжает из-под пальца.
+*/
+.tt-btn--call {
+  background: var(--warning, #f59e0b); color: #1f2937;
+  animation: tt-glow 1.1s ease-in-out infinite;
+}
+@keyframes tt-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .6); }
+  50% { box-shadow: 0 0 0 7px rgba(245, 158, 11, 0); }
+}
 .tt-btn:disabled { opacity: .45; cursor: not-allowed; }
 .tt-btn:active:not(:disabled) { transform: translateY(1px); }
 
@@ -98,20 +120,75 @@
   color: #f8fafc;
 }
 
-.tt-foes { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+/*
+  ——— места за столом ———
+
+  Соперники сидят дугой по дальнему краю сукна, а не стоят строкой. Место
+  считается из одной переменной --away: −1 у левого края, 0 посередине, +1 у
+  правого; подъём — её квадрат, и получается дуга стола. От этого же места
+  летит карта, которую игрок кладёт: стол становится столом, за которым сидят,
+  а не списком соперников.
+
+  Восьмером мест семь, и они ужимаются: помещаться обязаны все, иначе двое
+  крайних оказываются за краем экрана и в игре их как бы нет.
+*/
+.tt-foes { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
 .tt-foe {
-  flex: 0 1 132px; min-width: 96px;
+  flex: 0 1 118px; min-width: 84px;
   background: rgba(255, 255, 255, .1);
   border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 14px; padding: 7px 9px;
+  border-radius: 14px; padding: 6px 8px;
   display: grid; gap: 2px; justify-items: center;
   font-size: 13px; position: relative;
+  transform: translateY(calc(var(--away, 0) * var(--away, 0) * 9px));
+  transition: background .2s ease, border-color .2s ease, transform .3s cubic-bezier(.2, .7, .3, 1);
 }
-.tt-foe.is-turn { background: rgba(255, 255, 255, .22); border-color: rgba(255, 255, 255, .5); }
-.tt-foe b { font-size: 14px; font-weight: 700; }
-.tt-foe span { font-size: 12px; opacity: .82; }
-.tt-foe-cards { display: flex; gap: 2px; margin-top: 2px; }
-.tt-foe-cards i { width: 7px; height: 11px; border-radius: 2px; background: rgba(255, 255, 255, .55); display: block; }
+.tt-foe.is-turn {
+  background: rgba(255, 255, 255, .24); border-color: rgba(255, 255, 255, .55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .25), 0 10px 20px -14px rgba(0, 0, 0, .9);
+}
+.tt-foe b { font-size: 13.5px; font-weight: 700; line-height: 1.1; }
+.tt-foe-meta { font-size: 11.5px; opacity: .82; }
+/* Карты соперника — веером рубашками к столу: у них тоже рука, а не счётчик. */
+.tt-foe-cards { display: flex; margin: 1px 0 0; }
+.tt-foe-cards i {
+  width: 9px; height: 13px; border-radius: 2px; display: block;
+  background: linear-gradient(160deg, #1e293b, #0f172a);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .35) inset;
+  margin-left: -3px;
+}
+.tt-foe-cards i:first-child { margin-left: 0; }
+/*
+  Ширина места считается от числа мест, а не берётся одна на всех.
+
+  Перенос строки в ряду решается по заданной ширине, а не по той, до которой
+  место потом ужмётся, — и трое соперников по 118 точек не помещались в 340
+  доступных: двое вставали в ряд, третий уходил под них один. Одинокое место
+  под столом читается как «этот игрок другой», хотя он такой же.
+*/
+.tt-foes[data-seats="1"] .tt-foe { flex: 0 1 160px; }
+.tt-foes[data-seats="2"] .tt-foe { flex: 0 1 132px; }
+.tt-foes[data-seats="3"] .tt-foe { flex: 0 1 104px; }
+.tt-foes[data-seats="4"] .tt-foe { flex: 0 1 78px; }
+/*
+  Впятером и больше места ужимаются до четырёх в ряд и встают ровными рядами:
+  дуга на двух рядах перестаёт читаться дугой и превращается в пляшущие
+  прямоугольники. Имя при этом остаётся целым — по имени за столом и узнают.
+*/
+.tt-foes[data-seats="5"] .tt-foe,
+.tt-foes[data-seats="6"] .tt-foe,
+.tt-foes[data-seats="7"] .tt-foe {
+  flex: 0 1 78px; min-width: 68px; padding: 5px 4px; font-size: 11px;
+  transform: none;
+}
+.tt-foes[data-seats="5"] .tt-foe b,
+.tt-foes[data-seats="6"] .tt-foe b,
+.tt-foes[data-seats="7"] .tt-foe b { font-size: 12.5px; }
+.tt-foes[data-seats="5"] .tt-foe-meta,
+.tt-foes[data-seats="6"] .tt-foe-meta,
+.tt-foes[data-seats="7"] .tt-foe-meta { font-size: 11px; }
+.tt-foes[data-seats="6"] .tt-foe-cards i,
+.tt-foes[data-seats="7"] .tt-foe-cards i { width: 7px; height: 11px; }
 /*
    Кнопка поимки. Она появляется только тогда, когда соперник забыл затрубить,
    и висит на его же карточке: ловят конкретного человека, а не «кого-то».
@@ -122,7 +199,8 @@
   background: var(--warning, #f59e0b); color: #1f2937;
   font: inherit; font-size: 12px; font-weight: 800; cursor: pointer;
   box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .6);
-  animation: tt-pulse 1s ease-in-out infinite;
+  /* Свечением, а не подскоком: по этой кнопке надо успеть попасть. */
+  animation: tt-glow 1s ease-in-out infinite;
 }
 @keyframes tt-pulse { 50% { transform: scale(1.08); } }
 
@@ -171,6 +249,31 @@
   backdrop-filter: blur(2px);
 }
 .tt-deck button:disabled { cursor: not-allowed; opacity: .72; }
+/*
+  Нечем ходить — колода зовёт. Движение мелкое и не бесконечно быстрое: это
+  подсказка, а не тревога, и рядом с ней ещё надо думать над рукой.
+
+  Зовёт кольцо вокруг колоды, а не сама кнопка. Причина не в красоте: кнопка,
+  которая всё время движется, — это кнопка, по которой трудно попасть. Палец
+  целится в цель, которая уезжает, а проверка в браузере честно ждала, когда
+  кнопка остановится, и не дожидалась никогда — раздача вставала.
+*/
+.tt-deck[data-hint="true"]::after {
+  content: ''; position: absolute; inset: -5px; border-radius: 17px;
+  pointer-events: none; z-index: 3;
+  box-shadow: 0 0 0 2px var(--warning, #f59e0b);
+  animation: tt-call 1.6s ease-in-out infinite;
+}
+@keyframes tt-call {
+  0%, 55%, 100% { opacity: .2; }
+  75% { opacity: .95; }
+}
+/* Сброс ушёл под низ — колода на миг вспыхивает и толстеет. */
+.tt-deck.is-refilled .tt-deck-layer { animation: tt-refill .6s cubic-bezier(.2, .72, .25, 1) both; }
+.tt-deck.is-refilled .tt-deck-count { animation: tt-pulse .5s ease-in-out 2; }
+@keyframes tt-refill {
+  from { transform: translate(0, 26px) rotate(-6deg); opacity: .2; }
+}
 .tt-deck button:not(:disabled):hover { transform: translateY(-3px); }
 .tt-deck button:not(:disabled):active { transform: translateY(1px) scale(.985); }
 /* Сколько карт осталось — цифрой на углу колоды. */
@@ -268,6 +371,12 @@
 }
 /* Знак в углу мелкий: общее правило знака задаёт 26 точек, здесь нужно 12. */
 .tt-corner .tt-sign { width: 12px; height: 12px; }
+/*
+  Шестёрка и девятка в перевёрнутом углу — одна и та же цифра. На игральных
+  картах её подчёркивают чертой, и здесь тоже: без черты верхняя «9» и нижняя
+  «9» читаются как девять и шесть на одной карте.
+*/
+.tt-corner--turn { border-bottom: 1.5px solid currentColor; padding-bottom: 1px; line-height: .95; }
 .tt-corner--tl { left: 8px; top: 7px; }
 /*
   Нижняя метка стоит над лентой стана, а не в самом углу: в углу она налезала
@@ -312,6 +421,23 @@ img.tt-sign { object-fit: contain; display: block; }
   низ: до этого подпись висела в белом поле и спорила с нижней меткой угла.
   Лента заодно повторяет цвет там, где карту держат пальцами.
 */
+/*
+  Сколько карт выдаёт карта — числом на ней самой, у верхнего угла и в цвет
+  стана. Это то же число, которым потом накроет соседа: карта обязана говорить
+  свою цену до хода, а не после.
+*/
+.tt-plus {
+  position: absolute; z-index: 2; top: 6px; right: 6px;
+  min-width: 21px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: var(--camp, #1f2937); color: #fff;
+  font-size: 11px; font-weight: 800; line-height: 18px; text-align: center;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .92);
+}
+.tt-card--wild .tt-plus { background: #0f172a; }
+.tt-plus--inline {
+  position: static; display: inline-block; vertical-align: 1px;
+  background: var(--primary, #4f46e5); box-shadow: none;
+}
 .tt-name {
   position: absolute; left: 5px; right: 5px; bottom: 5px; height: 15px; z-index: 1;
   display: grid; place-items: center; border-radius: 0 0 8px 8px;
@@ -372,20 +498,31 @@ img.tt-sign { object-fit: contain; display: block; }
   Взятая карта приходит из колоды, а не появляется в руке. Полёт короткий и с
   доворотом: так видно, откуда карта, и рука не дёргается.
 */
-.tt-hand .tt-card.is-fresh { animation: tt-drawn .42s cubic-bezier(.2, .72, .25, 1) both; }
+/*
+  Взятая карта летит из самой колоды, а не из ниоткуда: смещение --fly-x/--fly-y
+  считает разметка по настоящим местам колоды и карты на экране. Полёт
+  заканчивается ровно в том положении, в котором карта живёт в веере, — иначе
+  в конце был бы скачок.
+*/
+.tt-hand .tt-card.is-fresh { animation: tt-drawn .5s cubic-bezier(.2, .74, .24, 1) both; }
 @keyframes tt-drawn {
-  from { transform: translate(-40px, -120px) rotate(-14deg) scale(.82); opacity: 0; }
-  60% { opacity: 1; }
+  from { transform: translate(var(--fly-x, -40px), var(--fly-y, -120px)) rotate(-12deg) scale(.86); opacity: .35; }
+  45% { opacity: 1; }
   to { transform: rotate(calc(var(--away, 0) * 6deg)) translateY(calc(var(--away, 0) * var(--away, 0) * 10px)); opacity: 1; }
 }
 /*
   Сыгранная карта прилетает на сброс, а не возникает на нём. Дуга и доворот —
   чтобы движение читалось как «карту положили», а не «картинка сменилась».
 */
-.tt-pile .tt-card.is-landing { animation: tt-land .46s cubic-bezier(.2, .72, .25, 1) both; }
+/*
+  Сыгранная карта прилетает с места того, кто её положил: своя — снизу, из
+  руки, чужая — с края стола, где сидит соперник. Раньше все карты падали
+  сверху одинаково, и по столу нельзя было понять, кто ходил.
+*/
+.tt-pile .tt-card.is-landing { animation: tt-land .52s cubic-bezier(.2, .74, .24, 1) both; }
 @keyframes tt-land {
-  from { transform: translate(var(--from-x, -10px), 150px) rotate(-16deg) scale(.86); opacity: .6; }
-  55% { opacity: 1; }
+  from { transform: translate(var(--fly-x, 0px), var(--fly-y, 150px)) rotate(-14deg) scale(.9); opacity: .45; }
+  40% { opacity: 1; }
   to { transform: rotate(var(--tilt, 0deg)); }
 }
 
@@ -413,14 +550,47 @@ img.tt-sign { object-fit: contain; display: block; }
   box-shadow: 0 24px 48px -24px rgba(0, 0, 0, .6);
 }
 .tt-sheet-card h3 { margin: 0; font-size: 18px; }
-.tt-camps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+/*
+  Выбор стана — четыре карты, а не четыре ярлыка. Стан называют в решающий
+  миг партии, и знак на кнопке должен читаться с расстояния вытянутой руки:
+  прежние двадцать две точки терялись даже на снимке экрана.
+*/
+.tt-camps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .tt-camps button {
-  min-height: 62px; border-radius: 14px; border: 2px solid transparent;
-  background: var(--camp); color: #fff; font: inherit; font-weight: 800; cursor: pointer;
-  display: grid; gap: 2px; place-items: center;
+  min-height: 104px; border-radius: 16px; border: 2px solid transparent;
+  background: var(--camp, #64748b); color: #fff; font: inherit; font-weight: 800; cursor: pointer;
+  display: grid; gap: 3px; place-items: center; padding: 8px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .45) inset, 0 10px 20px -14px rgba(0, 0, 0, .8);
 }
-.tt-camps button small { font-size: 11px; font-weight: 600; opacity: .9; }
-.tt-camps button svg { width: 22px; height: 22px; }
+.tt-camps button b { font-size: 15px; }
+.tt-camps button small { font-size: 11.5px; font-weight: 600; opacity: .9; }
+.tt-camp-face {
+  width: 52px; height: 52px; border-radius: 12px; background: rgba(255, 255, 255, .94);
+  display: grid; place-items: center; color: var(--camp, #334155);
+}
+.tt-camps button svg, .tt-camps button img { width: 40px; height: 40px; object-fit: contain; }
+.tt-camps button:active { transform: translateY(1px); }
+
+/* ——— быстрые подсказки ——— */
+.tt-tip-btn {
+  border: 1px solid rgba(99, 102, 241, .32); border-radius: 999px;
+  background: var(--surface-strong, #fff); color: var(--ink-soft, #667085);
+  font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; cursor: pointer;
+}
+.tt-tips { display: grid; gap: 8px; max-height: 52vh; overflow-y: auto; }
+.tt-tip { display: flex; align-items: center; gap: 10px; }
+.tt-tip-sign {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 10px;
+  background: var(--surface-soft, #f3f7ff); color: var(--camp, #334155);
+  display: grid; place-items: center; overflow: hidden;
+}
+.tt-tip-rank { font-size: 22px; font-weight: 800; }
+.tt-tip-quarters { width: 100%; height: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+.tt-tip-quarters i { display: block; }
+.tt-tip-text { display: grid; gap: 1px; }
+.tt-tip-text b { font-size: 14.5px; }
+.tt-tip-text small { font-size: 12.5px; color: var(--ink-soft, #667085); line-height: 1.35; }
+.tt-tip-foot { margin: 0; font-size: 12.5px; color: var(--ink-soft, #667085); line-height: 1.4; }
 
 /* ——— итоги раздачи ——— */
 .tt-over { display: grid; gap: 10px; }
@@ -429,6 +599,9 @@ img.tt-sign { object-fit: contain; display: block; }
 .tt-log { display: grid; gap: 3px; max-height: 148px; overflow-y: auto; font-size: 12.5px; color: var(--ink-soft, #667085); }
 
 @media (max-width: 380px) {
+  /* На узком экране в ряд помещается меньше: трое обязаны остаться втроём. */
+  .tt-foes[data-seats="2"] .tt-foe { flex: 0 1 118px; }
+  .tt-foes[data-seats="3"] .tt-foe { flex: 0 1 82px; }
   .tt-card { width: 64px; height: 94px; padding-bottom: 11px; }
   .tt-card--wild { padding-bottom: 22px; }
   .tt-name { height: 13px; font-size: 8px; }
@@ -437,5 +610,7 @@ img.tt-sign { object-fit: contain; display: block; }
   .tt-deck, .tt-pile { width: 64px; height: 94px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tt-catch, .tt-hand .tt-card.is-fresh, .tt-pile .tt-card.is-landing { animation: none; }
+  .tt-catch, .tt-hand .tt-card.is-fresh, .tt-pile .tt-card.is-landing,
+  .tt-btn--call, .tt-deck[data-hint="true"]::after,
+  .tt-deck.is-refilled .tt-deck-layer, .tt-deck.is-refilled .tt-deck-count { animation: none; }
 }

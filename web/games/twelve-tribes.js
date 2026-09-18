@@ -168,7 +168,73 @@
     timers.clear();
   }
 
-  const BOT_NAMES = ['Асаф', 'Вооз', 'Нафан'];
+  /*
+    Семеро соперников — предел стола на восьмерых. Имена взяты из Писания и
+    нарочно разной длины и звучания: за столом на восьмерых человек различает
+    соседей по имени, а не по месту.
+  */
+  const BOT_NAMES = ['Асаф', 'Вооз', 'Нафан', 'Гедеон', 'Иофор', 'Елеазар', 'Ахия'];
+  const SEATS = BOT_NAMES.map((one, at) => at + 1);
+
+  /*
+    Счётные слова. «2 карт» и «5 соперника» на экране игры — та же небрежность,
+    что опечатка в имени: читается как недоделанное. Правило русского счёта
+    короткое, и держать его в одном месте дешевле, чем писать «карт(ы)».
+  */
+  function plural(count, one, few, many) {
+    const tens = count % 100;
+    if (tens >= 11 && tens <= 14) return many;
+    const last = count % 10;
+    if (last === 1) return one;
+    if (last >= 2 && last <= 4) return few;
+    return many;
+  }
+  const cardsWord = (count) => plural(count, 'карта', 'карты', 'карт');
+  const foesWord = (count) => plural(count, 'соперник', 'соперника', 'соперников');
+
+  /*
+    Порядок карт в руке.
+
+    Рука раскладывается сама: станы держатся вместе, внутри стана сначала
+    жребии по возрастанию, потом действия, а жребий колен и плен ложатся
+    с краю — они кладутся на что угодно, и место им в конце.
+
+    Это не украшение. Рука на десять карт вперемешку читается каждый ход
+    заново: игрок ищет нужный цвет глазами вместо того, чтобы играть. Живой
+    человек за столом первым делом раскладывает карты по мастям — здесь то же
+    самое делает игра.
+  */
+  const KIND_ORDER = { number: 0, sabbath: 1, jordan: 2, journey: 3, lot: 4, exile: 5 };
+  function orderHand(hand, R) {
+    const camp = new Map(R.CAMP_IDS.map((id, at) => [id, at]));
+    hand.sort((a, b) => {
+      const campA = a.camp ? camp.get(a.camp) : 99;
+      const campB = b.camp ? camp.get(b.camp) : 99;
+      if (campA !== campB) return campA - campB;
+      const kindA = KIND_ORDER[a.kind];
+      const kindB = KIND_ORDER[b.kind];
+      if (kindA !== kindB) return kindA - kindB;
+      return (a.rank ?? 0) - (b.rank ?? 0);
+    });
+    return hand;
+  }
+
+  /*
+    Полёт карты. Карта не появляется на новом месте, а прилетает со старого:
+    взятая — из колоды в руку, сыгранная — с места того, кто её положил.
+
+    Откуда лететь, разметка знает только после того, как нарисовала обе
+    стороны, — поэтому смещение считается по настоящим прямоугольникам на
+    экране и передаётся в стили числами. Углы и дуга остаются в таблице
+    стилей: там им и место.
+  */
+  function flyFrom(card, from) {
+    if (!card || !from) return;
+    const to = card.getBoundingClientRect();
+    if (!to.width || !from.width) return;
+    card.style.setProperty('--fly-x', `${Math.round(from.left + from.width / 2 - to.left - to.width / 2)}px`);
+    card.style.setProperty('--fly-y', `${Math.round(from.top + from.height / 2 - to.top - to.height / 2)}px`);
+  }
 
   function startTwelveTribesGame() {
     const container = document.getElementById('game-container');
@@ -204,7 +270,9 @@
       this.state = null;
       this.wild = null;      // карта, для которой спрашиваем стан
       this.fresh = null;     // только что взятая карта: её видно по подсветке
-      this.landing = false;  // прилёт карты на сброс проигрывается один раз
+      this.landing = null;   // место, с которого летит карта на сброс, или null
+      this.sawReshuffle = -1; // какую перетасовку стол уже показал
+      this.flash = null;     // строка состояния на один раз
     }
 
     /* ——— начало партии ——— */
@@ -215,15 +283,15 @@
           <section class="tt-setup">
             <h2>Двенадцать колен</h2>
             <p>Израиль в пустыне стоял четырьмя станами вокруг скинии: Иуда на востоке,
-              Рувим на юге, Ефрем на западе, Дан на севере (Числа 2). Эти четыре стана —
-              масти колоды. Кладите карту того же стана или того же жребия, а кто первым
-              останется без карт, тот и взял раздачу.</p>
+              Рувим на юге, Ефрем на западе, Дан на севере (Числа 2). Кладите карту того же
+              стана или того же жребия, а кто первым останется без карт, тот и взял раздачу.</p>
             <label class="tt-choice">
               <span>Соперников</span>
-              <div data-foes>
-                ${[1, 2, 3].map((many) => `<button type="button" data-value="${many}"
-                  aria-pressed="${many === this.foes}">${many}<small>${many === 1 ? 'вдвоём' : 'за столом'}</small></button>`).join('')}
+              <div class="tt-choice--wide" data-foes>
+                ${SEATS.map((many) => `<button type="button" data-value="${many}"
+                  aria-pressed="${many === this.foes}">${many}</button>`).join('')}
               </div>
+              <small class="tt-choice-note" data-foes-note></small>
             </label>
             <label class="tt-choice">
               <span>Партия</span>
@@ -247,7 +315,15 @@
           apply(Number(button.dataset.value));
         });
       };
-      pick('foes', (value) => { this.foes = value; });
+      const foesNote = this.root.querySelector('[data-foes-note]');
+      const sayFoes = () => {
+        const total = this.foes + 1;
+        foesNote.textContent = total === 2
+          ? 'Вдвоём: «Иордан» возвращает ход вам же.'
+          : `За столом ${total} — вы и ${this.foes} ${foesWord(this.foes)} от игры.`;
+      };
+      pick('foes', (value) => { this.foes = value; sayFoes(); });
+      sayFoes();
       pick('target', (value) => { this.target = value; });
       this.root.querySelector('[data-start]').addEventListener('click', () => this.begin());
       this.root.querySelector('[data-menu]').addEventListener('click', () => {
@@ -293,19 +369,24 @@
             <p class="tt-status" data-status></p>
           </div>
           <div class="tt-hand-wrap">
-            <div class="tt-hand-head"><span data-hand-title>Ваши карты</span><span data-score></span></div>
+            <div class="tt-hand-head">
+              <span data-hand-title>Ваши карты</span>
+              <button type="button" class="tt-tip-btn" data-hints>Что делают карты</button>
+              <span data-score></span>
+            </div>
             <div class="tt-hand" data-hand></div>
           </div>
           <div class="tt-row">
             <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>
-            <button type="button" class="tt-btn" data-shofar hidden>Шофар!</button>
+            <button type="button" class="tt-btn tt-btn--call" data-shabbat hidden>Шабат!</button>
             <button type="button" class="tt-btn tt-btn--ghost" data-menu>В меню</button>
           </div>
         </div>`;
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`).addEventListener('click', fn);
       on('draw', () => this.humanDraw());
       on('pass', () => this.humanPass());
-      on('shofar', () => { this.E.shofar(this.state, 0); this.render(); });
+      on('shabbat', () => { this.E.shabbat(this.state, 0); this.render(); });
+      on('hints', () => this.showHints());
       on('menu', () => { stopTimers(); if (typeof goToMainMenu === 'function') goToMainMenu(); });
       this.root.querySelector('[data-hand]').addEventListener('click', (event) => {
         const card = event.target.closest('[data-index]');
@@ -339,11 +420,23 @@
         и «Плен» — тоже, и по такой метке карта не узнаётся вовсе. Знак в углу
         тот же, что в середине, только мелкий.
       */
+      const turn = card.kind === 'number' && (card.rank === 6 || card.rank === 9)
+        ? ' tt-corner--turn' : '';
       const tag = card.kind === 'number' ? String(card.rank)
         : kind.wild ? (card.kind === 'lot' ? 'Ж' : 'П')
           : actionHTML(card.kind, card.camp, 12);
-      const corners = `<span class="tt-corner tt-corner--tl">${tag}</span>`
-        + `<span class="tt-corner tt-corner--br">${tag}</span>`;
+      const corners = `<span class="tt-corner tt-corner--tl${turn}">${tag}</span>`
+        + `<span class="tt-corner tt-corner--br${turn}">${tag}</span>`;
+      /*
+        Сколько карт карта выдаёт — написано на ней самой. Раньше «Странствие»
+        и «Плен» отличались только словом, и сколько стоит каждая, игрок узнавал
+        уже после того, как получил четыре карты на руки.
+      */
+      const draws = R.drawsOf(card);
+      const plus = draws ? `<span class="tt-plus">+${draws}</span>` : '';
+      // Короткая подсказка живёт на самой карте: и мышь её покажет, и голос
+      // экранного чтения прочитает.
+      const hint = `${kind.title}${draws ? ` +${draws}` : ''} — ${kind.note}`;
 
       if (kind.wild) {
         const quarters = R.CAMP_IDS.map((id) => `<i style="background:var(--${id})"></i>`).join('');
@@ -352,9 +445,9 @@
         const face = art
           ? `<img class="tt-wild-art" src="${art}" alt="" loading="eager" decoding="async" />`
           : '';
-        return `<div ${attrs}class="tt-card tt-card--wild ${extra}" style="${style}">
+        return `<div ${attrs}class="tt-card tt-card--wild ${extra}" style="${style}" title="${hint}" aria-label="${hint}">
           <div class="tt-quarters">${quarters}</div>
-          ${corners}
+          ${corners}${plus}
           <span class="tt-face">${face}<span class="tt-kind">${label}</span></span>
           <span class="tt-name">${card.camp ? R.campOf(card.camp).name : 'все станы'}</span>
         </div>`;
@@ -372,8 +465,8 @@
       const face = card.kind === 'number'
         ? `<span class="tt-rank">${card.rank}</span>`
         : `${actionHTML(card.kind, card.camp, 26)}<span class="tt-kind">${kind.title}</span>`;
-      return `<div ${attrs}class="tt-card ${extra}" style="--camp:var(--${card.camp});${style}">
-        ${water}${corners}
+      return `<div ${attrs}class="tt-card ${extra}" style="--camp:var(--${card.camp});${style}" title="${hint}" aria-label="${hint}">
+        ${water}${corners}${plus}
         <span class="tt-face">${face}</span>
         <span class="tt-name">${camp.name}</span>
       </div>`;
@@ -385,20 +478,34 @@
       const me = state.players[0];
       const mine = state.turn === 0 && state.status === 'playing';
 
-      // соперники
-      const foes = state.players.slice(1).map((player) => {
+      /*
+        ——— места за столом ———
+
+        Соперники сидят дугой вокруг стола, а не стоят строкой: место у
+        каждого своё и постоянное, и по нему видно, чья очередь и откуда
+        прилетела карта. Дуга считается от середины — крайние места опущены
+        тем ниже, чем дальше они от центра.
+
+        Восьмером мест семь, и каждое ужимается: на телефоне поместиться
+        обязаны все, иначе двое последних оказываются за краем экрана и в
+        игре их как бы нет.
+      */
+      const foeBox = this.root.querySelector('[data-foes]');
+      const others = state.players.slice(1);
+      foeBox.dataset.seats = String(others.length);
+      foeBox.innerHTML = others.map((player, at) => {
         const turn = state.turn === player.id && state.status === 'playing' ? ' is-turn' : '';
-        const backs = new Array(Math.min(player.hand.length, 9)).fill('<i></i>').join('');
+        const backs = new Array(Math.min(player.hand.length, 7)).fill('<i></i>').join('');
         const risk = E.riskOpen(state) && state.risk.seat === player.id;
-        return `<div class="tt-foe${turn}">
+        const away = others.length > 1 ? (at - (others.length - 1) / 2) / ((others.length - 1) / 2) : 0;
+        return `<div class="tt-foe${turn}" data-seat="${player.id}" style="--away:${away.toFixed(3)}">
           <b>${player.name}</b>
-          <span>${player.hand.length} карт${player.said ? ' · шофар' : ''}</span>
           <span class="tt-foe-cards">${backs}</span>
-          ${state.target ? `<span>${player.score} очков</span>` : ''}
-          ${risk ? `<button type="button" class="tt-catch" data-catch="${player.id}">Поймал!</button>` : ''}
+          <span class="tt-foe-meta">${player.hand.length} ${cardsWord(player.hand.length)}${
+  player.said ? ' · шабат' : ''}${state.target ? ` · ${player.score} оч.` : ''}</span>
+          ${risk ? `<button type="button" class="tt-catch" data-catch="${player.id}">Перебить!</button>` : ''}
         </div>`;
       }).join('');
-      this.root.querySelector('[data-foes]').innerHTML = foes;
 
       /*
         Сброс — стопка, а не одна карта. Под верхней видны две прошлые, каждая
@@ -412,10 +519,9 @@
       pile.innerHTML = shown.map((card, at) => {
         const last = at === shown.length - 1;
         const tilt = ((Number(String(card.id).replace(/\D/g, '')) % 11) - 5) * (last ? 0.6 : 1.7);
-        const extra = `${last && this.landing ? 'is-landing' : ''}${last ? '' : ' is-buried'}`;
+        const extra = `${last && this.landing !== null ? 'is-landing' : ''}${last ? '' : ' is-buried'}`;
         return this.cardHTML(card, extra, `--tilt:${tilt.toFixed(1)}deg;--depth:${shown.length - 1 - at}`);
       }).join('');
-      this.landing = false;
       const camp = R.campOf(state.camp);
       // Кружок стана — маленькая карта той же масти: на столе всё карты.
       this.root.querySelector('[data-camp]').innerHTML = `
@@ -423,7 +529,9 @@
         <span>${camp.name}</span>
         <span style="opacity:.75;font-weight:600">${camp.side}</span>`;
 
-      // рука
+      // Рука раскладывается по станам перед каждой перерисовкой: взятая карта
+      // сама уходит к своим, а не остаётся с краю.
+      orderHand(me.hand, R);
       const legal = new Set(E.legalMoves(state, 0));
       const handBox = this.root.querySelector('[data-hand]');
       // Восемь карт — тот предел, за которым рука перестаёт помещаться в
@@ -448,14 +556,32 @@
         return this.cardHTML(card, extra, `--away:${away.toFixed(3)}`,
           `role="button" tabindex="0" data-index="${index}" `);
       }).join('');
-      this.fresh = null;
       /*
         Сколько карт в колоде — видно на самой колоде. В карточной игре это
         знание общее: по нему решают, тянуть ли до последнего, и по нему же
         понятно, что сейчас сброс уйдёт обратно под колоду.
       */
+      const deckBox = this.root.querySelector('[data-deck]');
       this.root.querySelector('[data-deck-count]').textContent = String(state.deck.length);
-      this.root.querySelector('[data-deck]').dataset.thin = String(state.deck.length < 8);
+      deckBox.dataset.thin = String(state.deck.length < 8);
+      /*
+        Нечем ходить — колода зовёт. Подсказка не словами, а движением: строка
+        состояния лежит под столом и в спешке её не читают, а шевельнувшаяся
+        колода видна боковым зрением.
+      */
+      deckBox.dataset.hint = String(mine && state.phase === 'play' && legal.size === 0);
+      /*
+        Колода собралась заново — это видно. Сброс уходит под низ, и без
+        отметки колода просто вдруг толстеет: игрок решает, что игра
+        обсчиталась.
+      */
+      if (state.reshuffled >= 0 && state.reshuffled !== this.sawReshuffle) {
+        this.sawReshuffle = state.reshuffled;
+        deckBox.classList.remove('is-refilled');
+        void deckBox.offsetWidth;
+        deckBox.classList.add('is-refilled');
+        this.flash = 'Колода кончилась: сброс перевёрнут и перетасован';
+      }
       this.root.querySelector('[data-hand-title]').textContent = `Ваши карты: ${me.hand.length}`;
       this.root.querySelector('[data-score]').textContent = state.target
         ? `${me.score} из ${state.target} очков` : '';
@@ -463,16 +589,36 @@
       // кнопки и строка состояния
       const pass = this.root.querySelector('[data-pass]');
       pass.hidden = !(mine && state.phase === 'drawn');
-      const shofar = this.root.querySelector('[data-shofar]');
-      shofar.hidden = !(me.hand.length === 1 && !me.said && state.status === 'playing');
+      const call = this.root.querySelector('[data-shabbat]');
+      call.hidden = !(me.hand.length === 1 && !me.said && state.status === 'playing');
       this.root.querySelector('[data-draw]').disabled = !(mine && state.phase === 'play');
 
       const status = this.root.querySelector('[data-status]');
-      if (state.status !== 'playing') status.textContent = '';
+      if (this.flash) { status.textContent = this.flash; this.flash = null; }
+      else if (state.status !== 'playing') status.textContent = '';
       else if (!mine) status.innerHTML = `Ходит <b>${state.players[state.turn].name}</b>`;
       else if (state.phase === 'drawn') status.textContent = 'Взяли карту: сыграйте её или оставьте себе';
       else if (legal.size) status.innerHTML = 'Ваш ход — <b>кладите карту</b>';
       else status.innerHTML = 'Нечем ходить — <b>возьмите карту</b>';
+
+      /*
+        Полёты считаются последними — когда обе стороны уже нарисованы и у них
+        есть настоящее место на экране. Взятая карта летит из колоды в руку;
+        сыгранная — с места того, кто её положил: своя снизу, чужая со своего
+        края стола. Само движение живёт в таблице стилей, отсюда идут только
+        точки отправления.
+      */
+      if (this.fresh) {
+        flyFrom(handBox.querySelector('.tt-card.is-fresh'), deckBox.getBoundingClientRect());
+      }
+      if (this.landing !== null) {
+        const from = this.landing === 0
+          ? this.root.querySelector('.tt-hand-wrap')
+          : this.root.querySelector(`[data-seat="${this.landing}"]`);
+        flyFrom(pile.querySelector('.tt-card.is-landing'), from && from.getBoundingClientRect());
+      }
+      this.landing = null;
+      this.fresh = null;
     }
 
     /* ——— ходы человека ——— */
@@ -500,7 +646,8 @@
         <h3>Какой стан назовёте?</h3>
         <div class="tt-camps">
           ${R.CAMPS.map((camp) => `<button type="button" data-camp="${camp.id}" style="--camp:var(--${camp.id})">
-            ${signHTML(camp.id, 22)}${camp.name}<small>${camp.side}</small></button>`).join('')}
+            <span class="tt-camp-face">${signHTML(camp.id, 40)}</span>
+            <b>${camp.name}</b><small>${camp.side}</small></button>`).join('')}
         </div>
         <button type="button" class="tt-btn tt-btn--ghost" data-cancel>Отмена</button>
       </div>`;
@@ -513,8 +660,48 @@
       this.sheet = sheet;
     }
 
+    /*
+      ——— быстрые подсказки ———
+
+      Что делает карта, спрашивают не до партии, а посреди неё: карты уже на
+      руках, ход ваш, и уходить за общим справочником некогда. Поэтому
+      подсказка живёт на самом столе, открывается одним нажатием и закрывается
+      любым — а текст у неё тот же самый, что у карты в руке: он берётся из
+      правил, и разойтись им негде.
+    */
+    showHints() {
+      const R = this.R;
+      const camp = this.state.camp || R.CAMP_IDS[0];
+      const rows = ['number', 'sabbath', 'jordan', 'journey', 'lot', 'exile'].map((id) => {
+        const kind = R.KINDS[id];
+        const face = id === 'number' ? '<span class="tt-tip-rank">7</span>'
+          : kind.wild
+            ? `<span class="tt-tip-quarters">${R.CAMP_IDS.map((one) => `<i style="background:var(--${one})"></i>`).join('')}</span>`
+            : actionHTML(id, camp, 26);
+        const plus = kind.draw ? ` <span class="tt-plus tt-plus--inline">+${kind.draw}</span>` : '';
+        return `<div class="tt-tip">
+          <span class="tt-tip-sign" style="--camp:var(--${camp})">${face}</span>
+          <span class="tt-tip-text"><b>${kind.title}${plus}</b><small>${kind.note}</small></span>
+        </div>`;
+      }).join('');
+      const sheet = document.createElement('div');
+      sheet.className = 'tt-sheet';
+      sheet.innerHTML = `<div class="tt-sheet-card">
+        <h3>Что делают карты</h3>
+        <div class="tt-tips">${rows}</div>
+        <p class="tt-tip-foot">Оставшись с одной картой, скажите <b>Шабат!</b> — иначе сосед перебьёт
+          вас, и вы возьмёте две.</p>
+        <button type="button" class="tt-btn tt-btn--ghost" data-cancel>Понятно</button>
+      </div>`;
+      sheet.addEventListener('click', (event) => {
+        if (event.target.closest('[data-cancel]') || event.target === sheet) sheet.remove();
+      });
+      document.body.appendChild(sheet);
+      this.sheet = sheet;
+    }
+
     commit(index, camp) {
-      this.landing = true;
+      this.landing = 0;
       this.E.play(this.state, 0, index, camp);
       this.render();
       this.tick();
@@ -549,11 +736,11 @@
       const { state, E, Bots } = this;
       if (state.status !== 'playing') { later(() => this.finish(), 700); return; }
 
-      // Соперники объявляют шофар и ловят зазевавшихся — с их забывчивостью.
+      // Соперники говорят «Шабат» и перебивают зазевавшихся — с их забывчивостью.
       for (const player of state.players) {
         if (!player.isBot || player.hand.length !== 1 || player.said) continue;
         if (Bots.remembers(player.botLevel, Math.random)) {
-          later(() => { E.shofar(state, player.id); this.render(); }, 500 + Math.random() * 700);
+          later(() => { E.shabbat(state, player.id); this.render(); }, 500 + Math.random() * 700);
         }
       }
       if (E.riskOpen(state) && state.risk.seat === 0) {
@@ -562,7 +749,7 @@
         if (hunter) {
           later(() => {
             if (E.catchOut(state, hunter.id, 0)) {
-              this.root.querySelector('[data-status]').textContent = `${hunter.name} поймал вас: берёте две карты`;
+              this.root.querySelector('[data-status]').textContent = `${hunter.name} перебил вас: берёте две карты`;
               this.render();
             }
           }, 1500 + Math.random() * 900);
@@ -575,13 +762,13 @@
         if (this.state !== state || state.turn !== seat || state.status !== 'playing') return;
         const choice = Bots.pick(state, seat);
         if (choice) {
-          this.landing = true;
+          this.landing = seat;
           E.play(state, seat, choice.index, choice.camp);
         } else {
           E.draw(state, seat);
           if (state.turn === seat && state.phase === 'drawn') {
             const after = Bots.pick(state, seat);
-            if (after) { this.landing = true; E.play(state, seat, after.index, after.camp); }
+            if (after) { this.landing = seat; E.play(state, seat, after.index, after.camp); }
             else E.pass(state, seat);
           }
         }
@@ -599,7 +786,9 @@
         .sort((a, b) => b.score - a.score)
         .map((player) => `<div class="tt-score${player.id === 0 ? ' is-you' : ''}">
           <span>${player.name}${player.id === state.winner ? ' — раздача' : ''}</span>
-          <span>${state.target ? `${player.score} очков` : `${player.hand.length} карт`}</span>
+          <span>${state.target
+    ? `${player.score} ${plural(player.score, 'очко', 'очка', 'очков')}`
+    : `${player.hand.length} ${cardsWord(player.hand.length)}`}</span>
         </div>`).join('');
       const log = state.log.slice(-6).reverse()
         .map((entry) => `<div>${entry.text}</div>`).join('');
