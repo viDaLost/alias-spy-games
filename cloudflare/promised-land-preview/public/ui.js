@@ -402,6 +402,7 @@
       buildRing();
       setupScene();
       render();
+      warmArt();
       return;
     }
     viewChain = viewChain.then(() => showIncoming(view.game)).catch(() => {});
@@ -577,6 +578,7 @@
     buildRing();
     setupScene();
     render();
+    warmArt();
     /*
       Обучение больше не встречает партию само.
 
@@ -595,6 +597,37 @@
       return;
     }
     scheduleBot();
+  }
+
+  /*
+    Рисунки клеток греются заранее, по одному.
+
+    Карточка удела показывает рисунок в шестьдесят килобайт, и первый раз он
+    приходит по сети — то есть уже после того, как карточка взлетела: она
+    появляется с пустым местом наверху, а через миг это место занимает
+    картинка. На телефоне по сотовой связи это хорошо видно и выглядит
+    поломкой.
+
+    Поэтому, как только партия началась, игра тихо запрашивает рисунки всех
+    тридцати шести клеток — строго по очереди, следующий после загрузки
+    предыдущего. Очередь важна: тридцать шесть запросов разом отняли бы канал
+    у самого поля, которое в этот миг ещё собирается. К первой остановке фишки
+    нужный рисунок уже лежит в кеше, и карточка показывает его сразу.
+  */
+  function warmArt() {
+    const urls = [...new Set(B.BOARD.map((spec) => (B.OWNABLE.has(spec.kind)
+      ? art('plots', spec.slug) : art('icons', spec.slug))))];
+    let at = 0;
+    const next = () => {
+      if (at >= urls.length) return;
+      const node = new Image();
+      node.decoding = 'async';
+      node.addEventListener('load', next, { once: true });
+      node.addEventListener('error', next, { once: true });
+      node.src = urls[at];
+      at += 1;
+    };
+    next();
   }
 
   /** Обучение: показ на доске. Ходы на это время не идут — они подождут. */
@@ -653,22 +686,23 @@
           const out = { top: 0, bottom: 0, left: 0, right: 0 };
           if (!box.width || !box.height) return out;
           /*
-            Что занято на холсте и с какой стороны.
+            Что на холсте занято и с какой стороны.
 
-            Правило простое и разное для двух вещей, и это не непоследователь-
-            ность, а разная их природа.
+            Холст теперь во весь экран, и разметка лежит на нём двумя
+            плашками: шапка сверху, управление снизу. Обе — полосы поперёк, и
+            обе считаются одинаково: от своего края холста до дальнего края
+            плашки. Никаких столбцов тут больше нет — было время, когда
+            управление боком стояло в правом нижнем углу, и тогда занятым
+            приходилось объявлять столбец; доска от этого съезжала влево и
+            висела в кадре криво.
 
-            Шапка — полоса поверху: она тянется вдоль верхнего края и мешает
-            ровно настолько, насколько его закрывает. Поэтому её высота идёт в
-            запас с весом: узкая плашка в треть ширины отнимает треть своей
-            высоты, растянутая во всю ширину — всю.
-
-            Управление — то, под что доске заезжать нельзя вовсе: там нажимают.
-            Стоймя оно лежит полосой внизу, боком собрано в правый угол, и
-            запас берётся целиком, без веса. Иначе доска уезжает под кнопки
-            краем — тем самым, по которому и нажимают клетки.
+            Разница между шапкой и управлением одна. Шапка ничего не
+            нажимает: она отвечает на вопросы, и доске под её краем лежать
+            не жалко — поэтому её высота идёт в запас с весом по ширине.
+            Управление — то, под что доске заезжать нельзя вовсе: там
+            нажимают, и запас берётся целиком.
           */
-          const fit = (node, band) => {
+          const band = (node, weigh) => {
             if (!node || node.hidden || !node.offsetParent) return;
             const rect = node.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
@@ -677,61 +711,16 @@
             const top = Math.max(rect.top, box.top);
             const bottom = Math.min(rect.bottom, box.bottom);
             if (right <= left || bottom <= top) return;
-            if (band) {
-              const weight = (right - left) / box.width;
-              if (top - box.top <= box.bottom - bottom) {
-                out.top = Math.max(out.top, (bottom - box.top) * weight);
-              } else {
-                out.bottom = Math.max(out.bottom, (box.bottom - top) * weight);
-              }
-              return;
-            }
-            // Управление: на широком холсте — столбец, на высоком — полоса.
-            if (box.width > box.height) {
-              if (left - box.left <= box.right - right) {
-                out.left = Math.max(out.left, right - box.left);
-              } else {
-                out.right = Math.max(out.right, box.right - left);
-              }
-              return;
-            }
+            const weight = weigh ? (right - left) / box.width : 1;
             if (top - box.top <= box.bottom - bottom) {
-              out.top = Math.max(out.top, bottom - box.top);
+              out.top = Math.max(out.top, (bottom - box.top) * weight);
             } else {
-              out.bottom = Math.max(out.bottom, box.bottom - top);
+              out.bottom = Math.max(out.bottom, (box.bottom - top) * weight);
             }
           };
-          for (const id of ['teach', 'actions', 'players', 'feed']) fit($(id), false);
-          fit(document.querySelector('#game .hud'), true);
+          for (const id of ['teach', 'actions', 'players', 'feed', 'sheet']) band($(id), false);
+          band(document.querySelector('#game .hud'), true);
           return out;
-        },
-        frameOfOld: () => {
-          const box = canvas.getBoundingClientRect();
-          let bottom = 0;
-          /*
-            Полоса управления — всё, что лежит внизу и закрывает доску. Под
-            неё камера отодвигается, чтобы ближний ряд клеток не уехал под
-            кнопки.
-
-            Карточки клетки в этом списке нет, и это важнее, чем кажется.
-            Пока она была строкой под доской, считать её полосой было верно.
-            Теперь она лежит поверх доски посередине — и, попав в этот счёт,
-            объявляла занятой всю нижнюю половину холста: камера отъезжала
-            метров на десять, доска становилась крошечной, а стоило карточке
-            уйти — возвращалась обратно. Получались те самые прыжки на каждой
-            остановке фишки. Карточка закрывает середину доски по своей воле и
-            ненадолго; отодвигать ради неё камеру — значит портить вид всей
-            партии ради нескольких секунд.
-          */
-          for (const id of ['teach', 'actions', 'players', 'feed']) {
-            const node = $(id);
-            if (!node || node.hidden || !node.offsetParent) continue;
-            const rect = node.getBoundingClientRect();
-            if (rect.height === 0) continue;
-            if (rect.top <= box.top) continue;
-            bottom = Math.max(bottom, box.bottom - rect.top);
-          }
-          return { top: 0, bottom: Math.max(0, bottom) };
         },
         onCellTap: showCellCard,
         onViewChange: (home) => { $('view-home').hidden = home; },
@@ -805,11 +794,19 @@
       мылится и читается тяжело. Карточка висит над доской и смотрит прямо на
       игрока — как если бы её держали в руке над столом.
     */
+    /*
+      Карточка живёт не внутри коробки доски, а рядом с нею, прямо на экране
+      партии. Внутри коробки она лежала до тех пор, пока доска была блоком в
+      колонке; теперь холст растянут на весь экран и лежит под разметкой — а
+      всё, что в нём, лежит под разметкой вместе с ним. Карточка от этого
+      уходила под полосу управления: строка с годом читалась сквозь неё, а
+      кнопки решений оказывались ниже панели разделов.
+    */
     let core = $('core');
     if (!core) {
       core = el('div', 'ring-core');
       core.id = 'core';
-      ring.parentElement.appendChild(core);
+      $('game').appendChild(core);
     }
     core.innerHTML = '';
   }
@@ -877,9 +874,9 @@
     core.appendChild(kind);
     core.appendChild(el('div', 'core-name', spec.name));
 
-    const state_line = cell.altar ? `Жертвенник ${owner ? owner.name : ''}: платы нет.`
+    const state_line = cell.altar ? `Жертвенник${owner ? `, хозяин: ${owner.name}` : ''}: платы нет.`
       : (owner
-        ? `Земля ${owner.name}${cell.level > 0 ? `, ${B.LEVELS[cell.level - 1].toLowerCase()}` : ', без построек'}.`
+        ? `Хозяин: ${owner.name}${cell.level > 0 ? `, ${B.LEVELS[cell.level - 1].toLowerCase()}` : ', без построек'}.`
         : 'Ничья земля.');
     core.appendChild(el('div', 'core-note', `${lead ? lead + ' ' : ''}${state_line}`));
     if (cell.pledge) {
@@ -916,19 +913,54 @@
     читают, и она уходит вместе с ходом. Ход свой — под ней встают все
     решения, какие эта клетка предлагает (см. placeActions).
   */
+  /*
+    Что сейчас нарисовано на карточке. По этой строке карточка узнаёт, что ей
+    перерисовываться незачем.
+
+    Перерисовывалась она на каждом обновлении партии — а их за один ход
+    десяток: бросили жребий, пошла фишка, пришла плата, открылся ящик. Каждый
+    раз карточка собиралась заново, вместе с рисунком удела: браузер заводил
+    новую картинку, и та мигала, пока грузилась. Со стороны это выглядело
+    ровно так, как о том и сказали: «карточка не сразу прогружается и дёргается
+    при загрузке».
+
+    Сравнивается не состояние партии, а то, что из него вышло, — готовая
+    разметка. Так ни одно поле не забудется: изменилась хоть буква — карточка
+    пересоберётся, не изменилось ничего — останется как есть, вместе с уже
+    загруженной картинкой.
+  */
+  let coreShape = null;
+
   function updateCore() {
     const core = $('core');
-    core.innerHTML = '';
     const player = E.current(state);
     const pending = state.pending;
 
     if (!pending) {
       core.hidden = true;
+      core.innerHTML = '';
+      coreShape = null;
+      core.classList.remove('is-plot');
       delete core.dataset.from;
       return;
     }
+    /*
+      Карточка собирается в черновик, а на экран попадает только если вышла
+      другой. Кнопки решений при этом не трогаются вовсе: они лежат на
+      карточке отдельным блоком, и переносит их placeActions.
+    */
+    const draft = el('div');
+    const plot = fillCore(draft, pending, player);
+    const shape = draft.innerHTML;
     core.hidden = false;
-    const from = pending.type === 'buy' ? pending.cell : player.pos;
+    if (shape !== coreShape) {
+      coreShape = shape;
+      for (const node of [...core.children]) {
+        if (!node.classList.contains('actions-main')) node.remove();
+      }
+      while (draft.firstChild) core.appendChild(draft.firstChild);
+    }
+    core.classList.toggle('is-plot', plot);
     /*
       Совет про горизонт своё отслужил: раз клетка о чём-то спрашивает, партия
       идёт, и держать над доской подсказку о том, как её держать, незачем.
@@ -937,8 +969,17 @@
     document.getElementById('orientation-tip')?.remove();
     // С какой плитки взлетать. Покупка называет клетку сама — при залоге и
     // продаже фишка может стоять уже не на ней.
-    core.dataset.from = String(from);
+    core.dataset.from = String(pending.type === 'buy' ? pending.cell : player.pos);
+  }
 
+  /*
+    Наполнение карточки. Возвращает признак «внутри полное описание удела»:
+    по нему разметка узнаёт, что в карточке лежат части окна клетки — рисунок,
+    название, цены, лестница построек, — и боком раскладывает их в два
+    столбца. У прочих карточек части свои, и такая раскладка им ни к чему.
+  */
+  function fillCore(core, pending, player) {
+    const from = pending.type === 'buy' ? pending.cell : player.pos;
     // Кости из разметки нужны только без объёма: в объёме они кувыркаются на
     // самой доске и там же остаются лежать выпавшими числами вверх.
     if (!scene) {
@@ -966,11 +1007,11 @@
         core.appendChild(el('div', 'core-note core-extra', pending.text));
       }
       if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
-      return;
+      return true;
     }
     if (pending.type === 'buy') {
       showLand(core, pending.cell, 'Свободен.');
-      return;
+      return false;
     }
     /*
       Встали на удел — покажите о нём всё. Раньше здесь была одна строка, и
@@ -982,7 +1023,7 @@
       && (pending.type === 'pay' || pending.type === 'note' || pending.type === 'promise')) {
       showLand(core, player.pos, pending.text || '');
       if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
-      return;
+      return false;
     }
     // Клетка, на которой стоим, — её рисунок и показывается; у карты свой.
     const here = B.BOARD[player.pos];
@@ -993,6 +1034,7 @@
     core.appendChild(el('div', 'core-note', pending.text || ''));
     if (pending.extra) core.appendChild(el('div', 'core-note core-extra', pending.extra));
     if (pending.ref) core.appendChild(el('div', 'core-ref', pending.ref));
+    return false;
   }
 
   /*
@@ -1644,6 +1686,16 @@
     */
     const hold = el('div', 'actions-hold');
     hold.setAttribute('aria-hidden', 'true');
+    /*
+      Прежняя группа решений с карточки снимается. Раньше об этом заботиться
+      было незачем: карточка на каждом обновлении собиралась с нуля и уносила
+      прошлую группу с собой. Теперь она пересобирается, только когда её
+      содержимое изменилось, — и две группы кнопок на одной карточке
+      получились бы сами собой.
+    */
+    for (const old of core.querySelectorAll('.actions-main')) {
+      if (old !== main) old.remove();
+    }
     core.appendChild(main);
     bar.insertBefore(hold, bar.firstChild);
   }
@@ -1843,10 +1895,16 @@
     }
 
     const owner = cell && state.players.find((p) => p.id === (cell.heldFrom || cell.owner));
+    /*
+      Хозяин назван через двоеточие, а не «земля такого-то»: имена игроки
+      придумывают сами, а склонять придуманное имя игра не умеет — выходило
+      «Земля Игрок» и «жертвенник Асаф». Двоеточие ставит имя в именительный
+      падеж, и любое имя в эту строку встаёт правильно.
+    */
     body.appendChild(el('p', 'cell-text', owner
-      ? (cell.altar ? `Здесь жертвенник ${owner.name}: платы за эту землю нет.`
-        : (cell.level > 0 ? `Земля ${owner.name}. Обжита: ${B.LEVELS[cell.level - 1].toLowerCase()}.`
-          : `Земля ${owner.name}. Построек пока нет.`))
+      ? (cell.altar ? `Жертвенник, хозяин: ${owner.name}. Платы за эту землю нет.`
+        : (cell.level > 0 ? `Хозяин: ${owner.name}. Обжита: ${B.LEVELS[cell.level - 1].toLowerCase()}.`
+          : `Хозяин: ${owner.name}. Построек пока нет.`))
       : (spec.kind === 'plot' ? 'Свободный удел. Купив его, вы начнёте брать плату с тех, кто сюда ступит.'
         : (spec.kind === 'road'
           ? 'Свободный караванный путь. Плата за него растёт от того, сколько путей у одного хозяина.'

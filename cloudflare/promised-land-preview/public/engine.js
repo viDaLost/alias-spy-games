@@ -504,7 +504,7 @@ window.PromisedLandEngine = (() => {
     state.phase = 'act';
     if (rent > 0 && owner) {
       requestPayment(state, player, rent, owner, B.BOARD[pending.cell].name,
-        `Слово отложено: плата ${rent} сиклей ушла ${owner.name}.`);
+        `Слово отложено: плату ${rent} сиклей получает ${owner.name}.`);
     }
     if (!state.pending) {
       state.pending = {
@@ -898,7 +898,7 @@ window.PromisedLandEngine = (() => {
         return;
       }
       requestPayment(state, player, rent, owner, spec.name,
-        `Плата ${rent} сиклей ушла ${owner.name}.`);
+        `Плату ${rent} сиклей получает ${owner.name}.`);
       /*
         Договор вместо платы. Он возможен там, где на этой земле вообще можно
         поставить ступень: тогда гость волен не просто отдать плату, а вложиться

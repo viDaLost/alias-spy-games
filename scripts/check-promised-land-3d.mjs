@@ -965,9 +965,33 @@ try {
     место, где видно разницу между «спросили» и «списали сами».
   */
   let asked = null;
+  /*
+    Карточка удела показывает всё сразу или не показывает ничего.
+
+    На ней семь чисел, по которым принимают решение: цена, ступень, плата
+    сейчас и плата на каждой из ступеней поселения. Пока карточка была выше
+    экрана, часть этих чисел лежала под краем, и добраться до них можно было
+    только прокруткой внутри карточки — а карту, лежащую на столе, никто не
+    листает: её прочтут наполовину и купят землю вслепую. Поэтому здесь
+    спрашивается прямо: помещается ли содержимое целиком.
+  */
+  let fits = null;
   // Партия идёт, пока не покажет и счёт, и карту: что раньше выпадет, не нам решать.
-  for (let step = 0; step < 1400 && (!asked || (ran && !card)); step += 1) {
+  for (let step = 0; step < 1400 && (!asked || (ran && !card) || !fits); step += 1) {
     if (await page.locator('#jubilee:not([hidden])').count()) break;
+    if (!fits) {
+      fits = await page.evaluate(() => {
+        const core = document.getElementById('core');
+        if (!core || core.hidden || !core.classList.contains('is-plot')) return null;
+        if (!core.querySelector('.cell-ladder')) return null;
+        const box = core.getBoundingClientRect();
+        return {
+          hidden: core.scrollHeight - core.clientHeight,
+          top: Math.round(box.top),
+          bottom: Math.round(window.innerHeight - box.bottom),
+        };
+      });
+    }
     /*
       Главная кнопка читается и нажимается одним и тем же обращением к ней.
       Порознь было нельзя: пока идёт кувырок костей, полоса действий ещё
@@ -1009,6 +1033,13 @@ try {
     asked = { owed: Number(owed[1]), before, waited, after: await silverOf(page) };
   }
   need(asked !== null, 'за всю партию игроку ни разу не предложили заплатить самому');
+  need(fits !== null, 'за всю партию ни разу не показали полную карточку удела');
+  if (fits) {
+    need(fits.hidden <= 1,
+      `на карточке удела под краем осталось ${fits.hidden} точек — их видно только прокруткой`);
+    need(fits.top >= 0 && fits.bottom >= 0,
+      `карточка удела вышла за экран: ${fits.top} сверху, ${fits.bottom} снизу`);
+  }
   if (ran) {
     need(card !== null, 'за всю партию ни разу не выпала карта из колоды');
     if (card) {
@@ -1227,7 +1258,14 @@ try {
       down: doc.scrollHeight - doc.clientHeight,
       aside: doc.scrollWidth - doc.clientWidth,
       canvasShare: (canvas.width * canvas.height) / (doc.clientWidth * doc.clientHeight),
-      fromRight: doc.clientWidth - actions.right,
+      /*
+        Насколько полоса управления сбита от середины экрана и насколько она
+        от его низа. Прежде мерилось расстояние до правого нижнего угла: там
+        кнопки и стояли кучкой под большой палец. Кучка эта стоила доске
+        трети экрана вбок — доска съезжала влево и висела в кадре криво, — и
+        владелец попросил обратного: поле посередине, кнопки под ним.
+      */
+      offCentre: Math.abs((actions.left + actions.right) / 2 - doc.clientWidth / 2),
       fromBottom: doc.clientHeight - actions.bottom,
       actionWidth: actions.width / doc.clientWidth,
       /*
@@ -1243,11 +1281,19 @@ try {
     `боком на высоком экране прокрутка ${roomy.down}/${roomy.aside}`);
   need(roomy.canvasShare > 0.9,
     `боком на высоком экране доске отдано ${(roomy.canvasShare * 100).toFixed(0)}% экрана`);
-  need(roomy.fromRight < 24 && roomy.fromBottom < 24,
-    `кнопки боком стоят в ${Math.round(roomy.fromRight)}×${Math.round(roomy.fromBottom)} от угла — `
-    + 'большому пальцу не достать');
-  need(roomy.actionWidth < 0.5,
-    `кнопки боком заняли ${(roomy.actionWidth * 100).toFixed(0)}% ширины — это полоса, а не кучка`);
+  need(roomy.offCentre < 24,
+    `полоса управления боком сбита от середины на ${Math.round(roomy.offCentre)} точек — `
+    + 'она стоит под доской и обязана стоять с нею на одной оси');
+  need(roomy.fromBottom < 24,
+    `между кнопками и низом экрана боком ${Math.round(roomy.fromBottom)} точек пустоты`);
+  /*
+    Полоса управления не во всю ширину — иначе это уже не плашка под доской, а
+    полоса чужого приложения поверх игры. И не уже трети: на широком экране
+    кнопка «Бросить жребий» в две сотни точек посреди тысячи выглядит
+    потерянной.
+  */
+  need(roomy.actionWidth < 0.88 && roomy.actionWidth > 0.3,
+    `кнопки боком заняли ${(roomy.actionWidth * 100).toFixed(0)}% ширины экрана`);
   /*
     Кнопок внизу стало мало нарочно: жребий да «Ещё». Всё остальное — в ящике,
     и спрашивается оно там же. Если внизу снова окажется целый ярус, значит
@@ -1414,8 +1460,10 @@ console.log(ran
     + 'выкуп из '
     + 'темницы предлагается кнопкой, вокруг доски стоит поселение и восемь зрителей, '
     + 'которые поворачиваются к ходящей фишке, щипок подпускает к клетке вплотную, '
-    + 'а боком на высоком экране доске отдан весь холст и кнопки собраны в угол под '
-    + 'большой палец; стоймя партия влезает в экран и доска не прыгает под карточкой. '
+    + 'а боком на высоком экране доске отдан весь холст и полоса управления стоит '
+    + 'плашкой под доской, по её оси; стоймя партия влезает в экран, доска не прыгает '
+    + 'под карточкой, а сама карточка удела показывает все семь своих чисел без '
+    + 'прокрутки. '
     + 'Консоль чистая. Кадр стоит '
     + `${spend ? spend.idle.calls : '?'} вызовов отрисовки на пустом поле и `
     + `${spend ? spend.full.calls : '?'} на застроенном (${spend ? spend.full.triangles : '?'} `
