@@ -321,28 +321,47 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 
 /* ——— шапка партии ——— */
+
 /*
-  Кнопка обучения стоит в шапке между годом и казной — ровно там, где до неё
-  было пусто. Приглушена нарочно: её ищут раз за партию, а год и казну читают
-  каждый ход, и спорить с ними за взгляд ей незачем.
+  Строка состояния партии.
+
+  Читается она слева направо и отвечает ровно на четыре вопроса: какой год,
+  чей ход, что у меня на руках, сколько в казне. Ни на один из них раньше
+  нельзя было ответить, ничего не нажав, — а спрашивает их игрок каждый ход.
 */
-.hud-teach {
-  font: inherit; font-size: 12px; font-weight: 600;
-  min-height: 30px; padding: 4px 12px; border-radius: 999px;
-  border: 1px solid var(--line-strong); background: var(--surface-soft);
-  color: var(--ink-soft); cursor: pointer;
-}
-.hud-teach:active { transform: translateY(1px); }
-.hud-teach:focus-visible { outline: 3px solid var(--primary-2); outline-offset: 2px; }
-/* Во время показа кнопка себя же и прячет: нажимать её посреди показа незачем. */
-#game.is-teaching .hud-teach { visibility: hidden; }
 .hud {
   display: flex; justify-content: space-between; align-items: center; gap: 10px;
   font-size: 13px; font-weight: 600; color: var(--ink-soft);
 }
+.hud-side { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.hud-side--end { justify-content: flex-end; }
 .hud-year.is-sabbath { color: var(--gold); }
 .hud-pot { font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 5px; }
 .hud-icon { width: 18px; height: 18px; object-fit: contain; }
+/*
+  Кошелёк. Числа набраны крупнее подписей вокруг и моноширинными цифрами: их
+  сравнивают с ценой на карточке, а прыгающая ширина цифр мешает это делать
+  взглядом. Цветная черта слева — тот же цвет, что у фишки на доске: чей это
+  кошелёк, видно без имени.
+*/
+.hud-purse {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 3px 10px 3px 8px; border-radius: 999px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--who, var(--primary));
+  background: var(--surface);
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.hud-fig { display: inline-flex; align-items: center; gap: 4px; }
+.hud-fig b { font-size: 14.5px; }
+/* Чей ход: точка цвета фишки и имя. Свой ход не подписывается вовсе. */
+.hud-turn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.hud-turn[hidden] { display: none; }
+.hud-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--who, var(--primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--who, var(--primary)) 24%, transparent);
+}
 
 /* ——— кольцо ——— */
 /*
@@ -350,6 +369,24 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   рисуется ниже своей коробки, поэтому коробка подтянута отрицательным полем:
   иначе под ней зияет пустота.
 */
+/*
+  Стол под доской.
+
+  Поле лежит на песке, и песок этот ровный до самого края экрана — от того всё
+  вместе читается как карта местности, а не как игра на столе. Затемнение по
+  углам собирает взгляд к доске и даёт сцене край: так выглядит стол под
+  лампой. Рисуется оно разметкой поверх холста, а не в сцене, — сцене за это
+  пришлось бы платить кадром.
+*/
+.ring-wrap::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(118% 88% at 50% 42%,
+    transparent 46%,
+    color-mix(in srgb, var(--ink) 9%, transparent) 84%,
+    color-mix(in srgb, var(--ink) 19%, transparent) 100%);
+}
 .ring-wrap {
   position: relative; display: flex; justify-content: center;
   perspective: 1150px; perspective-origin: 50% 38%;
@@ -531,7 +568,28 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   gap: 6px; padding: 12px; text-align: center; min-width: 0; min-height: 0;
   overflow-y: auto; overscroll-behavior: contain;
-  box-shadow: var(--lift-3), var(--edge-top);
+  /*
+    Тень карты — не тень окна. У окна она мягкая и со всех сторон; у карты,
+    лежащей на столе, она короткая, смещена вниз и тем показывает, что карта
+    лежит, а не висит. Светлая линия по верхнему краю — блик на срезе бумаги.
+  */
+  box-shadow:
+    0 2px 0 0 rgba(17, 24, 39, .06),
+    0 10px 18px -10px rgba(17, 24, 39, .42),
+    0 26px 44px -28px rgba(17, 24, 39, .5),
+    var(--edge-top);
+}
+/*
+  Рамка внутри рамки — как на игральной карте: по краю поле, за ним печатное
+  поле, и уже в нём рисунок с текстом. Одной линией это не передать, а двумя
+  — передаётся сразу, и без единой новой картинки.
+*/
+.ring-core::before {
+  content: '';
+  position: absolute; inset: 5px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 13px;
+  pointer-events: none;
 }
 .ring-core[hidden] { display: none; }
 /*
@@ -558,11 +616,26 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   неё считает разметка (liftCard) и кладёт сюда двумя числами. Масштаб взят
   маленьким нарочно — с половины карточка выглядит не взлётом, а рывком.
 */
+/*
+  Карту не показывают — её кладут на стол.
+
+  Полёт поэтому не прямой: карта отрывается от плитки боком, довернувшись, как
+  доворачивается она в руке, на середине проходит мимо цели и возвращается —
+  тот самый перелёт, по которому глаз узнаёт вес предмета. Без перелёта
+  движение читается как всплывающее окно, с ним — как рука, положившая карту.
+*/
 @keyframes core-lift {
-  from { transform: translate(var(--from-x, 0px), var(--from-y, 0px)) scale(.16); opacity: 0; }
+  from {
+    transform: translate(var(--from-x, 0px), var(--from-y, 0px)) rotate(-14deg) scale(.16);
+    opacity: 0;
+  }
+  62% {
+    transform: translate(0, -6px) rotate(1.4deg) scale(1.04);
+    opacity: 1;
+  }
   to { transform: none; opacity: 1; }
 }
-.ring-core.is-lifting { animation: core-lift 400ms cubic-bezier(.22, .8, .24, 1) both; }
+.ring-core.is-lifting { animation: core-lift 460ms cubic-bezier(.2, .72, .24, 1) both; }
 @media (prefers-reduced-motion: reduce) { .ring-core.is-lifting { animation: none; } }
 /*
   Решения — под карточкой, внутри неё же. Полоса на всю ширину карточки, а не
@@ -684,6 +757,20 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
 }
 .actions-main:empty, .actions-side:empty { display: none; }
+/*
+  Нижняя полоса партии держит свою высоту, даже когда кнопок в ней нет.
+
+  Решения клетки переезжают под карточку, и полоса худеет со ста четырёх
+  точек до сорока восьми. Стоймя от этого росла доска — она берёт остаток
+  экрана; боком доска не растёт, но по высоте этой полосы камера считает,
+  сколько холста занято, и отъезжала на освободившееся место. И то и другое
+  выглядело одинаково: поле дёргается на каждой остановке фишки.
+
+  Сто четыре — собственная высота полосы в фазе броска: жребий и «Ещё». Место
+  не резервируется сверх нужного, оно просто не отдаётся обратно на те
+  несколько секунд, пока карточка держит кнопки у себя.
+*/
+#game.has-3d > .actions { min-height: 104px; }
 .actions .btn { width: 100%; }
 .waiting {
   grid-column: 1 / -1; min-height: 48px; display: flex; align-items: center; justify-content: center;
@@ -713,13 +800,24 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 .tag-icon { width: 13px; height: 13px; object-fit: contain; }
 
 /* ——— лента событий ——— */
+/*
+  Журнал ходов — лента, а не карточка.
+
+  Карточкой он был белым полем с одной строкой наверху и звал себя разделом
+  наравне с доской. Лентой он читается тем, чем и является: тихой строкой
+  событий, которую пробегают глазом. Свежая запись набрана в полную силу,
+  прежние — вполсилы: так видно, что нового, не читая всего списка.
+*/
 .feed {
-  display: flex; flex-direction: column; gap: 3px; padding: 10px 12px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-  box-shadow: var(--lift-1);
+  display: flex; flex-direction: column; gap: 2px; padding: 6px 10px;
+  background: color-mix(in srgb, var(--surface) 62%, transparent);
+  border: 0; border-left: 3px solid color-mix(in srgb, var(--primary) 36%, transparent);
+  border-radius: 0 10px 10px 0;
+  box-shadow: none;
 }
-.feed-line { font-size: 12.5px; color: var(--ink-soft); }
-.feed-line:first-child { color: var(--ink); font-weight: 600; }
+.feed-line { font-size: 12.5px; color: var(--ink-soft); opacity: .72; }
+.feed-line:first-child { color: var(--ink); font-weight: 600; opacity: 1; }
+.feed-title + .feed-line { font-weight: 600; }
 
 /* ——— шторка ——— */
 .sheet {
@@ -947,16 +1045,20 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
     справа, а середина экрана остаётся доске. Стоймя шапка лежит над доской,
     и делить её поровну по-прежнему правильно.
   */
-  #game.has-3d > .hud {
-    padding: calc(9px + var(--chrome-top)) 14px 0; pointer-events: none;
-    justify-content: flex-start;
-  }
-  #game.has-3d > .hud > .hud-pot { margin-left: auto; }
-  #game.has-3d > .hud > * {
+  #game.has-3d > .hud { padding: calc(9px + var(--chrome-top)) 14px 0; pointer-events: none; }
+  /*
+    Боком шапка лежит на песке, и подложка нужна каждому её углу по
+    отдельности: середина шапки пуста, и плашка во всю ширину закрыла бы
+    доску ни за чем. Подложка ставится на сами сообщения, а не на их группы,
+    — иначе год и «ходит такой-то» слипались бы в одну длинную плашку.
+  */
+  #game.has-3d > .hud > .hud-side { gap: 8px; }
+  #game.has-3d > .hud > .hud-side > * {
     background: var(--surface); color: var(--ink); border-radius: 999px;
     padding: 4px 12px; box-shadow: var(--lift-1);
     pointer-events: auto;
   }
+  #game.has-3d > .hud .hud-purse { padding: 3px 12px 3px 9px; }
   #game.has-3d > .actions { padding-inline: 14px; }
   #game.has-3d > .players { padding: 0 14px 10px; }
 
@@ -1197,18 +1299,7 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   }
   #game.has-3d > * { flex-shrink: 0; }
   #game.has-3d > .hud { margin: 0; padding-top: 0; }
-  /*
-    Нижняя полоса держит свою высоту, даже когда кнопок в ней нет.
 
-    Решения клетки переезжают под карточку, и полоса внизу худеет со ста
-    четырёх точек до сорока восьми. Доска берёт остаток экрана — и на эти
-    пятьдесят шесть точек вырастает, а потом на столько же опадает: каждая
-    остановка фишки заканчивалась бы скачком поля и пересчётом всей сцены.
-    Сто четыре — её собственная высота в фазе броска: жребий и «Ещё». То
-    есть место не резервируется сверх нужного, а просто не отдаётся обратно
-    на те несколько секунд, пока карточка держит кнопки у себя.
-  */
-  #game.has-3d > .actions { min-height: 104px; }
   /*
     Доска стоймя: шире и выше, но не во всю высоту.
 

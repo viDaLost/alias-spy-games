@@ -60,6 +60,8 @@ jobs:
         run: node scripts/check-promised-land-dice.mjs
       - name: Play new Promised Land bots against the old ones
         run: node scripts/check-promised-land-bots.mjs
+      - name: Audit Promised Land mechanics turn by turn
+        run: node scripts/check-promised-land-logic.mjs
       - name: Install Promised Land preview tooling
         working-directory: cloudflare/promised-land-preview
         run: npm install --no-audit --no-fund

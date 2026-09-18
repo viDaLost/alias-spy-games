@@ -142,27 +142,39 @@ window.PromisedLandEngine = (() => {
     держится за дорогое, ради чего он его и покупал.
   */
   function raiseFunds(state, player, need) {
-    const steps = [];
     const plots = [];
     state.cells.forEach((cell, n) => {
       if (cell.owner !== player.id) return;
-      const spec = B.BOARD[n];
-      if (spec.kind === 'plot' && cell.level > 0) {
-        steps.push({ n, price: Math.floor(B.GROUPS[spec.group].build / 2) });
-      }
-      plots.push({ n, price: Math.floor(spec.price / 2) });
+      plots.push({ n, price: Math.floor(B.BOARD[n].price / 2) });
     });
-    steps.sort((a, b) => a.price - b.price);
     plots.sort((a, b) => a.price - b.price);
 
-    for (const item of steps) {
-      while (player.silver < need && state.cells[item.n].level > 0) {
-        state.cells[item.n].level -= 1;
-        player.silver += item.price;
-        log(state, `${player.name} разбирает постройку в «${B.BOARD[item.n].name}» за ${item.price}`);
-      }
-      if (player.silver >= need) return true;
+    /*
+      Разбирают тоже вровень.
+
+      Раньше распродажа шла по уделам: у самого дешёвого разбиралось всё до
+      земли, потом бралась за следующий. В одном цвете оставалось «пусто,
+      пусто, башня» — то, чего по правилам строительства не бывает и построить
+      нельзя. Теперь на каждом шаге снимается верхняя ступень с самого
+      застроенного удела, и лестница внутри цвета так и остаётся ровной.
+    */
+    const dearest = () => {
+      let best = -1;
+      state.cells.forEach((cell, n) => {
+        if (cell.owner !== player.id || cell.level === 0) return;
+        if (best < 0 || cell.level > state.cells[best].level) best = n;
+      });
+      return best;
+    };
+    for (let guard = 0; player.silver < need && guard < 200; guard += 1) {
+      const n = dearest();
+      if (n < 0) break;
+      const price = Math.floor(B.GROUPS[B.BOARD[n].group].build / 2);
+      state.cells[n].level -= 1;
+      player.silver += price;
+      log(state, `${player.name} разбирает постройку в «${B.BOARD[n].name}» за ${price}`);
     }
+    if (player.silver >= need) return true;
     for (const item of plots) {
       if (player.silver >= need) return true;
       const cell = state.cells[item.n];
@@ -222,8 +234,18 @@ window.PromisedLandEngine = (() => {
     const target = payee(state);
     const cell = state.cells[n];
     cell.pledge = { by: player.id, debt: pending.amount };
-    cell.owner = target && target !== 'treasury' ? target.id : null;
-    const to = target && target !== 'treasury' ? target.name : 'казна';
+    /*
+      Кому уходит заложенное. Кредитор бывает не только игроком: счёт бывает
+      казне, а бывает и «каждому за столом» — такая карта в колоде одна. Про
+      «каждого» здесь и забыли: строка «не казна» пропускала его дальше, и
+      уделу ставился хозяин `'each'.id`, то есть undefined. Земля с постройками
+      пропадала у всех сразу — ни хозяина, ни платы за проход, а в журнале
+      значилось «закладывает за 250 (undefined)». Теперь и казна, и «каждый»
+      равно означают «ничей до выкупа».
+    */
+    const holder = target && target !== 'treasury' && target !== 'each' ? target : null;
+    cell.owner = holder ? holder.id : null;
+    const to = holder ? holder.name : 'казна';
     log(state, `${player.name} закладывает «${B.BOARD[n].name}» за ${pending.amount} (${to})`);
     state.pending = {
       type: 'note',
@@ -809,6 +831,28 @@ window.PromisedLandEngine = (() => {
     const diceSum = state.dice[0] + state.dice[1];
 
     if (B.OWNABLE.has(spec.kind)) {
+      /*
+        Земля без хозяина — не обязательно свободная.
+
+        Так выглядят две вещи. Уделы разорившегося перед казной: хозяина нет,
+        но помечено, чьи они были, и в юбилей вернутся. И заложенное за счёт
+        казне или «каждому за столом»: кредитора-игрока нет, а выкупить удел
+        по-прежнему может только тот, кто его закладывал.
+
+        И то и другое игра предлагала купить — вместе со всем, что на уделе
+        построено, за одну базовую цену. А потом юбилей возвращал землю
+        прежнему владельцу, и покупку отбирали молча. Теперь такая земля никому
+        не предлагается и платы за проход не берёт: она ничья до выкупа.
+      */
+      if (!cell.owner && (cell.heldFrom || cell.pledge)) {
+        state.pending = {
+          type: 'note', title: spec.name,
+          text: cell.pledge
+            ? 'Удел в залоге у казны: выкупить его может только хозяин.'
+            : 'Земля разорённого: ждёт юбилея и никому не принадлежит.',
+        };
+        return;
+      }
       if (!cell.owner) {
         if (player.silver >= spec.price && !player.servantOf) {
           state.pending = { type: 'buy', cell: n };

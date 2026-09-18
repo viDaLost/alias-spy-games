@@ -588,17 +588,22 @@
   }
 
   /** Обучение: показ на доске. Ходы на это время не идут — они подождут. */
-  /** Кнопка обучения в шапке: зовёт показ прямо посреди партии. */
-  function bindTeachButton() {
-    const button = $('teach-open');
-    if (!button) return;
-    button.hidden = !window.PromisedLandTutorial;
-    button.addEventListener('click', () => {
+  /*
+    Кнопка обучения живёт в ящике «Ещё». В шапке она стояла посередине — и
+    посередине же оказывалась игрового поля, когда телефон поворачивали боком.
+    Зовут её раз за партию, а место она занимала всю партию; шапка теперь
+    отвечает на вопросы, а не предлагает нажать.
+  */
+  function teachButton() {
+    const node = button('Обучение', 'ghost', () => {
       // Посреди хода соперника показ начинать нельзя: он говорит о том, что
       // на доске сейчас, а доска в этот миг движется сама.
       if (rolling) return;
+      moreOpen = false;
       teach();
     });
+    node.id = 'teach-open';
+    return node;
   }
 
   function teach() {
@@ -655,18 +660,25 @@
           const box = canvas.getBoundingClientRect();
           let bottom = 0;
           /*
-            Полоса управления — всё, что лежит внизу и закрывает доску.
-            Исключение одно: карточка клетки. Она стоит сбоку, клеток не
-            закрывает, и считать её полосой значило бы отдать ей высоту ни за
-            чем. Кнопки же считаются всегда, даже когда они собраны в угол:
-            узкие они или во всю ширину, доске под них заезжать нельзя.
+            Полоса управления — всё, что лежит внизу и закрывает доску. Под
+            неё камера отодвигается, чтобы ближний ряд клеток не уехал под
+            кнопки.
+
+            Карточки клетки в этом списке нет, и это важнее, чем кажется.
+            Пока она была строкой под доской, считать её полосой было верно.
+            Теперь она лежит поверх доски посередине — и, попав в этот счёт,
+            объявляла занятой всю нижнюю половину холста: камера отъезжала
+            метров на десять, доска становилась крошечной, а стоило карточке
+            уйти — возвращалась обратно. Получались те самые прыжки на каждой
+            остановке фишки. Карточка закрывает середину доски по своей воле и
+            ненадолго; отодвигать ради неё камеру — значит портить вид всей
+            партии ради нескольких секунд.
           */
-          for (const id of ['teach', 'actions', 'players', 'feed', 'core']) {
+          for (const id of ['teach', 'actions', 'players', 'feed']) {
             const node = $(id);
             if (!node || node.hidden || !node.offsetParent) continue;
             const rect = node.getBoundingClientRect();
             if (rect.height === 0) continue;
-            if (id === 'core' && rect.width < box.width * 0.62) continue;
             if (rect.top <= box.top) continue;
             bottom = Math.max(bottom, box.bottom - rect.top);
           }
@@ -921,9 +933,15 @@
   */
   const CELL_HELP = {
     exodus: 'Начало пути. Каждый раз, проходя эту клетку, вы собираете урожай — 200 сиклей.',
-    prison: 'Просто стоя здесь, вы ничего не теряете. А попав сюда по «Навету», карте или трём '
-      + 'одинаковым жребиям подряд, выходите так: выбросив два одинаковых числа, заплатив выкуп '
-      + 'в 50 сиклей или картой «Ангел отворил двери».',
+    /*
+      Две суммы, и путать их нельзя: выкуп — 100 сиклей, и он добровольный,
+      а 50 берут сами, когда срок вышел. Здесь годами стояло «выкуп в 50»:
+      игрок читал одну цену на карточке клетки, а на кнопке видел другую.
+    */
+    prison: `Просто стоя здесь, вы ничего не теряете. А попав сюда по «Навету», карте или трём `
+      + `одинаковым жребиям подряд, выходите так: выбросив два одинаковых числа, заплатив `
+      + `выкуп в ${B.BAIL} сиклей и выйдя сразу же, или картой «Ангел отворил двери». Больше `
+      + `трёх ходов там не держат: по истечении срока выпустят и так, взяв ${B.RANSOM}.`,
     tent: 'Гостеприимство. Всё, что собралось в казне с податей и приношений, достаётся вам, '
       + 'и сверх того — одно очко наследия.',
     slander: 'Вас оговорили перед царём: отправляйтесь в темницу. Урожай по дороге не собирается.',
@@ -951,6 +969,21 @@
 
   // ————————————————————————————————————————————————— шапка, игроки, кнопки
 
+  /*
+    Кто здесь я. По сети — своё место за столом. За одним телефоном играют по
+    очереди, и «я» — тот человек, чей ход идёт; пока ходит соперник, последний
+    человек, который ходил. Если людей за столом нет вовсе (партия смотрится
+    на «Авто»), кошелёк показывает того, чей ход.
+  */
+  function whoAmI() {
+    const turnPlayer = E.current(state);
+    if (link) return state.players.find((one) => one.id === mySeat) || turnPlayer;
+    if (!turnPlayer.isBot) return turnPlayer;
+    return state.players.find((one) => one.id === lastHumanId)
+      || state.players.find((one) => !one.isBot)
+      || turnPlayer;
+  }
+
   function updateHud() {
     const left = state.mode === 'last' ? E.standing(state).length : 0;
     $('year').textContent = state.mode === 'last'
@@ -963,6 +996,46 @@
     pot.innerHTML = '';
     pot.appendChild(img(art('icons', state.sabbath ? 'ui-sabbath' : 'ui-pot'), 'hud-icon', ''));
     pot.appendChild(el('span', null, `Казна ${state.treasury}`));
+
+    /*
+      Кошелёк и чей ход — в шапке, без единого нажатия.
+
+      Это и было главной бедой экрана: серебро своё игрок мог узнать, только
+      открыв полосу игроков, то есть нажав дважды и посреди чужого хода.
+      Считать в уме, хватит ли на удел, глядя на кнопку «Купить за 240», —
+      не игра, а арифметика вслепую. Теперь серебро и наследие стоят в строке
+      состояния всегда, рядом с годом и казной.
+    */
+    const mine = whoAmI();
+    const purse = $('purse');
+    purse.innerHTML = '';
+    if (mine) {
+      purse.style.setProperty('--who', colorOfPlayer(mine));
+      const silver = el('span', 'hud-fig');
+      silver.appendChild(img(art('icons', 'ui-shekel'), 'hud-icon', 'сиклей'));
+      silver.appendChild(el('b', null, String(mine.silver)));
+      const heritage = el('span', 'hud-fig');
+      heritage.appendChild(img(art('icons', 'ui-heritage'), 'hud-icon', 'наследия'));
+      heritage.appendChild(el('b', null, String(mine.heritage)));
+      purse.append(silver, heritage);
+      purse.title = `${mine.name}: ${mine.silver} сиклей, ${mine.heritage} наследия`;
+    }
+
+    /*
+      Чей ход — тоже сообщение, а не догадка по тому, какие кнопки на экране.
+      Свой ход не подписывается: он и так виден по тому, что игра чего-то ждёт
+      от вас, а лишняя строка «ваш ход» в шапке — шум на каждом втором ходу.
+    */
+    const turnNode = $('turn');
+    const turnPlayer = E.current(state);
+    const mineTurn = mine && turnPlayer.id === mine.id;
+    turnNode.innerHTML = '';
+    turnNode.hidden = Boolean(mineTurn);
+    if (!mineTurn) {
+      turnNode.style.setProperty('--who', colorOfPlayer(turnPlayer));
+      turnNode.appendChild(el('i', 'hud-dot'));
+      turnNode.appendChild(el('span', null, `ходит ${turnPlayer.name}`));
+    }
 
     const strip = $('players');
     strip.innerHTML = '';
@@ -1192,6 +1265,7 @@
     menu.id = 'more';
     menu.appendChild(sheetButton);
     menu.appendChild(playersButton());
+    if (window.PromisedLandTutorial) menu.appendChild(teachButton());
     if (!link) {
       menu.appendChild(autoButton());
       menu.appendChild(paceButton());
@@ -1769,7 +1843,6 @@
 
   setupScreen();
   modeScreen();
-  bindTeachButton();
   fillRules();
   if (/^[A-Z0-9]{5}$/i.test(new URLSearchParams(location.search).get('room') || '')) {
     showScreen('online');
