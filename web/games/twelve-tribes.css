@@ -95,6 +95,85 @@
 .tt-btn:disabled { opacity: .45; cursor: not-allowed; }
 .tt-btn:active:not(:disabled) { transform: translateY(1px); }
 
+/* ——— выбор режима, вход в комнату и лобби ——— */
+/*
+  Два режима — две большие кнопки, а не переключатель: выбор делается один раз
+  за партию, и он важнее всех остальных настроек на этом экране.
+*/
+.tt-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tt-modes button {
+  min-height: 72px; border-radius: 16px; border: 1px solid rgba(99, 102, 241, .3);
+  background: var(--surface-soft, #f3f7ff); color: inherit;
+  font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+  display: grid; gap: 3px; place-items: center; padding: 8px;
+}
+.tt-modes button small { font-size: 11.5px; font-weight: 500; color: var(--ink-soft, #667085); line-height: 1.2; }
+.tt-modes button[data-mode="online"] { background: var(--primary, #4f46e5); border-color: var(--primary, #4f46e5); color: #fff; }
+.tt-modes button[data-mode="online"] small { color: rgba(255, 255, 255, .85); }
+
+.tt-field { display: grid; gap: 6px; }
+.tt-field > span { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft, #667085); }
+.tt-field input {
+  min-height: 48px; border-radius: 14px; border: 1px solid rgba(99, 102, 241, .3);
+  background: var(--surface-strong, #fff); color: inherit;
+  font: inherit; font-size: 16px; padding: 0 14px; width: 100%;
+}
+.tt-field input[data-code] { text-transform: uppercase; letter-spacing: .18em; font-weight: 700; }
+.tt-note { margin: 0; font-size: 13px; color: var(--ink-soft, #667085); line-height: 1.4; }
+.tt-wait { margin: 0; flex: 1 1 auto; align-self: center; font-size: 14px; color: var(--ink-soft, #667085); }
+
+.tt-lobby-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.tt-lobby-head h2 { margin: 0; }
+/*
+  Состояние связи говорится словами и всегда на виду. Молчащий экран в сетевой
+  игре читается как «сломалось», даже когда всё идёт — просто ход не ваш.
+*/
+.tt-link-state { font-size: 12px; font-weight: 700; color: var(--ink-soft, #667085); text-align: right; max-width: 40%; }
+.tt-link-state[data-kind="online"] { color: #15803d; }
+.tt-link-state[data-kind="reconnect"], .tt-link-state[data-kind="polling"] { color: #b7791f; }
+
+.tt-seats { display: grid; gap: 6px; }
+.tt-seat {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border-radius: 12px; background: var(--surface-soft, #f3f7ff); font-size: 14.5px;
+}
+.tt-seat.is-away { opacity: .6; }
+.tt-seat-name b { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary, #4f46e5); }
+.tt-seat-state { font-size: 12.5px; color: var(--ink-soft, #667085); }
+
+/* ——— переписка ——— */
+.tt-chat { display: grid; gap: 8px; }
+.tt-chat-lines {
+  display: grid; gap: 5px; align-content: start;
+  height: 132px; overflow-y: auto; padding: 10px;
+  border-radius: 12px; background: var(--surface-soft, #f3f7ff);
+  font-size: 13.5px; line-height: 1.35;
+}
+.tt-chat-line b { color: var(--primary, #4f46e5); }
+.tt-chat-empty { color: var(--ink-soft, #667085); }
+.tt-chat-send { display: flex; gap: 8px; }
+.tt-chat-send input {
+  flex: 1 1 auto; min-height: 44px; border-radius: 12px; border: 1px solid rgba(99, 102, 241, .3);
+  background: var(--surface-strong, #fff); color: inherit; font: inherit; font-size: 16px; padding: 0 12px;
+}
+.tt-chat-send .tt-btn { flex: 0 0 auto; min-height: 44px; padding: 0 18px; }
+/*
+  За столом переписка сворачивается в кнопку с числом непрочитанного: партия
+  важнее разговора, но и разговор терять нельзя.
+*/
+.tt-chat-fab {
+  position: absolute; z-index: 20; right: 8px; top: 8px;
+  border: 0; border-radius: 999px; padding: 7px 14px;
+  background: rgba(15, 23, 42, .78); color: #f8fafc;
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .8);
+}
+.tt-chat-badge {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px;
+  border-radius: 999px; background: var(--warning, #f59e0b); color: #1f2937;
+  font-size: 11px; font-weight: 800; padding: 0 5px;
+}
+
 /* ——— стол ——— */
 /*
    Сукно. Карточная игра без стола читается как список кнопок: карта должна

@@ -24,6 +24,7 @@
     'web/locales/de/games/twelve-tribes-rules.js',
     'web/locales/de/games/twelve-tribes-engine.js',
     'web/locales/de/games/twelve-tribes-bots.js',
+    'web/locales/de/games/twelve-tribes-online.js',
   ];
   const STYLE = 'web/locales/de/games/twelve-tribes.css';
   const VERSION = '1';
@@ -260,8 +261,15 @@
   // ————————————————————————————————————————————— экран
 
   class Table {
-    constructor(container) {
+    /*
+      Стол один на оба режима. По сети он не знает ни о комнате, ни о сокете:
+      ему передают net — того, кто умеет отправить действие и принести новое
+      состояние. Второй экран игры для сети был бы вторым местом, где живут
+      карты, углы веера и полёты, — и первая же правка развела бы их.
+    */
+    constructor(container, net = null) {
       this.root = container;
+      this.net = net;
       this.R = window.TwelveTribesRules;
       this.E = window.TwelveTribesEngine;
       this.Bots = window.TwelveTribesBots;
@@ -279,6 +287,7 @@
 
     /* ——— начало партии ——— */
     setup() {
+      this.net = null;
       stopTimers();
       this.root.innerHTML = `
         <div class="tt-wrap">
@@ -287,6 +296,12 @@
             <p>Израиль в пустыне стоял четырьмя станами вокруг скинии: Иуда на востоке,
               Рувим на юге, Ефрем на западе, Дан на севере (Числа 2). Кладите карту того же
               стана или того же жребия, а кто первым останется без карт, тот и взял раздачу.</p>
+            <div class="tt-modes">
+              <button type="button" data-mode="solo">За одним столом
+                <small>против соперников от игры</small></button>
+              <button type="button" data-mode="online">По сети
+                <small>комната для друзей</small></button>
+            </div>
             <label class="tt-choice">
               <span>Соперников</span>
               <div class="tt-choice--wide" data-foes>
@@ -312,6 +327,13 @@
       pick('foes', (value) => { this.foes = value; sayFoes(); });
       sayFoes();
       pick('target', (value) => { this.target = value; });
+      this.root.querySelector('[data-mode="online"]').addEventListener('click', () => {
+        stopTimers();
+        window.TwelveTribesOnline.open(this.root, { back: () => this.setup() });
+      });
+      this.root.querySelector('[data-mode="solo"]').addEventListener('click', () => {
+        this.root.querySelector('[data-start]').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
       this.root.querySelector('[data-start]').addEventListener('click', () => this.begin());
       this.root.querySelector('[data-menu]').addEventListener('click', () => {
         if (typeof goToMainMenu === 'function') goToMainMenu();
@@ -344,17 +366,51 @@
           <div class="tt-table">
             <div class="tt-foes" data-foes></div>
             <div class="tt-middle">
-              <div class="tt-deck" data-deck${deckStyle().slice(1) ? ' ' + deckStyle().trim() : ''}>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <button type="button" data-draw><span>взять</span></button>\n                <span class="tt-deck-count" data-deck-count></span>\n              </div>\n              <div class="tt-pile" data-pile></div>\n              <div class="tt-camp" data-camp></div>\n            </div>\n            <p class="tt-status" data-status></p>\n          </div>\n          <div class="tt-hand-wrap">\n            <div class="tt-hand-head">\n              <span data-hand-title>Ваши карты</span>\n              <button type="button" class="tt-tip-btn" data-hints>Что делают карты</button>\n              <span data-score></span>\n            </div>\n            <div class="tt-hand" data-hand></div>\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>\n            <button type="button" class="tt-btn tt-btn--call" data-shabbat hidden>Шабат!</button>\n            <button type="button" class="tt-btn tt-btn--call" data-catch hidden>Перебить!</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-menu>Zum Menü</button>\n          </div>\n        </div>`;
+              <div class="tt-deck" data-deck${deckStyle().slice(1) ? ' ' + deckStyle().trim() : ''}>
+                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>
+                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>
+                <button type="button" data-draw><span>взять</span></button>
+                <span class="tt-deck-count" data-deck-count></span>
+              </div>
+              <div class="tt-pile" data-pile></div>
+              <div class="tt-camp" data-camp></div>
+            </div>
+            <p class="tt-status" data-status></p>
+          </div>
+          <div class="tt-hand-wrap">
+            <div class="tt-hand-head">
+              <span data-hand-title>Ваши карты</span>
+              <button type="button" class="tt-tip-btn" data-hints>Что делают карты</button>
+              <span data-score></span>
+            </div>
+            <div class="tt-hand" data-hand></div>
+          </div>
+          <div class="tt-row">
+            <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>
+            <button type="button" class="tt-btn tt-btn--call" data-shabbat hidden>Шабат!</button>
+            <button type="button" class="tt-btn tt-btn--call" data-catch hidden>Перебить!</button>
+            <button type="button" class="tt-btn tt-btn--ghost" data-menu
+              >${this.net ? 'Verlassen' : 'Zum Menü'}</button>
+          </div>
+        </div>`;
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`).addEventListener('click', fn);
       on('draw', () => this.humanDraw());
       on('pass', () => this.humanPass());
-      on('shabbat', () => { this.E.shabbat(this.state, 0); this.render(); });
+      on('shabbat', () => {
+        if (this.net) { this.net.send('shabbat'); return; }
+        this.E.shabbat(this.state, 0);
+        this.render();
+      });
       on('catch', () => {
         const seat = this.state.risk ? this.state.risk.seat : null;
         if (seat !== null && seat !== 0) this.humanCatch(seat);
       });
       on('hints', () => this.showHints());
-      on('menu', () => { stopTimers(); if (typeof goToMainMenu === 'function') goToMainMenu(); });
+      on('menu', () => {
+        stopTimers();
+        if (this.net) { this.net.leave(); return; }
+        if (typeof goToMainMenu === 'function') goToMainMenu();
+      });
       this.root.querySelector('[data-hand]').addEventListener('click', (event) => {
         const card = event.target.closest('[data-index]');
         if (card) this.humanPlay(Number(card.dataset.index));
@@ -435,11 +491,90 @@
       </div>`;
     }
 
+    /*
+      ——— состояние пришло с сервера ———
+
+      Вид комнаты разворачивается в такое же состояние, каким живёт стол за
+      одним столом: у соседей вместо карт — пустые места по числу карт, и
+      разметке этого хватает, она у них только считает. Так экран остаётся один
+      на оба режима.
+
+      Заодно здесь рождаются анимации: что кому прибавилось, видно по разнице
+      с прошлым видом — сервер об этом не рассказывает, да и не должен.
+    */
+    applyView(view) {
+      const R = this.R;
+      const game = view.game;
+      if (!game) return;
+      const previous = this.state;
+      const state = {
+        players: game.players.map((one, seat) => ({
+          id: seat,
+          name: one.name,
+          isBot: one.isBot,
+          said: one.said,
+          score: one.score,
+          online: one.online,
+          left: one.left,
+          hand: seat === 0 ? game.hand.map((card) => ({ ...card })) : new Array(one.cards).fill(null),
+        })),
+        deck: new Array(game.deck).fill(null),
+        pile: game.pile,
+        camp: game.camp,
+        turn: game.turn,
+        dir: game.dir,
+        phase: game.phase,
+        status: game.status,
+        target: game.target,
+        round: game.round,
+        moves: game.moves,
+        reshuffled: game.reshuffled,
+        risk: game.risk,
+        winner: game.winner,
+        log: game.log,
+        watching: game.watching,
+      };
+      if (previous && previous.players.length === state.players.length) {
+        this.dealt = state.players
+          .map((one, seat) => ({ seat, count: one.hand.length - previous.players[seat].hand.length }))
+          .filter((one) => one.count > 0);
+        // Своя новая карта летит лицом, а не рубашкой: у неё свой полёт.
+        const had = new Set(previous.players[0].hand.filter(Boolean).map((card) => card.id));
+        const own = state.players[0].hand.find((card) => card && !had.has(card.id));
+        if (own && this.dealt.some((one) => one.seat === 0 && one.count === 1)) {
+          this.fresh = own.id;
+          this.dealt = this.dealt.filter((one) => one.seat !== 0);
+        }
+        // Новая карта на сбросе — значит, кто-то походил: откуда, видно по ходу.
+        const top = state.pile[state.pile.length - 1];
+        const was = previous.pile[previous.pile.length - 1];
+        if (top && (!was || was.id !== top.id)) {
+          const mover = (state.turn - state.dir * (state.phase === 'play' ? 1 : 0)
+            + state.players.length * 2) % state.players.length;
+          this.landing = Number.isFinite(mover) ? mover : 0;
+        }
+      }
+      this.state = state;
+      /*
+        Ход наружу для проверок — тот же, что и за одним столом. Без него
+        проверка видит только разметку и не может отличить «карта не пришла» от
+        «карта пришла, но не нарисовалась».
+      */
+      window.TwelveTribesGame = { state: () => this.state, refresh: () => this.render() };
+      if (state.status !== 'playing' && !this.overShown) {
+        this.overShown = true;
+        later(() => this.finish(), 700);
+      }
+      if (state.status === 'playing') this.overShown = false;
+      this.render();
+    }
+
     /* ——— перерисовка ——— */
     render() {
       const { state, R, E } = this;
       const me = state.players[0];
-      const mine = state.turn === 0 && state.status === 'playing';
+      // Зритель вошёл в идущую партию: стол он видит, но ходов у него нет.
+      const mine = state.turn === 0 && state.status === 'playing' && !state.watching;
 
       /*
         ——— места за столом ———
@@ -785,6 +920,11 @@
     }
 
     commit(index, camp) {
+      if (this.net) {
+        const card = this.state.players[0].hand[index];
+        if (card) this.net.send('play', { card: card.id, camp });
+        return;
+      }
       this.landing = 0;
       this.act(() => this.E.play(this.state, 0, index, camp));
       this.render();
@@ -792,6 +932,7 @@
     }
 
     humanDraw() {
+      if (this.net) { this.net.send('draw'); return; }
       // Своя карта летит лицом в веер, и рубашка ей не нужна: полёт у неё свой.
       const card = this.act(() => this.E.draw(this.state, 0), 0);
       this.fresh = card ? card.id : null;
@@ -800,12 +941,14 @@
     }
 
     humanPass() {
+      if (this.net) { this.net.send('pass'); return; }
       this.E.pass(this.state, 0);
       this.render();
       this.tick();
     }
 
     humanCatch(seat) {
+      if (this.net) { this.net.send('catch', { seat }); return; }
       this.act(() => this.E.catchOut(this.state, 0, seat));
       this.render();
     }
@@ -818,6 +961,8 @@
       четыре карты.
     */
     tick() {
+      // По сети соперников ведёт сервер: у стола здесь нет своих часов.
+      if (this.net) return;
       const { state, E, Bots } = this;
       if (state.status !== 'playing') { later(() => this.finish(), 700); return; }
 
@@ -889,13 +1034,23 @@
             <div class="tt-over">${rows}</div>
             <div class="tt-log">${log}</div>
             <div class="tt-row">
-              <button type="button" class="tt-btn" data-next>${series ? 'Следующая раздача' : 'Noch eine Partie'}</button>\n              <button type="button" class="tt-btn tt-btn--ghost" data-menu>Zum Menü</button>\n            </div>\n          </section>\n        </div>`;
-      this.root.querySelector('[data-next]').addEventListener('click', () => {
+              ${this.net && !this.net.youAreHost()
+    ? '<p class="tt-wait">Следующую раздачу сдаёт хозяин комнаты</p>'
+    : `<button type="button" class="tt-btn" data-next>${
+      this.net ? (series ? 'Следующая раздача' : 'В комнату') : (series ? 'Следующая раздача' : 'Noch eine Partie')
+    }</button>`}
+              <button type="button" class="tt-btn tt-btn--ghost" data-menu>${this.net ? 'Raum verlassen' : 'Zum Menü'}</button>
+            </div>
+          </section>
+        </div>`;
+      this.root.querySelector('[data-next]')?.addEventListener('click', () => {
+        if (this.net) { this.net.send(series ? 'nextRound' : 'backToLobby'); return; }
         if (series) { this.E.nextRound(this.state); this.buildTable(); this.render(); this.tick(); }
         else this.setup();
       });
       this.root.querySelector('[data-menu]').addEventListener('click', () => {
         stopTimers();
+        if (this.net) { this.net.leave(); return; }
         if (typeof goToMainMenu === 'function') goToMainMenu();
       });
     }
@@ -909,7 +1064,16 @@
   window.__twelveTribesCleanup = () => {
     stopTimers();
     document.querySelector('.tt-sheet')?.remove();
+    // Комната закрывается вместе с игрой: иначе сокет живёт в уже закрытом
+    // экране и продолжает получать чужие ходы.
+    window.TwelveTribesOnline?.close();
   };
 
+  /*
+    Стол наружу — для сетевой части. Она живёт отдельным файлом (комната, чат,
+    переподключение) и создаёт стол сама, передавая ему связь. Больше отсюда
+    ничего не отдаётся: правила и без того общие.
+  */
+  window.TwelveTribesUI = { Table, stopTimers };
   window.startTwelveTribesGame = startTwelveTribesGame;
 }());

@@ -40,6 +40,8 @@ const CHECKS = [
   'check-moses-nile-safe-area.mjs',
   'check-game-scenes.mjs',
   'check-channel-promo.mjs',
+  'check-twelve-tribes-browser.mjs',
+  'check-twelve-tribes-online.mjs',
 ];
 
 const failed = [];
