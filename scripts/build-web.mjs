@@ -32,7 +32,16 @@ const PRECACHE_DIRS = [
   'web/assets/biblical-match-three/icons-v17',
   'web/assets/biblical-match-three/icons-v29',
 ];
-const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest', 'web/js/language-choice.js', 'web/i18n/bootstrap.js'];
+/*
+  Список картинок «Двенадцати колен» кладётся в кеш установки поимённо, а не
+  папкой: сами картинки тяжелее и осядут в кеше сами, когда игра их однажды
+  спросит, а список нужен ей при первом же запуске — по нему она узнаёт, какие
+  рисунки вообще есть. Без списка пришлось бы пробовать файлы наугад, и у
+  несуществующего браузер оставлял бы ошибку в консоли у каждого игрока.
+*/
+const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest',
+  'web/js/language-choice.js', 'web/i18n/bootstrap.js',
+  'web/assets/twelve-tribes/art.json'];
 
 // Тяжёлые ассеты «Моисея на Ниле» — модели, текстуры и three.js — весят почти
 // четыре мегабайта. Ставить их в кеш при установке нельзя: столько платит

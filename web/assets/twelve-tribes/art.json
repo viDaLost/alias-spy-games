@@ -1,0 +1,6 @@
+{
+  "note": "Что из набора уже лежит в папках. Пересобирается сама: node scripts/check-twelve-tribes-art.mjs --write",
+  "signs": [],
+  "actions": [],
+  "cards": []
+}
