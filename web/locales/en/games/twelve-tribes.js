@@ -273,6 +273,7 @@
       this.landing = null;   // место, с которого летит карта на сброс, или null
       this.sawReshuffle = -1; // какую перетасовку стол уже показал
       this.sawDir = 1;       // в какую сторону шёл круг, когда стол рисовали
+      this.dealt = [];       // кому и сколько карт прилетело последним ходом
       this.flash = null;     // строка состояния на один раз
     }
 
@@ -343,20 +344,20 @@
           <div class="tt-table">
             <div class="tt-foes" data-foes></div>
             <div class="tt-middle">
-              <div class="tt-deck" data-deck${deckStyle().slice(1) ? ' ' + deckStyle().trim() : ''}>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <button type="button" data-draw><span>взять</span></button>\n                <span class="tt-deck-count" data-deck-count></span>\n              </div>\n              <div class="tt-pile" data-pile></div>\n              <div class="tt-camp" data-camp></div>\n            </div>\n            <p class="tt-status" data-status></p>\n          </div>\n          <div class="tt-hand-wrap">\n            <div class="tt-hand-head">\n              <span data-hand-title>Ваши карты</span>\n              <button type="button" class="tt-tip-btn" data-hints>Что делают карты</button>\n              <span data-score></span>\n            </div>\n            <div class="tt-hand" data-hand></div>\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>\n            <button type="button" class="tt-btn tt-btn--call" data-shabbat hidden>Шабат!</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-menu>Menu</button>\n          </div>\n        </div>`;
+              <div class="tt-deck" data-deck${deckStyle().slice(1) ? ' ' + deckStyle().trim() : ''}>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <i class="tt-deck-layer"></i><i class="tt-deck-layer"></i>\n                <button type="button" data-draw><span>взять</span></button>\n                <span class="tt-deck-count" data-deck-count></span>\n              </div>\n              <div class="tt-pile" data-pile></div>\n              <div class="tt-camp" data-camp></div>\n            </div>\n            <p class="tt-status" data-status></p>\n          </div>\n          <div class="tt-hand-wrap">\n            <div class="tt-hand-head">\n              <span data-hand-title>Ваши карты</span>\n              <button type="button" class="tt-tip-btn" data-hints>Что делают карты</button>\n              <span data-score></span>\n            </div>\n            <div class="tt-hand" data-hand></div>\n          </div>\n          <div class="tt-row">\n            <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>\n            <button type="button" class="tt-btn tt-btn--call" data-shabbat hidden>Шабат!</button>\n            <button type="button" class="tt-btn tt-btn--call" data-catch hidden>Перебить!</button>\n            <button type="button" class="tt-btn tt-btn--ghost" data-menu>Menu</button>\n          </div>\n        </div>`;
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`).addEventListener('click', fn);
       on('draw', () => this.humanDraw());
       on('pass', () => this.humanPass());
       on('shabbat', () => { this.E.shabbat(this.state, 0); this.render(); });
+      on('catch', () => {
+        const seat = this.state.risk ? this.state.risk.seat : null;
+        if (seat !== null && seat !== 0) this.humanCatch(seat);
+      });
       on('hints', () => this.showHints());
       on('menu', () => { stopTimers(); if (typeof goToMainMenu === 'function') goToMainMenu(); });
       this.root.querySelector('[data-hand]').addEventListener('click', (event) => {
         const card = event.target.closest('[data-index]');
         if (card) this.humanPlay(Number(card.dataset.index));
-      });
-      this.root.querySelector('[data-foes]').addEventListener('click', (event) => {
-        const button = event.target.closest('[data-catch]');
-        if (button) this.humanCatch(Number(button.dataset.catch));
       });
     }
 
@@ -485,15 +486,16 @@
         // Первый за вами и последний перед вами названы словами: это два
         // места, которые в карточной игре решают всё.
         const tag = at === 0 ? 'следом' : at === queue.length - 1 ? 'перед вами' : '';
-        return `<div class="tt-foe${turn}${at === 0 ? ' is-next' : ''}" data-seat="${player.id}"
+        return `<div class="tt-foe${turn}${at === 0 ? ' is-next' : ''}${risk ? ' is-risk' : ''}"
+          data-seat="${player.id}"
           data-place="${at + 1}" style="--away:${place(at + 1, queue.length + 1).toFixed(3)}">
           <span class="tt-order">${at + 1}</span>
           <b>${player.name}</b>
           <span class="tt-foe-cards">${backs}</span>
           <span class="tt-foe-meta">${player.hand.length} ${cardsWord(player.hand.length)}${
   player.said ? ' · шабат' : ''}${state.target && player.score ? ` · ${player.score}` : ''}</span>
-          ${tag ? `<span class="tt-foe-tag">${tag}</span>` : ''}
-          ${risk ? `<button type="button" class="tt-catch" data-catch="${player.id}">Перебить!</button>` : ''}
+          ${risk ? '<span class="tt-foe-tag tt-foe-tag--risk">молчит!</span>'
+    : tag ? `<span class="tt-foe-tag">${tag}</span>` : ''}
         </div>`;
       }));
       foeBox.innerHTML = seats.join('');
@@ -591,6 +593,16 @@
       pass.hidden = !(mine && state.phase === 'drawn');
       const call = this.root.querySelector('[data-shabbat]');
       call.hidden = !(me.hand.length === 1 && !me.said && state.status === 'playing');
+      /*
+        «Перебить!» стоит там же, где «Шабат!», и по той же причине: обе кнопки
+        живут считаные секунды, и искать их в этот миг некогда. Раньше она
+        висела на карточке соперника — то есть каждый раз в новом месте, а при
+        восьмерых за столом ещё и во втором ряду.
+      */
+      const catcher = this.root.querySelector('[data-catch]');
+      const risky = E.riskOpen(state) && state.risk.seat !== 0 ? state.players[state.risk.seat] : null;
+      catcher.hidden = !risky;
+      if (risky) catcher.textContent = `Перебить: ${risky.name}`;
       this.root.querySelector('[data-draw]').disabled = !(mine && state.phase === 'play');
 
       const status = this.root.querySelector('[data-status]');
@@ -617,6 +629,16 @@
       if (this.fresh) {
         flyFrom(handBox.querySelector('.tt-card.is-fresh'), deckBox.getBoundingClientRect());
       }
+      /*
+        Карты, выданные картой действия, летят из колоды к тому, кому они
+        достались. Без этого «+4» соседу выглядит как цифра, которая молча
+        сменилась на его месте: игрок не видит, что произошло, и не связывает
+        это со своей картой.
+      */
+      if (this.dealt.length) {
+        for (const one of this.dealt) this.flyBacks(one.seat, one.count);
+        this.dealt = [];
+      }
       if (this.landing !== null) {
         const from = this.landing === 0
           ? this.root.querySelector('.tt-hand-wrap')
@@ -625,6 +647,54 @@
       }
       this.landing = null;
       this.fresh = null;
+    }
+
+    /*
+      ——— любое действие движка ———
+
+      Ход, взятие, перебивание — всё проходит здесь, и здесь же замечается,
+      кому прибавилось карт. Считать это в каждом месте по отдельности значило
+      бы однажды забыть: «Плен» выдаёт четыре, «Странствие» две, перебивание
+      две, а взятая своей рукой — одна, и у неё своя дорога.
+    */
+    act(fn, skipSeat = -1) {
+      const before = this.state.players.map((one) => one.hand.length);
+      const result = fn();
+      this.dealt = this.state.players
+        .map((one, seat) => ({ seat, count: one.hand.length - before[seat] }))
+        .filter((one) => one.count > 0 && one.seat !== skipSeat);
+      return result;
+    }
+
+    /*
+      Полёт рубашек из колоды. Карты летят по одной с задержкой — стопкой они
+      читались бы как одна толстая карта, а счёт как раз и важен: две это
+      странствие, четыре — плен.
+    */
+    flyBacks(seat, count) {
+      const wrap = this.root.querySelector('.tt-wrap');
+      const deck = this.root.querySelector('[data-deck]');
+      const target = seat === 0
+        ? this.root.querySelector('.tt-hand-wrap')
+        : this.root.querySelector(`[data-seat="${seat}"]`);
+      if (!wrap || !deck || !target) return;
+      const base = wrap.getBoundingClientRect();
+      const from = deck.getBoundingClientRect();
+      const to = target.getBoundingClientRect();
+      if (!from.width || !to.width) return;
+      const back = artUrl('cards', 'back');
+      for (let at = 0; at < Math.min(count, 4); at += 1) {
+        const ghost = document.createElement('i');
+        ghost.className = 'tt-fly';
+        ghost.style.left = `${Math.round(from.left - base.left + from.width / 2 - 22)}px`;
+        ghost.style.top = `${Math.round(from.top - base.top + from.height / 2 - 32)}px`;
+        ghost.style.setProperty('--to-x', `${Math.round(to.left + to.width / 2 - from.left - from.width / 2)}px`);
+        ghost.style.setProperty('--to-y', `${Math.round(to.top + to.height / 2 - from.top - from.height / 2)}px`);
+        ghost.style.animationDelay = `${at * 90}ms`;
+        if (back) ghost.style.setProperty('--back', `url('${back}')`);
+        ghost.addEventListener('animationend', () => ghost.remove());
+        wrap.appendChild(ghost);
+      }
     }
 
     /* ——— ходы человека ——— */
@@ -716,13 +786,14 @@
 
     commit(index, camp) {
       this.landing = 0;
-      this.E.play(this.state, 0, index, camp);
+      this.act(() => this.E.play(this.state, 0, index, camp));
       this.render();
       this.tick();
     }
 
     humanDraw() {
-      const card = this.E.draw(this.state, 0);
+      // Своя карта летит лицом в веер, и рубашка ей не нужна: полёт у неё свой.
+      const card = this.act(() => this.E.draw(this.state, 0), 0);
       this.fresh = card ? card.id : null;
       this.render();
       this.tick();
@@ -735,7 +806,7 @@
     }
 
     humanCatch(seat) {
-      this.E.catchOut(this.state, 0, seat);
+      this.act(() => this.E.catchOut(this.state, 0, seat));
       this.render();
     }
 
@@ -762,7 +833,7 @@
           && Bots.notices(one.botLevel, Math.random));
         if (hunter) {
           later(() => {
-            if (E.catchOut(state, hunter.id, 0)) {
+            if (this.act(() => E.catchOut(state, hunter.id, 0))) {
               this.root.querySelector('[data-status]').textContent = `${hunter.name} перебил вас: берёте две карты`;
               this.render();
             }
@@ -774,18 +845,20 @@
       const seat = state.turn;
       later(() => {
         if (this.state !== state || state.turn !== seat || state.status !== 'playing') return;
-        const choice = Bots.pick(state, seat);
-        if (choice) {
-          this.landing = seat;
-          E.play(state, seat, choice.index, choice.camp);
-        } else {
+        this.act(() => {
+          const choice = Bots.pick(state, seat);
+          if (choice) {
+            this.landing = seat;
+            E.play(state, seat, choice.index, choice.camp);
+            return;
+          }
           E.draw(state, seat);
           if (state.turn === seat && state.phase === 'drawn') {
             const after = Bots.pick(state, seat);
             if (after) { this.landing = seat; E.play(state, seat, after.index, after.camp); }
             else E.pass(state, seat);
           }
-        }
+        });
         this.render();
         this.tick();
       }, 800 + Math.random() * 500);

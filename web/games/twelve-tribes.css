@@ -26,6 +26,8 @@
 
   width: min(100%, 720px);
   margin: 0 auto;
+  /* Летящие рубашки считают своё место от стола, а не от страницы. */
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -232,19 +234,34 @@
 /* Подпись короткая нарочно: в место шириной в 78 точек длинная не влезает. */
 .tt-foe-tag { white-space: nowrap; }
 /*
-   Кнопка поимки. Она появляется только тогда, когда соперник забыл затрубить,
-   и висит на его же карточке: ловят конкретного человека, а не «кого-то».
+   Забывший сказать «Шабат» отмечен на своём месте, а перебивают его кнопкой
+   внизу — там же, где «Шабат!». Обе кнопки живут считаные секунды, и место у
+   них должно быть одно: искать их в этот миг некогда, а на столе восьмером
+   карточка соперника может оказаться и во втором ряду.
 */
-.tt-catch {
-  position: absolute; inset: auto -6px -12px auto;
-  border: 0; border-radius: 999px; padding: 4px 10px;
-  background: var(--warning, #f59e0b); color: #1f2937;
-  font: inherit; font-size: 12px; font-weight: 800; cursor: pointer;
-  box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .6);
-  /* Свечением, а не подскоком: по этой кнопке надо успеть попасть. */
-  animation: tt-glow 1s ease-in-out infinite;
-}
+.tt-foe.is-risk { border-color: var(--warning, #f59e0b); background: rgba(245, 158, 11, .18); }
+.tt-foe-tag--risk { color: var(--warning, #f59e0b); opacity: 1; }
 @keyframes tt-pulse { 50% { transform: scale(1.08); } }
+
+/*
+  Розданные карты летят из колоды к тому, кому достались, — по одной, с
+  задержкой. Стопкой они читались бы как одна толстая карта, а число здесь и
+  есть смысл: две — странствие, четыре — плен.
+*/
+.tt-fly {
+  position: absolute; z-index: 30; pointer-events: none;
+  width: 44px; height: 64px; border-radius: 7px; display: block;
+  background: var(--back, none) center / cover no-repeat,
+    linear-gradient(160deg, #1e293b, #0f172a);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 10px 18px -10px rgba(0, 0, 0, .9);
+  animation: tt-deal .58s cubic-bezier(.2, .72, .25, 1) both;
+}
+@keyframes tt-deal {
+  from { transform: translate(0, 0) scale(.92) rotate(-7deg); opacity: 0; }
+  18% { opacity: 1; }
+  85% { opacity: 1; }
+  to { transform: translate(var(--to-x, 0), var(--to-y, 0)) scale(.66) rotate(7deg); opacity: 0; }
+}
 
 /* ——— колода и сброс ——— */
 .tt-middle { display: flex; align-items: center; justify-content: center; gap: 18px; flex: 1 1 auto; }
@@ -661,7 +678,7 @@ img.tt-sign { object-fit: contain; display: block; }
   .tt-deck, .tt-pile { width: 64px; height: 94px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tt-catch, .tt-hand .tt-card.is-fresh, .tt-pile .tt-card.is-landing,
+  .tt-fly, .tt-hand .tt-card.is-fresh, .tt-pile .tt-card.is-landing,
   .tt-btn--call, .tt-deck[data-hint="true"]::after,
   .tt-deck.is-refilled .tt-deck-layer, .tt-deck.is-refilled .tt-deck-count { animation: none; }
 }
