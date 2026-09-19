@@ -1268,7 +1268,15 @@
           : `и просит сверху ${-offer.silver}`));
       }
       main.appendChild(line);
-      if (offer.to === me && (!to || !to.isBot)) {
+      /*
+        Кто отвечает. По сети — только тот, кому предложили: чужой ответ сервер
+        и не примет. За одним столом экран один на всех, и отвечает с него тот,
+        кому уговор предложен, кем бы из людей он ни был; иначе уговор, поданный
+        не тому человеку, остался бы без ответа навсегда — соперники ждут его.
+      */
+      const answers = link ? (offer.to === me && to && !to.isBot) : Boolean(to && !to.isBot);
+      if (answers) {
+        if (!link && to.id !== me) main.appendChild(el('div', 'waiting', `Отвечает ${to.name}`));
         main.appendChild(button('Принять', 'primary', () => { act('tradeAccept'); after(); }));
         main.appendChild(button('Отказаться', 'ghost', () => { act('tradeDecline'); after(); }));
       } else {
@@ -1802,18 +1810,6 @@
     scene.dealCard(pending.deck, art('cards', pending.art));
   }
 
-  /*
-    Ход наружу для проверок. Правила и сцена уже наружу: без них проверить их
-    нечем. Партия — то же самое: до темницы человека не доводит ни один
-    осмысленный путь нажатиями, а спросить, стоит ли там кнопка выкупа, надо.
-    Отсюда только чтение состояния и просьба перерисовать: играть за игрока
-    этот ход не умеет.
-  */
-  window.PromisedLandGame = {
-    state: () => state,
-    refresh: () => render(),
-  };
-
   function render() {
     const turnPlayer = state.players[state.turn];
     if (turnPlayer && !turnPlayer.isBot) lastHumanId = turnPlayer.id;
@@ -1973,6 +1969,13 @@
     // таймером, ходили бы за одного и того же соперника наперегонки.
     if (link || !state) return;
     if (state.status !== 'playing') return;
+    /*
+      Уговор, предложенный человеку, останавливает соперников до ответа. Иначе
+      предложивший тут же доигрывал свой ход, а уговор отменялся вместе с ним:
+      человек видел кнопки «Принять» и «Отказаться» секунду и не успевал даже
+      прочитать, что ему предлагают.
+    */
+    if (state.trade && !playerById(state.trade.to)?.isBot) return;
     if (!E.current(state).isBot) return;
     botTimer = setTimeout(async () => {
       if (state.status !== 'playing') return;
@@ -2222,9 +2225,15 @@
     Ход наружу для проверок. Партия живёт внутри этого файла, и спросить у неё
     «чей ход, у кого какой удел» иначе нельзя: проверка видит только разметку и
     не отличает «уговор не дошёл» от «уговор дошёл, но не нарисовался».
-    Наружу отдаётся чтение и перерисовка — ходов здесь нет.
+    Наружу отдаётся чтение, перерисовка и побудка соперников — та самая, что
+    идёт за любой кнопкой партии. Ходов здесь нет: сыграть отсюда за игрока
+    нельзя, а вот проверить, что соперники ждут ответа на уговор, — можно.
   */
-  window.PromisedLandGame = { state: () => state, refresh: () => render() };
+  window.PromisedLandGame = {
+    state: () => state,
+    refresh: () => render(),
+    wake: () => after(),
+  };
 
   setupScreen();
   modeScreen();

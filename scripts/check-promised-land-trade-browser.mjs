@@ -239,19 +239,44 @@ need(/150/.test(seen.text), `в предложении не видно допл�
 need(seen.accept.includes('Принять') && seen.accept.includes('Отказаться'),
   `вместо ответа на уговор показаны кнопки: ${seen.accept.join(', ')}`);
 
-// Кошелёк запоминается до согласия: первый уговор этой же проверки мог его
-// уже изменить, и сверять с числом «как в начале партии» было бы гаданием.
-const purseBefore = await page.evaluate(() => window.PromisedLandGame.state().players[0].silver);
-await page.locator('#actions .btn', { hasText: 'Принять' }).click();
-await page.waitForTimeout(400);
-const done = await page.evaluate(() => {
+/*
+  Соперники ждут ответа. Уговор отменяется в конце хода предложившего, а ход
+  соперника от игры длится секунду: пока соперники ходили не оглядываясь,
+  человек успевал увидеть кнопки, но не успевал прочитать, что ему предлагают,
+  — уговор отменялся сам собой. Здесь ход соперников пускается по-настоящему и
+  сверяется, что за три секунды он не сдвинулся с места.
+*/
+await page.evaluate(() => { window.PromisedLandGame.wake(); });
+await page.waitForTimeout(3_000);
+const waited = await page.evaluate(() => {
   const game = window.PromisedLandGame.state();
-  return { trade: game.trade, one: game.cells[1].owner, six: game.cells[6].owner, purse: game.players[0].silver };
+  return {
+    trade: Boolean(game.trade),
+    turn: game.turn,
+    buttons: [...document.querySelectorAll('#actions .btn')].map((one) => one.textContent.trim()),
+  };
 });
-need(done.trade === null, 'после согласия уговор остался висеть');
-need(done.one === 'p1' && done.six === 'p0', `после согласия уделы у ${done.one} и ${done.six}`);
-need(done.purse === purseBefore + 150,
-  `получивший доплату стал с ${done.purse} вместо ${purseBefore + 150}`);
+need(waited.trade, 'соперник доиграл свой ход и отменил уговор, не дождавшись ответа');
+need(waited.turn === 1, `ход ушёл дальше во время уговора: ходит ${waited.turn}`);
+need(waited.buttons.includes('Принять'), `ответить стало нечем: ${waited.buttons.join(', ')}`);
+
+// Соглашаться, когда уговора уже нет, не по чему: без этой оговорки проверка
+// падала бы ожиданием кнопки вместо того, чтобы сказать, чего не хватило.
+if (waited.trade && waited.buttons.includes('Принять')) {
+  // Кошелёк запоминается до согласия: первый уговор этой же проверки мог его
+  // уже изменить, и сверять с числом «как в начале партии» было бы гаданием.
+  const purseBefore = await page.evaluate(() => window.PromisedLandGame.state().players[0].silver);
+  await page.locator('#actions .btn', { hasText: 'Принять' }).click();
+  await page.waitForTimeout(400);
+  const done = await page.evaluate(() => {
+    const game = window.PromisedLandGame.state();
+    return { trade: game.trade, one: game.cells[1].owner, six: game.cells[6].owner, purse: game.players[0].silver };
+  });
+  need(done.trade === null, 'после согласия уговор остался висеть');
+  need(done.one === 'p1' && done.six === 'p0', `после согласия уделы у ${done.one} и ${done.six}`);
+  need(done.purse === purseBefore + 150,
+    `получивший доплату стал с ${done.purse} вместо ${purseBefore + 150}`);
+}
 
 await browser.close();
 server.close();
