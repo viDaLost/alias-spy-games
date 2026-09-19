@@ -380,11 +380,26 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
   взглядом, что и кнопка, — не надо поднимать глаза к шапке.
 */
 .turnline {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 4px 10px;
+  /*
+    Строка переносится: под ней стоит рассказ о чужом ходе, и без переноса он
+    вставал в ту же строку, сжимая «Год 1 из 3» и «ходит Ефрем» в два слова
+    на два этажа каждое.
+  */
+  flex-wrap: wrap;
   font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
   padding: 2px 4px;
 }
 .turnline-who { display: inline-flex; align-items: center; gap: 6px; }
+/*
+  Что сделал сосед — одной строкой под тем, чей ход. Строка длинная, а место
+  под ней узкое: поэтому она занимает всю ширину и переносится, а не режется
+  многоточием. Прочесть её важнее, чем уложить в одну строку.
+*/
+.turnline-last {
+  flex: 1 1 100%; text-align: center; font-weight: 500; font-size: 12px;
+  color: var(--ink-soft); opacity: .92; line-height: 1.3;
+}
 .hud-dot {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--who, var(--primary));
