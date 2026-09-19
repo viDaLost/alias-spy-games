@@ -1,4 +1,5 @@
 import coreV5, { UserStore as V5UserStore } from './index-v5.js';
+import { PENDING_WARNINGS_SQL, PURGE_INACTIVE_SQL, WARNINGS_TABLE_SQL } from './retention-sql.js';
 
 const encoder = new TextEncoder();
 /*
@@ -12,6 +13,26 @@ const encoder = new TextEncoder();
 */
 const INACTIVE_ACCOUNT_DAYS = 15;
 const INACTIVE_ACCOUNT_MS = INACTIVE_ACCOUNT_DAYS * 24 * 60 * 60 * 1000;
+/*
+  Предупреждение за сутки.
+
+  Профиль удаляется молча — человек узнаёт об этом, только вернувшись и не
+  найдя своих звёзд. За день до удаления бот пишет ему в личные сообщения:
+  давно не заходили, профиль будет удалён завтра. Одного дня хватает, чтобы
+  зайти и остаться; больше — значит писать тем, кто ещё и не думал уходить.
+
+  Удаление после этого не просто «через сутки по часам», а «через сутки после
+  того, как предупредили»: раз в день задача может и не сработать — сеть,
+  развёртывание, — и тогда человек был бы удалён, так и не получив письма.
+  Поэтому в чистку попадает только тот, кому предупреждение уже ушло и с тех
+  пор прошло почти сутки.
+*/
+const INACTIVE_WARN_DAYS = 1;
+const INACTIVE_WARN_MS = INACTIVE_WARN_DAYS * 24 * 60 * 60 * 1000;
+// Не ровно сутки: задача ходит раз в день и всегда чуть-чуть в разное время.
+// Двадцать часов — тот запас, при котором следующий же запуск застаёт срок
+// вышедшим, а человек всё равно получает почти полные сутки.
+const INACTIVE_WARN_GRACE_MS = 20 * 60 * 60 * 1000;
 // «более 21 дня», но «более 15 дней»: после «более» стоит родительный падеж,
 // и единственное число он берёт только у чисел, кончающихся на один — кроме
 // одиннадцати.
@@ -31,6 +52,17 @@ export class UserStore extends V5UserStore {
       );
       CREATE INDEX IF NOT EXISTS idx_acquisition_sources_created
         ON acquisition_sources(created_at DESC);
+      /*
+        Кому уже сказали о скором удалении. Рядом с отметкой лежит та самая
+        давность, из-за которой предупредили: человек вернулся — давность
+        сдвинулась, отметка устарела, и в следующий раз его предупредят
+        заново. Без этого вернувшийся и снова забывший про игру был бы удалён
+        по старому, давно прочитанному письму.
+
+        Сам запрос — в retention-sql.js, вместе с двумя другими: оттуда их
+        берёт и проверка, которая гоняет их над настоящей SQLite.
+      */
+      ${WARNINGS_TABLE_SQL};
     `);
   }
 
@@ -44,6 +76,14 @@ export class UserStore extends V5UserStore {
     if (request.method === 'POST' && url.pathname === '/maintenance/purge-inactive') {
       const body = await request.json().catch(() => ({}));
       return storeResponse(await this.purgeInactiveAccounts(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/maintenance/inactive-warnings') {
+      const body = await request.json().catch(() => ({}));
+      return storeResponse(await this.pendingInactiveWarnings(body));
+    }
+    if (request.method === 'POST' && url.pathname === '/maintenance/inactive-warned') {
+      const body = await request.json().catch(() => ({}));
+      return storeResponse(await this.markInactiveWarned(body));
     }
     return super.fetch(request);
   }
@@ -123,27 +163,70 @@ export class UserStore extends V5UserStore {
     );
   }
 
+  /*
+    Кого пора предупредить. Те, кто не заходил дольше, чем срок минус сутки, и
+    кому об этой самой отлучке ещё не писали.
+
+    Верхней границы нет нарочно: если задача день не работала, человек уже
+    перешагнул срок удаления — и тем более должен получить письмо, а не молча
+    исчезнуть. Чистка его не тронет, пока с письма не пройдут сутки.
+  */
+  async pendingInactiveWarnings(raw = {}) {
+    await this.ensureMigrated();
+    const now = Number(raw.now) || Date.now();
+    const warnBefore = now - (INACTIVE_ACCOUNT_MS - INACTIVE_WARN_MS);
+    const adminId = cleanUserId(raw.adminId || this.env.ADMIN_TELEGRAM_ID || '');
+    const rows = this.sql.exec(PENDING_WARNINGS_SQL,
+      adminId, adminId, warnBefore, now, warnBefore).toArray();
+
+    return {
+      ok: true,
+      success: true,
+      warnBefore,
+      users: rows
+        .map((row) => ({ id: cleanUserId(row.id), seen: Number(row.seen || 0) }))
+        .filter((one) => one.id),
+    };
+  }
+
+  /** Отметить, что человеку написали. Отметка привязана к той же отлучке. */
+  async markInactiveWarned(raw = {}) {
+    await this.ensureMigrated();
+    const now = Number(raw.now) || Date.now();
+    const users = Array.isArray(raw.users) ? raw.users : [];
+    let marked = 0;
+    this.ctx.storage.transactionSync(() => {
+      for (const one of users) {
+        const id = cleanUserId(one?.id);
+        const seen = Number(one?.seen || 0);
+        if (!id || !seen) continue;
+        this.sql.exec(
+          `INSERT INTO inactive_warnings (user_id, warned_at, last_seen_at) VALUES (?, ?, ?)
+           ON CONFLICT(user_id) DO UPDATE SET warned_at = excluded.warned_at,
+                                              last_seen_at = excluded.last_seen_at`,
+          id, now, seen,
+        );
+        marked += 1;
+      }
+    });
+    return { ok: true, success: true, marked };
+  }
+
   async purgeInactiveAccounts(raw = {}) {
     await this.ensureMigrated();
     const now = Date.now();
     const cutoff = Math.min(Number(raw.cutoff || 0) || (now - INACTIVE_ACCOUNT_MS), now - INACTIVE_ACCOUNT_MS);
     const adminId = cleanUserId(raw.adminId || this.env.ADMIN_TELEGRAM_ID || '');
-    const rows = this.sql.exec(`
-      SELECT u.telegram_id
-      FROM users u
-      WHERE u.is_banned = 0
-        AND (? = '' OR u.telegram_id <> ?)
-        AND COALESCE(NULLIF(u.last_seen_at, 0), NULLIF(u.updated_at, 0), u.created_at) < ?
-        AND NOT EXISTS (
-          SELECT 1 FROM android_sessions s
-          WHERE s.telegram_id = u.telegram_id
-            AND s.revoked = 0
-            AND s.expires_at > ?
-            AND s.last_seen_at >= ?
-        )
-      ORDER BY COALESCE(NULLIF(u.last_seen_at, 0), NULLIF(u.updated_at, 0), u.created_at) ASC
-      LIMIT 1000
-    `, adminId, adminId, cutoff, now, cutoff).toArray();
+    /*
+      Удаляется только тот, кого предупредили и с чьего письма прошли почти
+      сутки. Условие это не про вежливость, а про обещание: в письме сказано
+      «через день», и оно должно быть правдой даже тогда, когда задача день
+      не отработала. Кому не писали — тот в этот раз получит письмо и уйдёт
+      следующим.
+    */
+    const warnedBefore = now - INACTIVE_WARN_GRACE_MS;
+    const rows = this.sql.exec(PURGE_INACTIVE_SQL,
+      adminId, adminId, cutoff, warnedBefore, now, cutoff).toArray();
 
     const ids = rows.map((row) => cleanUserId(row.telegram_id)).filter(Boolean);
     if (!ids.length) {
@@ -164,6 +247,7 @@ export class UserStore extends V5UserStore {
         this.sql.exec('DELETE FROM android_sessions WHERE telegram_id = ?', id);
         this.sql.exec('DELETE FROM android_auth_challenges WHERE telegram_id = ?', id);
         this.sql.exec('DELETE FROM broadcast_recipients WHERE telegram_id = ?', id);
+        this.sql.exec('DELETE FROM inactive_warnings WHERE user_id = ?', id);
         this.sql.exec('DELETE FROM users WHERE telegram_id = ?', id);
       }
 
@@ -204,7 +288,16 @@ export default {
   },
 
   async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(runInactiveCleanup(env));
+    /*
+      Сначала письма, потом чистка, и обязательно в этом порядке: чистка
+      забирает только тех, кого предупредили сутки назад, а письма уходят
+      тем, кому это предстоит завтра. Поменять их местами значило бы в
+      первый же запуск удалить тех, кто письма так и не получил.
+    */
+    ctx.waitUntil((async () => {
+      const warned = await runInactiveWarnings(env).catch(() => ({ sent: 0, failed: 0 }));
+      await runInactiveCleanup(env, warned);
+    })());
   },
 };
 
@@ -242,18 +335,80 @@ async function handleReferralCompat(request, env, ctx, body, payload, action) {
   }
 }
 
-async function runInactiveCleanup(env) {
+/*
+  Письмо тому, кто вот-вот потеряет профиль. Пишется от бота, в личные
+  сообщения — туда же, куда приходит всё остальное.
+
+  Сказано коротко и по делу: сколько не заходили, что будет и что сделать,
+  чтобы этого не было. Без уговоров и без «мы скучаем»: человек и так может
+  быть недоволен тем, что его считают ушедшим.
+*/
+function inactiveWarningText() {
+  return [
+    '⏳ Профиль в «Библейских играх» будет удалён завтра',
+    '',
+    `Вы не заходили в приложение больше ${INACTIVE_ACCOUNT_DAYS - INACTIVE_WARN_DAYS} `
+      + `${daysWord(INACTIVE_ACCOUNT_DAYS - INACTIVE_WARN_DAYS)}. Профили, забытые на `
+      + `${INACTIVE_ACCOUNT_DAYS} ${daysWord(INACTIVE_ACCOUNT_DAYS)}, удаляются — вместе со `
+      + 'звёздами, уровнями и всем набранным.',
+    '',
+    'Чтобы этого не случилось, просто откройте приложение — этого достаточно.',
+  ].join('\n');
+}
+
+/*
+  Предупреждения рассылаются перед чисткой и в том же запуске. Отметка о
+  письме ставится только тем, кому оно ушло: не доставили — человек попадёт в
+  список снова завтра, а удалён не будет, потому что чистка ждёт отметки.
+
+  «Не доставили» — это обычно не сбой, а запрет: бот не может написать тому,
+  кто его не запускал или заблокировал. Такой человек остаётся с профилем,
+  и это честнее, чем удалить его молча.
+*/
+async function runInactiveWarnings(env) {
+  if (!env.TELEGRAM_BOT_TOKEN) return { sent: 0, failed: 0 };
+  const store = env.USERS.get(env.USERS.idFromName('global'));
+  const now = Date.now();
+  const pending = await callStore(store, '/maintenance/inactive-warnings', {
+    now,
+    adminId: String(env.ADMIN_TELEGRAM_ID || ''),
+  });
+  const users = Array.isArray(pending?.users) ? pending.users : [];
+  if (!users.length) return { sent: 0, failed: 0 };
+
+  const text = inactiveWarningText();
+  const delivered = [];
+  let failed = 0;
+  for (const one of users) {
+    try {
+      await telegramSendMessage(env, String(one.id), text);
+      delivered.push(one);
+    } catch {
+      failed += 1;
+    }
+  }
+  if (delivered.length) {
+    await callStore(store, '/maintenance/inactive-warned', { now, users: delivered }).catch(() => {});
+  }
+  return { sent: delivered.length, failed };
+}
+
+async function runInactiveCleanup(env, warnings = { sent: 0, failed: 0 }) {
   const store = env.USERS.get(env.USERS.idFromName('global'));
   const cutoff = Date.now() - INACTIVE_ACCOUNT_MS;
   const result = await callStore(store, '/maintenance/purge-inactive', {
     cutoff,
     adminId: String(env.ADMIN_TELEGRAM_ID || ''),
   });
-  if (Number(result.deleted || 0) > 0 && env.TELEGRAM_BOT_TOKEN && env.ADMIN_TELEGRAM_ID) {
+  const warned = Number(warnings?.sent || 0);
+  const unreachable = Number(warnings?.failed || 0);
+  if ((Number(result.deleted || 0) > 0 || warned > 0) && env.TELEGRAM_BOT_TOKEN && env.ADMIN_TELEGRAM_ID) {
     await telegramSendMessage(env, String(env.ADMIN_TELEGRAM_ID), [
       '🧹 Очистка неактивных аккаунтов',
       `Удалено: ${Number(result.deleted || 0)}`,
+      `Предупреждено за сутки: ${warned}${unreachable ? ` (не доставлено ${unreachable})` : ''}`,
       `Критерий: более ${INACTIVE_ACCOUNT_DAYS} ${daysWord(INACTIVE_ACCOUNT_DAYS)} без активности.`,
+      'Удаляется только тот, кого предупредили сутки назад.',
       'Заблокированные аккаунты и аккаунт администратора не удаляются.',
     ].join('\n')).catch(() => {});
   }
