@@ -387,6 +387,66 @@
   }
 
   /*
+    Подброс — ход вне очереди.
+
+    Отличий от обычного хода три, и все три нарочные.
+
+    Первое: действие подброшенной карты не срабатывает. «Суббота», брошенная
+    вне очереди, никого не отправляет отдыхать, «Странствие» не выдаёт карт.
+    Иначе подброс был бы не ловкостью, а оружием: сидя с двумя субботами,
+    можно было бы держать соседа без хода сколько угодно.
+
+    Второе: ход продолжается от подбросившего. В этом весь смысл — круг
+    перескакивает к нему, и следующим ходит тот, кто сидит за ним.
+
+    Третье: подбросить может кто угодно, кроме того, чей ход сейчас, — тому
+    подбрасывать не надо, он и так ходит.
+  */
+  function canJump(state, seat) {
+    if (state.status !== 'playing' || state.phase !== 'play') return [];
+    if (state.turn === seat) return [];
+    const player = state.players[seat];
+    if (!player || player.out) return [];
+    const out = [];
+    for (let i = 0; i < player.hand.length; i += 1) {
+      if (R.jumpable(state, player.hand[i])) out.push(i);
+    }
+    return out;
+  }
+
+  function jump(state, seat, index) {
+    if (!canJump(state, seat).includes(index)) return false;
+    const player = state.players[seat];
+    const card = player.hand[index];
+
+    player.hand.splice(index, 1);
+    if (!player.hand.length) player.said = false;
+    state.pile.push(card);
+    state.camp = card.camp;
+    state.drawn = null;
+    state.phase = 'play';
+    state.moves += 1;
+    note(state, `${player.name} подбросил: ${R.campOf(card.camp).name}, ${card.kind === 'number'
+      ? `suerte ${card.rank}` : R.KINDS[card.kind].title.toLowerCase()} — ход перешёл к нему.`);
+
+    if (award(state, seat, card)) return true;
+    if (!player.hand.length) {
+      if (state.target) refillHand(state, seat);
+      else takePlace(state, seat);
+      if (state.status !== 'playing') return true;
+    }
+    if (player.hand.length === 1) { player.said = false; markRisk(state, seat); }
+
+    /*
+      Действие не срабатывает, поэтому и пропускать некого: ход просто идёт от
+      подбросившего дальше по кругу. Если он сам этой картой и вышел, очередь
+      обойдёт его — за тем она и умеет обходить вышедших.
+    */
+    state.turn = nextSeat(state, seat, 1);
+    return true;
+  }
+
+  /*
     Взять карту. Берут одну и только один раз за ход: взятую можно сыграть
     сразу, если она подошла, или отказаться — тогда ход переходит дальше.
   */
@@ -432,7 +492,7 @@
 
   window.TwelveTribesEngine = {
     createGame, deal, current, nextSeat, playing,
-    play, draw, pass, shabbat, canCatch, catchOut,
+    play, draw, pass, shabbat, canCatch, catchOut, canJump, jump,
     legalMoves: (state, seat) => R.legalMoves(state, seat),
     riskOpen,
   };

@@ -52,7 +52,7 @@ const ACTION_WINDOW_LIMIT = 14;
 const ROOM_ACTIONS = new Set([
   'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'chat', 'leave',
 ]);
-const GAME_ACTIONS = new Set(['play', 'draw', 'pass', 'shabbat', 'catch']);
+const GAME_ACTIONS = new Set(['play', 'draw', 'pass', 'shabbat', 'catch', 'jump']);
 
 export default {
   async fetch(request, env) {

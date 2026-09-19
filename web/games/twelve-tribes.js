@@ -440,9 +440,18 @@
         if (this.net) { this.net.leave(); return; }
         if (typeof goToMainMenu === 'function') goToMainMenu();
       });
+      /*
+        Одно нажатие на карту — два разных хода, и различает их не игрок, а
+        очередь. Свой ход — карта кладётся как обычно; чужой — та же карта
+        подбрасывается, если совпала целиком. Спрашивать «что вы хотели» было
+        бы издевательством: подброс живёт секунду.
+      */
       this.root.querySelector('[data-hand]').addEventListener('click', (event) => {
         const card = event.target.closest('[data-index]');
-        if (card) this.humanPlay(Number(card.dataset.index));
+        if (!card) return;
+        const index = Number(card.dataset.index);
+        if (this.state.turn === 0) this.humanPlay(index);
+        else this.humanJump(index);
       });
     }
 
@@ -718,9 +727,17 @@
       */
       const many = me.hand.length;
       handBox.style.setProperty('--hand', String(many));
+      /*
+        Подбросить можно не в свою очередь, и карта, которой это можно
+        сделать, должна быть видна сразу: окно подброса живёт до чужого хода,
+        то есть считаные секунды. Она светится иначе, чем законный свой ход, —
+        иначе игрок решит, что настала его очередь.
+      */
+      const jumps = new Set(mine ? [] : E.canJump(state, 0));
       handBox.innerHTML = me.hand.map((card, index) => {
-        const live = mine && legal.has(index);
-        const extra = `${live ? 'is-live' : 'is-dim'}${card.id === this.fresh ? ' is-fresh' : ''}`;
+        const live = mine ? legal.has(index) : jumps.has(index);
+        const extra = `${live ? 'is-live' : 'is-dim'}${jumps.has(index) ? ' is-jump' : ''}${
+  card.id === this.fresh ? ' is-fresh' : ''}`;
         // Середина руки — ноль; края — крайние углы веера.
         const away = many > 1 ? (index - (many - 1) / 2) / ((many - 1) / 2) : 0;
         return this.cardHTML(card, extra, `--away:${away.toFixed(3)}`,
@@ -794,6 +811,11 @@
       const status = this.root.querySelector('[data-status]');
       if (this.flash) { status.textContent = this.flash; this.flash = null; }
       else if (state.status !== 'playing') status.textContent = '';
+      else if (!mine && jumps.size) {
+        // Подброс важнее всего прочего, что можно сказать на чужом ходу: он
+        // живёт до следующего хода, и сказать про него надо сейчас.
+        status.innerHTML = 'Такая же карта на руке — <b>подбросьте её</b>';
+      }
       else if (!mine) {
         // Следом вы — это стоит сказать: значит, действие чужой карты придёт
         // именно вам, и руку надо готовить сейчас.
@@ -978,6 +1000,9 @@
           Подкинули «Странствие» или «Плен» — брать не обязательно: положите
           <b>такую же карту</b>, и долг вырастет и уйдёт дальше. Тот, кому он достанется, тоже
           волен перевести его следующему.<br>
+          На столе лежит карта, точно такая же, как у вас на руке, — <b>подбросьте её</b>, не
+          дожидаясь очереди: круг перескочит к вам. Совпасть должно всё, и стан, и жребий, а
+          действие подброшенной карты не срабатывает.<br>
           ${state.target
     ? `Счёт растёт сразу за каждую сброшенную карту: жребий — своей цифрой, действие — тройкой.
           Выложили всё, а до ${state.target} не дошли — берёте ещё шесть и играете дальше.`
@@ -1026,6 +1051,21 @@
       this.render();
     }
 
+    /*
+      Подброс вне очереди. Отдельно от обычного хода, потому что и правило
+      отдельное: карта должна совпасть целиком, действие её не срабатывает, а
+      ход перескакивает к подбросившему.
+    */
+    humanJump(index) {
+      const card = this.state.players[0].hand[index];
+      if (!card) return;
+      if (this.net) { this.net.send('jump', { card: card.id }); return; }
+      this.landing = 0;
+      this.act(() => this.E.jump(this.state, 0, index));
+      this.render();
+      this.tick();
+    }
+
     /* ——— ходы соперников ——— */
     /*
       Ход бота идёт по таймеру, а не мгновенно. Это не украшение: мгновенный
@@ -1057,6 +1097,29 @@
             }
           }, 1500 + Math.random() * 900);
         }
+      }
+
+      /*
+        Подброс соперника. Он идёт отдельной задержкой и раньше своего хода:
+        подбросивший перехватывает круг на себя. Задержка нарочно больше
+        полусекунды — человеку надо успеть увидеть карту и подбросить самому,
+        а соперник, срывающий каждый подброс мгновенно, отнял бы у правила
+        всякий смысл.
+      */
+      const jumper = state.players.find((one) => one.isBot && !one.out
+        && E.canJump(state, one.id).length && Bots.jumps(one.botLevel, Math.random));
+      if (jumper) {
+        const at = state.moves;
+        later(() => {
+          if (this.state !== state || state.moves !== at || state.status !== 'playing') return;
+          const moves = E.canJump(state, jumper.id);
+          if (!moves.length) return;
+          this.landing = jumper.id;
+          this.act(() => E.jump(state, jumper.id, moves[0]));
+          this.render();
+          this.tick();
+        }, 900 + Math.random() * 700);
+        return;
       }
 
       if (state.turn === 0) return;

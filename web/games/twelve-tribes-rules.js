@@ -163,6 +163,31 @@
     return card.kind === top.kind;
   }
 
+  /*
+    Подброс — ход вне очереди.
+
+    Кто-то положил пятёрку Иуды, а у вас на руке такая же пятёрка Иуды: её
+    можно бросить сразу, не дожидаясь своей очереди, и ход пойдёт дальше уже
+    от вас. Правило это не выдумано под игру — так за столом играют все, и
+    именно оно не даёт зевать на чужом ходу.
+
+    Карта должна совпасть целиком: и стан, и жребий. Не «зелёная на зелёную» и
+    не «пятёрка на пятёрку», а та же самая карта — иначе подброс превратился бы
+    в обычный ход, только без очереди, и очереди бы не стало вовсе.
+
+    Жребий колен и плен подбросить нельзя, и запрещать это отдельно не
+    приходится: стан у них выбирают, кладя на стол, а в руке он пуст — совпасть
+    ему не с чем.
+  */
+  function jumpable(state, card) {
+    if (state.penalty) return false;   // под долгом стол занят другим разговором
+    const top = state.pile[state.pile.length - 1];
+    if (!top || !card) return false;
+    if (KINDS[card.kind].wild || KINDS[top.kind].wild) return false;
+    if (card.kind !== top.kind || card.camp !== top.camp) return false;
+    return card.kind !== 'number' || card.rank === top.rank;
+  }
+
   /** Какими картами с руки можно пойти прямо сейчас: список мест в руке. */
   function legalMoves(state, seat) {
     const hand = state.players[seat].hand;
@@ -172,7 +197,7 @@
   }
 
   window.TwelveTribesRules = {
-    CAMPS, CAMP_IDS, KINDS, ACTION_SCORE, campOf, scoreOf, drawsOf, buildDeck, shuffle, playable, legalMoves,
+    CAMPS, CAMP_IDS, KINDS, ACTION_SCORE, campOf, scoreOf, drawsOf, buildDeck, shuffle, playable, jumpable, legalMoves,
     HAND: 7,
     // Сколько человек садится за стол. Восемь — предел колоды: по семь карт на
     // руки это 56 карт из 108, и на игру остаётся ровно половина.

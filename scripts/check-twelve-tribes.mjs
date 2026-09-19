@@ -128,6 +128,37 @@ function playRound(state, random, tale) {
       + state.players.reduce((sum, one) => sum + one.hand.length, 0);
     if (before !== 108) fault('счёт карт сбился до хода', `${before}`);
 
+    /*
+      Подброс. Идёт до хода очередного игрока и вместо него: подбросивший
+      перехватывает круг на себя. Здесь он делается всегда, когда есть чем, —
+      проверке нужен не характер соперника, а сам путь: подбросов должно
+      случиться много, и после каждого стол обязан сойтись.
+    */
+    let jumped = false;
+    for (const one of state.players) {
+      if (one.id === seat || one.out) continue;
+      const hasJump = E.canJump(state, one.id);
+      if (!hasJump.length) continue;
+      const top = state.pile[state.pile.length - 1];
+      const card = one.hand[hasJump[0]];
+      if (card.kind !== top.kind || card.camp !== top.camp) {
+        fault('подброшена не та же карта', `${card.kind} ${card.camp} на ${top.kind} ${top.camp}`);
+      }
+      const penaltyBefore = state.penalty;
+      if (!E.jump(state, one.id, hasJump[0])) fault('движок отказал в законном подбросе', one.name);
+      if (state.penalty !== penaltyBefore) {
+        fault('подброшенная карта сработала действием', `${card.kind}`);
+      }
+      tale.jumped += 1;
+      jumped = true;
+      break;
+    }
+    if (jumped) {
+      moves += 1;
+      audit(state, `подброс, ход ${moves}`);
+      continue;
+    }
+
     const choice = Bots.pick(state, seat);
     if (choice) {
       const card = player.hand[choice.index];
@@ -219,6 +250,7 @@ const tale = {
   score: { games: 0, moves: 0, longest: 0 },
   places: { games: 0, moves: 0, longest: 0 },
   passed: 0,   // сколько раз долг перевели дальше, а не взяли
+  jumped: 0,   // сколько раз подбросили карту вне очереди
   topped: 0,   // сколько раз выложивший всё добрал шесть карт на счёт
 };
 const GAMES = 240;
@@ -572,6 +604,72 @@ function bench({ hands, camp, kind = 'number', rank = 5, seats = 2 }) {
   }
 }
 
+/*
+  13. Подброс вне очереди. Кто-то положил пятёрку Иуды, а у вас такая же — её
+  можно бросить сразу, и круг перескочит к вам. Проверяется и то, что подброс
+  разрешён, и то, чем он ограничен: совпасть карта должна целиком.
+*/
+{
+  const state = bench({
+    camp: 'judah', rank: 5, seats: 3,
+    hands: [
+      [{ kind: 'number', camp: 'judah', rank: 9 }],
+      [{ kind: 'number', camp: 'judah', rank: 5 }, { kind: 'number', camp: 'dan', rank: 5 }],
+      [{ kind: 'number', camp: 'judah', rank: 3 }],
+    ],
+  });
+  need(E.canJump(state, 1).length === 1,
+    `подбросить можно ${E.canJump(state, 1).length} картами вместо одной`);
+  need(!R.jumpable(state, state.players[1].hand[1]), 'подброс прошёл по одному жребию, без стана');
+  need(!R.jumpable(state, state.players[2].hand[0]), 'подброс прошёл по одному стану, без жребия');
+  need(E.canJump(state, 0).length === 0, 'тому, чей ход, предложили подбросить');
+
+  need(E.jump(state, 1, 0), 'подброс не принят');
+  need(state.pile[state.pile.length - 1].rank === 5, 'подброшенная карта не легла на стол');
+  need(state.turn === 2, `после подброса ходит ${state.turn}, а должен сосед за подбросившим`);
+  need(state.players[1].score === 5, `за подброшенный жребий 5 начислено ${state.players[1].score}`);
+}
+
+/*
+  14. Подброшенное действие не срабатывает. Иначе, сидя с двумя субботами,
+  можно было бы держать соседа без хода сколько угодно — а подброс придуман
+  как ловкость, а не как оружие.
+*/
+{
+  const state = bench({
+    camp: 'judah', kind: 'journey', seats: 3,
+    hands: [
+      [{ kind: 'number', camp: 'judah', rank: 9 }],
+      [{ kind: 'journey', camp: 'judah' }, { kind: 'number', camp: 'dan', rank: 2 }],
+      [{ kind: 'number', camp: 'judah', rank: 3 }],
+    ],
+  });
+  const had = state.players[2].hand.length;
+  need(E.jump(state, 1, 0), 'подброс странствия не принят');
+  need(state.penalty === null, 'подброшенное странствие положило долг');
+  need(state.players[2].hand.length === had, 'подброшенное странствие выдало карты');
+  need(state.turn === 2, 'после подброса странствия ход ушёл не туда');
+  need(state.players[1].score === 3, `за подброшенное действие начислено ${state.players[1].score}`);
+}
+
+/*
+  15. Под долгом подбрасывать нельзя: стол занят другим разговором, и до
+  ответа на перевод очередь никуда не идёт.
+*/
+{
+  const state = bench({
+    camp: 'judah', seats: 3,
+    hands: [
+      [{ kind: 'journey', camp: 'judah' }],
+      [{ kind: 'number', camp: 'dan', rank: 2 }],
+      [{ kind: 'journey', camp: 'judah' }],
+    ],
+  });
+  need(E.play(state, 0, 0, 'judah'), 'странствие не сыгралось');
+  need(state.penalty?.count === 2, 'долг не положен');
+  need(E.canJump(state, 2).length === 0, 'под долгом разрешили подбросить');
+}
+
 if (problems.length) {
   console.error(`«Двенадцать колен» не прошли проверку (${problems.length}):`);
   for (const line of problems) console.error(`  ✗ ${line}`);
@@ -585,7 +683,9 @@ console.log(`OK: колода из 108 карт собрана верно (76 ж
   + `${mean(tale.score)} ходов в среднем, самая длинная ${tale.score.longest}. По местам: `
   + `${tale.places.games} партий, ${mean(tale.places)} ходов в среднем, самая длинная `
   + `${tale.places.longest}. После каждого хода сходятся все карты, стан стола и объявления, а счёт `
-  + `растёт ровно на цену сброшенной карты. Долг переведён дальше ${tale.passed} раз, `
+  + `растёт ровно на цену сброшенной карты. Карту подбросили вне очереди ${tale.jumped} раз, `
+  + `долг переведён дальше ${tale.passed} раз, `
   + `${tale.topped} раз выложивший всё добрал шесть. Перебито на «Шабате»: ${tale.caught}. Суббота, `
-  + `иордан, плен, перевод долга, места и перетасовка сброса проверены нарочно. `
+  + `иордан, плен, перевод долга, подброс вне очереди, места и перетасовка сброса проверены `
+  + `нарочно. `
   + `Победы: ${spread}.`);

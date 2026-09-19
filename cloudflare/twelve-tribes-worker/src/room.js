@@ -281,6 +281,16 @@ export function playerAction(room, playerId, action, data = {}, now = Date.now()
     if (game.turn !== seat) throw roomError('NOT_YOUR_TURN', 'Сейчас ходите не вы');
     if (!E.pass(game, seat)) throw roomError('BAD_MOVE', 'Сейчас нечего оставлять себе');
     room.turnAt = now;
+  } else if (action === 'jump') {
+    /*
+      Подброс делают не в свою очередь — в этом он весь. Поэтому здесь нет
+      проверки очереди, а есть проверка самой карты: подбросить можно только
+      такую же, какая лежит на столе, и решает это движок.
+    */
+    const index = game.players[seat].hand.findIndex((one) => one.id === String(data.card || ''));
+    if (index < 0) throw roomError('NO_CARD', 'Такой карты у вас нет');
+    if (!E.jump(game, seat, index)) throw roomError('BAD_JUMP', 'Эту карту сейчас не подбросить');
+    room.turnAt = now;
   } else if (action === 'shabbat') {
     if (!E.shabbat(game, seat)) throw roomError('BAD_CALL', 'Сказать «Шабат» сейчас не о чем');
   } else if (action === 'catch') {
@@ -317,6 +327,23 @@ export function stepTable(room, now = Date.now(), random = Math.random, online =
     for (const one of game.players) {
       if (one.id === target || !one.isBot || !Bots.notices(one.botLevel, random)) continue;
       if (E.catchOut(game, one.id, target)) { said = true; break; }
+    }
+  }
+
+  /*
+    Подброс соперника от игры. Делается до собственного хода и вместо него:
+    подбросивший перехватывает круг на себя, и ходить дальше будет уже сосед
+    за ним. Замечают они подброс не всегда — иначе человеку не досталось бы ни
+    одного.
+  */
+  for (const one of game.players) {
+    if (!one.isBot || one.out) continue;
+    const jumps = E.canJump(game, one.id);
+    if (!jumps.length || !Bots.jumps(one.botLevel, random)) continue;
+    if (E.jump(game, one.id, jumps[0])) {
+      room.turnAt = now;
+      touch(room, now);
+      return true;
     }
   }
 

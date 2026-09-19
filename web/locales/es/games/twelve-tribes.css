@@ -673,6 +673,19 @@ img.tt-sign { object-fit: contain; display: block; }
     0 18px 26px -14px rgba(0, 0, 0, .85);
   z-index: 2;
 }
+/*
+  Карта, которую можно подбросить вне очереди. Светится не так, как законный
+  свой ход: тот зовёт спокойно, а этот — тревожно и ненадолго, окно подброса
+  живёт до следующего чужого хода. Светится обводкой, а не движением: карту в
+  этот миг надо попасть пальцем, а не ловить.
+*/
+.tt-hand .tt-card.is-jump {
+  filter: none; opacity: 1;
+  outline: 2px solid var(--warning, #f59e0b);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, .28), 0 14px 22px -12px rgba(0, 0, 0, .8);
+  z-index: 2;
+}
 .tt-hand .tt-card:active { transition-duration: .09s; }
 /*
   Взятая карта приходит из колоды, а не появляется в руке. Полёт короткий и с
@@ -724,10 +737,17 @@ img.tt-sign { object-fit: contain; display: block; }
   position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center;
   background: rgba(15, 23, 42, .55); padding: 16px;
 }
+/*
+  Лист не бывает выше экрана. Подсказки растут вместе с правилами, и однажды
+  лист перерос телефон: кнопка «Понятно» оказалась за нижним краем, а лист не
+  прокручивался — закрыть его было нечем. Поэтому высота ограничена, а
+  содержимое прокручивается.
+*/
 .tt-sheet-card {
   width: min(100%, 420px); background: var(--surface-strong, #fff); color: var(--ink, #111827);
   border-radius: 22px; padding: 16px; display: grid; gap: 12px;
   box-shadow: 0 24px 48px -24px rgba(0, 0, 0, .6);
+  max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain;
 }
 .tt-sheet-card h3 { margin: 0; font-size: 18px; }
 /*
