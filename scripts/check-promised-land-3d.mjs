@@ -1447,6 +1447,39 @@ try {
 
   await side.close();
   side = null;
+
+  /*
+    Несостоявшиеся модели теперь считают, а не проглатывают.
+
+    Жалоба «в приложении не прогружаются люди вокруг доски» до сих пор была
+    словом против молчания: каждая загрузка кончалась тихо в обе стороны — не
+    вышла, и на подставке остался предмет. Сцена и должна жить без любой из
+    моделей, но счёт вести обязана, иначе о такой беде не узнать никогда.
+
+    Проверяется это единственным честным способом: моделям перекрывают дорогу
+    и смотрят, сосчитала ли сцена потерю. Заодно видно и обратное — на целой
+    раздаче не теряется ни одна: если завтра рассыплется раскладка картинок
+    при развёртывании, проверка скажет об этом здесь.
+  */
+  const blind = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const blindPage = await blind.newPage();
+  await blindPage.route('**/*.glb', (route) => route.fulfill({ status: 404, body: 'нет' }));
+  await blindPage.goto(url, { waitUntil: 'networkidle', timeout: 30_000 });
+  await blindPage.locator('.mode-card[data-mode="solo"]').click();
+  await blindPage.evaluate(() => document.getElementById('start-btn').click());
+  await blindPage.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
+  await blindPage.waitForTimeout(4000);
+  const lost = await blindPage.evaluate(() => window.PromisedLandScene?.models?.() || null);
+  need(lost && lost.asked > 0, 'сцена не спросила ни одной модели — счёт не ведётся');
+  need(lost && lost.failed === lost.asked,
+    `модели не доехали, а сцена насчитала ${lost?.failed} потерь из ${lost?.asked}`);
+  need(lost && lost.loaded === 0, `при перекрытой дороге доехало ${lost?.loaded} моделей`);
+  await blind.close();
+
+  const whole = await page.evaluate(() => window.PromisedLandScene?.models?.() || null);
+  need(whole && whole.asked > 0, 'на целой раздаче сцена не спросила ни одной модели');
+  need(whole && whole.failed === 0,
+    `на целой раздаче не доехало ${whole?.failed} моделей из ${whole?.asked}`);
 } finally {
   await context.close();
   if (side) await side.close();

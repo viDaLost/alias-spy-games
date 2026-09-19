@@ -182,6 +182,9 @@ window.PromisedLandEngine = (() => {
       let best = -1;
       state.cells.forEach((cell, n) => {
         if (cell.owner !== player.id || cell.level === 0) return;
+        // Снимается только верхняя ступень цвета: распродажа под долг — не
+        // повод оставить поселение рваным (см. evenToSell).
+        if (!evenToSell(state, n)) return;
         if (best < 0 || cell.level > state.cells[best].level) best = n;
       });
       return best;
@@ -1129,11 +1132,31 @@ window.PromisedLandEngine = (() => {
     return true;
   }
 
+  /*
+    Разбирают тоже вровень — и это та же половина правила, что и строительство.
+
+    Ставить второй дом, пока рядом стоит шатёр, нельзя; а разобрать дом,
+    оставив рядом два, до сих пор было можно. Поселение от этого выходило
+    рваным — 0/2/0 в одних руках, — чего по правилам быть не может ни при
+    какой игре. Нашлось это счётом, когда партии «до последнего» стали длиннее
+    и до распродажи построек дело начало доходить чаще.
+
+    Поэтому снимается только верхняя ступень цвета: лестница спускается тем же
+    порядком, каким поднималась. В простом ладу лестницы нет вовсе, и равнять
+    нечего.
+  */
+  function evenToSell(state, n) {
+    const spec = B.BOARD[n];
+    if (state.strict === false || spec.kind !== 'plot') return true;
+    const levels = B.groupCells(spec.group).map((i) => state.cells[i].level);
+    return state.cells[n].level >= Math.max(...levels);
+  }
+
   function canSell(state, player, n) {
     const cell = state.cells[n];
     if (cell.owner !== player.id) return false;
     const spec = B.BOARD[n];
-    if (spec.kind === 'plot' && cell.level > 0) return true;
+    if (spec.kind === 'plot' && cell.level > 0) return evenToSell(state, n);
     if (spec.kind !== 'plot') return true;
     return !B.groupCells(spec.group).some((i) => state.cells[i].level > 0);
   }

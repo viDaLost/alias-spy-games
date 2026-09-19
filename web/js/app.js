@@ -1375,6 +1375,22 @@ window.addEventListener('message', (event) => {
     if (/^[A-Z0-9]{4,10}$/.test(room)) window.AppPresenceContext?.setRoom?.('promised-land', room);
     else window.AppPresenceContext?.clearRoom?.('promised-land');
   }
+  /*
+    Беда внутри кадра. Игра на своём адресе, и увидеть её изнутри приложению
+    нечем: ни консоли телефона, ни доступа к её окну. Сейчас так приходит один
+    доклад — сколько объёмных моделей не доехало; доклад уходит в наблюдение
+    вместе с прочими событиями, и на жалобу «не прогружаются люди» есть чем
+    ответить, кроме догадок.
+  */
+  if (data?.type === 'promised-land:trouble') {
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const numbers = ['asked', 'loaded', 'failed']
+      .map((key) => `${key} ${Number(detail[key] || 0)}`).join(', ');
+    window.AppTelemetry?.track?.('promised_land_trouble', {
+      game: 'promised-land',
+      message: `${String(data.what || '').slice(0, 24)}: ${numbers}, загрузчик ${detail.loader ? 'есть' : 'не поднялся'}`,
+    });
+  }
   if (data?.type === 'promised-land:ready') {
     sendPromisedLandInvite();
     /*

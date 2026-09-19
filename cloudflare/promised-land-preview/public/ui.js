@@ -53,6 +53,10 @@
   const askApp = (type, room) => {
     if (inApp) window.parent.postMessage({ type: `promised-land:${type}`, room }, parentOrigin);
   };
+  /** Сообщение о беде — приложению, чтобы оно донесло его до наблюдения. */
+  const askReport = (what, detail) => {
+    if (inApp) window.parent.postMessage({ type: 'promised-land:trouble', what, detail }, parentOrigin);
+  };
   window.addEventListener('message', (event) => {
     if (!inApp || event.source !== window.parent || event.origin !== parentOrigin) return;
     if (event.data?.type !== 'promised-land:invite' || !/^[A-Z0-9]{5}$/.test(event.data.room || '')) return;
@@ -761,6 +765,16 @@
         },
         onCellTap: showCellCard,
         onViewChange: (home) => { $('view-home').hidden = home; },
+        /*
+          Жалоба на несостоявшиеся модели уходит в приложение. Игра живёт в
+          кадре на своём адресе, и рассказать о себе ей больше некому: консоль
+          телефона никто не откроет, а без этого «не прогружаются люди»
+          остаётся словом против молчания.
+
+          Уходит только счёт — сколько просили, сколько доехало, был ли вообще
+          загрузчик, — и только когда что-то не доехало.
+        */
+        onModels: (report) => askReport('models', report),
         theme: {
           board: pick('--sunk', '#e8eefc'),
           field: pick('--surface-soft', '#f3f7ff'),
