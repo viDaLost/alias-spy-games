@@ -581,6 +581,26 @@
     });
   }
 
+  /*
+    Та же защита, что у waitForTextures, но для загрузки моделей: у неё нет
+    своего потолка ожидания. Каждая отдельная модель уже падает мягко —
+    AssetManager ловит свою ошибку и оставляет процедурную заглушку, — но это
+    не спасает от запроса, который не упал и не пришёл: на нестабильной сети
+    такое подвисание не редкость, а await на Promise.all внутри
+    preloadGameplayModels ждёт его вечно, и заставка «ЗАГРУЖАЕМ МОДЕЛИ…»
+    остаётся на экране навсегда — с виду это и есть «игра не грузится».
+    Через таймаут заплыв стартует с тем, что успело приехать, а не с ничем;
+    опоздавшая модель дальше просто подставится в первое же новое препятствие
+    того же вида, когда домоется — cloneModel читает assetManager.models в
+    момент спавна, а не то, что было на старте.
+  */
+  function withTimeout(promise, timeout) {
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(resolve, timeout)),
+    ]);
+  }
+
   function makeTexture(path, repeatX, repeatY, material, kind = 'map', onLoad = null) {
     const loader = new THREE.TextureLoader();
     texturesPending += 1;
@@ -5237,7 +5257,11 @@
     try {
       note(0);
       note(1);
-      await window.assetManager?.preloadGameplayModels?.();
+      // 12с — тот же потолок, что у отчёта о недогруженных людях в «Земле
+      // обетованной» (board3d.js): опаздывать можно, зависать — нет.
+      // 12с — тот же потолок, что у отчёта о недогруженных людях в «Земле
+      // обетованной» (board3d.js): опаздывать можно, зависать — нет.
+      await withTimeout(window.assetManager?.preloadGameplayModels?.() || Promise.resolve(), 12_000);
       note(2);
       buildScene();
       resize();

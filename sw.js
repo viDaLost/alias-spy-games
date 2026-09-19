@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = 'ad1781773b';
+const VERSION = '7b059b9246';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -181,8 +181,30 @@ const isImmutable = (url) => url.pathname.includes('/web/dist/');
 // каждый раз новый. Файлы здесь статические, и путь однозначно их определяет.
 const keyFor = (url) => new Request(`${url.origin}${url.pathname}`);
 
-async function fromNetwork(request, cacheName) {
-  const response = await fetch(request);
+/*
+  Жалоба: «на некоторых телефонах не прогружаются игры или картинки». У
+  fetch() здесь не было потолка ожидания: запрос, который на нестабильной
+  мобильной сети не ответил и не оборвался, — обычное дело, — оставлял
+  fromNetwork висеть вечно, а вместе с ней и весь event.respondWith. Ниже по
+  коду это уже учтено (навигация падает на кеш или index.html, неизменные
+  бандлы — на Response.error(), у остального есть кеш или тот же
+  Response.error()) — но только если fromNetwork хоть когда-нибудь
+  отклонится. Без таймаута зависший запрос никогда не отклонялся, и картинка
+  или файл игры просто не появлялись — ни ошибки, ни повтора, только вечная
+  загрузка.
+*/
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('network timeout')), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
+async function fromNetwork(request, cacheName, timeoutMs = 8000) {
+  const response = await withTimeout(fetch(request), timeoutMs);
   if (response.ok && request.method === 'GET') {
     const cache = await caches.open(cacheName);
     cache.put(keyFor(new URL(request.url)), response.clone());

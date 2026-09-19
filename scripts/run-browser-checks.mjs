@@ -46,6 +46,7 @@ const CHECKS = [
   'check-game-rules.mjs',
   'check-progress-reset.mjs',
   'check-offline-pwa.mjs',
+  'check-sw-network-timeout.mjs',
   'check-outside-telegram.mjs',
   'check-more-screen.mjs',
   'check-app-shell.mjs',
@@ -61,6 +62,7 @@ const CHECKS = [
   'check-moses-nile-crocodile-jump.mjs',
   'check-moses-nile-control-modes.mjs',
   'check-moses-nile-toast-stack.mjs',
+  'check-moses-nile-model-load-timeout.mjs',
   'check-moses-nile-vortex.mjs',
   'check-promised-land-app.mjs',
   'check-promised-land-browser.mjs',
@@ -85,6 +87,7 @@ const ALONE = new Set([
   'check-promised-land-3d.mjs',
   'check-moses-nile-crocs.mjs',
   'check-moses-nile-vortex.mjs',
+  'check-moses-nile-model-load-timeout.mjs',
 ]);
 
 // Три разом: на машине задачи четыре ядра, и каждая проверка — это браузер со
