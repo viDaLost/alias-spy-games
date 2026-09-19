@@ -60,6 +60,7 @@ const CHECKS = [
   'check-moses-nile-crocs.mjs',
   'check-moses-nile-crocodile-jump.mjs',
   'check-moses-nile-control-modes.mjs',
+  'check-moses-nile-toast-stack.mjs',
   'check-moses-nile-vortex.mjs',
   'check-promised-land-app.mjs',
   'check-promised-land-browser.mjs',

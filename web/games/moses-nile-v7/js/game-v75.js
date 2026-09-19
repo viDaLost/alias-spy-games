@@ -363,7 +363,20 @@
     dom.badge.dataset.state = 'ready';
   }
 
-  /* Всплывающая плашка: веха дистанции, смена биома, потеря сердца. */
+  /*
+    Всплывающая плашка: веха дистанции, смена биома, потеря сердца.
+
+    Отзыв игрока: «на большой скорости баннеров становится очень много, они
+    накладываются и закрывают дальнейший путь». На разгоне вехи (каждые
+    500м), смена биома, рост комбо и удары идут в реальном времени вплотную
+    друг за другом — те же события, что на старте разделяют секунды десять,
+    на пределе скорости укладываются в два-три. Раньше висело до двух плашек
+    сразу, и лишняя снималась рывком, без затухания; столбик стоит там же,
+    где на горизонте показываются новые препятствия, — и даже так путь
+    закрывало ощутимо. Теперь плашка ровно одна: следующая забирает место
+    прежней тем же плавным уходом, что и обычное истечение срока, а не
+    обрывает её на полуслове.
+  */
   function toast(title, subtitle = '', tone = 'gold') {
     if (!dom.toast) return;
     const node = document.createElement('div');
@@ -371,15 +384,16 @@
     node.innerHTML = `<b></b>${subtitle ? '<span></span>' : ''}`;
     node.querySelector('b').textContent = title;
     if (subtitle) node.querySelector('span').textContent = subtitle;
+    for (const old of dom.toast.children) dismissToast(old);
     dom.toast.appendChild(node);
-    // Больше двух плашек сразу — это уже занавес поверх реки. Самая старая
-    // уходит немедленно, чтобы столбик никогда не дорастал до горизонта.
-    while (dom.toast.childElementCount > 2) dom.toast.firstElementChild.remove();
     requestAnimationFrame(() => node.classList.add('is-in'));
-    setTimeout(() => {
-      node.classList.remove('is-in');
-      setTimeout(() => node.remove(), 420);
-    }, 1450);
+    setTimeout(() => dismissToast(node), 1450);
+  }
+  function dismissToast(node) {
+    if (!node.isConnected || node.classList.contains('is-out')) return;
+    node.classList.add('is-out');
+    node.classList.remove('is-in');
+    setTimeout(() => node.remove(), 420);
   }
 
   /* Короткая цветная вспышка поверх сцены. */
