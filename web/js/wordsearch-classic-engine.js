@@ -1,5 +1,17 @@
 // Fast deterministic classic boards for «Поиск библейских слов».
 // Loaded after the visual runtime so the game starts instantly even with all 40 levels.
+//
+// Слова только вперёд, никогда не задом наперёд. Раньше монетка решала для
+// каждого слова, писать ли его в обратную сторону — обычный приём словесных
+// головоломок для сложности. Здесь он был лишним: слова этой игры — имена и
+// названия из синодального перевода, и правило одно на все словесные игры —
+// они должны читаться так, как написаны в Библии. Слово, стоящее в сетке
+// задом наперёд, этому правилу не отвечает, даже если найдено верно: игрок,
+// не узнавший имя ни в прямом, ни в обратном чтении, не может отличить одно
+// от другого — и один так и написал: «Асенефа» на 23 уровне стояла в сетке
+// как «Афенеса», её зеркальное отражение. Раскладка не меняется от сеанса к
+// сеансу — сев зависит только от номера уровня и списка слов, — так что этот
+// случай был не редкой неудачей, а тем, что видел каждый игрок этого уровня.
 
 (() => {
   'use strict';
@@ -75,15 +87,13 @@
     vertical.forEach((word, index) => {
       const col = verticalCols[index];
       const start = Math.floor(random() * (Math.max(0, maxVertical - word.length) + 1));
-      const reversed = random() > .5;
-      const display = reversed ? word.split('').reverse().join('') : word;
       const path = [];
-      for (let i = 0; i < display.length; i++) {
+      for (let i = 0; i < word.length; i++) {
         const row = start + i;
-        grid[row][col] = display[i];
+        grid[row][col] = word[i];
         path.push([row, col]);
       }
-      placements.push({ text: word, path: reversed ? path.reverse() : path });
+      placements.push({ text: word, path });
     });
 
     const horizontalRows = shuffle(
@@ -94,15 +104,13 @@
       const row = horizontalRows[index];
       const maxStart = Math.max(0, cols - word.length);
       const start = Math.floor(random() * (maxStart + 1));
-      const reversed = random() > .5;
-      const display = reversed ? word.split('').reverse().join('') : word;
       const path = [];
-      for (let i = 0; i < display.length; i++) {
+      for (let i = 0; i < word.length; i++) {
         const col = start + i;
-        grid[row][col] = display[i];
+        grid[row][col] = word[i];
         path.push([row, col]);
       }
-      placements.push({ text: word, path: reversed ? path.reverse() : path });
+      placements.push({ text: word, path });
     });
 
     for (let row = 0; row < rows; row++) {
