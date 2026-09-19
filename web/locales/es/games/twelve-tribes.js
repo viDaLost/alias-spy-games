@@ -377,6 +377,10 @@
     buildTable() {
       this.root.innerHTML = `
         <div class="tt-wrap">
+          <div class="tt-topbar">
+            <button type="button" class="tt-exit" data-menu
+              >${this.net ? 'Salir' : 'Al menú'}</button>
+          </div>
           <div class="tt-table">
             <div class="tt-foes" data-foes></div>
             <div class="tt-middle">
@@ -403,8 +407,6 @@
             <button type="button" class="tt-btn tt-btn--ghost" data-pass hidden>Оставить себе</button>
             <button type="button" class="tt-btn tt-btn--call" data-shabbat hidden>Шабат!</button>
             <button type="button" class="tt-btn tt-btn--call" data-catch hidden>Перебить!</button>
-            <button type="button" class="tt-btn tt-btn--ghost" data-menu
-              >${this.net ? 'Salir' : 'Al menú'}</button>
           </div>
         </div>`;
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`).addEventListener('click', fn);
