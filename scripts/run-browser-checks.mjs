@@ -58,6 +58,8 @@ const CHECKS = [
   'check-room-backoff.mjs',
   'check-bible-sketch-stage.mjs',
   'check-moses-nile-crocs.mjs',
+  'check-moses-nile-crocodile-jump.mjs',
+  'check-moses-nile-control-modes.mjs',
   'check-moses-nile-vortex.mjs',
   'check-promised-land-app.mjs',
   'check-promised-land-browser.mjs',

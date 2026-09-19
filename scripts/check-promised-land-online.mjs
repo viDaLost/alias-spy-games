@@ -131,10 +131,7 @@ try {
   // столько же времени, сколько шла бы у живых людей.
   await act(roomId, host.token, 'settings', { years: 3, mode: 'jubilee', bots: 0 });
 
-  // 5. Партию начинает хозяин, и только когда гости готовы.
-  const early = await act(roomId, host.token, 'start');
-  need(early.status === 409 && early.code === 'NOT_READY', `партия началась без готовности: ${early.code}`);
-  await act(roomId, guestOne.token, 'ready', { ready: true });
+  // 5. Партию начинает хозяин, сразу — гостя дожидаться не нужно.
   const notYours = await act(roomId, guestOne.token, 'start');
   need(notYours.status === 409 && notYours.code === 'NOT_HOST', `партию начал гость: ${notYours.code}`);
   const begun = await act(roomId, host.token, 'start');

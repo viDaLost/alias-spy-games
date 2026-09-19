@@ -102,7 +102,6 @@ export function joinRoom(room, player, now = Date.now()) {
   const one = {
     id,
     name: sanitizeName(player?.name),
-    ready: false,
     joinedAt: now,
     leftAt: 0,
   };
@@ -145,14 +144,6 @@ export function leaveRoom(room, playerId, now = Date.now()) {
 function passHost(room) {
   const next = room.players.find((one) => !one.leftAt);
   room.hostPlayerId = next ? next.id : '';
-}
-
-export function setReady(room, playerId, ready, now = Date.now()) {
-  const one = findPlayer(room, playerId);
-  if (!one) throw roomError('NOT_IN_ROOM', 'Вас нет в этой комнате');
-  one.ready = Boolean(ready);
-  touch(room, now);
-  return one;
 }
 
 export function renamePlayer(room, playerId, name, now = Date.now()) {
@@ -198,9 +189,9 @@ export function canStart(room) {
   if (!table.length) return false;
   // Двое за столом — это и есть игра. Второй может быть человеком из другой
   // комнаты или соперником от игры: правилам всё равно, кто бросает жребий.
-  if (tableSize(room) < MIN_PLAYERS || tableSize(room) > MAX_PLAYERS) return false;
-  // Хозяину готовность не нужна: он и есть тот, кто нажимает «начать».
-  return table.every((one) => one.ready || one.id === room.hostPlayerId);
+  // Готовности не спрашивают: вошедший в лобби уже сел за стол, а не встал в
+  // очередь на подтверждение, — хозяину незачем ждать чужого нажатия кнопки.
+  return tableSize(room) >= MIN_PLAYERS && tableSize(room) <= MAX_PLAYERS;
 }
 
 export function startGame(room, playerId, now = Date.now()) {
@@ -232,7 +223,6 @@ export function backToLobby(room, playerId, now = Date.now()) {
   room.phase = 'lobby';
   room.startedAt = 0;
   room.seats = [];
-  for (const one of room.players) one.ready = false;
   // Ушедшие в партии вычёркиваются здесь: место за столом освободилось.
   room.players = room.players.filter((one) => !one.leftAt);
   if (!findPlayer(room, room.hostPlayerId)) passHost(room);
@@ -254,7 +244,7 @@ export function buildView(room, playerId, online = new Set()) {
     version: room.version,
     hostPlayerId: room.hostPlayerId,
     youAreHost: room.hostPlayerId === String(playerId || ''),
-    you: me ? { id: me.id, name: me.name, ready: me.ready } : null,
+    you: me ? { id: me.id, name: me.name } : null,
     settings: { ...room.settings },
     canStart: canStart(room),
     tableSize: tableSize(room),
@@ -267,7 +257,6 @@ export function buildView(room, playerId, online = new Set()) {
     players: room.players.map((one) => ({
       id: one.id,
       name: one.name,
-      ready: one.ready,
       host: one.id === room.hostPlayerId,
       left: Boolean(one.leftAt),
       online: online.has(one.id),

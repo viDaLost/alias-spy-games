@@ -261,7 +261,6 @@ h3 { margin: 18px 0 6px; font-size: 15px; }
 }
 .lobby-tag { font-style: normal; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); }
 .lobby-tag.is-host { color: var(--ink); }
-.lobby-tag.is-ready { background: var(--primary); color: #fff; border-color: transparent; }
 .lobby-tag.is-away { opacity: .7; }
 
 .lobby-settings {

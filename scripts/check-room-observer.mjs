@@ -37,7 +37,6 @@ import {
   createRoomState as landRoom,
   joinRoom as landJoin,
   seated as landSeated,
-  setReady as landReady,
   setSettings as landSettings,
   startGame as landStart,
 } from '../cloudflare/promised-land-preview/src/room.js';
@@ -94,7 +93,6 @@ need(tribesBody.table.seats.every((one) => Number.isInteger(one.cards)),
 const land = landRoom('FGHIJ', host, 1000);
 landJoin(land, guest, 1001);
 landSettings(land, host.playerId, { years: 3, bots: 1 }, 1002);
-landReady(land, guest.playerId, true, 1003);
 landStart(land, host.playerId, 1004, seeded(11));
 
 /*

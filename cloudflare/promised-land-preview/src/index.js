@@ -28,7 +28,6 @@ import {
   leaveRoom,
   renamePlayer,
   sanitizeName,
-  setReady,
   setSettings,
   startGame,
   seated,
@@ -267,7 +266,6 @@ export class PromisedLandRoom extends DurableObject {
     if (!this.room) throw fail('Комната недоступна', 'NO_SESSION');
 
     if (name === 'rename') renamePlayer(this.room, playerId, String(data.name || ''), now);
-    else if (name === 'ready') setReady(this.room, playerId, Boolean(data.ready), now);
     else if (name === 'settings') setSettings(this.room, playerId, data, now);
     else if (name === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
     else if (name === 'start') this.startPlaying(playerId, now);
@@ -276,16 +274,15 @@ export class PromisedLandRoom extends DurableObject {
       this.game = null;
     } else if (name === 'playAgain') {
       /*
-        Ещё раз, теми же людьми. Обычный путь с юбилея — назад в комнату, где
-        каждый заново жмёт «готов», а хозяин заново «начать»; за эти полминуты
-        кто-нибудь да выйдет. Здесь комната возвращается в лобби и тут же
-        начинает партию: готовность только что подтверждена доигранной
-        партией, а ушедших вычёркивает тот же возврат, что и всегда.
+        Ещё раз, теми же людьми. Обычный путь с юбилея — назад в комнату, а
+        хозяин заново нажимает «начать»; за эти полминуты кто-нибудь да
+        выйдет. Здесь комната возвращается в лобби и тут же начинает партию:
+        никого не приходится ждать — готовность не спрашивают ни у кого, —
+        а ушедших вычёркивает тот же возврат, что и всегда.
       */
       if (this.room.phase !== 'playing') throw fail('Партия не идёт', 'NOT_PLAYING');
       backToLobby(this.room, playerId, now);
       this.game = null;
-      for (const one of this.room.players) one.ready = true;
       this.startPlaying(playerId, now);
     } else if (name === 'game') this.playAction(playerId, data);
     else if (name === 'leave') {

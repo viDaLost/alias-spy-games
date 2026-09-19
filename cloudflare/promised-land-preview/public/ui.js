@@ -306,8 +306,8 @@
       if (code.length < 4) { onlineFail('Код комнаты — пять знаков.'); return; }
       enterRoom(() => Net.joinRoom(code, nameField()));
     });
-    $('lobby-ready').addEventListener('click', () => link?.send('ready', { ready: !roomView?.you?.ready }));
     $('lobby-start').addEventListener('click', () => link?.send('start'));
+    $('lobby-copy').addEventListener('click', copyRoomCode);
     $('lobby-share').addEventListener('click', shareRoom);
     $('lobby-chat-form').addEventListener('submit', (event) => {
       event.preventDefault();
@@ -482,7 +482,6 @@
       const tags = el('span', 'lobby-player__tags');
       if (one.host) tags.appendChild(el('i', 'lobby-tag is-host', 'хозяин'));
       if (!one.online) tags.appendChild(el('i', 'lobby-tag is-away', 'нет связи'));
-      if (one.ready && !one.host) tags.appendChild(el('i', 'lobby-tag is-ready', 'готов'));
       row.appendChild(tags);
       list.appendChild(row);
     });
@@ -507,10 +506,6 @@
       ? `За столом ${view.tableSize} из ${view.maxPlayers}. Партия идёт от двоих.`
       : 'Срок партии, лад и число соперников выбирает хозяин комнаты.';
 
-    const ready = $('lobby-ready');
-    ready.hidden = Boolean(view.youAreHost);
-    ready.textContent = view.you?.ready ? 'Я ещё не готов' : 'Я готов';
-    ready.setAttribute('aria-pressed', String(Boolean(view.you?.ready)));
     const start = $('lobby-start');
     start.hidden = !view.youAreHost;
     start.disabled = !view.canStart;
@@ -524,6 +519,23 @@
       lines.appendChild(row);
     }
     lines.scrollTop = lines.scrollHeight;
+  }
+
+  /*
+    Просто код, без ссылки и без текста — чтобы продиктовать по телефону или
+    вставить в поле «код комнаты» у того, кто уже открыл игру сам. Кнопка
+    рядом, «Позвать друзей», собирает вокруг кода ещё и ссылку с приглашением
+    — это другая, более длинная задача, и здесь ей не место.
+  */
+  async function copyRoomCode() {
+    const code = roomView?.roomId || '';
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      linkNote('Код скопирован.');
+    } catch {
+      linkNote(`Код комнаты: ${code}`);
+    }
   }
 
   /*
