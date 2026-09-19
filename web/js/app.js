@@ -49,6 +49,17 @@ const GAME_GROUPS = [
         key: "promised-land", title: "Земля обетованная",
         desc: "Уделы, поселения и юбилей", icon: "promised-land",
       },
+      /*
+        «Царства» тоже пока открыты только главному администратору: игра
+        готова, но в общий список ещё не выпущена. Тот же признак owner
+        прячет карточку у всех остальных и закрывает вход даже по прямому
+        вызову — см. renderGameButton и showGame.
+      */
+      {
+        key: "kingdoms", title: "Царства",
+        desc: "Тайные приказы и спор за земли — пять раундов", icon: "kingdoms",
+        owner: true,
+      },
     ],
   },
   {
@@ -87,6 +98,7 @@ const MENU_ICON_SOURCES = {
   "moses-nile": "web/assets/icons/moses-nile.webp",
   "promised-land": "web/assets/icons/promised-land-v2.webp",
   "twelve-tribes": "web/assets/icons/twelve-tribes.webp",
+  kingdoms: "web/assets/icons/kingdoms.svg",
 };
 
 function menuIconHTML(type, title = "") {
@@ -700,6 +712,12 @@ function showGame(gameName) {
       машиной без браузера, а оболочка умеет загружать только один файл.
     */
     "twelve-tribes": ["web/games/twelve-tribes.js", () => window.startTwelveTribesGame?.()],
+    /*
+      «Царства» устроены так же: карта, движок и соперники от игры — в
+      отдельных файлах, которые экран подтягивает сам (kingdoms.js), чтобы
+      их можно было прогнать проверкой без браузера.
+    */
+    kingdoms: ["web/games/kingdoms.js", () => window.startKingdomsGame?.()],
     "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
@@ -820,6 +838,23 @@ function showGame(gameName) {
     return;
   }
 
+  /* Тот же замок и по той же причине — у «Царств». */
+  if (gameName === "kingdoms" && !isOwner()) {
+    if (menu) menu.classList.add("hidden");
+    document.body.dataset.mode = "game";
+    activeGameName = gameName;
+    document.body.dataset.currentGame = gameName;
+    if (container) {
+      container.innerHTML = `
+        <section class="app-error-card fade-in">
+          <h2>Игра ещё не открыта</h2>
+          <p>«Царства» пока проходят обкатку и доступны только администратору.</p>
+          <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
+        </section>`;
+    }
+    return;
+  }
+
   const route = routes[gameName];
   if (!route) {
     if (menu) menu.classList.add("hidden");
@@ -918,6 +953,9 @@ function cleanupActiveGame() {
   // Соперники в «Двенадцати коленах» ходят по таймеру: без уборки они
   // продолжают ходить в закрытой игре и дорисовывают стол поверх меню.
   try { window.__twelveTribesCleanup?.(); } catch {}
+  // «Царства» устроены так же: соперники от игры и анимация раскрытия идут
+  // по таймеру и без уборки продолжаются в уже закрытой игре.
+  try { window.__kingdomsCleanup?.(); } catch {}
   // Онлайн-Соглядатай держит сокет, таймеры и живые WebRTC-соединения с
   // микрофоном: без явной уборки микрофон остался бы включённым после
   // выхода в меню.

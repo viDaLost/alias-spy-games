@@ -17,16 +17,21 @@
     tt: 'twelve-tribes',
     'twelve-tribes': 'twelve-tribes',
     twelve_tribes: 'twelve-tribes',
+    // «Царства»: то же короткое имя в ссылке и в QR, что и у остальных игр.
+    kd: 'kingdoms',
+    kingdoms: 'kingdoms',
   });
   const STORAGE_KEYS = Object.freeze({
     quartet: 'quartet_v2_room_id',
     'bible-sketch': 'bible_sketch_room_id_v1',
     'twelve-tribes': 'tt_room_id',
+    kingdoms: 'kd_room_id',
   });
   const INVITE_NAMES = Object.freeze({
     quartet: 'quartet',
     'bible-sketch': 'sketch',
     'twelve-tribes': 'tribes',
+    kingdoms: 'kd',
   });
 
   let pendingInvite = readInvite();
