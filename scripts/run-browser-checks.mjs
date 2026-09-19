@@ -1,11 +1,26 @@
-// Браузерные проверки — все подряд, а не до первой упавшей.
+// Браузерные проверки — все подряд, а не до первой упавшей, и по нескольку разом.
 //
 // Раньше они шли цепочкой через &&: первая неудача обрывала прогон, и о
 // следующих узнавали только следующим заходом в CI. Проверка поднимает браузер
 // и живёт минуты, так что каждый такой заход стоил отдельного круга «пуш —
 // ждать — чинить». Теперь падают все, кто падает, и чинить можно разом.
+//
+// Одна за другой они перестали помещаться в отведённое задаче время: тридцать
+// одна проверка, и самые тяжёлые — партия «Земли обетованной» пальцем и разбор
+// объёмной сцены — по две-три минуты каждая. Задача обрывалась на полуслове, и
+// хвост списка не проверялся вовсе.
+//
+// Поэтому проверки идут пачками. Соседства они не боятся: каждая поднимает
+// свой сервер на свободном порту (listen(0)) и свой браузер, ничего общего на
+// диске не трогает. Исключение — две, которым нужен настоящий воркер:
+// wrangler dev держит ещё и порт отладчика, один на всех, и две таких рядом
+// подрались бы за него. Они идут последними и по одной.
+//
+// Вывод копится по проверке и печатается целиком, когда она кончилась: иначе
+// строки пачки перемешались бы, и читать их было бы нельзя.
 
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,11 +60,38 @@ const CHECKS = [
   'check-twelve-tribes-online.mjs',
 ];
 
+/** Тем, кто поднимает wrangler dev, сосед по порту отладчика ни к чему. */
+const ALONE = new Set([
+  'check-promised-land-online-browser.mjs',
+  'check-twelve-tribes-online.mjs',
+]);
+
+// Три разом: на машине задачи четыре ядра, и каждая проверка — это браузер со
+// своим сервером. Четвёртое ядро оставлено тому, кто их запускает.
+const LANES = Math.max(1, Math.min(3, (os.availableParallelism?.() ?? os.cpus().length) - 1));
+
 const failed = [];
-for (const check of CHECKS) {
-  const result = spawnSync(process.execPath, [path.join(here, check)], { stdio: 'inherit' });
-  if (result.status !== 0) failed.push({ check, status: result.status ?? 'сигнал ' + result.signal });
+
+function run(check) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [path.join(here, check)], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let output = '';
+    child.stdout.on('data', (chunk) => { output += chunk; });
+    child.stderr.on('data', (chunk) => { output += chunk; });
+    child.on('close', (status, signal) => {
+      process.stdout.write(`\n— ${check}\n${output.trimEnd()}\n`);
+      if (status !== 0) failed.push({ check, status: status ?? `сигнал ${signal}` });
+      resolve();
+    });
+  });
 }
+
+const queue = CHECKS.filter((check) => !ALONE.has(check));
+const lane = async () => { while (queue.length) await run(queue.shift()); };
+await Promise.all(Array.from({ length: LANES }, lane));
+for (const check of CHECKS.filter((one) => ALONE.has(one))) await run(check);
 
 if (!failed.length) {
   console.log(`\nБраузерные проверки: ${CHECKS.length}/${CHECKS.length} прошли.`);
