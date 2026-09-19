@@ -326,10 +326,14 @@
       const bots = group?.dataset.lobby === 'bots'
         ? Number(button.dataset.value)
         : Number(roomView.settings.bots || 0);
+      const strict = group?.dataset.lobby === 'strict'
+        ? button.dataset.value !== '0'
+        : roomView.settings.strict !== false;
       link?.send('settings', {
         mode: ending === 'last' ? 'last' : 'jubilee',
         years: ending === 'last' ? 7 : Number(ending),
         bots,
+        strict,
       });
     });
   }
@@ -487,7 +491,9 @@
     }
 
     for (const group of $('lobby-settings').querySelectorAll('.choice')) {
-      const value = group.dataset.lobby === 'years' ? endingOf(view.settings) : String(bots);
+      const value = group.dataset.lobby === 'years' ? endingOf(view.settings)
+        : group.dataset.lobby === 'strict' ? (view.settings?.strict === false ? '0' : '1')
+          : String(bots);
       for (const button of group.querySelectorAll('button[data-value]')) {
         button.setAttribute('aria-pressed', String(button.dataset.value === value));
         button.disabled = !view.youAreHost;
@@ -495,7 +501,7 @@
     }
     $('lobby-hint').textContent = view.youAreHost
       ? `За столом ${view.tableSize} из ${view.maxPlayers}. Партия идёт от двоих.`
-      : 'Срок партии и число соперников выбирает хозяин комнаты.';
+      : 'Срок партии, лад и число соперников выбирает хозяин комнаты.';
 
     const ready = $('lobby-ready');
     ready.hidden = Boolean(view.youAreHost);
@@ -595,12 +601,14 @@
     const ending = picked('years');
     const mode = ending === 'last' ? 'last' : 'jubilee';
     const years = ending === 'last' ? 7 : Number(ending);
+    // Лад: усложнённый — строить на целом цвете, простой — на своём уделе.
+    const strict = picked('strict') !== '0';
     const players = [];
     for (let i = 0; i < humans; i += 1) players.push({ name: humans === 1 ? 'Игрок' : `Игрок ${i + 1}` });
     for (let i = 0; i < bots; i += 1) {
       players.push({ name: BOT_NAMES[i], isBot: true, botLevel: i % 2 ? 'scribe' : 'elder' });
     }
-    state = E.createGame({ players, years, mode });
+    state = E.createGame({ players, years, mode, strict });
     for (const id of ['mode', 'setup', 'online']) { const node = $(id); if (node) node.hidden = true; }
     $('game').hidden = false;
     orientationTip();

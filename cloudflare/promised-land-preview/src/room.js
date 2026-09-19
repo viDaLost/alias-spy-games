@@ -50,7 +50,17 @@ export function sanitizeSettings(value, previous = null) {
   const asked = Number(value?.bots);
   const bots = Number.isFinite(asked) ? Math.max(0, Math.min(MAX_PLAYERS - 1, Math.floor(asked)))
     : Number(previous?.bots || 0);
-  return { mode, years, bots };
+  /*
+    Лад партии: усложнённый — строить на целом цвете, простой — на своём уделе.
+    Умолчание усложнённое: правило это старше игры, и менять его молча за
+    хозяина комнаты не надо. Отсутствие поля — не «простой», а «как было»:
+    иначе старая вкладка, не знающая про лад, переводила бы комнату в простой
+    каждым нажатием на число соперников.
+  */
+  const strict = value?.strict === undefined
+    ? (previous?.strict !== false)
+    : value.strict !== false;
+  return { mode, years, bots, strict };
 }
 
 /** Сколько всего будет за столом: люди плюс соперники от игры. */
@@ -63,7 +73,7 @@ export function createRoomState(roomId, host, now = Date.now()) {
     hostPlayerId: String(host?.playerId || ''),
     players: [],
     chat: [],
-    settings: { mode: 'jubilee', years: 3, bots: 0 },
+    settings: { mode: 'jubilee', years: 3, bots: 0, strict: true },
     seats: [],
     createdAt: now,
     updatedAt: now,

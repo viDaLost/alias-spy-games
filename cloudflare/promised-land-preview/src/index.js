@@ -317,6 +317,8 @@ export class PromisedLandRoom extends DurableObject {
       players,
       years: last ? 7 : Number(this.room.settings.years),
       mode: last ? 'last' : 'jubilee',
+      // Лад партии выбран хозяином в лобби и с этого мига не меняется.
+      strict: this.room.settings.strict !== false,
     });
     this.room.startedAt = now;
   }

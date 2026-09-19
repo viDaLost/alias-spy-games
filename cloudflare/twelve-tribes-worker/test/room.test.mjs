@@ -166,12 +166,27 @@ test('партия доходит до конца, и сервер ведёт е
   leaveRoom(room, guest.playerId, 1100);
   let now = 2000;
   let guard = 0;
-  while (room.game.status === 'playing' && guard < 4000) {
-    stepTable(room, now, Math.random);
+  /*
+    Источник случайности посеян, а не взят у системы.
+
+    Раньше здесь стоял Math.random, и проверка сама себе вредила: партия без
+    людей за столом то кончалась за двести шагов, то за двенадцать тысяч, и
+    падала она не от поломки, а от того, каким выпал жребий. Посеянный
+    источник даёт один и тот же прогон — а значит, упавшая проверка падает
+    снова и её есть чем чинить.
+
+    И предел поднят с четырёх тысяч. Раздача теперь идёт по местам — не до
+    первого вышедшего, а пока за столом не останется один, — и стала много
+    длиннее: сорок прогонов дали медиану около тысячи восьмисот шагов и хвост
+    до двенадцати тысяч. Четыре тысячи были мерой прежних правил.
+  */
+  const dice = seeded(4242);
+  while (room.game.status === 'playing' && guard < 40000) {
+    stepTable(room, now, dice);
     now += AWAY_TURN_LIMIT_MS + 1;
     guard += 1;
   }
-  assert.notEqual(room.game.status, 'playing', `раздача не кончилась за ${guard} ходов`);
+  assert.notEqual(room.game.status, 'playing', `раздача не кончилась за ${guard} шагов`);
   const hands = room.game.players.reduce((sum, one) => sum + one.hand.length, 0);
   assert.equal(hands + room.game.deck.length + room.game.pile.length, 108, 'карты по дороге потерялись');
 });

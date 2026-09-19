@@ -67,12 +67,31 @@ window.PromisedLandEngine = (() => {
     столом не останется один платёжеспособный. В нём нет и субботнего года:
     прощение долгов там означало бы, что партия не кончится никогда.
   */
-  function createGame({ players, years = 5, mode = 'jubilee', rng = systemRandom }) {
+  /*
+    Усложнённый лад — тот, в котором строят только на целом цвете.
+
+    Правило это взято у настольной родни и оно же — главная её тяжесть: цвета
+    собираются кругом, то есть случайно, и партия на троих сплошь и рядом
+    кончается тем, что ни у кого нет целого цвета и строить некому. Уговор об
+    обмене это чинит, но не всегда: меняться можно только с тем, у кого есть
+    что менять.
+
+    Поэтому лад стал выбором. Усложнённый — как было: удел строится, когда весь
+    его цвет ваш, и ступени в цвете ставятся вровень. Простой — удел строится
+    сам по себе, как только он ваш: купили, обменяли, выкупили из залога — и
+    стройте.
+
+    Остальные правила не трогаются ни в одном ладу: плата за проход по целому
+    цвету всё так же вдвое больше, и собирать цвета по-прежнему выгодно — просто
+    без них игра больше не встаёт.
+  */
+  function createGame({ players, years = 5, mode = 'jubilee', strict = true, rng = systemRandom }) {
     const last = mode === 'last';
     const state = {
       version: 1,
       status: 'playing',
       mode: last ? 'last' : 'jubilee',
+      strict: strict !== false,
       years,
       year: 1,
       sabbath: !last && years === 1,
@@ -1063,10 +1082,17 @@ window.PromisedLandEngine = (() => {
     if (!spec || spec.kind !== 'plot') return false;
     const cell = state.cells[n];
     if (cell.owner !== player.id || cell.altar || cell.level >= B.LEVELS.length) return false;
-    if (!ownsWholeGroup(state, player.id, spec.group)) return false;
-    // Строить вровень: нельзя поставить второй дом, пока рядом стоит шатёр.
-    const levels = B.groupCells(spec.group).map((i) => state.cells[i].level);
-    if (cell.level > Math.min(...levels)) return false;
+    /*
+      Целый цвет и ступени вровень — это одно правило, а не два: вровень
+      строят внутри своего цвета, и без целого цвета равнять не с чем. Поэтому
+      в простом ладу снимаются оба, и удел строится сам по себе.
+    */
+    if (state.strict !== false) {
+      if (!ownsWholeGroup(state, player.id, spec.group)) return false;
+      // Строить вровень: нельзя поставить второй дом, пока рядом стоит шатёр.
+      const levels = B.groupCells(spec.group).map((i) => state.cells[i].level);
+      if (cell.level > Math.min(...levels)) return false;
+    }
     if (free) return true;
     return player.silver >= B.GROUPS[spec.group].build;
   }
@@ -1196,6 +1222,13 @@ window.PromisedLandEngine = (() => {
     if (cell.pledge || cell.heldFrom) return false;
     if (cell.level > 0 || cell.altar) return false;
     if (spec.kind !== 'plot') return true;
+    /*
+      Пустой удел из застроенного цвета не отдают — но только в усложнённом
+      ладу. Запрет этот держит лестницу ровной: отдать землю из-под поселения
+      значит оставить постройку на чужом цвете. В простом ладу лестницы нет,
+      каждый удел сам по себе, и держать нечего.
+    */
+    if (state.strict === false) return true;
     return !B.BOARD.some((other) => other.kind === 'plot' && other.group === spec.group
       && (state.cells[other.n].level > 0 || state.cells[other.n].altar));
   }
@@ -1230,6 +1263,13 @@ window.PromisedLandEngine = (() => {
       вообще не предлагал уговоров — доплата, на которую согласился бы сосед,
       всегда выходила дороже его собственной выгоды.
     */
+    /*
+      В простом ладу замыкать нечего: строить можно на любом своём уделе, и
+      последний удел цвета не приносит никакого права — только ту же землю и
+      ту же двойную плату за проход. Поэтому надбавка за него меньше и
+      считается от одного соображения: целый цвет всё ещё удваивает плату.
+    */
+    if (state.strict === false) return mine + 1 >= group.length ? Math.round(base * 1.4) : base;
     if (mine + 1 >= group.length) return Math.round(base * 2.5);
     if (mine + 1 === group.length - 1) return Math.round(base * 1.3);
     return base;
