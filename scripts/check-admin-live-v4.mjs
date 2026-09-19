@@ -68,7 +68,11 @@ includes('web/js/cloudflare-request-budget.js', 'if (document.hidden && existing
 
 excludes('web/js/presence-identity.js', "searchParams.set('initData'", 'Presence websocket must not expose Telegram initData');
 includes('web/js/presence-identity.js', "scope: 'presence'", 'Presence must use a scoped web session');
-includes('web/js/presence-identity.js', "localStorage.getItem('quartet_v2_room_id')", 'Presence room context must use explicit game storage state');
+// Room keys are now a table rather than an if-chain: the point is unchanged —
+// every game names its own storage key, none is guessed.
+includes('web/js/presence-identity.js', "quartet: 'quartet_v2_room_id'", 'Presence room context must use explicit game storage state');
+includes('web/js/presence-identity.js', "'bible-sketch': 'bible_sketch_room_id_v1'", 'Presence must know the sketch room key');
+includes('web/js/presence-identity.js', "'twelve-tribes': 'tt_room_id'", 'Presence must know the twelve-tribes room key');
 includes('web/js/presence-identity.js', 'setGame,', 'Presence must expose explicit game state');
 includes('web/js/presence-identity.js', 'sendPresence(true);', 'Presence heartbeat must refresh full game state');
 includes('web/js/presence-identity.js', 'if (reconnectTimer || connecting', 'Presence passive timers must not bypass reconnect backoff');

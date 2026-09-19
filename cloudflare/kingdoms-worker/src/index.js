@@ -18,6 +18,7 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   BOT_STEP_MS,
   backToLobby,
+  playAgain,
   buildView,
   createRoomState,
   forStorage,
@@ -47,7 +48,7 @@ const ACTION_WINDOW_LIMIT = 10;
 
 /** Что игрок вправе попросить у комнаты. Список закрытый и проверяется весь. */
 const ROOM_ACTIONS = new Set([
-  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'nextRound', 'leave',
+  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'nextRound', 'leave',
 ]);
 const GAME_ACTIONS = new Set(['placeOrder', 'skipTurn']);
 
@@ -300,6 +301,8 @@ export class KingdomsRoom extends DurableObject {
       startGame(this.room, playerId, now);
     } else if (action === 'backToLobby') {
       backToLobby(this.room, playerId, now);
+    } else if (action === 'playAgain') {
+      playAgain(this.room, playerId, now);
     } else if (action === 'nextRound') {
       nextRound(this.room, playerId, now);
     } else if (action === 'leave') {

@@ -366,6 +366,7 @@
     link = null;
     roomView = null;
     mySeat = '';
+    askApp('room', '');   // ушли из комнаты — приложению больше нечего о ней знать
     waitingInLobby = false;
     state = null;
     // Связь рвётся не сразу: «ушёл» надо донести, а закрытая связь его не донесёт.
@@ -379,8 +380,17 @@
 
   function applyRoom(view) {
     if (!view) return;
+    const wasRoom = roomView?.roomId || '';
     roomView = view;
     mySeat = view.seat || '';
+    /*
+      Приложению сообщается код комнаты. Игра живёт в кадре на своём адресе, и
+      снаружи о ней не видно ничего — а приложению это нужно: по коду комнаты
+      администратор открывает монитор партии, когда человек жалуется, что у
+      него всё встало. Ни имён, ни карт, ни денег — только код, который и так
+      написан на экране у всех за столом.
+    */
+    if (view.roomId && view.roomId !== wasRoom) askApp('room', view.roomId);
     const over = Boolean(view.game) && view.game.status !== 'playing';
     if (view.phase === 'playing' && view.game && !(waitingInLobby && over)) {
       waitingInLobby = false;
@@ -1777,20 +1787,30 @@
     winner.appendChild(img(art('icons', 'ui-jubilee'), 'winner-icon', ''));
     winner.appendChild(el('span', null, `${state.scores[0].name} — ${state.scores[0].total} наследия`));
     const again = $('again-btn');
+    const toLobby = $('lobby-btn');
     /*
       «Ещё раз» по сети — не перезагрузка страницы: та выкинула бы игрока из
-      комнаты, где остались остальные. Хозяин возвращает в комнату всех, гость —
-      только себя, и ждёт там нового начала.
+      комнаты, где остались остальные.
+
+      Хозяину она значит то же, что и за одним столом: сдать заново тем же
+      составом, не разводя всех по лобби и не спрашивая готовность заново — её
+      только что подтвердили доигранной партией. Кому нужно поменять годы или
+      позвать кого-то ещё, для того рядом «В комнату».
+
+      Гостю решать нечего: он уходит ждать в комнату, а начинает хозяин.
     */
-    again.textContent = link ? (roomView?.youAreHost ? 'Вернуться в комнату' : 'В комнату') : 'Ещё раз';
+    const host = Boolean(roomView?.youAreHost);
+    again.textContent = link ? (host ? 'Играть ещё раз' : 'В комнату') : 'Ещё раз';
+    toLobby.hidden = !(link && host);
     again.onclick = () => {
       if (!link) { location.reload(); return; }
-      if (roomView?.youAreHost) { link.send('backToLobby'); return; }
+      if (host) { link.send('playAgain'); return; }
       waitingInLobby = true;
       $('jubilee').hidden = true;
       $('online').hidden = false;
       if (roomView) renderLobby(roomView);
     };
+    toLobby.onclick = () => { if (link && host) link.send('backToLobby'); };
   }
 
   // ————————————————————————————————————————————————— цикл

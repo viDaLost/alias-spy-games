@@ -16,6 +16,7 @@
 // вкладке: закрытый телефон не должен останавливать партию у остальных.
 
 import { DurableObject } from 'cloudflare:workers';
+import { adminRoomState, adminStateResponse } from './admin-observer.js';
 import {
   BOT_STEP_MS,
   addChatMessage,
@@ -27,6 +28,7 @@ import {
   leaveRoom,
   nextRound,
   nextStepAt,
+  playAgain,
   playerAction,
   renamePlayer,
   reviveGame,
@@ -49,7 +51,7 @@ const ACTION_WINDOW_LIMIT = 14;
 
 /** Что игрок вправе попросить у комнаты. Список закрытый и проверяется весь. */
 const ROOM_ACTIONS = new Set([
-  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'nextRound', 'chat', 'leave',
+  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'nextRound', 'chat', 'leave',
 ]);
 const GAME_ACTIONS = new Set(['play', 'draw', 'pass', 'shabbat', 'catch']);
 
@@ -60,6 +62,14 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
     try {
+      /*
+        Монитор администратора идёт первым: он не игрок, сессии комнаты у него
+        нет, и через общие маршруты он не прошёл бы. Без предъявленного токена
+        обработчик возвращает null, и запрос идёт дальше как обычно.
+      */
+      const observed = await adminRoomState(request, env, { roomStub, normalizeRoomId, cors });
+      if (observed) return observed;
+
       if (url.pathname === '/health') {
         return json({ ok: true, service: 'alias-spy-games-twelve-tribes', chat: true, now: Date.now() }, 200, cors);
       }
@@ -163,6 +173,15 @@ export class TwelveTribesRoom extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    /*
+      Комната глазами администратора. Вид собирается пустым именем игрока —
+      тем же, каким его получает зритель, — поэтому ничьей руки в нём нет.
+    */
+    if (request.method === 'GET' && url.pathname === '/admin-state') {
+      return adminStateResponse(request, this.room,
+        this.room ? buildView(this.room, '', this.connectedPlayerIds()) : null);
+    }
 
     if (request.method === 'POST' && url.pathname === '/create') {
       const { roomId, player, createRequestId } = await readJson(request);
@@ -297,6 +316,8 @@ export class TwelveTribesRoom extends DurableObject {
       startGame(this.room, playerId, now);
     } else if (action === 'backToLobby') {
       backToLobby(this.room, playerId, now);
+    } else if (action === 'playAgain') {
+      playAgain(this.room, playerId, now);
     } else if (action === 'nextRound') {
       nextRound(this.room, playerId, now);
     } else if (action === 'chat') {
@@ -577,7 +598,11 @@ function corsHeaders(request, env) {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    // Authorization и If-None-Match — для монитора администратора: он ходит
+    // с токеном и с версией, которую уже видел. ETag наружу тоже приходится
+    // открывать явно, иначе браузер его панели не прочитает.
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    'Access-Control-Expose-Headers': 'ETag',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   };

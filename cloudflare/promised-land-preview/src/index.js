@@ -17,6 +17,7 @@
 // настраивать в развёртывании нечего, и забыть настроить тоже нечего.
 
 import { DurableObject } from 'cloudflare:workers';
+import { adminRoomState, adminStateResponse } from './admin-observer.js';
 import {
   MAX_PLAYERS,
   addChatMessage,
@@ -51,7 +52,22 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
+    /*
+      Монитор администратора — единственное, что приходит сюда с чужого адреса:
+      панель живёт в приложении, а комнаты здесь. Поэтому разрешение по
+      источнику заведено только для него, а не для всего /api/: игра и её
+      запросы как были на одном адресе, так и остались.
+    */
+    const cors = adminCors(request, env);
+    if (request.method === 'OPTIONS' && ADMIN_PATH.test(url.pathname)) {
+      return new Response(null, { status: 204, headers: cors });
+    }
+
     try {
+      const observed = await adminRoomState(request, env,
+        { roomStub: stub, normalizeRoomId, cors });
+      if (observed) return observed;
+
       if (url.pathname === '/api/health') {
         return json({ ok: true, service: 'promised-land', cells: B.BOARD.length, now: Date.now() });
       }
@@ -141,6 +157,14 @@ export class PromisedLandRoom extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    /*
+      Комната глазами администратора. Прятать здесь нечего — доска открыта всем
+      за столом, — поэтому состояние берётся прямо, а не особым видом.
+    */
+    if (request.method === 'GET' && url.pathname === '/admin-state') {
+      return adminStateResponse(request, this.room, this.game, B, this.online());
+    }
 
     if (request.method === 'POST' && url.pathname === '/create') {
       if (this.room) return json({ ok: false, error: 'Комната занята' }, 409);
@@ -248,6 +272,19 @@ export class PromisedLandRoom extends DurableObject {
     else if (name === 'backToLobby') {
       backToLobby(this.room, playerId, now);
       this.game = null;
+    } else if (name === 'playAgain') {
+      /*
+        Ещё раз, теми же людьми. Обычный путь с юбилея — назад в комнату, где
+        каждый заново жмёт «готов», а хозяин заново «начать»; за эти полминуты
+        кто-нибудь да выйдет. Здесь комната возвращается в лобби и тут же
+        начинает партию: готовность только что подтверждена доигранной
+        партией, а ушедших вычёркивает тот же возврат, что и всегда.
+      */
+      if (this.room.phase !== 'playing') throw fail('Партия не идёт', 'NOT_PLAYING');
+      backToLobby(this.room, playerId, now);
+      this.game = null;
+      for (const one of this.room.players) one.ready = true;
+      this.startPlaying(playerId, now);
     } else if (name === 'game') this.playAction(playerId, data);
     else if (name === 'leave') {
       leaveRoom(this.room, playerId, now);
@@ -513,6 +550,27 @@ function guest(body) {
   const raw = String(body?.playerId || '').replace(/[^A-Za-z0-9_:-]/g, '').slice(0, 64);
   if (!raw) throw httpError(400, 'Игрок не назвался');
   return { playerId: raw, name: sanitizeName(body?.name) };
+}
+
+const ADMIN_PATH = /^\/api\/admin\/rooms\/[A-Za-z0-9]{4,10}\/state$/;
+
+/*
+  Разрешение по источнику — только для монитора. Список тот же, каким его знают
+  остальные воркеры приложения; без него панель на github.io не прочитала бы
+  ответ, даже получив его.
+*/
+function adminCors(request, env) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = String(env.ALLOWED_ORIGINS || 'https://vidalost.github.io')
+    .split(',').map((one) => one.trim()).filter(Boolean);
+  return {
+    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0] || 'https://vidalost.github.io',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    'Access-Control-Expose-Headers': 'ETag',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin',
+  };
 }
 
 const stub = (env, roomId) => env.ROOMS.get(env.ROOMS.idFromName(normalizeRoomId(roomId)));

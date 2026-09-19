@@ -91,7 +91,9 @@ async function verifyAdminSession(env, token) {
     headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || data?.ok !== true || data?.scope !== 'admin') throw httpError(response.status || 403, data?.error || 'Admin only');
+  // Сессия обычного игрока — удачный ответ ядра с кодом 200; отказ обязан
+  // быть отказом и по коду, иначе панель прочтёт его как согласие.
+  if (!response.ok || data?.ok !== true || data?.scope !== 'admin') throw httpError(response.status >= 400 ? response.status : 403, data?.error || 'Admin only');
   const value = { expiresAt: Number(data.expiresAt || 0), cachedUntil: Math.min(Number(data.expiresAt || now), now + SESSION_CACHE_MS) };
   sessionCache.set(token, value);
   return value;

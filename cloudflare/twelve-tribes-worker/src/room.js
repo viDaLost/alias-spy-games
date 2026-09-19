@@ -228,6 +228,29 @@ export function backToLobby(room, playerId, now = Date.now()) {
   return room;
 }
 
+/*
+  Ещё раз, теми же людьми.
+
+  Партия кончилась, и обычный путь отсюда — назад в комнату, где каждый заново
+  жмёт «готов», а хозяин заново «начать». Для тех, кто только что доиграл и
+  хочет сыграть ещё, это три лишних нажатия и полминуты на то, чтобы все
+  собрались обратно, — за это время кто-нибудь да выйдет.
+
+  Поэтому есть короткий путь: комната возвращается в лобби и тут же сдаёт
+  заново. Готовность не спрашивается — её только что подтвердили самой
+  доигранной партией, — а ушедшие в новую раздачу не попадают: их вычёркивает
+  тот же возврат в лобби, что и всегда.
+*/
+export function playAgain(room, playerId, now = Date.now(), random = Math.random) {
+  if (room.hostPlayerId !== String(playerId || '')) {
+    throw roomError('NOT_HOST', 'Начать ещё раз может хозяин');
+  }
+  if (room.phase !== 'playing') throw roomError('NOT_PLAYING', 'Партия не идёт');
+  backToLobby(room, playerId, now);
+  for (const one of room.players) one.ready = true;
+  return startGame(room, playerId, now, random);
+}
+
 /** Место человека за столом или −1, если он смотрит партию со стороны. */
 export const seatOf = (room, playerId) => (room.seats || []).indexOf(String(playerId || ''));
 

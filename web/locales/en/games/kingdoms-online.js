@@ -341,6 +341,9 @@
       return {
         send: (action, payload) => this.link.send(action, payload),
         leave: () => { this.link.send('leave'); this.destroy(); this.back(); },
+        // Итоги партии спрашивают, хозяин ли смотрит: «играть ещё раз» —
+        // его решение, остальным там показывают, что он его принимает.
+        youAreHost: () => Boolean(this.view?.youAreHost),
       };
     }
 

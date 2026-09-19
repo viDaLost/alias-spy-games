@@ -1042,18 +1042,29 @@
             <div class="tt-log">${log}</div>
             <div class="tt-row">
               ${this.net && !this.net.youAreHost()
-    ? '<p class="tt-wait">Следующую раздачу сдаёт хозяин комнаты</p>'
+    ? `<p class="tt-wait">${series ? 'Следующую раздачу сдаёт хозяин комнаты' : 'Хозяин комнаты решает, играть ли ещё'}</p>`
     : `<button type="button" class="tt-btn" data-next>${
-      this.net ? (series ? 'Следующая раздача' : 'В комнату') : (series ? 'Следующая раздача' : 'Play another game')
+      series ? 'Следующая раздача' : 'Играть ещё раз'
     }</button>`}
+              ${this.net && this.net.youAreHost() && !series
+    ? '<button type="button" class="tt-btn tt-btn--ghost" data-lobby>В комнату</button>' : ''}
               <button type="button" class="tt-btn tt-btn--ghost" data-menu>${this.net ? 'Leave room' : 'Menu'}</button>
             </div>
           </section>
         </div>`;
+      /*
+        «Играть ещё раз» — короткий путь для тех, кто только что доиграл. По
+        сети он не разводит всех по лобби и не просит заново подтверждать
+        готовность: комната сдаёт заново тем же составом. Кому нужно поменять
+        настройки или позвать кого-то ещё — рядом стоит «В комнату».
+      */
       this.root.querySelector('[data-next]')?.addEventListener('click', () => {
-        if (this.net) { this.net.send(series ? 'nextRound' : 'backToLobby'); return; }
+        if (this.net) { this.net.send(series ? 'nextRound' : 'playAgain'); return; }
         if (series) { this.E.nextRound(this.state); this.buildTable(); this.render(); this.tick(); }
         else this.setup();
+      });
+      this.root.querySelector('[data-lobby]')?.addEventListener('click', () => {
+        this.net?.send('backToLobby');
       });
       this.root.querySelector('[data-menu]').addEventListener('click', () => {
         stopTimers();

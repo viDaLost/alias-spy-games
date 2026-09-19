@@ -56,10 +56,22 @@
     return /^[A-Z0-9]{4,10}$/.test(room) ? room : '';
   }
 
+  /*
+    Код комнаты по памяти игры. Игры, живущие в самом приложении, помнят его в
+    хранилище браузера — оттуда его и берут. «Земли обетованной» здесь нет
+    нарочно: она открыта кадром на своём адресе, её хранилище отсюда не
+    прочитать, и код комнаты она присылает сообщением (см. setRoom).
+  */
+  const ROOM_KEYS = {
+    quartet: 'quartet_v2_room_id',
+    'bible-sketch': 'bible_sketch_room_id_v1',
+    'twelve-tribes': 'tt_room_id',
+  };
+
   function roomFromStorage(game) {
     try {
-      if (game === 'quartet') return normalizeRoom(localStorage.getItem('quartet_v2_room_id'));
-      if (game === 'bible-sketch') return normalizeRoom(localStorage.getItem('bible_sketch_room_id_v1'));
+      const key = ROOM_KEYS[game];
+      return key ? normalizeRoom(localStorage.getItem(key)) : '';
     } catch {}
     return '';
   }

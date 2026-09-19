@@ -1365,6 +1365,16 @@ window.addEventListener('message', (event) => {
   if (data?.type === 'promised-land:qr' && /^[A-Z0-9]{5}$/.test(data.room || '')) {
     window.RoomInvite?.openQr?.('promised-land', data.room, 'Земля обетованная · подключение к комнате');
   }
+  /*
+    Код комнаты из кадра. Игра на своём адресе, её хранилище отсюда не
+    прочитать, и без этого сообщения приложение не знало бы, что человек сидит
+    в комнате, — а знать надо: по коду администратор открывает монитор партии.
+  */
+  if (data?.type === 'promised-land:room') {
+    const room = String(data.room || '');
+    if (/^[A-Z0-9]{4,10}$/.test(room)) window.AppPresenceContext?.setRoom?.('promised-land', room);
+    else window.AppPresenceContext?.clearRoom?.('promised-land');
+  }
   if (data?.type === 'promised-land:ready') {
     sendPromisedLandInvite();
     /*
