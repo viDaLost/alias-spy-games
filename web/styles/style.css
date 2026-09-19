@@ -610,6 +610,12 @@ main.menu-container {
 */
 .game-card.game-card--owner { display: none; }
 .admin-rbac-root .game-card.game-card--owner { display: flex; }
+/*
+  Игра на обкатке возвращается и тем, кого позвали поимённо: признак ставит
+  twelve-tribes-access.js, разобравшись, чей это телефон. Пара классов здесь
+  по той же причине, что и выше, — чтобы вес селектора не уступал чужому.
+*/
+.tribes-open .game-card.game-card--tryout { display: flex; }
 
 .game-card {
   position: relative;

@@ -574,7 +574,9 @@
   */
   const OWNER_ONLY = new Set(['twelve-tribes']);
   const isOwner = () => document.documentElement.classList.contains('admin-rbac-root');
-  const shownGames = () => GAMES.filter((game) => !OWNER_ONLY.has(game.key) || isOwner());
+  // Позванные на обкатку видят игру в меню — значит, и правила ей нужны.
+  const isInvited = () => window.TwelveTribesAccess?.allowed() === true;
+  const shownGames = () => GAMES.filter((game) => !OWNER_ONLY.has(game.key) || isOwner() || isInvited());
 
   const BY_KEY = new Map(GAMES.map((game) => [game.key, game]));
 

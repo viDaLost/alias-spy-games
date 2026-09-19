@@ -517,25 +517,31 @@ async function play(width, height, foes = 2) {
   Замок. Обычный человек не видит карточку в меню и не попадает в игру даже
   прямым вызовом showGame — вместо стола он получает отказ и кнопку в меню.
 */
-async function locked() {
+/*
+  Вход не администратора. Один и тот же путь ведёт к двум разным ответам:
+  незваному игра не видна и не открывается, позванному — видна и открывается.
+  Поэтому и вход один, с id на входе: два почти одинаковых сценария
+  разъезжаются при первой же правке, и разъезжаются молча.
+*/
+async function asGuest(userId) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
-  await page.addInitScript(() => {
+  await page.addInitScript((id) => {
     window.Telegram = {
       WebApp: {
-        initData: 'user=%7B%22id%22%3A777000%7D&hash=qa',
-        initDataUnsafe: { user: { id: 777000, first_name: 'Гость' } },
+        initData: `user=%7B%22id%22%3A${id}%7D&hash=qa`,
+        initDataUnsafe: { user: { id: Number(id), first_name: 'Гость' } },
         ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
         MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
         HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
       },
     };
-  });
+  }, userId);
   const plain = (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({
       success: true, isBanned: false, lastGames: [], users: [],
-      isAdmin: false, isRoot: false, role: 'none', userId: '777000',
+      isAdmin: false, isRoot: false, role: 'none', userId,
       answered: true, skip: true, eligible: false,
     }),
   });
@@ -557,23 +563,57 @@ async function locked() {
       others: document.querySelectorAll('[onclick*="quartet"]').length,
     };
   });
-  need(!seen.root, 'обычному человеку выдали роль главного администратора');
-  need(seen.others > 0, 'у обычного человека пропали и прочие игры — дело не в замке');
-  need(!seen.shown, 'карточка «Двенадцати колен» видна тому, кому игра ещё не открыта');
+
+  /*
+    Справочник обязан молчать о той игре, которой у человека нет, и говорить о
+    той, которая есть: раздел про игру, до которой не добраться, — недоумение,
+    а не вежливость. Спрашивается он до игры, пока экран ещё меню.
+  */
+  const rules = await page.evaluate(async () => {
+    if (typeof window.openGameRules !== 'function') return null;
+    window.openGameRules();
+    await new Promise((done) => setTimeout(done, 800));
+    const found = document.querySelectorAll('[data-rules-game="twelve-tribes"]').length;
+    document.querySelectorAll('.rules-modal, #game-rules, .rules-sheet').forEach((one) => {
+      one.hidden = true;
+      one.remove();
+    });
+    return found > 0;
+  });
 
   await page.evaluate(() => window.showGame('twelve-tribes'));
-  await page.waitForTimeout(1500);
-  const refused = await page.evaluate(() => ({
+  await page.waitForTimeout(2500);
+  const opened = await page.evaluate(() => ({
     text: document.getElementById('game-container')?.innerText || '',
     table: document.querySelectorAll('.tt-wrap').length,
   }));
-  need(/ещё не открыта/i.test(refused.text),
-    `прямой вызов игры не отказал: «${refused.text.slice(0, 60)}»`);
-  need(refused.table === 0, 'по прямому вызову игра всё-таки открылась');
   await context.close();
+  return { ...seen, ...opened, rules };
 }
 
-await locked();
+/*
+  Незваный. Карточки нет, прямой вызов отказывает, и прочие игры на месте —
+  иначе «не видно» означало бы сломанное меню, а не замок.
+*/
+const guest = await asGuest('777000');
+need(!guest.root, 'обычному человеку выдали роль главного администратора');
+need(guest.others > 0, 'у обычного человека пропали и прочие игры — дело не в замке');
+need(!guest.shown, 'карточка «Двенадцати колен» видна тому, кому игра ещё не открыта');
+need(/ещё не открыта/i.test(guest.text),
+  `прямой вызов игры не отказал: «${guest.text.slice(0, 60)}»`);
+need(guest.table === 0, 'по прямому вызову игра всё-таки открылась');
+need(guest.rules !== true, 'справочник рассказывает незваному про игру, которой у него нет');
+
+/*
+  Позванный. Тот же путь, тот же не-администратор — и другой ответ: id взят
+  из настоящего списка приглашённых, так что проверка сломается, если список
+  до браузера не доедет.
+*/
+const invited = await asGuest('42506115');
+need(!invited.root, 'позванному выдали роль главного администратора');
+need(invited.shown, 'позванному карточка «Двенадцати колен» не видна');
+need(invited.table > 0, `позванного не пустили в игру: «${invited.text.slice(0, 60)}»`);
+need(invited.rules !== false, 'справочник молчит об игре, которая позванному открыта');
 const phone = await play(390, 844);
 need(phone.errors.length === 0, `ошибки в консоли: ${phone.errors.slice(0, 2).join(' | ')}`);
 const narrow = await play(320, 568);
@@ -595,7 +635,8 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов; '
+console.log('OK: замок держит — незваный не видит карточку, получает отказ на прямой вызов и не находит игру в справочнике, '
+  + 'а позванный по списку видит её и играет; '
   + 'у главного администратора игра открывается из меню, раздача сдана по семь карт на троих, карта и колода крупнее пальца, '
   + `раздача доиграна до итогов за ${phone.steps} нажатий (жребиев со сменой стана ${phone.wilds}, `
   + `«Шабат» сказан ${phone.shabbat} раз); места стоят по очереди хода и переставляются после иордана, `
