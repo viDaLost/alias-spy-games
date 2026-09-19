@@ -34,7 +34,12 @@ const expectedNativeRoutes = new Set([
 // цикл кадров, поэтому она живёт отдельной страницей в своём воркере и
 // открывается фреймом. Нативной реализации у неё нет и не планируется. Здесь
 // сверяется только то, что маршрут заведён намеренно, а не завёлся сам.
-const expectedWebRoutes = new Set([...expectedNativeRoutes, 'moses-nile', 'promised-land']);
+// «Двенадцать колен» и «Царства» — той же породы, но ещё и на обкатке: их
+// карточки спрятаны до прихода роли, а комнаты живут в своих воркерах. В APK
+// они попадут вместе с упакованным веб-деревом, нативной реализации у них нет.
+// Здесь, как и у соседей выше, сверяется одно: маршрут заведён намеренно.
+const expectedWebRoutes = new Set([...expectedNativeRoutes,
+  'moses-nile', 'promised-land', 'twelve-tribes', 'kingdoms']);
 
 const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);

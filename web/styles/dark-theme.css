@@ -1541,6 +1541,10 @@ html.theme-dark .admin-v3-shell .admin-v2-user {
 }
 
 /* web/styles/admin-live-compact.css */
+html.theme-dark .admin-live-v3__observe-none {
+  background: #12191f !important;
+  color: #677287 !important;
+}
 html.theme-dark .admin-rbac-manager {
   border: 1px solid rgba(27, 15, 186, 0.14) !important;
   background: linear-gradient(145deg,rgba(20, 20, 20, 0.98),rgba(8, 16, 45, 0.98)) !important;
@@ -2129,6 +2133,9 @@ html.theme-dark body[data-mode="game"] {
     radial-gradient(64% 40% at 6% 22%, rgba(15, 44, 80, 0.5), transparent 66%),
     radial-gradient(70% 46% at 98% 34%, rgba(27, 70, 97, 0.42), transparent 68%),
     linear-gradient(178deg, var(--bg-1) 0%, var(--bg-3) 46%, var(--bg-2) 100%) !important;
+}
+html.theme-dark .game-frame-wrap {
+  background: #11162a !important;
 }
 html.theme-dark .game-frame-exit {
   border: 1px solid rgba(70, 53, 12, 0.28) !important;
@@ -4608,6 +4615,22 @@ html.theme-dark .game-entry-loader[data-game="spy"] .gel-radar {
 }
 html.theme-dark .game-entry-loader[data-game="spy"] .gel-radar::after {
   background: linear-gradient(90deg,#0f12a8,transparent) !important;
+}
+html.theme-dark .game-entry-loader[data-game="promised-land"] {
+  --gel-a: #170e9a !important;
+  --gel-b: #bb7d20 !important;
+}
+html.theme-dark .game-entry-loader[data-game="promised-land"] .gel-die {
+  background: #141414 !important;
+}
+html.theme-dark .game-entry-loader[data-game="promised-land"] .gel-die::after {
+  color: #241bbf !important;
+}
+html.theme-dark .game-entry-loader[data-game="promised-land"] .gel-card {
+  background: #141414 !important;
+}
+html.theme-dark .game-entry-loader[data-game="promised-land"] .gel-card::after {
+  color: #bb7d20 !important;
 }
 html.theme-dark .game-entry-loader[data-game="quartet"] {
   --gel-a: #0f12a8 !important;
