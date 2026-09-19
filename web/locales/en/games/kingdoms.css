@@ -1,0 +1,242 @@
+/* «Царства» — карта, приказы, раскрытие.
+
+   Пять цветов царств — данные партии, не палитра приложения: это гербовые
+   цвета, и смешивать их с общими токенами нельзя, не потеряв узнаваемость на
+   карте. Сами цвета заданы в kingdoms-rules.js и приходят в разметку через
+   --owner на каждой области — здесь только то, как с ними обращается стиль.
+
+   Верхнего отступа под панель Telegram здесь нет нарочно: оболочка
+   приложения уже отводит его над #game-container, и повторный отступ здесь
+   сложился бы с общим и подвинул карту вниз без причины. Нижний безопасный
+   отступ — свой: панель приказов прижата к низу экрана. */
+
+.kd-wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: min(86vh, 820px);
+  color: var(--ink, #111827);
+}
+
+.kd-card {
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line, rgba(99, 102, 241, .16));
+  border-radius: var(--radius-lg, 24px);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-soft, 0 18px 45px rgba(79, 70, 229, .12));
+}
+.kd-card h2 { margin: 0; font-size: 22px; }
+.kd-card p { margin: 0; color: var(--ink-soft, #667085); font-size: 14.5px; line-height: 1.5; }
+
+.kd-modes { display: flex; gap: 10px; flex-wrap: wrap; }
+.kd-modes button {
+  flex: 1 1 220px; min-height: 64px; border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, .3); background: var(--surface-soft, #f3f7ff);
+  font: inherit; font-weight: 700; cursor: pointer; text-align: left; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 2px; color: inherit;
+}
+.kd-modes button small { font-weight: 400; color: var(--ink-soft, #667085); font-size: 12.5px; }
+
+.kd-choice { display: flex; flex-direction: column; gap: 7px; }
+.kd-choice > span { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft, #667085); }
+.kd-choice--wide { display: flex; gap: 8px; }
+.kd-choice--wide button {
+  flex: 1 1 40px; min-height: 48px; border-radius: 14px; padding: 0;
+  border: 1px solid rgba(99, 102, 241, .3); background: var(--surface-soft, #f3f7ff);
+  font: inherit; font-weight: 700; cursor: pointer; color: inherit;
+}
+.kd-choice--wide button[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--primary, #4f46e5), var(--primary-2, #0ea5e9));
+  border-color: transparent; color: #fff;
+}
+.kd-choice-note { font-size: 12.5px; color: var(--ink-soft, #667085); }
+
+.kd-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.kd-btn {
+  flex: 1 1 auto; min-height: 50px; padding: 0 18px; border-radius: var(--radius-button, 16px);
+  border: 1px solid transparent; font: inherit; font-weight: 700; font-size: 15.5px; cursor: pointer;
+  background: linear-gradient(135deg, var(--primary, #4f46e5), var(--primary-2, #0ea5e9)); color: #fff;
+}
+.kd-btn--ghost { background: var(--surface-strong, #fff); color: var(--ink, #111827); border-color: rgba(99, 102, 241, .3); }
+.kd-note { font-size: 13px; color: var(--ink-soft, #667085); min-height: 1em; }
+
+/* ——— шапка партии ——— */
+.kd-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 12px; background: var(--surface-strong, #fff); border-radius: var(--radius-md, 18px);
+  border: 1px solid var(--line, rgba(99, 102, 241, .16));
+}
+.kd-header-round { display: flex; flex-direction: column; line-height: 1.25; }
+.kd-header-round b { font-size: 14.5px; }
+.kd-header-round span { font-size: 12.5px; color: var(--ink-soft, #667085); }
+.kd-header-right { display: flex; align-items: center; gap: 8px; }
+.kd-objective { font-size: 12px; color: var(--primary, #4f46e5); font-weight: 700; max-width: 40vw; }
+.kd-icon-btn {
+  width: 36px; height: 36px; border-radius: 12px; border: 1px solid rgba(99, 102, 241, .25);
+  background: var(--surface-soft, #f3f7ff); font-size: 16px; cursor: pointer; color: var(--ink, #111827);
+}
+
+/* ——— тело: карта + панель ——— */
+.kd-body { display: flex; flex-direction: column; gap: 10px; flex: 1; min-height: 0; }
+
+/*
+  Кнопки масштаба стоят своей полосой над картой, а не поверх неё:
+  положенная поверх SVG кнопка перехватывает нажатие на всё, что оказалось
+  под ней, — а под ней в самом деле область или связь, потому что карта
+  занимает весь прямоугольник. Отдельная полоса не может ничего заслонить.
+*/
+.kd-map-wrap {
+  position: relative; flex: 0 0 auto; height: 54vh; min-height: 300px; max-height: 560px;
+  display: flex; flex-direction: column; gap: 6px;
+  border-radius: var(--radius-lg, 24px); overflow: hidden; border: 1px solid rgba(99, 102, 241, .18);
+  background: var(--surface-strong, #fff);
+}
+.kd-map-toolbar { flex: 0 0 auto; display: flex; gap: 6px; padding: 6px 8px 0; }
+.kd-map-toolbar button {
+  min-height: 34px; padding: 0 10px; border-radius: 10px; border: 1px solid rgba(17, 24, 39, .12);
+  background: var(--surface-soft, #f3f7ff); font: inherit; font-weight: 700; font-size: 12.5px; cursor: pointer;
+}
+.kd-map-toolbar [data-zoom-fit] { margin-left: auto; }
+.kd-map-scroll {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none; cursor: grab;
+  background: linear-gradient(160deg, #d9c79a, #c9ae74 55%, #b89a5c);
+}
+.kd-map { width: 100%; height: 100%; transform-origin: center center; transition: transform .12s ease-out; }
+.kd-status {
+  position: absolute; left: 10px; right: 10px; bottom: 10px; margin: 0; padding: 8px 12px;
+  background: rgba(17, 24, 39, .72); color: #fff; border-radius: 12px; font-size: 13px; line-height: 1.35;
+  max-width: calc(100% - 20px); pointer-events: none;
+}
+
+/* ——— области и связи ——— */
+.kd-edge { stroke: rgba(120, 96, 56, .55); stroke-width: 3; }
+.kd-edge--ford { stroke: #2563eb; stroke-dasharray: 3 5; stroke-width: 4; }
+.kd-edge.is-eligible { stroke: #16a34a; stroke-width: 6; cursor: pointer; animation: kd-pulse-line 1.4s ease-in-out infinite; }
+
+.kd-region { pointer-events: none; }
+.kd-region circle { fill: rgba(255, 255, 255, .1); stroke: rgba(255, 255, 255, .3); stroke-width: 1; }
+.kd-region-label { fill: rgba(63, 45, 15, .55); font-size: 15px; font-weight: 700; text-anchor: middle; }
+
+.kd-area { cursor: pointer; }
+.kd-area-fill { fill: var(--owner, #94a3b8); stroke: none; }
+.kd-area-ring { fill: none; stroke: rgba(17, 24, 39, .35); stroke-width: 2; }
+.kd-area.is-neutral .kd-area-fill { fill: #9aa3ad; }
+.kd-area.is-mine .kd-area-ring { stroke: #fff; stroke-width: 3; }
+.kd-area.is-eligible .kd-area-ring { stroke: #16a34a; stroke-width: 5; animation: kd-pulse-ring 1.4s ease-in-out infinite; }
+.kd-area.is-selected .kd-area-ring { stroke: #f59e0b; stroke-width: 5; }
+.kd-area-terrain { color: rgba(255, 255, 255, .85); }
+.kd-area-crown path { fill: #f5d377; stroke: rgba(17, 24, 39, .4); stroke-width: .6; }
+.kd-area-city rect { fill: #fff; opacity: .85; }
+.kd-area-fortify circle { fill: #fff; stroke: rgba(17, 24, 39, .3); stroke-width: .5; }
+.kd-area-value {
+  text-anchor: middle; transform: translate(22px, -22px); font-size: 13px; font-weight: 800;
+  fill: #fff; paint-order: stroke; stroke: rgba(17, 24, 39, .55); stroke-width: 3px;
+}
+.kd-area.is-resolving .kd-area-ring { stroke: #ef4444; stroke-width: 6; animation: kd-flash .5s ease-in-out 2; }
+
+.kd-token circle { fill: var(--owner, #94a3b8); stroke: #fff; stroke-width: 2; }
+.kd-token:not(.is-mine) circle { fill: #fff; stroke: var(--owner, #94a3b8); stroke-width: 3; }
+.kd-token .kd-order-icon { color: #fff; transform: translate(-10px, -10px); width: 20px; height: 20px; }
+.kd-token:not(.is-mine) .kd-order-icon { display: none; }
+.kd-token-q { fill: var(--owner, #94a3b8); font-size: 15px; font-weight: 900; text-anchor: middle; }
+.kd-token-force { fill: #1f2937; font-size: 10px; font-weight: 800; }
+.kd-token.is-scoutable { cursor: pointer; }
+.kd-token.is-scoutable circle { animation: kd-pulse-ring 1.2s ease-in-out infinite; }
+.kd-token.is-picked circle { stroke: #16a34a; stroke-width: 4; }
+
+@keyframes kd-pulse-ring { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes kd-pulse-line { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes kd-flash { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+/* ——— панель приказов ——— */
+.kd-panel {
+  flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+  background: var(--surface-strong, #fff); border-radius: var(--radius-lg, 24px);
+  border: 1px solid var(--line, rgba(99, 102, 241, .16)); padding: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.kd-orders { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kd-order-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+  padding: 8px 10px; min-height: 68px; border-radius: 14px; cursor: pointer;
+  border: 1px solid rgba(99, 102, 241, .25); background: var(--surface-soft, #f3f7ff); color: inherit; font: inherit;
+}
+.kd-order-btn .kd-order-icon { color: var(--primary, #4f46e5); }
+.kd-order-title { font-weight: 700; font-size: 13.5px; }
+.kd-order-text { font-size: 11px; color: var(--ink-soft, #667085); line-height: 1.25; }
+.kd-order-btn.is-active {
+  background: linear-gradient(135deg, var(--primary, #4f46e5), var(--primary-2, #0ea5e9)); color: #fff;
+}
+.kd-order-btn.is-active .kd-order-icon { color: #fff; }
+.kd-order-btn.is-active .kd-order-text { color: rgba(255, 255, 255, .85); }
+.kd-order-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.kd-confirm {
+  background: var(--surface-soft, #f3f7ff); border-radius: 14px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(99, 102, 241, .25);
+}
+/* Свойство display у класса перебивает базовое [hidden] браузера — оно
+   обязано быть переобъявлено явно, иначе скрытая приказом панель всё равно
+   рисуется поверх остального. */
+.kd-confirm[hidden] { display: none; }
+.kd-confirm p { margin: 0; font-size: 13.5px; font-weight: 600; }
+.kd-orders-left { margin: 0; font-size: 12.5px; color: var(--ink-soft, #667085); text-align: center; }
+
+/* ——— карточки поверх экрана ——— */
+.kd-sheet {
+  position: fixed; inset: 0; z-index: var(--z-modal, 2000); background: rgba(17, 24, 39, .5);
+  display: flex; align-items: flex-end; justify-content: center; padding: 0;
+}
+@media (min-width: 640px) { .kd-sheet { align-items: center; padding: 20px; } }
+.kd-sheet-card {
+  width: 100%; max-width: 520px; max-height: 86vh; overflow-y: auto;
+  background: var(--surface-strong, #fff); border-radius: 22px 22px 0 0; padding: 18px;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 12px;
+}
+@media (min-width: 640px) { .kd-sheet-card { border-radius: 22px; } }
+.kd-sheet-card h3 { margin: 0; font-size: 18px; }
+.kd-sheet-card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ink-soft, #667085); }
+
+.kd-detail-rows { display: flex; flex-direction: column; gap: 6px; }
+.kd-detail-rows div { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; border-bottom: 1px dashed rgba(99, 102, 241, .2); }
+
+.kd-log { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.kd-log-line { font-size: 13px; line-height: 1.4; padding: 4px 0; border-bottom: 1px dashed rgba(99, 102, 241, .15); }
+.kd-log-line b { color: var(--primary, #4f46e5); margin-right: 4px; }
+
+.kd-over { display: flex; flex-direction: column; gap: 4px; }
+.kd-score { display: flex; justify-content: space-between; font-size: 14.5px; padding: 6px 8px; border-radius: 10px; }
+.kd-score.is-you { background: var(--surface-soft, #f3f7ff); font-weight: 700; }
+
+.kd-final { display: flex; flex-direction: column; gap: 8px; }
+.kd-final-row { border-radius: 14px; padding: 10px 12px; background: var(--surface-soft, #f3f7ff); }
+.kd-final-row.is-you { outline: 2px solid var(--primary, #4f46e5); }
+.kd-final-row.is-winner { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.kd-final-name { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
+.kd-final-bits { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12.5px; color: var(--ink-soft, #667085); }
+.kd-final-total { font-weight: 800; color: var(--ink, #111827); }
+
+/* ——— ориентация: широкий экран — карта и панель в ряд ——— */
+@media (orientation: landscape) and (min-width: 640px) {
+  .kd-body { flex-direction: row; }
+  .kd-map-wrap { flex: 1 1 auto; height: auto; max-height: none; }
+  .kd-panel { width: 320px; flex: 0 0 320px; max-height: none; }
+}
+
+/* ——— узкие телефоны: описания не сжимаются в полоску ——— */
+@media (max-width: 380px) {
+  .kd-orders { grid-template-columns: 1fr; }
+  .kd-objective { max-width: 32vw; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kd-edge.is-eligible, .kd-area.is-eligible .kd-area-ring, .kd-token.is-scoutable circle,
+  .kd-area.is-resolving .kd-area-ring, .kd-map { animation: none !important; transition: none !important; }
+}
