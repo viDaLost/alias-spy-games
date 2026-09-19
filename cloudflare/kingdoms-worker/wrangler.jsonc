@@ -1,0 +1,30 @@
+// Комнаты «Царств».
+//
+// Воркер держит только комнаты: сама игра лежит в приложении и приходит
+// игроку оттуда же, откуда все остальные игры. Правила партии сюда не
+// переписаны: src/rules.js импортирует те же файлы, что отдаются браузеру.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "alias-spy-games-kingdoms",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://vidalost.github.io",
+    "ALLOW_GUESTS": "false"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "KingdomsRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["KingdomsRoom"]
+    }
+  ]
+}

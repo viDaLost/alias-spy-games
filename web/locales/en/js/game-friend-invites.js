@@ -32,6 +32,15 @@
       storageKey: 'tt_room_id',
       buttonClass: 'tt-btn tt-btn--ghost',
     },
+    // «Царства» зовут друзей той же кнопкой лобби, что и «Двенадцать колен»,
+    // и по той же причине actionSelector указывает в никуда.
+    kingdoms: {
+      title: 'Царства',
+      actionSelector: '.kd-friend-slot',
+      roomSelector: '.kd-room-code',
+      storageKey: 'kd_room_id',
+      buttonClass: 'kd-btn kd-btn--ghost',
+    },
   });
 
   let overlay = null;
