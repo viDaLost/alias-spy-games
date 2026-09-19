@@ -210,9 +210,21 @@
     const gameName = user.game ? (GAME_NAMES[user.game] || user.game) : 'Главное меню';
     const roomText = user.roomId ? ` · ${user.roomId}` : '';
     const platform = user.platform === 'android' ? 'Android' : 'Telegram';
-    const canObserve = Boolean(user.roomId && observerBackend(user.game));
+    /*
+      Наблюдать можно за комнатой, а не за игрой. У всех этих игр есть и путь
+      за одним столом, без всякой комнаты: там наблюдать не за чем — партия
+      идёт в телефоне и никуда не отправляется.
+
+      Раньше в этом случае кнопка просто не появлялась, и отличить «играет
+      один» от «монитор сломался» было нельзя. Теперь вместо кнопки стоит
+      строка, и она говорит, почему кнопки нет.
+    */
+    const backend = observerBackend(user.game);
+    const canObserve = Boolean(user.roomId && backend);
+    const soloNote = !canObserve && backend && user.game
+      ? '<div class="admin-live-v3__observe-none">Партия за одним столом — комнаты нет</div>' : '';
     const balances = profile ? BALANCES.map((item) => renderBalance(id, profile, item)).join('') : '<div class="admin-live-v3__profile-loading">Баланс загружается…</div>';
-    return `<article class="admin-live-v3__person" data-live-user="${escapeText(id)}"><div class="admin-live-v3__identity"><span class="admin-live-v3__dot"></span><div class="admin-live-v3__avatar">${escapeText(initials(name))}</div><div class="admin-live-v3__name"><b>${escapeText(name)}</b><small>ID ${escapeText(id)} · ${escapeText(gameName + roomText)} · ${platform}</small></div><button type="button" class="admin-live-v3__chat" data-user-chat="${escapeText(id)}">Чат</button></div><div class="admin-live-v3__balances">${balances}</div>${canObserve ? `<button type="button" class="admin-live-v3__observe" data-observe-game="${escapeText(user.game)}" data-observe-room="${escapeText(user.roomId)}">◉ Наблюдать за комнатой · только чтение</button>` : ''}</article>`;
+    return `<article class="admin-live-v3__person" data-live-user="${escapeText(id)}"><div class="admin-live-v3__identity"><span class="admin-live-v3__dot"></span><div class="admin-live-v3__avatar">${escapeText(initials(name))}</div><div class="admin-live-v3__name"><b>${escapeText(name)}</b><small>ID ${escapeText(id)} · ${escapeText(gameName + roomText)} · ${platform}</small></div><button type="button" class="admin-live-v3__chat" data-user-chat="${escapeText(id)}">Чат</button></div><div class="admin-live-v3__balances">${balances}</div>${canObserve ? `<button type="button" class="admin-live-v3__observe" data-observe-game="${escapeText(user.game)}" data-observe-room="${escapeText(user.roomId)}">◉ Наблюдать за комнатой · только чтение</button>` : soloNote}</article>`;
   }
 
   function renderBalance(id, profile, item) {

@@ -88,6 +88,22 @@
   margin-top: 6px;
 }
 
+/*
+  Вместо кнопки наблюдения — строка о том, почему её нет: человек играет за
+  одним столом, и комнаты, за которой можно было бы следить, не существует.
+  Молчание на этом месте читалось как поломка монитора.
+*/
+.admin-live-v3__observe-none {
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #7a8499;
+  font-size: .66rem;
+  font-weight: 750;
+  text-align: center;
+}
+
 .admin-live-v3__profile-loading {
   grid-column: 1 / -1;
   padding: 8px;
