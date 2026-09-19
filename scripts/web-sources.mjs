@@ -67,8 +67,6 @@ export const scriptSources = [
   'web/games/kids-ark-pairs.js',
   'web/js/quartet-production-v43-loader.js',
   'web/js/game-card-details.js',
-  // Список позванных на обкатку — до app.js: меню спрашивает его при сборке.
-  'web/js/twelve-tribes-access.js',
   'web/js/app.js',
   'web/js/home-parallax-v1.js',
   'web/js/cloudflare-request-budget.js',

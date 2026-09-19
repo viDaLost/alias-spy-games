@@ -34,17 +34,9 @@ const GAME_GROUPS = [
       { key: "describe", title: "Опиши, но не называй", desc: "Подсказки без прямого ответа", icon: "describe" },
       { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
-      /*
-        «Двенадцать колен» пока на обкатке: игра готова, но в общий список ещё
-        не выпущена. Признак owner прячет карточку у всех, кроме главного
-        администратора, а tryout возвращает её тем, кого позвали поимённо
-        (список — в twelve-tribes-access.js). Вход закрыт и по прямому
-        вызову — см. renderGameButton и showGame.
-      */
       {
         key: "twelve-tribes", title: "Двенадцать колен",
         desc: "Станы и жребии: сбросьте карты первым", icon: "twelve-tribes",
-        owner: true, tryout: true,
       },
       {
         key: "promised-land", title: "Земля обетованная",
@@ -473,14 +465,6 @@ function openSupportChat() {
 */
 const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
 
-/*
-  Кому открыта игра на обкатке. Кроме главного администратора её видят те,
-  кого позвали поимённо: список лежит в twelve-tribes-access.js и ставит на
-  <html> свой признак. Здесь спрашивается сам список, а не признак: к моменту
-  нажатия он уже знает ответ, тогда как класс мог ещё не встать.
-*/
-const isInvited = () => window.TwelveTribesAccess?.allowed() === true;
-
 function renderGameButton(item) {
   const gate = item.owner ? ` game-card--owner${item.tryout ? " game-card--tryout" : ""}` : "";
   return `
@@ -822,32 +806,7 @@ function showGame(gameName) {
     return;
   }
 
-  /*
-    Замок «Двенадцати колен». Игра пока открыта только главному
-    администратору, и скрытой карточки для этого мало: до showGame можно
-    добраться и мимо неё — историей, ссылкой, чужим вызовом из консоли.
-
-    Замок этот не от злоумышленника: в игре нечего красть, её файлы раздаются
-    статикой всем, у кого есть адрес. Он от того, чтобы игра не появилась у
-    людей раньше времени.
-  */
-  if (gameName === "twelve-tribes" && !isOwner() && !isInvited()) {
-    if (menu) menu.classList.add("hidden");
-    document.body.dataset.mode = "game";
-    activeGameName = gameName;
-    document.body.dataset.currentGame = gameName;
-    if (container) {
-      container.innerHTML = `
-        <section class="app-error-card fade-in">
-          <h2>Игра ещё не открыта</h2>
-          <p>«Двенадцать колен» пока проходят обкатку и открыты по приглашению.</p>
-          <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
-        </section>`;
-    }
-    return;
-  }
-
-  /* Тот же замок и по той же причине — у «Царств». */
+  /* Тот же замок — у «Царств»: игра готова, но в общий список ещё не выпущена. */
   if (gameName === "kingdoms" && !isOwner()) {
     if (menu) menu.classList.add("hidden");
     document.body.dataset.mode = "game";
