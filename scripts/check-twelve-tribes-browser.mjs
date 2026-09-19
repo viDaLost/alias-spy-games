@@ -486,11 +486,23 @@ async function play(width, height, foes = 2) {
   if (over) {
     const result = await page.evaluate(() => ({
       title: document.querySelector('.tt-setup h2')?.textContent || '',
-      rows: document.querySelectorAll('.tt-score').length,
+      rows: [...document.querySelectorAll('.tt-score')].map((one) => one.textContent.trim()),
+      places: window.TwelveTribesGame.state().players.map((one) => one.place),
     }));
-    need(/раздачу|берёт/i.test(result.title), `итоги не названы: «${result.title}»`);
+    need(/вышел первым|вышли первым|набрал|набрали/i.test(result.title),
+      `итоги не названы: «${result.title}»`);
     // В итогах строка на каждого, кто сидел за столом, — вместе с вами.
-    need(result.rows === foes + 1, `в итогах ${result.rows} строк вместо ${foes + 1}`);
+    need(result.rows.length === foes + 1, `в итогах ${result.rows.length} строк вместо ${foes + 1}`);
+    /*
+      Места читаются словами и стоят по порядку. Без этого «третье место»
+      существовало бы только в памяти движка: на экране игрок увидел бы
+      четыре строки и не понял, какая из них его.
+    */
+    const places = [...result.places].sort((a, b) => a - b);
+    const wanted = result.places.map((_, at) => at + 1);
+    need(places.join(',') === wanted.join(','), `места розданы как ${places.join(',')}`);
+    need(result.rows.every((line, at) => line.startsWith(`${at + 1}.`)),
+      `итоги не пронумерованы местами: ${result.rows.join(' | ')}`);
   }
 
   // ——— ничего не вылезло за край ———

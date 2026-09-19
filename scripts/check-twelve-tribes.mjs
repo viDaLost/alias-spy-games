@@ -133,17 +133,50 @@ function playRound(state, random, tale) {
       const card = player.hand[choice.index];
       // «Плен» кладётся только при пустом стане — это проверяется до хода,
       // а не после: движок обязан отказать, если условие нарушено.
-      if (card.kind === 'exile' && player.hand.some((one) => one.camp === state.camp)) {
+      // Под переводом запрет не действует: «Плен» кроют «Пленом» от беды, а
+      // не от хорошей жизни.
+      if (!state.penalty && card.kind === 'exile'
+        && player.hand.some((one) => one.camp === state.camp)) {
         fault('плен предложен при своём стане на руках', `${player.name}`);
       }
+      const scoreBefore = player.score;
+      const covering = Boolean(state.penalty);
+      const wasLast = player.hand.length === 1;
       const done = E.play(state, seat, choice.index, choice.camp);
       if (!done) fault('движок отказал в законном ходе', `${player.name}, ${card.kind}`);
+      /*
+        Счёт начисляется сразу и ровно за сброшенную карту. Проверяется это на
+        каждом ходу, а не в конце: иначе ошибка в цене одной карты растворилась
+        бы в сумме за всю партию.
+      */
+      const gained = player.score - scoreBefore;
+      if (gained !== R.scoreOf(card)) {
+        fault('за сброшенную карту начислено не то', `${card.kind} ${card.rank}: ${gained}`);
+      }
+      if (covering) tale.passed += 1;
+      /*
+        Выложил всё при игре на счёт — значит, добрал шесть. Считается по руке
+        до хода, а не после: после хода в ней уже лежат те самые шесть, и по
+        ней ничего не видно.
+      */
+      if (state.target && wasLast && !player.out && state.status === 'playing') {
+        tale.topped += 1;
+        if (player.hand.length !== 6 && state.deck.length + state.pile.length > 1) {
+          fault('выложивший всё добрал не шесть', `${player.name}: ${player.hand.length}`);
+        }
+      }
     } else {
       /*
         Взял карту — сыграй её, если подошла. Так играет человек, и так
         раздача не превращается в бесконечное перекладывание колоды.
       */
+      const penalty = state.penalty ? state.penalty.count : 0;
+      const had = player.hand.length;
       E.draw(state, seat);
+      if (penalty && player.hand.length !== had + penalty && state.deck.length + state.pile.length > 1) {
+        fault('штраф выдан не полностью', `${player.name}: ${player.hand.length - had} из ${penalty}`);
+      }
+      if (penalty && state.penalty) fault('штраф взят, а долг остался', `${player.name}`);
       if (state.status === 'playing' && state.turn === seat && state.phase === 'drawn') {
         const after = Bots.pick(state, seat);
         if (after) E.play(state, seat, after.index, after.camp);
@@ -179,7 +212,15 @@ function playRound(state, random, tale) {
 
 // ——————————————————————————————————————————————— много партий подряд
 
-const tale = { rounds: 0, moves: 0, caught: 0, refills: 0, longest: 0, wins: new Map() };
+const tale = {
+  rounds: 0, moves: 0, caught: 0, refills: 0, longest: 0, wins: new Map(),
+  // Отдельно по способам игры: партия на счёт и партия по местам — это две
+  // разные по длине игры, и мерить их одной цифрой значит не померить ни одну.
+  score: { games: 0, moves: 0, longest: 0 },
+  places: { games: 0, moves: 0, longest: 0 },
+  passed: 0,   // сколько раз долг перевели дальше, а не взяли
+  topped: 0,   // сколько раз выложивший всё добрал шесть карт на счёт
+};
 const GAMES = 240;
 for (let game = 0; game < GAMES; game += 1) {
   const random = seeded(1917 + game * 7919);
@@ -197,35 +238,44 @@ for (let game = 0; game < GAMES; game += 1) {
   });
   for (const player of state.players) player.botLevel = player.id % 2 ? 'scribe' : 'elder';
 
-  let guard = 0;
-  while (state.status !== 'over' && guard < 60) {
-    const before = state.players.map((one) => one.score);
-    const moves = playRound(state, random, tale);
-    tale.rounds += 1;
-    tale.moves += moves;
-    tale.longest = Math.max(tale.longest, moves);
-    if (state.status === 'round' || state.status === 'over') {
-      // Очки победителя — ровно сумма карт на чужих руках, ни больше ни меньше.
-      const seat = state.winner;
-      const hands = state.players.reduce((sum, one) => (
-        one.id === seat ? sum : sum + one.hand.reduce((s, card) => s + R.costOf(card), 0)), 0);
-      const gained = state.players[seat].score - before[seat];
-      need(gained === hands,
-        `победителю начислено ${gained} очков, а на чужих руках ${hands}`);
-      need(state.players[seat].hand.length === 0,
-        'раздачу выиграл игрок, у которого остались карты');
-      for (let i = 0; i < state.players.length; i += 1) {
-        if (i === seat) continue;
-        need(state.players[i].score === before[i], 'очки начислены не одному только победителю');
-      }
-    }
-    if (state.status === 'round') E.nextRound(state);
-    guard += 1;
-  }
-  need(state.status === 'over', `партия ${game} не кончилась за 60 раздач`);
+  /*
+    Партия идёт целиком, без раздач: на счёт — пока кто-нибудь не наберёт
+    трёхсот, по местам — пока за столом не останется один. Раздача больше не
+    обрывает партию, поэтому и внешнего круга по раздачам здесь нет.
+  */
+  const moves = playRound(state, random, tale);
+  tale.rounds += 1;
+  tale.moves += moves;
+  tale.longest = Math.max(tale.longest, moves);
+  const kind = state.target ? tale.score : tale.places;
+  kind.games += 1;
+  kind.moves += moves;
+  kind.longest = Math.max(kind.longest, moves);
+  need(state.status === 'over', `партия ${game} не кончилась за ${moves} ходов`);
+
   if (state.target) {
     need(state.players[state.winner].score >= state.target,
-      'партия до трёхсот кончилась, не дойдя до трёхсот');
+      `партия до ${state.target} кончилась на ${state.players[state.winner].score}`);
+    for (const one of state.players) {
+      if (one.id === state.winner) continue;
+      need(one.score < state.target, `${one.name} тоже набрал ${one.score}, а партия кончилась не им`);
+    }
+  } else {
+    /*
+      Места. Каждому — своё, по порядку выхода: первый вышедший первый, и так
+      до последнего, у которого карты так и остались. Ни одного пропущенного
+      места и ни одного повторённого.
+    */
+    const places = state.players.map((one) => one.place).sort((a, b) => a - b);
+    const wanted = state.players.map((_, at) => at + 1);
+    need(places.join(',') === wanted.join(','), `места розданы как ${places.join(',')}`);
+    need(state.players.every((one) => one.out), 'партия кончилась, а кто-то ещё за столом');
+    need(state.places.length === state.players.length,
+      `в списке выхода ${state.places.length} мест на ${state.players.length} игроков`);
+    need(state.winner === state.places[0], 'первым вышел не тот, кого объявили победителем');
+    const last = state.players.find((one) => one.place === state.players.length);
+    need(last.hand.length > 0 || state.deck.length + state.pile.length <= 1,
+      'последним остался игрок без карт');
   }
   const winner = state.players[state.winner].name;
   tale.wins.set(winner, (tale.wins.get(winner) || 0) + 1);
@@ -276,9 +326,19 @@ function bench({ hands, camp, kind = 'number', rank = 5, seats = 2 }) {
   });
   const had = clean.players[1].hand.length;
   need(E.play(clean, 0, 0, 'reuben'), 'плен не принят при чужом стане на руках');
-  need(clean.players[1].hand.length === had + 4, 'по плену сосед взял не четыре карты');
+  /*
+    Плен теперь не выдаёт карты сразу: он кладёт на стол долг, и ход переходит
+    соседу — тому надо дать ответить. Карты соседу достаются, когда он этот
+    долг возьмёт, и на этом его ход кончается.
+  */
+  need(clean.players[1].hand.length === had, 'плен выдал карты сразу, не дав ответить');
+  need(clean.penalty && clean.penalty.count === 4, `на столе долг ${clean.penalty?.count} вместо четырёх`);
   need(clean.camp === 'reuben', 'плен не сменил стан на названный');
-  need(clean.turn === 0, 'после плена ход не вернулся через пропущенного соседа');
+  need(clean.turn === 1, 'после плена ход не перешёл к тому, на кого он положен');
+  need(E.draw(clean, 1) === null, 'взятие долга вернуло карту, как обычный добор');
+  need(clean.players[1].hand.length === had + 4, 'по плену сосед взял не четыре карты');
+  need(clean.penalty === null, 'долг взят, а на столе остался');
+  need(clean.turn === 0, 'взявший долг не кончил ход');
 }
 
 // 2. «Суббота» пропускает соседа, «Иордан» разворачивает круг.
@@ -384,6 +444,134 @@ function bench({ hands, camp, kind = 'number', rank = 5, seats = 2 }) {
   need(state.turn === 1, 'при пустом столе ход не перешёл дальше');
 }
 
+/*
+  8. Перевод штрафа. Подкинули «Странствие» — сосед волен не брать, а положить
+  своё: долг растёт и уходит дальше. Проверяется вся цепочка, потому что
+  ломается она посередине: долг может не сложиться, не перейти или выдаться не
+  тому.
+*/
+{
+  const state = bench({
+    camp: 'judah', seats: 3,
+    hands: [
+      [{ kind: 'journey', camp: 'judah' }],
+      [{ kind: 'journey', camp: 'dan' }, { kind: 'number', camp: 'judah', rank: 4 }],
+      [{ kind: 'number', camp: 'judah', rank: 7 }],
+    ],
+  });
+  need(E.play(state, 0, 0, 'judah'), 'странствие не принято');
+  need(state.penalty?.count === 2, `после странствия долг ${state.penalty?.count} вместо двух`);
+  need(state.turn === 1, 'долг положен не на соседа');
+
+  // Под долгом законна одна карта — такая же. Цифра своего стана не спасает.
+  const moves = R.legalMoves(state, 1);
+  need(moves.length === 1 && state.players[1].hand[moves[0]].kind === 'journey',
+    `под долгом законны ходы ${moves.length}, а должен быть один`);
+  need(!R.playable(state, state.players[1].hand[1], state.players[1].hand),
+    'цифра своего стана прошла под долгом');
+
+  need(E.play(state, 1, 0, 'dan'), 'перевод странствия не принят');
+  need(state.penalty?.count === 4, `после перевода долг ${state.penalty?.count} вместо четырёх`);
+  need(state.turn === 2, 'переведённый долг не ушёл дальше');
+  need(state.players[1].hand.length === 1, 'переводивший всё-таки взял карты');
+
+  const had = state.players[2].hand.length;
+  E.draw(state, 2);
+  need(state.players[2].hand.length === had + 4, 'последний в цепочке взял не четыре карты');
+  need(state.penalty === null, 'взятый долг остался на столе');
+  /*
+    Ход уходит не к первому игроку, а мимо него: он сыграл здесь свою
+    единственную карту и вышел из раздачи первым. Проверяется заодно и это —
+    очередь обязана обходить вышедшего, иначе стол встанет на пустом месте.
+  */
+  need(state.players[0].out === true && state.players[0].place === 1,
+    'сыгравший последнюю карту не вышел из раздачи');
+  need(state.turn === 1, `после взятия долга ходит ${state.turn}, а должен второй игрок`);
+}
+
+/*
+  9. Плен кроется пленом, и вдвоём тоже: долг доходит до восьми и возвращается
+  тому, кто его начал, — если крыть ему нечем.
+*/
+{
+  const state = bench({
+    camp: 'judah', seats: 2,
+    hands: [
+      [{ kind: 'exile' }, { kind: 'number', camp: 'dan', rank: 2 }],
+      [{ kind: 'exile' }, { kind: 'number', camp: 'dan', rank: 6 }],
+    ],
+  });
+  need(E.play(state, 0, 0, 'reuben'), 'плен не принят');
+  need(state.penalty?.count === 4, 'плен положил не четыре');
+  /*
+    Запрет «плен только при пустом стане» под долгом не действует: иначе
+    перевести было бы нечем как раз тогда, когда это и нужно.
+  */
+  need(R.playable(state, state.players[1].hand[0], state.players[1].hand),
+    'плен не кроется пленом');
+  need(E.play(state, 1, 0, 'dan'), 'перевод плена не принят');
+  need(state.penalty?.count === 8, `после перевода долг ${state.penalty?.count} вместо восьми`);
+  need(state.turn === 0, 'долг не вернулся к начавшему');
+  const had = state.players[0].hand.length;
+  E.draw(state, 0);
+  need(state.players[0].hand.length === had + 8, 'начавший взял не восемь карт');
+}
+
+/*
+  10. Кончились карты при игре на счёт — берёшь ещё шесть и играешь дальше.
+  Раздача при этом не кончается: до трёхсот одной руки не хватает никому.
+*/
+{
+  const state = bench({
+    camp: 'judah', seats: 2,
+    hands: [[{ kind: 'number', camp: 'judah', rank: 4 }], [{ kind: 'number', camp: 'dan', rank: 6 }]],
+  });
+  state.target = 300;
+  need(E.play(state, 0, 0, 'judah'), 'последняя карта не сыгралась');
+  need(state.status === 'playing', 'партия на счёт кончилась на пустой руке');
+  need(state.players[0].hand.length === 6,
+    `выложившему всё досталось ${state.players[0].hand.length} карт вместо шести`);
+  need(state.players[0].out === false, 'на счёт игрок вышел из партии, а не добрал карты');
+  need(state.players[0].score === 4, `за жребий 4 начислено ${state.players[0].score}`);
+}
+
+/*
+  11. Места. В раздаче по местам выложивший всё выходит и получает место, а
+  остальные доигрывают: иначе третье и четвёртое места были бы не местами, а
+  порядком, в котором игроки сидели.
+*/
+{
+  const state = bench({
+    camp: 'judah', seats: 3,
+    hands: [
+      [{ kind: 'number', camp: 'judah', rank: 4 }],
+      [{ kind: 'number', camp: 'dan', rank: 6 }, { kind: 'number', camp: 'dan', rank: 8 }],
+      [{ kind: 'number', camp: 'reuben', rank: 3 }],
+    ],
+  });
+  need(E.play(state, 0, 0, 'judah'), 'последняя карта не сыгралась');
+  need(state.players[0].out === true, 'выложивший всё остался за столом');
+  need(state.players[0].place === 1, `первому вышедшему дали ${state.players[0].place}-е место`);
+  need(state.status === 'playing', 'раздача кончилась на первом же вышедшем');
+  need(state.turn === 1, 'ход не перешёл к тому, кто ещё играет');
+  need(E.nextSeat(state, 1) === 2, 'очередь не обходит вышедшего');
+  need(E.nextSeat(state, 2) === 1, 'очередь вернулась к вышедшему');
+
+  // Счёт за сброшенное начисляется и в раздаче по местам.
+  need(state.players[0].score === 4, `за жребий 4 начислено ${state.players[0].score}`);
+}
+
+/*
+  12. Действие стоит три очка — любое, и жребий колен тоже. Цена сброшенной
+  карты живёт в правилах, а не в движке, и спрашивается прямо.
+*/
+{
+  need(R.scoreOf({ kind: 'number', rank: 7 }) === 7, 'жребий стоит не своей цифры');
+  for (const kind of ['sabbath', 'jordan', 'journey', 'lot', 'exile']) {
+    need(R.scoreOf({ kind }) === 3, `${kind} стоит не три очка`);
+  }
+}
+
 if (problems.length) {
   console.error(`«Двенадцать колен» не прошли проверку (${problems.length}):`);
   for (const line of problems) console.error(`  ✗ ${line}`);
@@ -391,8 +579,13 @@ if (problems.length) {
 }
 
 const spread = [...tale.wins.entries()].map(([name, many]) => `${name} ${many}`).join(', ');
+const mean = (part) => (part.games ? Math.round(part.moves / part.games) : 0);
 console.log(`OK: колода из 108 карт собрана верно (76 жребиев, 24 действия, 8 без стана); `
-  + `${GAMES} партий и ${tale.rounds} раздач сыграны до конца — ${tale.moves} ходов, `
-  + `самая длинная раздача ${tale.longest}; после каждого хода сходятся все карты, стан стола и `
-  + `объявления. Перебито на «Шабате»: ${tale.caught}. Суббота, иордан, плен и перетасовка сброса `
-  + `проверены нарочно. Победы по местам: ${spread}.`);
+  + `${GAMES} партий сыграны до конца — ${tale.moves} ходов. На счёт: ${tale.score.games} партий, `
+  + `${mean(tale.score)} ходов в среднем, самая длинная ${tale.score.longest}. По местам: `
+  + `${tale.places.games} партий, ${mean(tale.places)} ходов в среднем, самая длинная `
+  + `${tale.places.longest}. После каждого хода сходятся все карты, стан стола и объявления, а счёт `
+  + `растёт ровно на цену сброшенной карты. Долг переведён дальше ${tale.passed} раз, `
+  + `${tale.topped} раз выложивший всё добрал шесть. Перебито на «Шабате»: ${tale.caught}. Суббота, `
+  + `иордан, плен, перевод долга, места и перетасовка сброса проверены нарочно. `
+  + `Победы: ${spread}.`);

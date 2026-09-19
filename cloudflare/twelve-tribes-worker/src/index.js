@@ -26,7 +26,6 @@ import {
   forStorage,
   joinRoom,
   leaveRoom,
-  nextRound,
   nextStepAt,
   playAgain,
   playerAction,
@@ -51,7 +50,7 @@ const ACTION_WINDOW_LIMIT = 14;
 
 /** Что игрок вправе попросить у комнаты. Список закрытый и проверяется весь. */
 const ROOM_ACTIONS = new Set([
-  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'nextRound', 'chat', 'leave',
+  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'chat', 'leave',
 ]);
 const GAME_ACTIONS = new Set(['play', 'draw', 'pass', 'shabbat', 'catch']);
 
@@ -318,8 +317,6 @@ export class TwelveTribesRoom extends DurableObject {
       backToLobby(this.room, playerId, now);
     } else if (action === 'playAgain') {
       playAgain(this.room, playerId, now);
-    } else if (action === 'nextRound') {
-      nextRound(this.room, playerId, now);
     } else if (action === 'chat') {
       addChatMessage(this.room, playerId, String(data.text || ''), now);
     } else if (action === 'leave') {

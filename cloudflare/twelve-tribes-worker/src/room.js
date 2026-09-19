@@ -375,15 +375,6 @@ export function nextStepAt(room, now = Date.now(), online = null) {
   return Number(room.turnAt || now) + turnLimit(human, online);
 }
 
-export function nextRound(room, playerId, now = Date.now()) {
-  if (room.phase !== 'playing' || !room.game) throw roomError('NOT_PLAYING', 'Партия не идёт');
-  if (room.hostPlayerId !== String(playerId || '')) throw roomError('NOT_HOST', 'Следующую раздачу сдаёт хозяин');
-  if (!E.nextRound(room.game)) throw roomError('NOT_OVER', 'Раздача ещё идёт');
-  room.turnAt = now;
-  touch(room, now);
-  return room;
-}
-
 /*
   Вид комнаты для одного игрока.
 
@@ -445,6 +436,8 @@ export function buildView(room, playerId, online = new Set()) {
     pile: game.pile.slice(-3).map((card) => ({ ...card })),
     hand: mine >= 0 ? game.players[mine].hand.map((card) => ({ ...card })) : [],
     risk: game.risk ? { seat: rotate(game.risk.seat), until: game.risk.until } : null,
+    // Накопленный перевод: сколько карт висит и какой картой его кроют.
+    penalty: game.penalty ? { ...game.penalty } : null,
     winner: game.winner === null || game.winner === undefined ? null : rotate(game.winner),
     players: game.players.map((one, at) => {
       const real = (base + at) % size;
@@ -455,6 +448,9 @@ export function buildView(room, playerId, online = new Set()) {
         cards: seatPlayer.hand.length,
         said: Boolean(seatPlayer.said),
         score: seatPlayer.score,
+        // Вышедший из раздачи и его место: стол показывает их и после выхода.
+        out: Boolean(seatPlayer.out),
+        place: Number(seatPlayer.place || 0),
         isBot: Boolean(seatPlayer.isBot),
         online: human ? online.has(human.id) && !human.leftAt : true,
         left: human ? Boolean(human.leftAt) : false,

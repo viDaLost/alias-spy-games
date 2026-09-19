@@ -191,6 +191,20 @@
     return many;
   }
   const cardsWord = (count) => plural(count, 'carta', 'cartas', 'cartas');
+
+  /*
+    Подпись под именем за столом. В ней три вещи, и каждая нужна в свой миг:
+    сколько карт на руке, сказан ли «Шабат» и сколько набрано очков. Вышедшему
+    из раздачи вместо карт пишется занятое место — карт у него уже нет, а
+    место и есть его итог.
+  */
+  function seatMeta(state, player) {
+    if (player.out && player.place) {
+      return `${player.place}-е место · ${player.score} ${plural(player.score, 'очко', 'очка', 'puntos')}`;
+    }
+    const cards = `${player.hand.length} ${cardsWord(player.hand.length)}`;
+    return `${cards}${player.said ? ' · шабат' : ''}${player.score ? ` · ${player.score}` : ''}`;
+  }
   const foesWord = (count) => plural(count, 'rival', 'соперника', 'соперников');
 
   /*
@@ -306,8 +320,8 @@
               <span>Соперников</span>
               <div class="tt-choice--wide" data-foes>
                 ${SEATS.map((many) => `<button type="button" data-value="${many}"
-                  aria-pressed="${many === this.foes}">${many}</button>`).join('')}\n              </div>\n              <small class="tt-choice-note" data-foes-note></small>\n            </label>\n            <label class="tt-choice">\n              <span>Partida</span>\n              <div data-target>\n                <button type="button" data-value="0" aria-pressed="${this.target === 0}">Раздача<small>кто первым сбросит</small></button>
-                <button type="button" data-value="300" aria-pressed="${this.target === 300}">До 300<small>очки за чужие карты</small></button>\n              </div>\n            </label>\n            <div class="tt-row">\n              <button type="button" class="tt-btn" data-start>Сдавать</button>\n              <button type="button" class="tt-btn tt-btn--ghost" data-menu>Al menú</button>\n            </div>\n          </section>\n        </div>`;
+                  aria-pressed="${many === this.foes}">${many}</button>`).join('')}\n              </div>\n              <small class="tt-choice-note" data-foes-note></small>\n            </label>\n            <label class="tt-choice">\n              <span>Partida</span>\n              <div data-target>\n                <button type="button" data-value="0" aria-pressed="${this.target === 0}">Раздача<small>места по выходу</small></button>
+                <button type="button" data-value="300" aria-pressed="${this.target === 300}">До 300<small>очки за сброшенные карты</small></button>\n              </div>\n            </label>\n            <div class="tt-row">\n              <button type="button" class="tt-btn" data-start>Сдавать</button>\n              <button type="button" class="tt-btn tt-btn--ghost" data-menu>Al menú</button>\n            </div>\n          </section>\n        </div>`;
       const pick = (group, apply) => {
         const box = this.root.querySelector(`[data-${group}]`);
         box.addEventListener('click', (event) => {
@@ -516,6 +530,10 @@
           score: one.score,
           online: one.online,
           left: one.left,
+          // Вышедший из раздачи и его место приходят с сервера: очередь их
+          // обходит, а стол показывает, кто каким вышел.
+          out: Boolean(one.out),
+          place: Number(one.place || 0),
           hand: seat === 0 ? game.hand.map((card) => ({ ...card })) : new Array(one.cards).fill(null),
         })),
         deck: new Array(game.deck).fill(null),
@@ -530,6 +548,7 @@
         moves: game.moves,
         reshuffled: game.reshuffled,
         risk: game.risk,
+        penalty: game.penalty || null,
         winner: game.winner,
         log: game.log,
         watching: game.watching,
@@ -618,24 +637,23 @@
       */
       seats.push(`<div class="tt-foe tt-foe--me${
   state.turn === 0 && state.status === 'playing' ? ' is-turn' : ''}" data-seat="0"
-        style="--away:${place(0, queue.length + 1).toFixed(3)}">\n        <b>Tú</b>\n        <span class="tt-foe-meta">${me.hand.length} ${cardsWord(me.hand.length)}${
-  me.said ? ' · шабат' : ''}${state.target && me.score ? ` · ${me.score}` : ''}</span>
+        style="--away:${place(0, queue.length + 1).toFixed(3)}">\n        <b>Tú</b>\n        <span class="tt-foe-meta">${seatMeta(state, me)}</span>
       </div>`);
       seats.push(...queue.map((player, at) => {
         const turn = state.turn === player.id && state.status === 'playing' ? ' is-turn' : '';
+        const done = player.out ? ' is-done' : '';
         const backs = new Array(Math.min(player.hand.length, 7)).fill('<i></i>').join('');
         const risk = E.riskOpen(state) && state.risk.seat === player.id;
         // Первый за вами и последний перед вами названы словами: это два
         // места, которые в карточной игре решают всё.
         const tag = at === 0 ? 'следом' : at === queue.length - 1 ? 'перед вами' : '';
-        return `<div class="tt-foe${turn}${at === 0 ? ' is-next' : ''}${risk ? ' is-risk' : ''}"
+        return `<div class="tt-foe${turn}${done}${at === 0 ? ' is-next' : ''}${risk ? ' is-risk' : ''}"
           data-seat="${player.id}"
           data-place="${at + 1}" style="--away:${place(at + 1, queue.length + 1).toFixed(3)}">
           <span class="tt-order">${at + 1}</span>
           <b>${player.name}</b>
           <span class="tt-foe-cards">${backs}</span>
-          <span class="tt-foe-meta">${player.hand.length} ${cardsWord(player.hand.length)}${
-  player.said ? ' · шабат' : ''}${state.target && player.score ? ` · ${player.score}` : ''}</span>
+          <span class="tt-foe-meta">${seatMeta(state, player)}</span>
           ${risk ? '<span class="tt-foe-tag tt-foe-tag--risk">молчит!</span>'
     : tag ? `<span class="tt-foe-tag">${tag}</span>` : ''}
         </div>`;
@@ -745,7 +763,16 @@
       const risky = E.riskOpen(state) && state.risk.seat !== 0 ? state.players[state.risk.seat] : null;
       catcher.hidden = !risky;
       if (risky) catcher.textContent = `Перебить: ${risky.name}`;
-      this.root.querySelector('[data-draw]').disabled = !(mine && state.phase === 'play');
+      /*
+        Кнопка колоды говорит, сколько с неё придётся взять. Пока штрафа нет —
+        это «взять» одну карту; когда на столе висит перевод, счёт другой, и
+        нажать её вслепую было бы обидно: берут не одну, а всё накопленное.
+      */
+      const drawBtn = this.root.querySelector('[data-draw]');
+      drawBtn.disabled = !(mine && state.phase === 'play');
+      drawBtn.querySelector('span').textContent = state.penalty
+        ? `взять ${state.penalty.count}` : 'взять';
+      drawBtn.classList.toggle('is-penalty', Boolean(state.penalty));
 
       const status = this.root.querySelector('[data-status]');
       if (this.flash) { status.textContent = this.flash; this.flash = null; }
@@ -758,6 +785,11 @@
           + (next === 0 ? ' — следом <b>tú</b>' : '');
       }
       else if (state.phase === 'drawn') status.textContent = 'Взяли карту: сыграйте её или оставьте себе';
+      else if (state.penalty && legal.size) {
+        status.innerHTML = `На вас <b>${state.penalty.count}</b> — переведите такой же картой `
+          + 'или возьмите';
+      }
+      else if (state.penalty) status.innerHTML = `Переводить нечем — <b>берите ${state.penalty.count}</b>`;
       else if (legal.size) status.innerHTML = 'Tu turno — <b>кладите карту</b>';
       else status.innerHTML = 'Нечем ходить — <b>возьмите карту</b>';
 
@@ -918,7 +950,19 @@
       sheet.className = 'tt-sheet';
       sheet.innerHTML = `<div class="tt-sheet-card">
         <h3>Что делают карты</h3>
-        <div class="tt-tips">${rows}</div>\n        <p class="tt-tip-foot">Места на столе стоят по очереди хода: первое ваше, за ним тот, кто\n          ходит следом за вами. Почти всё, что делает карта, она делает с ним.<br>\n          Оставшись с одной картой, скажите <b>Шабат!</b> — иначе сосед перебьёт вас, и вы\n          возьмёте две.</p>\n        <button type="button" class="tt-btn tt-btn--ghost" data-cancel>Entendido</button>\n      </div>`;
+        <div class="tt-tips">${rows}</div>
+        <p class="tt-tip-foot">Места на столе стоят по очереди хода: первое ваше, за ним тот, кто
+          ходит следом за вами. Почти всё, что делает карта, она делает с ним.<br>
+          Оставшись с одной картой, скажите <b>Шабат!</b> — иначе сосед перебьёт вас, и вы
+          возьмёте две.<br>
+          Подкинули «Странствие» или «Плен» — брать не обязательно: положите
+          <b>такую же карту</b>, и долг вырастет и уйдёт дальше. Тот, кому он достанется, тоже
+          волен перевести его следующему.<br>
+          ${state.target
+    ? `Счёт растёт сразу за каждую сброшенную карту: жребий — своей цифрой, действие — тройкой.
+          Выложили всё, а до ${state.target} не дошли — берёте ещё шесть и играете дальше.`
+    : 'Кто раньше остался без карт, тот выше: первое место, второе, третье. Остальные доигрывают '
+          + 'до последнего.'}</p>\n        <button type="button" class="tt-btn tt-btn--ghost" data-cancel>Entendido</button>\n      </div>`;
       sheet.addEventListener('click', (event) => {
         if (event.target.closest('[data-cancel]') || event.target === sheet) sheet.remove();
       });
@@ -1020,24 +1064,35 @@
     finish() {
       const { state } = this;
       const winner = state.players[state.winner];
-      const series = state.status === 'round';
+      const series = false;   // раздач больше нет: партия на счёт идёт одна и до конца
+      /*
+        Итоги читаются по местам, когда места есть, и по счёту, когда партия
+        шла до трёхсот. Место — это не «выиграл или нет», а порядок выхода:
+        первый, второй, третий, четвёртый, — и последним стоит тот, у кого
+        карты так и остались на руках.
+      */
+      const byPlace = (a, b) => (a.place || 99) - (b.place || 99) || b.score - a.score;
       const rows = [...state.players]
-        .sort((a, b) => b.score - a.score)
+        .sort(state.target ? (a, b) => b.score - a.score : byPlace)
         .map((player) => `<div class="tt-score${player.id === 0 ? ' is-you' : ''}">
-          <span>${player.name}${player.id === state.winner ? ' — раздача' : ''}</span>
+          <span>${state.target || !player.place ? '' : `${player.place}. `}${player.name}</span>
           <span>${state.target
     ? `${player.score} ${plural(player.score, 'очко', 'очка', 'puntos')}`
-    : `${player.hand.length} ${cardsWord(player.hand.length)}`}</span>
+    : `${player.score} ${plural(player.score, 'очко', 'очка', 'puntos')}${
+      player.hand.length ? ` · ${player.hand.length} ${cardsWord(player.hand.length)}` : ''}`}</span>
         </div>`).join('');
       const log = state.log.slice(-6).reverse()
         .map((entry) => `<div>${entry.text}</div>`).join('');
+      const place = winner ? winner.place : 0;
       this.root.innerHTML = `
         <div class="tt-wrap">
           <section class="tt-setup">
-            <h2>${winner.id === 0 ? 'Вы взяли раздачу' : `${winner.name} берёт раздачу`}</h2>
-            <p>${series
-    ? 'Партия идёт до трёхсот очков. Очки раздачи — это карты, оставшиеся на руках у остальных.'
-    : 'Кто первым остался без карт, тот и выиграл.'}</p>
+            <h2>${state.target
+    ? (winner.id === 0 ? `Вы набрали ${winner.score}` : `${winner.name} набрал ${winner.score}`)
+    : (winner.id === 0 ? 'Вы вышли первым' : `${winner.name} вышел первым`)}</h2>
+            <p>${state.target
+    ? 'Очки шли за каждую сброшенную карту: жребий — своей цифрой, действие — тройкой.'
+    : `Места по выходу из раздачи${place ? '' : ''}: кто раньше остался без карт, тот и выше.`}</p>
             <div class="tt-over">${rows}</div>
             <div class="tt-log">${log}</div>
             <div class="tt-row">
@@ -1059,9 +1114,8 @@
         настройки или позвать кого-то ещё — рядом стоит «В комнату».
       */
       this.root.querySelector('[data-next]')?.addEventListener('click', () => {
-        if (this.net) { this.net.send(series ? 'nextRound' : 'playAgain'); return; }
-        if (series) { this.E.nextRound(this.state); this.buildTable(); this.render(); this.tick(); }
-        else this.setup();
+        if (this.net) { this.net.send('playAgain'); return; }
+        this.setup();
       });
       this.root.querySelector('[data-lobby]')?.addEventListener('click', () => {
         this.net?.send('backToLobby');
