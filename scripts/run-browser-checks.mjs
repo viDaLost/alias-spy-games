@@ -47,6 +47,7 @@ const CHECKS = [
   'check-progress-reset.mjs',
   'check-offline-pwa.mjs',
   'check-sw-network-timeout.mjs',
+  'check-web-session-bot-link.mjs',
   'check-outside-telegram.mjs',
   'check-more-screen.mjs',
   'check-app-shell.mjs',
@@ -74,6 +75,7 @@ const CHECKS = [
   'check-moses-nile-safe-area.mjs',
   'check-game-scenes.mjs',
   'check-channel-promo.mjs',
+  'check-bot-start-promo.mjs',
   'check-twelve-tribes-browser.mjs',
   'check-twelve-tribes-online.mjs',
 ];
