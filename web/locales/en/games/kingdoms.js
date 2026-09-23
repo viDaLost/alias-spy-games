@@ -359,7 +359,7 @@
         const c = this.regionCenter.get(region.id);
         return `<g class="kd-region" data-region="${region.id}">
 
-          <text x="${c.x}" y="${c.y - 155}" class="kd-region-label">${escapeHTML(region.name)}</text>
+          <text x="${c.x}" y="${c.y + 6}" class="kd-region-label">${escapeHTML(region.name)}</text>
         </g>`;
       }).join('');
     }
