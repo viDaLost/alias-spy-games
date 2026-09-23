@@ -112,9 +112,49 @@ for (const area of R.AREAS) if (area.city) need(area.value >= 2, `у город�
 
 // ——————————————————————————————————————————————— видимость приказов
 
+// Скрытая рука, конечный мешок, повторный блеф и сохранение одного жетона.
+{
+  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(101) });
+  const first = state.turnOrder[0];
+  const other = 1 - first;
+  const inventory = (p) => p.hand.length + p.supply.length;
+  need(state.players.every((p) => p.hand.length === 6), 'каждое царство должно начать с шестью жетонами');
+  need(!('hand' in E.visibleStateFor(state, other).players[first]), 'чужая рука раскрывается сопернику');
+  need(E.visibleStateFor(state, first).hand.length === 6, 'игрок не видит собственную руку');
+  need(inventory(state.players[first]) === Object.values(R.TOKEN_SUPPLY).reduce((a,b) => a+b, 0) + 1,
+    'начальный запас жетонов не соответствует составу мешка и блефу');
+  const capital = R.startingAreasOf(state.players[first].kingdomId)[0];
+  state.players[first].hand = ['guard', 'march1', 'march2', 'march3', 'ford2', 'feint'];
+  E.placeOrder(state, first, { kind: 'guard', area: capital });
+  need(!E.validatePlacement(state, first, { kind: 'guard', area: capital }).ok,
+    'повторное размещение потраченного жетона принято');
+  state.players[first].hand = ['march3'];
+  state.players[first].supply = ['march1', 'march2', 'guard', 'fortify', 'scout'];
+  E.beginRound(state);
+  need(state.players[first].hand.includes('march3') && state.players[first].hand.includes('feint'),
+    'оставленный жетон или возвращаемый блеф исчез при обновлении раунда');
+}
+
+// Отбитая атака оставляет видимое подкрепление до захвата области.
+{
+  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(102) });
+  const held = R.startingAreasOf(state.players[0].kingdomId)[0];
+  const attacker = R.connectionsOf(held).find((link) => link.type === 'land').to;
+  state.areas[attacker].owner = 1;
+  state.orders = [{ id: 'v1', owner: 1, kind: 'march1', area: attacker, to: held, revealed: false }];
+  state.phase = 'reveal';
+  E.resolveRound(state);
+  need(state.areas[held].veterans === 1 && E.defenseOf(state, held, false).veterans === 1,
+    'успешная оборона не создала постоянное подкрепление');
+  state.round = R.ROUNDS;
+  E.finishGame(state);
+  need(state.finalScore[0].veterans === 1, 'подкрепление не принесло очко при подсчёте');
+}
+
 {
   const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(3) });
   const seat0 = state.turnOrder[0];
+  state.players[seat0].hand[0] = 'guard';
   const area0 = R.startingAreasOf(state.players[seat0].kingdomId)[0];
   E.placeOrder(state, seat0, { kind: 'guard', area: area0 });
   // Найдём чей угодно закрытый приказ и проверим форму, которую видит чужой.
@@ -289,6 +329,7 @@ function resolveWith(state, orders) {
 
   state.turnOrder = [kedemSeat];
   state.turnPointer = 0;
+  state.players[kedemSeat].hand[0] = 'scout';
   const twinCheck = E.validatePlacement(state, kedemSeat, { kind: 'scout', scoutTargets: ['byTarsis1', 'byTarsis2'] });
   need(twinCheck.ok, 'Кочевники Кедема не могут разведать два приказа за раз');
   E.placeOrder(state, kedemSeat, { kind: 'scout', scoutTargets: ['byTarsis1', 'byTarsis2'] });
@@ -298,6 +339,7 @@ function resolveWith(state, orders) {
 
   state.turnOrder = [tarsisSeat];
   state.turnPointer = 0;
+  state.players[tarsisSeat].hand[0] = 'scout';
   const oneOk = E.validatePlacement(state, tarsisSeat, { kind: 'scout', scoutTargets: ['byKedem1'] });
   need(oneOk.ok, 'обычному царству отказали в разведке одного приказа');
   const twoDenied = E.validatePlacement(state, tarsisSeat, { kind: 'scout', scoutTargets: ['byKedem1', 'byKedem2'] });
@@ -352,6 +394,7 @@ function resolveWith(state, orders) {
   const state = bench(2);
   const seat = 0;
   const areas = ['primorye-rim', 'primorye-cw', 'primorye-hub', 'primorye-ccw', 'nagorye-rim', 'nagorye-cw'];
+  state.players[seat].hand = ['guard', 'guard', 'guard', 'guard', 'guard', 'feint'];
   for (const id of areas) state.areas[id].owner = seat;
   for (let i = 0; i < 5; i += 1) {
     state.turnOrder = [seat];

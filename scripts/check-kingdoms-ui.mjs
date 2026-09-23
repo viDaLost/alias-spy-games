@@ -35,6 +35,8 @@ for (const n of [2,3,4,5]) {
     }
   }
   // Persist a real confirmed order, then reconstruct the board from storage.
+  board.state.players[0].hand[0] = 'march3';
+  board.afterLocalChange();
   board.selectOrder('march3'); board.tapArea('primorye-rim'); board.tapArea('primorye-ccw');
   assert.equal(root.querySelector('[data-confirm]').hidden, false);
   assert.match(root.querySelector('[data-confirm-text]').textContent, /Сила 4/);
@@ -81,10 +83,11 @@ for (const n of [2,3,4,5]) {
   root.querySelector('[data-pass-ok]').click();
   assert.equal(board.state.orders.length, 0);
   assert.equal(board.view.turn, 1);
-  w.localStorage.setItem('kd_campaign_v2', '{broken');
+  w.localStorage.setItem('kd_campaign_v3', '{broken');
   assert.equal(board.loadCampaign(), null);
   // A spectator sees results even when the server skips the transient reveal phase.
   const state = w.KingdomsEngine.createGame({kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2]});
+  state.players[0].hand[0] = 'march3';
   const online = new w.KingdomsUI.Board(root, { send() {}, isHost: () => true });
   online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
   online.selectOrder('march3'); online.tapArea('primorye-rim');

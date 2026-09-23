@@ -22,8 +22,8 @@
   const R = window.KingdomsRules;
 
   /*
-    Тасовка не нужна: карта и раскладки заданы, а не сдаются. Случайность
-    здесь только для выбора тайных целей и для порядка ботов — и она всегда
+    Карта и раскладки заданы; случайность нужна для тайных целей и добора
+    жетонов из конечного запаса. Она всегда
     приходит снаружи (createGame({ random })), чтобы проверку можно было
     повторить дословно.
   */
@@ -31,7 +31,7 @@
 
   function cloneAreas() {
     const map = {};
-    for (const area of R.AREAS) map[area.id] = { owner: null, fortify: 0, guardedRound: 0 };
+    for (const area of R.AREAS) map[area.id] = { owner: null, fortify: 0, veterans: 0, guardedRound: 0 };
     return map;
   }
 
@@ -55,6 +55,8 @@
       kingdomId,
       objectiveId: objectiveIds[seat],
       eliminated: false,
+      supply: Object.entries(R.TOKEN_SUPPLY).flatMap(([kind, count]) => Array(count).fill(kind)),
+      hand: [],
     }));
     for (let seat = 0; seat < kingdomIds.length; seat += 1) {
       for (const id of R.startingAreasOf(kingdomIds[seat])) areas[id].owner = seat;
@@ -85,6 +87,16 @@
     state.phase = 'planning';
     state.orders = [];
     state.lastResolution = null;
+    for (const player of state.players) {
+      if (player.eliminated) continue;
+      // Сохранённый жетон остаётся; повторный блеф доступен каждый раунд.
+      player.hand = player.hand.filter((kind) => kind !== 'feint');
+      player.hand.push('feint');
+      while (player.hand.length < R.HAND_SIZE && player.supply.length) {
+        const index = Math.floor(state.random() * player.supply.length);
+        player.hand.push(player.supply.splice(index, 1)[0]);
+      }
+    }
     const active = activeSeats(state);
     // Первый игрок меняется по кругу — местом, а не живым человеком: ушедший
     // всё равно занимает своё место в очереди, если оно ещё за столом.
@@ -131,6 +143,7 @@
     const order = R.orderOf(placement && placement.kind);
     if (!order) return fail('Неизвестный приказ');
     const player = state.players[seat];
+    if (!player.hand.includes(order.id)) return fail('Такого жетона нет в вашей руке');
 
     if (order.id === 'scout') {
       const targets = normalizeScoutTargets(placement.scoutTargets);
@@ -207,6 +220,7 @@
       round: state.round,
     };
     state.orders.push(order);
+    state.players[seat].hand.splice(state.players[seat].hand.indexOf(order.kind), 1);
     if (order.kind === 'scout') applyScoutIntel(state, order);
     advanceTurn(state);
     return order;
@@ -279,8 +293,9 @@
     let terrain = area.terrain === 'mountains' ? R.MOUNTAIN_DEFENSE_BONUS : 0;
     let ability = 0;
     if (kingdomId === 'or' && area.terrain === 'mountains') ability += 1;
-    const total = 1 + fortify + guard + terrain + ability;
-    return { base: 1, fortify, guard, terrain, ability, total };
+    const veterans = state.areas[areaId].veterans || 0;
+    const total = 1 + fortify + veterans + guard + terrain + ability;
+    return { base: 1, fortify, veterans, guard, terrain, ability, total };
   }
 
   /*
@@ -337,10 +352,18 @@
       let newOwner = previousOwner;
       if (!tiedTop && top.total > defense.total) { outcome = 'captured'; newOwner = top.seat; }
       else if (tiedTop && top.total > defense.total) outcome = 'standoff';
+      // Отбитая атака укрепляет гарнизон: открытый жетон защиты действует
+      // в будущих раундах и приносит одно очко при итоговом подсчёте.
+      if (previousOwner !== null && newOwner === previousOwner && top.total > 0 && top.total <= defense.total) {
+        state.areas[areaId].veterans = (state.areas[areaId].veterans || 0) + 1;
+      }
       report.push({ area: areaId, defense, attackers, previousOwner, newOwner, outcome });
       if (newOwner !== previousOwner) pendingOwners.set(areaId, newOwner);
     }
-    for (const [areaId, seat] of pendingOwners) state.areas[areaId].owner = seat;
+    for (const [areaId, seat] of pendingOwners) {
+      state.areas[areaId].owner = seat;
+      state.areas[areaId].veterans = 0;
+    }
 
     state.lastResolution = report;
     for (const line of report) logEvent(state, resolutionText(state, line));
@@ -431,9 +454,11 @@
       const objective = R.objectiveOf(player.objectiveId);
       const cities = R.AREAS.filter((area) => area.city && state.areas[area.id].owner === seat).length;
       const areasHeld = R.AREAS.filter((area) => state.areas[area.id].owner === seat).length;
-      const total = areaValue + regions.length * 2 + (objectiveDone ? objective.points : 0);
+      const veterans = R.AREAS.reduce((sum, area) => state.areas[area.id].owner === seat
+        ? sum + (state.areas[area.id].veterans || 0) : sum, 0);
+      const total = areaValue + veterans + regions.length * R.REGION_BONUS + (objectiveDone ? objective.points : 0);
       return {
-        seat, areaValue, regions: regions.length, objectiveDone,
+        seat, areaValue, veterans, regions: regions.length, objectiveDone,
         objectivePoints: objectiveDone ? objective.points : 0, total, cities, areasHeld,
       };
     });
@@ -491,6 +516,8 @@
       log: state.log.slice(-12),
       ordersPlaced: ordersPlacedBy(state, seat),
       ordersLimit: R.ORDERS_PER_ROUND,
+      hand: seat >= 0 ? [...(state.players[seat]?.hand || [])] : [],
+      supplyRemaining: seat >= 0 ? state.players[seat]?.supply.length || 0 : 0,
     };
   }
 
