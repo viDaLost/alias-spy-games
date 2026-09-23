@@ -20,7 +20,49 @@
   ];
   const STYLE = 'web/locales/de/games/kingdoms.css';
   const VERSION = '2-art';
-  const ART = 'web/assets/kingdoms/';
+  const AREA_ART = {
+    'dolina-ccw': 'web/assets/kingdoms/areas/dolina-ccw.webp',
+    'dolina-cw': 'web/assets/kingdoms/areas/dolina-cw.webp',
+    'dolina-hub': 'web/assets/kingdoms/areas/dolina-hub.webp',
+    'dolina-rim': 'web/assets/kingdoms/areas/dolina-rim.webp',
+    'kedem-ccw': 'web/assets/kingdoms/areas/kedem-ccw.webp',
+    'kedem-cw': 'web/assets/kingdoms/areas/kedem-cw.webp',
+    'kedem-hub': 'web/assets/kingdoms/areas/kedem-hub.webp',
+    'kedem-rim': 'web/assets/kingdoms/areas/kedem-rim.webp',
+    'nagorye-ccw': 'web/assets/kingdoms/areas/nagorye-ccw.webp',
+    'nagorye-cw': 'web/assets/kingdoms/areas/nagorye-cw.webp',
+    'nagorye-hub': 'web/assets/kingdoms/areas/nagorye-hub.webp',
+    'nagorye-rim': 'web/assets/kingdoms/areas/nagorye-rim.webp',
+    'pogranichye-ccw': 'web/assets/kingdoms/areas/pogranichye-ccw.webp',
+    'pogranichye-cw': 'web/assets/kingdoms/areas/pogranichye-cw.webp',
+    'pogranichye-hub': 'web/assets/kingdoms/areas/pogranichye-hub.webp',
+    'pogranichye-rim': 'web/assets/kingdoms/areas/pogranichye-rim.webp',
+    'primorye-ccw': 'web/assets/kingdoms/areas/primorye-ccw.webp',
+    'primorye-cw': 'web/assets/kingdoms/areas/primorye-cw.webp',
+    'primorye-hub': 'web/assets/kingdoms/areas/primorye-hub.webp',
+    'primorye-rim': 'web/assets/kingdoms/areas/primorye-rim.webp',
+    'ravnina-ccw': 'web/assets/kingdoms/areas/ravnina-ccw.webp',
+    'ravnina-cw': 'web/assets/kingdoms/areas/ravnina-cw.webp',
+    'ravnina-hub': 'web/assets/kingdoms/areas/ravnina-hub.webp',
+    'ravnina-rim': 'web/assets/kingdoms/areas/ravnina-rim.webp',
+  };
+  const EMBLEM_ART = {
+    'kedem': 'web/assets/kingdoms/emblems/kedem.webp',
+    'or': 'web/assets/kingdoms/emblems/or.webp',
+    'prestol': 'web/assets/kingdoms/emblems/prestol.webp',
+    'tarsis': 'web/assets/kingdoms/emblems/tarsis.webp',
+    'yor': 'web/assets/kingdoms/emblems/yor.webp',
+  };
+  const ORDER_ART = {
+    'closed': 'web/assets/kingdoms/orders/closed.webp',
+    'feint': 'web/assets/kingdoms/orders/feint.webp',
+    'ford': 'web/assets/kingdoms/orders/ford.webp',
+    'fortify': 'web/assets/kingdoms/orders/fortify.webp',
+    'guard': 'web/assets/kingdoms/orders/guard.webp',
+    'march': 'web/assets/kingdoms/orders/march.webp',
+    'reveal': 'web/assets/kingdoms/orders/reveal.webp',
+    'scout': 'web/assets/kingdoms/orders/scout.webp',
+  };
   const SAVE_KEY = 'kd_campaign_v2';
 
   function loadPart(file) {
@@ -100,9 +142,9 @@
     нарочно, чтобы царства различались не только цветом.
   */
   const EMBLEM_FILES = { anchor: 'tarsis', peak: 'or', ford: 'yor', sheaf: 'prestol', tent: 'kedem' };
-  const emblemHTML = (key, size = 22) => `<img class="kd-emblem" src="${ART}emblems/${EMBLEM_FILES[key] || 'tarsis'}.webp" width="${size}" height="${size}" alt="">`;
+  const emblemHTML = (key, size = 22) => `<img class="kd-emblem" src="${EMBLEM_ART[EMBLEM_FILES[key] || 'tarsis']}" width="${size}" height="${size}" alt="">`;
   const TERRAIN_NAMES = { plains: 'равнина', mountains: 'горы', desert: 'wüste', coast: 'побережье' };
-  const orderArt = (kind) => `${ART}orders/${kind.startsWith('march') ? 'march' : kind === 'ford2' ? 'ford' : kind}.webp`;
+  const orderArt = (kind) => ORDER_ART[kind.startsWith('march') ? 'march' : kind === 'ford2' ? 'ford' : kind];
   const orderIconHTML = (kind) => `<img class="kd-order-icon" src="${orderArt(kind)}" width="40" height="40" alt="">`;
 
   const plural = (count, one, few, many) => {
@@ -308,8 +350,7 @@
     buildBoard() {
       const R = this.R;
       this.root.innerHTML = `\n        <div class="kd-wrap">\n          <header class="kd-header">\n            <div class="kd-header-round">\n              <b data-round></b>\n              <span data-turn></span>\n            </div>\n            <div class="kd-header-right">\n              <span class="kd-objective" data-objective></span>\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Hauptmenü">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
-                  <defs><clipPath id="kd-area-clip"><circle r="${AREA_RADIUS}"/></clipPath></defs>
-                  <image href="${ART}ground.webp" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-areas></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Abbrechen</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
+                  <defs><clipPath id="kd-area-clip"><circle r="${AREA_RADIUS}"/></clipPath></defs>\n                  <image href="web/assets/kingdoms/ground.webp" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-areas></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Abbrechen</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
 
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`)?.addEventListener('click', fn);
       on('menu', () => {
@@ -383,7 +424,7 @@
         const p = this.pos.get(area.id);
         return `<g class="kd-area" data-area="${area.id}" transform="translate(${p.x},${p.y})" tabindex="0" role="button">
           <circle class="kd-area-fill" r="${AREA_RADIUS + 3}"></circle>
-          <image class="kd-area-art" href="${ART}areas/${area.id}.webp" x="-${AREA_RADIUS}" y="-${AREA_RADIUS}" width="${AREA_RADIUS * 2}" height="${AREA_RADIUS * 2}" clip-path="url(#kd-area-clip)" preserveAspectRatio="xMidYMid slice"/>
+          <image class="kd-area-art" href="${AREA_ART[area.id]}" x="-${AREA_RADIUS}" y="-${AREA_RADIUS}" width="${AREA_RADIUS * 2}" height="${AREA_RADIUS * 2}" clip-path="url(#kd-area-clip)" preserveAspectRatio="xMidYMid slice"/>
           <circle class="kd-area-ring" r="${AREA_RADIUS}"></circle>
 
           ${area.capitalOf ? '<g class="kd-area-crown" transform="translate(-8,-46)"><path d="M-6 0 -3-6 0-1 3-6 6 0Z" /></g>' : ''}
@@ -555,7 +596,7 @@
         group.style.setProperty('--owner', color);
         const emblem = group.querySelector('[data-owner-emblem]');
         emblem.style.display = cell.owner === null ? 'none' : '';
-        if (cell.owner !== null) emblem.setAttribute('href', `${ART}emblems/${v.players[cell.owner].kingdomId}.webp`);
+        if (cell.owner !== null) emblem.setAttribute('href', EMBLEM_ART[v.players[cell.owner].kingdomId]);
         group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'нейтральная' : nameOf(v, cell.owner)}, ценность ${area.value}`);
         group.classList.toggle('is-mine', cell.owner === v.you);
         group.classList.toggle('is-neutral', cell.owner === null);
@@ -821,7 +862,7 @@
       const owner = cell.owner === null ? 'Никому не принадлежит' : nameOf(v, cell.owner);
       const region = this.R.REGIONS.find((r) => r.id === area.region);
       const sheet = this.openSheet(`
-        <img class="kd-detail-art" src="${ART}areas/${area.id}.webp" alt="${escapeHTML(area.name)}">
+        <img class="kd-detail-art" src="${AREA_ART[area.id]}" alt="${escapeHTML(area.name)}">
         <h3>${escapeHTML(area.name)}</h3>
         <p class="kd-note">${escapeHTML(region.name)} · ${TERRAIN_NAMES[area.terrain]}${area.city ? ' · stadt' : ''}${area.capitalOf ? ' · столица' : ''}</p>
         <div class="kd-detail-rows">
