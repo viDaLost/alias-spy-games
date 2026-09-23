@@ -12,6 +12,15 @@
   "main": "src/index.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  // Ядро приложения — затем, чтобы комната умела спросить, администратор ли
+  // тот, кто просит показать партию. Право проверяется там, где живёт подпись
+  // сессии, а не здесь.
+  "services": [
+    {
+      "binding": "APP_CORE",
+      "service": "alias-spy-games-core"
+    }
+  ],
   "vars": {
     "ALLOWED_ORIGINS": "https://vidalost.github.io",
     "ALLOW_GUESTS": "false"

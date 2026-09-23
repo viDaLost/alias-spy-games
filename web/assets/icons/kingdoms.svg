@@ -1,4 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+<!--
+  Ширина и высота проставлены нарочно. Без них у рисунка нет своего размера:
+  в <img> браузер отдаёт naturalWidth = 0, и проверка главного меню честно
+  сообщает, что значок не отрисовался. Все прочие значки меню — растровые и
+  свой размер имеют; этот теперь тоже.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
   <defs>
     <linearGradient id="bg" x1="8" y1="6" x2="57" y2="58" gradientUnits="userSpaceOnUse"><stop stop-color="#312E81"/><stop offset="1" stop-color="#4F46E5"/></linearGradient>
     <linearGradient id="gold" x1="20" y1="24" x2="44" y2="44" gradientUnits="userSpaceOnUse"><stop stop-color="#FFE259"/><stop offset="1" stop-color="#FFA751"/></linearGradient>

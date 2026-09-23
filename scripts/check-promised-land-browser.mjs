@@ -135,6 +135,72 @@ async function play(width, height, years) {
     `${width}px: клетки кольца вытянулись, отношение сторон ${ring.ratio.toFixed(2)}`);
 
   /*
+    Лад игры доходит от кнопки до партии.
+
+    Переключатель стоит в настройках партии, и проверяется не он сам, а то, что
+    выбранное им правило доехало до движка: одинокий удел в простом ладу должен
+    строиться, а сама пометка — лежать в состоянии партии. Без этого кнопка
+    нажималась бы, а игра шла бы по-старому.
+  */
+  const simple = await page.evaluate(() => {
+    const game = window.PromisedLandGame.state();
+    return { strict: game.strict };
+  });
+  need(simple.strict === true, `по умолчанию лад «${simple.strict}» вместо усложнённого`);
+
+  /*
+    Неспешность соперников. Человек написал, что не успевает сообразить, что и
+    куда, — и пауза между чужими ходами выросла до полутора секунд. Проверка
+    сторожит именно её: вернуть прежние девятьсот миллисекунд легко и незаметно,
+    а жалоба была ровно про это.
+
+    После проверки пауза сбивается почти в ноль — уже для самой проверки:
+    доиграть партию до юбилея с полутора секундами на шаг значит просидеть над
+    ней полчаса, а на ход партии это число не влияет ничем.
+  */
+  const pace = await page.evaluate(() => {
+    const was = window.PromisedLandGame.pace();
+    window.PromisedLandGame.pace(20);
+    return was;
+  });
+  need(pace >= 1200, `${width}px: соперники ходят через ${pace} мс — человеку этого мало`);
+
+  /*
+    Чужой ход читается словами.
+
+    Человек написал, что не успевает сообразить, что и куда, — и не мог: на
+    экране во время чужого хода было написано только «ходит Ефрем», а что
+    Ефрем сделал, лежало в отдельной вкладке журнала. Теперь последняя запись
+    летописи стоит прямо под строкой хода, и проверяется именно это: не
+    «есть ли такой элемент», а что в нём то самое, что записано в летописи.
+  */
+  const said = await page.evaluate(() => {
+    const game = window.PromisedLandGame.state();
+    game.turn = game.players.findIndex((one) => one.isBot);
+    if (game.turn < 0) return { skipped: true };
+    game.pending = null;
+    game.phase = 'roll';
+    game.log.push({ year: game.year, text: 'Ефрем купил Вирсавию за 60' });
+    window.PromisedLandGame.refresh();
+    const seen = {
+      line: document.querySelector('.turnline-last')?.textContent || '',
+      who: document.querySelector('.turnline-who')?.textContent || '',
+    };
+    /*
+      Ход отдан сопернику руками — значит, руками же надо и пустить его
+      дальше: перерисовка ходов не делает. Без этого стол вставал бы прямо
+      здесь, и партия не доходила бы до юбилея.
+    */
+    window.PromisedLandGame.wake();
+    return seen;
+  });
+  if (!said.skipped) {
+    need(said.line.includes('Ефрем купил Вирсавию за 60'),
+      `${width}px: о чужом ходе не сказано словами: «${said.line}»`);
+    need(/ходит/.test(said.who), `${width}px: не видно, чей ход: «${said.who}»`);
+  }
+
+  /*
     Темпа и автоигры в игре больше нет: обе кнопки отбирали ход у человека —
     одна торопила чужой, вторая играла за него самого. Спрашивается, что их
     не осталось и в разметке.
@@ -277,6 +343,50 @@ try {
     need(prison.length > 120, `особая клетка почти ничего не объясняет: «${prison}»`);
   }
   await context.close();
+
+  /*
+    ——— простой лад доходит от кнопки до доски ———
+
+    Отдельной вкладкой, потому что лад выбирается до партии и в уже начатой не
+    меняется. Проверяется не нажатие, а следствие: пометка легла в партию, и
+    одинокий удел — тот, чей цвет чужой, — в ней строится. В усложнённом ладу
+    он же не строился бы; это доказано счётом в check-promised-land-logic.
+  */
+  const simpleContext = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
+  });
+  const simplePage = await simpleContext.newPage();
+  await simplePage.goto(url, { waitUntil: 'networkidle', timeout: 20_000 });
+  await simplePage.locator('.mode-card[data-mode="solo"]').click();
+  const toggle = simplePage.locator('.choice[data-key="strict"] button[data-value="0"]');
+  if (!(await toggle.count())) problems.push('переключателя лада нет в настройках партии');
+  else {
+    await toggle.click();
+    await simplePage.locator('#start-btn').click();
+    await simplePage.waitForSelector('#game:not([hidden])', { timeout: 5_000 });
+    const skipTeach = simplePage.locator('#teach-skip');
+    if (await skipTeach.count() && await skipTeach.isVisible()) await skipTeach.click();
+    const built = await simplePage.evaluate(() => {
+      const game = window.PromisedLandGame.state();
+      const B = window.PromisedLandBoard;
+      const E = window.PromisedLandEngine;
+      const group = B.BOARD.find((spec) => spec.kind === 'plot').group;
+      const cells = B.groupCells(group);
+      const [mine, ...rest] = cells;
+      const [player, other] = game.players;
+      game.cells[mine].owner = player.id;
+      for (const n of rest) game.cells[n].owner = other.id;
+      player.silver = 2000;
+      game.turn = 0;
+      game.phase = 'act';
+      game.pending = null;
+      window.PromisedLandGame.refresh();
+      return { strict: game.strict, can: E.canBuild(game, player, mine) };
+    });
+    need(built.strict === false, `простой лад не доехал до партии: strict = ${built.strict}`);
+    need(built.can === true, 'в простом ладу одинокий удел всё равно не строится');
+  }
+  await simpleContext.close();
 } finally {
   await browser.close();
   server.close();
@@ -293,4 +403,6 @@ console.log('OK: партия доигрывается до юбилея пал�
   + `победитель объявлен («${wide.winner}»), в таблице ${wide.rows} игроков. `
   + 'Кольцо осталось квадратным из 36 клеток, нажатие попадает в плитку, боком ничего '
   + 'не прокручивается, консоль чистая, карточка клетки и правила открываются, а кнопок '
-  + 'темпа и автоигры не осталось и без объёмной сцены.');
+  + 'темпа и автоигры не осталось и без объёмной сцены. Лад игры выбирается до партии: по '
+  + 'умолчанию усложнённый, а выбранный простой доезжает до доски — одинокий удел в нём '
+  + 'строится.');

@@ -6,11 +6,11 @@
 // что соперники ходят сами и раздача доходит до итогов, и что при этом ничего
 // не вылезает за край и не падает в консоль.
 //
-// И отдельно — замок. Игра идёт обкатку и открыта только главному
-// администратору: у всех остальных карточки в меню нет, а прямой вызов
-// showGame отвечает отказом. Замок этот проверяется первым: игра, открывшаяся
-// не тому, кому положено, — это не мелкая оплошность, а ровно то, чего
-// просили не допустить.
+// И отдельно — что игра открыта обычному человеку. Она была на обкатке, с
+// карточкой, скрытой у всех, кроме главного администратора и приглашённых по
+// списку; теперь список снят, и первым делом проверяется, что след замка не
+// остался — обычный гость видит карточку, входит в игру и находит её в
+// справочнике, как и любую другую.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -77,8 +77,9 @@ async function play(width, height, foes = 2) {
   });
   /*
     Роль приходит с сервера — той же проверкой, что зажигает кнопку админки.
-    Здесь её отдаёт заглушка: партию всегда играет главный администратор, а
-    «обычного человека» проверяет отдельный прогон locked() со своей заглушкой.
+    Здесь её отдаёт заглушка: эта партия всегда играется главным
+    администратором, а обычного человека проверяет отдельный прогон
+    asGuest() со своей заглушкой — сама игра открыта и тому, и другому.
   */
   const stub = (route) => route.fulfill({
     status: 200, contentType: 'application/json',
@@ -162,6 +163,22 @@ async function play(width, height, foes = 2) {
   need(touch.card[0] >= 56 && touch.card[1] >= 84,
     `карта в руке ${touch.card.join('×')} — меньше пальца`);
   need(touch.deck[0] >= 56 && touch.deck[1] >= 84, `колода ${touch.deck.join('×')} — меньше пальца`);
+
+  /*
+    ——— выход из партии стоит в своём углу, а не в общем ряду ———
+
+    Жалоба игрока: «Перебить!» живёт секунды и исчезает, а на его месте в
+    том же flex-ряду тут же оказывается «В меню» — не успевший убрать палец
+    выходит из партии, которую не думал бросать. Проверять таймингом
+    появления-исчезновения незачем: хватает того, что кнопка выхода вообще
+    не делит ряд со скоротечными кнопками хода.
+  */
+  const exitLayout = await page.evaluate(() => ({
+    ownCorner: Boolean(document.querySelector('.tt-topbar [data-menu]')),
+    sharedRow: Boolean(document.querySelector('.tt-row [data-menu]')),
+  }));
+  need(exitLayout.ownCorner, 'кнопка выхода не стоит в своём углу (.tt-topbar)');
+  need(!exitLayout.sharedRow, 'кнопка выхода всё ещё в общем ряду с «Перебить!» и «Шабат!»');
 
   /*
     ——— за столом видна очередь хода ———
@@ -445,12 +462,24 @@ async function play(width, height, foes = 2) {
   let wilds = 0;
   let shabbat = 0;
   /*
-    Нажатий столько, сколько может понадобиться за столом такого размера: за
-    восьмерых раздача идёт втрое дольше, чем втроём, и общий предел в девятьсот
-    обрывал её на середине — не потому, что игра встала.
+    Предел здесь по времени, а не по числу оборотов, и вот почему.
+
+    Оборот — это не всегда нажатие. Пока ходят соперники, человеку нажимать
+    нечем, и оборот тратится на ожидание в пятую долю секунды. Сколько таких
+    ожиданий придётся на раздачу, заранее не знает никто: это зависит и от
+    числа соперников, и от того, как легла колода, и от того, насколько занята
+    машина. Поэтому прежний предел в оборотах мерил не игру, а погоду: одна и
+    та же раздача укладывалась то в сто шестьдесят оборотов, то не укладывалась
+    и в тысячу сто — и проверка честно сообщала, что игра встала, хотя игра шла.
+
+    Время же мерит ровно то, ради чего предел и нужен: раздача, которая не
+    кончается. Запас взят с большим перекрытием — обычная раздача доигрывается
+    за полминуты-минуту даже втроём с ожиданиями, — а по-настоящему вставшая
+    игра не сдвинется и за пять минут.
   */
-  const limit = 700 + foes * 200;
-  while (steps < limit) {
+  const started = Date.now();
+  const deadline = started + 5 * 60_000;
+  while (Date.now() < deadline) {
     if (await page.locator('.tt-setup [data-next]').count()) break;
     const live = page.locator('.tt-hand .tt-card.is-live').first();
     if (await live.count()) {
@@ -482,15 +511,27 @@ async function play(width, height, foes = 2) {
     steps += 1;
   }
   const over = await page.locator('.tt-setup [data-next]').count() > 0;
-  need(over, `за ${steps} нажатий раздача не дошла до итогов`);
+  need(over, `за ${Math.round((Date.now() - started) / 1000)} с и ${steps} оборотов раздача не дошла до итогов`);
   if (over) {
     const result = await page.evaluate(() => ({
       title: document.querySelector('.tt-setup h2')?.textContent || '',
-      rows: document.querySelectorAll('.tt-score').length,
+      rows: [...document.querySelectorAll('.tt-score')].map((one) => one.textContent.trim()),
+      places: window.TwelveTribesGame.state().players.map((one) => one.place),
     }));
-    need(/раздачу|берёт/i.test(result.title), `итоги не названы: «${result.title}»`);
+    need(/вышел первым|вышли первым|набрал|набрали/i.test(result.title),
+      `итоги не названы: «${result.title}»`);
     // В итогах строка на каждого, кто сидел за столом, — вместе с вами.
-    need(result.rows === foes + 1, `в итогах ${result.rows} строк вместо ${foes + 1}`);
+    need(result.rows.length === foes + 1, `в итогах ${result.rows.length} строк вместо ${foes + 1}`);
+    /*
+      Места читаются словами и стоят по порядку. Без этого «третье место»
+      существовало бы только в памяти движка: на экране игрок увидел бы
+      четыре строки и не понял, какая из них его.
+    */
+    const places = [...result.places].sort((a, b) => a - b);
+    const wanted = result.places.map((_, at) => at + 1);
+    need(places.join(',') === wanted.join(','), `места розданы как ${places.join(',')}`);
+    need(result.rows.every((line, at) => line.startsWith(`${at + 1}.`)),
+      `итоги не пронумерованы местами: ${result.rows.join(' | ')}`);
   }
 
   // ——— ничего не вылезло за край ———
@@ -514,28 +555,29 @@ async function play(width, height, foes = 2) {
 }
 
 /*
-  Замок. Обычный человек не видит карточку в меню и не попадает в игру даже
-  прямым вызовом showGame — вместо стола он получает отказ и кнопку в меню.
+  Вход не администратора. Игра открыта и ему — карточка видна, showGame
+  впускает за стол, справочник о ней знает. Единственное, чего у обычного
+  человека нет и не должно быть, — роли администратора.
 */
-async function locked() {
+async function asGuest(userId) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
-  await page.addInitScript(() => {
+  await page.addInitScript((id) => {
     window.Telegram = {
       WebApp: {
-        initData: 'user=%7B%22id%22%3A777000%7D&hash=qa',
-        initDataUnsafe: { user: { id: 777000, first_name: 'Гость' } },
+        initData: `user=%7B%22id%22%3A${id}%7D&hash=qa`,
+        initDataUnsafe: { user: { id: Number(id), first_name: 'Гость' } },
         ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
         MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
         HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
       },
     };
-  });
+  }, userId);
   const plain = (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({
       success: true, isBanned: false, lastGames: [], users: [],
-      isAdmin: false, isRoot: false, role: 'none', userId: '777000',
+      isAdmin: false, isRoot: false, role: 'none', userId,
       answered: true, skip: true, eligible: false,
     }),
   });
@@ -557,23 +599,45 @@ async function locked() {
       others: document.querySelectorAll('[onclick*="quartet"]').length,
     };
   });
-  need(!seen.root, 'обычному человеку выдали роль главного администратора');
-  need(seen.others > 0, 'у обычного человека пропали и прочие игры — дело не в замке');
-  need(!seen.shown, 'карточка «Двенадцати колен» видна тому, кому игра ещё не открыта');
+
+  /*
+    Справочник обязан молчать о той игре, которой у человека нет, и говорить о
+    той, которая есть: раздел про игру, до которой не добраться, — недоумение,
+    а не вежливость. Спрашивается он до игры, пока экран ещё меню.
+  */
+  const rules = await page.evaluate(async () => {
+    if (typeof window.openGameRules !== 'function') return null;
+    window.openGameRules();
+    await new Promise((done) => setTimeout(done, 800));
+    const found = document.querySelectorAll('[data-rules-game="twelve-tribes"]').length;
+    document.querySelectorAll('.rules-modal, #game-rules, .rules-sheet').forEach((one) => {
+      one.hidden = true;
+      one.remove();
+    });
+    return found > 0;
+  });
 
   await page.evaluate(() => window.showGame('twelve-tribes'));
-  await page.waitForTimeout(1500);
-  const refused = await page.evaluate(() => ({
+  await page.waitForTimeout(2500);
+  const opened = await page.evaluate(() => ({
     text: document.getElementById('game-container')?.innerText || '',
     table: document.querySelectorAll('.tt-wrap').length,
   }));
-  need(/ещё не открыта/i.test(refused.text),
-    `прямой вызов игры не отказал: «${refused.text.slice(0, 60)}»`);
-  need(refused.table === 0, 'по прямому вызову игра всё-таки открылась');
   await context.close();
+  return { ...seen, ...opened, rules };
 }
 
-await locked();
+/*
+  Обычный человек. Карточка видна, прямой вызов пускает за стол, справочник
+  знает об игре — всё то же, что и у главного администратора, кроме самой
+  роли: её у него нет и быть не должно.
+*/
+const guest = await asGuest('777000');
+need(!guest.root, 'обычному человеку выдали роль главного администратора');
+need(guest.others > 0, 'у обычного человека пропали и прочие игры — дело не в этой карточке');
+need(guest.shown, 'карточка «Двенадцати колен» не видна обычному человеку');
+need(guest.table > 0, `обычного человека не пустили в игру: «${guest.text.slice(0, 60)}»`);
+need(guest.rules !== false, 'справочник молчит об игре, которая открыта всем');
 const phone = await play(390, 844);
 need(phone.errors.length === 0, `ошибки в консоли: ${phone.errors.slice(0, 2).join(' | ')}`);
 const narrow = await play(320, 568);
@@ -595,10 +659,11 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов; '
+console.log('OK: карточка видна и играбельна обычному человеку — она видна, вход пускает за стол, справочник о ней знает; '
   + 'у главного администратора игра открывается из меню, раздача сдана по семь карт на троих, карта и колода крупнее пальца, '
-  + `раздача доиграна до итогов за ${phone.steps} нажатий (жребиев со сменой стана ${phone.wilds}, `
+  + `раздача доиграна до итогов за ${phone.steps} оборотов (жребиев со сменой стана ${phone.wilds}, `
   + `«Шабат» сказан ${phone.shabbat} раз); места стоят по очереди хода и переставляются после иордана, `
   + 'рука разложена по станам, взятая карта летит из колоды, '
   + 'подсказки открываются и знают все шесть родов карт, кнопки станов цветные и крупные; '
+  + 'кнопка выхода стоит в своём углу отдельно от «Перебить!» и «Шабат!»; '
   + 'стол на восьмерых сыгран целиком; на 390 и на 320 ничего не вылезло за край, консоль чистая.');

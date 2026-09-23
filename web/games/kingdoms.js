@@ -1079,13 +1079,25 @@
           <h2>${jointWinner ? 'Совместная победа' : `Победа: ${escapeHTML(nameOf(v, v.winner))}`}</h2>
           <div class="kd-final">${rows}</div>
           <div class="kd-row">
-            <button type="button" class="kd-btn" data-again>${this.net ? 'В комнату' : 'Ещё партия'}</button>
+            ${this.net && !this.net.youAreHost?.()
+    ? '<p class="kd-wait">Хозяин комнаты решает, играть ли ещё</p>'
+    : `<button type="button" class="kd-btn" data-again>${this.net ? 'Играть ещё раз' : 'Ещё партия'}</button>`}
+            ${this.net && this.net.youAreHost?.()
+    ? '<button type="button" class="kd-btn kd-btn--ghost" data-lobby>В комнату</button>' : ''}
             <button type="button" class="kd-btn kd-btn--ghost" data-menu>В меню</button>
           </div>
         </section></div>`;
-      this.root.querySelector('[data-again]').addEventListener('click', () => {
-        if (this.net) { this.net.send('backToLobby'); return; }
+      /*
+        «Играть ещё раз» сдаёт заново тем же составом, не разводя всех по
+        лобби: готовность только что подтверждена доигранной партией. Кому
+        нужно поменять настройки или позвать кого-то ещё — рядом «В комнату».
+      */
+      this.root.querySelector('[data-again]')?.addEventListener('click', () => {
+        if (this.net) { this.net.send('playAgain'); return; }
         this.setup();
+      });
+      this.root.querySelector('[data-lobby]')?.addEventListener('click', () => {
+        this.net?.send('backToLobby');
       });
       this.root.querySelector('[data-menu]').addEventListener('click', () => {
         stopTimers();

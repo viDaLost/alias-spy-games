@@ -53,6 +53,10 @@
   const askApp = (type, room) => {
     if (inApp) window.parent.postMessage({ type: `promised-land:${type}`, room }, parentOrigin);
   };
+  /** Сообщение о беде — приложению, чтобы оно донесло его до наблюдения. */
+  const askReport = (what, detail) => {
+    if (inApp) window.parent.postMessage({ type: 'promised-land:trouble', what, detail }, parentOrigin);
+  };
   window.addEventListener('message', (event) => {
     if (!inApp || event.source !== window.parent || event.origin !== parentOrigin) return;
     if (event.data?.type !== 'promised-land:invite' || !/^[A-Z0-9]{5}$/.test(event.data.room || '')) return;
@@ -150,6 +154,12 @@
   let botTimer = 0;
   let sheetOpen = false;
   /*
+    Черновик уговора: с кем меняемся, что отдаём, что берём и сколько сверху.
+    Он живёт на экране, а не в партии: пока человек тыкает в уделы, за столом
+    ничего не происходит, и знать об этом соперникам незачем.
+  */
+  let tradeDraft = null;
+  /*
     Что сейчас открыто на экране партии.
 
     Три вещи — свои уделы, карточки игроков и журнал ходов — нужны не каждый
@@ -178,7 +188,20 @@
     которой каждое действие ждёт нажатия, такие кнопки противоречат в самой
     основе; а место на экране они занимали наравне с настоящими.
   */
-  const PACE = { wait: 900 };
+  /*
+    Сколько ждать между ходами соперников.
+
+    Было девятьсот миллисекунд, и этого оказалось мало: человек писал, что не
+    успевает сообразить, что и куда. Он и не мог — на экране в этот миг было
+    написано только «ходит Ефрем», а что Ефрем сделал, лежало в отдельной
+    вкладке журнала.
+
+    Поэтому две правки сразу, и одной без другой не хватило бы. Пауза выросла
+    до полутора секунд — столько нужно, чтобы прочесть строку и найти глазами
+    клетку. И сама строка теперь говорит, что именно случилось: «Ефрем купил
+    Вирсавию за 60», а не просто «ходит Ефрем».
+  */
+  const PACE = { wait: 1500 };
   // Сцена в объёме. Её может не быть: WebGL на слабом устройстве не дают, и
   // тогда игра идёт на поле из разметки — оно работает всегда.
   let scene = null;
@@ -283,8 +306,8 @@
       if (code.length < 4) { onlineFail('Код комнаты — пять знаков.'); return; }
       enterRoom(() => Net.joinRoom(code, nameField()));
     });
-    $('lobby-ready').addEventListener('click', () => link?.send('ready', { ready: !roomView?.you?.ready }));
     $('lobby-start').addEventListener('click', () => link?.send('start'));
+    $('lobby-copy').addEventListener('click', copyRoomCode);
     $('lobby-share').addEventListener('click', shareRoom);
     $('lobby-chat-form').addEventListener('submit', (event) => {
       event.preventDefault();
@@ -307,10 +330,14 @@
       const bots = group?.dataset.lobby === 'bots'
         ? Number(button.dataset.value)
         : Number(roomView.settings.bots || 0);
+      const strict = group?.dataset.lobby === 'strict'
+        ? button.dataset.value !== '0'
+        : roomView.settings.strict !== false;
       link?.send('settings', {
         mode: ending === 'last' ? 'last' : 'jubilee',
         years: ending === 'last' ? 7 : Number(ending),
         bots,
+        strict,
       });
     });
   }
@@ -360,6 +387,7 @@
     link = null;
     roomView = null;
     mySeat = '';
+    askApp('room', '');   // ушли из комнаты — приложению больше нечего о ней знать
     waitingInLobby = false;
     state = null;
     // Связь рвётся не сразу: «ушёл» надо донести, а закрытая связь его не донесёт.
@@ -373,8 +401,17 @@
 
   function applyRoom(view) {
     if (!view) return;
+    const wasRoom = roomView?.roomId || '';
     roomView = view;
     mySeat = view.seat || '';
+    /*
+      Приложению сообщается код комнаты. Игра живёт в кадре на своём адресе, и
+      снаружи о ней не видно ничего — а приложению это нужно: по коду комнаты
+      администратор открывает монитор партии, когда человек жалуется, что у
+      него всё встало. Ни имён, ни карт, ни денег — только код, который и так
+      написан на экране у всех за столом.
+    */
+    if (view.roomId && view.roomId !== wasRoom) askApp('room', view.roomId);
     const over = Boolean(view.game) && view.game.status !== 'playing';
     if (view.phase === 'playing' && view.game && !(waitingInLobby && over)) {
       waitingInLobby = false;
@@ -445,7 +482,6 @@
       const tags = el('span', 'lobby-player__tags');
       if (one.host) tags.appendChild(el('i', 'lobby-tag is-host', 'хозяин'));
       if (!one.online) tags.appendChild(el('i', 'lobby-tag is-away', 'нет связи'));
-      if (one.ready && !one.host) tags.appendChild(el('i', 'lobby-tag is-ready', 'готов'));
       row.appendChild(tags);
       list.appendChild(row);
     });
@@ -458,7 +494,9 @@
     }
 
     for (const group of $('lobby-settings').querySelectorAll('.choice')) {
-      const value = group.dataset.lobby === 'years' ? endingOf(view.settings) : String(bots);
+      const value = group.dataset.lobby === 'years' ? endingOf(view.settings)
+        : group.dataset.lobby === 'strict' ? (view.settings?.strict === false ? '0' : '1')
+          : String(bots);
       for (const button of group.querySelectorAll('button[data-value]')) {
         button.setAttribute('aria-pressed', String(button.dataset.value === value));
         button.disabled = !view.youAreHost;
@@ -466,12 +504,8 @@
     }
     $('lobby-hint').textContent = view.youAreHost
       ? `За столом ${view.tableSize} из ${view.maxPlayers}. Партия идёт от двоих.`
-      : 'Срок партии и число соперников выбирает хозяин комнаты.';
+      : 'Срок партии, лад и число соперников выбирает хозяин комнаты.';
 
-    const ready = $('lobby-ready');
-    ready.hidden = Boolean(view.youAreHost);
-    ready.textContent = view.you?.ready ? 'Я ещё не готов' : 'Я готов';
-    ready.setAttribute('aria-pressed', String(Boolean(view.you?.ready)));
     const start = $('lobby-start');
     start.hidden = !view.youAreHost;
     start.disabled = !view.canStart;
@@ -485,6 +519,23 @@
       lines.appendChild(row);
     }
     lines.scrollTop = lines.scrollHeight;
+  }
+
+  /*
+    Просто код, без ссылки и без текста — чтобы продиктовать по телефону или
+    вставить в поле «код комнаты» у того, кто уже открыл игру сам. Кнопка
+    рядом, «Позвать друзей», собирает вокруг кода ещё и ссылку с приглашением
+    — это другая, более длинная задача, и здесь ей не место.
+  */
+  async function copyRoomCode() {
+    const code = roomView?.roomId || '';
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      linkNote('Код скопирован.');
+    } catch {
+      linkNote(`Код комнаты: ${code}`);
+    }
   }
 
   /*
@@ -566,12 +617,14 @@
     const ending = picked('years');
     const mode = ending === 'last' ? 'last' : 'jubilee';
     const years = ending === 'last' ? 7 : Number(ending);
+    // Лад: усложнённый — строить на целом цвете, простой — на своём уделе.
+    const strict = picked('strict') !== '0';
     const players = [];
     for (let i = 0; i < humans; i += 1) players.push({ name: humans === 1 ? 'Игрок' : `Игрок ${i + 1}` });
     for (let i = 0; i < bots; i += 1) {
       players.push({ name: BOT_NAMES[i], isBot: true, botLevel: i % 2 ? 'scribe' : 'elder' });
     }
-    state = E.createGame({ players, years, mode });
+    state = E.createGame({ players, years, mode, strict });
     for (const id of ['mode', 'setup', 'online']) { const node = $(id); if (node) node.hidden = true; }
     $('game').hidden = false;
     orientationTip();
@@ -724,6 +777,16 @@
         },
         onCellTap: showCellCard,
         onViewChange: (home) => { $('view-home').hidden = home; },
+        /*
+          Жалоба на несостоявшиеся модели уходит в приложение. Игра живёт в
+          кадре на своём адресе, и рассказать о себе ей больше некому: консоль
+          телефона никто не откроет, а без этого «не прогружаются люди»
+          остаётся словом против молчания.
+
+          Уходит только счёт — сколько просили, сколько доехало, был ли вообще
+          загрузчик, — и только когда что-то не доехало.
+        */
+        onModels: (report) => askReport('models', report),
         theme: {
           board: pick('--sunk', '#e8eefc'),
           field: pick('--surface-soft', '#f3f7ff'),
@@ -1238,6 +1301,48 @@
     bar.appendChild(turnLine());
     bar.appendChild(toolsBar());
     const player = E.current(state);
+
+    /*
+      Уговор об обмене ждёт ответа — и ждёт он не того, чей ход. Поэтому он
+      показывается раньше всех кнопок хода: для того, кому предложили, это
+      сейчас единственное, что можно сделать, и он как раз сидит и смотрит на
+      чужой ход.
+    */
+    if (state.trade) {
+      const offer = state.trade;
+      const from = playerById(offer.from);
+      const to = playerById(offer.to);
+      const me = meId();
+      const names = (list) => (list.length
+        ? list.map((n) => B.BOARD[n].name).join(', ') : 'ничего');
+      const line = el('div', 'trade-offer');
+      line.appendChild(el('b', null, `${from ? from.name : 'Сосед'} предлагает уговор`));
+      line.appendChild(el('span', null, `отдаёт: ${names(offer.give)}`));
+      line.appendChild(el('span', null, `просит: ${names(offer.take)}`));
+      if (offer.silver) {
+        line.appendChild(el('span', 'trade-silver', offer.silver > 0
+          ? `и доплачивает ${offer.silver}`
+          : `и просит сверху ${-offer.silver}`));
+      }
+      main.appendChild(line);
+      /*
+        Кто отвечает. По сети — только тот, кому предложили: чужой ответ сервер
+        и не примет. За одним столом экран один на всех, и отвечает с него тот,
+        кому уговор предложен, кем бы из людей он ни был; иначе уговор, поданный
+        не тому человеку, остался бы без ответа навсегда — соперники ждут его.
+      */
+      const answers = link ? (offer.to === me && to && !to.isBot) : Boolean(to && !to.isBot);
+      if (answers) {
+        if (!link && to.id !== me) main.appendChild(el('div', 'waiting', `Отвечает ${to.name}`));
+        main.appendChild(button('Принять', 'primary', () => { act('tradeAccept'); after(); }));
+        main.appendChild(button('Отказаться', 'ghost', () => { act('tradeDecline'); after(); }));
+      } else {
+        main.appendChild(el('div', 'waiting', `${to ? to.name : 'Сосед'} думает…`));
+        askBotAboutTrade();
+      }
+      return;
+    }
+
     /*
       По сети кнопки хода есть только у того, чей ход. Сервер чужой ход и так не
       примет, но узнавать об этом, нажав и получив отказ, — плохо: за одним
@@ -1451,6 +1556,13 @@
       who.appendChild(el('i', 'hud-dot'));
       who.appendChild(el('span', null, `ходит ${turnPlayer.name}`));
       line.appendChild(who);
+      /*
+        Что он только что сделал. Без этой строки чужой ход выглядел так:
+        доска мигнула, фишка переехала, и почему — ищи во вкладке журнала.
+        Берётся последняя запись летописи — та самая, что и так ведётся.
+      */
+      const last = state.log[state.log.length - 1];
+      if (last && last.text) line.appendChild(el('span', 'turnline-last', last.text));
     }
     return line;
   }
@@ -1464,11 +1576,109 @@
 
   // ————————————————————————————————————————————————— шторка уделов
 
+  /*
+    ——— составление уговора ———
+
+    Шторка уделов на время становится столом переговоров: слева своё, справа
+    чужое, снизу доплата. Отдельного экрана нет нарочно — уделы выбирают там же,
+    где их обычно смотрят, и по дороге видно, что у кого заложено и застроено.
+  */
+  function renderTradeComposer(sheet) {
+    const me = playerById(meId());
+    const others = state.players.filter((one) => !one.out && !one.servantOf && one.id !== me.id);
+    if (!tradeDraft.to && others.length) tradeDraft.to = others[0].id;
+    const mate = playerById(tradeDraft.to);
+
+    sheet.appendChild(el('h3', null, 'Уговор об обмене'));
+    sheet.appendChild(el('p', 'empty', 'Заложенное и застроенное в обмен не идёт: сначала выкупите '
+      + 'или продайте ступени.'));
+
+    const who = el('div', 'trade-row');
+    for (const one of others) {
+      const chip = button(one.name, one.id === tradeDraft.to ? 'chip chip--on' : 'chip', () => {
+        tradeDraft = { to: one.id, give: tradeDraft.give, take: [], silver: 0 };
+        updateSheet();
+      });
+      who.appendChild(chip);
+    }
+    sheet.appendChild(el('h4', null, 'С кем'));
+    sheet.appendChild(who);
+
+    const side = (title, ownerId, picked) => {
+      sheet.appendChild(el('h4', null, title));
+      const list = E.tradables(state, ownerId);
+      if (!list.length) { sheet.appendChild(el('p', 'empty', 'Менять нечего.')); return; }
+      const row = el('div', 'trade-row');
+      for (const n of list) {
+        const spec = B.BOARD[n];
+        const on = picked.includes(n);
+        row.appendChild(button(`${spec.name} · ${spec.price}`, on ? 'chip chip--on' : 'chip', () => {
+          const at = picked.indexOf(n);
+          if (at >= 0) picked.splice(at, 1); else picked.push(n);
+          updateSheet();
+        }));
+      }
+      sheet.appendChild(row);
+    };
+    side('Вы отдаёте', me.id, tradeDraft.give);
+    // Имя соседа уже названо строкой «С кем», и склонять его тут не за чем:
+    // «Просите у Ефрем» — не по-русски, а подбирать падеж каждому имени игры
+    // дороже, чем просто не повторять имя.
+    if (mate) side('Просите взамен', mate.id, tradeDraft.take);
+
+    /*
+      Доплата одной строкой и в обе стороны: положительная — доплачиваю я,
+      отрицательная — просят с соседа. Шаг в полсотни, потому что торг в этой
+      игре идёт сотнями, а не единицами.
+    */
+    sheet.appendChild(el('h4', null, 'Доплата серебром'));
+    const money = el('div', 'trade-money');
+    const step = (delta) => {
+      const limit = delta > 0 ? me.silver : (mate ? mate.silver : 0);
+      const next = tradeDraft.silver + delta;
+      tradeDraft.silver = Math.max(-(mate ? mate.silver : 0), Math.min(me.silver, next));
+      if (Math.abs(tradeDraft.silver) > limit && delta > 0) tradeDraft.silver = limit;
+      updateSheet();
+    };
+    money.appendChild(button('−50', 'small ghost', () => step(-50)));
+    const amount = el('b', 'trade-amount', tradeDraft.silver === 0
+      ? 'без доплаты'
+      : tradeDraft.silver > 0
+        ? `вы даёте ${tradeDraft.silver}`
+        : `просите ${-tradeDraft.silver}`);
+    money.appendChild(amount);
+    money.appendChild(button('+50', 'small', () => step(50)));
+    sheet.appendChild(money);
+
+    // Счёт по цене — самое понятное мерило: сколько стоит то и другое в кассе.
+    const price = (list) => list.reduce((sum, n) => sum + B.BOARD[n].price, 0);
+    const mineSum = price(tradeDraft.give) + Math.max(0, tradeDraft.silver);
+    const theirSum = price(tradeDraft.take) + Math.max(0, -tradeDraft.silver);
+    sheet.appendChild(el('p', 'trade-sum',
+      `По цене: вы отдаёте на ${mineSum} сиклей, получаете на ${theirSum}.`));
+
+    const ready = Boolean(mate) && (tradeDraft.give.length || tradeDraft.take.length);
+    const acts = el('div', 'trade-row');
+    const send = button('Предложить', 'primary', () => {
+      const draft = { to: tradeDraft.to, give: [...tradeDraft.give], take: [...tradeDraft.take], silver: tradeDraft.silver };
+      tradeDraft = null;
+      sheetOpen = false;
+      act('tradeOffer', draft);
+      render();
+      askBotAboutTrade();
+    });
+    send.disabled = !ready;
+    acts.appendChild(send);
+    acts.appendChild(button('Отмена', 'ghost', () => { tradeDraft = null; updateSheet(); }));
+    sheet.appendChild(acts);
+  }
+
   function updateSheet() {
     const sheet = $('sheet');
     sheet.hidden = !sheetOpen;
     if (!sheetOpen) return;
     sheet.innerHTML = '';
+    if (tradeDraft) { renderTradeComposer(sheet); return; }
     const turnPlayer = E.current(state);
     /*
       Чьи уделы показывать. За одним столом — того, чей ход (а пока ходит
@@ -1490,6 +1700,20 @@
       .filter((n) => state.cells[n].owner === player.id);
 
     sheet.appendChild(el('h3', null, `Уделы: ${player.name}`));
+    /*
+      Обмен предлагают отсюда: он про уделы, и звать его надо там, где на них
+      смотрят. Кнопка появляется только в свой ход и только когда меняться
+      вообще есть чем — своим или чужим.
+    */
+    if (!busy && E.canOfferTrade(state) && player.id === meId()
+      && state.players.some((one) => one.id !== player.id && !one.out && E.tradables(state, one.id).length)) {
+      const start = button('Предложить уговор об обмене', 'primary', () => {
+        tradeDraft = { to: '', give: [], take: [], silver: 0 };
+        updateSheet();
+      });
+      start.classList.add('trade-start');
+      sheet.appendChild(start);
+    }
     if (!mine.length) sheet.appendChild(el('p', 'empty', 'Пока ничего не куплено.'));
 
     /*
@@ -1617,20 +1841,30 @@
     winner.appendChild(img(art('icons', 'ui-jubilee'), 'winner-icon', ''));
     winner.appendChild(el('span', null, `${state.scores[0].name} — ${state.scores[0].total} наследия`));
     const again = $('again-btn');
+    const toLobby = $('lobby-btn');
     /*
       «Ещё раз» по сети — не перезагрузка страницы: та выкинула бы игрока из
-      комнаты, где остались остальные. Хозяин возвращает в комнату всех, гость —
-      только себя, и ждёт там нового начала.
+      комнаты, где остались остальные.
+
+      Хозяину она значит то же, что и за одним столом: сдать заново тем же
+      составом, не разводя всех по лобби и не спрашивая готовность заново — её
+      только что подтвердили доигранной партией. Кому нужно поменять годы или
+      позвать кого-то ещё, для того рядом «В комнату».
+
+      Гостю решать нечего: он уходит ждать в комнату, а начинает хозяин.
     */
-    again.textContent = link ? (roomView?.youAreHost ? 'Вернуться в комнату' : 'В комнату') : 'Ещё раз';
+    const host = Boolean(roomView?.youAreHost);
+    again.textContent = link ? (host ? 'Играть ещё раз' : 'В комнату') : 'Ещё раз';
+    toLobby.hidden = !(link && host);
     again.onclick = () => {
       if (!link) { location.reload(); return; }
-      if (roomView?.youAreHost) { link.send('backToLobby'); return; }
+      if (host) { link.send('playAgain'); return; }
       waitingInLobby = true;
       $('jubilee').hidden = true;
       $('online').hidden = false;
       if (roomView) renderLobby(roomView);
     };
+    toLobby.onclick = () => { if (link && host) link.send('backToLobby'); };
   }
 
   // ————————————————————————————————————————————————— цикл
@@ -1649,18 +1883,6 @@
     dealtCard = key;
     scene.dealCard(pending.deck, art('cards', pending.art));
   }
-
-  /*
-    Ход наружу для проверок. Правила и сцена уже наружу: без них проверить их
-    нечем. Партия — то же самое: до темницы человека не доводит ни один
-    осмысленный путь нажатиями, а спросить, стоит ли там кнопка выкупа, надо.
-    Отсюда только чтение состояния и просьба перерисовать: играть за игрока
-    этот ход не умеет.
-  */
-  window.PromisedLandGame = {
-    state: () => state,
-    refresh: () => render(),
-  };
 
   function render() {
     const turnPlayer = state.players[state.turn];
@@ -1782,6 +2004,35 @@
   }
 
   /*
+    Кто здесь я. По сети — моё место за столом. За одним столом — тот, чей ход,
+    а пока ходит соперник, последний живой человек: экран один на всех, и
+    отвечать на уговор с него будет тот, кто сидит перед ним.
+  */
+  function meId() {
+    if (link) return mySeat;
+    const turnPlayer = E.current(state);
+    return turnPlayer.isBot ? (lastHumanId || turnPlayer.id) : turnPlayer.id;
+  }
+
+  const playerById = (id) => state.players.find((one) => one.id === id) || null;
+
+  /*
+    Ответ соперника от игры на уговор. За одним столом его даёт эта же вкладка —
+    но не мгновенно: уговор, отклонённый в тот же миг, читается как поломка
+    кнопки, а не как ответ. По сети отвечает сервер, и здесь делать нечего.
+  */
+  function askBotAboutTrade() {
+    if (link || !state.trade) return;
+    const to = playerById(state.trade.to);
+    if (!to || !to.isBot) return;
+    setTimeout(() => {
+      if (!state.trade || link) return;
+      Bots.judgeTrade(state);
+      render();
+    }, 900);
+  }
+
+  /*
     Ходы ботов раскладываются по таймеру, а не выполняются разом: иначе между
     двумя нажатиями человека происходит десяток событий, и понять, что на поле
     изменилось и почему, невозможно.
@@ -1792,6 +2043,13 @@
     // таймером, ходили бы за одного и того же соперника наперегонки.
     if (link || !state) return;
     if (state.status !== 'playing') return;
+    /*
+      Уговор, предложенный человеку, останавливает соперников до ответа. Иначе
+      предложивший тут же доигрывал свой ход, а уговор отменялся вместе с ним:
+      человек видел кнопки «Принять» и «Отказаться» секунду и не успевал даже
+      прочитать, что ему предлагают.
+    */
+    if (state.trade && !playerById(state.trade.to)?.isBot) return;
     if (!E.current(state).isBot) return;
     botTimer = setTimeout(async () => {
       if (state.status !== 'playing') return;
@@ -2036,6 +2294,29 @@
       });
     }
   }
+
+  /*
+    Ход наружу для проверок. Партия живёт внутри этого файла, и спросить у неё
+    «чей ход, у кого какой удел» иначе нельзя: проверка видит только разметку и
+    не отличает «уговор не дошёл» от «уговор дошёл, но не нарисовался».
+    Наружу отдаётся чтение, перерисовка и побудка соперников — та самая, что
+    идёт за любой кнопкой партии. Ходов здесь нет: сыграть отсюда за игрока
+    нельзя, а вот проверить, что соперники ждут ответа на уговор, — можно.
+  */
+  window.PromisedLandGame = {
+    state: () => state,
+    refresh: () => render(),
+    wake: () => after(),
+    /*
+      Неспешность соперников — наружу и на чтение, и на запись. Читать её надо
+      затем, что она и есть предмет правила: партия, в которой соперники
+      мелькают, человеку не читается, и проверка обязана поймать возврат к
+      прежним девятистам миллисекундам. Писать — затем, что проверка
+      доигрывает партию до юбилея, и полторы секунды на шаг превращают её в
+      получасовое ожидание; на ход партии это число не влияет никак.
+    */
+    pace: (ms) => (ms === undefined ? PACE.wait : (PACE.wait = Math.max(0, Number(ms) || 0))),
+  };
 
   setupScreen();
   modeScreen();

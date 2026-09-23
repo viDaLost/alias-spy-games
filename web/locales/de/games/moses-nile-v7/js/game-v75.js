@@ -35,6 +35,7 @@
   const BEST_KEY = 'moses-nile-best-v2';
   const HINT_KEY = 'moses-nile-hint-seen-v2';
   const TUTORIAL_KEY = 'moses-nile-tutorial-seen-v1';
+  const CONTROL_MODE_KEY = 'moses-nile-control-mode-v1';
 
   const TUNE = {
     baseSpeed: 18.5,
@@ -152,7 +153,13 @@
   const OBSTACLES = {
     rock:   { clearance: 'ground', radius: 1.02, size: 1.75, fail: 'Das Körbchen stieß gegen einen Felsen.' },
     log:    { clearance: 'low',    radius: 1.12, size: 2.75, fail: 'Die Strömung trieb das Körbchen gegen einen Baumstamm.' },
-    croc:   { clearance: 'ground', radius: 1.34, size: 6.6, fail: 'Ein Krokodil versperrte den Flussweg.' },
+    // Отзыв игрока: крокодила невозможно перепрыгнуть. Так и было задумано —
+    // «ground» проходится только сменой дорожки, — но со стороны это читалось
+    // не как встреча со зверем, а как не отвечающее управление: бревно того
+    // же роста рядом прыгается, а крокодил, стоящий так же на воде, прыжок
+    // не засчитывал никогда. Теперь он «low», как бревно: над водой корзинка
+    // проходит поверх.
+    croc:   { clearance: 'low',    radius: 1.34, size: 6.6, fail: 'Ein Krokodil versperrte den Flussweg.' },
     gate:   { clearance: 'high',   radius: 1.28, size: 2.4,  fail: 'Das Körbchen verfing sich im hängenden Papyrus.' },
     vortex: { clearance: 'ground', radius: 1.05, size: 2.2,  fail: 'Ein Strudel zog das Körbchen unter Wasser.' },
     hippo:  { clearance: 'ground', radius: 1.5, size: 5.4,  fail: 'Ein Nilpferd tauchte direkt vor dem Körbchen auf.' },
@@ -196,6 +203,8 @@
     dive: pick('btn-dive'),
     pause: pick('btn-pause'),
     sound: pick('btn-sound'),
+    controlModeArrows: pick('control-mode-arrows'),
+    controlModeSwipe: pick('control-mode-swipe'),
     fail: pick('fail-desc'),
     finalDistance: pick('final-dist'),
     finalScore: pick('final-score'),
@@ -226,6 +235,27 @@
     sceneBg: pick('scene-bg'),
     biomeName: pick('biome-name'),
   };
+
+  /*
+    Кнопки и свайпы были включены разом: свайп-нырок срабатывал у игрока,
+    целившегося пальцем в кнопку «Нырок», и наоборот. Теперь это два разных
+    режима, выбранных заранее, а не смешанных на ходу.
+  */
+  let controlMode = 'arrows';
+  function applyControlMode(mode, persist) {
+    controlMode = mode === 'swipe' ? 'swipe' : 'arrows';
+    dom.body.dataset.controlMode = controlMode;
+    dom.controlModeArrows?.classList.toggle('is-active', controlMode === 'arrows');
+    dom.controlModeArrows?.setAttribute('aria-pressed', String(controlMode === 'arrows'));
+    dom.controlModeSwipe?.classList.toggle('is-active', controlMode === 'swipe');
+    dom.controlModeSwipe?.setAttribute('aria-pressed', String(controlMode === 'swipe'));
+    if (persist) { try { localStorage.setItem(CONTROL_MODE_KEY, controlMode); } catch { /* приватный режим */ } }
+  }
+  function loadControlMode() {
+    let saved = null;
+    try { saved = localStorage.getItem(CONTROL_MODE_KEY); } catch { /* приватный режим */ }
+    applyControlMode(saved === 'swipe' ? 'swipe' : 'arrows', false);
+  }
 
   const state = {
     playing: false,
@@ -333,7 +363,20 @@
     dom.badge.dataset.state = 'ready';
   }
 
-  /* Всплывающая плашка: веха дистанции, смена биома, потеря сердца. */
+  /*
+    Всплывающая плашка: веха дистанции, смена биома, потеря сердца.
+
+    Отзыв игрока: «на большой скорости баннеров становится очень много, они
+    накладываются и закрывают дальнейший путь». На разгоне вехи (каждые
+    500м), смена биома, рост комбо и удары идут в реальном времени вплотную
+    друг за другом — те же события, что на старте разделяют секунды десять,
+    на пределе скорости укладываются в два-три. Раньше висело до двух плашек
+    сразу, и лишняя снималась рывком, без затухания; столбик стоит там же,
+    где на горизонте показываются новые препятствия, — и даже так путь
+    закрывало ощутимо. Теперь плашка ровно одна: следующая забирает место
+    прежней тем же плавным уходом, что и обычное истечение срока, а не
+    обрывает её на полуслове.
+  */
   function toast(title, subtitle = '', tone = 'gold') {
     if (!dom.toast) return;
     const node = document.createElement('div');
@@ -341,15 +384,16 @@
     node.innerHTML = `<b></b>${subtitle ? '<span></span>' : ''}`;
     node.querySelector('b').textContent = title;
     if (subtitle) node.querySelector('span').textContent = subtitle;
+    for (const old of dom.toast.children) dismissToast(old);
     dom.toast.appendChild(node);
-    // Больше двух плашек сразу — это уже занавес поверх реки. Самая старая
-    // уходит немедленно, чтобы столбик никогда не дорастал до горизонта.
-    while (dom.toast.childElementCount > 2) dom.toast.firstElementChild.remove();
     requestAnimationFrame(() => node.classList.add('is-in'));
-    setTimeout(() => {
-      node.classList.remove('is-in');
-      setTimeout(() => node.remove(), 420);
-    }, 1450);
+    setTimeout(() => dismissToast(node), 1450);
+  }
+  function dismissToast(node) {
+    if (!node.isConnected || node.classList.contains('is-out')) return;
+    node.classList.add('is-out');
+    node.classList.remove('is-in');
+    setTimeout(() => node.remove(), 420);
   }
 
   /* Короткая цветная вспышка поверх сцены. */
@@ -535,6 +579,26 @@
       }, timeout);
       textureWaiters.push(done);
     });
+  }
+
+  /*
+    Та же защита, что у waitForTextures, но для загрузки моделей: у неё нет
+    своего потолка ожидания. Каждая отдельная модель уже падает мягко —
+    AssetManager ловит свою ошибку и оставляет процедурную заглушку, — но это
+    не спасает от запроса, который не упал и не пришёл: на нестабильной сети
+    такое подвисание не редкость, а await на Promise.all внутри
+    preloadGameplayModels ждёт его вечно, и заставка «ЗАГРУЖАЕМ МОДЕЛИ…»
+    остаётся на экране навсегда — с виду это и есть «игра не грузится».
+    Через таймаут заплыв стартует с тем, что успело приехать, а не с ничем;
+    опоздавшая модель дальше просто подставится в первое же новое препятствие
+    того же вида, когда домоется — cloneModel читает assetManager.models в
+    момент спавна, а не то, что было на старте.
+  */
+  function withTimeout(promise, timeout) {
+    return Promise.race([
+      promise,
+      new Promise((resolve) => setTimeout(resolve, timeout)),
+    ]);
   }
 
   function makeTexture(path, repeatX, repeatY, material, kind = 'map', onLoad = null) {
@@ -3725,11 +3789,17 @@
         if (item.clearance) {
           const cleared = (item.clearance === 'low' && state.y > TUNE.jumpClearance)
             || (item.clearance === 'high' && state.y < TUNE.diveClearance);
-          if (!cleared) {
+          // «В упор» — не один кадр, а несколько подряд, пока препятствие не
+          // выйдет из reach. Прыжок часто снижается быстрее, чем длится это
+          // окно: корзинка успевала пройти выше clearance и получить очки, а
+          // на следующем кадре, уже опускаясь, — тот же крокодил всё равно
+          // отнимал сердце. Раз перепрыгнут — значит перепрыгнут: остаток
+          // окна засчитанному препятствию урона больше не наносит.
+          if (!cleared && !item.scored) {
             const survived = takeHit(item);
             if (!state.playing) return;
             if (survived) { removeItem(i); continue; }
-          } else if (!item.scored) {
+          } else if (cleared && !item.scored) {
             item.scored = true;
             state.nearMisses += 1;
             addScore(30);
@@ -5033,10 +5103,13 @@
 
   function bindControls() {
     lockTelegramSwipes();
-    bindPress(dom.left, () => steer(-1));
-    bindPress(dom.right, () => steer(1));
-    bindPress(dom.jump, jump);
-    bindPress(dom.dive, dive);
+    loadControlMode();
+    bindPress(dom.controlModeArrows, () => applyControlMode('arrows', true));
+    bindPress(dom.controlModeSwipe, () => applyControlMode('swipe', true));
+    bindPress(dom.left, () => { if (controlMode === 'arrows') steer(-1); });
+    bindPress(dom.right, () => { if (controlMode === 'arrows') steer(1); });
+    bindPress(dom.jump, () => { if (controlMode === 'arrows') jump(); });
+    bindPress(dom.dive, () => { if (controlMode === 'arrows') dive(); });
     bindPress(dom.pause, () => togglePause());
     bindPress(dom.sound, () => {
       const on = window.gameAudio?.toggle?.() ?? true;
@@ -5101,7 +5174,7 @@
       }
     }, { passive: false });
     window.addEventListener('touchend', (event) => {
-      if (tutorialOpen) return;
+      if (tutorialOpen || controlMode !== 'swipe') return;
       const point = event.changedTouches[0];
       if (!point || performance.now() - touchTime > 700) return;
       const dx = point.clientX - touchX;
@@ -5184,7 +5257,11 @@
     try {
       note(0);
       note(1);
-      await window.assetManager?.preloadGameplayModels?.();
+      // 12с — тот же потолок, что у отчёта о недогруженных людях в «Земле
+      // обетованной» (board3d.js): опаздывать можно, зависать — нет.
+      // 12с — тот же потолок, что у отчёта о недогруженных людях в «Земле
+      // обетованной» (board3d.js): опаздывать можно, зависать — нет.
+      await withTimeout(window.assetManager?.preloadGameplayModels?.() || Promise.resolve(), 12_000);
       note(2);
       buildScene();
       resize();

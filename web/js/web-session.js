@@ -140,6 +140,25 @@
     node.hidden = !message;
   }
 
+  /*
+    «Бот пока не может написать вам» — тот же отказ, что решает баннер в меню
+    (bot-start-promo.js), только здесь сервер уже точно знает, что бот не
+    может написать именно этому человеку: код входа не дошёл прямо сейчас.
+    Значит, и объяснять, и вести к боту стоит на месте, а не одной строкой
+    без ссылки — искать бота вручную по имени с телефона неудобно.
+  */
+  function showBotStartError(botUsername) {
+    const node = overlay()?.querySelector('[data-ws-error]');
+    if (!node) return;
+    const safeUsername = /^[A-Za-z0-9_]{5,32}$/.test(botUsername) ? botUsername : '';
+    if (!safeUsername) { showError('Бот пока не может написать вам. Откройте бота, нажмите Start и попробуйте снова'); return; }
+    node.innerHTML = `Бот нужен не только для кода входа — через него приходят важные рассылки, ответы
+      техподдержки и важные оповещения. <a href="https://t.me/${safeUsername}" target="_blank"
+      rel="noopener" data-ws-bot-link>Откройте @${escapeHTML(safeUsername)}</a>, нажмите Start
+      и запросите код ещё раз.`;
+    node.hidden = false;
+  }
+
   function setBusy(busy) {
     state.busy = busy;
     overlay()?.querySelectorAll('button').forEach((button) => { button.disabled = busy; });
@@ -159,9 +178,8 @@
       state.challengeId = String(result.challengeId || '');
       paint(codeStepMarkup());
     } catch (error) {
-      showError(error.code === 'BOT_START_REQUIRED' && error.botUsername
-        ? `Откройте @${error.botUsername}, нажмите Start и попробуйте снова`
-        : error.message);
+      if (error.code === 'BOT_START_REQUIRED' && error.botUsername) showBotStartError(error.botUsername);
+      else showError(error.message);
     } finally {
       setBusy(false);
     }

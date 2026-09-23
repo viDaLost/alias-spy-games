@@ -43,7 +43,11 @@ requireText(web, 'const HEARTBEAT_MS = 30_000;', 'WebApp heartbeat must use the 
 requireText(web, "scope: 'presence'", 'WebApp does not obtain a scoped presence session');
 requireText(web, "url.searchParams.set('token', token)", 'WebApp does not connect with the scoped presence token');
 forbidText(web, "url.searchParams.set('initData'", 'Telegram initData must not be exposed in the presence WebSocket URL');
-requireText(web, "localStorage.getItem('bible_sketch_room_id_v1')", 'WebApp does not report Bible Sketch room state');
+// Ключи комнат переехали в таблицу: их стало больше трёх, и цепочка «если
+// quartet… если sketch…» на каждой новой игре росла. Смысл прежний — у каждой
+// игры свой ключ, и ни один не угадывается.
+requireText(web, "'bible-sketch': 'bible_sketch_room_id_v1'", 'WebApp does not report Bible Sketch room state');
+requireText(web, "'twelve-tribes': 'tt_room_id'", 'WebApp does not report Twelve Tribes room state');
 requireText(web, 'setGame,', 'presence context must expose an explicit game setter');
 requireText(web, 'clearGame,', 'presence context must expose an explicit game clearer');
 requireText(web, 'sendPresence(true);', 'presence heartbeat must send complete state instead of only a stale ping');

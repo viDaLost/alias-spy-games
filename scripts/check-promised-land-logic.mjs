@@ -114,8 +114,9 @@ function audit(state, where) {
     const cells = B.groupCells(group);
     const owners = new Set(cells.map((n) => state.cells[n].owner).filter(Boolean));
     // Спрашивается только у цвета в одних руках: у разных хозяев лестницы
-    // свои, и ровнять их не по чему.
-    if (owners.size !== 1) continue;
+    // свои, и ровнять их не по чему. И только в усложнённом ладу: в простом
+    // лестницы нет вовсе — каждый удел строится сам по себе.
+    if (state.strict === false || owners.size !== 1) continue;
     const all = cells.map((n) => state.cells[n].level);
     if (Math.max(...all) - Math.min(...all) > 1) {
       fault('поселение не вровень', `${group}: ${all.join('/')} (${where})`);
@@ -168,7 +169,13 @@ for (let game = 0; game < GAMES; game += 1) {
   for (let seat = 0; seat < size; seat += 1) {
     players.push({ name: `И${seat}`, isBot: true, botLevel: ['youth', 'elder', 'scribe'][seat % 3] });
   }
-  const state = E.createGame({ players, years, mode, rng });
+  /*
+    Лад чередуется: половина партий усложнённая, половина простая. Иначе
+    простой лад — а в нём строят вдвое чаще и раньше — не проверялся бы вовсе,
+    и первая же поломка в нём вышла бы к людям.
+  */
+  const strict = game % 2 === 0;
+  const state = E.createGame({ players, years, mode, strict, rng });
   audit(state, 'начало партии');
 
   let guard = 0;
@@ -367,6 +374,68 @@ scenario('залог за счёт каждому', (state) => {
   }
 });
 
+/*
+  Лад игры. Два правила, и разница между ними — ровно одно условие: строить на
+  целом цвете или на своём уделе. Проверяется не настройка, а само поведение:
+  один и тот же расклад в двух ладах отвечает по-разному.
+*/
+{
+  const build = (strict) => {
+    const state = E.createGame({
+      players: [{ name: 'Хозяин' }, { name: 'Сосед' }], years: 5, strict, rng,
+    });
+    const group = B.BOARD.find((spec) => spec.kind === 'plot').group;
+    const cells = B.groupCells(group);
+    const [mine, ...rest] = cells;
+    const [player, other] = state.players;
+    state.cells[mine].owner = player.id;
+    for (const n of rest) state.cells[n].owner = other.id;   // цвет чужой, кроме одного
+    player.silver = 2000;
+    state.phase = 'act';
+    return { state, mine, player, other, cells };
+  };
+
+  const strict = build(true);
+  if (E.canBuild(strict.state, strict.player, strict.mine)) {
+    fault('в усложнённом ладу построили на одиноком уделе', 'лад игры');
+  }
+
+  const simple = build(false);
+  if (!E.canBuild(simple.state, simple.player, simple.mine)) {
+    fault('в простом ладу не дали построить на своём уделе', 'лад игры');
+  }
+  if (!E.build(simple.state, simple.mine)) fault('в простом ладу стройка не прошла', 'лад игры');
+  if (simple.state.cells[simple.mine].level !== 1) {
+    fault(`после стройки ступеней ${simple.state.cells[simple.mine].level}`, 'лад игры');
+  }
+  audit(simple.state, 'простой лад: стройка на одиноком уделе');
+
+  /*
+    И ступени вровень — правило того же цвета, и в простом ладу его тоже нет:
+    иначе одинокий удел упирался бы в соседей, которые ему не свои.
+  */
+  if (!E.canBuild(simple.state, simple.player, simple.mine)) {
+    fault('в простом ладу вторая ступень упёрлась в чужие уделы', 'лад игры');
+  }
+
+  /*
+    Уговор. В усложнённом ладу пустой удел из застроенного цвета не отдают —
+    он держит лестницу ровной; в простом лестницы нет, и держать нечего.
+  */
+  const trade = build(true);
+  trade.state.cells[trade.cells[1]].owner = trade.player.id;
+  trade.state.cells[trade.cells[1]].level = 1;
+  if (E.tradable(trade.state, trade.mine, trade.player.id)) {
+    fault('в усложнённом ладу отдали удел из застроенного цвета', 'лад игры');
+  }
+  const loose = build(false);
+  loose.state.cells[loose.cells[1]].owner = loose.player.id;
+  loose.state.cells[loose.cells[1]].level = 1;
+  if (!E.tradable(loose.state, loose.mine, loose.player.id)) {
+    fault('в простом ладу не дали отдать пустой удел из-за соседней постройки', 'лад игры');
+  }
+}
+
 scenario('разбирают вровень', (state) => {
   const [player] = state.players;
   const group = B.BOARD.find((spec) => spec.kind === 'plot').group;
@@ -396,7 +465,9 @@ console.log(`OK: ${GAMES} партий, ${turns} ходов, и после ка�
   + 'тринадцать правил. Серебро и казна не уходят в минус, разорённому не выставляют новых '
   + 'счетов, постройки не остаются без хозяина, жертвенник не ложится поверх поселения, '
   + 'ступени внутри цвета не расходятся больше чем на одну, счёт не переживает чужой ход, '
-  + 'а итог наследия равен сумме своих слагаемых. Сверх того тремя сценариями доведены до '
+  + 'а итог наследия равен сумме своих слагаемых. Оба лада игры сыграны поровну, и отдельно '
+  + 'показано, что в усложнённом на одиноком уделе не строят, а в простом строят. '
+  + 'Сверх того тремя сценариями доведены до '
   + 'конца редкие пути: разорение перед казной, залог за счёт казне с выкупом и вынужденная '
   + `распродажа. По дороге сыграно: ${servants} наёмов, ${pledges} залогов, ${prisons} `
   + `отсидок, ${jubilees} юбилеев.`);

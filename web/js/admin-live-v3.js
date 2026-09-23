@@ -4,6 +4,8 @@
   const observability = metaUrl('app-observability');
   const quartetBackend = metaUrl('quartet-backend');
   const sketchBackend = metaUrl('bible-sketch-backend');
+  const tribesBackend = metaUrl('twelve-tribes-backend');
+  const promisedBackend = metaUrl('promised-land-app');
   const coreBackend = metaUrl('app-core-backend');
   if (!observability || !coreBackend) return;
 
@@ -14,6 +16,7 @@
     ['bible-wordsearch', 'Поиск слов'], ['sacred-word', 'Священное слово'],
     ['kids-ark-pairs', 'Найди пару'], ['biblical-match-three', 'Библейские сокровища'],
     ['moses-nile', 'Моисей: Путь по Нилу'],
+    ['twelve-tribes', 'Двенадцать колен'], ['promised-land', 'Земля обетованная'],
   ];
   const GAME_NAMES = Object.fromEntries(GAMES);
   const BALANCES = [
@@ -207,9 +210,21 @@
     const gameName = user.game ? (GAME_NAMES[user.game] || user.game) : 'Главное меню';
     const roomText = user.roomId ? ` · ${user.roomId}` : '';
     const platform = user.platform === 'android' ? 'Android' : 'Telegram';
-    const canObserve = Boolean(user.roomId && (user.game === 'quartet' || user.game === 'bible-sketch'));
+    /*
+      Наблюдать можно за комнатой, а не за игрой. У всех этих игр есть и путь
+      за одним столом, без всякой комнаты: там наблюдать не за чем — партия
+      идёт в телефоне и никуда не отправляется.
+
+      Раньше в этом случае кнопка просто не появлялась, и отличить «играет
+      один» от «монитор сломался» было нельзя. Теперь вместо кнопки стоит
+      строка, и она говорит, почему кнопки нет.
+    */
+    const backend = observerBackend(user.game);
+    const canObserve = Boolean(user.roomId && backend);
+    const soloNote = !canObserve && backend && user.game
+      ? '<div class="admin-live-v3__observe-none">Партия за одним столом — комнаты нет</div>' : '';
     const balances = profile ? BALANCES.map((item) => renderBalance(id, profile, item)).join('') : '<div class="admin-live-v3__profile-loading">Баланс загружается…</div>';
-    return `<article class="admin-live-v3__person" data-live-user="${escapeText(id)}"><div class="admin-live-v3__identity"><span class="admin-live-v3__dot"></span><div class="admin-live-v3__avatar">${escapeText(initials(name))}</div><div class="admin-live-v3__name"><b>${escapeText(name)}</b><small>ID ${escapeText(id)} · ${escapeText(gameName + roomText)} · ${platform}</small></div><button type="button" class="admin-live-v3__chat" data-user-chat="${escapeText(id)}">Чат</button></div><div class="admin-live-v3__balances">${balances}</div>${canObserve ? `<button type="button" class="admin-live-v3__observe" data-observe-game="${escapeText(user.game)}" data-observe-room="${escapeText(user.roomId)}">◉ Наблюдать за комнатой · только чтение</button>` : ''}</article>`;
+    return `<article class="admin-live-v3__person" data-live-user="${escapeText(id)}"><div class="admin-live-v3__identity"><span class="admin-live-v3__dot"></span><div class="admin-live-v3__avatar">${escapeText(initials(name))}</div><div class="admin-live-v3__name"><b>${escapeText(name)}</b><small>ID ${escapeText(id)} · ${escapeText(gameName + roomText)} · ${platform}</small></div><button type="button" class="admin-live-v3__chat" data-user-chat="${escapeText(id)}">Чат</button></div><div class="admin-live-v3__balances">${balances}</div>${canObserve ? `<button type="button" class="admin-live-v3__observe" data-observe-game="${escapeText(user.game)}" data-observe-room="${escapeText(user.roomId)}">◉ Наблюдать за комнатой · только чтение</button>` : soloNote}</article>`;
   }
 
   function renderBalance(id, profile, item) {
@@ -284,19 +299,19 @@
     if (!observerRoom) return;
     const currentObserver = observerRoom;
     const { game, roomId, modal } = currentObserver;
-    const backend = game === 'quartet' ? quartetBackend : sketchBackend;
+    const backend = observerBackend(game);
     let nextDelay = 2500;
     if (!backend) return;
     try {
       const headers = observerEtag ? { 'If-None-Match': observerEtag } : {};
-      const response = await adminFetch(`${backend}/admin/rooms/${encodeURIComponent(roomId)}/state`, { headers });
+      const response = await adminFetch(`${backend}${observerPath(game, roomId)}`, { headers });
       if (response.status === 304) nextDelay = 4000;
       else {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data?.ok) throw new Error(data?.error || `HTTP ${response.status}`);
         observerEtag = response.headers.get('ETag') || observerEtag;
         const body = modal.querySelector('.admin-live-v3__observer-body');
-        if (body) body.innerHTML = game === 'quartet' ? renderQuartetObserver(data) : renderSketchObserver(data);
+        if (body) body.innerHTML = renderObserver(game, data);
       }
     } catch (error) {
       const body = modal.querySelector('.admin-live-v3__observer-body'); if (body) body.innerHTML = `<div class="admin-live-v3__empty">${escapeText(String(error?.message || error))}</div>`;
@@ -304,6 +319,62 @@
     }
     clearTimeout(observerTimer);
     if (observerRoom === currentObserver) observerTimer = setTimeout(pollObserver, nextDelay);
+  }
+
+  /*
+    Откуда спрашивать про комнату. У каждой сетевой игры свой воркер, и путь к
+    монитору у них один и тот же — кроме «Земли обетованной»: она живёт вместе
+    со своей страницей на одном адресе, и все её запросы начинаются с /api/.
+  */
+  function observerBackend(game) {
+    return ({
+      quartet: quartetBackend,
+      'bible-sketch': sketchBackend,
+      'twelve-tribes': tribesBackend,
+      'promised-land': promisedBackend,
+    })[game] || '';
+  }
+
+  function observerPath(game, roomId) {
+    const prefix = game === 'promised-land' ? '/api' : '';
+    return `${prefix}/admin/rooms/${encodeURIComponent(roomId)}/state`;
+  }
+
+  function renderObserver(game, data) {
+    if (game === 'quartet') return renderQuartetObserver(data);
+    if (game === 'bible-sketch') return renderSketchObserver(data);
+    if (game === 'twelve-tribes') return renderTribesObserver(data);
+    if (game === 'promised-land') return renderPromisedObserver(data);
+    return '<div class="admin-live-v3__empty">Для этой игры монитора нет.</div>';
+  }
+
+  /*
+    «Двенадцать колен». Стол карточный, и смотреть на нём стоит на три вещи:
+    чей ход, сколько у кого карт и не остановилась ли раздача. Карт в руках не
+    видно ни у кого — комната их и не присылает.
+  */
+  function renderTribesObserver(data) {
+    const table = data.table;
+    const seats = (table?.seats || []).map((one) => `<div class="admin-live-v3__observer-player ${one.name === table.turnName ? 'is-turn' : ''}"><b>${escapeText(one.name)}${one.isBot ? ' ⚙' : ''}</b><span>${Number(one.cards || 0)} карт · ${Number(one.score || 0)} очк.${one.left ? ' · ушёл' : (one.online ? ' · онлайн' : '')}</span></div>`).join('');
+    const stats = table
+      ? `<div><span>Ход</span><b>${escapeText(table.turnName || '—')}${table.turnIsBot ? ' ⚙' : ''}</b></div><div><span>Колода</span><b>${Number(table.deck || 0)}</b></div><div><span>Стан</span><b>${escapeText(table.camp || '—')}</b></div><div><span>Ходов</span><b>${Number(table.moves || 0)}</b></div>`
+      : `<div><span>Игроков</span><b>${(data.players || []).length}</b></div>`;
+    const lobby = (data.players || []).map((one) => `<div class="admin-live-v3__observer-player"><b>${escapeText(one.name)}${one.host ? ' ♛' : ''}</b><span>${one.left ? 'ушёл' : (one.online ? 'онлайн' : 'не в сети')}</span></div>`).join('');
+    return `<div class="admin-live-v3__observer-stats"><div><span>Статус</span><b>${escapeText(phaseLabel(data.status))}</b></div>${stats}</div><div class="admin-live-v3__observer-players">${table ? seats : lobby}</div>${renderLog(data.log)}`;
+  }
+
+  /*
+    «Земля обетованная». Здесь важнее не карты, а деньги и земля: по ним сразу
+    видно, кто тонет, и не встала ли партия на чьём-то ходу.
+  */
+  function renderPromisedObserver(data) {
+    const table = data.table;
+    const seats = (table?.seats || []).map((one) => `<div class="admin-live-v3__observer-player ${one.name === table.turnName ? 'is-turn' : ''}"><b>${escapeText(one.name)}${one.isBot ? ' ⚙' : ''}</b><span>${Number(one.silver || 0)} сикл. · ${Number(one.plots || 0)} уделов · ${Number(one.levels || 0)} ступ.${one.out ? ' · выбыл' : ''}${one.at ? ` · ${escapeText(one.at)}` : ''}</span></div>`).join('');
+    const stats = table
+      ? `<div><span>Год</span><b>${Number(table.year || 0)}/${Number(table.years || 0)}${table.sabbath ? ' ✡' : ''}</b></div><div><span>Ход</span><b>${escapeText(table.turnName || '—')}${table.turnIsBot ? ' ⚙' : ''}</b></div><div><span>Этап</span><b>${escapeText(table.pending || table.phase || '—')}</b></div>${table.trade ? `<div><span>Уговор</span><b>${escapeText(table.trade)}</b></div>` : ''}`
+      : `<div><span>Игроков</span><b>${(data.players || []).length}</b></div>`;
+    const lobby = (data.players || []).map((one) => `<div class="admin-live-v3__observer-player"><b>${escapeText(one.name)}${one.host ? ' ♛' : ''}</b><span>${one.left ? 'ушёл' : (one.online ? 'онлайн' : 'не в сети')}</span></div>`).join('');
+    return `<div class="admin-live-v3__observer-stats"><div><span>Статус</span><b>${escapeText(phaseLabel(data.status))}</b></div>${stats}</div><div class="admin-live-v3__observer-players">${table ? seats : lobby}</div>${renderLog(data.log)}`;
   }
 
   function renderQuartetObserver(data) {

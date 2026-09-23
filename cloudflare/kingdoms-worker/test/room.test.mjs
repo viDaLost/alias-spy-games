@@ -22,6 +22,7 @@ import {
   leaveRoom,
   nextRound,
   nextStepAt,
+  playAgain,
   playerAction,
   sanitizeSettings,
   setReady,
@@ -232,4 +233,31 @@ test('ушедшего и потерявшего связь ждут по-раз
   leaveRoom(room, humanId, 1500);
   assert.equal(nextStepAt(room, 1500, new Set()), room.turnAt + AWAY_TURN_LIMIT_MS,
     'явно ушедшего ждут не шесть секунд от начала его хода');
+});
+
+/*
+  «Играть ещё раз». Короткий путь с итогов: не разводить всех по лобби, а
+  начать заново тем же составом. Ломается при этом ровно то, что и проверяется:
+  чужое право начать, состав стола и живая новая партия.
+*/
+test('ещё одна партия начинается тем же составом, и начинает её хозяин', () => {
+  const room = started();
+  const before = room.game;
+  assert.throws(() => playAgain(room, guest.playerId, 5000), /хозяин/i);
+
+  playAgain(room, host.playerId, 5001, seeded(9));
+  assert.equal(room.phase, 'playing', 'комната не вернулась за стол');
+  assert.notEqual(room.game, before, 'партия осталась прежней');
+  const humans = room.seats.filter(Boolean);
+  assert.equal(humans.length, 2, `за столом ${humans.length} человек вместо двоих`);
+  assert.ok(humans.includes(host.playerId) && humans.includes(guest.playerId));
+
+  leaveRoom(room, guest.playerId, 5002);
+  playAgain(room, host.playerId, 5003, seeded(10));
+  assert.equal(room.seats.filter(Boolean).length, 1, 'ушедший снова оказался за столом');
+});
+
+test('ещё раз не начинается, пока партия не идёт', () => {
+  const room = lobby();
+  assert.throws(() => playAgain(room, host.playerId, 5000), /не идёт/i);
 });

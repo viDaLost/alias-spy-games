@@ -20,6 +20,18 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  // Ядро приложения — чтобы комната умела спросить, администратор ли тот, кто
+  // просит показать партию, и разрешённый источник для его панели: сама она
+  // живёт в приложении, а комнаты здесь.
+  "services": [
+    {
+      "binding": "APP_CORE",
+      "service": "alias-spy-games-core"
+    }
+  ],
+  "vars": {
+    "ALLOWED_ORIGINS": "https://vidalost.github.io"
+  },
   "durable_objects": {
     "bindings": [
       {

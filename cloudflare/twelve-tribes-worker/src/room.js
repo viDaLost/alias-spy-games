@@ -228,6 +228,29 @@ export function backToLobby(room, playerId, now = Date.now()) {
   return room;
 }
 
+/*
+  Ещё раз, теми же людьми.
+
+  Партия кончилась, и обычный путь отсюда — назад в комнату, где каждый заново
+  жмёт «готов», а хозяин заново «начать». Для тех, кто только что доиграл и
+  хочет сыграть ещё, это три лишних нажатия и полминуты на то, чтобы все
+  собрались обратно, — за это время кто-нибудь да выйдет.
+
+  Поэтому есть короткий путь: комната возвращается в лобби и тут же сдаёт
+  заново. Готовность не спрашивается — её только что подтвердили самой
+  доигранной партией, — а ушедшие в новую раздачу не попадают: их вычёркивает
+  тот же возврат в лобби, что и всегда.
+*/
+export function playAgain(room, playerId, now = Date.now(), random = Math.random) {
+  if (room.hostPlayerId !== String(playerId || '')) {
+    throw roomError('NOT_HOST', 'Начать ещё раз может хозяин');
+  }
+  if (room.phase !== 'playing') throw roomError('NOT_PLAYING', 'Партия не идёт');
+  backToLobby(room, playerId, now);
+  for (const one of room.players) one.ready = true;
+  return startGame(room, playerId, now, random);
+}
+
 /** Место человека за столом или −1, если он смотрит партию со стороны. */
 export const seatOf = (room, playerId) => (room.seats || []).indexOf(String(playerId || ''));
 
@@ -257,6 +280,16 @@ export function playerAction(room, playerId, action, data = {}, now = Date.now()
   } else if (action === 'pass') {
     if (game.turn !== seat) throw roomError('NOT_YOUR_TURN', 'Сейчас ходите не вы');
     if (!E.pass(game, seat)) throw roomError('BAD_MOVE', 'Сейчас нечего оставлять себе');
+    room.turnAt = now;
+  } else if (action === 'jump') {
+    /*
+      Подброс делают не в свою очередь — в этом он весь. Поэтому здесь нет
+      проверки очереди, а есть проверка самой карты: подбросить можно только
+      такую же, какая лежит на столе, и решает это движок.
+    */
+    const index = game.players[seat].hand.findIndex((one) => one.id === String(data.card || ''));
+    if (index < 0) throw roomError('NO_CARD', 'Такой карты у вас нет');
+    if (!E.jump(game, seat, index)) throw roomError('BAD_JUMP', 'Эту карту сейчас не подбросить');
     room.turnAt = now;
   } else if (action === 'shabbat') {
     if (!E.shabbat(game, seat)) throw roomError('BAD_CALL', 'Сказать «Шабат» сейчас не о чем');
@@ -294,6 +327,23 @@ export function stepTable(room, now = Date.now(), random = Math.random, online =
     for (const one of game.players) {
       if (one.id === target || !one.isBot || !Bots.notices(one.botLevel, random)) continue;
       if (E.catchOut(game, one.id, target)) { said = true; break; }
+    }
+  }
+
+  /*
+    Подброс соперника от игры. Делается до собственного хода и вместо него:
+    подбросивший перехватывает круг на себя, и ходить дальше будет уже сосед
+    за ним. Замечают они подброс не всегда — иначе человеку не досталось бы ни
+    одного.
+  */
+  for (const one of game.players) {
+    if (!one.isBot || one.out) continue;
+    const jumps = E.canJump(game, one.id);
+    if (!jumps.length || !Bots.jumps(one.botLevel, random)) continue;
+    if (E.jump(game, one.id, jumps[0])) {
+      room.turnAt = now;
+      touch(room, now);
+      return true;
     }
   }
 
@@ -350,15 +400,6 @@ export function nextStepAt(room, now = Date.now(), online = null) {
   if (E.riskOpen(room.game)) return now + BOT_STEP_MS;
   const human = room.seats[seat] ? findPlayer(room, room.seats[seat]) : null;
   return Number(room.turnAt || now) + turnLimit(human, online);
-}
-
-export function nextRound(room, playerId, now = Date.now()) {
-  if (room.phase !== 'playing' || !room.game) throw roomError('NOT_PLAYING', 'Партия не идёт');
-  if (room.hostPlayerId !== String(playerId || '')) throw roomError('NOT_HOST', 'Следующую раздачу сдаёт хозяин');
-  if (!E.nextRound(room.game)) throw roomError('NOT_OVER', 'Раздача ещё идёт');
-  room.turnAt = now;
-  touch(room, now);
-  return room;
 }
 
 /*
@@ -422,6 +463,8 @@ export function buildView(room, playerId, online = new Set()) {
     pile: game.pile.slice(-3).map((card) => ({ ...card })),
     hand: mine >= 0 ? game.players[mine].hand.map((card) => ({ ...card })) : [],
     risk: game.risk ? { seat: rotate(game.risk.seat), until: game.risk.until } : null,
+    // Накопленный перевод: сколько карт висит и какой картой его кроют.
+    penalty: game.penalty ? { ...game.penalty } : null,
     winner: game.winner === null || game.winner === undefined ? null : rotate(game.winner),
     players: game.players.map((one, at) => {
       const real = (base + at) % size;
@@ -432,6 +475,9 @@ export function buildView(room, playerId, online = new Set()) {
         cards: seatPlayer.hand.length,
         said: Boolean(seatPlayer.said),
         score: seatPlayer.score,
+        // Вышедший из раздачи и его место: стол показывает их и после выхода.
+        out: Boolean(seatPlayer.out),
+        place: Number(seatPlayer.place || 0),
         isBot: Boolean(seatPlayer.isBot),
         online: human ? online.has(human.id) && !human.leftAt : true,
         left: human ? Boolean(human.leftAt) : false,

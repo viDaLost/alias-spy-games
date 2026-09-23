@@ -17,6 +17,7 @@
 // настраивать в развёртывании нечего, и забыть настроить тоже нечего.
 
 import { DurableObject } from 'cloudflare:workers';
+import { adminRoomState, adminStateResponse } from './admin-observer.js';
 import {
   MAX_PLAYERS,
   addChatMessage,
@@ -27,12 +28,11 @@ import {
   leaveRoom,
   renamePlayer,
   sanitizeName,
-  setReady,
   setSettings,
   startGame,
   seated,
 } from './room.js';
-import { B, E, Bots, GAME_ACTIONS, sanitizeArgs } from './rules.js';
+import { B, E, Bots, GAME_ACTIONS, TRADE_ANSWERS, sanitizeArgs, sanitizeTrade } from './rules.js';
 
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const ROOM_IDLE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -43,7 +43,9 @@ const ACTION_WINDOW_MS = 2_000;
 const ACTION_WINDOW_LIMIT = 16;
 // Соперники от игры ходят с той же неспешностью, что и за одним столом: за
 // мгновенным ходом не уследить, а по сети — тем более, там смотрят все шестеро.
-const BOT_STEP_MS = 850;
+// Полторы секунды — столько нужно, чтобы прочесть строку о чужом ходе и найти
+// глазами клетку; на девятистах миллисекундах человек не успевал сообразить.
+const BOT_STEP_MS = 1500;
 const BOT_NAMES = ['Ефрем', 'Асаф', 'Овадия', 'Иеффай', 'Варух'];
 
 export default {
@@ -51,7 +53,22 @@ export default {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
 
+    /*
+      Монитор администратора — единственное, что приходит сюда с чужого адреса:
+      панель живёт в приложении, а комнаты здесь. Поэтому разрешение по
+      источнику заведено только для него, а не для всего /api/: игра и её
+      запросы как были на одном адресе, так и остались.
+    */
+    const cors = adminCors(request, env);
+    if (request.method === 'OPTIONS' && ADMIN_PATH.test(url.pathname)) {
+      return new Response(null, { status: 204, headers: cors });
+    }
+
     try {
+      const observed = await adminRoomState(request, env,
+        { roomStub: stub, normalizeRoomId, cors });
+      if (observed) return observed;
+
       if (url.pathname === '/api/health') {
         return json({ ok: true, service: 'promised-land', cells: B.BOARD.length, now: Date.now() });
       }
@@ -141,6 +158,14 @@ export class PromisedLandRoom extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    /*
+      Комната глазами администратора. Прятать здесь нечего — доска открыта всем
+      за столом, — поэтому состояние берётся прямо, а не особым видом.
+    */
+    if (request.method === 'GET' && url.pathname === '/admin-state') {
+      return adminStateResponse(request, this.room, this.game, B, this.online());
+    }
 
     if (request.method === 'POST' && url.pathname === '/create') {
       if (this.room) return json({ ok: false, error: 'Комната занята' }, 409);
@@ -241,13 +266,24 @@ export class PromisedLandRoom extends DurableObject {
     if (!this.room) throw fail('Комната недоступна', 'NO_SESSION');
 
     if (name === 'rename') renamePlayer(this.room, playerId, String(data.name || ''), now);
-    else if (name === 'ready') setReady(this.room, playerId, Boolean(data.ready), now);
     else if (name === 'settings') setSettings(this.room, playerId, data, now);
     else if (name === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
     else if (name === 'start') this.startPlaying(playerId, now);
     else if (name === 'backToLobby') {
       backToLobby(this.room, playerId, now);
       this.game = null;
+    } else if (name === 'playAgain') {
+      /*
+        Ещё раз, теми же людьми. Обычный путь с юбилея — назад в комнату, а
+        хозяин заново нажимает «начать»; за эти полминуты кто-нибудь да
+        выйдет. Здесь комната возвращается в лобби и тут же начинает партию:
+        никого не приходится ждать — готовность не спрашивают ни у кого, —
+        а ушедших вычёркивает тот же возврат, что и всегда.
+      */
+      if (this.room.phase !== 'playing') throw fail('Партия не идёт', 'NOT_PLAYING');
+      backToLobby(this.room, playerId, now);
+      this.game = null;
+      this.startPlaying(playerId, now);
     } else if (name === 'game') this.playAction(playerId, data);
     else if (name === 'leave') {
       leaveRoom(this.room, playerId, now);
@@ -278,6 +314,8 @@ export class PromisedLandRoom extends DurableObject {
       players,
       years: last ? 7 : Number(this.room.settings.years),
       mode: last ? 'last' : 'jubilee',
+      // Лад партии выбран хозяином в лобби и с этого мига не меняется.
+      strict: this.room.settings.strict !== false,
     });
     this.room.startedAt = now;
   }
@@ -290,10 +328,26 @@ export class PromisedLandRoom extends DurableObject {
     const seat = this.room.seats.indexOf(playerId);
     if (seat < 0) throw fail('Вас нет за столом', 'NOT_SEATED');
     /*
+      Ответ на уговор — единственный ход, который делают не в свою очередь: его
+      и ждут от того, чей ход не идёт. Права здесь проверяются не по очереди, а
+      по самому уговору: отвечает тот, кому он предложен, и никто больше.
+    */
+    if (TRADE_ANSWERS.has(name)) {
+      const offer = this.game.trade;
+      if (!offer) throw fail('Уговора нет', 'NO_TRADE');
+      if (offer.to !== `p${seat}`) throw fail('Этот уговор предложен не вам', 'NOT_YOUR_TRADE');
+      E[name](this.game);
+      return;
+    }
+    /*
       Чужой ход не сделать ничьими руками. Движок и сам ходит только текущим
       игроком — но он верит тому, кто его позвал, а верить можно лишь здесь.
     */
     if (E.current(this.game).id !== `p${seat}`) throw fail('Сейчас не ваш ход', 'NOT_YOUR_TURN');
+    if (name === 'tradeOffer') {
+      E.tradeOffer(this.game, sanitizeTrade(data.args?.[0]));
+      return;
+    }
     E[name](this.game, ...sanitizeArgs(data.args));
   }
 
@@ -304,6 +358,21 @@ export class PromisedLandRoom extends DurableObject {
   */
   async stepBots() {
     if (!this.game || this.game.status !== 'playing') return false;
+    /*
+      Уговор, предложенный сопернику от игры, отвечается здесь же — с той же
+      паузой, что и ход. Мгновенный отказ читается как поломка кнопки, а не
+      как ответ, а ответ через минуту — как зависшая партия.
+    */
+    if (this.game.trade) {
+      const to = this.game.players.find((one) => one.id === this.game.trade.to);
+      if (to && to.isBot) {
+        Bots.judgeTrade(this.game);
+        this.botAt = 0;
+        await this.persist();
+        return true;
+      }
+      return false;
+    }
     const player = E.current(this.game);
     if (!player.isBot) return false;
     if (!Bots.step(this.game)) E.endTurn(this.game);
@@ -346,7 +415,15 @@ export class PromisedLandRoom extends DurableObject {
     вовсе, и партия вставала на его ходу навсегда.
   */
   botDeadline() {
-    if (!this.game || this.game.status !== 'playing' || !E.current(this.game).isBot) {
+    if (!this.game || this.game.status !== 'playing') { this.botAt = 0; return Number.POSITIVE_INFINITY; }
+    /*
+      Соперник от игры просыпается и ради уговора, а не только ради своего хода:
+      уговор предложен на чужом ходу, и без этого он висел бы до следующей
+      побудки комнаты — то есть до чужого броска.
+    */
+    const waiting = this.game.trade
+      && this.game.players.find((one) => one.id === this.game.trade.to)?.isBot;
+    if (!waiting && !E.current(this.game).isBot) {
       this.botAt = 0;
       return Number.POSITIVE_INFINITY;
     }
@@ -474,6 +551,27 @@ function guest(body) {
   const raw = String(body?.playerId || '').replace(/[^A-Za-z0-9_:-]/g, '').slice(0, 64);
   if (!raw) throw httpError(400, 'Игрок не назвался');
   return { playerId: raw, name: sanitizeName(body?.name) };
+}
+
+const ADMIN_PATH = /^\/api\/admin\/rooms\/[A-Za-z0-9]{4,10}\/state$/;
+
+/*
+  Разрешение по источнику — только для монитора. Список тот же, каким его знают
+  остальные воркеры приложения; без него панель на github.io не прочитала бы
+  ответ, даже получив его.
+*/
+function adminCors(request, env) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = String(env.ALLOWED_ORIGINS || 'https://vidalost.github.io')
+    .split(',').map((one) => one.trim()).filter(Boolean);
+  return {
+    'Access-Control-Allow-Origin': allowed.includes(origin) ? origin : allowed[0] || 'https://vidalost.github.io',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    'Access-Control-Expose-Headers': 'ETag',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin',
+  };
 }
 
 const stub = (env, roomId) => env.ROOMS.get(env.ROOMS.idFromName(normalizeRoomId(roomId)));

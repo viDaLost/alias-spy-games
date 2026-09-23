@@ -81,5 +81,12 @@
   /** Перебивает ли бот соседа, забывшего сказать «Шабат». Отрок замечает не всегда. */
   const notices = (level, random) => random() < (level === 'elder' ? 0.85 : 0.5);
 
-  window.TwelveTribesBots = { pick, richestCamp, remembers, notices };
+  /*
+    Замечает ли бот, что может подбросить. Реже, чем перебить: подброс выгоден
+    почти всегда, и соперник, не пропускающий ни одного, не оставил бы человеку
+    ни единого — он читает стол медленнее, чем счётная машина.
+  */
+  const jumps = (level, random) => random() < (level === 'elder' ? 0.55 : 0.3);
+
+  window.TwelveTribesBots = { pick, richestCamp, remembers, notices, jumps };
 }());

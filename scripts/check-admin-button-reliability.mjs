@@ -147,12 +147,35 @@ const buttonState = async (page) => {
   });
 };
 
+/*
+  Ждём появления кнопки, а не спим столько-то секунд.
+
+  Кнопка возвращается не по часам, а по ответу сервера о роли, и когда машина
+  занята, тот же ответ приходит вдвое позже. Ожидание ровно в восемь секунд
+  мерило поэтому не надёжность кнопки, а загрузку машины: в задаче, где рядом
+  работают другие проверки, оно сообщало, что кнопка не вернулась, — а она
+  возвращалась, только позже. Ждём до предела с большим запасом и уходим
+  сразу, как она появилась: на свободной машине проверка не станет медленнее
+  ни на миг, а на занятой перестанет врать.
+
+  Обратные условия — «кнопки быть не должно» — так не проверяются и остаются
+  ожиданием по часам: там и надо дать времени и убедиться, что не появилась.
+*/
+const waitVisible = async (page, timeout) => {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    if ((await buttonState(page)).visible) return true;
+    if (Date.now() >= deadline) return false;
+    await page.waitForTimeout(250);
+  }
+};
+
 // --- 1. Telegram отдаёт id с опозданием ---------------------------------------
 {
   const { page, context } = await boot({ idDelayMs: 1200 });
-  await page.waitForTimeout(5000);
+  const appeared = await waitVisible(page, 20_000);
   const state = await buttonState(page);
-  if (!state.visible) {
+  if (!appeared) {
     await fail(`при опоздании Telegram-id на 1200 мс кнопка админа ${state.present ? 'осталась скрытой' : 'не появилась'}`);
   }
   await page.evaluate(() => document.getElementById('admin-btn').click());
@@ -168,8 +191,7 @@ const buttonState = async (page) => {
 // --- 2. Роль подтверждена, потом сервер замолчал -------------------------------
 {
   const { page, context, control } = await boot();
-  await page.waitForTimeout(3500);
-  if (!(await buttonState(page)).visible) await fail('кнопка не появилась даже при исправном сервере');
+  if (!await waitVisible(page, 20_000)) await fail('кнопка не появилась даже при исправном сервере');
 
   // Дальше сервер отвечает 502 — ровно как при обрыве связи в Telegram.
   control.mode = 'offline';
@@ -227,8 +249,7 @@ const buttonState = async (page) => {
   if ((await buttonState(page)).visible) await fail('кнопка появилась до подтверждения роли');
 
   control.mode = 'admin';
-  await page.waitForTimeout(8000);
-  if (!(await buttonState(page)).visible) {
+  if (!await waitVisible(page, 30_000)) {
     await fail('после восстановления связи кнопка админа сама не вернулась');
   }
   await context.close();

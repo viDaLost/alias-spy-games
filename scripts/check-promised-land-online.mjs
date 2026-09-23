@@ -131,10 +131,7 @@ try {
   // столько же времени, сколько шла бы у живых людей.
   await act(roomId, host.token, 'settings', { years: 3, mode: 'jubilee', bots: 0 });
 
-  // 5. Партию начинает хозяин, и только когда гости готовы.
-  const early = await act(roomId, host.token, 'start');
-  need(early.status === 409 && early.code === 'NOT_READY', `партия началась без готовности: ${early.code}`);
-  await act(roomId, guestOne.token, 'ready', { ready: true });
+  // 5. Партию начинает хозяин, сразу — гостя дожидаться не нужно.
   const notYours = await act(roomId, guestOne.token, 'start');
   need(notYours.status === 409 && notYours.code === 'NOT_HOST', `партию начал гость: ${notYours.code}`);
   const begun = await act(roomId, host.token, 'start');
@@ -223,12 +220,36 @@ try {
   need(after > before, 'соперник от игры не походил сам — его ходы делает не сервер');
   await act(solo.roomId, solo.token, 'leave');
 
-  // 10. Вернуться в комнату может хозяин, и партия при этом забывается.
+  /*
+    10. «Играть ещё раз». Короткий путь с юбилея: не разводить всех по лобби и
+    не спрашивать готовность заново, а сдать новую партию тем же составом.
+    Проверяется здесь, на живом воркере, потому что живёт этот путь не в
+    правилах комнаты, а в самом Durable Object: комната возвращается в лобби, и
+    тут же по её же списку мест собирается новая партия.
+  */
+  const rematchRoom = await api('POST', '/api/rooms', { playerId: 'host-3', name: 'Заново' });
+  await act(rematchRoom.roomId, rematchRoom.token, 'settings', { years: 3, mode: 'jubilee', bots: 1 });
+  const firstRun = await act(rematchRoom.roomId, rematchRoom.token, 'start');
+  need(firstRun.ok, `партия для повтора не началась: ${firstRun.error}`);
+  const firstYear = firstRun.view?.game?.year;
+  const strangerAgain = await act(rematchRoom.roomId, 'чужой-ключ', 'playAgain');
+  need(!strangerAgain.ok, 'ещё одну партию начали чужим ключом');
+  const again = await act(rematchRoom.roomId, rematchRoom.token, 'playAgain');
+  need(again.ok, `ещё одна партия не началась: ${again.error}`);
+  need(again.view?.phase === 'playing', `после «ещё раз» комната в состоянии «${again.view?.phase}»`);
+  need(again.view?.game?.year === firstYear, 'новая партия началась не с начала');
+  need(again.view?.game?.log?.length <= 2,
+    `в новой партии уже ${again.view?.game?.log?.length} событий — это прежняя`);
+  need(again.view?.game?.players?.length === firstRun.view.game.players.length,
+    'состав стола в новой партии другой');
+  await act(rematchRoom.roomId, rematchRoom.token, 'leave');
+
+  // 11. Вернуться в комнату может хозяин, и партия при этом забывается.
   const back = await act(roomId, host.token, 'backToLobby');
   need(back.ok && back.view?.phase === 'lobby', `в комнату не вернулись: ${back.error}`);
   need(back.view?.game === null || back.view?.game === undefined, 'после возврата партия осталась висеть');
 
-  // 11. Ушли все — комната исчезает вместе с ключами.
+  // 12. Ушли все — комната исчезает вместе с ключами.
   await act(roomId, guestOne.token, 'leave');
   const closed = await act(roomId, host.token, 'leave');
   need(closed.closed === true, 'последний ушёл, а комната осталась');
@@ -268,4 +289,5 @@ if (problems.length) {
 
 console.log('OK: комната заводится и пускает по коду, чужим ключом не представиться, настройки и '
   + 'начало партии — за хозяином, чужим ходом не походить и незнакомого хода не позвать, а партия '
-  + 'на живом воркере доходит до юбилея, и соперника от игры ведёт сервер.');
+  + 'на живом воркере доходит до юбилея, и соперника от игры ведёт сервер; «играть ещё раз» сдаёт '
+  + 'новую партию тем же составом, и только по просьбе хозяина.');

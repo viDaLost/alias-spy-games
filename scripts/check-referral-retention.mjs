@@ -12,6 +12,9 @@ const forbidText = (text, needle, label) => {
 };
 
 const worker = read('cloudflare/app-core-worker/src/index-v6.js');
+// Запросы чистки переехали отдельным файлом — их гоняет проверка над настоящей
+// SQLite, и пересказывать их в хранилище было бы нечем проверить.
+const retentionSql = read('cloudflare/app-core-worker/src/retention-sql.js');
 const inviteWorker = read('cloudflare/app-core-worker/src/index-v7.js');
 const balanceWorker = read('cloudflare/app-core-worker/src/index-v8.js');
 const secureWorker = read('cloudflare/app-core-worker/src/index-v9.js');
@@ -36,12 +39,22 @@ requireText(worker, 'const INACTIVE_ACCOUNT_DAYS = 15;', 'inactivity window is n
 requireText(worker, 'INACTIVE_ACCOUNT_DAYS * 24 * 60 * 60 * 1000', 'inactivity threshold is not derived from the day count');
 requireText(worker, '${INACTIVE_ACCOUNT_DAYS} ${daysWord(INACTIVE_ACCOUNT_DAYS)}', 'admin cleanup report does not take the window from the constant');
 forbidText(worker, 'более 30 дней', 'admin cleanup report still names the old 30-day window');
-requireText(worker, 'u.is_banned = 0', 'banned accounts are not protected from cleanup');
-requireText(worker, 'u.telegram_id <> ?', 'admin account is not protected from cleanup');
+requireText(retentionSql, 'u.is_banned = 0', 'banned accounts are not protected from cleanup');
+requireText(retentionSql, 'u.telegram_id <> ?', 'admin account is not protected from cleanup');
 requireText(worker, 'DELETE FROM support_tickets WHERE user_id = ?', 'support data is not removed with an inactive account');
 requireText(worker, 'DELETE FROM android_sessions WHERE telegram_id = ?', 'Android sessions are not removed with an inactive account');
 requireText(worker, 'this.ctx.storage.delete(`user:${id}`)', 'legacy KV backup record is not removed with an inactive account');
 requireText(worker, 'async scheduled(', 'scheduled cleanup handler is missing');
+/*
+  Предупреждение за сутки. Сам отбор — кому писать и кого удалять — проверяется
+  настоящими запросами над настоящей SQLite в check-inactive-warning.mjs; здесь
+  сторожится то, что его не обойдут мимо: таблица отметок, срок и связь чистки
+  с предупреждением.
+*/
+requireText(worker, 'const INACTIVE_WARN_DAYS = 1;', 'inactive warning is not sent a day before deletion');
+requireText(worker, 'inactive_warnings', 'warned users are not remembered');
+requireText(worker, 'PURGE_INACTIVE_SQL', 'cleanup query is not shared with its check');
+requireText(worker, 'runInactiveWarnings', 'warnings are not sent before the cleanup');
 requireText(inviteWorker, "from './index-v6.js'", 'v7 entrypoint must preserve retention runtime');
 requireText(balanceWorker, "from './index-v7.js'", 'v8 entrypoint must preserve v7 runtime');
 requireText(secureWorker, "from './index-v8.js'", 'v9 entrypoint must preserve v8 runtime');

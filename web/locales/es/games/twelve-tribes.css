@@ -203,6 +203,23 @@
   font-size: 11px; font-weight: 800; padding: 0 5px;
 }
 
+/*
+  Выход из партии — отдельно от кнопок хода, в своём углу. Раньше он стоял в
+  общем ряду рядом с «Перебить!» и «Шабат!»: те живут секунды и исчезают, а
+  ряд — flex, и при их исчезновении сосед немедленно съезжает на освободившееся
+  место. Игрок целился в исчезающую кнопку долей секунды позже — и попадал по
+  «В меню», уже занявшей её место, выходя из партии, которую не думал бросать.
+  Свой угол избавляет кнопку выхода от чужого исчезновения рядом.
+*/
+.tt-topbar { display: flex; justify-content: flex-end; }
+.tt-exit {
+  min-height: 34px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid rgba(99, 102, 241, .3);
+  background: var(--surface-strong, #fff); color: var(--ink, #111827);
+  font: inherit; font-weight: 700; font-size: 12.5px; cursor: pointer;
+}
+.tt-exit:active { transform: translateY(1px); }
+
 /* ——— стол ——— */
 /*
    Сукно. Карточная игра без стола читается как список кнопок: карта должна
@@ -276,6 +293,13 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .28);
 }
 /* Тот, кто ходит следом, — с ним и случается почти всё, что делает карта. */
+/*
+  Вышедший из раздачи остаётся за столом, но гаснет: место он уже занял, и
+  очередь его обходит. Гаснет не исчезновением, а цветом — иначе стол на
+  глазах бы редел, и понять, кто вышел, а кто просто встал, было бы нельзя.
+*/
+.tt-foe.is-done { opacity: .55; border-style: dashed; }
+.tt-foe.is-done .tt-foe-cards { display: none; }
 .tt-foe.is-next { border-color: rgba(245, 158, 11, .75); }
 .tt-foe.is-next .tt-order { background: var(--warning, #f59e0b); color: #1f2937; }
 .tt-foe-tag {
@@ -416,6 +440,12 @@
   backdrop-filter: blur(2px);
 }
 .tt-deck button:disabled { cursor: not-allowed; opacity: .72; }
+/*
+  Штраф на столе. Подпись на колоде говорит не «взять», а «взять восемь», и
+  подложка под ней краснеет: это не обычный добор, это расплата, и нажимать её
+  вслепую не надо.
+*/
+.tt-deck button.is-penalty span { background: rgba(220, 38, 38, .88); color: #fff; }
 /*
   Нечем ходить — колода зовёт. Движение мелкое и не бесконечно быстрое: это
   подсказка, а не тревога, и рядом с ней ещё надо думать над рукой.
@@ -660,6 +690,19 @@ img.tt-sign { object-fit: contain; display: block; }
     0 18px 26px -14px rgba(0, 0, 0, .85);
   z-index: 2;
 }
+/*
+  Карта, которую можно подбросить вне очереди. Светится не так, как законный
+  свой ход: тот зовёт спокойно, а этот — тревожно и ненадолго, окно подброса
+  живёт до следующего чужого хода. Светится обводкой, а не движением: карту в
+  этот миг надо попасть пальцем, а не ловить.
+*/
+.tt-hand .tt-card.is-jump {
+  filter: none; opacity: 1;
+  outline: 2px solid var(--warning, #f59e0b);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, .28), 0 14px 22px -12px rgba(0, 0, 0, .8);
+  z-index: 2;
+}
 .tt-hand .tt-card:active { transition-duration: .09s; }
 /*
   Взятая карта приходит из колоды, а не появляется в руке. Полёт короткий и с
@@ -711,10 +754,17 @@ img.tt-sign { object-fit: contain; display: block; }
   position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center;
   background: rgba(15, 23, 42, .55); padding: 16px;
 }
+/*
+  Лист не бывает выше экрана. Подсказки растут вместе с правилами, и однажды
+  лист перерос телефон: кнопка «Понятно» оказалась за нижним краем, а лист не
+  прокручивался — закрыть его было нечем. Поэтому высота ограничена, а
+  содержимое прокручивается.
+*/
 .tt-sheet-card {
   width: min(100%, 420px); background: var(--surface-strong, #fff); color: var(--ink, #111827);
   border-radius: 22px; padding: 16px; display: grid; gap: 12px;
   box-shadow: 0 24px 48px -24px rgba(0, 0, 0, .6);
+  max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain;
 }
 .tt-sheet-card h3 { margin: 0; font-size: 18px; }
 /*

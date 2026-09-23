@@ -107,6 +107,8 @@
   line-height: 1.4;
 }
 
+.ws-login__error a { color: #991b1b; text-decoration: underline; text-underline-offset: 2px; }
+
 /* Подсказка по установке на iPhone. */
 .install-sheet {
   position: fixed;

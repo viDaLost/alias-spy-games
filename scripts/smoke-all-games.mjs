@@ -83,7 +83,17 @@ async function makePage() {
 let gameKeys = [];
 {
   const session = await makePage();
+  /*
+    Только то, что этому человеку и правда открыто.
+
+    Карточки игр на обкатке лежат в разметке всегда — они прячутся таблицей
+    стилей, чтобы появиться сразу, как придёт роль, и не пересобирать меню.
+    Дымовая проверка ходит обычным гостем, и открыть их ему нечем: вместо игры
+    он получает отказ «игра ещё не открыта». Раньше она честно считала это
+    поломкой игры — а поломки не было, был замок.
+  */
   gameKeys = await session.page.locator('.game-card[onclick*="showGame("]').evaluateAll((buttons) => buttons
+    .filter((button) => getComputedStyle(button).display !== 'none')
     .map((button) => button.getAttribute('onclick') || '')
     .map((text) => text.match(/showGame\(['\"]([^'\"]+)['\"]\)/)?.[1])
     .filter(Boolean));

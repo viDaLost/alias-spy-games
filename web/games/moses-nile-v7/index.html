@@ -36,6 +36,16 @@
       --safe-bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--chrome-bottom));
     }
     *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    /*
+      Игра — свой отдельный документ во фрейме, а не часть оболочки, и её
+      правило text-size-adjust сюда не доезжает. Android сам раздувает
+      мелкий текст в узкой колонке — это и есть уведомления над рекой:
+      «13px» на телефоне превращались в текст едва ли не вдвое крупнее и
+      закрывали течение впереди. iOS так не делает — там кегль всегда тот,
+      что записан. Без явного запрета игра зависела от того, на чьей
+      начинке открыта, а не от того, что в ней написано.
+    */
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     /* overscroll-behavior гасит «оттяжку» страницы, touch-action — жесты
        браузера: без них свайп вниз уходил бы клиенту как прокрутка. */
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: none; background: var(--sky-horizon); font-family: Inter, "Segoe UI", Roboto, system-ui, sans-serif; color: var(--ivory); }
@@ -150,6 +160,8 @@
     .sys-btn.is-off { opacity: .45; }
     body:not(.is-playing) #sys-controls, body:not(.is-playing) .mobile-controls, body:not(.is-playing) #powerups-bar { opacity: .0; pointer-events: none; transition: opacity .25s; }
     body.is-playing #sys-controls, body.is-playing .mobile-controls, body.is-playing #powerups-bar { opacity: 1; transition: opacity .3s; }
+    /* Свайпы — сами по себе управление, кнопки на экране в этом режиме лишние. */
+    body[data-control-mode="swipe"] .mobile-controls { display: none; }
 
     /* ---- экраны ---- */
     .screen { position: absolute; inset: 0; z-index: 30; display: flex; justify-content: center; align-items: flex-end; padding: 20px 20px calc(var(--safe-bottom) + 76px); text-align: center; pointer-events: auto; background: linear-gradient(180deg, rgba(17, 15, 10, .02) 0%, rgba(17, 15, 10, .04) 44%, rgba(17, 15, 10, .40) 76%, rgba(17, 15, 10, .66) 100%); transition: opacity .28s ease, visibility .28s ease; }
@@ -165,6 +177,15 @@
     .btn:disabled { cursor: wait; filter: saturate(.55); opacity: .68; }
     .btn-ghost { margin-top: 9px; background: transparent; border: 1.5px solid rgba(150, 116, 60, .4); color: #7a613c; box-shadow: none; min-height: 44px; font-size: 14px; }
     .controls-hint { margin-top: 11px; color: #796a58; font-size: 11px; }
+    /*
+      Управление — либо кнопки, либо свайпы, а не то и другое сразу (жалоба
+      игроков: свайп ронял корзинку с дорожки, пока рука тянулась к кнопке).
+      Переключатель стоит на стартовом экране и запоминается — выбор до
+      заплыва, а не решение на ходу.
+    */
+    .control-mode-switch { display: flex; gap: 6px; margin-top: 13px; padding: 4px; border-radius: 999px; background: rgba(122, 97, 60, .12); border: 1px solid rgba(150, 116, 60, .28); }
+    .control-mode-btn { flex: 1; min-height: 38px; border: 0; border-radius: 999px; background: transparent; color: #7a613c; font-size: 12px; font-weight: 800; letter-spacing: .01em; cursor: pointer; transition: background .15s, color .15s; }
+    .control-mode-btn.is-active { background: linear-gradient(135deg, #d3a351, #f0cd80); color: #2b2116; box-shadow: 0 4px 12px rgba(113, 75, 30, .22); }
     #start-best { margin-top: 12px; font-weight: 800; }
     #start-best.is-set { color: #9a6b2e; }
 
@@ -496,7 +517,11 @@
       <button id="help-btn" type="button" aria-label="Открыть обучение">?</button>
       <button class="btn" id="start-btn" type="button">ОТПЛЫТЬ</button>
       <div class="controls-hint" id="start-best">Ещё ни одного заплыва — самое время начать.</div>
-      <div class="controls-hint">Кнопки, стрелки клавиатуры или свайп в любую сторону</div>
+      <div class="control-mode-switch" role="group" aria-label="Способ управления">
+        <button class="control-mode-btn" id="control-mode-arrows" type="button" aria-pressed="false">◀▶ КНОПКИ</button>
+        <button class="control-mode-btn" id="control-mode-swipe" type="button" aria-pressed="false">👆 СВАЙПЫ</button>
+      </div>
+      <div class="controls-hint">Выбор запомнится для следующих заплывов</div>
     </div>
   </div>
 

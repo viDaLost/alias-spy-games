@@ -67,12 +67,31 @@ window.PromisedLandEngine = (() => {
     столом не останется один платёжеспособный. В нём нет и субботнего года:
     прощение долгов там означало бы, что партия не кончится никогда.
   */
-  function createGame({ players, years = 5, mode = 'jubilee', rng = systemRandom }) {
+  /*
+    Усложнённый лад — тот, в котором строят только на целом цвете.
+
+    Правило это взято у настольной родни и оно же — главная её тяжесть: цвета
+    собираются кругом, то есть случайно, и партия на троих сплошь и рядом
+    кончается тем, что ни у кого нет целого цвета и строить некому. Уговор об
+    обмене это чинит, но не всегда: меняться можно только с тем, у кого есть
+    что менять.
+
+    Поэтому лад стал выбором. Усложнённый — как было: удел строится, когда весь
+    его цвет ваш, и ступени в цвете ставятся вровень. Простой — удел строится
+    сам по себе, как только он ваш: купили, обменяли, выкупили из залога — и
+    стройте.
+
+    Остальные правила не трогаются ни в одном ладу: плата за проход по целому
+    цвету всё так же вдвое больше, и собирать цвета по-прежнему выгодно — просто
+    без них игра больше не встаёт.
+  */
+  function createGame({ players, years = 5, mode = 'jubilee', strict = true, rng = systemRandom }) {
     const last = mode === 'last';
     const state = {
       version: 1,
       status: 'playing',
       mode: last ? 'last' : 'jubilee',
+      strict: strict !== false,
       years,
       year: 1,
       sabbath: !last && years === 1,
@@ -82,6 +101,7 @@ window.PromisedLandEngine = (() => {
       dice: [0, 0],
       doubles: 0,
       pending: null,
+      trade: null,        // уговор об обмене, ждущий ответа
       log: [],
       players: players.map((p, i) => ({
         id: 'p' + i,
@@ -162,6 +182,9 @@ window.PromisedLandEngine = (() => {
       let best = -1;
       state.cells.forEach((cell, n) => {
         if (cell.owner !== player.id || cell.level === 0) return;
+        // Снимается только верхняя ступень цвета: распродажа под долг — не
+        // повод оставить поселение рваным (см. evenToSell).
+        if (!evenToSell(state, n)) return;
         if (best < 0 || cell.level > state.cells[best].level) best = n;
       });
       return best;
@@ -1062,10 +1085,17 @@ window.PromisedLandEngine = (() => {
     if (!spec || spec.kind !== 'plot') return false;
     const cell = state.cells[n];
     if (cell.owner !== player.id || cell.altar || cell.level >= B.LEVELS.length) return false;
-    if (!ownsWholeGroup(state, player.id, spec.group)) return false;
-    // Строить вровень: нельзя поставить второй дом, пока рядом стоит шатёр.
-    const levels = B.groupCells(spec.group).map((i) => state.cells[i].level);
-    if (cell.level > Math.min(...levels)) return false;
+    /*
+      Целый цвет и ступени вровень — это одно правило, а не два: вровень
+      строят внутри своего цвета, и без целого цвета равнять не с чем. Поэтому
+      в простом ладу снимаются оба, и удел строится сам по себе.
+    */
+    if (state.strict !== false) {
+      if (!ownsWholeGroup(state, player.id, spec.group)) return false;
+      // Строить вровень: нельзя поставить второй дом, пока рядом стоит шатёр.
+      const levels = B.groupCells(spec.group).map((i) => state.cells[i].level);
+      if (cell.level > Math.min(...levels)) return false;
+    }
     if (free) return true;
     return player.silver >= B.GROUPS[spec.group].build;
   }
@@ -1102,11 +1132,31 @@ window.PromisedLandEngine = (() => {
     return true;
   }
 
+  /*
+    Разбирают тоже вровень — и это та же половина правила, что и строительство.
+
+    Ставить второй дом, пока рядом стоит шатёр, нельзя; а разобрать дом,
+    оставив рядом два, до сих пор было можно. Поселение от этого выходило
+    рваным — 0/2/0 в одних руках, — чего по правилам быть не может ни при
+    какой игре. Нашлось это счётом, когда партии «до последнего» стали длиннее
+    и до распродажи построек дело начало доходить чаще.
+
+    Поэтому снимается только верхняя ступень цвета: лестница спускается тем же
+    порядком, каким поднималась. В простом ладу лестницы нет вовсе, и равнять
+    нечего.
+  */
+  function evenToSell(state, n) {
+    const spec = B.BOARD[n];
+    if (state.strict === false || spec.kind !== 'plot') return true;
+    const levels = B.groupCells(spec.group).map((i) => state.cells[i].level);
+    return state.cells[n].level >= Math.max(...levels);
+  }
+
   function canSell(state, player, n) {
     const cell = state.cells[n];
     if (cell.owner !== player.id) return false;
     const spec = B.BOARD[n];
-    if (spec.kind === 'plot' && cell.level > 0) return true;
+    if (spec.kind === 'plot' && cell.level > 0) return evenToSell(state, n);
     if (spec.kind !== 'plot') return true;
     return !B.groupCells(spec.group).some((i) => state.cells[i].level > 0);
   }
@@ -1150,8 +1200,228 @@ window.PromisedLandEngine = (() => {
     return true;
   }
 
+  // ————————————————————————————————————————————————— обмен уделами
+
+  /*
+    Обмен. Уделы переходят из рук в руки по уговору: один отдаёт своё, другой
+    своё, и любой из двоих может доплатить серебром.
+
+    Зачем он в этой игре. Поселение строится только на целой группе, а группы
+    собираются кругом — то есть случайно: один держит два удела из трёх и не
+    может строить, другой держит третий и тоже не может. Без обмена оба сидят
+    с мёртвой землёй до самого юбилея, и партия превращается в ожидание костей.
+    С обменом у стола появляется второй разговор, кроме «плати».
+
+    Три ограничения, и каждое не от строгости.
+
+    Заложенный удел не меняют: у него уже есть второй хозяин — тот, кому он
+    заложен, — и передавать его через голову кредитора нельзя.
+
+    Застроенный удел не меняют: ступени стоят на группе целиком, и уход одного
+    удела из группы оставил бы поселение на чужой земле. Сначала продайте
+    ступени.
+
+    Уговор живёт до конца хода того, кто его предложил: предложение, висящее
+    через круг, — это не уговор, а ловушка для того, кто забыл его отклонить.
+  */
+  const TRADE_PHASES = new Set(['roll', 'act']);
+  const TRADE_LIMIT = 4;              // уделов с каждой стороны за один уговор
+
+  /*
+    Можно ли вообще отдать этот удел: свой, не заложенный и не из застроенного
+    цвета.
+
+    Последнее условие шире, чем кажется, и написано кровью проверки механик.
+    Мало смотреть на сам удел: поселение стоит на цвете целиком, и отдача
+    пустого удела из застроенной группы оставляет ступени соседей висеть на
+    чужой земле — цвет разъезжается, а плата считается по несуществующей
+    группе. Поэтому сначала продают все ступени цвета, и только потом меняются.
+  */
+  function tradable(state, n, ownerId) {
+    const cell = state.cells[Number(n)];
+    const spec = B.BOARD[Number(n)];
+    if (!cell || !spec || !B.OWNABLE.has(spec.kind)) return false;
+    if (cell.owner !== ownerId) return false;
+    if (cell.pledge || cell.heldFrom) return false;
+    if (cell.level > 0 || cell.altar) return false;
+    if (spec.kind !== 'plot') return true;
+    /*
+      Пустой удел из застроенного цвета не отдают — но только в усложнённом
+      ладу. Запрет этот держит лестницу ровной: отдать землю из-под поселения
+      значит оставить постройку на чужом цвете. В простом ладу лестницы нет,
+      каждый удел сам по себе, и держать нечего.
+    */
+    if (state.strict === false) return true;
+    return !B.BOARD.some((other) => other.kind === 'plot' && other.group === spec.group
+      && (state.cells[other.n].level > 0 || state.cells[other.n].altar));
+  }
+
+  /** Что этот игрок может выставить на обмен прямо сейчас. */
+  function tradables(state, ownerId) {
+    const out = [];
+    state.cells.forEach((cell, n) => { if (tradable(state, n, ownerId)) out.push(n); });
+    return out;
+  }
+
+  /*
+    Чего удел стоит именно этому игроку.
+
+    Цена в кассе у всех одна, а польза разная: удел, замыкающий группу, для
+    одного открывает застройку, а для другого остаётся куском земли. Без этой
+    разницы соперник от игры менял бы «по цене» и отдавал последний удел
+    чужой группы за ровно ту же сумму — то есть дарил бы партию.
+  */
+  function tradeWorth(state, n, forId) {
+    const spec = B.BOARD[Number(n)];
+    if (!spec || !B.OWNABLE.has(spec.kind)) return 0;
+    const base = spec.price;
+    if (spec.kind === 'road') return Math.round(base * (1 + 0.25 * ownedCount(state, forId, 'road')));
+    if (spec.kind === 'well') return Math.round(base * (1 + 0.4 * ownedCount(state, forId, 'well')));
+    const group = B.BOARD.filter((one) => one.kind === 'plot' && one.group === spec.group);
+    const mine = group.filter((one) => state.cells[one.n].owner === forId && one.n !== Number(n)).length;
+    /*
+      Замыкающий удел стоит не вдвое, а в два с половиной. Вдвое — это цена
+      земли, а с ним приходит не земля, а право строить: лестница платы на
+      застроенной группе растёт в разы. При множителе «вдвое» соперник от игры
+      вообще не предлагал уговоров — доплата, на которую согласился бы сосед,
+      всегда выходила дороже его собственной выгоды.
+    */
+    /*
+      В простом ладу замыкать нечего: строить можно на любом своём уделе, и
+      последний удел цвета не приносит никакого права — только ту же землю и
+      ту же двойную плату за проход. Поэтому надбавка за него меньше и
+      считается от одного соображения: целый цвет всё ещё удваивает плату.
+    */
+    if (state.strict === false) return mine + 1 >= group.length ? Math.round(base * 1.4) : base;
+    if (mine + 1 >= group.length) return Math.round(base * 2.5);
+    if (mine + 1 === group.length - 1) return Math.round(base * 1.3);
+    return base;
+  }
+
+  /** Чем уговор обернётся для одной из сторон — в сиклях, как он их видит. */
+  function tradeBalance(state, offer, forId) {
+    if (!offer) return 0;
+    const gain = (offer.from === forId ? offer.take : offer.give)
+      .reduce((sum, n) => sum + tradeWorth(state, n, forId), 0);
+    const loss = (offer.from === forId ? offer.give : offer.take)
+      .reduce((sum, n) => sum + tradeWorth(state, n, forId), 0);
+    const silver = offer.from === forId ? -offer.silver : offer.silver;
+    return gain - loss + silver;
+  }
+
+  const findPlayer = (state, id) => state.players.find((one) => one.id === id) || null;
+
+  /** Может ли нынешний игрок сейчас предложить уговор. */
+  function canOfferTrade(state) {
+    if (state.status !== 'playing' || state.pending) return false;
+    if (!TRADE_PHASES.has(state.phase)) return false;
+    const player = current(state);
+    return Boolean(player) && !player.out && !player.servantOf && !player.debt && !state.trade;
+  }
+
+  /** Список чисел без повторов, годных к обмену. */
+  function cleanSide(state, list, ownerId) {
+    const seen = new Set();
+    for (const raw of Array.isArray(list) ? list : []) {
+      const n = Number(raw);
+      if (!Number.isInteger(n) || seen.has(n) || !tradable(state, n, ownerId)) return null;
+      seen.add(n);
+    }
+    return seen.size > TRADE_LIMIT ? null : [...seen];
+  }
+
+  /*
+    Предложить уговор. Всё проверяется здесь и ещё раз при согласии: между
+    предложением и ответом проходит чужой ход, и за него земля успевает
+    измениться — уйти в залог, застроиться, сменить хозяина по нужде.
+  */
+  function tradeOffer(state, request = {}) {
+    if (!canOfferTrade(state)) return false;
+    const from = current(state);
+    const to = findPlayer(state, String(request.to || ''));
+    if (!to || to.id === from.id || to.out || to.servantOf) return false;
+
+    const give = cleanSide(state, request.give, from.id);
+    const take = cleanSide(state, request.take, to.id);
+    if (!give || !take) return false;
+    /*
+      Одним серебром уговор быть не может: это уже не обмен, а дарение — и
+      первым же ходом двое сговорившихся перекинули бы всё серебро одному,
+      чтобы разорить третьего. Хоть один удел в уговоре быть обязан.
+    */
+    if (!give.length && !take.length) return false;
+
+    const silver = Math.trunc(Number(request.silver) || 0);
+    if (!Number.isFinite(silver)) return false;
+    // Доплату нельзя обещать из воздуха: платящий обязан иметь её на руках.
+    if (silver > 0 && from.silver < silver) return false;
+    if (silver < 0 && to.silver < -silver) return false;
+
+    state.trade = {
+      from: from.id,
+      to: to.id,
+      give,
+      take,
+      silver,
+      year: state.year,
+      turn: state.turn,
+    };
+    const whatFor = silver > 0 ? ` и ${silver} сиклей` : silver < 0 ? ` и просит ${-silver} сиклей` : '';
+    log(state, `${from.name} предлагает ${to.name} уговор: ${give.length} за ${take.length}${whatFor}`);
+    return true;
+  }
+
+  /** Всё ли ещё уговор возможен: за время ожидания земля могла уйти. */
+  function tradeValid(state) {
+    const offer = state.trade;
+    if (!offer) return false;
+    const from = findPlayer(state, offer.from);
+    const to = findPlayer(state, offer.to);
+    if (!from || !to || from.out || to.out) return false;
+    if (offer.give.some((n) => !tradable(state, n, from.id))) return false;
+    if (offer.take.some((n) => !tradable(state, n, to.id))) return false;
+    if (offer.silver > 0 && from.silver < offer.silver) return false;
+    if (offer.silver < 0 && to.silver < -offer.silver) return false;
+    return true;
+  }
+
+  function tradeAccept(state) {
+    const offer = state.trade;
+    if (!offer) return false;
+    if (!tradeValid(state)) {
+      log(state, 'Уговор расстроился: земля или серебро успели измениться.');
+      state.trade = null;
+      return false;
+    }
+    const from = findPlayer(state, offer.from);
+    const to = findPlayer(state, offer.to);
+    for (const n of offer.give) state.cells[n].owner = to.id;
+    for (const n of offer.take) state.cells[n].owner = from.id;
+    if (offer.silver > 0) { from.silver -= offer.silver; to.silver += offer.silver; }
+    if (offer.silver < 0) { to.silver += offer.silver; from.silver -= offer.silver; }
+    const names = (list) => (list.length ? list.map((n) => `«${B.BOARD[n].name}»`).join(', ') : 'ничего');
+    log(state, `Уговор: ${from.name} отдаёт ${names(offer.give)}, ${to.name} отдаёт ${names(offer.take)}`
+      + (offer.silver ? `, доплата ${Math.abs(offer.silver)} от ${offer.silver > 0 ? from.name : to.name}` : ''));
+    state.trade = null;
+    return true;
+  }
+
+  function tradeDecline(state) {
+    const offer = state.trade;
+    if (!offer) return false;
+    const to = findPlayer(state, offer.to);
+    log(state, `${to ? to.name : 'Сосед'} отказался от уговора.`);
+    state.trade = null;
+    return true;
+  }
+
   function endTurn(state) {
     if (state.status !== 'playing') return false;
+    /*
+      Уговор не переживает хода: висящее через круг предложение — не уговор, а
+      ловушка для того, кто забыл его отклонить.
+    */
+    if (state.trade) { log(state, 'Уговор остался без ответа и отменён.'); state.trade = null; }
     const player = current(state);
     /*
       Невыплаченный счёт ход не закрывает. Сама разметка этого и не предложит —
@@ -1276,6 +1546,8 @@ window.PromisedLandEngine = (() => {
     settle, serve, payee, takeCard, dealBuild, keepPromise, breakPromise,
     canBail, bail,
     pledgeable, pledge, pledgesOf, canRedeemPledge, redeemPledge,
+    canOfferTrade, tradeOffer, tradeAccept, tradeDecline, tradeValid,
+    tradable, tradables, tradeWorth, tradeBalance,
     canBuild, canAltar, canSell, canRedeem, rentFor, ownsWholeGroup, ownedCount,
     scoreOf, titheAmount, liquidValue, settlementSteps, standing, clone,
   };

@@ -142,12 +142,109 @@ window.PromisedLandBots = (() => {
    * rng приходит параметром — тем же, каким играет вся партия: иначе счётный
    * прогон перестанет быть воспроизводимым ровно там, где он нужнее всего.
    */
+  /*
+    Ответ на уговор.
+
+    Считается не «выгодно ли мне», а «выгодно ли мне настолько, чтобы окупить
+    выгоду соседа». Земля, которую отдаёшь, стоит соседу дороже, чем тебе, —
+    иначе он бы её не просил, — и обмен «по цене» на деле всегда в его пользу.
+    Поэтому половина его выгоды вычитается из своей: соперник от игры готов
+    помогать соседу, но не даром.
+
+    Порог зависит от уровня: «Отрок» соглашается почти на любую выгоду,
+    «Книжник» просит вдвое больше, чем отдаёт.
+  */
+  const TRADE_MARGIN = { youth: 0, elder: 60, scribe: 140 };
+
+  function judgeTrade(state, rng = Math.random) {
+    const offer = state.trade;
+    if (!offer) return false;
+    const me = state.players.find((one) => one.id === offer.to);
+    if (!me || !me.isBot) return false;
+    if (!E.tradeValid(state)) return E.tradeDecline(state);
+
+    const mine = E.tradeBalance(state, offer, me.id);
+    // Половина чужой выгоды — цена помощи соседу.
+    const theirs = E.tradeBalance(state, offer, offer.from);
+    const margin = TRADE_MARGIN[me.botLevel] ?? TRADE_MARGIN.elder;
+    let worth = mine - Math.max(0, theirs) / 2 - margin;
+
+    /*
+      Серебро на руках весит больше цены, когда его мало: отдать последние
+      двести сиклей и встать на чужую башню — это разорение, а не обмен.
+    */
+    const reserve = reserveOf(state, me, LEVELS[me.botLevel] || LEVELS.elder);
+    const after = me.silver + offer.silver;
+    if (after < reserve) worth -= (reserve - after);
+
+    // Мелкая случайность, чтобы соперник не был счётной машиной.
+    worth += (rng() - 0.5) * 40;
+    return worth > 0 ? E.tradeAccept(state) : E.tradeDecline(state);
+  }
+
+  /*
+    Предложить уговор самому.
+
+    Ищется одно положение, ради которого обмен и придуман: соперник собрал
+    группу без одного удела, и этот удел лежит у человека. Тогда он предлагает
+    за него то, что человеку нужнее — удел из его недостроенной группы, —
+    и доплачивает столько, чтобы уговор был человеку выгоден.
+
+    Дальше одного шага поиск не идёт нарочно: обмен, который надо объяснять
+    полчаса, за столом никто не примет, а обмен «мне последний удел цвета, тебе
+    последний удел твоего и сто сверху» понятен без слов.
+  */
+  function proposeTrade(state, rng = Math.random) {
+    if (!E.canOfferTrade(state)) return false;
+    const me = E.current(state);
+    if (!me.isBot) return false;
+    const reserve = reserveOf(state, me, LEVELS[me.botLevel] || LEVELS.elder);
+    const groups = new Map();
+    B.BOARD.forEach((spec) => {
+      if (spec.kind !== 'plot') return;
+      const list = groups.get(spec.group) || [];
+      list.push(spec.n);
+      groups.set(spec.group, list);
+    });
+
+    for (const [, cells] of groups) {
+      const mine = cells.filter((n) => state.cells[n].owner === me.id);
+      if (mine.length !== cells.length - 1) continue;
+      const missing = cells.find((n) => state.cells[n].owner !== me.id);
+      const holder = state.players.find((one) => one.id === state.cells[missing]?.owner);
+      if (!holder || holder.out || holder.servantOf) continue;
+      if (!E.tradable(state, missing, holder.id)) continue;
+
+      // Что отдать: удел, который соседу нужнее всего, а мне не нужен вовсе.
+      const spare = E.tradables(state, me.id)
+        .filter((n) => !cells.includes(n))
+        .map((n) => ({ n, worth: E.tradeWorth(state, n, holder.id) - E.tradeWorth(state, n, me.id) }))
+        .sort((a, b) => b.worth - a.worth)[0];
+      const give = spare && spare.worth > 0 ? [spare.n] : [];
+
+      // Доплата: столько, чтобы уговор был соседу выгоден, но не больше запаса.
+      const probe = { from: me.id, to: holder.id, give, take: [missing], silver: 0 };
+      const theirs = E.tradeBalance(state, probe, holder.id);
+      const ask = Math.max(0, Math.ceil((-theirs + 60) / 10) * 10);
+      const room = Math.max(0, me.silver - reserve);
+      if (ask > room) continue;
+      const mineWorth = E.tradeBalance(state, { ...probe, silver: ask }, me.id);
+      if (mineWorth <= 0) continue;
+      if (rng() < 0.25) return false;   // не каждый ход: иначе он зануда
+      return E.tradeOffer(state, { to: holder.id, give, take: [missing], silver: ask });
+    }
+    return false;
+  }
+
   function step(state, rng = Math.random) {
+
     const player = E.current(state);
     const profile = LEVELS[player.botLevel] || LEVELS.elder;
     const reserve = reserveOf(state, player, profile);
 
     if (state.phase === 'roll') {
+      // Уговор предлагается до костей: после броска ход уже несёт свои заботы.
+      if (proposeTrade(state, rng)) return 'trade';
       /*
         Выкуп из темницы. Раньше порог был зашит числом — шестьсот сиклей, — и
         от положения на доске не зависел вовсе. Теперь он считается: сидеть
@@ -281,5 +378,5 @@ window.PromisedLandBots = (() => {
     return false;
   }
 
-  return { LEVELS, step, reserveOf };
+  return { LEVELS, step, reserveOf, judgeTrade, proposeTrade };
 })();

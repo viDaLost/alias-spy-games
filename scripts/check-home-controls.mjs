@@ -8,6 +8,13 @@ const mime = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'],
   ['.css', 'text/css; charset=utf-8'], ['.json', 'application/json; charset=utf-8'],
   ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.jpeg', 'image/jpeg'], ['.webp', 'image/webp'],
+  /*
+    SVG. Без него этот раздатчик отдавал рисунок как application/octet-stream,
+    браузер отказывался его рисовать, и проверка честно сообщала, что значок
+    меню не отрисовался, — а виноват был не значок, а раздатчик. Первый же
+    значок меню в SVG («Царства») на это и напоролся.
+  */
+  ['.svg', 'image/svg+xml'],
 ]);
 
 const startupSource = fs.readFileSync(path.join(root, 'web/js/startup-coordinator.js'), 'utf8');

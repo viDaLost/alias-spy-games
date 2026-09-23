@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '3dcbaf6d63';
+const VERSION = '3c172884f8';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -27,8 +27,8 @@ const PRECACHE = [
   'web/js/language-choice.js',
   'web/i18n/bootstrap.js',
   'web/assets/twelve-tribes/art.json',
-  'web/dist/app.36c5fcd9ff.css',
-  'web/dist/app.7226e64c13.js',
+  'web/dist/app.390af2406f.css',
+  'web/dist/app.efa8c6e152.js',
   'web/games/alias.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',
@@ -182,8 +182,30 @@ const isImmutable = (url) => url.pathname.includes('/web/dist/');
 // каждый раз новый. Файлы здесь статические, и путь однозначно их определяет.
 const keyFor = (url) => new Request(`${url.origin}${url.pathname}`);
 
-async function fromNetwork(request, cacheName) {
-  const response = await fetch(request);
+/*
+  Жалоба: «на некоторых телефонах не прогружаются игры или картинки». У
+  fetch() здесь не было потолка ожидания: запрос, который на нестабильной
+  мобильной сети не ответил и не оборвался, — обычное дело, — оставлял
+  fromNetwork висеть вечно, а вместе с ней и весь event.respondWith. Ниже по
+  коду это уже учтено (навигация падает на кеш или index.html, неизменные
+  бандлы — на Response.error(), у остального есть кеш или тот же
+  Response.error()) — но только если fromNetwork хоть когда-нибудь
+  отклонится. Без таймаута зависший запрос никогда не отклонялся, и картинка
+  или файл игры просто не появлялись — ни ошибки, ни повтора, только вечная
+  загрузка.
+*/
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('network timeout')), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
+async function fromNetwork(request, cacheName, timeoutMs = 8000) {
+  const response = await withTimeout(fetch(request), timeoutMs);
   if (response.ok && request.method === 'GET') {
     const cache = await caches.open(cacheName);
     cache.put(keyFor(new URL(request.url)), response.clone());

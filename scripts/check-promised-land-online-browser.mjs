@@ -84,6 +84,9 @@ try {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
     });
+    // Кнопка «Скопировать код» пишет в буфер обмена — без разрешения браузер
+    // отказал бы ей молча, и проверка не отличила бы отказ от поломки.
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const page = await context.newPage();
     page.on('pageerror', (error) => errors.push(`${label}: ${error}`));
     page.on('console', (message) => { if (message.type() === 'error') errors.push(`${label}: ${message.text()}`); });
@@ -101,6 +104,12 @@ try {
   const code = (await host.locator('#lobby-code').textContent() || '').trim();
   need(/^[A-Z0-9]{5}$/.test(code), `код комнаты на экране: «${code}»`);
 
+  // Кнопка копирования кладёт в буфер обмена именно код, а не ссылку и не
+  // приглашение — их собирает соседняя кнопка «Позвать друзей».
+  await host.locator('#lobby-copy').click();
+  const copied = await host.evaluate(() => navigator.clipboard.readText());
+  need(copied === code, `кнопка скопировала «${copied}» вместо кода «${code}»`);
+
   // 2. Второй входит по коду — и появляется у первого сам, без перезагрузки.
   const guest = await openPhone('гостья');
   await guest.locator('#online-name').fill('Анна');
@@ -113,8 +122,6 @@ try {
     'гостья не видит за столом двоих');
   need(await guest.locator('#lobby-start').isVisible() === false,
     'кнопка «начать партию» показана гостье');
-  need(await host.locator('#lobby-ready').isVisible() === false,
-    'хозяину предложено объявить себя готовым');
 
   // 3. Сказанное за столом доходит.
   await guest.locator('#lobby-chat-text').fill('Я готова');
@@ -122,12 +129,12 @@ try {
   await until(async () => (await host.locator('#lobby-chat-lines').textContent() || '').includes('Я готова'),
     'сказанное гостьей не дошло до хозяина');
 
-  // 4. Партия начинается, когда гостья готова.
-  need(await host.locator('#lobby-start').isDisabled(),
-    'партию можно начать, пока гостья не готова');
-  await guest.locator('#lobby-ready').click();
-  await until(async () => !(await host.locator('#lobby-start').isDisabled()),
-    'гостья готова, а начать партию нельзя');
+  /*
+    4. Партия начинается сразу, без отдельного шага готовности: вошедшая в
+    лобби гостья уже за столом.
+  */
+  need(!(await host.locator('#lobby-start').isDisabled()),
+    'гостья за столом, а начать партию нельзя без лишнего нажатия «готов»');
   await host.locator('#lobby-start').click();
   await host.waitForSelector('#game:not([hidden])', { timeout: 15_000 });
   await until(async () => await guest.locator('#game:not([hidden])').count() > 0,
@@ -216,6 +223,6 @@ if (problems.length) {
 }
 
 console.log('OK: комната заводится на одном телефоне и открывается по коду на другом, вошедший '
-  + 'появляется у хозяина сам, сказанное доходит, партия начинается по готовности, кнопки хода '
-  + 'стоят только у того, чей ход, брошенный жребий меняет доску у обоих, а закрывший вкладку '
+  + 'появляется у хозяина сам и сразу готов к игре без лишнего нажатия, сказанное доходит, кнопки '
+  + 'хода стоят только у того, чей ход, брошенный жребий меняет доску у обоих, а закрывший вкладку '
   + 'возвращается в свою комнату на своё место, не помня её кода.');

@@ -220,31 +220,51 @@ jobs:
             return { response, data: await response.json().catch(() => ({})) };
           }
 
-          let result = await compat({
-            telegramInitData: createInitData(),
-            payload: { action: 'adminRoleStatus', adminId: '999999999' },
-          });
-          if (!result.response.ok || result.data?.isAdmin !== true || result.data?.isRoot !== true || String(result.data?.userId) !== String(adminId)) {
-            throw new Error(`Root RBAC verification failed: HTTP ${result.response.status} ${JSON.stringify(result.data)}`);
+          async function verify() {
+            let result = await compat({
+              telegramInitData: createInitData(),
+              payload: { action: 'adminRoleStatus', adminId: '999999999' },
+            });
+            if (!result.response.ok || result.data?.isAdmin !== true || result.data?.isRoot !== true || String(result.data?.userId) !== String(adminId)) {
+              throw new Error(`Root RBAC verification failed: HTTP ${result.response.status} ${JSON.stringify(result.data)}`);
+            }
+
+            result = await compat({
+              telegramInitData: '',
+              payload: { action: 'getAdminData', adminId },
+            });
+            if (result.response.status !== 401) {
+              throw new Error(`Client-supplied adminId bypassed signed Telegram proof: HTTP ${result.response.status}`);
+            }
+
+            result = await compat({
+              telegramInitData: 'auth_date=1&user=%7B%22id%22%3A1288379477%7D&hash=' + '0'.repeat(64),
+              payload: { action: 'adminRoleGrant', targetId: adminId, adminId },
+            });
+            if (result.response.status !== 401) {
+              throw new Error(`Forged Telegram signature reached role mutation: HTTP ${result.response.status}`);
+            }
           }
 
-          result = await compat({
-            telegramInitData: '',
-            payload: { action: 'getAdminData', adminId },
-          });
-          if (result.response.status !== 401) {
-            throw new Error(`Client-supplied adminId bypassed signed Telegram proof: HTTP ${result.response.status}`);
+          // Первый запрос после развёртывания приходит в хранилище, которое
+          // Cloudflare в эту самую секунду перезапускает с новым кодом, и
+          // отвечает «Durable Object reset because its code was updated».
+          // Проверка при этом ничего не проверила: отказ не от воркера, а от
+          // платформы. Соседние шаги давно ходят повторно по той же причине —
+          // этот остался единственным без повтора и красил деплой красным при
+          // успешно уехавшем воркере.
+          let lastError;
+          for (let attempt = 1; attempt <= 5; attempt += 1) {
+            try {
+              await verify();
+              console.log('Admin RBAC boundary verified: root is server-derived and forged/client-only identity cannot authorize admin actions.');
+              process.exit(0);
+            } catch (error) {
+              lastError = error;
+              if (attempt < 5) await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
           }
-
-          result = await compat({
-            telegramInitData: 'auth_date=1&user=%7B%22id%22%3A1288379477%7D&hash=' + '0'.repeat(64),
-            payload: { action: 'adminRoleGrant', targetId: adminId, adminId },
-          });
-          if (result.response.status !== 401) {
-            throw new Error(`Forged Telegram signature reached role mutation: HTTP ${result.response.status}`);
-          }
-
-          console.log('Admin RBAC boundary verified: root is server-derived and forged/client-only identity cannot authorize admin actions.');
+          throw lastError;
           NODE
       - name: Verify registration code delivery to administrator
         env:

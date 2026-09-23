@@ -482,6 +482,11 @@ function playLast(seed, playerCount) {
   return { finished: state.status === 'jubilee', turns, left: E.standing(state).length, state };
 }
 
+const median = (values) => {
+  const sorted = values.slice().sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+};
+
 const lastGames = [];
 for (let seed = 1; seed <= 120; seed += 1) {
   lastGames.push(playLast(seed * 7, 2 + (seed % 5)));
@@ -492,6 +497,23 @@ const wrongLeft = lastGames.filter((game) => game.finished && game.left > 1).len
 need(wrongLeft === 0, `${wrongLeft} партий «до последнего» кончились, пока держались двое`);
 const lastSabbath = lastGames.filter((game) => game.state.sabbath).length;
 need(lastSabbath === 0, `${lastSabbath} партий «до последнего» встретили субботний год`);
+
+/*
+  Долго ли держатся. Одного «партия кончилась» мало: кончиться она может и
+  оттого, что подать за год обогнала урожай, — тогда исход решает не игра, а
+  арифметика, и садиться за стол незачем. Жалоба игрока была ровно про это:
+  «в бесконечном режиме очень быстро разоряются».
+
+  Поэтому срок меряется с двух сторон. Слишком быстро — режим не успевает
+  начаться: при прежнем шаге подати в 200 медиана была пять лет, и первый
+  выбывал на четвёртом, когда земля просила вчетверо больше урожая. Слишком
+  долго — «до последнего» превращается в «до усталости»: при шаге 50 партия
+  вчетвером тянулась семнадцать лет.
+*/
+const lastYears = lastGames.filter((game) => game.finished).map((game) => game.state.year);
+const medianYear = median(lastYears);
+need(medianYear >= 8, `партии «до последнего» кончаются на ${medianYear}-м году — разоряет подать, а не игра`);
+need(medianYear <= 20, `партии «до последнего» тянутся до ${medianYear}-го года — это уже до усталости`);
 
 const GAMES = 600;
 const results = [];
@@ -536,10 +558,6 @@ const richestShare = counted ? richestWins / counted * 100 : 100;
 need(richestShare < 80,
   `богатейший выигрывает в ${richestShare.toFixed(0)}% партий — наследие ничего не решает`);
 
-const median = (values) => {
-  const sorted = values.slice().sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)];
-};
 const turnsBy = (years) => median(results.filter((game) => game.years === years).map((game) => game.turns));
 
 if (problems.length) {
@@ -562,4 +580,5 @@ console.log(`OK: ${GAMES} партий дошли до юбилея и конч�
   + `половиной (${deals.half}), а по уговору не уходит вовсе, и хозяин отвечает ступенью. `
   + `Залог: удел дешевле долга в залог не идёт, дорогой уходит кредитору и выкупается `
   + `за ту же сумму (${pledged.owed}). «До последнего»: ${lastGames.length} партий дошли до `
-  + `конца, в каждой остался один, медиана ${median(lastGames.map((game) => game.turns))} ходов.`);
+  + `конца, в каждой остался один, медиана ${median(lastGames.map((game) => game.turns))} ходов `
+  + `и ${medianYear} лет.`);

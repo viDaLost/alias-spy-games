@@ -122,6 +122,7 @@ export const scriptSources = [
   'web/js/game-frame-safe-area.js',
   'web/js/language-menu.js',
   'web/js/channel-promo.js',
+  'web/js/bot-start-promo.js',
   'web/js/game-scene-parallax.js',
 ];
 // Loaded only after the administrator opens the panel; order is significant.

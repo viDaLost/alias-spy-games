@@ -335,7 +335,7 @@ window.PromisedLand3D = (() => {
 
   // ————————————————————————————————————————————— сцена
 
-  function create({ canvas, art, sceneArt, modelsAt, onCellTap, onViewChange, frameOf, theme }) {
+  function create({ canvas, art, sceneArt, modelsAt, onCellTap, onViewChange, frameOf, theme, onModels }) {
     const THREE = window.THREE;
     /*
       Холст непрозрачен, и за землёй стоит не страница, а тёплая дымка. Раньше
@@ -1624,11 +1624,34 @@ window.PromisedLand3D = (() => {
       }
     }
 
+    /*
+      Сколько моделей доехало.
+
+      Каждая загрузка до сих пор оканчивалась молчанием в обе стороны: вышла —
+      человек на доске, не вышла — предмет на подставке, и ни слова о том, что
+      случилось. Пока всё грузится, это и правильно: сцена живёт без любой из
+      моделей нарочно. Но когда игрок пишет «не прогружаются люди», сказать
+      нечего — ни сколько их не доехало, ни почему.
+
+      Поэтому здесь считают. Через десяток секунд после сборки сцены счёт
+      уходит наружу — но только если что-то и правда не доехало: удачная
+      загрузка не должна стоить ни одного лишнего запроса.
+    */
+    const models = { asked: 0, loaded: 0, failed: 0, loader: Boolean(THREE.GLTFLoader) };
+    const modelReport = () => {
+      if (typeof onModels !== 'function') return;
+      if (models.loader && models.failed === 0) return;
+      onModels({ ...models });
+    };
+    setTimeout(modelReport, 12_000);
+
     if (modelsAt && THREE.GLTFLoader) {
       const gltf = new THREE.GLTFLoader();
       for (let index = 0; index < PEOPLE.length; index += 1) {
         const kind = PEOPLE[index];
+        models.asked += 1;
         gltf.load(`${modelsAt}token-${kind}.glb`, (loaded) => {
+          models.loaded += 1;
           const model = loaded.scene;
           model.traverse((node) => {
             if (node.isMesh && node.material) node.material.roughness = 1;
@@ -1643,10 +1666,12 @@ window.PromisedLand3D = (() => {
           seatWatchers(model, index);
           if (index < WATCHERS - PEOPLE.length) seatWatchers(model, PEOPLE.length + index);
           touch();
-        }, undefined, () => { /* нет модели — на подставке остаётся предмет */ });
+        }, undefined, () => { models.failed += 1; /* нет модели — на подставке остаётся предмет */ });
       }
       for (const kind of BUILD_KINDS) {
+        models.asked += 1;
         gltf.load(`${modelsAt}build-${kind}.glb`, (loaded) => {
+          models.loaded += 1;
           const model = loaded.scene;
           /*
             Модель уже вписана в клетку сборщиком: середина в нуле, низ на
@@ -1663,13 +1688,15 @@ window.PromisedLand3D = (() => {
           prototypes.set(kind, model);
           carved.add(kind);
           restock(kind);
-        }, undefined, () => { /* нет модели — остаётся фигурка из примитивов */ });
+        }, undefined, () => { models.failed += 1; /* нет модели — остаётся фигурка из примитивов */ });
       }
       for (const item of SCENERY) {
+        models.asked += 1;
         gltf.load(`${modelsAt}${item.file}`, (loaded) => {
+          models.loaded += 1;
           scatter(loaded.scene, item);
           touch();
-        }, undefined, () => { /* нет модели — сцена живёт без неё */ });
+        }, undefined, () => { models.failed += 1; /* нет модели — сцена живёт без неё */ });
       }
     }
 
@@ -2093,6 +2120,9 @@ window.PromisedLand3D = (() => {
       sync, walk, roll, resize, dispose, highlight, focus, home, screenOf,
       dealCard, returnCard, demoWalk, demoBuild, demoLadder, orbit, setSpeed,
       atHome, stats, frames, render: touch,
+      // Счёт доехавших моделей — наружу: по нему проверка и видит, что беда
+      // сосчитана, а не проглочена.
+      models: () => ({ ...models }),
     };
   }
 

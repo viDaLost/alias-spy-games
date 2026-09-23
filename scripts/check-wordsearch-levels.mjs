@@ -11,6 +11,15 @@
 // find. Nothing caught either, so this runs both placements and fails if any level
 // cannot seat all of its words or would build a board larger than the game already
 // asks a phone to show.
+//
+// «Классика» used to flip a coin per word and print it backwards in the grid --
+// a common word-search trick, wrong here: these words are names from the Synodal
+// text, and a name printed backwards is not what the Bible says, even when the
+// game still matches it correctly. A player reported exactly this on level 23:
+// «Асенефа» read as «Афенеса», its mirror image. The layout is seeded by level
+// id, not by the session, so every player of that level saw the same reversal --
+// this check reads the letters the way the game actually lays them out and fails
+// if any word, on any level, would print anywhere but forward.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -159,6 +168,74 @@ function classicShape(level) {
   return { rows, cols, seats };
 }
 
+/*
+  Same seed, same shuffles, same shape as buildClassicLevel -- but this one keeps
+  the grid it wrote, so the assertion below can read letters back the way a
+  player would see them, in the exact cells the real engine fills.
+*/
+function makeSeededRandom(seed) {
+  let s = (seed >>> 0) || 1;
+  return () => {
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 4294967296;
+  };
+}
+function hashSeed(text) {
+  let h = 2166136261 >>> 0;
+  for (const char of String(text || '')) {
+    h ^= char.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function fisherYates(list, random) {
+  const result = [...list];
+  for (let i = result.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+function classicPlacements(level) {
+  const words = [...level.wordsList];
+  const random = makeSeededRandom(hashSeed(`${level.id}|${level.theme}|${words.join('|')}`));
+  const ordered = fisherYates(words, random).sort((a, b) => b.length - a.length);
+  const verticalCount = Math.ceil(ordered.length / 2);
+  const vertical = ordered.slice(0, verticalCount);
+  const horizontal = ordered.slice(verticalCount);
+  const maxVertical = Math.max(3, ...vertical.map((word) => word.length));
+  const maxHorizontal = Math.max(3, ...horizontal.map((word) => word.length));
+  const cols = Math.max(8, maxHorizontal + 1, vertical.length + 2);
+  const rows = Math.max(8, maxVertical + 2 + horizontal.length);
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(''));
+  const placements = [];
+  const verticalCols = fisherYates(Array.from({ length: cols }, (_, i) => i), random).slice(0, vertical.length);
+  vertical.forEach((word, index) => {
+    const col = verticalCols[index];
+    const start = Math.floor(random() * (Math.max(0, maxVertical - word.length) + 1));
+    const path = [];
+    for (let i = 0; i < word.length; i += 1) {
+      const row = start + i;
+      grid[row][col] = word[i];
+      path.push([row, col]);
+    }
+    placements.push({ text: word, path });
+  });
+  const horizontalRows = fisherYates(Array.from({ length: horizontal.length }, (_, i) => maxVertical + 2 + i), random);
+  horizontal.forEach((word, index) => {
+    const row = horizontalRows[index];
+    const start = Math.floor(random() * (Math.max(0, cols - word.length) + 1));
+    const path = [];
+    for (let i = 0; i < word.length; i += 1) {
+      const col = start + i;
+      grid[row][col] = word[i];
+      path.push([row, col]);
+    }
+    placements.push({ text: word, path });
+  });
+  return { grid, placements };
+}
+
 // --- every word has to fit, in both modes ------------------------------------
 
 const rows = [];
@@ -186,6 +263,15 @@ for (const level of levels) {
       + `larger than the ${MAX_CLASSIC_ROWS}x${MAX_CLASSIC_COLS} the game keeps readable on a phone`,
     );
   }
+  // Читаем сетку так же, как читал бы игрок: по клеткам пути, в его собственном
+  // порядке. Слово обязано звучать так, как записано, — не задом наперёд.
+  const { grid: classicGrid, placements } = classicPlacements(level);
+  for (const { text, path } of placements) {
+    const spelled = path.map(([r, c]) => classicGrid[r][c]).join('');
+    if (spelled !== text) {
+      failures.push(`уровень ${level.id} «${level.theme}»: «${text}» напечатано в сетке как «${spelled}»`);
+    }
+  }
 
   rows.push(`${String(level.id).padStart(3)} ${level.theme.padEnd(24)} змейка ${level.rows}x${level.cols} `
     + `${String(Math.round((letters / cells) * 100)).padStart(3)}%   классика ${String(classic.rows).padStart(2)}x${classic.cols} `
@@ -201,4 +287,5 @@ if (failures.length) {
 
 const words = levels.flatMap((level) => level.wordsList || []);
 console.log(`Word search levels OK: ${levels.length} уровней, ${words.length} слов, все уникальны, `
-  + `на каждом не меньше четырёх, и каждое слово помещается и в «Классике», и в «Змейке».`);
+  + `на каждом не меньше четырёх, каждое слово помещается и в «Классике», и в «Змейке», `
+  + `и ни одно не напечатано задом наперёд.`);

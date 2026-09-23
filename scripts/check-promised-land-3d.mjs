@@ -942,15 +942,33 @@ try {
     }
     need(await page.locator('.waiting').count() === 0,
       'за двадцать секунд ход так и не дошёл до человека');
+    /*
+      Окно покоя — три секунды, а не полсекунды, и шаг у него в полсекунды, а
+      не в четверть.
+
+      Причина в скорости рисования. Видеокарты на сборочной машине нет, рисует
+      SwiftShader обычными вычислениями, и один кадр там занимает пятую долю
+      секунды, а под нагрузкой и полсекунды. Прежнее окно — два одинаковых
+      замера через четверть секунды — такой кадр просто не успевал застать:
+      сцена «унялась» только потому, что не успела нарисовать ни одного кадра
+      за полсекунды, а следующие полторы секунды заставали ту же самую
+      незаконченную анимацию. Проверка сообщала «в покое нарисовано 7 кадров»
+      — и была неправа не в том, что считала, а в том, где считала: покоя ещё
+      не было.
+
+      Три секунды тишины — это шесть-пятнадцать кадров этой машины подряд, ни
+      одного из которых не случилось. Само условие не ослаблено ничуть: в
+      покое кадров по-прежнему должно быть ноль.
+    */
     let settled = 0;
     let seen = await framesNow();
-    for (let tick = 0; tick < 40 && settled < 2; tick += 1) {
-      await page.waitForTimeout(250);
+    for (let tick = 0; tick < 60 && settled < 6; tick += 1) {
+      await page.waitForTimeout(500);
       const now = await framesNow();
       settled = now === seen ? settled + 1 : 0;
       seen = now;
     }
-    need(settled >= 2, 'сцена не унялась за десять секунд — что-то рисуется без остановки');
+    need(settled >= 6, 'сцена не унялась за полминуты — что-то рисуется без остановки');
     const quiet = await framesNow();
     await page.waitForTimeout(1500);
     const stillQuiet = await framesNow();
@@ -1429,6 +1447,39 @@ try {
 
   await side.close();
   side = null;
+
+  /*
+    Несостоявшиеся модели теперь считают, а не проглатывают.
+
+    Жалоба «в приложении не прогружаются люди вокруг доски» до сих пор была
+    словом против молчания: каждая загрузка кончалась тихо в обе стороны — не
+    вышла, и на подставке остался предмет. Сцена и должна жить без любой из
+    моделей, но счёт вести обязана, иначе о такой беде не узнать никогда.
+
+    Проверяется это единственным честным способом: моделям перекрывают дорогу
+    и смотрят, сосчитала ли сцена потерю. Заодно видно и обратное — на целой
+    раздаче не теряется ни одна: если завтра рассыплется раскладка картинок
+    при развёртывании, проверка скажет об этом здесь.
+  */
+  const blind = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const blindPage = await blind.newPage();
+  await blindPage.route('**/*.glb', (route) => route.fulfill({ status: 404, body: 'нет' }));
+  await blindPage.goto(url, { waitUntil: 'networkidle', timeout: 30_000 });
+  await blindPage.locator('.mode-card[data-mode="solo"]').click();
+  await blindPage.evaluate(() => document.getElementById('start-btn').click());
+  await blindPage.waitForSelector('#game:not([hidden])', { timeout: BOARD_WAIT });
+  await blindPage.waitForTimeout(4000);
+  const lost = await blindPage.evaluate(() => window.PromisedLandScene?.models?.() || null);
+  need(lost && lost.asked > 0, 'сцена не спросила ни одной модели — счёт не ведётся');
+  need(lost && lost.failed === lost.asked,
+    `модели не доехали, а сцена насчитала ${lost?.failed} потерь из ${lost?.asked}`);
+  need(lost && lost.loaded === 0, `при перекрытой дороге доехало ${lost?.loaded} моделей`);
+  await blind.close();
+
+  const whole = await page.evaluate(() => window.PromisedLandScene?.models?.() || null);
+  need(whole && whole.asked > 0, 'на целой раздаче сцена не спросила ни одной модели');
+  need(whole && whole.failed === 0,
+    `на целой раздаче не доехало ${whole?.failed} моделей из ${whole?.asked}`);
 } finally {
   await context.close();
   if (side) await side.close();

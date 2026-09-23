@@ -34,16 +34,9 @@ const GAME_GROUPS = [
       { key: "describe", title: "Опиши, но не называй", desc: "Подсказки без прямого ответа", icon: "describe" },
       { key: "spy", title: "Соглядатай", desc: "Секретная роль и локация", icon: "spy" },
       { key: "quartet", title: "Квартет", desc: "Собери четыре карты", icon: "quartet" },
-      /*
-        «Двенадцать колен» пока открыты только главному администратору: игра
-        готова, но в общий список ещё не выпущена. Признак owner прячет
-        карточку у всех остальных и закрывает вход даже по прямому вызову —
-        см. renderGameButton и showGame.
-      */
       {
         key: "twelve-tribes", title: "Двенадцать колен",
         desc: "Станы и жребии: сбросьте карты первым", icon: "twelve-tribes",
-        owner: true,
       },
       {
         key: "promised-land", title: "Земля обетованная",
@@ -473,7 +466,7 @@ function openSupportChat() {
 const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
 
 function renderGameButton(item) {
-  const gate = item.owner ? " game-card--owner" : "";
+  const gate = item.owner ? ` game-card--owner${item.tryout ? " game-card--tryout" : ""}` : "";
   return `
     <button type="button" class="game-card${gate}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
@@ -813,32 +806,7 @@ function showGame(gameName) {
     return;
   }
 
-  /*
-    Замок «Двенадцати колен». Игра пока открыта только главному
-    администратору, и скрытой карточки для этого мало: до showGame можно
-    добраться и мимо неё — историей, ссылкой, чужим вызовом из консоли.
-
-    Замок этот не от злоумышленника: в игре нечего красть, её файлы раздаются
-    статикой всем, у кого есть адрес. Он от того, чтобы игра не появилась у
-    людей раньше времени.
-  */
-  if (gameName === "twelve-tribes" && !isOwner()) {
-    if (menu) menu.classList.add("hidden");
-    document.body.dataset.mode = "game";
-    activeGameName = gameName;
-    document.body.dataset.currentGame = gameName;
-    if (container) {
-      container.innerHTML = `
-        <section class="app-error-card fade-in">
-          <h2>Игра ещё не открыта</h2>
-          <p>«Двенадцать колен» пока проходят обкатку и доступны только администратору.</p>
-          <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
-        </section>`;
-    }
-    return;
-  }
-
-  /* Тот же замок и по той же причине — у «Царств». */
+  /* Тот же замок — у «Царств»: игра готова, но в общий список ещё не выпущена. */
   if (gameName === "kingdoms" && !isOwner()) {
     if (menu) menu.classList.add("hidden");
     document.body.dataset.mode = "game";
@@ -1355,6 +1323,32 @@ window.addEventListener('message', (event) => {
   if (data?.type === 'promised-land:scan') window.RoomQrScanner?.open?.();
   if (data?.type === 'promised-land:qr' && /^[A-Z0-9]{5}$/.test(data.room || '')) {
     window.RoomInvite?.openQr?.('promised-land', data.room, 'Земля обетованная · подключение к комнате');
+  }
+  /*
+    Код комнаты из кадра. Игра на своём адресе, её хранилище отсюда не
+    прочитать, и без этого сообщения приложение не знало бы, что человек сидит
+    в комнате, — а знать надо: по коду администратор открывает монитор партии.
+  */
+  if (data?.type === 'promised-land:room') {
+    const room = String(data.room || '');
+    if (/^[A-Z0-9]{4,10}$/.test(room)) window.AppPresenceContext?.setRoom?.('promised-land', room);
+    else window.AppPresenceContext?.clearRoom?.('promised-land');
+  }
+  /*
+    Беда внутри кадра. Игра на своём адресе, и увидеть её изнутри приложению
+    нечем: ни консоли телефона, ни доступа к её окну. Сейчас так приходит один
+    доклад — сколько объёмных моделей не доехало; доклад уходит в наблюдение
+    вместе с прочими событиями, и на жалобу «не прогружаются люди» есть чем
+    ответить, кроме догадок.
+  */
+  if (data?.type === 'promised-land:trouble') {
+    const detail = data.detail && typeof data.detail === 'object' ? data.detail : {};
+    const numbers = ['asked', 'loaded', 'failed']
+      .map((key) => `${key} ${Number(detail[key] || 0)}`).join(', ');
+    window.AppTelemetry?.track?.('promised_land_trouble', {
+      game: 'promised-land',
+      message: `${String(data.what || '').slice(0, 24)}: ${numbers}, загрузчик ${detail.loader ? 'есть' : 'не поднялся'}`,
+    });
   }
   if (data?.type === 'promised-land:ready') {
     sendPromisedLandInvite();

@@ -21,7 +21,7 @@ const room = await import(
 );
 const {
   MAX_PLAYERS, MIN_PLAYERS,
-  createRoomState, joinRoom, leaveRoom, setReady, renamePlayer, setSettings,
+  createRoomState, joinRoom, leaveRoom, renamePlayer, setSettings,
   addChatMessage, startGame, backToLobby, buildView, canStart, seated, sanitizeName,
 } = room;
 
@@ -46,11 +46,13 @@ need(seated(one).length === MAX_PLAYERS, `за столом ${seated(one).length
 need(!fails(() => joinRoom(one, person('p7', 'Лишний')), 'ROOM_FULL'),
   `седьмого: ${fails(() => joinRoom(one, person('p7', 'Лишний')), 'ROOM_FULL')}`);
 
-// 3. Партию начинает хозяин, и только когда все готовы.
-need(!canStart(one), 'партию можно начать, когда никто не готов');
+/*
+  3. Партию начинает хозяин, и начать можно сразу: вошедший в лобби уже за
+  столом, а не в очереди на подтверждение, — никакой отдельной готовности
+  дожидаться не нужно.
+*/
+need(canStart(one), 'стол собран, а начать нельзя');
 need(!fails(() => startGame(one, 'p2'), 'NOT_HOST'), 'партию начал не хозяин');
-for (let i = 2; i <= MAX_PLAYERS; i += 1) setReady(one, `p${i}`, true);
-need(canStart(one), 'все готовы, а начать нельзя');
 startGame(one, 'p1', 2000);
 need(one.phase === 'playing', `после начала комната в состоянии «${one.phase}»`);
 
@@ -78,10 +80,9 @@ need(one.hostPlayerId && one.hostPlayerId !== 'p1',
 const heir = one.hostPlayerId;
 need(one.players.find((p) => p.id === heir)?.leftAt === 0, 'хозяином стал ушедший');
 
-// 7. Возврат в лобби вычёркивает ушедших и снимает готовность.
+// 7. Возврат в лобби вычёркивает ушедших.
 backToLobby(one, heir, 5000);
 need(one.phase === 'lobby', `после возврата комната в состоянии «${one.phase}»`);
-need(one.players.every((p) => !p.ready), 'после возврата кто-то остался готовым');
 need(one.players.every((p) => !p.leftAt), 'после возврата в лобби остались ушедшие');
 
 // 8. Настройки меняет хозяин, и только разумные.

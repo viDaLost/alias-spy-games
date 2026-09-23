@@ -31,7 +31,35 @@ export const GAME_ACTIONS = new Set([
   'build', 'altar', 'sell', 'redeem',
   'settle', 'serve', 'pledge', 'redeemPledge',
   'takeCard', 'dealBuild', 'keepPromise', 'breakPromise', 'bail',
+  'tradeOffer', 'tradeAccept', 'tradeDecline',
 ]);
+
+/*
+  Ответ на уговор даёт не тот, чей ход, — в этом весь смысл уговора. Эти два
+  хода проверяются иначе: их вправе сделать тот, кому уговор предложен, и
+  только пока уговор висит.
+*/
+export const TRADE_ANSWERS = new Set(['tradeAccept', 'tradeDecline']);
+
+/*
+  Уговор приходит с телефона одним свёртком, и доверять ему нельзя ни в одном
+  поле: «отдаю» может оказаться строкой, «доплата» — бесконечностью, а уделов
+  в списке — тысяча. Здесь свёрток приводится к тому единственному виду, какой
+  движок вообще рассматривает; всё остальное движок отвергнет сам.
+*/
+export function sanitizeTrade(value) {
+  const list = (raw) => (Array.isArray(raw) ? raw : [])
+    .slice(0, 8)
+    .map((one) => Math.trunc(Number(one)))
+    .filter((one) => Number.isInteger(one) && one >= 0 && one < 64);
+  const silver = Math.trunc(Number(value?.silver));
+  return {
+    to: String(value?.to || '').slice(0, 8),
+    give: list(value?.give),
+    take: list(value?.take),
+    silver: Number.isFinite(silver) ? Math.max(-100000, Math.min(100000, silver)) : 0,
+  };
+}
 
 /** Числа и «да/нет» — всё, что действие может принести с собой. */
 export function sanitizeArgs(args) {

@@ -22,6 +22,7 @@ import {
   joinRoom,
   leaveRoom,
   nextStepAt,
+  playAgain,
   playerAction,
   sanitizeSettings,
   seatOf,
@@ -165,12 +166,27 @@ test('партия доходит до конца, и сервер ведёт е
   leaveRoom(room, guest.playerId, 1100);
   let now = 2000;
   let guard = 0;
-  while (room.game.status === 'playing' && guard < 4000) {
-    stepTable(room, now, Math.random);
+  /*
+    Источник случайности посеян, а не взят у системы.
+
+    Раньше здесь стоял Math.random, и проверка сама себе вредила: партия без
+    людей за столом то кончалась за двести шагов, то за двенадцать тысяч, и
+    падала она не от поломки, а от того, каким выпал жребий. Посеянный
+    источник даёт один и тот же прогон — а значит, упавшая проверка падает
+    снова и её есть чем чинить.
+
+    И предел поднят с четырёх тысяч. Раздача теперь идёт по местам — не до
+    первого вышедшего, а пока за столом не останется один, — и стала много
+    длиннее: сорок прогонов дали медиану около тысячи восьмисот шагов и хвост
+    до двенадцати тысяч. Четыре тысячи были мерой прежних правил.
+  */
+  const dice = seeded(4242);
+  while (room.game.status === 'playing' && guard < 40000) {
+    stepTable(room, now, dice);
     now += AWAY_TURN_LIMIT_MS + 1;
     guard += 1;
   }
-  assert.notEqual(room.game.status, 'playing', `раздача не кончилась за ${guard} ходов`);
+  assert.notEqual(room.game.status, 'playing', `раздача не кончилась за ${guard} шагов`);
   const hands = room.game.players.reduce((sum, one) => sum + one.hand.length, 0);
   assert.equal(hands + room.game.deck.length + room.game.pile.length, 108, 'карты по дороге потерялись');
 });
@@ -194,4 +210,38 @@ test('из партии возвращаются в лобби, и ушедши�
   assert.equal(room.game, null);
   assert.equal(room.players.length, 1, 'ушедший остался за столом');
   assert.equal(room.players[0].ready, false, 'готовность не сброшена');
+});
+
+/*
+  «Играть ещё раз». Короткий путь с итогов: не разводить всех по лобби, а
+  сдать заново тем же составом. Проверяется то, что при таком коротком пути и
+  ломается: чужое право начать, состав стола и живая новая раздача.
+*/
+test('ещё одна раздача сдаётся тем же составом, и начинает её хозяин', () => {
+  const room = started();
+  const before = room.game;
+  assert.throws(() => playAgain(room, guest.playerId, 5000), /хозяин/i);
+
+  playAgain(room, host.playerId, 5001, seeded(9));
+  assert.equal(room.phase, 'playing', 'комната не вернулась за стол');
+  assert.notEqual(room.game, before, 'раздача осталась прежней');
+  // У соперника от игры на мосту мест пусто, поэтому считаются только имена.
+  const humans = room.seats.filter(Boolean);
+  assert.equal(humans.length, 2, `за столом ${humans.length} человек вместо двоих`);
+  assert.ok(humans.includes(host.playerId) && humans.includes(guest.playerId));
+  assert.equal(room.game.players.length, 3, 'соперник от игры не сел заново');
+  const hands = room.game.players.reduce((sum, one) => sum + one.hand.length, 0);
+  assert.equal(hands, 21, `на руках ${hands} карт вместо двадцати одной`);
+
+  // Ушедший в новую раздачу не попадает — его вычёркивает тот же возврат в
+  // лобби, что и обычно.
+  leaveRoom(room, guest.playerId, 5002);
+  playAgain(room, host.playerId, 5003, seeded(10));
+  assert.equal(room.seats.filter(Boolean).length, 1, 'ушедший снова оказался за столом');
+  assert.equal(room.players.length, 1);
+});
+
+test('ещё раз не сдаётся, пока партия не началась', () => {
+  const room = lobby();
+  assert.throws(() => playAgain(room, host.playerId, 5000), /не идёт/i);
 });

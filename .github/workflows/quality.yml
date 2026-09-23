@@ -16,6 +16,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # Картинки и библиотеки превью «Земли обетованной» в репозитории не
+      # лежат: они копируются из web/assets и web/games тем же скриптом, что
+      # и при развёртывании. Без этого шага проверка ссылок честно ругается на
+      # три-r128 и GLTFLoader — файлов и правда нет, пока их не разложат.
+      - name: Sync Promised Land preview art
+        run: node scripts/sync-promised-land-art.mjs
       - name: Validate project
         run: npm run check
       - name: Check rich admin broadcast mount
@@ -100,7 +106,11 @@ jobs:
   smoke-games:
     name: Browser, mobile, home and error checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Пятнадцати минут задаче перестало хватать: браузерных проверок тридцать
+    # одна, и самые тяжёлые идут по две-три минуты. Прошлый прогон оборвался на
+    # двадцать второй, и хвост списка не проверился вовсе. Проверки теперь
+    # ходят пачками по три, но запас нужен и на медленную машину.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
