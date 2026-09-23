@@ -907,17 +907,27 @@
       const wasResolved = this.view && ['results', 'over'].includes(this.view.phase);
       const resolved = ['results', 'over'].includes(view.phase);
       const sameRound = this.view?.round === view.round;
+      const keepSelection = sameRound && this.view?.phase === 'planning' && view.phase === 'planning'
+        && this.view.you === view.you && this.view.turn === view.turn && view.turn === view.you
+        && this.view.cycle === view.cycle;
       this.view = view;
       this.you = view.you;
       if (firstTime) this.buildBoard();
       if (resolved && (!wasResolved || !sameRound)) { this.beginRevealAnimation(); return; }
-      if (resolved && wasResolved && sameRound) return;
+      if (resolved && wasResolved && sameRound) {
+        const next = this.root.querySelector('[data-next]');
+        if (next && view.status !== 'over') {
+          const mayAdvance = !this.net || this.net.isHost?.();
+          next.disabled = !mayAdvance;
+          next.textContent = mayAdvance ? 'Следующий раунд' : 'Ожидаем хозяина комнаты…';
+        }
+        return;
+      }
       if (!sameRound) {
         stopTimers();
         this.root.querySelectorAll('.kd-sheet').forEach(node => node.remove());
       }
-      this.pending = null;
-      this.scoutPicked = [];
+      if (!keepSelection) { this.pending = null; this.scoutPicked = []; }
       this.renderAll();
       if (view.status === 'over') later(() => this.finish(), 400);
     }

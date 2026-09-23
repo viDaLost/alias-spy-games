@@ -82,6 +82,16 @@ for (const n of [2,3,4,5]) {
   assert.equal(board.loadCampaign(), null);
   // A spectator sees results even when the server skips the transient reveal phase.
   const state = w.KingdomsEngine.createGame({kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2]});
+  const online = new w.KingdomsUI.Board(root, { send() {}, isHost: () => true });
+  online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
+  online.selectOrder('march3'); online.tapArea('primorye-rim');
+  online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
+  assert.equal(online.pending.from, 'primorye-rim', 'polling must preserve an unconfirmed order');
+  online.tapArea('primorye-ccw');
+  assert.equal(online.pendingReady(), true);
+  w.KingdomsEngine.skipTurn(state, 0);
+  online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
+  assert.equal(online.pending, null, 'timeout must clear stale selection');
   const spectator = new w.KingdomsUI.Board(root, { send() {}, isHost: () => false });
   spectator.applyView(w.KingdomsEngine.visibleStateFor(state, -1));
   assert.equal(root.querySelector('[data-pass]').disabled, true);
