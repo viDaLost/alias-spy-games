@@ -339,6 +339,7 @@
 
     net() {
       return {
+        isHost: () => Boolean(this.view?.youAreHost),
         send: (action, payload) => this.link.send(action, payload),
         leave: () => { this.link.send('leave'); this.destroy(); this.back(); },
       };
