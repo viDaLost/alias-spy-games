@@ -46,7 +46,7 @@
   function knownThreatForce(visible, seat, areaId) {
     let best = 0;
     for (const one of visible.scoutIntel) {
-      if (one.to !== areaId) continue;
+      if (one.atRound !== visible.round || one.to !== areaId) continue;
       const order = R.orderOf(one.kind);
       if (!order || !order.force) continue;
       best = Math.max(best, order.force);
@@ -123,7 +123,8 @@
 
     // — разведка: чужой закрытый приказ, направленный на что-то ценное —
     const scoutLimit = player.kingdomId === 'kedem' ? 2 : 1;
-    const foreignOrders = visible.orders.filter((one) => one.owner !== seat && !one.kind);
+    const foreignOrders = visible.orders.filter((one) => one.owner !== seat && !one.kind
+      && !visible.scoutIntel.some(i => i.atRound === visible.round && i.orderId === one.id));
     const scoutTargets = foreignOrders
       .map((one) => {
         const targetArea = R.areaOf(one.to || one.area);

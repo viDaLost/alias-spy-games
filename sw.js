@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '52200bc80f';
+const VERSION = 'ce55db201e';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -27,8 +27,8 @@ const PRECACHE = [
   'web/js/language-choice.js',
   'web/i18n/bootstrap.js',
   'web/assets/twelve-tribes/art.json',
-  'web/dist/app.390af2406f.css',
-  'web/dist/app.0d42b3ba99.js',
+  'web/dist/app.c8722642fc.css',
+  'web/dist/app.efa8c6e152.js',
   'web/games/alias.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',
@@ -100,6 +100,7 @@ const PRECACHE = [
   'web/assets/icons/idea.webp',
   'web/assets/icons/install-ios.webp',
   'web/assets/icons/kingdoms.svg',
+  'web/assets/icons/kingdoms.webp',
   'web/assets/icons/more.webp',
   'web/assets/icons/moses-nile.webp',
   'web/assets/icons/profile.webp',

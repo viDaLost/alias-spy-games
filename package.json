@@ -68,11 +68,13 @@
     "check:languages": "node scripts/check-language-access.mjs && node scripts/check-language-content.mjs",
     "check:twelve-tribes": "node scripts/check-twelve-tribes.mjs && node --test cloudflare/twelve-tribes-worker/test/room.test.mjs",
     "check:twelve-tribes:browser": "node scripts/check-twelve-tribes-browser.mjs",
-    "check:twelve-tribes:online": "node scripts/check-twelve-tribes-online.mjs"
+    "check:twelve-tribes:online": "node scripts/check-twelve-tribes-online.mjs",
+    "check:kingdoms": "node scripts/check-kingdoms.mjs && node scripts/check-kingdoms-ui.mjs && node --test cloudflare/kingdoms-worker/test/room.test.mjs"
   },
   "devDependencies": {
+    "acorn": "^8.18.0",
     "esbuild": "^0.28.2",
-    "playwright-core": "1.55.0",
-    "acorn": "^8.18.0"
+    "jsdom": "^30.1.1",
+    "playwright-core": "1.55.0"
   }
 }

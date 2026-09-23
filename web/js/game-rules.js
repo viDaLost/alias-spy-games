@@ -596,7 +596,7 @@
     {
       key: 'kingdoms',
       title: 'Царства',
-      icon: 'web/assets/icons/kingdoms.svg',
+      icon: 'web/assets/icons/kingdoms.webp',
       tagline: 'Тайные приказы и спор за земли — пять раундов',
       blocks: [
         {

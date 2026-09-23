@@ -40,7 +40,7 @@ const baseURL = `http://127.0.0.1:${server.address().port}`;
 
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium',
+  executablePath: process.env.CHROME_BIN || chromium.executablePath(),
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
 
@@ -247,6 +247,10 @@ async function play(width, height) {
   });
   need(readable && readable.w >= 60, `описание приказа сжато до ${readable?.w}px`);
 
+  if (process.env.KINGDOMS_SCREENSHOTS) {
+    fs.mkdirSync(process.env.KINGDOMS_SCREENSHOTS, { recursive: true });
+    await page.screenshot({ path: path.join(process.env.KINGDOMS_SCREENSHOTS, `kingdoms-${width}x${height}.png`), fullPage: true });
+  }
   await context.close();
   return { errors };
 }

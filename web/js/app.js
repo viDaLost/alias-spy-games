@@ -91,7 +91,7 @@ const MENU_ICON_SOURCES = {
   "moses-nile": "web/assets/icons/moses-nile.webp",
   "promised-land": "web/assets/icons/promised-land-v2.webp",
   "twelve-tribes": "web/assets/icons/twelve-tribes.webp",
-  kingdoms: "web/assets/icons/kingdoms.svg",
+  kingdoms: "web/assets/icons/kingdoms.webp",
 };
 
 function menuIconHTML(type, title = "") {

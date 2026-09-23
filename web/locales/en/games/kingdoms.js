@@ -6,9 +6,8 @@
 // рисует карту, отправляет приказы движку (или сети) и показывает ответ —
 // точно так же, как устроены «Двенадцать колен».
 //
-// Карта нарисована разметкой (SVG), не картинками: генерация изображений в
-// этой работе недоступна, а честная схема лучше картинки, выдаваемой за
-// финальную. Список недостающих материалов — в docs/kingdoms-design.md.
+// Рисунки из Images: WebP-ландшафты, гербы и приказы. SVG хранит только
+// координаты, связи и интерактивные контуры поверх растровой карты.
 
 (function () {
   'use strict';
@@ -20,7 +19,51 @@
     'web/locales/en/games/kingdoms-online.js',
   ];
   const STYLE = 'web/locales/en/games/kingdoms.css';
-  const VERSION = '1';
+  const VERSION = '2-art';
+  const AREA_ART = {
+    'dolina-ccw': 'web/assets/kingdoms/areas/dolina-ccw.webp',
+    'dolina-cw': 'web/assets/kingdoms/areas/dolina-cw.webp',
+    'dolina-hub': 'web/assets/kingdoms/areas/dolina-hub.webp',
+    'dolina-rim': 'web/assets/kingdoms/areas/dolina-rim.webp',
+    'kedem-ccw': 'web/assets/kingdoms/areas/kedem-ccw.webp',
+    'kedem-cw': 'web/assets/kingdoms/areas/kedem-cw.webp',
+    'kedem-hub': 'web/assets/kingdoms/areas/kedem-hub.webp',
+    'kedem-rim': 'web/assets/kingdoms/areas/kedem-rim.webp',
+    'nagorye-ccw': 'web/assets/kingdoms/areas/nagorye-ccw.webp',
+    'nagorye-cw': 'web/assets/kingdoms/areas/nagorye-cw.webp',
+    'nagorye-hub': 'web/assets/kingdoms/areas/nagorye-hub.webp',
+    'nagorye-rim': 'web/assets/kingdoms/areas/nagorye-rim.webp',
+    'pogranichye-ccw': 'web/assets/kingdoms/areas/pogranichye-ccw.webp',
+    'pogranichye-cw': 'web/assets/kingdoms/areas/pogranichye-cw.webp',
+    'pogranichye-hub': 'web/assets/kingdoms/areas/pogranichye-hub.webp',
+    'pogranichye-rim': 'web/assets/kingdoms/areas/pogranichye-rim.webp',
+    'primorye-ccw': 'web/assets/kingdoms/areas/primorye-ccw.webp',
+    'primorye-cw': 'web/assets/kingdoms/areas/primorye-cw.webp',
+    'primorye-hub': 'web/assets/kingdoms/areas/primorye-hub.webp',
+    'primorye-rim': 'web/assets/kingdoms/areas/primorye-rim.webp',
+    'ravnina-ccw': 'web/assets/kingdoms/areas/ravnina-ccw.webp',
+    'ravnina-cw': 'web/assets/kingdoms/areas/ravnina-cw.webp',
+    'ravnina-hub': 'web/assets/kingdoms/areas/ravnina-hub.webp',
+    'ravnina-rim': 'web/assets/kingdoms/areas/ravnina-rim.webp',
+  };
+  const EMBLEM_ART = {
+    'kedem': 'web/assets/kingdoms/emblems/kedem.webp',
+    'or': 'web/assets/kingdoms/emblems/or.webp',
+    'prestol': 'web/assets/kingdoms/emblems/prestol.webp',
+    'tarsis': 'web/assets/kingdoms/emblems/tarsis.webp',
+    'yor': 'web/assets/kingdoms/emblems/yor.webp',
+  };
+  const ORDER_ART = {
+    'closed': 'web/assets/kingdoms/orders/closed.webp',
+    'feint': 'web/assets/kingdoms/orders/feint.webp',
+    'ford': 'web/assets/kingdoms/orders/ford.webp',
+    'fortify': 'web/assets/kingdoms/orders/fortify.webp',
+    'guard': 'web/assets/kingdoms/orders/guard.webp',
+    'march': 'web/assets/kingdoms/orders/march.webp',
+    'reveal': 'web/assets/kingdoms/orders/reveal.webp',
+    'scout': 'web/assets/kingdoms/orders/scout.webp',
+  };
+  const SAVE_KEY = 'kd_campaign_v2';
 
   function loadPart(file) {
     return new Promise((resolve, reject) => {
@@ -68,7 +111,7 @@
   const RIM_SPREAD = 96;
   const HUB_SPREAD = 62;
   const SIDE_SPREAD = 90;
-  const AREA_RADIUS = 34;
+  const AREA_RADIUS = 48;
 
   function computeLayout(R) {
     const pos = new Map();
@@ -98,42 +141,11 @@
     ждут сети. Цвет — второй способ отличить царство, знак — первый: их два
     нарочно, чтобы царства различались не только цветом.
   */
-  const EMBLEMS = {
-    anchor: '<path d="M12 3v6M9 6h6M12 9v10M7 14a5 5 0 0 0 10 0" />'
-      + '<circle cx="12" cy="4.4" r="1.6" fill="currentColor" stroke="none"/>',
-    peak: '<path d="M3 18 10 6l3 5 2-3 6 10z" />',
-    ford: '<path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0" /><path d="M3 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0" />',
-    sheaf: '<path d="M12 21V9M12 9 7 4M12 9l5-5M12 13 6 9M12 13l6-4M12 17 5 13M12 17l7-4" />',
-    tent: '<path d="M4 19 12 5l8 14z" /><path d="M9 19 12 12l3 7" /><path d="M4 19h16" />',
-  };
-  const emblemHTML = (key, size = 22) => `<svg class="kd-emblem" viewBox="0 0 24 24" width="${size}" height="${size}"
-    fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true">${EMBLEMS[key] || ''}</svg>`;
-
-  const TERRAIN_ICONS = {
-    plains: '<path d="M2 9h10M2 12h7" />',
-    mountains: '<path d="M2 12 6 5l3 4 2-3 5 6z" />',
-    desert: '<path d="M2 10c2-3 4-3 6 0s4 3 6 0" />',
-    coast: '<path d="M2 8c2-2 4-2 6 0s4 2 6 0M2 12c2-2 4-2 6 0s4 2 6 0" />',
-  };
-  const terrainHTML = (terrain) => `<svg class="kd-terrain" viewBox="0 0 14 14" width="14" height="14"
-    fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
-    ${TERRAIN_ICONS[terrain] || ''}</svg>`;
+  const EMBLEM_FILES = { anchor: 'tarsis', peak: 'or', ford: 'yor', sheaf: 'prestol', tent: 'kedem' };
+  const emblemHTML = (key, size = 22) => `<img class="kd-emblem" src="${EMBLEM_ART[EMBLEM_FILES[key] || 'tarsis']}" width="${size}" height="${size}" alt="">`;
   const TERRAIN_NAMES = { plains: 'равнина', mountains: 'горы', desert: 'desert', coast: 'побережье' };
-
-  const ORDER_ICONS = {
-    march1: '<path d="M4 12h13M12 6l6 6-6 6" />',
-    march2: '<path d="M4 12h13M12 6l6 6-6 6" />',
-    march3: '<path d="M4 12h13M12 6l6 6-6 6" />',
-    ford2: '<path d="M4 12h13M12 6l6 6-6 6" /><path d="M4 17c2-1 4-1 6 0s4 1 6 0" />',
-    guard: '<path d="M12 3l7 3v6c0 5-3 8-7 9-4-1-7-4-7-9V6z" />',
-    fortify: '<path d="M4 20V10l8-6 8 6v10M9 20v-6h6v6" />',
-    scout: '<circle cx="12" cy="12" r="3.2" /><path d="M2 12c3-4 7-6 10-6s7 2 10 6c-3 4-7 6-10 6s-7-2-10-6z" />',
-    feint: '<path d="M4 12h13M12 6l6 6-6 6" stroke-dasharray="3 3" />',
-  };
-  const orderIconHTML = (kind) => `<svg class="kd-order-icon" viewBox="0 0 24 24" width="20" height="20"
-    fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-    aria-hidden="true">${ORDER_ICONS[kind] || ''}</svg>`;
+  const orderArt = (kind) => ORDER_ART[kind.startsWith('march') ? 'march' : kind === 'ford2' ? 'ford' : kind];
+  const orderIconHTML = (kind) => `<img class="kd-order-icon" src="${orderArt(kind)}" width="40" height="40" alt="">`;
 
   const plural = (count, one, few, many) => {
     const tens = count % 100;
@@ -213,11 +225,12 @@
     setup(message = '') {
       this.net = null;
       stopTimers();
+      this.tutorial = false;
       const seenTutorial = safeGet('kd_tutorial_seen');
       this.root.innerHTML = `
         <div class="kd-wrap">
-          <section class="kd-card">
-            <h2>Царства</h2>
+          <section class="kd-card kd-setup">
+            <div class="kd-hero"><span>СТРАТЕГИЯ ТАЙНЫХ ПРИКАЗОВ</span><h2>Царства</h2><p>Пять престолов. Одна история — ваша.</p></div>
             <p>Пять царств спорят за двадцать четыре области условного мира, вдохновлённого
               библейскими землями. Партия — пять раундов: каждый вы тайно размещаете приказы,
               а затем они раскрываются и разрешаются разом.</p>
@@ -234,7 +247,9 @@
               </div>
               <small class="kd-choice-note" data-count-note></small>
             </label>
+            <div class="kd-kingdom-preview" data-kingdom-preview></div>
             <div class="kd-row">
+              <button type="button" class="kd-btn" data-resume hidden>Продолжить партию</button>
               <button type="button" class="kd-btn" data-start>Начать</button>
               <button type="button" class="kd-btn kd-btn--ghost" data-tutorial>${seenTutorial ? 'Обучение ещё раз' : 'Короткое обучение'}</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-menu>Menu</button>\n            </div>\n            <p class="kd-note" data-message>${escapeHTML(message)}</p>
           </section>
@@ -254,6 +269,15 @@
         sayCount();
       });
       sayCount();
+      const saved = this.loadCampaign();
+      const resume = this.root.querySelector('[data-resume]');
+      resume.hidden = !saved;
+      if (saved) resume.textContent = `Continue · round ${saved.round}`;
+      resume.addEventListener('click', () => this.resumeCampaign(saved));
+      this.root.querySelector('[data-kingdom-preview]').innerHTML = this.R.STARTING_LAYOUTS[5].map(id => {
+        const k = this.R.kingdomOf(id);
+        return `<div title="${escapeHTML(k.abilityText)}">${emblemHTML(k.emblem, 48)}<small>${escapeHTML(k.name)}</small></div>`;
+      }).join('');
       this.root.querySelector('[data-start]').addEventListener('click', () => this.begin(this.playerCount));
       this.root.querySelector('[data-tutorial]').addEventListener('click', () => this.runTutorial());
       this.root.querySelector('[data-mode="online"]').addEventListener('click', () => {
@@ -279,6 +303,7 @@
         : { name: this.R.kingdomOf(id).name, isBot: true, botLevel: 'captain' }));
       this.state = this.E.createGame({ kingdomIds, players });
       this.you = 0;
+      this.saveCampaign();
       this.refresh();
       this.buildBoard();
       this.renderAll();
@@ -286,12 +311,46 @@
       window.KingdomsGame = { state: () => this.state, refresh: () => this.renderAll(), board: this };
     }
 
+    saveCampaign() {
+      if (this.net || !this.state || this.tutorial) return;
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 2, state: this.state })); } catch { /* Хранилище может быть недоступно. */ }
+    }
+
+    loadCampaign() {
+      try {
+        const saved = JSON.parse(safeGet(SAVE_KEY));
+        const s = saved?.state;
+        if (saved?.version !== 2 || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
+          || !['planning', 'reveal', 'results', 'over'].includes(s.phase) || s.round < 1 || s.round > this.R.ROUNDS
+          || !this.R.AREAS.every(a => s.areas?.[a.id]) || !Array.isArray(s.orders) || !Array.isArray(s.turnOrder)) return null;
+        s.random = Math.random;
+        this.E.visibleStateFor(s, 0);
+        return s;
+      } catch { return null; }
+    }
+
+    resumeCampaign(state) {
+      if (!state) return;
+      stopTimers();
+      this.state = state;
+      this.you = 0;
+      this.refresh();
+      this.buildBoard();
+      this.renderAll();
+      window.KingdomsGame = { state: () => this.state, refresh: () => this.renderAll(), board: this };
+      if (state.status === 'over') this.finish();
+      else if (state.phase === 'reveal') this.startReveal();
+      else if (state.phase === 'results') this.showRoundSummary();
+      else this.tick();
+    }
+
     refresh() { if (this.state) this.view = this.E.visibleStateFor(this.state, this.you); }
 
     /* ——— каркас доски ——— */
     buildBoard() {
       const R = this.R;
-      this.root.innerHTML = `\n        <div class="kd-wrap">\n          <header class="kd-header">\n            <div class="kd-header-round">\n              <b data-round></b>\n              <span data-turn></span>\n            </div>\n            <div class="kd-header-right">\n              <span class="kd-objective" data-objective></span>\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Main menu">✕</button>\n            </div>\n          </header>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-areas></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancel</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n            </aside>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
+      this.root.innerHTML = `\n        <div class="kd-wrap">\n          <header class="kd-header">\n            <div class="kd-header-round">\n              <b data-round></b>\n              <span data-turn></span>\n            </div>\n            <div class="kd-header-right">\n              <span class="kd-objective" data-objective></span>\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Main menu">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
+                  <defs><clipPath id="kd-area-clip"><circle r="${AREA_RADIUS}"/></clipPath></defs>\n                  <image href="web/assets/kingdoms/ground.webp" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-areas></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancel</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
 
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`)?.addEventListener('click', fn);
       on('menu', () => {
@@ -300,6 +359,16 @@
         if (typeof goToMainMenu === 'function') goToMainMenu();
       });
       on('log', () => this.openLog());
+      on('skip-reveal', () => this.skipAnimation());
+      on('pass', () => {
+        if (this.view.phase !== 'planning' || this.view.turn !== this.you) return;
+        const sheet = this.openSheet('<h3>Пропустить ход?</h3><p>Вы откажетесь от одного размещения в этом раунде. Остальные приказы сохранятся.</p><button class="kd-btn" data-pass-ok>Skip</button><button class="kd-btn kd-btn--ghost" data-cancel>Вернуться</button>');
+        sheet.querySelector('[data-pass-ok]').addEventListener('click', () => {
+          sheet.remove(); this.pending = null;
+          if (this.net) this.net.send('skipTurn');
+          else { this.E.skipTurn(this.state, this.you); this.afterLocalChange(); }
+        });
+      });
       on('zoom-in', () => this.setZoom(this.zoom.scale * 1.25));
       on('zoom-out', () => this.setZoom(this.zoom.scale / 1.25));
       on('zoom-fit', () => this.fitZoom());
@@ -330,8 +399,8 @@
       box.innerHTML = R.REGIONS.map((region) => {
         const c = this.regionCenter.get(region.id);
         return `<g class="kd-region" data-region="${region.id}">
-          <circle cx="${c.x}" cy="${c.y}" r="150"></circle>
-          <text x="${c.x}" y="${c.y - 155}" class="kd-region-label">${escapeHTML(region.name)}</text>
+
+          <text x="${CENTER.x + (c.x - CENTER.x) * 0.38}" y="${CENTER.y + (c.y - CENTER.y) * 0.38 + 6}" class="kd-region-label">${escapeHTML(region.name)}</text>
         </g>`;
       }).join('');
     }
@@ -354,13 +423,16 @@
       areaBox.innerHTML = R.AREAS.map((area) => {
         const p = this.pos.get(area.id);
         return `<g class="kd-area" data-area="${area.id}" transform="translate(${p.x},${p.y})" tabindex="0" role="button">
-          <circle class="kd-area-fill" r="${AREA_RADIUS}"></circle>
+          <circle class="kd-area-fill" r="${AREA_RADIUS + 3}"></circle>
+          <image class="kd-area-art" href="${AREA_ART[area.id]}" x="-${AREA_RADIUS}" y="-${AREA_RADIUS}" width="${AREA_RADIUS * 2}" height="${AREA_RADIUS * 2}" clip-path="url(#kd-area-clip)" preserveAspectRatio="xMidYMid slice"/>
           <circle class="kd-area-ring" r="${AREA_RADIUS}"></circle>
-          <g class="kd-area-terrain" transform="translate(-24,-24)">${terrainHTML(area.terrain)}</g>
+
           ${area.capitalOf ? '<g class="kd-area-crown" transform="translate(-8,-46)"><path d="M-6 0 -3-6 0-1 3-6 6 0Z" /></g>' : ''}
           ${area.city ? '<g class="kd-area-city" transform="translate(14,-30)"><rect x="-5" y="-5" width="10" height="10" rx="1.5"/></g>' : ''}
           <g class="kd-area-fortify" data-fortify transform="translate(-15,26)"></g>
           <text class="kd-area-value">${area.value}</text>
+          <text class="kd-area-name" y="64">${escapeHTML(area.name)}</text>
+          <image data-owner-emblem x="-12" y="25" width="24" height="24"/>
           <title>${escapeHTML(area.name)}</title>
         </g>`;
       }).join('');
@@ -466,6 +538,7 @@
     renderAll() {
       if (!this.view) return;
       this.renderHeader();
+      this.renderStandings();
       this.renderAreas();
       this.renderTokens();
       this.renderOrders();
@@ -486,9 +559,24 @@
         turnBox.textContent = '';
       }
       const me = v.players[v.you];
-      const objective = R.objectiveOf(me.objectiveId);
+      const objective = R.objectiveOf(me?.objectiveId);
       this.root.querySelector('[data-objective]').textContent = objective
-        ? `Goal: ${objective.title} (${objective.points})` : '';
+        ? `Goal: ${objective.title} (${objective.points})` : 'Режим наблюдателя';
+    }
+
+    renderStandings() {
+      const v = this.view;
+      this.root.querySelector('[data-standings]').innerHTML = v.players.map(p => {
+        const k = this.R.kingdomOf(p.kingdomId);
+        const areas = this.R.AREAS.filter(a => v.areas[a.id].owner === p.id);
+        const points = areas.reduce((sum, a) => sum + a.value, 0) + this.R.REGIONS.filter(r =>
+          this.R.AREAS.filter(a => a.region === r.id).every(a => v.areas[a.id].owner === p.id)).length * 2;
+        return `<div class="kd-standing ${p.id === v.turn ? 'is-turn' : ''}" style="--owner:${k.color}">
+          ${emblemHTML(k.emblem, 36)}<span><b>${p.id === v.you ? 'You' : escapeHTML(k.name)}</b><small>${areas.length} обл. · ${points} очк.${p.eliminated ? ' · наблюдатель' : ''}</small></span></div>`;
+      }).join('');
+      const intel = v.scoutIntel.filter(i => i.atRound === v.round);
+      this.root.querySelector('[data-intel]').innerHTML = intel.length ? '<b>Донесения разведки</b>' + intel.map(i =>
+        `<p>${escapeHTML(this.R.areaOf(i.area)?.name || '')}: ${escapeHTML(this.R.orderOf(i.kind).title)}${i.to ? ' → ' + escapeHTML(this.R.areaOf(i.to).name) : ''}</p>`).join('') : '';
     }
 
     kingdomColor(seat) {
@@ -506,6 +594,10 @@
         const cell = v.areas[area.id];
         const color = this.kingdomColor(cell.owner);
         group.style.setProperty('--owner', color);
+        const emblem = group.querySelector('[data-owner-emblem]');
+        emblem.style.display = cell.owner === null ? 'none' : '';
+        if (cell.owner !== null) emblem.setAttribute('href', EMBLEM_ART[v.players[cell.owner].kingdomId]);
+        group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'нейтральная' : nameOf(v, cell.owner)}, ценность ${area.value}`);
         group.classList.toggle('is-mine', cell.owner === v.you);
         group.classList.toggle('is-neutral', cell.owner === null);
         group.classList.toggle('is-eligible', eligible.has(area.id));
@@ -530,6 +622,14 @@
           if (this.hasOwnSlotOrder(area.id, 'internal')) continue;
           if (order.id === 'fortify' && v.areas[area.id].fortify >= this.R.fortifyCapFor(v.players[v.you].kingdomId, area)) continue;
           set.add(area.id);
+        }
+      }
+      if (order.slot === 'outgoing') {
+        for (const key of this.eligibleEdgeKeys()) {
+          const [a, b] = key.split('|');
+          if (!this.pending.from) { set.add(a); set.add(b); }
+          else if (a === this.pending.from) set.add(b);
+          else if (b === this.pending.from) set.add(a);
         }
       }
       return set;
@@ -567,6 +667,8 @@
         line.classList.toggle('is-eligible', eligibleEdges.has(key) || eligibleEdges.has(`${line.dataset.a}|${line.dataset.b}`));
       });
       box.innerHTML = v.orders.map((order) => {
+        const intel = v.scoutIntel.find(i => i.atRound === v.round && i.orderId === order.id);
+        if (!order.kind && intel) order = { ...order, kind: intel.kind };
         const known = Boolean(order.kind);
         const mine = order.owner === v.you;
         const color = this.kingdomColor(order.owner);
@@ -582,7 +684,7 @@
           const a = this.pos.get(order.area);
           x = a.x + 24; y = a.y + 24;
         } else return '';
-        const icon = known ? orderIconHTML(order.kind) : '<text x="-4" y="5" class="kd-token-q">?</text>';
+        const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-13" y="-13" width="26" height="26"/>`;
         const force = known && this.R.orderOf(order.kind).force ? `<text x="10" y="-8" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text>` : '';
         return `<g class="kd-token${mine ? ' is-mine' : ''}${scoutable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}"
           data-token="${order.id}" style="--owner:${color}" transform="translate(${x},${y})">
@@ -596,12 +698,24 @@
 
     renderOrders() {
       const v = this.view;
+      this.root.querySelector('[data-skip-reveal]').hidden = !['reveal', 'results'].includes(v.phase);
       const myTurn = v.phase === 'planning' && v.turn === v.you;
+      this.root.querySelector('[data-pass]').disabled = !myTurn;
       this.root.querySelectorAll('[data-order]').forEach((button) => {
         const kind = button.dataset.order;
         button.classList.toggle('is-active', this.pending?.kind === kind);
         button.disabled = !myTurn || v.ordersPlaced >= v.ordersLimit;
-        if (kind === 'scout') button.disabled = button.disabled || !v.orders.some((one) => one.owner !== v.you && !one.kind);
+        if (kind === 'scout') button.disabled = button.disabled || !v.orders.some((one) => one.owner !== v.you && !one.kind
+          && !v.scoutIntel.some(i => i.atRound === v.round && i.orderId === one.id));
+        else if (!button.disabled) {
+          const definition = this.R.orderOf(kind);
+          button.disabled = !this.R.AREAS.some(a => {
+            if (v.areas[a.id].owner !== v.you || this.hasOwnSlotOrder(a.id, definition.slot)) return false;
+            if (definition.slot === 'internal') return kind !== 'fortify' || v.areas[a.id].fortify < this.R.fortifyCapFor(v.players[v.you].kingdomId, a);
+            return this.R.EDGES.some(e => e.type === definition.edge &&
+              ((e.a === a.id && v.areas[e.b].owner !== v.you) || (e.b === a.id && v.areas[e.a].owner !== v.you)));
+          });
+        }
       });
       this.root.querySelector('[data-orders-left]').textContent = myTurn
         ? `Размещено ${v.ordersPlaced} of ${v.ordersLimit} приказов за раунд`
@@ -616,7 +730,7 @@
       if (!this.pending) { box.textContent = 'Выберите приказ, затем область или связь на карте.'; return; }
       const order = this.R.orderOf(this.pending.kind);
       if (order.slot === 'internal') box.textContent = 'Нажмите свою область, подсвеченную на карте.';
-      else if (order.slot === 'outgoing') box.textContent = 'Нажмите подсвеченную связь на карте.';
+      else if (order.slot === 'outgoing') box.textContent = this.pending.from ? 'Выберите подсвеченную цель похода.' : 'Выберите свою область, затем цель. Можно нажать на дорогу.';
       else if (order.id === 'scout') {
         const limit = v.players[v.you].kingdomId === 'kedem' ? 2 : 1;
         box.textContent = `Нажмите закрытый чужой приказ на карте (можно выбрать до ${limit}).`;
@@ -633,7 +747,15 @@
       if (order.slot === 'internal') {
         text.textContent = `${order.title}: «${this.R.areaOf(this.pending.area).name}».`;
       } else if (order.slot === 'outgoing') {
-        text.textContent = `${order.title} силой ${order.force}: «${this.R.areaOf(this.pending.from).name}» → «${this.R.areaOf(this.pending.area).name}».`;
+        const placement = { kind: order.id, owner: this.you, area: this.pending.from, to: this.pending.area };
+        const force = this.E.forceOf(this.view, placement);
+        const support = this.view.orders.filter(o => o.owner === this.you && o.to === placement.to && o.kind && o.kind !== 'feint')
+          .reduce((sum, o) => sum + this.E.forceOf(this.view, o), 0);
+        const defense = this.E.defenseOf(this.view, placement.to, false).total;
+        text.textContent = `${this.R.areaOf(placement.area).name} → ${this.R.areaOf(placement.to).name}. `
+          + (order.id === 'feint' ? 'Отвлечение: не захватывает область.' : `Strength ${force}${support ? ` + support ${support}` : ''} против открытой защиты ${defense}. `
+          + (force + support > defense ? 'Силы достаточно, если защита не усилится.' : 'Нужна поддержка: для захвата сила должна быть выше защиты.'))
+          + ' Тайные приказы соперника могут изменить исход.';
       } else if (order.id === 'scout') {
         text.textContent = `Разведать: ${this.scoutPicked.length} of ${this.view.players[this.view.you].kingdomId === 'kedem' ? 2 : 1}.`;
       }
@@ -650,8 +772,8 @@
 
     /* ——— выбор приказа и цели ——— */
     selectOrder(kind) {
-      if (this.view.turn !== this.view.you || this.view.phase !== 'planning') return;
-      this.pending = { kind };
+      if (this.view.turn !== this.view.you || this.view.phase !== 'planning' || this.view.you < 0) return;
+      this.pending = this.pending?.kind === kind ? null : { kind };
       this.scoutPicked = [];
       this.renderAll();
     }
@@ -663,6 +785,15 @@
     }
 
     tapArea(areaId) {
+      if (this.pending && this.R.orderOf(this.pending.kind).slot === 'outgoing' && this.eligibleAreas().has(areaId)) {
+        if (this.view.areas[areaId].owner === this.you) {
+          this.pending.from = areaId; this.pending.area = null; this.renderAll(); return;
+        }
+        if (this.pending.from) { this.tapEdge(this.pending.from, areaId); return; }
+        const sources = [...this.eligibleEdgeKeys()].map(key => key.split('|')).filter(pair => pair.includes(areaId));
+        if (sources.length === 1) { this.tapEdge(...sources[0]); return; }
+        this.flashStatus('Сначала выберите свою область — источник похода.'); return;
+      }
       if (this.pending && this.R.orderOf(this.pending.kind).slot === 'internal' && this.eligibleAreas().has(areaId)) {
         this.pending.area = areaId;
         this.renderAll();
@@ -690,7 +821,7 @@
     tapToken(orderId) {
       if (!this.pending || this.pending.kind !== 'scout') return;
       const order = this.view.orders.find((one) => one.id === orderId);
-      if (!order || order.owner === this.view.you || order.kind) return;
+      if (!order || order.owner === this.view.you || order.kind || this.view.scoutIntel.some(i => i.atRound === this.view.round && i.orderId === order.id)) return;
       const limit = this.view.players[this.view.you].kingdomId === 'kedem' ? 2 : 1;
       const at = this.scoutPicked.indexOf(orderId);
       if (at >= 0) this.scoutPicked.splice(at, 1);
@@ -731,11 +862,13 @@
       const owner = cell.owner === null ? 'Никому не принадлежит' : nameOf(v, cell.owner);
       const region = this.R.REGIONS.find((r) => r.id === area.region);
       const sheet = this.openSheet(`
+        <img class="kd-detail-art" src="${AREA_ART[area.id]}" alt="${escapeHTML(area.name)}">
         <h3>${escapeHTML(area.name)}</h3>
         <p class="kd-note">${escapeHTML(region.name)} · ${TERRAIN_NAMES[area.terrain]}${area.city ? ' · city' : ''}${area.capitalOf ? ' · столица' : ''}</p>
         <div class="kd-detail-rows">
           <div><span>Хозяин</span><b>${escapeHTML(owner)}</b></div>
           <div><span>Ценность</span><b>${area.value}</b></div>
+          <div><span>Открытая защита</span><b>${this.E.defenseOf(v, areaId, false).total}</b></div>
           <div><span>Укрепление</span><b>${cell.fortify}</b></div>\n        </div>\n        <button type="button" class="kd-btn kd-btn--ghost" data-cancel>Close</button>\n      `);
       void sheet;
     }
@@ -750,7 +883,7 @@
       sheet.className = 'kd-sheet';
       sheet.innerHTML = `<div class="kd-sheet-card">${html}</div>`;
       sheet.addEventListener('click', (event) => {
-        if (event.target.closest('[data-cancel]') || event.target === sheet) sheet.remove();
+        if (event.target.closest('[data-cancel]') || (event.target === sheet && sheet.querySelector('[data-cancel]'))) sheet.remove();
       });
       root.appendChild(sheet);
       return sheet;
@@ -765,6 +898,7 @@
 
     /* ——— ход соперников от игры (локальный режим) ——— */
     afterLocalChange() {
+      this.saveCampaign();
       this.refresh();
       this.renderAll();
       if (this.view.phase === 'reveal') { this.startReveal(); return; }
@@ -795,12 +929,14 @@
     startReveal() {
       if (this.net) return;
       this.E.resolveRound(this.state);
+      this.saveCampaign();
       this.refresh();
       this.beginRevealAnimation();
     }
 
     beginRevealAnimation() {
       this.revealSteps = (this.view.lastResolution || []).slice();
+      this.renderAll();
       this.renderRevealShell();
       if (reduceMotion() || this.skipAnim) { this.finishReveal(); return; }
       this.showNextReveal();
@@ -809,22 +945,36 @@
     /* ——— вид от сервера (сетевой режим) ——— */
     applyView(view) {
       const firstTime = !this.view;
-      const enteringReveal = this.view && this.view.phase !== 'reveal' && view.phase === 'reveal';
-      const midReveal = this.view && (this.view.phase === 'reveal' || this.view.phase === 'results')
-        && (view.phase === 'reveal' || view.phase === 'results');
+      const wasResolved = this.view && ['results', 'over'].includes(this.view.phase);
+      const resolved = ['results', 'over'].includes(view.phase);
+      const sameRound = this.view?.round === view.round;
+      const keepSelection = sameRound && this.view?.phase === 'planning' && view.phase === 'planning'
+        && this.view.you === view.you && this.view.turn === view.turn && view.turn === view.you
+        && this.view.cycle === view.cycle;
       this.view = view;
       this.you = view.you;
       if (firstTime) this.buildBoard();
-      if (firstTime && view.phase === 'reveal') { this.beginRevealAnimation(); return; }
-      if (enteringReveal) { this.beginRevealAnimation(); return; }
-      if (midReveal) return; // анимация уже идёт своим чередом — не мешаем ей
-      this.pending = null;
-      this.scoutPicked = [];
+      if (resolved && (!wasResolved || !sameRound)) { this.beginRevealAnimation(); return; }
+      if (resolved && wasResolved && sameRound) {
+        const next = this.root.querySelector('[data-next]');
+        if (next && view.status !== 'over') {
+          const mayAdvance = !this.net || this.net.isHost?.();
+          next.disabled = !mayAdvance;
+          next.textContent = mayAdvance ? 'Следующий раунд' : 'Ожидаем хозяина комнаты…';
+        }
+        return;
+      }
+      if (!sameRound) {
+        stopTimers();
+        this.root.querySelectorAll('.kd-sheet').forEach(node => node.remove());
+      }
+      if (!keepSelection) { this.pending = null; this.scoutPicked = []; }
       this.renderAll();
       if (view.status === 'over') later(() => this.finish(), 400);
     }
 
     renderRevealShell() {
+      this.root.querySelector('[data-skip-reveal]').hidden = false;
       const box = this.root.querySelector('[data-status]');
       if (box) box.textContent = 'Раскрытие приказов…';
       this.renderAreas();
@@ -853,6 +1003,7 @@
     }
 
     finishReveal() {
+      this.root.querySelector('[data-skip-reveal]').hidden = true;
       this.revealSteps = [];
       this.renderAreas();
       this.showRoundSummary();
@@ -868,18 +1019,20 @@
       const v = this.view;
       const over = v.status === 'over';
       const held = (seat) => this.R.AREAS.filter((a) => v.areas[a.id].owner === seat).length;
+      const mayAdvance = !this.net || this.net.isHost?.();
       const rows = v.players.map((p) => `<div class="kd-score${p.id === v.you ? ' is-you' : ''}">
         <span>${escapeHTML(p.name)}</span><span>${held(p.id)} ${plural(held(p.id), 'область', 'области', 'областей')}</span>
       </div>`).join('');
       this.openSheet(`
         <h3>Итоги раунда ${v.round}</h3>
         <div class="kd-over">${rows}</div>
-        <button type="button" class="kd-btn" data-next>${over ? 'Смотреть итоги партии' : 'Следующий раунд'}</button>
+        <button type="button" class="kd-btn" data-next ${!over && !mayAdvance ? 'disabled' : ''}>${over ? 'Смотреть итоги партии' : mayAdvance ? 'Следующий раунд' : 'Ожидаем хозяина комнаты…'}</button>
       `).querySelector('[data-next]').addEventListener('click', (event) => {
         event.target.closest('.kd-sheet').remove();
         if (over) { this.finish(); return; }
         if (this.net) { this.net.send('nextRound'); return; }
         this.E.nextRound(this.state);
+        this.saveCampaign();
         this.refresh();
         this.pending = null;
         this.scoutPicked = [];
@@ -937,6 +1090,7 @@
 
     /* ——— короткое обучение ——— */
     runTutorial() {
+      this.tutorial = true;
       try { localStorage.setItem('kd_tutorial_seen', '1'); } catch { /* приватный режим */ }
       const steps = [
         { title: 'Card', text: 'Двадцать четыре области в шести регионах. Ваши области — цвета вашего царства, '

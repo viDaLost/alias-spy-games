@@ -1,0 +1,35 @@
+name: Check Kingdoms strategy
+on:
+  push:
+    branches: [claude/kingdoms-strategy-game-b70afy]
+  pull_request:
+    paths:
+      - 'web/games/kingdoms*'
+      - 'web/assets/kingdoms/**'
+      - 'scripts/check-kingdoms*'
+      - '.github/workflows/check-kingdoms.yml'
+permissions:
+  contents: read
+jobs:
+  strategy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:kingdoms
+      - run: npm run check:build
+      - run: npx playwright-core install --with-deps chromium
+      - name: Test mobile layouts
+        run: node scripts/check-kingdoms-browser.mjs
+        env:
+          KINGDOMS_SCREENSHOTS: /tmp/kingdoms-screenshots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kingdoms-screenshots
+          path: /tmp/kingdoms-screenshots
