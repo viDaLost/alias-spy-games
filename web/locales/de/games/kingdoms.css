@@ -340,3 +340,24 @@
 @media (orientation: landscape) and (max-height: 500px) {
   .kd-orders { grid-template-columns: minmax(0,1fr); }
 }
+
+/* A continuous painted map: raster provinces and matching geographic hit areas. */
+.kd-ground { opacity: 1; }
+.kd-area-art { pointer-events: none; }
+.kd-area-fill, .kd-area.is-neutral .kd-area-fill { fill: var(--owner); fill-opacity: .13; pointer-events: all; }
+.kd-area.is-neutral .kd-area-fill { fill-opacity: 0; }
+.kd-area-ring { stroke: #493c26; stroke-width: 1.6; filter: none; pointer-events: none; }
+.kd-area:not(.is-neutral) .kd-area-ring { stroke: var(--owner); stroke-width: 3; }
+.kd-area.is-mine .kd-area-ring { stroke: var(--owner); stroke-width: 3; }
+.kd-area.is-eligible .kd-area-ring { stroke: #fff3bc; stroke-width: 4; }
+.kd-area.is-selected .kd-area-ring, .kd-area:focus-visible .kd-area-ring { stroke: #fff; stroke-width: 5; }
+.kd-area.is-selected .kd-area-fill { fill-opacity: .28; }
+.kd-area-marker { pointer-events: none; }
+.kd-area-marker > rect { fill: #172720e8; stroke: var(--owner); stroke-width: 2; }
+.kd-area-name { font: 600 16px Georgia,serif; stroke: #222d25; stroke-width: 3.5px; }
+.kd-area-value { transform: none; fill: #fff3d4; font: bold 18px system-ui,sans-serif; }
+.kd-region-label { font: bold 14px Georgia,serif; letter-spacing: 2px; fill: #fff3d6; stroke: #433923; stroke-width: 3px; opacity: .85; }
+.kd-edge { stroke: #ffefbf; stroke-width: 2; stroke-dasharray: 3 8; opacity: .4; filter: none; pointer-events: none; }
+.kd-edge--ford { stroke: #bdefff; stroke-width: 4; opacity: .8; }
+.kd-edge.is-eligible { stroke: #fff5b8; stroke-width: 7; opacity: 1; pointer-events: stroke; }
+.kd-area.is-resolving .kd-area-ring { stroke: #ffdf82; stroke-width: 6; }
