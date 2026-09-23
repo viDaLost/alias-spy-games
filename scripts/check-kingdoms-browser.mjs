@@ -250,6 +250,20 @@ async function play(width, height) {
   await page.locator('[data-zoom-fit]').click();
   const fitted = await page.evaluate(() => document.querySelector('[data-svg]').style.transform);
   need(/scale\(1\)/.test(fitted) && /translate\(0px,0px\)/.test(fitted), 'кнопка обзора не восстановила весь лист');
+  const pinch = await page.evaluate(() => {
+    const frame = document.querySelector('[data-scroll]');
+    const box = frame.getBoundingClientRect();
+    const x = box.left + box.width / 2; const y = box.top + box.height / 2;
+    const fire = (name, id, dx) => frame.dispatchEvent(new PointerEvent(name,
+      { bubbles: true, pointerId: id, pointerType: 'touch', clientX: x + dx, clientY: y }));
+    fire('pointerdown', 70, -40); fire('pointerdown', 71, 40);
+    fire('pointermove', 71, 85);
+    const transform = document.querySelector('[data-svg]').style.transform;
+    fire('pointerup', 70, -40); fire('pointerup', 71, 85);
+    return transform;
+  });
+  need(/scale\(1\.[3-9]/.test(pinch), 'жест двумя пальцами не приближает карту');
+  await page.locator('[data-zoom-fit]').click();
 
   // ——— ничего не вылезло за край ———
   const spill = await page.evaluate(() => {
