@@ -2526,6 +2526,9 @@ html.theme-dark .ws-login__error {
   background: #370b0b !important;
   color: #e25c5c !important;
 }
+html.theme-dark .ws-login__error a {
+  color: #e25c5c !important;
+}
 html.theme-dark .install-sheet__card {
   background: linear-gradient(155deg, #141414, #08112b) !important;
 }
