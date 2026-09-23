@@ -250,7 +250,7 @@
 .kd-wrap { max-width: 1440px; padding: 8px; box-sizing: border-box; background: #172322; border-radius: 24px; }
 .kd-card, .kd-header, .kd-panel { border-color: #c3a26540; box-shadow: 0 12px 30px #0002; }
 .kd-setup { max-width: 850px; width: 100%; box-sizing: border-box; align-self: center; overflow: hidden; }
-.kd-hero { background: linear-gradient(0deg,#172322fa,#17232220),url('../assets/kingdoms/ground.webp') center 44%/cover; margin: -18px -18px 0; padding: 90px 28px 25px; }
+.kd-hero { background: linear-gradient(0deg,#172322fa,#17232220),url('../assets/kingdoms/map-v3/base.webp') center 44%/cover; margin: -18px -18px 0; padding: 90px 28px 25px; }
 .kd-hero > span { color: #f1d9a1; font-size: 10px; font-weight: 800; letter-spacing: .22em; }
 .kd-hero h2 { font-family: Georgia,serif; font-size: clamp(48px,8vw,78px); color: #fff2d6; letter-spacing: .04em; margin: 4px 0; }
 .kd-hero p { color: #f2e4c7; }
@@ -357,7 +357,9 @@
 .kd-area-name { font: 600 16px Georgia,serif; stroke: #222d25; stroke-width: 3.5px; }
 .kd-area-value { transform: none; fill: #fff3d4; font: bold 18px system-ui,sans-serif; }
 .kd-region-label { font: bold 14px Georgia,serif; letter-spacing: 2px; fill: #fff3d6; stroke: #433923; stroke-width: 3px; opacity: .85; }
-.kd-edge { stroke: #ffefbf; stroke-width: 2; stroke-dasharray: 3 8; opacity: .4; filter: none; pointer-events: none; }
+.kd-edge { stroke: #ffefbf; stroke-width: 2; stroke-dasharray: 3 8; opacity: 0; filter: none; pointer-events: none; }
 .kd-edge--ford { stroke: #bdefff; stroke-width: 4; opacity: .8; }
 .kd-edge.is-eligible { stroke: #fff5b8; stroke-width: 7; opacity: 1; pointer-events: stroke; }
 .kd-area.is-resolving .kd-area-ring { stroke: #ffdf82; stroke-width: 6; }
+
+@media (max-width: 640px) { .kd-region-label { display: none; } }
