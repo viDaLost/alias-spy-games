@@ -11,7 +11,7 @@ function harness() {
   w.clearTimeout = id => pending.delete(id);
   w.matchMedia = () => ({ matches: true });
   w.HTMLElement.prototype.scrollIntoView = () => {};
-  for (const part of ['rules','engine','bots']) w.eval(fs.readFileSync(`web/games/kingdoms-${part}.js`, 'utf8'));
+  for (const part of ['rules','engine','bots','map']) w.eval(fs.readFileSync(`web/games/kingdoms-${part}.js`, 'utf8'));
   w.eval(fs.readFileSync('web/games/kingdoms.js', 'utf8'));
   const root = w.document.getElementById('game-container');
   const board = new w.KingdomsUI.Board(root);
@@ -24,6 +24,9 @@ for (const n of [2,3,4,5]) {
   board.setup(); board.begin(n);
   assert.equal(root.querySelectorAll('[data-area]').length, 24);
   assert.equal(root.querySelectorAll('.kd-area-art').length, 24);
+  assert.equal(root.querySelectorAll('.kd-area-fill').length, 24);
+  assert.equal(root.querySelectorAll('circle.kd-area-fill').length, 0);
+  assert.ok([...root.querySelectorAll('.kd-area-art')].every(image => image.getAttribute('href').includes('/map-v3/')));
   for (const image of root.querySelectorAll('image,img')) {
     const src = image.getAttribute('href') || image.getAttribute('src');
     if (src) {

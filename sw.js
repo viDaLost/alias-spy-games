@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = 'ce55db201e';
+const VERSION = 'acac207257';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -50,6 +50,7 @@ const PRECACHE = [
   'web/games/kids-ark-pairs.js',
   'web/games/kingdoms-bots.js',
   'web/games/kingdoms-engine.js',
+  'web/games/kingdoms-map.js',
   'web/games/kingdoms-online.js',
   'web/games/kingdoms-rules.js',
   'web/games/kingdoms.css',

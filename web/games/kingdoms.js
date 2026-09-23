@@ -13,13 +13,14 @@
   'use strict';
 
   const PARTS = [
+    'web/games/kingdoms-map.js',
     'web/games/kingdoms-rules.js',
     'web/games/kingdoms-engine.js',
     'web/games/kingdoms-bots.js',
     'web/games/kingdoms-online.js',
   ];
   const STYLE = 'web/games/kingdoms.css';
-  const VERSION = '2-art';
+  const VERSION = '3-territories';
   const AREA_ART = {
     'dolina-ccw': 'web/assets/kingdoms/areas/dolina-ccw.webp',
     'dolina-cw': 'web/assets/kingdoms/areas/dolina-cw.webp',
@@ -375,11 +376,10 @@
               </div>
               <div class="kd-map-scroll" data-scroll>
                 <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
-                  <defs><clipPath id="kd-area-clip"><circle r="${AREA_RADIUS}"/></clipPath></defs>
-                  <image href="web/assets/kingdoms/ground.webp" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>
+                  <image href="${window.KingdomsMap.base}" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>
+                  <g data-areas></g>
                   <g data-regions></g>
                   <g data-connections></g>
-                  <g data-areas></g>
                   <g data-tokens></g>
                 </svg>
               </div>
@@ -452,7 +452,7 @@
         const c = this.regionCenter.get(region.id);
         return `<g class="kd-region" data-region="${region.id}">
 
-          <text x="${CENTER.x + (c.x - CENTER.x) * 0.38}" y="${CENTER.y + (c.y - CENTER.y) * 0.38 + 6}" class="kd-region-label">${escapeHTML(region.name)}</text>
+          <text x="${c.x}" y="${c.y + 6}" class="kd-region-label">${escapeHTML(region.name)}</text>
         </g>`;
       }).join('');
     }
@@ -474,17 +474,22 @@
       const areaBox = this.root.querySelector('[data-areas]');
       areaBox.innerHTML = R.AREAS.map((area) => {
         const p = this.pos.get(area.id);
+        const tile = window.KingdomsMap.tiles[area.id];
+        const outline = tile.points.map(([x,y],i) => `${i ? 'L' : 'M'}${x-p.x},${y-p.y}`).join(' ') + 'Z';
+        const words = area.name.split(' ');
+        const label = words.length > 1 ? `<tspan x="0" dy="0">${escapeHTML(words.slice(0,-1).join(' '))}</tspan><tspan x="0" dy="20">${escapeHTML(words.at(-1))}</tspan>` : escapeHTML(area.name);
         return `<g class="kd-area" data-area="${area.id}" transform="translate(${p.x},${p.y})" tabindex="0" role="button">
-          <circle class="kd-area-fill" r="${AREA_RADIUS + 3}"></circle>
-          <image class="kd-area-art" href="${AREA_ART[area.id]}" x="-${AREA_RADIUS}" y="-${AREA_RADIUS}" width="${AREA_RADIUS * 2}" height="${AREA_RADIUS * 2}" clip-path="url(#kd-area-clip)" preserveAspectRatio="xMidYMid slice"/>
-          <circle class="kd-area-ring" r="${AREA_RADIUS}"></circle>
-
-          ${area.capitalOf ? '<g class="kd-area-crown" transform="translate(-8,-46)"><path d="M-6 0 -3-6 0-1 3-6 6 0Z" /></g>' : ''}
-          ${area.city ? '<g class="kd-area-city" transform="translate(14,-30)"><rect x="-5" y="-5" width="10" height="10" rx="1.5"/></g>' : ''}
-          <g class="kd-area-fortify" data-fortify transform="translate(-15,26)"></g>
-          <text class="kd-area-value">${area.value}</text>
-          <text class="kd-area-name" y="64">${escapeHTML(area.name)}</text>
-          <image data-owner-emblem x="-12" y="25" width="24" height="24"/>
+          <image class="kd-area-art" href="${tile.file}" x="${tile.x-p.x}" y="${tile.y-p.y}" width="${tile.w}" height="${tile.h}" preserveAspectRatio="none"/>
+          <path class="kd-area-fill" d="${outline}"></path>
+          <path class="kd-area-ring" d="${outline}"></path>
+          <g class="kd-area-marker">
+            <rect x="-29" y="-23" width="58" height="31" rx="7"/>
+            <image data-owner-emblem x="-24" y="-21" width="26" height="26"/>
+            <text class="kd-area-value" x="15" y="0">${area.value}</text>
+            ${area.capitalOf ? '<g class="kd-area-crown" transform="translate(0,-32)"><path d="M-8 0 -5-8 0-2 5-8 8 0Z" /></g>' : ''}
+            <g class="kd-area-fortify" data-fortify transform="translate(-12,15)"></g>
+            <text class="kd-area-name" y="34">${label}</text>
+          </g>
           <title>${escapeHTML(area.name)}</title>
         </g>`;
       }).join('');
@@ -557,14 +562,7 @@
       this.applyZoom?.();
     }
 
-    /*
-      Двадцать четыре круга на карте не могут уменьшаться бесконечно: если
-      сблизить их сильнее, они начнут перекрываться уже на самой карте, не
-      дожидаясь экрана. Поэтому на узком экране область умещается пальцем не
-      уменьшением карты, а тем, что первый показ — это уже небольшой наезд, а
-      не честный вид «целиком»: целиком карту всегда можно увидеть кнопкой
-      «Показать всю карту», а начинают с вида, по которому можно попасть.
-    */
+    /* На маленьком экране слегка приближаем всю карту, сохраняя масштаб касания. */
     autoZoom() {
       const scroll = this.root.querySelector('[data-scroll]');
       const rect = scroll?.getBoundingClientRect();
