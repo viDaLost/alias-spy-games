@@ -138,6 +138,27 @@ async function play(width, height) {
   await card.click();
 
   await page.waitForSelector('[data-start]', { timeout: 20_000 });
+  await page.locator('[data-tutorial]').click();
+  await page.waitForSelector('[data-teach]:not([hidden])');
+  need(await page.locator('.kd-area.is-demo-focus').count() > 0, 'обучение не выделяет область карты');
+  for (let step = 2; step <= 5; step += 1) await page.locator('[data-teach-next]').click();
+  const teaching = await page.evaluate(() => ({
+    step: document.querySelector('[data-teach-count]')?.textContent,
+    chips: document.querySelectorAll('.kd-teach-chip').length,
+    motion: getComputedStyle(document.querySelector('.kd-token.is-demo-travel')).animationName,
+    spill: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    saved: localStorage.getItem('kd_campaign_v3'),
+  }));
+  need(teaching.step === '5 / 12' && teaching.chips === 6, 'показ руки или шага похода неполон');
+  need(teaching.motion.includes('kd-demo-march'), 'жетон похода не анимирован');
+  need(teaching.spill === 0, `обучение шире экрана на ${teaching.spill}px (${width}×${height})`);
+  need(teaching.saved === null, 'обучение создало игровое сохранение');
+  if (process.env.KINGDOMS_SCREENSHOTS && width === 390) {
+    fs.mkdirSync(process.env.KINGDOMS_SCREENSHOTS, { recursive: true });
+    await page.screenshot({ path: path.join(process.env.KINGDOMS_SCREENSHOTS, 'kingdoms-tutorial.png'), fullPage: true });
+  }
+  await page.locator('[data-teach-skip]').click();
+  await page.waitForSelector('[data-start]');
   await page.locator('[data-count] button[data-value="2"]').click();
   await page.locator('[data-start]').click();
   await page.waitForSelector('[data-area]', { timeout: 10_000 });

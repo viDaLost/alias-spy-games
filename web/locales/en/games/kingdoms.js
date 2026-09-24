@@ -252,7 +252,7 @@
             <div class="kd-row">
               <button type="button" class="kd-btn" data-resume hidden>Продолжить партию</button>
               <button type="button" class="kd-btn" data-start>Начать</button>
-              <button type="button" class="kd-btn kd-btn--ghost" data-tutorial>${seenTutorial ? 'Обучение ещё раз' : 'Короткое обучение'}</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-menu>Menu</button>\n            </div>\n            <p class="kd-note" data-message>${escapeHTML(message)}</p>
+              <button type="button" class="kd-btn kd-btn--ghost" data-tutorial>${seenTutorial ? 'Обучение ещё раз' : 'Обучение на карте'}</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-menu>Menu</button>\n            </div>\n            <p class="kd-note" data-message>${escapeHTML(message)}</p>
           </section>
         </div>`;
       this.playerCount = 2;
@@ -371,8 +371,17 @@
     /* ——— каркас доски ——— */
     buildBoard() {
       const R = this.R;
-      this.root.innerHTML = `\n        <div class="kd-wrap">\n          <header class="kd-header">\n            <div class="kd-header-round">\n              <b data-round></b>\n              <span data-turn></span>\n            </div>\n            <div class="kd-header-right">\n              <span class="kd-objective" data-objective></span>\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Main menu">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
-                  <image href="${window.KingdomsMap.base}" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-areas></g>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancel</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
+      this.root.innerHTML = `
+        <div class="kd-wrap">
+          <header class="kd-header">
+            <div class="kd-header-round">
+              <b data-round></b>
+              <span data-turn></span>
+            </div>
+            <div class="kd-header-right">
+              <span class="kd-objective" data-objective></span>
+              ${this.net ? '' : '<button type="button" class="kd-icon-btn" data-tutorial-open title="Tutorial" aria-label="Tutorial">?</button>'}\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Main menu">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
+                  <image href="${window.KingdomsMap.base}" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-areas></g>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancel</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n            <section class="kd-teach" data-teach hidden aria-live="polite">\n              <div class="kd-teach-progress"><span data-teach-count></span><span>ЦАРСТВА · TUTORIAL</span></div>\n              <div class="kd-teach-track"><span data-teach-progress></span></div>\n              <h3 data-teach-title></h3>\n              <p data-teach-text></p>\n              <div class="kd-teach-hand" data-teach-hand hidden></div>\n              <p class="kd-teach-hint" data-teach-hint></p>\n              <div class="kd-teach-actions">\n                <button type="button" class="kd-btn kd-btn--ghost" data-teach-back>Back</button>\n                <button type="button" class="kd-btn" data-teach-next>Next</button>\n              </div>\n              <button type="button" class="kd-teach-skip" data-teach-skip>Skip the tutorial</button>\n            </section>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
 
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`)?.addEventListener('click', fn);
       on('menu', () => {
@@ -381,6 +390,7 @@
         if (typeof goToMainMenu === 'function') goToMainMenu();
       });
       on('log', () => this.openLog());
+      on('tutorial-open', () => this.runTutorial());
       on('skip-reveal', () => this.skipAnimation());
       on('pass', () => {
         if (this.view.phase !== 'planning' || this.view.turn !== this.you) return;
@@ -837,6 +847,7 @@
 
     /* ——— выбор приказа и цели ——— */
     selectOrder(kind) {
+      if (this.tutorial) return;
       if (this.view.turn !== this.view.you || this.view.phase !== 'planning' || this.view.you < 0) return;
       this.pending = this.pending?.kind === kind ? null : { kind };
       this.scoutPicked = [];
@@ -850,6 +861,7 @@
     }
 
     tapArea(areaId) {
+      if (this.tutorial) return;
       if (this.pending && this.R.orderOf(this.pending.kind).slot === 'outgoing' && this.eligibleAreas().has(areaId)) {
         if (this.view.areas[areaId].owner === this.you) {
           this.pending.from = areaId; this.pending.area = null; this.renderAll(); return;
@@ -868,6 +880,7 @@
     }
 
     tapEdge(a, b) {
+      if (this.tutorial) return;
       if (!this.pending) return;
       const order = this.R.orderOf(this.pending.kind);
       if (order.slot !== 'outgoing') return;
@@ -884,6 +897,7 @@
     }
 
     tapToken(orderId) {
+      if (this.tutorial) return;
       if (!this.pending || this.pending.kind !== 'scout') return;
       const order = this.view.orders.find((one) => one.id === orderId);
       if (!order || order.owner === this.view.you || order.kind || this.view.scoutIntel.some(i => i.atRound === this.view.round && i.orderId === order.id)) return;
@@ -1155,38 +1169,113 @@
       });
     }
 
-    /* ——— короткое обучение ——— */
+    /* ——— обучение на отдельной демонстрационной партии ——— */
     runTutorial() {
+      if (this.net || this.tutorial) return;
+      const returnState = this.root.querySelector('[data-svg]') ? this.state : null;
+      stopTimers();
       this.tutorial = true;
-      try { localStorage.setItem('kd_tutorial_seen', '1'); } catch { /* приватный режим */ }
+      this.pending = null;
+      this.scoutPicked = [];
+      const R = this.R;
+      const kingdoms = R.STARTING_LAYOUTS[2];
+      const owned = R.startingAreasOf(kingdoms[0]);
+      const enemyOwned = R.startingAreasOf(kingdoms[1]);
+      const border = owned.flatMap(area => R.connectionsOf(area).map(link => ({ from: area, ...link })))
+        .find(link => link.type === 'land' && !owned.includes(link.to) && !enemyOwned.includes(link.to));
+      const enemyBorder = enemyOwned.flatMap(area => R.connectionsOf(area).map(link => ({ from: area, ...link })))
+        .find(link => link.type === 'land' && !owned.includes(link.to) && !enemyOwned.includes(link.to));
+      const home = owned[0];
+      const advance = border || { from: owned[1], to: R.connectionsOf(owned[1])[0].to };
+      const hidden = enemyBorder || { from: enemyOwned[1], to: R.connectionsOf(enemyOwned[1])[0].to };
       const steps = [
-        { title: 'Card', text: 'Двадцать четыре области в шести регионах. Ваши области — цвета вашего царства, '
-          + 'остальные — серые (ничьи) или цвета соперников. Нажмите область, чтобы увидеть её карточку.' },
-        { title: 'Hand', text: 'Каждый раунд добирайте жетоны из конечного запаса до шести. Пять размещаются по очереди, один остаётся на следующий раунд. Обманный манёвр возвращается после раскрытия.' },
-        { title: 'Поход', text: 'Выберите доступный приказ «Поход» — на карте подсветятся связи от ваших областей к '
-          + 'соседним. Нажмите связь — это и область-источник, и цель одним нажатием.' },
-        { title: 'Guard', text: '«Стража» и «Укрепление» ставятся внутри своей области: +2 к защите на этот '
-          + 'раунд у стражи, и постоянный +1 у укрепления, с пределом.' },
-        { title: 'Закрытый приказ', text: 'Чужие приказы на карте видны местом и хозяином, но не видом и силой — '
-          + 'кружок с «?». «Разведка» раскрывает один такой приказ только вам.' },
-        { title: 'Раскрытие', text: 'Когда все разместили приказы, они раскрываются разом: укрепления, стража, '
-          + 'затем атаки. Сила атакующих суммируется у одного игрока, но не между разными игроками.' },
-        { title: 'Points', text: 'После пятого раунда считаются очки: ценность удержанных областей, +5 за полный '
-          + 'регион, жетоны успешной обороны и очки за тайную цель. Больше всех — победил.' },
+        { title: 'Перед вами карта', text: '24 области объединены в шесть регионов. Цвет и толстая граница показывают владельца; светлые области пока ничьи.', hint: 'Посмотрите, как выделяется ваша стартовая земля.', area: home },
+        { title: 'Ваше царство', text: 'У вас две стартовые области. Корона отмечает столицу; число на области — её ценность в итоговом счёте.', hint: 'Герб и цвет помогают быстро увидеть свои земли.', area: home },
+        { title: 'Карта в руках', text: 'Перетаскивайте карту одним пальцем. Раздвигайте два пальца для приближения или пользуйтесь кнопками + и −; «Показать всю карту» вернёт обзор.', hint: 'В этом шаге карта плавно приблизится к границе.', area: advance.from, zoom: true },
+        { title: 'Шесть жетонов в руке', text: 'В начале раунда у вас шесть жетонов. Пять можно разместить по очереди; один останется на следующий раунд. Запас конечен.', hint: 'Подсвеченный жетон показывает доступный поход.', order: 'march3', hand: true },
+        { title: 'Приказ на границе', text: 'Выберите поход, затем свою область и соседнюю цель — или нажмите подсвеченную связь между ними. Для захвата сила должна превысить защиту.', hint: 'Движущийся жетон показывает направление атаки.', edge: advance, token: 'march3', hand: true },
+        { title: 'Приказы лежат рубашкой вверх', text: 'Соперники видят место и направление вашего приказа, но не его вид и силу. Их приказы скрыты от вас таким же образом.', hint: 'Знак вопроса — закрытый приказ соперника.', enemy: true },
+        { title: 'Разведка', text: 'Разведка раскрывает один чужой закрытый приказ только вам. Царство Кедем может разведать сразу два.', hint: 'Теперь вид чужого приказа известен лишь вашему царству.', enemy: true, scout: true },
+        { title: 'Обманный манёвр', text: 'Обманный жетон выглядит угрозой, но не участвует в бою. После раскрытия он вернётся и будет доступен в следующем раунде.', hint: 'Он отвлекает соперника, не захватывая область.', edge: advance, token: 'feint', hand: true },
+        { title: 'Стража и укрепление', text: 'Стража даёт +2 к защите в текущем раунде. Укрепление даёт постоянный +1; после успешной обороны появляется ветеран: +1 к защите и итоговым очкам.', hint: 'Кольцо выделяет защищённую область.', area: home, defense: true },
+        { title: 'Раскрытие', text: 'После пятого размещения каждого игрока приказы открываются вместе: сначала укрепления и стража, затем атаки. Приказы одного игрока на одну цель складываются.', hint: 'Жетон раскрывается, затем область меняет цвет.', edge: advance, reveal: true },
+        { title: 'Очки и победа', text: 'После пятого раунда считайте ценность областей, +5 за каждый полный регион, ветеранов и тайную цель. У кого больше очков, тот побеждает.', hint: 'Четыре области одного региона окрашены в ваш цвет.', region: R.areaOf(home).region },
+        { title: 'Готовы править', text: 'Пробуйте разные приказы и следите за закрытыми угрозами. Знак «?» в партии снова откроет это обучение.', hint: 'Демонстрация не затронула вашу сохранённую партию.', area: home },
       ];
       let at = 0;
+      const finish = () => {
+        this.tutorial = false;
+        this.pending = null;
+        this.scoutPicked = [];
+        try { localStorage.setItem('kd_tutorial_seen', '1'); } catch { /* приватный режим */ }
+        if (returnState) this.resumeCampaign(returnState);
+        else { this.state = null; this.view = null; this.setup(); }
+      };
       const show = () => {
         const step = steps[at];
-        const sheet = this.openSheet(`\n          <h3>Tutorial (${at + 1} of ${steps.length}) — ${escapeHTML(step.title)}</h3>
-          <p>${escapeHTML(step.text)}</p>
-          <div class="kd-row">
-            <button type="button" class="kd-btn" data-next>${at === steps.length - 1 ? 'Got it' : 'Next'}</button>\n            <button type="button" class="kd-btn kd-btn--ghost" data-cancel>Skip</button>\n          </div>`);
-        sheet.querySelector('[data-next]').addEventListener('click', () => {
-          sheet.remove();
-          at += 1;
-          if (at < steps.length) show();
-        });
+        const demo = this.E.createGame({ kingdomIds: kingdoms, random: () => .42 });
+        demo.players[0].hand = ['march1', 'march3', 'guard', 'fortify', 'scout', 'feint'];
+        const ownOrder = (kind) => ({ id: 'demo-own', owner: 0, kind, area: advance.from,
+          to: advance.to, round: 1 });
+        const foreignOrder = { id: 'demo-enemy', owner: 1, kind: 'march2', area: hidden.from,
+          to: hidden.to, round: 1 };
+        if (step.token || step.reveal) demo.orders.push(ownOrder(step.token || 'march3'));
+        if (step.enemy) demo.orders.push(foreignOrder);
+        if (step.scout) demo.scoutIntel[0].push({ atRound: 1, orderId: foreignOrder.id,
+          kind: foreignOrder.kind, owner: 1, area: foreignOrder.area, to: foreignOrder.to });
+        if (step.defense) {
+          demo.areas[home].fortify = 1;
+          demo.areas[home].veterans = 1;
+          demo.orders.push({ id: 'demo-guard', owner: 0, kind: 'guard', area: home, round: 1 });
+        }
+        if (step.reveal) {
+          demo.orders[0].revealed = true;
+          demo.phase = 'results';
+          demo.areas[advance.to].owner = 0;
+        }
+        if (step.region) for (const area of R.areasOfRegion(step.region)) demo.areas[area.id].owner = 0;
+        this.state = demo;
+        this.refresh();
+        this.renderAll();
+        this.fitZoom();
+        const wrap = this.root.querySelector('.kd-wrap');
+        wrap.classList.add('is-teaching');
+        const box = this.root.querySelector('[data-teach]');
+        box.hidden = false;
+        box.querySelector('[data-teach-count]').textContent = `${at + 1} / ${steps.length}`;
+        box.querySelector('[data-teach-progress]').style.width = `${(at + 1) / steps.length * 100}%`;
+        box.querySelector('[data-teach-title]').textContent = step.title;
+        box.querySelector('[data-teach-text]').textContent = step.text;
+        box.querySelector('[data-teach-hint]').textContent = step.hint;
+        const hand = box.querySelector('[data-teach-hand]');
+        hand.hidden = !step.hand;
+        if (step.hand) hand.innerHTML = ['march1', 'march3', 'guard', 'fortify', 'scout', 'feint']
+          .map(kind => `<div class="kd-teach-chip${(step.order || step.token) === kind ? ' is-demo-focus' : ''}">${orderIconHTML(kind)}<span>${escapeHTML(R.orderOf(kind).title)}${R.orderOf(kind).force ? ` · ${R.orderOf(kind).force}` : ''}</span></div>`).join('');
+        box.querySelector('[data-teach-back]').disabled = at === 0;
+        box.querySelector('[data-teach-next]').textContent = at === steps.length - 1 ? 'Play' : 'Next';
+        const areaId = step.area || step.edge?.from;
+        if (areaId) this.root.querySelector(`[data-area="${areaId}"]`)?.classList.add('is-demo-focus');
+        if (step.edge) this.root.querySelector(`[data-edge="${step.edge.from}|${step.edge.to}"], [data-edge="${step.edge.to}|${step.edge.from}"]`)?.classList.add('is-demo-focus');
+        if (step.order) this.root.querySelector(`[data-order="${step.order}"]`)?.classList.add('is-demo-focus');
+        if (step.enemy || step.token || step.reveal) this.root.querySelector('[data-token]')?.classList.add('is-demo-focus');
+        if (step.edge && step.token) {
+          const token = this.root.querySelector('[data-token="demo-own"]');
+          const from = this.pos.get(step.edge.from);
+          const to = this.pos.get(step.edge.to);
+          token?.style.setProperty('--walk-x', `${(to.x - from.x) * .42}px`);
+          token?.style.setProperty('--walk-y', `${(to.y - from.y) * .42}px`);
+          token?.classList.add('is-demo-travel');
+        }
+        if (step.region) for (const area of R.areasOfRegion(step.region))
+          this.root.querySelector(`[data-area="${area.id}"]`)?.classList.add('is-demo-focus');
+        if (step.zoom) this.setZoom(1.55);
       };
+      this.state = this.E.createGame({ kingdomIds: kingdoms, random: () => .42 });
+      this.refresh();
+      this.buildBoard();
+      this.root.querySelector('[data-teach-back]').addEventListener('click', () => { if (at > 0) { at -= 1; show(); } });
+      this.root.querySelector('[data-teach-next]').addEventListener('click', () => { at += 1; if (at === steps.length) finish(); else show(); });
+      this.root.querySelector('[data-teach-skip]').addEventListener('click', finish);
       show();
     }
   }
