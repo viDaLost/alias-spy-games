@@ -1250,7 +1250,7 @@
         const hand = box.querySelector('[data-teach-hand]');
         hand.hidden = !step.hand;
         if (step.hand) hand.innerHTML = ['march1', 'march3', 'guard', 'fortify', 'scout', 'feint']
-          .map(kind => `<div class="kd-teach-chip${(step.order || step.token) === kind ? ' is-demo-focus' : ''}">${orderIconHTML(kind)}<span>${escapeHTML(R.orderOf(kind).title)}</span></div>`).join('');
+          .map(kind => `<div class="kd-teach-chip${(step.order || step.token) === kind ? ' is-demo-focus' : ''}">${orderIconHTML(kind)}<span>${escapeHTML(R.orderOf(kind).title)}${R.orderOf(kind).force ? ` · ${R.orderOf(kind).force}` : ''}</span></div>`).join('');
         box.querySelector('[data-teach-back]').disabled = at === 0;
         box.querySelector('[data-teach-next]').textContent = at === steps.length - 1 ? 'Play' : 'Next';
         const areaId = step.area || step.edge?.from;

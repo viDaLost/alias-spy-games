@@ -397,6 +397,7 @@
 
 /* Обучение показывает отдельную партию рядом с живой картой. */
 .kd-wrap.is-teaching .kd-panel { display: none; }
+.kd-wrap.is-teaching .kd-status { display: none; }
 .kd-wrap.is-teaching [data-tutorial-open],
 .kd-wrap.is-teaching [data-menu],
 .kd-wrap.is-teaching [data-log] { display: none; }
