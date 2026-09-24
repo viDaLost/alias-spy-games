@@ -394,3 +394,62 @@
 .kd-order-btn:disabled::after { background: #918b79; }
 .kd-map { transition: transform .08s ease-out; will-change: transform; }
 .kd-map.is-panning { transition: none; }
+
+/* Обучение показывает отдельную партию рядом с живой картой. */
+.kd-wrap.is-teaching .kd-panel { display: none; }
+.kd-wrap.is-teaching [data-tutorial-open],
+.kd-wrap.is-teaching [data-menu],
+.kd-wrap.is-teaching [data-log] { display: none; }
+.kd-teach {
+  flex: 1 1 300px; min-width: 0; align-self: stretch; display: flex; flex-direction: column;
+  gap: 10px; padding: 18px; border-radius: 20px; box-sizing: border-box; overflow-y: auto;
+  color: #f6eacb; background: linear-gradient(155deg,#34443d,#202d2b 65%);
+  border: 1px solid #dfbc74a0; box-shadow: 0 12px 30px #0004;
+}
+.kd-teach[hidden] { display: none; }
+.kd-teach-progress { display: flex; justify-content: space-between; gap: 8px; font-size: 11px;
+  font-weight: 800; letter-spacing: .08em; color: #e5c98f; }
+.kd-teach-track { height: 5px; border-radius: 5px; background: #8b754955; overflow: hidden; }
+.kd-teach-track span { display: block; height: 100%; background: #eaca83; transition: width .25s ease; }
+.kd-teach h3 { margin: 6px 0 0; color: #fff3d3; font: 700 clamp(22px,3vw,30px)/1.2 Georgia,serif; }
+.kd-teach p { margin: 0; font-size: 15px; line-height: 1.5; }
+.kd-teach .kd-teach-hint { margin-top: auto; padding: 10px 12px; border-left: 3px solid #eaca83;
+  background: #121e1b80; color: #eaca83; font-size: 13px; }
+.kd-teach-hand { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
+.kd-teach-hand[hidden] { display: none; }
+.kd-teach-chip { min-width: 0; display: flex; align-items: center; gap: 4px; padding: 5px;
+  border: 1px solid #c9aa6755; border-radius: 9px; background: #15211f; font-size: 10px; }
+.kd-teach-chip .kd-order-icon { flex: 0 0 24px; width: 24px; height: 24px; }
+.kd-teach-chip.is-demo-focus { border-color: #ffe6a4; box-shadow: 0 0 12px #f9d67788; }
+.kd-teach-actions { display: flex; gap: 8px; }
+.kd-teach-actions .kd-btn { min-width: 0; padding: 0 8px; }
+.kd-teach-actions button:disabled { opacity: .45; }
+.kd-teach-skip { align-self: center; border: 0; color: #e9d5a8; background: none;
+  text-decoration: underline; min-height: 40px; cursor: pointer; font: inherit; }
+.kd-wrap.is-teaching .kd-map-wrap { flex: 1 1 auto; }
+.kd-wrap.is-teaching .kd-area, .kd-wrap.is-teaching .kd-edge,
+.kd-wrap.is-teaching .kd-token { pointer-events: none; }
+.kd-area.is-demo-focus .kd-area-ring { stroke: #fff5b5; stroke-width: 8;
+  filter: drop-shadow(0 0 12px #ffe8a1); animation: kd-demo-glow 1.7s ease-in-out infinite; }
+.kd-edge.is-demo-focus { stroke: #fff1a2; stroke-width: 12; stroke-dasharray: 18 8;
+  animation: kd-demo-road 1s linear infinite; }
+.kd-token.is-demo-focus { animation: kd-demo-token 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.kd-token.is-demo-travel { animation: kd-demo-march 2.1s ease-in-out infinite; }
+.kd-order-btn.is-demo-focus { box-shadow: 0 0 0 3px #ffe6a4, 0 0 22px #f9d677; }
+@keyframes kd-demo-glow { 50% { opacity: .5; } }
+@keyframes kd-demo-road { to { stroke-dashoffset: -26; } }
+@keyframes kd-demo-token { 50% { opacity: .5; filter: drop-shadow(0 0 10px #ffdc80); } }
+@keyframes kd-demo-march { 0% { translate: calc(-1 * var(--walk-x)) calc(-1 * var(--walk-y)); opacity: .4; }
+  60%, 85% { translate: var(--walk-x) var(--walk-y); opacity: 1; }
+  100% { translate: var(--walk-x) var(--walk-y); opacity: 0; } }
+@media (max-width: 639px) {
+  .kd-wrap.is-teaching .kd-map-wrap { height: 49vh; min-height: 265px; }
+  .kd-teach { flex: 0 0 auto; padding: 14px; overflow: visible; }
+  .kd-teach h3 { font-size: 22px; }
+  .kd-teach p { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kd-area.is-demo-focus .kd-area-ring, .kd-edge.is-demo-focus,
+  .kd-token.is-demo-focus { animation: none; }
+  .kd-teach-track span { transition: none; }
+}

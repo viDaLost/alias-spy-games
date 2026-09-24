@@ -130,4 +130,38 @@ for (const n of [2,3,4,5]) {
   assert.equal(JSON.parse(w.localStorage.getItem('kd_campaign_v3')).version, 3);
   dom.window.close();
 }
+{
+  const { dom, w, root, board } = harness();
+  board.setup();
+  root.querySelector('[data-tutorial]').click();
+  assert.equal(root.querySelectorAll('[data-area]').length, 24, 'tutorial must show the actual map');
+  assert.equal(root.querySelector('[data-teach-count]').textContent, '1 / 12');
+  assert.equal(root.querySelector('.kd-sheet'), null, 'tutorial must not cover the map with a modal');
+  for (let step = 2; step <= 11; step += 1) {
+    root.querySelector('[data-teach-next]').click();
+    assert.equal(root.querySelector('[data-teach-count]').textContent, `${step} / 12`);
+    if (step === 6) assert.ok(root.querySelector('[data-token="demo-enemy"]'));
+    if (step === 7) assert.equal(board.view.scoutIntel[0].kind, 'march2');
+    if (step === 11) {
+      const region = w.KingdomsRules.kingdomOf(w.KingdomsRules.STARTING_LAYOUTS[2][0]).region;
+      assert.ok(w.KingdomsRules.areasOfRegion(region).every(area => board.view.areas[area.id].owner === 0));
+    }
+  }
+  root.querySelector('[data-teach-back]').click();
+  assert.equal(root.querySelector('[data-teach-count]').textContent, '10 / 12');
+  root.querySelector('[data-teach-skip]').click();
+  assert.ok(root.querySelector('[data-start]'));
+  assert.equal(w.localStorage.getItem('kd_tutorial_seen'), '1');
+  assert.equal(w.localStorage.getItem('kd_campaign_v3'), null, 'tutorial must not create a campaign');
+
+  board.begin(2);
+  const saved = w.localStorage.getItem('kd_campaign_v3');
+  const original = board.state;
+  root.querySelector('[data-tutorial-open]').click();
+  root.querySelector('[data-teach-next]').click();
+  root.querySelector('[data-teach-skip]').click();
+  assert.equal(board.state, original, 'tutorial must restore the current local game');
+  assert.equal(w.localStorage.getItem('kd_campaign_v3'), saved, 'tutorial must not change the save');
+  dom.window.close();
+}
 console.log('OK: illustrated assets, real order controls, pass, save/resume, 2–5 player campaigns to final results, spectator and online results transitions.');
