@@ -111,4 +111,23 @@ for (const n of [2,3,4,5]) {
   assert.equal(root.querySelectorAll('.kd-sheet').length, 0);
   dom.window.close();
 }
+{
+  const { dom, w, board } = harness();
+  const legacy = w.KingdomsEngine.createGame({ kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2] });
+  const area = w.KingdomsRules.startingAreasOf(legacy.players[0].kingdomId)[0];
+  legacy.players[0].hand[0] = 'guard';
+  w.KingdomsEngine.placeOrder(legacy, 0, { kind: 'guard', area });
+  for (const player of legacy.players) { delete player.hand; delete player.supply; }
+  for (const cell of Object.values(legacy.areas)) delete cell.veterans;
+  w.localStorage.setItem('kd_campaign_v2', JSON.stringify({ version: 2, state: legacy }));
+  const migrated = board.loadCampaign();
+  assert.ok(migrated, 'existing v2 campaign should load');
+  assert.equal(migrated.orders[0].kind, 'guard');
+  assert.equal(migrated.areas[area].owner, 0);
+  assert.equal(migrated.players[0].hand.length, 5);
+  assert.equal([...migrated.players[0].supply, ...migrated.players[0].hand].filter(kind => kind === 'guard').length, 3);
+  board.resumeCampaign(migrated);
+  assert.equal(JSON.parse(w.localStorage.getItem('kd_campaign_v3')).version, 3);
+  dom.window.close();
+}
 console.log('OK: illustrated assets, real order controls, pass, save/resume, 2–5 player campaigns to final results, spectator and online results transitions.');

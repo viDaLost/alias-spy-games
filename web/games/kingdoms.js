@@ -322,12 +322,31 @@
 
     loadCampaign() {
       try {
-        const saved = JSON.parse(safeGet(SAVE_KEY));
+        const saved = JSON.parse(safeGet(SAVE_KEY) || safeGet('kd_campaign_v2'));
         const s = saved?.state;
-        if (saved?.version !== 3 || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
-          || s.players.some((p) => !Array.isArray(p.hand) || !Array.isArray(p.supply))
+        if (![2, 3].includes(saved?.version) || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
           || !['planning', 'reveal', 'results', 'over'].includes(s.phase) || s.round < 1 || s.round > this.R.ROUNDS
           || !this.R.AREAS.every(a => s.areas?.[a.id]) || !Array.isArray(s.orders) || !Array.isArray(s.turnOrder)) return null;
+        if (saved.version === 2) {
+          // Старые партии не хранили мешок. Сохраняем поле и уже размещённые
+          // приказы; остаток выдаём из нового мешка, исключив жетоны этого раунда.
+          for (const area of this.R.AREAS) s.areas[area.id].veterans = 0;
+          for (const player of s.players) {
+            player.supply = Object.entries(this.R.TOKEN_SUPPLY).flatMap(([kind, count]) => Array(count).fill(kind));
+            const placed = s.orders.filter(o => o.owner === player.id);
+            for (const order of placed) {
+              if (order.kind === 'feint') continue;
+              const at = player.supply.indexOf(order.kind);
+              if (at >= 0) player.supply.splice(at, 1);
+            }
+            player.hand = placed.some(o => o.kind === 'feint') ? [] : ['feint'];
+            while (player.hand.length < Math.max(0, this.R.HAND_SIZE - placed.length) && player.supply.length) {
+              const at = Math.floor(Math.random() * player.supply.length);
+              player.hand.push(player.supply.splice(at, 1)[0]);
+            }
+          }
+        }
+        if (s.players.some(p => !Array.isArray(p.hand) || !Array.isArray(p.supply))) return null;
         s.random = Math.random;
         this.E.visibleStateFor(s, 0);
         return s;
@@ -339,6 +358,7 @@
       stopTimers();
       this.state = state;
       this.you = 0;
+      this.saveCampaign();
       this.refresh();
       this.buildBoard();
       this.renderAll();
