@@ -249,7 +249,8 @@ async function play(width, height) {
   }
   await page.locator('[data-zoom-fit]').click();
   const fitted = await page.evaluate(() => document.querySelector('[data-svg]').style.transform);
-  need(/scale\(1\)/.test(fitted) && /translate\(0px,0px\)/.test(fitted), 'кнопка обзора не восстановила весь лист');
+  need(/scale\(1\)/.test(fitted) && /translate\(0px,\s*0px\)/.test(fitted),
+    `кнопка обзора не восстановила весь лист: ${fitted}`);
   const pinch = await page.evaluate(() => {
     const frame = document.querySelector('[data-scroll]');
     const box = frame.getBoundingClientRect();
