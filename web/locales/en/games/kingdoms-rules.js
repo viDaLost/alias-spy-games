@@ -211,10 +211,9 @@
   };
 
   /*
-    Восемь приказов. Тот же набор каждый раунд, каждому игроку — вернее не
-    «набор карт», а восемь всегда доступных видов действия: разместить за
-    раунд можно не больше пяти из них, но какой именно, выбирают заново
-    каждый раз.
+    Восемь видов приказов. Семь составляют конечный мешок жетонов; восьмой
+    (манёвр) служит возвращаемым блефом. В начале каждого раунда игрок
+    добирает руку до шести и размещает пять жетонов по одному за ход.
 
     slot решает, что именно занимает приказ: «outgoing» — исходящую связь
     своей области (поход, переправа, манёвр — их в одной области не больше
@@ -245,6 +244,12 @@
 
   const ROUNDS = 5;
   const ORDERS_PER_ROUND = 5;
+  const REGION_BONUS = 5;
+  // Пять размещений из шести жетонов в руке: последний остаётся на следующий раунд.
+  // Обманный жетон возвращается владельцу после раскрытия.
+  const TOKEN_SUPPLY = Object.freeze({ march1: 5, march2: 5, march3: 5,
+    guard: 4, fortify: 4, ford2: 3, scout: 2 });
+  const HAND_SIZE = 6;
   const TURN_LIMIT_MS = 90000;
 
   /*
@@ -301,7 +306,7 @@
     STARTING_LAYOUTS, startingAreasOf,
     ORDERS, ORDER_BY_ID, orderOf,
     OBJECTIVES, objectiveOf, assignObjectives,
-    ROUNDS, ORDERS_PER_ROUND, TURN_LIMIT_MS,
+    ROUNDS, ORDERS_PER_ROUND, REGION_BONUS, TURN_LIMIT_MS, TOKEN_SUPPLY, HAND_SIZE,
     NEUTRAL_DEFENSE, NEUTRAL_CITY_DEFENSE, MOUNTAIN_DEFENSE_BONUS,
     neutralDefense, fortifyCapFor,
   };

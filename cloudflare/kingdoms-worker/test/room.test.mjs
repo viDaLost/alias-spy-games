@@ -108,6 +108,7 @@ test('приказ принимается только от того, чья с�
     assert.throws(() => playerAction(room, otherId, 'placeOrder', { kind: 'guard', area: 'x' }), /не ваш ход/i);
   }
   const area = R.startingAreasOf(room.game.players[seat0].kingdomId)[0];
+  room.game.players[seat0].hand[0] = 'guard';
   playerAction(room, seat0Id, 'placeOrder', { kind: 'guard', area });
   assert.equal(room.game.orders.length, 1, 'законный приказ не встал на стол');
 
@@ -183,15 +184,18 @@ test('вид комнаты прячет вид и силу чужого зак�
   const seat0 = room.game.turnOrder[0];
   const seat0Id = room.seats[seat0];
   const area = R.startingAreasOf(room.game.players[seat0].kingdomId)[0];
+  room.game.players[seat0].hand[0] = 'guard';
   playerAction(room, seat0Id, 'placeOrder', { kind: 'guard', area });
 
   const ownerView = buildView(room, seat0Id);
+  assert.ok(ownerView.game.hand.length > 0, 'своя рука отсутствует в ответе комнаты');
   const order = ownerView.game.orders[0];
   assert.ok('kind' in order, 'хозяин приказа не видит его собственный вид');
 
   const otherId = room.seats.find((id) => id && id !== seat0Id);
   if (otherId) {
     const otherView = buildView(room, otherId);
+    assert.equal('hand' in otherView.game.players[seat0], false, 'рука соперника просочилась в ответ комнаты');
     const seen = otherView.game.orders[0];
     assert.equal('kind' in seen, false, 'чужой закрытый приказ выдал свой вид');
     assert.equal('force' in seen, false, 'чужой закрытый приказ выдал свою силу');

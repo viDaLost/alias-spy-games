@@ -151,6 +151,14 @@ async function play(width, height) {
   need(board.areas === 24, `на карте ${board.areas} областей вместо 24`);
   need(board.orders === 8, `в панели ${board.orders} приказов вместо 8`);
   need(board.regions === 6, `на карте ${board.regions} регионов вместо 6`);
+  const ownership = await page.evaluate(() => {
+    const owned = document.querySelector('.kd-area:not(.is-neutral)');
+    const fill = owned?.querySelector('.kd-area-fill');
+    const border = owned?.querySelector('.kd-area-ring');
+    return { tint: Number.parseFloat(getComputedStyle(fill).fillOpacity),
+      border: Number.parseFloat(getComputedStyle(border).strokeWidth) };
+  });
+  need(ownership.tint >= .3 && ownership.border >= 4, 'цвет территории или граница слабо видны');
 
   /*
     ——— область и связь нажимаются пальцем ———
@@ -164,10 +172,13 @@ async function play(width, height) {
   });
   need(areaSize.w >= 40 && areaSize.h >= 40, `область на карте ${areaSize.w}×${areaSize.h} — меньше пальца`);
 
-  await page.locator('[data-order="march1"]').click();
+  const attackKind = await page.evaluate(() => ['march1','march2','march3','ford2','feint']
+    .find((kind) => !document.querySelector(`[data-order="${kind}"]`)?.disabled));
+  need(Boolean(attackKind), 'в стартовой руке нет доступного боевого жетона');
+  if (attackKind) await page.locator(`[data-order="${attackKind}"]`).click();
   await page.waitForTimeout(150);
   const eligible = await page.evaluate(() => document.querySelectorAll('.kd-edge.is-eligible').length);
-  need(eligible > 0, 'после выбора «Похода» ни одна связь не подсветилась');
+  need(eligible > 0, 'после выбора боевого жетона ни одна связь не подсветилась');
   if (eligible > 0) {
     await page.evaluate(() => document.querySelector('.kd-edge.is-eligible').dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await page.waitForTimeout(150);
@@ -184,6 +195,8 @@ async function play(width, height) {
         return bar && getComputedStyle(bar).display !== 'none';
       });
       need(!stillOpen, 'панель подтверждения осталась открытой после подтверждения приказа');
+      const token = await page.evaluate(() => document.querySelector('.kd-token-face')?.getBoundingClientRect().width || 0);
+      need(token >= 26, 'жетон войск слишком мал на телефоне');
     }
   }
 
@@ -219,6 +232,39 @@ async function play(width, height) {
   const detail = await page.evaluate(() => document.querySelector('.kd-sheet')?.innerText || '');
   need(/Ценность/.test(detail), `карточка области не открылась или неполна: «${detail.slice(0, 60)}»`);
   await page.locator('.kd-sheet [data-cancel]').click({ timeout: 4_000 }).catch(() => {});
+
+  // Масштаб привязан к точке касания, перемещение ограничено размерами карты.
+  await page.locator('[data-zoom-fit]').click();
+  await page.locator('[data-zoom-in]').click();
+  const zoomed = await page.evaluate(() => document.querySelector('[data-svg]').style.transform);
+  need(/scale\(1\.25/.test(zoomed), 'кнопка приближения не изменила масштаб');
+  const frame = await page.locator('[data-scroll]').boundingBox();
+  if (frame) {
+    await page.mouse.move(frame.x + frame.width * .65, frame.y + frame.height * .6);
+    await page.mouse.down();
+    await page.mouse.move(frame.x + frame.width * .45, frame.y + frame.height * .6, { steps: 5 });
+    await page.mouse.up();
+    const moved = await page.evaluate(() => document.querySelector('[data-svg]').style.transform);
+    need(moved !== zoomed, 'перетаскивание увеличенной карты не сдвинуло изображение');
+  }
+  await page.locator('[data-zoom-fit]').click();
+  const fitted = await page.evaluate(() => document.querySelector('[data-svg]').style.transform);
+  need(/scale\(1\)/.test(fitted) && /translate\(0px,\s*0px\)/.test(fitted),
+    `кнопка обзора не восстановила весь лист: ${fitted}`);
+  const pinch = await page.evaluate(() => {
+    const frame = document.querySelector('[data-scroll]');
+    const box = frame.getBoundingClientRect();
+    const x = box.left + box.width / 2; const y = box.top + box.height / 2;
+    const fire = (name, id, dx) => frame.dispatchEvent(new PointerEvent(name,
+      { bubbles: true, pointerId: id, pointerType: 'touch', clientX: x + dx, clientY: y }));
+    fire('pointerdown', 70, -40); fire('pointerdown', 71, 40);
+    fire('pointermove', 71, 85);
+    const transform = document.querySelector('[data-svg]').style.transform;
+    fire('pointerup', 70, -40); fire('pointerup', 71, 85);
+    return transform;
+  });
+  need(/scale\(1\.[3-9]/.test(pinch), 'жест двумя пальцами не приближает карту');
+  await page.locator('[data-zoom-fit]').click();
 
   // ——— ничего не вылезло за край ———
   const spill = await page.evaluate(() => {

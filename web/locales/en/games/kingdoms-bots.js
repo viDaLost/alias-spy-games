@@ -68,6 +68,7 @@
     const used = usedSlots(visible, seat);
     const ownedIds = Object.entries(visible.areas).filter(([, v]) => v.owner === seat).map(([id]) => id);
     const out = [];
+    const available = new Set(visible.hand);
 
     for (const areaId of ownedIds) {
       const area = R.areaOf(areaId);
@@ -78,12 +79,12 @@
       if (!used.internal.has(areaId)) {
         const current = state.areas[areaId].fortify;
         const cap = R.fortifyCapFor(player.kingdomId, area);
-        if (myThreat > 0) {
+        if (myThreat > 0 && available.has('guard')) {
           const guardScore = 4 + myThreat * 3 + areaWeight(state, area, player.objectiveId)
             + (known ? known * 2 : 0);
           out.push({ kind: 'guard', area: areaId, score: guardScore });
         }
-        if (current < cap && (myThreat === 0 || area.capitalOf)) {
+        if (available.has('fortify') && current < cap && (myThreat === 0 || area.capitalOf)) {
           // Укрепление — вложение впрок, а не срочная нужда (для неё есть
           // стража). Оценка нарочно скромная: иначе царство укрепляет
           // столицу два раунда подряд вместо того, чтобы расти, и к пятому
@@ -100,7 +101,8 @@
         for (const link of connections) {
           if (visible.areas[link.to].owner === seat) continue;
           const targetArea = R.areaOf(link.to);
-          const orderId = link.type === 'ford' ? 'ford2' : bestMarchFor(state, seat, area, targetArea);
+          const orderId = link.type === 'ford' ? (available.has('ford2') ? 'ford2' : null)
+            : bestMarchFor(state, seat, area, targetArea, available);
           const order = R.orderOf(orderId);
           if (!order || order.edge !== link.type) continue;
           const force = E.forceOf(state, { kind: orderId, owner: seat, area: areaId, to: link.to });
@@ -116,7 +118,7 @@
         else {
           // Нечем выиграть спор — иногда стоит блефовать манёвром.
           const land = connections.find((link) => link.type === 'land' && visible.areas[link.to].owner !== seat);
-          if (land) out.push({ kind: 'feint', area: areaId, to: land.to, score: 1.5 });
+          if (land && available.has('feint')) out.push({ kind: 'feint', area: areaId, to: land.to, score: 1.5 });
         }
       }
     }
@@ -134,7 +136,7 @@
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, scoutLimit);
-    if (scoutTargets.length) {
+    if (scoutTargets.length && available.has('scout')) {
       out.push({
         kind: 'scout',
         scoutTargets: scoutTargets.map((one) => one.id),
@@ -146,14 +148,14 @@
   }
 
   /** Слабейший поход, которого хватает на цель; иначе сильнейший — брать через силу. */
-  function bestMarchFor(state, seat, from, target) {
-    const orderIds = ['march1', 'march2', 'march3'];
+  function bestMarchFor(state, seat, from, target, available) {
+    const orderIds = ['march1', 'march2', 'march3'].filter((id) => available.has(id));
     const defense = E.defenseOf(state, target.id, false).total;
     for (const id of orderIds) {
       const force = E.forceOf(state, { kind: id, owner: seat, area: from.id, to: target.id });
       if (force > defense) return id;
     }
-    return 'march3';
+    return orderIds.at(-1);
   }
 
   /*

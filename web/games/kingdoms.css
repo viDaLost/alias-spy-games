@@ -363,3 +363,34 @@
 .kd-area.is-resolving .kd-area-ring { stroke: #ffdf82; stroke-width: 6; }
 
 @media (max-width: 640px) { .kd-region-label { display: none; } }
+
+/* More legible ownership and borders over the painted terrain. */
+.kd-area-fill, .kd-area:not(.is-neutral) .kd-area-fill { fill: var(--owner); fill-opacity: .38; }
+.kd-area.is-neutral .kd-area-fill { fill: #f1e0a9; fill-opacity: .075; }
+.kd-area-border-halo { fill: none; stroke: #17241e; stroke-width: 8; stroke-linejoin: round; pointer-events: none; opacity: .94; }
+.kd-area-ring, .kd-area:not(.is-neutral) .kd-area-ring, .kd-area.is-mine .kd-area-ring {
+  fill: none; stroke: var(--owner); stroke-width: 4.5; stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px #fff5dc); pointer-events: none;
+}
+.kd-area.is-neutral .kd-area-ring { stroke: #eed29a; stroke-width: 3; }
+.kd-area.is-eligible .kd-area-ring { stroke: #fff4bd; stroke-width: 7; }
+.kd-area.is-selected .kd-area-ring { stroke: #fff; stroke-width: 8; }
+.kd-area.is-selected .kd-area-fill { fill-opacity: .57; }
+.kd-area-marker > rect { stroke-width: 3; }
+.kd-area-veterans rect { fill: #172720; stroke: #f7d887; stroke-width: 2; }
+.kd-area-veterans text { fill: #fff6d9; stroke: none; font: bold 10px system-ui,sans-serif; }
+
+.kd-token { filter: drop-shadow(0 3px 5px #081913dc); }
+.kd-token .kd-token-shadow { fill: #132620; stroke: #fff3d4; stroke-width: 2; }
+.kd-token .kd-token-face, .kd-token:not(.is-mine) .kd-token-face { fill: #e9d6a8; stroke: var(--owner); stroke-width: 4; }
+.kd-token:not(.is-mine) .kd-token-face { fill: #27302b; }
+.kd-token image { pointer-events: none; }
+.kd-token-strength circle { fill: #14251f; stroke: #fff2d1; stroke-width: 2; }
+.kd-token-force { text-anchor: middle; fill: #fff; stroke: none; font: 900 13px system-ui,sans-serif; }
+.kd-token.is-picked .kd-token-face, .kd-token.is-scoutable .kd-token-face { stroke: #fff4ad; stroke-width: 5; }
+.kd-order-btn { position: relative; }
+.kd-order-btn::after { content: '×' attr(data-count); position: absolute; top: 6px; right: 7px;
+  font: 800 11px system-ui,sans-serif; color: #172720; background: #e9d6a8; padding: 2px 6px; border-radius: 9px; }
+.kd-order-btn:disabled::after { background: #918b79; }
+.kd-map { transition: transform .08s ease-out; will-change: transform; }
+.kd-map.is-panning { transition: none; }

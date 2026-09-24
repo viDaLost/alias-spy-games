@@ -35,6 +35,8 @@ for (const n of [2,3,4,5]) {
     }
   }
   // Persist a real confirmed order, then reconstruct the board from storage.
+  board.state.players[0].hand[0] = 'march3';
+  board.afterLocalChange();
   board.selectOrder('march3'); board.tapArea('primorye-rim'); board.tapArea('primorye-ccw');
   assert.equal(root.querySelector('[data-confirm]').hidden, false);
   assert.match(root.querySelector('[data-confirm-text]').textContent, /Сила 4/);
@@ -81,10 +83,11 @@ for (const n of [2,3,4,5]) {
   root.querySelector('[data-pass-ok]').click();
   assert.equal(board.state.orders.length, 0);
   assert.equal(board.view.turn, 1);
-  w.localStorage.setItem('kd_campaign_v2', '{broken');
+  w.localStorage.setItem('kd_campaign_v3', '{broken');
   assert.equal(board.loadCampaign(), null);
   // A spectator sees results even when the server skips the transient reveal phase.
   const state = w.KingdomsEngine.createGame({kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2]});
+  state.players[0].hand[0] = 'march3';
   const online = new w.KingdomsUI.Board(root, { send() {}, isHost: () => true });
   online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
   online.selectOrder('march3'); online.tapArea('primorye-rim');
@@ -106,6 +109,25 @@ for (const n of [2,3,4,5]) {
   w.KingdomsEngine.nextRound(state);
   spectator.applyView(w.KingdomsEngine.visibleStateFor(state, -1));
   assert.equal(root.querySelectorAll('.kd-sheet').length, 0);
+  dom.window.close();
+}
+{
+  const { dom, w, board } = harness();
+  const legacy = w.KingdomsEngine.createGame({ kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2] });
+  const area = w.KingdomsRules.startingAreasOf(legacy.players[0].kingdomId)[0];
+  legacy.players[0].hand[0] = 'guard';
+  w.KingdomsEngine.placeOrder(legacy, 0, { kind: 'guard', area });
+  for (const player of legacy.players) { delete player.hand; delete player.supply; }
+  for (const cell of Object.values(legacy.areas)) delete cell.veterans;
+  w.localStorage.setItem('kd_campaign_v2', JSON.stringify({ version: 2, state: legacy }));
+  const migrated = board.loadCampaign();
+  assert.ok(migrated, 'existing v2 campaign should load');
+  assert.equal(migrated.orders[0].kind, 'guard');
+  assert.equal(migrated.areas[area].owner, 0);
+  assert.equal(migrated.players[0].hand.length, 5);
+  assert.equal([...migrated.players[0].supply, ...migrated.players[0].hand].filter(kind => kind === 'guard').length, 3);
+  board.resumeCampaign(migrated);
+  assert.equal(JSON.parse(w.localStorage.getItem('kd_campaign_v3')).version, 3);
   dom.window.close();
 }
 console.log('OK: illustrated assets, real order controls, pass, save/resume, 2–5 player campaigns to final results, spectator and online results transitions.');

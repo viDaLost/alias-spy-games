@@ -112,9 +112,74 @@ for (const area of R.AREAS) if (area.city) need(area.value >= 2, `у город�
 
 // ——————————————————————————————————————————————— видимость приказов
 
+// Скрытая рука, конечный мешок, повторный блеф и сохранение одного жетона.
+{
+  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(101) });
+  const first = state.turnOrder[0];
+  const other = 1 - first;
+  const inventory = (p) => p.hand.length + p.supply.length;
+  need(state.players.every((p) => p.hand.length === 6), 'каждое царство должно начать с шестью жетонами');
+  need(!('hand' in E.visibleStateFor(state, other).players[first]), 'чужая рука раскрывается сопернику');
+  need(E.visibleStateFor(state, first).hand.length === 6, 'игрок не видит собственную руку');
+  need(inventory(state.players[first]) === Object.values(R.TOKEN_SUPPLY).reduce((a,b) => a+b, 0) + 1,
+    'начальный запас жетонов не соответствует составу мешка и блефу');
+  const capital = R.startingAreasOf(state.players[first].kingdomId)[0];
+  state.players[first].hand = ['guard', 'march1', 'march2', 'march3', 'ford2', 'feint'];
+  E.placeOrder(state, first, { kind: 'guard', area: capital });
+  need(!E.validatePlacement(state, first, { kind: 'guard', area: capital }).ok,
+    'повторное размещение потраченного жетона принято');
+  state.players[first].hand = ['march3'];
+  state.players[first].supply = ['march1', 'march2', 'guard', 'fortify', 'scout'];
+  E.beginRound(state);
+  need(state.players[first].hand.includes('march3') && state.players[first].hand.includes('feint'),
+    'оставленный жетон или возвращаемый блеф исчез при обновлении раунда');
+}
+
+// Отбитая атака оставляет видимое подкрепление до захвата области.
+{
+  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(102) });
+  const held = R.startingAreasOf(state.players[0].kingdomId)[0];
+  const attacker = R.connectionsOf(held).find((link) => link.type === 'land').to;
+  state.areas[attacker].owner = 1;
+  state.orders = [{ id: 'v1', owner: 1, kind: 'march1', area: attacker, to: held, revealed: false }];
+  state.phase = 'reveal';
+  E.resolveRound(state);
+  need(state.areas[held].veterans === 1 && E.defenseOf(state, held, false).veterans === 1,
+    'успешная оборона не создала постоянное подкрепление');
+  state.round = R.ROUNDS;
+  E.finishGame(state);
+  need(state.finalScore[0].veterans === 1, 'подкрепление не принесло очко при подсчёте');
+}
+
+// Захват убирает накопленную защиту прежнего хозяина; бонус региона равен пяти.
+{
+  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(103) });
+  const region = R.REGION_IDS[0];
+  for (const area of R.areasOfRegion(region)) state.areas[area.id].owner = 0;
+  state.players[0].objectiveId = 'ford';
+  state.players[1].objectiveId = 'ford';
+  E.finishGame(state);
+  need(state.finalScore[0].regions >= 1 && state.finalScore[0].total
+    === state.finalScore[0].areaValue + state.finalScore[0].veterans
+      + state.finalScore[0].regions * 5 + state.finalScore[0].objectivePoints,
+  'полный регион не даёт ровно пять очков');
+
+  const held = R.startingAreasOf(state.players[0].kingdomId)[0];
+  const from = R.connectionsOf(held).find(link => link.type === 'land').to;
+  state.areas[from].owner = 1;
+  state.areas[held].veterans = 2;
+  state.orders = ['capture1', 'capture2'].map(id => ({ id, owner: 1, kind: 'march3', area: from, to: held }));
+  state.phase = 'reveal';
+  state.areas[held].fortify = 0;
+  E.resolveRound(state);
+  need(state.areas[held].owner === 1 && state.areas[held].veterans === 0,
+    'после захвата подкрепление прежнего владельца сохранилось');
+}
+
 {
   const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(3) });
   const seat0 = state.turnOrder[0];
+  state.players[seat0].hand[0] = 'guard';
   const area0 = R.startingAreasOf(state.players[seat0].kingdomId)[0];
   E.placeOrder(state, seat0, { kind: 'guard', area: area0 });
   // Найдём чей угодно закрытый приказ и проверим форму, которую видит чужой.
@@ -289,6 +354,7 @@ function resolveWith(state, orders) {
 
   state.turnOrder = [kedemSeat];
   state.turnPointer = 0;
+  state.players[kedemSeat].hand[0] = 'scout';
   const twinCheck = E.validatePlacement(state, kedemSeat, { kind: 'scout', scoutTargets: ['byTarsis1', 'byTarsis2'] });
   need(twinCheck.ok, 'Кочевники Кедема не могут разведать два приказа за раз');
   E.placeOrder(state, kedemSeat, { kind: 'scout', scoutTargets: ['byTarsis1', 'byTarsis2'] });
@@ -298,6 +364,7 @@ function resolveWith(state, orders) {
 
   state.turnOrder = [tarsisSeat];
   state.turnPointer = 0;
+  state.players[tarsisSeat].hand[0] = 'scout';
   const oneOk = E.validatePlacement(state, tarsisSeat, { kind: 'scout', scoutTargets: ['byKedem1'] });
   need(oneOk.ok, 'обычному царству отказали в разведке одного приказа');
   const twoDenied = E.validatePlacement(state, tarsisSeat, { kind: 'scout', scoutTargets: ['byKedem1', 'byKedem2'] });
@@ -352,6 +419,7 @@ function resolveWith(state, orders) {
   const state = bench(2);
   const seat = 0;
   const areas = ['primorye-rim', 'primorye-cw', 'primorye-hub', 'primorye-ccw', 'nagorye-rim', 'nagorye-cw'];
+  state.players[seat].hand = ['guard', 'guard', 'guard', 'guard', 'guard', 'feint'];
   for (const id of areas) state.areas[id].owner = seat;
   for (let i = 0; i < 5; i += 1) {
     state.turnOrder = [seat];
@@ -409,9 +477,20 @@ function simulate(size, kingdomIds, seed) {
     random,
   });
   let guard = 0;
+  const spent = kingdomIds.map(() => 0);
   while (state.status === 'playing') {
     guard += 1;
     if (guard > 5000) { problems.push(`партия ${size}p не кончилась за 5000 шагов`); break; }
+    for (const player of state.players) {
+      const placed = state.orders.filter(o => o.owner === player.id);
+      const remaining = player.hand.filter(kind => kind !== 'feint').length + player.supply.length
+        + placed.filter(o => o.kind !== 'feint').length + spent[player.id];
+      need(remaining === Object.values(R.TOKEN_SUPPLY).reduce((sum, n) => sum + n, 0),
+        `нарушен баланс мешка игрока ${player.id} в раунде ${state.round}: ${remaining}`);
+      need(player.hand.filter(kind => kind === 'feint').length
+        + placed.filter(o => o.kind === 'feint').length <= 1,
+      `у игрока ${player.id} одновременно несколько обманных жетонов`);
+    }
     if (state.phase === 'planning') {
       const seat = E.currentTurn(state);
       if (seat < 0) { problems.push('в фазе планирования нет хода — партия зависла'); break; }
@@ -428,6 +507,7 @@ function simulate(size, kingdomIds, seed) {
       E.resolveRound(state);
       auditAfterResolve(state);
     } else if (state.phase === 'results') {
+      for (const order of state.orders) if (order.kind !== 'feint') spent[order.owner] += 1;
       if (!E.nextRound(state)) break; // партия окончена — nextRound сам ничего не поменял
     } else break;
   }

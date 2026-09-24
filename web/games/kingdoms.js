@@ -20,7 +20,7 @@
     'web/games/kingdoms-online.js',
   ];
   const STYLE = 'web/games/kingdoms.css';
-  const VERSION = '3-territories';
+  const VERSION = '4-combat-hand';
   const AREA_ART = {
     'dolina-ccw': 'web/assets/kingdoms/areas/dolina-ccw.webp',
     'dolina-cw': 'web/assets/kingdoms/areas/dolina-cw.webp',
@@ -64,7 +64,7 @@
     'reveal': 'web/assets/kingdoms/orders/reveal.webp',
     'scout': 'web/assets/kingdoms/orders/scout.webp',
   };
-  const SAVE_KEY = 'kd_campaign_v2';
+  const SAVE_KEY = 'kd_campaign_v3';
 
   function loadPart(file) {
     return new Promise((resolve, reject) => {
@@ -317,16 +317,36 @@
 
     saveCampaign() {
       if (this.net || !this.state || this.tutorial) return;
-      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 2, state: this.state })); } catch { /* Хранилище может быть недоступно. */ }
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 3, state: this.state })); } catch { /* Хранилище может быть недоступно. */ }
     }
 
     loadCampaign() {
       try {
-        const saved = JSON.parse(safeGet(SAVE_KEY));
+        const saved = JSON.parse(safeGet(SAVE_KEY) || safeGet('kd_campaign_v2'));
         const s = saved?.state;
-        if (saved?.version !== 2 || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
+        if (![2, 3].includes(saved?.version) || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
           || !['planning', 'reveal', 'results', 'over'].includes(s.phase) || s.round < 1 || s.round > this.R.ROUNDS
           || !this.R.AREAS.every(a => s.areas?.[a.id]) || !Array.isArray(s.orders) || !Array.isArray(s.turnOrder)) return null;
+        if (saved.version === 2) {
+          // Старые партии не хранили мешок. Сохраняем поле и уже размещённые
+          // приказы; остаток выдаём из нового мешка, исключив жетоны этого раунда.
+          for (const area of this.R.AREAS) s.areas[area.id].veterans = 0;
+          for (const player of s.players) {
+            player.supply = Object.entries(this.R.TOKEN_SUPPLY).flatMap(([kind, count]) => Array(count).fill(kind));
+            const placed = s.orders.filter(o => o.owner === player.id);
+            for (const order of placed) {
+              if (order.kind === 'feint') continue;
+              const at = player.supply.indexOf(order.kind);
+              if (at >= 0) player.supply.splice(at, 1);
+            }
+            player.hand = placed.some(o => o.kind === 'feint') ? [] : ['feint'];
+            while (player.hand.length < Math.max(0, this.R.HAND_SIZE - placed.length) && player.supply.length) {
+              const at = Math.floor(Math.random() * player.supply.length);
+              player.hand.push(player.supply.splice(at, 1)[0]);
+            }
+          }
+        }
+        if (s.players.some(p => !Array.isArray(p.hand) || !Array.isArray(p.supply))) return null;
         s.random = Math.random;
         this.E.visibleStateFor(s, 0);
         return s;
@@ -338,6 +358,7 @@
       stopTimers();
       this.state = state;
       this.you = 0;
+      this.saveCampaign();
       this.refresh();
       this.buildBoard();
       this.renderAll();
@@ -481,6 +502,7 @@
         return `<g class="kd-area" data-area="${area.id}" transform="translate(${p.x},${p.y})" tabindex="0" role="button">
           <image class="kd-area-art" href="${tile.file}" x="${tile.x-p.x}" y="${tile.y-p.y}" width="${tile.w}" height="${tile.h}" preserveAspectRatio="none"/>
           <path class="kd-area-fill" d="${outline}"></path>
+          <path class="kd-area-border-halo" d="${outline}"></path>
           <path class="kd-area-ring" d="${outline}"></path>
           <g class="kd-area-marker">
             <rect x="-29" y="-23" width="58" height="31" rx="7"/>
@@ -488,6 +510,7 @@
             <text class="kd-area-value" x="15" y="0">${area.value}</text>
             ${area.capitalOf ? '<g class="kd-area-crown" transform="translate(0,-32)"><path d="M-8 0 -5-8 0-2 5-8 8 0Z" /></g>' : ''}
             <g class="kd-area-fortify" data-fortify transform="translate(-12,15)"></g>
+            <g class="kd-area-veterans" data-veterans transform="translate(21,18)"></g>
             <text class="kd-area-name" y="34">${label}</text>
           </g>
           <title>${escapeHTML(area.name)}</title>
@@ -513,47 +536,86 @@
     mountPan() {
       const scroll = this.root.querySelector('[data-scroll]');
       const svg = this.root.querySelector('[data-svg]');
-      let dragging = null;
-      const DRAG_THRESHOLD = 6;
+      const pointers = new Map();
+      let gesture = null;
+      let suppressClick = false;
+      const clamp = () => {
+        const width = scroll.clientWidth; const height = scroll.clientHeight;
+        const maxX = (this.zoom.scale - 1) * width / 2;
+        const maxY = (this.zoom.scale - 1) * height / 2;
+        this.zoom.x = Math.max(-maxX, Math.min(maxX, this.zoom.x));
+        this.zoom.y = Math.max(-maxY, Math.min(maxY, this.zoom.y));
+      };
       const apply = () => {
+        clamp();
         svg.style.transform = `translate(${this.zoom.x}px,${this.zoom.y}px) scale(${this.zoom.scale})`;
       };
       this.applyZoom = apply;
+      this.clampZoom = clamp;
+      scroll.addEventListener('click', (event) => {
+        if (!suppressClick) return;
+        event.preventDefault(); event.stopImmediatePropagation(); suppressClick = false;
+      }, true);
+      const snapshot = () => {
+        const points = [...pointers.values()];
+        const center = points.length === 2 ? { x: (points[0].x + points[1].x) / 2,
+          y: (points[0].y + points[1].y) / 2 } : points[0];
+        gesture = { center, distance: points.length === 2 ? Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) : 0,
+          scale: this.zoom.scale, x: this.zoom.x, y: this.zoom.y, moved: false };
+      };
       scroll.addEventListener('pointerdown', (event) => {
         if (event.pointerType === 'mouse' && event.button !== 0) return;
-        dragging = {
-          id: event.pointerId, startX: event.clientX, startY: event.clientY,
-          baseX: this.zoom.x, baseY: this.zoom.y, moved: false, captured: false,
-        };
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (pointers.size <= 2) snapshot();
       });
       scroll.addEventListener('pointermove', (event) => {
-        if (!dragging || dragging.id !== event.pointerId) return;
-        const dx = event.clientX - dragging.startX;
-        const dy = event.clientY - dragging.startY;
-        if (!dragging.moved && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
-          dragging.moved = true;
-          try { scroll.setPointerCapture(event.pointerId); dragging.captured = true; } catch { /* уже отпущен */ }
-        }
-        if (!dragging.moved) return;
-        this.zoom.x = dragging.baseX + dx;
-        this.zoom.y = dragging.baseY + dy;
+        if (!pointers.has(event.pointerId) || !gesture) return;
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        const points = [...pointers.values()];
+        if (points.length > 2) return;
+        const center = points.length === 2 ? { x: (points[0].x + points[1].x) / 2,
+          y: (points[0].y + points[1].y) / 2 } : points[0];
+        if (!gesture.moved && points.length === 1 && Math.hypot(center.x - gesture.center.x, center.y - gesture.center.y) < 7) return;
+        gesture.moved = true; suppressClick = true;
+        svg.classList.add('is-panning');
+        try { scroll.setPointerCapture(event.pointerId); } catch { /* палец уже отпущен */ }
+        const nextScale = points.length === 2 ? Math.max(1, Math.min(3.2, gesture.scale *
+          Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) / Math.max(1, gesture.distance))) : gesture.scale;
+        const rect = scroll.getBoundingClientRect();
+        const originX = gesture.center.x - rect.left - rect.width / 2;
+        const originY = gesture.center.y - rect.top - rect.height / 2;
+        this.zoom.scale = nextScale;
+        this.zoom.x = center.x - gesture.center.x + gesture.x * (nextScale / gesture.scale) + originX * (1 - nextScale / gesture.scale);
+        this.zoom.y = center.y - gesture.center.y + gesture.y * (nextScale / gesture.scale) + originY * (1 - nextScale / gesture.scale);
         apply();
       });
       const endDrag = (event) => {
-        if (!dragging || dragging.id !== event.pointerId) return;
-        if (dragging.captured) { try { scroll.releasePointerCapture(event.pointerId); } catch { /* уже отпущен */ } }
-        dragging = null;
+        if (!pointers.has(event.pointerId)) return;
+        pointers.delete(event.pointerId);
+        if (pointers.size) snapshot();
+        else { gesture = null; svg.classList.remove('is-panning'); }
+        try { scroll.releasePointerCapture(event.pointerId); } catch { /* отпущен */ }
+        if (suppressClick) window.setTimeout(() => { suppressClick = false; }, 120);
       };
       scroll.addEventListener('pointerup', endDrag);
       scroll.addEventListener('pointercancel', endDrag);
       scroll.addEventListener('wheel', (event) => {
         event.preventDefault();
-        this.setZoom(this.zoom.scale * (event.deltaY < 0 ? 1.1 : 0.9));
+        this.setZoom(this.zoom.scale * (event.deltaY < 0 ? 1.15 : 1 / 1.15), event.clientX, event.clientY);
       }, { passive: false });
     }
 
-    setZoom(scale) {
-      this.zoom.scale = Math.max(0.6, Math.min(2.4, scale));
+    setZoom(scale, clientX, clientY) {
+      const rect = this.root.querySelector('[data-scroll]')?.getBoundingClientRect();
+      const previous = this.zoom.scale;
+      this.zoom.scale = Math.max(1, Math.min(3.2, scale));
+      if (rect && previous) {
+        const x = (clientX ?? rect.left + rect.width / 2) - rect.left - rect.width / 2;
+        const y = (clientY ?? rect.top + rect.height / 2) - rect.top - rect.height / 2;
+        const ratio = this.zoom.scale / previous;
+        this.zoom.x = x - (x - this.zoom.x) * ratio;
+        this.zoom.y = y - (y - this.zoom.y) * ratio;
+      }
       this.applyZoom?.();
     }
 
@@ -570,7 +632,7 @@
       const fitScale = Math.min(rect.width / VIEW.w, rect.height / VIEW.h);
       const minTouchRadiusPx = 22; // половина рекомендованных ~44px на палец
       const needed = minTouchRadiusPx / (AREA_RADIUS * fitScale);
-      this.zoom = { scale: Math.max(1, Math.min(2.4, needed)), x: 0, y: 0 };
+      this.zoom = { scale: Math.max(1, Math.min(3.2, needed)), x: 0, y: 0 };
       /*
         Первый наезд не едет, а появляется сразу: .kd-map плавно переезжает
         между масштабами по правилу в таблице стилей (transition), но это
@@ -619,8 +681,8 @@
       this.root.querySelector('[data-standings]').innerHTML = v.players.map(p => {
         const k = this.R.kingdomOf(p.kingdomId);
         const areas = this.R.AREAS.filter(a => v.areas[a.id].owner === p.id);
-        const points = areas.reduce((sum, a) => sum + a.value, 0) + this.R.REGIONS.filter(r =>
-          this.R.AREAS.filter(a => a.region === r.id).every(a => v.areas[a.id].owner === p.id)).length * 2;
+        const points = areas.reduce((sum, a) => sum + a.value + (v.areas[a.id].veterans || 0), 0) + this.R.REGIONS.filter(r =>
+          this.R.AREAS.filter(a => a.region === r.id).every(a => v.areas[a.id].owner === p.id)).length * this.R.REGION_BONUS;
         return `<div class="kd-standing ${p.id === v.turn ? 'is-turn' : ''}" style="--owner:${k.color}">
           ${emblemHTML(k.emblem, 36)}<span><b>${p.id === v.you ? 'Вы' : escapeHTML(k.name)}</b><small>${areas.length} обл. · ${points} очк.${p.eliminated ? ' · наблюдатель' : ''}</small></span></div>`;
       }).join('');
@@ -654,6 +716,8 @@
         group.classList.toggle('is-selected', this.pending?.area === area.id);
         const fortifyBox = group.querySelector('[data-fortify]');
         fortifyBox.innerHTML = Array.from({ length: cell.fortify }, (_, i) => `<circle cx="${i * 9}" cy="0" r="3"></circle>`).join('');
+        group.querySelector('[data-veterans]').innerHTML = cell.veterans
+          ? `<rect x="-16" y="-10" width="32" height="20" rx="7"/><text text-anchor="middle" y="5">⚔ ${cell.veterans}</text>` : '';
       }
     }
 
@@ -728,17 +792,17 @@
         if (order.to) {
           const a = this.pos.get(order.area);
           const b = this.pos.get(order.to);
-          x = a.x + (b.x - a.x) * 0.38;
-          y = a.y + (b.y - a.y) * 0.38;
+          x = a.x + (b.x - a.x) * 0.48;
+          y = a.y + (b.y - a.y) * 0.48;
         } else if (order.area) {
           const a = this.pos.get(order.area);
-          x = a.x + 24; y = a.y + 24;
+          x = a.x + 39; y = a.y - 19;
         } else return '';
-        const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-13" y="-13" width="26" height="26"/>`;
-        const force = known && this.R.orderOf(order.kind).force ? `<text x="10" y="-8" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text>` : '';
+        const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-22" y="-22" width="44" height="44"/>`;
+        const force = known && this.R.orderOf(order.kind).force ? `<g class="kd-token-strength"><circle cx="26" cy="-25" r="12"/><text x="26" y="-20" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text></g>` : '';
         return `<g class="kd-token${mine ? ' is-mine' : ''}${scoutable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}"
           data-token="${order.id}" style="--owner:${color}" transform="translate(${x},${y})">
-          <circle r="13"></circle>${icon}${force}
+          <circle class="kd-token-shadow" r="34"></circle><circle class="kd-token-face" r="30"></circle>${icon}${force}
         </g>`;
       }).join('');
       box.querySelectorAll('[data-token]').forEach((node) => {
@@ -754,7 +818,9 @@
       this.root.querySelectorAll('[data-order]').forEach((button) => {
         const kind = button.dataset.order;
         button.classList.toggle('is-active', this.pending?.kind === kind);
-        button.disabled = !myTurn || v.ordersPlaced >= v.ordersLimit;
+        const count = v.hand?.filter((one) => one === kind).length || 0;
+        button.dataset.count = count;
+        button.disabled = !myTurn || v.ordersPlaced >= v.ordersLimit || !count;
         if (kind === 'scout') button.disabled = button.disabled || !v.orders.some((one) => one.owner !== v.you && !one.kind
           && !v.scoutIntel.some(i => i.atRound === v.round && i.orderId === one.id));
         else if (!button.disabled) {
@@ -768,8 +834,8 @@
         }
       });
       this.root.querySelector('[data-orders-left]').textContent = myTurn
-        ? `Размещено ${v.ordersPlaced} из ${v.ordersLimit} приказов за раунд`
-        : '';
+        ? `Размещено ${v.ordersPlaced} из ${v.ordersLimit}. В руке ${v.hand.length} жетонов · в запасе ${v.supplyRemaining}. Один сохранится на следующий раунд.`
+        : `В руке ${v.hand?.length || 0} жетонов · в запасе ${v.supplyRemaining || 0}`;
     }
 
     renderStatus() {
@@ -920,6 +986,7 @@
           <div><span>Ценность</span><b>${area.value}</b></div>
           <div><span>Открытая защита</span><b>${this.E.defenseOf(v, areaId, false).total}</b></div>
           <div><span>Укрепление</span><b>${cell.fortify}</b></div>
+          <div><span>Ветераны обороны</span><b>${cell.veterans || 0} · +${cell.veterans || 0} к защите и очкам</b></div>
         </div>
         <button type="button" class="kd-btn kd-btn--ghost" data-cancel>Закрыть</button>
       `);
@@ -1044,7 +1111,7 @@
       const d = line.defense;
       const box = this.root.querySelector('[data-status]');
       if (box) {
-        box.textContent = `«${area.name}»: защита ${d.total} (1 + укрепление ${d.fortify} + стража ${d.guard}`
+        box.textContent = `«${area.name}»: защита ${d.total} (1 + укрепление ${d.fortify} + ветераны ${d.veterans || 0} + стража ${d.guard}`
           + ` + местность ${d.terrain} + способность ${d.ability}) против ${attackers || '—'}. `
           + (line.outcome === 'captured' ? `Берёт ${nameOf(this.view, line.newOwner)}.`
             : line.outcome === 'standoff' ? 'Ничья — хозяин не меняется.' : 'Область устояла.');
@@ -1107,7 +1174,8 @@
           <div class="kd-final-name">${winner ? '👑 ' : ''}${escapeHTML(player.name)}</div>
           <div class="kd-final-bits">
             <span>Области: ${score.areaValue}</span>
-            <span>Регионы: +${score.regions * 2}</span>
+            <span>Успешная оборона: +${score.veterans || 0}</span>
+            <span>Регионы: +${score.regions * R.REGION_BONUS}</span>
             <span>${objective ? objective.title : 'Цель'}: ${score.objectiveDone ? `+${score.objectivePoints}` : '0'}</span>
             <span class="kd-final-total">Итого: ${score.total}</span>
           </div>
@@ -1153,7 +1221,8 @@
       const steps = [
         { title: 'Карта', text: 'Двадцать четыре области в шести регионах. Ваши области — цвета вашего царства, '
           + 'остальные — серые (ничьи) или цвета соперников. Нажмите область, чтобы увидеть её карточку.' },
-        { title: 'Поход', text: 'Выберите приказ «Поход» — на карте подсветятся связи от ваших областей к '
+        { title: 'Рука', text: 'Каждый раунд добирайте жетоны из конечного запаса до шести. Пять размещаются по очереди, один остаётся на следующий раунд. Обманный манёвр возвращается после раскрытия.' },
+        { title: 'Поход', text: 'Выберите доступный приказ «Поход» — на карте подсветятся связи от ваших областей к '
           + 'соседним. Нажмите связь — это и область-источник, и цель одним нажатием.' },
         { title: 'Стража', text: '«Стража» и «Укрепление» ставятся внутри своей области: +2 к защите на этот '
           + 'раунд у стражи, и постоянный +1 у укрепления, с пределом.' },
@@ -1161,8 +1230,8 @@
           + 'кружок с «?». «Разведка» раскрывает один такой приказ только вам.' },
         { title: 'Раскрытие', text: 'Когда все разместили приказы, они раскрываются разом: укрепления, стража, '
           + 'затем атаки. Сила атакующих суммируется у одного игрока, но не между разными игроками.' },
-        { title: 'Очки', text: 'После пятого раунда считаются очки: ценность удержанных областей, +2 за полный '
-          + 'регион и очки за тайную цель. Больше всех — победил.' },
+        { title: 'Очки', text: 'После пятого раунда считаются очки: ценность удержанных областей, +5 за полный '
+          + 'регион, жетоны успешной обороны и очки за тайную цель. Больше всех — победил.' },
       ];
       let at = 0;
       const show = () => {
