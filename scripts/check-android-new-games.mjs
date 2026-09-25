@@ -144,7 +144,10 @@ async function openGame(page, key) {
       error: Boolean(document.querySelector('#game-container .app-error-card')),
       hand: document.querySelectorAll('.tt-hand .tt-card').length,
       exit: Boolean(document.querySelector('.tt-topbar [data-menu]')),
-      table: Math.round(document.querySelector('.tt-table')?.getBoundingClientRect().width || 0),
+      // Стол въезжает анимацией, и точная ширина плавает на пиксель от
+      // прогона к прогону (364 в вебе и 365 в APK на CI). Сверяется то, что
+      // видно глазом: стол занимает ширину телефона.
+      tableFills: (document.querySelector('.tt-table')?.getBoundingClientRect().width || 0) >= 320,
     }));
   }
 
