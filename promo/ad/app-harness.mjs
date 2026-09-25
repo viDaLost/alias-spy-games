@@ -15,7 +15,7 @@ export async function openApp(browser, baseURL, { scale = 3, stars = 20, extraRo
     try {
       localStorage.setItem('bot_start_promo_seen_v1', '1');
       localStorage.setItem('channel_promo_seen_v1', '1');
-      const games = ['bible-wow', 'quartet', 'biblical-match-three', 'moses-nile'];
+      const games = ['bible-wow', 'quartet', 'biblical-match-three', 'moses-nile', 'twelve-tribes', 'promised-land', 'bible-sketch', 'guess'];
       localStorage.setItem('game_rules_seen_v1', JSON.stringify(Object.fromEntries(games.map((g) => [g, Date.now()]))));
     } catch { /* нет хранилища */ }
   });
