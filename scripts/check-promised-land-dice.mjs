@@ -42,87 +42,116 @@ const need = (condition, message) => { if (!condition) problems.push(message); }
   не разорился и не ушёл в наём — тогда бросков просто не станет.
 */
 const ROLLS = 60_000;
-const faces = [0, 0, 0, 0, 0, 0];
-const second = [0, 0, 0, 0, 0, 0];
-const pairs = new Map();          // «первая:вторая» — для проверки независимости
-const sums = new Array(13).fill(0);
-let doubles = 0;
-let repeats = 0;                  // сколько раз кость повторила своё же прошлое
-let previous = 0;
-
-let state = null;
-let inGame = 0;
-for (let i = 0; i < ROLLS; i += 1) {
-  if (!state || inGame > 400 || state.status !== 'playing') {
-    state = E.createGame({ players: [{ name: 'А' }, { name: 'Б' }], years: 7 });
-    inGame = 0;
-  }
-  // Бросок требует своей фазы: счёт или карта на столе его не пустят.
-  state.phase = 'roll';
-  state.pending = null;
-  const player = E.current(state);
-  player.prison = 0;
-  player.skip = false;
-  player.servantOf = null;
-  E.roll(state);
-  inGame += 1;
-
-  const [a, b] = state.dice;
-  if (!a || !b) continue;         // пропуск хода костей не бросает
-  faces[a - 1] += 1;
-  second[b - 1] += 1;
-  sums[a + b] += 1;
-  if (a === b) doubles += 1;
-  pairs.set(`${a}:${b}`, (pairs.get(`${a}:${b}`) || 0) + 1);
-  if (a === previous) repeats += 1;
-  previous = a;
-}
-
-const total = faces.reduce((sum, count) => sum + count, 0);
-need(total > ROLLS * 0.9, `до доски дошло ${total} бросков из ${ROLLS}`);
 
 /** Хи-квадрат наблюдённого против ожидаемого. */
 const chi = (counts, expected) =>
   counts.reduce((sum, count) => sum + ((count - expected) ** 2) / expected, 0);
 
-// 1. Грани. Порог 20.5 — это 0.001 при пяти степенях свободы.
-const expected = total / 6;
-const chiFirst = chi(faces, expected);
-const chiSecond = chi(second, expected);
-need(chiFirst < 20.5, `первая кость перекошена: хи-квадрат ${chiFirst.toFixed(1)} при ${faces.join('/')}`);
-need(chiSecond < 20.5, `вторая кость перекошена: хи-квадрат ${chiSecond.toFixed(1)} при ${second.join('/')}`);
-
 /*
-  2. Независимость. Если кости связаны, пары «первая-вторая» лягут неровно:
-  какие-то сочетания станут частыми, какие-то редкими. Тридцать пять степеней
-  свободы, порог 0.001 — 66.6.
+  Одна выборка: ROLLS настоящих бросков и пять мер по ним. Пороги взяты на
+  уровне 0.001, и мер пять — значит, честная кость перешагнёт хотя бы один
+  раз примерно в двухстах прогонах. Так и случилось на CI: «вторая кость
+  перекошена, хи-квадрат 21.5» при системном crypto-источнике.
+
+  Ослаблять пороги нельзя — тогда перестанет ловиться настоящий перекос.
+  Поэтому выборка, на которой мера сработала, переснимается заново: сломанный
+  генератор перекошен в каждой выборке и провалит и вторую, а честной кости
+  провалить две независимые выборки подряд — один шанс на десятки тысяч.
 */
-const table = [];
-for (let a = 1; a <= 6; a += 1) {
-  for (let b = 1; b <= 6; b += 1) table.push(pairs.get(`${a}:${b}`) || 0);
+function sample() {
+  const failed = [];
+  const check = (condition, message) => { if (!condition) failed.push(message); };
+  const faces = [0, 0, 0, 0, 0, 0];
+  const second = [0, 0, 0, 0, 0, 0];
+  const pairs = new Map();          // «первая:вторая» — для проверки независимости
+  const sums = new Array(13).fill(0);
+  let doubles = 0;
+  let repeats = 0;                  // сколько раз кость повторила своё же прошлое
+  let previous = 0;
+
+  let state = null;
+  let inGame = 0;
+  for (let i = 0; i < ROLLS; i += 1) {
+    if (!state || inGame > 400 || state.status !== 'playing') {
+      state = E.createGame({ players: [{ name: 'А' }, { name: 'Б' }], years: 7 });
+      inGame = 0;
+    }
+    // Бросок требует своей фазы: счёт или карта на столе его не пустят.
+    state.phase = 'roll';
+    state.pending = null;
+    const player = E.current(state);
+    player.prison = 0;
+    player.skip = false;
+    player.servantOf = null;
+    E.roll(state);
+    inGame += 1;
+
+    const [a, b] = state.dice;
+    if (!a || !b) continue;         // пропуск хода костей не бросает
+    faces[a - 1] += 1;
+    second[b - 1] += 1;
+    sums[a + b] += 1;
+    if (a === b) doubles += 1;
+    pairs.set(`${a}:${b}`, (pairs.get(`${a}:${b}`) || 0) + 1);
+    if (a === previous) repeats += 1;
+    previous = a;
+  }
+
+  const total = faces.reduce((sum, count) => sum + count, 0);
+  check(total > ROLLS * 0.9, `до доски дошло ${total} бросков из ${ROLLS}`);
+
+  // 1. Грани. Порог 20.5 — это 0.001 при пяти степенях свободы.
+  const expected = total / 6;
+  const chiFirst = chi(faces, expected);
+  const chiSecond = chi(second, expected);
+  check(chiFirst < 20.5, `первая кость перекошена: хи-квадрат ${chiFirst.toFixed(1)} при ${faces.join('/')}`);
+  check(chiSecond < 20.5, `вторая кость перекошена: хи-квадрат ${chiSecond.toFixed(1)} при ${second.join('/')}`);
+
+  /*
+    2. Независимость. Если кости связаны, пары «первая-вторая» лягут неровно:
+    какие-то сочетания станут частыми, какие-то редкими. Тридцать пять степеней
+    свободы, порог 0.001 — 66.6.
+  */
+  const table = [];
+  for (let a = 1; a <= 6; a += 1) {
+    for (let b = 1; b <= 6; b += 1) table.push(pairs.get(`${a}:${b}`) || 0);
+  }
+  const chiPairs = chi(table, total / 36);
+  check(chiPairs < 66.6, `кости связаны между собой: хи-квадрат пар ${chiPairs.toFixed(1)}`);
+
+  // 3. Дубли — ровно шестая часть бросков, с поправкой на разброс.
+  const doubleShare = doubles / total;
+  check(Math.abs(doubleShare - 1 / 6) < 0.012,
+    `дублей ${(doubleShare * 100).toFixed(2)}% вместо 16.67%`);
+
+  /*
+    4. Залипание. Кость не помнит прошлого броска, значит повтор случается ровно
+    в шестой части случаев. Это ловит самую частую поломку генератора — когда
+    соседние значения оказываются связаны.
+  */
+  const repeatShare = repeats / total;
+  check(Math.abs(repeatShare - 1 / 6) < 0.012,
+    `кость повторяет себя в ${(repeatShare * 100).toFixed(2)}% бросков вместо 16.67%`);
+
+  // 5. Сумма ложится треугольником: семёрка — самая частая, двойка и двенадцать — самые редкие.
+  const share = (value) => sums[value] / total;
+  check(share(7) > share(6) && share(7) > share(8), 'семёрка не самая частая сумма');
+  check(share(2) < share(3) && share(12) < share(11), 'края суммы не самые редкие');
+  check(Math.abs(share(7) - 6 / 36) < 0.02, `семёрка выпадает в ${(share(7) * 100).toFixed(2)}% вместо 16.67%`);
+
+  return { failed, total, chiFirst, chiSecond, chiPairs, doubleShare, repeatShare, share };
 }
-const chiPairs = chi(table, total / 36);
-need(chiPairs < 66.6, `кости связаны между собой: хи-квадрат пар ${chiPairs.toFixed(1)}`);
 
-// 3. Дубли — ровно шестая часть бросков, с поправкой на разброс.
-const doubleShare = doubles / total;
-need(Math.abs(doubleShare - 1 / 6) < 0.012,
-  `дублей ${(doubleShare * 100).toFixed(2)}% вместо 16.67%`);
-
-/*
-  4. Залипание. Кость не помнит прошлого броска, значит повтор случается ровно
-  в шестой части случаев. Это ловит самую частую поломку генератора — когда
-  соседние значения оказываются связаны.
-*/
-const repeatShare = repeats / total;
-need(Math.abs(repeatShare - 1 / 6) < 0.012,
-  `кость повторяет себя в ${(repeatShare * 100).toFixed(2)}% бросков вместо 16.67%`);
-
-// 5. Сумма ложится треугольником: семёрка — самая частая, двойка и двенадцать — самые редкие.
-const share = (value) => sums[value] / total;
-need(share(7) > share(6) && share(7) > share(8), 'семёрка не самая частая сумма');
-need(share(2) < share(3) && share(12) < share(11), 'края суммы не самые редкие');
-need(Math.abs(share(7) - 6 / 36) < 0.02, `семёрка выпадает в ${(share(7) * 100).toFixed(2)}% вместо 16.67%`);
+let measured = sample();
+if (measured.failed.length) {
+  const first = measured.failed;
+  measured = sample();
+  if (!measured.failed.length) {
+    console.log(`Первая выборка перешагнула порог (${first.join('; ')}), вторая — ровная: случайный выброс честной кости.`);
+  }
+}
+problems.push(...measured.failed);
+const { total, chiFirst, chiSecond, chiPairs, doubleShare, repeatShare, share } = measured;
 
 /*
   6. Источник случайности. Движок по умолчанию берёт её у системы — там, где
