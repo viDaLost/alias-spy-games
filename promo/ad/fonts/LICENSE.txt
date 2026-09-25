@@ -1,0 +1,2 @@
+Onest — тот же вариативный шрифт, что лежит в приложении (web/assets/fonts).
+Распространяется по лицензии SIL Open Font License 1.1: https://openfontlicense.org

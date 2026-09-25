@@ -87,6 +87,9 @@ const siteRootOf = (file) => {
   if (parts[0] === 'cloudflare' && parts[2] === 'public') {
     return path.join(root, parts[0], parts[1], parts[2]);
   }
+  // Рекламный ролик — самостоятельная страница: её открывают из её же папки
+  // (promo/<ролик>/index.html), и «shots/…» в ней указывает на соседей.
+  if (parts[0] === 'promo' && parts.length > 2) return path.join(root, parts[0], parts[1]);
   return root;
 };
 
