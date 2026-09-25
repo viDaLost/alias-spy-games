@@ -550,8 +550,65 @@ function startBibleWowGame(levelsUrl) {
     const lid = String(st.currLevel.id);
     st.progressByLevel[lid] = {
       foundWords: Array.from(st.foundWords || new Set()),
-      hintedCells: Array.from(st.hintedCells || new Set())
+      hintedCells: Array.from(st.hintedCells || new Set()),
+      hintedLetters: hintsAsLetters()
     };
+  }
+
+  /*
+    Раскладка кроссворда собирается заново при каждом входе на уровень, и
+    первое слово ложится то по горизонтали, то по вертикали. Клетка «r,c»
+    из прошлого захода в новой раскладке — другая клетка: подсказка
+    оказывалась на букве, которая и так видна, а открытая буква пропадала.
+    Поэтому подсказка хранится ещё и как «слово#номер буквы» — это место
+    не зависит от того, как повёрнут кроссворд.
+  */
+  function cellKeyOf(p, i) {
+    return `${p.r + p.dr * i},${p.c + p.dc * i}`;
+  }
+
+  function hintsAsLetters() {
+    const out = [];
+    for (const key of st.hintedCells || []) {
+      for (const p of st.gridInfo || []) {
+        const i = [...p.word].findIndex((_, index) => cellKeyOf(p, index) === key);
+        if (i >= 0) { out.push(`${p.word}#${i}`); break; }
+      }
+    }
+    return out;
+  }
+
+  function hintsFromLetters(list) {
+    const cells = new Set();
+    for (const item of list) {
+      const [word, index] = String(item).split("#");
+      const p = (st.gridInfo || []).find(x => x.word === normWord(word));
+      const i = Number(index);
+      if (p && Number.isInteger(i) && i >= 0 && i < p.word.length) cells.add(cellKeyOf(p, i));
+    }
+    return cells;
+  }
+
+  // Клетки, которые игрок уже видит: буквы найденных слов и открытые
+  // подсказкой. Клетка на пересечении видна, как только найдено любое из слов.
+  function visibleCells() {
+    const seen = new Set(st.hintedCells || []);
+    for (const p of st.gridInfo || []) {
+      if (!st.foundWords.has(p.word)) continue;
+      for (let i = 0; i < p.word.length; i++) seen.add(cellKeyOf(p, i));
+    }
+    return seen;
+  }
+
+  function hiddenCellsOf(word, seen) {
+    const p = (st.gridInfo || []).find(x => x.word === word);
+    if (!p) return [];
+    const out = [];
+    for (let i = 0; i < word.length; i++) {
+      const key = cellKeyOf(p, i);
+      if (!seen.has(key)) out.push({ key, letter: word[i] });
+    }
+    return out;
   }
 
   function loadCurrLevelProgress(allowedWordsSet) {
@@ -561,7 +618,15 @@ function startBibleWowGame(levelsUrl) {
     const fw = Array.isArray(p?.foundWords) ? p.foundWords.map(normWord) : [];
     const hc = Array.isArray(p?.hintedCells) ? p.hintedCells.map(String) : [];
     st.foundWords = new Set(fw.filter(w => allowedWordsSet.has(w)));
-    st.hintedCells = new Set(hc);
+    if (Array.isArray(p?.hintedLetters)) {
+      st.hintedCells = hintsFromLetters(p.hintedLetters);
+    } else {
+      // Старое сохранение знает только клетки: оставляем те, что есть в этой
+      // раскладке, — букву они всё равно покажут свою, настоящую.
+      const cells = new Set();
+      for (const q of st.gridInfo || []) for (let i = 0; i < q.word.length; i++) cells.add(cellKeyOf(q, i));
+      st.hintedCells = new Set(hc.filter(key => cells.has(key)));
+    }
   }
 
   function resetLevel() {
@@ -1038,6 +1103,38 @@ function startBibleWowGame(levelsUrl) {
   }
 
   // -------------------- Word checking / rewards --------------------
+  // Слово легло в кроссворд — набранное или открытое за звёзды. Последнее
+  // слово уровня засчитывает уровень и ведёт дальше, как бы оно ни открылось.
+  function afterWordFound() {
+    renderGrid();
+
+    if (isLevelCompleted()) {
+      const levelId = Number(st.currLevel.id);
+      if (!st.completed.has(levelId)) {
+        st.completed.add(levelId);
+        st.coins += 10;
+        showMsg("Level complete! +10⭐");
+      } else {
+        showMsg("Level complete!");
+      }
+      saveCurrLevelProgress();
+      savePersisted(st);
+      updateChips();
+
+      setTimeout(() => {
+        if (st.levelIndex < st.levels.length - 1) {
+          st.levelIndex++;
+          savePersisted(st);
+          startLevel();
+        }
+      }, 450);
+    } else {
+      saveCurrLevelProgress();
+      savePersisted(st);
+      updateChips();
+    }
+  }
+
   function checkWord(wordRaw) {
     const word = normWord(wordRaw);
     if (word.length < 3) return;
@@ -1049,33 +1146,7 @@ function startBibleWowGame(levelsUrl) {
 
       st.foundWords.add(word);
       showMsg("Great!");
-      renderGrid();
-
-      if (isLevelCompleted()) {
-        const levelId = Number(st.currLevel.id);
-        if (!st.completed.has(levelId)) {
-          st.completed.add(levelId);
-          st.coins += 10;
-          showMsg("Level complete! +10⭐");
-        } else {
-          showMsg("Level complete!");
-        }
-        saveCurrLevelProgress();
-        savePersisted(st);
-        updateChips();
-
-        setTimeout(() => {
-          if (st.levelIndex < st.levels.length - 1) {
-            st.levelIndex++;
-            savePersisted(st);
-            startLevel();
-          }
-        }, 450);
-      } else {
-        saveCurrLevelProgress();
-        savePersisted(st);
-        updateChips();
-      }
+      afterWordFound();
       return;
     }
 
@@ -1107,27 +1178,26 @@ function startBibleWowGame(levelsUrl) {
     return true;
   }
 
+  /*
+    Подсказка открывает только то, чего на поле не видно. Раньше она брала
+    любую клетку неразгаданного слова — и клетку на пересечении с уже
+    найденным словом тоже: буква на поле уже стояла, а звёзды списывались.
+  */
   function giveHint() {
     if (st.coins < 6) { showMsg("Need 6⭐"); return; }
 
-    // Find a word with at least one unrevealed cell
     const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
     if (!remaining.length) { showMsg("Everything found"); return; }
 
-    const candidates = [];
+    const seen = visibleCells();
+    const candidates = new Map();
     for (const w of remaining) {
-      const p = st.gridInfo.find(x => x.word === w);
-      if (!p) continue;
-      for (let i = 0; i < w.length; i++) {
-        const ar = p.r + p.dr * i;
-        const ac = p.c + p.dc * i;
-        const k = `${ar},${ac}`;
-        if (!st.hintedCells.has(k)) candidates.push({ key: k, letter: w[i], word: w });
-      }
+      for (const cell of hiddenCellsOf(w, seen)) candidates.set(cell.key, cell);
     }
-    if (!candidates.length) { showMsg("No letters left to reveal"); return; }
+    if (!candidates.size) { showMsg("All letters are already open — type the word"); return; }
 
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    const pool = Array.from(candidates.values());
+    const pick = pool[Math.floor(Math.random() * pool.length)];
     st.coins -= 6;
     st.hintedCells.add(pick.key);
 
@@ -1138,28 +1208,27 @@ function startBibleWowGame(levelsUrl) {
     updateChips();
   }
 
+  // «Слово» открывает слово, в котором есть что открыть: слово, чьи буквы
+  // уже все видны через пересечения и подсказки, за звёзды не показывается.
   function revealWordPaid() {
     if (st.coins < 20) { showMsg("Need 20⭐"); return; }
     const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
     if (!remaining.length) { showMsg("Everything found"); return; }
-    const pick = remaining[Math.floor(Math.random() * remaining.length)];
+    const seen = visibleCells();
+    const closed = remaining.filter(w => hiddenCellsOf(w, seen).length);
+    if (!closed.length) { showMsg("All letters are already open — type the word"); return; }
+    const pick = closed[Math.floor(Math.random() * closed.length)];
     st.coins -= 20;
     st.foundWords.add(pick);
 
-    // remove hinted cells of that word (optional, but keeps state clean)
+    // Подсказанные буквы этого слова теперь часть найденного слова.
     const p = st.gridInfo.find(x => x.word === pick);
     if (p) {
-      for (let i = 0; i < pick.length; i++) {
-        const k = `${p.r + p.dr * i},${p.c + p.dc * i}`;
-        st.hintedCells.delete(k);
-      }
+      for (let i = 0; i < pick.length; i++) st.hintedCells.delete(cellKeyOf(p, i));
     }
 
     showMsg(`👁 Revealed: ${pick}`);
-    saveCurrLevelProgress();
-    savePersisted(st);
-    renderGrid();
-    updateChips();
+    afterWordFound();
   }
 
   // -------------------- Level setup --------------------
