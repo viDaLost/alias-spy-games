@@ -96,6 +96,53 @@ for (const [name, list] of Object.entries(sources)) {
   counts.push(`${name}: ${checked}`);
 }
 
+/*
+  Уровни, добавленные после первой сотни с половиной «Библейских слов» и
+  девяноста уровней «Поиска слов», собраны по более строгому правилу владельца:
+  «слова только из синодального перевода и писать именно так, как они пишутся в
+  Библии; с предыдущими ста уровнями слова не повторяются, повториться может
+  только слово из первых пяти уровней, и то одно на уровень».
+
+  Поэтому для них свидетель не в счёт: слово обязано стоять в тексте ровно в
+  этом написании. Старые уровни правило не трогает — их слова уже сверены по
+  свидетелям, и переписывать пройденное людьми незачем.
+*/
+const STRICT = [
+  {
+    name: 'Библейские слова',
+    from: 151,
+    levels: read('web/data/bible_wow_levels.json').levels.map((level) => ({ id: level.id, words: level.words })),
+  },
+  {
+    name: 'Поиск слов',
+    from: 91,
+    levels: read('web/data/bible_wordsearch_levels.json').levels.map((level) => ({ id: level.id, words: level.wordsList })),
+  },
+];
+for (const { name, from, levels } of STRICT) {
+  const byId = new Map(levels.map((level) => [level.id, level]));
+  const firstFive = new Set(levels.filter((level) => level.id <= 5).flatMap((level) => level.words.map(norm)));
+  for (const level of levels.filter((one) => one.id >= from)) {
+    const recent = new Set();
+    for (let id = Math.max(6, level.id - 100); id < level.id; id += 1) {
+      for (const word of byId.get(id)?.words || []) recent.add(norm(word));
+    }
+    let fromFirstFive = 0;
+    for (const raw of level.words) {
+      const word = norm(raw);
+      if (word !== raw) failures.push(`${name}, уровень ${level.id}: «${raw}» записано не заглавными буквами без Ё`);
+      if (!forms.has(word)) {
+        failures.push(`${name}, уровень ${level.id}: «${raw}» не стоит в синодальном тексте в этом написании`);
+      }
+      if (recent.has(word)) failures.push(`${name}, уровень ${level.id}: «${raw}» уже было на одном из предыдущих ста уровней`);
+      if (firstFive.has(word)) fromFirstFive += 1;
+    }
+    if (fromFirstFive > 1) {
+      failures.push(`${name}, уровень ${level.id}: ${fromFirstFive} слова повторяют первые пять уровней — можно не больше одного`);
+    }
+  }
+}
+
 // Свидетель без слова — след давней правки: слово заменили, а строку забыли.
 for (const word of unused) failures.push(`свидетель для «${word}» больше никому не нужен — удалите строку`);
 
