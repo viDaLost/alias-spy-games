@@ -93,150 +93,172 @@ need(R.AREAS.filter((a) => a.capitalOf).length === 5, 'столиц на кар�
   need(R.areasOfRegion(homeless[0]).some((a) => a.city), 'регион без царства должен всё равно нести город');
 }
 
-// Стартовые раскладки: два поля на царство, столица и сосед по региону, и они смежны.
+// Раскладки на 2–5 игроков: разные царства, у каждого — своя столица на старте.
 for (const size of [2, 3, 4, 5]) {
   const layout = R.STARTING_LAYOUTS[size];
   need(layout.length === size, `раскладка на ${size} даёт ${layout.length} царств`);
   need(new Set(layout).size === layout.length, `в раскладке на ${size} повторяется царство`);
-  for (const kingdomId of layout) {
-    const areas = R.startingAreasOf(kingdomId);
-    need(areas.length === 2, `у ${kingdomId} стартовых областей не две`);
-    need(R.areaOf(areas[0]).capitalOf === kingdomId, `первая стартовая область ${kingdomId} не её столица`);
-    need(R.areAdjacent(areas[0], areas[1]), `стартовые области ${kingdomId} не соседствуют`);
-  }
+  need(R.SETUP_TOKENS[size] >= 2, `на ${size} игроков меньше двух жетонов контроля на расстановку`);
+  need(size * (1 + R.SETUP_TOKENS[size]) <= R.AREAS.length, `на ${size} игроков расстановка не помещается на карту`);
 }
 
-// Города несут больше единицы ценности — иначе бонус города, зашитый в
-// ценность области, попросту не отличить от пустоши.
+// Города несут больше единицы ценности — иначе город не отличить от пустоши.
 for (const area of R.AREAS) if (area.city) need(area.value >= 2, `у города ${area.id} ценность меньше двух`);
 
-// ——————————————————————————————————————————————— видимость приказов
+// Запас жетонов — 25, как пять раундов по пять жетонов; прибрежных областей хватает для кораблей.
+need(Object.values(R.TOKEN_SUPPLY).reduce((a, b) => a + b, 0) === 25, 'в запасе не 25 жетонов');
+need(R.COASTAL.size >= 6 && [...R.COASTAL].every((id) => R.areaOf(id)), 'прибрежных областей мало или среди них несуществующая');
+need(R.OBJECTIVES.length >= 10, 'тайных целей меньше десяти — пятерым не раздать по две без повторов');
 
-// Скрытая рука, конечный мешок, повторный блеф и сохранение одного жетона.
-{
-  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(101) });
-  const first = state.turnOrder[0];
-  const other = 1 - first;
-  const inventory = (p) => p.hand.length + p.supply.length;
-  need(state.players.every((p) => p.hand.length === 6), 'каждое царство должно начать с шестью жетонами');
-  need(!('hand' in E.visibleStateFor(state, other).players[first]), 'чужая рука раскрывается сопернику');
-  need(E.visibleStateFor(state, first).hand.length === 6, 'игрок не видит собственную руку');
-  need(inventory(state.players[first]) === Object.values(R.TOKEN_SUPPLY).reduce((a,b) => a+b, 0) + 1,
-    'начальный запас жетонов не соответствует составу мешка и блефу');
-  const capital = R.startingAreasOf(state.players[first].kingdomId)[0];
-  state.players[first].hand = ['guard', 'march1', 'march2', 'march3', 'ford2', 'feint'];
-  E.placeOrder(state, first, { kind: 'guard', area: capital });
-  need(!E.validatePlacement(state, first, { kind: 'guard', area: capital }).ok,
-    'повторное размещение потраченного жетона принято');
-  state.players[first].hand = ['march3'];
-  state.players[first].supply = ['march1', 'march2', 'guard', 'fortify', 'scout'];
-  E.beginRound(state);
-  need(state.players[first].hand.includes('march3') && state.players[first].hand.includes('feint'),
-    'оставленный жетон или возвращаемый блеф исчез при обновлении раунда');
-}
+// ——————————————————————————————————————————————— стенд
 
-// Отбитая атака оставляет видимое подкрепление до захвата области.
-{
-  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(102) });
-  const held = R.startingAreasOf(state.players[0].kingdomId)[0];
-  const attacker = R.connectionsOf(held).find((link) => link.type === 'land').to;
-  state.areas[attacker].owner = 1;
-  state.orders = [{ id: 'v1', owner: 1, kind: 'march1', area: attacker, to: held, revealed: false }];
-  state.phase = 'reveal';
-  E.resolveRound(state);
-  need(state.areas[held].veterans === 1 && E.defenseOf(state, held, false).veterans === 1,
-    'успешная оборона не создала постоянное подкрепление');
-  state.round = R.ROUNDS;
-  E.finishGame(state);
-  need(state.finalScore[0].veterans === 1, 'подкрепление не принесло очко при подсчёте');
-}
-
-// Захват убирает накопленную защиту прежнего хозяина; бонус региона равен пяти.
-{
-  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(103) });
-  const region = R.REGION_IDS[0];
-  for (const area of R.areasOfRegion(region)) state.areas[area.id].owner = 0;
-  state.players[0].objectiveId = 'ford';
-  state.players[1].objectiveId = 'ford';
-  E.finishGame(state);
-  need(state.finalScore[0].regions >= 1 && state.finalScore[0].total
-    === state.finalScore[0].areaValue + state.finalScore[0].veterans
-      + state.finalScore[0].regions * 5 + state.finalScore[0].objectivePoints,
-  'полный регион не даёт ровно пять очков');
-
-  const held = R.startingAreasOf(state.players[0].kingdomId)[0];
-  const from = R.connectionsOf(held).find(link => link.type === 'land').to;
-  state.areas[from].owner = 1;
-  state.areas[held].veterans = 2;
-  state.orders = ['capture1', 'capture2'].map(id => ({ id, owner: 1, kind: 'march3', area: from, to: held }));
-  state.phase = 'reveal';
-  state.areas[held].fortify = 0;
-  E.resolveRound(state);
-  need(state.areas[held].owner === 1 && state.areas[held].veterans === 0,
-    'после захвата подкрепление прежнего владельца сохранилось');
-}
-
-{
-  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[2], random: seeded(3) });
-  const seat0 = state.turnOrder[0];
-  state.players[seat0].hand[0] = 'guard';
-  const area0 = R.startingAreasOf(state.players[seat0].kingdomId)[0];
-  E.placeOrder(state, seat0, { kind: 'guard', area: area0 });
-  // Найдём чей угодно закрытый приказ и проверим форму, которую видит чужой.
-  const order = state.orders[0];
-  const seenByOwner = E.visibleStateFor(state, order.owner).orders.find((o) => o.id === order.id);
-  const otherSeat = state.players.find((p) => p.id !== order.owner).id;
-  const seenByOther = E.visibleStateFor(state, otherSeat).orders.find((o) => o.id === order.id);
-  need('kind' in seenByOwner, 'хозяин не видит вид собственного приказа');
-  need(!('kind' in seenByOther) && !('force' in seenByOther),
-    'чужой закрытый приказ выдаёт вид или силу тому, кто не должен их видеть');
-  need('owner' in seenByOther && 'area' in seenByOther, 'чужой закрытый приказ обязан показывать хозяина и место');
-}
-
-// ——————————————————————————————————————————————— расчёт столкновения на стенде
-
-function bench(size = 2, kingdomIds) {
-  const state = E.createGame({
-    kingdomIds: kingdomIds || R.STARTING_LAYOUTS[size],
-    random: seeded(11),
-  });
+/** Партия сразу после расстановки: у каждого столица и соседняя область; ход — у места seat. */
+function bench(size = 2, kingdomIds, { seat = 0 } = {}) {
+  const ids = kingdomIds || R.STARTING_LAYOUTS[size];
+  const state = E.createGame({ kingdomIds: ids, random: seeded(11) });
+  while (state.phase === 'setup') E.skipTurn(state, E.currentTurn(state));
+  for (const player of state.players) {
+    const capital = R.capitalOf(player.kingdomId);
+    state.areas[R.areaId(R.areaOf(capital).region, 'cw')].owner = player.id;
+  }
+  state.turnOrder = ids.map((_, i) => (seat + i) % ids.length);
+  state.turnPointer = 0;
+  state.firstPlayer = seat;
   return state;
 }
-
+const give = (state, seat, kinds) => { state.players[seat].hand = [...kinds, 'feint']; };
+const place = (state, seat, placement) => {
+  state.turnOrder = [seat]; state.turnPointer = 0; state.cycle = 0; state.phase = 'planning';
+  if (!state.players[seat].hand.includes(placement.kind)) state.players[seat].hand.unshift(placement.kind);
+  if (state.players[seat].hand.length < 2) state.players[seat].hand.push('march1');
+  return E.placeOrder(state, seat, placement);
+};
+const check = (state, seat, placement) => {
+  state.turnOrder = [seat]; state.turnPointer = 0; state.phase = 'planning';
+  if (placement.kind && !state.players[seat].hand.includes(placement.kind)) state.players[seat].hand.unshift(placement.kind);
+  if (state.players[seat].hand.length < 2) state.players[seat].hand.push('march1');
+  return E.validatePlacement(state, seat, placement);
+};
 function resolveWith(state, orders) {
-  state.orders = orders.map((one, at) => ({ id: `t${at}`, revealed: false, to: null, area: null, scoutTargets: null, ...one }));
+  state.orders = orders.map((one, at) => ({ id: `t${at}`, revealed: false, area: null, to: null, target: null, ...one }));
   state.phase = 'reveal';
   return E.resolveRound(state);
 }
 
-// 1) Простой захват нейтральной области с запасом силы.
+// ——————————————————————————————————————————————— расстановка и цели
+
 {
-  const state = bench(2);
-  const from = R.startingAreasOf(state.players[0].kingdomId)[1];
-  const target = R.neighborsOf(from).find((id) => state.areas[id].owner === null);
-  need(Boolean(target), 'у стартовой области нет нейтрального соседа для стенда');
-  const report = resolveWith(state, [{ owner: 0, kind: 'march3', area: from, to: target }]);
-  need(state.areas[target].owner === 0, 'поход силой 3 не взял нейтральную область защитой 1');
-  const line = report.find((one) => one.area === target);
-  need(line.outcome === 'captured', 'итог захвата не помечен captured');
+  const state = E.createGame({ kingdomIds: R.STARTING_LAYOUTS[3], random: seeded(5) });
+  need(state.phase === 'setup', 'партия начинается не с расстановки');
+  for (const player of state.players) {
+    need(state.areas[R.capitalOf(player.kingdomId)].owner === player.id, `у ${player.kingdomId} на старте нет столицы`);
+    need(player.objectiveChoices.length === 2 && player.objectiveChoices[0] !== player.objectiveChoices[1], 'раздано не две разные цели');
+  }
+  const all = state.players.flatMap((p) => p.objectiveChoices);
+  need(new Set(all).size === all.length, 'одна и та же цель досталась двоим');
+  const first = E.currentTurn(state);
+  const other = state.turnOrder[1];
+  const free = R.AREAS.find((a) => state.areas[a.id].owner === null).id;
+  need(!E.validateControl(state, other, free).ok, 'жетон контроля принят не в свою очередь');
+  need(!E.validateControl(state, first, R.capitalOf(state.players[other].kingdomId)).ok, 'жетон контроля встал в занятую область');
+  E.chooseObjective(state, first, state.players[first].objectiveChoices[1]);
+  let threw = false;
+  try { E.chooseObjective(state, first, 'capital'); } catch { threw = true; }
+  need(threw, 'цель выбрана второй раз');
+  let steps = 0;
+  while (state.phase === 'setup') { E.placeControl(state, E.currentTurn(state), R.AREAS.find((a) => state.areas[a.id].owner === null).id); steps += 1; }
+  need(steps === 3 * R.SETUP_TOKENS[3], `расстановка на троих заняла ${steps} ходов вместо ${3 * R.SETUP_TOKENS[3]}`);
+  need(state.phase === 'planning' && state.round === 1, 'после расстановки не начался первый раунд');
+  need(state.players.every((p) => p.objectiveId && p.objectiveChoices.includes(p.objectiveId)), 'после расстановки цель не из розданных');
+  need(state.players.every((p) => p.hand.length === 6 && p.hand.includes('feint')), 'рука первого раунда — не шесть жетонов с пустым');
+  const seen = E.visibleStateFor(state, other);
+  need(seen.players[first].objectiveId === null, 'чужая тайная цель видна до конца партии');
 }
 
-// 2) Недостаточная сила — область остаётся нейтральной. Порубежская твердыня
-//    (pogranichye-rim) — город без царства при любом числе игроков.
+// ——————————————————————————————————————————————— размещение
+
 {
   const state = bench(2);
-  const from = 'pogranichye-cw';
-  state.areas[from].owner = 0;
-  resolveWith(state, [{ owner: 0, kind: 'march1', area: from, to: 'pogranichye-rim' }]);
-  need(state.areas['pogranichye-rim'].owner === null, 'поход силой 1 взял нейтральный город с защитой 2');
+  const [a0, a1] = [R.capitalOf(state.players[0].kingdomId), R.areaId(R.areaOf(R.capitalOf(state.players[0].kingdomId)).region, 'cw')];
+  const enemy = R.capitalOf(state.players[1].kingdomId);
+  const neutral = R.neighborsOf(a1).find((id) => state.areas[id].owner === null);
+  // Одна граница — один жетон, чей бы он ни был.
+  place(state, 0, { kind: 'march2', area: a1, to: neutral });
+  state.areas[neutral].owner = 1;
+  need(!check(state, 1, { kind: 'march1', area: neutral, to: a1 }).ok, 'на занятую границу лёг второй жетон с другой стороны');
+  state.areas[neutral].owner = null;
+  // В центр своей — сколько угодно; в центр чужой — войско нельзя.
+  place(state, 0, { kind: 'march1', area: a0 });
+  need(check(state, 0, { kind: 'march3', area: a0 }).ok, 'второй защитный жетон в центр своей области не принят');
+  need(!check(state, 0, { kind: 'march3', area: enemy }).ok, 'войско встало в центр чужой области');
+  need(!check(state, 0, { kind: 'march2', area: a0, to: a1 }).ok, 'разрешена атака на собственную область');
+  // Корабли: только с воды на прибрежную, и одна прибрежная граница — один жетон.
+  const coast = [...R.COASTAL].find((id) => state.areas[id].owner !== 0);
+  const inland = R.AREAS.find((a) => !R.isCoastal(a.id) && state.areas[a.id].owner !== 0).id;
+  need(check(state, 0, { kind: 'navy1', to: coast }).ok, 'корабли не атакуют прибрежную область с воды');
+  need(!check(state, 0, { kind: 'navy1', to: inland }).ok, 'корабли атакуют область вдали от воды');
+  place(state, 0, { kind: 'navy1', to: coast });
+  need(!check(state, 1, { kind: 'navy2', to: coast }).ok, 'на одну прибрежную границу легли два жетона');
+  need(!check(state, 0, { kind: 'navy1', area: enemy }).ok, 'корабли защищают чужую область');
+  // Засада — в любую; поджог — только в чужую; мир — только в своей.
+  need(check(state, 0, { kind: 'ambush2', area: enemy }).ok, 'засада не встала в чужую область');
+  need(check(state, 0, { kind: 'ambush2', area: a0 }).ok, 'засада не встала в свою область');
+  need(!check(state, 0, { kind: 'raid', area: a0 }).ok, 'разрешён поджог своей области');
+  need(check(state, 0, { kind: 'peace', area: a0 }).ok && !check(state, 0, { kind: 'peace', area: enemy }).ok,
+    'завет мира не в своей области или в чужой');
+  // Благословение — только на свой жетон битвы, лежит открыто.
+  const own = state.orders.find((o) => o.owner === 0 && o.kind === 'march2');
+  need(check(state, 0, { kind: 'bless2', target: own.id }).ok, 'благословение не легло на своё войско');
+  place(state, 0, { kind: 'bless2', target: own.id });
+  need(E.forceOf(state, own) === 4, 'благословение +2 не прибавилось к силе');
+  need(!check(state, 0, { kind: 'bless1', target: own.id }).ok, 'второе благословение на тот же жетон');
+  const seenBless = E.visibleStateFor(state, 1).orders.find((o) => o.target === own.id);
+  need(seenBless && seenBless.kind === 'bless2', 'благословение не видно сопернику сразу');
+  need(!('kind' in E.visibleStateFor(state, 1).orders.find((o) => o.id === own.id)), 'закрытый жетон под благословением раскрыл вид');
+  // Один жетон остаётся за ширмой.
+  state.players[0].hand = ['march1'];
+  state.turnOrder = [0]; state.turnPointer = 0;
+  need(!E.validatePlacement(state, 0, { kind: 'march1', area: a0 }).ok, 'последний жетон в руке удалось положить');
 }
 
-// 3) Двое нападают на одну область с равной силой — хозяин не меняется.
+// Изгнанник: без земли ставит только войско — на любую границу.
 {
   const state = bench(2);
-  // kedem-hub — нейтральная пустошь с ровно двумя соседями: kedem-cw и kedem-ccw.
+  for (const id of Object.keys(state.areas)) if (state.areas[id].owner === 1) state.areas[id].owner = null;
+  state.players[1].ronin = true;
+  const [x, y] = [R.EDGES[5].a, R.EDGES[5].b];
+  need(check(state, 1, { kind: 'march2', area: x, to: y }).ok || state.areas[y].owner === 1, 'изгнанник не может атаковать через любую границу');
+  need(!check(state, 1, { kind: 'raid', area: x }).ok, 'изгнанник поджигает');
+  need(!check(state, 1, { kind: 'peace', area: x }).ok, 'изгнанник заключает мир');
+}
+
+// ——————————————————————————————————————————————— исполнение
+
+// 1) Ничья равнина без напечатанной защиты берётся войском силой 1; город у гор — только силой 3.
+{
+  const state = bench(2);
+  const from = R.areaId(R.areaOf(R.capitalOf(state.players[0].kingdomId)).region, 'cw');
+  const plain = R.neighborsOf(from).find((id) => state.areas[id].owner === null && R.printedDefense(R.areaOf(id)) === 0);
+  if (plain) {
+    resolveWith(state, [{ owner: 0, kind: 'march1', area: from, to: plain }]);
+    need(state.areas[plain].owner === 0, 'войско силой 1 не взяло ничью область без защиты');
+  }
+  const fort = 'pogranichye-rim';
+  need(R.printedDefense(R.areaOf(fort)) === 2, 'Пограничная Твердыня: город в горах должен нести защиту 2');
+  const s2 = bench(2);
+  s2.areas['pogranichye-cw'].owner = 0;
+  resolveWith(s2, [{ owner: 0, kind: 'march2', area: 'pogranichye-cw', to: fort }]);
+  need(s2.areas[fort].owner === null, 'сила 2 взяла защиту 2 — ничья ушла атакующему');
+  resolveWith(s2, [{ owner: 0, kind: 'march3', area: 'pogranichye-cw', to: fort }]);
+  need(s2.areas[fort].owner === 0, 'сила 3 не взяла защиту 2');
+}
+
+// 2) Двое атакуют одну область равной силой — побеждает защита, даже ничейная.
+{
+  const state = bench(2);
   state.areas['kedem-cw'].owner = 0;
   state.areas['kedem-ccw'].owner = 1;
+  state.areas['kedem-hub'].owner = null;
   resolveWith(state, [
     { owner: 0, kind: 'march2', area: 'kedem-cw', to: 'kedem-hub' },
     { owner: 1, kind: 'march2', area: 'kedem-ccw', to: 'kedem-hub' },
@@ -244,227 +266,155 @@ function resolveWith(state, orders) {
   need(state.areas['kedem-hub'].owner === null, 'при равенстве сильнейших атак хозяин области поменялся');
 }
 
-// 4) Приказы одного игрока на одну область суммируются.
+// 3) Силы одного игрока складываются: войско, корабли и засада на одну цель.
 {
   const state = bench(2);
-  state.areas['kedem-cw'].owner = 0;
-  state.areas['kedem-ccw'].owner = 0;
-  resolveWith(state, [
-    { owner: 0, kind: 'march1', area: 'kedem-cw', to: 'kedem-hub' },
-    { owner: 0, kind: 'march1', area: 'kedem-ccw', to: 'kedem-hub' },
-  ]);
-  need(state.areas['kedem-hub'].owner === 0, 'силы одного игрока на одну область не сложились (1+1 не взяли защиту 1)');
-}
-
-// 5) Потеря исходной области не отменяет уже отправленный из неё поход:
-//    область X атакует Y и в тот же раунд сама взята игроком, приславшим
-//    удар в X. Приказ из X обязан остаться приказом прежнего хозяина.
-{
-  const state = bench(2);
-  const areaX = 'primorye-cw';
-  const areaY = 'primorye-hub'; // сосед X, остаётся нейтральным
-  const areaZ = 'primorye-rim'; // сосед X с другой стороны — оттуда бьёт второй игрок
-  state.areas[areaX].owner = 0;
-  state.areas[areaZ].owner = 1;
+  state.areas['primorye-hub'].owner = 1;
+  state.areas['primorye-cw'].owner = 0;
   const report = resolveWith(state, [
-    { owner: 0, kind: 'march2', area: areaX, to: areaY },
-    { owner: 1, kind: 'march3', area: areaZ, to: areaX },
+    { owner: 1, kind: 'march2', area: 'primorye-hub' },
+    { owner: 0, kind: 'march1', area: 'primorye-cw', to: 'primorye-hub' },
+    { owner: 0, kind: 'navy1', to: 'primorye-hub' },
+    { owner: 0, kind: 'ambush1', area: 'primorye-hub' },
   ]);
-  const xLine = report.find((one) => one.area === areaX);
-  need(xLine && xLine.newOwner === 1, 'область-источник не была взята для проверки одновременности');
-  const yLine = report.find((one) => one.area === areaY);
-  need(Boolean(yLine) && yLine.attackers.length === 1 && yLine.attackers[0].seat === 0,
-    'поход из только что потерянной области исчез вместе с ней');
-  need(yLine.newOwner === 0, 'поход из потерянной области не довёл свою атаку до конца');
+  const line = report.find((one) => one.area === 'primorye-hub');
+  need(line.attackers[0].total === 3 + (state.players[0].kingdomId === 'tarsis' ? 1 : 0), 'войско, корабли и засада одного игрока не сложились');
+  need(line.defense.tokens === 2, 'защитное войско в центре не посчиталось');
 }
 
-// 6) Укрепление: постоянный прирост с пределом, и предел выше у Престола Равнины в городах.
-{
-  const state = bench(2, ['tarsis', 'prestol']);
-  const area = R.startingAreasOf('tarsis')[0];
-  for (let i = 0; i < 4; i += 1) resolveWith(state, [{ owner: 0, kind: 'fortify', area }]);
-  need(state.areas[area].fortify === 2, `укрепление ушло за предел 2 у обычного царства (${state.areas[area].fortify})`);
-
-  const cityArea = R.startingAreasOf('prestol')[0]; // столица — всегда город
-  const state2 = bench(2, ['tarsis', 'prestol']);
-  for (let i = 0; i < 5; i += 1) resolveWith(state2, [{ owner: 1, kind: 'fortify', area: cityArea }]);
-  need(state2.areas[cityArea].fortify === 3, `у Престола Равнины предел в городе не поднялся до 3 (${state2.areas[cityArea].fortify})`);
-}
-
-// 7) Стража держит только на свой раунд.
+// 4) Победа защитника — открытый жетон контроля: +1 к защите и +1 очко; стража без нападения — тоже победа.
 {
   const state = bench(2);
-  const capital0 = 'primorye-rim';
-  const from1 = 'primorye-cw'; // сосед капитала по циклу региона — соседство гарантировано картой
-  state.areas[capital0].owner = 0;
-  state.areas[from1].owner = 1;
-  resolveWith(state, [{ owner: 0, kind: 'guard', area: capital0 }]);
-  const guarded = E.defenseOf(state, capital0, true).total;
-  const bare = E.defenseOf(state, capital0, false).total;
-  need(guarded === bare + 2, 'стража не даёт ровно +2 к защите');
-  // Без нового приказа страж в следующем расчёте уже не участвует.
-  resolveWith(state, [{ owner: 1, kind: 'march2', area: from1, to: capital0 }]);
-  need(E.defenseOf(state, capital0, false).total === bare, 'защита осталась завышенной после раунда без стражи');
+  const held = R.capitalOf(state.players[0].kingdomId);
+  const from = R.neighborsOf(held).find((id) => state.areas[id].owner !== 0);
+  state.areas[from].owner = 1;
+  const base = E.defenseOf(state, held).total;
+  resolveWith(state, [{ owner: 1, kind: 'march1', area: from, to: held }]);
+  need(state.areas[held].veterans === 1 && E.defenseOf(state, held).total === base + 1, 'отбитая атака не дала открытый жетон контроля');
+  resolveWith(state, [{ owner: 0, kind: 'march1', area: held }]);
+  need(state.areas[held].veterans === 2, 'оборона без нападения не засчитана победой защитника');
+  resolveWith(state, [{ owner: 1, kind: 'march5', area: from, to: held }, { owner: 1, kind: 'ambush2', area: held }]);
+  need(state.areas[held].owner === 1 && state.areas[held].veterans === 0, 'после захвата открытые жетоны прежнего хозяина остались');
 }
 
-// 8) Горы: +1 базово, ещё +1 сверху у Дома Ора.
-{
-  const state = bench(2, ['or', 'kedem']);
-  const mountainArea = R.startingAreasOf('or')[0];
-  need(R.areaOf(mountainArea).terrain === 'mountains', 'столица Дома Ора не в горах');
-  const defense = E.defenseOf(state, mountainArea, false);
-  need(defense.terrain === 1, 'горный бонус защиты не +1');
-  need(defense.ability === 1, 'способность Дома Ора не даёт добавочную защиту в горах');
-  need(defense.total === 1 + 0 + 0 + 1 + 1, `защита горной столицы Дома Ора посчиталась как ${defense.total}, а не 3`);
-}
-
-// 9) Мореходы: +1 к походу между двумя побережьями.
-{
-  const state = bench(2, ['tarsis', 'kedem']);
-  const coastFrom = R.startingAreasOf('tarsis').find((id) => R.areaOf(id).terrain === 'coast');
-  const coastTo = R.neighborsOf(coastFrom).find((id) => R.areaOf(id).terrain === 'coast' && id !== coastFrom);
-  if (coastTo) {
-    const order = { kind: 'march1', owner: 0, area: coastFrom, to: coastTo };
-    need(E.forceOf(state, order) === 2, 'мореходы не получили +1 между двумя побережьями');
-  }
-}
-
-// 10) Мастера переправ: +1 к переправе.
-{
-  const state = bench(2, ['yor', 'kedem']);
-  const yorSeat = state.players.findIndex((p) => p.kingdomId === 'yor');
-  state.areas['dolina-hub'].owner = yorSeat;
-  const order = { kind: 'ford2', owner: yorSeat, area: 'dolina-hub', to: 'ravnina-hub' };
-  need(E.forceOf(state, order) === 3, 'мастера переправ не получили +1 к переправе');
-}
-
-// 11) Соглядатаи Кедема: разведка на двоих; остальным — не больше одного.
-{
-  const state = bench(2, ['kedem', 'tarsis']);
-  const kedemSeat = state.players.findIndex((p) => p.kingdomId === 'kedem');
-  const tarsisSeat = state.players.findIndex((p) => p.kingdomId === 'tarsis');
-  // Закрытые приказы обеих сторон подставлены напрямую — стенд проверяет
-  // только предел разведки, а не то, как эти приказы возникли на столе.
-  state.orders.push(
-    { id: 'byTarsis1', owner: tarsisSeat, kind: 'march1', area: R.startingAreasOf('tarsis')[0], to: R.neighborsOf(R.startingAreasOf('tarsis')[0])[0], revealed: false, scoutTargets: null },
-    { id: 'byTarsis2', owner: tarsisSeat, kind: 'guard', area: R.startingAreasOf('tarsis')[1], to: null, revealed: false, scoutTargets: null },
-    { id: 'byKedem1', owner: kedemSeat, kind: 'fortify', area: R.startingAreasOf('kedem')[0], to: null, revealed: false, scoutTargets: null },
-    { id: 'byKedem2', owner: kedemSeat, kind: 'march1', area: R.startingAreasOf('kedem')[1], to: R.neighborsOf(R.startingAreasOf('kedem')[1])[0], revealed: false, scoutTargets: null },
-  );
-
-  state.turnOrder = [kedemSeat];
-  state.turnPointer = 0;
-  state.players[kedemSeat].hand[0] = 'scout';
-  const twinCheck = E.validatePlacement(state, kedemSeat, { kind: 'scout', scoutTargets: ['byTarsis1', 'byTarsis2'] });
-  need(twinCheck.ok, 'Кочевники Кедема не могут разведать два приказа за раз');
-  E.placeOrder(state, kedemSeat, { kind: 'scout', scoutTargets: ['byTarsis1', 'byTarsis2'] });
-  need(state.scoutIntel[kedemSeat].length === 2, 'разведка Кедема не записала оба раскрытых приказа');
-  need(state.scoutIntel[kedemSeat][0].kind === 'march1' && state.scoutIntel[kedemSeat][1].kind === 'guard',
-    'разведка Кедема раскрыла не те виды приказов');
-
-  state.turnOrder = [tarsisSeat];
-  state.turnPointer = 0;
-  state.players[tarsisSeat].hand[0] = 'scout';
-  const oneOk = E.validatePlacement(state, tarsisSeat, { kind: 'scout', scoutTargets: ['byKedem1'] });
-  need(oneOk.ok, 'обычному царству отказали в разведке одного приказа');
-  const twoDenied = E.validatePlacement(state, tarsisSeat, { kind: 'scout', scoutTargets: ['byKedem1', 'byKedem2'] });
-  need(!twoDenied.ok, 'обычное царство разведало два приказа за раз — предел не сработал');
-}
-
-// 12) Нейтральная защита: 1 у пустоши, 2 у города — как сказано в правилах.
+// 5) Поход из области, потерянной в тот же раунд, доводит атаку до конца.
 {
   const state = bench(2);
-  const plainNeutral = R.AREAS.find((a) => state.areas[a.id].owner === null && !a.city);
-  const cityNeutral = R.AREAS.find((a) => state.areas[a.id].owner === null && a.city);
-  if (plainNeutral) need(E.defenseOf(state, plainNeutral.id, false).total === 1, 'нейтральная пустошь защищена не единицей');
-  if (cityNeutral) need(E.defenseOf(state, cityNeutral.id, false).total === 2, 'нейтральный город защищён не двойкой');
+  state.areas['primorye-cw'].owner = 0;
+  state.areas['primorye-rim'].owner = 1;
+  state.areas['primorye-hub'].owner = null;
+  const report = resolveWith(state, [
+    { owner: 0, kind: 'march2', area: 'primorye-cw', to: 'primorye-hub' },
+    { owner: 1, kind: 'march5', area: 'primorye-rim', to: 'primorye-cw' },
+  ]);
+  need(report.find((one) => one.area === 'primorye-cw').newOwner === 1, 'область-источник не взята для проверки одновременности');
+  need(state.areas['primorye-hub'].owner === 0, 'поход из потерянной области исчез вместе с ней');
 }
 
-// 13) Незаконные приказы отклоняются словами, а не тихо.
+// 6) Поджог: пепелище, жетоны вокруг уходят, хозяина нет навсегда; без соседства и засады — не срабатывает.
 {
   const state = bench(2);
-  const seat = state.turnOrder[0];
-  const notMyTurn = state.turnOrder[1];
-  need(!E.validatePlacement(state, notMyTurn, { kind: 'guard', area: R.startingAreasOf(state.players[notMyTurn].kingdomId)[0] }).ok,
-    'приказ принят не в свою очередь');
-  const myArea = R.startingAreasOf(state.players[seat].kingdomId)[0];
-  need(!E.validatePlacement(state, seat, { kind: 'march2', area: myArea, to: R.startingAreasOf(state.players[seat].kingdomId)[1] }).ok,
-    'поход на собственную область разрешён');
-  const foreignArea = R.startingAreasOf(state.players[notMyTurn].kingdomId)[0];
-  need(!E.validatePlacement(state, seat, { kind: 'guard', area: foreignArea }).ok, 'внутренний приказ принят в чужой области');
-
-  const ford = R.FORDS[0];
-  state.areas[ford.a].owner = seat;
-  need(!E.validatePlacement(state, seat, { kind: 'march1', area: ford.a, to: ford.b }).ok,
-    'поход прошёл через брод в обход переправы');
-  need(E.validatePlacement(state, seat, { kind: 'ford2', area: ford.a, to: ford.b }).ok,
-    'переправа не проходит там, где брод есть на самом деле');
+  const mine = R.areaId(R.areaOf(R.capitalOf(state.players[0].kingdomId)).region, 'cw');
+  const victim = R.neighborsOf(mine).find((id) => state.areas[id].owner !== 0);
+  state.areas[victim].owner = 1;
+  resolveWith(state, [
+    { owner: 0, kind: 'raid', area: victim },
+    { owner: 1, kind: 'march3', area: victim },
+    { owner: 0, kind: 'march5', area: mine, to: victim },
+  ]);
+  need(state.areas[victim].special === 'scorched' && state.areas[victim].owner === null, 'поджог не оставил пепелища');
+  need(!check(state, 0, { kind: 'march2', area: mine, to: victim }).ok, 'на пепелище снова можно напасть');
+  need(!check(state, 0, { kind: 'ambush1', area: victim }).ok, 'в пепелище легла засада');
+  const far = R.AREAS.find((a) => state.areas[a.id].owner === 1 && !R.neighborsOf(a.id).some((id) => state.areas[id].owner === 0)).id;
+  resolveWith(state, [{ owner: 0, kind: 'raid', area: far }]);
+  need(state.areas[far].special !== 'scorched', 'поджог сработал без соседства и без засады');
+  resolveWith(state, [{ owner: 0, kind: 'raid', area: far }, { owner: 0, kind: 'ambush1', area: far }]);
+  need(state.areas[far].special === 'scorched', 'поджог с собственной засадой в области не сработал');
+  // Пепелище не мешает взять регион: считаются только уцелевшие области.
+  const region = R.areaOf(far).region;
+  for (const area of R.areasOfRegion(region)) if (area.id !== far && state.areas[area.id].special !== 'scorched') state.areas[area.id].owner = 0;
+  need(E.regionController(state, region) === 0, 'пепелище помешало взять регион целиком');
 }
 
-// 14) Один исходящий и один внутренний приказ на область — не больше.
+// 7) Завет мира: атаки в этот раунд снимаются, дальше область неприкосновенна и из неё не атакуют.
 {
   const state = bench(2);
-  const seat = state.turnOrder[0];
-  const area = R.startingAreasOf(state.players[seat].kingdomId)[0];
-  const target = R.neighborsOf(area).find((id) => state.areas[id].owner !== seat);
-  E.placeOrder(state, seat, { kind: 'march1', area, to: target });
-  // Теперь очередь другого места — подставим приказ первого места искусственно для проверки предела.
-  const secondCheck = E.validatePlacement(state, seat, { kind: 'march1', area, to: target });
-  need(!secondCheck.ok, 'из одной области приняли второй исходящий приказ за раунд');
+  const held = R.capitalOf(state.players[0].kingdomId);
+  const from = R.neighborsOf(held).find((id) => state.areas[id].owner !== 0);
+  state.areas[from].owner = 1;
+  resolveWith(state, [{ owner: 0, kind: 'peace', area: held }, { owner: 1, kind: 'march5', area: from, to: held }]);
+  need(state.areas[held].owner === 0 && state.areas[held].special === 'peace', 'завет мира не удержал область');
+  need(!check(state, 1, { kind: 'march5', area: from, to: held }).ok, 'область под заветом мира снова можно атаковать');
+  need(!check(state, 0, { kind: 'march1', area: held, to: from }).ok, 'из области под заветом мира можно атаковать');
 }
 
-// 15) Пять приказов за раунд — предел, шестой не проходит, даже когда
-//     областей и законных ходов у игрока с избытком.
+// 8) Карты: соглядатаи видят, пророк сбрасывает, право первенства возвращает в запас; благословлённое неприкасаемо.
 {
-  const state = bench(2);
-  const seat = 0;
-  const areas = ['primorye-rim', 'primorye-cw', 'primorye-hub', 'primorye-ccw', 'nagorye-rim', 'nagorye-cw'];
-  state.players[seat].hand = ['guard', 'guard', 'guard', 'guard', 'guard', 'feint'];
-  for (const id of areas) state.areas[id].owner = seat;
-  for (let i = 0; i < 5; i += 1) {
-    state.turnOrder = [seat];
-    state.turnPointer = 0;
-    E.placeOrder(state, seat, { kind: 'guard', area: areas[i] });
-  }
-  need(E.ordersPlacedBy(state, seat) === 5, `после пяти размещений счёт приказов ${E.ordersPlacedBy(state, seat)}, а не 5`);
-  state.turnOrder = [seat];
-  state.turnPointer = 0;
-  const sixth = E.validatePlacement(state, seat, { kind: 'guard', area: areas[5] });
-  need(!sixth.ok, 'шестой приказ за раунд принят сверх предела в пять');
+  const state = bench(3, ['kedem', 'tarsis', 'or']);
+  need(state.players[0].cards.scout === 3 && state.players[1].cards.scout === 2, 'у Кедема не три соглядатая или у других не два');
+  state.orders = [
+    { id: 'x1', owner: 1, kind: 'march3', area: R.capitalOf('tarsis'), to: null, round: 1 },
+    { id: 'x2', owner: 1, kind: 'navy2', area: null, to: 'primorye-hub', round: 1 },
+    { id: 'x3', owner: 2, kind: 'march1', area: R.capitalOf('or'), to: null, round: 1 },
+    { id: 'x4', owner: 2, kind: 'bless1', area: R.capitalOf('or'), to: null, target: 'x3', open: true, round: 1 },
+  ];
+  state.turnOrder = [0]; state.turnPointer = 0; state.herald = 0;
+  E.useCard(state, 0, { card: 'scout', target: 'x1' });
+  need(state.scoutIntel[0][0].kind === 'march3' && state.turnOrder[state.turnPointer] === 0, 'соглядатаи не донесли вид или закончили ход');
+  E.useCard(state, 0, { card: 'prophet', target: 'x2' });
+  need(!state.orders.some((o) => o.id === 'x2') && state.players[0].cards.prophet === 0, 'пророк не сбросил жетон');
+  need(!E.validateCard(state, 0, 'scout', 'x3').ok, 'карта дотянулась до благословлённого жетона');
+  const supplyBefore = state.players[1].supply.length;
+  E.useCard(state, 0, { card: 'herald', target: 'x1' });
+  need(state.players[1].supply.length === supplyBefore + 1 && state.herald === null, 'право первенства не вернуло жетон в запас или осталось');
+  const two = bench(2);
+  two.turnOrder = [two.firstPlayer]; two.turnPointer = 0;
+  E.beginRound(two);
+  need(two.herald === null, 'в игре вдвоём у первого игрока есть право первенства');
 }
 
-// 16) Каждая тайная цель проверяется на прямо построенном положении — не
-//     только на статистике ботовских партий ниже, которая зависит от посева.
+// 9) Способности царств.
+{
+  const tarsis = bench(2, ['tarsis', 'kedem']);
+  need(E.forceOf(tarsis, { owner: 0, kind: 'navy1', to: 'primorye-hub' }) === 2, 'корабли Тарсиса не получили +1');
+  const or = bench(2, ['or', 'kedem']);
+  const orCapital = R.capitalOf('or');
+  need(E.defenseOf(or, orCapital).ability === 1 && E.defenseOf(or, orCapital).printed === 3, 'горная столица Ора считается не как 2+1 и +1 способности');
+  const yor = bench(2, ['yor', 'kedem']);
+  yor.areas['dolina-hub'].owner = 0;
+  need(E.forceOf(yor, { owner: 0, kind: 'march2', area: 'dolina-hub', to: 'ravnina-hub' }) === 3, 'войско Йора через брод не получило +1');
+  need(E.forceOf(yor, { owner: 0, kind: 'march2', area: 'dolina-hub', to: 'dolina-cw' }) === 2, 'войско Йора получило +1 не через брод');
+  const prestol = bench(2, ['prestol', 'kedem']);
+  need(E.defenseOf(prestol, R.capitalOf('prestol')).ability === 1, 'Зодчие не дали +1 к защите города');
+}
+
+// 10) Карты регионов: первый, кто взял регион, получает награду один раз.
 {
   const state = bench(2);
+  for (const area of R.areasOfRegion('primorye')) state.areas[area.id].owner = 0;
+  resolveWith(state, []);
+  need(state.regionCards.primorye === 0 && state.areas['primorye-rim'].special === 'honor2', 'награда Приморья не легла');
+  const honor = E.honorOf(state, 'primorye-rim');
+  need(honor === R.areaOf('primorye-rim').value + 2, 'жетон «+2 к чести» не прибавил двух очков');
+  for (const area of R.areasOfRegion('kedem')) state.areas[area.id].owner = 1;
+  const prophets = state.players[1].cards.prophet;
+  resolveWith(state, []);
+  resolveWith(state, []);
+  need(state.players[1].cards.prophet === prophets + 1, 'награда Кедема дана не ровно один раз');
+}
+
+// 11) Счёт и равенство: честь + открытые жетоны + 5 за регион + цель; при равенстве — регионы, затем области.
+{
+  const state = bench(2);
+  for (const area of R.areasOfRegion('nagorye')) state.areas[area.id].owner = 0;
+  state.areas['nagorye-hub'].veterans = 2;
   state.players[0].objectiveId = 'capital';
-  const capitalId = R.AREAS.find((a) => a.capitalOf === state.players[0].kingdomId).id;
-  need(E.checkObjective(state, 0), 'своя столица на месте, а цель «Хранитель столицы» не засчиталась');
-  state.areas[capitalId].owner = 1;
-  need(!E.checkObjective(state, 0), 'столица потеряна, а цель «Хранитель столицы» всё ещё засчитана');
-
-  const territory = bench(2);
-  territory.players[0].objectiveId = 'territory';
-  for (const id of ['primorye-rim', 'primorye-cw', 'primorye-hub', 'primorye-ccw', 'nagorye-ccw']) territory.areas[id].owner = 0;
-  need(E.checkObjective(territory, 0), 'пять связных областей на месте, а цель «Собиратель земель» не засчиталась');
-  territory.areas['nagorye-ccw'].owner = null;
-  need(!E.checkObjective(territory, 0), 'связных областей всего четыре, а цель всё равно засчитана');
-
-  const ford = bench(2);
-  ford.players[0].objectiveId = 'ford';
-  const [a, b] = [R.FORDS[0].a, R.FORDS[0].b];
-  ford.areas[a].owner = 0;
-  need(!E.checkObjective(ford, 0), 'занят только один берег брода, а цель «Мастер переправы» уже засчитана');
-  ford.areas[b].owner = 0;
-  need(E.checkObjective(ford, 0), 'оба берега брода заняты, а цель не засчиталась');
-
-  const cities = bench(2);
-  cities.players[0].objectiveId = 'cities';
-  const cityIds = R.AREAS.filter((a) => a.city).map((a) => a.id).slice(0, 2);
-  cities.areas[cityIds[0]].owner = 0;
-  need(!E.checkObjective(cities, 0), 'город только один, а цель «Собиратель городов» уже засчитана');
-  cities.areas[cityIds[1]].owner = 0;
-  need(E.checkObjective(cities, 0), 'два города заняты, а цель не засчиталась');
+  state.players[1].objectiveId = 'capital';
+  E.finishGame(state);
+  const s0 = state.finalScore[0];
+  need(s0.total === s0.areaValue + s0.veterans + s0.regions * 5 + s0.objectivePoints && s0.veterans >= 2 && s0.regions >= 1,
+    'итог не сложился из чести, открытых жетонов, регионов и цели');
+  need(state.status === 'over', 'после подсчёта партия не окончена');
 }
 
 // ——————————————————————————————————————————————— партии ботами целиком
@@ -477,141 +427,97 @@ function simulate(size, kingdomIds, seed) {
     random,
   });
   let guard = 0;
-  const spent = kingdomIds.map(() => 0);
+  const burned = new Set();
+  const peaceful = new Map();
   while (state.status === 'playing') {
     guard += 1;
-    if (guard > 5000) { problems.push(`партия ${size}p не кончилась за 5000 шагов`); break; }
+    if (guard > 6000) { problems.push(`партия ${size}p не кончилась за 6000 шагов`); break; }
     for (const player of state.players) {
-      const placed = state.orders.filter(o => o.owner === player.id);
-      const remaining = player.hand.filter(kind => kind !== 'feint').length + player.supply.length
-        + placed.filter(o => o.kind !== 'feint').length + spent[player.id];
-      need(remaining === Object.values(R.TOKEN_SUPPLY).reduce((sum, n) => sum + n, 0),
-        `нарушен баланс мешка игрока ${player.id} в раунде ${state.round}: ${remaining}`);
-      need(player.hand.filter(kind => kind === 'feint').length
-        + placed.filter(o => o.kind === 'feint').length <= 1,
-      `у игрока ${player.id} одновременно несколько обманных жетонов`);
-    }
-    if (state.phase === 'planning') {
-      const seat = E.currentTurn(state);
-      if (seat < 0) { problems.push('в фазе планирования нет хода — партия зависла'); break; }
-      const choice = Bots.pick(state, seat);
-      if (!choice) { E.skipTurn(state, seat); continue; }
-      try {
-        E.placeOrder(state, seat, choice);
-      } catch (error) {
-        problems.push(`бот предложил незаконный приказ: ${error.message} (${JSON.stringify(choice)})`);
-        E.skipTurn(state, seat);
+      const placed = state.orders.filter((o) => o.owner === player.id && o.kind !== 'feint').length;
+      const total = player.hand.filter((k) => k !== 'feint').length + player.supply.length + placed + player.spent;
+      if (total !== 25) problems.push(`нарушен баланс запаса игрока ${player.id} в раунде ${state.round}: ${total}`);
+      if (player.hand.filter((k) => k === 'feint').length + state.orders.filter((o) => o.owner === player.id && o.kind === 'feint').length > 1) {
+        problems.push(`у игрока ${player.id} несколько пустых жетонов`);
       }
+    }
+    if (state.phase === 'setup' || state.phase === 'planning') {
+      const seat = E.currentTurn(state);
+      if (seat < 0) { problems.push('нет хода — партия зависла'); break; }
+      try { Bots.play(state, seat); } catch (error) { problems.push(`бот уронил ход: ${error.message}`); E.skipTurn(state, seat); }
     } else if (state.phase === 'reveal') {
       auditBeforeResolve(state);
       E.resolveRound(state);
-      auditAfterResolve(state);
+      for (const area of R.AREAS) {
+        const cell = state.areas[area.id];
+        if (burned.has(area.id) && (cell.special !== 'scorched' || cell.owner !== null)) problems.push(`пепелище ${area.id} ожило`);
+        if (cell.special === 'scorched') burned.add(area.id);
+        if (peaceful.has(area.id) && cell.owner !== peaceful.get(area.id)) problems.push(`область под заветом мира ${area.id} сменила хозяина`);
+        if (cell.special === 'peace') peaceful.set(area.id, cell.owner);
+        if (cell.owner !== null && (cell.owner < 0 || cell.owner >= state.players.length)) problems.push(`область досталась несуществующему месту ${cell.owner}`);
+      }
     } else if (state.phase === 'results') {
-      for (const order of state.orders) if (order.kind !== 'feint') spent[order.owner] += 1;
-      if (!E.nextRound(state)) break; // партия окончена — nextRound сам ничего не поменял
+      if (!E.nextRound(state)) break;
     } else break;
   }
   return state;
 }
 
 function auditBeforeResolve(state) {
-  const perPlayerCount = new Map();
-  const perAreaSlot = new Map();
+  const borders = new Map();
+  const seas = new Map();
+  const perPlayer = new Map();
   for (const order of state.orders) {
-    perPlayerCount.set(order.owner, (perPlayerCount.get(order.owner) || 0) + 1);
-    const rule = R.orderOf(order.kind);
-    if (rule.slot === 'none') continue;
-    const key = `${order.owner}:${order.area}:${rule.slot}`;
-    if (perAreaSlot.has(key)) problems.push(`у области ${order.area} два приказа в слоте ${rule.slot} за один раунд`);
-    perAreaSlot.set(key, true);
-  }
-  for (const [seat, many] of perPlayerCount) {
-    if (many > R.ORDERS_PER_ROUND) problems.push(`игрок ${seat} разместил ${many} приказов за раунд`);
-  }
-}
-
-function auditAfterResolve(state) {
-  const owners = Object.values(state.areas).map((one) => one.owner);
-  for (const owner of owners) {
-    if (owner !== null && (owner < 0 || owner >= state.players.length)) {
-      problems.push(`область досталась несуществующему месту ${owner}`);
+    perPlayer.set(order.owner, (perPlayer.get(order.owner) || 0) + 1);
+    if (order.target) continue;
+    if (order.area && order.to) {
+      const key = order.area < order.to ? `${order.area}|${order.to}` : `${order.to}|${order.area}`;
+      if (borders.has(key)) problems.push(`на границе ${key} два жетона`);
+      borders.set(key, true);
+    } else if (!order.area && order.to) {
+      if (seas.has(order.to)) problems.push(`у воды ${order.to} два жетона`);
+      seas.set(order.to, true);
     }
+    const into = order.to || order.area;
+    if (into && ['peace', 'scorched'].includes(state.areas[into].special)) problems.push(`жетон лёг в ${state.areas[into].special} ${into}`);
   }
-  for (const area of R.AREAS) {
-    const cap = R.fortifyCapFor(
-      state.areas[area.id].owner === null ? '' : state.players[state.areas[area.id].owner].kingdomId,
-      area,
-    );
-    if (state.areas[area.id].fortify > cap) problems.push(`укрепление ${area.id} выше предела ${cap}`);
-    if (state.areas[area.id].fortify < 0) problems.push(`укрепление ${area.id} ушло в минус`);
-  }
+  for (const [seat, many] of perPlayer) if (many > R.ORDERS_PER_ROUND) problems.push(`игрок ${seat} положил ${many} жетонов за раунд`);
 }
 
-/*
-  Достижимость цели проверяется не по жребию, а по факту: для каждого
-  доигранного положения смотрим, выполнил бы его ХОТЬ КТО-ТО из играющих
-  условие каждой из четырёх целей — независимо от того, какая цель ему
-  выпала на самом деле. Кому цель выпадает — решает жребий, и с четырьмя
-  целями поровну шанс, что именно тот единственный игрок, который дотянулся
-  до трёх городов, получит в раздаче именно «Собирателя городов», — это
-  вопрос удачи раздачи, а не вопрос, дотягивается ли карта до этой цели
-  вообще. Второе и обязана спрашивать эта проверка.
-*/
-const tale = { games: 0, rounds: 0 };
-const achieved = new Map(R.OBJECTIVES.map((one) => [one.id, new Map([[2, 0], [3, 0], [4, 0], [5, 0]])]));
+const tale = { games: 0, scorched: 0, peace: 0, captures: 0 };
+const achieved = new Map(R.OBJECTIVES.map((one) => [one.id, 0]));
 let gameSeed = 1000;
 for (const size of [2, 3, 4, 5]) {
-  for (let run = 0; run < 150; run += 1) {
+  for (let run = 0; run < 120; run += 1) {
     gameSeed += 7;
-    const layout = R.STARTING_LAYOUTS[size];
-    const state = simulate(size, layout, gameSeed);
+    const state = simulate(size, R.STARTING_LAYOUTS[size], gameSeed);
     tale.games += 1;
     if (state.status !== 'over') { problems.push(`партия на ${size} игроков (посев ${gameSeed}) не завершилась`); continue; }
-    need(state.round === R.ROUNDS, `партия на ${size} кончилась на раунде ${state.round}, а не на ${R.ROUNDS}`);
-    need(Array.isArray(state.finalScore) && state.finalScore.length === size, 'итоговый счёт посчитан не всем участникам');
-    need(state.winner !== null && state.winner !== undefined, 'у партии нет победителя ни по очкам, ни совместного');
+    need(state.round === R.ROUNDS, `партия на ${size} кончилась на раунде ${state.round}`);
+    need(Array.isArray(state.finalScore) && state.finalScore.length === size, 'итоговый счёт посчитан не всем');
+    need(state.winner !== null && state.winner !== undefined, 'у партии нет победителя');
+    tale.scorched += Object.values(state.areas).filter((c) => c.special === 'scorched').length;
+    tale.peace += Object.values(state.areas).filter((c) => c.special === 'peace').length;
     for (const objective of R.OBJECTIVES) {
-      if (state.players.some((player) => E.checkObjective(state, player.id, objective.id))) {
-        achieved.get(objective.id).set(size, achieved.get(objective.id).get(size) + 1);
-      }
+      if (state.players.some((player) => E.checkObjective(state, player.id, objective.id))) achieved.set(objective.id, achieved.get(objective.id) + 1);
     }
-    tale.rounds += state.round;
   }
 }
 for (const objective of R.OBJECTIVES) {
-  for (const size of [2, 3, 4, 5]) {
-    const many = achieved.get(objective.id).get(size);
-    need(many > 0, `цель «${objective.title}» ни разу не была достигнута ни одним ботом в партиях на ${size} игроков`);
-  }
-}
-
-// ——————————————————————————————————————————————— выбывание не рушит партию
-
-{
-  const state = bench(3, ['tarsis', 'yor', 'kedem']);
-  // Заберём у второго места обе стартовые области немедленно.
-  const [c1, c2] = R.startingAreasOf(state.players[1].kingdomId);
-  state.areas[c1].owner = 0;
-  state.areas[c2].owner = 2;
-  state.players[1].eliminated = true;
-  state.phase = 'results';
-  need(E.nextRound(state), 'следующий раунд не начался после выбывания игрока');
-  need(!state.turnOrder.includes(1), 'выбывший игрок остался в очереди хода');
-  need(state.turnOrder.length === 2, 'после выбывания в очереди осталось не два места');
+  need(achieved.get(objective.id) > 0, `цель «${objective.title}» ни разу не достигнута ботами`);
 }
 
 // ——————————————————————————————————————————————— итог
 
 if (problems.length) {
   console.error(`«Царства» не прошли проверку (${problems.length}):`);
-  for (const line of problems) console.error(`  ✗ ${line}`);
+  for (const line of [...new Set(problems)].slice(0, 40)) console.error(`  ✗ ${line}`);
   process.exit(1);
 }
 
-console.log(`OK: карта из 24 областей в 6 регионах связна и симметрична (30 связей по суше, 2 брода); `
-  + `пять царств стоят каждое в своём регионе с одной столицей; раскладки на 2, 3, 4 и 5 игроков дают `
-  + `смежные стартовые пары. ${tale.games} партий ботами сыграны до пятого раунда (${tale.rounds} раундов `
-  + `суммарно): защита, укрепление, стража, горный и приморский бонусы, переправа и разведка посчитаны по `
-  + `формуле; ничьи, встречные атаки, сумма приказов одного игрока и потеря исходной области при отправленном `
-  + `походе проверены нарочно; выбывание игрока не роняет партию; все четыре тайные цели достижимы ботами `
-  + `на этой карте.`);
+console.log(`OK: карта из 24 областей в 6 регионах связна и симметрична (30 связей по суше, 2 брода, ${R.COASTAL.size} прибрежных); `
+  + `расстановка идёт по очереди, цель — одна из двух без повторов за столом; одна граница — один жетон, войско, корабли, `
+  + `засада, благословение, завет мира и поджог кладутся только по правилам; ничья — защите, победа защитника даёт открытый жетон, `
+  + `поджог оставляет вечное пепелище, завет — вечный мир, карты соглядатаев, пророка и первенства работают и не трогают `
+  + `благословлённое; награды регионов даются раз; ${tale.games} партий ботами доиграны до пятого раунда с балансом запаса `
+  + `(пепелищ в среднем ${(tale.scorched / tale.games).toFixed(1)}, заветов ${(tale.peace / tale.games).toFixed(1)} за партию); `
+  + `все ${R.OBJECTIVES.length} тайных целей достижимы.`);

@@ -45,6 +45,31 @@ const browser = await chromium.launch({
 });
 
 const problems = [];
+
+/*
+  Расстановка и тайная цель — до первого хода: человек нажимает свободную
+  область и подтверждает, соперники от игры ходят сами; карточку с двумя
+  целями закрывает выбор первой.
+*/
+async function finishSetup(page) {
+  for (let i = 0; i < 160; i += 1) {
+    const ready = await page.evaluate(() => {
+      const board = window.KingdomsGame?.board;
+      if (!board?.view) return false;
+      document.querySelector('[data-objective-pick]')?.click();
+      if (board.view.phase === 'planning' && board.view.turn === board.you) return true;
+      if (board.view.phase === 'setup' && board.view.turn === board.you) {
+        const free = document.querySelector('[data-area].is-eligible');
+        if (free) { board.tapArea(free.dataset.area); document.querySelector('[data-confirm-ok]')?.click(); }
+      }
+      return false;
+    });
+    if (ready) return true;
+    await page.waitForTimeout(250);
+  }
+  return false;
+}
+
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
 /*
@@ -151,7 +176,7 @@ async function play(width, height) {
     chips: document.querySelectorAll('.kd-teach-chip').length,
     motion: getComputedStyle(document.querySelector('.kd-token.is-demo-travel')).animationName,
     spill: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    saved: localStorage.getItem('kd_campaign_v3'),
+    saved: localStorage.getItem('kd_campaign_v4'),
   }));
   need(teaching.step === '5 / 12' && teaching.chips === 6, 'показ руки или шага похода неполон');
   need(teaching.motion.includes('kd-demo-march'), 'жетон похода не анимирован');
@@ -166,15 +191,18 @@ async function play(width, height) {
   await page.locator('[data-count] button[data-value="2"]').click();
   await page.locator('[data-start]').click();
   await page.waitForSelector('[data-area]', { timeout: 10_000 });
+  need(await finishSetup(page), 'расстановка не дошла до первого хода человека');
 
   // ——— карта нарисована целиком ———
   const board = await page.evaluate(() => ({
     areas: document.querySelectorAll('[data-area]').length,
-    orders: document.querySelectorAll('[data-order]').length,
+    orders: document.querySelectorAll('[data-order]:not([hidden])').length,
+    cards: document.querySelectorAll('[data-card]:not([hidden])').length,
     regions: document.querySelectorAll('.kd-region').length,
   }));
   need(board.areas === 24, `на карте ${board.areas} областей вместо 24`);
-  need(board.orders === 8, `в панели ${board.orders} приказов вместо 8`);
+  need(board.orders >= 2 && board.orders <= 6, `в руке ${board.orders} видов жетонов — а их от двух до шести`);
+  need(board.cards >= 2, `в ленте ${board.cards} карт — соглядатаи и пророк должны быть видны`);
   need(board.regions === 6, `на карте ${board.regions} регионов вместо 6`);
   const ownership = await page.evaluate(() => {
     const owned = document.querySelector('.kd-area:not(.is-neutral)');
@@ -197,8 +225,8 @@ async function play(width, height) {
   });
   need(areaSize.w >= 40 && areaSize.h >= 40, `область на карте ${areaSize.w}×${areaSize.h} — меньше пальца`);
 
-  const attackKind = await page.evaluate(() => ['march1','march2','march3','ford2','feint']
-    .find((kind) => !document.querySelector(`[data-order="${kind}"]`)?.disabled));
+  const attackKind = await page.evaluate(() => ['march1', 'march2', 'march3', 'march4', 'march5', 'feint']
+    .find((kind) => { const b = document.querySelector(`[data-order="${kind}"]`); return b && !b.hidden && !b.disabled; }));
   need(Boolean(attackKind), 'в стартовой руке нет доступного боевого жетона');
   if (attackKind) await page.locator(`[data-order="${attackKind}"]`).click();
   await page.waitForTimeout(150);
@@ -220,8 +248,9 @@ async function play(width, height) {
         return bar && getComputedStyle(bar).display !== 'none';
       });
       need(!stillOpen, 'панель подтверждения осталась открытой после подтверждения приказа');
-      const token = await page.evaluate(() => document.querySelector('.kd-token-face')?.getBoundingClientRect().width || 0);
-      need(token >= 26, 'жетон войск слишком мал на телефоне');
+      const token = await page.evaluate(() => [...document.querySelectorAll('.kd-token.is-mine .kd-token-face')]
+        .map((one) => Math.round(one.getBoundingClientRect().width)));
+      need(token.length && Math.max(...token) >= 26, `жетон войск слишком мал на телефоне: ${token.join(', ')}`);
     }
   }
 
@@ -311,7 +340,7 @@ async function play(width, height) {
 
   // ——— описания приказов не сжаты в узкую полосу ———
   const readable = await page.evaluate(() => {
-    const text = document.querySelector('.kd-order-text');
+    const text = document.querySelector('.kd-order-btn:not([hidden]) .kd-order-text');
     if (!text) return null;
     const box = text.getBoundingClientRect();
     return { w: Math.round(box.width), lines: getComputedStyle(text).webkitLineClamp };

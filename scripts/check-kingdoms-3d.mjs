@@ -60,6 +60,31 @@ const browser = await chromium.launch({
 });
 
 const problems = [];
+
+/*
+  Расстановка и тайная цель — до первого хода: человек нажимает свободную
+  область и подтверждает, соперники от игры ходят сами; карточку с двумя
+  целями закрывает выбор первой.
+*/
+async function finishSetup(page) {
+  for (let i = 0; i < 160; i += 1) {
+    const ready = await page.evaluate(() => {
+      const board = window.KingdomsGame?.board;
+      if (!board?.view) return false;
+      document.querySelector('[data-objective-pick]')?.click();
+      if (board.view.phase === 'planning' && board.view.turn === board.you) return true;
+      if (board.view.phase === 'setup' && board.view.turn === board.you) {
+        const free = document.querySelector('[data-area].is-eligible');
+        if (free) { board.tapArea(free.dataset.area); document.querySelector('[data-confirm-ok]')?.click(); }
+      }
+      return false;
+    });
+    if (ready) return true;
+    await page.waitForTimeout(250);
+  }
+  return false;
+}
+
 const need = (condition, message) => { if (!condition) problems.push(message); };
 
 function telegramStub() {
@@ -110,6 +135,8 @@ async function openGame(width, height) {
     const view = window.KingdomsGame?.board?.view3d;
     return Boolean(view && view.info().frames > 0 && document.querySelector('.kd-map-wrap.kd-3d'));
   }, null, { timeout: 60_000 }).then(() => true, () => false);
+  const planned = up && await finishSetup(page);
+  if (up && !planned) errors.push('расстановка не дошла до первого хода человека');
   return { context, page, errors, up };
 }
 
@@ -179,7 +206,7 @@ async function play(width, height) {
   const hand = await page.evaluate(() => {
     const panel = document.querySelector('.kd-panel').getBoundingClientRect();
     const strip = document.querySelector('.kd-orders');
-    const tops = new Set([...strip.querySelectorAll('.kd-order-btn')].map((button) => Math.round(button.getBoundingClientRect().top)));
+    const tops = new Set([...strip.querySelectorAll('.kd-order-btn:not([hidden])')].map((button) => Math.round(button.getBoundingClientRect().top)));
     return {
       wide: panel.width / window.innerWidth,
       bottomGap: window.innerHeight - panel.bottom,
@@ -193,8 +220,8 @@ async function play(width, height) {
   need(hand.swipe === 'auto' || hand.swipe === 'scroll', `${tag}: ленту жетонов нельзя листать вбок (overflow-x: ${hand.swipe})`);
 
   // ——— нажатие по земле выбирает область под пальцем ———
-  const attackKind = await page.evaluate(() => ['march1', 'march2', 'march3', 'ford2', 'feint']
-    .find((kind) => !document.querySelector(`[data-order="${kind}"]`)?.disabled));
+  const attackKind = await page.evaluate(() => ['march1', 'march2', 'march3', 'march4', 'march5']
+    .find((kind) => { const b = document.querySelector(`[data-order="${kind}"]`); return b && !b.hidden && !b.disabled; }));
   need(Boolean(attackKind), `${tag}: в стартовой руке нет доступного боевого жетона`);
   if (attackKind) {
     await page.locator(`[data-order="${attackKind}"]`).click();

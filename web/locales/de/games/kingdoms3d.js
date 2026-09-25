@@ -1221,7 +1221,7 @@
     /*
       Жетон приказа — объёмная фишка, как в настольной игре: толстая монета с
       ободком цвета царства. Сверху — рисунок приказа, у закрытого чужого
-      приказа — рубашка. Поход и переправа лежат на полпути между областями,
+      приказа — рубашка. Войско на границе лежит на полпути между областями, корабли — у воды,
       а над ними дугой идёт стрела от источника к цели: направление удара
       видно сразу, без чтения подписей.
 
@@ -1231,8 +1231,8 @@
       SVG-жетон остаётся поверх как прозрачная зона нажатия (разведка
       выбирает жетон нажатием) и носит бирку силы.
     */
-    const ART = { closed: 'closed', feint: 'feint', ford2: 'ford', fortify: 'fortify', guard: 'guard', reveal: 'reveal', scout: 'scout' };
-    const artFile = (kind) => `web/assets/kingdoms/orders/${kind.startsWith('march') ? 'march' : ART[kind] || 'closed'}.webp`;
+    const ART = { march: 'march', navy: 'navy', ambush: 'ambush', bless: 'blessing', peace: 'peace', raid: 'raid', feint: 'feint' };
+    const artFile = (kind) => `web/assets/kingdoms/orders/${ART[(kind.match(/^[a-z]+/) || ['closed'])[0]] || 'closed'}.webp`;
     const images = new Map();
     const artImage = (file) => {
       if (!images.has(file)) {
@@ -1287,8 +1287,9 @@
     const tokenRoot = new THREE.Group();
     scene.add(tokenRoot);
     const tokens = new Map();
-    const arrowFor = (fromId, toId, color) => {
-      const a = pos.get(fromId); const b = pos.get(toId);
+    /** Дуга-стрела от точки a к области toId: из соседней области или с воды. */
+    const arrowFor = (from, toId, color) => {
+      const a = typeof from === 'string' ? pos.get(from) : from; const b = pos.get(toId);
       if (!a || !b) return null;
       const ha = Math.max(heightAt(a.x, a.y), SEA_LEVEL) + 10;
       const hb = Math.max(heightAt(b.x, b.y), SEA_LEVEL) + 10;
@@ -1347,7 +1348,8 @@
           const ground = Math.max(heightAt(t.wx, t.wy), SEA_LEVEL);
           holder.position.set(t.wx - CX, ground + 4, t.wy - CY);
           tokenRoot.add(holder);
-          const arrow = t.area && t.to ? arrowFor(t.area, t.to, t.color) : null;
+          // Войско — дуга из соседней области; корабли — с воды, от места жетона к цели.
+          const arrow = t.to ? arrowFor(t.area || { x: t.wx, y: t.wy }, t.to, t.color) : null;
           if (arrow) tokenRoot.add(arrow);
           entry = { holder, coin, side, top, bottom, arrow, shape, kind: null, flip: null, x: t.wx, y: t.wy };
           tokens.set(t.id, entry);
@@ -1780,22 +1782,28 @@
         const cls = group.classList;
         const glow = cls.contains('is-resolving') ? 'resolving' : cls.contains('is-selected') ? 'selected'
           : cls.contains('is-demo-focus') ? 'focus' : cls.contains('is-eligible') ? 'eligible' : 'none';
-        const fortify = group.querySelectorAll('[data-fortify] circle').length;
-        states.set(id, { owner, neutral: cls.contains('is-neutral'), mine: cls.contains('is-mine'), glow, fortify });
+        // Открытые жетоны контроля — стены вокруг поселения: каждая победа защитника прибавляет звено.
+        const fortify = Number(group.dataset.veterans || 0);
+        const special = group.dataset.special || '';
+        states.set(id, { owner, neutral: cls.contains('is-neutral'), mine: cls.contains('is-mine'), glow, fortify, special });
       }
       return states;
     };
     const applyAreaState = () => {
       const states = readAreaState();
       lastStates = states;
-      const signature = [...states].map(([id, s]) => `${id}:${s.owner}:${s.neutral}:${s.mine}:${s.glow}:${s.fortify}`).join('|');
+      const signature = [...states].map(([id, s]) => `${id}:${s.owner}:${s.neutral}:${s.mine}:${s.glow}:${s.fortify}:${s.special}`).join('|');
       if (signature === lastSignature) return false;
       lastSignature = signature;
       const perArea = world.sites.map((site) => {
         const s = states.get(site.id) || { owner: '', neutral: true, glow: 'none' };
         const ownerColor = new THREE.Color(s.neutral || !s.owner ? '#d8d2c4' : s.owner);
-        const tint = ownerColor.clone().convertSRGBToLinear();
-        return { s, ownerColor, tint, strength: s.neutral ? 0 : s.mine ? 0.5 : 0.42, glow: GLOW[s.glow] };
+        let tint = ownerColor.clone().convertSRGBToLinear();
+        let strength = s.neutral ? 0 : s.mine ? 0.5 : 0.42;
+        // Пепелище — выжженная земля, мир — светлая, будто под покровом.
+        if (s.special === 'scorched') { tint = new THREE.Color('#2a2420').convertSRGBToLinear(); strength = 0.72; }
+        if (s.special === 'peace') { tint = tint.clone().lerp(new THREE.Color(1, 0.97, 0.88), 0.6); strength = Math.max(strength, 0.4); }
+        return { s, ownerColor, tint, strength, glow: GLOW[s.glow] };
       });
       for (let k = 0; k < vertexCount; k += 1) {
         const entry = perArea[areaOfVertex[k]];

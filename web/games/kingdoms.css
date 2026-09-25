@@ -648,3 +648,31 @@ html.kd-stage-on .rules-help { top: calc(max(env(safe-area-inset-top, 0px), var(
 .kd-map-wrap.kd-3d .kd-token .kd-token-shadow, .kd-map-wrap.kd-3d .kd-token > image { opacity: 0; }
 .kd-map-wrap.kd-3d .kd-token .kd-token-face { fill-opacity: 0; stroke-opacity: 0; }
 .kd-map-wrap.kd-3d .kd-token.is-scoutable .kd-token-face { stroke-opacity: .9; stroke: #f1d291; stroke-width: 3; }
+
+/* ——— правила «Битвы за Рокуган» ——— */
+/* Карты в ленте руки — прямоугольник, а не фишка: сразу видно, что это не жетон. */
+.kd-card-btn .kd-order-icon { border-radius: 8px !important; }
+.kd-wrap.kd-stage .kd-card-btn .kd-order-icon {
+  border-radius: 9px; background: linear-gradient(160deg, #f6ecd2, #d6bd8a);
+  box-shadow: 0 0 0 2px #6d5230, 0 4px 0 1px #4a3417, 0 8px 12px #000a; transform: perspective(160px) rotateX(10deg);
+}
+.kd-card-btn { background: #ffffff08; }
+/* Особый жетон области: мир, пепелище, жертвенник, бонус. */
+.kd-area-special circle { fill: #f6ecd2; stroke: #6d5230; stroke-width: 2; }
+.kd-area-special text { fill: #3b2a14; font: bold 10px system-ui, sans-serif; }
+.kd-area.is-scorched .kd-area-fill { fill: #1f1a17; fill-opacity: .72; }
+.kd-area.is-scorched .kd-area-art { filter: grayscale(.9) brightness(.55) sepia(.3); }
+.kd-area.is-peace .kd-area-fill { fill: #fff6dc; fill-opacity: .35; }
+.kd-area.is-peace .kd-area-ring { stroke: #fff3cf; stroke-dasharray: 6 5; }
+/* Благословение лежит открыто поверх своего жетона — чуть меньше и светится. */
+.kd-token.is-bless { transform-box: fill-box; }
+.kd-token.is-bless .kd-token-face { stroke: #f7d887; stroke-width: 4; }
+/* Тайная цель — две карточки на выбор. */
+.kd-objectives { display: grid; gap: 10px; margin: 12px 0 4px; }
+.kd-objective-card {
+  display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border-radius: 14px;
+  border: 1px solid #c3a26570; background: #ffffff0f; color: inherit; font: inherit; cursor: pointer;
+}
+.kd-objective-card b { font-size: 15px; color: #f1d291; }
+.kd-objective-card span { font-size: 13px; line-height: 1.4; opacity: .85; }
+.kd-objective-card:active { transform: scale(.98); }

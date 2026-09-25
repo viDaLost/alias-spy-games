@@ -50,7 +50,7 @@ const ACTION_WINDOW_LIMIT = 10;
 const ROOM_ACTIONS = new Set([
   'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'nextRound', 'leave',
 ]);
-const GAME_ACTIONS = new Set(['placeOrder', 'skipTurn']);
+const GAME_ACTIONS = new Set(['placeOrder', 'placeControl', 'chooseObjective', 'useCard', 'skipTurn']);
 
 export default {
   async fetch(request, env) {

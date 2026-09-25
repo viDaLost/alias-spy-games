@@ -58,14 +58,21 @@
   const ORDER_ART = {
     'closed': 'web/assets/kingdoms/orders/closed.webp',
     'feint': 'web/assets/kingdoms/orders/feint.webp',
-    'ford': 'web/assets/kingdoms/orders/ford.webp',
+    'march': 'web/assets/kingdoms/orders/march.webp',
+    'navy': 'web/assets/kingdoms/orders/navy.webp',
+    'ambush': 'web/assets/kingdoms/orders/ambush.webp',
+    'blessing': 'web/assets/kingdoms/orders/blessing.webp',
+    'peace': 'web/assets/kingdoms/orders/peace.webp',
+    'raid': 'web/assets/kingdoms/orders/raid.webp',
+    'scout': 'web/assets/kingdoms/orders/scout.webp',
+    'prophet': 'web/assets/kingdoms/orders/prophet.webp',
+    'herald': 'web/assets/kingdoms/orders/herald.webp',
     'fortify': 'web/assets/kingdoms/orders/fortify.webp',
     'guard': 'web/assets/kingdoms/orders/guard.webp',
-    'march': 'web/assets/kingdoms/orders/march.webp',
-    'reveal': 'web/assets/kingdoms/orders/reveal.webp',
-    'scout': 'web/assets/kingdoms/orders/scout.webp',
   };
-  const SAVE_KEY = 'kd_campaign_v3';
+  const ART_OF_FAMILY = { army: 'march', navy: 'navy', ambush: 'ambush', bless: 'blessing', peace: 'peace', raid: 'raid', blank: 'feint' };
+  // Правила «Битвы за Рокуган» — новый формат партии; старые сохранения к нему не подходят.
+  const SAVE_KEY = 'kd_campaign_v4';
   // Вид карты: объёмная диорама или плоская карта. Выбор человека помнится.
   const VIEW_KEY = 'kingdoms_view_v1';
 
@@ -148,7 +155,8 @@
   const EMBLEM_FILES = { anchor: 'tarsis', peak: 'or', ford: 'yor', sheaf: 'prestol', tent: 'kedem' };
   const emblemHTML = (key, size = 22) => `<img class="kd-emblem" src="${EMBLEM_ART[EMBLEM_FILES[key] || 'tarsis']}" width="${size}" height="${size}" alt="">`;
   const TERRAIN_NAMES = { plains: 'равнина', mountains: 'горы', desert: 'пустыня', coast: 'побережье' };
-  const orderArt = (kind) => ORDER_ART[kind.startsWith('march') ? 'march' : kind === 'ford2' ? 'ford' : kind];
+  const orderArt = (kind) => ORDER_ART[ORDER_ART[kind] ? kind : ART_OF_FAMILY[window.KingdomsRules?.familyOf(kind)] || 'closed'];
+  const SPECIAL_BADGE = { peace: 'peace', scorched: 'raid', shrine: 'blessing', honor2: null, defense2: 'guard' };
   const orderIconHTML = (kind) => `<img class="kd-order-icon" src="${orderArt(kind)}" width="40" height="40" alt="">`;
 
   const plural = (count, one, few, many) => {
@@ -217,7 +225,6 @@
       this.view = null;
       this.you = 0;
       this.pending = null;      // { kind } — приказ выбран, ждём область/связь
-      this.scoutPicked = [];    // id приказов, отмеченных для разведки
       this.detailArea = null;
       this.skipAnim = false;
       this.revealSteps = [];
@@ -236,8 +243,9 @@
           <section class="kd-card kd-setup">
             <div class="kd-hero"><span>СТРАТЕГИЯ ТАЙНЫХ ПРИКАЗОВ</span><h2>Царства</h2><p>Пять престолов. Одна история — ваша.</p></div>
             <p>Пять царств спорят за двадцать четыре области условного мира, вдохновлённого
-              библейскими землями. Партия — пять раундов: каждый вы тайно размещаете приказы,
-              а затем они раскрываются и разрешаются разом.</p>
+              библейскими землями, — по правилам «Битвы за Рокуган». Вы расставляете стартовые земли,
+              выбираете тайную цель, а пять раундов кладёте рубашкой вверх войска, корабли, засады,
+              благословения, заветы мира и поджоги — и все они открываются разом.</p>
             <div class="kd-modes">
               <button type="button" data-mode="solo">Против компьютера
                 <small>один за столом, остальные — цари от игры</small></button>
@@ -320,36 +328,17 @@
 
     saveCampaign() {
       if (this.net || !this.state || this.tutorial) return;
-      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 3, state: this.state })); } catch { /* Хранилище может быть недоступно. */ }
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 4, state: this.state })); } catch { /* Хранилище может быть недоступно. */ }
     }
 
     loadCampaign() {
       try {
-        const saved = JSON.parse(safeGet(SAVE_KEY) || safeGet('kd_campaign_v2'));
+        const saved = JSON.parse(safeGet(SAVE_KEY));
         const s = saved?.state;
-        if (![2, 3].includes(saved?.version) || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
-          || !['planning', 'reveal', 'results', 'over'].includes(s.phase) || s.round < 1 || s.round > this.R.ROUNDS
+        if (saved?.version !== 4 || !s || !Array.isArray(s.players) || s.players.length < 2 || s.players.length > 5
+          || !['setup', 'planning', 'reveal', 'results', 'over'].includes(s.phase) || s.round < 1 || s.round > this.R.ROUNDS
           || !this.R.AREAS.every(a => s.areas?.[a.id]) || !Array.isArray(s.orders) || !Array.isArray(s.turnOrder)) return null;
-        if (saved.version === 2) {
-          // Старые партии не хранили мешок. Сохраняем поле и уже размещённые
-          // приказы; остаток выдаём из нового мешка, исключив жетоны этого раунда.
-          for (const area of this.R.AREAS) s.areas[area.id].veterans = 0;
-          for (const player of s.players) {
-            player.supply = Object.entries(this.R.TOKEN_SUPPLY).flatMap(([kind, count]) => Array(count).fill(kind));
-            const placed = s.orders.filter(o => o.owner === player.id);
-            for (const order of placed) {
-              if (order.kind === 'feint') continue;
-              const at = player.supply.indexOf(order.kind);
-              if (at >= 0) player.supply.splice(at, 1);
-            }
-            player.hand = placed.some(o => o.kind === 'feint') ? [] : ['feint'];
-            while (player.hand.length < Math.max(0, this.R.HAND_SIZE - placed.length) && player.supply.length) {
-              const at = Math.floor(Math.random() * player.supply.length);
-              player.hand.push(player.supply.splice(at, 1)[0]);
-            }
-          }
-        }
-        if (s.players.some(p => !Array.isArray(p.hand) || !Array.isArray(p.supply))) return null;
+        if (s.players.some(p => !Array.isArray(p.hand) || !Array.isArray(p.supply) || !p.cards)) return null;
         s.random = Math.random;
         this.E.visibleStateFor(s, 0);
         return s;
@@ -478,12 +467,24 @@
         this.root.querySelector('[data-orders]').insertAdjacentHTML('beforeend', `
           <button type="button" class="kd-order-btn" data-order="${order.id}">
             ${orderIconHTML(order.id)}
-            <span class="kd-order-title">${order.title}${order.force ? ` ${order.force}` : ''}</span>
+            <span class="kd-order-title">${order.title}${order.force ? ` ${order.family === 'bless' ? '+' : ''}${order.force}` : ''}</span>
             <span class="kd-order-text">${order.text}</span>
+          </button>`);
+      }
+      // Карты — в той же ленте, после жетонов: соглядатаи, пророк и право первенства.
+      for (const card of R.CARDS) {
+        this.root.querySelector('[data-orders]').insertAdjacentHTML('beforeend', `
+          <button type="button" class="kd-order-btn kd-card-btn" data-card="${card.id}">
+            ${orderIconHTML(card.id)}
+            <span class="kd-order-title">${card.title}</span>
+            <span class="kd-order-text">${card.text}</span>
           </button>`);
       }
       this.root.querySelectorAll('[data-order]').forEach((button) => {
         button.addEventListener('click', () => this.selectOrder(button.dataset.order));
+      });
+      this.root.querySelectorAll('[data-card]').forEach((button) => {
+        button.addEventListener('click', () => this.selectCard(button.dataset.card));
       });
       this.root.querySelector('[data-confirm-ok]').addEventListener('click', () => this.confirmPending());
       this.root.querySelector('[data-confirm-cancel]').addEventListener('click', () => this.cancelPending());
@@ -651,6 +652,7 @@
             <text class="kd-area-value" x="15" y="0">${area.value}</text>
             ${area.capitalOf ? '<g class="kd-area-crown" transform="translate(0,-32)"><path d="M-8 0 -5-8 0-2 5-8 8 0Z" /></g>' : ''}
             <g class="kd-area-fortify" data-fortify transform="translate(-12,15)"></g>
+            <g class="kd-area-special" data-special transform="translate(-36,-26)"></g>
             <g class="kd-area-veterans" data-veterans transform="translate(21,18)"></g>
             <text class="kd-area-name" y="34">${label}</text>
           </g>
@@ -803,6 +805,7 @@
       this.renderOrders();
       this.renderStatus();
       this.renderConfirm();
+      if (this.view.phase === 'setup' || this.view.phase === 'planning') this.offerObjective();
       this.view3d?.sync();
       this.syncInsets();
     }
@@ -810,34 +813,37 @@
     renderHeader() {
       const v = this.view;
       const R = this.R;
-      this.root.querySelector('[data-round]').textContent = `Раунд ${v.round} из ${R.ROUNDS}`;
+      this.root.querySelector('[data-round]').textContent = v.phase === 'setup' ? 'Расстановка' : `Раунд ${v.round} из ${R.ROUNDS}`;
       const turnBox = this.root.querySelector('[data-turn]');
-      if (v.phase === 'planning') {
+      if (v.phase === 'planning' || v.phase === 'setup') {
         turnBox.textContent = v.turn === v.you ? 'Ваш ход' : `Ходит ${nameOf(v, v.turn)}`;
       } else if (v.phase === 'reveal' || v.phase === 'results') {
-        turnBox.textContent = 'Раскрытие приказов';
+        turnBox.textContent = 'Исполнение';
       } else {
         turnBox.textContent = '';
       }
       const me = v.players[v.you];
       const objective = R.objectiveOf(me?.objectiveId);
-      this.root.querySelector('[data-objective]').textContent = objective
-        ? `Цель: ${objective.title} (${objective.points})` : 'Режим наблюдателя';
+      this.root.querySelector('[data-objective]').textContent = !me ? 'Режим наблюдателя'
+        : objective ? `Цель: ${objective.title} (${objective.points})` : 'Цель: выберите одну из двух';
     }
 
     renderStandings() {
       const v = this.view;
+      const R = this.R;
       this.root.querySelector('[data-standings]').innerHTML = v.players.map(p => {
-        const k = this.R.kingdomOf(p.kingdomId);
-        const areas = this.R.AREAS.filter(a => v.areas[a.id].owner === p.id);
-        const points = areas.reduce((sum, a) => sum + a.value + (v.areas[a.id].veterans || 0), 0) + this.R.REGIONS.filter(r =>
-          this.R.AREAS.filter(a => a.region === r.id).every(a => v.areas[a.id].owner === p.id)).length * this.R.REGION_BONUS;
+        const k = R.kingdomOf(p.kingdomId);
+        const areas = R.AREAS.filter(a => v.areas[a.id].owner === p.id);
+        const points = areas.reduce((sum, a) => sum + this.E.honorOf(v, a.id) + (v.areas[a.id].veterans || 0), 0)
+          + R.REGION_IDS.filter(r => this.E.regionController(v, r) === p.id).length * R.REGION_BONUS;
         return `<div class="kd-standing ${p.id === v.turn ? 'is-turn' : ''}" style="--owner:${k.color}">
-          ${emblemHTML(k.emblem, 36)}<span><b>${p.id === v.you ? 'Вы' : escapeHTML(k.name)}</b><small>${areas.length} обл. · ${points} очк.${p.eliminated ? ' · наблюдатель' : ''}</small></span></div>`;
+          ${emblemHTML(k.emblem, 36)}<span><b>${p.id === v.you ? 'Вы' : escapeHTML(k.name)}</b><small>${areas.length} обл. · ${points} очк.${p.ronin && v.phase !== 'setup' ? ' · изгнанник' : ''}</small></span></div>`;
       }).join('');
       const intel = v.scoutIntel.filter(i => i.atRound === v.round);
-      this.root.querySelector('[data-intel]').innerHTML = intel.length ? '<b>Донесения разведки</b>' + intel.map(i =>
-        `<p>${escapeHTML(this.R.areaOf(i.area)?.name || '')}: ${escapeHTML(this.R.orderOf(i.kind).title)}${i.to ? ' → ' + escapeHTML(this.R.areaOf(i.to).name) : ''}</p>`).join('') : '';
+      this.root.querySelector('[data-intel]').innerHTML = intel.length ? '<b>Донесения соглядатаев</b>' + intel.map(i => {
+        const place = this.R.areaOf(i.to || i.area)?.name || '';
+        return `<p>${escapeHTML(nameOf(v, i.owner))}: ${escapeHTML(this.R.orderOf(i.kind).title)}${this.R.orderOf(i.kind).force ? ' ' + this.R.orderOf(i.kind).force : ''} → ${escapeHTML(place)}</p>`;
+      }).join('') : '';
     }
 
     kingdomColor(seat) {
@@ -858,67 +864,133 @@
         const emblem = group.querySelector('[data-owner-emblem]');
         emblem.style.display = cell.owner === null ? 'none' : '';
         if (cell.owner !== null) emblem.setAttribute('href', EMBLEM_ART[v.players[cell.owner].kingdomId]);
-        group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'нейтральная' : nameOf(v, cell.owner)}, ценность ${area.value}`);
+        const special = cell.special ? this.R.SPECIALS[cell.special] : null;
+        group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'ничья' : nameOf(v, cell.owner)}, ценность ${area.value}${special ? `, ${special.title}` : ''}`);
         group.classList.toggle('is-mine', cell.owner === v.you);
         group.classList.toggle('is-neutral', cell.owner === null);
         group.classList.toggle('is-eligible', eligible.has(area.id));
-        group.classList.toggle('is-selected', this.pending?.area === area.id);
-        const fortifyBox = group.querySelector('[data-fortify]');
-        fortifyBox.innerHTML = Array.from({ length: cell.fortify }, (_, i) => `<circle cx="${i * 9}" cy="0" r="3"></circle>`).join('');
+        group.classList.toggle('is-selected', Boolean(this.pending) && (this.pending.from === area.id || this.pending.area === area.id || this.pending.to === area.id || this.pending.control === area.id));
+        group.classList.toggle('is-peace', cell.special === 'peace');
+        group.classList.toggle('is-scorched', cell.special === 'scorched');
+        group.dataset.veterans = String(cell.veterans || 0);
+        group.dataset.special = cell.special || '';
+        group.querySelector('[data-fortify]').innerHTML = '';
+        const badge = group.querySelector('[data-special]');
+        const art = special ? SPECIAL_BADGE[cell.special] : null;
+        badge.innerHTML = special ? `<circle r="12"></circle>${art ? `<image href="${ORDER_ART[art]}" x="-10" y="-10" width="20" height="20"/>` : '<text text-anchor="middle" y="4">+2</text>'}<title>${escapeHTML(special.title)}</title>` : '';
         group.querySelector('[data-veterans]').innerHTML = cell.veterans
-          ? `<rect x="-16" y="-10" width="32" height="20" rx="7"/><text text-anchor="middle" y="5">⚔ ${cell.veterans}</text>` : '';
+          ? `<rect x="-16" y="-10" width="32" height="20" rx="7"/><text text-anchor="middle" y="5">⚑ ${cell.veterans}</text>` : '';
       }
     }
 
     /*
-      Какие области сейчас можно нажать. Пусто, если приказ ещё не выбран —
-      тогда нажатие на любую область просто открывает её карточку.
+      ——— законность хода на экране ———
+
+      Экран не выдумывает правил: он строит из вида партии такое же
+      состояние, какое видит движок, и спрашивает движок. По сети у клиента
+      нет полной партии — но validatePlacement и validateCard смотрят только
+      на то, что в виде и так есть: хозяев, особые жетоны, места жетонов на
+      карте, свою руку и свои карты.
+    */
+    probe() {
+      const v = this.view;
+      const scoutIntel = [];
+      scoutIntel[v.you] = v.scoutIntel;
+      return {
+        phase: v.phase, round: v.round, turnOrder: [v.turn], turnPointer: 0, herald: v.herald,
+        areas: v.areas, orders: v.orders, scoutIntel,
+        players: v.players.map((p) => ({ ...p, hand: p.id === v.you ? v.hand : [], placed: p.id === v.you ? v.ordersPlaced : 0,
+          cards: p.cards || {} })),
+      };
+    }
+
+    /** Все законные места для жетона kind — каждая форма: центр, граница, вода. */
+    legalPlacements(kind) {
+      const v = this.view;
+      if (v.phase !== 'planning' || v.turn !== v.you) return [];
+      const probe = this.probe();
+      const out = [];
+      const test = (placement) => { if (this.E.validatePlacement(probe, v.you, placement).ok) out.push(placement); };
+      const family = this.R.familyOf(kind);
+      if (family === 'bless') {
+        for (const order of v.orders) if (order.owner === v.you) test({ kind, target: order.id });
+        return out;
+      }
+      for (const area of this.R.AREAS) {
+        test({ kind, area: area.id });
+        for (const to of this.R.neighborsOf(area.id)) test({ kind, area: area.id, to });
+        if (this.R.isCoastal(area.id)) test({ kind, to: area.id });
+      }
+      return out;
+    }
+
+    /*
+      Какие области сейчас можно нажать. Пусто, если жетон не выбран —
+      тогда нажатие на область просто открывает её карточку. На расстановке —
+      все свободные области, пока ваш ход.
     */
     eligibleAreas() {
       const set = new Set();
-      if (!this.pending || this.pending.kind === 'scout') return set;
-      const order = this.R.orderOf(this.pending.kind);
       const v = this.view;
-      if (order.slot === 'internal') {
-        for (const area of this.R.AREAS) {
-          if (v.areas[area.id].owner !== v.you) continue;
-          if (this.hasOwnSlotOrder(area.id, 'internal')) continue;
-          if (order.id === 'fortify' && v.areas[area.id].fortify >= this.R.fortifyCapFor(v.players[v.you].kingdomId, area)) continue;
-          set.add(area.id);
-        }
+      if (v.phase === 'setup') {
+        if (v.turn === v.you) for (const area of this.R.AREAS) if (this.E.validateControl(this.probeSetup(), v.you, area.id).ok) set.add(area.id);
+        return set;
       }
-      if (order.slot === 'outgoing') {
-        for (const key of this.eligibleEdgeKeys()) {
-          const [a, b] = key.split('|');
-          if (!this.pending.from) { set.add(a); set.add(b); }
-          else if (a === this.pending.from) set.add(b);
-          else if (b === this.pending.from) set.add(a);
+      if (!this.pending?.kind || this.R.familyOf(this.pending.kind) === 'bless') return set;
+      for (const one of this.legalPlacements(this.pending.kind)) {
+        if (this.pending.from) {
+          if (one.area === this.pending.from && !one.to) set.add(one.area);
+          if (one.area === this.pending.from && one.to) set.add(one.to);
+        } else {
+          if (one.area) set.add(one.area);
+          if (one.to) set.add(one.to);
         }
       }
       return set;
     }
 
-    hasOwnSlotOrder(areaId, slot) {
-      return this.view.orders.some((one) => one.owner === this.view.you && one.area === areaId
-        && this.R.orderOf(one.kind).slot === slot && one.kind);
+    probeSetup() {
+      const v = this.view;
+      return { phase: v.phase, turnOrder: [v.turn], turnPointer: 0, areas: v.areas,
+        players: v.players.map((p) => ({ ...p })) };
     }
 
     eligibleEdgeKeys() {
       const set = new Set();
-      if (!this.pending || this.pending.kind === 'scout') return set;
-      const order = this.R.orderOf(this.pending.kind);
-      if (order.slot !== 'outgoing') return set;
-      const v = this.view;
-      for (const edge of this.R.EDGES) {
-        if (edge.type !== order.edge) continue;
-        const fromMine = v.areas[edge.a].owner === v.you && v.areas[edge.b].owner !== v.you;
-        const toMine = v.areas[edge.b].owner === v.you && v.areas[edge.a].owner !== v.you;
-        if (!fromMine && !toMine) continue;
-        const sourceArea = fromMine ? edge.a : edge.b;
-        if (this.hasOwnSlotOrder(sourceArea, 'outgoing')) continue;
-        set.add(`${edge.a}|${edge.b}`);
+      if (!this.pending?.kind) return set;
+      for (const one of this.legalPlacements(this.pending.kind)) {
+        if (!one.area || !one.to) continue;
+        if (this.pending.from && one.area !== this.pending.from) continue;
+        set.add(one.area < one.to ? `${one.area}|${one.to}` : `${one.to}|${one.area}`);
       }
       return set;
+    }
+
+    /** Где на карте лежит жетон: на границе, у воды, в центре области или поверх другого жетона. */
+    tokenSpot(order, centerCount) {
+      if (order.target) {
+        const base = this.view.orders.find((one) => one.id === order.target);
+        const spot = base ? this.tokenSpot(base, new Map()) : null;
+        return spot ? { x: spot.x + 22, y: spot.y - 20 } : null;
+      }
+      if (order.area && order.to) {
+        const a = this.pos.get(order.area);
+        const b = this.pos.get(order.to);
+        return { x: a.x + (b.x - a.x) * 0.48, y: a.y + (b.y - a.y) * 0.48 };
+      }
+      if (!order.area && order.to) {
+        const p = this.pos.get(order.to);
+        const area = this.R.areaOf(order.to);
+        if (area.region === 'primorye' && area.role !== 'hub') return { x: p.x - 4, y: p.y - 58 };
+        return { x: p.x + (CENTER.x - p.x) * 0.3, y: p.y + (CENTER.y - p.y) * 0.3 };
+      }
+      if (order.area) {
+        const p = this.pos.get(order.area);
+        const at = centerCount.get(order.area) || 0;
+        centerCount.set(order.area, at + 1);
+        return { x: p.x + 39 - at * 24, y: p.y - 19 - (at % 2) * 14 };
+      }
+      return null;
     }
 
     renderTokens() {
@@ -927,32 +999,34 @@
       const eligibleEdges = this.eligibleEdgeKeys();
       this.root.querySelectorAll('[data-edge]').forEach((line) => {
         const key = line.dataset.a < line.dataset.b ? `${line.dataset.a}|${line.dataset.b}` : `${line.dataset.b}|${line.dataset.a}`;
-        line.classList.toggle('is-eligible', eligibleEdges.has(key) || eligibleEdges.has(`${line.dataset.a}|${line.dataset.b}`));
+        line.classList.toggle('is-eligible', eligibleEdges.has(key));
       });
-      box.innerHTML = v.orders.map((order) => {
-        const intel = v.scoutIntel.find(i => i.atRound === v.round && i.orderId === order.id);
+      const probe = this.probe();
+      const centerCount = new Map();
+      const pickMode = this.pending?.card || (this.pending?.kind && this.R.familyOf(this.pending.kind) === 'bless');
+      box.innerHTML = v.orders.map((original) => {
+        let order = original;
+        const intel = v.scoutIntel.find(i => i.orderId === order.id);
         if (!order.kind && intel) order = { ...order, kind: intel.kind };
         const known = Boolean(order.kind);
         const mine = order.owner === v.you;
         const color = this.kingdomColor(order.owner);
-        const scoutable = this.pending?.kind === 'scout' && !mine && !known;
-        const picked = this.scoutPicked.includes(order.id);
-        let x; let y;
-        if (order.to) {
-          const a = this.pos.get(order.area);
-          const b = this.pos.get(order.to);
-          x = a.x + (b.x - a.x) * 0.48;
-          y = a.y + (b.y - a.y) * 0.48;
-        } else if (order.area) {
-          const a = this.pos.get(order.area);
-          x = a.x + 39; y = a.y - 19;
-        } else return '';
+        const spot = this.tokenSpot(order, centerCount);
+        if (!spot) return '';
+        let pickable = false;
+        if (this.pending?.card) pickable = this.E.validateCard(probe, v.you, this.pending.card, order.id).ok;
+        else if (pickMode) pickable = this.E.validatePlacement(probe, v.you, { kind: this.pending.kind, target: order.id }).ok;
+        const picked = this.pending?.target === order.id;
         const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-22" y="-22" width="44" height="44"/>`;
-        const force = known && this.R.orderOf(order.kind).force ? `<g class="kd-token-strength"><circle cx="26" cy="-25" r="12"/><text x="26" y="-20" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text></g>` : '';
-        return `<g class="kd-token${mine ? ' is-mine' : ''}${scoutable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}"
-          data-token="${order.id}" data-wx="${x}" data-wy="${y}" data-kind="${known ? order.kind : ''}"
-          data-from="${order.area || ''}" data-to="${order.to || ''}" style="--owner:${color}" transform="translate(${x},${y})">
-          <circle class="kd-token-shadow" r="34"></circle><circle class="kd-token-face" r="30"></circle>${icon}${force}
+        const def = known ? this.R.orderOf(order.kind) : null;
+        let force = '';
+        if (def && def.family === 'bless') force = `+${def.force}`;
+        else if (def && this.R.COMBAT_FAMILIES.has(def.family)) force = String(this.E.forceOf(probe, order));
+        const badge = force ? `<g class="kd-token-strength"><circle cx="26" cy="-25" r="12"/><text x="26" y="-20" class="kd-token-force">${force}</text></g>` : '';
+        return `<g class="kd-token${mine ? ' is-mine' : ''}${pickable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}${order.target ? ' is-bless' : ''}"
+          data-token="${order.id}" data-wx="${spot.x}" data-wy="${spot.y}" data-kind="${known ? order.kind : ''}"
+          data-from="${order.area || ''}" data-to="${order.to || ''}" data-target="${order.target || ''}" style="--owner:${color}" transform="translate(${spot.x},${spot.y})">
+          <circle class="kd-token-shadow" r="34"></circle><circle class="kd-token-face" r="30"></circle>${icon}${badge}
         </g>`;
       }).join('');
       box.querySelectorAll('[data-token]').forEach((node) => {
@@ -963,44 +1037,84 @@
     renderOrders() {
       const v = this.view;
       this.root.querySelector('[data-skip-reveal]').hidden = !['reveal', 'results'].includes(v.phase);
-      const myTurn = v.phase === 'planning' && v.turn === v.you;
+      const planning = v.phase === 'planning' && v.turn === v.you;
+      const myTurn = (v.phase === 'planning' || v.phase === 'setup') && v.turn === v.you;
       this.root.querySelector('[data-pass]').disabled = !myTurn;
+      const canPlace = planning && v.ordersPlaced < v.ordersLimit && v.hand.length > 1;
       this.root.querySelectorAll('[data-order]').forEach((button) => {
         const kind = button.dataset.order;
         button.classList.toggle('is-active', this.pending?.kind === kind);
         const count = v.hand?.filter((one) => one === kind).length || 0;
         button.dataset.count = count;
-        button.disabled = !myTurn || v.ordersPlaced >= v.ordersLimit || !count;
-        if (kind === 'scout') button.disabled = button.disabled || !v.orders.some((one) => one.owner !== v.you && !one.kind
-          && !v.scoutIntel.some(i => i.atRound === v.round && i.orderId === one.id));
-        else if (!button.disabled) {
-          const definition = this.R.orderOf(kind);
-          button.disabled = !this.R.AREAS.some(a => {
-            if (v.areas[a.id].owner !== v.you || this.hasOwnSlotOrder(a.id, definition.slot)) return false;
-            if (definition.slot === 'internal') return kind !== 'fortify' || v.areas[a.id].fortify < this.R.fortifyCapFor(v.players[v.you].kingdomId, a);
-            return this.R.EDGES.some(e => e.type === definition.edge &&
-              ((e.a === a.id && v.areas[e.b].owner !== v.you) || (e.b === a.id && v.areas[e.a].owner !== v.you)));
-          });
-        }
+        button.hidden = count === 0;
+        button.disabled = !canPlace || !count || !this.legalPlacements(kind).length;
       });
-      this.root.querySelector('[data-orders-left]').textContent = myTurn
-        ? `Размещено ${v.ordersPlaced} из ${v.ordersLimit}. В руке ${v.hand.length} жетонов · в запасе ${v.supplyRemaining}. Один сохранится на следующий раунд.`
-        : `В руке ${v.hand?.length || 0} жетонов · в запасе ${v.supplyRemaining || 0}`;
+      const probe = this.probe();
+      const me = v.players[v.you];
+      this.root.querySelectorAll('[data-card]').forEach((button) => {
+        const card = button.dataset.card;
+        const count = card === 'herald' ? (v.herald === v.you ? 1 : 0) : (me?.cards?.[card] || 0);
+        button.dataset.count = count;
+        button.hidden = count === 0;
+        button.classList.toggle('is-active', this.pending?.card === card);
+        button.disabled = !planning || !count || !v.orders.some((order) => this.E.validateCard(probe, v.you, card, order.id).ok);
+      });
+      const left = this.root.querySelector('[data-orders-left]');
+      if (v.phase === 'setup') {
+        left.textContent = me ? `Расстановка: у вас ещё ${me.setupLeft} ${plural(me.setupLeft, 'жетон', 'жетона', 'жетонов')} контроля.` : '';
+      } else {
+        left.textContent = planning
+          ? `Размещено ${v.ordersPlaced} из ${v.ordersLimit}. В руке ${v.hand.length} · в запасе ${v.supplyRemaining}. Один жетон останется за ширмой.`
+          : `В руке ${v.hand?.length || 0} · в запасе ${v.supplyRemaining || 0}`;
+      }
     }
 
     renderStatus() {
       const v = this.view;
       const box = this.root.querySelector('[data-status]');
+      if (v.phase === 'setup') {
+        box.textContent = v.turn === v.you ? 'Расстановка: нажмите свободную область, чтобы поставить туда жетон контроля.'
+          : `Землю выбирает ${nameOf(v, v.turn)}…`;
+        return;
+      }
       if (v.phase !== 'planning') { box.textContent = ''; return; }
       if (v.turn !== v.you) { box.textContent = `Ходит ${nameOf(v, v.turn)}…`; return; }
-      if (!this.pending) { box.textContent = 'Выберите приказ, затем область или связь на карте.'; return; }
-      const order = this.R.orderOf(this.pending.kind);
-      if (order.slot === 'internal') box.textContent = 'Нажмите свою область, подсвеченную на карте.';
-      else if (order.slot === 'outgoing') box.textContent = this.pending.from ? 'Выберите подсвеченную цель похода.' : 'Выберите свою область, затем цель. Можно нажать на дорогу.';
-      else if (order.id === 'scout') {
-        const limit = v.players[v.you].kingdomId === 'kedem' ? 2 : 1;
-        box.textContent = `Нажмите закрытый чужой приказ на карте (можно выбрать до ${limit}).`;
+      if (!this.pending) { box.textContent = 'Выберите жетон или карту, затем место на карте.'; return; }
+      if (this.pending.card) {
+        box.textContent = this.pending.card === 'scout' ? 'Нажмите чужой закрытый жетон — соглядатаи посмотрят его.'
+          : this.pending.card === 'prophet' ? 'Нажмите чужой закрытый жетон — пророк откроет его всем и сбросит.'
+            : 'Нажмите закрытый жетон — он вернётся в запас хозяина.';
+        return;
       }
+      const family = this.R.familyOf(this.pending.kind);
+      const text = {
+        army: this.pending.from ? 'Нажмите соседнюю цель для атаки — или подтвердите оборону этой области.' : 'Нажмите свою область: оборона, а потом, если нужно, соседнюю цель для атаки.',
+        blank: 'Отвлекающий манёвр кладётся как любой жетон: на границу, к воде или в центр области.',
+        navy: 'Нажмите прибрежную область: чужую — атака с воды, свою — оборона.',
+        ambush: 'Нажмите любую область: в чужой засада нападает, в своей — защищает.',
+        bless: 'Нажмите свой закрытый жетон войска, кораблей или засады.',
+        peace: 'Нажмите свою область, чтобы заключить в ней завет мира.',
+        raid: 'Нажмите чужую или ничью область рядом с вашей (или там, где ваша засада).',
+      }[family];
+      box.textContent = text || '';
+    }
+
+    /** Жетон целиком, как его примет движок, — или null, пока выбор не закончен. */
+    pendingPlacement() {
+      const p = this.pending;
+      if (!p?.kind) return null;
+      if (this.R.familyOf(p.kind) === 'bless') return p.target ? { kind: p.kind, target: p.target } : null;
+      if (!p.area && !p.to) return null;
+      return { kind: p.kind, area: p.area || null, to: p.to || null };
+    }
+
+    pendingReady() {
+      const v = this.view;
+      if (!this.pending) return false;
+      if (this.pending.control) return this.E.validateControl(this.probeSetup(), v.you, this.pending.control).ok;
+      if (this.pending.card) return Boolean(this.pending.target) && this.E.validateCard(this.probe(), v.you, this.pending.card, this.pending.target).ok;
+      const placement = this.pendingPlacement();
+      return Boolean(placement) && this.E.validatePlacement(this.probe(), v.you, placement).ok;
     }
 
     renderConfirm() {
@@ -1009,113 +1123,170 @@
       bar.hidden = !ready;
       if (!ready) return;
       const text = this.root.querySelector('[data-confirm-text]');
-      const order = this.R.orderOf(this.pending.kind);
-      if (order.slot === 'internal') {
-        text.textContent = `${order.title}: «${this.R.areaOf(this.pending.area).name}».`;
-      } else if (order.slot === 'outgoing') {
-        const placement = { kind: order.id, owner: this.you, area: this.pending.from, to: this.pending.area };
-        const force = this.E.forceOf(this.view, placement);
-        const support = this.view.orders.filter(o => o.owner === this.you && o.to === placement.to && o.kind && o.kind !== 'feint')
-          .reduce((sum, o) => sum + this.E.forceOf(this.view, o), 0);
-        const defense = this.E.defenseOf(this.view, placement.to, false).total;
-        text.textContent = `${this.R.areaOf(placement.area).name} → ${this.R.areaOf(placement.to).name}. `
-          + (order.id === 'feint' ? 'Отвлечение: не захватывает область.' : `Сила ${force}${support ? ` + поддержка ${support}` : ''} против открытой защиты ${defense}. `
-          + (force + support > defense ? 'Силы достаточно, если защита не усилится.' : 'Нужна поддержка: для захвата сила должна быть выше защиты.'))
-          + ' Тайные приказы соперника могут изменить исход.';
-      } else if (order.id === 'scout') {
-        text.textContent = `Разведать: ${this.scoutPicked.length} из ${this.view.players[this.view.you].kingdomId === 'kedem' ? 2 : 1}.`;
+      const R = this.R;
+      const v = this.view;
+      const name = (id) => R.areaOf(id)?.name || '';
+      if (this.pending.control) { text.textContent = `Поставить жетон контроля в «${name(this.pending.control)}»?`; return; }
+      if (this.pending.card) {
+        text.textContent = {
+          scout: 'Соглядатаи посмотрят этот жетон — увидите только вы. Карта уйдёт из партии.',
+          prophet: 'Пророк откроет этот жетон всем и сбросит его. Карта уйдёт из партии.',
+          herald: 'Право первенства вернёт этот жетон в запас его хозяина, не открывая.',
+        }[this.pending.card];
+        return;
+      }
+      const placement = this.pendingPlacement();
+      const order = R.orderOf(placement.kind);
+      const probe = this.probe();
+      const push = (areaId) => v.orders.filter((o) => o.owner === v.you && o.kind && R.COMBAT_FAMILIES.has(R.familyOf(o.kind)))
+        .filter((o) => { const side = this.E.battleSide(probe, o); return side && side.area === areaId && side.attack; })
+        .reduce((sum, o) => sum + this.E.forceOf(probe, o), 0);
+      const force = this.E.forceOf(probe, { ...placement, owner: v.you });
+      const title = `${order.title}${order.force ? ` ${order.family === 'bless' ? '+' : ''}${order.force}` : ''}`;
+      if (order.family === 'bless') {
+        const target = v.orders.find((o) => o.id === placement.target);
+        text.textContent = `${title} на ваш жетон «${R.orderOf(target.kind).title}» — кладётся открыто и хранит его от карт.`;
+      } else if (order.family === 'peace') {
+        text.textContent = `${title} в «${name(placement.area)}»: навсегда мир — её нельзя атаковать, и из неё нельзя атаковать.`;
+      } else if (order.family === 'raid') {
+        const near = R.neighborsOf(placement.area).some((id) => v.areas[id].owner === v.you);
+        const ambush = v.orders.some((o) => o.owner === v.you && R.familyOf(o.kind) === 'ambush' && o.area === placement.area && !o.to);
+        text.textContent = `${title} «${name(placement.area)}»: станет пепелищем до конца партии.`
+          + (near || ambush ? '' : ' Сработает, только если там будет ваша засада или рядом ваша область.');
+      } else {
+        const targetId = placement.to || placement.area;
+        const attack = v.areas[targetId].owner !== v.you;
+        const defense = this.E.defenseOf(probe, targetId).total;
+        const where = placement.area && placement.to ? `${name(placement.area)} → ${name(placement.to)}`
+          : !placement.area ? `с воды на «${name(placement.to)}»` : `в «${name(placement.area)}»`;
+        if (order.family === 'blank') text.textContent = `${title} ${where}: выглядит угрозой, в бою не участвует и вернётся в руку.`;
+        else if (attack) {
+          const total = push(targetId) + force;
+          text.textContent = `${title} ${where}. Ваша сила на эту область ${total} против открытой защиты ${defense}. `
+            + (total > defense ? 'Хватит, если защита не усилится.' : 'Пока мало: сила должна быть больше защиты.')
+            + ' Закрытые жетоны соперников могут изменить исход.';
+        } else {
+          text.textContent = `${title} ${where}: оборона +${force} (постоянная защита ${defense}). Если никто не нападёт — это тоже победа защитника: +1 открытый жетон контроля.`;
+        }
       }
     }
 
-    pendingReady() {
-      if (!this.pending) return false;
-      const order = this.R.orderOf(this.pending.kind);
-      if (order.slot === 'internal') return Boolean(this.pending.area);
-      if (order.slot === 'outgoing') return Boolean(this.pending.area && this.pending.from);
-      if (order.id === 'scout') return this.scoutPicked.length > 0;
-      return false;
-    }
-
-    /* ——— выбор приказа и цели ——— */
+    /* ——— выбор жетона, карты и места ——— */
     selectOrder(kind) {
       if (this.tutorial) return;
       if (this.view.turn !== this.view.you || this.view.phase !== 'planning' || this.view.you < 0) return;
       this.pending = this.pending?.kind === kind ? null : { kind };
-      this.scoutPicked = [];
+      this.renderAll();
+    }
+
+    selectCard(card) {
+      if (this.tutorial) return;
+      if (this.view.turn !== this.view.you || this.view.phase !== 'planning' || this.view.you < 0) return;
+      this.pending = this.pending?.card === card ? null : { card };
       this.renderAll();
     }
 
     cancelPending() {
       this.pending = null;
-      this.scoutPicked = [];
       this.renderAll();
     }
 
     tapArea(areaId) {
       if (this.tutorial) return;
-      if (this.pending && this.R.orderOf(this.pending.kind).slot === 'outgoing' && this.eligibleAreas().has(areaId)) {
-        if (this.view.areas[areaId].owner === this.you) {
-          this.pending.from = areaId; this.pending.area = null; this.renderAll(); return;
-        }
-        if (this.pending.from) { this.tapEdge(this.pending.from, areaId); return; }
-        const sources = [...this.eligibleEdgeKeys()].map(key => key.split('|')).filter(pair => pair.includes(areaId));
-        if (sources.length === 1) { this.tapEdge(...sources[0]); return; }
-        this.flashStatus('Сначала выберите свою область — источник похода.'); return;
+      const v = this.view;
+      if (v.phase === 'setup') {
+        if (v.turn === v.you && this.eligibleAreas().has(areaId)) { this.pending = { control: areaId }; this.renderAll(); return; }
+        this.openAreaDetail(areaId);
+        return;
       }
-      if (this.pending && this.R.orderOf(this.pending.kind).slot === 'internal' && this.eligibleAreas().has(areaId)) {
-        this.pending.area = areaId;
+      const p = this.pending;
+      if (!p?.kind || this.R.familyOf(p.kind) === 'bless') { this.openAreaDetail(areaId); return; }
+      const legal = this.legalPlacements(p.kind);
+      const has = (area, to) => legal.some((one) => (one.area || null) === area && (one.to || null) === to);
+      // Источник уже выбран: цель через границу или снова он же — оборона.
+      if (p.from) {
+        if (areaId === p.from && has(areaId, null)) { this.pending = { kind: p.kind, from: p.from, area: p.from, to: null }; this.renderAll(); return; }
+        if (has(p.from, areaId)) { this.pending = { kind: p.kind, from: p.from, area: p.from, to: areaId }; this.renderAll(); return; }
+      }
+      const outgoing = legal.filter((one) => one.area === areaId && one.to);
+      const center = has(areaId, null);
+      const sea = has(null, areaId);
+      const family = this.R.familyOf(p.kind);
+      // Своя область, из которой можно ударить: запоминаем источник, оборона — сразу выбрана, если она законна.
+      if (outgoing.length && (family === 'army' || family === 'blank')) {
+        this.pending = { kind: p.kind, from: areaId, area: center ? areaId : null, to: null };
         this.renderAll();
         return;
       }
+      if (sea && (family === 'navy' || (family === 'blank' && !center))) { this.pending = { kind: p.kind, area: null, to: areaId }; this.renderAll(); return; }
+      if (center) { this.pending = { kind: p.kind, area: areaId, to: null }; this.renderAll(); return; }
+      const incoming = legal.filter((one) => one.to === areaId && one.area);
+      if (incoming.length === 1) { this.pending = { kind: p.kind, from: incoming[0].area, area: incoming[0].area, to: areaId }; this.renderAll(); return; }
+      if (incoming.length > 1) { this.flashStatus('Сначала нажмите свою область — откуда идёт войско.'); return; }
       this.openAreaDetail(areaId);
     }
 
     tapEdge(a, b) {
       if (this.tutorial) return;
-      if (!this.pending) return;
-      const order = this.R.orderOf(this.pending.kind);
-      if (order.slot !== 'outgoing') return;
-      const v = this.view;
-      let from = null; let to = null;
-      if (v.areas[a].owner === v.you && v.areas[b].owner !== v.you) { from = a; to = b; }
-      else if (v.areas[b].owner === v.you && v.areas[a].owner !== v.you) { from = b; to = a; }
-      if (!from) return;
-      if (this.R.edgeType(from, to) !== order.edge) return;
-      if (this.hasOwnSlotOrder(from, 'outgoing')) return;
-      this.pending.from = from;
-      this.pending.area = to;
+      const p = this.pending;
+      if (!p?.kind) return;
+      const legal = this.legalPlacements(p.kind).filter((one) => one.area && one.to);
+      const pick = legal.find((one) => one.area === a && one.to === b && (!p.from || p.from === a))
+        || legal.find((one) => one.area === b && one.to === a && (!p.from || p.from === b));
+      if (!pick) return;
+      this.pending = { kind: p.kind, from: pick.area, area: pick.area, to: pick.to };
       this.renderAll();
     }
 
     tapToken(orderId) {
       if (this.tutorial) return;
-      if (!this.pending || this.pending.kind !== 'scout') return;
-      const order = this.view.orders.find((one) => one.id === orderId);
-      if (!order || order.owner === this.view.you || order.kind || this.view.scoutIntel.some(i => i.atRound === this.view.round && i.orderId === order.id)) return;
-      const limit = this.view.players[this.view.you].kingdomId === 'kedem' ? 2 : 1;
-      const at = this.scoutPicked.indexOf(orderId);
-      if (at >= 0) this.scoutPicked.splice(at, 1);
-      else if (this.scoutPicked.length < limit) this.scoutPicked.push(orderId);
-      this.renderAll();
+      const p = this.pending;
+      if (!p) return;
+      if (p.card || (p.kind && this.R.familyOf(p.kind) === 'bless')) {
+        this.pending = { ...p, target: p.target === orderId ? null : orderId };
+        this.renderAll();
+      }
     }
 
     confirmPending() {
       if (!this.pendingReady()) return;
-      const order = this.R.orderOf(this.pending.kind);
-      const placement = order.id === 'scout'
-        ? { kind: 'scout', scoutTargets: [...this.scoutPicked] }
-        : order.slot === 'internal'
-          ? { kind: order.id, area: this.pending.area }
-          : { kind: order.id, area: this.pending.from, to: this.pending.area };
+      const p = this.pending;
       this.pending = null;
-      this.scoutPicked = [];
-      if (this.net) { this.net.send('placeOrder', placement); return; }
-      try {
-        this.E.placeOrder(this.state, this.you, placement);
-      } catch (error) {
-        this.flashStatus(error.message);
+      const send = (action, payload, local) => {
+        if (this.net) { this.net.send(action, payload); return; }
+        try { local(); } catch (error) { this.flashStatus(error.message); }
+        this.afterLocalChange();
+      };
+      if (p.control) { send('placeControl', { area: p.control }, () => this.E.placeControl(this.state, this.you, p.control)); return; }
+      if (p.card) {
+        send('useCard', { card: p.card, target: p.target }, () => {
+          const result = this.E.useCard(this.state, this.you, { card: p.card, target: p.target });
+          void result;
+        });
+        return;
       }
-      this.afterLocalChange();
+      const placement = { kind: p.kind, area: p.area || null, to: p.to || null, target: p.target || null };
+      send('placeOrder', placement, () => this.E.placeOrder(this.state, this.you, placement));
+    }
+
+    /* ——— тайная цель: одна из двух ——— */
+    offerObjective() {
+      const v = this.view;
+      if (this.tutorial || !v.objectiveChoices || v.you < 0 || this.objectiveOffered === v.objectiveChoices.join()) return;
+      this.objectiveOffered = v.objectiveChoices.join();
+      const R = this.R;
+      const sheet = this.openSheet(`<h3>Тайная цель</h3><p>Вам раздали две цели. Оставьте одну — соперники узнают её только в конце партии.</p>
+        <div class="kd-objectives">${v.objectiveChoices.map((id) => {
+          const one = R.objectiveOf(id);
+          return `<button type="button" class="kd-objective-card" data-objective-pick="${id}"><b>${escapeHTML(one.title)} · ${one.points}</b><span>${escapeHTML(one.text)}</span></button>`;
+        }).join('')}</div>`);
+      sheet.querySelectorAll('[data-objective-pick]').forEach((button) => button.addEventListener('click', () => {
+        sheet.remove();
+        const id = button.dataset.objectivePick;
+        if (this.net) { this.net.send('chooseObjective', { id }); return; }
+        try { this.E.chooseObjective(this.state, this.you, id); } catch { /* уже выбрана */ }
+        this.afterLocalChange();
+      }));
     }
 
     flashStatus(text) {
@@ -1138,9 +1309,11 @@
         <div class="kd-detail-rows">
           <div><span>Хозяин</span><b>${escapeHTML(owner)}</b></div>
           <div><span>Ценность</span><b>${area.value}</b></div>
-          <div><span>Открытая защита</span><b>${this.E.defenseOf(v, areaId, false).total}</b></div>
-          <div><span>Укрепление</span><b>${cell.fortify}</b></div>
-          <div><span>Ветераны обороны</span><b>${cell.veterans || 0} · +${cell.veterans || 0} к защите и очкам</b></div>
+          <div><span>Защита без жетонов</span><b>${this.E.defenseOf(v, areaId).total}</b></div>
+          <div><span>Напечатано на карте</span><b>+${this.R.printedDefense(area)}${area.capitalOf ? ' · столица' : area.city ? ' · город' : ''}${area.terrain === 'mountains' ? ' · горы' : ''}</b></div>
+          <div><span>Открытые жетоны контроля</span><b>${cell.veterans || 0} · +${cell.veterans || 0} к защите и очкам</b></div>
+          ${cell.special ? `<div><span>${escapeHTML(this.R.SPECIALS[cell.special].title)}</span><b>${escapeHTML(this.R.SPECIALS[cell.special].text)}</b></div>` : ''}
+          ${this.R.isCoastal(areaId) ? '<div><span>У воды</span><b>атакуют и защищают «Корабли»</b></div>' : ''}
         </div>
         <button type="button" class="kd-btn kd-btn--ghost" data-cancel>Закрыть</button>
       `);
@@ -1183,18 +1356,14 @@
     tick() {
       if (this.net) return;
       const v = this.view;
-      if (v.phase !== 'planning') return;
+      if (v.phase !== 'planning' && v.phase !== 'setup') return;
       if (v.turn === this.you || v.turn < 0) return;
       const seat = v.turn;
       later(() => {
         if (!this.state || this.E.currentTurn(this.state) !== seat) return;
-        const choice = this.Bots.pick(this.state, seat);
-        try {
-          if (choice) this.E.placeOrder(this.state, seat, choice);
-          else this.E.skipTurn(this.state, seat);
-        } catch { this.E.skipTurn(this.state, seat); }
+        try { this.Bots.play(this.state, seat); } catch { this.E.skipTurn(this.state, seat); }
         this.afterLocalChange();
-      }, 500 + Math.random() * 400);
+      }, (v.phase === 'setup' ? 350 : 500) + Math.random() * 400);
     }
 
     /* ——— раскрытие ———
@@ -1210,7 +1379,8 @@
     }
 
     beginRevealAnimation() {
-      this.revealSteps = (this.view.lastResolution || []).slice();
+      this.revealSteps = [...(this.view.lastEvents || []).map((event) => ({ event })),
+        ...(this.view.lastResolution || []).filter((line) => line.outcome !== 'guarded')];
       this.renderAll();
       this.renderRevealShell();
       if (reduceMotion() || this.skipAnim) { this.finishReveal(); return; }
@@ -1243,7 +1413,7 @@
         stopTimers();
         this.root.querySelectorAll('.kd-sheet').forEach(node => node.remove());
       }
-      if (!keepSelection) { this.pending = null; this.scoutPicked = []; }
+      if (!keepSelection) this.pending = null;
       this.renderAll();
       if (view.status === 'over') later(() => this.finish(), 400);
     }
@@ -1258,18 +1428,12 @@
     showNextReveal() {
       const line = this.revealSteps.shift();
       if (!line) { this.finishReveal(); return; }
-      const area = this.R.areaOf(line.area);
-      const group = this.root.querySelector(`[data-area="${line.area}"]`);
+      const v = this.view;
+      const areaId = line.event ? line.event.area : line.area;
+      const group = areaId ? this.root.querySelector(`[data-area="${areaId}"]`) : null;
       group?.classList.add('is-resolving');
-      const attackers = line.attackers.map((a) => `${nameOf(this.view, a.seat)}: сила ${a.total}`).join('; ');
-      const d = line.defense;
       const box = this.root.querySelector('[data-status]');
-      if (box) {
-        box.textContent = `«${area.name}»: защита ${d.total} (1 + укрепление ${d.fortify} + ветераны ${d.veterans || 0} + стража ${d.guard}`
-          + ` + местность ${d.terrain} + способность ${d.ability}) против ${attackers || '—'}. `
-          + (line.outcome === 'captured' ? `Берёт ${nameOf(this.view, line.newOwner)}.`
-            : line.outcome === 'standoff' ? 'Ничья — хозяин не меняется.' : 'Область устояла.');
-      }
+      if (box) box.textContent = revealText(this.R, v, line);
       later(() => {
         group?.classList.remove('is-resolving');
         this.renderAreas();
@@ -1310,7 +1474,6 @@
         this.saveCampaign();
         this.refresh();
         this.pending = null;
-        this.scoutPicked = [];
         this.renderAll();
         this.tick();
       });
@@ -1327,8 +1490,8 @@
         return `<div class="kd-final-row${score.seat === v.you ? ' is-you' : ''}${winner ? ' is-winner' : ''}">
           <div class="kd-final-name">${winner ? '👑 ' : ''}${escapeHTML(player.name)}</div>
           <div class="kd-final-bits">
-            <span>Области: ${score.areaValue}</span>
-            <span>Успешная оборона: +${score.veterans || 0}</span>
+            <span>Честь областей: ${score.areaValue}</span>
+            <span>Открытые жетоны контроля: +${score.veterans || 0}</span>
             <span>Регионы: +${score.regions * R.REGION_BONUS}</span>
             <span>${objective ? objective.title : 'Цель'}: ${score.objectiveDone ? `+${score.objectivePoints}` : '0'}</span>
             <span class="kd-final-total">Итого: ${score.total}</span>
@@ -1375,62 +1538,68 @@
       stopTimers();
       this.tutorial = true;
       this.pending = null;
-      this.scoutPicked = [];
       const R = this.R;
+      const E = this.E;
       const kingdoms = R.STARTING_LAYOUTS[2];
-      const owned = R.startingAreasOf(kingdoms[0]);
-      const enemyOwned = R.startingAreasOf(kingdoms[1]);
+      const home = R.capitalOf(kingdoms[0]);
+      const homeRegion = R.areaOf(home).region;
+      const owned = [home, R.areaId(homeRegion, 'cw')];
+      const enemyHome = R.capitalOf(kingdoms[1]);
+      const enemyOwned = [enemyHome, R.areaId(R.areaOf(enemyHome).region, 'cw')];
       const border = owned.flatMap(area => R.connectionsOf(area).map(link => ({ from: area, ...link })))
-        .find(link => link.type === 'land' && !owned.includes(link.to) && !enemyOwned.includes(link.to));
+        .find(link => !owned.includes(link.to) && !enemyOwned.includes(link.to));
       const enemyBorder = enemyOwned.flatMap(area => R.connectionsOf(area).map(link => ({ from: area, ...link })))
-        .find(link => link.type === 'land' && !owned.includes(link.to) && !enemyOwned.includes(link.to));
-      const home = owned[0];
+        .find(link => !owned.includes(link.to) && !enemyOwned.includes(link.to));
       const advance = border || { from: owned[1], to: R.connectionsOf(owned[1])[0].to };
       const hidden = enemyBorder || { from: enemyOwned[1], to: R.connectionsOf(enemyOwned[1])[0].to };
+      const HAND = ['march3', 'navy2', 'ambush1', 'bless2', 'peace', 'feint'];
       const steps = [
-        { title: 'Перед вами карта', text: '24 области объединены в шесть регионов. Цвет и толстая граница показывают владельца; светлые области пока ничьи.', hint: 'Посмотрите, как выделяется ваша стартовая земля.', area: home },
-        { title: 'Ваше царство', text: 'У вас две стартовые области. Корона отмечает столицу; число на области — её ценность в итоговом счёте.', hint: 'Герб и цвет помогают быстро увидеть свои земли.', area: home },
-        { title: 'Карта в руках', text: 'Перетаскивайте карту одним пальцем. Раздвигайте два пальца для приближения или пользуйтесь кнопками + и −; «Показать всю карту» вернёт обзор.', hint: 'В этом шаге карта плавно приблизится к границе.', area: advance.from, zoom: true },
-        { title: 'Шесть жетонов в руке', text: 'В начале раунда у вас шесть жетонов. Пять можно разместить по очереди; один останется на следующий раунд. Запас конечен.', hint: 'Подсвеченный жетон показывает доступный поход.', order: 'march3', hand: true },
-        { title: 'Приказ на границе', text: 'Выберите поход, затем свою область и соседнюю цель — или нажмите подсвеченную связь между ними. Для захвата сила должна превысить защиту.', hint: 'Движущийся жетон показывает направление атаки.', edge: advance, token: 'march3', hand: true },
-        { title: 'Приказы лежат рубашкой вверх', text: 'Соперники видят место и направление вашего приказа, но не его вид и силу. Их приказы скрыты от вас таким же образом.', hint: 'Знак вопроса — закрытый приказ соперника.', enemy: true },
-        { title: 'Разведка', text: 'Разведка раскрывает один чужой закрытый приказ только вам. Царство Кедем может разведать сразу два.', hint: 'Теперь вид чужого приказа известен лишь вашему царству.', enemy: true, scout: true },
-        { title: 'Обманный манёвр', text: 'Обманный жетон выглядит угрозой, но не участвует в бою. После раскрытия он вернётся и будет доступен в следующем раунде.', hint: 'Он отвлекает соперника, не захватывая область.', edge: advance, token: 'feint', hand: true },
-        { title: 'Стража и укрепление', text: 'Стража даёт +2 к защите в текущем раунде. Укрепление даёт постоянный +1; после успешной обороны появляется ветеран: +1 к защите и итоговым очкам.', hint: 'Кольцо выделяет защищённую область.', area: home, defense: true },
-        { title: 'Раскрытие', text: 'После пятого размещения каждого игрока приказы открываются вместе: сначала укрепления и стража, затем атаки. Приказы одного игрока на одну цель складываются.', hint: 'Жетон раскрывается, затем область меняет цвет.', edge: advance, reveal: true },
-        { title: 'Очки и победа', text: 'После пятого раунда считайте ценность областей, +5 за каждый полный регион, ветеранов и тайную цель. У кого больше очков, тот побеждает.', hint: 'Четыре области одного региона окрашены в ваш цвет.', region: R.areaOf(home).region },
-        { title: 'Готовы править', text: 'Пробуйте разные приказы и следите за закрытыми угрозами. Знак «?» в партии снова откроет это обучение.', hint: 'Демонстрация не затронула вашу сохранённую партию.', area: home },
+        { title: 'Перед вами карта', text: '24 области в шести регионах. Число на области — её честь в итоговом счёте; корона — столица. Правила — «Битвы за Рокуган», облик — библейский.', hint: 'Посмотрите, как выделяется ваша земля.', area: home },
+        { title: 'Расстановка и тайная цель', text: 'Каждое царство начинает со своей столицы. Остальные стартовые земли игроки берут сами, по очереди ставя жетоны контроля в свободные области. Тайную цель выбираете одну из двух.', hint: 'Свои области отмечены гербом и цветом.', area: home },
+        { title: 'Карта в руках', text: 'Один палец поворачивает и наклоняет карту, два — приближают и сдвигают. «Показать всю карту» вернёт обзор.', hint: 'Карта приблизится к границе.', area: advance.from, zoom: true },
+        { title: 'Шесть жетонов за ширмой', text: 'В начале раунда у вас шесть жетонов, один из них — пустой «Отвлекающий манёвр». Пять кладёте по очереди рубашкой вверх; один остаётся на следующий раунд.', hint: 'Лента внизу листается пальцем вбок.', order: 'march3', hand: true },
+        { title: 'Войско', text: 'Войско на границе атакует соседнюю область, в центре своей — защищает её. На одну границу — один жетон, чей бы он ни был; в центр — сколько угодно.', hint: 'Жетон идёт от вашей области к цели.', edge: advance, token: 'march3', hand: true },
+        { title: 'Жетоны рубашкой вверх', text: 'Соперники видят, где лежит ваш жетон и куда он смотрит, но не его вид и силу. Их жетоны скрыты от вас так же.', hint: 'Рубашка — закрытый жетон соперника.', enemy: true },
+        { title: 'Соглядатаи и пророк', text: 'Карты играют в начале хода. Соглядатаи (две на партию) показывают вам один чужой жетон. Пророк (один) открывает его всем и сбрасывает — как Елисей открывал царю замыслы сирийцев.', hint: 'Теперь вид чужого жетона знаете только вы.', enemy: true, scout: true },
+        { title: 'Корабли и засада', text: 'Корабли бьют прибрежную область с воды — с моря или реки, из любого места. Засада ложится в центр любой области: в чужой нападает, в своей защищает, как засада под Гаем.', hint: 'Прибрежные области — у моря и у реки.', order: 'navy2', hand: true },
+        { title: 'Благословение, завет и поджог', text: 'Благословение кладётся открыто поверх своего войска и прибавляет силу. Завет мира навсегда выводит вашу область из войны. Поджог превращает чужую землю рядом с вашей в пепелище.', hint: 'Особые жетоны остаются на карте до конца партии.', order: 'bless2', hand: true },
+        { title: 'Исполнение', text: 'Когда все положили по пять, жетоны открываются: сначала поджоги, потом заветы мира, потом все сражения разом. Побеждает наибольшая сила; при ничьей — защитник. Защитник, устоявший или просто стоявший на страже, кладёт открытый жетон контроля: +1 к защите и +1 очко.', hint: 'Жетон раскрывается, область меняет цвет.', edge: advance, reveal: true },
+        { title: 'Очки и победа', text: 'После пятого раунда: честь ваших областей, открытые жетоны контроля, +5 за каждый регион целиком и тайная цель. Первый, кто возьмёт регион целиком, получает и его награду.', hint: 'Все области региона окрашены в ваш цвет.', region: homeRegion },
+        { title: 'Готовы править', text: 'Пробуйте разные жетоны и следите за закрытыми угрозами. Знак «?» в партии снова откроет это обучение.', hint: 'Демонстрация не тронула вашу сохранённую партию.', area: home },
       ];
       let at = 0;
       const finish = () => {
         this.tutorial = false;
         this.pending = null;
-        this.scoutPicked = [];
         try { localStorage.setItem('kd_tutorial_seen', '1'); } catch { /* приватный режим */ }
         if (returnState) this.resumeCampaign(returnState);
         else { this.state = null; this.view = null; this.setup(); }
       };
+      const makeDemo = () => {
+        const demo = E.createGame({ kingdomIds: kingdoms, random: () => .42 });
+        for (const player of demo.players) player.objectiveId = player.objectiveChoices[0];
+        while (demo.phase === 'setup') E.skipTurn(demo, E.currentTurn(demo));
+        for (const id of owned) demo.areas[id].owner = 0;
+        for (const id of enemyOwned) demo.areas[id].owner = 1;
+        demo.turnOrder = [0, 1];
+        demo.turnPointer = 0;
+        demo.players[0].hand = [...HAND];
+        return demo;
+      };
       const show = () => {
         const step = steps[at];
-        const demo = this.E.createGame({ kingdomIds: kingdoms, random: () => .42 });
-        demo.players[0].hand = ['march1', 'march3', 'guard', 'fortify', 'scout', 'feint'];
-        const ownOrder = (kind) => ({ id: 'demo-own', owner: 0, kind, area: advance.from,
-          to: advance.to, round: 1 });
-        const foreignOrder = { id: 'demo-enemy', owner: 1, kind: 'march2', area: hidden.from,
-          to: hidden.to, round: 1 };
+        const demo = makeDemo();
+        const ownOrder = (kind) => ({ id: 'demo-own', owner: 0, kind, area: advance.from, to: advance.to, round: 1 });
+        const foreignOrder = { id: 'demo-enemy', owner: 1, kind: 'march2', area: hidden.from, to: hidden.to, round: 1 };
         if (step.token || step.reveal) demo.orders.push(ownOrder(step.token || 'march3'));
         if (step.enemy) demo.orders.push(foreignOrder);
         if (step.scout) demo.scoutIntel[0].push({ atRound: 1, orderId: foreignOrder.id,
           kind: foreignOrder.kind, owner: 1, area: foreignOrder.area, to: foreignOrder.to });
-        if (step.defense) {
-          demo.areas[home].fortify = 1;
-          demo.areas[home].veterans = 1;
-          demo.orders.push({ id: 'demo-guard', owner: 0, kind: 'guard', area: home, round: 1 });
-        }
         if (step.reveal) {
           demo.orders[0].revealed = true;
           demo.phase = 'results';
           demo.areas[advance.to].owner = 0;
+          demo.areas[home].veterans = 1;
         }
         if (step.region) for (const area of R.areasOfRegion(step.region)) demo.areas[area.id].owner = 0;
         this.state = demo;
@@ -1448,7 +1617,7 @@
         box.querySelector('[data-teach-hint]').textContent = step.hint;
         const hand = box.querySelector('[data-teach-hand]');
         hand.hidden = !step.hand;
-        if (step.hand) hand.innerHTML = ['march1', 'march3', 'guard', 'fortify', 'scout', 'feint']
+        if (step.hand) hand.innerHTML = HAND
           .map(kind => `<div class="kd-teach-chip${(step.order || step.token) === kind ? ' is-demo-focus' : ''}">${orderIconHTML(kind)}<span>${escapeHTML(R.orderOf(kind).title)}${R.orderOf(kind).force ? ` · ${R.orderOf(kind).force}` : ''}</span></div>`).join('');
         box.querySelector('[data-teach-back]').disabled = at === 0;
         box.querySelector('[data-teach-next]').textContent = at === steps.length - 1 ? 'Играть' : 'Дальше';
@@ -1469,7 +1638,7 @@
           this.root.querySelector(`[data-area="${area.id}"]`)?.classList.add('is-demo-focus');
         if (step.zoom) this.setZoom(1.55);
       };
-      this.state = this.E.createGame({ kingdomIds: kingdoms, random: () => .42 });
+      this.state = makeDemo();
       this.refresh();
       this.buildBoard();
       this.root.querySelector('[data-teach-back]').addEventListener('click', () => { if (at > 0) { at -= 1; show(); } });
@@ -1477,6 +1646,32 @@
       this.root.querySelector('[data-teach-skip]').addEventListener('click', finish);
       show();
     }
+  }
+
+  /** Строка исполнения для подсказки: событие (поджог, мир, регион) или сражение с разложением защиты. */
+  function revealText(R, view, line) {
+    const name = (id) => R.areaOf(id)?.name || '';
+    if (line.event) {
+      const e = line.event;
+      if (e.type === 'scorched') return `Поджог: ${nameOf(view, e.seat)} предаёт огню «${name(e.area)}» — там пепелище до конца партии.`;
+      if (e.type === 'raidFailed') return `Поджог «${name(e.area)}» не удался: рядом нет ни области, ни засады ${nameOf(view, e.seat)}.`;
+      if (e.type === 'peace') return `Завет мира: «${name(e.area)}» навсегда вне войны.`;
+      if (e.type === 'regionCard') {
+        const card = R.REGION_CARDS[e.region];
+        return `${nameOf(view, e.seat)} держит весь регион «${R.REGIONS.find((r) => r.id === e.region).name}»: +5 очков в конце и награда «${card.title}» — ${card.text}`;
+      }
+      return '';
+    }
+    const d = line.defense;
+    const parts = [`карта ${d.printed}`];
+    if (d.veterans) parts.push(`открытые жетоны ${d.veterans}`);
+    if (d.special) parts.push(`особый ${d.special}`);
+    if (d.ability) parts.push(`способность ${d.ability}`);
+    if (d.tokens) parts.push(`жетоны ${d.tokens}`);
+    const attackers = line.attackers.map((a) => `${nameOf(view, a.seat)}: сила ${a.total}`).join('; ');
+    return `«${name(line.area)}»: защита ${d.total} (${parts.join(' + ')}) против ${attackers || '—'}. `
+      + (line.outcome === 'captured' ? `Берёт ${nameOf(view, line.newOwner)}.`
+        : line.outcome === 'standoff' ? 'Ничья наверху — побеждает защита.' : 'Защита устояла — открытый жетон контроля.');
   }
 
   function nameOf(view, seat) {

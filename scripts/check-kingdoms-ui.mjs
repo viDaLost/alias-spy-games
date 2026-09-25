@@ -19,6 +19,39 @@ function harness() {
   return { dom, w, root, board, drain };
 }
 
+/** Тайная цель: карточка с двумя целями приходит сама — берём первую. */
+function pickObjective(root) {
+  const pick = root.querySelector('[data-objective-pick]');
+  if (pick) pick.click();
+}
+
+/** Ход человека нажатиями, как на экране: жетон, затем места на карте или жетон на карте. */
+function placeViaUI(w, root, board, choice) {
+  root.querySelector(`[data-order="${choice.kind}"]`).click();
+  if (choice.target) board.tapToken(choice.target);
+  else if (choice.area && choice.to) { board.tapArea(choice.area); board.tapArea(choice.to); }
+  else if (choice.area) board.tapArea(choice.area);
+  else board.tapArea(choice.to);
+  assert.equal(board.pendingReady(), true, `cannot place ${JSON.stringify(choice)} → ${JSON.stringify(board.pending)}`);
+  root.querySelector('[data-confirm-ok]').click();
+}
+
+/** Расстановка: человек нажимает свободную область и подтверждает, соперники ходят по таймеру. */
+function playSetup(w, root, board, drain) {
+  let guard = 0;
+  while (board.state.phase === 'setup' && guard++ < 200) {
+    pickObjective(root);
+    if (board.view.turn === board.you) {
+      const free = [...root.querySelectorAll('[data-area].is-eligible')][0];
+      assert.ok(free, 'на расстановке не подсвечено ни одной свободной области');
+      board.tapArea(free.dataset.area);
+      assert.equal(root.querySelector('[data-confirm]').hidden, false, 'нет подтверждения жетона контроля');
+      root.querySelector('[data-confirm-ok]').click();
+    } else drain();
+  }
+  pickObjective(root);
+}
+
 for (const n of [2,3,4,5]) {
   const { dom, w, root, board, drain } = harness();
   board.setup(); board.begin(n);
@@ -34,19 +67,31 @@ for (const n of [2,3,4,5]) {
       assert.equal(fs.readFileSync(src).subarray(8,12).toString(), 'WEBP');
     }
   }
+  assert.equal(board.state.phase, 'setup', 'партия должна начаться с расстановки');
+  playSetup(w, root, board, drain);
+  assert.equal(board.state.phase, 'planning');
+  assert.ok(board.state.players[0].objectiveId, 'тайная цель человека не выбрана');
   // Persist a real confirmed order, then reconstruct the board from storage.
+  let guard = 0;
+  while (board.view.turn !== board.you && guard++ < 50) drain();
   board.state.players[0].hand[0] = 'march3';
   board.afterLocalChange();
-  board.selectOrder('march3'); board.tapArea('primorye-rim'); board.tapArea('primorye-ccw');
+  board.selectOrder('march3');
+  const attack = board.legalPlacements('march3').find(p => p.area && p.to);
+  assert.ok(attack, 'у войска нет ни одной законной атаки');
+  board.tapArea(attack.area);
+  assert.match(root.querySelector('[data-confirm-text]').textContent, /оборона \+3/, 'нажатие своей области не предложило оборону');
+  board.tapArea(attack.to);
   assert.equal(root.querySelector('[data-confirm]').hidden, false);
-  assert.match(root.querySelector('[data-confirm-text]').textContent, /Сила 4/);
+  assert.match(root.querySelector('[data-confirm-text]').textContent, /Ваша сила на эту область 3/);
   root.querySelector('[data-confirm-ok]').click();
   const restored = board.loadCampaign();
-  assert.equal(restored.orders[0].kind, 'march3');
+  assert.equal(restored.orders.find(o => o.owner === 0).kind, 'march3');
   board.resumeCampaign(restored);
-  assert.equal(board.state.orders.length, 1);
+  assert.ok(board.state.orders.some(o => o.owner === 0 && o.kind === 'march3'));
+  const kinds = new Set();
   let turns = 0;
-  while (board.state.status !== 'over' && turns++ < 250) {
+  while (board.state.status !== 'over' && turns++ < 400) {
     if (board.state.phase === 'results') {
       assert.ok(root.querySelector('[data-next]'));
       root.querySelector('[data-next]').click();
@@ -56,17 +101,14 @@ for (const n of [2,3,4,5]) {
         root.querySelector('[data-pass]').click();
         root.querySelector('[data-pass-ok]').click();
       } else {
-        root.querySelector(`[data-order="${choice.kind}"]`).click();
-        if (choice.kind === 'scout') choice.scoutTargets.forEach(id => board.tapToken(id));
-        else if (choice.to) { board.tapArea(choice.area); board.tapArea(choice.to); }
-        else board.tapArea(choice.area);
-        assert.equal(board.pendingReady(), true, `cannot place ${JSON.stringify(choice)}`);
-        root.querySelector('[data-confirm-ok]').click();
+        kinds.add(w.KingdomsRules.familyOf(choice.kind));
+        placeViaUI(w, root, board, choice);
       }
     } else drain();
   }
   assert.equal(board.state.round, 5);
   assert.equal(board.state.status, 'over');
+  assert.ok(kinds.has('army'), 'за партию человек ни разу не поставил войско через экран');
   root.querySelector('[data-next]').click();
   assert.equal(root.querySelectorAll('.kd-final-row').length, n);
   assert.ok(root.querySelector('.is-winner'));
@@ -77,23 +119,31 @@ for (const n of [2,3,4,5]) {
 }
 
 {
-  const { dom, w, root, board } = harness();
+  const { dom, w, root, board, drain } = harness();
   board.begin(2);
+  playSetup(w, root, board, drain);
+  let guard = 0;
+  while (board.view.turn !== board.you && guard++ < 50) drain();
+  const placed = board.state.orders.length;
   root.querySelector('[data-pass]').click();
   root.querySelector('[data-pass-ok]').click();
-  assert.equal(board.state.orders.length, 0);
-  assert.equal(board.view.turn, 1);
-  w.localStorage.setItem('kd_campaign_v3', '{broken');
+  assert.equal(board.state.orders.length, placed);
+  assert.notEqual(board.view.turn, board.you);
+  w.localStorage.setItem('kd_campaign_v4', '{broken');
   assert.equal(board.loadCampaign(), null);
   // A spectator sees results even when the server skips the transient reveal phase.
-  const state = w.KingdomsEngine.createGame({kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2]});
+  const state = w.KingdomsEngine.createGame({kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2], random: () => 0.1});
+  while (state.phase === 'setup') w.KingdomsEngine.skipTurn(state, w.KingdomsEngine.currentTurn(state));
+  assert.equal(w.KingdomsEngine.currentTurn(state), 0);
   state.players[0].hand[0] = 'march3';
+  const capital = w.KingdomsRules.capitalOf(state.players[0].kingdomId);
+  const target = w.KingdomsRules.neighborsOf(capital).find(id => state.areas[id].owner !== 0);
   const online = new w.KingdomsUI.Board(root, { send() {}, isHost: () => true });
   online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
-  online.selectOrder('march3'); online.tapArea('primorye-rim');
+  online.selectOrder('march3'); online.tapArea(capital);
   online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
-  assert.equal(online.pending.from, 'primorye-rim', 'polling must preserve an unconfirmed order');
-  online.tapArea('primorye-ccw');
+  assert.equal(online.pending.from, capital, 'polling must preserve an unconfirmed order');
+  online.tapArea(target);
   assert.equal(online.pendingReady(), true);
   w.KingdomsEngine.skipTurn(state, 0);
   online.applyView(w.KingdomsEngine.visibleStateFor(state, 0));
@@ -112,22 +162,10 @@ for (const n of [2,3,4,5]) {
   dom.window.close();
 }
 {
+  // Партии старых правил (v3) не подходят к новым — их не открываем и не падаем.
   const { dom, w, board } = harness();
-  const legacy = w.KingdomsEngine.createGame({ kingdomIds: w.KingdomsRules.STARTING_LAYOUTS[2] });
-  const area = w.KingdomsRules.startingAreasOf(legacy.players[0].kingdomId)[0];
-  legacy.players[0].hand[0] = 'guard';
-  w.KingdomsEngine.placeOrder(legacy, 0, { kind: 'guard', area });
-  for (const player of legacy.players) { delete player.hand; delete player.supply; }
-  for (const cell of Object.values(legacy.areas)) delete cell.veterans;
-  w.localStorage.setItem('kd_campaign_v2', JSON.stringify({ version: 2, state: legacy }));
-  const migrated = board.loadCampaign();
-  assert.ok(migrated, 'existing v2 campaign should load');
-  assert.equal(migrated.orders[0].kind, 'guard');
-  assert.equal(migrated.areas[area].owner, 0);
-  assert.equal(migrated.players[0].hand.length, 5);
-  assert.equal([...migrated.players[0].supply, ...migrated.players[0].hand].filter(kind => kind === 'guard').length, 3);
-  board.resumeCampaign(migrated);
-  assert.equal(JSON.parse(w.localStorage.getItem('kd_campaign_v3')).version, 3);
+  w.localStorage.setItem('kd_campaign_v3', JSON.stringify({ version: 3, state: { players: [], areas: {} } }));
+  assert.equal(board.loadCampaign(), null, 'старое сохранение не должно открываться в новых правилах');
   dom.window.close();
 }
 {
@@ -152,16 +190,16 @@ for (const n of [2,3,4,5]) {
   root.querySelector('[data-teach-skip]').click();
   assert.ok(root.querySelector('[data-start]'));
   assert.equal(w.localStorage.getItem('kd_tutorial_seen'), '1');
-  assert.equal(w.localStorage.getItem('kd_campaign_v3'), null, 'tutorial must not create a campaign');
+  assert.equal(w.localStorage.getItem('kd_campaign_v4'), null, 'tutorial must not create a campaign');
 
   board.begin(2);
-  const saved = w.localStorage.getItem('kd_campaign_v3');
+  const saved = w.localStorage.getItem('kd_campaign_v4');
   const original = board.state;
   root.querySelector('[data-tutorial-open]').click();
   root.querySelector('[data-teach-next]').click();
   root.querySelector('[data-teach-skip]').click();
   assert.equal(board.state, original, 'tutorial must restore the current local game');
-  assert.equal(w.localStorage.getItem('kd_campaign_v3'), saved, 'tutorial must not change the save');
+  assert.equal(w.localStorage.getItem('kd_campaign_v4'), saved, 'tutorial must not change the save');
   dom.window.close();
 }
-console.log('OK: illustrated assets, real order controls, pass, save/resume, 2–5 player campaigns to final results, spectator and online results transitions.');
+console.log('OK: illustrated assets, setup by taps with a secret objective, every token placed through the screen, pass, save/resume, 2–5 player campaigns to final results, spectator and online results transitions, tutorial on the new rules.');

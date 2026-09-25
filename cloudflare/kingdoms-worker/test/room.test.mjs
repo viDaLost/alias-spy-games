@@ -49,12 +49,33 @@ function lobby(now = 1000) {
   return room;
 }
 
-function started(now = 1000, bots = 1) {
+function started(now = 1000, bots = 1, { setup = false } = {}) {
   const room = lobby(now);
   setSettings(room, host.playerId, { bots }, now + 2);
   setReady(room, guest.playerId, true, now + 3);
   startGame(room, host.playerId, now + 4, seeded(7));
+  if (!setup) finishSetup(room, now + 5);
   return room;
+}
+
+/** Довести очередь до человека: соперники от игры сходят сами. */
+function toHumanTurn(room) {
+  let guard = 0;
+  while (!room.seats[room.game.turnOrder[room.game.turnPointer]] && guard++ < 20) stepTable(room, 1, seeded(guard), new Set());
+  return room.game.turnOrder[room.game.turnPointer];
+}
+
+/** Расстановка до конца: люди ставят жетон контроля в первую свободную область, соперники от игры — сами. */
+function finishSetup(room, now) {
+  let guard = 0;
+  while (room.game.phase === 'setup' && guard++ < 100) {
+    const seat = room.game.turnOrder[room.game.turnPointer];
+    const humanId = room.seats[seat];
+    if (humanId) {
+      const free = R.AREAS.find((area) => room.game.areas[area.id].owner === null);
+      playerAction(room, humanId, 'placeControl', { area: free.id }, now);
+    } else stepTable(room, now, seeded(guard), new Set());
+  }
 }
 
 test('в лобби входят, выходят и не остаются без хозяина', () => {
@@ -99,25 +120,64 @@ test('партия не начинается, пока не все готовы,
 
 test('приказ принимается только от того, чья сейчас очередь, и только на своей области', () => {
   const room = started();
-  const seat0 = room.game.turnOrder[0];
+  const seat0 = toHumanTurn(room);
   const seat0Id = room.seats[seat0];
-  const otherSeat = room.game.turnOrder[1];
-  const otherId = room.seats[otherSeat] || null;
+  const otherSeat = room.game.turnOrder.find((one) => one !== seat0 && room.seats[one]);
+  const otherId = otherSeat === undefined ? null : room.seats[otherSeat];
 
   if (otherId) {
-    assert.throws(() => playerAction(room, otherId, 'placeOrder', { kind: 'guard', area: 'x' }), /не ваш ход/i);
+    assert.throws(() => playerAction(room, otherId, 'placeOrder', { kind: 'march1', area: 'x' }), /не ваш ход/i);
   }
   const area = R.startingAreasOf(room.game.players[seat0].kingdomId)[0];
-  room.game.players[seat0].hand[0] = 'guard';
-  playerAction(room, seat0Id, 'placeOrder', { kind: 'guard', area });
-  assert.equal(room.game.orders.length, 1, 'законный приказ не встал на стол');
+  room.game.players[seat0].hand[0] = 'march1';
+  const before = room.game.orders.length;
+  playerAction(room, seat0Id, 'placeOrder', { kind: 'march1', area });
+  assert.equal(room.game.orders.length, before + 1, 'законный приказ не встал на стол');
 
-  assert.throws(() => playerAction(room, 'guest-not-seated', 'placeOrder', { kind: 'guard', area }), /со стороны/i);
+  assert.throws(() => playerAction(room, 'guest-not-seated', 'placeOrder', { kind: 'march1', area }), /со стороны/i);
+});
+
+test('партия начинается с расстановки: жетоны контроля по очереди, тайная цель — одна из двух', () => {
+  const room = started(1000, 1, { setup: true });
+  assert.equal(room.game.phase, 'setup', 'партия не началась с расстановки');
+  const seat = room.game.turnOrder[room.game.turnPointer];
+  const humanId = room.seats[seat];
+  const other = room.seats.find((id) => id && id !== humanId);
+  if (humanId) {
+    const [first] = room.game.players[seat].objectiveChoices;
+    playerAction(room, humanId, 'chooseObjective', { id: first }, 1100);
+    assert.equal(room.game.players[seat].objectiveId, first, 'тайная цель не выбрана');
+    assert.throws(() => playerAction(room, humanId, 'chooseObjective', { id: first }), /уже выбрана/i);
+    const taken = R.capitalOf(room.game.players[seat].kingdomId);
+    assert.throws(() => playerAction(room, humanId, 'placeControl', { area: taken }), /занята/i);
+    const free = R.AREAS.find((area) => room.game.areas[area.id].owner === null).id;
+    if (other) assert.throws(() => playerAction(room, other, 'placeControl', { area: free }), /не ваш ход/i);
+    playerAction(room, humanId, 'placeControl', { area: free }, 1200);
+    assert.equal(room.game.areas[free].owner, seat, 'жетон контроля не встал');
+  }
+  finishSetup(room, 1300);
+  assert.equal(room.game.phase, 'planning', 'после расстановки не начался первый раунд');
+  assert.ok(room.game.players.every((one) => one.objectiveId), 'после расстановки у кого-то нет тайной цели');
+});
+
+test('карта играется в начале хода и хода не заканчивает', () => {
+  const room = started();
+  const seat = room.game.turnOrder[room.game.turnPointer];
+  const other = room.game.turnOrder[(room.game.turnPointer + 1) % room.game.turnOrder.length];
+  // Чужой закрытый жетон на поле — подставлен напрямую: проверяется карта, а не то, как он туда попал.
+  room.game.orders.push({ id: 'foreign', owner: other, kind: 'march2', area: R.capitalOf(room.game.players[other].kingdomId), to: null, round: 1 });
+  const humanId = room.seats[seat];
+  if (humanId) {
+    playerAction(room, humanId, 'useCard', { card: 'scout', target: 'foreign' }, 1500);
+    assert.equal(room.game.turnOrder[room.game.turnPointer], seat, 'карта закончила ход');
+    assert.equal(room.game.scoutIntel[seat].at(-1).kind, 'march2', 'соглядатаи не донесли вид жетона');
+    assert.equal(buildView(room, humanId).game.scoutIntel.at(-1).kind, 'march2');
+  }
 });
 
 test('пропуск хода доступен тому, чья очередь, и продвигает партию', () => {
   const room = started();
-  const seat0 = room.game.turnOrder[0];
+  const seat0 = toHumanTurn(room);
   const seat0Id = room.seats[seat0];
   playerAction(room, seat0Id, 'skipTurn');
   assert.notEqual(room.game.turnOrder[room.game.turnPointer], seat0, 'после пропуска очередь не сдвинулась');
@@ -139,7 +199,7 @@ test('соперник от игры ходит сам, а человек, не 
 
   // Человек, чьё время вышло, пропускает — а не получает ход от сервера.
   const humanRoom = started();
-  const humanSeat = humanRoom.game.turnOrder[0];
+  toHumanTurn(humanRoom);
   humanRoom.turnAt = 0;
   const before = humanRoom.game.orders.length;
   const humanMoved = stepTable(humanRoom, TURN_LIMIT_MS + 1, seeded(1), new Set());
@@ -181,22 +241,24 @@ test('следующий раунд начинает только хозяин, 
 
 test('вид комнаты прячет вид и силу чужого закрытого приказа, а зритель без места видит только это', () => {
   const room = started();
-  const seat0 = room.game.turnOrder[0];
+  const seat0 = toHumanTurn(room);
   const seat0Id = room.seats[seat0];
   const area = R.startingAreasOf(room.game.players[seat0].kingdomId)[0];
-  room.game.players[seat0].hand[0] = 'guard';
-  playerAction(room, seat0Id, 'placeOrder', { kind: 'guard', area });
+  room.game.players[seat0].hand[0] = 'march1';
+  playerAction(room, seat0Id, 'placeOrder', { kind: 'march1', area });
+  const placedId = room.game.orders.at(-1).id;
+  const pickPlaced = (view) => view.game.orders.find((one) => one.id === placedId);
 
   const ownerView = buildView(room, seat0Id);
   assert.ok(ownerView.game.hand.length > 0, 'своя рука отсутствует в ответе комнаты');
-  const order = ownerView.game.orders[0];
+  const order = pickPlaced(ownerView);
   assert.ok('kind' in order, 'хозяин приказа не видит его собственный вид');
 
   const otherId = room.seats.find((id) => id && id !== seat0Id);
   if (otherId) {
     const otherView = buildView(room, otherId);
     assert.equal('hand' in otherView.game.players[seat0], false, 'рука соперника просочилась в ответ комнаты');
-    const seen = otherView.game.orders[0];
+    const seen = pickPlaced(otherView);
     assert.equal('kind' in seen, false, 'чужой закрытый приказ выдал свой вид');
     assert.equal('force' in seen, false, 'чужой закрытый приказ выдал свою силу');
     assert.ok('owner' in seen && 'area' in seen, 'закрытый приказ обязан показывать хозяина и место');
@@ -204,7 +266,7 @@ test('вид комнаты прячет вид и силу чужого зак�
 
   const spectatorView = buildView(room, 'nobody-here');
   assert.equal(spectatorView.seat, -1);
-  assert.equal('kind' in spectatorView.game.orders[0], false, 'зритель без места увидел вид приказа');
+  assert.equal('kind' in pickPlaced(spectatorView), false, 'зритель без места увидел вид приказа');
 });
 
 test('повторная отправка того же запроса на создание не создаёт вторую комнату', () => {
@@ -227,7 +289,7 @@ test('вернуть в лобби может только хозяин', () => 
 
 test('ушедшего и потерявшего связь ждут по-разному', () => {
   const room = started();
-  const seat = room.game.turnOrder[0];
+  const seat = toHumanTurn(room);
   const humanId = room.seats[seat];
   room.turnAt = 1000;
   assert.equal(nextStepAt(room, 1000, new Set([humanId])) - 1000, TURN_LIMIT_MS,

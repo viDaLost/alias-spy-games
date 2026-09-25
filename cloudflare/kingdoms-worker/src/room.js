@@ -230,6 +230,18 @@ export function playerAction(room, playerId, action, data = {}, now = Date.now()
 
   if (action === 'placeOrder') {
     E.placeOrder(game, seat, data);
+  } else if (action === 'placeControl') {
+    E.placeControl(game, seat, String(data.area || ''));
+  } else if (action === 'chooseObjective') {
+    E.chooseObjective(game, seat, String(data.id || ''));
+    // Выбор цели — не ход: часы того, чей ход, он не трогает.
+    touch(room, now);
+    return room;
+  } else if (action === 'useCard') {
+    E.useCard(game, seat, { card: String(data.card || ''), target: String(data.target || '') });
+    // Карта играется в начале хода и хода не заканчивает — часы идут дальше.
+    touch(room, now);
+    return room;
   } else if (action === 'skipTurn') {
     E.skipTurn(game, seat);
   } else {
@@ -259,7 +271,7 @@ export function stepTable(room, now = Date.now(), random = Math.random, online =
     touch(room, now);
     return true;
   }
-  if (game.phase !== 'planning') return false; // results/over ждут хозяина
+  if (game.phase !== 'planning' && game.phase !== 'setup') return false; // results/over ждут хозяина
 
   const seat = E.currentTurn(game);
   if (seat < 0) return false;
@@ -269,11 +281,7 @@ export function stepTable(room, now = Date.now(), random = Math.random, online =
   if (!player.isBot && !overdue) return false;
 
   if (player.isBot) {
-    const choice = Bots.pick(game, seat);
-    try {
-      if (choice) E.placeOrder(game, seat, choice);
-      else E.skipTurn(game, seat);
-    } catch { E.skipTurn(game, seat); }
+    try { Bots.play(game, seat); } catch { E.skipTurn(game, seat); }
   } else {
     /*
       Человек не успел разместить приказ вовремя. Правило партии здесь —
@@ -303,7 +311,7 @@ export function nextStepAt(room, now = Date.now(), online = null) {
   if (room.phase !== 'playing' || !room.game || room.game.status !== 'playing') return 0;
   const game = room.game;
   if (game.phase === 'reveal') return now; // разрешать раунд можно сразу, без паузы
-  if (game.phase !== 'planning') return 0;
+  if (game.phase !== 'planning' && game.phase !== 'setup') return 0;
   const seat = E.currentTurn(game);
   if (seat < 0) return 0;
   const player = game.players[seat];
