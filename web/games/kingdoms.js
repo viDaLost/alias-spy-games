@@ -18,9 +18,10 @@
     'web/games/kingdoms-engine.js',
     'web/games/kingdoms-bots.js',
     'web/games/kingdoms-online.js',
+    'web/games/kingdoms3d.js',
   ];
   const STYLE = 'web/games/kingdoms.css';
-  const VERSION = '4-combat-hand';
+  const VERSION = '5-diorama';
   const AREA_ART = {
     'dolina-ccw': 'web/assets/kingdoms/areas/dolina-ccw.webp',
     'dolina-cw': 'web/assets/kingdoms/areas/dolina-cw.webp',
@@ -65,6 +66,8 @@
     'scout': 'web/assets/kingdoms/orders/scout.webp',
   };
   const SAVE_KEY = 'kd_campaign_v3';
+  // Вид карты: объёмная диорама или плоская карта. Выбор человека помнится.
+  const VIEW_KEY = 'kingdoms_view_v1';
 
   function loadPart(file) {
     return new Promise((resolve, reject) => {
@@ -374,6 +377,8 @@
     /* ——— каркас доски ——— */
     buildBoard() {
       const R = this.R;
+      this.view3d?.destroy();
+      this.view3d = null;
       this.root.innerHTML = `
         <div class="kd-wrap">
           <header class="kd-header">
@@ -394,6 +399,7 @@
               <div class="kd-map-toolbar">
                 <button type="button" data-zoom-in aria-label="Приблизить">+</button>
                 <button type="button" data-zoom-out aria-label="Отдалить">–</button>
+                <button type="button" data-view-toggle hidden title="Переключить вид карты">2D</button>
                 <button type="button" data-zoom-fit>Показать всю карту</button>
               </div>
               <div class="kd-map-scroll" data-scroll>
@@ -457,9 +463,14 @@
           else { this.E.skipTurn(this.state, this.you); this.afterLocalChange(); }
         });
       });
-      on('zoom-in', () => this.setZoom(this.zoom.scale * 1.25));
-      on('zoom-out', () => this.setZoom(this.zoom.scale / 1.25));
+      on('zoom-in', () => (this.view3d ? this.view3d.zoom(1.25) : this.setZoom(this.zoom.scale * 1.25)));
+      on('zoom-out', () => (this.view3d ? this.view3d.zoom(1 / 1.25) : this.setZoom(this.zoom.scale / 1.25)));
       on('zoom-fit', () => this.fitZoom());
+      on('view-toggle', () => {
+        safeSet(VIEW_KEY, this.view3d ? '2d' : '3d');
+        this.buildBoard();
+        this.renderAll();
+      });
       this.mountPan();
 
       for (const order of R.ORDERS) {
@@ -479,6 +490,45 @@
       this.buildAreas();
       this.buildRegions();
       this.autoZoom();
+      this.mount3d();
+    }
+
+    /*
+      Объёмная карта. Она поднимается поверх уже построенной плоской: пока
+      three.js грузится, человек видит обычную карту, а если объём не
+      поднялся (нет WebGL, слабое устройство, сбой) — плоская так и остаётся.
+      Логика карты при этом одна: 3D читает классы областей из того же SVG.
+    */
+    mount3d() {
+      const K = window.Kingdoms3D;
+      const toggle = this.root.querySelector('[data-view-toggle]');
+      const can = Boolean(K?.supported()) && !this.no3d;
+      const want = can && safeGet(VIEW_KEY) !== '2d';
+      if (toggle) { toggle.hidden = !can; toggle.textContent = want ? '2D' : '3D'; }
+      if (!want) return;
+      const wrap = this.root.querySelector('.kd-map-wrap');
+      const scroll = this.root.querySelector('[data-scroll]');
+      const svg = this.root.querySelector('[data-svg]');
+      wrap?.classList.add('is-3d-loading');
+      K.load().then(() => {
+        if (!scroll?.isConnected || this.root.querySelector('[data-scroll]') !== scroll) return;
+        wrap.classList.add('kd-3d');
+        try {
+          this.view3d = K.mount({ scroll, svg, R: this.R, M: window.KingdomsMap, pos: this.pos,
+            regionCenter: this.regionCenter, onTap: (areaId) => this.tapArea(areaId) });
+          this.view3d.sync();
+        } catch (error) {
+          // Объём не поднялся — до конца захода остаётся плоская карта.
+          console.warn('Объёмная карта не поднялась, остаётся плоская:', error);
+          this.view3d = null;
+          this.no3d = true;
+          this.buildBoard();
+          this.renderAll();
+        }
+      }).catch((error) => {
+        console.warn('three.js не загрузился, остаётся плоская карта:', error);
+        if (toggle) toggle.textContent = '3D';
+      }).finally(() => wrap?.classList.remove('is-3d-loading'));
     }
 
     buildRegions() {
@@ -562,6 +612,7 @@
         this.zoom.y = Math.max(-maxY, Math.min(maxY, this.zoom.y));
       };
       const apply = () => {
+        if (this.view3d) return;
         clamp();
         svg.style.transform = `translate(${this.zoom.x}px,${this.zoom.y}px) scale(${this.zoom.scale})`;
       };
@@ -579,12 +630,13 @@
           scale: this.zoom.scale, x: this.zoom.x, y: this.zoom.y, moved: false };
       };
       scroll.addEventListener('pointerdown', (event) => {
+        if (this.view3d) return;
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (pointers.size <= 2) snapshot();
       });
       scroll.addEventListener('pointermove', (event) => {
-        if (!pointers.has(event.pointerId) || !gesture) return;
+        if (this.view3d || !pointers.has(event.pointerId) || !gesture) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         const points = [...pointers.values()];
         if (points.length > 2) return;
@@ -615,12 +667,14 @@
       scroll.addEventListener('pointerup', endDrag);
       scroll.addEventListener('pointercancel', endDrag);
       scroll.addEventListener('wheel', (event) => {
+        if (this.view3d) return;
         event.preventDefault();
         this.setZoom(this.zoom.scale * (event.deltaY < 0 ? 1.15 : 1 / 1.15), event.clientX, event.clientY);
       }, { passive: false });
     }
 
     setZoom(scale, clientX, clientY) {
+      if (this.view3d) { this.view3d.zoomTo(scale); return; }
       const rect = this.root.querySelector('[data-scroll]')?.getBoundingClientRect();
       const previous = this.zoom.scale;
       this.zoom.scale = Math.max(1, Math.min(3.2, scale));
@@ -635,12 +689,14 @@
     }
 
     fitZoom() {
+      if (this.view3d) { this.view3d.fit(); return; }
       this.zoom = { scale: 1, x: 0, y: 0 };
       this.applyZoom?.();
     }
 
     /* На маленьком экране слегка приближаем всю карту, сохраняя масштаб касания. */
     autoZoom() {
+      if (this.view3d) return;
       const scroll = this.root.querySelector('[data-scroll]');
       const rect = scroll?.getBoundingClientRect();
       if (!rect || !rect.width || !rect.height) { this.fitZoom(); return; }
@@ -671,6 +727,7 @@
       this.renderOrders();
       this.renderStatus();
       this.renderConfirm();
+      this.view3d?.sync();
     }
 
     renderHeader() {
@@ -816,7 +873,7 @@
         const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-22" y="-22" width="44" height="44"/>`;
         const force = known && this.R.orderOf(order.kind).force ? `<g class="kd-token-strength"><circle cx="26" cy="-25" r="12"/><text x="26" y="-20" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text></g>` : '';
         return `<g class="kd-token${mine ? ' is-mine' : ''}${scoutable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}"
-          data-token="${order.id}" style="--owner:${color}" transform="translate(${x},${y})">
+          data-token="${order.id}" data-wx="${x}" data-wy="${y}" style="--owner:${color}" transform="translate(${x},${y})">
           <circle class="kd-token-shadow" r="34"></circle><circle class="kd-token-face" r="30"></circle>${icon}${force}
         </g>`;
       }).join('');
@@ -1351,6 +1408,9 @@
 
   function safeGet(key) {
     try { return localStorage.getItem(key); } catch { return null; }
+  }
+  function safeSet(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* приватный режим — вид не запомнится */ }
   }
 
   /*

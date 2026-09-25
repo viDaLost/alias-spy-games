@@ -454,3 +454,28 @@
   .kd-token.is-demo-focus { animation: none; }
   .kd-teach-track span { transition: none; }
 }
+
+/*
+  ——— объёмная карта ———
+  Холст three.js лежит под SVG; SVG переходит в экранные координаты и держит
+  только маркеры, жетоны, подписи и нажимаемые связи. Картинки плоской карты
+  и контуры областей в объёме не нужны: их рисует сам рельеф.
+*/
+.kd-map-wrap.kd-3d .kd-map-scroll { background: #1d2927; cursor: grab; }
+.kd-3d-canvas { position: absolute; inset: 0; display: block; }
+.kd-map-wrap.kd-3d .kd-map {
+  position: absolute; inset: 0; transform: none !important; transition: none !important; pointer-events: none;
+}
+.kd-map-wrap.kd-3d .kd-ground, .kd-map-wrap.kd-3d .kd-area-art, .kd-map-wrap.kd-3d .kd-area-fill,
+.kd-map-wrap.kd-3d .kd-area-border-halo, .kd-map-wrap.kd-3d .kd-area-ring { display: none; }
+.kd-map-wrap.kd-3d .kd-area-marker, .kd-map-wrap.kd-3d .kd-token { pointer-events: auto; cursor: pointer; }
+.kd-map-wrap.kd-3d .kd-area-marker { filter: drop-shadow(0 3px 4px #0009); }
+.kd-map-wrap.kd-3d .kd-edge { opacity: 0; pointer-events: none; }
+.kd-map-wrap.kd-3d .kd-edge--ford { opacity: .75; }
+.kd-map-wrap.kd-3d .kd-edge.is-eligible, .kd-map-wrap.kd-3d .kd-edge.is-demo-focus { opacity: 1; pointer-events: stroke; }
+.kd-map-wrap.kd-3d .kd-region-label { font-size: 30px; paint-order: stroke; stroke: #1b1409cc; stroke-width: 5px; fill: #f6e7c3; }
+.kd-map-wrap.is-3d-loading .kd-map-scroll::after {
+  content: 'Raising the map…'; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  padding: 6px 12px; border-radius: 999px; background: #0008; color: #fff; font-size: 12px; pointer-events: none;
+}
+.kd-map-wrap.kd-3d .kd-map.kd-far .kd-area-name, .kd-map-wrap.kd-3d .kd-map.kd-far .kd-region { display: none; }

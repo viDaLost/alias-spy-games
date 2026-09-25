@@ -93,7 +93,11 @@ async function roleContext({ width, height, admin }) {
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
   await page.evaluate(() => {
-    try { localStorage.setItem('game_rules_seen_v1', JSON.stringify({ kingdoms: Date.now() })); } catch { /* приватный режим */ }
+    try {
+      localStorage.setItem('game_rules_seen_v1', JSON.stringify({ kingdoms: Date.now() }));
+      // Здесь проверяется плоская карта; объёмную проверяет check-kingdoms-3d.mjs.
+      localStorage.setItem('kingdoms_view_v1', '2d');
+    } catch { /* приватный режим */ }
   });
   return { context, page, errors };
 }

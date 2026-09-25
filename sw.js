@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '2716de9298';
+const VERSION = '38b6917a2c';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -55,6 +55,7 @@ const PRECACHE = [
   'web/games/kingdoms-rules.js',
   'web/games/kingdoms.css',
   'web/games/kingdoms.js',
+  'web/games/kingdoms3d.js',
   'web/games/moses-nile-v7/PACKAGE.txt',
   'web/games/moses-nile-v7/index.html',
   'web/games/moses-nile-v7/js/assets.js',

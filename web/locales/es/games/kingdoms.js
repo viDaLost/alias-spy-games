@@ -18,9 +18,10 @@
     'web/locales/es/games/kingdoms-engine.js',
     'web/locales/es/games/kingdoms-bots.js',
     'web/locales/es/games/kingdoms-online.js',
+    'web/locales/es/games/kingdoms3d.js',
   ];
   const STYLE = 'web/locales/es/games/kingdoms.css';
-  const VERSION = '4-combat-hand';
+  const VERSION = '5-diorama';
   const AREA_ART = {
     'dolina-ccw': 'web/assets/kingdoms/areas/dolina-ccw.webp',
     'dolina-cw': 'web/assets/kingdoms/areas/dolina-cw.webp',
@@ -65,6 +66,8 @@
     'scout': 'web/assets/kingdoms/orders/scout.webp',
   };
   const SAVE_KEY = 'kd_campaign_v3';
+  // Вид карты: объёмная диорама или плоская карта. Выбор человека помнится.
+  const VIEW_KEY = 'kingdoms_view_v1';
 
   function loadPart(file) {
     return new Promise((resolve, reject) => {
@@ -371,6 +374,8 @@
     /* ——— каркас доски ——— */
     buildBoard() {
       const R = this.R;
+      this.view3d?.destroy();
+      this.view3d = null;
       this.root.innerHTML = `
         <div class="kd-wrap">
           <header class="kd-header">
@@ -380,7 +385,7 @@
             </div>
             <div class="kd-header-right">
               <span class="kd-objective" data-objective></span>
-              ${this.net ? '' : '<button type="button" class="kd-icon-btn" data-tutorial-open title="Tutorial" aria-label="Tutorial">?</button>'}\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Menú principal">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
+              ${this.net ? '' : '<button type="button" class="kd-icon-btn" data-tutorial-open title="Tutorial" aria-label="Tutorial">?</button>'}\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Menú principal">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-view-toggle hidden title="Cambiar vista del mapa">2D</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
                   <image href="${window.KingdomsMap.base}" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-areas></g>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancelar</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n            <section class="kd-teach" data-teach hidden aria-live="polite">\n              <div class="kd-teach-progress"><span data-teach-count></span><span>ЦАРСТВА · TUTORIAL</span></div>\n              <div class="kd-teach-track"><span data-teach-progress></span></div>\n              <h3 data-teach-title></h3>\n              <p data-teach-text></p>\n              <div class="kd-teach-hand" data-teach-hand hidden></div>\n              <p class="kd-teach-hint" data-teach-hint></p>\n              <div class="kd-teach-actions">\n                <button type="button" class="kd-btn kd-btn--ghost" data-teach-back>Atrás</button>\n                <button type="button" class="kd-btn" data-teach-next>Siguiente</button>\n              </div>\n              <button type="button" class="kd-teach-skip" data-teach-skip>Saltar el tutorial</button>\n            </section>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
 
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`)?.addEventListener('click', fn);
@@ -401,9 +406,14 @@
           else { this.E.skipTurn(this.state, this.you); this.afterLocalChange(); }
         });
       });
-      on('zoom-in', () => this.setZoom(this.zoom.scale * 1.25));
-      on('zoom-out', () => this.setZoom(this.zoom.scale / 1.25));
+      on('zoom-in', () => (this.view3d ? this.view3d.zoom(1.25) : this.setZoom(this.zoom.scale * 1.25)));
+      on('zoom-out', () => (this.view3d ? this.view3d.zoom(1 / 1.25) : this.setZoom(this.zoom.scale / 1.25)));
       on('zoom-fit', () => this.fitZoom());
+      on('view-toggle', () => {
+        safeSet(VIEW_KEY, this.view3d ? '2d' : '3d');
+        this.buildBoard();
+        this.renderAll();
+      });
       this.mountPan();
 
       for (const order of R.ORDERS) {
@@ -423,6 +433,45 @@
       this.buildAreas();
       this.buildRegions();
       this.autoZoom();
+      this.mount3d();
+    }
+
+    /*
+      Объёмная карта. Она поднимается поверх уже построенной плоской: пока
+      three.js грузится, человек видит обычную карту, а если объём не
+      поднялся (нет WebGL, слабое устройство, сбой) — плоская так и остаётся.
+      Логика карты при этом одна: 3D читает классы областей из того же SVG.
+    */
+    mount3d() {
+      const K = window.Kingdoms3D;
+      const toggle = this.root.querySelector('[data-view-toggle]');
+      const can = Boolean(K?.supported()) && !this.no3d;
+      const want = can && safeGet(VIEW_KEY) !== '2d';
+      if (toggle) { toggle.hidden = !can; toggle.textContent = want ? '2D' : '3D'; }
+      if (!want) return;
+      const wrap = this.root.querySelector('.kd-map-wrap');
+      const scroll = this.root.querySelector('[data-scroll]');
+      const svg = this.root.querySelector('[data-svg]');
+      wrap?.classList.add('is-3d-loading');
+      K.load().then(() => {
+        if (!scroll?.isConnected || this.root.querySelector('[data-scroll]') !== scroll) return;
+        wrap.classList.add('kd-3d');
+        try {
+          this.view3d = K.mount({ scroll, svg, R: this.R, M: window.KingdomsMap, pos: this.pos,
+            regionCenter: this.regionCenter, onTap: (areaId) => this.tapArea(areaId) });
+          this.view3d.sync();
+        } catch (error) {
+          // Объём не поднялся — до конца захода остаётся плоская карта.
+          console.warn('Объёмная карта не поднялась, остаётся плоская:', error);
+          this.view3d = null;
+          this.no3d = true;
+          this.buildBoard();
+          this.renderAll();
+        }
+      }).catch((error) => {
+        console.warn('three.js не загрузился, остаётся плоская карта:', error);
+        if (toggle) toggle.textContent = '3D';
+      }).finally(() => wrap?.classList.remove('is-3d-loading'));
     }
 
     buildRegions() {
@@ -506,6 +555,7 @@
         this.zoom.y = Math.max(-maxY, Math.min(maxY, this.zoom.y));
       };
       const apply = () => {
+        if (this.view3d) return;
         clamp();
         svg.style.transform = `translate(${this.zoom.x}px,${this.zoom.y}px) scale(${this.zoom.scale})`;
       };
@@ -523,12 +573,13 @@
           scale: this.zoom.scale, x: this.zoom.x, y: this.zoom.y, moved: false };
       };
       scroll.addEventListener('pointerdown', (event) => {
+        if (this.view3d) return;
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (pointers.size <= 2) snapshot();
       });
       scroll.addEventListener('pointermove', (event) => {
-        if (!pointers.has(event.pointerId) || !gesture) return;
+        if (this.view3d || !pointers.has(event.pointerId) || !gesture) return;
         pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
         const points = [...pointers.values()];
         if (points.length > 2) return;
@@ -559,12 +610,14 @@
       scroll.addEventListener('pointerup', endDrag);
       scroll.addEventListener('pointercancel', endDrag);
       scroll.addEventListener('wheel', (event) => {
+        if (this.view3d) return;
         event.preventDefault();
         this.setZoom(this.zoom.scale * (event.deltaY < 0 ? 1.15 : 1 / 1.15), event.clientX, event.clientY);
       }, { passive: false });
     }
 
     setZoom(scale, clientX, clientY) {
+      if (this.view3d) { this.view3d.zoomTo(scale); return; }
       const rect = this.root.querySelector('[data-scroll]')?.getBoundingClientRect();
       const previous = this.zoom.scale;
       this.zoom.scale = Math.max(1, Math.min(3.2, scale));
@@ -579,12 +632,14 @@
     }
 
     fitZoom() {
+      if (this.view3d) { this.view3d.fit(); return; }
       this.zoom = { scale: 1, x: 0, y: 0 };
       this.applyZoom?.();
     }
 
     /* На маленьком экране слегка приближаем всю карту, сохраняя масштаб касания. */
     autoZoom() {
+      if (this.view3d) return;
       const scroll = this.root.querySelector('[data-scroll]');
       const rect = scroll?.getBoundingClientRect();
       if (!rect || !rect.width || !rect.height) { this.fitZoom(); return; }
@@ -615,6 +670,7 @@
       this.renderOrders();
       this.renderStatus();
       this.renderConfirm();
+      this.view3d?.sync();
     }
 
     renderHeader() {
@@ -760,7 +816,7 @@
         const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-22" y="-22" width="44" height="44"/>`;
         const force = known && this.R.orderOf(order.kind).force ? `<g class="kd-token-strength"><circle cx="26" cy="-25" r="12"/><text x="26" y="-20" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text></g>` : '';
         return `<g class="kd-token${mine ? ' is-mine' : ''}${scoutable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}"
-          data-token="${order.id}" style="--owner:${color}" transform="translate(${x},${y})">
+          data-token="${order.id}" data-wx="${x}" data-wy="${y}" style="--owner:${color}" transform="translate(${x},${y})">
           <circle class="kd-token-shadow" r="34"></circle><circle class="kd-token-face" r="30"></circle>${icon}${force}
         </g>`;
       }).join('');
@@ -1287,6 +1343,9 @@
 
   function safeGet(key) {
     try { return localStorage.getItem(key); } catch { return null; }
+  }
+  function safeSet(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* приватный режим — вид не запомнится */ }
   }
 
   /*

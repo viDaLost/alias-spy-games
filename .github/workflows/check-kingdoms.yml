@@ -28,6 +28,10 @@ jobs:
         run: node scripts/check-kingdoms-browser.mjs
         env:
           KINGDOMS_SCREENSHOTS: /tmp/kingdoms-screenshots
+      - name: Test the 3D diorama map
+        run: node scripts/check-kingdoms-3d.mjs
+        env:
+          KINGDOMS_SCREENSHOTS: /tmp/kingdoms-screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:

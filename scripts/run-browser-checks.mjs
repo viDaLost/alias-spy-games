@@ -80,6 +80,7 @@ const CHECKS = [
   'check-bot-start-promo.mjs',
   'check-twelve-tribes-browser.mjs',
   'check-twelve-tribes-online.mjs',
+  'check-kingdoms-3d.mjs',
 ];
 
 /** Те, кого нельзя запускать рядом с соседями. Почему — сказано выше. */
