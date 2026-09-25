@@ -1029,10 +1029,32 @@ try {
       и это видно в пикселях: между «карта на столе» и «карта вернулась в
       колоду» кадр обязан измениться. Иначе полёт есть только на словах.
     */
-    if (label.trim() === 'Принять' && !card) {
+    /*
+      «Принять» — не только карта: той же кнопкой принимают и договор соседа,
+      а на столе тогда никакой карты нет. Прежде проверка брала любое «Принять»
+      за карту и сравнивала два одинаковых кадра — 0,00 % (CI на 973c428 и
+      раньше). Теперь карта — это карта: её подтверждает сама сцена.
+    */
+    const cardOnTable = label.trim() === 'Принять' && !card
+      && await page.evaluate(() => window.PromisedLandGame?.state().pending?.type === 'card');
+    if (cardOnTable) {
+      /*
+        Снимки — только когда карта стоит. Кнопка «Принять» появляется, пока
+        карта ещё летит из колоды, а на загруженной сборочной машине и обратный
+        полёт не укладывался в прежнюю паузу в 1,1 с: снимок ловил карту на
+        полпути (0,57 %). Теперь проверка ждёт, пока карта ляжет и в сцене не
+        останется анимаций, и так же — пока она не вернётся в колоду.
+      */
+      const settled = (onTable) => page.waitForFunction((want) => {
+        const now = window.PromisedLandScene?.stats();
+        return now && now.moving === 0 && now.card === want;
+      }, onTable, { timeout: 15_000, polling: 100 }).catch(() => {});
+      await settled(true);
+      await page.waitForTimeout(150);
       const out = await snap(page, path.join(shots, 'card-out.png'));
       await primary.click({ timeout: 4_000 });
-      await page.waitForTimeout(1100);
+      await settled(false);
+      await page.waitForTimeout(150);
       const back = await snap(page, path.join(shots, 'card-back.png'));
       card = { gone: differ(out.file, back.file, true) };
       continue;
