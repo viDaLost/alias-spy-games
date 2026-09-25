@@ -46,7 +46,7 @@ const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
 assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedNativeRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
 
-// Android 3.0.6 uses the exact production Web catalog copied into the APK after
+// Android 3.0.7 uses the exact production Web catalog copied into the APK after
 // the encrypted native OTP gate. WebViewAssetLoader serves those packaged bytes
 // from Android's private HTTPS appassets origin. This gives Web/Android feature
 // parity without using GitHub Pages as an origin alias or runtime dependency.
@@ -99,13 +99,35 @@ for (const name of ['bible', 'fish', 'dove', 'candle', 'crown', 'ark', 'bread', 
 assert(matchThree.includes('assets/biblical-match-three/board-background-v35.webp'), 'APK Biblical Treasures package does not use the real board texture');
 assert(exists('web/assets/biblical-match-three/board-background-v35.webp'), 'source board texture is missing');
 
+/*
+  Каждый сервер игры, к которому обращается приложение, обязан пускать адрес
+  APK. Игра в Android раздаётся из самого пакета под appassets.androidplatform.net,
+  и сервер, знающий только сайт, отвечает ей чужим CORS-заголовком — браузер
+  внутри приложения такой ответ отбрасывает. Так в Android молча не работали
+  сетевые «Двенадцать колен»: карточка есть, игра открывается, комната — нет.
+*/
+const shell = read('index.html');
+const gameHosts = [...shell.matchAll(/<meta name="([a-z-]+-(?:backend|app))" content="https:\/\/([a-z0-9-]+)\.vitaledanilov\.workers\.dev\/?"/g)]
+  .map((match) => ({ meta: match[1], worker: match[2] }));
+assert(gameHosts.length >= 5, `index.html lists only ${gameHosts.length} game servers — the pattern no longer matches`);
+const workerConfigs = fs.readdirSync('cloudflare', { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && exists(`cloudflare/${entry.name}/wrangler.jsonc`))
+  .map((entry) => read(`cloudflare/${entry.name}/wrangler.jsonc`));
+for (const { meta, worker } of gameHosts) {
+  const config = workerConfigs.find((text) => text.includes(`"name": "${worker}"`));
+  if (!config) continue;
+  const origins = config.match(/"ALLOWED_ORIGINS": "([^"]+)"/)?.[1] || '';
+  assert(origins.split(',').includes('https://appassets.androidplatform.net'),
+    `${worker} (${meta}) does not allow the APK origin — the game breaks inside the Android app`);
+}
+
 const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
 const releaseWorkflow = read('.github/workflows/build-android-apk.yml');
-assert(gradle.includes('versionCode 33') && gradle.includes("versionName '3.0.6-standalone'"), 'APK version must be 3.0.6-standalone (33)');
+assert(gradle.includes('versionCode 34') && gradle.includes("versionName '3.0.7-standalone'"), 'APK version must be 3.0.7-standalone (34)');
 assert(gradle.includes("implementation 'androidx.webkit:webkit:1.14.0'"), 'APK is missing the Kotlin-compatible AndroidX WebKit');
 assert(androidMenu.includes('BibleGames-Android-latest.apk'), 'Web download menu does not point to the stable latest APK');
-assert(releaseWorkflow.includes('BibleGames-Android-3.0.6-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.6 standalone APK');
+assert(releaseWorkflow.includes('BibleGames-Android-3.0.7-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.7 standalone APK');
 assert(releaseWorkflow.includes('BibleGames-Android-latest.apk'), 'Android release workflow does not publish the stable latest APK alias');
 
 console.log(`Web/Android parity passed: standalone bundled Web UI with ${webRoutes.size} routes + ${androidRoutes.size} packaged native compatibility routes, with no GitHub Pages runtime origin.`);

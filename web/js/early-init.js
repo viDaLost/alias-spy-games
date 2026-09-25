@@ -16,7 +16,7 @@
 
 (() => {
   'use strict';
-  const VERSION = '1';
+  const VERSION = '2';
   const STYLE_HREF = `web/styles/game-entry-loader.css?v=${VERSION}`;
   const SCRIPT_SRC = `web/js/game-entry-loader.js?v=${VERSION}`;
 

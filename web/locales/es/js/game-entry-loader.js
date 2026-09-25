@@ -115,6 +115,9 @@
   let statusTimer = 0;
   let maxTimer = 0;
   let exitTimer = 0;
+  // Номер входа в игру. Уход заставки растянут во времени, и его отложенная
+  // уборка должна трогать только свой вход, а не тот, что успел начаться следом.
+  let entry = 0;
 
   function getContainer() {
     return document.getElementById('game-container');
@@ -202,15 +205,24 @@
     const delay = immediate ? 0 : Math.max(0, MIN_VISIBLE_MS - elapsed);
 
     if (exitTimer) return;
+    const leaving = entry;
     exitTimer = window.setTimeout(() => {
       exitTimer = 0;
-      if (!root || activeKey !== key) return;
+      if (!root || activeKey !== key || entry !== leaving) return;
       root.classList.add('is-leaving');
       root.classList.remove('is-active');
       root.setAttribute('aria-hidden', 'true');
       document.documentElement.classList.remove('game-entry-loading');
+      /*
+        Уборка — только своего входа. Раньше она гасила таймеры и наблюдатель
+        без разбора: вышел из «Земли обетованной» и за эти доли секунды открыл
+        «Двенадцать колен» — уборка ушедшей игры убивала таймеры новой, вместе
+        со страховочным MAX_VISIBLE_MS, и заставка оставалась поверх стола
+        навсегда, перехватывая каждое нажатие.
+      */
       window.setTimeout(() => {
-        if (activeKey === key) activeKey = '';
+        if (entry !== leaving) return;
+        activeKey = '';
         disconnectContainerObserver();
         clearRuntimeTimers();
       }, EXIT_MS + 30);
@@ -246,6 +258,7 @@
 
     clearRuntimeTimers();
     disconnectContainerObserver();
+    entry += 1;
     activeKey = key;
     startedAt = performance.now();
     mutationSeen = false;

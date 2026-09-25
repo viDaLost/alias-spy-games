@@ -1,5 +1,5 @@
 BibleGames Android release trigger
-version=3.0.6-standalone
-versionCode=33
+version=3.0.7-standalone
+versionCode=34
 requested=ea3dbdaed28b34a0f69423502dba13f79a754d9c
-reason=publish-bible-sketch-android-foreground-and-launcher-fix
+reason=publish-new-web-games-twelve-tribes-cors-and-entry-loader-fix

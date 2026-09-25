@@ -9,8 +9,10 @@
   "main": "src/index.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  // Тот же список, что у остальных воркеров: сайт, Android-приложение (оно
+  // раздаёт игру из APK под своим адресом appassets) и витрина.
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev",
     "ALLOW_GUESTS": "false"
   },
   "durable_objects": {

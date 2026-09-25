@@ -21,8 +21,12 @@
       "service": "alias-spy-games-core"
     }
   ],
+  // Тот же список, что у остальных воркеров: сайт, Android-приложение (оно
+  // раздаёт игру из APK под своим адресом appassets) и витрина. Без адреса
+  // APK браузер внутри приложения отбрасывал ответ комнаты, и сетевая партия
+  // в Android не начиналась.
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev",
     "ALLOW_GUESTS": "false"
   },
   "durable_objects": {

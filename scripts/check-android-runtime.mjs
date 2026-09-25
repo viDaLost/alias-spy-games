@@ -35,7 +35,7 @@ await context.addInitScript(() => {
     getTelegramId() { return '555555555'; },
     getSessionToken() { return 'bgs_android_runtime_test_token'; },
     isAndroidApp() { return true; },
-    getAppVersion() { return '3.0.6-standalone'; },
+    getAppVersion() { return '3.0.7-standalone'; },
     logout() {},
   };
 });

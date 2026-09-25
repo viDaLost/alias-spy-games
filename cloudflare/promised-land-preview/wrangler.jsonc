@@ -29,8 +29,11 @@
       "service": "alias-spy-games-core"
     }
   ],
+  // Панель администратора живёт в приложении, а в Android приложение
+  // раздаётся из APK под адресом appassets — его, как и витрину, панель
+  // должна иметь право спросить.
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io"
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev"
   },
   "durable_objects": {
     "bindings": [
