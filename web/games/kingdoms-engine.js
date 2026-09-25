@@ -52,7 +52,7 @@
       objectiveChoices: dealt[seat],
       objectiveId: null,
       ronin: false,
-      supply: Object.entries(R.TOKEN_SUPPLY).flatMap(([kind, count]) => Array(count).fill(kind)),
+      supply: R.supplyOf(kingdomId),
       hand: [],
       spent: 0,
       cards: R.startingCards(kingdomId),
@@ -465,15 +465,17 @@
       }
     };
 
-    // 3) поджоги: срабатывают, если рядом своя область или в самой области своя засада.
-    for (const raid of state.orders.filter((one) => one.kind === 'raid')) {
+    // 3) поджоги: срабатывают, если рядом своя область или в самой области своя засада;
+    //    «Набегу всадников» Кедема соседство не нужно.
+    for (const raid of state.orders.filter((one) => family(one.kind) === 'raid')) {
       if (!state.orders.includes(raid)) continue;
       const areaId = raid.area;
       const cell = state.areas[areaId];
       const near = R.neighborsOf(areaId).some((id) => state.areas[id].owner === raid.owner);
       const ambush = state.orders.some((one) => one.owner === raid.owner && family(one.kind) === 'ambush'
         && one.area === areaId && !one.to);
-      if ((!near && !ambush) || cell.special === 'peace' || cell.special === 'scorched') {
+      const anywhere = raid.kind === 'raider';
+      if ((!near && !ambush && !anywhere) || cell.special === 'peace' || cell.special === 'scorched') {
         removeOrder(state, raid, 'discard');
         events.push({ type: 'raidFailed', area: areaId, seat: raid.owner });
         continue;

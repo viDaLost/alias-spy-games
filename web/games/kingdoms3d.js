@@ -506,17 +506,47 @@
 
   // ————————————————————————————————————————————— сцена
 
-  function detectQuality(renderer) {
+  /*
+    Качество подбирается само, без настроек у игрока. На старте — по тому,
+    что устройство о себе говорит: видеочип (программная отрисовка и старые
+    мобильные чипы — «слабое»), память, ядра, режим экономии трафика. Потом —
+    по тому, как идут кадры (см. adapt в mount): если устройство не тянет,
+    качество снижается на ходу, а достигнутый уровень запоминается, и в
+    следующий раз карта сразу стартует с него.
+  */
+  const QUALITY_KEY = 'kd3d_quality_v1';
+  const LEVELS = ['low', 'mid', 'high'];
+  const lowest = (...levels) => LEVELS[Math.min(...levels.map((one) => Math.max(0, LEVELS.indexOf(one))))];
+  const WEAK_GPU = /mali-(4\d\d|t[678]\d\d)|adreno( \(tm\))? [2-4]\d\d|adreno( \(tm\))? 50\d|powervr sgx|powervr rogue ge8|gc\d{3,4}|videocore|intel.*(gma|hd graphics [2-4]\d{3}?\b)/i;
+  const MID_GPU = /mali-g(31|51|52|57|68|71|72|76)\b|adreno( \(tm\))? (5[1-9]\d|6[0-2]\d)|powervr|intel/i;
+  function rememberedQuality() {
+    try { return LEVELS.includes(localStorage.getItem(QUALITY_KEY)) ? localStorage.getItem(QUALITY_KEY) : 'high'; } catch { return 'high'; }
+  }
+  function rememberQuality(level) {
+    try { localStorage.setItem(QUALITY_KEY, level); } catch { /* приватный режим — просто не запомним */ }
+  }
+  function gpuName(renderer) {
     try {
       const gl = renderer.getContext();
       const info = gl.getExtension('WEBGL_debug_renderer_info');
-      const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
-      if (/swiftshader|llvmpipe|software/i.test(name)) return 'low';
-    } catch { /* нет сведений — считаем по железу */ }
+      return info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+    } catch { return ''; }
+  }
+  function detectQuality(renderer) {
+    const name = gpuName(renderer);
     const memory = navigator.deviceMemory || 4;
     const cores = navigator.hardwareConcurrency || 4;
-    if (memory <= 3 || cores <= 4) return 'mid';
-    return 'high';
+    const saveData = Boolean(navigator.connection?.saveData);
+    let level = 'high';
+    if (/swiftshader|llvmpipe|software/i.test(name) || WEAK_GPU.test(name) || memory <= 2 || cores <= 2) level = 'low';
+    else if (MID_GPU.test(name) || memory <= 3 || cores <= 4 || saveData) level = 'mid';
+    return lowest(level, rememberedQuality());
+  }
+  /** Устройство настолько слабое, что объём лучше не предлагать сразу: плоская карта по умолчанию. */
+  function prefersFlat() {
+    const memory = navigator.deviceMemory || 4;
+    const cores = navigator.hardwareConcurrency || 4;
+    return memory <= 1 || cores <= 1;
   }
 
   function mount(options) {
@@ -533,8 +563,10 @@
     scroll.insertBefore(canvas, scroll.firstChild);
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    const quality = options.quality || window.KD3D_QUALITY || detectQuality(renderer);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.6));
+    const forced = options.quality || window.KD3D_QUALITY;
+    const quality = forced || detectQuality(renderer);
+    let pixelRatio = Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'mid' ? 1.6 : 1.25);
+    renderer.setPixelRatio(pixelRatio);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.04;
@@ -957,7 +989,7 @@
       mesh.material = material;
       mesh.visible = true;
     };
-    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let breathing = false;
 
     mark('borders');
@@ -1231,7 +1263,7 @@
       SVG-жетон остаётся поверх как прозрачная зона нажатия (разведка
       выбирает жетон нажатием) и носит бирку силы.
     */
-    const ART = { march: 'march', navy: 'navy', ambush: 'ambush', bless: 'blessing', peace: 'peace', raid: 'raid', feint: 'feint' };
+    const ART = { march: 'march', navy: 'navy', ambush: 'ambush', bless: 'blessing', peace: 'peace', raid: 'raid', raider: 'raid', feint: 'feint' };
     const artFile = (kind) => `web/assets/kingdoms/orders/${ART[(kind.match(/^[a-z]+/) || ['closed'])[0]] || 'closed'}.webp`;
     const images = new Map();
     const artImage = (file) => {
@@ -1288,7 +1320,7 @@
     scene.add(tokenRoot);
     const tokens = new Map();
     /** Дуга-стрела от точки a к области toId: из соседней области или с воды. */
-    const arrowFor = (from, toId, color) => {
+    const arrowFor = (from, toId, color, style = {}) => {
       const a = typeof from === 'string' ? pos.get(from) : from; const b = pos.get(toId);
       if (!a || !b) return null;
       const ha = Math.max(heightAt(a.x, a.y), SEA_LEVEL) + 10;
@@ -1301,17 +1333,19 @@
       const lift = Math.max(ha, hb) + 26 + start.distanceTo(end) * 0.12;
       const control = start.clone().lerp(end, 0.5).setY(lift);
       const curve = new THREE.QuadraticBezierCurve3(start, control, end);
-      const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35,
-        roughness: 0.4, transparent: true, opacity: 0.92 });
+      const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: style.glow ?? 0.35,
+        roughness: 0.4, transparent: true, opacity: style.opacity ?? 0.92, depthWrite: style.opacity === undefined });
+      const shadows = renderer.shadowMap.enabled && !style.noShadow;
       const group = new THREE.Group();
-      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 2.4, 8, false), material);
-      tube.castShadow = renderer.shadowMap.enabled;
+      const radius = style.radius ?? 2.4;
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, quality === 'low' ? 14 : 28, radius, quality === 'low' ? 5 : 8, false), material);
+      tube.castShadow = shadows;
       group.add(tube);
-      const head = new THREE.Mesh(new THREE.ConeGeometry(6.5, 15, 14), material);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(Math.max(6.5, radius * 1.7), Math.max(15, radius * 3.6), 14), material);
       const tangent = curve.getTangent(1);
       head.position.copy(end).addScaledVector(tangent, 5);
       head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
-      head.castShadow = renderer.shadowMap.enabled;
+      head.castShadow = shadows;
       group.add(head);
       group.userData.dispose = () => { tube.geometry.dispose(); head.geometry.dispose(); material.dispose(); };
       return group;
@@ -1368,6 +1402,32 @@
         entry.side.emissiveIntensity = entry.top.emissiveIntensity = glow ? 0.55 : 0;
       }
       for (const id of [...tokens.keys()]) if (!seen.has(id)) removeToken(id);
+    };
+    /*
+      Подсказки атаки — те же дуги, что у жетонов, но призрачные: тонкие
+      бледные, пока жетон не выбран, и огненные, когда выбрано войско.
+      Экран кладёт их в SVG как [data-hint]; здесь они только отражаются.
+    */
+    const hints = new Map();
+    const syncHints = () => {
+      const want = new Set();
+      svg.querySelectorAll('[data-hint]').forEach((node) => {
+        want.add(`${node.dataset.from}|${node.dataset.to}|${node.classList.contains('is-strong') ? 1 : 0}`);
+      });
+      for (const [key, arrow] of hints) {
+        if (want.has(key)) continue;
+        tokenRoot.remove(arrow); arrow.userData.dispose(); hints.delete(key);
+      }
+      for (const key of want) {
+        if (hints.has(key)) continue;
+        const [from, to, strong] = key.split('|');
+        const arrow = strong === '1'
+          ? arrowFor(from, to, '#ff5a3c', { radius: 8, glow: 0.6, noShadow: true })
+          : arrowFor(from, to, '#fff3d6', { radius: 4.2, glow: 0.55, noShadow: true });
+        if (!arrow) continue;
+        tokenRoot.add(arrow);
+        hints.set(key, arrow);
+      }
     };
     function removeToken(id) {
       const entry = tokens.get(id);
@@ -1525,6 +1585,19 @@
       clampCam();
       animateTo({ x: p.x - CX, z: p.y - CY, tilt: Math.max(cam.tilt, 0.62),
         dist: Math.max(limits.minDist, (limits.maxDist / 1.12) / scale) }, 420);
+    };
+    /** Подлететь так, чтобы в кадр вошли все эти области («Владения»). */
+    const fitAreas = (ids) => {
+      const points = ids.map((id) => pos.get(id)).filter(Boolean);
+      if (!points.length) return;
+      const xs = points.map((p) => p.x); const ys = points.map((p) => p.y);
+      const x0 = Math.min(...xs); const x1 = Math.max(...xs); const y0 = Math.min(...ys); const y1 = Math.max(...ys);
+      const full = limits.maxDist / 1.12;
+      const span = Math.max(x1 - x0, y1 - y0) + 260;
+      atHome = false;
+      clampCam();
+      animateTo({ x: (x0 + x1) / 2 - CX, z: (y0 + y1) / 2 - CY, tilt: Math.max(cam.tilt, 0.62),
+        dist: Math.max(limits.minDist, Math.min(full, full * span / (2 * Math.max(CX, CY)))) }, 480);
     };
     const zoomTo = (scale) => {
       atHome = false;
@@ -1785,24 +1858,28 @@
         // Открытые жетоны контроля — стены вокруг поселения: каждая победа защитника прибавляет звено.
         const fortify = Number(group.dataset.veterans || 0);
         const special = group.dataset.special || '';
-        states.set(id, { owner, neutral: cls.contains('is-neutral'), mine: cls.contains('is-mine'), glow, fortify, special });
+        states.set(id, { owner, neutral: cls.contains('is-neutral'), mine: cls.contains('is-mine'), glow, fortify, special,
+          dim: cls.contains('is-dimmed'), owned: cls.contains('is-owned-focus') });
       }
       return states;
     };
     const applyAreaState = () => {
       const states = readAreaState();
       lastStates = states;
-      const signature = [...states].map(([id, s]) => `${id}:${s.owner}:${s.neutral}:${s.mine}:${s.glow}:${s.fortify}:${s.special}`).join('|');
+      const signature = [...states].map(([id, s]) => `${id}:${s.owner}:${s.neutral}:${s.mine}:${s.glow}:${s.fortify}:${s.special}:${s.dim}:${s.owned}`).join('|');
       if (signature === lastSignature) return false;
       lastSignature = signature;
       const perArea = world.sites.map((site) => {
         const s = states.get(site.id) || { owner: '', neutral: true, glow: 'none' };
         const ownerColor = new THREE.Color(s.neutral || !s.owner ? '#d8d2c4' : s.owner);
         let tint = ownerColor.clone().convertSRGBToLinear();
-        let strength = s.neutral ? 0 : s.mine ? 0.5 : 0.42;
+        let strength = s.neutral ? 0 : s.mine ? 0.6 : 0.42;
         // Пепелище — выжженная земля, мир — светлая, будто под покровом.
         if (s.special === 'scorched') { tint = new THREE.Color('#2a2420').convertSRGBToLinear(); strength = 0.72; }
         if (s.special === 'peace') { tint = tint.clone().lerp(new THREE.Color(1, 0.97, 0.88), 0.6); strength = Math.max(strength, 0.4); }
+        // «Владения»: чужие для выбранного игрока земли уходят в сумрак, его собственные остаются в цвете.
+        if (s.dim) { tint = new THREE.Color('#161a1d').convertSRGBToLinear(); strength = 0.62; }
+        if (s.owned) strength = Math.max(strength, 0.62);
         return { s, ownerColor, tint, strength, glow: GLOW[s.glow] };
       });
       for (let k = 0; k < vertexCount; k += 1) {
@@ -1819,7 +1896,7 @@
       breathing = false;
       for (const [id, s] of states) {
         const material = s.glow === 'resolving' ? clashMat : s.glow === 'selected' ? selectMat
-          : s.glow === 'eligible' || s.glow === 'focus' ? (s.mine ? sourceMat : targetMat) : null;
+          : s.glow === 'eligible' || s.glow === 'focus' ? (s.mine ? sourceMat : targetMat) : s.owned ? sourceMat : null;
         setRim(id, material);
         if (material === targetMat || material === sourceMat) breathing = true;
       }
@@ -1841,6 +1918,55 @@
     };
 
     // ————————————————————————————————————————— кадр
+
+    /*
+      Подстройка на ходу. Кадры рисуются только когда что-то движется, так
+      что меряется промежуток между кадрами подряд (не больше 250 мс — дольше
+      значит, карта просто стояла). По сорок кадров: если середина медленнее
+      ~24 кадров в секунду, делается шаг вниз —
+        1) меньше точек на экран (чёткость ниже, скорость выше всего);
+        2) без теней;
+        3) ещё меньше точек и без «дыхания» подсветки;
+        4) если и так не тянет — плоская карта (onTooSlow), если качество не задано явно.
+      Достигнутый уровень запоминается для следующего запуска.
+    */
+    let tier = 0;
+    const samples = [];
+    let lastFrameAt = 0;
+    const SLOW_MS = 42;
+    const stepDown = () => {
+      tier += 1;
+      if (tier === 1) {
+        pixelRatio = Math.min(pixelRatio, 1);
+        renderer.setPixelRatio(pixelRatio);
+        if (quality === 'high') rememberQuality('mid');
+      } else if (tier === 2) {
+        if (renderer.shadowMap.enabled) {
+          renderer.shadowMap.enabled = false;
+          sun.castShadow = false;
+          scene.traverse((node) => {
+            const list = Array.isArray(node.material) ? node.material : node.material ? [node.material] : [];
+            for (const material of list) material.needsUpdate = true;
+          });
+        }
+        rememberQuality('low');
+      } else if (tier === 3) {
+        pixelRatio = Math.min(pixelRatio, 0.75);
+        renderer.setPixelRatio(pixelRatio);
+        calm = true;
+      } else if (tier === 4 && !forced) {
+        options.onTooSlow?.();
+      }
+      resize();
+    };
+    const adapt = (delta) => {
+      if (tier >= 4 || !(delta > 0) || delta > 250) return;
+      samples.push(delta);
+      if (samples.length < 40) return;
+      const middle = [...samples].sort((a, b) => a - b)[20];
+      samples.length = 0;
+      if (middle > SLOW_MS) stepDown();
+    };
 
     let frameRequested = false;
     let disposed = false;
@@ -1875,6 +2001,10 @@
       }
       renderer.render(scene, camera);
       frames += 1;
+      // Проверки на программной отрисовке выключают подстройку (KD3D_ADAPT = false), чтобы
+      // медленный CI не менял картинку посреди замеров; её саму проверяют через adaptFrames.
+      if (lastFrameAt && window.KD3D_ADAPT !== false) adapt(now - lastFrameAt);
+      lastFrameAt = now;
       updateOverlay();
     }
 
@@ -1882,6 +2012,7 @@
       collectOverlay();
       applyAreaState();
       syncTokens();
+      syncHints();
       invalidate();
     };
 
@@ -1910,6 +2041,8 @@
       scroll.removeEventListener('wheel', onWheel);
       scroll.removeEventListener('contextmenu', onContext);
       for (const id of [...tokens.keys()]) removeToken(id);
+      for (const arrow of hints.values()) arrow.userData.dispose();
+      hints.clear();
       scene.traverse((node) => {
         if (node.isInstancedMesh) node.dispose?.();
       });
@@ -1930,12 +2063,19 @@
       zoom,
       zoomTo,
       focusArea,
+      fitAreas,
       setInsets,
+      /** Для проверок: скормить подстройке кадры заданной длины, как будто они были. */
+      adaptFrames: (ms, count = 40) => { for (let i = 0; i < count; i += 1) adapt(ms); return tier; },
       destroy,
       invalidate,
       /** Для проверок: что нарисовано и сколько это стоит. */
       info: () => ({
         quality,
+        tier,
+        pixelRatio,
+        shadows: renderer.shadowMap.enabled,
+        hints: [...hints.keys()],
         frames,
         calls: renderer.info.render.calls,
         triangles: renderer.info.render.triangles,
@@ -1967,5 +2107,5 @@
     };
   }
 
-  window.Kingdoms3D = { supported, load, mount, buildWorld };
+  window.Kingdoms3D = { supported, load, mount, buildWorld, prefersFlat, detectQuality };
 })();

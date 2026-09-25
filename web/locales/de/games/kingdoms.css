@@ -254,9 +254,20 @@
 .kd-hero > span { color: #f1d9a1; font-size: 10px; font-weight: 800; letter-spacing: .22em; }
 .kd-hero h2 { font-family: Georgia,serif; font-size: clamp(48px,8vw,78px); color: #fff2d6; letter-spacing: .04em; margin: 4px 0; }
 .kd-hero p { color: #f2e4c7; }
-.kd-kingdom-preview { display: flex; gap: 10px; justify-content: space-around; padding: 12px 0; border-block: 1px solid #bc9d6033; }
-.kd-kingdom-preview > div { flex: 1; text-align: center; max-width: 115px; }
-.kd-kingdom-preview small { display: block; font-size: 10px; line-height: 1.3; color: #c3b697; }
+/* Выбор царства: лента карточек со свайпом, выбранная — в цвете царства. */
+.kd-clan-note { margin: 0 0 8px; font-size: 11px; line-height: 1.4; color: #c3b697; }
+.kd-clans { padding: 12px 0; border-block: 1px solid #bc9d6033; }
+.kd-clans-title { display: block; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #cba768; margin-bottom: 8px; }
+.kd-clan-list { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+.kd-clan { flex: 0 0 min(250px, 78%); scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; text-align: left;
+  border: 1px solid #c3a26540; border-top: 4px solid var(--owner); border-radius: 14px; padding: 10px; background: #202d2c; color: inherit; font: inherit; cursor: pointer; }
+.kd-clan[aria-checked="true"] { background: #3a4438; box-shadow: 0 0 0 2px var(--owner), 0 6px 18px #0006; }
+.kd-clan-head { display: flex; gap: 9px; align-items: center; }
+.kd-clan-head b { display: block; font-size: 14px; }
+.kd-clan-head small, .kd-clan-trait { display: block; font-size: 11px; line-height: 1.4; color: #c3b697; }
+.kd-clan-trait em { display: block; font-style: normal; font-weight: 700; color: #e4c57f; }
+.kd-clan-token { display: flex; gap: 8px; align-items: flex-start; }
+.kd-clan-token .kd-order-icon { width: 34px; height: 34px; flex-shrink: 0; }
 .kd-emblem { object-fit: contain; border-radius: 50%; flex-shrink: 0; }
 .kd-header { min-height: 50px; }
 .kd-header-round b { color: #f2d99e; font-family: Georgia,serif; font-size: 18px; }
@@ -561,6 +572,7 @@ html.kd-stage-on .rules-help { top: calc(max(env(safe-area-inset-top, 0px), var(
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid #ffffff17; box-shadow: 0 -8px 28px #0006;
 }
 .kd-wrap.kd-stage .kd-panel-heading { display: none; }
+.kd-wrap.kd-stage .kd-clan-note { display: none; }
 .kd-wrap.kd-stage .kd-orders {
   display: flex; grid-template-columns: none; gap: 8px; overflow-x: auto; overflow-y: hidden;
   padding: 4px 2px 2px; scroll-snap-type: x proximity; scrollbar-width: none; order: 1;
@@ -622,7 +634,11 @@ html.kd-stage-on .rules-help { top: calc(max(env(safe-area-inset-top, 0px), var(
   }
   .kd-wrap.kd-stage .kd-standing { padding: 3px 8px 3px 4px; }
   .kd-wrap.kd-stage .kd-standing .kd-emblem { width: 20px; height: 20px; }
-  .kd-wrap.kd-stage .kd-map-toolbar { top: calc(var(--kd-top) + 58px); }
+  .kd-wrap.kd-stage .kd-map-toolbar { top: calc(var(--kd-top) + 58px); gap: 5px; }
+  /* Боком высоты мало: пять кнопок столбика мельче, чтобы не заходить на ленту руки. */
+  .kd-wrap.kd-stage .kd-map-toolbar button { width: 34px; height: 34px; min-height: 34px; font-size: 15px; }
+  /* «Мои владения» — рядом с «+», слева от столбика: снизу его место занимает лента руки. */
+  .kd-wrap.kd-stage .kd-map-toolbar [data-mine] { position: absolute; top: 0; right: calc(100% + 6px); width: auto; font-size: 11px; padding: 0 10px; white-space: nowrap; }
   .kd-wrap.kd-stage .kd-panel {
     left: 8px; right: 8px; width: auto; top: auto; bottom: calc(var(--kd-bottom) + 6px);
     max-height: none; overflow: visible; padding: 6px 8px; border-radius: 18px;
@@ -676,3 +692,33 @@ html.kd-stage-on .rules-help { top: calc(max(env(safe-area-inset-top, 0px), var(
 .kd-objective-card b { font-size: 15px; color: #f1d291; }
 .kd-objective-card span { font-size: 13px; line-height: 1.4; opacity: .85; }
 .kd-objective-card:active { transform: scale(.98); }
+
+/*
+  Свои земли и куда бить. Над маркером своей области — бирка «ВЫ» в своём
+  цвете; стрелки показывают законные атаки войском: тонкие, пока жетон не
+  выбран, яркие и бегущие — когда выбран. В объёме стрелки рисует сцена
+  дугами, а плоские прячутся.
+*/
+.kd-area-you { display: none; pointer-events: none; }
+.kd-map-wrap.kd-3d .kd-area-you { filter: drop-shadow(0 3px 4px #0009); }
+.kd-area.is-mine .kd-area-you { display: inline; }
+.kd-area-you rect { fill: var(--owner); stroke: #f2d99e; stroke-width: 2.5; }
+.kd-area-you text { fill: #fff; font: 800 15px system-ui,sans-serif; letter-spacing: .04em; }
+.kd-hint { pointer-events: none; }
+.kd-hint line { stroke: #f2d99e; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 10 8; opacity: .6; fill: none; }
+.kd-hint.is-strong line { stroke: #ff5a3c; stroke-width: 7; opacity: .95; animation: kd-hint-flow 1s linear infinite; }
+#kd-hint-head path { fill: #f2d99e; }
+@keyframes kd-hint-flow { to { stroke-dashoffset: -36; } }
+.kd-map-wrap.kd-3d [data-hints] { display: none; }
+
+/* Владения одного игрока: его земли — в полном цвете и в золотой обводке, прочие притушены. */
+.kd-area.is-dimmed { opacity: .34; }
+.kd-area.is-owned-focus .kd-area-ring { stroke: #f2d99e; stroke-width: 6; }
+.kd-standing { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.kd-standing[aria-pressed="true"] { background: #3a4438; box-shadow: 0 0 0 2px var(--owner); }
+.kd-wrap .kd-map-toolbar [data-mine][aria-pressed="true"] { background: #3a4438; color: #f2d99e; border-color: #dec285; }
+.kd-wrap.kd-stage .kd-map-toolbar { align-items: flex-end; }
+.kd-wrap.kd-stage .kd-map-toolbar [data-mine] { width: auto; padding: 0 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .kd-hint.is-strong line { animation: none; }
+}

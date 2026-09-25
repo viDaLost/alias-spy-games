@@ -215,6 +215,7 @@
     constructor(container, net = null) {
       this.root = container;
       this.net = net;
+      this.focusSeat = null;
       this.R = window.KingdomsRules;
       this.E = window.KingdomsEngine;
       this.Bots = window.KingdomsBots;
@@ -259,7 +260,10 @@
               </div>
               <small class="kd-choice-note" data-count-note></small>
             </label>
-            <div class="kd-kingdom-preview" data-kingdom-preview></div>
+            <div class="kd-clans">
+              <span class="kd-clans-title">Ваше царство</span>
+              <div class="kd-clan-list" data-clans role="radiogroup" aria-label="Выбор царства"></div>
+            </div>
             <div class="kd-row">
               <button type="button" class="kd-btn" data-resume hidden>Продолжить партию</button>
               <button type="button" class="kd-btn" data-start>Начать</button>
@@ -286,10 +290,28 @@
       resume.hidden = !saved;
       if (saved) resume.textContent = `Continue · round ${saved.round}`;
       resume.addEventListener('click', () => this.resumeCampaign(saved));
-      this.root.querySelector('[data-kingdom-preview]').innerHTML = this.R.STARTING_LAYOUTS[5].map(id => {
-        const k = this.R.kingdomOf(id);
-        return `<div title="${escapeHTML(k.abilityText)}">${emblemHTML(k.emblem, 48)}<small>${escapeHTML(k.name)}</small></div>`;
+      /*
+        Выбор царства — как выбор клана в «Рокугане»: у каждого своя
+        способность и свой особый жетон. Выбор помнится между партиями;
+        соперники от игры берут остальные царства.
+      */
+      const clans = this.root.querySelector('[data-clans]');
+      this.clan = this.R.kingdomOf(safeGet('kd_clan')) ? safeGet('kd_clan') : this.R.STARTING_LAYOUTS[2][0];
+      clans.innerHTML = this.R.KINGDOMS.map((k) => {
+        const token = this.R.orderOf(k.clanToken);
+        return `<button type="button" class="kd-clan" role="radio" data-clan="${k.id}" style="--owner:${k.color}" aria-checked="${k.id === this.clan}">
+          <span class="kd-clan-head">${emblemHTML(k.emblem, 40)}<span><b>${escapeHTML(k.name)}</b><small>${escapeHTML(k.tagline)}</small></span></span>
+          <span class="kd-clan-trait"><em>Способность · ${escapeHTML(k.abilityTitle)}</em>${escapeHTML(k.abilityText)}</span>
+          <span class="kd-clan-trait kd-clan-token">${orderIconHTML(k.clanToken)}<span><em>Особый жетон · ${escapeHTML(token.title)}${token.force ? ` ${token.family === 'bless' ? '+' : ''}${token.force}` : ''}</em>${escapeHTML(token.text)}</span></span>
+        </button>`;
       }).join('');
+      clans.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-clan]');
+        if (!button) return;
+        this.clan = button.dataset.clan;
+        try { localStorage.setItem('kd_clan', this.clan); } catch { /* приватный режим */ }
+        for (const one of clans.querySelectorAll('[data-clan]')) one.setAttribute('aria-checked', String(one === button));
+      });
       this.root.querySelector('[data-start]').addEventListener('click', () => this.begin(this.playerCount));
       this.root.querySelector('[data-tutorial]').addEventListener('click', () => this.runTutorial());
       this.root.querySelector('[data-mode="online"]').addEventListener('click', () => {
@@ -309,12 +331,13 @@
     }
 
     begin(playerCount) {
-      const kingdomIds = this.R.STARTING_LAYOUTS[playerCount];
+      const kingdomIds = this.R.kingdomsFor(playerCount, [this.clan]);
       const players = kingdomIds.map((id, seat) => (seat === 0
         ? { name: 'You', isBot: false }
         : { name: this.R.kingdomOf(id).name, isBot: true, botLevel: 'captain' }));
       this.state = this.E.createGame({ kingdomIds, players });
       this.you = 0;
+      this.focusSeat = null;
       this.saveCampaign();
       this.refresh();
       this.buildBoard();
@@ -343,6 +366,7 @@
     }
 
     resumeCampaign(state) {
+      this.focusSeat = null;
       if (!state) return;
       stopTimers();
       this.state = state;
@@ -375,8 +399,8 @@
             </div>
             <div class="kd-header-right">
               <span class="kd-objective" data-objective></span>
-              ${this.net ? '' : '<button type="button" class="kd-icon-btn" data-tutorial-open title="Tutorial" aria-label="Tutorial">?</button>'}\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Main menu">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-view-toggle hidden title="Switch map view">2D</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
-                  <image href="${window.KingdomsMap.base}" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-areas></g>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancel</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n            <section class="kd-teach" data-teach hidden aria-live="polite">\n              <div class="kd-teach-progress"><span data-teach-count></span><span>ЦАРСТВА · TUTORIAL</span></div>\n              <div class="kd-teach-track"><span data-teach-progress></span></div>\n              <h3 data-teach-title></h3>\n              <p data-teach-text></p>\n              <div class="kd-teach-hand" data-teach-hand hidden></div>\n              <p class="kd-teach-hint" data-teach-hint></p>\n              <div class="kd-teach-actions">\n                <button type="button" class="kd-btn kd-btn--ghost" data-teach-back>Back</button>\n                <button type="button" class="kd-btn" data-teach-next>Next</button>\n              </div>\n              <button type="button" class="kd-teach-skip" data-teach-skip>Skip the tutorial</button>\n            </section>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
+              ${this.net ? '' : '<button type="button" class="kd-icon-btn" data-tutorial-open title="Tutorial" aria-label="Tutorial">?</button>'}\n              <button type="button" class="kd-icon-btn" data-log title="Журнал событий">☰</button>\n              <button type="button" class="kd-icon-btn" data-menu title="Main menu">✕</button>\n            </div>\n          </header>\n          <div class="kd-standings" data-standings></div>\n          <div class="kd-body">\n            <div class="kd-map-wrap">\n              <div class="kd-map-toolbar">\n                <button type="button" data-zoom-in aria-label="Приблизить">+</button>\n                <button type="button" data-zoom-out aria-label="Отдалить">–</button>\n                <button type="button" data-view-toggle hidden title="Switch map view">2D</button>\n                <button type="button" data-zoom-fit>Показать всю карту</button>\n                <button type="button" data-mine aria-pressed="false" title="Показать только ваши земли">⚑ Мои владения</button>\n              </div>\n              <div class="kd-map-scroll" data-scroll>\n                <svg class="kd-map" data-svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" xmlns="http://www.w3.org/2000/svg">
+                  <image href="${window.KingdomsMap.base}" width="900" height="940" preserveAspectRatio="xMidYMid slice" class="kd-ground"/>\n                  <g data-areas></g>\n                  <g data-regions></g>\n                  <g data-connections></g>\n                  <defs><marker id="kd-hint-head" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3.4" markerHeight="3.4" orient="auto"><path d="M0 0 10 5 0 10z"/></marker></defs>\n                  <g data-hints></g>\n                  <g data-tokens></g>\n                </svg>\n              </div>\n              <p class="kd-status" data-status></p>\n            </div>\n            <aside class="kd-panel">\n              <div class="kd-panel-heading"><span>ВОЕННЫЙ СОВЕТ</span><h3>Ваши приказы</h3></div>\n              <p class="kd-clan-note" data-clan-note></p>\n              <div class="kd-orders" data-orders></div>\n              <div class="kd-confirm" data-confirm hidden>\n                <p data-confirm-text></p>\n                <div class="kd-row">\n                  <button type="button" class="kd-btn" data-confirm-ok>Подтвердить</button>\n                  <button type="button" class="kd-btn kd-btn--ghost" data-confirm-cancel>Cancel</button>\n                </div>\n              </div>\n              <p class="kd-orders-left" data-orders-left></p>\n              <button type="button" class="kd-btn kd-btn--ghost" data-pass>Пропустить ход</button>\n              <button type="button" class="kd-btn kd-btn--ghost" data-skip-reveal hidden>Пропустить анимацию</button>\n              <div class="kd-intel" data-intel></div>\n            </aside>\n            <section class="kd-teach" data-teach hidden aria-live="polite">\n              <div class="kd-teach-progress"><span data-teach-count></span><span>ЦАРСТВА · TUTORIAL</span></div>\n              <div class="kd-teach-track"><span data-teach-progress></span></div>\n              <h3 data-teach-title></h3>\n              <p data-teach-text></p>\n              <div class="kd-teach-hand" data-teach-hand hidden></div>\n              <p class="kd-teach-hint" data-teach-hint></p>\n              <div class="kd-teach-actions">\n                <button type="button" class="kd-btn kd-btn--ghost" data-teach-back>Back</button>\n                <button type="button" class="kd-btn" data-teach-next>Next</button>\n              </div>\n              <button type="button" class="kd-teach-skip" data-teach-skip>Skip the tutorial</button>\n            </section>\n          </div>\n        </div>\n        <div class="kd-sheet-root" data-sheet-root></div>`;
 
       const on = (name, fn) => this.root.querySelector(`[data-${name}]`)?.addEventListener('click', fn);
       on('menu', () => {
@@ -399,6 +423,12 @@
       on('zoom-in', () => (this.view3d ? this.view3d.zoom(1.25) : this.setZoom(this.zoom.scale * 1.25)));
       on('zoom-out', () => (this.view3d ? this.view3d.zoom(1 / 1.25) : this.setZoom(this.zoom.scale / 1.25)));
       on('zoom-fit', () => this.fitZoom());
+      on('mine', () => this.toggleFocus(this.view?.you));
+      // Плашка игрока в счёте — показать его владения; повторное нажатие возвращает обычный вид.
+      this.root.querySelector('[data-standings]').addEventListener('click', (event) => {
+        const chip = event.target.closest('[data-focus-seat]');
+        if (chip) this.toggleFocus(Number(chip.dataset.focusSeat));
+      });
       on('view-toggle', () => {
         safeSet(VIEW_KEY, this.view3d ? '2d' : '3d');
         this.buildBoard();
@@ -497,7 +527,9 @@
         }
         // Боком кнопки карты — столбик справа: карта не должна уходить под них.
         const toolbar = this.root.querySelector('.kd-map-toolbar');
-        if (landscape && visible(toolbar)) right = scroll.right - toolbar.getBoundingClientRect().left + 6;
+        // Меряется по круглым кнопкам: плашка «Мои владения» шире их и может лечь на край карты.
+        const column = toolbar?.querySelector('[data-zoom-in]') || toolbar;
+        if (landscape && visible(toolbar)) right = scroll.right - column.getBoundingClientRect().left + 6;
         const teach = this.root.querySelector('[data-teach]');
         const dock = visible(teach) ? teach : this.root.querySelector('.kd-panel');
         let bottom = 0;
@@ -520,7 +552,9 @@
       const K = window.Kingdoms3D;
       const toggle = this.root.querySelector('[data-view-toggle]');
       const can = Boolean(K?.supported()) && !this.no3d;
-      const want = can && safeGet(VIEW_KEY) !== '2d';
+      // Очень слабому устройству объём не навязывается: плоская карта, пока игрок сам не выберет 3D.
+      const chosen = safeGet(VIEW_KEY);
+      const want = can && (chosen === '3d' || (chosen !== '2d' && !K.prefersFlat?.()));
       if (toggle) { toggle.hidden = !can; toggle.textContent = want ? '2D' : '3D'; }
       if (!want) return;
       const wrap = this.root.querySelector('.kd-map-wrap');
@@ -534,7 +568,14 @@
           this.enterStage();
           this.view3d = K.mount({ scroll, svg, R: this.R, M: window.KingdomsMap, pos: this.pos,
             regionCenter: this.regionCenter, onTap: (areaId) => this.tapArea(areaId),
-            onDestroy: () => this.leaveStage() });
+            onDestroy: () => this.leaveStage(),
+            // Объём не тянет даже на самом низком качестве — плоская карта, и об этом сказано.
+            onTooSlow: () => later(() => {
+              safeSet(VIEW_KEY, '2d');
+              this.buildBoard();
+              this.renderAll();
+              this.flashStatus('Карта переключена на плоскую — на этом устройстве так плавнее. Вернуть объём — кнопка «3D».', 7000);
+            }, 0) });
           this.view3d.sync();
           this.syncInsets();
         } catch (error) {
@@ -597,9 +638,7 @@
             <g class="kd-area-fortify" data-fortify transform="translate(-12,15)"></g>
             <g class="kd-area-special" data-special transform="translate(-36,-26)"></g>
             <g class="kd-area-veterans" data-veterans transform="translate(21,18)"></g>
-            <text class="kd-area-name" y="34">${label}</text>
-          </g>
-          <title>${escapeHTML(area.name)}</title>
+            <text class="kd-area-name" y="34">${label}</text>\n          </g>\n          <!-- Бирка своей области — рядом с маркером, но не в нём: маркер остаётся точно над областью. -->\n          <g class="kd-area-you" transform="translate(50,-8)"><rect x="-20" y="-13" width="40" height="25" rx="8"/><text text-anchor="middle" y="5">YOU</text></g>\n          <title>${escapeHTML(area.name)}</title>
         </g>`;
       }).join('');
       areaBox.querySelectorAll('[data-area]').forEach((group) => {
@@ -745,6 +784,7 @@
       this.renderStandings();
       this.renderAreas();
       this.renderTokens();
+      this.renderHints();
       this.renderOrders();
       this.renderStatus();
       this.renderConfirm();
@@ -769,6 +809,18 @@
       const objective = R.objectiveOf(me?.objectiveId);
       this.root.querySelector('[data-objective]').textContent = !me ? 'Режим наблюдателя'
         : objective ? `Goal: ${objective.title} (${objective.points})` : 'Цель: выберите одну из двух';
+      const mine = this.root.querySelector('[data-mine]');
+      if (mine) {
+        mine.hidden = !me;
+        mine.setAttribute('aria-pressed', String(me ? this.focusSeat === v.you : false));
+      }
+      // Черты своего царства — всегда под рукой, а не только на экране выбора.
+      const clan = R.kingdomOf(me?.kingdomId);
+      const note = this.root.querySelector('[data-clan-note]');
+      if (note) {
+        note.innerHTML = clan ? `<b style="color:${clan.color}">${escapeHTML(clan.name)}</b> · ${escapeHTML(clan.abilityTitle)}: ${escapeHTML(clan.abilityText)}`
+          + ` Особый жетон — «${escapeHTML(R.orderOf(clan.clanToken).title)}».` : '';
+      }
     }
 
     renderStandings() {
@@ -779,8 +831,9 @@
         const areas = R.AREAS.filter(a => v.areas[a.id].owner === p.id);
         const points = areas.reduce((sum, a) => sum + this.E.honorOf(v, a.id) + (v.areas[a.id].veterans || 0), 0)
           + R.REGION_IDS.filter(r => this.E.regionController(v, r) === p.id).length * R.REGION_BONUS;
-        return `<div class="kd-standing ${p.id === v.turn ? 'is-turn' : ''}" style="--owner:${k.color}">
-          ${emblemHTML(k.emblem, 36)}<span><b>${p.id === v.you ? 'You' : escapeHTML(k.name)}</b><small>${areas.length} обл. · ${points} очк.${p.ronin && v.phase !== 'setup' ? ' · изгнанник' : ''}</small></span></div>`;
+        return `<button type="button" class="kd-standing ${p.id === v.turn ? 'is-turn' : ''}" style="--owner:${k.color}"
+          data-focus-seat="${p.id}" aria-pressed="${this.focusSeat === p.id}" title="Показать владения">
+          ${emblemHTML(k.emblem, 36)}<span><b>${p.id === v.you ? 'You' : escapeHTML(k.name)}</b><small>${areas.length} обл. · ${points} очк.${p.ronin && v.phase !== 'setup' ? ' · изгнанник' : ''}</small></span></button>`;
       }).join('');
       const intel = v.scoutIntel.filter(i => i.atRound === v.round);
       this.root.querySelector('[data-intel]').innerHTML = intel.length ? '<b>Донесения соглядатаев</b>' + intel.map(i => {
@@ -810,6 +863,10 @@
         const special = cell.special ? this.R.SPECIALS[cell.special] : null;
         group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'ничья' : nameOf(v, cell.owner)}, ценность ${area.value}${special ? `, ${special.title}` : ''}`);
         group.classList.toggle('is-mine', cell.owner === v.you);
+        // «Владения»: земли выбранного игрока — в полном цвете, остальное притушено.
+        const focus = this.focusSeat ?? null;
+        group.classList.toggle('is-dimmed', focus !== null && cell.owner !== focus);
+        group.classList.toggle('is-owned-focus', focus !== null && cell.owner === focus);
         group.classList.toggle('is-neutral', cell.owner === null);
         group.classList.toggle('is-eligible', eligible.has(area.id));
         group.classList.toggle('is-selected', Boolean(this.pending) && (this.pending.from === area.id || this.pending.area === area.id || this.pending.to === area.id || this.pending.control === area.id));
@@ -1015,6 +1072,10 @@
     renderStatus() {
       const v = this.view;
       const box = this.root.querySelector('[data-status]');
+      if (this.focusSeat !== null && this.focusSeat !== undefined && v.players[this.focusSeat]) {
+        box.textContent = this.focusText(this.focusSeat);
+        return;
+      }
       if (v.phase === 'setup') {
         box.textContent = v.turn === v.you ? 'Расстановка: нажмите свободную область, чтобы поставить туда жетон контроля.'
           : `Землю выбирает ${nameOf(v, v.turn)}…`;
@@ -1022,7 +1083,12 @@
       }
       if (v.phase !== 'planning') { box.textContent = ''; return; }
       if (v.turn !== v.you) { box.textContent = `Playing ${nameOf(v, v.turn)}…`; return; }
-      if (!this.pending) { box.textContent = 'Выберите жетон или карту, затем место на карте.'; return; }
+      if (!this.pending) {
+        box.textContent = this.attackHints().length
+          ? '«ВЫ» — ваши земли, стрелки — куда можно ударить. Выберите жетон.'
+          : '«ВЫ» — ваши земли. Выберите жетон или карту, затем место.';
+        return;
+      }
       if (this.pending.card) {
         box.textContent = this.pending.card === 'scout' ? 'Нажмите чужой закрытый жетон — соглядатаи посмотрят его.'
           : this.pending.card === 'prophet' ? 'Нажмите чужой закрытый жетон — пророк откроет его всем и сбросит.'
@@ -1037,7 +1103,8 @@
         ambush: 'Нажмите любую область: в чужой засада нападает, в своей — защищает.',
         bless: 'Нажмите свой закрытый жетон войска, кораблей или засады.',
         peace: 'Нажмите свою область, чтобы заключить в ней завет мира.',
-        raid: 'Нажмите чужую или ничью область рядом с вашей (или там, где ваша засада).',
+        raid: this.pending.kind === 'raider' ? 'Нажмите любую чужую или ничью область — всадникам соседство не нужно.'
+          : 'Нажмите чужую или ничью область рядом с вашей (или там, где ваша засада).',
       }[family];
       box.textContent = text || '';
     }
@@ -1115,10 +1182,83 @@
     }
 
     /* ——— выбор жетона, карты и места ——— */
+    /*
+      ——— владения ———
+
+      «Мои владения» и нажатие на плашку игрока показывают земли одного
+      игрока: они в полном цвете, остальное притушено, камера подлетает к
+      ним, а подсказка перечисляет их по именам. Повторное нажатие — обычный
+      вид. Выбор жетона тоже возвращает обычный вид: стрелкам атаки нужна
+      вся карта.
+    */
+    toggleFocus(seat) {
+      const v = this.view;
+      if (!v || !Number.isInteger(seat) || seat < 0 || !v.players[seat]) return;
+      this.focusSeat = this.focusSeat === seat ? null : seat;
+      if (this.focusSeat !== null) this.pending = null;
+      this.renderAll();
+      const ids = this.focusSeat === null ? [] : this.R.AREAS.filter((a) => v.areas[a.id].owner === seat).map((a) => a.id);
+      if (this.view3d) { if (ids.length) this.view3d.fitAreas(ids); else this.view3d.fit(); }
+    }
+
+    focusText(seat) {
+      const v = this.view;
+      const areas = this.R.AREAS.filter((a) => v.areas[a.id].owner === seat);
+      const kingdom = this.R.kingdomOf(v.players[seat].kingdomId);
+      const whose = seat === v.you ? 'Ваши владения' : `Владения: ${nameOf(v, seat)}`;
+      const list = areas.length ? `${areas.length} ${plural(areas.length, 'область', 'области', 'областей')} — ${areas.map((a) => a.name).join(', ')}.` : 'земель нет.';
+      return `${whose}: ${list}${kingdom ? ` Способность — «${kingdom.abilityTitle}».` : ''} Нажмите ещё раз — вернётся вся карта.`;
+    }
+
+    /*
+      ——— куда можно ударить ———
+
+      В свой ход стрелки показывают каждую законную атаку войском: пока
+      жетон не выбран — тонкие, по первому войску в руке; выбрано войско —
+      яркие, и только из выбранной области, если она уже нажата. Законность
+      спрашивается у движка, как и для подсветки областей.
+    */
+    attackHints() {
+      const v = this.view;
+      if (!v || this.tutorial || v.phase !== 'planning' || v.turn !== v.you || v.you < 0) return [];
+      if ((this.focusSeat ?? null) !== null || this.pending?.card || this.pending?.control) return [];
+      const strong = Boolean(this.pending?.kind);
+      if (strong && this.R.familyOf(this.pending.kind) !== 'army') return [];
+      const kind = this.pending?.kind || [...(v.hand || [])].sort((a, b) => this.R.orderOf(b).force - this.R.orderOf(a).force)
+        .find((one) => this.R.familyOf(one) === 'army');
+      if (!kind) return [];
+      const seen = new Set();
+      const out = [];
+      for (const one of this.legalPlacements(kind)) {
+        if (!one.area || !one.to) continue;
+        if (this.pending?.from && one.area !== this.pending.from) continue;
+        const key = `${one.area}>${one.to}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ from: one.area, to: one.to, strong });
+      }
+      return out;
+    }
+
+    renderHints() {
+      const box = this.root.querySelector('[data-hints]');
+      if (!box) return;
+      box.innerHTML = this.attackHints().map(({ from, to, strong }) => {
+        const a = this.pos.get(from); const b = this.pos.get(to);
+        if (!a || !b) return '';
+        // Стрелка не доходит до центров: начало и наконечник — у маркеров, а не на них.
+        const x1 = a.x + (b.x - a.x) * 0.24; const y1 = a.y + (b.y - a.y) * 0.24;
+        const x2 = a.x + (b.x - a.x) * 0.74; const y2 = a.y + (b.y - a.y) * 0.74;
+        return `<g class="kd-hint${strong ? ' is-strong' : ''}" data-hint data-from="${from}" data-to="${to}">
+          <line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" marker-end="url(#kd-hint-head)"/></g>`;
+      }).join('');
+    }
+
     selectOrder(kind) {
       if (this.tutorial) return;
       if (this.view.turn !== this.view.you || this.view.phase !== 'planning' || this.view.you < 0) return;
       this.pending = this.pending?.kind === kind ? null : { kind };
+      if (this.pending) this.focusSeat = null;
       this.renderAll();
     }
 
@@ -1126,6 +1266,7 @@
       if (this.tutorial) return;
       if (this.view.turn !== this.view.you || this.view.phase !== 'planning' || this.view.you < 0) return;
       this.pending = this.pending?.card === card ? null : { card };
+      if (this.pending) this.focusSeat = null;
       this.renderAll();
     }
 
@@ -1232,10 +1373,10 @@
       }));
     }
 
-    flashStatus(text) {
+    flashStatus(text, ms = 2200) {
       const box = this.root.querySelector('[data-status]');
       if (box) box.textContent = text;
-      later(() => this.renderStatus(), 2200);
+      later(() => this.renderStatus(), ms);
     }
 
     /* ——— карточка области ——— */

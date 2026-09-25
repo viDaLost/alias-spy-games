@@ -91,7 +91,7 @@ function telegramStub({ userId, name }) {
   };
 }
 
-async function roleContext({ width, height, admin }) {
+async function roleContext({ width, height, admin, userId }) {
   const context = await browser.newContext({
     viewport: { width, height }, isMobile: true, hasTouch: true, deviceScaleFactor: 2,
   });
@@ -100,7 +100,7 @@ async function roleContext({ width, height, admin }) {
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('pageerror', (error) => errors.push(String(error?.message || error)));
   await page.addInitScript(telegramStub, {
-    userId: admin ? 1288379477 : 777000,
+    userId: userId || (admin ? 1288379477 : 777000),
     name: admin ? 'Тест' : 'Гость',
   });
   const roleBody = JSON.stringify({
@@ -155,6 +155,29 @@ async function locked() {
   }));
   need(/ещё не открыта/i.test(refused.text), `прямой вызов игры не отказал: «${refused.text.slice(0, 60)}»`);
   need(refused.map === 0, 'по прямому вызову карта всё-таки открылась');
+  await context.close();
+}
+
+/*
+  Допущенный до выпуска: роли администратора у него нет, но по id в Telegram
+  карточка видна и игра открывается.
+*/
+async function tester() {
+  const { context, page } = await roleContext({ width: 390, height: 844, admin: false, userId: 5502223852 });
+  await page.waitForTimeout(1500);
+  const seen = await page.evaluate(() => {
+    const card = document.querySelector('[onclick*="kingdoms"]');
+    return {
+      shown: card ? getComputedStyle(card).display !== 'none' : false,
+      root: document.documentElement.classList.contains('admin-rbac-root'),
+    };
+  });
+  need(!seen.root, 'допущенному выдали роль главного администратора');
+  need(seen.shown, 'допущенному (id 5502223852) карточка «Царств» не видна');
+  if (!seen.shown) { await context.close(); return; }
+  await page.locator('[onclick*="kingdoms"]').first().click();
+  const opened = await page.waitForSelector('[data-start]', { timeout: 20_000 }).then(() => true, () => false);
+  need(opened, 'допущенному (id 5502223852) игра не открылась');
   await context.close();
 }
 
@@ -356,6 +379,7 @@ async function play(width, height) {
 }
 
 await locked();
+await tester();
 const portrait = await play(390, 844);
 need(portrait.errors.length === 0, `в портретной ориентации ошибки: ${portrait.errors.slice(0, 3).join(' | ')}`);
 const narrow = await play(320, 568);
@@ -376,7 +400,7 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов; '
+console.log('OK: замок держит — обычный человек не видит карточку и получает отказ на прямой вызов, а допущенный id 5502223852 видит и открывает игру; '
   + 'у главного администратора игра открывается из меню, карта рисует 24 области в 6 регионах, '
   + 'область и связь нажимаются пальцем, приказ размещается и подтверждается, карточка области '
   + 'открывается отдельно от размещения приказа; на 390, 320 и в горизонтальной ориентации 844×390 '

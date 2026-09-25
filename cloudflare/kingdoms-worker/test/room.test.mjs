@@ -25,6 +25,7 @@ import {
   playAgain,
   playerAction,
   sanitizeSettings,
+  setClan,
   setReady,
   setSettings,
   startGame,
@@ -116,6 +117,24 @@ test('партия не начинается, пока не все готовы,
   assert.equal(withBots.game.players[2].isBot, true);
   assert.equal(withBots.game.players[2].name, R.kingdomOf(kingdomIds[2]).name,
     'имя соперника от игры должно быть именем его царства');
+});
+
+test('царство выбирают в комнате: одно на человека, и с ним он садится за стол', () => {
+  const room = lobby();
+  setClan(room, guest.playerId, 'kedem', 1100);
+  assert.throws(() => setClan(room, host.playerId, 'kedem', 1101), /уже выбрал/);
+  assert.throws(() => setClan(room, host.playerId, 'atlantis', 1102), /Такого царства нет/);
+  setClan(room, host.playerId, 'or', 1103);
+  assert.equal(buildView(room, guest.playerId).players.find((one) => one.id === guest.playerId).clan, 'kedem');
+  setSettings(room, host.playerId, { bots: 1 }, 1104);
+  setReady(room, guest.playerId, true, 1105);
+  startGame(room, host.playerId, 1106, seeded(3));
+  const kingdomOf = (id) => room.game.players[room.seats.indexOf(id)].kingdomId;
+  assert.equal(kingdomOf(host.playerId), 'or');
+  assert.equal(kingdomOf(guest.playerId), 'kedem');
+  assert.equal(new Set(room.game.players.map((one) => one.kingdomId)).size, 3);
+  assert.ok(room.game.players[room.seats.indexOf(guest.playerId)].supply.includes('raider'), 'особый жетон царства не в запасе');
+  assert.throws(() => setClan(room, guest.playerId, 'tarsis', 1107), /уже идёт/);
 });
 
 test('приказ принимается только от того, чья сейчас очередь, и только на своей области', () => {

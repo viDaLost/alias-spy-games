@@ -145,7 +145,10 @@
   /*
     Пять царств. У каждого дом — один из шести регионов (Порубежье без
     хозяина: это общая ничья земля с городом посередине карты, за который
-    спорят все). Способность у каждого одна, простая и проверяемая числом.
+    спорят все). Как у кланов «Рокугана», у каждого царства две свои черты:
+    способность, простая и проверяемая числом, и один особый жетон битвы
+    (clanToken), которого нет ни у кого другого, — он лежит в запасе
+    сверх общих двадцати пяти.
   */
   const KINGDOMS = [
     {
@@ -154,6 +157,7 @@
       ability: 'seafarers',
       abilityTitle: 'Корабли Тарсиса',
       abilityText: '+1 к силе каждого вашего жетона «Корабли» — и в атаке, и в обороне.',
+      clanToken: 'navy3',
     },
     {
       id: 'or', name: 'Дом Ора', region: 'nagorye', color: '#4d7c0f', emblem: 'peak',
@@ -161,6 +165,7 @@
       ability: 'mountain_guard',
       abilityTitle: 'Горная стража',
       abilityText: '+1 к защите ваших горных областей (сверх горного бонуса).',
+      clanToken: 'bless3',
     },
     {
       id: 'yor', name: 'Дом Йора', region: 'dolina', color: '#4338ca', emblem: 'ford',
@@ -168,6 +173,7 @@
       ability: 'ford_mastery',
       abilityTitle: 'Мастера переправ',
       abilityText: '+1 к силе вашего войска, которое атакует через брод.',
+      clanToken: 'ambush3',
     },
     {
       id: 'prestol', name: 'Престол Равнины', region: 'ravnina', color: '#ca8a04', emblem: 'sheaf',
@@ -175,6 +181,7 @@
       ability: 'builders',
       abilityTitle: 'Зодчие',
       abilityText: '+1 к защите ваших городов.',
+      clanToken: 'march6',
     },
     {
       id: 'kedem', name: 'Кочевники Кедема', region: 'kedem', color: '#c2410c', emblem: 'tent',
@@ -182,6 +189,7 @@
       ability: 'many_spies',
       abilityTitle: 'Соглядатаи пустыни',
       abilityText: 'Три карты «Соглядатаи» вместо двух.',
+      clanToken: 'raider',
     },
   ];
   const KINGDOM_BY_ID = new Map(KINGDOMS.map((kingdom) => [kingdom.id, kingdom]));
@@ -198,6 +206,25 @@
     4: ['tarsis', 'or', 'prestol', 'kedem'],
     5: ['tarsis', 'or', 'yor', 'prestol', 'kedem'],
   };
+
+  /*
+    Царства за столом, когда кто-то выбрал своё: выбранные — на свои места
+    (null — «не выбрал»), остальные места добираются из раскладки на это
+    число игроков, а если её не хватает — из всех пяти по порядку.
+  */
+  function kingdomsFor(count, chosen = []) {
+    const taken = new Set(chosen.filter((id) => KINGDOM_BY_ID.has(id)));
+    const spare = [...STARTING_LAYOUTS[count], ...KINGDOMS.map((one) => one.id)]
+      .filter((id, i, all) => !taken.has(id) && all.indexOf(id) === i);
+    const used = new Set();
+    return Array.from({ length: count }, (_, seat) => {
+      const want = chosen[seat];
+      if (KINGDOM_BY_ID.has(want) && !used.has(want)) { used.add(want); return want; }
+      const next = spare.find((id) => !used.has(id));
+      used.add(next);
+      return next;
+    });
+  }
 
   /*
     Начало партии — как в «Битве за Рокуган»: у каждого царства есть его
@@ -254,6 +281,20 @@
       text: 'Своя область навсегда в мире: её нельзя атаковать, из неё нельзя атаковать. Жетоны в ней и на её границах уходят.' },
     { id: 'raid', family: 'raid', title: 'Поджог', force: 0,
       text: 'Чужая или ничья область рядом с вашей (или где ваша засада) становится пепелищем до конца партии.' },
+    /*
+      Особые жетоны царств — по одному у каждого, как дополнительный жетон
+      на ширме клана в «Рокугане». clan — чей он: у других его не бывает.
+    */
+    { id: 'navy3', family: 'navy', title: 'Флагман', force: 3, clan: 'tarsis',
+      text: 'Корабли силой 3 (с «Кораблями Тарсиса» — 4). Особый жетон Тарсийского Союза.' },
+    { id: 'bless3', family: 'bless', title: 'Благословение гор', force: 3, clan: 'or',
+      text: '+3 к своему закрытому войску, кораблям или засаде. Особый жетон Дома Ора.' },
+    { id: 'ambush3', family: 'ambush', title: 'Засада у брода', force: 3, clan: 'yor',
+      text: 'Засада силой 3: в чужой области нападает, в своей защищает. Особый жетон Дома Йора.' },
+    { id: 'march6', family: 'army', title: 'Колесницы', force: 6, clan: 'prestol',
+      text: 'Войско силой 6. Особый жетон Престола Равнины.' },
+    { id: 'raider', family: 'raid', title: 'Набег всадников', force: 0, clan: 'kedem',
+      text: 'Поджог в любой чужой или ничьей области — соседство не нужно. Особый жетон Кочевников Кедема.' },
     { id: 'feint', family: 'blank', title: 'Отвлекающий манёвр', force: 0, isFeint: true,
       text: 'Ставится как любой жетон, кроме благословения. В бою не участвует и возвращается в руку.' },
   ];
@@ -275,6 +316,12 @@
     bless1: 1, bless2: 1,
     peace: 2, raid: 2,
   });
+  /** Запас царства: общие двадцать пять и его особый жетон. */
+  const supplyOf = (kingdomId) => {
+    const kinds = Object.entries(TOKEN_SUPPLY).flatMap(([kind, count]) => Array(count).fill(kind));
+    const clan = kingdomOf(kingdomId)?.clanToken;
+    return clan ? [...kinds, clan] : kinds;
+  };
   const HAND_SIZE = 6;
   const ROUNDS = 5;
   const ORDERS_PER_ROUND = 5;
@@ -376,7 +423,8 @@
     CARDS, cardOf, startingCards,
     SPECIALS, REGION_CARDS,
     OBJECTIVES, objectiveOf, dealObjectives,
-    ROUNDS, ORDERS_PER_ROUND, REGION_BONUS, TURN_LIMIT_MS, TOKEN_SUPPLY, HAND_SIZE,
+    ROUNDS, ORDERS_PER_ROUND, REGION_BONUS, TURN_LIMIT_MS, TOKEN_SUPPLY, supplyOf, HAND_SIZE,
+    kingdomsFor,
     MOUNTAIN_DEFENSE_BONUS, printedDefense,
   };
 }());

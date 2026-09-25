@@ -127,6 +127,24 @@ export function setReady(room, playerId, ready, now = Date.now()) {
   return one;
 }
 
+/*
+  Выбор царства в комнате — как выбор клана: одно царство — одному
+  человеку. null — «всё равно»: место получит царство, что останется.
+*/
+export function setClan(room, playerId, kingdomId, now = Date.now()) {
+  const one = findPlayer(room, playerId);
+  if (!one) throw roomError('NOT_IN_ROOM', 'Вас нет в этой комнате');
+  if (room.phase !== 'lobby') throw roomError('ROOM_STARTED', 'Партия уже идёт');
+  const clan = kingdomId ? String(kingdomId) : null;
+  if (clan && !R.kingdomOf(clan)) throw roomError('BAD_CLAN', 'Такого царства нет');
+  if (clan && seated(room).some((other) => other.id !== one.id && other.clan === clan)) {
+    throw roomError('CLAN_TAKEN', 'Это царство уже выбрал другой игрок');
+  }
+  one.clan = clan;
+  touch(room, now);
+  return one;
+}
+
 export function renamePlayer(room, playerId, name, now = Date.now()) {
   const one = findPlayer(room, playerId);
   if (!one) throw roomError('NOT_IN_ROOM', 'Вас нет в этой комнате');
@@ -158,15 +176,16 @@ export function startGame(room, playerId, now = Date.now(), random = Math.random
   if (!canStart(room)) throw roomError('NOT_READY', 'Не все готовы');
   const table = seated(room);
   /*
-    Места раздаются здесь и до конца партии не меняются. Раскладка целиком
-    решается числом мест: R.STARTING_LAYOUTS[size] — те же пять царств, что
-    и в партии за одним устройством. Имя соперника от игры — имя его
+    Места раздаются здесь и до конца партии не меняются. Кто выбрал
+    царство в комнате, тот его и получает; остальные места добираются из
+    раскладки на это число мест (R.kingdomsFor) — так же, как в партии за
+    одним устройством. Имя соперника от игры — имя его
     царства: отдельного списка имён заводить незачем, царство и так
     названо.
   */
   room.seats = [...table.map((one) => one.id), ...new Array(room.settings.bots).fill('')];
   const size = room.seats.length;
-  const kingdomIds = R.STARTING_LAYOUTS[size];
+  const kingdomIds = R.kingdomsFor(size, room.seats.map((id) => (id ? findPlayer(room, id).clan || null : null)));
   const players = room.seats.map((id, at) => (id
     ? { name: findPlayer(room, id).name, isBot: false }
     : { name: R.kingdomOf(kingdomIds[at]).name, isBot: true, botLevel: 'captain' }));
@@ -344,7 +363,7 @@ export function buildView(room, playerId, online = new Set()) {
     version: room.version,
     hostPlayerId: room.hostPlayerId,
     youAreHost: room.hostPlayerId === String(playerId || ''),
-    you: me ? { id: me.id, name: me.name, ready: me.ready } : null,
+    you: me ? { id: me.id, name: me.name, ready: me.ready, clan: me.clan || null } : null,
     settings: { ...room.settings },
     canStart: canStart(room),
     tableSize: tableSize(room),
@@ -355,6 +374,7 @@ export function buildView(room, playerId, online = new Set()) {
       id: one.id,
       name: one.name,
       ready: one.ready,
+      clan: one.clan || null,
       host: one.id === room.hostPlayerId,
       left: Boolean(one.leftAt),
       online: online.has(one.id),

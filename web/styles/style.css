@@ -610,6 +610,7 @@ main.menu-container {
 */
 .game-card.game-card--owner { display: none; }
 .admin-rbac-root .game-card.game-card--owner { display: flex; }
+.kd-tester .game-card.game-card--owner[data-card-game="kingdoms"] { display: flex; }
 
 .game-card {
   position: relative;

@@ -95,6 +95,8 @@ function telegramStub() {
     MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
     HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
   } };
+  // Программная отрисовка CI медленна: подстройка качества на ходу выключена, её проверяет adaptFrames.
+  window.KD3D_ADAPT = false;
   try {
     localStorage.setItem('game_rules_seen_v1', JSON.stringify({ kingdoms: Date.now() }));
     localStorage.setItem('bot_start_promo_seen_v1', '1');
@@ -384,6 +386,83 @@ async function play(width, height) {
   const spill = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   need(spill <= 0, `${tag}: страница шире экрана на ${spill} точек`);
 
+  // ——— свои земли и куда бить ———
+  await page.evaluate(() => {
+    const board = window.KingdomsGame.board;
+    const hand = board.state.players[board.you].hand;
+    if (!hand.some((kind) => kind.startsWith('march'))) hand[0] = 'march2';
+    board.refresh(); board.renderAll();
+  });
+  await page.waitForTimeout(500);
+  const own = await page.evaluate(() => {
+    const board = window.KingdomsGame.board;
+    const shown = (node) => node && getComputedStyle(node).display !== 'none';
+    const groups = [...document.querySelectorAll('[data-area]')];
+    const hints = [...document.querySelectorAll('[data-hint]')].map((node) => ({ from: node.dataset.from, to: node.dataset.to, strong: node.classList.contains('is-strong') }));
+    return {
+      tagsOnMine: groups.filter((g) => g.classList.contains('is-mine')).every((g) => shown(g.querySelector('.kd-area-you'))),
+      tagsElsewhere: groups.filter((g) => !g.classList.contains('is-mine')).some((g) => shown(g.querySelector('.kd-area-you'))),
+      mine: groups.filter((g) => g.classList.contains('is-mine')).length,
+      hints,
+      arcs: board.view3d.info().hints,
+      legal: hints.every((h) => board.view.areas[h.from].owner === board.you && board.view.areas[h.to].owner !== board.you),
+      status: document.querySelector('[data-status]')?.textContent || '',
+    };
+  });
+  need(own.mine > 0 && own.tagsOnMine && !own.tagsElsewhere, `${tag}: бирка «ВЫ» стоит не ровно над своими областями`);
+  need(own.hints.length > 0 && own.hints.every((h) => !h.strong) && own.legal, `${tag}: без выбранного жетона нет тонких стрелок атаки из своих областей`);
+  need(own.arcs.length === own.hints.length && own.arcs.every((key) => key.endsWith('|0')), `${tag}: объём не нарисовал стрелки атаки (${own.arcs.length} из ${own.hints.length})`);
+  need(/«ВЫ» — ваши земли/.test(own.status), `${tag}: подсказка не объясняет, где свои земли`);
+  await page.locator('.kd-order-btn[data-order^="march"]:not([hidden])').first().click();
+  await page.waitForTimeout(500);
+  const aimed = await page.evaluate(() => ({
+    hints: [...document.querySelectorAll('[data-hint]')].map((node) => node.classList.contains('is-strong')),
+    arcs: window.KingdomsGame.board.view3d.info().hints,
+  }));
+  need(aimed.hints.length > 0 && aimed.hints.every(Boolean) && aimed.arcs.every((key) => key.endsWith('|1')),
+    `${tag}: выбранное войско не показало яркие стрелки атаки`);
+  await page.locator('.kd-order-btn[data-order^="march"]:not([hidden])').first().click();
+  await page.waitForTimeout(300);
+
+  // ——— «Мои владения» и владения соперника ———
+  const farDist = (await info(page)).camera.dist;
+  await page.locator('[data-mine]').click();
+  await page.waitForTimeout(900);
+  const mineView = await page.evaluate(() => {
+    const board = window.KingdomsGame.board;
+    const groups = [...document.querySelectorAll('[data-area]')];
+    return {
+      pressed: document.querySelector('[data-mine]').getAttribute('aria-pressed'),
+      ok: groups.every((g) => (board.view.areas[g.dataset.area].owner === board.you
+        ? g.classList.contains('is-owned-focus') && !g.classList.contains('is-dimmed')
+        : g.classList.contains('is-dimmed'))),
+      status: document.querySelector('[data-status]')?.textContent || '',
+      hints: document.querySelectorAll('[data-hint]').length,
+      dist: board.view3d.info().camera.dist,
+    };
+  });
+  need(mineView.pressed === 'true' && mineView.ok, `${tag}: «Мои владения» не выделили свои земли и не притушили остальные`);
+  need(/^Ваши владения/.test(mineView.status) && mineView.hints === 0, `${tag}: в «Моих владениях» нет списка земель или остались стрелки`);
+  need(mineView.dist < farDist, `${tag}: камера не подлетела к своим владениям`);
+  await page.locator('[data-standings] [data-focus-seat="1"]').click();
+  await page.waitForTimeout(600);
+  const rival = await page.evaluate(() => {
+    const board = window.KingdomsGame.board;
+    const groups = [...document.querySelectorAll('[data-area]')];
+    return {
+      ok: groups.every((g) => g.classList.contains('is-owned-focus') === (board.view.areas[g.dataset.area].owner === 1)),
+      chip: document.querySelector('[data-focus-seat="1"]').getAttribute('aria-pressed'),
+      mine: document.querySelector('[data-mine]').getAttribute('aria-pressed'),
+      status: document.querySelector('[data-status]')?.textContent || '',
+    };
+  });
+  need(rival.ok && rival.chip === 'true' && rival.mine === 'false' && /^Владения/.test(rival.status),
+    `${tag}: плашка соперника не показала его владения`);
+  await page.locator('[data-standings] [data-focus-seat="1"]').click();
+  await page.waitForTimeout(400);
+  const cleared = await page.evaluate(() => document.querySelectorAll('.kd-area.is-dimmed, .kd-area.is-owned-focus').length);
+  need(cleared === 0, `${tag}: повторное нажатие не вернуло всю карту`);
+
   // ——— переключатель вида ———
   await page.locator('[data-view-toggle]').click();
   await page.waitForTimeout(400);
@@ -406,6 +485,29 @@ async function play(width, height) {
     await page.screenshot({ path: path.join(process.env.KINGDOMS_SCREENSHOTS, `kingdoms-3d-${width}x${height}.png`) });
   }
   const summary = await info(page);
+
+  // ——— подстройка под слабое устройство ———
+  // Быстрые кадры ничего не меняют; медленные снижают качество по шагам, а на последнем — плоская карта.
+  const steady = await page.evaluate(() => window.KingdomsGame.board.view3d.adaptFrames(16));
+  need(steady === 0, `${tag}: быстрые кадры снизили качество`);
+  const steps = await page.evaluate(() => {
+    const view = window.KingdomsGame.board.view3d;
+    const out = [];
+    for (let i = 0; i < 3; i += 1) {
+      view.adaptFrames(90);
+      const one = view.info();
+      out.push({ tier: one.tier, ratio: one.pixelRatio, shadows: one.shadows, saved: localStorage.getItem('kd3d_quality_v1') });
+    }
+    view.adaptFrames(90);
+    return out;
+  });
+  need(steps[0].tier === 1 && steps[0].ratio <= 1, `${tag}: первый шаг вниз не снизил чёткость`);
+  need(steps[1].tier === 2 && !steps[1].shadows && steps[1].saved === 'low', `${tag}: второй шаг вниз не снял тени или не запомнился`);
+  need(steps[2].tier === 3 && steps[2].ratio <= 0.75, `${tag}: третий шаг вниз не снизил чёткость ещё`);
+  const flattened = await page.waitForFunction(() => !window.KingdomsGame.board.view3d && !document.querySelector('.kd-3d-canvas'),
+    null, { timeout: 5000 }).then(() => true, () => false);
+  const note = await page.evaluate(() => ({ saved: localStorage.getItem('kingdoms_view_v1'), status: document.querySelector('[data-status]')?.textContent || '' }));
+  need(flattened && note.saved === '2d' && /плоскую/.test(note.status), `${tag}: не тянущее объём устройство не перешло на плоскую карту с объяснением`);
   await context.close();
   return { errors, summary };
 }
@@ -434,4 +536,7 @@ console.log(`OK: объёмная карта «Царств» поднимает
   + 'поход ложится объёмной фишкой со стрелой, нажатие по земле выбирает область под пальцем, '
   + 'один палец поворачивает и наклоняет, правая кнопка сдвигает, колесо и кнопки приближают, общий вид возвращается, '
   + 'после подлёта маркеры стоят над своими областями, '
-  + 'переключатель 2D/3D работает в обе стороны и помнит выбор; стоймя и боком консоль чистая.');
+  + 'переключатель 2D/3D работает в обе стороны и помнит выбор; свои земли помечены «ВЫ», стрелки показывают '
+  + 'законные атаки (тонкие без жетона, яркие с выбранным войском), «Мои владения» и плашка соперника показывают '
+  + 'его земли с подлётом камеры; медленные кадры снижают качество по шагам, запоминают его и в крайнем случае '
+  + 'переводят на плоскую карту; стоймя и боком консоль чистая.');

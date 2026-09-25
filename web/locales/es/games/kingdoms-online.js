@@ -362,9 +362,11 @@
       const you = view.you || {};
       const host = view.youAreHost;
       const seats = view.players.filter((one) => !one.left);
+      const R = window.KingdomsRules;
+      const clanName = (id) => R?.kingdomOf(id)?.name || '';
       const rows = seats.map((one) => `
         <div class="kd-seat${one.online ? '' : ' is-away'}" style="display:flex;justify-content:space-between;padding:8px 10px;border-radius:10px;background:var(--surface-soft,#f3f7ff);margin-bottom:6px">
-          <span>${escapeHTML(one.name)}${one.host ? ' <b>хозяин</b>' : ''}</span>
+          <span>${escapeHTML(one.name)}${one.host ? ' <b>хозяин</b>' : ''}${one.clan ? ` · ${escapeHTML(clanName(one.clan))}` : ''}</span>
           <span>${one.host ? 'начинает' : one.ready ? 'listo' : 'ждёт'}${one.online ? '' : ' · sin conexión'}</span>
         </div>`).join('');
 
@@ -372,6 +374,19 @@
           <p class="kd-note">За столом ${view.tableSize} de ${view.maxPlayers} (минимум ${view.minPlayers})</p>
           <div class="kd-row">
             <span class="kd-room-code" style="font-family:monospace;font-size:20px;letter-spacing:2px;padding:8px 12px;background:var(--surface-soft,#f3f7ff);border-radius:10px">${escapeHTML(view.roomId)}</span>\n            <button type="button" class="kd-btn kd-btn--ghost" data-copy>Copiar</button>\n          </div>\n          <div class="kd-row">\n            <button type="button" class="kd-btn kd-btn--ghost" data-qr>QR-código</button>\n            <button type="button" class="kd-btn kd-btn--ghost" data-friends>Amigos</button>\n            <button type="button" class="kd-btn kd-btn--ghost" data-share>Ссылка</button>\n          </div>\n          <div>${rows}</div>
+          ${R ? `
+            <div class="kd-clans">
+              <span class="kd-clans-title">Ваше царство</span>
+              <div class="kd-row" data-clan-picks>
+                <button type="button" class="kd-btn kd-btn--ghost" data-clan-pick="" aria-pressed="${!you.clan}">Любое</button>
+                ${R.KINGDOMS.map((k) => {
+                  const taken = seats.some((one) => one.id !== you.id && one.clan === k.id);
+                  return `<button type="button" class="kd-btn kd-btn--ghost" data-clan-pick="${k.id}" aria-pressed="${you.clan === k.id}" ${taken ? 'disabled' : ''} style="border-color:${k.color}">${escapeHTML(k.name)}${taken ? ' · занято' : ''}</button>`;
+                }).join('')}
+              </div>
+              ${you.clan ? `<p class="kd-note">${escapeHTML(R.kingdomOf(you.clan).abilityTitle)}: ${escapeHTML(R.kingdomOf(you.clan).abilityText)}
+                Особый жетон «${escapeHTML(R.orderOf(R.kingdomOf(you.clan).clanToken).title)}»: ${escapeHTML(R.orderOf(R.kingdomOf(you.clan).clanToken).text)}</p>` : ''}
+            </div>` : ''}
           ${host ? `
             <label class="kd-choice"><span>Царей от игры</span>
               <div class="kd-choice--wide" data-bots>
@@ -396,6 +411,10 @@
       on('leave', () => { this.link.send('leave'); this.destroy(); this.back(); });
       on('start', () => this.link.send('startGame'));
       on('ready', () => this.link.send('ready', { ready: !you.ready }));
+      this.root.querySelector('[data-clan-picks]')?.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-clan-pick]');
+        if (button && !button.disabled) this.link.send('clan', { clan: button.dataset.clanPick || null });
+      });
       const bots = this.root.querySelector('[data-bots]');
       bots?.addEventListener('click', (event) => {
         const button = event.target.closest('button[data-value]');

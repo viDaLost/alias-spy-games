@@ -257,17 +257,20 @@
       }
     }
 
-    // — поджог: ценная чужая земля, которую не взять силой —
-    if (have('raid') && !player.ronin) {
+    // — поджог: ценная чужая земля, которую не взять силой. «Набегу
+    //   всадников» Кедема соседство не нужно, обычному поджогу — нужно. —
+    const raids = ['raid', 'raider'].filter(have);
+    if (raids.length && !player.ronin) {
       for (const to of targets) {
         const cell = visible.areas[to];
         if (cell.owner === null) continue;
         const near = R.neighborsOf(to).some((id) => owned.includes(id));
-        if (!near) continue;
+        const kind = near ? raids[0] : raids.includes('raider') ? 'raider' : null;
+        if (!kind) continue;
         const area = R.areaOf(to);
         const defense = expectedDefense(state, visible, to, seat);
         if (defense < 5 || area.value < 3) continue;
-        out.push({ kind: 'raid', area: to, score: 0.8 + area.value * 0.5 });
+        out.push({ kind, area: to, score: 0.8 + area.value * 0.5 });
       }
     }
 
@@ -277,12 +280,12 @@
       свой жетон. Иначе бот копит их за ширмой до конца партии.
     */
     if (!player.ronin) {
-      if (have('raid')) {
+      for (const kind of raids) {
         for (const to of targets) {
-          if (!R.neighborsOf(to).some((id) => owned.includes(id))) continue;
+          if (kind === 'raid' && !R.neighborsOf(to).some((id) => owned.includes(id))) continue;
           const cell = visible.areas[to];
           if (cell.owner === null) continue;
-          out.push({ kind: 'raid', area: to, score: 0.2 + R.areaOf(to).value * 0.05 });
+          out.push({ kind, area: to, score: 0.2 + R.areaOf(to).value * 0.05 });
         }
       }
       if (have('peace')) {

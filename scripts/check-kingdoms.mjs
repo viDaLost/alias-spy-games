@@ -417,6 +417,55 @@ function resolveWith(state, orders) {
   need(state.status === 'over', 'после подсчёта партия не окончена');
 }
 
+// ——————————————————————————————————————————————— кланы: выбор и особые жетоны
+
+{
+  // У каждого царства свой особый жетон — ни у кого другого его нет.
+  const clanTokens = R.KINGDOMS.map((k) => k.clanToken);
+  need(clanTokens.every((id) => R.orderOf(id)?.clan), 'у царства нет особого жетона или он не помечен как особый');
+  need(new Set(clanTokens).size === R.KINGDOMS.length, 'два царства делят один особый жетон');
+  for (const kingdom of R.KINGDOMS) {
+    const supply = R.supplyOf(kingdom.id);
+    need(supply.length === 26, `у ${kingdom.id} в запасе ${supply.length} жетонов вместо 25 общих и одного особого`);
+    need(supply.filter((kind) => R.orderOf(kind).clan).length === 1 && supply.includes(kingdom.clanToken),
+      `в запасе ${kingdom.id} не ровно один свой особый жетон`);
+    need(kingdom.abilityTitle && kingdom.abilityText, `у ${kingdom.id} не описана способность`);
+  }
+  const state = E.createGame({ kingdomIds: ['kedem', 'prestol'], random: seeded(3) });
+  need(state.players[0].supply.includes('raider') && !state.players[1].supply.includes('raider'), 'особый жетон попал не к своему царству');
+
+  // Выбор клана: выбранное царство — на своём месте, остальные без повторов.
+  for (const size of [2, 3, 4, 5]) {
+    for (const kingdom of R.KINGDOMS) {
+      const ids = R.kingdomsFor(size, [kingdom.id]);
+      need(ids.length === size && ids[0] === kingdom.id && new Set(ids).size === size, `выбор ${kingdom.id} на ${size} игроков: ${ids.join(',')}`);
+    }
+  }
+  const clash = R.kingdomsFor(3, ['or', 'or', 'yor']);
+  need(clash[0] === 'or' && clash[2] === 'yor' && new Set(clash).size === 3, `спор за одно царство решён неверно: ${clash.join(',')}`);
+  need(R.kingdomsFor(2, []).join() === R.STARTING_LAYOUTS[2].join(), 'без выбора раскладка не та, что прежде');
+}
+{
+  // «Колесницы» Престола — войско силой 6; «Флагман» Тарсиса с его способностью — 4.
+  const state = bench(2, ['prestol', 'tarsis']);
+  need(E.forceOf(state, { owner: 0, kind: 'march6', area: 'x' }) === 6, '«Колесницы» не силой 6');
+  need(E.forceOf(state, { owner: 1, kind: 'navy3', to: 'x' }) === 4, '«Флагман» Тарсиса не силой 4');
+  const bless = bench(2, ['or', 'kedem']);
+  const mine = R.areaId(R.areaOf(R.capitalOf('or')).region, 'cw');
+  const order = place(bless, 0, { kind: 'march2', area: mine });
+  place(bless, 0, { kind: 'bless3', target: order.id });
+  need(E.forceOf(bless, order) === 5, '«Благословение гор» прибавило не +3');
+}
+{
+  // «Набег всадников» Кедема жжёт и без соседства, обычный поджог — нет.
+  const state = bench(2, ['kedem', 'tarsis']);
+  const far = R.AREAS.find((a) => state.areas[a.id].owner === 1 && !R.neighborsOf(a.id).some((id) => state.areas[id].owner === 0)).id;
+  resolveWith(state, [{ owner: 0, kind: 'raid', area: far }]);
+  need(state.areas[far].special !== 'scorched', 'обычный поджог сработал без соседства');
+  resolveWith(state, [{ owner: 0, kind: 'raider', area: far }]);
+  need(state.areas[far].special === 'scorched', '«Набег всадников» не сработал без соседства');
+}
+
 // ——————————————————————————————————————————————— партии ботами целиком
 
 function simulate(size, kingdomIds, seed) {
@@ -435,7 +484,7 @@ function simulate(size, kingdomIds, seed) {
     for (const player of state.players) {
       const placed = state.orders.filter((o) => o.owner === player.id && o.kind !== 'feint').length;
       const total = player.hand.filter((k) => k !== 'feint').length + player.supply.length + placed + player.spent;
-      if (total !== 25) problems.push(`нарушен баланс запаса игрока ${player.id} в раунде ${state.round}: ${total}`);
+      if (total !== R.supplyOf(player.kingdomId).length) problems.push(`нарушен баланс запаса игрока ${player.id} в раунде ${state.round}: ${total}`);
       if (player.hand.filter((k) => k === 'feint').length + state.orders.filter((o) => o.owner === player.id && o.kind === 'feint').length > 1) {
         problems.push(`у игрока ${player.id} несколько пустых жетонов`);
       }
@@ -468,6 +517,10 @@ function auditBeforeResolve(state) {
   const perPlayer = new Map();
   for (const order of state.orders) {
     perPlayer.set(order.owner, (perPlayer.get(order.owner) || 0) + 1);
+    if (R.orderOf(order.kind).clan) {
+      clanUsed.add(order.kind);
+      if (R.orderOf(order.kind).clan !== state.players[order.owner].kingdomId) problems.push(`чужой особый жетон ${order.kind} на карте`);
+    }
     if (order.target) continue;
     if (order.area && order.to) {
       const key = order.area < order.to ? `${order.area}|${order.to}` : `${order.to}|${order.area}`;
@@ -484,12 +537,14 @@ function auditBeforeResolve(state) {
 }
 
 const tale = { games: 0, scorched: 0, peace: 0, captures: 0 };
+const clanUsed = new Set();
 const achieved = new Map(R.OBJECTIVES.map((one) => [one.id, 0]));
 let gameSeed = 1000;
 for (const size of [2, 3, 4, 5]) {
   for (let run = 0; run < 120; run += 1) {
     gameSeed += 7;
-    const state = simulate(size, R.STARTING_LAYOUTS[size], gameSeed);
+    // Первое место по очереди выбирает каждое из пяти царств — как игрок на экране выбора.
+    const state = simulate(size, R.kingdomsFor(size, [R.KINGDOMS[run % R.KINGDOMS.length].id]), gameSeed);
     tale.games += 1;
     if (state.status !== 'over') { problems.push(`партия на ${size} игроков (посев ${gameSeed}) не завершилась`); continue; }
     need(state.round === R.ROUNDS, `партия на ${size} кончилась на раунде ${state.round}`);
@@ -501,6 +556,9 @@ for (const size of [2, 3, 4, 5]) {
       if (state.players.some((player) => E.checkObjective(state, player.id, objective.id))) achieved.set(objective.id, achieved.get(objective.id) + 1);
     }
   }
+}
+for (const kingdom of R.KINGDOMS) {
+  need(clanUsed.has(kingdom.clanToken), `боты ни разу не сыграли особый жетон «${R.orderOf(kingdom.clanToken).title}»`);
 }
 for (const objective of R.OBJECTIVES) {
   need(achieved.get(objective.id) > 0, `цель «${objective.title}» ни разу не достигнута ботами`);
@@ -520,4 +578,5 @@ console.log(`OK: карта из 24 областей в 6 регионах св�
   + `поджог оставляет вечное пепелище, завет — вечный мир, карты соглядатаев, пророка и первенства работают и не трогают `
   + `благословлённое; награды регионов даются раз; ${tale.games} партий ботами доиграны до пятого раунда с балансом запаса `
   + `(пепелищ в среднем ${(tale.scorched / tale.games).toFixed(1)}, заветов ${(tale.peace / tale.games).toFixed(1)} за партию); `
-  + `все ${R.OBJECTIVES.length} тайных целей достижимы.`);
+  + `все ${R.OBJECTIVES.length} тайных целей достижимы; у каждого из ${R.KINGDOMS.length} царств свой особый жетон, `
+  + `выбор царства ставит его на своё место без повторов, и боты играют все особые жетоны.`);

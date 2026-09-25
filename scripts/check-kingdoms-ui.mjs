@@ -192,6 +192,21 @@ for (const n of [2,3,4,5]) {
   assert.equal(w.localStorage.getItem('kd_tutorial_seen'), '1');
   assert.equal(w.localStorage.getItem('kd_campaign_v4'), null, 'tutorial must not create a campaign');
 
+  // Выбор царства: пять карточек со способностью и особым жетоном; выбранное достаётся игроку.
+  const clans = [...root.querySelectorAll('[data-clan]')];
+  assert.equal(clans.length, w.KingdomsRules.KINGDOMS.length, 'clan picker must list every kingdom');
+  assert.ok(clans.every(one => /Способность/.test(one.textContent) && /Особый жетон/.test(one.textContent)), 'clan card must show ability and clan token');
+  root.querySelector('[data-clan="kedem"]').click();
+  assert.equal(root.querySelector('[data-clan="kedem"]').getAttribute('aria-checked'), 'true');
+  assert.equal(w.localStorage.getItem('kd_clan'), 'kedem');
+  root.querySelector('[data-start]').click();
+  assert.equal(board.state.players[0].kingdomId, 'kedem', 'chosen clan must go to the player');
+  assert.ok(board.state.players[0].supply.includes('raider'), 'clan token must be in the player supply');
+  assert.match(root.querySelector('[data-clan-note]').textContent, /Кочевники Кедема/);
+  board.setup();
+  assert.equal(root.querySelector('[data-clan="kedem"]').getAttribute('aria-checked'), 'true', 'clan choice must be remembered');
+  root.querySelector('[data-clan="tarsis"]').click();
+
   board.begin(2);
   const saved = w.localStorage.getItem('kd_campaign_v4');
   const original = board.state;

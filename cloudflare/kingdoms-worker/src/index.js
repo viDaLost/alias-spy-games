@@ -30,6 +30,7 @@ import {
   renamePlayer,
   reviveGame,
   sanitizeName,
+  setClan,
   setReady,
   setSettings,
   startGame,
@@ -48,7 +49,7 @@ const ACTION_WINDOW_LIMIT = 10;
 
 /** Что игрок вправе попросить у комнаты. Список закрытый и проверяется весь. */
 const ROOM_ACTIONS = new Set([
-  'setSettings', 'rename', 'ready', 'startGame', 'backToLobby', 'playAgain', 'nextRound', 'leave',
+  'setSettings', 'rename', 'ready', 'clan', 'startGame', 'backToLobby', 'playAgain', 'nextRound', 'leave',
 ]);
 const GAME_ACTIONS = new Set(['placeOrder', 'placeControl', 'chooseObjective', 'useCard', 'skipTurn']);
 
@@ -297,6 +298,8 @@ export class KingdomsRoom extends DurableObject {
       renamePlayer(this.room, playerId, String(data.name || ''), now);
     } else if (action === 'ready') {
       setReady(this.room, playerId, Boolean(data.ready), now);
+    } else if (action === 'clan') {
+      setClan(this.room, playerId, data.clan || null, now);
     } else if (action === 'startGame') {
       startGame(this.room, playerId, now);
     } else if (action === 'backToLobby') {

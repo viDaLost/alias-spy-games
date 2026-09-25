@@ -43,8 +43,9 @@ const GAME_GROUPS = [
         desc: "Уделы, поселения и юбилей", icon: "promised-land",
       },
       /*
-        «Царства» тоже пока открыты только главному администратору: игра
-        готова, но в общий список ещё не выпущена. Тот же признак owner
+        «Царства» тоже пока открыты только главному администратору и тем,
+        кто в KINGDOMS_TESTERS: игра готова, но в общий список ещё не
+        выпущена. Тот же признак owner
         прячет карточку у всех остальных и закрывает вход даже по прямому
         вызову — см. renderGameButton и showGame.
       */
@@ -465,10 +466,20 @@ function openSupportChat() {
 */
 const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
 
+/*
+  Кому «Царства» открыты до выпуска, кроме главного администратора: id в
+  Telegram. Id известен сразу, без ответа сервера, поэтому признак ставится
+  классом на <html> при первой отрисовке меню — по нему таблица стилей
+  показывает карточку, а справочник правил — игру в списке.
+*/
+const KINGDOMS_TESTERS = new Set(["5502223852"]);
+const isKingdomsTester = () => KINGDOMS_TESTERS.has(String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || ""));
+const canPlayKingdoms = () => isOwner() || isKingdomsTester();
+
 function renderGameButton(item) {
   const gate = item.owner ? ` game-card--owner${item.tryout ? " game-card--tryout" : ""}` : "";
   return `
-    <button type="button" class="game-card${gate}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
+    <button type="button" class="game-card${gate}" data-card-game="${item.key}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
@@ -480,6 +491,7 @@ function renderGameButton(item) {
 }
 
 function renderMainMenu() {
+  document.documentElement.classList.toggle("kd-tester", isKingdomsTester());
   GAME_GROUPS.forEach((group) => {
     const root = document.getElementById(group.id);
     if (!root || root.dataset.ready === "1") return;
@@ -807,7 +819,7 @@ function showGame(gameName) {
   }
 
   /* Тот же замок — у «Царств»: игра готова, но в общий список ещё не выпущена. */
-  if (gameName === "kingdoms" && !isOwner()) {
+  if (gameName === "kingdoms" && !canPlayKingdoms()) {
     if (menu) menu.classList.add("hidden");
     document.body.dataset.mode = "game";
     activeGameName = gameName;
