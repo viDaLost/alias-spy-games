@@ -139,6 +139,24 @@ async function openGame(width, height) {
   }, null, { timeout: 60_000 }).then(() => true, () => false);
   const planned = up && await finishSetup(page);
   if (up && !planned) errors.push('расстановка не дошла до первого хода человека');
+  /*
+    Рука тянется из запаса наугад, и изредка (около 1 %) в ней нет ни одного
+    войска — так упал CI на 6c41e8b. Проверке нужны войска для нажатий и
+    стрелок атаки, поэтому они кладутся в руку явно, а не ожидаются от жребия.
+  */
+  if (planned) {
+    await page.evaluate(() => {
+      const board = window.KingdomsGame.board;
+      const hand = board.state.players[board.you].hand;
+      // Два войска: одно уходит в поход по ходу проверки, второе нужно стрелкам атаки.
+      for (const kind of ['march2', 'march3']) {
+        if (hand.filter((one) => /^march[1-5]$/.test(one)).length >= 2) break;
+        const spare = hand.findIndex((one) => one !== 'feint' && !/^march[1-5]$/.test(one));
+        if (spare >= 0) hand[spare] = kind; else hand.push(kind);
+      }
+      board.refresh(); board.renderAll();
+    });
+  }
   return { context, page, errors, up };
 }
 
@@ -387,13 +405,6 @@ async function play(width, height) {
   need(spill <= 0, `${tag}: страница шире экрана на ${spill} точек`);
 
   // ——— свои земли и куда бить ———
-  await page.evaluate(() => {
-    const board = window.KingdomsGame.board;
-    const hand = board.state.players[board.you].hand;
-    if (!hand.some((kind) => kind.startsWith('march'))) hand[0] = 'march2';
-    board.refresh(); board.renderAll();
-  });
-  await page.waitForTimeout(500);
   const own = await page.evaluate(() => {
     const board = window.KingdomsGame.board;
     const shown = (node) => node && getComputedStyle(node).display !== 'none';
