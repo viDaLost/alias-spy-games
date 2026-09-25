@@ -602,50 +602,47 @@ html.kd-stage-on .rules-help { top: calc(max(env(safe-area-inset-top, 0px), var(
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
 }
 
-/* Боком рука уходит колонкой вправо, карта занимает всё остальное. */
+/*
+  Боком — так же, как стоймя: рука внизу одной лентой, которую листают
+  пальцем вбок; справа от ленты — сколько размещено и «Пропустить ход».
+  Высоты боком мало, поэтому лента низкая, а шапка и подсказка хода делят
+  верхнюю строку: шапка слева, подсказка справа. Счёт царств — столбик
+  слева, кнопки карты — столбик справа. Всё, что между ними, — карта.
+*/
 @media (orientation: landscape) {
-  /* Боком высота дорога: шапка — короткая плашка, счёт — столбик слева, подсказка — внизу. */
-  .kd-wrap.kd-stage .kd-header { right: calc(284px + 56px); }
+  .kd-wrap.kd-stage .kd-header { right: auto; max-width: calc(58% - 16px); }
+  .kd-wrap.kd-stage .kd-status {
+    top: calc(var(--kd-top) + 6px); bottom: auto; left: auto; right: 56px; width: auto;
+    max-width: calc(42% - 72px); box-sizing: border-box; margin: 0; min-height: 44px;
+    display: flex; align-items: center; font-size: 12px; line-height: 1.25; padding: 6px 14px; border-radius: 22px;
+  }
   .kd-wrap.kd-stage .kd-standings {
-    top: calc(var(--kd-top) + 58px); right: auto; bottom: calc(var(--kd-bottom) + 8px);
+    top: calc(var(--kd-top) + 58px); right: auto; bottom: auto; max-height: calc(100% - var(--kd-top) - 58px - 118px);
     flex-direction: column; overflow-y: auto; overflow-x: hidden; width: auto; max-width: 150px;
   }
   .kd-wrap.kd-stage .kd-standing { padding: 3px 8px 3px 4px; }
   .kd-wrap.kd-stage .kd-standing .kd-emblem { width: 20px; height: 20px; }
-  /* Подсказка хода — над рукой в правой колонке: боком снизу ей не место, там карта. */
-  .kd-wrap.kd-stage .kd-status {
-    top: calc(var(--kd-top) + 6px); bottom: auto; left: auto; right: 8px; width: 276px; box-sizing: border-box;
-    margin: 0; font-size: 12px; padding: 8px 12px;
-  }
-  .kd-wrap.kd-stage .kd-map-toolbar { right: calc(284px + 8px); }
-  .kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach {
-    left: auto; right: 8px; width: 276px; top: calc(var(--kd-top) + 6px + var(--kd-status-h, 0px)); bottom: calc(var(--kd-bottom) + 8px);
-    max-height: none; overflow-y: auto;
+  .kd-wrap.kd-stage .kd-map-toolbar { top: calc(var(--kd-top) + 58px); }
+  .kd-wrap.kd-stage .kd-panel {
+    left: 8px; right: 8px; width: auto; top: auto; bottom: calc(var(--kd-bottom) + 6px);
+    max-height: none; overflow: visible; padding: 6px 8px; border-radius: 18px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 176px; grid-template-rows: auto auto;
+    column-gap: 10px; row-gap: 4px; align-items: center;
   }
   .kd-wrap.kd-stage .kd-orders {
-    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; order: 1;
+    grid-column: 1; grid-row: 1 / span 2; display: flex; overflow-x: auto; overflow-y: hidden; gap: 6px; padding: 3px 2px 2px;
   }
-  .kd-wrap.kd-stage .kd-order-btn { width: auto; flex: none; }
-  .kd-wrap.kd-stage .kd-confirm { position: static; order: 0; }
-  html.kd-stage-on .rules-help { right: calc(284px + 12px); }
-}
-@media (orientation: landscape) and (max-height: 430px) {
-  .kd-wrap.kd-stage .kd-standings { top: calc(var(--kd-top) + 54px); }
-  /* Низкий экран боком: жетоны в четыре столбца, чтобы «Пропустить ход» было видно без прокрутки. */
-  .kd-wrap.kd-stage .kd-orders { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-  .kd-wrap.kd-stage .kd-order-btn { padding: 4px 2px 5px; gap: 3px; border-radius: 12px; }
-  .kd-wrap.kd-stage .kd-order-btn .kd-order-icon { width: 36px; height: 36px; padding: 5px; }
+  .kd-wrap.kd-stage .kd-order-btn { flex: 0 0 64px; width: 64px; padding: 4px 2px 5px; gap: 3px; border-radius: 14px; }
+  .kd-wrap.kd-stage .kd-order-btn .kd-order-icon { width: 38px; height: 38px; padding: 5px; }
   .kd-wrap.kd-stage .kd-order-btn .kd-order-title { font-size: 9.5px; }
+  .kd-wrap.kd-stage .kd-orders-left { grid-column: 2; grid-row: 1; font-size: 10.5px; line-height: 1.25; align-self: end; }
+  .kd-wrap.kd-stage [data-pass], .kd-wrap.kd-stage [data-skip-reveal] { grid-column: 2; grid-row: 2; min-height: 34px; align-self: start; }
+  .kd-wrap.kd-stage .kd-intel { grid-column: 1 / -1; max-height: 40px; }
+  .kd-wrap.kd-stage .kd-teach { left: 8px; right: 8px; top: auto; bottom: calc(var(--kd-bottom) + 6px); max-height: 46%; }
 }
 .kd-wrap.kd-stage .kd-status { position: absolute; }
 .kd-wrap.kd-stage .kd-header, .kd-wrap.kd-stage .kd-standings { width: auto; box-sizing: border-box; }
-@media (orientation: portrait) {
-  .kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach { width: auto; box-sizing: border-box; }
-}
-@media (orientation: landscape) {
-  .kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach { width: 276px; flex-basis: auto; box-sizing: border-box; }
-  .kd-wrap.kd-stage .kd-order-title { font-size: 10.5px; }
-}
+.kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach { box-sizing: border-box; }
 /* Жетоны в объёме рисует сцена; SVG-жетон остаётся прозрачной зоной нажатия с биркой силы. */
 .kd-map-wrap.kd-3d .kd-token { filter: none; }
 .kd-map-wrap.kd-3d .kd-token .kd-token-shadow, .kd-map-wrap.kd-3d .kd-token > image { opacity: 0; }

@@ -457,7 +457,7 @@
       document.documentElement.style.setProperty('--kd-safe-top', `${Number(tg?.safeAreaInset?.top) || 0}px`);
       this.stageObserver?.disconnect();
       this.stageObserver = new ResizeObserver(() => this.syncInsets());
-      for (const selector of ['.kd-header', '.kd-standings', '.kd-status', '.kd-panel', '[data-teach]', '[data-scroll]']) {
+      for (const selector of ['.kd-header', '.kd-standings', '.kd-status', '.kd-panel', '.kd-map-toolbar', '[data-teach]', '[data-scroll]']) {
         const node = this.root.querySelector(selector);
         if (node) this.stageObserver.observe(node);
       }
@@ -477,29 +477,33 @@
         const scroll = this.root.querySelector('[data-scroll]')?.getBoundingClientRect();
         if (!scroll?.width) return;
         const visible = (node) => node && !node.hidden && node.offsetParent !== null;
-        // Боком подсказка хода стоит над рукой; рука опускается ровно на её высоту.
-        const status = this.root.querySelector('.kd-status');
-        const statusBox = visible(status) && status.textContent.trim() ? status.getBoundingClientRect() : null;
-        const stacked = statusBox && statusBox.left > scroll.left + scroll.width / 2;
-        const statusH = stacked ? `${Math.round(statusBox.height + 8)}px` : '0px';
-        if (this.root.style.getPropertyValue('--kd-status-h') !== statusH) this.root.style.setProperty('--kd-status-h', statusH);
-        let top = 0; let left = 0;
+        const landscape = scroll.width > scroll.height;
+        let top = 0; let left = 0; let right = 0;
         const header = this.root.querySelector('.kd-header');
         if (visible(header)) top = header.getBoundingClientRect().bottom - scroll.top + 6;
-        // Счёт царств — либо лента под шапкой (стоймя), либо столбик слева (боком).
+        // Подсказка хода — плашка в верхней части: стоймя под счётом, боком рядом с шапкой.
+        const status = this.root.querySelector('.kd-status');
+        if (visible(status) && status.textContent.trim()) {
+          const box = status.getBoundingClientRect();
+          if (box.top < scroll.top + scroll.height / 2) top = Math.max(top, box.bottom - scroll.top + 6);
+        }
+        // Счёт царств — лента под шапкой стоймя и столбик слева боком.
         const standings = this.root.querySelector('.kd-standings');
         if (visible(standings)) {
           const box = standings.getBoundingClientRect();
-          if (box.height > box.width) left = box.right - scroll.left + 6;
+          if (landscape) left = box.right - scroll.left + 6;
           else top = Math.max(top, box.bottom - scroll.top + 6);
         }
+        // Боком кнопки карты — столбик справа: карта не должна уходить под них.
+        const toolbar = this.root.querySelector('.kd-map-toolbar');
+        if (landscape && visible(toolbar)) right = scroll.right - toolbar.getBoundingClientRect().left + 6;
         const teach = this.root.querySelector('[data-teach]');
         const dock = visible(teach) ? teach : this.root.querySelector('.kd-panel');
-        let bottom = 0; let right = 0;
+        let bottom = 0;
         if (visible(dock)) {
           const box = dock.getBoundingClientRect();
           if (box.width > scroll.width * 0.6) bottom = scroll.bottom - box.top + 6;
-          else right = scroll.right - box.left + 6;
+          else right = Math.max(right, scroll.right - box.left + 6);
         }
         this.view3d?.setInsets({ top, bottom, right, left });
       });

@@ -294,29 +294,72 @@
     }
   `;
 
-  function terrainMaterial(THREE, pulse) {
+  /*
+    Поверхность земли. Цвет вершин задаёт местность, а всё, что делает её
+    похожей на землю, досчитывается здесь для каждой точки экрана из мировых
+    координат — поэтому вблизи узор мельче, а не расплывчатее:
+      * крутые склоны — голая порода с пластами, а не трава, натянутая на скалу;
+      * трава — пятнами разной спелости, с редкими полевыми цветами;
+      * песок — рябью от ветра, поперёк склона дюны;
+      * у воды — тёмная мокрая кромка;
+      * мелкий рельеф — нормаль чуть сбита шумом, и свет ложится зернисто, как
+        на настоящий грунт (на слабом качестве этого нет, чтобы не жечь кадр).
+    Цвет владельца не заливает землю, а окрашивает её: светлое остаётся
+    светлым, тёмное — тёмным, узор под цветом виден.
+  */
+  function terrainMaterial(THREE, pulse, quality = 'mid') {
     const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93, metalness: 0 });
+    if (quality !== 'low') material.defines = { KD_BUMP: '' };
     material.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>
           attribute vec4 aTint; attribute vec3 aGlow; attribute vec2 aFarm;
-          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos; varying vec2 vFarm;`)
+          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos; varying vec2 vFarm; varying vec3 vNormalW;`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
           vTint = aTint; vGlow = aGlow; vFarm = aFarm;
+          vNormalW = normalize(mat3(modelMatrix) * objectNormal);
           vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>
-          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos; varying vec2 vFarm;
+          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos; varying vec2 vFarm; varying vec3 vNormalW;
           uniform float uPulse;
-          ${NOISE_GLSL}`)
+          ${NOISE_GLSL}
+          float kdFbm(vec2 p) { return kdNoise(p) * 0.55 + kdNoise(p * 2.03 + 7.1) * 0.3 + kdNoise(p * 4.11 + 3.3) * 0.15; }`)
         .replace('#include <color_fragment>', `#include <color_fragment>
           vec2 kdP = vWPos.xz;
+          vec3 kdN = normalize(vNormalW);
+          float kdSlope = 1.0 - kdN.y;
           float kdFine = kdNoise(kdP * 1.7);
           float kdMid = kdNoise(kdP * 0.38);
           float kdWide = kdNoise(kdP * 0.07);
+          vec3 kdBase = diffuseColor.rgb;
+          float kdLum = dot(kdBase, vec3(0.2126, 0.7152, 0.0722));
+          bool kdGrass = kdBase.g > kdBase.r * 1.02 && kdBase.g > kdBase.b * 1.3;
+          bool kdSand = kdBase.r > kdBase.g * 1.18 && kdBase.b < kdBase.g * 0.8;
           diffuseColor.rgb *= 0.8 + 0.12 * kdFine + 0.2 * kdMid + 0.1 * kdWide;
-          float kdStrata = smoothstep(0.35, 0.65, kdNoise(vec2(kdP.x * 0.05, vWPos.y * 0.9)));
+          if (kdGrass) {
+            // Трава пятнами: где сочнее, где выгорела, и редкие цветы.
+            float kdPatch = kdFbm(kdP * 0.16);
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.18, 1.05, 0.62), smoothstep(0.55, 0.8, kdPatch) * 0.55);
+            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.62, 0.8, 0.6), smoothstep(0.45, 0.2, kdPatch) * 0.5);
+            vec2 kdCellF = floor(kdP * 1.3);
+            float kdFlower = step(0.965, kdHash(kdCellF)) * smoothstep(0.35, 0.05, length(fract(kdP * 1.3) - 0.5));
+            vec3 kdPetal = kdHash(kdCellF + 1.7) > 0.5 ? vec3(0.95, 0.85, 0.25) : vec3(0.92, 0.9, 0.95);
+            diffuseColor.rgb = mix(diffuseColor.rgb, kdPetal, kdFlower * 0.85 * (1.0 - smoothstep(0.1, 0.3, kdSlope)));
+          }
+          if (kdSand) {
+            // Рябь от ветра: полосы вдоль одного направления, слегка изогнутые шумом.
+            float kdRipple = sin(dot(kdP, vec2(0.82, 0.57)) * 1.35 + kdFbm(kdP * 0.05) * 9.0);
+            diffuseColor.rgb *= 0.95 + 0.07 * kdRipple;
+          }
+          // Голая порода на крутом: пласты и трещины, цвет камня, а не травы.
+          float kdRock = smoothstep(0.2, 0.42, kdSlope + (kdFine - 0.5) * 0.12);
+          float kdStrata = smoothstep(0.35, 0.65, kdNoise(vec2(kdP.x * 0.05 + kdP.y * 0.03, vWPos.y * 0.9)));
+          vec3 kdStone = mix(vec3(0.22, 0.2, 0.18), vec3(0.4, 0.36, 0.31), kdStrata) * (0.8 + 0.35 * kdFine);
+          diffuseColor.rgb = mix(diffuseColor.rgb, kdStone, kdRock * (kdSand ? 0.45 : 0.85));
           diffuseColor.rgb *= mix(1.0, 0.9 + 0.12 * kdStrata, smoothstep(18.0, 30.0, vWPos.y));
+          // Мокрая кромка у воды.
+          diffuseColor.rgb *= 1.0 - 0.28 * smoothstep(2.6, 0.4, vWPos.y) * step(-0.2, vWPos.y);
           if (vFarm.x > 0.01) {
             float kdC = cos(vFarm.y); float kdS = sin(vFarm.y);
             vec2 kdF = mat2(kdC, -kdS, kdS, kdC) * kdP / vec2(17.0, 11.0);
@@ -327,10 +370,27 @@
             float kdEdge = smoothstep(0.0, 0.07, kdIn.x) * smoothstep(0.0, 0.07, 1.0 - kdIn.x)
               * smoothstep(0.0, 0.1, kdIn.y) * smoothstep(0.0, 0.1, 1.0 - kdIn.y);
             float kdFurrow = 0.86 + 0.14 * sin(kdF.x * 40.0 + kdPick * 6.0);
-            float kdKeep = step(0.16, kdHash(kdCell + 3.7)) * smoothstep(0.25, 0.6, vFarm.x);
+            float kdKeep = step(0.16, kdHash(kdCell + 3.7)) * smoothstep(0.25, 0.6, vFarm.x) * (1.0 - kdRock);
             diffuseColor.rgb = mix(diffuseColor.rgb, kdCrop * kdFurrow * (0.9 + 0.2 * kdFine), kdKeep * kdEdge * 0.8);
           }
-          diffuseColor.rgb = mix(diffuseColor.rgb, vTint.rgb, vTint.a);`)
+          // Цвет владельца окрашивает землю, сохраняя её светотень.
+          float kdShade = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+          vec3 kdOwned = vTint.rgb * (0.45 + 1.6 * kdShade);
+          diffuseColor.rgb = mix(diffuseColor.rgb, kdOwned, vTint.a);`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+          #ifdef KD_BUMP
+            {
+              // Мелкий рельеф грунта: наклон нормали по разности шума в соседних точках.
+              float kdE = 0.45;
+              vec2 kdQ = vWPos.xz * 0.55;
+              float kdH0 = kdFbm(kdQ);
+              float kdHx = kdFbm(kdQ + vec2(kdE, 0.0));
+              float kdHz = kdFbm(kdQ + vec2(0.0, kdE));
+              float kdAmp = 0.9 + 1.4 * smoothstep(0.15, 0.4, 1.0 - normalize(vNormalW).y);
+              vec3 kdBumpW = vec3(-(kdHx - kdH0), 0.0, -(kdHz - kdH0)) / kdE * kdAmp;
+              normal = normalize(normal + (viewMatrix * vec4(kdBumpW, 0.0)).xyz);
+            }
+          #endif`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
           totalEmissiveRadiance += vGlow * uPulse;`);
       shader.uniforms.uPulse = pulse;
@@ -609,7 +669,7 @@
     terrainGeo.computeVertexNormals();
     mark('terrain');
     const pulse = { value: 1 };
-    const terrainMat = keep(terrainMaterial(THREE, pulse));
+    const terrainMat = keep(terrainMaterial(THREE, pulse, quality));
     const terrain = new THREE.Mesh(terrainGeo, terrainMat);
     terrain.receiveShadow = renderer.shadowMap.enabled;
     scene.add(terrain);
@@ -1027,7 +1087,7 @@
       const roadGeo = keep(new THREE.BufferGeometry());
       roadGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
       roadGeo.computeVertexNormals();
-      const roads = new THREE.Mesh(roadGeo, keep(new THREE.MeshStandardMaterial({ color: 0xb09a74, roughness: 1,
+      const roads = new THREE.Mesh(roadGeo, keep(new THREE.MeshStandardMaterial({ color: 0x957f5c, roughness: 1,
         side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })));
       roads.receiveShadow = renderer.shadowMap.enabled;
       scene.add(roads);
@@ -1101,12 +1161,18 @@
         const { geometry, material } = build();
         const mesh = new THREE.InstancedMesh(geometry, material, spots.length);
         const m = new THREE.Matrix4();
+        const tint = new THREE.Color();
         spots.forEach((spot, i) => {
           m.compose(new THREE.Vector3(spot.x - CX, spot.h - 0.4, spot.y - CY),
             new THREE.Quaternion().setFromEuler(new THREE.Euler(0, spot.r, 0)),
             new THREE.Vector3(spot.s, spot.s * (0.85 + random() * 0.35), spot.s));
           mesh.setMatrixAt(i, m);
+          // Каждое дерево и камень чуть своего оттенка: лес не выглядит отштампованным.
+          const shade = 0.78 + random() * 0.4;
+          tint.setRGB(shade * (0.94 + random() * 0.12), shade, shade * (0.9 + random() * 0.14));
+          mesh.setColorAt(i, tint);
         });
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
         mesh.castShadow = renderer.shadowMap.enabled;
         mesh.receiveShadow = false;
         scene.add(mesh);
@@ -1429,7 +1495,7 @@
       const w = width - insets.left - insets.right;
       const h = height - insets.top - insets.bottom;
       const ratio = w / Math.max(1, h);
-      return ratio < 0.9 ? 0.5 : ratio > 1.6 ? 0.78 : 0.62;
+      return ratio < 0.9 ? 0.5 : ratio > 2.6 ? 1.02 : ratio > 1.6 ? 0.86 : 0.62;
     };
     const fit = (instant = false) => {
       const target = { x: 0, z: 10, tilt: homeTilt(), yaw: 0 };
@@ -1701,7 +1767,7 @@
     const GLOW = {
       resolving: new THREE.Color(0xff5a3c).multiplyScalar(0.34),
       selected: new THREE.Color(0xffffff).multiplyScalar(0.22),
-      eligible: new THREE.Color(0xffd36e).multiplyScalar(0.15),
+      eligible: new THREE.Color(0xffd36e).multiplyScalar(0.2),
       focus: new THREE.Color(0xffd36e).multiplyScalar(0.24),
       none: new THREE.Color(0, 0, 0),
     };
@@ -1729,7 +1795,7 @@
         const s = states.get(site.id) || { owner: '', neutral: true, glow: 'none' };
         const ownerColor = new THREE.Color(s.neutral || !s.owner ? '#d8d2c4' : s.owner);
         const tint = ownerColor.clone().convertSRGBToLinear();
-        return { s, ownerColor, tint, strength: s.neutral ? 0 : s.mine ? 0.3 : 0.22, glow: GLOW[s.glow] };
+        return { s, ownerColor, tint, strength: s.neutral ? 0 : s.mine ? 0.5 : 0.42, glow: GLOW[s.glow] };
       });
       for (let k = 0; k < vertexCount; k += 1) {
         const entry = perArea[areaOfVertex[k]];
@@ -1753,10 +1819,13 @@
       world.sites.forEach((site, i) => {
         const entry = perArea[i];
         const border = borders.get(site.id);
-        border.color.copy(entry.ownerColor);
+        // Ничья кромка — межа из тёмной земли и камня, а не белая разметка; чужая и своя — в цвет хозяина.
+        border.color.copy(entry.s.neutral ? new THREE.Color('#6e5d47') : entry.ownerColor);
         border.emissive.copy(entry.glow).multiplyScalar(2.2);
-        // Своя земля светится и по кромке: лента в цвет царства чуть горит изнутри.
-        if (entry.s.mine && entry.glow === GLOW.none) border.emissive.copy(entry.ownerColor).convertSRGBToLinear().multiplyScalar(0.28);
+        // Лента по кромке горит цветом хозяина: своя — ярче, чужая — заметно, нейтральная — нет.
+        if (!entry.s.neutral && entry.glow === GLOW.none) {
+          border.emissive.copy(entry.ownerColor).convertSRGBToLinear().multiplyScalar(entry.s.mine ? 0.55 : 0.32);
+        }
         flags.get(site.id).color.copy(entry.s.neutral ? new THREE.Color('#efe9dc') : entry.ownerColor);
         setWalls(site.id, Math.min(4, entry.s.fortify || 0));
       });

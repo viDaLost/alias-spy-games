@@ -16,6 +16,8 @@
 //     колесо и кнопки приближают, «Показать всю карту» возвращает общий вид;
 //   * карта лежит в окне между плашками: ни один маркер общего вида не
 //     спрятан под шапкой или рукой;
+//   * рука и стоймя, и боком — полоса внизу во всю ширину, жетоны одной
+//     лентой, которую листают пальцем вбок;
 //   * свой край светится рубежом, а выбранный приказ обводит цели и дышит —
 //     только пока выбран: сняли выбор, и карта снова не рисуется в покое;
 //   * поставленный поход ложится на карту объёмной фишкой со стрелой;
@@ -172,6 +174,23 @@ async function play(width, height) {
     return out;
   });
   need(covered.length === 0, `${tag}: маркеры общего вида спрятаны под плашками: ${covered.slice(0, 4).join(', ')}`);
+
+  // ——— рука: внизу во всю ширину, жетоны одной лентой со свайпом вбок — и стоймя, и боком ———
+  const hand = await page.evaluate(() => {
+    const panel = document.querySelector('.kd-panel').getBoundingClientRect();
+    const strip = document.querySelector('.kd-orders');
+    const tops = new Set([...strip.querySelectorAll('.kd-order-btn')].map((button) => Math.round(button.getBoundingClientRect().top)));
+    return {
+      wide: panel.width / window.innerWidth,
+      bottomGap: window.innerHeight - panel.bottom,
+      rows: tops.size,
+      swipe: getComputedStyle(strip).overflowX,
+    };
+  });
+  need(hand.wide > 0.85, `${tag}: рука занимает ${Math.round(hand.wide * 100)}% ширины, а должна лежать полосой внизу`);
+  need(hand.bottomGap < 40, `${tag}: рука не прижата к низу экрана (зазор ${Math.round(hand.bottomGap)} точек)`);
+  need(hand.rows === 1, `${tag}: жетоны в руке разложены в ${hand.rows} ряда, а должны идти одной лентой`);
+  need(hand.swipe === 'auto' || hand.swipe === 'scroll', `${tag}: ленту жетонов нельзя листать вбок (overflow-x: ${hand.swipe})`);
 
   // ——— нажатие по земле выбирает область под пальцем ———
   const attackKind = await page.evaluate(() => ['march1', 'march2', 'march3', 'ford2', 'feint']
