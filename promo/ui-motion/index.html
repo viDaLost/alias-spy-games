@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Одна форма</title>
+<!--
+  Ролик «одна форма»: кнопка → загрузка → галочка → островок → таймер раунда →
+  перемотка → ползунок сложности → «Тёмная тема» → вкладки → график → поиск →
+  уведомление → снова кнопка. 7 тактов по 120 BPM, петлёй.
+
+  Правило одно: всё, что видно в кадре, — чистая функция времени seek(t).
+  Ни переходов CSS, ни таймеров, ни состояния между кадрами. Пружины — готовые
+  формулы отклика на ступеньку; значение, у которого цель меняется много раз,
+  — сумма пружин по одной на смену. Петля замыкается сама: у каждой дорожки
+  последняя цель равна первой, и к пружинам этого круга прибавлены пружины
+  прошлого — поэтому кадр 14,0 с совпадает с кадром 0,0 вплоть до скорости.
+
+  Открыть: index.html (слайдер времени внизу) или index.html?t=3.2.
+-->
+<style>
+  @font-face { font-family: Geist; src: url(fonts/Geist-Variable.woff2) format('woff2'); font-weight: 100 900; }
+  html, body { margin: 0; background: #E9E6E0; }
+  #frame {
+    position: relative; width: 1440px; height: 1440px; overflow: hidden; background: #E9E6E0;
+    font-family: Geist, system-ui, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: 'tnum' 1;
+  }
+  #stage { position: absolute; left: 720px; top: 720px; width: 0; height: 0; transform-origin: 0 0; }
+  #shape { position: absolute; overflow: hidden; box-shadow: 0 30px 60px -24px rgba(40, 32, 20, .30), 0 2px 6px rgba(40, 32, 20, .08); }
+  #content { position: absolute; width: 0; height: 0; }
+  .a { position: absolute; left: 0; top: 0; white-space: nowrap; }
+  .t { line-height: 1; letter-spacing: -0.01em; }
+  svg { overflow: visible; }
+  #cursor { position: absolute; left: 0; top: 0; width: 52px; height: 52px; transform-origin: 6px 4px; z-index: 5; }
+  #hud { position: fixed; left: 1460px; top: 20px; font: 14px/1.4 Geist, monospace; color: #333; }
+  #hud input { width: 420px; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="stage">
+    <div id="shape"><div id="content"></div></div>
+  </div>
+  <svg id="cursor" viewBox="0 0 44 44"><path d="M7 4 L7 34 L14.6 26.6 L19.6 38 L25 35.6 L20 24.4 L30.6 24.4 Z" fill="#0B0B0C" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round"/></svg>
+</div>
+<div id="hud"><div id="hud-text"></div><input id="scrub" type="range" min="0" max="14" step="0.001" value="0"></div>
+<script>
+'use strict';
+
+// ——————————————————————————————————————————————— время и сетка
+
+const LOOP = 14;
+// Сетка долей: по умолчанию ровная, при рендере — измеренная из трека (setGrid).
+let GRID = Array.from({ length: 29 }, (_, i) => i * 0.5);
+/** Время дробной доли b (доля 28 = конец петли; отрицательные — прошлый круг). */
+function B(b) {
+  const k = Math.floor(b / 28);
+  const r = b - 28 * k;
+  const i = Math.min(27, Math.floor(r));
+  return GRID[i] + (r - i) * (GRID[i + 1] - GRID[i]) + k * LOOP;
+}
+
+// ——————————————————————————————————————————————— пружины
+
+/*
+  Отклик пружины на ступеньку, в закрытом виде. Затухание ζ ≥ 0.84: перелёт
+  не больше процента, никакого «пружинного» подпрыгивания.
+*/
+const SPR = {
+  ui: [19, 0.86], soft: [12, 0.9], snap: [30, 0.86], lead: [34, 0.88], trail: [15, 0.92],
+  cam: [11, 0.96], cur: [11, 1], drag: [7.5, 1], press: [42, 0.84], fade: [28, 1], draw: [7, 1], tick: [20, 1],
+};
+function S(dt, name = 'ui') {
+  if (dt <= 0) return 0;
+  const [w, z] = SPR[name];
+  if (z >= 1) return 1 - (1 + w * dt) * Math.exp(-w * dt);
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * dt) * (Math.cos(wd * dt) + (z * w / wd) * Math.sin(wd * dt));
+}
+
+/*
+  Дорожка: начальное значение и цели по долям. Значение — сумма пружин по
+  одной на смену цели, этого круга и прошлого. Последняя цель обязана равняться
+  начальному значению, иначе петля не замкнётся (проверяется при сборке).
+*/
+function track(v0, keys, name = 'track') {
+  const ev = [];
+  let prev = v0;
+  for (const [b, v, sp] of keys) { ev.push([B(b), v - prev, sp || 'ui']); prev = v; }
+  if (Math.abs(prev - v0) > 1e-9) throw new Error(`дорожка «${name}» не замкнута: ${v0} → ${prev}`);
+  return (t) => {
+    let v = v0;
+    for (let k = -1; k <= 0; k += 1) for (const [tt, d, sp] of ev) v += d * S(t - tt - k * LOOP, sp);
+    return v;
+  };
+}
+function trackColor(c0, keys, name) {
+  const ch = [0, 1, 2].map((i) => track(hex(c0)[i], keys.map(([b, c, sp]) => [b, hex(c)[i], sp]), `${name}[${i}]`));
+  return (t) => ch.map((f) => f(t));
+}
+
+/*
+  Видимость слоя содержимого: вход и выход — каждый со своим временем, чтобы
+  текст, сменяющийся внутри меняющейся формы, не наезжал на соседний.
+*/
+function vis(t, tin, tout, sin = 'fade', sout = 'fade') {
+  let best = 0;
+  for (let k = -1; k <= 1; k += 1) {
+    const tt = t + k * LOOP;
+    best = Math.max(best, clamp(S(tt - tin, sin) - S(tt - tout, sout), 0, 1));
+  }
+  return best;
+}
+const IN = (b, d = 0.07) => B(b) + d;    // вход — чуть после доли
+const OUT = (b, d = 0.08) => B(b) - d;   // выход — чуть до неё
+
+// ——————————————————————————————————————————————— мелочи
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+function hex(c) { const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+const rgb = (a, alpha = 1) => `rgba(${a.map((v) => Math.round(clamp(v, 0, 255))).join(',')},${alpha})`;
+const mix = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+const smooth = (a, b, x) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
+
+const INK = '#0B0B0C', PAPER = '#FFFFFF', ACCENT = '#6366F1', LINE = '#E6E3DE', MUTE = '#86868B', DIM = '#2A2A2E';
+const content = document.getElementById('content');
+function el(tag, cls, html, parent = content) {
+  const node = tag === 'svg' || tag === 'path' || tag === 'circle' || tag === 'polygon' || tag === 'line' || tag === 'rect' || tag === 'g'
+    ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag);
+  if (cls) node.setAttribute('class', cls);
+  if (html != null) node.innerHTML = html;
+  parent.appendChild(node);
+  return node;
+}
+/** Слой содержимого: видимость p, размытие на входе и выходе, небольшой сдвиг. */
+function show(node, p, x, y, { scale = 1, anchor = 'center', blur = 12, dy = 10 } = {}) {
+  if (p < 0.003) { node.style.display = 'none'; return; }
+  node.style.display = node.dataset.display || '';
+  node.style.opacity = p.toFixed(4);
+  node.style.filter = p > 0.995 ? 'none' : `blur(${((1 - p) * blur).toFixed(2)}px)`;
+  const ax = anchor === 'left' ? '0' : anchor === 'right' ? '-100%' : '-50%';
+  const s = scale * (0.94 + 0.06 * p);
+  node.style.transform = `translate(${x.toFixed(2)}px, ${(y + (1 - p) * dy).toFixed(2)}px) translate(${ax}, -50%) scale(${s.toFixed(4)})`;
+  node.style.transformOrigin = anchor === 'left' ? '0 50%' : anchor === 'right' ? '100% 50%' : '50% 50%';
+}
+function box(node, x, y, w, h, r, color) {
+  node.style.transform = `translate(${(x - w / 2).toFixed(2)}px, ${(y - h / 2).toFixed(2)}px)`;
+  node.style.width = `${Math.max(0, w).toFixed(2)}px`;
+  node.style.height = `${Math.max(0, h).toFixed(2)}px`;
+  node.style.borderRadius = `${Math.max(0, r).toFixed(2)}px`;
+  if (color) node.style.background = color;
+}
+const text = (s, size, weight, color, extra = '') =>
+  `<div class="t" style="font-size:${size}px;font-weight:${weight};color:${color};${extra}">${s}</div>`;
+const icon = (size, d, color, stroke = 2.4) =>
+  `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${(stroke * 24 / size).toFixed(3)}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICON = {
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>',
+  command: '<path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"/>',
+  enter: '<path d="M20 5v6a3 3 0 0 1-3 3H5"/><path d="M9 10l-4 4 4 4"/>',
+};
+
+// ——————————————————————————————————————————————— узлы
+
+const shape = document.getElementById('shape');
+const stage = document.getElementById('stage');
+const cursor = document.getElementById('cursor');
+
+const N = {};
+// 1. Кнопка
+N.play = el('div', 'a', text('Играть', 36, 600, PAPER));
+// 2. Загрузка и галочка
+N.ring = el('svg', 'a'); N.ring.setAttribute('width', 64); N.ring.setAttribute('height', 64);
+N.ring.setAttribute('viewBox', '-32 -32 64 64');
+N.ringArc = el('circle', null, null, N.ring);
+Object.entries({ r: 26, cx: 0, cy: 0, fill: 'none', stroke: PAPER, 'stroke-width': 5.5, 'stroke-linecap': 'round', pathLength: 1 })
+  .forEach(([k, v]) => N.ringArc.setAttribute(k, v));
+N.badge = el('div', 'a'); N.badge.style.background = ACCENT;
+N.badgeCheck = el('svg', 'a', null, N.badge);
+N.badgeCheck.setAttribute('viewBox', '0 0 24 24');
+N.badgePath = el('path', null, null, N.badgeCheck);
+Object.entries({ d: 'M5 12.5l4.5 4.5L19 7.5', fill: 'none', stroke: PAPER, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1 })
+  .forEach(([k, v]) => N.badgePath.setAttribute(k, v));
+N.badgeLetter = el('div', 'a', text('А', 58, 700, PAPER), N.badge);
+// 3. Островок
+N.room = el('div', 'a', text('Комната K7M2Q', 27, 600, PAPER));
+N.avatars = ['А', 'Д', 'М'].map((ch) => {
+  const n = el('div', 'a', text(ch, 17, 650, INK));
+  n.style.cssText += 'width:40px;height:40px;border-radius:20px;background:#FFFFFF;box-shadow:0 0 0 3px #0B0B0C;display:flex;align-items:center;justify-content:center;';
+  n.dataset.display = 'flex';
+  return n;
+});
+// 4. Таймер раунда
+N.title = el('div', 'a', text('Раунд · Alias', 30, 650, INK));
+N.word = el('div', 'a', text('Слово: Ковчег', 22, 500, MUTE));
+N.playBtn = el('div', 'a'); N.playBtn.style.cssText += 'width:76px;height:76px;border-radius:38px;background:#0B0B0C;';
+N.pp = el('svg', 'a', null, N.playBtn); N.pp.setAttribute('viewBox', '-38 -38 76 76');
+N.pp.setAttribute('width', 76); N.pp.setAttribute('height', 76);
+N.ppL = el('polygon', null, null, N.pp); N.ppR = el('polygon', null, null, N.pp);
+for (const p of [N.ppL, N.ppR]) { p.setAttribute('fill', PAPER); p.setAttribute('stroke', PAPER); p.setAttribute('stroke-width', 2.4); p.setAttribute('stroke-linejoin', 'round'); }
+N.timeL = el('div', 'a'); N.timeR = el('div', 'a', text('1:00', 20, 500, MUTE));
+// Полоса (прогресс → ползунок → дорожка переключателя), заливка, бегунок
+N.bar = el('div', 'a'); N.fill = el('div', 'a'); N.knob = el('div', 'a');
+// 5. Ползунок
+N.sLabel = el('div', 'a', text('Сложность', 28, 650, INK));
+N.sMid = el('div', 'a', text('Средняя', 28, 500, MUTE));
+N.sHard = el('div', 'a', text('Трудная', 28, 600, INK));
+// 6. Переключатель
+N.moon = el('div', 'a');
+N.theme = el('div', 'a');
+// 7. Вкладки
+N.tabs = ['Слова', 'Шпион', 'Царства'].map((s) => el('div', 'a', text(s, 28, 600, PAPER)));
+// 8. График
+N.cTitle = el('div', 'a', text('Царства', 32, 650, PAPER));
+N.cSub = el('div', 'a', text('Очки за неделю', 20, 500, MUTE));
+N.cBig = el('div', 'a', text('164', 56, 650, PAPER, 'letter-spacing:-0.03em'));
+N.cBigSub = el('div', 'a', text('за воскресенье', 18, 500, MUTE));
+N.chart = el('svg', 'a'); N.chart.setAttribute('width', 800); N.chart.setAttribute('height', 560);
+N.chart.setAttribute('viewBox', '-400 -280 800 560');
+N.grid = [50, 100, 150].map(() => el('line', null, null, N.chart));
+N.guide = el('line', null, null, N.chart);
+N.line = el('path', null, null, N.chart);
+N.dots = Array.from({ length: 7 }, () => el('circle', null, null, N.chart));
+N.days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].map((d) => el('div', 'a', text(d, 18, 500, MUTE)));
+N.tip = el('div', 'a'); N.tip.style.cssText += 'background:#FFFFFF;border-radius:14px;height:64px;';
+const VALUES = [48, 62, 55, 81, 97, 128, 164];
+const DAYS_FULL = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+N.tipTexts = VALUES.map((v, i) => el('div', 'a', `<div class="t" style="font-size:22px;font-weight:650;color:${INK}">${DAYS_FULL[i]} · ${v}</div><div class="t" style="font-size:15px;font-weight:500;color:${MUTE};margin-top:6px">очков</div>`, N.tip));
+// 9. Поиск
+N.search = el('div', 'a', icon(30, ICON.search, PAPER));
+N.placeholder = el('div', 'a', text('Найти игру', 28, 500, MUTE));
+N.typed = ['Ц', 'а', 'р'].map((c) => el('div', 'a', text(c, 28, 550, PAPER)));
+N.caret = el('div', 'a'); N.caret.style.cssText += 'width:3px;height:34px;border-radius:2px;background:#FFFFFF;';
+N.key = el('div', 'a'); N.key.style.cssText += 'height:40px;width:78px;border-radius:12px;box-shadow:inset 0 0 0 1.5px #3A3A3F;display:flex;align-items:center;justify-content:center;gap:4px;';
+N.key.dataset.display = 'flex';
+N.key.innerHTML = `${icon(18, ICON.command, '#C9C9CE')}<span class="t" style="font-size:20px;font-weight:600;color:#C9C9CE">K</span>`;
+N.divider = el('div', 'a'); N.divider.style.cssText += 'height:1.5px;background:#26262A;';
+N.rowBg = el('div', 'a');
+N.rows = [['Ц', 'Царства'], ['З', 'Земля обетованная'], ['Д', 'Двенадцать колен']].map(([l, name], i) => {
+  const tile = el('div', 'a', text(l, 20, 650, PAPER));
+  tile.style.cssText += `width:40px;height:40px;border-radius:11px;background:${i === 0 ? ACCENT : DIM};display:flex;align-items:center;justify-content:center;`;
+  tile.dataset.display = 'flex';
+  return { tile, name: el('div', 'a', text(name, 26, 550, PAPER)) };
+});
+N.open = el('div', 'a', `<div style="display:flex;align-items:center;gap:8px">${text('Открыть', 18, 500, MUTE)}${icon(20, ICON.enter, MUTE)}</div>`);
+// 10. Уведомление
+N.toast = el('div', 'a', text('Царства · партия началась', 26, 600, PAPER));
+
+// ——————————————————————————————————————————————— раскладка и дорожки
+
+let L = null; // всё, что считается один раз при сборке
+
+function build() {
+  // Форма: ширина, высота, скругление, цвет, камера — по состояниям.
+  const states = [
+    // доля, ширина, высота, скругление, цвет, масштаб камеры
+    [1, 108, 108, 54, INK, 5.2],      // загрузка
+    [4, 560, 96, 48, INK, 1.95],      // островок
+    [7, 680, 300, 40, PAPER, 1.62],   // таймер раунда
+    [12, 680, 172, 40, PAPER, 1.62],  // ползунок
+    [16, 560, 132, 40, PAPER, 1.95],  // «Тёмная тема»
+    [17, 560, 132, 40, INK, 1.95],    // тема включена — карточка темнеет
+    [18, 700, 112, 56, INK, 1.58],    // вкладки
+    [20, 800, 560, 44, INK, 1.36],    // график
+    [24, 720, 348, 30, INK, 1.5],     // поиск со списком
+    [25.08, 720, 196, 30, INK, 1.52], // список сузился до одной игры
+    [26, 640, 96, 48, INK, 1.7],      // уведомление
+    [27, 300, 96, 48, INK, 3.4],      // снова кнопка
+  ];
+  const start = { w: 300, h: 96, r: 48, c: INK, cam: 3.4 };
+  const at = (b) => b - 0.04;
+  const w = track(start.w, states.map(([b, W]) => [at(b), W, 'ui']), 'w');
+  const h = track(start.h, states.map(([b, , H]) => [at(b), H, 'ui']), 'h');
+  const r = track(start.r, states.map(([b, , , R]) => [at(b), R, 'ui']), 'r');
+  const c = trackColor(start.c, states.map(([b, , , , C]) => [at(b) + (C === INK && b === 17 ? 0.04 : 0), C, b === 17 ? 'soft' : 'ui']), 'c');
+  const cam = track(start.cam, states.map(([b, , , , , K]) => [b - 0.14, K, 'cam']), 'cam');
+  // Нажатия по самой форме — короткий «присед».
+  const press = track(1, [[0, 0.955, 'press'], [0.12, 1, 'ui'], [6, 0.965, 'press'], [6.12, 1, 'ui']], 'press');
+  const pop = track(1, [[3, 1.06, 'snap'], [3.14, 1, 'ui']], 'pop');
+
+  // Курсор — в координатах сцены. Последняя цель — точка нажатия на кнопку.
+  const P0 = [64, 14];
+  const PLAYER = { L: -300, W: 600, y: 72 };
+  const SLIDER = { L: -300, W: 600, y: 36 };
+  const p0 = 14 / 60;
+  const pAtGrab = p0 + (B(10) - B(8)) / 60;
+  const scrubEnd = 0.715;
+  const cur = [
+    [0.55, 100, 80, 'cur'],
+    [5.05, 128, 10, 'cur'],
+    [7.25, 262, -58, 'cur'],
+    [8.55, PLAYER.L + PLAYER.W * pAtGrab + (B(10) - B(8.55) - 0.25) / 60 * PLAYER.W, PLAYER.y, 'cur'],
+    [10, PLAYER.L + PLAYER.W * scrubEnd, PLAYER.y, 'drag'],
+    [11.25, 214, 168, 'cur'],
+    [12.3, SLIDER.L + SLIDER.W * 0.5, SLIDER.y, 'cur'],
+    [13, SLIDER.L + SLIDER.W, SLIDER.y, 'drag'],
+    [14, SLIDER.L + SLIDER.W + 150, SLIDER.y + 4, 'drag'],
+    [15.25, 262, 150, 'cur'],
+    [16.15, 196, 8, 'cur'],
+    [17.4, 240, 60, 'cur'],
+    [18.1, 222, 6, 'cur'],
+    [19.45, 330, 250, 'cur'],
+    [21.35, 227, 4, 'cur'],
+    [22.45, 336, -44, 'cur'],
+    [23.55, 300, 250, 'cur'],
+    [27.1, P0[0], P0[1], 'cur'],
+  ];
+  const cx = track(P0[0], cur.map(([b, x, , sp]) => [b, x, sp]), 'cursor.x');
+  const cy = track(P0[1], cur.map(([b, , y, sp]) => [b, y, sp]), 'cursor.y');
+  const down = track(0, [0, 6, 8, 10, 13, 17, 19].flatMap((b) => {
+    const up = b === 10 ? 11 : b === 13 ? 15 : b + 0.12;
+    return [[b, 1, 'press'], [up, 0, 'ui']];
+  }), 'cursor.press');
+
+  // Где ползунок переходит «Средняя» → «Трудная»: ищется по траектории курсора.
+  let tHard = B(14);
+  for (let t = B(13); t < B(14); t += 0.002) {
+    const s = clamp(0.5 + (cx(t) - cx(B(13))) / SLIDER.W, 0, 1);
+    if (s >= 0.75) { tHard = t; break; }
+  }
+
+  // Ширины вкладок — по настоящему шрифту.
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = '600 28px Geist';
+  const TAB_X = [-220, 0, 220];
+  const tabRect = ['Слова', 'Шпион', 'Царства'].map((s, i) => {
+    const wT = ctx.measureText(s).width + 64;
+    return { L: TAB_X[i] - wT / 2, R: TAB_X[i] + wT / 2, w: ctx.measureText(s).width };
+  });
+
+  L = { w, h, r, c, cam, press, pop, cx, cy, down, P0, PLAYER, SLIDER, p0, tHard, tabRect, TAB_X };
+  L.sounds = [
+    [0, 'click'], [0.12, 'release'], [3, 'success'], [5, 'pop'], [5.25, 'pop'], [5.5, 'pop'],
+    [6, 'click'], [6.12, 'release'], [8, 'click'], [8.12, 'release'], [10, 'grab'], [11, 'drop'],
+    [13, 'grab'], [15, 'drop'], [17, 'toggle'], [19, 'click'], [19.12, 'release'], [22, 'tick'], [23, 'tick'],
+    [24, 'key'], [25, 'key'], [25.25, 'key'], [25.5, 'key'], [26, 'enter'], [26.12, 'success'],
+  ].map(([b, kind]) => ({ beat: b, time: B(b), kind }));
+  window.SOUNDS = L.sounds;
+}
+
+// ——————————————————————————————————————————————— кадр
+
+function seek(tRaw) {
+  const t = ((tRaw % LOOP) + LOOP) % LOOP;
+  const W = L.w(t), H = L.h(t), R = L.r(t), cam = L.cam(t);
+  const k = L.press(t) * L.pop(t);
+  stage.style.transform = `scale(${cam.toFixed(5)})`;
+  box(shape, 0, 0, W * k, H * k, R * k, rgb(L.c(t)));
+  content.style.transform = `translate(${(W * k / 2).toFixed(2)}px, ${(H * k / 2).toFixed(2)}px) scale(${k.toFixed(4)})`;
+  const top = -H / 2;
+  const dark = S(t - B(17) - 0.02, 'soft');           // тёмная тема: 0 — светлая карточка, 1 — тёмная
+  const inkOnCard = rgb(mix(hex(INK), hex(PAPER), dark));
+
+  // — 1. кнопка «Играть» —
+  show(N.play, vis(t, IN(27, 0.1) - LOOP, OUT(1, 0.1)), 0, 0);
+
+  // — 2. загрузка: кольцо растёт и крутится, к третьей доле замыкается —
+  const pRing = vis(t, IN(1, 0.02), OUT(3, 0.02), 'fade', 'snap');
+  if (pRing > 0.003) {
+    const grow = S(t - B(1), 'draw');
+    const len = 0.12 + 0.8 * grow * smooth(B(1), B(3), t) + 0.08 * S(t - B(2.6), 'ui');
+    N.ringArc.setAttribute('stroke-dasharray', `${Math.min(1, len).toFixed(4)} 1`);
+    N.ring.style.transform = `translate(-32px,-32px) rotate(${(-90 + (t - B(1)) * 540).toFixed(2)}deg)`;
+  }
+  N.ring.style.display = pRing > 0.003 ? '' : 'none';
+  N.ring.style.opacity = pRing.toFixed(4);
+  N.ring.style.filter = pRing > 0.995 ? 'none' : `blur(${((1 - pRing) * 8).toFixed(2)}px)`;
+
+  // — значок: индиго-круг с галочкой → слева в островке → плитка «А» таймера → в уведомлении —
+  const bIn = S(t - B(3), 'snap');
+  const toIsland = S(t - B(4) + 0.04, 'ui');
+  const toTile = S(t - B(7) + 0.04, 'ui');
+  const badgeGone = vis(t, B(3), OUT(12, 0.02));
+  const toastBadge = vis(t, IN(26, 0.02), OUT(27, 0.04));
+  let bx = lerp(0, -232, toIsland), by = 0, bd = lerp(108 * bIn, 64, toIsland), br = bd / 2;
+  bx = lerp(bx, -248, toTile); by = lerp(by, -58, toTile); bd = lerp(bd, 104, toTile); br = lerp(br, 26, toTile);
+  let bp = badgeGone;
+  if (toastBadge > 0.003) { bx = -272; by = 0; bd = 56 * (0.6 + 0.4 * toastBadge); br = bd / 2; bp = toastBadge; }
+  N.badge.style.display = bp > 0.003 ? '' : 'none';
+  box(N.badge, bx, by, bd, bd, br);
+  N.badge.style.opacity = Math.min(1, bp * (toastBadge > 0.003 ? 1 : 1.2)).toFixed(4);
+  // галочка рисуется на третьей доле; в плитке её сменяет буква
+  const checkP = toastBadge > 0.003 ? toastBadge : 1 - toTile;
+  const drawK = toastBadge > 0.003 ? S(t - B(26) - 0.08, 'tick') : S(t - B(3) - 0.04, 'tick');
+  const cs = bd * 0.56;
+  N.badgeCheck.setAttribute('width', cs); N.badgeCheck.setAttribute('height', cs);
+  N.badgeCheck.style.transform = `translate(${((bd - cs) / 2).toFixed(2)}px, ${((bd - cs) / 2).toFixed(2)}px)`;
+  N.badgePath.setAttribute('stroke-width', (6 * 24 / Math.max(10, 104 * 0.56)).toFixed(3));
+  N.badgePath.setAttribute('stroke-dasharray', `${drawK.toFixed(4)} 1`);
+  N.badgeCheck.style.opacity = checkP.toFixed(4);
+  N.badgeLetter.style.opacity = (toastBadge > 0.003 ? 0 : toTile).toFixed(4);
+  N.badgeLetter.style.transform = `translate(${(bd / 2).toFixed(2)}px, ${(bd / 2).toFixed(2)}px) translate(-50%,-50%) scale(${(0.7 + 0.3 * toTile).toFixed(3)})`;
+
+  // — 3. островок —
+  show(N.room, vis(t, IN(4, 0.1), OUT(7)), -184, 0, { anchor: 'left' });
+  N.avatars.forEach((n, i) => show(n, vis(t, B(5 + i * 0.25), OUT(7), 'snap'), 166 + i * 32, 0, { dy: 6 }));
+
+  // — 4. таймер раунда —
+  const pIn = IN(7, 0.1), pOut = OUT(12);
+  show(N.title, vis(t, pIn, pOut), -176, -80, { anchor: 'left' });
+  show(N.word, vis(t, pIn + 0.04, pOut), -176, -40, { anchor: 'left' });
+  const pBtn = vis(t, pIn + 0.02, pOut);
+  const btnPress = 1 - 0.1 * (S(t - B(8), 'press') - S(t - B(8.12), 'ui'));
+  show(N.playBtn, pBtn, 262, -58, { scale: btnPress });
+  const pk = S(t - B(8), 'snap');                     // ▶ → ❚❚
+  const lerpPts = (a, b) => a.map((p, i) => [lerp(p[0], b[i][0], pk), lerp(p[1], b[i][1], pk)]).map((p) => p.join(',')).join(' ');
+  N.ppL.setAttribute('points', lerpPts([[-9, -15], [4, -7.5], [4, 7.5], [-9, 15]], [[-11, -13], [-3.5, -13], [-3.5, 13], [-11, 13]]));
+  N.ppR.setAttribute('points', lerpPts([[4, -7.5], [17, 0], [17, 0], [4, 7.5]], [[3.5, -13], [11, -13], [11, 13], [3.5, 13]]));
+
+  // значение прогресса: 0:14, после ▶ идёт секундами, перемотка — прямым ведением курсором
+  let p = L.p0;
+  if (t >= B(8)) p = L.p0 + (t - B(8)) / 60;
+  const grab1 = B(10), drop1 = B(11);
+  const pGrab = L.p0 + (grab1 - B(8)) / 60;
+  if (t >= grab1 && t < drop1) p = clamp(pGrab + (L.cx(t) - L.cx(grab1)) / L.PLAYER.W, 0, 1);
+  if (t >= drop1) p = clamp(pGrab + (L.cx(drop1) - L.cx(grab1)) / L.PLAYER.W, 0, 1) + (t - drop1) / 60;
+  const secs = Math.floor(p * 60 + 1e-6);
+  N.timeL.innerHTML = text(`0:${String(secs).padStart(2, '0')}`, 20, 500, MUTE);
+  show(N.timeL, vis(t, pIn + 0.06, pOut), -300, 110, { anchor: 'left' });
+  show(N.timeR, vis(t, pIn + 0.06, pOut), 300, 110, { anchor: 'right' });
+
+  // — ползунок сложности —
+  const grab2 = B(13), drop2 = B(15);
+  let s = 0.5, over = 0;
+  if (t >= grab2 && t < drop2) {
+    const raw = 0.5 + (L.cx(t) - L.cx(grab2)) / L.SLIDER.W;
+    s = clamp(raw, 0, 1);
+    over = Math.max(0, raw - 1) * L.SLIDER.W;
+  }
+  let stretch = 30 * (1 - Math.exp(-over / 90));
+  if (t >= drop2) {
+    s = 1;
+    const overRel = Math.max(0, 0.5 + (L.cx(drop2 - 1e-4) - L.cx(grab2)) / L.SLIDER.W - 1) * L.SLIDER.W;
+    stretch = 30 * (1 - Math.exp(-overRel / 90)) * (1 - S(t - drop2, 'ui'));
+  }
+  const sIn = IN(12, 0.1), sOut = OUT(16);
+  show(N.sLabel, vis(t, sIn, sOut), -300, -30, { anchor: 'left' });
+  show(N.sMid, vis(t, sIn + 0.04, L.tHard - 0.02), 300, -30, { anchor: 'right' });
+  show(N.sHard, vis(t, L.tHard + 0.05, sOut), 300 + stretch, -30, { anchor: 'right' });
+
+  // — полоса, заливка, бегунок: прогресс → ползунок → переключатель → индикатор вкладок —
+  const kS = S(t - B(12) + 0.04, 'ui');
+  const kT = S(t - B(16) + 0.04, 'ui');
+  const onK = S(t - B(17), 'ui');
+  const barPlayer = { x: 0, y: L.PLAYER.y, w: 600, h: 8, r: 4 };
+  const barSlider = { x: stretch / 2, y: L.SLIDER.y, w: 600 + stretch, h: 12 * (1 - 0.35 * stretch / 30), r: 6 };
+  const barToggle = { x: 192, y: 0, w: 104, h: 60, r: 30 };
+  const lerpRect = (a, b, q) => ({ x: lerp(a.x, b.x, q), y: lerp(a.y, b.y, q), w: lerp(a.w, b.w, q), h: lerp(a.h, b.h, q), r: lerp(a.r, b.r, q) });
+  let bar = lerpRect(lerpRect(barPlayer, barSlider, kS), barToggle, kT);
+  const barColor = mix(mix(hex(LINE), hex(LINE), kS), mix(hex('#D9D5CF'), hex(ACCENT), onK), kT);
+  const barP = vis(t, pIn + 0.05, OUT(18, 0.02));
+  N.bar.style.display = barP > 0.003 ? '' : 'none';
+  N.bar.style.opacity = barP.toFixed(4);
+  box(N.bar, bar.x, bar.y, bar.w, bar.h, bar.r, rgb(barColor));
+  // заливка — от левого края до бегунка
+  const leftEdge = bar.x - bar.w / 2;
+  const valueX = lerp(L.PLAYER.L + L.PLAYER.W * p, L.SLIDER.L + L.SLIDER.W * s + stretch, kS);
+  const fillW = Math.max(0, valueX - leftEdge) * (1 - kT);
+  N.fill.style.display = barP > 0.003 && fillW > 0.5 ? '' : 'none';
+  N.fill.style.opacity = barP.toFixed(4);
+  box(N.fill, leftEdge + fillW / 2, bar.y, fillW, bar.h, bar.r, INK);
+  // бегунок: края на разных пружинах — ведущий впереди, ведомый догоняет
+  const held = (t >= grab1 && t < drop1) || (t >= grab2 && t < drop2);
+  const grow = 1 + 0.18 * (S(t - grab1, 'snap') - S(t - drop1, 'ui') + S(t - grab2, 'snap') - S(t - drop2, 'ui'));
+  const kPlayer = { x: L.PLAYER.L + L.PLAYER.W * p, y: L.PLAYER.y, d: 22 * (t < B(12) ? grow : 1) };
+  const kSlider = { x: L.SLIDER.L + L.SLIDER.W * s + stretch, y: L.SLIDER.y, d: 34 * (t >= B(12) ? grow : 1) };
+  let kx = lerp(kPlayer.x, kSlider.x, kS), ky = lerp(kPlayer.y, kSlider.y, kS), kd = lerp(kPlayer.d, kSlider.d, kS);
+  // переключатель: выкл. 146…194, вкл. 190…238; правый край ведёт, левый догоняет
+  const tL = lerp(146, 190, S(t - B(17), 'trail')), tR = lerp(194, 238, S(t - B(17), 'lead'));
+  let knobL = lerp(kx - kd / 2, tL, kT), knobR = lerp(kx + kd / 2, tR, kT);
+  let knobT = lerp(ky - kd / 2, -24, kT), knobB = lerp(ky + kd / 2, 24, kT);
+  // вкладки: ручка вытягивается в индикатор под «Слова» (ведёт левый край), затем перетекает к «Царства» (ведёт правый)
+  const tabs = L.tabRect;
+  const toTabs = { L: S(t - B(18) + 0.04, 'lead'), R: S(t - B(18) + 0.04, 'trail'), V: S(t - B(18) + 0.04, 'ui') };
+  const toThird = { L: S(t - B(19), 'trail'), R: S(t - B(19), 'lead') };
+  const indL = lerp(tabs[0].L, tabs[2].L, toThird.L), indR = lerp(tabs[0].R, tabs[2].R, toThird.R);
+  knobL = lerp(knobL, indL, toTabs.L); knobR = lerp(knobR, indR, toTabs.R);
+  knobT = lerp(knobT, -40, toTabs.V); knobB = lerp(knobB, 40, toTabs.V);
+  const knobColor = mix(mix(hex(INK), hex(PAPER), kT), hex(PAPER), toTabs.V);
+  const knobP = vis(t, pIn + 0.05, OUT(20, 0.02));
+  N.knob.style.display = knobP > 0.003 ? '' : 'none';
+  N.knob.style.opacity = knobP.toFixed(4);
+  box(N.knob, (knobL + knobR) / 2, (knobT + knobB) / 2, knobR - knobL, knobB - knobT, Math.min(knobR - knobL, knobB - knobT) / 2, rgb(knobColor));
+  N.knob.style.boxShadow = kT > 0.02 && toTabs.V < 0.98 ? `0 2px 6px rgba(0,0,0,${(0.18 * kT * (1 - toTabs.V)).toFixed(3)})` : 'none';
+
+  // — «Тёмная тема» —
+  const thIn = IN(16, 0.1), thOut = OUT(18);
+  N.moon.innerHTML = icon(30, ICON.moon, inkOnCard);
+  show(N.moon, vis(t, thIn, thOut), -236, 0);
+  N.theme.innerHTML = text('Тёмная тема', 30, 650, inkOnCard);
+  show(N.theme, vis(t, thIn + 0.03, thOut), -206, 0, { anchor: 'left' });
+
+  // — вкладки: подпись под индикатором темнеет —
+  const tabP = vis(t, IN(18, 0.08), OUT(20));
+  N.tabs.forEach((n, i) => {
+    const r0 = tabs[i];
+    const cover = clamp((Math.min(knobR, L.TAB_X[i] + r0.w / 2) - Math.max(knobL, L.TAB_X[i] - r0.w / 2)) / r0.w, 0, 1) * toTabs.V;
+    n.firstChild.style.color = rgb(mix(hex(PAPER), hex(INK), cover), lerp(0.62, 1, cover));
+    show(n, tabP, L.TAB_X[i], 0);
+  });
+
+  // — 5. график —
+  const gIn = IN(20, 0.08), gOut = OUT(24);
+  const gP = vis(t, gIn, gOut);
+  show(N.cTitle, vis(t, gIn, gOut), -352, -222, { anchor: 'left' });
+  show(N.cSub, vis(t, gIn + 0.04, gOut), -352, -184, { anchor: 'left' });
+  show(N.cBig, vis(t, gIn + 0.08, gOut), 352, -214, { anchor: 'right' });
+  show(N.cBigSub, vis(t, gIn + 0.1, gOut), 352, -174, { anchor: 'right' });
+  const X = (i) => -340 + i * (680 / 6);
+  const Y = (v) => 180 - v / 180 * 236;
+  N.chart.style.display = gP > 0.003 ? '' : 'none';
+  N.chart.style.opacity = gP.toFixed(4);
+  N.chart.style.transform = 'translate(-400px,-280px)';
+  N.grid.forEach((ln, i) => {
+    const v = [50, 100, 150][i];
+    Object.entries({ x1: -340, x2: 340, y1: Y(v), y2: Y(v), stroke: '#1F1F23', 'stroke-width': 1.5 }).forEach(([a, b]) => ln.setAttribute(a, b));
+  });
+  const draw = S(t - B(20.5), 'draw');
+  const pts = VALUES.map((v, i) => [X(i), Y(v)]);
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i += 1) {
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    const mx = (x0 + x1) / 2;
+    d += ` C${mx},${y0} ${mx},${y1} ${x1},${y1}`;
+  }
+  N.line.setAttribute('d', d);
+  Object.entries({ fill: 'none', stroke: ACCENT, 'stroke-width': 5, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': `${draw.toFixed(4)} 1` })
+    .forEach(([a, b]) => N.line.setAttribute(a, b));
+  N.dots.forEach((dot, i) => {
+    const on = S(t - B(20.5) - 0.5 * (i / 6) * 1.0 - 0.05, 'snap');
+    Object.entries({ cx: pts[i][0], cy: pts[i][1], r: (6.5 * on).toFixed(2), fill: INK, stroke: ACCENT, 'stroke-width': 3.5 })
+      .forEach(([a, b]) => dot.setAttribute(a, b));
+  });
+  N.days.forEach((n, i) => show(n, vis(t, gIn + 0.1 + i * 0.03, gOut), X(i), 232));
+  // подсказка — от положения курсора: ближайшая точка с мягким «примагничиванием»
+  const hx = clamp((L.cx(t) - X(0)) / (680 / 6), 0, 6);
+  const i0 = Math.min(5, Math.floor(hx));
+  const snapped = i0 + smooth(0.3, 0.7, hx - i0);
+  const tipX = lerp(X(i0), X(i0 + 1), snapped - i0);
+  const tipV = lerp(VALUES[i0], VALUES[i0 + 1], snapped - i0);
+  const tipP = vis(t, B(21.85), OUT(24, 0.12), 'snap') * gP;
+  N.tip.style.width = '128px';
+  show(N.tip, tipP, tipX, Y(tipV) - 70, { dy: 8, blur: 8 });
+  N.tipTexts.forEach((n, i) => {
+    const o = clamp(1 - Math.abs(snapped - i) * 2.2, 0, 1);
+    n.style.opacity = o.toFixed(3);
+    n.style.filter = o > 0.99 ? 'none' : `blur(${((1 - o) * 6).toFixed(2)}px)`;
+    n.style.transform = 'translate(20px, 12px)';
+  });
+  Object.entries({ x1: tipX, x2: tipX, y1: Y(tipV) + 12, y2: 180, stroke: '#3A3A3F', 'stroke-width': 2, 'stroke-dasharray': '0', opacity: tipP.toFixed(3) })
+    .forEach(([a, b]) => N.guide.setAttribute(a, b));
+
+  // — 6. поиск ⌘K —
+  const kIn = IN(24, 0.06), kOut = OUT(26);
+  const rowY = top + 52;
+  show(N.search, vis(t, kIn, kOut), -312, rowY);
+  const typed = [25, 25.25, 25.5].map((b) => B(b));
+  show(N.placeholder, vis(t, kIn + 0.04, typed[0] - 0.02, 'fade', 'snap'), -274, rowY, { anchor: 'left' });
+  const charX = [-274, -252.5, -234.5];
+  N.typed.forEach((n, i) => show(n, vis(t, typed[i], kOut, 'snap'), charX[i], rowY, { anchor: 'left', dy: 4, blur: 6 }));
+  const nTyped = typed.filter((x) => t >= x).length;
+  const caretX = nTyped === 0 ? -278 : [-252, -234, -218][nTyped - 1];
+  const blink = (t - B(24)) % 0.5 < 0.28 || (t > typed[0] - 0.1 && t < typed[2] + 0.35) ? 1 : 0;
+  show(N.caret, vis(t, kIn + 0.1, kOut) * blink, caretX, rowY, { dy: 0 });
+  const keyPress = 1 - 0.1 * (S(t - B(24), 'press') - S(t - B(24.14), 'ui'));
+  show(N.key, vis(t, kIn, kOut), 302, rowY, { scale: keyPress });
+  const listP = vis(t, kIn + 0.06, kOut);
+  N.divider.style.width = `${(720).toFixed(0)}px`;
+  show(N.divider, listP, 0, top + 104, { dy: 0 });
+  const rowsY = [top + 104 + 48, top + 104 + 120, top + 104 + 192];
+  const enterFlash = S(t - B(26) + 0.03, 'snap');
+  N.rowBg.style.background = rgb(mix(hex('#1C1C1F'), hex('#26263A'), enterFlash));
+  N.rowBg.style.width = '688px'; N.rowBg.style.height = '60px'; N.rowBg.style.borderRadius = '16px';
+  show(N.rowBg, listP, 0, rowsY[0], { dy: 0 });
+  N.rows.forEach((row, i) => {
+    const pRow = i === 0 ? vis(t, kIn + 0.08, kOut) : vis(t, kIn + 0.08 + i * 0.04, typed[0] + 0.02, 'fade', 'snap');
+    show(row.tile, pRow, -300, rowsY[i]);
+    show(row.name, pRow, -264, rowsY[i], { anchor: 'left' });
+  });
+  show(N.open, vis(t, typed[2] + 0.1, kOut), 320, rowsY[0], { anchor: 'right' });
+
+  // — 7. уведомление —
+  show(N.toast, vis(t, IN(26, 0.1), OUT(27)), -228, 0, { anchor: 'left' });
+
+  // — курсор: на экране постоянного размера, стоит там, где точка сцены —
+  const sx = 720 + L.cx(t) * cam, sy = 720 + L.cy(t) * cam;
+  const cs2 = 1 - 0.14 * L.down(t);
+  cursor.style.transform = `translate(${(sx - 6).toFixed(2)}px, ${(sy - 4).toFixed(2)}px) scale(${cs2.toFixed(4)})`;
+
+  hud(t);
+}
+
+function hud(t) {
+  const node = document.getElementById('hud-text');
+  if (!node || window.RENDER) return;
+  let b = 0;
+  while (b < 27 && B(b + 1) <= t) b += 1;
+  node.textContent = `t = ${t.toFixed(3)} с · такт ${Math.floor(b / 4) + 1}, доля ${(b % 4) + 1}`;
+}
+
+// ——————————————————————————————————————————————— запуск
+
+window.setGrid = (beats, loop = LOOP) => {
+  if (!Array.isArray(beats) || beats.length !== 28) throw new Error('нужно 28 долей');
+  const shift = beats[0];
+  GRID = [...beats.map((b) => b - shift), loop];
+  build();
+};
+window.seek = seek;
+window.ready = document.fonts.load('600 28px Geist').then(() => document.fonts.ready).then(() => {
+  build();
+  const q = new URLSearchParams(location.search);
+  if (q.has('render')) {
+    window.RENDER = true;
+    document.getElementById('hud').remove();
+    document.body.style.overflow = 'hidden';
+  }
+  seek(Number(q.get('t') || 0));
+  const scrub = document.getElementById('scrub');
+  if (scrub) scrub.addEventListener('input', () => seek(Number(scrub.value)));
+  return true;
+});
+</script>
+</body>
+</html>
