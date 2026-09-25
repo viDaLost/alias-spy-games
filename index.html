@@ -39,11 +39,10 @@
   <meta name="spy-backend" content="https://alias-spy-games-spy.vitaledanilov.workers.dev" />
   <meta name="twelve-tribes-backend" content="https://alias-spy-games-twelve-tribes.vitaledanilov.workers.dev" />
   <!--
-    Комнаты «Царств» ещё нужно развернуть (cloudflare/kingdoms-worker/README.md):
-    адрес здесь вписан заранее по имени воркера, чтобы сетевая игра заработала
-    сама, без второй правки, как только воркер будет развёрнут. До тех пор
-    игра по сети честно показывает отказ соединения — вместо неё доступна
-    партия против компьютера, и она не пострадала.
+    Комнаты «Царств» разворачивает .github/workflows/deploy-kingdoms-cloudflare.yml
+    (секрет KINGDOMS_SESSION_SECRET задан в настройках репозитория) и после
+    выкладки сам проверяет /health. Если воркер недоступен, игра по сети честно
+    показывает отказ соединения — партия против компьютера от этого не зависит.
   -->
   <meta name="kingdoms-backend" content="https://alias-spy-games-kingdoms.vitaledanilov.workers.dev" />
   <!--
