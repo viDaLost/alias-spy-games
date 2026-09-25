@@ -243,9 +243,20 @@ async function play(width, height) {
     await page.waitForTimeout(1200);
     const calm = await info(page);
     need(!calm.breathing && calm.rims === 0, `${tag}: выбор приказа снят, а цели всё ещё обведены`);
-    await page.waitForTimeout(700);
-    const calmTo = await info(page);
-    need(calmTo.frames - calm.frames <= 1, `${tag}: после снятия выбора карта рисует ${calmTo.frames - calm.frames} кадров в покое`);
+    /*
+      Снятие выбора меняет подсказку, окно карты пересчитывается — это один-два
+      разовых кадра, и на программном рендере они приходят с опозданием.
+      Батарею жжёт другое: непрерывные кадры. Поэтому ищем тихое окно в две
+      секунды — ту же, за которую дыхание обязано дать два кадра, — и ждём его
+      до восьми секунд; дыхание, которое не остановилось, тихого окна не даст.
+    */
+    let busiest = Infinity;
+    for (let window = 0; window < 4 && busiest > 1; window += 1) {
+      const from = (await info(page)).frames;
+      await page.waitForTimeout(2000);
+      busiest = Math.min(busiest, (await info(page)).frames - from);
+    }
+    need(busiest <= 1, `${tag}: после снятия выбора карта рисует без остановки (${busiest} кадров в самое тихое окно)`);
   }
 
   // ——— один палец поворачивает и наклоняет, правая кнопка сдвигает ———
