@@ -202,7 +202,7 @@ for (const n of [2,3,4,5]) {
   root.querySelector('[data-start]').click();
   assert.equal(board.state.players[0].kingdomId, 'kedem', 'chosen clan must go to the player');
   assert.ok(board.state.players[0].supply.includes('raider'), 'clan token must be in the player supply');
-  assert.match(root.querySelector('[data-clan-note]').textContent, /Кочевники Кедема/);
+  assert.match(root.querySelector('[data-clan-note]').textContent, /Кидар/);
   board.setup();
   assert.equal(root.querySelector('[data-clan="kedem"]').getAttribute('aria-checked'), 'true', 'clan choice must be remembered');
   root.querySelector('[data-clan="tarsis"]').click();

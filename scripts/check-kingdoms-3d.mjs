@@ -377,7 +377,7 @@ async function play(width, height) {
     }
     return { out, shown };
   });
-  need(focused.shown >= 3, `${tag}: после подлёта к Тарсийской Гавани видно ${focused.shown} маркеров`);
+  need(focused.shown >= 3, `${tag}: после подлёта к Тиру видно ${focused.shown} маркеров`);
   need(focused.out.length === 0, `${tag}: после подлёта маркеры висят не над своими областями: ${focused.out.slice(0, 4).join(', ')}`);
   await page.locator('[data-zoom-fit]').click();
   await page.waitForTimeout(600);

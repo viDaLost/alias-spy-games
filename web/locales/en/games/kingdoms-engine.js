@@ -466,7 +466,7 @@
     };
 
     // 3) поджоги: срабатывают, если рядом своя область или в самой области своя засада;
-    //    «Набегу всадников» Кедема соседство не нужно.
+    //    «Набегу всадников» Кидара соседство не нужно.
     for (const raid of state.orders.filter((one) => family(one.kind) === 'raid')) {
       if (!state.orders.includes(raid)) continue;
       const areaId = raid.area;

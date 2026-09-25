@@ -351,7 +351,7 @@ function resolveWith(state, orders) {
 // 8) Карты: соглядатаи видят, пророк сбрасывает, право первенства возвращает в запас; благословлённое неприкасаемо.
 {
   const state = bench(3, ['kedem', 'tarsis', 'or']);
-  need(state.players[0].cards.scout === 3 && state.players[1].cards.scout === 2, 'у Кедема не три соглядатая или у других не два');
+  need(state.players[0].cards.scout === 3 && state.players[1].cards.scout === 2, 'у Кидара не три соглядатая или у других не два');
   state.orders = [
     { id: 'x1', owner: 1, kind: 'march3', area: R.capitalOf('tarsis'), to: null, round: 1 },
     { id: 'x2', owner: 1, kind: 'navy2', area: null, to: 'primorye-hub', round: 1 },
@@ -376,14 +376,14 @@ function resolveWith(state, orders) {
 // 9) Способности царств.
 {
   const tarsis = bench(2, ['tarsis', 'kedem']);
-  need(E.forceOf(tarsis, { owner: 0, kind: 'navy1', to: 'primorye-hub' }) === 2, 'корабли Тарсиса не получили +1');
+  need(E.forceOf(tarsis, { owner: 0, kind: 'navy1', to: 'primorye-hub' }) === 2, 'корабли Фарсиса не получили +1');
   const or = bench(2, ['or', 'kedem']);
   const orCapital = R.capitalOf('or');
   need(E.defenseOf(or, orCapital).ability === 1 && E.defenseOf(or, orCapital).printed === 3, 'горная столица Ора считается не как 2+1 и +1 способности');
   const yor = bench(2, ['yor', 'kedem']);
   yor.areas['dolina-hub'].owner = 0;
-  need(E.forceOf(yor, { owner: 0, kind: 'march2', area: 'dolina-hub', to: 'ravnina-hub' }) === 3, 'войско Йора через брод не получило +1');
-  need(E.forceOf(yor, { owner: 0, kind: 'march2', area: 'dolina-hub', to: 'dolina-cw' }) === 2, 'войско Йора получило +1 не через брод');
+  need(E.forceOf(yor, { owner: 0, kind: 'march2', area: 'dolina-hub', to: 'ravnina-hub' }) === 3, 'войско Галаада через брод не получило +1');
+  need(E.forceOf(yor, { owner: 0, kind: 'march2', area: 'dolina-hub', to: 'dolina-cw' }) === 2, 'войско Галаада получило +1 не через брод');
   const prestol = bench(2, ['prestol', 'kedem']);
   need(E.defenseOf(prestol, R.capitalOf('prestol')).ability === 1, 'Зодчие не дали +1 к защите города');
 }
@@ -400,7 +400,7 @@ function resolveWith(state, orders) {
   const prophets = state.players[1].cards.prophet;
   resolveWith(state, []);
   resolveWith(state, []);
-  need(state.players[1].cards.prophet === prophets + 1, 'награда Кедема дана не ровно один раз');
+  need(state.players[1].cards.prophet === prophets + 1, 'награда Аравии дана не ровно один раз');
 }
 
 // 11) Счёт и равенство: честь + открытые жетоны + 5 за регион + цель; при равенстве — регионы, затем области.
@@ -415,6 +415,35 @@ function resolveWith(state, orders) {
   need(s0.total === s0.areaValue + s0.veterans + s0.regions * 5 + s0.objectivePoints && s0.veterans >= 2 && s0.regions >= 1,
     'итог не сложился из чести, открытых жетонов, регионов и цели');
   need(state.status === 'over', 'после подсчёта партия не окончена');
+}
+
+// ——————————————————————————————————————————————— имена по Синодальному переводу
+
+{
+  /*
+    Царства, их столицы и библейские места на карте называются так, как они
+    написаны в Синодальном переводе. Сверка — по полному списку словоформ
+    перевода (scripts/data/bible-synodal-forms.json, тот же, что у словесных
+    игр): каждое слово имени должно встретиться в тексте. Описательные имена
+    вроде «Прибрежный Путь» — русские слова, а не имена, и здесь не сверяются.
+  */
+  const synodal = new Set(JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'data', 'bible-synodal-forms.json'), 'utf8')));
+  const inBible = (name) => name.split(/\s+/).every((word) => synodal.has(word.toUpperCase().replace(/Ё/g, 'Е')));
+  const named = [
+    ...R.KINGDOMS.map((k) => k.name),
+    ...R.KINGDOMS.map((k) => R.areaOf(R.capitalOf(k.id)).name),
+    ...R.KINGDOMS.map((k) => k.abilityTitle).filter((title) => /Фарсис/.test(title)),
+    ...['dolina', 'nagorye', 'ravnina', 'kedem'].map((id) => R.REGIONS.find((r) => r.id === id).name),
+    ...['dolina-hub', 'dolina-ccw', 'kedem-ccw'].map((id) => R.areaOf(id).name),
+  ];
+  for (const name of named) need(inBible(name), `«${name}» написано не так, как в Синодальном переводе`);
+  // Прежние выдуманные имена не должны вернуться ни в царства, ни в карту.
+  const visible = [...R.KINGDOMS.flatMap((k) => [k.name, k.tagline, k.abilityTitle, k.abilityText]),
+    ...R.REGIONS.map((r) => r.name), ...R.AREAS.map((a) => a.name),
+    ...R.ORDERS.map((o) => o.text), ...Object.values(R.REGION_CARDS).map((c) => c.text)].join(' | ');
+  for (const old of ['Тарси', 'Йор', 'Кедем', 'Дом Ора', 'Крепость Ора', 'Престол Равнины', 'Престольный']) {
+    need(!visible.includes(old), `осталось выдуманное имя «${old}»`);
+  }
 }
 
 // ——————————————————————————————————————————————— кланы: выбор и особые жетоны
@@ -446,10 +475,10 @@ function resolveWith(state, orders) {
   need(R.kingdomsFor(2, []).join() === R.STARTING_LAYOUTS[2].join(), 'без выбора раскладка не та, что прежде');
 }
 {
-  // «Колесницы» Престола — войско силой 6; «Флагман» Тарсиса с его способностью — 4.
+  // «Колесницы» Сеннаара — войско силой 6; «Флагман» Фарсиса с его способностью — 4.
   const state = bench(2, ['prestol', 'tarsis']);
   need(E.forceOf(state, { owner: 0, kind: 'march6', area: 'x' }) === 6, '«Колесницы» не силой 6');
-  need(E.forceOf(state, { owner: 1, kind: 'navy3', to: 'x' }) === 4, '«Флагман» Тарсиса не силой 4');
+  need(E.forceOf(state, { owner: 1, kind: 'navy3', to: 'x' }) === 4, '«Флагман» Фарсиса не силой 4');
   const bless = bench(2, ['or', 'kedem']);
   const mine = R.areaId(R.areaOf(R.capitalOf('or')).region, 'cw');
   const order = place(bless, 0, { kind: 'march2', area: mine });
@@ -457,7 +486,7 @@ function resolveWith(state, orders) {
   need(E.forceOf(bless, order) === 5, '«Благословение гор» прибавило не +3');
 }
 {
-  // «Набег всадников» Кедема жжёт и без соседства, обычный поджог — нет.
+  // «Набег всадников» Кидара жжёт и без соседства, обычный поджог — нет.
   const state = bench(2, ['kedem', 'tarsis']);
   const far = R.AREAS.find((a) => state.areas[a.id].owner === 1 && !R.neighborsOf(a.id).some((id) => state.areas[id].owner === 0)).id;
   resolveWith(state, [{ owner: 0, kind: 'raid', area: far }]);
@@ -579,4 +608,5 @@ console.log(`OK: карта из 24 областей в 6 регионах св�
   + `благословлённое; награды регионов даются раз; ${tale.games} партий ботами доиграны до пятого раунда с балансом запаса `
   + `(пепелищ в среднем ${(tale.scorched / tale.games).toFixed(1)}, заветов ${(tale.peace / tale.games).toFixed(1)} за партию); `
   + `все ${R.OBJECTIVES.length} тайных целей достижимы; у каждого из ${R.KINGDOMS.length} царств свой особый жетон, `
-  + `выбор царства ставит его на своё место без повторов, и боты играют все особые жетоны.`);
+  + `выбор царства ставит его на своё место без повторов, и боты играют все особые жетоны; имена царств, столиц `
+  + `и библейских мест карты написаны как в Синодальном переводе.`);

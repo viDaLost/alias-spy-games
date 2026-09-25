@@ -15,7 +15,7 @@
 //
 // Соседство задаётся здесь списком связей (EDGES), а не тем, что где
 // нарисовано: у каждой связи есть тип («land» — по суше, «ford» — через
-// брод). Войско переходит обе; через брод сильнее бьёт Дом Йора.
+// брод). Войско переходит обе; через брод сильнее бьёт Галаад.
 
 (function () {
   'use strict';
@@ -30,10 +30,10 @@
   */
   const REGIONS = [
     { id: 'primorye', name: 'Приморье', tagline: 'Гавани и солёный ветер побережья' },
-    { id: 'nagorye', name: 'Нагорье', tagline: 'Каменные кручи и пастушьи тропы' },
-    { id: 'dolina', name: 'Долина Йора', tagline: 'Плодородный берег вдоль реки' },
-    { id: 'ravnina', name: 'Срединная равнина', tagline: 'Житницы и караванные дороги' },
-    { id: 'kedem', name: 'Пустошь Кедем', tagline: 'Красные дюны и редкие колодцы' },
+    { id: 'nagorye', name: 'Гора Сеир', tagline: 'Каменные кручи Едома и пастушьи тропы' },
+    { id: 'dolina', name: 'Долина Иордана', tagline: 'Плодородный берег вдоль реки' },
+    { id: 'ravnina', name: 'Земля Сеннаар', tagline: 'Равнина житниц и караванных дорог' },
+    { id: 'kedem', name: 'Arabia', tagline: 'Красные дюны и редкие колодцы' },
     { id: 'pogranichye', name: 'Порубежье', tagline: 'Ничья земля меж всех царств' },
   ];
   const REGION_IDS = REGIONS.map((region) => region.id);
@@ -51,34 +51,34 @@
 
   const AREA_DEFS = {
     primorye: [
-      { role: 'rim', name: 'Тарсийская Гавань', terrain: 'coast', value: 4, city: true, capitalOf: 'tarsis' },
+      { role: 'rim', name: 'Tyre', terrain: 'coast', value: 4, city: true, capitalOf: 'tarsis' },
       { role: 'cw', name: 'Прибрежный Путь', terrain: 'coast', value: 1 },
       { role: 'hub', name: 'Устье Реки', terrain: 'coast', value: 2 },
       { role: 'ccw', name: 'Рыбацкий Берег', terrain: 'coast', value: 1 },
     ],
     nagorye: [
-      { role: 'rim', name: 'Крепость Ора', terrain: 'mountains', value: 4, city: true, capitalOf: 'or' },
+      { role: 'rim', name: 'Восор', terrain: 'mountains', value: 4, city: true, capitalOf: 'or' },
       { role: 'cw', name: 'Скальный Перевал', terrain: 'mountains', value: 2 },
       { role: 'hub', name: 'Верхний Кряж', terrain: 'mountains', value: 2 },
       { role: 'ccw', name: 'Пастушьи Склоны', terrain: 'mountains', value: 2 },
     ],
     dolina: [
-      { role: 'rim', name: 'Йор-Гило', terrain: 'plains', value: 4, city: true, capitalOf: 'yor' },
+      { role: 'rim', name: 'Рамоф Галаадский', terrain: 'plains', value: 4, city: true, capitalOf: 'yor' },
       { role: 'cw', name: 'Заливные Луга', terrain: 'plains', value: 1 },
-      { role: 'hub', name: 'Йорский Брод', terrain: 'plains', value: 2 },
-      { role: 'ccw', name: 'Виноградники Йора', terrain: 'plains', value: 1 },
+      { role: 'hub', name: 'Броды Иордана', terrain: 'plains', value: 2 },
+      { role: 'ccw', name: 'Маханаим', terrain: 'plains', value: 1 },
     ],
     ravnina: [
-      { role: 'rim', name: 'Престольный Град', terrain: 'plains', value: 4, city: true, capitalOf: 'prestol' },
+      { role: 'rim', name: 'Babylon', terrain: 'plains', value: 4, city: true, capitalOf: 'prestol' },
       { role: 'cw', name: 'Житницы', terrain: 'plains', value: 3, city: true },
       { role: 'hub', name: 'Равнинный Брод', terrain: 'plains', value: 2 },
       { role: 'ccw', name: 'Дорога Караванов', terrain: 'plains', value: 1 },
     ],
     kedem: [
-      { role: 'rim', name: 'Шатровый Стан', terrain: 'desert', value: 4, city: true, capitalOf: 'kedem' },
+      { role: 'rim', name: 'Шатры Кидарские', terrain: 'desert', value: 4, city: true, capitalOf: 'kedem' },
       { role: 'cw', name: 'Сухие Колодцы', terrain: 'desert', value: 1 },
       { role: 'hub', name: 'Красные Дюны', terrain: 'desert', value: 1 },
-      { role: 'ccw', name: 'Оазис Пальм', terrain: 'desert', value: 2 },
+      { role: 'ccw', name: 'Elim', terrain: 'desert', value: 2 },
     ],
     pogranichye: [
       { role: 'rim', name: 'Пограничная Твердыня', terrain: 'mountains', value: 3, city: true },
@@ -108,7 +108,7 @@
     Связи. Внутри региона — цикл rim–cw–hub–ccw–rim, все по суше. По кольцу
     регионов «cw» одного касается «ccw» следующего — так кольцо и держится
     замкнутым. И только в двух местах хаб одного региона трогает хаб
-    другого через брод: между Йором и Равниной, и между Порубежьем и
+    другого через брод: между Галаадом и Сеннааром, и между Порубежьем и
     Приморьем. Река течёт как раз этим внутренним кругом хабов — и не
     проходима нигде, кроме этих двух бродов: остальные хабы друг друга не
     касаются вовсе, не только не проходимы приказом.
@@ -143,7 +143,11 @@
   const areAdjacent = (a, b) => Boolean(edgeType(a, b));
 
   /*
-    Пять царств. У каждого дом — один из шести регионов (Порубежье без
+    Пять царств — с именами, как они написаны в Синодальном переводе:
+    Фарсис (мореходы), Едом (гора Сеир), Галаад (переправы через Иордан),
+    Сеннаар (равнина, где строили город), Кидар (шатры Кидарские). Каждое
+    имя и имя его столицы есть в тексте перевода — это сверяет
+    check-kingdoms.mjs. У каждого дом — один из шести регионов (Порубежье без
     хозяина: это общая ничья земля с городом посередине карты, за который
     спорят все). Как у кланов «Рокугана», у каждого царства две свои черты:
     способность, простая и проверяемая числом, и один особый жетон битвы
@@ -152,40 +156,40 @@
   */
   const KINGDOMS = [
     {
-      id: 'tarsis', name: 'Тарсийский Союз', region: 'primorye', color: '#0891b2', emblem: 'anchor',
+      id: 'tarsis', name: 'Tarshish', region: 'primorye', color: '#0891b2', emblem: 'anchor',
       tagline: 'Мореходы и торговцы побережья',
       ability: 'seafarers',
-      abilityTitle: 'Корабли Тарсиса',
+      abilityTitle: 'Фарсисские корабли',
       abilityText: '+1 к силе каждого вашего жетона «Корабли» — и в атаке, и в обороне.',
       clanToken: 'navy3',
     },
     {
-      id: 'or', name: 'Дом Ора', region: 'nagorye', color: '#4d7c0f', emblem: 'peak',
-      tagline: 'Стражи горных перевалов',
+      id: 'or', name: 'Edom', region: 'nagorye', color: '#4d7c0f', emblem: 'peak',
+      tagline: 'Стражи горы Сеир',
       ability: 'mountain_guard',
       abilityTitle: 'Горная стража',
       abilityText: '+1 к защите ваших горных областей (сверх горного бонуса).',
       clanToken: 'bless3',
     },
     {
-      id: 'yor', name: 'Дом Йора', region: 'dolina', color: '#4338ca', emblem: 'ford',
-      tagline: 'Хозяева речных бродов',
+      id: 'yor', name: 'Gilead', region: 'dolina', color: '#4338ca', emblem: 'ford',
+      tagline: 'Хранители переправы через Иордан',
       ability: 'ford_mastery',
       abilityTitle: 'Мастера переправ',
       abilityText: '+1 к силе вашего войска, которое атакует через брод.',
       clanToken: 'ambush3',
     },
     {
-      id: 'prestol', name: 'Престол Равнины', region: 'ravnina', color: '#ca8a04', emblem: 'sheaf',
-      tagline: 'Строители житниц и дорог',
+      id: 'prestol', name: 'Сеннаар', region: 'ravnina', color: '#ca8a04', emblem: 'sheaf',
+      tagline: 'Строители городов на равнине',
       ability: 'builders',
       abilityTitle: 'Зодчие',
       abilityText: '+1 к защите ваших городов.',
       clanToken: 'march6',
     },
     {
-      id: 'kedem', name: 'Кочевники Кедема', region: 'kedem', color: '#c2410c', emblem: 'tent',
-      tagline: 'Вестники красных дюн',
+      id: 'kedem', name: 'Turban', region: 'kedem', color: '#c2410c', emblem: 'tent',
+      tagline: 'Кочевники в шатрах Кидарских',
       ability: 'many_spies',
       abilityTitle: 'Соглядатаи пустыни',
       abilityText: 'Три карты «Соглядатаи» вместо двух.',
@@ -286,15 +290,15 @@
       на ширме клана в «Рокугане». clan — чей он: у других его не бывает.
     */
     { id: 'navy3', family: 'navy', title: 'Флагман', force: 3, clan: 'tarsis',
-      text: 'Корабли силой 3 (с «Кораблями Тарсиса» — 4). Особый жетон Тарсийского Союза.' },
+      text: 'Корабли силой 3 (с «Фарсисскими кораблями» — 4). Особый жетон Фарсиса.' },
     { id: 'bless3', family: 'bless', title: 'Благословение гор', force: 3, clan: 'or',
-      text: '+3 к своему закрытому войску, кораблям или засаде. Особый жетон Дома Ора.' },
+      text: '+3 к своему закрытому войску, кораблям или засаде. Особый жетон Едома.' },
     { id: 'ambush3', family: 'ambush', title: 'Засада у брода', force: 3, clan: 'yor',
-      text: 'Засада силой 3: в чужой области нападает, в своей защищает. Особый жетон Дома Йора.' },
+      text: 'Засада силой 3: в чужой области нападает, в своей защищает. Особый жетон Галаада.' },
     { id: 'march6', family: 'army', title: 'Колесницы', force: 6, clan: 'prestol',
-      text: 'Войско силой 6. Особый жетон Престола Равнины.' },
+      text: 'Войско силой 6. Особый жетон Сеннаара.' },
     { id: 'raider', family: 'raid', title: 'Набег всадников', force: 0, clan: 'kedem',
-      text: 'Поджог в любой чужой или ничьей области — соседство не нужно. Особый жетон Кочевников Кедема.' },
+      text: 'Поджог в любой чужой или ничьей области — соседство не нужно. Особый жетон Кидара.' },
     { id: 'feint', family: 'blank', title: 'Отвлекающий манёвр', force: 0, isFeint: true,
       text: 'Ставится как любой жетон, кроме благословения. В бою не участвует и возвращается в руку.' },
   ];
@@ -375,9 +379,9 @@
     главный город региона или добавляет карту.
   */
   const REGION_CARDS = {
-    primorye: { title: 'Дары моря', text: 'Особый жетон «+2 к чести» в Тарсийской Гавани.', special: 'honor2', area: 'primorye-rim' },
-    nagorye: { title: 'Горная твердыня', text: 'Особый жетон «+2 к защите» в Крепости Ора.', special: 'defense2', area: 'nagorye-rim' },
-    dolina: { title: 'Жертвенник у брода', text: 'Жертвенник в Йорском Броде: эту область нельзя атаковать.', special: 'shrine', area: 'dolina-hub' },
+    primorye: { title: 'Дары моря', text: 'Особый жетон «+2 к чести» в Тире.', special: 'honor2', area: 'primorye-rim' },
+    nagorye: { title: 'Горная твердыня', text: 'Особый жетон «+2 к защите» в Восоре.', special: 'defense2', area: 'nagorye-rim' },
+    dolina: { title: 'Жертвенник у брода', text: 'Жертвенник у Бродов Иордана: эту область нельзя атаковать.', special: 'shrine', area: 'dolina-hub' },
     ravnina: { title: 'Житницы', text: 'Особый жетон «+2 к чести» в Житницах.', special: 'honor2', area: 'ravnina-cw' },
     kedem: { title: 'Колодцы пустыни', text: 'Ещё одна карта «Пророк».', card: 'prophet' },
     pogranichye: { title: 'Твердыня рубежа', text: 'Особый жетон «+2 к защите» в Пограничной Твердыне.', special: 'defense2', area: 'pogranichye-rim' },
