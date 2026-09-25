@@ -90,6 +90,11 @@ const ALONE = new Set([
   'check-twelve-tribes-online.mjs',
   // Мерят кадры и точки: чужой браузер рядом подменяет измерение.
   'check-promised-land-3d.mjs',
+  // Объёмные «Царства» мерят тишину и «дыхание» кадрами на программном
+  // рендере — и сами грузят машину так, что соседи не успевают: рядом с ней
+  // «Двенадцать колен» не доиграли раздачу за пять минут, а кадр
+  // «Земли обетованной» в APK не успел растянуться по ширине.
+  'check-kingdoms-3d.mjs',
   'check-moses-nile-crocs.mjs',
   'check-moses-nile-vortex.mjs',
   'check-moses-nile-model-load-timeout.mjs',
