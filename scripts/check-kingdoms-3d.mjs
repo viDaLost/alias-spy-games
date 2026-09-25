@@ -179,7 +179,8 @@ async function play(width, height) {
   need(Boolean(attackKind), `${tag}: в стартовой руке нет доступного боевого жетона`);
   if (attackKind) {
     await page.locator(`[data-order="${attackKind}"]`).click();
-    await page.waitForTimeout(250);
+    // Сцена узнаёт о выборе в следующем кадре; на программном рендере кадр долог — ждём сам результат.
+    await page.waitForFunction(() => window.KingdomsGame.board.view3d.info().rims > 0, null, { timeout: 5000 }).catch(() => {});
     const glow = await info(page);
     need(glow.glowing > 0, `${tag}: цели приказа подсвечены в разметке, но не на рельефе`);
     need(glow.rims > 0, `${tag}: цели приказа не обведены рубежом`);
@@ -230,7 +231,9 @@ async function play(width, height) {
         if (target) board.tapArea(target.dataset.area);
         await new Promise((resolve) => setTimeout(resolve, 200));
         document.querySelector('[data-confirm-ok]')?.click();
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        for (let waited = 0; waited < 5000 && !window.KingdomsGame.board.view3d.info().arrows; waited += 100) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
         return window.KingdomsGame.board.view3d.info();
       });
       need(placed.tokens >= 1, `${tag}: поставленный приказ не лёг на карту объёмной фишкой`);
@@ -246,8 +249,20 @@ async function play(width, height) {
   }
 
   // ——— один палец поворачивает и наклоняет, правая кнопка сдвигает ———
+  /*
+    Камера меняется в кадрах, а кадр программного рендера долог: ждём
+    результата, а не таймера. Условие — функция, не строка: политика
+    безопасности страницы запрещает вычислять строки, и строковое ожидание
+    падало мгновенно и молча.
+  */
+  const camWhen = (test, arg) => page.waitForFunction(test, arg, { timeout: 4000 }).catch(() => {});
+  const atHome = () => {
+    const c = window.KingdomsGame.board.view3d.info().camera;
+    return Math.abs(c.x) < 2 && Math.abs(c.yaw) < 0.01;
+  };
   await page.locator('[data-zoom-fit]').click();
-  await page.waitForTimeout(600);
+  await camWhen(atHome);
+  await page.waitForTimeout(300);
   const before = (await info(page)).camera;
   const frame = await page.locator('[data-scroll]').boundingBox();
   const cx = frame.x + frame.width / 2; const cy = frame.y + frame.height / 2;
@@ -271,22 +286,20 @@ async function play(width, height) {
   const dragged = (await info(page)).camera;
   need(Math.hypot(dragged.x - turned.x, dragged.z - turned.z) > 15, `${tag}: сдвиг правой кнопкой не сдвинул карту`);
   need(Math.abs(dragged.yaw - turned.yaw) < 0.01, `${tag}: сдвиг правой кнопкой ещё и повернул карту`);
-  // Камера меняется в кадрах, а кадр программного рендера долог: ждём результата, а не таймера.
-  const camWhen = (test) => page.waitForFunction(test, null, { timeout: 4000 }).catch(() => {});
   await page.locator('[data-zoom-in]').click();
-  await camWhen(`window.KingdomsGame.board.view3d.info().camera.dist < ${dragged.dist * 0.9}`);
+  await camWhen((limit) => window.KingdomsGame.board.view3d.info().camera.dist < limit, dragged.dist * 0.9);
   await page.waitForTimeout(300);
   const zoomed = (await info(page)).camera;
   need(zoomed.dist < dragged.dist * 0.9, `${tag}: кнопка «+» не приблизила карту`);
   await page.mouse.move(cx, cy);
   await page.mouse.wheel(0, 300);
-  await camWhen(`window.KingdomsGame.board.view3d.info().camera.dist > ${zoomed.dist}`);
+  await camWhen((limit) => window.KingdomsGame.board.view3d.info().camera.dist > limit, zoomed.dist);
   const wheeled = (await info(page)).camera;
   need(wheeled.dist > zoomed.dist, `${tag}: колесо не отдалило карту`);
   await page.locator('[data-zoom-fit]').click();
-  await page.waitForTimeout(600);
+  await camWhen(atHome);
   const fitted = (await info(page)).camera;
-  need(Math.abs(fitted.x) < 2 && Math.abs(fitted.yaw) < 0.01, `${tag}: «Показать всю карту» не вернула общий вид`);
+  need(Math.abs(fitted.x) < 2 && Math.abs(fitted.yaw) < 0.01, `${tag}: «Показать всю карту» не вернула общий вид (x ${fitted.x.toFixed(1)}, угол ${fitted.yaw.toFixed(2)})`);
 
   // ——— подлёт к области: видимые маркеры — над своими областями ———
   const focused = await page.evaluate(async () => {
