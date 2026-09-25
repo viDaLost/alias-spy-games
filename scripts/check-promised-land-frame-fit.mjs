@@ -94,6 +94,13 @@ async function openGame(width, height) {
   const frame = await (await page.locator('iframe.game-frame').elementHandle()).contentFrame();
   await frame.waitForSelector('.mode-card[data-mode="solo"]', { timeout: 15_000 });
   /*
+    Карточки режимов стоят в самой разметке, а кнопки оживляет ui.js в конце
+    страницы — после three.js и прочих скриптов. Нажатие, пришедшее раньше,
+    уходит в пустоту, и партия так и не начинается (так падал CI на 808739b).
+    Ждём, пока ui.js отработает: он и выставляет PromisedLandGame.
+  */
+  await frame.waitForFunction(() => Boolean(window.PromisedLandGame), null, { timeout: 30_000 });
+  /*
     Нажатия здесь — вызовом, а не пальцем. Кнопка начала лежит на экране
     настроек, и он длиннее кадра: палец до неё доводит прокрутка, а проверяется
     не он, а раскладка партии, которая за ним. Полоса же управления в самой
@@ -231,6 +238,7 @@ try {
     await page.waitForSelector('iframe.game-frame', { timeout: 10_000 });
     const frame = await (await page.locator('iframe.game-frame').elementHandle()).contentFrame();
     await frame.waitForSelector('.mode-card[data-mode="solo"]', { timeout: 20_000 });
+    await frame.waitForFunction(() => Boolean(window.PromisedLandGame), null, { timeout: 30_000 });
     // Кадр получает свой размер не в тот же миг, что и документ внутри него:
     // мерить раньше — значит мерить окно высотой в шесть десятков точек.
     await frame.waitForFunction(() => window.innerHeight > 200, null, { timeout: 10_000 });
