@@ -447,9 +447,29 @@ need(watched.moves > 0, 'ход соседа не дошёл до второго
   Связь рвётся именно у того, чей сейчас ход: обрыв у того, кто и так ждёт,
   ничего бы не проверил.
 */
-const turnNow = await watcher.page.evaluate(() => window.TwelveTribesGame.state().turn);
-const silent = turnNow === 0 ? watcher : mover;   // чей ход — тот и пропадает
-const looker = turnNow === 0 ? mover : watcher;   // а этот смотрит, что будет
+/*
+  За столом трое: хозяин, гость и соперник от игры. Ход может оказаться у
+  соперника, и тогда «не мой ход у смотрящего» ещё не значит «ход второго
+  человека»: проверка отключала того, кто и так ждал, а стол честно ждал
+  живого игрока полторы минуты — дольше, чем она сама. Поэтому ждём, пока оба
+  телефона видят один и тот же ход и ходит кто-то из двоих людей.
+*/
+const humanTurn = async () => {
+  const deadline = Date.now() + 20_000;
+  while (Date.now() < deadline) {
+    const [atHost, atGuest] = await Promise.all([host, guest].map((one) => one.page.evaluate(() => {
+      const state = window.TwelveTribesGame.state();
+      return { moves: state.moves, mine: state.turn === 0 && state.status === 'playing' };
+    })));
+    if (atHost.moves === atGuest.moves && atHost.mine !== atGuest.mine) return atHost.mine ? host : guest;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return null;
+};
+const onTurn = await humanTurn();
+need(onTurn, 'за двадцать секунд ход так и не дошёл ни до хозяина, ни до гостя');
+const silent = onTurn || mover;                          // чей ход — тот и пропадает
+const looker = silent === host ? guest : host;           // а этот смотрит, что будет
 const movesBefore = await looker.page.evaluate(() => window.TwelveTribesGame.state().moves);
 await silent.page.evaluate(() => window.TwelveTribesOnline.close());
 await looker.page.waitForFunction((was) => window.TwelveTribesGame.state().moves > was,
