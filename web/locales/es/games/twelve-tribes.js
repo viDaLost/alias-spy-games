@@ -633,11 +633,20 @@
         обязаны все, иначе двое последних оказываются за краем экрана и в
         игре их как бы нет.
       */
+      /*
+        Круг обходится по всем местам, и вышедшие из раздачи остаются на своих
+        местах — с занятым местом вместо карт. Раньше ряд собирался шагами
+        E.nextSeat, а тот вышедших перепрыгивает: восьмером, когда двое уже
+        вышли, семь шагов по пятерым оставшимся шли по кругу второй раз, и за
+        столом сидели два Елеазара с одинаковыми картами.
+      */
       const foeBox = this.root.querySelector('[data-foes]');
       const queue = [];
-      for (let step = 1; step < state.players.length; step += 1) {
-        queue.push(state.players[E.nextSeat(state, 0, step)]);
+      for (let step = 1, at = 0; step < state.players.length; step += 1) {
+        at = ((at + state.dir) % state.players.length + state.players.length) % state.players.length;
+        queue.push(state.players[at]);
       }
+      const inPlay = queue.filter((player) => !player.out);
       foeBox.dataset.seats = String(queue.length);
       const place = (at, many) => (many > 1 ? (at - (many - 1) / 2) / ((many - 1) / 2) : 0);
       const seats = [];
@@ -657,8 +666,10 @@
         const risk = E.riskOpen(state) && state.risk.seat === player.id;
         // Первый за вами и последний перед вами названы словами: это два
         // места, которые в карточной игре решают всё.
-        const tag = at === 0 ? 'следом' : at === queue.length - 1 ? 'перед вами' : '';
-        return `<div class="tt-foe${turn}${done}${at === 0 ? ' is-next' : ''}${risk ? ' is-risk' : ''}"
+        // Следом ходит ближайший из тех, кто ещё в раздаче, а не сосед по кругу.
+        const next = player === inPlay[0];
+        const tag = next ? 'следом' : player === inPlay[inPlay.length - 1] ? 'перед вами' : '';
+        return `<div class="tt-foe${turn}${done}${next ? ' is-next' : ''}${risk ? ' is-risk' : ''}"
           data-seat="${player.id}"
           data-place="${at + 1}" style="--away:${place(at + 1, queue.length + 1).toFixed(3)}">
           <span class="tt-order">${at + 1}</span>

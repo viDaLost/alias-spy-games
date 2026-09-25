@@ -236,6 +236,34 @@ async function play(width, height, foes = 2) {
   });
 
   /*
+    Вышедший из раздачи остаётся на своём месте. Ряд собирался шагами движка,
+    а тот вышедших перепрыгивает, — и восьмером, когда кто-то вышел, круг шёл
+    второй раз: одни и те же соперники сидели за столом дважды. «Следом» при
+    этом — ближайший из тех, кто ещё играет.
+  */
+  if (foes >= 2) {
+    const gone = await page.evaluate(() => {
+      const state = window.TwelveTribesGame.state();
+      const size = state.players.length;
+      const first = ((state.dir % size) + size) % size;
+      state.players[first].out = true;
+      window.TwelveTribesGame.refresh();
+      return first;
+    });
+    const withOut = await queueNow();
+    need(withOut.shown.join(',') === withOut.want.join(','),
+      `с вышедшим соперником места ${withOut.shown.join('→')}, а по кругу ${withOut.want.join('→')}`);
+    need(new Set(withOut.shown).size === withOut.shown.length,
+      `с вышедшим соперником кто-то сидит за столом дважды: ${withOut.shown.join('→')}`);
+    need(withOut.next.length === 1 && withOut.next[0] === withOut.want[2],
+      `с вышедшим соперником «следом» отмечен ${withOut.next.join(',')}, а ходит ${withOut.want[2]}`);
+    await page.evaluate((seat) => {
+      window.TwelveTribesGame.state().players[seat].out = false;
+      window.TwelveTribesGame.refresh();
+    }, gone);
+  }
+
+  /*
     ——— рука разложена по станам ———
 
     Карты одного стана лежат рядом, а не вперемешку. Проверяется не порядок
