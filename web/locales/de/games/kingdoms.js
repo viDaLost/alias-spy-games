@@ -376,6 +376,7 @@
       const R = this.R;
       this.view3d?.destroy();
       this.view3d = null;
+      this.leaveStage();
       this.root.innerHTML = `
         <div class="kd-wrap">
           <header class="kd-header">
@@ -437,6 +438,74 @@
     }
 
     /*
+      Сцена во весь экран. С объёмной картой поле становится основой экрана,
+      как доска «Земли обетованной»: карта занимает всё, а поверх неё лежат
+      плашки — раунд и счёт сверху, рука с жетонами снизу (боком — справа).
+      Полосу под кнопками Telegram знает только сам Telegram: её высота
+      уходит в --kd-tg-top, вырез экрана CSS знает и сам.
+    */
+    enterStage() {
+      const wrap = this.root.querySelector('.kd-wrap');
+      if (!wrap) return;
+      wrap.classList.add('kd-stage');
+      document.documentElement.classList.add('kd-stage-on');
+      const tg = window.Telegram?.WebApp;
+      const inTelegram = Boolean(tg?.initData) || document.documentElement.classList.contains('is-telegram');
+      const top = inTelegram ? (Number(tg?.contentSafeAreaInset?.top) || 46) : 0;
+      // На корне документа: ими пользуется и кнопка правил оболочки, которая лежит вне игры.
+      document.documentElement.style.setProperty('--kd-tg-top', `${top}px`);
+      document.documentElement.style.setProperty('--kd-safe-top', `${Number(tg?.safeAreaInset?.top) || 0}px`);
+      this.stageObserver?.disconnect();
+      this.stageObserver = new ResizeObserver(() => this.syncInsets());
+      for (const selector of ['.kd-header', '.kd-standings', '.kd-status', '.kd-panel', '[data-teach]', '[data-scroll]']) {
+        const node = this.root.querySelector(selector);
+        if (node) this.stageObserver.observe(node);
+      }
+    }
+
+    leaveStage() {
+      this.stageObserver?.disconnect();
+      this.stageObserver = null;
+      document.documentElement.classList.remove('kd-stage-on');
+    }
+
+    /** Какая часть холста открыта: всё, что не под плашками, — окно для карты. */
+    syncInsets() {
+      if (!this.view3d) return;
+      cancelAnimationFrame(this.insetsFrame);
+      this.insetsFrame = requestAnimationFrame(() => {
+        const scroll = this.root.querySelector('[data-scroll]')?.getBoundingClientRect();
+        if (!scroll?.width) return;
+        const visible = (node) => node && !node.hidden && node.offsetParent !== null;
+        // Боком подсказка хода стоит над рукой; рука опускается ровно на её высоту.
+        const status = this.root.querySelector('.kd-status');
+        const statusBox = visible(status) && status.textContent.trim() ? status.getBoundingClientRect() : null;
+        const stacked = statusBox && statusBox.left > scroll.left + scroll.width / 2;
+        const statusH = stacked ? `${Math.round(statusBox.height + 8)}px` : '0px';
+        if (this.root.style.getPropertyValue('--kd-status-h') !== statusH) this.root.style.setProperty('--kd-status-h', statusH);
+        let top = 0; let left = 0;
+        const header = this.root.querySelector('.kd-header');
+        if (visible(header)) top = header.getBoundingClientRect().bottom - scroll.top + 6;
+        // Счёт царств — либо лента под шапкой (стоймя), либо столбик слева (боком).
+        const standings = this.root.querySelector('.kd-standings');
+        if (visible(standings)) {
+          const box = standings.getBoundingClientRect();
+          if (box.height > box.width) left = box.right - scroll.left + 6;
+          else top = Math.max(top, box.bottom - scroll.top + 6);
+        }
+        const teach = this.root.querySelector('[data-teach]');
+        const dock = visible(teach) ? teach : this.root.querySelector('.kd-panel');
+        let bottom = 0; let right = 0;
+        if (visible(dock)) {
+          const box = dock.getBoundingClientRect();
+          if (box.width > scroll.width * 0.6) bottom = scroll.bottom - box.top + 6;
+          else right = scroll.right - box.left + 6;
+        }
+        this.view3d?.setInsets({ top, bottom, right, left });
+      });
+    }
+
+    /*
       Объёмная карта. Она поднимается поверх уже построенной плоской: пока
       three.js грузится, человек видит обычную карту, а если объём не
       поднялся (нет WebGL, слабое устройство, сбой) — плоская так и остаётся.
@@ -457,9 +526,12 @@
         if (!scroll?.isConnected || this.root.querySelector('[data-scroll]') !== scroll) return;
         wrap.classList.add('kd-3d');
         try {
+          this.enterStage();
           this.view3d = K.mount({ scroll, svg, R: this.R, M: window.KingdomsMap, pos: this.pos,
-            regionCenter: this.regionCenter, onTap: (areaId) => this.tapArea(areaId) });
+            regionCenter: this.regionCenter, onTap: (areaId) => this.tapArea(areaId),
+            onDestroy: () => this.leaveStage() });
           this.view3d.sync();
+          this.syncInsets();
         } catch (error) {
           // Объём не поднялся — до конца захода остаётся плоская карта.
           console.warn('Объёмная карта не поднялась, остаётся плоская:', error);
@@ -671,6 +743,7 @@
       this.renderStatus();
       this.renderConfirm();
       this.view3d?.sync();
+      this.syncInsets();
     }
 
     renderHeader() {
@@ -816,7 +889,8 @@
         const icon = `<image href="${orderArt(known ? order.kind : 'closed')}" x="-22" y="-22" width="44" height="44"/>`;
         const force = known && this.R.orderOf(order.kind).force ? `<g class="kd-token-strength"><circle cx="26" cy="-25" r="12"/><text x="26" y="-20" class="kd-token-force">${this.E.forceOf(this.state || { players: v.players.map((p) => ({ kingdomId: p.kingdomId })) }, order)}</text></g>` : '';
         return `<g class="kd-token${mine ? ' is-mine' : ''}${scoutable ? ' is-scoutable' : ''}${picked ? ' is-picked' : ''}"
-          data-token="${order.id}" data-wx="${x}" data-wy="${y}" style="--owner:${color}" transform="translate(${x},${y})">
+          data-token="${order.id}" data-wx="${x}" data-wy="${y}" data-kind="${known ? order.kind : ''}"
+          data-from="${order.area || ''}" data-to="${order.to || ''}" style="--owner:${color}" transform="translate(${x},${y})">
           <circle class="kd-token-shadow" r="34"></circle><circle class="kd-token-face" r="30"></circle>${icon}${force}
         </g>`;
       }).join('');

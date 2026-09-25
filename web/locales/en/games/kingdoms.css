@@ -479,3 +479,175 @@
   padding: 6px 12px; border-radius: 999px; background: #0008; color: #fff; font-size: 12px; pointer-events: none;
 }
 .kd-map-wrap.kd-3d .kd-map.kd-far .kd-area-name, .kd-map-wrap.kd-3d .kd-map.kd-far .kd-region { display: none; }
+
+/*
+  ——— сцена: поле в основе ———
+  С объёмной картой экран устроен как у «Земли обетованной»: карта — весь
+  экран, а поверх неё лежат плашки. Сверху — раунд, ход и цель, под ними —
+  счёт царств. Стоймя внизу — рука: жетоны приказов в одну ленту и кнопки
+  хода; боком рука уходит колонкой вправо. Подтверждение приказа и подсказка
+  хода — плавающие карточки, а не строки в столбце под картой.
+*/
+.kd-wrap.kd-stage {
+  --kd-top: calc(max(env(safe-area-inset-top, 0px), var(--kd-safe-top, 0px)) + var(--kd-tg-top, 0px));
+  --kd-bottom: env(safe-area-inset-bottom, 0px);
+  --kd-glass: rgba(18, 26, 25, .84);
+  position: fixed; inset: 0; z-index: 5; max-width: none; margin: 0; padding: 0;
+  border-radius: 0; display: block; overflow: hidden; background: #1d2927;
+}
+.kd-wrap.kd-stage .kd-body { position: absolute; inset: 0; display: block; height: auto; max-height: none; }
+.kd-wrap.kd-stage .kd-map-wrap {
+  position: absolute; inset: 0; height: auto !important; min-height: 0 !important; max-height: none !important;
+  border: 0; border-radius: 0; background: transparent; display: block;
+}
+.kd-wrap.kd-stage .kd-map-scroll { position: absolute; inset: 0; }
+
+/* Шапка — плашка сверху: раунд и ход слева, цель и кнопки справа. */
+.kd-wrap.kd-stage .kd-header {
+  position: absolute; z-index: 6; top: calc(var(--kd-top) + 6px); left: 8px; right: 56px;
+  min-height: 44px; padding: 4px 6px 4px 14px; border-radius: 999px; background: var(--kd-glass);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 8px 22px #0006;
+  display: flex; align-items: center; gap: 8px;
+}
+.kd-wrap.kd-stage .kd-header-round { flex: 0 0 auto; flex-direction: row; align-items: baseline; gap: 8px; }
+.kd-wrap.kd-stage .kd-header-round b { font-size: 15px; white-space: nowrap; }
+.kd-wrap.kd-stage .kd-header-round span { margin: 0; font-size: 12px; white-space: nowrap; }
+.kd-wrap.kd-stage .kd-header-right { flex: 1 1 auto; min-width: 0; justify-content: flex-end; gap: 4px; }
+.kd-wrap.kd-stage .kd-objective { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; opacity: .85; }
+.kd-wrap.kd-stage .kd-icon-btn { width: 36px; height: 36px; min-width: 36px; border-radius: 50%; }
+html.kd-stage-on .rules-help { top: calc(max(env(safe-area-inset-top, 0px), var(--kd-safe-top, 0px)) + var(--kd-tg-top, 0px) + 8px); bottom: auto; right: 10px; }
+
+/* Счёт царств — лента маленьких плашек под шапкой. */
+.kd-wrap.kd-stage .kd-standings {
+  position: absolute; z-index: 5; top: calc(var(--kd-top) + 56px); left: 8px; right: 8px;
+  display: flex; gap: 6px; overflow-x: auto; padding: 0; scrollbar-width: none;
+}
+.kd-wrap.kd-stage .kd-standings::-webkit-scrollbar { display: none; }
+.kd-wrap.kd-stage .kd-standing {
+  flex: 0 0 auto; padding: 4px 10px 4px 5px; gap: 6px; border-radius: 999px; background: var(--kd-glass);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid #ffffff14; border-left: 3px solid var(--owner);
+}
+.kd-wrap.kd-stage .kd-standing .kd-emblem { width: 24px; height: 24px; }
+.kd-wrap.kd-stage .kd-standing b { font-size: 11px; line-height: 1.2; }
+.kd-wrap.kd-stage .kd-standing small { font-size: 10px; line-height: 1.2; }
+
+/* Кнопки карты — столбик круглых кнопок у правого края. */
+.kd-wrap.kd-stage .kd-map-toolbar {
+  position: absolute; z-index: 5; right: 8px; top: calc(var(--kd-top) + 100px);
+  display: flex; flex-direction: column; gap: 6px; padding: 0;
+}
+.kd-wrap.kd-stage .kd-map-toolbar button {
+  width: 40px; height: 40px; min-height: 40px; padding: 0; margin: 0; border-radius: 50%;
+  background: var(--kd-glass); color: #f4e6c4; border: 1px solid #ffffff1f; font-size: 17px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 6px 16px #0005;
+}
+.kd-wrap.kd-stage .kd-map-toolbar [data-view-toggle] { font-size: 12px; }
+.kd-wrap.kd-stage .kd-map-toolbar [data-zoom-fit] { font-size: 0; }
+.kd-wrap.kd-stage .kd-map-toolbar [data-zoom-fit]::before { content: '⤢'; font-size: 19px; }
+
+/* Подсказка хода — плавающая карточка сверху, под счётом. */
+.kd-wrap.kd-stage .kd-status {
+  top: calc(var(--kd-top) + 100px); bottom: auto; left: 8px; right: 56px; z-index: 5; max-width: none;
+  background: var(--kd-glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #ffffff14; font-size: 12.5px;
+}
+.kd-wrap.kd-stage .kd-status:empty { display: none; }
+
+/* Рука — полоса внизу. */
+.kd-wrap.kd-stage .kd-panel {
+  position: absolute; z-index: 6; left: 8px; right: 8px; bottom: calc(var(--kd-bottom) + 8px); top: auto;
+  width: auto; max-width: none; max-height: 46%; margin: 0; padding: 8px 8px 10px; overflow: visible;
+  display: flex; flex-direction: column; gap: 6px; border-radius: 20px; background: var(--kd-glass);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid #ffffff17; box-shadow: 0 -8px 28px #0006;
+}
+.kd-wrap.kd-stage .kd-panel-heading { display: none; }
+.kd-wrap.kd-stage .kd-orders {
+  display: flex; grid-template-columns: none; gap: 8px; overflow-x: auto; overflow-y: hidden;
+  padding: 4px 2px 2px; scroll-snap-type: x proximity; scrollbar-width: none; order: 1;
+}
+.kd-wrap.kd-stage .kd-orders::-webkit-scrollbar { display: none; }
+.kd-wrap.kd-stage .kd-order-btn {
+  flex: 0 0 76px; width: 76px; min-height: 0; height: auto; padding: 6px 4px 7px; scroll-snap-align: start;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; border-radius: 16px;
+  background: #ffffff0d; border: 1px solid #ffffff14;
+}
+/* Жетон в руке — объёмная фишка: ободок, фаска и тень, как у фишки на карте. */
+.kd-wrap.kd-stage .kd-order-btn .kd-order-icon {
+  width: 48px; height: 48px; padding: 6px; border-radius: 50%; box-sizing: border-box;
+  background: radial-gradient(circle at 35% 30%, #fff7df, #e6cf9a 55%, #b8934f);
+  box-shadow: 0 0 0 3px #7a5a2c, 0 0 0 5px #f1d58f55, 0 5px 0 1px #4a3417, 0 9px 14px #000a;
+  transform: perspective(160px) rotateX(18deg);
+}
+.kd-wrap.kd-stage .kd-order-title { font-size: 11px; line-height: 1.15; font-weight: 800; color: #f4e6c4; }
+.kd-wrap.kd-stage .kd-order-text { display: none; }
+.kd-wrap.kd-stage .kd-order-btn::after { top: 2px; right: 4px; font-size: 10px; }
+.kd-wrap.kd-stage .kd-order-btn.is-active { background: #d1a75e33; outline: 2px solid #f1d291; }
+.kd-wrap.kd-stage .kd-order-btn.is-active .kd-order-icon { transform: perspective(160px) rotateX(18deg) translateY(-5px); box-shadow: 0 0 0 3px #f1d291, 0 0 0 6px #f1d29166, 0 9px 0 1px #4a3417, 0 14px 18px #000a; }
+.kd-wrap.kd-stage .kd-order-btn:disabled .kd-order-icon { filter: grayscale(.8); }
+.kd-wrap.kd-stage .kd-orders-left { order: 2; font-size: 11px; margin: 0; text-align: left; color: #c3b697; }
+.kd-wrap.kd-stage [data-pass], .kd-wrap.kd-stage [data-skip-reveal] {
+  order: 3; min-height: 36px; padding: 0 14px; font-size: 13px; align-self: stretch;
+}
+.kd-wrap.kd-stage .kd-intel { order: 4; max-height: 64px; overflow-y: auto; font-size: 11px; }
+.kd-wrap.kd-stage .kd-intel:empty { display: none; }
+/* Подтверждение приказа — карточка над рукой. */
+.kd-wrap.kd-stage .kd-confirm {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); order: 0; margin: 0; z-index: 7;
+  background: #2a2419f2; border: 1px solid #e1bd70; border-radius: 16px; padding: 10px 12px; box-shadow: 0 10px 26px #0008;
+}
+/* Обучение — та же полоса внизу, только выше. */
+.kd-wrap.kd-stage .kd-teach {
+  position: absolute; z-index: 7; left: 8px; right: 8px; bottom: calc(var(--kd-bottom) + 8px); top: auto;
+  max-height: 48%; overflow-y: auto; margin: 0; border-radius: 20px; background: var(--kd-glass);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+
+/* Боком рука уходит колонкой вправо, карта занимает всё остальное. */
+@media (orientation: landscape) {
+  /* Боком высота дорога: шапка — короткая плашка, счёт — столбик слева, подсказка — внизу. */
+  .kd-wrap.kd-stage .kd-header { right: calc(284px + 56px); }
+  .kd-wrap.kd-stage .kd-standings {
+    top: calc(var(--kd-top) + 58px); right: auto; bottom: calc(var(--kd-bottom) + 8px);
+    flex-direction: column; overflow-y: auto; overflow-x: hidden; width: auto; max-width: 150px;
+  }
+  .kd-wrap.kd-stage .kd-standing { padding: 3px 8px 3px 4px; }
+  .kd-wrap.kd-stage .kd-standing .kd-emblem { width: 20px; height: 20px; }
+  /* Подсказка хода — над рукой в правой колонке: боком снизу ей не место, там карта. */
+  .kd-wrap.kd-stage .kd-status {
+    top: calc(var(--kd-top) + 6px); bottom: auto; left: auto; right: 8px; width: 276px; box-sizing: border-box;
+    margin: 0; font-size: 12px; padding: 8px 12px;
+  }
+  .kd-wrap.kd-stage .kd-map-toolbar { right: calc(284px + 8px); }
+  .kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach {
+    left: auto; right: 8px; width: 276px; top: calc(var(--kd-top) + 6px + var(--kd-status-h, 0px)); bottom: calc(var(--kd-bottom) + 8px);
+    max-height: none; overflow-y: auto;
+  }
+  .kd-wrap.kd-stage .kd-orders {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; order: 1;
+  }
+  .kd-wrap.kd-stage .kd-order-btn { width: auto; flex: none; }
+  .kd-wrap.kd-stage .kd-confirm { position: static; order: 0; }
+  html.kd-stage-on .rules-help { right: calc(284px + 12px); }
+}
+@media (orientation: landscape) and (max-height: 430px) {
+  .kd-wrap.kd-stage .kd-standings { top: calc(var(--kd-top) + 54px); }
+  /* Низкий экран боком: жетоны в четыре столбца, чтобы «Пропустить ход» было видно без прокрутки. */
+  .kd-wrap.kd-stage .kd-orders { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  .kd-wrap.kd-stage .kd-order-btn { padding: 4px 2px 5px; gap: 3px; border-radius: 12px; }
+  .kd-wrap.kd-stage .kd-order-btn .kd-order-icon { width: 36px; height: 36px; padding: 5px; }
+  .kd-wrap.kd-stage .kd-order-btn .kd-order-title { font-size: 9.5px; }
+}
+.kd-wrap.kd-stage .kd-status { position: absolute; }
+.kd-wrap.kd-stage .kd-header, .kd-wrap.kd-stage .kd-standings { width: auto; box-sizing: border-box; }
+@media (orientation: portrait) {
+  .kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach { width: auto; box-sizing: border-box; }
+}
+@media (orientation: landscape) {
+  .kd-wrap.kd-stage .kd-panel, .kd-wrap.kd-stage .kd-teach { width: 276px; flex-basis: auto; box-sizing: border-box; }
+  .kd-wrap.kd-stage .kd-order-title { font-size: 10.5px; }
+}
+/* Жетоны в объёме рисует сцена; SVG-жетон остаётся прозрачной зоной нажатия с биркой силы. */
+.kd-map-wrap.kd-3d .kd-token { filter: none; }
+.kd-map-wrap.kd-3d .kd-token .kd-token-shadow, .kd-map-wrap.kd-3d .kd-token > image { opacity: 0; }
+.kd-map-wrap.kd-3d .kd-token .kd-token-face { fill-opacity: 0; stroke-opacity: 0; }
+.kd-map-wrap.kd-3d .kd-token.is-scoutable .kd-token-face { stroke-opacity: .9; stroke: #f1d291; stroke-width: 3; }

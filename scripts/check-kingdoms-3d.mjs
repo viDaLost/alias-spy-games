@@ -11,8 +11,16 @@
 //   * нажатие по самой земле (не по маркеру) выбирает ту область, над которой
 //     палец, — это сверяется лучом, и после выбора приказа ведёт к
 //     подтверждению, как и на плоской карте;
-//   * карта тянется пальцем, приближается колесом и кнопками, «Показать всю
-//     карту» возвращает общий вид;
+//   * один палец поворачивает и наклоняет карту, как доску «Земли
+//     обетованной», а не таскает её; сдвиг — правой кнопкой (двумя пальцами);
+//     колесо и кнопки приближают, «Показать всю карту» возвращает общий вид;
+//   * карта лежит в окне между плашками: ни один маркер общего вида не
+//     спрятан под шапкой или рукой;
+//   * свой край светится рубежом, а выбранный приказ обводит цели и дышит —
+//     только пока выбран: сняли выбор, и карта снова не рисуется в покое;
+//   * поставленный поход ложится на карту объёмной фишкой со стрелой;
+//   * после подлёта к области каждый видимый маркер стоит над своей
+//     областью — ни один не висит в воздухе за краем диорамы;
 //   * переключатель 2D/3D работает в обе стороны и выбор помнится;
 //   * ни одной ошибки в консоли — ни боком, ни стоймя.
 //
@@ -119,6 +127,7 @@ async function play(width, height) {
   need(scene.triangles >= 30_000, `${tag}: в кадре ${scene.triangles} треугольников — рельефа нет`);
   need(scene.triangles <= 600_000, `${tag}: ${scene.triangles} треугольников — слишком тяжело`);
   need(scene.owned >= 2, `${tag}: цвет владельцев не дошёл до карты (${scene.owned} областей)`);
+  need(scene.realm >= 20, `${tag}: рубеж своего царства не нарисован (${scene.realm} отрезков)`);
 
   // ——— в покое кадров нет ———
   const idleFrom = (await info(page)).frames;
@@ -131,7 +140,7 @@ async function play(width, height) {
     const frame = document.querySelector('[data-scroll]').getBoundingClientRect();
     const view = window.KingdomsGame.board.view3d;
     const out = { inside: 0, total: 0, far: 0, spots: new Set() };
-    for (const group of document.querySelectorAll('[data-area]')) {
+    for (const group of document.querySelectorAll('.kd-area[data-area]')) {
       out.total += 1;
       const box = group.querySelector('.kd-area-marker').getBoundingClientRect();
       const cx = box.x + box.width / 2; const cy = box.y + box.height / 2;
@@ -147,6 +156,23 @@ async function play(width, height) {
   need(markers.distinct >= 20, `${tag}: маркеры свалены в кучу (${markers.distinct} разных мест)`);
   need(markers.far === 0, `${tag}: ${markers.far} маркеров стоят не над своей областью`);
 
+  // ——— поле в основе: плашки не закрывают карту ———
+  const covered = await page.evaluate(() => {
+    const boxes = ['.kd-header', '.kd-panel', '.kd-standings', '.kd-status']
+      .map((selector) => document.querySelector(selector))
+      .filter((node) => node && node.offsetParent !== null && node.textContent.trim())
+      .map((node) => [node.className.split(' ')[0], node.getBoundingClientRect()]);
+    const out = [];
+    for (const group of document.querySelectorAll('.kd-area[data-area]')) {
+      const box = group.querySelector('.kd-area-marker').getBoundingClientRect();
+      const cx = box.x + box.width / 2; const cy = box.y + box.height / 2;
+      const under = boxes.find(([, r]) => cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom);
+      if (under) out.push(`${group.dataset.area} под ${under[0]}`);
+    }
+    return out;
+  });
+  need(covered.length === 0, `${tag}: маркеры общего вида спрятаны под плашками: ${covered.slice(0, 4).join(', ')}`);
+
   // ——— нажатие по земле выбирает область под пальцем ———
   const attackKind = await page.evaluate(() => ['march1', 'march2', 'march3', 'ford2', 'feint']
     .find((kind) => !document.querySelector(`[data-order="${kind}"]`)?.disabled));
@@ -156,6 +182,12 @@ async function play(width, height) {
     await page.waitForTimeout(250);
     const glow = await info(page);
     need(glow.glowing > 0, `${tag}: цели приказа подсвечены в разметке, но не на рельефе`);
+    need(glow.rims > 0, `${tag}: цели приказа не обведены рубежом`);
+    need(glow.breathing, `${tag}: подсветка целей не дышит, пока приказ выбран`);
+    const breathFrom = glow.frames;
+    // Программный рендер в CI рисует кадр за сотни миллисекунд — ждём с запасом.
+    await page.waitForTimeout(2000);
+    need((await info(page)).frames - breathFrom >= 2, `${tag}: подсветка целей объявлена дышащей, но кадры не идут`);
     /*
       Точка нажатия — внутри подходящей области, но в стороне от её маркера:
       маркер сам по себе нажимается и так, а проверяется именно луч в землю.
@@ -190,11 +222,32 @@ async function play(width, height) {
       }));
       need(picked.selected === spot.id || picked.confirm || picked.pending?.from === spot.id || picked.pending?.area === spot.id,
         `${tag}: нажатие по земле области «${spot.id}» не выбрало её (выбрано ${picked.selected || 'ничего'})`);
+
+      // Поход до конца: цель, подтверждение — и на карте фишка со стрелой.
+      const placed = await page.evaluate(async () => {
+        const board = window.KingdomsGame.board;
+        const target = [...document.querySelectorAll('[data-area].is-eligible')].find((node) => !node.classList.contains('is-mine'));
+        if (target) board.tapArea(target.dataset.area);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        document.querySelector('[data-confirm-ok]')?.click();
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return window.KingdomsGame.board.view3d.info();
+      });
+      need(placed.tokens >= 1, `${tag}: поставленный приказ не лёг на карту объёмной фишкой`);
+      need(placed.arrows >= 1, `${tag}: у похода нет стрелы от источника к цели`);
     }
     await page.evaluate(() => { const board = window.KingdomsGame.board; board.pending = null; board.renderAll(); });
+    await page.waitForTimeout(1200);
+    const calm = await info(page);
+    need(!calm.breathing && calm.rims === 0, `${tag}: выбор приказа снят, а цели всё ещё обведены`);
+    await page.waitForTimeout(700);
+    const calmTo = await info(page);
+    need(calmTo.frames - calm.frames <= 1, `${tag}: после снятия выбора карта рисует ${calmTo.frames - calm.frames} кадров в покое`);
   }
 
-  // ——— палец тянет карту, колесо и кнопки приближают ———
+  // ——— один палец поворачивает и наклоняет, правая кнопка сдвигает ———
+  await page.locator('[data-zoom-fit]').click();
+  await page.waitForTimeout(600);
   const before = (await info(page)).camera;
   const frame = await page.locator('[data-scroll]').boundingBox();
   const cx = frame.x + frame.width / 2; const cy = frame.y + frame.height / 2;
@@ -203,23 +256,59 @@ async function play(width, height) {
   await page.mouse.move(cx + 60, cy + 40, { steps: 6 });
   await page.mouse.up();
   await page.waitForTimeout(200);
-  const dragged = (await info(page)).camera;
-  need(Math.hypot(dragged.x - before.x, dragged.z - before.z) > 15, `${tag}: перетаскивание не сдвинуло карту`);
+  const turned = (await info(page)).camera;
+  // Палец вправо — карта поворачивается вслед за ним; палец вниз — камера поднимается над картой.
+  need(turned.yaw < before.yaw - 0.15, `${tag}: палец вправо не повернул карту вслед за собой (угол ${before.yaw.toFixed(2)} → ${turned.yaw.toFixed(2)})`);
+  need(turned.tilt < before.tilt - 0.08, `${tag}: палец вниз не поднял камеру (наклон ${before.tilt.toFixed(2)} → ${turned.tilt.toFixed(2)})`);
+  need(Math.hypot(turned.x - before.x, turned.z - before.z) < 2, `${tag}: один палец таскает карту, а должен поворачивать`);
   const noSheet = await page.evaluate(() => !document.querySelector('.kd-sheet'));
-  need(noSheet, `${tag}: перетаскивание открыло карточку области, как будто это нажатие`);
+  need(noSheet, `${tag}: поворот открыл карточку области, как будто это нажатие`);
+  await page.mouse.move(cx, cy);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(cx + 60, cy + 40, { steps: 6 });
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(200);
+  const dragged = (await info(page)).camera;
+  need(Math.hypot(dragged.x - turned.x, dragged.z - turned.z) > 15, `${tag}: сдвиг правой кнопкой не сдвинул карту`);
+  need(Math.abs(dragged.yaw - turned.yaw) < 0.01, `${tag}: сдвиг правой кнопкой ещё и повернул карту`);
+  // Камера меняется в кадрах, а кадр программного рендера долог: ждём результата, а не таймера.
+  const camWhen = (test) => page.waitForFunction(test, null, { timeout: 4000 }).catch(() => {});
   await page.locator('[data-zoom-in]').click();
-  await page.waitForTimeout(450);
+  await camWhen(`window.KingdomsGame.board.view3d.info().camera.dist < ${dragged.dist * 0.9}`);
+  await page.waitForTimeout(300);
   const zoomed = (await info(page)).camera;
   need(zoomed.dist < dragged.dist * 0.9, `${tag}: кнопка «+» не приблизила карту`);
   await page.mouse.move(cx, cy);
   await page.mouse.wheel(0, 300);
-  await page.waitForTimeout(200);
+  await camWhen(`window.KingdomsGame.board.view3d.info().camera.dist > ${zoomed.dist}`);
   const wheeled = (await info(page)).camera;
   need(wheeled.dist > zoomed.dist, `${tag}: колесо не отдалило карту`);
   await page.locator('[data-zoom-fit]').click();
   await page.waitForTimeout(600);
   const fitted = (await info(page)).camera;
   need(Math.abs(fitted.x) < 2 && Math.abs(fitted.yaw) < 0.01, `${tag}: «Показать всю карту» не вернула общий вид`);
+
+  // ——— подлёт к области: видимые маркеры — над своими областями ———
+  const focused = await page.evaluate(async () => {
+    const view = window.KingdomsGame.board.view3d;
+    view.focusArea('primorye-rim', 2.6);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const out = [];
+    let shown = 0;
+    for (const group of document.querySelectorAll('.kd-area[data-area]')) {
+      if (group.style.display === 'none') continue;
+      shown += 1;
+      const box = group.querySelector('.kd-area-marker').getBoundingClientRect();
+      const want = view.screenOf(group.dataset.area);
+      const miss = Math.hypot(want.x - (box.x + box.width / 2), want.y - (box.y + box.height / 2));
+      if (miss > 30) out.push(`${group.dataset.area} на ${Math.round(miss)} точек`);
+    }
+    return { out, shown };
+  });
+  need(focused.shown >= 3, `${tag}: после подлёта к Тарсийской Гавани видно ${focused.shown} маркеров`);
+  need(focused.out.length === 0, `${tag}: после подлёта маркеры висят не над своими областями: ${focused.out.slice(0, 4).join(', ')}`);
+  await page.locator('[data-zoom-fit]').click();
+  await page.waitForTimeout(600);
 
   // ——— страница не шире экрана ———
   const spill = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -271,5 +360,8 @@ if (problems.length) {
 const s = portrait.summary;
 console.log(`OK: объёмная карта «Царств» поднимается (${s.calls} вызовов отрисовки, ${s.triangles} треугольников, качество «${s.quality}»), `
   + 'в покое не рисуется, все 24 маркера стоят над своими областями, цвет владельцев и подсветка целей доходят до рельефа, '
-  + 'нажатие по земле выбирает область под пальцем, карта тянется, приближается и возвращается к общему виду, '
+  + 'плашки не закрывают карту, свой край светится рубежом, цели приказа обведены и дышат только пока приказ выбран, '
+  + 'поход ложится объёмной фишкой со стрелой, нажатие по земле выбирает область под пальцем, '
+  + 'один палец поворачивает и наклоняет, правая кнопка сдвигает, колесо и кнопки приближают, общий вид возвращается, '
+  + 'после подлёта маркеры стоят над своими областями, '
   + 'переключатель 2D/3D работает в обе стороны и помнит выбор; стоймя и боком консоль чистая.');

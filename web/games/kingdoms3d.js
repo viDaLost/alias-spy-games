@@ -294,19 +294,20 @@
     }
   `;
 
-  function terrainMaterial(THREE) {
+  function terrainMaterial(THREE, pulse) {
     const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93, metalness: 0 });
     material.onBeforeCompile = (shader) => {
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>
-          attribute vec4 aTint; attribute vec3 aGlow;
-          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos;`)
+          attribute vec4 aTint; attribute vec3 aGlow; attribute vec2 aFarm;
+          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos; varying vec2 vFarm;`)
         .replace('#include <begin_vertex>', `#include <begin_vertex>
-          vTint = aTint; vGlow = aGlow;
+          vTint = aTint; vGlow = aGlow; vFarm = aFarm;
           vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>
-          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos;
+          varying vec4 vTint; varying vec3 vGlow; varying vec3 vWPos; varying vec2 vFarm;
+          uniform float uPulse;
           ${NOISE_GLSL}`)
         .replace('#include <color_fragment>', `#include <color_fragment>
           vec2 kdP = vWPos.xz;
@@ -316,9 +317,23 @@
           diffuseColor.rgb *= 0.8 + 0.12 * kdFine + 0.2 * kdMid + 0.1 * kdWide;
           float kdStrata = smoothstep(0.35, 0.65, kdNoise(vec2(kdP.x * 0.05, vWPos.y * 0.9)));
           diffuseColor.rgb *= mix(1.0, 0.9 + 0.12 * kdStrata, smoothstep(18.0, 30.0, vWPos.y));
+          if (vFarm.x > 0.01) {
+            float kdC = cos(vFarm.y); float kdS = sin(vFarm.y);
+            vec2 kdF = mat2(kdC, -kdS, kdS, kdC) * kdP / vec2(17.0, 11.0);
+            vec2 kdCell = floor(kdF);
+            float kdPick = kdHash(kdCell + 7.13);
+            vec3 kdCrop = kdPick < 0.36 ? vec3(0.56, 0.43, 0.11) : kdPick < 0.68 ? vec3(0.16, 0.27, 0.05) : vec3(0.23, 0.13, 0.05);
+            vec2 kdIn = fract(kdF);
+            float kdEdge = smoothstep(0.0, 0.07, kdIn.x) * smoothstep(0.0, 0.07, 1.0 - kdIn.x)
+              * smoothstep(0.0, 0.1, kdIn.y) * smoothstep(0.0, 0.1, 1.0 - kdIn.y);
+            float kdFurrow = 0.86 + 0.14 * sin(kdF.x * 40.0 + kdPick * 6.0);
+            float kdKeep = step(0.16, kdHash(kdCell + 3.7)) * smoothstep(0.25, 0.6, vFarm.x);
+            diffuseColor.rgb = mix(diffuseColor.rgb, kdCrop * kdFurrow * (0.9 + 0.2 * kdFine), kdKeep * kdEdge * 0.8);
+          }
           diffuseColor.rgb = mix(diffuseColor.rgb, vTint.rgb, vTint.a);`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-          totalEmissiveRadiance += vGlow;`);
+          totalEmissiveRadiance += vGlow * uPulse;`);
+      shader.uniforms.uPulse = pulse;
     };
     return material;
   }
@@ -355,9 +370,9 @@
     return merged;
   }
 
-  const M4 = (THREE, { x = 0, y = 0, z = 0, ry = 0, rx = 0, sx = 1, sy = 1, sz = 1 } = {}) => {
+  const M4 = (THREE, { x = 0, y = 0, z = 0, ry = 0, rx = 0, rz = 0, sx = 1, sy = 1, sz = 1 } = {}) => {
     const m = new THREE.Matrix4();
-    m.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, 0)),
+    m.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)),
       new THREE.Vector3(sx, sy, sz));
     return m;
   };
@@ -462,7 +477,7 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : 1.6));
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1.04;
     renderer.shadowMap.enabled = quality !== 'low';
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(0x1d2927, 1);
@@ -471,19 +486,29 @@
     scene.fog = new THREE.Fog(0x1d2927, 1400, 2600);
     const camera = new THREE.PerspectiveCamera(34, 1, 5, 4000);
 
-    scene.add(new THREE.HemisphereLight(0xe3efff, 0x5f5236, 0.62));
-    const sun = new THREE.DirectionalLight(0xfff0d6, 1.12);
-    sun.position.set(-380, 620, 420);
+    /*
+      Свет — как в «Земле обетованной»: тёплое солнце и мягкое небо. Солнце
+      стоит низко на западе, чуть к северу: хребты отбрасывают тень к
+      зрителю, склоны читаются объёмом, а не одним ровным тоном. С востока —
+      холодная подсветка без теней, чтобы теневая сторона гор не проваливалась
+      в черноту.
+    */
+    scene.add(new THREE.HemisphereLight(0xd6e6ff, 0x6b5a3a, 0.58));
+    const sun = new THREE.DirectionalLight(0xffe4bd, 1.28);
+    sun.position.set(-560, 520, -180);
     sun.castShadow = renderer.shadowMap.enabled;
     if (sun.castShadow) {
       const size = quality === 'high' ? 2048 : 1024;
       sun.shadow.mapSize.set(size, size);
-      Object.assign(sun.shadow.camera, { left: -560, right: 560, top: 560, bottom: -560, near: 100, far: 1800 });
+      Object.assign(sun.shadow.camera, { left: -620, right: 620, top: 620, bottom: -620, near: 100, far: 1900 });
       sun.shadow.bias = -0.0006;
       sun.shadow.normalBias = 0.6;
     }
     scene.add(sun);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+    const fill = new THREE.DirectionalLight(0xa9c2ff, 0.26);
+    fill.position.set(520, 300, 380);
+    scene.add(fill);
+    scene.add(new THREE.AmbientLight(0xfff6e8, 0.1));
 
     const disposables = [];
     const keep = (thing) => { disposables.push(thing); return thing; };
@@ -498,8 +523,19 @@
     const colors = new Float32Array(vertexCount * 3);
     const tints = new Float32Array(vertexCount * 4);
     const glows = new Float32Array(vertexCount * 3);
+    const farms = new Float32Array(vertexCount * 2);
     const areaOfVertex = new Int16Array(vertexCount);
     const heightGrid = new Float32Array(vertexCount);
+    /*
+      Поля вокруг поселений равнины и побережья: кольцо пашни за околицей, не
+      у самых домов и не у воды. Вес поля идёт в шейдер, а сам узор — полосы
+      наделов разного цвета — рисуется попиксельно, поэтому и вблизи он резкий.
+    */
+    const farmWeight = (site, x, y, h) => {
+      if (site.terrain !== 'plains' && site.terrain !== 'coast') return 0;
+      const d = Math.hypot(x - site.town.x, y - site.town.y);
+      return smooth(74, 50, d) * smooth(17, 27, d) * smooth(2.6, 4.2, h) * smooth(6, 14, world.riverDist(x, y));
+    };
     const color = new THREE.Color();
     const tmp = new THREE.Color();
     for (let j = 0; j < rows; j += 1) {
@@ -509,6 +545,8 @@
         const { h, home } = world.sample(x, y);
         heightGrid[k] = h;
         areaOfVertex[k] = home.index;
+        farms[k * 2] = farmWeight(home, x, y, h);
+        farms[k * 2 + 1] = (home.index * 0.61) % Math.PI;
         positions[k * 3] = x - CX; positions[k * 3 + 1] = h; positions[k * 3 + 2] = y - CY;
         const tones = PALETTE[home.terrain];
         const t = fbm(x * 0.03, y * 0.03, 3);
@@ -519,6 +557,24 @@
         if (h < -0.5) color.lerp(tmp.setHex(0x2d5f63), smooth(-0.5, -6, h));
         color.convertSRGBToLinear();
         colors[k * 3] = color.r; colors[k * 3 + 1] = color.g; colors[k * 3 + 2] = color.b;
+      }
+    }
+    /*
+      Затенение низин: вершина ниже своих соседей получает меньше неба —
+      ущелья и подножия темнеют, гребни чуть светлеют. Считается один раз по
+      сетке высот, в кадре ничего не стоит.
+    */
+    {
+      const R = 3;
+      for (let j = 0; j < rows; j += 1) {
+        for (let i = 0; i < cols; i += 1) {
+          const k = j * cols + i;
+          const at = (di, dj) => heightGrid[Math.min(rows - 1, Math.max(0, j + dj)) * cols + Math.min(cols - 1, Math.max(0, i + di))];
+          const around = (at(R, 0) + at(-R, 0) + at(0, R) + at(0, -R) + at(R, R) + at(-R, -R) + at(R, -R) + at(-R, R)) / 8;
+          const d = around - heightGrid[k];
+          const shade = d > 0 ? 1 - Math.min(0.34, d * 0.028) : 1 + Math.min(0.08, -d * 0.006);
+          colors[k * 3] *= shade; colors[k * 3 + 1] *= shade; colors[k * 3 + 2] *= shade;
+        }
       }
     }
     const heightAt = (x, y) => {
@@ -548,10 +604,12 @@
     glowAttr.setUsage(THREE.DynamicDrawUsage);
     terrainGeo.setAttribute('aTint', tintAttr);
     terrainGeo.setAttribute('aGlow', glowAttr);
+    terrainGeo.setAttribute('aFarm', new THREE.BufferAttribute(farms, 2));
     terrainGeo.setIndex(new THREE.BufferAttribute(indices, 1));
     terrainGeo.computeVertexNormals();
     mark('terrain');
-    const terrainMat = keep(terrainMaterial(THREE));
+    const pulse = { value: 1 };
+    const terrainMat = keep(terrainMaterial(THREE, pulse));
     const terrain = new THREE.Mesh(terrainGeo, terrainMat);
     terrain.receiveShadow = renderer.shadowMap.enabled;
     scene.add(terrain);
@@ -600,6 +658,42 @@
       plinth.position.y = -41;
       plinth.receiveShadow = true;
       scene.add(plinth);
+
+      /*
+        Стол под диорамой, как доска «Земли обетованной» стоит на земле: карта —
+        предмет, а не картинка в пустоте. Дерево рисуется один раз на холсте и
+        повторяется; вдали стол уходит в дымку того же цвета, что и фон.
+      */
+      const wood = document.createElement('canvas');
+      wood.width = 256; wood.height = 256;
+      const g = wood.getContext('2d');
+      g.fillStyle = '#3a2a1d';
+      g.fillRect(0, 0, 256, 256);
+      const grain = rng(77);
+      for (let i = 0; i < 140; i += 1) {
+        const y = grain() * 256;
+        g.strokeStyle = `rgba(${grain() > 0.5 ? '20,12,6' : '96,70,44'},${0.12 + grain() * 0.2})`;
+        g.lineWidth = 0.6 + grain() * 2.2;
+        g.beginPath();
+        g.moveTo(0, y);
+        for (let x = 0; x <= 256; x += 16) g.lineTo(x, y + Math.sin(x * 0.03 + i) * 3 + (grain() - 0.5) * 1.5);
+        g.stroke();
+      }
+      for (let i = 0; i < 4; i += 1) {
+        g.fillStyle = 'rgba(0,0,0,0.25)';
+        g.fillRect(0, i * 64, 256, 1.5);
+      }
+      const woodMap = keep(new THREE.CanvasTexture(wood));
+      woodMap.wrapS = woodMap.wrapT = THREE.RepeatWrapping;
+      woodMap.repeat.set(8, 8);
+      woodMap.encoding = THREE.sRGBEncoding;
+      woodMap.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      const table = new THREE.Mesh(keep(new THREE.PlaneGeometry(MAP_W * 7, MAP_H * 7)),
+        keep(new THREE.MeshStandardMaterial({ map: woodMap, roughness: 0.72, metalness: 0.02 })));
+      table.rotation.x = -Math.PI / 2;
+      table.position.y = -48.2;
+      table.receiveShadow = renderer.shadowMap.enabled;
+      scene.add(table);
     }
 
     // ——— вода ———
@@ -692,6 +786,120 @@
       borders.set(site.id, material);
     }
 
+    // ——— рубежи: свой край и земля, которую можно взять ———
+    /*
+      Граница своего царства — не цвет ленточки, а светящийся рубеж: по
+      внешнему краю своих земель поднимается полупрозрачная стена света цвета
+      царства, яркая у земли и тающая кверху. Внутренние границы между своими
+      областями её не получают — видно одно целое, а не лоскуты.
+
+      Пока выбран приказ, земли, куда он может пойти, обведены таким же
+      рубежом, только золотым и дышащим; свои области-источники — светлым.
+      Дыхание идёт только пока приказ выбран, и не идёт вовсе, если человек
+      просил систему не двигать интерфейс.
+    */
+    const fadeMap = (() => {
+      const c = document.createElement('canvas');
+      c.width = 4; c.height = 64;
+      const g = c.getContext('2d');
+      const grad = g.createLinearGradient(0, 0, 0, 64);
+      grad.addColorStop(0, '#000');
+      grad.addColorStop(0.4, '#4a4a4a');
+      grad.addColorStop(0.72, '#c4c4c4');
+      grad.addColorStop(0.84, '#fff');
+      grad.addColorStop(1, '#fff');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 4, 64);
+      return keep(new THREE.CanvasTexture(c));
+    })();
+    const curtainMat = (color, opacity) => keep(new THREE.MeshBasicMaterial({ color, alphaMap: fadeMap, transparent: true,
+      opacity, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+    /*
+      Рубеж из двух частей: стена света вдоль края, яркая у земли и тающая
+      кверху, и полоса по самой земле, уходящая от края внутрь области. Сбоку
+      читается стена, сверху — полоса; вместе край виден под любым наклоном.
+    */
+    const curtainGeo = (items, tall) => {
+      const verts = []; const uvs = [];
+      for (const { seg: [x1, y1, x2, y2], inner: [ix1, iy1, ix2, iy2] } of items) {
+        const g1 = heightAt(x1, y1); const g2 = heightAt(x2, y2);
+        if (g1 < 0.8 || g2 < 0.8) continue;
+        const quad = [[x1, g1, y1, 0], [x2, g2, y2, 0], [x1, g1 + tall, y1, 1], [x2, g2, y2, 0], [x2, g2 + tall, y2, 1], [x1, g1 + tall, y1, 1]];
+        for (const [x, h, y, v] of quad) { verts.push(x - CX, h + 0.3, y - CY); uvs.push(0, v); }
+        const k1 = Math.max(heightAt(ix1, iy1), 0.8); const k2 = Math.max(heightAt(ix2, iy2), 0.8);
+        const band = [[x1, g1, y1, 0.02], [x2, g2, y2, 0.02], [ix1, k1, iy1, 1], [x2, g2, y2, 0.02], [ix2, k2, iy2, 1], [ix1, k1, iy1, 1]];
+        for (const [x, h, y, v] of band) { verts.push(x - CX, h + 0.9, y - CY); uvs.push(0, v); }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+      geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
+      return geo;
+    };
+    /** Отрезки контура области, мелко нарезанные и сдвинутые внутрь на inset. */
+    const outline = (site, inset, band) => {
+      const out = [];
+      const poly = site.poly;
+      for (let i = 0; i < poly.length; i += 1) {
+        const [ax, ay] = poly[i]; const [bx, by] = poly[(i + 1) % poly.length];
+        const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / 4));
+        for (let k = 0; k < steps; k += 1) {
+          const p = [mix(ax, bx, k / steps), mix(ay, by, k / steps)];
+          const q = [mix(ax, bx, (k + 1) / steps), mix(ay, by, (k + 1) / steps)];
+          const pull = ([x, y], by) => {
+            const dx = site.x - x; const dy = site.y - y; const len = Math.hypot(dx, dy) || 1;
+            const step = Math.min(by, len * 0.5);
+            return [x + (dx / len) * step, y + (dy / len) * step];
+          };
+          const mx = (p[0] + q[0]) / 2; const my = (p[1] + q[1]) / 2;
+          const ox = mx - site.x; const oy = my - site.y; const ol = Math.hypot(ox, oy) || 1;
+          out.push({ seg: [...pull(p, inset), ...pull(q, inset)], inner: [...pull(p, inset + band), ...pull(q, inset + band)],
+            probe: [mx + (ox / ol) * 7, my + (oy / ol) * 7] });
+        }
+      }
+      return out;
+    };
+    const outlines = new Map(world.sites.map((site) => [site.id, outline(site, 2.4, 18)]));
+    const realm = { mesh: null, material: curtainMat(0xffffff, 1), key: '' };
+    const setRealm = (mine, color) => {
+      const key = `${[...mine].sort().join(',')}|${color}`;
+      if (key === realm.key) return;
+      realm.key = key;
+      if (realm.mesh) { scene.remove(realm.mesh); realm.mesh.geometry.dispose(); realm.mesh = null; }
+      if (!mine.size) return;
+      const segments = [];
+      for (const id of mine) {
+        for (const item of outlines.get(id)) {
+          const [px, py] = item.probe;
+          const outside = px < 0 || py < 0 || px > MAP_W || py > MAP_H || !mine.has(world.areaAt(px, py).id);
+          if (outside) segments.push(item);
+        }
+      }
+      // Цвет царства, высветленный: рубеж светится, а не темнеет на траве.
+      realm.material.color.set(color).lerp(new THREE.Color(0xffffff), 0.42).convertSRGBToLinear();
+      realm.mesh = new THREE.Mesh(curtainGeo(segments, 14), realm.material);
+      realm.mesh.renderOrder = 2;
+      scene.add(realm.mesh);
+    };
+    const targetMat = curtainMat(0xffc23a, 0.9);
+    const sourceMat = curtainMat(0xfff1d0, 0.5);
+    const selectMat = curtainMat(0xffffff, 0.9);
+    const clashMat = curtainMat(0xff5a3c, 0.9);
+    const rims = new Map();
+    const setRim = (id, material) => {
+      let mesh = rims.get(id);
+      if (!material) { if (mesh) mesh.visible = false; return; }
+      if (!mesh) {
+        mesh = new THREE.Mesh(keep(curtainGeo(outlines.get(id), 20)), material);
+        mesh.renderOrder = 3;
+        scene.add(mesh);
+        rims.set(id, mesh);
+      }
+      mesh.material = material;
+      mesh.visible = true;
+    };
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let breathing = false;
+
     mark('borders');
     // ——— поселения ———
     /*
@@ -773,6 +981,98 @@
     };
 
     mark('towns');
+    // ——— дороги, мосты и лодки ———
+    /*
+      Дороги идут по связям из правил: между поселениями соседних областей,
+      по земле, чуть петляя. Там, где связь — брод, дорога спускается к реке и
+      переходит её по мосту: брод на карте виден, а не угадывается. Дорога —
+      тонкая лента по рельефу, всё вместе — один вызов отрисовки.
+    */
+    {
+      const verts = [];
+      const bridges = [];
+      const road = (a, b, ford) => {
+        const bend = (hash2(Math.round(a.x + b.y), Math.round(a.y + b.x)) - 0.5) * 0.35;
+        const mx = (a.x + b.x) / 2 - (b.y - a.y) * bend; const my = (a.y + b.y) / 2 + (b.x - a.x) * bend;
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        const steps = Math.max(4, Math.ceil(len / 4));
+        const pts = [];
+        for (let s = 0; s <= steps; s += 1) {
+          const t = s / steps;
+          const x = (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * mx + t * t * b.x;
+          const y = (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * my + t * t * b.y;
+          pts.push([x, y, heightAt(x, y)]);
+        }
+        let wetFrom = -1;
+        for (let i = 0; i < pts.length - 1; i += 1) {
+          const [x1, y1, g1] = pts[i]; const [x2, y2, g2] = pts[i + 1];
+          const wet = g1 < 1.2 || g2 < 1.2;
+          if (wet && wetFrom < 0) wetFrom = i;
+          if (!wet && wetFrom >= 0) {
+            if (ford) bridges.push([pts[Math.max(0, wetFrom - 1)], pts[Math.min(pts.length - 1, i + 1)]]);
+            wetFrom = -1;
+          }
+          if (wet) continue;
+          const l = Math.hypot(x2 - x1, y2 - y1) || 1;
+          const nx = (-(y2 - y1) / l) * 1.6; const ny = ((x2 - x1) / l) * 1.6;
+          const h1 = g1 + 0.45; const h2 = g2 + 0.45;
+          for (const [x, h, y] of [[x1 - nx, h1, y1 - ny], [x2 - nx, h2, y2 - ny], [x1 + nx, h1, y1 + ny],
+            [x2 - nx, h2, y2 - ny], [x2 + nx, h2, y2 + ny], [x1 + nx, h1, y1 + ny]]) verts.push(x - CX, h, y - CY);
+        }
+      };
+      for (const edge of options.R.EDGES) {
+        const a = world.byId.get(edge.a); const b = world.byId.get(edge.b);
+        if (a && b) road(a.town, b.town, edge.type === 'ford');
+      }
+      const roadGeo = keep(new THREE.BufferGeometry());
+      roadGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(verts), 3));
+      roadGeo.computeVertexNormals();
+      const roads = new THREE.Mesh(roadGeo, keep(new THREE.MeshStandardMaterial({ color: 0xb09a74, roughness: 1,
+        side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 })));
+      roads.receiveShadow = renderer.shadowMap.enabled;
+      scene.add(roads);
+
+      const parts = [];
+      for (const [[x1, y1, g1], [x2, y2, g2]] of bridges) {
+        const len = Math.hypot(x2 - x1, y2 - y1);
+        const ry = -Math.atan2(y2 - y1, x2 - x1);
+        const top = Math.max(g1, g2, 2) + 1.4;
+        const mx = (x1 + x2) / 2 - CX; const mz = (y1 + y2) / 2 - CY;
+        parts.push({ geometry: new THREE.BoxGeometry(len + 4, 1.4, 6.4), color: 0x8a6440, matrix: M4(THREE, { x: mx, y: top, z: mz, ry }) });
+        for (const side of [-1, 1]) {
+          parts.push({ geometry: new THREE.BoxGeometry(len + 4, 1.6, 0.6), color: 0x5e4129,
+            matrix: M4(THREE, { x: mx + Math.sin(ry) * side * 3, y: top + 1.4, z: mz + Math.cos(ry) * side * 3, ry }) });
+        }
+        for (const t of [0.3, 0.7]) {
+          parts.push({ geometry: new THREE.CylinderGeometry(0.7, 0.7, 8, 6), color: 0x4a3322,
+            matrix: M4(THREE, { x: mix(x1, x2, t) - CX, y: top - 4, z: mix(y1, y2, t) - CY }) });
+        }
+      }
+      // Лодки: на море вдоль северного края и на озере — место, где карта дышит.
+      const random = rng(313);
+      const boats = [];
+      for (let tries = 0; boats.length < 9 && tries < 400; tries += 1) {
+        const x = 40 + random() * (MAP_W - 80);
+        const y = boats.length < 6 ? 6 + random() * 50 : CY - 45 + random() * 90;
+        if (heightAt(x, y) > -4.5 || boats.some((b) => Math.hypot(b.x - x, b.y - y) < 60)) continue;
+        boats.push({ x, y, r: random() * Math.PI * 2 });
+      }
+      for (const { x, y, r } of boats) {
+        const bx = x - CX; const bz = y - CY; const by = SEA_LEVEL - 0.2;
+        const hull = new THREE.CylinderGeometry(2.6, 1.6, 13, 6, 1, false, 0, Math.PI);
+        parts.push({ geometry: hull, color: 0x6b4a2c, matrix: M4(THREE, { x: bx, y: by + 0.9, z: bz, rz: -Math.PI / 2, ry: r, sz: 0.8 }) });
+        parts.push({ geometry: new THREE.CylinderGeometry(0.25, 0.3, 11, 4), color: 0x4a3322,
+          matrix: M4(THREE, { x: bx, y: by + 6, z: bz, ry: r }) });
+        parts.push({ geometry: new THREE.PlaneGeometry(7, 8), color: 0xf1e7d2,
+          matrix: M4(THREE, { x: bx + Math.cos(r) * 0.4, y: by + 7, z: bz - Math.sin(r) * 0.4, ry: r }) });
+      }
+      if (parts.length) {
+        const mesh = new THREE.Mesh(keep(mergeParts(THREE, parts)),
+          keep(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, side: THREE.DoubleSide })));
+        mesh.castShadow = renderer.shadowMap.enabled;
+        scene.add(mesh);
+      }
+    }
     // ——— природа ———
     /*
       Деревья, скалы и пальмы — по нескольку сотен штук, но каждое семейство
@@ -794,7 +1094,7 @@
           const site = world.areaAt(x, y);
           if (!want(site, x, y)) continue;
           const h = heightAt(x, y);
-          if (h < 2.2 || !clear(x, y) || world.riverDist(x, y) < 6) continue;
+          if (h < 2.2 || !clear(x, y) || world.riverDist(x, y) < 6 || farmWeight(site, x, y, h) > 0.2) continue;
           spots.push({ x, y, h, s: 0.75 + random() * 0.6, r: random() * Math.PI * 2 });
         }
         if (!spots.length) return;
@@ -849,10 +1149,188 @@
     }
 
     mark('nature');
+
+    // ————————————————————————————————————————— жетоны приказов
+
+    /*
+      Жетон приказа — объёмная фишка, как в настольной игре: толстая монета с
+      ободком цвета царства. Сверху — рисунок приказа, у закрытого чужого
+      приказа — рубашка. Поход и переправа лежат на полпути между областями,
+      а над ними дугой идёт стрела от источника к цели: направление удара
+      видно сразу, без чтения подписей.
+
+      Раскрытие приказа — переворот фишки: она подпрыгивает и ложится лицом
+      вверх. Пока идёт переворот, кадры рисуются; кончился — карта снова молчит.
+
+      SVG-жетон остаётся поверх как прозрачная зона нажатия (разведка
+      выбирает жетон нажатием) и носит бирку силы.
+    */
+    const ART = { closed: 'closed', feint: 'feint', ford2: 'ford', fortify: 'fortify', guard: 'guard', reveal: 'reveal', scout: 'scout' };
+    const artFile = (kind) => `web/assets/kingdoms/orders/${kind.startsWith('march') ? 'march' : ART[kind] || 'closed'}.webp`;
+    const images = new Map();
+    const artImage = (file) => {
+      if (!images.has(file)) {
+        const image = new Image();
+        image.decoding = 'async';
+        image.onload = () => { for (const texture of faceTextures.values()) if (texture.userData.file === file) paintFace(texture); invalidate(); };
+        image.src = file;
+        images.set(file, image);
+      }
+      return images.get(file);
+    };
+    const faceTextures = new Map();
+    const paintFace = (texture) => {
+      const { canvas: face, file, ring, closed } = texture.userData;
+      const g = face.getContext('2d');
+      const size = face.width;
+      g.clearRect(0, 0, size, size);
+      const grad = g.createRadialGradient(size * 0.38, size * 0.32, size * 0.05, size / 2, size / 2, size / 2);
+      grad.addColorStop(0, closed ? '#5d4a33' : '#fff8e4');
+      grad.addColorStop(1, closed ? '#2e2418' : '#dcc592');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, size, size);
+      g.lineWidth = size * 0.07;
+      g.strokeStyle = ring;
+      g.beginPath(); g.arc(size / 2, size / 2, size * 0.46, 0, Math.PI * 2); g.stroke();
+      g.lineWidth = size * 0.015;
+      g.strokeStyle = closed ? '#d9b46b' : '#7a5a2c';
+      g.beginPath(); g.arc(size / 2, size / 2, size * 0.39, 0, Math.PI * 2); g.stroke();
+      const image = artImage(file);
+      if (image.complete && image.naturalWidth) {
+        const art = size * 0.62;
+        g.drawImage(image, (size - art) / 2, (size - art) / 2, art, art);
+      }
+      texture.needsUpdate = true;
+    };
+    const faceTexture = (kind, ring) => {
+      const key = `${kind || 'closed'}|${ring}`;
+      if (!faceTextures.has(key)) {
+        const face = document.createElement('canvas');
+        face.width = face.height = 256;
+        const texture = keep(new THREE.CanvasTexture(face));
+        texture.encoding = THREE.sRGBEncoding;
+        texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        texture.userData = { canvas: face, file: artFile(kind || 'closed'), ring, closed: !kind };
+        paintFace(texture);
+        faceTextures.set(key, texture);
+      }
+      return faceTextures.get(key);
+    };
+    const COIN_R = 17;
+    const coinGeo = keep(new THREE.CylinderGeometry(COIN_R, COIN_R * 1.04, 5, 48, 1));
+    const tokenRoot = new THREE.Group();
+    scene.add(tokenRoot);
+    const tokens = new Map();
+    const arrowFor = (fromId, toId, color) => {
+      const a = pos.get(fromId); const b = pos.get(toId);
+      if (!a || !b) return null;
+      const ha = Math.max(heightAt(a.x, a.y), SEA_LEVEL) + 10;
+      const hb = Math.max(heightAt(b.x, b.y), SEA_LEVEL) + 10;
+      const start = new THREE.Vector3(a.x - CX, ha, a.y - CY);
+      const end = new THREE.Vector3(b.x - CX, hb, b.y - CY);
+      // Дуга не доходит до самого центра цели: наконечник ложится у маркера, а не на него.
+      end.lerp(start, 0.16);
+      start.lerp(end, 0.12);
+      const lift = Math.max(ha, hb) + 26 + start.distanceTo(end) * 0.12;
+      const control = start.clone().lerp(end, 0.5).setY(lift);
+      const curve = new THREE.QuadraticBezierCurve3(start, control, end);
+      const material = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.35,
+        roughness: 0.4, transparent: true, opacity: 0.92 });
+      const group = new THREE.Group();
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 2.4, 8, false), material);
+      tube.castShadow = renderer.shadowMap.enabled;
+      group.add(tube);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(6.5, 15, 14), material);
+      const tangent = curve.getTangent(1);
+      head.position.copy(end).addScaledVector(tangent, 5);
+      head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+      head.castShadow = renderer.shadowMap.enabled;
+      group.add(head);
+      group.userData.dispose = () => { tube.geometry.dispose(); head.geometry.dispose(); material.dispose(); };
+      return group;
+    };
+    const readTokens = () => [...svg.querySelectorAll('[data-token]')].map((node) => ({
+      node,
+      id: node.dataset.token,
+      kind: node.dataset.kind || '',
+      area: node.dataset.from || '',
+      to: node.dataset.to || '',
+      wx: Number(node.dataset.wx), wy: Number(node.dataset.wy),
+      color: node.style.getPropertyValue('--owner').trim() || '#94a3b8',
+      scoutable: node.classList.contains('is-scoutable'),
+      picked: node.classList.contains('is-picked'),
+      focus: node.classList.contains('is-demo-focus'),
+    }));
+    let flipping = 0;
+    const syncTokens = () => {
+      const seen = new Set();
+      for (const t of readTokens()) {
+        if (!Number.isFinite(t.wx) || !Number.isFinite(t.wy)) continue;
+        seen.add(t.id);
+        let entry = tokens.get(t.id);
+        const shape = `${t.color}|${t.area}|${t.to}`;
+        if (entry && entry.shape !== shape) { removeToken(t.id); entry = null; }
+        if (!entry) {
+          const side = new THREE.MeshStandardMaterial({ color: t.color, metalness: 0.3, roughness: 0.45 });
+          const top = new THREE.MeshStandardMaterial({ roughness: 0.55 });
+          const bottom = new THREE.MeshStandardMaterial({ map: faceTexture('', t.color), roughness: 0.6 });
+          const coin = new THREE.Mesh(coinGeo, [side, top, bottom]);
+          coin.castShadow = renderer.shadowMap.enabled;
+          const holder = new THREE.Group();
+          holder.add(coin);
+          const ground = Math.max(heightAt(t.wx, t.wy), SEA_LEVEL);
+          holder.position.set(t.wx - CX, ground + 4, t.wy - CY);
+          tokenRoot.add(holder);
+          const arrow = t.area && t.to ? arrowFor(t.area, t.to, t.color) : null;
+          if (arrow) tokenRoot.add(arrow);
+          entry = { holder, coin, side, top, bottom, arrow, shape, kind: null, flip: null, x: t.wx, y: t.wy };
+          tokens.set(t.id, entry);
+        }
+        if (entry.kind !== t.kind) {
+          const wasClosed = entry.kind === '';
+          entry.top.map = faceTexture(t.kind, t.color);
+          entry.top.needsUpdate = true;
+          // Закрытый стал открытым — фишка переворачивается у всех на глазах.
+          if (wasClosed && t.kind) { entry.flip = { start: performance.now() }; flipping += 1; }
+          entry.kind = t.kind;
+        }
+        const glow = t.picked ? 0x1f9d55 : t.scoutable || t.focus ? 0xb8862b : 0x000000;
+        entry.side.emissive.setHex(glow);
+        entry.top.emissive.setHex(glow);
+        entry.side.emissiveIntensity = entry.top.emissiveIntensity = glow ? 0.55 : 0;
+      }
+      for (const id of [...tokens.keys()]) if (!seen.has(id)) removeToken(id);
+    };
+    function removeToken(id) {
+      const entry = tokens.get(id);
+      if (!entry) return;
+      tokenRoot.remove(entry.holder);
+      entry.side.dispose(); entry.top.dispose(); entry.bottom.dispose();
+      if (entry.arrow) { tokenRoot.remove(entry.arrow); entry.arrow.userData.dispose(); }
+      if (entry.flip) flipping -= 1;
+      tokens.delete(id);
+    }
+    /** Кадр жетонов: переворот раскрытых и размер, читаемый издалека. */
+    const stepTokens = (now) => {
+      for (const entry of tokens.values()) {
+        // Издалека фишка не меньше пальца на экране: ниже этого она подрастает.
+        const ppu = pixelsPerUnit(entry.x, entry.y);
+        const grow = Math.max(1, Math.min(3.2, 11 / Math.max(0.01, ppu * COIN_R)));
+        entry.holder.scale.setScalar(grow);
+        if (entry.flip) {
+          const t = Math.min(1, (now - entry.flip.start) / 650);
+          entry.coin.rotation.x = Math.PI * (1 - t);
+          entry.coin.position.y = Math.sin(Math.PI * t) * 22;
+          if (t >= 1) { entry.flip = null; flipping -= 1; entry.coin.rotation.x = 0; entry.coin.position.y = 0; }
+        }
+      }
+      return flipping > 0;
+    };
+
     // ————————————————————————————————————————— камера и управление
 
     const cam = { x: 0, z: 30, dist: 1200, tilt: 0.55, yaw: 0 };
-    let limits = { maxDist: 1600, minDist: 170 };
+    let limits = { maxDist: 1600, minDist: 170, ready: false };
     const setCamera = () => {
       const sinT = Math.sin(cam.tilt);
       camera.position.set(cam.x + cam.dist * sinT * Math.sin(cam.yaw), cam.dist * Math.cos(cam.tilt),
@@ -861,27 +1339,54 @@
       camera.updateMatrixWorld();
     };
     const clampCam = () => {
-      cam.tilt = Math.max(0.2, Math.min(1.1, cam.tilt));
+      cam.tilt = Math.max(0.3, Math.min(1.15, cam.tilt));
       cam.dist = Math.max(limits.minDist, Math.min(limits.maxDist, cam.dist));
       cam.x = Math.max(-MAP_W / 2, Math.min(MAP_W / 2, cam.x));
       cam.z = Math.max(-MAP_H / 2, Math.min(MAP_H / 2, cam.z));
     };
 
     let width = 1; let height = 1;
+    /*
+      Свободное окно карты. Поверх холста лежат плашки: сверху — раунд и счёт,
+      снизу стоймя или справа боком — рука с жетонами. Карта вписывается не во
+      весь холст, а в то, что между ними открыто, и её середина стоит в
+      середине этого окна: иначе половина земли пряталась бы под рукой.
+    */
+    let insets = { top: 0, bottom: 0, left: 0, right: 0 };
+    let atHome = true;
+    const applyOffset = () => {
+      const offX = Math.round((insets.right - insets.left) / 2);
+      const offY = Math.round((insets.bottom - insets.top) / 2);
+      if (offX || offY) camera.setViewOffset(width, height, offX, offY, width, height);
+      else camera.clearViewOffset();
+      camera.updateProjectionMatrix();
+    };
     const resize = () => {
       const rect = scroll.getBoundingClientRect();
       width = Math.max(1, Math.round(rect.width)); height = Math.max(1, Math.round(rect.height));
       renderer.setSize(width, height, false);
       canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
       camera.aspect = width / height;
-      camera.updateProjectionMatrix();
+      applyOffset();
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      if (atHome && limits.ready) fit(true);
+      invalidate();
+    };
+    const setInsets = (next) => {
+      const clean = { top: 0, bottom: 0, left: 0, right: 0, ...next };
+      for (const key of Object.keys(clean)) clean[key] = Math.max(0, Math.round(clean[key] || 0));
+      if (Object.keys(clean).every((key) => Math.abs(clean[key] - insets[key]) < 2)) return;
+      insets = clean;
+      applyOffset();
+      if (atHome) fit(true);
       invalidate();
     };
 
     /** Дистанция, на которой вся карта входит в кадр при нынешнем наклоне и повороте. */
     const fitDistance = () => {
-      const corners = [[-CX, -CY], [CX, -CY], [CX, CY], [-CX, CY]];
+      // Углы диорамы и по низу постамента, и по верху гор: в кадр входит вся коробка, а не только земля.
+      const corners = [];
+      for (const level of [-48, 30]) for (const [x, z] of [[-CX, -CY], [CX, -CY], [CX, CY], [-CX, CY]]) corners.push([x, level, z]);
       const v = new THREE.Vector3();
       let lo = 150; let hi = 6000;
       const saved = { ...cam };
@@ -889,9 +1394,16 @@
       for (let i = 0; i < 26; i += 1) {
         cam.dist = (lo + hi) / 2;
         setCamera();
-        const fits = corners.every(([x, z]) => {
-          v.set(x, 0, z).project(camera);
-          return Math.abs(v.x) <= 0.97 && Math.abs(v.y) <= 0.95;
+        // Свободное окно в координатах кадра: слева-справа и снизу-сверху, с полями в 3–4 %.
+        let x0 = -1 + (2 * insets.left) / width; let x1 = 1 - (2 * insets.right) / width;
+        let y0 = -1 + (2 * insets.bottom) / height; let y1 = 1 - (2 * insets.top) / height;
+        // Плашки закрыли почти всё — вписываем в весь кадр, а не в щель.
+        if (x1 - x0 < 0.4) { x0 = -1; x1 = 1; }
+        if (y1 - y0 < 0.4) { y0 = -1; y1 = 1; }
+        const mx = Math.max(0.02, (x1 - x0) * 0.03); const my = Math.max(0.02, (y1 - y0) * 0.04);
+        const fits = corners.every(([x, y, z]) => {
+          v.set(x, y, z).project(camera);
+          return v.x >= x0 + mx && v.x <= x1 - mx && v.y >= y0 + my && v.y <= y1 - my;
         });
         if (fits) hi = cam.dist; else lo = cam.dist;
       }
@@ -907,22 +1419,52 @@
       animation = { from, target, start, ms };
       invalidate();
     };
+    /*
+      Наклон по тому, как держат телефон. Стоймя экран узкий и высокий: карта
+      упирается в ширину, а по высоте остаётся место — камера поднимается и
+      смотрит почти сверху, и карта занимает высоту. Боком наоборот: камера
+      ниже, рельеф видно в профиль.
+    */
+    const homeTilt = () => {
+      const w = width - insets.left - insets.right;
+      const h = height - insets.top - insets.bottom;
+      const ratio = w / Math.max(1, h);
+      return ratio < 0.9 ? 0.5 : ratio > 1.6 ? 0.78 : 0.62;
+    };
     const fit = (instant = false) => {
-      const target = { x: 0, z: 18, tilt: 0.55, yaw: 0 };
+      const target = { x: 0, z: 10, tilt: homeTilt(), yaw: 0 };
       const saved = { ...cam };
       Object.assign(cam, target);
       const dist = fitDistance();
       Object.assign(cam, saved);
-      limits = { maxDist: dist * 1.12, minDist: 170 };
+      limits = { maxDist: dist * 1.12, minDist: 170, ready: true };
+      // Дымка и дальний край кадра — от расстояния, на котором карта видна целиком:
+      // стоймя камера отходит вдвое дальше, чем боком, и прежняя дымка съедала землю.
+      scene.fog.near = dist + 700;
+      scene.fog.far = dist * 1.6 + 1500;
+      camera.far = dist * 4;
+      camera.updateProjectionMatrix();
       target.dist = dist;
+      atHome = true;
       if (instant) { Object.assign(cam, target); animation = null; invalidate(); }
       else animateTo(target);
     };
+    /** Подлететь к области: она в середине свободного окна, крупно и под удобным наклоном. */
+    const focusArea = (areaId, scale = 2.4) => {
+      const p = pos.get(areaId);
+      if (!p) return;
+      atHome = false;
+      clampCam();
+      animateTo({ x: p.x - CX, z: p.y - CY, tilt: Math.max(cam.tilt, 0.62),
+        dist: Math.max(limits.minDist, (limits.maxDist / 1.12) / scale) }, 420);
+    };
     const zoomTo = (scale) => {
+      atHome = false;
       clampCam();
       animateTo({ ...cam, dist: Math.max(limits.minDist, Math.min(limits.maxDist, (limits.maxDist / 1.12) / Math.max(0.5, scale))) }, 300);
     };
     const zoom = (factor) => {
+      atHome = false;
       clampCam();
       animateTo({ ...cam, dist: Math.max(limits.minDist, Math.min(limits.maxDist, cam.dist / factor)) }, 240);
     };
@@ -948,24 +1490,35 @@
 
     // ——— жесты ———
     /*
-      Один палец тянет карту, как лист на столе: точка под пальцем остаётся под
-      пальцем. Два пальца: разведение — приближение, поворот — поворот карты,
-      сдвиг обоих вверх-вниз — наклон. Колесо мыши приближает, правая кнопка
-      поворачивает и наклоняет. Нажатие без движения — выбор области.
+      Карта слушается пальца так же, как доска «Земли обетованной», — как
+      модель на столе. Один палец её поворачивает и наклоняет: повёл вправо —
+      карта повернулась вслед за пальцем, повёл вниз — камера поднялась и
+      смотрит сверху. Два пальца: развёл — приблизил, повёл оба — сдвинул
+      карту, и точка под пальцами остаётся под ними. Прежде один палец таскал
+      карту, а поворот жил на двух пальцах, — по отзыву это ощущалось «наоборот».
+
+      Нажатие отличается от поворота порогом: палец, проехавший меньше восьми
+      точек, — это нажатие по области. Мышью: левая кнопка — поворот, правая
+      или с Shift — сдвиг, колесо — приближение.
     */
+    const TURN = 0.0055;
+    const LIFT = 0.005;
     const pointers = new Map();
+    let lastTap = null;
     let gesture = null;
     let suppressClick = false;
+    let dragEndedAt = -Infinity;
+    const midpoint = (pts) => (pts.length >= 2 ? { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 } : pts[0]);
     const snapshot = () => {
       const pts = [...pointers.values()];
-      const center = pts.length >= 2 ? { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 } : pts[0];
+      const center = midpoint(pts);
       gesture = {
-        count: pts.length, center, moved: false,
+        count: pts.length, center, moved: gesture?.moved && pts.length > 0 ? true : false,
         distance: pts.length >= 2 ? Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) : 0,
-        angle: pts.length >= 2 ? Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) : 0,
         cam: { ...cam },
         anchor: planeAt(center.x, center.y, 8),
         button: gesture?.button ?? 0,
+        target: gesture?.target,
       };
     };
     const onDown = (event) => {
@@ -973,43 +1526,49 @@
       animation = null;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (pointers.size <= 2) {
+        if (pointers.size === 1) gesture = null;
         snapshot();
-        gesture.button = event.button;
-        gesture.target = event.target;
-        gesture.start = { x: event.clientX, y: event.clientY };
+        if (pointers.size === 1) {
+          gesture.button = event.button;
+          gesture.target = event.target;
+        } else {
+          gesture.moved = true; atHome = false;
+          suppressClick = true;
+        }
+      }
+    };
+    /** Сдвиг карты так, чтобы схваченная точка осталась под экранной точкой. */
+    const keepAnchor = (screen) => {
+      Object.assign(cam, { x: gesture.cam.x, z: gesture.cam.z });
+      setCamera();
+      const now = planeAt(screen.x, screen.y, 8);
+      if (now && gesture.anchor) {
+        cam.x = gesture.cam.x + (gesture.anchor.x - now.x);
+        cam.z = gesture.cam.z + (gesture.anchor.z - now.z);
       }
     };
     const onMove = (event) => {
       if (!pointers.has(event.pointerId) || !gesture) return;
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       const pts = [...pointers.values()];
-      const center = pts.length >= 2 ? { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 } : pts[0];
-      if (!gesture.moved && pts.length === 1 && Math.hypot(center.x - gesture.center.x, center.y - gesture.center.y) < 7) return;
+      const center = midpoint(pts);
+      const dx = center.x - gesture.center.x;
+      const dy = center.y - gesture.center.y;
+      if (!gesture.moved && pts.length === 1 && Math.hypot(dx, dy) < 8) return;
       if (!gesture.moved) {
-        gesture.moved = true; suppressClick = true;
+        gesture.moved = true; suppressClick = true; atHome = false;
         try { scroll.setPointerCapture(event.pointerId); } catch { /* палец уже отпущен */ }
       }
       if (pts.length === 1 && (gesture.button === 2 || event.shiftKey)) {
-        cam.yaw = gesture.cam.yaw - (center.x - gesture.center.x) * 0.006;
-        cam.tilt = gesture.cam.tilt - (center.y - gesture.center.y) * 0.004;
+        keepAnchor(center);
       } else if (pts.length === 1) {
-        // Точка, схваченная пальцем, остаётся под пальцем.
-        Object.assign(cam, { x: gesture.cam.x, z: gesture.cam.z });
-        setCamera();
-        const now = planeAt(center.x, center.y, 8);
-        if (now && gesture.anchor) {
-          cam.x = gesture.cam.x + (gesture.anchor.x - now.x);
-          cam.z = gesture.cam.z + (gesture.anchor.z - now.z);
-        }
+        cam.yaw = gesture.cam.yaw - dx * TURN;
+        cam.tilt = gesture.cam.tilt - dy * LIFT;
       } else if (pts.length === 2) {
         const distance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
-        const spread = distance / Math.max(1, gesture.distance);
-        const dy = center.y - gesture.center.y;
-        cam.dist = gesture.cam.dist / spread;
-        cam.yaw = gesture.cam.yaw - (angle - gesture.angle);
-        // Оба пальца идут вверх-вниз, почти не расходясь, — это наклон.
-        if (Math.abs(spread - 1) < 0.12) cam.tilt = gesture.cam.tilt - dy * 0.005;
+        cam.dist = gesture.cam.dist * Math.max(1, gesture.distance) / Math.max(1, distance);
+        clampCam();
+        keepAnchor(center);
       }
       clampCam();
       invalidate();
@@ -1021,22 +1580,33 @@
       pointers.delete(event.pointerId);
       try { scroll.releasePointerCapture(event.pointerId); } catch { /* отпущен */ }
       if (pointers.size) snapshot(); else gesture = null;
-      if (suppressClick) window.setTimeout(() => { suppressClick = false; }, 120);
+      /*
+        Клик, который браузер шлёт следом за отпусканием пальца после поворота,
+        глушится по времени самого события, а не таймером: на тяжёлом кадре
+        таймер срабатывал с опозданием и съедал следующее, настоящее нажатие.
+      */
+      if (suppressClick && !pointers.size) { dragEndedAt = event.timeStamp; suppressClick = false; }
       // Нажатие по самой карте (не по маркеру, жетону или связи — у них свои обработчики).
       if (wasTap && (target === canvas || target === svg || target?.classList?.contains('kd-3d-hit'))) {
         const point = groundAt(event.clientX, event.clientY);
         if (point && point.x >= 0 && point.x <= MAP_W && point.y >= 0 && point.y <= MAP_H) {
-          onTap?.(world.areaAt(point.x, point.y).id);
+          const areaId = world.areaAt(point.x, point.y).id;
+          // Второе нажатие по той же области подряд — подлететь к ней, как двойной тап на картах.
+          const now = performance.now();
+          if (lastTap && lastTap.id === areaId && now - lastTap.at < 360) { focusArea(areaId); lastTap = null; return; }
+          lastTap = { id: areaId, at: now };
+          onTap?.(areaId);
         }
       }
     };
     const onClickCapture = (event) => {
-      if (!suppressClick) return;
-      event.preventDefault(); event.stopImmediatePropagation(); suppressClick = false;
+      if (!suppressClick && event.timeStamp - dragEndedAt > 250) return;
+      event.preventDefault(); event.stopImmediatePropagation(); dragEndedAt = -Infinity;
     };
     const onWheel = (event) => {
       event.preventDefault();
       animation = null;
+      atHome = false;
       cam.dist *= event.deltaY < 0 ? 1 / 1.12 : 1.12;
       clampCam();
       invalidate();
@@ -1089,12 +1659,16 @@
         .add(new THREE.Vector3(10, 0, 0).applyQuaternion(camera.quaternion)).project(camera);
       return Math.hypot((projected.x + 1) * 0.5 * width - a.x, (1 - projected.y) * 0.5 * height - a.y) / 10;
     };
+    // Точка за спиной камеры проецируется зеркально — в небо над картой; её прячем.
+    const viewPoint = new THREE.Vector3();
+    const behind = (x, y, lift) => viewPoint.set(x - CX, Math.max(heightAt(x, y), SEA_LEVEL) + lift, y - CY)
+      .applyMatrix4(camera.matrixWorldInverse).z > -camera.near;
     const place = (node, x, y, lift, baseScale) => {
       const p = project(x, y, lift);
-      const hidden = p.z > 1 || p.x < -80 || p.y < -80 || p.x > width + 80 || p.y > height + 80;
+      const hidden = behind(x, y, lift) || p.z > 1 || p.x < -80 || p.y < -80 || p.x > width + 80 || p.y > height + 80;
       node.style.display = hidden ? 'none' : '';
       if (hidden) return;
-      const k = Math.max(0.46, Math.min(1.05, pixelsPerUnit(x, y) * baseScale));
+      const k = Math.max(0.32, Math.min(1.05, pixelsPerUnit(x, y) * baseScale));
       node.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) scale(${k.toFixed(3)})`);
     };
     const updateOverlay = () => {
@@ -1127,7 +1701,7 @@
     const GLOW = {
       resolving: new THREE.Color(0xff5a3c).multiplyScalar(0.34),
       selected: new THREE.Color(0xffffff).multiplyScalar(0.22),
-      eligible: new THREE.Color(0xffd36e).multiplyScalar(0.2),
+      eligible: new THREE.Color(0xffd36e).multiplyScalar(0.15),
       focus: new THREE.Color(0xffd36e).multiplyScalar(0.24),
       none: new THREE.Color(0, 0, 0),
     };
@@ -1165,11 +1739,24 @@
       }
       tintAttr.needsUpdate = true;
       glowAttr.needsUpdate = true;
+      const mine = new Set([...states].filter(([, s]) => s.mine).map(([id]) => id));
+      const myColor = [...states.values()].find((s) => s.mine)?.owner || '#ffffff';
+      setRealm(mine, myColor);
+      breathing = false;
+      for (const [id, s] of states) {
+        const material = s.glow === 'resolving' ? clashMat : s.glow === 'selected' ? selectMat
+          : s.glow === 'eligible' || s.glow === 'focus' ? (s.mine ? sourceMat : targetMat) : null;
+        setRim(id, material);
+        if (material === targetMat || material === sourceMat) breathing = true;
+      }
+      if (!breathing || calm) { pulse.value = 1; targetMat.opacity = 0.9; sourceMat.opacity = 0.55; }
       world.sites.forEach((site, i) => {
         const entry = perArea[i];
         const border = borders.get(site.id);
         border.color.copy(entry.ownerColor);
         border.emissive.copy(entry.glow).multiplyScalar(2.2);
+        // Своя земля светится и по кромке: лента в цвет царства чуть горит изнутри.
+        if (entry.s.mine && entry.glow === GLOW.none) border.emissive.copy(entry.ownerColor).convertSRGBToLinear().multiplyScalar(0.28);
         flags.get(site.id).color.copy(entry.s.neutral ? new THREE.Color('#efe9dc') : entry.ownerColor);
         setWalls(site.id, Math.min(4, entry.s.fortify || 0));
       });
@@ -1201,6 +1788,14 @@
       }
       clampCam();
       setCamera();
+      if (stepTokens(now)) invalidate();
+      if (breathing && !calm) {
+        const wave = 0.5 + 0.5 * Math.sin(now * 0.0042);
+        pulse.value = 0.55 + 0.75 * wave;
+        targetMat.opacity = 0.55 + 0.45 * wave;
+        sourceMat.opacity = 0.35 + 0.3 * wave;
+        invalidate();
+      }
       renderer.render(scene, camera);
       frames += 1;
       updateOverlay();
@@ -1209,6 +1804,7 @@
     const sync = () => {
       collectOverlay();
       applyAreaState();
+      syncTokens();
       invalidate();
     };
 
@@ -1219,13 +1815,14 @@
       syncQueued = true;
       requestAnimationFrame(() => { syncQueued = false; if (!disposed) sync(); });
     });
-    observer.observe(svg, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'data-wx'] });
+    observer.observe(svg, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style', 'data-wx', 'data-kind'] });
     const resizeObserver = new ResizeObserver(() => resize());
     resizeObserver.observe(scroll);
 
     function destroy() {
       if (disposed) return;
       disposed = true;
+      try { options.onDestroy?.(); } catch { /* уборка экрана — не повод ронять уборку сцены */ }
       observer.disconnect();
       resizeObserver.disconnect();
       scroll.removeEventListener('pointerdown', onDown);
@@ -1235,6 +1832,7 @@
       scroll.removeEventListener('click', onClickCapture, true);
       scroll.removeEventListener('wheel', onWheel);
       scroll.removeEventListener('contextmenu', onContext);
+      for (const id of [...tokens.keys()]) removeToken(id);
       scene.traverse((node) => {
         if (node.isInstancedMesh) node.dispose?.();
       });
@@ -1254,6 +1852,8 @@
       fit: () => fit(false),
       zoom,
       zoomTo,
+      focusArea,
+      setInsets,
       destroy,
       invalidate,
       /** Для проверок: что нарисовано и сколько это стоит. */
@@ -1265,9 +1865,14 @@
         camera: { ...cam },
         size: { width, height },
         buildMs, marks,
+        tokens: tokens.size,
+        arrows: [...tokens.values()].filter((entry) => entry.arrow).length,
         glowing: [...lastStates.values()].filter((s) => s.glow !== 'none').length,
         owned: [...lastStates.values()].filter((s) => !s.neutral).length,
         walls: [...walls.values()].reduce((sum, entry) => sum + Math.max(0, entry.count), 0),
+        realm: realm.mesh ? realm.mesh.geometry.attributes.position.count / 6 : 0,
+        rims: [...rims.values()].filter((mesh) => mesh.visible).length,
+        breathing: breathing && !calm,
       }),
       /** Для проверок: экранная точка центра области. */
       screenOf: (areaId) => {
