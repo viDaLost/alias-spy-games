@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '3a0f1769a6';
+const VERSION = 'e278fef40a';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -28,7 +28,7 @@ const PRECACHE = [
   'web/i18n/bootstrap.js',
   'web/assets/twelve-tribes/art.json',
   'web/dist/app.89bde0424a.css',
-  'web/dist/app.669bbf3a2c.js',
+  'web/dist/app.a00dddea07.js',
   'web/games/alias.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',
@@ -115,6 +115,22 @@ const PRECACHE = [
   'web/assets/icons/spy.webp',
   'web/assets/icons/support.webp',
   'web/assets/icons/twelve-tribes.webp',
+  'web/assets/icons/unified-v1/alias.webp',
+  'web/assets/icons/unified-v1/ark.webp',
+  'web/assets/icons/unified-v1/bible-sketch.webp',
+  'web/assets/icons/unified-v1/biblical-treasures.webp',
+  'web/assets/icons/unified-v1/character.webp',
+  'web/assets/icons/unified-v1/describe.webp',
+  'web/assets/icons/unified-v1/idea.webp',
+  'web/assets/icons/unified-v1/kingdoms.webp',
+  'web/assets/icons/unified-v1/moses-nile.webp',
+  'web/assets/icons/unified-v1/promised-land.webp',
+  'web/assets/icons/unified-v1/quartet.webp',
+  'web/assets/icons/unified-v1/sacred.webp',
+  'web/assets/icons/unified-v1/search.webp',
+  'web/assets/icons/unified-v1/spy.webp',
+  'web/assets/icons/unified-v1/twelve-tribes.webp',
+  'web/assets/icons/unified-v1/words.webp',
   'web/assets/icons/words.webp',
   'web/assets/biblical-match-three/icons-v17/ark.webp',
   'web/assets/biblical-match-three/icons-v17/bible.webp',

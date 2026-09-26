@@ -79,20 +79,20 @@ const GAME_TITLES = Object.fromEntries(
 
 const MENU_ICON_VERSION = "1";
 const MENU_ICON_SOURCES = {
-  alias: "web/assets/icons/alias.webp",
-  idea: "web/assets/icons/idea.webp",
-  character: "web/assets/icons/character.webp",
-  describe: "web/assets/icons/describe.webp",
-  spy: "web/assets/icons/spy.webp",
-  quartet: "web/assets/icons/quartet.webp",
-  words: "web/assets/icons/words.webp",
-  search: "web/assets/icons/search.webp",
-  sacred: "web/assets/icons/sacred.webp",
-  ark: "web/assets/icons/ark.webp",
-  "moses-nile": "web/assets/icons/moses-nile.webp",
-  "promised-land": "web/assets/icons/promised-land-v2.webp",
-  "twelve-tribes": "web/assets/icons/twelve-tribes.webp",
-  kingdoms: "web/assets/icons/kingdoms.webp",
+  alias: "web/assets/icons/unified-v1/alias.webp",
+  idea: "web/assets/icons/unified-v1/idea.webp",
+  character: "web/assets/icons/unified-v1/character.webp",
+  describe: "web/assets/icons/unified-v1/describe.webp",
+  spy: "web/assets/icons/unified-v1/spy.webp",
+  quartet: "web/assets/icons/unified-v1/quartet.webp",
+  words: "web/assets/icons/unified-v1/words.webp",
+  search: "web/assets/icons/unified-v1/search.webp",
+  sacred: "web/assets/icons/unified-v1/sacred.webp",
+  ark: "web/assets/icons/unified-v1/ark.webp",
+  "moses-nile": "web/assets/icons/unified-v1/moses-nile.webp",
+  "promised-land": "web/assets/icons/unified-v1/promised-land.webp",
+  "twelve-tribes": "web/assets/icons/unified-v1/twelve-tribes.webp",
+  kingdoms: "web/assets/icons/unified-v1/kingdoms.webp",
 };
 
 function menuIconHTML(type, title = "") {

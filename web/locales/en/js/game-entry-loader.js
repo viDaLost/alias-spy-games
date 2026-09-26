@@ -10,63 +10,63 @@
   const GAMES = Object.freeze({
     alias: {
       title: 'Alias', eyebrow: 'Speed game', status: 'Shuffling words…', status2: 'Starting timer…',
-      icon: 'web/assets/icons/alias.webp?v=1', motif: 'alias',
+      icon: 'web/assets/icons/unified-v1/alias.webp?v=1', motif: 'alias',
     },
     coimaginarium: {
       title: 'Think Fast', eyebrow: 'Game of ideas', status: 'Sparking ideas…', status2: 'Preparing associations…',
-      icon: 'web/assets/icons/idea.webp?v=1', motif: 'coimaginarium',
+      icon: 'web/assets/icons/unified-v1/idea.webp?v=1', motif: 'coimaginarium',
     },
     guess: {
       title: 'Guess the Character', eyebrow: 'Question game', status: 'Choosing a character…', status2: 'Preparing hints…',
-      icon: 'web/assets/icons/character.webp?v=1', motif: 'guess',
+      icon: 'web/assets/icons/unified-v1/character.webp?v=1', motif: 'guess',
     },
     describe: {
       title: 'Describe, Do Not Name', eyebrow: 'Clue game', status: 'Preparing words…', status2: 'Setting up hints…',
-      icon: 'web/assets/icons/describe.webp?v=1', motif: 'describe',
+      icon: 'web/assets/icons/unified-v1/describe.webp?v=1', motif: 'describe',
     },
     spy: {
       title: 'Spy', eyebrow: 'Secret game', status: 'Hiding roles…', status2: 'Choosing a secret location…',
-      icon: 'web/assets/icons/spy.webp?v=1', motif: 'spy',
+      icon: 'web/assets/icons/unified-v1/spy.webp?v=1', motif: 'spy',
     },
     quartet: {
       title: 'Quartet', eyebrow: 'Card game', status: 'Shuffling deck…', status2: 'Dealing cards…',
-      icon: 'web/assets/icons/quartet.webp?v=1', motif: 'quartet',
+      icon: 'web/assets/icons/unified-v1/quartet.webp?v=1', motif: 'quartet',
     },
     'twelve-tribes': {
       title: 'Двенадцать колен', eyebrow: 'Card game', status: 'Собираем станы…', status2: 'Раздаём по семь…',
-      icon: 'web/assets/icons/twelve-tribes.webp?v=1', motif: 'twelve-tribes',
+      icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1', motif: 'twelve-tribes',
     },
     'bible-sketch': {
       title: 'Bible Artist', eyebrow: 'Draw and guess', status: 'Preparing canvas…', status2: 'Sharpening pencils…',
-      icon: 'web/assets/icons/bible-sketch.webp?v=3', motif: 'bible-sketch',
+      icon: 'web/assets/icons/unified-v1/bible-sketch.webp?v=3', motif: 'bible-sketch',
     },
     'bible-wow': {
       title: 'Bible Words', eyebrow: 'Word game', status: 'Gathering letters…', status2: 'Preparing level…',
-      icon: 'web/assets/icons/words.webp?v=1', motif: 'bible-wow',
+      icon: 'web/assets/icons/unified-v1/words.webp?v=1', motif: 'bible-wow',
     },
     'bible-wordsearch': {
       title: 'Bible Word Search', eyebrow: 'Find what is hidden', status: 'Building grid…', status2: 'Hiding words…',
-      icon: 'web/assets/icons/search.webp?v=1', motif: 'bible-wordsearch',
+      icon: 'web/assets/icons/unified-v1/search.webp?v=1', motif: 'bible-wordsearch',
     },
     'sacred-word': {
       title: 'Sacred Word', eyebrow: 'Reveal the word', status: 'Lighting up the hints…', status2: 'Preparing puzzle…',
-      icon: 'web/assets/icons/sacred.webp?v=1', motif: 'sacred-word',
+      icon: 'web/assets/icons/unified-v1/sacred.webp?v=1', motif: 'sacred-word',
     },
     'kids-ark-pairs': {
       title: 'Find a Pair', eyebrow: 'Memory game', status: 'Shuffling pairs…', status2: 'Hiding cards…',
-      icon: 'web/assets/icons/ark.webp?v=1', motif: 'kids-ark-pairs',
+      icon: 'web/assets/icons/unified-v1/ark.webp?v=1', motif: 'kids-ark-pairs',
     },
     'biblical-match-three': {
       title: 'Bible Treasures', eyebrow: 'Collect treasures', status: 'Opening the treasury…', status2: 'Arranging treasures…',
-      icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39', motif: 'biblical-match-three',
+      icon: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39', motif: 'biblical-match-three',
     },
     'moses-nile': {
       title: 'Moses: Journey on the Nile', eyebrow: 'Down the river', status: 'Filling the river…', status2: 'Planting river reeds…',
-      icon: 'web/assets/icons/moses-nile.webp?v=1', motif: 'moses-nile',
+      icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1', motif: 'moses-nile',
     },
     'promised-land': {
       title: 'Земля обетованная', eyebrow: 'Настольная игра', status: 'Расставляем фишки…', status2: 'Тасуем колоды…',
-      icon: 'web/assets/icons/promised-land-v2.webp?v=1', motif: 'promised-land',
+      icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1', motif: 'promised-land',
     },
   });
 

@@ -2,7 +2,7 @@
   const GAME_KEY = 'bible-sketch';
   const GAME_TITLE = 'Библейский художник';
   const GAME_DESC = 'Рисуйте по очереди и найдите шпиона';
-  const ICON_URL = 'web/assets/icons/bible-sketch.webp?v=3';
+  const ICON_URL = 'web/assets/icons/unified-v1/bible-sketch.webp?v=3';
   const LANDSCAPE_STYLE_URL = 'web/games/bible-sketch-landscape-v2.css?v=3';
   let gameScriptPromise = null;
   let showPatched = false;

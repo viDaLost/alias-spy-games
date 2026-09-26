@@ -5,19 +5,19 @@
 
   const CORE = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
   const GAME_CATALOG = [
-    { id: 'alias', title: 'Alias', icon: 'web/assets/icons/alias.webp?v=1' },
-    { id: 'coimaginarium', title: 'Piensa rápido', icon: 'web/assets/icons/idea.webp?v=1' },
-    { id: 'guess', title: 'Adivina el personaje', icon: 'web/assets/icons/character.webp?v=1' },
-    { id: 'describe', title: 'Describe sin nombrar', icon: 'web/assets/icons/describe.webp?v=1' },
-    { id: 'spy', title: 'Espía', icon: 'web/assets/icons/spy.webp?v=1' },
-    { id: 'quartet', title: 'Cuarteto', icon: 'web/assets/icons/quartet.webp?v=1' },
-    { id: 'bible-sketch', title: 'Artista bíblico', icon: 'web/assets/icons/bible-sketch.webp?v=3' },
-    { id: 'bible-wow', title: 'Palabras bíblicas', icon: 'web/assets/icons/words.webp?v=1' },
-    { id: 'bible-wordsearch', title: 'Sopa de letras bíblica', icon: 'web/assets/icons/search.webp?v=1' },
-    { id: 'sacred-word', title: 'Palabra sagrada', icon: 'web/assets/icons/sacred.webp?v=1' },
-    { id: 'kids-ark-pairs', title: 'Encuentra la pareja', icon: 'web/assets/icons/ark.webp?v=1' },
-    { id: 'moses-nile', title: 'Moisés: Viaje por el Nilo', icon: 'web/assets/icons/moses-nile.webp?v=1' },
-    { id: 'biblical-match-three', title: 'Tesoros bíblicos', icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
+    { id: 'alias', title: 'Alias', icon: 'web/assets/icons/unified-v1/alias.webp?v=1' },
+    { id: 'coimaginarium', title: 'Piensa rápido', icon: 'web/assets/icons/unified-v1/idea.webp?v=1' },
+    { id: 'guess', title: 'Adivina el personaje', icon: 'web/assets/icons/unified-v1/character.webp?v=1' },
+    { id: 'describe', title: 'Describe sin nombrar', icon: 'web/assets/icons/unified-v1/describe.webp?v=1' },
+    { id: 'spy', title: 'Espía', icon: 'web/assets/icons/unified-v1/spy.webp?v=1' },
+    { id: 'quartet', title: 'Cuarteto', icon: 'web/assets/icons/unified-v1/quartet.webp?v=1' },
+    { id: 'bible-sketch', title: 'Artista bíblico', icon: 'web/assets/icons/unified-v1/bible-sketch.webp?v=3' },
+    { id: 'bible-wow', title: 'Palabras bíblicas', icon: 'web/assets/icons/unified-v1/words.webp?v=1' },
+    { id: 'bible-wordsearch', title: 'Sopa de letras bíblica', icon: 'web/assets/icons/unified-v1/search.webp?v=1' },
+    { id: 'sacred-word', title: 'Palabra sagrada', icon: 'web/assets/icons/unified-v1/sacred.webp?v=1' },
+    { id: 'kids-ark-pairs', title: 'Encuentra la pareja', icon: 'web/assets/icons/unified-v1/ark.webp?v=1' },
+    { id: 'moses-nile', title: 'Moisés: Viaje por el Nilo', icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1' },
+    { id: 'biblical-match-three', title: 'Tesoros bíblicos', icon: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39' },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 

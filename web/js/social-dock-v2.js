@@ -5,19 +5,19 @@
 
   const CORE = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
   const GAME_CATALOG = [
-    { id: 'alias', title: 'Алиас', icon: 'web/assets/icons/alias.webp?v=1' },
-    { id: 'coimaginarium', title: 'Соображариум', icon: 'web/assets/icons/idea.webp?v=1' },
-    { id: 'guess', title: 'Угадай персонажа', icon: 'web/assets/icons/character.webp?v=1' },
-    { id: 'describe', title: 'Опиши, но не называй', icon: 'web/assets/icons/describe.webp?v=1' },
-    { id: 'spy', title: 'Соглядатай', icon: 'web/assets/icons/spy.webp?v=1' },
-    { id: 'quartet', title: 'Квартет', icon: 'web/assets/icons/quartet.webp?v=1' },
-    { id: 'bible-sketch', title: 'Библейский художник', icon: 'web/assets/icons/bible-sketch.webp?v=3' },
-    { id: 'bible-wow', title: 'Библейские слова', icon: 'web/assets/icons/words.webp?v=1' },
-    { id: 'bible-wordsearch', title: 'Поиск библейских слов', icon: 'web/assets/icons/search.webp?v=1' },
-    { id: 'sacred-word', title: 'Священное слово', icon: 'web/assets/icons/sacred.webp?v=1' },
-    { id: 'kids-ark-pairs', title: 'Найди пару', icon: 'web/assets/icons/ark.webp?v=1' },
-    { id: 'moses-nile', title: 'Моисей: Путь по Нилу', icon: 'web/assets/icons/moses-nile.webp?v=1' },
-    { id: 'biblical-match-three', title: 'Библейские сокровища', icon: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
+    { id: 'alias', title: 'Алиас', icon: 'web/assets/icons/unified-v1/alias.webp?v=1' },
+    { id: 'coimaginarium', title: 'Соображариум', icon: 'web/assets/icons/unified-v1/idea.webp?v=1' },
+    { id: 'guess', title: 'Угадай персонажа', icon: 'web/assets/icons/unified-v1/character.webp?v=1' },
+    { id: 'describe', title: 'Опиши, но не называй', icon: 'web/assets/icons/unified-v1/describe.webp?v=1' },
+    { id: 'spy', title: 'Соглядатай', icon: 'web/assets/icons/unified-v1/spy.webp?v=1' },
+    { id: 'quartet', title: 'Квартет', icon: 'web/assets/icons/unified-v1/quartet.webp?v=1' },
+    { id: 'bible-sketch', title: 'Библейский художник', icon: 'web/assets/icons/unified-v1/bible-sketch.webp?v=3' },
+    { id: 'bible-wow', title: 'Библейские слова', icon: 'web/assets/icons/unified-v1/words.webp?v=1' },
+    { id: 'bible-wordsearch', title: 'Поиск библейских слов', icon: 'web/assets/icons/unified-v1/search.webp?v=1' },
+    { id: 'sacred-word', title: 'Священное слово', icon: 'web/assets/icons/unified-v1/sacred.webp?v=1' },
+    { id: 'kids-ark-pairs', title: 'Найди пару', icon: 'web/assets/icons/unified-v1/ark.webp?v=1' },
+    { id: 'moses-nile', title: 'Моисей: Путь по Нилу', icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1' },
+    { id: 'biblical-match-three', title: 'Библейские сокровища', icon: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39' },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 
