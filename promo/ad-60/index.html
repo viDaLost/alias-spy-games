@@ -149,7 +149,7 @@ function B(v) {
 const SPR = {
   ui: [19, 0.86], soft: [12, 0.9], snap: [30, 0.86], morph: [15, 0.9], cam: [10, 0.96],
   cur: [13, 1], hop: [30, 1], drag: [9, 1], press: [42, 0.84], fade: [30, 1], pop: [22, 0.8], fall: [26, 0.78], slow: [7, 1],
-  flip: [13, 1], fly: [11, 1], cut: [400, 1], tilt: [9, 0.92],
+  flip: [13, 1], turn: [9, 1], door: [6.5, 1], fly: [11, 1], cut: [400, 1], tilt: [9, 0.92],
 };
 function S(dt, name = 'ui') {
   if (dt <= 0) return 0;
@@ -318,37 +318,58 @@ const P = (s, p, b) => at(SC[s], p, b);
 // ——————————————————————————————————————————————— 3D-перевороты формы
 
 /*
-  Переворот: форма поворачивается на 180° вокруг оси; на ребре (90°) старое
-  содержимое сменяется новым, и форма доворачивается к зрителю уже им — угол
-  скачком переходит с 90° на −90°, поэтому новое содержимое не зеркально.
+  Смена сцены поворотом формы в 3D. Любой поворот доходит до ребра (90°) —
+  там старое содержимое сменяется новым, и форма доворачивается к зрителю уже
+  им: угол скачком переходит с 90° на −90°, поэтому новое не зеркально.
+
+    flipY, flipX — переворот вокруг средней линии, как карточка;
+    pageY        — страница: уходит вокруг левого края, новая приходит вокруг правого;
+    pageX        — лист календаря: откидывается вокруг верхнего края, новый — из-под нижнего;
+    carousel     — карусель: экран уходит влево вглубь с поворотом, новый приходит справа.
 */
-const FLIP_MID = (() => { let a = 0, b = 1; for (let i = 0; i < 40; i += 1) { const m = (a + b) / 2; if (S(m, 'flip') < 0.5) a = m; else b = m; } return a; })();
+const springMid = (name) => { let a = 0, b = 2; for (let i = 0; i < 40; i += 1) { const m = (a + b) / 2; if (S(m, name) < 0.5) a = m; else b = m; } return a; };
+const FLIP_MID = springMid('flip');
 const FLIPS = {
-  coim: { b: nb(25), axis: 'y' }, alias: { b: nb(31.5), axis: 'x' },
-  cube: { b: 43.95, axis: 'x' }, card: { b: 45.05, axis: 'y' }, icon: { b: 47.55, axis: 'y' },
+  wsSacred:   { b: nb(14), kind: 'pageY', sp: 'turn' },      // «Поиск слов» → «Священное слово»
+  sacredCoim: { b: nb(20.05), kind: 'pageX', sp: 'turn' },   // «Священное слово» → «Соображариум»
+  coim:       { b: nb(25), kind: 'flipY', sp: 'flip' },      // → «Алиас»
+  alias:      { b: nb(31.5), kind: 'flipX', sp: 'flip' },    // → «Опиши», кубом
+  pass:       { b: nb(35.9), kind: 'carousel', sp: 'turn' }, // телефон по кругу → «Соглядатай»
+  lobbyGame:  { b: 11.9, kind: 'flipX', sp: 'flip' },        // «Начать игру» → партия «Квартета»
+  cube:       { b: 43.95, kind: 'flipX', sp: 'flip' },
+  card:       { b: 45.05, kind: 'flipY', sp: 'flip' },
+  icon:       { b: 47.55, kind: 'flipY', sp: 'flip' },
+  menu:       { b: 54.4, kind: 'flipY', sp: 'flip' },        // иконка переворачивается в меню — и успевает встать до стыка петли
 };
-for (const f of Object.values(FLIPS)) f.mid = f.b + FLIP_MID / BEAT_S;
-function flipAngle(t, f) {
-  const d = near(t, f.b);
-  if (d < 0) return 0;
-  const u = 180 * S(d, 'flip');
-  return u < 90 ? u : u - 180;
+for (const f of Object.values(FLIPS)) f.mid = f.b + springMid(f.sp) / BEAT_S;
+// «Соглядатай»: переворот карточки, телефон дальше, второй переворот, дверь в лобби
+const SPB = { flip1: nb(38), pass: nb(40), flip2: nb(42), door: nb(45.9) };
+/** Поворот формы в момент t: углы, точка оси (в % формы), сдвиг вбок и вглубь. */
+function turnState(t) {
+  const st = { rx: 0, ry: 0, ox: 50, oy: 50, tx: 0, tz: 0 };
+  for (const f of Object.values(FLIPS)) {
+    const d = near(t, f.b);
+    if (d < 0 || d > 3) continue;
+    const u = S(d, f.sp);
+    if (u > 0.9999) continue;
+    const first = u < 0.5;
+    const a = first ? 180 * u : 180 * u - 180;   // 0 → 90, затем −90 → 0
+    if (f.kind === 'flipY') st.ry += a;
+    else if (f.kind === 'flipX') st.rx += a;
+    else if (f.kind === 'pageY') { st.ry += a; st.ox = first ? 0 : 100; }
+    else if (f.kind === 'pageX') { st.rx -= a; st.oy = first ? 0 : 100; }
+    else if (f.kind === 'carousel') {
+      const k = first ? -2 * u : 2 * (1 - u);     // 0 → −1, затем 1 → 0
+      st.ry += 70 * k; st.tx += 640 * k; st.tz -= 420 * Math.abs(k);
+    }
+  }
+  return st;
 }
 // Нырок: экран запрокидывается вслед за корзинкой, под водой выпрямляется и
 // склоняется к колодцу, из которого выныривает.
-/*
-  «Передайте телефон следующему»: экран уходит влево с лёгким креном и
-  возвращается справа уже «Соглядатаем» — как телефон, переданный по кругу.
-*/
-const PASS = { b: nb(35.9), dist: 900 };
-PASS.mid = PASS.b + FLIP_MID / BEAT_S;
-function passShift(t) {
-  const d = near(t, PASS.b);
-  if (d < 0) return 0;
-  const u = S(d, 'flip');
-  return u < 0.5 ? -2 * u : 2 * (1 - u);
-}
 const diveTilt = track(0, [[24.15, 32, 'tilt'], [25.05, -24, 'tilt'], [25.9, 0, 'tilt']], 'dive.tilt');
+// Нил из пары осьминогов: форма ложится на воду и поднимается уже рекой.
+const nileTilt = track(0, [[np(66.1), 46, 'tilt'], [np(67.3), 0, 'tilt']], 'nile.tilt');
 
 // ——————————————————————————————————————————————— узлы
 
@@ -512,6 +533,11 @@ function flipCard(parent, frontName, backNames) {
   return { box, backs: backNames.map((n) => shot(n, back)) };
 }
 N.spyFlip = flipCard(INNER.spy, 'spy-card-back', ['spy-card-role1', 'spy-card-role2']);
+// дверь — снимок последнего кадра «Соглядатая» поверх формы
+N.door = el('div', 'fly', flyLayer);
+N.door.style.overflow = 'hidden'; N.door.style.background = '#f6fbff';
+N.door.style.boxShadow = '0 34px 90px rgba(49, 46, 129, 0.24), 0 4px 14px rgba(49, 46, 129, 0.10)';
+N.doorImg = shot('spy-4', N.door);
 const PA = L3.pairs;
 N.pairs = [1, 2, 3, 4, 5].map((i) => shot(`pairs-${i}`, INNER.pairs));
 N.pairsHole = [2, 3, 4, 5].map((i) => shot(`pairs-hole-${i}`, INNER.pairs));
@@ -627,7 +653,7 @@ const captionVis = (t) => CAPS.reduce((m, c) => Math.max(m, vis(t, c.from, c.to,
 // ——— форма-экран: центр, размеры, скругление ———
 const ICON_BOX = { cx: 720, cy: 500, w: 316, h: 316, r: 72 };
 const SEQ = [
-  ...Object.entries(SC).flatMap(([key, s]) => s.states.map(([b, st]) => [b < 0 ? OLD_NB - 0.98 : b, st])),
+  ...Object.entries(SC).flatMap(([key, s]) => s.states.map(([b, st]) => [b < 0 ? OLD_NB - 1.55 : b, st])),
   [FLIPS.icon.b + 0.05, ICON_BOX],
 ].sort((a, b) => toNew(a[0]) - toNew(b[0]));
 const shapeKeys = (prop) => SEQ.map(([b, st]) => [b, st[prop], 'morph']);
@@ -641,11 +667,12 @@ const shape = {
 const boxAt = (t) => ({ cx: shape.cx(t), cy: shape.cy(t), w: shape.w(t), h: shape.h(t), r: shape.r(t) });
 // Окна видимости содержимого: [вход, выход, пружина входа, пружина выхода].
 const WIN = {
-  menu: [-0.95, 1.2], words: [1.28, 7.97],
-  ws: [nb(8.3), nb(14.1)], sacred: [nb(14.25), nb(20.3)], coim: [nb(20.35), FLIPS.coim.mid, 'fade', 'cut'],
-  alias: [FLIPS.coim.mid, FLIPS.alias.mid, 'cut', 'cut'], describe: [FLIPS.alias.mid, PASS.mid, 'cut', 'cut'],
-  spy: [PASS.mid, nb(46.8), 'cut', 'fade'],
-  lobby: [nb(45.9), 11.97, 'cut'], game: [12.03, 15.97], treasure: [16.03, np(60.3)],
+  menu: [FLIPS.menu.mid - OLD_NB, 1.2, 'cut'], words: [1.28, 7.97],
+  ws: [nb(8.3), FLIPS.wsSacred.mid, 'fade', 'cut'], sacred: [FLIPS.wsSacred.mid, FLIPS.sacredCoim.mid, 'cut', 'cut'],
+  coim: [FLIPS.sacredCoim.mid, FLIPS.coim.mid, 'cut', 'cut'],
+  alias: [FLIPS.coim.mid, FLIPS.alias.mid, 'cut', 'cut'], describe: [FLIPS.alias.mid, FLIPS.pass.mid, 'cut', 'cut'],
+  spy: [FLIPS.pass.mid, SPB.door, 'cut', 'cut'],
+  lobby: [SPB.door, FLIPS.lobbyGame.mid, 'cut', 'cut'], game: [FLIPS.lobbyGame.mid, 15.97, 'cut'], treasure: [16.03, np(60.3)],
   pairs: [np(60.1), np(67.2)],
   moses: [np(66.35), 25.35, 'cut'], promised: [25.2, 30.25, 'cut'], tribes: [30.42, 35.95], sketch: [36.45, FLIPS.cube.mid, 'fade', 'cut'],
   guess: [FLIPS.cube.mid, FLIPS.icon.mid, 'cut', 'cut'],
@@ -767,7 +794,6 @@ const T3 = { lift: nb(20), land: nb(20.9) };                          // «Н» 
 const COB = { next: nb(23) };
 const ALB = { taps: [nb(27), nb(28.5), nb(30)] };                      // «Отгадано», «Отгадано», «Пропустить»
 const DSB = { show: nb(33), next: nb(35) };
-const SPB = { flip1: nb(38), pass: nb(40), flip2: nb(42), iris: nb(45.9) };
 const PAB = { land: np(60.5), taps: [np(61), np(62), np(63.5), np(64.5)], iris: np(66.35) };
 const wsC = (p) => P('ws', p, nb(9.3));
 const sacredKeyC = (ch) => P('sacred', mid(SW.keys[ch]), nb(14.1));
@@ -1059,7 +1085,7 @@ sound(SKB.vote, 'enter'); sound(SKB.review, 'pop'); sound(SKB.result, 'success')
 
 // ——— «Угадай персонажа» и финал ———
 sound(FLIPS.cube.b, 'enter'); sound(FLIPS.card.b, 'toggle'); sound(FLIPS.card.mid + 0.1, 'success'); sound(FLIPS.icon.b, 'toggle');
-const FIN = { title: 48, sub: 48.75, icons: 49.5, cta: 52, tap: 54, out: 54.95, menu: OLD_NB - 0.98 };
+const FIN = { title: 48, sub: 48.75, icons: 49.5, cta: 52, tap: 54, out: 54.3, menu: OLD_NB - 1.55 };
 sound(FIN.title, 'enter'); FINAL_ICONS.forEach((n, i) => { if (i % 2 === 0) sound(FIN.icons + i * 0.125, 'pop'); });
 sound(FIN.tap + 1, 'release');
 
@@ -1070,8 +1096,8 @@ SAC.taps.forEach((b, i) => sound(b, i === 2 ? 'success' : 'key'));
 sound(T3.lift, 'toggle'); sound(T3.land, 'drop'); sound(COB.next + 0.05, 'pop');
 sound(FLIPS.coim.b, 'toggle'); ALB.taps.forEach((b) => sound(b + 0.05, 'pop'));
 sound(FLIPS.alias.b, 'enter'); sound(DSB.show + 0.05, 'toggle');
-sound(PASS.b, 'enter'); sound(SPB.flip1, 'toggle'); sound(SPB.flip1 + 1, 'success'); sound(SPB.flip2, 'toggle'); sound(SPB.flip2 + 1, 'pop');
-sound(SPB.iris, 'enter');
+sound(FLIPS.pass.b, 'enter'); sound(FLIPS.wsSacred.b, 'toggle'); sound(FLIPS.sacredCoim.b, 'toggle'); sound(FLIPS.lobbyGame.b, 'toggle'); sound(FLIPS.menu.b, 'toggle'); sound(SPB.flip1, 'toggle'); sound(SPB.flip1 + 1, 'success'); sound(SPB.flip2, 'toggle'); sound(SPB.flip2 + 1, 'pop');
+sound(SPB.door, 'enter');
 sound(PAB.land, 'drop'); PAB.taps.forEach((b, i) => sound(b + 0.05, 'tick')); sound(PAB.taps[1] + 0.9, 'success'); sound(PAB.taps[3] + 0.9, 'success');
 sound(PAB.iris, 'enter');
 
@@ -1121,13 +1147,14 @@ function render(t) {
 
   // форма-экран: место, размер, скругление и поворот в 3D
   const box = boxAt(t);
-  const rx = diveTilt(t) + flipAngle(t, FLIPS.cube) + flipAngle(t, FLIPS.alias);
-  const ry = flipAngle(t, FLIPS.card) + flipAngle(t, FLIPS.icon) + flipAngle(t, FLIPS.coim);
-  const ps = passShift(t);
+  const ts = turnState(t);
+  const rx = diveTilt(t) + nileTilt(t) + ts.rx;
+  const ry = ts.ry;
   screen.style.width = px(box.w); screen.style.height = px(box.h);
-  screen.style.transform = `translate(${px(box.cx - box.w / 2 + ps * PASS.dist)}, ${px(box.cy - box.h / 2 + Math.abs(ps) * 40)})`
-    + (Math.abs(ps) > 1e-4 ? ` rotate(${(ps * 9).toFixed(3)}deg)` : '')
-    + (Math.abs(rx) + Math.abs(ry) > 0.01 ? ` perspective(2200px) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg)` : '');
+  screen.style.transformOrigin = `${ts.ox}% ${ts.oy}%`;
+  screen.style.transform = `translate(${px(box.cx - box.w / 2)}, ${px(box.cy - box.h / 2)})`
+    + (Math.abs(rx) + Math.abs(ry) + Math.abs(ts.tx) + Math.abs(ts.tz) > 0.01
+      ? ` perspective(2200px) translate3d(${px(ts.tx)}, 0px, ${px(ts.tz)}) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg)` : '');
   screen.style.borderRadius = px(box.r);
   const bt = beatNow(t);
 
@@ -1151,7 +1178,7 @@ function render(t) {
       const sx = lerp(1, 1.7, pOpen);
       const pad = 24 * k;
       N.menuCard.style.width = px(cw0 + pad * 2); N.menuCard.style.height = px(ch0 + pad * 2);
-      N.menuCard.style.transform = `translate(${px(cx - cw0 / 2 - pad)}, ${px(cy - ch0 / 2 - pad)}) scale(${sx.toFixed(4)})`;
+      N.menuCard.style.transform = `translate(${px(cx - cw0 / 2 - pad)}, ${px(cy - ch0 / 2 - pad)}) perspective(1400px) rotateX(${(16 * Math.sin(Math.PI * pOpen)).toFixed(3)}deg) scale(${sx.toFixed(4)})`;
       N.menuCard.style.transformOrigin = '50% 50%';
     }
   }
@@ -1289,14 +1316,25 @@ function render(t) {
     }
   }
 
+  // ⇄ экран «Соглядатая» распахивается дверью на зрителя — за ней уже лобби «Квартета»
+  {
+    const d = near(t, SPB.door);
+    const a = d >= 0 ? 104 * S(d, 'door') : 0;
+    if (show(N.door, d >= 0 && a < 100 ? 1 - clamp((a - 80) / 20, 0, 1) : 0)) {
+      const t0 = B(SPB.door);
+      const b0 = boxAt(t0);
+      const m0 = sceneMap('spy', t0, b0, 1);
+      place(N.door, 0, 0, b0.w, b0.h);
+      N.door.style.borderRadius = px(b0.r);
+      N.doorImg.style.width = px(390 * m0.k); N.doorImg.style.height = px(844 * m0.k);
+      N.doorImg.style.transform = `translate(${px(m0.x)}, ${px(m0.y)})`;
+      N.door.style.transformOrigin = '0% 50%';
+      N.door.style.transform = `translate(${px(b0.cx - b0.w / 2)}, ${px(b0.cy - b0.h / 2)}) perspective(1800px) rotateY(${(-a).toFixed(3)}deg)`;
+    }
+  }
   // ——— «Квартет»: лобби ———
   const lm = layoutScene('lobby', t, box);
   if (lm) {
-    // ⇄ лобби проявляется в круглом окне из карточки «Соглядатая»
-    const d = near(t, SPB.iris);
-    const R = Math.hypot(box.w, box.h) * S(d, 'morph');
-    const c0 = toFrame('spy', mid(SP.card), t);
-    LAYER.lobby.style.clipPath = d >= 0 && d < 1.5 && R < Math.hypot(box.w, box.h) * 0.999 ? `circle(${px(R)} at ${px(c0.x - (box.cx - box.w / 2))} ${px(c0.y - (box.cy - box.h / 2))})` : 'none';
     const joined = [10, 10.25, 10.5].filter((b) => near(t, b) >= 0 && near(t, 12.4) < 0).length;
     N.lobby.forEach((n, i) => fade(n, i === joined ? 1 : 0, 0));
     const pc = press(t, 9, 0.1);
@@ -1550,7 +1588,7 @@ function render(t) {
 
   // ——— финал: иконка приложения, название, кнопка ———
   {
-    const pIcon = vis(t, FLIPS.icon.mid, OLD_NB - 0.97, 'cut', 'fade');
+    const pIcon = vis(t, FLIPS.icon.mid, FLIPS.menu.mid, 'cut', 'cut');
     if (fade(N.icon, pIcon, 10)) place(N.icon, 0, 0, box.w, box.h);
     const fin = (node, bin, bout, x, y, dy = 18) => {
       const p = vis(t, bin, bout, 'pop', 'fade');
