@@ -1,5 +1,15 @@
 {
- "voice": "aleksandr-hq",
+ "voice": {
+  "id": "d1NpIwzi8wkVNgG9soOe",
+  "name": "Kireev (клон)",
+  "model": "eleven_multilingual_v2",
+  "seed": 7,
+  "settings": {"stability": 0.52, "similarity_boost": 0.75, "style": 0.08, "use_speaker_boost": true, "speed": 0.92}
+ },
+ "say": {
+  "Сеннаар": "Сен-на-ар",
+  "Атакуют войско": "Атакуют: войско"
+ },
  "note": "Текст озвучки. Каждая строка sentences — отдельная фраза: она же субтитр, и по её началу и концу стоит действие на экране. Числа — словами, чтобы голос их не перепутал.",
  "segments": [
   {

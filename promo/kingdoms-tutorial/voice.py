@@ -1,22 +1,31 @@
 """
 Озвучка обучающего ролика «Царства».
 
-Голос — RHVoice «Александр» в улучшенном качестве (aleksandr-hq, пакет
-rhvoice-russian из Ubuntu): он работает без сети, а нейросетевые голоса
-в этом окружении не скачать. Каждая фраза сценария (script.json)
-синтезируется отдельно — так известно, где она начинается и кончается, и
-действие на экране и субтитр встают ровно по ней.
+Голос — ElevenLabs Multilingual v2 (голос и настройки — в script.json → voice).
+Каждая фраза сценария синтезируется отдельно — так известно, где она
+начинается и кончается, и действие на экране и субтитр встают ровно по ней.
+Чтобы фразы звучали одной речью, а не набором отдельных реплик, в запрос
+идут соседние фразы (previous_text / next_text), а seed и настройки голоса
+одни на весь ролик.
 
-Обработка — чтобы синтез звучал теплее и ровнее: срез низа до 70 Гц,
-мягкий подъём тела голоса около 180 Гц, приглушённые шипящие, сжатие
-динамики, маленькая комната.
+Имена, которые голос читает неверно, поправлены написанием только для
+синтеза (script.json → say); субтитры берут исходный текст. Проверено
+распознаванием речи (ElevenLabs Speech to Text).
 
-    python3 promo/kingdoms-tutorial/voice.py
+Ответы кэшируются в build/voice-raw по хэшу запроса: повторный запуск без
+изменений текста не тратит символы.
+
+Обработка лёгкая, без эха: срез низа до 70 Гц, немного тела голоса,
+приглушённые шипящие, мягкое сжатие.
+
+    ELEVENLABS_API_KEY=sk_… python3 promo/kingdoms-tutorial/voice.py
     → build/voice.wav (48 кГц) и shots/narration.js (window.NARRATION)
 """
+import hashlib
 import json
 import os
 import subprocess
+import urllib.request
 import wave
 
 import numpy as np
@@ -26,29 +35,61 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BUILD = os.path.join(HERE, 'build')
 RAW = os.path.join(BUILD, 'voice-raw')
 SR = 48000
-RATE = 104                 # темп голоса, % от обычного: разборчиво, но без тягучести
 LEAD = 1.4                 # тишина до первой фразы — заставка
-GAP_SENTENCE = 0.34        # между фразами одного фрагмента
-GAP_SEGMENT = 0.95         # между фрагментами (сменой картинки)
+GAP_SENTENCE = 0.5         # между фразами одного фрагмента
+GAP_SEGMENT = 1.3          # между фрагментами (сменой картинки)
 TAIL = 2.6                 # после последней фразы — финальный кадр
+FFMPEG = os.environ.get('FFMPEG', '/usr/local/lib/python3.11/dist-packages/imageio_ffmpeg/binaries/ffmpeg-linux-x86_64-v7.0.2')
+API = 'https://api.elevenlabs.io/v1/text-to-speech/{}?output_format=mp3_44100_128'
 
 
-def synth(text, path, voice):
-    subprocess.run(['RHVoice-test', '-p', voice, '-r', str(RATE), '-o', path], input=text.encode('utf-8'), check=True)
-    with wave.open(path) as w:
-        rate = w.getframerate()
-        x = np.frombuffer(w.readframes(w.getnframes()), dtype='<i2').astype(np.float64) / 32768
-    return signal.resample_poly(x, SR, rate)
+def spoken(text, say):
+    """Написание для голоса: script.json → say правит ударения и имена, субтитр остаётся как есть."""
+    for a, b in say.items():
+        text = text.replace(a, b)
+    return text
 
 
-def trim(x, threshold=0.004, pad=0.03):
-    """Срезать тишину по краям фразы (синтез оставляет паузы разной длины)."""
-    loud = np.where(np.abs(x) > threshold)[0]
+def synth(text, prev, nxt, voice):
+    """Фраза → моно 48 кГц; mp3 из API кэшируется по хэшу запроса."""
+    body = {
+        'text': text,
+        'model_id': voice['model'],
+        'language_code': 'ru',
+        'seed': voice['seed'],
+        'voice_settings': voice['settings'],
+    }
+    if prev:
+        body['previous_text'] = prev
+    if nxt:
+        body['next_text'] = nxt
+    key = hashlib.sha1(json.dumps([voice['id'], body], ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
+    path = os.path.join(RAW, key + '.mp3')
+    if not os.path.exists(path):
+        req = urllib.request.Request(API.format(voice['id']), data=json.dumps(body).encode(), headers={
+            'xi-api-key': os.environ['ELEVENLABS_API_KEY'], 'Content-Type': 'application/json'})
+        data = urllib.request.urlopen(req, timeout=180).read()
+        with open(path, 'wb') as f:
+            f.write(data)
+    pcm = subprocess.run([FFMPEG, '-loglevel', 'error', '-i', path, '-f', 's16le', '-ac', '1', '-ar', str(SR), '-'],
+                         capture_output=True, check=True).stdout
+    return np.frombuffer(pcm, dtype='<i2').astype(np.float64) / 32768
+
+
+def trim(x, threshold_db=-42, pad=0.04):
+    """Срезать тишину и вдохи по краям фразы: порог по огибающей 10 мс."""
+    win = int(0.01 * SR)
+    env = np.sqrt(np.convolve(x ** 2, np.ones(win) / win, mode='same'))
+    loud = np.where(env > np.max(env) * 10 ** (threshold_db / 20))[0]
     if not len(loud):
         return x
     a = max(0, loud[0] - int(pad * SR))
     b = min(len(x), loud[-1] + int(pad * SR))
-    return x[a:b]
+    y = x[a:b].copy()
+    fade = int(0.01 * SR)
+    y[:fade] *= np.linspace(0, 1, fade)
+    y[-fade:] *= np.linspace(1, 0, fade)
+    return y
 
 
 def shelf(x, freq, gain_db, kind):
@@ -91,24 +132,16 @@ def compress(x, threshold_db=-20, ratio=2.6, attack=0.006, release=0.12):
     return x * gain
 
 
-def room(x, seconds=0.45, mix=0.09):
-    n = int(seconds * SR)
-    t = np.arange(n) / SR
-    rng = np.random.default_rng(3)
-    ir = rng.standard_normal(n) * np.exp(-t / (seconds / 6))
-    ir = signal.lfilter(*signal.butter(2, [300, 5000], btype='band', fs=SR), ir)
-    ir /= np.sqrt(np.sum(ir ** 2))
-    wet = signal.fftconvolve(x, ir)[:len(x)]
-    return x * (1 - mix) + wet * mix
-
-
 def main():
     os.makedirs(RAW, exist_ok=True)
     script = json.load(open(os.path.join(HERE, 'script.json'), encoding='utf-8'))
     voice = script['voice']
+    say = script.get('say', {})
+    flat = [spoken(t, say) for seg in script['segments'] for t in seg['sentences']]
     parts = []
     timeline = []
     at = LEAD
+    k = 0
     for si, seg in enumerate(script['segments']):
         if si:
             at += GAP_SEGMENT
@@ -117,7 +150,10 @@ def main():
         for li, text in enumerate(seg['sentences']):
             if li:
                 at += GAP_SENTENCE
-            x = trim(synth(text, os.path.join(RAW, f'{seg["id"]}-{li}.wav'), voice))
+            prev = ' '.join(flat[max(0, k - 2):k])
+            nxt = flat[k + 1] if k + 1 < len(flat) else ''
+            x = trim(synth(flat[k], prev, nxt, voice))
+            k += 1
             lines.append({'text': text, 'start': round(at, 3), 'end': round(at + len(x) / SR, 3)})
             parts.append((at, x))
             at += len(x) / SR
@@ -127,14 +163,11 @@ def main():
     for start, x in parts:
         i = int(round(start * SR))
         out[i:i + len(x)] += x
-    # тембр: низ под 70 Гц прочь, тело голоса теплее, шипящие мягче, воздух чуть ярче
+    # лёгкая обработка: низ под 70 Гц прочь, чуть тела, шипящие мягче; без эха
     out = signal.lfilter(*signal.butter(2, 70, btype='high', fs=SR), out)
-    out = shelf(out, 180, 2.5, 'low')
-    out = peaking(out, 3200, -1.5, 1.2)
-    out = peaking(out, 6800, -3.0, 2.0)
-    out = shelf(out, 11000, 1.5, 'high')
-    out = compress(out)
-    out = room(out)
+    out = shelf(out, 160, 1.5, 'low')
+    out = peaking(out, 6800, -2.0, 2.0)
+    out = compress(out, threshold_db=-22, ratio=2.0)
     out *= 10 ** (-3 / 20) / np.max(np.abs(out))       # пики −3 дБ
     pcm = (np.clip(out, -1, 1) * 32767).astype('<i2')
     with wave.open(os.path.join(BUILD, 'voice.wav'), 'wb') as w:
