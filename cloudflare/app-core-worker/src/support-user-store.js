@@ -1,7 +1,7 @@
 import { BroadcastUserStore } from './broadcast-user-store.js';
-
-const MAX_TICKETS_PER_WINDOW = 3;
-const RATE_WINDOW_MS = 10 * 60 * 1000;
+import {
+  MAX_TICKETS_PER_WINDOW, RATE_WINDOW_MS, openTicketFor, rateLimitMessage,
+} from './support-rules.js';
 
 export class SupportUserStore extends BroadcastUserStore {
   constructor(ctx, env) {
@@ -41,6 +41,7 @@ export class SupportUserStore extends BroadcastUserStore {
       if (url.pathname === '/support/user-list') return response(await this.userTickets(body.userId));
       if (url.pathname === '/support/admin-list') return response(await this.adminTickets());
       if (url.pathname === '/support/reply') return response(await this.replyTicket(body));
+      if (url.pathname === '/support/append') return response(await this.appendUserMessage(body));
       if (url.pathname === '/support/status') return response(await this.setTicketStatus(body));
     }
     return super.fetch(request);
@@ -56,14 +57,29 @@ export class SupportUserStore extends BroadcastUserStore {
     if (subject.length < 3) return fail('Укажите тему обращения');
     if (message.length < 10) return fail('Опишите проблему подробнее');
 
-    const cutoff = Date.now() - RATE_WINDOW_MS;
+    const now0 = Date.now();
+
+    // Разговор продолжается: дописываем в открытое обращение вместо нового тикета.
+    if (raw.continueOpen === true) {
+      const open = openTicketFor(this.sql.exec(
+        'SELECT id, status, updated_at FROM support_tickets WHERE user_id = ? ORDER BY updated_at DESC LIMIT 5',
+        userId,
+      ).toArray(), now0);
+      if (open) {
+        const appended = await this.appendUserMessage({ userId, ticketId: open.id, message });
+        if (appended.ticket) return Object.assign(appended, { appended: true });
+      }
+    }
+
+    const cutoff = now0 - RATE_WINDOW_MS;
     const recent = this.sql.exec(
-      'SELECT COUNT(*) AS count FROM support_tickets WHERE user_id = ? AND created_at >= ?',
+      'SELECT COUNT(*) AS count, MIN(created_at) AS oldest FROM support_tickets'
+      + ' WHERE user_id = ? AND created_at >= ?',
       userId,
       cutoff,
     ).toArray()[0];
     if (Number(recent?.count || 0) >= MAX_TICKETS_PER_WINDOW) {
-      return fail('Слишком много обращений. Попробуйте ещё раз через несколько минут.');
+      return fail(rateLimitMessage(recent?.oldest, now0));
     }
 
     const now = Date.now();
@@ -123,6 +139,38 @@ export class SupportUserStore extends BroadcastUserStore {
       );
       this.sql.exec(
         `UPDATE support_tickets SET status = 'answered', updated_at = ? WHERE id = ?`,
+        now, ticketId,
+      );
+    });
+    return { ok: true, success: true, ticket: this.ticketById(ticketId) };
+  }
+
+  /** Сообщение пользователя в уже открытое обращение. */
+  async appendUserMessage(raw = {}) {
+    await this.ensureMigrated();
+    const userId = sanitizeUserId(raw.userId);
+    const ticketId = cleanId(raw.ticketId);
+    const message = cleanText(raw.message, 2000);
+    if (!userId) return fail('Некорректный Telegram ID');
+    if (!ticketId) return fail('Обращение не найдено');
+    if (message.length < 2) return fail('Опишите вопрос подробнее');
+    const row = this.sql.exec(
+      'SELECT * FROM support_tickets WHERE id = ? AND user_id = ?',
+      ticketId, userId,
+    ).toArray()[0];
+    if (!row) return fail('Обращение не найдено');
+    if (String(row.status || '') === 'closed') return fail('Обращение закрыто');
+
+    const now = Date.now();
+    const messageId = `msg_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`;
+    this.ctx.storage.transactionSync(() => {
+      this.sql.exec(
+        `INSERT INTO support_messages (id, ticket_id, sender, body, created_at)
+         VALUES (?, ?, 'user', ?, ?)`,
+        messageId, ticketId, message, now,
+      );
+      this.sql.exec(
+        `UPDATE support_tickets SET status = 'new', updated_at = ? WHERE id = ?`,
         now, ticketId,
       );
     });
