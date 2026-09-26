@@ -184,6 +184,34 @@ async function play(width, height) {
   const idleTo = (await info(page)).frames;
   need(idleTo - idleFrom <= 1, `${tag}: в покое нарисовано ${idleTo - idleFrom} кадров — карта жжёт батарею`);
 
+  // ——— земля в цвете, а не выцветшая ———
+  // Плёночная тонировка гасит насыщенность светлых тонов; без поправки карта
+  // выходила бледной (средняя насыщенность ~90 из 255 при ~130 у нарисованной карты).
+  const land = await page.evaluate(() => {
+    const boxes = [...document.querySelectorAll('.kd-area[data-area] .kd-area-marker')].map((n) => n.getBoundingClientRect());
+    const x0 = Math.min(...boxes.map((b) => b.left)); const x1 = Math.max(...boxes.map((b) => b.right));
+    const y0 = Math.min(...boxes.map((b) => b.top)); const y1 = Math.max(...boxes.map((b) => b.bottom));
+    return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+  });
+  const shot = await page.screenshot({ clip: land });
+  const saturation = await page.evaluate(async (b64) => {
+    // Картинка — через <img>: fetch приложение оборачивает своим бюджетом запросов.
+    const bitmap = new Image();
+    bitmap.src = `data:image/png;base64,${b64}`;
+    await bitmap.decode();
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const g = canvas.getContext('2d');
+    g.drawImage(bitmap, 0, 0);
+    const { data } = g.getImageData(0, 0, bitmap.width, bitmap.height);
+    let sum = 0; let n = 0;
+    for (let i = 0; i < data.length; i += 16) {
+      const max = Math.max(data[i], data[i + 1], data[i + 2]); const min = Math.min(data[i], data[i + 1], data[i + 2]);
+      sum += max ? ((max - min) / max) * 255 : 0; n += 1;
+    }
+    return sum / n;
+  }, shot.toString('base64'));
+  need(saturation >= 108, `${tag}: карта бледная — средняя насыщенность земли ${saturation.toFixed(0)} из 255 (нужно не меньше 108)`);
+
   // ——— маркеры стоят на своих местах ———
   const markers = await page.evaluate(() => {
     const frame = document.querySelector('[data-scroll]').getBoundingClientRect();

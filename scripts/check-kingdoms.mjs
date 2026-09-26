@@ -63,7 +63,47 @@ for (const area of R.AREAS) {
   }
 }
 need(R.FORDS.length === 2, `бродов ${R.FORDS.length} вместо 2`);
-need(R.EDGES.filter((e) => e.type === 'land').length === 30, 'связей по суше должно быть 30 (24 внутри регионов + 6 по кольцу)');
+need(R.EDGES.filter((e) => e.type === 'land').length === 34, 'связей по суше должно быть 34 (24 внутри регионов + 6 по кольцу регионов + 4 между хабами)');
+
+/*
+  Соседство — то, что видит игрок. Контуры областей на экране (плоская карта,
+  объёмная и нажатие пальцем) берутся из web/games/kingdoms-map.js; если две
+  области касаются там общей границей, а по правилам не соседи, игрок кладёт
+  войско на границу — и ход не принимается. Здесь сверяется одно с другим:
+  общая граница длиннее 40 единиц карты ⇔ связь в правилах. Короткие касания
+  в узлах, где сходятся четыре области, границей не считаются.
+*/
+{
+  const mapWin = {};
+  new Function('window', fs.readFileSync(path.join(dir, 'kingdoms-map.js'), 'utf8'))(mapWin);
+  const tiles = mapWin.KingdomsMap?.tiles;
+  need(Boolean(tiles), 'контуры областей (kingdoms-map.js) не прочитались');
+  if (tiles) {
+    const edgesOf = (id) => tiles[id].points.map((p, i, all) => [p, all[(i + 1) % all.length]]);
+    const toSegment = (p, [a, b]) => {
+      const vx = b[0] - a[0]; const vy = b[1] - a[1];
+      const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / (vx * vx + vy * vy || 1)));
+      return Math.hypot(a[0] + t * vx - p[0], a[1] + t * vy - p[1]);
+    };
+    const shared = (a, b) => {
+      const other = edgesOf(b);
+      return edgesOf(a).reduce((sum, [p, q]) => {
+        const mid = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+        return other.some((seg) => toSegment(mid, seg) < 2.5) ? sum + Math.hypot(q[0] - p[0], q[1] - p[1]) : sum;
+      }, 0);
+    };
+    const ids = R.AREAS.map((area) => area.id);
+    for (let i = 0; i < ids.length; i += 1) {
+      for (let j = i + 1; j < ids.length; j += 1) {
+        const border = shared(ids[i], ids[j]) > 40;
+        const rule = R.areAdjacent(ids[i], ids[j]);
+        need(border === rule, border
+          ? `${ids[i]} и ${ids[j]} граничат на карте, а по правилам не соседи — атака через эту границу не примется`
+          : `${ids[i]} и ${ids[j]} соседи по правилам, а на карте у них нет общей границы`);
+      }
+    }
+  }
+}
 
 // Карта связна целиком — иначе часть областей недостижима в принципе.
 {
@@ -601,7 +641,7 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`OK: карта из 24 областей в 6 регионах связна и симметрична (30 связей по суше, 2 брода, ${R.COASTAL.size} прибрежных); `
+console.log(`OK: карта из 24 областей в 6 регионах связна и симметрична (34 связи по суше, 2 брода, ${R.COASTAL.size} прибрежных); `
   + `расстановка идёт по очереди, цель — одна из двух без повторов за столом; одна граница — один жетон, войско, корабли, `
   + `засада, благословение, завет мира и поджог кладутся только по правилам; ничья — защите, победа защитника даёт открытый жетон, `
   + `поджог оставляет вечное пепелище, завет — вечный мир, карты соглядатаев, пророка и первенства работают и не трогают `

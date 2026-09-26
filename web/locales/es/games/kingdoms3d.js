@@ -376,7 +376,11 @@
           // Цвет владельца окрашивает землю, сохраняя её светотень.
           float kdShade = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
           vec3 kdOwned = vTint.rgb * (0.45 + 1.6 * kdShade);
-          diffuseColor.rgb = mix(diffuseColor.rgb, kdOwned, vTint.a);`)
+          diffuseColor.rgb = mix(diffuseColor.rgb, kdOwned, vTint.a);
+          // Плёночная тонировка (ACES) гасит насыщенность светлых тонов — земля выходила
+          // выцветшей; здесь цвет возвращается к насыщенности нарисованной карты.
+          float kdLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+          diffuseColor.rgb = max(mix(vec3(kdLuma), diffuseColor.rgb, 1.3), 0.0);`)
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
           #ifdef KD_BUMP
             {
@@ -569,7 +573,7 @@
     renderer.setPixelRatio(pixelRatio);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.04;
+    renderer.toneMappingExposure = 0.9;
     renderer.shadowMap.enabled = quality !== 'low';
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(0x1d2927, 1);
@@ -585,7 +589,7 @@
       холодная подсветка без теней, чтобы теневая сторона гор не проваливалась
       в черноту.
     */
-    scene.add(new THREE.HemisphereLight(0xd6e6ff, 0x6b5a3a, 0.58));
+    scene.add(new THREE.HemisphereLight(0xd6e6ff, 0x6b5a3a, 0.42));
     const sun = new THREE.DirectionalLight(0xffe4bd, 1.28);
     sun.position.set(-560, 520, -180);
     sun.castShadow = renderer.shadowMap.enabled;
