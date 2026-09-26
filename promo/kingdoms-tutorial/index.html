@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Царства — обучающий ролик</title>
+<meta name="viewport" content="width=1920">
+<!--
+  Обучающий ролик «Царства»: правила и смысл игры за пять минут, голосом.
+
+  Всё в кадре — настоящая игра (capture_kd.mjs снимает её состояния, собранные
+  движком игры), поверх — только указки: обводки, подписи, счёт сражения.
+  Время — от голоса: shots/narration.js (voice.py) знает, где начинается и
+  кончается каждая фраза, и каждый кадр стоит на своей фразе. Поэтому
+  сценарий ниже пишется не в секундах, а в «фраза N главы X, доля f».
+
+  Главы сменяются поворотом экрана (3D), кадры внутри главы — наплывом.
+  Время чистое: seek(t) рисует кадр t с нуля, без накопленного состояния.
+
+    открыть в браузере: promo/kingdoms-tutorial/index.html?t=198
+    рендер: node promo/kingdoms-tutorial/render.mjs
+-->
+<style>
+  @font-face { font-family: Onest; src: url('../ad/fonts/onest-cyrillic.woff2') format('woff2'); font-weight: 100 900; unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+  @font-face { font-family: Onest; src: url('../ad/fonts/onest-latin.woff2') format('woff2'); font-weight: 100 900; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+  html, body { margin: 0; background: #070b0a; }
+  body.preview { display: grid; justify-items: center; gap: 10px; padding: 12px; color: #ddd; font: 14px Onest, sans-serif; }
+  body.preview #frame { transform: scale(.5); transform-origin: 0 0; margin-bottom: -540px; margin-right: -960px; }
+  #frame { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #0c1513; font-family: Onest, sans-serif; color: #fff2d6; }
+  #bg { position: absolute; inset: -60px; background: url('../../web/assets/kingdoms/map-v3/base.webp') center 44% / cover; filter: blur(26px) saturate(.8) brightness(.36); transform-origin: 50% 50%; }
+  #vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 40%, #050807d0 100%); }
+
+  /* верхняя полоса: глава и её место в ролике */
+  #top { position: absolute; left: 192px; right: 192px; top: 0; height: 78px; }
+  .kicker { position: absolute; left: 2px; top: 16px; font-size: 13px; font-weight: 800; letter-spacing: .26em; color: #f1d9a1; }
+  .chapter { position: absolute; left: 0; top: 30px; font: 700 34px/1.2 Georgia, 'Times New Roman', serif; color: #fff2d6; white-space: nowrap; }
+  .chapter i { font-style: normal; color: #d8b56f; margin-right: 14px; font-size: 26px; vertical-align: 3px; }
+  #ticks { position: absolute; right: 0; top: 36px; display: flex; gap: 6px; }
+  #ticks span { width: 30px; height: 6px; border-radius: 3px; background: #fff2d626; }
+  #ticks span.done { background: #d8b56f99; }
+  #ticks span.now { background: #f1d291; box-shadow: 0 0 12px #f1d291aa; }
+
+  /* экран игры */
+  #deck { position: absolute; inset: 0; perspective: 2600px; perspective-origin: 50% 47%; }
+  .card { position: absolute; left: 192px; top: 78px; width: 1536px; height: 864px; border-radius: 22px; overflow: hidden;
+    background: #0c1513; box-shadow: 0 30px 80px #000a, 0 0 0 1.5px #f1d9a140; backface-visibility: hidden; transform-origin: 50% 50%; }
+  .stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+  .stage img { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; }
+  .ov { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+  .ov svg { position: absolute; inset: 0; width: 1536px; height: 864px; overflow: visible; }
+  .ring { fill: none; stroke: #f5d88f; stroke-width: 5; filter: drop-shadow(0 0 8px #f5c96bcc); }
+  .ring.red { stroke: #ff8a6a; filter: drop-shadow(0 0 8px #ff6a4acc); }
+  .ring.green { stroke: #8ff0a4; filter: drop-shadow(0 0 8px #4be07acc); }
+  .lead { stroke: #f5d88fd0; stroke-width: 3; fill: none; }
+  .label { position: absolute; transform: translate(-50%, -50%); padding: 10px 20px 11px; border-radius: 14px; white-space: nowrap;
+    background: #14251ff2; border: 2px solid #f1d291; color: #fff2d6; font-size: 27px; font-weight: 650; box-shadow: 0 10px 28px #000b; }
+  .label small { display: block; font-size: 18px; font-weight: 500; color: #e8d6ae; margin-top: 2px; }
+  .label.big { font-size: 40px; padding: 14px 28px 16px; }
+  .label.red { border-color: #ff8a6a; }
+  .label.green { border-color: #8ff0a4; }
+
+  /* счёт сражения */
+  .panel { position: absolute; right: 34px; top: 118px; width: 430px; padding: 22px 24px 20px; border-radius: 20px;
+    background: #0f1d19f4; border: 2px solid #f1d29199; box-shadow: 0 20px 50px #000c; font-size: 25px; }
+  .panel.left { right: auto; left: 34px; }
+  .panel h4 { margin: 0 0 8px; font-size: 15px; letter-spacing: .22em; font-weight: 800; color: #f1d9a1; }
+  .panel .side { margin-bottom: 14px; }
+  .panel .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #fff2d61a; }
+  .panel .row b { color: #fff; font-weight: 800; }
+  .panel .sum { display: flex; justify-content: space-between; padding-top: 8px; font-size: 32px; font-weight: 800; color: #f5d88f; }
+  .panel .verdict { margin-top: 6px; padding: 14px 16px; border-radius: 14px; text-align: center; font-size: 34px; font-weight: 800; background: #f1d29122; color: #fff2d6; }
+  .panel .verdict.win { background: #2fae5a2e; color: #b7f7c6; }
+
+  /* пять царств */
+  .clans { position: absolute; inset: 0; perspective: 1800px; }
+  .clans .backdrop { position: absolute; inset: -40px; background: url('../../web/assets/kingdoms/map-v3/base.webp') center 44% / cover; filter: brightness(.46) saturate(.9); }
+  .clan { position: absolute; transform-origin: 50% 100%; }
+  .clan img { display: block; width: 100%; height: 100%; clip-path: inset(0 round 16px); }
+  .clan { box-shadow: 0 18px 40px #000a; border-radius: 16px; }
+  .clans .title { position: absolute; left: 0; right: 0; top: 96px; text-align: center; font: 700 58px Georgia, serif; color: #fff2d6; text-shadow: 0 6px 24px #000; }
+
+  /* заставка и концовка */
+  .endcard { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .endcard .backdrop { position: absolute; inset: -40px; background: url('../../web/assets/kingdoms/map-v3/base.webp') center 44% / cover; filter: brightness(.5); }
+  .endcard .inner { position: relative; }
+  .endcard img { width: 280px; height: 280px; filter: drop-shadow(0 22px 40px #000c); }
+  .endcard h1 { margin: 26px 0 6px; font: 700 124px/1 Georgia, serif; color: #fff2d6; letter-spacing: .03em; text-shadow: 0 8px 30px #000; }
+  .endcard p { margin: 0; font-size: 30px; font-weight: 600; color: #f1d9a1; letter-spacing: .02em; text-shadow: 0 4px 16px #000; }
+  .endcard .span { margin-top: 26px; font-size: 22px; font-weight: 800; letter-spacing: .3em; color: #f1d9a1cc; }
+
+  /* субтитры */
+  #sub { position: absolute; left: 150px; right: 150px; top: 958px; height: 104px; display: grid; place-items: center; text-align: center;
+    font-size: 36px; line-height: 1.3; font-weight: 520; color: #fbf3df; text-shadow: 0 2px 10px #000, 0 0 2px #000; }
+  #fade { position: absolute; inset: 0; background: #000; pointer-events: none; }
+  #bar { width: 960px; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="bg"></div><div id="vignette"></div>
+  <div id="top"><div class="kicker">ЦАРСТВА · ОБУЧЕНИЕ</div><div class="chapter" id="ch0"></div><div class="chapter" id="ch1"></div><div id="ticks"></div></div>
+  <div id="deck"><div class="card" id="cardA"></div><div class="card" id="cardB"></div></div>
+  <div id="sub"></div>
+  <div id="fade"></div>
+</div>
+<input id="bar" type="range" min="0" max="300" step="0.02" value="0" hidden>
+<script src="shots/narration.js"></script>
+<script src="shots/layout.js"></script>
+<script>
+'use strict';
+const N = window.NARRATION;
+const LAY = window.KD_LAYOUT;
+const DUR = N.duration;
+const K = 1536 / 1280;             // экран игры (CSS-пиксели 1280×720) → карточка ролика
+const XF = 0.55;                   // наплыв между кадрами одной главы
+const FLIP = 0.9;                  // поворот между главами
+
+// ——————————————————————————————————————— время от голоса
+const SEG = Object.fromEntries(N.segments.map((s, i) => [s.id, { ...s, index: i }]));
+/** Фраза i главы id, доля f её звучания. */
+const T = (id, i, f = 0) => { const l = SEG[id].lines[i]; return l.start + f * (l.end - l.start); };
+/** Когда во фразе звучит слово: по доле букв до него — голос ровный, этого хватает. */
+const TW = (id, i, word, lead = 0.15) => {
+  const l = SEG[id].lines[i];
+  const at = l.text.indexOf(word);
+  if (at < 0) throw new Error(`нет слова «${word}» во фразе ${id}/${i}`);
+  return l.start + (at / l.text.length) * (l.end - l.start) - lead;
+};
+/** Граница глав: середина паузы между ними. */
+const B = (id) => { const s = SEG[id]; const prev = N.segments[s.index - 1]; return prev ? (prev.end + s.start) / 2 : 0; };
+
+// ——————————————————————————————————————— геометрия кадров
+const shotOf = (name) => { const s = LAY.shots[name]; if (!s) throw new Error(`нет кадра ${name}`); return s; };
+const center = (r) => [r.x + r.w / 2, r.y + r.h / 2];
+const union = (rs) => {
+  const x0 = Math.min(...rs.map((r) => r.x)); const y0 = Math.min(...rs.map((r) => r.y));
+  const x1 = Math.max(...rs.map((r) => r.x + r.w)); const y1 = Math.max(...rs.map((r) => r.y + r.h));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+};
+/** Цель указки в кадре: область, жетон, кнопка, точка или прямоугольник. */
+function rectOf(shot, ref) {
+  if (!ref) return null;
+  if (Array.isArray(ref)) return union(ref.map((one) => rectOf(shot, one)).filter(Boolean));
+  if (ref.x !== undefined) return ref.w !== undefined ? ref : { x: ref.x - 20, y: ref.y - 20, w: 40, h: 40 };
+  const [kind, key] = ref.split(':').length > 2 ? [ref.slice(0, ref.indexOf(':')), ref.slice(ref.indexOf(':') + 1)] : ref.split(':');
+  const s = shotOf(shot);
+  const box = kind === 'a' ? s.areas?.[key] : kind === 't' ? s.tokens?.[key] : kind === 'u' ? s.ui?.[key] : kind === 'p' ? s.points?.[key] && { x: s.points[key].x - 22, y: s.points[key].y - 22, w: 44, h: 44 } : null;
+  if (!box) throw new Error(`в кадре ${shot} нет ${ref}`);
+  return box;
+}
+/** Бейдж ценности области — верхняя часть маркера (под ним подпись имени). */
+const badge = (shot, id) => { const r = rectOf(shot, `a:${id}`); return { x: r.x - 4, y: r.y - 4, w: r.w + 8, h: Math.min(r.h, 44) }; };
+
+// ——————————————————————————————————————— сценарий
+const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+const clamp01 = (u) => Math.max(0, Math.min(1, u));
+const CAM_FULL = { c: [640, 360], z: 1 };
+const cam = (shot, ref, z, dy = 0) => { const [x, y] = center(rectOf(shot, ref)); return { c: [x, y + dy], z }; };
+
+/*
+  Указки. Время — абсолютное; видны с t0 до t1 и плавно гаснут.
+    ring  — обводка вокруг цели (или целей), рисуется от начала к концу;
+    label — плашка с подписью возле цели, с чертой к ней;
+    chip  — плашка в точке карточки (без цели);
+    panel — счёт сражения (своя вёрстка).
+*/
+const ring = (ref, t0, t1, o = {}) => ({ type: 'ring', ref, t0, t1, ...o });
+const label = (ref, text, t0, t1, o = {}) => ({ type: 'label', ref, text, t0, t1, dir: 'up', ...o });
+const chip = (x, y, text, t0, t1, o = {}) => ({ type: 'chip', x, y, text, t0, t1, ...o });
+
+const S = [];      // кадры по порядку: { name, t0, from, to, ov, chapter, kind }
+const add = (name, t0, from, to, ov = [], extra = {}) => { S.push({ name, t0, from, to: to || from, ov, ...extra }); };
+
+// ——— 1. Царства ———
+{
+  const hero = cam('menu-top', 'u:title', 1.55, 30);
+  add('menu-top', 0, hero, { c: [640, 250], z: 1.32 }, [], { chapter: 'intro' });
+  add('map-overview', T('intro', 1), CAM_FULL, { c: [640, 380], z: 1.08 }, [
+    ring('u:standings', TW('intro', 1, 'пяти'), T('intro', 1, 0.55), { pad: 8 }),
+    label('u:standings', 'Вы и соперники', TW('intro', 1, 'пяти') + 0.2, T('intro', 1, 0.55), { dir: 'right', dist: 260 }),
+    ring('u:header', TW('intro', 1, 'пять раундов'), T('intro', 2) + 0.2, { pad: 6 }),
+    label('u:header', 'Пять раундов', TW('intro', 1, 'пять раундов') + 0.2, T('intro', 2) + 0.2, { dir: 'down' }),
+  ]);
+  const fin = shotOf('final');
+  const win = fin.rows[0];
+  add('final', T('intro', 2), { c: [640, 250], z: 1.5 }, { c: [640, 230], z: 1.62 }, [
+    ring(win.bits[4], TW('intro', 2, 'больше'), SEG.intro.end + 0.3, { pad: 8 }),
+    label(win.bits[4], 'Больше всех очков — победа', TW('intro', 2, 'больше') + 0.25, SEG.intro.end + 0.3, { dir: 'down', dist: 70 }),
+  ]);
+}
+
+// ——— 2. Карта ———
+{
+  const m = 'map-wide';
+  const ids = Object.keys(shotOf(m).areas);
+  add(m, B('map'), CAM_FULL, { c: [640, 350], z: 1.05 }, [
+    ...ids.map((id, i) => ring(badge(m, id), T('map', 0, 0.35) + i * 0.07, T('map', 1) + 0.2, { pad: 2, thin: true })),
+    chip(768, 800, '24 области · 6 регионов', T('map', 0, 0.45), T('map', 1) + 0.2, { big: true }),
+  ], { chapter: 'map' });
+  add('map-value', T('map', 1), cam('map-value', 'a:primorye-hub', 1.35), cam('map-value', 'a:primorye-hub', 1.55), [
+    ring(badge('map-value', 'primorye-hub'), TW('map', 1, 'Число'), T('map', 2), { pad: 6 }),
+    ring(badge('map-value', 'primorye-cw'), TW('map', 1, 'честь'), T('map', 2), { pad: 6 }),
+    label(badge('map-value', 'primorye-hub'), 'Честь области = очки в конце', TW('map', 1, 'честь'), T('map', 2), { dir: 'down', dist: 120 }),
+  ]);
+  add('map-capital', T('map', 2), cam('map-capital', 'a:primorye-rim', 1.5), cam('map-capital', 'a:primorye-rim', 1.7), [
+    ring(badge('map-capital', 'primorye-rim'), TW('map', 2, 'Корона'), TW('map', 2, 'Ещё'), { pad: 10 }),
+    label(badge('map-capital', 'primorye-rim'), 'Столица · Тир', TW('map', 2, 'Корона') + 0.3, TW('map', 2, 'Ещё'), { dir: 'down', dist: 150 }),
+  ]);
+  add('map-mountains', TW('map', 2, 'Ещё'), cam('map-mountains', 'a:nagorye-hub', 1.12), cam('map-mountains', 'a:nagorye-hub', 1.25), [
+    label(badge('map-mountains', 'nagorye-rim'), 'Город', TW('map', 2, 'города'), T('map', 3) + 0.2, { dir: 'up' }),
+    label(badge('map-mountains', 'nagorye-hub'), 'Горы', TW('map', 2, 'горы'), T('map', 3) + 0.2, { dir: 'down' }),
+    label(badge('map-mountains', 'primorye-hub'), 'Побережье', TW('map', 2, 'побережье'), T('map', 3) + 0.2, { dir: 'down' }),
+  ]);
+  add('map-desert', TW('map', 2, 'пустыни'), cam('map-desert', 'a:kedem-hub', 1.12), cam('map-desert', 'a:kedem-hub', 1.22), [
+    label(badge('map-desert', 'kedem-hub'), 'Пустыня', TW('map', 2, 'пустыни') + 0.2, T('map', 3) + 0.2, { dir: 'down' }),
+  ]);
+  const border = ['pogranichye-rim', 'pogranichye-cw', 'pogranichye-hub', 'pogranichye-ccw'];
+  add('map-border', T('map', 3), cam('map-border', border.map((id) => `a:${id}`), 1.1), cam('map-border', border.map((id) => `a:${id}`), 1.22), [
+    ...border.map((id, i) => ring(badge('map-border', id), T('map', 3, 0.02) + i * 0.12, TW('map', 3, 'А реку'), { pad: 5 })),
+    label(rectOf('map-border', border.map((id) => `a:${id}`)), 'Порубежье — ничья земля', T('map', 3, 0.1), TW('map', 3, 'А реку'), { dir: 'right', dist: 330 }),
+  ]);
+  const fords = [['pogranichye-hub', 'primorye-hub'], ['dolina-hub', 'ravnina-hub']].map(([a, b]) => {
+    const p = shotOf('map-ford').points; return { x: (p[a].x + p[b].x) / 2 - 30, y: (p[a].y + p[b].y) / 2 - 30, w: 60, h: 60 };
+  });
+  add('map-ford', TW('map', 3, 'А реку'), { c: [640, 340], z: 1.02 }, { c: [640, 330], z: 1.1 }, [
+    ...fords.map((f, i) => ring(f, TW('map', 3, 'в двух') + i * 0.3, B('kingdoms'), { round: true, pad: 4 })),
+    ...fords.map((f, i) => label(f, 'Брод', TW('map', 3, 'вброд') - 0.2 + i * 0.2, B('kingdoms'), { dir: i ? 'down' : 'up', dist: 70 })),
+  ]);
+}
+
+// ——— 3. Пять царств — карточки с экрана выбора, веером ———
+{
+  const names = [['tarsis', 'Фарсис'], ['or', 'Едом'], ['yor', 'Галаад'], ['prestol', 'Сеннаар'], ['kedem', 'Кидар']];
+  const focus = names.map(([id, word], i) => ({ id, t0: TW('kingdoms', 1, word, 0.25), t1: i < 4 ? TW('kingdoms', 1, names[i + 1][1], 0.25) : T('kingdoms', 2) }));
+  add('clans', B('kingdoms'), CAM_FULL, CAM_FULL, [], { chapter: 'kingdoms', kind: 'clans', focus, tokenAt: T('kingdoms', 2, 0.25), endAt: B('setup') });
+}
+
+// ——— 4. Начало партии ———
+{
+  add('setup-start', B('setup'), { c: [640, 360], z: 1 }, { c: [640, 350], z: 1.06 }, [
+    ring('u:header', T('setup', 0, 0.1), T('setup', 1), { pad: 6 }),
+    label('u:header', 'Расстановка', T('setup', 0, 0.2), T('setup', 1), { dir: 'down' }),
+    ...['primorye-rim', 'dolina-rim', 'kedem-rim'].map((id, i) => ring(badge('setup-start', id), TW('setup', 1, 'столица') + i * 0.15, TW('setup', 1, 'остальные'), { pad: 6 })),
+    chip(768, 760, 'Столицы уже ваши с самого начала', TW('setup', 1, 'столица') + 0.2, TW('setup', 1, 'остальные'), {}),
+  ], { chapter: 'setup' });
+  add('setup-pick', TW('setup', 1, 'остальные'), { c: [640, 380], z: 1.02 }, { c: [640, 400], z: 1.1 }, [
+    ring(badge('setup-pick', 'primorye-ccw'), TW('setup', 1, 'ставя'), T('setup', 2), { pad: 8 }),
+    label(badge('setup-pick', 'primorye-ccw'), 'Жетон контроля — в свободную область', TW('setup', 1, 'ставя') + 0.2, T('setup', 2), { dir: 'up', dist: 110 }),
+    ring('u:confirm', TW('setup', 1, 'свободные'), T('setup', 2), { pad: 4 }),
+  ]);
+  add('setup-objective', T('setup', 2), cam('setup-objective', 'u:sheet', 1.45), cam('setup-objective', 'u:sheet', 1.6), [
+    ring('u:objective0', TW('setup', 2, 'одну'), TW('setup', 2, 'Соперники'), { pad: 5 }),
+    ring('u:objective1', TW('setup', 2, 'двух'), TW('setup', 2, 'Соперники'), { pad: 5 }),
+    label('u:sheet', 'Тайная цель — видна только вам', TW('setup', 2, 'Соперники'), B('round'), { dir: 'down', dist: 40, inside: true }),
+  ]);
+}
+
+// ——— 5. Раунд ———
+{
+  const hand6 = ['march1', 'march3', 'navy1', 'bless2', 'peace', 'feint'].map((k) => `u:btn:${k}`);
+  add('round-start', B('round'), cam('round-start', 'u:hand', 1.4, -120), cam('round-start', 'u:hand', 1.5, -110), [
+    ...hand6.map((ref, i) => ring(ref, T('round', 0, 0.25) + i * 0.12, T('round', 1), { pad: 3 })),
+    label(hand6, 'Шесть жетонов в руке', T('round', 0, 0.35), T('round', 1), { dir: 'up', dist: 80 }),
+  ], { chapter: 'round' });
+  const mid = shotOf('round-mid');
+  const enemy = Object.keys(mid.tokens).filter((id) => !mid.tokens[id].kind);
+  const mine = Object.keys(mid.tokens).filter((id) => mid.tokens[id].kind);
+  add('round-mid', T('round', 1), { c: [640, 340], z: 1.05 }, { c: [640, 330], z: 1.15 }, [
+    ...mine.map((id, i) => ring(`t:${id}`, T('round', 1, 0.15) + i * 0.3, T('round', 2), { round: true, pad: 2 })),
+    ...enemy.map((id, i) => ring(`t:${id}`, T('round', 1, 0.35) + i * 0.3, T('round', 2), { round: true, pad: 2, red: true })),
+    chip(768, 780, 'По одному жетону по кругу · пять за раунд', TW('round', 1, 'каждый'), T('round', 2), {}),
+  ]);
+  add('round-kept', T('round', 2), cam('round-kept', 'u:hand', 1.35, -140), cam('round-kept', 'u:hand', 1.45, -130), [
+    ring('u:btn:peace', T('round', 2, 0.1), T('round', 3), { pad: 4 }),
+    label('u:btn:peace', 'Шестой ждёт следующего раунда', T('round', 2, 0.2), T('round', 3), { dir: 'up', dist: 90 }),
+    ring('u:left', T('round', 2, 0.4), T('round', 3), { pad: 4 }),
+  ]);
+  const re = shotOf('round-enemy');
+  const kedem = Object.keys(re.tokens).find((id) => !re.tokens[id].kind && re.tokens[id].from === 'pogranichye-cw');
+  add('round-enemy', T('round', 3), cam('round-enemy', `t:${kedem}`, 1.1), cam('round-enemy', `t:${kedem}`, 1.4), [
+    ring(`t:${kedem}`, TW('round', 3, 'где'), B('army'), { round: true, pad: 4, red: true }),
+    label(`t:${kedem}`, 'Жетон Кидара: место видно, суть — нет', TW('round', 3, 'куда'), B('army'), { dir: 'up', dist: 110 }),
+  ]);
+}
+
+// ——— 6. Войско ———
+{
+  const marches = [1, 2, 3, 4, 5].map((n) => `u:btn:march${n}`);
+  add('army-hand', B('army'), cam('army-hand', 'u:hand', 1.35, -140), cam('army-hand', 'u:hand', 1.45, -130), [
+    ...marches.map((ref, i) => ring(ref, TW('army', 0, 'силой') + i * 0.28, T('army', 1), { pad: 3 })),
+    label(marches, 'Войско: сила от 1 до 5', TW('army', 0, 'силой') + 0.2, T('army', 1), { dir: 'up', dist: 80 }),
+  ], { chapter: 'army' });
+  add('army-pick', T('army', 1), { c: [640, 330], z: 1.05 }, { c: [660, 300], z: 1.2 }, [
+    chip(768, 770, 'Стрелки — куда можно ударить', T('army', 1, 0.15), T('army', 1, 0.45), {}),
+  ]);
+  add('army-target', T('army', 1, 0.45), cam('army-target', 'a:nagorye-ccw', 1.02, 60), cam('army-target', 'a:nagorye-ccw', 1.12, 60), [
+    ring(badge('army-target', 'nagorye-ccw'), T('army', 1, 0.5), T('army', 2), { pad: 6, red: true }),
+    label(badge('army-target', 'nagorye-ccw'), 'Граница → атака', T('army', 1, 0.55), T('army', 2), { dir: 'up', dist: 100 }),
+    ring('u:confirm', T('army', 1, 0.7), T('army', 2), { pad: 4 }),
+  ]);
+  add('army-defend', T('army', 2), cam('army-defend', 'a:primorye-rim', 1.02, 80), cam('army-defend', 'a:primorye-rim', 1.1, 80), [
+    ring(badge('army-defend', 'primorye-rim'), TW('army', 2, 'центр'), T('army', 3), { pad: 8, green: true }),
+    label(badge('army-defend', 'primorye-rim'), 'Центр своей области → защита', TW('army', 2, 'центр') + 0.2, T('army', 3), { dir: 'up', dist: 100 }),
+    ring('u:confirm', TW('army', 2, 'защищает'), T('army', 3), { pad: 4 }),
+  ]);
+  add('army-border', T('army', 3), cam('army-border', 't:o1', 1.1), cam('army-border', 't:o1', 1.3), [
+    ring('t:o1', TW('army', 3, 'одну'), B('navy'), { round: true, pad: 4 }),
+    label('t:o1', 'Граница занята — второй жетон сюда нельзя', TW('army', 3, 'одну') + 0.3, B('navy'), { dir: 'up', dist: 110 }),
+  ]);
+}
+
+// ——— 7. Корабли и засада ———
+{
+  const coast = ['primorye-hub', 'dolina-hub', 'ravnina-hub', 'primorye-rim', 'primorye-cw', 'primorye-ccw', 'pogranichye-hub'];
+  add('navy-pick', B('navy'), { c: [640, 360], z: 1.02 }, { c: [640, 350], z: 1.1 }, [
+    ...coast.map((id, i) => ring(badge('navy-pick', id), T('navy', 0, 0.12) + i * 0.1, T('navy', 0, 0.62), { pad: 4 })),
+    chip(768, 770, 'Корабли: любая прибрежная область', T('navy', 0, 0.15), T('navy', 0, 0.62), {}),
+  ], { chapter: 'navy' });
+  add('navy-placed', T('navy', 0, 0.62), cam('navy-placed', 't:o4', 1.1), cam('navy-placed', 't:o4', 1.3), [
+    ring('t:o4', TW('navy', 0, 'защищают'), T('navy', 1), { round: true, pad: 4, green: true }),
+    label('t:o4', 'Корабли стерегут свой берег', TW('navy', 0, 'защищают') + 0.2, T('navy', 1), { dir: 'up', dist: 100 }),
+  ]);
+  add('ambush-pick', T('navy', 1), { c: [640, 360], z: 1.02 }, { c: [640, 350], z: 1.1 }, [
+    chip(768, 770, 'Засада: в центр любой области', T('navy', 1, 0.08), TW('navy', 1, 'в чужой'), {}),
+    ring(badge('ambush-pick', 'dolina-cw'), TW('navy', 1, 'в чужой'), B('bless'), { pad: 6, red: true }),
+    label(badge('ambush-pick', 'dolina-cw'), 'В чужой — нападает', TW('navy', 1, 'в чужой') + 0.2, B('bless'), { dir: 'up' }),
+    ring(badge('ambush-pick', 'primorye-rim'), TW('navy', 1, 'в своей'), B('bless'), { pad: 6, green: true }),
+    label(badge('ambush-pick', 'primorye-rim'), 'В своей — защищает', TW('navy', 1, 'в своей') + 0.2, B('bless'), { dir: 'up' }),
+  ]);
+}
+
+// ——— 8. Благословение ———
+{
+  add('bless-pick', B('bless'), { c: [640, 330], z: 1.05 }, { c: [640, 320], z: 1.12 }, [
+    ...['o1', 'o4', 'o7'].map((id, i) => ring(`t:${id}`, T('bless', 0, 0.2) + i * 0.2, T('bless', 0, 0.5), { round: true, pad: 4 })),
+    chip(768, 770, 'Благословить: своё войско, корабли или засаду', T('bless', 0, 0.1), T('bless', 0, 0.5), {}),
+  ], { chapter: 'bless' });
+  add('bless-placed', T('bless', 0, 0.5), cam('bless-placed', ['t:o1', 't:o10'], 1.25), cam('bless-placed', ['t:o1', 't:o10'], 1.5), [
+    ring('t:o10', T('bless', 0, 0.55), B('peace'), { round: true, pad: 4 }),
+    label('t:o10', 'Открыто: +2 к силе', TW('bless', 0, 'прибавляет'), T('bless', 1), { dir: 'up', dist: 100 }),
+    label('t:o10', 'Карты соперников его не трогают', T('bless', 1, 0.1), B('peace'), { dir: 'up', dist: 100 }),
+  ]);
+}
+
+// ——— 9. Завет мира и поджог ———
+{
+  add('peace-pick', B('peace'), cam('peace-pick', 'a:pogranichye-hub', 1.05, 40), cam('peace-pick', 'a:pogranichye-hub', 1.15, 40), [
+    ring(badge('peace-pick', 'pogranichye-hub'), T('peace', 0, 0.1), T('peace', 1), { pad: 8 }),
+    label(badge('peace-pick', 'pogranichye-hub'), 'Завет мира — навсегда', T('peace', 0, 0.15), T('peace', 1), { dir: 'up', dist: 100 }),
+    ring('u:confirm', T('peace', 0, 0.45), T('peace', 1), { pad: 4 }),
+  ], { chapter: 'peace' });
+  add('raid-revealed', T('peace', 1), cam('raid-revealed', 't:o6', 1.05), cam('raid-revealed', 't:o6', 1.25), [
+    ring('t:o6', T('peace', 1, 0.05), T('peace', 1, 0.5), { round: true, pad: 4, red: true }),
+    label('t:o6', 'Поджог Кидара', T('peace', 1, 0.1), T('peace', 1, 0.5), { dir: 'up', dist: 100 }),
+  ]);
+  add('peace-raid-after', T('peace', 1, 0.5), cam('peace-raid-after', ['a:kedem-hub', 'a:dolina-ccw'], 1.3), cam('peace-raid-after', ['a:kedem-hub', 'a:dolina-ccw'], 1.4), [
+    ring(badge('peace-raid-after', 'kedem-hub'), T('peace', 1, 0.55), B('feint'), { pad: 8, red: true }),
+    label(badge('peace-raid-after', 'kedem-hub'), 'Пепелище — до конца партии', T('peace', 1, 0.6), B('feint'), { dir: 'down', dist: 100 }),
+    ring(badge('peace-raid-after', 'dolina-ccw'), T('peace', 1, 0.7), B('feint'), { pad: 8, green: true }),
+    label(badge('peace-raid-after', 'dolina-ccw'), 'Мир Галаада', T('peace', 1, 0.75), B('feint'), { dir: 'up' }),
+  ]);
+}
+
+// ——— 10. Отвлекающий манёвр ———
+{
+  add('feint-mine', B('feint'), cam('feint-mine', 't:o13', 1.15), cam('feint-mine', 't:o13', 1.4), [
+    ring('t:o13', T('feint', 0, 0.2), T('feint', 1), { round: true, pad: 4 }),
+    label('t:o13', 'Ваш манёвр — пустой жетон', T('feint', 0, 0.3), T('feint', 1), { dir: 'up', dist: 100 }),
+  ], { chapter: 'feint' });
+  add('feint-theirs', T('feint', 1), cam('feint-theirs', 't:o13', 1.4), cam('feint-theirs', 't:o13', 1.55), [
+    ring('t:o13', T('feint', 1, 0.1), B('cards'), { round: true, pad: 4, red: true }),
+    label('t:o13', 'А Кидар видит угрозу', TW('feint', 1, 'соперник'), B('cards'), { dir: 'up', dist: 100 }),
+  ]);
+}
+
+// ——— 11. Карты ———
+{
+  const cards = ['scout', 'prophet', 'herald'].map((c) => `u:btn:${c}`);
+  add('cards-hand', B('cards'), cam('cards-hand', 'u:hand', 1.35, -140), cam('cards-hand', 'u:hand', 1.45, -130), [
+    ...cards.map((ref, i) => ring(ref, T('cards', 0, 0.3) + i * 0.25, T('cards', 1), { pad: 3 })),
+    label(cards, 'Карты — в начале своего хода', T('cards', 0, 0.35), T('cards', 1), { dir: 'up', dist: 80 }),
+  ], { chapter: 'cards' });
+  const scouted = shotOf('cards-intel').info.target;
+  add('cards-scout', T('cards', 1), { c: [640, 330], z: 1.05 }, { c: [640, 320], z: 1.12 }, [
+    ring('u:btn:scout', T('cards', 1, 0.05), T('cards', 1, 0.45), { pad: 3 }),
+  ]);
+  add('cards-intel', T('cards', 1, 0.45), cam('cards-intel', `t:${scouted}`, 1.2), cam('cards-intel', `t:${scouted}`, 1.4), [
+    ring(`t:${scouted}`, T('cards', 1, 0.5), T('cards', 2), { round: true, pad: 4 }),
+    label(`t:${scouted}`, 'Видно только вам: войско 2', T('cards', 1, 0.55), T('cards', 2), { dir: 'up', dist: 100 }),
+  ]);
+  const proph = shotOf('cards-prophet').info.target;
+  add('cards-prophet', T('cards', 2), { c: [660, 330], z: 1.1 }, { c: [680, 310], z: 1.2 }, [
+    ring('u:btn:prophet', T('cards', 2, 0.05), T('cards', 3), { pad: 3 }),
+    ring(`t:${proph}`, T('cards', 2, 0.2), T('cards', 3), { round: true, pad: 4, red: true }),
+    ring('u:confirm', T('cards', 2, 0.45), T('cards', 3), { pad: 4 }),
+  ]);
+  const her = shotOf('cards-herald').info.target;
+  add('cards-herald', T('cards', 3), { c: [640, 330], z: 1.1 }, { c: [620, 310], z: 1.2 }, [
+    ring('u:btn:herald', TW('cards', 3, 'первый'), B('reveal'), { pad: 3 }),
+    ring(`t:${her}`, TW('cards', 3, 'убрать'), B('reveal'), { round: true, pad: 4, red: true }),
+    ring('u:confirm', TW('cards', 3, 'право'), B('reveal'), { pad: 4 }),
+  ]);
+}
+
+// ——— 12. Раскрытие ———
+{
+  const open = shotOf('reveal-open');
+  const all = Object.keys(open.tokens);
+  add('reveal-closed', B('reveal'), { c: [640, 350], z: 1.08 }, { c: [640, 345], z: 1.14 }, [], { chapter: 'reveal' });
+  add('reveal-open', TW('reveal', 0, 'открываются'), { c: [640, 345], z: 1.14 }, { c: [640, 340], z: 1.2 }, [
+    ...all.map((id, i) => ring(`t:${id}`, TW('reveal', 0, 'открываются') + 0.1 + i * 0.05, T('reveal', 1), { round: true, pad: 2, thin: true })),
+    ring('t:o6', TW('reveal', 1, 'поджоги'), TW('reveal', 1, 'потом'), { round: true, pad: 4, red: true }),
+    label('t:o6', '1 · Поджоги', TW('reveal', 1, 'поджоги'), B('battle'), { dir: 'left', dist: 150 }),
+    ring('t:o11', TW('reveal', 1, 'заветы'), TW('reveal', 1, 'а затем'), { round: true, pad: 4, green: true }),
+    label('t:o11', '2 · Заветы мира', TW('reveal', 1, 'заветы'), B('battle'), { dir: 'right', dist: 150 }),
+    ...['o1', 'o2', 'o3', 'o4'].map((id) => ring(`t:${id}`, TW('reveal', 1, 'сражения'), B('battle'), { round: true, pad: 4 })),
+    label(['t:o1', 't:o2'], '3 · Все сражения разом', TW('reveal', 1, 'сражения'), B('battle'), { dir: 'up', dist: 90 }),
+  ]);
+}
+
+// ——— 13. Сражение: 5 против 3, затем ничья 2 против 2 ———
+{
+  const b = LAY.battle.slopes;
+  if (b.defense.total !== 3 || b.attackers[0].total !== 5) throw new Error('съёмка разошлась со сценарием сражения');
+  const panel = {
+    type: 'panel', side: 'left', t0: T('battle', 0, 0.25), t1: T('battle', 5) - 0.1,
+    def: [['Горы', '+1', TW('battle', 2, 'горы')], ['Войско Галаада', '2', TW('battle', 2, 'войско')]],
+    defSum: ['3', TW('battle', 2, 'защита')],
+    atk: [['Ваше войско', '3', TW('battle', 3, 'войско')], ['Благословение', '+2', TW('battle', 3, 'благословение')]],
+    atkSum: ['5', TW('battle', 3, 'атака')],
+    verdict: ['5 > 3 · область ваша', TW('battle', 4, 'Пять'), true],
+  };
+  const pair = ['t:o1', 't:o2'];
+  add('battle-slopes', B('battle'), cam('battle-slopes', ['a:nagorye-ccw', 't:o1'], 1.05, 40), cam('battle-slopes', ['a:nagorye-ccw', 't:o1'], 1.15, 40), [
+    panel,
+    ring('t:o1', T('battle', 0, 0.3), T('battle', 1), { round: true, pad: 4, red: true }),
+    ring('t:o2', T('battle', 0, 0.45), T('battle', 1), { round: true, pad: 4, green: true }),
+  ], { chapter: 'battle' });
+  add('battle-detail', T('battle', 1), cam('battle-detail', 'u:sheet', 1.35), cam('battle-detail', 'u:sheet', 1.48), [
+    ring('u:row2', TW('battle', 1, 'Защита'), T('battle', 2), { pad: 3 }),
+    ring('u:row3', TW('battle', 1, 'плюс два'), T('battle', 2), { pad: 3 }),
+    chip(1180, 560, '+2 столица · +1 город · +1 горы', TW('battle', 1, 'плюс два'), T('battle', 2), {}),
+    chip(1180, 640, '+ все жетоны защитника', TW('battle', 1, 'все жетоны'), T('battle', 2), {}),
+  ]);
+  add('battle-slopes', T('battle', 2), cam('battle-slopes', ['a:nagorye-ccw', 't:o1'], 1.2, 40), cam('battle-slopes', ['a:nagorye-ccw', 't:o1'], 1.35, 40), [
+    panel,
+    ring(badge('battle-slopes', 'nagorye-ccw'), TW('battle', 2, 'горы'), T('battle', 3), { pad: 6, green: true }),
+    ring('t:o2', TW('battle', 2, 'войско'), T('battle', 3, 0.1), { round: true, pad: 4, green: true }),
+    ring('t:o1', TW('battle', 3, 'войско'), T('battle', 4, 0.5), { round: true, pad: 4, red: true }),
+    ring('t:o10', TW('battle', 3, 'благословение'), T('battle', 4, 0.5), { round: true, pad: 4, red: true }),
+  ]);
+  add('battle-won', T('battle', 4, 0.5), cam('battle-won', ['a:nagorye-ccw', 'a:primorye-cw'], 1.25, 40), cam('battle-won', ['a:nagorye-ccw', 'a:primorye-cw'], 1.35, 40), [
+    panel,
+    ring(badge('battle-won', 'nagorye-ccw'), T('battle', 4, 0.6), T('battle', 5), { pad: 8, green: true }),
+    label(badge('battle-won', 'nagorye-ccw'), 'Пастушьи Склоны — ваши', T('battle', 4, 0.65), T('battle', 5), { dir: 'down', dist: 110 }),
+  ]);
+  const s = LAY.battle.shore;
+  if (s.defense.total !== 2 || s.attackers[0].total !== 2 || s.outcome !== 'held') throw new Error('съёмка разошлась со сценарием ничьей');
+  const tie = { type: 'panel', t0: T('battle', 5, 0.1), t1: B('veteran') + 0.1,
+    def: [['Ваши корабли (Фарсис +1)', '2', T('battle', 5, 0.15)]], defSum: null,
+    atk: [['Войско Кидара', '2', T('battle', 5, 0.3)]], atkSum: null,
+    verdict: ['2 = 2 · побеждает защитник', T('battle', 5, 0.5), false] };
+  add('battle-tie', T('battle', 5), cam('battle-tie', ['t:o3', 't:o4'], 1.2), cam('battle-tie', ['t:o3', 't:o4'], 1.3), [
+    tie,
+    ring('t:o3', T('battle', 5, 0.15), T('battle', 5, 0.75), { round: true, pad: 4, red: true }),
+    ring('t:o4', T('battle', 5, 0.15), T('battle', 5, 0.75), { round: true, pad: 4, green: true }),
+  ]);
+  add('battle-held', T('battle', 5, 0.75), cam('battle-held', 'a:primorye-ccw', 1.3), cam('battle-held', 'a:primorye-ccw', 1.38), [
+    tie,
+    ring(badge('battle-held', 'primorye-ccw'), T('battle', 5, 0.8), B('veteran'), { pad: 8, green: true }),
+  ]);
+}
+
+// ——— 14. Жетон контроля ———
+{
+  const v = 'veteran-map';
+  const flag = (id) => { const r = rectOf(v, `a:${id}`); return { x: r.x + r.w / 2 - 22, y: r.y + 30, w: 44, h: 26 }; };
+  add(v, B('veteran'), cam(v, ['a:primorye-rim', 'a:primorye-ccw'], 1.3), cam(v, ['a:primorye-rim', 'a:primorye-ccw'], 1.45), [
+    ring(flag('primorye-ccw'), TW('veteran', 0, 'устоял'), T('veteran', 1), { pad: 6 }),
+    label(flag('primorye-ccw'), 'Устоял в ничьей', TW('veteran', 0, 'устоял') + 0.2, T('veteran', 1), { dir: 'down', dist: 100 }),
+    ring(flag('primorye-rim'), TW('veteran', 0, 'просто стоял'), T('veteran', 1), { pad: 6 }),
+    label(flag('primorye-rim'), 'Стоял на страже', TW('veteran', 0, 'просто стоял') + 0.2, T('veteran', 1), { dir: 'up', dist: 110 }),
+  ], { chapter: 'veteran' });
+  add('veteran-detail', T('veteran', 1), cam('veteran-detail', 'u:sheet', 1.3), cam('veteran-detail', 'u:sheet', 1.42), [
+    ring('u:row4', T('veteran', 1, 0.05), B('region'), { pad: 3 }),
+    ring('u:row2', TW('veteran', 1, 'защите'), B('region'), { pad: 3 }),
+  ]);
+}
+
+// ——— 15. Регионы ———
+{
+  const ids = ['primorye-rim', 'primorye-cw', 'primorye-hub', 'primorye-ccw'];
+  add('region', B('region'), cam('region', ids.map((id) => `a:${id}`), 1.1, 20), cam('region', ids.map((id) => `a:${id}`), 1.25, 20), [
+    ...ids.map((id, i) => ring(badge('region', id), TW('region', 0, 'все четыре') + i * 0.2, T('region', 1), { pad: 5 })),
+    label(badge('region', 'primorye-rim'), 'Награда «Дары моря»: +2 к чести Тира', TW('region', 0, 'награду'), T('region', 1), { dir: 'up', dist: 110 }),
+  ], { chapter: 'region' });
+  add('overview-late', T('region', 1), { c: [640, 330], z: 1.12 }, { c: [640, 330], z: 1.02 }, [
+    chip(768, 770, 'Целый регион в конце: +5 очков', TW('region', 1, 'каждый'), B('score'), { big: true }),
+  ]);
+}
+
+// ——— 16. Подсчёт ———
+{
+  const fin = shotOf('final');
+  const bits = fin.rows[0].bits;
+  add('final', B('score'), { c: [640, 250], z: 1.4 }, { c: [640, 200], z: 1.55 }, [
+    ring(bits[0], TW('score', 1, 'Честь'), T('score', 2), { pad: 5 }),
+    ring(bits[1], TW('score', 1, 'открытые'), T('score', 2), { pad: 5 }),
+    ring(bits[2], TW('score', 1, 'по пять'), T('score', 2), { pad: 5 }),
+    ring(bits[3], TW('score', 1, 'очки'), T('score', 2), { pad: 5 }),
+    ring(bits[4], T('score', 2), B('ronin'), { pad: 6 }),
+    ring(fin.ui.title, T('score', 2, 0.3), B('ronin'), { pad: 6 }),
+  ], { chapter: 'score' });
+}
+
+// ——— 17. Изгнанник ———
+{
+  add('ronin', B('ronin'), cam('ronin', 'u:standings', 1.6, 60), cam('ronin', 'u:standings', 1.7, 60), [
+    ring('u:seat0', T('ronin', 0, 0.2), T('ronin', 1), { pad: 4 }),
+    label('u:seat0', '0 областей · изгнанник', T('ronin', 0, 0.3), T('ronin', 1), { dir: 'right', dist: 260 }),
+  ], { chapter: 'ronin' });
+  add('ronin', T('ronin', 1), cam('ronin', 'a:primorye-cw', 1.05, 30), cam('ronin', 'a:primorye-cw', 1.2, 30), [
+    ring(badge('ronin', 'primorye-cw'), T('ronin', 1, 0.1), B('outro'), { pad: 6 }),
+    label(badge('ronin', 'primorye-cw'), 'Войско — с любой границы', T('ronin', 1, 0.2), B('outro'), { dir: 'down', dist: 130 }),
+  ]);
+}
+
+// ——— 18. Готовы править ———
+{
+  add('overview-late', B('outro'), { c: [640, 340], z: 1.02 }, { c: [640, 330], z: 1.2 }, [], { chapter: 'outro' });
+  add('menu-top', T('outro', 1), cam('menu-top', 'u:modes', 1.35, -60), cam('menu-top', 'u:modes', 1.45, -60), [
+    ring('u:solo', TW('outro', 1, 'против'), T('outro', 2), { pad: 4 }),
+    ring('u:online', TW('outro', 1, 'по сети'), T('outro', 2), { pad: 4 }),
+  ]);
+  add('end', T('outro', 2) - 0.25, CAM_FULL, CAM_FULL, [], { kind: 'end' });
+}
+
+S.sort((a, b) => a.t0 - b.t0);
+S.forEach((one, i) => { one.t1 = i + 1 < S.length ? S[i + 1].t0 : DUR + 1; one.i = i; });
+const CHAPTERS = N.segments.map((s) => ({ id: s.id, title: s.chapter, at: B(s.id) }));
+
+// ——————————————————————————————————————— отрисовка
+const $ = (id) => document.getElementById(id);
+const cards = [$('cardA'), $('cardB')];
+const IMG = {};
+function imgOf(name) {
+  if (!IMG[name]) { const im = new Image(); im.src = name.includes('/') ? name : `shots/${name}.webp`; IMG[name] = im; }
+  return IMG[name];
+}
+
+/** Камера: центр c (в CSS-пикселях игры) и приближение z, край снимка не показывается. */
+function camAt(e, t) {
+  const u = ease(clamp01((t - e.t0) / Math.max(0.01, e.t1 - e.t0)));
+  const z = e.from.z + (e.to.z - e.from.z) * u;
+  const hw = 640 / z; const hh = 360 / z;
+  const cx = Math.max(hw, Math.min(1280 - hw, e.from.c[0] + (e.to.c[0] - e.from.c[0]) * u));
+  const cy = Math.max(hh, Math.min(720 - hh, e.from.c[1] + (e.to.c[1] - e.from.c[1]) * u));
+  return { cx, cy, z };
+}
+const toCard = (c, p) => [((p[0] - c.cx) * c.z + 640) * K, ((p[1] - c.cy) * c.z + 360) * K];
+const rectToCard = (c, r) => { const [x, y] = toCard(c, [r.x, r.y]); return { x, y, w: r.w * c.z * K, h: r.h * c.z * K }; };
+const fadeIn = (t, t0, d = 0.3) => ease(clamp01((t - t0) / d));
+const alphaOf = (o, t) => Math.min(fadeIn(t, o.t0), 1 - fadeIn(t, o.t1 - 0.3));
+
+function ringSVG(r, o, t) {
+  const pad = (o.pad ?? 6) + 4;
+  const x = r.x - pad; const y = r.y - pad; const w = r.w + pad * 2; const h = r.h + pad * 2;
+  const rad = o.round ? Math.min(w, h) / 2 : Math.min(18, Math.min(w, h) / 2);
+  const len = 2 * (w + h - 4 * rad) + 2 * Math.PI * rad;
+  const drawn = ease(clamp01((t - o.t0) / 0.5));
+  const pulse = 1 + 0.035 * Math.sin((t - o.t0) * 4.2) * clamp01((t - o.t0 - 0.5) / 0.3);
+  const cx = x + w / 2; const cy = y + h / 2;
+  const cls = `ring${o.red ? ' red' : o.green ? ' green' : ''}`;
+  return `<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rad}" style="stroke-width:${o.thin ? 3 : 5};stroke-dasharray:${len};stroke-dashoffset:${len * (1 - drawn)}" transform="translate(${cx} ${cy}) scale(${pulse}) translate(${-cx} ${-cy})" opacity="${alphaOf(o, t)}"/>`;
+}
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function labelHTML(r, o, t, svg) {
+  const dist = o.dist ?? 90;
+  const cx = r.x + r.w / 2; const cy = r.y + r.h / 2;
+  let lx = cx; let ly = cy; let ax = cx; let ay = cy;
+  if (o.inside) { ly = r.y + r.h - dist; ax = null; }
+  else if (o.dir === 'up') { ly = r.y - dist; ay = r.y - 10; }
+  else if (o.dir === 'down') { ly = r.y + r.h + dist; ay = r.y + r.h + 10; }
+  else if (o.dir === 'left') { lx = r.x - dist; ax = r.x - 10; }
+  else if (o.dir === 'right') { lx = r.x + r.w + dist; ax = r.x + r.w + 10; }
+  const a = alphaOf(o, t);
+  const rise = (1 - fadeIn(t, o.t0, 0.4)) * 16;
+  // плашка не выходит за карточку
+  lx = Math.max(200, Math.min(1536 - 200, lx));
+  ly = Math.max(50, Math.min(864 - 50, ly));
+  if (ax !== null && Math.hypot(lx - ax, ly - ay) > 60) svg.push(`<line class="lead" x1="${ax}" y1="${ay}" x2="${lx + (ax - lx) * 0.35}" y2="${ly + (ay - ly) * 0.35}" opacity="${a}"/>`);
+  return `<div class="label${o.big ? ' big' : ''}${o.red ? ' red' : ''}${o.green ? ' green' : ''}" style="left:${lx}px;top:${ly + rise}px;opacity:${a}">${esc(o.text)}</div>`;
+}
+
+function panelHTML(o, t) {
+  const a = alphaOf(o, t);
+  const row = ([name, val, at]) => `<div class="row" style="opacity:${fadeIn(t, at)}"><span>${esc(name)}</span><b>${esc(val)}</b></div>`;
+  const sum = (s) => (s ? `<div class="sum" style="opacity:${fadeIn(t, s[1])}"><span>=</span><span>${s[0]}</span></div>` : '');
+  const v = o.verdict;
+  const pop = 0.9 + 0.1 * ease(clamp01((t - v[1]) / 0.35));
+  return `<div class="panel${o.side === 'left' ? ' left' : ''}" style="opacity:${a};transform:translateX(${(1 - fadeIn(t, o.t0, 0.45)) * (o.side === 'left' ? -40 : 40)}px)">
+    <div class="side"><h4>ЗАЩИТА</h4>${o.def.map(row).join('')}${sum(o.defSum)}</div>
+    <div class="side"><h4>АТАКА</h4>${o.atk.map(row).join('')}${sum(o.atkSum)}</div>
+    <div class="verdict${v[2] ? ' win' : ''}" style="opacity:${fadeIn(t, v[1])};transform:scale(${pop})">${esc(v[0])}</div></div>`;
+}
+
+function drawShot(card, e, t) {
+  if (card.dataset.shot !== `${e.i}`) {
+    card.dataset.shot = `${e.i}`;
+    card.innerHTML = e.kind === 'clans' ? clansSkeleton() : e.kind === 'end' ? endSkeleton()
+      : `<div class="stage"><img src="${imgOf(e.name).src}"></div><div class="ov"></div>`;
+  }
+  if (e.kind === 'clans') { drawClans(card, e, t); return; }
+  if (e.kind === 'end') { drawEnd(card, e, t); return; }
+  const c = camAt(e, t);
+  card.querySelector('.stage').style.transform = `scale(${K}) translate(640px,360px) scale(${c.z}) translate(${-c.cx}px,${-c.cy}px)`;
+  const svg = []; const html = [];
+  for (const o of e.ov) {
+    if (t < o.t0 || t > o.t1) continue;
+    if (o.type === 'ring') {
+      svg.push(ringSVG(rectToCard(c, rectOf(e.name, o.ref)), o, t));
+    } else if (o.type === 'label') html.push(labelHTML(rectToCard(c, rectOf(e.name, o.ref)), o, t, svg));
+    else if (o.type === 'chip') html.push(`<div class="label${o.big ? ' big' : ''}" style="left:${o.x}px;top:${o.y + (1 - fadeIn(t, o.t0, 0.4)) * 16}px;opacity:${alphaOf(o, t)}">${esc(o.text)}</div>`);
+    else if (o.type === 'panel') html.push(panelHTML(o, t));
+  }
+  card.querySelector('.ov').innerHTML = `<svg viewBox="0 0 1536 864">${svg.join('')}</svg>${html.join('')}`;
+}
+
+// ——— пять царств ———
+const CLAN_IDS = ['tarsis', 'or', 'yor', 'prestol', 'kedem'];
+function clansSkeleton() {
+  return `<div class="clans"><div class="backdrop"></div><div class="title">Пять царств</div>${CLAN_IDS.map((id) => `<div class="clan" data-clan="${id}"><img src="${imgOf(`clan-${id}`).src}"></div>`).join('')}<div class="ov"></div></div>`;
+}
+function drawClans(card, e, t) {
+  const S1 = 1.12;                  // карточки чуть крупнее, чем в игре
+  const svg = []; const html = [];
+  CLAN_IDS.forEach((id, i) => {
+    const box = LAY.clans[id];
+    const w = (box.w + box.pad * 2) * S1; const h = (box.h + box.pad * 2) * S1;
+    const gap = 8;
+    const total = 5 * w + 4 * gap;
+    const x = (1536 - total) / 2 + i * (w + gap);
+    const y = 300;
+    // влёт снизу по очереди, с поворотом
+    const u = ease(clamp01((t - e.t0 - 0.35 - i * 0.16) / 0.8));
+    const f = e.focus[i];
+    const on = t >= f.t0 && t < f.t1 ? Math.min(fadeIn(t, f.t0, 0.3), 1 - fadeIn(t, f.t1 - 0.25, 0.25)) : 0;
+    const anyOn = e.focus.some((one) => t >= one.t0 - 0.1 && t < one.t1 + 0.1) ? 1 : 0;
+    const dim = anyOn ? 1 - 0.5 * (1 - on) : 1;
+    const fan = (i - 2) * 5 * (1 - on);
+    const el = card.querySelector(`[data-clan="${id}"]`);
+    el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;opacity:${u};filter:brightness(${dim});z-index:${on > 0.5 ? 5 : 1};`
+      + `transform:translateY(${(1 - u) * 260 - on * 34}px) rotateX(${(1 - u) * 50}deg) rotateY(${-fan}deg) scale(${1 + on * 0.1})`;
+    const tokenOn = t >= e.tokenAt;
+    if (tokenOn) {
+      const k = S1 * (1 + on * 0.1);
+      const tr = { x: x + (box.pad + box.token.x) * S1 - 4, y: y + (box.pad + box.token.y) * S1 - 4, w: box.token.w * S1 + 8, h: box.token.h * S1 + 8 };
+      svg.push(ringSVG(tr, { t0: e.tokenAt + i * 0.12, t1: e.endAt, pad: 2 }, t));
+      void k;
+    }
+  });
+  html.push(`<div class="label big" style="left:768px;top:${780 + (1 - fadeIn(t, e.tokenAt, 0.4)) * 16}px;opacity:${alphaOf({ t0: e.tokenAt, t1: e.endAt }, t)}">Особый жетон — только у этого царства</div>`);
+  const title = card.querySelector('.title');
+  title.style.opacity = fadeIn(t, e.t0 + 0.2, 0.5);
+  card.querySelector('.clans > .ov').innerHTML = `<svg viewBox="0 0 1536 864">${svg.join('')}</svg>${html.join('')}`;
+}
+
+// ——— концовка ———
+function endSkeleton() {
+  return `<div class="endcard"><div class="backdrop"></div><div class="inner"><img src="icon.webp"><h1>Царства</h1><p>Стратегия тайных приказов</p><div class="span">УДАЧИ, ЦАРЬ!</div></div></div>`;
+}
+function drawEnd(card, e, t) {
+  const u = ease(clamp01((t - e.t0) / 0.9));
+  const inner = card.querySelector('.inner');
+  inner.style.opacity = u;
+  inner.style.transform = `translateY(${(1 - u) * 30}px) scale(${0.96 + 0.04 * u})`;
+  card.querySelector('.backdrop').style.transform = `scale(${1.05 + 0.05 * clamp01((t - e.t0) / 4)})`;
+}
+
+/*
+  Какие кадры видны в момент t и как: наплыв (новый поверх старого) внутри
+  главы, поворот карточки на смене главы. Не больше двух кадров сразу.
+*/
+function layersAt(t) {
+  let at = S.findIndex((e) => t >= e.t0 && t < e.t1);
+  if (at < 0) at = t < S[0].t0 ? 0 : S.length - 1;
+  const out = [];
+  const e = S[at];
+  const next = S[at + 1];
+  const prev = S[at - 1];
+  const spanOf = (x) => (x.chapter ? FLIP / 2 : XF / 2);
+  const push = (x, role, u) => out.push({ e: x, role, u });
+  if (prev && t < e.t0 + spanOf(e)) push(prev, 'out', (t - (e.t0 - spanOf(e))) / (2 * spanOf(e)));
+  if (next && t >= next.t0 - spanOf(next)) {
+    push(e, 'out', (t - (next.t0 - spanOf(next))) / (2 * spanOf(next)));
+    push(next, 'in', (t - (next.t0 - spanOf(next))) / (2 * spanOf(next)));
+  } else push(e, prev && t < e.t0 + spanOf(e) ? 'in' : 'solo', prev ? (t - (e.t0 - spanOf(e))) / (2 * spanOf(e)) : 1);
+  return out;
+}
+
+function render(t) {
+  t = Math.max(0, Math.min(DUR, t));
+  const layers = layersAt(t);
+  const used = new Set();
+  for (const layer of layers) {
+    const card = cards[layer.e.i % 2];
+    used.add(card);
+    const incoming = layer.role === 'in' ? layer.e : layer.role === 'out' ? layers.find((l) => l.role === 'in')?.e : null;
+    const flip = incoming && incoming.chapter;
+    const u = clamp01(layer.u);
+    let style = 'opacity:1;transform:none;z-index:1;visibility:visible';
+    if (flip) {
+      // первая половина — старая карточка уходит ребром, вторая — новая выходит из ребра
+      if (layer.role === 'out') {
+        const k = ease(clamp01(u * 2));
+        style = `opacity:${u < 0.5 ? 1 : 0};visibility:${u < 0.5 ? 'visible' : 'hidden'};z-index:1;transform:translateZ(${-160 * k}px) rotateY(${-90 * k}deg)`;
+      } else {
+        const k = ease(clamp01(u * 2 - 1));
+        style = `opacity:${u >= 0.5 ? 1 : 0};visibility:${u >= 0.5 ? 'visible' : 'hidden'};z-index:2;transform:translateZ(${-160 * (1 - k)}px) rotateY(${90 * (1 - k)}deg)`;
+      }
+    } else if (layer.role === 'in') {
+      const k = ease(u);
+      style = `opacity:${k};z-index:2;visibility:visible;transform:none`;
+    } else if (layer.role === 'out') style = 'opacity:1;z-index:1;visibility:visible;transform:none';
+    card.style.cssText = style;
+    drawShot(card, layer.e, t);
+  }
+  for (const card of cards) if (!used.has(card)) { card.style.cssText = 'opacity:0;visibility:hidden'; }
+
+  // глава: заголовок сменяется в середине поворота
+  let ch = 0;
+  CHAPTERS.forEach((c, i) => { if (t >= c.at) ch = i; });
+  const nextCh = CHAPTERS[ch + 1];
+  const titleOf = (i) => `<i>${String(i + 1).padStart(2, '0')}</i>${esc(CHAPTERS[i].title)}`;
+  const cur = $('ch0'); const old = $('ch1');
+  cur.innerHTML = titleOf(ch);
+  const since = t - CHAPTERS[ch].at;
+  const k = ease(clamp01(since / 0.5));
+  cur.style.opacity = ch === 0 ? fadeIn(t, 0.3, 0.8) : k;
+  cur.style.transform = `translateY(${(1 - k) * 14}px)`;
+  if (ch > 0 && since < 0.5) { old.innerHTML = titleOf(ch - 1); old.style.opacity = 1 - k; old.style.transform = `translateY(${-k * 14}px)`; }
+  else old.style.opacity = 0;
+  void nextCh;
+  $('ticks').innerHTML = CHAPTERS.map((c, i) => `<span class="${i < ch ? 'done' : i === ch ? 'now' : ''}"></span>`).join('');
+  $('ticks').style.opacity = fadeIn(t, 0.3, 0.8);
+  document.querySelector('.kicker').style.opacity = fadeIn(t, 0.3, 0.8);
+
+  // субтитр текущей фразы
+  let text = ''; let a = 0;
+  for (const seg of N.segments) for (const [i, l] of seg.lines.entries()) {
+    const nextLine = seg.lines[i + 1];
+    const hold = nextLine ? Math.min(l.end + 0.25, nextLine.start - 0.02) : l.end + 0.45;
+    if (t >= l.start - 0.15 && t < hold) { text = l.text; a = Math.min(fadeIn(t, l.start - 0.15, 0.15), 1 - fadeIn(t, hold - 0.15, 0.15)); }
+  }
+  const sub = $('sub');
+  sub.textContent = text;
+  sub.style.opacity = a;
+
+  $('bg').style.transform = `scale(${1 + 0.06 * (t / DUR)}) translateX(${-20 * (t / DUR)}px)`;
+  // из темноты в начале и в темноту в конце
+  $('fade').style.opacity = Math.max(1 - fadeIn(t, 0, 0.9), fadeIn(t, DUR - 0.7, 0.7));
+}
+
+async function decodeAll() {
+  const names = [...new Set(S.filter((e) => !e.kind).map((e) => e.name))];
+  const all = [...names.map(imgOf), ...CLAN_IDS.map((id) => imgOf(`clan-${id}`)), imgOf('./icon.webp'), imgOf('../../web/assets/kingdoms/map-v3/base.webp')];
+  // decode() программной отрисовки изредка отказывает на больших снимках — ждём загрузку и пробуем ещё раз
+  const loaded = (im) => new Promise((done, fail) => {
+    if (im.complete && im.naturalWidth) done();
+    else { im.onload = done; im.onerror = () => fail(new Error(`не загрузилось ${im.src}`)); }
+  });
+  for (const im of all) {
+    await loaded(im);
+    for (let i = 0; i < 4; i += 1) { try { await im.decode(); break; } catch { /* ещё раз */ } }
+  }
+  await document.fonts.load('600 30px Onest');
+  await document.fonts.ready;
+  // проверка сценария: каждая указка находит свою цель
+  for (const e of S) {
+    if (e.kind) continue;
+    for (const o of e.ov) if (o.type === 'ring' || o.type === 'label') rectOf(e.name, o.ref);
+  }
+}
+
+window.SCENES = S;
+window.ready = decodeAll().then(() => { render(0); return true; });
+window.seek = async (t) => {
+  render(t);
+  const imgs = [...document.querySelectorAll('#frame img')];
+  await Promise.all(imgs.map((n) => (n.complete ? Promise.resolve() : n.decode().catch(() => {}))));
+};
+window.DURATION = DUR;
+
+const params = new URLSearchParams(location.search);
+if (!params.has('render')) {
+  document.body.classList.add('preview');
+  const bar = $('bar');
+  bar.hidden = false;
+  bar.max = DUR;
+  bar.addEventListener('input', () => render(+bar.value));
+  window.ready.then(() => { const t = +(params.get('t') || 0); render(t); bar.value = t; });
+}
+</script>
+</body>
+</html>

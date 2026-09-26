@@ -46,3 +46,6 @@ promo/ui-motion/build/
 promo/ad/build/
 promo/ad-28/build/
 promo/ad-60/build/
+promo/kingdoms-tutorial/build/
+# Ролики не хранятся в репозитории: собираются локально скриптами рядом
+promo/**/*.mp4
