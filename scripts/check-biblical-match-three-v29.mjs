@@ -68,9 +68,9 @@ ok(isBundled('web/js/v24-biblical-treasures-board.js'), 'Stable V29 board wiring
 ok(!isBundled('web/js/v27-biblical-treasures-hotfix.js'), 'V27 hotfix must not be loaded');
 ok(versionAtLeast(loader, /const VERSION = '(\d+)'/, 41) && loader.includes('__bmtV31HotfixInstalled') && loader.includes('v29-biblical-treasures-hotfix.js'), 'Existing lazy-loader compatibility wiring missing');
 ok(isBundled('web/js/v37-biblical-treasures-lamp-swipe.js') && loader.includes('__bmtV37LampSwipeInstalled'), 'V37 lazy-loader wiring missing');
-ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('biblical-treasures-v38.webp') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
-ok(versionAtLeast(launcher, /const VERSION="(\d+)"/, 42) && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('biblical-treasures-v38.webp') && launcher.includes('data-bmt-menu-art="v39"'), 'V42 canonical launcher icon source missing');
-ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('biblical-treasures-v38.webp'), 'Legacy hotfix can still revert the V39 menu icon');
+ok(home.includes("BIBLICAL_VERSION = '39'") && home.includes('unified-v1/biblical-treasures.webp') && home.includes("bmtMenuArt = 'v39'"), 'V39 stable menu icon patch missing');
+ok(versionAtLeast(launcher, /const VERSION="(\d+)"/, 42) && launcher.includes('const MENU_ART_VERSION="39"') && launcher.includes('unified-v1/biblical-treasures.webp') && launcher.includes('data-bmt-menu-art="v39"'), 'V42 canonical launcher icon source missing');
+ok(hotfix.includes("MENU_ART_VERSION = '39'") && hotfix.includes('unified-v1/biblical-treasures.webp'), 'Legacy hotfix can still revert the V39 menu icon');
 ok(!read('web/games/biblical-match-three-v15-polish.js').includes('patchAppCard'), 'Game polish can still replace the app icon after returning to the menu');
 ok(game.includes('applyLevelGoalSpecials') && game.includes('seededGoalSpecials'), 'Special-goal levels do not guarantee activatable pieces');
 ok(result.includes('completion-1-star-v40.webp') && result.includes('completion-2-stars-v40.webp') && result.includes('completion-3-stars-v40.webp') && result.includes('dataset.resultStars'), 'HQ star-specific completion art wiring missing');
