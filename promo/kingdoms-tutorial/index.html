@@ -118,11 +118,12 @@ const FLIP = 0.9;                  // поворот между главами
 const SEG = Object.fromEntries(N.segments.map((s, i) => [s.id, { ...s, index: i }]));
 /** Фраза i главы id, доля f её звучания. */
 const T = (id, i, f = 0) => { const l = SEG[id].lines[i]; return l.start + f * (l.end - l.start); };
-/** Когда во фразе звучит слово: по доле букв до него — голос ровный, этого хватает. */
+/** Когда во фразе звучит слово: по разметке голоса (words — [позиция в тексте, время]), иначе по доле букв до него. */
 const TW = (id, i, word, lead = 0.15) => {
   const l = SEG[id].lines[i];
   const at = l.text.indexOf(word);
   if (at < 0) throw new Error(`нет слова «${word}» во фразе ${id}/${i}`);
+  if (l.words) return l.words.filter(([p]) => p <= at).pop()[1] - lead;
   return l.start + (at / l.text.length) * (l.end - l.start) - lead;
 };
 /** Граница глав: середина паузы между ними. */
