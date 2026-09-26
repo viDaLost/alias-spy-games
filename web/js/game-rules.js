@@ -34,7 +34,7 @@
     {
       key: 'biblical-match-three',
       title: 'Библейские сокровища',
-      icon: 'web/assets/icons/biblical-treasures-v38.webp',
+      icon: 'web/assets/icons/unified-v1/biblical-treasures.webp',
       tagline: 'Матч-3: 50 уровней, особые фишки, каскады и препятствия',
       blocks: [
         {
@@ -146,7 +146,7 @@
     {
       key: 'bible-wow',
       title: 'Библейские слова',
-      icon: 'web/assets/icons/words.webp',
+      icon: 'web/assets/icons/unified-v1/words.webp',
       tagline: 'Соберите слова из набора букв',
       blocks: [
         {
@@ -175,7 +175,7 @@
     {
       key: 'bible-wordsearch',
       title: 'Поиск библейских слов',
-      icon: 'web/assets/icons/search.webp',
+      icon: 'web/assets/icons/unified-v1/search.webp',
       tagline: 'Найдите слова в сетке букв',
       blocks: [
         {
@@ -197,7 +197,7 @@
     {
       key: 'sacred-word',
       title: 'Священное слово',
-      icon: 'web/assets/icons/sacred.webp',
+      icon: 'web/assets/icons/unified-v1/sacred.webp',
       tagline: 'Откройте слово по буквам, пока горит светильник',
       blocks: [
         {
@@ -215,7 +215,7 @@
     {
       key: 'moses-nile',
       title: 'Моисей: Путь по Нилу',
-      icon: 'web/assets/icons/moses-nile.webp',
+      icon: 'web/assets/icons/unified-v1/moses-nile.webp',
       tagline: 'Трёхмерный забег по реке',
       blocks: [
         {
@@ -245,7 +245,7 @@
     {
       key: 'kids-ark-pairs',
       title: 'Найди пару',
-      icon: 'web/assets/icons/ark.webp',
+      icon: 'web/assets/icons/unified-v1/ark.webp',
       tagline: 'Парные карточки для самых маленьких',
       blocks: [
         {
@@ -265,7 +265,7 @@
     {
       key: 'alias',
       title: 'Алиас',
-      icon: 'web/assets/icons/alias.webp',
+      icon: 'web/assets/icons/unified-v1/alias.webp',
       tagline: 'Объясняйте слова на время',
       blocks: [
         {
@@ -283,7 +283,7 @@
     {
       key: 'spy',
       title: 'Соглядатай',
-      icon: 'web/assets/icons/spy.webp',
+      icon: 'web/assets/icons/unified-v1/spy.webp',
       tagline: 'Секретная роль и общая локация',
       blocks: [
         {
@@ -304,7 +304,7 @@
     {
       key: 'quartet',
       title: 'Квартет',
-      icon: 'web/assets/icons/quartet.webp',
+      icon: 'web/assets/icons/unified-v1/quartet.webp',
       tagline: 'Соберите четыре карты одной группы',
       blocks: [
         {
@@ -323,7 +323,7 @@
     {
       key: 'promised-land',
       title: 'Земля обетованная',
-      icon: 'web/assets/icons/promised-land-v2.webp',
+      icon: 'web/assets/icons/unified-v1/promised-land.webp',
       tagline: 'Уделы, поселения и юбилей',
       blocks: [
         {
@@ -430,7 +430,7 @@
     {
       key: 'twelve-tribes',
       title: 'Двенадцать колен',
-      icon: 'web/assets/icons/twelve-tribes.webp',
+      icon: 'web/assets/icons/unified-v1/twelve-tribes.webp',
       tagline: 'Станы и жребии: сбросьте карты первым',
       blocks: [
         {
@@ -557,7 +557,7 @@
     {
       key: 'coimaginarium',
       title: 'Соображариум',
-      icon: 'web/assets/icons/idea.webp',
+      icon: 'web/assets/icons/unified-v1/idea.webp',
       tagline: 'Тема и буква — придумайте ответ',
       blocks: [
         {
@@ -570,7 +570,7 @@
     {
       key: 'guess',
       title: 'Угадай персонажа',
-      icon: 'web/assets/icons/character.webp',
+      icon: 'web/assets/icons/unified-v1/character.webp',
       tagline: 'Вопросы, версии и логика',
       blocks: [
         {
@@ -583,7 +583,7 @@
     {
       key: 'describe',
       title: 'Опиши, но не называй',
-      icon: 'web/assets/icons/describe.webp',
+      icon: 'web/assets/icons/unified-v1/describe.webp',
       tagline: 'Подсказки без прямого ответа',
       blocks: [
         {
@@ -596,7 +596,7 @@
     {
       key: 'kingdoms',
       title: 'Царства',
-      icon: 'web/assets/icons/kingdoms.webp',
+      icon: 'web/assets/icons/unified-v1/kingdoms.webp',
       tagline: 'Тайные жетоны и спор за земли — по правилам «Битвы за Рокуган»',
       blocks: [
         {

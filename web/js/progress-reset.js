@@ -50,7 +50,7 @@
     {
       key: 'biblical-match-three',
       title: 'Библейские сокровища',
-      icon: 'web/assets/icons/biblical-treasures-v38.webp',
+      icon: 'web/assets/icons/unified-v1/biblical-treasures.webp',
       keys: () => [`biblical_match_three_progress_v2_${userId()}`],
       progress() {
         const state = readJson(`biblical_match_three_progress_v2_${userId()}`, {});
@@ -66,7 +66,7 @@
     {
       key: 'bible-wow',
       title: 'Библейские слова',
-      icon: 'web/assets/icons/words.webp',
+      icon: 'web/assets/icons/unified-v1/words.webp',
       keys: () => ['bibleWowCompleted', 'bibleWowBonusByLevel', 'bibleWowProgressByLevel_v1', ...['en','de','es'].map(lang=>`bibleWowProgressByLevel_v1_${lang}`)],
       // Монеты лежат в одном ключе с номером уровня, поэтому ключ не удаляется,
       // а переписывается: уровень в начало, монеты на месте.
@@ -85,7 +85,7 @@
     {
       key: 'bible-wordsearch',
       title: 'Поиск библейских слов',
-      icon: 'web/assets/icons/search.webp',
+      icon: 'web/assets/icons/unified-v1/search.webp',
       keys: () => [`bible_wordsearch_progress_v2_${userId()}`],
       after() { window.WordGameShuffle?.reshuffle('ws'); },
       progress() {
@@ -99,7 +99,7 @@
     {
       key: 'sacred-word',
       title: 'Священное слово',
-      icon: 'web/assets/icons/sacred.webp',
+      icon: 'web/assets/icons/unified-v1/sacred.webp',
       keys: () => [`sacred_word_levels_v4_${userId()}`],
       progress() {
         const state = readJson(`sacred_word_levels_v4_${userId()}`, {});
@@ -111,7 +111,7 @@
     {
       key: 'kids-ark-pairs',
       title: 'Найди пару',
-      icon: 'web/assets/icons/ark.webp',
+      icon: 'web/assets/icons/unified-v1/ark.webp',
       keys: () => ['kids_ark_pairs_records_v1', 'kids_ark_pairs_stats_v2'],
       progress() {
         const records = readJson('kids_ark_pairs_records_v1', {});

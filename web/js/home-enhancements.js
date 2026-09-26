@@ -20,14 +20,14 @@
 
   const ICON_VERSION = '1';
   const ICONS = {
-    alias: `web/assets/icons/alias.webp?v=${ICON_VERSION}`, idea: `web/assets/icons/idea.webp?v=${ICON_VERSION}`,
-    character: `web/assets/icons/character.webp?v=${ICON_VERSION}`, describe: `web/assets/icons/describe.webp?v=${ICON_VERSION}`,
-    spy: `web/assets/icons/spy.webp?v=${ICON_VERSION}`, quartet: `web/assets/icons/quartet.webp?v=${ICON_VERSION}`,
-    bibleSketch: `web/assets/icons/bible-sketch.svg?v=${ICON_VERSION}`,
-    words: `web/assets/icons/words.webp?v=${ICON_VERSION}`, search: `web/assets/icons/search.webp?v=${ICON_VERSION}`,
-    matchThree: 'web/assets/icons/biblical-treasures-v38.webp?v=39',
-    sacred: `web/assets/icons/sacred.webp?v=${ICON_VERSION}`, ark: `web/assets/icons/ark.webp?v=${ICON_VERSION}`,
-    'moses-nile': `web/assets/icons/moses-nile.webp?v=${ICON_VERSION}`,
+    alias: `web/assets/icons/unified-v1/alias.webp?v=${ICON_VERSION}`, idea: `web/assets/icons/unified-v1/idea.webp?v=${ICON_VERSION}`,
+    character: `web/assets/icons/unified-v1/character.webp?v=${ICON_VERSION}`, describe: `web/assets/icons/unified-v1/describe.webp?v=${ICON_VERSION}`,
+    spy: `web/assets/icons/unified-v1/spy.webp?v=${ICON_VERSION}`, quartet: `web/assets/icons/unified-v1/quartet.webp?v=${ICON_VERSION}`,
+    bibleSketch: `web/assets/icons/unified-v1/bible-sketch.webp?v=${ICON_VERSION}`,
+    words: `web/assets/icons/unified-v1/words.webp?v=${ICON_VERSION}`, search: `web/assets/icons/unified-v1/search.webp?v=${ICON_VERSION}`,
+    matchThree: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39',
+    sacred: `web/assets/icons/unified-v1/sacred.webp?v=${ICON_VERSION}`, ark: `web/assets/icons/unified-v1/ark.webp?v=${ICON_VERSION}`,
+    'moses-nile': `web/assets/icons/unified-v1/moses-nile.webp?v=${ICON_VERSION}`,
   };
 
   const SUPPORT_URL = 'https://t.me/tribute/app?startapp=dPzg';

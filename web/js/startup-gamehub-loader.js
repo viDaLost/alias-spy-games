@@ -13,19 +13,19 @@
   const startedAt = performance.now();
 
   const GAME_ICONS = [
-    { key: 'alias', src: 'web/assets/icons/alias.webp?v=1' },
-    { key: 'idea', src: 'web/assets/icons/idea.webp?v=1' },
-    { key: 'character', src: 'web/assets/icons/character.webp?v=1' },
-    { key: 'describe', src: 'web/assets/icons/describe.webp?v=1' },
-    { key: 'spy', src: 'web/assets/icons/spy.webp?v=1' },
-    { key: 'quartet', src: 'web/assets/icons/quartet.webp?v=1' },
-    { key: 'artist', src: 'web/assets/icons/bible-sketch.webp?v=3' },
-    { key: 'words', src: 'web/assets/icons/words.webp?v=1' },
-    { key: 'search', src: 'web/assets/icons/search.webp?v=1' },
-    { key: 'sacred', src: 'web/assets/icons/sacred.webp?v=1' },
-    { key: 'ark', src: 'web/assets/icons/ark.webp?v=1' },
-    { key: 'moses-nile', src: 'web/assets/icons/moses-nile.webp?v=1' },
-    { key: 'treasures', src: 'web/assets/icons/biblical-treasures-v38.webp?v=39' },
+    { key: 'alias', src: 'web/assets/icons/unified-v1/alias.webp?v=1' },
+    { key: 'idea', src: 'web/assets/icons/unified-v1/idea.webp?v=1' },
+    { key: 'character', src: 'web/assets/icons/unified-v1/character.webp?v=1' },
+    { key: 'describe', src: 'web/assets/icons/unified-v1/describe.webp?v=1' },
+    { key: 'spy', src: 'web/assets/icons/unified-v1/spy.webp?v=1' },
+    { key: 'quartet', src: 'web/assets/icons/unified-v1/quartet.webp?v=1' },
+    { key: 'artist', src: 'web/assets/icons/unified-v1/bible-sketch.webp?v=3' },
+    { key: 'words', src: 'web/assets/icons/unified-v1/words.webp?v=1' },
+    { key: 'search', src: 'web/assets/icons/unified-v1/search.webp?v=1' },
+    { key: 'sacred', src: 'web/assets/icons/unified-v1/sacred.webp?v=1' },
+    { key: 'ark', src: 'web/assets/icons/unified-v1/ark.webp?v=1' },
+    { key: 'moses-nile', src: 'web/assets/icons/unified-v1/moses-nile.webp?v=1' },
+    { key: 'treasures', src: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39' },
   ];
 
   const scene = document.getElementById('gamehub-boot-scene');
