@@ -1,0 +1,1636 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Библейские игры — ролик 60 с</title>
+<meta name="viewport" content="width=1440">
+<!--
+  Рекламный ролик «Библейские игры», минутная версия: 62,4 секунды петлёй,
+  26 тактов по 100 BPM, 104 доли. Все пятнадцать открытых игр приложения, и
+  каждая перетекает в следующую.
+
+  Устроен как promo/ad-28/index.html и берёт оттуда сцены восьми игр вместе с
+  их хореографией: доли тех сцен записаны по старой шкале и встают на новую
+  сетку со сдвигом (SEG), а доля здесь длиннее — всё идёт на пятую часть
+  медленнее. Между ними — семь новых игр, снятых в shots/ этой папки
+  (capture_new.mjs).
+
+  Перетекания семи новых игр:
+    плитки ИОРДАНа → на те же буквы сетки «Поиска слов»;
+    «Н» из сетки → на клавишу «Н» «Священного слова» (НОЙ);
+    «Н» из отгаданного слова → буква раунда «Соображариума» на тему «Имя»;
+    карточка переворачивается → «Алиас»; экран кубом → «Опиши слово»;
+    «Следующий игрок» — телефон передаётся по кругу → «Соглядатай»;
+    окно из карточки «Соглядатая» → лобби «Квартета»;
+    «Ковчег» с поля «Сокровищ» → рубашка карточки «Найди пару для ковчега»;
+    из последней пары круглым окном разливается Нил.
+
+  Всё внутри формы-экрана снято с работающих игр. Любой кадр — чистая функция
+  времени seek(t); кадр 62,4 с равен кадру 0,0.
+-->
+<style>
+  @font-face { font-family: 'Onest'; font-weight: 400 900; src: url('../ad/fonts/onest-cyrillic.woff2') format('woff2'); unicode-range: U+0400-045F, U+2116; }
+  @font-face { font-family: 'Onest'; font-weight: 400 900; src: url('../ad/fonts/onest-latin.woff2') format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  html, body { margin: 0; background: #0f1020; }
+  body { font-family: 'Onest', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  #frame { position: relative; width: 1440px; height: 1440px; overflow: hidden; background: #eaf3ff; }
+  #backdrop { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+  #veil { position: absolute; inset: 0; background: rgba(246, 251, 255, 0.34); }
+  #stage { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; }
+  #screen { position: absolute; left: 0; top: 0; overflow: hidden; background: #f6fbff; transform-origin: 50% 50%;
+    box-shadow: 0 34px 90px rgba(49, 46, 129, 0.24), 0 4px 14px rgba(49, 46, 129, 0.10); }
+  .scene { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .inner { position: absolute; left: 0; top: 0; width: 390px; transform-origin: 0 0; }
+  .a { position: absolute; left: 0; top: 0; }
+  .inner img, .a img { display: block; }
+  .crop { position: absolute; overflow: hidden; }
+  .crop > img { position: absolute; left: 0; top: 0; }
+  #water { position: absolute; inset: 0; background: #3f5d58; }
+  #fly { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+  .fly { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+  .face { position: absolute; inset: 0; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .face.back { transform: rotateY(180deg); }
+  .face img { position: absolute; left: 0; top: 0; max-width: none; }
+  #caption { position: absolute; left: 0; top: 0; width: 100%; height: 0; }
+  .cap { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 26px; white-space: nowrap; transform-origin: 50% 50%; }
+  .cap img { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 8px 22px rgba(49, 46, 129, 0.18); }
+  .kicker { font-size: 25px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #4F46E5; margin-bottom: 4px; }
+  .title { font-size: 62px; font-weight: 800; letter-spacing: -0.03em; color: #312E81; line-height: 1.02; }
+  .final { position: absolute; left: 0; top: 0; white-space: nowrap; transform-origin: 50% 50%; text-align: center; }
+  #cta { display: flex; align-items: center; justify-content: center; border-radius: 34px; color: #fff; font-size: 46px; font-weight: 800; letter-spacing: -0.01em;
+    background: linear-gradient(135deg, #4f46e5, #0ea5e9); box-shadow: 0 18px 40px rgba(79, 70, 229, 0.30); }
+  #finger { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+  #finger .dot { position: absolute; left: -34px; top: -34px; width: 68px; height: 68px; border-radius: 50%; box-sizing: border-box;
+    border: 4px solid #312E81; background: rgba(255, 255, 255, 0.82); box-shadow: 0 6px 18px rgba(49, 46, 129, 0.28); }
+  #finger .ring { position: absolute; left: -34px; top: -34px; width: 68px; height: 68px; border-radius: 50%; box-sizing: border-box; border: 4px solid #4F46E5; }
+  #hud { position: fixed; left: 0; bottom: 0; width: 1440px; padding: 10px 16px; box-sizing: border-box; display: flex; gap: 12px; align-items: center; color: #fff; font: 14px system-ui; background: #0f1020; }
+  #hud input { flex: 1; }
+  .render #hud { display: none; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <img id="backdrop" src="../ad/shots/backdrop.webp" alt="">
+  <div id="veil"></div>
+  <div id="stage">
+    <div id="screen"></div>
+    <div id="fly"></div>
+    <div id="finals"></div>
+  </div>
+  <div id="caption"></div>
+  <div id="finger"><div class="ring"></div><div class="dot"></div></div>
+</div>
+<div id="hud"><button id="play">▶</button><input id="scrub" type="range" min="0" max="62.4" step="0.001" value="0"><span id="clock">0.000</span></div>
+<script src="../ad/shots/layout.js"></script>
+<script src="../ad-28/shots/layout.js"></script>
+<script src="../ad-28/shots/moses.js"></script>
+<script src="../ad-28/shots/promised.js"></script>
+<script src="shots/layout.js"></script>
+<script>
+'use strict';
+
+// ——————————————————————————————————————————————— кадр и зоны
+
+const FRAME = { w: 1440, h: 1440 };
+const ZONES = {
+  caption: { cx: 720, cy: 118 },          // полоса подписи
+  screen: { cx: 720, cy: 818, h: 1170 },  // где стоит форма-экран
+};
+const C = { x: FRAME.w / 2, y: FRAME.h / 2 };
+
+// ——————————————————————————————————————————————— время и сетка
+
+/*
+  Минута: 26 тактов по 100 BPM, 104 доли по 0,6 с.
+
+  Сцены 28-секундного ролика перенесены сюда вместе со всей хореографией: их
+  доли записаны как там (0–56 при 120 BPM), а отрезки этой шкалы встают на
+  новую сетку со сдвигом. Доля длиннее (0,6 с вместо 0,5), поэтому всё, что там
+  происходило за долю, здесь происходит на пятую часть медленнее. Между
+  отрезками — новые игры; их доли — «виртуальные»: nb(х) — доля х новой сетки
+  в первом промежутке, np(х) — во втором.
+*/
+const BEAT_S = 0.6;
+const LOOP = 62.4;
+const NB = 104;
+const OLD_NB = 56;
+//         виртуальные доли      → с какой доли новой сетки
+const SEG = [
+  [0, 8, 0],            // меню, «Библейские слова»
+  [100, 140, 8],        // «Поиск слов», «Священное слово», «Соображариум», «Алиас», «Опиши слово», «Соглядатай»
+  [8, 19.6, 48],        // «Квартет», «Библейские сокровища»
+  [200, 208, 59.6],     // «Найди пару для ковчега»
+  [19.6, OLD_NB, 67.6], // Нил, «Земля обетованная», «Двенадцать колен», «Художник», «Угадай персонажа», финал
+];
+function toNew(v) {
+  if (v < 0) return toNew(v + OLD_NB) - NB;
+  if (v >= OLD_NB && v < 100) return toNew(v - OLD_NB) + NB;
+  for (const [a, b, n] of SEG) if (v >= a && (v < b || (a >= 100 && v <= b))) return n + (v - a);
+  throw new Error(`доля ${v} вне шкалы`);
+}
+const nb = (x) => { if (x < 8 || x > 48) throw new Error(`nb(${x}) вне первого промежутка`); return 100 + x - 8; };
+const np = (x) => { if (x < 59.6 || x > 67.6) throw new Error(`np(${x}) вне второго промежутка`); return 200 + x - 59.6; };
+/** Доля новой сетки → виртуальная доля (для сцен старой шкалы — их собственная доля). */
+function fromNew(n) {
+  for (const [a, b, s0] of SEG) if (n >= s0 && n < s0 + (b - a)) return a + n - s0;
+  return n - NB + OLD_NB;   // хвост за последней долей
+}
+let GRID = Array.from({ length: NB + 1 }, (_, i) => i * BEAT_S);
+function B(v) {
+  const b = toNew(v);
+  const k = Math.floor(b / NB);
+  const r = b - NB * k;
+  const i = Math.min(NB - 1, Math.floor(r));
+  return GRID[i] + (r - i) * (GRID[i + 1] - GRID[i]) + k * LOOP;
+}
+
+// ——————————————————————————————————————————————— пружины
+
+const SPR = {
+  ui: [19, 0.86], soft: [12, 0.9], snap: [30, 0.86], morph: [15, 0.9], cam: [10, 0.96],
+  cur: [13, 1], hop: [30, 1], drag: [9, 1], press: [42, 0.84], fade: [30, 1], pop: [22, 0.8], fall: [26, 0.78], slow: [7, 1],
+  flip: [13, 1], fly: [11, 1], cut: [400, 1], tilt: [9, 0.92],
+};
+function S(dt, name = 'ui') {
+  if (dt <= 0) return 0;
+  const [w, z] = SPR[name];
+  if (z >= 1) return 1 - (1 + w * dt) * Math.exp(-w * dt);
+  const wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * dt) * (Math.cos(wd * dt) + (z * w / wd) * Math.sin(wd * dt));
+}
+/** Критически задемпфированная пружина из (x0, v0) к цели. */
+function springFrom(x0, v0, target, dt, w) {
+  if (dt <= 0) return x0;
+  const a = x0 - target;
+  return target + (a + (v0 + w * a) * dt) * Math.exp(-w * dt);
+}
+
+/*
+  Дорожка: начальное значение и цели на долях. Значение — сумма пружин по одной
+  на смену цели, этого круга и прошлого. Последняя цель обязана равняться
+  начальной — иначе петля не замкнётся.
+*/
+const TRACKS = [];
+function track(v0, keys, name) {
+  const ev = [];
+  let prev = v0;
+  // цели по порядку во времени: доли разных отрезков шкалы по величине не сравнить
+  const sorted = keys.map((k, i) => [k, i]).sort((a, b) => toNew(a[0][0]) - toNew(b[0][0]) || a[1] - b[1]).map(([k]) => k);
+  for (const [b, v, sp] of sorted) { ev.push([b, v - prev, sp || 'ui']); prev = v; }
+  if (Math.abs(prev - v0) > 1e-6) throw new Error(`дорожка «${name}» не замкнута: ${v0} → ${prev}`);
+  const f = (t) => {
+    let v = v0;
+    for (let k = -1; k <= 0; k += 1) for (const [b, d, sp] of ev) v += d * S(t - B(b) - k * LOOP, sp);
+    return v;
+  };
+  TRACKS.push(name);
+  return f;
+}
+/** Точка — две дорожки. keys: [доля, {x, y}, пружина]. */
+function track2(p0, keys, name) {
+  const fx = track(p0.x, keys.map(([b, p, sp]) => [b, p.x, sp]), `${name}.x`);
+  const fy = track(p0.y, keys.map(([b, p, sp]) => [b, p.y, sp]), `${name}.y`);
+  return (t) => ({ x: fx(t), y: fy(t) });
+}
+/** Видимость слоя: вход и выход — каждый со своим временем. */
+function vis(t, bin, bout, sin = 'fade', sout = 'fade') {
+  let best = 0;
+  for (let k = -1; k <= 1; k += 1) {
+    const tt = t + k * LOOP;
+    best = Math.max(best, clamp(S(tt - B(bin), sin) - S(tt - B(bout), sout), 0, 1));
+  }
+  return best;
+}
+/** Время t, приведённое к кругу, в котором доля b ещё впереди или только что прошла. */
+function near(t, b) { let d = t - B(b); d -= LOOP * Math.round(d / LOOP); return d; }
+/** Импульс нажатия: 0 → 1 → 0 вокруг доли b (опускание и отпускание). */
+function press(t, b, hold = 0.09) {
+  const d = near(t, b) + 0.02;
+  return clamp(S(d, 'press') - S(d - hold, 'press'), 0, 1.2);
+}
+/** Доля новой сетки (с нуля, дробная) для момента t. */
+function newBeatNow(t) {
+  const tt = ((t % LOOP) + LOOP) % LOOP;
+  let i = 0;
+  while (i < NB - 1 && GRID[i + 1] <= tt) i += 1;
+  return i + (tt - GRID[i]) / (GRID[i + 1] - GRID[i]);
+}
+/** Виртуальная доля для момента t — в той шкале, в которой записана сцена. */
+const beatNow = (t) => fromNew(newBeatNow(t));
+/** Ход от 0 к 1 за время от доли a до доли b — плавный, как у движения пальца. */
+function ramp(t, a, b) {
+  const u = clamp(near(t, a) / (B(b) - B(a)), 0, 1);
+  return u * u * (3 - 2 * u);
+}
+
+// ——————————————————————————————————————————————— мелочи
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const px = (v) => `${v.toFixed(2)}px`;
+function el(tag, cls, parent) { const n = document.createElement(tag); if (cls) n.className = cls; parent.appendChild(n); return n; }
+function img(src, parent, cls = 'a') { const n = el('img', cls, parent); n.src = src; n.alt = ''; n.decoding = 'sync'; return n; }
+function place(node, x, y, w, h) {
+  node.style.transform = `translate(${px(x)}, ${px(y)})`;
+  if (w != null) node.style.width = px(w);
+  if (h != null) node.style.height = px(h);
+}
+/*
+  Скрытый узел получает и прозрачность 0: потомок с visibility: visible виден
+  даже в скрытом родителе, а прозрачность гасит всё поддерево.
+*/
+/** Видимость без фильтра — для предметов с двумя сторонами (фильтр сплющил бы 3D). */
+function show(node, p) {
+  if (p < 0.003) { node.style.visibility = 'hidden'; node.style.opacity = '0'; return false; }
+  node.style.visibility = 'visible';
+  node.style.opacity = p > 0.997 ? '1' : p.toFixed(4);
+  return true;
+}
+/** Видимость узла с лёгким размытием на входе и выходе. */
+function fade(node, p, blur = 8) {
+  if (p < 0.003) { node.style.visibility = 'hidden'; node.style.opacity = '0'; return false; }
+  node.style.visibility = 'visible';
+  node.style.opacity = p > 0.997 ? '1' : p.toFixed(4);
+  node.style.filter = p > 0.995 ? 'none' : `blur(${((1 - p) * blur).toFixed(2)}px)`;
+  return true;
+}
+
+const L = window.LAYOUT;       // экраны 14-секундного ролика (promo/ad/shots)
+const L2 = window.LAYOUT28;    // новые экраны (shots/)
+const M = window.MOSES;
+const PR = window.PROMISED;
+const WEB = '../../web/';
+const SOUNDS = [];
+const sound = (beat, kind) => SOUNDS.push({ beat, kind });   // доля — виртуальная; в новую сетку переводится при выдаче
+
+// ——————————————————————————————————————————————— сцены: вид на экран приложения
+
+/*
+  Каждая сцена — окно (view) в экран приложения в CSS-пикселях телефона и
+  масштаб k: 390×844 стоя, 844×390 боком («Земля обетованная» и «Художник» —
+  игры, которые сами просят повернуть телефон). На главных действиях окно
+  сужается к нужной части экрана и увеличивает её — это и есть «приближение»:
+  форма меняет пропорции вслед за окном и остаётся под подписью.
+*/
+const V = (x, y, w, h, k) => ({ view: { x, y, w, h }, k });
+const SC = {
+  menu:     { r: 58, cw: 390, states: [[-1, V(0, 0, 390, 780, 1.5)]] },
+  words:    { r: 58, cw: 390, states: [[1.12, V(0, 58, 390, 786, 1.49)], [2.45, V(0, 462, 390, 382, 2.05)], [6.05, V(0, 62, 390, 360, 2.05)]] },
+  ws:       { r: 52, cw: 390, states: [[nb(8), V(0, 88, 390, 690, 1.62)], [nb(9.3), V(0, 196, 390, 530, 2.08)]] },
+  sacred:   { r: 52, cw: 390, states: [[nb(14.1), V(0, 170, 390, 580, 1.75)], [nb(18.3), V(0, 170, 390, 410, 2.25)]] },
+  coim:     { r: 54, cw: 390, states: [[nb(20.1), V(0, 120, 390, 440, 2.1)]] },
+  alias:    { r: 54, cw: 390, states: [[nb(25), V(0, 40, 390, 530, 1.9)]] },
+  describe: { r: 54, cw: 390, states: [[nb(31.5), V(0, 80, 390, 320, 2.5)]] },
+  spy:      { r: 54, cw: 390, states: [[nb(35.9), V(0, 10, 390, 820, 1.38)]] },
+  lobby:    { r: 52, cw: 390, states: [[nb(45.9), V(0, 62, 390, 820, 1.42)]] },
+  game:     { r: 54, cw: 390, states: [[11.92, V(0, 0, 390, 844, 1.38)], [12.5, V(0, 296, 390, 548, 1.9)], [15.5, V(0, 0, 390, 844, 1.38)]] },
+  treasure: { r: 50, cw: 390, states: [[15.92, V(0, 104, 390, 508, 1.62)], [16.5, V(0, 160, 390, 452, 1.95)]] },
+  pairs:    { r: 52, cw: 390, states: [[np(59.7), V(0, 80, 390, 650, 1.7)]] },
+  moses:    { r: 54, cw: 390, states: [[np(66.5), V(0, 0, 390, 844, 1.37)]] },
+  promised: { r: 46, cw: 844, states: [[24.95, V(131, 190, 200, 192, 3)], [26.5, V(0, 0, 844, 390, 1.5)], [29.45, V(338, 158, 130, 70, 4.6)]] },
+  tribes:   { r: 50, cw: 390, states: [[30.1, V(0, 50, 390, 670, 1.68)]] },
+  sketch:   { r: 40, cw: 844, states: [[36.1, V(170, 50, 480, 266, 2.5)], [40.35, V(0, 0, 844, 390, 1.5)]] },
+  guess:    { r: 50, cw: 390, states: [[43.95, V(0, 76, 390, 240, 2.9)]] },
+};
+const EXIT = { menu: 1.6, words: 8.3, ws: nb(15), sacred: nb(21), lobby: 12.3, game: 16.3, treasure: 20.3, moses: 24.3, promised: 30.6, tribes: 36.3, sketch: 44.4, guess: 48.2 };
+for (const [key, s] of Object.entries(SC)) {
+  for (const [, st] of s.states) { st.w = st.view.w * st.k; st.h = st.view.h * st.k; st.cx = ZONES.screen.cx; st.cy = ZONES.screen.cy; st.r = s.r; }
+  Object.assign(s, s.states[0][1]);
+  // дорожки окна: центр, размер, масштаб — к каждому состоянию и обратно к первому после выхода
+  const keys = (f) => [...s.states.slice(1).map(([b, st]) => [b, f(st), 'morph']), ...(s.states.length > 1 ? [[EXIT[key], f(s.states[0][1]), 'morph']] : [])];
+  const d = s.states[0][1];
+  s.tk = track(d.k, keys((st) => st.k), `${key}.k`);
+  s.tx = track(d.view.x + d.view.w / 2, keys((st) => st.view.x + st.view.w / 2), `${key}.vx`);
+  s.ty = track(d.view.y + d.view.h / 2, keys((st) => st.view.y + st.view.h / 2), `${key}.vy`);
+  s.tw = track(d.view.w, keys((st) => st.view.w), `${key}.vw`);
+  s.th = track(d.view.h, keys((st) => st.view.h), `${key}.vh`);
+}
+function stateAt(s, b) { let st = s.states[0][1]; for (const [sb, x] of s.states) if (sb <= b + 1e-9) st = x; return st; }
+/** Точка экрана приложения p → точка кадра, в состоянии сцены на доле b (форма уже встала). */
+function at(s, p, b) {
+  const st = b == null ? s.states[0][1] : stateAt(s, b);
+  const v = st.view;
+  return { x: st.cx + (p.x - (v.x + v.w / 2)) * st.k, y: st.cy + (p.y - (v.y + v.h / 2)) * st.k };
+}
+const mid = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+const P = (s, p, b) => at(SC[s], p, b);
+
+// ——————————————————————————————————————————————— 3D-перевороты формы
+
+/*
+  Переворот: форма поворачивается на 180° вокруг оси; на ребре (90°) старое
+  содержимое сменяется новым, и форма доворачивается к зрителю уже им — угол
+  скачком переходит с 90° на −90°, поэтому новое содержимое не зеркально.
+*/
+const FLIP_MID = (() => { let a = 0, b = 1; for (let i = 0; i < 40; i += 1) { const m = (a + b) / 2; if (S(m, 'flip') < 0.5) a = m; else b = m; } return a; })();
+const FLIPS = {
+  coim: { b: nb(25), axis: 'y' }, alias: { b: nb(31.5), axis: 'x' },
+  cube: { b: 43.95, axis: 'x' }, card: { b: 45.05, axis: 'y' }, icon: { b: 47.55, axis: 'y' },
+};
+for (const f of Object.values(FLIPS)) f.mid = f.b + FLIP_MID / BEAT_S;
+function flipAngle(t, f) {
+  const d = near(t, f.b);
+  if (d < 0) return 0;
+  const u = 180 * S(d, 'flip');
+  return u < 90 ? u : u - 180;
+}
+// Нырок: экран запрокидывается вслед за корзинкой, под водой выпрямляется и
+// склоняется к колодцу, из которого выныривает.
+/*
+  «Передайте телефон следующему»: экран уходит влево с лёгким креном и
+  возвращается справа уже «Соглядатаем» — как телефон, переданный по кругу.
+*/
+const PASS = { b: nb(35.9), dist: 900 };
+PASS.mid = PASS.b + FLIP_MID / BEAT_S;
+function passShift(t) {
+  const d = near(t, PASS.b);
+  if (d < 0) return 0;
+  const u = S(d, 'flip');
+  return u < 0.5 ? -2 * u : 2 * (1 - u);
+}
+const diveTilt = track(0, [[24.15, 32, 'tilt'], [25.05, -24, 'tilt'], [25.9, 0, 'tilt']], 'dive.tilt');
+
+// ——————————————————————————————————————————————— узлы
+
+const screen = document.getElementById('screen');
+const stage = document.getElementById('stage');
+const flyLayer = document.getElementById('fly');
+const finger = document.getElementById('finger');
+const fingerDot = finger.querySelector('.dot');
+const fingerRing = finger.querySelector('.ring');
+const caption = document.getElementById('caption');
+const finals = document.getElementById('finals');
+const IMAGES = [];
+/** Снимок экрана: из promo/ad/shots, promo/ad-28/shots или shots/ этой папки. */
+function shotAt(src, parent, scale) { const n = img(src, parent); IMAGES.push([n, scale]); return n; }
+const A = (name, parent, scale = 3) => shotAt(`../ad/shots/${name}.webp`, parent, scale);
+const T28 = (name, parent, scale = 3) => shotAt(`../ad-28/shots/${name}.webp`, parent, scale);
+const shot = (name, parent, scale = 3) => shotAt(`shots/${name}.webp`, parent, scale);
+
+const N = {};
+const LAYER = {}; const INNER = {};
+for (const key of Object.keys(SC)) {
+  LAYER[key] = el('div', 'scene', screen);
+  INNER[key] = el('div', 'inner', LAYER[key]);
+  INNER[key].style.width = px(SC[key].cw);
+}
+// Толща воды — между Нилом и «Землёй обетованной»: ту проявляет круглое окно колодца.
+N.water = document.createElement('div'); N.water.id = 'water';
+screen.insertBefore(N.water, LAYER.promised);
+
+// 1. Меню: фон — закреплённая сцена приложения, поверх — лента меню, которая прокручивается.
+N.menuBg = A('menu-bg', INNER.menu, 2);
+N.menuContent = A('menu-content', INNER.menu, 2);
+N.menuCard = A('menu-card-words', screen, 2);   // карточка, раскрывающаяся в игру
+
+// 2. «Библейские слова»
+const W = L.words;
+N.wordsBase = A('words-noletters', INNER.words);
+const ORDER = W.path;                               // И О Р Д А Н — индексы букв круга
+const IORDAN = 'ИОРДАН';
+const iordan = (() => {
+  // слово стоит в одну линию: по столбцу или по строке — ищем шесть клеток подряд, дающих ИОРДАН
+  const cells = W.final;
+  for (const axis of ['x', 'y']) {
+    const other = axis === 'x' ? 'y' : 'x';
+    const lines = new Map();
+    for (const c of cells) { const key = Math.round(c[axis]); (lines.get(key) || lines.set(key, []).get(key)).push(c); }
+    for (const line of lines.values()) {
+      line.sort((a, b) => a[other] - b[other]);
+      for (let i = 0; i + 6 <= line.length; i += 1) if (line.slice(i, i + 6).map((c) => c.letter).join('') === IORDAN) return line.slice(i, i + 6);
+    }
+  }
+  throw new Error('ИОРДАН не найден в кроссворде');
+})();
+const newCells = iordan.map((c, i) => ({ ...c, i, fresh: !W.base.some((b) => b.solved && Math.abs(b.x - c.x) < 1 && Math.abs(b.y - c.y) < 1) })).filter((c) => c.fresh);
+// Открытая клетка — вырезка из того же скриншота, где эта буква уже открыта в другом слове.
+N.cells = newCells.map((c) => {
+  const src = W.base.find((b) => b.solved && b.letter === c.letter);
+  if (!src) throw new Error(`нет открытой клетки с буквой ${c.letter}`);
+  const pad = 2;
+  const box = el('div', 'crop', INNER.words);
+  box.style.left = px(c.x - pad); box.style.top = px(c.y - pad); box.style.width = px(c.w + pad * 2); box.style.height = px(c.h + pad * 2);
+  const im = A('words-base', box);
+  im.style.transform = `translate(${px(-(src.x - pad))}, ${px(-(src.y - pad))})`;
+  box.style.transformOrigin = '50% 50%';
+  return { box, c };
+});
+N.line = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+N.line.setAttribute('class', 'a'); N.line.setAttribute('width', 390); N.line.setAttribute('height', 844); N.line.style.overflow = 'visible';
+INNER.words.appendChild(N.line);
+N.linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+Object.entries({ fill: 'none', stroke: 'rgba(219,234,254,0.65)', 'stroke-width': 10, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }).forEach(([k, v]) => N.linePath.setAttribute(k, v));
+N.line.appendChild(N.linePath);
+N.letters = W.wheel.map((l) => ({ l, off: A(`words-letter-${l.idx}`, INNER.words), on: A(`words-letter-${l.idx}-on`, INNER.words) }));
+N.previews = W.drag.map((d) => A(`words-preview-${d.i}`, INNER.words));
+N.stars = A('words-stars-final', INNER.words);
+N.message = A('words-message', INNER.words);
+
+// 3. «Квартет»: лобби
+const Q = L.quartet;
+N.lobby = [1, 2, 3, 4].map((i) => A(`quartet-lobby-${i}`, INNER.lobby));
+N.copyBtn = A('quartet-copy-btn', INNER.lobby);
+N.toast = A('quartet-toast', INNER.lobby);
+N.startBtn = A('quartet-start-btn', INNER.lobby);
+
+// 4. «Квартет»: партия
+N.game = ['idle', 'target', 'card', 'success'].map((s) => A(`quartet-game-${s}`, INNER.game));
+N.flip = el('div', 'crop', INNER.game);           // карта Андрея: рубашка → рисунок
+N.flipBack = A('quartet-game-card', N.flip);
+N.flipArt = img(`${WEB}assets/quartet/cards/apostles_andrew.webp`, N.flip);
+N.noticeStart = A('quartet-notice-start', INNER.game);
+N.notice = A('quartet-notice', INNER.game);
+
+// 5. «Библейские сокровища»
+const T = L.treasures;
+N.trBase = A('treasures-empty', INNER.treasure);
+N.hud = ['b', 'c'].map((s) => A(`treasures-hud-${s}`, INNER.treasure));
+N.board = el('div', 'crop', INNER.treasure);
+N.cascade = el('div', 'a', INNER.treasure);   // «КАСКАД ×2» — стилями игры (.bmt-fx-float)
+N.cascade.textContent = 'КАСКАД ×2';
+Object.assign(N.cascade.style, { ...T.floatStyle, width: '90px', textAlign: 'center', whiteSpace: 'nowrap' });
+
+// 6. «Моисей»
+N.moses = img('../ad-28/build/moses/f0000.jpg', INNER.moses);
+N.moses.style.width = '390px';
+
+// 7. «Земля обетованная» — запись партии боком
+N.pl = img('../ad-28/build/promised/f0000.jpg', INNER.promised);
+N.pl.style.width = '844px';
+
+// 8. «Двенадцать колен»
+const TT = L2.tribes;
+N.tribes = [1, 2, 3, 4, 5].map((i) => T28(`tribes-${i}`, INNER.tribes));
+N.pilePatch = el('div', 'crop', INNER.tribes);     // сброс до хода: тройка Рувима
+N.pilePatchImg = T28('tribes-1', N.pilePatch);
+N.playCard = T28('tribes-card-3', INNER.tribes);  // тройка Дана по пути на сброс
+
+// 9. «Библейский художник»
+const SK = L2.sketch;
+N.sketch = ['turn', 'vote', 'review', 'result'].map((s) => T28(`sketch-${s}`, INNER.sketch));
+N.canvas = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+N.canvas.setAttribute('class', 'a'); N.canvas.setAttribute('width', 844); N.canvas.setAttribute('height', 390); N.canvas.style.overflow = 'visible';
+INNER.sketch.appendChild(N.canvas);
+// Линии — как их рисует игра: цвет и толщина кисти из самой партии (толщина — в пикселях холста).
+const BRUSH = SK.strokes[0].width * SK.brush.cssW / SK.brush.w;
+N.strokes = SK.strokes.map((st) => {
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  Object.entries({ fill: 'none', stroke: st.color, 'stroke-width': BRUSH.toFixed(2), 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }).forEach(([k, v]) => p.setAttribute(k, v));
+  N.canvas.appendChild(p);
+  return p;
+});
+
+// 10. «Угадай персонажа»
+const G = L2.guess;
+N.guess = [1, 2].map((i) => T28(`guess-${i}`, INNER.guess));
+
+// 11. Семь игр минутного ролика (shots/ этой папки)
+const L3 = window.LAYOUT60;
+const WS = L3.wordsearch;
+const wsCell = (r, c) => { const x = WS.cells.find((q) => q.r === r && q.c === c); if (!x) throw new Error(`нет клетки ${r},${c}`); return x; };
+N.ws = ['ws-1', 'ws-drag-1', 'ws-drag-2', 'ws-drag-3', 'ws-drag-4', 'ws-drag-5', 'ws-drag-6', 'ws-found'].map((n) => shot(n, INNER.ws));
+const SW = L3.sacred;
+N.sacred = [1, 2, 3, 4].map((i) => shot(`sacred-${i}`, INNER.sacred));
+const CO = L3.coim;
+N.coim = [1, 2].map((i) => shot(`coim-${i}`, INNER.coim));
+const AL = L3.alias;
+N.alias = [1, 2, 3, 4].map((i) => shot(`alias-${i}`, INNER.alias));
+const DS = L3.describe;
+N.describe = [1, 2, 3].map((i) => shot(`describe-${i}`, INNER.describe));
+const SP = L3.spy;
+const SPY_SHOTS = ['spy-1', 'spy-1-hole', 'spy-2', 'spy-3', 'spy-3-hole', 'spy-4'];
+N.spy = SPY_SHOTS.map((n) => shot(n, INNER.spy));
+/*
+  Карточки «Соглядатая» и «Найди пару» игра переворачивает CSS-3D: поворот на
+  180° с перспективой 1300 px и своей кривой. Здесь — тот же поворот, те же
+  стороны карточки (сняты отдельно), а под ними — экран без карточки.
+*/
+function flipCard(parent, frontName, backNames) {
+  const box = el('div', 'fly', parent);
+  const front = el('div', 'face', box); shot(frontName, front);
+  const back = el('div', 'face back', box);
+  return { box, backs: backNames.map((n) => shot(n, back)) };
+}
+N.spyFlip = flipCard(INNER.spy, 'spy-card-back', ['spy-card-role1', 'spy-card-role2']);
+const PA = L3.pairs;
+N.pairs = [1, 2, 3, 4, 5].map((i) => shot(`pairs-${i}`, INNER.pairs));
+N.pairsHole = [2, 3, 4, 5].map((i) => shot(`pairs-hole-${i}`, INNER.pairs));
+N.pairFlip = flipCard(INNER.pairs, 'pairs-card-closed', [2, 3, 4, 5].map((i) => `pairs-card-open-${i}`));
+const pairCard = (idx) => PA.cards.find((c) => c.idx === idx);
+const PAIR_ORDER = [PA.first[0], PA.first[1], PA.last[0], PA.last[1]];
+/** Кривая CSS cubic-bezier — как у переворотов в играх. */
+function bezier(x1, y1, x2, y2) {
+  const at = (m, a, b) => 3 * m * (1 - m) ** 2 * a + 3 * m * m * (1 - m) * b + m ** 3;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 32; i += 1) { const m = (lo + hi) / 2; if (at(m, x1, x2) < x) lo = m; else hi = m; }
+    return at((lo + hi) / 2, y1, y2);
+  };
+}
+// длительности игр (0,82 и 0,44 с), растянутые, как и весь ролик, на пятую часть
+const SPY_FLIP = { ease: bezier(0.18, 0.86, 0.26, 1), s: 0.82 * 1.2, pad: 40 };
+const PAIR_FLIP = { ease: bezier(0.22, 0.74, 0.18, 1), s: 0.44 * 1.2, pad: 12 };
+
+// 12. Финал
+N.icon = img(`${WEB}assets/pwa/icon-512.png`, screen);
+N.icon.style.objectFit = 'cover';   // иконка не растягивается, пока форма перестраивается
+N.fTitle = el('div', 'final', finals); N.fTitle.innerHTML = '<div style="font-size:112px;font-weight:900;letter-spacing:-0.04em;color:#312E81;line-height:1">Библейские игры</div>';
+N.fSub = el('div', 'final', finals); N.fSub.innerHTML = '<div style="font-size:40px;font-weight:600;color:#3730A3;opacity:.86">Мини-игры для компании, друзей и семьи</div>';
+// все пятнадцать игр — в порядке ролика, двумя рядами
+const FINAL_ICONS = ['words', 'search', 'sacred', 'idea', 'alias', 'describe', 'spy', 'quartet',
+  'biblical-treasures-v38', 'ark', 'moses-nile', 'promised-land-v2', 'twelve-tribes', 'bible-sketch', 'character'];
+const iconAt = (i) => { const row = i < 8 ? 0 : 1; const n = row ? 7 : 8; const j = row ? i - 8 : i; return { x: 720 + (j - (n - 1) / 2) * 128, y: 972 + row * 122 }; };
+N.fIcons = FINAL_ICONS.map((n) => {
+  const box = el('div', 'final', finals);
+  const im = img(`${WEB}assets/icons/${n}.webp`, box, '');
+  im.style.cssText = 'width:104px;height:104px;border-radius:25px;box-shadow:0 10px 24px rgba(49,46,129,.20)';
+  return box;
+});
+N.cta = el('div', 'final', finals); N.cta.innerHTML = '<div id="cta" style="width:620px;height:124px">Играть в Telegram</div>';
+
+// Подписи сцен: надзаголовок — название игры, крупная строка — описание с карточки меню.
+const CAPS = [
+  { from: -0.98, to: 1.15, icon: null, kicker: 'Библейские игры', title: 'Выберите игру' },
+  { from: 1.3, to: 7.9, icon: 'words', kicker: 'Библейские слова', title: 'Собери слова из букв' },
+  { from: nb(8.35), to: nb(13.8), icon: 'search', kicker: 'Поиск библейских слов', title: 'Найди скрытые слова' },
+  { from: nb(14.3), to: nb(19.9), icon: 'sacred', kicker: 'Священное слово', title: 'Открой слово по подсказкам' },
+  { from: nb(20.4), to: nb(24.8), icon: 'idea', kicker: 'Соображариум', title: 'Ассоциации и быстрые идеи' },
+  { from: nb(25.4), to: nb(31.3), icon: 'alias', kicker: 'Алиас', title: 'Объясняй слова на скорость' },
+  { from: nb(31.8), to: nb(35.7), icon: 'describe', kicker: 'Опиши, но не называй', title: 'Подсказки без прямого ответа' },
+  { from: nb(36.3), to: nb(45.7), icon: 'spy', kicker: 'Соглядатай', title: 'Секретная роль и локация' },
+  { from: nb(46.3), to: 11.9, icon: 'quartet', kicker: 'Квартет · онлайн-игра', title: 'Играйте по сети' },
+  { from: 12.05, to: 15.9, icon: 'quartet', kicker: 'Квартет', title: 'Собери четыре карты' },
+  { from: 16.05, to: np(59.9), icon: 'biblical-treasures-v38', kicker: 'Библейские сокровища', title: 'Матч-3 с Путём света' },
+  { from: np(60.3), to: np(66.1), icon: 'ark', kicker: 'Найди пару', title: 'Соберите животных попарно' },
+  { from: 20.05, to: 24.2, icon: 'moses-nile', kicker: 'Моисей: Путь по Нилу', title: 'Ведите корзинку по течению' },
+  { from: 25.55, to: 29.9, icon: 'promised-land-v2', kicker: 'Земля обетованная', title: 'Уделы, поселения и юбилей' },
+  { from: 30.2, to: 35.85, icon: 'twelve-tribes', kicker: 'Двенадцать колен', title: 'Станы и жребии: сбросьте карты первым' },
+  { from: 36.2, to: 43.8, icon: 'bible-sketch', kicker: 'Библейский художник', title: 'Рисуйте по очереди и найдите шпиона' },
+  { from: 44.1, to: 47.45, icon: 'character', kicker: 'Угадай персонажа', title: 'Вопросы, версии, логика' },
+];
+for (const c of CAPS) {
+  c.node = el('div', 'cap', caption);
+  c.node.innerHTML = `${c.icon ? `<img src="${WEB}assets/icons/${c.icon}.webp" alt="">` : ''}<div><div class="kicker">${c.kicker}</div><div class="title">${c.title}</div></div>`;
+  c.fit = 1;
+}
+const captionVis = (t) => CAPS.reduce((m, c) => Math.max(m, vis(t, c.from, c.to, 'pop', 'fade')), 0);
+
+// ——————————————————————————————————————————————— сценарий
+
+/*
+  Доли считаются с нуля (в раскадровке — с единицы). ⇄ — перетекание.
+
+  Такт 1–2 · меню → «Библейские слова» (как в 14-секундном ролике)
+  0     палец ведёт ленту меню, 1 — тап по «Библейским словам»
+  3–6   И→О→Р→Д→А→Н, отпускание — клетки ИОРДАНа, 7 — «Уровень пройден! +10⭐»
+  Такт 3 · «Квартет», лобби
+  8   ⇄ шесть плиток ИОРДАНа взлетают, кувыркаются и ложатся в код комнаты
+  9     «Скопировать», 10 — игроки входят, 11 — «Начать игру»
+  Такт 4 · «Квартет», партия
+  12    «Партия началась»; 13 Мария, 14 Андрей, 15 «Спросить карту» — карта переворачивается
+  Такт 5 · «Библейские сокровища»
+  16  ⇄ карта Андрея (он был рыбаком) переворачивается в полёте и ложится на поле фишкой «Рыба»
+  17    палец ведёт «Библию», 18 — три «Библии» исчезают, 19 — каскад ×2
+  Такт 6 · «Моисей: Путь по Нилу» — настоящий заплыв
+  20  ⇄ фишка «Ковчег» растёт, из неё разливается Нил
+  21    «▶» за лотосами, 22 — «ВОЛНА» через бревно
+  Такт 7
+  24    «НЫРОК» — корзинка уходит под воду, экран запрокидывается следом
+  25  ⇄ толща воды
+  26  ⇄ из колодца на поле «Земли обетованной» открывается окно — камера игры
+        поднимается к общему виду доски
+  Такт 8
+  28    «Бросить жребий», 29 — кубики кувыркаются и встают: 3 и 5
+  30  ⇄ камера наезжает на тройку, грань переворачивается картой «3 Дан»
+  Такт 8–9 · «Двенадцать колен»
+  31    тап по тройке — она ложится на тройку Рувима
+  32.5  соперники отвечают своими картами
+  34    тап по «Иордану» — ход поворачивает назад
+  35    «Шабат!» — осталась одна карта
+  36  ⇄ последняя карта переворачивается, её оборот — холст «Библейского художника»
+  Такт 10–11 · «Библейский художник»
+  37–40 палец рисует ковчег: корпус, стены, крыша, окно, волны
+  40.5  «Кто шпион?», 41 — голос за Вооза
+  42    шпион отвечает «лодка», 43 — «Не засчитывать»: «Художники победили»
+  Такт 12 · «Угадай персонажа»
+  44  ⇄ экран поворачивается кубом к карточке игрока 1
+  45    «Показать персонажа» — карточка переворачивается: «Моисей»
+  47.5⇄ карточка переворачивается иконкой приложения
+  Такт 13–14 · финал
+  48    «Библейские игры», 48.75 — подзаголовок, 49.5–51.25 — восемь иконок игр
+  52    «Играть в Telegram», 54 — тап
+  55    иконка раскрывается обратно в меню, палец на месте первого кадра
+*/
+
+// ——— форма-экран: центр, размеры, скругление ———
+const ICON_BOX = { cx: 720, cy: 500, w: 316, h: 316, r: 72 };
+const SEQ = [
+  ...Object.entries(SC).flatMap(([key, s]) => s.states.map(([b, st]) => [b < 0 ? OLD_NB - 0.98 : b, st])),
+  [FLIPS.icon.b + 0.05, ICON_BOX],
+].sort((a, b) => toNew(a[0]) - toNew(b[0]));
+const shapeKeys = (prop) => SEQ.map(([b, st]) => [b, st[prop], 'morph']);
+const shape = {
+  cx: track(SC.menu.cx, shapeKeys('cx'), 'shape.cx'),
+  cy: track(SC.menu.cy, shapeKeys('cy'), 'shape.cy'),
+  w: track(SC.menu.w, shapeKeys('w'), 'shape.w'),
+  h: track(SC.menu.h, shapeKeys('h'), 'shape.h'),
+  r: track(SC.menu.r, shapeKeys('r'), 'shape.r'),
+};
+const boxAt = (t) => ({ cx: shape.cx(t), cy: shape.cy(t), w: shape.w(t), h: shape.h(t), r: shape.r(t) });
+// Окна видимости содержимого: [вход, выход, пружина входа, пружина выхода].
+const WIN = {
+  menu: [-0.95, 1.2], words: [1.28, 7.97],
+  ws: [nb(8.3), nb(14.1)], sacred: [nb(14.25), nb(20.3)], coim: [nb(20.35), FLIPS.coim.mid, 'fade', 'cut'],
+  alias: [FLIPS.coim.mid, FLIPS.alias.mid, 'cut', 'cut'], describe: [FLIPS.alias.mid, PASS.mid, 'cut', 'cut'],
+  spy: [PASS.mid, nb(46.8), 'cut', 'fade'],
+  lobby: [nb(45.9), 11.97, 'cut'], game: [12.03, 15.97], treasure: [16.03, np(60.3)],
+  pairs: [np(60.1), np(67.2)],
+  moses: [np(66.35), 25.35, 'cut'], promised: [25.2, 30.25, 'cut'], tribes: [30.42, 35.95], sketch: [36.45, FLIPS.cube.mid, 'fade', 'cut'],
+  guess: [FLIPS.cube.mid, FLIPS.icon.mid, 'cut', 'cut'],
+};
+const sceneVis = (key, t) => { const [a, b, sa, sb] = WIN[key]; return vis(t, a, b, sa, sb); };
+
+// ——— камера: масштаб и точка, на которую она смотрит ———
+const copyC = P('lobby', mid(Q.lobby.copy));
+const startC = P('lobby', mid(Q.lobby.start));
+const basketC = P('moses', { x: 255, y: 590 });   // корзинка на правой дорожке
+const nameC = P('guess', mid(G.name));
+const cam = {
+  z: track(1, [[0.9, 1.04, 'cam'], [1.25, 1, 'cam'], [8.6, 1.07, 'cam'], [9.6, 1, 'cam'], [20.6, 1.05, 'cam'], [23.3, 1, 'cam'],
+    [24.1, 1.45, 'cam'], [25.1, 1, 'cam'], [45.5, 1.08, 'cam'], [47.2, 1, 'cam'],
+    [nb(18.4), 1.05, 'cam'], [nb(19.8), 1, 'cam'], [nb(42.8), 1.1, 'cam'], [nb(45.4), 1, 'cam']], 'cam.z'),
+  m: track2(C, [
+    [0.9, P('menu', mid({ ...L.menu.cards['bible-wow'], y: L.menu.cards['bible-wow'].y - 1236 })), 'cam'], [1.25, C, 'cam'],
+    [8.6, copyC, 'cam'], [9.6, C, 'cam'], [20.6, P('moses', { x: 195, y: 560 }), 'cam'], [23.3, C, 'cam'],
+    [24.1, basketC, 'cam'], [25.1, C, 'cam'], [45.5, nameC, 'cam'], [47.2, C, 'cam'],
+    // менора, пока горит свет; карточка «Египет»
+    [nb(18.4), P('sacred', mid(SW.lamp), nb(18.3)), 'cam'], [nb(19.8), C, 'cam'],
+    [nb(42.8), P('spy', mid(SP.card)), 'cam'], [nb(45.4), C, 'cam'],
+  ], 'cam.m'),
+};
+const CAPTION_BOTTOM = 212;
+function camera(t) {
+  const z = cam.z(t);
+  const m = cam.m(t);
+  // Пока видна подпись, верх формы при приближении не заходит под неё (мягкий минимум — без излома).
+  const top = shape.cy(t) - shape.h(t) / 2;
+  const limit = top + (C.y - CAPTION_BOTTOM) / z;
+  const soft = 16;
+  const h = Math.max(soft - Math.abs(m.y - limit), 0) / soft;
+  m.y = lerp(m.y, Math.min(m.y, limit) - h * h * soft / 4, captionVis(t));
+  return { z, m };
+}
+const toScreen = (c, p) => ({ x: C.x + c.z * (p.x - c.m.x), y: C.y + c.z * (p.y - c.m.y) });
+
+/*
+  Как сцена лежит в форме в момент t: масштаб содержимого и сдвиг от левого
+  верхнего угла формы. Содержимое масштабируется вместе с формой: во время
+  перестройки кажется, что сам экран приложения меняет пропорции.
+*/
+function sceneMap(key, t, box, p = 1) {
+  const s = SC[key];
+  const sk = s.tk(t);
+  const f = Math.sqrt((box.w / (s.tw(t) * sk)) * (box.h / (s.th(t) * sk)));
+  const k = sk * f * (0.97 + 0.03 * p);
+  return { k, x: box.w / 2 - s.tx(t) * k, y: box.h / 2 - s.ty(t) * k };
+}
+/** Точка экрана игры → точка кадра (до камеры) в момент t. */
+function toFrame(key, pt, t) {
+  const box = boxAt(t);
+  const m = sceneMap(key, t, box, sceneVis(key, t));
+  return { x: box.cx - box.w / 2 + m.x + pt.x * m.k, y: box.cy - box.h / 2 + m.y + pt.y * m.k, k: m.k };
+}
+/** Прямоугольник экрана игры → прямоугольник кадра в момент t. */
+function rectToFrame(key, r, t) {
+  const a = toFrame(key, r, t);
+  return { x: a.x, y: a.y, w: r.w * a.k, h: r.h * a.k, k: a.k };
+}
+
+// ——— меню: прокрутка пальцем ———
+const MENU_SCROLL = 1236;
+const menuCard = L.menu.cards['bible-wow'];
+const FLICK = { from: P('menu', { x: 300, y: 690 }), to: P('menu', { x: 300, y: 300 }), b0: 0, b1: 0.3 };
+/*
+  Лента меню идёт за пальцем, пока он прижат (прокрутка = путь пальца), а после
+  отпускания докатывается сама — пружиной, которая стартует со скоростью пальца.
+*/
+function menuScroll(t) {
+  const d = near(t, FLICK.b0);
+  const dur = B(FLICK.b1) - B(FLICK.b0);
+  const k = SC.menu.k;
+  if (d < 0) return 0;
+  const t0 = t - d;
+  const y0 = fingerP(t0).y;                     // где палец коснулся ленты
+  const byFinger = (tt) => (y0 - fingerP(tt).y) / k;
+  if (d <= dur) return byFinger(t0 + d);
+  const x0 = byFinger(t0 + dur);
+  const v0 = (byFinger(t0 + dur) - byFinger(t0 + dur - 0.004)) / 0.004;
+  return springFrom(x0, v0, MENU_SCROLL, d - dur, 16);
+}
+
+// ——— «Художник»: линии ковчега ———
+// Штрих i рисуется с доли a до доли b; палец ведёт линию, линия идёт за пальцем.
+const STROKE_BEATS = [[36.9, 37.55], [37.8, 38.2], [38.45, 38.85], [39.1, 39.35], [39.6, 40]];
+if (STROKE_BEATS.length !== SK.strokes.length) throw new Error('число штрихов не совпадает со снятой партией');
+const STROKES = SK.strokes.map((st, i) => {
+  const pts = st.points.map(([x, y]) => ({ x: SK.canvas.x + x * SK.canvas.w, y: SK.canvas.y + y * SK.canvas.h }));
+  const len = [0];
+  for (let j = 1; j < pts.length; j += 1) len.push(len[j - 1] + Math.hypot(pts[j].x - pts[j - 1].x, pts[j].y - pts[j - 1].y));
+  const [a, b] = STROKE_BEATS[i];
+  return { pts, len, total: len[len.length - 1], a, b };
+});
+/** Точки штриха до доли пути u (0…1) и конец — где сейчас кисть. */
+function strokeUpTo(s, u) {
+  const L0 = u * s.total;
+  const out = [s.pts[0]];
+  for (let j = 1; j < s.pts.length; j += 1) {
+    if (s.len[j] <= L0) { out.push(s.pts[j]); continue; }
+    const k = (L0 - s.len[j - 1]) / (s.len[j] - s.len[j - 1]);
+    out.push({ x: lerp(s.pts[j - 1].x, s.pts[j].x, k), y: lerp(s.pts[j - 1].y, s.pts[j].y, k) });
+    break;
+  }
+  return out;
+}
+const strokeFrame = (p) => P('sketch', p, 36.1);
+
+// ——— палец ———
+// ——— семь игр минутного ролика: доли (новая сетка) ———
+const WSB = { press: nb(10), end: nb(11.5), release: nb(12) };        // «Поиск слов»: жест по АВРААМу
+const WS_PATH = WS.path.map(({ r, c }) => mid(wsCell(r, c)));
+if (WS.path.map(({ r, c }) => wsCell(r, c).ch).join('') !== WS.word) throw new Error('путь в «Поиске слов» не складывается в слово');
+const T2 = { lift: nb(13.9), land: nb(14.7), cell: wsCell(0, 6) };   // «Н» из сетки → клавиша «Н»
+if (T2.cell.ch !== 'Н') throw new Error('под буквой «Н» в сетке другая буква');
+const SAC = { taps: [nb(16), nb(17), nb(18)], keys: ['Н', 'О', 'Й'] };  // НОЙ
+const T3 = { lift: nb(20), land: nb(20.9) };                          // «Н» из слова → буква раунда
+const COB = { next: nb(23) };
+const ALB = { taps: [nb(27), nb(28.5), nb(30)] };                      // «Отгадано», «Отгадано», «Пропустить»
+const DSB = { show: nb(33), next: nb(35) };
+const SPB = { flip1: nb(38), pass: nb(40), flip2: nb(42), iris: nb(45.9) };
+const PAB = { land: np(60.5), taps: [np(61), np(62), np(63.5), np(64.5)], iris: np(66.35) };
+const wsC = (p) => P('ws', p, nb(9.3));
+const sacredKeyC = (ch) => P('sacred', mid(SW.keys[ch]), nb(14.1));
+const pairC = (idx) => P('pairs', mid(pairCard(idx)));
+const tapWords = P('menu', { x: mid(menuCard).x, y: mid(menuCard).y - MENU_SCROLL });
+const letterAt = (idx) => P('words', W.wheel.find((l) => l.idx === idx), 3);
+const LETTER_BEATS = [3, 4, 4.5, 5, 5.25, 5.5];
+const mariaC = P('game', mid(Q.game.maria), 13);
+const andrewC = P('game', mid(Q.game.andrew), 14);
+const askC = P('game', mid(Q.game.ask), 15);
+const tile = (r, c) => T.tiles[r * T.cols + c];
+const tileC = (r, c) => P('treasure', mid(tile(r, c)), 17);
+const mosesBtn = (sel) => P('moses', M.buttons[sel]);
+const rollC = P('promised', mid(PR.buttons.roll), 27);
+const threeC = P('tribes', mid(TT.threeRect));
+const jordanC = P('tribes', mid(TT.jordanRect3));
+const shabbatC = P('tribes', { x: mid(TT.shabbat).x, y: mid(TT.shabbat).y });
+const voteC = P('sketch', mid(SK.voteBooz), 40.35);
+const rejectC = P('sketch', mid(SK.reject), 40.35);
+const showC = P('guess', mid(G.show));
+const CTA = { x: 720, y: 1262 };
+const ctaC = { x: 985, y: 1274 };   // палец жмёт правый край кнопки — надпись остаётся видна
+const REST = { x: 1090, y: 1150 };
+const strokeKeys = STROKES.flatMap((s, i) => [
+  [s.b, i + 1 < STROKES.length ? strokeFrame(STROKES[i + 1].pts[0]) : voteC, i + 1 < STROKES.length ? 'hop' : 'cur'],
+]);
+const fingerKeys = [
+  [0, FLICK.to, 'drag'],
+  [0.62, tapWords, 'cur'],
+  [1.6, P('words', { x: 250, y: 700 }), 'cur'], [2.3, letterAt(ORDER[0]), 'cur'],
+  ...ORDER.slice(1).map((idx, i) => [LETTER_BEATS[i + 1] - 0.26, letterAt(idx), 'hop']),
+  [6.1, P('words', { x: 300, y: 330 }, 6.1), 'cur'],
+  [nb(9), wsC(WS_PATH[0]), 'cur'], [WSB.end, wsC(WS_PATH[WS_PATH.length - 1]), 'hop'], [nb(12.5), wsC({ x: 330, y: 640 }), 'cur'],
+  ...SAC.keys.map((ch, i) => [SAC.taps[i] - 0.55, sacredKeyC(ch), 'cur']), [nb(18.6), REST, 'cur'],
+  [nb(22.3), P('coim', mid(CO.next)), 'cur'], [nb(23.6), REST, 'cur'],
+  [nb(26.3), P('alias', mid(AL.good)), 'cur'], [nb(29.4), P('alias', mid(AL.skip)), 'cur'], [nb(30.6), REST, 'cur'],
+  [nb(32.3), P('describe', mid(DS.show)), 'cur'], [nb(34.3), P('describe', mid(DS.next)), 'cur'], [nb(35.5), REST, 'cur'],
+  [nb(37.2), P('spy', mid(SP.reveal)), 'cur'], [nb(43), REST, 'cur'],
+  [nb(47.2), copyC, 'cur'],
+  [9.3, P('lobby', { x: 300, y: 520 }), 'cur'], [10.6, startC, 'cur'],
+  [11.35, P('game', { x: 280, y: 420 }, 13), 'cur'], [12.55, mariaC, 'cur'], [13.6, andrewC, 'cur'], [14.6, askC, 'cur'],
+  [15.3, P('treasure', { x: 300, y: 560 }, 17), 'cur'], [16.55, tileC(4, 2), 'cur'],
+  [17.02, { x: tileC(4, 3).x - 8, y: tileC(4, 3).y }, 'slow'],
+  [18.2, P('treasure', { x: 330, y: 600 }, 17), 'cur'],
+  ...PAB.taps.map((b, i) => [b - 0.6, pairC(PAIR_ORDER[i]), 'cur']), [np(65.2), REST, 'cur'],
+  [20.35, mosesBtn('#btn-right'), 'cur'], [21.5, mosesBtn('#btn-jump'), 'cur'], [23.4, mosesBtn('#btn-dive'), 'cur'],
+  [24.5, REST, 'cur'], [27.1, rollC, 'cur'],
+  [28.55, REST, 'cur'], [30.45, threeC, 'cur'], [32.5, jordanC, 'cur'], [34.5, shabbatC, 'cur'],
+  [35.9, strokeFrame(STROKES[0].pts[0]), 'cur'], ...strokeKeys,
+  [42.3, rejectC, 'cur'], [44.15, showC, 'cur'],
+  [46.2, { x: 1250, y: 1140 }, 'cur'],   // рядом с иконками игр, не поверх них [53.4, ctaC, 'cur'],
+  [54.4, { x: 1000, y: 1180 }, 'cur'], [55.05, FLICK.from, 'cur'],
+];
+const fingerBase = track2(FLICK.from, fingerKeys, 'finger');
+/*
+  Пока кисть на холсте, палец стоит на конце линии. Переход к штриху и от
+  него — без скачка: разница с дорожкой пальца гаснет пружиной.
+*/
+const WS_FRAME = WS_PATH.map(wsC);
+function fingerP(t) {
+  const p = fingerBase(t);
+  // «Поиск слов»: палец прижат и ведёт по буквам слова
+  {
+    const d = near(t, WSB.press);
+    const dur = B(WSB.end) - B(WSB.press);
+    if (d >= 0 && d <= dur) {
+      const u = ramp(t, WSB.press, WSB.end) * (WS_FRAME.length - 1);
+      const i = Math.min(WS_FRAME.length - 2, Math.floor(u));
+      const a = WS_FRAME[i]; const b = WS_FRAME[i + 1];
+      const q = { x: lerp(a.x, b.x, u - i), y: lerp(a.y, b.y, u - i) };
+      const b0 = fingerBase(t - d);
+      const k = 1 - S(d, 'hop');
+      return { x: q.x + (b0.x - WS_FRAME[0].x) * k, y: q.y + (b0.y - WS_FRAME[0].y) * k };
+    }
+  }
+  for (const [i, s] of STROKES.entries()) {
+    const d = near(t, s.a);
+    const dur = B(s.b) - B(s.a);
+    const next = STROKES[i + 1];
+    const until = next ? B(next.a) - B(s.a) : dur + 0.6;   // после штриха — до начала следующего
+    if (d < 0 || d >= until) continue;
+    if (d <= dur) {
+      const start = strokeFrame(s.pts[0]);
+      const pts = strokeUpTo(s, ramp(t, s.a, s.b));
+      const q = strokeFrame(pts[pts.length - 1]);
+      const b0 = fingerBase(t - d);
+      const k = 1 - S(d, 'hop');
+      return { x: q.x + (b0.x - start.x) * k, y: q.y + (b0.y - start.y) * k };
+    }
+    const end = strokeFrame(s.pts[s.pts.length - 1]);
+    const bb = fingerBase(t - (d - dur));
+    const k = 1 - S(d - dur, 'hop');
+    return { x: p.x + (end.x - bb.x) * k, y: p.y + (end.y - bb.y) * k };
+  }
+  return p;
+}
+// Нажатия: [доля, длительность удержания в секундах]
+const TAPS = [[1, 0.1], [9, 0.1], [11, 0.1], [13, 0.1], [14, 0.1], [15, 0.1], [21, 0.1], [22, 0.1], [24, 0.1],
+  [28, 0.1], [31, 0.1], [34, 0.1], [35, 0.1], [41, 0.1], [43, 0.1], [45, 0.1], [54, 0.12]];
+TAPS.push(...[...SAC.taps, COB.next, ...ALB.taps, DSB.show, DSB.next, SPB.flip1, SPB.pass, SPB.flip2, ...PAB.taps].map((b) => [b, 0.1]));
+const HOLDS = [[WSB.press, B(WSB.release) - B(WSB.press)], [0, B(FLICK.b1) - B(FLICK.b0)], [3, B(6) - B(3)], [17, B(18) - B(17)], ...STROKES.map((s) => [s.a, B(s.b) - B(s.a)])];
+function fingerPress(t) {
+  let p = 0;
+  for (const [b, h] of [...TAPS, ...HOLDS]) p = Math.max(p, press(t, b, h));
+  return p;
+}
+function ripple(t) {
+  let best = null;
+  for (const [b] of [...TAPS, ...HOLDS]) { const d = near(t, b); if (d >= 0 && d < 0.5 && (best == null || d < best)) best = d; }
+  return best;
+}
+for (const [b] of TAPS) sound(b, 'click');
+sound(0, 'grab'); sound(FLICK.b1, 'release');
+
+// ——— «Библейские слова» ———
+const LETTER_IN = W.wheel.map((l, i) => 2 + i * 0.25);          // шестнадцатыми по кругу
+LETTER_IN.forEach((b) => sound(b, 'tick'));
+LETTER_BEATS.forEach((b, i) => sound(b, i === 0 ? 'grab' : 'key'));
+sound(6, 'drop');
+const CELL_BEAT = (i) => 6.08 + i * 0.12;
+newCells.forEach((c, i) => sound(CELL_BEAT(i), 'tick'));
+sound(7, 'success');
+
+// ——— ⇄ ИОРДАН → код комнаты ———
+const TILE_BEAT = (i) => 7.62 + i * 0.06;
+const TILE_LAND = nb(8.8);
+// Плитки ложатся на клетки «Поиска слов» с теми же буквами.
+const TILE_CELLS = [[2, 2], [1, 2], [2, 4], [2, 3], [1, 4], [0, 6]].map(([r, c]) => wsCell(r, c));
+TILE_CELLS.forEach((cell, i) => { if (cell.ch !== IORDAN[i]) throw new Error(`клетка под плиткой ${IORDAN[i]} — ${cell.ch}`); });
+// Код в лобби набран крупно по центру поля кода: шесть мест под плитки.
+// Плитка — вырезка открытой клетки с той же буквой (на итоговом экране клетки закрывает тост).
+N.tiles = iordan.map((c, i) => {
+  const src = W.base.find((b) => b.solved && b.letter === c.letter);
+  const box = el('div', 'fly', flyLayer);
+  box.style.overflow = 'hidden'; box.style.borderRadius = '6px';
+  const im = A('words-base', box);
+  im.style.position = 'absolute'; im.style.maxWidth = 'none';
+  return { box, im, c, src, i };
+});
+sound(7.62, 'enter'); sound(TILE_LAND, 'drop');
+
+// ——— «Квартет» ———
+sound(9.05, 'pop');
+[10, 10.25, 10.5].forEach((b) => sound(b, 'pop'));
+sound(15.04, 'toggle'); sound(15.45, 'success');
+
+// ——— ⇄ карта Андрея → фишка «Рыба» ———
+const FISH = { b: 15.7, land: 16.36, r: 0, c: 0 };
+N.andrewFly = el('div', 'fly', flyLayer);
+N.andrewFront = el('div', 'face', N.andrewFly);
+img(`${WEB}assets/quartet/cards/apostles_andrew.webp`, N.andrewFront).style.cssText = 'width:100%;height:100%;object-fit:cover';
+N.andrewBack = el('div', 'face back', N.andrewFly);
+img(`${WEB}assets/biblical-match-three/icons-v17/fish.webp`, N.andrewBack).style.cssText = 'width:100%;height:100%;object-fit:contain';
+sound(15.7, 'toggle'); sound(FISH.land, 'drop');
+
+// ——— «Библейские сокровища»: поле ———
+/*
+  Раскладка на поле уровня 1 — из тех же фишек, что у игры, и по её правилам:
+  одна «Библия» переходит вправо и собирает ряд из трёх; после падения фишек
+  ряд выше собирается сам — каскад ×2. Проверяется ниже: в исходной раскладке
+  нет готовых рядов, после каждого падения — ровно один ряд.
+*/
+const PIECE = { B: 'bible', C: 'crown', F: 'fish', D: 'dove', A: 'ark', L: 'candle' };
+const START = ['FLADFADA', 'AFDCDLCF', 'DCLABBFC', 'FACDLCBD', 'CDBFBBAL'];
+const NEW1 = 'LCF';      // новые фишки сверху после первого сбора, столбцы 3–5
+const NEW2 = 'DCL';      // после каскада, столбцы 4–6
+const TB = { press: 17, release: 18, clear1: 18.28, fall1: 18.56, clear2: 19, fall2: 19.3, rowIn: (r) => 16.02 + r * 0.14 };
+if (START[FISH.r][FISH.c] !== 'F') throw new Error('на месте посадки карты Андрея не «Рыба»');
+function simulate() {
+  const g = START.map((r) => r.split(''));
+  const triples = (b) => {
+    const out = [];
+    for (let r = 0; r < 5; r += 1) for (let c = 0; c < 8; c += 1) {
+      if (c <= 5 && b[r][c] === b[r][c + 1] && b[r][c] === b[r][c + 2]) out.push(`r${r}c${c}`);
+      if (r <= 2 && b[r][c] === b[r + 1][c] && b[r][c] === b[r + 2][c]) out.push(`v${r}c${c}`);
+    }
+    return out;
+  };
+  if (triples(g).length) throw new Error(`в исходной раскладке уже есть ряд: ${triples(g)}`);
+  [g[4][2], g[4][3]] = [g[4][3], g[4][2]];
+  if (triples(g).join() !== 'r4c3') throw new Error(`после обмена не тот ряд: ${triples(g)}`);
+  const fall = (cols, row, fresh) => cols.forEach((c, i) => { for (let r = row; r > 0; r -= 1) g[r][c] = g[r - 1][c]; g[0][c] = fresh[i]; });
+  fall([3, 4, 5], 4, NEW1);
+  if (triples(g).join() !== 'r3c4') throw new Error(`каскад не собрался: ${triples(g)}`);
+  fall([4, 5, 6], 3, NEW2);
+  if (triples(g).length) throw new Error(`после каскада лишний ряд: ${triples(g)}`);
+  return g;
+}
+const FINAL_BOARD = simulate();
+/*
+  Фишки как объекты: у каждой — клетка до и после каждого события. Положение —
+  сумма пружин: обмен и падения сдвигают её на целое число клеток.
+*/
+const pieces = [];
+for (let r = 0; r < 5; r += 1) for (let c = 0; c < 8; c += 1) pieces.push({ type: START[r][c], r, c, moves: [], clear: null });
+const find = (r, c, list = pieces) => list.find((p) => p.r === r && p.c === c && !p.gone);
+find(FISH.r, FISH.c).flyIn = FISH.land;       // её место занимает прилетевшая карта
+{
+  const a = find(4, 2); const b = find(4, 3);
+  a.moves.push([TB.release, 0, 1, 'snap']); b.moves.push([TB.release, 0, -1, 'snap']);
+  a.c = 3; b.c = 2; a.dragged = true;
+  const clear = (cells, beat) => cells.forEach(([r, c]) => { const p = find(r, c); p.clear = beat; p.gone = true; });
+  const drop = (cols, row, fresh, beat) => cols.forEach((c, i) => {
+    for (let r = row - 1; r >= 0; r -= 1) { const p = find(r, c); p.moves.push([beat + (row - r) * 0.03, 1, 0, 'fall']); p.r = r + 1; }
+    pieces.push({ type: fresh[i], r: 0, c, moves: [[beat, 1.6, 0, 'fall']], clear: null, fresh: beat });
+  });
+  clear([[4, 3], [4, 4], [4, 5]], TB.clear1);
+  drop([3, 4, 5], 4, NEW1, TB.fall1);
+  clear([[3, 4], [3, 5], [3, 6]], TB.clear2);
+  drop([4, 5, 6], 3, NEW2, TB.fall2);
+}
+const PITCH = { x: tile(0, 1).x - tile(0, 0).x, y: tile(1, 0).y - tile(0, 0).y };
+const PIECE_BOX = { dx: tile(0, 0).piece.x - tile(0, 0).x, dy: tile(0, 0).piece.y - tile(0, 0).y, w: tile(0, 0).piece.w, h: tile(0, 0).piece.h };
+for (const p of pieces) {
+  p.node = img(`${WEB}assets/biblical-match-three/icons-v17/${PIECE[p.type]}.webp`, N.board);
+  p.node.style.width = px(PIECE_BOX.w); p.node.style.height = px(PIECE_BOX.h); p.node.style.objectFit = 'contain';
+  p.node.style.filter = 'drop-shadow(0 3px 3px rgba(38,54,98,.16))';   // как у фишек в игре
+  p.node.style.transformOrigin = '50% 55%';
+}
+// исходная клетка каждой фишки (до всех ходов)
+for (const p of pieces) {
+  const dr = p.moves.reduce((s, m) => s + m[1], 0);
+  const dc = p.moves.reduce((s, m) => s + m[2], 0);
+  p.r0 = p.r - dr; p.c0 = p.c - dc;
+}
+const pieceRect = (r, c) => ({ x: tile(0, 0).x + c * PITCH.x + PIECE_BOX.dx, y: tile(0, 0).y + r * PITCH.y + PIECE_BOX.dy, w: PIECE_BOX.w, h: PIECE_BOX.h });
+sound(TB.rowIn(0), 'tick'); sound(TB.rowIn(2), 'tick'); sound(TB.rowIn(4), 'tick');
+sound(TB.press, 'grab'); sound(TB.release, 'release'); sound(TB.clear1, 'pop'); sound(TB.clear2, 'success');
+
+// ——— ⇄ фишка «Ковчег» → Нил ———
+const ARK = { b: 19.35, r: 0, c: 2 };
+if (FINAL_BOARD[ARK.r][ARK.c] !== 'A') throw new Error('на месте «Ковчега» после каскада другая фишка');
+const arkPiece = pieces.find((p) => p.r === ARK.r && p.c === ARK.c && !p.gone);
+arkPiece.flyOut = ARK.b;
+// «Ковчег» летит на поле «Найди пару для ковчега» и ложится рубашкой первой карточки
+N.arkFly = el('div', 'fly', flyLayer);
+N.arkFront = el('div', 'face', N.arkFly);
+img(`${WEB}assets/biblical-match-three/icons-v17/ark.webp`, N.arkFront).style.cssText = 'width:100%;height:100%;object-fit:contain';
+N.arkBack = el('div', 'face back', N.arkFly);
+N.arkCard = shot('pairs-card-closed', N.arkBack);
+// буквы, перелетающие из игры в игру
+N.hFly = el('div', 'fly', flyLayer); N.hFly.style.overflow = 'hidden'; N.hFly.style.borderRadius = '8px';
+N.hFlyImg = shot('ws-found', N.hFly);
+N.slotFly = el('div', 'fly', flyLayer); N.slotFly.style.overflow = 'hidden'; N.slotFly.style.borderRadius = '10px';
+N.slotFlyImg = shot('sacred-4', N.slotFly);
+sound(ARK.b, 'enter');
+
+// ——— «Моисей» ———
+sound(24.15, 'enter');
+
+// ——— ⇄ колодец «Земли обетованной» ———
+const WELL = { x: 231, y: 286, r: 30, open: 25.3, spread: 25.8 };
+sound(WELL.open, 'pop');
+
+// ——— «Земля обетованная»: жребий ———
+const DIE = { x: 392, y: 184, w: 22, h: 16 };           // верхняя грань кубика с тройкой, после остановки
+const DIE_FRAME = 200;                                     // кадр записи: кубики уже лежат
+[28.55, 28.9, 29.2].forEach((b) => sound(b, 'tick'));
+sound(29.4, 'drop');
+
+// ——— ⇄ тройка → карта «3 Дан» ———
+const THREE = { b: 30, land: 30.55 };
+N.dieFly = el('div', 'fly', flyLayer);
+N.dieFront = el('div', 'face', N.dieFly);
+N.dieImg = img(`../ad-28/build/promised/f${String(DIE_FRAME).padStart(4, '0')}.jpg`, N.dieFront);
+N.dieBack = el('div', 'face back', N.dieFly);
+N.dieCard = T28('tribes-card-3', N.dieBack);
+const CARD_PAD = 18;                                       // поле вокруг карты в спрайте
+sound(THREE.b, 'toggle'); sound(THREE.land, 'drop');
+
+// ——— «Двенадцать колен» ———
+const TR = { play: 31, played: 31.3, bots: 32.5, jordan: 34, jordanOn: 34.12, shabbat: 35, shabbatOn: 35.12 };
+sound(TR.played, 'drop'); sound(TR.bots, 'pop'); sound(TR.bots + 0.25, 'pop'); sound(TR.jordanOn, 'toggle'); sound(TR.shabbatOn, 'success');
+
+// ——— ⇄ последняя карта → холст ———
+const JUDAH = { x: 22, y: 568, w: 78, h: 112, r: 10 };    // пятёрка Иуды в руке (tribes-5)
+const CANVAS = { b: 35.9, land: 36.62 };
+N.cardFly = el('div', 'fly', flyLayer);
+N.cardFront = el('div', 'face', N.cardFly);
+N.cardImg = T28('tribes-5', N.cardFront);
+N.cardBack = el('div', 'face back', N.cardFly);
+N.cardBack.style.background = '#ffffff';
+sound(CANVAS.b, 'toggle');
+
+// ——— «Художник» ———
+STROKES.forEach((s) => { sound(s.a, 'grab'); sound(s.b, 'release'); });
+const SKB = { vote: 40.45, review: 42, result: 43.15 };
+sound(SKB.vote, 'enter'); sound(SKB.review, 'pop'); sound(SKB.result, 'success');
+
+// ——— «Угадай персонажа» и финал ———
+sound(FLIPS.cube.b, 'enter'); sound(FLIPS.card.b, 'toggle'); sound(FLIPS.card.mid + 0.1, 'success'); sound(FLIPS.icon.b, 'toggle');
+const FIN = { title: 48, sub: 48.75, icons: 49.5, cta: 52, tap: 54, out: 54.95, menu: OLD_NB - 0.98 };
+sound(FIN.title, 'enter'); FINAL_ICONS.forEach((n, i) => { if (i % 2 === 0) sound(FIN.icons + i * 0.125, 'pop'); });
+sound(FIN.tap + 1, 'release');
+
+// ——— звуки семи игр ———
+sound(WSB.press, 'grab'); WS_PATH.slice(1).forEach((c, i) => sound(WSB.press + (i + 1) * 0.3, 'tick')); sound(WSB.release, 'success');
+sound(T2.lift, 'toggle'); sound(T2.land, 'drop');
+SAC.taps.forEach((b, i) => sound(b, i === 2 ? 'success' : 'key'));
+sound(T3.lift, 'toggle'); sound(T3.land, 'drop'); sound(COB.next + 0.05, 'pop');
+sound(FLIPS.coim.b, 'toggle'); ALB.taps.forEach((b) => sound(b + 0.05, 'pop'));
+sound(FLIPS.alias.b, 'enter'); sound(DSB.show + 0.05, 'toggle');
+sound(PASS.b, 'enter'); sound(SPB.flip1, 'toggle'); sound(SPB.flip1 + 1, 'success'); sound(SPB.flip2, 'toggle'); sound(SPB.flip2 + 1, 'pop');
+sound(SPB.iris, 'enter');
+sound(PAB.land, 'drop'); PAB.taps.forEach((b, i) => sound(b + 0.05, 'tick')); sound(PAB.taps[1] + 0.9, 'success'); sound(PAB.taps[3] + 0.9, 'success');
+sound(PAB.iris, 'enter');
+
+// ——————————————————————————————————————————————— кадр
+
+function layoutScene(key, t, box) {
+  const layer = LAYER[key];
+  const inner = INNER[key];
+  const p = sceneVis(key, t);
+  if (!fade(layer, p, 12)) return null;
+  const m = sceneMap(key, t, box, p);
+  inner.style.transform = `translate(${px(m.x)}, ${px(m.y)}) scale(${m.k.toFixed(5)})`;
+  return m;
+}
+
+function sprite(node, rect, pad) {
+  const x = Math.max(0, rect.x - pad); const y = Math.max(0, rect.y - pad);
+  node.style.left = px(x); node.style.top = px(y);
+  return { x, y };
+}
+/** Летящий предмет: центр, размер, поворот в 3D. */
+function flyTo(node, r, rx = 0, ry = 0, extra = '') {
+  node.style.width = px(r.w); node.style.height = px(r.h);
+  node.style.transform = `translate(${px(r.x)}, ${px(r.y)}) ${extra} perspective(1100px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+}
+const lerpRect = (a, b, u) => ({ x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u), w: lerp(a.w, b.w, u), h: lerp(a.h, b.h, u) });
+/** Прямоугольник с тем же центром и размером через среднее геометрическое — для перетекания пропорций. */
+function morphRect(a, b, u, lift = 0) {
+  const cx = lerp(a.x + a.w / 2, b.x + b.w / 2, u);
+  const cy = lerp(a.y + a.h / 2, b.y + b.h / 2, u) - lift * Math.sin(Math.PI * u);
+  const w = a.w * Math.pow(b.w / a.w, u); const h = a.h * Math.pow(b.h / a.h, u);
+  return { x: cx - w / 2, y: cy - h / 2, w, h };
+}
+/** Кадр записи игры для момента ролика. */
+function footageFrame(rec, t) {
+  // записи сняты по сетке 28-секундного ролика (доля 0,5 с): время в ней — по старой доле
+  let old = beatNow(t); if (old >= 100) old = -99;
+  let d = old * 0.5 - rec.adStart;
+  return clamp(Math.round(d / rec.step) + rec.frameAtAdStart, 0, rec.frames - 1);
+}
+
+let frameT = 0;
+function render(t) {
+  frameT = t;
+  const c = camera(t);
+  stage.style.transform = `translate(${px(C.x - c.z * c.m.x)}, ${px(C.y - c.z * c.m.y)}) scale(${c.z.toFixed(5)})`;
+
+  // форма-экран: место, размер, скругление и поворот в 3D
+  const box = boxAt(t);
+  const rx = diveTilt(t) + flipAngle(t, FLIPS.cube) + flipAngle(t, FLIPS.alias);
+  const ry = flipAngle(t, FLIPS.card) + flipAngle(t, FLIPS.icon) + flipAngle(t, FLIPS.coim);
+  const ps = passShift(t);
+  screen.style.width = px(box.w); screen.style.height = px(box.h);
+  screen.style.transform = `translate(${px(box.cx - box.w / 2 + ps * PASS.dist)}, ${px(box.cy - box.h / 2 + Math.abs(ps) * 40)})`
+    + (Math.abs(ps) > 1e-4 ? ` rotate(${(ps * 9).toFixed(3)}deg)` : '')
+    + (Math.abs(rx) + Math.abs(ry) > 0.01 ? ` perspective(2200px) rotateX(${rx.toFixed(3)}deg) rotateY(${ry.toFixed(3)}deg)` : '');
+  screen.style.borderRadius = px(box.r);
+  const bt = beatNow(t);
+
+  // ——— меню ———
+  if (layoutScene('menu', t, box)) {
+    N.menuBg.style.top = '0px';
+    N.menuContent.style.transform = `translate(0px, ${px(-menuScroll(t))})`;
+  }
+  // карточка «Библейские слова»: нажатие и раскрытие в экран игры
+  {
+    const pOpen = S(near(t, 1.12), 'morph');
+    const pIn = vis(t, 0.95, 1.45, 'fade', 'fade');
+    if (fade(N.menuCard, pIn, 6)) {
+      const f = Math.sqrt((box.w / SC.menu.w) * (box.h / SC.menu.h));
+      const k = SC.menu.k * f;
+      const card = { x: menuCard.x, y: menuCard.y - menuScroll(t), w: menuCard.w, h: menuCard.h };
+      const cx0 = box.w / 2 + (card.x + card.w / 2 - 195) * k;
+      const cy0 = box.h / 2 + (card.y + card.h / 2 - 390) * k;
+      const cw0 = card.w * k, ch0 = card.h * k;
+      const cx = lerp(cx0, box.w / 2, pOpen), cy = lerp(cy0, box.h / 2, pOpen);
+      const sx = lerp(1, 1.7, pOpen);
+      const pad = 24 * k;
+      N.menuCard.style.width = px(cw0 + pad * 2); N.menuCard.style.height = px(ch0 + pad * 2);
+      N.menuCard.style.transform = `translate(${px(cx - cw0 / 2 - pad)}, ${px(cy - ch0 / 2 - pad)}) scale(${sx.toFixed(4)})`;
+      N.menuCard.style.transformOrigin = '50% 50%';
+    }
+  }
+
+  // ——— «Библейские слова» ———
+  if (layoutScene('words', t, box)) {
+    N.letters.forEach(({ l, off, on }, i) => {
+      const shown = vis(t, LETTER_IN[i], 8.4, 'pop', 'fade');
+      const slot = ORDER.indexOf(l.idx);
+      const active = slot >= 0 && near(t, LETTER_BEATS[slot]) >= 0 && near(t, 6) < 0 && near(t, 6) > -4;
+      sprite(off, W[`letter${l.idx}`], 30); sprite(on, W[`letter${l.idx}`], 30);
+      const s = (0.4 + 0.6 * Math.min(1, shown)) * (1 + 0.06 * press(t, LETTER_BEATS[slot] ?? -9, 0.05));
+      for (const n of [off, on]) { n.style.transform = `scale(${s.toFixed(4)})`; n.style.transformOrigin = '50% 50%'; }
+      fade(off, active ? 0 : shown, 6);
+      fade(on, active ? shown : 0, 0);
+    });
+    const typed = LETTER_BEATS.filter((b) => near(t, b) >= 0 && near(t, 6) < 0 && near(t, 6) > -4).length;
+    N.previews.forEach((n, i) => { sprite(n, W.drag[i].previewBox, 6); fade(n, typed === i + 1 ? 1 : 0, 0); });
+    if (typed > 0) {
+      const pts = ORDER.slice(0, typed).map((idx) => W.wheel.find((l) => l.idx === idx));
+      const fs = toContent('words', fingerP(t));
+      const d = [...pts, fs].map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+      N.linePath.setAttribute('d', d); N.line.style.visibility = 'visible';
+    } else N.line.style.visibility = 'hidden';
+    N.cells.forEach(({ box: cell }, i) => {
+      const d = near(t, CELL_BEAT(i));
+      const p = d >= 0 && near(t, 8.4) < 0 ? S(d, 'pop') : 0;
+      if (fade(cell, Math.min(1, p * 1.6), 0)) cell.style.transform = `scale(${(0.55 + 0.45 * p).toFixed(4)})`;
+    });
+    const pm = vis(t, 7, 8.4, 'pop', 'fade');
+    sprite(N.message, W.message, 20);
+    if (fade(N.message, Math.min(1, pm), 6)) { N.message.style.transform = `scale(${(0.8 + 0.2 * pm).toFixed(4)})`; N.message.style.transformOrigin = '50% 50%'; }
+    sprite(N.stars, W.stars, 14);
+    const ps = vis(t, 7.05, 8.4, 'pop', 'fade');
+    if (fade(N.stars, Math.min(1, ps * 1.5), 0)) { N.stars.style.transform = `scale(${(1 + 0.12 * Math.sin(Math.PI * clamp(near(t, 7.05) / 0.3, 0, 1))).toFixed(4)})`; N.stars.style.transformOrigin = '50% 50%'; }
+  }
+  // ⇄ плитки ИОРДАНа взлетают, кувыркаются и ложатся на те же буквы в сетке «Поиска слов»
+  N.tiles.forEach(({ box: tileBox, im, c, src, i }) => {
+    const d = near(t, TILE_BEAT(i));
+    const on = d >= 0 && near(t, TILE_LAND + 0.3) < 0;
+    const p = on ? Math.min(1, 1 - S(near(t, TILE_LAND), 'fade')) : 0;
+    if (!fade(tileBox, p, 6)) return;
+    const u = S(d, 'fly');
+    const from = rectToFrame('words', c, B(TILE_BEAT(0)));
+    const to = rectToFrame('ws', TILE_CELLS[i], B(TILE_LAND));
+    const r = morphRect(from, to, u, 90);
+    const kk = r.w / c.w;
+    im.style.width = px(390 * kk); im.style.height = px(844 * kk);
+    im.style.transform = `translate(${px(-src.x * kk)}, ${px(-src.y * kk)})`;
+    flyTo(tileBox, r, 360 * u);
+  });
+
+  // ——— «Поиск библейских слов»: жест по буквам, снимок на каждой букве ———
+  if (layoutScene('ws', t, box)) {
+    let idx = 0;
+    if (near(t, WSB.release) >= 0) idx = 7;
+    else if (near(t, WSB.press) >= 0) idx = 1 + Math.min(5, Math.floor(ramp(t, WSB.press, WSB.end) * 5 + 1e-6));
+    N.ws.forEach((n, i) => fade(n, i === idx ? 1 : 0, 0));
+  }
+  // ⇄ «Н» из сетки перелетает на клавишу «Н» «Священного слова»
+  {
+    const d = near(t, T2.lift);
+    const on = d >= 0 && near(t, T2.land + 0.35) < 0;
+    const p = on ? 1 - S(near(t, T2.land + 0.1), 'fade') : 0;
+    if (fade(N.hFly, p, 4)) {
+      const e = ramp(t, T2.lift, T2.land);
+      const from = rectToFrame('ws', T2.cell, B(T2.lift));
+      const to = rectToFrame('sacred', SW.keys['Н'], B(T2.land));
+      const r = morphRect(from, to, e, 70);
+      const kx = r.w / T2.cell.w, ky = r.h / T2.cell.h;
+      N.hFlyImg.style.width = px(390 * kx); N.hFlyImg.style.height = px(844 * ky);
+      N.hFlyImg.style.transform = `translate(${px(-T2.cell.x * kx)}, ${px(-T2.cell.y * ky)})`;
+      flyTo(N.hFly, r, 0, 360 * e);
+    }
+  }
+
+  // ——— «Священное слово»: Н, О, Й — свет меноры сохранён ———
+  if (layoutScene('sacred', t, box)) {
+    const idx = SAC.taps.filter((b) => near(t, b + 0.05) >= 0).length;
+    N.sacred.forEach((n, i) => fade(n, i === idx ? 1 : 0, 0));
+  }
+  // ⇄ «Н» из отгаданного слова становится буквой раунда «Соображариума»
+  {
+    const d = near(t, T3.lift);
+    const on = d >= 0 && near(t, T3.land + 0.35) < 0;
+    const e = ramp(t, T3.lift, T3.land);
+    // вторая половина полёта — растворение в большой букве раунда
+    const p = on ? 1 - clamp((e - 0.5) / 0.45, 0, 1) : 0;
+    if (fade(N.slotFly, p, 10)) {
+      const slot = SW.slotsSolved[0];
+      const glyph = { x: CO.letter.x + CO.letter.w / 2 - 36, y: CO.letter.y, w: 72, h: CO.letter.h };
+      const from = rectToFrame('sacred', slot, B(T3.lift));
+      const to = rectToFrame('coim', glyph, B(T3.land));
+      const r = morphRect(from, to, e, 110);
+      const kx = r.w / slot.w, ky = r.h / slot.h;
+      N.slotFlyImg.style.width = px(390 * kx); N.slotFlyImg.style.height = px(844 * ky);
+      N.slotFlyImg.style.transform = `translate(${px(-slot.x * kx)}, ${px(-slot.y * ky)})`;
+      flyTo(N.slotFly, r, -25 * Math.sin(Math.PI * e), 0);
+    }
+  }
+
+  // ——— «Соображариум»: тема «Имя», буква «Н» → «Новый раунд» ———
+  if (layoutScene('coim', t, box)) {
+    const second = near(t, COB.next + 0.05) >= 0;
+    fade(N.coim[0], second ? 0 : 1, 0); fade(N.coim[1], second ? 1 : 0, 0);
+  }
+  // ——— «Алиас»: слово за словом, таймер идёт ———
+  if (layoutScene('alias', t, box)) {
+    const idx = ALB.taps.filter((b) => near(t, b + 0.05) >= 0).length;
+    N.alias.forEach((n, i) => fade(n, i === idx ? 1 : 0, 0));
+  }
+  // ——— «Опиши слово»: «радуга», телефон — следующему ———
+  if (layoutScene('describe', t, box)) {
+    const idx = [DSB.show, DSB.next].filter((b) => near(t, b + 0.05) >= 0).length;
+    N.describe.forEach((n, i) => fade(n, i === idx ? 1 : 0, 0));
+  }
+  // ——— «Соглядатай»: карточка переворачивается так же, как в игре ———
+  if (layoutScene('spy', t, box)) {
+    const f1 = near(t, SPB.flip1); const f2 = near(t, SPB.flip2);
+    let base = 'spy-1'; let flip = null;
+    if (f2 >= SPY_FLIP.s) base = 'spy-4';
+    else if (f2 >= 0) { base = 'spy-3-hole'; flip = [f2, 1]; }
+    else if (near(t, SPB.pass + 0.05) >= 0) base = 'spy-3';
+    else if (f1 >= SPY_FLIP.s) base = 'spy-2';
+    else if (f1 >= 0) { base = 'spy-1-hole'; flip = [f1, 0]; }
+    N.spy.forEach((n, i) => fade(n, SPY_SHOTS[i] === base ? 1 : 0, 0));
+    if (show(N.spyFlip.box, flip ? 1 : 0)) {
+      const card = SP.card; const pad = SPY_FLIP.pad;
+      const o = { x: Math.max(0, card.x - pad), y: Math.max(0, card.y - pad) };
+      const im = N.spyFlip.backs[0];
+      N.spyFlip.backs.forEach((n, i) => { n.style.visibility = i === flip[1] ? 'inherit' : 'hidden'; });
+      N.spyFlip.box.style.width = im.style.width; N.spyFlip.box.style.height = im.style.height;
+      N.spyFlip.box.style.transformOrigin = `${px(card.x + card.w / 2 - o.x)} ${px(card.y + card.h / 2 - o.y)}`;
+      N.spyFlip.box.style.transform = `translate(${px(o.x)}, ${px(o.y)}) perspective(1300px) rotateY(${(180 * SPY_FLIP.ease(flip[0] / SPY_FLIP.s)).toFixed(3)}deg)`;
+    }
+  }
+
+  // ——— «Квартет»: лобби ———
+  const lm = layoutScene('lobby', t, box);
+  if (lm) {
+    // ⇄ лобби проявляется в круглом окне из карточки «Соглядатая»
+    const d = near(t, SPB.iris);
+    const R = Math.hypot(box.w, box.h) * S(d, 'morph');
+    const c0 = toFrame('spy', mid(SP.card), t);
+    LAYER.lobby.style.clipPath = d >= 0 && d < 1.5 && R < Math.hypot(box.w, box.h) * 0.999 ? `circle(${px(R)} at ${px(c0.x - (box.cx - box.w / 2))} ${px(c0.y - (box.cy - box.h / 2))})` : 'none';
+    const joined = [10, 10.25, 10.5].filter((b) => near(t, b) >= 0 && near(t, 12.4) < 0).length;
+    N.lobby.forEach((n, i) => fade(n, i === joined ? 1 : 0, 0));
+    const pc = press(t, 9, 0.1);
+    sprite(N.copyBtn, Q.lobby.copy, 16);
+    N.copyBtn.style.transform = `scale(${(1 - 0.04 * pc).toFixed(4)})`; N.copyBtn.style.transformOrigin = '50% 50%';
+    fade(N.copyBtn, pc > 0.01 ? 1 : 0, 0);
+    const pt = vis(t, 9.05, 9.95, 'pop', 'fade');
+    sprite(N.toast, Q.toast, 20);
+    if (fade(N.toast, Math.min(1, pt), 6)) { N.toast.style.transform = `translate(0px, ${px((1 - Math.min(1, pt)) * 14)}) scale(${(0.9 + 0.1 * pt).toFixed(4)})`; N.toast.style.transformOrigin = '50% 50%'; }
+    const ps = press(t, 11, 0.1);
+    sprite(N.startBtn, Q.lobby.start, 16);
+    N.startBtn.style.transform = `scale(${(1 - 0.04 * ps).toFixed(4)})`; N.startBtn.style.transformOrigin = '50% 50%';
+    fade(N.startBtn, ps > 0.01 ? 1 : 0, 0);
+  }
+
+  // ——— «Квартет»: партия ———
+  if (layoutScene('game', t, box)) {
+    const GS = [11.9, 13.02, 14.02, 15.62, 16.4];
+    const base = N.game.map((n, i) => vis(t, GS[i], GS[i + 1] + 0.3));
+    N.game.forEach((n, i) => fade(n, i === 0 ? 1 : base[i], 6));
+    sprite(N.noticeStart, Q.game.noticeStart, 24);
+    const pn = vis(t, 12.1, 12.9, 'pop', 'fade');
+    if (fade(N.noticeStart, Math.min(1, pn), 6)) { N.noticeStart.style.transform = `translate(0px, ${px((1 - Math.min(1, pn)) * 16)})`; }
+    const art = Q.game.andrewArt;
+    const df = near(t, 15.02);
+    const flipOn = df >= 0 && near(t, FISH.b) < 0;       // дальше карту несёт полёт
+    if (fade(N.flip, flipOn ? 1 : 0, 0)) {
+      place(N.flip, art.x, art.y, art.w, art.h);
+      N.flip.style.borderRadius = '12px';
+      const u = clamp(df / (B(15.4) - B(15.02)), 0, 1);
+      const sx = Math.abs(Math.cos(Math.PI * u));
+      N.flipBack.style.transform = `translate(${px(-art.x)}, ${px(-art.y)})`;
+      N.flipBack.style.visibility = u < 0.5 ? 'visible' : 'hidden';
+      N.flipArt.style.width = px(art.w); N.flipArt.style.height = px(art.h); N.flipArt.style.objectFit = 'cover';
+      N.flipArt.style.visibility = u >= 0.5 ? 'visible' : 'hidden';
+      N.flip.style.transform = `translate(${px(art.x)}, ${px(art.y)}) scale(${Math.max(0.02, sx).toFixed(4)}, 1)`;
+      N.flip.style.transformOrigin = '50% 50%';
+    }
+    sprite(N.notice, Q.game.notice, 24);
+    const pa = vis(t, 15.42, 16, 'pop', 'fade');
+    if (fade(N.notice, Math.min(1, pa), 6)) { N.notice.style.transform = `translate(0px, ${px((1 - Math.min(1, pa)) * 16)})`; }
+  }
+  // ⇄ карта Андрея переворачивается в полёте и ложится фишкой «Рыба»
+  {
+    const d = near(t, FISH.b);
+    const on = d >= 0 && near(t, FISH.land) < 0.02;
+    if (show(N.andrewFly, on ? 1 : 0)) {
+      const u = clamp(d / (B(FISH.land) - B(FISH.b)), 0, 1);
+      const e = u * u * (3 - 2 * u);
+      const from = rectToFrame('game', Q.game.andrewArt, B(FISH.b));
+      const to = rectToFrame('treasure', pieceRect(FISH.r, FISH.c), B(FISH.land));
+      const r = morphRect(from, to, e, 120);
+      N.andrewFront.style.borderRadius = N.andrewBack.style.borderRadius = px(12 * r.w / from.w);
+      flyTo(N.andrewFly, r, 0, 180 * e);
+    }
+  }
+
+  // ——— «Библейские сокровища» ———
+  if (layoutScene('treasure', t, box)) {
+    const hudY = T.hud.y;
+    N.hud.forEach((n, i) => { n.style.left = '0px'; n.style.top = px(hudY); fade(n, vis(t, i === 0 ? TB.clear1 : TB.clear2, i === 0 ? TB.clear2 + 0.3 : 20.4, 'fade', 'fade'), 0); });
+    place(N.board, T.board.x, T.board.y, T.board.w, T.board.h);
+    N.board.style.transform = `translate(${px(T.board.x)}, ${px(T.board.y)})`;
+    for (const p of pieces) {
+      let r = p.r0, cc = p.c0;
+      for (const [b, dr, dc, sp] of p.moves) { const s = S(near(t, b), sp); r += dr * s; cc += dc * s; }
+      let x = tile(0, 0).x + cc * PITCH.x + PIECE_BOX.dx - T.board.x;
+      let y = tile(0, 0).y + r * PITCH.y + PIECE_BOX.dy - T.board.y;
+      if (p.fresh == null && p.flyIn == null) y -= (1 - S(near(t, TB.rowIn(p.r0)), 'fall')) * PITCH.y * 5.5;
+      if (p.dragged) {
+        const nudge = (tt) => PITCH.x * 0.34 * Math.tanh((toContent('treasure', fingerP(tt), tt).x - mid(tile(4, 2)).x) / (PITCH.x * 0.6));
+        const dh = near(t, TB.press); const dr = near(t, TB.release);
+        if (dh >= 0 && dr < 0) x += nudge(t);
+        else if (dr >= 0 && dr < 1) x += nudge(t - dr - 0.001) * (1 - S(dr, 'snap'));
+      }
+      let scale = 1, op = 1;
+      if (p.clear != null && near(t, p.clear) >= 0) {
+        const d = near(t, p.clear);
+        const u = S(d, 'fade');
+        scale = (1 + 0.16 * Math.sin(Math.PI * Math.min(1, d / 0.12))) * (1 - u);
+        op = 1 - u;
+      }
+      // прилетевшая карта становится фишкой; «Ковчег» улетает разливать Нил
+      if (p.flyIn != null && near(t, p.flyIn) < 0 && near(t, p.flyIn) > -4) op = 0;
+      if (p.flyOut != null && near(t, p.flyOut) >= 0 && near(t, p.flyOut) < 2) op = 0;
+      p.node.style.visibility = op > 0.01 && scale > 0.02 ? 'visible' : 'hidden';
+      p.node.style.opacity = op.toFixed(3);
+      p.node.style.transform = `translate(${px(x)}, ${px(y)}) scale(${Math.max(0.001, scale).toFixed(4)})`;
+    }
+    const pk = vis(t, TB.clear2, 19.85, 'pop', 'fade');
+    const anchor = mid(tile(3, 5));
+    N.cascade.style.left = px(anchor.x - 45); N.cascade.style.top = px(anchor.y - 6);
+    if (fade(N.cascade, Math.min(1, pk), 0)) N.cascade.style.transform = `translate(0px, ${px(-26 * S(near(t, TB.clear2), 'slow'))}) scale(${(0.7 + 0.3 * Math.min(1, pk)).toFixed(4)})`;
+  }
+  // ⇄ «Ковчег» поднимается с поля, переворачивается и ложится рубашкой карточки «Найди пару для ковчега»
+  {
+    const d = near(t, ARK.b);
+    const on = d >= 0 && near(t, PAB.land) < 0.04;
+    if (show(N.arkFly, on ? 1 : 0)) {
+      const e = ramp(t, ARK.b, PAB.land);
+      const from = rectToFrame('treasure', pieceRect(ARK.r, ARK.c), B(ARK.b));
+      const card = pairCard(PAIR_ORDER[0]);
+      const to = rectToFrame('pairs', card, B(PAB.land));
+      const r = morphRect(from, to, e, 150);
+      const kc = r.w / card.w;
+      N.arkCard.style.width = px(N.arkCard.naturalWidth / 3 * kc); N.arkCard.style.height = px(N.arkCard.naturalHeight / 3 * kc);
+      N.arkCard.style.transform = `translate(${px(-PAIR_FLIP.pad * kc)}, ${px(-PAIR_FLIP.pad * kc)})`;
+      flyTo(N.arkFly, r, 0, 180 * e);
+    }
+  }
+
+  // ——— «Найди пару для ковчега»: карточки переворачиваются, как в игре ———
+  const pm2 = layoutScene('pairs', t, box);
+  if (pm2) {
+    let base = 0; let hole = -1; let flip = null;
+    PAB.taps.forEach((b, i) => {
+      const d = near(t, b);
+      if (d < 0) return;
+      if (d < PAIR_FLIP.s) { hole = i; flip = [d, i]; } else base = i + 1;
+    });
+    N.pairs.forEach((n, i) => fade(n, hole < 0 && i === base ? 1 : 0, 0));
+    N.pairsHole.forEach((n, i) => fade(n, i === hole ? 1 : 0, 0));
+    if (show(N.pairFlip.box, flip ? 1 : 0)) {
+      const card = pairCard(PAIR_ORDER[flip[1]]); const pad = PAIR_FLIP.pad;
+      const im = N.pairFlip.backs[flip[1]];
+      N.pairFlip.backs.forEach((n, i) => { n.style.visibility = i === flip[1] ? 'inherit' : 'hidden'; });
+      N.pairFlip.box.style.width = im.style.width; N.pairFlip.box.style.height = im.style.height;
+      N.pairFlip.box.style.transformOrigin = '50% 50%';
+      N.pairFlip.box.style.transform = `translate(${px(card.x - pad)}, ${px(card.y - pad)}) perspective(1300px) rotateY(${(180 * PAIR_FLIP.ease(flip[0] / PAIR_FLIP.s)).toFixed(3)}deg)`;
+    }
+  }
+  // из последней открытой карточки круглым окном разливается Нил
+  const nileFrom = toFrame('pairs', mid(pairCard(PAIR_ORDER[3])), t);
+
+  // ——— «Моисей» ———
+  const mm = layoutScene('moses', t, box);
+  if (mm) {
+    const src = `../ad-28/build/moses/f${String(footageFrame(M, t)).padStart(4, '0')}.jpg`;
+    if (!N.moses.src.endsWith(src)) N.moses.src = src;
+    // круглое окно из последней пары: Нил проявляется от неё по всей форме
+    const d = near(t, PAB.iris);
+    const R = Math.hypot(box.w, box.h) * S(d, 'morph');
+    const cx = nileFrom.x - (box.cx - box.w / 2);
+    const cy = nileFrom.y - (box.cy - box.h / 2);
+    LAYER.moses.style.clipPath = d >= 0 && d < 1.2 && R < Math.hypot(box.w, box.h) * 0.999 ? `circle(${px(R)} at ${px(cx)} ${px(cy)})` : 'none';
+  }
+  // ⇄ толща воды: корзинка ныряет — и экран вместе с ней
+  // под водой ещё угадывается река; когда её не стало, вода густеет до конца
+  fade(N.water, vis(t, 24.3, 26.6, 'soft', 'fade') * (0.84 + 0.16 * (1 - sceneVis('moses', t))), 0);
+
+  // ——— «Земля обетованная» ———
+  const pm = layoutScene('promised', t, box);
+  if (pm) {
+    const src = `../ad-28/build/promised/f${String(footageFrame(PR, t)).padStart(4, '0')}.jpg`;
+    if (!N.pl.src.endsWith(src)) N.pl.src = src;
+    // из колодца открывается окно — вода смыкается над ним
+    const d1 = near(t, WELL.open); const d2 = near(t, WELL.spread);
+    const R = WELL.r * pm.k * S(d1, 'pop') + Math.hypot(box.w, box.h) * S(d2, 'morph');
+    const full = d2 > 0.9 || d1 < -4;
+    if (full) LAYER.promised.style.clipPath = 'none';
+    else if (R < 0.5) { LAYER.promised.style.visibility = 'hidden'; LAYER.promised.style.opacity = '0'; }
+    else LAYER.promised.style.clipPath = `circle(${px(R)} at ${px(pm.x + WELL.x * pm.k)} ${px(pm.y + WELL.y * pm.k)})`;
+  }
+  // ⇄ грань кубика с тройкой переворачивается картой «3 Дан»
+  {
+    const d = near(t, THREE.b);
+    const on = d >= 0 && near(t, THREE.land) < 0.03;
+    if (show(N.dieFly, on ? 1 : 0)) {
+      const u = clamp(d / (B(THREE.land) - B(THREE.b)), 0, 1);
+      const e = u * u * (3 - 2 * u);
+      const from = rectToFrame('promised', DIE, B(THREE.b));
+      const to = rectToFrame('tribes', TT.threeRect, B(THREE.land) + 0.25);
+      const r = morphRect(from, to, e, 60);
+      // лицевая сторона — сама грань в кадре записи, оборот — карта игры
+      const sx = r.w / DIE.w, sy = r.h / DIE.h;
+      N.dieImg.style.width = px(844 * sx); N.dieImg.style.height = px(390 * sy);
+      N.dieImg.style.transform = `translate(${px(-DIE.x * sx)}, ${px(-DIE.y * sy)})`;
+      const kc = r.w / TT.threeRect.w;
+      N.dieCard.style.width = px(N.dieCard.naturalWidth / 3 * kc); N.dieCard.style.height = px(N.dieCard.naturalHeight / 3 * kc);
+      N.dieCard.style.transform = `translate(${px(-CARD_PAD * kc)}, ${px(-CARD_PAD * kc)})`;
+      N.dieFront.style.borderRadius = px(4 * sx);
+      flyTo(N.dieFly, r, 0, 180 * e);
+    }
+  }
+
+  // ——— «Двенадцать колен» ———
+  if (layoutScene('tribes', t, box)) {
+    // экран игры сменяется, как в самой игре, — сразу
+    const idx = [TR.play + 0.05, TR.bots, TR.jordanOn, TR.shabbatOn].filter((b) => bt >= b).length;
+    N.tribes.forEach((n, i) => { fade(n, i === idx ? 1 : 0, 0); n.style.zIndex = String(i); });
+    // тройка Дана летит на сброс; сброс под ней — ещё тройка Рувима
+    const dp = near(t, TR.play + 0.05);
+    const flying = dp >= 0 && near(t, TR.played) < 0;
+    const pile = TT.pile; const pad = 8;
+    if (fade(N.pilePatch, flying ? 1 : 0, 0)) {
+      place(N.pilePatch, pile.x - pad, pile.y - pad, pile.w + pad * 2, pile.h + pad * 2);
+      N.pilePatch.style.left = '0px'; N.pilePatch.style.top = '0px';
+      N.pilePatchImg.style.transform = `translate(${px(-(pile.x - pad))}, ${px(-(pile.y - pad))})`;
+      N.pilePatch.style.zIndex = '8';
+    }
+    if (fade(N.playCard, flying ? 1 : 0, 0)) {
+      const u = S(dp, 'fly');
+      const a = TT.threeRect;
+      const x = lerp(a.x, pile.x, u); const y = lerp(a.y, pile.y, u) - 40 * Math.sin(Math.PI * Math.min(1, u));
+      N.playCard.style.transform = `translate(${px(x - CARD_PAD)}, ${px(y - CARD_PAD)}) rotate(${(-6 * Math.sin(Math.PI * Math.min(1, u))).toFixed(2)}deg)`;
+      N.playCard.style.zIndex = '9';
+    }
+  }
+  // ⇄ последняя карта переворачивается — её оборот становится холстом
+  {
+    const d = near(t, CANVAS.b);
+    const on = d >= 0 && near(t, CANVAS.land) < 0.08;
+    // гаснет только оборот: прозрачность на самом 3D-узле сплющила бы его, и проступило бы лицо карты
+    N.cardBack.style.opacity = on ? (1 - S(near(t, CANVAS.land), 'fade')).toFixed(4) : '1';
+    if (show(N.cardFly, on ? 1 : 0)) {
+      const u = clamp(d / (B(CANVAS.land) - B(CANVAS.b)), 0, 1);
+      const e = u * u * (3 - 2 * u);
+      const from = rectToFrame('tribes', JUDAH, B(CANVAS.b));
+      const to = rectToFrame('sketch', SK.canvas, B(CANVAS.land) + 0.3);
+      const r = morphRect(from, to, e, 80);
+      const kk = r.w / JUDAH.w; const kh = r.h / JUDAH.h;
+      N.cardImg.style.width = px(390 * kk); N.cardImg.style.height = px(844 * kh);
+      N.cardImg.style.transform = `translate(${px(-JUDAH.x * kk)}, ${px(-JUDAH.y * kh)})`;
+      N.cardFront.style.borderRadius = px(JUDAH.r * kk);
+      N.cardBack.style.borderRadius = px(lerp(JUDAH.r * from.w / JUDAH.w, 14 * to.w / SK.canvas.w, e));
+      flyTo(N.cardFly, r, 0, 180 * e);
+    }
+  }
+
+  // ——— «Библейский художник» ———
+  if (layoutScene('sketch', t, box)) {
+    const idx = [SKB.vote, SKB.review, SKB.result].filter((b) => bt >= b).length;
+    N.sketch.forEach((n, i) => fade(n, i === idx ? 1 : 0, 0));
+    const drawing = idx === 0 && bt > 30;
+    N.canvas.style.visibility = drawing ? 'visible' : 'hidden';
+    if (drawing) STROKES.forEach((s, i) => {
+      const d = near(t, s.a);
+      const u = d < 0 ? 0 : ramp(t, s.a, s.b);
+      if (u <= 0) { N.strokes[i].setAttribute('d', ''); return; }
+      const pts = strokeUpTo(s, u);
+      N.strokes[i].setAttribute('d', pts.map((q, j) => `${j ? 'L' : 'M'}${q.x.toFixed(2)} ${q.y.toFixed(2)}`).join(' '));
+    });
+  }
+
+  // ——— «Угадай персонажа» ———
+  if (layoutScene('guess', t, box)) {
+    const second = bt >= FLIPS.card.mid && bt < 50;
+    fade(N.guess[0], second ? 0 : 1, 0);
+    fade(N.guess[1], second ? 1 : 0, 0);
+  }
+
+  // ——— финал: иконка приложения, название, кнопка ———
+  {
+    const pIcon = vis(t, FLIPS.icon.mid, OLD_NB - 0.97, 'cut', 'fade');
+    if (fade(N.icon, pIcon, 10)) place(N.icon, 0, 0, box.w, box.h);
+    const fin = (node, bin, bout, x, y, dy = 18) => {
+      const p = vis(t, bin, bout, 'pop', 'fade');
+      if (!fade(node, Math.min(1, p), 10)) return;
+      node.style.transform = `translate(${px(x)}, ${px(y + (1 - Math.min(1, p)) * dy)}) translate(-50%, -50%) scale(${(0.94 + 0.06 * Math.min(1, p)).toFixed(4)})`;
+    };
+    fin(N.fTitle, FIN.title, FIN.out, 720, 764);
+    fin(N.fSub, FIN.sub, FIN.out, 720, 858);
+    N.fIcons.forEach((n, i) => { const q = iconAt(i); fin(n, FIN.icons + i * 0.125, FIN.out, q.x, q.y, 26); });
+    const pc = press(t, FIN.tap, 0.12);
+    fin(N.cta, FIN.cta, FIN.out, CTA.x, CTA.y);
+    N.cta.firstChild.style.transform = `scale(${(1 - 0.05 * pc).toFixed(4)})`;
+  }
+
+  // ——— подписи: выход и вход — порознь ———
+  for (const cp of CAPS) {
+    const p = vis(t, cp.from, cp.to, 'pop', 'fade');
+    if (!fade(cp.node, Math.min(1, p), 10)) continue;
+    cp.node.style.transform = `translate(${px(ZONES.caption.cx)}, ${px(ZONES.caption.cy + (1 - Math.min(1, p)) * 16)}) translate(-50%, -50%) scale(${cp.fit.toFixed(4)})`;
+  }
+
+  // ——— палец: в экранных координатах, постоянного размера ———
+  const fp = toScreen(c, fingerP(t));
+  const pr = fingerPress(t);
+  finger.style.transform = `translate(${px(fp.x)}, ${px(fp.y)})`;
+  fingerDot.style.transform = `scale(${(1 - 0.16 * Math.min(1, pr)).toFixed(4)})`;
+  fingerDot.style.background = `rgba(${Math.round(lerp(255, 199, pr))}, ${Math.round(lerp(255, 210, pr))}, 255, 0.86)`;
+  const rp = ripple(t);
+  if (rp != null) {
+    const u = S(rp, 'soft');
+    fingerRing.style.visibility = 'visible';
+    fingerRing.style.opacity = (0.55 * (1 - u) * clamp(rp / 0.05, 0, 1)).toFixed(3);
+    fingerRing.style.transform = `scale(${(1 + 0.75 * u).toFixed(4)})`;
+  } else fingerRing.style.visibility = 'hidden';
+}
+
+// Точка кадра → точка экрана приложения (без учёта перестройки формы — для пальца на неподвижной сцене).
+function toContent(key, p, t = frameT) {
+  const s = SC[key];
+  const k = s.tk(t);
+  return { x: (p.x - ZONES.screen.cx) / k + s.tx(t), y: (p.y - ZONES.screen.cy) / k + s.ty(t) };
+}
+
+// ——————————————————————————————————————————————— вход
+
+window.SOUNDS = SOUNDS.map((s) => ({ ...s, beat: toNew(s.beat) }));
+window.setGrid = (beats, loop) => {
+  const t0 = beats[0];
+  GRID = [...beats.map((b) => b - t0), loop];
+};
+async function decodeAll() {
+  const all = [...document.images];
+  await Promise.all(all.map((n) => (n.complete && n.naturalWidth ? Promise.resolve() : new Promise((r) => { n.onload = r; n.onerror = r; }))));
+  for (const [n, scale] of IMAGES) { n.style.width = px(n.naturalWidth / scale); n.style.height = px(n.naturalHeight / scale); }
+  await Promise.all(all.map((n) => n.decode().catch(() => {})));
+  await document.fonts.ready;
+  // длинная строка подписи ужимается, чтобы остаться в кадре
+  for (const c of CAPS) { c.node.style.visibility = 'visible'; c.fit = Math.min(1, 1300 / c.node.offsetWidth); }
+}
+window.ready = decodeAll().then(() => { render(0); return true; });
+window.seek = (t) => {
+  render(((t % LOOP) + LOOP) % LOOP);
+  // записи заплыва и партии — единственные картинки, которые меняются от кадра к кадру
+  return Promise.all([N.moses, N.pl].map((n) => (n.complete ? Promise.resolve() : n.decode().catch(() => {}))));
+};
+
+const params = new URLSearchParams(location.search);
+if (params.has('render')) document.body.classList.add('render');
+const scrub = document.getElementById('scrub');
+const clockEl = document.getElementById('clock');
+let playing = false; let t0 = 0; let base = 0;
+function tick(now) {
+  if (!playing) return;
+  const t = ((base + (now - t0) / 1000) % LOOP);
+  render(t); scrub.value = t; clockEl.textContent = t.toFixed(3);
+  requestAnimationFrame(tick);
+}
+document.getElementById('play').onclick = () => { playing = !playing; t0 = performance.now(); base = +scrub.value; if (playing) requestAnimationFrame(tick); };
+scrub.oninput = () => { render(+scrub.value); clockEl.textContent = (+scrub.value).toFixed(3); };
+window.ready.then(() => { const t = +(params.get('t') || 0); render(t); scrub.value = t; });
+</script>
+</body>
+</html>
