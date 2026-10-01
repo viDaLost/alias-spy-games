@@ -270,12 +270,14 @@ for (const source of sources) {
     // Часть игровых стилей подключается лаунчером уже после бандла, поэтому при
     // равном !important они выигрывают у темы просто порядком. Префикс html поднимает
     // специфичность каждого правила темы на единицу и возвращает ей верх.
-    const selector = rule.selector
+    // Правило, названное только для светлой темы, в тёмной не сработает
+    // никогда: его копия вышла бы мёртвым html.theme-dark:not(.theme-dark).
+    const selectors = rule.selector
       .split(',')
       .map((one) => one.trim())
-      .filter(Boolean)
-      .map(scoped)
-      .join(',\n');
+      .filter((one) => one && !/^html:not\(\.theme-dark\)/.test(one));
+    if (!selectors.length) continue;
+    const selector = selectors.map(scoped).join(',\n');
     const block = `${selector} {\n  ${declarations.join(';\n  ')};\n}`;
     parts.push(rule.at.length ? `${rule.at.join(' {\n')} {\n${block}\n${'}'.repeat(rule.at.length)}` : block);
   }

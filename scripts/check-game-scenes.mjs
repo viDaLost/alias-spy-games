@@ -3,13 +3,19 @@
 // Перенос из превью-веток конца августа. Там у каждой игры была своя сцена со
 // слоями, но жила она рядом с полной переделкой приложения в тёмный вид — с
 // перекрытием заголовка, меню и панелей каждой игры через !important. Взята
-// только сцена; тему решают стили, и в каждой она решает свою задачу.
+// только сцена; тему решают стили.
 //
-// Тёмная: арт ночной, полог гасит светлые места, чтобы белый заголовок игры не
-// пропал в облаках. Светлая: тот же арт высветляется и уходит под прозрачный
-// светлый градиент — картина проступает подмалёвком, а тёмный текст и белые
-// карточки читаются как читались. Обе стороны меряются по снимку экрана:
-// разметка тут ничего не докажет, элементы на месте и в нечитаемом виде.
+// Сцена в обеих темах одна и та же, в полном цвете: полог гасит светлые места,
+// чтобы заголовок игры не пропал в облаках, текст прямо на картине светлый, а
+// панели светлой темы плотные. Прежде светлая тема прятала картину под
+// молочный полог — экран выглядел так, будто стоит под белым стеклом, — и
+// проверка теперь стережёт обратное. Всё меряется по снимку экрана и по
+// вычисленным стилям: разметка тут ничего не докажет, элементы на месте и в
+// нечитаемом виде.
+//
+// Глубина проверяется движением: наклон уводит ближние слои дальше дальних,
+// «дыхание» камеры идёт на каждом слое с глубиной, и ни в одной крайней точке
+// хода из-под слоя не выглядывает край.
 //
 // Проверяется поведением, а не чтением стилей: приложение поднимается целиком,
 // игры открываются по-настоящему, тема переключается на живой странице.
@@ -18,7 +24,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
-import { decodePng, meanLuminance, blockLuminanceBounds, meanAbsoluteDifference } from './lib/png-luminance.mjs';
+import { decodePng, meanLuminance, meanAbsoluteDifference } from './lib/png-luminance.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -78,16 +84,37 @@ const pageErrors = [];
 page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
 
 await page.addInitScript(() => {
+  /*
+    Датчик наклона Telegram. Сцена берёт его у клиента, а не у браузера, и
+    обязана включать только вместе с собой: здесь считается, сколько раз его
+    запустили и остановили, и кто подписан на его события.
+  */
+  const sensor = { started: 0, stopped: 0, listeners: [] };
+  window.__tiltSensor = sensor;
   window.Telegram = {
     WebApp: {
       initData: 'query_id=stub&user=%7B%22id%22%3A5883903220%7D&hash=stub',
       initDataUnsafe: { user: { id: 5883903220, first_name: 'Тест' } },
-      ready() {}, expand() {}, colorScheme: 'light', onEvent() {}, offEvent() {},
+      ready() {}, expand() {}, colorScheme: 'light',
+      onEvent(name, handler) { if (name === 'deviceOrientationChanged') sensor.listeners.push(handler); },
+      offEvent(name, handler) { sensor.listeners = sensor.listeners.filter((one) => one !== handler); },
+      isVersionAtLeast: (version) => Number(version) <= 8,
+      DeviceOrientation: {
+        isStarted: false, alpha: 0, beta: 0, gamma: 0,
+        start() { this.isStarted = true; sensor.started += 1; },
+        stop() { this.isStarted = false; sensor.stopped += 1; },
+      },
       setHeaderColor() {}, setBackgroundColor() {},
       MainButton: { show() {}, hide() {} }, BackButton: { show() {}, hide() {}, onClick() {} },
       HapticFeedback: { impactOccurred() {}, notificationOccurred() {} },
     },
   };
+  /*
+    «Дыхание» камеры выключено на слабых телефонах — четыре ядра и меньше. У
+    машины проверки ядер может оказаться сколько угодно, и без этой подмены
+    проверка то видела бы анимацию, то нет.
+  */
+  Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => 8, configurable: true });
   try {
     const seen = {};
     for (const key of ['alias', 'spy', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs',
@@ -146,9 +173,8 @@ const openGame = async (key) => {
 };
 
 /*
-  Сцену видно и в тёмной, и в светлой теме, а вот условия читаемости у них
-  противоположные. Общая часть — «сцена стоит под экраном игры и не мешает» —
-  проверяется одинаково в обеих.
+  Общая часть — «сцена стоит под экраном игры и не мешает» — проверяется
+  одинаково в обеих темах.
 */
 const checkSceneShell = (state, theme) => {
   if (!state.present) {
@@ -168,6 +194,23 @@ const checkSceneShell = (state, theme) => {
 };
 
 /*
+  Сцена в покое. Слои движутся сами — «дышат» и наезжают при входе, — и два
+  снимка подряд без этого расходились бы на несколько пикселей сдвига. Наезд
+  доводится до конца, «дыхание» ставится в начало круга, камера — в центр.
+*/
+const stillScene = () => page.evaluate(() => {
+  for (const node of document.querySelectorAll('.game-scene__layer')) {
+    for (const animation of node.getAnimations()) {
+      if (animation.effect.getTiming().iterations === Infinity) {
+        animation.pause();
+        animation.currentTime = 0;
+      } else animation.finish();
+    }
+  }
+  window.__gameScene?.pose();
+});
+
+/*
   Снимок одной только сцены: содержимое игры прячется, чтобы мерилась картина,
   а не карточки поверх неё.
 */
@@ -179,6 +222,7 @@ const shootScene = async () => {
     null,
     { timeout: 15_000 },
   ).catch(() => fail('Слои сцены не догрузились — яркость мерить не по чему'));
+  await stillScene();
   await page.evaluate(() => {
     for (const node of document.querySelectorAll('#game-container, .app-header, .rules-help, .game-frame-exit')) {
       node.style.visibility = 'hidden';
@@ -195,54 +239,127 @@ const shootScene = async () => {
 };
 
 /** Средняя яркость верхней трети — там стоят заголовок игры и подпись под ним. */
-const topBrightness = async () => {
-  const image = await shootScene();
-  return meanLuminance(image, { bottom: image.height / 3 });
-};
+const topBrightness = (image) => meanLuminance(image, { bottom: image.height / 3 });
 
 /** То же, но без полога: видно, что именно он гасит. */
 const rawTopBrightness = async () => {
   await page.evaluate(() => { document.querySelector('.game-scene__veil')?.style.setProperty('display', 'none'); });
-  const value = await topBrightness();
+  const value = topBrightness(await shootScene());
   await page.evaluate(() => { document.querySelector('.game-scene__veil')?.style.removeProperty('display'); });
   return value;
 };
 
-/** Тот же экран со слоями и без них: насколько картина проступает сквозь полог. */
-const artShowThrough = async () => {
-  const withArt = await shootScene();
-  await page.evaluate(() => {
-    for (const node of document.querySelectorAll('.game-scene__layer')) node.style.visibility = 'hidden';
+/*
+  Что лежит прямо на сцене. Текст, у которого между буквами и картиной нет ни
+  одной подложки, и светлые панели, которые стоят на картине сами, а не внутри
+  другой панели. Подложкой считается заливка плотнее 0.55 или градиент.
+*/
+const onScene = () => page.evaluate(() => {
+  const channels = (text) => [...String(text).matchAll(/rgba?\(([^)]*)\)/g)].map((match) => {
+    const parts = match[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+    return { rgb: parts.slice(0, 3), alpha: parts.length > 3 ? parts[3] : 1 };
   });
-  await page.waitForTimeout(120);
-  const withoutArt = await shootScene();
-  await page.evaluate(() => {
-    for (const node of document.querySelectorAll('.game-scene__layer')) node.style.visibility = '';
-  });
-  return { showThrough: meanAbsoluteDifference(withArt, withoutArt), darkest: blockLuminanceBounds(withArt).min };
-};
+  const luminance = ([r, g, b]) => {
+    const linear = (value) => { const v = value / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+  };
+  const container = document.getElementById('game-container');
+  const surfaceOf = (start) => {
+    for (let node = start; node && node !== container.parentElement; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      const fill = channels(style.backgroundColor)[0];
+      if ((fill && fill.alpha >= 0.55) || style.backgroundImage !== 'none') return node;
+    }
+    return null;
+  };
+  const visible = (node) => {
+    const box = node.getBoundingClientRect();
+    if (!box.width || !box.height) return false;
+    for (let at = node; at && at !== document.body; at = at.parentElement) {
+      const style = getComputedStyle(at);
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+    }
+    return true;
+  };
+
+  const text = [];
+  const seen = new Set();
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode.parentElement;
+    if (!walker.currentNode.textContent.trim() || seen.has(node)) continue;
+    seen.add(node);
+    if (!visible(node) || surfaceOf(node)) continue;
+    const ink = channels(getComputedStyle(node).color)[0];
+    if (ink) text.push({ text: walker.currentNode.textContent.trim().slice(0, 40), luminance: luminance(ink.rgb) });
+  }
+
+  const panels = [];
+  for (const node of container.querySelectorAll('*')) {
+    const box = node.getBoundingClientRect();
+    if (box.width < 40 || box.height < 28 || !visible(node) || surfaceOf(node.parentElement)) continue;
+    const style = getComputedStyle(node);
+    // Картинка вместо заливки — это рисунок, а не стекло; плотность у него своя.
+    if (style.backgroundImage.includes('url(') || Number(style.opacity) < 1) continue;
+    const fill = channels(style.backgroundColor)[0] || { rgb: [0, 0, 0], alpha: 0 };
+    // Слои фона разделены запятыми верхнего уровня; запятые внутри скобок — это
+    // аргументы градиента.
+    const layers = [];
+    let depth = 0;
+    let from = 0;
+    const image = style.backgroundImage === 'none' ? '' : style.backgroundImage;
+    for (let at = 0; at <= image.length; at += 1) {
+      const char = image[at];
+      if (char === '(') depth += 1;
+      else if (char === ')') depth -= 1;
+      else if ((char === ',' && !depth) || at === image.length) {
+        if (image.slice(from, at).trim()) layers.push(channels(image.slice(from, at)));
+        from = at + 1;
+      }
+    }
+    const all = [fill, ...layers.flat()].filter((one) => one.alpha > 0.02);
+    // Только белые панели: у цветных кнопок своя заливка, и серыми они не станут.
+    if (!all.length || all.some((one) => (one.rgb[0] + one.rgb[1] + one.rgb[2]) / 3 < 200)) continue;
+    // Слои кладутся друг на друга: плотность каждого — его самое прозрачное место,
+    // а сквозь всю стопку проходит то, что пропустили все слои разом. Блик,
+    // уходящий в прозрачность, поверх плотного градиента панели не делает её
+    // прозрачной.
+    const through = layers.reduce(
+      (rest, stops) => rest * (1 - (stops.length ? Math.min(...stops.map((one) => one.alpha)) : 0)),
+      1 - fill.alpha,
+    );
+    const density = 1 - through;
+    panels.push({ name: `${node.tagName.toLowerCase()}.${String(node.className).trim().split(/\s+/).join('.')}`, density });
+  }
+  return { text, panels };
+});
 
 /*
   Пороги подобраны замерами, а не на глаз.
 
-  Тёмная тема, верхняя треть. Без полога верх «Алиаса» светит на 0.25,
+  Верхняя треть, обе темы. Без полога верх «Алиаса» светит на 0.25,
   «Соглядатая» — на 0.14. Прежний слабый полог опускал их до 0.18 и 0.12, и на
   первом же снимке «Выберите уровень сложности» тонуло в облаках. Нынешний даёт
-  0.12 и 0.09. Предел 0.15 проходит нынешний и не проходит прежний.
+  0.11 и 0.07 в тёмной теме и 0.14 и 0.10 в светлой — там слоям не досталось
+  общего затемнения картинок тёмной темы. Предел 0.15 проходит нынешний и не
+  проходит прежний.
 
-  Светлая тема, самый тёмный квадрат экрана. Тёмные буквы боятся не яркого
-  пятна, а тёмного, и одно такое пятно в средней яркости растворяется — поэтому
-  меряется худшее место, а не общее. Сейчас по всем сценам выходит 0.83–0.84;
-  без светлого полога — 0.42–0.48. Предел 0.70 разделяет их с запасом.
+  Светлая тема против тёмной. Сцена одна и та же, и снимки обеих тем
+  расходятся на 0.003–0.02 — ровно на то общее затемнение. Под прежним
+  молочным пологом расхождение было 0.6 и больше. Предел 0.05 ловит любой
+  возврат к белому стеклу, даже вдесятеро более лёгкому.
 
-  Светлая тема, проступание. Полог можно сделать непрозрачным, и читаемость от
-  этого только выиграет — но тогда светлой темы не коснулись вовсе, а просто
-  спрятали от неё картину. Сейчас по играм выходит 0.044–0.065, у глухого
-  полога — 0.003. Предел 0.02 ловит именно этот случай.
+  Текст на сцене светлый: относительная яркость букв не ниже 0.5 — белый с
+  тенью даёт 0.87–0.9, а тёмно-синий заголовок светлой темы 0.04.
+
+  Панели светлой темы на сцене плотные: не меньше 0.9. Задуманы они были от
+  0.54 до 0.88, и над ночной картиной такие становились грязно-серыми; с
+  подложкой выходит 0.94 и выше.
 */
 const MAX_TOP_BRIGHTNESS = 0.15;
-const MIN_LIGHT_DARKEST = 0.7;
-const MIN_LIGHT_SHOW_THROUGH = 0.02;
+const MAX_THEME_DIFFERENCE = 0.05;
+const MIN_SCENE_TEXT_LUMINANCE = 0.5;
+const MIN_PANEL_DENSITY = 0.9;
 
 try {
   await page.goto(`${baseURL}/#tgWebAppData=query_id%3Dstub`, { waitUntil: 'commit', timeout: 30_000 });
@@ -250,65 +367,90 @@ try {
     .catch(() => fail(`Меню не открылось${pageErrors.length ? `: ${pageErrors[0]}` : ''}`));
   await page.waitForFunction(() => !document.getElementById('gamehub-boot-scene'), null, { timeout: 20_000 });
 
-  // 1. Тёмная тема: сцена встаёт под экран игры.
-  await setTheme(true);
-  await openGame('alias');
-  await page.waitForTimeout(500);
-  let state = await sceneState();
-  if (checkSceneShell(state, 'тёмной') && state.key !== 'alias') {
-    fail(`Сцена показывает «${state.key}» вместо «alias»`);
-  }
-
-  // 2. Тёмная тема, читаемость: белый заголовок игры не должен тонуть в облаках.
-  for (const key of ['alias', 'spy']) {
-    await openGame(key);
-    await page.waitForTimeout(700);
-    const brightness = await topBrightness();
-    if (brightness > MAX_TOP_BRIGHTNESS) {
-      const raw = await rawTopBrightness();
-      fail(`Сцена «${key}» слишком светлая сверху: ${brightness.toFixed(3)} при пределе ${MAX_TOP_BRIGHTNESS} `
-        + `(сама картина светит на ${raw.toFixed(3)}, полог гасит недостаточно) — заголовок игры на ней не прочесть`);
-    }
-  }
-
-  // 3. Светлая тема: та же сцена, но переосмысленная — картина видна, текст тёмный.
-  await setTheme(false);
-  await openGame('alias');
-  await page.waitForTimeout(500);
-  state = await sceneState();
-  checkSceneShell(state, 'светлой');
-  for (const key of ['alias', 'spy']) {
-    await openGame(key);
-    await page.waitForTimeout(700);
-    const { showThrough, darkest } = await artShowThrough();
-    if (darkest < MIN_LIGHT_DARKEST) {
-      fail(`Сцена «${key}» в светлой теме оставляет тёмное пятно: ${darkest.toFixed(3)} при минимуме `
-        + `${MIN_LIGHT_DARKEST} — тёмный текст на нём не прочесть`);
-    }
-    if (showThrough < MIN_LIGHT_SHOW_THROUGH) {
-      fail(`Сцена «${key}» в светлой теме не проступает сквозь полог: ${showThrough.toFixed(4)} при минимуме `
-        + `${MIN_LIGHT_SHOW_THROUGH} — картину просто закрасили, светлая тема её не получила`);
+  // 1. Обе темы: сцена встаёт под экран игры.
+  for (const dark of [true, false]) {
+    const theme = dark ? 'тёмной' : 'светлой';
+    await setTheme(dark);
+    await openGame('alias');
+    await page.waitForTimeout(500);
+    const state = await sceneState();
+    if (checkSceneShell(state, theme) && state.key !== 'alias') {
+      fail(`Сцена показывает «${state.key}» вместо «alias» (${theme} тема)`);
     }
   }
 
   /*
-    4. Облегчённый полог отдельных игр жив. У «Квартета» и «Художника» поле
-    занимает почти весь экран и само по себе тёмное, поэтому полог им сделан
-    слабее общего. Правило это легко теряется молча: тёмную тему приложение
-    выводит из тех же файлов машинально и дописывает копиям !important, а копия
-    с !important сильнее любого правила без него. На вид разница неброская —
-    поймать её может только сравнение.
+    2. Читаемость сверху и одна картина на обе темы. Белый заголовок игры не
+    должен тонуть в облаках ни в одной теме, а светлая не должна прятать
+    картину под белым стеклом: её снимок обязан совпасть со снимком тёмной.
   */
-  await setTheme(true);
+  for (const key of ['alias', 'spy']) {
+    const shots = {};
+    for (const dark of [true, false]) {
+      const theme = dark ? 'тёмной' : 'светлой';
+      await setTheme(dark);
+      await openGame(key);
+      await page.waitForTimeout(700);
+      shots[theme] = await shootScene();
+      const brightness = topBrightness(shots[theme]);
+      if (brightness > MAX_TOP_BRIGHTNESS) {
+        const raw = await rawTopBrightness();
+        fail(`Сцена «${key}» в ${theme} теме слишком светлая сверху: ${brightness.toFixed(3)} при пределе `
+          + `${MAX_TOP_BRIGHTNESS} (сама картина светит на ${raw.toFixed(3)}, полог гасит недостаточно) — `
+          + 'заголовок игры на ней не прочесть');
+      }
+    }
+    const difference = meanAbsoluteDifference(shots['тёмной'], shots['светлой']);
+    if (difference > MAX_THEME_DIFFERENCE) {
+      fail(`Сцена «${key}» в светлой теме не та же, что в тёмной: расхождение ${difference.toFixed(3)} при пределе `
+        + `${MAX_THEME_DIFFERENCE} — картину снова высветлили или накрыли пологом, экран под белым стеклом`);
+    }
+  }
+
+  /*
+    3. Светлая тема, всё, что лежит прямо на картине. Каждая игра каталога, кроме
+    «Сокровищ»: те открываются своим лаунчером, а на сцене у них нет ни строки
+    — всё стоит в плотных белых панелях.
+  */
+  await setTheme(false);
+  for (const key of catalogKeys.filter((one) => one !== 'biblical-match-three')) {
+    await openGame(key);
+    await page.waitForTimeout(400);
+    const { text, panels } = await onScene();
+    for (const line of text) {
+      if (line.luminance < MIN_SCENE_TEXT_LUMINANCE) {
+        fail(`«${key}», светлая тема: текст «${line.text}» лежит прямо на картине и тёмный `
+          + `(яркость ${line.luminance.toFixed(2)}) — его нет в списке светлого текста game-scene-parallax.css`);
+      }
+    }
+    for (const panel of panels) {
+      if (panel.density < MIN_PANEL_DENSITY) {
+        fail(`«${key}», светлая тема: панель ${panel.name} на картине прозрачна на ${(1 - panel.density).toFixed(2)} `
+          + '— над ночной сценой она становится грязно-серой; её нет в списке плотных панелей game-scene-parallax.css');
+      }
+    }
+  }
+
+  /*
+    4. Облегчённый полог отдельных игр жив в обеих темах. У «Квартета» и
+    «Художника» поле занимает почти весь экран и само по себе тёмное, поэтому
+    полог им сделан слабее общего. Правило это легко теряется молча: тёмную тему
+    приложение выводит из тех же файлов машинально и дописывает копиям
+    !important, а копия с !important сильнее любого правила без него. На вид
+    разница неброская — поймать её может только сравнение.
+  */
   const veilOf = async (key) => {
     await openGame(key);
     await page.waitForTimeout(300);
     return page.evaluate(() => getComputedStyle(document.querySelector('.game-scene__veil')).backgroundImage);
   };
-  const commonVeil = await veilOf('alias');
-  for (const key of ['quartet', 'bible-sketch', 'bible-wordsearch']) {
-    if (await veilOf(key) === commonVeil) {
-      fail(`У «${key}» полог стал общим — облегчённое правило проиграло тёмной теме`);
+  for (const dark of [true, false]) {
+    await setTheme(dark);
+    const commonVeil = await veilOf('alias');
+    for (const key of ['quartet', 'bible-sketch', 'bible-wordsearch']) {
+      if (await veilOf(key) === commonVeil) {
+        fail(`У «${key}» полог стал общим в ${dark ? 'тёмной' : 'светлой'} теме — облегчённое правило проиграло`);
+      }
     }
   }
   await setTheme(false);
@@ -316,19 +458,113 @@ try {
   // 5. Своя сцена у каждой игры, а не одна на всех.
   await openGame('spy');
   await page.waitForTimeout(300);
-  state = await sceneState();
+  let state = await sceneState();
   if (state.key !== 'spy') fail(`При переходе в «Соглядатая» сцена осталась «${state.key}»`);
 
-  // 6. У «Моисея на Ниле» свой мир во весь экран — чужой фон под ним не нужен.
+  /*
+    6. Глубина. Наклон телефона приходит от Telegram в радианах; ближний слой
+    обязан уйти заметно дальше дальнего, иначе это сдвиг картинки, а не объём.
+    «Дыхание» камеры идёт на каждом слое, у которого есть глубина.
+  */
+  for (const key of ['alias', 'spy']) {
+    await openGame(key);
+    await page.waitForTimeout(400);
+    const motion = await page.evaluate(async () => {
+      const app = window.Telegram.WebApp;
+      const tilt = (beta, gamma) => {
+        app.DeviceOrientation.beta = beta;
+        app.DeviceOrientation.gamma = gamma;
+        for (const handler of window.__tiltSensor.listeners) handler();
+      };
+      tilt(0.7, 0);
+      await new Promise((resolve) => setTimeout(resolve, 40));
+      tilt(0.7, 0.3);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      return [...document.querySelectorAll('.game-scene__layer')].map((node) => ({
+        depth: Number(node.dataset.depth),
+        shift: Math.abs(parseFloat(node.style.getPropertyValue('--layer-x')) || 0),
+        breathing: node.getAnimations().some((animation) => animation.effect.getTiming().iterations === Infinity),
+      }));
+    });
+    const sorted = [...motion].sort((a, b) => a.depth - b.depth);
+    const far = sorted[0];
+    const near = sorted[sorted.length - 1];
+    if (!near?.shift) fail(`Сцена «${key}» не откликается на наклон телефона`);
+    else if (near.shift < far.shift * 3) {
+      fail(`Сцена «${key}» на наклоне двигается плоско: ближний слой ушёл на ${near.shift.toFixed(1)} px, `
+        + `дальний на ${far.shift.toFixed(1)} px — глубины не видно`);
+    }
+    const still = motion.filter((layer) => layer.depth > 0 && !layer.breathing);
+    if (still.length) fail(`Сцена «${key}»: ${still.length} слоёв с глубиной не «дышат» — без наклона сцена стоит плоской`);
+  }
+
+  /*
+    7. Края. Ближний слой ездит дальше всех, и запас по краям у него свой. В
+    каждой крайней точке хода — наклон до упора в любую сторону, прокрутка до
+    предела, «дыхание» на пике — слой обязан закрывать экран целиком: иначе из-
+    под переднего плана выглянет его обрез. Проверяется и в альбомной
+    ориентации, где высоты мало и вертикальный ход другой.
+  */
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    for (const key of ['alias', 'spy']) {
+      await openGame(key);
+      await page.waitForTimeout(400);
+      const gaps = await page.evaluate(async () => {
+        const found = [];
+        const layers = [...document.querySelectorAll('.game-scene__layer')];
+        for (const x of [-1, 1]) {
+          for (const y of [-1, 1]) {
+            for (const scroll of [0, 1e5]) {
+              for (const phase of [0.125, 0.25, 0.375, 0.75]) {
+                for (const node of layers) {
+                  for (const animation of node.getAnimations()) {
+                    const { iterations, duration } = animation.effect.getTiming();
+                    animation.pause();
+                    if (iterations === Infinity) animation.currentTime = duration * phase;
+                    else animation.finish();
+                  }
+                }
+                window.__gameScene.pose({ x, y, scroll });
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                for (const node of layers) {
+                  const box = node.getBoundingClientRect();
+                  const gap = Math.min(-box.left, -box.top, box.right - innerWidth, box.bottom - innerHeight);
+                  if (gap < -0.5) found.push(`глубина ${node.dataset.depth}: ${gap.toFixed(1)} px`);
+                }
+              }
+            }
+          }
+        }
+        window.__gameScene.pose();
+        for (const node of layers) for (const animation of node.getAnimations()) animation.play();
+        return [...new Set(found)];
+      });
+      if (gaps.length) {
+        fail(`Сцена «${key}» на ${viewport.width}×${viewport.height} в крайней точке хода открывает край слоя: `
+          + gaps.slice(0, 3).join(', '));
+      }
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // 8. У «Моисея на Ниле» свой мир во весь экран — чужой фон под ним не нужен.
   await openGame('moses-nile');
   state = await sceneState();
   if (state.present && state.display !== 'none') fail('У «Моисея на Ниле» под трёхмерным миром висит лишняя сцена');
 
-  // 7. Возврат в меню сцену убирает: у меню свой параллакс.
+  // 9. Возврат в меню сцену убирает: у меню свой параллакс. И датчик наклона
+  // уходит вместе со сценой — в меню он только тратил бы батарею.
   await page.evaluate(() => window.goToMainMenu?.());
   await page.waitForTimeout(400);
   state = await sceneState();
   if (state.present && state.display !== 'none') fail('Сцена игры осталась висеть в меню');
+  const sensor = await page.evaluate(() => ({ ...window.__tiltSensor, listeners: window.__tiltSensor.listeners.length }));
+  if (!sensor.started) fail('Датчик наклона Telegram ни разу не включился — сцена не знает о наклоне телефона');
+  if (sensor.started !== sensor.stopped || sensor.listeners) {
+    fail(`Датчик наклона пережил сцену: включён ${sensor.started} раз, выключен ${sensor.stopped}, `
+      + `подписок осталось ${sensor.listeners}`);
+  }
   for (const error of pageErrors) fail(`Ошибка на странице: ${error}`);
 } finally {
   await browser.close();
@@ -340,5 +576,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`OK: живой фон игр — ${catalogKeys.length} сцен, встают под экран игры и меняются вместе с ней в обеих темах; `
-  + 'в тёмной верх сцены достаточно тёмен для белого заголовка, в светлой нет тёмных пятен под тёмным текстом, '
-  + 'но картина сквозь полог видна; касания идут сквозь, а меню и «Моисей на Ниле» остаются со своим.');
+  + 'картина одна и та же в обеих, без белого стекла, верх достаточно тёмен для заголовка, текст на ней светлый, '
+  + 'панели плотные; наклон уводит ближние слои дальше дальних, края не открываются, датчик живёт только со сценой; '
+  + 'касания идут сквозь, а меню и «Моисей на Ниле» остаются со своим.');

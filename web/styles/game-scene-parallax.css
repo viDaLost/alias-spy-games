@@ -1,14 +1,15 @@
 /*
   Живой фон игры — слои сцены под экраном игры.
 
-  Арт ночной, и в лоб он годится только тёмной теме. В светлой он не выброшен,
-  а переосмыслен: слои высветляются и обесцвечиваются, а поверх ложится тот же
-  светлый градиент, что был фоном экрана игры, но с прозрачностью. Картина
-  проступает подмалёвком — площадь «Алиаса», ночной город «Соглядатая» узнать
-  можно, а тёмный текст и белые карточки читаются как читались.
+  Арт ночной, и показывается он одинаково в обеих темах — в полном цвете.
+  Прежде светлая тема высветляла и обесцвечивала слои, гасила всю сцену до 0.62
+  и клала сверху молочный полог: картина проступала подмалёвком, а экран игры
+  выглядел так, будто стоит под белым стеклом. Теперь темы на сцене не
+  расходятся вовсе. Карточки остаются своими — светлыми в светлой теме, — а всё,
+  что лежит прямо на картине, светлеет в обеих.
 
-  Полог в каждой теме свой и делает противоположное: в тёмной гасит светлое,
-  в светлой поднимает тёмное. Обе стороны меряются проверкой по яркости.
+  Полог тоже общий: он гасит небо наверху, чтобы заголовок игры не пропадал в
+  облаках, и меряется проверкой по яркости — в обеих темах одинаково.
 */
 .game-scene {
   position: fixed;
@@ -26,23 +27,12 @@
 .game-scene.is-ready { opacity: 1; }
 
 /*
-  Светлая тема: картина уходит в подмалёвок. Ночной снимок высветляется и почти
-  обесцвечивается, иначе синие тени спорят с голубым фоном экрана.
-
-  Собственный фильтр слоя здесь не дописывается, а заменяется целиком. В
-  каталоге он всегда затемняющий — brightness(.8) и подобные, подобранные под
-  ночь, — и в светлой теме тянул бы картину ровно в обратную сторону. Дописать
-  его вдобавок нельзя и технически: у слоёв без своего фильтра переменная равна
-  none, а «brightness(1.62) … none» — недопустимое значение, и браузер молча
-  выбрасывает всё правило целиком.
+  Слой сцены. Сдвиг от прокрутки и наклона ставит модуль через --layer-x и
+  --layer-y, запас по краям — через --layer-scale: ближним слоям он нужен
+  больше, они и ездят дальше. Медленное «дыхание» камеры и наезд при входе идут
+  отдельными свойствами translate и scale — анимацией, без участия скрипта на
+  каждом кадре, — и с этим сдвигом складываются, а не спорят.
 */
-html:not(.theme-dark) .game-scene { opacity: 0; }
-html:not(.theme-dark) .game-scene.is-ready { opacity: .62; }
-html:not(.theme-dark) .game-scene { background: #f4f8ff; }
-html:not(.theme-dark) .game-scene__layer {
-  filter: brightness(1.62) saturate(.34) contrast(.78);
-}
-
 .game-scene__layer {
   position: absolute;
   inset: -4%;
@@ -52,7 +42,7 @@ html:not(.theme-dark) .game-scene__layer {
   object-position: center;
   opacity: var(--layer-opacity, 1);
   filter: var(--layer-filter, none);
-  transform: translate3d(0, var(--layer-y, 0), 0) scale(var(--layer-scale, 1.06));
+  transform: translate3d(var(--layer-x, 0px), var(--layer-y, 0px), 0) scale(var(--layer-scale, 1.06));
   user-select: none;
   -webkit-user-drag: none;
   backface-visibility: hidden;
@@ -75,14 +65,15 @@ html:not(.theme-dark) .game-scene__layer {
 /*
   Цвет полога всегда назван вместе с темой, общего правила у него нет.
 
-  Тёмную тему приложение выводит из этих же файлов машинально, и правило с
-  тёмным цветом оно копирует себе как есть, дописав !important. Копия сильнее
-  всего, что стоит ниже без !important, — поэтому облегчённый полог отдельных
-  игр тоже помечен им (специфичность у него выше, и при равном !important
-  побеждает он). Имя темы в селекторе не обязательно для этого, но оставляет
-  обе стороны симметричными и делает копию предсказуемой.
+  Тёмную тему приложение выводит из этих же файлов машинально, и правило без
+  темы в селекторе оно копирует себе с !important. Копия сильнее всего, что
+  стоит ниже без !important, — облегчённый полог отдельных игр молча проиграл
+  бы ей. Поэтому обе темы перечислены явно, хотя полог у них один и тот же, а
+  облегчённый помечен !important (специфичность у него выше, и при равном
+  !important побеждает он).
 */
-html.theme-dark .game-scene__veil {
+html.theme-dark .game-scene__veil,
+html:not(.theme-dark) .game-scene__veil {
   background:
     radial-gradient(circle at 50% 14%, rgba(236, 212, 146, .06), transparent 40%),
     linear-gradient(180deg,
@@ -95,46 +86,121 @@ html.theme-dark .game-scene__veil {
 /* Светлее там, где поле игры само по себе тёмное и занимает почти весь экран. */
 html.theme-dark .game-scene[data-scene="quartet"] .game-scene__veil,
 html.theme-dark .game-scene[data-scene="bible-sketch"] .game-scene__veil,
-html.theme-dark .game-scene[data-scene="bible-wordsearch"] .game-scene__veil {
+html.theme-dark .game-scene[data-scene="bible-wordsearch"] .game-scene__veil,
+html:not(.theme-dark) .game-scene[data-scene="quartet"] .game-scene__veil,
+html:not(.theme-dark) .game-scene[data-scene="bible-sketch"] .game-scene__veil,
+html:not(.theme-dark) .game-scene[data-scene="bible-wordsearch"] .game-scene__veil {
   background: linear-gradient(180deg, rgba(3, 8, 10, .56) 0%, rgba(3, 8, 10, .34) 40%, rgba(3, 8, 9, .5) 100%) !important;
 }
 
 /*
-  Полог светлой темы — это прежний фон экрана игры, только с прозрачностью.
-  Те же три блика и тот же градиент, что стояли в game-shell.css: экран
-  сохраняет свой вид, а картина проступает сквозь него.
+  Текст, который лежит прямо на сцене, а не на карточке.
+
+  В светлой теме он задуман тёмным — под ровный голубой фон, — и на ночной
+  картине пропадает: «Алиас», таймер раунда, «Секретная карточка» становились
+  тёмно-синим по тёмно-синему. Поэтому на сцене он светлый в обеих темах, а
+  тень под буквами выравнивает фон, который под текстом всё равно то камень, то
+  небо. Внутри карточек и кнопок у текста свой фон — туда правило не ходит.
+
+  Список собран обходом игр: всё, у чего между буквами и сценой нет ни одной
+  подложки. Проверка сцен проходит так первый экран каждой игры и упадёт, если
+  там чего-то не хватит; таймер «Алиаса» и «Секретная карточка» стоят глубже, в
+  самом раунде, и найдены тем же обходом вручную.
 */
-html:not(.theme-dark) .game-scene__veil {
-  background:
-    radial-gradient(88% 52% at 50% -8%, rgba(255, 255, 255, .96), transparent 62%),
-    radial-gradient(64% 40% at 6% 22%, rgba(191, 219, 254, .58), transparent 66%),
-    radial-gradient(70% 46% at 98% 34%, rgba(165, 214, 245, .5), transparent 68%),
-    linear-gradient(178deg, rgba(247, 250, 255, .9) 0%, rgba(226, 240, 253, .8) 46%, rgba(214, 235, 250, .88) 100%);
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container > h1,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container > h2,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .alias-title,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .spy-mode-wrap > h2,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .spy-role-title,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .ws-title__name,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .timer,
+html.theme-dark body.has-game-scene[data-mode="game"] .app-header h1,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container > h1,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container > h2,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .alias-title,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .spy-mode-wrap > h2,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .spy-role-title,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .ws-title__name,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .timer,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] .app-header h1 {
+  color: #f4f1ff !important;
+  text-shadow: 0 2px 14px rgba(2, 4, 10, .9), 0 1px 3px rgba(2, 4, 10, .78);
 }
 
 /*
-  Тень под буквами. Полог выравнивает фон, но не делает его ровным: под текстом
-  всё равно то камень, то небо. Тень стоит только там, где текст лежит прямо на
-  сцене, — внутри карточек и кнопок у него свой фон, и там она не нужна.
+  Приглушённый текст на сцене светлеет сильнее остального. Серый подзаголовок
+  задумывался для ровного фона; на картинке он теряется даже с тенью — «Один
+  или несколько игроков — соглядатаи» читалось через силу.
 */
-html.theme-dark body.has-game-scene #game-container > h1,
-html.theme-dark body.has-game-scene #game-container > h2,
-html.theme-dark body.has-game-scene #game-container > p,
-html.theme-dark body.has-game-scene #game-container > .hint,
-html.theme-dark body.has-game-scene #game-container > .theme-label,
-html.theme-dark body.has-game-scene .app-header h1,
-html.theme-dark body.has-game-scene .app-header .app-subtitle {
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container > p,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container > .hint,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container > .theme-label,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .alias-sub,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .round-meta,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .spy-mode-lead,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .spy-role-hint,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .sw-message,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .kids-total-note,
+html.theme-dark body.has-game-scene[data-mode="game"] #game-container .kids-rule-note,
+html.theme-dark body.has-game-scene[data-mode="game"] .app-header .app-subtitle,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container > p,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container > .hint,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container > .theme-label,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .alias-sub,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .round-meta,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .spy-mode-lead,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .spy-role-hint,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .sw-message,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .kids-total-note,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .kids-rule-note,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] .app-header .app-subtitle {
+  color: rgba(255, 250, 240, .88) !important;
   text-shadow: 0 2px 12px rgba(2, 4, 10, .92), 0 1px 3px rgba(2, 4, 10, .8);
 }
 
 /*
-  Приглушённый текст на сцене светлеет. Серый подзаголовок задумывался для
-  ровного тёмного фона; на картинке он теряется даже с тенью — «Один или
-  несколько игроков — соглядатаи» читалось через силу.
+  Светлые панели на сцене становятся плотными.
+
+  Стекло светлой темы задумано полупрозрачным — от 0.54 до 0.88 — поверх
+  светлого фона. Над ночной картиной та же прозрачность пропускает темноту, и
+  белая панель становилась грязно-серой: клавиатура «Священного слова», поле
+  «Поиска слов», правила «Опиши слово». Под собственный градиент панели
+  подкладывается почти белая заливка: градиент, край и тень остаются своими,
+  панель снова белая и висит над картиной, а не тонет в ней.
+
+  Размытие под такой панелью уже ничего не показывает, а цену свою берёт на
+  каждом кадре, пока сцена движется, — поэтому оно снято. В тёмной теме
+  панели тёмные, тёмное стекло на тёмной картине и задумано, и там ничего не
+  меняется.
+
+  В списке только внешние панели — те, что лежат прямо на сцене. Внутренние
+  лежат уже на белом, и прозрачность им не вредит.
 */
-html.theme-dark body.has-game-scene #game-container > p,
-html.theme-dark body.has-game-scene #game-container > .hint {
-  color: rgba(255, 250, 240, .86) !important;
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .card,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .setup-block,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .btn-neutral,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .btn-ghost,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .back-button,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .spy-role-progress,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .spy-card-privacy,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .premium-theme-card,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .sw-topbar,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .sw-card,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .sw-keyboard,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .wow-board-area,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .wow-controls,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .wow-chip,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .ws-panel,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .ws-board,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .kids-setup-card,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .kids-game-header,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .kids-status,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .qv2-glass,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .bsk-glass,
+html:not(.theme-dark) body.has-game-scene[data-mode="game"] #game-container .bsk-hero {
+  background-color: rgba(246, 249, 255, .94) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /*
