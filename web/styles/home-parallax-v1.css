@@ -89,30 +89,18 @@ html.home-gamehub-parallax.home-gamehub-parallax-active body {
 }
 
 /*
-  Светлая тема: иллюстрация уходит на шаг назад.
+  Светлая тема: иллюстрация в полном цвете.
 
   Картина нарисована светлой, но не ровной: тёмно-синяя архитектура и золото
   ламп местами проваливаются до 0.29 яркости, а подписи секций идут тёмным
-  прямо по ней, без карточки под ними. Тёмная тема лечит ту же беду затемнением
-  до brightness(.4) — светлой нужно обратное: приподнять тёмные места, убавить
-  пестроту и накрыть всё той же светлой пеленой, что лежит под экраном игры.
-  Картина остаётся узнаваемой, но перестаёт спорить с текстом.
-
-  Пелена — отдельный слой поверх картинок, и z-index ей обязателен: слои сцены
-  пронумерованы от первого до пятого, и без своего номера она уходит под них и
-  не делает ничего.
+  прямо по ней. Прежде светлая тема лечила это целиком: высветляла картину,
+  убавляла пестроту и накрывала весь экран белой пеленой — меню выглядело так,
+  будто стоит под белым стеклом. Теперь картина не трогается, а подложку
+  получает только то, что её требует: подписи секций, «Ваш прогресс» и
+  «Скрыть» стоят на своих светлых плашках (они ниже, рядом с цветом подписей).
+  Шапке плашка не нужна: под ней светлый центр картины и собственный блик
+  шапки.
 */
-html:not(.theme-dark) .home-gamehub-parallax__layer {
-  filter: brightness(1.18) saturate(.78) contrast(.9) !important;
-}
-
-html:not(.theme-dark) .home-gamehub-parallax__scene::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 9;
-  background: linear-gradient(180deg, rgba(248, 251, 255, .64), rgba(238, 246, 255, .56));
-}
 
 html.home-gamehub-parallax body > .app-header,
 html.home-gamehub-parallax body > #main-loader,
@@ -161,6 +149,36 @@ html.home-gamehub-parallax.home-gamehub-parallax-active #menu-container .game-ca
 html.home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title {
   color: #312E81 !important;
   text-shadow: 0 1px 8px rgba(224,242,254,.78);
+}
+
+/*
+  Плашки подписей в светлой теме. Подписи идут у левого края, а там на картине
+  тёмные иконки и архитектура: «Словесные» и «Ваш прогресс» без подложки
+  ложились тёмным по тёмно-синему. Плашка — это та же пелена, только размером
+  с подпись: картина вокруг остаётся чистой.
+
+  Линия после названия секции на плашке не нужна — она тянулась бы внутри неё.
+  В тёмной теме картина приглушена до brightness(.4), и подписи читаются и так.
+*/
+html:not(.theme-dark).home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title,
+html:not(.theme-dark).home-gamehub-parallax.home-gamehub-parallax-active .home-dashboard__label,
+html:not(.theme-dark).home-gamehub-parallax.home-gamehub-parallax-active .home-section-hide {
+  width: max-content;
+  max-width: 100%;
+  justify-self: start;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .9);
+  box-shadow: 0 6px 16px -8px rgba(49, 46, 129, .35), inset 0 0 0 1px rgba(99, 102, 241, .12);
+  text-shadow: none;
+}
+
+html:not(.theme-dark).home-gamehub-parallax.home-gamehub-parallax-active .home-section-hide {
+  justify-self: center;
+}
+
+html:not(.theme-dark).home-gamehub-parallax.home-gamehub-parallax-active .menu-section-title::after {
+  display: none;
 }
 
 @media (max-width: 430px) {
