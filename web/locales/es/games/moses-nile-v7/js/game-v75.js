@@ -28,7 +28,7 @@
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
-  const MAX_DPR = 1.25;
+  const MAX_DPR = 2;
   const FAR_Z = -255;
   const NEAR_Z = 10;
   const THREE = window.THREE;
@@ -77,11 +77,11 @@
       title: 'Remanso de papiro',
       subtitle: 'Agua tranquila, juncos densos',
       from: 0,
-      fog: 0xc9c2ac, fogNear: 98, fogFar: 306,
+      fog: 0xc9c2ac, fogNear: 140, fogFar: 380,
       hemiSky: 0xc8dcf0, hemiGround: 0x4a4234, hemiPower: .30,
       sunColor: 0xffe8c4, sunPower: 1.5, sunPos: [-24, 38, 16],
       water: { deep: 0x1c3729, shallow: 0x4f7458, sky: 0x9db8d0, sun: 0xffe3ae, foam: 0xeff2e6, chop: .85, glitter: 1.05, opacity: .95 },
-      sky: { zenith: 0x4f7ba9, haze: 0xb2a488, horizon: 0xd8c8a6, sun: 0xffe6ae, storm: .34, stars: 0 },
+      sky: { zenith: 0x4f7ba9, haze: 0xb2a488, horizon: 0xd8c8a6, sun: 0xffe6ae, storm: .12, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
       exposure: .93, wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
@@ -95,7 +95,7 @@
       hemiSky: 0xd4e6f6, hemiGround: 0x554c38, hemiPower: .34,
       sunColor: 0xfff4dc, sunPower: 1.62, sunPos: [-16, 46, 12],
       water: { deep: 0x1b3d2f, shallow: 0x568063, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
-      sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .24, stars: 0 },
+      sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
       exposure: .97, wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
@@ -416,6 +416,7 @@
   let water = null;
   let waterMaterial = null;
   let waterSheen = null;
+  let riverReflection = null;
   let waterPositions = null;
   let waterBaseY = null;
   let waterNormal = null;
@@ -455,10 +456,23 @@
   function detectTier() {
     const dpr = window.devicePixelRatio || 1;
     const cores = navigator.hardwareConcurrency || 4;
+    const memory = navigator.deviceMemory || 4;
     const wide = Math.max(window.innerWidth, window.innerHeight);
-    if (wide >= 900 && cores >= 8) return 2;
-    if (cores >= 6 && dpr <= 2.5) return 1;
+    if (wide >= 900 && cores >= 8 && memory >= 4) return 2;
+    // iOS часто сообщает лишь два ядра и не раскрывает память. Экран с
+    // высоким DPR не должен автоматически отправлять его в самый низкий
+    // класс; фактическую нагрузку затем проверяет менеджер кадров.
+    if (cores >= 6 || (dpr >= 2 && memory >= 4)) return 1;
     return 0;
+  }
+
+  function renderPixelRatio() {
+    const tier = detectTier();
+    const limit = tier >= 2 ? MAX_DPR : tier >= 1 ? 1.6 : 1.25;
+    // Сначала снимаем отражение и мелкий шум воды. Разрешение всего кадра
+    // уменьшается лишь при устойчивой просадке после этих мер.
+    const resolution = .72 + .28 * clamp((state.quality - .35) / .3, 0, 1);
+    return Math.min(window.devicePixelRatio || 1, limit) * resolution;
   }
 
   function tryCreateRenderer() {
@@ -469,7 +483,7 @@
       if (!context) return null;
       const next = new THREE.WebGLRenderer({ canvas: dom.canvas, context, alpha: true, antialias: true });
       next.setClearColor(0x000000, 0);
-      next.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
+      next.setPixelRatio(renderPixelRatio());
       next.setSize(window.innerWidth, window.innerHeight, false);
       next.toneMapping = THREE.ACESFilmicToneMapping;
       next.toneMappingExposure = .96;
@@ -525,21 +539,23 @@
 
   function applyQuality() {
     if (!renderer) return;
-    // Нижняя граница опущена: на просевшем кадре разрешение — самый быстрый
-    // рычаг, а прежние 0.72 почти ничего не отыгрывали.
-    const ratio = Math.min(window.devicePixelRatio || 1, MAX_DPR) * mix(.55, 1, state.quality);
+    // Отражение и шум воды отключаются раньше, чем падает разрешение.
+    const ratio = renderPixelRatio();
     renderer.setPixelRatio(ratio);
     fx?.setQuality?.(state.quality);
     fx?.setParticleScale?.(ratio);
     /*
-      Тени снимаются раньше прежнего: это самая дорогая часть кадра, и
-      когда счётчик уже просел, отдавать её надо первой, а не после того,
-      как разрешение упало до половины.
+      После отражения и мелкой ряби снимаем тени. При восстановлении
+      качества возвращаем их с запасом, чтобы порог не мигал.
     */
-    if (state.quality < .84 && renderer.shadowMap.enabled) {
+    if (state.quality < .60 && renderer.shadowMap.enabled) {
       renderer.shadowMap.enabled = false;
       shadowsOn = false;
       if (sun) sun.castShadow = false;
+    } else if (state.quality > .92 && !renderer.shadowMap.enabled) {
+      renderer.shadowMap.enabled = true;
+      shadowsOn = true;
+      if (sun) sun.castShadow = true;
     }
   }
 
@@ -608,7 +624,7 @@
     loader.load(path, (texture) => {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(repeatX, repeatY);
-      texture.anisotropy = Math.min(4, renderer?.capabilities?.getMaxAnisotropy?.() || 2);
+      texture.anisotropy = Math.min(8, renderer?.capabilities?.getMaxAnisotropy?.() || 2);
       if (kind === 'map' && 'encoding' in texture) texture.encoding = THREE.sRGBEncoding;
       if (material) {
         material[kind] = texture;
@@ -649,7 +665,7 @@
         const u = ix / xSegments;
         const across = (u - .5) * 2;
         // Русло корытом: у берегов мельче, посередине глубже.
-        const depth = -.55 - (1 - across * across) * .85;
+        const depth = window.NileLandscape?.bedHeight?.(center + across * half, z) ?? (-.55 - (1 - across * across) * .85);
         positions.push(center + across * half, depth, z);
         uvs.push(u * 5, v * 46);
       }
@@ -672,15 +688,33 @@
       metalness: 0,
     });
     material.userData.normalStrength = 1.1;
-    makeTexture('textures/terrain/rock-color.jpg', 5, 46, material);
-    makeTexture('textures/terrain/rock-normal.jpg', 5, 46, material, 'normalMap');
-    makeTexture('textures/terrain/rock-orm.jpg', 5, 46, material, 'roughnessMap');
+    makeTexture('textures/terrain/rock-color.jpg', 1, 1, material);
+    makeTexture('textures/terrain/rock-normal.jpg', 1, 1, material, 'normalMap');
+    makeTexture('textures/terrain/rock-orm.jpg', 1, 1, material, 'roughnessMap');
+    applyBankEdge(material, true);
     const bed = new THREE.Mesh(geometry, material);
     bed.name = 'V751NileBed';
     bed.receiveShadow = true;
     bed.renderOrder = 0;
     scene.add(bed);
     bankMaterials.push({ material, metresPerRepeat: (NEAR_Z + 8 - FAR_Z) / 46 });
+  }
+
+  function applyBankEdge(material, bed = false) {
+    const glsl = window.NileLandscape?.GLSL;
+    if (!glsl) return;
+    window.NileMaterials?.chainOnBeforeCompile?.(material, (shader) => {
+      shader.uniforms.uLandscapeScroll = duneScrollUniform;
+      shader.vertexShader = `uniform float uLandscapeScroll;
+${glsl}
+${shader.vertexShader}`.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         float edgeSide = transformed.x < 0.0 ? -1.0 : 1.0;
+         transformed.x += edgeSide * nileShore(transformed.z - uLandscapeScroll, edgeSide) * min(1.0, abs(transformed.x) / ${RIVER_HALF + 1.4});
+         ${bed ? 'transformed.y = nileBed(vec2(transformed.x, transformed.z - uLandscapeScroll));' : ''}`,
+      );
+    });
   }
 
   function buildWater() {
@@ -722,6 +756,7 @@
     for (let i = 0; i < waterPositions.count; i += 1) waterBaseY[i] = waterPositions.getY(i);
 
     waterMaterial = window.NileShaders?.createRiverMaterial?.(THREE, { opacity: .34 });
+    if (waterMaterial?.uniforms?.uLandscapeScroll) waterMaterial.uniforms.uLandscapeScroll = duneScrollUniform;
     if (!waterMaterial) {
       waterMaterial = new THREE.MeshStandardMaterial({
         color: 0x4d5730, roughness: .5, metalness: .05,
@@ -753,6 +788,7 @@
 
     const sheenMaterial = window.NileShaders?.createSheenMaterial?.(THREE, { strength: .2 });
     if (sheenMaterial) {
+      sheenMaterial.uniforms.uLandscapeScroll = duneScrollUniform;
       waterSheen = new THREE.Mesh(geometry, sheenMaterial);
       waterSheen.name = 'MosesV751WaterReliefDetail';
       waterSheen.position.y = .012;
@@ -837,10 +873,11 @@
     window.NileMaterials?.chainOnBeforeCompile?.(material, (shader) => {
       shader.uniforms.uDuneScroll = duneScrollUniform;
       shader.uniforms.uDuneSide = sideUniform;
-      shader.vertexShader = `${DUNE_GLSL}\n${shader.vertexShader}`.replace(
+      shader.vertexShader = `${window.NileLandscape?.GLSL || 'float nileShore(float z, float side){return 0.0;}'}\n${DUNE_GLSL}\n${shader.vertexShader}`.replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
          float nileZ = transformed.z - uDuneScroll;
+         transformed.x += uDuneSide * nileShore(nileZ, uDuneSide);
          float nileH = nileDune(aDuneOffset, nileZ, uDuneSide);
          transformed.y += nileH;
          float nileE = 0.6;
@@ -900,6 +937,8 @@
         // пластилином, а не песком.
         uvs.push(u * crossRepeat, v * 52);
         tone.copy(inner).lerp(outer, u);
+        const stain = .91 + .09 * Math.sin(z * DUNE_K * 5 + side * 2 + offset * 1.3);
+        tone.multiplyScalar(stain);
         colorData.push(tone.r, tone.g, tone.b);
       }
     }
@@ -934,8 +973,8 @@
       depthWrite: opacity >= 1,
     });
     material.userData.normalStrength = 1.35;
-    if (texturePath) makeTexture(texturePath, 1, 52, material);
-    if (normalPath) makeTexture(normalPath, 1, 52, material, 'normalMap');
+    if (texturePath) makeTexture(texturePath, 1, 1, material);
+    if (normalPath) makeTexture(normalPath, 1, 1, material, 'normalMap');
     // Отражения неба по касательной: сухой песок на солнце заметно светлеет.
     window.NileMaterials?.addSkyReflection?.(material, { strength: .18 });
     applyDuneRelief(material, side);
@@ -952,7 +991,8 @@
   function buildShoreline(side) {
     const material = window.NileShaders?.createShorelineMaterial?.(THREE);
     if (!material) return;
-    const segments = 120;
+    material.uniforms.uLandscapeScroll = duneScrollUniform;
+    const segments = 160;
     const positions = [];
     const uvs = [];
     const indices = [];
@@ -1055,7 +1095,7 @@
       // У Quaternius стебли покрашены в «дерево», и заросли папируса читались
       // как поле сухих прутьев. Тростнику и траве задаётся своя палитра.
       const tone = BANK_TONES[key]?.[/wood|trunk|bark/i.test(source.name || '') ? 'stem' : 'leaf'];
-      if (tone) material.color = new THREE.Color(tone);
+      if (tone) material.color = new THREE.Color(tone).convertSRGBToLinear();
       else if (material.color) material.color.offsetHSL(.012, -.16, .02);
       if ('roughness' in material) material.roughness = Math.max(.85, material.roughness ?? .9);
       // Развёртка и процедурные карты: без них листва и камни остаются
@@ -1078,13 +1118,15 @@
   }
 
   function buildInstancedLayer(spec) {
-    const parts = extractInstanceParts(spec.key, spec.size)
+    const parts = window.NileLandscape?.foliageParts?.(THREE, spec.key, spec.variant || 0, spec.size)
+      || extractInstanceParts(spec.key, spec.size)
       || (spec.fallbackParts ? spec.fallbackParts() : null)
       || [{ geometry: spec.fallbackGeometry(), material: spec.fallbackMaterial() }];
     const half = spec.count;
     const total = half * 2;
     const meshes = parts.map((part, index) => {
-      if (spec.wind) window.NileShaders?.applyWind?.(THREE, part.material, timeUniform, windUniform, spec.wind);
+      const wind = part.wind ?? spec.wind;
+      if (wind) window.NileShaders?.applyWind?.(THREE, part.material, timeUniform, windUniform, wind);
       return makeInstanced(part.geometry, part.material, total, index ? `${spec.name}Part${index}` : spec.name);
     });
     const dummy = new THREE.Object3D();
@@ -1095,7 +1137,11 @@
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
-      mesh.castShadow = spec.castShadow ?? false;
+      mesh.castShadow = detectTier() >= 1 && (spec.castShadow ?? ['palm', 'papyrus', 'bush'].includes(spec.key));
+      if (mesh.castShadow && spec.wind) {
+        mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide });
+        window.NileShaders?.applyWind?.(THREE, mesh.customDepthMaterial, timeUniform, windUniform, parts[meshes.indexOf(mesh)].wind ?? spec.wind);
+      }
       scene.add(mesh);
       scrollLayers.push(mesh);
     }
@@ -1112,8 +1158,11 @@
     const tile = i < half ? 0 : SCROLL_TILE;
     const side = index % 2 ? -1 : 1;
     const z = -hash(index, options.salt) * SCROLL_TILE - tile;
-    const offset = options.near + hash(index, options.salt + 1) * (options.far - options.near);
-    const x = side * (riverHalf() + offset);
+    const sample = hash(index, options.salt + 1);
+    const offset = options.windless ? options.near + sample * (options.far - options.near)
+      : window.NileLandscape?.vegetationOffset?.(z, side, options.near, options.far, sample)
+        ?? options.near + sample * (options.far - options.near);
+    const x = side * (riverHalf() + (window.NileLandscape?.shoreOffset?.(z, side) || 0) + offset);
     const scale = options.minScale + hash(index, options.salt + 2) * (options.maxScale - options.minScale);
     // Растения садятся на рельеф песка, иначе висят над барханами.
     dummy.position.set(x, options.lift + bankRise(offset) + duneHeight(offset, z, side), z);
@@ -1318,14 +1367,23 @@
         place: (i, dummy, half) => bankPlace(i, dummy, { salt: 61, zFrom: 3, zSpan: 258, near: .4, far: 4.2, lift: .03, minScale: .7, maxScale: 1.6 }, half),
       },
       {
-        key: 'palm', name: 'V75PalmCrowns', size: 11.5, wind: .55, castShadow: false,
+        key: 'palm', name: 'V75PalmCrowns', size: 11.5, wind: .55, castShadow: true,
         count: Math.round(24 * density),
         fallbackGeometry: palmGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x4d6234, roughness: .96, flatShading: true }),
         place: (i, dummy, half) => bankPlace(i, dummy, { salt: 41, zFrom: -10, zSpan: 236, near: 9, far: 27, lift: .05, minScale: .7, maxScale: 1.3, tilt: .16 }, half),
       },
     ];
-    for (const spec of specs) buildInstancedLayer(spec);
+    for (const spec of specs) {
+      if (!['palm', 'grass', 'bush', 'bankPlant', 'broadleaf'].includes(spec.key)) { buildInstancedLayer(spec); continue; }
+      for (let variant = 0; variant < 3; variant++) {
+        const count = Math.ceil((spec.count - variant) / 3);
+        if (count <= 0) continue;
+        buildInstancedLayer({ ...spec, variant, count, name: `${spec.name}Variant${variant}`,
+          place: (i, dummy, half) => spec.place((i % half) * 3 + variant + (i >= half ? spec.count : 0), dummy, spec.count),
+        });
+      }
+    }
   }
 
   /*
@@ -1564,7 +1622,7 @@
       { z: -232, width: 620, height: 150, y: 44, strength: .30, speed: .020, scale: .7 },
       { z: -168, width: 480, height: 104, y: 26, strength: .24, speed: .045, scale: 1.1 },
       { z: -96, width: 340, height: 62, y: 13, strength: .26, speed: .085, scale: 1.7 },
-      { z: -42, width: 210, height: 30, y: 5.5, strength: .19, speed: .150, scale: 2.4 },
+      { z: -42, width: 210, height: 30, y: 5.5, strength: .08, speed: .150, scale: 2.4 },
     ];
     for (const spec of sheetSpecs) {
       const sheetMaterial = window.NileShaders?.createDustSheetMaterial?.(THREE, {
@@ -1577,6 +1635,7 @@
       sheet.position.set(0, spec.y, spec.z);
       sheet.renderOrder = -3;
       sheet.frustumCulled = false;
+      sheet.userData.baseStrength = spec.strength;
       scene.add(sheet);
       dustSheets.push(sheet);
     }
@@ -3940,6 +3999,7 @@
     for (const sheet of dustSheets) {
       if (!sheet.material.uniforms) continue;
       sheet.material.uniforms.uColor.value.copy(air.haze);
+      sheet.material.uniforms.uStrength.value = sheet.userData.baseStrength * (.25 + air.storm * .75);
     }
     for (const entry of decor) {
       if (entry.kind !== 'dune' && entry.kind !== 'pyramid') continue;
@@ -4026,6 +4086,10 @@
     buildBirds();
     buildPlayer();
     buildSwipeWaves();
+    if (detectTier() >= 1 && waterMaterial?.uniforms?.uReflection) {
+      riverReflection = window.NileLandscape?.createReflection?.(THREE, renderer, scene, camera, water,
+        () => [waterSheen, ...shorelines, player, ...dustSheets, godrays]);
+    }
 
     window.__mosesV75Scene = scene;
     window.__mosesV75Camera = camera;
@@ -4264,6 +4328,7 @@
       const step = (flow * dt) / entry.metresPerRepeat;
       if (entry.material.map) entry.material.map.offset.y = (entry.material.map.offset.y - step) % 1;
       if (entry.material.normalMap) entry.material.normalMap.offset.y = (entry.material.normalMap.offset.y - step) % 1;
+      if (entry.material.roughnessMap) entry.material.roughnessMap.offset.y = (entry.material.roughnessMap.offset.y - step) % 1;
     }
 
     /*
@@ -4933,6 +4998,8 @@
   function activateFallback(label = 'LITE READY') {
     if (state.fallback && state.ready) return;
     state.fallback = true;
+    riverReflection?.dispose();
+    riverReflection = null;
     dom.body.classList.add('fallback-mode');
     renderer?.setAnimationLoop?.(null);
     resizeFallback();
@@ -5026,6 +5093,7 @@
 
     updateQuality(dt);
     update3D(dt);
+    riverReflection?.update(dt, state.quality);
     renderer.render(scene, camera);
     window.__mosesV75Diagnostics = {
       mode: 'webgl',

@@ -153,6 +153,8 @@ jobs:
         run: npm run check:nile-runner
       - name: Test Moses Nile V7.5 cinematic and lite modes
         run: npm run check:nile-v75
+      - name: Test Nile shore continuity and 3D landscape on phones
+        run: npm run check:nile-landscape -- --browser
       - name: Check 390px and 320px phone layouts
         run: npm run check:mobile
       - name: Check friendly error boundary
