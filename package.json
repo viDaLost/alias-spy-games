@@ -18,6 +18,7 @@
     "check:match-three": "node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v45-compat.mjs && node scripts/check-bmt-special-piece-icons-v36.mjs && node scripts/check-bmt-all-levels-v38.mjs && node scripts/check-bmt-v45-source-patch.mjs && node scripts/check-bmt-special-swipe-v45.mjs && node scripts/build-bmt-v46-art.mjs --check && node scripts/check-bmt-v46-mechanics.mjs && node scripts/check-bmt-admin-unlock.mjs",
     "check:match-three:visual": "node scripts/check-biblical-match-three-visual.mjs && node scripts/run-ci-check.mjs scripts/check-biblical-match-three-v34-ui.mjs && node scripts/check-bmt-lamp-edge-swipe-v37.mjs && node scripts/check-bmt-lamp-stability-v43.mjs && node scripts/check-bmt-v45-source-patch.mjs && node scripts/check-bmt-special-swipe-v45.mjs",
     "check:nile-runner": "node scripts/check-moses-nile-runner.mjs",
+    "check:nile-landscape": "node scripts/check-moses-nile-landscape.mjs",
     "check:nile-v75": "node scripts/check-moses-nile-v75.mjs",
     "check:nile-safe-area": "node scripts/check-moses-nile-safe-area.mjs",
     "check:game-scenes": "node scripts/check-game-scenes.mjs",

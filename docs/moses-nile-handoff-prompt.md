@@ -206,7 +206,7 @@ CHROME_BIN=/opt/pw-browsers/chromium \
 **`npm run check:nile-v75`** (`scripts/check-moses-nile-v75.mjs`) — статическая
 часть плюс запуск в headless-браузере. Требует, среди прочего:
 
-- шесть файлов в `js/` и ровно этот набор имён;
+- семь файлов в `js/`, включая `landscape.js`, и ровно этот набор имён;
 - `oneRenderLoop: true` и отсутствие своих циклов рендера в библиотеках;
 - маркеры сцены: `V751NileBed`, `papyrusClumpParts`, `V751BankBroadleaf`,
   `V751PapyrusBank`, `stepPyramidGeometry`, `V75DistantPyramid`,
@@ -230,7 +230,8 @@ CHROME_BIN=/opt/pw-browsers/chromium npm run check:nile-runner
 ## 8. Деплой превью
 
 Workflow `.github/workflows/deploy-moses-nile-v740-preview.yml`, запускается
-вручную (`workflow_dispatch`) или пушем в `feature/moses-nile-runner-mvp`.
+вручную (`workflow_dispatch`) или изменением игры/воркфлоу в `main` либо
+`feature/moses-nile-runner-mvp`.
 Собирает `.preview-v7`, качает библиотеки и архив моделей, проверяет SHA-256,
 раскладывает файлы, деплоит воркер и **сам проверяет живой эндпоинт** — на этот
 шаг и стоит смотреть, раз превью недоступно из среды.

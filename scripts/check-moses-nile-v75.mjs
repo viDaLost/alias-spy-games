@@ -17,7 +17,7 @@ const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/m
 
 for (const token of [
   'V7.5.1 · LOADING',
-  'game-v75.js?v=771',
+  'game-v75.js?v=772',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
@@ -103,10 +103,10 @@ for (const token of [
 }
 // Библиотеки — без собственного кадрового цикла: слои V7.3.x однажды уже
 // подрались за один экран, и возвращать многослойность нельзя.
-for (const [name, source] of [['materials.js', materials], ['shaders.js', shaders], ['fx.js', effects]]) {
+for (const [name, source] of [['materials.js', materials], ['shaders.js', shaders], ['fx.js', effects], ['landscape.js', fs.readFileSync(path.join(gameRoot, 'js/landscape.js'), 'utf8')]]) {
   if (/setAnimationLoop/.test(source)) throw new Error(`${name} must stay a library without its own render loop`);
 }
-const expectedRuntime = ['assets.js', 'fx.js', 'game-v75.js', 'materials.js', 'shaders.js', 'sound.js'];
+const expectedRuntime = ['assets.js', 'fx.js', 'game-v75.js', 'landscape.js', 'materials.js', 'shaders.js', 'sound.js'];
 if (runtimeFiles.join(',') !== expectedRuntime.join(',')) {
   throw new Error(`Unexpected runtime files: ${runtimeFiles.join(', ')}`);
 }
