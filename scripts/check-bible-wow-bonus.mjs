@@ -7,8 +7,14 @@
 // что видит человек.
 //
 // Проверяются четыре ответа на одном уровне: основное слово, бонусное, бонусное
-// повторно и слово, которого в Библии нет. Последнее — не придирка: если
-// принимать всё подряд, бонус перестаёт быть наградой.
+// повторно и слово, которого в словаре уровня нет. Последнее — не придирка:
+// если принимать всё подряд, бонус перестаёт быть наградой.
+//
+// И отдельно — слова, которые игра сама загадывает как библейские. «Дина» и
+// «нард» — основные слова других уровней, а на первом уровне те же буквы
+// получали «нет в Библии». Здесь проверяется, что они засчитываются бонусом,
+// и что отказ больше не говорит о Библии: словарь игры — не вся Библия, и
+// «нет в Библии» на редкое библейское слово было неправдой.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -47,14 +53,28 @@ const fits = (word, b) => { const left = new Map(b); for (const c of word) { con
 const known = new Set([...first.words, ...first.bonus]);
 const UNKNOWN = ['НОРА', 'РОДИНА', 'ДРОВА', 'АРИЯ', 'ИРОНИЯ']
   .find((word) => !known.has(word) && fits(word, bag(first.letters)));
+// Слова, которые игра загадывает основными на других уровнях и которые
+// складываются из букв первого. Для первого уровня это «Дина» и «нард».
+const SHARED = [...new Set(levels.filter((level) => level.id !== first.id).flatMap((level) => level.words))]
+  .filter((word) => !first.words.includes(word) && fits(word, bag(first.letters)))
+  .sort();
+const missing = SHARED.filter((word) => !first.bonus.includes(word));
+if (missing.length) {
+  console.error('Bible WOW bonus check failed:\n- '
+    + `уровень 1 не принимает слова, которые игра сама загадывает на других уровнях: «${missing.join('», «')}» `
+    + '— на них игрок получит отказ, хотя на другом уровне это ответ');
+  process.exit(1);
+}
+const SHARED_WORD = SHARED.find((word) => !BONUSES.includes(word));
 
 // Отдельная ветка: без этих слов проверять нечего, и сказать об этом надо так
 // же понятно, как о неудаче в самой игре. Пустой список бонусов — то самое
 // состояние, с которого начался отзыв, и молчать о нём нельзя.
-if (!TARGET || BONUSES.length !== 2 || !UNKNOWN) {
+if (!TARGET || BONUSES.length !== 2 || !UNKNOWN || !SHARED_WORD) {
   console.error('Bible WOW bonus check failed:\n- '
     + `уровень 1 не даёт слов для проверки: основное «${TARGET || '—'}», `
-    + `бонусные «${BONUSES.filter(Boolean).join('», «') || '—'}», небиблейское «${UNKNOWN || '—'}»`);
+    + `бонусные «${BONUSES.filter(Boolean).join('», «') || '—'}», вне словаря «${UNKNOWN || '—'}», `
+    + `основное слово другого уровня «${SHARED_WORD || '—'}»`);
   process.exit(1);
 }
 
@@ -181,8 +201,13 @@ try {
   check(again.stars === bonus.stars, `Повтор бонуса начислил звёзды: ${bonus.stars} → ${again.stars}`);
 
   const unknown = await spell(UNKNOWN);
-  check(/нет в Библии/i.test(unknown.message), `Небиблейское «${UNKNOWN}» получило «${unknown.message}»`);
-  check(unknown.stars === bonus.stars, `Небиблейское слово начислило звёзды: ${unknown.stars}`);
+  check(unknown.message === 'Такого слова нет в этом уровне', `Слово вне словаря «${UNKNOWN}» получило «${unknown.message}»`);
+  check(unknown.stars === bonus.stars, `Слово вне словаря начислило звёзды: ${unknown.stars}`);
+
+  // Слово, которое игра загадывает на другом уровне, здесь — бонус, а не отказ.
+  const shared = await spell(SHARED_WORD);
+  check(shared.message === 'Бонус! +2⭐',
+    `«${SHARED_WORD}» — основное слово другого уровня, а здесь получило «${shared.message}»`);
 
   // Бонус попадает в список уровня — иначе награда есть, а показать её негде.
   await page.click('#wow-bonus-open');
@@ -195,7 +220,8 @@ try {
 
   const total = levels.reduce((sum, level) => sum + level.bonus.length, 0);
   console.log(`OK: «Библейские слова» — бонусы работают, ${total} бонусных слов на ${levels.length} уровнях; `
-    + `«${BONUSES.join('» и «')}» засчитаны, «${UNKNOWN}» отклонено с объяснением.`);
+    + `«${BONUSES.join('» и «')}» засчитаны, «${UNKNOWN}» отклонено без ложного «нет в Библии», `
+    + `а слова других уровней (${SHARED.join(', ')}) на первом — бонус.`);
 } catch (error) {
   failures.push(error.message);
 } finally {

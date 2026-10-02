@@ -150,6 +150,47 @@ async function buildDictionary(maxLength) {
   };
 }
 
+// --- слова, которые игры уже загадывают ------------------------------------------
+
+/*
+  Порог в три вхождения отсекает и настоящие редкости. «Дина» встречается в
+  Бытии, «нард» — в Песни песней и у Марка, и обе — основные слова уровней,
+  82-го и 66-го. А на первом уровне те же буквы давали ответ «нет в Библии»:
+  игра в одном месте загадывала слово как библейское, а в другом отказывалась
+  его признать. Так и пришёл отзыв.
+
+  Поэтому к частым словам добавляются те, что приложение уже загадывает как
+  библейские, — в любой своей игре. Эти списки составлены людьми и сверены с
+  синодальным текстом проверкой check-bible-words.mjs, склеек в них нет. Та же
+  проверка принимает и слово, которое в тексте стоит только в другой форме, —
+  через форму-свидетеля, выбранную человеком: «нора» есть как «норы». Такое
+  слово идёт в бонусы наравне с остальными: оно — ответ 16-го уровня, и отказ
+  на первом был бы той же несостыковкой. Названия из нескольких слов — «Ноев
+  ковчег» — на колесе не набираются и пропускаются.
+*/
+const GAME_WORD_LISTS = [
+  'web/data/easy_bible_words.json',
+  'web/data/medium_bible_words.json',
+  'web/data/hard_bible_words.json',
+  'web/data/describe_words.json',
+];
+
+function gameWords(levelsData) {
+  const read = (file) => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+  const forms = new Set(JSON.parse(fs.readFileSync(formsFile, 'utf8')));
+  const witnessed = new Set(Object.keys(read('scripts/data/bible-word-witnesses.json').witness));
+  const raw = [
+    ...GAME_WORD_LISTS.flatMap(read),
+    ...read('web/data/sacred_words.json').map((entry) => entry.word),
+    ...read('web/data/bible_wordsearch_levels.json').levels.flatMap((level) => level.wordsList),
+    ...levelsData.levels.flatMap((level) => level.words || []),
+  ];
+  return [...new Set(raw
+    .filter((entry) => !/[\s-]/.test(String(entry).trim()))
+    .map(norm)
+    .filter((word) => word.length >= 3 && (forms.has(word) || witnessed.has(word))))];
+}
+
 // --- бонусы уровней -------------------------------------------------------------
 
 function bonusFor(level, words) {
@@ -180,11 +221,12 @@ if (dictionary.maxLength < maxLength) {
     + 'выполните node scripts/build-bible-wow-bonus.mjs --refresh');
 }
 
+const accepted = [...new Set([...dictionary.words, ...gameWords(levels)])].sort();
 const next = {
   ...levels,
   levels: levels.levels.map((level) => {
     const { bonusWords, bonus, ...rest } = level;
-    return { ...rest, bonus: bonusFor(level, dictionary.words) };
+    return { ...rest, bonus: bonusFor(level, accepted) };
   }),
 };
 
