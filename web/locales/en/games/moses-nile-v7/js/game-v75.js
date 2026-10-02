@@ -28,7 +28,7 @@
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
-  const MAX_DPR = 1.25;
+  const MAX_DPR = 1.6;
   const FAR_Z = -255;
   const NEAR_Z = 10;
   const THREE = window.THREE;
@@ -77,11 +77,11 @@
       title: 'Papyrus Backwater',
       subtitle: 'Calm water, dense reeds',
       from: 0,
-      fog: 0xc9c2ac, fogNear: 98, fogFar: 306,
+      fog: 0xc9c2ac, fogNear: 140, fogFar: 380,
       hemiSky: 0xc8dcf0, hemiGround: 0x4a4234, hemiPower: .30,
       sunColor: 0xffe8c4, sunPower: 1.5, sunPos: [-24, 38, 16],
       water: { deep: 0x1c3729, shallow: 0x4f7458, sky: 0x9db8d0, sun: 0xffe3ae, foam: 0xeff2e6, chop: .85, glitter: 1.05, opacity: .95 },
-      sky: { zenith: 0x4f7ba9, haze: 0xb2a488, horizon: 0xd8c8a6, sun: 0xffe6ae, storm: .34, stars: 0 },
+      sky: { zenith: 0x4f7ba9, haze: 0xb2a488, horizon: 0xd8c8a6, sun: 0xffe6ae, storm: .12, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(90,64,28,.10), transparent 30%, transparent 70%, rgba(24,26,18,.20))',
       exposure: .93, wind: 1, weights: { rock: 3, log: 4, croc: 2, gate: 3, vortex: 0, hippo: 0, boat: 1 },
@@ -95,7 +95,7 @@
       hemiSky: 0xd4e6f6, hemiGround: 0x554c38, hemiPower: .34,
       sunColor: 0xfff4dc, sunPower: 1.62, sunPos: [-16, 46, 12],
       water: { deep: 0x1b3d2f, shallow: 0x568063, sky: 0xa9c4dc, sun: 0xfff2cf, foam: 0xf6f7ec, chop: 1, glitter: 1.4, opacity: .96 },
-      sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .24, stars: 0 },
+      sky: { zenith: 0x4272a6, haze: 0xbcb094, horizon: 0xe4d5b4, sun: 0xfff2cf, storm: .10, stars: 0 },
       grade: 'saturate(1) contrast(1) brightness(1)',
       overlay: 'linear-gradient(180deg, rgba(120,96,40,.06), transparent 34%, transparent 72%, rgba(30,32,22,.16))',
       exposure: .97, wind: 1.25, weights: { rock: 4, log: 4, croc: 3, gate: 2, vortex: 1, hippo: 1, boat: 2 },
@@ -455,29 +455,44 @@
   function detectTier() {
     const dpr = window.devicePixelRatio || 1;
     const cores = navigator.hardwareConcurrency || 4;
+    const memory = navigator.deviceMemory || 4;
     const wide = Math.max(window.innerWidth, window.innerHeight);
-    if (wide >= 900 && cores >= 8) return 2;
-    if (cores >= 6 && dpr <= 2.5) return 1;
+    if (wide >= 900 && cores >= 8 && memory >= 4) return 2;
+    // iOS часто сообщает лишь два ядра и не раскрывает память. Экран с
+    // высоким DPR не должен автоматически отправлять его в самый низкий
+    // класс; фактическую нагрузку затем проверяет менеджер кадров.
+    if (cores >= 6 || (dpr >= 2 && memory >= 4)) return 1;
     return 0;
+  }
+
+  const isMobileDevice = window.matchMedia?.('(pointer: coarse)')?.matches
+    || (navigator.maxTouchPoints > 0 && Math.min(window.innerWidth, window.innerHeight) < 900);
+  function mobileDevice() { return isMobileDevice; }
+
+  function renderPixelRatio() {
+    const tier = detectTier();
+    const limit = mobileDevice() ? (tier >= 1 ? 1.25 : 1) : MAX_DPR;
+    const resolution = .80 + .20 * clamp((state.quality - .35) / .3, 0, 1);
+    return Math.min(window.devicePixelRatio || 1, limit) * resolution;
   }
 
   function tryCreateRenderer() {
     if (!THREE || !dom.canvas) return null;
     try {
-      const attributes = { alpha: true, antialias: true, depth: true, stencil: false, powerPreference: 'high-performance' };
+      const attributes = { alpha: true, antialias: true, depth: true, stencil: false, powerPreference: 'default' };
       const context = dom.canvas.getContext('webgl2', attributes) || dom.canvas.getContext('webgl', attributes);
       if (!context) return null;
       const next = new THREE.WebGLRenderer({ canvas: dom.canvas, context, alpha: true, antialias: true });
       next.setClearColor(0x000000, 0);
-      next.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
+      next.setPixelRatio(renderPixelRatio());
       next.setSize(window.innerWidth, window.innerHeight, false);
       next.toneMapping = THREE.ACESFilmicToneMapping;
       next.toneMappingExposure = .96;
       if ('outputEncoding' in next) next.outputEncoding = THREE.sRGBEncoding;
-      // Тени теперь есть на всех уровнях: слабым устройствам достаётся
-      // меньшая карта и более дешёвая фильтрация, но объекты перестают висеть.
-      shadowsOn = true;
-      next.shadowMap.enabled = true;
+      // На телефоне остаются контактные пятна: отдельный проход теней
+      // тысяч движущихся листьев обходится дороже самих берегов.
+      shadowsOn = !mobileDevice() && detectTier() >= 1;
+      next.shadowMap.enabled = shadowsOn;
       next.shadowMap.type = detectTier() >= 1 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
       dom.canvas.addEventListener('webglcontextlost', (event) => {
         event.preventDefault();
@@ -525,21 +540,23 @@
 
   function applyQuality() {
     if (!renderer) return;
-    // Нижняя граница опущена: на просевшем кадре разрешение — самый быстрый
-    // рычаг, а прежние 0.72 почти ничего не отыгрывали.
-    const ratio = Math.min(window.devicePixelRatio || 1, MAX_DPR) * mix(.55, 1, state.quality);
+    // Дорогие эффекты телефона сняты заранее, без ожидания нагрева.
+    const ratio = renderPixelRatio();
     renderer.setPixelRatio(ratio);
     fx?.setQuality?.(state.quality);
     fx?.setParticleScale?.(ratio);
     /*
-      Тени снимаются раньше прежнего: это самая дорогая часть кадра, и
-      когда счётчик уже просел, отдавать её надо первой, а не после того,
-      как разрешение упало до половины.
+      На компьютере при нехватке кадров снимаем тени. При восстановлении
+      качества возвращаем их с запасом, чтобы порог не мигал.
     */
-    if (state.quality < .84 && renderer.shadowMap.enabled) {
+    if (state.quality < .60 && renderer.shadowMap.enabled) {
       renderer.shadowMap.enabled = false;
       shadowsOn = false;
       if (sun) sun.castShadow = false;
+    } else if (!mobileDevice() && detectTier() >= 1 && state.quality > .92 && !renderer.shadowMap.enabled) {
+      renderer.shadowMap.enabled = true;
+      shadowsOn = true;
+      if (sun) sun.castShadow = true;
     }
   }
 
@@ -608,7 +625,9 @@
     loader.load(path, (texture) => {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(repeatX, repeatY);
-      texture.anisotropy = Math.min(4, renderer?.capabilities?.getMaxAnisotropy?.() || 2);
+      // Угол взгляда размывает прежде всего цвет. Карты рельефа и
+      // шероховатости не нуждаются в восьми анизотропных выборках.
+      texture.anisotropy = kind === 'map' ? Math.min(8, renderer?.capabilities?.getMaxAnisotropy?.() || 2) : 1;
       if (kind === 'map' && 'encoding' in texture) texture.encoding = THREE.sRGBEncoding;
       if (material) {
         material[kind] = texture;
@@ -635,6 +654,7 @@
     прозрачность, и заметнее всего на мелководье.
   */
   function buildRiverBed() {
+    const metresPerRepeat = SCROLL_TILE / 42;
     const zSegments = 60;
     const xSegments = 12;
     const positions = [];
@@ -649,9 +669,9 @@
         const u = ix / xSegments;
         const across = (u - .5) * 2;
         // Русло корытом: у берегов мельче, посередине глубже.
-        const depth = -.55 - (1 - across * across) * .85;
+        const depth = window.NileLandscape?.bedHeight?.(center + across * half, z) ?? (-.55 - (1 - across * across) * .85);
         positions.push(center + across * half, depth, z);
-        uvs.push(u * 5, v * 46);
+        uvs.push(u * 5, -z / metresPerRepeat);
       }
     }
     const row = xSegments + 1;
@@ -671,16 +691,34 @@
       roughness: 1,
       metalness: 0,
     });
-    material.userData.normalStrength = 1.1;
-    makeTexture('textures/terrain/rock-color.jpg', 5, 46, material);
-    makeTexture('textures/terrain/rock-normal.jpg', 5, 46, material, 'normalMap');
-    makeTexture('textures/terrain/rock-orm.jpg', 5, 46, material, 'roughnessMap');
+    material.userData.normalStrength = .55;
+    makeTexture('textures/terrain/rock-color.jpg', 1, 1, material);
+    makeTexture('textures/terrain/rock-normal.jpg', 1, 1, material, 'normalMap');
+    makeTexture('textures/terrain/rock-orm.jpg', 1, 1, material, 'roughnessMap');
+    applyBankEdge(material, true);
     const bed = new THREE.Mesh(geometry, material);
     bed.name = 'V751NileBed';
     bed.receiveShadow = true;
     bed.renderOrder = 0;
     scene.add(bed);
-    bankMaterials.push({ material, metresPerRepeat: (NEAR_Z + 8 - FAR_Z) / 46 });
+    bankMaterials.push({ material, metresPerRepeat });
+  }
+
+  function applyBankEdge(material, bed = false) {
+    const glsl = window.NileLandscape?.GLSL;
+    if (!glsl) return;
+    window.NileMaterials?.chainOnBeforeCompile?.(material, (shader) => {
+      shader.uniforms.uLandscapeScroll = duneScrollUniform;
+      shader.vertexShader = `uniform float uLandscapeScroll;
+${glsl}
+${shader.vertexShader}`.replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+         float edgeSide = transformed.x < 0.0 ? -1.0 : 1.0;
+         transformed.x += edgeSide * nileShore(transformed.z - uLandscapeScroll, edgeSide) * min(1.0, abs(transformed.x) / ${RIVER_HALF + 1.4});
+         ${bed ? 'transformed.y = nileBed(vec2(transformed.x, transformed.z - uLandscapeScroll));' : ''}`,
+      );
+    });
   }
 
   function buildWater() {
@@ -722,6 +760,7 @@
     for (let i = 0; i < waterPositions.count; i += 1) waterBaseY[i] = waterPositions.getY(i);
 
     waterMaterial = window.NileShaders?.createRiverMaterial?.(THREE, { opacity: .34 });
+    if (waterMaterial?.uniforms?.uLandscapeScroll) waterMaterial.uniforms.uLandscapeScroll = duneScrollUniform;
     if (!waterMaterial) {
       waterMaterial = new THREE.MeshStandardMaterial({
         color: 0x4d5730, roughness: .5, metalness: .05,
@@ -753,6 +792,7 @@
 
     const sheenMaterial = window.NileShaders?.createSheenMaterial?.(THREE, { strength: .2 });
     if (sheenMaterial) {
+      sheenMaterial.uniforms.uLandscapeScroll = duneScrollUniform;
       waterSheen = new THREE.Mesh(geometry, sheenMaterial);
       waterSheen.name = 'MosesV751WaterReliefDetail';
       waterSheen.position.y = .012;
@@ -837,10 +877,11 @@
     window.NileMaterials?.chainOnBeforeCompile?.(material, (shader) => {
       shader.uniforms.uDuneScroll = duneScrollUniform;
       shader.uniforms.uDuneSide = sideUniform;
-      shader.vertexShader = `${DUNE_GLSL}\n${shader.vertexShader}`.replace(
+      shader.vertexShader = `${window.NileLandscape?.GLSL || 'float nileShore(float z, float side){return 0.0;}'}\n${DUNE_GLSL}\n${shader.vertexShader}`.replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
          float nileZ = transformed.z - uDuneScroll;
+         transformed.x += uDuneSide * nileShore(nileZ, uDuneSide);
          float nileH = nileDune(aDuneOffset, nileZ, uDuneSide);
          transformed.y += nileH;
          float nileE = 0.6;
@@ -876,8 +917,10 @@
     const inner = new THREE.Color(colors[0]);
     const outer = new THREE.Color(colors[1]);
     const tone = new THREE.Color();
-    // Примерно три метра на один оборот текстуры — так песок читается зерном.
-    const crossRepeat = Math.max(1, (outerOffset - innerOffset) / 3);
+    // Квадратный масштаб около трёх метров. Целое число повторов на тайл
+    // сохраняет рисунок при переходе scroll с 250 метров обратно к нулю.
+    const metresPerRepeat = SCROLL_TILE / 84;
+    const crossRepeat = (outerOffset - innerOffset) / metresPerRepeat;
     for (let i = 0; i <= segments; i += 1) {
       const v = i / segments;
       const z = mix(NEAR_Z + 9, FAR_Z, v);
@@ -898,8 +941,10 @@
         // Тайлинг поперёк считается по реальной ширине полосы: раньше одна
         // фотография песка растягивалась на все 26 метров и читалась
         // пластилином, а не песком.
-        uvs.push(u * crossRepeat, v * 52);
+        uvs.push(u * crossRepeat, -z / metresPerRepeat);
         tone.copy(inner).lerp(outer, u);
+        const stain = .91 + .09 * Math.sin(z * DUNE_K * 5 + side * 2 + offset * 1.3);
+        tone.multiplyScalar(stain);
         colorData.push(tone.r, tone.g, tone.b);
       }
     }
@@ -933,26 +978,27 @@
       opacity,
       depthWrite: opacity >= 1,
     });
-    material.userData.normalStrength = 1.35;
-    if (texturePath) makeTexture(texturePath, 1, 52, material);
-    if (normalPath) makeTexture(normalPath, 1, 52, material, 'normalMap');
+    material.userData.normalStrength = .50;
+    if (texturePath) makeTexture(texturePath, 1, 1, material);
+    if (normalPath) makeTexture(normalPath, 1, 1, material, 'normalMap');
     // Отражения неба по касательной: сухой песок на солнце заметно светлеет.
-    window.NileMaterials?.addSkyReflection?.(material, { strength: .18 });
+    window.NileMaterials?.addSkyReflection?.(material, { strength: .08 });
     applyDuneRelief(material, side);
     const ribbon = new THREE.Mesh(geometry, material);
     ribbon.name = name;
     ribbon.receiveShadow = true;
     ribbon.renderOrder = 1;
     scene.add(ribbon);
-    // Сама лента статична, движение песка показывает бегущая текстура.
-    bankMaterials.push({ material, metresPerRepeat: (NEAR_Z + 9 - FAR_Z) / 52 });
+    // UV привязан к z − scroll, как рельеф и растения, а не к времени.
+    bankMaterials.push({ material, metresPerRepeat });
     return ribbon;
   }
 
   function buildShoreline(side) {
     const material = window.NileShaders?.createShorelineMaterial?.(THREE);
     if (!material) return;
-    const segments = 120;
+    material.uniforms.uLandscapeScroll = duneScrollUniform;
+    const segments = 160;
     const positions = [];
     const uvs = [];
     const indices = [];
@@ -1055,7 +1101,7 @@
       // У Quaternius стебли покрашены в «дерево», и заросли папируса читались
       // как поле сухих прутьев. Тростнику и траве задаётся своя палитра.
       const tone = BANK_TONES[key]?.[/wood|trunk|bark/i.test(source.name || '') ? 'stem' : 'leaf'];
-      if (tone) material.color = new THREE.Color(tone);
+      if (tone) material.color = new THREE.Color(tone).convertSRGBToLinear();
       else if (material.color) material.color.offsetHSL(.012, -.16, .02);
       if ('roughness' in material) material.roughness = Math.max(.85, material.roughness ?? .9);
       // Развёртка и процедурные карты: без них листва и камни остаются
@@ -1067,7 +1113,7 @@
         surface: BANK_SURFACES[key],
         name: (Array.isArray(child.material) ? child.material[0] : child.material)?.name || child.name,
         uvScale: key === 'palm' ? .5 : .9,
-        normalScale: .95,
+        normalScale: key === 'papyrus' ? .25 : key === 'rock' ? .4 : .45,
         // Папирус — тонкие стебли, освещённые со всех сторон: отбеливание
         // выгоняло их в солому.
         bleach: key === 'papyrus' ? 0 : .1,
@@ -1078,13 +1124,15 @@
   }
 
   function buildInstancedLayer(spec) {
-    const parts = extractInstanceParts(spec.key, spec.size)
+    const parts = window.NileLandscape?.foliageParts?.(THREE, spec.key, spec.variant || 0, spec.size)
+      || extractInstanceParts(spec.key, spec.size)
       || (spec.fallbackParts ? spec.fallbackParts() : null)
       || [{ geometry: spec.fallbackGeometry(), material: spec.fallbackMaterial() }];
     const half = spec.count;
     const total = half * 2;
     const meshes = parts.map((part, index) => {
-      if (spec.wind) window.NileShaders?.applyWind?.(THREE, part.material, timeUniform, windUniform, spec.wind);
+      const wind = part.wind ?? spec.wind;
+      if (wind) window.NileShaders?.applyWind?.(THREE, part.material, timeUniform, windUniform, wind);
       return makeInstanced(part.geometry, part.material, total, index ? `${spec.name}Part${index}` : spec.name);
     });
     const dummy = new THREE.Object3D();
@@ -1095,7 +1143,11 @@
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
-      mesh.castShadow = spec.castShadow ?? false;
+      mesh.castShadow = shadowsOn && (spec.castShadow ?? ['palm', 'papyrus', 'bush'].includes(spec.key));
+      if (mesh.castShadow && spec.wind) {
+        mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide });
+        window.NileShaders?.applyWind?.(THREE, mesh.customDepthMaterial, timeUniform, windUniform, parts[meshes.indexOf(mesh)].wind ?? spec.wind);
+      }
       scene.add(mesh);
       scrollLayers.push(mesh);
     }
@@ -1112,8 +1164,11 @@
     const tile = i < half ? 0 : SCROLL_TILE;
     const side = index % 2 ? -1 : 1;
     const z = -hash(index, options.salt) * SCROLL_TILE - tile;
-    const offset = options.near + hash(index, options.salt + 1) * (options.far - options.near);
-    const x = side * (riverHalf() + offset);
+    const sample = hash(index, options.salt + 1);
+    const offset = options.windless ? options.near + sample * (options.far - options.near)
+      : window.NileLandscape?.vegetationOffset?.(z, side, options.near, options.far, sample)
+        ?? options.near + sample * (options.far - options.near);
+    const x = side * (riverHalf() + (window.NileLandscape?.shoreOffset?.(z, side) || 0) + offset);
     const scale = options.minScale + hash(index, options.salt + 2) * (options.maxScale - options.minScale);
     // Растения садятся на рельеф песка, иначе висят над барханами.
     dummy.position.set(x, options.lift + bankRise(offset) + duneHeight(offset, z, side), z);
@@ -1220,7 +1275,7 @@
       миллиона треугольников в кадре — отсюда и рывки. Замер: папирус один
       съедал больше сорока процентов сцены.
     */
-    const density = tier >= 2 ? 1.4 : tier >= 1 ? 1.05 : .65;
+    const density = mobileDevice() ? (tier >= 1 ? .60 : .42) : (tier >= 2 ? 1.1 : .85);
     const grassGeometry = () => {
       const geometry = new THREE.ConeGeometry(.2, .82, 5, 2);
       geometry.translate(0, .41, 0);
@@ -1318,14 +1373,23 @@
         place: (i, dummy, half) => bankPlace(i, dummy, { salt: 61, zFrom: 3, zSpan: 258, near: .4, far: 4.2, lift: .03, minScale: .7, maxScale: 1.6 }, half),
       },
       {
-        key: 'palm', name: 'V75PalmCrowns', size: 11.5, wind: .55, castShadow: false,
+        key: 'palm', name: 'V75PalmCrowns', size: 11.5, wind: .55, castShadow: true,
         count: Math.round(24 * density),
         fallbackGeometry: palmGeometry,
         fallbackMaterial: () => new THREE.MeshStandardMaterial({ color: 0x4d6234, roughness: .96, flatShading: true }),
         place: (i, dummy, half) => bankPlace(i, dummy, { salt: 41, zFrom: -10, zSpan: 236, near: 9, far: 27, lift: .05, minScale: .7, maxScale: 1.3, tilt: .16 }, half),
       },
     ];
-    for (const spec of specs) buildInstancedLayer(spec);
+    for (const spec of specs) {
+      if (!['palm', 'grass', 'bush', 'bankPlant', 'broadleaf'].includes(spec.key)) { buildInstancedLayer(spec); continue; }
+      for (let variant = 0; variant < 3; variant++) {
+        const count = Math.ceil((spec.count - variant) / 3);
+        if (count <= 0) continue;
+        buildInstancedLayer({ ...spec, variant, count, name: `${spec.name}Variant${variant}`,
+          place: (i, dummy, half) => spec.place((i % half) * 3 + variant + (i >= half ? spec.count : 0), dummy, spec.count),
+        });
+      }
+    }
   }
 
   /*
@@ -1408,15 +1472,21 @@
     const geometry = loft(sections, 4, { capFront: true, capBack: true });
     geometry.rotateX(-Math.PI / 2);
     geometry.rotateY(Math.PI / 4);
-    geometry.computeVertexNormals();
-    return geometry;
+    // Грани и ряды не делят нормали: усреднение сглаживало кладку и
+    // заваливало углы. UV задаётся в метрах, а не растягивается по ярусам.
+    const crisp = geometry.toNonIndexed();
+    geometry.dispose();
+    crisp.computeVertexNormals();
+    crisp.deleteAttribute('uv');
+    window.NileMaterials?.applyBoxUV?.(crisp, 1 / 8);
+    return crisp;
   }
 
   function buildPyramids() {
     /*
       Раньше это были плоские самосветящиеся конусы с раскраской по вершинам —
       издали они читались как бумажные треугольники. Теперь у пирамид
-      настоящая ступенчатая кладка, песчаниковые PBR-карты и остатки
+      настоящая ступенчатая кладка, общая карта каменных блоков и остатки
       полированной облицовки на вершине, как у пирамиды Хафра. Закатная
       раскраска сохранена в вершинных цветах и домножается на текстуру.
     */
@@ -1424,18 +1494,11 @@
       Пирамиды — дальний фон, а не декорация у самой воды: раньше они стояли
       в сотне метров, перекрывали полкадра и спорили с рекой. Теперь они
       отнесены за горизонтальные дюны, которые закрывают их основания, и
-      растворяются в дымке тем сильнее, чем дальше стоят (параметр shade).
+      сохраняют контраст граней с небольшим примешиванием дымки.
       Центр кадра по-прежнему оставлен руслу.
     */
-    const specs = [
-      // x, z, полуоснование, высота, рядов кладки, доля облицовки, дымка.
-      // Пропорции взяты у настоящей группы в Гизе: отношение высоты к
-      // половине основания около 1.27, а не «остроконечная ёлка».
-      // Хеопса, Хефрена (с остатками облицовки на вершине) и Микерина.
-      [-64, -424, 40, 51, 32, 0, .60],
-      [22, -458, 37, 47, 30, .22, .52],
-      [82, -482, 19, 24, 20, 0, .44],
-    ];
+    const specs = window.NileLandscape.PYRAMIDS;
+    const masonry = window.NileLandscape.pyramidTexture(THREE);
     const sunDir = new THREE.Vector3(-.62, .34, .71).normalize();
     const shadowTint = new THREE.Vector3(.46, .49, .60);
     const sunTint = new THREE.Vector3(1.42, 1.20, .92);
@@ -1463,11 +1526,11 @@
         Материал намеренно несветящийся. Освещённый камень на таком удалении
         выводится ровно в яркость дымки и силуэт пропадает — проверено. Весь
         объём здесь несут вершинные цвета (закатная раскладка света) и карта
-        кладки, а дальность задаёт applyLook, подмешивая цвет дымки по shade.
+        кладки; applyLook добавляет дымку без потери контраста граней.
       */
-      const stone = window.NileMaterials?.surface?.('sandstone');
       const material = new THREE.MeshBasicMaterial({
         color: 0xbda37a,
+        map: masonry,
         vertexColors: true,
         fog: false,
         // Прозрачность здесь не ради полупрозрачности, а ради порядка вывода.
@@ -1480,11 +1543,6 @@
         opacity: 1,
         depthWrite: false,
       });
-      if (stone) {
-        material.map = stone.map.clone();
-        material.map.repeat.set(Math.max(3, Math.round(radius / 4)), Math.max(3, Math.round(radius / 4)));
-        material.map.needsUpdate = true;
-      }
       material.needsUpdate = true;
 
       const core = new THREE.Mesh(stepPyramidGeometry(radius, height, courses), material);
@@ -1500,7 +1558,8 @@
         const casingHeight = height * casing;
         const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.04, casingHeight, 4), material);
         cap.geometry.rotateY(Math.PI / 4);
-        window.NileMaterials?.applyBoxUV?.(cap.geometry, .12);
+        cap.geometry.deleteAttribute('uv');
+        window.NileMaterials?.applyBoxUV?.(cap.geometry, 1 / 8);
         shadeGeometry(cap.geometry, height);
         const capColors = cap.geometry.attributes.color;
         for (let i = 0; i < capColors.count; i += 1) {
@@ -1564,7 +1623,7 @@
       { z: -232, width: 620, height: 150, y: 44, strength: .30, speed: .020, scale: .7 },
       { z: -168, width: 480, height: 104, y: 26, strength: .24, speed: .045, scale: 1.1 },
       { z: -96, width: 340, height: 62, y: 13, strength: .26, speed: .085, scale: 1.7 },
-      { z: -42, width: 210, height: 30, y: 5.5, strength: .19, speed: .150, scale: 2.4 },
+      { z: -42, width: 210, height: 30, y: 5.5, strength: .08, speed: .150, scale: 2.4 },
     ];
     for (const spec of sheetSpecs) {
       const sheetMaterial = window.NileShaders?.createDustSheetMaterial?.(THREE, {
@@ -1577,6 +1636,7 @@
       sheet.position.set(0, spec.y, spec.z);
       sheet.renderOrder = -3;
       sheet.frustumCulled = false;
+      sheet.userData.baseStrength = spec.strength;
       scene.add(sheet);
       dustSheets.push(sheet);
     }
@@ -3940,10 +4000,19 @@
     for (const sheet of dustSheets) {
       if (!sheet.material.uniforms) continue;
       sheet.material.uniforms.uColor.value.copy(air.haze);
+      sheet.material.uniforms.uStrength.value = sheet.userData.baseStrength * (.25 + air.storm * .75);
     }
     for (const entry of decor) {
       if (entry.kind !== 'dune' && entry.kind !== 'pyramid') continue;
-      entry.material.color.copy(air.haze).lerp(BLACK, entry.shade);
+      if (entry.kind === 'pyramid') {
+        entry.material.color.set(0xe3cfa8).convertSRGBToLinear()
+          .lerp(air.haze, .12 + air.storm * .25);
+        if (air.stars > 0) entry.material.color.multiplyScalar(1 - air.stars * .68);
+      } else entry.material.color.copy(air.haze).lerp(BLACK, entry.shade);
+    }
+    if (waterMaterial?.uniforms?.uPyramidTone) {
+      const pyramid = decor.find(entry => entry.kind === 'pyramid');
+      if (pyramid) waterMaterial.uniforms.uPyramidTone.value.copy(pyramid.material.color);
     }
     if (godrays?.material?.uniforms) {
       godrays.material.uniforms.uColor.value.copy(air.sun);
@@ -4247,7 +4316,7 @@
 
     // Мир едет навстречу: без этого предметы плыли к неподвижному берегу и
     // казалось, что корзинка стоит на месте.
-    const flow = state.playing && !state.paused ? state.speed : TUNE.baseSpeed * .35;
+    const flow = state.playing && !state.paused ? state.speed : 0;
     const speedT = clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed), 0, 1);
     state.scroll = (state.scroll + flow * dt) % SCROLL_TILE;
     duneScrollUniform.value = state.scroll;
@@ -4261,9 +4330,13 @@
     state.flowPhase += state.flowRate * dt;
     for (const mesh of scrollLayers) mesh.position.z = state.scroll;
     for (const entry of bankMaterials) {
-      const step = (flow * dt) / entry.metresPerRepeat;
-      if (entry.material.map) entry.material.map.offset.y = (entry.material.map.offset.y - step) % 1;
-      if (entry.material.normalMap) entry.material.normalMap.offset.y = (entry.material.normalMap.offset.y - step) % 1;
+      // uv.y = −z / period, значит движение мира в +z требует +scroll.
+      // Один абсолютный сдвиг исключает дрейф, разную скорость карт и
+      // скачок при оборачивании тайла; карта цвета не скользит по рельефу.
+      const offset = (state.scroll / entry.metresPerRepeat) % 1;
+      if (entry.material.map) entry.material.map.offset.y = offset;
+      if (entry.material.normalMap) entry.material.normalMap.offset.y = offset;
+      if (entry.material.roughnessMap) entry.material.roughnessMap.offset.y = offset;
     }
 
     /*
@@ -4370,7 +4443,7 @@
       u.uFlow.value = state.flowRate;
       u.uPhase.value = state.flowPhase;
       // Мелкая детализация воды снимается вместе с общим качеством.
-      if (u.uDetail) u.uDetail.value = state.quality > .82 ? 1 : 0;
+      if (u.uDetail) u.uDetail.value = !mobileDevice() && state.quality > .82 ? 1 : 0;
       u.uPlayer.value.set(state.x, 0, 1.1);
       u.uWakeStrength.value = state.playing ? clamp(.55 - state.y * .4, 0, .6) : .2;
       // Шесть ближайших препятствий передаются в шейдер воды: вокруг них
@@ -4975,6 +5048,8 @@
   */
   let frameErrors = 0;
   let frameErrorLogged = false;
+  let renderDeadline = 0;
+  let renderRate = 0;
 
   function frame(now) {
     try {
@@ -4989,17 +5064,30 @@
       window.__mosesV75FrameError = String(error?.message || error);
       // В запасном режиме цепочку кадров держит сама игра, и сбой обрывает
       // её раньше, чем она успеет запросить следующий кадр.
-      if (state.fallback) fallbackFrame = requestAnimationFrame(frame);
       if (frameErrors > 90 && !state.fallback) {
         console.error('[Moses] repeated frame errors; switching to fallback');
         activateFallback('LITE READY');
+      }
+    } finally {
+      if (state.fallback) {
+        if (fallbackFrame) cancelAnimationFrame(fallbackFrame);
+        fallbackFrame = requestAnimationFrame(frame);
       }
     }
   }
 
   function frameBody(now) {
     const seconds = now * .001;
-    const dt = state.lastTime ? Math.min(.05, Math.max(.001, seconds - state.lastTime)) : .016;
+    // 120/144 Гц не должны удваивать расход GPU. В меню и на паузе — 15 Гц,
+    // скрытая вкладка не рисует вовсе. Пропуски сохраняют фазу 60-Гц кадров.
+    if (document.hidden) { state.lastTime = seconds; renderDeadline = 0; return; }
+    const rate = state.playing && !state.paused ? 60 : 15;
+    if (rate !== renderRate) { renderRate = rate; renderDeadline = seconds; }
+    if (seconds + .0005 < renderDeadline) return;
+    const interval = 1 / rate;
+    renderDeadline = seconds + interval - Math.min(Math.max(0, seconds - renderDeadline), interval);
+    const wallDt = state.lastTime ? Math.max(.001, seconds - state.lastTime) : .016;
+    const dt = Math.min(.05, wallDt);
     state.lastTime = seconds;
     state.elapsed += dt;
 
@@ -5020,11 +5108,10 @@
         proceduralSkyVisible: true,
         modelSources: window.__mosesV75ModelSources || {},
       };
-      fallbackFrame = requestAnimationFrame(frame);
       return;
     }
 
-    updateQuality(dt);
+    if (state.playing && !state.paused) updateQuality(wallDt);
     update3D(dt);
     renderer.render(scene, camera);
     window.__mosesV75Diagnostics = {
@@ -5040,6 +5127,9 @@
       quality: state.quality,
       fps: Math.round(state.fpsAverage),
       pixelRatio: renderer.getPixelRatio(),
+      frameLimit: renderRate,
+      reflectionPasses: 0,
+      shadowPasses: renderer.shadowMap.enabled ? 1 : 0,
       proceduralSkyVisible: true,
       modelSources: window.__mosesV75ModelSources || {},
     };

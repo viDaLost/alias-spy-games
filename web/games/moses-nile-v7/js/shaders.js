@@ -56,10 +56,13 @@
     }
   `;
 
+  const LANDSCAPE_GLSL = window.NileLandscape?.GLSL || 'float nileShore(float z, float side){return 0.0;} float nileBed(vec2 p){return -1.0;}';
+
   const RIVER_VERT = `
     uniform float uTime;
     uniform float uChop;
     uniform float uPhase;
+    uniform float uLandscapeScroll;
     varying vec2 vUv;
     varying vec3 vWorld;
     varying vec3 vWaveNormal;
@@ -67,10 +70,13 @@
     varying float vShore;
     #include <fog_pars_vertex>
     ${WAVES}
+    ${LANDSCAPE_GLSL}
     void main(){
       vUv = uv;
       vShore = abs(uv.x - 0.5) * 2.0;
       vec3 transformed = position;
+      float edgeSide = transformed.x < 0.0 ? -1.0 : 1.0;
+      transformed.x += edgeSide * nileShore(transformed.z - uLandscapeScroll, edgeSide) * vShore;
       vec4 worldBase = modelMatrix * vec4(transformed, 1.0);
       // Фаза течения приходит уже накопленной. Раньше здесь стояло
       // uTime * uFlow, и при сбросе ускорения uFlow падал — а вместе с ним
@@ -98,6 +104,10 @@
     uniform float uFoam;
     uniform float uHasNormals;
     uniform float uWakeStrength;
+    uniform float uLandscapeScroll;
+    uniform float uReflectionStrength;
+    uniform vec4 uPyramids[3];
+    uniform vec3 uPyramidTone;
     uniform vec2 uOffsetA;
     uniform vec2 uOffsetB;
     uniform vec2 uRepeatA;
@@ -121,23 +131,62 @@
     uniform float uDetail;
     #include <fog_pars_fragment>
     ${NOISE}
+    ${LANDSCAPE_GLSL}
+    // Четыре плоскости пирамиды вместо повторного рендера всей сцены.
+    // Луч вычисляется в текущем кадре: нет устаревшей карты и скачков 8 Гц.
+    vec3 pyramidReflection(vec3 ray, vec3 sky) {
+      float nearest = 10000.0;
+      vec3 result = sky;
+      if (ray.y > 0.0 && ray.z < -0.1) {
+        for (int p = 0; p < 3; p++) {
+          vec4 shape = uPyramids[p];
+          vec3 origin = vWorld - vec3(shape.x, 0.15, shape.y);
+          float slope = shape.w / shape.z;
+          for (int face = 0; face < 4; face++) {
+            vec3 n = vec3(slope, 1.0, 0.0);
+            if (face == 1) n.x = -slope;
+            if (face == 2) n = vec3(0.0, 1.0, slope);
+            if (face == 3) n = vec3(0.0, 1.0, -slope);
+            float denom = dot(n, ray);
+            if (abs(denom) > 0.0001) {
+              float t = (shape.w - dot(n, origin)) / denom;
+              vec3 hit = origin + ray * t;
+              float halfWidth = shape.z * (1.0 - hit.y / shape.w);
+              if (t > 0.0 && t < nearest && hit.y >= 0.0 && hit.y <= shape.w &&
+                  max(abs(hit.x), abs(hit.z)) <= halfWidth + 0.02) {
+                nearest = t;
+                float light = 0.24 + 0.76 * max(dot(normalize(n), uSunDir), 0.0);
+                result = mix(uPyramidTone * light, sky, 0.28);
+              }
+            }
+          }
+        }
+      }
+      return result;
+    }
     void main(){
       vec3 viewDir = normalize(cameraPosition - vWorld);
       vec3 normal = vWaveNormal;
 
-      // Две независимо ползущие карты нормалей дают мелкую рябь.
+      // На телефоне достаточно одной карты; процедурный шум нужен только
+      // при отсутствии текстур, а не одновременно с ними на каждом пикселе.
       vec2 uvA = vUv * uRepeatA + uOffsetA;
-      vec2 uvB = vUv * uRepeatB + uOffsetB;
-      vec3 rippleA = texture2D(uNormalA, uvA).xyz * 2.0 - 1.0;
-      vec3 rippleB = texture2D(uNormalB, uvB).xyz * 2.0 - 1.0;
-      vec3 packed = normalize(rippleA * 0.62 + rippleB * 0.38);
-      // Если пакет текстур не приехал, рябь считается процедурно.
-      float pn = fbm(vUv * vec2(9.0, 120.0) + vec2(uTime * 0.05, uTime * -0.62));
-      float pe = fbm(vUv * vec2(9.0, 120.0) + vec2(0.07, 0.0) + vec2(uTime * 0.05, uTime * -0.62));
-      float ps = fbm(vUv * vec2(9.0, 120.0) + vec2(0.0, 0.07) + vec2(uTime * 0.05, uTime * -0.62));
-      vec3 procedural = normalize(vec3((pn - pe) * 3.4, 1.0, (pn - ps) * 3.4));
-      vec3 detail = mix(procedural, vec3(packed.x, packed.z, packed.y), uHasNormals);
-      normal = normalize(normal + vec3(detail.x, 0.0, detail.z) * 0.85);
+      vec3 detail;
+      if (uHasNormals > 0.5) {
+        vec3 packed = texture2D(uNormalA, uvA).xyz * 2.0 - 1.0;
+        if (uDetail > 0.5) {
+          vec3 rippleB = texture2D(uNormalB, vUv * uRepeatB + uOffsetB).xyz * 2.0 - 1.0;
+          packed = normalize(packed * 0.62 + rippleB * 0.38);
+        }
+        detail = vec3(packed.x, packed.z, packed.y);
+      } else {
+        vec2 flow = vUv * vec2(9.0, 120.0) + vec2(uTime * 0.05, uTime * -0.62);
+        float pn = fbm(flow);
+        float pe = fbm(flow + vec2(0.07, 0.0));
+        float ps = fbm(flow + vec2(0.0, 0.07));
+        detail = normalize(vec3((pn - pe) * 3.4, 1.0, (pn - ps) * 3.4));
+      }
+      normal = normalize(normal + vec3(detail.x, 0.0, detail.z) * 0.40);
 
       float fresnel = pow(clamp(1.0 - dot(normal, viewDir), 0.0, 1.0), 3.0);
       float depthMix = smoothstep(0.15, 0.95, vShore);
@@ -151,10 +200,13 @@
       // Отражение неба по отражённому лучу, а не единым цветом: у горизонта
       // вода уходит в небо, вблизи остаётся мутно-зелёной. Без этого
       // поверхность читалась как ровная зелёная заливка.
-      vec3 reflected = reflect(-viewDir, normal);
+      vec3 reflectionNormal = normalize(vWaveNormal + vec3(detail.x, 0.0, detail.z) * 0.12);
+      vec3 reflected = reflect(-viewDir, reflectionNormal);
       float skyward = clamp(reflected.y, 0.0, 1.0);
       vec3 skyGradient = mix(uSky, uSky * 0.66 + uSunColor * 0.26, pow(skyward, 0.7));
-      base = mix(base, skyGradient, clamp(fresnel * 0.62 + horizon * 0.5, 0.0, 0.92));
+      base = mix(base, skyGradient, clamp(fresnel * 0.48 + horizon * 0.35, 0.0, 0.78));
+      vec3 reflectedScene = pyramidReflection(reflected, skyGradient);
+      base = mix(base, reflectedScene, uReflectionStrength * (0.16 + fresnel * 0.72));
 
       // Солнечный блик: узкий Блинн-Фонг плюс мерцающая крошка.
       vec3 halfDir = normalize(uSunDir + viewDir);
@@ -172,7 +224,7 @@
         адаптивное качество уже просело: на глаз это почти незаметно, а
         фрагментный шейдер дешевеет на треть.
       */
-      float silt = fbm(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
+      float silt = nnoise(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
       color = mix(color, color * (0.70 + silt * 0.66), 0.62);
       if (uDetail > 0.5) {
         float siltFine = fbm(vUv * vec2(7.5, 34.0) + vec2(uTime * 0.02, uTime * -0.12));
@@ -205,22 +257,25 @@
           float d = length(vWorld.xz - uDisturb[i].xy);
           float ring = smoothstep(2.9, 0.5, d) * power;
           float ripple = 0.5 + 0.5 * sin(d * 6.5 - uTime * 5.0);
-          wake += ring * (0.45 + ripple * 0.55);
+          // Пена расходится по сторонам камня, за ним вытягивается след.
+          vec2 delta = vWorld.xz - uDisturb[i].xy;
+          float downstream = smoothstep(0.0, 1.4, delta.y) * (1.0 - smoothstep(1.4, 6.0, delta.y));
+          float trail = exp(-delta.x * delta.x * 1.8) * downstream;
+          wake += ring * (0.45 + ripple * 0.55) + trail * power * 0.35;
         }
       }
-      float foamNoise = fbm(vUv * vec2(22.0, 190.0) + vec2(uTime * 0.2, uTime * -1.5));
+      float foamNoise = nnoise(vUv * vec2(22.0, 190.0) + vec2(uTime * 0.2, uTime * -1.5));
       float foam = clamp((bankFoam * 0.62 + crestFoam * 0.55 + wake) * (0.34 + foamNoise * 0.72), 0.0, 1.0);
       color = mix(color, uFoamColor, foam * 0.72);
 
-      /*
-        Вода мутная, а не стеклянная: Нил несёт ил. Прозрачность теперь
-        зависит от глубины русла — на стрежне река непрозрачна, у берегов
-        мелко и дно чуть просвечивает. Раньше плотность была одинаковой от
-        берега до середины, и вся река читалась плёнкой поверх дна.
-      */
-      float mid = smoothstep(0.42, 0.06, abs(vUv.x - 0.5));
-      float alpha = clamp(uOpacity + fresnel * 0.05 + foam * 0.18
-        + mid * 0.03 - (1.0 - mid) * 0.08, 0.0, 1.0);
+      // Глубина берётся с той же поверхности, что строит дно, а не из UV.
+      // Ил поглощает свет по длине пути: мелководье просвечивает, середина
+      // остаётся речной водой даже при взгляде сверху.
+      float depth = max(0.02, vWorld.y - nileBed(vec2(vWorld.x, vWorld.z - uLandscapeScroll)));
+      float pathLength = depth / max(0.28, abs(dot(normal, viewDir)));
+      float turbidity = mix(1.4, 2.8, clamp(uOpacity, 0.0, 1.0));
+      float absorption = 1.0 - exp(-pathLength * turbidity);
+      float alpha = clamp(0.22 + absorption * 0.74 + fresnel * 0.08 + foam * 0.10, 0.25, 0.99);
       gl_FragColor = vec4(color, alpha);
       #include <fog_fragment>
     }
@@ -246,6 +301,11 @@
         uFoam: { value: options.foam ?? .6 },
         uHasNormals: { value: 0 },
         uWakeStrength: { value: 0 },
+        uLandscapeScroll: { value: 0 },
+        uReflectionStrength: { value: .32 },
+        uPyramids: { value: (window.NileLandscape?.PYRAMIDS || []).map(([x, z, radius, height]) =>
+          new THREE.Vector4(x, z, radius * Math.SQRT1_2, height)) },
+        uPyramidTone: { value: new THREE.Color(0xe3cfa8).convertSRGBToLinear() },
         uOffsetA: { value: new THREE.Vector2() },
         uOffsetB: { value: new THREE.Vector2() },
         uRepeatA: { value: new THREE.Vector2(3.2, 46) },
@@ -278,6 +338,7 @@
     createSheenMaterial(THREE, options = {}) {
       const uniforms = Object.assign(fogUniforms(THREE), {
         uTime: { value: 0 },
+        uLandscapeScroll: { value: 0 },
         uColor: { value: new THREE.Color(options.color ?? 0xfff0c8) },
         uStrength: { value: options.strength ?? .18 },
         uOffset: { value: new THREE.Vector2() },
@@ -285,13 +346,18 @@
       const material = new THREE.ShaderMaterial({
         uniforms,
         vertexShader: `
+          uniform float uLandscapeScroll;
+          ${LANDSCAPE_GLSL}
           varying vec2 vUv;
           varying float vShore;
           #include <fog_pars_vertex>
           void main(){
             vUv = uv;
             vShore = abs(uv.x - 0.5) * 2.0;
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            vec3 p = position;
+            float side = p.x < 0.0 ? -1.0 : 1.0;
+            p.x += side * nileShore(p.z - uLandscapeScroll, side) * vShore;
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
             gl_Position = projectionMatrix * mv;
             #ifdef USE_FOG
               fogDepth = -mv.z;
@@ -602,7 +668,11 @@
     */
     applyWind(THREE, material, timeUniform, windUniform, scale = 1) {
       const amount = { value: scale };
-      material.onBeforeCompile = (shader) => {
+      const previousCompile = material.onBeforeCompile;
+      const previousKey = material.customProgramCacheKey.bind(material);
+      const baseKey = previousKey();
+      material.onBeforeCompile = (shader, renderer) => {
+        previousCompile?.(shader, renderer);
         shader.uniforms.uNileTime = timeUniform;
         shader.uniforms.uNileWind = windUniform;
         shader.uniforms.uNileWindScale = amount;
@@ -616,13 +686,14 @@
            #endif
            float nileHeight = max(transformed.y, 0.0);
            float nilePhase = uNileTime * 1.55 + nileInstance.x * 0.42 + nileInstance.z * 0.27;
-           float nileGust = sin(nilePhase) * 0.62 + sin(nilePhase * 2.17 + 1.31) * 0.38;
+           float travellingGust = 0.6 + 0.4 * sin(uNileTime * 0.7 - nileInstance.z * 0.075);
+           float nileGust = (sin(nilePhase) * 0.62 + sin(nilePhase * 2.17 + 1.31) * 0.38) * travellingGust;
            float nileWind = uNileWind * uNileWindScale;
            transformed.x += nileGust * nileWind * nileHeight * nileHeight * 0.052;
            transformed.z += cos(nilePhase * 0.83) * nileWind * nileHeight * nileHeight * 0.028;`,
         );
       };
-      material.customProgramCacheKey = () => `nile-wind-${scale.toFixed(2)}`;
+      material.customProgramCacheKey = () => `${baseKey}|nile-wind-${scale.toFixed(2)}`;
       material.userData.windScale = amount;
       return material;
     },
@@ -631,17 +702,23 @@
     createShorelineMaterial(THREE, color = 0xf6efdc) {
       const uniforms = Object.assign(fogUniforms(THREE), {
         uTime: { value: 0 },
+        uLandscapeScroll: { value: 0 },
         uColor: { value: new THREE.Color(color) },
         uStrength: { value: .5 },
       });
       const material = new THREE.ShaderMaterial({
         uniforms,
         vertexShader: `
+          uniform float uLandscapeScroll;
+          ${LANDSCAPE_GLSL}
           varying vec2 vUv;
           #include <fog_pars_vertex>
           void main(){
             vUv = uv;
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
+            vec3 p = position;
+            float side = p.x < 0.0 ? -1.0 : 1.0;
+            p.x += side * nileShore(p.z - uLandscapeScroll, side);
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
             gl_Position = projectionMatrix * mv;
             #ifdef USE_FOG
               fogDepth = -mv.z;

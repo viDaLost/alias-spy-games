@@ -3,7 +3,7 @@ name: Deploy Moses Nile V7.5.1 Real Assets Preview
 on:
   workflow_dispatch:
   push:
-    branches: [feature/moses-nile-runner-mvp]
+    branches: [main, feature/moses-nile-runner-mvp]
     paths:
       - 'web/games/moses-nile-v7/**'
       - '.github/workflows/deploy-moses-nile-v740-preview.yml'
@@ -119,7 +119,9 @@ jobs:
           grep -q 'id="tutorial-screen"' .preview-v7/index.html
           grep -q 'id="ico-heart"' .preview-v7/index.html
           grep -q 'openTutorialOnFirstRun' .preview-v7/js/game-v75.js
-          grep -q 'separateCrocs' .preview-v7/js/game-v75.js
+          # Крокодилы больше не раздвигаются через separateCrocs:
+          # неподвижность проверяет check-moses-nile-crocs.mjs в Quality checks.
+          grep -q 'V751CrocodileRig' .preview-v7/js/game-v75.js
           grep -q 'HIPPO_REVEAL' .preview-v7/js/game-v75.js
           ! grep -q 'createSculptedHippo' .preview-v7/js/game-v75.js
           grep -q '_prepareToken' .preview-v7/js/assets.js
@@ -137,6 +139,8 @@ jobs:
           grep -q 'js/shaders.js' .preview-v7/index.html
           grep -q 'js/fx.js' .preview-v7/index.html
           grep -q 'js/materials.js' .preview-v7/index.html
+          grep -q 'js/landscape.js' .preview-v7/index.html
+          grep -q 'window.NileLandscape' .preview-v7/js/landscape.js
           # Библиотека материалов не заводит свою петлю рендера: кадр
           # запускает только game-v75.js.
           ! grep -q 'setAnimationLoop\|requestAnimationFrame' .preview-v7/js/materials.js
@@ -151,7 +155,7 @@ jobs:
           grep -q 'fallback-mode' .preview-v7/index.html
           ! grep -q 'type="module"' .preview-v7/index.html
           ! grep -q 'v740-visual-overhaul.js' .preview-v7/index.html
-          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 6
+          test "$(find .preview-v7/js -maxdepth 1 -name '*.js' | wc -l)" -eq 7
           for asset in \
             models/environment/nature_pack/Rock_1.glb \
             models/environment/survival_pack/WoodLog.glb \
@@ -216,6 +220,7 @@ jobs:
             if curl -fsSL --max-time 20 "${P}${q}" -o /tmp/i && grep -q 'V7.5.1 · LOADING' /tmp/i \
               && curl -fsSL --max-time 20 "${P}js/game-v75.js${q}" -o /tmp/v && grep -q '__mosesV75ReferenceRebuild' /tmp/v \
               && curl -fsSL --max-time 20 "${P}js/materials.js${q}" -o /tmp/m && grep -q 'window.NileMaterials' /tmp/m \
+              && curl -fsSL --max-time 20 "${P}js/landscape.js${q}" -o /tmp/l && grep -q 'window.NileLandscape' /tmp/l \
               && curl -fsSL --max-time 20 "${P}models/v73/crocodile.glb${q}" -o /tmp/croc && test "$(stat -c %s /tmp/croc)" -gt 2000000 \
               && curl -fsSL --max-time 20 "${P}textures/terrain/sand-normal.jpg${q}" -o /tmp/normal && test -s /tmp/normal \
               && curl -fsSL --max-time 20 "${P}build.json${q}" | grep -q "$GITHUB_SHA"; then exit 0; fi
@@ -230,7 +235,7 @@ jobs:
           V: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=770\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=774\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v750
           mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v750.txt
