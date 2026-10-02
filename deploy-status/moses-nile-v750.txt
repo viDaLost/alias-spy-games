@@ -1,0 +1,13 @@
+commit=d7fad78c9a335ea4f5bffd91e953e2a67cb60b8f
+version=V7.5.1
+build=success
+deploy=success
+verify=success
+renderer=single-loop
+fallback=playable-cinematic
+models=local-glb-obj
+terrain=pbr-normal-maps
+water=dual-normal-relief
+basket=closed-at-waterline
+background=procedural-sandstorm-sky
+preview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=774
