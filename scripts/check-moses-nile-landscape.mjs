@@ -67,7 +67,7 @@ try {
     ['landscape', { width: 844, height: 390 }, 3, 2, 4],
     ['low', { width: 320, height: 568 }, 1, 2, 2],
   ]) {
-    const page = await browser.newPage({ viewport, deviceScaleFactor: dpr });
+    const page = await browser.newPage({ viewport, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /THREE|shader|GL_INVALID|WebGL/i.test(message.text())) errors.push(message.text()); });
@@ -80,6 +80,36 @@ try {
       const instrumented = source.replace('  boot();', `
         window.__nileAuditBiome = (index) => {
           state.biome = index; state.biomeBlend = 1; applyLook(BIOMES[index], 1);
+        };
+        window.__nileAuditCadence = () => {
+          renderer.setAnimationLoop(null);
+          const render = renderer.render.bind(renderer);
+          const setTarget = renderer.setRenderTarget.bind(renderer);
+          let draws = 0, targets = 0;
+          renderer.render = (...args) => { draws++; return render(...args); };
+          renderer.setRenderTarget = (target, ...args) => { if (target) targets++; return setTarget(target, ...args); };
+          const results = [];
+          let start = performance.now() + 1000;
+          for (const hz of [60, 120, 144]) {
+            state.playing = true; state.paused = false; state.invulnerable = 10000;
+            state.lastTime = start * .001; renderDeadline = 0; renderRate = 0;
+            const elapsed = state.elapsed, distance = state.distance;
+            draws = 0; targets = 0;
+            for (let i = 1; i <= hz; i++) frame(start + i * 1000 / hz);
+            results.push({ hz, draws, targets, elapsed: state.elapsed - elapsed, distance: state.distance - distance });
+            start += 2000;
+          }
+          state.paused = true; renderDeadline = 0; renderRate = 0; draws = 0;
+          for (let i = 1; i <= 120; i++) frame(start + i * 1000 / 120);
+          const pausedDraws = draws;
+          const distance = state.distance;
+          Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+          draws = 0;
+          for (let i = 1; i <= 120; i++) frame(start + 2000 + i * 1000 / 120);
+          const hiddenDraws = draws, hiddenDistance = state.distance - distance;
+          delete document.hidden;
+          renderer.render = render; renderer.setRenderTarget = setTarget;
+          return { results, pausedDraws, hiddenDraws, hiddenDistance };
         };
         boot();`);
       return route.fulfill({ contentType: 'text/javascript', body: instrumented });
@@ -114,13 +144,38 @@ try {
     }
     const reflected = await page.evaluate(() => {
       const river = window.__mosesV75Scene.getObjectByName('MosesV75SiltyNile');
-      return { strength: river.material.uniforms.uReflectionStrength.value, visible: river.visible };
+      return { strength: river.material.uniforms.uReflectionStrength.value, visible: river.visible,
+        texture: !!river.material.uniforms.uReflection,
+        pyramids: river.material.uniforms.uPyramids.value.length,
+        detail: river.material.uniforms.uDetail.value,
+        diagnostics: window.__mosesV75Diagnostics };
     });
     assert.equal(reflected.visible, true, 'Отражение не восстановило видимость реки');
-    assert.equal(reflected.strength > 0, name !== 'low', 'Неверный класс качества отражения');
+    assert.ok(reflected.strength > 0, 'Отражение должно оставаться плавным на всех классах');
+    assert.equal(reflected.texture, false, 'Вода не должна создавать карту повторного рендера сцены');
+    assert.equal(reflected.pyramids, 3);
+    assert.equal(reflected.detail, 0, 'Дорогие эффекты воды включены на телефоне');
+    assert.equal(reflected.diagnostics.shadowPasses, 0, 'Теневой проход включён на телефоне');
+    assert.ok(reflected.diagnostics.pixelRatio <= 1.25, 'Превышен мобильный DPR');
+    console.log(`${name}: ${JSON.stringify(reflected.diagnostics)}`);
     await page.evaluate(() => { const s = window.__mosesV75State; s.quality = .35; s.qualityWarmup = 10; s.qualityHold = 100; s.fpsAverage = 60; window.dispatchEvent(new Event('resize')); });
-    await page.waitForFunction(() => window.__mosesV75Diagnostics.pixelRatio < 1.9, null, { timeout: 15000 });
-    await page.waitForFunction(() => window.__mosesV75Scene.getObjectByName('MosesV75SiltyNile').material.uniforms.uReflectionStrength.value === 0, null, { timeout: 15000 });
+    await page.waitForFunction(() => window.__mosesV75Diagnostics.pixelRatio <= 1, null, { timeout: 15000 });
+    assert.equal(await page.evaluate(() => window.__mosesV75Scene.getObjectByName('MosesV75SiltyNile').material.uniforms.uReflectionStrength.value), reflected.strength,
+      'Снижение качества не должно вызывать скачок отражения');
+    if (name === 'portrait') {
+      await page.setViewportSize({ width: 64, height: 128 });
+      const cadence = await page.evaluate(() => window.__nileAuditCadence());
+      for (const result of cadence.results) {
+        assert.ok(result.draws >= 59 && result.draws <= 61, `${result.hz} Гц: неверное число кадров ${result.draws}`);
+        assert.equal(result.targets, 0, 'Обнаружен дополнительный проход в RenderTarget');
+        assert.ok(Math.abs(result.elapsed - 1) < .02, `${result.hz} Гц: время игры изменилось`);
+        assert.ok(result.distance > 10, `${result.hz} Гц: заплыв замедлился`);
+      }
+      assert.ok(cadence.pausedDraws >= 14 && cadence.pausedDraws <= 16, 'Неверная частота на паузе');
+      assert.equal(cadence.hiddenDraws, 0, 'Скрытая игра продолжает рисовать');
+      assert.equal(cadence.hiddenDistance, 0, 'Скрытая игра продолжает заплыв');
+      console.log(`OK: частота и время игры: ${JSON.stringify(cadence)}`);
+    }
     assert.deepEqual(errors, [], `${name}: ошибки рендера`);
     console.log(`OK: ${name}, биомы ${modes.join(',')}, 3D, отражение и снижение качества.`);
     await page.close();

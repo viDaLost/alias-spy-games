@@ -154,64 +154,36 @@
     return parts;
   }
 
-  // Небольшое отражение окружения обновляется реже основного кадра.
-  // Геометрия ниже уровня воды отсекается наклонной ближней плоскостью.
-  function createReflection(THREE, renderer, scene, camera, water, hidden) {
-    const size = 384;
-    const target = new THREE.WebGLRenderTarget(size, size, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: true });
-    target.texture.generateMipmaps = false;
-    const reflected = new THREE.PerspectiveCamera();
-    const matrix = new THREE.Matrix4();
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), .055);
-    const clip = new THREE.Vector4(), q = new THREE.Vector4();
-    const direction = new THREE.Vector3(), look = new THREE.Vector3();
-    let hold = 0, ready = false;
-    const u = water.material.uniforms;
-    u.uReflection.value = target.texture;
-    u.uReflectionMatrix.value = matrix;
-    return {
-      update(dt, quality) {
-        if (quality < .86) { u.uReflectionStrength.value = 0; ready = false; return; }
-        hold -= dt;
-        if (hold > 0 && ready) return;
-        hold = .12;
-        reflected.copy(camera);
-        reflected.position.y = -.11 - camera.position.y;
-        camera.getWorldDirection(direction); direction.y *= -1;
-        look.copy(reflected.position).add(direction);
-        reflected.up.set(0, -1, 0); reflected.lookAt(look); reflected.updateMatrixWorld();
-        reflected.matrixWorldInverse.copy(reflected.matrixWorld).invert();
-        reflected.projectionMatrix.copy(camera.projectionMatrix);
-        matrix.set(.5, 0, 0, .5, 0, .5, 0, .5, 0, 0, .5, .5, 0, 0, 0, 1);
-        matrix.multiply(reflected.projectionMatrix).multiply(reflected.matrixWorldInverse);
-        const localPlane = plane.clone().applyMatrix4(reflected.matrixWorldInverse);
-        clip.set(localPlane.normal.x, localPlane.normal.y, localPlane.normal.z, localPlane.constant);
-        const p = reflected.projectionMatrix.elements;
-        q.set((Math.sign(clip.x) + p[8]) / p[0], (Math.sign(clip.y) + p[9]) / p[5], -1, (1 + p[10]) / p[14]);
-        clip.multiplyScalar(2 / clip.dot(q));
-        p[2] = clip.x; p[6] = clip.y; p[10] = clip.z + 1 - .003; p[14] = clip.w;
-        reflected.projectionMatrixInverse.copy(reflected.projectionMatrix).invert();
-        const previousTarget = renderer.getRenderTarget();
-        const previousAutoUpdate = renderer.shadowMap.autoUpdate;
-        const objects = [water, ...hidden()].filter(Boolean);
-        const visibility = objects.map(o => o.visible);
-        const sky = scene.getObjectByName('V751SandstormSky');
-        const skyPosition = sky?.position.clone();
-        try {
-          objects.forEach(o => { o.visible = false; });
-          if (sky) sky.position.copy(reflected.position);
-          renderer.shadowMap.autoUpdate = false;
-          renderer.setRenderTarget(target); renderer.clear(); renderer.render(scene, reflected);
-          ready = true; u.uReflectionStrength.value = .44;
-        } finally {
-          renderer.setRenderTarget(previousTarget);
-          renderer.shadowMap.autoUpdate = previousAutoUpdate;
-          objects.forEach((o, i) => { o.visible = visibility[i]; });
-          if (skyPosition) sky.position.copy(skyPosition);
-        }
-      },
-      dispose() { target.dispose(); u.uReflectionStrength.value = 0; },
-    };
+  // Те же координаты используются геометрией и аналитическим отражением.
+  const PYRAMIDS = [
+    [-64, -424, 40, 51, 80, 0, .60],
+    [22, -458, 37, 47, 74, .22, .52],
+    [82, -482, 19, 24, 44, 0, .44],
+  ];
+
+  function pyramidTexture(THREE) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#a89878'; ctx.fillRect(0, 0, 512, 512);
+    const height = 512 / 12, width = 64;
+    for (let row = 0; row < 12; row++) {
+      for (let col = -1; col < 9; col++) {
+        const shade = 176 + Math.round(random(row * 19 + col, 113) * 40);
+        const x = col * width + (row % 2) * width / 2;
+        const y = row * height;
+        ctx.fillStyle = `rgb(${shade},${Math.round(shade * .94)},${Math.round(shade * .82)})`;
+        ctx.fillRect(x + 1, y + 1, width - 2, height - 2);
+        ctx.fillStyle = 'rgba(255,250,222,.18)'; ctx.fillRect(x + 2, y + 1, width - 3, 1.5);
+      }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.encoding = THREE.sRGBEncoding;
+    texture.anisotropy = 4;
+    return texture;
   }
-  window.NileLandscape = { TILE, HALF, GLSL, shoreOffset, bedHeight, vegetationOffset, foliageParts, createReflection };
+
+  window.NileLandscape = { TILE, HALF, GLSL, PYRAMIDS, shoreOffset, bedHeight,
+    vegetationOffset, foliageParts, pyramidTexture };
 })();

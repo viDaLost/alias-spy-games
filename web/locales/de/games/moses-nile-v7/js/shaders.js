@@ -63,8 +63,6 @@
     uniform float uChop;
     uniform float uPhase;
     uniform float uLandscapeScroll;
-    uniform mat4 uReflectionMatrix;
-    varying vec4 vReflection;
     varying vec2 vUv;
     varying vec3 vWorld;
     varying vec3 vWaveNormal;
@@ -91,7 +89,6 @@
       vWaveNormal = normalize(vec3(-w.y, 1.0, -w.z));
       vec4 world = modelMatrix * vec4(transformed, 1.0);
       vWorld = world.xyz;
-      vReflection = uReflectionMatrix * world;
       vec4 mv = viewMatrix * world;
       gl_Position = projectionMatrix * mv;
       #ifdef USE_FOG
@@ -108,9 +105,9 @@
     uniform float uHasNormals;
     uniform float uWakeStrength;
     uniform float uLandscapeScroll;
-    uniform sampler2D uReflection;
     uniform float uReflectionStrength;
-    varying vec4 vReflection;
+    uniform vec4 uPyramids[3];
+    uniform vec3 uPyramidTone;
     uniform vec2 uOffsetA;
     uniform vec2 uOffsetB;
     uniform vec2 uRepeatA;
@@ -135,23 +132,61 @@
     #include <fog_pars_fragment>
     ${NOISE}
     ${LANDSCAPE_GLSL}
+    // Четыре плоскости пирамиды вместо повторного рендера всей сцены.
+    // Луч вычисляется в текущем кадре: нет устаревшей карты и скачков 8 Гц.
+    vec3 pyramidReflection(vec3 ray, vec3 sky) {
+      float nearest = 10000.0;
+      vec3 result = sky;
+      if (ray.y > 0.0 && ray.z < -0.1) {
+        for (int p = 0; p < 3; p++) {
+          vec4 shape = uPyramids[p];
+          vec3 origin = vWorld - vec3(shape.x, 0.15, shape.y);
+          float slope = shape.w / shape.z;
+          for (int face = 0; face < 4; face++) {
+            vec3 n = vec3(slope, 1.0, 0.0);
+            if (face == 1) n.x = -slope;
+            if (face == 2) n = vec3(0.0, 1.0, slope);
+            if (face == 3) n = vec3(0.0, 1.0, -slope);
+            float denom = dot(n, ray);
+            if (abs(denom) > 0.0001) {
+              float t = (shape.w - dot(n, origin)) / denom;
+              vec3 hit = origin + ray * t;
+              float halfWidth = shape.z * (1.0 - hit.y / shape.w);
+              if (t > 0.0 && t < nearest && hit.y >= 0.0 && hit.y <= shape.w &&
+                  max(abs(hit.x), abs(hit.z)) <= halfWidth + 0.02) {
+                nearest = t;
+                float light = 0.24 + 0.76 * max(dot(normalize(n), uSunDir), 0.0);
+                result = mix(uPyramidTone * light, sky, 0.28);
+              }
+            }
+          }
+        }
+      }
+      return result;
+    }
     void main(){
       vec3 viewDir = normalize(cameraPosition - vWorld);
       vec3 normal = vWaveNormal;
 
-      // Две независимо ползущие карты нормалей дают мелкую рябь.
+      // На телефоне достаточно одной карты; процедурный шум нужен только
+      // при отсутствии текстур, а не одновременно с ними на каждом пикселе.
       vec2 uvA = vUv * uRepeatA + uOffsetA;
-      vec2 uvB = vUv * uRepeatB + uOffsetB;
-      vec3 rippleA = texture2D(uNormalA, uvA).xyz * 2.0 - 1.0;
-      vec3 rippleB = texture2D(uNormalB, uvB).xyz * 2.0 - 1.0;
-      vec3 packed = normalize(rippleA * 0.62 + rippleB * 0.38);
-      // Если пакет текстур не приехал, рябь считается процедурно.
-      float pn = fbm(vUv * vec2(9.0, 120.0) + vec2(uTime * 0.05, uTime * -0.62));
-      float pe = fbm(vUv * vec2(9.0, 120.0) + vec2(0.07, 0.0) + vec2(uTime * 0.05, uTime * -0.62));
-      float ps = fbm(vUv * vec2(9.0, 120.0) + vec2(0.0, 0.07) + vec2(uTime * 0.05, uTime * -0.62));
-      vec3 procedural = normalize(vec3((pn - pe) * 3.4, 1.0, (pn - ps) * 3.4));
-      vec3 detail = mix(procedural, vec3(packed.x, packed.z, packed.y), uHasNormals);
-      normal = normalize(normal + vec3(detail.x, 0.0, detail.z) * 0.85);
+      vec3 detail;
+      if (uHasNormals > 0.5) {
+        vec3 packed = texture2D(uNormalA, uvA).xyz * 2.0 - 1.0;
+        if (uDetail > 0.5) {
+          vec3 rippleB = texture2D(uNormalB, vUv * uRepeatB + uOffsetB).xyz * 2.0 - 1.0;
+          packed = normalize(packed * 0.62 + rippleB * 0.38);
+        }
+        detail = vec3(packed.x, packed.z, packed.y);
+      } else {
+        vec2 flow = vUv * vec2(9.0, 120.0) + vec2(uTime * 0.05, uTime * -0.62);
+        float pn = fbm(flow);
+        float pe = fbm(flow + vec2(0.07, 0.0));
+        float ps = fbm(flow + vec2(0.0, 0.07));
+        detail = normalize(vec3((pn - pe) * 3.4, 1.0, (pn - ps) * 3.4));
+      }
+      normal = normalize(normal + vec3(detail.x, 0.0, detail.z) * 0.40);
 
       float fresnel = pow(clamp(1.0 - dot(normal, viewDir), 0.0, 1.0), 3.0);
       float depthMix = smoothstep(0.15, 0.95, vShore);
@@ -165,18 +200,13 @@
       // Отражение неба по отражённому лучу, а не единым цветом: у горизонта
       // вода уходит в небо, вблизи остаётся мутно-зелёной. Без этого
       // поверхность читалась как ровная зелёная заливка.
-      vec3 reflected = reflect(-viewDir, normal);
+      vec3 reflectionNormal = normalize(vWaveNormal + vec3(detail.x, 0.0, detail.z) * 0.12);
+      vec3 reflected = reflect(-viewDir, reflectionNormal);
       float skyward = clamp(reflected.y, 0.0, 1.0);
       vec3 skyGradient = mix(uSky, uSky * 0.66 + uSunColor * 0.26, pow(skyward, 0.7));
       base = mix(base, skyGradient, clamp(fresnel * 0.48 + horizon * 0.35, 0.0, 0.78));
-      if (uReflectionStrength > 0.0 && vReflection.w > 0.0) {
-        vec2 reflectionUv = vReflection.xy / vReflection.w;
-        reflectionUv += normal.xz * 0.012;
-        if (all(greaterThan(reflectionUv, vec2(0.01))) && all(lessThan(reflectionUv, vec2(0.99)))) {
-          vec3 reflectedScene = texture2D(uReflection, reflectionUv).rgb;
-          base = mix(base, reflectedScene, uReflectionStrength * (0.16 + fresnel * 0.72));
-        }
-      }
+      vec3 reflectedScene = pyramidReflection(reflected, skyGradient);
+      base = mix(base, reflectedScene, uReflectionStrength * (0.16 + fresnel * 0.72));
 
       // Солнечный блик: узкий Блинн-Фонг плюс мерцающая крошка.
       vec3 halfDir = normalize(uSunDir + viewDir);
@@ -194,7 +224,7 @@
         адаптивное качество уже просело: на глаз это почти незаметно, а
         фрагментный шейдер дешевеет на треть.
       */
-      float silt = fbm(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
+      float silt = nnoise(vUv * vec2(2.2, 9.0) + vec2(0.0, uTime * -0.035));
       color = mix(color, color * (0.70 + silt * 0.66), 0.62);
       if (uDetail > 0.5) {
         float siltFine = fbm(vUv * vec2(7.5, 34.0) + vec2(uTime * 0.02, uTime * -0.12));
@@ -234,7 +264,7 @@
           wake += ring * (0.45 + ripple * 0.55) + trail * power * 0.35;
         }
       }
-      float foamNoise = fbm(vUv * vec2(22.0, 190.0) + vec2(uTime * 0.2, uTime * -1.5));
+      float foamNoise = nnoise(vUv * vec2(22.0, 190.0) + vec2(uTime * 0.2, uTime * -1.5));
       float foam = clamp((bankFoam * 0.62 + crestFoam * 0.55 + wake) * (0.34 + foamNoise * 0.72), 0.0, 1.0);
       color = mix(color, uFoamColor, foam * 0.72);
 
@@ -272,9 +302,10 @@
         uHasNormals: { value: 0 },
         uWakeStrength: { value: 0 },
         uLandscapeScroll: { value: 0 },
-        uReflection: { value: empty },
-        uReflectionStrength: { value: 0 },
-        uReflectionMatrix: { value: new THREE.Matrix4() },
+        uReflectionStrength: { value: .32 },
+        uPyramids: { value: (window.NileLandscape?.PYRAMIDS || []).map(([x, z, radius, height]) =>
+          new THREE.Vector4(x, z, radius * Math.SQRT1_2, height)) },
+        uPyramidTone: { value: new THREE.Color(0xe3cfa8).convertSRGBToLinear() },
         uOffsetA: { value: new THREE.Vector2() },
         uOffsetB: { value: new THREE.Vector2() },
         uRepeatA: { value: new THREE.Vector2(3.2, 46) },

@@ -17,7 +17,7 @@ const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/m
 
 for (const token of [
   'V7.5.1 · LOADING',
-  'game-v75.js?v=772',
+  'game-v75.js?v=773',
   'fallback-canvas',
   'aria-label="Двигаться влево"',
   'js/shaders.js',
