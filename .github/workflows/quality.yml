@@ -163,15 +163,30 @@ jobs:
         run: npm run check:admin-sections
       - name: Check word search level picker
         run: npm run check:level-modal
-      # Игра по сети проверяется на настоящем воркере: проверка поднимает его
-      # локально через wrangler, и без его зависимостей ей не на чем играть.
+      - name: Check Sacred Word without WebGL
+        run: npm run check:sacred-fallback
+
+  browser-project-checks:
+    name: Browser gameplay and 3D project checks
+    runs-on: ubuntu-latest
+    # Сорок одна проверка партии/3D занимает отдельную машину и отдельный
+    # бюджет времени: вместе с проверками оболочки задача обрывалась на 30 мин.
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser test tooling
+        run: npm install --no-audit --no-fund
+      - name: Locate Chrome
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      # Сетевые проверки поднимают настоящий Worker через wrangler.
       - name: Install Promised Land preview tooling
         working-directory: cloudflare/promised-land-preview
         run: npm install --no-audit --no-fund
-      # Проверки, которым нужен настоящий браузер. В задаче validate его нет —
-      # там и зависимости не ставятся, — поэтому они живут здесь, рядом с
-      # остальными браузерными.
       - name: Run browser-backed project checks
         run: npm run check:browser
-      - name: Check Sacred Word without WebGL
-        run: npm run check:sacred-fallback
