@@ -88,7 +88,7 @@
       const m = new THREE.MeshStandardMaterial({
         color, roughness: leaves ? .88 : .97, metalness: 0,
         side: THREE.DoubleSide, vertexColors: leaves,
-        emissive: leaves ? 0x233414 : 0, emissiveIntensity: leaves ? .12 : 0,
+        emissive: leaves ? 0x233414 : 0, emissiveIntensity: leaves ? .06 : 0,
       });
       // r128 не переводит цвета из sRGB автоматически. Иначе тёмная
       // зелень после выходного преобразования становится бледной.
@@ -108,6 +108,9 @@
         p.setXYZ(i, p.getX(i) * rings + bend * t * t, p.getY(i), p.getZ(i) * rings);
       }
       trunk.computeVertexNormals();
+      // UV цилиндра растягивал одну карту коры на весь многометровый ствол.
+      // Развёртка в метрах даёт детали без новых текстур или полигонов.
+      trunk.deleteAttribute('uv');
       const bark = material(0x806347, false);
       window.NileMaterials?.dress?.(bark, trunk, { surface: 'bark', uvScale: 1.2, roughness: .97, bleach: .02 });
       parts.push({ geometry: trunk, material: bark, wind: .07 });

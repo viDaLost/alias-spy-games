@@ -235,7 +235,7 @@ jobs:
           V: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=773\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
+          printf 'commit=%s\nversion=V7.5.1\nbuild=%s\ndeploy=%s\nverify=%s\nrenderer=single-loop\nfallback=playable-cinematic\nmodels=local-glb-obj\nterrain=pbr-normal-maps\nwater=dual-normal-relief\nbasket=closed-at-waterline\nbackground=procedural-sandstorm-sky\npreview=https://alias-spy-games-moses-nile-v7-preview.vitaledanilov.workers.dev/?v=774\n' "$GITHUB_SHA" "$B" "$D" "$V" > /tmp/status.txt
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B verify/moses-nile-v750
           mkdir -p deploy-status; cp /tmp/status.txt deploy-status/moses-nile-v750.txt
