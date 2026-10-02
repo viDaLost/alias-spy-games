@@ -171,7 +171,7 @@
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(repeat, repeat);
-    texture.anisotropy = anisotropy;
+    texture.anisotropy = srgb ? anisotropy : 1;
     if (srgb && 'encoding' in texture) texture.encoding = THREE.sRGBEncoding;
     texture.needsUpdate = true;
     return texture;
@@ -786,9 +786,21 @@
     // настоящая карта чешуи, и подмена превращала его в жёлтое пятно.
     // Таким моделям достаются только рельеф и шероховатость, если их нет.
     const hasOwnMap = Boolean(material.map);
+    // У готового PBR с собственными картами сохраняем прежний бюджет.
+    // Усиливаем цвет, только если экономим на добавляемых картах рельефа.
+    const colorAnisotropy = material.normalMap && material.roughnessMap
+      ? (material.map?.anisotropy || anisotropy) : anisotropy;
     if (!hasOwnMap) material.map = pick(maps.map);
     if (!material.normalMap) material.normalMap = pick(maps.normalMap);
     if (!material.roughnessMap) material.roughnessMap = pick(maps.roughnessMap);
+    // Сохраняем размер и mipmaps. Фильтрация цвета улучшает наклонные
+    // поверхности моделей; нормали и шероховатость дешевле с anisotropy=1.
+    for (const [texture, level] of [[material.map, colorAnisotropy], [material.normalMap, 1], [material.roughnessMap, 1]]) {
+      if (texture && texture.anisotropy !== level) {
+        texture.anisotropy = level;
+        texture.needsUpdate = true;
+      }
+    }
     const strength = options.normalScale ?? (hasOwnMap ? .4 : .85);
     material.normalScale = new THREE.Vector2(strength, strength);
     // Карта цвета уже несёт светлоту камня или листвы, поэтому собственный

@@ -625,7 +625,9 @@
     loader.load(path, (texture) => {
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(repeatX, repeatY);
-      texture.anisotropy = Math.min(8, renderer?.capabilities?.getMaxAnisotropy?.() || 2);
+      // Угол взгляда размывает прежде всего цвет. Карты рельефа и
+      // шероховатости не нуждаются в восьми анизотропных выборках.
+      texture.anisotropy = kind === 'map' ? Math.min(8, renderer?.capabilities?.getMaxAnisotropy?.() || 2) : 1;
       if (kind === 'map' && 'encoding' in texture) texture.encoding = THREE.sRGBEncoding;
       if (material) {
         material[kind] = texture;
@@ -652,6 +654,7 @@
     прозрачность, и заметнее всего на мелководье.
   */
   function buildRiverBed() {
+    const metresPerRepeat = SCROLL_TILE / 42;
     const zSegments = 60;
     const xSegments = 12;
     const positions = [];
@@ -668,7 +671,7 @@
         // Русло корытом: у берегов мельче, посередине глубже.
         const depth = window.NileLandscape?.bedHeight?.(center + across * half, z) ?? (-.55 - (1 - across * across) * .85);
         positions.push(center + across * half, depth, z);
-        uvs.push(u * 5, v * 46);
+        uvs.push(u * 5, -z / metresPerRepeat);
       }
     }
     const row = xSegments + 1;
@@ -688,7 +691,7 @@
       roughness: 1,
       metalness: 0,
     });
-    material.userData.normalStrength = 1.1;
+    material.userData.normalStrength = .55;
     makeTexture('textures/terrain/rock-color.jpg', 1, 1, material);
     makeTexture('textures/terrain/rock-normal.jpg', 1, 1, material, 'normalMap');
     makeTexture('textures/terrain/rock-orm.jpg', 1, 1, material, 'roughnessMap');
@@ -698,7 +701,7 @@
     bed.receiveShadow = true;
     bed.renderOrder = 0;
     scene.add(bed);
-    bankMaterials.push({ material, metresPerRepeat: (NEAR_Z + 8 - FAR_Z) / 46 });
+    bankMaterials.push({ material, metresPerRepeat });
   }
 
   function applyBankEdge(material, bed = false) {
@@ -914,8 +917,10 @@ ${shader.vertexShader}`.replace(
     const inner = new THREE.Color(colors[0]);
     const outer = new THREE.Color(colors[1]);
     const tone = new THREE.Color();
-    // Примерно три метра на один оборот текстуры — так песок читается зерном.
-    const crossRepeat = Math.max(1, (outerOffset - innerOffset) / 3);
+    // Квадратный масштаб около трёх метров. Целое число повторов на тайл
+    // сохраняет рисунок при переходе scroll с 250 метров обратно к нулю.
+    const metresPerRepeat = SCROLL_TILE / 84;
+    const crossRepeat = (outerOffset - innerOffset) / metresPerRepeat;
     for (let i = 0; i <= segments; i += 1) {
       const v = i / segments;
       const z = mix(NEAR_Z + 9, FAR_Z, v);
@@ -936,7 +941,7 @@ ${shader.vertexShader}`.replace(
         // Тайлинг поперёк считается по реальной ширине полосы: раньше одна
         // фотография песка растягивалась на все 26 метров и читалась
         // пластилином, а не песком.
-        uvs.push(u * crossRepeat, v * 52);
+        uvs.push(u * crossRepeat, -z / metresPerRepeat);
         tone.copy(inner).lerp(outer, u);
         const stain = .91 + .09 * Math.sin(z * DUNE_K * 5 + side * 2 + offset * 1.3);
         tone.multiplyScalar(stain);
@@ -973,19 +978,19 @@ ${shader.vertexShader}`.replace(
       opacity,
       depthWrite: opacity >= 1,
     });
-    material.userData.normalStrength = 1.35;
+    material.userData.normalStrength = .50;
     if (texturePath) makeTexture(texturePath, 1, 1, material);
     if (normalPath) makeTexture(normalPath, 1, 1, material, 'normalMap');
     // Отражения неба по касательной: сухой песок на солнце заметно светлеет.
-    window.NileMaterials?.addSkyReflection?.(material, { strength: .18 });
+    window.NileMaterials?.addSkyReflection?.(material, { strength: .08 });
     applyDuneRelief(material, side);
     const ribbon = new THREE.Mesh(geometry, material);
     ribbon.name = name;
     ribbon.receiveShadow = true;
     ribbon.renderOrder = 1;
     scene.add(ribbon);
-    // Сама лента статична, движение песка показывает бегущая текстура.
-    bankMaterials.push({ material, metresPerRepeat: (NEAR_Z + 9 - FAR_Z) / 52 });
+    // UV привязан к z − scroll, как рельеф и растения, а не к времени.
+    bankMaterials.push({ material, metresPerRepeat });
     return ribbon;
   }
 
@@ -1108,7 +1113,7 @@ ${shader.vertexShader}`.replace(
         surface: BANK_SURFACES[key],
         name: (Array.isArray(child.material) ? child.material[0] : child.material)?.name || child.name,
         uvScale: key === 'palm' ? .5 : .9,
-        normalScale: .95,
+        normalScale: key === 'papyrus' ? .25 : key === 'rock' ? .4 : .45,
         // Папирус — тонкие стебли, освещённые со всех сторон: отбеливание
         // выгоняло их в солому.
         bleach: key === 'papyrus' ? 0 : .1,
@@ -4311,7 +4316,7 @@ ${shader.vertexShader}`.replace(
 
     // Мир едет навстречу: без этого предметы плыли к неподвижному берегу и
     // казалось, что корзинка стоит на месте.
-    const flow = state.playing && !state.paused ? state.speed : TUNE.baseSpeed * .35;
+    const flow = state.playing && !state.paused ? state.speed : 0;
     const speedT = clamp((state.speed - TUNE.baseSpeed) / (TUNE.maxSpeed - TUNE.baseSpeed), 0, 1);
     state.scroll = (state.scroll + flow * dt) % SCROLL_TILE;
     duneScrollUniform.value = state.scroll;
@@ -4325,10 +4330,13 @@ ${shader.vertexShader}`.replace(
     state.flowPhase += state.flowRate * dt;
     for (const mesh of scrollLayers) mesh.position.z = state.scroll;
     for (const entry of bankMaterials) {
-      const step = (flow * dt) / entry.metresPerRepeat;
-      if (entry.material.map) entry.material.map.offset.y = (entry.material.map.offset.y - step) % 1;
-      if (entry.material.normalMap) entry.material.normalMap.offset.y = (entry.material.normalMap.offset.y - step) % 1;
-      if (entry.material.roughnessMap) entry.material.roughnessMap.offset.y = (entry.material.roughnessMap.offset.y - step) % 1;
+      // uv.y = −z / period, значит движение мира в +z требует +scroll.
+      // Один абсолютный сдвиг исключает дрейф, разную скорость карт и
+      // скачок при оборачивании тайла; карта цвета не скользит по рельефу.
+      const offset = (state.scroll / entry.metresPerRepeat) % 1;
+      if (entry.material.map) entry.material.map.offset.y = offset;
+      if (entry.material.normalMap) entry.material.normalMap.offset.y = offset;
+      if (entry.material.roughnessMap) entry.material.roughnessMap.offset.y = offset;
     }
 
     /*

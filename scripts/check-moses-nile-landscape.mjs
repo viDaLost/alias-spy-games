@@ -67,6 +67,7 @@ try {
     ['landscape', { width: 844, height: 390 }, 3, 2, 4],
     ['low', { width: 320, height: 568 }, 1, 2, 2],
   ]) {
+    if (process.env.MOSES_AUDIT_VIEW && process.env.MOSES_AUDIT_VIEW !== name) continue;
     const page = await browser.newPage({ viewport, deviceScaleFactor: dpr, isMobile: true, hasTouch: true });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -80,6 +81,47 @@ try {
       const instrumented = source.replace('  boot();', `
         window.__nileAuditBiome = (index) => {
           state.biome = index; state.biomeBlend = 1; applyLook(BIOMES[index], 1);
+        };
+        window.__nileAuditGround = () => {
+          renderer.setAnimationLoop(null);
+          const saved = { playing: state.playing, paused: state.paused, scroll: state.scroll, speed: state.speed };
+          const anchorMesh = scrollLayers.find(mesh => mesh.name === 'V75RocksInstanced');
+          const matrix = new THREE.Matrix4();
+          anchorMesh.getMatrixAt(Math.floor(anchorMesh.count / 2), matrix);
+          const anchorZ = matrix.elements[14];
+          const ground = [];
+          scene.traverse(mesh => { if (['V751NileBed', 'V751DampShore', 'V751WarmSand', 'V751PebbleBank'].includes(mesh.name)) ground.push(mesh); });
+          const sample = () => ground.map(mesh => {
+            const pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv;
+            const last = pos.count - 1;
+            const slope = (uv.getY(last) - uv.getY(0)) / (pos.getZ(last) - pos.getZ(0));
+            const worldZ = anchorZ + anchorMesh.position.z;
+            const v = uv.getY(0) + slope * (worldZ - pos.getZ(0));
+            return {
+              name: mesh.name, scroll: state.scroll, slope,
+              maps: ['map', 'normalMap', 'roughnessMap'].filter(key => mesh.material[key]).map(key => {
+                const texture = mesh.material[key]; texture.updateMatrix();
+                const point = texture.transformUv(new THREE.Vector2(.37, v));
+                return { key, phase: point.y, offset: texture.offset.y, anisotropy: texture.anisotropy,
+                  width: texture.image.width, height: texture.image.height };
+              }),
+            };
+          });
+          state.playing = true; state.paused = false; state.speed = 18.5; state.scroll = 32;
+          update3D(0); const before = sample();
+          update3D(.25); const moved = sample();
+          state.scroll = 249.875; update3D(0); const wrapBefore = sample();
+          update3D(.02); const wrapAfter = sample();
+          state.paused = true; update3D(1); const paused = sample();
+          state.paused = false; state.playing = false; update3D(1); const idle = sample();
+          Object.assign(state, saved); update3D(0); renderer.setAnimationLoop(frame);
+          const ownMaps = new THREE.MeshStandardMaterial({ map: new THREE.Texture(), normalMap: new THREE.Texture(), roughnessMap: new THREE.Texture() });
+          const colorOnly = new THREE.MeshStandardMaterial({ map: new THREE.Texture() });
+          const geometry = new THREE.BoxGeometry(1, 1, 1);
+          for (const material of [ownMaps, colorOnly]) window.NileMaterials.dress(material, geometry);
+          const filters = [ownMaps, colorOnly].map(material => ['map', 'normalMap', 'roughnessMap'].map(key => material[key].anisotropy));
+          geometry.dispose(); ownMaps.dispose(); colorOnly.dispose();
+          return { before, moved, wrapBefore, wrapAfter, paused, idle, filters };
         };
         window.__nileAuditCadence = () => {
           renderer.setAnimationLoop(null);
@@ -130,6 +172,30 @@ try {
     await page.setViewportSize(smallViewport);
     await page.waitForFunction(() => window.__mosesV75State.distance > 3, null, { timeout: 30000 });
     await page.evaluate(() => { const s = window.__mosesV75State; s.paused = true; });
+    const ground = await page.evaluate(() => window.__nileAuditGround());
+    assert.equal(ground.before.length, 7, 'Не все полосы берегов и дно проверены');
+    const comparePhase = (a, b, description) => {
+      for (let i = 0; i < a.length; i++) {
+        for (let j = 0; j < a[i].maps.length; j++) {
+          const first = a[i].maps[j], next = b[i].maps[j];
+          const delta = Math.abs(first.phase - next.phase);
+          assert.ok(Math.min(delta, Math.abs(1 - delta)) < 1e-4, a[i].name + ': ' + description + ' (' + first.key + ')');
+          if (first.key === 'map') assert.ok(first.anisotropy <= 8, 'Превышен бюджет фильтрации цвета');
+          else assert.equal(first.anisotropy, 1, 'Лишняя фильтрация рельефа');
+          assert.equal(next.width, first.width, 'Увеличена текстура');
+          assert.equal(next.height, first.height, 'Увеличена текстура');
+        }
+      }
+    };
+    comparePhase(ground.before, ground.moved, 'рисунок скользит относительно камней');
+    comparePhase(ground.wrapBefore, ground.wrapAfter, 'рисунок скачет на стыке тайлов');
+    assert.ok(ground.moved[0].scroll > ground.before[0].scroll, 'Мир не движется в заплыве');
+    assert.ok(ground.wrapAfter[0].scroll < ground.wrapBefore[0].scroll, 'Не проверен переход через конец тайла');
+    assert.deepEqual(ground.paused, ground.wrapAfter, 'Берег движется на паузе');
+    assert.deepEqual(ground.idle, ground.paused, 'Берег движется в меню');
+    assert.deepEqual(ground.filters[0], [1, 1, 1], 'У готового PBR выросла стоимость фильтрации');
+    assert.ok(ground.filters[1].reduce((sum, level) => sum + level, 0) <= 17, 'Перераспределение фильтрации увеличило бюджет');
+    console.log('OK: песок, грунт и дно закреплены относительно моделей, включая стык 250 м, паузу и меню.');
     await page.addStyleTag({ content: '.screen,#loading-screen,#toast-layer { display:none!important }' });
     const modes = name === 'portrait' ? [0, 1, 2, 3, 4] : [0];
     for (const biome of modes) {
