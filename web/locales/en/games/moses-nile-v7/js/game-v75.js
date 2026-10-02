@@ -28,7 +28,7 @@
   const EDITION = 'RUNNER II';
   const RIVER_HALF = 6.35;
   const LANES = [-3.75, 0, 3.75];
-  const MAX_DPR = 2;
+  const MAX_DPR = 1.6;
   const FAR_Z = -255;
   const NEAR_Z = 10;
   const THREE = window.THREE;
@@ -416,7 +416,6 @@
   let water = null;
   let waterMaterial = null;
   let waterSheen = null;
-  let riverReflection = null;
   let waterPositions = null;
   let waterBaseY = null;
   let waterNormal = null;
@@ -466,19 +465,21 @@
     return 0;
   }
 
+  const isMobileDevice = window.matchMedia?.('(pointer: coarse)')?.matches
+    || (navigator.maxTouchPoints > 0 && Math.min(window.innerWidth, window.innerHeight) < 900);
+  function mobileDevice() { return isMobileDevice; }
+
   function renderPixelRatio() {
     const tier = detectTier();
-    const limit = tier >= 2 ? MAX_DPR : tier >= 1 ? 1.6 : 1.25;
-    // Сначала снимаем отражение и мелкий шум воды. Разрешение всего кадра
-    // уменьшается лишь при устойчивой просадке после этих мер.
-    const resolution = .72 + .28 * clamp((state.quality - .35) / .3, 0, 1);
+    const limit = mobileDevice() ? (tier >= 1 ? 1.25 : 1) : MAX_DPR;
+    const resolution = .80 + .20 * clamp((state.quality - .35) / .3, 0, 1);
     return Math.min(window.devicePixelRatio || 1, limit) * resolution;
   }
 
   function tryCreateRenderer() {
     if (!THREE || !dom.canvas) return null;
     try {
-      const attributes = { alpha: true, antialias: true, depth: true, stencil: false, powerPreference: 'high-performance' };
+      const attributes = { alpha: true, antialias: true, depth: true, stencil: false, powerPreference: 'default' };
       const context = dom.canvas.getContext('webgl2', attributes) || dom.canvas.getContext('webgl', attributes);
       if (!context) return null;
       const next = new THREE.WebGLRenderer({ canvas: dom.canvas, context, alpha: true, antialias: true });
@@ -488,10 +489,10 @@
       next.toneMapping = THREE.ACESFilmicToneMapping;
       next.toneMappingExposure = .96;
       if ('outputEncoding' in next) next.outputEncoding = THREE.sRGBEncoding;
-      // Тени теперь есть на всех уровнях: слабым устройствам достаётся
-      // меньшая карта и более дешёвая фильтрация, но объекты перестают висеть.
-      shadowsOn = true;
-      next.shadowMap.enabled = true;
+      // На телефоне остаются контактные пятна: отдельный проход теней
+      // тысяч движущихся листьев обходится дороже самих берегов.
+      shadowsOn = !mobileDevice() && detectTier() >= 1;
+      next.shadowMap.enabled = shadowsOn;
       next.shadowMap.type = detectTier() >= 1 ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
       dom.canvas.addEventListener('webglcontextlost', (event) => {
         event.preventDefault();
@@ -539,20 +540,20 @@
 
   function applyQuality() {
     if (!renderer) return;
-    // Отражение и шум воды отключаются раньше, чем падает разрешение.
+    // Дорогие эффекты телефона сняты заранее, без ожидания нагрева.
     const ratio = renderPixelRatio();
     renderer.setPixelRatio(ratio);
     fx?.setQuality?.(state.quality);
     fx?.setParticleScale?.(ratio);
     /*
-      После отражения и мелкой ряби снимаем тени. При восстановлении
+      На компьютере при нехватке кадров снимаем тени. При восстановлении
       качества возвращаем их с запасом, чтобы порог не мигал.
     */
     if (state.quality < .60 && renderer.shadowMap.enabled) {
       renderer.shadowMap.enabled = false;
       shadowsOn = false;
       if (sun) sun.castShadow = false;
-    } else if (state.quality > .92 && !renderer.shadowMap.enabled) {
+    } else if (!mobileDevice() && detectTier() >= 1 && state.quality > .92 && !renderer.shadowMap.enabled) {
       renderer.shadowMap.enabled = true;
       shadowsOn = true;
       if (sun) sun.castShadow = true;
@@ -1137,7 +1138,7 @@ ${shader.vertexShader}`.replace(
     }
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
-      mesh.castShadow = detectTier() >= 1 && (spec.castShadow ?? ['palm', 'papyrus', 'bush'].includes(spec.key));
+      mesh.castShadow = shadowsOn && (spec.castShadow ?? ['palm', 'papyrus', 'bush'].includes(spec.key));
       if (mesh.castShadow && spec.wind) {
         mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide });
         window.NileShaders?.applyWind?.(THREE, mesh.customDepthMaterial, timeUniform, windUniform, parts[meshes.indexOf(mesh)].wind ?? spec.wind);
@@ -1269,7 +1270,7 @@ ${shader.vertexShader}`.replace(
       миллиона треугольников в кадре — отсюда и рывки. Замер: папирус один
       съедал больше сорока процентов сцены.
     */
-    const density = tier >= 2 ? 1.4 : tier >= 1 ? 1.05 : .65;
+    const density = mobileDevice() ? (tier >= 1 ? .60 : .42) : (tier >= 2 ? 1.1 : .85);
     const grassGeometry = () => {
       const geometry = new THREE.ConeGeometry(.2, .82, 5, 2);
       geometry.translate(0, .41, 0);
@@ -1466,15 +1467,21 @@ ${shader.vertexShader}`.replace(
     const geometry = loft(sections, 4, { capFront: true, capBack: true });
     geometry.rotateX(-Math.PI / 2);
     geometry.rotateY(Math.PI / 4);
-    geometry.computeVertexNormals();
-    return geometry;
+    // Грани и ряды не делят нормали: усреднение сглаживало кладку и
+    // заваливало углы. UV задаётся в метрах, а не растягивается по ярусам.
+    const crisp = geometry.toNonIndexed();
+    geometry.dispose();
+    crisp.computeVertexNormals();
+    crisp.deleteAttribute('uv');
+    window.NileMaterials?.applyBoxUV?.(crisp, 1 / 8);
+    return crisp;
   }
 
   function buildPyramids() {
     /*
       Раньше это были плоские самосветящиеся конусы с раскраской по вершинам —
       издали они читались как бумажные треугольники. Теперь у пирамид
-      настоящая ступенчатая кладка, песчаниковые PBR-карты и остатки
+      настоящая ступенчатая кладка, общая карта каменных блоков и остатки
       полированной облицовки на вершине, как у пирамиды Хафра. Закатная
       раскраска сохранена в вершинных цветах и домножается на текстуру.
     */
@@ -1482,18 +1489,11 @@ ${shader.vertexShader}`.replace(
       Пирамиды — дальний фон, а не декорация у самой воды: раньше они стояли
       в сотне метров, перекрывали полкадра и спорили с рекой. Теперь они
       отнесены за горизонтальные дюны, которые закрывают их основания, и
-      растворяются в дымке тем сильнее, чем дальше стоят (параметр shade).
+      сохраняют контраст граней с небольшим примешиванием дымки.
       Центр кадра по-прежнему оставлен руслу.
     */
-    const specs = [
-      // x, z, полуоснование, высота, рядов кладки, доля облицовки, дымка.
-      // Пропорции взяты у настоящей группы в Гизе: отношение высоты к
-      // половине основания около 1.27, а не «остроконечная ёлка».
-      // Хеопса, Хефрена (с остатками облицовки на вершине) и Микерина.
-      [-64, -424, 40, 51, 32, 0, .60],
-      [22, -458, 37, 47, 30, .22, .52],
-      [82, -482, 19, 24, 20, 0, .44],
-    ];
+    const specs = window.NileLandscape.PYRAMIDS;
+    const masonry = window.NileLandscape.pyramidTexture(THREE);
     const sunDir = new THREE.Vector3(-.62, .34, .71).normalize();
     const shadowTint = new THREE.Vector3(.46, .49, .60);
     const sunTint = new THREE.Vector3(1.42, 1.20, .92);
@@ -1521,11 +1521,11 @@ ${shader.vertexShader}`.replace(
         Материал намеренно несветящийся. Освещённый камень на таком удалении
         выводится ровно в яркость дымки и силуэт пропадает — проверено. Весь
         объём здесь несут вершинные цвета (закатная раскладка света) и карта
-        кладки, а дальность задаёт applyLook, подмешивая цвет дымки по shade.
+        кладки; applyLook добавляет дымку без потери контраста граней.
       */
-      const stone = window.NileMaterials?.surface?.('sandstone');
       const material = new THREE.MeshBasicMaterial({
         color: 0xbda37a,
+        map: masonry,
         vertexColors: true,
         fog: false,
         // Прозрачность здесь не ради полупрозрачности, а ради порядка вывода.
@@ -1538,11 +1538,6 @@ ${shader.vertexShader}`.replace(
         opacity: 1,
         depthWrite: false,
       });
-      if (stone) {
-        material.map = stone.map.clone();
-        material.map.repeat.set(Math.max(3, Math.round(radius / 4)), Math.max(3, Math.round(radius / 4)));
-        material.map.needsUpdate = true;
-      }
       material.needsUpdate = true;
 
       const core = new THREE.Mesh(stepPyramidGeometry(radius, height, courses), material);
@@ -1558,7 +1553,8 @@ ${shader.vertexShader}`.replace(
         const casingHeight = height * casing;
         const cap = new THREE.Mesh(new THREE.ConeGeometry(radius * casing * 1.04, casingHeight, 4), material);
         cap.geometry.rotateY(Math.PI / 4);
-        window.NileMaterials?.applyBoxUV?.(cap.geometry, .12);
+        cap.geometry.deleteAttribute('uv');
+        window.NileMaterials?.applyBoxUV?.(cap.geometry, 1 / 8);
         shadeGeometry(cap.geometry, height);
         const capColors = cap.geometry.attributes.color;
         for (let i = 0; i < capColors.count; i += 1) {
@@ -4003,7 +3999,15 @@ ${shader.vertexShader}`.replace(
     }
     for (const entry of decor) {
       if (entry.kind !== 'dune' && entry.kind !== 'pyramid') continue;
-      entry.material.color.copy(air.haze).lerp(BLACK, entry.shade);
+      if (entry.kind === 'pyramid') {
+        entry.material.color.set(0xe3cfa8).convertSRGBToLinear()
+          .lerp(air.haze, .12 + air.storm * .25);
+        if (air.stars > 0) entry.material.color.multiplyScalar(1 - air.stars * .68);
+      } else entry.material.color.copy(air.haze).lerp(BLACK, entry.shade);
+    }
+    if (waterMaterial?.uniforms?.uPyramidTone) {
+      const pyramid = decor.find(entry => entry.kind === 'pyramid');
+      if (pyramid) waterMaterial.uniforms.uPyramidTone.value.copy(pyramid.material.color);
     }
     if (godrays?.material?.uniforms) {
       godrays.material.uniforms.uColor.value.copy(air.sun);
@@ -4086,10 +4090,6 @@ ${shader.vertexShader}`.replace(
     buildBirds();
     buildPlayer();
     buildSwipeWaves();
-    if (detectTier() >= 1 && waterMaterial?.uniforms?.uReflection) {
-      riverReflection = window.NileLandscape?.createReflection?.(THREE, renderer, scene, camera, water,
-        () => [waterSheen, ...shorelines, player, ...dustSheets, godrays]);
-    }
 
     window.__mosesV75Scene = scene;
     window.__mosesV75Camera = camera;
@@ -4435,7 +4435,7 @@ ${shader.vertexShader}`.replace(
       u.uFlow.value = state.flowRate;
       u.uPhase.value = state.flowPhase;
       // Мелкая детализация воды снимается вместе с общим качеством.
-      if (u.uDetail) u.uDetail.value = state.quality > .82 ? 1 : 0;
+      if (u.uDetail) u.uDetail.value = !mobileDevice() && state.quality > .82 ? 1 : 0;
       u.uPlayer.value.set(state.x, 0, 1.1);
       u.uWakeStrength.value = state.playing ? clamp(.55 - state.y * .4, 0, .6) : .2;
       // Шесть ближайших препятствий передаются в шейдер воды: вокруг них
@@ -4998,8 +4998,6 @@ ${shader.vertexShader}`.replace(
   function activateFallback(label = 'LITE READY') {
     if (state.fallback && state.ready) return;
     state.fallback = true;
-    riverReflection?.dispose();
-    riverReflection = null;
     dom.body.classList.add('fallback-mode');
     renderer?.setAnimationLoop?.(null);
     resizeFallback();
@@ -5042,6 +5040,8 @@ ${shader.vertexShader}`.replace(
   */
   let frameErrors = 0;
   let frameErrorLogged = false;
+  let renderDeadline = 0;
+  let renderRate = 0;
 
   function frame(now) {
     try {
@@ -5056,17 +5056,30 @@ ${shader.vertexShader}`.replace(
       window.__mosesV75FrameError = String(error?.message || error);
       // В запасном режиме цепочку кадров держит сама игра, и сбой обрывает
       // её раньше, чем она успеет запросить следующий кадр.
-      if (state.fallback) fallbackFrame = requestAnimationFrame(frame);
       if (frameErrors > 90 && !state.fallback) {
         console.error('[Moses] repeated frame errors; switching to fallback');
         activateFallback('LITE READY');
+      }
+    } finally {
+      if (state.fallback) {
+        if (fallbackFrame) cancelAnimationFrame(fallbackFrame);
+        fallbackFrame = requestAnimationFrame(frame);
       }
     }
   }
 
   function frameBody(now) {
     const seconds = now * .001;
-    const dt = state.lastTime ? Math.min(.05, Math.max(.001, seconds - state.lastTime)) : .016;
+    // 120/144 Гц не должны удваивать расход GPU. В меню и на паузе — 15 Гц,
+    // скрытая вкладка не рисует вовсе. Пропуски сохраняют фазу 60-Гц кадров.
+    if (document.hidden) { state.lastTime = seconds; renderDeadline = 0; return; }
+    const rate = state.playing && !state.paused ? 60 : 15;
+    if (rate !== renderRate) { renderRate = rate; renderDeadline = seconds; }
+    if (seconds + .0005 < renderDeadline) return;
+    const interval = 1 / rate;
+    renderDeadline = seconds + interval - Math.min(Math.max(0, seconds - renderDeadline), interval);
+    const wallDt = state.lastTime ? Math.max(.001, seconds - state.lastTime) : .016;
+    const dt = Math.min(.05, wallDt);
     state.lastTime = seconds;
     state.elapsed += dt;
 
@@ -5087,13 +5100,11 @@ ${shader.vertexShader}`.replace(
         proceduralSkyVisible: true,
         modelSources: window.__mosesV75ModelSources || {},
       };
-      fallbackFrame = requestAnimationFrame(frame);
       return;
     }
 
-    updateQuality(dt);
+    if (state.playing && !state.paused) updateQuality(wallDt);
     update3D(dt);
-    riverReflection?.update(dt, state.quality);
     renderer.render(scene, camera);
     window.__mosesV75Diagnostics = {
       mode: 'webgl',
@@ -5108,6 +5119,9 @@ ${shader.vertexShader}`.replace(
       quality: state.quality,
       fps: Math.round(state.fpsAverage),
       pixelRatio: renderer.getPixelRatio(),
+      frameLimit: renderRate,
+      reflectionPasses: 0,
+      shadowPasses: renderer.shadowMap.enabled ? 1 : 0,
       proceduralSkyVisible: true,
       modelSources: window.__mosesV75ModelSources || {},
     };
