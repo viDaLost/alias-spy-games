@@ -134,6 +134,8 @@ function startSpyOnlineGame() {
     state = payload.state || null;
     localStorage.setItem(LS.roomId, roomId);
     localStorage.setItem(LS.name, playerName || 'Spieler');
+    // Админ-панель узнаёт о комнате отсюда: по коду она открывает монитор партии.
+    window.AppPresenceContext?.setRoom?.('spy', roomId);
     screen = 'room';
     roleFaceUp = false;
     openSocket();
@@ -293,6 +295,7 @@ function startSpyOnlineGame() {
     localStorage.removeItem(LS.roomId);
     roomId = '';
     sessionToken = '';
+    window.AppPresenceContext?.clearRoom?.('spy');
   }
 
   function cleanup() {
@@ -300,6 +303,9 @@ function startSpyOnlineGame() {
     window.GameChatToasts?.reset(`spy:${roomId}:spies`);
     destroyed = true;
     leaving = true;
+    // Код комнаты остаётся в памяти — по нему игра вернётся после обрыва, —
+    // но сидящим в комнате закрывший игру уже не считается.
+    window.AppPresenceContext?.clearRoom?.('spy');
     stopPolling();
     closeSocket();
     if (reconnectTimer) clearTimeout(reconnectTimer);

@@ -14,6 +14,7 @@
 // она и есть улика, по которой голосуют.
 
 import { DurableObject } from 'cloudflare:workers';
+import { adminRoomState, adminStateResponse } from './admin-observer.js';
 import {
   backToLobby,
   beginVoting,
@@ -52,6 +53,14 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
     try {
+      /*
+        Монитор администратора идёт первым: он не игрок, сессии комнаты у него
+        нет, и через общие маршруты он не прошёл бы. Без предъявленного токена
+        обработчик возвращает null, и запрос идёт дальше как обычно.
+      */
+      const observed = await adminRoomState(request, env, { roomStub, normalizeRoomId, cors });
+      if (observed) return observed;
+
       if (url.pathname === '/health') {
         return json({ ok: true, service: 'alias-spy-games-spy', chat: true, locations: LOCATIONS.length, now: Date.now() }, 200, cors);
       }
@@ -155,6 +164,16 @@ export class SpyRoom extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    /*
+      Комната глазами администратора. Вид собирается пустым именем игрока —
+      тем же, каким его получает зритель, — поэтому ни локации, ни ролей до
+      итогов, ни закрытого чата соглядатаев в нём нет.
+    */
+    if (request.method === 'GET' && url.pathname === '/admin-state') {
+      return adminStateResponse(request, this.room,
+        this.room ? buildView(this.room, '', this.connectedPlayerIds()) : null);
+    }
 
     if (request.method === 'POST' && url.pathname === '/create') {
       const { roomId, player, createRequestId } = await readJson(request);
@@ -533,7 +552,11 @@ function corsHeaders(request, env) {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    // Authorization и If-None-Match — для монитора администратора: он ходит
+    // с токеном и с версией, которую уже видел. ETag наружу тоже приходится
+    // открывать явно, иначе браузер его панели не прочитает.
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    'Access-Control-Expose-Headers': 'ETag',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',
   };

@@ -4,6 +4,12 @@
   "main": "src/index.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  "services": [
+    {
+      "binding": "APP_CORE",
+      "service": "alias-spy-games-core"
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {

@@ -82,13 +82,39 @@ includes('web/js/presence-identity.js', "scope: 'presence'", 'Presence must use 
 */
 includes('web/js/admin-live-v3.js', "'twelve-tribes': tribesBackend", 'Twelve Tribes rooms must be observable');
 includes('web/js/admin-live-v3.js', "'promised-land': promisedBackend", 'Promised Land rooms must be observable');
+includes('web/js/admin-live-v3.js', 'kingdoms: kingdomsBackend', 'Kingdoms rooms must be observable');
+includes('web/js/admin-live-v3.js', 'spy: spyBackend', 'Online Spy rooms must be observable');
+includes('cloudflare/kingdoms-worker/src/index.js', 'adminRoomState(request, env', 'Kingdoms worker must route the admin observer');
+includes('cloudflare/spy-worker/src/index.js', 'adminRoomState(request, env', 'Spy worker must route the admin observer');
+includes('cloudflare/kingdoms-worker/wrangler.jsonc', '"binding": "APP_CORE"', 'Kingdoms observer must verify admins through the core');
+includes('cloudflare/spy-worker/wrangler.jsonc', '"binding": "APP_CORE"', 'Spy observer must verify admins through the core');
+/*
+  «Партия за одним столом» стояла у «Художника», который без сети не играется:
+  человек был в лобби, а панель уверяла, что он играет один. У игр только по
+  сети отсутствие комнаты значит лобби, и строка обязана это сказать.
+*/
+includes('web/js/admin-live-v3.js', "const ONLINE_ONLY = new Set(['quartet', 'bible-sketch'])", 'Online-only games without a room are in the lobby');
+excludes('web/js/admin-live-v3.js', 'Партия за одним столом — комнаты нет', 'An online-only game must not be described as a one-device game');
 includes('web/js/admin-live-v3.js', 'const canObserve = Boolean(user.roomId && backend)', 'Room observer must require a room, not just a game');
 includes('web/js/admin-live-v3.js', 'admin-live-v3__observe-none', 'A player without a room must be told why there is no observer');
 includes('web/js/admin-live-v3.js', "game === 'promised-land' ? '/api' : ''", 'Promised Land keeps its room API under /api');
 
 includes('web/js/presence-identity.js', "quartet: 'quartet_v2_room_id'", 'Presence room context must use explicit game storage state');
 includes('web/js/presence-identity.js', "'bible-sketch': 'bible_sketch_room_id_v1'", 'Presence must know the sketch room key');
-includes('web/js/presence-identity.js', "'twelve-tribes': 'tt_room_id'", 'Presence must know the twelve-tribes room key');
+/*
+  Игры с режимом на одном устройстве называют комнату сами, пока сидят в ней:
+  код в памяти браузера переживает оборванную партию, и человек, играющий с
+  ботами за одним столом, числился бы в давно брошенной комнате.
+*/
+excludes('web/js/presence-identity.js', "'twelve-tribes': 'tt_room_id'", 'Twelve Tribes must report its room explicitly, not from storage');
+for (const [file, game] of [
+  ['web/games/twelve-tribes-online.js', 'twelve-tribes'],
+  ['web/games/kingdoms-online.js', 'kingdoms'],
+  ['web/games/spy-online.js', 'spy'],
+]) {
+  includes(file, `AppPresenceContext?.setRoom?.('${game}'`, `${game} must report the room it joins`);
+  includes(file, `AppPresenceContext?.clearRoom?.('${game}')`, `${game} must withdraw the room it leaves`);
+}
 includes('web/js/presence-identity.js', 'setGame,', 'Presence must expose explicit game state');
 includes('web/js/presence-identity.js', 'sendPresence(true);', 'Presence heartbeat must refresh full game state');
 includes('web/js/presence-identity.js', 'if (reconnectTimer || connecting', 'Presence passive timers must not bypass reconnect backoff');

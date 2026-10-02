@@ -9,6 +9,14 @@
   "main": "src/index.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
+  // Ядро приложения — для монитора администратора: право на него проверяет
+  // ядро, по токену админской сессии (см. src/admin-observer.js).
+  "services": [
+    {
+      "binding": "APP_CORE",
+      "service": "alias-spy-games-core"
+    }
+  ],
   // Тот же список, что у остальных воркеров: сайт, Android-приложение (оно
   // раздаёт игру из APK под своим адресом appassets) и витрина.
   "vars": {

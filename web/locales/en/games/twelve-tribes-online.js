@@ -142,6 +142,8 @@
     }
 
     remember() {
+      // Админ-панель узнаёт о комнате отсюда: по коду она открывает монитор партии.
+      window.AppPresenceContext?.setRoom?.('twelve-tribes', this.roomId);
       try { localStorage.setItem(LS.room, this.roomId); } catch { /* приватный режим */ }
       try { localStorage.setItem(LS.name, this.name); } catch { /* приватный режим */ }
     }
@@ -241,6 +243,7 @@
       this.closed = true;
       this.stopPolling();
       this.stopSocket();
+      window.AppPresenceContext?.clearRoom?.('twelve-tribes');
     }
   }
 

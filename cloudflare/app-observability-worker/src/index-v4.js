@@ -1,8 +1,8 @@
 import legacy, { AppStats as LegacyAppStats } from './index-v3.js';
+import { ROOM_GAMES } from './room-games.js';
 
 const encoder = new TextEncoder();
 const PRESENCE_STALE_MS = 35_000;
-const ROOM_GAMES = new Set(['quartet', 'bible-sketch']);
 
 export default {
   async fetch(request, env, ctx) {

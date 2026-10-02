@@ -129,6 +129,8 @@
     }
 
     remember() {
+      // Админ-панель узнаёт о комнате отсюда: по коду она открывает монитор партии.
+      window.AppPresenceContext?.setRoom?.('kingdoms', this.roomId);
       try { localStorage.setItem(LS.room, this.roomId); } catch { /* приватный режим */ }
       try { localStorage.setItem(LS.name, this.name); } catch { /* приватный режим */ }
     }
@@ -222,7 +224,12 @@
       this.socket = null;
       try { socket.close(); } catch { /* уже закрыт */ }
     }
-    close() { this.closed = true; this.stopPolling(); this.stopSocket(); }
+    close() {
+      this.closed = true;
+      this.stopPolling();
+      this.stopSocket();
+      window.AppPresenceContext?.clearRoom?.('kingdoms');
+    }
   }
 
   /** Экран сетевой игры: вход, лобби и доска. */

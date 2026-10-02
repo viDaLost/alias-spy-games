@@ -13,6 +13,8 @@
     'bible-wordsearch': 'Поиск слов', 'sacred-word': 'Священное слово',
     'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
     'moses-nile': 'Моисей: Путь по Нилу',
+    'twelve-tribes': 'Двенадцать колен', 'promised-land': 'Земля обетованная',
+    kingdoms: 'Царства',
   };
 
   let refreshTimer = 0;

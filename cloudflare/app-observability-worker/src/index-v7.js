@@ -1,9 +1,9 @@
 import baseV6, { AppStats as BaseAppStats } from './index-v6.js';
+import { ROOM_GAMES } from './room-games.js';
 
 // Navigation changes are pushed immediately. This wider stale window only
 // protects the low-frequency safety heartbeat from normal mobile timer jitter.
 const PRESENCE_STALE_MS = 75_000;
-const ROOM_GAMES = new Set(['quartet', 'bible-sketch']);
 
 export default baseV6;
 
@@ -32,10 +32,7 @@ export class AppStats extends BaseAppStats {
     }
 
     const currentGames = {};
-    const activeRooms = {
-      quartet: new Set(),
-      'bible-sketch': new Set(),
-    };
+    const activeRooms = Object.fromEntries([...ROOM_GAMES].map((game) => [game, new Set()]));
     let menuNow = 0;
 
     const onlineUsers = [...freshestByUser.values()]
@@ -58,10 +55,9 @@ export class AppStats extends BaseAppStats {
       })
       .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
 
-    const activeRoomsByGame = {
-      quartet: activeRooms.quartet.size,
-      'bible-sketch': activeRooms['bible-sketch'].size,
-    };
+    const activeRoomsByGame = Object.fromEntries(
+      Object.entries(activeRooms).map(([game, rooms]) => [game, rooms.size]),
+    );
 
     return {
       onlineNow: onlineUsers.length,
@@ -70,7 +66,7 @@ export class AppStats extends BaseAppStats {
       currentGames,
       onlineUsers,
       activeRoomsByGame,
-      activeRoomsNow: activeRoomsByGame.quartet + activeRoomsByGame['bible-sketch'],
+      activeRoomsNow: Object.values(activeRoomsByGame).reduce((sum, count) => sum + count, 0),
       activeQuartetRooms: activeRoomsByGame.quartet,
       activeBibleSketchRooms: activeRoomsByGame['bible-sketch'],
       strictPresenceWindowMs: PRESENCE_STALE_MS,

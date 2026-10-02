@@ -25,7 +25,16 @@ const html = read('index.html');
 
 requireText(worker, "if (!initData) return jsonError('Verified Telegram session required'", 'legacy Telegram verification guard is missing');
 requireText(worker, 'verifyAndroidIdentity', 'verified Android presence path is missing');
-requireText(worker, "const ROOM_GAMES = new Set(['quartet', 'bible-sketch'])", 'Bible Sketch room presence is not tracked');
+// Список игр с комнатами один на оба слоя — приём и снимок. Прежде их было
+// два, и оба знали только «Квартет» и «Художника»: код комнаты «Колен» и
+// «Земли» приходил с телефона и выбрасывался, кнопки наблюдения не было.
+const roomGames = read('cloudflare/app-observability-worker/src/room-games.js');
+for (const game of ['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'kingdoms', 'promised-land']) {
+  requireText(roomGames, `'${game}'`, `${game} rooms are not tracked by presence`);
+}
+requireText(worker, "import { ROOM_GAMES } from './room-games.js';", 'presence intake must use the shared room-game list');
+requireText(optimizedWorker, "import { ROOM_GAMES } from './room-games.js';", 'presence snapshot must use the shared room-game list');
+forbidText(worker, 'new Set([\'quartet\', \'bible-sketch\'])', 'presence intake keeps a private two-game room list');
 requireText(worker, "payload?.type === 'offline'", 'explicit offline presence message is missing');
 requireText(worker, 'const freshestByUser = new Map()', 'online sessions are not deduplicated by verified user');
 requireText(worker, 'onlineNow: onlineUsers.length', 'online count is not based on unique verified users');
@@ -47,7 +56,8 @@ forbidText(web, "url.searchParams.set('initData'", 'Telegram initData must not b
 // quartet… если sketch…» на каждой новой игре росла. Смысл прежний — у каждой
 // игры свой ключ, и ни один не угадывается.
 requireText(web, "'bible-sketch': 'bible_sketch_room_id_v1'", 'WebApp does not report Bible Sketch room state');
-requireText(web, "'twelve-tribes': 'tt_room_id'", 'WebApp does not report Twelve Tribes room state');
+// «Колена» называют комнату сами, пока сидят в ней (см. check-admin-live-v4).
+forbidText(web, "'twelve-tribes': 'tt_room_id'", 'Twelve Tribes room must come from the game, not stale storage');
 requireText(web, 'setGame,', 'presence context must expose an explicit game setter');
 requireText(web, 'clearGame,', 'presence context must expose an explicit game clearer');
 requireText(web, 'sendPresence(true);', 'presence heartbeat must send complete state instead of only a stale ping');

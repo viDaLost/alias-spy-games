@@ -6,6 +6,8 @@
   const sketchBackend = metaUrl('bible-sketch-backend');
   const tribesBackend = metaUrl('twelve-tribes-backend');
   const promisedBackend = metaUrl('promised-land-app');
+  const spyBackend = metaUrl('spy-backend');
+  const kingdomsBackend = metaUrl('kingdoms-backend');
   const coreBackend = metaUrl('app-core-backend');
   if (!observability || !coreBackend) return;
 
@@ -17,7 +19,14 @@
     ['kids-ark-pairs', 'Найди пару'], ['biblical-match-three', 'Библейские сокровища'],
     ['moses-nile', 'Моисей: Путь по Нилу'],
     ['twelve-tribes', 'Двенадцать колен'], ['promised-land', 'Земля обетованная'],
+    ['kingdoms', 'Царства'],
   ];
+  /*
+    Игры, которые бывают только по сети. Без комнаты человек в них может быть
+    лишь в лобби — выбирает, создать комнату или войти по коду. Остальные
+    сетевые игры умеют и партию на одном устройстве.
+  */
+  const ONLINE_ONLY = new Set(['quartet', 'bible-sketch']);
   const GAME_NAMES = Object.fromEntries(GAMES);
   const BALANCES = [
     { type: 'stars_wow', field: 'wowStars', label: 'Слова', icon: '✦' },
@@ -211,18 +220,22 @@
     const roomText = user.roomId ? ` · ${user.roomId}` : '';
     const platform = user.platform === 'android' ? 'Android' : 'Telegram';
     /*
-      Наблюдать можно за комнатой, а не за игрой. У всех этих игр есть и путь
-      за одним столом, без всякой комнаты: там наблюдать не за чем — партия
-      идёт в телефоне и никуда не отправляется.
+      Наблюдать можно за комнатой, а не за игрой. Когда комнаты нет, вместо
+      кнопки стоит строка, и она говорит, почему кнопки нет.
 
-      Раньше в этом случае кнопка просто не появлялась, и отличить «играет
-      один» от «монитор сломался» было нельзя. Теперь вместо кнопки стоит
-      строка, и она говорит, почему кнопки нет.
+      Строка обязана быть правдой. Прежняя — «партия за одним столом» — стояла
+      у всех сетевых игр, и у «Художника» тоже, хотя он без сети не играется
+      вовсе: человек выбирал комнату, а панель уверяла, что он играет один.
+      Теперь у игр только по сети это лобби, а у остальных — честное «или».
+      Сидит в комнате — игра называет её сама, и тогда здесь кнопка.
     */
     const backend = observerBackend(user.game);
     const canObserve = Boolean(user.roomId && backend);
+    const soloText = ONLINE_ONLY.has(user.game)
+      ? 'В лобби игры — комнату ещё не создал и не вошёл'
+      : 'Комнаты нет — играет на одном устройстве или выбирает комнату';
     const soloNote = !canObserve && backend && user.game
-      ? '<div class="admin-live-v3__observe-none">Партия за одним столом — комнаты нет</div>' : '';
+      ? `<div class="admin-live-v3__observe-none">${soloText}</div>` : '';
     const balances = profile ? BALANCES.map((item) => renderBalance(id, profile, item)).join('') : '<div class="admin-live-v3__profile-loading">Баланс загружается…</div>';
     return `<article class="admin-live-v3__person" data-live-user="${escapeText(id)}"><div class="admin-live-v3__identity"><span class="admin-live-v3__dot"></span><div class="admin-live-v3__avatar">${escapeText(initials(name))}</div><div class="admin-live-v3__name"><b>${escapeText(name)}</b><small>ID ${escapeText(id)} · ${escapeText(gameName + roomText)} · ${platform}</small></div><button type="button" class="admin-live-v3__chat" data-user-chat="${escapeText(id)}">Чат</button></div><div class="admin-live-v3__balances">${balances}</div>${canObserve ? `<button type="button" class="admin-live-v3__observe" data-observe-game="${escapeText(user.game)}" data-observe-room="${escapeText(user.roomId)}">◉ Наблюдать за комнатой · только чтение</button>` : soloNote}</article>`;
   }
@@ -330,7 +343,9 @@
     return ({
       quartet: quartetBackend,
       'bible-sketch': sketchBackend,
+      spy: spyBackend,
       'twelve-tribes': tribesBackend,
+      kingdoms: kingdomsBackend,
       'promised-land': promisedBackend,
     })[game] || '';
   }
@@ -345,7 +360,38 @@
     if (game === 'bible-sketch') return renderSketchObserver(data);
     if (game === 'twelve-tribes') return renderTribesObserver(data);
     if (game === 'promised-land') return renderPromisedObserver(data);
+    if (game === 'kingdoms') return renderKingdomsObserver(data);
+    if (game === 'spy') return renderSpyObserver(data);
     return '<div class="admin-live-v3__empty">Для этой игры монитора нет.</div>';
+  }
+
+  /*
+    «Царства». По карте сразу видно, кто теряет землю, а по очереди — не
+    встала ли партия на чьём-то приказе. Сами приказы закрыты: комната
+    присылает только их число.
+  */
+  function renderKingdomsObserver(data) {
+    const table = data.table;
+    const seats = (table?.seats || []).map((one) => `<div class="admin-live-v3__observer-player ${one.name === table.turnName ? 'is-turn' : ''}"><b>${escapeText(one.name)}${one.isBot ? ' ⚙' : ''}</b><span>${escapeText(one.kingdom || '')} · ${Number(one.areas || 0)} обл.${one.orders ? ` · приказов ${Number(one.orders)}` : ''}${one.score !== null && one.score !== undefined ? ` · ${Number(one.score)} очк.` : ''}${one.out ? ' · выбыл' : ''}</span></div>`).join('');
+    const stats = table
+      ? `<div><span>Раунд</span><b>${Number(table.round || 0)}${table.rounds ? `/${Number(table.rounds)}` : ''}</b></div><div><span>Этап</span><b>${escapeText(phaseLabel(table.phase))}</b></div><div><span>Ход</span><b>${escapeText(table.turnName || '—')}${table.turnIsBot ? ' ⚙' : ''}</b></div>${table.winners?.length ? `<div><span>Победа</span><b>${escapeText(table.winners.join(', '))}</b></div>` : ''}`
+      : `<div><span>Игроков</span><b>${(data.players || []).length}</b></div>`;
+    const lobby = (data.players || []).map((one) => `<div class="admin-live-v3__observer-player"><b>${escapeText(one.name)}${one.host ? ' ♛' : ''}</b><span>${one.left ? 'ушёл' : (one.online ? 'онлайн' : 'не в сети')}</span></div>`).join('');
+    return `<div class="admin-live-v3__observer-stats"><div><span>Статус</span><b>${escapeText(phaseLabel(data.status))}</b></div>${stats}</div><div class="admin-live-v3__observer-players">${table ? seats : lobby}</div>${renderLog(data.log)}`;
+  }
+
+  /*
+    «Соглядатай». Тайна игры — локация и роли — закрыта и здесь до самых
+    итогов; видны этап, часы обсуждения, кто уже проголосовал и общий чат,
+    в котором и идёт игра.
+  */
+  function renderSpyObserver(data) {
+    const players = (data.players || []).map((one) => `<div class="admin-live-v3__observer-player"><b>${escapeText(one.name)}${one.host ? ' ♛' : ''}</b><span>${one.role ? `${one.role === 'spy' ? 'соглядатай' : 'горожанин'} · ` : ''}${one.out ? 'изгнан' : (one.online ? 'онлайн' : 'не в сети')}${one.voted ? ' · проголосовал' : ''}</span></div>`).join('');
+    const timer = Number(data.secondsLeft || 0);
+    const clock = timer ? `${Math.floor(timer / 60)}:${String(timer % 60).padStart(2, '0')}` : '—';
+    const outcome = data.outcome ? `<div><span>Итог</span><b>${data.outcome.spyWon ? 'победил соглядатай' : 'победили горожане'}</b></div>` : '';
+    const place = data.location ? `<div><span>Локация</span><b>${escapeText(data.location)}</b></div>` : '';
+    return `<div class="admin-live-v3__observer-stats"><div><span>Этап</span><b>${escapeText(phaseLabel(data.status))}</b></div><div><span>Раунд</span><b>${Number(data.round || 0)}</b></div><div><span>Осталось</span><b>${clock}</b></div><div><span>В игре</span><b>${Number(data.inPlay || 0)}</b></div>${outcome}${place}</div><div class="admin-live-v3__observer-players">${players}</div>${renderLog(data.log, 'Общий чат')}`;
   }
 
   /*
@@ -388,7 +434,7 @@
     return `<div class="admin-live-v3__observer-stats"><div><span>Этап</span><b>${escapeText(phaseLabel(data.status))}</b></div><div><span>Рисует</span><b>${escapeText(data.currentDrawerName || '—')}</b></div><div><span>Круг</span><b>${cycle}</b></div><div><span>Линий</span><b>${Number(data.strokeCount || 0)}</b></div></div><div class="admin-live-v3__observer-players">${players}</div>${renderLog(data.log)}`;
   }
 
-  function renderLog(log) { const items = (Array.isArray(log) ? log.slice(-12).reverse() : []).map((line) => `<li>${escapeText(line)}</li>`).join(''); return `<div class="admin-live-v3__observer-log"><b>Последние события</b><ol>${items || '<li>Событий пока нет</li>'}</ol></div>`; }
+  function renderLog(log, title = 'Последние события') { const items = (Array.isArray(log) ? log.slice(-12).reverse() : []).map((line) => `<li>${escapeText(line)}</li>`).join(''); return `<div class="admin-live-v3__observer-log"><b>${escapeText(title)}</b><ol>${items || '<li>Событий пока нет</li>'}</ol></div>`; }
 
   function setupModal(modal, opener, closeFn) {
     modalRestoreFocus = opener || document.activeElement; document.body.classList.add('admin-live-modal-open');
@@ -447,7 +493,7 @@
   function normalizeProfile(user = {}) { return { id: String(user.id || ''), username: String(user.username || ''), link: String(user.link || ''), wowStars: num(user.wowStars, 20), wsStars: num(user.wsStars, 0), swLevel: num(user.swLevel, 0), bmtStars: num(user.bmtStars, 0), bmtRevision: num(user.bmtRevision, 0), isBanned: Boolean(user.isBanned) }; }
   function num(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? Math.trunc(n) : fallback; }
   function initials(name) { const clean = String(name || '?').replace(/^@/, '').trim(); return (clean[0] || '?').toUpperCase(); }
-  function phaseLabel(value) { return ({ lobby: 'Лобби', playing: 'Игра', drawing: 'Рисование', voting: 'Голосование', answerReview: 'Проверка ответа', finalGuess: 'Финальный ответ', finished: 'Завершено' }[value] || String(value || '—')); }
+  function phaseLabel(value) { return ({ lobby: 'Лобби', playing: 'Игра', drawing: 'Рисование', voting: 'Голосование', answerReview: 'Проверка ответа', finalGuess: 'Финальный ответ', finished: 'Завершено', roles: 'Раздача ролей', discussion: 'Обсуждение', results: 'Итоги', setup: 'Расстановка', planning: 'Приказы', reveal: 'Раскрытие', over: 'Партия окончена' }[value] || String(value || '—')); }
   function escapeText(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
   function haptic(type = 'selection') { try { if (type === 'selection') window.Telegram?.WebApp?.HapticFeedback?.selectionChanged?.(); else window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.(type); } catch {} }
   function toast(message, tone = '') { if (typeof window.showToast === 'function') return window.showToast(message, tone); console.log(message); }
