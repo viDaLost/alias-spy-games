@@ -119,7 +119,9 @@ jobs:
           grep -q 'id="tutorial-screen"' .preview-v7/index.html
           grep -q 'id="ico-heart"' .preview-v7/index.html
           grep -q 'openTutorialOnFirstRun' .preview-v7/js/game-v75.js
-          grep -q 'separateCrocs' .preview-v7/js/game-v75.js
+          # Крокодилы больше не раздвигаются через separateCrocs:
+          # неподвижность проверяет check-moses-nile-crocs.mjs в Quality checks.
+          grep -q 'V751CrocodileRig' .preview-v7/js/game-v75.js
           grep -q 'HIPPO_REVEAL' .preview-v7/js/game-v75.js
           ! grep -q 'createSculptedHippo' .preview-v7/js/game-v75.js
           grep -q '_prepareToken' .preview-v7/js/assets.js
