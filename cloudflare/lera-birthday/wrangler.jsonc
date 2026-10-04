@@ -1,0 +1,16 @@
+// Поздравление Леры с 28-летием — мемный квест с фотографиями.
+//
+// Чисто статическая страница: воркер без кода, только раздача public/.
+// Отдельный адрес, а не подпапка GitHub Pages: service worker основного
+// приложения обслуживает весь vidalost.github.io/alias-spy-games/ и мог бы
+// подменить страницу поздравления закешированной игрой.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "alias-spy-games-lera-birthday",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "404-page"
+  }
+}
