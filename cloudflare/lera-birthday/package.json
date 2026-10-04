@@ -1,9 +1,0 @@
-{
-  "name": "alias-spy-games-lera-birthday",
-  "private": true,
-  "type": "module",
-  "version": "1.0.0",
-  "devDependencies": {
-    "wrangler": "^4.42.0"
-  }
-}
