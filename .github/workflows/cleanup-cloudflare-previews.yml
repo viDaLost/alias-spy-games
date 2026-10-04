@@ -1,0 +1,68 @@
+name: Cleanup Cloudflare previews
+
+# Удаляет из аккаунта Cloudflare превью-воркеры, которые раньше выкладывались
+# из этого репозитория. Список явный: всё прочее, что есть в аккаунте, только
+# выводится в лог и не трогается.
+#
+# alias-spy-games-promised-land-preview оставлен намеренно: несмотря на имя,
+# с него открывается «Земля обетованная» в приложении (meta promised-land-app
+# в index.html), и в нём живут сетевые комнаты игры.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cleanup-cloudflare-previews.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cleanup-cloudflare-previews
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DELETE: >-
+        alias-spy-games-biblical-preview
+        alias-spy-games-biblical-v2-preview
+        alias-spy-games-moses-nile-v7-preview
+        alias-spy-games-moses-nile-v740-preview
+        alias-spy-games-quartet-ui-preview
+        alias-spy-games-v1
+        alias-spy-games-lera-birthday
+    steps:
+      - name: Delete listed preview Workers
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}"
+          auth=(-H "Authorization: Bearer ${CF_API_TOKEN}")
+
+          scripts="$(curl -fsS "${auth[@]}" "$api/workers/scripts" | jq -r '.result[].id' | sort)"
+          echo "Workers in the account before cleanup:"
+          printf '  %s\n' $scripts
+
+          failed=0
+          for name in $DELETE; do
+            if ! grep -qxF "$name" <<<"$scripts"; then
+              echo "$name: not found, skipped"
+              continue
+            fi
+            body="$(curl -sS -X DELETE "${auth[@]}" "$api/workers/scripts/${name}?force=true")"
+            if [ "$(jq -r '.success' <<<"$body")" = "true" ]; then
+              echo "$name: deleted"
+            else
+              echo "$name: FAILED $(jq -c '.errors' <<<"$body")"
+              failed=1
+            fi
+          done
+
+          echo "Workers left:"
+          curl -fsS "${auth[@]}" "$api/workers/scripts" | jq -r '.result[].id' | sort | sed 's/^/  /'
+          exit "$failed"

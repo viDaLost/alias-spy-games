@@ -12,7 +12,6 @@ const shaders = fs.readFileSync(path.join(gameRoot, 'js/shaders.js'), 'utf8');
 const effects = fs.readFileSync(path.join(gameRoot, 'js/fx.js'), 'utf8');
 const materials = fs.readFileSync(path.join(gameRoot, 'js/materials.js'), 'utf8');
 const runtimeFiles = fs.readdirSync(path.join(gameRoot, 'js')).filter((name) => name.endsWith('.js')).sort();
-const deployWorkflow = fs.readFileSync(path.join(root, '.github/workflows/deploy-moses-nile-v740-preview.yml'), 'utf8');
 const modelManifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/data/moses-nile-model-manifest.json'), 'utf8'));
 
 for (const token of [
@@ -163,17 +162,6 @@ if (!game.includes('state.flowPhase += state.flowRate * dt')) {
 }
 for (const token of ['window.NileFX', 'splash(', 'ripple(', 'shake(']) {
   if (!effects.includes(token)) throw new Error(`The Nile effects system is missing ${token}`);
-}
-for (const token of [
-  'ASSET_PACKAGE_REV=8887faf7638a4168d37583f17b1c8eec9c46dd3f',
-  'downloads/moses-nile-v737-full.zip',
-  'ASSET_PACKAGE_SHA256=06fd34662ba8424a9987f74f5c9592479ef3ec25a77a7f1b53dd36c4ed0d99e5',
-  'models/v73/crocodile.glb',
-  'textures/damp-sand-normal-gl-1k.jpg',
-  'textures/ganges-pebbles-normal-gl-1k.jpg',
-  'if (vertices !== 957 || faces !== 1260)',
-]) {
-  if (!deployWorkflow.includes(token)) throw new Error(`V7.5.1 deploy is missing verified package wiring: ${token}`);
 }
 if (modelManifest.delivery !== 'same-origin-build-extraction' || modelManifest.package?.sha256 !== '06fd34662ba8424a9987f74f5c9592479ef3ec25a77a7f1b53dd36c4ed0d99e5') {
   throw new Error('The real-model package manifest is not pinned to the verified repository archive');

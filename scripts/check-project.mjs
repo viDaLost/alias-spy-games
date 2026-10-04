@@ -14,7 +14,7 @@ const ignoredDirs = new Set(['.git', 'node_modules', 'build', '.gradle']);
 // исходники: ссылки в ней относительны её собственного корня, а часть данных
 // была повреждена ещё тогда. Чинить их значило бы показывать в превью не ту
 // версию, которую просили посмотреть.
-const frozenDirs = ['cloudflare/legacy-v1-worker/public'];
+const frozenDirs = [];
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
   if (entry.isDirectory() && ignoredDirs.has(entry.name)) return [];
   const full = path.join(dir, entry.name);
