@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '279375cd5a';
+const VERSION = 'b956070d3f';
 const PRECACHE = [
   'index.html',
   'install.html',
