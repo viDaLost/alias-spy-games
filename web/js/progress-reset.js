@@ -109,6 +109,18 @@
       note: 'Игра начнётся с первого слова.',
     },
     {
+      key: 'bible-geography',
+      title: 'Библейская география',
+      icon: 'web/assets/icons/unified-v1/bible-geography.svg',
+      keys: () => ['bible_geography_v1'],
+      progress() {
+        const state = readJson('bible_geography_v1', {});
+        const count = Array.isArray(state?.learned) ? state.learned.length : 0;
+        return count ? plural(count, 'связь изучена', 'связи изучены', 'связей изучено') : 'ничего не изучено';
+      },
+      note: 'Изученные связи и лучшие результаты режимов.',
+    },
+    {
       key: 'kids-ark-pairs',
       title: 'Найди пару',
       icon: 'web/assets/icons/unified-v1/ark.webp',

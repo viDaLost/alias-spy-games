@@ -63,10 +63,10 @@
       { role: 'ccw', name: 'Пастушьи Склоны', terrain: 'mountains', value: 2 },
     ],
     dolina: [
-      { role: 'rim', name: 'Рамоф Галаадский', terrain: 'plains', value: 4, city: true, capitalOf: 'yor' },
+      { role: 'rim', name: 'Ramoth Gilead', terrain: 'plains', value: 4, city: true, capitalOf: 'yor' },
       { role: 'cw', name: 'Заливные Луга', terrain: 'plains', value: 1 },
       { role: 'hub', name: 'Броды Иордана', terrain: 'plains', value: 2 },
-      { role: 'ccw', name: 'Маханаим', terrain: 'plains', value: 1 },
+      { role: 'ccw', name: 'Mahanaim', terrain: 'plains', value: 1 },
     ],
     ravnina: [
       { role: 'rim', name: 'Babylon', terrain: 'plains', value: 4, city: true, capitalOf: 'prestol' },

@@ -66,6 +66,27 @@ need(rules.includes(`<b>−${wsHint}★</b>`), `в справочнике нет
 const maxErrors = constant(sacred, 'MAX_ERRORS');
 need(rules.includes(`<b>${maxErrors} ошибок</b>`), `в справочнике не сказано про ${maxErrors} ошибок в «Священном слове»`);
 
+// «Библейская география»: размеры раундов живут в LEVELS логики, пороги звёзд —
+// в итоге игры. Справочник пересказывает их словами.
+const geoLogic = fs.readFileSync(path.join(root, 'web/games/bible-geography-logic.js'), 'utf8');
+for (const [level, name] of [['easy', 'Лёгкий'], ['medium', 'Средний'], ['hard', 'Трудный']]) {
+  const line = geoLogic.match(new RegExp(`${level}: \\{[^}]*pairs: (\\d+), options: (\\d+), correct: \\[(\\d+), (\\d+)\\]`));
+  need(Boolean(line), `не нашлись числа уровня ${level} в логике «Библейской географии»`);
+  if (!line) continue;
+  const [, pairs, options, low, high] = line;
+  const correct = low === high ? low : `${low}–${high}`;
+  need(new RegExp(`<b>${name}</b>[^']*?${pairs} пар[^']*?${correct} верных мест[^']*?из ${options}`).test(rules),
+    `в справочнике «Библейской географии» уровень «${name}» не совпадает с кодом: ${pairs} пар, ${correct} верных из ${options}`);
+}
+const geo = fs.readFileSync(path.join(root, 'web/games/bible-geography.js'), 'utf8');
+const geoStars = geo.match(/accuracy >= 0\.(\d+) \? 3 : accuracy >= 0\.(\d+) \? 2 : accuracy >= 0\.(\d+) \? 1/);
+need(Boolean(geoStars), 'не нашлись пороги звёзд «Библейской географии»');
+if (geoStars) {
+  const [, three, two, one] = geoStars.map((value) => String(value).padEnd(2, '0'));
+  need(rules.includes(`${three}% верных ответов — три, ${two}% — две, ${one}% — одна`),
+    `в справочнике не те пороги звёзд «Библейской географии»: в коде ${three}/${two}/${one}%`);
+}
+
 // Особые фишки: пороги совпадений живут в движке.
 const core = fs.readFileSync(path.join(root, 'web/games/biblical-match-three-core.js'), 'utf8');
 need(/indices\.length >= 5.*rainbow/.test(core), 'в движке изменился порог радужной фишки');
@@ -243,7 +264,7 @@ const coverage = await page.evaluate(() => {
 // Карточки игр строятся без id, поэтому список сверяется с известным набором.
 const expected = ['alias', 'coimaginarium', 'guess', 'describe', 'spy', 'quartet', 'promised-land',
   'twelve-tribes',
-  'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'biblical-match-three'];
+  'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'biblical-match-three', 'bible-geography'];
 const missing = expected.filter((key) => !coverage.described.includes(key));
 if (missing.length) await fail(`в справочнике нет разделов: ${missing.join(', ')}`);
 
@@ -252,7 +273,7 @@ const audit = await page.evaluate(() => window.GameRulesDemos?.audit?.() || ['м
 if (audit.length) await fail(`разборы механик расходятся с правилами игры:\n  ${audit.join('\n  ')}`);
 
 // 4. одиночные игры получают разбор, онлайн — нет
-const SOLO = ['biblical-match-three', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs'];
+const SOLO = ['biblical-match-three', 'bible-wow', 'bible-wordsearch', 'sacred-word', 'kids-ark-pairs', 'bible-geography'];
 /*
   «Земля обетованная» стоит здесь не потому, что в неё играют только по сети —
   в неё играют и против соперников от игры. Она здесь потому, что разбор ей не

@@ -5,7 +5,9 @@ export const languages = ['en', 'de', 'es'];
 export const phrasePattern = /[А-ЯЁа-яё][А-ЯЁа-яё0-9 \t.,!?…—–«»():;×%+−/‑-]*[А-ЯЁа-яё0-9.!?…»)]|[А-ЯЁа-яё]/g;
 export function readTranslations(root) {
   const result = Object.fromEntries(languages.map(lang => [lang, {}]));
-  for (const [index, line] of ['translations.tsv','words.tsv'].flatMap(file => fs.readFileSync(path.join(root, 'scripts/i18n', file), 'utf8').split('\n')).entries()) {
+  // geography*.tsv — «Библейская география»: имена, места и стихи трёх переводов
+  // (geography-quotes.tsv собирает scripts/build-bible-geography.mjs).
+  for (const [index, line] of ['translations.tsv','words.tsv','geography.tsv','geography-quotes.tsv'].flatMap(file => fs.readFileSync(path.join(root, 'scripts/i18n', file), 'utf8').split('\n')).entries()) {
     if (!line.trim() || line.startsWith('#')) continue;
     const [source, ...values] = line.split('\t');
     if (values.length !== 3 || values.some(value => !value)) throw new Error(`Invalid translation row ${index + 1}`);

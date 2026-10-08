@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Временная иконка «Библейской географии», пока не нарисована растровая по брифу
+       docs/bible-geography-art-brief.md: та же синяя рамка с золотом, что у набора unified-v1. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#3b5bdb"/>
+      <stop offset=".62" stop-color="#1e2a8a"/>
+      <stop offset="1" stop-color="#121a5c"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff1b8"/>
+      <stop offset=".35" stop-color="#f2c14e"/>
+      <stop offset=".7" stop-color="#b9821f"/>
+      <stop offset="1" stop-color="#ffe08a"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbefcf"/>
+      <stop offset="1" stop-color="#e9cf95"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8fc9cf"/>
+      <stop offset="1" stop-color="#5aa1b3"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#gold)"/>
+  <rect x="18" y="18" width="220" height="220" rx="44" fill="url(#bg)"/>
+  <g fill="#ffe9a8">
+    <circle cx="52" cy="54" r="2.2"/><circle cx="204" cy="48" r="1.8"/><circle cx="214" cy="206" r="2"/><circle cx="44" cy="200" r="1.6"/>
+    <path d="M196 70l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/><path d="M60 182l2.4 6 6 2.4-6 2.4-2.4 6-2.4-6-6-2.4 6-2.4z"/>
+  </g>
+  <!-- свиток -->
+  <path d="M54 72c0-8 6-14 14-14h120c8 0 14 6 14 14v104c0 8-6 14-14 14H68c-8 0-14-6-14-14z" fill="url(#paper)" stroke="#a3742c" stroke-width="4"/>
+  <path d="M54 72c0 8 6 14 14 14h6V58h-6c-8 0-14 6-14 14z" fill="#e2c07a" stroke="#a3742c" stroke-width="4"/>
+  <path d="M202 176c0-8-6-14-14-14h-6v28h6c8 0 14-6 14-14z" fill="#e2c07a" stroke="#a3742c" stroke-width="4"/>
+  <!-- море и берег -->
+  <path d="M76 88h56c-8 14-2 24-12 34s-10 24-4 40H76z" fill="url(#sea)" opacity=".9"/>
+  <path d="M132 88c-8 14-2 24-12 34s-10 24-4 40" fill="none" stroke="#8a6532" stroke-width="3" stroke-linecap="round"/>
+  <path d="M150 96c6 14 0 30 8 44s0 22 2 30" fill="none" stroke="#4d86a3" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- путь -->
+  <path d="M92 152c14-6 22-22 40-24s26-18 40-34" fill="none" stroke="#b45309" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 11"/>
+  <circle cx="92" cy="152" r="7" fill="#9a3412" stroke="#fff6dc" stroke-width="3"/>
+  <circle cx="132" cy="128" r="6" fill="#9a3412" stroke="#fff6dc" stroke-width="3"/>
+  <!-- метка -->
+  <path d="M174 70c-12 0-20 9-20 20 0 15 20 32 20 32s20-17 20-32c0-11-8-20-20-20z" fill="#dc2626" stroke="#fff6dc" stroke-width="4"/>
+  <circle cx="174" cy="90" r="7" fill="#fff6dc"/>
+  <!-- роза ветров -->
+  <g transform="translate(184 168)">
+    <circle r="20" fill="#1e2a8a" stroke="url(#gold)" stroke-width="4"/>
+    <path d="M0-15l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" fill="url(#gold)"/>
+  </g>
+</svg>

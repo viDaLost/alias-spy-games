@@ -336,6 +336,24 @@
         { label: 'Цель — открыть все пары', open: [0, 4], done: [0, 4], hold: 1300 },
       ],
     },
+    'geo-match': {
+      kind: 'columns',
+      // Пары настоящие, и перекрёстных среди них нет: Иона не бывал на Синае,
+      // Моисей — в Ниневии. Разбор, где «неверный» ответ на самом деле верен,
+      // учил бы неправде, поэтому check-bible-geography.mjs сверяет сцену
+      // с данными игры.
+      heroes: ['Авраам', 'Моисей', 'Иона'],
+      places: ['Ниневия', 'Ур Халдейский', 'гора Синай'],
+      steps: [
+        { label: 'Слева герои, справа места', done: [] },
+        { label: 'Нажмите героя…', hero: 0, done: [] },
+        { label: '…и место, где он был', hero: 0, place: 1, ok: true, done: [], hold: 1300 },
+        { label: 'Нажмите героя…', hero: 2, done: [[0, 1]] },
+        { label: 'Не пара — выбор снимается', hero: 2, place: 2, miss: true, done: [[0, 1]], hold: 1300 },
+        { label: '…и место, где он был', hero: 2, place: 0, ok: true, done: [[0, 1]], hold: 1300 },
+        { label: 'Соедините все пары раунда', done: [[0, 1], [2, 0], [1, 2]], hold: 1600 },
+      ],
+    },
   };
 
   // Keep demonstration gestures aligned with the actual localized letters.
@@ -493,6 +511,28 @@
       return `<div class="rd-word-scene"><div class="rd-slots${step.ok ? ' is-ok' : ''}">${slots}</div>
         <div class="rd-lamp">${lamp}</div>${miss}</div>`;
     }
+    if (scene.kind === 'columns') {
+      // Строки одной высоты, поэтому линии считаются без замеров.
+      const ROW = 30;
+      const GAP = 6;
+      const done = step.done || [];
+      const live = Number.isInteger(step.hero) && Number.isInteger(step.place) ? [step.hero, step.place] : null;
+      const side = (names, column) => names.map((name, position) => {
+        const classes = ['rd-node'];
+        const own = column === 0 ? step.hero : step.place;
+        if (done.some((pair) => pair[column] === position)) classes.push('is-done');
+        if (own === position) classes.push(step.ok ? 'is-ok' : step.miss ? 'is-miss' : 'is-on');
+        return `<span class="${classes.join(' ')}">${name}</span>`;
+      }).join('');
+      const y = (position) => position * (ROW + GAP) + ROW / 2;
+      const line = ([hero, place], kind) => `<line class="rd-link rd-link--${kind}" x1="0" y1="${y(hero)}" x2="100" y2="${y(place)}"/>`;
+      const height = scene.heroes.length * (ROW + GAP) - GAP;
+      const lines = done.map((pair) => line(pair, 'done')).join('')
+        + (live && (step.ok || step.miss) ? line(live, step.ok ? 'ok' : 'miss') : '');
+      return `<div class="rd-columns"><div class="rd-col">${side(scene.heroes, 0)}</div>
+        <svg class="rd-links" viewBox="0 0 100 ${height}" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>
+        <div class="rd-col">${side(scene.places, 1)}</div></div>`;
+    }
     const cards = scene.faces.map((face, position) => {
       const open = (step.open || []).includes(position);
       const done = (step.done || []).includes(position);
@@ -633,6 +673,8 @@
     audit,
     scenes: () => [...Object.keys(SCENES), ...Object.keys(LETTER_SCENES)],
     has: (key) => Boolean(SCENES[key] || LETTER_SCENES[key]),
+    // Сцену «Библейской географии» сверяет с данными игры отдельная проверка.
+    scene: (key) => LETTER_SCENES[key] || null,
     reducedMotion: () => Boolean(reduced?.matches),
   };
 

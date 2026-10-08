@@ -52,6 +52,10 @@
       title: 'Heiliges Wort', eyebrow: 'Entdecke das Wort', status: 'Hinweise leuchten auf…', status2: 'Rätsel wird vorbereitet…',
       icon: 'web/assets/icons/unified-v1/sacred.webp?v=1', motif: 'sacred-word',
     },
+    'bible-geography': {
+      title: 'Biblische Geografie', eyebrow: 'Karte der Bibel', status: 'Karte wird entrollt…', status2: 'Wege werden eingezeichnet…',
+      icon: 'web/assets/icons/unified-v1/bible-geography.svg?v=1', motif: 'bible-geography',
+    },
     'kids-ark-pairs': {
       title: 'Finde ein Paar', eyebrow: 'Gedächtnisspiel', status: 'Paare werden gemischt…', status2: 'Karten werden verdeckt…',
       icon: 'web/assets/icons/unified-v1/ark.webp?v=1', motif: 'kids-ark-pairs',
@@ -94,6 +98,8 @@
     'bible-wow': '<span class="gel-letter">А</span><span class="gel-letter">Ω</span><span class="gel-letter">Б</span>',
     'bible-wordsearch': '<span class="gel-grid"></span>',
     'sacred-word': '<span class="gel-rays"></span>',
+    // Две точки и путь между ними — игра узнаётся до того, как открылась.
+    'bible-geography': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',
     'kids-ark-pairs': '<span class="gel-tile">✦</span><span class="gel-tile">✦</span><span class="gel-tile">◆</span><span class="gel-tile">◆</span>',
     'biblical-match-three': '<span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span>',
     'moses-nile': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',

@@ -62,6 +62,10 @@ const GAME_GROUPS = [
       { key: "bible-wow", title: "Библейские слова", desc: "Собери слова из букв", icon: "words" },
       { key: "bible-wordsearch", title: "Поиск библейских слов", desc: "Найди скрытые слова", icon: "search" },
       { key: "sacred-word", title: "Священное слово", desc: "Открой слово по подсказкам", icon: "sacred" },
+      {
+        key: "bible-geography", title: "Библейская география",
+        desc: "Герои, места и пути — тогда и сейчас", icon: "geography",
+      },
     ],
   },
   {
@@ -93,6 +97,8 @@ const MENU_ICON_SOURCES = {
   "promised-land": "web/assets/icons/unified-v1/promised-land.webp",
   "twelve-tribes": "web/assets/icons/unified-v1/twelve-tribes.webp",
   kingdoms: "web/assets/icons/unified-v1/kingdoms.webp",
+  // Временная векторная иконка: растровую рисуют по docs/bible-geography-art-brief.md.
+  geography: "web/assets/icons/unified-v1/bible-geography.svg",
 };
 
 function menuIconHTML(type, title = "") {
@@ -726,6 +732,11 @@ function showGame(gameName) {
     "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
+    /*
+      «Библейская география» сама подтягивает правила заданий, стили, данные и
+      основу карты: оболочка умеет загружать только один файл.
+    */
+    "bible-geography": ["web/games/bible-geography.js", () => window.startBibleGeographyGame?.()],
   };
 
   /*
@@ -936,6 +947,9 @@ function cleanupActiveGame() {
   // «Царства» устроены так же: соперники от игры и анимация раскрытия идут
   // по таймеру и без уборки продолжаются в уже закрытой игре.
   try { window.__kingdomsCleanup?.(); } catch {}
+  // У карты «Библейской географии» живой наблюдатель размера и кадры анимации:
+  // без уборки они продолжают считать закрытую карту.
+  try { window.__bibleGeographyCleanup?.(); } catch {}
   // Онлайн-Соглядатай держит сокет, таймеры и живые WebRTC-соединения с
   // микрофоном: без явной уборки микрофон остался бы включённым после
   // выхода в меню.

@@ -2368,6 +2368,34 @@ html.theme-dark .rd-card {
 html.theme-dark .rd-card.is-open {
   background: #141414 !important;
 }
+html.theme-dark .rd-node {
+  background: #141414 !important;
+  border: 2px solid #0a1539 !important;
+  color: #9da1da !important;
+}
+html.theme-dark .rd-node.is-on {
+  border-color: #241bbf !important;
+  background: #08112f !important;
+}
+html.theme-dark .rd-node.is-ok {
+  background: #1a3928 !important;
+}
+html.theme-dark .rd-node.is-miss {
+  background: #4a3e0e !important;
+}
+html.theme-dark .rd-node.is-done {
+  background: #08112f !important;
+  color: #9096b0 !important;
+}
+html.theme-dark .rd-link--done {
+  stroke: #7ce5b6 !important;
+}
+html.theme-dark .rd-link--ok {
+  stroke: #7ce5b6 !important;
+}
+html.theme-dark .rd-link--miss {
+  stroke: #f99521 !important;
+}
 html.theme-dark .rules-sheet__card {
   background: linear-gradient(160deg, #141414, #08112b) !important;
 }

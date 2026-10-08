@@ -39,9 +39,15 @@ const PRECACHE_DIRS = [
   рисунки вообще есть. Без списка пришлось бы пробовать файлы наугад, и у
   несуществующего браузер оставлял бы ошибку в консоли у каждого игрока.
 */
+/*
+  Основа карты «Библейской географии» лежит в assets, а не в web/data: слов в
+  ней нет, и копировать её в каждый язык незачем. Но без неё игра в дороге не
+  откроется, поэтому она — и список нарисованных картин — идут в кеш поимённо.
+*/
 const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest',
   'web/js/language-choice.js', 'web/i18n/bootstrap.js',
-  'web/assets/twelve-tribes/art.json'];
+  'web/assets/twelve-tribes/art.json',
+  'web/assets/bible-geography/map.json', 'web/assets/bible-geography/art.json'];
 
 // Тяжёлые ассеты «Моисея на Ниле» — модели, текстуры и three.js — весят почти
 // четыре мегабайта. Ставить их в кеш при установке нельзя: столько платит

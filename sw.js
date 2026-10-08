@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = 'f4ec161097';
+const VERSION = '279375cd5a';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -27,9 +27,14 @@ const PRECACHE = [
   'web/js/language-choice.js',
   'web/i18n/bootstrap.js',
   'web/assets/twelve-tribes/art.json',
-  'web/dist/app.93bf87bb63.css',
-  'web/dist/app.119872dd40.js',
+  'web/assets/bible-geography/map.json',
+  'web/assets/bible-geography/art.json',
+  'web/dist/app.ce0325c6b8.css',
+  'web/dist/app.354a186b19.js',
   'web/games/alias.js',
+  'web/games/bible-geography-logic.js',
+  'web/games/bible-geography.css',
+  'web/games/bible-geography.js',
   'web/games/bible-sketch-landscape-v2.css',
   'web/games/bible-sketch.css',
   'web/games/bible-sketch.js',
@@ -78,6 +83,7 @@ const PRECACHE = [
   'web/games/twelve-tribes-rules.js',
   'web/games/twelve-tribes.css',
   'web/games/twelve-tribes.js',
+  'web/data/bible_geography.json',
   'web/data/bible_wordsearch_levels.json',
   'web/data/bible_wow_levels.json',
   'web/data/biblical_match_three_levels.json',
@@ -118,6 +124,7 @@ const PRECACHE = [
   'web/assets/icons/twelve-tribes.webp',
   'web/assets/icons/unified-v1/alias.webp',
   'web/assets/icons/unified-v1/ark.webp',
+  'web/assets/icons/unified-v1/bible-geography.svg',
   'web/assets/icons/unified-v1/bible-sketch.webp',
   'web/assets/icons/unified-v1/biblical-treasures.webp',
   'web/assets/icons/unified-v1/character.webp',

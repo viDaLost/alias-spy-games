@@ -58,6 +58,14 @@ export async function buildLocales(root, jsOptions) {
       if (typeof value==='string') return dict[value] || translate(value,dict);
       if (Array.isArray(value)) return value.map(transformData);
       if (value?.id==='apostles_james') return {...value,title:{en:'James',de:'Jakobus',es:'Santiago'}[lang]};
+      // Омонимы общего словаря: «Вирсавия» — и жена Давида, и город, «Сила» — и сила,
+      // и спутник Павла. Запись сама говорит, как её назвать на каждом языке.
+      if (value && typeof value==='object' && !Array.isArray(value) && value.i18n) {
+        const {i18n,...rest}=value;
+        const out=transformData(rest);
+        for (const [key,byLang] of Object.entries(i18n)) out[key]=byLang[lang];
+        return out;
+      }
       if (value && typeof value==='object') return Object.fromEntries(Object.entries(value).map(([key,v])=>[key,transformData(v)]));
       return value;
     };

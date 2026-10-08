@@ -1,0 +1,925 @@
+# «Библейская география»: имена, места, заметки и интерфейс. Стихи и ссылки — в geography-quotes.tsv.
+Ур Халдейский	Ur of the Chaldeans	Ur in Chaldäa	Ur de los caldeos
+Телль-эль-Мукайяр	Tell el-Muqayyar	Tell el-Muqayyar	Tell el-Muqayyar
+Ирак	Iraq	Irak	Irak
+руины близ Насирии	ruins near Nasiriyah	Ruinen bei Nasirija	ruinas cerca de Nasiriya
+Турция	Turkey	Türkei	Turquía
+село и руины в провинции Шанлыурфа	village and ruins in Şanlıurfa Province	Dorf und Ruinen in der Provinz Şanlıurfa	aldea y ruinas en la provincia de Şanlıurfa
+Мосул	Mosul	Mossul	Mosul
+холмы руин на левом берегу Тигра	ruin mounds on the left bank of the Tigris	Ruinenhügel am linken Ufer des Tigris	montículos de ruinas en la orilla izquierda del Tigris
+Хилла	Hillah	Hilla	Hilla
+руины в 85 км к югу от Багдада	ruins 85 km south of Baghdad	Ruinen 85 km südlich von Bagdad	ruinas a 85 km al sur de Bagdad
+Шуш	Shush	Schusch	Shush
+Иран	Iran	Iran	Irán
+руины дворца у города Шуш	palace ruins by the town of Shush	Palastruinen bei der Stadt Schusch	ruinas del palacio junto a la ciudad de Shush
+река Ховар	river Chebar	Fluss Kebar	río Quebar
+канал близ Ниппура	a canal near Nippur	ein Kanal bei Nippur	un canal cerca de Nippur
+точное русло неизвестно	exact course unknown	genauer Verlauf unbekannt	curso exacto desconocido
+горы Араратские	mountains of Ararat	Gebirge Ararat	montes de Ararat
+гора Арарат	Mount Ararat	Berg Ararat	monte Ararat
+Армянское нагорье	Armenian Highlands	Armenisches Hochland	meseta armenia
+Сирия	Syria	Syrien	Siria
+столица Сирии	capital of Syria	Hauptstadt Syriens	capital de Siria
+Антакья	Antakya	Antakya	Antakya
+город на реке Оронт	city on the Orontes River	Stadt am Orontes	ciudad a orillas del río Orontes
+Селевкия	Seleucia	Seleukia	Seleucia
+Чевлик	Çevlik	Çevlik	Çevlik
+руины гавани близ Самандага	harbour ruins near Samandağ	Hafenruinen bei Samandağ	ruinas del puerto cerca de Samandağ
+Тарсус	Tarsus	Tarsus	Tarsus
+город в провинции Мерсин	city in Mersin Province	Stadt in der Provinz Mersin	ciudad de la provincia de Mersin
+древний Мемфис — у Каира	ancient Memphis, near Cairo	das alte Memphis bei Kairo	la antigua Menfis, cerca de El Cairo
+земля Гесем	land of Goshen	Land Goschen	tierra de Gosén
+восточная дельта Нила	eastern Nile Delta	östliches Nildelta	delta oriental del Nilo
+мухафаза Шаркия	Sharqia Governorate	Gouvernement asch-Scharqiyya	gobernación de Sharqia
+Раамсес	Rameses	Ramses	Ramesés
+Кантир	Qantir	Qantir	Qantir
+руины Пи-Рамсеса в дельте Нила	ruins of Pi-Ramesses in the Nile Delta	Ruinen von Pi-Ramesse im Nildelta	ruinas de Pi-Ramsés en el delta del Nilo
+Тафнис	Tahpanhes	Tachpanhes	Tafnes
+Телль-Дефенне	Tell Defenneh	Tell Defenneh	Tell Defenneh
+руины у Суэцкого канала	ruins near the Suez Canal	Ruinen am Suezkanal	ruinas junto al canal de Suez
+Александрия	Alexandria	Alexandria	Alejandría
+порт на Средиземном море	Mediterranean port	Hafen am Mittelmeer	puerto del Mediterráneo
+Чермное море	Red Sea	Schilfmeer	mar Rojo
+Красное море	Red Sea	Rotes Meer	mar Rojo
+место перехода неизвестно	crossing point unknown	Ort des Durchzugs unbekannt	lugar del cruce desconocido
+Мерра	Marah	Mara	Mara
+западный Синай	western Sinai	westlicher Sinai	Sinaí occidental
+место предположительно	location conjectural	Lage vermutet	ubicación supuesta
+вади Гарандел	Wadi Gharandel	Wadi Gharandel	uadi Gharandel
+оазис на западе Синая, по преданию	oasis in western Sinai, by tradition	Oase im Westen des Sinai, der Überlieferung nach	oasis del oeste del Sinaí, según la tradición
+Рефидим	Rephidim	Refidim	Refidim
+вади Фейран	Wadi Feiran	Wadi Feiran	uadi Feirán
+оазис на юге Синая, по преданию	oasis in southern Sinai, by tradition	Oase im Süden des Sinai, der Überlieferung nach	oasis del sur del Sinaí, según la tradición
+гора Синай	Mount Sinai	Berg Sinai	monte Sinaí
+Хорив	Horeb	Horeb	Horeb
+Джебель-Муса	Jebel Musa	Dschebel Musa	Yebel Musa
+юг Синайского полуострова, по преданию	southern Sinai Peninsula, by tradition	Süden der Sinai-Halbinsel, der Überlieferung nach	sur de la península del Sinaí, según la tradición
+Кадес-Варни	Kadesh Barnea	Kadesch-Barnea	Cades-barnea
+Айн-эль-Кудейрат	Ain el-Qudeirat	Ain el-Qudeirat	Ain el-Qudeirat
+оазис на северо-востоке Синая	oasis in north-eastern Sinai	Oase im Nordosten des Sinai	oasis del noreste del Sinaí
+земля Мадиамская	land of Midian	Land Midian	tierra de Madián
+область Табук	Tabuk Province	Provinz Tabuk	provincia de Tabuk
+Саудовская Аравия	Saudi Arabia	Saudi-Arabien	Arabia Saudita
+северо-запад Аравии, у Акабского залива	north-west Arabia, by the Gulf of Aqaba	Nordwestarabien, am Golf von Akaba	noroeste de Arabia, junto al golfo de Áqaba
+гора Ор	Mount Hor	Berg Hor	monte Hor
+Джебель-Харун	Jabal Harun	Dschebel Harun	Yebel Harún
+Иордания	Jordan	Jordanien	Jordania
+у Петры, по преданию	near Petra, by tradition	bei Petra, der Überlieferung nach	cerca de Petra, según la tradición
+гора Сеир	Mount Seir	Gebirge Seïr	monte Seir
+горы Эш-Шара	Shara Mountains	Scharagebirge	montes de Shara
+нагорье Едома к востоку от Араввы	highlands of Edom east of the Arabah	Bergland Edoms östlich der Araba	tierras altas de Edom al este del Arabá
+гора Нево	Mount Nebo	Berg Nebo	monte Nebo
+гора Небо	Mount Nebo	Berg Nebo	monte Nebo
+у Мадабы	near Madaba	bei Madaba	cerca de Madaba
+плато восточнее Мертвого моря	plateau east of the Dead Sea	Hochebene östlich des Toten Meeres	meseta al este del mar Muerto
+области Мадаба и Керак	Madaba and Karak governorates	Gouvernements Madaba und Karak	gobernaciones de Madaba y Karak
+Ецион-Гавер	Ezion Geber	Ezjon-Geber	Ezión-geber
+Эйлат и Акаба	Eilat and Aqaba	Eilat und Akaba	Eilat y Áqaba
+Израиль и Иордания	Israel and Jordan	Israel und Jordanien	Israel y Jordania
+вершина Акабского залива	head of the Gulf of Aqaba	Nordende des Golfs von Akaba	extremo norte del golfo de Áqaba
+Маханаим	Mahanaim	Mahanajim	Mahanaim
+Телль-эз-Захаб	Tell edh-Dhahab	Tell edh-Dhahab	Tell edh-Dhahab
+долина реки Зарка	Zarqa River valley	Tal des Zarqa	valle del río Zarqa
+Телль-Дейр-Алла	Tell Deir Alla	Tell Deir Alla	Tell Deir Alla
+долина Иордана	Jordan Valley	Jordantal	valle del Jordán
+Рамоф Галаадский	Ramoth Gilead	Ramot in Gilead	Ramot de Galaad
+Рамта	Ramtha	Ramtha	Ramtha
+холм Телль-Румейт	Tell er-Rumeith mound	Hügel Tell er-Rumeith	colina de Tell er-Rumeith
+Вифавара	Bethabara	Betabara	Betábara
+Аль-Махтас	Al-Maghtas	al-Maghtas	Al-Maghtas
+место Крещения на восточном берегу Иордана	baptism site on the east bank of the Jordan	Taufstelle am Ostufer des Jordan	lugar del bautismo en la orilla oriental del Jordán
+река Иордан	Jordan River	Jordan	río Jordán
+Иордания и Западный берег	Jordan and the West Bank	Jordanien und Westjordanland	Jordania y Cisjordania
+течёт из Галилейского моря в Мертвое	flows from the Sea of Galilee to the Dead Sea	fließt vom See Genezareth ins Tote Meer	fluye del mar de Galilea al mar Muerto
+гора Сдом	Mount Sodom	Berg Sedom	monte Sodoma
+Израиль	Israel	Israel	Israel
+юг Мертвого моря, по преданию	south end of the Dead Sea, by tradition	Südende des Toten Meeres, der Überlieferung nach	sur del mar Muerto, según la tradición
+Сигор	Zoar	Zoar	Zoar
+Гор-эс-Сафи	Ghor es-Safi	Ghor es-Safi	Ghor es-Safi
+южнее Мертвого моря	south of the Dead Sea	südlich des Toten Meeres	al sur del mar Muerto
+Старый город	Old City	Altstadt	Ciudad Vieja
+гора Мориа	Mount Moriah	Berg Morija	monte Moriah
+Храмовая гора	Temple Mount	Tempelberg	Monte del Templo
+Гефсиманский сад	Garden of Gethsemane	Garten Gethsemane	huerto de Getsemaní
+у подножия Масличной горы	at the foot of the Mount of Olives	am Fuß des Ölbergs	al pie del monte de los Olivos
+храм Гроба Господня	Church of the Holy Sepulchre	Grabeskirche	Iglesia del Santo Sepulcro
+Старый город, по преданию	Old City, by tradition	Altstadt, der Überlieferung nach	Ciudad Vieja, según la tradición
+Эль-Азария	Al-Eizariya	al-Eizariya	Al-Eizariya
+Западный берег р. Иордан	West Bank	Westjordanland	Cisjordania
+за Масличной горой	beyond the Mount of Olives	hinter dem Ölberg	tras el monte de los Olivos
+Ефрафа	Ephrath	Efrata	Efrata
+в 9 км к югу от Иерусалима	9 km south of Jerusalem	9 km südlich von Jerusalem	a 9 km al sur de Jerusalén
+Мамре	Mamre	Mamre	Mamre
+пещера Махпела в центре города	Cave of Machpelah in the city centre	Höhle Machpela im Stadtzentrum	cueva de Macpela en el centro de la ciudad
+Беэр-Шева	Be'er Sheva	Be'er Scheva	Beerseba
+холм Тель-Беэр-Шева у города	Tel Be'er Sheva mound near the city	Hügel Tel Be'er Scheva bei der Stadt	colina de Tel Beerseba junto a la ciudad
+Герар	Gerar	Gerar	Gerar
+Тель-Харор	Tel Haror	Tel Haror	Tel Haror
+северо-запад Негева	north-western Negev	nordwestlicher Negev	noroeste del Néguev
+холм Телль-эс-Султан	Tell es-Sultan mound	Hügel Tell es-Sultan	colina de Tell es-Sultan
+Галгал	Gilgal	Gilgal	Gilgal
+долина Иордана у Иерихона	Jordan Valley near Jericho	Jordantal bei Jericho	valle del Jordán junto a Jericó
+точное место неизвестно	exact site unknown	genaue Lage unbekannt	lugar exacto desconocido
+Гай	Ai	Ai	Hai
+Эт-Телль	et-Tell	et-Tell	et-Tell
+холм у селения Дейр-Дибван	mound by the village of Deir Dibwan	Hügel beim Dorf Deir Dibwan	colina junto a la aldea de Deir Dibwan
+Бейтин	Beitin	Beitin	Beitín
+к северу от Рамаллы	north of Ramallah	nördlich von Ramallah	al norte de Ramala
+Гаваон	Gibeon	Gibeon	Gabaón
+Эль-Джиб	Al-Jib	al-Dschib	Al-Jib
+северо-западнее Иерусалима	north-west of Jerusalem	nordwestlich von Jerusalem	al noroeste de Jerusalén
+Рама	Ramah	Rama	Ramá
+Эр-Рам	Al-Ram	ar-Ram	Al-Ram
+к северу от Иерусалима	north of Jerusalem	nördlich von Jerusalem	al norte de Jerusalén
+Телль-эн-Насбе	Tell en-Nasbeh	Tell en-Nasbe	Tell en-Nasbeh
+у Рамаллы	near Ramallah	bei Ramallah	cerca de Ramala
+Гива	Gibeah	Gibea	Gabaa
+Телль-эль-Фуль	Tell el-Ful	Tell el-Ful	Tell el-Ful
+северная окраина Иерусалима	northern outskirts of Jerusalem	nördlicher Stadtrand von Jerusalem	afueras del norte de Jerusalén
+Михмас	Michmash	Michmas	Micmas
+Мухмас	Mukhmas	Muchmas	Mukhmas
+северо-восточнее Иерусалима	north-east of Jerusalem	nordöstlich von Jerusalem	al noreste de Jerusalén
+Анафоф	Anathoth	Anatot	Anatot
+Аната	Anata	Anata	Anata
+Эммаус	Emmaus	Emmaus	Emaús
+Латрун	Latrun	Latrun	Latrún
+место спорно: Эммаус-Никополь, Абу-Гош и др.	site disputed: Emmaus Nicopolis, Abu Ghosh and others	Lage umstritten: Emmaus-Nikopolis, Abu Gosch u. a.	lugar discutido: Emaús Nicópolis, Abu Gosh y otros
+Тель-Шило	Tel Shiloh	Tel Schilo	Tel Siló
+холм Хирбет-Сайлун	Khirbet Seilun mound	Hügel Chirbet Seilun	colina de Jirbet Seilún
+Наблус	Nablus	Nablus	Nablus
+холм Телль-Балата	Tell Balata mound	Hügel Tell Balata	colina de Tell Balata
+Сихарь	Sychar	Sychar	Sicar
+Аскар	Askar	Askar	Askar
+у колодца Иакова, восточнее Наблуса	by Jacob's Well, east of Nablus	beim Jakobsbrunnen, östlich von Nablus	junto al pozo de Jacob, al este de Nablus
+Себастия	Sebastia	Sebastia	Sebastia
+северо-западнее Наблуса	north-west of Nablus	nordwestlich von Nablus	al noroeste de Nablus
+Дофан	Dothan	Dotan	Dotán
+Дофаим	Dothan	Dotan	Dotán
+Тель-Дотан	Tel Dothan	Tel Dotan	Tel Dotán
+к югу от Дженина	south of Jenin	südlich von Dschenin	al sur de Yenín
+пустыня Иудейская	wilderness of Judea	Wüste Judäa	desierto de Judea
+Иудейская пустыня	Judean Desert	Judäische Wüste	desierto de Judea
+Западный берег и Израиль	West Bank and Israel	Westjordanland und Israel	Cisjordania e Israel
+между Иерусалимом и Мертвым морем	between Jerusalem and the Dead Sea	zwischen Jerusalem und dem Toten Meer	entre Jerusalén y el mar Muerto
+Ен-Гадди	En Gedi	En-Gedi	En-gadi
+Эйн-Геди	Ein Gedi	Ein Gedi	Ein Gedi
+оазис на берегу Мертвого моря	oasis on the shore of the Dead Sea	Oase am Ufer des Toten Meeres	oasis a orillas del mar Muerto
+Одоллам	Adullam	Adullam	Adulam
+Тель-Адуллам	Tel Adullam	Tel Adullam	Tel Adulam
+Иудейская низменность	Shephelah, the Judean lowlands	Schefela, das judäische Hügelland	la Sefela, tierras bajas de Judea
+долина дуба	Valley of Elah	Eichgrund	valle de Ela
+долина Эла	Elah Valley	Elah-Tal	valle de Elá
+у Бейт-Шемеша	near Beit Shemesh	bei Beit Schemesch	cerca de Beit Shemesh
+Цора	Zorah	Zora	Zora
+Тель-Цора	Tel Tzora	Tel Zora	Tel Zora
+Фимнафа	Timnah	Timna	Timnat
+Тель-Баташ	Tel Batash	Tel Batasch	Tel Batash
+долина Сорек	Sorek Valley	Sorek-Tal	valle de Sorec
+Геф	Gath	Gat	Gat
+Тель-Цафит	Tel Tzafit	Tel Zafit	Tel Tzafit
+холм Телль-эс-Сафи	Tell es-Safi mound	Hügel Tell es-Safi	colina de Tell es-Safi
+Лахис	Lachish	Lachisch	Laquis
+Тель-Лахиш	Tel Lachish	Tel Lachisch	Tel Laquis
+Секелаг	Ziklag	Ziklag	Siclag
+Тель-Сера	Tel Sera	Tel Sera	Tel Sera
+северо-запад Негева, место спорно	north-western Negev, site disputed	nordwestlicher Negev, Lage umstritten	noroeste del Néguev, lugar discutido
+Сектор Газа	Gaza Strip	Gazastreifen	Franja de Gaza
+приморский город	coastal city	Küstenstadt	ciudad costera
+Аскалон	Ashkelon	Aschkelon	Ascalón
+Ашкелон	Ashkelon	Aschkelon	Ascalón
+национальный парк у моря	national park by the sea	Nationalpark am Meer	parque nacional junto al mar
+Азот	Azotus	Aschdod	Azoto
+Ашдод	Ashdod	Aschdod	Asdod
+холм Тель-Ашдод	Tel Ashdod mound	Hügel Tel Aschdod	colina de Tel Asdod
+Иоппия	Joppa	Joppe	Jope
+Яффа	Jaffa	Jaffa	Jaffa
+старый порт Тель-Авива	old port of Tel Aviv	alter Hafen von Tel Aviv	antiguo puerto de Tel Aviv
+Лидда	Lydda	Lydda	Lida
+Лод	Lod	Lod	Lod
+у аэропорта Бен-Гурион	by Ben Gurion Airport	beim Flughafen Ben Gurion	junto al aeropuerto Ben Gurión
+Кейсария	Caesarea	Caesarea	Cesarea
+руины порта Ирода	ruins of Herod's harbour	Ruinen des Hafens des Herodes	ruinas del puerto de Herodes
+гора Кармил	Mount Carmel	Berg Karmel	monte Carmelo
+гора Кармель	Mount Carmel	Karmel	monte Carmelo
+хребет у Хайфы	ridge by Haifa	Bergrücken bei Haifa	cordillera junto a Haifa
+Мегиддон	Megiddo	Megiddo	Meguido
+Тель-Мегиддо	Tel Megiddo	Tel Megiddo	Tel Meguido
+Изреельская долина	Jezreel Valley	Jesreelebene	valle de Jezreel
+Изреель	Jezreel	Jesreel	Jezreel
+Тель-Изреель	Tel Jezreel	Tel Jesreel	Tel Jezreel
+Сонам	Shunem	Schunem	Sunem
+Сулам	Sulam	Sulam	Sulam
+Аэндор	Endor	En-Dor	Endor
+Эйн-Дор	Ein Dor	Ein Dor	Ein Dor
+у горы Табор	near Mount Tabor	beim Berg Tabor	cerca del monte Tabor
+гора Гелвуй	Mount Gilboa	Gebirge Gilboa	monte Gilboa
+хребет Гильбоа	Gilboa ridge	Gilboa-Gebirge	sierra de Gilboa
+юго-восток Изреельской долины	south-east of the Jezreel Valley	Südosten der Jesreelebene	sureste del valle de Jezreel
+Офра	Ophrah	Ofra	Ofra
+Афула	Afula	Afula	Afula
+одно из предположений	one of the proposed sites	eine der Vermutungen	una de las hipótesis
+гора Фавор	Mount Tabor	Berg Tabor	monte Tabor
+гора Табор	Mount Tabor	Berg Tabor	monte Tabor
+Нижняя Галилея	Lower Galilee	Untergaliläa	Baja Galilea
+Наин	Nain	Naïn	Naín
+Нейн	Nein	Na'in	Nein
+город в Нижней Галилее	town in Lower Galilee	Ort in Untergaliläa	pueblo de la Baja Galilea
+Гафхефер	Gath Hepher	Gat-Hefer	Gat-hefer
+Эль-Мешхед	Mashhad	Maschhad	Mashhad
+у Назарета	near Nazareth	bei Nazareth	cerca de Nazaret
+Кана Галилейская	Cana in Galilee	Kana in Galiläa	Caná de Galilea
+Кафр-Кана	Kafr Kanna	Kafr Kanna	Kafr Kanna
+по другой версии — Хирбет-Кана	or, by another view, Khirbet Qana	nach anderer Ansicht Chirbet Qana	según otra opinión, Jirbet Qana
+Кфар-Нахум	Kfar Nahum	Kfar Nachum	Kfar Najum
+северный берег озера Кинерет	north shore of the Sea of Galilee	Nordufer des Sees Genezareth	orilla norte del mar de Galilea
+Вифсаида	Bethsaida	Betsaida	Betsaida
+Голанские высоты	Golan Heights	Golanhöhen	Altos del Golán
+у впадения Иордана в озеро	where the Jordan enters the lake	an der Mündung des Jordan in den See	donde el Jordán desemboca en el lago
+Гессур	Geshur	Geschur	Gesur
+Голаны	Golan	Golan	Golán
+к востоку от Галилейского моря	east of the Sea of Galilee	östlich des Sees Genezareth	al este del mar de Galilea
+Кесария Филиппова	Caesarea Philippi	Cäsarea Philippi	Cesarea de Filipo
+Баниас	Banias	Banias	Banias
+у истоков Иордана	at the sources of the Jordan	an den Quellen des Jordan	en las fuentes del Jordán
+Птолемаида	Ptolemais	Ptolemaïs	Tolemaida
+Акко	Acre	Akko	Acre
+старый порт	old harbour	alter Hafen	puerto antiguo
+Сур	Tyre	Tyros	Tiro
+полуостров, бывший островом	a peninsula that was once an island	eine Halbinsel, einst eine Insel	una península que antes fue isla
+Сарепта Сидонская	Zarephath of Sidon	Sarepta bei Sidon	Sarepta de Sidón
+Сарафанд	Sarafand	Sarafand	Sarafand
+между Тиром и Сидоном	between Tyre and Sidon	zwischen Tyrus und Sidon	entre Tiro y Sidón
+Сайда	Saida	Saida	Saida
+порт на юге Ливана	port in southern Lebanon	Hafen im Süden des Libanon	puerto del sur del Líbano
+Саламин	Salamis	Salamis	Salamina
+руины у Фамагусты	ruins near Famagusta	Ruinen bei Famagusta	ruinas cerca de Famagusta
+Кипр	Cyprus	Zypern	Chipre
+восточный берег острова	east coast of the island	Ostküste der Insel	costa oriental de la isla
+Пергия	Perga	Perge	Perge
+Перге	Perge	Perge	Perge
+руины у Антальи	ruins near Antalya	Ruinen bei Antalya	ruinas cerca de Antalya
+Атталия	Attalia	Attalia	Atalia
+Анталья	Antalya	Antalya	Antalya
+старая гавань Калеичи	old harbour of Kaleiçi	alter Hafen von Kaleiçi	puerto antiguo de Kaleiçi
+Антиохия Писидийская	Pisidian Antioch	Antiochia in Pisidien	Antioquía de Pisidia
+Ялвач	Yalvaç	Yalvaç	Yalvaç
+руины у города Ялвач	ruins near the town of Yalvaç	Ruinen bei der Stadt Yalvaç	ruinas cerca de la ciudad de Yalvaç
+Икония	Iconium	Ikonion	Iconio
+Конья	Konya	Konya	Konya
+крупный город в центре страны	large city in central Turkey	Großstadt in der Landesmitte	gran ciudad del centro del país
+Листра	Lystra	Lystra	Listra
+Хатунсарай	Hatunsaray	Hatunsaray	Hatunsaray
+холм у села	mound near the village	Hügel beim Dorf	colina junto a la aldea
+Дервия	Derbe	Derbe	Derbe
+Керти-Хююк	Kerti Höyük	Kerti Höyük	Kerti Höyük
+у Карамана	near Karaman	bei Karaman	cerca de Karaman
+Александрия-Троада	Alexandria Troas	Alexandria Troas	Alejandría de Tróade
+руины у Чанаккале	ruins near Çanakkale	Ruinen bei Çanakkale	ruinas cerca de Çanakkale
+Асс	Assos	Assos	Asón
+Бехрамкале	Behramkale	Behramkale	Behramkale
+руины над морем	ruins above the sea	Ruinen über dem Meer	ruinas sobre el mar
+Фиатира	Thyatira	Thyatira	Tiatira
+Акхисар	Akhisar	Akhisar	Akhisar
+город в провинции Маниса	town in Manisa Province	Stadt in der Provinz Manisa	ciudad de la provincia de Manisa
+Сельчук	Selçuk	Selçuk	Selçuk
+руины в 5 км от моря	ruins 5 km from the sea	Ruinen 5 km vom Meer entfernt	ruinas a 5 km del mar
+Милит	Miletus	Milet	Mileto
+Милет	Milet	Milet	Mileto
+руины у села Балат	ruins near the village of Balat	Ruinen beim Dorf Balat	ruinas junto a la aldea de Balat
+Колоссы	Colossae	Kolossä	Colosas
+Хоназ	Honaz	Honaz	Honaz
+холм руин у Денизли	ruin mound near Denizli	Ruinenhügel bei Denizli	colina de ruinas cerca de Denizli
+Патара	Patara	Patara	Pátara
+Гелемиш	Gelemiş	Gelemiş	Gelemiş
+руины среди дюн	ruins among the dunes	Ruinen zwischen Dünen	ruinas entre las dunas
+Миры Ликийские	Myra in Lycia	Myra in Lyzien	Mira de Licia
+Демре	Demre	Demre	Demre
+город в провинции Анталья	town in Antalya Province	Stadt in der Provinz Antalya	ciudad de la provincia de Antalya
+Книд	Cnidus	Knidos	Gnido
+мыс Текир	Cape Tekir	Kap Tekir	cabo Tekir
+руины на полуострове Датча	ruins on the Datça Peninsula	Ruinen auf der Halbinsel Datça	ruinas en la península de Datça
+Греция	Greece	Griechenland	Grecia
+остров Додеканеса	island of the Dodecanese	Insel des Dodekanes	isla del Dodecaneso
+Митилина	Mitylene	Mitylene	Mitilene
+Митилини	Mytilene	Mytilini	Mitilene
+остров Лесбос	island of Lesbos	Insel Lesbos	isla de Lesbos
+Хиос	Chios	Chios	Quío
+остров у берегов Турции	island off the coast of Turkey	Insel vor der türkischen Küste	isla frente a la costa de Turquía
+Самос	Samos	Samos	Samos
+Кос	Kos	Kos	Cos
+Родос	Rhodes	Rhodos	Rodas
+крупный остров Додеканеса	large island of the Dodecanese	große Insel des Dodekanes	gran isla del Dodecaneso
+Самофракия	Samothrace	Samothrake	Samotracia
+Самотраки	Samothraki	Samothraki	Samotracia
+остров на севере Эгейского моря	island in the northern Aegean	Insel in der nördlichen Ägäis	isla del norte del mar Egeo
+Неаполь	Naples	Neapel	Nápoles
+Кавала	Kavala	Kavala	Kavala
+портовый город	port city	Hafenstadt	ciudad portuaria
+Филиппы	Philippi	Philippi	Filipos
+Филиппи	Filippoi	Filippi	Filipos
+руины у Кавалы	ruins near Kavala	Ruinen bei Kavala	ruinas cerca de Kavala
+Амфиполь	Amphipolis	Amphipolis	Anfípolis
+Амфиполис	Amfipoli	Amfipoli	Anfípolis
+у устья реки Стримон	near the mouth of the Strymon	nahe der Mündung des Strymon	cerca de la desembocadura del Estrimón
+Аполлония	Apollonia	Apollonia	Apolonia
+у озера Волви	by Lake Volvi	am Volvi-See	junto al lago Volvi
+Салоники	Thessaloniki	Thessaloniki	Salónica
+второй город Греции	second city of Greece	zweitgrößte Stadt Griechenlands	segunda ciudad de Grecia
+Верия	Berea	Beröa	Berea
+город в Македонии	town in Macedonia	Stadt in Makedonien	ciudad de Macedonia
+холм Ареопаг у Акрополя	Areopagus hill by the Acropolis	Areopag neben der Akropolis	colina del Areópago junto a la Acrópolis
+Древний Коринф	Ancient Corinth	Alt-Korinth	Antigua Corinto
+руины у Коринфского перешейка	ruins by the Isthmus of Corinth	Ruinen am Isthmus von Korinth	ruinas junto al istmo de Corinto
+Кенхреи	Cenchreae	Kenchreä	Cencrea
+Кехриес	Kechries	Kechries	Kechries
+гавань Коринфа на Эгейском море	Corinth's harbour on the Aegean	Hafen Korinths an der Ägäis	puerto de Corinto en el mar Egeo
+Крит	Crete	Kreta	Creta
+крупнейший остров Греции	largest island of Greece	größte Insel Griechenlands	la isla más grande de Grecia
+Хорошие Пристани	Fair Havens	Guthafen	Buenos Puertos
+Калои-Лименес	Kaloi Limenes	Kali Limenes	Kaloi Limenes
+бухта на юге Крита	bay in southern Crete	Bucht im Süden Kretas	bahía del sur de Creta
+Мелит	Melita	Melite	Melita
+Мальта	Malta	Malta	Malta
+бухта Святого Павла	St Paul's Bay	St. Paul's Bay	bahía de San Pablo
+Сиракузы	Syracuse	Syrakus	Siracusa
+Италия	Italy	Italien	Italia
+Сицилия	Sicily	Sizilien	Sicilia
+Ригия	Rhegium	Rhegion	Regio
+Реджо-ди-Калабрия	Reggio Calabria	Reggio Calabria	Reggio de Calabria
+Мессинский пролив	Strait of Messina	Straße von Messina	estrecho de Mesina
+Путеол	Puteoli	Puteoli	Puteoli
+Поццуоли	Pozzuoli	Pozzuoli	Pozzuoli
+у Неаполя	near Naples	bei Neapel	cerca de Nápoles
+столица Италии	capital of Italy	Hauptstadt Italiens	capital de Italia
+Праотцы	Patriarchs	Erzväter	Patriarcas
+Построил ковчег и спасся от потопа	Built the ark and survived the flood	Baute die Arche und überlebte die Sintflut	Construyó el arca y se salvó del diluvio
+Аврам	Abram	Abram	Abram
+Отец многих народов, вышел в путь по зову Бога	Father of many nations, set out at God's call	Vater vieler Völker, brach auf Gottes Ruf hin auf	Padre de muchas naciones, partió al llamado de Dios
+Сара	Sarai	Sarai	Saraí
+Жена Авраама, мать Исаака	Wife of Abraham, mother of Isaac	Frau Abrahams, Mutter Isaaks	Esposa de Abraham, madre de Isaac
+Племянник Авраама, спасся из Содома	Abraham's nephew, rescued from Sodom	Abrahams Neffe, aus Sodom gerettet	Sobrino de Abraham, rescatado de Sodoma
+Агарь	Hagar	Hagar	Agar
+Служанка Сарры, мать Измаила	Sarah's maidservant, mother of Ishmael	Magd Saras, Mutter Ismaels	Sierva de Sara, madre de Ismael
+Сын обетования, отец Иакова и Исава	Son of the promise, father of Jacob and Esau	Sohn der Verheißung, Vater Jakobs und Esaus	Hijo de la promesa, padre de Jacob y Esaú
+Жена Исаака, мать Иакова и Исава	Wife of Isaac, mother of Jacob and Esau	Frau Isaaks, Mutter Jakobs und Esaus	Esposa de Isaac, madre de Jacob y Esaú
+Сын Исаака, отец двенадцати колен	Son of Isaac, father of the twelve tribes	Sohn Isaaks, Vater der zwölf Stämme	Hijo de Isaac, padre de las doce tribus
+Любимая жена Иакова, мать Иосифа и Вениамина	Jacob's beloved wife, mother of Joseph and Benjamin	Jakobs geliebte Frau, Mutter Josefs und Benjamins	Esposa amada de Jacob, madre de José y Benjamín
+Старший брат Иакова	Jacob's elder brother	Jakobs älterer Bruder	Hermano mayor de Jacob
+сын Иакова	son of Jacob	Sohn Jakobs	hijo de Jacob
+Проданный братьями, стал правителем Египта	Sold by his brothers, he became ruler of Egypt	Von seinen Brüdern verkauft, wurde er Herrscher Ägyptens	Vendido por sus hermanos, llegó a gobernar Egipto
+Вывел народ из Египта, принял закон на Синае	Led the people out of Egypt and received the Law at Sinai	Führte das Volk aus Ägypten und empfing am Sinai das Gesetz	Sacó al pueblo de Egipto y recibió la Ley en el Sinaí
+Брат Моисея, первый первосвященник	Brother of Moses, the first high priest	Bruder des Mose, erster Hohepriester	Hermano de Moisés, primer sumo sacerdote
+сестра Моисея	sister of Moses	Schwester des Mose	hermana de Moisés
+Сестра Моисея и Аарона, пророчица	Sister of Moses and Aaron, a prophetess	Schwester von Mose und Aaron, Prophetin	Hermana de Moisés y Aarón, profetisa
+Священник Мадиамский, тесть Моисея	Priest of Midian, father-in-law of Moses	Priester von Midian, Schwiegervater des Mose	Sacerdote de Madián, suegro de Moisés
+Сепфора	Zipporah	Zippora	Séfora
+Жена Моисея, дочь Иофора	Wife of Moses, daughter of Jethro	Frau des Mose, Tochter Jitros	Esposa de Moisés, hija de Jetro
+Преемник Моисея, ввёл народ в Землю обетованную	Successor of Moses, led the people into the Promised Land	Nachfolger des Mose, führte das Volk ins Gelobte Land	Sucesor de Moisés, condujo al pueblo a la Tierra Prometida
+Халев	Caleb	Kaleb	Caleb
+Соглядатай, который верил Богу	The spy who trusted God	Kundschafter, der Gott vertraute	El espía que confió en Dios
+Укрыла соглядатаев Израиля	Hid the spies of Israel	Versteckte die Kundschafter Israels	Escondió a los espías de Israel
+Пророчица и судья Израиля	Prophetess and judge of Israel	Prophetin und Richterin Israels	Profetisa y jueza de Israel
+Военачальник, победивший Сисару	Commander who defeated Sisera	Heerführer, der Sisera besiegte	Caudillo que venció a Sísara
+Судья, победивший мадианитян тремястами воинов	Judge who defeated the Midianites with three hundred men	Richter, der die Midianiter mit dreihundert Mann besiegte	Juez que venció a los madianitas con trescientos hombres
+Назорей, наделённый великой силой	A Nazirite given great strength	Ein Nasiräer mit gewaltiger Kraft	Nazareo dotado de gran fuerza
+Моавитянка, прабабушка царя Давида	A Moabitess, great-grandmother of King David	Moabiterin, Urgroßmutter König Davids	Moabita, bisabuela del rey David
+Ноеминь	Naomi	Noomi	Noemí
+Свекровь Руфи	Ruth's mother-in-law	Schwiegermutter Ruts	Suegra de Rut
+Муж Руфи, прадед царя Давида	Ruth's husband, great-grandfather of King David	Ruts Mann, Urgroßvater König Davids	Esposo de Rut, bisabuelo del rey David
+мать Самуила	mother of Samuel	Mutter Samuels	madre de Samuel
+Вымолила у Бога сына Самуила	Prayed to God for her son Samuel	Erbat von Gott ihren Sohn Samuel	Pidió a Dios a su hijo Samuel
+Илий	Eli	Eli	Elí
+Первосвященник, учитель Самуила	High priest, Samuel's teacher	Hohepriester, Lehrer Samuels	Sumo sacerdote, maestro de Samuel
+Пророк и последний судья, помазал Саула и Давида	Prophet and last judge; anointed Saul and David	Prophet und letzter Richter; salbte Saul und David	Profeta y último juez; ungió a Saúl y a David
+Первый царь Израиля	First king of Israel	Erster König Israels	Primer rey de Israel
+Сын Саула, верный друг Давида	Saul's son, David's faithful friend	Sauls Sohn, Davids treuer Freund	Hijo de Saúl, amigo fiel de David
+Пастух, победивший Голиафа, царь Израиля	Shepherd who slew Goliath, king of Israel	Hirte, der Goliat besiegte, König Israels	Pastor que venció a Goliat, rey de Israel
+Сын Давида, восставший против отца	David's son who rebelled against his father	Davids Sohn, der sich gegen den Vater erhob	Hijo de David que se rebeló contra su padre
+Мудрый царь, построивший Храм	The wise king who built the Temple	Der weise König, der den Tempel baute	El rey sabio que edificó el Templo
+Хирам	Hiram	Hiram	Hiram
+царь Тирский	king of Tyre	König von Tyrus	rey de Tiro
+Царь, присылавший кедры для Храма	King who sent cedars for the Temple	König, der Zedern für den Tempel schickte	Rey que envió cedros para el Templo
+Нечестивый царь Израиля	Wicked king of Israel	Gottloser König Israels	Rey impío de Israel
+Жена Ахава, гонительница пророков	Ahab's wife, persecutor of the prophets	Ahabs Frau, Verfolgerin der Propheten	Esposa de Acab, perseguidora de los profetas
+Пророк, взятый на небо в огненной колеснице	Prophet taken up to heaven in a chariot of fire	Prophet, im feurigen Wagen in den Himmel entrückt	Profeta llevado al cielo en un carro de fuego
+Ученик и преемник Илии	Disciple and successor of Elijah	Schüler und Nachfolger Elias	Discípulo y sucesor de Elías
+Сирийский военачальник, исцелённый от проказы	Syrian commander healed of leprosy	Syrischer Heerführer, vom Aussatz geheilt	General sirio sanado de la lepra
+Пророк, три дня бывший во чреве кита	Prophet who spent three days inside the great fish	Prophet, drei Tage im Bauch des Fisches	Profeta que pasó tres días en el vientre del gran pez
+Благочестивый царь, нашедший книгу закона	Godly king in whose days the Book of the Law was found	Frommer König, unter dem das Gesetzbuch gefunden wurde	Rey piadoso en cuyos días se halló el libro de la Ley
+Сеннахирим	Sennacherib	Sanherib	Senaquerib
+Царь Ассирийский, осаждавший Иудею	King of Assyria who besieged Judah	König von Assyrien, der Juda belagerte	Rey de Asiria que sitió Judá
+Пророк, возвестивший о Мессии	Prophet who foretold the Messiah	Prophet, der den Messias ankündigte	Profeta que anunció al Mesías
+Плачущий пророк	The weeping prophet	Der weinende Prophet	El profeta llorón
+Пророк в вавилонском плену	Prophet in the Babylonian captivity	Prophet in der babylonischen Gefangenschaft	Profeta en el cautiverio babilónico
+Пророк, спасённый из львиного рва	Prophet saved from the lions' den	Prophet, aus der Löwengrube gerettet	Profeta librado del foso de los leones
+Царь Вавилонский, разрушивший Иерусалим	King of Babylon who destroyed Jerusalem	König von Babel, der Jerusalem zerstörte	Rey de Babilonia que destruyó Jerusalén
+Царица, спасшая свой народ	Queen who saved her people	Königin, die ihr Volk rettete	Reina que salvó a su pueblo
+Воспитатель Есфири	Esther's guardian	Esters Pflegevater	Tutor de Ester
+Книжник, вернувший народ к закону	Scribe who brought the people back to the Law	Schriftgelehrter, der das Volk zum Gesetz zurückführte	Escriba que devolvió al pueblo a la Ley
+Восстановил стены Иерусалима	Rebuilt the walls of Jerusalem	Baute die Mauern Jerusalems wieder auf	Reedificó los muros de Jerusalén
+Евангелия	Gospels	Evangelien	Evangelios
+Сын Божий, Спаситель мира	Son of God, Saviour of the world	Sohn Gottes, Retter der Welt	Hijo de Dios, Salvador del mundo
+Матерь Иисуса	mother of Jesus	Mutter Jesu	madre de Jesús
+Матерь Господа Иисуса	Mother of the Lord Jesus	Mutter des Herrn Jesus	Madre del Señor Jesús
+муж Марии	husband of Mary	Mann Marias	esposo de María
+Обручник Девы Марии	Betrothed of the Virgin Mary	Verlobter der Jungfrau Maria	Prometido de la Virgen María
+Пророк, крестивший Иисуса	Prophet who baptized Jesus	Prophet, der Jesus taufte	Profeta que bautizó a Jesús
+Симон, Кифа	Simon, Cephas	Simon, Kephas	Simón, Cefas
+Апостол, рыбак из Галилеи	Apostle, a fisherman from Galilee	Apostel, Fischer aus Galiläa	Apóstol, pescador de Galilea
+Первозванный апостол, брат Петра	The first-called apostle, Peter's brother	Der Erstberufene, Bruder des Petrus	El primer llamado, hermano de Pedro
+Апостол, приведший Нафанаила	Apostle who brought Nathanael	Apostel, der Natanael brachte	Apóstol que trajo a Natanael
+Нафанаил	Nathanael	Natanael	Natanael
+Израильтянин, в котором нет лукавства	An Israelite in whom there is no guile	Ein Israelit, in dem kein Falsch ist	Un israelita en quien no hay engaño
+Начальник мытарей, залезший на смоковницу	Chief tax collector who climbed a sycamore tree	Oberzöllner, der auf einen Maulbeerfeigenbaum stieg	Jefe de los publicanos que subió a un sicómoro
+Друг Иисуса, воскрешённый на четвёртый день	Friend of Jesus, raised on the fourth day	Freund Jesu, am vierten Tag auferweckt	Amigo de Jesús, resucitado al cuarto día
+Сестра Лазаря	Sister of Lazarus	Schwester des Lazarus	Hermana de Lázaro
+Мария Магдалина	Mary Magdalene	Maria Magdalena	María Magdalena
+Первой увидела воскресшего Христа	First to see the risen Christ	Sah als Erste den auferstandenen Christus	La primera en ver a Cristo resucitado
+Деяния	Acts	Apostelgeschichte	Hechos
+Первый мученик за Христа	First martyr for Christ	Erster Märtyrer für Christus	Primer mártir por Cristo
+благовестник	evangelist	Evangelist	evangelista
+Один из семи диаконов	One of the seven deacons	Einer der sieben Diakone	Uno de los siete diáconos
+Тавифа	Tabitha	Tabita	Tabita
+Ученица, воскрешённая Петром	Disciple raised to life by Peter	Jüngerin, von Petrus auferweckt	Discípula resucitada por Pedro
+Римский сотник, первый крещёный из язычников	Roman centurion, the first Gentile to be baptized	Römischer Hauptmann, als erster Heide getauft	Centurión romano, el primer gentil bautizado
+Савл	Saul	Saulus	Saulo
+Апостол язычников, совершил долгие путешествия	Apostle to the Gentiles, made long journeys	Apostel der Heiden, unternahm weite Reisen	Apóstol de los gentiles, hizo largos viajes
+Спутник Павла, «сын утешения»	Companion of Paul, "son of encouragement"	Begleiter des Paulus, „Sohn des Trostes“	Compañero de Pablo, «hijo de consolación»
+Спутник Павла во втором путешествии	Paul's companion on the second journey	Begleiter des Paulus auf der zweiten Reise	Compañero de Pablo en el segundo viaje
+Ученик и помощник Павла	Disciple and helper of Paul	Schüler und Helfer des Paulus	Discípulo y ayudante de Pablo
+Лидия	Lydia	Lydia	Lidia
+Торговка багряницей, первая крещёная в Европе	Seller of purple, the first baptized in Europe	Purpurhändlerin, die erste Getaufte in Europa	Vendedora de púrpura, la primera bautizada en Europa
+Акила и Прискилла	Aquila and Priscilla	Aquila und Priszilla	Aquila y Priscila
+Супруги-палаточники, друзья Павла	Tentmaker couple, friends of Paul	Zeltmacher-Ehepaar, Freunde des Paulus	Matrimonio de fabricantes de tiendas, amigos de Pablo
+Красноречивый учитель	An eloquent teacher	Ein beredter Lehrer	Un maestro elocuente
+Любимый ученик, автор Откровения	The beloved disciple, author of Revelation	Der Lieblingsjünger, Verfasser der Offenbarung	El discípulo amado, autor del Apocalipsis
+Ученик Павла	Disciple of Paul	Schüler des Paulus	Discípulo de Pablo
+Путь в Дамаск	Road to Damascus	Weg nach Damaskus	Camino a Damasco
+Первое путешествие Павла	Paul's first journey	Erste Reise des Paulus	Primer viaje de Pablo
+Второе путешествие Павла	Paul's second journey	Zweite Reise des Paulus	Segundo viaje de Pablo
+Третье путешествие Павла	Paul's third journey	Dritte Reise des Paulus	Tercer viaje de Pablo
+Плавание Павла в Рим	Paul's voyage to Rome	Seereise des Paulus nach Rom	Viaje de Pablo a Roma
+Великое море	Great Sea	Großes Meer	Mar Grande
+море Соленое	Salt Sea	Salzmeer	mar Salado
+море Галилейское	Sea of Galilee	Galiläisches Meer	mar de Galilea
+Ливия	Libya	Libyen	Libia
+Месопотамия	Mesopotamia	Mesopotamien	Mesopotamia
+Халдея	Chaldea	Chaldäa	Caldea
+Финикия	Phoenicia	Phönizien	Fenicia
+Иудея	Judea	Judäa	Judea
+Васан	Bashan	Baschan	Basán
+пустыня Синайская	wilderness of Sinai	Wüste Sinai	desierto de Sinaí
+Киликия	Cilicia	Kilikien	Cilicia
+Каппадокия	Cappadocia	Kappadozien	Capadocia
+Галатия	Galatia	Galatien	Galacia
+Фригия	Phrygia	Phrygien	Frigia
+Писидия	Pisidia	Pisidien	Pisidia
+Памфилия	Pamphylia	Pamphylien	Panfilia
+Асия	Asia	Asia	Asia
+Мисия	Mysia	Mysien	Misia
+Вифиния	Bithynia	Bithynien	Bitinia
+Понт	Pontus	Pontus	Ponto
+Македония	Macedonia	Makedonien	Macedonia
+Ахаия	Achaia	Achaja	Acaya
+Средиземное море	Mediterranean Sea	Mittelmeer	mar Mediterráneo
+Эгейское море	Aegean Sea	Ägäisches Meer	mar Egeo
+Ионическое море	Ionian Sea	Ionisches Meer	mar Jónico
+Адриатическое море	Adriatic Sea	Adriatisches Meer	mar Adriático
+Тирренское море	Tyrrhenian Sea	Tyrrhenisches Meer	mar Tirreno
+Черное море	Black Sea	Schwarzes Meer	mar Negro
+Персидский залив	Persian Gulf	Persischer Golf	golfo Pérsico
+Суэцкий залив	Gulf of Suez	Golf von Suez	golfo de Suez
+Акабский залив	Gulf of Aqaba	Golf von Akaba	golfo de Áqaba
+Мертвое море	Dead Sea	Totes Meer	mar Muerto
+озеро Кинерет	Lake Kinneret	See Genezareth	lago de Tiberíades
+Кувейт	Kuwait	Kuwait	Kuwait
+Болгария	Bulgaria	Bulgarien	Bulgaria
+Албания	Albania	Albanien	Albania
+Северная Македония	North Macedonia	Nordmazedonien	Macedonia del Norte
+Армения	Armenia	Armenien	Armenia
+Грузия	Georgia	Georgien	Georgia
+Западный берег	West Bank	Westjordanland	Cisjordania
+Нил	Nile	Nil	Nilo
+Евфрат	Euphrates	Euphrat	Éufrates
+Хиддекель	Hiddekel	Hiddekel	Hidekel
+Шатт-эль-Араб	Shatt al-Arab	Schatt al-Arab	Shatt al-Arab
+Улай	Ulai	Ulai	Ulai
+Керхе	Karkheh	Karche	Karkheh
+Тибр	Tiber	Tiber	Tíber
+Струма	Struma	Struma	Struma
+Бююк-Мендерес	Büyük Menderes	Büyük Menderes	Büyük Menderes
+Кызылырмак	Kızılırmak	Kızılırmak	Kızılırmak
+Аси	Asi (Orontes)	Asi (Orontes)	Asi (Orontes)
+Каир	Cairo	Kairo	El Cairo
+Багдад	Baghdad	Bagdad	Bagdad
+Бейрут	Beirut	Beirut	Beirut
+Амман	Amman	Amman	Amán
+Хайфа	Haifa	Haifa	Haifa
+Алеппо	Aleppo	Aleppo	Alepo
+Анкара	Ankara	Ankara	Ankara
+Стамбул	Istanbul	Istanbul	Estambul
+Измир	Izmir	Izmir	Esmirna
+Триполи	Tripoli	Tripolis	Trípoli
+Бенгази	Benghazi	Bengasi	Bengasi
+Суэц	Suez	Sues	Suez
+Порт-Саид	Port Said	Port Said	Puerto Saíd
+Басра	Basra	Basra	Basora
+Табук	Tabuk	Tabuk	Tabuk
+Ереван	Yerevan	Jerewan	Ereván
+Тебриз	Tabriz	Täbris	Tabriz
+Здесь после потопа остановился ковчег	Here the ark came to rest after the flood	Hier ließ sich die Arche nach der Flut nieder	Aquí reposó el arca después del diluvio
+Вышел с отцом Фаррой из Ура Халдейского	Set out with his father Terah from Ur of the Chaldeans	Zog mit seinem Vater Terach aus Ur in Chaldäa	Salió con su padre Taré de Ur de los caldeos
+Жил в Харране и в 75 лет вышел оттуда по слову Господа	Lived in Haran and left it at 75 at the word of the Lord	Wohnte in Haran und zog mit 75 Jahren auf das Wort des Herrn fort	Vivió en Harán y a los 75 años salió de allí por la palabra del Señor
+Первая остановка в земле Ханаанской — у дубравы Море	His first stop in the land of Canaan, by the oak of Moreh	Erste Station im Land Kanaan, bei der Eiche More	Primera parada en la tierra de Canaán, junto al encino de More
+Поставил шатёр между Вефилем и Гаем и построил жертвенник	Pitched his tent between Bethel and Ai and built an altar	Schlug sein Zelt zwischen Bethel und Ai auf und baute einen Altar	Plantó su tienda entre Betel y Hai y edificó un altar
+Во время голода ушёл в Египет	Went down to Egypt during a famine	Zog während einer Hungersnot nach Ägypten	Descendió a Egipto durante una hambruna
+Поселился у дубравы Мамре, что в Хевроне	Settled by the oaks of Mamre at Hebron	Ließ sich bei den Eichen Mamres in Hebron nieder	Se estableció junto al encinar de Mamre, en Hebrón
+Жил на время в Гераре у царя Авимелеха	Stayed for a time in Gerar with King Abimelech	Wohnte eine Zeit lang in Gerar bei König Abimelech	Habitó un tiempo en Gerar con el rey Abimelec
+Заключил союз с Авимелехом у колодца клятвы	Made a covenant with Abimelech at the well of the oath	Schloss mit Abimelech einen Bund am Brunnen des Schwurs	Hizo pacto con Abimelec junto al pozo del juramento
+Привёл Исаака на гору в земле Мориа	Brought Isaac to a mountain in the land of Moriah	Führte Isaak auf einen Berg im Land Morija	Llevó a Isaac a un monte en la tierra de Moriah
+Вышла вместе с Аврамом из Ура Халдейского	Left Ur of the Chaldeans together with Abram	Zog mit Abram aus Ur in Chaldäa	Salió con Abram de Ur de los caldeos
+Ушла с мужем из Харрана в землю Ханаанскую	Went with her husband from Haran to the land of Canaan	Zog mit ihrem Mann von Haran ins Land Kanaan	Fue con su esposo de Harán a la tierra de Canaán
+Египтяне увидели, что она весьма красива	The Egyptians saw that she was very beautiful	Die Ägypter sahen, dass sie sehr schön war	Los egipcios vieron que era muy hermosa
+Царь Герарский Авимелех взял её, но Бог заступился	Abimelech, king of Gerar, took her, but God intervened	Abimelech, der König von Gerar, nahm sie, doch Gott griff ein	Abimelec, rey de Gerar, la tomó, pero Dios intervino
+Умерла в Кириаф-Арбе, что ныне Хеврон	Died at Kiriath Arba, that is, Hebron	Starb in Kirjat-Arba, das ist Hebron	Murió en Quiriat-arba, que es Hebrón
+Вышел с дедом Фаррой и Аврамом из Ура Халдейского	Left Ur of the Chaldeans with his grandfather Terah and Abram	Zog mit seinem Großvater Terach und Abram aus Ur in Chaldäa	Salió con su abuelo Taré y con Abram de Ur de los caldeos
+Пошёл с Аврамом из Харрана	Went with Abram from Haran	Zog mit Abram von Haran fort	Salió con Abram de Harán
+Вернулся с Аврамом из Египта	Came back with Abram from Egypt	Kehrte mit Abram aus Ägypten zurück	Volvió con Abram de Egipto
+Здесь стада Лота и Аврама стали тесниться	Here Lot's and Abram's flocks grew too many for the land	Hier wurde es den Herden Lots und Abrams zu eng	Aquí los rebaños de Lot y de Abram ya no cabían juntos
+Сидел у ворот Содома, когда пришли два Ангела	Was sitting at the gate of Sodom when two angels came	Saß im Tor von Sodom, als zwei Engel kamen	Estaba sentado a la puerta de Sodoma cuando llegaron dos ángeles
+Спасся в маленький город Сигор	Escaped to the little town of Zoar	Rettete sich in die kleine Stadt Zoar	Se salvó en la pequeña ciudad de Zoar
+Была родом Египтянка	She was an Egyptian	Sie war Ägypterin	Era egipcia
+Блуждала с сыном в пустыне Вирсавии	Wandered with her son in the wilderness of Beersheba	Irrte mit ihrem Sohn in der Wüste von Beerscheba umher	Anduvo errante con su hijo por el desierto de Beerseba
+Отец привёл его на гору в земле Мориа	His father brought him to a mountain in the land of Moriah	Sein Vater führte ihn auf einen Berg im Land Morija	Su padre lo llevó a un monte en la tierra de Moriah
+Во время голода поселился в Гераре	Settled in Gerar during a famine	Ließ sich während einer Hungersnot in Gerar nieder	Se estableció en Gerar durante una hambruna
+Перешёл в Вирсавию, где Господь явился ему	Moved to Beersheba, where the Lord appeared to him	Zog nach Beerscheba, wo ihm der Herr erschien	Subió a Beerseba, donde el Señor se le apareció
+Жил в Мамре, то есть в Хевроне	Lived at Mamre, that is, Hebron	Wohnte in Mamre, das ist Hebron	Vivió en Mamre, que es Hebrón
+Её брат Лаван жил в Харране — туда она отослала Иакова	Her brother Laban lived in Haran, and she sent Jacob there	Ihr Bruder Laban wohnte in Haran — dorthin schickte sie Jakob	Su hermano Labán vivía en Harán, y allí envió a Jacob
+Жила с Исааком в Гераре	Lived with Isaac in Gerar	Wohnte mit Isaak in Gerar	Vivió con Isaac en Gerar
+Вышел из Вирсавии и пошёл в Харран	Left Beersheba and set out for Haran	Zog von Beerscheba aus und ging nach Haran	Salió de Beerseba y fue a Harán
+Видел во сне лестницу и назвал место Вефиль	Dreamed of a ladder and called the place Bethel	Sah im Traum eine Leiter und nannte den Ort Bethel	Soñó con una escalera y llamó al lugar Betel
+Двадцать лет служил у Лавана в Харране	Served Laban in Haran for twenty years	Diente Laban zwanzig Jahre in Haran	Sirvió a Labán en Harán durante veinte años
+Встретил Ангелов Божиих и назвал место Маханаим	Met the angels of God and called the place Mahanaim	Begegnete den Engeln Gottes und nannte den Ort Mahanajim	Se encontró con los ángeles de Dios y llamó al lugar Mahanaim
+Построил себе дом и шалаши для скота	Built himself a house and shelters for his livestock	Baute sich ein Haus und Hütten für sein Vieh	Se edificó una casa e hizo cabañas para su ganado
+Купил участок поля у города Сихема	Bought a piece of land near the city of Shechem	Kaufte ein Stück Feld bei der Stadt Sichem	Compró una parte del campo junto a la ciudad de Siquem
+По дороге в Ефрафу, то есть Вифлеем, умерла Рахиль	On the road to Ephrath, that is, Bethlehem, Rachel died	Auf dem Weg nach Efrata, das ist Bethlehem, starb Rahel	En el camino a Efrata, que es Belén, murió Raquel
+Пришёл к отцу Исааку в Мамре, то есть Хеврон	Came to his father Isaac at Mamre, that is, Hebron	Kam zu seinem Vater Isaak nach Mamre, das ist Hebron	Llegó adonde su padre Isaac, a Mamre, que es Hebrón
+Жил с сыновьями в земле Гесем	Lived with his sons in the land of Goshen	Wohnte mit seinen Söhnen im Land Goschen	Vivió con sus hijos en la tierra de Gosén
+Иаков встретил её у колодца в Харране	Jacob met her at a well near Haran	Jakob begegnete ihr an einem Brunnen bei Haran	Jacob la encontró junto a un pozo cerca de Harán
+Вышла с семьёй из Вефиля	Set out with her family from Bethel	Zog mit der Familie von Bethel fort	Partió con su familia de Betel
+Умерла и погребена на дороге в Ефрафу, то есть Вифлеем	Died and was buried on the road to Ephrath, that is, Bethlehem	Starb und wurde am Weg nach Efrata, das ist Bethlehem, begraben	Murió y fue sepultada en el camino a Efrata, que es Belén
+Поселился на горе Сеир	Settled in the hill country of Seir	Ließ sich auf dem Gebirge Seïr nieder	Se estableció en el monte Seir
+Вместе с Иаковом похоронил отца Исаака	Buried his father Isaac together with Jacob	Begrub zusammen mit Jakob seinen Vater Isaak	Sepultó a su padre Isaac junto con Jacob
+Отец послал его из долины Хевронской к братьям	His father sent him from the valley of Hebron to his brothers	Sein Vater sandte ihn aus dem Tal von Hebron zu seinen Brüdern	Su padre lo envió desde el valle de Hebrón a buscar a sus hermanos
+Искал братьев у Сихема	Looked for his brothers near Shechem	Suchte seine Brüder bei Sichem	Buscó a sus hermanos cerca de Siquem
+Нашёл братьев в Дофане — здесь его продали	Found his brothers at Dothan, where he was sold	Fand seine Brüder in Dotan — dort wurde er verkauft	Halló a sus hermanos en Dotán, donde fue vendido
+Был отведён в Египет и продан Потифару	Was taken down to Egypt and sold to Potiphar	Wurde nach Ägypten gebracht und an Potifar verkauft	Fue llevado a Egipto y vendido a Potifar
+Встретил отца Израиля в земле Гесем	Met his father Israel in the land of Goshen	Traf seinen Vater Israel im Land Goschen	Salió al encuentro de su padre Israel en Gosén
+Вырос в Египте, в доме дочери фараона	Grew up in Egypt in the house of Pharaoh's daughter	Wuchs in Ägypten im Haus der Tochter des Pharao auf	Creció en Egipto, en casa de la hija del faraón
+Бежал от фараона в землю Мадиамскую	Fled from Pharaoh to the land of Midian	Floh vor dem Pharao ins Land Midian	Huyó del faraón a la tierra de Madián
+У горы Божией, Хорива, увидел горящий куст	At Horeb, the mountain of God, he saw the burning bush	Am Horeb, dem Berg Gottes, sah er den brennenden Dornbusch	En Horeb, el monte de Dios, vio la zarza ardiente
+Перевёл народ через Чермное море	Led the people through the Red Sea	Führte das Volk durch das Schilfmeer	Condujo al pueblo a través del mar Rojo
+Бросил в горькую воду дерево — и она стала сладкой	Threw a tree into the bitter water, and it became sweet	Warf ein Holz in das bittere Wasser, und es wurde süß	Echó un árbol en el agua amarga, y se endulzó
+Стан у двенадцати источников и семидесяти пальм	Camp by twelve springs and seventy palm trees	Lager bei zwölf Quellen und siebzig Palmen	Campamento junto a doce fuentes y setenta palmeras
+В Рефидиме не было воды — Моисей извёл её из скалы	There was no water at Rephidim; Moses brought it out of the rock	In Refidim gab es kein Wasser — Mose schlug es aus dem Felsen	En Refidim no había agua; Moisés la sacó de la peña
+Стан в Кадесе: здесь народ возроптал без воды	Camp at Kadesh: here the people grumbled for lack of water	Lager in Kadesch: hier murrte das Volk, weil es kein Wasser gab	Campamento en Cades: aquí el pueblo murmuró por falta de agua
+Взошёл с Аароном на гору Ор	Went up Mount Hor with Aaron	Stieg mit Aaron auf den Berg Hor	Subió con Aarón al monte Hor
+С горы Нево увидел всю Землю обетованную	From Mount Nebo he saw the whole Promised Land	Sah vom Berg Nebo aus das ganze Gelobte Land	Desde el monte Nebo vio toda la Tierra Prometida
+Умер в земле Моавитской	Died in the land of Moab	Starb im Land Moab	Murió en la tierra de Moab
+Встретил Моисея у горы Божией	Met Moses at the mountain of God	Traf Mose am Berg Gottes	Se encontró con Moisés en el monte de Dios
+По слову Господа простёр жезл на воды Египта	At the Lord's word stretched out his rod over the waters of Egypt	Streckte auf das Wort des Herrn den Stab über die Wasser Ägyptens aus	Por palabra del Señor extendió la vara sobre las aguas de Egipto
+В Кадесе народ собрался против Моисея и Аарона	At Kadesh the people gathered against Moses and Aaron	In Kadesch rottete sich das Volk gegen Mose und Aaron zusammen	En Cades el pueblo se juntó contra Moisés y Aarón
+Умер на вершине горы Ор	Died on the top of Mount Hor	Starb auf dem Gipfel des Berges Hor	Murió en la cumbre del monte Hor
+С тимпаном воспела Господа после перехода через море	With a timbrel she sang to the Lord after crossing the sea	Sang dem Herrn mit der Pauke nach dem Durchzug durchs Meer	Cantó al Señor con pandero después de cruzar el mar
+Умерла и погребена в Кадесе	Died and was buried at Kadesh	Starb und wurde in Kadesch begraben	Murió y fue sepultada en Cades
+Был священником Мадиамским; у него Моисей пас овец	He was the priest of Midian; Moses kept his flock	Er war Priester in Midian; Mose hütete seine Schafe	Era sacerdote de Madián; Moisés apacentaba sus ovejas
+Одна из семи дочерей священника Мадиамского; стала женой Моисея	One of the seven daughters of the priest of Midian; she became Moses' wife	Eine der sieben Töchter des Priesters von Midian; sie wurde die Frau des Mose	Una de las siete hijas del sacerdote de Madián; llegó a ser esposa de Moisés
+Сразился с Амаликом	Fought against Amalek	Kämpfte gegen Amalek	Peleó contra Amalec
+Повёл народ через Иордан	Led the people across the Jordan	Führte das Volk über den Jordan	Condujo al pueblo a través del Jordán
+Поставил в Галгале двенадцать камней из Иордана	Set up twelve stones from the Jordan at Gilgal	Richtete in Gilgal zwölf Steine aus dem Jordan auf	Erigió en Gilgal doce piedras sacadas del Jordán
+Господь предал в его руки Иерихон	The Lord delivered Jericho into his hands	Der Herr gab Jericho in seine Hand	El Señor entregó Jericó en sus manos
+Взял город Гай	Took the city of Ai	Eroberte die Stadt Ai	Tomó la ciudad de Hai
+«Стой, солнце, над Гаваоном!»	"Sun, stand still over Gibeon!"	„Sonne, steh still über Gibeon!“	«¡Sol, detente sobre Gabaón!»
+Бросил жребий о земле пред Господом в Силоме	Cast lots for the land before the Lord at Shiloh	Warf in Silo vor dem Herrn das Los über das Land	Echó suertes sobre la tierra delante del Señor en Silo
+Собрал все колена Израилевы в Сихем	Gathered all the tribes of Israel at Shechem	Versammelte alle Stämme Israels in Sichem	Reunió a todas las tribus de Israel en Siquem
+Был послан Моисеем из Кадес-Варни осмотреть землю	Was sent by Moses from Kadesh Barnea to spy out the land	Wurde von Mose aus Kadesch-Barnea gesandt, das Land zu erkunden	Fue enviado por Moisés desde Cades-barnea a reconocer la tierra
+Получил Хеврон в удел	Received Hebron as his inheritance	Erhielt Hebron zum Erbteil	Recibió Hebrón como heredad
+Жила в Иерихоне и спрятала двух соглядатаев	Lived in Jericho and hid two spies	Wohnte in Jericho und versteckte zwei Kundschafter	Vivía en Jericó y escondió a dos espías
+Судила народ под пальмой между Рамою и Вефилем	Judged the people under a palm tree between Ramah and Bethel	Richtete das Volk unter einer Palme zwischen Rama und Bethel	Juzgaba al pueblo bajo una palmera entre Ramá y Betel
+Сидела под пальмой Деворы между Рамою и Вефилем	Sat under the Palm of Deborah between Ramah and Bethel	Saß unter der Palme Deboras zwischen Rama und Bethel	Se sentaba bajo la palmera de Débora entre Ramá y Betel
+Послала Варака собрать войско на горе Фавор	Sent Barak to gather an army on Mount Tabor	Sandte Barak, auf dem Berg Tabor ein Heer zu sammeln	Envió a Barac a reunir un ejército en el monte Tabor
+Сошёл с горы Фавор с десятью тысячами воинов	Came down from Mount Tabor with ten thousand men	Zog mit zehntausend Mann vom Berg Tabor herab	Descendió del monte Tabor con diez mil hombres
+Молотил пшеницу в Офре, когда явился Ангел	Was threshing wheat at Ophrah when the angel appeared	Drosch Weizen in Ofra, als der Engel erschien	Sacudía el trigo en Ofra cuando se apareció el ángel
+Просил хлеба для усталых воинов у жителей Сокхофа	Asked the men of Succoth for bread for his weary soldiers	Bat die Leute von Sukkot um Brot für seine müden Krieger	Pidió pan a los de Sucot para sus soldados cansados
+Дух Господень начал действовать в нём между Цорою и Естаолом	The Spirit of the Lord began to move him between Zorah and Eshtaol	Der Geist des Herrn fing an, ihn zu treiben, zwischen Zora und Eschtaol	El Espíritu del Señor comenzó a manifestarse en él entre Zora y Estaol
+Сходил в Фимнафу и увидел там Филистимлянку	Went down to Timnah and saw a Philistine woman there	Ging hinab nach Timna und sah dort eine Philisterin	Descendió a Timnat y vio allí a una mujer filistea
+Сошёл в Аскалон и поразил тридцать человек	Went down to Ashkelon and struck down thirty men	Ging hinab nach Aschkelon und erschlug dreißig Mann	Descendió a Ascalón y mató a treinta hombres
+Унёс городские ворота Газы на вершину горы	Carried the city gates of Gaza to the top of a hill	Trug die Stadttore von Gaza auf den Gipfel eines Berges	Llevó las puertas de la ciudad de Gaza a la cumbre de un monte
+Пришла с полей Моавитских	Came from the country of Moab	Kam aus dem Land Moab	Vino de los campos de Moab
+Пришла со свекровью в Вифлеем в начале жатвы	Came to Bethlehem with her mother-in-law at the beginning of the harvest	Kam mit ihrer Schwiegermutter zu Beginn der Ernte nach Bethlehem	Llegó con su suegra a Belén al comienzo de la siega
+Была родом из Вифлеема Иудина	Was from Bethlehem in Judah	Stammte aus Bethlehem in Juda	Era de Belén de Judá
+Ушла с мужем на поля Моавитские от голода	Went with her husband to the country of Moab to escape famine	Zog mit ihrem Mann wegen einer Hungersnot ins Land Moab	Fue con su esposo a los campos de Moab huyendo del hambre
+Пришёл из Вифлеема на своё поле к жнецам	Came from Bethlehem to his reapers in the field	Kam aus Bethlehem auf sein Feld zu den Schnittern	Vino de Belén a su campo, donde estaban los segadores
+Привела маленького Самуила в дом Господа в Силом	Brought little Samuel to the house of the Lord at Shiloh	Brachte den kleinen Samuel ins Haus des Herrn nach Silo	Llevó al pequeño Samuel a la casa del Señor en Silo
+Жила с мужем Елканой в Раме	Lived with her husband Elkanah in Ramah	Wohnte mit ihrem Mann Elkana in Rama	Vivía con su esposo Elcana en Ramá
+Был священником в Силоме	Was priest at Shiloh	War Priester in Silo	Era sacerdote en Silo
+Господь открывался ему в Силоме	The Lord revealed himself to him at Shiloh	Der Herr offenbarte sich ihm in Silo	El Señor se le revelaba en Silo
+Собрал весь Израиль в Массифу на молитву	Gathered all Israel at Mizpah for prayer	Versammelte ganz Israel in Mizpa zum Gebet	Reunió a todo Israel en Mizpa para orar
+Каждый год обходил Вефиль, Галгал и Массифу	Every year he went round Bethel, Gilgal and Mizpah	Zog jedes Jahr umher nach Bethel, Gilgal und Mizpa	Cada año recorría Betel, Gilgal y Mizpa
+Судил Израиль и в Галгале	Judged Israel at Gilgal too	Richtete Israel auch in Gilgal	Juzgaba a Israel también en Gilgal
+В Раме был его дом	His home was in Ramah	In Rama war sein Haus	Su casa estaba en Ramá
+Пришёл в Вифлеем помазать Давида	Came to Bethlehem to anoint David	Kam nach Bethlehem, um David zu salben	Fue a Belén para ungir a David
+Здесь жребий указал на Саула	Here the lot fell on Saul	Hier fiel das Los auf Saul	Aquí la suerte cayó sobre Saúl
+Его дом был в Гиве	His home was in Gibeah	Sein Haus war in Gibea	Su casa estaba en Gabaa
+Народ поставил его царём в Галгале	The people made him king at Gilgal	Das Volk machte ihn in Gilgal zum König	El pueblo lo proclamó rey en Gilgal
+Стоял с войском в Михмасе	Was encamped with his army at Michmash	Lagerte mit seinem Heer in Michmas	Acampaba con su ejército en Micmas
+Искал волшебницу в Аэндоре	Sought out a medium at Endor	Suchte in En-Dor eine Totenbeschwörerin auf	Buscó a una adivina en Endor
+Погиб с сыновьями на горе Гелвуйской	Fell with his sons on Mount Gilboa	Fiel mit seinen Söhnen auf dem Gebirge Gilboa	Cayó con sus hijos en el monte Gilboa
+Стоял с тысячей воинов в Гиве Вениаминовой	Held Gibeah of Benjamin with a thousand men	Stand mit tausend Mann in Gibea in Benjamin	Estaba con mil hombres en Gabaa de Benjamín
+Поднялся с оруженосцем к Филистимлянам у Михмаса	Climbed up with his armour-bearer to the Philistines at Michmash	Stieg mit seinem Waffenträger zu den Philistern bei Michmas hinauf	Subió con su escudero hacia los filisteos junto a Micmas
+Погиб в битве на горе Гелвуе	Fell in battle on Mount Gilboa	Fiel in der Schlacht auf dem Gebirge Gilboa	Murió en la batalla del monte Gilboa
+В долине дуба поразил Голиафа	Struck down Goliath in the Valley of Elah	Erschlug Goliat im Eichgrund	Derribó a Goliat en el valle de Ela
+Жил у Анхуса, царя Гефского	Lived with Achish, king of Gath	Wohnte bei Achisch, dem König von Gat	Vivió con Aquis, rey de Gat
+Укрывался в пещере Одолламской	Hid in the cave of Adullam	Versteckte sich in der Höhle Adullam	Se escondió en la cueva de Adulam
+Сложил псалом, когда был в пустыне Иудейской	Wrote a psalm when he was in the wilderness of Judah	Dichtete einen Psalm, als er in der Wüste Juda war	Compuso un salmo cuando estaba en el desierto de Judá
+Жил в безопасных местах Ен-Гадди	Lived in the strongholds of En Gedi	Wohnte auf den Bergfesten von En-Gedi	Habitó en los lugares fuertes de En-gadi
+Получил от Анхуса город Секелаг	Was given the town of Ziklag by Achish	Erhielt von Achisch die Stadt Ziklag	Recibió de Aquis la ciudad de Siclag
+Помазан в Хевроне царём над домом Иудиным	Was anointed at Hebron king over the house of Judah	Wurde in Hebron zum König über das Haus Juda gesalbt	Fue ungido en Hebrón rey sobre la casa de Judá
+Взял крепость Сион — город Давидов	Took the stronghold of Zion, the City of David	Eroberte die Burg Zion, die Stadt Davids	Tomó la fortaleza de Sion, la ciudad de David
+Укрылся в Маханаиме от Авессалома	Took refuge from Absalom at Mahanaim	Zog sich vor Absalom nach Mahanajim zurück	Se refugió de Absalón en Mahanaim
+Бежал в Гессур и пробыл там три года	Fled to Geshur and stayed there three years	Floh nach Geschur und blieb drei Jahre dort	Huyó a Gesur y permaneció allí tres años
+Объявил себя царём в Хевроне	Proclaimed himself king at Hebron	Ließ sich in Hebron zum König ausrufen	Se proclamó rey en Hebrón
+Вошёл с народом в Иерусалим	Entered Jerusalem with the people	Zog mit dem Volk in Jerusalem ein	Entró en Jerusalén con el pueblo
+Принёс тысячу всесожжений; Бог дал ему мудрость	Offered a thousand burnt offerings; God gave him wisdom	Brachte tausend Brandopfer dar; Gott schenkte ihm Weisheit	Ofreció mil holocaustos; Dios le dio sabiduría
+Царствовал в Иерусалиме сорок лет	Reigned in Jerusalem forty years	Regierte vierzig Jahre in Jerusalem	Reinó cuarenta años en Jerusalén
+Построил Храм на горе Мориа	Built the Temple on Mount Moriah	Baute den Tempel auf dem Berg Morija	Edificó el Templo en el monte Moriah
+Сделал корабль в Ецион-Гавере	Built a fleet of ships at Ezion Geber	Baute in Ezjon-Geber Schiffe	Hizo naves en Ezión-geber
+Царь Тирский, друг Давида; прислал слуг к Соломону	King of Tyre, friend of David; sent his servants to Solomon	König von Tyrus, Freund Davids; sandte seine Knechte zu Salomo	Rey de Tiro, amigo de David; envió sus siervos a Salomón
+Царствовал над Израилем в Самарии	Reigned over Israel in Samaria	Regierte über Israel in Samaria	Reinó sobre Israel en Samaria
+Собрал пророков Ваала на гору Кармил	Gathered the prophets of Baal on Mount Carmel	Versammelte die Propheten Baals auf dem Berg Karmel	Reunió a los profetas de Baal en el monte Carmelo
+У дворца в Изрееле захотел виноградник Навуфея	Coveted Naboth's vineyard beside his palace in Jezreel	Begehrte den Weinberg Nabots neben seinem Palast in Jesreel	Codició la viña de Nabot junto a su palacio en Jezreel
+Пошёл войной на Рамоф Галаадский и погиб	Went to war against Ramoth Gilead and was killed	Zog gegen Ramot in Gilead in den Krieg und fiel	Fue a la guerra contra Ramot de Galaad y murió
+Была дочерью Ефваала, царя Сидонского	Was the daughter of Ethbaal, king of the Sidonians	War die Tochter Etbaals, des Königs der Sidonier	Era hija de Et-baal, rey de los sidonios
+Выглянула в окно, когда Ииуй въехал в Изреель	Looked out of the window when Jehu came to Jezreel	Schaute aus dem Fenster, als Jehu nach Jesreel kam	Se asomó a la ventana cuando Jehú llegó a Jezreel
+Вдова в Сарепте кормила его в голод	A widow at Zarephath fed him during the famine	Eine Witwe in Sarepta versorgte ihn in der Hungersnot	Una viuda de Sarepta lo alimentó durante el hambre
+На горе Кармил огонь сошёл на его жертву	On Mount Carmel fire fell on his sacrifice	Auf dem Karmel fiel Feuer auf sein Opfer	En el monte Carmelo cayó fuego sobre su sacrificio
+Бежал перед колесницей Ахава до Изрееля	Ran ahead of Ahab's chariot all the way to Jezreel	Lief vor Ahabs Wagen her bis nach Jesreel	Corrió delante del carro de Acab hasta Jezreel
+Убегая от Иезавели, пришёл в Вирсавию	Fleeing from Jezebel, he came to Beersheba	Auf der Flucht vor Isebel kam er nach Beerscheba	Huyendo de Jezabel, llegó a Beerseba
+Сорок дней шёл до горы Божией Хорива	Walked forty days to Horeb, the mountain of God	Ging vierzig Tage bis zum Horeb, dem Berg Gottes	Caminó cuarenta días hasta Horeb, el monte de Dios
+Пошёл с Елисеем в Вефиль	Went with Elisha to Bethel	Ging mit Elisa nach Bethel	Fue con Eliseo a Betel
+Пришёл с Елисеем в Иерихон	Came with Elisha to Jericho	Kam mit Elisa nach Jericho	Llegó con Eliseo a Jericó
+Ударил милотью по водам Иордана	Struck the waters of the Jordan with his cloak	Schlug mit seinem Mantel auf das Wasser des Jordan	Golpeó las aguas del Jordán con su manto
+Ударил милотью Илии — и воды Иордана расступились	Struck with Elijah's cloak, and the Jordan parted	Schlug mit dem Mantel Elias, und der Jordan teilte sich	Golpeó con el manto de Elías, y las aguas del Jordán se apartaron
+Исцелил воду источника в Иерихоне	Healed the water of the spring at Jericho	Machte das Wasser der Quelle in Jericho gesund	Saneó las aguas del manantial de Jericó
+Шёл из Иерихона в Вефиль	Went up from Jericho to Bethel	Ging von Jericho hinauf nach Bethel	Subió de Jericó a Betel
+Ушёл на гору Кармил	Went on to Mount Carmel	Ging weiter auf den Berg Karmel	Se fue al monte Carmelo
+Вернулся в Самарию	Returned to Samaria	Kehrte nach Samaria zurück	Volvió a Samaria
+Сонамитянка приготовила ему горницу	The Shunammite woman prepared an upper room for him	Die Schunemiterin richtete ihm ein Obergemach ein	La sunamita le preparó un aposento
+В Дофаиме гору вокруг него наполнили огненные колесницы	At Dothan the hills around him were full of chariots of fire	In Dotan war der Berg um ihn voller feuriger Wagen	En Dotán el monte a su alrededor se llenó de carros de fuego
+Пришёл в Дамаск к больному царю Венададу	Came to Damascus when King Ben-Hadad was ill	Kam nach Damaskus zum kranken König Ben-Hadad	Fue a Damasco cuando el rey Ben-adad estaba enfermo
+Хвалил реки Дамасские больше всех вод Израиля	Praised the rivers of Damascus above all the waters of Israel	Lobte die Flüsse von Damaskus mehr als alle Wasser Israels	Alabó los ríos de Damasco por encima de todas las aguas de Israel
+Служанка рассказала о пророке в Самарии	A servant girl told of the prophet in Samaria	Eine Magd erzählte von dem Propheten in Samaria	Una criada le habló del profeta de Samaria
+Окунулся в Иордан семь раз и очистился	Dipped seven times in the Jordan and was cleansed	Tauchte siebenmal im Jordan unter und wurde rein	Se zambulló siete veces en el Jordán y quedó limpio
+Был пророком из Гафхефера	Was a prophet from Gath Hepher	War ein Prophet aus Gat-Hefer	Era profeta de Gat-hefer
+Пытаясь бежать от Господа, сел на корабль в Иоппии	Trying to flee from the Lord, he boarded a ship at Joppa	Auf der Flucht vor dem Herrn bestieg er in Joppe ein Schiff	Tratando de huir del Señor, se embarcó en Jope
+Проповедовал в Ниневии — и город покаялся	Preached in Nineveh, and the city repented	Predigte in Ninive, und die Stadt kehrte um	Predicó en Nínive, y la ciudad se arrepintió
+Царствовал в Иерусалиме тридцать один год	Reigned in Jerusalem thirty-one years	Regierte einunddreißig Jahre in Jerusalem	Reinó treinta y un años en Jerusalén
+Разрушил жертвенник в Вефиле	Tore down the altar at Bethel	Riss den Altar in Bethel nieder	Derribó el altar de Betel
+Погиб в Мегиддоне	Was killed at Megiddo	Fiel bei Megiddo	Murió en Meguido
+Стоял с войском у Лахиса	Was encamped with his army at Lachish	Lag mit seinem Heer vor Lachisch	Estaba con su ejército en Laquis
+Вернулся и жил в Ниневии	Returned and stayed in Nineveh	Kehrte zurück und blieb in Ninive	Volvió y se quedó en Nínive
+Пророчествовал об Иудее и Иерусалиме	Prophesied concerning Judah and Jerusalem	Weissagte über Juda und Jerusalem	Profetizó acerca de Judá y Jerusalén
+Был из священников в Анафофе	Was one of the priests at Anathoth	Stammte aus den Priestern in Anatot	Era de los sacerdotes de Anatot
+Во время осады Иерусалима был заключён во дворе стражи	During the siege of Jerusalem he was shut up in the court of the guard	Während der Belagerung Jerusalems war er im Wachthof eingesperrt	Durante el sitio de Jerusalén estuvo preso en el patio de la guardia
+Был отпущен из оков в Раме	Was released from his chains at Ramah	Wurde in Rama von den Ketten befreit	Fue librado de las cadenas en Ramá
+Пошёл к Годолии в Массифу	Went to Gedaliah at Mizpah	Ging zu Gedalja nach Mizpa	Fue a Gedalías en Mizpa
+Был уведён в Египет, в Тафнис	Was taken to Egypt, to Tahpanhes	Wurde nach Ägypten, nach Tachpanhes, gebracht	Fue llevado a Egipto, a Tafnes
+Был среди переселенцев при реке Ховаре	Was among the exiles by the river Chebar	War unter den Verbannten am Fluss Kebar	Estaba entre los cautivos junto al río Quebar
+В видении перенесён в Иерусалим	Was carried in a vision to Jerusalem	Wurde in einer Vision nach Jerusalem gebracht	Fue llevado en visión a Jerusalén
+Поставлен начальником над областью Вавилонскою	Was made ruler over the province of Babylon	Wurde zum Herrscher über die Provinz Babel gemacht	Fue puesto por gobernador de la provincia de Babilonia
+Видел видение в Сузах у реки Улая	Saw a vision in Susa by the river Ulai	Sah eine Vision in Susa am Fluss Ulai	Tuvo una visión en Susa, junto al río Ulai
+Пришёл к Иерусалиму, когда его слуги осаждали город	Came to Jerusalem while his servants were besieging it	Kam nach Jerusalem, als seine Knechte die Stadt belagerten	Llegó a Jerusalén cuando sus siervos la sitiaban
+«Это ли не величественный Вавилон, который построил я?»	"Is not this great Babylon, which I have built?"	„Ist das nicht das große Babel, das ich erbaut habe?“	«¿No es esta la gran Babilonia que yo edifiqué?»
+Взята в царский дом в Сузах	Was taken into the king's palace in Susa	Wurde in den Königspalast in Susa geholt	Fue llevada al palacio del rey en Susa
+Жил в Сузах, городе престольном	Lived in Susa, the royal city	Wohnte in der Königsstadt Susa	Vivía en Susa, la ciudad real
+Вышел из Вавилона	Came up from Babylon	Zog aus Babel herauf	Subió de Babilonia
+Пришёл в Иерусалим в пятый месяц	Arrived in Jerusalem in the fifth month	Kam im fünften Monat nach Jerusalem	Llegó a Jerusalén en el mes quinto
+Служил виночерпием при царе в Сузах	Was cupbearer to the king in Susa	War Mundschenk des Königs in Susa	Era copero del rey en Susa
+Пришёл в Иерусалим и осмотрел стены ночью	Came to Jerusalem and inspected the walls by night	Kam nach Jerusalem und besichtigte nachts die Mauern	Llegó a Jerusalén y de noche inspeccionó los muros
+Родился в Вифлееме Иудейском	Was born in Bethlehem of Judea	Wurde in Bethlehem in Judäa geboren	Nació en Belén de Judea
+Младенцем был унесён в Египет от Ирода	As a baby was carried to Egypt away from Herod	Wurde als Kind vor Herodes nach Ägypten gebracht	Siendo niño fue llevado a Egipto, lejos de Herodes
+Был воспитан в Назарете	Was brought up in Nazareth	Wuchs in Nazareth auf	Se crió en Nazaret
+Пришёл на Иордан креститься от Иоанна	Came to the Jordan to be baptized by John	Kam an den Jordan, um sich von Johannes taufen zu lassen	Vino al Jordán para ser bautizado por Juan
+Первое чудо: превратил воду в вино на браке	First miracle: turned water into wine at a wedding	Erstes Wunder: verwandelte bei einer Hochzeit Wasser in Wein	Primer milagro: convirtió el agua en vino en una boda
+Поселился в Капернауме приморском	Made his home in Capernaum by the sea	Wohnte in Kapernaum am See	Habitó en Capernaúm, junto al mar
+Беседовал с самарянкой у колодца Иакова	Talked with the Samaritan woman at Jacob's well	Sprach mit der Samariterin am Jakobsbrunnen	Habló con la mujer samaritana junto al pozo de Jacob
+Воскресил сына вдовы	Raised the widow's son	Erweckte den Sohn der Witwe	Resucitó al hijo de la viuda
+Исцелил слепого	Healed a blind man	Heilte einen Blinden	Sanó a un ciego
+Удалился в страны Тирские и Сидонские	Withdrew to the region of Tyre and Sidon	Zog sich in die Gegend von Tyrus und Sidon zurück	Se retiró a la región de Tiro y Sidón
+Спросил учеников: за кого вы почитаете Меня?	Asked the disciples: "Who do you say that I am?"	Fragte die Jünger: „Wer sagt ihr, dass ich sei?“	Preguntó a los discípulos: «¿Quién decís que soy yo?»
+Проходил через Иерихон и зашёл к Закхею	Passed through Jericho and stayed with Zacchaeus	Zog durch Jericho und kehrte bei Zachäus ein	Pasó por Jericó y se hospedó en casa de Zaqueo
+Пришёл в Вифанию, где воскресил Лазаря	Came to Bethany, where he had raised Lazarus	Kam nach Bethanien, wo er Lazarus auferweckt hatte	Llegó a Betania, donde había resucitado a Lázaro
+Вошёл в Иерусалим — и весь город пришёл в движение	Entered Jerusalem, and the whole city was stirred	Zog in Jerusalem ein, und die ganze Stadt geriet in Bewegung	Entró en Jerusalén, y toda la ciudad se conmovió
+Молился в саду перед арестом	Prayed in the garden before his arrest	Betete vor seiner Gefangennahme im Garten	Oró en el huerto antes de ser arrestado
+Нёс крест на Лобное место, Голгофу	Carried the cross to the Place of the Skull, Golgotha	Trug das Kreuz zur Schädelstätte, nach Golgatha	Llevó la cruz al lugar de la Calavera, el Gólgota
+Воскресший, шёл с двумя учениками в Эммаус	Risen, he walked with two disciples to Emmaus	Der Auferstandene ging mit zwei Jüngern nach Emmaus	Resucitado, caminó con dos discípulos hacia Emaús
+Ангел Гавриил пришёл к ней в Назарет	The angel Gabriel came to her in Nazareth	Der Engel Gabriel kam zu ihr nach Nazareth	El ángel Gabriel vino a ella en Nazaret
+Пришла с Иосифом в Вифлеем на перепись	Came to Bethlehem with Joseph for the census	Kam mit Josef zur Volkszählung nach Bethlehem	Fue a Belén con José para el censo
+Бежала с Младенцем в Египет	Fled with the Child to Egypt	Floh mit dem Kind nach Ägypten	Huyó con el Niño a Egipto
+Была на браке в Кане Галилейской	Was at the wedding in Cana of Galilee	War bei der Hochzeit in Kana in Galiläa	Estuvo en la boda de Caná de Galilea
+Пришла с Иисусом в Капернаум	Went with Jesus to Capernaum	Kam mit Jesus nach Kapernaum	Fue con Jesús a Capernaúm
+Стояла у креста	Stood by the cross	Stand beim Kreuz	Estuvo junto a la cruz
+Молилась с апостолами в Иерусалиме	Prayed with the apostles in Jerusalem	Betete mit den Aposteln in Jerusalem	Oraba con los apóstoles en Jerusalén
+Пошёл из Назарета на перепись	Went from Nazareth for the census	Zog zur Volkszählung von Nazareth fort	Salió de Nazaret para el censo
+Пришёл в город Давидов Вифлеем	Came to Bethlehem, the city of David	Kam in die Stadt Davids, nach Bethlehem	Llegó a la ciudad de David, Belén
+Ночью взял Младенца и Матерь и ушёл в Египет	By night took the Child and his mother and went to Egypt	Nahm bei Nacht das Kind und seine Mutter und zog nach Ägypten	De noche tomó al Niño y a su madre y se fue a Egipto
+Искал Отрока Иисуса в Иерусалиме	Searched for the boy Jesus in Jerusalem	Suchte den zwölfjährigen Jesus in Jerusalem	Buscó al niño Jesús en Jerusalén
+Проповедовал в пустыне Иудейской	Preached in the wilderness of Judea	Predigte in der Wüste von Judäa	Predicaba en el desierto de Judea
+Крестил в Иордане	Baptized in the Jordan	Taufte im Jordan	Bautizaba en el Jordán
+Крестил в Вифаваре при Иордане	Baptized at Bethabara by the Jordan	Taufte in Betabara am Jordan	Bautizaba en Betábara, junto al Jordán
+Был из Вифсаиды	Was from Bethsaida	Stammte aus Betsaida	Era de Betsaida
+В его доме в Капернауме Иисус исцелил тёщу	In his house in Capernaum Jesus healed his mother-in-law	In seinem Haus in Kapernaum heilte Jesus seine Schwiegermutter	En su casa de Capernaúm Jesús sanó a su suegra
+Исповедал: Ты — Христос, Сын Бога Живаго	Confessed: "You are the Christ, the Son of the living God"	Bekannte: „Du bist der Christus, der Sohn des lebendigen Gottes“	Confesó: «Tú eres el Cristo, el Hijo del Dios viviente»
+Был с Иисусом в Гефсимании	Was with Jesus in Gethsemane	War mit Jesus in Gethsemane	Estuvo con Jesús en Getsemaní
+Ждал с апостолами Духа Святого в Иерусалиме	Waited with the apostles for the Holy Spirit in Jerusalem	Wartete mit den Aposteln in Jerusalem auf den Heiligen Geist	Esperó con los apóstoles al Espíritu Santo en Jerusalén
+Послан с Иоанном к уверовавшим в Самарии	Was sent with John to the believers in Samaria	Wurde mit Johannes zu den Gläubigen in Samaria gesandt	Fue enviado con Juan a los creyentes de Samaria
+Исцелил расслабленного Енея	Healed the paralysed Aeneas	Heilte den gelähmten Äneas	Sanó al paralítico Eneas
+Воскресил Тавифу в Иоппии	Raised Tabitha to life at Joppa	Erweckte Tabita in Joppe	Resucitó a Tabita en Jope
+Крестил дом сотника Корнилия	Baptized the household of the centurion Cornelius	Taufte das Haus des Hauptmanns Kornelius	Bautizó la casa del centurión Cornelio
+Апостол Павел обличил его в Антиохии	The apostle Paul rebuked him at Antioch	Der Apostel Paulus wies ihn in Antiochia zurecht	El apóstol Pablo lo reprendió en Antioquía
+Жил с Симоном в доме в Капернауме	Shared a house with Simon in Capernaum	Wohnte mit Simon in einem Haus in Kapernaum	Vivía con Simón en una casa de Capernaúm
+Был из Вифсаиды, одного города с Андреем и Петром	Was from Bethsaida, the town of Andrew and Peter	Stammte aus Betsaida, der Stadt des Andreas und Petrus	Era de Betsaida, la ciudad de Andrés y Pedro
+Был из Каны Галилейской	Was from Cana in Galilee	Stammte aus Kana in Galiläa	Era de Caná de Galilea
+Был начальником мытарей в Иерихоне	Was the chief tax collector in Jericho	War Oberzöllner in Jericho	Era jefe de los publicanos en Jericó
+Жил в Вифании с сёстрами Марией и Марфой	Lived in Bethany with his sisters Mary and Martha	Wohnte in Bethanien mit seinen Schwestern Maria und Marta	Vivía en Betania con sus hermanas María y Marta
+Жила в Вифании	Lived in Bethany	Wohnte in Bethanien	Vivía en Betania
+Стояла у креста Иисуса	Stood by the cross of Jesus	Stand beim Kreuz Jesu	Estuvo junto a la cruz de Jesús
+Совершал великие чудеса в Иерусалиме	Did great wonders in Jerusalem	Tat große Wunder in Jerusalem	Hacía grandes prodigios en Jerusalén
+Проповедовал Христа в городе Самарийском	Proclaimed Christ in a city of Samaria	Predigte Christus in einer Stadt Samarias	Predicó a Cristo en la ciudad de Samaria
+После крещения евнуха оказался в Азоте	After baptizing the eunuch he found himself at Azotus	Nach der Taufe des Kämmerers fand er sich in Aschdod wieder	Después de bautizar al eunuco se encontró en Azoto
+Жил в Кесарии; у него останавливался Павел	Lived in Caesarea; Paul stayed at his house	Wohnte in Cäsarea; Paulus kehrte bei ihm ein	Vivía en Cesarea; Pablo se hospedó en su casa
+Жила в Иоппии, творила добрые дела	Lived in Joppa and was full of good works	Wohnte in Joppe und tat viel Gutes	Vivía en Jope y abundaba en buenas obras
+Был сотником в Кесарии	Was a centurion in Caesarea	War Hauptmann in Cäsarea	Era centurión en Cesarea
+Был родом из Тарса	Was from Tarsus	Stammte aus Tarsus	Era natural de Tarso
+После обращения пришёл в Иерусалим	Came to Jerusalem after his conversion	Kam nach seiner Bekehrung nach Jerusalem	Después de su conversión fue a Jerusalén
+На пути в Дамаск ослеп и уверовал	On the road to Damascus he was blinded and believed	Auf dem Weg nach Damaskus erblindete er und kam zum Glauben	Camino de Damasco quedó ciego y creyó
+Целый год учил в Антиохии	Taught a whole year in Antioch	Lehrte ein ganzes Jahr in Antiochia	Enseñó todo un año en Antioquía
+Проповедовал в синагогах Саламина на Кипре	Preached in the synagogues of Salamis on Cyprus	Predigte in den Synagogen von Salamis auf Zypern	Predicó en las sinagogas de Salamina, en Chipre
+Отплыв с Кипра, прибыл в Пергию	Sailing from Cyprus, he came to Perga	Segelte von Zypern ab und kam nach Perge	Navegando desde Chipre, llegó a Perge
+Говорил в синагоге Антиохии Писидийской	Spoke in the synagogue of Pisidian Antioch	Sprach in der Synagoge von Antiochia in Pisidien	Habló en la sinagoga de Antioquía de Pisidia
+Многие уверовали в Иконии	Many believed in Iconium	In Ikonion kamen viele zum Glauben	Muchos creyeron en Iconio
+Исцелил хромого от рождения; потом был побит камнями	Healed a man lame from birth; later he was stoned	Heilte einen von Geburt an Gelähmten; danach wurde er gesteinigt	Sanó a un cojo de nacimiento; después fue apedreado
+Ушёл с Варнавою в Дервию	Went on with Barnabas to Derbe	Zog mit Barnabas weiter nach Derbe	Partió con Bernabé a Derbe
+Ночью видел мужа Македонянина	Saw a man of Macedonia in a vision by night	Sah in der Nacht einen Mann aus Makedonien	Vio de noche a un varón macedonio
+Основал первую церковь в Европе	Founded the first church in Europe	Gründete die erste Gemeinde in Europa	Fundó la primera iglesia de Europa
+Три субботы рассуждал с Иудеями	Reasoned with the Jews for three Sabbaths	Redete drei Sabbate lang mit den Juden	Durante tres sábados discutió con los judíos
+Береяне ежедневно разбирали Писания	The Bereans examined the Scriptures every day	Die Beröer forschten täglich in der Schrift	Los de Berea escudriñaban cada día las Escrituras
+Проповедовал на Ареопаге о неведомом Боге	Spoke on the Areopagus about the unknown God	Predigte auf dem Areopag vom unbekannten Gott	Predicó en el Areópago acerca del Dios no conocido
+Полтора года жил и учил в Коринфе	Lived and taught in Corinth for a year and a half	Lebte und lehrte anderthalb Jahre in Korinth	Vivió y enseñó un año y medio en Corinto
+Два года учил в Ефесе	Taught for two years in Ephesus	Lehrte zwei Jahre in Ephesus	Enseñó dos años en Éfeso
+Простился со старейшинами Ефесской церкви	Said farewell to the elders of the church of Ephesus	Nahm Abschied von den Ältesten der Gemeinde in Ephesus	Se despidió de los ancianos de la iglesia de Éfeso
+Два года провёл в узах в Кесарии	Spent two years as a prisoner in Caesarea	Verbrachte zwei Jahre in Haft in Cäsarea	Pasó dos años preso en Cesarea
+Спасся после кораблекрушения на острове Мелит	Survived a shipwreck on the island of Melita	Überlebte einen Schiffbruch auf der Insel Melite	Se salvó de un naufragio en la isla de Melita
+Пробыл три дня в Сиракузах	Stayed three days in Syracuse	Blieb drei Tage in Syrakus	Permaneció tres días en Siracusa
+Высадился в Италии, в Путеоле	Landed in Italy at Puteoli	Ging in Italien, in Puteoli, an Land	Desembarcó en Italia, en Puteoli
+Жил в Риме под стражей и проповедовал	Lived in Rome under guard and preached	Lebte in Rom unter Bewachung und predigte	Vivió en Roma bajo custodia y predicaba
+Привёл обращённого Савла к апостолам	Brought the converted Saul to the apostles	Brachte den bekehrten Saulus zu den Aposteln	Llevó a Saulo, ya convertido, ante los apóstoles
+Послан церковью в Антиохию	Was sent by the church to Antioch	Wurde von der Gemeinde nach Antiochia gesandt	Fue enviado por la iglesia a Antioquía
+Пошёл в Тарс искать Савла	Went to Tarsus to look for Saul	Ging nach Tarsus, um Saulus zu suchen	Fue a Tarso a buscar a Saulo
+Проповедовал с Павлом в Саламине	Preached with Paul in Salamis	Predigte mit Paulus in Salamis	Predicó con Pablo en Salamina
+Отрясши прах, пришёл с Павлом в Иконию	Shook off the dust and went with Paul to Iconium	Schüttelte den Staub ab und zog mit Paulus nach Ikonion	Sacudió el polvo de sus pies y fue con Pablo a Iconio
+Жители Листры назвали его Зевсом	The people of Lystra called him Zeus	Die Leute von Lystra nannten ihn Zeus	Los de Listra lo llamaron Júpiter
+Ушёл с Павлом в Дервию	Went on with Paul to Derbe	Zog mit Paulus weiter nach Derbe	Partió con Pablo a Derbe
+В Филиппах был с Павлом брошен в темницу	In Philippi he was thrown into prison with Paul	Wurde in Philippi mit Paulus ins Gefängnis geworfen	En Filipos fue echado en la cárcel con Pablo
+Многие в Фессалонике присоединились к Павлу и Силе	Many in Thessalonica joined Paul and Silas	Viele in Thessalonich schlossen sich Paulus und Silas an	Muchos en Tesalónica se unieron a Pablo y a Silas
+Ночью отправлен с Павлом в Верию	Was sent away by night with Paul to Berea	Wurde nachts mit Paulus nach Beröa geschickt	Fue enviado de noche con Pablo a Berea
+Пришёл из Македонии к Павлу в Коринф	Came from Macedonia to Paul in Corinth	Kam aus Makedonien zu Paulus nach Korinth	Vino de Macedonia a Pablo en Corinto
+Был учеником в Листре	Was a disciple at Lystra	War ein Jünger in Lystra	Era discípulo en Listra
+Остался с Силою в Верии	Stayed behind with Silas in Berea	Blieb mit Silas in Beröa zurück	Se quedó con Silas en Berea
+Павел послал его из Афин к фессалоникийцам	Paul sent him from Athens to the Thessalonians	Paulus sandte ihn von Athen zu den Thessalonichern	Pablo lo envió desde Atenas a los tesalonicenses
+Пришёл к Павлу в Коринф	Came to Paul in Corinth	Kam zu Paulus nach Korinth	Fue a Pablo en Corinto
+Остался в Ефесе по просьбе Павла	Stayed in Ephesus at Paul's request	Blieb auf Bitten des Paulus in Ephesus	Se quedó en Éfeso a petición de Pablo
+Была из города Фиатир	Was from the city of Thyatira	Stammte aus der Stadt Thyatira	Era de la ciudad de Tiatira
+Крестилась в Филиппах и приняла Павла в дом	Was baptized in Philippi and welcomed Paul into her home	Ließ sich in Philippi taufen und nahm Paulus in ihr Haus auf	Fue bautizada en Filipos y recibió a Pablo en su casa
+Ушли из Рима по указу Клавдия	Left Rome by order of Claudius	Mussten auf Befehl des Claudius Rom verlassen	Salieron de Roma por orden de Claudio
+Приняли Павла и работали вместе с ним в Коринфе	Took Paul in and worked with him in Corinth	Nahmen Paulus auf und arbeiteten mit ihm in Korinth	Recibieron a Pablo y trabajaron con él en Corinto
+Остались в Ефесе и наставили Аполлоса	Stayed in Ephesus and instructed Apollos	Blieben in Ephesus und unterwiesen Apollos	Se quedaron en Éfeso e instruyeron a Apolos
+Был родом из Александрии	Was a native of Alexandria	Stammte aus Alexandria	Era natural de Alejandría
+Пришёл в Ефес	Came to Ephesus	Kam nach Ephesus	Llegó a Éfeso
+Служил в Коринфе	Served in Corinth	Wirkte in Korinth	Sirvió en Corinto
+Был среди апостолов в Иерусалиме	Was among the apostles in Jerusalem	War unter den Aposteln in Jerusalem	Estaba entre los apóstoles en Jerusalén
+Послан с Петром в Самарию	Was sent with Peter to Samaria	Wurde mit Petrus nach Samaria gesandt	Fue enviado con Pedro a Samaria
+На острове Патмос получил Откровение	Received the Revelation on the island of Patmos	Empfing auf der Insel Patmos die Offenbarung	Recibió el Apocalipsis en la isla de Patmos
+Ходил с Павлом и Варнавою в Иерусалим	Went up to Jerusalem with Paul and Barnabas	Zog mit Paulus und Barnabas nach Jerusalem	Subió a Jerusalén con Pablo y Bernabé
+Был оставлен на Крите поставить пресвитеров	Was left in Crete to appoint elders	Wurde auf Kreta zurückgelassen, um Älteste einzusetzen	Fue dejado en Creta para establecer ancianos
+Был родом из Вифлеема Иудина	Was from Bethlehem in Judah	Stammte aus Bethlehem in Juda	Era de Belén de Judá
+Деян 9	Acts 9	Apg. 9	Hch. 9
+Деян 13–14	Acts 13–14	Apg. 13–14	Hch. 13–14
+Деян 15:36 — 18:22	Acts 15:36 – 18:22	Apg. 15:36 – 18:22	Hch. 15:36 – 18:22
+Деян 18:23 — 21:17	Acts 18:23 – 21:17	Apg. 18:23 – 21:17	Hch. 18:23 – 21:17
+Деян 27 — 28	Acts 27–28	Apg. 27–28	Hch. 27–28
+Соедини	Match up	Verbinde	Une
+Два столбца: герой и место	Two columns: a hero and a place	Zwei Spalten: Person und Ort	Dos columnas: personaje y lugar
+Все места героя	Every place of a hero	Alle Orte einer Person	Todos los lugares del personaje
+Верных ответов несколько	Several answers are right	Mehrere Antworten sind richtig	Hay varias respuestas correctas
+Найди на карте	Find it on the map	Finde es auf der Karte	Encuéntralo en el mapa
+Где это было?	Where was it?	Wo war das?	¿Dónde fue?
+Тогда и сейчас	Then and now	Damals und heute	Antes y ahora
+Что там сегодня	What is there today	Was dort heute ist	Qué hay allí hoy
+Атлас	Atlas	Atlas	Atlas
+Древняя и современная карта, пути героев	Ancient and modern map, journeys of the heroes	Antike und heutige Karte, Wege der biblischen Personen	Mapa antiguo y actual, viajes de los personajes
+Трудный	Hard	Schwer	Difícil
+Вся Библия	Whole Bible	Ganze Bibel	Toda la Biblia
+Ветхий Завет	Old Testament	Altes Testament	Antiguo Testamento
+Новый Завет	New Testament	Neues Testament	Nuevo Testamento
+Древняя	Ancient	Antike	Antiguo
+Обе	Both	Beide	Ambos
+Сегодня	Today	Heute	Hoy
+Приблизить	Zoom in	Vergrößern	Acercar
+Отдалить	Zoom out	Verkleinern	Alejar
+Вся карта	Whole map	Ganze Karte	Mapa completo
+Разворачиваем карту…	Unrolling the map…	Karte wird entrollt…	Desplegando el mapa…
+Библейская география	Bible Geography	Biblische Geografie	Geografía bíblica
+Карта не загрузилась	The map did not load	Die Karte wurde nicht geladen	El mapa no se cargó
+Проверьте соединение и откройте игру ещё раз.	Check your connection and open the game again.	Prüfe die Verbindung und öffne das Spiel erneut.	Comprueba la conexión y vuelve a abrir el juego.
+К выбору режима	Back to modes	Zur Modusauswahl	A la elección de modo
+Место известно приблизительно	The location is approximate	Die Lage ist nur ungefähr bekannt	La ubicación es aproximada
+ещё не пройдено	not played yet	noch nicht gespielt	aún sin jugar
+лучший	best	Bestwert	mejor
+Герои	Heroes	Personen	Personajes
+пути	journeys	Wege	viajes
+Где жили, бывали и проходили герои Писания — и что на этих местах сегодня.	Where the people of Scripture lived, stayed and travelled — and what is on those sites today.	Wo die Menschen der Bibel lebten, weilten und unterwegs waren — und was heute an diesen Orten ist.	Dónde vivieron, estuvieron y pasaron los personajes de la Escritura, y qué hay hoy en esos lugares.
+Изучено связей	Links learned	Gelernte Verbindungen	Vínculos aprendidos
+Сложность	Difficulty	Schwierigkeit	Dificultad
+Герои из	Heroes from	Personen aus	Personajes de
+Верно	Correct	Richtig	Correcto
+Попробуйте ещё раз	Try again	Versuch es noch einmal	Inténtalo de nuevo
+Хорошее начало	A good start	Ein guter Anfang	Buen comienzo
+Отлично	Excellent	Ausgezeichnet	Excelente
+Безупречно	Flawless	Makellos	Impecable
+Итог	Results	Ergebnis	Resultado
+Ещё раз	Once more	Noch einmal	Otra vez
+Нажмите героя, а потом место, где он был. Можно и наоборот.	Tap a hero, then a place where they were. Or the other way round.	Tippe auf eine Person und dann auf einen Ort, an dem sie war. Oder umgekehrt.	Toca un personaje y luego un lugar donde estuvo. O al revés.
+Не пара	Not a pair	Kein Paar	No es pareja
+Отметьте все места, где она была.	Mark every place where she was.	Markiere alle Orte, an denen sie war.	Marca todos los lugares donde estuvo ella.
+Отметьте все места, где они были.	Mark every place where they were.	Markiere alle Orte, an denen sie waren.	Marca todos los lugares donde estuvieron ellos.
+Отметьте все места, где он был.	Mark every place where he was.	Markiere alle Orte, an denen er war.	Marca todos los lugares donde estuvo él.
+Верных ответов	Correct answers	Richtige Antworten	Respuestas correctas
+Сколько верных — не скажем.	We won't say how many are right.	Wie viele richtig sind, verraten wir nicht.	No diremos cuántas son correctas.
+Всё верно!	All correct!	Alles richtig!	¡Todo correcto!
+лишних	extra	zu viel	de más
+Где находится	Where is	Wo liegt	¿Dónde está
+Нажмите на точку. Карту можно двигать и приближать.	Tap a dot. You can drag and zoom the map.	Tippe auf einen Punkt. Die Karte lässt sich verschieben und vergrößern.	Toca un punto. Puedes mover y ampliar el mapa.
+Верно!	Correct!	Richtig!	¡Correcto!
+Это	That is	Das ist	Eso es
+отмечен зелёным.	is marked in green.	ist grün markiert.	está marcado en verde.
+Что сегодня на месте, которое в Библии называется	What is there today at the place the Bible calls	Was ist heute an dem Ort, den die Bibel so nennt:	¿Qué hay hoy en el lugar que la Biblia llama
+Как в Библии называется место, где сегодня	What does the Bible call the place where today we find	Wie nennt die Bibel den Ort, an dem heute liegt:	¿Cómo llama la Biblia al lugar donde hoy se encuentra
+В какой современной стране	In which modern country is	In welchem heutigen Land liegt	¿En qué país actual está
+в Библии	in the Bible	in der Bibel	en la Biblia
+В Библии	In the Bible	In der Bibel	En la Biblia
+сегодня	today	heute	hoy
+Не совсем.	Not quite.	Nicht ganz.	No del todo.
+Слой карты	Map layer	Kartenebene	Capa del mapa
+Древняя и современная карта	Ancient and modern map	Antike und heutige Karte	Mapa antiguo y actual
+Путешествия	Journeys	Reisen	Viajes
+Выберите героя — карта покажет, где он был.	Pick a hero and the map will show where they were.	Wähle eine Person — die Karte zeigt, wo sie war.	Elige un personaje y el mapa mostrará dónde estuvo.
+Выберите путь — карта проведёт его по порядку.	Pick a journey and the map will trace it in order.	Wähle einen Weg — die Karte zeichnet ihn der Reihe nach.	Elige un viaje y el mapa lo trazará en orden.
+Нажмите точку на карте, чтобы узнать о месте.	Tap a dot on the map to learn about the place.	Tippe auf einen Punkt der Karte, um mehr über den Ort zu erfahren.	Toca un punto del mapa para saber más del lugar.
+Здесь бывали	People who were here	Hier waren	Estuvieron aquí
+Герои, места и пути — тогда и сейчас	Heroes, places and journeys, then and now	Personen, Orte und Wege — damals und heute	Personajes, lugares y viajes, antes y ahora
+≈ 3–5 мин / режим	≈ 3–5 min / mode	≈ 3–5 Min. / Modus	≈ 3–5 min / modo
+Карта Писания	Map of Scripture	Karte der Bibel	Mapa de la Escritura
+Отмечаем пути героев…	Marking the journeys…	Wege werden eingezeichnet…	Marcando los viajes…
+Изученные связи и лучшие результаты режимов.	Learned links and best results of the modes.	Gelernte Verbindungen und Bestwerte der Modi.	Vínculos aprendidos y mejores resultados de cada modo.
+связь изучена	link learned	Verbindung gelernt	vínculo aprendido
+связи изучены	links learned	Verbindungen gelernt	vínculos aprendidos
+связей изучено	links learned	Verbindungen gelernt	vínculos aprendidos
+ничего не изучено	nothing learned yet	noch nichts gelernt	nada aprendido aún
+Вопрос	Question	Frage	Pregunta
+не отмечено	missed	übersehen	sin marcar
+Слева герои Писания, справа места, где они жили, бывали или проходили.	On the left are people of Scripture, on the right the places where they lived, stayed or passed through.	Links stehen Personen der Bibel, rechts Orte, an denen sie lebten, weilten oder durchzogen.	A la izquierda, personajes de la Escritura; a la derecha, lugares donde vivieron, estuvieron o pasaron.
+Нажмите героя, а потом его место — можно и наоборот.	Tap a person, then their place, or the other way round.	Tippe auf eine Person und dann auf ihren Ort — oder umgekehrt.	Toca un personaje y luego su lugar, o al revés.
+Верная пара соединяется линией, неверная считается ошибкой.	A correct pair is joined by a line; a wrong one counts as a mistake.	Ein richtiges Paar wird mit einer Linie verbunden, ein falsches zählt als Fehler.	Una pareja correcta se une con una línea; una incorrecta cuenta como error.
+У каждого героя в раунде ровно одна пара: в остальных местах столбца он, по Писанию, не бывал.	Each person in a round has exactly one match: according to Scripture, they never visited the other places in the column.	Jede Person hat in einer Runde genau ein Paar: An den übrigen Orten der Spalte war sie laut der Bibel nie.	Cada personaje tiene exactamente una pareja en la ronda: según la Escritura, no estuvo en los demás lugares de la columna.
+Одно имя и много мест. Отметьте все, где герой был, и нажмите «Проверить».	One name and many places. Mark every place where the person was and tap “Check”.	Ein Name und viele Orte. Markiere alle, an denen die Person war, und tippe auf „Prüfen“.	Un nombre y muchos lugares. Marca todos aquellos donde estuvo el personaje y toca «Comprobar».
+Считается каждое верное место, каждое лишнее и каждое пропущенное.	Every correct place counts, and so does every extra and every missed one.	Gezählt wird jeder richtige Ort, jeder überzählige und jeder übersehene.	Cuenta cada lugar correcto, cada uno de más y cada uno olvidado.
+Карта и сегодняшний день	The map and today	Die Karte und heute	El mapa y hoy
+среди нескольких безымянных точек найдите названное место. Карту можно двигать и приближать.	find the named place among several unlabelled dots. You can drag and zoom the map.	finde unter mehreren unbeschrifteten Punkten den genannten Ort. Die Karte lässt sich verschieben und vergrößern.	encuentra el lugar indicado entre varios puntos sin nombre. Puedes mover y ampliar el mapa.
+что сегодня на месте библейского города, как он назывался в Библии и в какой он теперь стране.	what stands today where a biblical town was, what the Bible called it and which country it is in now.	was heute an der Stelle einer biblischen Stadt liegt, wie die Bibel sie nannte und in welchem Land sie jetzt liegt.	qué hay hoy donde estaba una ciudad bíblica, cómo la llamaba la Biblia y en qué país está ahora.
+Древняя и современная карта без вопросов и счёта.	An ancient and a modern map, with no questions and no score.	Antike und heutige Karte, ohne Fragen und ohne Punkte.	Mapa antiguo y actual, sin preguntas ni puntuación.
+Выберите героя — карта покажет все его места по порядку.	Pick a person and the map will show all their places in order.	Wähle eine Person — die Karte zeigt alle ihre Orte der Reihe nach.	Elige un personaje y el mapa mostrará todos sus lugares en orden.
+Выберите путешествие апостола Павла — карта проведёт его путь.	Pick one of the apostle Paul’s journeys and the map will trace his route.	Wähle eine Reise des Apostels Paulus — die Karte zeichnet seinen Weg nach.	Elige un viaje del apóstol Pablo y el mapa trazará su ruta.
+Слой «Обе» накладывает сегодняшние названия и границы на древнюю карту.	The “Both” layer lays today’s names and borders over the ancient map.	Die Ebene „Beide“ legt heutige Namen und Grenzen über die antike Karte.	La capa «Ambos» superpone los nombres y fronteras actuales al mapa antiguo.
+самые известные герои, 4 пары в раунде, 2 верных места из 6.	the best-known people, 4 pairs per round, 2 correct places out of 6.	die bekanntesten Personen, 4 Paare pro Runde, 2 richtige Orte von 6.	los personajes más conocidos, 4 parejas por ronda, 2 lugares correctos de 6.
+больше героев, 5 пар, 2–3 верных места из 8.	more people, 5 pairs, 2–3 correct places out of 8.	mehr Personen, 5 Paare, 2–3 richtige Orte von 8.	más personajes, 5 parejas, 2–3 lugares correctos de 8.
+все герои, 6 пар, 3–4 верных места из 9, и сколько их — не сказано.	every person, 6 pairs, 3–4 correct places out of 9, and you are not told how many.	alle Personen, 6 Paare, 3–4 richtige Orte von 9, und wie viele, wird nicht verraten.	todos los personajes, 6 parejas, 3–4 lugares correctos de 9, y no se dice cuántos.
+Звёзды за режим: 95% верных ответов — три, 75% — две, 45% — одна.	Stars per mode: 95% correct answers earn three, 75% two, 45% one.	Sterne pro Modus: 95% richtige Antworten bringen drei, 75% zwei, 45% einen.	Estrellas por modo: el 95% de respuestas correctas da tres, el 75% dos y el 45% una.
+Откуда данные	Where the data comes from	Woher die Daten stammen	De dónde vienen los datos
+Имена и места взяты из синодального перевода.	Names and places follow the Russian Synodal Bible.	Namen und Orte folgen der russischen Synodalbibel.	Los nombres y lugares siguen la Biblia sinodal rusa.
+У каждой связи героя с местом есть стих: его ссылка и цитата показываются после ответа.	Every link between a person and a place rests on a verse; its reference and text appear after you answer.	Jede Verbindung von Person und Ort stützt sich auf einen Vers; Stelle und Wortlaut erscheinen nach der Antwort.	Cada vínculo entre personaje y lugar se apoya en un versículo; su cita y su texto aparecen tras responder.
+Слева герои, справа места	People on the left, places on the right	Links Personen, rechts Orte	Personajes a la izquierda, lugares a la derecha
+Нажмите героя…	Tap a person…	Tippe auf eine Person…	Toca un personaje…
+и место, где он был	and a place where they were	und auf einen Ort, an dem sie war	y un lugar donde estuvo
+Не пара — выбор снимается	Not a pair: the choice is cleared	Kein Paar — die Auswahl wird aufgehoben	No es pareja: la selección se borra
+Соедините все пары раунда	Match every pair in the round	Verbinde alle Paare der Runde	Une todas las parejas de la ronda

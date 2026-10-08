@@ -19,7 +19,9 @@
   // «Моисей на Ниле» открывается фреймом с адреса воркера, то есть с чужого
   // источника: дотянуться до Telegram SDK изнутри он не может. Отключить жест
   // обязана оболочка — здесь, как только игра стала текущей.
-  const GESTURE_GAMES = new Set(['quartet', 'biblical-match-three', 'moses-nile']);
+  // Карту «Библейской географии» двигают пальцем во все стороны — свайп вниз
+  // по ней не должен сворачивать приложение.
+  const GESTURE_GAMES = new Set(['quartet', 'biblical-match-three', 'moses-nile', 'bible-geography']);
   const SDK_RETRY_LIMIT = 40;
   const SDK_RETRY_MS = 150;
 

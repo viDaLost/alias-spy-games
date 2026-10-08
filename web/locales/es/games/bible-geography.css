@@ -1,0 +1,1074 @@
+/* «Библейская география» — экран игры.
+   Тёмная тема задана здесь же: файл грузится самой игрой и в общий сборщик
+   тёмной темы (scripts/build-dark-theme.mjs) не попадает. */
+
+body[data-current-game="bible-geography"] #game-container {
+  width: min(760px, 100%) !important;
+  max-width: 760px !important;
+}
+
+body[data-current-game="bible-geography"] .geo {
+  /* интерфейс */
+  --geo-ink: #1e1b4b;
+  --geo-muted: #4b5563;
+  --geo-soft: #6b7280;
+  --geo-primary: #4f46e5;
+  --geo-primary-2: #2563eb;
+  --geo-card: rgba(255, 255, 255, .9);
+  --geo-card-strong: #ffffff;
+  --geo-tint: #eef2ff;
+  --geo-line: rgba(79, 70, 229, .16);
+  --geo-shadow: 0 18px 44px rgba(49, 46, 129, .13), 0 4px 14px rgba(15, 23, 42, .06);
+  --geo-good: #15803d;
+  --geo-good-bg: #dcfce7;
+  --geo-bad: #b91c1c;
+  --geo-bad-bg: #fee2e2;
+  --geo-warn: #b45309;
+  --geo-warn-bg: #fef3c7;
+  --geo-quote: #3f3a2c;
+  --geo-serif: Georgia, "Noto Serif", "PT Serif", "Times New Roman", serif;
+  /* карта: древняя */
+  --map-sea: #c6dcd6;
+  --map-land: #f1e4c4;
+  --map-coast: #8d6b3b;
+  --map-lake: #aecdc6;
+  --map-river: #4d86a3;
+  --map-border: transparent;
+  --map-region: #7a5426;
+  --map-sea-label: #4b6f78;
+  --map-pin: #9a3412;
+  --map-label: #3a2914;
+  --map-label-sub: #6b5536;
+  --map-halo: rgba(251, 244, 226, .92);
+  --map-route: #b45309;
+  --map-route-2: #4f46e5;
+  --map-city: #64748b;
+  --map-out: #e7e1d3;
+  position: relative;
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 14px;
+  box-sizing: border-box;
+  color: var(--geo-ink);
+  text-align: left;
+}
+
+body[data-current-game="bible-geography"] .geo *,
+body[data-current-game="bible-geography"] .geo *::before,
+body[data-current-game="bible-geography"] .geo *::after { box-sizing: border-box; }
+
+body[data-current-game="bible-geography"] .geo p { margin: 0; color: inherit; font-weight: 600; }
+body[data-current-game="bible-geography"] .geo h2,
+body[data-current-game="bible-geography"] .geo h3,
+body[data-current-game="bible-geography"] .geo h4 { margin: 0; color: var(--geo-ink); text-align: left; }
+
+/* --- общие кирпичи ----------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-card {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 24px;
+  background: var(--geo-card);
+  box-shadow: var(--geo-shadow);
+  backdrop-filter: blur(14px);
+}
+
+body[data-current-game="bible-geography"] .geo-kicker {
+  color: var(--geo-primary) !important;
+  font-size: .72rem;
+  font-weight: 900 !important;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+body[data-current-game="bible-geography"] .geo-primary,
+body[data-current-game="bible-geography"] .geo-secondary {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  width: 100%;
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 18px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--geo-primary), var(--geo-primary-2));
+  box-shadow: 0 14px 30px rgba(79, 70, 229, .3);
+}
+
+body[data-current-game="bible-geography"] .geo-primary:disabled { opacity: .45; box-shadow: none; cursor: default; }
+
+body[data-current-game="bible-geography"] .geo-secondary {
+  color: var(--geo-ink);
+  background: var(--geo-card-strong);
+  border: 1px solid var(--geo-line);
+}
+
+body[data-current-game="bible-geography"] .geo-primary:active:not(:disabled),
+body[data-current-game="bible-geography"] .geo-secondary:active { transform: scale(.98); }
+
+body[data-current-game="bible-geography"] .geo-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+body[data-current-game="bible-geography"] .geo-menu { width: 100%; }
+
+body[data-current-game="bible-geography"] .geo-icon-btn {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--geo-line);
+  border-radius: 14px;
+  background: var(--geo-card-strong);
+  color: var(--geo-ink);
+  cursor: pointer;
+}
+
+/* --- сегменты ----------------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--geo-tint);
+}
+
+body[data-current-game="bible-geography"] .geo-seg__item {
+  appearance: none;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--geo-muted);
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 800;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-seg__item.is-on {
+  background: var(--geo-card-strong);
+  color: var(--geo-primary);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, .16);
+}
+
+body[data-current-game="bible-geography"] .geo-seg--small .geo-seg__item { min-height: 34px; font-size: .8rem; }
+
+/* --- хаб ---------------------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 8px;
+  padding: 20px 18px 18px;
+  border: 1px solid rgba(255, 255, 255, .85);
+  border-radius: 28px;
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(14, 165, 233, .18), transparent 60%),
+    linear-gradient(160deg, rgba(255, 255, 255, .96), rgba(238, 242, 255, .92));
+  box-shadow: var(--geo-shadow);
+}
+
+body[data-current-game="bible-geography"] .geo-hero__art {
+  position: absolute;
+  right: -6px;
+  top: 6px;
+  width: 46%;
+  max-width: 240px;
+  opacity: .85;
+  pointer-events: none;
+  /* Рисунок растворяется к тексту, а не обрывается прямым краем. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 38%);
+}
+
+body[data-current-game="bible-geography"] .geo-hero__coast { fill: rgba(241, 228, 196, .9); stroke: #c9a76b; stroke-width: 1.5; }
+body[data-current-game="bible-geography"] .geo-hero__route { fill: none; stroke: #b45309; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 7 7; }
+body[data-current-game="bible-geography"] .geo-hero__dot { fill: #9a3412; stroke: #fff; stroke-width: 2.5; }
+body[data-current-game="bible-geography"] .geo-hero__dot--end { fill: var(--geo-primary); }
+
+body[data-current-game="bible-geography"] .geo-title {
+  position: relative;
+  max-width: 70%;
+  color: #312e81 !important;
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 950;
+  letter-spacing: -.045em;
+  line-height: 1.02;
+}
+
+body[data-current-game="bible-geography"] .geo-lead {
+  position: relative;
+  max-width: 34ch;
+  color: var(--geo-muted) !important;
+  font-size: .98rem;
+  line-height: 1.45;
+}
+
+body[data-current-game="bible-geography"] .geo-progress { display: grid; gap: 6px; margin-top: 6px; }
+
+body[data-current-game="bible-geography"] .geo-progress__track {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(79, 70, 229, .12);
+}
+
+body[data-current-game="bible-geography"] .geo-progress__track > span {
+  display: block;
+  height: 100%;
+  min-width: 6px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d97706, var(--geo-primary));
+}
+
+body[data-current-game="bible-geography"] .geo-progress__text { color: var(--geo-muted); font-size: .85rem; font-weight: 700; }
+
+body[data-current-game="bible-geography"] .geo-setup { display: grid; gap: 12px; }
+body[data-current-game="bible-geography"] .geo-setup__row { display: grid; gap: 6px; }
+body[data-current-game="bible-geography"] .geo-setup__label { color: var(--geo-ink); font-size: .9rem; font-weight: 900; }
+
+body[data-current-game="bible-geography"] .geo-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+body[data-current-game="bible-geography"] .geo-mode {
+  appearance: none;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 150px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .85);
+  border-radius: 22px;
+  background: var(--geo-card);
+  box-shadow: var(--geo-shadow);
+  color: var(--geo-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-mode:active { transform: scale(.98); }
+
+body[data-current-game="bible-geography"] .geo-mode__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--geo-primary), var(--geo-primary-2));
+  box-shadow: 0 8px 18px rgba(79, 70, 229, .28);
+}
+
+body[data-current-game="bible-geography"] .geo-mode--multi .geo-mode__icon { background: linear-gradient(135deg, #7c3aed, #db2777); }
+body[data-current-game="bible-geography"] .geo-mode--where .geo-mode__icon { background: linear-gradient(135deg, #b45309, #dc2626); }
+body[data-current-game="bible-geography"] .geo-mode--thennow .geo-mode__icon { background: linear-gradient(135deg, #0f766e, #0ea5e9); }
+body[data-current-game="bible-geography"] .geo-mode--atlas .geo-mode__icon { background: linear-gradient(135deg, #92400e, #ca8a04); }
+
+body[data-current-game="bible-geography"] .geo-mode--atlas {
+  grid-column: 1 / -1;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  min-height: 0;
+  background:
+    linear-gradient(120deg, rgba(241, 228, 196, .95), rgba(255, 255, 255, .9) 70%);
+}
+
+body[data-current-game="bible-geography"] .geo-mode__text { display: grid; gap: 4px; }
+body[data-current-game="bible-geography"] .geo-mode__text strong { font-size: 1.05rem; font-weight: 900; line-height: 1.15; }
+body[data-current-game="bible-geography"] .geo-mode__text small { color: var(--geo-muted); font-size: .84rem; font-weight: 700; line-height: 1.3; }
+body[data-current-game="bible-geography"] .geo-mode__best { color: #b45309; font-size: .8rem; font-weight: 900; }
+body[data-current-game="bible-geography"] .geo-mode__best.is-empty { color: var(--geo-soft); font-weight: 700; }
+
+/* --- верхняя полоса режима ------------------------------------------------------ */
+
+body[data-current-game="bible-geography"] .geo-bar {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, .85);
+  border-radius: 20px;
+  background: var(--geo-card);
+  box-shadow: var(--geo-shadow);
+}
+
+body[data-current-game="bible-geography"] .geo-bar__back {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--geo-tint);
+  color: var(--geo-primary);
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-bar__title { display: grid; min-width: 0; }
+body[data-current-game="bible-geography"] .geo-bar__title strong { font-size: 1.05rem; font-weight: 950; line-height: 1.15; }
+body[data-current-game="bible-geography"] .geo-bar__title small {
+  overflow: hidden;
+  color: var(--geo-soft);
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+body[data-current-game="bible-geography"] .geo-bar__score { display: flex; gap: 6px; padding-right: 4px; }
+
+body[data-current-game="bible-geography"] .geo-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 38px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: .85rem;
+  font-weight: 900;
+}
+
+body[data-current-game="bible-geography"] .geo-score--right { color: var(--geo-good); background: var(--geo-good-bg); }
+body[data-current-game="bible-geography"] .geo-score--right::before { content: "✓"; }
+body[data-current-game="bible-geography"] .geo-score--wrong { color: var(--geo-bad); background: var(--geo-bad-bg); }
+body[data-current-game="bible-geography"] .geo-score--wrong::before { content: "✗"; }
+
+body[data-current-game="bible-geography"] .geo-hint {
+  padding: 0 6px;
+  color: var(--geo-muted) !important;
+  font-size: .9rem;
+  text-align: center;
+}
+
+/* --- Une -------------------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-match {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 30px;
+}
+
+body[data-current-game="bible-geography"] .geo-match__lines {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+body[data-current-game="bible-geography"] .geo-match__lines path {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: geo-draw .45s ease-out forwards;
+}
+
+@keyframes geo-draw { to { stroke-dashoffset: 0; } }
+
+body[data-current-game="bible-geography"] .geo-col { position: relative; z-index: 1; display: grid; gap: 10px; align-content: start; }
+
+body[data-current-game="bible-geography"] .geo-node {
+  --pair: var(--geo-primary);
+  appearance: none;
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 10px 14px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  background: var(--geo-card-strong);
+  box-shadow: 0 8px 20px rgba(49, 46, 129, .1);
+  color: var(--geo-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-node--hero { padding-right: 22px; }
+body[data-current-game="bible-geography"] .geo-node--place { padding-left: 22px; }
+body[data-current-game="bible-geography"] .geo-node strong { font-size: .98rem; font-weight: 900; line-height: 1.15; overflow-wrap: anywhere; }
+body[data-current-game="bible-geography"] .geo-node small { color: var(--geo-soft); font-size: .76rem; font-weight: 700; }
+
+body[data-current-game="bible-geography"] .geo-node__mark {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  border: 2px solid var(--geo-line);
+  border-radius: 50%;
+  background: var(--geo-card-strong);
+  color: #fff;
+  font-size: .72rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+body[data-current-game="bible-geography"] .geo-node--hero .geo-node__mark { right: -12px; }
+body[data-current-game="bible-geography"] .geo-node--place .geo-node__mark { left: -12px; }
+
+body[data-current-game="bible-geography"] .geo-node.is-picked {
+  border-color: var(--geo-primary);
+  background: var(--geo-tint);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(79, 70, 229, .22);
+}
+
+body[data-current-game="bible-geography"] .geo-node.is-picked .geo-node__mark { border-color: var(--geo-primary); background: var(--geo-primary); }
+
+body[data-current-game="bible-geography"] .geo-node.is-done {
+  border-color: var(--pair);
+  background: color-mix(in srgb, var(--pair) 9%, var(--geo-card-strong));
+  cursor: default;
+}
+
+body[data-current-game="bible-geography"] .geo-node.is-done .geo-node__mark { border-color: var(--pair); background: var(--pair); }
+
+body[data-current-game="bible-geography"] .geo-node.is-wrong { animation: geo-shake .38s ease; border-color: var(--geo-bad); }
+
+@keyframes geo-shake {
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* --- задания с ответами ---------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-ask { display: grid; gap: 6px; }
+body[data-current-game="bible-geography"] .geo-ask h3 { font-size: 1.55rem; font-weight: 950; letter-spacing: -.03em; line-height: 1.1; }
+body[data-current-game="bible-geography"] .geo-ask__about { color: var(--geo-muted) !important; font-size: .9rem; }
+body[data-current-game="bible-geography"] .geo-ask__task { color: var(--geo-ink) !important; font-size: 1.02rem; font-weight: 700 !important; line-height: 1.4; }
+body[data-current-game="bible-geography"] .geo-ask--compact { padding: 12px 16px; }
+body[data-current-game="bible-geography"] .geo-ask__count { display: block; margin-top: 4px; color: var(--geo-muted); font-size: .92rem; }
+
+body[data-current-game="bible-geography"] .geo-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+body[data-current-game="bible-geography"] .geo-option {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: var(--geo-card-strong);
+  box-shadow: 0 6px 16px rgba(49, 46, 129, .09);
+  color: var(--geo-ink);
+  font: inherit;
+  font-size: .93rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: left;
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-option__box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(79, 70, 229, .35);
+  border-radius: 7px;
+  color: #fff;
+  font-size: .8rem;
+  font-style: normal;
+}
+
+body[data-current-game="bible-geography"] .geo-option.is-on { border-color: var(--geo-primary); background: var(--geo-tint); }
+body[data-current-game="bible-geography"] .geo-option.is-on .geo-option__box { border-color: var(--geo-primary); background: var(--geo-primary); }
+body[data-current-game="bible-geography"] .geo-option.is-on .geo-option__box::before { content: "✓"; }
+body[data-current-game="bible-geography"] .geo-option.is-right { border-color: var(--geo-good); background: var(--geo-good-bg); }
+body[data-current-game="bible-geography"] .geo-option.is-right .geo-option__box { border-color: var(--geo-good); background: var(--geo-good); }
+body[data-current-game="bible-geography"] .geo-option.is-right .geo-option__box::before { content: "✓"; }
+body[data-current-game="bible-geography"] .geo-option.is-missed { border: 2px dashed var(--geo-warn); background: var(--geo-warn-bg); }
+body[data-current-game="bible-geography"] .geo-option.is-missed::after { content: "sin marcar"; margin-left: auto; color: var(--geo-warn); font-size: .7rem; font-weight: 900; }
+body[data-current-game="bible-geography"] .geo-option.is-wrong { border-color: var(--geo-bad); background: var(--geo-bad-bg); }
+body[data-current-game="bible-geography"] .geo-option.is-wrong .geo-option__box { border-color: var(--geo-bad); background: var(--geo-bad); }
+body[data-current-game="bible-geography"] .geo-option.is-wrong .geo-option__box::before { content: "✗"; }
+body[data-current-game="bible-geography"] .geo-option.is-idle:disabled { opacity: .55 !important; }
+body[data-current-game="bible-geography"] .geo-option:disabled,
+body[data-current-game="bible-geography"] .geo-answer:disabled { cursor: default; opacity: 1 !important; }
+
+body[data-current-game="bible-geography"] .geo-answers { display: grid; gap: 8px; }
+
+body[data-current-game="bible-geography"] .geo-answer {
+  appearance: none;
+  min-height: 54px;
+  padding: 12px 16px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: var(--geo-card-strong);
+  box-shadow: 0 6px 16px rgba(49, 46, 129, .09);
+  color: var(--geo-ink);
+  font: inherit;
+  font-size: .98rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-answer.is-right { border-color: var(--geo-good); background: var(--geo-good-bg); }
+body[data-current-game="bible-geography"] .geo-answer.is-wrong { border-color: var(--geo-bad); background: var(--geo-bad-bg); }
+body[data-current-game="bible-geography"] .geo-answer:disabled:not(.is-right):not(.is-wrong) { opacity: .55 !important; }
+
+/* --- разбор ответа ---------------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-feed { display: grid; gap: 10px; }
+body[data-current-game="bible-geography"] .geo-feed:empty { display: none; }
+
+body[data-current-game="bible-geography"] .geo-verdict {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--geo-bad-bg);
+  color: var(--geo-bad) !important;
+  font-weight: 900 !important;
+}
+
+body[data-current-game="bible-geography"] .geo-verdict.is-good { background: var(--geo-good-bg); color: var(--geo-good) !important; }
+
+body[data-current-game="bible-geography"] .geo-miss {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--geo-bad-bg);
+  color: var(--geo-bad) !important;
+  font-size: .92rem;
+  font-weight: 800 !important;
+  text-align: center;
+}
+
+body[data-current-game="bible-geography"] .geo-placeline { color: var(--geo-muted) !important; font-size: .9rem; line-height: 1.4; }
+
+body[data-current-game="bible-geography"] .geo-fact {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--geo-line);
+  border-radius: 18px;
+  background: var(--geo-card-strong);
+  box-shadow: 0 8px 22px rgba(49, 46, 129, .08);
+}
+
+body[data-current-game="bible-geography"] .geo-fact__head { color: var(--geo-ink) !important; font-size: .98rem; }
+body[data-current-game="bible-geography"] .geo-fact__head span { color: var(--geo-soft); }
+body[data-current-game="bible-geography"] .geo-fact__note { color: var(--geo-muted) !important; font-size: .92rem; }
+
+body[data-current-game="bible-geography"] .geo-quote {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid #d6b77a;
+  border-radius: 4px 12px 12px 4px;
+  background: #fbf6ea;
+  color: var(--geo-quote);
+  font-family: var(--geo-serif);
+  font-size: .95rem;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+body[data-current-game="bible-geography"] .geo-quote cite { font-family: inherit; font-style: normal; }
+
+body[data-current-game="bible-geography"] .geo-ref {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(180, 83, 9, .1);
+  color: #92400e;
+  font-family: system-ui, sans-serif;
+  font-size: .76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+body[data-current-game="bible-geography"] .geo-next { margin-top: 2px; }
+
+/* --- resultado ------------------------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-result { display: grid; gap: 8px; justify-items: center; text-align: center; }
+body[data-current-game="bible-geography"] .geo-result h3 { text-align: center; font-size: 1.5rem; font-weight: 950; }
+body[data-current-game="bible-geography"] .geo-result__stars { color: #f59e0b; font-size: 2.6rem; letter-spacing: .12em; line-height: 1; }
+body[data-current-game="bible-geography"] .geo-result__stars span { color: rgba(79, 70, 229, .16); }
+body[data-current-game="bible-geography"] .geo-result__line { color: var(--geo-muted) !important; font-size: .92rem; }
+
+/* --- carta ------------------------------------------------------------------------ */
+
+body[data-current-game="bible-geography"] .geo-mapbox {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .85);
+  border-radius: 24px;
+  background: var(--map-out);
+  box-shadow: var(--geo-shadow);
+}
+
+body[data-current-game="bible-geography"] .geo-mapbox--quiz { height: clamp(320px, 58vh, 560px); }
+body[data-current-game="bible-geography"] .geo-mapbox--mini { height: 230px; border-radius: 18px; }
+body[data-current-game="bible-geography"] .geo-mapbox--atlas { height: clamp(340px, calc(100dvh - var(--tg-top-gap, 96px) - 250px), 640px); }
+body[data-current-game="bible-geography"] .geo-mapbox__map.geo-map { position: absolute; inset: 0; }
+
+body[data-current-game="bible-geography"] .geo-map {
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* За краем листа — стол, на котором лист лежит. */
+  background: var(--map-out);
+}
+
+body[data-current-game="bible-geography"] .geo-map__base { position: absolute; max-width: none !important; max-height: none !important; transform-origin: 0 0; }
+body[data-current-game="bible-geography"] .geo-map.is-moving .geo-map__base { will-change: transform; }
+body[data-current-game="bible-geography"] .geo-map__over { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none !important; cursor: grab; }
+body[data-current-game="bible-geography"] .geo-map.is-moving .geo-map__over { cursor: grabbing; }
+
+body[data-current-game="bible-geography"] .geo-sea { fill: var(--map-sea); transition: fill .45s ease; }
+body[data-current-game="bible-geography"] .geo-sheet-edge { fill: none; stroke: var(--map-coast); stroke-width: 1; stroke-opacity: .5; vector-effect: non-scaling-stroke; }
+body[data-current-game="bible-geography"] .geo-land {
+  fill: var(--map-land);
+  stroke: var(--map-coast);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: fill .45s ease, stroke .45s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-lake,
+body[data-current-game="bible-geography"] .geo-hula,
+body[data-current-game="bible-geography"] .geo-dead {
+  fill: var(--map-lake);
+  stroke: var(--map-coast);
+  stroke-width: .8;
+  vector-effect: non-scaling-stroke;
+  transition: fill .45s ease, opacity .45s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-dead--modern { opacity: 0; }
+
+body[data-current-game="bible-geography"] .geo-river {
+  fill: none;
+  stroke: var(--map-river);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-current-game="bible-geography"] .geo-border {
+  fill: none;
+  stroke: var(--map-border);
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+  transition: stroke .45s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-border--disputed { stroke-dasharray: 5 4; }
+
+body[data-current-game="bible-geography"] .geo-art { display: none; }
+body[data-current-game="bible-geography"] .geo-map[data-layer="ancient"] .geo-art--ancient,
+body[data-current-game="bible-geography"] .geo-map[data-layer="both"] .geo-art--ancient,
+body[data-current-game="bible-geography"] .geo-map[data-layer="modern"] .geo-art--modern { display: inline; }
+
+/* Когда картину нарисовали, вектор под ней не нужен: берег уже на картине. */
+body[data-current-game="bible-geography"] .geo-map.has-art-ancient:not([data-layer="modern"]) :is(.geo-land, .geo-lake, .geo-hula, .geo-dead, .geo-river),
+body[data-current-game="bible-geography"] .geo-map.has-art-modern[data-layer="modern"] :is(.geo-land, .geo-lake, .geo-hula, .geo-dead, .geo-river) { display: none; }
+
+/* Современная карта и «обе сразу». */
+body[data-current-game="bible-geography"] .geo-map[data-layer="modern"] {
+  --map-sea: #a9d4f0;
+  --map-land: #f6f5f0;
+  --map-coast: #7c8a99;
+  --map-lake: #a9d4f0;
+  --map-river: #3b82f6;
+  --map-border: #b0389f;
+  --map-region: #64748b;
+  --map-sea-label: #2f6f9f;
+  --map-pin: #dc2626;
+  --map-label: #0f172a;
+  --map-label-sub: #475569;
+  --map-halo: rgba(255, 255, 255, .92);
+  --map-out: #e3e8ee;
+}
+
+body[data-current-game="bible-geography"] .geo-map[data-layer="modern"] .geo-dead--ancient,
+body[data-current-game="bible-geography"] .geo-map[data-layer="modern"] .geo-hula { opacity: 0; }
+body[data-current-game="bible-geography"] .geo-map[data-layer="modern"] .geo-dead--modern { opacity: 1; }
+
+body[data-current-game="bible-geography"] .geo-map[data-layer="both"] { --map-border: rgba(176, 56, 159, .7); }
+body[data-current-game="bible-geography"] .geo-map[data-layer="both"] .geo-dead--modern {
+  opacity: 1;
+  fill: none;
+  stroke: #0369a1;
+  stroke-dasharray: 3 3;
+}
+
+/* Точки и подписи. */
+body[data-current-game="bible-geography"] .geo-pin { cursor: pointer; }
+body[data-current-game="bible-geography"] .geo-pin__hit { fill: transparent; }
+
+body[data-current-game="bible-geography"] .geo-pin__dot {
+  fill: var(--map-pin);
+  stroke: var(--map-halo);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform .2s ease, fill .2s ease;
+}
+
+body[data-current-game="bible-geography"] .geo-pin--approx .geo-pin__dot { stroke-dasharray: 2.4 1.6; }
+
+body[data-current-game="bible-geography"] .geo-pin__label,
+body[data-current-game="bible-geography"] .geo-pin__sub {
+  fill: var(--map-label);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: var(--map-halo);
+  stroke-width: 3.4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+body[data-current-game="bible-geography"] .geo-pin__sub { fill: var(--map-label-sub); font-size: 10.5px; font-weight: 700; }
+body[data-current-game="bible-geography"] .geo-map[data-layer="ancient"] .geo-pin__label { font-family: var(--geo-serif); font-weight: 700; font-size: 13px; }
+
+body[data-current-game="bible-geography"] .geo-pin--left .geo-pin__label,
+body[data-current-game="bible-geography"] .geo-pin--left .geo-pin__sub { text-anchor: end; transform: translateX(-18px); }
+body[data-current-game="bible-geography"] .geo-pin--nolabel .geo-pin__label,
+body[data-current-game="bible-geography"] .geo-pin--nolabel .geo-pin__sub,
+body[data-current-game="bible-geography"] .geo-pin--nosub .geo-pin__sub { display: none; }
+
+body[data-current-game="bible-geography"] .geo-pin__badge {
+  display: none;
+  fill: #fff;
+  font-family: system-ui, sans-serif;
+  font-size: 9.5px;
+  font-weight: 900;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+body[data-current-game="bible-geography"] .geo-pin--numbered .geo-pin__badge { display: inline; }
+body[data-current-game="bible-geography"] .geo-pin--numbered .geo-pin__dot { transform: scale(1.75); }
+body[data-current-game="bible-geography"] .geo-pin.is-stop .geo-pin__dot { fill: var(--map-route); }
+body[data-current-game="bible-geography"] .geo-pin.is-candidate .geo-pin__dot { fill: var(--geo-primary); transform: scale(1.7); }
+body[data-current-game="bible-geography"] .geo-pin.is-reveal .geo-pin__dot { fill: #64748b; transform: scale(1.4); }
+body[data-current-game="bible-geography"] .geo-pin.is-right .geo-pin__dot { fill: #16a34a; transform: scale(1.9); }
+body[data-current-game="bible-geography"] .geo-pin.is-wrong .geo-pin__dot { fill: #dc2626; transform: scale(1.7); }
+body[data-current-game="bible-geography"] .geo-pin.is-focus .geo-pin__dot { fill: #f59e0b; transform: scale(1.9); animation: geo-pulse 1.6s ease-in-out infinite; }
+
+@keyframes geo-pulse {
+  50% { transform: scale(2.3); }
+}
+
+/* Подписи областей, морей и рек. */
+body[data-current-game="bible-geography"] .geo-region {
+  fill: var(--map-region);
+  font-family: var(--geo-serif);
+  font-size: 12px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-anchor: middle;
+  text-transform: uppercase;
+  paint-order: stroke;
+  stroke: var(--map-halo);
+  stroke-width: 2.6px;
+  stroke-linejoin: round;
+  opacity: .82;
+  pointer-events: none;
+}
+
+body[data-current-game="bible-geography"] .geo-region--modern { font-family: system-ui, sans-serif; font-style: normal; letter-spacing: .16em; }
+body[data-current-game="bible-geography"] .geo-region--sea { fill: var(--map-sea-label); font-size: 12px; letter-spacing: .08em; text-transform: none; stroke: none; }
+body[data-current-game="bible-geography"] .geo-region--river { fill: var(--map-river); font-size: 11px; letter-spacing: .04em; text-transform: none; opacity: .95; }
+body[data-current-game="bible-geography"] .geo-region--city { fill: var(--map-city); font-size: 11px; font-weight: 700; letter-spacing: 0; text-anchor: start; text-transform: none; }
+body[data-current-game="bible-geography"] .geo-region--territory { font-size: 10px; letter-spacing: .06em; text-transform: none; }
+body[data-current-game="bible-geography"] .geo-city-dot { fill: var(--map-city); }
+
+/* Пути. */
+body[data-current-game="bible-geography"] .geo-route {
+  fill: none;
+  stroke: var(--map-route);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 9 7;
+  animation: geo-flow 1.1s linear infinite;
+  pointer-events: none;
+}
+
+body[data-current-game="bible-geography"] .geo-route--journey { stroke: var(--map-route-2); }
+
+@keyframes geo-flow { to { stroke-dashoffset: -16; } }
+
+/* Кнопки карты. Стоят сверху: внизу справа живёт кнопка «?» правил. */
+body[data-current-game="bible-geography"] .geo-map__tools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+body[data-current-game="bible-geography"] .geo-map__tool {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .92);
+  color: #1e1b4b;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, .12);
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-mapbox--mini .geo-map__tools { top: 8px; right: 8px; grid-auto-flow: column; }
+body[data-current-game="bible-geography"] .geo-mapbox--mini .geo-map__tool { width: 32px; height: 32px; }
+
+/* --- atlas ------------------------------------------------------------------------- */
+
+body[data-current-game="bible-geography"] .geo-seg--layers { background: var(--geo-card); box-shadow: var(--geo-shadow); }
+
+body[data-current-game="bible-geography"] .geo-pop {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: grid;
+  gap: 8px;
+  max-height: 58%;
+  overflow: auto;
+  padding: 14px 14px 12px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, .22);
+  overscroll-behavior: contain;
+}
+
+body[data-current-game="bible-geography"] .geo-pop[hidden] { display: none; }
+body[data-current-game="bible-geography"] .geo-pop h4 { padding-right: 34px; font-size: 1.15rem; font-weight: 950; }
+body[data-current-game="bible-geography"] .geo-pop h4 small { color: var(--geo-soft); font-size: .85rem; font-weight: 700; }
+body[data-current-game="bible-geography"] .geo-pop__who { color: var(--geo-ink) !important; font-size: .82rem; font-weight: 900 !important; }
+
+body[data-current-game="bible-geography"] .geo-pop__close {
+  appearance: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--geo-tint);
+  color: var(--geo-ink);
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-sheet { display: grid; gap: 10px; }
+body[data-current-game="bible-geography"] .geo-sheet__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+body[data-current-game="bible-geography"] .geo-sheet__head h3 { font-size: 1.3rem; font-weight: 950; }
+body[data-current-game="bible-geography"] .geo-sheet__hint { color: var(--geo-muted) !important; font-size: .86rem; }
+
+body[data-current-game="bible-geography"] .geo-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+body[data-current-game="bible-geography"] .geo-era { margin-top: 4px !important; color: var(--geo-primary) !important; font-size: .72rem; font-weight: 900 !important; letter-spacing: .12em; text-transform: uppercase; }
+
+body[data-current-game="bible-geography"] .geo-chip {
+  appearance: none;
+  display: inline-grid;
+  gap: 1px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--geo-line);
+  border-radius: 999px;
+  background: var(--geo-card-strong);
+  color: var(--geo-ink);
+  font: inherit;
+  font-size: .86rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-chip--route { border-radius: 14px; }
+body[data-current-game="bible-geography"] .geo-chip small { color: var(--geo-soft); font-size: .72rem; font-weight: 700; }
+body[data-current-game="bible-geography"] .geo-chips--small .geo-chip { min-height: 30px; padding: 4px 10px; font-size: .8rem; }
+
+body[data-current-game="bible-geography"] .geo-stops { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+body[data-current-game="bible-geography"] .geo-stop {
+  appearance: none;
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--geo-line);
+  border-radius: 14px;
+  background: var(--geo-card-strong);
+  color: var(--geo-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+body[data-current-game="bible-geography"] .geo-stop__n {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--map-route);
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 900;
+}
+
+body[data-current-game="bible-geography"] .geo-stop__text { display: grid; gap: 2px; min-width: 0; }
+body[data-current-game="bible-geography"] .geo-stop__text b { font-size: .94rem; font-weight: 900; }
+body[data-current-game="bible-geography"] .geo-stop__text small { color: var(--geo-muted); font-size: .8rem; font-weight: 600; line-height: 1.3; }
+
+@media (max-width: 380px) {
+  body[data-current-game="bible-geography"] .geo { padding: 0 10px; }
+  body[data-current-game="bible-geography"] .geo-match { gap: 0 24px; }
+  body[data-current-game="bible-geography"] .geo-node { padding: 8px 10px; min-height: 56px; }
+  body[data-current-game="bible-geography"] .geo-node--hero { padding-right: 18px; }
+  body[data-current-game="bible-geography"] .geo-node--place { padding-left: 18px; }
+  body[data-current-game="bible-geography"] .geo-node strong { font-size: .9rem; }
+  body[data-current-game="bible-geography"] .geo-options { grid-template-columns: 1fr; }
+  body[data-current-game="bible-geography"] .geo-mode { min-height: 140px; padding: 12px; }
+  body[data-current-game="bible-geography"] .geo-seg__item { font-size: .78rem; }
+  body[data-current-game="bible-geography"] .geo-stop { grid-template-columns: 26px 1fr; }
+  body[data-current-game="bible-geography"] .geo-stop .geo-ref { grid-column: 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-current-game="bible-geography"] .geo-route,
+  body[data-current-game="bible-geography"] .geo-pin.is-focus .geo-pin__dot,
+  body[data-current-game="bible-geography"] .geo-match__lines path { animation: none; stroke-dashoffset: 0; }
+  body[data-current-game="bible-geography"] .geo-node.is-wrong { animation: none; }
+}
+
+/* --- тёмная тема ------------------------------------------------------------------- */
+
+html.theme-dark body[data-current-game="bible-geography"] .geo {
+  --geo-ink: #e8e7ff;
+  --geo-muted: #b8bdd0;
+  --geo-soft: #9aa1b8;
+  --geo-primary: #8b85ff;
+  --geo-primary-2: #3b82f6;
+  --geo-card: rgba(23, 25, 45, .9);
+  --geo-card-strong: #1c1f36;
+  --geo-tint: #262a4a;
+  --geo-line: rgba(139, 133, 255, .22);
+  --geo-shadow: 0 18px 44px rgba(0, 0, 0, .35);
+  --geo-good: #4ade80;
+  --geo-good-bg: rgba(22, 101, 52, .35);
+  --geo-bad: #f87171;
+  --geo-bad-bg: rgba(153, 27, 27, .35);
+  --geo-warn: #fbbf24;
+  --geo-warn-bg: rgba(146, 64, 14, .35);
+  --geo-quote: #efe3c4;
+  --map-sea: #1d3a40;
+  --map-land: #3a3224;
+  --map-coast: #b08d55;
+  --map-lake: #24464c;
+  --map-river: #6fb3d4;
+  --map-region: #e2c590;
+  --map-sea-label: #8fc1c9;
+  --map-pin: #f59e6b;
+  --map-label: #f6ead0;
+  --map-label-sub: #d9c9a6;
+  --map-halo: rgba(30, 26, 18, .9);
+  --map-route: #f59e0b;
+  --map-route-2: #a5b4fc;
+  --map-city: #a3aec2;
+  --map-out: #191b2c;
+}
+
+/* Нарисованная карта одна на обе темы: в тёмной её чуть приглушаем, чтобы
+   светлый пергамент не слепил рядом с тёмными панелями. */
+html.theme-dark body[data-current-game="bible-geography"] .geo-art { filter: brightness(.8) saturate(.92); }
+
+html.theme-dark body[data-current-game="bible-geography"] .geo-map[data-layer="modern"] {
+  --map-sea: #102b44;
+  --map-land: #1f2937;
+  --map-coast: #64748b;
+  --map-lake: #102b44;
+  --map-river: #60a5fa;
+  --map-border: #e879f9;
+  --map-region: #94a3b8;
+  --map-sea-label: #7cb4e0;
+  --map-pin: #f87171;
+  --map-label: #f1f5f9;
+  --map-label-sub: #cbd5e1;
+  --map-halo: rgba(15, 23, 42, .9);
+  --map-out: #151826;
+}
+
+html.theme-dark body[data-current-game="bible-geography"] .geo-hero,
+html.theme-dark body[data-current-game="bible-geography"] .geo-mode,
+html.theme-dark body[data-current-game="bible-geography"] .geo-bar,
+html.theme-dark body[data-current-game="bible-geography"] .geo-card,
+html.theme-dark body[data-current-game="bible-geography"] .geo-mapbox { border-color: rgba(139, 133, 255, .16); }
+
+html.theme-dark body[data-current-game="bible-geography"] .geo-hero {
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(14, 165, 233, .16), transparent 60%),
+    linear-gradient(160deg, rgba(28, 31, 54, .96), rgba(22, 24, 44, .94));
+}
+
+html.theme-dark body[data-current-game="bible-geography"] .geo-title { color: #c7c4ff !important; }
+html.theme-dark body[data-current-game="bible-geography"] .geo-hero__coast { fill: rgba(58, 50, 36, .9); stroke: #b08d55; }
+html.theme-dark body[data-current-game="bible-geography"] .geo-mode--atlas { background: linear-gradient(120deg, rgba(58, 50, 36, .9), rgba(28, 31, 54, .9) 70%); }
+html.theme-dark body[data-current-game="bible-geography"] .geo-quote { background: rgba(58, 50, 36, .55); border-left-color: #b08d55; }
+html.theme-dark body[data-current-game="bible-geography"] .geo-ref { background: rgba(245, 158, 11, .16); color: #fbbf24; }
+html.theme-dark body[data-current-game="bible-geography"] .geo-pop { background: rgba(28, 31, 54, .97); border-color: rgba(139, 133, 255, .2); }
+html.theme-dark body[data-current-game="bible-geography"] .geo-map__tool { background: rgba(28, 31, 54, .94); color: #e8e7ff; border-color: rgba(139, 133, 255, .2); }
+html.theme-dark body[data-current-game="bible-geography"] .geo-mode__best { color: #fbbf24; }
+html.theme-dark body[data-current-game="bible-geography"] .geo-result__stars span { color: rgba(139, 133, 255, .22); }
