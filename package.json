@@ -64,7 +64,7 @@
     "check:promised-land:online": "node scripts/check-promised-land-online.mjs && node scripts/check-promised-land-online-browser.mjs",
     "check:channel": "node scripts/check-channel-promo.mjs",
     "check:words": "node scripts/check-bible-words.mjs --report",
-    "check:bible-geography": "node scripts/check-bible-geography.mjs",
+    "check:bible-geography": "node scripts/check-bible-geography.mjs && node scripts/check-bible-geography-gallery.mjs",
     "build:moses-nile-icon": "node scripts/build-menu-moses-nile-icon.mjs",
     "build:moses-nile-assets": "node scripts/build-moses-nile-assets.mjs",
     "check:languages": "node scripts/check-language-access.mjs && node scripts/check-language-content.mjs",

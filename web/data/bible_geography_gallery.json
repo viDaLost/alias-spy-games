@@ -1,0 +1,768 @@
+{
+  "version": 1,
+  "assets": {
+    "judah": {
+      "src": "web/assets/bible-geography/locations/judah.webp",
+      "region": "Иудейское нагорье",
+      "sourceLabel": "UNESCO · Старый город Иерусалима",
+      "sourceUrl": "https://whc.unesco.org/en/list/148/",
+      "i18n": {
+        "region": {
+          "ru": "Иудейское нагорье",
+          "en": "Judean hill country",
+          "de": "Judäisches Bergland",
+          "es": "Montes de Judea"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Старый город Иерусалима",
+          "en": "UNESCO · Old City of Jerusalem",
+          "de": "UNESCO · Altstadt von Jerusalem",
+          "es": "UNESCO · Ciudad vieja de Jerusalén"
+        }
+      }
+    },
+    "jezreel": {
+      "src": "web/assets/bible-geography/locations/jezreel.webp",
+      "region": "Изреельская долина",
+      "sourceLabel": "UNESCO · Мегиддо",
+      "sourceUrl": "https://whc.unesco.org/en/list/1108/",
+      "i18n": {
+        "region": {
+          "ru": "Изреельская долина",
+          "en": "Jezreel Valley",
+          "de": "Jesreel-Ebene",
+          "es": "Valle de Jesreel"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Мегиддо",
+          "en": "UNESCO · Megiddo",
+          "de": "UNESCO · Megiddo",
+          "es": "UNESCO · Megido"
+        }
+      }
+    },
+    "jordan": {
+      "src": "web/assets/bible-geography/locations/jordan.webp",
+      "region": "Долина реки Иордан",
+      "sourceLabel": "UNESCO · Место Крещения за Иорданом",
+      "sourceUrl": "https://whc.unesco.org/en/list/1446/",
+      "i18n": {
+        "region": {
+          "ru": "Долина реки Иордан",
+          "en": "Jordan Valley",
+          "de": "Jordantal",
+          "es": "Valle del Jordán"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Место Крещения за Иорданом",
+          "en": "UNESCO · Baptism Site “Bethany Beyond the Jordan”",
+          "de": "UNESCO · Taufstelle „Bethanien jenseits des Jordans“",
+          "es": "UNESCO · Sitio del Bautismo “Betania más allá del Jordán”"
+        }
+      }
+    },
+    "deadsea": {
+      "src": "web/assets/bible-geography/locations/deadsea.webp",
+      "region": "Бассейн Мёртвого моря и Иудейская пустыня",
+      "sourceLabel": "UNESCO · Масада",
+      "sourceUrl": "https://whc.unesco.org/en/list/1040/",
+      "i18n": {
+        "region": {
+          "ru": "Бассейн Мёртвого моря и Иудейская пустыня",
+          "en": "Dead Sea basin and Judean Desert",
+          "de": "Totes-Meer-Becken und Judäische Wüste",
+          "es": "Cuenca del mar Muerto y desierto de Judea"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Масада",
+          "en": "UNESCO · Masada",
+          "de": "UNESCO · Masada",
+          "es": "UNESCO · Masada"
+        }
+      }
+    },
+    "galilee": {
+      "src": "web/assets/bible-geography/locations/galilee.webp",
+      "region": "Галилея и берег Галилейского моря",
+      "sourceLabel": "Управление национальных парков Израиля · Капернаум",
+      "sourceUrl": "https://en.parks.org.il/reserve-park/kfar-nahum-capernaum-national-park/",
+      "i18n": {
+        "region": {
+          "ru": "Галилея и берег Галилейского моря",
+          "en": "Galilee and the Sea of Galilee",
+          "de": "Galiläa und der See Genezareth",
+          "es": "Galilea y el mar de Galilea"
+        },
+        "sourceLabel": {
+          "ru": "Управление национальных парков Израиля · Капернаум",
+          "en": "Israel Nature and Parks Authority · Capernaum",
+          "de": "Israelische Natur- und Parkbehörde · Kapernaum",
+          "es": "Autoridad de Parques de Israel · Cafarnaúm"
+        }
+      }
+    },
+    "tabor": {
+      "src": "web/assets/bible-geography/locations/tabor.webp",
+      "region": "Нижняя Галилея и гора Фавор",
+      "sourceLabel": "Управление национальных парков Израиля · гора Фавор",
+      "sourceUrl": "https://en.parks.org.il/reserve-park/mount-tabor-nature-reserve-and-national-park/",
+      "i18n": {
+        "region": {
+          "ru": "Нижняя Галилея и гора Фавор",
+          "en": "Lower Galilee and Mount Tabor",
+          "de": "Untergaliläa und der Berg Tabor",
+          "es": "Baja Galilea y el monte Tabor"
+        },
+        "sourceLabel": {
+          "ru": "Управление национальных парков Израиля · гора Фавор",
+          "en": "Israel Nature and Parks Authority · Mount Tabor",
+          "de": "Israelische Natur- und Parkbehörde · Berg Tabor",
+          "es": "Autoridad de Parques de Israel · monte Tabor"
+        }
+      }
+    },
+    "sinai": {
+      "src": "web/assets/bible-geography/locations/sinai.webp",
+      "region": "Горы южного Синая",
+      "sourceLabel": "UNESCO · район Святой Екатерины",
+      "sourceUrl": "https://whc.unesco.org/en/list/954/",
+      "i18n": {
+        "region": {
+          "ru": "Горы южного Синая",
+          "en": "Southern Sinai mountains",
+          "de": "Gebirge des südlichen Sinai",
+          "es": "Montañas del sur del Sinaí"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · район Святой Екатерины",
+          "en": "UNESCO · Saint Catherine Area",
+          "de": "UNESCO · Gebiet des Katharinenklosters",
+          "es": "UNESCO · Área de Santa Catalina"
+        }
+      }
+    },
+    "egypt": {
+      "src": "web/assets/bible-geography/locations/egypt.webp",
+      "region": "Долина и дельта Нила",
+      "sourceLabel": "UNESCO · Мемфис и его некрополь",
+      "sourceUrl": "https://whc.unesco.org/en/list/86/",
+      "i18n": {
+        "region": {
+          "ru": "Долина и дельта Нила",
+          "en": "Nile Valley and Delta",
+          "de": "Niltal und Nildelta",
+          "es": "Valle y delta del Nilo"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Мемфис и его некрополь",
+          "en": "UNESCO · Memphis and its Necropolis",
+          "de": "UNESCO · Memphis und seine Nekropole",
+          "es": "UNESCO · Menfis y su necrópolis"
+        }
+      }
+    },
+    "midian": {
+      "src": "web/assets/bible-geography/locations/midian.webp",
+      "region": "Северо-западная Аравия",
+      "sourceLabel": "UNESCO · Хегра, северо-западная Аравия",
+      "sourceUrl": "https://whc.unesco.org/en/list/1293/",
+      "i18n": {
+        "region": {
+          "ru": "Северо-западная Аравия",
+          "en": "Northwest Arabia",
+          "de": "Nordwestarabien",
+          "es": "Noroeste de Arabia"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Хегра, северо-западная Аравия",
+          "en": "UNESCO · Hegra, Northwest Arabia",
+          "de": "UNESCO · Hegra, Nordwestarabien",
+          "es": "UNESCO · Hegra, noroeste de Arabia"
+        }
+      }
+    },
+    "ararat": {
+      "src": "web/assets/bible-geography/locations/ararat.webp",
+      "region": "Армянское нагорье у массива Арарат",
+      "sourceLabel": "Министерство культуры и туризма Турции · гора Арарат",
+      "sourceUrl": "https://www.ktb.gov.tr/EN-99411/agri---mount-ararat.html",
+      "i18n": {
+        "region": {
+          "ru": "Армянское нагорье у массива Арарат",
+          "en": "Armenian Highlands by the Ararat massif",
+          "de": "Armenisches Hochland am Araratmassiv",
+          "es": "Altiplano armenio junto al macizo del Ararat"
+        },
+        "sourceLabel": {
+          "ru": "Министерство культуры и туризма Турции · гора Арарат",
+          "en": "Türkiye Ministry of Culture and Tourism · Mount Ararat",
+          "de": "Türkisches Ministerium für Kultur und Tourismus · Berg Ararat",
+          "es": "Ministerio de Cultura y Turismo de Türkiye · monte Ararat"
+        }
+      }
+    },
+    "mesopotamia": {
+      "src": "web/assets/bible-geography/locations/mesopotamia.webp",
+      "region": "Речные равнины Месопотамии",
+      "sourceLabel": "UNESCO · болота южного Ирака",
+      "sourceUrl": "https://whc.unesco.org/en/list/1481/",
+      "i18n": {
+        "region": {
+          "ru": "Речные равнины Месопотамии",
+          "en": "Mesopotamian river plains",
+          "de": "Mesopotamische Flussebenen",
+          "es": "Llanuras fluviales de Mesopotamia"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · болота южного Ирака",
+          "en": "UNESCO · Ahwar of Southern Iraq",
+          "de": "UNESCO · Ahwar im Südirak",
+          "es": "UNESCO · Ahwar del sur de Irak"
+        }
+      }
+    },
+    "redsea": {
+      "src": "web/assets/bible-geography/locations/redsea.webp",
+      "region": "Синайское побережье залива Суэц",
+      "sourceLabel": "UNESCO · район Святой Екатерины на Синае",
+      "sourceUrl": "https://whc.unesco.org/en/list/954/",
+      "i18n": {
+        "region": {
+          "ru": "Синайское побережье залива Суэц",
+          "en": "Sinai shore of the Gulf of Suez",
+          "de": "Sinai-Küste am Golf von Suez",
+          "es": "Costa del Sinaí en el golfo de Suez"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · район Святой Екатерины на Синае",
+          "en": "UNESCO · Saint Catherine area, Sinai",
+          "de": "UNESCO · Gebiet des Katharinenklosters auf dem Sinai",
+          "es": "UNESCO · Área de Santa Catalina, Sinaí"
+        }
+      }
+    },
+    "anatolia_coast": {
+      "src": "web/assets/bible-geography/locations/anatolia_coast.webp",
+      "region": "Побережья Малой Азии",
+      "sourceLabel": "UNESCO · Эфес",
+      "sourceUrl": "https://whc.unesco.org/en/list/1018/",
+      "i18n": {
+        "region": {
+          "ru": "Побережья Малой Азии",
+          "en": "Coasts of Anatolia",
+          "de": "Küsten Kleinasiens",
+          "es": "Costas de Anatolia"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Эфес",
+          "en": "UNESCO · Ephesus",
+          "de": "UNESCO · Ephesos",
+          "es": "UNESCO · Éfeso"
+        }
+      }
+    },
+    "anatolia_central": {
+      "src": "web/assets/bible-geography/locations/anatolia_central.webp",
+      "region": "Центральноанатолийское плато",
+      "sourceLabel": "UNESCO · Хаттуса",
+      "sourceUrl": "https://whc.unesco.org/en/list/377/",
+      "i18n": {
+        "region": {
+          "ru": "Центральноанатолийское плато",
+          "en": "Central Anatolian plateau",
+          "de": "Zentralanatolisches Hochland",
+          "es": "Meseta de Anatolia central"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Хаттуса",
+          "en": "UNESCO · Hattusha",
+          "de": "UNESCO · Hattuscha",
+          "es": "UNESCO · Hattusa"
+        }
+      }
+    },
+    "macedonia": {
+      "src": "web/assets/bible-geography/locations/macedonia.webp",
+      "region": "Долины восточной Македонии",
+      "sourceLabel": "UNESCO · Филиппы",
+      "sourceUrl": "https://whc.unesco.org/en/list/1517/",
+      "i18n": {
+        "region": {
+          "ru": "Долины восточной Македонии",
+          "en": "Valleys of eastern Macedonia",
+          "de": "Täler Ostmakedoniens",
+          "es": "Valles de Macedonia oriental"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Филиппы",
+          "en": "UNESCO · Philippi",
+          "de": "UNESCO · Philippi",
+          "es": "UNESCO · Filipos"
+        }
+      }
+    },
+    "attica": {
+      "src": "web/assets/bible-geography/locations/attica.webp",
+      "region": "Аттика у Афин",
+      "sourceLabel": "UNESCO · Афинский Акрополь",
+      "sourceUrl": "https://whc.unesco.org/en/list/404/",
+      "i18n": {
+        "region": {
+          "ru": "Аттика у Афин",
+          "en": "Attica near Athens",
+          "de": "Attika bei Athen",
+          "es": "Ática junto a Atenas"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Афинский Акрополь",
+          "en": "UNESCO · Acropolis of Athens",
+          "de": "UNESCO · Akropolis von Athen",
+          "es": "UNESCO · Acrópolis de Atenas"
+        }
+      }
+    },
+    "aegeanislands": {
+      "src": "web/assets/bible-geography/locations/aegeanislands.webp",
+      "region": "Острова Эгейского моря",
+      "sourceLabel": "UNESCO · Пифагорион и Герайон на Самосе",
+      "sourceUrl": "https://whc.unesco.org/en/list/595/",
+      "i18n": {
+        "region": {
+          "ru": "Острова Эгейского моря",
+          "en": "Aegean islands",
+          "de": "Inseln der Ägäis",
+          "es": "Islas del mar Egeo"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Пифагорион и Герайон на Самосе",
+          "en": "UNESCO · Pythagoreion and Heraion of Samos",
+          "de": "UNESCO · Pythagoreion und Heraion von Samos",
+          "es": "UNESCO · Pitagoreión y Heraion de Samos"
+        }
+      }
+    },
+    "crete": {
+      "src": "web/assets/bible-geography/locations/crete.webp",
+      "region": "Южное побережье Крита",
+      "sourceLabel": "Греческое министерство культуры · Кносс",
+      "sourceUrl": "https://www.culture.gov.gr/en/ministry/SitePages/viewyphresia.aspx?iid=1708",
+      "i18n": {
+        "region": {
+          "ru": "Южное побережье Крита",
+          "en": "Southern coast of Crete",
+          "de": "Südküste Kretas",
+          "es": "Costa sur de Creta"
+        },
+        "sourceLabel": {
+          "ru": "Греческое министерство культуры · Кносс",
+          "en": "Hellenic Ministry of Culture · Knossos",
+          "de": "Griechisches Kulturministerium · Knossos",
+          "es": "Ministerio de Cultura griego · Cnosos"
+        }
+      }
+    },
+    "negev": {
+      "src": "web/assets/bible-geography/locations/negev.webp",
+      "region": "Негев и его сухие долины",
+      "sourceLabel": "UNESCO · города пустыни Негев",
+      "sourceUrl": "https://whc.unesco.org/en/list/1107/",
+      "i18n": {
+        "region": {
+          "ru": "Негев и его сухие долины",
+          "en": "Negev and its dry valleys",
+          "de": "Negev und seine Trockentäler",
+          "es": "Néguev y sus valles secos"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · города пустыни Негев",
+          "en": "UNESCO · Incense Route – Desert Cities in the Negev",
+          "de": "UNESCO · Weihrauchstraße – Wüstenstädte im Negev",
+          "es": "UNESCO · Ruta del incienso – ciudades del desierto del Néguev"
+        }
+      }
+    },
+    "transjordan": {
+      "src": "web/assets/bible-geography/locations/transjordan.webp",
+      "region": "Нагорья восточнее Иордана",
+      "sourceLabel": "UNESCO · место Крещения за Иорданом",
+      "sourceUrl": "https://whc.unesco.org/en/list/1446/",
+      "i18n": {
+        "region": {
+          "ru": "Нагорья восточнее Иордана",
+          "en": "Highlands east of the Jordan",
+          "de": "Hochland östlich des Jordan",
+          "es": "Tierras altas al este del Jordán"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · место Крещения за Иорданом",
+          "en": "UNESCO · Baptism Site beyond the Jordan",
+          "de": "UNESCO · Taufstelle jenseits des Jordans",
+          "es": "UNESCO · Sitio del Bautismo al este del Jordán"
+        }
+      }
+    },
+    "cyprus": {
+      "src": "web/assets/bible-geography/locations/cyprus.webp",
+      "region": "Средиземноморское побережье Кипра",
+      "sourceLabel": "UNESCO · Пафос",
+      "sourceUrl": "https://whc.unesco.org/en/list/79/",
+      "i18n": {
+        "region": {
+          "ru": "Средиземноморское побережье Кипра",
+          "en": "Mediterranean coast of Cyprus",
+          "de": "Mittelmeerküste Zyperns",
+          "es": "Costa mediterránea de Chipre"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Пафос",
+          "en": "UNESCO · Paphos",
+          "de": "UNESCO · Paphos",
+          "es": "UNESCO · Pafos"
+        }
+      }
+    },
+    "levantcoast": {
+      "src": "web/assets/bible-geography/locations/levantcoast.webp",
+      "region": "Восточное побережье Средиземного моря",
+      "sourceLabel": "UNESCO · Тир",
+      "sourceUrl": "https://whc.unesco.org/en/list/299/",
+      "i18n": {
+        "region": {
+          "ru": "Восточное побережье Средиземного моря",
+          "en": "Eastern Mediterranean coast",
+          "de": "Östliche Mittelmeerküste",
+          "es": "Costa oriental del Mediterráneo"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Тир",
+          "en": "UNESCO · Tyre",
+          "de": "UNESCO · Tyros",
+          "es": "UNESCO · Tiro"
+        }
+      }
+    },
+    "corinth": {
+      "src": "web/assets/bible-geography/locations/corinth.webp",
+      "region": "Коринфский перешеек и окрестности",
+      "sourceLabel": "Министерство культуры Греции · Древний Коринф",
+      "sourceUrl": "https://allofgreeceone.culture.gov.gr/en/venues/archaiologikos-choros-korinthou-en/",
+      "i18n": {
+        "region": {
+          "ru": "Коринфский перешеек и окрестности",
+          "en": "Isthmus of Corinth and surroundings",
+          "de": "Isthmus von Korinth und Umgebung",
+          "es": "Istmo de Corinto y alrededores"
+        },
+        "sourceLabel": {
+          "ru": "Министерство культуры Греции · Древний Коринф",
+          "en": "Hellenic Ministry of Culture · Ancient Corinth",
+          "de": "Griechisches Kulturministerium · Alt-Korinth",
+          "es": "Ministerio de Cultura griego · Antigua Corinto"
+        }
+      }
+    },
+    "harran": {
+      "src": "web/assets/bible-geography/locations/harran.webp",
+      "region": "Равнина Харрана в Верхней Месопотамии",
+      "sourceLabel": "UNESCO · Харран и Шанлыурфа",
+      "sourceUrl": "https://whc.unesco.org/en/tentativelists/1400/",
+      "i18n": {
+        "region": {
+          "ru": "Равнина Харрана в Верхней Месопотамии",
+          "en": "Harran plain in Upper Mesopotamia",
+          "de": "Harran-Ebene in Obermesopotamien",
+          "es": "Llanura de Harrán en la Alta Mesopotamia"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Харран и Шанлыурфа",
+          "en": "UNESCO · Harran and Şanlıurfa",
+          "de": "UNESCO · Harran und Şanlıurfa",
+          "es": "UNESCO · Harrán y Şanlıurfa"
+        }
+      }
+    },
+    "susa": {
+      "src": "web/assets/bible-geography/locations/susa.webp",
+      "region": "Сузианская равнина у Суз",
+      "sourceLabel": "UNESCO · Сузы",
+      "sourceUrl": "https://whc.unesco.org/en/list/1455/",
+      "i18n": {
+        "region": {
+          "ru": "Сузианская равнина у Суз",
+          "en": "Susiana plain near Susa",
+          "de": "Susiana-Ebene bei Susa",
+          "es": "Llanura de Susiana junto a Susa"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · Сузы",
+          "en": "UNESCO · Susa",
+          "de": "UNESCO · Susa",
+          "es": "UNESCO · Susa"
+        }
+      }
+    },
+    "damascus": {
+      "src": "web/assets/bible-geography/locations/damascus.webp",
+      "region": "Оазис Гута и долина Барады у Дамаска",
+      "sourceLabel": "UNESCO · древний Дамаск",
+      "sourceUrl": "https://whc.unesco.org/en/list/20/",
+      "i18n": {
+        "region": {
+          "ru": "Оазис Гута и долина Барады у Дамаска",
+          "en": "Ghouta oasis and Barada valley near Damascus",
+          "de": "Ghouta-Oase und Barada-Tal bei Damaskus",
+          "es": "Oasis de Ghouta y valle del Barada cerca de Damasco"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · древний Дамаск",
+          "en": "UNESCO · Ancient City of Damascus",
+          "de": "UNESCO · Altstadt von Damaskus",
+          "es": "UNESCO · Ciudad antigua de Damasco"
+        }
+      }
+    },
+    "italy": {
+      "src": "web/assets/bible-geography/locations/italy.webp",
+      "region": "Равнины центральной Италии",
+      "sourceLabel": "UNESCO · исторический центр Рима",
+      "sourceUrl": "https://whc.unesco.org/en/list/91/",
+      "i18n": {
+        "region": {
+          "ru": "Равнины центральной Италии",
+          "en": "Plains of central Italy",
+          "de": "Ebenen Mittelitaliens",
+          "es": "Llanuras de Italia central"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · исторический центр Рима",
+          "en": "UNESCO · Historic Centre of Rome",
+          "de": "UNESCO · Historisches Zentrum von Rom",
+          "es": "UNESCO · Centro histórico de Roma"
+        }
+      }
+    },
+    "central_med": {
+      "src": "web/assets/bible-geography/locations/central_med.webp",
+      "region": "Островные побережья центрального Средиземноморья",
+      "sourceLabel": "UNESCO · мегалитические храмы Мальты",
+      "sourceUrl": "https://whc.unesco.org/en/list/132/",
+      "i18n": {
+        "region": {
+          "ru": "Островные побережья центрального Средиземноморья",
+          "en": "Island coasts of the central Mediterranean",
+          "de": "Inselküsten im zentralen Mittelmeer",
+          "es": "Costas insulares del Mediterráneo central"
+        },
+        "sourceLabel": {
+          "ru": "UNESCO · мегалитические храмы Мальты",
+          "en": "UNESCO · Megalithic Temples of Malta",
+          "de": "UNESCO · Megalithische Tempel von Malta",
+          "es": "UNESCO · Templos megalíticos de Malta"
+        }
+      }
+    }
+  },
+  "places": {
+    "jerusalem": "judah",
+    "moriah": "judah",
+    "gethsemane": "judah",
+    "golgotha": "judah",
+    "bethany": "judah",
+    "bethlehem": "judah",
+    "hebron": "judah",
+    "jericho": "judah",
+    "ai": "judah",
+    "bethel": "judah",
+    "gibeon": "judah",
+    "ramah": "judah",
+    "mizpah": "judah",
+    "gibeah": "judah",
+    "michmash": "judah",
+    "anathoth": "judah",
+    "emmaus": "judah",
+    "shiloh": "judah",
+    "shechem": "judah",
+    "sychar": "judah",
+    "samaria": "judah",
+    "dothan": "judah",
+    "adullam": "judah",
+    "elah": "judah",
+    "zorah": "judah",
+    "timnah": "judah",
+    "gath": "judah",
+    "lachish": "judah",
+    "capernaum": "galilee",
+    "bethsaida": "galilee",
+    "geshur": "galilee",
+    "caesareaphilippi": "galilee",
+    "tabor": "tabor",
+    "nain": "tabor",
+    "nazareth": "tabor",
+    "gathhepher": "tabor",
+    "cana": "tabor",
+    "megiddo": "jezreel",
+    "jezreel": "jezreel",
+    "shunem": "jezreel",
+    "endor": "jezreel",
+    "gilboa": "jezreel",
+    "ophrah": "jezreel",
+    "jordan": "jordan",
+    "bethabara": "jordan",
+    "gilgal": "jordan",
+    "sodom": "deadsea",
+    "zoar": "deadsea",
+    "judeandesert": "deadsea",
+    "engedi": "deadsea",
+    "egypt": "egypt",
+    "goshen": "egypt",
+    "rameses": "egypt",
+    "tahpanhes": "egypt",
+    "alexandria": "egypt",
+    "marah": "sinai",
+    "elim": "sinai",
+    "rephidim": "sinai",
+    "sinai": "sinai",
+    "kadesh": "sinai",
+    "midian": "midian",
+    "ararat": "ararat",
+    "ur": "mesopotamia",
+    "nineveh": "mesopotamia",
+    "babylon": "mesopotamia",
+    "chebar": "mesopotamia",
+    "redsea": "redsea",
+    "eziongeber": "redsea",
+    "antioch": "anatolia_coast",
+    "seleucia": "anatolia_coast",
+    "tarsus": "anatolia_coast",
+    "perga": "anatolia_coast",
+    "attalia": "anatolia_coast",
+    "troas": "anatolia_coast",
+    "assos": "anatolia_coast",
+    "thyatira": "anatolia_coast",
+    "ephesus": "anatolia_coast",
+    "miletus": "anatolia_coast",
+    "patara": "anatolia_coast",
+    "myra": "anatolia_coast",
+    "cnidus": "anatolia_coast",
+    "pisidianantioch": "anatolia_central",
+    "iconium": "anatolia_central",
+    "lystra": "anatolia_central",
+    "derbe": "anatolia_central",
+    "colossae": "anatolia_central",
+    "samothrace": "macedonia",
+    "neapolis": "macedonia",
+    "philippi": "macedonia",
+    "amphipolis": "macedonia",
+    "apollonia": "macedonia",
+    "thessalonica": "macedonia",
+    "berea": "macedonia",
+    "athens": "attica",
+    "crete": "crete",
+    "fairhavens": "crete",
+    "salamis": "cyprus",
+    "beersheba": "negev",
+    "gerar": "negev",
+    "ziklag": "negev",
+    "hor": "transjordan",
+    "seir": "transjordan",
+    "nebo": "transjordan",
+    "moab": "transjordan",
+    "mahanaim": "transjordan",
+    "succoth": "transjordan",
+    "ramothgilead": "transjordan",
+    "gaza": "levantcoast",
+    "ashkelon": "levantcoast",
+    "azotus": "levantcoast",
+    "joppa": "levantcoast",
+    "lydda": "levantcoast",
+    "caesarea": "levantcoast",
+    "carmel": "levantcoast",
+    "ptolemais": "levantcoast",
+    "tyre": "levantcoast",
+    "zarephath": "levantcoast",
+    "sidon": "levantcoast",
+    "patmos": "aegeanislands",
+    "mitylene": "aegeanislands",
+    "chios": "aegeanislands",
+    "samos": "aegeanislands",
+    "cos": "aegeanislands",
+    "rhodes": "aegeanislands",
+    "corinth": "corinth",
+    "cenchreae": "corinth",
+    "harran": "harran",
+    "susa": "susa",
+    "damascus": "damascus",
+    "rome": "italy",
+    "rhegium": "italy",
+    "puteoli": "italy",
+    "melita": "central_med",
+    "syracuse": "central_med"
+  },
+  "copy": {
+    "title": "Виды по маршруту",
+    "position": "Остановка маршрута",
+    "previous": "Предыдущее место",
+    "next": "Следующее место",
+    "focus": "Показать место на карте",
+    "places": "Остановки маршрута",
+    "disclaimer": "Созданная для атласа иллюстрация показывает общий ландшафт региона. Это не фотография и не реконструкция облика города в библейскую эпоху.",
+    "context": "Географический ориентир",
+    "landscape": "Иллюстрация ландшафта региона",
+    "i18n": {
+      "title": {
+        "ru": "Виды по маршруту",
+        "en": "Views along the route",
+        "de": "Ansichten entlang der Route",
+        "es": "Vistas de la ruta"
+      },
+      "position": {
+        "ru": "Остановка маршрута",
+        "en": "Route stop",
+        "de": "Routenstation",
+        "es": "Parada de la ruta"
+      },
+      "previous": {
+        "ru": "Предыдущее место",
+        "en": "Previous place",
+        "de": "Vorheriger Ort",
+        "es": "Lugar anterior"
+      },
+      "next": {
+        "ru": "Следующее место",
+        "en": "Next place",
+        "de": "Nächster Ort",
+        "es": "Lugar siguiente"
+      },
+      "focus": {
+        "ru": "Показать место на карте",
+        "en": "Show place on map",
+        "de": "Ort auf der Karte zeigen",
+        "es": "Mostrar el lugar en el mapa"
+      },
+      "places": {
+        "ru": "Остановки маршрута",
+        "en": "Route stops",
+        "de": "Routenstationen",
+        "es": "Paradas de la ruta"
+      },
+      "disclaimer": {
+        "ru": "Созданная для атласа иллюстрация показывает общий ландшафт региона. Это не фотография и не реконструкция облика города в библейскую эпоху.",
+        "en": "An illustration made for the atlas shows the region’s general landscape. It is not a photograph or a reconstruction of a biblical-era city.",
+        "de": "Die Illustration für den Atlas zeigt die Landschaft der Region. Sie ist weder ein Foto noch eine Rekonstruktion einer Stadt der biblischen Zeit.",
+        "es": "La ilustración creada para el atlas muestra el paisaje general de la región. No es una fotografía ni una reconstrucción de una ciudad de época bíblica."
+      },
+      "context": {
+        "ru": "Географический ориентир",
+        "en": "Geographic reference",
+        "de": "Geografischer Bezug",
+        "es": "Referencia geográfica"
+      },
+      "landscape": {
+        "ru": "Иллюстрация ландшафта региона",
+        "en": "Regional landscape illustration",
+        "de": "Illustration einer regionalen Landschaft",
+        "es": "Ilustración del paisaje regional"
+      }
+    }
+  }
+}

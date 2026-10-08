@@ -25,9 +25,10 @@
   const LOGIC = 'web/locales/en/games/bible-geography-logic.js';
   const STYLE = 'web/locales/en/games/bible-geography.css';
   const DATA = 'web/locales/en/data/bible_geography.json';
+  const GALLERY = 'web/locales/en/data/bible_geography_gallery.json';
   const MAP = 'web/assets/bible-geography/map.json';
   const ART = 'web/assets/bible-geography/art.json';
-  const VERSION = '1';
+  const VERSION = '2';
   const STORE = 'bible_geography_v1';
 
   const MODES = {
@@ -718,9 +719,9 @@
 
     const token = {};
     session = token;
-    Promise.all([loadScript(LOGIC), loadJSON(DATA), loadJSON(MAP), loadJSON(ART, {})]).then(([, data, map, art]) => {
+    Promise.all([loadScript(LOGIC), loadJSON(DATA), loadJSON(MAP), loadJSON(ART, {}), loadJSON(GALLERY)]).then(([, data, map, art, gallery]) => {
       if (session !== token || document.body.dataset.currentGame !== 'bible-geography') return;
-      session = new Game(container, data, map, art);
+      session = new Game(container, data, map, art, gallery);
       window.__bibleGeographyCleanup = () => { session?.destroy?.(); session = null; };
     }).catch((error) => {
       console.error('Bible Geography:', error);
@@ -730,11 +731,12 @@
   }
 
   class Game {
-    constructor(container, data, map, art) {
+    constructor(container, data, map, art, gallery) {
       this.container = container;
       this.data = data;
       this.mapData = map;
       this.art = art || {};
+      this.gallery = gallery || { assets: {}, places: {}, copy: {} };
       this.logic = window.BibleGeographyLogic.create(data);
       this.store = readStore();
       this.store.learned = Array.isArray(this.store.learned) ? this.store.learned : [];
@@ -846,6 +848,10 @@
         hero: () => this.atlasHero(target.dataset.id),
         journey: () => this.atlasJourney(target.dataset.id),
         stop: () => this.atlasStop(target.dataset.id),
+        'gallery-prev': () => this.atlasGalleryMove(-1),
+        'gallery-next': () => this.atlasGalleryMove(1),
+        'gallery-index': () => this.atlasGallerySelect(Number(target.dataset.index)),
+        'gallery-focus': () => this.atlasStop(target.dataset.id),
         clear: () => this.atlasClear(),
         quote: () => target.closest('.geo-fact')?.classList.toggle('is-open'),
       };
@@ -1211,7 +1217,7 @@
     // ——— Атлас
 
     showAtlas() {
-      this.atlas = { tab: 'heroes', hero: null, journey: null, selected: null };
+      this.atlas = { tab: 'heroes', hero: null, journey: null, selected: null, galleryIndex: 0 };
       this.render(`
         ${this.bar('Atlas', 'Ancient and modern map')}\n        <div class="geo-seg geo-seg--layers" role="group" aria-label="Map layer">\n          ${Object.entries(LAYERS).map(([value, label]) => `<button type="button" class="geo-seg__item${value === this.settings.layer ? ' is-on' : ''}" data-act="layer" data-value="${value}" aria-pressed="${value === this.settings.layer}">${escapeHTML(label)}</button>`).join('')}
         </div>
@@ -1281,6 +1287,7 @@
           <div class="geo-sheet__head">
             <div><p class="geo-kicker">${escapeHTML(h.era)}</p><h3>${escapeHTML(this.logic.heroLabel(h))}</h3><p class="geo-ask__about">${escapeHTML(h.about)}</p></div>\n            <button type="button" class="geo-icon-btn" data-act="clear" aria-label="Close">${icon('close', 20)}</button>
           </div>
+          ${this.atlasGalleryHTML(h.stops.map((stop) => stop.p))}
           <ol class="geo-stops">${h.stops.map((stop, index) => `
             <li><button type="button" class="geo-stop" data-act="stop" data-id="${stop.p}">
               <span class="geo-stop__n">${index + 1}</span>
@@ -1296,6 +1303,7 @@
           <div class="geo-sheet__head">
             <div><p class="geo-kicker">${escapeHTML(j.r)}</p><h3>${escapeHTML(j.name)}</h3></div>\n            <button type="button" class="geo-icon-btn" data-act="clear" aria-label="Close">${icon('close', 20)}</button>
           </div>
+          ${this.atlasGalleryHTML(stops)}
           <ol class="geo-stops">${stops.map((id, index) => `
             <li><button type="button" class="geo-stop" data-act="stop" data-id="${id}">
               <span class="geo-stop__n">${index + 1}</span>
@@ -1317,6 +1325,71 @@
           : `<div class="geo-chips">${routes.map((one) => `<button type="button" class="geo-chip geo-chip--route" data-act="${one.kind}" data-id="${one.id}">${escapeHTML(one.name)}${one.r ? `<small>${escapeHTML(one.r)}</small>` : ''}</button>`).join('')}</div>`}`;
     }
 
+    atlasStops() {
+      if (this.atlas.hero) return this.hero(this.atlas.hero).stops.map((stop) => stop.p);
+      if (this.atlas.journey) {
+        const journey = this.data.journeys.find((one) => one.id === this.atlas.journey);
+        return [...new Set(journey.path.filter((step) => typeof step === 'string'))];
+      }
+      return [];
+    }
+
+    atlasGalleryHTML(stops) {
+      if (!stops.length) return '';
+      const copy = this.gallery.copy || {};
+      const index = Math.max(0, Math.min(Number(this.atlas.galleryIndex) || 0, stops.length - 1));
+      const place = this.place(stops[index]);
+      const key = this.gallery.places?.[place.id];
+      const asset = this.gallery.assets?.[key];
+      if (!asset) return '';
+      const label = `${place.name} · ${asset.region}`;
+      return `
+        <section class="geo-gallery" aria-label="${escapeHTML(copy.title)}">
+          <div class="geo-gallery__head">
+            <div><p class="geo-kicker">${escapeHTML(copy.title)}</p><p class="geo-gallery__position" aria-live="polite">${escapeHTML(copy.position)} ${index + 1} / ${stops.length} · ${escapeHTML(place.name)}</p></div>
+          </div>
+          <figure class="geo-gallery__figure">
+            <button type="button" class="geo-gallery__picture" data-act="gallery-focus" data-id="${place.id}" aria-label="${escapeHTML(copy.focus)}: ${escapeHTML(place.name)}">
+              <img src="${escapeHTML(asset.src)}" alt="${escapeHTML(`${copy.landscape}: ${label}`)}" loading="lazy" decoding="async" />
+            </button>
+            <figcaption>
+              <span>${escapeHTML(asset.region)}</span>
+              <small>${escapeHTML(copy.disclaimer)}</small>
+              <a href="${escapeHTML(asset.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHTML(copy.context)}: ${escapeHTML(asset.sourceLabel)}</a>
+            </figcaption>
+          </figure>
+          <div class="geo-gallery__controls" role="group" aria-label="${escapeHTML(copy.title)}">
+            <button type="button" class="geo-gallery__arrow" data-act="gallery-prev" aria-label="${escapeHTML(copy.previous)}"${stops.length < 2 ? ' disabled' : ''}>${icon('back', 20)}</button>
+            <span>${index + 1} / ${stops.length}</span>
+            <button type="button" class="geo-gallery__arrow" data-act="gallery-next" aria-label="${escapeHTML(copy.next)}"${stops.length < 2 ? ' disabled' : ''}>${icon('back', 20)}</button>
+          </div>
+          <div class="geo-gallery__thumbs" role="group" aria-label="${escapeHTML(copy.places)}">
+            ${stops.map((id, stopIndex) => `<button type="button" class="geo-gallery__thumb${stopIndex === index ? ' is-current' : ''}" data-act="gallery-index" data-index="${stopIndex}" aria-label="${stopIndex + 1}. ${escapeHTML(this.place(id).name)}" aria-pressed="${stopIndex === index}"${stopIndex === index ? ' aria-current="step"' : ''}><span>${stopIndex + 1}</span><small>${escapeHTML(this.place(id).name)}</small></button>`).join('')}
+          </div>
+        </section>`;
+    }
+
+    atlasGalleryMove(delta) {
+      const stops = this.atlasStops();
+      if (stops.length < 2) return;
+      const index = (this.atlas.galleryIndex + delta + stops.length) % stops.length;
+      this.atlas.galleryIndex = index;
+      const place = this.place(stops[index]);
+      this.atlasPlace(place);
+      const [x, y] = this.mapView.project(place.lon, place.lat);
+      this.mapView.centerOn(x, y, Math.max(this.mapView.live.k, this.mapView.kFit * 6));
+    }
+
+    atlasGallerySelect(index) {
+      const stops = this.atlasStops();
+      if (!stops.length || !Number.isInteger(index) || index < 0 || index >= stops.length) return;
+      this.atlas.galleryIndex = index;
+      const place = this.place(stops[index]);
+      this.atlasPlace(place);
+      const [x, y] = this.mapView.project(place.lon, place.lat);
+      this.mapView.centerOn(x, y, Math.max(this.mapView.live.k, this.mapView.kFit * 6));
+    }
+
     atlasTab(tab) {
       this.atlas.tab = tab;
       this.atlasSheet();
@@ -1324,11 +1397,11 @@
     }
 
     atlasHero(id) {
-      Object.assign(this.atlas, { hero: id, journey: null, selected: null });
+      const h = this.hero(id);
+      Object.assign(this.atlas, { hero: id, journey: null, selected: h.stops[0]?.p || null, galleryIndex: 0 });
       this.popup.hidden = true;
       this.atlasMarkers();
       this.atlasSheet();
-      const h = this.hero(id);
       const points = h.route ? h.route.map((step) => (typeof step === 'string' ? [this.place(step).lat, this.place(step).lon] : step))
         : h.stops.map((stop) => [this.place(stop.p).lat, this.place(stop.p).lon]);
       // У Ноя одно место — горы Араратские. Без потолка карта приблизила бы
@@ -1347,18 +1420,19 @@
     }
 
     atlasJourney(id) {
-      Object.assign(this.atlas, { hero: null, journey: id, selected: null });
+      const j = this.data.journeys.find((one) => one.id === id);
+      const stops = [...new Set(j.path.filter((step) => typeof step === 'string'))];
+      Object.assign(this.atlas, { hero: null, journey: id, selected: stops[0] || null, galleryIndex: 0 });
       this.popup.hidden = true;
       this.atlasMarkers();
       this.atlasSheet();
-      const j = this.data.journeys.find((one) => one.id === id);
       this.mapView.fitPoints(j.path.map((step) => (typeof step === 'string' ? [this.place(step).lat, this.place(step).lon] : step)));
       this.showMapBox();
       haptic('select');
     }
 
     atlasClear() {
-      Object.assign(this.atlas, { hero: null, journey: null, selected: null });
+      Object.assign(this.atlas, { hero: null, journey: null, selected: null, galleryIndex: 0 });
       this.popup.hidden = true;
       this.atlasMarkers();
       this.atlasSheet();
@@ -1381,6 +1455,16 @@
         return;
       }
       this.atlas.selected = place.id;
+      const stops = this.atlasStops();
+      if (stops.length) {
+        const current = Math.max(0, Math.min(this.atlas.galleryIndex, stops.length - 1));
+        if (stops[current] !== place.id) {
+          const matchingIndex = stops.indexOf(place.id);
+          if (matchingIndex >= 0) this.atlas.galleryIndex = matchingIndex;
+        }
+        const gallery = this.root.querySelector('.geo-gallery');
+        if (gallery && stops.includes(place.id)) gallery.outerHTML = this.atlasGalleryHTML(stops);
+      }
       this.atlasMarkers();
       const links = this.data.heroes.flatMap((hero) => hero.stops.filter((stop) => stop.p === place.id).map((stop) => ({ hero, stop })));
       const focus = this.atlas.hero ? links.find((link) => link.hero.id === this.atlas.hero) : null;
@@ -1389,6 +1473,11 @@
       this.popup.innerHTML = `\n        <button type="button" class="geo-pop__close" data-act="clear-pop" aria-label="Close">${icon('close', 18)}</button>
         <h4>${escapeHTML(place.name)}${place.aka ? ` <small>(${escapeHTML(place.aka)})</small>` : ''}</h4>
         <p class="geo-placeline">${escapeHTML(this.placeLine(place))}</p>
+        ${(() => {
+          const key = this.gallery.places?.[place.id];
+          const asset = this.gallery.assets?.[key];
+          return asset ? `<figure class="geo-pop__image"><img src="${escapeHTML(asset.src)}" alt="${escapeHTML(`${this.gallery.copy?.landscape || ''}: ${place.name} · ${asset.region}`)}" loading="lazy" decoding="async" /><figcaption>${escapeHTML(asset.region)}<small>${escapeHTML(this.gallery.copy?.disclaimer || '')}</small><a href="${escapeHTML(asset.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHTML(this.gallery.copy?.context || '')}: ${escapeHTML(asset.sourceLabel)}</a></figcaption></figure>` : '';
+        })()}
         ${focus ? this.factHTML(focus.hero, focus.stop) : ''}
         ${others.length ? `<p class="geo-pop__who">People who were here:</p><div class="geo-chips geo-chips--small">${others.map((link) => `<button type="button" class="geo-chip" data-act="hero" data-id="${link.hero.id}" title="${escapeHTML(link.stop.n)}">${escapeHTML(this.logic.heroLabel(link.hero))}</button>`).join('')}</div>` : ''}`;
       this.popup.querySelector('[data-act="clear-pop"]').addEventListener('click', (event) => {

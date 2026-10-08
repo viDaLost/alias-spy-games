@@ -34,12 +34,14 @@ const files = [
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
   'web/data/bible_geography.json',
+  'web/data/bible_geography_gallery.json',
   'web/assets/icons/unified-v1/bible-geography.svg',
   ...LANGS.flatMap((lang) => [
     `web/locales/${lang}/games/bible-geography.js`,
     `web/locales/${lang}/games/bible-geography-logic.js`,
     `web/locales/${lang}/games/bible-geography.css`,
     `web/locales/${lang}/data/bible_geography.json`,
+    `web/locales/${lang}/data/bible_geography_gallery.json`,
   ]),
 ];
 // Шрифты, на которые ссылается бандл стилей.
