@@ -229,7 +229,7 @@
     const height = window.innerHeight || REFERENCE.height;
     unitX = clamp(width / REFERENCE.width, 0.7, 1.8);
     unitY = clamp(height / REFERENCE.height, 0.45, 1.5);
-    const still = reducedMotion();
+    const still = motionLimited();
     for (const item of layers) {
       let scale = item.scale;
       if (!still) {
@@ -243,7 +243,7 @@
 
   function draw() {
     if (!scene) return;
-    const still = reducedMotion();
+    const still = motionLimited();
     for (const item of layers) {
       const { depth } = item;
       let x = 0;
@@ -274,7 +274,7 @@
   }
 
   function schedule() {
-    if (raf || !scene || reducedMotion()) return;
+    if (raf || !scene || motionLimited()) return;
     raf = requestAnimationFrame(step);
   }
 
@@ -284,7 +284,7 @@
     Отдельное свойство scale складывается с transform слоя и ему не мешает.
   */
   function arrive() {
-    if (reducedMotion()) return;
+    if (motionLimited()) return;
     for (const item of layers) {
       if (typeof item.node.animate !== 'function') return;
       const near = Math.min(1, item.depth / DEPTH_FULL);
@@ -303,16 +303,17 @@
     Анимация отдана браузеру, а не кадрам скрипта: она идёт свойством translate
     в потоке композиции и не отнимает время у игры, которой оно нужнее. Но
     кадр сцены, пока она движется, пересобирается целиком, а с ним и размытие
-    под стеклянными панелями тёмной темы. Поэтому на слабом телефоне — четыре
-    ядра и меньше, как и у заставки запуска, — и в режиме экономии трафика её
-    нет: там глубину показывают наклон и наезд, которые идут, только пока
-    что-то происходит.
+    под стеклянными панелями тёмной темы. Поэтому на слабом телефоне — при
+    четырёх ядрах и меньше, малом объёме памяти или включённой экономии трафика —
+    фон неподвижен, а ресурсы достаются самой игре.
   */
   const lowPower = () => Boolean(navigator.connection?.saveData
-    || (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4));
+    || (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+    || (Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 3));
+  const motionLimited = () => reducedMotion() || lowPower();
 
   function startDrift() {
-    if (reducedMotion() || lowPower()) return;
+    if (motionLimited()) return;
     const steps = 24;
     for (const item of layers) {
       const ax = item.depth * MOTION.driftX * unitX;
@@ -394,7 +395,7 @@
   }
 
   function onPointer(event) {
-    if (event.pointerType !== 'mouse' || (tiltSource && tiltSource !== 'pointer')) return;
+    if (motionLimited() || event.pointerType !== 'mouse' || (tiltSource && tiltSource !== 'pointer')) return;
     // Кнопка нажата — значит, рисуют или тянут, и сцена не дёргается под рукой.
     if (event.buttons) return;
     tiltSource = 'pointer';
@@ -411,7 +412,8 @@
   }
 
   function startTilt() {
-    if (reducedMotion() || !scene) return;
+    // На старых телефонах сцена не просыпается от 50-Гц датчика наклона Telegram.
+    if (motionLimited() || !scene) return;
     tiltSource = '';
     rest = null;
     const app = window.Telegram?.WebApp;

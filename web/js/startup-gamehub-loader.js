@@ -48,7 +48,8 @@
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
   const lowPower = Boolean(
     navigator.connection?.saveData ||
-    (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+    (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4) ||
+    (Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 3)
   );
   const minFrameDelta = lowPower ? 32 : 15;
 
@@ -122,7 +123,10 @@
     if (!iconsHost) return;
     const fragment = document.createDocumentFragment();
 
-    GAME_ICONS.forEach((icon, index) => {
+    // The boot animation is decorative. Avoid decoding every game icon on
+    // limited devices; the menu loads its own icons when it appears.
+    const icons = lowPower ? GAME_ICONS.slice(0, 8) : GAME_ICONS;
+    icons.forEach((icon, index) => {
       const image = document.createElement('img');
       image.className = 'gamehub-boot__icon';
       image.src = icon.src;

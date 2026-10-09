@@ -4,6 +4,11 @@ function startSacredWordGame(wordsUrl) {
   const container = document.getElementById("game-container");
   if (!container) return;
 
+  const lowPowerDevice = Boolean(navigator.connection?.saveData
+    || (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+    || (Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 3));
+  const frameInterval = lowPowerDevice ? 1000 / 30 : 1000 / 60;
+
   if (typeof THREE === 'undefined') {
     container.innerHTML = `<div style="padding: 20px; color: red;">Error: biblioteca Three.js no está cargada!</div>`;
     return;
@@ -28,6 +33,7 @@ function startSacredWordGame(wordsUrl) {
   let flames3D = [];
   let smokeParticles = [];
   let animationFrameId;
+  let lastRenderedAt = 0;
 
   function injectStyles() {
     const old = document.getElementById("sacred-word-style");
@@ -116,11 +122,15 @@ function startSacredWordGame(wordsUrl) {
   function initThreeJS() {
     scene = new THREE.Scene();
     
-    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: !lowPowerDevice,
+      powerPreference: lowPowerDevice ? 'low-power' : 'default',
+    });
     renderer.setSize(260, 260);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPowerDevice ? 1 : 2));
     renderer.setClearColor(0x000000, 0);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = !lowPowerDevice;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
     if ('toneMapping' in renderer) renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -210,6 +220,7 @@ function startSacredWordGame(wordsUrl) {
     scene.add(floor);
 
     scene.add(menorahGroup);
+    document.addEventListener("visibilitychange", handleThreeVisibility);
     animateThreeJS();
   }
 
@@ -290,10 +301,15 @@ function startSacredWordGame(wordsUrl) {
     }
   }
 
-  function animateThreeJS() {
-    if (!scene) return;
+  function animateThreeJS(now = performance.now()) {
+    if (!scene || document.hidden) {
+      animationFrameId = 0;
+      return;
+    }
     animationFrameId = requestAnimationFrame(animateThreeJS);
-    const time = Date.now() * 0.005;
+    if (now - lastRenderedAt < frameInterval) return;
+    lastRenderedAt = now;
+    const time = now * 0.005;
 
     flames3D.forEach((flame) => {
       if (flame.active) {
@@ -333,6 +349,18 @@ function startSacredWordGame(wordsUrl) {
     camera.lookAt(0, 1.35, 0);
 
     renderer.render(scene, camera);
+  }
+
+  function handleThreeVisibility() {
+    if (document.hidden) {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = 0;
+      return;
+    }
+    if (scene && !animationFrameId) {
+      lastRenderedAt = 0;
+      animationFrameId = requestAnimationFrame(animateThreeJS);
+    }
   }
 
   function syncFlamesWithState() {
@@ -547,11 +575,35 @@ function startSacredWordGame(wordsUrl) {
 
   function cleanupThreeJS() {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    smokeParticles = []; 
+    animationFrameId = 0;
+    document.removeEventListener("visibilitychange", handleThreeVisibility);
+    const geometries = new Set();
+    const materials = new Set();
+    const textures = new Set();
+    scene?.traverse((object) => {
+      if (object.geometry) geometries.add(object.geometry);
+      const list = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
+      for (const material of list) {
+        materials.add(material);
+        for (const value of Object.values(material)) {
+          if (value?.isTexture) textures.add(value);
+        }
+      }
+    });
+    textures.forEach((texture) => texture.dispose());
+    geometries.forEach((geometry) => geometry.dispose());
+    materials.forEach((material) => material.dispose());
+    smokeParticles = [];
+    flames3D = [];
+    menorahGroup = null;
+    camera = null;
     if (renderer) {
       renderer.dispose();
       renderer.forceContextLoss();
     }
+    scene = null;
+    renderer = null;
+    threeCanvas = null;
     document.removeEventListener("keydown", handlePhysicalKeyboard);
   }
 

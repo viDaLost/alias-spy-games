@@ -337,14 +337,23 @@ window.PromisedLand3D = (() => {
 
   function create({ canvas, art, sceneArt, modelsAt, onCellTap, onViewChange, frameOf, theme, onModels }) {
     const THREE = window.THREE;
+    const cores = Number(navigator.hardwareConcurrency || 0);
+    const memory = Number(navigator.deviceMemory || 0);
+    const lowPowerDevice = Boolean(navigator.connection?.saveData
+      || (cores > 0 && cores <= 4)
+      || (memory > 0 && memory <= 3));
     /*
       Холст непрозрачен, и за землёй стоит не страница, а тёплая дымка. Раньше
       сквозь него просвечивал фон страницы, и на низком наклоне доска оказывалась
       на голубом листе вместо горизонта. Заодно это снимает смешивание с
       разметкой на каждом кадре — даром оно не даётся.
     */
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: !lowPowerDevice,
+      powerPreference: lowPowerDevice ? 'low-power' : 'default',
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPowerDevice ? 1 : 2));
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.setClearColor(0xdcc49a, 1);
 
@@ -1018,12 +1027,20 @@ window.PromisedLand3D = (() => {
 
     let dirty = true;
     let running = false;
+    let frameId = 0;
+    let lastFrameAt = 0;
     let width = 0;
     let height = 0;
     const clock = new THREE.Clock();
     const jobs = [];
+    const frameInterval = lowPowerDevice ? 1000 / 30 : 1000 / 60;
+
+    function schedulePump() {
+      if (running && !frameId && !document.hidden) frameId = requestAnimationFrame(pump);
+    }
 
     function render() {
+      if (document.hidden) { dirty = true; return; }
       if (!dirty && !jobs.length) return;
       dirty = false;
       renderer.render(scene, camera);
@@ -1039,8 +1056,12 @@ window.PromisedLand3D = (() => {
       Цикл крутится только пока есть что двигать. Кончились дела — цикл встаёт,
       и сцена перестаёт стоить хоть что-нибудь до следующего хода.
     */
-    function pump() {
+    function pump(now = performance.now()) {
+      frameId = 0;
       if (!running) return;
+      if (document.hidden) return;
+      if (now - lastFrameAt < frameInterval) { schedulePump(); return; }
+      lastFrameAt = now;
       const delta = Math.min(clock.getDelta(), 0.05);
       for (let i = jobs.length - 1; i >= 0; i -= 1) {
         jobs[i].time += delta;
@@ -1052,9 +1073,22 @@ window.PromisedLand3D = (() => {
       }
       dirty = true;
       render();
-      if (jobs.length) requestAnimationFrame(pump);
+      if (jobs.length) schedulePump();
       else running = false;
     }
+
+    function onVisibilityChange() {
+      if (document.hidden) {
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+        return;
+      }
+      clock.getDelta();
+      lastFrameAt = 0;
+      if (running) schedulePump();
+      else if (dirty) render();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     /*
       Общий множитель длительности. Им управляет кнопка «Быстрее»: она не
@@ -1067,7 +1101,8 @@ window.PromisedLand3D = (() => {
     function animate(life, step) {
       return new Promise((resolve) => {
         jobs.push({ time: 0, life: Math.max(0.05, life * speed), step, finish: () => { step(1); resolve(); } });
-        if (!running) { running = true; clock.getDelta(); requestAnimationFrame(pump); }
+        if (!running) { running = true; clock.getDelta(); }
+        schedulePump();
       });
     }
 
@@ -2061,6 +2096,9 @@ window.PromisedLand3D = (() => {
       if (pulse) pulse.stop = true;
       if (watcher) watcher.disconnect();
       running = false;
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = 0;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       jobs.length = 0;
       bannerGeo.dispose();
       bannerTex.dispose();

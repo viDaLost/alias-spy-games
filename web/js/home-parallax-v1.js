@@ -32,6 +32,14 @@
     return `${ASSET_ROOT}/${encodeURIComponent(file).replace(/%2F/g, '/')}?v=${ASSET_VERSION}`;
   }
 
+  function lowPowerDevice() {
+    const cores = Number(navigator.hardwareConcurrency || 0);
+    const memory = Number(navigator.deviceMemory || 0);
+    return Boolean(navigator.connection?.saveData
+      || (cores > 0 && cores <= 4)
+      || (memory > 0 && memory <= 3));
+  }
+
   function createLayer(config, index) {
     const image = document.createElement('img');
     image.className = `home-gamehub-parallax__layer home-gamehub-parallax__layer--${config.key}`;
@@ -50,7 +58,8 @@
     menu = document.getElementById(MENU_ID);
     if (!menu || document.querySelector('.home-gamehub-parallax__scene')) return false;
 
-    reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+    reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
+      || lowPowerDevice();
 
     scene = document.createElement('div');
     scene.className = 'home-gamehub-parallax__scene';
