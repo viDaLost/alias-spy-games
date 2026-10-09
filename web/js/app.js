@@ -97,8 +97,7 @@ const MENU_ICON_SOURCES = {
   "promised-land": "web/assets/icons/unified-v1/promised-land.webp",
   "twelve-tribes": "web/assets/icons/unified-v1/twelve-tribes.webp",
   kingdoms: "web/assets/icons/unified-v1/kingdoms.webp",
-  // Временная векторная иконка: растровую рисуют по docs/bible-geography-art-brief.md.
-  geography: "web/assets/icons/unified-v1/bible-geography.svg",
+  geography: "web/assets/icons/unified-v1/bible-geography.webp",
 };
 
 function menuIconHTML(type, title = "") {

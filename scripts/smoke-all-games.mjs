@@ -103,6 +103,7 @@ let gameKeys = [];
 
 if (!gameKeys.length) failures.push('Главное меню не содержит ни одной запускаемой игры.');
 if (!gameKeys.includes('bible-sketch')) failures.push('Библейский художник не зарегистрирован в главном меню.');
+if (!gameKeys.includes('bible-geography')) failures.push('Библейская география не открыта обычному игроку в главном меню.');
 console.log(`Discovered ${gameKeys.length} games: ${gameKeys.join(', ')}`);
 
 for (const gameKey of gameKeys) {

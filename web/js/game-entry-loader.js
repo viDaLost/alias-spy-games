@@ -54,7 +54,7 @@
     },
     'bible-geography': {
       title: 'Библейская география', eyebrow: 'Карта Писания', status: 'Разворачиваем карту…', status2: 'Отмечаем пути героев…',
-      icon: 'web/assets/icons/unified-v1/bible-geography.svg?v=1', motif: 'bible-geography',
+      icon: 'web/assets/icons/unified-v1/bible-geography.webp?v=1', motif: 'bible-geography',
     },
     'kids-ark-pairs': {
       title: 'Найди пару', eyebrow: 'Игра на память', status: 'Перемешиваем пары…', status2: 'Прячем карточки…',

@@ -111,7 +111,7 @@
     {
       key: 'bible-geography',
       title: 'Библейская география',
-      icon: 'web/assets/icons/unified-v1/bible-geography.svg',
+      icon: 'web/assets/icons/unified-v1/bible-geography.webp',
       keys: () => ['bible_geography_v1'],
       progress() {
         const state = readJson('bible_geography_v1', {});

@@ -54,7 +54,7 @@
     },
     'bible-geography': {
       title: 'Biblische Geografie', eyebrow: 'Karte der Bibel', status: 'Karte wird entrollt…', status2: 'Wege werden eingezeichnet…',
-      icon: 'web/assets/icons/unified-v1/bible-geography.svg?v=1', motif: 'bible-geography',
+      icon: 'web/assets/icons/unified-v1/bible-geography.webp?v=1', motif: 'bible-geography',
     },
     'kids-ark-pairs': {
       title: 'Finde ein Paar', eyebrow: 'Gedächtnisspiel', status: 'Paare werden gemischt…', status2: 'Karten werden verdeckt…',
