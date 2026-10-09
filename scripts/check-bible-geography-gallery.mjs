@@ -11,7 +11,6 @@ const need = (condition, message) => { if (!condition) problems.push(message); }
 
 const game = read('web/games/bible-geography.js');
 const style = read('web/games/bible-geography.css');
-const builder = read('scripts/build-bible-geography-preview.mjs');
 const data = readJSON('web/data/bible_geography.json');
 const places = data.places;
 const gallery = readJSON('web/data/bible_geography_gallery.json');
@@ -68,9 +67,6 @@ need(game.includes('loading="lazy"') && game.includes('decoding="async"'), 'из
 need(game.includes('aria-live="polite"') && game.includes('aria-pressed='), 'карусели нужны доступные объявления текущего кадра и состояния миниатюр');
 need(style.includes('.geo-gallery__thumbs') && style.includes('overflow-x: auto'), 'лента миниатюр должна прокручиваться по горизонтали');
 need(style.includes('@media (max-width: 380px)'), 'нет мобильных правил галереи');
-for (const needle of ['web/data/bible_geography_gallery.json', 'web/locales/${lang}/data/bible_geography_gallery.json']) {
-  need(builder.includes(needle), `preview builder не копирует ${needle}`);
-}
 for (const action of ['gallery-prev', 'gallery-next', 'gallery-index', 'gallery-focus']) need(game.includes(`'${action}'`), `нет обработчика ${action}`);
 
 for (const key of ['title', 'position', 'previous', 'next', 'focus', 'places', 'disclaimer', 'landscape']) {

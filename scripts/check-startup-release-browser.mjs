@@ -53,7 +53,7 @@ try {
     });
     await page.goto(base, {waitUntil:'domcontentloaded'});
     await page.waitForSelector('#menu-container:not(.hidden)');
-    await page.waitForFunction(() => document.querySelectorAll('.game-card__details').length === 13);
+    await page.waitForFunction(() => document.querySelectorAll('.game-card__details').length === 14);
     assert.equal(requests.length, 0, `${role}: admin bundle downloaded before opening admin`);
     if (role === 'guest') {
       for (const width of [320, 390]) for (const theme of ['light','dark']) {
