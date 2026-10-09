@@ -1,0 +1,40 @@
+name: Deploy Bible World preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feat/bible-world-cloudflare-preview]
+    paths:
+      - 'cloudflare/bible-world-preview/**'
+      - '.github/workflows/deploy-bible-world-preview.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bible-world-preview-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: cloudflare/bible-world-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Worker tooling
+        run: npm ci --no-audit --no-fund
+      - name: Check all three rounds
+        run: npm test
+      - name: Validate static Worker bundle
+        run: npm run check
+      - name: Deploy Cloudflare preview
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
