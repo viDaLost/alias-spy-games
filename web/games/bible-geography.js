@@ -299,6 +299,7 @@
         this.pinLayer.appendChild(group);
         this.markers.set(place.id, {
           place, x, y, group,
+          dot: group.querySelector('.geo-pin__dot'),
           label: group.querySelector('.geo-pin__label'),
           sub: group.querySelector('.geo-pin__sub'),
           badge: group.querySelector('.geo-pin__badge'),
@@ -428,7 +429,10 @@
             const tx = (committed.x - live.x) * live.k;
             const ty = (committed.y - live.y) * live.k;
             const transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
-            this.base.style.transform = transform;
+            // The base SVG sits half a map window up and left from the overlay.
+            // Compensate for that origin so routes and land keep the same anchor.
+            const baseTransform = `translate(${tx - (scale - 1) * this.W / 2}px, ${ty - (scale - 1) * this.H / 2}px) scale(${scale})`;
+            this.base.style.transform = baseTransform;
             this.contentLayer.style.transform = transform;
           });
         }
@@ -509,10 +513,23 @@
 
     draw() {
       const z = this.zoom();
+      // Scale points, city dots and route strokes once after a gesture settles.
+      // During the gesture the already-rendered content layer is transformed as
+      // one unit, so none of these SVG nodes are rebuilt on every pointer move.
+      const mapScale = Math.min(2.2, Math.max(0.28, z));
+      for (const marker of this.markers.values()) {
+        marker.dot.setAttribute('r', (5 * mapScale).toFixed(2));
+        marker.dot.style.strokeWidth = `${(2 * mapScale).toFixed(2)}px`;
+      }
+      for (const region of this.regions) {
+        if (region.dot) region.dot.setAttribute('r', (2.6 * mapScale).toFixed(2));
+      }
       // Пути.
       this.routes.forEach((route, index) => {
         const node = this.routeLayer.children[index];
         if (!node) return;
+        node.style.strokeWidth = `${(3.2 * mapScale).toFixed(2)}px`;
+        node.style.strokeDasharray = `${(9 * mapScale).toFixed(2)}px ${(7 * mapScale).toFixed(2)}px`;
         const d = route.points.map(([x, y], i) => {
           const [sx, sy] = this.toScreen(x, y);
           return `${i ? 'L' : 'M'}${sx.toFixed(1)} ${sy.toFixed(1)}`;
@@ -540,12 +557,17 @@
         if (off || nearHidden) { marker.group.style.display = 'none'; continue; }
         marker.group.style.display = '';
         marker.group.setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)})`);
-        boxes.push([sx - 6, sy - 6, sx + 6, sy + 6]);
-        shown.push({ marker, sx, sy, cls, forced });
+        const emphasis = /is-(focus|right)/.test(cls) ? 1.9
+          : /is-(candidate|wrong)/.test(cls) ? 1.7
+            : /is-reveal/.test(cls) ? 1.4
+              : marker.badge.textContent ? 1.75 : 1;
+        const dotExtent = 5 * mapScale * emphasis + 2 * mapScale;
+        boxes.push([sx - dotExtent, sy - dotExtent, sx + dotExtent, sy + dotExtent]);
+        shown.push({ marker, sx, sy, cls, forced, dotExtent });
       }
       const hits = (box) => boxes.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]);
       const inside = (box) => box[0] >= 2 && box[2] <= this.W - 2 && box[1] >= 2 && box[3] <= this.H - 2;
-      for (const { marker, sx, sy, cls, forced } of shown) {
+      for (const { marker, sx, sy, cls, forced, dotExtent } of shown) {
         let showLabel = false;
         if (this.labelPolicy === 'all') showLabel = true;
         else if (this.labelPolicy === 'auto') showLabel = forced || z >= tierZoom[marker.place.tier || 3];
@@ -558,8 +580,9 @@
         if (showLabel) {
           const width = Math.max(marker.label.textContent.length * 7.4, withSub ? marker.sub.textContent.length * 6.1 : 0) + 12;
           const height = withSub ? 30 : 17;
-          const right = [sx + 6, sy - 11, sx + 6 + width, sy - 11 + height];
-          const left = [sx - 6 - width, sy - 11, sx - 6, sy - 11 + height];
+          const labelOffset = dotExtent + 3 * mapScale;
+          const right = [sx + labelOffset, sy - 11, sx + labelOffset + width, sy - 11 + height];
+          const left = [sx - labelOffset - width, sy - 11, sx - labelOffset, sy - 11 + height];
           const fits = (box) => inside(box) && !hits(box);
           // Справа, если там свободно; иначе слева; выбранная точка подписана
           // всегда — с той стороны, где подпись хотя бы не уходит за край.
@@ -568,7 +591,11 @@
           if (!box) showLabel = false;
           else {
             boxes.push(box);
-            marker.group.classList.toggle('geo-pin--left', box === left);
+            const leftSide = box === left;
+            marker.group.classList.toggle('geo-pin--left', leftSide);
+            const labelX = (leftSide ? -labelOffset : labelOffset).toFixed(1);
+            marker.label.setAttribute('x', labelX);
+            marker.sub.setAttribute('x', labelX);
           }
         }
         marker.group.classList.toggle('geo-pin--nolabel', !showLabel);

@@ -61,6 +61,9 @@ need(!/animation:\s*geo-flow/.test(style), 'маршрут продолжает 
 need(style.includes('.geo-map.is-moving .geo-map__content') && style.includes('will-change: transform'), 'слой маршрута и подписей не оптимизирован для жестов');
 need(game.includes('this.contentLayer.style.transform = transform'), 'живой масштаб не перемещает маршрут вместе с базовой картой');
 need(game.includes('this.contentLayer.style.transform = \'\''), 'после жеста не сбрасывается временный transform слоя карты');
+need(game.includes('tx - (scale - 1) * this.W / 2') && game.includes('ty - (scale - 1) * this.H / 2'), 'подложка и маршрут масштабируются от разных точек отсчёта');
+need(game.includes('const mapScale = Math.min(2.2, Math.max(0.28, z))') && game.includes("marker.dot.setAttribute('r'"), 'точки не привязаны к масштабу карты');
+need(game.includes('node.style.strokeWidth') && game.includes('node.style.strokeDasharray'), 'линии маршрута не меняют размер вместе с картой');
 need(game.includes('loading="lazy"') && game.includes('decoding="async"'), 'изображения галереи должны загружаться лениво');
 need(game.includes('aria-live="polite"') && game.includes('aria-pressed='), 'карусели нужны доступные объявления текущего кадра и состояния миниатюр');
 need(style.includes('.geo-gallery__thumbs') && style.includes('overflow-x: auto'), 'лента миниатюр должна прокручиваться по горизонтали');
@@ -90,5 +93,5 @@ if (problems.length) {
   console.error(`Галерея библейской географии: ${problems.length} проблем(ы):\n- ${problems.join('\n- ')}`);
   process.exitCode = 1;
 } else {
-  console.log(`Галерея библейской географии: OK — ${placeIds.size} мест; персональные изображения для ${jacobStops.length} остановок маршрута Иакова; источники скрыты; движения карты не анимируют пунктир.`);
+  console.log(`Галерея библейской географии: OK — ${placeIds.size} мест; персональные изображения для ${jacobStops.length} остановок маршрута Иакова; источники скрыты; карта, точки и линии маршрута масштабируются согласованно.`);
 }

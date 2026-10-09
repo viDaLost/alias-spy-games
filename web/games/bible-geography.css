@@ -775,7 +775,7 @@ body[data-current-game="bible-geography"] .geo-pin__sub { fill: var(--map-label-
 body[data-current-game="bible-geography"] .geo-map[data-layer="ancient"] .geo-pin__label { font-family: var(--geo-serif); font-weight: 700; font-size: 13px; }
 
 body[data-current-game="bible-geography"] .geo-pin--left .geo-pin__label,
-body[data-current-game="bible-geography"] .geo-pin--left .geo-pin__sub { text-anchor: end; transform: translateX(-18px); }
+body[data-current-game="bible-geography"] .geo-pin--left .geo-pin__sub { text-anchor: end; }
 body[data-current-game="bible-geography"] .geo-pin--nolabel .geo-pin__label,
 body[data-current-game="bible-geography"] .geo-pin--nolabel .geo-pin__sub,
 body[data-current-game="bible-geography"] .geo-pin--nosub .geo-pin__sub { display: none; }
