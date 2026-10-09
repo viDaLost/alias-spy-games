@@ -42,5 +42,7 @@ Node tests cover all three scoring rules, region tolerance, hint limits, complet
 campaign transitions, record timing, duplicate-submission prevention, image
 switching, stale image callbacks, GPU texture reuse, and restart. Rendering is
 also inspected with an offline projection using the same camera/seam math.
+After deployment, the workflow fetches the public page, every module, all three
+panoramas, and both fonts; it verifies HTTP 200 and exact SHA-256 file matches.
 Real-browser layout and real-iPhone touch/WebGL behavior remain unverified in
 this environment.
