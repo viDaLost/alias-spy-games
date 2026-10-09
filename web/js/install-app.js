@@ -9,8 +9,9 @@
   // вручную через «Поделиться» → «На экран „Домой“», и единственное, что можно
   // сделать, — показать, куда нажимать.
   //
-  // Внутри Telegram карточка не появляется: там приложение и так открыто в
-  // мессенджере, а ярлык на экране создаётся его собственным меню.
+  // На iPhone карточка остаётся в меню и после закрытия инструкции: человек
+  // должен иметь возможность открыть Safari и поставить приложение позже.
+  // В Telegram на других устройствах ярлык создаётся его собственным меню.
   //
   // Исключение — главный администратор: ему карточка показывается всегда, в том
   // числе в Telegram и на компьютере, чтобы можно было посмотреть, что увидит
@@ -38,7 +39,8 @@
   const standalone = () => window.matchMedia?.('(display-mode: standalone)')?.matches
     || window.navigator.standalone === true;
 
-  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const isIOS = () => window.Telegram?.WebApp?.platform === 'ios'
+    || /iPad|iPhone|iPod/.test(navigator.userAgent)
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   const isRootAdmin = () => document.documentElement.classList.contains('admin-rbac-root');
@@ -148,7 +150,7 @@
     if (!owner) {
       // В Android-приложении ярлык уже есть, и ставить второй незачем.
       if (window.__ANDROID_APK__ === true) return true;
-      if (standalone() || dismissed()) return true;
+      if (standalone() || (!isIOS() && dismissed())) return true;
       // Внутри Telegram карточка нужна только на iPhone: именно оттуда человек
       // и приходит, а увести его в Safari можно лишь отсюда. На остальных
       // платформах Telegram сам умеет класть ярлык на экран.

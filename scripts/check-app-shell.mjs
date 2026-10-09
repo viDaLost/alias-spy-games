@@ -201,6 +201,7 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 await page.addInitScript(() => {
+  localStorage.setItem('install_hint_seen_v1', '1');
   window.__OPENED_LINKS__ = [];
   window.Telegram = {
     WebApp: {
@@ -235,6 +236,7 @@ await page.waitForTimeout(700);
 if (!(await page.locator('#install-app-btn').count())) {
   problems.push('на iPhone внутри Telegram нет карточки установки — уйти в Safari неоткуда');
 } else {
+  if (!(await page.locator('#install-app-btn').isVisible())) problems.push('карточка установки существует, но скрыта от обычного игрока');
   await page.evaluate(() => document.getElementById('install-app-btn').click());
   await page.waitForTimeout(700);
   const sheet = await page.evaluate(() => document.getElementById('install-ios-sheet')?.innerText || '');
@@ -254,6 +256,17 @@ if (!(await page.locator('#install-app-btn').count())) {
       problems.push(`в Safari уходит ${opened[0]} вместо страницы установки ${expectedLink}`);
     }
   }
+}
+
+// Закрытие инструкции не должно лишать обычного игрока кнопки установки.
+if (await page.locator('[data-install-close]').count()) {
+  await page.locator('[data-install-close]').click();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
+  await page.waitForSelector('#more-entry', { timeout: 5_000 });
+  await page.locator('#more-entry').click();
+  await page.waitForSelector('#install-app-btn', { timeout: 5_000 });
+  if (!(await page.locator('#install-app-btn').isVisible())) problems.push('после закрытия инструкции и перезапуска пропала установка на iPhone');
 }
 
 await browser.close();
