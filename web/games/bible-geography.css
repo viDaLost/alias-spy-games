@@ -655,7 +655,11 @@ body[data-current-game="bible-geography"] .geo-map {
 }
 
 body[data-current-game="bible-geography"] .geo-map__base { position: absolute; max-width: none !important; max-height: none !important; transform-origin: 0 0; }
-body[data-current-game="bible-geography"] .geo-map.is-moving .geo-map__base { will-change: transform; }
+body[data-current-game="bible-geography"] .geo-map.is-moving .geo-map__base,
+body[data-current-game="bible-geography"] .geo-map.is-animating .geo-map__base { will-change: transform; }
+body[data-current-game="bible-geography"] .geo-map__content { transform-box: view-box; transform-origin: 0 0; }
+body[data-current-game="bible-geography"] .geo-map.is-moving .geo-map__content,
+body[data-current-game="bible-geography"] .geo-map.is-animating .geo-map__content { will-change: transform; }
 body[data-current-game="bible-geography"] .geo-map__over { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none !important; cursor: grab; }
 body[data-current-game="bible-geography"] .geo-map.is-moving .geo-map__over { cursor: grabbing; }
 
@@ -832,13 +836,10 @@ body[data-current-game="bible-geography"] .geo-route {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 9 7;
-  animation: geo-flow 1.1s linear infinite;
   pointer-events: none;
 }
 
 body[data-current-game="bible-geography"] .geo-route--journey { stroke: var(--map-route-2); }
-
-@keyframes geo-flow { to { stroke-dashoffset: -16; } }
 
 /* Кнопки карты. Стоят сверху: внизу справа живёт кнопка «?» правил. */
 body[data-current-game="bible-geography"] .geo-map__tools {
@@ -950,8 +951,6 @@ body[data-current-game="bible-geography"] .geo-gallery__figure figcaption,
 body[data-current-game="bible-geography"] .geo-pop__image figcaption { display: grid; gap: 4px; color: var(--geo-ink); font-size: .82rem; font-weight: 800; line-height: 1.35; }
 body[data-current-game="bible-geography"] .geo-gallery__figure figcaption small,
 body[data-current-game="bible-geography"] .geo-pop__image figcaption small { color: var(--geo-muted); font-size: .72rem; font-weight: 550; }
-body[data-current-game="bible-geography"] .geo-gallery__figure figcaption a,
-body[data-current-game="bible-geography"] .geo-pop__image figcaption a { color: var(--geo-primary); font-size: .74rem; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
 body[data-current-game="bible-geography"] .geo-gallery__controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 body[data-current-game="bible-geography"] .geo-gallery__controls > span { color: var(--geo-muted); font-size: .78rem; font-weight: 800; }
 body[data-current-game="bible-geography"] .geo-gallery__arrow {

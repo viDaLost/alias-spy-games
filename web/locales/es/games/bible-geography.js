@@ -28,7 +28,7 @@
   const GALLERY = 'web/locales/es/data/bible_geography_gallery.json';
   const MAP = 'web/assets/bible-geography/map.json';
   const ART = 'web/assets/bible-geography/art.json';
-  const VERSION = '2';
+  const VERSION = '3';
   const STORE = 'bible_geography_v1';
 
   const MODES = {
@@ -160,6 +160,7 @@
       this.pointers = new Map();
       this.destroyed = false;
       this.frameRequest = 0;
+      this.transformRequest = 0;
       this.commitTimer = 0;
       this.animation = 0;
 
@@ -167,10 +168,11 @@
       host.dataset.layer = layer;
       host.innerHTML = `
         <svg class="geo-map__base" xmlns="${SVG_NS}" preserveAspectRatio="none" aria-hidden="true">${this.baseMarkup()}</svg>
-        <svg class="geo-map__over" xmlns="${SVG_NS}" aria-hidden="true">\n          <g class="geo-map__regions"></g><g class="geo-map__routes"></g><g class="geo-map__pins"></g>\n        </svg>\n        <div class="geo-map__tools">\n          <button type="button" class="geo-map__tool" data-map="in" aria-label="Acercar">${icon('plus', 20)}</button>\n          <button type="button" class="geo-map__tool" data-map="out" aria-label="Alejar">${icon('minus', 20)}</button>\n          <button type="button" class="geo-map__tool" data-map="fit" aria-label="Mapa completo">${icon('fit', 20)}</button>
+        <svg class="geo-map__over" xmlns="${SVG_NS}" aria-hidden="true">\n          <g class="geo-map__content"><g class="geo-map__regions"></g><g class="geo-map__routes"></g><g class="geo-map__pins"></g></g>\n        </svg>\n        <div class="geo-map__tools">\n          <button type="button" class="geo-map__tool" data-map="in" aria-label="Acercar">${icon('plus', 20)}</button>\n          <button type="button" class="geo-map__tool" data-map="out" aria-label="Alejar">${icon('minus', 20)}</button>\n          <button type="button" class="geo-map__tool" data-map="fit" aria-label="Mapa completo">${icon('fit', 20)}</button>
         </div>`;
       this.base = host.querySelector('.geo-map__base');
       this.over = host.querySelector('.geo-map__over');
+      this.contentLayer = host.querySelector('.geo-map__content');
       this.regionLayer = host.querySelector('.geo-map__regions');
       this.routeLayer = host.querySelector('.geo-map__routes');
       this.pinLayer = host.querySelector('.geo-map__pins');
@@ -380,12 +382,15 @@
 
     animateTo(target, duration = 520) {
       cancelAnimationFrame(this.animation);
+      this.host.classList.remove('is-animating');
+      clearTimeout(this.commitTimer);
       const from = { ...this.live };
       const start = performance.now();
       const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       if (reduce) { this.setView(target, true); return; }
+      this.host.classList.add('is-animating');
       const step = (now) => {
-        if (this.destroyed) return;
+        if (this.destroyed) { this.host.classList.remove('is-animating'); return; }
         const t = Math.min(1, (now - start) / duration);
         const e = t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
         // Масштаб — по логарифму: иначе приближение сначала тянется, а потом прыгает.
@@ -395,6 +400,7 @@
         const cx = cx0 + (cx1 - cx0) * e; const cy = cy0 + (cy1 - cy0) * e;
         this.setView({ x: cx - this.W / (2 * k), y: cy - this.H / (2 * k), k }, t === 1);
         if (t < 1) this.animation = requestAnimationFrame(step);
+        else this.host.classList.remove('is-animating');
       };
       this.animation = requestAnimationFrame(step);
     }
@@ -403,24 +409,44 @@
       this.live = view;
       if (!this.committed || commit) this.commit();
       else {
-        const c = this.committed;
-        const s = view.k / c.k;
-        this.base.style.transform = `translate(${(c.x - view.x) * view.k}px, ${(c.y - view.y) * view.k}px) scale(${s})`;
+        // During a finger gesture move the already-rendered map overlay as a
+        // single composited SVG layer. Rebuilding route paths and rerunning
+        // label collision detection on every pointer event caused mobile jank.
+        if (!this.transformRequest) {
+          this.transformRequest = requestAnimationFrame(() => {
+            this.transformRequest = 0;
+            if (this.destroyed || !this.committed) return;
+            const live = this.live;
+            const committed = this.committed;
+            const scale = live.k / committed.k;
+            const tx = (committed.x - live.x) * live.k;
+            const ty = (committed.y - live.y) * live.k;
+            const transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+            this.base.style.transform = transform;
+            this.contentLayer.style.transform = transform;
+          });
+        }
         clearTimeout(this.commitTimer);
         this.commitTimer = setTimeout(() => { if (!this.pointers.size) this.commit(); }, 160);
       }
-      this.schedule();
     }
 
     commit() {
+      clearTimeout(this.commitTimer);
+      this.commitTimer = 0;
+      cancelAnimationFrame(this.transformRequest);
+      this.transformRequest = 0;
       const v = this.live;
       const pad = { x: this.W / 2 / v.k, y: this.H / 2 / v.k };
       this.base.setAttribute('viewBox', `${v.x - pad.x} ${v.y - pad.y} ${(this.W * 2) / v.k} ${(this.H * 2) / v.k}`);
       this.base.style.transform = '';
+      this.contentLayer.style.transform = '';
       this.committed = { ...v };
       const z = this.zoom();
       for (const image of this.holyImages) image.style.opacity = z < 2.4 ? '0' : String(Math.min(1, (z - 2.4) / 1.6));
       this.host.classList.toggle('is-close', z > 6);
+      // Recalculate readable labels and exact route geometry once at rest.
+      this.schedule();
     }
 
     schedule() {
@@ -591,6 +617,7 @@
     onPointerDown(event) {
       if (event.button !== undefined && event.button !== 0) return;
       cancelAnimationFrame(this.animation);
+      this.host.classList.remove('is-animating');
       this.over.setPointerCapture?.(event.pointerId);
       const p = this.point(event);
       this.pointers.set(event.pointerId, p);
@@ -646,7 +673,6 @@
       this.gesture = null;
       this.host.classList.remove('is-moving');
       this.commit();
-      this.schedule();
       if (!gesture || gesture.moved) return;
       const now = performance.now();
       if (this.lastTap && now - this.lastTap.time < 320 && Math.hypot(p.x - this.lastTap.x, p.y - this.lastTap.y) < 30 && !this.hit(p)) {
@@ -700,6 +726,7 @@
       this.destroyed = true;
       cancelAnimationFrame(this.animation);
       cancelAnimationFrame(this.frameRequest);
+      cancelAnimationFrame(this.transformRequest);
       clearTimeout(this.commitTimer);
       this.resizeObserver?.disconnect();
       this.host.innerHTML = '';
@@ -1342,7 +1369,6 @@
       const key = this.gallery.places?.[place.id];
       const asset = this.gallery.assets?.[key];
       if (!asset) return '';
-      const label = `${place.name} · ${asset.region}`;
       return `
         <section class="geo-gallery" aria-label="${escapeHTML(copy.title)}">
           <div class="geo-gallery__head">
@@ -1350,12 +1376,11 @@
           </div>
           <figure class="geo-gallery__figure">
             <button type="button" class="geo-gallery__picture" data-act="gallery-focus" data-id="${place.id}" aria-label="${escapeHTML(copy.focus)}: ${escapeHTML(place.name)}">
-              <img src="${escapeHTML(asset.src)}" alt="${escapeHTML(`${copy.landscape}: ${label}`)}" loading="lazy" decoding="async" />
+              <img src="${escapeHTML(asset.src)}" alt="${escapeHTML(`${copy.landscape}: ${place.name}`)}" loading="lazy" decoding="async" />
             </button>
             <figcaption>
-              <span>${escapeHTML(asset.region)}</span>
+              <span>${escapeHTML(place.name)}</span>
               <small>${escapeHTML(copy.disclaimer)}</small>
-              <a href="${escapeHTML(asset.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHTML(copy.context)}: ${escapeHTML(asset.sourceLabel)}</a>
             </figcaption>
           </figure>
           <div class="geo-gallery__controls" role="group" aria-label="${escapeHTML(copy.title)}">
@@ -1476,7 +1501,7 @@
         ${(() => {
           const key = this.gallery.places?.[place.id];
           const asset = this.gallery.assets?.[key];
-          return asset ? `<figure class="geo-pop__image"><img src="${escapeHTML(asset.src)}" alt="${escapeHTML(`${this.gallery.copy?.landscape || ''}: ${place.name} · ${asset.region}`)}" loading="lazy" decoding="async" /><figcaption>${escapeHTML(asset.region)}<small>${escapeHTML(this.gallery.copy?.disclaimer || '')}</small><a href="${escapeHTML(asset.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHTML(this.gallery.copy?.context || '')}: ${escapeHTML(asset.sourceLabel)}</a></figcaption></figure>` : '';
+          return asset ? `<figure class="geo-pop__image"><img src="${escapeHTML(asset.src)}" alt="${escapeHTML(`${this.gallery.copy?.landscape || ''}: ${place.name}`)}" loading="lazy" decoding="async" /><figcaption>${escapeHTML(place.name)}<small>${escapeHTML(this.gallery.copy?.disclaimer || '')}</small></figcaption></figure>` : '';
         })()}
         ${focus ? this.factHTML(focus.hero, focus.stop) : ''}
         ${others.length ? `<p class="geo-pop__who">Estuvieron aquí:</p><div class="geo-chips geo-chips--small">${others.map((link) => `<button type="button" class="geo-chip" data-act="hero" data-id="${link.hero.id}" title="${escapeHTML(link.stop.n)}">${escapeHTML(this.logic.heroLabel(link.hero))}</button>`).join('')}</div>` : ''}`;
