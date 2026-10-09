@@ -139,6 +139,9 @@ try {
   });
   await page.waitForFunction(() => window.__presenceMessages.some((m) => m?.type === 'presence' && m.game === 'biblical-match-three'), null, { timeout: 1_500 });
 
+  await page.evaluate(() => window.showGame('bible-geography'));
+  await page.waitForFunction(() => window.__presenceMessages.some((m) => m?.type === 'presence' && m.game === 'bible-geography' && !m.roomId), null, { timeout: 1_500 });
+
   await page.evaluate(() => window.goToMainMenu());
   await page.waitForFunction(() => {
     const messages = window.__presenceMessages.filter((m) => m?.type === 'presence');
@@ -159,6 +162,7 @@ try {
   const games = result.states.map((state) => state.game);
   if (!games.includes('spy')) throw new Error(`Presence never reported spy: ${JSON.stringify(result.states)}`);
   if (!games.includes('biblical-match-three')) throw new Error(`Presence never reported Biblical Treasures: ${JSON.stringify(result.states)}`);
+  if (!games.includes('bible-geography')) throw new Error(`Presence never reported Bible Geography: ${JSON.stringify(result.states)}`);
   if (result.states.at(-1)?.game !== '') throw new Error(`Presence did not return to menu: ${JSON.stringify(result.states)}`);
   if (result.snapshot?.game !== '') throw new Error(`Presence snapshot stayed in a game after menu: ${JSON.stringify(result.snapshot)}`);
 

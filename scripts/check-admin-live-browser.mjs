@@ -145,13 +145,16 @@ try {
         headers: { 'Access-Control-Allow-Origin': '*' },
         body: JSON.stringify({
           ok: true,
-          onlineNow: 1,
+          onlineNow: 2,
           menuNow: 0,
           activeRoomsNow: 1,
           generatedAt: Date.now(),
           onlineUsers: [{
             id: '55555', username: 'online_tester', displayName: 'Online Tester',
             platform: 'telegram', game: 'quartet', roomId: 'ABCD', updatedAt: Date.now(),
+          }, {
+            id: '55556', username: 'geography_tester', displayName: 'Geography Tester',
+            platform: 'telegram', game: 'bible-geography', roomId: '', updatedAt: Date.now(),
           }],
         }),
       });
@@ -166,7 +169,8 @@ try {
   await page.waitForFunction(() => {
     const panel = document.getElementById('admin-live-rescue');
     const text = panel?.innerText || '';
-    return text.includes('@online_tester') && text.includes('Квартет') && text.includes('ABCD');
+    return text.includes('@online_tester') && text.includes('Квартет') && text.includes('ABCD')
+      && text.includes('@geography_tester') && text.includes('Библейская география');
   }, null, { timeout: 8_000 });
 
   const state = await page.evaluate(() => {

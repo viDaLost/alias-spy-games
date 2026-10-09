@@ -11,6 +11,7 @@
     describe: 'Опиши, но не называй', spy: 'Соглядатай', quartet: 'Квартет',
     'bible-sketch': 'Библейский художник', 'bible-wow': 'Библейские слова',
     'bible-wordsearch': 'Поиск слов', 'sacred-word': 'Священное слово',
+    'bible-geography': 'Библейская география',
     'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
     'moses-nile': 'Моисей: Путь по Нилу',
     'twelve-tribes': 'Двенадцать колен', 'promised-land': 'Земля обетованная',

@@ -12,6 +12,7 @@
     alias: 'Алиас', coimaginarium: 'Соображариум', guess: 'Угадай персонажа', describe: 'Опиши, но не называй',
     spy: 'Соглядатай', quartet: 'Квартет', 'bible-wow': 'Библейские слова', 'bible-wordsearch': 'Поиск библейских слов',
     'sacred-word': 'Священное слово', 'kids-ark-pairs': 'Найди пару', 'biblical-match-three': 'Библейские сокровища',
+    'bible-geography': 'Библейская география',
   };
 
   function gameKey() {
