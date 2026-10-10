@@ -1,5 +1,5 @@
-import {events,epochs,scenes,createJourney,maxCampaignScore} from './rules.mjs?v=5';
-import {createPanorama} from './viewer.mjs?v=5';
+import {events,epochs,scenes,createJourney,maxCampaignScore} from './rules.mjs?v=6';
+import {createPanorama} from './viewer.mjs?v=6';
 const $=id=>document.getElementById(id);
 const journey=createJourney();
 const state={guess:null,event:null,epoch:null,hints:0,submitted:false,seconds:0,loaded:false};

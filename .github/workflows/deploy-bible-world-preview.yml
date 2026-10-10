@@ -29,6 +29,11 @@ jobs:
           node-version: 22
       - name: Install Worker tooling
         run: npm ci --no-audit --no-fund
+      - name: Build lossless 4K panoramas from restored directions
+        run: |
+          npm install --no-save --package-lock=false --no-audit --no-fund sharp@0.35.4
+          node art/build-4k.mjs prepare babel temple galilee
+          node art/build-4k.mjs build babel temple galilee
       - name: Check all three rounds
         run: npm test
       - name: Validate static Worker bundle

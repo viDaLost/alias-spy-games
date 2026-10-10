@@ -1,19 +1,20 @@
-import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=4';
+import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=6';
 
 export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) {
- let yaw=0,pitch=.08,fov=72*Math.PI/180,initial={yaw,pitch,fov};
+ let yaw=0,pitch=.08,fov=72*Math.PI/180,wrapBand=.035,initial={yaw,pitch,fov};
  let ready=false,pending=false,gl=null,cpu=null,texture,program,activeImage,request=0,initialized=false;
  const points=new Map();let pinchDistance=0;
  const state={yaw,pitch,fov};
  const vertex='attribute vec2 aPosition; varying vec2 vPosition; void main(){vPosition=aPosition;gl_Position=vec4(aPosition,0.0,1.0);}';
  const fragment=`precision highp float;
- varying vec2 vPosition; uniform sampler2D uImage;uniform vec2 uPlane;uniform float uYaw,uPitch;
+ varying vec2 vPosition; uniform sampler2D uImage;uniform vec2 uPlane;uniform float uYaw,uPitch,uWrapBand;
  void main(){vec3 ray=normalize(vec3(vPosition*uPlane,1.));
  vec3 pitched=vec3(ray.x,cos(uPitch)*ray.y+sin(uPitch)*ray.z,-sin(uPitch)*ray.y+cos(uPitch)*ray.z);
  vec3 world=vec3(cos(uYaw)*pitched.x+sin(uYaw)*pitched.z,pitched.y,-sin(uYaw)*pitched.x+cos(uYaw)*pitched.z);
  vec2 uv=vec2(fract(atan(world.x,world.z)/6.28318530718+.5),acos(clamp(world.y,-1.,1.))/3.14159265359);
- float band=.035;float s=uv.x*(1.-band);vec4 color;
- if(s>=band*.5 && s<=1.-band-band*.5){color=texture2D(uImage,vec2(s+band*.5,uv.y));}
+ float band=uWrapBand;float s=uv.x*(1.-band);vec4 color;
+ if(band<=0.){color=texture2D(uImage,uv);}
+ else if(s>=band*.5 && s<=1.-band-band*.5){color=texture2D(uImage,vec2(s+band*.5,uv.y));}
  else{float offset=s<band*.5?s+band*.5:s-(1.-band)+band*.5;
  color=mix(texture2D(uImage,vec2(1.-band+offset,uv.y)),texture2D(uImage,vec2(offset,uv.y)),smoothstep(0.,band,offset));}
  gl_FragColor=color;}`;
@@ -68,14 +69,14 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
    if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
    gl.viewport(0,0,cw,ch);gl.useProgram(program);
    const plane=projectionPlanes(w/h,fov);gl.uniform2f(gl.getUniformLocation(program,'uPlane'),plane.x,plane.y);
-   for(const [n,v]of Object.entries({uYaw:yaw,uPitch:pitch}))gl.uniform1f(gl.getUniformLocation(program,n),v);
+   for(const [n,v]of Object.entries({uYaw:yaw,uPitch:pitch,uWrapBand:wrapBand}))gl.uniform1f(gl.getUniformLocation(program,n),v);
    gl.drawArrays(gl.TRIANGLES,0,6);
   }else if(cpu){
    const cw=Math.min(400,w),ch=Math.round(cw*h/w);
    if(cpu.output.width!==cw||cpu.output.height!==ch){cpu.output.width=cw;cpu.output.height=ch;}
    const out=cpu.ctx.createImageData(cw,ch);
    for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
-    const uv=rayToUV(2*(x+.5)/cw-1,1-2*(y+.5)/ch,w/h,fov,yaw,pitch),s=panoramaSamples(uv.u);
+    const uv=rayToUV(2*(x+.5)/cw-1,1-2*(y+.5)/ch,w/h,fov,yaw,pitch),s=panoramaSamples(uv.u,wrapBand);
     const p=sampleCPU(s.a,uv.v),q=sampleCPU(s.b,uv.v),i=(y*cw+x)*4;
     for(let c=0;c<3;c++)out.data[i+c]=p[c]*s.weight+q[c]*(1-s.weight);
     out.data[i+3]=255;
@@ -93,6 +94,8 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
  function reset(){({yaw,pitch,fov}=initial);schedule();}
  function load(url,camera={}){
   const serial=++request;ready=false;points.clear();pinchDistance=0;
+  // Assembled 4K textures already include the wrap; preserve their angular mapping.
+  wrapBand=clamp(camera.seamBlend??.035,0,.035);
   initial={yaw:camera.yaw??0,pitch:clamp(camera.pitch??.08,-maxPitch,maxPitch),fov:clamp((camera.fov??72)*Math.PI/180,minFov,maxFov)};reset();
   const image=new Image();image.decoding='async';
   image.onload=()=>{

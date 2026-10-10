@@ -7,7 +7,7 @@ assert.ok(base,'PREVIEW_URL is required');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const paths=[
   'index.html','app.js','rules.mjs','camera.mjs','viewer.mjs','style.css',
-  'assets/babel-360-v4-hq.webp','assets/temple-360-v2-hq.webp','assets/galilee-360-v2-hq.webp',
+  'assets/babel-360-v5-4k.webp','assets/temple-360-v3-4k.webp','assets/galilee-360-v3-4k.webp',
   'assets/fonts/onest-cyrillic.woff2','assets/fonts/onest-latin.woff2'
 ];
 for(const path of paths){

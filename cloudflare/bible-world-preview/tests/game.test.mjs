@@ -32,6 +32,12 @@ test('Retina phone gets native pixels and large screens stay within a finite GPU
  }
 });
 test('стык панорамы непрерывен без зеркального отражения',()=>{const a=panoramaSamples(0),b=panoramaSamples(1-1e-10);for(const key of ['a','b','weight'])assert.ok(Math.abs(a[key]-b[key])<1e-7);for(let u=0;u<1;u+=.01){const s=panoramaSamples(u);assert.ok(s.a>=0&&s.a<=1&&s.b>=0&&s.b<=1&&s.weight>=0&&s.weight<=1);}});
+test('assembled panoramas preserve longitude without another seam crop',()=>{
+ for(const u of [-.25,0,.25,.5,.75,1,1.25]){
+  const s=panoramaSamples(u,0),expected=(u%1+1)%1;
+  assert.equal(s.a,expected);assert.equal(s.b,expected);assert.equal(s.weight,1);
+ }
+});
 test('each scene has its own answer, period and geographic tolerance',()=>{
  assert.equal(scenes.length,3);assert.equal(new Set(scenes.map(s=>s.id)).size,3);
  for(const scene of scenes){
