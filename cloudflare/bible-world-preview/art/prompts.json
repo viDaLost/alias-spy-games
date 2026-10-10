@@ -1,0 +1,27 @@
+{
+  "generator": "built-in imagegen",
+  "outputSize": [1774, 887],
+  "outputs": [
+    {
+      "scene": "babel",
+      "source": "sources/babel-panorama.png",
+      "reference": "public/assets/babel-360-v3.webp",
+      "promptStatus": "Reconstructed; exact prompt from the previous generation pass was not retained.",
+      "reproductionPrompt": "Edit the complete original 2:1 equirectangular 360-degree panorama into one cohesive photographic panorama. Preserve the original viewpoint, horizon, central stepped brick tower, surrounding settlement, waterways, date palms, workers, brick stacks and pottery at their same positions. Improve fine natural stone, brick, wood and foliage texture while retaining warm historical daylight and plausible small figures. Do not crop, zoom, make panels, repeat buildings or people, move the tower, or add text. Left and right edges should wrap with a continuous sky, landscape and horizon. Return one full 2:1 panorama at the largest available resolution."
+    },
+    {
+      "scene": "temple",
+      "source": "sources/temple-panorama.png",
+      "reference": "public/assets/temple-360-v1.webp",
+      "promptStatus": "Full prompt retained.",
+      "prompt": "Edit the provided complete 2:1 equirectangular 360-degree panorama into ONE continuous, photographic panoramic image. Preserve the same place and viewpoint: monumental biblical stone temple under construction in ancient Jerusalem, main temple centered, bronze basin, stairway, worksite and workers. Keep one consistent perspective and horizon, stone facades richly detailed with crisp but natural limestone texture, masonry, cedar, paving, pottery and metalwork. Golden late-afternoon ambient illumination, but an even hazy sky with NO visible sun disk anywhere, avoiding duplicate celestial bodies at the panorama seam. The left and right edges must match smoothly in sky, distant terrain, horizon height and light so they wrap seamlessly. Avoid collage, tile panels, duplicated people, duplicated objects, repeated architecture, fisheye, crop, zoom, text, logos or watermarks. The entire result is a single connected equirectangular panorama at 2:1 aspect ratio, highest available resolution. The original image is the exact reference. Preserve every major landmark and its approximate direction; improve detail and photographic clarity."
+    },
+    {
+      "scene": "galilee",
+      "source": "sources/galilee-panorama.png",
+      "reference": "public/assets/galilee-360-v1.webp",
+      "promptStatus": "Full prompt retained.",
+      "prompt": "Image 1 is the complete original 2:1 equirectangular panorama. Edit it as ONE complete panorama, preserving its exact 2:1 wide composition and every landmark's position. Keep the teaching boat with Jesus and disciples in the same place, lake shore, water, mountain horizon, boat and nets; preserve the original viewpoint and horizon. Improve photographic clarity and fine detail across the full image: individual clear water ripples and lake stones, natural wood grain, ropes, fabric weave, rock texture and foliage. Crisp, natural daylight, realistic photo optics. Keep the people small and plausible with a single clean silhouette each. No crop, zoom, split panels, collage, duplicate boats, duplicated people or horizon, added sun, new props, text or watermark. Make left and right edges join naturally when the panorama wraps. Return the single full-width 2:1 panorama at the highest available resolution. Preserve all original shapes and relative positions; improve detail only."
+    }
+  ]
+}

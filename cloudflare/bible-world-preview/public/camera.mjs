@@ -1,7 +1,19 @@
 export const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export const wrapAngle=x=>((x+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;
+export const minFov=48*Math.PI/180;
+export const maxFov=84*Math.PI/180;
+export const maxPitch=60*Math.PI/180;
+// FOV belongs to the LONG side. A tall phone must not become a 120° lens.
+export function projectionPlanes(aspect,fov){
+ const t=Math.tan(clamp(fov,minFov,maxFov)/2);
+ return {x:t*Math.min(aspect,1),y:t*Math.min(1/aspect,1)};
+}
+export function framebufferSize(width,height,dpr=1){
+ const scale=Math.min(dpr,3,Math.sqrt(3200000/(width*height)));
+ return {width:Math.max(1,Math.floor(width*scale)),height:Math.max(1,Math.floor(height*scale))};
+}
 export function rayToUV(px,py,aspect,fov,yaw,pitch){
- const t=Math.tan(fov/2);let x=px*t*Math.max(aspect,1),y=py*t*Math.max(1,1/aspect),z=1;
+ const plane=projectionPlanes(aspect,fov);let x=px*plane.x,y=py*plane.y,z=1;
  const norm=Math.hypot(x,y,z);x/=norm;y/=norm;z/=norm;
  const y1=Math.cos(pitch)*y+Math.sin(pitch)*z;
  const z1=-Math.sin(pitch)*y+Math.cos(pitch)*z;

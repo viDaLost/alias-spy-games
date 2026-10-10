@@ -17,8 +17,8 @@ export const epochs = [
 export const scenes = [
  {
   id:'babel',title:'Вавилонская башня',subtitle:'Строительство башни · земля Сеннаар',
-  image:'assets/babel-360-v3.webp',event:'babel',epoch:'early',
-  destination:{lat:32.54,lon:44.42},radiusKm:200,camera:{yaw:0,pitch:.08,fov:78},
+  image:'assets/babel-360-v4-hq.webp',event:'babel',epoch:'early',
+  destination:{lat:32.54,lon:44.42},radiusKm:200,camera:{yaw:0,pitch:.08,fov:72},
   hints:[
    'Обожжённые кирпичи, смола и большая стройка — ключевые детали этой истории.',
    'Равнина между великими реками напоминает древнюю Месопотамию.',
@@ -31,8 +31,8 @@ export const scenes = [
  },
  {
   id:'temple',title:'Храм Соломона',subtitle:'Строительство первого храма · Иерусалим',
-  image:'assets/temple-360-v1.webp',event:'temple',epoch:'kings',
-  destination:{lat:31.78,lon:35.23},radiusKm:70,camera:{yaw:0,pitch:.09,fov:78},
+  image:'assets/temple-360-v2-hq.webp',event:'temple',epoch:'kings',
+  destination:{lat:31.78,lon:35.23},radiusKm:70,camera:{yaw:0,pitch:.09,fov:72},
   hints:[
    'Светлый камень, кедровые балки и святилище указывают на особую царскую стройку.',
    'Вокруг — холмы Иудеи и древний Иерусалим.',
@@ -45,8 +45,8 @@ export const scenes = [
  },
  {
   id:'galilee',title:'Галилейское море',subtitle:'Иисус учит из лодки · Галилея',
-  image:'assets/galilee-360-v1.webp',event:'galilee',epoch:'jesus',
-  destination:{lat:32.82,lon:35.58},radiusKm:50,camera:{yaw:0,pitch:0,fov:78},
+  image:'assets/galilee-360-v2-hq.webp',event:'galilee',epoch:'jesus',
+  destination:{lat:32.82,lon:35.58},radiusKm:50,camera:{yaw:0,pitch:0,fov:72},
   hints:[
    'Рыбацкие лодки, сети и пресное озеро помогают определить регион.',
    'Этот водоём известен как Галилейское море и Геннисаретское озеро.',

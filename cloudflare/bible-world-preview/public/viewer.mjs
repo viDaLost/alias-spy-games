@@ -1,14 +1,14 @@
-import {clamp,wrapAngle,rayToUV,panoramaSamples} from './camera.mjs?v=3';
+import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=4';
 
 export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) {
- let yaw=0,pitch=.08,fov=78*Math.PI/180,initial={yaw,pitch,fov};
+ let yaw=0,pitch=.08,fov=72*Math.PI/180,initial={yaw,pitch,fov};
  let ready=false,pending=false,gl=null,cpu=null,texture,program,activeImage,request=0,initialized=false;
  const points=new Map();let pinchDistance=0;
  const state={yaw,pitch,fov};
  const vertex='attribute vec2 aPosition; varying vec2 vPosition; void main(){vPosition=aPosition;gl_Position=vec4(aPosition,0.0,1.0);}';
  const fragment=`precision highp float;
- varying vec2 vPosition; uniform sampler2D uImage;uniform float uAspect,uFov,uYaw,uPitch;
- void main(){float t=tan(uFov*.5);vec2 shape=vec2(max(uAspect,1.),max(1.,1./uAspect));vec3 ray=normalize(vec3(vPosition*shape*t,1.));
+ varying vec2 vPosition; uniform sampler2D uImage;uniform vec2 uPlane;uniform float uYaw,uPitch;
+ void main(){vec3 ray=normalize(vec3(vPosition*uPlane,1.));
  vec3 pitched=vec3(ray.x,cos(uPitch)*ray.y+sin(uPitch)*ray.z,-sin(uPitch)*ray.y+cos(uPitch)*ray.z);
  vec3 world=vec3(cos(uYaw)*pitched.x+sin(uYaw)*pitched.z,pitched.y,-sin(uYaw)*pitched.x+cos(uYaw)*pitched.z);
  vec2 uv=vec2(fract(atan(world.x,world.z)/6.28318530718+.5),acos(clamp(world.y,-1.,1.))/3.14159265359);
@@ -44,7 +44,14 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
   if(gl){
    gl.bindTexture(gl.TEXTURE_2D,texture);
    // Replace the existing texture. Three rounds never retain three GPU images.
-   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
+   const limit=gl.getParameter?.(gl.MAX_TEXTURE_SIZE)||4096;
+   let source=image;
+   if(image.width>limit||image.height>limit){
+    const smaller=document.createElement('canvas'),scale=Math.min(limit/image.width,limit/image.height);
+    smaller.width=Math.floor(image.width*scale);smaller.height=Math.floor(image.height*scale);
+    smaller.getContext('2d').drawImage(image,0,0,smaller.width,smaller.height);source=smaller;
+   }
+   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
   }else{
    const source=document.createElement('canvas');source.width=Math.min(1774,image.width);source.height=Math.round(source.width*image.height/image.width);
    const c=source.getContext('2d');c.drawImage(image,0,0,source.width,source.height);
@@ -57,11 +64,11 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
   const w=scene.clientWidth,h=scene.clientHeight;if(!w||!h)return;
   Object.assign(state,{yaw,pitch,fov});
   if(gl){
-   const dpr=Math.min(window.devicePixelRatio||1,2,Math.sqrt(1800000/(w*h)));
-   const cw=Math.min(1800,Math.round(w*dpr)),ch=Math.round(cw*h/w);
+   const {width:cw,height:ch}=framebufferSize(w,h,window.devicePixelRatio||1);
    if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
    gl.viewport(0,0,cw,ch);gl.useProgram(program);
-   for(const [n,v]of Object.entries({uAspect:w/h,uFov:fov,uYaw:yaw,uPitch:pitch}))gl.uniform1f(gl.getUniformLocation(program,n),v);
+   const plane=projectionPlanes(w/h,fov);gl.uniform2f(gl.getUniformLocation(program,'uPlane'),plane.x,plane.y);
+   for(const [n,v]of Object.entries({uYaw:yaw,uPitch:pitch}))gl.uniform1f(gl.getUniformLocation(program,n),v);
    gl.drawArrays(gl.TRIANGLES,0,6);
   }else if(cpu){
    const cw=Math.min(400,w),ch=Math.round(cw*h/w);
@@ -82,11 +89,11 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
   return [0,1,2].map(c=>cpu.pixels[(y0*cpu.w+x0)*4+c]*(1-dx)*(1-dy)+cpu.pixels[(y0*cpu.w+x1)*4+c]*dx*(1-dy)+cpu.pixels[(y1*cpu.w+x0)*4+c]*(1-dx)*dy+cpu.pixels[(y1*cpu.w+x1)*4+c]*dx*dy);
  }
  function schedule(){if(!pending){pending=true;requestAnimationFrame(draw);}}
- function zoom(factor){fov=clamp(fov*factor,50*Math.PI/180,90*Math.PI/180);schedule();}
+ function zoom(factor){fov=clamp(fov*factor,minFov,maxFov);schedule();}
  function reset(){({yaw,pitch,fov}=initial);schedule();}
  function load(url,camera={}){
   const serial=++request;ready=false;points.clear();pinchDistance=0;
-  initial={yaw:camera.yaw??0,pitch:camera.pitch??.08,fov:(camera.fov??78)*Math.PI/180};reset();
+  initial={yaw:camera.yaw??0,pitch:clamp(camera.pitch??.08,-maxPitch,maxPitch),fov:clamp((camera.fov??72)*Math.PI/180,minFov,maxFov)};reset();
   const image=new Image();image.decoding='async';
   image.onload=()=>{
    if(serial!==request)return;
@@ -101,17 +108,18 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
  scene.addEventListener('pointermove',e=>{
   if(!points.has(e.pointerId))return;
   const old=points.get(e.pointerId);points.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(points.size===1){const angular=fov/Math.max(1,Math.min(scene.clientWidth,scene.clientHeight));yaw=wrapAngle(yaw-(e.clientX-old.x)*angular);pitch=clamp(pitch+(e.clientY-old.y)*angular,-Math.PI/2+.005,Math.PI/2-.005);}
-  else{const [a,b]=[...points.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinchDistance>0&&d>0)fov=clamp(fov*pinchDistance/d,50*Math.PI/180,90*Math.PI/180);pinchDistance=d;}
+  if(points.size===1){const angular=fov/Math.max(1,Math.max(scene.clientWidth,scene.clientHeight));yaw=wrapAngle(yaw-(e.clientX-old.x)*angular);pitch=clamp(pitch+(e.clientY-old.y)*angular,-maxPitch,maxPitch);}
+  else{const [a,b]=[...points.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinchDistance>0&&d>0)fov=clamp(fov*pinchDistance/d,minFov,maxFov);pinchDistance=d;}
   schedule();
  });
  function release(e){points.delete(e.pointerId);pinchDistance=0;}
  for(const e of ['pointerup','pointercancel','lostpointercapture'])scene.addEventListener(e,release);
+ for(const type of ['gesturestart','gesturechange','gestureend','touchmove'])scene.addEventListener(type,e=>{if(e.cancelable)e.preventDefault();},{passive:false});
  scene.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(clamp(e.deltaY,-100,100)*.002));},{passive:false});
  scene.addEventListener('keydown',e=>{
   if(e.target!==scene)return;let handled=true;
   if(e.key==='ArrowLeft')yaw=wrapAngle(yaw-.12);else if(e.key==='ArrowRight')yaw=wrapAngle(yaw+.12);
-  else if(e.key==='ArrowUp')pitch=clamp(pitch+.1,-1.565,1.565);else if(e.key==='ArrowDown')pitch=clamp(pitch-.1,-1.565,1.565);
+  else if(e.key==='ArrowUp')pitch=clamp(pitch+.1,-maxPitch,maxPitch);else if(e.key==='ArrowDown')pitch=clamp(pitch-.1,-maxPitch,maxPitch);
   else if(e.key==='+'||e.key==='=')zoom(.85);else if(e.key==='-')zoom(1.15);else if(e.key==='Home')reset();else handled=false;
   if(handled){e.preventDefault();schedule();}
  });
@@ -120,5 +128,5 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
  canvas.addEventListener('webglcontextrestored',()=>{
   if(activeImage&&initGL()){upload(activeImage);ready=true;schedule();}
  });
- return {zoom,reset,load,state,redraw:schedule};
+ return {zoom,reset,load,get state(){return {yaw,pitch,fov};},redraw:schedule};
 }
