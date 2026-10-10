@@ -477,7 +477,7 @@ const isOwner = () => document.documentElement.classList.contains("admin-rbac-ro
   классом на <html> при первой отрисовке меню — по нему таблица стилей
   показывает карточку, а справочник правил — игру в списке.
 */
-const KINGDOMS_TESTERS = new Set(["5502223852"]);
+const KINGDOMS_TESTERS = new Set(["5502223852","6533461232","5148935464","7101682106","1661715859","8224133751"]);
 const isKingdomsTester = () => KINGDOMS_TESTERS.has(String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || ""));
 const canPlayKingdoms = () => isOwner() || isKingdomsTester();
 
