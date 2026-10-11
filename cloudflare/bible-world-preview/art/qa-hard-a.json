@@ -1,10 +1,10 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-11T05:16:39.495Z",
+  "updatedAt": "2026-10-11T05:17:43.873Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 10,
-  "directionCount": 9,
+  "sourceCount": 11,
+  "directionCount": 10,
   "sources": [
     {
       "key": "fleece-front",
@@ -125,6 +125,18 @@
       "pixelExactLossless": true,
       "sha256": "2e157f6a5b761fdd935f75e508dd7ec24e0d59530948e1b86ad992bdc9a74c91",
       "bytes": 2244062
+    },
+    {
+      "key": "axe-left",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "left",
+      "file": "art/sources/directions/axe-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "0266dd38e7d79e572ea41c930aee68df5e9f6df266ff8590f6ba4b256460e532",
+      "bytes": 2391618
     }
   ],
   "scenes": [
