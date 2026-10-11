@@ -179,6 +179,31 @@
         "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
         "visualQA": "Pass: same camera, David silhouette, staff, pouch shape, army line, sheep, rock layout and daylight. Exactly FIVE smooth stones are visible in the existing pouch: three in the rear row and two in front. Crisp cloth, leather, wood and natural ground texture; no added narrative objects."
       }
+    },
+    {
+      "scene": "david",
+      "direction": "front",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square FRONT view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail, while preserving the camera, field of view, framing, colours, lighting, all silhouettes, object locations and sizes, and the outer-quarter border geometry for overlapping sphere views.\nThis is the peaceful pre-throw moment of David facing Goliath in the Valley of Elah. Keep the exact cropped unarmoured David on the far left, same arm, plain tunic, belt, pouch, sandal, resting leather sling and crop; the exact cropped distant armoured Goliath and upright spear at far right; and every existing hillside, shrub, creek-bed rock and shadow. Do not move either figure to include more of them. Enhance natural cloth weave, leather and sling cords, bronze and spear wood where present, limestone grains, dry grass and distant landscape detail.\nCount invariant: the complete open pouch on David contains exactly FIVE smooth rounded stones, three in the rear row and two in front, as established by the corrected matching LEFT direction. Here the pouch is cut by the left border; retain only the corresponding visible portion, with no added stone or extra stone rim. Do not extend or reposition the crop or put a stone in his hand.\nOutside that small pouch correction, change only fine texture. No crop, zoom, new people or animals, fighting, injuries, flying stones, new architecture or modern objects. Sharp photographic deep focus with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines. Preserve the square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-front-reference.jpg",
+      "source": "sources/directions/david-front.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-front-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-04f57893-7fe1-4eed-aad6-6146e17a54bb.png",
+        "sourcePath": "art/sources/directions/david-front.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2209832,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "6213d13afe8adfcb0bd99a5735d5e26568307e46",
+        "visualQA": "Pass: original cropped David at far left, relaxed sling, cropped Goliath and spear at right, hills and creek stones retained in the same framing. Pouch remains correctly cropped with no added stones; fine texture strengthened without new objects."
+      }
     }
   ],
   "updated": "2026-10-11",

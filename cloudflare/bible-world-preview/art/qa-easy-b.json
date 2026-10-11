@@ -97,6 +97,18 @@
           "exactRgbaPixelMatch": true,
           "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
           "visualQA": "Pass: same camera, David silhouette, staff, pouch shape, army line, sheep, rock layout and daylight. Exactly FIVE smooth stones are visible in the existing pouch: three in the rear row and two in front. Crisp cloth, leather, wood and natural ground texture; no added narrative objects."
+        },
+        "front": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-04f57893-7fe1-4eed-aad6-6146e17a54bb.png",
+          "sourcePath": "art/sources/directions/david-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2209832,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "6213d13afe8adfcb0bd99a5735d5e26568307e46",
+          "visualQA": "Pass: original cropped David at far left, relaxed sling, cropped Goliath and spear at right, hills and creek stones retained in the same framing. Pouch remains correctly cropped with no added stones; fine texture strengthened without new objects."
         }
       }
     }
