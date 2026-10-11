@@ -145,6 +145,18 @@
           "exactRgbaPixelMatch": true,
           "gitBlobSha": "b6be00f84723020ac0ffaa86730ea1ee8602785a",
           "visualQA": "Pass: the central radial cloud starburst is replaced by coherent irregular natural cloud detail. Blue sky, surrounding cloud layout, David crop, border weapons, leaves and army-edge crops remain in the original locations; no new objects, sun or halo."
+        },
+        "down": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b890ff35-4ed7-49ad-b2e7-0c32342be968.png",
+          "sourcePath": "art/sources/directions/david-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2552578,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "d37fed539fad974d0aba942abf5c2bb6ea4b1ba4",
+          "visualQA": "Pass: same two sandal feet, cropped legs and staff at upper left; existing large stones, ground shadows and dry grass retained. The nadir radial pinch is replaced by coherent uneven dry earth and small pebbles, with no central swirl or added limbs."
         }
       }
     }

@@ -279,6 +279,31 @@
         "gitBlobSha": "b6be00f84723020ac0ffaa86730ea1ee8602785a",
         "visualQA": "Pass: the central radial cloud starburst is replaced by coherent irregular natural cloud detail. Blue sky, surrounding cloud layout, David crop, border weapons, leaves and army-edge crops remain in the original locations; no new objects, sun or halo."
       }
+    },
+    {
+      "scene": "david",
+      "direction": "down",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement and pole repair.\nAsset type: native 1254 by 1254 square DOWN view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 downward-facing view at native 1254 by 1254 with genuinely new fine photographic detail. Preserve the camera direction and field of view, original framing, all existing object positions, sizes and silhouettes, the warm daylight and exact shadows, and the outer-quarter border geometry for adjoining sphere views.\nThis is the ground directly beneath the eye-height player in the dry Valley of Elah before David's throw. Keep the existing cropped legs, sandals, robe edge and wooden staff of David at the upper left, the existing rocks, creek pebbles, sparse dry grass and sand exactly where visible. Keep every human limb and foot count unchanged. Restore fine limestone pores, smooth pebble texture, dust grains, dry grass filaments, sandal leather and cloth only where already present.\nRepair only the unnatural central radial pinch or starburst in the ground caused by the spherical nadir. Replace that centre artifact with coherent naturally uneven dry earth, small creek pebbles and sparse dry grass matching the surrounding floor. No central spokes, swirl, circular seam, funnel or artificial centre rock. Keep the outer quarter and every existing cropped foot, robe, staff and large boulder unchanged.\nDo not crop, zoom, shift perspective, move stones at borders, add or remove people, add feet, paws, sheep or weapons, add modern objects, introduce fighting or injury, or change any narrative clue. Sharp photographic realism, no painted smears, waxy surfaces, harsh sharpening halos or graphic outlines. Preserve square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-down-reference.jpg",
+      "source": "sources/directions/david-down.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-down-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b890ff35-4ed7-49ad-b2e7-0c32342be968.png",
+        "sourcePath": "art/sources/directions/david-down.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2552578,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "d37fed539fad974d0aba942abf5c2bb6ea4b1ba4",
+        "visualQA": "Pass: same two sandal feet, cropped legs and staff at upper left; existing large stones, ground shadows and dry grass retained. The nadir radial pinch is replaced by coherent uneven dry earth and small pebbles, with no central swirl or added limbs."
+      }
     }
   ],
   "updated": "2026-10-11",
