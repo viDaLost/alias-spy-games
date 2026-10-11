@@ -112,7 +112,28 @@
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-11T05:11:55.716Z"
         }
-      ]
+      ],
+      "base": {
+        "id": "carmel",
+        "stage": "base-repair",
+        "prompt": "Use case: compositing\nAsset type: repaired equirectangular panorama source for a spherical 360-degree viewer.\nInput image 1: EDIT TARGET, a derived Mount Carmel panorama. This is one full 360-degree by 180-degree equirectangular image, 1774 pixels wide by 887 pixels high. Return the whole same 2:1 panorama at 1774x887, not a camera crop.\nPrimary request: repair ONLY the visible compositing artifacts in this supplied panorama. Keep the existing scene, camera location, projection, view directions, scale, people, colors and day lighting. Preserve Elijah raising his arms at the left of the low stone altar, the LOW altar made from TWELVE unhewn stones in TWO courses of six, the damp stacked wood, vivid golden-white fire, the water-filled trench with coherent reflections, and exactly FOUR earthenware water jars around the altar. There must be no added altar or second Elijah.\nObserved defects to repair: at the overlap joins about one eighth and three eighths of the way across the image near the altar sides, some people, jars, stones and water reflections are doubled, translucent, or abruptly clipped. Make each existing person and jar a single solid coherent object in its retained position. Remove only the ghost duplicate outlines. Preserve the four real jars: the near upright jar on the left, the tipped jar by the right side of the altar, the tipped jar in the right foreground, and the upright jar farther right. Continue the water trench, ground, crowd and coastline smoothly through these joins. There is also a break in the rising flame/plume between the central front view and the upper sky view. Make one naturally continuous plume from the existing altar fire upward into the existing pale golden cloud; remove the thin detached ghost column just right of the altar. Keep the same large blue sky, irregular clouds, and Mediterranean coastline.\nSpherical continuity: left and right image edges show the same back direction and must join seamlessly when wrapped. Preserve equirectangular distortion; do not create a normal wide photograph. At the very top and bottom rows, maintain smooth pole continuity without radial wedges or a starburst. No horizon shift.\nHistorical accuracy: ancient Israelite wool and linen tunics, headwraps and sandals, rugged Mount Carmel, natural clay and wet limestone. No visible sacrificed animal.\nStyle: natural cinematic photographic realism, sharply resolved cloth, clay, stone, water and human detail, consistent natural warm daylight and fire glow.\nConstraints: change ONLY join/ghost/plume artifacts; keep all retained scene content and the low twelve-stone altar, exactly four water jars, Elijah, wet trench and crowd. Do not add swords, architecture, additional jars, additional prophets, blood, modern items, text, labels, UI, borders, collage or watermark.",
+        "references": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/carmel-base-derived-target.jpg"
+        ],
+        "referenceInspected": true,
+        "repairScope": "Observed overlap ghosts and front/up plume continuity only",
+        "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-8d13f050-06d8-4ec0-8b09-7dadcf4b15fe.png",
+        "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-base-repair.png",
+        "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-8d13f050-06d8-4ec0-8b09-7dadcf4b15fe.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+        "width": 1774,
+        "height": 887,
+        "checkpointAt": "2026-10-11T05:18:40.018Z",
+        "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/carmel-panorama.webp",
+        "sha256": "de6ca1eed498d8fb93612d9e89a24507598906f06721b77df3cb4a39dffc63aa",
+        "bytes": 2318318,
+        "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+        "savedAt": "2026-10-11T05:18:41.752Z"
+      }
     },
     {
       "id": "gideon",
