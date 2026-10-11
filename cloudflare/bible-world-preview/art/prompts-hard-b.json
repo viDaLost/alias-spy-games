@@ -8,6 +8,10 @@
     "encoding": "lossless WebP"
   },
   "reference": {
+    "width": 1280,
+    "height": 1280,
+    "editReferenceWidth": 768,
+    "editReferenceHeight": 768,
     "fieldOfView": 104
   },
   "calls": [
@@ -134,5 +138,29 @@
       "losslessPixelMatch": true,
       "source": "art/sources/eutychus-panorama.webp"
     }
-  ]
+  ],
+  "derivedSources": [
+    {
+      "scene": "prison",
+      "kind": "derived-from-directions",
+      "source": "art/sources/prison-panorama.webp",
+      "provenance": "art/sources/prison-source.json",
+      "width": 1774,
+      "height": 887,
+      "fieldOfView": 104,
+      "directions": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down"
+      ],
+      "note": "Geometric reprojection and smooth overlap blending of the six retained native ImageGen directions. This is a derived base, not a newly generated base."
+    }
+  ],
+  "generatedDirections": {
+    "width": 1254,
+    "height": 1254
+  }
 }

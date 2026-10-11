@@ -1,0 +1,48 @@
+{
+  "created": "2026-10-11",
+  "status": "prison-complete-eutychus-directions-pending",
+  "sharpVersion": "0.35.4",
+  "scenes": {
+    "prison": {
+      "status": "passed",
+      "baseKind": "derived-from-directions",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP",
+      "bytes": 8708598,
+      "sha256": "9cfb43914d63cdbe4759c3c3a2f6e2af830500e77621a06e2e6f745302783038",
+      "nativeDirections": 6,
+      "nativeDirectionSize": [
+        1254,
+        1254
+      ],
+      "allNativeDirectionPixelsPreserved": true,
+      "verticalWrapMeanAbsoluteRgbDifference": 3.903707349081365,
+      "verticalWrap95thPercentileRgbDifference": 13,
+      "visualInspection": {
+        "passed": true,
+        "clues": [
+          "Two distinct Paul and Silas are released beside empty open wooden stocks and loose chains.",
+          "Jailer kneels with a small clay oil lamp.",
+          "Heavy wooden doors stand open; all visible prisoners remain inside.",
+          "Earthquake masonry cracks and rubble are present.",
+          "Ceiling and floor pole artifacts repaired; no hard cube seams seen."
+        ],
+        "thumbnail": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-b/qa/prison-thumb.jpg"
+      }
+    },
+    "eutychus": {
+      "status": "base-passed-directions-pending",
+      "baseSize": [
+        1774,
+        887
+      ],
+      "baseNativePixelsPreserved": true,
+      "clues": [
+        "Three distinct storeys with separate floor bands.",
+        "High lamp-lit open third-storey meeting window above two middle-storey shutters.",
+        "Paul embraces one living youth on courtyard ground."
+      ]
+    }
+  }
+}
