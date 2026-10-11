@@ -1,10 +1,10 @@
 {
   "repository": "viDaLost/alias-spy-games",
   "branch": "feat/bible-world-assets-easy",
-  "head": "d4497453ba4644ea22197c34dd1f94eba5dd13eb",
-  "parent": "35e0b3fb99bebfc4252b7a1792f329238f974005",
-  "tree": "9a9fab4b9fed761cc528b408563d892cb6717066",
-  "updatedAt": "2026-10-11T05:11:44.873Z",
+  "head": "5325c27a0826fb7ad92215453a5396a7b28d0ed9",
+  "parent": "d4497453ba4644ea22197c34dd1f94eba5dd13eb",
+  "tree": "3ed1fe6c8102ceefe4480ad7b6b56b9cf7d8d2c6",
+  "updatedAt": "2026-10-11T05:13:28.085Z",
   "files": {
     "art/sources/noah-panorama.webp": {
       "sha": "8eb82a5f61f23fe756d51b0c3a65668fb8dbb0ef",
@@ -17,13 +17,13 @@
       "path": "cloudflare/bible-world-preview/art/sources/red-sea-panorama.webp"
     },
     "art/prompts-easy.json": {
-      "sha": "bf93e8ede9568287711660505ca52b8bb3f5f8ad",
-      "bytes": 27114,
+      "sha": "1c31c84fbcaf3653767df0e9cab2cb4a2fc5bb58",
+      "bytes": 28378,
       "path": "cloudflare/bible-world-preview/art/prompts-easy.json"
     },
     "art/qa-easy.json": {
-      "sha": "c83f6f8b3c3f919211f93042ff5ec221a4bf0bc9",
-      "bytes": 2858,
+      "sha": "148c634c06c9b3698b27b7dfcfc87a1dc09db6d8",
+      "bytes": 4122,
       "path": "cloudflare/bible-world-preview/art/qa-easy.json"
     },
     "art/sources/references/noah-front.jpg": {
@@ -92,18 +92,23 @@
       "path": "cloudflare/bible-world-preview/art/sources/directions/noah-front.webp"
     },
     "art/sources/easy-checkpoint.json": {
-      "sha": "d5225c0760a9af6c7673c3ea720ff99c8cb6efb4",
-      "bytes": 4323,
+      "sha": "583645ecc2a4038ae00857af97ebe1f697047b33",
+      "bytes": 4545,
       "path": "cloudflare/bible-world-preview/art/sources/easy-checkpoint.json"
     },
     "art/sources/directions/noah-right.webp": {
       "sha": "3fd1238ebd341781b7d37e300a7a0b7bfa578a9d",
       "bytes": 2202226,
       "path": "cloudflare/bible-world-preview/art/sources/directions/noah-right.webp"
+    },
+    "art/sources/directions/noah-back.webp": {
+      "sha": "f35811aff986a03d385c4fe454bd1896355a0ca5",
+      "bytes": 2197200,
+      "path": "cloudflare/bible-world-preview/art/sources/directions/noah-back.webp"
     }
   },
   "lastPaths": [
-    "art/sources/directions/noah-right.webp",
+    "art/sources/directions/noah-back.webp",
     "art/prompts-easy.json",
     "art/qa-easy.json",
     "art/sources/easy-checkpoint.json"
