@@ -169,6 +169,27 @@
           "bytes": 2081084,
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-10T15:06:19.170Z"
+        },
+        {
+          "id": "gideon",
+          "stage": "front",
+          "prompt": "Use case: historical-scene\nAsset type: missing FRONT direction of a 360-degree photographic biblical environment. Return a single square image at the highest native resolution, with a 104-degree rectilinear camera view, not fisheye.\nInput image 1: supporting LEFT-direction camera reference of the same scene, retained and already approved. Match its night sky, dry rocky ridge, torch lighting, materials and Midianite camp. This reference is the adjacent sector to the LEFT of the requested front view.\nCamera: same fixed viewing point at eye height 1.65 metres. Rotate exactly 90 degrees RIGHT from the supplied left view, without moving forward, changing eye height or repeating the reference composition.\nPrimary request: complete the front sector on a high rocky ridge above the great Midianite encampment at NIGHT, at the instant Gideon's men have broken their earthenware jars and revealed their torches and blow their ram's horns. The camp occupies the broad valley BELOW the ridge, with many dark goat-hair tents and restrained warm campfires, steep rocky hills beyond, and the same dark blue clouded starry sky. The foreground is ridge rock, dry grasses and a few large freshly broken clay jar halves and shards. Gideon's small groups STAND in place along the ridge, far from the tents: do not show a charge or melee.\nContinuity: the close dark-cloaked, beige-tunic horn blower in the left reference is just outside the new view to the LEFT; only his natural overlapping right-edge slice may enter the far LEFT margin. Preserve his scale, headwrap and silhouette where the views overlap. Do not place another copy of him at center. Let the central front view open into the valley so the encampment is plainly below us. Two or three other ridge men near the outer margins stand blowing curled ram's horns held in their RIGHT hands and holding upright burning torches in their LEFT hands; match skin, rough wool/linen tunics, simple sandals and wraps of the reference. Keep their hands and anatomy unambiguous. No raised swords or drawn blades. Broken jars lie at their feet.\nStyle and quality: natural cinematic photographic realism, detailed torch flame, soot, rough clay, layered limestone, hair, skin and woven cloth, deep moonlit blue shadows with warm orange fire highlights, clear depth and scale. Continue the scene at all edges for adjacent panorama sectors; same event instant and light.\nAvoid: a soldier charging, a running group, battlefield fighting, drawn swords, a giant central portrait blocking the camp, modern lamps or weapons, uniforms, metal armor, castles, modern buildings, text, labels, UI, borders, collage, circular projection, watermark.",
+          "references": [
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/gideon-left-small.jpg"
+          ],
+          "referenceInspected": true,
+          "recovery": "Missing front direction generated from retained adjacent left sector.",
+          "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-88d4ed11-7ba1-4aea-aaa1-8309d0094c0c.png",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/gideon-front.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-88d4ed11-7ba1-4aea-aaa1-8309d0094c0c.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "width": 1254,
+          "height": 1254,
+          "checkpointAt": "2026-10-11T05:22:24.253Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/gideon-front.webp",
+          "sha256": "9d9646f6eba192bddaac09935cdb8a4c3b611fe20e46562f4b2c91f8594e3fcf",
+          "bytes": 2386468,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-11T05:22:26.056Z"
         }
       ]
     }
