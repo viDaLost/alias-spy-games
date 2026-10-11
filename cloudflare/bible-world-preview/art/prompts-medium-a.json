@@ -1,0 +1,111 @@
+{
+  "workflow": "builtin image_gen; native lossless encodes; six enhanced directions; 4096x2048 spherical build",
+  "scenes": [
+    {
+      "id": "carmel",
+      "directions": [
+        {
+          "id": "carmel",
+          "stage": "back",
+          "prompt": "Original invariant-preserving builtin ImageGen direction enhancement; prompt record being recovered.",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-back.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-a93a300e-ff7f-4c30-96c5-405e8eb4a77f.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "recovery": "Exact PNG decoded from original builtin ImageGen result.image_url stored in the functions session; no generation repeated.",
+          "checkpointAt": "2026-10-10T15:04:11.685Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/carmel-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "sha256": "cfe131b82d8414e8146778adc7014aa23b3e48abe2703650e1bf0a4f179a0159",
+          "bytes": 2344778,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-10T15:06:05.351Z"
+        },
+        {
+          "id": "carmel",
+          "stage": "left",
+          "prompt": "Original invariant-preserving builtin ImageGen direction enhancement; prompt record being recovered.",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-left.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-56f614d2-29a9-4883-88bc-9ced5de98121.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "recovery": "Exact PNG decoded from original builtin ImageGen result.image_url stored in the functions session; no generation repeated.",
+          "checkpointAt": "2026-10-10T15:04:12.436Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/carmel-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "sha256": "261cd066124a24e5428fe9d7a891290471ded806536eedc350ff72922f756030",
+          "bytes": 2281454,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-10T15:06:07.632Z"
+        },
+        {
+          "id": "carmel",
+          "stage": "up",
+          "prompt": "Original invariant-preserving builtin ImageGen direction enhancement; prompt record being recovered.",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-up.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-b1a4ac4b-f21e-4000-9777-edc3e432f6ed.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "recovery": "Exact PNG decoded from original builtin ImageGen result.image_url stored in the functions session; no generation repeated.",
+          "checkpointAt": "2026-10-10T15:04:12.946Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/carmel-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "sha256": "e56f815c2525d63484ec51f7f4b2a27adadb00b54e607934a51f1b9a3f26752a",
+          "bytes": 1610108,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-10T15:06:10.301Z"
+        },
+        {
+          "id": "carmel",
+          "stage": "down",
+          "prompt": "Original invariant-preserving builtin ImageGen direction enhancement; prompt record being recovered.",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-down.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-8d366923-51fe-4064-8ed5-22915c10b94d.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "recovery": "Exact PNG decoded from original builtin ImageGen result.image_url stored in the functions session; no generation repeated.",
+          "checkpointAt": "2026-10-10T15:04:13.431Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/carmel-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "sha256": "a77cca28c0276c34f688ff94b7bac440f9354d325e16685e650f38ee8ecdeb0d",
+          "bytes": 2226324,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-10T15:06:13.950Z"
+        }
+      ]
+    },
+    {
+      "id": "gideon",
+      "directions": [
+        {
+          "id": "gideon",
+          "stage": "back",
+          "prompt": "Original invariant-preserving builtin ImageGen direction enhancement; prompt record being recovered.",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/gideon-back.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-fd472825-444f-49cf-ab5d-bd8aee8c978c.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "recovery": "Exact PNG decoded from original builtin ImageGen result.image_url stored in the functions session; no generation repeated.",
+          "checkpointAt": "2026-10-10T15:04:13.913Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/gideon-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "sha256": "f74708b78442978d6e9dab7f4424b73a42f5b385fc91612a6e41dfe2ef2a0beb",
+          "bytes": 1976574,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-10T15:06:16.574Z"
+        },
+        {
+          "id": "gideon",
+          "stage": "left",
+          "prompt": "Original invariant-preserving builtin ImageGen direction enhancement; prompt record being recovered.",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/gideon-left.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-6a535b13-2e2e-4198-a800-ecf01378d0c5.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "recovery": "Exact PNG decoded from original builtin ImageGen result.image_url stored in the functions session; no generation repeated.",
+          "checkpointAt": "2026-10-10T15:04:14.396Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/gideon-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "sha256": "6fbfb1fd17bc3696ebf7429255bcdec67592f93776ca8f07d569ee9fd7688f1c",
+          "bytes": 2081084,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-10T15:06:19.170Z"
+        }
+      ]
+    }
+  ]
+}
