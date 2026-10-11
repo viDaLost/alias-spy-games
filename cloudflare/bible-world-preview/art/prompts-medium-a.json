@@ -89,6 +89,28 @@
           "bytes": 2311674,
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-11T05:09:45.830Z"
+        },
+        {
+          "id": "carmel",
+          "stage": "right",
+          "references": [
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/carmel-front.jpg",
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/carmel-back.jpg"
+          ],
+          "referenceInspected": true,
+          "recovery": "Missing right direction reconstructed from adjacent front and back camera views.",
+          "prompt": "Use case: historical-scene\nAsset type: missing RIGHT-direction view of the same 360-degree Mount Carmel environment. Return one highest-native-resolution SQUARE 104-degree rectilinear cinematic photographic view, no fisheye.\nInput image 1: supporting FRONT-direction camera reference showing the altar and fresh divine fire. Input image 2: supporting BACK-direction camera reference showing the assembled Israelite crowd, rocky hillside and Mediterranean coastline. These show the adjacent directions to either side of the requested right view. Keep the fixed camera location and eye height 1.65 metres; rotate the view exactly 90 degrees RIGHT from image 1, or 90 degrees LEFT from image 2. Do not translate the camera or repeat either reference view.\nPrimary request: complete the missing right-direction panorama camera sector with seamless appearance and geometry. The same low wet twelve-unhewn-stone altar lies immediately to the LEFT of this view, so only a partial outer LEFT-edge slice of the altar, damp wood, golden-white flame and water-filled trench is visible. Match its exact two-course stones, same scale, fire size, wet grain, and water reflection from image 1; do not put another altar at center. The same near tipped clay water jar from image 1 appears near the lower LEFT side at its natural position, with glistening spilled water. There are only FOUR dedicated altar water jars in this environment; reuse visible reference jars, do not add extras. Elijah is outside this direction to the left; no Elijah in the center. The central and RIGHT sector shows the same gathered ancient Israelites, many bowing face-down or kneeling in beige, cream, dusty blue and rust wool/linen tunics, simple headwraps and sandals. Preserve recognizable overlapping people from the adjacent reference edges. The rocky upland ground and wet limestone foreground continue naturally; distant blue Mediterranean coast and hazy Levantine ridges extend through the central background, with olive scrub on the right upland margin to meet image 2. Bright blue daytime sky with scattered irregular white clouds, same warm light and reflected fire. Same event instant: fire has just arrived, trench water is still plainly full, no visible sacrificed animal.\nQuality and constraints: maximum intricate photographic wet stone grain, clay pits, rope, woven fabric fibres, human skin, beard hair and vegetation. Preserve historical materials, consistent camera scale and horizon near mid-height, single continuous scene. Continue the shared edge silhouettes rather than changing layout or adding new objects.\nAvoid: central altar, duplicate altar, second Elijah, extra altar jars, lamb or sheep, visible bull, blood, modern architecture or metal buckets, fountain, railings, churches, crosses, domes, modern objects, text, labels, watermark, UI, border, collage, radial starburst.",
+          "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-5a088034-b945-4ecb-a156-d357e9f8b80b.png",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-right.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-5a088034-b945-4ecb-a156-d357e9f8b80b.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "width": 1254,
+          "height": 1254,
+          "checkpointAt": "2026-10-11T05:11:53.726Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/carmel-right.webp",
+          "sha256": "a3993051267b7a5570c07cf169d5d938ead42505feb2753b2e5db89a3b78cc50",
+          "bytes": 2337976,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-11T05:11:55.716Z"
         }
       ]
     },
