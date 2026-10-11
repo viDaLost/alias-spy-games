@@ -133,6 +133,18 @@
           "exactRgbaPixelMatch": true,
           "gitBlobSha": "3c7a5f347e9eed38b18dfe8ac6f3fdde494f229e",
           "visualQA": "Pass: same army continuation, ridges, central tree, shrubs, three visible sheep and creek terrain retained. Rock pores, dry grass, wool, foliage and soldiers are clearer; no new subjects or modern objects."
+        },
+        "up": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e1241043-15db-4832-a3f5-93d57d032eac.png",
+          "sourcePath": "art/sources/directions/david-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1582452,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "b6be00f84723020ac0ffaa86730ea1ee8602785a",
+          "visualQA": "Pass: the central radial cloud starburst is replaced by coherent irregular natural cloud detail. Blue sky, surrounding cloud layout, David crop, border weapons, leaves and army-edge crops remain in the original locations; no new objects, sun or halo."
         }
       }
     }

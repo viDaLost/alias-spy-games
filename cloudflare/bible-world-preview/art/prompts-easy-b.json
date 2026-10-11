@@ -254,6 +254,31 @@
         "gitBlobSha": "3c7a5f347e9eed38b18dfe8ac6f3fdde494f229e",
         "visualQA": "Pass: same army continuation, ridges, central tree, shrubs, three visible sheep and creek terrain retained. Rock pores, dry grass, wool, foliage and soldiers are clearer; no new subjects or modern objects."
       }
+    },
+    {
+      "scene": "david",
+      "direction": "up",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement and pole repair.\nAsset type: native 1254 by 1254 square UP view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 upward-facing view at native 1254 by 1254 with new fine photographic detail. Preserve the camera direction and field of view, original framing, warm morning daylight, blue sky colour, surrounding cloud positions and shapes, and all object silhouettes and outer-quarter border geometry where adjoining sphere views overlap.\nThe player is on the ground at eye height inside the Valley of Elah before David's throw. Keep exactly the existing cropped portions of David, his staff or spear where shown, tree leaves and branches, distant ridges and army-edge crops at the borders. Do not enlarge or shift these crops. Restore natural cotton-like fine detail and soft irregular edges within the existing clouds, foliage texture and existing cloth or wood only where visible.\nRepair only the unnatural central radial starburst or pinched cloud pattern created by the spherical zenith. Replace that centre artifact with coherent natural blue sky and irregular cloud detail that follows the existing surrounding sky, with no central swirl, spokes, funnel, halo or new sun. Keep the outer quarter of the image, existing cloud geometry away from the centre and every border figure fixed.\nDo not crop, zoom, change viewpoint, add or remove people or objects, invent clouds or narrative clues, add David's face or weapons outside the existing crop, add modern objects, text, watermark, frame or UI. Photographic realism, sharp but natural, no painted smears, fake outlines or sharpening halos. Preserve square canvas.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-up-reference.jpg",
+      "source": "sources/directions/david-up.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-up-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e1241043-15db-4832-a3f5-93d57d032eac.png",
+        "sourcePath": "art/sources/directions/david-up.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1582452,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "b6be00f84723020ac0ffaa86730ea1ee8602785a",
+        "visualQA": "Pass: the central radial cloud starburst is replaced by coherent irregular natural cloud detail. Blue sky, surrounding cloud layout, David crop, border weapons, leaves and army-edge crops remain in the original locations; no new objects, sun or halo."
+      }
     }
   ],
   "updated": "2026-10-11",
