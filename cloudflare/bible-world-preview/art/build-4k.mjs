@@ -5,6 +5,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {panoramaSamples} from '../public/camera.mjs';
+import {sceneAssets} from './scene-assets.mjs';
 const require=createRequire(import.meta.url);
 const sharp=require(require.resolve('sharp',{paths:[process.cwd(),process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES].filter(Boolean)}));
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -16,6 +17,11 @@ const tan=Math.tan(104*Math.PI/360),size=1280;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
 const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
+async function source(stem){
+ for(const ext of ['webp','png']){const file=path.join(root,'art/sources',stem+'.'+ext);try{await readFile(file);return file;}catch{}}
+ throw Error('Missing panorama source: '+stem);
+}
+async function provenance(scene){try{return JSON.parse(await readFile(path.join(root,'art/sources',scene+'-source.json'),'utf8'));}catch{return {};}}
 async function raw(file){const {data,info}=await sharp(file).removeAlpha().toColourspace('srgb').raw().toBuffer({resolveWithObject:true});return {data,w:info.width,h:info.height};}
 function sample(im,u,v,c){
  const x=clamp(u*(im.w-1),0,im.w-1),y=clamp(v*(im.h-1),0,im.h-1),ix=Math.floor(x),iy=Math.floor(y),jx=Math.min(ix+1,im.w-1),jy=Math.min(iy+1,im.h-1),dx=x-ix,dy=y-iy;
@@ -27,7 +33,7 @@ function original(im,dir,c){
 }
 function ray(face,x,y){return face.forward.map((n,i)=>n+x*tan*face.right[i]+y*tan*face.up[i]);}
 async function prepare(scene){
- const base=await raw(path.join(root,'art/sources',scene+'-panorama.png'));await mkdir(path.join(work,'inputs'),{recursive:true});
+ const base=await raw(await source(scene+'-panorama'));await mkdir(path.join(work,'inputs'),{recursive:true});
  for(const face of faces){
   const pixels=Buffer.alloc(size*size*3);
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
@@ -40,9 +46,10 @@ async function prepare(scene){
  }
 }
 async function build(scene){
- const base=await raw(path.join(root,'art/sources',scene+'-panorama.png')),tiles=[];
+ if((await provenance(scene)).kind==='derived-from-directions'){await direct(scene,false);return;}
+ const base=await raw(await source(scene+'-panorama')),tiles=[];
  for(const face of faces){
-  const file=path.join(root,'art/sources/directions',scene+'-'+face.name+'.png');
+  const file=await source('directions/'+scene+'-'+face.name);
   const im=await raw(file),ref=await sharp(path.join(work,'inputs',scene+'-'+face.name+'.png')).resize(im.w,im.h).removeAlpha().raw().toBuffer();
   const genLow=await sharp(im.data,{raw:{width:im.w,height:im.h,channels:3}}).blur(6).raw().toBuffer();
   const refLow=await sharp(ref,{raw:{width:im.w,height:im.h,channels:3}}).blur(6).raw().toBuffer();
@@ -77,7 +84,7 @@ async function build(scene){
    for(let c=0;c<3;c++)pixels[p+c]=Math.round(clamp(basePixel[c]+acc[c]/total,0,255));
   }
  }
- const file=path.join(root,'public/assets',scene+'-360-'+(scene==='babel'?'v5':'v3')+'-4k.webp');
+ const file=path.join(root,'public/assets',sceneAssets[scene]);
  await writeFile(file,await sharp(pixels,{raw:{width:W,height:H,channels:3}}).webp({lossless:true,effort:6}).toBuffer());
  await mkdir(path.join(work,'qa'),{recursive:true});
  await writeFile(path.join(work,'qa',scene+'-4k.jpg'),await sharp(pixels,{raw:{width:W,height:H,channels:3}}).resize(2048,1024).jpeg({quality:95}).toBuffer());
@@ -93,6 +100,39 @@ async function build(scene){
  await writeFile(path.join(work,'qa',scene+'-compare.jpg'),await sharp({create:{width:1920,height:1440,channels:3,background:'#ffffff'}}).composite(comparisons).jpeg({quality:97}).toBuffer());
  const metadata=await sharp(file).metadata();console.log(JSON.stringify({scene,file,width:metadata.width,height:metadata.height,faces:tiles.map(t=>({direction:t.name,width:t.im.w,height:t.im.h}))}));
 }
+// Recover a sphere from its six already generated directions. This is geometric
+// projection of saved ImageGen assets, with no newly invented image content.
+async function direct(scene,derive){
+ const tiles=await Promise.all(faces.map(async face=>({...face,im:await raw(await source('directions/'+scene+'-'+face.name))})));
+ const W=4096,H=2048,pixels=Buffer.alloc(W*H*3);
+ for(let y=0;y<H;y++){
+  const cy=Math.cos((y+.5)/H*Math.PI),sy=Math.sin((y+.5)/H*Math.PI);
+  for(let x=0;x<W;x++){
+   const yaw=((x+.5)/W-.5)*2*Math.PI,dir=[Math.sin(yaw)*sy,cy,Math.cos(yaw)*sy],p=(y*W+x)*3,acc=[0,0,0];let total=0;
+   for(const tile of tiles){
+    const z=dot(dir,tile.forward);if(z<=0)continue;
+    const px=dot(dir,tile.right)/(z*tan),py=dot(dir,tile.up)/(z*tan),edge=Math.max(Math.abs(px),Math.abs(py));if(edge>=1)continue;
+    const weight=smooth((1-edge)/.22);if(!weight)continue;
+    for(let c=0;c<3;c++)acc[c]+=sample(tile.im,(px+1)/2,(1-py)/2,c)*weight;
+    total+=weight;
+   }
+   if(!total)throw Error('Uncovered spherical direction');
+   for(let c=0;c<3;c++)pixels[p+c]=Math.round(clamp(acc[c]/total,0,255));
+  }
+ }
+ const assembled=sharp(pixels,{raw:{width:W,height:H,channels:3}});
+ if(derive){
+  await writeFile(path.join(root,'art/sources',scene+'-panorama.webp'),await assembled.clone().resize(1774,887).webp({lossless:true,effort:6}).toBuffer());
+  await writeFile(path.join(root,'art/sources',scene+'-source.json'),JSON.stringify({kind:'derived-from-directions',sourceSeamBlend:0,directions:faces.map(f=>f.name),note:'Recovered from six retained native ImageGen direction views; no regenerated scene or invented content.'},null,2)+'\n');
+ }
+ const file=path.join(root,'public/assets',sceneAssets[scene]);await writeFile(file,await assembled.clone().webp({lossless:true,effort:6}).toBuffer());
+ await mkdir(path.join(work,'qa'),{recursive:true});
+ await writeFile(path.join(work,'qa',scene+'-4k.jpg'),await assembled.clone().resize(2048,1024).jpeg({quality:95}).toBuffer());
+ console.log(JSON.stringify({scene,file,width:W,height:H,kind:'derived-from-directions',faces:tiles.map(t=>({direction:t.name,width:t.im.w,height:t.im.h}))}));
+}
 const [mode,...scenes]=process.argv.slice(2);
-if(!['prepare','build'].includes(mode))throw Error('Usage: build-4k.mjs prepare|build babel temple galilee');
-for(const scene of scenes.length?scenes:['babel','temple','galilee'])await (mode==='prepare'?prepare:build)(scene);
+if(!['prepare','build','derive-base'].includes(mode))throw Error('Usage: build-4k.mjs prepare|build|derive-base [scene IDs]');
+for(const scene of scenes.length?scenes:Object.keys(sceneAssets)){
+ if(!sceneAssets[scene])throw Error('Unknown scene '+scene);
+ await (mode==='prepare'?prepare(scene):mode==='derive-base'?direct(scene,true):build(scene));
+}

@@ -1,0 +1,28 @@
+{
+  "uploaded": {
+    "cloudflare/bible-world-preview/art/build-4k.mjs": {
+      "sha": "c24f1fbfc066a98507d61df046e9a9d76336d2d3",
+      "bytes": 9582
+    },
+    "cloudflare/bible-world-preview/art/scene-assets.mjs": {
+      "sha": "38fc13161be7ecbbeef20b8e6911fbdbdd9ca62e",
+      "bytes": 301
+    },
+    "cloudflare/bible-world-preview/art/sources/daniel-panorama.webp": {
+      "sha": "da3dded6edeb38e79402adc6ae78d9e6f5f7a726",
+      "bytes": 2323848
+    },
+    "cloudflare/bible-world-preview/art/sources/david-panorama.webp": {
+      "sha": "6e63bf3bacc0fb824309525e4a942aa92b3cc0bb",
+      "bytes": 2251358
+    },
+    "cloudflare/bible-world-preview/art/sources/directions/carmel-back.webp": {
+      "sha": "8449b3039e784bb7388df177939d19386e44ef63",
+      "bytes": 2344778
+    },
+    "cloudflare/bible-world-preview/art/sources/directions/carmel-down.webp": {
+      "sha": "d76add4b074054ef5c005d300db222265f8d378b",
+      "bytes": 2226324
+    }
+  }
+}
