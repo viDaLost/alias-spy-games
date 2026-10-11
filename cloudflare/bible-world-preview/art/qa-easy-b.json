@@ -109,6 +109,18 @@
           "exactRgbaPixelMatch": true,
           "gitBlobSha": "6213d13afe8adfcb0bd99a5735d5e26568307e46",
           "visualQA": "Pass: original cropped David at far left, relaxed sling, cropped Goliath and spear at right, hills and creek stones retained in the same framing. Pouch remains correctly cropped with no added stones; fine texture strengthened without new objects."
+        },
+        "right": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c6a0b6e8-2def-43f2-8fa8-aac24a3852a6.png",
+          "sourcePath": "art/sources/directions/david-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2130126,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "23a7ef8dc8fd9b64fbcbcd611065b1da2af0c680",
+          "visualQA": "Pass: distant tall Goliath remains on the left with bronze armour, helmet, greaves and upright spear; separate shield bearer in front/right retains the round shield; army line and terrain match the reference. Fine bronze, rock and grass detail enhanced, peaceful stationary poses and borders retained."
         }
       }
     }

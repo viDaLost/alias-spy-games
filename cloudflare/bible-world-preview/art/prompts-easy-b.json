@@ -204,6 +204,31 @@
         "gitBlobSha": "6213d13afe8adfcb0bd99a5735d5e26568307e46",
         "visualQA": "Pass: original cropped David at far left, relaxed sling, cropped Goliath and spear at right, hills and creek stones retained in the same framing. Pouch remains correctly cropped with no added stones; fine texture strengthened without new objects."
       }
+    },
+    {
+      "scene": "david",
+      "direction": "right",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square RIGHT view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail. Preserve the camera direction, 104-degree field of view, framing, perspective, colours, warm clear daylight, every silhouette and object position and size, and the outer-quarter border geometry so neighbouring sphere directions remain aligned.\nKeep the existing distant tall bronze-armoured Goliath and his SEPARATE shield bearer, their exact proportions, poses, locations and equipment. Goliath keeps the bronze helmet, scale armour, greaves, upright spear and sheathed sword. The man in front keeps his existing large round shield. Preserve all existing soldiers in the hillside army line, ridge silhouette, sparse shrubs, shadows, dry creek rocks and ground. Restore crisp natural bronze scale edges and patina, leather straps, wooden spear grain, cloth weave, distant army detail, rock pores and dry grass. All subjects stay peaceful and stationary before David's throw.\nChange only fine texture; do not crop, zoom, shift the perspective, bring characters nearer, add or remove figures, duplicate shields or weapons, invent architecture, add modern objects, or change any narrative clue. Do not add David to this view if he is not in the original target. No attacks, injuries or flying stone. Sharp photographic deep focus without waxy surfaces, painted smears, haze, sharpening halos or graphic outlines. Preserve square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-right-reference.jpg",
+      "source": "sources/directions/david-right.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-right-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c6a0b6e8-2def-43f2-8fa8-aac24a3852a6.png",
+        "sourcePath": "art/sources/directions/david-right.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2130126,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "23a7ef8dc8fd9b64fbcbcd611065b1da2af0c680",
+        "visualQA": "Pass: distant tall Goliath remains on the left with bronze armour, helmet, greaves and upright spear; separate shield bearer in front/right retains the round shield; army line and terrain match the reference. Fine bronze, rock and grass detail enhanced, peaceful stationary poses and borders retained."
+      }
     }
   ],
   "updated": "2026-10-11",
