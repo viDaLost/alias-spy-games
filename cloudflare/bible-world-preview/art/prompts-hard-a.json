@@ -1,0 +1,142 @@
+{
+  "owner": "hard-a",
+  "format": "generative-direction-enhancement",
+  "generator": "Built-in ImageGen",
+  "encoding": "lossless WebP",
+  "sharpVersion": "0.35.4",
+  "created": "2026-10-10",
+  "calls": [
+    {
+      "key": "fleece-front",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "front",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-front.png",
+      "destination": "art/sources/directions/fleece-front.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The front view has a large patch of completely DRY white sheep fleece filling the lower foreground; Gideon's existing robe, arm and hovering hand are at left. Preserve the exact shape and placement of the fluffy fleece and the hovering hand. Resolve fine separated wool curls into airy matte dry fibres with no drops, shine, clumping or dripping. All surrounding exposed dark threshing-floor stones remain wet with morning dew and reflections right up to the fleece's edge. Preserve the existing low stone wall, hills and dawn sky.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b9a404f6-83c4-4f4e-9d6d-51cde4a7c2fb.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:52.266Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-front.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-right",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "right",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-right.png",
+      "destination": "art/sources/directions/fleece-right.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The right view has the existing edge of the completely DRY white fleece at lower left, wet stones, a low rough stone wall and the existing wooden threshing tool at right. Preserve all exact objects and positions, the tool's timber and bindings, existing straw, stone houses, trees, hills and dawn light. Improve dry airy matte wool curls and individual dew beads on surrounding exposed stones; do not place dew or water on the fleece.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-3c651b9d-a062-42f9-b6a9-a7f393c90942.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:41.467Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-right.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-back",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "back",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-back.png",
+      "destination": "art/sources/directions/fleece-back.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The back view has the existing wooden threshing tool at left, low stone wall, clay vessel, trees and stone houses. Preserve this exact arrangement and count, all contours, the wet stone paving and scattered existing straw and grass. Restore natural fine stone pores, wood grain, rope fibres, straw and dew beads on the floor. Do not add a person or fleece here; the one Gideon and one fleece stay in their existing positions elsewhere in the sphere.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f45062e5-a06e-4950-9acc-a5b9748877e3.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:44.105Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-back.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-left",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "left",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-left.png",
+      "destination": "art/sources/directions/fleece-left.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The left view has Gideon's existing cropped robe, knee, forearm and sandal at right, the completely DRY white fleece edge at lower right, surrounding wet stone paving, stone wall, houses and trees. Preserve this exact framing and every contour, identity, pose and object count. Resolve natural fabric fibres and fine skin detail, airy matte dry wool curls without wet shine or droplets, and clearly wet dew-covered dark stones everywhere immediately around it.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f1ea516d-ec46-49c4-8d15-95dd5debc91c.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:46.251Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-left.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-up",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "up",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-up.png",
+      "destination": "art/sources/directions/fleece-up.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: This is the UP direction looking straight overhead. Repair ONLY the unnatural radial starburst at the central sky pole into coherent natural pink-grey dawn clouds with no spokes or swirl. Preserve the outer quarter of the image and ALL existing silhouettes, Gideon's cropped head and robe at lower left, the existing sun near the lower right edge, tree branches, buildings, hills and horizon. Match the existing dawn sky colours and cloud arrangement. Do not add a second sun, new buildings, branches or people; do not move any outer object or alter Gideon's identity.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-022160a9-c492-43fe-b486-3a1813c5483e.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:48.255Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-up.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-down",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "down",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-down.png",
+      "destination": "art/sources/directions/fleece-down.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: This is the DOWN direction looking straight beneath the camera. Repair ONLY the unnatural radial starburst at the central ground pole into a natural irregular arrangement of wet stone paving, small grit and the existing sparse grass, with visible dew and damp reflections, no swirl or radial spokes. Preserve the outer quarter of the image and the exact irregular dry fleece outline and position wrapping the upper edge. The existing fleece remains completely DRY, fluffy, airy and matte with separated white wool curls, no droplets or wet shine. Preserve all exposed surrounding wet stones and their broad colours and light; add no new object, foot, bowl or water stream.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-92f94aae-d68b-4e40-a350-488f0cbd97ef.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:50.217Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-down.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    }
+  ]
+}

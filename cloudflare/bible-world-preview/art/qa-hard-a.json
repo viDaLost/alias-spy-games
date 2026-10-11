@@ -1,0 +1,194 @@
+{
+  "owner": "hard-a",
+  "updatedAt": "2026-10-11T05:09:55.669Z",
+  "status": "in_progress",
+  "encoder": "sharp@0.35.4",
+  "sourceCount": 6,
+  "directionCount": 6,
+  "sources": [
+    {
+      "key": "fleece-front",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "front",
+      "file": "art/sources/directions/fleece-front.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "6e079d0003e02cc9d6ec2c7db9de7a2fa29efce99c0fdebf3c3f6c94864050e2",
+      "bytes": 1998792
+    },
+    {
+      "key": "fleece-right",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "right",
+      "file": "art/sources/directions/fleece-right.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "319d0fea74b8efa48ab01306eb12fd44b8822432772b1dd476361908e67ae2f4",
+      "bytes": 2240166
+    },
+    {
+      "key": "fleece-back",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "back",
+      "file": "art/sources/directions/fleece-back.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "5b0c3a5c35823a65d6a4ff6854f5ab846111b32eebffb09101146c672e5a5e4c",
+      "bytes": 2662568
+    },
+    {
+      "key": "fleece-left",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "left",
+      "file": "art/sources/directions/fleece-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "b12d5c15ccf5d3dc5065b6170c6cfa682f7f02f62417c3411687218e32ad9985",
+      "bytes": 2432662
+    },
+    {
+      "key": "fleece-up",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "up",
+      "file": "art/sources/directions/fleece-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "be9910a536bcc754184d0fd49bee933dda29cd8abdd745a70cc0501870c0fd61",
+      "bytes": 1940326
+    },
+    {
+      "key": "fleece-down",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "down",
+      "file": "art/sources/directions/fleece-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "84bfd4a2f756fb55ecc662228c65a68d286cf0b093732665d59d67b6ffdfca62",
+      "bytes": 2336330
+    }
+  ],
+  "scenes": [
+    {
+      "id": "fleece",
+      "status": "passed",
+      "base": {
+        "file": "art/sources/fleece-panorama.webp",
+        "width": 1774,
+        "height": 887,
+        "provenance": {
+          "kind": "derived-from-directions",
+          "sourceSeamBlend": 0,
+          "directions": [
+            "front",
+            "right",
+            "back",
+            "left",
+            "up",
+            "down"
+          ],
+          "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content."
+        }
+      },
+      "directions": [
+        {
+          "key": "fleece-front",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "front",
+          "file": "art/sources/directions/fleece-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "sha256": "6e079d0003e02cc9d6ec2c7db9de7a2fa29efce99c0fdebf3c3f6c94864050e2",
+          "bytes": 1998792
+        },
+        {
+          "key": "fleece-right",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "right",
+          "file": "art/sources/directions/fleece-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "sha256": "319d0fea74b8efa48ab01306eb12fd44b8822432772b1dd476361908e67ae2f4",
+          "bytes": 2240166
+        },
+        {
+          "key": "fleece-back",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "back",
+          "file": "art/sources/directions/fleece-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "sha256": "5b0c3a5c35823a65d6a4ff6854f5ab846111b32eebffb09101146c672e5a5e4c",
+          "bytes": 2662568
+        },
+        {
+          "key": "fleece-left",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "left",
+          "file": "art/sources/directions/fleece-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "sha256": "b12d5c15ccf5d3dc5065b6170c6cfa682f7f02f62417c3411687218e32ad9985",
+          "bytes": 2432662
+        },
+        {
+          "key": "fleece-up",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "up",
+          "file": "art/sources/directions/fleece-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "sha256": "be9910a536bcc754184d0fd49bee933dda29cd8abdd745a70cc0501870c0fd61",
+          "bytes": 1940326
+        },
+        {
+          "key": "fleece-down",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "down",
+          "file": "art/sources/directions/fleece-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "sha256": "84bfd4a2f756fb55ecc662228c65a68d286cf0b093732665d59d67b6ffdfca62",
+          "bytes": 2336330
+        }
+      ],
+      "final": {
+        "file": "public/assets/fleece-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "encoding": "lossless WebP",
+        "vp8l": true,
+        "bytes": 9560228,
+        "sha256": "490b9dd3a542da894b203c717525324aa021bb46671ccff06c57c89f6c1dcc3c"
+      },
+      "visualChecks": {
+        "story": "One Gideon, one completely dry airy matte white fleece amid wet dew-covered stone ground near Ophrah at dawn; no squeezing, wet wool, rain, river or cup/bowl watering.",
+        "geometry": "Recovered exact six native generated directions. Direct spherical reconstruction preserves scene layout, identities, object counts, tools, houses and lighting.",
+        "poles": "Natural cloud and wet-stone textures, central radial artifacts removed; outer subject/object contours preserved."
+      }
+    }
+  ]
+}
