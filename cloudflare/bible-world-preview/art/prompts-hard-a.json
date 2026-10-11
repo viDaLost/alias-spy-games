@@ -156,6 +156,106 @@
       "encoding": "lossless WebP",
       "sharpVersion": "0.35.4",
       "pixelExactLossless": true
+    },
+    {
+      "key": "axe-front",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "front",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-front-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-front.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.488Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Keep any visible portion of the close shaftless floating iron head exactly where it is, with the open empty socket above the water. Keep the existing waterline, bank, timber, people, trees and natural water ripples. Never add a shaft or put iron on wood.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-2e9303ac-5703-4454-a05a-b987e5169c09.png",
+      "generatedAt": "2026-10-11T05:14:39.710Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-front.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-right",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "right",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-right-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-right.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-11T05:13:37.530Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Preserve the existing river surface, any visible close floating iron head and its open empty socket, and the SEPARATE cut wood. Keep clear water between the iron and wood. Do not join them or attach a shaft. Retain exact bank contours, trees and all reflections.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "axe-back",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "back",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-back-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-back.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-11T05:13:37.575Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Preserve this exact wrapped rear direction: the existing bank, water, rocks, trees, reeds, hills and any partial subjects at the edges. Do not invent another axe head or person in an empty region.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "axe-left",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "left",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-left-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-left.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-11T05:13:37.622Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Preserve existing Elisha and the young borrower on the bank, their exact identities, faces, hands, robes, sandals and poses. The borrower holds only the bare wooden handle with NO blade. Keep exactly two other existing working disciples in the whole scene, felled timber, stumps, reeds and water boundaries.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "axe-up",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "up",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-up-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-up.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-11T05:13:37.662Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: This is the UP direction, looking straight overhead. Repair ONLY the small unnatural radial starburst at the central pole into natural blue sky and a realistic sparse willow canopy continuing the EXISTING branches. Preserve the outer quarter and all existing people, branches and skyline contours; no new objects, swirl or spoke pattern.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "axe-down",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "down",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-down-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-down.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-11T05:13:37.706Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: This is the DOWN direction, looking straight beneath the camera. Repair ONLY the unnatural central radial starburst into naturally irregular shallow-water ripples, reflections and underwater gravel. Preserve the outer quarter, all existing axe-head/wood portions, waterlines and stones. No new foot, stick, shaft or object, no swirl or spokes.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
     }
   ]
 }
