@@ -32,6 +32,19 @@
           "visualQA": "Pass: same ark doorway, cattle boarding ramp, basket-carrying woman and exactly two foreground chickens. Cropped figures and cattle retained; natural timber, wicker, feathers and coat detail restored.",
           "resultStoreKey": "finish-easy-noah-right-result",
           "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-4a508332-217d-4706-b9f5-4d7cd6b0a85b.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "back": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c422587f-d633-43b4-9f95-e5005c2288b4.png",
+          "source": "art/sources/directions/noah-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2197200,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "f35811aff986a03d385c4fe454bd1896355a0ca5",
+          "visualQA": "Pass: same fenced sheep, cattle, basket-carrying green-headscarf woman, two bearded men and cropped woman/donkeys. Tree and ark wall remain aligned; fine wool, wicker, rope, wood and natural cloth restored, without extra figures.",
+          "resultStoreKey": "finish-easy-noah-back-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-c422587f-d633-43b4-9f95-e5005c2288b4.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
         }
       },
       "status": "editing"

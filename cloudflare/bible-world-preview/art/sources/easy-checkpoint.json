@@ -1,10 +1,10 @@
 {
   "repository": "viDaLost/alias-spy-games",
   "branch": "feat/bible-world-assets-easy",
-  "head": "35e0b3fb99bebfc4252b7a1792f329238f974005",
-  "parent": "6f7e6af7800cd8e3ea1a57f8ffa3040562642aad",
-  "tree": "5ff5cb98a2c9f564de5796a42fa02f77ed6f3bb8",
-  "updatedAt": "2026-10-11T05:10:18.391Z",
+  "head": "d4497453ba4644ea22197c34dd1f94eba5dd13eb",
+  "parent": "35e0b3fb99bebfc4252b7a1792f329238f974005",
+  "tree": "9a9fab4b9fed761cc528b408563d892cb6717066",
+  "updatedAt": "2026-10-11T05:11:44.873Z",
   "files": {
     "art/sources/noah-panorama.webp": {
       "sha": "8eb82a5f61f23fe756d51b0c3a65668fb8dbb0ef",
@@ -17,13 +17,13 @@
       "path": "cloudflare/bible-world-preview/art/sources/red-sea-panorama.webp"
     },
     "art/prompts-easy.json": {
-      "sha": "d4a9fd671b0a062c26366b5deff803d218392813",
-      "bytes": 25877,
+      "sha": "bf93e8ede9568287711660505ca52b8bb3f5f8ad",
+      "bytes": 27114,
       "path": "cloudflare/bible-world-preview/art/prompts-easy.json"
     },
     "art/qa-easy.json": {
-      "sha": "91a293620aa1a6080cbea07d4573775ac980ee73",
-      "bytes": 1620,
+      "sha": "c83f6f8b3c3f919211f93042ff5ec221a4bf0bc9",
+      "bytes": 2858,
       "path": "cloudflare/bible-world-preview/art/qa-easy.json"
     },
     "art/sources/references/noah-front.jpg": {
@@ -92,13 +92,18 @@
       "path": "cloudflare/bible-world-preview/art/sources/directions/noah-front.webp"
     },
     "art/sources/easy-checkpoint.json": {
-      "sha": "e7447f51f5d5dc6cf26b2a0807fe4f79be1892e7",
-      "bytes": 4432,
+      "sha": "d5225c0760a9af6c7673c3ea720ff99c8cb6efb4",
+      "bytes": 4323,
       "path": "cloudflare/bible-world-preview/art/sources/easy-checkpoint.json"
+    },
+    "art/sources/directions/noah-right.webp": {
+      "sha": "3fd1238ebd341781b7d37e300a7a0b7bfa578a9d",
+      "bytes": 2202226,
+      "path": "cloudflare/bible-world-preview/art/sources/directions/noah-right.webp"
     }
   },
   "lastPaths": [
-    "art/sources/directions/noah-front.webp",
+    "art/sources/directions/noah-right.webp",
     "art/prompts-easy.json",
     "art/qa-easy.json",
     "art/sources/easy-checkpoint.json"
