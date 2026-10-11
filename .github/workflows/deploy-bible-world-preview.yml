@@ -32,9 +32,9 @@ jobs:
       - name: Build lossless 4K panoramas from restored directions
         run: |
           npm install --no-save --package-lock=false --no-audit --no-fund sharp@0.35.4
-          node art/build-4k.mjs prepare babel temple galilee
-          node art/build-4k.mjs build babel temple galilee
-      - name: Check all three rounds
+          node art/build-4k.mjs prepare
+          node art/build-4k.mjs build
+      - name: Check all fifteen locations
         run: npm test
       - name: Validate static Worker bundle
         run: npm run check
