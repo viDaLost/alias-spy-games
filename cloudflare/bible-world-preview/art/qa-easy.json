@@ -71,6 +71,19 @@
           "visualQA": "Pass: original ark wall and entrance, tree canopy and mountain crop remain fixed. Central sky pinch replaced by natural irregular cloud gaps and layers; no radial spokes or added sun/rainbow. Timber and foliage detail restored.",
           "resultStoreKey": "finish-easy-noah-up-result",
           "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "down": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-a0473dba-7e29-45a2-9f18-4935a4fe6751.png",
+          "source": "art/sources/directions/noah-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2256448,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "5fdf1be12e9075e4a4f38c6c0e5acc30a9770fda",
+          "visualQA": "Pass: original sandals and robes, sheep legs, ramp/post, two chickens, baskets and fence silhouettes retained. Central radial convergence replaced by coherent dry earth and irregular pebbles; no center spokes, invented feet or extra birds. Fine ground, wicker and rope detail restored.",
+          "resultStoreKey": "finish-easy-noah-down-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-a0473dba-7e29-45a2-9f18-4935a4fe6751.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
         }
       },
       "status": "editing"
