@@ -43,8 +43,18 @@
         1254
       ],
       "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-front.webp",
-      "status": "ready",
-      "savedAt": "2026-10-11T05:09:51.747Z"
+      "status": "saved",
+      "savedAt": "2026-10-11T05:12:42.053Z",
+      "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-16ddda3e-ab17-41a7-8cfd-802536467579.png",
+      "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-16ddda3e-ab17-41a7-8cfd-802536467579.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "createdAt": "2026-10-11T05:12:39.980Z",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2079122,
+      "sha256": "6e3a8ea69af263f7eb472d9e9d0c282508419af817939bd7e15a05829cad7b3b",
+      "lossless": true,
+      "pixelExactLossless": true,
+      "encoder": "sharp@0.35.4"
     },
     {
       "id": "philip",
@@ -172,7 +182,7 @@
       "savedAt": "2026-10-11T05:09:51.747Z"
     }
   ],
-  "savedAt": "2026-10-11T05:09:52.083Z",
+  "savedAt": "2026-10-11T05:12:42.053Z",
   "status": "generating-directions",
   "remoteBranch": "feat/bible-world-assets-medium-b"
 }
