@@ -75,7 +75,7 @@
       ]
     },
     "david": {
-      "status": "base-scene-pass-pouch-count-correction-required",
+      "status": "assembled-count-six-targeted-left-correction-required",
       "nativeBase": [
         1774,
         887
@@ -87,7 +87,7 @@
       "pouchPreview": "art/work/qa/david-pouch-small.jpg",
       "directionChecks": {
         "left": {
-          "status": "pass",
+          "status": "superseded-count-failure",
           "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-36bfdc26-b4e0-442a-8c5a-18081f095c26.png",
           "sourcePath": "art/sources/directions/david-left.webp",
           "width": 1254,
@@ -96,7 +96,7 @@
           "encoding": "lossless WebP",
           "exactRgbaPixelMatch": true,
           "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
-          "visualQA": "Pass: same camera, David silhouette, staff, pouch shape, army line, sheep, rock layout and daylight. Exactly FIVE smooth stones are visible in the existing pouch: three in the rear row and two in front. Crisp cloth, leather, wood and natural ground texture; no added narrative objects."
+          "visualQA": "Close assembled crop revealed SIX visible stones, not five. The small preview was counted incorrectly. One targeted correction of the partially visible front-left stone is recorded next."
         },
         "front": {
           "status": "pass",
@@ -158,7 +158,11 @@
           "gitBlobSha": "d37fed539fad974d0aba942abf5c2bb6ea4b1ba4",
           "visualQA": "Pass: same two sandal feet, cropped legs and staff at upper left; existing large stones, ground shadows and dry grass retained. The nadir radial pinch is replaced by coherent uneven dry earth and small pebbles, with no central swirl or added limbs."
         }
-      }
+      },
+      "assemblyMethod": "Direct spherical assembly from six directions preserves the stone-count correction; native whole base is archived.",
+      "nativeBaseSource": "art/sources/david-panorama-native.webp",
+      "derivedBase": "art/sources/david-panorama.webp",
+      "assembledPouchPreview": "art/work/qa/david-assembled-pouch-small.jpg"
     }
   }
 }

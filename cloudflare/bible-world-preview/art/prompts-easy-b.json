@@ -161,7 +161,7 @@
       "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square LEFT view, a 104-degree perspective direction used in a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target. It is the left-facing 104-degree projection of the already created David and Goliath panorama; the 768-pixel JPEG is a compressed technical reference, not an invitation to redesign the scene.\nReconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail: crisp linen weave, supple leather, sling cords, wooden grain, natural rock pores, dry grass, distant shrubs and army equipment. Preserve camera, field of view, framing, perspective, every silhouette, object location and size, warm daylight, colours and outer-quarter border geometry so overlapping sphere directions still match. David remains the same unarmoured young shepherd standing at the right, holding the same vertical wooden staff and loose leather sling before his throw; keep his face, limbs, tunic, sandals and calm pose. Keep the existing sheep, creek bed, hillside army and all existing landscape where they are.\nONE REQUIRED COUNT CORRECTION: In David's existing open waist pouch show EXACTLY FIVE distinct smooth pale rounded creek stones, clearly countable: THREE in the rear row and TWO in the front row, no extra stone rims or hidden stone behind them. Remove only the excess stones currently in that pouch, keeping the pouch shape and position, belt, hand and surrounding cloth unchanged. Do not put a stone in his hand. Preserve the correct five-stone clue on the final view.\nOutside that precise pouch correction, change only fine texture. No crop, zoom, new people, new animals, changed armour, flying stone, fighting, injury, new architecture or modern objects. Sharp photographic deep focus; avoid waxy surfaces, painted smears, haze, sharpening halos, cartoon edges. Preserve square canvas with no text, watermark, frame or UI.",
       "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-left-reference.jpg",
       "source": "sources/directions/david-left.webp",
-      "status": "generated-inspected",
+      "status": "superseded-count-six",
       "parameters": {
         "referenced_image_paths": [
           "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-left-reference.jpg"
@@ -177,7 +177,7 @@
         "encoding": "lossless WebP",
         "exactRgbaPixelMatch": true,
         "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
-        "visualQA": "Pass: same camera, David silhouette, staff, pouch shape, army line, sheep, rock layout and daylight. Exactly FIVE smooth stones are visible in the existing pouch: three in the rear row and two in front. Crisp cloth, leather, wood and natural ground texture; no added narrative objects."
+        "visualQA": "Close assembled crop revealed SIX visible stones, not five. The small preview was counted incorrectly. One targeted correction of the partially visible front-left stone is recorded next."
       }
     },
     {
@@ -328,8 +328,8 @@
       "scene": "david",
       "kind": "new-native-whole-panorama",
       "prompt": "Use case: historical-scene.\nAsset type: an immersive 360-degree environment texture for a biblical exploration game.\nPrimary request: Create one continuous, photorealistic 2:1 equirectangular panorama (full 360 degrees horizontally and 180 degrees vertically), target native canvas 1774 by 887 pixels, of the Valley of Elah immediately BEFORE David throws his sling in 1 Samuel 17.\nCamera and composition: The viewer stands on the ground at human eye height, 1.6 metres, INSIDE the valley near young David, not on a hill or above the scene. True spherical equirectangular mapping: the horizon stays at the middle, upper edge is the zenith and lower edge the ground nadir, left and right edges join seamlessly. Keep the main narrative clues near the middle longitudes, away from the wrap and poles. No aerial, bird's-eye or drone view. The user should feel physically present among the landscape.\nScene and subjects: A young ancient Israelite shepherd David stands close by, about 2.5 metres in front of the viewer, slightly left of the central viewing direction. He wears a plain short woven tunic and leather sandals, with NO armour and NO helmet. He holds one shepherd's wooden staff and an unmistakable simple leather sling hanging loosely, at rest before the throw. His open shepherd's leather pouch at waist level visibly contains EXACTLY FIVE separate rounded smooth pale creek stones, each countable and unobscured; show no additional stone in his hand. David's face is calm and focused. Across the dry stony creek bed, at a much greater distance, stands the tall bronze-armoured Goliath with bronze helmet, scale armour, greaves, spear and sword still sheathed; his shield bearer is a separate man in front of him carrying the large shield. Two coherent army lines wait on opposite sides of the broad valley: Israelites on one slope and Philistines on the opposing slope. The nearby creek is dry, strewn with naturally smooth stones. Dry grass, ancient limestone rocks, low Judean hills and sparse shrubs surround the viewer in all directions.\nStyle: Natural cinematic historical photography, physically believable scale and anatomy, warm clear morning daylight, detailed woven cloth, leather, bronze, fine rock grains and dry grass. Sharp deep focus without painted smears or haze.\nConstraints: Peaceful tense pre-throw moment only; nobody attacking, nobody injured, no flying stone, no blood. Preserve the exact identifiable clues: unarmoured young David, sling, staff, FIVE visible stones in the pouch, distant armoured Goliath and his shield bearer, opposed army lines and dry creek. No modern objects, modern buildings, cross symbols, captions, letters, text, title, logos, watermark, frame, UI, or multiple panels. One seamless spherical environment, not a flat wide landscape.",
-      "status": "generated-inspected-count-correction-required",
-      "source": "sources/david-panorama.webp",
+      "status": "generated-inspected-archived-native-count-correction-required",
+      "source": "sources/david-panorama-native.webp",
       "requestedNativeSize": [
         1774,
         887
@@ -344,7 +344,24 @@
         "exactRgbaPixelMatch": true,
         "gitBlobSha": "9745220f8dbc741a6d08cc68e10d8d4a6f48f3a4",
         "bytes": 2305054
-      }
+      },
+      "derivedRuntimeBase": "sources/david-panorama.webp"
+    },
+    {
+      "scene": "david",
+      "kind": "derived-from-directions",
+      "source": "sources/david-panorama.webp",
+      "provenance": "sources/david-source.json",
+      "nativeDirections": [
+        1254,
+        1254
+      ],
+      "derivedBase": [
+        1774,
+        887
+      ],
+      "status": "assembled-awaiting-final-QA",
+      "note": "Direct spherical assembly preserves the exactly five stones established in the left enhancement; high-frequency residual blending with the native whole panorama would retain its extra stones."
     }
   ]
 }

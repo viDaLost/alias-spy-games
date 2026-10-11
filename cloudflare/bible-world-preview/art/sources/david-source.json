@@ -1,11 +1,16 @@
 {
-  "kind": "native-whole-panorama",
-  "generator": "Built-in ImageGen",
-  "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-d79aca88-c046-4ced-a3fc-4416f922d832.png",
-  "nativeWidth": 1774,
-  "nativeHeight": 887,
-  "sourceSeamBlend": 0.035,
-  "exactRgbaPixelMatch": true,
-  "gitBlobSha": "9745220f8dbc741a6d08cc68e10d8d4a6f48f3a4",
-  "bytes": 2305054
+  "kind": "derived-from-directions",
+  "sourceSeamBlend": 0,
+  "directions": [
+    "front",
+    "right",
+    "back",
+    "left",
+    "up",
+    "down"
+  ],
+  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content.",
+  "nativeBaseSource": "sources/david-panorama-native.webp",
+  "nativeBaseProvenance": "sources/david-native-source.json",
+  "assemblyReason": "Direct spherical assembly preserves the exactly five stones established in the left enhancement; high-frequency residual blending with the native whole panorama would retain its extra stones."
 }
