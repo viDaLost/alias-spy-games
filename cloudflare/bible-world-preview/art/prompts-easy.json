@@ -157,11 +157,24 @@
       "referencePng": "art/work/inputs/noah-up.png",
       "source": "art/sources/directions/noah-up.webp",
       "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the only EXACT edit target: a square 104-degree perspective direction extracted from the existing 360-degree biblical panorama of Noah and his family boarding the ark. Restore this SAME view at the largest native square resolution, 1254 x 1254, with maximum realistic photographic microdetail.\nKeep the exact camera direction, human eye-height position inside the event, square projection, framing, object positions, sizes, silhouettes, human and animal identities, poses, garments, counts, architectural geometry, lighting and natural colors. Keep all border geometry where neighboring spherical directions overlap. Do not crop, zoom, shift perspective, redesign, relocate, add or remove people, animals or objects. The complete scene is Genesis 7 BEFORE the flood: Noah, his wife, three grown sons and their wives total eight adults calmly boarding a huge plain timber ark on DRY earth with paired animals; preserve those clues wherever already visible. No children, rainbow, floodwater or future covenant symbols.\nEnhance only existing details: individual linen and wool fibers, natural faces and hands, beard hairs, sheep wool and animal coats, realistic hooves and feathers, hand-hewn wood grain and splits, rope fibers and knots, basket weave, individual dry earth grains and pebble fragments. Sharp photographic deep focus, coherent warm late-day light; no painterly smears, plastic skin, waxy surfaces, sharpening halos, artificial graphic outlines or cinematic blur.\nIn this UP view preserve the existing ark wall and entrance on the right, tree branches at the upper left, mountain edge at the top-left corner and natural warm cloudy sky. The camera points vertically upward from the same standing position. Repair the unnatural radial pinch/starburst in the central sky caused by the spherical pole: use natural irregular cloud layers, soft varied cloud edges and blue-grey sky with NO center spokes, swirl, tunnel, funnel, circular sunburst or radial texture. Keep the outer quarter and the architectural, tree and sky border geometry fixed. Do not add a sun, rainbow, birds, people or objects.\nPreserve the 1:1 square canvas. No text, letters, labels, watermark, UI, halo, graphic symbol, collage or frame.",
-      "status": "prepared",
+      "status": "generated-inspected-and-saved",
       "referenceWidth": 1280,
       "referenceHeight": 1280,
       "fieldOfView": 104,
-      "referenceEncoding": "JPEG quality90"
+      "referenceEncoding": "JPEG quality90",
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png",
+        "source": "art/sources/directions/noah-up.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1989210,
+        "encoding": "lossless WebP",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "gitBlobSha": "579a17a002c71ab00506f8da51e4d7f36158c8a4",
+        "visualQA": "Pass: original ark wall and entrance, tree canopy and mountain crop remain fixed. Central sky pinch replaced by natural irregular cloud gaps and layers; no radial spokes or added sun/rainbow. Timber and foliage detail restored.",
+        "resultStoreKey": "finish-easy-noah-up-result",
+        "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+      }
     },
     {
       "scene": "noah",

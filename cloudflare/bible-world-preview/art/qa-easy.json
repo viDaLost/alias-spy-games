@@ -58,6 +58,19 @@
           "visualQA": "Pass: exactly two foreground donkeys and two goats, same family members and basket, dry valley and sunset preserved. Restored coats, rope fibers, linen, wicker, gravel, foliage and mountain detail; no new figures or narrative symbols.",
           "resultStoreKey": "finish-easy-noah-left-result",
           "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-2c30b7cb-f2c9-4e5a-9a8e-5538c032e7cd.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "up": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png",
+          "source": "art/sources/directions/noah-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1989210,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "579a17a002c71ab00506f8da51e4d7f36158c8a4",
+          "visualQA": "Pass: original ark wall and entrance, tree canopy and mountain crop remain fixed. Central sky pinch replaced by natural irregular cloud gaps and layers; no radial spokes or added sun/rainbow. Timber and foliage detail restored.",
+          "resultStoreKey": "finish-easy-noah-up-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
         }
       },
       "status": "editing"
