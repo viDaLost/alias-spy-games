@@ -1,10 +1,10 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-11T05:18:53.862Z",
+  "updatedAt": "2026-10-11T05:19:59.593Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 12,
-  "directionCount": 11,
+  "sourceCount": 13,
+  "directionCount": 12,
   "sources": [
     {
       "key": "fleece-front",
@@ -149,6 +149,18 @@
       "pixelExactLossless": true,
       "sha256": "3f9d6ebf4bd3908f4e1c77a4007f6119bd33685c4c4fab2134df82e2b0cd3ee6",
       "bytes": 2465646
+    },
+    {
+      "key": "axe-down",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "down",
+      "file": "art/sources/directions/axe-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "6a1deddf4685557bded8944c625114f978f528834f789a0cb226483a77d9bdd4",
+      "bytes": 2281922
     }
   ],
   "scenes": [
