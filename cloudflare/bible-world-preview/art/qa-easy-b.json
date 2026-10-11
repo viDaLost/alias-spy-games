@@ -1,0 +1,81 @@
+{
+  "created": "2026-10-11",
+  "generator": "Built-in ImageGen only; lossless source WebP; deterministic spherical assembly",
+  "scenes": {
+    "daniel": {
+      "status": "pass",
+      "generation": "No new generation. Six exact retained native ImageGen directions reused.",
+      "directions": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down"
+      ],
+      "nativeDirectionSize": [
+        1254,
+        1254
+      ],
+      "baseSize": [
+        1774,
+        887
+      ],
+      "textureSize": [
+        4096,
+        2048
+      ],
+      "visualChecks": [
+        "Elderly Daniel praying peacefully",
+        "Four calm lions across the complete den",
+        "Daylight roof opening retained",
+        "Coherent stone floor and ceiling at spherical poles",
+        "No text, watermark, UI, modern objects or combat"
+      ],
+      "directionMosaic": "art/work/qa/daniel-mosaic-small.jpg",
+      "projectionMosaic": "art/work/qa/daniel-projection-mosaic-small.jpg",
+      "portraitChecks": "72-degree portrait projections inspected at front, right and back; eye-height inside the den; no visible rectangular joins in the assembled sphere.",
+      "poleChecks": "104-degree up and down projections retain coherent irregular stone and floor; no radial spokes or funnels.",
+      "sources": [
+        {
+          "path": "art/sources/daniel-panorama.webp",
+          "bytes": 2323848,
+          "gitBlobSha": "da3dded6edeb38e79402adc6ae78d9e6f5f7a726"
+        },
+        {
+          "path": "art/sources/directions/daniel-front.webp",
+          "bytes": 2187892,
+          "gitBlobSha": "a9aa2da2c092caf22ff8125afd8086cee59fa144"
+        },
+        {
+          "path": "art/sources/directions/daniel-right.webp",
+          "bytes": 2327320,
+          "gitBlobSha": "9d11487efe0a30e604173741c4b3b057b17fdc92"
+        },
+        {
+          "path": "art/sources/directions/daniel-back.webp",
+          "bytes": 2335664,
+          "gitBlobSha": "31dadf44ad50d3d55f06163a78809bd4e4660c93"
+        },
+        {
+          "path": "art/sources/directions/daniel-left.webp",
+          "bytes": 2284364,
+          "gitBlobSha": "ce8b39c0d87f9cedbd208f5033d7ecc4d43c2bda"
+        },
+        {
+          "path": "art/sources/directions/daniel-up.webp",
+          "bytes": 2226232,
+          "gitBlobSha": "45af25d27c8a8988aa002eef49a8b154e4007e46"
+        },
+        {
+          "path": "art/sources/directions/daniel-down.webp",
+          "bytes": 2414594,
+          "gitBlobSha": "adb9721d5e6b406c559169eb491a6d7b4dd6665a"
+        }
+      ]
+    },
+    "david": {
+      "status": "source-missing-new-generation-required"
+    }
+  }
+}

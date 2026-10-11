@@ -1,0 +1,171 @@
+{
+  "format": "generative-direction-enhancement",
+  "created": "2026-10-10",
+  "generator": "Built-in ImageGen, local reference edits",
+  "output": {
+    "width": 4096,
+    "height": 2048,
+    "encoding": "lossless WebP"
+  },
+  "reference": {
+    "width": 1280,
+    "height": 1280,
+    "fieldOfView": 104,
+    "basePanoramas": {
+      "width": 1774,
+      "height": 887
+    }
+  },
+  "generatedDirections": {
+    "expectedWidth": 1254,
+    "expectedHeight": 1254
+  },
+  "recovery": {
+    "method": "Exact native lossless WebP git blob SHA matching against levels-assets-upload.json",
+    "originalPromptAvailability": "The original David and Daniel panorama prompts and six David direction prompts did not survive the prior environment cleanup. No exact prompt text is invented for those recovered images.",
+    "davidSceneConstraints": "Eye-level unarmoured David with sling, staff and pouch containing five stones; bronze-armoured Goliath; no active combat.",
+    "danielSceneConstraints": "Calm elderly Daniel praying in an ancient stone den with four calm lions and daylight entering the roof opening.",
+    "danielAssembly": "Six exact retained directions assembled using derive-base; derived 1774x887 base records its source and is not a new whole-scene generation."
+  },
+  "directions": [
+    {
+      "scene": "daniel",
+      "direction": "front",
+      "source": "sources/directions/daniel-front.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-front.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this FRONT view, keep Daniel at the left in the same humble robe and shawl, with the same face, gray beard, upright prayer posture and clasped hands; keep the reclining male lion to the lower right in exactly its original calm pose and location. Improve the existing face, hands, cloth and fur details without changing the pose, gaze, body anatomy, den opening or rocks. No additional people or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-front.png",
+        "sourcePath": "sources/directions/daniel-front.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2187892,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "a9aa2da2c092caf22ff8125afd8086cee59fa144",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same Daniel prayer pose at left, same resting male lion and den rocks; natural detailed fur, cloth, hands and stone; no new scene objects."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "right",
+      "source": "sources/directions/daniel-right.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-right.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this RIGHT view, keep the single visible lioness in exactly the original calm pose, location, size and gaze at the lower right, with the original lit stone ledges and den wall. Enhance only existing lioness fur, whiskers, facial details, rock texture, dust and straw. Do not add Daniel or any new animal to this view. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-right.png",
+        "sourcePath": "sources/directions/daniel-right.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2327320,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "9d11487efe0a30e604173741c4b3b057b17fdc92",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same calm single lioness at lower right and same rock wall geometry; enhanced natural fur, whiskers and mineral texture; no new objects."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "back",
+      "source": "sources/directions/daniel-back.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-back.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this BACK view, keep the large cropped resting male lion on the right and the reclining lioness farther away on the left in exactly their original calm poses, sizes and locations. Keep their visible paws and all rock ledges in place. Enhance existing fur, whiskers, eyes, paws, stone grains and straw without changing the animal count or adding objects. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-back.png",
+        "sourcePath": "sources/directions/daniel-back.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2335664,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "31dadf44ad50d3d55f06163a78809bd4e4660c93",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same cropped close male lion at right and distant resting lioness at left; paws, rock ledges and animal count retained with enhanced texture."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "left",
+      "source": "sources/directions/daniel-left.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-left.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this LEFT view, keep the close calm resting male lion on the left with the same face, gaze, mane, paws and crop; retain the existing cropped edge of Daniel's robe and body at the right border. Keep stone ledges, straw and dark cavities fixed. Enhance fine fur, whiskers, paw details, cloth weave and rock texture without adding objects or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-left.png",
+        "sourcePath": "sources/directions/daniel-left.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2284364,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "ce8b39c0d87f9cedbd208f5033d7ecc4d43c2bda",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same close resting male lion at left and cropped Daniel robe at right; original paws, gaze and ledges retained; no new objects."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "up",
+      "source": "sources/directions/daniel-up.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-up.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this UP view, preserve the original rough stone ceiling, the daylight opening and its blue sky at the lower center, the existing rim plants, lighting and cropped portion of Daniel at the lower left. Repair only the unnatural radial pinch/starburst at the center caused by the spherical pole: replace it with natural coherent irregular stone texture and cracks matching the surrounding ceiling, with no central swirl, spokes or funnel. Keep the outer quarter, roof-opening silhouette and all visible figure geometry fixed. No new opening, sun, architecture, people or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-up.png",
+        "sourcePath": "sources/directions/daniel-up.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2226232,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "45af25d27c8a8988aa002eef49a8b154e4007e46",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: coherent irregular stone texture replaces the center pole pinch; original daylight opening, blue sky, rim plants, cropped Daniel and border geometry retained."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "down",
+      "source": "sources/directions/daniel-down.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-down.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this DOWN view, preserve the existing stone-and-earth den floor with dry straw, the edge of Daniel's robe and sandal feet at upper left, the calm lion's existing forepaws at right, and the cropped lion fur at the bottom border. Repair only the unnatural radial starburst at the center caused by the spherical pole: replace it with natural coherent uneven rock, dust and sparse straw, with no circular swirl, center spokes or funnel. Keep the outer quarter and every existing figure and paw fixed. Add no objects, feet, paws or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-down.png",
+        "sourcePath": "sources/directions/daniel-down.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2414594,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "adb9721d5e6b406c559169eb491a6d7b4dd6665a",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: natural rock, dust and straw replace the center starburst; original sandals, robe, lion forepaws and cropped fur retained; no added paws or objects."
+      }
+    }
+  ],
+  "updated": "2026-10-11",
+  "panoramas": [
+    {
+      "scene": "daniel",
+      "kind": "derived-from-directions",
+      "source": "sources/daniel-panorama.webp",
+      "provenance": "sources/daniel-source.json",
+      "nativeDirections": [
+        1254,
+        1254
+      ],
+      "derivedBase": [
+        1774,
+        887
+      ],
+      "exactPromptAvailable": false,
+      "status": "assembled-inspected"
+    }
+  ]
+}
