@@ -75,7 +75,16 @@
       ]
     },
     "david": {
-      "status": "source-missing-new-generation-required"
+      "status": "base-scene-pass-pouch-count-correction-required",
+      "nativeBase": [
+        1774,
+        887
+      ],
+      "exactRgbaPixelMatch": true,
+      "baseChecks": "Pass: eye-height inside dry valley; unarmoured young David with sling and staff; far Goliath and separate shield bearer; armies on opposed hills; no combat or modern objects.",
+      "basePouchCheck": "Close inspection reveals more than five stones in native base. Correct to exactly five in the bounded left-direction edit, then verify the assembled result.",
+      "basePreview": "art/work/qa/david-base-small.jpg",
+      "pouchPreview": "art/work/qa/david-pouch-small.jpg"
     }
   }
 }
