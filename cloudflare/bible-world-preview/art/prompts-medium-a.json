@@ -67,6 +67,28 @@
           "bytes": 2226324,
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-10T15:06:13.950Z"
+        },
+        {
+          "id": "carmel",
+          "stage": "front",
+          "references": [
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/carmel-left.jpg",
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/carmel-down.jpg"
+          ],
+          "referenceInspected": true,
+          "recovery": "Missing front direction reconstructed to match four retained approved direction assets.",
+          "prompt": "Use case: historical-scene\nAsset type: missing FRONT camera view in a six-direction 360-degree Bible environment. Return one highest native resolution SQUARE image, a 104-degree rectilinear view, with fine cinematic photographic detail.\nInput image 1: supporting ADJACENT LEFT-direction view of the existing world, showing Elijah and crowd. Input image 2: supporting DOWN-direction view from the same fixed camera, showing the wet trench, rocky ground and clay vessels. These are references for the same world, not the requested camera direction. Do not repeat their camera views.\nPrimary request: complete the missing FRONT direction by rotating the eye-level camera 90 degrees RIGHT from image 1, with NO camera translation, no change in time, style or scale. Eye height 1.65 metres on the rocky clearing of Mount Carmel, 1 Kings 18. Elijah from image 1 is immediately LEFT of the front direction and appears only partially cropped at the extreme LEFT edge; keep his exact dark-grey beard, brown patterned cloak and cream tunic, arms raised, no second Elijah. The altar is close and central, built of exactly TWELVE large natural unhewn stones, six in each of two courses, distinct joins and wet grain, low broad construction, damp wood on top. Fire from God has JUST reached the altar; a golden-white natural flame rises vertically from wet wood into the daytime sky, offering entirely hidden inside flame, no visible animal. The altar and wood remain soaked at this first instant. A continuous shallow water-filled circular trench surrounds the altar, plain water clearly visible with warm reflections and wet soil, not a stone fountain. The water and wet rocks continue the exact materials in image 2. FOUR dedicated rough hand-thrown earthenware water jars stand around the altar; keep positions consistent with any reference vessel in an overlapping edge, one may be tipped with spilled water. Behind the altar, the same kneeling and bowing ancient Israelite crowd in humble linen and wool garments, rocky dry upland slopes, shrubs, a distant blue Mediterranean coastal glimpse. Match the existing blue daytime sky, scattered clouds, warm flame reflections, period faces and worn sandals.\nContinuity constraints: same fixed viewpoint and 104-degree perspective, horizon around mid-height, preserve scale and appearance of all overlapping people and props. Continue the reference edges naturally; show altar, trench and water jars as the front story clues, no unrelated new architecture. Maximum microscopic detail: wet limestone grain, clay pits, rope fibres, cloth weave, skin, clear water ripples and wood cracks. Natural photographic realism.\nAvoid: extra Elijah, additional near-altar water jars, dozens of little altar stones, lamb or sheep, visible bull, blood or slaughter, modern buckets, metal railings, fountain, church, cross, dome, fantasy temple, modern objects, text, labels, UI, watermark, frame, collage, circular/fisheye projection.",
+          "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-6a0c5064-15b5-4ab7-96ff-53126c48af3f.png",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/carmel-front.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-6a0c5064-15b5-4ab7-96ff-53126c48af3f.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "width": 1254,
+          "height": 1254,
+          "checkpointAt": "2026-10-11T05:09:43.633Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/carmel-front.webp",
+          "sha256": "07ecf593a5ee5caa2162f7c47c9c6b28c1868cd050253d185e4b76600317b094",
+          "bytes": 2311674,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-11T05:09:45.830Z"
         }
       ]
     },
