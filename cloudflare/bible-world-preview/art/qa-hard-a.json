@@ -1,10 +1,10 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-11T05:17:43.873Z",
+  "updatedAt": "2026-10-11T05:18:53.862Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 11,
-  "directionCount": 10,
+  "sourceCount": 12,
+  "directionCount": 11,
   "sources": [
     {
       "key": "fleece-front",
@@ -137,6 +137,18 @@
       "pixelExactLossless": true,
       "sha256": "0266dd38e7d79e572ea41c930aee68df5e9f6df266ff8590f6ba4b256460e532",
       "bytes": 2391618
+    },
+    {
+      "key": "axe-up",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "up",
+      "file": "art/sources/directions/axe-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "3f9d6ebf4bd3908f4e1c77a4007f6119bd33685c4c4fab2134df82e2b0cd3ee6",
+      "bytes": 2465646
     }
   ],
   "scenes": [
