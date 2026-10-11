@@ -86,7 +86,35 @@
           "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-a0473dba-7e29-45a2-9f18-4935a4fe6751.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
         }
       },
-      "status": "editing"
+      "status": "complete",
+      "assembled": {
+        "file": "public/assets/noah-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "bytes": 9005500,
+        "encoding": "lossless WebP",
+        "losslessChunkVerified": true,
+        "gitBlobSha": "48eab689f6e1bf7bf00fbaf9d4ecf724077b8e07",
+        "wrapEdgeMeanAbsRgbDifference": 5.046875,
+        "wrapEdgeMaxChannelDifference": 77,
+        "qaViews": [
+          "art/sources/qa/noah-final-directions.jpg",
+          "art/sources/qa/noah-compare.jpg"
+        ]
+      },
+      "finalVisualQA": {
+        "story": "Genesis 7 dry pre-flood boarding",
+        "camera": "Human eye height within the boarding activity",
+        "adultsVisible": 8,
+        "pairedAnimalClues": "Two donkeys, two goats, two foreground sheep, two chickens; cattle entering ark.",
+        "ark": "Enclosed rough timber vessel, open entry and boarding ramp; no sail or mast.",
+        "noSpoilers": "No rainbow, floodwater, text, UI, halos or future covenant symbols.",
+        "seams": "Pass: assembled back/seam perspective has continuous fence, figures, ark wall and landscape, with no hard wrap line or duplicated border silhouettes.",
+        "poles": "Pass: straight-up clouds and straight-down earth are coherent and irregular, with no central starburst or radial convergence.",
+        "composition": "Original native base positions and identities retained; detail enhanced through six overlapping directions.",
+        "castNote": "Eight adults retained exactly from the base. Family roles cannot be established from the image; the base appearance is five male-presenting and three female-presenting adults.",
+        "effectiveResolution": "4096×2048 assembled lossless texture; base1774×887 and six native1254×1254 ImageGen edits, not a single native4K generation."
+      }
     },
     "red-sea": {
       "base": {
