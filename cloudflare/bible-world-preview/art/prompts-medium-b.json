@@ -232,7 +232,34 @@
       "encoder": "sharp@0.35.4"
     }
   ],
-  "savedAt": "2026-10-11T05:17:58.046Z",
-  "status": "generating-directions",
-  "remoteBranch": "feat/bible-world-assets-medium-b"
+  "savedAt": "2026-10-11T05:20:46.006Z",
+  "status": "completed",
+  "remoteBranch": "feat/bible-world-assets-medium-b",
+  "build": {
+    "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/public/assets/philip-360-v1-4k.webp",
+    "width": 4096,
+    "height": 2048,
+    "channels": 3,
+    "bytes": 9404450,
+    "sha256": "f6b4c9c59cfbf24d2c28c187a9ba86b3fe396e49d48c9cbcbc3013d97030e9a0",
+    "lossless": true,
+    "edgeSeamMeanAbsoluteDelta": 7.593587239583333,
+    "adjacentColumnMeanAbsoluteDelta": 7.497233072916667,
+    "qaPaths": [
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-panorama-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-compare-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-final-left-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-final-up-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-final-down-thumb.jpg"
+    ],
+    "builtAt": "2026-10-11T05:19:52.401Z",
+    "encoding": "lossless WebP",
+    "buildCommand": "PANORAMA_WORK_DIR=/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium node art/build-4k.mjs build philip"
+  },
+  "qa": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/qa-medium-b.json",
+  "sourceCheckpoint": {
+    "branch": "feat/bible-world-assets-medium-b",
+    "head": "1dca63b64551afcb76d23f5ce3b4978539bcbc76",
+    "tree": "d909e359e08126d42c77c258881a1639d5b5ba95"
+  }
 }
