@@ -218,11 +218,21 @@
         1254
       ],
       "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-down.webp",
-      "status": "ready",
-      "savedAt": "2026-10-11T05:09:51.747Z"
+      "status": "saved",
+      "savedAt": "2026-10-11T05:17:58.046Z",
+      "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-136ae258-bb14-4079-bb1a-eb3681e05094.png",
+      "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-136ae258-bb14-4079-bb1a-eb3681e05094.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "createdAt": "2026-10-11T05:17:56.160Z",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2296844,
+      "sha256": "246b765c1ec53cb61b6bc0f68f7c62bbb1a72628c7b23bc1c1929087197878f4",
+      "lossless": true,
+      "pixelExactLossless": true,
+      "encoder": "sharp@0.35.4"
     }
   ],
-  "savedAt": "2026-10-11T05:16:57.114Z",
+  "savedAt": "2026-10-11T05:17:58.046Z",
   "status": "generating-directions",
   "remoteBranch": "feat/bible-world-assets-medium-b"
 }
