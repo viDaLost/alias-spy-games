@@ -1,0 +1,178 @@
+{
+  "owner": "medium-b",
+  "scene": "philip",
+  "base": {
+    "id": "philip",
+    "stage": "base",
+    "prompt": "Use case: historical-scene\nAsset type: spherical panorama texture for a Bible exploration game\nPrimary request: Acts 8, Philip with the Ethiopian court official on the desert road from Jerusalem toward Gaza. Generate one extraordinarily detailed cinematic photorealistic historically grounded full 360 by 180 degree environment as a true 2:1 equirectangular spherical panorama, at the largest native panoramic resolution available.\nCamera: eye level 1.65 metres, standing on dusty ground right next to the chariot and the two men on the road. The viewer is INSIDE the roadside encounter, with clear near story clues distributed around the sphere. Continuous left and right edges, accurate equirectangular spherical distortion and wraparound; upper half sky, lower half ground. No black bands. The sphere's poles are natural plain sky and continuous ground, no artificial radial starburst or pinwheel.\nEssential scene: nearby on an ancient wooden travelling chariot, or standing just beside its open side, a dignified dark-skinned Ethiopian court official wears ancient fine woven court robes, cream linen with muted rich sash and restrained gold trim, no crown. He holds a partly unfurled scroll of Isaiah in both hands, parchment and wooden rollers clearly visible. Its small faded script is indistinct and unreadable, not a title or legible text. Philip, an ordinary first-century Jewish man with a dark beard, plain undyed linen tunic and brown wool cloak, stands beside him explaining the scroll with a natural gesture. Both men are close enough to see realistic faces and the scroll; they look at one another or the scroll. The modest historically plausible chariot has two large weathered wooden wheels, simple curved wooden rail, leather bindings and an open platform with a small cloth canopy; it is drawn by a pair of ordinary horses with ancient simple harness, attended by one modestly dressed driver. A small real freshwater pool or spring lies close to the road, unmistakably visible with reeds, damp edges and an accessible shallow bank, appropriate to the official noticing water nearby and the baptism context. Dry rocky Judean southern landscape, sandy road continuing toward low hills in both directions, sparse grasses, scrub, a few distant travelers and natural sandstone outcrops. A few humble bedrolls and travel jars by the chariot are period authentic. Distribute these clues around the continuous environment: nearby men and scroll, chariot and horses, water and reeds, and the continuing road and distant travelers. Do not repeat the men as duplicate scenes.\nStyle: maximum intricate cinematic photographic detail, weathered woodgrain, leather harness, cloth fibres and embroidery, parchment texture, dust on sandals, realistic Ethiopian complexion and Philip's weathered skin. Warm natural afternoon light, believable first-century Judean roadside environment, immersive ground-level spherical perspective.\nAvoid: Egyptian pyramids, Egyptian Pharaoh headdresses, pharaonic robes, giant hypothetical temples, modern church, domed palace, palace courtyard, modern carriage, rubber tires, modern road, fantasy armor, magical beams, crowns, crosses, modern suits, readable letters or labels, giant books, UI, captions, watermark, collage or split image. No graphic violence.",
+    "tool": "built-in image_gen",
+    "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/philip-panorama.webp",
+    "status": "saved",
+    "savedAt": "2026-10-10T15:06:41.026Z",
+    "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-03abecb5-3eb2-4a46-b8fd-aacd6e495936.png",
+    "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-03abecb5-3eb2-4a46-b8fd-aacd6e495936.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+    "pngCheckpoint": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/philip-panorama.png",
+    "width": 1774,
+    "height": 887,
+    "bytes": 2396976,
+    "sha256": "8b33579ca14b93d89816dfcca3b52a44b4d54482e559b8e45718fbe1f2e49625",
+    "lossless": true,
+    "pixelExactLossless": true,
+    "encoder": "sharp@0.35.4"
+  },
+  "faces": [
+    {
+      "id": "philip",
+      "stage": "front",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-front-reference-768.jpg",
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-front.png",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear view for a 4K spherical Bible exploration environment\nInput image: Image 1 is the EDIT TARGET, the front view extracted from the saved Philip panorama, compressed to 768 square for reference.\nPrimary request: Improve microscopic historical material detail and clean photographic clarity. Return maximum native SQUARE resolution, 1254 by 1254 pixels, with identical full square framing.\nSpecific task: Preserve the Ethiopian official's dark complexion, short hair and beard, fine cream robes with muted red-and-gold sash, seated chariot position, both hands and the unfolded parchment scroll. Preserve Philip's curly dark hair and beard, plain ancient tunic, brown cloak, explaining hand gesture and their gaze toward one another. Refine microscopic skin, cloth weave, embroidery, woodgrain and parchment texture. Scroll markings must remain faded, indistinct and UNREADABLE.\nInvariants: Keep exact camera, perspective, field of view, framing, lighting direction, broad colors, every person's identity, pose and face, every object's count and placement, composition and outer-edge silhouettes. This is the Acts 8 desert-road encounter: dark-skinned Ethiopian official, plain-clothed Philip, wooden chariot, unreadable Isaiah scroll and nearby baptism water. Do not reimagine or add a second scene. Change only fine texture, not broad color, poses or silhouettes.\nAvoid: new people, props, architecture, crown, pyramid, magical light, readable text, modern objects, labels, UI, watermark, border, collage, sharpening halos.",
+      "useCase": "precise-object-edit",
+      "tool": "built-in image_gen",
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-front.webp",
+      "status": "ready",
+      "savedAt": "2026-10-11T05:09:51.747Z"
+    },
+    {
+      "id": "philip",
+      "stage": "right",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-right-reference-768.jpg",
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-right.png",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear view for a 4K spherical Bible exploration environment\nInput image: Image 1 is the EDIT TARGET, the right view extracted from the saved Philip panorama, compressed to 768 square for reference.\nPrimary request: Improve microscopic historical material detail and clean photographic clarity. Return maximum native SQUARE resolution, 1254 by 1254 pixels, with identical full square framing.\nSpecific task: Preserve the exact freshwater pool, ripples, reeds, rocky accessible bank and dry Judean valley under the natural afternoon sun. Preserve the partial edge of Philip at the left boundary and every tree, shrub and rock in its original position. Enhance microscopic water reflections, leaves, reed fibers, stone and dust texture only.\nInvariants: Keep exact camera, perspective, field of view, framing, lighting direction, broad colors, every person's identity, pose and face, every object's count and placement, composition and outer-edge silhouettes. This is the Acts 8 desert-road encounter: dark-skinned Ethiopian official, plain-clothed Philip, wooden chariot, unreadable Isaiah scroll and nearby baptism water. Do not reimagine or add a second scene. Change only fine texture, not broad color, poses or silhouettes.\nAvoid: new people, props, architecture, crown, pyramid, magical light, readable text, modern objects, labels, UI, watermark, border, collage, sharpening halos.",
+      "useCase": "precise-object-edit",
+      "tool": "built-in image_gen",
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-right.webp",
+      "status": "ready",
+      "savedAt": "2026-10-11T05:09:51.747Z"
+    },
+    {
+      "id": "philip",
+      "stage": "back",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-back-reference-768.jpg",
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-back.png",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear view for a 4K spherical Bible exploration environment\nInput image: Image 1 is the EDIT TARGET, the back view extracted from the saved Philip panorama, compressed to 768 square for reference.\nPrimary request: Improve microscopic historical material detail and clean photographic clarity. Return maximum native SQUARE resolution, 1254 by 1254 pixels, with identical full square framing.\nSpecific task: Preserve the road, distant travelers and their animals at center, the pair of chariot horses and harness on the right edge, freshwater pool on the left, existing tree branches and dry rocky hills. Preserve their counts, relative positions, silhouettes and perspective. Enhance fine stone, leaf, water, animal coat and leather texture only.\nInvariants: Keep exact camera, perspective, field of view, framing, lighting direction, broad colors, every person's identity, pose and face, every object's count and placement, composition and outer-edge silhouettes. This is the Acts 8 desert-road encounter: dark-skinned Ethiopian official, plain-clothed Philip, wooden chariot, unreadable Isaiah scroll and nearby baptism water. Do not reimagine or add a second scene. Change only fine texture, not broad color, poses or silhouettes.\nAvoid: new people, props, architecture, crown, pyramid, magical light, readable text, modern objects, labels, UI, watermark, border, collage, sharpening halos.",
+      "useCase": "precise-object-edit",
+      "tool": "built-in image_gen",
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-back.webp",
+      "status": "ready",
+      "savedAt": "2026-10-11T05:09:51.747Z"
+    },
+    {
+      "id": "philip",
+      "stage": "left",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-left-reference-768.jpg",
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-left.png",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear view for a 4K spherical Bible exploration environment\nInput image: Image 1 is the EDIT TARGET, the left view extracted from the saved Philip panorama, compressed to 768 square for reference.\nPrimary request: Improve microscopic historical material detail and clean photographic clarity. Return maximum native SQUARE resolution, 1254 by 1254 pixels, with identical full square framing.\nSpecific task: Preserve the driver in his plain ancient robe and head cloth, his seated position and reins, two horses with simple ancient harness, the large weathered wooden chariot wheel, rails, canopy posts and partial cream robe at the right edge. Enhance microscopic woodgrain, leather, woven cloth and animal coat texture only.\nInvariants: Keep exact camera, perspective, field of view, framing, lighting direction, broad colors, every person's identity, pose and face, every object's count and placement, composition and outer-edge silhouettes. This is the Acts 8 desert-road encounter: dark-skinned Ethiopian official, plain-clothed Philip, wooden chariot, unreadable Isaiah scroll and nearby baptism water. Do not reimagine or add a second scene. Change only fine texture, not broad color, poses or silhouettes.\nAvoid: new people, props, architecture, crown, pyramid, magical light, readable text, modern objects, labels, UI, watermark, border, collage, sharpening halos.",
+      "useCase": "precise-object-edit",
+      "tool": "built-in image_gen",
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-left.webp",
+      "status": "ready",
+      "savedAt": "2026-10-11T05:09:51.747Z"
+    },
+    {
+      "id": "philip",
+      "stage": "up",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-up-reference-768.jpg",
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-up.png",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear view for a 4K spherical Bible exploration environment\nInput image: Image 1 is the EDIT TARGET, the up view extracted from the saved Philip panorama, compressed to 768 square for reference.\nPrimary request: Repair only the unnatural pole projection artifact and improve microscopic historical material detail. Return maximum native SQUARE resolution, 1254 by 1254 pixels, with identical full square framing.\nSpecific task: Repair only the artificial central radial/pinwheel cloud starburst into natural irregular diffuse white clouds in a blue daytime sky. Keep the existing canopy and poles at lower-left, partial men's heads at the bottom edge, driver at left edge, tree branches and rocky hill edge at top, and natural sun at right edge in exactly their current positions. Do not create an object, beam, symbol, bird or structure at the center.\nInvariants: Keep exact camera, perspective, field of view, framing, lighting direction, broad colors, every person's identity, pose and face, every object's count and placement, composition and outer-edge silhouettes. This is the Acts 8 desert-road encounter: dark-skinned Ethiopian official, plain-clothed Philip, wooden chariot, unreadable Isaiah scroll and nearby baptism water. Do not reimagine or add a second scene. Change only unnatural central pole distortion and microscopic texture.\nAvoid: new people, props, architecture, crown, pyramid, magical light, readable text, modern objects, labels, UI, watermark, border, collage, sharpening halos.",
+      "useCase": "precise-object-edit",
+      "tool": "built-in image_gen",
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-up.webp",
+      "status": "ready",
+      "savedAt": "2026-10-11T05:09:51.747Z"
+    },
+    {
+      "id": "philip",
+      "stage": "down",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-down-reference-768.jpg",
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-down.png",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear view for a 4K spherical Bible exploration environment\nInput image: Image 1 is the EDIT TARGET, the down view extracted from the saved Philip panorama, compressed to 768 square for reference.\nPrimary request: Repair only the unnatural pole projection artifact and improve microscopic historical material detail. Return maximum native SQUARE resolution, 1254 by 1254 pixels, with identical full square framing.\nSpecific task: Repair only the artificial central radial/pinwheel ground starburst into continuous naturally scattered dust, gravel and stones matching the surrounding road surface. Keep the chariot wheel and wooden rails at left, travel jar, rolled woven cloth and leather bag near upper-left, the men's robe hems and sandals along the top, and reeds and water at lower-right in their existing positions. No new object or large central rock.\nInvariants: Keep exact camera, perspective, field of view, framing, lighting direction, broad colors, every person's identity, pose and face, every object's count and placement, composition and outer-edge silhouettes. This is the Acts 8 desert-road encounter: dark-skinned Ethiopian official, plain-clothed Philip, wooden chariot, unreadable Isaiah scroll and nearby baptism water. Do not reimagine or add a second scene. Change only unnatural central pole distortion and microscopic texture.\nAvoid: new people, props, architecture, crown, pyramid, magical light, readable text, modern objects, labels, UI, watermark, border, collage, sharpening halos.",
+      "useCase": "precise-object-edit",
+      "tool": "built-in image_gen",
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-down.webp",
+      "status": "ready",
+      "savedAt": "2026-10-11T05:09:51.747Z"
+    }
+  ],
+  "savedAt": "2026-10-11T05:09:52.083Z",
+  "status": "generating-directions",
+  "remoteBranch": "feat/bible-world-assets-medium-b"
+}
