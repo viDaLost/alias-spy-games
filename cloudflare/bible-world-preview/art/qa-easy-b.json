@@ -121,6 +121,18 @@
           "exactRgbaPixelMatch": true,
           "gitBlobSha": "23a7ef8dc8fd9b64fbcbcd611065b1da2af0c680",
           "visualQA": "Pass: distant tall Goliath remains on the left with bronze armour, helmet, greaves and upright spear; separate shield bearer in front/right retains the round shield; army line and terrain match the reference. Fine bronze, rock and grass detail enhanced, peaceful stationary poses and borders retained."
+        },
+        "back": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b88ec042-55d0-4098-bbd3-f6977504030b.png",
+          "sourcePath": "art/sources/directions/david-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2657474,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "3c7a5f347e9eed38b18dfe8ac6f3fdde494f229e",
+          "visualQA": "Pass: same army continuation, ridges, central tree, shrubs, three visible sheep and creek terrain retained. Rock pores, dry grass, wool, foliage and soldiers are clearer; no new subjects or modern objects."
         }
       }
     }

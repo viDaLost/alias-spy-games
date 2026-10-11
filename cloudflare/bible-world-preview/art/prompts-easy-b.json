@@ -229,6 +229,31 @@
         "gitBlobSha": "23a7ef8dc8fd9b64fbcbcd611065b1da2af0c680",
         "visualQA": "Pass: distant tall Goliath remains on the left with bronze armour, helmet, greaves and upright spear; separate shield bearer in front/right retains the round shield; army line and terrain match the reference. Fine bronze, rock and grass detail enhanced, peaceful stationary poses and borders retained."
       }
+    },
+    {
+      "scene": "david",
+      "direction": "back",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square BACK view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 view at native 1254 by 1254 with genuinely new fine photographic detail. Preserve the camera direction, field of view, framing, perspective, natural colours, warm clear daylight, every object position, size and silhouette, and the outer-quarter border geometry so adjacent sphere views overlap coherently.\nThis is the rear direction behind the eye-height player inside the Valley of Elah before David's throw. Keep every existing hillside, visible opposed-army continuation, ancient limestone boulder, sparse tree, bush, dry grass, sheep and stony dry creek bed exactly where they appear. Restore crisp natural rock grains and pores, dry grass filaments, leaves and bark, sheep wool where already present, distant cloth and army equipment, and fine natural cloud texture. Maintain plausible human scale and deep focus from the nearby stones to distant hills.\nChange only fine texture. Do not crop, zoom, shift perspective, flatten or alter ridges, add or remove soldiers or sheep, invent camps or architecture, add David or Goliath if not in the target, or introduce modern objects or new narrative clues. No active fight, injury, flying stone or blood. Sharp photographic realism without waxy surfaces, painted smears, haze, sharpening halos or graphic outlines. Preserve square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-back-reference.jpg",
+      "source": "sources/directions/david-back.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-back-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b88ec042-55d0-4098-bbd3-f6977504030b.png",
+        "sourcePath": "art/sources/directions/david-back.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2657474,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "3c7a5f347e9eed38b18dfe8ac6f3fdde494f229e",
+        "visualQA": "Pass: same army continuation, ridges, central tree, shrubs, three visible sheep and creek terrain retained. Rock pores, dry grass, wool, foliage and soldiers are clearer; no new subjects or modern objects."
+      }
     }
   ],
   "updated": "2026-10-11",
