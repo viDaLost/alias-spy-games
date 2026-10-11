@@ -1,0 +1,21 @@
+{
+  "created": "2026-10-11",
+  "scenes": {
+    "noah": {
+      "base": {
+        "nativeWidth": 1774,
+        "nativeHeight": 887
+      },
+      "directions": {},
+      "status": "editing"
+    },
+    "red-sea": {
+      "base": {
+        "nativeWidth": 1774,
+        "nativeHeight": 887
+      },
+      "directions": {},
+      "status": "waiting"
+    }
+  }
+}
