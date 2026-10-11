@@ -137,6 +137,25 @@
       "encoding": "lossless WebP",
       "sharpVersion": "0.35.4",
       "pixelExactLossless": true
+    },
+    {
+      "key": "axe-base",
+      "scene": "axe",
+      "stage": "base",
+      "destination": "art/sources/axe-panorama.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:11:16.053Z",
+      "prompt": "Use case: historical-scene\nAsset type: immersive Bible event panorama texture for a 360-degree viewer.\nPrimary request: 2 Kings 6:1–7, Elisha makes a borrowed IRON AXE HEAD float on the Jordan while the sons of the prophets cut timber on the bank. Highest photorealistic fine detail with authentic early Iron Age ancient Israel clothes, hand tools and landscape.\nProjection: TRUE 2:1 equirectangular 360x180-degree sphere texture, camera at eye level INSIDE one continuous riverbank event. Natural sky and sparse willow canopy above; nearby shallow river water and underwater gravel below; banks, reeds, trees and Jordan valley hills surround the camera. Matching continuous left/right edges. No miniature planet, collage or separate panels.\nCRUCIAL FOREGROUND CLUE: a single dark forged IRON AXE HEAD floats ALONE on the water, with absolutely NO wooden handle or shaft attached. Make it large, close, unobstructed and easy to recognize in the LOWER FRONT foreground, slightly right of straight ahead (roughly panorama u=0.55, v=0.70). Show a worn iron blade, clear curved cutting edge and a rectangular OPEN EMPTY SOCKET visibly above the water, with gentle circular ripples. The entire axe head rests only on water. No wood beneath it, no raft, log, branch, rope or person supporting it. A SEPARATE short freshly cut piece of natural wood floats nearby with visible WATER GAP between it and the iron. Never attach the iron to that wood.\nOne older bearded Elisha stands in the close LEFT midground wearing rough earth-coloured robes and a simple cloak, extending one hand calmly toward the iron. Beside him one anxious young adult disciple holds only a BARE WOODEN AXE HANDLE with its iron head missing. Exactly TWO other adult male disciples cut and collect timber farther along the bank with their own period axes. Four men total: Elisha, young borrower and two working disciples. Nobody stands in the water. Preserve believable distinct faces, hands, woven robes and leather sandals.\nNear-bank felled timber, stumps, bark chips, stones, willow trees, reeds, the tranquil Jordan current, a natural opposite bank and low dry hills complete the continuous environment. Clear warm daytime light. Resolve fine fabric fibres, skin pores, bark, iron pitting, leaf veins, stone grains, natural reflections and small water ripples.\nConstraints: a SHAFTLESS iron head floating on water is the miraculous clue, with its EMPTY SOCKET unmistakably open. The borrower's handle has NO blade. Cut wood remains SEPARATE. No modern metal, buildings, extra people, supernatural glow, writing, labels, UI, watermark, collage, frame or vignette.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-db7918f3-2696-494f-9672-b6129d6b165c.png",
+      "generatedAt": "2026-10-11T05:12:02.243Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/axe-panorama.webp",
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
     }
   ]
 }
