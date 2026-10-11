@@ -1,0 +1,108 @@
+{
+  "repository": "viDaLost/alias-spy-games",
+  "branch": "feat/bible-world-assets-easy",
+  "head": "6f7e6af7800cd8e3ea1a57f8ffa3040562642aad",
+  "parent": "cc5e56fc338946082908b7d174938e8b3dbc496f",
+  "tree": "551430da56a46ec8e7af2316556e2f585b426942",
+  "updatedAt": "2026-10-11T05:08:23.308Z",
+  "files": {
+    "art/sources/noah-panorama.webp": {
+      "sha": "8eb82a5f61f23fe756d51b0c3a65668fb8dbb0ef",
+      "bytes": 2208222,
+      "path": "cloudflare/bible-world-preview/art/sources/noah-panorama.webp"
+    },
+    "art/sources/red-sea-panorama.webp": {
+      "sha": "9ca36537a2e203f33e625d1feee4c1e56c86857d",
+      "bytes": 2357268,
+      "path": "cloudflare/bible-world-preview/art/sources/red-sea-panorama.webp"
+    },
+    "art/prompts-easy.json": {
+      "sha": "0a7389b0ec92c2242ef5cd25f131f12a31fe95a9",
+      "bytes": 24621,
+      "path": "cloudflare/bible-world-preview/art/prompts-easy.json"
+    },
+    "art/qa-easy.json": {
+      "sha": "20a55edca3aced3e526e8b09360114f72c1d0451",
+      "bytes": 357,
+      "path": "cloudflare/bible-world-preview/art/qa-easy.json"
+    },
+    "art/sources/references/noah-front.jpg": {
+      "sha": "3f72384272c61ae33394700873df7dec83368c44",
+      "bytes": 345630,
+      "path": "cloudflare/bible-world-preview/art/sources/references/noah-front.jpg"
+    },
+    "art/sources/references/noah-right.jpg": {
+      "sha": "d573a4e09a24e90cf95eb3514e68f7ba427fe9a2",
+      "bytes": 321897,
+      "path": "cloudflare/bible-world-preview/art/sources/references/noah-right.jpg"
+    },
+    "art/sources/references/noah-back.jpg": {
+      "sha": "50eb53d551b9959e53ce0c28872098eaec7413f8",
+      "bytes": 348369,
+      "path": "cloudflare/bible-world-preview/art/sources/references/noah-back.jpg"
+    },
+    "art/sources/references/noah-left.jpg": {
+      "sha": "9ed37529c4d0065d21c89ae34eeaf80139c45c5e",
+      "bytes": 360970,
+      "path": "cloudflare/bible-world-preview/art/sources/references/noah-left.jpg"
+    },
+    "art/sources/references/noah-up.jpg": {
+      "sha": "daaa411f18b4b2bf3d4959516e6a04a4cbb6fae8",
+      "bytes": 325753,
+      "path": "cloudflare/bible-world-preview/art/sources/references/noah-up.jpg"
+    },
+    "art/sources/references/noah-down.jpg": {
+      "sha": "109da1d6339b11b297cdeae31e261ef713181751",
+      "bytes": 400957,
+      "path": "cloudflare/bible-world-preview/art/sources/references/noah-down.jpg"
+    },
+    "art/sources/references/red-sea-front.jpg": {
+      "sha": "a8a0f1d6c4e5c85d426aa4859a9ab672fb616414",
+      "bytes": 323263,
+      "path": "cloudflare/bible-world-preview/art/sources/references/red-sea-front.jpg"
+    },
+    "art/sources/references/red-sea-right.jpg": {
+      "sha": "ffde72f92a3ad994ea47458686e86207d5c7e5a0",
+      "bytes": 323170,
+      "path": "cloudflare/bible-world-preview/art/sources/references/red-sea-right.jpg"
+    },
+    "art/sources/references/red-sea-back.jpg": {
+      "sha": "784badd76603a3e38edb01842fe9427ee765e873",
+      "bytes": 348333,
+      "path": "cloudflare/bible-world-preview/art/sources/references/red-sea-back.jpg"
+    },
+    "art/sources/references/red-sea-left.jpg": {
+      "sha": "098c5b0e5f1b94636df4e52c3c5d343e3e7f1fd5",
+      "bytes": 318848,
+      "path": "cloudflare/bible-world-preview/art/sources/references/red-sea-left.jpg"
+    },
+    "art/sources/references/red-sea-up.jpg": {
+      "sha": "eeff27f6ce92f290c39b7e2eee903f0b013ec20a",
+      "bytes": 323415,
+      "path": "cloudflare/bible-world-preview/art/sources/references/red-sea-up.jpg"
+    },
+    "art/sources/references/red-sea-down.jpg": {
+      "sha": "517f7cb9bad009fecb42fcf44ab7cc4b39b6f683",
+      "bytes": 441332,
+      "path": "cloudflare/bible-world-preview/art/sources/references/red-sea-down.jpg"
+    }
+  },
+  "lastPaths": [
+    "art/sources/noah-panorama.webp",
+    "art/sources/red-sea-panorama.webp",
+    "art/prompts-easy.json",
+    "art/qa-easy.json",
+    "art/sources/references/noah-front.jpg",
+    "art/sources/references/noah-right.jpg",
+    "art/sources/references/noah-back.jpg",
+    "art/sources/references/noah-left.jpg",
+    "art/sources/references/noah-up.jpg",
+    "art/sources/references/noah-down.jpg",
+    "art/sources/references/red-sea-front.jpg",
+    "art/sources/references/red-sea-right.jpg",
+    "art/sources/references/red-sea-back.jpg",
+    "art/sources/references/red-sea-left.jpg",
+    "art/sources/references/red-sea-up.jpg",
+    "art/sources/references/red-sea-down.jpg"
+  ]
+}
