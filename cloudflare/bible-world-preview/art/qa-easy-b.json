@@ -84,7 +84,21 @@
       "baseChecks": "Pass: eye-height inside dry valley; unarmoured young David with sling and staff; far Goliath and separate shield bearer; armies on opposed hills; no combat or modern objects.",
       "basePouchCheck": "Close inspection reveals more than five stones in native base. Correct to exactly five in the bounded left-direction edit, then verify the assembled result.",
       "basePreview": "art/work/qa/david-base-small.jpg",
-      "pouchPreview": "art/work/qa/david-pouch-small.jpg"
+      "pouchPreview": "art/work/qa/david-pouch-small.jpg",
+      "directionChecks": {
+        "left": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-36bfdc26-b4e0-442a-8c5a-18081f095c26.png",
+          "sourcePath": "art/sources/directions/david-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2225288,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
+          "visualQA": "Pass: same camera, David silhouette, staff, pouch shape, army line, sheep, rock layout and daylight. Exactly FIVE smooth stones are visible in the existing pouch: three in the rear row and two in front. Crisp cloth, leather, wood and natural ground texture; no added narrative objects."
+        }
+      }
     }
   }
 }

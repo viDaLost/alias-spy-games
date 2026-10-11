@@ -154,6 +154,31 @@
         "decodedPixelsEqualGeneratedPNG": true,
         "visualQA": "Pass: natural rock, dust and straw replace the center starburst; original sandals, robe, lion forepaws and cropped fur retained; no added paws or objects."
       }
+    },
+    {
+      "scene": "david",
+      "direction": "left",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square LEFT view, a 104-degree perspective direction used in a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target. It is the left-facing 104-degree projection of the already created David and Goliath panorama; the 768-pixel JPEG is a compressed technical reference, not an invitation to redesign the scene.\nReconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail: crisp linen weave, supple leather, sling cords, wooden grain, natural rock pores, dry grass, distant shrubs and army equipment. Preserve camera, field of view, framing, perspective, every silhouette, object location and size, warm daylight, colours and outer-quarter border geometry so overlapping sphere directions still match. David remains the same unarmoured young shepherd standing at the right, holding the same vertical wooden staff and loose leather sling before his throw; keep his face, limbs, tunic, sandals and calm pose. Keep the existing sheep, creek bed, hillside army and all existing landscape where they are.\nONE REQUIRED COUNT CORRECTION: In David's existing open waist pouch show EXACTLY FIVE distinct smooth pale rounded creek stones, clearly countable: THREE in the rear row and TWO in the front row, no extra stone rims or hidden stone behind them. Remove only the excess stones currently in that pouch, keeping the pouch shape and position, belt, hand and surrounding cloth unchanged. Do not put a stone in his hand. Preserve the correct five-stone clue on the final view.\nOutside that precise pouch correction, change only fine texture. No crop, zoom, new people, new animals, changed armour, flying stone, fighting, injury, new architecture or modern objects. Sharp photographic deep focus; avoid waxy surfaces, painted smears, haze, sharpening halos, cartoon edges. Preserve square canvas with no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-left-reference.jpg",
+      "source": "sources/directions/david-left.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-left-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-36bfdc26-b4e0-442a-8c5a-18081f095c26.png",
+        "sourcePath": "art/sources/directions/david-left.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2225288,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
+        "visualQA": "Pass: same camera, David silhouette, staff, pouch shape, army line, sheep, rock layout and daylight. Exactly FIVE smooth stones are visible in the existing pouch: three in the rear row and two in front. Crisp cloth, leather, wood and natural ground texture; no added narrative objects."
+      }
     }
   ],
   "updated": "2026-10-11",
