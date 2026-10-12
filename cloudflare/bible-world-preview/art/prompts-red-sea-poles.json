@@ -1,0 +1,74 @@
+{
+  "owner": "medium-b",
+  "scene": "red-sea",
+  "scope": "up and down pole directions only",
+  "remoteBranch": "feat/bible-world-assets-medium-b",
+  "directions": [
+    {
+      "scene": "red-sea",
+      "direction": "up",
+      "reference": "/workspace/scratch/e03eb0da42dd/red-sea-poles/red-sea-up-reference-768.jpg",
+      "projectionReference": "art/sources/references/red-sea-up.jpg",
+      "referenceBranch": "feat/bible-world-assets-easy",
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/red-sea-up.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square upward 104-degree rectilinear view for a spherical Red Sea crossing environment\nInput image: Image 1 is the EDIT TARGET, the exact reference view compressed to 768 square.\nPrimary request: Enhance microscopic photographic water and cloud detail, and repair ONLY the unnatural central radial pole pinwheel. Return native 1254 by 1254 pixels, identical square framing.\nSpecific repair: The camera looks up between towering parted seawater walls. Replace the small artificial central starburst/pinched junction with a natural open blue-sky gap and irregular softly illuminated clouds joining the existing sky. Keep the two immense turquoise water-wall surfaces around their original outer borders and maintain their existing overall placement and curvature. Do not let the walls pinch into a radial point at the center. Preserve the existing blue sky and warm golden clouds, the wall reflections, waves, bubbles and existing small fish, and the partial wooden staff at the bottom edge. Enhance fine ripples, foam, cloud textures and translucent blue-green water only.\nInvariants: Exact camera, perspective, square field of view, composition, sunlight direction, color balance, object and fish counts, positions and every outer-edge silhouette. Change only the small central pole distortion and fine texture. Do not add a new subject or reimagine the scene.\nAvoid: added people, animals, birds, fish, buildings, boats, additional staffs, fantasy rays, magic symbols, central vortex, central water closure, radial cloud pattern, readable text, UI, watermark, border, collage or sharpening halos.",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "tool": "built-in image_gen",
+      "status": "saved",
+      "savedAt": "2026-10-12T14:18:29.334Z",
+      "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-3b1e24b9-06c4-474c-aa40-601749f7438d.png",
+      "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-3b1e24b9-06c4-474c-aa40-601749f7438d.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "createdAt": "2026-10-12T14:18:27.373Z",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2178922,
+      "sha256": "6541d39a53d336bfd8d9351ecbdb055748ee70d919bc4444c6c878a09816e049",
+      "lossless": true,
+      "pixelExactLossless": true,
+      "encoder": "sharp@0.35.4",
+      "qa": {
+        "decodedPixelEquality": true,
+        "dimensionsVerified": true,
+        "visualReview": "pending"
+      }
+    },
+    {
+      "scene": "red-sea",
+      "direction": "down",
+      "reference": "/workspace/scratch/e03eb0da42dd/red-sea-poles/red-sea-down-reference-768.jpg",
+      "projectionReference": "art/sources/references/red-sea-down.jpg",
+      "referenceBranch": "feat/bible-world-assets-easy",
+      "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/red-sea-down.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square downward 104-degree rectilinear view for a spherical Red Sea crossing environment\nInput image: Image 1 is the EDIT TARGET, the exact reference view compressed to 768 square.\nPrimary request: Enhance microscopic historical material detail and repair ONLY the unnatural central radial pole pinwheel. Return native 1254 by 1254 pixels, identical square framing.\nSpecific repair: Remove the small artificial central radial pinch in the ground and adjacent animal fur. Make this center a natural continuous dry seabed of sand, gravel, pebbles and scattered shells with ordinary irregular spacing, and continuous natural animal fur where the existing animal extends into the center. Preserve all people visible only at the surrounding edges: their exact robes, hands, staff, legs and sandals. Preserve the existing donkeys at the top, the goat/sheep at lower-left and bottom, their partial faces, legs and bodies, existing ropes, long cast shadows and all other edge objects in their exact positions and counts. Enhance fine woven cloth, leather, rope fibers, fur, sand grains, stones and shells only.\nInvariants: Exact camera, perspective, square field of view, composition, warm natural sunlight direction, color balance, every person and animal identity, count, position and all outer-edge silhouettes. Change only the small central pole distortion and fine texture. Do not add or remove any subject or reimagine the scene.\nAvoid: new people, animals, objects, new central rocks or props, footprints of a new person, readable text, modern objects, UI, watermark, border, collage, sharpening halos or radial ground patterns.",
+      "referenceInspected": true,
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "expectedNativeSize": [
+        1254,
+        1254
+      ],
+      "tool": "built-in image_gen",
+      "status": "ready",
+      "savedAt": "2026-10-12T14:17:06.086Z"
+    }
+  ],
+  "savedAt": "2026-10-12T14:18:29.334Z"
+}
