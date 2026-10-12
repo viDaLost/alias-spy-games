@@ -1,10 +1,10 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-12T08:01:24.162Z",
+  "updatedAt": "2026-10-12T14:18:25.018Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 20,
-  "directionCount": 17,
+  "sourceCount": 21,
+  "directionCount": 18,
   "sources": [
     {
       "key": "fleece-front",
@@ -245,6 +245,18 @@
       "pixelExactLossless": true,
       "sha256": "e180a987e50744ad953d65c828e7fae30fd2712646ed383eb8553ed85921b9a4",
       "bytes": 2112694
+    },
+    {
+      "key": "oil-down",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "down",
+      "file": "art/sources/directions/oil-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "ac45ea58553ca6aa3248f95116b94b57602f904260109d823512a1c3d220ce70",
+      "bytes": 1889136
     }
   ],
   "scenes": [
