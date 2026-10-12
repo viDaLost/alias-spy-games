@@ -157,9 +157,22 @@
           "encoding": "lossless WebP",
           "decodedPixelsEqualGeneratedPNG": true,
           "gitBlobSha": "17d9a7f648e3fdab547106469e91ca88ad2b0fa3",
-          "visualQA": "Pending post-checkpoint visual inspection. Exact single-target reference edit with preserved rearward corridor, nearest Israelite families and remote Egyptian chariots; native pixel and lossless checks complete.",
+          "visualQA": "Pass: same rearward dry passage between TWO liquid water walls, nearest basket-carrying Israelites and foreground livestock retained. Egyptian chariots, horses, riders and standards stay remote behind the families, with their original scale and arrangement. Fine liquid bubbles, natural wool, linen, wicker and dry seabed texture restored; no foreground combat or extra nearest figures.",
           "resultStoreKey": "finish-easy-red-sea-back-result",
           "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-f1aa6725-5f7c-47fc-b2d7-a416a3f4e15a.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "left": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-4796287c-8e00-4b05-bebc-3d52b2fac27e.png",
+          "source": "art/sources/directions/red-sea-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2132192,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "09bb317aa987300c1a68332aabd43726b096ef4e",
+          "visualQA": "Pending post-checkpoint visual inspection. Exact single-target reference edit with preserved mother, child, two goats, accompanying adults, close liquid water wall and remote rearward Egyptian figures; native pixel and lossless checks complete.",
+          "resultStoreKey": "finish-easy-red-sea-left-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-4796287c-8e00-4b05-bebc-3d52b2fac27e.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
         }
       },
       "status": "waiting"
