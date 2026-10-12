@@ -1,6 +1,8 @@
 {
   "kind": "generatively-repaired",
   "sourceSeamBlend": 0,
+  "detailConfidenceMin": 5,
+  "detailConfidenceRange": 25,
   "directions": [
     "front",
     "right",

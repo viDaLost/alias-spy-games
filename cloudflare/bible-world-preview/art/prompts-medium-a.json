@@ -1,5 +1,5 @@
 {
-  "workflow": "builtin image_gen; native lossless encodes; six enhanced directions; 4096x2048 spherical build",
+  "workflow": "Builtin ImageGen; native pixel-lossless WebP checkpoints; six 104 degree directions per scene; observed join repairs in 1774x887 spherical base; confidence-weighted fine detail in 4096x2048 lossless texture",
   "scenes": [
     {
       "id": "carmel",
@@ -133,6 +133,42 @@
         "bytes": 2318318,
         "encoding": "WebP lossless; Sharp 0.35.4; no resize",
         "savedAt": "2026-10-11T05:18:41.752Z"
+      },
+      "generationHistory": [
+        {
+          "scene": "carmel",
+          "stage": "base-repair",
+          "prompt": "Use case: compositing\nAsset type: repaired equirectangular panorama source for a spherical 360-degree viewer.\nInput image 1: EDIT TARGET, a derived Mount Carmel panorama. This is one full 360-degree by 180-degree equirectangular image, 1774 pixels wide by 887 pixels high. Return the whole same 2:1 panorama at 1774x887, not a camera crop.\nPrimary request: repair ONLY the visible compositing artifacts in this supplied panorama. Keep the existing scene, camera location, projection, view directions, scale, people, colors and day lighting. Preserve Elijah raising his arms at the left of the low stone altar, the LOW altar made from TWELVE unhewn stones in TWO courses of six, the damp stacked wood, vivid golden-white fire, the water-filled trench with coherent reflections, and exactly FOUR earthenware water jars around the altar. There must be no added altar or second Elijah.\nObserved defects to repair: at the overlap joins about one eighth and three eighths of the way across the image near the altar sides, some people, jars, stones and water reflections are doubled, translucent, or abruptly clipped. Make each existing person and jar a single solid coherent object in its retained position. Remove only the ghost duplicate outlines. Preserve the four real jars: the near upright jar on the left, the tipped jar by the right side of the altar, the tipped jar in the right foreground, and the upright jar farther right. Continue the water trench, ground, crowd and coastline smoothly through these joins. There is also a break in the rising flame/plume between the central front view and the upper sky view. Make one naturally continuous plume from the existing altar fire upward into the existing pale golden cloud; remove the thin detached ghost column just right of the altar. Keep the same large blue sky, irregular clouds, and Mediterranean coastline.\nSpherical continuity: left and right image edges show the same back direction and must join seamlessly when wrapped. Preserve equirectangular distortion; do not create a normal wide photograph. At the very top and bottom rows, maintain smooth pole continuity without radial wedges or a starburst. No horizon shift.\nHistorical accuracy: ancient Israelite wool and linen tunics, headwraps and sandals, rugged Mount Carmel, natural clay and wet limestone. No visible sacrificed animal.\nStyle: natural cinematic photographic realism, sharply resolved cloth, clay, stone, water and human detail, consistent natural warm daylight and fire glow.\nConstraints: change ONLY join/ghost/plume artifacts; keep all retained scene content and the low twelve-stone altar, exactly four water jars, Elijah, wet trench and crowd. Do not add swords, architecture, additional jars, additional prophets, blood, modern items, text, labels, UI, borders, collage or watermark.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-8d13f050-06d8-4ec0-8b09-7dadcf4b15fe.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "388857f0d579bebc3f9ea050f8e025b28d62b427",
+          "gitBlobSha": "5f4019cf3ed71d79318e84eb7d952cd41206a388",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        }
+      ],
+      "assembly": {
+        "source": "art/sources/carmel-panorama.webp",
+        "sourceKind": "generatively-repaired",
+        "projection": "equirectangular 360x180",
+        "sourceDimensions": [
+          1774,
+          887
+        ],
+        "nativeFov": 104,
+        "nativeDirectionDimensions": [
+          1254,
+          1254
+        ],
+        "output": {
+          "file": "public/assets/carmel-360-v1-4k.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 8548192,
+          "sha256": "6de01fea3c89d1bf143883caebbd749169c08b6c97d7abc14e2f930d53ca7370"
+        },
+        "qaManifest": "art/qa-medium-a.json",
+        "sourceSeamBlend": 0,
+        "detailConfidenceMin": 5,
+        "detailConfidenceRange": 25
       }
     },
     {
@@ -276,6 +312,96 @@
         "bytes": 2245026,
         "encoding": "WebP lossless; Sharp 0.35.4; no resize",
         "savedAt": "2026-10-12T14:20:13.362Z"
+      },
+      "generationHistory": [
+        {
+          "scene": "gideon",
+          "stage": "front-initial",
+          "prompt": "Use case: historical-scene\nAsset type: missing FRONT direction of a 360-degree photographic biblical environment. Return a single square image at the highest native resolution, with a 104-degree rectilinear camera view, not fisheye.\nInput image 1: supporting LEFT-direction camera reference of the same scene, retained and already approved. Match its night sky, dry rocky ridge, torch lighting, materials and Midianite camp. This reference is the adjacent sector to the LEFT of the requested front view.\nCamera: same fixed viewing point at eye height 1.65 metres. Rotate exactly 90 degrees RIGHT from the supplied left view, without moving forward, changing eye height or repeating the reference composition.\nPrimary request: complete the front sector on a high rocky ridge above the great Midianite encampment at NIGHT, at the instant Gideon's men have broken their earthenware jars and revealed their torches and blow their ram's horns. The camp occupies the broad valley BELOW the ridge, with many dark goat-hair tents and restrained warm campfires, steep rocky hills beyond, and the same dark blue clouded starry sky. The foreground is ridge rock, dry grasses and a few large freshly broken clay jar halves and shards. Gideon's small groups STAND in place along the ridge, far from the tents: do not show a charge or melee.\nContinuity: the close dark-cloaked, beige-tunic horn blower in the left reference is just outside the new view to the LEFT; only his natural overlapping right-edge slice may enter the far LEFT margin. Preserve his scale, headwrap and silhouette where the views overlap. Do not place another copy of him at center. Let the central front view open into the valley so the encampment is plainly below us. Two or three other ridge men near the outer margins stand blowing curled ram's horns held in their RIGHT hands and holding upright burning torches in their LEFT hands; match skin, rough wool/linen tunics, simple sandals and wraps of the reference. Keep their hands and anatomy unambiguous. No raised swords or drawn blades. Broken jars lie at their feet.\nStyle and quality: natural cinematic photographic realism, detailed torch flame, soot, rough clay, layered limestone, hair, skin and woven cloth, deep moonlit blue shadows with warm orange fire highlights, clear depth and scale. Continue the scene at all edges for adjacent panorama sectors; same event instant and light.\nAvoid: a soldier charging, a running group, battlefield fighting, drawn swords, a giant central portrait blocking the camp, modern lamps or weapons, uniforms, metal armor, castles, modern buildings, text, labels, UI, borders, collage, circular projection, watermark.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-88d4ed11-7ba1-4aea-aaa1-8309d0094c0c.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "319d44fa6a89079dd8316ea1ce1b5129539bfd48",
+          "gitBlobSha": "a5ea70e71eb611f9b45e883d52ef251f4d1bfb9d",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        },
+        {
+          "scene": "gideon",
+          "stage": "front-handedness-repair",
+          "prompt": "Use case: precise-object-edit\nAsset type: corrected FRONT direction for the same 360-degree photographic Gideon night scene. Return one native-resolution square image preserving the 104-degree rectilinear camera.\nInput image 1: EDIT TARGET. Keep this exact scene and composition, camera, mountains, starry sky, goat-hair tents, rocky ridge, broken clay jar pieces, men, clothes and lighting.\nPrimary request: correct ONLY the horn/torch handedness of the visible men. Every horn blower must hold his ram's horn in his anatomical RIGHT hand and the burning torch in his anatomical LEFT hand. The central man is viewed FROM BEHIND: his RIGHT arm and horn therefore must be on the RIGHT side of his body in the image, raised toward his mouth; his LEFT arm and torch must be on the LEFT side of his body in the image, raised overhead. The far right man is also viewed FROM BEHIND: horn on the image RIGHT side of his body, torch on the image LEFT side. Match the partially cropped left-edge man's anatomical handedness too. Repose only their forearms and held objects as needed; keep their head position, height, clothing, torso, legs and standing feet fixed. Maintain natural human anatomy, exactly two hands per man, continuous arms and fingers.\nConstraints: all the men continue to STAND on the ridge overlooking the valley camp, no moving downhill, no fighting or charge. The jar shards at their feet, camp below, reference fire lighting, body scale and edge continuity remain unchanged. There are no drawn swords.\nStyle: preserve the photographic cinematic night realism, detailed wool, linen, skin, clay, rock, stars and torch flame.\nAvoid any new characters or duplicated figures, additional arms, mirrored whole scene, changed tent positions, changed camera, drawn blades, modern objects, text, labels, UI, watermark, border, collage or fisheye.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-3adb0040-c803-4cbe-b208-11715ed0ddf6.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "5ce43efbeb0e5a981396f5b81d743c24163304bc",
+          "gitBlobSha": "c921e3bb5c29aff3d15f76006740be3effbec203",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        },
+        {
+          "scene": "gideon",
+          "stage": "right-initial",
+          "prompt": "Use case: historical-scene\nAsset type: missing RIGHT-direction view of a 360-degree photographic Gideon environment. Return one native-resolution SQUARE 104-degree rectilinear view, no fisheye.\nInput image 1: a two-panel SUPPORTING reference sheet, not the output composition. The LEFT panel is the adjacent FRONT view and the RIGHT panel is the adjacent BACK view of the same scene. Match both panels' retained night sky, warm torches, dry rocky terrain, rough ancient clothes and horizon. The final output must be ONE continuous camera view, without panels or divider.\nCamera: same fixed camera position and eye height 1.65 metres. Turn exactly 90 degrees RIGHT from the FRONT panel, or 90 degrees LEFT from the BACK panel. Preserve camera height and scale, without translating.\nPrimary request: show the missing right sector from the ridge above the Midianite camp at NIGHT. The camp continues far BELOW us toward the LEFT side, with dark goat-hair tents and scattered low warm campfires; the middle and right side rise into rocky slopes and the same ridge occupied by small scattered groups of stationary Israelites with torches. The figures and tents remain separate in depth. Dark blue clouded starry sky; limestone, dry grasses and thorny scrub on the foreground ridge. A few broken earthenware jar halves and shards lie near the standing men's feet.\nContinuity: along the LEFT outer edge, naturally continue the front reference's far-right standing horn blower and descending valley edge. Along the RIGHT outer edge, naturally continue the back reference's near tan-headwrapped bearded man with cream tunic and dark outer cloak, including the same raised torch. Keep the central area mostly rocky ridge and distant stationary torchbearers; no new giant center portrait, no duplicate of the nearby edge men. Match the shared edge silhouettes and ground positions rather than copying the two complete reference pictures.\nBiblical event: Gideon's men STAND IN PLACE on the ridge after breaking the clay jars, holding burning torches in their anatomical LEFT hands and blowing curled ram's horns held in anatomical RIGHT hands. For men seen FROM BEHIND, torch/left arm is on the IMAGE LEFT side of the body; horn/right arm is on the IMAGE RIGHT side. For men facing the camera, these image positions reverse. Natural two-arm anatomy. No swords drawn, no charge, no fighting, no movement down into the camp.\nStyle: natural cinematic photographic realism with fine cloth weave, weathered clay, beard, skin, limestone and fire detail, matched moonlit blues and warm amber torchlight.\nAvoid: duplicated edge figures, copied front or back composition, two panels, whole-scene mirroring, wrong hand assignment, running soldiers, drawn swords, armor, modern lights, castles, modern buildings or objects, text, labels, UI, borders, watermark, radial starburst.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-adffb395-1214-4b75-a3c2-06dbc306f3ab.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "a857835913cb38716a968435e505fabd360806d5",
+          "gitBlobSha": "52b56bdc16dd1242d854a62f1ee630d3e0a97fcd",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        },
+        {
+          "scene": "gideon",
+          "stage": "right-square-completion",
+          "prompt": "Use case: compositing\nAsset type: corrected square RIGHT-direction camera view for a 360-degree panorama.\nInput image 1: EDIT TARGET on an exactly SQUARE 640x640 canvas. The middle band is the retained right view; the plain grey top and bottom bands are only placeholders.\nPrimary request: output one exactly SQUARE image, 1254x1254 native size, with the same 104-degree rectilinear camera view horizontally and vertically. Fill ONLY the plain grey upper and lower bands to extend the existing view naturally: continue the dark blue starry clouded sky above, and the same rocky ridge, dry grass, warm torchlight and few broken clay jar shards below. Preserve every pixel-equivalent object position and proportion in the middle band, maintaining the fixed camera and central horizon. Do not stretch, crop, squeeze or reframe the existing photograph, and do not produce a wide image.\nKeep: all retained men's heads, bodies, silhouettes, sandals and ancient clothes; their stationary stances on the ridge, torches in anatomical LEFT hands and horns in anatomical RIGHT hands; the camp far BELOW at left; the rocky ridge with restrained distant torchbearers; reference moonlit blues and warm orange fire. Continue the right-edge close man's existing torch naturally if it enters the new upper band. No added figures or tents in the new bands.\nConstraints: one square photographic view, no grey bands remain, no divider, labels, collage, frame, fisheye, text, UI or watermark. No swords drawn, running, charging or fighting. Natural fine stone, clay, fabric and flame texture. Correct only canvas/field-of-view completeness; retain the scene.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-e3ba505f-8dc9-4b09-a1e3-609db261a600.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "fec655a83369684f4fec9b4b39de70fdb3bfdb0c",
+          "gitBlobSha": "b5ec57c75c8c4ea26535d38fc5479ca01f6374eb",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        },
+        {
+          "scene": "gideon",
+          "stage": "up",
+          "prompt": "Use case: historical-scene\nAsset type: missing UP/zenith direction of the same 360-degree Gideon night environment. Return one native-resolution SQUARE image, a 104-degree rectilinear camera view, no fisheye.\nInput image 1: supporting FRONT-direction reference of the retained scene. Match its exact dark blue starry clouded night sky and restrained warm torchlight. Use it for appearance and camera continuity; do not repeat its ground-facing composition.\nCamera: same fixed location and eye height 1.65 metres on the rocky ridge. Rotate the camera 90 degrees UP to look straight at the zenith. In this upward view the BOTTOM edge faces toward the front/valley direction in the reference, the TOP edge faces behind the camera, left/right edges match the left/right ridge directions.\nPrimary request: a natural continuous overhead night sky above Gideon's stationary men on the ridge above the Midianite camp. Center the frame on the unobstructed dark indigo zenith, dense but naturally irregular pinprick stars and a few soft broken moonlit clouds continuous with the reference. Most of the frame is sky. Show only small natural torch tips or restrained warm glow at extreme outer edges if their heights justify it; no men, horns, tents, mountains or ground in the center. No visible moon is required because none is in the reference.\nContinuity: preserve the same blue-black night colors, cloud morphology, star scale and exposure. Sky flows smoothly across edges with no mirrored clouds, circular or radial pattern, pole swirl or starburst. Reference torches are fire held in LEFT hands while horns are in RIGHT hands, and all men remain stationary out of frame.\nStyle: natural cinematic photographic realism, subtle detailed stars and wispy cloud texture, realistic fire light falloff, not fantasy or astronomy poster.\nConstraints: single square view, no circular lens, no text, labels, UI, frame, watermark or collage; no new giant flame plume, new buildings, added people, swords, charge or fighting.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-e2331c82-046d-43dd-8178-3e980d2d0009.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "ccec20cc3c714f04e0196093cebba86aadf51125",
+          "gitBlobSha": "cf13695939e8618de7252994fe398f9eec29762f",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        },
+        {
+          "scene": "gideon",
+          "stage": "down",
+          "prompt": "Use case: compositing\nAsset type: missing DOWN/nadir direction of the same 360-degree Gideon night environment. Return one native-resolution SQUARE 1254x1254 image, a 104-degree rectilinear camera view, not fisheye.\nInput image 1: EDIT TARGET. The outer band is the exact geometric downward projection of the FOUR retained horizon camera views. The plain GREY center is missing image content. This is one camera looking straight down at the ridge, not a collage. Keep the existing outer band, its rock positions, jar pieces, sandals, cloth edges, scale, light and projection.\nPrimary request: fill ONLY the grey center with the continuous rugged dry limestone ridge immediately beneath the same fixed camera at eye height 1.65 metres. Naturally join all four retained sides with detailed uneven pale limestone, gravel, dusty dry golden grass, a few broken terracotta fragments from the shattered jars, and consistent warm orange torch illumination with blue-black shadow crevices. Match the terrain slope and surface across the grey region's boundary without visible square edges. Correct only any translucent join artifacts in the outer band's corner overlaps; do not change its retained layout.\nCamera orientation: top edge faces the front/valley view, right edge faces the right ridge, bottom edge faces back, left edge faces the left ridge. We are looking straight down, so no horizon, sky, camp, tents or mountains in the new center. Retain the visible edge sandals and cropped clothing without adding or moving feet. No body or hands in the center.\nHistorical invariants: this is Gideon's NIGHT scene, all men STAND stationary on the ridge above the camp; horns are held in RIGHT hands, torches LEFT, out of this downward frame. Broken clay jars are the clear ground clue. No drawn swords, blood, combat or charge.\nStyle: natural photographic realism, crisp rough limestone grain, sparse grass, worn leather and weathered unglazed clay, plausible perspective and fire light. Detailed ground, not smooth filler or repeating texture.\nConstraints: remove all grey; preserve all retained outer-band scene content, no duplicate feet, added people, new whole jars, modern objects, text, labels, UI, watermark, borders or collage. No radial wedges, swirl, circular distortion or starburst.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-4f9e5301-db6d-4928-8272-ec444ba9c854.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "b1cfa1e146b0efe770fec7a5d27e193d9b097c81",
+          "gitBlobSha": "ecbfea375f4cc38cffba2fb1ccf795365d8dbb99",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        },
+        {
+          "scene": "gideon",
+          "stage": "base-repair",
+          "prompt": "Use case: compositing\nAsset type: repaired equirectangular source panorama for a 360-degree spherical viewer.\nInput image 1: EDIT TARGET, one complete 360x180-degree equirectangular Gideon panorama, 1774 pixels wide by 887 high. Return the whole same panorama at exactly 1774x887, same 2:1 projection and camera position; do not turn it into a normal wide camera photo.\nPrimary request: repair ONLY the visible geometric compositing join artifacts in this supplied image. Retain the existing night scene and composition, the same men STANDING IN PLACE on the rocky ridge above the large Midianite camp below, their wool/linen clothes and scale, anatomical RIGHT-hand ram's horns and LEFT-hand burning torches, and the broken earthenware jars at their feet. Preserve the starry dark blue night sky, moonlit rocky hills, dark goat-hair tents, restrained warm orange torch and campfire light, foreground limestone and grass.\nObserved defects: the vertical 45-degree overlap joins create transparent duplicate men/arms/torches in the left-center valley, just right of the central horn blower, and across the face/body of the large man near the far right. Remove the translucent duplicate silhouettes and keep each existing real nearby man as ONE solid anatomically coherent figure with exactly two hands, in his retained position. Preserve the principal dark-cloaked left man seen from behind, the central front man seen from behind, the large right man in tan headwrap, and the small stationary torchbearer groups along the ridge. Choose the existing solid version of each object; do not add men. Continue ridge, rocks, jar shards, tent rows, skyline and clouds naturally through the repaired joins without changing their layout. Remove ghost flames floating without a real torch. Any real horn is held by its owner's anatomical RIGHT hand and torch by LEFT hand; from BEHIND, torch is image-left and horn image-right.\nSpherical continuity: far LEFT and far RIGHT edges show the same back direction and must match when the image wraps. Preserve equirectangular pole distortion and camera height; keep upper sky and lower ground smooth without wedges, swirls or starbursts. Join corrections must be subtle and local, not a new composition.\nQuality: natural cinematic photographic realism, detailed limestone, worn clay, cloth weave, beards, leather, stars and flame, plausible depth and matched light.\nAvoid: change of event instant, charging or running men, movement into the camp, fighting, drawn swords, new figures, duplicate limbs, modern items, castles, lamps, labels, text, UI, borders, collage or watermark.",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-7954fe4b-9be9-40db-beae-1d717977c3de.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "checkpoint": "8c20e0a092e35f565f71f6655bfa6b7d24bfbbf2",
+          "gitBlobSha": "ad1b650f939656bd26996af8b3f70ca3dd8bd386",
+          "encoding": "Native PNG retained in generation session; pixel-lossless WebP checkpoint, no resize"
+        }
+      ],
+      "assembly": {
+        "source": "art/sources/gideon-panorama.webp",
+        "sourceKind": "generatively-repaired",
+        "projection": "equirectangular 360x180",
+        "sourceDimensions": [
+          1774,
+          887
+        ],
+        "nativeFov": 104,
+        "nativeDirectionDimensions": [
+          1254,
+          1254
+        ],
+        "output": {
+          "file": "public/assets/gideon-360-v1-4k.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 8964368,
+          "sha256": "4d24708612b5988a2a5df82404f9d00fa47565d8d80a8aa65c5a8e8bf1ded12c"
+        },
+        "qaManifest": "art/qa-medium-a.json",
+        "sourceSeamBlend": 0,
+        "detailConfidenceMin": 5,
+        "detailConfidenceRange": 25
       }
     }
   ]
