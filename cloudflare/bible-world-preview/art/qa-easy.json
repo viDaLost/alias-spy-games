@@ -121,7 +121,21 @@
         "nativeWidth": 1774,
         "nativeHeight": 887
       },
-      "directions": {},
+      "directions": {
+        "front": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b73c69fd-85db-4c68-812c-3c632e7aa7c7.png",
+          "source": "art/sources/directions/red-sea-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2216288,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "1a9d7ef334235e18036c523659ad40dea659364a",
+          "visualQA": "Pass: same calm elderly Moses with striped robe and one ordinary wooden staff, loaded donkey, child and accompanying adults. Existing water wall, fish and baskets retained; natural liquid ripples, bubbles, fibers, fur and hair restored. Recovered exact retained ImageGen PNG after scratch reset, no regeneration.",
+          "resultStoreKey": "finish-easy-red-sea-front-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-b73c69fd-85db-4c68-812c-3c632e7aa7c7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        }
+      },
       "status": "waiting"
     }
   }

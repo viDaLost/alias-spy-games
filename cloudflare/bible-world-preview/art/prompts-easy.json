@@ -211,11 +211,24 @@
       "referencePng": "art/work/inputs/red-sea-front.png",
       "source": "art/sources/directions/red-sea-front.webp",
       "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the only EXACT edit target: a square 104-degree perspective direction extracted from the existing 360-degree biblical panorama of the Red Sea crossing. Restore the SAME view at the largest native square resolution, 1254 x 1254, with maximum realistic photographic microdetail.\nPreserve the exact eye-height camera standing INSIDE the event, camera direction, square projection, framing, all positions, sizes, silhouettes, people and animal identities, poses, garments, count, cart geometry, staff, light and natural colors. Keep border geometry for overlapping spherical directions. Do not crop, zoom, shift perspective, move or duplicate figures, invent architecture or add or remove narrative clues. The complete scene is Exodus 14: Israelites and livestock walking on DRY seabed between two opposed towering walls of LIQUID blue-green water, calm elderly Moses with one ordinary grounded wooden staff, families walking ahead, and distant Egyptian chariots BEHIND. Keep these clues wherever already visible, with people unarmoured in ordinary Near Eastern linen and wool.\nRestore only existing texture: genuinely liquid translucent depth, irregular tiny bubbles and foam flecks, natural wavering water reflections and fine rivulets; readable individual beard hairs, realistic faces and hands, fine linen/wool weave, animal hair, rope fibers, wicker basket strands, weathered cart wood, dry sand grains, irregular pebbles and existing shell fragments. Photographic sharp deep focus throughout, coherent soft dawn light. No painterly smears, plastic faces, waxy surfaces, artificial outlines, sharpening halos or blur.\nIn this FRONT view keep Moses at right with exactly the same elderly face, grey hair/beard, striped outer robe, hand and grounded wooden staff. Retain the loaded donkey in center, child cropped at lower left, bearded man at left and the same three adults behind donkey/Moses, with existing basket/cart crops at the edges. Keep the close liquid water wall, its existing fish silhouettes, bubbles and foam in place. Improve faces, hair, hands, cloth, wicker, rope and liquid texture without adding people, animals, fish or symbols.\nPreserve the 1:1 square canvas. No ice, collapsing water, drowning, battle, gore, glowing staff, halo, text, letters, UI, labels, watermark, frame or collage.",
-      "status": "prepared",
+      "status": "generated-inspected-and-saved",
       "referenceWidth": 1280,
       "referenceHeight": 1280,
       "fieldOfView": 104,
-      "referenceEncoding": "JPEG quality90"
+      "referenceEncoding": "JPEG quality90",
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b73c69fd-85db-4c68-812c-3c632e7aa7c7.png",
+        "source": "art/sources/directions/red-sea-front.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2216288,
+        "encoding": "lossless WebP",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "gitBlobSha": "1a9d7ef334235e18036c523659ad40dea659364a",
+        "visualQA": "Pass: same calm elderly Moses with striped robe and one ordinary wooden staff, loaded donkey, child and accompanying adults. Existing water wall, fish and baskets retained; natural liquid ripples, bubbles, fibers, fur and hair restored. Recovered exact retained ImageGen PNG after scratch reset, no regeneration.",
+        "resultStoreKey": "finish-easy-red-sea-front-result",
+        "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-b73c69fd-85db-4c68-812c-3c632e7aa7c7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+      }
     },
     {
       "scene": "red-sea",
