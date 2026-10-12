@@ -1,50 +1,9 @@
-# Панорамы 4K
+# Panorama sources and reproduction
 
-Каждая локация использует одну сферическую текстуру **4096 × 2048** в lossless
-WebP. На сфере заново проработаны кирпичи, камни, древесина, канаты, сети,
-растительность, вода и облака. Приложение загружает одну текстуру на раунд.
+All scene art was created or enhanced with the built-in ImageGen tool. The original three scenes retain their exact PNG sources and prompts in `prompts.json` / `prompts-4k.json`. The twelve new scenes use `prompts-easy.json`, `prompts-easy-b.json`, `prompts-medium-a.json`, `prompts-medium-b.json`, `prompts-hard-a.json`, and `prompts-hard-b.json`; corresponding `qa-*.json` files record checks and limitations.
 
-## Генерация и сборка
+The native generated direction views are stored losslessly under `sources/directions/`. Six overlapping directions (front, right, back, left, up, down) form each sphere. Whole-scene sources and `*-source.json` provenance live in `sources/`. Derived or repaired bases are explicitly labelled. Original native sources are retained when a replacement assembly needs separate provenance.
 
-Полные исходные PNG в `sources/` имеют размер 1774 × 887: больший цельный кадр
-встроенный ImageGen в этой среде не вернул. Для повышения детализации из каждого
-исходника подготовлены шесть перекрывающихся направлений обзора с углом 104°:
-вперёд, вправо, назад, влево, вверх и вниз. ImageGen восстановил детали этих
-направлений в нативных квадратных кадрах **1254 × 1254**. Результаты сохранены
-в `sources/directions/`; точные запросы всех 18 правок — в `prompts-4k.json`.
-Это правки локальных референсов встроенным ImageGen, без CLI или внешнего API.
+`node art/build-4k.mjs prepare` projects source references. `node art/build-4k.mjs build` assembles all fifteen 4096×2048 lossless WebP textures. With no arguments both commands use the full scene catalog; optional scene IDs limit work. `derive-base <id>` recovers a sphere from six retained directions. The normal assembler preserves broad base geometry and blends confidence-weighted generated detail; derived scenes project their saved faces directly. Final textures and intermediate views are ignored and rebuilt by CI with sharp 0.35.4.
 
-`build-4k.mjs` проецирует новые мелкие детали на сферу и плавно смешивает
-перекрытия. Широкая композиция берётся из исходной панорамы; при расхождении
-контуров или цвета вклад новых деталей уменьшается. Вблизи полюсов также
-восстанавливается крупная текстура, чтобы убрать радиальные искажения.
-Стык полного оборота уже обработан при сборке, поэтому игровые камеры
-задают `seamBlend: 0` и не обрабатывают его второй раз.
-
-4K здесь — размер собранной текстуры, а не размер одной генерации полного
-кадра. Детали восстановлены генеративно; их эффективное угловое разрешение
-зависит от направления и совпадения с исходной геометрией. Размеры сами по
-себе не превращают сцену в фотографию или архитектурное свидетельство.
-
-## Повторная сборка
-
-Нужен Node.js и `sharp` (сборка проверена с версией 0.35.4). Скрипт находит
-локальный модуль либо модуль из `CODEX_PRIMARY_RUNTIME_NODE_MODULES`.
-В каталоге игры:
-
-```sh
-npm install --no-save sharp@0.35.4
-node art/build-4k.mjs prepare babel temple galilee
-node art/build-4k.mjs build babel temple galilee
-```
-
-Первый шаг повторно создаёт технические референсы в `art/work/inputs`.
-Второй использует уже сохранённые результаты ImageGen и записывает три
-4K WebP в `public/assets`, а изображения для проверки — в `art/work/qa`.
-Можно задать другой рабочий каталог через `PANORAMA_WORK_DIR`.
-Публикация в Cloudflare выполняет оба шага автоматически из сохранённых
-исходников. Финальные WebP — воспроизводимые результаты сборки; они не
-дублируются в Git и остаются доступными на опубликованном сайте.
-
-`prompts.json` и `package-panorama.py` сохраняют предыдущий процесс цельных
-1774 × 887 панорам. Старые версии WebP оставлены для совместимости с кэшем.
+Final resolution is 4K; this is not a claim that the whole image was natively generated at 4K. Generative geometry and overlap details can differ slightly. Each scene’s QA records concrete review findings. No stock placeholders replace the requested scenes.
