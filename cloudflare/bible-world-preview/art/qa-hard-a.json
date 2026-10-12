@@ -1,10 +1,10 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-12T07:27:48.183Z",
+  "updatedAt": "2026-10-12T07:29:19.866Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 18,
-  "directionCount": 15,
+  "sourceCount": 19,
+  "directionCount": 16,
   "sources": [
     {
       "key": "fleece-front",
@@ -221,6 +221,18 @@
       "pixelExactLossless": true,
       "sha256": "158f03ca3890864ccb736212ae9423446fd3beced341f339ff5ca9245395a087",
       "bytes": 2080274
+    },
+    {
+      "key": "oil-left",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "left",
+      "file": "art/sources/directions/oil-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "8525644e0a52b14b395dadda47749f1e017ff04e811ffea906d744f4b707a92d",
+      "bytes": 2057584
     }
   ],
   "scenes": [
