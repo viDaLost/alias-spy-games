@@ -256,7 +256,27 @@
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-12T08:01:02.546Z"
         }
-      ]
+      ],
+      "base": {
+        "id": "gideon",
+        "stage": "base-repair",
+        "prompt": "Use case: compositing\nAsset type: repaired equirectangular source panorama for a 360-degree spherical viewer.\nInput image 1: EDIT TARGET, one complete 360x180-degree equirectangular Gideon panorama, 1774 pixels wide by 887 high. Return the whole same panorama at exactly 1774x887, same 2:1 projection and camera position; do not turn it into a normal wide camera photo.\nPrimary request: repair ONLY the visible geometric compositing join artifacts in this supplied image. Retain the existing night scene and composition, the same men STANDING IN PLACE on the rocky ridge above the large Midianite camp below, their wool/linen clothes and scale, anatomical RIGHT-hand ram's horns and LEFT-hand burning torches, and the broken earthenware jars at their feet. Preserve the starry dark blue night sky, moonlit rocky hills, dark goat-hair tents, restrained warm orange torch and campfire light, foreground limestone and grass.\nObserved defects: the vertical 45-degree overlap joins create transparent duplicate men/arms/torches in the left-center valley, just right of the central horn blower, and across the face/body of the large man near the far right. Remove the translucent duplicate silhouettes and keep each existing real nearby man as ONE solid anatomically coherent figure with exactly two hands, in his retained position. Preserve the principal dark-cloaked left man seen from behind, the central front man seen from behind, the large right man in tan headwrap, and the small stationary torchbearer groups along the ridge. Choose the existing solid version of each object; do not add men. Continue ridge, rocks, jar shards, tent rows, skyline and clouds naturally through the repaired joins without changing their layout. Remove ghost flames floating without a real torch. Any real horn is held by its owner's anatomical RIGHT hand and torch by LEFT hand; from BEHIND, torch is image-left and horn image-right.\nSpherical continuity: far LEFT and far RIGHT edges show the same back direction and must match when the image wraps. Preserve equirectangular pole distortion and camera height; keep upper sky and lower ground smooth without wedges, swirls or starbursts. Join corrections must be subtle and local, not a new composition.\nQuality: natural cinematic photographic realism, detailed limestone, worn clay, cloth weave, beards, leather, stars and flame, plausible depth and matched light.\nAvoid: change of event instant, charging or running men, movement into the camp, fighting, drawn swords, new figures, duplicate limbs, modern items, castles, lamps, labels, text, UI, borders, collage or watermark.",
+        "references": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/gideon-derived-base-target.jpg"
+        ],
+        "referenceInspected": true,
+        "repairScope": "Observed 45 degree overlap ghost men, limbs and flames only; native six directions unchanged",
+        "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-7954fe4b-9be9-40db-beae-1d717977c3de.png",
+        "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/gideon-base-repair.png",
+        "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-7954fe4b-9be9-40db-beae-1d717977c3de.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+        "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/gideon-panorama.webp",
+        "width": 1774,
+        "height": 887,
+        "sha256": "df5842539be1412f891a3faf4f62d1001236bdae3f266dda707e180b82eb83b1",
+        "bytes": 2245026,
+        "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+        "savedAt": "2026-10-12T14:20:13.362Z"
+      }
     }
   ]
 }

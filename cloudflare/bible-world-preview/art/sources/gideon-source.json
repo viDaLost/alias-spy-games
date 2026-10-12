@@ -1,5 +1,5 @@
 {
-  "kind": "derived-from-directions",
+  "kind": "generatively-repaired",
   "sourceSeamBlend": 0,
   "directions": [
     "front",
@@ -9,5 +9,7 @@
     "up",
     "down"
   ],
-  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content."
+  "note": "Base geometrically derived from six retained native ImageGen directions, then builtin ImageGen repaired observed 45 degree overlap ghost men, limbs and flames. All six native directions remain unchanged. Confidence-weighted fine detail build retains repaired base composition.",
+  "repairPromptManifest": "art/prompts-medium-a.json",
+  "repairStage": "base-repair"
 }
