@@ -162,7 +162,7 @@ export const scenes = [
   },
   "radiusKm": 220,
   "camera": {
-   "yaw": 0,
+   "yaw": -0.45,
    "pitch": 0,
    "fov": 72,
    "seamBlend": 0
@@ -237,7 +237,7 @@ export const scenes = [
   },
   "radiusKm": 50,
   "camera": {
-   "yaw": 0,
+   "yaw": -0.45,
    "pitch": 0,
    "fov": 72,
    "seamBlend": 0
@@ -390,9 +390,9 @@ export const scenes = [
   },
   "radiusKm": 140,
   "camera": {
-   "yaw": 0.3,
-   "pitch": -0.65,
-   "fov": 78,
+   "yaw": 1.05,
+   "pitch": -0.74,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/axe-360-v1-4k.webp",
@@ -542,9 +542,9 @@ export const scenes = [
   },
   "radiusKm": 60,
   "camera": {
-   "yaw": 0,
-   "pitch": 0,
-   "fov": 72,
+   "yaw": 0.35,
+   "pitch": 0.1,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/prison-360-v1-4k.webp",
