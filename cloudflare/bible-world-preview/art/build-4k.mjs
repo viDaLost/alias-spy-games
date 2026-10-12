@@ -28,12 +28,12 @@ function sample(im,u,v,c){
  return im.data[(iy*im.w+ix)*3+c]*(1-dx)*(1-dy)+im.data[(iy*im.w+jx)*3+c]*dx*(1-dy)+im.data[(jy*im.w+ix)*3+c]*(1-dx)*dy+im.data[(jy*im.w+jx)*3+c]*dx*dy;
 }
 function original(im,dir,c){
- const norm=Math.hypot(...dir),u=(Math.atan2(dir[0],dir[2])/(2*Math.PI)+.5+1)%1,v=Math.acos(clamp(dir[1]/norm,-1,1))/Math.PI,s=panoramaSamples(u);
+ const norm=Math.hypot(...dir),u=(Math.atan2(dir[0],dir[2])/(2*Math.PI)+.5+1)%1,v=Math.acos(clamp(dir[1]/norm,-1,1))/Math.PI,s=panoramaSamples(u,im.seamBlend??.035);
  return sample(im,s.a,v,c)*s.weight+sample(im,s.b,v,c)*(1-s.weight);
 }
 function ray(face,x,y){return face.forward.map((n,i)=>n+x*tan*face.right[i]+y*tan*face.up[i]);}
 async function prepare(scene){
- const base=await raw(await source(scene+'-panorama'));await mkdir(path.join(work,'inputs'),{recursive:true});
+ const base=await raw(await source(scene+'-panorama'));base.seamBlend=(await provenance(scene)).sourceSeamBlend??.035;await mkdir(path.join(work,'inputs'),{recursive:true});
  for(const face of faces){
   const pixels=Buffer.alloc(size*size*3);
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
@@ -47,7 +47,7 @@ async function prepare(scene){
 }
 async function build(scene){
  if((await provenance(scene)).kind==='derived-from-directions'){await direct(scene,false);return;}
- const base=await raw(await source(scene+'-panorama')),tiles=[];
+ const base=await raw(await source(scene+'-panorama'));base.seamBlend=(await provenance(scene)).sourceSeamBlend??.035;const tiles=[];
  for(const face of faces){
   const file=await source('directions/'+scene+'-'+face.name);
   const im=await raw(file),ref=await sharp(path.join(work,'inputs',scene+'-'+face.name+'.png')).resize(im.w,im.h).removeAlpha().raw().toBuffer();

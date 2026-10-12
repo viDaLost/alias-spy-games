@@ -504,9 +504,9 @@ export const scenes = [
   },
   "radiusKm": 60,
   "camera": {
-   "yaw": 0,
-   "pitch": 0,
-   "fov": 72,
+   "yaw": 0.2,
+   "pitch": -0.3,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/eutychus-360-v1-4k.webp",
