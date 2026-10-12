@@ -147,6 +147,19 @@
           "visualQA": "Pass: same forward dry corridor with two distinct towering liquid water walls, cropped Moses, wicker-loaded cart, child holding adult's hand and departing families/livestock. Sunrise and shore remain aligned; fine liquid ripples, cloth, wicker, cart wood and dry grit restored.",
           "resultStoreKey": "finish-easy-red-sea-right-result",
           "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-41571740-0bee-4830-8c92-dae0dd9b511f.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "back": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f1aa6725-5f7c-47fc-b2d7-a416a3f4e15a.png",
+          "source": "art/sources/directions/red-sea-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2229156,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "17d9a7f648e3fdab547106469e91ca88ad2b0fa3",
+          "visualQA": "Pending post-checkpoint visual inspection. Exact single-target reference edit with preserved rearward corridor, nearest Israelite families and remote Egyptian chariots; native pixel and lossless checks complete.",
+          "resultStoreKey": "finish-easy-red-sea-back-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-f1aa6725-5f7c-47fc-b2d7-a416a3f4e15a.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
         }
       },
       "status": "waiting"
