@@ -124,9 +124,9 @@ export const scenes = [
   },
   "radiusKm": 70,
   "camera": {
-   "yaw": 0,
-   "pitch": 0,
-   "fov": 72,
+   "yaw": -0.95,
+   "pitch": 0.35,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/david-360-v1-4k.webp",
@@ -163,8 +163,8 @@ export const scenes = [
   "radiusKm": 220,
   "camera": {
    "yaw": -0.45,
-   "pitch": 0,
-   "fov": 72,
+   "pitch": 0.35,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/daniel-360-v1-4k.webp",

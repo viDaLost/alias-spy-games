@@ -1,0 +1,16 @@
+{
+  "kind": "derived-from-directions",
+  "sourceSeamBlend": 0,
+  "directions": [
+    "front",
+    "right",
+    "back",
+    "left",
+    "up",
+    "down"
+  ],
+  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content.",
+  "nativeBaseSource": "sources/david-panorama-native.webp",
+  "nativeBaseProvenance": "sources/david-native-source.json",
+  "assemblyReason": "Six-direction assembly preserves the final corrected five-stone native left view. The archived original whole base contains extra stones."
+}
