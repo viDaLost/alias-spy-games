@@ -1,10 +1,10 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-12T07:29:19.866Z",
+  "updatedAt": "2026-10-12T08:01:24.162Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 19,
-  "directionCount": 16,
+  "sourceCount": 20,
+  "directionCount": 17,
   "sources": [
     {
       "key": "fleece-front",
@@ -233,6 +233,18 @@
       "pixelExactLossless": true,
       "sha256": "8525644e0a52b14b395dadda47749f1e017ff04e811ffea906d744f4b707a92d",
       "bytes": 2057584
+    },
+    {
+      "key": "oil-up",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "up",
+      "file": "art/sources/directions/oil-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "sha256": "e180a987e50744ad953d65c828e7fae30fd2712646ed383eb8553ed85921b9a4",
+      "bytes": 2112694
     }
   ],
   "scenes": [
@@ -339,8 +351,8 @@
         "sha256": "9163fbfe3875eae4f4627646a5f9fbd3751c43abdf55f165f63b675473b2b0b7"
       },
       "visualChecks": {
-        "story": "Shaftless forged iron head floating alone on Jordan water with open socket, separate cut wood, Elisha and timber-cutting disciples.",
-        "geometry": "Base layout, people, objects and lighting retained during fine texture enhancement.",
+        "story": "Shaftless forged iron head floating alone on Jordan water with open empty socket, separate cut wood, one Elisha, one borrower with bare handle and two timber-cutting disciples.",
+        "geometry": "Base layout, four people, objects and lighting retained during fine texture enhancement.",
         "poles": "Natural sky/canopy and shallow-water/gravel textures; radial artifacts removed."
       },
       "camera": {
