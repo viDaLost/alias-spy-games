@@ -46,7 +46,8 @@ async function prepare(scene){
  }
 }
 async function build(scene){
- if((await provenance(scene)).kind==='derived-from-directions'){await direct(scene,false);return;}
+ const settings=await provenance(scene);
+ if(settings.kind==='derived-from-directions'){await direct(scene,false);return;}
  const base=await raw(await source(scene+'-panorama'));base.seamBlend=(await provenance(scene)).sourceSeamBlend??.035;const tiles=[];
  for(const face of faces){
   const file=await source('directions/'+scene+'-'+face.name);
@@ -57,7 +58,7 @@ async function build(scene){
   for(let i=0;i<residual.length;i+=3){
    const mismatch=Math.hypot(genLow[i]-refLow[i],genLow[i+1]-refLow[i+1],genLow[i+2]-refLow[i+2]);
    // Retain the base composition when a generated silhouette or broad colour drifts.
-   const confidence=1-smooth((mismatch-20)/55);
+   const confidence=1-smooth((mismatch-(settings.detailConfidenceMin??20))/(settings.detailConfidenceRange??55));
    for(let c=0;c<3;c++){
     residual[i+c]=(im.data[i+c]-genLow[i+c]-ref[i+c]+refLow[i+c])*confidence;
    }

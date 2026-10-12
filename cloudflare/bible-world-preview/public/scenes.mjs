@@ -86,9 +86,9 @@ export const scenes = [
   },
   "radiusKm": 260,
   "camera": {
-   "yaw": 0,
-   "pitch": 0,
-   "fov": 72,
+   "yaw": 0.45,
+   "pitch": 0.12,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/red-sea-360-v1-4k.webp",
@@ -428,9 +428,9 @@ export const scenes = [
   },
   "radiusKm": 180,
   "camera": {
-   "yaw": -0.7,
-   "pitch": 0,
-   "fov": 72,
+   "yaw": -1.07,
+   "pitch": -0.19,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/oil-360-v1-4k.webp",
