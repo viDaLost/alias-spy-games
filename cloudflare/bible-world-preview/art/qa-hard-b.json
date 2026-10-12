@@ -1,48 +1,316 @@
 {
-  "created": "2026-10-11",
-  "status": "prison-complete-eutychus-directions-pending",
+  "created": "2026-10-12",
+  "status": "passed",
   "sharpVersion": "0.35.4",
-  "scenes": {
-    "prison": {
-      "status": "passed",
-      "baseKind": "derived-from-directions",
+  "counts": {
+    "scenes": 2,
+    "generatedNativeImages": 13,
+    "nativeDirections": 12,
+    "derivedBases": 1,
+    "exactImageGenPrompts": 13,
+    "final4KAssets": 2
+  },
+  "allGeneratedSourcesRetainNativeDimensions": true,
+  "allNativeSourcesWerePixelMatchedAtLosslessEncoding": true,
+  "sources": [
+    {
+      "scene": "prison",
+      "stage": "direction",
+      "direction": "front",
+      "source": "art/sources/directions/prison-front.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "e0c9a63d4b1ec1e13a09543449ef01400a25ce11af622902db403713378852b3",
+      "gitBlobSha": "82260a9ca51ba453695b0ad82880eda04e2fd337",
+      "bytes": 1958470
+    },
+    {
+      "scene": "prison",
+      "stage": "direction",
+      "direction": "right",
+      "source": "art/sources/directions/prison-right.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "e34d0b9d83d06116bca4f8fe1a9d39943c45878c64563f8a28722fa77aa6ffb5",
+      "gitBlobSha": "c5badce0113c22d0516bd118f155ba81363aba6f",
+      "bytes": 1874490
+    },
+    {
+      "scene": "prison",
+      "stage": "direction",
+      "direction": "back",
+      "source": "art/sources/directions/prison-back.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "613b5b932eb4f31b2719eac4bd06cde407bf827a93713ffb168cab59b37af3d9",
+      "gitBlobSha": "9e7016ec5a4bc3d378a63bfd31a338a7a94b35b3",
+      "bytes": 1950152
+    },
+    {
+      "scene": "prison",
+      "stage": "direction",
+      "direction": "left",
+      "source": "art/sources/directions/prison-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "76b411b48b6fee2032ac4e21c369e6c91c70f3066411d526d7d2f7a2178c3db3",
+      "gitBlobSha": "8fe6134981453656f5a74cbce6036edad72d903e",
+      "bytes": 2033150
+    },
+    {
+      "scene": "prison",
+      "stage": "direction",
+      "direction": "up",
+      "source": "art/sources/directions/prison-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "ac56918b61af670d810a28d4986c1ab167270720c5a29a2db67d6abbceff5c0e",
+      "gitBlobSha": "e79a012558d16bb71561ce668b9bc504aa19efc2",
+      "bytes": 1908010
+    },
+    {
+      "scene": "prison",
+      "stage": "direction",
+      "direction": "down",
+      "source": "art/sources/directions/prison-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "fdb70348f2c36691042ace5ceea587f235527a906f458da362a011c75a17fc8f",
+      "gitBlobSha": "ae53ff96f23a9f182afd1ceab5c252c4286de3a8",
+      "bytes": 2152938
+    },
+    {
+      "scene": "eutychus",
+      "stage": "base",
+      "direction": null,
+      "source": "art/sources/eutychus-panorama.webp",
+      "width": 1774,
+      "height": 887,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "0849862d9d6ced238d6518b99ead76fd8030feae64a24a83f4d8ab64636b879a",
+      "gitBlobSha": "246dd4c12239fabf0427996c9331cea42823aaf2",
+      "bytes": 1931104
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "front",
+      "source": "art/sources/directions/eutychus-front.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "188136754add22a9fb9034e776c9beeaeb8e7741121e1e7992065479c92a677b",
+      "gitBlobSha": "f815b3792bac9e7b2544de2077460946e815ee6d",
+      "bytes": 1878244
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "right",
+      "source": "art/sources/directions/eutychus-right.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "af9fd1dd0d6f822e1270ac849b1d2bf18cdce22d3dc7ba79eabf3208b304399d",
+      "gitBlobSha": "b4b0278cfd8e25e3dbd37129c5a786cf4760117e",
+      "bytes": 1783470
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "back",
+      "source": "art/sources/directions/eutychus-back.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "1d177ad0af3a69a1829fe0a8f68fd8160374afac3e64667ff807eb302e0d6839",
+      "gitBlobSha": "01ec76681711d9c29e199dc3e25ca51d2d71d618",
+      "bytes": 1899904
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "left",
+      "source": "art/sources/directions/eutychus-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "d2cec2c782051a17a8721210d7c77c61603e66ac3861fc685b084975ec0276bb",
+      "gitBlobSha": "c73ca16a789fd73599ba0bfcc8771bf87f5109b3",
+      "bytes": 1893630
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "up",
+      "source": "art/sources/directions/eutychus-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "e63d57db961b52499e670d194b8a55fcc55ff24d4a09c93cf02196fefa7abb66",
+      "gitBlobSha": "9d14e418f383c11c041c3775ba45ea53c8518be6",
+      "bytes": 1922986
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "down",
+      "source": "art/sources/directions/eutychus-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "encoding": "lossless WebP",
+      "originalNativePixelsMatchedAtEncoding": true,
+      "decodedPixelSha256": "0df43d5fcc0b4a5e7bbebdb0c4283b3c15290699f7f6ee6c9b64333a2254ad1e",
+      "gitBlobSha": "26ef6dc48d47ea76d5849f391ed2fe27985b9af9",
+      "bytes": 1895178
+    }
+  ],
+  "derivedSources": [
+    {
+      "scene": "prison",
+      "kind": "derived-from-directions",
+      "source": "art/sources/prison-panorama.webp",
+      "provenance": "art/sources/prison-source.json",
+      "width": 1774,
+      "height": 887,
+      "fieldOfView": 104,
+      "directions": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down"
+      ],
+      "note": "Geometric reprojection and smooth overlap blending of the six retained native ImageGen directions. This is a derived base, not a newly generated base."
+    }
+  ],
+  "finals": [
+    {
+      "scene": "eutychus",
+      "file": "public/assets/eutychus-360-v1-4k.webp",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP",
+      "bytes": 7656394,
+      "sha256": "3948565ee1f2f77ce8e2c426bd87e86f03b28d98eb1547f3769d08fc295e2b99",
+      "gitBlobSha": "71157a0a658d037d2b09c796644b1a8448b7787f",
+      "verticalWrapMeanAbsoluteRgbDifference": 3.499015748031496,
+      "verticalWrap95thPercentileRgbDifference": 14
+    },
+    {
+      "scene": "prison",
+      "file": "public/assets/prison-360-v1-4k.webp",
       "width": 4096,
       "height": 2048,
       "encoding": "lossless WebP",
       "bytes": 8708598,
       "sha256": "9cfb43914d63cdbe4759c3c3a2f6e2af830500e77621a06e2e6f745302783038",
-      "nativeDirections": 6,
-      "nativeDirectionSize": [
-        1254,
-        1254
-      ],
-      "allNativeDirectionPixelsPreserved": true,
+      "gitBlobSha": "d4007a29c8b53c6e68accd02f96ec8fd1d2e59ec",
       "verticalWrapMeanAbsoluteRgbDifference": 3.903707349081365,
-      "verticalWrap95thPercentileRgbDifference": 13,
+      "verticalWrap95thPercentileRgbDifference": 13
+    }
+  ],
+  "cameraUnits": {
+    "yaw": "radians",
+    "pitch": "radians",
+    "fov": "degrees"
+  },
+  "scenes": {
+    "eutychus": {
+      "status": "passed",
+      "baseKind": "generated-native",
+      "nativeBaseSize": [
+        1774,
+        887
+      ],
+      "nativeDirections": 6,
+      "visualInspection": {
+        "passed": true,
+        "clues": [
+          "Three distinct storeys and separate floor bands remain clear in the complete panorama.",
+          "Two middle-storey shuttered windows lie below the high open lamp-lit meeting window, with people inside.",
+          "Paul kneels on the courtyard ground embracing one living adolescent with open eyes; no duplicated or falling youth.",
+          "Central sky and floor starbursts and pointed projection smears are repaired.",
+          "Night lighting, first-century courtyard objects and surrounding neighbours are preserved."
+        ],
+        "viewsReviewed": [
+          "complete panorama",
+          "Paul and youth opening view",
+          "high meeting window",
+          "up pole",
+          "down pole"
+        ]
+      },
+      "suggestedOpeningCamera": {
+        "yaw": 0.2,
+        "pitch": -0.3,
+        "fov": 84,
+        "seamBlend": 0
+      },
+      "highWindowCamera": {
+        "yaw": 0.15,
+        "pitch": 0.9,
+        "fov": 78,
+        "seamBlend": 0
+      }
+    },
+    "prison": {
+      "status": "passed",
+      "baseKind": "derived-from-directions",
+      "derivedBaseSize": [
+        1774,
+        887
+      ],
+      "nativeDirections": 6,
+      "provenance": "art/sources/prison-source.json",
       "visualInspection": {
         "passed": true,
         "clues": [
           "Two distinct Paul and Silas are released beside empty open wooden stocks and loose chains.",
-          "Jailer kneels with a small clay oil lamp.",
-          "Heavy wooden doors stand open; all visible prisoners remain inside.",
-          "Earthquake masonry cracks and rubble are present.",
-          "Ceiling and floor pole artifacts repaired; no hard cube seams seen."
+          "The jailer kneels holding a small clay oil lamp.",
+          "Heavy wooden doors stand open; all visible prisoners remain inside, with no escape action.",
+          "Earthquake cracks and scattered masonry fragments remain visible.",
+          "The retained repaired up/down directions remove central ceiling and floor pole faults; smooth direction overlaps preserve the scene."
         ],
-        "thumbnail": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-b/qa/prison-thumb.jpg"
+        "viewsReviewed": [
+          "complete panorama",
+          "Paul, Silas and jailer opening view",
+          "focused jailer and lamp view",
+          "retained up/down native views"
+        ]
+      },
+      "suggestedOpeningCamera": {
+        "yaw": 0.1,
+        "pitch": 0.12,
+        "fov": 84,
+        "seamBlend": 0
+      },
+      "jailerCamera": {
+        "yaw": 0.65,
+        "pitch": 0.1,
+        "fov": 72,
+        "seamBlend": 0
       }
-    },
-    "eutychus": {
-      "status": "base-passed-directions-pending",
-      "baseSize": [
-        1774,
-        887
-      ],
-      "baseNativePixelsPreserved": true,
-      "clues": [
-        "Three distinct storeys with separate floor bands.",
-        "High lamp-lit open third-storey meeting window above two middle-storey shutters.",
-        "Paul embraces one living youth on courtyard ground."
-      ]
     }
-  }
+  },
+  "inspectionMethod": "Final spherical textures were inspected in complete panoramas and perspective views sampled with the app camera math. Edit references and inspection thumbnails were at most 768 pixels per edge. No new generation was used for the recovered prison directions or its derived base."
 }
