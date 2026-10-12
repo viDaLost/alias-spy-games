@@ -86,9 +86,36 @@
       "qa": {
         "decodedPixelEquality": true,
         "dimensionsVerified": true,
-        "visualReview": "pending"
+        "visualReview": "passed",
+        "reviewSize": [
+          768,
+          768
+        ],
+        "checks": "Natural continuous gravel, sand, shells and animal fur replace central radial pinch; original edge people, animals, staff, robes, sandals, ropes, identities, positions and long shadows remain. No new subjects or readable text."
       }
     }
   ],
-  "savedAt": "2026-10-12T14:20:03.243Z"
+  "savedAt": "2026-10-12T14:21:03.946Z",
+  "status": "completed",
+  "qa": {
+    "status": "passed",
+    "nativeSize": [
+      1254,
+      1254
+    ],
+    "encoding": "lossless WebP",
+    "decodedEquality": "Exact raw decoded RGB equality with each generated native PNG",
+    "reviewSizeMaximum": 768,
+    "scope": "Only upward and downward detail restoration; original edge composition preserved. No new subjects. Parent owns spherical assembly and publication."
+  },
+  "remoteSources": {
+    "up": {
+      "gitBlobSha": "41c6738ee16a00c481ea6e99cac9d66ec3bb8cf0",
+      "checkpointHead": "44bd951f32252adb4a51c31a693fcd8d697c31ea"
+    },
+    "down": {
+      "gitBlobSha": "302bbc96faf1256a05e1c77d687d348799cede23",
+      "checkpointHead": "9a776919779e1d6d3f0e6f5716d6ce2947c27b8d"
+    }
+  }
 }
