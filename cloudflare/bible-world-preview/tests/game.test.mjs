@@ -72,3 +72,5 @@ test('invalid coordinates are rejected and nonfinite hint penalties stay bounded
  assert.throws(()=>evaluate({...correct,guess:{lat:30,lon:200}}));
  assert.equal(evaluate({...correct,hints:NaN}).total,5000);
 });
+
+test('a wrong region choice cannot receive full points merely because its coordinates are nearby',()=>{const scene=scenes.find(s=>s.id==='temple');assert.equal(evaluate({guess:{region:'road'},event:scene.event,epoch:scene.epoch},scene).place,0);});

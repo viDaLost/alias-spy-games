@@ -29,7 +29,7 @@ export function evaluate({guess,event,epoch,hints=0},scene=scenes[0]){
  const region=regions.find(r=>r.id===guess?.region),coords=guess&&Number.isFinite(guess.lat)&&Number.isFinite(guess.lon)&&Math.abs(guess.lat)<=90&&Math.abs(guess.lon)<=180;
  if((!region&&!coords)||!events.some(e=>e.id===event)||!epochs.some(e=>e.id===epoch))throw Error('Ответьте на все три вопроса');
  const point=coords?guess:Number.isFinite(region?.lat)?region:null,distance=point&&scene.destination?distanceKm(point,scene.destination):null;
- const place=region?.id===scene.region?2000:distance===null?0:Math.round(2000*Math.exp(-Math.max(0,distance-scene.radiusKm)/700));
+ const place=region?(region.id===scene.region?2000:0):distance===null?0:Math.round(2000*Math.exp(-Math.max(0,distance-scene.radiusKm)/700));
  const story=event===scene.event?2000:0,time=epoch===scene.epoch?1000:0,penalty=Math.min(3,Math.max(0,Math.floor(Number.isFinite(hints)?hints:0)))*150;
  return {distance,place,story,time,penalty,total:Math.max(0,place+story+time-penalty)};
 }

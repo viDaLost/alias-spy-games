@@ -353,8 +353,8 @@ export const scenes = [
   "radiusKm": 100,
   "camera": {
    "yaw": 0,
-   "pitch": 0,
-   "fov": 72,
+   "pitch": 0.2,
+   "fov": 84,
    "seamBlend": 0
   },
   "image": "assets/philip-360-v1-4k.webp",
