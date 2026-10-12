@@ -350,9 +350,19 @@
         768
       ],
       "destination": "art/sources/directions/oil-front.webp",
-      "status": "requested",
+      "status": "saved",
       "requestedAt": "2026-10-12T07:24:13.776Z",
-      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve this exact room direction: the existing closed wooden door, widow and sons wherever visible, all jar positions, empty/filled contents, shelves, pottery, lamps and walls. Do not add a person or move a jar. Keep the golden oil stream and receiving vessel unchanged wherever visible.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve this exact room direction: the existing closed wooden door, widow and sons wherever visible, all jar positions, empty/filled contents, shelves, pottery, lamps and walls. Do not add a person or move a jar. Keep the golden oil stream and receiving vessel unchanged wherever visible.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-03344099-2211-436a-aa3e-96b72f7ec172.png",
+      "generatedAt": "2026-10-12T07:25:11.001Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-front.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
     },
     {
       "key": "oil-right",
