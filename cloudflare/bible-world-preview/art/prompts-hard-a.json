@@ -338,6 +338,96 @@
       ],
       "status": "saved",
       "prompt": "Geometric spherical recovery from the six retained native ImageGen directions; no new generation, using derive-base."
+    },
+    {
+      "key": "oil-front",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "front",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-front-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-front.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-12T07:24:13.776Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve this exact room direction: the existing closed wooden door, widow and sons wherever visible, all jar positions, empty/filled contents, shelves, pottery, lamps and walls. Do not add a person or move a jar. Keep the golden oil stream and receiving vessel unchanged wherever visible.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "oil-right",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "right",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-right-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-right.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-12T07:24:13.806Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve the TWO existing sons with their separate EMPTY borrowed jars, exact face identities, poses, hands and tunics, and all existing household jars, shelves, window and stone/plaster walls. No extra child or adult, no Elisha, no added objects.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "oil-back",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "back",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-back-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-back.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-12T07:24:13.837Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve this exact rear direction: every jar, basket, shelf, household pottery piece, cloth, door/window portion, wall and floor contour. Retain existing oil levels in filled jars and dark empty interiors. No new person or object.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "oil-left",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "left",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-left-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-left.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-12T07:24:13.866Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve the widow’s exact face and clothes, BOTH existing hands, the tilted distinctly SMALL source pitcher, the uninterrupted golden olive oil stream and the much LARGER receiving jar below. Keep pitcher size, stream path, vessel contours and oil levels exactly fixed. No clear water, spilled oil, extra person or Elisha.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "oil-up",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "up",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-up-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-up.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-12T07:24:13.896Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: This is the UP direction looking straight overhead. Repair ONLY the unnatural small radial starburst at the central roof pole into coherent natural timber rafters and reed roof weave, continuing EXISTING roof materials. Preserve the outer quarter and every visible person, window, lamp and wall silhouette. No new skylight, opening, object, swirl or spokes.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
+    },
+    {
+      "key": "oil-down",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "down",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-down-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-down.webp",
+      "status": "requested",
+      "requestedAt": "2026-10-12T07:24:13.929Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: This is the DOWN direction looking straight below the viewer. Repair ONLY the unnatural small radial starburst at the central ground pole into a natural irregular earthen floor with grit and small stones. Preserve the outer quarter, exact existing jar contours, oil surfaces, feet, sandals and floor objects. No new bowl, foot, jar, spilled oil, swirl or spokes.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels."
     }
   ]
 }
