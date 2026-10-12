@@ -213,6 +213,27 @@
           "bytes": 2372968,
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-12T07:26:28.063Z"
+        },
+        {
+          "id": "gideon",
+          "stage": "up",
+          "prompt": "Use case: historical-scene\nAsset type: missing UP/zenith direction of the same 360-degree Gideon night environment. Return one native-resolution SQUARE image, a 104-degree rectilinear camera view, no fisheye.\nInput image 1: supporting FRONT-direction reference of the retained scene. Match its exact dark blue starry clouded night sky and restrained warm torchlight. Use it for appearance and camera continuity; do not repeat its ground-facing composition.\nCamera: same fixed location and eye height 1.65 metres on the rocky ridge. Rotate the camera 90 degrees UP to look straight at the zenith. In this upward view the BOTTOM edge faces toward the front/valley direction in the reference, the TOP edge faces behind the camera, left/right edges match the left/right ridge directions.\nPrimary request: a natural continuous overhead night sky above Gideon's stationary men on the ridge above the Midianite camp. Center the frame on the unobstructed dark indigo zenith, dense but naturally irregular pinprick stars and a few soft broken moonlit clouds continuous with the reference. Most of the frame is sky. Show only small natural torch tips or restrained warm glow at extreme outer edges if their heights justify it; no men, horns, tents, mountains or ground in the center. No visible moon is required because none is in the reference.\nContinuity: preserve the same blue-black night colors, cloud morphology, star scale and exposure. Sky flows smoothly across edges with no mirrored clouds, circular or radial pattern, pole swirl or starburst. Reference torches are fire held in LEFT hands while horns are in RIGHT hands, and all men remain stationary out of frame.\nStyle: natural cinematic photographic realism, subtle detailed stars and wispy cloud texture, realistic fire light falloff, not fantasy or astronomy poster.\nConstraints: single square view, no circular lens, no text, labels, UI, frame, watermark or collage; no new giant flame plume, new buildings, added people, swords, charge or fighting.",
+          "references": [
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/gideon-front-small.jpg"
+          ],
+          "referenceInspected": true,
+          "recovery": "Missing zenith direction generated from retained front-sector night appearance.",
+          "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e2331c82-046d-43dd-8178-3e980d2d0009.png",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/gideon-up.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-e2331c82-046d-43dd-8178-3e980d2d0009.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "width": 1254,
+          "height": 1254,
+          "checkpointAt": "2026-10-12T07:28:12.806Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/gideon-up.webp",
+          "sha256": "bb73e9ce83e5e042fa283e0ca0a181ded498b9d1f98f65525e52c6fb9aa27fe0",
+          "bytes": 1801762,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-12T07:28:14.337Z"
         }
       ]
     }
