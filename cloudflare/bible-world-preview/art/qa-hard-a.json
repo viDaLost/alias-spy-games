@@ -1,9 +1,9 @@
 {
   "owner": "hard-a",
-  "updatedAt": "2026-10-11T05:22:30.948Z",
+  "updatedAt": "2026-10-12T07:21:28.543Z",
   "status": "in_progress",
   "encoder": "sharp@0.35.4",
-  "sourceCount": 13,
+  "sourceCount": 15,
   "directionCount": 12,
   "sources": [
     {
@@ -161,6 +161,30 @@
       "pixelExactLossless": true,
       "sha256": "6a1deddf4685557bded8944c625114f978f528834f789a0cb226483a77d9bdd4",
       "bytes": 2281922
+    },
+    {
+      "key": "oil-base",
+      "scene": "oil",
+      "stage": "base",
+      "direction": null,
+      "file": "art/sources/oil-panorama.webp",
+      "width": 1774,
+      "height": 887,
+      "pixelExactLossless": true,
+      "sha256": "b478018f47139aab05a3a65c5f775078786e1e9d3d5e484319106ab09077606c",
+      "bytes": 2062114
+    },
+    {
+      "key": "fleece-base",
+      "scene": "fleece",
+      "stage": "base-derivation",
+      "direction": null,
+      "file": "art/sources/fleece-panorama.webp",
+      "width": 1774,
+      "height": 887,
+      "pixelExactLossless": null,
+      "sha256": "6a448a65cbe5a2a0ee13d168eb88a0a24be09ee1c7d9ee8110583170d7e977e5",
+      "bytes": 2343272
     }
   ],
   "scenes": [
@@ -270,6 +294,25 @@
         "story": "Shaftless forged iron head floating alone on Jordan water with open socket, separate cut wood, Elisha and timber-cutting disciples.",
         "geometry": "Base layout, people, objects and lighting retained during fine texture enhancement.",
         "poles": "Natural sky/canopy and shallow-water/gravel textures; radial artifacts removed."
+      },
+      "camera": {
+        "recommended": {
+          "yaw": 1.05,
+          "pitch": -0.74,
+          "fov": 84,
+          "seamBlend": 0
+        },
+        "reviewedViewports": [
+          [
+            768,
+            480
+          ],
+          [
+            432,
+            768
+          ]
+        ],
+        "notes": "Desktop shows the complete shaftless floating head; phone shows the prominent open empty socket and iron body with a small part of the broad blade cropped at the side. Both rendered poles pass."
       }
     },
     {

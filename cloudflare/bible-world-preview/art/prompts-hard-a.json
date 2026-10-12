@@ -306,6 +306,38 @@
       "encoding": "lossless WebP",
       "sharpVersion": "0.35.4",
       "pixelExactLossless": true
+    },
+    {
+      "key": "oil-base",
+      "scene": "oil",
+      "stage": "base",
+      "destination": "art/sources/oil-panorama.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:21:08.961Z",
+      "prompt": "Use case: historical-scene\nAsset type: immersive Bible event panorama texture for a 360-degree viewer.\nPrimary request: 2 Kings 4:1–7, a widow and her TWO SONS fill borrowed clay vessels with olive oil inside their CLOSED humble house in ancient Israel. One widow and exactly two sons in the entire environment. ELISHA IS NOT INSIDE. Highest photorealistic fine natural detail with accurate early Iron Age Israel clothing and household materials.\nProjection: TRUE 2:1 equirectangular 360x180-degree sphere texture, camera at eye level INSIDE one continuous small room. Natural timber-and-reed roof above and nearby rough earthen floor beneath the viewer. Rough stone and plaster walls, shut wooden door, plain shelves and pottery surround the camera on all sides. Matching continuous left/right edges. No miniature planet, collage or panels.\nCRUCIAL CLOSE FOREGROUND EVENT, just LEFT of straight ahead (about 0.7 radians left): the widow pours a plainly visible CONTINUOUS GOLDEN OLIVE OIL STREAM from her SMALL source clay pitcher into a much LARGER borrowed open jar immediately below and close to the camera. The small pitcher is about a third of the large receiving jar's height; clearly smaller than the surrounding borrowed jars. Both natural hands, the tilted little pitcher opening, uninterrupted shining golden oil stream, the large receiving jar mouth and its visible rising oil are unobstructed. The oil looks oily and translucent golden, never clear water; no oil spills on the floor.\nThe widow wears a plain earth-coloured woven dress, shawl and modest headcloth, with a thoughtful hopeful face. Her TWO SONS, one older boy and one younger boy, stand together in the RIGHT midground, each holding a separate large EMPTY borrowed clay jar and watching their mother. Simple period tunics and leather sandals. Exactly three people total: mother and two sons. No prophet, other child, extra adult, or person visible outside a window.\nMany borrowed hand-worked clay jars of varied simple sizes sit naturally around the whole room. Nearer FILLED jars show reflective golden oil surfaces. EMPTY jars show dark open interiors. No modern glazing, lettering, faucets or metal spigots. The solid wooden door remains SHUT. Plain timber shelves hold a few household pottery pieces, with reed baskets and woven cloth in the room. A small high window gives natural warm daylight; two simple ancient clay oil lamps add warm accents. Resolve fine cloth fibres, natural pores, hair, clay grains, stone pores, rough timber, wicker and oil reflections throughout.\nConstraints: ONE widow, exactly TWO sons, NO ELISHA inside. Door closed. A distinctly SMALL source pitcher pours a continuous golden oil stream into a LARGER receiving jar. Filled versus empty jars recognizable. No royal robes, crowns, banquet, miracle glow, extra people, modern objects, readable writing, labels, UI, watermark, collage, frame or vignette.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e9e92488-f2e0-4692-8dac-5748d2f46267.png",
+      "generatedAt": "2026-10-12T07:21:24.642Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/oil-panorama.webp",
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-base",
+      "scene": "fleece",
+      "stage": "base-derivation",
+      "kind": "derived-from-directions",
+      "destination": "art/sources/fleece-panorama.webp",
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "status": "saved",
+      "prompt": "Geometric spherical recovery from the six retained native ImageGen directions; no new generation, using derive-base."
     }
   ]
 }
