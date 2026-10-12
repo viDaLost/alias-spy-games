@@ -1,10 +1,10 @@
 {
   "repository": "viDaLost/alias-spy-games",
   "branch": "feat/bible-world-assets-easy",
-  "head": "c4630a4447383f3f6266f6ad3538e8d1cf61a6e6",
-  "parent": "15e8bd8074811946386295c55b573c0fb56cec25",
-  "tree": "0300ae53432df99b976a9b091a224f0bcae09abe",
-  "updatedAt": "2026-10-11T05:17:52.182Z",
+  "head": "8ac0f492a3fbd86f5132011abaa44fc99368aceb",
+  "parent": "463d0b933f66a65bf08db09509696dc4f3f154cd",
+  "tree": "5804575deb215b0662c20f08e7237ff5bef2ba54",
+  "updatedAt": "2026-10-12T07:26:54.534Z",
   "files": {
     "art/sources/noah-panorama.webp": {
       "sha": "8eb82a5f61f23fe756d51b0c3a65668fb8dbb0ef",
@@ -17,13 +17,13 @@
       "path": "cloudflare/bible-world-preview/art/sources/red-sea-panorama.webp"
     },
     "art/prompts-easy.json": {
-      "sha": "8665bc72a48b328e84501f91bd73dcb38530fc70",
-      "bytes": 32225,
+      "sha": "ce48f8ad17d5945b873a1a36e3aab15cfa4e61d1",
+      "bytes": 51483,
       "path": "cloudflare/bible-world-preview/art/prompts-easy.json"
     },
     "art/qa-easy.json": {
-      "sha": "24dcc5689b387234a34b66ecf7b6e44f84a78044",
-      "bytes": 7967,
+      "sha": "f8ebca32be0bc40bfe45a9bb795e447f3998da26",
+      "bytes": 11144,
       "path": "cloudflare/bible-world-preview/art/qa-easy.json"
     },
     "art/sources/references/noah-front.jpg": {
@@ -92,8 +92,8 @@
       "path": "cloudflare/bible-world-preview/art/sources/directions/noah-front.webp"
     },
     "art/sources/easy-checkpoint.json": {
-      "sha": "7af3ae0b9ae84244b157e3e6677430ee005dc235",
-      "bytes": 5198,
+      "sha": "70363ec3e0366e4ef8f5aa5fc406708cee00173b",
+      "bytes": 5420,
       "path": "cloudflare/bible-world-preview/art/sources/easy-checkpoint.json"
     },
     "art/sources/directions/noah-right.webp": {
@@ -120,10 +120,25 @@
       "sha": "5fdf1be12e9075e4a4f38c6c0e5acc30a9770fda",
       "bytes": 2256448,
       "path": "cloudflare/bible-world-preview/art/sources/directions/noah-down.webp"
+    },
+    "art/sources/qa/noah-final-directions.jpg": {
+      "sha": "02d81ab866320537d10b5d6fadf317571b8a75a4",
+      "bytes": 1353225,
+      "path": "cloudflare/bible-world-preview/art/sources/qa/noah-final-directions.jpg"
+    },
+    "art/sources/qa/noah-compare.jpg": {
+      "sha": "3a0417d648081303bf64e2ff0f86e8154b65c804",
+      "bytes": 1257563,
+      "path": "cloudflare/bible-world-preview/art/sources/qa/noah-compare.jpg"
+    },
+    "art/sources/directions/red-sea-front.webp": {
+      "sha": "1a9d7ef334235e18036c523659ad40dea659364a",
+      "bytes": 2216288,
+      "path": "cloudflare/bible-world-preview/art/sources/directions/red-sea-front.webp"
     }
   },
   "lastPaths": [
-    "art/sources/directions/noah-down.webp",
+    "art/sources/directions/red-sea-front.webp",
     "art/prompts-easy.json",
     "art/qa-easy.json",
     "art/sources/easy-checkpoint.json"

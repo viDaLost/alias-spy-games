@@ -238,11 +238,24 @@
       "referencePng": "art/work/inputs/red-sea-right.png",
       "source": "art/sources/directions/red-sea-right.webp",
       "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the only EXACT edit target: a square 104-degree perspective direction extracted from the existing 360-degree biblical panorama of the Red Sea crossing. Restore the SAME view at the largest native square resolution, 1254 x 1254, with maximum realistic photographic microdetail.\nPreserve the exact eye-height camera standing INSIDE the event, camera direction, square projection, framing, all positions, sizes, silhouettes, people and animal identities, poses, garments, count, cart geometry, staff, light and natural colors. Keep border geometry for overlapping spherical directions. Do not crop, zoom, shift perspective, move or duplicate figures, invent architecture or add or remove narrative clues. The complete scene is Exodus 14: Israelites and livestock walking on DRY seabed between two opposed towering walls of LIQUID blue-green water, calm elderly Moses with one ordinary grounded wooden staff, families walking ahead, and distant Egyptian chariots BEHIND. Keep these clues wherever already visible, with people unarmoured in ordinary Near Eastern linen and wool.\nRestore only existing texture: genuinely liquid translucent depth, irregular tiny bubbles and foam flecks, natural wavering water reflections and fine rivulets; readable individual beard hairs, realistic faces and hands, fine linen/wool weave, animal hair, rope fibers, wicker basket strands, weathered cart wood, dry sand grains, irregular pebbles and existing shell fragments. Photographic sharp deep focus throughout, coherent soft dawn light. No painterly smears, plastic faces, waxy surfaces, artificial outlines, sharpening halos or blur.\nIn this RIGHT view preserve the forward dry passage and TWO towering blue-green liquid water walls, one on each side; departing families and livestock must continue toward the distant warm shore. Retain cropped Moses at left, same loaded cart and wicker basket at left, center adult holding the child's hand, same child, all other people and existing sheep in their exact positions and count. Preserve sunrise location, mountains, shadows, footsteps and cart geometry. Enhance only linen, wicker, wood, coats, dry seabed and liquid wall detail; do not add foreground chariots, water over the path or new figures.\nPreserve the 1:1 square canvas. No ice, collapsing water, drowning, battle, gore, glowing staff, halo, text, letters, UI, labels, watermark, frame or collage.",
-      "status": "prepared",
+      "status": "generated-inspected-and-saved",
       "referenceWidth": 1280,
       "referenceHeight": 1280,
       "fieldOfView": 104,
-      "referenceEncoding": "JPEG quality90"
+      "referenceEncoding": "JPEG quality90",
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-41571740-0bee-4830-8c92-dae0dd9b511f.png",
+        "source": "art/sources/directions/red-sea-right.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2240672,
+        "encoding": "lossless WebP",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "gitBlobSha": "e1098443a6d3cd04a1996e1d7d3dd0b5604d4dd2",
+        "visualQA": "Pass: same forward dry corridor with two distinct towering liquid water walls, cropped Moses, wicker-loaded cart, child holding adult's hand and departing families/livestock. Sunrise and shore remain aligned; fine liquid ripples, cloth, wicker, cart wood and dry grit restored.",
+        "resultStoreKey": "finish-easy-red-sea-right-result",
+        "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-41571740-0bee-4830-8c92-dae0dd9b511f.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+      }
     },
     {
       "scene": "red-sea",
