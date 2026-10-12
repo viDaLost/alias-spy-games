@@ -234,6 +234,27 @@
           "bytes": 1801762,
           "encoding": "WebP lossless; Sharp 0.35.4; no resize",
           "savedAt": "2026-10-12T07:28:14.337Z"
+        },
+        {
+          "id": "gideon",
+          "stage": "down",
+          "prompt": "Use case: compositing\nAsset type: missing DOWN/nadir direction of the same 360-degree Gideon night environment. Return one native-resolution SQUARE 1254x1254 image, a 104-degree rectilinear camera view, not fisheye.\nInput image 1: EDIT TARGET. The outer band is the exact geometric downward projection of the FOUR retained horizon camera views. The plain GREY center is missing image content. This is one camera looking straight down at the ridge, not a collage. Keep the existing outer band, its rock positions, jar pieces, sandals, cloth edges, scale, light and projection.\nPrimary request: fill ONLY the grey center with the continuous rugged dry limestone ridge immediately beneath the same fixed camera at eye height 1.65 metres. Naturally join all four retained sides with detailed uneven pale limestone, gravel, dusty dry golden grass, a few broken terracotta fragments from the shattered jars, and consistent warm orange torch illumination with blue-black shadow crevices. Match the terrain slope and surface across the grey region's boundary without visible square edges. Correct only any translucent join artifacts in the outer band's corner overlaps; do not change its retained layout.\nCamera orientation: top edge faces the front/valley view, right edge faces the right ridge, bottom edge faces back, left edge faces the left ridge. We are looking straight down, so no horizon, sky, camp, tents or mountains in the new center. Retain the visible edge sandals and cropped clothing without adding or moving feet. No body or hands in the center.\nHistorical invariants: this is Gideon's NIGHT scene, all men STAND stationary on the ridge above the camp; horns are held in RIGHT hands, torches LEFT, out of this downward frame. Broken clay jars are the clear ground clue. No drawn swords, blood, combat or charge.\nStyle: natural photographic realism, crisp rough limestone grain, sparse grass, worn leather and weathered unglazed clay, plausible perspective and fire light. Detailed ground, not smooth filler or repeating texture.\nConstraints: remove all grey; preserve all retained outer-band scene content, no duplicate feet, added people, new whole jars, modern objects, text, labels, UI, watermark, borders or collage. No radial wedges, swirl, circular distortion or starburst.",
+          "references": [
+            "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/references/gideon-down-projected-target.jpg"
+          ],
+          "referenceInspected": true,
+          "recovery": "Missing nadir center generated within fixed 104 degree geometric projection of retained horizon views; outer overlap layout preserved.",
+          "original": "/workspace/scratch/e03eb0da42dd/generated_images/exec-4f9e5301-db6d-4928-8272-ec444ba9c854.png",
+          "nativePath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium-a/natives/gideon-down.png",
+          "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-4f9e5301-db6d-4928-8272-ec444ba9c854.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+          "width": 1254,
+          "height": 1254,
+          "checkpointAt": "2026-10-12T08:01:01.371Z",
+          "destination": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/gideon-down.webp",
+          "sha256": "94c35ca5270b855112ab01f9775df9cae99d6b950a16f70f5cf4dc0ce8b2f101",
+          "bytes": 2555320,
+          "encoding": "WebP lossless; Sharp 0.35.4; no resize",
+          "savedAt": "2026-10-12T08:01:02.546Z"
         }
       ]
     }
