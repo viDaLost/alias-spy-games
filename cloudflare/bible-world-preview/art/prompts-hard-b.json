@@ -205,6 +205,23 @@
       "nativeHeight": 1254,
       "losslessPixelMatch": true,
       "source": "art/sources/directions/eutychus-left.webp"
+    },
+    {
+      "scene": "eutychus",
+      "stage": "direction",
+      "direction": "up",
+      "prompt": "Use case: identity-preserve / historical-scene.\nEdit target: the attached square perspective direction extracted from a 360-degree Troas courtyard panorama. Create a refined photoreal square image at the largest native square resolution, with maximum fine detail, at the same exact camera orientation, 104-degree lens, perspective, framing and composition. This will be reprojected onto the same 360 sphere.\nPreserve EVERY existing person's identity, count, facial expression, clothing, pose, position and silhouette; every object, architectural opening, window and lamp; all geometry and borders; the lighting and colour balance. Do not shift, crop, zoom, rearrange, add or remove anything. Preserve all visible portions of the three DISTINCT house storeys and their floor bands; never add an unseen opening to this frame: ground doorway and small windows, separate middle-storey row of two shuttered windows, high open third-storey meeting window with people and oil lamps.\nImprove only believable high-frequency photographic detail: fine ancient stone and lime plaster texture, wood grain, textile fibres, natural skin, eyes, hair and beard strands, clay texture, plant leaves, grit and realistic oil flames. Keep this one historical moment after Eutychus's fall and the original first-century Troas setting. Paul has descended and embraces the ONE living youth on the courtyard ground. No modern objects, no electric lights, no labels, text, UI, watermark, added narrative objects, halos or collage. No falling or floating youth, no duplicated youth, no wounds or blood.\nDirection-specific instruction: This is the UP direction, looking vertically upward from the courtyard. Preserve the entire OUTER quarter and all border geometry: canopy beams and reeds, real stone walls and pillar portions, rooftops, tree silhouettes, moon position, tiny glowing windows, and the large lamp-lit high third-storey meeting window at the bottom with every existing person and oil lamp. The ONLY exception to fixed interior geometry is repairing projection artifacts in the CENTRAL SKY: replace the radial starburst and the impossible tapered triangular masonry spike reaching from the upper central pillar toward the exact centre with coherent deep-blue night sky and ordinary naturally scattered tiny stars. That pointed extension into the sky is a spherical projection fault, not a physical object; keep the actual outer pillar and roof portions intact and give them a plausible ending into open sky. No vortex, tunnel, convergence point, radial rays, repeated star lines or smeared triangular spike. Keep the real architecture and high meeting room exactly in place, with no new opening, person or narrative object.",
+      "referencePath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/references/eutychus-up.jpg",
+      "targetPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/eutychus-up.webp",
+      "referenceInspected": true,
+      "status": "saved",
+      "created": "2026-10-11",
+      "sourcePath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-5b2c70ea-9489-4b71-b80e-ca188da78b44.png",
+      "output_hint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-5b2c70ea-9489-4b71-b80e-ca188da78b44.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link.",
+      "nativeWidth": 1254,
+      "nativeHeight": 1254,
+      "losslessPixelMatch": true,
+      "source": "art/sources/directions/eutychus-up.webp"
     }
   ],
   "derivedSources": [
