@@ -1,0 +1,17 @@
+{
+  "kind": "generatively-repaired",
+  "sourceSeamBlend": 0,
+  "detailConfidenceMin": 5,
+  "detailConfidenceRange": 25,
+  "directions": [
+    "front",
+    "right",
+    "back",
+    "left",
+    "up",
+    "down"
+  ],
+  "note": "Base derived from six retained native ImageGen direction views, then builtin ImageGen repaired only observed overlap ghosts and front/up plume continuity. Native direction files retained unchanged. Confidence-weighted detail build uses the repaired base composition.",
+  "repairPromptManifest": "art/prompts-medium-a.json",
+  "repairStage": "base-repair"
+}

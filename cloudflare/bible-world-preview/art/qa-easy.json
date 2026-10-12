@@ -1,0 +1,228 @@
+{
+  "created": "2026-10-11",
+  "scenes": {
+    "noah": {
+      "base": {
+        "nativeWidth": 1774,
+        "nativeHeight": 887
+      },
+      "directions": {
+        "front": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f14d2398-6ca1-4a24-9f9d-8573865f235d.png",
+          "source": "art/sources/directions/noah-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2150874,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "57124cf53a0ad9dd5041dc76979710736b61428a",
+          "visualQA": "Pass: same elderly Noah, grounded staff, two sheep and blue-robed son; ark wall, ramp, rails and crops preserved. Fine wool, beard, linen, timber and dry gravel restored. No added figures or animals, no text or rainbow.",
+          "resultStoreKey": "finish-easy-noah-front-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-f14d2398-6ca1-4a24-9f9d-8573865f235d.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "right": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-4a508332-217d-4706-b9f5-4d7cd6b0a85b.png",
+          "source": "art/sources/directions/noah-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2202226,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "3fd1238ebd341781b7d37e300a7a0b7bfa578a9d",
+          "visualQA": "Pass: same ark doorway, cattle boarding ramp, basket-carrying woman and exactly two foreground chickens. Cropped figures and cattle retained; natural timber, wicker, feathers and coat detail restored.",
+          "resultStoreKey": "finish-easy-noah-right-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-4a508332-217d-4706-b9f5-4d7cd6b0a85b.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "back": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c422587f-d633-43b4-9f95-e5005c2288b4.png",
+          "source": "art/sources/directions/noah-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2197200,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "f35811aff986a03d385c4fe454bd1896355a0ca5",
+          "visualQA": "Pass: same fenced sheep, cattle, basket-carrying green-headscarf woman, two bearded men and cropped woman/donkeys. Tree and ark wall remain aligned; fine wool, wicker, rope, wood and natural cloth restored, without extra figures.",
+          "resultStoreKey": "finish-easy-noah-back-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-c422587f-d633-43b4-9f95-e5005c2288b4.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "left": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-2c30b7cb-f2c9-4e5a-9a8e-5538c032e7cd.png",
+          "source": "art/sources/directions/noah-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2210734,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "cf15097c4344de6975dec1f5acebca21430522d5",
+          "visualQA": "Pass: exactly two foreground donkeys and two goats, same family members and basket, dry valley and sunset preserved. Restored coats, rope fibers, linen, wicker, gravel, foliage and mountain detail; no new figures or narrative symbols.",
+          "resultStoreKey": "finish-easy-noah-left-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-2c30b7cb-f2c9-4e5a-9a8e-5538c032e7cd.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "up": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png",
+          "source": "art/sources/directions/noah-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1989210,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "579a17a002c71ab00506f8da51e4d7f36158c8a4",
+          "visualQA": "Pass: original ark wall and entrance, tree canopy and mountain crop remain fixed. Central sky pinch replaced by natural irregular cloud gaps and layers; no radial spokes or added sun/rainbow. Timber and foliage detail restored.",
+          "resultStoreKey": "finish-easy-noah-up-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-dc192d8a-06c8-46c0-8947-fe9640ebcea6.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "down": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-a0473dba-7e29-45a2-9f18-4935a4fe6751.png",
+          "source": "art/sources/directions/noah-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2256448,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "5fdf1be12e9075e4a4f38c6c0e5acc30a9770fda",
+          "visualQA": "Pass: original sandals and robes, sheep legs, ramp/post, two chickens, baskets and fence silhouettes retained. Central radial convergence replaced by coherent dry earth and irregular pebbles; no center spokes, invented feet or extra birds. Fine ground, wicker and rope detail restored.",
+          "resultStoreKey": "finish-easy-noah-down-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-a0473dba-7e29-45a2-9f18-4935a4fe6751.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        }
+      },
+      "status": "complete",
+      "assembled": {
+        "file": "public/assets/noah-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "bytes": 9005500,
+        "encoding": "lossless WebP",
+        "losslessChunkVerified": true,
+        "gitBlobSha": "48eab689f6e1bf7bf00fbaf9d4ecf724077b8e07",
+        "wrapEdgeMeanAbsRgbDifference": 5.046875,
+        "wrapEdgeMaxChannelDifference": 77,
+        "qaViews": [
+          "art/sources/qa/noah-final-directions.jpg",
+          "art/sources/qa/noah-compare.jpg"
+        ]
+      },
+      "finalVisualQA": {
+        "story": "Genesis 7 dry pre-flood boarding",
+        "camera": "Human eye height within the boarding activity",
+        "adultsVisible": 8,
+        "pairedAnimalClues": "Two donkeys, two goats, two foreground sheep, two chickens; cattle entering ark.",
+        "ark": "Enclosed rough timber vessel, open entry and boarding ramp; no sail or mast.",
+        "noSpoilers": "No rainbow, floodwater, text, UI, halos or future covenant symbols.",
+        "seams": "Pass: assembled back/seam perspective has continuous fence, figures, ark wall and landscape, with no hard wrap line or duplicated border silhouettes.",
+        "poles": "Pass: straight-up clouds and straight-down earth are coherent and irregular, with no central starburst or radial convergence.",
+        "composition": "Original native base positions and identities retained; detail enhanced through six overlapping directions.",
+        "castNote": "Eight adults retained exactly from the base. Family roles cannot be established from the image; the base appearance is five male-presenting and three female-presenting adults.",
+        "effectiveResolution": "4096×2048 assembled lossless texture; base1774×887 and six native1254×1254 ImageGen edits, not a single native4K generation."
+      }
+    },
+    "red-sea": {
+      "base": {
+        "nativeWidth": 1774,
+        "nativeHeight": 887
+      },
+      "directions": {
+        "front": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b73c69fd-85db-4c68-812c-3c632e7aa7c7.png",
+          "source": "art/sources/directions/red-sea-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2216288,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "1a9d7ef334235e18036c523659ad40dea659364a",
+          "visualQA": "Pass: same calm elderly Moses with striped robe and one ordinary wooden staff, loaded donkey, child and accompanying adults. Existing water wall, fish and baskets retained; natural liquid ripples, bubbles, fibers, fur and hair restored. Recovered exact retained ImageGen PNG after scratch reset, no regeneration.",
+          "resultStoreKey": "finish-easy-red-sea-front-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-b73c69fd-85db-4c68-812c-3c632e7aa7c7.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "right": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-41571740-0bee-4830-8c92-dae0dd9b511f.png",
+          "source": "art/sources/directions/red-sea-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2240672,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "e1098443a6d3cd04a1996e1d7d3dd0b5604d4dd2",
+          "visualQA": "Pass: same forward dry corridor with two distinct towering liquid water walls, cropped Moses, wicker-loaded cart, child holding adult's hand and departing families/livestock. Sunrise and shore remain aligned; fine liquid ripples, cloth, wicker, cart wood and dry grit restored.",
+          "resultStoreKey": "finish-easy-red-sea-right-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-41571740-0bee-4830-8c92-dae0dd9b511f.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "back": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f1aa6725-5f7c-47fc-b2d7-a416a3f4e15a.png",
+          "source": "art/sources/directions/red-sea-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2229156,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "17d9a7f648e3fdab547106469e91ca88ad2b0fa3",
+          "visualQA": "Pass: same rearward dry passage between TWO liquid water walls, nearest basket-carrying Israelites and foreground livestock retained. Egyptian chariots, horses, riders and standards stay remote behind the families, with their original scale and arrangement. Fine liquid bubbles, natural wool, linen, wicker and dry seabed texture restored; no foreground combat or extra nearest figures.",
+          "resultStoreKey": "finish-easy-red-sea-back-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-f1aa6725-5f7c-47fc-b2d7-a416a3f4e15a.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        },
+        "left": {
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-4796287c-8e00-4b05-bebc-3d52b2fac27e.png",
+          "source": "art/sources/directions/red-sea-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2132192,
+          "encoding": "lossless WebP",
+          "decodedPixelsEqualGeneratedPNG": true,
+          "gitBlobSha": "09bb317aa987300c1a68332aabd43726b096ef4e",
+          "visualQA": "Pass: same mother in terracotta robe and pale headscarf holding the original bundle, child at lower right, exactly two foreground goats and accompanying adults retained. Close wall remains liquid with existing fish and bubbles; remote Egyptian figures stay at far left behind the families. Natural cloth weave, hands, hair, fur, rope, wicker and dry sand/pebbles restored.",
+          "resultStoreKey": "finish-easy-red-sea-left-result",
+          "outputHint": "Generated images are saved to /workspace/scratch/e03eb0da42dd/generated_images as /workspace/scratch/e03eb0da42dd/generated_images/exec-4796287c-8e00-4b05-bebc-3d52b2fac27e.png by default.\nIf you need to use a generated image at another path, copy it and leave the original in place unless the user explicitly asks you to delete it.\nThe generated image is already displayed to the user. There is no need to render it in the final response as a Markdown image or file link."
+        }
+      },
+      "status": "complete",
+      "horizontalVisualQA": {
+        "directions": [
+          "front",
+          "right",
+          "back",
+          "left"
+        ],
+        "nativeDimensions": [
+          1254,
+          1254
+        ],
+        "losslessDecodedEqualityAll": true,
+        "camera": "Human eye height inside the dry crossing passage",
+        "clues": "Moses and ordinary wooden staff, families/children, loaded donkey/cart, goats/sheep, liquid water walls on both sides and Egyptian chariots behind",
+        "restrictions": "No ice, collapsing water, drowning, battle, text, UI, glowing staff or future-event symbols",
+        "remaining": "None; all six directions assembled and reviewed by root."
+      },
+      "poleQA": {
+        "status": "passed",
+        "nativeSize": [
+          1254,
+          1254
+        ],
+        "encoding": "lossless WebP",
+        "decodedEquality": "Exact raw decoded RGB equality with each generated native PNG",
+        "reviewSizeMaximum": 768,
+        "scope": "Only upward and downward detail restoration; original edge composition preserved. No new subjects. Parent owns spherical assembly and publication."
+      },
+      "poleSources": {
+        "up": {
+          "gitBlobSha": "41c6738ee16a00c481ea6e99cac9d66ec3bb8cf0",
+          "checkpointHead": "44bd951f32252adb4a51c31a693fcd8d697c31ea"
+        },
+        "down": {
+          "gitBlobSha": "302bbc96faf1256a05e1c77d687d348799cede23",
+          "checkpointHead": "9a776919779e1d6d3f0e6f5716d6ce2947c27b8d"
+        }
+      },
+      "final": {
+        "file": "public/assets/red-sea-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "encoding": "lossless WebP",
+        "bytes": 9158224,
+        "sha256": "0390e280bc701bd93a929eee6a9b45f95e4d54c53fb7abd187f3b1d2bf5bfd01",
+        "review": "Six production camera views: crossing corridor, liquid walls, families, livestock and rear chariots; coherent sky and dry seabed poles."
+      }
+    }
+  }
+}

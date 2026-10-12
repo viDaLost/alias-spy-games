@@ -1,0 +1,762 @@
+{
+  "owner": "hard-a",
+  "status": "passed",
+  "reviewedAt": "2026-10-12T14:21:22.157Z",
+  "encoder": "sharp@0.35.4",
+  "sourceCount": 21,
+  "directionCount": 18,
+  "baseCount": 3,
+  "generativeSourceCount": 20,
+  "derivedBaseCount": 1,
+  "allNativePixelsPreserved": true,
+  "sources": [
+    {
+      "key": "fleece-front",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "front",
+      "file": "art/sources/directions/fleece-front.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "6e079d0003e02cc9d6ec2c7db9de7a2fa29efce99c0fdebf3c3f6c94864050e2",
+      "gitBlobSha": "a66363157c2eedac6a122a2040d923580a9761e1",
+      "bytes": 1998792
+    },
+    {
+      "key": "fleece-right",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "right",
+      "file": "art/sources/directions/fleece-right.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "319d0fea74b8efa48ab01306eb12fd44b8822432772b1dd476361908e67ae2f4",
+      "gitBlobSha": "20d3e48435cb3bfd8375d35c73815587cecddd3b",
+      "bytes": 2240166
+    },
+    {
+      "key": "fleece-back",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "back",
+      "file": "art/sources/directions/fleece-back.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "5b0c3a5c35823a65d6a4ff6854f5ab846111b32eebffb09101146c672e5a5e4c",
+      "gitBlobSha": "823c06770be8167f3f9ac560655e428f229e5d4e",
+      "bytes": 2662568
+    },
+    {
+      "key": "fleece-left",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "left",
+      "file": "art/sources/directions/fleece-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "b12d5c15ccf5d3dc5065b6170c6cfa682f7f02f62417c3411687218e32ad9985",
+      "gitBlobSha": "b114027da029b58bd9e8e99768cc24feefcebbdf",
+      "bytes": 2432662
+    },
+    {
+      "key": "fleece-up",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "up",
+      "file": "art/sources/directions/fleece-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "be9910a536bcc754184d0fd49bee933dda29cd8abdd745a70cc0501870c0fd61",
+      "gitBlobSha": "868dd4a95f82bd6a585b931b99b3f260a9b94c77",
+      "bytes": 1940326
+    },
+    {
+      "key": "fleece-down",
+      "scene": "fleece",
+      "stage": "direction",
+      "direction": "down",
+      "file": "art/sources/directions/fleece-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "84bfd4a2f756fb55ecc662228c65a68d286cf0b093732665d59d67b6ffdfca62",
+      "gitBlobSha": "9ab09359aa8fff09546caf12943809f4bbc0dd65",
+      "bytes": 2336330
+    },
+    {
+      "key": "axe-base",
+      "scene": "axe",
+      "stage": "base",
+      "direction": null,
+      "file": "art/sources/axe-panorama.webp",
+      "width": 1774,
+      "height": 887,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "134a3b0bfc0460fee54c36d281bee0c95a997a94eb3b6695869d48712241adc8",
+      "gitBlobSha": "fabe3a0a738a64d8e8930353dd94a11f7e6ad5f6",
+      "bytes": 2475130
+    },
+    {
+      "key": "axe-front",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "front",
+      "file": "art/sources/directions/axe-front.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "87a73c11bc62a673caa5fec40b94d79e4a90bf60af8b3c35000e316b320f8449",
+      "gitBlobSha": "250f5da92a4e11d5dea9c11f825fd8dc3fc72627",
+      "bytes": 2627630
+    },
+    {
+      "key": "axe-right",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "right",
+      "file": "art/sources/directions/axe-right.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "ca10c658bcb46287f37867a6280f79978306ed99e64e124996a6e695c7371770",
+      "gitBlobSha": "91cfc7762a1881c9b9e32f5bc81caf356d5b4409",
+      "bytes": 2345438
+    },
+    {
+      "key": "axe-back",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "back",
+      "file": "art/sources/directions/axe-back.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "2e157f6a5b761fdd935f75e508dd7ec24e0d59530948e1b86ad992bdc9a74c91",
+      "gitBlobSha": "ba81220c59b42935079d0c020a53b23f817dc094",
+      "bytes": 2244062
+    },
+    {
+      "key": "axe-left",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "left",
+      "file": "art/sources/directions/axe-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "0266dd38e7d79e572ea41c930aee68df5e9f6df266ff8590f6ba4b256460e532",
+      "gitBlobSha": "bbbf48d2b5946cc5a515c070be7c8d7e59260f79",
+      "bytes": 2391618
+    },
+    {
+      "key": "axe-up",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "up",
+      "file": "art/sources/directions/axe-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "3f9d6ebf4bd3908f4e1c77a4007f6119bd33685c4c4fab2134df82e2b0cd3ee6",
+      "gitBlobSha": "782e9a0e91e7134b7dd6e60222d5bd47bd582ead",
+      "bytes": 2465646
+    },
+    {
+      "key": "axe-down",
+      "scene": "axe",
+      "stage": "direction",
+      "direction": "down",
+      "file": "art/sources/directions/axe-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "6a1deddf4685557bded8944c625114f978f528834f789a0cb226483a77d9bdd4",
+      "gitBlobSha": "c123558f7edea3213c6a21dfe88dbdb6a01e721f",
+      "bytes": 2281922
+    },
+    {
+      "key": "oil-base",
+      "scene": "oil",
+      "stage": "base",
+      "direction": null,
+      "file": "art/sources/oil-panorama.webp",
+      "width": 1774,
+      "height": 887,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "b478018f47139aab05a3a65c5f775078786e1e9d3d5e484319106ab09077606c",
+      "gitBlobSha": "061916880e2e03f5e50722417c71248488c6dcaf",
+      "bytes": 2062114
+    },
+    {
+      "key": "fleece-base",
+      "scene": "fleece",
+      "stage": "base-derivation",
+      "direction": null,
+      "file": "art/sources/fleece-panorama.webp",
+      "width": 1774,
+      "height": 887,
+      "pixelExactLossless": null,
+      "losslessWebP": true,
+      "sha256": "6a448a65cbe5a2a0ee13d168eb88a0a24be09ee1c7d9ee8110583170d7e977e5",
+      "gitBlobSha": "0e03af86ed370a9cb8967d08aefcd40be7f8f2d2",
+      "bytes": 2343272
+    },
+    {
+      "key": "oil-front",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "front",
+      "file": "art/sources/directions/oil-front.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "4ba2899257a1a06a1f2934967316a4ffc8949fdee33f4f18d9f80a738eebfec0",
+      "gitBlobSha": "36bbf26a9affc741fe945cf931291fa95bf77452",
+      "bytes": 1978618
+    },
+    {
+      "key": "oil-right",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "right",
+      "file": "art/sources/directions/oil-right.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "83fda4e7e7e20ae55a225f96ac9c9dbb1182d6d97dd7066bd17084f6ad792924",
+      "gitBlobSha": "4e812ca59e1d968fa2ae65341ebe48e1076acb91",
+      "bytes": 2085418
+    },
+    {
+      "key": "oil-back",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "back",
+      "file": "art/sources/directions/oil-back.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "158f03ca3890864ccb736212ae9423446fd3beced341f339ff5ca9245395a087",
+      "gitBlobSha": "cd35a28d44c9a1bc7b2a85d1b636ddb75629277e",
+      "bytes": 2080274
+    },
+    {
+      "key": "oil-left",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "left",
+      "file": "art/sources/directions/oil-left.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "8525644e0a52b14b395dadda47749f1e017ff04e811ffea906d744f4b707a92d",
+      "gitBlobSha": "7176cf56f8600e050b7d0b3eee1b5702be14b29a",
+      "bytes": 2057584
+    },
+    {
+      "key": "oil-up",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "up",
+      "file": "art/sources/directions/oil-up.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "e180a987e50744ad953d65c828e7fae30fd2712646ed383eb8553ed85921b9a4",
+      "gitBlobSha": "503b188a442327261391c1b4ab4dc919ecf405dc",
+      "bytes": 2112694
+    },
+    {
+      "key": "oil-down",
+      "scene": "oil",
+      "stage": "direction",
+      "direction": "down",
+      "file": "art/sources/directions/oil-down.webp",
+      "width": 1254,
+      "height": 1254,
+      "pixelExactLossless": true,
+      "losslessWebP": true,
+      "sha256": "ac45ea58553ca6aa3248f95116b94b57602f904260109d823512a1c3d220ce70",
+      "gitBlobSha": "16081ffc44bb5699bd6939a9d8c765cad42cc28b",
+      "bytes": 1889136
+    }
+  ],
+  "scenes": [
+    {
+      "id": "axe",
+      "status": "passed",
+      "base": {
+        "key": "axe-base",
+        "scene": "axe",
+        "stage": "base",
+        "direction": null,
+        "file": "art/sources/axe-panorama.webp",
+        "width": 1774,
+        "height": 887,
+        "pixelExactLossless": true,
+        "losslessWebP": true,
+        "sha256": "134a3b0bfc0460fee54c36d281bee0c95a997a94eb3b6695869d48712241adc8",
+        "gitBlobSha": "fabe3a0a738a64d8e8930353dd94a11f7e6ad5f6",
+        "bytes": 2475130
+      },
+      "directions": [
+        {
+          "key": "axe-front",
+          "scene": "axe",
+          "stage": "direction",
+          "direction": "front",
+          "file": "art/sources/directions/axe-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "87a73c11bc62a673caa5fec40b94d79e4a90bf60af8b3c35000e316b320f8449",
+          "gitBlobSha": "250f5da92a4e11d5dea9c11f825fd8dc3fc72627",
+          "bytes": 2627630
+        },
+        {
+          "key": "axe-right",
+          "scene": "axe",
+          "stage": "direction",
+          "direction": "right",
+          "file": "art/sources/directions/axe-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "ca10c658bcb46287f37867a6280f79978306ed99e64e124996a6e695c7371770",
+          "gitBlobSha": "91cfc7762a1881c9b9e32f5bc81caf356d5b4409",
+          "bytes": 2345438
+        },
+        {
+          "key": "axe-back",
+          "scene": "axe",
+          "stage": "direction",
+          "direction": "back",
+          "file": "art/sources/directions/axe-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "2e157f6a5b761fdd935f75e508dd7ec24e0d59530948e1b86ad992bdc9a74c91",
+          "gitBlobSha": "ba81220c59b42935079d0c020a53b23f817dc094",
+          "bytes": 2244062
+        },
+        {
+          "key": "axe-left",
+          "scene": "axe",
+          "stage": "direction",
+          "direction": "left",
+          "file": "art/sources/directions/axe-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "0266dd38e7d79e572ea41c930aee68df5e9f6df266ff8590f6ba4b256460e532",
+          "gitBlobSha": "bbbf48d2b5946cc5a515c070be7c8d7e59260f79",
+          "bytes": 2391618
+        },
+        {
+          "key": "axe-up",
+          "scene": "axe",
+          "stage": "direction",
+          "direction": "up",
+          "file": "art/sources/directions/axe-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "3f9d6ebf4bd3908f4e1c77a4007f6119bd33685c4c4fab2134df82e2b0cd3ee6",
+          "gitBlobSha": "782e9a0e91e7134b7dd6e60222d5bd47bd582ead",
+          "bytes": 2465646
+        },
+        {
+          "key": "axe-down",
+          "scene": "axe",
+          "stage": "direction",
+          "direction": "down",
+          "file": "art/sources/directions/axe-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "6a1deddf4685557bded8944c625114f978f528834f789a0cb226483a77d9bdd4",
+          "gitBlobSha": "c123558f7edea3213c6a21dfe88dbdb6a01e721f",
+          "bytes": 2281922
+        }
+      ],
+      "provenance": {
+        "kind": "generated-native",
+        "sourceSeamBlend": 0.035,
+        "generator": "Built-in ImageGen",
+        "nativeSize": [
+          1774,
+          887
+        ],
+        "storyConstraints": "One Elisha, one young borrower with a bare wooden handle, exactly two timber-cutting disciples; a shaftless iron head floats alone with an open empty socket and separate cut wood on the Jordan.",
+        "generatedAt": "2026-10-11"
+      },
+      "final": {
+        "file": "public/assets/axe-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "encoding": "lossless WebP",
+        "bytes": 10188930,
+        "sha256": "9163fbfe3875eae4f4627646a5f9fbd3751c43abdf55f165f63b675473b2b0b7",
+        "edgeSeamMeanAbsoluteDelta": 8.464518229166666,
+        "adjacentColumnMeanAbsoluteDelta": 7.67138671875
+      },
+      "camera": {
+        "recommended": {
+          "yaw": 1.05,
+          "pitch": -0.74,
+          "fov": 84,
+          "seamBlend": 0
+        },
+        "reviewedViewports": [
+          [
+            768,
+            480
+          ],
+          [
+            432,
+            768
+          ]
+        ],
+        "notes": "Complete head visible on desktop; empty socket and iron body prominent on phone with a small part of the broad blade cropped at one side."
+      },
+      "visualChecks": {
+        "story": "One Elisha, a borrower holding a bare wooden handle, exactly two timber-cutting disciples on the Jordan bank. Shaftless forged iron head floats alone with a visible open empty socket; separate cut wood has a clear water gap.",
+        "detail": "High-frequency cloth, bark, stone, iron, leaf and water detail improve while broad base composition is retained.",
+        "poles": "Natural coherent willow canopy/sky above, natural shallow water and underwater gravel below, central radial starbursts repaired.",
+        "camera": "Complete head visible on desktop; empty socket and iron body prominent on phone with a small part of the broad blade cropped at one side."
+      }
+    },
+    {
+      "id": "oil",
+      "status": "passed",
+      "base": {
+        "key": "oil-base",
+        "scene": "oil",
+        "stage": "base",
+        "direction": null,
+        "file": "art/sources/oil-panorama.webp",
+        "width": 1774,
+        "height": 887,
+        "pixelExactLossless": true,
+        "losslessWebP": true,
+        "sha256": "b478018f47139aab05a3a65c5f775078786e1e9d3d5e484319106ab09077606c",
+        "gitBlobSha": "061916880e2e03f5e50722417c71248488c6dcaf",
+        "bytes": 2062114
+      },
+      "directions": [
+        {
+          "key": "oil-front",
+          "scene": "oil",
+          "stage": "direction",
+          "direction": "front",
+          "file": "art/sources/directions/oil-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "4ba2899257a1a06a1f2934967316a4ffc8949fdee33f4f18d9f80a738eebfec0",
+          "gitBlobSha": "36bbf26a9affc741fe945cf931291fa95bf77452",
+          "bytes": 1978618
+        },
+        {
+          "key": "oil-right",
+          "scene": "oil",
+          "stage": "direction",
+          "direction": "right",
+          "file": "art/sources/directions/oil-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "83fda4e7e7e20ae55a225f96ac9c9dbb1182d6d97dd7066bd17084f6ad792924",
+          "gitBlobSha": "4e812ca59e1d968fa2ae65341ebe48e1076acb91",
+          "bytes": 2085418
+        },
+        {
+          "key": "oil-back",
+          "scene": "oil",
+          "stage": "direction",
+          "direction": "back",
+          "file": "art/sources/directions/oil-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "158f03ca3890864ccb736212ae9423446fd3beced341f339ff5ca9245395a087",
+          "gitBlobSha": "cd35a28d44c9a1bc7b2a85d1b636ddb75629277e",
+          "bytes": 2080274
+        },
+        {
+          "key": "oil-left",
+          "scene": "oil",
+          "stage": "direction",
+          "direction": "left",
+          "file": "art/sources/directions/oil-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "8525644e0a52b14b395dadda47749f1e017ff04e811ffea906d744f4b707a92d",
+          "gitBlobSha": "7176cf56f8600e050b7d0b3eee1b5702be14b29a",
+          "bytes": 2057584
+        },
+        {
+          "key": "oil-up",
+          "scene": "oil",
+          "stage": "direction",
+          "direction": "up",
+          "file": "art/sources/directions/oil-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "e180a987e50744ad953d65c828e7fae30fd2712646ed383eb8553ed85921b9a4",
+          "gitBlobSha": "503b188a442327261391c1b4ab4dc919ecf405dc",
+          "bytes": 2112694
+        },
+        {
+          "key": "oil-down",
+          "scene": "oil",
+          "stage": "direction",
+          "direction": "down",
+          "file": "art/sources/directions/oil-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "ac45ea58553ca6aa3248f95116b94b57602f904260109d823512a1c3d220ce70",
+          "gitBlobSha": "16081ffc44bb5699bd6939a9d8c765cad42cc28b",
+          "bytes": 1889136
+        }
+      ],
+      "provenance": {
+        "kind": "generated-native",
+        "sourceSeamBlend": 0.035,
+        "generator": "Built-in ImageGen",
+        "nativeSize": [
+          1774,
+          887
+        ],
+        "storyConstraints": "One widow and exactly two sons inside a closed house; a small source pitcher pours continuous golden olive oil into a larger receiving jar among empty and filled borrowed clay vessels. No Elisha inside.",
+        "generatedAt": "2026-10-12"
+      },
+      "final": {
+        "file": "public/assets/oil-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "encoding": "lossless WebP",
+        "bytes": 8647874,
+        "sha256": "aeca2b8279870aa433b6ec6bd9f51bf9277f6d02debb8dbb9db350d1d5177da3",
+        "edgeSeamMeanAbsoluteDelta": 4.303873697916667,
+        "adjacentColumnMeanAbsoluteDelta": 3.7865397135416665
+      },
+      "camera": {
+        "recommended": {
+          "yaw": -1.07,
+          "pitch": -0.19,
+          "fov": 84,
+          "seamBlend": 0
+        },
+        "reviewedViewports": [
+          [
+            768,
+            480
+          ],
+          [
+            432,
+            768
+          ]
+        ],
+        "notes": "Recommended camera shows the small pitcher, hands, continuous golden oil stream and receiving oil surface on both desktop and phone."
+      },
+      "visualChecks": {
+        "story": "One widow and exactly two sons inside the closed humble house. Small source pitcher pours uninterrupted golden olive oil into a much larger borrowed jar; empty and filled vessels remain clear. No Elisha or extra people.",
+        "detail": "Fine skin, hair, cloth weave, clay grains, timber, wicker and oil reflections improve without moving the hands, source pitcher, stream, jars or subjects.",
+        "poles": "Natural timber/reed roof and irregular gritty earth floor replace central pole artifacts; original jar silhouettes, feet, wall edges and lighting retained.",
+        "camera": "Recommended camera shows the small pitcher, hands, continuous golden oil stream and receiving oil surface on both desktop and phone."
+      }
+    },
+    {
+      "id": "fleece",
+      "status": "passed",
+      "base": {
+        "key": "fleece-base",
+        "scene": "fleece",
+        "stage": "base-derivation",
+        "direction": null,
+        "file": "art/sources/fleece-panorama.webp",
+        "width": 1774,
+        "height": 887,
+        "pixelExactLossless": null,
+        "losslessWebP": true,
+        "sha256": "6a448a65cbe5a2a0ee13d168eb88a0a24be09ee1c7d9ee8110583170d7e977e5",
+        "gitBlobSha": "0e03af86ed370a9cb8967d08aefcd40be7f8f2d2",
+        "bytes": 2343272
+      },
+      "directions": [
+        {
+          "key": "fleece-front",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "front",
+          "file": "art/sources/directions/fleece-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "6e079d0003e02cc9d6ec2c7db9de7a2fa29efce99c0fdebf3c3f6c94864050e2",
+          "gitBlobSha": "a66363157c2eedac6a122a2040d923580a9761e1",
+          "bytes": 1998792
+        },
+        {
+          "key": "fleece-right",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "right",
+          "file": "art/sources/directions/fleece-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "319d0fea74b8efa48ab01306eb12fd44b8822432772b1dd476361908e67ae2f4",
+          "gitBlobSha": "20d3e48435cb3bfd8375d35c73815587cecddd3b",
+          "bytes": 2240166
+        },
+        {
+          "key": "fleece-back",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "back",
+          "file": "art/sources/directions/fleece-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "5b0c3a5c35823a65d6a4ff6854f5ab846111b32eebffb09101146c672e5a5e4c",
+          "gitBlobSha": "823c06770be8167f3f9ac560655e428f229e5d4e",
+          "bytes": 2662568
+        },
+        {
+          "key": "fleece-left",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "left",
+          "file": "art/sources/directions/fleece-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "b12d5c15ccf5d3dc5065b6170c6cfa682f7f02f62417c3411687218e32ad9985",
+          "gitBlobSha": "b114027da029b58bd9e8e99768cc24feefcebbdf",
+          "bytes": 2432662
+        },
+        {
+          "key": "fleece-up",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "up",
+          "file": "art/sources/directions/fleece-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "be9910a536bcc754184d0fd49bee933dda29cd8abdd745a70cc0501870c0fd61",
+          "gitBlobSha": "868dd4a95f82bd6a585b931b99b3f260a9b94c77",
+          "bytes": 1940326
+        },
+        {
+          "key": "fleece-down",
+          "scene": "fleece",
+          "stage": "direction",
+          "direction": "down",
+          "file": "art/sources/directions/fleece-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "pixelExactLossless": true,
+          "losslessWebP": true,
+          "sha256": "84bfd4a2f756fb55ecc662228c65a68d286cf0b093732665d59d67b6ffdfca62",
+          "gitBlobSha": "9ab09359aa8fff09546caf12943809f4bbc0dd65",
+          "bytes": 2336330
+        }
+      ],
+      "provenance": {
+        "kind": "derived-from-directions",
+        "sourceSeamBlend": 0,
+        "directions": [
+          "front",
+          "right",
+          "back",
+          "left",
+          "up",
+          "down"
+        ],
+        "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content."
+      },
+      "final": {
+        "file": "public/assets/fleece-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "encoding": "lossless WebP",
+        "bytes": 9560228,
+        "sha256": "490b9dd3a542da894b203c717525324aa021bb46671ccff06c57c89f6c1dcc3c",
+        "edgeSeamMeanAbsoluteDelta": 10.0869140625,
+        "adjacentColumnMeanAbsoluteDelta": 9.254964192708334
+      },
+      "camera": {
+        "recommended": {
+          "yaw": 0,
+          "pitch": -0.08,
+          "fov": 72,
+          "seamBlend": 0
+        },
+        "reviewedViewports": [
+          [
+            768,
+            480
+          ],
+          [
+            432,
+            768
+          ]
+        ],
+        "notes": "Dry wool, hovering hand and surrounding wet stones remain visible at the existing opening camera."
+      },
+      "visualChecks": {
+        "story": "One Gideon and one irregular patch of completely dry airy matte white fleece amid wet dew-covered ground near Ophrah at dawn. No wet wool, squeezing, rain, river or cup/bowl watering.",
+        "detail": "Exact six retained native faces recovered without new generation; native fine wool, cloth, stone, straw, wood and dew detail preserved.",
+        "poles": "Natural dawn cloud and irregular wet stone/grass textures; central radial artifacts removed and outer identities/objects retained.",
+        "camera": "Dry wool, hovering hand and surrounding wet stones remain visible at the existing opening camera."
+      }
+    }
+  ]
+}

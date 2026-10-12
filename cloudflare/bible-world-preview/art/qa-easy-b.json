@@ -1,0 +1,182 @@
+{
+  "created": "2026-10-11",
+  "generator": "Built-in ImageGen only; lossless source WebP; deterministic spherical assembly",
+  "scenes": {
+    "daniel": {
+      "status": "pass",
+      "generation": "No new generation. Six exact retained native ImageGen directions reused.",
+      "directions": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down"
+      ],
+      "nativeDirectionSize": [
+        1254,
+        1254
+      ],
+      "baseSize": [
+        1774,
+        887
+      ],
+      "textureSize": [
+        4096,
+        2048
+      ],
+      "visualChecks": [
+        "Elderly Daniel praying peacefully",
+        "Four calm lions across the complete den",
+        "Daylight roof opening retained",
+        "Coherent stone floor and ceiling at spherical poles",
+        "No text, watermark, UI, modern objects or combat"
+      ],
+      "directionMosaic": "art/work/qa/daniel-mosaic-small.jpg",
+      "projectionMosaic": "art/work/qa/daniel-projection-mosaic-small.jpg",
+      "portraitChecks": "72-degree portrait projections inspected at front, right and back; eye-height inside the den; no visible rectangular joins in the assembled sphere.",
+      "poleChecks": "104-degree up and down projections retain coherent irregular stone and floor; no radial spokes or funnels.",
+      "sources": [
+        {
+          "path": "art/sources/daniel-panorama.webp",
+          "bytes": 2323848,
+          "gitBlobSha": "da3dded6edeb38e79402adc6ae78d9e6f5f7a726"
+        },
+        {
+          "path": "art/sources/directions/daniel-front.webp",
+          "bytes": 2187892,
+          "gitBlobSha": "a9aa2da2c092caf22ff8125afd8086cee59fa144"
+        },
+        {
+          "path": "art/sources/directions/daniel-right.webp",
+          "bytes": 2327320,
+          "gitBlobSha": "9d11487efe0a30e604173741c4b3b057b17fdc92"
+        },
+        {
+          "path": "art/sources/directions/daniel-back.webp",
+          "bytes": 2335664,
+          "gitBlobSha": "31dadf44ad50d3d55f06163a78809bd4e4660c93"
+        },
+        {
+          "path": "art/sources/directions/daniel-left.webp",
+          "bytes": 2284364,
+          "gitBlobSha": "ce8b39c0d87f9cedbd208f5033d7ecc4d43c2bda"
+        },
+        {
+          "path": "art/sources/directions/daniel-up.webp",
+          "bytes": 2226232,
+          "gitBlobSha": "45af25d27c8a8988aa002eef49a8b154e4007e46"
+        },
+        {
+          "path": "art/sources/directions/daniel-down.webp",
+          "bytes": 2414594,
+          "gitBlobSha": "adb9721d5e6b406c559169eb491a6d7b4dd6665a"
+        }
+      ],
+      "final": {
+        "width": 4096,
+        "height": 2048,
+        "lossless": true,
+        "bytes": 9802372,
+        "sha256": "7bfeb74f5419d2420bd51fb9b3aefe0f6537cd7167d8c8e68a0e46ad575492d3"
+      }
+    },
+    "david": {
+      "status": "pass",
+      "nativeBase": [
+        1774,
+        887
+      ],
+      "exactRgbaPixelMatch": true,
+      "baseChecks": "Pass: eye-height inside dry valley; unarmoured young David with sling and staff; far Goliath and separate shield bearer; armies on opposed hills; no combat or modern objects.",
+      "basePouchCheck": "Close inspection reveals more than five stones in native base. Correct to exactly five in the bounded left-direction edit, then verify the assembled result.",
+      "basePreview": "art/work/qa/david-base-small.jpg",
+      "pouchPreview": "art/work/qa/david-pouch-small.jpg",
+      "directionChecks": {
+        "left": {
+          "status": "pass-final-correction",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e97c65be-7e1f-42de-8e43-29c66330e291.png",
+          "sourcePath": "art/sources/directions/david-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1900526,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "7d2b55b6d2b7598d730086bb16ace57641cce5d4",
+          "visualQA": "Exactly five stones confirmed in full native view: three rear, two front. Sixth partial front-left stone removed; dark leather now occupies that corner."
+        },
+        "front": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-04f57893-7fe1-4eed-aad6-6146e17a54bb.png",
+          "sourcePath": "art/sources/directions/david-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2209832,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "6213d13afe8adfcb0bd99a5735d5e26568307e46",
+          "visualQA": "Pass: original cropped David at far left, relaxed sling, cropped Goliath and spear at right, hills and creek stones retained in the same framing. Pouch remains correctly cropped with no added stones; fine texture strengthened without new objects."
+        },
+        "right": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c6a0b6e8-2def-43f2-8fa8-aac24a3852a6.png",
+          "sourcePath": "art/sources/directions/david-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2130126,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "23a7ef8dc8fd9b64fbcbcd611065b1da2af0c680",
+          "visualQA": "Pass: distant tall Goliath remains on the left with bronze armour, helmet, greaves and upright spear; separate shield bearer in front/right retains the round shield; army line and terrain match the reference. Fine bronze, rock and grass detail enhanced, peaceful stationary poses and borders retained."
+        },
+        "back": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b88ec042-55d0-4098-bbd3-f6977504030b.png",
+          "sourcePath": "art/sources/directions/david-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2657474,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "3c7a5f347e9eed38b18dfe8ac6f3fdde494f229e",
+          "visualQA": "Pass: same army continuation, ridges, central tree, shrubs, three visible sheep and creek terrain retained. Rock pores, dry grass, wool, foliage and soldiers are clearer; no new subjects or modern objects."
+        },
+        "up": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e1241043-15db-4832-a3f5-93d57d032eac.png",
+          "sourcePath": "art/sources/directions/david-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1582452,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "b6be00f84723020ac0ffaa86730ea1ee8602785a",
+          "visualQA": "Pass: the central radial cloud starburst is replaced by coherent irregular natural cloud detail. Blue sky, surrounding cloud layout, David crop, border weapons, leaves and army-edge crops remain in the original locations; no new objects, sun or halo."
+        },
+        "down": {
+          "status": "pass",
+          "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b890ff35-4ed7-49ad-b2e7-0c32342be968.png",
+          "sourcePath": "art/sources/directions/david-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2552578,
+          "encoding": "lossless WebP",
+          "exactRgbaPixelMatch": true,
+          "gitBlobSha": "d37fed539fad974d0aba942abf5c2bb6ea4b1ba4",
+          "visualQA": "Pass: same two sandal feet, cropped legs and staff at upper left; existing large stones, ground shadows and dry grass retained. The nadir radial pinch is replaced by coherent uneven dry earth and small pebbles, with no central swirl or added limbs."
+        }
+      },
+      "assemblyMethod": "Direct spherical assembly from six directions preserves the stone-count correction; native whole base is archived.",
+      "nativeBaseSource": "art/sources/david-panorama-native.webp",
+      "derivedBase": "art/sources/david-panorama.webp",
+      "assembledPouchPreview": "art/work/qa/david-assembled-pouch-small.jpg",
+      "final": {
+        "width": 4096,
+        "height": 2048,
+        "lossless": true,
+        "bytes": 9182546,
+        "sha256": "77958290101c2c59497b307b531121fc0f12b1af69479a1ad7d35895cf612b97"
+      }
+    }
+  }
+}

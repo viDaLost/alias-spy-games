@@ -1,0 +1,388 @@
+{
+  "format": "generative-direction-enhancement",
+  "created": "2026-10-10",
+  "generator": "Built-in ImageGen, local reference edits",
+  "output": {
+    "width": 4096,
+    "height": 2048,
+    "encoding": "lossless WebP"
+  },
+  "reference": {
+    "width": 1280,
+    "height": 1280,
+    "fieldOfView": 104,
+    "basePanoramas": {
+      "width": 1774,
+      "height": 887
+    },
+    "imagegenTechnicalReference": {
+      "width": 768,
+      "height": 768,
+      "encoding": "JPEG",
+      "purpose": "Compressed 104-degree perspective target; exact 1280px projection retained separately for spherical assembly."
+    }
+  },
+  "generatedDirections": {
+    "expectedWidth": 1254,
+    "expectedHeight": 1254
+  },
+  "recovery": {
+    "method": "Exact native lossless WebP git blob SHA matching against levels-assets-upload.json",
+    "originalPromptAvailability": "The original David and Daniel panorama prompts and six David direction prompts did not survive the prior environment cleanup. No exact prompt text is invented for those recovered images.",
+    "davidSceneConstraints": "Eye-level unarmoured David with sling, staff and pouch containing five stones; bronze-armoured Goliath; no active combat.",
+    "danielSceneConstraints": "Calm elderly Daniel praying in an ancient stone den with four calm lions and daylight entering the roof opening.",
+    "danielAssembly": "Six exact retained directions assembled using derive-base; derived 1774x887 base records its source and is not a new whole-scene generation.",
+    "davidReplacement": "Earlier David sources are unavailable; a new bounded single panorama and six direction edits are recorded here with their exact prompts."
+  },
+  "directions": [
+    {
+      "scene": "daniel",
+      "direction": "front",
+      "source": "sources/directions/daniel-front.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-front.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this FRONT view, keep Daniel at the left in the same humble robe and shawl, with the same face, gray beard, upright prayer posture and clasped hands; keep the reclining male lion to the lower right in exactly its original calm pose and location. Improve the existing face, hands, cloth and fur details without changing the pose, gaze, body anatomy, den opening or rocks. No additional people or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-front.png",
+        "sourcePath": "sources/directions/daniel-front.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2187892,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "a9aa2da2c092caf22ff8125afd8086cee59fa144",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same Daniel prayer pose at left, same resting male lion and den rocks; natural detailed fur, cloth, hands and stone; no new scene objects."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "right",
+      "source": "sources/directions/daniel-right.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-right.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this RIGHT view, keep the single visible lioness in exactly the original calm pose, location, size and gaze at the lower right, with the original lit stone ledges and den wall. Enhance only existing lioness fur, whiskers, facial details, rock texture, dust and straw. Do not add Daniel or any new animal to this view. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-right.png",
+        "sourcePath": "sources/directions/daniel-right.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2327320,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "9d11487efe0a30e604173741c4b3b057b17fdc92",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same calm single lioness at lower right and same rock wall geometry; enhanced natural fur, whiskers and mineral texture; no new objects."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "back",
+      "source": "sources/directions/daniel-back.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-back.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this BACK view, keep the large cropped resting male lion on the right and the reclining lioness farther away on the left in exactly their original calm poses, sizes and locations. Keep their visible paws and all rock ledges in place. Enhance existing fur, whiskers, eyes, paws, stone grains and straw without changing the animal count or adding objects. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-back.png",
+        "sourcePath": "sources/directions/daniel-back.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2335664,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "31dadf44ad50d3d55f06163a78809bd4e4660c93",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same cropped close male lion at right and distant resting lioness at left; paws, rock ledges and animal count retained with enhanced texture."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "left",
+      "source": "sources/directions/daniel-left.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-left.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this LEFT view, keep the close calm resting male lion on the left with the same face, gaze, mane, paws and crop; retain the existing cropped edge of Daniel's robe and body at the right border. Keep stone ledges, straw and dark cavities fixed. Enhance fine fur, whiskers, paw details, cloth weave and rock texture without adding objects or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-left.png",
+        "sourcePath": "sources/directions/daniel-left.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2284364,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "ce8b39c0d87f9cedbd208f5033d7ecc4d43c2bda",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: same close resting male lion at left and cropped Daniel robe at right; original paws, gaze and ledges retained; no new objects."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "up",
+      "source": "sources/directions/daniel-up.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-up.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this UP view, preserve the original rough stone ceiling, the daylight opening and its blue sky at the lower center, the existing rim plants, lighting and cropped portion of Daniel at the lower left. Repair only the unnatural radial pinch/starburst at the center caused by the spherical pole: replace it with natural coherent irregular stone texture and cracks matching the surrounding ceiling, with no central swirl, spokes or funnel. Keep the outer quarter, roof-opening silhouette and all visible figure geometry fixed. No new opening, sun, architecture, people or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-up.png",
+        "sourcePath": "sources/directions/daniel-up.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2226232,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "45af25d27c8a8988aa002eef49a8b154e4007e46",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: coherent irregular stone texture replaces the center pole pinch; original daylight opening, blue sky, rim plants, cropped Daniel and border geometry retained."
+      }
+    },
+    {
+      "scene": "daniel",
+      "direction": "down",
+      "source": "sources/directions/daniel-down.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/inputs/daniel-down.png",
+      "prompt": "Use case: precise-object-edit, generative super-resolution.\nImage 1 is the EXACT edit target: a square 104-degree perspective direction from an existing 360-degree biblical panorama of Daniel in the lions' den. Reconstruct the SAME view at the largest native square resolution with genuinely new fine photographic detail.\nPreserve the camera direction, projection, framing, all object positions, sizes and silhouettes, and all border geometry where adjacent spherical directions overlap. Keep the exact warm daylight and natural colours. Do not crop, zoom, shift perspective, move rocks or figures, add or remove objects, duplicate lions, invent architecture, or change any narrative clue. This is the calm ancient stone den with elderly Daniel peacefully praying, four calm lions in the complete panorama, and daylight entering the existing roof opening.\nRestore crisp natural stone pores, cracks and mineral edges, dust grains and existing dry straw, realistic lion fur and whiskers, cloth weave and leather wherever already visible. Sharp photographic deep focus throughout with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines.\nIn this DOWN view, preserve the existing stone-and-earth den floor with dry straw, the edge of Daniel's robe and sandal feet at upper left, the calm lion's existing forepaws at right, and the cropped lion fur at the bottom border. Repair only the unnatural radial starburst at the center caused by the spherical pole: replace it with natural coherent uneven rock, dust and sparse straw, with no circular swirl, center spokes or funnel. Keep the outer quarter and every existing figure and paw fixed. Add no objects, feet, paws or animals. Preserve the 1:1 square canvas; no text, watermark, frame or UI.",
+      "status": "generated-inspected-and-restored",
+      "generated": {
+        "source": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/generated/daniel-down.png",
+        "sourcePath": "sources/directions/daniel-down.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2414594,
+        "encoding": "lossless WebP",
+        "gitBlobSha": "adb9721d5e6b406c559169eb491a6d7b4dd6665a",
+        "recovery": "Exact built-in ImageGen PNG bytes retained in functions.store; no regeneration",
+        "decodedPixelsEqualGeneratedPNG": true,
+        "visualQA": "Pass: natural rock, dust and straw replace the center starburst; original sandals, robe, lion forepaws and cropped fur retained; no added paws or objects."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "left",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square LEFT view, a 104-degree perspective direction used in a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target. It is the left-facing 104-degree projection of the already created David and Goliath panorama; the 768-pixel JPEG is a compressed technical reference, not an invitation to redesign the scene.\nReconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail: crisp linen weave, supple leather, sling cords, wooden grain, natural rock pores, dry grass, distant shrubs and army equipment. Preserve camera, field of view, framing, perspective, every silhouette, object location and size, warm daylight, colours and outer-quarter border geometry so overlapping sphere directions still match. David remains the same unarmoured young shepherd standing at the right, holding the same vertical wooden staff and loose leather sling before his throw; keep his face, limbs, tunic, sandals and calm pose. Keep the existing sheep, creek bed, hillside army and all existing landscape where they are.\nONE REQUIRED COUNT CORRECTION: In David's existing open waist pouch show EXACTLY FIVE distinct smooth pale rounded creek stones, clearly countable: THREE in the rear row and TWO in the front row, no extra stone rims or hidden stone behind them. Remove only the excess stones currently in that pouch, keeping the pouch shape and position, belt, hand and surrounding cloth unchanged. Do not put a stone in his hand. Preserve the correct five-stone clue on the final view.\nOutside that precise pouch correction, change only fine texture. No crop, zoom, new people, new animals, changed armour, flying stone, fighting, injury, new architecture or modern objects. Sharp photographic deep focus; avoid waxy surfaces, painted smears, haze, sharpening halos, cartoon edges. Preserve square canvas with no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-left-reference.jpg",
+      "source": "sources/directions/david-left.webp",
+      "status": "superseded-count-six",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-left-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-36bfdc26-b4e0-442a-8c5a-18081f095c26.png",
+        "sourcePath": "art/sources/directions/david-left.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2225288,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "dbe72c3835c6eb9f18eda9d4cdd51e305ded1dc6",
+        "visualQA": "Close assembled crop revealed SIX visible stones, not five. The small preview was counted incorrectly. One targeted correction of the partially visible front-left stone is recorded next."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "front",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square FRONT view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail, while preserving the camera, field of view, framing, colours, lighting, all silhouettes, object locations and sizes, and the outer-quarter border geometry for overlapping sphere views.\nThis is the peaceful pre-throw moment of David facing Goliath in the Valley of Elah. Keep the exact cropped unarmoured David on the far left, same arm, plain tunic, belt, pouch, sandal, resting leather sling and crop; the exact cropped distant armoured Goliath and upright spear at far right; and every existing hillside, shrub, creek-bed rock and shadow. Do not move either figure to include more of them. Enhance natural cloth weave, leather and sling cords, bronze and spear wood where present, limestone grains, dry grass and distant landscape detail.\nCount invariant: the complete open pouch on David contains exactly FIVE smooth rounded stones, three in the rear row and two in front, as established by the corrected matching LEFT direction. Here the pouch is cut by the left border; retain only the corresponding visible portion, with no added stone or extra stone rim. Do not extend or reposition the crop or put a stone in his hand.\nOutside that small pouch correction, change only fine texture. No crop, zoom, new people or animals, fighting, injuries, flying stones, new architecture or modern objects. Sharp photographic deep focus with no waxy surfaces, painted smears, haze, sharpening halos or graphic outlines. Preserve the square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-front-reference.jpg",
+      "source": "sources/directions/david-front.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-front-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-04f57893-7fe1-4eed-aad6-6146e17a54bb.png",
+        "sourcePath": "art/sources/directions/david-front.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2209832,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "6213d13afe8adfcb0bd99a5735d5e26568307e46",
+        "visualQA": "Pass: original cropped David at far left, relaxed sling, cropped Goliath and spear at right, hills and creek stones retained in the same framing. Pouch remains correctly cropped with no added stones; fine texture strengthened without new objects."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "right",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square RIGHT view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 view at native 1254 by 1254 with new fine photographic detail. Preserve the camera direction, 104-degree field of view, framing, perspective, colours, warm clear daylight, every silhouette and object position and size, and the outer-quarter border geometry so neighbouring sphere directions remain aligned.\nKeep the existing distant tall bronze-armoured Goliath and his SEPARATE shield bearer, their exact proportions, poses, locations and equipment. Goliath keeps the bronze helmet, scale armour, greaves, upright spear and sheathed sword. The man in front keeps his existing large round shield. Preserve all existing soldiers in the hillside army line, ridge silhouette, sparse shrubs, shadows, dry creek rocks and ground. Restore crisp natural bronze scale edges and patina, leather straps, wooden spear grain, cloth weave, distant army detail, rock pores and dry grass. All subjects stay peaceful and stationary before David's throw.\nChange only fine texture; do not crop, zoom, shift the perspective, bring characters nearer, add or remove figures, duplicate shields or weapons, invent architecture, add modern objects, or change any narrative clue. Do not add David to this view if he is not in the original target. No attacks, injuries or flying stone. Sharp photographic deep focus without waxy surfaces, painted smears, haze, sharpening halos or graphic outlines. Preserve square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-right-reference.jpg",
+      "source": "sources/directions/david-right.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-right-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c6a0b6e8-2def-43f2-8fa8-aac24a3852a6.png",
+        "sourcePath": "art/sources/directions/david-right.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2130126,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "23a7ef8dc8fd9b64fbcbcd611065b1da2af0c680",
+        "visualQA": "Pass: distant tall Goliath remains on the left with bronze armour, helmet, greaves and upright spear; separate shield bearer in front/right retains the round shield; army line and terrain match the reference. Fine bronze, rock and grass detail enhanced, peaceful stationary poses and borders retained."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "back",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement.\nAsset type: native 1254 by 1254 square BACK view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 view at native 1254 by 1254 with genuinely new fine photographic detail. Preserve the camera direction, field of view, framing, perspective, natural colours, warm clear daylight, every object position, size and silhouette, and the outer-quarter border geometry so adjacent sphere views overlap coherently.\nThis is the rear direction behind the eye-height player inside the Valley of Elah before David's throw. Keep every existing hillside, visible opposed-army continuation, ancient limestone boulder, sparse tree, bush, dry grass, sheep and stony dry creek bed exactly where they appear. Restore crisp natural rock grains and pores, dry grass filaments, leaves and bark, sheep wool where already present, distant cloth and army equipment, and fine natural cloud texture. Maintain plausible human scale and deep focus from the nearby stones to distant hills.\nChange only fine texture. Do not crop, zoom, shift perspective, flatten or alter ridges, add or remove soldiers or sheep, invent camps or architecture, add David or Goliath if not in the target, or introduce modern objects or new narrative clues. No active fight, injury, flying stone or blood. Sharp photographic realism without waxy surfaces, painted smears, haze, sharpening halos or graphic outlines. Preserve square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-back-reference.jpg",
+      "source": "sources/directions/david-back.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-back-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b88ec042-55d0-4098-bbd3-f6977504030b.png",
+        "sourcePath": "art/sources/directions/david-back.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2657474,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "3c7a5f347e9eed38b18dfe8ac6f3fdde494f229e",
+        "visualQA": "Pass: same army continuation, ridges, central tree, shrubs, three visible sheep and creek terrain retained. Rock pores, dry grass, wool, foliage and soldiers are clearer; no new subjects or modern objects."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "up",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement and pole repair.\nAsset type: native 1254 by 1254 square UP view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 upward-facing view at native 1254 by 1254 with new fine photographic detail. Preserve the camera direction and field of view, original framing, warm morning daylight, blue sky colour, surrounding cloud positions and shapes, and all object silhouettes and outer-quarter border geometry where adjoining sphere views overlap.\nThe player is on the ground at eye height inside the Valley of Elah before David's throw. Keep exactly the existing cropped portions of David, his staff or spear where shown, tree leaves and branches, distant ridges and army-edge crops at the borders. Do not enlarge or shift these crops. Restore natural cotton-like fine detail and soft irregular edges within the existing clouds, foliage texture and existing cloth or wood only where visible.\nRepair only the unnatural central radial starburst or pinched cloud pattern created by the spherical zenith. Replace that centre artifact with coherent natural blue sky and irregular cloud detail that follows the existing surrounding sky, with no central swirl, spokes, funnel, halo or new sun. Keep the outer quarter of the image, existing cloud geometry away from the centre and every border figure fixed.\nDo not crop, zoom, change viewpoint, add or remove people or objects, invent clouds or narrative clues, add David's face or weapons outside the existing crop, add modern objects, text, watermark, frame or UI. Photographic realism, sharp but natural, no painted smears, fake outlines or sharpening halos. Preserve square canvas.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-up-reference.jpg",
+      "source": "sources/directions/david-up.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-up-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e1241043-15db-4832-a3f5-93d57d032eac.png",
+        "sourcePath": "art/sources/directions/david-up.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1582452,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "b6be00f84723020ac0ffaa86730ea1ee8602785a",
+        "visualQA": "Pass: the central radial cloud starburst is replaced by coherent irregular natural cloud detail. Blue sky, surrounding cloud layout, David crop, border weapons, leaves and army-edge crops remain in the original locations; no new objects, sun or halo."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "down",
+      "prompt": "Use case: precise-object-edit, generative detail enhancement and pole repair.\nAsset type: native 1254 by 1254 square DOWN view, a 104-degree perspective direction for a spherical biblical game panorama.\nInput image 1 is the ONLY EXACT edit target, a compressed technical projection. Reconstruct this SAME 1:1 downward-facing view at native 1254 by 1254 with genuinely new fine photographic detail. Preserve the camera direction and field of view, original framing, all existing object positions, sizes and silhouettes, the warm daylight and exact shadows, and the outer-quarter border geometry for adjoining sphere views.\nThis is the ground directly beneath the eye-height player in the dry Valley of Elah before David's throw. Keep the existing cropped legs, sandals, robe edge and wooden staff of David at the upper left, the existing rocks, creek pebbles, sparse dry grass and sand exactly where visible. Keep every human limb and foot count unchanged. Restore fine limestone pores, smooth pebble texture, dust grains, dry grass filaments, sandal leather and cloth only where already present.\nRepair only the unnatural central radial pinch or starburst in the ground caused by the spherical nadir. Replace that centre artifact with coherent naturally uneven dry earth, small creek pebbles and sparse dry grass matching the surrounding floor. No central spokes, swirl, circular seam, funnel or artificial centre rock. Keep the outer quarter and every existing cropped foot, robe, staff and large boulder unchanged.\nDo not crop, zoom, shift perspective, move stones at borders, add or remove people, add feet, paws, sheep or weapons, add modern objects, introduce fighting or injury, or change any narrative clue. Sharp photographic realism, no painted smears, waxy surfaces, harsh sharpening halos or graphic outlines. Preserve square canvas; no text, watermark, frame or UI.",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-down-reference.jpg",
+      "source": "sources/directions/david-down.webp",
+      "status": "generated-inspected",
+      "parameters": {
+        "referenced_image_paths": [
+          "/workspace/scratch/e03eb0da42dd/bibleworld-levels/easy-b/david-down-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b890ff35-4ed7-49ad-b2e7-0c32342be968.png",
+        "sourcePath": "art/sources/directions/david-down.webp",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 2552578,
+        "encoding": "lossless WebP",
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "d37fed539fad974d0aba942abf5c2bb6ea4b1ba4",
+        "visualQA": "Pass: same two sandal feet, cropped legs and staff at upper left; existing large stones, ground shadows and dry grass retained. The nadir radial pinch is replaced by coherent uneven dry earth and small pebbles, with no central swirl or added limbs."
+      }
+    },
+    {
+      "scene": "david",
+      "direction": "left",
+      "status": "generated-inspected-final",
+      "prompt": "Use case: precise-object-edit. Edit target: the attached square native direction view for a biblical 360 panorama. Make ONE tiny correction inside David's open leather pouch at his waist: there are currently SIX pale stones, including a small partially visible sixth stone at the front-left inner corner of the pouch. Remove ONLY that small partially visible front-left stone and reveal the dark leather interior in its place. Leave EXACTLY FIVE separately countable smooth stones, arranged as THREE stones in the rear row and TWO stones in the front row. Do not add another pebble. Keep the other five stones' shapes and positions, pouch, belt, tunic, man's cropped body, hands, wooden staff, sheep, soldiers, landscape, perspective, horizon, image borders and lighting unchanged. Preserve sharp photorealistic fine detail. Output one square high-detail image, no text, no panels, no new objects. This is a surgical count correction, not a scene redesign.",
+      "parameters": {
+        "referenced_image_paths": [
+          "art/work/david-left-correction-reference.jpg"
+        ],
+        "transparent_background": false
+      },
+      "generated": {
+        "sourcePath": "art/sources/directions/david-left.webp",
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e97c65be-7e1f-42de-8e43-29c66330e291.png",
+        "width": 1254,
+        "height": 1254,
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "7d2b55b6d2b7598d730086bb16ace57641cce5d4",
+        "visualQA": "Exactly five visible stones: three rear, two front. Sixth front-left stone removed. Other scene subjects and composition retained."
+      }
+    }
+  ],
+  "updated": "2026-10-11",
+  "panoramas": [
+    {
+      "scene": "daniel",
+      "kind": "derived-from-directions",
+      "source": "sources/daniel-panorama.webp",
+      "provenance": "sources/daniel-source.json",
+      "nativeDirections": [
+        1254,
+        1254
+      ],
+      "derivedBase": [
+        1774,
+        887
+      ],
+      "exactPromptAvailable": false,
+      "status": "assembled-inspected"
+    },
+    {
+      "scene": "david",
+      "kind": "new-native-whole-panorama",
+      "prompt": "Use case: historical-scene.\nAsset type: an immersive 360-degree environment texture for a biblical exploration game.\nPrimary request: Create one continuous, photorealistic 2:1 equirectangular panorama (full 360 degrees horizontally and 180 degrees vertically), target native canvas 1774 by 887 pixels, of the Valley of Elah immediately BEFORE David throws his sling in 1 Samuel 17.\nCamera and composition: The viewer stands on the ground at human eye height, 1.6 metres, INSIDE the valley near young David, not on a hill or above the scene. True spherical equirectangular mapping: the horizon stays at the middle, upper edge is the zenith and lower edge the ground nadir, left and right edges join seamlessly. Keep the main narrative clues near the middle longitudes, away from the wrap and poles. No aerial, bird's-eye or drone view. The user should feel physically present among the landscape.\nScene and subjects: A young ancient Israelite shepherd David stands close by, about 2.5 metres in front of the viewer, slightly left of the central viewing direction. He wears a plain short woven tunic and leather sandals, with NO armour and NO helmet. He holds one shepherd's wooden staff and an unmistakable simple leather sling hanging loosely, at rest before the throw. His open shepherd's leather pouch at waist level visibly contains EXACTLY FIVE separate rounded smooth pale creek stones, each countable and unobscured; show no additional stone in his hand. David's face is calm and focused. Across the dry stony creek bed, at a much greater distance, stands the tall bronze-armoured Goliath with bronze helmet, scale armour, greaves, spear and sword still sheathed; his shield bearer is a separate man in front of him carrying the large shield. Two coherent army lines wait on opposite sides of the broad valley: Israelites on one slope and Philistines on the opposing slope. The nearby creek is dry, strewn with naturally smooth stones. Dry grass, ancient limestone rocks, low Judean hills and sparse shrubs surround the viewer in all directions.\nStyle: Natural cinematic historical photography, physically believable scale and anatomy, warm clear morning daylight, detailed woven cloth, leather, bronze, fine rock grains and dry grass. Sharp deep focus without painted smears or haze.\nConstraints: Peaceful tense pre-throw moment only; nobody attacking, nobody injured, no flying stone, no blood. Preserve the exact identifiable clues: unarmoured young David, sling, staff, FIVE visible stones in the pouch, distant armoured Goliath and his shield bearer, opposed army lines and dry creek. No modern objects, modern buildings, cross symbols, captions, letters, text, title, logos, watermark, frame, UI, or multiple panels. One seamless spherical environment, not a flat wide landscape.",
+      "status": "generated-inspected-archived-native-count-correction-required",
+      "source": "sources/david-panorama-native.webp",
+      "requestedNativeSize": [
+        1774,
+        887
+      ],
+      "generated": {
+        "kind": "native-whole-panorama",
+        "generator": "Built-in ImageGen",
+        "nativeFile": "/workspace/scratch/e03eb0da42dd/generated_images/exec-d79aca88-c046-4ced-a3fc-4416f922d832.png",
+        "nativeWidth": 1774,
+        "nativeHeight": 887,
+        "sourceSeamBlend": 0.035,
+        "exactRgbaPixelMatch": true,
+        "gitBlobSha": "9745220f8dbc741a6d08cc68e10d8d4a6f48f3a4",
+        "bytes": 2305054
+      },
+      "derivedRuntimeBase": "sources/david-panorama.webp"
+    },
+    {
+      "scene": "david",
+      "kind": "derived-from-directions",
+      "source": "sources/david-panorama.webp",
+      "provenance": "sources/david-source.json",
+      "nativeDirections": [
+        1254,
+        1254
+      ],
+      "derivedBase": [
+        1774,
+        887
+      ],
+      "status": "assembled-inspected",
+      "note": "Direct spherical assembly preserves the exactly five stones established in the left enhancement; high-frequency residual blending with the native whole panorama would retain its extra stones."
+    }
+  ]
+}

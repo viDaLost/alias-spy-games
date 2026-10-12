@@ -1,0 +1,319 @@
+{
+  "status": "passed",
+  "reviewedAt": "2026-10-12T14:26:45.523Z",
+  "toolMode": "Builtin ImageGen only; native PNGs encoded to pixel-lossless WebP without resize",
+  "generationCheckpoint": "8c20e0a092e35f565f71f6655bfa6b7d24bfbbf2",
+  "build": {
+    "script": "art/build-4k.mjs",
+    "sourceSeamBlend": 0,
+    "detailConfidenceMin": 5,
+    "detailConfidenceRange": 25,
+    "sharp": "0.35.4",
+    "outputEncoding": "lossless WebP",
+    "sourceBaseDimensions": [
+      1774,
+      887
+    ],
+    "nativeCameraFov": 104,
+    "qaCameraFov": 78
+  },
+  "scenes": [
+    {
+      "id": "carmel",
+      "status": "passed",
+      "output": {
+        "file": "public/assets/carmel-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "bytes": 8548192,
+        "sha256": "6de01fea3c89d1bf143883caebbd749169c08b6c97d7abc14e2f930d53ca7370"
+      },
+      "source": {
+        "file": "art/sources/carmel-panorama.webp",
+        "kind": "generatively-repaired",
+        "nativeDirectionsPreserved": true
+      },
+      "nativeDirections": [
+        {
+          "direction": "back",
+          "file": "art/sources/directions/carmel-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2344778,
+          "sha256": "cfe131b82d8414e8146778adc7014aa23b3e48abe2703650e1bf0a4f179a0159",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "left",
+          "file": "art/sources/directions/carmel-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2281454,
+          "sha256": "261cd066124a24e5428fe9d7a891290471ded806536eedc350ff72922f756030",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "up",
+          "file": "art/sources/directions/carmel-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1610108,
+          "sha256": "e56f815c2525d63484ec51f7f4b2a27adadb00b54e607934a51f1b9a3f26752a",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "down",
+          "file": "art/sources/directions/carmel-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2226324,
+          "sha256": "a77cca28c0276c34f688ff94b7bac440f9354d325e16685e650f38ee8ecdeb0d",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "front",
+          "file": "art/sources/directions/carmel-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2311674,
+          "sha256": "07ecf593a5ee5caa2162f7c47c9c6b28c1868cd050253d185e4b76600317b094",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "right",
+          "file": "art/sources/directions/carmel-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2337976,
+          "sha256": "a3993051267b7a5570c07cf169d5d938ead42505feb2753b2e5db89a3b78cc50",
+          "checkpointIntegrity": "matched"
+        }
+      ],
+      "qaViews": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down",
+        "front-right",
+        "back-right",
+        "back-left",
+        "front-left",
+        "front-up",
+        "back-up",
+        "front-down",
+        "back-down",
+        "wrap-negative",
+        "wrap-positive"
+      ],
+      "contactGrid": {
+        "columns": 4,
+        "rows": 4,
+        "tileSize": 160,
+        "viewOrder": [
+          "front",
+          "right",
+          "back",
+          "left",
+          "up",
+          "down",
+          "front-right",
+          "back-right",
+          "back-left",
+          "front-left",
+          "front-up",
+          "back-up",
+          "front-down",
+          "back-down",
+          "wrap-negative",
+          "wrap-positive"
+        ]
+      },
+      "wrapDiagnostics": {
+        "meanAbsoluteDifference": 10.814453125,
+        "adjacentColumnMeanAbsoluteDifference": 4.604817708333333,
+        "note": "Recorded diagnostic values; visual wrap comparison against native back view is the acceptance check."
+      },
+      "checks": [
+        {
+          "name": "story clues",
+          "status": "passed",
+          "details": "Single retained Elijah; low two-course unhewn altar with twelve-stone prompt invariant; four dedicated altar water jars; full wet trench; kneeling and bowing crowd; no visible sacrificed animal."
+        },
+        {
+          "name": "fire continuity",
+          "status": "passed",
+          "details": "Connected front flame and front-up plume; retained zenith face has no new discontinuity.",
+          "evidence": [
+            "art/qa/medium-a/carmel-texture-front-up.jpg"
+          ]
+        },
+        {
+          "name": "join ghosts",
+          "status": "passed",
+          "details": "Observed duplicate jars and people removed; conservative matching-detail transfer avoids reintroducing broad silhouettes.",
+          "evidence": [
+            "art/qa/medium-a/carmel-texture-front-right.jpg"
+          ]
+        },
+        {
+          "name": "sphere and wrap",
+          "status": "passed",
+          "details": "Six cardinal views, four 45 degree horizon joins, upper/lower transition views and both sides of horizontal wrap reviewed. Pole views contain natural sky/ground without radial wedges or starbursts; wrap preserves the retained back-camera composition.",
+          "evidence": [
+            "art/qa/medium-a/carmel-texture-contact.jpg",
+            "art/qa/medium-a/carmel-texture-wrap-negative.jpg"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gideon",
+      "status": "passed",
+      "output": {
+        "file": "public/assets/gideon-360-v1-4k.webp",
+        "width": 4096,
+        "height": 2048,
+        "bytes": 8964368,
+        "sha256": "4d24708612b5988a2a5df82404f9d00fa47565d8d80a8aa65c5a8e8bf1ded12c"
+      },
+      "source": {
+        "file": "art/sources/gideon-panorama.webp",
+        "kind": "generatively-repaired",
+        "nativeDirectionsPreserved": true
+      },
+      "nativeDirections": [
+        {
+          "direction": "back",
+          "file": "art/sources/directions/gideon-back.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1976574,
+          "sha256": "f74708b78442978d6e9dab7f4424b73a42f5b385fc91612a6e41dfe2ef2a0beb",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "left",
+          "file": "art/sources/directions/gideon-left.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2081084,
+          "sha256": "6fbfb1fd17bc3696ebf7429255bcdec67592f93776ca8f07d569ee9fd7688f1c",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "front",
+          "file": "art/sources/directions/gideon-front.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1949638,
+          "sha256": "638b1a0414252c15392ec569de41930ea208fa1b3715b0979138fd4264b7a0e4",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "right",
+          "file": "art/sources/directions/gideon-right.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2372968,
+          "sha256": "13462ec0d00d7743f610c44902afe2cfd7e023254b304d01fb34c17693a013ec",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "up",
+          "file": "art/sources/directions/gideon-up.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1801762,
+          "sha256": "bb73e9ce83e5e042fa283e0ca0a181ded498b9d1f98f65525e52c6fb9aa27fe0",
+          "checkpointIntegrity": "matched"
+        },
+        {
+          "direction": "down",
+          "file": "art/sources/directions/gideon-down.webp",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 2555320,
+          "sha256": "94c35ca5270b855112ab01f9775df9cae99d6b950a16f70f5cf4dc0ce8b2f101",
+          "checkpointIntegrity": "matched"
+        }
+      ],
+      "qaViews": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down",
+        "front-right",
+        "back-right",
+        "back-left",
+        "front-left",
+        "front-up",
+        "back-up",
+        "front-down",
+        "back-down",
+        "wrap-negative",
+        "wrap-positive"
+      ],
+      "contactGrid": {
+        "columns": 4,
+        "rows": 4,
+        "tileSize": 160,
+        "viewOrder": [
+          "front",
+          "right",
+          "back",
+          "left",
+          "up",
+          "down",
+          "front-right",
+          "back-right",
+          "back-left",
+          "front-left",
+          "front-up",
+          "back-up",
+          "front-down",
+          "back-down",
+          "wrap-negative",
+          "wrap-positive"
+        ]
+      },
+      "wrapDiagnostics": {
+        "meanAbsoluteDifference": 9.415690104166666,
+        "adjacentColumnMeanAbsoluteDifference": 4.906412760416667,
+        "note": "Recorded diagnostic values; visual wrap comparison against native back view is the acceptance check."
+      },
+      "checks": [
+        {
+          "name": "story clues",
+          "status": "passed",
+          "details": "Night ridge above tent encampment; men stationary; anatomical right-hand ram horns and left-hand torches; shattered clay jars; no drawn blades or charge.",
+          "evidence": [
+            "art/qa/medium-a/gideon-texture-front.jpg",
+            "art/qa/medium-a/gideon-texture-down.jpg"
+          ]
+        },
+        {
+          "name": "join ghosts",
+          "status": "passed",
+          "details": "Translucent duplicated figures, limbs and torches observed in direct stitch removed from repaired base; final conservative matching-detail transfer retains solid silhouettes.",
+          "evidence": [
+            "art/qa/medium-a/gideon-texture-front-right.jpg",
+            "art/qa/medium-a/gideon-texture-back-right.jpg"
+          ]
+        },
+        {
+          "name": "sphere and wrap",
+          "status": "passed",
+          "details": "Six cardinal views, four 45 degree horizon joins, upper/lower transition views and both sides of horizontal wrap reviewed. Pole views contain natural sky/ground without radial wedges or starbursts; wrap preserves the retained back-camera composition.",
+          "evidence": [
+            "art/qa/medium-a/gideon-texture-contact.jpg",
+            "art/qa/medium-a/gideon-texture-wrap-positive.jpg"
+          ]
+        }
+      ]
+    }
+  ]
+}

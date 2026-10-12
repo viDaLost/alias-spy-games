@@ -1,0 +1,182 @@
+{
+  "owner": "medium-b",
+  "scene": "philip",
+  "status": "passed",
+  "reviewedAt": "2026-10-11T05:20:46.006Z",
+  "tool": "built-in image_gen",
+  "encoder": "sharp@0.35.4",
+  "sourceCheckpoint": {
+    "branch": "feat/bible-world-assets-medium-b",
+    "head": "1dca63b64551afcb76d23f5ce3b4978539bcbc76",
+    "tree": "d909e359e08126d42c77c258881a1639d5b5ba95"
+  },
+  "base": {
+    "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/philip-panorama.webp",
+    "width": 1774,
+    "height": 887,
+    "reusedOriginal": true,
+    "pixelExactLossless": true,
+    "sha256": "8b33579ca14b93d89816dfcca3b52a44b4d54482e559b8e45718fbe1f2e49625"
+  },
+  "directionSources": [
+    {
+      "direction": "front",
+      "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-front.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-front-reference-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-front.png",
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "pixelExactLossless": true,
+      "sha256": "6e3a8ea69af263f7eb472d9e9d0c282508419af817939bd7e15a05829cad7b3b",
+      "bytes": 2079122
+    },
+    {
+      "direction": "right",
+      "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-right.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-right-reference-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-right.png",
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "pixelExactLossless": true,
+      "sha256": "ab0db0b0fe8f9b985225a973683eb69225fdee489f8b07faf26f61208a141a35",
+      "bytes": 2470220
+    },
+    {
+      "direction": "back",
+      "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-back.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-back-reference-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-back.png",
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "pixelExactLossless": true,
+      "sha256": "fc529e5bbb608342a65ebec4e2f961502bcd9b046f8de25c46d6bf7d73d89a5d",
+      "bytes": 2485496
+    },
+    {
+      "direction": "left",
+      "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-left.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-left-reference-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-left.png",
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "pixelExactLossless": true,
+      "sha256": "778b6a60bb8adc2d323be49e56a77a3b4b66b069d83a711af7dc391071485078",
+      "bytes": 2134726
+    },
+    {
+      "direction": "up",
+      "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-up.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-up-reference-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-up.png",
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "pixelExactLossless": true,
+      "sha256": "6b97997ec97d36fd9ff89b46ef0b9d54b66071199d7eb67c5206a68aa3ca4a27",
+      "bytes": 1686864
+    },
+    {
+      "direction": "down",
+      "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/philip-down.webp",
+      "reference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-down-reference-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "projectionReference": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/inputs/philip-down.png",
+      "projectionReferenceSize": [
+        1280,
+        1280
+      ],
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "pixelExactLossless": true,
+      "sha256": "246b765c1ec53cb61b6bc0f68f7c62bbb1a72628c7b23bc1c1929087197878f4",
+      "bytes": 2296844
+    }
+  ],
+  "final": {
+    "file": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/public/assets/philip-360-v1-4k.webp",
+    "width": 4096,
+    "height": 2048,
+    "channels": 3,
+    "bytes": 9404450,
+    "sha256": "f6b4c9c59cfbf24d2c28c187a9ba86b3fe396e49d48c9cbcbc3013d97030e9a0",
+    "lossless": true,
+    "edgeSeamMeanAbsoluteDelta": 7.593587239583333,
+    "adjacentColumnMeanAbsoluteDelta": 7.497233072916667,
+    "qaPaths": [
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-panorama-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-compare-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-final-left-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-final-up-thumb.jpg",
+      "/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium/qa/philip-final-down-thumb.jpg"
+    ],
+    "builtAt": "2026-10-11T05:19:52.401Z",
+    "encoding": "lossless WebP",
+    "buildCommand": "PANORAMA_WORK_DIR=/workspace/scratch/e03eb0da42dd/bibleworld-levels/medium node art/build-4k.mjs build philip"
+  },
+  "visualChecks": {
+    "front": "Dark-skinned Ethiopian official remains seated on the wooden chariot, holding the unfolded unreadable Isaiah scroll. Philip remains beside him in a plain ancient tunic and brown cloak, with the same explaining gesture and gaze.",
+    "right": "Clearly visible freshwater spring, reeds and accessible rocky bank preserve the Acts 8 baptism context. Dry Judean valley, rocks and natural afternoon light remain consistent.",
+    "back": "Road continues past distant travelers and their animals, with the chariot horses and connected water. No visible hard wrap seam.",
+    "left": "Two horses, simple period harness, driver, wooden wheel, rails and canopy remain at their original positions.",
+    "up": "Artificial central radial sky starburst replaced with natural irregular clouds. Canopy, posts, partial heads, sun and tree edges remain at the original surrounding positions.",
+    "down": "Artificial central radial ground starburst replaced with natural dust, gravel and stones. Wooden wheel, travel jar, woven roll, leather bag, sandals and water edges remain at their original surrounding positions.",
+    "continuity": "Reviewed all six native source thumbnails, 768-wide spherical panorama and before/after comparison, and final 640-square left/up/down views. Lighting stays coherent and no rectangular face border or abrupt wrap seam is visible.",
+    "storyConstraints": "Official, Philip, wooden chariot, unreadable scroll, nearby water and distributed road/travel clues remain recognizable. No crown, pyramid, magic glow, modern props, labels or UI."
+  },
+  "textureImprovement": "Fine woven cloth, embroidery, skin, hair, woodgrain, leather, stone, reeds and water detail is visibly stronger while broad composition and color stay anchored to the retained base.",
+  "recovery": "Every generated native face was stored as a complete image data URL in functions.store, saved as a lossless local WebP, and remotely committed with verified local Git blob SHA before the next generation."
+}

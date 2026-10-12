@@ -1,0 +1,493 @@
+{
+  "owner": "hard-a",
+  "format": "generative-direction-enhancement",
+  "generator": "Built-in ImageGen",
+  "encoding": "lossless WebP",
+  "sharpVersion": "0.35.4",
+  "created": "2026-10-10",
+  "calls": [
+    {
+      "key": "fleece-front",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "front",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-front.png",
+      "destination": "art/sources/directions/fleece-front.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The front view has a large patch of completely DRY white sheep fleece filling the lower foreground; Gideon's existing robe, arm and hovering hand are at left. Preserve the exact shape and placement of the fluffy fleece and the hovering hand. Resolve fine separated wool curls into airy matte dry fibres with no drops, shine, clumping or dripping. All surrounding exposed dark threshing-floor stones remain wet with morning dew and reflections right up to the fleece's edge. Preserve the existing low stone wall, hills and dawn sky.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-b9a404f6-83c4-4f4e-9d6d-51cde4a7c2fb.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:52.266Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-front.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-right",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "right",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-right.png",
+      "destination": "art/sources/directions/fleece-right.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The right view has the existing edge of the completely DRY white fleece at lower left, wet stones, a low rough stone wall and the existing wooden threshing tool at right. Preserve all exact objects and positions, the tool's timber and bindings, existing straw, stone houses, trees, hills and dawn light. Improve dry airy matte wool curls and individual dew beads on surrounding exposed stones; do not place dew or water on the fleece.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-3c651b9d-a062-42f9-b6a9-a7f393c90942.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:41.467Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-right.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-back",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "back",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-back.png",
+      "destination": "art/sources/directions/fleece-back.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The back view has the existing wooden threshing tool at left, low stone wall, clay vessel, trees and stone houses. Preserve this exact arrangement and count, all contours, the wet stone paving and scattered existing straw and grass. Restore natural fine stone pores, wood grain, rope fibres, straw and dew beads on the floor. Do not add a person or fleece here; the one Gideon and one fleece stay in their existing positions elsewhere in the sphere.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f45062e5-a06e-4950-9acc-a5b9748877e3.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:44.105Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-back.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-left",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "left",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-left.png",
+      "destination": "art/sources/directions/fleece-left.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: The left view has Gideon's existing cropped robe, knee, forearm and sandal at right, the completely DRY white fleece edge at lower right, surrounding wet stone paving, stone wall, houses and trees. Preserve this exact framing and every contour, identity, pose and object count. Resolve natural fabric fibres and fine skin detail, airy matte dry wool curls without wet shine or droplets, and clearly wet dew-covered dark stones everywhere immediately around it.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-f1ea516d-ec46-49c4-8d15-95dd5debc91c.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:46.251Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-left.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-up",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "up",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-up.png",
+      "destination": "art/sources/directions/fleece-up.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: This is the UP direction looking straight overhead. Repair ONLY the unnatural radial starburst at the central sky pole into coherent natural pink-grey dawn clouds with no spokes or swirl. Preserve the outer quarter of the image and ALL existing silhouettes, Gideon's cropped head and robe at lower left, the existing sun near the lower right edge, tree branches, buildings, hills and horizon. Match the existing dawn sky colours and cloud arrangement. Do not add a second sun, new buildings, branches or people; do not move any outer object or alter Gideon's identity.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-022160a9-c492-43fe-b486-3a1813c5483e.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:48.255Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-up.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-down",
+      "scene": "fleece",
+      "stage": "direction",
+      "face": "down",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/fleece-down.png",
+      "destination": "art/sources/directions/fleece-down.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-10T13:35:48.596Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET. Return a SQUARE image matching its full 1:1 composition at the largest native square resolution.\nPrimary request: reconstruct this SAME view with the highest photorealistic fine detail: individual wool curls and fabric fibres, natural pores, stone grains, timber grain, straw, foliage and countless small dew beads wherever those existing materials occur. The reference is a spherical reprojection; preserve its exact perspective and ALL composition geometry. Keep deep-focus natural photographic clarity from centre to edges, with no plastic smoothing, painterly smears or sharpening halos.\nBible event: Judges 6:36–40, Gideon inspecting the SECOND fleece sign at dawn on a threshing floor near Ophrah: the white sheep fleece is completely DRY while the entire ground around it is WET WITH DEW. Dry matte fluffy wool versus wet dark stones is the crucial clue. One Gideon and one natural newly shorn loose white sheep fleece in the entire environment.\nDirection-specific requirement: This is the DOWN direction looking straight beneath the camera. Repair ONLY the unnatural radial starburst at the central ground pole into a natural irregular arrangement of wet stone paving, small grit and the existing sparse grass, with visible dew and damp reflections, no swirl or radial spokes. Preserve the outer quarter of the image and the exact irregular dry fleece outline and position wrapping the upper edge. The existing fleece remains completely DRY, fluffy, airy and matte with separated white wool curls, no droplets or wet shine. Preserve all exposed surrounding wet stones and their broad colours and light; add no new object, foot, bowl or water stream.\nInvariants: preserve exact composition, framing, object positions and sizes, object counts, identities, poses, all outer-edge geometry, colours and lighting. Preserve accurate ancient Israel agricultural materials and humble earth-coloured clothing. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story objects. No wet fleece, squeezed wool, cup or bowl watering, rain, river, altar, battle, living sheep, modern rug or blanket, new people or modern objects. No labels, text, UI, watermark, frame, collage or panel border.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-92f94aae-d68b-4e40-a350-488f0cbd97ef.png",
+      "recoveredFrom": "retained ImageGen data URL",
+      "recoveredAt": "2026-10-10T15:04:50.217Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/fleece-down.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-base",
+      "scene": "axe",
+      "stage": "base",
+      "destination": "art/sources/axe-panorama.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:11:16.053Z",
+      "prompt": "Use case: historical-scene\nAsset type: immersive Bible event panorama texture for a 360-degree viewer.\nPrimary request: 2 Kings 6:1–7, Elisha makes a borrowed IRON AXE HEAD float on the Jordan while the sons of the prophets cut timber on the bank. Highest photorealistic fine detail with authentic early Iron Age ancient Israel clothes, hand tools and landscape.\nProjection: TRUE 2:1 equirectangular 360x180-degree sphere texture, camera at eye level INSIDE one continuous riverbank event. Natural sky and sparse willow canopy above; nearby shallow river water and underwater gravel below; banks, reeds, trees and Jordan valley hills surround the camera. Matching continuous left/right edges. No miniature planet, collage or separate panels.\nCRUCIAL FOREGROUND CLUE: a single dark forged IRON AXE HEAD floats ALONE on the water, with absolutely NO wooden handle or shaft attached. Make it large, close, unobstructed and easy to recognize in the LOWER FRONT foreground, slightly right of straight ahead (roughly panorama u=0.55, v=0.70). Show a worn iron blade, clear curved cutting edge and a rectangular OPEN EMPTY SOCKET visibly above the water, with gentle circular ripples. The entire axe head rests only on water. No wood beneath it, no raft, log, branch, rope or person supporting it. A SEPARATE short freshly cut piece of natural wood floats nearby with visible WATER GAP between it and the iron. Never attach the iron to that wood.\nOne older bearded Elisha stands in the close LEFT midground wearing rough earth-coloured robes and a simple cloak, extending one hand calmly toward the iron. Beside him one anxious young adult disciple holds only a BARE WOODEN AXE HANDLE with its iron head missing. Exactly TWO other adult male disciples cut and collect timber farther along the bank with their own period axes. Four men total: Elisha, young borrower and two working disciples. Nobody stands in the water. Preserve believable distinct faces, hands, woven robes and leather sandals.\nNear-bank felled timber, stumps, bark chips, stones, willow trees, reeds, the tranquil Jordan current, a natural opposite bank and low dry hills complete the continuous environment. Clear warm daytime light. Resolve fine fabric fibres, skin pores, bark, iron pitting, leaf veins, stone grains, natural reflections and small water ripples.\nConstraints: a SHAFTLESS iron head floating on water is the miraculous clue, with its EMPTY SOCKET unmistakably open. The borrower's handle has NO blade. Cut wood remains SEPARATE. No modern metal, buildings, extra people, supernatural glow, writing, labels, UI, watermark, collage, frame or vignette.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-db7918f3-2696-494f-9672-b6129d6b165c.png",
+      "generatedAt": "2026-10-11T05:12:02.243Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/axe-panorama.webp",
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-front",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "front",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-front-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-front.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.488Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Keep any visible portion of the close shaftless floating iron head exactly where it is, with the open empty socket above the water. Keep the existing waterline, bank, timber, people, trees and natural water ripples. Never add a shaft or put iron on wood.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-2e9303ac-5703-4454-a05a-b987e5169c09.png",
+      "generatedAt": "2026-10-11T05:14:39.710Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-front.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-right",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "right",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-right-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-right.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.530Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Preserve the existing river surface, any visible close floating iron head and its open empty socket, and the SEPARATE cut wood. Keep clear water between the iron and wood. Do not join them or attach a shaft. Retain exact bank contours, trees and all reflections.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e8120398-20cd-4458-865c-c0fff1c77842.png",
+      "generatedAt": "2026-10-11T05:15:33.291Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-right.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-back",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "back",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-back-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-back.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.575Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Preserve this exact wrapped rear direction: the existing bank, water, rocks, trees, reeds, hills and any partial subjects at the edges. Do not invent another axe head or person in an empty region.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-6c979d07-3c89-402c-b16e-6adb030f90c9.png",
+      "generatedAt": "2026-10-11T05:16:34.714Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-back.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-left",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "left",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-left-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-left.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.622Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: Preserve existing Elisha and the young borrower on the bank, their exact identities, faces, hands, robes, sandals and poses. The borrower holds only the bare wooden handle with NO blade. Keep exactly two other existing working disciples in the whole scene, felled timber, stumps, reeds and water boundaries.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-329d4bc4-d16f-4c34-95ae-49be38395c70.png",
+      "generatedAt": "2026-10-11T05:17:38.492Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-left.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-up",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "up",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-up-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-up.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.662Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: This is the UP direction, looking straight overhead. Repair ONLY the small unnatural radial starburst at the central pole into natural blue sky and a realistic sparse willow canopy continuing the EXISTING branches. Preserve the outer quarter and all existing people, branches and skyline contours; no new objects, swirl or spoke pattern.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-37ca1886-f296-4218-bed9-328dab1a4c36.png",
+      "generatedAt": "2026-10-11T05:18:48.389Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-up.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "axe-down",
+      "scene": "axe",
+      "stage": "direction",
+      "face": "down",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/axe-down-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/axe-down.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:13:37.706Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual fabric fibres and natural folds, skin pores, hair, timber and bark grain, stone grains, clay texture, foliage, natural water or oil detail wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 6: Elisha, one borrower with a bare wooden handle and exactly two timber-cutting disciples at the Jordan. A single shaftless iron axe head floats alone on water, open empty socket above it, separate cut wood nearby.\nDirection-specific requirement: This is the DOWN direction, looking straight beneath the camera. Repair ONLY the unnatural central radial starburst into naturally irregular shallow-water ripples, reflections and underwater gravel. Preserve the outer quarter, all existing axe-head/wood portions, waterlines and stones. No new foot, stick, shaft or object, no swirl or spokes.\nInvariants: preserve EXACT perspective, camera, all composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap there. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. All materials and garments remain authentic ancient Israel. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-44cd593f-ccd1-4658-843c-6c0124bee0f7.png",
+      "generatedAt": "2026-10-11T05:19:53.746Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/axe-down.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "oil-base",
+      "scene": "oil",
+      "stage": "base",
+      "destination": "art/sources/oil-panorama.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-11T05:21:08.961Z",
+      "prompt": "Use case: historical-scene\nAsset type: immersive Bible event panorama texture for a 360-degree viewer.\nPrimary request: 2 Kings 4:1–7, a widow and her TWO SONS fill borrowed clay vessels with olive oil inside their CLOSED humble house in ancient Israel. One widow and exactly two sons in the entire environment. ELISHA IS NOT INSIDE. Highest photorealistic fine natural detail with accurate early Iron Age Israel clothing and household materials.\nProjection: TRUE 2:1 equirectangular 360x180-degree sphere texture, camera at eye level INSIDE one continuous small room. Natural timber-and-reed roof above and nearby rough earthen floor beneath the viewer. Rough stone and plaster walls, shut wooden door, plain shelves and pottery surround the camera on all sides. Matching continuous left/right edges. No miniature planet, collage or panels.\nCRUCIAL CLOSE FOREGROUND EVENT, just LEFT of straight ahead (about 0.7 radians left): the widow pours a plainly visible CONTINUOUS GOLDEN OLIVE OIL STREAM from her SMALL source clay pitcher into a much LARGER borrowed open jar immediately below and close to the camera. The small pitcher is about a third of the large receiving jar's height; clearly smaller than the surrounding borrowed jars. Both natural hands, the tilted little pitcher opening, uninterrupted shining golden oil stream, the large receiving jar mouth and its visible rising oil are unobstructed. The oil looks oily and translucent golden, never clear water; no oil spills on the floor.\nThe widow wears a plain earth-coloured woven dress, shawl and modest headcloth, with a thoughtful hopeful face. Her TWO SONS, one older boy and one younger boy, stand together in the RIGHT midground, each holding a separate large EMPTY borrowed clay jar and watching their mother. Simple period tunics and leather sandals. Exactly three people total: mother and two sons. No prophet, other child, extra adult, or person visible outside a window.\nMany borrowed hand-worked clay jars of varied simple sizes sit naturally around the whole room. Nearer FILLED jars show reflective golden oil surfaces. EMPTY jars show dark open interiors. No modern glazing, lettering, faucets or metal spigots. The solid wooden door remains SHUT. Plain timber shelves hold a few household pottery pieces, with reed baskets and woven cloth in the room. A small high window gives natural warm daylight; two simple ancient clay oil lamps add warm accents. Resolve fine cloth fibres, natural pores, hair, clay grains, stone pores, rough timber, wicker and oil reflections throughout.\nConstraints: ONE widow, exactly TWO sons, NO ELISHA inside. Door closed. A distinctly SMALL source pitcher pours a continuous golden oil stream into a LARGER receiving jar. Filled versus empty jars recognizable. No royal robes, crowns, banquet, miracle glow, extra people, modern objects, readable writing, labels, UI, watermark, collage, frame or vignette.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-e9e92488-f2e0-4692-8dac-5748d2f46267.png",
+      "generatedAt": "2026-10-12T07:21:24.642Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/oil-panorama.webp",
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "fleece-base",
+      "scene": "fleece",
+      "stage": "base-derivation",
+      "kind": "derived-from-directions",
+      "destination": "art/sources/fleece-panorama.webp",
+      "nativeSize": [
+        1774,
+        887
+      ],
+      "status": "saved",
+      "prompt": "Geometric spherical recovery from the six retained native ImageGen directions; no new generation, using derive-base."
+    },
+    {
+      "key": "oil-front",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "front",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-front-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-front.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-12T07:24:13.776Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve this exact room direction: the existing closed wooden door, widow and sons wherever visible, all jar positions, empty/filled contents, shelves, pottery, lamps and walls. Do not add a person or move a jar. Keep the golden oil stream and receiving vessel unchanged wherever visible.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-03344099-2211-436a-aa3e-96b72f7ec172.png",
+      "generatedAt": "2026-10-12T07:25:11.001Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-front.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "oil-right",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "right",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-right-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-right.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-12T07:24:13.806Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve the TWO existing sons with their separate EMPTY borrowed jars, exact face identities, poses, hands and tunics, and all existing household jars, shelves, window and stone/plaster walls. No extra child or adult, no Elisha, no added objects.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-cf65c23d-1115-4bad-aa86-f9e032679630.png",
+      "generatedAt": "2026-10-12T07:26:26.448Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-right.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "oil-back",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "back",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-back-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-back.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-12T07:24:13.837Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve this exact rear direction: every jar, basket, shelf, household pottery piece, cloth, door/window portion, wall and floor contour. Retain existing oil levels in filled jars and dark empty interiors. No new person or object.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-4158e308-6eec-46f6-9c8b-15142f3edb17.png",
+      "generatedAt": "2026-10-12T07:27:43.905Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-back.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "oil-left",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "left",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-left-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-left.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-12T07:24:13.866Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: Preserve the widow’s exact face and clothes, BOTH existing hands, the tilted distinctly SMALL source pitcher, the uninterrupted golden olive oil stream and the much LARGER receiving jar below. Keep pitcher size, stream path, vessel contours and oil levels exactly fixed. No clear water, spilled oil, extra person or Elisha.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-72236499-99d6-47c7-87b1-3d69067fef68.png",
+      "generatedAt": "2026-10-12T07:29:15.493Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-left.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "oil-up",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "up",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-up-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-up.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-12T07:24:13.896Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: This is the UP direction looking straight overhead. Repair ONLY the unnatural small radial starburst at the central roof pole into coherent natural timber rafters and reed roof weave, continuing EXISTING roof materials. Preserve the outer quarter and every visible person, window, lamp and wall silhouette. No new skylight, opening, object, swirl or spokes.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-c2b873ab-7107-4ee5-9750-d68ee1b41e82.png",
+      "generatedAt": "2026-10-12T07:30:34.632Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-up.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    },
+    {
+      "key": "oil-down",
+      "scene": "oil",
+      "stage": "direction",
+      "face": "down",
+      "inputPath": "/workspace/scratch/e03eb0da42dd/bibleworld-levels/hard-a/inputs/oil-down-768.jpg",
+      "referenceSize": [
+        768,
+        768
+      ],
+      "destination": "art/sources/directions/oil-down.webp",
+      "status": "saved",
+      "requestedAt": "2026-10-12T07:24:13.929Z",
+      "prompt": "Use case: precise-object-edit\nAsset type: one square 104-degree rectilinear direction of an immersive 360-degree Bible panorama.\nInput image: Image 1 is the EXACT EDIT TARGET, a compressed 768-pixel reference of the existing direction. Return a SQUARE 1:1 image with the SAME framing at the largest native square resolution.\nPrimary request: reconstruct genuinely new, highest-quality fine photorealistic material detail: individual cloth fibres and natural folds, skin pores, hair, clay grains, stone pores, timber grain, wicker and reed fibres, and natural shining golden olive oil wherever already visible. Sharp natural deep focus throughout; no blur, painterly smears, plastic smoothing or sharpening halos.\nBible event: 2 Kings 4. One widow and exactly TWO sons inside a closed humble ancient Israel house. A small source pitcher pours a continuous golden olive oil stream into a much larger borrowed jar; many empty and filled clay vessels. ELISHA IS NOT INSIDE.\nDirection-specific requirement: This is the DOWN direction looking straight below the viewer. Repair ONLY the unnatural small radial starburst at the central ground pole into a natural irregular earthen floor with grit and small stones. Preserve the outer quarter, exact existing jar contours, oil surfaces, feet, sandals and floor objects. No new bowl, foot, jar, spilled oil, swirl or spokes.\nInvariants: preserve EXACT perspective, camera, composition geometry, positions, sizes, object counts, identity, pose, contour, colour and lighting. Keep all four outer borders fixed because neighboring sphere directions overlap. Do not zoom, recenter, rotate, crop or change camera. Do not add or remove story props or subjects. Authentic early Iron Age Israel household materials and clothes. No modern objects, miracle glow, readable writing, labels, UI, watermark, frame, collage or panels.",
+      "generatedPath": "/workspace/scratch/e03eb0da42dd/generated_images/exec-0d2a5673-9822-4bce-9db7-a6ff9b28df1d.png",
+      "generatedAt": "2026-10-12T14:18:22.262Z",
+      "savedPath": "/workspace/scratch/e03eb0da42dd/bible-world-quality-update/cloudflare/bible-world-preview/art/sources/directions/oil-down.webp",
+      "nativeSize": [
+        1254,
+        1254
+      ],
+      "encoding": "lossless WebP",
+      "sharpVersion": "0.35.4",
+      "pixelExactLossless": true
+    }
+  ]
+}
