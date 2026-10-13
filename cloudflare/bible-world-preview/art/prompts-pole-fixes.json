@@ -37,6 +37,31 @@
         "observations": "Lower-central hollow floating fleece/fur shells removed and replaced with coherent pebbled dry seabed. Existing lower-left goat and upper-edge donkeys retained; no extra foreground animal. Human robes, sandals and staffs at border visually retained. Left goat rear outline simplified slightly by native edit; exact border pixel identity is not claimed. Ground contact shadows remain plausible at preview scale.",
         "decodedPixelEqualityToNativePNG": true
       }
+    },
+    {
+      "source": "art/sources/directions/red-sea-down-fixed.webp",
+      "sourceSHA256": "d954ee6cba7896d3d922ee8e851abd1c95dad58dc5e6d2ccd6fb178792589d77",
+      "output": "art/sources/directions/red-sea-down-fixed-v2.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target, the repaired Red Sea ground image.\nPrimary request: Fix only the existing goat at the left/lower-left of the image. Its body currently tapers into gravel and its hindquarters and legs disappear. Retain exactly the existing goat's head position, head anatomy, rope, body placement and fur appearance, but reconstruct anatomically plausible connected hindquarters and all needed visible legs. Give each visible leg a clear hoof and believable contact with the dry pebbled seabed plus a small grounded contact shadow. The animal must read as one complete living goat standing on the ground, with rear body and legs connected naturally; no missing rear, no body fading into gravel, no gravel embedded in its anatomy.\nConstraints: This repairs the same existing goat, never adds another animal. Preserve all human figures, robes, sandals, feet, staffs, ropes, upper-edge donkeys, props, sunlight, colors and border composition. Preserve the exact square framing and unusual down-facing panoramic projection. Keep the cleaned central and lower-central seabed coherent; do not reintroduce hollow floating fleece crescents. No new animals, no extra foreground body, no text, no unrelated changes.",
+      "reason": "Observed remaining defect: existing goat hindquarters tapered into gravel and hind legs disappeared.",
+      "sha256": "a4ebb41f7a2bf9b3fedf85ed52797125773227999893f11ea71a3d259f1ce429",
+      "gitBlobSHA": "68b4a5976f547b1e15359edcad2df7ad3f60fcd2",
+      "nativePNGsha256": "c77e9f4e2b3bdd6f7d9c95ce3e2e364f425d3ad4965ba1987cba107832bea136",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "nativeGoatCrop": [
+          0,
+          590,
+          570,
+          1070
+        ],
+        "observations": "Existing goat now has connected rounded hindquarters with anatomically coherent visible legs/hooves and grounded contact shadows. Far limbs partially occluded by body in down-looking projection; no taper/merge into gravel. Head/body position and rope visually retained. Humans, upper-edge donkeys, border props and cleaned seabed visually preserved. No new animal or hollow fleece added. Exact pixel preservation outside repaired animal is not claimed.",
+        "decodedPixelEqualityToNativePNG": true
+      }
     }
   ]
 }
