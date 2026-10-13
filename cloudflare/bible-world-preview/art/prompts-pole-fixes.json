@@ -1,0 +1,42 @@
+{
+  "tool": "built-in image_gen",
+  "baseCommit": "6e8ec22c7142f447fec97f22a20cf2f37ce0ca92",
+  "edits": [
+    {
+      "source": "art/sources/directions/babel-down.png",
+      "output": "art/sources/directions/babel-down-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target.\nPrimary request: Repair only the artificial concentric/radial pebble rings and soft circular ground patch in the central ground. Replace those synthetic patterns with natural irregular trampled dry soil, scattered grit and existing irregular stones. Break the circular/radial organization into plausible random distribution, with coherent sharp detail matching the surrounding ground.\nConstraints: Preserve the exact existing square image composition, unusual down-facing panoramic projection, border architecture, people or visible legs/feet, all props, rope, brickwork, foliage, colors, sunlight and existing cast shadows. Keep the original viewpoint and every edge boundary fixed. Preserve existing real stones where possible while removing the artificial pattern. No new objects, no added people or animals, no text, no blur disk, no radial or concentric pattern. This is a tightly localized ground texture repair, not a scene redesign.",
+      "qa": {
+        "previewMaxEdge": 768,
+        "observations": "Concentric/radial pebble rings and soft circle removed; ground now irregular grit and stones. Border architecture, props, rope, foliage and long shadows visibly retained. Native edit may change individual central stones; exact border pixel identity is not claimed.",
+        "decodedPixelEqualityToNativePNG": true
+      },
+      "sha256": "44915d02f26c0d2bf6882ee959bcb0dad08dc731bff72823eba532df7713f476",
+      "gitBlobSHA": "5fa175b96ad32a6f05312fad6543df35dabfac4e",
+      "nativePNGsha256": "a4ff4b7a61882cb27709fdfdb0b9eb6cb3dec9176329dc97a0cbda989d894a09",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "0354692d768e5b7fcb446b79f3447b0ff43f169d6b3f4111160a8329b4434351"
+    },
+    {
+      "source": "art/sources/directions/red-sea-down.webp",
+      "sourceSHA256": "b3b362be98961fbe1a59c4ed18c02ed4ada42ee70b6c8df0a7d01ed645452d87",
+      "output": "art/sources/directions/red-sea-down-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target.\nPrimary request: Repair only the impossible curved floating/hollow strips of wool and partial animal bodies filled with gravel in the lower central dry seabed. Remove the crescent-like fur or fleece shells whose interiors contain seabed gravel. Where these impossible fragments currently occupy the lower middle, show coherent continuous dry seabed of irregular sand, grit and rounded existing pebbles instead. Keep the intact goat at the left/lower-left edge and the two animals' legitimate heads and legs at the upper edge, with believable anatomy and ground contact shadows. Do not create a replacement foreground animal.\nConstraints: Preserve the exact square border composition, unusual down-facing panoramic projection, people, robes, sandals, feet, staffs, rope, all legitimate intact edge animals, props, colors, sunlight and existing cast shadows. Keep viewpoint and edge boundaries fixed. Change only malformed wool/fur fragments and gravel-filled partial bodies, replacing them with seabed. No floating fleece, no hollow animal shells, no gravel merged into animal flesh, no extra foreground animal, no added objects, no text. Tightly localized anatomy-artifact cleanup, not a scene redesign.",
+      "sha256": "d954ee6cba7896d3d922ee8e851abd1c95dad58dc5e6d2ccd6fb178792589d77",
+      "gitBlobSHA": "0b162584becb2a30a1fb009bac89f7d6718467a8",
+      "nativePNGsha256": "3502d3502d0b1095162758d93a98f402a3a32ca4427e58994bc48e7b6e4a9715",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "observations": "Lower-central hollow floating fleece/fur shells removed and replaced with coherent pebbled dry seabed. Existing lower-left goat and upper-edge donkeys retained; no extra foreground animal. Human robes, sandals and staffs at border visually retained. Left goat rear outline simplified slightly by native edit; exact border pixel identity is not claimed. Ground contact shadows remain plausible at preview scale.",
+        "decodedPixelEqualityToNativePNG": true
+      }
+    }
+  ]
+}

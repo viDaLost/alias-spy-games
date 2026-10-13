@@ -1,4 +1,4 @@
-import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=7';
+import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=8';
 
 export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) {
  let yaw=0,pitch=.08,fov=72*Math.PI/180,wrapBand=.035,initial={yaw,pitch,fov};

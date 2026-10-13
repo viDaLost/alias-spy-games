@@ -1,0 +1,133 @@
+{
+  "asset": "art/sources/gideon-natural-panorama.webp",
+  "base_commit": "6e8ec22c7142f447fec97f22a20cf2f37ce0ca92",
+  "tool": "built-in ImageGen",
+  "prompt": "Use case: photorealistic-natural / historical-scene.\nAsset type: single seamless 360-degree equirectangular panorama for an immersive historical scene.\nInput image: edit target and broad composition reference. Replace the implausible lighting and repeated actors while retaining the human-eyeheight rocky hillside viewpoint outside and above the ancient Midianite tent camp.\nPrimary request: Judges chapter 7, Gideon's small group at the instant they sound ram's horns and uncover their torches. ONE cohesive physically believable candid documentary night photograph. Exact 2:1 equirectangular projection, full longitude 360 degrees and latitude 180 degrees, highest native detail available. Human eyeheight camera standing among Gideon's group, not overhead, looking down toward the camp. Keep the broad existing ridge and camp composition.\nScene: ancient dry rocky hillside, dark neutral stone and scrub under a naturally dim clear night sky; believable irregular ancient wool tents in the valley below, a few camels quietly visible near tents. Gideon's men stand at different distances along the hillside outside the camp. Only a few nearest people; individually distinct people with varied age, clothing, posture and spacing, candid and unposed. ALL clearly visible men hold uncovered BURNING wooden torches in their own LEFT hands and curved ram horns in their own RIGHT hands, blowing or preparing to blow the horns, with plausible hands and arms. Correct any reversed torch/horn hands and any unlit torch from the source. For men seen from behind, their left torch is on viewer-left, their right horn is on viewer-right. For three-quarter/profile people, follow each person's anatomical left and right, not image sides. Earthen jars have just been broken, and distinct modest pottery shards lie on the rocks at their feet.\nLighting: restrained real nighttime exposure with physically local warm torchlight and inverse-square falloff. Only stone and clothing very close to a torch receive muted warm highlights; illumination falls rapidly to shadow. Most unlit ground stays dark neutral gray-brown. Modest cool natural sky illumination gives faint terrain detail. Distant camp has a sparse irregular scattering of very SMALL subdued warm fires between tents, varied in intensity: no giant torches, uniformly spaced lights or bright orange carpet. Natural flame size, photographic dynamic range, slight grain and plausible shadows. No whole-hillside orange light, no studio fill lighting or high-key exposure. Upper hemisphere sky has subtle natural stars, no artificial star patterns.\nProjection and continuity: coherent single space across all directions, same sky and terrain around full sphere, continuous left/right seam, no separate vignette panels, collage or stitched bands, no discontinuous horizons. Preserve human-scale eyeheight. Exact 2:1 raster.\nAvoid: repeated/cloned actors, synchronized identical poses, repeated identical clothing, extra limbs, malformed hands, reversed hands, unlit torches, oversized horns, unnaturally large orange camp lights, shiny starburst poles, ghost silhouettes, panoramic collage bands, modern objects, unrelated landmarks, text, logos, watermark, charging, combat, injuries or gore.",
+  "status": "Candidate checkpoint; NOT final. Projected QA found a clear reversed-hand foreground actor.",
+  "native_dimensions": {
+    "width": 1774,
+    "height": 887
+  },
+  "lossless_webp_bytes": 2100646,
+  "sha256": "f8e9ffb9cb4b3967e7e66bb10d18bbd250d9bb78f8e41cc119fd914c2b236a26",
+  "git_blob_sha1": "0ab39480ce15fc1f3c08a57729ad48cf5d070d49",
+  "qa": {
+    "projection_method": "Production camera rayToUV equivalent, 84-degree square FOV, 384px JPEG previews; yaws 0,+/-45,+/-90,+/-135,180, and +/-60-degree pitch.",
+    "passes": [
+      "Camp lights are visibly smaller, less uniform and less dense than original.",
+      "Distant unlit terrain is more neutral and darker.",
+      "Camera remains human eyeheight on the hillside above and outside the tent camp; broken jars are visible.",
+      "No obvious ghost silhouettes, collage joins or starburst poles in sampled directions.",
+      "All torches that are clearly visible are burning."
+    ],
+    "issues": [
+      "Prominent foreground man at yaw135/back holds torch in anatomical RIGHT hand and horn in LEFT. Clear story error despite explicit prompt.",
+      "Foreground remains strongly warm across broad areas; plausible local falloff is only partially improved.",
+      "The three principal men remain similarly posed and dressed; individually different but still repetitive.",
+      "Camels and tents are present, but very small anatomy cannot be fully assessed at native 1774x887.",
+      "Native result remains 1774x887 despite request for highest detail; no native resolution increase."
+    ],
+    "decision": "Retain as candidate v1 only. One targeted arm-pose/prop correction authorized by root; final status requires projected hands and lighting QA."
+  },
+  "correction_attempt": {
+    "asset": "art/sources/gideon-natural-panorama-v2.webp",
+    "prompt": "Use case: precise-object-edit.\nAsset type: continuous 2:1 full-sphere equirectangular Gideon night panorama.\nInput image: EDIT TARGET, the saved 1774x887 natural-night candidate. Preserve its full 2:1 360x180-degree spherical framing, camera at human eyeheight on the ridge outside and above the Midianite camp, terrain, tents, camels, broken earthen jars, stars, smaller dim irregular campfires and current neutral darker distance.\nPrimary request: Correct the ANATOMICAL arms-and-props pose of the prominent man near the RIGHT edge. He is currently seen mostly FROM BEHIND with a tan headwrap, light tunic, dark striped cloak: his flame is currently raised on image-right and horn at image-left. That is reversed and MUST be repaired by changing BOTH arms, elbows, hands and their held objects together.\nRequired corrected pose: this same right-side man remains at the same location, height, body orientation and clothing. His own LEFT arm, on image-LEFT of his back, rises outward and upward away from his face, holding one upright BURNING WOODEN TORCH in his LEFT hand. His own RIGHT arm, on image-RIGHT of his back, bends naturally toward his mouth, with his RIGHT hand holding ONE CURVED RAM HORN which he blows. Adjust his head turn subtly to his anatomical RIGHT so mouth contacts the right-hand horn naturally. Exactly two believable arms and hands. Correct and reconstruct the abandoned old arm silhouettes and background behind them. There must NOT be any flame in a bent hand next to his face, flame coming from the horn, crossed arms, duplicated arms, or disconnected prop.\nKeep the other clearly readable foreground men's torch LEFT / horn RIGHT poses correct. The central man seen from behind and the large man toward the LEFT already have torches on their own LEFT and horns on their own RIGHT; preserve their correct anatomy. Fix any other plainly readable reversed-hand man in the same anatomically coherent way.\nLighting: preserve reduced small subdued campfire lighting and dark neutral terrain. Real flame illumination is local with rapid distance falloff; maintain muted natural nighttime exposure. The relocated right-side torch casts local warm highlights near its new left-side position, with natural coherent shadows. No whole-hillside orange studio fill.\nInvariants: retain one continuous space and matching seam, full existing image composition, man count, locations, clothes, human scale, rocky ridge above the ancient camp, intact starry night sky, broken clay shards, tents and camels. Keep all torches burning. No charging, combat or injuries. Highest available native detail, exact 2:1 raster.\nAvoid: simply swapping props while leaving the wrong arm poses, a flame by the face, horn on left, torch on right, extra limbs, cloned actors, ghost silhouettes, starburst poles, collage bands, modern objects, unrelated landmarks, text, labels, watermark.",
+    "native_dimensions": {
+      "width": 1774,
+      "height": 887
+    },
+    "lossless_webp_bytes": 1965606,
+    "sha256": "43837e0db03613f971958d70e187744bc361eab6cf63fc07652c31a3564a0809",
+    "git_blob_sha1": "02e312a553916bc64e0934006d3303dba2713893",
+    "status": "Candidate v2; NOT final. Correct foreground hands pass; exact nadir fails spherical geometry QA.",
+    "qa": {
+      "projection_method": "Production camera rayToUV equivalent, 84-degree square FOV, 512px JPEG previews; yaws0,+/-45,+/-90,+/-135,180, pitch+/-60, plus exact zenith and nadir.",
+      "passes": [
+        "Prominent yaw135/back actor now raises uncovered burning torch in anatomical LEFT hand away from his face and brings the ram horn to his mouth in RIGHT hand.",
+        "Other clearly readable foreground men retain LEFT torches and RIGHT horns.",
+        "No newly introduced extra arms or disconnected props visible in sampled views.",
+        "Smaller subdued irregular camp lights, dark distant terrain, eyeheight, hillside and tent composition retained."
+      ],
+      "issues": [
+        "Exact nadir has a conspicuous radial pinwheel/starburst in rock and grass geometry; unsuitable for unrestricted full-sphere use as-is.",
+        "Nearest terrain remains broadly orange-lit. Dark pockets and shadows make falloff more believable, but foreground illumination is still less natural than distant terrain.",
+        "Similar raised-torch/horn poses remain repeated among principal figures.",
+        "Exact zenith shows some radial sky texture stretching; no pole continuity certification.",
+        "Native dimensions remain1774x887; highest-detail wording did not increase built-in output size."
+      ],
+      "decision": "Do not mark final or publish this source as an unrestricted sphere. Root to decide downstream/pole treatment; no directional regeneration or shared pipeline changes performed."
+    }
+  },
+  "pole_replacements": {
+    "down": {
+      "asset": "art/sources/directions/gideon-natural-down.webp",
+      "base_asset": "art/sources/gideon-natural-panorama-v2.webp",
+      "prompt": "Use case: precise-object-edit.\nAsset type: repaired DOWN/nadir pole direction of an existing360-degree historical night panorama. Return one native SQUARE1254x1254 image, rectilinear camera with104-degree field of view, not fisheye.\nInput image: EDIT TARGET, a technical104-degree downward projection of the corrected Gideon natural-night source. It shows only rocky ground, jar fragments and the cropped sandals/legs/clothing of men at the outer margins.\nPrimary request: Remove the central radial pinwheel/starburst distortion completely and replace it with plausible irregular rocky soil directly beneath a fixed human-eyeheight1.65m camera. This is ONE normal perspective camera pointing straight DOWN, not a spherical/equirectangular image. Natural irregular limestone chunks, gritty soil, small pebbles and sparse dry grass have no common center and do not form wedges, spokes, concentric circles or a swirl. Carefully rebuild central rock shapes, grass and dirt with honest natural scale and arbitrary individual shapes.\nPreserve the full outer edge content and geometry: the existing outer15-percent boundary band, terrain slope, large retained stone edges, broken terracotta jar halves and shards, all cropped sandals/legs and garment edges, and their exact count, positions and silhouettes. Smoothly continue surfaces inward without any square boundary. Top edge faces the front/camp direction, right edge right ridge, bottom back, left edge left ridge. No sky/horizon/camp/tents in this down view. No added body, limbs, feet or intact jar in the center.\nLighting: match the source's NIGHT event, but make the new ground photographically believable: modest local warm torch highlights on nearby raised rocks and grass, rapidly falling into neutral dark shadow crevices; muted gray-brown soil, restrained photographic exposure, no glowing orange ground or studio fill. Retain compatible edge illumination while central terrain has varied natural shadows. Detailed rock grain, matte weathered clay, soil and grass; natural photographic texture, no uniform repeating texture.\nStory: Judges7, Gideon's men stand on the rocky hillside outside the Midianite camp, broken jars at their feet; no charging, combat, injuries or modern objects.\nAvoid: ANY pinwheel/starburst/radial wedges, image-center convergence of surface texture, swirl, fisheye, ghost feet, new people or feet, changed edge silhouette, added whole jars, uniform orange illumination, text, labels, watermark, border, collage.",
+      "reference_projection": {
+        "size": [
+          768,
+          768
+        ],
+        "yaw_degrees": 0,
+        "pitch_degrees": -90,
+        "fov_degrees": 104,
+        "projection": "rectilinear"
+      },
+      "native_dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "lossless_webp_bytes": 2315528,
+      "sha256": "76932bd43bc717302e5527e735058a0a3d3dd036d3670b703090fed69533b4d9",
+      "git_blob_sha1": "fa459279f3131df0e0a4e0f0fec2fa70efad37fd",
+      "qa": {
+        "status": "Perspective candidate visually passes local pole repair; final spherical seam/blend QA is root-owned.",
+        "passes": [
+          "Central radial pinwheel removed; stones, soil and grass now irregular.",
+          "Outer sandals, legs, clothing and jar locations remain visually aligned with source projection.",
+          "Ground shadows are more varied and center darker; no new central feet or intact jars."
+        ],
+        "limitations": [
+          "Outer band remains warm to match corrected base.",
+          "Generated edges are visually retained rather than pixel-identical; strict residual confidence required downstream.",
+          "Native1254x1254 should not be described as independently generated4K."
+        ]
+      }
+    },
+    "up": {
+      "asset": "art/sources/directions/gideon-natural-up.webp",
+      "base_asset": "art/sources/gideon-natural-panorama-v2.webp",
+      "prompt": "Use case: precise-object-edit.\nAsset type: repaired UP/zenith pole direction of an existing360-degree historical night panorama. Return one native SQUARE1254x1254 image, rectilinear perspective camera with104-degree field of view, not fisheye.\nInput image: EDIT TARGET, a technical104-degree upward projection of the corrected Gideon natural-night source. Most of the image is dark night sky; source stars are distorted into an unnatural converging radial pinwheel at the center. There are irregular dark clouds around the outer margins and cropped burning torches at top-left and top-right.\nPrimary request: Remove all central star pinching, radial star trails, whirlpool/starburst and inward converging texture. Rebuild the central sky as a photographic natural dark navy night sky with subtle scattered individually distinct small stars, no center of convergence and no rays. Stars are tiny natural points with irregular spacing and brightness, not identical dots, dense artificial wallpaper or repeated motifs. Keep a modest faint indistinct stellar haze only where compatible with the existing sky. No big galaxy, moon, constellations drawn with lines, or cosmic scene.\nPreserve the full outer15-percent boundary content and geometry: same source cloud shapes and locations at image edges, same cropped torch shafts/flames exactly at their existing upper margins and corners, same count and silhouettes, same source darkness and cool neutral color. Remove radial distortion smoothly inward with no visible square boundary. This is ONE normal camera pointing straight UP from the same eyeheight1.65m ridge location, not an equirectangular scene, fisheye or collage. Keep only any existing tiny marginal terrain slice; do not add a horizon, people or landscape in the middle.\nLighting: restrained documentary natural nighttime photograph. Dark cool neutral sky, faint irregular stars; muted naturally illuminated clouds, no theatrical blue glow or bright artificial glow. Retained foreground torch flames provide only local warm edge light and smoke compatible with the existing scene. Preserve Gideon night event and same cloud/torch continuity with adjacent directions.\nAvoid: central convergence, pinwheel, starburst, radial streaks, vortex, circular distortion, repeated stars, new moon/landmarks, changed torch count or edge positions, additional torches, ghost flames, new people, bright cosmic clouds, captions, text, labels, watermark, border or collage.",
+      "reference_projection": {
+        "size": [
+          768,
+          768
+        ],
+        "yaw_degrees": 0,
+        "pitch_degrees": 90,
+        "fov_degrees": 104,
+        "projection": "rectilinear"
+      },
+      "native_dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "lossless_webp_bytes": 1455218,
+      "sha256": "05ec1d2cc48436e4c09c211136349f56a16d409f7e89c8b384434faa4cf038d9",
+      "git_blob_sha1": "a305bcf24d7bbd6fb58bf05f69f388670e54fd6d",
+      "qa": {
+        "status": "Perspective candidate visually passes local pole repair; final spherical seam/blend QA is root-owned.",
+        "passes": [
+          "Central radial star pinching removed; stars are distinct scattered points without convergence.",
+          "Outer cloud formations, tiny marginal terrain slice and two cropped upper torch features remain visually aligned with reference.",
+          "Dark natural night exposure retained, no moon/new landmark/central figures."
+        ],
+        "limitations": [
+          "Generated boundary pixels are not exact copies; strict residual confidence required downstream.",
+          "Still dense night stars matching corrected source style rather than a newly exposed low-star photographic sky.",
+          "Native1254x1254 should not be described as independently generated4K."
+        ]
+      }
+    }
+  }
+}

@@ -78,9 +78,12 @@ async function build(scene){
     const px=dot(dir,tile.right)/(z*tan),py=dot(dir,tile.up)/(z*tan),edge=Math.max(Math.abs(px),Math.abs(py));if(edge>=1)continue;
     const weight=smooth((1-edge)/.22);if(!weight)continue;
     const residual={data:tile.residual,w:tile.im.w,h:tile.im.h};
-    const pole=(tile.name==='up'||tile.name==='down')?smooth((Math.abs(dir[1])-(settings.poleBlendStart??.78))/(settings.poleBlendRange??.19)):0;
+    const profile=settings.poleProfiles?.[tile.name]??{};
+    const pole=(tile.name==='up'||tile.name==='down')?smooth((Math.abs(dir[1])-(profile.start??settings.poleBlendStart??.78))/(profile.range??settings.poleBlendRange??.19)):0;
+    const region=settings.directionBlend?.[tile.name];
+    const replacement=Math.max(pole,region?smooth((dir[1]-region.verticalStart)/region.verticalRange):0);
     // Near a pole, fully use the restored direction so old radial artifacts cannot leak through.
-    for(let c=0;c<3;c++)acc[c]+=((1-pole)*sample(residual,(px+1)/2,(1-py)/2,c)+pole*(sample(tile.im,(px+1)/2,(1-py)/2,c)-basePixel[c]))*weight;
+    for(let c=0;c<3;c++)acc[c]+=((1-replacement)*sample(residual,(px+1)/2,(1-py)/2,c)+replacement*(sample(tile.im,(px+1)/2,(1-py)/2,c)-basePixel[c]))*weight;
     total+=weight;
    }
    if(!total)throw Error('Uncovered spherical direction');

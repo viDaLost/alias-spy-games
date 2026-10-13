@@ -3,5 +3,18 @@
     "down": "directions/babel-down-fixed.webp"
   },
   "poleBlendStart": 0.6,
-  "poleBlendRange": 0.22
+  "poleBlendRange": 0.22,
+  "poleProfiles": {
+    "up": {
+      "start": 0.5,
+      "range": 0.25
+    }
+  },
+  "directionBlend": {
+    "back": {
+      "verticalStart": 0.1,
+      "verticalRange": 0.2
+    }
+  },
+  "repairNote": "Retained clean native back sky replaces inherited longitude cut only above the horizon; earlier clean upper view removes radial cloud streaks. Original architecture retained."
 }
