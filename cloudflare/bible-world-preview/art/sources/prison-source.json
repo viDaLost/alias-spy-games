@@ -9,5 +9,8 @@
     "up",
     "down"
   ],
-  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content."
+  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content.",
+  "directionSources": {
+    "back": "directions/prison-back-fixed.webp"
+  }
 }

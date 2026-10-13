@@ -1,0 +1,7 @@
+{
+  "directionSources": {
+    "down": "directions/babel-down-fixed.webp"
+  },
+  "poleBlendStart": 0.6,
+  "poleBlendRange": 0.22
+}

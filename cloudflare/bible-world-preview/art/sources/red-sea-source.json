@@ -1,0 +1,7 @@
+{
+  "directionSources": {
+    "down": "directions/red-sea-down-fixed.webp"
+  },
+  "poleBlendStart": 0.6,
+  "poleBlendRange": 0.22
+}
