@@ -62,6 +62,23 @@
         "observations": "Existing goat now has connected rounded hindquarters with anatomically coherent visible legs/hooves and grounded contact shadows. Far limbs partially occluded by body in down-looking projection; no taper/merge into gravel. Head/body position and rope visually retained. Humans, upper-edge donkeys, border props and cleaned seabed visually preserved. No new animal or hollow fleece added. Exact pixel preservation outside repaired animal is not claimed.",
         "decodedPixelEqualityToNativePNG": true
       }
+    },
+    {
+      "source": "art/sources/red-sea-panorama.webp",
+      "output": "art/sources/red-sea-panorama-fixed-v1.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native full 2:1 equirectangular Red Sea historical panorama base.\nInput image: edit target.\nPrimary request: Remove ONLY the two overlapping malformed close foreground sheep/fleece silhouettes at the extreme lower-right edge, directly beneath the rightmost man's hand and hanging animal lead, beside the man with the large wicker basket on his back. This lower-right cluster comprises the dark wool body and nearest pale wool body cropped by the right border. Replace their entire silhouettes, malformed bodies and legs with coherent continuous dry seabed: irregular sand, rounded pebbles and plausible existing sunlight/cast shadows. Keep the distant small intact flock farther up the path, the left foreground goat, and the central donkey intact. Relax the now-empty hanging lead naturally from the rightmost man's unchanged hand; do not connect it to a new animal.\nConstraints: Preserve exactly the 2:1 framing, panoramic projection and horizon, all people including the basket man and rightmost man's hand, faces, clothing, baskets, carts, props, all intact animals elsewhere, towering water walls, foam, sky, sunset and lighting. Edit only the bounded extreme lower-right malformed sheep cluster plus its now-empty lead. No new sheep, no replacement animal, no floating fleece fragments, no animal body merged into gravel, no unrelated redesign, no text. Preserve the left/right wrap boundary scene composition as closely as possible.",
+      "sha256": "d1676cb3ec8e1a39303c08525607419e239193e59acc7ed37ebae96d2cbb91e6",
+      "nativePNGsha256": "a67759445c78c589fec8a48507c432b5007217de5ed398b8ba592a72e5bcff85",
+      "gitBlobSHA": "3151179b87b9b5388b08829e42187d33bf487ca2",
+      "dimensions": [
+        1774,
+        887
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "decodedPixelEqualityToNativePNG": true,
+        "observations": "Lower-right pair of malformed sheep silhouettes removed, rightmost man's empty lead naturally hanging; humans, water walls, horizon and distant intact flock visibly retained. Left nearest goat still present; intermediate not selected for final use, next targeted edit removes it per observed projection defect."
+      }
     }
   ]
 }
