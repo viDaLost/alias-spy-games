@@ -12,7 +12,7 @@ for(const scene of selected){
  let file=new URL('../public/'+scene.image,import.meta.url).pathname,band=0;
  if(baseMode){
   for(const ext of ['webp','png']){const p=new URL(`./sources/${scene.id}-panorama.${ext}`,import.meta.url).pathname;try{await readFile(p);file=p;break;}catch{}}
-  try{band=JSON.parse(await readFile(new URL(`./sources/${scene.id}-source.json`,import.meta.url),'utf8')).sourceSeamBlend??.035;}catch{band=.035;}
+  try{const settings=JSON.parse(await readFile(new URL(`./sources/${scene.id}-source.json`,import.meta.url),'utf8'));band=settings.sourceSeamBlend??.035;if(settings.panoramaSource)file=new URL('./sources/'+settings.panoramaSource,import.meta.url).pathname;}catch{band=.035;}
  }
  const {data,info}=await sharp(file).removeAlpha().raw().toBuffer({resolveWithObject:true}),tiles=[],views=[];
  function sample(u,v,c){

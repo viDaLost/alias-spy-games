@@ -1,6 +1,8 @@
 {
   "directionSources": {
-    "down": "directions/babel-down-fixed.webp"
+    "down": "directions/babel-down-fixed.webp",
+    "up": "directions/babel-up-fixed.webp",
+    "back": "directions/babel-back-fixed.webp"
   },
   "poleBlendStart": 0.6,
   "poleBlendRange": 0.22,
@@ -16,5 +18,9 @@
       "verticalRange": 0.2
     }
   },
-  "repairNote": "Retained clean native back sky replaces inherited longitude cut only above the horizon; earlier clean upper view removes radial cloud streaks. Original architecture retained."
+  "repairNote": "Retained clean native back sky replaces inherited longitude cut only above the horizon; earlier clean upper view removes radial cloud streaks. Original architecture retained.",
+  "dominantDirections": [
+    "up",
+    "back"
+  ]
 }

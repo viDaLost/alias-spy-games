@@ -72,7 +72,7 @@ async function build(scene){
  for(let y=0;y<H;y++){
   const v=(y+.5)/H,cy=Math.cos(v*Math.PI),sy=Math.sin(v*Math.PI);
   for(let x=0;x<W;x++){
-   const dir=[dirs[x][0]*sy,cy,dirs[x][1]*sy],p=(y*W+x)*3,acc=[0,0,0],basePixel=[0,1,2].map(c=>original(base,dir,c));let total=0;
+   const dir=[dirs[x][0]*sy,cy,dirs[x][1]*sy],p=(y*W+x)*3,acc=[0,0,0],replacementAcc=[0,0,0],basePixel=[0,1,2].map(c=>original(base,dir,c));let total=0,replacementTotal=0,replacementCoverage=0;
    for(const tile of tiles){
     const z=dot(dir,tile.forward);if(z<=0)continue;
     const px=dot(dir,tile.right)/(z*tan),py=dot(dir,tile.up)/(z*tan),edge=Math.max(Math.abs(px),Math.abs(py));if(edge>=1)continue;
@@ -82,12 +82,23 @@ async function build(scene){
     const pole=(tile.name==='up'||tile.name==='down')?smooth((Math.abs(dir[1])-(profile.start??settings.poleBlendStart??.78))/(profile.range??settings.poleBlendRange??.19)):0;
     const region=settings.directionBlend?.[tile.name];
     const replacement=Math.max(pole,region?smooth((dir[1]-region.verticalStart)/region.verticalRange):0);
+    // An explicitly repaired direction can fully cover malformed silhouettes.
+    // Detail-only neighboring faces must not dilute this mask back into ghosts.
+    if(settings.dominantDirections?.includes(tile.name)){
+     const coverage=replacement*weight;
+     for(let c=0;c<3;c++)replacementAcc[c]+=sample(tile.im,(px+1)/2,(1-py)/2,c)*coverage;
+     replacementTotal+=coverage;replacementCoverage=Math.max(replacementCoverage,coverage);
+    }
     // Near a pole, fully use the restored direction so old radial artifacts cannot leak through.
     for(let c=0;c<3;c++)acc[c]+=((1-replacement)*sample(residual,(px+1)/2,(1-py)/2,c)+replacement*(sample(tile.im,(px+1)/2,(1-py)/2,c)-basePixel[c]))*weight;
     total+=weight;
    }
    if(!total)throw Error('Uncovered spherical direction');
-   for(let c=0;c<3;c++)pixels[p+c]=Math.round(clamp(basePixel[c]+acc[c]/total,0,255));
+   for(let c=0;c<3;c++){
+    const blended=basePixel[c]+acc[c]/total;
+    const corrected=replacementTotal?(1-replacementCoverage)*blended+replacementCoverage*replacementAcc[c]/replacementTotal:blended;
+    pixels[p+c]=Math.round(clamp(corrected,0,255));
+   }
   }
  }
  const file=path.join(root,'public/assets',sceneAssets[scene]);
