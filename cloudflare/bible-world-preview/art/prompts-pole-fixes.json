@@ -1,0 +1,23 @@
+{
+  "tool": "built-in image_gen",
+  "baseCommit": "6e8ec22c7142f447fec97f22a20cf2f37ce0ca92",
+  "edits": [
+    {
+      "source": "art/sources/directions/babel-down.png",
+      "output": "art/sources/directions/babel-down-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target.\nPrimary request: Repair only the artificial concentric/radial pebble rings and soft circular ground patch in the central ground. Replace those synthetic patterns with natural irregular trampled dry soil, scattered grit and existing irregular stones. Break the circular/radial organization into plausible random distribution, with coherent sharp detail matching the surrounding ground.\nConstraints: Preserve the exact existing square image composition, unusual down-facing panoramic projection, border architecture, people or visible legs/feet, all props, rope, brickwork, foliage, colors, sunlight and existing cast shadows. Keep the original viewpoint and every edge boundary fixed. Preserve existing real stones where possible while removing the artificial pattern. No new objects, no added people or animals, no text, no blur disk, no radial or concentric pattern. This is a tightly localized ground texture repair, not a scene redesign.",
+      "qa": {
+        "previewMaxEdge": 768,
+        "observations": "Concentric/radial pebble rings and soft circle removed; ground now irregular grit and stones. Border architecture, props, rope, foliage and long shadows visibly retained. Native edit may change individual central stones; exact border pixel identity is not claimed.",
+        "decodedPixelEqualityToNativePNG": true
+      },
+      "sha256": "44915d02f26c0d2bf6882ee959bcb0dad08dc731bff72823eba532df7713f476",
+      "gitBlobSHA": "5fa175b96ad32a6f05312fad6543df35dabfac4e",
+      "nativePNGsha256": "a4ff4b7a61882cb27709fdfdb0b9eb6cb3dec9176329dc97a0cbda989d894a09",
+      "dimensions": [
+        1254,
+        1254
+      ]
+    }
+  ]
+}
