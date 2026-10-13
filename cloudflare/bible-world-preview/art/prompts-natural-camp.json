@@ -39,6 +39,23 @@
     "lossless_webp_bytes": 1965606,
     "sha256": "43837e0db03613f971958d70e187744bc361eab6cf63fc07652c31a3564a0809",
     "git_blob_sha1": "02e312a553916bc64e0934006d3303dba2713893",
-    "status": "Candidate v2 checkpoint; projected QA pending."
+    "status": "Candidate v2; NOT final. Correct foreground hands pass; exact nadir fails spherical geometry QA.",
+    "qa": {
+      "projection_method": "Production camera rayToUV equivalent, 84-degree square FOV, 512px JPEG previews; yaws0,+/-45,+/-90,+/-135,180, pitch+/-60, plus exact zenith and nadir.",
+      "passes": [
+        "Prominent yaw135/back actor now raises uncovered burning torch in anatomical LEFT hand away from his face and brings the ram horn to his mouth in RIGHT hand.",
+        "Other clearly readable foreground men retain LEFT torches and RIGHT horns.",
+        "No newly introduced extra arms or disconnected props visible in sampled views.",
+        "Smaller subdued irregular camp lights, dark distant terrain, eyeheight, hillside and tent composition retained."
+      ],
+      "issues": [
+        "Exact nadir has a conspicuous radial pinwheel/starburst in rock and grass geometry; unsuitable for unrestricted full-sphere use as-is.",
+        "Nearest terrain remains broadly orange-lit. Dark pockets and shadows make falloff more believable, but foreground illumination is still less natural than distant terrain.",
+        "Similar raised-torch/horn poses remain repeated among principal figures.",
+        "Exact zenith shows some radial sky texture stretching; no pole continuity certification.",
+        "Native dimensions remain1774x887; highest-detail wording did not increase built-in output size."
+      ],
+      "decision": "Do not mark final or publish this source as an unrestricted sphere. Root to decide downstream/pole treatment; no directional regeneration or shared pipeline changes performed."
+    }
   }
 }
