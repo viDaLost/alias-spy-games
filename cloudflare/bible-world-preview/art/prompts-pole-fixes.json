@@ -97,6 +97,36 @@
         "decodedPixelEqualityToNativePNG": true,
         "observations": "Nearest left foreground goat removed entirely into coherent pebbled seabed; previously removed lower-right sheep remain absent. Woman/child, other people, donkey, distant sheep/flock, water walls and sunset visually retained. Exact pixel identity outside repaired region not claimed."
       }
+    },
+    {
+      "source": "art/sources/directions/red-sea-down-fixed-v2.webp",
+      "sourceSHA256": "a4ebb41f7a2bf9b3fedf85ed52797125773227999893f11ea71a3d259f1ce429",
+      "output": "art/sources/directions/red-sea-down-fixed-v3.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target, the repaired Red Sea downward image with reconstructed goat.\nPrimary request: Remove ONLY the nearest brown-and-white goat at the left/lower-left foreground completely, including its head, rope across its body, torso, hindquarters, legs and hooves. Replace its entire silhouette and contact shadow with coherent uninterrupted dry seabed of irregular sand, grit and rounded pebbles matching the surrounding ground. Keep all farther intact animals including upper-edge donkeys intact.\nConstraints: Preserve every human, robes, sandals, feet, staffs, human-held ropes and all props. Preserve upper-edge donkeys and other intact animals, existing sunlight and shadows, colors, exact square framing and unusual down-facing panoramic projection. Keep the previously cleaned central/lower ground free of hollow fleece crescents. No new animals, no replacement goat, no floating fragments, no animal anatomy merged into gravel, no unrelated changes, no text. Only replace the nearest left foreground goat with dry seabed.",
+      "reason": "Independent assembled-view audit found v2 nearest goat legs inconsistent with pole projection; remove ambiguous nearest animal entirely.",
+      "sha256": "5266c925a65e1df3d8bde04e915905e4750a0ab9f54a72be1bae82e31a922354",
+      "nativePNGsha256": "45eee841511d8ac6ba20f271d8847dbc818e8328d2d2090c92bb00012e91650b",
+      "gitBlobSHA": "9fd43467e1497a68bf48816c0606b053e488c9d6",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "nativeClearedCrop": [
+          0,
+          590,
+          570,
+          1070
+        ],
+        "decodedPixelEqualityToNativePNG": true,
+        "observations": "Whole nearest goat removed including neck/body rope, feet and shadow; cleared area is continuous pebbled seabed with no fleece/body remnants. Upper-edge donkeys and border humans, robes, sandals and staffs visually retained. Matches foreground removal in selected full base. Exact pixel identity outside repaired area not claimed."
+      }
     }
+  ],
+  "selectedOutputs": [
+    "art/sources/directions/babel-down-fixed.webp",
+    "art/sources/red-sea-panorama-fixed.webp",
+    "art/sources/directions/red-sea-down-fixed-v3.webp"
   ]
 }
