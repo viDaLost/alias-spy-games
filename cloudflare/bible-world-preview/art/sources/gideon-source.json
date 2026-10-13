@@ -1,8 +1,8 @@
 {
   "kind": "generatively-repaired",
   "sourceSeamBlend": 0,
-  "detailConfidenceMin": 5,
-  "detailConfidenceRange": 25,
+  "detailConfidenceMin": 0,
+  "detailConfidenceRange": 10,
   "directions": [
     "front",
     "right",
@@ -13,5 +13,13 @@
   ],
   "note": "Base geometrically derived from six retained native ImageGen directions, then builtin ImageGen repaired observed 45 degree overlap ghost men, limbs and flames. All six native directions remain unchanged. Confidence-weighted fine detail build retains repaired base composition.",
   "repairPromptManifest": "art/prompts-medium-a.json",
-  "repairStage": "base-repair"
+  "repairStage": "base-repair",
+  "panoramaSource": "gideon-natural-panorama-v2.webp",
+  "directionSources": {
+    "up": "directions/gideon-natural-up.webp",
+    "down": "directions/gideon-natural-down.webp"
+  },
+  "poleBlendStart": 0.6,
+  "poleBlendRange": 0.22,
+  "repairNote": "Coherent restrained night base with anatomically corrected torch LEFT / horn RIGHT. New matching perspective poles; old directional details only retained where low-frequency alignment passes strict confidence."
 }

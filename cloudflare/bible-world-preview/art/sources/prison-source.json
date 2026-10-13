@@ -9,5 +9,9 @@
     "up",
     "down"
   ],
-  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content."
+  "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content.",
+  "directionSources": {
+    "back": "directions/prison-back-fixed.webp"
+  },
+  "repairNote": "4K sphere directly assembled from retained native directions with precise repaired back override; original derived low-resolution base is retained as historical provenance, not final assembly input."
 }

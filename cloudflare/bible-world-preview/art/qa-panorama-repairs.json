@@ -1,0 +1,458 @@
+{
+  "date": "2026-10-13",
+  "baseline_commit": "6e8ec22c7142f447fec97f22a20cf2f37ce0ca92",
+  "scope": "All fifteen production textures, 30 rectilinear projections per scene (yaw0/45/135/-135/-45/180 and pitch0/60/-60/90/-90), individual512px investigation of suspected defects. Native sources distinguish generation defects from projection blending.",
+  "status": "Final selected candidates passed projected visual QA;24 automated game/viewer/asset tests and Worker dry-run passed. Publication verification runs separately in deployment CI.",
+  "limitations": [
+    "Projected static image QA; browser interaction and physical iPhone QA unavailable.",
+    "Native generator dimensions and lossless assembly provenance are recorded in exact prompt files.",
+    "Some scenes retain cinematic illumination and stylized sky; confirmed join/anatomy defects are the repair scope."
+  ],
+  "final_result": {
+    "babel": "Ground rings/soft disc removed; cloud wrap cut and radial sky streaks removed; upper/back/down transitions passed.",
+    "red-sea": "Malformed nearest goat and fleece removed consistently from base/down-v3; old residual reinjection suppressed; final1024px former-horn/fleece locations and all lower joins passed.",
+    "gideon": "Corrected natural-night v2 with LEFT torch/RIGHT horn; sparse smaller camp lights and shadow pockets; clean matching upper/lower poles passed.",
+    "eutychus": "Base-contaminated phantom pillar removed by earlier clean upper replacement; true zenith and neighboring sky transitions passed.",
+    "prison": "Native back ghost man/double cloak removed; adjacent joins and true poles passed.",
+    "unchanged": "Noah,David,Daniel,temple,galilee,carmel,philip,axe,oil,fleece have no confirmed hard joins or phantom anatomy in reviewed30 projections. Fleece sky remains stylized."
+  },
+  "final_resolution": "All fifteen initial512px30-view audits; changed five textures additionally projected at1024px; individual affected and neighboring views inspected. No exhaustive pixel-by-pixel certification.",
+  "selected_configuration": {
+    "babel": {
+      "directionSources": {
+        "down": "directions/babel-down-fixed.webp",
+        "up": "directions/babel-up-fixed.webp",
+        "back": "directions/babel-back-fixed.webp"
+      },
+      "poleBlendStart": 0.6,
+      "poleBlendRange": 0.22,
+      "poleProfiles": {
+        "up": {
+          "start": 0.5,
+          "range": 0.25
+        }
+      },
+      "directionBlend": {
+        "back": {
+          "verticalStart": 0.1,
+          "verticalRange": 0.2
+        }
+      },
+      "repairNote": "Retained clean native back sky replaces inherited longitude cut only above the horizon; earlier clean upper view removes radial cloud streaks. Original architecture retained.",
+      "dominantDirections": [
+        "up",
+        "back"
+      ]
+    },
+    "red-sea": {
+      "directionSources": {
+        "down": "directions/red-sea-down-fixed-v3.webp"
+      },
+      "poleBlendStart": 0.6,
+      "poleBlendRange": 0.22,
+      "poleProfiles": {
+        "down": {
+          "start": 0.35,
+          "range": 0.25
+        }
+      },
+      "dominantDirections": [
+        "down"
+      ],
+      "repairNote": "Malformed near-camera goat and fleece removed consistently from selected coherent base and down-v3; intact distant animals retained. Corrected lower view dominates overlap so old generated silhouettes cannot leak through. Old side-detail residuals fade below the cleared near-camera sector to prevent detached horns and fleece outlines from reinjection.",
+      "panoramaSource": "red-sea-panorama-fixed.webp",
+      "detailFadeBelow": {
+        "start": -0.55,
+        "range": 0.2
+      }
+    },
+    "gideon": {
+      "kind": "generatively-repaired",
+      "sourceSeamBlend": 0,
+      "detailConfidenceMin": 0,
+      "detailConfidenceRange": 10,
+      "directions": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down"
+      ],
+      "note": "Base geometrically derived from six retained native ImageGen directions, then builtin ImageGen repaired observed 45 degree overlap ghost men, limbs and flames. All six native directions remain unchanged. Confidence-weighted fine detail build retains repaired base composition.",
+      "repairPromptManifest": "art/prompts-medium-a.json",
+      "repairStage": "base-repair",
+      "panoramaSource": "gideon-natural-panorama-v2.webp",
+      "directionSources": {
+        "up": "directions/gideon-natural-up.webp",
+        "down": "directions/gideon-natural-down.webp"
+      },
+      "poleBlendStart": 0.6,
+      "poleBlendRange": 0.22,
+      "repairNote": "Coherent restrained night base with anatomically corrected torch LEFT / horn RIGHT. New matching perspective poles; old directional details only retained where low-frequency alignment passes strict confidence."
+    },
+    "eutychus": {
+      "kind": "generated-native",
+      "sourceSeamBlend": 0.035,
+      "nativeWidth": 1774,
+      "nativeHeight": 887,
+      "generator": "Built-in ImageGen",
+      "created": "2026-10-11",
+      "poleBlendStart": 0.6,
+      "poleBlendRange": 0.22
+    },
+    "prison": {
+      "kind": "derived-from-directions",
+      "sourceSeamBlend": 0,
+      "directions": [
+        "front",
+        "right",
+        "back",
+        "left",
+        "up",
+        "down"
+      ],
+      "note": "Recovered from six retained native ImageGen direction views; no regenerated scene or invented content.",
+      "directionSources": {
+        "back": "directions/prison-back-fixed.webp"
+      },
+      "repairNote": "4K sphere directly assembled from retained native directions with precise repaired back override; original derived low-resolution base is retained as historical provenance, not final assembly input."
+    }
+  },
+  "local_final_textures": {
+    "babel": {
+      "file": "public/assets/babel-360-v6-4k.webp",
+      "bytes": 9680624,
+      "sha256": "30675183c34dfa4d4602fd640194062bfb48720b4fb32063fc0e4fae0cca7fbe",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP"
+    },
+    "red-sea": {
+      "file": "public/assets/red-sea-360-v2-4k.webp",
+      "bytes": 8537612,
+      "sha256": "7c8f97aaac20689965247f29ac314be60b8407f31bf1885e21e4ba0d083e7a9e",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP"
+    },
+    "gideon": {
+      "file": "public/assets/gideon-360-v2-4k.webp",
+      "bytes": 6825316,
+      "sha256": "1bab3279da3f5112586edcb8d402f03f202b401e4cc61c5a93782353aaaf35f8",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP"
+    },
+    "eutychus": {
+      "file": "public/assets/eutychus-360-v2-4k.webp",
+      "bytes": 7747860,
+      "sha256": "7c8aac2313d95bd4fdd49c25ccab745264a7505cf3834bc9e5e5c74db0dd017a",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP"
+    },
+    "prison": {
+      "file": "public/assets/prison-360-v2-4k.webp",
+      "bytes": 8685760,
+      "sha256": "c7608e5961179da897aa68ecbcc404d6b1d640ca12545eda90be1dd7b4baca77",
+      "width": 4096,
+      "height": 2048,
+      "encoding": "lossless WebP"
+    }
+  },
+  "audit_history": {
+    "audit-easy.json": {
+      "scope": "Bounded visual audit only; no source, code, asset, index, build or publication changes.",
+      "resolution": "Five contact sheets; suspicious exact 512px production-camera projections at yaw45,135,-135,-45,180 and pitch0,60,-60. Small native direction previews used to distinguish inherited image defects.",
+      "inspected": [
+        "babel",
+        "noah",
+        "red-sea",
+        "david",
+        "daniel"
+      ],
+      "findings": [
+        {
+          "scene": "red-sea",
+          "severity": "high",
+          "yaw": [
+            135,
+            180,
+            -135
+          ],
+          "pitch": -60,
+          "defect": "Curved floating strips of sheep fleece enclose/infiltrate ground pebbles. Goat lower body joins the pebble texture. Foreground animal anatomy disappears into the ground.",
+          "cause": "Already present in saved native down-direction image; assembly exposes/retains the malformed imagery. Not a simple tonal seam.",
+          "repair": "Repair only down-direction image using coherent whole sheep/goat silhouettes and unpatterned rocky ground; align retained neighboring side views before assembly."
+        },
+        {
+          "scene": "babel",
+          "severity": "medium",
+          "yaw": [
+            45,
+            135,
+            -135,
+            -45,
+            180
+          ],
+          "pitch": -60,
+          "defect": "Concentric radial pebble rings and a soft circular central ground disc, especially obvious at45/135/-135/180. Ground resembles a sphere patch rather than natural dirt.",
+          "cause": "Concentric texture also present in native babel-down.png, so inherited generated direction imagery.",
+          "repair": "Replace bounded down image with natural nonconcentric ground, preserve nearby brick/rope/jar/wall positions, verify diagonals at±45/±135 and down transitions."
+        },
+        {
+          "scene": "babel",
+          "severity": "low",
+          "yaw": [
+            180
+          ],
+          "pitch": 0,
+          "defect": "Subtle straight vertical cloud/sky discontinuity near the image center, strongest around512px x256,y80–205.",
+          "cause": "Likely inherited base equirectangular wrap; native back-direction preview looks smooth. Tentative cause; no pixel-difference experiment performed.",
+          "repair": "Use existing coherent back direction as reference for a bounded sky/wrap repair; do not change whole scene composition."
+        },
+        {
+          "scene": "babel",
+          "severity": "low",
+          "yaw": [
+            45,
+            135,
+            -135,
+            -45
+          ],
+          "pitch": 60,
+          "defect": "Fine clouds form radial/triangular streaks around upper pole. Most obvious against blue sky in45/-45 and135 views.",
+          "cause": "Likely inherited pole imagery/projected texture rather than a hard rectangular face boundary; tentative.",
+          "repair": "Repair only zenith sky if needed, keeping sun and major horizon clouds consistent."
+        }
+      ],
+      "coherentWithinReviewedViews": [
+        {
+          "scene": "noah",
+          "note": "No confirmed hard tonal joins, duplicated people/animals, or malformed poles in reviewed diagonal, wrap, and high/low projections."
+        },
+        {
+          "scene": "david",
+          "note": "No confirmed face seam. Hair seen at upper outer edges of45/60 and-135/60 is continuous nearby David, not an isolated duplicate. Two army formations meet coherently at back/tree."
+        },
+        {
+          "scene": "daniel",
+          "note": "Cave upper geometry and lion lower paws/body remain coherent in examined diagonal and wrap projections. No confirmed hard seam."
+        }
+      ],
+      "limitation": "512px visual inspection is bounded; coherentWithinReviewedViews is not a pixel-level or full-resolution guarantee.",
+      "expandedAudit": {
+        "viewsPerScene": 30,
+        "truePoles": "Noah, David, Daniel yaw0 at pitch+90/-90 coherent at512; Noah additional45/-90 coherent.",
+        "babelV6": {
+          "down": "Concentric pebble rings and central soft disc removed. True nadir and diagonal -60 ground transitions coherent.",
+          "sky": "True zenith coherent. Inherited subtle center wrap cloud cut remains at180/0; sparse radial/triangular cloud streaks remain in0/45/135 pitch60. Separate bounded sky/back and up-transition profile advised."
+        },
+        "redSeaCandidate": "Pending candidate-ready notification.",
+        "babelSecondProfile": {
+          "down": "Ground correction retained.",
+          "sky": "No new hard native-back transition/horizon damage. Fine radial/triangular cloud streaks remain in45/135/-45 pitch60; mild central cloud cut remains at180/0. Widened native up/back influence retaining these shapes suggests baked direction image artifacts. Low priority relative to RedSea."
+        },
+        "redSeaV2": {
+          "result": "Not resolved",
+          "trueNadir": "Central soil cleaner",
+          "remaining": "Sheep rear/body becomes pebbles and terminating fleece tuft at135/-60 around x365,y185–240;180/-60 around x235,y190–270. Goat lower belly/legs disappear into pebbles at-135/-60 around x265,y330.",
+          "likelyCause": "Base side imagery retained through transition despite repaired down pole.",
+          "suggestion": "Extend corrected down image over complete affected silhouettes/transition or repair adjacent side imagery; verify exact animals at-60, not only nadir soil."
+        },
+        "redSeaEarlierDownProfile": {
+          "profile": ".35/.25",
+          "result": "Sheep ghosts persist in135/-60 and180/-60. Goat malformed legless lower body remains at-135/-60.",
+          "coordinates": "135/-60 pale tuft aroundx365,y230;180/-60 truncated/transparent fleece aroundx200–265,y165–245;goat at-135/-60 lower body aroundx270,y330.",
+          "otherChecked": "45/-60,-45/-60,true0/-90 no additional confirmed leakage except same goat.",
+          "repair": "Need stronger local full down mask over affected silhouettes or adjacent side cleanup; transition change alone insufficient."
+        },
+        "redSeaDominantDownNativeV2": {
+          "result": "Not resolved: new goat perspective defect",
+          "sheep": "Most pale sheep ghosts removed; small tuft persists180/-60 aroundx220,y125–175.",
+          "goat": "At-135/-60 hooves point upward upper-left above belly (x150–255,y180–290); at180/-60 hooves point towardtop abovebelly (x310–450,y220–330). Goat reads upside-down/floating. Attrue0/-90 feet extendoutward toward loweredge instead of inward toward groundcenter.",
+          "repair": "Correct goat native down perspective: torso outward/above, feet inward toward actual groundcenter, then recheck exact-135/180 pitch-60 and true nadir."
+        }
+      }
+    },
+    "audit-hard.json": {
+      "scope": [
+        "axe",
+        "oil",
+        "fleece",
+        "eutychus",
+        "prison"
+      ],
+      "status": "complete baseline and candidate reviews",
+      "angles": [
+        45,
+        135,
+        -135,
+        -45,
+        180
+      ],
+      "pitches": [
+        0,
+        60,
+        -60
+      ],
+      "method": "All five 1000x666 15-view contact sheets examined and reconfirmed after restore; suspicious joins inspected at 512x512 only, including all Eutychus views and additional axe/oil/prison ceiling and ground views. Source direction thumbnails and same-ray base projections establish attribution. No 4K imagery displayed.",
+      "findings": [
+        {
+          "scene": "prison",
+          "yaw": 180,
+          "pitch": [
+            0,
+            60
+          ],
+          "severity": "high",
+          "defect": "A semi-transparent extra orange-clothed man is baked over the center closed door edge. At pitch0, a doubled translucent stripe of the seated curly-haired man's cloak crosses his right shoulder and upper arm. Both appear unnatural independent of geometric perspective.",
+          "cause": "direction-source content",
+          "evidence": "Present within native prison-back direction and derived panorama; center of yaw180/p0 is principally the back face, not a face join.",
+          "repair": "Locally edit prison-back: erase phantom man and reconstruct continuous closed door boards/adjacent wall; reconstruct one solid cloak with one clean shoulder and arm silhouette. Keep door pose, real people, lamp, bench, straw, and face edges unchanged. Check back-left/back-right joins after assembly.",
+          "evidence_views": [
+            "prison-yaw180-pitch0.jpg",
+            "prison-yaw180-pitch60.jpg"
+          ]
+        },
+        {
+          "scene": "eutychus",
+          "yaw": [
+            135,
+            -135,
+            180
+          ],
+          "pitch": 60,
+          "severity": "medium-high",
+          "defect": "Translucent taper/column ghost extends from the central plaster pillar into the open sky. Most visible above pillar tip near center of yaw180/p60 and along upper-right/lower-right pillar boundary in yaw135/p60.",
+          "cause": "base contamination through pole replacement transition",
+          "evidence": "Base yaw180/p60 has a massive solid tapered column ending at pole and radial sky pinch. The generated eutychus-up face is clean. Production removes the pole tip but leaves a faint pillar wedge below the full pole replacement zone.",
+          "repair": "Use bounded repair of native spherical base column/sky pinch, or extend clean up-face replacement through this exact pillar wedge with an edge mask respecting true roof/pillar silhouette. Reusing clean up source is preferable to regenerating entire scene. Check 135/-135/180 at pitch30/45/60.",
+          "evidence_views": [
+            "eutychus-yaw180-pitch60.jpg",
+            "eutychus-yaw135-pitch60.jpg",
+            "eutychus-yaw-135-pitch60.jpg"
+          ]
+        }
+      ],
+      "clean_or_minor": [
+        {
+          "scene": "axe",
+          "result": "No obvious hard join or ghost found in all contact views and selected 512 horizon, sky and water views. Giant iron axe head very close to camera is oversized/odd but coherent; no confirmed seam repair."
+        },
+        {
+          "scene": "oil",
+          "result": "No confirmed hard face joins, doubled jars, ghost limbs or ceiling transitions in complete contact coverage and detailed horizon, ceiling and lower views. Distinct two boys' sandals are coherent, not spare limbs."
+        },
+        {
+          "scene": "fleece",
+          "result": "All diagonal joins examined in contact sheets plus nine 512 views; no obvious abrupt blend or doubled person/fleece/tree. Broad circular clouds are stylized, but source up face and direct assembly match; no confirmed pole seam."
+        }
+      ],
+      "writes": "Only ignored art/work audit output; no source/publication modifications.",
+      "candidate_review": {
+        "status": "pass for confirmed seam defects",
+        "angles": [
+          0,
+          45,
+          135,
+          -135,
+          -45,
+          180
+        ],
+        "pitches": [
+          0,
+          60,
+          -60,
+          90,
+          -90
+        ],
+        "scenes": {
+          "eutychus": {
+            "candidate": "eutychus-360-v2-4k.webp",
+            "result": "Ghost pillar taper removed at yaw135/-135/180,pitch60 and at true zenith. Real pillar and roof edge are crisp; continuous sky without new visible hard replacement ring in all 30 contact projections and selected 512 upward views. True nadir clean.",
+            "comparison": "Same-ray 512 old published v1 views rendered under old-published/ confirm prior translucent pillar, including its extension at the zenith edge. Candidate improvement visually clear."
+          },
+          "prison": {
+            "candidate": "prison-360-v2-4k.webp",
+            "result": "Phantom man removed from closed door and seated shoulder/cloak rendered opaque and coherent. Neighboring yaw135/-135 joins remain clean at pitch0/60/-60. True zenith and nadir clean. No new confirmed hard face overlap seam."
+          },
+          "axe": {
+            "result": "Baseline expanded 30-view sheet and true zenith/nadir at 512: coherent tree canopy and riverbed without pinwheel or hard transition."
+          },
+          "oil": {
+            "result": "Baseline expanded 30-view sheet and true zenith/nadir at 512: coherent thatched ceiling and vessel/ground geometry; no duplicated jars, spare limbs or pole seam."
+          },
+          "fleece": {
+            "result": "Baseline expanded 30-view sheet and true zenith/nadir at 512: no confirmed overlap join, doubled subject, or ground pole seam. Sky has broad concentric sunset cloud rings inherited from up direction; visually stylized, lower-priority naturalism concern rather than an assembly defect.",
+            "severity": "low-medium aesthetic concern",
+            "recommendation": "Optional future local up-direction sky edit preserving Gideon, olive tree, horizon, sunset lighting and every edge; avoid changing complete scene."
+          }
+        }
+      }
+    },
+    "audit-medium-poles.json": {
+      "date": "2026-10-13",
+      "scope": "Bounded true-zenith and true-nadir follow-up for temple, galilee, carmel, philip. Gideon replacement is pending and excluded.",
+      "method": "Inspected four updated 30-view contact sheets, including six yaw rotations at pitch +90 and -90 per scene, then inspected the eight yaw0/pitch±90 views at full 512px. No 4K texture viewed.",
+      "angles": [
+        0,
+        45,
+        135,
+        -135,
+        -45,
+        180
+      ],
+      "pitches_followed_up": [
+        90,
+        -90
+      ],
+      "findings": [],
+      "scene_results": {
+        "temple": {
+          "status": "pass_sampled_poles",
+          "zenith": "Cloud structure and blue sky meet smoothly at the true center; no radial stripe, hard boundary, pole pinching or ghost structure identified.",
+          "nadir": "Paving joints, stone texture and debris remain readable across the center; no duplicated seam or fan-shaped pinching confirmed. Perspective curvature alone does not warrant repair."
+        },
+        "galilee": {
+          "status": "pass_sampled_poles",
+          "zenith": "Continuous cloud field; no hard tonal join or radial pole artifact identified.",
+          "nadir": "Pebbles, rocks and net perimeter remain coherent across the pole; no center pinch, smear or hard patch boundary identified."
+        },
+        "carmel": {
+          "status": "pass_sampled_poles",
+          "zenith": "Cloud/fire column region stays continuous; no radial seam or ghost flame at the pole identified.",
+          "nadir": "Wet rocks, water highlights, jars and the edge of a prostrate person's arm remain coherent; no center pinch or repeated/ghost limb identified."
+        },
+        "philip": {
+          "status": "pass_sampled_poles",
+          "zenith": "Blue sky, clouds and peripheral canopy/tree tips are coherent; no pole streak or geometric collapse identified.",
+          "nadir": "Sandy ground, stones, standing figure's feet and peripheral chariot wheel remain coherent; no center smear, pinching or hard seam identified."
+        }
+      },
+      "recommendation": "Retain all four assets. No additional edits or shared pipeline changes supported by this follow-up. Audit new Gideon candidate separately when its projections are ready.",
+      "limitation": "Visual QA at 512px plus contact sheets; does not guarantee absence of subpixel or unsampled defects."
+    },
+    "audit-gideon-v2-final.json": {
+      "date": "2026-10-13",
+      "scene": "gideon",
+      "candidate": "public/assets/gideon-360-v2-4k.webp",
+      "method": "Inspected the final 30-view contact sheet at yaw0,45,135,-135,-45,180 and pitch0,60,-60,90,-90, followed by sixteen exact 512px views including true poles, diagonal horizons, upper/lower transitions, hands, feet and camp. No image generation or asset/source changes.",
+      "decision": "pass_sampled_visual_QA",
+      "actual_seam_or_anatomy_defects": [],
+      "checks": {
+        "zenith": "At yaw0/pitch90 and six contact-sheet rotations, stars and Milky Way are continuous. No center pinwheel, radial stripe, collapsed cloud or hard texture boundary identified.",
+        "nadir": "At yaw0/pitch-90 and six contact-sheet rotations, gravel, rocks, grass and jar fragments remain distinct across the center. No center pinch, copied radial texture, smear or hard blend edge identified. Peripheral feet enter from the viewing edges rather than appearing as unsupported center ghost limbs.",
+        "diagonal_transitions": "At yaw45,135,-135,-45 across horizon and pitch±60, sky, terrain and foreground detail transition smoothly; no confirmed hard tonal edge, duplicated silhouette or ghost torch identified.",
+        "hands": "Nearest men at yaw0,135,-135,180/pitch0 clearly hold torches in their left hands and horns at their mouths in their right hands. Raised torches inspected at yaw135,-135,180/pitch60 have coherent flames and shafts. Previously noted reversed hands and blunt extinguished torch are resolved.",
+        "anatomy": "Near figures have separated arms/props and plausible stance. Grounded sandals and calves at yaw45,-135/pitch-60 are coherent. No extra limb or obvious hand/anatomy defect confirmed at inspected resolution.",
+        "lighting": "Material improvement versus v1: darker unlit tents/terrain and smaller, more irregular camp light pools. Strong warm highlights on foreground torch-facing areas are balanced by substantial shadow pockets. Camp still reads as large.",
+        "remaining_style": "Dense stars, mild Milky Way glow and crisp cinematic foreground torch lighting remain stylized; these are aesthetic characteristics, not newly confirmed assembly defects."
+      },
+      "recommendation": "Use v2 on this bounded visual evidence; no further generation or shared pipeline adjustment warranted by the inspected views.",
+      "limitation": "512px visual audit and contact sheets; pass is limited to sampled projections and does not establish correctness of every distant tiny figure."
+    }
+  },
+  "audit_history_note": "Original defects and rejected intermediate candidate assessments are retained as history. final_result and selected_configuration describe the selected release."
+}

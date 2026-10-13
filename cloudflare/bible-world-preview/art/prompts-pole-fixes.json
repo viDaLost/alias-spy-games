@@ -1,0 +1,132 @@
+{
+  "tool": "built-in image_gen",
+  "baseCommit": "6e8ec22c7142f447fec97f22a20cf2f37ce0ca92",
+  "edits": [
+    {
+      "source": "art/sources/directions/babel-down.png",
+      "output": "art/sources/directions/babel-down-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target.\nPrimary request: Repair only the artificial concentric/radial pebble rings and soft circular ground patch in the central ground. Replace those synthetic patterns with natural irregular trampled dry soil, scattered grit and existing irregular stones. Break the circular/radial organization into plausible random distribution, with coherent sharp detail matching the surrounding ground.\nConstraints: Preserve the exact existing square image composition, unusual down-facing panoramic projection, border architecture, people or visible legs/feet, all props, rope, brickwork, foliage, colors, sunlight and existing cast shadows. Keep the original viewpoint and every edge boundary fixed. Preserve existing real stones where possible while removing the artificial pattern. No new objects, no added people or animals, no text, no blur disk, no radial or concentric pattern. This is a tightly localized ground texture repair, not a scene redesign.",
+      "qa": {
+        "previewMaxEdge": 768,
+        "observations": "Concentric/radial pebble rings and soft circle removed; ground now irregular grit and stones. Border architecture, props, rope, foliage and long shadows visibly retained. Native edit may change individual central stones; exact border pixel identity is not claimed.",
+        "decodedPixelEqualityToNativePNG": true
+      },
+      "sha256": "44915d02f26c0d2bf6882ee959bcb0dad08dc731bff72823eba532df7713f476",
+      "gitBlobSHA": "5fa175b96ad32a6f05312fad6543df35dabfac4e",
+      "nativePNGsha256": "a4ff4b7a61882cb27709fdfdb0b9eb6cb3dec9176329dc97a0cbda989d894a09",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "sourceSHA256": "0354692d768e5b7fcb446b79f3447b0ff43f169d6b3f4111160a8329b4434351"
+    },
+    {
+      "source": "art/sources/directions/red-sea-down.webp",
+      "sourceSHA256": "b3b362be98961fbe1a59c4ed18c02ed4ada42ee70b6c8df0a7d01ed645452d87",
+      "output": "art/sources/directions/red-sea-down-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target.\nPrimary request: Repair only the impossible curved floating/hollow strips of wool and partial animal bodies filled with gravel in the lower central dry seabed. Remove the crescent-like fur or fleece shells whose interiors contain seabed gravel. Where these impossible fragments currently occupy the lower middle, show coherent continuous dry seabed of irregular sand, grit and rounded existing pebbles instead. Keep the intact goat at the left/lower-left edge and the two animals' legitimate heads and legs at the upper edge, with believable anatomy and ground contact shadows. Do not create a replacement foreground animal.\nConstraints: Preserve the exact square border composition, unusual down-facing panoramic projection, people, robes, sandals, feet, staffs, rope, all legitimate intact edge animals, props, colors, sunlight and existing cast shadows. Keep viewpoint and edge boundaries fixed. Change only malformed wool/fur fragments and gravel-filled partial bodies, replacing them with seabed. No floating fleece, no hollow animal shells, no gravel merged into animal flesh, no extra foreground animal, no added objects, no text. Tightly localized anatomy-artifact cleanup, not a scene redesign.",
+      "sha256": "d954ee6cba7896d3d922ee8e851abd1c95dad58dc5e6d2ccd6fb178792589d77",
+      "gitBlobSHA": "0b162584becb2a30a1fb009bac89f7d6718467a8",
+      "nativePNGsha256": "3502d3502d0b1095162758d93a98f402a3a32ca4427e58994bc48e7b6e4a9715",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "observations": "Lower-central hollow floating fleece/fur shells removed and replaced with coherent pebbled dry seabed. Existing lower-left goat and upper-edge donkeys retained; no extra foreground animal. Human robes, sandals and staffs at border visually retained. Left goat rear outline simplified slightly by native edit; exact border pixel identity is not claimed. Ground contact shadows remain plausible at preview scale.",
+        "decodedPixelEqualityToNativePNG": true
+      }
+    },
+    {
+      "source": "art/sources/directions/red-sea-down-fixed.webp",
+      "sourceSHA256": "d954ee6cba7896d3d922ee8e851abd1c95dad58dc5e6d2ccd6fb178792589d77",
+      "output": "art/sources/directions/red-sea-down-fixed-v2.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target, the repaired Red Sea ground image.\nPrimary request: Fix only the existing goat at the left/lower-left of the image. Its body currently tapers into gravel and its hindquarters and legs disappear. Retain exactly the existing goat's head position, head anatomy, rope, body placement and fur appearance, but reconstruct anatomically plausible connected hindquarters and all needed visible legs. Give each visible leg a clear hoof and believable contact with the dry pebbled seabed plus a small grounded contact shadow. The animal must read as one complete living goat standing on the ground, with rear body and legs connected naturally; no missing rear, no body fading into gravel, no gravel embedded in its anatomy.\nConstraints: This repairs the same existing goat, never adds another animal. Preserve all human figures, robes, sandals, feet, staffs, ropes, upper-edge donkeys, props, sunlight, colors and border composition. Preserve the exact square framing and unusual down-facing panoramic projection. Keep the cleaned central and lower-central seabed coherent; do not reintroduce hollow floating fleece crescents. No new animals, no extra foreground body, no text, no unrelated changes.",
+      "reason": "Observed remaining defect: existing goat hindquarters tapered into gravel and hind legs disappeared.",
+      "sha256": "a4ebb41f7a2bf9b3fedf85ed52797125773227999893f11ea71a3d259f1ce429",
+      "gitBlobSHA": "68b4a5976f547b1e15359edcad2df7ad3f60fcd2",
+      "nativePNGsha256": "c77e9f4e2b3bdd6f7d9c95ce3e2e364f425d3ad4965ba1987cba107832bea136",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "nativeGoatCrop": [
+          0,
+          590,
+          570,
+          1070
+        ],
+        "observations": "Existing goat now has connected rounded hindquarters with anatomically coherent visible legs/hooves and grounded contact shadows. Far limbs partially occluded by body in down-looking projection; no taper/merge into gravel. Head/body position and rope visually retained. Humans, upper-edge donkeys, border props and cleaned seabed visually preserved. No new animal or hollow fleece added. Exact pixel preservation outside repaired animal is not claimed.",
+        "decodedPixelEqualityToNativePNG": true
+      }
+    },
+    {
+      "source": "art/sources/red-sea-panorama.webp",
+      "output": "art/sources/red-sea-panorama-fixed-v1.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native full 2:1 equirectangular Red Sea historical panorama base.\nInput image: edit target.\nPrimary request: Remove ONLY the two overlapping malformed close foreground sheep/fleece silhouettes at the extreme lower-right edge, directly beneath the rightmost man's hand and hanging animal lead, beside the man with the large wicker basket on his back. This lower-right cluster comprises the dark wool body and nearest pale wool body cropped by the right border. Replace their entire silhouettes, malformed bodies and legs with coherent continuous dry seabed: irregular sand, rounded pebbles and plausible existing sunlight/cast shadows. Keep the distant small intact flock farther up the path, the left foreground goat, and the central donkey intact. Relax the now-empty hanging lead naturally from the rightmost man's unchanged hand; do not connect it to a new animal.\nConstraints: Preserve exactly the 2:1 framing, panoramic projection and horizon, all people including the basket man and rightmost man's hand, faces, clothing, baskets, carts, props, all intact animals elsewhere, towering water walls, foam, sky, sunset and lighting. Edit only the bounded extreme lower-right malformed sheep cluster plus its now-empty lead. No new sheep, no replacement animal, no floating fleece fragments, no animal body merged into gravel, no unrelated redesign, no text. Preserve the left/right wrap boundary scene composition as closely as possible.",
+      "sha256": "d1676cb3ec8e1a39303c08525607419e239193e59acc7ed37ebae96d2cbb91e6",
+      "nativePNGsha256": "a67759445c78c589fec8a48507c432b5007217de5ed398b8ba592a72e5bcff85",
+      "gitBlobSHA": "3151179b87b9b5388b08829e42187d33bf487ca2",
+      "dimensions": [
+        1774,
+        887
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "decodedPixelEqualityToNativePNG": true,
+        "observations": "Lower-right pair of malformed sheep silhouettes removed, rightmost man's empty lead naturally hanging; humans, water walls, horizon and distant intact flock visibly retained. Left nearest goat still present; intermediate not selected for final use, next targeted edit removes it per observed projection defect."
+      }
+    },
+    {
+      "source": "art/sources/red-sea-panorama-fixed-v1.webp",
+      "sourceSHA256": "d1676cb3ec8e1a39303c08525607419e239193e59acc7ed37ebae96d2cbb91e6",
+      "output": "art/sources/red-sea-panorama-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native full 2:1 equirectangular Red Sea historical panorama base.\nInput image: edit target, sheep-cleaned intermediate.\nPrimary request: Remove ONLY the nearest brown-and-white goat in the left foreground, in front of the woman and child. Remove its whole head, body and legs and replace its silhouette and contact shadow with coherent continuous dry seabed of irregular sand and existing rounded stones matching the surrounding ground. Keep the small sheep farther behind this goat and all other distant intact animals and central donkey intact.\nConstraints: Preserve the woman and child completely, including their hands and clothes; preserve every other human, all distant intact animals, donkey, carts, baskets, staff, props, towering water walls, foam, sky, sunset, horizon, colors and lighting. Preserve exact 2:1 framing and panoramic projection. Keep the already cleaned lower-right ground free of sheep/fleece ghosts and leave the rightmost man's hanging lead unchanged. No new animals, no substitute animal, no floating animal parts, no unrelated edits, no text. Only replace the nearest left foreground goat with dry seabed.",
+      "sha256": "10a49b030873c6ae82fe857d1f8e1fe73eb8fca512f89958ee6a196c7cb80e9a",
+      "nativePNGsha256": "92e909b53405cc1f65b83bdfea8fba0aa126a931296e8a9c893dc81f43f528a9",
+      "gitBlobSHA": "1d5db7f12b92f565246ff4ba982be4c98e38f996",
+      "dimensions": [
+        1774,
+        887
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "decodedPixelEqualityToNativePNG": true,
+        "observations": "Nearest left foreground goat removed entirely into coherent pebbled seabed; previously removed lower-right sheep remain absent. Woman/child, other people, donkey, distant sheep/flock, water walls and sunset visually retained. Exact pixel identity outside repaired region not claimed."
+      }
+    },
+    {
+      "source": "art/sources/directions/red-sea-down-fixed-v2.webp",
+      "sourceSHA256": "a4ebb41f7a2bf9b3fedf85ed52797125773227999893f11ea71a3d259f1ce429",
+      "output": "art/sources/directions/red-sea-down-fixed-v3.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native down-facing pole image for a historical 360 panorama.\nInput image: edit target, the repaired Red Sea downward image with reconstructed goat.\nPrimary request: Remove ONLY the nearest brown-and-white goat at the left/lower-left foreground completely, including its head, rope across its body, torso, hindquarters, legs and hooves. Replace its entire silhouette and contact shadow with coherent uninterrupted dry seabed of irregular sand, grit and rounded pebbles matching the surrounding ground. Keep all farther intact animals including upper-edge donkeys intact.\nConstraints: Preserve every human, robes, sandals, feet, staffs, human-held ropes and all props. Preserve upper-edge donkeys and other intact animals, existing sunlight and shadows, colors, exact square framing and unusual down-facing panoramic projection. Keep the previously cleaned central/lower ground free of hollow fleece crescents. No new animals, no replacement goat, no floating fragments, no animal anatomy merged into gravel, no unrelated changes, no text. Only replace the nearest left foreground goat with dry seabed.",
+      "reason": "Independent assembled-view audit found v2 nearest goat legs inconsistent with pole projection; remove ambiguous nearest animal entirely.",
+      "sha256": "5266c925a65e1df3d8bde04e915905e4750a0ab9f54a72be1bae82e31a922354",
+      "nativePNGsha256": "45eee841511d8ac6ba20f271d8847dbc818e8328d2d2090c92bb00012e91650b",
+      "gitBlobSHA": "9fd43467e1497a68bf48816c0606b053e488c9d6",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "nativeClearedCrop": [
+          0,
+          590,
+          570,
+          1070
+        ],
+        "decodedPixelEqualityToNativePNG": true,
+        "observations": "Whole nearest goat removed including neck/body rope, feet and shadow; cleared area is continuous pebbled seabed with no fleece/body remnants. Upper-edge donkeys and border humans, robes, sandals and staffs visually retained. Matches foreground removal in selected full base. Exact pixel identity outside repaired area not claimed."
+      }
+    }
+  ],
+  "selectedOutputs": [
+    "art/sources/directions/babel-down-fixed.webp",
+    "art/sources/red-sea-panorama-fixed.webp",
+    "art/sources/directions/red-sea-down-fixed-v3.webp"
+  ]
+}

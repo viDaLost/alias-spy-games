@@ -22,6 +22,8 @@ async function source(stem){
  throw Error('Missing panorama source: '+stem);
 }
 async function provenance(scene){try{return JSON.parse(await readFile(path.join(root,'art/sources',scene+'-source.json'),'utf8'));}catch{return {};}}
+async function panoramaSource(scene,settings){return settings.panoramaSource?path.join(root,'art/sources',settings.panoramaSource):source(scene+'-panorama');}
+async function directionSource(scene,face,settings){return settings.directionSources?.[face]?path.join(root,'art/sources',settings.directionSources[face]):source('directions/'+scene+'-'+face);}
 async function raw(file){const {data,info}=await sharp(file).removeAlpha().toColourspace('srgb').raw().toBuffer({resolveWithObject:true});return {data,w:info.width,h:info.height};}
 function sample(im,u,v,c){
  const x=clamp(u*(im.w-1),0,im.w-1),y=clamp(v*(im.h-1),0,im.h-1),ix=Math.floor(x),iy=Math.floor(y),jx=Math.min(ix+1,im.w-1),jy=Math.min(iy+1,im.h-1),dx=x-ix,dy=y-iy;
@@ -33,7 +35,7 @@ function original(im,dir,c){
 }
 function ray(face,x,y){return face.forward.map((n,i)=>n+x*tan*face.right[i]+y*tan*face.up[i]);}
 async function prepare(scene){
- const base=await raw(await source(scene+'-panorama'));base.seamBlend=(await provenance(scene)).sourceSeamBlend??.035;await mkdir(path.join(work,'inputs'),{recursive:true});
+ const settings=await provenance(scene);const base=await raw(await panoramaSource(scene,settings));base.seamBlend=settings.sourceSeamBlend??.035;await mkdir(path.join(work,'inputs'),{recursive:true});
  for(const face of faces){
   const pixels=Buffer.alloc(size*size*3);
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
@@ -48,9 +50,9 @@ async function prepare(scene){
 async function build(scene){
  const settings=await provenance(scene);
  if(settings.kind==='derived-from-directions'){await direct(scene,false);return;}
- const base=await raw(await source(scene+'-panorama'));base.seamBlend=(await provenance(scene)).sourceSeamBlend??.035;const tiles=[];
+ const base=await raw(await panoramaSource(scene,settings));base.seamBlend=settings.sourceSeamBlend??.035;const tiles=[];
  for(const face of faces){
-  const file=await source('directions/'+scene+'-'+face.name);
+  const file=await directionSource(scene,face.name,settings);
   const im=await raw(file),ref=await sharp(path.join(work,'inputs',scene+'-'+face.name+'.png')).resize(im.w,im.h).removeAlpha().raw().toBuffer();
   const genLow=await sharp(im.data,{raw:{width:im.w,height:im.h,channels:3}}).blur(6).raw().toBuffer();
   const refLow=await sharp(ref,{raw:{width:im.w,height:im.h,channels:3}}).blur(6).raw().toBuffer();
@@ -70,19 +72,35 @@ async function build(scene){
  for(let y=0;y<H;y++){
   const v=(y+.5)/H,cy=Math.cos(v*Math.PI),sy=Math.sin(v*Math.PI);
   for(let x=0;x<W;x++){
-   const dir=[dirs[x][0]*sy,cy,dirs[x][1]*sy],p=(y*W+x)*3,acc=[0,0,0],basePixel=[0,1,2].map(c=>original(base,dir,c));let total=0;
+   const dir=[dirs[x][0]*sy,cy,dirs[x][1]*sy],p=(y*W+x)*3,acc=[0,0,0],replacementAcc=[0,0,0],basePixel=[0,1,2].map(c=>original(base,dir,c));let total=0,replacementTotal=0,replacementCoverage=0;
    for(const tile of tiles){
     const z=dot(dir,tile.forward);if(z<=0)continue;
     const px=dot(dir,tile.right)/(z*tan),py=dot(dir,tile.up)/(z*tan),edge=Math.max(Math.abs(px),Math.abs(py));if(edge>=1)continue;
     const weight=smooth((1-edge)/.22);if(!weight)continue;
     const residual={data:tile.residual,w:tile.im.w,h:tile.im.h};
-    const pole=(tile.name==='up'||tile.name==='down')?smooth((Math.abs(dir[1])-.78)/.19):0;
+    const profile=settings.poleProfiles?.[tile.name]??{};
+    const pole=(tile.name==='up'||tile.name==='down')?smooth((Math.abs(dir[1])-(profile.start??settings.poleBlendStart??.78))/(profile.range??settings.poleBlendRange??.19)):0;
+    const region=settings.directionBlend?.[tile.name];
+    const replacement=Math.max(pole,region?smooth((dir[1]-region.verticalStart)/region.verticalRange):0);
+    const detailFade=settings.detailFadeBelow;
+    const detailGain=detailFade?smooth((dir[1]-detailFade.start)/detailFade.range):1;
+    // An explicitly repaired direction can fully cover malformed silhouettes.
+    // Detail-only neighboring faces must not dilute this mask back into ghosts.
+    if(settings.dominantDirections?.includes(tile.name)){
+     const coverage=replacement*weight;
+     for(let c=0;c<3;c++)replacementAcc[c]+=sample(tile.im,(px+1)/2,(1-py)/2,c)*coverage;
+     replacementTotal+=coverage;replacementCoverage=Math.max(replacementCoverage,coverage);
+    }
     // Near a pole, fully use the restored direction so old radial artifacts cannot leak through.
-    for(let c=0;c<3;c++)acc[c]+=((1-pole)*sample(residual,(px+1)/2,(1-py)/2,c)+pole*(sample(tile.im,(px+1)/2,(1-py)/2,c)-basePixel[c]))*weight;
+    for(let c=0;c<3;c++)acc[c]+=((1-replacement)*detailGain*sample(residual,(px+1)/2,(1-py)/2,c)+replacement*(sample(tile.im,(px+1)/2,(1-py)/2,c)-basePixel[c]))*weight;
     total+=weight;
    }
    if(!total)throw Error('Uncovered spherical direction');
-   for(let c=0;c<3;c++)pixels[p+c]=Math.round(clamp(basePixel[c]+acc[c]/total,0,255));
+   for(let c=0;c<3;c++){
+    const blended=basePixel[c]+acc[c]/total;
+    const corrected=replacementTotal?(1-replacementCoverage)*blended+replacementCoverage*replacementAcc[c]/replacementTotal:blended;
+    pixels[p+c]=Math.round(clamp(corrected,0,255));
+   }
   }
  }
  const file=path.join(root,'public/assets',sceneAssets[scene]);
@@ -104,7 +122,8 @@ async function build(scene){
 // Recover a sphere from its six already generated directions. This is geometric
 // projection of saved ImageGen assets, with no newly invented image content.
 async function direct(scene,derive){
- const tiles=await Promise.all(faces.map(async face=>({...face,im:await raw(await source('directions/'+scene+'-'+face.name))})));
+ const settings=await provenance(scene);
+ const tiles=await Promise.all(faces.map(async face=>({...face,im:await raw(await directionSource(scene,face.name,settings))})));
  const W=4096,H=2048,pixels=Buffer.alloc(W*H*3);
  for(let y=0;y<H;y++){
   const cy=Math.cos((y+.5)/H*Math.PI),sy=Math.sin((y+.5)/H*Math.PI);

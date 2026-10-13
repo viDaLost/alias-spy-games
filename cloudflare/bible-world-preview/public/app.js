@@ -1,5 +1,5 @@
-import {levels,regions,events,epochs,createJourney,eventChoices} from './rules.mjs?v=7';
-import {createPanorama} from './viewer.mjs?v=7';
+import {levels,regions,events,epochs,createJourney,eventChoices} from './rules.mjs?v=8';
+import {createPanorama} from './viewer.mjs?v=8';
 const $=id=>document.getElementById(id),fmt=n=>n.toLocaleString('ru-RU'),steps=['place','event','epoch'],titles=['Где вы находитесь?','Что здесь происходит?','В какое время это было?'];
 const state={active:false,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0};let journey,cueTimer;
 const key=id=>`bible-world-best-v4-${id}`;

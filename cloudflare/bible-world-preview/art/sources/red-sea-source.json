@@ -1,0 +1,22 @@
+{
+  "directionSources": {
+    "down": "directions/red-sea-down-fixed-v3.webp"
+  },
+  "poleBlendStart": 0.6,
+  "poleBlendRange": 0.22,
+  "poleProfiles": {
+    "down": {
+      "start": 0.35,
+      "range": 0.25
+    }
+  },
+  "dominantDirections": [
+    "down"
+  ],
+  "repairNote": "Malformed near-camera goat and fleece removed consistently from selected coherent base and down-v3; intact distant animals retained. Corrected lower view dominates overlap so old generated silhouettes cannot leak through. Old side-detail residuals fade below the cleared near-camera sector to prevent detached horns and fleece outlines from reinjection.",
+  "panoramaSource": "red-sea-panorama-fixed.webp",
+  "detailFadeBelow": {
+    "start": -0.55,
+    "range": 0.2
+  }
+}

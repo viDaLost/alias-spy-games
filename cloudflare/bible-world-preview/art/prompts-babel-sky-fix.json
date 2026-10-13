@@ -1,0 +1,54 @@
+{
+  "tool": "builtin image_gen",
+  "base_commit": "6e8ec22c7142f447fec97f22a20cf2f37ce0ca92",
+  "edits": [
+    {
+      "face": "babel-back",
+      "prompt": "Use case: precise-object-edit\nInput: this exact existing Babel back directional square environment face, native 1254 by 1254.\nPrimary request: Edit only the sky to remove the artificial perfectly straight vertical cut near its center. Connect the clouds continuously across that cut with natural irregular individual cloud edges and blue gaps. Eliminate narrow radial or triangular cloud streak artifacts near that cut; clouds must have natural nonconcentric patches, without any straight seam. Preserve the exact sun position, golden sunlight, blue sky palette, cloud density and atmosphere.\nStrict invariants: Keep ALL architecture, towers, walls, terrain, palms, river, boats, people, horizon and mountains exactly unchanged. Keep the composition and perspective unchanged. Preserve sky colors and major cloud shapes along all four image borders with exceptional fidelity for neighboring panoramic face alignment. This is a localized sky defect repair, no scene redesign, crop, camera change, added people or objects, text or watermark. Fully opaque square output.",
+      "source": "art/sources/directions/babel-back.png",
+      "output": "art/sources/directions/babel-back-fixed.webp",
+      "qa": {
+        "preview_size": 768,
+        "status": "pass",
+        "assessment": "Center vertical cloud boundary removed; continuous irregular clouds and blue gaps replace it. Sun, horizon, architecture, people and foreground retain original visual composition.",
+        "limitations": "ImageGen can change unaffected pixels; exact border equality is not claimed. Final assembled panorama seams require root QA."
+      },
+      "native_output": {
+        "size": [
+          1254,
+          1254
+        ],
+        "png_sha256": "e2fb50bafaaf1e3f5ca9f1c0cea917a3bb63a728bd4d5f99bcaeb1b3c387badc",
+        "webp_sha256": "df0ecc763ffd955d81b4c8bc939b6230391732104f3b84a9d6cac8e015ef9d44",
+        "decoded_rgb_sha256": "e2c115dbe64a4f52a258b0c4b1fb9c22e8b76f11f3386f9efbd1869381f6e3ca",
+        "decoded_pixel_equality": true,
+        "git_blob_sha": "47f15938fa923803159687a26115efc30c6f889b",
+        "bytes": 2203396
+      }
+    },
+    {
+      "face": "babel-up",
+      "prompt": "Use case: precise-object-edit\nInput: this exact existing Babel upward directional square environment face, native 1254 by 1254.\nPrimary request: Clean up only artificial fine radial/triangular streaks and repeated converging cloud textures, most visible in the upper transition and center blue sky. Replace those streaks with natural softly irregular, independently shaped nonconcentric cloud patches and calm blue sky gaps. There should be no starburst, triangle wedges, straight seam, repeated rays or radial directional texture. Preserve the warm golden clouds at upper left and existing overall blue/gold sky palette and cloud density.\nStrict invariants: Preserve exact square composition and skyward view, existing sun direction and lighting. Keep outer image borders, edge sky colors and major edge cloud shapes exceptionally faithful so adjacent panoramic faces align. Keep the tiny architecture/horizon tips at bottom edge exactly unchanged. Do not add objects, birds, people, text or watermark. This is a bounded cloud texture defect cleanup, no redesign or crop; fully opaque.",
+      "source": "art/sources/directions/babel-up.png",
+      "output": "art/sources/directions/babel-up-fixed.webp",
+      "qa": {
+        "preview_size": 768,
+        "status": "pass",
+        "assessment": "Fine converging cloud streaks and triangular texture wedges replaced by independently shaped irregular cloud patches. Golden edge clouds, blue palette and bottom architecture tips visually retained.",
+        "limitations": "Natural golden sunlight rays persist at upper left. No artificial straight cloud seam or central starburst texture visible at 768px. ImageGen changes some unaffected pixels; exact edge equality not claimed. Root owns assembled diagonal seam QA."
+      },
+      "native_output": {
+        "size": [
+          1254,
+          1254
+        ],
+        "png_sha256": "9047ce8ac524e1d80eb692905456c3cde08187322c2d84b02fc46688c1f5c401",
+        "webp_sha256": "0f0cca4e68e96ee23ec818bac066d2a1c764ff9d89631a992cdc28843be48c41",
+        "decoded_rgb_sha256": "18b3ebfcb7fc265fe8ce1b70931faae380ed7854b24e1e7066275a61615f9499",
+        "decoded_pixel_equality": true,
+        "git_blob_sha": "32b34ee3595d975f202087e83d3aee1ec524c09a",
+        "bytes": 1883428
+      }
+    }
+  ]
+}

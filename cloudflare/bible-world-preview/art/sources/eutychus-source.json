@@ -4,5 +4,7 @@
   "nativeWidth": 1774,
   "nativeHeight": 887,
   "generator": "Built-in ImageGen",
-  "created": "2026-10-11"
+  "created": "2026-10-11",
+  "poleBlendStart": 0.6,
+  "poleBlendRange": 0.22
 }

@@ -1,0 +1,24 @@
+{
+  "use_case": "precise-object-edit",
+  "tool": "builtin image_gen",
+  "prompt": "Use case: precise-object-edit\nAsset type: existing square directional environment face for an Acts 16 prison scene.\nInput image: edit target; preserve its exact camera framing, perspective, edges, lighting, warm photorealistic style and composition.\nPrimary request: Carefully clean up only accidental translucent duplication artifacts. At the center-left tall wooden door, remove the translucent duplicate man's head/torso and hand superimposed over the wooden door edge. Restore one continuous opaque wooden door with its existing iron strap and plausible hinge. Remove the broad doubled translucent cloak overlay crossing the foreground curly-haired seated man's right shoulder, upper arm and chest; retain that real seated man, his exact pose and a single natural intact garment. Remove ghost/repeated door fragments in open background/sky where present. Every retained person must have one coherent opaque body with natural intact clothing; remove overlay fragments, not genuine distinct prisoners.\nConstraints: Genuine distinct prisoners remain calmly inside after the doors opened, in their current positions. Preserve the left standing bearded man, two standing men behind him, foreground seated curly-haired man, seated dark-skinned man behind him, cream-shirt seated man and back-right brown-shirt man. Preserve all lamps, stone arches and masonry, real open doors, benches, straw and floor exactly in place. Keep the outer image borders and perspective exceptionally faithful so adjacent panoramic source faces continue to align. Do not recompose, crop or widen. No running people, combat, injuries, text, symbols or watermark. The final image must be a fully opaque square scene.",
+  "source": "art/sources/directions/prison-back.webp",
+  "output": "art/sources/directions/prison-back-fixed.webp",
+  "qa": {
+    "preview_pixels": 768,
+    "assessment": "PASS targeted native face cleanup: translucent standing torso/head/hand removed from center door; doubled foreground shoulder/cloak removed. Seven genuine distinct prisoners retained with coherent bodies and clothing. Lamps, stone arches, masonry, straw and floor composition visually preserved. No running, combat, injuries or text.",
+    "limitations": "ImageGen is not pixel-exact preservation of unaffected regions. Borders and overall perspective visually faithful at 768px; diagonal seam QA remains root-owned."
+  },
+  "native_output": {
+    "size": [
+      1254,
+      1254
+    ],
+    "generated_png_sha256": "5d6446cf3eeb4a0805db9a1013dadbda0a46d0558fbc90207c2d07ac0604b22d",
+    "webp_sha256": "1ec92d76b562c6784d4b1e2848f3cd11e271280988f91b8c19aaede2fe9503ab",
+    "decoded_rgb_sha256": "c35f0f30bc3d16daf819088b1ec123db5e3f7c4f5ff057fa00cb9ef70024c50f",
+    "decoded_pixel_equality": true,
+    "git_blob_sha": "cc702e7a2beec499cd08ec52ba4a2cee069c1794",
+    "bytes": 1882590
+  }
+}

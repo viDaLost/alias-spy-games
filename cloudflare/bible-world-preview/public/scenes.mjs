@@ -3,7 +3,7 @@ export const scenes = [
   "id": "babel",
   "title": "Вавилонская башня",
   "subtitle": "Строительство башни · земля Сеннаар",
-  "image": "assets/babel-360-v5-4k.webp",
+  "image": "assets/babel-360-v6-4k.webp",
   "event": "babel",
   "epoch": "early",
   "destination": {
@@ -91,7 +91,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/red-sea-360-v1-4k.webp",
+  "image": "assets/red-sea-360-v2-4k.webp",
   "hints": [
    "Под ногами сухая земля, хотя вокруг море.",
    "Идут семьи и домашний скот, а не только воины.",
@@ -281,7 +281,7 @@ export const scenes = [
    "fov": 72,
    "seamBlend": 0
   },
-  "image": "assets/gideon-360-v1-4k.webp",
+  "image": "assets/gideon-360-v2-4k.webp",
   "hints": [
    "Обратите внимание на необычное снаряжение людей.",
    "Шум и свет заменяют обычное начало боя.",
@@ -509,7 +509,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/eutychus-360-v1-4k.webp",
+  "image": "assets/eutychus-360-v2-4k.webp",
   "hints": [
    "Посмотрите, насколько высоко окно освещённой комнаты.",
    "Собрание продолжалось глубоко за полночь.",
@@ -547,7 +547,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/prison-360-v1-4k.webp",
+  "image": "assets/prison-360-v2-4k.webp",
   "hints": [
    "Двери открыты, но заключённые не убегают.",
    "Рядом с узниками лежат освободившиеся узы.",
