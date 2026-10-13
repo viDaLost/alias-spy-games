@@ -93,6 +93,41 @@
           "Native1254x1254 should not be described as independently generated4K."
         ]
       }
+    },
+    "up": {
+      "asset": "art/sources/directions/gideon-natural-up.webp",
+      "base_asset": "art/sources/gideon-natural-panorama-v2.webp",
+      "prompt": "Use case: precise-object-edit.\nAsset type: repaired UP/zenith pole direction of an existing360-degree historical night panorama. Return one native SQUARE1254x1254 image, rectilinear perspective camera with104-degree field of view, not fisheye.\nInput image: EDIT TARGET, a technical104-degree upward projection of the corrected Gideon natural-night source. Most of the image is dark night sky; source stars are distorted into an unnatural converging radial pinwheel at the center. There are irregular dark clouds around the outer margins and cropped burning torches at top-left and top-right.\nPrimary request: Remove all central star pinching, radial star trails, whirlpool/starburst and inward converging texture. Rebuild the central sky as a photographic natural dark navy night sky with subtle scattered individually distinct small stars, no center of convergence and no rays. Stars are tiny natural points with irregular spacing and brightness, not identical dots, dense artificial wallpaper or repeated motifs. Keep a modest faint indistinct stellar haze only where compatible with the existing sky. No big galaxy, moon, constellations drawn with lines, or cosmic scene.\nPreserve the full outer15-percent boundary content and geometry: same source cloud shapes and locations at image edges, same cropped torch shafts/flames exactly at their existing upper margins and corners, same count and silhouettes, same source darkness and cool neutral color. Remove radial distortion smoothly inward with no visible square boundary. This is ONE normal camera pointing straight UP from the same eyeheight1.65m ridge location, not an equirectangular scene, fisheye or collage. Keep only any existing tiny marginal terrain slice; do not add a horizon, people or landscape in the middle.\nLighting: restrained documentary natural nighttime photograph. Dark cool neutral sky, faint irregular stars; muted naturally illuminated clouds, no theatrical blue glow or bright artificial glow. Retained foreground torch flames provide only local warm edge light and smoke compatible with the existing scene. Preserve Gideon night event and same cloud/torch continuity with adjacent directions.\nAvoid: central convergence, pinwheel, starburst, radial streaks, vortex, circular distortion, repeated stars, new moon/landmarks, changed torch count or edge positions, additional torches, ghost flames, new people, bright cosmic clouds, captions, text, labels, watermark, border or collage.",
+      "reference_projection": {
+        "size": [
+          768,
+          768
+        ],
+        "yaw_degrees": 0,
+        "pitch_degrees": 90,
+        "fov_degrees": 104,
+        "projection": "rectilinear"
+      },
+      "native_dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "lossless_webp_bytes": 1455218,
+      "sha256": "05ec1d2cc48436e4c09c211136349f56a16d409f7e89c8b384434faa4cf038d9",
+      "git_blob_sha1": "a305bcf24d7bbd6fb58bf05f69f388670e54fd6d",
+      "qa": {
+        "status": "Perspective candidate visually passes local pole repair; final spherical seam/blend QA is root-owned.",
+        "passes": [
+          "Central radial star pinching removed; stars are distinct scattered points without convergence.",
+          "Outer cloud formations, tiny marginal terrain slice and two cropped upper torch features remain visually aligned with reference.",
+          "Dark natural night exposure retained, no moon/new landmark/central figures."
+        ],
+        "limitations": [
+          "Generated boundary pixels are not exact copies; strict residual confidence required downstream.",
+          "Still dense night stars matching corrected source style rather than a newly exposed low-star photographic sky.",
+          "Native1254x1254 should not be described as independently generated4K."
+        ]
+      }
     }
   }
 }
