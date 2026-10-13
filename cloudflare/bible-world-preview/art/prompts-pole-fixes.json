@@ -79,6 +79,24 @@
         "decodedPixelEqualityToNativePNG": true,
         "observations": "Lower-right pair of malformed sheep silhouettes removed, rightmost man's empty lead naturally hanging; humans, water walls, horizon and distant intact flock visibly retained. Left nearest goat still present; intermediate not selected for final use, next targeted edit removes it per observed projection defect."
       }
+    },
+    {
+      "source": "art/sources/red-sea-panorama-fixed-v1.webp",
+      "sourceSHA256": "d1676cb3ec8e1a39303c08525607419e239193e59acc7ed37ebae96d2cbb91e6",
+      "output": "art/sources/red-sea-panorama-fixed.webp",
+      "prompt": "Use case: precise-object-edit\nAsset type: native full 2:1 equirectangular Red Sea historical panorama base.\nInput image: edit target, sheep-cleaned intermediate.\nPrimary request: Remove ONLY the nearest brown-and-white goat in the left foreground, in front of the woman and child. Remove its whole head, body and legs and replace its silhouette and contact shadow with coherent continuous dry seabed of irregular sand and existing rounded stones matching the surrounding ground. Keep the small sheep farther behind this goat and all other distant intact animals and central donkey intact.\nConstraints: Preserve the woman and child completely, including their hands and clothes; preserve every other human, all distant intact animals, donkey, carts, baskets, staff, props, towering water walls, foam, sky, sunset, horizon, colors and lighting. Preserve exact 2:1 framing and panoramic projection. Keep the already cleaned lower-right ground free of sheep/fleece ghosts and leave the rightmost man's hanging lead unchanged. No new animals, no substitute animal, no floating animal parts, no unrelated edits, no text. Only replace the nearest left foreground goat with dry seabed.",
+      "sha256": "10a49b030873c6ae82fe857d1f8e1fe73eb8fca512f89958ee6a196c7cb80e9a",
+      "nativePNGsha256": "92e909b53405cc1f65b83bdfea8fba0aa126a931296e8a9c893dc81f43f528a9",
+      "gitBlobSHA": "1d5db7f12b92f565246ff4ba982be4c98e38f996",
+      "dimensions": [
+        1774,
+        887
+      ],
+      "qa": {
+        "previewMaxEdge": 768,
+        "decodedPixelEqualityToNativePNG": true,
+        "observations": "Nearest left foreground goat removed entirely into coherent pebbled seabed; previously removed lower-right sheep remain absent. Woman/child, other people, donkey, distant sheep/flock, water walls and sunset visually retained. Exact pixel identity outside repaired region not claimed."
+      }
     }
   ]
 }
