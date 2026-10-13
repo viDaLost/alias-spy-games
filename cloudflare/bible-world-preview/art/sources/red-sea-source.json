@@ -1,7 +1,17 @@
 {
   "directionSources": {
-    "down": "directions/red-sea-down-fixed.webp"
+    "down": "directions/red-sea-down-fixed-v2.webp"
   },
   "poleBlendStart": 0.6,
-  "poleBlendRange": 0.22
+  "poleBlendRange": 0.22,
+  "poleProfiles": {
+    "down": {
+      "start": 0.35,
+      "range": 0.25
+    }
+  },
+  "dominantDirections": [
+    "down"
+  ],
+  "repairNote": "Corrected complete goat anatomy and clean ground; repaired down view fully dominates where valid, so neighboring detail-only faces cannot retain transparent fleece silhouettes."
 }
