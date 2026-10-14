@@ -224,6 +224,7 @@ function currentRelicAsset() {
 }
 
 function cleanup() {
+  window.BiblicalMatchThreeV10?.cleanup?.();
   if (!runtime) return;
   if (runtime.hintTimer) clearTimeout(runtime.hintTimer);
   runtime.abort?.abort();
@@ -308,6 +309,7 @@ function goalComplete(goal) { return currentGoalValue(goal) >= Number(goal.count
 function allGoalsComplete() { return runtime?.level?.goals?.every(goalComplete) || false; }
 
 async function start(levelsUrl) {
+  if(window.SabbathAccess&&!window.SabbathAccess.authorize("biblical-match-three"))return;
   cleanup();
   const container = document.getElementById("game-container");
   if (!container) return;
@@ -316,16 +318,20 @@ async function start(levelsUrl) {
     score: 0, moves: 0, collected: {}, mode: null, level: null, difficulty: null, symbolIds: [], hintTimer: null, lastSwap: null, cascade: 0, maxCascade: 1,
     specialsActivated: 0, blockers: new Map(), initialBlockerCounts: {}, blockerCleared: {}, relicsDelivered: 0, relicTotal: 0, vineGrow: 0, vineCap: 0, vineTurns: 0, preBoosters: new Set(), activeBooster: null, freeSessionReward: 0, freeStarted: false, lastGoalSnapshot: new Map(), activeMask: [], boardShape: "rect",
   };
+  const session = runtime;
   document.body.dataset.matchThree = "2";
   try {
-    const response = await fetch(levelsUrl, { cache: "no-store" });
+    const response = await fetch(levelsUrl, { cache: "no-store", signal: session.abort.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
+    if(runtime!==session||session.abort.signal.aborted)return;
+    if(window.SabbathAccess&&!window.SabbathAccess.authorize("biblical-match-three"))return;
     runtime.levelConfig = data;
     runtime.levels = Array.isArray(data.levels) ? data.levels : [];
     if (!runtime.levels.length) throw new Error("No levels");
     renderMenu();
   } catch (error) {
+    if(runtime!==session||session.abort.signal.aborted)return;
     console.error("Biblical match-three v2 data error", error);
     container.innerHTML = `<section class="bmt-error"><div class="bmt-error__icon">!</div><h2>Could not open game</h2><p>Level data is unavailable or damaged.</p><button type="button" class="bmt-primary" id="bmt-error-back">Menu</button></section>`;
     document.getElementById("bmt-error-back")?.addEventListener("click", exitToAppMenu, { once: true });

@@ -1,4 +1,4 @@
-/* Sunset calculations adapted from SunCalc (Meeus solar coordinates), BSD-2-Clause.
+/*! Sunset calculations adapted from SunCalc (Meeus solar coordinates), BSD-2-Clause.
  * https://github.com/mourner/suncalc — license below.
  * Copyright (c) 2026, Volodymyr Agafonkin
  * All rights reserved.
