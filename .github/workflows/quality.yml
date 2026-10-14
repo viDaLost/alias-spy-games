@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install check dependencies
+        run: npm ci --no-audit --no-fund
       # Картинки и библиотеки превью «Земли обетованной» в репозитории не
       # лежат: они копируются из web/assets и web/games тем же скриптом, что
       # и при развёртывании. Без этого шага проверка ссылок честно ругается на
