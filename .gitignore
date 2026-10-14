@@ -40,6 +40,7 @@ android-app/local.properties
 # scripts/sync-promised-land-art.mjs из web/assets/promised-land.
 # В репозитории эти файлы уже есть — второй раз они тут не нужны.
 cloudflare/promised-land-preview/public/art/
+cloudflare/promised-land-preview/public/sabbath/
 
 # Промо-ролик: промежуточная сборка (кадры, wav, черновые mp4)
 promo/ui-motion/build/

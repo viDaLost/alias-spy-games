@@ -261,6 +261,7 @@
   function show(rawKey) {
     const key = normalizeKey(rawKey);
     if (!key) return false;
+    if (window.SabbathAccess?.restricted(key) && !window.SabbathAccess.status().allowed) return false;
 
     clearRuntimeTimers();
     disconnectContainerObserver();

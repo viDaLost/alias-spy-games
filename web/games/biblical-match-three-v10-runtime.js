@@ -229,7 +229,7 @@ const observer = new MutationObserver((mutations) => {
 });
 observer.observe(document.documentElement, { childList:true, subtree:true });
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => enhance(document), { once:true }); else enhance(document);
-window.BiblicalMatchThreeV10 = { enhance, testUnlock:TEST_HOST_UNLOCK, unlockAllLevels, isRootAdmin, timedSeconds:TIMED_SECONDS };
+window.BiblicalMatchThreeV10 = { cleanup(){clearTimer();window.__bmtTimedRequested=false;window.__bmtTimedActive=false;timedFinishing=false;}, enhance, testUnlock:TEST_HOST_UNLOCK, unlockAllLevels, isRootAdmin, timedSeconds:TIMED_SECONDS };
 window.BiblicalMatchThreeV9 = window.BiblicalMatchThreeV10;
 window.BiblicalMatchThreeV6 = window.BiblicalMatchThreeV10;
 })();
