@@ -319,7 +319,7 @@ export const scenes = [
    "fov": 72,
    "seamBlend": 0
   },
-  "image": "assets/carmel-360-v1-4k.webp",
+  "image": "assets/carmel-360-v2-4k.webp",
   "hints": [
    "Осмотрите камни и ров возле жертвенника.",
    "Вода вокруг жертвы — важная часть события.",

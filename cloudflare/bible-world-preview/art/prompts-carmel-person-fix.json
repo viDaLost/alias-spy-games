@@ -1,0 +1,51 @@
+{
+  "useCase": "precise-object-edit",
+  "tool": "builtin image_gen.imagegen",
+  "invocation": {
+    "transparent_background": false,
+    "referenced_image_paths": [
+      "art/sources/directions/carmel-back.webp"
+    ],
+    "prompt": "Use case: precise-object-edit\nAsset type: native rectilinear direction source for an existing 360-degree Bible scene.\nInput images: Image 1 is the sole edit target, the original square Carmel-back photograph. This is a surgical correction of one malformed person, not a new scene.\nPrimary request: Remove ONLY the erroneous extra lower hooded older male head and its merged body around native pixel x610,y720. This malformed head is attached to/overlapping the torso of the young woman whose existing upward-looking face is at x681,y540. Restore this young woman as ONE anatomically coherent person, with a single neck, shoulders and torso flowing naturally downward from her existing face, and a cream-and-navy woven cloak. Her clothing must be visibly separate from the preserved red-and-navy prostrate man across the foreground.\nComposition/framing: Keep the original full square framing, rectilinear perspective and native 1254x1254 dimensions. Confine all repair to the small central body/cloak region, approximately x560–760,y475–810. Preserve the upper young woman's existing face, hair, head angle, gaze and position exactly. The erroneous lower face must be gone and replaced by continuous, plausible folds of her cream and navy garment.\nConstraints: Everywhere outside this bounded repair, preserve the original photograph unchanged. Preserve every other person, all their faces, count, poses and clothing. In particular, the red-and-navy prostrate man in the bottom foreground stays as a separate intact figure with exactly his current pose, head and arms; preserve the seated girl immediately to the right of the repair, the upright and prostrate worshippers, all staffs, jars, coastline, hill, trees, rocks, sky, clouds, sunlight, textures and borders. Match existing photorealism, woven fabric detail and daylight.\nAvoid: no extra limbs; no new actors; no remaining extra face or head under the woman's face; no changes to adjacent people; no whole-scene regeneration; no crop, resize, perspective change, added text or watermark."
+  },
+  "source": {
+    "path": "art/sources/directions/carmel-back.webp",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "projection": "104-degree rectilinear",
+    "sha256": "cfe131b82d8414e8146778adc7014aa23b3e48abe2703650e1bf0a4f179a0159"
+  },
+  "output": {
+    "path": "art/sources/directions/carmel-back-person-fixed.webp",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "encoding": "lossless WebP",
+    "bytes": 2238646,
+    "sha256": "e7fd9a6c4754ba3c67e223dd53c8364aa18d0d843c469fc049245de5d33ba0da",
+    "gitBlobSha": "b6adbfbf32f607a39588c17fd418e2c629244fba",
+    "nativePngSha256": "8c3607882e631ec1c6bab029f2482b225812f05951e2617c56f89039da10ed0b",
+    "decodedPixelEqualityToNativePng": true
+  },
+  "qa": {
+    "inspected": [
+      "original full native image",
+      "edited full native lossless WebP",
+      "original and edited crops x530,y440,w285,h400"
+    ],
+    "result": "The malformed lower hooded head is absent. The young woman's existing upward-looking head connects to one plausible neck, shoulder, torso and cream-and-navy cloak. The cream sleeve is visually distinct from the red-and-navy prostrate man in front. No new actors or extra limbs are visible in the repaired region. The adjacent seated girl and foreground prostrate man retain their recognizable poses.",
+    "limitation": "The built-in edit preserved the scene's semantic arrangement but changed pixels throughout the image, including small texture and facial-detail differences. Do not use this entire generated view as a pixel-preserving replacement. Use only a localized repair patch from the central body/cloak region in the original panorama.",
+    "originalPixelComparison": {
+      "differentChannelValues": 4378254,
+      "outsidePromptedBoxDifferentChannelValues": 4181593,
+      "totalChannelValues": 4717548,
+      "meanAbsoluteChannelDifference": 10.175947971276603,
+      "maximumChannelDifference": 250
+    },
+    "suitability": "Acceptable source for a bounded perspective repair patch; whole-image unchanged-surroundings requirement is not met.",
+    "attempts": 1
+  }
+}

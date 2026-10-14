@@ -13,5 +13,19 @@
   ],
   "note": "Base derived from six retained native ImageGen direction views, then builtin ImageGen repaired only observed overlap ghosts and front/up plume continuity. Native direction files retained unchanged. Confidence-weighted detail build uses the repaired base composition.",
   "repairPromptManifest": "art/prompts-medium-a.json",
-  "repairStage": "base-repair"
+  "repairStage": "localized-person-repair",
+  "directionPatches": {
+    "back": {
+      "source": "directions/carmel-back-person-fixed.webp",
+      "bounds": [
+        0.32,
+        0.3,
+        0.74,
+        0.82
+      ],
+      "feather": 0.045
+    }
+  },
+  "personRepairNote": "Only the corrected native back figure sector replaces malformed head/cloak anatomy. Original base and direction detail remain unchanged outside the feathered patch.",
+  "personRepairPromptManifest": "art/prompts-carmel-person-fix.json"
 }

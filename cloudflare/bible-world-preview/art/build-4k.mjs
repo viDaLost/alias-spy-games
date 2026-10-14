@@ -65,7 +65,9 @@ async function build(scene){
     residual[i+c]=(im.data[i+c]-genLow[i+c]-ref[i+c]+refLow[i+c])*confidence;
    }
   }
-  tiles.push({...face,im,residual});
+  const patch=settings.directionPatches?.[face.name];
+  const patchIm=patch?await raw(path.join(root,'art/sources',patch.source)):null;
+  tiles.push({...face,im,residual,patch,patchIm});
  }
  const W=4096,H=2048,pixels=Buffer.alloc(W*H*3);
  const dirs=Array.from({length:W},(_,x)=>{const yaw=((x+.5)/W-.5)*2*Math.PI;return [Math.sin(yaw),Math.cos(yaw)];});
@@ -78,6 +80,14 @@ async function build(scene){
     const px=dot(dir,tile.right)/(z*tan),py=dot(dir,tile.up)/(z*tan),edge=Math.max(Math.abs(px),Math.abs(py));if(edge>=1)continue;
     const weight=smooth((1-edge)/.22);if(!weight)continue;
     const residual={data:tile.residual,w:tile.im.w,h:tile.im.h};
+    if(tile.patchIm){
+     const u=(px+1)/2,v=(1-py)/2,[left,top,right,bottom]=tile.patch.bounds,f=tile.patch.feather;
+     const coverage=weight*smooth((u-left)/f)*smooth((right-u)/f)*smooth((v-top)/f)*smooth((bottom-v)/f);
+     if(coverage){
+      for(let c=0;c<3;c++)replacementAcc[c]+=sample(tile.patchIm,u,v,c)*coverage;
+      replacementTotal+=coverage;replacementCoverage=Math.max(replacementCoverage,coverage);
+     }
+    }
     const profile=settings.poleProfiles?.[tile.name]??{};
     const pole=(tile.name==='up'||tile.name==='down')?smooth((Math.abs(dir[1])-(profile.start??settings.poleBlendStart??.78))/(profile.range??settings.poleBlendRange??.19)):0;
     const region=settings.directionBlend?.[tile.name];

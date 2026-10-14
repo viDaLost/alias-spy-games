@@ -1,4 +1,4 @@
-import {scenes} from './scenes.mjs?v=8';
+import {scenes} from './scenes.mjs?v=9';
 export {scenes};
 export const levels=[
  {id:'easy',label:'Лёгкий',tag:'Знакомые истории',description:'Яркие события, которые узнают многие. Начните с них.',sceneIds:['babel','noah','red-sea','david','daniel']},

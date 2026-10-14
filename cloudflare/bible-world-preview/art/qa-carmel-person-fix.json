@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-14",
+  "baselineCommit": "776c232c93d36ac3e80836674c4a26cd6d15c0fa",
+  "scene": "carmel",
+  "reportedView": {
+    "yawDegrees": 180,
+    "pitchDegrees": 0,
+    "portraitAspect": 0.5625,
+    "fieldOfViewDegrees": 72
+  },
+  "cause": "Malformed figure is already present in native back source and retained by repaired base: extra hooded head merged into upper womans torso/cloak. It is not a gesture or camera projection error.",
+  "correction": "Built-in ImageGen bounded native back cleanup; only a feathered perspective figure sector enters the output sphere. Original native detail remains outside the patch.",
+  "configuration": {
+    "back": {
+      "source": "directions/carmel-back-person-fixed.webp",
+      "bounds": [
+        0.32,
+        0.3,
+        0.74,
+        0.82
+      ],
+      "feather": 0.045
+    }
+  },
+  "output": {
+    "file": "public/assets/carmel-360-v2-4k.webp",
+    "width": 4096,
+    "height": 2048,
+    "encoding": "lossless WebP",
+    "bytes": 8554046,
+    "sha256": "78a3b2b2496e7482b42f4d63f44a8b5299b509bd155d33619800939362d2ff18"
+  },
+  "scopeProof": {
+    "allPixelsCompared": 8388608,
+    "changedPixels": 450957,
+    "changedPercent": 5.375826358795166,
+    "changedOutsideRepair": 0,
+    "reference": "Exact served v1 texture versus finalv2 decoded RGB"
+  },
+  "visualAudit": {
+    "date": "2026-10-14",
+    "scene": "carmel",
+    "candidate": "public/assets/carmel-360-v2-4k.webp",
+    "decision": "pass_targeted_visual_QA",
+    "method": "Inspected exact portrait back render, full 30-view contact sheet and eleven1024px projections: yaw180 at pitches0,60,-60,90,-90, and yaw135/-135 at pitches0,60,-60. Compared repaired torso adjacency against the user screenshot and earlier source diagnosis. No asset/code edits or generation.",
+    "confirmed_remaining_defects": [],
+    "results": {
+      "reported_extra_head": "Resolved. Portrait back and yaw180/pitch0 show one coherent upward-looking woman with a natural neck/shoulder, cream scarf, navy outer cloak and cream sleeve. The old lower hooded male head and merged torso are gone.",
+      "adjacent_foreground_figures": "Separate red/navy prostrate man remains readable with his own head, arms and cream hood. His overlap with the woman's lower body is normal foreground occlusion. Nearby seated blue-robed man, young woman and standing staff-bearers remain distinct.",
+      "patch_edges": "No new hard rectangle, colour jump, doubled head, ghost cloak or unsupported limb observed in targeted yaw135/-135/180 views. New cloth texture meets surrounding figure and ground coherently.",
+      "upper_lower_transitions": "Upper and lower targeted views have coherent tree/sky, staff edges, jars, wet rocks and forearms. No newly visible patch-edge ghost identified.",
+      "true_poles": "Zenith and nadir at yaw180 show no new center artifact, pinwheel or patch boundary."
+    },
+    "numerical_evidence_note": "Root separately reports450,957 changed pixels(5.38%) and zero changes outside the repair domain. This audit independently checks visual anatomy/edge coherence and does not rerun that numeric comparison.",
+    "recommendation": "Accept candidate v2 for the reported split-figure bug on this visual evidence. No further repair requested by this bounded audit.",
+    "limitation": "This is targeted rendered-image QA, not a guarantee of every distant crowd member's anatomy."
+  },
+  "regression": "tests/carmel-repair.test.mjs checks that known malformed head/torso sector texels are entirely from cleaned perspective source on BOTH sides of spherical longitude wrap. Old base and neighboring details cannot leak back.",
+  "verificationLimit": "Projected static texture inspection with production camera geometry; physical iPhone/browser interaction not tested.",
+  "cache": "Versioned Carmel v2 texture; app module imports/index v9 prevent reuse of immutable v1 photo."
+}

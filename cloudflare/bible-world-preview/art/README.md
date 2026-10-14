@@ -15,3 +15,7 @@ The diagonal, wrap and exact zenith/nadir audit uses `node art/audit-seams.mjs` 
 The night-camp replacement is a native 1774×887 coherent base, with repaired native 1254×1254 upper/lower views and conservative retained direction detail. Final 4096×2048 lossless encoding does not imply independent native 4K generation. Final review is projected asset QA; no physical iPhone or browser interaction test was available in this environment.
 
 `qa-panorama-repairs.json` records the complete audit, rejected intermediate candidates and the final selected files. Expanded 1024px projections were used for the five changed scenes after the initial 512px audit.
+
+## October 14 Carmel person repair
+
+`prompts-carmel-person-fix.json` records a bounded native back edit removing a duplicated head and reconstructing the woman's torso/cloak. `directionPatches` applies only the corrected perspective rectangle with feathered borders; original directional detail remains outside it. The full 4K decoded pixel comparison found zero changes outside the repair sector. `qa-carmel-person-fix.json` records the screenshot view, exact comparison and visual review; `tests/carmel-repair.test.mjs` guards cleaned anatomy at the longitude wrap against old source reinjection.
