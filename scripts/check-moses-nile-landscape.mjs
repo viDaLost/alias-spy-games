@@ -1,3 +1,4 @@
+import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,6 +51,7 @@ if (!process.argv.includes('--browser')) process.exit(0);
 const { chromium } = await import('playwright-core');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.glb': 'model/gltf-binary', '.obj': 'text/plain', '.jpg': 'image/jpeg' };
 const server = http.createServer((request, response) => {
+  if (serveSabbathTestAsset(request, response)) return;
   const url = new URL(request.url, 'http://localhost');
   const file = path.resolve(gameRoot, `.${url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname)}`);
   if (!file.startsWith(`${gameRoot}${path.sep}`) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { response.writeHead(404).end(); return; }

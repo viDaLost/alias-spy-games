@@ -1,3 +1,4 @@
+import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 // Водовороты «Моисея на Ниле» видно на воде.
 //
 // Отзыв владельца: «водовороты очень плохо заметны». Так и было, и причина
@@ -82,6 +83,7 @@ const mime = new Map([
 */
 const FORCE_VORTEX = "let type = weightedType(z + lane * 3.7 + rowIndex, weights);";
 const server = http.createServer((req, res) => {
+  if (serveSabbathTestAsset(req, res)) return;
   const url = new URL(req.url || '/', 'http://127.0.0.1');
   const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
   const target = path.resolve(gameRoot, `.${pathname}`);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import {JSDOM} from 'jsdom';
+import {serveSabbathTestAsset} from './lib/sabbath-test-assets.mjs';
 const require=createRequire(import.meta.url);
 const Clock=require('../web/js/sabbath-clock.js');
 const clockSource=fs.readFileSync('web/js/sabbath-clock.js','utf8');
@@ -157,5 +158,17 @@ async function page({now='2026-10-16T18:00:00Z',place={latitude:31.7683,longitud
   p.w.localStorage.setItem(KEY,JSON.stringify({...saved,savedAt:Date.parse('2026-10-18T12:00:00Z')}));
   p.w.dispatchEvent(new p.w.StorageEvent('storage',{key:KEY}));await waiting;
   ok(started,'standalone game becomes available automatically after lock');p.close();
+}
+{
+  const p=await page({now:'2026-10-14T23:00:00Z',place:null,loadApp:true});
+  p.w.showGame('moses-nile');const frame=p.w.document.querySelector('iframe');let reply;
+  frame.contentWindow.postMessage=data=>{reply=data;};
+  p.w.dispatchEvent(new p.w.MessageEvent('message',{source:frame.contentWindow,origin:p.w.location.origin,data:{type:'sabbath:request',game:'moses-nile'}}));
+  ok(reply?.allowed&&reply.nextChange===Date.parse('2026-10-16T00:00:00Z'),'unknown-location iframe stays open across ordinary weekday midnight');p.close();
+}
+for(const url of ['/js/sabbath-clock.js','/js/sabbath-access.js','/styles/sabbath-access.css']){
+  let body,status;
+  ok(serveSabbathTestAsset({url},{writeHead:value=>{status=value;},end:value=>{body=value;}}),'isolated Nile fixture serves shared policy');
+  ok(status===200&&body.length>0,'fixture gets actual policy source');
 }
 console.log(`Sabbath access: ${assertions} assertions passed (calendar/timezones, exact 24h, GPS, no IP fallback, five-game isolation, active cleanup, delayed launch).`);

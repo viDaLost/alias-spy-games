@@ -1,3 +1,4 @@
+import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 // «Моисей на Ниле»: кнопки и свайпы — два разных режима, а не один общий.
 //
 // Отзыв игрока: управление кнопками и свайпами было включено одновременно —
@@ -30,6 +31,7 @@ const mime = new Map([
   ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.webp', 'image/webp'], ['.glb', 'model/gltf-binary'],
 ]);
 const server = http.createServer((req, res) => {
+  if (serveSabbathTestAsset(req, res)) return;
   try {
     const url = new URL(req.url || '/', 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);

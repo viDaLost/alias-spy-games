@@ -234,7 +234,12 @@
     const frame=document.querySelector('#game-container iframe');
     if(!frame||event.source!==frame.contentWindow||event.origin!==new URL(frame.src,location.href).origin
       ||document.body.dataset.currentGame!==event.data.game)return;
-    const state=status();event.source.postMessage({type:'sabbath:status',allowed:state.allowed,nextChange:state.allowed?(state.start||state.nextChange):state.nextChange},event.origin);
+    const state=status();
+    const friday=new Date();friday.setHours(0,0,0,0);friday.setDate(friday.getDate()+((5-friday.getDay()+7)%7||7));
+    // Without coordinates the next possible restriction is Friday, so an
+    // embedded game must not restart at an unrelated weekday midnight.
+    const nextChange=state.allowed?(state.start||+friday):state.nextChange;
+    event.source.postMessage({type:'sabbath:status',allowed:state.allowed,nextChange},event.origin);
   });
   window.SabbathAccess=Object.freeze({authorize,status,restricted,refresh,locate,openSettings:()=>present(),waitForAccess});
   window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);
