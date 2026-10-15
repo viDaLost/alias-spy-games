@@ -47,14 +47,14 @@ ok(Clock.state(+new Date('2026-06-19T12:00Z'),{latitude:78.2232,longitude:15.646
 const fixture=Clock.sunset(new Date('2013-03-05T12:00Z'),50.5,30.5);
 ok(Math.abs(fixture-Date.parse('2013-03-05T15:46:57Z'))<120000,'sunset agrees with published independent fixture');
 
-const flush=async()=>{for(let i=0;i<5;i++)await Promise.resolve();};
-async function page({now='2026-10-16T18:00:00Z',place={latitude:31.7683,longitude:35.2137},source='city',age=0,telegram,geo,referrer,url='https://vidalost.github.io/alias-spy-games/',loadApp=false}={}){
+const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
+async function page({now='2026-10-16T18:00:00Z',place={latitude:31.7683,longitude:35.2137},source='gps',age=0,telegram,geo,permission=geo?'granted':'denied',referrer,url='https://vidalost.github.io/alias-spy-games/',loadApp=false}={}){
   const dom=new JSDOM('<!doctype html><html lang="ru"><body><main id="menu-container"><section><div id="system-actions"></div></section></main><div id="game-container"></div></body></html>',{url,referrer,runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;let time=Date.parse(now);const RealDate=w.Date;
   w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[time]));}static now(){return time;}};
   const scheduled=new Map();let id=0;w.setTimeout=(fn,delay)=>{scheduled.set(++id,{fn,delay});return id;};w.clearTimeout=key=>scheduled.delete(key);
   w.scrollTo=()=>{};w.alert=()=>{};w.fetch=async()=>({ok:true,json:async()=>({success:true})});
-  Object.defineProperty(w.navigator,'permissions',{value:{query:async()=>({state:geo?'granted':'denied'})}});
+  Object.defineProperty(w.navigator,'permissions',{value:{query:async()=>({state:permission})}});
   if(geo)Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition:geo}});
   if(telegram)w.Telegram={WebApp:{LocationManager:telegram}};
   if(place)w.localStorage.setItem(KEY,JSON.stringify({...place,savedAt:time-age,zone:'UTC',source,label:'Мой город'}));
@@ -63,28 +63,69 @@ async function page({now='2026-10-16T18:00:00Z',place={latitude:31.7683,longitud
   return {w,dom,scheduled,setTime:value=>{time=typeof value==='number'?value:Date.parse(value);},close:()=>dom.window.close()};
 }
 {
-  const p=await page({loadApp:true});
+  const p=await page({loadApp:true,geo:success=>success({coords:{latitude:31.7683,longitude:35.2137}})});
   for(const game of Clock.GAME_IDS){ok(!p.w.SabbathAccess.authorize(game),`${game} blocked`);if(game!=='biblical-match-three')p.w.showGame(game);
     ok(!p.w.document.querySelector('#game-container iframe'),`${game} does not launch behind dialog`);}
-  for(const game of ['alias','spy','quartet','kingdoms','bible-geography'])ok(p.w.SabbathAccess.authorize(game),`${game} unaffected`);
   ok(p.w.document.getElementById('sabbath-dialog').textContent.includes('24 часа'),'lock explains exact duration');
-  const end=p.w.SabbathAccess.status().end;p.setTime(end);p.w.SabbathAccess.refresh();
-  // Coordinates expire after a day: explicit city reconfirmation is available.
-  const confirm=[...p.w.document.querySelectorAll('button')].find(x=>x.textContent==='Я по-прежнему в этом городе');
-  if(confirm)confirm.click();
-  ok(p.w.SabbathAccess.authorize('kids-ark-pairs'),'automatic unlock after 24h');p.close();
+  for(const game of ['alias','spy','quartet','kingdoms','bible-geography'])ok(p.w.SabbathAccess.authorize(game),`${game} unaffected`);
+  const end=p.w.SabbathAccess.status().end;p.setTime(end);p.w.SabbathAccess.refresh();await flush();
+  ok(p.w.SabbathAccess.authorize('kids-ark-pairs'),'automatic GPS refresh and unlock after 24h');
+  ok(!p.w.document.getElementById('sabbath-dialog'),'expired pause dialog closes automatically');p.close();
 }
 {
   const p=await page({place:null});ok(p.w.SabbathAccess.status().reason==='location','no IP fallback on denied location');
   ok(!p.w.SabbathAccess.authorize('twelve-tribes'),'unknown Friday location gates affected game');
-  ok(p.w.document.querySelector('#sabbath-city'),'explicit city alternative exists');p.close();
+  await flush();
+  ok(!p.w.document.querySelector('#sabbath-settings-card,#sabbath-dialog input,#sabbath-dialog select,#sabbath-dialog form'),'no sunset settings, city selection or editable controls');
+  ok(!('openSettings' in p.w.SabbathAccess)&&!('locate' in p.w.SabbathAccess),'no public settings or location setter');p.close();
 }
 {
   let requests=0;
-  const p=await page({place:null,geo:success=>{requests++;success({coords:{latitude:0,longitude:0}});}});
-  await p.w.SabbathAccess.locate(true);await flush();
+  const p=await page({now:'2026-10-16T08:00Z',place:null,permission:'prompt',geo:success=>{requests++;success({coords:{latitude:0,longitude:0}});}});
+  ok(requests===0,'startup does not prompt without a protected game entry');
+  p.w.SabbathAccess.authorize('kids-ark-pairs');await flush();
   const saved=JSON.parse(p.w.localStorage.getItem(KEY));ok(saved.latitude===0&&saved.longitude===0,'browser GPS used, including origin coordinates');
-  ok(requests>=1,'device geolocation requested');p.close();
+  ok(requests===1,'protected entry automatically requests device geolocation');p.close();
+}
+{
+  const p=await page({source:'city'});
+  ok(p.w.SabbathAccess.status().reason==='location','previously selected city cannot control automatic schedule');
+  ok(p.w.localStorage.getItem(KEY)===null,'legacy manual location removed');p.close();
+}
+{
+  let reply,starts=0,requests=0;
+  const p=await page({now:'2026-10-16T08:00Z',place:null,permission:'prompt',geo:success=>{requests++;reply=success;}});
+  p.w.showGame=game=>{ok(game==='kids-ark-pairs','resumes selected game');starts++;};
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'),'Friday entry waits automatically for GPS');await flush();
+  ok(starts===0&&requests===1,'game does not start before location check');
+  reply({coords:{latitude:31.7683,longitude:35.2137}});await flush();
+  ok(starts===1&&!p.w.document.getElementById('sabbath-dialog'),'GPS success opens game once without a continue button');
+  p.w.SabbathAccess.refresh();await flush();ok(starts===1,'refresh does not relaunch game');p.close();
+}
+for(const cancel of ['close','other-game']){
+  let reply,starts=0;
+  const p=await page({now:'2026-10-16T08:00Z',place:null,permission:'prompt',geo:success=>{reply=success;}});
+  p.w.showGame=()=>{starts++;};
+  p.w.SabbathAccess.authorize('kids-ark-pairs');await flush();
+  if(cancel==='close')p.w.document.querySelector('.sabbath-close').click();else p.w.SabbathAccess.authorize('alias');
+  reply({coords:{latitude:31.7683,longitude:35.2137}});await flush();
+  ok(starts===0,'late GPS cannot reopen a cancelled entry: '+cancel);p.close();
+}
+{
+  let requested=0,fetches=0;
+  const p=await page({place:null,permission:'prompt',geo:(_success,error)=>{requested++;error({code:1});}});
+  p.w.fetch=()=>{fetches++;throw new Error('unexpected location service');};
+  ok(p.w.SabbathAccess.authorize('alias'),'unrelated game stays available');await flush();
+  ok(requested===0,'unrelated game never requests geolocation permission');
+  p.w.SabbathAccess.authorize('moses-nile');await flush();
+  ok(requested===1&&fetches===0&&p.w.SabbathAccess.status().reason==='location','denied GPS never falls back to VPN IP or city search');
+  ok(!p.w.document.querySelector('#sabbath-dialog form,#sabbath-dialog input'),'denial cannot expose manual location controls');p.close();
+}
+{
+  let requested=0;const telegram={isInited:true,isLocationAvailable:true,isAccessGranted:false,getLocation(cb){requested++;this.isAccessGranted=true;cb({latitude:55.7558,longitude:37.6173});}};
+  const p=await page({place:null,telegram});ok(requested===0,'Telegram prompt waits for protected entry');
+  p.w.SabbathAccess.authorize('twelve-tribes');await flush();
+  ok(requested===1&&JSON.parse(p.w.localStorage.getItem(KEY)).source==='gps','Telegram obtains real device coordinates automatically on entry');p.close();
 }
 {
   let requested=0;const telegram={isInited:false,isLocationAvailable:true,isAccessGranted:true,init(cb){this.isInited=true;cb();},getLocation(cb){requested++;cb({latitude:55.7558,longitude:37.6173});}};
@@ -100,6 +141,15 @@ async function page({now='2026-10-16T18:00:00Z',place={latitude:31.7683,longitud
   p.setTime(start);p.w.SabbathAccess.refresh();
   ok(cleans===1&&!p.w.document.body.dataset.currentGame,'running game cleaned at sunset');
   ok(p.w.document.getElementById('game-container').textContent==='','game removed, progress storage retained');p.close();
+}
+{
+  let reply,cleans=0;
+  const p=await page({now:'2026-10-16T08:00Z',loadApp:true,geo:success=>{reply=success;}});
+  p.w.startKidsArkPairsGame=()=>{};p.w.__kidsArkPairsCleanup=()=>{cleans++;};
+  p.w.showGame('kids-ark-pairs');p.setTime('2026-10-16T08:16Z');p.w.SabbathAccess.refresh();await flush();
+  ok(typeof reply==='function'&&cleans===0&&p.w.SabbathAccess.status().allowed,'background GPS refresh preserves a valid running game');
+  reply({coords:{latitude:31.7683,longitude:35.2137}});await flush();
+  ok(cleans===0&&p.w.document.body.dataset.currentGame==='kids-ark-pairs','GPS refresh does not restart the round');p.close();
 }
 {
   const start=Clock.sunset(new Date('2026-10-16T12:00Z'),31.7683,35.2137);
@@ -151,13 +201,19 @@ async function page({now='2026-10-16T18:00:00Z',place={latitude:31.7683,longitud
   ok(p.w.document.getElementById('game-container').textContent==='locked','late Twelve Tribes dependency error leaves lock screen intact');p.close();
 }
 {
-  const p=await page();let started=false;
+  const p=await page({geo:success=>success({coords:{latitude:31.7683,longitude:35.2137}})});let started=false;
   const waiting=p.w.SabbathAccess.waitForAccess('moses-nile').then(()=>{started=true;});await flush();
   ok(!started,'standalone game waits for access');
-  const saved=JSON.parse(p.w.localStorage.getItem(KEY));p.setTime('2026-10-18T12:00:00Z');
-  p.w.localStorage.setItem(KEY,JSON.stringify({...saved,savedAt:Date.parse('2026-10-18T12:00:00Z')}));
-  p.w.dispatchEvent(new p.w.StorageEvent('storage',{key:KEY}));await waiting;
+  p.setTime(p.w.SabbathAccess.status().end);p.w.SabbathAccess.refresh();await waiting;
   ok(started,'standalone game becomes available automatically after lock');p.close();
+}
+{
+  let reply,started=false;
+  const p=await page({now:'2026-10-16T08:00Z',place:null,permission:'prompt',geo:success=>{reply=success;}});
+  const waiting=p.w.SabbathAccess.waitForAccess('promised-land').then(()=>{started=true;});await flush();
+  ok(!started&&typeof reply==='function','standalone entry automatically requests location before access');
+  reply({coords:{latitude:31.7683,longitude:35.2137}});await waiting;
+  ok(started&&!p.w.document.getElementById('sabbath-dialog'),'standalone opens automatically when real location permits');p.close();
 }
 {
   const p=await page({now:'2026-10-14T23:00:00Z',place:null,loadApp:true});

@@ -2124,3 +2124,9 @@
 До субботы	Until Saturday	Bis Samstag	Hasta el sábado
 Нужно местоположение	Location needed	Standort erforderlich	Se necesita ubicación
 Местоположение и расписание пяти игр	Location and schedule for five games	Standort und Zeiten für fünf Spiele	Ubicación y horario de cinco juegos
+Доступ к игре	Game access	Spielzugang	Acceso al juego
+Игра временно недоступна	Game temporarily unavailable	Spiel vorübergehend nicht verfügbar	Juego temporalmente no disponible
+Не удалось определить местоположение	Could not determine your location	Standort konnte nicht ermittelt werden	No se pudo determinar tu ubicación
+Время доступа рассчитывается автоматически по геолокации устройства. Игра откроется после проверки, если сейчас доступна.	Access times are calculated automatically using device geolocation. The game will open after the check if it is currently available.	Die Zugangszeiten werden automatisch anhand des Gerätestandorts berechnet. Das Spiel öffnet sich nach der Prüfung, falls es gerade verfügbar ist.	El horario de acceso se calcula automáticamente con la geolocalización del dispositivo. El juego se abrirá tras la comprobación si está disponible.
+Для автоматического расчёта нужна геолокация устройства. Проверка повторится при следующем входе в игру. Остальные игры доступны.	Automatic calculation requires device geolocation. The check will run again the next time you open the game. Other games remain available.	Die automatische Berechnung benötigt den Gerätestandort. Beim nächsten Öffnen des Spiels wird erneut geprüft. Andere Spiele bleiben verfügbar.	El cálculo automático necesita la geolocalización del dispositivo. Se comprobará de nuevo la próxima vez que abras el juego. Los demás juegos siguen disponibles.
+Проверка доступа	Checking access	Zugang wird geprüft	Comprobando acceso
