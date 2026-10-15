@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - 'cloudflare/promised-land-preview/**'
+      - 'web/js/sabbath-*.js'
+      - 'web/styles/sabbath-access.css'
+      - 'scripts/sync-promised-land-art.mjs'
       - '.github/workflows/deploy-promised-land-preview.yml'
 
 permissions:

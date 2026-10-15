@@ -1,3 +1,4 @@
+import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -180,6 +181,7 @@ const mime = new Map([
   ['.obj', 'text/plain; charset=utf-8'],
 ]);
 const server = http.createServer((request, response) => {
+  if (serveSabbathTestAsset(request, response)) return;
   const url = new URL(request.url || '/', 'http://127.0.0.1');
   const relative = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);
   const target = path.resolve(gameRoot, `.${relative}`);

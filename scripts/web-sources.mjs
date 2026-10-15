@@ -52,6 +52,7 @@ export const styleSources = [
   // поэтому обязана идти последней.
   'web/styles/dark-theme.css',
   'web/styles/game-scene-parallax.css',
+  'web/styles/sabbath-access.css',
 ];
 
 export const scriptSources = [
@@ -64,6 +65,8 @@ export const scriptSources = [
   'web/js/error-system.js',
   'web/js/startup-gamehub-loader.js',
   'web/js/startup-coordinator.js',
+  'web/js/sabbath-clock.js',
+  'web/js/sabbath-access.js',
   'web/games/kids-ark-pairs.js',
   'web/js/quartet-production-v43-loader.js',
   'web/js/game-card-details.js',

@@ -16,6 +16,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+// The same clock and location policy also protects the independent Worker URL.
+const policyDir = path.join(root, 'cloudflare/promised-land-preview/public/sabbath');
+fs.mkdirSync(policyDir, { recursive: true });
+for (const file of ['sabbath-clock.js', 'sabbath-access.js']) {
+  fs.copyFileSync(path.join(root, 'web/js', file), path.join(policyDir, file));
+}
+fs.copyFileSync(path.join(root, 'web/styles/sabbath-access.css'), path.join(policyDir, 'sabbath-access.css'));
 const from = path.join(root, 'web/assets/promised-land');
 const to = path.join(root, 'cloudflare/promised-land-preview/public/art');
 

@@ -683,7 +683,9 @@ function rememberGameOpen(gameName) {
   apiRequest({ action: "updateHistory", id: getTelegramUser().id, history });
 }
 
-function startGameSafely(callback) {
+function startGameSafely(callback, expectedGame = activeGameName, expectedEntry = gameLaunchEntry) {
+  if (expectedEntry !== gameLaunchEntry || expectedGame !== activeGameName) return;
+  if (window.SabbathAccess && !window.SabbathAccess.authorize(expectedGame)) return;
   try {
     if (typeof callback !== "function") throw new Error("Не найдена функция запуска игры");
     callback();
@@ -702,7 +704,10 @@ function startGameSafely(callback) {
   }
 }
 
+let gameLaunchEntry = 0;
 function showGame(gameName) {
+  if (window.SabbathAccess && !window.SabbathAccess.authorize(gameName)) return;
+  gameLaunchEntry += 1;
   rememberGameOpen(gameName);
 
   const container = document.getElementById("game-container");
@@ -881,11 +886,11 @@ function showGame(gameName) {
     return;
   }
 
-  loadGameScript(route[0], route[1]);
+  loadGameScript(route[0], route[1], gameName, gameLaunchEntry);
 }
 
-function loadGameScript(fileName, callback) {
-  const startLoadedGame = () => startGameSafely(callback);
+function loadGameScript(fileName, callback, expectedGame = activeGameName, expectedEntry = gameLaunchEntry) {
+  const startLoadedGame = () => startGameSafely(callback, expectedGame, expectedEntry);
 
   const existing = loadedGameScripts.get(fileName);
   if (existing?.status === "loaded") {
@@ -914,6 +919,7 @@ function loadGameScript(fileName, callback) {
 
   script.onerror = () => {
     loadedGameScripts.delete(fileName);
+    if (expectedEntry !== gameLaunchEntry || expectedGame !== activeGameName) return;
     console.error(`Файл ${fileName} не загружается`);
     const container = document.getElementById("game-container");
     if (container) {
@@ -933,6 +939,10 @@ function loadGameScript(fileName, callback) {
 }
 
 function cleanupActiveGame() {
+  gameLaunchEntry += 1;
+  try { window.__cancelBiblicalMatchThreeLaunch?.(); } catch {}
+  try { window.__biblicalMatchThreeCleanup?.(); } catch {}
+  try { window.BiblicalMatchThreeV10?.cleanup?.(); } catch {}
   try { if (window.aliasInterval) clearInterval(window.aliasInterval); } catch {}
   try { if (window.coimaginariumInterval) clearInterval(window.coimaginariumInterval); } catch {}
   try { window.__aliasCleanup?.(); } catch {}

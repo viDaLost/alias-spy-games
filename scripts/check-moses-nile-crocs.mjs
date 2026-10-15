@@ -1,3 +1,4 @@
+import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 // Крокодилы «Моисея на Ниле» стоят на своей дорожке.
 //
 // Отзыв владельца: крокодилы то отплывают от корзинки, то, появившись на
@@ -34,6 +35,7 @@ const mime = new Map([
   ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.webp', 'image/webp'], ['.glb', 'model/gltf-binary'],
 ]);
 const server = http.createServer((req, res) => {
+  if (serveSabbathTestAsset(req, res)) return;
   try {
     const url = new URL(req.url || '/', 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);

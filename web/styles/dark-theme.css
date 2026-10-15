@@ -2618,6 +2618,57 @@ html.theme-dark.theme-dark .game-scene__veil {
       rgba(2, 4, 10, .66) 100%) !important;
 }
 
+/* web/styles/sabbath-access.css */
+html.theme-dark .sabbath-overlay {
+  color: #bbc9dc !important;
+}
+html.theme-dark .sabbath-sheet {
+  background: #281e07 !important;
+  border: 1px solid #453c2c !important;
+}
+html.theme-dark .sabbath-kicker {
+  color: #b7a281 !important;
+}
+html.theme-dark .sabbath-button,
+html.theme-dark .sabbath-city-result {
+  border: 1px solid #504736 !important;
+  background: #2c2517 !important;
+  color: #bbc9dc !important;
+}
+html.theme-dark .sabbath-button--primary {
+  background: #3f28b4 !important;
+  border-color: #3f28b4 !important;
+}
+html.theme-dark .sabbath-button:focus-visible,
+html.theme-dark .sabbath-city-result:focus-visible,
+html.theme-dark .sabbath-sheet input:focus-visible,
+html.theme-dark .sabbath-close:focus-visible {
+  outline: 3px solid #281576 !important;
+}
+html.theme-dark .sabbath-schedule {
+  background: #140933 !important;
+  border: 1px solid #1a0c44 !important;
+  color: #907ecf !important;
+}
+html.theme-dark .sabbath-note {
+  color: #8b8f8c !important;
+}
+html.theme-dark .sabbath-city-form input {
+  border: 1px solid #62543b !important;
+  background: #141414 !important;
+  color: #bbc9dc !important;
+}
+html.theme-dark .sabbath-error {
+  color: #d66252 !important;
+}
+html.theme-dark .sabbath-game-name {
+  color: #745dae !important;
+}
+html.theme-dark .game-card.sabbath-card-paused::after {
+  color: #9582b9 !important;
+  background: #190935 !important;
+}
+
 /* web/games/quartet-v2.css */
 html.theme-dark .qv2-root {
   --qv2-ink: #c2cde4 !important;

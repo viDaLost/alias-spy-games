@@ -5333,6 +5333,7 @@ ${shader.vertexShader}`.replace(
   }
 
   async function boot() {
+    await window.SabbathAccess.waitForAccess('moses-nile');
     readBest();
     showBestOnStart();
     bindControls();

@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.net.Uri
 import android.webkit.CookieManager
+import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
 import android.webkit.PermissionRequest
@@ -19,6 +20,8 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -131,6 +134,12 @@ private fun AndroidWebExperience(
     val context = LocalContext.current
     val appContext = context.applicationContext
     val activity = context as? Activity
+    var locationReply by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
+    val locationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        locationReply?.invoke(grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
+            grants[Manifest.permission.ACCESS_FINE_LOCATION] == true)
+        locationReply = null
+    }
     val assetLoader = remember(appContext) {
         WebViewAssetLoader.Builder()
             .setDomain(WEB_APP_ORIGIN)
@@ -235,7 +244,12 @@ private fun AndroidWebExperience(
                         "AndroidApp",
                     )
 
-                    webChromeClient = AndroidParityChromeClient(activity)
+                    settings.setGeolocationEnabled(true)
+                    webChromeClient = AndroidParityChromeClient(activity) { reply ->
+                        locationReply?.invoke(false)
+                        locationReply = reply
+                        locationLauncher.launch(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION))
+                    }
                     webViewClient = object : android.webkit.WebViewClient() {
                         override fun shouldInterceptRequest(
                             view: WebView,
@@ -355,7 +369,22 @@ private fun AndroidWebExperience(
     }
 }
 
-private class AndroidParityChromeClient(private val activity: Activity?) : WebChromeClient() {
+private class AndroidParityChromeClient(
+    private val activity: Activity?,
+    private val requestLocation: ((Boolean) -> Unit) -> Unit,
+) : WebChromeClient() {
+    override fun onGeolocationPermissionsShowPrompt(origin: String?, callback: GeolocationPermissions.Callback?) {
+        val uri = origin?.let { Uri.parse(it) }
+        if (activity == null || uri?.scheme != "https" || uri.host != WEB_APP_ORIGIN) {
+            callback?.invoke(origin, false, false)
+            return
+        }
+        val granted = activity.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (granted) callback?.invoke(origin, true, false)
+        else requestLocation { allowed -> callback?.invoke(origin, allowed, false) }
+    }
+
     override fun onPermissionRequest(request: PermissionRequest?) {
         val permissionRequest = request ?: return
         val wantsCamera = permissionRequest.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)

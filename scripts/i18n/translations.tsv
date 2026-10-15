@@ -2088,3 +2088,39 @@
 Выбор запомнится для следующих заплывов	Your choice will be saved for future journeys	Deine Auswahl wird für die nächsten Fahrten gespeichert	Tu elección se guardará para los próximos viajes
 Переключить вид карты	Switch map view	Kartenansicht wechseln	Cambiar vista del mapa
 Поднимаем карту…	Raising the map…	Karte wird aufgebaut…	Levantando el mapa…
+Местоположение устройства	Device location	Gerätestandort	Ubicación del dispositivo
+Время субботы	Sabbath time	Sabbatzeit	Horario del sábado
+Игры на паузе	Games are paused	Spiele pausiert	Juegos en pausa
+В этой местности нет захода солнца	No sunset at this location	Kein Sonnenuntergang an diesem Ort	No hay puesta de sol en este lugar
+Расписание игр	Game schedule	Spielzeiten	Horario de los juegos
+Укажите своё местоположение	Set your location	Standort festlegen	Indica tu ubicación
+Эти пять игр закрыты на 24 часа с пятничного захода солнца. Остальные игры доступны.	These five games pause for 24 hours from Friday sunset. Other games remain available.	Diese fünf Spiele pausieren ab Sonnenuntergang am Freitag für 24 Stunden. Andere Spiele bleiben verfügbar.	Estos cinco juegos se pausan durante 24 horas desde la puesta de sol del viernes. Los demás siguen disponibles.
+На эту дату невозможно рассчитать обычный заход солнца. Пять игр временно недоступны; остальные можно открыть в меню.	A regular sunset cannot be calculated for this date. Five games are temporarily unavailable; other games are in the menu.	Für dieses Datum lässt sich kein normaler Sonnenuntergang berechnen. Fünf Spiele sind vorübergehend nicht verfügbar; andere Spiele finden Sie im Menü.	No se puede calcular una puesta de sol normal para esta fecha. Cinco juegos no están disponibles temporalmente; los demás están en el menú.
+Заход солнца рассчитывается по месту, где вы находитесь.	Sunset is calculated for your actual location.	Der Sonnenuntergang wird für Ihren tatsächlichen Standort berechnet.	La puesta de sol se calcula para tu ubicación real.
+на расчёт не влияет.	does not affect the calculation.	beeinflusst die Berechnung nicht.	no afecta al cálculo.
+Откроются автоматически	Open automatically	Automatische Freigabe	Se abrirán automáticamente
+Следующая пауза	Next pause	Nächste Pause	Próxima pausa
+Открытие	Opens	Freigabe	Apertura
+выбрано вручную	selected manually	manuell gewählt	selección manual
+геолокация устройства	device geolocation	Geräteortung	geolocalización del dispositivo
+Местоположение ещё не подтверждено	Location not confirmed yet	Standort noch nicht bestätigt	Ubicación aún sin confirmar
+Определяем местоположение…	Finding your location…	Standort wird ermittelt…	Buscando tu ubicación…
+Определить моё местоположение	Find my location	Meinen Standort ermitteln	Detectar mi ubicación
+Настройки геолокации	Location settings	Standorteinstellungen	Ajustes de ubicación
+Я по-прежнему в этом городе	I am still in this city	Ich bin noch in dieser Stadt	Sigo en esta ciudad
+Разрешите геолокацию на устройстве. Координаты используются только здесь, для расчёта времени. В поездке обновите местоположение.	Allow device location. Coordinates are used only here to calculate the time. Update your location when travelling.	Erlauben Sie die Geräteortung. Koordinaten werden nur hier zur Zeitberechnung verwendet. Aktualisieren Sie den Standort auf Reisen.	Permite la ubicación del dispositivo. Las coordenadas solo se usan aquí para calcular el horario. Actualiza tu ubicación cuando viajes.
+Или выберите свой реальный город	Or select your actual city	Oder wählen Sie Ihre tatsächliche Stadt	O selecciona tu ciudad real
+Город, страна	City, country	Stadt, Land	Ciudad, país
+Ищем город…	Searching for the city…	Stadt wird gesucht…	Buscando la ciudad…
+Город не найден. Уточните название и страну.	City not found. Specify the name and country.	Stadt nicht gefunden. Geben Sie Name und Land genauer an.	No se encontró la ciudad. Especifica el nombre y el país.
+Не удалось найти город. Повторите поиск или включите геолокацию.	Could not find the city. Try again or enable location.	Die Stadt konnte nicht gefunden werden. Suchen Sie erneut oder aktivieren Sie die Ortung.	No se pudo encontrar la ciudad. Inténtalo de nuevo o activa la ubicación.
+Поиск городов	City search	Stadtsuche	Búsqueda de ciudades
+Время и часовой пояс — с вашего устройства.	Time and time zone come from your device.	Uhrzeit und Zeitzone stammen von Ihrem Gerät.	La hora y la zona horaria provienen de tu dispositivo.
+Продолжить игру	Continue game	Spiel fortsetzen	Continuar el juego
+К другим играм	Other games	Andere Spiele	Otros juegos
+До открытия	Time until opening	Zeit bis zur Freigabe	Tiempo hasta la apertura
+Не удалось получить геолокацию. Разрешите её в настройках	Could not get your location. Allow it in	Standort konnte nicht ermittelt werden. Erlauben Sie die Ortung in den Einstellungen von	No se pudo obtener la ubicación. Permítela en los ajustes de
+или браузера либо выберите реальный город.	or your browser settings, or select your actual city.	oder Ihrem Browser oder wählen Sie Ihre tatsächliche Stadt.	o del navegador, o selecciona tu ciudad real.
+До субботы	Until Saturday	Bis Samstag	Hasta el sábado
+Нужно местоположение	Location needed	Standort erforderlich	Se necesita ubicación
+Местоположение и расписание пяти игр	Location and schedule for five games	Standort und Zeiten für fünf Spiele	Ubicación y horario de cinco juegos

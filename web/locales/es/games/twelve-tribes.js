@@ -251,7 +251,10 @@
     card.style.setProperty('--fly-y', `${Math.round(from.top + from.height / 2 - to.top - to.height / 2)}px`);
   }
 
+  let launchSession = 0;
   function startTwelveTribesGame() {
+    if(window.SabbathAccess&&!window.SabbathAccess.authorize("twelve-tribes"))return;
+    const session = ++launchSession;
     const container = document.getElementById('game-container');
     if (!container) return;
     injectStyles();
@@ -260,8 +263,13 @@
 
     PARTS.reduce((chain, file) => chain.then(() => loadPart(file)), Promise.resolve())
       .then(() => loadArt())
-      .then(() => { new Table(container).setup(); })
+      .then(() => {
+        if(session!==launchSession)return;
+        if(window.SabbathAccess&&!window.SabbathAccess.authorize("twelve-tribes"))return;
+        new Table(container).setup();
+      })
       .catch((error) => {
+        if(session!==launchSession)return;
         console.error('«Двенадцать колен» не запустились', error);
         container.innerHTML = '<div class="tt-wrap"><section class="tt-setup"><h2>No se pudo abrir el juego</h2>'
           + '<p>Правила не загрузились. Попробуйте вернуться в меню и открыть игру снова.</p>'
@@ -1210,6 +1218,7 @@
     другого экрана.
   */
   window.__twelveTribesCleanup = () => {
+    launchSession += 1;
     stopTimers();
     document.querySelector('.tt-sheet')?.remove();
     // Комната закрывается вместе с игрой: иначе сокет живёт в уже закрытом

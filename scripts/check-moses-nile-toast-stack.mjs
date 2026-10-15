@@ -1,3 +1,4 @@
+import { serveSabbathTestAsset } from './lib/sabbath-test-assets.mjs';
 // «Моисей на Ниле»: на разгоне уведомления не копятся друг на друге.
 //
 // Отзыв игрока: «на большой скорости баннеров с уведомлением становится
@@ -33,6 +34,7 @@ const mime = new Map([
   ['.png', 'image/png'], ['.jpg', 'image/jpeg'], ['.webp', 'image/webp'], ['.glb', 'model/gltf-binary'],
 ]);
 const server = http.createServer((req, res) => {
+  if (serveSabbathTestAsset(req, res)) return;
   try {
     const url = new URL(req.url || '/', 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname);

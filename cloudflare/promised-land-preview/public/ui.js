@@ -6,8 +6,9 @@
 // полоса цвета удела, ступень поселения, фишки игроков. Все действия — в
 // середине кольца и в шторке уделов, где строки полноразмерные.
 
-(() => {
+(async () => {
   'use strict';
+  await window.SabbathAccess.waitForAccess('promised-land');
 
   const B = window.PromisedLandBoard;
   const E = window.PromisedLandEngine;

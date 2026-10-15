@@ -9,6 +9,33 @@ permissions:
   contents: read
 
 jobs:
+  sabbath-integration:
+    name: Sabbath integration checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install check dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Prepare standalone game assets
+        run: node scripts/sync-promised-land-art.mjs
+      - name: Locate Chrome
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Check sunset boundaries and delayed entry
+        run: npm run check:sabbath
+      - name: Check Android and Web game entry
+        run: node scripts/check-android-new-games.mjs
+      - name: Check standalone QR bridge
+        run: node scripts/check-promised-land-qr-layout.mjs
+      - name: Complete Twelve Tribes UI rounds
+        run: node scripts/check-twelve-tribes-browser.mjs
+
   validate:
     runs-on: ubuntu-latest
     steps:
@@ -16,6 +43,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install check dependencies
+        run: npm ci --no-audit --no-fund
       # Картинки и библиотеки превью «Земли обетованной» в репозитории не
       # лежат: они копируются из web/assets и web/games тем же скриптом, что
       # и при развёртывании. Без этого шага проверка ссылок честно ругается на
@@ -189,4 +218,4 @@ jobs:
         working-directory: cloudflare/promised-land-preview
         run: npm install --no-audit --no-fund
       - name: Run browser-backed project checks
-        run: npm run check:browser
+        run: node scripts/sync-promised-land-art.mjs && npm run check:browser
