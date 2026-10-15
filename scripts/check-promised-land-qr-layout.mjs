@@ -29,6 +29,7 @@ try {
   const bridge = fs.readFileSync('web/js/app.js', 'utf8').split('// Only the active, trusted game frame')[1];
   await page.addScriptTag({ content: '// Only the active, trusted game frame' + bridge });
   const frame = page.frames().find(f => f !== page.mainFrame());
+  await frame.waitForFunction(() => Boolean(window.PromisedLandGame), null, { timeout: 15000 });
   await frame.waitForSelector('[data-mode="online"]');
   /*
     Кадру отдан весь экран, а кнопка «Главное меню» снова лежит поверх него.

@@ -155,6 +155,8 @@ async function openGame(page, key) {
   const frameHandle = await page.$('#game-container iframe.game-frame');
   const frame = await frameHandle.contentFrame();
   const src = new URL(await frameHandle.getAttribute('src'), page.url());
+  await frame.waitForFunction((game) => game === 'moses-nile'
+    ? Boolean(window.__mosesV75Ready) : Boolean(window.PromisedLandGame), key, { timeout: 20000 });
   const landmark = key === 'moses-nile' ? '#start-btn' : '#mode';
   await frame.waitForSelector(`${landmark}:not([hidden])`, { timeout: 20_000 });
   // Кадр въезжает на экран с анимацией: ширина снимается, когда он встал.

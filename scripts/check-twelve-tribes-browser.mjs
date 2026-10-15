@@ -134,6 +134,16 @@ async function play(width, height, foes = 2) {
   await page.waitForSelector('.tt-setup [data-start]', { timeout: 20_000 });
     await page.locator(`[data-foes] button[data-value="${foes}"]`).click();
   await page.locator('[data-target] button[data-value="0"]').click();
+  // Reproduce the same deck on every runner. Randomized rule coverage lives
+  // in check-twelve-tribes.mjs; this fixture measures a complete UI round.
+  const deckSeed = 0x5abb47 + foes;
+  await page.evaluate((seed) => {
+    const engine = window.TwelveTribesEngine;
+    const create = engine.createGame;
+    let value = seed >>> 0;
+    const random = () => ((value = (Math.imul(value, 1664525) + 1013904223) >>> 0) / 4294967296);
+    engine.createGame = (options) => create({ ...options, random });
+  }, deckSeed);
   await page.locator('[data-start]').click();
   await page.waitForSelector('.tt-hand .tt-card', { timeout: 10_000 });
 
@@ -539,7 +549,12 @@ async function play(width, height, foes = 2) {
     steps += 1;
   }
   const over = await page.locator('.tt-setup [data-next]').count() > 0;
-  need(over, `за ${Math.round((Date.now() - started) / 1000)} с и ${steps} оборотов раздача не дошла до итогов`);
+  const unfinished = !over ? await page.evaluate(() => {
+    const state = window.TwelveTribesGame.state();
+    return { turn:state.turn, phase:state.phase, status:state.status, moves:state.moves,
+      hands:state.players.map(player=>player.hand.length) };
+  }) : null;
+  need(over, `за ${Math.round((Date.now() - started) / 1000)} с и ${steps} оборотов раздача не дошла до итогов (seed ${deckSeed}, ${JSON.stringify(unfinished)})`);
   if (over) {
     const result = await page.evaluate(() => ({
       title: document.querySelector('.tt-setup h2')?.textContent || '',
