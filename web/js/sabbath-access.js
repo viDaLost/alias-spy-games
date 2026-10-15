@@ -7,17 +7,21 @@
   const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Библейские сокровища','kids-ark-pairs':'Найди пару','twelve-tribes':'Двенадцать колен','promised-land':'Земля обетованная'};
   const restricted = key => Clock.GAME_IDS.includes(key);
   const zone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return ''; } };
-  let place = readPlace(), pendingGame = null, modal = null, returnFocus = null;
-  let timer = null, locating = null, locationError = '', refreshRequired = false;
+  let place = readPlace(), pendingGame = null, resumeGame = null, modal = null, returnFocus = null;
+  let timer = null, locating = null, mayRequestLocation = false, lastLocationAttempt = 0;
   let bridgeState = null, standalone = null;
   const waiters = new Set();
 
   function readPlace() {
-    try { const value = JSON.parse(localStorage.getItem(KEY)); return Clock.validCoordinates(value)
-      && Number.isFinite(value.savedAt) && ['gps','city'].includes(value.source) ? value : null; } catch { return null; }
+    try {
+      const value = JSON.parse(localStorage.getItem(KEY));
+      if (Clock.validCoordinates(value) && Number.isFinite(value.savedAt) && value.source === 'gps') return value;
+      // A previously selected city is not evidence of the device's real location.
+      localStorage.removeItem(KEY); return null;
+    } catch { return null; }
   }
   function currentPlace() {
-    if (!place || refreshRequired || place.zone !== zone() || Date.now() < place.savedAt
+    if (!place || place.zone !== zone() || Date.now() < place.savedAt
       || Date.now() - place.savedAt > MAX_AGE) return null;
     return place;
   }
@@ -28,11 +32,10 @@
     }
     return Clock.state(Date.now(), currentPlace());
   }
-  function savePlace(value, source, label) {
+  function savePlace(value) {
     if (!Clock.validCoordinates(value)) throw new Error('coordinates');
     place = {latitude:Math.round(value.latitude*10000)/10000, longitude:Math.round(value.longitude*10000)/10000,
-      savedAt:Date.now(), zone:zone(), source, label:String(label || 'Местоположение устройства').slice(0,150)};
-    refreshRequired = false; locationError = '';
+      savedAt:Date.now(), zone:zone(), source:'gps'};
     try { localStorage.setItem(KEY, JSON.stringify(place)); } catch {}
     check(); renderModal();
   }
@@ -47,6 +50,7 @@
     const node = textNode('button',text,cls); node.type='button'; node.addEventListener('click',action); return node;
   }
   function close() {
+    pendingGame=null; resumeGame=null;
     modal?.remove(); modal=null; document.documentElement.classList.remove('sabbath-dialog-open');
     returnFocus?.focus?.(); returnFocus=null;
   }
@@ -60,7 +64,7 @@
       modal.addEventListener('keydown',event=>{
         if(event.key==='Escape'){event.preventDefault();close();}
         if(event.key==='Tab'){
-          const nodes=[...modal.querySelectorAll('button,input,a[href]')].filter(node=>!node.disabled&&!node.hidden);
+          const nodes=[...modal.querySelectorAll('button,a[href]')].filter(node=>!node.disabled&&!node.hidden);
           const first=nodes[0],last=nodes.at(-1);
           if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
           else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
@@ -74,53 +78,21 @@
     if(!modal)return;
     const state=status(), shell=document.createElement('section'); shell.className='sabbath-sheet';
     modal.dataset.state=state.reason;
-    const top=textNode('div','Время субботы','sabbath-kicker');
+    const top=textNode('div','Доступ к игре','sabbath-kicker');
     const dismiss=button('×',close,'sabbath-close'); dismiss.setAttribute('aria-label','Закрыть'); top.append(dismiss);shell.append(top);
-    const heading=textNode('h2',state.reason==='sabbath'?'Игры на паузе':state.reason==='polar'?'В этой местности нет захода солнца':state.allowed?'Расписание игр':'Укажите своё местоположение');heading.id='sabbath-title';shell.append(heading);
+    const heading=textNode('h2',state.reason==='sabbath'?'Игры на паузе':state.reason==='polar'?'Игра временно недоступна':locating?'Определяем местоположение…':'Не удалось определить местоположение');heading.id='sabbath-title';shell.append(heading);
     shell.append(textNode('p',state.reason==='sabbath'
       ?'Эти пять игр закрыты на 24 часа с пятничного захода солнца. Остальные игры доступны.'
       :state.reason==='polar'?'На эту дату невозможно рассчитать обычный заход солнца. Пять игр временно недоступны; остальные можно открыть в меню.'
-      :'Заход солнца рассчитывается по месту, где вы находитесь. VPN на расчёт не влияет.'));
+      :locating?'Время доступа рассчитывается автоматически по геолокации устройства. Игра откроется после проверки, если сейчас доступна.'
+      :'Для автоматического расчёта нужна геолокация устройства. Проверка повторится при следующем входе в игру. Остальные игры доступны.'));
     if(state.reason==='sabbath') {
       const schedule=textNode('div','', 'sabbath-schedule');
       schedule.append(textNode('span','Откроются автоматически'),textNode('strong',fmt(state.end)));
       const countdown=textNode('span','');countdown.dataset.sabbathCountdown='';schedule.append(countdown);shell.append(schedule);
-    } else if(state.start) shell.append(textNode('p',`Следующая пауза: ${fmt(state.start)}. Открытие: ${fmt(state.end)}.`,'sabbath-schedule'));
+    }
     if(pendingGame) shell.append(textNode('p',titles[pendingGame] || '', 'sabbath-game-name'));
-    const label=currentPlace() ? `${place.label} · ${place.source==='city'?'выбрано вручную':'геолокация устройства'}` : 'Местоположение ещё не подтверждено';
-    shell.append(textNode('p',label,'sabbath-location-label'));
-    const gps=button(locating?'Определяем местоположение…':'Определить моё местоположение',()=>locate(true),'sabbath-button sabbath-button--primary');gps.disabled=!!locating;shell.append(gps);
-    const manager=window.Telegram?.WebApp?.LocationManager;
-    if(manager?.isAccessRequested&&!manager.isAccessGranted) shell.append(button('Настройки геолокации Telegram',()=>manager.openSettings()));
-    if(place?.source==='city'&&!currentPlace()) shell.append(button('Я по-прежнему в этом городе',()=>savePlace(place,'city',place.label)));
-    shell.append(textNode('p','Разрешите геолокацию на устройстве. Координаты используются только здесь, для расчёта времени. В поездке обновите местоположение.','sabbath-note'));
-    if(locationError) {const error=textNode('p',locationError,'sabbath-error');error.setAttribute('role','status');shell.append(error);}
-    const form=document.createElement('form');form.className='sabbath-city-form';
-    const cityLabel=textNode('label','Или выберите свой реальный город');cityLabel.htmlFor='sabbath-city';
-    const input=document.createElement('input');input.id='sabbath-city';input.type='search';input.placeholder='Город, страна';input.minLength=2;input.maxLength=100;input.required=true;input.autocomplete='address-level2';
-    const submit=textNode('button','Найти','sabbath-button');submit.type='submit';
-    const results=document.createElement('div');results.className='sabbath-city-results';results.setAttribute('aria-live','polite');
-    form.append(cityLabel,input,submit);form.addEventListener('submit',async event=>{
-      event.preventDefault();const query=input.value.trim();if(query.length<2)return;submit.disabled=true;results.textContent='Ищем город…';
-      const abort=new AbortController(), timeout=setTimeout(()=>abort.abort(),12000);
-      try {
-        const url=new URL('https://geocoding-api.open-meteo.com/v1/search');url.search=new URLSearchParams({name:query,count:'8',language:'ru',format:'json'});
-        const response=await fetch(url,{signal:abort.signal,credentials:'omit',referrerPolicy:'no-referrer'});
-        if(!response.ok)throw new Error('city');const data=await response.json();results.replaceChildren();
-        const found=(data.results||[]).filter(Clock.validCoordinates);
-        if(!found.length)results.textContent='Город не найден. Уточните название и страну.';
-        for(const city of found){const name=[city.name,city.admin1,city.country].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join(', ');
-          results.append(button(name,()=>savePlace(city,'city',name),'sabbath-city-result'));}
-      } catch {results.textContent='Не удалось найти город. Повторите поиск или включите геолокацию.';}
-      finally {clearTimeout(timeout);submit.disabled=false;}
-    });
-    shell.append(form,results);
-    const credit=textNode('p','Поиск городов: Open-Meteo / GeoNames. Время и часовой пояс — с вашего устройства.','sabbath-note');shell.append(credit);
-    if(state.allowed&&pendingGame) shell.append(button('Продолжить игру',()=>{
-      const game=pendingGame;pendingGame=null;close();
-      if(game==='biblical-match-three')window.openBiblicalMatchThree?.();else window.showGame?.(game);
-    },'sabbath-button sabbath-button--primary'));
-    shell.append(button(document.getElementById('menu-container')?'К другим играм':'Закрыть',()=>{pendingGame=null;close();}));
+    shell.append(button(document.getElementById('menu-container')?'К другим играм':'Закрыть',close));
     modal.replaceChildren(shell); updateCountdown();
   }
   function updateCountdown() {
@@ -132,7 +104,8 @@
     const manager=window.Telegram?.WebApp?.LocationManager;
     if(!manager)return Promise.resolve(null);
     return new Promise(resolve=>{
-      const done=()=>resolve(manager.isLocationAvailable?manager:null);
+      const timeout=setTimeout(()=>resolve(null),5000);
+      const done=()=>{clearTimeout(timeout);resolve(manager.isLocationAvailable?manager:null);};
       try{manager.isInited?done():manager.init(done);}catch{resolve(null);}
     });
   }
@@ -142,33 +115,43 @@
       navigator.geolocation.getCurrentPosition(value=>resolve(value.coords),reject,{enableHighAccuracy:true,timeout:15000,maximumAge:0});
     });
   }
-  async function locate(userInitiated=false) {
+  function locate(requestPermission=false) {
+    mayRequestLocation ||= requestPermission;
     if(locating)return locating;
+    lastLocationAttempt=Date.now();
     locating=(async()=>{
       try {
         const manager=await telegramLocation();let coords;
         if(manager) {
-          if(!userInitiated&&!manager.isAccessGranted)return;
+          if(!mayRequestLocation&&!manager.isAccessGranted)return;
           coords=await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error('timeout')),18000);
             manager.getLocation(value=>{clearTimeout(timeout);value?resolve(value):reject(new Error('denied'));});});
         } else {
-          if(!userInitiated){const permission=await navigator.permissions?.query?.({name:'geolocation'});if(permission?.state!=='granted')return;}
+          if(!mayRequestLocation){const permission=await navigator.permissions?.query?.({name:'geolocation'});if(permission?.state!=='granted'&&!mayRequestLocation)return;}
           coords=await browserLocation();
         }
-        savePlace(coords,'gps','Местоположение устройства');
-      } catch {if(userInitiated)locationError='Не удалось получить геолокацию. Разрешите её в настройках Telegram или браузера либо выберите реальный город.';}
-      finally {locating=null;check();renderModal();}
+        savePlace(coords);
+      } catch { /* Never substitute an IP address or a manually selected city. */ }
+      finally {locating=null;mayRequestLocation=false;check();renderModal();}
     })();
     renderModal();return locating;
   }
   function authorize(game) {
-    if(!restricted(game))return true;
-    const state=status();if(state.allowed)return true;
-    present(game);return false;
+    if(!restricted(game)){if(modal)close();return true;}
+    const state=status();
+    if(state.allowed){
+      if(modal)close();
+      if(!bridgeState&&!currentPlace())locate(true);
+      return true;
+    }
+    present(game);
+    resumeGame=state.reason==='location'?game:null;
+    if(!bridgeState&&state.reason==='location')locate(true);
+    return false;
   }
   function check() {
-    if(!bridgeState&&!standalone?.bridgePending&&!document.hidden&&place?.source==='gps'&&!refreshRequired
-      &&Date.now()-place.savedAt>REFRESH_AGE){refreshRequired=true;locate(false);}
+    if(!bridgeState&&!standalone?.bridgePending&&!document.hidden&&place
+      &&Date.now()-place.savedAt>REFRESH_AGE&&Date.now()-lastLocationAttempt>REFRESH_AGE)locate(false);
     clearTimeout(timer);const state=status();
     const active=document.body?.dataset.currentGame;
     if(restricted(active)&&!state.allowed) {
@@ -179,9 +162,16 @@
       if(standalone.started){location.reload();return;}
       present(standalone.game);
     }
-    if(state.allowed){for(const resolve of waiters)resolve();waiters.clear();}
+    if(state.allowed){
+      for(const resolve of waiters)resolve();waiters.clear();
+      const resume=resumeGame;
+      if(modal)close();
+      if(resume&&!standalone){
+        if(resume==='biblical-match-three')window.openBiblicalMatchThree?.();else window.showGame?.(resume);
+      }
+    }
     document.querySelectorAll('[data-sabbath-game]').forEach(card=>{
-      const value=state.allowed?'':state.reason==='sabbath'?'До субботы':'Нужно местоположение';
+      const value=state.allowed?'':state.reason==='sabbath'?'До субботы':'Проверка доступа';
       if(card.dataset.sabbathStatus!==value){card.dataset.sabbathStatus=value;card.classList.toggle('sabbath-card-paused',!state.allowed);}
     });
     if(modal?.dataset.state!==state.reason){if(modal){modal.dataset.state=state.reason;renderModal();}}
@@ -190,19 +180,13 @@
   }
   function refresh() {
     if(bridgeState){check();return;}
-    if(place?.source==='gps'&&(Date.now()-place.savedAt>REFRESH_AGE||place.zone!==zone())){
-      refreshRequired=true;locate(false);
+    if(place&&(Date.now()-place.savedAt>REFRESH_AGE||place.zone!==zone())){
+      locate(false);
     } else if(!place)locate(false);
     check();
   }
   function installCards() {
     let added=false;
-    const host=document.getElementById('system-actions');
-    if(host&&!document.getElementById('sabbath-settings-card')){
-      const card=button('',()=>{pendingGame=null;present();},'game-card');card.id='sabbath-settings-card';
-      card.innerHTML='<span class="game-card__icon" aria-hidden="true">☀</span><span class="game-card__body"><span class="game-card__title">Время субботы</span><span class="game-card__desc">Местоположение и расписание пяти игр</span></span>';
-      host.append(card);
-    }
     for(const key of Clock.GAME_IDS){
       document.querySelectorAll(`[data-card-game="${key}"],#${key}-card,button[onclick*="'${key}'"],button[onclick*='"${key}"']`).forEach(card=>{if(!card.dataset.sabbathGame){card.dataset.sabbathGame=key;added=true;}});
     }
@@ -226,6 +210,7 @@
       }
     }
     standalone.bridgePending=false;
+    if(!bridgeState&&!currentPlace())locate(true);
     check();if(!status().allowed)await new Promise(resolve=>waiters.add(resolve));
     close();standalone.started=true;
   }
@@ -241,10 +226,10 @@
     const nextChange=state.allowed?(state.start||+friday):state.nextChange;
     event.source.postMessage({type:'sabbath:status',allowed:state.allowed,nextChange},event.origin);
   });
-  window.SabbathAccess=Object.freeze({authorize,status,restricted,refresh,locate,openSettings:()=>present(),waitForAccess});
+  window.SabbathAccess=Object.freeze({authorize,status,restricted,refresh,waitForAccess});
   window.addEventListener('focus',refresh);window.addEventListener('pageshow',refresh);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-  window.addEventListener('storage',event=>{if(event.key===KEY){place=readPlace();refreshRequired=false;check();renderModal();}});
+  window.addEventListener('storage',event=>{if(event.key===KEY){place=readPlace();check();renderModal();}});
   function init(){installCards();new MutationObserver(installCards).observe(document.body,{childList:true,subtree:true});refresh();
     window.Telegram?.WebApp?.onEvent?.('activated',refresh);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
