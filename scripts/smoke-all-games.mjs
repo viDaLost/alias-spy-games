@@ -1,7 +1,10 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
+// Exercise the checked-out standalone game, with the same assets used at deploy.
+import './sync-promised-land-art.mjs';
 
 const root = process.cwd();
 const failures = [];
@@ -26,7 +29,13 @@ const server = http.createServer((req, res) => {
       'Content-Type': mime.get(path.extname(target).toLowerCase()) || 'application/octet-stream',
       'Cache-Control': 'no-store',
     });
-    fs.createReadStream(target).pipe(res);
+    if (pathname === '/index.html') {
+      const html = fs.readFileSync(target, 'utf8').replace(
+        /(<meta name="promised-land-app" content=")[^"]+("\s*\/?>)/,
+        '$1/cloudflare/promised-land-preview/public/index.html$2',
+      );
+      res.end(html);
+    } else fs.createReadStream(target).pipe(res);
   } catch (error) {
     res.writeHead(500).end(String(error));
   }
@@ -52,20 +61,36 @@ const browser = await chromium.launch({
 
 async function makePage() {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await context.addInitScript(() => { window.__APP_TELEMETRY_DISABLED__ = true; });
+  await context.addInitScript(() => {
+    window.__APP_TELEMETRY_DISABLED__ = true;
+    // Keep game entry outside the weekly pause, regardless of when CI runs.
+    const OriginalDate = Date;
+    const clockOffset = +new OriginalDate('2026-10-15T08:00:00Z') - OriginalDate.now();
+    window.Date = class extends OriginalDate {
+      constructor(...args) { super(...(args.length ? args : [OriginalDate.now() + clockOffset])); }
+      static now() { return OriginalDate.now() + clockOffset; }
+    };
+    window.__smokeLocationAccesses = 0;
+    const forbidden = () => {
+      window.__smokeLocationAccesses++;
+      throw new Error('Device location must never be accessed');
+    };
+    Object.defineProperty(navigator, 'geolocation', { get: forbidden });
+    Object.defineProperty(navigator, 'permissions', { get: forbidden });
+  });
   const page = await context.newPage();
   const pageErrors = [];
   const consoleErrors = [];
 
   page.on('pageerror', (error) => pageErrors.push(String(error?.stack || error)));
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() === 'error') consoleErrors.push(message.text() + (message.location().url ? ` (${message.location().url})` : ''));
   });
 
-  await page.route('https://telegram.org/js/telegram-web-app.js', (route) => route.fulfill({
+  await page.route('https://telegram.org/js/telegram-web-app.js*', (route) => route.fulfill({
     status: 200,
     contentType: 'text/javascript; charset=utf-8',
-    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
+    body: `window.Telegram={WebApp:{initData:'',initDataUnsafe:{user:{id:999999,username:'qa_user',first_name:'QA'}},ready(){},expand(){},setHeaderColor(){},setBackgroundColor(){},enableClosingConfirmation(){},openTelegramLink(){},requestFullscreen(){},lockOrientation(){},unlockOrientation(){},get LocationManager(){window.__smokeLocationAccesses++;throw new Error('Telegram location must never be accessed');},HapticFeedback:{impactOccurred(){},notificationOccurred(){},selectionChanged(){}}}};`,
   }));
 
   const gasReply = JSON.stringify({ success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] });
@@ -123,6 +148,15 @@ for (const gameKey of gameKeys) {
       return container && container.children.length > 0 && !container.querySelector('.app-game-loading');
     }, null, { timeout: 15_000 });
     await page.waitForTimeout(800);
+    if (gameKey === 'promised-land') {
+      const frame = page.frameLocator('iframe.game-frame');
+      await frame.locator('[data-mode="solo"]').waitFor({ state: 'visible', timeout: 15_000 });
+      assert.ok((await page.locator('iframe.game-frame').getAttribute('src')).startsWith(baseURL + '/cloudflare/'), 'standalone code comes from this checkout');
+      assert.equal(await frame.locator('body').evaluate(() => typeof window.SabbathAccess?.waitForAccess), 'function', 'standalone city policy loaded');
+    }
+    for (const frame of page.frames()) {
+      assert.equal(await frame.evaluate(() => window.__smokeLocationAccesses), 0, 'game entry never touches browser or Telegram location APIs');
+    }
 
     const state = await page.evaluate(() => {
       const container = document.getElementById('game-container');
