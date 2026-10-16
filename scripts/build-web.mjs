@@ -54,6 +54,7 @@ const PRECACHE_FILES = ['index.html', 'install.html', 'manifest.webmanifest',
 // каждый, кто открыл приложение, включая тех, кто в эту игру не заходит.
 // Рантайм игры в кеше остаётся, а ассеты осядут сами при первом запуске.
 const PRECACHE_SKIP = [
+  'web/data/sabbath-cities.json',
   'web/games/moses-nile-v7/vendor/',
   'web/games/moses-nile-v7/models/',
   'web/games/moses-nile-v7/textures/',

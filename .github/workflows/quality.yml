@@ -29,6 +29,8 @@ jobs:
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
       - name: Check sunset boundaries and delayed entry
         run: npm run check:sabbath
+      - name: Check private city picker on phones
+        run: node scripts/check-sabbath-city-browser.mjs
       - name: Check Android and Web game entry
         run: node scripts/check-android-new-games.mjs
       - name: Check standalone QR bridge

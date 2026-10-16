@@ -8,6 +8,7 @@ on:
       - 'cloudflare/promised-land-preview/**'
       - 'web/js/sabbath-*.js'
       - 'web/styles/sabbath-access.css'
+      - 'web/data/sabbath-cities.json'
       - 'scripts/sync-promised-land-art.mjs'
       - '.github/workflows/deploy-promised-land-preview.yml'
 
