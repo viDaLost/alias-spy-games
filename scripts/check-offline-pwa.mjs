@@ -16,6 +16,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
 
@@ -33,9 +34,13 @@ const root = process.cwd();
   }
   assert.ok(/const VERSION = '[a-f0-9]{10}'/.test(sw), 'версия кеша не проставлена сборкой');
 
+  const precache = new Set(vm.runInNewContext(sw.match(/const PRECACHE = (\[[\s\S]*?\]);/)?.[1] || '[]'));
+  // The worldwide city catalog loads on search; level data still loads at install.
+  assert.ok(!precache.has('web/data/sabbath-cities.json'), 'каталог городов не должен загружаться при установке');
   // Данные уровней обязаны быть в кеше: без них игра в дороге не запустится.
   for (const rel of fs.readdirSync(path.join(root, 'web/data'))) {
-    assert.ok(sw.includes(`web/data/${rel}`), `в кеш не попали данные ${rel}`);
+    if (rel === 'sabbath-cities.json') continue;
+    assert.ok(precache.has(`web/data/${rel}`), `в кеш не попали данные ${rel}`);
   }
   for (const rel of fs.readdirSync(path.join(root, 'web/games')).filter((name) => name.endsWith('.js'))) {
     assert.ok(sw.includes(`web/games/${rel}`), `в кеш не попал скрипт игры ${rel}`);
@@ -115,7 +120,11 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 const crashes = [];
+const catalogRequests = [];
 page.on('pageerror', (error) => crashes.push(String(error?.message || error)));
+page.on('request', (request) => {
+  if (new URL(request.url()).pathname.endsWith('/sabbath-cities.json')) catalogRequests.push(request.url());
+});
 
 /** Уводит в офлайн и обратно: и сеть, и признак браузера, и его событие. */
 async function switchNetwork(offline) {
@@ -224,6 +233,10 @@ if (!cached.has.bundle) await fail('в кеше нет бандла прилож
 if (!cached.has.game) await fail('в кеше нет скриптов игр — в дороге игра не откроется');
 if (!cached.has.wow) await fail('в кеше нет данных уровней');
 if (cached.has.foreign) await fail('работник закешировал ответ сервера — офлайн покажет чужой прогресс');
+if (catalogRequests.length) await fail('каталог городов загрузился без поиска');
+// A chosen preset must survive a truly offline restart without the catalog.
+await page.evaluate(() => window.SabbathAccess.openCityPicker());
+await page.locator('[data-city="Берлин"]').click();
 
 // --- 3. приложение открывается без сети --------------------------------------------
 await switchNetwork(true);
@@ -252,6 +265,8 @@ if (!offlineMenu.bar) {
     + ` (navigator.onLine=${offlineMenu.online}, модуль офлайна ${offlineMenu.queue ? 'загружен' : 'не загружен'},`
     + ` полоска: ${offlineMenu.node})`);
 }
+assert.equal(await page.evaluate(() => window.SabbathAccess.status().city.timeZone), 'Europe/Berlin', 'выбранный город сохраняется без сети');
+assert.equal(catalogRequests.length, 0, 'сохранённый город работает без загрузки каталога');
 
 // --- 4. игра запускается без сети ----------------------------------------------------
 await page.evaluate(() => window.showGame('bible-wow'));

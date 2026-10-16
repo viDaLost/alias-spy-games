@@ -18,13 +18,13 @@ export async function buildLocales(root, jsOptions) {
   const outputs = new Map();
   const runtimeSources = [fs.readFileSync(path.join(root,'index.html'),'utf8'),
     ...walk(path.join(root,'cloudflare')).filter(file=>file.endsWith('.js') && !file.includes('/node_modules/') && !file.includes('/public/') && !file.includes('/shared/')).map(file=>fs.readFileSync(file,'utf8')),
-    ...walk(path.join(root,'web/data')).filter(file=>file.endsWith('.json')).map(file=>fs.readFileSync(file,'utf8'))];
+    ...walk(path.join(root,'web/data')).filter(file=>file.endsWith('.json')&&!file.endsWith('/sabbath-cities.json')).map(file=>fs.readFileSync(file,'utf8'))];
   const runtimeKeys = new Set(runtimeSources.flatMap(source=>[...source.matchAll(phrasePattern)].map(match=>match[0].trim())));
   const entries = {};
   const relative = file => path.relative(root,file).replaceAll(path.sep,'/');
   const sourceFiles = ['web/js','web/games'].flatMap(dir => walk(path.join(root,dir))).map(relative)
     .filter(file => /\.(js|css|html)$/.test(file) && !file.includes('/vendor/') && !/\/(language-choice|telegram-launch-context)\.js$/.test(file));
-  const dataFiles = walk(path.join(root,'web/data')).map(relative).filter(file=>file.endsWith('.json'));
+  const dataFiles = walk(path.join(root,'web/data')).map(relative).filter(file=>file.endsWith('.json')&&!file.endsWith('/sabbath-cities.json'));
   const files = new Set([...sourceFiles,...dataFiles,'install.html']);
   const localizedPath = (file,lang) => `web/locales/${lang}/${file.replace(/^web\//,'')}`;
   for (const lang of languages) {

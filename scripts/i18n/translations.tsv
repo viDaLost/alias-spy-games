@@ -2130,3 +2130,16 @@
 Время доступа рассчитывается автоматически по геолокации устройства. Игра откроется после проверки, если сейчас доступна.	Access times are calculated automatically using device geolocation. The game will open after the check if it is currently available.	Die Zugangszeiten werden automatisch anhand des Gerätestandorts berechnet. Das Spiel öffnet sich nach der Prüfung, falls es gerade verfügbar ist.	El horario de acceso se calcula automáticamente con la geolocalización del dispositivo. El juego se abrirá tras la comprobación si está disponible.
 Для автоматического расчёта нужна геолокация устройства. Проверка повторится при следующем входе в игру. Остальные игры доступны.	Automatic calculation requires device geolocation. The check will run again the next time you open the game. Other games remain available.	Die automatische Berechnung benötigt den Gerätestandort. Beim nächsten Öffnen des Spiels wird erneut geprüft. Andere Spiele bleiben verfügbar.	El cálculo automático necesita la geolocalización del dispositivo. Se comprobará de nuevo la próxima vez que abras el juego. Los demás juegos siguen disponibles.
 Проверка доступа	Checking access	Zugang wird geprüft	Comprobando acceso
+Город для расписания	Schedule city	Ort für den Zeitplan	Ciudad del horario
+Выберите свой город	Choose your city	Wähle deinen Ort	Elige tu ciudad
+Время рассчитывается для выбранного города. По умолчанию — Москва.	Times are calculated for the selected city. Moscow is the default.	Die Zeiten werden für den gewählten Ort berechnet. Standard ist Moskau.	El horario se calcula para la ciudad elegida. La predeterminada es Moscú.
+Быстрый выбор города	Quick city selection	Schnellauswahl des Ortes	Selección rápida de ciudad
+Найти другой город	Find another city	Anderen Ort suchen	Buscar otra ciudad
+Выбранный город хранится только на этом устройстве и никуда не передаётся. Эти данные нужны только для вычисления захода солнца.	Your selected city stays on this device and is not shared. It is used only to calculate sunset.	Der gewählte Ort bleibt auf diesem Gerät und wird nicht weitergegeben. Er wird nur zur Berechnung des Sonnenuntergangs verwendet.	La ciudad elegida se guarda solo en este dispositivo y no se comparte. Solo se usa para calcular la puesta de sol.
+Изменить город	Change city	Ort ändern	Cambiar ciudad
+Не удалось рассчитать время. Проверьте дату и время на устройстве.	Could not calculate the schedule. Check the date and time on your device.	Der Zeitplan konnte nicht berechnet werden. Prüfe Datum und Uhrzeit auf deinem Gerät.	No se pudo calcular el horario. Comprueba la fecha y hora del dispositivo.
+Не удалось загрузить справочник городов. Повторите поиск.	Could not load the city directory. Try searching again.	Das Ortsverzeichnis konnte nicht geladen werden. Suche erneut.	No se pudo cargar el directorio de ciudades. Vuelve a buscar.
+Москва	Moscow	Moskau	Moscú
+Берлин	Berlin	Berlin	Berlín
+Киев	Kyiv	Kiew	Kiev
+Готово	Done	Fertig	Listo

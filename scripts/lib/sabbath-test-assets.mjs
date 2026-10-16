@@ -6,6 +6,7 @@ const assets = new Map([
   ['/js/sabbath-clock.js', ['../../web/js/sabbath-clock.js', 'text/javascript; charset=utf-8']],
   ['/js/sabbath-access.js', ['../../web/js/sabbath-access.js', 'text/javascript; charset=utf-8']],
   ['/styles/sabbath-access.css', ['../../web/styles/sabbath-access.css', 'text/css; charset=utf-8']],
+  ['/data/sabbath-cities.json', ['../../web/data/sabbath-cities.json', 'application/json; charset=utf-8']],
 ]);
 export function serveSabbathTestAsset(request, response) {
   const asset = assets.get(new URL(request.url || '/', 'http://fixture.test').pathname);

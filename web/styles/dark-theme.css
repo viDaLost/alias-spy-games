@@ -2646,6 +2646,25 @@ html.theme-dark .sabbath-schedule {
 html.theme-dark .sabbath-game-name {
   color: #745dae !important;
 }
+html.theme-dark .sabbath-presets [aria-pressed="true"] {
+  background: #3f28b4 !important;
+  border-color: #3f28b4 !important;
+}
+html.theme-dark .sabbath-city-form input {
+  border: 1px solid #62543b !important;
+  background: #141414 !important;
+  color: #bbc9dc !important;
+}
+html.theme-dark .sabbath-city-form input:focus-visible {
+  outline: 3px solid #281576 !important;
+}
+html.theme-dark .sabbath-note {
+  color: #8b8f8c !important;
+}
+html.theme-dark .sabbath-privacy {
+  background: #1b251b !important;
+  color: #9ec3a5 !important;
+}
 html.theme-dark .game-card.sabbath-card-paused::after {
   color: #9582b9 !important;
   background: #190935 !important;

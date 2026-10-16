@@ -170,34 +170,71 @@ function validCoordinates(place) {
     && Math.abs(place.latitude) <= 90 && typeof place.longitude === 'number'
     && Number.isFinite(place.longitude) && Math.abs(place.longitude) <= 180;
 }
-function sunset(date, latitude, longitude) {
+const formatters = new Map();
+function civilParts(date, timeZone) {
+  if (!formatters.has(timeZone)) formatters.set(timeZone, new Intl.DateTimeFormat('en-GB-u-ca-gregory-nu-latn',
+    {timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}));
+  const parts = Object.fromEntries(formatters.get(timeZone).formatToParts(date)
+    .filter(part => part.type !== 'literal').map(part => [part.type, Number(part.value)]));
+  return parts;
+}
+function localHour(calendarDay, hour, timeZone) {
+  const target = calendarDay + hour * 3600000;
+  let instant = target;
+  for (let i = 0; i < 4; i++) {
+    const p = civilParts(new Date(instant), timeZone);
+    const observed = Date.UTC(p.year,p.month-1,p.day,p.hour,p.minute,p.second);
+    const next = target - (observed - instant);
+    if (next === instant) break;
+    instant = next;
+  }
+  return instant;
+}
+function validCity(value) {
+  if (!validCoordinates(value) || typeof value.name !== 'string' || !value.name.trim()
+    || value.name.length > 150 || typeof value.timeZone !== 'string' || value.timeZone.length > 80) return false;
+  try { civilParts(new Date(0), value.timeZone); return true; } catch { return false; }
+}
+const CITIES = Object.freeze([
+  Object.freeze({name:'Москва',country:'RU',latitude:55.7558,longitude:37.6173,timeZone:'Europe/Moscow'}),
+  Object.freeze({name:'Берлин',country:'DE',latitude:52.5244,longitude:13.4105,timeZone:'Europe/Berlin'}),
+  Object.freeze({name:'Киев',country:'UA',latitude:50.4547,longitude:30.5238,timeZone:'Europe/Kiev'}),
+]);
+function sunset(date, latitude, longitude, timeZone) {
   if (!validCoordinates({latitude, longitude}) || !Number.isFinite(+date)) return null;
   const lw = -longitude * rad, phi = latitude * rad;
   // Anchor to local civil noon, including this day's own DST offset.
-  const dt = solarDayTransit(date, lw, -date.getTimezoneOffset());
+  let dt;
+  if (timeZone) {
+    const p = civilParts(date, timeZone);
+    dt = solarDayTransit(new Date(localHour(Date.UTC(p.year,p.month-1,p.day),12,timeZone)),lw);
+  } else dt = solarDayTransit(date, lw, -date.getTimezoneOffset());
   const dec = sunCoords(toDaysTT(dt)).dec;
   const set = getSetJ(-0.833 * rad, dt, 1, lw, phi, dec);
   return Number.isFinite(set) ? +fromJulian(set + J2000) : null;
 }
 function state(now, place) {
-  const date = new Date(now), weekday = date.getDay();
+  const date = new Date(now);
   if (!Number.isFinite(+date)) return {allowed:false, reason:'clock'};
+  const timeZone = place?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  let p;
+  try { p = civilParts(date,timeZone); } catch { return {allowed:false,reason:'clock'}; }
+  const calendarDay = Date.UTC(p.year,p.month-1,p.day), weekday = new Date(calendarDay).getUTCDay();
   const weekend = weekday === 5 || weekday === 6;
-  const midnight = new Date(date); midnight.setHours(24,0,0,0);
+  const midnight = localHour(calendarDay+dayMs,0,timeZone);
   if (!validCoordinates(place)) return {allowed:!weekend, reason:weekend?'location':'open', nextChange:+midnight};
-  const friday = new Date(date); friday.setHours(12,0,0,0);
-  friday.setDate(friday.getDate() - (weekday + 2) % 7);
-  const start = sunset(friday, place.latitude, place.longitude);
+  const fridayDay = calendarDay - (weekday+2)%7 * dayMs;
+  const friday = new Date(localHour(fridayDay,12,timeZone));
+  const start = sunset(friday, place.latitude, place.longitude, timeZone);
   if (start === null) return {allowed:!weekend, reason:weekend?'polar':'open', nextChange:+midnight};
   // The requested lock lasts exactly 24 hours from Friday sunset.
   const end = start + dayMs;
   if (now >= start && now < end) return {allowed:false, reason:'sabbath', start, end, nextChange:end};
   if (now < start) return {allowed:true, reason:'open', start, end, nextChange:start};
-  friday.setDate(friday.getDate()+7);
-  const next = sunset(friday, place.latitude, place.longitude);
+  const next = sunset(new Date(localHour(fridayDay+7*dayMs,12,timeZone)), place.latitude, place.longitude, timeZone);
   return {allowed:true, reason:'open', start:next, end:next===null?null:next+dayMs, nextChange:Math.min(next || +midnight,+midnight)};
 }
-const api = Object.freeze({GAME_IDS, validCoordinates, sunset, state, dayMs});
+const api = Object.freeze({GAME_IDS, CITIES, validCoordinates, validCity, sunset, state, dayMs});
 root.SabbathClock = api;
 if (typeof module === 'object' && module.exports) module.exports = api;
 })(typeof window === 'object' ? window : globalThis);

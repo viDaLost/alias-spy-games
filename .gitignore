@@ -41,6 +41,7 @@ android-app/local.properties
 # В репозитории эти файлы уже есть — второй раз они тут не нужны.
 cloudflare/promised-land-preview/public/art/
 cloudflare/promised-land-preview/public/sabbath/
+cloudflare/promised-land-preview/public/data/sabbath-cities.json
 
 # Промо-ролик: промежуточная сборка (кадры, wav, черновые mp4)
 promo/ui-motion/build/
