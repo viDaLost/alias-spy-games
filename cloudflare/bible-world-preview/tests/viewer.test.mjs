@@ -4,13 +4,14 @@ import {createPanorama} from '../public/viewer.mjs';
 import {maxPitch,minFov,maxFov} from '../public/camera.mjs';
 
 test('dragging, pinching and fullscreen resize keep a stable lens and block Safari page gestures',()=>{
- const listeners=new Map(),frames=[],images=[],uniforms=new Map(),uploads=[];
+ const listeners=new Map(),frames=[],images=[],uniforms=new Map(),uploads=[],wrapModes=[];
  let textureLimit=4096;
  const gl={
   createShader:()=>({}),shaderSource(){},compileShader(){},getShaderParameter:()=>true,deleteShader(){},
   createProgram:()=>({}),attachShader(){},linkProgram(){},getProgramParameter:()=>true,useProgram(){},
   createBuffer:()=>({}),bindBuffer(){},bufferData(){},getAttribLocation:()=>0,enableVertexAttribArray(){},vertexAttribPointer(){},
-  createTexture:()=>({}),bindTexture(){},activeTexture(){},deleteTexture(){},texParameteri(){},pixelStorei(){},uniform1i(){},getUniformLocation:(_,name)=>name,
+  TEXTURE_WRAP_S:'longitude',REPEAT:'repeat',CLAMP_TO_EDGE:'clamp',
+  createTexture:()=>({}),bindTexture(){},activeTexture(){},deleteTexture(){},texParameteri(_,name,value){if(name==='longitude')wrapModes.push(value);},pixelStorei(){},uniform1i(){},getUniformLocation:(_,name)=>name,
   getParameter:()=>textureLimit,texImage2D(...args){uploads.push(args.at(-1));},uniformMatrix3fv(){},viewport(){},drawArrays(){},uniform1f:(name,value)=>uniforms.set(name,value),uniform2f:(name,x,y)=>uniforms.set(name,{x,y})
  };
  const scene={clientWidth:393,clientHeight:550,focus(){},setPointerCapture(){},addEventListener:(type,handler,options)=>listeners.set(type,{handler,options})};
@@ -26,6 +27,7 @@ test('dragging, pinching and fullscreen resize keep a stable lens and block Safa
  const send=(type,values={})=>listeners.get(type).handler({target,pointerId:1,clientX:0,clientY:0,...values});
  flush();assert.equal(canvas.width,1179);assert.equal(canvas.height,1650);
  assert.equal(uploads[0],images[0]); // Supported GPUs receive all 4096 × 2048 pixels.
+ assert.equal(wrapModes.at(-1),'repeat'); // Filter through the repaired 360° boundary.
  assert.equal(uniforms.get('uWrapBand'),0); // Do not apply the assembled seam twice.
  const initialPlane=uniforms.get('uPlane');
  send('pointerdown',{clientX:100,clientY:100});send('pointermove',{clientX:300,clientY:100});flush();
@@ -51,5 +53,6 @@ test('dragging, pinching and fullscreen resize keep a stable lens and block Safa
  assert.equal(prevented,4);
  textureLimit=2048;viewer.load('weak-gpu.webp',{seamBlend:0});images[1].onload();flush();
  assert.equal(uploads[1].width,2048);assert.equal(uploads[1].height,1024);
- viewer.load('legacy.webp');images[2].onload();flush();assert.equal(uniforms.get('uWrapBand'),.035);
+ viewer.load('legacy.webp');images[2].width=1774;images[2].height=887;images[2].onload();flush();assert.equal(uniforms.get('uWrapBand'),.035);
+ assert.equal(wrapModes.at(-1),'clamp'); // WebGL 1 non-power-of-two legacy texture.
 });

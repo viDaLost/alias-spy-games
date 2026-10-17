@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {panoramaSamples} from '../public/camera.mjs';
 import {sceneAssets} from './scene-assets.mjs';
+import {applySphericalRepairs} from './spherical-repairs.mjs';
 const require=createRequire(import.meta.url);
 const sharp=require(require.resolve('sharp',{paths:[process.cwd(),process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES].filter(Boolean)}));
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -113,6 +114,7 @@ async function build(scene){
    }
   }
  }
+ await applySphericalRepairs(scene,pixels,W,H);
  const file=path.join(root,'public/assets',sceneAssets[scene]);
  await writeFile(file,await sharp(pixels,{raw:{width:W,height:H,channels:3}}).webp({lossless:true,effort:6}).toBuffer());
  await mkdir(path.join(work,'qa'),{recursive:true});
@@ -150,6 +152,7 @@ async function direct(scene,derive){
    for(let c=0;c<3;c++)pixels[p+c]=Math.round(clamp(acc[c]/total,0,255));
   }
  }
+ if(!derive)await applySphericalRepairs(scene,pixels,W,H);
  const assembled=sharp(pixels,{raw:{width:W,height:H,channels:3}});
  if(derive){
   await writeFile(path.join(root,'art/sources',scene+'-panorama.webp'),await assembled.clone().resize(1774,887).webp({lossless:true,effort:6}).toBuffer());

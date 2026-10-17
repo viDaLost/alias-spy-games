@@ -3,7 +3,7 @@ export const scenes = [
   "id": "babel",
   "title": "Вавилонская башня",
   "subtitle": "Строительство башни · земля Сеннаар",
-  "image": "assets/babel-360-v6-4k.webp",
+  "image": "assets/babel-360-v6-seams2-4k.webp",
   "event": "babel",
   "epoch": "early",
   "destination": {
@@ -53,7 +53,7 @@ export const scenes = [
    "fov": 72,
    "seamBlend": 0
   },
-  "image": "assets/noah-360-v1-4k.webp",
+  "image": "assets/noah-360-v1-seams2-4k.webp",
   "hints": [
    "Проследите, куда направляются животные.",
    "Большое деревянное сооружение предназначено для спасения живых существ.",
@@ -91,7 +91,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/red-sea-360-v2-4k.webp",
+  "image": "assets/red-sea-360-v2-seams2-4k.webp",
   "hints": [
    "Под ногами сухая земля, хотя вокруг море.",
    "Идут семьи и домашний скот, а не только воины.",
@@ -129,7 +129,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/david-360-v1-4k.webp",
+  "image": "assets/david-360-v1-seams2-4k.webp",
   "hints": [
    "Один из противников не носит тяжёлую военную броню.",
    "Посох, праща и гладкие камни важнее меча.",
@@ -167,7 +167,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/daniel-360-v1-4k.webp",
+  "image": "assets/daniel-360-v1-seams2-4k.webp",
   "hints": [
    "Человек среди опасных животных остаётся невредим.",
    "Ров относится к древней царской власти.",
@@ -190,7 +190,7 @@ export const scenes = [
   "id": "temple",
   "title": "Храм Соломона",
   "subtitle": "Строительство первого храма · Иерусалим",
-  "image": "assets/temple-360-v3-4k.webp",
+  "image": "assets/temple-360-v3-seams2-4k.webp",
   "event": "temple",
   "epoch": "kings",
   "destination": {
@@ -228,7 +228,7 @@ export const scenes = [
   "id": "galilee",
   "title": "Галилейское море",
   "subtitle": "Иисус учит из лодки · Галилея",
-  "image": "assets/galilee-360-v3-4k.webp",
+  "image": "assets/galilee-360-v3-seams2-4k.webp",
   "event": "galilee",
   "epoch": "jesus",
   "destination": {
@@ -281,7 +281,7 @@ export const scenes = [
    "fov": 72,
    "seamBlend": 0
   },
-  "image": "assets/gideon-360-v2-4k.webp",
+  "image": "assets/gideon-360-v2-seams2-4k.webp",
   "hints": [
    "Обратите внимание на необычное снаряжение людей.",
    "Шум и свет заменяют обычное начало боя.",
@@ -319,7 +319,7 @@ export const scenes = [
    "fov": 72,
    "seamBlend": 0
   },
-  "image": "assets/carmel-360-v2-4k.webp",
+  "image": "assets/carmel-360-v2-seams2-4k.webp",
   "hints": [
    "Осмотрите камни и ров возле жертвенника.",
    "Вода вокруг жертвы — важная часть события.",
@@ -357,7 +357,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/philip-360-v1-4k.webp",
+  "image": "assets/philip-360-v1-seams2-4k.webp",
   "hints": [
    "Путешественник в колеснице занят чтением.",
    "У дороги есть вода, важная для следующего действия.",
@@ -395,7 +395,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/axe-360-v1-4k.webp",
+  "image": "assets/axe-360-v1-seams2-4k.webp",
   "hints": [
    "Посмотрите на необычный предмет на воде.",
    "Орудие труда было одолжено и потеряно.",
@@ -433,7 +433,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/oil-360-v1-4k.webp",
+  "image": "assets/oil-360-v1-seams2-4k.webp",
   "hints": [
    "Пустые и полные сосуды занимают почти весь дом.",
    "У женщины два помощника; дверь закрыта.",
@@ -471,7 +471,7 @@ export const scenes = [
    "fov": 72,
    "seamBlend": 0
   },
-  "image": "assets/fleece-360-v1-4k.webp",
+  "image": "assets/fleece-360-v1-seams2-4k.webp",
   "hints": [
    "Сравните состояние шерсти и камней вокруг неё.",
    "Это второй опыт, противоположный первому.",
@@ -509,7 +509,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/eutychus-360-v2-4k.webp",
+  "image": "assets/eutychus-360-v2-seams2-4k.webp",
   "hints": [
    "Посмотрите, насколько высоко окно освещённой комнаты.",
    "Собрание продолжалось глубоко за полночь.",
@@ -547,7 +547,7 @@ export const scenes = [
    "fov": 84,
    "seamBlend": 0
   },
-  "image": "assets/prison-360-v2-4k.webp",
+  "image": "assets/prison-360-v2-seams2-4k.webp",
   "hints": [
    "Двери открыты, но заключённые не убегают.",
    "Рядом с узниками лежат освободившиеся узы.",

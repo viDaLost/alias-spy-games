@@ -1,4 +1,4 @@
-import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=9';
+import {clamp,wrapAngle,rayToUV,panoramaSamples,projectionPlanes,framebufferSize,minFov,maxFov,maxPitch} from './camera.mjs?v=10';
 
 export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) {
  let yaw=0,pitch=.08,fov=72*Math.PI/180,wrapBand=.035,initial={yaw,pitch,fov};
@@ -52,6 +52,10 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
     smaller.width=Math.floor(image.width*scale);smaller.height=Math.floor(image.height*scale);
     smaller.getContext('2d').drawImage(image,0,0,smaller.width,smaller.height);source=smaller;
    }
+   // Longitude filtering crosses the texture edge; latitude stays clamped.
+   // WebGL 1 permits REPEAT only when both texture sides are powers of two.
+   const powerOfTwo=n=>n>0&&(n&(n-1))===0;
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,powerOfTwo(source.width)&&powerOfTwo(source.height)?gl.REPEAT:gl.CLAMP_TO_EDGE);
    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
   }else{
    const source=document.createElement('canvas');source.width=Math.min(1774,image.width);source.height=Math.round(source.width*image.height/image.width);
@@ -85,8 +89,8 @@ export function createPanorama(scene,canvas,{onReady=()=>{},onError=()=>{}}={}) 
   }
  }
  function sampleCPU(u,v){
-  const x=clamp(u*(cpu.w-1),0,cpu.w-1),y=clamp(v*(cpu.h-1),0,cpu.h-1);
-  const x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(cpu.w-1,x0+1),y1=Math.min(cpu.h-1,y0+1),dx=x-x0,dy=y-y0;
+  const x=((u%1+1)%1)*cpu.w-.5,y=clamp(v*cpu.h-.5,0,cpu.h-1);
+  const ix=Math.floor(x),x0=(ix+cpu.w)%cpu.w,y0=Math.floor(y),x1=(x0+1)%cpu.w,y1=Math.min(cpu.h-1,y0+1),dx=x-ix,dy=y-y0;
   return [0,1,2].map(c=>cpu.pixels[(y0*cpu.w+x0)*4+c]*(1-dx)*(1-dy)+cpu.pixels[(y0*cpu.w+x1)*4+c]*dx*(1-dy)+cpu.pixels[(y1*cpu.w+x0)*4+c]*(1-dx)*dy+cpu.pixels[(y1*cpu.w+x1)*4+c]*dx*dy);
  }
  function schedule(){if(!pending){pending=true;requestAnimationFrame(draw);}}

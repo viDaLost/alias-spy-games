@@ -10,10 +10,10 @@ import {scenes} from '../public/scenes.mjs';
 test('Carmel repaired head and torso come entirely from the clean source across the wrap',async()=>{
  const scene=scenes.find(s=>s.id==='carmel');
  const texture=await sharp(fileURLToPath(new URL('../public/'+scene.image,import.meta.url))).removeAlpha().raw().toBuffer({resolveWithObject:true});
- const clean=await sharp(fileURLToPath(new URL('../art/sources/directions/carmel-back-person-fixed.webp',import.meta.url))).removeAlpha().raw().toBuffer({resolveWithObject:true});
+ const clean=await sharp(fileURLToPath(new URL('../art/sources/repairs/carmel-back-seam-v1.webp',import.meta.url))).removeAlpha().raw().toBuffer({resolveWithObject:true});
  const W=texture.info.width,H=texture.info.height,tan=Math.tan(104*Math.PI/360);
  function expected(u,v,c){
-  const x=u*(clean.info.width-1),y=v*(clean.info.height-1),ix=Math.floor(x),iy=Math.floor(y),dx=x-ix,dy=y-iy;
+  const x=u*clean.info.width-.5,y=v*clean.info.height-.5,ix=Math.floor(x),iy=Math.floor(y),dx=x-ix,dy=y-iy;
   const p=(xx,yy)=>clean.data[(yy*clean.info.width+xx)*3+c];
   return Math.round(p(ix,iy)*(1-dx)*(1-dy)+p(ix+1,iy)*dx*(1-dy)+p(ix,iy+1)*(1-dx)*dy+p(ix+1,iy+1)*dx*dy);
  }

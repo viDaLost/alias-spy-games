@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "date": "2026-10-16",
+  "generator": "Built-in ImageGen",
+  "nativeSize": [
+    1254,
+    1254
+  ],
+  "review": "Native square rear repairs inspected individually. Gideon ridge and sky required a second refinement. Apply after all original directional detail so malformed geometry cannot return.",
+  "scenes": {
+    "axe": [
+      {
+        "source": "repairs/axe-back-seam-v1.webp",
+        "gitBlob": "57c87e15bda8dc3e7d24f4690d5fd1ff4ee9ef65",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "babel": [
+      {
+        "source": "repairs/babel-back-seam-v1.webp",
+        "gitBlob": "8cf33163878c7e7d39f8d6cf4069eb94359386c7",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "carmel": [
+      {
+        "source": "repairs/carmel-back-seam-v1.webp",
+        "gitBlob": "776ed5bda263ed5f974fc3cb7b7d2fa4a8530fdc",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "daniel": [
+      {
+        "source": "repairs/daniel-back-seam-v1.webp",
+        "gitBlob": "1487c0620dad2594a6ceebabe42d2a6d00338626",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "david": [
+      {
+        "source": "repairs/david-back-seam-v1.webp",
+        "gitBlob": "c8fe8f8dce3193f0e91cb83d11d4e58b4b7cd1bd",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "eutychus": [
+      {
+        "source": "repairs/eutychus-back-seam-v1.webp",
+        "gitBlob": "6c1ba62d4b1badbc6f29dea18e18a55772cc5561",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "fleece": [
+      {
+        "source": "repairs/fleece-back-seam-v1.webp",
+        "gitBlob": "fa57bca5dc9d21b937abd1fa0f846375ef589777",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "galilee": [
+      {
+        "source": "repairs/galilee-back-seam-v1.webp",
+        "gitBlob": "a069b602c1f12e147bcd9dc25d687183136fbed3",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "gideon": [
+      {
+        "source": "repairs/gideon-back-seam-v1.webp",
+        "gitBlob": "36dcc384f280224a271e0fd9d1f1f96471f17df2",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "noah": [
+      {
+        "source": "repairs/noah-back-seam-v1.webp",
+        "gitBlob": "7923ea452c959ba071d732eb1e6cc9addb51f51e",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "oil": [
+      {
+        "source": "repairs/oil-back-seam-v1.webp",
+        "gitBlob": "c4e84eb8f1892ec9b17b81176917efc1d756042a",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "philip": [
+      {
+        "source": "repairs/philip-back-seam-v1.webp",
+        "gitBlob": "537b288cf17c345fd92c65c926367e866e5e2300",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "prison": [
+      {
+        "source": "repairs/prison-back-seam-v1.webp",
+        "gitBlob": "d0df17f5592394c27176b83211217a69a9af2a73",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "red-sea": [
+      {
+        "source": "repairs/red-sea-back-seam-v1.webp",
+        "gitBlob": "45e092252ba22fafce8b8e0c8e0596f940757730",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ],
+    "temple": [
+      {
+        "source": "repairs/temple-back-seam-v1.webp",
+        "gitBlob": "77e2b1020dd48a8ef3a0995b37c6798018c7d2a2",
+        "yaw": 180,
+        "pitch": 0,
+        "fov": 104,
+        "bounds": [
+          0.16,
+          0.02,
+          0.84,
+          0.98
+        ],
+        "feather": 0.12
+      }
+    ]
+  }
+}

@@ -1,5 +1,13 @@
 # Panorama sources and reproduction
 
+## October 16 longitude repairs
+
+All fifteen rear longitude joins now have individual native 1254×1254 ImageGen repairs in `sources/repairs/`. Each repair reconstructs the damaged centre of a 104-degree rectilinear rear view while retaining surrounding composition and story clues. The riverbank, pottery rims, masonry, cloth, tree branches and ground are reconstructed as continuous opaque geometry. The Gideon ridge and sky required a further background refinement before selection.
+
+`seam-repairs.json` records the saved Git blob identities and bounded projection masks. `spherical-repairs.mjs` applies these reviewed sectors **after** the original detail assembly in both native-base and six-direction build paths, so old malformed content cannot be injected over the correction. Original sources and previous bounded anatomy repairs are retained. Feathered borders leave the front and exact poles untouched. Generated source resolution is 1254×1254; assembled sphere resolution remains 4096×2048 lossless WebP.
+
+All panorama URLs receive a `seams2` version because texture responses are immutable. WebGL repeats longitude on supported power-of-two textures; the CPU fallback uses periodic texel-centre interpolation. Legacy non-power-of-two WebGL textures remain clamped. Regression tests compare opaque repaired sectors on both sides of the longitude wrap against every reviewed native source and retain the specific Carmel head/torso check. Game and camera tests cover all fifteen rounds; deployment CI rebuilds every sphere and runs complete asset tests before publishing.
+
 All scene art was created or enhanced with the built-in ImageGen tool. The original three scenes retain their exact PNG sources and prompts in `prompts.json` / `prompts-4k.json`. The twelve new scenes use `prompts-easy.json`, `prompts-easy-b.json`, `prompts-medium-a.json`, `prompts-medium-b.json`, `prompts-hard-a.json`, and `prompts-hard-b.json`, plus `prompts-red-sea-poles.json`; corresponding `qa-*.json` files record checks and limitations.
 
 The native generated direction views are stored losslessly under `sources/directions/`. Six overlapping directions (front, right, back, left, up, down) form each sphere. Whole-scene sources and `*-source.json` provenance live in `sources/`. Derived or repaired bases are explicitly labelled. Original native sources are retained when a replacement assembly needs separate provenance.
