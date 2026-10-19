@@ -7,7 +7,7 @@
   let wasAllowed = false;
   const screen = () => document.getElementById('app-access-screen');
 
-  function block(message = '') {
+  function block(message = '', { stopGame = true } = {}) {
     state.allowed = false;
     root.classList.add('app-access-locked');
     root.classList.remove('app-access-pending');
@@ -15,7 +15,7 @@
     const hint = screen()?.querySelector('[data-access-status]');
     if (hint) hint.textContent = message;
     // Stop iframe games and release their render loops when permission is withdrawn.
-    if (wasAllowed) {
+    if (wasAllowed && stopGame) {
       try { window.goToMainMenu?.(); } catch { /* blocking must still finish */ }
       document.querySelectorAll('#game-container iframe').forEach((frame) => frame.remove());
       wasAllowed = false;
@@ -90,7 +90,7 @@
   function resume() {
     if (document.hidden) { clearTimeout(timer); return; }
     // An old successful response never authorizes a new foreground session offline.
-    block('Проверяем доступ…');
+    block('Проверяем доступ…', { stopGame: false });
     void verify();
   }
 

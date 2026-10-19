@@ -87,9 +87,17 @@ try {
       allowed = true;
       await page.getByRole('button', { name: 'Проверить доступ', exact: true }).click();
       await page.waitForFunction(() => window.AppAccess.allowed());
+      await page.evaluate(() => {
+        window.__accessCleanupCount = 0;
+        window.goToMainMenu = () => { window.__accessCleanupCount += 1; };
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await page.waitForFunction(() => window.AppAccess.allowed());
+      assert.equal(await page.evaluate(() => window.__accessCleanupCount), 0, 'successful foreground recheck must preserve the active game');
       fail = true;
       await page.evaluate(() => window.AppAccess.verify());
       assert.equal(await page.evaluate(() => window.AppAccess.allowed()), false, 'offline check must fail closed');
+      assert.equal(await page.evaluate(() => window.__accessCleanupCount), 1, 'failed recheck must stop the active game');
       fail = false;
     }
     await context.close();
