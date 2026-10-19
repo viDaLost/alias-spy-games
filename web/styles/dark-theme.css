@@ -2670,6 +2670,65 @@ html.theme-dark .game-card.sabbath-card-paused::after {
   background: #190935 !important;
 }
 
+/* web/styles/app-access.css */
+html.theme-dark .app-access {
+  background: radial-gradient(ellipse at 18% 15%, #121e35, transparent 65%),
+    radial-gradient(ellipse at 88% 85%, #2a3831, transparent 65%), #20211c !important;
+  color: #a9bece !important;
+}
+html.theme-dark .app-access__mark {
+  border: 1px solid rgba(20, 20, 20, 0.78) !important;
+  background: rgba(20, 20, 20, 0.584) !important;
+  color: #72898f !important;
+}
+html.theme-dark .app-access__eyebrow {
+  color: #72868e !important;
+}
+html.theme-dark .app-access__text {
+  color: #7e93a0 !important;
+}
+html.theme-dark .app-access__saved {
+  border: 1px solid rgba(66, 91, 76, 0.322) !important;
+  color: #87a994 !important;
+}
+html.theme-dark .app-access__saved span {
+  background: #699177 !important;
+}
+html.theme-dark .app-access__status {
+  color: #738289 !important;
+}
+html.theme-dark .app-access button {
+  border: 1px solid #374345 !important;
+  background: rgba(20, 20, 20, 0.69) !important;
+  color: #91acb7 !important;
+}
+html.theme-dark .app-access button:focus-visible {
+  outline: 3px solid #507a96 !important;
+}
+html.theme-dark .app-access__verse {
+  border-top: 1px solid rgba(63, 76, 78, 0.4) !important;
+}
+html.theme-dark .app-access blockquote {
+  color: #737f83 !important;
+}
+html.theme-dark .app-access cite {
+  color: #697477 !important;
+}
+html.theme-dark.theme-dark .app-access__mark,
+html.theme-dark.theme-dark .app-access button {
+  background: rgba(20, 20, 20, 0.043) !important;
+  border-color: rgba(20, 20, 20, 0.145) !important;
+}
+html.theme-dark .app-access-manager {
+  border: 1px solid #374345 !important;
+}
+html.theme-dark .app-access-manager input {
+  border: 1px solid #3a4a50 !important;
+}
+html.theme-dark .app-access-manager button {
+  border: 1px solid #3a4a50 !important;
+}
+
 /* web/games/quartet-v2.css */
 html.theme-dark .qv2-root {
   --qv2-ink: #c2cde4 !important;
