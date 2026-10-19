@@ -18,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 

@@ -22,7 +22,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const dir = path.join(root, 'cloudflare/twelve-tribes-worker');
@@ -98,7 +98,7 @@ if (!wranglerPath) {
   process.exit(1);
 }
 
-const worker = spawn(wranglerPath, ['dev', '--local', '--ip', '127.0.0.1', '--port', String(workerPort)], {
+const worker = spawn(wranglerPath, ['dev', '-c', path.join(dir, 'wrangler.jsonc'), '-c', path.join(root, 'scripts/lib/app-access-test-worker.jsonc'), '--local', '--ip', '127.0.0.1', '--port', String(workerPort)], {
   cwd: dir,
   stdio: ['ignore', 'pipe', 'pipe'],
 });

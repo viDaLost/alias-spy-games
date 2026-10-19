@@ -27,6 +27,8 @@ jobs:
           CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME_BIN"
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Check application access restriction on phones
+        run: node scripts/check-app-access-browser.mjs
       - name: Check sunset boundaries and delayed entry
         run: npm run check:sabbath
       - name: Check private city picker on phones

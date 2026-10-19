@@ -648,6 +648,7 @@ async function syncCurrentUser({ force = false } = {}) {
 
 async function initializeApp() {
   prepareTelegramWebApp();
+  if (window.AppAccess && !window.AppAccess.allowed()) return;
   renderMainMenu();
 
   const tgUser = getTelegramUser();
@@ -684,6 +685,7 @@ function rememberGameOpen(gameName) {
 }
 
 function startGameSafely(callback, expectedGame = activeGameName, expectedEntry = gameLaunchEntry) {
+  if (window.AppAccess && !window.AppAccess.allowed()) return;
   if (expectedEntry !== gameLaunchEntry || expectedGame !== activeGameName) return;
   if (window.SabbathAccess && !window.SabbathAccess.authorize(expectedGame)) return;
   try {
@@ -706,6 +708,7 @@ function startGameSafely(callback, expectedGame = activeGameName, expectedEntry 
 
 let gameLaunchEntry = 0;
 function showGame(gameName) {
+  if (window.AppAccess && !window.AppAccess.allowed()) return;
   if (window.SabbathAccess && !window.SabbathAccess.authorize(gameName)) return;
   gameLaunchEntry += 1;
   rememberGameOpen(gameName);

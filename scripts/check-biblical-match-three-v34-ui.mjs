@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body data-current-game="biblical-match-three" data-mode="game"><main id="game-container"><section class="bmt-shell bmt-board-screen"><div class="bmt-board-wrap bmt-v24-board-wrap"><div class="bmt-v24-field-underlay"><svg class="bmt-v24-field-svg"><g class="bmt-v24-field-cells"><rect width="1" height="1"></rect></g></svg></div><div class="bmt-board" data-rows="8" data-cols="8"><button class="bmt-tile" data-index="0"><span class="bmt-piece-wrap"></span><span class="bmt-blocker"></span></button></div></div><section class="bmt-result-card is-win"><div class="bmt-result-stars" aria-label="1 из 3"><span class="is-on">★</span><span>★</span><span>★</span></div><img class="bmt-v23-win-art" src="/web/assets/biblical-match-three/completion-1-star-v40.webp" alt="1 из 3 звёзд"></section></section></main><script>window.__bmtV34LastLevelResult={levelId:1,runRating:3,originalRating:1,score:2276,startMoves:24,remainingMoves:16,continued:false};window.__bmtV31LastLevelResult=window.__bmtV34LastLevelResult;window.__qaMutations=0;new MutationObserver(r=>window.__qaMutations+=r.length).observe(document.body,{subtree:true,childList:true,attributes:true});setTimeout(()=>window.__qaTimerFired=true,500);</script><script src="/web/js/v29-biblical-treasures-hotfix.js?v=40"></script></body></html>`;

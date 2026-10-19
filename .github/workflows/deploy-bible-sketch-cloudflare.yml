@@ -5,6 +5,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'cloudflare/shared/app-access.js'
       - 'cloudflare/shared/**'
       - 'cloudflare/bible-sketch-worker/**'
       - '.github/workflows/deploy-bible-sketch-cloudflare.yml'
@@ -27,6 +28,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Test game engine
         run: npm run check
+      - name: Wait for application access service
+        run: node ../../scripts/wait-app-access-service.mjs
       - name: Create or update Worker
         run: npx wrangler deploy
         env:

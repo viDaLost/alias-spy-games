@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" class="app-booting">
+<html lang="ru" class="app-booting app-access-pending">
 <head>
   <meta charset="UTF-8" />
   <!-- Тема ставится до первой отрисовки и до загрузки стилей: иначе тёмное
@@ -137,10 +137,23 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.b4e120a2ac.css" />
+  <link rel="stylesheet" href="web/dist/app.efa6eb51c8.css" />
   <!-- /build:css -->
 </head>
 <body>
+  <section id="app-access-screen" class="app-access" aria-labelledby="app-access-title" translate="no">
+    <div class="app-access__card">
+      <div class="app-access__mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="7" y="14" width="18" height="14" rx="4"/><path d="M11 14V9a5 5 0 0 1 10 0v5"/><circle cx="16" cy="20" r="1.5"/><path d="M16 22v2"/></svg></div>
+      <p class="app-access__eyebrow">Время для паузы</p>
+      <h1 id="app-access-title">Библейские игры<br>временно заблокированы</h1>
+      <p class="app-access__text">Не волнуйтесь: ваши данные<br>и достижения на месте.</p>
+      <p class="app-access__saved"><span></span>Ваш прогресс сохранён</p>
+      <p class="app-access__status" data-access-status role="status" aria-live="polite">Проверяем доступ…</p>
+      <div class="app-access__actions"><button type="button" data-access-retry>Проверить доступ</button><button type="button" data-access-login>Войти в профиль</button></div>
+      <div class="app-access__verse"><blockquote>«Все мне позволительно, но не все полезно; все мне позволительно, но не все назидает».</blockquote><cite><a href="https://www.bible-center.ru/ru/bibletext/synnew_ru/1co/10%3A23" target="_blank" rel="noopener">1 Коринфянам 10:23</a> · Синодальный перевод</cite>
+      <blockquote>«Только всё должно быть благопристойно и чинно».</blockquote><cite><a href="https://www.bible-center.ru/ru/bibletext/synnew_ru/1co/14%3A40" target="_blank" rel="noopener">1 Коринфянам 14:40</a> · Синодальный перевод</cite></div>
+    </div>
+  </section>
   <div id="gamehub-boot-scene" class="gamehub-boot" role="status" aria-live="polite" aria-label="Запуск Библейских игр">
     <div class="gamehub-boot__art" aria-hidden="true">
       <img class="gamehub-boot__layer gamehub-boot__layer--base" data-gamehub-layer-file="01-gamehub-base.webp" alt="" decoding="async" />
@@ -214,7 +227,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.f2c4b340ff.js","en":"web/dist/app.en.d3ad88eb92.js","de":"web/dist/app.de.a89cc14e64.js","es":"web/dist/app.es.7fca0d16fd.js"}</script>
+  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.76d565aca4.js","en":"web/dist/app.en.1b0a044984.js","de":"web/dist/app.de.fb94f93c77.js","es":"web/dist/app.es.6a32487e56.js"}</script>
   <script src="web/i18n/bootstrap.js" defer></script>
   <!-- /build:js -->
 </body>

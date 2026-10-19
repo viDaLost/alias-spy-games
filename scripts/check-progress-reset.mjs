@@ -13,7 +13,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const ADMIN_ID = '1288379477';

@@ -89,7 +89,7 @@ window.PromisedLandNet = (() => {
     const response = await fetch(url(path), {
       method,
       headers: body ? { 'Content-Type': 'application/json' } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify({ ...body, appAccessProof: window.StandaloneAppProof || {} }) : undefined,
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false) {

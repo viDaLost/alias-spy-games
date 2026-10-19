@@ -31,6 +31,7 @@
     const original = window.showGame;
     if (typeof original !== 'function' || original[WRAPPED]) return;
     function wrappedShowGame(gameName, ...args) {
+      if (window.AppAccess && !window.AppAccess.allowed()) return;
       announce(gameName);
       return original.call(this, gameName, ...args);
     }

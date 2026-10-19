@@ -19,6 +19,7 @@
     }
   },
   "services": [
+    { "binding": "APP_ACCESS", "service": "alias-spy-games-core", "entrypoint": "AppAccess" },
     {
       "binding": "APP_CORE",
       "service": "alias-spy-games-core"

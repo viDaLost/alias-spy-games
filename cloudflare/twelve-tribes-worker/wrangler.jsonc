@@ -16,6 +16,7 @@
   // тот, кто просит показать партию. Право проверяется там, где живёт подпись
   // сессии, а не здесь.
   "services": [
+    { "binding": "APP_ACCESS", "service": "alias-spy-games-core", "entrypoint": "AppAccess" },
     {
       "binding": "APP_CORE",
       "service": "alias-spy-games-core"

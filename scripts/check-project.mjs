@@ -132,6 +132,9 @@ for (const file of searchable.filter((f) => /\.(?:html|js)$/i.test(f))) {
 // Some art is assembled at runtime from ASSET_ROOT + filename, so the full path never
 // appears as one literal string in a source file. Keep the allowlist narrow and explicit.
 const dynamicPublishedFiles = new Set([
+  // Loaded by relative paths from isolated game documents, and copied to the Worker.
+  'web/js/standalone-app-access.js',
+  ...['en', 'de', 'es'].map((lang) => `web/locales/${lang}/js/standalone-app-access.js`),
   'web/assets/home-gamehub-parallax-v1/01-gamehub-base.webp',
   'web/assets/home-gamehub-parallax-v1/02-atmosphere.webp',
   'web/assets/home-gamehub-parallax-v1/03-architecture.webp',

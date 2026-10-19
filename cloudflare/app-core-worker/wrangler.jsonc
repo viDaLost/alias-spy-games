@@ -2,7 +2,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "alias-spy-games-core",
-  "main": "src/index-v17.js",
+  "main": "src/index-v18.js",
   "compatibility_date": "2026-08-01",
   "workers_dev": true,
   "triggers": {
@@ -23,7 +23,8 @@
     }
   },
   "vars": {
-    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev",
+    "APP_RESTRICTED": "true",
+    "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev,https://alias-spy-games-promised-land-preview.vitaledanilov.workers.dev",
     "ADMIN_TELEGRAM_ID": "1288379477",
     "ADMIN_AUTH_CODE_COPY_ENABLED": "true"
   }

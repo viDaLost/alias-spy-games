@@ -10,7 +10,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const dir = path.join(root, 'cloudflare/promised-land-preview/public');

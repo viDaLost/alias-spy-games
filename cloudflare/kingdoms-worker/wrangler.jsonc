@@ -12,6 +12,7 @@
   // Ядро приложения — для монитора администратора: право на него проверяет
   // ядро, по токену админской сессии (см. src/admin-observer.js).
   "services": [
+    { "binding": "APP_ACCESS", "service": "alias-spy-games-core", "entrypoint": "AppAccess" },
     {
       "binding": "APP_CORE",
       "service": "alias-spy-games-core"

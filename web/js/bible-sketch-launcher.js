@@ -122,6 +122,7 @@
     showPatched = true;
     const originalShowGame = window.showGame;
     const wrapped = function(gameName) {
+      if (window.AppAccess && !window.AppAccess.allowed()) return;
       if (String(gameName) === GAME_KEY) {
         // Keep the global navigation contract synchronous. The rest of the app
         // treats showGame() as an immediate route change; returning openGame()'s

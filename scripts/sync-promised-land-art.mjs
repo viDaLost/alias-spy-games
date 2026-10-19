@@ -138,3 +138,7 @@ const total = count(to);
 console.log(copied
   ? `Скопировано в превью ${copied} картинок (${(bytes / 1024 / 1024).toFixed(1)} МБ), всего там ${total}.`
   : `Картинки в превью уже свежие: ${total} файлов.`);
+
+const accessDir = path.join(root, 'cloudflare/promised-land-preview/public/access');
+fs.mkdirSync(accessDir, { recursive: true });
+fs.copyFileSync(path.join(root, 'web/js/standalone-app-access.js'), path.join(accessDir, 'standalone-app-access.js'));

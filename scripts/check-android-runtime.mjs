@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const mime = new Map([
@@ -35,7 +35,7 @@ await context.addInitScript(() => {
     getTelegramId() { return '555555555'; },
     getSessionToken() { return 'bgs_android_runtime_test_token'; },
     isAndroidApp() { return true; },
-    getAppVersion() { return '3.0.7-standalone'; },
+    getAppVersion() { return '3.0.8-standalone'; },
     logout() {},
   };
 });
