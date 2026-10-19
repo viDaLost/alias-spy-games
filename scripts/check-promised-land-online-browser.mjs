@@ -20,7 +20,7 @@
 import { spawn, execFileSync } from 'node:child_process';
 import net from 'node:net';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const dir = path.join(root, 'cloudflare/promised-land-preview');
@@ -44,7 +44,7 @@ const freePort = () => new Promise((resolve, reject) => {
 const port = await freePort();
 const worker = spawn(
   path.join(dir, 'node_modules/.bin/wrangler'),
-  ['dev', '--local', '--ip', '127.0.0.1', '--port', String(port)],
+  ['dev', '-c', path.join(dir, 'wrangler.jsonc'), '-c', path.join(root, 'scripts/lib/app-access-test-worker.jsonc'), '--local', '--ip', '127.0.0.1', '--port', String(port)],
   { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] },
 );
 let workerLog = '';

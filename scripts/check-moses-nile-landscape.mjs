@@ -48,7 +48,7 @@ for (const [key, size, budget] of [['palm', 11.5, 2000], ['grass', 1.15, 110], [
 console.log('OK: периодические берега, глубина русла, три силуэта растений и бюджеты геометрии.');
 if (!process.argv.includes('--browser')) process.exit(0);
 
-const { chromium } = await import('playwright-core');
+const { chromium } = await import('./lib/playwright-app-fixture.mjs');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.glb': 'model/gltf-binary', '.obj': 'text/plain', '.jpg': 'image/jpeg' };
 const server = http.createServer((request, response) => {
   if (serveSabbathTestAsset(request, response)) return;

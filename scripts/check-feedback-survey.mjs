@@ -19,8 +19,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import { coreWorkerHasLayer } from './core-worker-chain.mjs';
 
-const { chromium } = await import('playwright-core');
+const { chromium } = await import('./lib/playwright-app-fixture.mjs');
 const root = path.resolve(process.cwd());
 const USER_ID = '5883903220';
 
@@ -49,8 +50,7 @@ const USER_ID = '5883903220';
   assert.ok(/DELETE FROM feedback_notes WHERE user_id/.test(v6),
     'отзывы не удаляются вместе с аккаунтом');
 
-  const wrangler = fs.readFileSync(path.join(root, 'cloudflare/app-core-worker/wrangler.jsonc'), 'utf8');
-  assert.ok(/"main":\s*"src\/index-v17\.js"/.test(wrangler),
+  assert.ok(coreWorkerHasLayer('index-v17.js'),
     'воркер по-прежнему запускается со старого слоя — опроса на сервере не будет');
 }
 

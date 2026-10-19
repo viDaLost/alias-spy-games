@@ -11,6 +11,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'cloudflare/shared/app-access.js'
       - 'cloudflare/twelve-tribes-worker/**'
       - 'web/games/twelve-tribes-rules.js'
       - 'web/games/twelve-tribes-engine.js'
@@ -53,6 +54,8 @@ jobs:
       - name: Test room
         run: npm test
 
+      - name: Wait for application access service
+        run: node ../../scripts/wait-app-access-service.mjs
       - name: Create or update Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

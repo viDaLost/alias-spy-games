@@ -21,6 +21,7 @@ import android.webkit.WebView
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,6 +57,8 @@ import com.vidalost.biblegames.ui.Ink
 import com.vidalost.biblegames.ui.InkSoft
 import com.vidalost.biblegames.ui.PrimaryButton
 import kotlinx.coroutines.delay
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 private const val WEB_APP_ORIGIN = "appassets.androidplatform.net"
 private const val WEB_APP_PATH_PREFIX = "/assets/"
@@ -104,12 +107,62 @@ fun AndroidParityApp(
         return
     }
 
+    // Never open bundled games using a cached permission. Recheck on resume,
+    // while playing and after network failure; do not delete the local profile.
+    var accessAllowed by remember(activeSession.token) { mutableStateOf(false) }
+    var accessChecked by remember(activeSession.token) { mutableStateOf(false) }
+    var accessRevision by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                accessAllowed = false
+                accessChecked = false
+                accessRevision += 1
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(activeSession.token, accessRevision) {
+        cloud.setSessionToken(activeSession.token)
+        while (true) {
+            val result = cloud.checkAccess(activeSession.userId)
+            accessAllowed = result.getOrNull() == false
+            accessChecked = true
+            delay(30_000L)
+        }
+    }
+
     LaunchedEffect(activeSession.expiresAt) {
         val remaining = activeSession.expiresAt - System.currentTimeMillis()
         if (remaining > 0) delay(remaining)
         sessionStore.clear()
         cloud.setSessionToken("")
         session = null
+    }
+
+    if (!accessAllowed) {
+        Box(Modifier.fillMaxSize().background(Color(0xFFEEF2F0)).padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Библейские игры временно заблокированы", color = Ink, fontSize = 27.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(20.dp))
+                Text("Не волнуйтесь: ваши данные и достижения на месте.", color = InkSoft, fontSize = 16.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(24.dp))
+                Text(if (accessChecked) "Доступ проверяется автоматически. Для проверки нужен интернет." else "Проверяем доступ…", color = InkSoft, fontSize = 13.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(20.dp))
+                PrimaryButton("Проверить доступ", { accessRevision += 1 }, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(12.dp))
+                PrimaryButton("Выйти из профиля", {
+                    sessionStore.clear()
+                    cloud.setSessionToken("")
+                    session = null
+                }, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(36.dp))
+                Text("«Все мне позволительно, но не все полезно; все мне позволительно, но не все назидает».\n1 Коринфянам 10:23\n\n«Только всё должно быть благопристойно и чинно».\n1 Коринфянам 14:40 · Синодальный перевод", color = InkSoft, fontSize = 12.sp, textAlign = TextAlign.Center)
+            }
+        }
+        return
     }
 
     AndroidWebExperience(

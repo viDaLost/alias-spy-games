@@ -15,7 +15,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 import { prepareSketchPage, openSketchStage } from './lib/bible-sketch-stage.mjs';
 import { sketchView } from './lib/bible-sketch-view.mjs';
 

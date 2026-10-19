@@ -38,7 +38,7 @@ const freePort = () => new Promise((resolve, reject) => {
 const port = await freePort();
 const worker = spawn(
   path.join(dir, 'node_modules/.bin/wrangler'),
-  ['dev', '--local', '--ip', '127.0.0.1', '--port', String(port)],
+  ['dev', '-c', path.join(dir, 'wrangler.jsonc'), '-c', path.join(root, 'scripts/lib/app-access-test-worker.jsonc'), '--local', '--ip', '127.0.0.1', '--port', String(port)],
   { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] },
 );
 let workerLog = '';
@@ -53,7 +53,7 @@ const api = async (method, url, body, token) => {
   const response = await fetch(target, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body ? JSON.stringify({ ...body, appAccessProof: { testUserId: [...String(body.playerId || '')].reduce((value, char) => (value * 31 + char.charCodeAt(0)) % 1000000000, 55555).toString() } }) : undefined,
   });
   const payload = await response.json().catch(() => ({}));
   return { status: response.status, ...payload };

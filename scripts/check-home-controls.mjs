@@ -1,7 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const mime = new Map([
@@ -99,7 +99,8 @@ const boot = await page.evaluate(() => {
   const menu = document.getElementById('menu-container');
   const legacyLoader = document.getElementById('main-loader');
   const brandedLoader = document.getElementById('gamehub-boot-scene');
-  const candidates = [brandedLoader, legacyLoader].filter(Boolean);
+  const accessScreen = document.getElementById('app-access-screen');
+  const candidates = [accessScreen, brandedLoader, legacyLoader].filter(Boolean);
   const loader = candidates.find((node) => {
     const style = getComputedStyle(node);
     return style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || 0) > 0;

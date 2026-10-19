@@ -31,6 +31,7 @@
   }
 
   window.showGame = async function gatedShowGame(gameName) {
+    if (window.AppAccess && !window.AppAccess.allowed()) return;
     if (gameName !== 'sacred-word' || window.THREE) return originalShowGame(gameName);
 
     const menu = document.getElementById('menu-container');

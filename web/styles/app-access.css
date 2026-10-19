@@ -1,0 +1,48 @@
+html.app-access-pending body > :not(#app-access-screen):not(#web-session-overlay):not(script):not(style),
+html.app-access-locked body > :not(#app-access-screen):not(#web-session-overlay):not(script):not(style) {
+  visibility: hidden !important; pointer-events: none !important;
+}
+html.app-access-pending, html.app-access-locked { overflow: hidden; }
+#app-access-screen[hidden] { display: none !important; }
+.app-access {
+  position: fixed; inset: 0; z-index: 200000; display: flex; overflow: auto;
+  align-items: center; justify-content: center; min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse at 18% 15%, #e0e9fa, transparent 65%),
+    radial-gradient(ellipse at 88% 85%, #d6e4dd, transparent 65%), #f3f4f1;
+  color: #293a47; font-family: system-ui, sans-serif; text-align: center;
+}
+.app-access__card { width: min(100%, 430px); margin: auto; }
+.app-access__mark {
+  display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 32px;
+  border: 1px solid #ffffffc7; border-radius: 28px; background: #ffffff95;
+  box-shadow: 0 12px 35px #273c5510; color: #70878d;
+}
+.app-access__mark svg { width: 34px; height: 34px; }
+.app-access__eyebrow { margin: 0 0 18px; font-size: 11px; letter-spacing: .23em; text-transform: uppercase; color: #71858d; }
+.app-access h1 { font-size: clamp(27px, 7vw, 35px); font-weight: 650; letter-spacing: -.035em; line-height: 1.2; margin: 0 0 20px; }
+.app-access__text { max-width: 330px; margin: 0 auto; font-size: 16px; line-height: 1.65; color: #5d727e; }
+.app-access__saved { display: inline-flex; align-items: center; gap: 7px; margin: 24px auto 28px; padding: 8px 13px; border: 1px solid #afc5b852; border-radius: 30px; color: #52735f; font-size: 12px; }
+.app-access__saved span { width: 5px; height: 5px; border-radius: 50%; background: #6f967d; }
+.app-access__status { min-height: 36px; margin: 0 auto 15px; font-size: 12px; line-height: 1.5; color: #76858c; max-width: 310px; }
+.app-access__actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.app-access button { min-height: 44px; border: 1px solid #c5d2d5; border-radius: 14px; padding: 10px 17px; background: #ffffffb0; font: inherit; font-size: 13px; color: #435c66; cursor: pointer; }
+.app-access button:focus-visible { outline: 3px solid #6c95b1; outline-offset: 3px; }
+.app-access__verse { max-width: 330px; margin: 44px auto 0; border-top: 1px solid #bac9cc66; padding-top: 23px; }
+.app-access blockquote { margin: 0 0 9px; color: #7d898d; font-size: 12px; font-style: italic; line-height: 1.65; }
+.app-access cite { font-size: 10px; font-style: normal; color: #8b9699; }
+.app-access cite a { color: inherit; text-underline-offset: 3px; }
+.app-access__verse blockquote:not(:first-child) { margin-top: 20px; }
+html.app-access-locked #web-session-overlay { z-index: 200010; }
+html.app-access-locked [data-ws-skip] { display: none; }
+html.theme-dark .app-access { background: radial-gradient(ellipse at 18% 15%, #263545, transparent 65%), #19292b; color: #ecf0ed; }
+html.theme-dark .app-access__text { color: #b3c4c9; }
+html.theme-dark .app-access__mark, html.theme-dark .app-access button { background: #ffffff0b; border-color: #ffffff25; color: #bdcdd0; }
+.app-access-manager { margin: 16px 0; padding: 20px; border: 1px solid #c5d2d5; border-radius: 18px; }
+.app-access-manager h3 { margin: 0 0 8px; }
+.app-access-manager p { font-size: 13px; line-height: 1.5; }
+.app-access-manager form { display: flex; flex-wrap: wrap; gap: 8px; }
+.app-access-manager input { flex: 1; min-width: 150px; padding: 12px; border: 1px solid #b8cbd2; border-radius: 10px; font: inherit; }
+.app-access-manager button { min-height: 44px; padding: 9px 12px; border: 1px solid #b8cbd2; border-radius: 10px; cursor: pointer; }
+.app-access-manager li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; }
+.app-access-manager ul { list-style: none; margin: 10px 0 0; padding: 0; }

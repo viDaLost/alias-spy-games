@@ -1,3 +1,4 @@
+import { requireAppAccess, allowAppSocket } from '../../shared/app-access.js';
 // Воркер «Земли обетованной»: статика игры и комнаты для игры по сети.
 //
 // Статику и комнаты держит один воркер — и это не экономия, а устройство.
@@ -75,7 +76,7 @@ export default {
 
       if (request.method === 'POST' && url.pathname === '/api/rooms') {
         const body = await readJson(request);
-        const player = guest(body);
+        const player = await authenticatedPlayer(body, env);
         // Код подбирается, а не выдаётся по счётчику: занятый отвечает 409, и
         // берётся следующий. Двенадцати попыток хватает с огромным запасом.
         for (let attempt = 0; attempt < 12; attempt += 1) {
@@ -102,7 +103,7 @@ export default {
           return passThrough(await room.fetch('https://promised.internal/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ player: guest(body) }),
+            body: JSON.stringify({ player: await authenticatedPlayer(body, env) }),
           }));
         }
 
@@ -192,6 +193,7 @@ export class PromisedLandRoom extends DurableObject {
     if (request.method === 'GET' && url.pathname === '/ws') {
       const playerId = this.playerByToken(request.headers.get('X-Room-Token'));
       if (!playerId) return json({ ok: false, error: 'Комната вас не знает', code: 'NO_SESSION' }, 403);
+      await requireAppAccess(this.env, playerId);
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
       this.ctx.acceptWebSocket(server);
@@ -203,6 +205,7 @@ export class PromisedLandRoom extends DurableObject {
     if (request.method === 'POST' && url.pathname === '/poll') {
       const playerId = this.playerByToken(request.headers.get('X-Room-Token'));
       if (!playerId) return json({ ok: false, error: 'Комната вас не знает', code: 'NO_SESSION' }, 403);
+      await requireAppAccess(this.env, playerId);
       const payload = await readJson(request);
       const now = Date.now();
       this.presence.set(playerId, now);
@@ -236,6 +239,7 @@ export class PromisedLandRoom extends DurableObject {
     }
     const attachment = socket.deserializeAttachment() || {};
     const playerId = String(attachment.playerId || '');
+    if (!await allowAppSocket(this.env, socket, playerId)) return;
     if (!playerId || !this.room) return this.fail(socket, 'Комната недоступна', 'NO_SESSION');
     const now = Date.now();
 
@@ -540,17 +544,10 @@ export class PromisedLandRoom extends DurableObject {
   }
 }
 
-/*
-  Кто вошёл. Игру открывают из приложения, и свой вечный номер оно передаёт
-  само; когда его нет — например, страницу открыли прямо по ссылке, — годится
-  и случайный, лишь бы он держался в этом браузере. Проверять его нечем и
-  незачем: за столом на шестерых человек и так видит, кто рядом, а прятать в
-  этой игре нечего — доска открыта вся, целиком, всем.
-*/
-function guest(body) {
-  const raw = String(body?.playerId || '').replace(/[^A-Za-z0-9_:-]/g, '').slice(0, 64);
-  if (!raw) throw httpError(400, 'Игрок не назвался');
-  return { playerId: raw, name: sanitizeName(body?.name) };
+async function authenticatedPlayer(body, env) {
+  const access = await env.APP_ACCESS.authorize(body.appAccessProof || {});
+  if (!access.allowed || !access.userId) throw httpError(403, 'Библейские игры временно заблокированы');
+  return { playerId: `tg:${access.userId}`, name: sanitizeName(body?.name) };
 }
 
 const ADMIN_PATH = /^\/api\/admin\/rooms\/[A-Za-z0-9]{4,10}\/state$/;

@@ -104,8 +104,10 @@ export async function buildLocales(root, jsOptions) {
     // Only protocol-owned strings are passed through this dictionary at runtime, never player messages.
     const runtime = `window.AppI18nDictionary=${JSON.stringify(Object.fromEntries(Object.entries(dict).filter(([key])=>runtimeKeys.has(key))))};\n`;
     const admin = await esbuild.transform(adminScriptSources.map(file=>localJS(file)).join('\n'),jsOptions);
+    admin.code = admin.code.replace(/[\t ]+$/gm, '');
     const adminName = `admin.${lang}.${hash(admin.code)}.js`;
     const app = await esbuild.transform(runtime + scriptSources.map(file=>localJS(file)).join('\n').replace('__ADMIN_BUNDLE_URL__',`web/dist/${adminName}`),jsOptions);
+    app.code = app.code.replace(/[\t ]+$/gm, '');
     const appName = `app.${lang}.${hash(app.code)}.js`;
     outputs.set(`web/dist/${appName}`,app.code);
     outputs.set(`web/dist/${adminName}`,admin.code);

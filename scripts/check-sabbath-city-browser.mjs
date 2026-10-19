@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import {chromium} from 'playwright-core';
+import {chromium} from './lib/playwright-app-fixture.mjs';
 
 const root=process.cwd();
 const fixture='<!doctype html><html lang="ru"><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/web/styles/sabbath-access.css"><script src="/web/js/sabbath-clock.js" defer></script><script src="/web/js/sabbath-access.js" defer></script></head><body><main id="menu-container"><div id="system-actions"></div><button data-card-game="moses-nile">Нил</button></main><div id="game-container"></div></body></html>';

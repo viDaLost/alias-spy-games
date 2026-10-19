@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 
-const { chromium } = await import('playwright-core');
+const { chromium } = await import('./lib/playwright-app-fixture.mjs');
 const root = path.resolve(process.cwd());
 
 const mime = new Map([

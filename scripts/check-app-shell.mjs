@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const worker = fs.readFileSync(path.join(root, 'cloudflare/app-shell-worker/src/index.js'), 'utf8');

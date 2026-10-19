@@ -15,7 +15,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const map = JSON.parse(fs.readFileSync(path.join(root, 'web/assets/bible-geography/map.json'), 'utf8'));

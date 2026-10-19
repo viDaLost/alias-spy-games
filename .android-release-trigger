@@ -1,5 +1,1 @@
-BibleGames Android release trigger
-version=3.0.7-standalone
-versionCode=34
-requested=ea3dbdaed28b34a0f69423502dba13f79a754d9c
-reason=publish-new-web-games-twelve-tribes-cors-and-entry-loader-fix
+3.0.8: application-wide access restriction and verified Telegram exceptions

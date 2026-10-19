@@ -1,3 +1,4 @@
+import { requireAppAccess, allowAppSocket } from '../../shared/app-access.js';
 import { DurableObject } from 'cloudflare:workers';
 import {
   addChatMessage,
@@ -239,6 +240,7 @@ export class BibleSketchRoom extends DurableObject {
 
     const attachment = webSocket.deserializeAttachment() || {};
     const playerId = String(attachment.playerId || '');
+    if (!await allowAppSocket(this.env, webSocket, playerId)) return;
     if (!playerId || !this.room) return this.sendError(webSocket, 'Сессия комнаты недоступна', 'NO_SESSION');
     const now = Date.now();
     if (payload.type === 'ping') {
@@ -425,10 +427,16 @@ export class BibleSketchRoom extends DurableObject {
 }
 
 async function authenticatePlayer(body, env) {
+  if (body?.appSessionToken) {
+    const access = await env.APP_ACCESS.authenticate(String(body.appSessionToken));
+    if (!access.allowed || !access.userId) throw httpError(403, 'Доступ к приложению ограничен');
+    return { playerId: `tg:${access.userId}`, telegramId: access.userId, name: sanitizeName(body?.name || 'Игрок') };
+  }
   const initData = String(body?.telegramInitData || '');
   if (initData) {
     const verified = await verifyTelegramInitData(initData, env.TELEGRAM_BOT_TOKEN);
     const user = verified.user;
+    await requireAppAccess(env, `tg:${String(user.id)}`);
     return {
       playerId: `tg:${String(user.id)}`,
       name: sanitizeName(body?.name || user.first_name || user.username || 'Игрок'),
@@ -436,6 +444,7 @@ async function authenticatePlayer(body, env) {
     };
   }
   if (String(env.ALLOW_GUESTS || '').toLowerCase() === 'true') {
+    await requireAppAccess(env, '');
     const guestId = String(body?.guestId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
     if (!guestId) throw httpError(401, 'Не удалось определить гостя');
     return { playerId: `guest:${guestId}`, name: sanitizeName(body?.name || 'Гость'), telegramId: null };
@@ -481,6 +490,7 @@ async function verifySessionToken(token, env) {
   let payload;
   try { payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(encoded))); } catch { throw httpError(401, 'Сессия повреждена'); }
   if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) throw httpError(401, 'Сессия истекла');
+  await requireAppAccess(env, payload.playerId);
   return payload;
 }
 

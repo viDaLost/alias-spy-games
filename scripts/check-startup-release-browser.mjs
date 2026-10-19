@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 
 const root = process.cwd();
 const mime = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.svg':'image/svg+xml', '.webp':'image/webp', '.png':'image/png' };
@@ -53,7 +53,10 @@ try {
     });
     await page.goto(base, {waitUntil:'domcontentloaded'});
     await page.waitForSelector('#menu-container:not(.hidden)');
-    await page.waitForFunction(() => document.querySelectorAll('.game-card__details').length === 14);
+    await page.waitForFunction(() => document.querySelectorAll('.game-card__details').length === 14).catch(async (error) => {
+      console.error('Startup state:', await page.evaluate(() => ({ access: window.AppAccess?.state(), cards: document.querySelectorAll('.game-card').length, details: document.querySelectorAll('.game-card__details').length, ready: document.readyState })));
+      throw error;
+    });
     assert.equal(requests.length, 0, `${role}: admin bundle downloaded before opening admin`);
     if (role === 'guest') {
       for (const width of [320, 390]) for (const theme of ['light','dark']) {

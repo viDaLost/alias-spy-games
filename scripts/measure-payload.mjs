@@ -1,4 +1,4 @@
-import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {chromium} from 'playwright-core';
+import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import {chromium} from './lib/playwright-app-fixture.mjs';
 const root=process.cwd();const served=new Map();
 const mime=new Map([['.html','text/html'],['.js','text/javascript'],['.css','text/css'],['.json','application/json'],['.png','image/png'],['.jpg','image/jpeg'],['.webp','image/webp'],['.svg','image/svg+xml'],['.obj','text/plain']]);
 const server=http.createServer((req,res)=>{try{const u=new URL(req.url||'/','http://x');const p=decodeURIComponent(u.pathname==='/'?'/index.html':u.pathname);const t=path.resolve(root,'.'+p);if(!t.startsWith(root+path.sep)||!fs.existsSync(t)||!fs.statSync(t).isFile()){res.writeHead(404).end();return;}const size=fs.statSync(t).size;served.set(p,size);res.writeHead(200,{'Content-Type':mime.get(path.extname(t).toLowerCase())||'application/octet-stream','Content-Length':size});fs.createReadStream(t).pipe(res);}catch(e){res.writeHead(500).end();}});

@@ -13,7 +13,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright-core';
+import { chromium } from './lib/playwright-app-fixture.mjs';
 import * as quartet from '../cloudflare/quartet-worker/src/engine.js';
 import * as sketch from '../cloudflare/bible-sketch-worker/src/engine.js';
 

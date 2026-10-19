@@ -53,12 +53,14 @@ export const styleSources = [
   'web/styles/dark-theme.css',
   'web/styles/game-scene-parallax.css',
   'web/styles/sabbath-access.css',
+  'web/styles/app-access.css',
 ];
 
 export const scriptSources = [
   'web/js/android-runtime.js',
   'web/js/web-session.js',
   'web/js/backend-bridge.js',
+  'web/js/app-access.js',
   'web/js/theme-switch.js',
   'web/js/referral-survey.js',
   'web/js/feedback-survey.js',
@@ -114,6 +116,7 @@ export const scriptSources = [
   'web/js/presence-game-bridge.js',
   'web/js/admin-loader.js',
   'web/js/admin-live-modal-safety.js',
+  'web/js/app-access-admin.js',
   'web/js/support-center.js',
   'web/js/offline.js',
   'web/js/install-app.js',
