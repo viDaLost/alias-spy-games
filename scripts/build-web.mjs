@@ -93,9 +93,11 @@ export async function build({ write = true } = {}) {
   // publish globals to each other and to inline onclick handlers in the markup.
   const jsOptions = { loader: 'js', target: 'es2020', minifyWhitespace: true, minifySyntax: true, minifyIdentifiers: false };
   const admin = await esbuild.transform(concat(adminScriptSources), jsOptions);
+  admin.code = admin.code.replace(/[\t ]+$/gm, '');
   const adminName = `admin.${hash(admin.code)}.js`;
   const eagerSource = concat(scriptSources).replace('__ADMIN_BUNDLE_URL__', `web/dist/${adminName}`);
   const js = await esbuild.transform(eagerSource, jsOptions);
+  js.code = js.code.replace(/[\t ]+$/gm, '');
   for (const warning of [...css.warnings, ...js.warnings, ...admin.warnings]) {
     console.warn(`esbuild: ${warning.text} (${warning.location?.file || 'bundle'})`);
   }

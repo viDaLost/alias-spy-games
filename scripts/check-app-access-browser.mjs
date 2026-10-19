@@ -20,6 +20,7 @@ let fail = false;
 let id = '555555555';
 let isRoot = false;
 const exceptions = new Set();
+const authErrors = [];
 async function contextFor({ android = false, web = false, telegram = true } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await context.addInitScript(({ id, android, web, telegram }) => {
@@ -34,6 +35,10 @@ async function contextFor({ android = false, web = false, telegram = true } = {}
   await context.route('https://*.workers.dev/**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/app/access') {
+      if (android || web) {
+        if (route.request().headers().authorization !== `Bearer bgs_${'s'.repeat(64)}`) authErrors.push('verified session bearer missing');
+        if (route.request().postDataJSON()?.telegramInitData) authErrors.push('native marker sent as signed Telegram proof');
+      }
       if (fail) return route.abort();
       return route.fulfill({ json: { success: true, allowed, restricted: true, isRoot, userId: allowed ? id : '' } });
     }
@@ -72,6 +77,11 @@ try {
       assert.equal(await page.locator('[data-ws-skip]').isVisible(), false, 'guest login must not bypass restriction');
       await page.evaluate(() => document.querySelector('#web-session-overlay')?.remove());
     }
+    if (config.android || config.web) {
+      allowed = true;
+      await page.evaluate(() => window.AppAccess.verify());
+      assert.equal(await page.evaluate(() => window.AppAccess.allowed()), true, 'approved session must unlock Android/iOS');
+    }
     if (!config.android && !config.web && config.telegram !== false) {
       await page.screenshot({ path: '/tmp/bible-app-lock-mobile.png', fullPage: true });
       allowed = true;
@@ -100,5 +110,6 @@ try {
   await page.waitForFunction(() => document.querySelector('#app-access-manager [data-access-admin-status]')?.textContent.includes('снова закрыт'));
   assert.equal(exceptions.size, 0);
   await context.close();
+  assert.deepEqual(authErrors, [], 'Android and iOS must use their verified session, never the native launch marker');
   console.log('PASS: mobile lock, Telegram/Android/iOS/guest denial, no guest bypass, unchanged local progress, retry/unlock, offline denial, root entry and working grant/revoke controls.');
 } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }

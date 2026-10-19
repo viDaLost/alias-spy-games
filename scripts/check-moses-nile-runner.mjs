@@ -27,7 +27,7 @@ if (process.env.MOSES_STATIC_ONLY === '1') {
   process.exit(0);
 }
 
-const { chromium } = await import('playwright-core');
+const { chromium } = await import('./lib/playwright-app-fixture.mjs');
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],

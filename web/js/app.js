@@ -648,8 +648,8 @@ async function syncCurrentUser({ force = false } = {}) {
 
 async function initializeApp() {
   prepareTelegramWebApp();
-  if (window.AppAccess && !window.AppAccess.allowed()) return;
   renderMainMenu();
+  if (window.AppAccess && !window.AppAccess.allowed()) return;
 
   const tgUser = getTelegramUser();
   if (String(tgUser.id) === ADMIN_ID) renderAdminButton();

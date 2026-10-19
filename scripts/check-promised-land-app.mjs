@@ -57,7 +57,7 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${server.address().port}/`;
 
-const { chromium } = await import('playwright-core');
+const { chromium } = await import('./lib/playwright-app-fixture.mjs');
 const browser = await chromium.launch({
   headless: true,
   executablePath: process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',

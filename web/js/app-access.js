@@ -46,7 +46,9 @@
   }
 
   function credentials() {
-    const initData = String(window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || '');
+    // The native bridge exposes an availability marker, not signed Telegram data.
+    const sessionMode = window.__ANDROID_APK__ === true || window.__WEB_SESSION__ === true;
+    const initData = sessionMode ? '' : String(window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || '');
     if (initData) return { body: { telegramInitData: initData }, headers: {} };
     let token = '';
     try {
