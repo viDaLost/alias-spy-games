@@ -1,0 +1,15 @@
+// «Доброе исповедание» — отдельное приложение со своим адресом. Это только
+// статические файлы из public/: своего кода у воркера нет, Cloudflare раздаёт
+// их сам. Адрес нужен, чтобы на iPhone приложение ставилось на главный экран
+// под своим именем, а не как страница репозитория, и чтобы его мог открыть бот
+// Telegram.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dobroe-ispovedanie",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "single-page-application"
+  }
+}

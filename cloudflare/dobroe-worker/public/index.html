@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Доброе исповедание</title>
+  <meta name="description" content="Вопросы и ответы «Доброго исповедания» с текстами Писания: чтение, карточки, заучивание наизусть и тесты.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; object-src 'none'">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1C1E25" media="(prefers-color-scheme: dark)">
+  <!-- Ярлык на главный экран. iOS читает не манифест, а эти теги. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Исповедание">
+  <link rel="preload" href="fonts/golos-text-400-700-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/pt-serif-400-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Telegram передаёт параметры мини-приложения в адресе. Его библиотека нужна
+    // только там, и подключается до приложения: оно сразу узнаёт тему и кнопку «Назад».
+    if (/tgWebApp/.test(location.hash + location.search)) document.write('<script src="https://telegram.org/js/telegram-web-app.js"><\/script>');
+  </script>
+</head>
+<body>
+<header class="hdr gut">
+  <div class="hdr-in">
+    <button class="hdr-title" id="hdrTitle" type="button">Доброе исповедание</button>
+    <nav class="tabs" id="tabs" aria-label="Разделы приложения">
+      <button class="tab" data-tab="home" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/></svg>Главная</button>
+      <button class="tab" data-tab="list" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10 5 7 4.5 3.5 5v13.5C7 18 10 18.5 12 20c2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5V20"/></svg>Вопросы</button>
+      <button class="tab" data-tab="cards" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2"/><path d="M7 6V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/></svg>Карточки</button>
+      <button class="tab" data-tab="memo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3.5 10.9V17h7v-3.1A6 6 0 0 0 12 3z"/><path d="M9.5 21h5"/></svg>Наизусть</button>
+      <button class="tab" data-tab="quiz" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>Тест</button>
+    </nav>
+    <button class="aa" id="aaBtn" type="button" aria-label="Размер текста" title="Размер текста">Aa</button>
+  </div>
+</header>
+
+<main class="gut">
+  <div class="col">
+    <section class="view" id="v-home"></section>
+    <section class="view" id="v-list" hidden></section>
+    <section class="view" id="v-page" hidden></section>
+    <section class="view" id="v-cards" hidden></section>
+    <section class="view" id="v-memo" hidden></section>
+    <section class="view" id="v-quiz" hidden></section>
+  </div>
+</main>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="pop" id="aaPop" hidden>
+  <div class="label">Размер текста</div>
+  <div class="row"><button class="btn small" id="fsDown" type="button">A−</button><span id="fsVal" class="muted" style="min-width:48px;text-align:center"></span><button class="btn small" id="fsUp" type="button">A+</button></div>
+  <div class="label">Тексты Писания в ответах</div>
+  <div class="seg" role="group"><button type="button" id="vOpen">Раскрыты</button><button type="button" id="vClosed">Свёрнуты</button></div>
+</div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

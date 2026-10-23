@@ -1,0 +1,8 @@
+{
+  "name": "dobroe-ispovedanie",
+  "private": true,
+  "version": "1.0.0",
+  "devDependencies": {
+    "wrangler": "^4.42.0"
+  }
+}
