@@ -157,6 +157,16 @@ test('подкатегории в приложении', async () => {
   const s = await call('summary', { period: 'a' });
   assert.equal(s.budgets[0].spent, 100000, 'бюджет категории считает подкатегории');
 
+  // Подкатегории видны в Excel: отдельная колонка в «Операциях» и строки «↳» в сводке.
+  await call('exportExcel', { period: 'a', mode: 'full' });
+  const xlsx = new TextDecoder().decode(calls.filter((x) => x.method === 'sendDocument').at(-1).params.document.bytes);
+  assert.match(xlsx, />Подкатегория</);
+  assert.match(xlsx, /↳ Аптека/);
+  assert.match(xlsx, /↳ без уточнения/);
+  await call('exportExcel', { period: 'a', categoryId: health.id });
+  const one = new TextDecoder().decode(calls.filter((x) => x.method === 'sendDocument').at(-1).params.document.bytes);
+  assert.match(one, />Подкатегория</, 'и в выгрузке одной категории');
+
   const moved = await call('saveCategory', { id: pharmacy.id, name: 'Аптека', parentId: 0 });
   assert.equal(moved.categories.find((c) => c.id === pharmacy.id).parentId, 0, 'подкатегорию можно сделать самостоятельной');
 });

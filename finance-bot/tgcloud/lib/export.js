@@ -61,7 +61,9 @@ export function buildWorkbook({ period, tz, mainCurrency, txs, catsById, categor
     toYmd = { y: last.y, m: last.m, d: last.d };
   }
   const months = new Set(rows.map((r) => r.l.y * 100 + r.l.m)).size;
-  const ctx = { period, tz, rows, currencies, multi, category, fromYmd, toYmd, main: currencies[0] };
+  // Колонка «Подкатегория» появляется, когда в выгрузке есть записи в подкатегориях.
+  const withSub = rows.some((r) => r.sub);
+  const ctx = { period, tz, rows, currencies, multi, category, fromYmd, toYmd, main: currencies[0], withSub };
 
   buildSummary(wb, ctx);
   buildOperations(wb, ctx);
@@ -266,13 +268,14 @@ function categoryTable(ws, ctx, cur, groups, total, kind) {
 // ── Операции ───────────────────────────────────────────────────────────────
 
 function buildOperations(wb, ctx) {
-  const { rows, multi, category } = ctx;
+  const { rows, multi, category, withSub } = ctx;
   const withCat = !category;
-  const head = ['Дата', 'День', ...(withCat ? ['Категория'] : []), 'Описание', `Расход${curLabel(ctx)}`, `Доход${curLabel(ctx)}`, ...(multi ? ['Валюта'] : [])];
-  const widths = [12, 6, ...(withCat ? [26] : []), 40, 15, 15, ...(multi ? [8] : [])];
+  const head = ['Дата', 'День', ...(withCat ? ['Категория'] : []), ...(withSub ? ['Подкатегория'] : []), 'Описание',
+    `Расход${curLabel(ctx)}`, `Доход${curLabel(ctx)}`, ...(multi ? ['Валюта'] : [])];
+  const widths = [12, 6, ...(withCat ? [24] : []), ...(withSub ? [20] : []), 38, 15, 15, ...(multi ? [8] : [])];
   const ws = wb.addSheet('Операции', { widths, freeze: 1, tab: '2E75B6' });
   ws.row(head.map((v) => ({ v, s: 'head' })), { height: 22 });
-  const expCol = withCat ? 5 : 4;
+  const expCol = 4 + (withCat ? 1 : 0) + (withSub ? 1 : 0);
 
   // Строки одного дня — одним цветом, дни чередуются: так проще читать список.
   let zebra = false, prevDay = null;
@@ -284,7 +287,9 @@ function buildOperations(wb, ctx) {
     ws.row([
       { v: excelDate(r.l.y, r.l.m, r.l.d), s: 'date' + z },
       { v: WEEKDAYS[r.l.dow], s: 'muted' + z },
-      ...(withCat ? [{ v: catTitle(r.cat), s: 'text' + z }] : []),
+      // С колонкой подкатегорий категория — верхнего уровня, подкатегория — отдельно (по ней работает фильтр).
+      ...(withCat ? [{ v: catTitle(withSub ? r.top : r.cat), s: 'text' + z }] : []),
+      ...(withSub ? [{ v: r.sub ? r.sub.name : '', s: 'text' + z }] : []),
       { v: r.note || '', s: 'text' + z },
       r.kind === 'expense' ? { v: toUnits(r.amount), s: 'moneyRed' + z } : { v: '', s: 'money' + z },
       r.kind === 'income' ? { v: toUnits(r.amount), s: 'moneyGreen' + z } : { v: '', s: 'money' + z },
@@ -432,27 +437,38 @@ function buildCategoryMonths(wb, ctx) {
     ...monthKeys.map((k) => ({ v: monthTitle(Math.floor(k / 100), k % 100), s: 'head' })),
     { v: 'Итого', s: 'head' },
   ], { height: 22 });
-  const first = ws.nextRow;
   const totalCol = monthKeys.length + 2;
+  const byMonth = (items) => {
+    const m = new Map();
+    for (const x of items) m.set(x.l.y * 100 + x.l.m, (m.get(x.l.y * 100 + x.l.m) || 0) + x.amount);
+    return m;
+  };
+  // Итог месяца складывает только строки категорий; строки «↳» — разбивка по подкатегориям.
+  const mainRows = [];
   for (const g of groups) {
     const r = ws.nextRow;
-    const byMonth = new Map();
-    for (const x of g.list) {
-      const k = x.l.y * 100 + x.l.m;
-      byMonth.set(k, (byMonth.get(k) || 0) + x.amount);
-    }
+    mainRows.push(r);
+    const bm = byMonth(g.list);
     ws.row([
-      { v: catTitle(g.cat), s: 'text' },
-      ...monthKeys.map((k) => (byMonth.has(k) ? { v: toUnits(byMonth.get(k)), s: 'money' } : { v: '', s: 'money' })),
+      { v: catTitle(g.cat), s: g.subs.length ? 'textBold' : 'text' },
+      ...monthKeys.map((k) => (bm.has(k) ? { v: toUnits(bm.get(k)), s: 'money' } : { v: '', s: 'money' })),
       { v: toUnits(g.total), s: 'moneyBold', f: `SUM(${ref(2, r)}:${ref(totalCol - 1, r)})` },
     ]);
+    for (const p of g.subs) {
+      const items = g.list.filter((x) => (x.sub ? x.sub.name : 'без уточнения') === p.name);
+      const sm = byMonth(items);
+      const rs = ws.nextRow;
+      ws.row([
+        { v: `      ↳ ${p.name}`, s: 'mutedLeft' },
+        ...monthKeys.map((k) => (sm.has(k) ? { v: toUnits(sm.get(k)), s: 'money' } : { v: '', s: 'money' })),
+        { v: toUnits(p.total), s: 'money', f: `SUM(${ref(2, rs)}:${ref(totalCol - 1, rs)})` },
+      ]);
+    }
   }
-  const last = ws.nextRow - 1;
+  const sumOf = (col) => mainRows.map((r) => ref(col, r)).join('+');
   ws.row([
     { v: 'Всего за месяц', s: 'totalLabel' },
-    ...monthKeys.map((k, i) => ({
-      v: toUnits(sum(list.filter((x) => x.l.y * 100 + x.l.m === k))), s: 'totalMoney', f: `SUM(${ref(i + 2, first)}:${ref(i + 2, last)})`,
-    })),
-    { v: toUnits(sum(list)), s: 'totalMoney', f: `SUM(${ref(totalCol, first)}:${ref(totalCol, last)})` },
+    ...monthKeys.map((k, i) => ({ v: toUnits(sum(list.filter((x) => x.l.y * 100 + x.l.m === k))), s: 'totalMoney', f: sumOf(i + 2) })),
+    { v: toUnits(sum(list)), s: 'totalMoney', f: sumOf(totalCol) },
   ]);
 }
