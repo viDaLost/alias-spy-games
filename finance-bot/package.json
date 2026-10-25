@@ -1,0 +1,16 @@
+{
+  "name": "finance-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Telegram-бот для учёта финансов: голосовые, категории, отчёты и Excel. Работает на Telegram Serverless.",
+  "scripts": {
+    "deploy": "tgcloud push",
+    "migrate": "tgcloud migrate",
+    "status": "tgcloud status",
+    "test": "node --import ./test/mock/register.mjs --test \"test/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@tgcloud/cli": "^0.2.0"
+  }
+}
