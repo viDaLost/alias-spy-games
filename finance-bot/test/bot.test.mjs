@@ -186,3 +186,41 @@ test('категории: добавить и удалить', async () => {
   await press(`c:rm:${cat.id}`);
   assert.equal((await db.get(`SELECT archived FROM categories WHERE id = ${cat.id}`)).archived, 1);
 });
+
+test('категории: переименовать, вернуть, создать из карточки записи', async () => {
+  await say('/start');
+  const food = await db.get("SELECT * FROM categories WHERE user_id = 111 AND code = 'food'");
+  await press('c:e:expense');
+  assert.match(lastText(), /Какую категорию изменить/);
+  await press(`c:ed:${food.id}`);
+  await say('🥦 Еда домой');
+  assert.match(lastText(), /называется «🥦 Еда домой»/);
+  assert.equal((await db.get(`SELECT name, emoji FROM categories WHERE id = ${food.id}`)).name, 'Еда домой');
+  await press(`c:ed:${food.id}`);
+  await say('🍎');
+  assert.deepEqual({ ...(await db.get(`SELECT name, emoji FROM categories WHERE id = ${food.id}`)) }, { name: 'Еда домой', emoji: '🍎' });
+
+  await press(`c:rm:${food.id}`);
+  await press('c:l:expense');
+  assert.ok(buttons().some((b) => b.callback_data === 'c:r:expense'));
+  await press(`c:rs:${food.id}`);
+  assert.equal((await db.get(`SELECT archived FROM categories WHERE id = ${food.id}`)).archived, 0);
+
+  await say('падел 1500');
+  const t = (await txs()).at(-1);
+  assert.ok(buttons().some((b) => b.callback_data === `t:n:${t.id}`));
+  await press(`t:n:${t.id}`);
+  await say('🎾 Падел');
+  assert.match(lastText(), /Новая категория «Падел»/);
+  const padel = await db.get("SELECT * FROM categories WHERE name = 'Падел'");
+  assert.equal((await db.get(`SELECT category_id FROM transactions WHERE id = ${t.id}`)).category_id, padel.id);
+  await say('падел вечером 1200');
+  assert.match(lastText(), /Падел/);
+});
+
+test('/app открывает мини-приложение', async () => {
+  await say('/start');
+  assert.ok(calls.some((c) => c.method === 'setChatMenuButton' && c.params.menu_button.type === 'web_app'));
+  await say('/app');
+  assert.ok(buttons().some((b) => b.web_app && /tgcloud\.ai/.test(b.web_app.url)));
+});

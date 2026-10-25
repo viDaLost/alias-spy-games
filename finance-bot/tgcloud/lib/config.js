@@ -22,6 +22,9 @@ export const AI_PRESETS = {
   },
 };
 
+// Адрес мини-приложения (папка webapp/, публикуется вместе с ботом: npx tgcloud push).
+export const WEBAPP_URL = 'https://app8887807822.tgcloud.ai/';
+
 // Максимальная длительность голосового, которое отправляем на распознавание (сек).
 export const MAX_VOICE_SECONDS = 300;
 

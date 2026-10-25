@@ -3,8 +3,8 @@
 import { api, InputFile } from 'sdk';
 import {
   getSetting, setSetting, ensureUser, setUserState, setUserCurrency, setUserTz,
-  isAllowed, setAllowed, listCategories, getCategory, addCategory, archiveCategory,
-  setCategoryKeywords, addTransaction, getTransaction, deleteTransaction,
+  isAllowed, setAllowed, listCategories, getCategory, addCategory, archiveCategory, restoreCategory,
+  updateCategory, setCategoryKeywords, addTransaction, getTransaction, deleteTransaction,
   setTransactionCategory, setTransactionDate, setTransactionAmount, setTransactionNote,
   lastCreatedTransaction, transactionsInRange, setBudget, wipeUserData,
 } from './store.js';
@@ -18,11 +18,11 @@ import {
 import { buildWorkbook } from './export.js';
 import { XLSX_MIME } from './xlsx.js';
 import { esc, money, signedMoney, catLabel, plural, tzLabel } from './format.js';
-import { send, edit, show, action, answer, remove, btn, inline, MAIN_KEYBOARD, BOT_COMMANDS } from './tg.js';
+import { send, edit, show, action, answer, remove, btn, appBtn, inline, MAIN_KEYBOARD, BOT_COMMANDS, APP_MENU_BUTTON } from './tg.js';
 import { AI_PRESETS, CURRENCIES, MENU, MAX_VOICE_SECONDS } from './config.js';
 import * as S from './screens.js';
 
-const COMMANDS_VERSION = '1';
+const COMMANDS_VERSION = '2';
 
 // ── Точки входа ────────────────────────────────────────────────────────────
 
@@ -32,6 +32,7 @@ export async function handleMessage(msg) {
   try {
     const c = await context(msg.from, chatId);
     if (!c) return;
+    if (c.isOwner) await ensureBotSetup();
     const text = String(msg.text || msg.caption || '').trim();
     // Новичок сразу написал трату — сначала покажем приветствие и меню.
     if (c.created && !/^\/start/.test(text)) await startScreen(c);
@@ -117,6 +118,7 @@ async function onCommand(c, text, msg) {
   switch (cmd) {
     case 'start': return startScreen(c);
     case 'help': return send(c.chatId, helpText(), MAIN_KEYBOARD);
+    case 'app': return showScreen(c, appScreen());
     case 'report': case 'otchet': {
       const code = args ? parsePeriodText(args, c.user.tz_offset) : null;
       if (args && !code) await send(c.chatId, 'Не понял период — показываю текущий месяц.');
@@ -207,14 +209,8 @@ async function startScreen(c) {
     '',
     'Категорию я определю сам, а отчёты, бюджет и Excel-таблицы — в меню ниже 👇',
   ];
+  lines.push('', '📱 Графики, список операций, категории и бюджеты — в приложении: кнопка «Приложение» слева от поля ввода или /app.');
   if (c.isOwner) {
-    const now = await getSetting('commands_v');
-    if (now !== COMMANDS_VERSION) {
-      try {
-        await api.setMyCommands({ commands: BOT_COMMANDS });
-        await setSetting('commands_v', COMMANDS_VERSION);
-      } catch (e) { console.warn('setMyCommands failed', String(e && e.description || e)); }
-    }
     const cfg = await getAiConfig();
     if (!aiReady(cfg)) {
       lines.push('', '👑 <b>Вы владелец бота.</b> Чтобы я понимал голосовые, подключите распознавание речи (бесплатно):',
@@ -223,6 +219,23 @@ async function startScreen(c) {
     }
   }
   return send(c.chatId, lines.join('\n'), MAIN_KEYBOARD);
+}
+
+// Команды бота и кнопка «Приложение» у поля ввода — для всех чатов сразу.
+async function ensureBotSetup() {
+  if ((await getSetting('commands_v')) === COMMANDS_VERSION) return;
+  try {
+    await api.setMyCommands({ commands: BOT_COMMANDS });
+    await api.setChatMenuButton({ menu_button: APP_MENU_BUTTON });
+    await setSetting('commands_v', COMMANDS_VERSION);
+  } catch (e) { console.warn('bot setup failed', String(e && e.description || e)); }
+}
+
+function appScreen() {
+  return {
+    text: '📱 <b>Приложение</b>\n\nОбзор с графиками, все операции с поиском и правкой, свои категории, бюджеты и выгрузка в Excel.',
+    extra: inline([[appBtn('📱 Открыть приложение')], [appBtn('➕ Добавить операцию', 'add'), appBtn('📂 Категории', 'categories')]]),
+  };
 }
 
 function helpText() {
@@ -240,10 +253,14 @@ function helpText() {
     '',
     '<b>📊 Отчёты и таблицы</b>',
     '• «📊 Отчёт» — расходы и доходы по категориям, листайте ◀️ ▶️',
-    '• «📥 Excel» — таблица за любой период: сводка, все операции, по дням и вкладка на каждую категорию. Или одна категория.',
+    '• «📥 Excel» — таблица за любой период: сводка, все операции, траты по категориям, по дням и месяцам. Или одна категория.',
     '• Командой: <code>/excel сентябрь</code>, <code>/excel 01.09-15.09</code>, <code>/report 2025</code>',
     '',
     '<b>🎯 Бюджет</b>: <code>/budget 50000</code> — на месяц, <code>/budget продукты 15000</code> — на категорию.',
+    '',
+    '<b>📂 Свои категории</b>: «📂 Категории» → ➕ Добавить / ✏️ Изменить. Или прямо под записью: 🏷 Категория → ➕ Новая категория.',
+    '',
+    '<b>📱 Приложение</b>: /app — графики, поиск по операциям, категории и бюджеты в одном окне.',
   ].join('\n');
 }
 
@@ -451,10 +468,37 @@ async function onStateInput(c, text, msg, statusMsgId = null) {
     if (!name || name.length > 40) return reply('Напишите название категории (до 40 символов), можно с эмодзи: <code>🧸 Дети</code>');
     const cats = await listCategories(c.user.tg_id);
     if (cats.some((x) => x.kind === st.kind && norm(x.name) === norm(name))) return reply('Такая категория уже есть. Напишите другое название или «отмена».');
-    await addCategory(c.user.tg_id, { kind: st.kind, name, emoji: emoji || (st.kind === 'income' ? '💵' : '🏷') });
+    const newId = await addCategory(c.user.tg_id, { kind: st.kind, name, emoji: emoji || (st.kind === 'income' ? '💵' : '🏷') });
     await clearState(c);
+    // Категорию создали из карточки записи — сразу ставим её этой записи.
+    const t = st.txId && await getTransaction(c.user.tg_id, st.txId);
+    if (t) {
+      const cat = await getCategory(c.user.tg_id, newId);
+      await setTransactionCategory(c.user.tg_id, t.id, cat.kind, cat.id);
+      const word = await learn(c.user.tg_id, t.note, cat);
+      const card = await S.txCard(c.user, t.id, { header: `✅ Новая категория «${esc(name)}»${word ? ` · запомнил слово «${esc(word)}»` : ''}` });
+      return reply(card.text, card.extra);
+    }
     const s = await S.categoriesScreen(c.user, st.kind);
     return reply(`✅ Категория «${esc(name)}» добавлена.\n\n` + s.text, s.extra);
+  }
+
+  if (st.mode === 'cat_edit') {
+    const cat = await getCategory(c.user.tg_id, st.id);
+    if (!cat) { await clearState(c); return reply('Эта категория уже удалена.'); }
+    const [emoji, name] = splitEmoji(text);
+    if (!emoji && !name) return reply('Напишите новое название и/или эмодзи: <code>🥦 Продукты</code> или просто <code>🥦</code>.');
+    if (name.length > 40) return reply('Название слишком длинное — до 40 символов.');
+    if (name) {
+      const cats = await listCategories(c.user.tg_id, { includeArchived: true });
+      if (cats.some((x) => x.id !== cat.id && x.kind === cat.kind && norm(x.name) === norm(name))) {
+        return reply('Такая категория уже есть. Напишите другое название или «отмена».');
+      }
+    }
+    await updateCategory(c.user.tg_id, cat.id, { name: name || cat.name, emoji: emoji || cat.emoji, keywords: cat.keywords });
+    await clearState(c);
+    const s = await S.categoriesScreen(c.user, cat.kind);
+    return reply(`✅ Теперь категория называется «${esc((emoji || cat.emoji) + ' ' + (name || cat.name))}».\n\n` + s.text, s.extra);
   }
 
   if (st.mode === 'tx_edit') {
@@ -611,6 +655,11 @@ async function onButton(c, data) {
       const card = await S.txCard(c.user, id, { header: '✅ Сохранено' });
       return edit(c.chatId, c.msgId, card.text, card.extra);
     }
+    if (p[1] === 'n') {
+      await setState(c, { mode: 'cat_add', kind: t.kind, txId: id });
+      await ok();
+      return send(c.chatId, `➕ Напишите название новой категории ${t.kind === 'income' ? 'доходов' : 'расходов'}, можно с эмодзи в начале: <code>🏋️ Спорт</code>\nЯ сразу поставлю её этой записи.`);
+    }
     if (p[1] === 'd') { await ok(); return api.editMessageReplyMarkup({ chat_id: c.chatId, message_id: c.msgId, ...S.datePicker(t) }).catch(() => {}); }
     if (p[1] === 'dv') {
       const ymd = addDays(localToday(c.user.tz_offset), -(+p[3] || 0));
@@ -678,6 +727,21 @@ async function onButton(c, data) {
       return send(c.chatId, `➕ Напишите название новой категории ${p[2] === 'income' ? 'доходов' : 'расходов'}, можно с эмодзи в начале: <code>🧸 Дети</code>, <code>🏋️ Спорт</code>`);
     }
     if (p[1] === 'd') { await ok(); return showScreen(c, await S.categoryDeleteScreen(c.user, p[2])); }
+    if (p[1] === 'e') { await ok(); return showScreen(c, await S.categoryEditScreen(c.user, p[2])); }
+    if (p[1] === 'ed') {
+      const cat = await getCategory(uid, +p[2]);
+      if (!cat) return ok('Категория не найдена');
+      await setState(c, { mode: 'cat_edit', id: cat.id });
+      await ok();
+      return send(c.chatId, `✏️ ${esc(catLabel(cat))}\n\nНапишите новое название, можно с эмодзи в начале: <code>🥦 Продукты</code>. Чтобы сменить только значок — отправьте один эмодзи.`);
+    }
+    if (p[1] === 'r') { await ok(); return showScreen(c, await S.categoryRestoreScreen(c.user, p[2])); }
+    if (p[1] === 'rs') {
+      const cat = await getCategory(uid, +p[2]);
+      if (cat) await restoreCategory(uid, cat.id);
+      await ok(cat ? `Вернул: ${cat.name}` : '');
+      return showScreen(c, await S.categoriesScreen(c.user, cat ? cat.kind : 'expense'));
+    }
     if (p[1] === 'rm') {
       const cat = await getCategory(uid, +p[2]);
       if (cat) await archiveCategory(uid, cat.id);
@@ -764,35 +828,44 @@ async function learn(uid, note, cat) {
 
 // ── Excel ──────────────────────────────────────────────────────────────────
 
-async function sendExcel(c, code, sel) {
+/**
+ * Готовит Excel-файл за период. sel: 't' — полный отчёт, 'l' — кратко, id — одна категория.
+ * Возвращает { document, caption, count } или { error: 'period' | 'empty', period }.
+ */
+export async function excelDocument(user, code, sel) {
   const period = decodePeriod(code);
-  if (!period) return send(c.chatId, 'Не понял период, выберите ещё раз: /excel');
-  const tz = c.user.tz_offset;
+  if (!period) return { error: 'period' };
+  const tz = user.tz_offset;
   const { from, to } = periodBounds(period, tz);
-  const catsById = await S.catsMap(c.user.tg_id);
-  let txs = await transactionsInRange(c.user.tg_id, from, to);
+  const catsById = await S.catsMap(user.tg_id);
+  let txs = await transactionsInRange(user.tg_id, from, to);
   let category = null;
-  if (sel && /^\d+$/.test(sel)) {
+  if (sel && /^\d+$/.test(String(sel))) {
     category = catsById.get(+sel) || { id: +sel, name: 'Без категории', emoji: '' };
     txs = txs.filter((t) => t.category_id === +sel);
   }
-  if (!txs.length) return send(c.chatId, `За период «${esc(period.title)}» операций нет.`);
+  if (!txs.length) return { error: 'empty', period };
 
-  await action(c.chatId, 'upload_document');
   const { bytes, filename, stats } = buildWorkbook({
-    period, tz, mainCurrency: c.user.currency, txs, catsById, category, mode: sel === 'l' ? 'list' : 'tabs',
+    period, tz, mainCurrency: user.currency, txs, catsById, category, mode: sel === 'l' ? 'list' : 'tabs',
   });
   const lines = [`📥 <b>${esc(period.title)}</b>${category ? ' · ' + esc(catLabel(category)) : ''}`];
   for (const [cur, s] of stats) {
     lines.push(`${stats.size > 1 ? cur + ': ' : ''}💸 ${money(s.expense, cur)} · 💰 ${money(s.income, cur)}`);
   }
   lines.push(`${txs.length} ${plural(txs.length, 'операция', 'операции', 'операций')}`);
-  await api.sendDocument({
-    chat_id: c.chatId,
-    document: new InputFile(bytes, filename, { type: XLSX_MIME }),
-    caption: lines.join('\n'),
-    parse_mode: 'HTML',
-  });
+  return { document: new InputFile(bytes, filename, { type: XLSX_MIME }), caption: lines.join('\n'), count: txs.length, filename };
 }
+
+async function sendExcel(c, code, sel) {
+  await action(c.chatId, 'upload_document');
+  const doc = await excelDocument(c.user, code, sel);
+  if (doc.error === 'period') return send(c.chatId, 'Не понял период, выберите ещё раз: /excel');
+  if (doc.error === 'empty') return send(c.chatId, `За период «${esc(doc.period.title)}» операций нет.`);
+  await api.sendDocument({ chat_id: c.chatId, document: doc.document, caption: doc.caption, parse_mode: 'HTML' });
+}
+
+// Для мини-приложения: тот же доступ, разбор фраз и предупреждения о бюджете, что и в чате.
+export { context, resolveItems, occurredAtFor, keepTime, budgetWarnings, learn };
 
 export const _test = { resolveItems, context };

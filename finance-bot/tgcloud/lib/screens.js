@@ -9,7 +9,7 @@ import {
   humanDay, localToday, periodCode, cmpYmd, MONTHS,
 } from './dates.js';
 import { esc, money, signedMoney, percent, bar, catLabel, plural, tzLabel, truncate } from './format.js';
-import { btn, rows, inline } from './tg.js';
+import { btn, appBtn, rows, inline } from './tg.js';
 import { CURRENCIES, TIMEZONES, AI_PRESETS } from './config.js';
 import { getAiConfig, aiReady } from './ai.js';
 
@@ -54,6 +54,7 @@ export function txCardKeyboard(t, back = '') {
 export async function categoryPicker(userId, t, note = '') {
   const cats = (await listCategories(userId)).filter((c) => c.kind === t.kind);
   const kb = rows(cats.map((c) => btn(`${c.id === t.category_id ? '✅ ' : ''}${c.emoji} ${c.name}`, `t:s:${t.id}:${c.id}`)), 2);
+  kb.push([btn('➕ Новая категория', `t:n:${t.id}`)]);
   kb.push([
     btn(t.kind === 'expense' ? '💰 Это доход' : '💸 Это расход', `t:k:${t.id}`),
     btn('◀️ Назад', `t:o:${t.id}`),
@@ -217,13 +218,13 @@ export async function excelContentScreen(user, code) {
   const catCount = new Set(txs.map((t) => `${t.kind}:${t.category_id}`)).size;
   const text = txs.length
     ? `📥 <b>${esc(period.title)}</b> · ${txs.length} ${plural(txs.length, 'операция', 'операции', 'операций')}\n\nЧто положить в таблицу?\n\n` +
-      `📑 <b>Полный отчёт</b> — сводка, все операции, по дням и <b>отдельная вкладка на каждую категорию</b> (${catCount}).\n` +
-      '📄 <b>Кратко</b> — сводка и общий список операций.\n' +
+      `📑 <b>Полный отчёт</b> — сводка, все операции, траты по категориям (${catCount}), по дням и месяцам.\n` +
+      '📄 <b>Кратко</b> — сводка и список операций.\n' +
       '🗂 <b>Одна категория</b> — только выбранная категория.'
     : `📥 <b>${esc(period.title)}</b>\n\nЗа этот период операций нет. Выберите другой период.`;
   const kb = [];
   if (txs.length) {
-    kb.push([btn('📑 Полный отчёт с вкладками', `x:g:${code}:t`)]);
+    kb.push([btn('📑 Полный отчёт', `x:g:${code}:t`)]);
     kb.push([btn('📄 Кратко', `x:g:${code}:l`), btn('🗂 Одна категория', `x:c:${code}`)]);
   }
   kb.push([btn('◀️ Другой период', 'x:m')]);
@@ -255,7 +256,9 @@ export async function excelCategoryScreen(user, code) {
 // ── Категории ──────────────────────────────────────────────────────────────
 
 export async function categoriesScreen(user, kind = 'expense') {
-  const cats = (await listCategories(user.tg_id)).filter((c) => c.kind === kind);
+  const all = (await listCategories(user.tg_id, { includeArchived: true })).filter((c) => c.kind === kind);
+  const cats = all.filter((c) => !c.archived);
+  const archived = all.length - cats.length;
   const lines = [`📂 <b>${kind === 'expense' ? 'Категории расходов' : 'Категории доходов'}</b>`, ''];
   for (const c of cats) {
     const kws = String(c.keywords || '').split(',').filter(Boolean);
@@ -263,10 +266,29 @@ export async function categoriesScreen(user, kind = 'expense') {
   }
   lines.push('', '<i>Категорию я угадываю сам. Если ошибся — нажмите «🏷 Категория» под записью, и я запомню слово на будущее.</i>');
   const kb = [
-    [btn('➕ Добавить', `c:a:${kind}`), btn('🗑 Удалить', `c:d:${kind}`)],
+    [btn('➕ Добавить', `c:a:${kind}`), btn('✏️ Изменить', `c:e:${kind}`)],
+    [btn('🗑 Удалить', `c:d:${kind}`), ...(archived ? [btn(`♻️ Вернуть (${archived})`, `c:r:${kind}`)] : [])],
     [btn(kind === 'expense' ? '💰 Категории доходов' : '💸 Категории расходов', `c:l:${kind === 'expense' ? 'income' : 'expense'}`)],
+    [appBtn('📱 Настроить в приложении', 'categories')],
   ];
   return { text: lines.join('\n'), extra: inline(kb) };
+}
+
+export async function categoryEditScreen(user, kind) {
+  const cats = (await listCategories(user.tg_id)).filter((c) => c.kind === kind);
+  const kb = rows(cats.map((c) => btn(`✏️ ${c.emoji} ${c.name}`, `c:ed:${c.id}`)), 2);
+  kb.push([btn('◀️ Назад', `c:l:${kind}`)]);
+  return { text: '✏️ <b>Какую категорию изменить?</b>\n\nМожно поменять название и эмодзи.', extra: inline(kb) };
+}
+
+export async function categoryRestoreScreen(user, kind) {
+  const cats = (await listCategories(user.tg_id, { includeArchived: true })).filter((c) => c.kind === kind && c.archived);
+  const kb = rows(cats.map((c) => btn(`♻️ ${c.emoji} ${c.name}`, `c:rs:${c.id}`)), 2);
+  kb.push([btn('◀️ Назад', `c:l:${kind}`)]);
+  return {
+    text: cats.length ? '♻️ <b>Какую категорию вернуть?</b>' : '♻️ Удалённых категорий нет.',
+    extra: inline(kb),
+  };
 }
 
 export async function categoryDeleteScreen(user, kind) {
@@ -339,6 +361,7 @@ export async function settingsScreen(user, isOwner) {
   if (isOwner) {
     kb.push([btn('🎙 Голос и ИИ', 's:ai'), btn('👥 Доступ', 's:acc')]);
   }
+  kb.push([appBtn('📱 Открыть приложение')]);
   kb.push([btn('🧹 Удалить все мои данные', 's:wipe')]);
   return { text: lines.join('\n'), extra: inline(kb) };
 }

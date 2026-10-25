@@ -115,6 +115,15 @@ export async function restoreCategory(userId, id) {
   await db.run(sql`UPDATE categories SET archived = 0 WHERE user_id = ${userId} AND id = ${id}`);
 }
 
+export async function updateCategory(userId, id, { name, emoji, keywords }) {
+  await db.run(sql`UPDATE categories SET name = ${name}, emoji = ${emoji || ''}, keywords = ${keywords || ''}
+    WHERE user_id = ${userId} AND id = ${id}`);
+}
+
+export async function setCategorySort(userId, id, sort) {
+  await db.run(sql`UPDATE categories SET sort = ${sort} WHERE user_id = ${userId} AND id = ${id}`);
+}
+
 export async function setCategoryKeywords(userId, id, keywords) {
   await db.run(sql`UPDATE categories SET keywords = ${keywords} WHERE user_id = ${userId} AND id = ${id}`);
 }
@@ -153,6 +162,12 @@ export async function setTransactionAmount(userId, id, amount, currency) {
 
 export async function setTransactionNote(userId, id, note) {
   await db.run(sql`UPDATE transactions SET note = ${note} WHERE user_id = ${userId} AND id = ${id}`);
+}
+
+export async function updateTransaction(userId, id, t) {
+  await db.run(sql`UPDATE transactions SET kind = ${t.kind}, amount = ${t.amount}, currency = ${t.currency},
+    category_id = ${t.categoryId}, note = ${t.note || ''}, occurred_at = ${t.occurredAt}
+    WHERE user_id = ${userId} AND id = ${id}`);
 }
 
 export async function lastTransactions(userId, limit, offset = 0) {

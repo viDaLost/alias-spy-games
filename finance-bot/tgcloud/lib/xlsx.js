@@ -1,7 +1,7 @@
 // Минимальный генератор .xlsx без зависимостей: XML-части книги упаковываются
 // в ZIP (без сжатия — Excel, Google Таблицы и Numbers это читают).
 //
-//   const wb = new Workbook();
+//   const wb = new Workbook({ money: moneyFormat('₽', true) });
 //   const ws = wb.addSheet('Операции', { widths: [12, 30], freeze: 1, tab: '1F4E78' });
 //   ws.row([{ v: 'Дата', s: 'head' }, { v: 'Сумма', s: 'head' }]);
 //   ws.row([{ v: excelDate(2026, 10, 25), s: 'date' }, { v: 250, s: 'money' }]);
@@ -10,12 +10,14 @@
 // ── Стили ──────────────────────────────────────────────────────────────────
 // Индекс в массиве = номер стиля (s="N") в листе.
 
-const NUMFMTS = { date: 164, money: 165, pct: 166, datetime: 167, int: 3, time: 168 };
-const NUMFMT_XML = [
-  [164, 'dd.mm.yyyy'], [165, '#,##0.00'], [166, '0.0%'], [167, 'dd.mm.yyyy hh:mm'], [168, 'hh:mm'],
-];
+// money и moneySigned (баланс со знаком) задаются для каждой книги: с символом
+// валюты и без копеек, если все суммы целые (см. Workbook({ money })).
+const NUMFMTS = { date: 164, money: 165, pct: 166, datetime: 167, int: 3, time: 168, moneySigned: 169 };
+const DEFAULT_MONEY = '#,##0.00';
+const fixedNumFmts = [[164, 'dd.mm.yyyy'], [166, '0%'], [167, 'dd.mm.yyyy hh:mm'], [168, 'hh:mm']];
 
-// fonts: 0 обычный, 1 жирный белый, 2 жирный, 3 заголовок, 4 серый курсив, 5 красный, 6 зелёный, 7 жирный крупный
+// fonts: 0 обычный, 1 жирный белый, 2 жирный, 3 заголовок, 4 серый курсив, 5 красный, 6 зелёный,
+// 7 жирный крупный, 8 серый, 9 синий (шкала), 10 жирный тёмно-синий (заголовок категории)
 const FONTS = [
   '<font><sz val="11"/><color theme="1"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
   '<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
@@ -25,8 +27,14 @@ const FONTS = [
   '<font><sz val="11"/><color rgb="FFC00000"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
   '<font><sz val="11"/><color rgb="FF2E7D32"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
   '<font><b/><sz val="13"/><color rgb="FF1F3864"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
+  '<font><sz val="11"/><color rgb="FF7F7F7F"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
+  '<font><sz val="11"/><color rgb="FF4F81BD"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
+  '<font><b/><sz val="12"/><color rgb="FF1F3864"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
+  '<font><b/><sz val="11"/><color rgb="FFC00000"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
+  '<font><b/><sz val="11"/><color rgb="FF2E7D32"/><name val="Calibri"/><family val="2"/><scheme val="minor"/></font>',
 ];
-// fills: 0/1 обязательные, 2 тёмно-синяя шапка, 3 светло-голубой итог, 4 светло-серый, 5 светло-зелёный, 6 светло-красный
+// fills: 0/1 обязательные, 2 тёмно-синяя шапка, 3 светло-голубой итог, 4 светло-серый, 5 светло-зелёный,
+// 6 светло-красный, 7 «зебра» (чередование дней)
 const FILLS = [
   '<fill><patternFill patternType="none"/></fill>',
   '<fill><patternFill patternType="gray125"/></fill>',
@@ -35,7 +43,9 @@ const FILLS = [
   '<fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill>',
   '<fill><patternFill patternType="solid"><fgColor rgb="FFE2F0D9"/><bgColor indexed="64"/></patternFill></fill>',
   '<fill><patternFill patternType="solid"><fgColor rgb="FFFBE2E2"/><bgColor indexed="64"/></patternFill></fill>',
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFF5F8FC"/><bgColor indexed="64"/></patternFill></fill>',
 ];
+const ZEBRA_FILL = 7;
 // borders: 0 нет, 1 тонкая серая сетка, 2 верхняя линия итога
 const BORDERS = [
   '<border><left/><right/><top/><bottom/><diagonal/></border>',
@@ -44,7 +54,7 @@ const BORDERS = [
 ];
 
 // name → [numFmtId, fontId, fillId, borderId, align]
-const STYLE_DEFS = [
+const BASE_STYLES = [
   ['default', 0, 0, 0, 0, null],
   ['head', 0, 1, 2, 1, 'center'],
   ['text', 0, 0, 0, 1, null],
@@ -55,26 +65,54 @@ const STYLE_DEFS = [
   ['money', NUMFMTS.money, 0, 0, 1, null],
   ['moneyRed', NUMFMTS.money, 5, 0, 1, null],
   ['moneyGreen', NUMFMTS.money, 6, 0, 1, null],
-  ['pct', NUMFMTS.pct, 0, 0, 1, null],
+  ['moneySigned', NUMFMTS.moneySigned, 0, 0, 1, null],
+  ['pct', NUMFMTS.pct, 0, 0, 1, 'center'],
   ['int', NUMFMTS.int, 0, 0, 1, 'center'],
+  ['muted', 0, 8, 0, 1, 'center'],
+  ['bar', 0, 9, 0, 1, null],
   ['title', 0, 3, 0, 0, null],
   ['subtitle', 0, 4, 0, 0, null],
+  ['note', 0, 4, 0, 0, 'wrap'],
   ['section', 0, 7, 0, 0, null],
+  ['catHead', 0, 10, 3, 1, null],
+  ['catHeadMoney', NUMFMTS.money, 10, 3, 1, null],
+  ['moneyBold', NUMFMTS.money, 2, 3, 1, null],
   ['totalLabel', 0, 2, 3, 2, null],
   ['totalMoney', NUMFMTS.money, 2, 3, 2, null],
+  ['totalSigned', NUMFMTS.moneySigned, 2, 3, 2, null],
   ['totalInt', NUMFMTS.int, 2, 3, 2, 'center'],
-  ['totalPct', NUMFMTS.pct, 2, 3, 2, null],
+  ['totalPct', NUMFMTS.pct, 2, 3, 2, 'center'],
   ['totalText', 0, 2, 3, 2, null],
   ['kpiLabel', 0, 2, 4, 1, null],
-  ['kpiRed', NUMFMTS.money, 5, 6, 1, null],
-  ['kpiGreen', NUMFMTS.money, 6, 5, 1, null],
-  ['kpiMoney', NUMFMTS.money, 2, 4, 1, null],
+  ['kpiRed', NUMFMTS.money, 11, 6, 1, null],
+  ['kpiGreen', NUMFMTS.money, 12, 5, 1, null],
+  ['kpiMoney', NUMFMTS.moneySigned, 2, 4, 1, null],
+  ['kpiPlain', NUMFMTS.money, 2, 4, 1, null],
+  ['kpiInt', NUMFMTS.int, 2, 4, 1, null],
+  ['kpiText', 0, 0, 4, 1, null],
   ['textRed', 0, 5, 0, 1, null],
   ['textGreen', 0, 6, 0, 1, null],
 ];
+// Те же стили на «зебре»: имя + 'Z' (строки чередующихся дней в списке операций).
+const ZEBRA = ['text', 'date', 'muted', 'money', 'moneyRed', 'moneyGreen', 'int'];
+const STYLE_DEFS = [
+  ...BASE_STYLES,
+  ...BASE_STYLES.filter((d) => ZEBRA.includes(d[0])).map(([n, nf, font, , border, align]) => [n + 'Z', nf, font, ZEBRA_FILL, border, align]),
+];
 const STYLE_INDEX = Object.fromEntries(STYLE_DEFS.map((d, i) => [d[0], i]));
 
-function stylesXml() {
+/** Формат денег: «#,##0 "₽"» (целые) или «#,##0.00 "₽"»; без валюты — просто число. */
+export function moneyFormat(symbol, whole) {
+  const num = whole ? '#,##0' : '#,##0.00';
+  return symbol ? `${num}" ${symbol.replace(/"/g, '')}"` : num;
+}
+
+function stylesXml(money = DEFAULT_MONEY) {
+  // Баланс: «+45 600 ₽», «−1 200 ₽», «0 ₽».
+  const [num, ...rest] = money.split('"');
+  const suffix = rest.length ? `"${rest.join('"')}` : '';
+  const signed = `+${num}${suffix};"−"${num}${suffix};0${suffix}`;
+  const numFmts = [...fixedNumFmts, [165, money], [169, signed]].sort((a, b) => a[0] - b[0]);
   const xfs = STYLE_DEFS.map(([, numFmt, font, fill, border, align]) => {
     const attrs = `numFmtId="${numFmt}" fontId="${font}" fillId="${fill}" borderId="${border}" xfId="0"` +
       (numFmt ? ' applyNumberFormat="1"' : '') + (font ? ' applyFont="1"' : '') +
@@ -85,7 +123,7 @@ function stylesXml() {
   });
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    `<numFmts count="${NUMFMT_XML.length}">${NUMFMT_XML.map(([id, code]) => `<numFmt numFmtId="${id}" formatCode="${xmlEsc(code)}"/>`).join('')}</numFmts>` +
+    `<numFmts count="${numFmts.length}">${numFmts.map(([id, code]) => `<numFmt numFmtId="${id}" formatCode="${xmlEsc(code)}"/>`).join('')}</numFmts>` +
     `<fonts count="${FONTS.length}">${FONTS.join('')}</fonts>` +
     `<fills count="${FILLS.length}">${FILLS.join('')}</fills>` +
     `<borders count="${BORDERS.length}">${BORDERS.join('')}</borders>` +
@@ -288,7 +326,9 @@ class Sheet {
 }
 
 export class Workbook {
-  constructor() {
+  /** money — формат денежных ячеек, см. moneyFormat(). */
+  constructor({ money = DEFAULT_MONEY } = {}) {
+    this.money = money;
     this.sheets = [];
     this.used = new Set();
   }
@@ -355,7 +395,7 @@ export class Workbook {
       `<Relationship Id="rId${n + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
       '</Relationships>');
 
-    add('xl/styles.xml', stylesXml());
+    add('xl/styles.xml', stylesXml(this.money));
     this.sheets.forEach((s, i) => add(`xl/worksheets/sheet${i + 1}.xml`, s.toXml(i === 0)));
     return zipStore(files);
   }

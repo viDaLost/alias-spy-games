@@ -1,3 +1,5 @@
 {
-  "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json"
+  "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json",
+  // Мини-приложение: обычные HTML/CSS/JS без сборки, публикуются как есть.
+  "static": { "source": "webapp" }
 }

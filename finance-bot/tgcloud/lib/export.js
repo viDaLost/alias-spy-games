@@ -1,24 +1,46 @@
-// Сборка Excel-отчёта: «Сводка», «Операции», «По дням», «По месяцам»
-// и по вкладке на каждую категорию.
+// Сборка Excel-отчёта.
+//   Полный:  «Сводка», «Операции», «По категориям», «По дням», «По месяцам»
+//            и «Категории по месяцам» (если в периоде больше одного месяца).
+//   Кратко:  «Сводка» и «Операции».
+//   Одна категория: «Сводка» и «Операции» только по ней (+ «По месяцам»).
 
-import { Workbook, excelDate, ref } from './xlsx.js';
-import { toLocal, fmtYmd, addDays, cmpYmd, localToday, isoYmd, MONTHS } from './dates.js';
+import { Workbook, excelDate, ref, moneyFormat } from './xlsx.js';
+import { toLocal, fmtYmd, cmpYmd, localToday, isoYmd, MONTHS } from './dates.js';
 import { currencySymbol } from './format.js';
 
-const TAB_COLORS = ['C0504D', '4F81BD', '9BBB59', '8064A2', 'F79646', '4BACC6', 'E46C0A', '2C4D75', '77933C', '7F6084'];
+const WEEKDAYS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const BAR_WIDTH = 20;
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const toUnits = (minor) => Math.round(minor) / 100;
-const catTitle = (c) => (c ? c.name : 'Без категории');
+const catTitle = (c) => (c ? `${c.emoji ? c.emoji + ' ' : ''}${c.name}` : '❔ Без категории');
+const sum = (list) => list.reduce((s, r) => s + r.amount, 0);
+const ymdKey = (l) => l.y * 10000 + l.m * 100 + l.d;
+const monthTitle = (y, m) => `${cap(MONTHS[m - 1])} ${y}`;
+const plural = (n, one, few, many) => {
+  const n10 = n % 10, n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return one;
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return few;
+  return many;
+};
+const ops = (n) => `${n} ${plural(n, 'операция', 'операции', 'операций')}`;
+
+/** Наглядная полоска доли: «██████». */
+function barText(share) {
+  const n = Math.round(share * BAR_WIDTH);
+  return '█'.repeat(share > 0 ? Math.max(1, n) : 0);
+}
 
 /**
  * opts: { period, tz, mainCurrency, txs, catsById, category (или null), mode: 'tabs' | 'list' }
  * Возвращает { bytes, filename, stats }.
  */
 export function buildWorkbook({ period, tz, mainCurrency, txs, catsById, category = null, mode = 'tabs' }) {
-  const wb = new Workbook();
   const currencies = orderCurrencies(txs, mainCurrency);
   const multi = currencies.length > 1;
+  // Одна валюта — символ прямо в ячейке («3 000 ₽»); копейки, только если они есть.
+  const whole = txs.every((t) => t.amount % 100 === 0);
+  const wb = new Workbook({ money: moneyFormat(multi ? '' : currencySymbol(currencies[0]), whole) });
   const rows = txs.map((t) => {
     const l = toLocal(t.occurred_at, tz);
     return { ...t, l, cat: catsById.get(t.category_id) || null };
@@ -31,12 +53,19 @@ export function buildWorkbook({ period, tz, mainCurrency, txs, catsById, categor
     const last = rows[rows.length - 1].l;
     toYmd = { y: last.y, m: last.m, d: last.d };
   }
+  const months = new Set(rows.map((r) => r.l.y * 100 + r.l.m)).size;
+  const ctx = { period, tz, rows, currencies, multi, category, fromYmd, toYmd, main: currencies[0] };
 
-  buildSummary(wb, { period, rows, currencies, multi, category, fromYmd, toYmd, tz });
-  buildOperations(wb, rows, multi);
-  if (fromYmd) buildDaily(wb, rows, currencies[0], fromYmd, toYmd);
-  if (fromYmd && (fromYmd.y !== toYmd.y || fromYmd.m !== toYmd.m)) buildMonthly(wb, rows, currencies[0]);
-  if (mode === 'tabs' && !category) buildCategoryTabs(wb, rows, multi);
+  buildSummary(wb, ctx);
+  buildOperations(wb, ctx);
+  if (mode === 'tabs' && !category) {
+    buildByCategory(wb, ctx);
+    buildDaily(wb, ctx);
+  }
+  if (mode === 'tabs' && months > 1) {
+    buildMonthly(wb, ctx);
+    if (!category) buildCategoryMonths(wb, ctx);
+  }
 
   const suffix = category ? '_' + translit(category.name) : '';
   const filename = `finance_${periodSlug(period)}${suffix}.xlsx`;
@@ -76,169 +105,250 @@ export function totalsByCurrency(rows) {
   return map;
 }
 
+// Подпись валюты в заголовке колонки — только когда валют несколько
+// (с одной валютой символ стоит прямо в ячейках).
+const curLabel = (ctx, cur = ctx.main) => (ctx.multi ? `, ${currencySymbol(cur)}` : '');
+
+function groupByCategory(list) {
+  const map = new Map();
+  for (const r of list) {
+    const key = `${r.kind}:${r.category_id}`;
+    if (!map.has(key)) map.set(key, { kind: r.kind, cat: r.cat, list: [], total: 0 });
+    const g = map.get(key);
+    g.list.push(r);
+    g.total += r.amount;
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total);
+}
+
 // ── Сводка ─────────────────────────────────────────────────────────────────
 
-function buildSummary(wb, { period, rows, currencies, multi, category, fromYmd, toYmd, tz }) {
-  const ws = wb.addSheet('Сводка', { widths: [34, 18, 11, 11, 16], tab: '1F4E78' });
-  ws.row([{ v: `Учёт финансов · ${period.title}`, s: 'title' }], { height: 26 });
-  ws.merge('A1:E1');
+function buildSummary(wb, ctx) {
+  const { period, rows, currencies, multi, category, fromYmd, toYmd, tz } = ctx;
+  const ws = wb.addSheet('Сводка', { widths: [34, 17, 11, 24, 11, 16], tab: '1F4E78' });
+  ws.row([{ v: `Учёт финансов · ${period.title}${category ? ' · ' + catTitle(category) : ''}`, s: 'title' }], { height: 26 });
+  ws.merge('A1:F1');
   const now = toLocal(Math.floor(Date.now() / 1000), tz);
   const parts = [];
-  if (fromYmd) parts.push(`Период: ${fmtYmd(fromYmd)} — ${fmtYmd(toYmd)}`);
-  if (category) parts.push(`Категория: ${category.name}`);
-  parts.push(`Сформировано ${fmtYmd(now)} ${String(now.hh).padStart(2, '0')}:${String(now.mi).padStart(2, '0')}`);
-  ws.row([{ v: parts.join(' · '), s: 'subtitle' }]);
-  ws.merge('A2:E2');
+  if (fromYmd) parts.push(`${fmtYmd(fromYmd)} — ${fmtYmd(toYmd)}`);
+  parts.push(`сформировано ${fmtYmd(now)} в ${String(now.hh).padStart(2, '0')}:${String(now.mi).padStart(2, '0')}`);
+  ws.row([{ v: cap(parts.join(' · ')), s: 'subtitle' }]);
+  ws.merge('A2:F2');
 
-  const days = fromYmd ? Math.max(1, Math.round((Date.UTC(toYmd.y, toYmd.m - 1, toYmd.d) - Date.UTC(fromYmd.y, fromYmd.m - 1, fromYmd.d)) / 86400000) + 1) : 1;
-  // Для текущего периода средний расход считаем по прошедшим дням.
-  const today = localToday(tz);
-  let elapsed = days;
-  if (fromYmd && cmpYmd(toYmd, today) > 0 && cmpYmd(fromYmd, today) <= 0) {
-    elapsed = Math.round((Date.UTC(today.y, today.m - 1, today.d) - Date.UTC(fromYmd.y, fromYmd.m - 1, fromYmd.d)) / 86400000) + 1;
-  }
-
-  for (const cur of currencies) {
-    const list = rows.filter((r) => r.currency === cur);
-    const exp = list.filter((r) => r.kind === 'expense').reduce((s, r) => s + r.amount, 0);
-    const inc = list.filter((r) => r.kind === 'income').reduce((s, r) => s + r.amount, 0);
-    const sym = currencySymbol(cur);
-    ws.row([]);
-    ws.row([{ v: multi ? `Итоги, ${cur}` : 'Итоги', s: 'section' }], { height: 20 });
-    ws.row([{ v: `Расходы, ${sym}`, s: 'kpiLabel' }, { v: toUnits(exp), s: 'kpiRed' }]);
-    ws.row([{ v: `Доходы, ${sym}`, s: 'kpiLabel' }, { v: toUnits(inc), s: 'kpiGreen' }]);
-    ws.row([{ v: `Баланс, ${sym}`, s: 'kpiLabel' }, { v: toUnits(inc - exp), s: 'kpiMoney' }]);
-    ws.row([{ v: 'Операций', s: 'kpiLabel' }, { v: list.length, s: 'int' }]);
-    ws.row([{ v: `Средний расход в день, ${sym}`, s: 'kpiLabel' }, { v: toUnits(exp / Math.max(1, elapsed)), s: 'money' }]);
-
-    for (const kind of ['expense', 'income']) {
-      const byCat = new Map();
-      for (const r of list.filter((x) => x.kind === kind)) {
-        const key = r.category_id;
-        const e = byCat.get(key) || { cat: r.cat, sum: 0, cnt: 0 };
-        e.sum += r.amount; e.cnt += 1;
-        byCat.set(key, e);
-      }
-      if (!byCat.size) continue;
-      const total = [...byCat.values()].reduce((s, e) => s + e.sum, 0);
-      ws.row([]);
-      ws.row([{ v: (kind === 'expense' ? 'Расходы по категориям' : 'Доходы по категориям') + (multi ? `, ${cur}` : ''), s: 'section' }], { height: 20 });
-      ws.row([
-        { v: 'Категория', s: 'head' }, { v: `Сумма, ${sym}`, s: 'head' }, { v: 'Доля', s: 'head' },
-        { v: 'Операций', s: 'head' }, { v: `Средний чек, ${sym}`, s: 'head' },
-      ], { height: 20 });
-      const first = ws.nextRow;
-      for (const e of [...byCat.values()].sort((a, b) => b.sum - a.sum)) {
-        const r = ws.nextRow;
-        ws.row([
-          { v: `${e.cat && e.cat.emoji ? e.cat.emoji + ' ' : ''}${catTitle(e.cat)}`, s: 'text' },
-          { v: toUnits(e.sum), s: kind === 'expense' ? 'moneyRed' : 'moneyGreen' },
-          { v: total ? e.sum / total : 0, s: 'pct' },
-          { v: e.cnt, s: 'int' },
-          { v: toUnits(e.sum / e.cnt), s: 'money', f: `${ref(2, r)}/${ref(4, r)}` },
-        ]);
-      }
-      const last = ws.nextRow - 1;
-      ws.row([
-        { v: 'Итого', s: 'totalLabel' },
-        { v: toUnits(total), s: 'totalMoney', f: `SUM(${ref(2, first)}:${ref(2, last)})` },
-        { v: 1, s: 'totalPct' },
-        { v: [...byCat.values()].reduce((s, e) => s + e.cnt, 0), s: 'totalInt', f: `SUM(${ref(4, first)}:${ref(4, last)})` },
-        { v: '', s: 'totalText' },
-      ]);
-    }
-  }
   if (!rows.length) {
     ws.row([]);
     ws.row([{ v: 'За этот период операций нет.', s: 'subtitle' }]);
+    return;
   }
+
+  // Средний расход в день: с первой записи (если учёт начат посреди периода)
+  // и, для текущего периода, по уже прошедшим дням.
+  const today = localToday(tz);
+  const firstDay = { y: rows[0].l.y, m: rows[0].l.m, d: rows[0].l.d };
+  const start = cmpYmd(firstDay, fromYmd) > 0 ? firstDay : fromYmd;
+  const end = cmpYmd(toYmd, today) > 0 && cmpYmd(start, today) <= 0 ? today : toYmd;
+  const days = Math.max(1, Math.round((Date.UTC(end.y, end.m - 1, end.d) - Date.UTC(start.y, start.m - 1, start.d)) / 86400000) + 1);
+
+  for (const cur of currencies) {
+    const list = rows.filter((r) => r.currency === cur);
+    const expList = list.filter((r) => r.kind === 'expense');
+    const incList = list.filter((r) => r.kind === 'income');
+    const exp = sum(expList), inc = sum(incList);
+    const expGroups = groupByCategory(expList);
+    const incGroups = groupByCategory(incList);
+
+    ws.row([]);
+    ws.row([{ v: multi ? `Итоги в ${cur}` : 'Итоги', s: 'section' }], { height: 20 });
+    ws.row([{ v: 'Потрачено', s: 'kpiLabel' }, { v: toUnits(exp), s: 'kpiRed' }]);
+    ws.row([{ v: 'Получено', s: 'kpiLabel' }, { v: toUnits(inc), s: 'kpiGreen' }]);
+    ws.row([{ v: 'Остаток (получено − потрачено)', s: 'kpiLabel' }, { v: toUnits(inc - exp), s: 'kpiMoney' }]);
+    ws.row([{ v: 'Операций', s: 'kpiLabel' }, { v: list.length, s: 'kpiInt' }]);
+    if (exp) {
+      ws.row([{ v: days > 1 ? `В среднем тратите в день (${days} дн.)` : 'Потрачено за день', s: 'kpiLabel' }, { v: toUnits(exp / days), s: 'kpiPlain' }]);
+      const top = expGroups[0];
+      ws.row([{ v: 'Больше всего уходит на', s: 'kpiLabel' }, { v: `${catTitle(top.cat)} — ${Math.round((top.total / exp) * 100)}%`, s: 'kpiText' }]);
+      ws.merge(`B${ws.nextRow - 1}:D${ws.nextRow - 1}`);
+    }
+
+    categoryTable(ws, ctx, cur, expGroups, exp, 'expense');
+    categoryTable(ws, ctx, cur, incGroups, inc, 'income');
+
+    // Самые крупные траты.
+    const top = [...expList].sort((a, b) => b.amount - a.amount).slice(0, 10);
+    if (top.length > 1) {
+      ws.row([]);
+      ws.row([{ v: `Самые крупные траты${multi ? ', ' + cur : ''}`, s: 'section' }], { height: 20 });
+      ws.row(['Категория', `Сумма${curLabel(ctx, cur)}`, 'Дата', 'Описание', '', ''].map((v) => ({ v, s: 'head' })), { height: 20 });
+      ws.merge(`D${ws.nextRow - 1}:F${ws.nextRow - 1}`);
+      for (const r of top) {
+        const n = ws.row([
+          { v: catTitle(r.cat), s: 'text' },
+          { v: toUnits(r.amount), s: 'moneyRed' },
+          { v: excelDate(r.l.y, r.l.m, r.l.d), s: 'date' },
+          { v: r.note || '', s: 'text' }, { v: '', s: 'text' }, { v: '', s: 'text' },
+        ]);
+        ws.merge(`D${n}:F${n}`);
+      }
+    }
+  }
+
+  ws.row([]);
+  const tip = category
+    ? 'Все операции этой категории — на вкладке «Операции».'
+    : 'Вкладки внизу: «Операции» — полный список (стрелки ▾ в заголовках фильтруют по дате и категории, итог внизу пересчитывается), «По категориям» — траты, сгруппированные по категориям, «По дням» и «По месяцам» — динамика.';
+  const n = ws.row([{ v: tip, s: 'note' }], { height: 45 });
+  ws.merge(`A${n}:F${n}`);
+}
+
+function categoryTable(ws, ctx, cur, groups, total, kind) {
+  if (!groups.length) return;
+  const exp = kind === 'expense';
+  ws.row([]);
+  ws.row([{ v: (exp ? 'Куда ушли деньги' : 'Откуда пришли деньги') + (ctx.multi ? `, ${cur}` : ''), s: 'section' }], { height: 20 });
+  ws.row([
+    { v: 'Категория', s: 'head' }, { v: `Сумма${curLabel(ctx, cur)}`, s: 'head' }, { v: 'Доля', s: 'head' },
+    { v: 'Наглядно', s: 'head' }, { v: 'Операций', s: 'head' }, { v: `Средний чек${curLabel(ctx, cur)}`, s: 'head' },
+  ], { height: 20 });
+  const first = ws.nextRow;
+  for (const g of groups) {
+    const r = ws.nextRow;
+    const share = total ? g.total / total : 0;
+    ws.row([
+      { v: catTitle(g.cat), s: 'text' },
+      { v: toUnits(g.total), s: exp ? 'moneyRed' : 'moneyGreen' },
+      { v: share, s: 'pct' },
+      { v: barText(share), s: 'bar' },
+      { v: g.list.length, s: 'int' },
+      { v: toUnits(g.total / g.list.length), s: 'money', f: `${ref(2, r)}/${ref(5, r)}` },
+    ]);
+  }
+  const last = ws.nextRow - 1;
+  ws.row([
+    { v: exp ? 'Всего потрачено' : 'Всего получено', s: 'totalLabel' },
+    { v: toUnits(total), s: 'totalMoney', f: `SUM(${ref(2, first)}:${ref(2, last)})` },
+    { v: 1, s: 'totalPct' },
+    { v: '', s: 'totalText' },
+    { v: groups.reduce((s, g) => s + g.list.length, 0), s: 'totalInt', f: `SUM(${ref(5, first)}:${ref(5, last)})` },
+    { v: '', s: 'totalText' },
+  ]);
 }
 
 // ── Операции ───────────────────────────────────────────────────────────────
 
-function txRow(r, withCategory) {
-  const cells = [
-    { v: excelDate(r.l.y, r.l.m, r.l.d), s: 'date' },
-    { v: (r.l.hh * 60 + r.l.mi) / 1440, s: 'time' },
-  ];
-  if (withCategory) cells.push({ v: `${r.cat && r.cat.emoji ? r.cat.emoji + ' ' : ''}${catTitle(r.cat)}`, s: 'text' });
-  cells.push({ v: r.note || '', s: 'text' });
-  return cells;
-}
+function buildOperations(wb, ctx) {
+  const { rows, multi, category } = ctx;
+  const withCat = !category;
+  const head = ['Дата', 'День', ...(withCat ? ['Категория'] : []), 'Описание', `Расход${curLabel(ctx)}`, `Доход${curLabel(ctx)}`, ...(multi ? ['Валюта'] : [])];
+  const widths = [12, 6, ...(withCat ? [26] : []), 40, 15, 15, ...(multi ? [8] : [])];
+  const ws = wb.addSheet('Операции', { widths, freeze: 1, tab: '2E75B6' });
+  ws.row(head.map((v) => ({ v, s: 'head' })), { height: 22 });
+  const expCol = withCat ? 5 : 4;
 
-function buildOperations(wb, rows, multi) {
-  const ws = wb.addSheet('Операции', { widths: [12, 8, 26, 40, 14, 14, 9, 9], freeze: 1, tab: '2E75B6' });
-  ws.row(['Дата', 'Время', 'Категория', 'Описание', 'Расход', 'Доход', 'Валюта', 'Ввод'].map((v) => ({ v, s: 'head' })), { height: 22 });
+  // Строки одного дня — одним цветом, дни чередуются: так проще читать список.
+  let zebra = false, prevDay = null;
   for (const r of rows) {
+    const day = ymdKey(r.l);
+    if (prevDay !== null && day !== prevDay) zebra = !zebra;
+    prevDay = day;
+    const z = zebra ? 'Z' : '';
     ws.row([
-      ...txRow(r, true),
-      r.kind === 'expense' ? { v: toUnits(r.amount), s: 'moneyRed' } : { v: '', s: 'money' },
-      r.kind === 'income' ? { v: toUnits(r.amount), s: 'moneyGreen' } : { v: '', s: 'money' },
-      { v: r.currency, s: 'text' },
-      { v: r.source === 'voice' ? '🎙 голос' : '⌨️ текст', s: 'text' },
+      { v: excelDate(r.l.y, r.l.m, r.l.d), s: 'date' + z },
+      { v: WEEKDAYS[r.l.dow], s: 'muted' + z },
+      ...(withCat ? [{ v: catTitle(r.cat), s: 'text' + z }] : []),
+      { v: r.note || '', s: 'text' + z },
+      r.kind === 'expense' ? { v: toUnits(r.amount), s: 'moneyRed' + z } : { v: '', s: 'money' + z },
+      r.kind === 'income' ? { v: toUnits(r.amount), s: 'moneyGreen' + z } : { v: '', s: 'money' + z },
+      ...(multi ? [{ v: r.currency, s: 'muted' + z }] : []),
     ]);
   }
   const last = ws.nextRow - 1;
-  ws.autoFilter(`A1:${ref(8, Math.max(2, last))}`);
-  if (rows.length) {
-    const expSum = rows.filter((r) => r.kind === 'expense').reduce((s, r) => s + r.amount, 0);
-    const incSum = rows.filter((r) => r.kind === 'income').reduce((s, r) => s + r.amount, 0);
+  ws.autoFilter(`A1:${ref(head.length, Math.max(2, last))}`);
+  if (!rows.length) return;
+
+  const cells = [{ v: 'Итого (с учётом фильтра)', s: 'totalLabel' }];
+  for (let c = 2; c < expCol; c++) cells.push({ v: c === expCol - 1 && multi ? 'разные валюты — отфильтруйте «Валюта»' : '', s: 'totalText' });
+  cells.push(
+    { v: toUnits(sum(rows.filter((r) => r.kind === 'expense'))), s: 'totalMoney', f: `SUBTOTAL(109,${ref(expCol, 2)}:${ref(expCol, last)})` },
+    { v: toUnits(sum(rows.filter((r) => r.kind === 'income'))), s: 'totalMoney', f: `SUBTOTAL(109,${ref(expCol + 1, 2)}:${ref(expCol + 1, last)})` },
+  );
+  if (multi) cells.push({ v: '', s: 'totalText' });
+  ws.row([]);
+  ws.row(cells);
+}
+
+// ── По категориям: блок на каждую категорию ──────────────────────────────
+
+function buildByCategory(wb, ctx) {
+  const { rows, multi, main } = ctx;
+  const ws = wb.addSheet('По категориям', { widths: [12, 6, 44, 16], freeze: 1, tab: '8064A2' });
+  ws.row(['Дата', 'День', 'Описание', `Сумма${curLabel(ctx)}`].map((v) => ({ v, s: 'head' })), { height: 22 });
+
+  for (const kind of ['expense', 'income']) {
+    const list = rows.filter((r) => r.kind === kind);
+    if (!list.length) continue;
+    const groups = groupByCategory(list);
+    const mainTotal = sum(list.filter((r) => r.currency === main));
     ws.row([]);
-    ws.row([
-      { v: 'Итого (учитывает фильтр)', s: 'totalLabel' }, { v: '', s: 'totalText' }, { v: '', s: 'totalText' },
-      { v: multi ? 'сумма по всем валютам — фильтруйте по «Валюта»' : '', s: 'totalText' },
-      { v: toUnits(expSum), s: 'totalMoney', f: `SUBTOTAL(109,E2:E${last})` },
-      { v: toUnits(incSum), s: 'totalMoney', f: `SUBTOTAL(109,F2:F${last})` },
-      { v: '', s: 'totalText' }, { v: '', s: 'totalText' },
-    ]);
+    ws.row([{ v: kind === 'expense' ? 'Расходы' : 'Доходы', s: 'section' }], { height: 22 });
+    for (const g of groups) {
+      const inMain = sum(g.list.filter((r) => r.currency === main));
+      const share = mainTotal && inMain ? ` · ${Math.round((inMain / mainTotal) * 100)}% ${kind === 'expense' ? 'расходов' : 'доходов'}` : '';
+      const h = ws.row([
+        { v: `${catTitle(g.cat)} · ${ops(g.list.length)}${share}`, s: 'catHead' }, { v: '', s: 'catHead' }, { v: '', s: 'catHead' },
+        multi ? { v: '', s: 'catHead' } : { v: toUnits(g.total), s: 'catHeadMoney' },
+      ], { height: 20 });
+      ws.merge(`A${h}:C${h}`);
+      for (const r of g.list) {
+        ws.row([
+          { v: excelDate(r.l.y, r.l.m, r.l.d), s: 'date' },
+          { v: WEEKDAYS[r.l.dow], s: 'muted' },
+          { v: (r.note || '') + (multi ? ` (${r.currency})` : ''), s: 'text' },
+          { v: toUnits(r.amount), s: kind === 'expense' ? 'moneyRed' : 'moneyGreen' },
+        ]);
+      }
+      ws.row([]);
+    }
   }
 }
 
 // ── По дням / по месяцам ──────────────────────────────────────────────────
 
-function buildDaily(wb, rows, currency, fromYmd, toYmd) {
-  const sym = currencySymbol(currency);
-  const ws = wb.addSheet('По дням', { widths: [12, 16, 16, 16, 11], freeze: 1, tab: '70AD47' });
-  ws.row(['Дата', `Расходы, ${sym}`, `Доходы, ${sym}`, `Разница, ${sym}`, 'Операций'].map((v) => ({ v, s: 'head' })), { height: 22 });
+function buildDaily(wb, ctx) {
+  const { rows, main } = ctx;
+  const ws = wb.addSheet('По дням', { widths: [12, 6, 16, 16, 16, 11], freeze: 1, tab: '70AD47' });
+  ws.row(['Дата', 'День', `Потрачено${curLabel(ctx)}`, `Получено${curLabel(ctx)}`, `Итог дня${curLabel(ctx)}`, 'Операций'].map((v) => ({ v, s: 'head' })), { height: 22 });
+  // Только дни, когда что-то было: пустые дни лишь растягивают таблицу.
   const map = new Map();
   for (const r of rows) {
-    if (r.currency !== currency) continue;
-    const key = `${r.l.y}-${r.l.m}-${r.l.d}`;
-    const e = map.get(key) || { y: r.l.y, m: r.l.m, d: r.l.d, expense: 0, income: 0, cnt: 0 };
+    if (r.currency !== main) continue;
+    const key = ymdKey(r.l);
+    const e = map.get(key) || { l: r.l, expense: 0, income: 0, cnt: 0 };
     e[r.kind] += r.amount; e.cnt += 1;
     map.set(key, e);
   }
-  const span = Math.round((Date.UTC(toYmd.y, toYmd.m - 1, toYmd.d) - Date.UTC(fromYmd.y, fromYmd.m - 1, fromYmd.d)) / 86400000) + 1;
-  let days;
-  if (span <= 400) {
-    days = [];
-    for (let d = fromYmd; cmpYmd(d, toYmd) <= 0; d = addDays(d, 1)) {
-      days.push(map.get(`${d.y}-${d.m}-${d.d}`) || { ...d, expense: 0, income: 0, cnt: 0 });
-    }
-  } else {
-    days = [...map.values()].sort((a, b) => cmpYmd(a, b));
-  }
+  const days = [...map.entries()].sort((a, b) => a[0] - b[0]).map((x) => x[1]);
   const first = ws.nextRow;
   for (const e of days) {
     const r = ws.nextRow;
     ws.row([
-      { v: excelDate(e.y, e.m, e.d), s: 'date' },
-      { v: toUnits(e.expense), s: 'moneyRed' },
-      { v: toUnits(e.income), s: 'moneyGreen' },
-      { v: toUnits(e.income - e.expense), s: 'money', f: `${ref(3, r)}-${ref(2, r)}` },
+      { v: excelDate(e.l.y, e.l.m, e.l.d), s: 'date' },
+      { v: WEEKDAYS[e.l.dow], s: 'muted' },
+      { v: toUnits(e.expense), s: e.expense ? 'moneyRed' : 'money' },
+      { v: toUnits(e.income), s: e.income ? 'moneyGreen' : 'money' },
+      { v: toUnits(e.income - e.expense), s: 'moneySigned', f: `${ref(4, r)}-${ref(3, r)}` },
       { v: e.cnt, s: 'int' },
     ]);
   }
-  totalsRow(ws, first, days, 4);
+  totalsRow(ws, first, days, 3, ['Итого', '']);
 }
 
-function buildMonthly(wb, rows, currency) {
-  const sym = currencySymbol(currency);
+function buildMonthly(wb, ctx) {
+  const { rows, main } = ctx;
   const ws = wb.addSheet('По месяцам', { widths: [18, 16, 16, 16, 11], freeze: 1, tab: 'FFC000' });
-  ws.row(['Месяц', `Расходы, ${sym}`, `Доходы, ${sym}`, `Разница, ${sym}`, 'Операций'].map((v) => ({ v, s: 'head' })), { height: 22 });
+  ws.row(['Месяц', `Потрачено${curLabel(ctx)}`, `Получено${curLabel(ctx)}`, `Остаток${curLabel(ctx)}`, 'Операций'].map((v) => ({ v, s: 'head' })), { height: 22 });
   const map = new Map();
   for (const r of rows) {
-    if (r.currency !== currency) continue;
+    if (r.currency !== main) continue;
     const key = r.l.y * 100 + r.l.m;
     const e = map.get(key) || { y: r.l.y, m: r.l.m, expense: 0, income: 0, cnt: 0 };
     e[r.kind] += r.amount; e.cnt += 1;
@@ -249,58 +359,64 @@ function buildMonthly(wb, rows, currency) {
   for (const e of months) {
     const r = ws.nextRow;
     ws.row([
-      { v: `${cap(MONTHS[e.m - 1])} ${e.y}`, s: 'text' },
+      { v: monthTitle(e.y, e.m), s: 'text' },
       { v: toUnits(e.expense), s: 'moneyRed' },
       { v: toUnits(e.income), s: 'moneyGreen' },
-      { v: toUnits(e.income - e.expense), s: 'money', f: `${ref(3, r)}-${ref(2, r)}` },
+      { v: toUnits(e.income - e.expense), s: 'moneySigned', f: `${ref(3, r)}-${ref(2, r)}` },
       { v: e.cnt, s: 'int' },
     ]);
   }
-  totalsRow(ws, first, months, 4);
+  totalsRow(ws, first, months, 2, ['Итого']);
 }
 
-function totalsRow(ws, first, list, sumCols) {
+// Итоговая строка: подписи, затем расходы/доходы/разница (SUM) и число операций.
+function totalsRow(ws, first, list, fromCol, labels) {
   if (!list.length) return;
   const last = ws.nextRow - 1;
   const exp = list.reduce((s, e) => s + e.expense, 0), inc = list.reduce((s, e) => s + e.income, 0);
   const cnt = list.reduce((s, e) => s + e.cnt, 0);
-  const vals = [toUnits(exp), toUnits(inc), toUnits(inc - exp)];
-  const cells = [{ v: 'Итого', s: 'totalLabel' }];
-  for (let c = 2; c <= sumCols; c++) cells.push({ v: vals[c - 2], s: 'totalMoney', f: `SUM(${ref(c, first)}:${ref(c, last)})` });
-  cells.push({ v: cnt, s: 'totalInt', f: `SUM(${ref(sumCols + 1, first)}:${ref(sumCols + 1, last)})` });
+  const cells = labels.map((v, i) => ({ v, s: i === 0 ? 'totalLabel' : 'totalText' }));
+  const vals = [[toUnits(exp), 'totalMoney'], [toUnits(inc), 'totalMoney'], [toUnits(inc - exp), 'totalSigned']];
+  vals.forEach(([v, s], i) => cells.push({ v, s, f: `SUM(${ref(fromCol + i, first)}:${ref(fromCol + i, last)})` }));
+  cells.push({ v: cnt, s: 'totalInt', f: `SUM(${ref(fromCol + 3, first)}:${ref(fromCol + 3, last)})` });
   ws.row(cells);
 }
 
-// ── Вкладка на каждую категорию ───────────────────────────────────────────
+// ── Категории × месяцы: сколько уходило на каждую категорию по месяцам ────
 
-function buildCategoryTabs(wb, rows, multi) {
-  const groups = new Map();
-  for (const r of rows) {
-    const key = `${r.kind}:${r.category_id}`;
-    if (!groups.has(key)) groups.set(key, { kind: r.kind, cat: r.cat, list: [] });
-    groups.get(key).list.push(r);
-  }
-  const ordered = [...groups.values()].sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === 'expense' ? -1 : 1;
-    return b.list.reduce((s, r) => s + r.amount, 0) - a.list.reduce((s, r) => s + r.amount, 0);
-  });
-  ordered.forEach((g, i) => {
-    const title = catTitle(g.cat);
-    const name = g.kind === 'income' && !/доход/i.test(title) ? `${title} (доход)` : title;
-    const ws = wb.addSheet(name, { widths: [12, 8, 44, 14, 9], freeze: 1, tab: TAB_COLORS[i % TAB_COLORS.length] });
-    ws.row(['Дата', 'Время', 'Описание', 'Сумма', 'Валюта'].map((v) => ({ v, s: 'head' })), { height: 22 });
-    const first = ws.nextRow;
-    for (const r of g.list) {
-      ws.row([...txRow(r, false), { v: toUnits(r.amount), s: g.kind === 'expense' ? 'moneyRed' : 'moneyGreen' }, { v: r.currency, s: 'text' }]);
+function buildCategoryMonths(wb, ctx) {
+  const { rows, main } = ctx;
+  const list = rows.filter((r) => r.kind === 'expense' && r.currency === main);
+  if (!list.length) return;
+  const monthKeys = [...new Set(list.map((r) => r.l.y * 100 + r.l.m))].sort((a, b) => a - b);
+  const groups = groupByCategory(list);
+  const ws = wb.addSheet('Категории по месяцам', { widths: [28, ...monthKeys.map(() => 14), 16], freeze: 1, tab: 'C0504D' });
+  ws.row([
+    { v: `Расходы${curLabel(ctx)}`, s: 'head' },
+    ...monthKeys.map((k) => ({ v: monthTitle(Math.floor(k / 100), k % 100), s: 'head' })),
+    { v: 'Итого', s: 'head' },
+  ], { height: 22 });
+  const first = ws.nextRow;
+  const totalCol = monthKeys.length + 2;
+  for (const g of groups) {
+    const r = ws.nextRow;
+    const byMonth = new Map();
+    for (const x of g.list) {
+      const k = x.l.y * 100 + x.l.m;
+      byMonth.set(k, (byMonth.get(k) || 0) + x.amount);
     }
-    const last = ws.nextRow - 1;
-    ws.autoFilter(`A1:E${last}`);
-    ws.row([]);
     ws.row([
-      { v: 'Итого', s: 'totalLabel' }, { v: '', s: 'totalText' },
-      { v: `${g.list.length} оп.${multi ? ' · все валюты' : ''}`, s: 'totalText' },
-      { v: toUnits(g.list.reduce((s, r) => s + r.amount, 0)), s: 'totalMoney', f: `SUBTOTAL(109,D${first}:D${last})` },
-      { v: '', s: 'totalText' },
+      { v: catTitle(g.cat), s: 'text' },
+      ...monthKeys.map((k) => (byMonth.has(k) ? { v: toUnits(byMonth.get(k)), s: 'money' } : { v: '', s: 'money' })),
+      { v: toUnits(g.total), s: 'moneyBold', f: `SUM(${ref(2, r)}:${ref(totalCol - 1, r)})` },
     ]);
-  });
+  }
+  const last = ws.nextRow - 1;
+  ws.row([
+    { v: 'Всего за месяц', s: 'totalLabel' },
+    ...monthKeys.map((k, i) => ({
+      v: toUnits(sum(list.filter((x) => x.l.y * 100 + x.l.m === k))), s: 'totalMoney', f: `SUM(${ref(i + 2, first)}:${ref(i + 2, last)})`,
+    })),
+    { v: toUnits(sum(list)), s: 'totalMoney', f: `SUM(${ref(totalCol, first)}:${ref(totalCol, last)})` },
+  ]);
 }

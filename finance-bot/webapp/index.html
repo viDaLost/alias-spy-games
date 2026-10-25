@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Учёт финансов</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="loading" class="loading"><div class="spinner"></div></div>
+  </div>
+  <nav id="tabs" class="tabs" hidden>
+    <button data-tab="overview" class="active"><span class="ti">📊</span><span>Обзор</span></button>
+    <button data-tab="ops"><span class="ti">🧾</span><span>Операции</span></button>
+    <button data-tab="add" class="tab-add" aria-label="Добавить"><span class="plus">+</span></button>
+    <button data-tab="cats"><span class="ti">📂</span><span>Категории</span></button>
+    <button data-tab="more"><span class="ti">⚙️</span><span>Ещё</span></button>
+  </nav>
+  <div id="sheet-backdrop" class="backdrop" hidden></div>
+  <div id="sheet" class="sheet" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

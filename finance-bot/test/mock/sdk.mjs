@@ -41,4 +41,6 @@ export async function fetch(url, init = {}) {
   const text = typeof body === 'string' ? body : JSON.stringify(body);
   return { ok: status < 300, status, statusText: '', url, async json() { return JSON.parse(text); }, async text() { return text; } };
 }
-export class EndpointError extends Error {}
+export class EndpointError extends Error {
+  constructor(description, parameters = {}) { super(description); this.description = description; this.parameters = parameters; }
+}

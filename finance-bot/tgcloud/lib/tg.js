@@ -1,7 +1,7 @@
 // Обёртки над Bot API: отправка, правка, клавиатуры.
 
 import { api } from 'sdk';
-import { MENU } from './config.js';
+import { MENU, WEBAPP_URL } from './config.js';
 
 export async function send(chatId, text, extra = {}) {
   return api.sendMessage({
@@ -58,6 +58,11 @@ export async function remove(chatId, messageId) {
 
 export const btn = (text, data) => ({ text, callback_data: data });
 
+/** Кнопка, открывающая мини-приложение (screen — стартовый экран: categories, add…). */
+export const appBtn = (text, screen = '') => ({ text, web_app: { url: WEBAPP_URL + (screen ? `?screen=${screen}` : '') } });
+
+export const APP_MENU_BUTTON = { type: 'web_app', text: 'Приложение', web_app: { url: WEBAPP_URL } };
+
 /** Раскладывает кнопки по рядам по n штук. */
 export function rows(buttons, n = 2) {
   const out = [];
@@ -82,6 +87,7 @@ export const MAIN_KEYBOARD = {
 
 export const BOT_COMMANDS = [
   { command: 'start', description: 'Главное меню' },
+  { command: 'app', description: 'Открыть приложение' },
   { command: 'report', description: 'Отчёт за месяц' },
   { command: 'excel', description: 'Выгрузить таблицу Excel' },
   { command: 'last', description: 'Последние операции' },
