@@ -60,6 +60,9 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .row .sub { font-size: 13px; color: var(--hint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row .amt { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .row .chev { color: var(--hint); }
+.row.subrow { padding-left: 40px; }
+.row.subrow + .row::before, .row + .row.subrow::before { left: 86px; }
+.row .ico.small-ico { width: 30px; height: 30px; font-size: 16px; }
 .day-head { display: flex; justify-content: space-between; padding: 14px 6px 6px; font-size: 13px; color: var(--hint); font-weight: 600; }
 
 /* ── Период ── */
@@ -95,6 +98,8 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .cat-bars .cb-top .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cat-bars .cb-top .amt { font-weight: 600; font-variant-numeric: tabular-nums; }
 .cat-bars .cb-top .pc { color: var(--hint); width: 40px; text-align: right; font-size: 13px; }
+.cat-bars .cb.sub { padding: 4px 0 4px 26px; border-top: 0; font-size: 14px; }
+.cat-bars .cb.sub .amt { font-weight: 500; }
 .bar { height: 6px; background: var(--soft); border-radius: 3px; margin-top: 6px; overflow: hidden; }
 .bar > i { display: block; height: 100%; border-radius: 3px; }
 
@@ -113,6 +118,10 @@ button { cursor: pointer; border: 0; background: none; padding: 0; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
 .chip { padding: 6px 12px; border-radius: 16px; background: var(--card); font-size: 14px; }
 .chip.on { background: var(--accent); color: var(--accent-text); }
+.chip.add { background: transparent; border: 1px dashed var(--hint); color: var(--hint); }
+.sub-pick { margin-top: 10px; background: var(--soft); border-radius: 12px; padding: 10px; }
+.sub-pick .chips { margin-top: 6px; }
+.sub-pick .chip:not(.on):not(.add) { background: var(--card); }
 .totals-line { font-size: 13px; color: var(--hint); padding: 6px 6px 0; }
 .more-btn { display: block; width: 100%; padding: 12px; color: var(--link); background: var(--card); border-radius: var(--radius); margin-bottom: 12px; }
 

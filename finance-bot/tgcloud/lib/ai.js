@@ -86,8 +86,10 @@ export async function checkKey(cfg) {
  */
 export async function parseWithLlm(cfg, text, { cats, currency, tz }) {
   const today = localToday(tz);
-  const expense = cats.filter((c) => c.kind === 'expense').map((c) => c.name);
-  const income = cats.filter((c) => c.kind === 'income').map((c) => c.name);
+  // Подкатегории — полным путём: «Здоровье › Аптека».
+  const path = (c) => (c.parent_name ? `${c.parent_name} › ${c.name}` : c.name);
+  const expense = cats.filter((c) => c.kind === 'expense').map(path);
+  const income = cats.filter((c) => c.kind === 'income').map(path);
   const system = [
     'Ты — модуль учёта личных финансов. Пользователь пишет или надиктовывает траты и доходы на русском.',
     'Извлеки ВСЕ операции из фразы и верни JSON строго вида:',
@@ -96,6 +98,7 @@ export async function parseWithLlm(cfg, text, { cats, currency, tz }) {
     `Категории расходов: ${expense.join('; ')}.`,
     `Категории доходов: ${income.join('; ')}.`,
     'Правила: category — ТОЛЬКО одно из названий выше (точно как написано), иначе «Прочее»/«Прочие доходы».',
+    'Если подходит подкатегория («Категория › Подкатегория») — выбирай её.',
     'amount — число в единицах валюты (250.5), «5к»/«5 тысяч» = 5000, «полторы тысячи» = 1500.',
     'Если указано «2 кофе по 150» — amount = 300. Не дели одну покупку на несколько.',
     'note — 1–4 слова по-русски, с маленькой буквы, без суммы и даты («кофе», «такси до работы»).',
@@ -110,7 +113,12 @@ export async function parseWithLlm(cfg, text, { cats, currency, tz }) {
     return null;
   }
   const list = Array.isArray(data && data.items) ? data.items : [];
-  const byName = new Map(cats.map((c) => [`${c.kind}:${c.name.toLowerCase()}`, c]));
+  const byName = new Map();
+  for (const c of cats) {
+    byName.set(`${c.kind}:${path(c).toLowerCase()}`, c);
+    const short = `${c.kind}:${c.name.toLowerCase()}`;
+    if (!byName.has(short) || !c.parent_id) byName.set(short, c);
+  }
   const out = [];
   for (const it of list.slice(0, 20)) {
     const amount = Math.round(Number(String(it.amount).replace(',', '.').replace(/\s/g, '')) * 100);

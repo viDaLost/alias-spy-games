@@ -8,10 +8,11 @@ import {
   decodePeriod, periodBounds, shiftPeriod, currentPeriodCode, prevPeriodLabel, toLocal,
   humanDay, localToday, periodCode, cmpYmd, MONTHS,
 } from './dates.js';
-import { esc, money, signedMoney, percent, bar, catLabel, plural, tzLabel, truncate } from './format.js';
+import { esc, money, signedMoney, percent, bar, catLabel, catPath, plural, tzLabel, truncate } from './format.js';
 import { btn, appBtn, rows, inline } from './tg.js';
 import { CURRENCIES, TIMEZONES, AI_PRESETS } from './config.js';
 import { getAiConfig, aiReady } from './ai.js';
+import { SUGGESTED_SUBS } from './categories.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -21,13 +22,45 @@ export async function catsMap(userId) {
   return new Map(cats.map((c) => [c.id, c]));
 }
 
+/** Категории одного типа деревом: верхний уровень по порядку, у каждой — subs. */
+export function catTree(cats, kind) {
+  const ofKind = cats.filter((c) => c.kind === kind);
+  return ofKind.filter((c) => !c.parent_id).map((c) => ({ ...c, subs: ofKind.filter((s) => s.parent_id === c.id) }));
+}
+
+/**
+ * Суммы по категориям → по категориям верхнего уровня с разбивкой по подкатегориям.
+ * rows: [{ category_id, total, cnt }]. Возвращает [{ id, cat, total, cnt, subs: [{ label, total }] }].
+ */
+export function rollUp(rows, cats) {
+  const map = new Map();
+  for (const r of rows) {
+    const c = cats.get(r.category_id);
+    const topId = c && c.parent_id && cats.get(c.parent_id) ? c.parent_id : r.category_id;
+    const g = map.get(topId) || { id: topId, cat: cats.get(topId) || null, total: 0, cnt: 0, parts: new Map() };
+    g.total += r.total;
+    g.cnt += r.cnt;
+    const key = topId === r.category_id ? 0 : r.category_id;
+    g.parts.set(key, (g.parts.get(key) || 0) + r.total);
+    map.set(topId, g);
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total).map((g) => {
+    const subs = [];
+    if ([...g.parts.keys()].some((k) => k)) {
+      for (const [k, total] of g.parts) subs.push({ label: k ? cats.get(k).name : 'без уточнения', total });
+      subs.sort((a, b) => b.total - a.total);
+    }
+    return { id: g.id, cat: g.cat, total: g.total, cnt: g.cnt, subs };
+  });
+}
+
 // ── Карточка операции ──────────────────────────────────────────────────────
 
 export function txLine(t, cat, tz, { withDate = true } = {}) {
   const l = toLocal(t.occurred_at, tz);
   const date = withDate ? `${pad(l.d)}.${pad(l.m)} · ` : '';
   const note = t.note ? ' — ' + esc(truncate(t.note, 40)) : '';
-  return `${date}<b>${signedMoney(t.kind, t.amount, t.currency)}</b> · ${cat ? cat.emoji || '•' : '❔'} ${esc(cat ? cat.name : 'Без категории')}${note}`;
+  return `${date}<b>${signedMoney(t.kind, t.amount, t.currency)}</b> · ${esc(catLabel(cat))}${note}`;
 }
 
 export function txCardText(t, cat, tz, { header = '', transcript = '', footer = '' } = {}) {
@@ -51,14 +84,31 @@ export function txCardKeyboard(t, back = '') {
   return inline(kb);
 }
 
-export async function categoryPicker(userId, t, note = '') {
-  const cats = (await listCategories(userId)).filter((c) => c.kind === t.kind);
-  const kb = rows(cats.map((c) => btn(`${c.id === t.category_id ? '✅ ' : ''}${c.emoji} ${c.name}`, `t:s:${t.id}:${c.id}`)), 2);
+// Категории верхнего уровня; у кого есть подкатегории — «›» открывает их выбор.
+export async function categoryPicker(userId, t) {
+  const cats = await listCategories(userId);
+  const cur = cats.find((c) => c.id === t.category_id);
+  const curTop = cur ? cur.parent_id || cur.id : 0;
+  const kb = rows(catTree(cats, t.kind).map((c) => (c.subs.length
+    ? btn(`${c.id === curTop ? '✅ ' : ''}${c.emoji} ${c.name} ›`, `t:p:${t.id}:${c.id}`)
+    : btn(`${c.id === curTop ? '✅ ' : ''}${c.emoji} ${c.name}`, `t:s:${t.id}:${c.id}`))), 2);
   kb.push([btn('➕ Новая категория', `t:n:${t.id}`)]);
   kb.push([
     btn(t.kind === 'expense' ? '💰 Это доход' : '💸 Это расход', `t:k:${t.id}`),
     btn('◀️ Назад', `t:o:${t.id}`),
   ]);
+  return inline(kb);
+}
+
+export async function subPicker(userId, t, parentId) {
+  const cats = await listCategories(userId);
+  const parent = cats.find((c) => c.id === parentId);
+  if (!parent) return categoryPicker(userId, t);
+  const subs = cats.filter((c) => c.parent_id === parentId);
+  const mark = (id) => (id === t.category_id ? '✅ ' : '');
+  const kb = [[btn(`${mark(parent.id)}${parent.emoji} ${parent.name} — в целом`, `t:s:${t.id}:${parent.id}`)]];
+  kb.push(...rows(subs.map((s) => btn(`${mark(s.id)}${s.emoji || parent.emoji} ${s.name}`, `t:s:${t.id}:${s.id}`)), 2));
+  kb.push([btn('➕ Подкатегория', `t:ns:${t.id}:${parent.id}`), btn('◀️ Назад', `t:c:${t.id}`)]);
   return inline(kb);
 }
 
@@ -148,18 +198,19 @@ export async function reportScreen(user, code) {
 
     if (exp.length) {
       lines.push('', '<b>Расходы по категориям</b>');
-      for (const r of exp.slice(0, 15)) {
-        const c = cats.get(r.category_id);
-        lines.push(`${c ? c.emoji : '❔'} ${esc(c ? c.name : 'Без категории')} — <b>${money(r.total, cur)}</b> · ${percent(r.total, expTotal)}`);
-        lines.push(`<code>${bar(r.total, expTotal)}</code>`);
+      const groups = rollUp(exp, cats);
+      for (const g of groups.slice(0, 15)) {
+        lines.push(`${esc(catLabel(g.cat))} — <b>${money(g.total, cur)}</b> · ${percent(g.total, expTotal)}`);
+        lines.push(`<code>${bar(g.total, expTotal)}</code>`);
+        for (const s of g.subs) lines.push(`    ↳ ${esc(s.label)} — ${money(s.total, cur)}`);
       }
-      if (exp.length > 15) lines.push(`…и ещё ${exp.length - 15}`);
+      if (groups.length > 15) lines.push(`…и ещё ${groups.length - 15}`);
     }
     if (inc.length) {
       lines.push('', '<b>Доходы</b>');
-      for (const r of inc) {
-        const c = cats.get(r.category_id);
-        lines.push(`${c ? c.emoji : '❔'} ${esc(c ? c.name : 'Без категории')} — <b>${money(r.total, cur)}</b>`);
+      for (const g of rollUp(inc, cats)) {
+        lines.push(`${esc(catLabel(g.cat))} — <b>${money(g.total, cur)}</b>`);
+        for (const s of g.subs) lines.push(`    ↳ ${esc(s.label)} — ${money(s.total, cur)}`);
       }
     }
     const top = await topExpenses(user.tg_id, from, to, cur, 3);
@@ -237,18 +288,13 @@ export async function excelCategoryScreen(user, code) {
   const { from, to } = periodBounds(period, user.tz_offset);
   const totals = await totalsByCategory(user.tg_id, from, to);
   const cats = await catsMap(user.tg_id);
-  const agg = new Map();
-  for (const r of totals) {
-    const a = agg.get(r.category_id) || { id: r.category_id, kind: r.kind, total: 0, cnt: 0 };
-    a.total += r.currency === user.currency ? r.total : 0;
-    a.cnt += r.cnt;
-    agg.set(r.category_id, a);
+  // Подкатегории выгружаются вместе со своей категорией.
+  const list = [];
+  for (const kind of ['expense', 'income']) {
+    const ofKind = totals.filter((r) => r.kind === kind).map((r) => ({ ...r, total: r.currency === user.currency ? r.total : 0 }));
+    list.push(...rollUp(ofKind, cats));
   }
-  const list = [...agg.values()].sort((a, b) => (a.kind === b.kind ? b.total - a.total : a.kind === 'expense' ? -1 : 1));
-  const kb = list.map((a) => {
-    const c = cats.get(a.id);
-    return [btn(`${c ? c.emoji : '❔'} ${c ? c.name : 'Без категории'} · ${a.total ? money(a.total, user.currency) : a.cnt + ' оп.'}`, `x:g:${code}:${a.id}`)];
-  });
+  const kb = list.map((a) => [btn(`${catLabel(a.cat)} · ${a.total ? money(a.total, user.currency) : a.cnt + ' оп.'}`, `x:g:${code}:${a.id}`)]);
   kb.push([btn('◀️ Назад', `x:p:${code}`)]);
   return { text: `🗂 <b>${esc(period.title)}</b>\n\nВыберите категорию для выгрузки:`, extra: inline(kb) };
 }
@@ -257,61 +303,87 @@ export async function excelCategoryScreen(user, code) {
 
 export async function categoriesScreen(user, kind = 'expense') {
   const all = (await listCategories(user.tg_id, { includeArchived: true })).filter((c) => c.kind === kind);
-  const cats = all.filter((c) => !c.archived);
-  const archived = all.length - cats.length;
+  const archived = all.filter((c) => c.archived).length;
+  const tree = catTree(all.filter((c) => !c.archived), kind);
   const lines = [`📂 <b>${kind === 'expense' ? 'Категории расходов' : 'Категории доходов'}</b>`, ''];
-  for (const c of cats) {
+  for (const c of tree) {
     const kws = String(c.keywords || '').split(',').filter(Boolean);
     lines.push(`${c.emoji || '•'} ${esc(c.name)}${kws.length ? ` <i>· ${esc(kws.slice(0, 6).join(', '))}${kws.length > 6 ? '…' : ''}</i>` : ''}`);
+    if (c.subs.length) lines.push(`      ↳ ${c.subs.map((x) => esc(x.name)).join(' · ')}`);
   }
-  lines.push('', '<i>Категорию я угадываю сам. Если ошибся — нажмите «🏷 Категория» под записью, и я запомню слово на будущее.</i>');
+  lines.push('', '<i>Категорию и подкатегорию я угадываю сам. Если ошибся — нажмите «🏷 Категория» под записью, и я запомню слово на будущее.</i>');
   const kb = [
-    [btn('➕ Добавить', `c:a:${kind}`), btn('✏️ Изменить', `c:e:${kind}`)],
-    [btn('🗑 Удалить', `c:d:${kind}`), ...(archived ? [btn(`♻️ Вернуть (${archived})`, `c:r:${kind}`)] : [])],
+    [btn('➕ Категория', `c:a:${kind}`), btn('➕ Подкатегория', `c:sp:${kind}`)],
+    [btn('✏️ Изменить', `c:e:${kind}`), btn('🗑 Удалить', `c:d:${kind}`)],
+    ...(archived ? [[btn(`♻️ Вернуть удалённые (${archived})`, `c:r:${kind}`)]] : []),
     [btn(kind === 'expense' ? '💰 Категории доходов' : '💸 Категории расходов', `c:l:${kind === 'expense' ? 'income' : 'expense'}`)],
     [appBtn('📱 Настроить в приложении', 'categories')],
   ];
   return { text: lines.join('\n'), extra: inline(kb) };
 }
 
-export async function categoryEditScreen(user, kind) {
-  const cats = (await listCategories(user.tg_id)).filter((c) => c.kind === kind);
-  const kb = rows(cats.map((c) => btn(`✏️ ${c.emoji} ${c.name}`, `c:ed:${c.id}`)), 2);
+// Кнопки по дереву: категория, следом её подкатегории («↳ Аптека»).
+function treeButtons(tree, prefix, data, { skip = () => false } = {}) {
+  const out = [];
+  for (const c of tree) {
+    if (!skip(c)) out.push(btn(`${prefix}${c.emoji} ${c.name}`, data(c)));
+    for (const s of c.subs) out.push(btn(`${prefix}↳ ${s.name}`, data(s)));
+  }
+  return rows(out, 2);
+}
+
+export async function categoryParentScreen(user, kind) {
+  const tree = catTree(await listCategories(user.tg_id), kind);
+  const kb = rows(tree.map((c) => btn(`${c.emoji} ${c.name}${c.subs.length ? ` (${c.subs.length})` : ''}`, `c:as:${c.id}`)), 2);
   kb.push([btn('◀️ Назад', `c:l:${kind}`)]);
-  return { text: '✏️ <b>Какую категорию изменить?</b>\n\nМожно поменять название и эмодзи.', extra: inline(kb) };
+  return { text: '➕ <b>В какую категорию добавить подкатегории?</b>\n\nНапример: «💊 Здоровье» → Аптека, Врачи, Стоматолог.', extra: inline(kb) };
+}
+
+/** Подсказки подкатегорий для категории: стандартные минус уже созданные. */
+export function suggestedSubs(parent, existing) {
+  const have = new Set(existing.map((c) => c.name.toLowerCase()));
+  return (SUGGESTED_SUBS[parent.code] || []).filter((n) => !have.has(n.toLowerCase()));
+}
+
+export async function categoryEditScreen(user, kind) {
+  const tree = catTree(await listCategories(user.tg_id), kind);
+  const kb = treeButtons(tree, '✏️ ', (c) => `c:ed:${c.id}`);
+  kb.push([btn('◀️ Назад', `c:l:${kind}`)]);
+  return { text: '✏️ <b>Что изменить?</b>\n\nМожно поменять название и эмодзи категории или подкатегории.', extra: inline(kb) };
 }
 
 export async function categoryRestoreScreen(user, kind) {
   const cats = (await listCategories(user.tg_id, { includeArchived: true })).filter((c) => c.kind === kind && c.archived);
-  const kb = rows(cats.map((c) => btn(`♻️ ${c.emoji} ${c.name}`, `c:rs:${c.id}`)), 2);
+  const kb = rows(cats.map((c) => btn(`♻️ ${catLabel(c)}`, `c:rs:${c.id}`)), 2);
   kb.push([btn('◀️ Назад', `c:l:${kind}`)]);
   return {
-    text: cats.length ? '♻️ <b>Какую категорию вернуть?</b>' : '♻️ Удалённых категорий нет.',
+    text: cats.length ? '♻️ <b>Что вернуть?</b>\n\nКатегория возвращается вместе с подкатегориями.' : '♻️ Удалённых категорий нет.',
     extra: inline(kb),
   };
 }
 
 export async function categoryDeleteScreen(user, kind) {
-  const cats = (await listCategories(user.tg_id)).filter((c) => c.kind === kind && c.code !== 'other' && c.code !== 'other_in');
-  const kb = rows(cats.map((c) => btn(`🗑 ${c.emoji} ${c.name}`, `c:rm:${c.id}`)), 2);
+  const tree = catTree(await listCategories(user.tg_id), kind);
+  const kb = treeButtons(tree, '🗑 ', (c) => `c:rm:${c.id}`, { skip: (c) => c.code === 'other' || c.code === 'other_in' });
   kb.push([btn('◀️ Назад', `c:l:${kind}`)]);
   return {
-    text: '🗑 <b>Какую категорию удалить?</b>\n\nСтарые записи останутся в отчётах под прежним названием.',
+    text: '🗑 <b>Что удалить?</b>\n\nВместе с категорией удаляются её подкатегории. Старые записи останутся в отчётах под прежним названием.',
     extra: inline(kb),
   };
 }
 
 // ── Бюджет ─────────────────────────────────────────────────────────────────
 
-export async function budgetStatus(user, categoryId) {
-  // Состояние бюджета (общего и категории) в текущем месяце — для предупреждений.
+export async function budgetStatus(user, cat) {
+  // Состояние бюджетов, которых касается трата в cat (общий, категории и её родителя), в текущем месяце.
+  const ids = cat ? [cat.id, cat.parent_id].filter(Boolean) : [];
   const budgets = await listBudgets(user.tg_id);
   if (!budgets.length) return [];
   const t = localToday(user.tz_offset);
   const { from, to } = periodBounds(decodePeriod(periodCode.month(t.y, t.m)), user.tz_offset);
   const out = [];
   for (const b of budgets) {
-    if (b.category_id !== 0 && b.category_id !== categoryId) continue;
+    if (b.category_id !== 0 && !ids.includes(b.category_id)) continue;
     const spent = await categoryMonthSpent(user.tg_id, b.category_id, user.currency, from, to);
     out.push({ ...b, spent });
   }
@@ -334,7 +406,7 @@ export async function budgetScreen(user) {
     for (const b of budgets) {
       const spent = await categoryMonthSpent(user.tg_id, b.category_id, cur, from, to);
       const c = b.category_id ? cats.get(b.category_id) : null;
-      const name = b.category_id ? `${c ? c.emoji + ' ' + esc(c.name) : 'Категория'}` : '💼 <b>Общий</b>';
+      const name = b.category_id ? esc(c ? catLabel(c) : 'Категория') : '💼 <b>Общий</b>';
       const left = b.amount - spent;
       const icon = spent > b.amount ? '🔴' : spent >= b.amount * 0.8 ? '🟡' : '🟢';
       lines.push(`${icon} ${name}: ${money(spent, cur)} из ${money(b.amount, cur)} (${percent(spent, b.amount)})`);
@@ -355,8 +427,11 @@ export async function settingsScreen(user, isOwner) {
     `🕒 Часовой пояс: <b>${tzLabel(user.tz_offset)}</b>`,
     `🎙 Голосовые: ${aiReady(cfg) ? `<b>включены</b> (${esc(cfg.title)})` : '<b>не подключены</b>'}`,
   ];
+  const clean = (await getSetting(`clean:${user.tg_id}`)) !== 'off';
+  lines.push(`🧽 Чистить чат: <b>${clean ? 'да' : 'нет'}</b> — ${clean ? 'меню, подсказки и ваши команды удаляются, остаются карточки записей и файлы' : 'все сообщения остаются'}`);
   const kb = [
     [btn('💱 Валюта', 's:cur'), btn('🕒 Часовой пояс', 's:tz')],
+    [btn(clean ? '🧽 Не чистить чат' : '🧽 Чистить чат', 's:clean')],
   ];
   if (isOwner) {
     kb.push([btn('🎙 Голос и ИИ', 's:ai'), btn('👥 Доступ', 's:acc')]);

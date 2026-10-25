@@ -39,9 +39,17 @@ export function bar(part, whole, width = 10) {
   return '▰'.repeat(full) + '▱'.repeat(width - full);
 }
 
+/** «🛒 Продукты», для подкатегории — «💊 Здоровье › Аптека». */
 export function catLabel(cat) {
   if (!cat) return '❔ Без категории';
-  return `${cat.emoji ? cat.emoji + ' ' : ''}${cat.name}`;
+  const emoji = cat.emoji || cat.parent_emoji || '';
+  return `${emoji ? emoji + ' ' : ''}${cat.parent_name ? cat.parent_name + ' › ' : ''}${cat.name}`;
+}
+
+/** Название без эмодзи: «Здоровье › Аптека». */
+export function catPath(cat) {
+  if (!cat) return 'Без категории';
+  return `${cat.parent_name ? cat.parent_name + ' › ' : ''}${cat.name}`;
 }
 
 export function plural(n, one, few, many) {

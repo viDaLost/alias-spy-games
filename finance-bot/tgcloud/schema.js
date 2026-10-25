@@ -14,7 +14,7 @@ export const users = table('users', {
   createdAt: integer('created_at').default(sql`(unixepoch())`),
 });
 
-// Категории расходов и доходов (свои у каждого пользователя).
+// Категории расходов и доходов (свои у каждого пользователя) и их подкатегории.
 export const categories = table('categories', {
   id:       integer('id').primaryKey({ autoIncrement: true }),
   userId:   integer('user_id').notNull(),
@@ -25,6 +25,7 @@ export const categories = table('categories', {
   keywords: text('keywords').default(''),            // выученные слова через запятую
   archived: integer('archived').notNull().default(0),
   sort:     integer('sort').notNull().default(0),
+  parentId: integer('parent_id').notNull().default(0), // подкатегория: id родителя (одна вложенность), 0 — верхний уровень
 }, (t) => ({
   userKindIdx: index('idx_categories_user_kind').on(t.userId, t.kind),
 }));

@@ -17,60 +17,138 @@ import {
 } from './dates.js';
 import { buildWorkbook } from './export.js';
 import { XLSX_MIME } from './xlsx.js';
-import { esc, money, signedMoney, catLabel, plural, tzLabel } from './format.js';
-import { send, edit, show, action, answer, remove, btn, appBtn, inline, MAIN_KEYBOARD, BOT_COMMANDS, APP_MENU_BUTTON } from './tg.js';
+import { esc, money, signedMoney, catLabel, catPath, plural, tzLabel } from './format.js';
+import {
+  send as tgSend, show as tgShow, edit, action, answer, remove, btn, appBtn, inline,
+  MAIN_KEYBOARD, BOT_COMMANDS, APP_MENU_BUTTON,
+} from './tg.js';
 import { AI_PRESETS, CURRENCIES, MENU, MAX_VOICE_SECONDS } from './config.js';
 import * as S from './screens.js';
 
 const COMMANDS_VERSION = '2';
+
+// ── Чистый чат ─────────────────────────────────────────────────────────────
+// Всё, что бот отправил в ответ (меню, отчёты, подсказки, вопросы), кроме карточек
+// записей, приветствия и файлов, — временное: при следующем сообщении пользователя
+// бот это удаляет. Текстовые сообщения пользователя удаляются сразу после обработки
+// (запись остаётся карточкой). Голосовые не трогаем. Выключается в ⚙️ Настройках.
+
+const outbox = new Map(); // chatId → id временных сообщений, отправленных в этом обновлении
+
+function track(chatId, m, editedId = null) {
+  if (!m || typeof m !== 'object' || !m.message_id || m.message_id === editedId) return m;
+  if (!outbox.has(chatId)) outbox.set(chatId, new Set());
+  outbox.get(chatId).add(m.message_id);
+  return m;
+}
+const send = async (chatId, text, extra) => track(chatId, await tgSend(chatId, text, extra));
+const show = async (chatId, messageId, text, extra) => track(chatId, await tgShow(chatId, messageId, text, extra), messageId);
+
+/** Сообщение остаётся в чате (карточка записи). ids — ещё id, которые стали карточкой. */
+function keep(chatId, m, ...ids) {
+  const set = outbox.get(chatId);
+  if (set) for (const id of [m && m.message_id, ...ids]) set.delete(id);
+  return m;
+}
+
+async function removeMany(chatId, ids) {
+  if (!ids.length) return;
+  try {
+    await api.deleteMessages({ chat_id: chatId, message_ids: ids });
+  } catch {
+    for (const id of ids) await remove(chatId, id); // старые (>48 ч) Telegram удалить не даст — не страшно
+  }
+}
+
+const ephKey = (c) => `eph:${c.user.tg_id}`;
+
+// Удаляет временные сообщения прошлого шага.
+async function sweep(c) {
+  const raw = await getSetting(ephKey(c));
+  if (!raw) return;
+  await setSetting(ephKey(c), null);
+  let ids = [];
+  try { ids = JSON.parse(raw); } catch { /* испорчено — просто забываем */ }
+  await removeMany(c.chatId, ids);
+}
+
+// Запоминает временные сообщения этого шага, чтобы удалить их на следующем.
+async function stash(c) {
+  const set = outbox.get(c.chatId);
+  outbox.delete(c.chatId);
+  if (!c.clean || !set || !set.size) return;
+  let prev = [];
+  try { prev = JSON.parse((await getSetting(ephKey(c))) || '[]'); } catch { prev = []; }
+  await setSetting(ephKey(c), JSON.stringify([...prev, ...set].slice(-60)));
+}
 
 // ── Точки входа ────────────────────────────────────────────────────────────
 
 export async function handleMessage(msg) {
   if (!msg || !msg.from || !msg.chat || msg.chat.type !== 'private' || msg.from.is_bot) return;
   const chatId = msg.chat.id;
+  let c = null;
   try {
-    const c = await context(msg.from, chatId);
+    c = await context(msg.from, chatId);
     if (!c) return;
-    if (c.isOwner) await ensureBotSetup();
-    const text = String(msg.text || msg.caption || '').trim();
-    // Новичок сразу написал трату — сначала покажем приветствие и меню.
-    if (c.created && !/^\/start/.test(text)) await startScreen(c);
-    if (msg.voice || msg.audio || msg.video_note) return await onVoice(c, msg);
-
-    if (!text) {
-      return await send(chatId, 'Я понимаю текст и голосовые 🙂\nНапример: <code>кофе 250</code> или <code>+50000 зарплата</code>.', MAIN_KEYBOARD);
+    c.clean = (await getSetting(`clean:${c.user.tg_id}`)) !== 'off';
+    if (c.clean) await sweep(c);
+    try {
+      await routeMessage(c, msg);
+    } finally {
+      if (c.clean && msg.text) await remove(chatId, msg.message_id);
     }
-    if (text.startsWith('/')) {
-      if (c.user.state) await clearState(c);
-      return await onCommand(c, text, msg);
-    }
-    const menuKey = Object.keys(MENU).find((k) => MENU[k] === text);
-    if (menuKey) {
-      if (c.user.state) await clearState(c);
-      return await onMenu(c, menuKey);
-    }
-    if (c.user.state) return await onStateInput(c, text, msg);
-    return await onEntry(c, text, { source: 'text' });
   } catch (e) {
     console.error('message failed', e);
     await send(chatId, '⚠️ Что-то пошло не так. Попробуйте ещё раз.').catch(() => {});
+  } finally {
+    if (c) await stash(c).catch(() => {});
+    else outbox.delete(chatId);
   }
+}
+
+async function routeMessage(c, msg) {
+  const chatId = c.chatId;
+  if (c.isOwner) await ensureBotSetup();
+  const text = String(msg.text || msg.caption || '').trim();
+  // Новичок сразу написал трату — сначала покажем приветствие и меню.
+  if (c.created && !/^\/start/.test(text)) await startScreen(c);
+  if (msg.voice || msg.audio || msg.video_note) return await onVoice(c, msg);
+
+  if (!text) {
+    return await send(chatId, 'Я понимаю текст и голосовые 🙂\nНапример: <code>кофе 250</code> или <code>+50000 зарплата</code>.', MAIN_KEYBOARD);
+  }
+  if (text.startsWith('/')) {
+    if (c.user.state) await clearState(c);
+    return await onCommand(c, text, msg);
+  }
+  const menuKey = Object.keys(MENU).find((k) => MENU[k] === text);
+  if (menuKey) {
+    if (c.user.state) await clearState(c);
+    return await onMenu(c, menuKey);
+  }
+  if (c.user.state) return await onStateInput(c, text, msg);
+  return await onEntry(c, text, { source: 'text' });
 }
 
 export async function handleCallback(q) {
   if (!q || !q.from || !q.message) return answer(q && q.id);
   const chatId = q.message.chat.id;
   const msgId = q.message.message_id;
+  let c = null;
   try {
-    const c = await context(q.from, chatId, true);
+    c = await context(q.from, chatId, true);
     if (!c) return await answer(q.id, 'Нет доступа', true);
     c.msgId = msgId;
     c.cbId = q.id;
+    c.clean = (await getSetting(`clean:${c.user.tg_id}`)) !== 'off';
     await onButton(c, String(q.data || ''));
   } catch (e) {
     console.error('callback failed', e);
     await answer(q.id, '⚠️ Ошибка, попробуйте ещё раз', true);
+  } finally {
+    if (c) await stash(c).catch(() => {});
+    else outbox.delete(chatId);
   }
 }
 
@@ -218,7 +296,12 @@ async function startScreen(c) {
         '2. Отправьте мне: <code>/setkey gsk_ваш_ключ</code>');
     }
   }
-  return send(c.chatId, lines.join('\n'), MAIN_KEYBOARD);
+  // Приветствие с меню остаётся в чате (одно: прошлое удаляем).
+  const prev = await getSetting(`greet:${c.user.tg_id}`);
+  const m = keep(c.chatId, await send(c.chatId, lines.join('\n'), MAIN_KEYBOARD));
+  if (c.clean && prev) await remove(c.chatId, +prev);
+  if (m && m.message_id) await setSetting(`greet:${c.user.tg_id}`, m.message_id);
+  return m;
 }
 
 // Команды бота и кнопка «Приложение» у поля ввода — для всех чатов сразу.
@@ -258,7 +341,8 @@ function helpText() {
     '',
     '<b>🎯 Бюджет</b>: <code>/budget 50000</code> — на месяц, <code>/budget продукты 15000</code> — на категорию.',
     '',
-    '<b>📂 Свои категории</b>: «📂 Категории» → ➕ Добавить / ✏️ Изменить. Или прямо под записью: 🏷 Категория → ➕ Новая категория.',
+    '<b>📂 Свои категории</b>: «📂 Категории» → ➕ Категория / ➕ Подкатегория / ✏️ Изменить. Или прямо под записью: 🏷 Категория → ➕ Новая категория.',
+    'Подкатегории — например, 💊 Здоровье → Аптека, Врачи, Стоматолог: в отчётах они складываются в свою категорию.',
     '',
     '<b>📱 Приложение</b>: /app — графики, поиск по операциям, категории и бюджеты в одном окне.',
   ].join('\n');
@@ -351,7 +435,7 @@ async function onEntry(c, text, { source = 'text', statusMsgId = null, transcrip
     const footer = [s.uncertain ? '🤔 Не уверен в категории — выберите подходящую:' : '', ...warnings].filter(Boolean).join('\n');
     const text2 = S.txCardText(t, s.cat, c.user.tz_offset, { header, transcript, footer });
     const extra = s.uncertain ? await S.categoryPicker(c.user.tg_id, t) : S.txCardKeyboard(t);
-    return show(c.chatId, statusMsgId, text2, extra);
+    return keep(c.chatId, await show(c.chatId, statusMsgId, text2, extra), statusMsgId);
   }
 
   const lines = [`✅ Записал ${saved.length} ${plural(saved.length, 'операцию', 'операции', 'операций')}:`, ''];
@@ -370,7 +454,7 @@ async function onEntry(c, text, { source = 'text', statusMsgId = null, transcrip
   const kb = [saved.slice(0, 10).map((s, i) => btn(`✏️ ${i + 1}`, `t:o:${s.id}`))];
   const ids = saved.map((s) => s.id).join('.');
   if (`t:X:${ids}`.length <= 64) kb.push([btn('🗑 Удалить всё', `t:X:${ids}`)]);
-  return show(c.chatId, statusMsgId, lines.join('\n'), inline(kb));
+  return keep(c.chatId, await show(c.chatId, statusMsgId, lines.join('\n'), inline(kb)), statusMsgId);
 }
 
 function toLocalDay(ymd) {
@@ -384,10 +468,10 @@ async function budgetWarnings(c, saved) {
     if (s.kind !== 'expense' || s.currency !== c.user.currency) continue;
     const ymd = s.ymd, today = localToday(c.user.tz_offset);
     if (ymd.y !== today.y || ymd.m !== today.m) continue;
-    for (const b of await S.budgetStatus(c.user, s.cat ? s.cat.id : -1)) {
+    for (const b of await S.budgetStatus(c.user, s.cat)) {
       if (seen.has(b.category_id)) continue;
       seen.add(b.category_id);
-      const name = b.category_id ? `«${s.cat.name}»` : 'общий';
+      const name = !b.category_id ? 'общий' : b.category_id === s.cat.id ? `«${catPath(s.cat)}»` : `«${s.cat.parent_name}»`;
       if (b.spent >= b.amount) out.push(`🔴 Бюджет ${name} ${b.spent > b.amount ? 'превышен' : 'исчерпан'}: ${money(b.spent, c.user.currency)} из ${money(b.amount, c.user.currency)}`);
       else if (b.spent >= b.amount * 0.8) out.push(`🟡 Бюджет ${name}: потрачено ${Math.round((b.spent / b.amount) * 100)}%, осталось ${money(b.amount - b.spent, c.user.currency)}`);
     }
@@ -447,6 +531,8 @@ async function onVoice(c, msg) {
 async function onStateInput(c, text, msg, statusMsgId = null) {
   const st = c.user.state || {};
   const reply = (t, extra = {}) => show(c.chatId, statusMsgId, t, extra);
+  // Карточку записи правим там же, где её открыли (st.cardId); не вышло — присылаем новую.
+  const replyCard = async (card) => keep(c.chatId, await show(c.chatId, st.cardId || statusMsgId, card.text, card.extra), ...(st.cardId ? [] : [statusMsgId]));
   if (isCancel(text)) { await clearState(c); return reply('Хорошо, отменил.', statusMsgId ? {} : MAIN_KEYBOARD); }
   const tz = c.user.tz_offset;
   // Похоже на новую запись («кофе 250»), а мы ждали другое — выходим из режима.
@@ -464,23 +550,40 @@ async function onStateInput(c, text, msg, statusMsgId = null) {
   }
 
   if (st.mode === 'cat_add') {
-    const [emoji, name] = splitEmoji(text);
-    if (!name || name.length > 40) return reply('Напишите название категории (до 40 символов), можно с эмодзи: <code>🧸 Дети</code>');
-    const cats = await listCategories(c.user.tg_id);
-    if (cats.some((x) => x.kind === st.kind && norm(x.name) === norm(name))) return reply('Такая категория уже есть. Напишите другое название или «отмена».');
-    const newId = await addCategory(c.user.tg_id, { kind: st.kind, name, emoji: emoji || (st.kind === 'income' ? '💵' : '🏷') });
+    const uid = c.user.tg_id;
+    const parent = st.parentId ? await getCategory(uid, st.parentId) : null;
+    if (st.parentId && !parent) { await clearState(c); return reply('Эта категория уже удалена.'); }
+    // Подкатегорий можно написать сразу несколько: «Аптека, Врачи, Стоматолог».
+    const parts = (parent && !st.txId ? text.split(/[,;\n]+/) : [text]).map((x) => x.trim()).filter(Boolean);
+    const siblings = (await listCategories(uid)).filter((x) => x.kind === st.kind && (x.parent_id || 0) === (parent ? parent.id : 0));
+    const added = [], skipped = [];
+    for (const part of parts.slice(0, 20)) {
+      const [emoji, name] = splitEmoji(part);
+      if (!name || name.length > 40) continue;
+      if ([...siblings, ...added].some((x) => norm(x.name) === norm(name))) { skipped.push(name); continue; }
+      const id = await addCategory(uid, { kind: st.kind, name, emoji: emoji || (parent ? '' : st.kind === 'income' ? '💵' : '🏷'), parentId: parent ? parent.id : 0 });
+      added.push({ id, name });
+    }
+    if (!added.length) {
+      return reply(skipped.length
+        ? 'Такая уже есть. Напишите другое название или «отмена».'
+        : `Напишите название (до 40 символов)${parent ? ', можно несколько через запятую: <code>Аптека, Врачи</code>' : ', можно с эмодзи: <code>🧸 Дети</code>'}`);
+    }
     await clearState(c);
     // Категорию создали из карточки записи — сразу ставим её этой записи.
-    const t = st.txId && await getTransaction(c.user.tg_id, st.txId);
+    const t = st.txId && await getTransaction(uid, st.txId);
     if (t) {
-      const cat = await getCategory(c.user.tg_id, newId);
-      await setTransactionCategory(c.user.tg_id, t.id, cat.kind, cat.id);
-      const word = await learn(c.user.tg_id, t.note, cat);
-      const card = await S.txCard(c.user, t.id, { header: `✅ Новая категория «${esc(name)}»${word ? ` · запомнил слово «${esc(word)}»` : ''}` });
-      return reply(card.text, card.extra);
+      const cat = await getCategory(uid, added[0].id);
+      await setTransactionCategory(uid, t.id, cat.kind, cat.id);
+      const word = await learn(uid, t.note, cat);
+      const card = await S.txCard(c.user, t.id, { header: `✅ ${parent ? 'Новая подкатегория' : 'Новая категория'} «${esc(catPath(cat))}»${word ? ` · запомнил слово «${esc(word)}»` : ''}` });
+      return replyCard(card);
     }
     const s = await S.categoriesScreen(c.user, st.kind);
-    return reply(`✅ Категория «${esc(name)}» добавлена.\n\n` + s.text, s.extra);
+    const done = parent
+      ? `✅ В «${esc(parent.name)}» ${added.length > 1 ? 'добавлены подкатегории' : 'добавлена подкатегория'}: ${added.map((x) => esc(x.name)).join(', ')}.`
+      : `✅ Категория «${esc(added[0].name)}» добавлена.`;
+    return reply(`${done}${skipped.length ? ` Уже были: ${skipped.map(esc).join(', ')}.` : ''}\n\n` + s.text, s.extra);
   }
 
   if (st.mode === 'cat_edit') {
@@ -491,14 +594,15 @@ async function onStateInput(c, text, msg, statusMsgId = null) {
     if (name.length > 40) return reply('Название слишком длинное — до 40 символов.');
     if (name) {
       const cats = await listCategories(c.user.tg_id, { includeArchived: true });
-      if (cats.some((x) => x.id !== cat.id && x.kind === cat.kind && norm(x.name) === norm(name))) {
+      if (cats.some((x) => x.id !== cat.id && x.kind === cat.kind && (x.parent_id || 0) === (cat.parent_id || 0) && norm(x.name) === norm(name))) {
         return reply('Такая категория уже есть. Напишите другое название или «отмена».');
       }
     }
     await updateCategory(c.user.tg_id, cat.id, { name: name || cat.name, emoji: emoji || cat.emoji, keywords: cat.keywords });
     await clearState(c);
     const s = await S.categoriesScreen(c.user, cat.kind);
-    return reply(`✅ Теперь категория называется «${esc((emoji || cat.emoji) + ' ' + (name || cat.name))}».\n\n` + s.text, s.extra);
+    const fresh = await getCategory(c.user.tg_id, cat.id);
+    return reply(`✅ Теперь называется «${esc(catLabel(fresh))}».\n\n` + s.text, s.extra);
   }
 
   if (st.mode === 'tx_edit') {
@@ -509,8 +613,7 @@ async function onStateInput(c, text, msg, statusMsgId = null) {
     if (p.amount) await setTransactionAmount(c.user.tg_id, t.id, p.amount, p.currency || t.currency);
     if (p.note) await setTransactionNote(c.user.tg_id, t.id, p.note.slice(0, 200));
     if (!p.amount && !p.note) return reply('Ничего не изменил 🤔');
-    const card = await S.txCard(c.user, t.id, { header: '✏️ Изменил запись' });
-    return reply(card.text, card.extra);
+    return replyCard(await S.txCard(c.user, t.id, { header: '✏️ Изменил запись' }));
   }
 
   if (st.mode === 'tx_date') {
@@ -520,8 +623,7 @@ async function onStateInput(c, text, msg, statusMsgId = null) {
     await clearState(c);
     if (!t) return reply('Эта запись уже удалена.');
     await setTransactionDate(c.user.tg_id, t.id, keepTime(t.occurred_at, d.ymd, tz));
-    const card = await S.txCard(c.user, t.id, { header: '📅 Дата изменена' });
-    return reply(card.text, card.extra);
+    return replyCard(await S.txCard(c.user, t.id, { header: '📅 Дата изменена' }));
   }
 
   if (st.mode === 'budget') {
@@ -621,6 +723,7 @@ async function onButton(c, data) {
       let n = 0;
       for (const x of ids) if (await deleteTransaction(uid, x)) n++;
       await ok(`Удалено: ${n}`);
+      if (c.clean && await remove(c.chatId, c.msgId)) return null;
       return edit(c.chatId, c.msgId, `🗑 Удалено ${n} ${plural(n, 'запись', 'записи', 'записей')}.`);
     }
     const t = await getTransaction(uid, id);
@@ -651,12 +754,23 @@ async function onButton(c, data) {
       if (!cat) return ok('Категория не найдена', true);
       await setTransactionCategory(uid, id, cat.kind, cat.id);
       const learned = await learn(uid, t.note, cat);
-      await ok(learned ? `Запомнил: «${learned}» → ${cat.name}` : `${cat.emoji} ${cat.name}`);
+      await ok(learned ? `Запомнил: «${learned}» → ${catPath(cat)}` : catLabel(cat));
       const card = await S.txCard(c.user, id, { header: '✅ Сохранено' });
       return edit(c.chatId, c.msgId, card.text, card.extra);
     }
+    if (p[1] === 'p') {
+      await ok();
+      return api.editMessageReplyMarkup({ chat_id: c.chatId, message_id: c.msgId, ...(await S.subPicker(uid, t, +p[3])) }).catch(() => {});
+    }
+    if (p[1] === 'ns') {
+      const parent = await getCategory(uid, +p[3]);
+      if (!parent) return ok('Категория не найдена', true);
+      await setState(c, { mode: 'cat_add', kind: parent.kind, parentId: parent.id, txId: id, cardId: c.msgId });
+      await ok();
+      return send(c.chatId, `➕ Напишите название подкатегории для «${esc(catLabel(parent))}»: <code>Аптека</code>, <code>Стоматолог</code>…\nЯ сразу поставлю её этой записи.`);
+    }
     if (p[1] === 'n') {
-      await setState(c, { mode: 'cat_add', kind: t.kind, txId: id });
+      await setState(c, { mode: 'cat_add', kind: t.kind, txId: id, cardId: c.msgId });
       await ok();
       return send(c.chatId, `➕ Напишите название новой категории ${t.kind === 'income' ? 'доходов' : 'расходов'}, можно с эмодзи в начале: <code>🏋️ Спорт</code>\nЯ сразу поставлю её этой записи.`);
     }
@@ -669,18 +783,19 @@ async function onButton(c, data) {
       return edit(c.chatId, c.msgId, card.text, card.extra);
     }
     if (p[1] === 'dd') {
-      await setState(c, { mode: 'tx_date', id });
+      await setState(c, { mode: 'tx_date', id, cardId: c.msgId });
       await ok();
       return send(c.chatId, '📅 Напишите дату: <code>12.10</code>, <code>3 сентября</code>, <code>в пятницу</code>…\nИли «отмена».');
     }
     if (p[1] === 'e') {
-      await setState(c, { mode: 'tx_edit', id });
+      await setState(c, { mode: 'tx_edit', id, cardId: c.msgId });
       await ok();
       return send(c.chatId, `✏️ Напишите новую сумму и/или описание.\nСейчас: <b>${money(t.amount, t.currency)}</b>${t.note ? ' — ' + esc(t.note) : ''}\n\nНапример: <code>350</code>, <code>350 кофе с собой</code> или просто <code>кофе с собой</code>. «Отмена» — оставить как есть.`);
     }
     if (p[1] === 'x') {
       await deleteTransaction(uid, id);
       await ok('Удалено');
+      if (c.clean && await remove(c.chatId, c.msgId)) return null;
       const cat = await getCategory(uid, t.category_id);
       return edit(c.chatId, c.msgId, `🗑 Удалено: <s>${signedMoney(t.kind, t.amount, t.currency)} · ${esc(catLabel(cat))}${t.note ? ' — ' + esc(t.note) : ''}</s>`);
     }
@@ -728,6 +843,31 @@ async function onButton(c, data) {
     }
     if (p[1] === 'd') { await ok(); return showScreen(c, await S.categoryDeleteScreen(c.user, p[2])); }
     if (p[1] === 'e') { await ok(); return showScreen(c, await S.categoryEditScreen(c.user, p[2])); }
+    if (p[1] === 'sp') { await ok(); return showScreen(c, await S.categoryParentScreen(c.user, p[2])); }
+    if (p[1] === 'as') {
+      const parent = await getCategory(uid, +p[2]);
+      if (!parent) return ok('Категория не найдена', true);
+      await setState(c, { mode: 'cat_add', kind: parent.kind, parentId: parent.id });
+      await ok();
+      const subs = (await listCategories(uid)).filter((x) => x.parent_id === parent.id);
+      const tips = S.suggestedSubs(parent, subs);
+      return send(c.chatId, [
+        `➕ Подкатегории для «${esc(catLabel(parent))}»${subs.length ? ` (уже есть: ${subs.map((x) => esc(x.name)).join(', ')})` : ''}.`,
+        '',
+        'Напишите названия через запятую, например: <code>' + esc((tips.length ? tips : ['Первая', 'Вторая']).slice(0, 4).join(', ')) + '</code>',
+      ].join('\n'), tips.length ? inline([[btn(`✨ Добавить: ${tips.join(', ')}`.slice(0, 60) + (tips.join(', ').length > 50 ? '…' : ''), `c:sg:${parent.id}`)]]) : {});
+    }
+    if (p[1] === 'sg') {
+      const parent = await getCategory(uid, +p[2]);
+      if (!parent) return ok('Категория не найдена', true);
+      const subs = (await listCategories(uid)).filter((x) => x.parent_id === parent.id);
+      const tips = S.suggestedSubs(parent, subs);
+      for (const name of tips) await addCategory(uid, { kind: parent.kind, name, emoji: '', parentId: parent.id });
+      if (c.user.state && c.user.state.mode === 'cat_add') await clearState(c);
+      await ok(tips.length ? `Добавлено: ${tips.length}` : 'Уже всё добавлено');
+      const s = await S.categoriesScreen(c.user, parent.kind);
+      return edit(c.chatId, c.msgId, `✅ В «${esc(parent.name)}» добавлено: ${tips.map(esc).join(', ') || '—'}.\n\n` + s.text, s.extra);
+    }
     if (p[1] === 'ed') {
       const cat = await getCategory(uid, +p[2]);
       if (!cat) return ok('Категория не найдена');
@@ -774,6 +914,14 @@ async function onButton(c, data) {
       return showScreen(c, await S.settingsScreen(c.user, c.isOwner));
     }
     if (p[1] === 'tz') { await ok(); return showScreen(c, S.tzScreen(c.user)); }
+    if (p[1] === 'clean') {
+      const on = (await getSetting(`clean:${uid}`)) !== 'off';
+      await setSetting(`clean:${uid}`, on ? 'off' : null);
+      if (on) await setSetting(`eph:${uid}`, null);
+      c.clean = !on;
+      await ok(on ? 'Сообщения больше не удаляются' : 'Буду чистить чат');
+      return showScreen(c, await S.settingsScreen(c.user, c.isOwner));
+    }
     if (p[1] === 'wipe') {
       await ok();
       return showScreen(c, {
@@ -842,7 +990,9 @@ export async function excelDocument(user, code, sel) {
   let category = null;
   if (sel && /^\d+$/.test(String(sel))) {
     category = catsById.get(+sel) || { id: +sel, name: 'Без категории', emoji: '' };
-    txs = txs.filter((t) => t.category_id === +sel);
+    // Категория выгружается вместе с подкатегориями.
+    const ids = new Set([+sel, ...[...catsById.values()].filter((x) => x.parent_id === +sel).map((x) => x.id)]);
+    txs = txs.filter((t) => ids.has(t.category_id));
   }
   if (!txs.length) return { error: 'empty', period };
 

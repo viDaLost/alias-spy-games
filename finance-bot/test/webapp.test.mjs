@@ -127,3 +127,36 @@ test('настройки и выгрузка Excel в чат', async () => {
   mkdirSync(new URL('./out/', import.meta.url), { recursive: true });
   writeFileSync(new URL('./out/app-full.xlsx', import.meta.url), doc.params.document.bytes);
 });
+
+test('подкатегории в приложении', async () => {
+  await say('/start');
+  const { categories } = await call('init');
+  const health = categories.find((c) => c.code === 'health');
+  const food = categories.find((c) => c.code === 'food');
+  const r = await call('addSubs', { parentId: health.id, names: ['Аптека', 'Врачи', 'аптека', ''] });
+  assert.equal(r.added.length, 2);
+  const pharmacy = r.categories.find((c) => c.name === 'Аптека');
+  assert.equal(pharmacy.parentId, health.id);
+  assert.ok((await call('init')).suggestions.health.includes('Стоматолог'));
+
+  assert.equal(await code(call('saveCategory', { kind: 'expense', name: 'Аптека', parentId: health.id })), 'DUPLICATE');
+  const sameName = await call('saveCategory', { kind: 'expense', name: 'Аптека', parentId: food.id });
+  assert.ok(sameName.id, 'в другой категории такое имя можно');
+  assert.equal(await code(call('saveCategory', { kind: 'expense', name: 'Икс', parentId: pharmacy.id })), 'BAD_PARENT');
+  assert.equal(await code(call('saveCategory', { id: health.id, name: 'Здоровье', parentId: food.id })), 'HAS_SUBS');
+
+  await call('saveTx', { kind: 'expense', amount: 50000, categoryId: pharmacy.id, note: 'нурофен' });
+  await call('saveTx', { kind: 'expense', amount: 20000, categoryId: health.id, note: 'витамины' });
+  const all = await call('list', { period: 'a', categoryId: health.id });
+  assert.equal(all.total, 2, 'фильтр по категории включает подкатегории');
+  assert.equal((await call('list', { period: 'a', categoryId: pharmacy.id })).total, 1);
+  const q = await call('quickAdd', { text: 'нурофен 300' });
+  assert.equal(q.items[0].categoryId, pharmacy.id, 'выученное слово ведёт в подкатегорию');
+
+  await call('setBudget', { categoryId: health.id, amount: 100000 });
+  const s = await call('summary', { period: 'a' });
+  assert.equal(s.budgets[0].spent, 100000, 'бюджет категории считает подкатегории');
+
+  const moved = await call('saveCategory', { id: pharmacy.id, name: 'Аптека', parentId: 0 });
+  assert.equal(moved.categories.find((c) => c.id === pharmacy.id).parentId, 0, 'подкатегорию можно сделать самостоятельной');
+});

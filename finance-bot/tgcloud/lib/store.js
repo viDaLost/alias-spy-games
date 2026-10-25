@@ -90,29 +90,43 @@ export async function seedCategories(userId) {
   }
 }
 
+// У подкатегории сразу подтягиваем название и эмодзи родителя (parent_name, parent_emoji).
 export async function listCategories(userId, { includeArchived = false } = {}) {
   return includeArchived
-    ? db.all(sql`SELECT * FROM categories WHERE user_id = ${userId} ORDER BY kind DESC, sort, id`)
-    : db.all(sql`SELECT * FROM categories WHERE user_id = ${userId} AND archived = 0 ORDER BY kind DESC, sort, id`);
+    ? db.all(sql`SELECT c.*, p.name AS parent_name, p.emoji AS parent_emoji FROM categories c
+        LEFT JOIN categories p ON p.id = c.parent_id AND p.user_id = c.user_id
+        WHERE c.user_id = ${userId} ORDER BY c.kind DESC, c.sort, c.id`)
+    : db.all(sql`SELECT c.*, p.name AS parent_name, p.emoji AS parent_emoji FROM categories c
+        LEFT JOIN categories p ON p.id = c.parent_id AND p.user_id = c.user_id
+        WHERE c.user_id = ${userId} AND c.archived = 0 ORDER BY c.kind DESC, c.sort, c.id`);
 }
 
 export async function getCategory(userId, id) {
-  return db.get(sql`SELECT * FROM categories WHERE user_id = ${userId} AND id = ${id}`);
+  return db.get(sql`SELECT c.*, p.name AS parent_name, p.emoji AS parent_emoji FROM categories c
+    LEFT JOIN categories p ON p.id = c.parent_id AND p.user_id = c.user_id
+    WHERE c.user_id = ${userId} AND c.id = ${id}`);
 }
 
-export async function addCategory(userId, { kind, name, emoji }) {
-  const max = await db.get(sql`SELECT max(sort) AS s FROM categories WHERE user_id = ${userId} AND kind = ${kind}`);
-  const res = await db.run(sql`INSERT INTO categories (user_id, kind, code, name, emoji, keywords, archived, sort)
-    VALUES (${userId}, ${kind}, '', ${name}, ${emoji || ''}, '', 0, ${((max && max.s) || 0) + 1}) RETURNING id`);
+export async function addCategory(userId, { kind, name, emoji, parentId = 0 }) {
+  const max = await db.get(sql`SELECT max(sort) AS s FROM categories WHERE user_id = ${userId} AND kind = ${kind} AND parent_id = ${parentId}`);
+  const res = await db.run(sql`INSERT INTO categories (user_id, kind, code, name, emoji, keywords, archived, sort, parent_id)
+    VALUES (${userId}, ${kind}, '', ${name}, ${emoji || ''}, '', 0, ${((max && max.s) || 0) + 1}, ${parentId}) RETURNING id`);
   return (res.rows && res.rows[0] && res.rows[0].id) || res.lastInsertRowid;
 }
 
+// Удаление категории убирает и её подкатегории.
 export async function archiveCategory(userId, id) {
-  await db.run(sql`UPDATE categories SET archived = 1 WHERE user_id = ${userId} AND id = ${id}`);
+  await db.run(sql`UPDATE categories SET archived = 1 WHERE user_id = ${userId} AND (id = ${id} OR parent_id = ${id})`);
 }
 
+// Возврат категории возвращает её подкатегории, а возврат подкатегории — и её родителя.
 export async function restoreCategory(userId, id) {
-  await db.run(sql`UPDATE categories SET archived = 0 WHERE user_id = ${userId} AND id = ${id}`);
+  await db.run(sql`UPDATE categories SET archived = 0 WHERE user_id = ${userId}
+    AND (id = ${id} OR parent_id = ${id} OR id = (SELECT parent_id FROM categories WHERE user_id = ${userId} AND id = ${id}))`);
+}
+
+export async function setCategoryParent(userId, id, parentId) {
+  await db.run(sql`UPDATE categories SET parent_id = ${parentId} WHERE user_id = ${userId} AND id = ${id}`);
 }
 
 export async function updateCategory(userId, id, { name, emoji, keywords }) {
@@ -202,10 +216,12 @@ export async function topExpenses(userId, from, to, currency, limit = 3) {
     ORDER BY amount DESC LIMIT ${limit}`);
 }
 
+// Траты категории за период — вместе с её подкатегориями. categoryId = 0 — все расходы.
 export async function categoryMonthSpent(userId, categoryId, currency, from, to) {
   const row = categoryId
     ? await db.get(sql`SELECT coalesce(sum(amount), 0) AS s FROM transactions WHERE user_id = ${userId}
-        AND kind = 'expense' AND category_id = ${categoryId} AND currency = ${currency}
+        AND kind = 'expense' AND currency = ${currency}
+        AND category_id IN (SELECT id FROM categories WHERE user_id = ${userId} AND (id = ${categoryId} OR parent_id = ${categoryId}))
         AND occurred_at >= ${from} AND occurred_at < ${to}`)
     : await db.get(sql`SELECT coalesce(sum(amount), 0) AS s FROM transactions WHERE user_id = ${userId}
         AND kind = 'expense' AND currency = ${currency} AND occurred_at >= ${from} AND occurred_at < ${to}`);

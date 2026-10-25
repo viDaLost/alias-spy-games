@@ -70,9 +70,52 @@
   }
 
   const cat = (id) => S.cats.get(id) || null;
-  const catName = (c) => (c ? c.name : 'Без категории');
-  const catEmoji = (c) => (c && c.emoji) || '❔';
-  const activeCats = (kind) => S.init.categories.filter((c) => c.kind === kind && !c.archived).sort((a, b) => a.sort - b.sort || a.id - b.id);
+  const parentOf = (c) => (c && c.parentId ? cat(c.parentId) : null);
+  const topOf = (c) => parentOf(c) || c;
+  // Подкатегория показывается путём: «Здоровье › Аптека», эмодзи — свой или родителя.
+  const catName = (c) => (c ? (parentOf(c) ? parentOf(c).name + ' › ' : '') + c.name : 'Без категории');
+  const catEmoji = (c) => (c && (c.emoji || (parentOf(c) && parentOf(c).emoji))) || '❔';
+  const bySort = (a, b) => a.sort - b.sort || a.id - b.id;
+  /** Категории верхнего уровня одного типа. */
+  const activeCats = (kind) => S.init.categories.filter((c) => c.kind === kind && !c.archived && !c.parentId).sort(bySort);
+  const subsOf = (id) => S.init.categories.filter((c) => c.parentId === id && !c.archived).sort(bySort);
+  /** Подсказки подкатегорий: стандартные для этой категории минус уже созданные. */
+  function suggestionsFor(c) {
+    const have = new Set(S.init.categories.filter((x) => x.parentId === c.id).map((x) => x.name.toLowerCase()));
+    return ((S.init.suggestions || {})[c.code] || []).filter((n) => !have.has(n.toLowerCase()));
+  }
+  /** <option> по дереву: категория, под ней её подкатегории. */
+  function treeOptions(kind, selected, { withIncomeMark = false } = {}) {
+    const out = [];
+    const opt = (c, label) => `<option value="${c.id}" ${selected === c.id ? 'selected' : ''}>${esc(label)}${withIncomeMark && c.kind === 'income' ? ' (доход)' : ''}</option>`;
+    for (const k of kind ? [kind] : ['expense', 'income']) {
+      for (const c of activeCats(k)) {
+        out.push(opt(c, (c.emoji ? c.emoji + ' ' : '') + c.name));
+        for (const s of subsOf(c.id)) out.push(opt(s, '\u00a0\u00a0\u00a0\u00a0↳ ' + s.name));
+      }
+    }
+    return out.join('');
+  }
+
+  /** Суммы по категориям → по категориям верхнего уровня, с разбивкой по подкатегориям. */
+  function rollUp(rows) {
+    const map = new Map();
+    for (const r of rows) {
+      const c = cat(r.categoryId);
+      const top = topOf(c);
+      const id = top ? top.id : r.categoryId;
+      const g = map.get(id) || { categoryId: id, total: 0, count: 0, parts: new Map() };
+      g.total += r.total; g.count += r.count;
+      const pk = c && c.parentId ? c.id : 0;
+      const p = g.parts.get(pk) || { categoryId: pk || id, own: !pk, total: 0, count: 0 };
+      p.total += r.total; p.count += r.count;
+      g.parts.set(pk, p);
+      map.set(id, g);
+    }
+    return [...map.values()].sort((a, b) => b.total - a.total).map((g) => ({
+      ...g, subs: [...g.parts.keys()].some((k) => k) ? [...g.parts.values()].sort((a, b) => b.total - a.total) : [],
+    }));
+  }
 
   function setCategories(list) {
     S.init.categories = list;
@@ -210,7 +253,7 @@
 
     // По категориям
     const kind = S.breakdown;
-    const rows = s.byCategory.filter((r) => r.kind === kind);
+    const rows = rollUp(s.byCategory.filter((r) => r.kind === kind));
     const total = rows.reduce((a, r) => a + r.total, 0);
     html += `<div class="card"><h3><span>По категориям</span></h3>
       <div class="seg" style="margin-bottom:12px">
@@ -231,7 +274,10 @@
           return `<button class="cb" data-act="filterCat" data-id="${r.categoryId}">
             <div class="cb-top"><span>${esc(catEmoji(c))}</span><span class="nm">${esc(catName(c))} <span class="muted small">· ${r.count}</span></span>
             <span class="amt">${money(r.total, cur)}</span><span class="pc">${Math.round(pct * 100)}%</span></div>
-            <div class="bar"><i style="width:${Math.max(2, pct * 100)}%;background:${COLORS[Math.min(i, 9)]}"></i></div></button>`;
+            <div class="bar"><i style="width:${Math.max(2, pct * 100)}%;background:${COLORS[Math.min(i, 9)]}"></i></div></button>` +
+            r.subs.map((p) => `<button class="cb sub" ${p.own ? '' : `data-act="filterCat" data-id="${p.categoryId}"`}>
+              <div class="cb-top"><span class="nm">↳ ${esc(p.own ? 'без уточнения' : cat(p.categoryId).name)} <span class="muted small">· ${p.count}</span></span>
+              <span class="amt">${money(p.total, cur)}</span><span class="pc">${Math.round((p.total / r.total) * 100)}%</span></div></button>`).join('');
         }).join('')}</div></div>`;
     }
 
@@ -392,17 +438,22 @@
       <button data-act="catsKind" data-kind="expense" class="${kind === 'expense' ? 'on' : ''}">Расходы</button>
       <button data-act="catsKind" data-kind="income" class="${kind === 'income' ? 'on' : ''}">Доходы</button></div>
       <div class="list">${list.map((c) => {
-        const b = budgets.get(c.id);
-        const sub = [c.keywords.length ? `${c.keywords.length} ${plural(c.keywords.length, 'слово', 'слова', 'слов')}` : '', b ? `лимит ${money(b.amount)}` : '']
-          .filter(Boolean).join(' · ');
+        const info = (x) => {
+          const b = budgets.get(x.id);
+          return [x.keywords.length ? `${x.keywords.length} ${plural(x.keywords.length, 'слово', 'слова', 'слов')}` : '', b ? `лимит ${money(b.amount)}` : ''].filter(Boolean).join(' · ');
+        };
+        const subs = subsOf(c.id);
+        const line = [subs.length ? `${subs.length} ${plural(subs.length, 'подкатегория', 'подкатегории', 'подкатегорий')}` : '', info(c)].filter(Boolean).join(' · ');
         return `<button class="row" data-act="editCat" data-id="${c.id}"><span class="ico">${esc(c.emoji || '🏷')}</span>
-          <span class="main"><div class="title">${esc(c.name)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</span><span class="chev">›</span></button>`;
+          <span class="main"><div class="title">${esc(c.name)}</div>${line ? `<div class="sub">${esc(line)}</div>` : ''}</span><span class="chev">›</span></button>` +
+          subs.map((s) => `<button class="row subrow" data-act="editCat" data-id="${s.id}"><span class="ico small-ico">${esc(s.emoji || '↳')}</span>
+          <span class="main"><div class="title">${esc(s.name)}</div>${info(s) ? `<div class="sub">${esc(info(s))}</div>` : ''}</span><span class="chev">›</span></button>`).join('');
       }).join('')}</div>
       <button class="btn" data-act="newCat">➕ Новая категория</button>
-      <p class="hint">Категорию к записи бот подбирает сам: по названию категории, словам, которые вы ей добавили, и встроенному словарю. Исправили категорию у записи — бот запомнит слово.</p>`;
+      <p class="hint">Категорию к записи бот подбирает сам: по названию категории или подкатегории, словам, которые вы ей добавили, и встроенному словарю. Исправили категорию у записи — бот запомнит слово. Подкатегории (например, Здоровье → Аптека, Врачи) добавляются в карточке категории.</p>`;
     if (archived.length) {
       html += `<div class="day-head" style="margin-top:12px"><span>Удалённые</span></div><div class="list">${archived.map((c) => `
-        <div class="row"><span class="ico">${esc(c.emoji || '🏷')}</span><span class="main"><div class="title muted">${esc(c.name)}</div></span>
+        <div class="row"><span class="ico">${esc(catEmoji(c))}</span><span class="main"><div class="title muted">${esc(catName(c))}</div></span>
         <button class="chip" data-act="restoreCat" data-id="${c.id}">Вернуть</button></div>`).join('')}</div>`;
     }
     return html;
@@ -414,14 +465,13 @@
     const me = S.init.me;
     const p = S.periodInfo && S.periodInfo.code === S.period ? S.periodInfo : null;
     if (!p) setTimeout(loadPeriodInfo, 0);
-    const cats = S.init.categories.filter((c) => !c.archived);
     return `<div class="card"><h3><span>📥 Выгрузка в Excel</span></h3>
         <div class="field"><label>Что положить в таблицу</label><div class="seg">
           <button data-act="exportMode" data-mode="full" class="${S.exportMode === 'full' ? 'on' : ''}">Полный отчёт</button>
           <button data-act="exportMode" data-mode="short" class="${S.exportMode === 'short' ? 'on' : ''}">Кратко</button></div></div>
         <div class="field"><label>Категория</label><select class="input" id="exportCat">
           <option value="0">Все категории</option>
-          ${cats.map((c) => `<option value="${c.id}" ${S.exportCat === c.id ? 'selected' : ''}>${esc((c.emoji ? c.emoji + ' ' : '') + c.name)}${c.kind === 'income' ? ' (доход)' : ''}</option>`).join('')}
+          ${treeOptions('', S.exportCat, { withIncomeMark: true })}
         </select></div>
         <p class="hint" style="margin-bottom:12px">${S.exportMode === 'full'
           ? 'Сводка с долями категорий, все операции с фильтром, траты по категориям, по дням и месяцам.'
@@ -490,6 +540,7 @@
       F, focus: tx ? null : '#f-quick',
       html() {
         const cats = activeCats(F.kind);
+        const selTop = topOf(cat(F.categoryId));
         const yesterday = isoAdd(S.init.today, -1);
         return `<h2><span>${F.id ? 'Изменить запись' : 'Новая запись'}</span><button class="x" data-act="close">✕</button></h2>
           ${F.id ? '' : `<div class="field"><label>Быстро, одной строкой — как в чате</label>
@@ -504,9 +555,13 @@
             <select class="input" data-f="currency">${S.init.currencies.map((c) => `<option value="${c.code}" ${c.code === F.currency ? 'selected' : ''}>${esc(c.symbol)} ${c.code}</option>`).join('')}</select>
           </div></div>
           <div class="field"><label>Категория</label><div class="cat-grid">
-            ${cats.map((c) => `<button data-act="txCat" data-id="${c.id}" class="${c.id === F.categoryId ? 'on' : ''}"><span class="e">${esc(c.emoji || '🏷')}</span><span class="n">${esc(c.name)}</span></button>`).join('')}
+            ${cats.map((c) => `<button data-act="txCat" data-id="${c.id}" class="${selTop && c.id === selTop.id ? 'on' : ''}"><span class="e">${esc(c.emoji || '🏷')}</span><span class="n">${esc(c.name)}${subsOf(c.id).length ? ' ›' : ''}</span></button>`).join('')}
             <button class="new" data-act="txNewCat"><span class="e">＋</span><span class="n">Новая</span></button>
-          </div>${F.categoryId ? '' : '<p class="hint">Не выбрали — бот подберёт сам по описанию.</p>'}</div>
+          </div>${selTop ? `<div class="sub-pick"><div class="muted small">Уточнить в «${esc(selTop.name)}»:</div><div class="chips">
+            <button class="chip ${F.categoryId === selTop.id ? 'on' : ''}" data-act="txSub" data-id="${selTop.id}">Без уточнения</button>
+            ${subsOf(selTop.id).map((s) => `<button class="chip ${F.categoryId === s.id ? 'on' : ''}" data-act="txSub" data-id="${s.id}">${esc(s.emoji ? s.emoji + ' ' : '')}${esc(s.name)}</button>`).join('')}
+            <button class="chip add" data-act="txNewSub" data-id="${selTop.id}">＋ Подкатегория</button></div></div>`
+            : '<p class="hint">Не выбрали — бот подберёт сам по описанию.</p>'}</div>
           <div class="field"><label>Дата</label><div class="date-row">
             <button class="chip ${F.date === S.init.today ? 'on' : ''}" data-act="txDate" data-date="${S.init.today}">Сегодня</button>
             <button class="chip ${F.date === yesterday ? 'on' : ''}" data-act="txDate" data-date="${yesterday}">Вчера</button>
@@ -518,35 +573,54 @@
     });
   }
 
-  // Категория: добавить / изменить
-  function openCatSheet(c = null, kind = 'expense', onSaved = null) {
+  // Категория или подкатегория: добавить / изменить. parentId — создать подкатегорию.
+  function openCatSheet(c = null, kind = 'expense', onSaved = null, parentId = 0) {
     const budget = c ? ((S.summary && S.summary.budgets) || S.init.budgets).find((b) => b.categoryId === c.id) : null;
+    const pid = c ? c.parentId : parentId;
     const F = {
-      type: 'cat', id: c ? c.id : 0, kind: c ? c.kind : kind, name: c ? c.name : '', emoji: c ? c.emoji : (kind === 'income' ? '💵' : '🏷'),
-      keywords: c ? c.keywords.slice() : [], kw: '', budget: budget ? amountInput(budget.amount) : '', budgetWas: budget ? budget.amount : 0,
+      type: 'cat', id: c ? c.id : 0, kind: c ? c.kind : kind, parentId: pid, code: c ? c.code : '',
+      name: c ? c.name : '', emoji: c ? c.emoji : (pid ? '' : kind === 'income' ? '💵' : '🏷'),
+      keywords: c ? c.keywords.slice() : [], kw: '', sub: '', budget: budget ? amountInput(budget.amount) : '', budgetWas: budget ? budget.amount : 0,
       fallback: Boolean(c && c.fallback), onSaved,
     };
     openSheet({
       F, focus: c ? null : '#f-name',
       html() {
-        return `<h2><span>${F.id ? 'Категория' : `Новая категория ${F.kind === 'income' ? 'доходов' : 'расходов'}`}</span><button class="x" data-act="close">✕</button></h2>
+        const parent = F.parentId ? cat(F.parentId) : null;
+        const subs = F.id && !F.parentId ? subsOf(F.id) : [];
+        // Вложить можно категорию без своих подкатегорий (и не «Прочее»).
+        const canNest = !F.fallback && !subs.length;
+        const title = F.id ? (F.parentId ? 'Подкатегория' : 'Категория') : F.parentId ? 'Новая подкатегория' : `Новая категория ${F.kind === 'income' ? 'доходов' : 'расходов'}`;
+        const tips = F.id && !F.parentId ? suggestionsFor({ id: F.id, code: F.code }) : [];
+        return `<h2><span>${title}</span><button class="x" data-act="close">✕</button></h2>
+          ${canNest ? `<div class="field"><label>Входит в</label><select class="input" data-f="parentId">
+            <option value="0" ${!F.parentId ? 'selected' : ''}>— самостоятельная категория —</option>
+            ${activeCats(F.kind).filter((x) => x.id !== F.id).map((x) => `<option value="${x.id}" ${F.parentId === x.id ? 'selected' : ''}>${esc((x.emoji ? x.emoji + ' ' : '') + x.name)}</option>`).join('')}
+          </select></div>` : ''}
           <div class="field"><label>Значок и название</label><div class="emoji-pick">
-            <input class="cur" data-f="emoji" value="${esc(F.emoji)}" maxlength="8" aria-label="Эмодзи" style="text-align:center;border:0">
-            <input class="input" id="f-name" data-f="name" placeholder="Например: Спорт" value="${esc(F.name)}" maxlength="40" autocomplete="off"></div>
+            <input class="cur" data-f="emoji" value="${esc(F.emoji)}" placeholder="${esc(parent ? parent.emoji : '🏷')}" maxlength="8" aria-label="Эмодзи" style="text-align:center;border:0">
+            <input class="input" id="f-name" data-f="name" placeholder="${F.parentId ? 'Например: Аптека' : 'Например: Спорт'}" value="${esc(F.name)}" maxlength="40" autocomplete="off"></div>
             <div class="emoji-grid">${EMOJIS.map((e) => `<button data-act="pickEmoji" data-e="${e}" class="${e === F.emoji ? 'on' : ''}">${e}</button>`).join('')}</div>
-            <p class="hint">Можно вписать любой эмодзи в квадрат слева.</p></div>
+            <p class="hint">${parent ? `Без своего значка подкатегория показывается со значком «${esc(parent.name)}». ` : ''}Можно вписать любой эмодзи в квадрат слева.</p></div>
+          ${F.id && !F.parentId ? `<div class="field"><label>Подкатегории</label>
+            <div class="kw">${subs.map((x) => `<span><button data-act="editCat" data-id="${x.id}" style="color:inherit;font-size:14px;padding:0">${esc((x.emoji ? x.emoji + ' ' : '') + x.name)}</button></span>`).join('') || '<span class="muted small" style="background:none;padding:0">пока нет</span>'}</div>
+            <div class="quick"><input class="input" id="f-sub" data-f="sub" placeholder="Аптека, Врачи, Стоматолог" value="${esc(F.sub)}" enterkeyhint="done" autocomplete="off">
+            <button class="btn secondary" data-act="addSub">Добавить</button></div>
+            ${tips.length ? `<div class="chips" style="margin-top:8px">${tips.map((n) => `<button class="chip add" data-act="addSuggested" data-name="${esc(n)}">＋ ${esc(n)}</button>`).join('')}
+              ${tips.length > 1 ? '<button class="chip" data-act="addSuggested" data-all="1">✨ Все</button>' : ''}</div>` : ''}
+            <p class="hint">Например, «Здоровье» → Аптека, Врачи, Стоматолог. В отчётах подкатегории складываются в свою категорию.</p></div>` : ''}
           <div class="field"><label>Слова для автоопределения</label>
             <div class="kw">${F.keywords.map((k, i) => `<span>${esc(k)}${k.includes(' ') ? '' : '…'}<button data-act="delKw" data-i="${i}">×</button></span>`).join('') || '<span class="muted small" style="background:none;padding:0">пока нет</span>'}</div>
-            <div class="quick"><input class="input" id="f-kw" data-f="kw" placeholder="например: теннис" value="${esc(F.kw)}" enterkeyhint="done" autocomplete="off">
+            <div class="quick"><input class="input" id="f-kw" data-f="kw" placeholder="например: ${F.parentId ? 'нурофен' : 'теннис'}" value="${esc(F.kw)}" enterkeyhint="done" autocomplete="off">
             <button class="btn secondary" data-act="addKw">Добавить</button></div>
-            <p class="hint">Если в записи встретится это слово (в любой форме), бот отнесёт её сюда. Название категории учитывается само.</p></div>
+            <p class="hint">Если в записи встретится это слово (в любой форме), бот отнесёт её сюда. Название учитывается само.</p></div>
           ${F.kind === 'expense' ? `<div class="field"><label>Лимит на месяц (необязательно)</label>
             <input class="input" data-f="budget" inputmode="decimal" placeholder="без лимита" value="${esc(F.budget)}" autocomplete="off"></div>` : ''}
-          <button class="btn" data-act="saveCat">${F.id ? 'Сохранить' : 'Создать категорию'}</button>
+          <button class="btn" data-act="saveCat">${F.id ? 'Сохранить' : F.parentId ? 'Создать подкатегорию' : 'Создать категорию'}</button>
           ${F.id ? `<div class="inline-btns" style="margin-top:8px">
             <button class="btn secondary" data-act="moveCat" data-dir="-1">↑ Выше</button>
             <button class="btn secondary" data-act="moveCat" data-dir="1">↓ Ниже</button></div>
-            ${F.fallback ? '<p class="hint">Сюда попадает всё, что бот не смог отнести к другим категориям, поэтому её нельзя удалить.</p>' : '<button class="btn danger" data-act="archiveCat">Удалить категорию</button><p class="hint center">Старые записи останутся в отчётах. Категорию можно вернуть.</p>'}` : ''}`;
+            ${F.fallback ? '<p class="hint">Сюда попадает всё, что бот не смог отнести к другим категориям, поэтому её нельзя удалить.</p>' : `<button class="btn danger" data-act="archiveCat">Удалить ${F.parentId ? 'подкатегорию' : 'категорию'}</button><p class="hint center">Старые записи останутся в отчётах.${subs.length ? ' Подкатегории удалятся вместе с ней.' : ''} Можно вернуть.</p>`}` : ''}`;
       },
     });
   }
@@ -559,11 +633,10 @@
     openSheet({
       F, focus: '#f-budget',
       html() {
-        const cats = activeCats('expense');
         return `<h2><span>Бюджет на месяц</span><button class="x" data-act="close">✕</button></h2>
           <div class="field"><label>На что</label><select class="input" data-f="categoryId">
             <option value="0" ${!F.categoryId ? 'selected' : ''}>💼 Все расходы</option>
-            ${cats.map((c) => `<option value="${c.id}" ${F.categoryId === c.id ? 'selected' : ''}>${esc((c.emoji ? c.emoji + ' ' : '') + c.name)}</option>`).join('')}
+            ${treeOptions('expense', F.categoryId)}
           </select></div>
           <div class="field"><label>Лимит, ${esc(symbol(S.init.me.currency))}</label>
             <input class="input" id="f-budget" data-f="amount" inputmode="decimal" placeholder="например: 50000" value="${esc(F.amount)}" autocomplete="off"></div>
@@ -616,7 +689,18 @@
       if (t) openTxSheet(t);
     },
     txKind(d) { const F = topSheet().F; if (F.kind !== d.kind) { F.kind = d.kind; F.categoryId = 0; } tap(); rerenderSheet(); },
-    txCat(d) { const F = topSheet().F; F.categoryId = F.categoryId === +d.id ? 0 : +d.id; tap(); rerenderSheet(); },
+    txCat(d) {
+      const F = topSheet().F;
+      const selTop = topOf(cat(F.categoryId));
+      F.categoryId = selTop && selTop.id === +d.id ? 0 : +d.id;
+      tap();
+      rerenderSheet();
+    },
+    txSub(d) { topSheet().F.categoryId = +d.id; tap(); rerenderSheet(); },
+    txNewSub(d) {
+      const txView = topSheet();
+      openCatSheet(null, txView.F.kind, (id) => { txView.F.categoryId = id; }, +d.id);
+    },
     txDate(d) { topSheet().F.date = d.date; tap(); rerenderSheet(); },
     txNewCat() {
       const txView = topSheet();
@@ -669,6 +753,17 @@
       const el = document.getElementById('f-kw'); if (el) el.focus();
     },
     delKw(d) { topSheet().F.keywords.splice(+d.i, 1); tap(); rerenderSheet(); },
+    async addSub(d, el) {
+      const F = topSheet().F;
+      const names = F.sub.split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean);
+      if (!names.length) { const i = document.getElementById('f-sub'); if (i) i.focus(); return; }
+      await addSubs(F, names, el);
+    },
+    async addSuggested(d, el) {
+      const F = topSheet().F;
+      const names = d.all ? suggestionsFor({ id: F.id, code: F.code }) : [d.name];
+      await addSubs(F, names, el);
+    },
     async saveCat(d, el) {
       const F = topSheet().F;
       if (F.kw.trim()) actions.addKw();
@@ -676,7 +771,7 @@
       const budget = F.kind === 'expense' ? (F.budget.trim() ? parseAmount(F.budget) : 0) : 0;
       if (F.budget.trim() && !budget) { haptic('error'); toast('Лимит — число, например 15000', true); return; }
       const r = await run(async () => {
-        const res = await call('saveCategory', { id: F.id, kind: F.kind, name: F.name, emoji: F.emoji, keywords: F.keywords });
+        const res = await call('saveCategory', { id: F.id, kind: F.kind, name: F.name, emoji: F.emoji, keywords: F.keywords, parentId: F.parentId });
         if (F.kind === 'expense' && budget !== F.budgetWas) {
           const b = await call('setBudget', { categoryId: res.id, amount: budget });
           S.init.budgets = b.budgets;
@@ -689,8 +784,10 @@
       haptic();
       const cb = F.onSaved;
       closeSheet();
-      if (cb) { cb(r.id); rerenderSheet(); toast(`✅ Категория «${F.name.trim()}» создана`); return; }
-      toast(F.id ? '✅ Сохранено' : `✅ Категория «${F.name.trim()}» создана`);
+      const what = F.parentId ? 'Подкатегория' : 'Категория';
+      if (cb) { cb(r.id); if (S.stack.length) rerenderSheet(); toast(`✅ ${what} «${F.name.trim()}» создана`); return; }
+      if (S.stack.length) rerenderSheet(); // вернулись в карточку родителя — обновим список подкатегорий
+      toast(F.id ? '✅ Сохранено' : `✅ ${what} «${F.name.trim()}» создана`);
       if (S.tab === 'cats') render(); else refresh();
     },
     async moveCat(d, el) {
@@ -747,6 +844,17 @@
     },
   };
 
+  async function addSubs(F, names, el) {
+    const r = await run(() => call('addSubs', { parentId: F.id, names }), el);
+    if (!r) return;
+    setCategories(r.categories);
+    F.sub = '';
+    haptic();
+    rerenderSheet();
+    toast(r.added.length ? `✅ Добавлено: ${r.added.map((id) => cat(id).name).join(', ')}` : 'Такие подкатегории уже есть');
+    if (S.tab === 'cats') render();
+  }
+
   async function setBudgetAndClose(categoryId, amount, el) {
     const r = await run(() => call('setBudget', { categoryId, amount }), el);
     if (!r) return;
@@ -783,19 +891,20 @@
     const f = e.target.dataset.f;
     const top = topSheet();
     if (!f || !top) return;
-    top.F[f] = f === 'categoryId' ? +e.target.value : e.target.value;
+    top.F[f] = f === 'categoryId' || f === 'parentId' ? +e.target.value : e.target.value;
   });
   $sheet.addEventListener('change', (e) => {
     const f = e.target.dataset.f;
     const top = topSheet();
     if (!f || !top) return;
-    top.F[f] = f === 'categoryId' ? +e.target.value : e.target.value;
-    if (top.F.type === 'tx' && f === 'date') rerenderSheet();
+    top.F[f] = f === 'categoryId' || f === 'parentId' ? +e.target.value : e.target.value;
+    if ((top.F.type === 'tx' && f === 'date') || f === 'parentId') rerenderSheet();
   });
   $sheet.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     if (e.target.id === 'f-quick') { e.preventDefault(); actions.quickAdd({}, null); }
     if (e.target.id === 'f-kw') { e.preventDefault(); actions.addKw(); }
+    if (e.target.id === 'f-sub') { e.preventDefault(); actions.addSub({}, null); }
   });
 
   let searchTimer = null;

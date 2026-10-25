@@ -5,7 +5,7 @@
 import { api, EndpointError } from 'sdk';
 import {
   getSetting, isAllowed, ensureUser, setUserCurrency, setUserTz, listCategories, getCategory,
-  addCategory, updateCategory, archiveCategory, restoreCategory, setCategorySort,
+  addCategory, updateCategory, archiveCategory, restoreCategory, setCategorySort, setCategoryParent,
   addTransaction, getTransaction, updateTransaction, deleteTransaction, transactionsInRange,
   listBudgets, setBudget, categoryMonthSpent,
 } from './store.js';
@@ -13,7 +13,7 @@ import {
   localToday, toLocal, isoYmd, isValidYmd, cmpYmd, addDays, decodePeriod, periodBounds,
   shiftPeriod, currentPeriodCode, periodCode, MONTHS,
 } from './dates.js';
-import { norm, stemWord, fallbackCategory } from './categories.js';
+import { norm, stemWord, fallbackCategory, SUGGESTED_SUBS } from './categories.js';
 import { CURRENCIES, TIMEZONES } from './config.js';
 import { getAiConfig, aiReady } from './ai.js';
 import { resolveItems, occurredAtFor, keepTime, budgetWarnings, learn, excelDocument } from './bot.js';
@@ -60,7 +60,7 @@ async function categoriesOut(uid) {
   return cats.map((c) => ({
     id: c.id, kind: c.kind, code: c.code || '', name: c.name, emoji: c.emoji || '',
     keywords: splitKeywords(c.keywords), archived: Boolean(c.archived), sort: c.sort,
-    fallback: c.code === 'other' || c.code === 'other_in',
+    parentId: c.parent_id || 0, fallback: c.code === 'other' || c.code === 'other_in',
   }));
 }
 
@@ -109,6 +109,7 @@ const OPS = {
       today: isoYmd(localToday(tz)),
       periods: Object.fromEntries(['day', 'week', 'month', 'year', 'all'].map((k) => [k, currentPeriodCode(k, tz)])),
       voice: aiReady(await getAiConfig()),
+      suggestions: SUGGESTED_SUBS,
     };
   },
 
@@ -164,7 +165,12 @@ const OPS = {
     const period = periodOf(c, input.period);
     const { from, to } = periodBounds(period, tz);
     let txs = await transactionsInRange(c.user.tg_id, from, to);
-    if (input.categoryId) txs = txs.filter((t) => t.category_id === +input.categoryId);
+    if (input.categoryId) {
+      // Категория — вместе с её подкатегориями.
+      const id = +input.categoryId;
+      const ids = new Set([id, ...(await listCategories(c.user.tg_id, { includeArchived: true })).filter((x) => x.parent_id === id).map((x) => x.id)]);
+      txs = txs.filter((t) => ids.has(t.category_id));
+    }
     if (input.kind === 'expense' || input.kind === 'income') txs = txs.filter((t) => t.kind === input.kind);
     const q = norm(String(input.q || '').trim());
     if (q) {
@@ -256,14 +262,40 @@ const OPS = {
     const old = input.id ? all.find((x) => x.id === +input.id) : null;
     if (input.id && !old) fail('Категория не найдена.', 'NOT_FOUND');
     const kind = old ? old.kind : input.kind === 'income' ? 'income' : 'expense';
-    if (all.some((x) => x.kind === kind && x.id !== (old && old.id) && !x.archived && norm(x.name) === norm(name))) {
-      fail('Такая категория уже есть.', 'DUPLICATE');
+    // Подкатегория: родитель — категория верхнего уровня того же типа; у подкатегории своих подкатегорий нет.
+    let parentId = input.parentId === undefined ? (old ? old.parent_id || 0 : 0) : +input.parentId || 0;
+    if (parentId) {
+      const parent = all.find((x) => x.id === parentId);
+      if (!parent || parent.archived || parent.kind !== kind || parent.parent_id || parent.id === (old && old.id)) fail('Такую категорию нельзя выбрать родительской.', 'BAD_PARENT');
+      if (old && all.some((x) => x.parent_id === old.id && !x.archived)) fail('У этой категории есть свои подкатегории — её нельзя вложить в другую.', 'HAS_SUBS');
+    }
+    if (old && (old.code === 'other' || old.code === 'other_in')) parentId = 0; // «Прочее» всегда верхнего уровня
+    if (all.some((x) => x.kind === kind && x.id !== (old && old.id) && !x.archived && (x.parent_id || 0) === parentId && norm(x.name) === norm(name))) {
+      fail(parentId ? 'Такая подкатегория уже есть.' : 'Такая категория уже есть.', 'DUPLICATE');
     }
     let id = old && old.id;
-    if (!old) id = await addCategory(uid, { kind, name, emoji: emoji || (kind === 'income' ? '💵' : '🏷') });
+    if (!old) id = await addCategory(uid, { kind, name, emoji: emoji || (parentId ? '' : kind === 'income' ? '💵' : '🏷'), parentId });
+    else if ((old.parent_id || 0) !== parentId) await setCategoryParent(uid, id, parentId);
     const fresh = await getCategory(uid, id);
-    await updateCategory(uid, id, { name, emoji: emoji || fresh.emoji, keywords: keywords.join(',') });
+    // Подкатегория без своего эмодзи показывается с эмодзи родителя.
+    await updateCategory(uid, id, { name, emoji: emoji || (parentId ? '' : fresh.emoji), keywords: keywords.join(',') });
     return { id, categories: await categoriesOut(uid) };
+  },
+
+  // Несколько подкатегорий сразу: { parentId, names: ['Аптека', 'Врачи'] }.
+  async addSubs(c, input) {
+    const uid = c.user.tg_id;
+    const parent = await getCategory(uid, +input.parentId);
+    if (!parent || parent.parent_id) fail('Категория не найдена.', 'NOT_FOUND');
+    const have = new Set((await listCategories(uid)).filter((x) => x.parent_id === parent.id).map((x) => norm(x.name)));
+    const added = [];
+    for (const raw of (Array.isArray(input.names) ? input.names : []).slice(0, 30)) {
+      const name = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+      if (!name || have.has(norm(name))) continue;
+      have.add(norm(name));
+      added.push(await addCategory(uid, { kind: parent.kind, name, emoji: '', parentId: parent.id }));
+    }
+    return { added, categories: await categoriesOut(uid) };
   },
 
   async archiveCategory(c, input) {
@@ -282,7 +314,7 @@ const OPS = {
     const uid = c.user.tg_id;
     const cat = await getCategory(uid, +input.id);
     if (!cat) fail('Категория не найдена.', 'NOT_FOUND');
-    const list = (await listCategories(uid)).filter((x) => x.kind === cat.kind);
+    const list = (await listCategories(uid)).filter((x) => x.kind === cat.kind && (x.parent_id || 0) === (cat.parent_id || 0));
     const i = list.findIndex((x) => x.id === cat.id);
     const j = i + (+input.dir < 0 ? -1 : 1);
     if (i >= 0 && j >= 0 && j < list.length) {
