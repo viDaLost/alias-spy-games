@@ -1,0 +1,22 @@
+services:
+  bot:
+    build: .
+    image: billiard-cafe-bot:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # База всегда в постоянном томе, независимо от значения в .env.
+      DATABASE_PATH: /app/data/bot.db
+    volumes:
+      - bot-data:/app/data            # SQLite: брони, очередь уведомлений, кэш file_id
+      - ./assets/menu:/app/assets/menu:ro   # исходные фото меню и credits.json
+      - ./config:/app/config:ro       # данные клуба и меню можно менять без пересборки
+      - ./backups:/app/backups        # резервные копии базы
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  bot-data:

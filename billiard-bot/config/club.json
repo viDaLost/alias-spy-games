@@ -1,0 +1,118 @@
+{
+  "name": "Бильярд & Кафе",
+  "tagline": "Бильярдный клуб с кафе: русский бильярд, американский пул и кухня до закрытия.",
+  "address": "",
+  "phone": "",
+  "links": [],
+  "schedule": {
+    "open": "12:00",
+    "close": "02:00",
+    "slot_step_minutes": 30,
+    "booking_horizon_days": 30,
+    "durations_minutes": [60, 90, 120, 180]
+  },
+  "tables": [
+    {"id": 1, "name": "Стол № 1", "kind": "Русский бильярд", "rate_rub_per_hour": 700},
+    {"id": 2, "name": "Стол № 2", "kind": "Русский бильярд", "rate_rub_per_hour": 700},
+    {"id": 3, "name": "Стол № 3", "kind": "Американский пул", "rate_rub_per_hour": 500},
+    {"id": 4, "name": "Стол № 4", "kind": "Американский пул", "rate_rub_per_hour": 500}
+  ],
+  "menu": [
+    {
+      "id": "pizza",
+      "title": "🍕 Пицца",
+      "items": [
+        {
+          "id": "margherita",
+          "name": "Пицца «Маргарита»",
+          "description": "Томатный соус, моцарелла, свежий базилик, оливковое масло",
+          "portion": "450 г",
+          "price_rub": 590,
+          "photo": "assets/menu/margherita.jpg"
+        },
+        {
+          "id": "pepperoni",
+          "name": "Пицца «Пепперони»",
+          "description": "Томатный соус, моцарелла, острая колбаса пепперони",
+          "portion": "480 г",
+          "price_rub": 690,
+          "photo": "assets/menu/pepperoni.jpg"
+        }
+      ]
+    },
+    {
+      "id": "hot",
+      "title": "🍔 Горячее",
+      "items": [
+        {
+          "id": "burger_classic",
+          "name": "Классический бургер",
+          "description": "Говяжья котлета, чеддер, томат, салат, маринованный огурец, соус",
+          "portion": "320 г",
+          "price_rub": 520,
+          "photo": "assets/menu/burger_classic.jpg"
+        },
+        {
+          "id": "burger_chicken",
+          "name": "Бургер с курицей",
+          "description": "Куриное филе в панировке, салат, томат, соус ранч",
+          "portion": "300 г",
+          "price_rub": 480,
+          "photo": "assets/menu/burger_chicken.jpg"
+        }
+      ]
+    },
+    {
+      "id": "snacks",
+      "title": "🍟 Закуски",
+      "items": [
+        {
+          "id": "fries",
+          "name": "Картофель фри",
+          "description": "Хрустящий картофель, соль, соус на выбор",
+          "portion": "150 г",
+          "price_rub": 220,
+          "photo": "assets/menu/fries.jpg"
+        },
+        {
+          "id": "caesar",
+          "name": "Салат «Цезарь»",
+          "description": "Романо, курица, пармезан, гренки, соус «Цезарь»",
+          "portion": "250 г",
+          "price_rub": 450,
+          "photo": "assets/menu/caesar.jpg"
+        }
+      ]
+    },
+    {
+      "id": "drinks",
+      "title": "☕ Напитки",
+      "items": [
+        {
+          "id": "cappuccino",
+          "name": "Капучино",
+          "description": "Эспрессо и молочная пена",
+          "portion": "250 мл",
+          "price_rub": 220,
+          "photo": "assets/menu/cappuccino.jpg"
+        },
+        {
+          "id": "tea",
+          "name": "Чай",
+          "description": "Чёрный или зелёный, в чайнике",
+          "portion": "500 мл",
+          "price_rub": 250,
+          "photo": "assets/menu/tea.jpg"
+        },
+        {
+          "id": "lemonade",
+          "name": "Лимонад",
+          "description": "Лимон, мята, содовая, лёд",
+          "portion": "400 мл",
+          "price_rub": 290,
+          "photo": "assets/menu/lemonade.jpg"
+        }
+      ]
+    }
+  ]
+}

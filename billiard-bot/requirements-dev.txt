@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest==9.2.0
+pytest-asyncio==1.4.1
+# Только для scripts/fetch_menu_photos.py (подготовка фото), боту не нужен.
+Pillow==13.0.0
