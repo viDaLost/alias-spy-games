@@ -12,14 +12,18 @@ export const RESTRICTED_BOT_TEXT = `⏸ Библейские игры време
 
 Синодальный перевод`;
 
-export async function restrictedBotReply(request, env) {
+export async function readTelegramWebhookUpdate(request, env) {
   const received = request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '';
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(env.TELEGRAM_BOT_TOKEN || ''))));
   const expected = [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
   let mismatch = received.length ^ expected.length;
   for (let i = 0; i < expected.length; i += 1) mismatch |= expected.charCodeAt(i) ^ (received.charCodeAt(i) || 0);
   if (!env.TELEGRAM_BOT_TOKEN || mismatch) throw accessError(403, 'Invalid Telegram webhook secret');
-  const update = await request.clone().json();
+  return request.clone().json();
+}
+
+export async function restrictedBotReply(request, env, update) {
+  update ??= await readTelegramWebhookUpdate(request, env);
   const callback = update.callback_query;
   const message = update.message || update.edited_message || callback?.message;
   const sender = callback?.from || message?.from;

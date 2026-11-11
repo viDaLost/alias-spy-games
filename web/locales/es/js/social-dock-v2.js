@@ -18,6 +18,10 @@
     { id: 'kids-ark-pairs', title: 'Encuentra la pareja', icon: 'web/assets/icons/unified-v1/ark.webp?v=1' },
     { id: 'moses-nile', title: 'Moisés: Viaje por el Nilo', icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1' },
     { id: 'biblical-match-three', title: 'Tesoros bíblicos', icon: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39' },
+    { id: 'twelve-tribes', title: 'Двенадцать колен', icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1' },
+    { id: 'promised-land', title: 'Земля обетованная', icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1' },
+    { id: 'bible-geography', title: 'Geografía bíblica', icon: 'web/assets/icons/unified-v1/bible-geography.webp?v=1' },
+    { id: 'kingdoms', title: 'Царства', icon: 'web/assets/icons/unified-v1/kingdoms.webp?v=1', restricted: true },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 
@@ -280,7 +284,9 @@
 
   function renderFavorites() {
     const favorites = new Set(state.profile?.favorites || []);
-    return `<div class="social-favorite-intro"><b>Juegos favoritos</b><span>Los juegos favoritos se guardan en tu perfil y están disponibles en cualquier dispositivo.</span></div><div class="social-favorites-grid">${GAME_CATALOG.map((game) => {
+    const canPlayKingdoms = window.AppAccess?.state?.()?.isRoot || document.documentElement.classList.contains('kd-tester');
+    const games = GAME_CATALOG.filter((game) => !game.restricted || canPlayKingdoms);
+    return `<div class="social-favorite-intro"><b>Juegos favoritos</b><span>Los juegos favoritos se guardan en tu perfil y están disponibles en cualquier dispositivo.</span></div><div class="social-favorites-grid">${games.map((game) => {
       const selected = favorites.has(game.id);
       return `<button type="button" class="social-favorite ${selected ? 'is-selected' : ''}" data-toggle-favorite="${game.id}">
         <img src="${game.icon}" alt="" loading="lazy"><span><b>${escapeHtml(game.title)}</b><small>${selected ? 'En favoritos' : 'Añadir'}</small></span><i aria-hidden="true">♥</i>

@@ -1,4 +1,5 @@
 import coreV10, { UserStore as V10UserStore } from './index-v10.js';
+import { PLAYER_GAMES as GAMES } from './player-games.js';
 
 const encoder = new TextEncoder();
 const PROFILE_ACTIONS = new Set([
@@ -8,22 +9,6 @@ const PROFILE_ACTIONS = new Set([
   'profileRemoveFriend',
   'profileSetFavorites',
   'profileTrackGame',
-]);
-
-const GAMES = new Map([
-  ['alias', 'Алиас'],
-  ['coimaginarium', 'Соображариум'],
-  ['guess', 'Угадай персонажа'],
-  ['describe', 'Опиши, но не называй'],
-  ['spy', 'Соглядатай'],
-  ['quartet', 'Квартет'],
-  ['bible-sketch', 'Библейский художник'],
-  ['bible-wow', 'Библейские слова'],
-  ['bible-wordsearch', 'Поиск библейских слов'],
-  ['sacred-word', 'Священное слово'],
-  ['kids-ark-pairs', 'Найди пару'],
-  ['biblical-match-three', 'Библейские сокровища'],
-  ['moses-nile', 'Моисей: Путь по Нилу'],
 ]);
 
 export class UserStore extends V10UserStore {

@@ -56,8 +56,8 @@ require(coreWorkerHasLayer('index-v14.js'), 'support-enabled v14 core entrypoint
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');
-requireText(webhookFix, "allowed_updates: ['message', 'callback_query']", 'Telegram callback_query updates are not enabled after deploy');
-requireText(webhookFix, "allowed.includes('callback_query')", 'Telegram callback_query webhook verification is missing');
+requireText(webhookFix, "const requiredUpdates = ['message', 'edited_message', 'callback_query', 'widget_query']", 'Telegram callback and widget updates are not enabled after deploy');
+requireText(webhookFix, 'requiredUpdates.some((type) => !allowed.includes(type))', 'Telegram webhook update verification is missing');
 requireText(store, 'CREATE TABLE IF NOT EXISTS support_tickets', 'ticket SQL missing');
 requireText(store, 'CREATE TABLE IF NOT EXISTS support_messages', 'message SQL missing');
 requireText(web, 'window.openSupportChat = openSupportCenter', 'legacy web support callback not replaced');

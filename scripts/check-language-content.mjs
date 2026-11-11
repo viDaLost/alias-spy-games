@@ -42,7 +42,7 @@ for(const [source,targets] of Object.entries(labels))for(const translated of tar
 }
 // Exercise the actual webhook handler with signed test requests and mocked Telegram.
 let code=fs.readFileSync('cloudflare/app-core-worker/src/index-v10.js','utf8')
-  .replace(/^import .*;$/gm,'').replace(/^export \{ UserStore \};$/gm,'')
+  .replace(/^import .*;$/gm,'').replace(/^export \{ [^}]+ \};$/gm,'')
   .replace('export default {','const worker = {').replace('export const WELCOME_LANGUAGES','const WELCOME_LANGUAGES');
 code+='\nglobalThis.testHandle=tryHandleRichWelcome;';
 const calls=[];
@@ -63,5 +63,7 @@ for(const id of ['123','456'])for(const lang of ['ru','en','de','es']) {
   assert.equal(blocks.filter(block=>block.type==='buttons').length,2,`${id}/${lang}: language buttons are missing`);
   const languageButtons=blocks.filter(block=>block.type==='buttons').at(-1).buttons;
   assert.deepEqual(languageButtons.map(button=>button.text),['Русский','English','Deutsch','Español'],`${id}/${lang}: language buttons`);
+  const favorites=blocks.find(block=>block.type==='buttons').buttons.find(button=>button.url?.includes('start=favorites'));
+  assert.equal(favorites?.url,id===env.ADMIN_TELEGRAM_ID?`https://t.me/BibleTestBot?start=favorites_${lang}`:undefined);
 }
 console.log('Localized dictionaries, playable letters, online answers and the bot welcome for every visitor passed.');

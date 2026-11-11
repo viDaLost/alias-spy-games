@@ -82,6 +82,7 @@ export const scriptSources = [
   'web/js/android-performance.js',
   'web/js/bible-sketch-launcher.js',
   'web/js/room-invite.js',
+  'web/js/favorite-game-launch.js',
   'web/js/room-qr-brand.js',
   'web/js/room-qr-scanner.js',
   'web/js/room-qr-addon.js',

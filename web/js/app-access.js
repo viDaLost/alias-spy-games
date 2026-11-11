@@ -2,13 +2,14 @@
   'use strict';
   const root = document.documentElement;
   const core = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
-  const state = { allowed: false, checked: false, checking: null, userId: '', restricted: true };
+  const state = { allowed: false, checked: false, checking: null, userId: '', isRoot: false, restricted: true };
   let timer;
   let wasAllowed = false;
   const screen = () => document.getElementById('app-access-screen');
 
   function block(message = '', { stopGame = true } = {}) {
     state.allowed = false;
+    state.isRoot = false;
     root.classList.add('app-access-locked');
     root.classList.remove('app-access-pending');
     screen()?.removeAttribute('hidden');
@@ -32,6 +33,7 @@
     state.allowed = true;
     state.checked = true;
     state.userId = String(data.userId || '');
+    state.isRoot = data.isRoot === true;
     state.restricted = data.restricted === true;
     root.classList.remove('app-access-locked', 'app-access-pending');
     screen()?.setAttribute('hidden', '');

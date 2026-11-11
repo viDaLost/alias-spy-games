@@ -21,16 +21,16 @@ let id = '555555555';
 let isRoot = false;
 const exceptions = new Set();
 const authErrors = [];
-async function contextFor({ android = false, web = false, telegram = true } = {}) {
+async function contextFor({ android = false, web = false, telegram = true, social = false } = {}) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  await context.addInitScript(({ id, android, web, telegram }) => {
-    window.__APP_TELEMETRY_DISABLED__ = true;
+  await context.addInitScript(({ id, android, web, telegram, social }) => {
+    window.__APP_TELEMETRY_DISABLED__ = !social;
     localStorage.setItem(`sacred_word_levels_v4_${id}`, JSON.stringify({ level: 7 }));
     const token = `bgs_${'s'.repeat(64)}`;
     if (android) window.AndroidApp = { getTelegramId: () => id, getSessionToken: () => token, isAndroidApp: () => true, getAppVersion: () => '3.0.8-standalone' };
     if (web) localStorage.setItem('web_session_v1', JSON.stringify({ userId: id, token, expiresAt: Date.now() + 600000 }));
     if (telegram) window.Telegram = { WebApp: { initData: `auth_date=1&user=${encodeURIComponent(JSON.stringify({ id: Number(id) }))}&hash=qa`, initDataUnsafe: { user: { id: Number(id), first_name: 'QA' } }, ready() {}, expand() {}, onEvent() {}, offEvent() {}, setHeaderColor() {}, setBackgroundColor() {}, enableClosingConfirmation() {}, disableVerticalSwipes() {}, HapticFeedback: { impactOccurred() {}, selectionChanged() {}, notificationOccurred() {} } } };
-  }, { id, android, web, telegram });
+  }, { id, android, web, telegram, social });
   await context.route('https://telegram.org/**', (route) => route.fulfill({ body: '', contentType: 'text/javascript' }));
   await context.route('https://*.workers.dev/**', async (route) => {
     const url = new URL(route.request().url());
@@ -48,6 +48,8 @@ async function contextFor({ android = false, web = false, telegram = true } = {}
     if (action === 'adminRoleStatus') data = { ...data, isAdmin: isRoot, isRoot, userId: id };
     if (action === 'getAdminData') data = { ...data, users: [], adminAccess: { isAdmin: isRoot, isRoot, userId: id }, admins: [] };
     if (action === 'syncUser') data = { ...data, isBanned: false, swLevel: 7, wowStars: 42 };
+    if (action === 'profileBootstrap') data = { ...data, user: { id }, profile: { favorites: ['quartet'], gameStats: {} }, friends: [] };
+    if (action === 'profileSetFavorites') data.favorites = body.payload.favorites;
     if (action === 'referralStatus') data.answered = true;
     if (action?.startsWith('appAccess')) {
       if (action === 'appAccessGrant') exceptions.add(body.payload.targetId);
@@ -118,6 +120,31 @@ try {
   await page.waitForFunction(() => document.querySelector('#app-access-manager [data-access-admin-status]')?.textContent.includes('снова закрыт'));
   assert.equal(exceptions.size, 0);
   await context.close();
+
+  const favoriteContext = await contextFor({ social: true });
+  const favoritePage = await favoriteContext.newPage();
+  await favoritePage.goto(`${base}/?tgWebAppStartParam=game_quartet`);
+  await favoritePage.waitForFunction(() => document.body.dataset.currentGame === 'quartet');
+  await favoritePage.goto(`${base}/#tgWebAppStartParam=favorites`);
+  await favoritePage.locator('.social-sheet-overlay.is-open .social-favorites-grid').waitFor();
+  await favoritePage.locator('.social-favorites-grid').getByRole('button', { name: /Библейская география/ }).click();
+  await favoritePage.getByText('Добавлено в избранное', { exact: true }).waitFor();
+  await favoritePage.goto(`${base}/?tgWebAppStartParam=game_bible-geography`);
+  await favoritePage.waitForFunction(() => document.body.dataset.currentGame === 'bible-geography');
+  await favoriteContext.close();
+
+  id = '666666666'; isRoot = false; allowed = true;
+  const delegatedContext = await contextFor({ social: true });
+  const delegatedPage = await delegatedContext.newPage();
+  await delegatedPage.goto(`${base}/?tgWebAppStartParam=game_quartet`);
+  await delegatedPage.waitForFunction(() => document.documentElement.classList.contains('app-ui-ready') && window.AppAccess?.allowed());
+  assert.equal(await delegatedPage.evaluate(() => document.body.dataset.currentGame || ''), '');
+  await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
+  await delegatedPage.locator('.social-bottom-dock').waitFor();
+  assert.equal(await delegatedPage.locator('.social-sheet-overlay.is-open').count(), 0);
+  await delegatedContext.close();
+
   assert.deepEqual(authErrors, [], 'Android and iOS must use their verified session, never the native launch marker');
   console.log('PASS: mobile lock, Telegram/Android/iOS/guest denial, no guest bypass, unchanged local progress, retry/unlock, offline denial, root entry and working grant/revoke controls.');
+  console.log('PASS: favorite game links and the favorites editor open directly for the root account only.');
 } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }
