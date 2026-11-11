@@ -37,7 +37,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      - name: Configure Telegram support webhook and commands
+      - name: Configure Telegram webhook and commands
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
@@ -69,10 +69,11 @@ jobs:
             console.log(`Replacing previous Telegram webhook: ${previous.url}`);
           }
 
+          const requiredUpdates = ['message', 'edited_message', 'callback_query', 'widget_query'];
           await telegram('setWebhook', {
             url: webhookUrl,
             secret_token: secretToken,
-            allowed_updates: ['message', 'edited_message', 'callback_query', 'widget_query'],
+            allowed_updates: requiredUpdates,
             drop_pending_updates: false,
           });
 
@@ -131,7 +132,12 @@ jobs:
           if (configured?.url !== webhookUrl) {
             throw new Error(`Telegram webhook mismatch: ${configured?.url || 'empty'}`);
           }
-          console.log(`Telegram support webhook configured: ${configured.url}`);
+          const allowedUpdates = Array.isArray(configured.allowed_updates) ? configured.allowed_updates : [];
+          const missingUpdates = requiredUpdates.filter((type) => !allowedUpdates.includes(type));
+          if (missingUpdates.length) {
+            throw new Error(`Telegram webhook is missing updates: ${missingUpdates.join(', ')}`);
+          }
+          console.log(`Telegram webhook configured with updates: ${allowedUpdates.join(', ')}`);
           NODE
       - name: Verify Android authenticated boundary
         env:
