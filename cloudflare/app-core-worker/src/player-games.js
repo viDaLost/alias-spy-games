@@ -1,0 +1,20 @@
+// Titles in ru, en, de, es order, with the same keys as the Mini App.
+export const PLAYER_GAMES = new Map([
+  ['alias', ['Алиас', 'Alias', 'Alias', 'Alias']],
+  ['coimaginarium', ['Соображариум', 'Think Fast', 'Denk schnell', 'Piensa rápido']],
+  ['guess', ['Угадай персонажа', 'Guess the Character', 'Errate die Person', 'Adivina el personaje']],
+  ['describe', ['Опиши, но не называй', 'Describe, Do Not Name', 'Beschreiben ohne Namen', 'Describe sin nombrar']],
+  ['spy', ['Соглядатай', 'Spy', 'Spion', 'Espía']],
+  ['quartet', ['Квартет', 'Quartet', 'Quartett', 'Cuarteto']],
+  ['bible-sketch', ['Библейский художник', 'Bible Artist', 'Bibelkünstler', 'Artista bíblico']],
+  ['bible-wow', ['Библейские слова', 'Bible Words', 'Bibelwörter', 'Palabras bíblicas']],
+  ['bible-wordsearch', ['Поиск библейских слов', 'Bible Word Search', 'Bibel-Wortsuche', 'Sopa de letras bíblica']],
+  ['sacred-word', ['Священное слово', 'Sacred Word', 'Heiliges Wort', 'Palabra sagrada']],
+  ['kids-ark-pairs', ['Найди пару', 'Find a Pair', 'Finde ein Paar', 'Encuentra la pareja']],
+  ['biblical-match-three', ['Библейские сокровища', 'Bible Treasures', 'Bibelschätze', 'Tesoros bíblicos']],
+  ['moses-nile', ['Моисей: Путь по Нилу', 'Moses: Journey on the Nile', 'Mose: Reise auf dem Nil', 'Moisés: Viaje por el Nilo']],
+  ['twelve-tribes', ['Двенадцать колен', 'Twelve Tribes', 'Die zwölf Stämme', 'Las doce tribus']],
+  ['promised-land', ['Земля обетованная', 'Promised Land', 'Das gelobte Land', 'Tierra Prometida']],
+  ['bible-geography', ['Библейская география', 'Bible Geography', 'Biblische Geografie', 'Geografía bíblica']],
+  ['kingdoms', ['Царства', 'Kingdoms', 'Königreiche', 'Reinos']],
+]);

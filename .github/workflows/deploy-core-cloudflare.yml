@@ -72,7 +72,7 @@ jobs:
           await telegram('setWebhook', {
             url: webhookUrl,
             secret_token: secretToken,
-            allowed_updates: ['message', 'edited_message', 'callback_query'],
+            allowed_updates: ['message', 'edited_message', 'callback_query', 'widget_query'],
             drop_pending_updates: false,
           });
 
@@ -87,6 +87,7 @@ jobs:
           ];
           const adminCommands = [
             ...publicCommands,
+            { command: 'favorites', description: 'Мои игры' },
             { command: 'write', description: 'Написать пользователю по его ID' },
           ];
 

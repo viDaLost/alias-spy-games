@@ -2,7 +2,8 @@
 import coreV17, { UserStore as V17UserStore } from './index-v17.js';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-access-auth.js';
-import { restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
+import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
+import { handleFavoritesWidget } from './telegram-favorites-widget.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
 const MANAGEMENT = new Set(['appAccessList', 'appAccessGrant', 'appAccessRevoke']);
@@ -43,6 +44,11 @@ export class UserStore extends V17UserStore {
     if (request.method !== 'POST' || !url.pathname.startsWith('/app-access/')) return super.fetch(request);
     const body = await request.json();
     if (url.pathname === '/app-access/check') return json(await this.applicationAccess(body.userId));
+    if (url.pathname === '/app-access/widget-favorites') {
+      const userId = cleanAccessId(body.userId);
+      if (!userId || userId !== this.ownerId()) return json({ ok: false, error: 'Owner only' }, 403);
+      return json({ ok: true, favorites: this.readProfile(userId).favorites });
+    }
     if (url.pathname === '/app-access/bot-reply') {
       const userId = cleanAccessId(body.userId);
       const updateId = String(body.updateId || '');
@@ -105,8 +111,10 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
       try {
-        const reply = await restrictedBotReply(request, env);
+        const update = await readTelegramWebhookUpdate(request, env);
+        const reply = await restrictedBotReply(request, env, update);
         if (reply) return reply;
+        if (handleFavoritesWidget(update, env, ctx)) return new Response('OK');
       } catch (error) { return json({ ok: false, error: error.message }, error.status || 503); }
     }
     if (url.pathname === '/web/session/verify' && request.method === 'GET') {

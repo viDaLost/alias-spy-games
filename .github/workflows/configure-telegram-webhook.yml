@@ -14,7 +14,7 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Enable Telegram message and callback updates
+      - name: Enable Telegram message, callback and widget updates
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CORE_WORKER_URL: https://alias-spy-games-core.vitaledanilov.workers.dev
@@ -41,10 +41,11 @@ jobs:
             return data.result;
           }
 
+          const requiredUpdates = ['message', 'edited_message', 'callback_query', 'widget_query'];
           await telegram('setWebhook', {
             url: webhookUrl,
             secret_token: secretToken,
-            allowed_updates: ['message', 'callback_query'],
+            allowed_updates: requiredUpdates,
             drop_pending_updates: false,
           });
 
@@ -53,7 +54,7 @@ jobs:
           if (configured?.url !== webhookUrl) {
             throw new Error(`Telegram webhook mismatch: ${configured?.url || 'empty'}`);
           }
-          if (!allowed.includes('message') || !allowed.includes('callback_query')) {
+          if (requiredUpdates.some((type) => !allowed.includes(type))) {
             throw new Error(`Telegram allowed_updates mismatch: ${allowed.join(', ') || 'empty'}`);
           }
 

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac, createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { register } from 'node:module';
+import { deflateSync } from 'node:zlib';
 register('./lib/cloudflare-workers-loader.mjs', import.meta.url);
 const { default: worker, UserStore } = await import('../cloudflare/app-core-worker/src/index-v18.js');
 const { requireAppAccess, allowAppSocket } = await import('../cloudflare/shared/app-access.js');
@@ -82,8 +83,13 @@ assert.equal(closed, true, 'existing sockets must close after revocation');
 const realFetch = globalThis.fetch;
 const replies = [];
 let deliveryFails = false;
+let widgetUnsupported = false;
 globalThis.fetch = async (url, init) => {
   replies.push({ url, body: JSON.parse(init.body) });
+  if (url.endsWith('/getMe')) return Response.json({ ok: true, result: { username: 'FavoritesTestBot' } });
+  if (widgetUnsupported && url.endsWith('/sendWidget')) {
+    return Response.json({ ok: false, error_code: 404, description: 'Not Found' }, { status: 404 });
+  }
   return Response.json({ ok: !deliveryFails }, { status: deliveryFails ? 502 : 200 });
 };
 const webhookSecret = createHash('sha256').update(env.TELEGRAM_BOT_TOKEN).digest('hex');
@@ -114,7 +120,56 @@ try {
   deliveryFails = false;
   assert.equal((await worker.fetch(retry.clone(), env, ctx)).status, 200, 'failed delivery must be retryable');
   assert.equal(await restrictedBotReply(webhook({ message: { chat: { id: Number(env.ADMIN_TELEGRAM_ID), type: 'private' }, from: { id: Number(env.ADMIN_TELEGRAM_ID) }, text: '/help' } }), env), null);
+
+  const owner = Number(env.ADMIN_TELEGRAM_ID);
+  const ownerChat = { chat: { id: owner, type: 'private' }, from: { id: owner } };
+  const pending = [];
+  async function botUpdate(update, secret) {
+    const result = await worker.fetch(webhook(update, secret), env, { waitUntil: (promise) => pending.push(promise) });
+    await Promise.all(pending.splice(0));
+    return result;
+  }
+
+  const empty = await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
+  assert.equal(empty.status, 200);
+  assert(replies.at(-1).url.endsWith('/sendWidget'));
+  assert.equal(replies.at(-1).body.chat_data, '[]');
+
+  const games = ['quartet', 'bible-geography', 'twelve-tribes', 'kingdoms'];
+  const saved = await compat(owner, 'profileSetFavorites', { favorites: [...games, 'invalid'] });
+  assert.deepEqual(saved.data.favorites, games);
+  await botUpdate({ message: { ...ownerChat, text: '/start favorites_en' } });
+  const widget = replies.at(-1).body;
+  assert.deepEqual(JSON.parse(widget.chat_data), games);
+  assert.equal(widget.allow_queries, true);
+  assert.equal(widget.protect_content, true);
+  assert(widget.html.includes('My games'));
+  assert(Buffer.byteLength(widget.html) <= 32768 && deflateSync(widget.html, { level: 9 }).length <= 4096);
+  assert.equal(widget.reply_markup.inline_keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=favorites');
+
+  await compat(owner, 'profileSetFavorites', { favorites: ['bible-wow'] });
+  const query = { id: '8123456789012345678', data: 'favorite_games_v1', ...ownerChat };
+  await botUpdate({ widget_query: query });
+  assert(replies.at(-1).url.endsWith('/answerWidgetQuery'));
+  assert.equal(replies.at(-1).body.widget_query_id, query.id);
+  assert.deepEqual(JSON.parse(replies.at(-1).body.data), ['bible-wow']);
+
+  const delegated = 666666666;
+  await compat(owner, 'appAccessGrant', { targetId: String(delegated) });
+  assert.equal((await request('/app/access', { telegramInitData: signed(delegated) })).data.allowed, true);
+  const beforeUnauthorized = replies.length;
+  await botUpdate({ message: { chat: { id: delegated, type: 'private' }, from: { id: delegated }, text: '/favorites' } });
+  await botUpdate({ widget_query: { ...query, chat: { id: delegated, type: 'private' }, from: { id: delegated } } });
+  await botUpdate({ widget_query: { ...query, chat: { id: owner, type: 'group' } } });
+  assert.equal((await botUpdate({ widget_query: query }, 'forged')).status, 403);
+  assert(!replies.slice(beforeUnauthorized).some(({ url }) => /\/(sendWidget|answerWidgetQuery)$/.test(url)));
+
+  widgetUnsupported = true;
+  await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
+  assert(replies.at(-1).url.endsWith('/sendMessage'));
+  assert.equal(replies.at(-1).body.reply_markup.inline_keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
 } finally { globalThis.fetch = realFetch; }
 console.log('PASS: verified root, blocked guests/delegated admins/forged identities, persistent exceptions, revocation, Android legacy compatibility, permanent bans, unchanged progress and room socket enforcement.');
 console.log('PASS: bot commands, arbitrary text, photos, stickers, edited messages, callbacks, both Synodal references, webhook authentication, duplicate prevention and retry after delivery failure.');
+console.log('PASS: owner-only favorites widget, live refresh, compressed size limit and inline keyboard fallback.');
 db.close();

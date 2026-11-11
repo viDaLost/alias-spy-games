@@ -161,7 +161,7 @@
     */
     const mount = () => {
       const localized = (path) => window.AppLanguage?.asset?.(path) || path;
-      ensureScript('social-dock-v2-js', `${localized('web/js/social-dock-v2.js')}?v=1`);
+      ensureScript('social-dock-v2-js', `${localized('web/js/social-dock-v2.js')}?v=3`);
       ensureScript('game-friend-invites-js', `${localized('web/js/game-friend-invites.js')}?v=1`);
     };
     const ready = () => Boolean(document.documentElement.dataset.languageReady);

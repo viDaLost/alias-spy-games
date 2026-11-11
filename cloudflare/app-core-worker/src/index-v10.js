@@ -1,6 +1,6 @@
 import coreV9, { UserStore } from './index-v9.js';
 
-export { UserStore };
+export { UserStore, getMainMiniAppUrl, telegramApi };
 
 const encoder = new TextEncoder();
 let cachedBotUsername = '';
@@ -71,6 +71,8 @@ export const WELCOME_LANGUAGES = {
   de: ['Bibelspiele','Spiele mit Freunden und entdecke die Bibel auf neue Weise.',' Spielen',' Hilfe','Minispiele • Räume • Fortschritt'],
   es: ['Juegos bíblicos','Juega con amigos y descubre la Biblia de una nueva manera.',' Jugar',' Ayuda','Minijuegos • salas • progreso'],
 };
+const FAVORITES_LABEL = { ru: 'Мои игры', en: 'My games', de: 'Meine Spiele', es: 'Mis juegos' };
+
 async function sendRichWelcomeMessage(env, chatId, language='ru') {
   const miniAppUrl = await getMainMiniAppUrl(env) + `=lang_${language}`;
   const copy=WELCOME_LANGUAGES[language] || WELCOME_LANGUAGES.ru;
@@ -127,6 +129,10 @@ async function sendRichWelcomeMessage(env, chatId, language='ru') {
               style: 'primary',
               callback_data: 'support:start',
             },
+            ...(String(chatId) === String(env.ADMIN_TELEGRAM_ID || '') ? [{
+              text: FAVORITES_LABEL[language] || FAVORITES_LABEL.ru,
+              url: miniAppUrl.replace(/\?startapp.*$/, `?start=favorites_${language}`),
+            }] : []),
           ],
         },
         ...languageButtons,
@@ -175,7 +181,9 @@ async function telegramApi(env, method, payload) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data?.ok !== true) {
-    throw new Error(String(data?.description || `Telegram HTTP ${response.status}`));
+    const error = new Error(String(data?.description || `Telegram HTTP ${response.status}`));
+    error.status = Number(data?.error_code || response.status);
+    throw error;
   }
   return data.result;
 }
