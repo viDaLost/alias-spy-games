@@ -168,8 +168,35 @@ try {
   await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
   assert(replies.at(-1).url.endsWith('/sendMessage'));
   assert.equal(replies.at(-1).body.reply_markup.inline_keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+
+  assert.equal((await compat('555555555', 'appAccessRestore', { adminId: env.ADMIN_TELEGRAM_ID })).status, 403);
+  assert.equal((await compat('666666666', 'appAccessRestore')).status, 403);
+  assert.equal((await request('/compat', { telegramInitData: signed(owner, 1801), payload: { action: 'appAccessRestore' } })).status, 401);
+  assert.equal((await request('/app/access')).data.restricted, true);
+
+  const restored = await compat(owner, 'appAccessRestore');
+  assert.equal(restored.status, 200);
+  assert.equal(restored.data.restricted, false);
+  assert.equal((await compat(owner, 'appAccessRestore')).data.restricted, false);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM admin_action_audit WHERE action = 'appAccessRestore'").get().n, 1);
+  store = new UserStore(ctx, env);
+  assert.equal((await request('/app/access', { telegramInitData: signed(message.from.id) })).data.allowed, true);
+  assert.equal((await request('/android/access', null, token)).data.isBanned, false);
+  assert.equal((await request('/app/access')).data.restricted, false);
+  assert.equal(JSON.stringify(store.getRow('555555555')), original);
+
+  await botUpdate({ message: { ...message, text: '/help' } });
+  assert(replies.at(-1).body.text.includes('/support'));
+  assert(!replies.at(-1).body.text.includes('временно заблокированы'));
+  await botUpdate({ message: { ...message, text: '/start' } });
+  assert(replies.at(-1).url.endsWith('/sendRichMessage'));
+  assert(replies.at(-1).body.rich_message.blocks.some((block) => block.buttons?.some((button) => button.url?.includes('?startapp'))));
+
+  db.prepare('UPDATE users SET is_banned = 1 WHERE telegram_id = ?').run('555555555');
+  assert.equal((await request('/app/access', { telegramInitData: signed(message.from.id) })).data.allowed, false);
 } finally { globalThis.fetch = realFetch; }
 console.log('PASS: verified root, blocked guests/delegated admins/forged identities, persistent exceptions, revocation, Android legacy compatibility, permanent bans, unchanged progress and room socket enforcement.');
 console.log('PASS: bot commands, arbitrary text, photos, stickers, edited messages, callbacks, both Synodal references, webhook authentication, duplicate prevention and retry after delivery failure.');
 console.log('PASS: owner-only favorites widget, live refresh, compressed size limit and inline keyboard fallback.');
+console.log('PASS: owner-only reopening persists across restarts, restores the app and standard Telegram commands, and preserves account bans and progress.');
 db.close();

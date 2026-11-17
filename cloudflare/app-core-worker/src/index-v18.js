@@ -6,7 +6,12 @@ import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } fr
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
-const MANAGEMENT = new Set(['appAccessList', 'appAccessGrant', 'appAccessRevoke']);
+const MANAGEMENT = new Map([
+  ['appAccessList', 'list'],
+  ['appAccessGrant', 'grant'],
+  ['appAccessRevoke', 'revoke'],
+  ['appAccessRestore', 'restore'],
+]);
 const ACCESS_ACTIONS = new Set(['syncUser', 'accessStatus']);
 
 export class UserStore extends V17UserStore {
@@ -14,12 +19,20 @@ export class UserStore extends V17UserStore {
     super(ctx, env);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS app_access_exceptions (
       user_id TEXT PRIMARY KEY, granted_by TEXT NOT NULL, granted_at INTEGER NOT NULL
-    ); CREATE TABLE IF NOT EXISTS app_access_bot_replies (update_id TEXT PRIMARY KEY, replied_at INTEGER NOT NULL)`);
+    ); CREATE TABLE IF NOT EXISTS app_access_bot_replies (update_id TEXT PRIMARY KEY, replied_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS app_access_mode (
+        id INTEGER PRIMARY KEY CHECK (id = 1), restricted INTEGER NOT NULL CHECK (restricted IN (0, 1))
+      )`);
+  }
+
+  restrictionActive() {
+    const mode = this.sql.exec('SELECT restricted FROM app_access_mode WHERE id = 1').toArray()[0];
+    return mode ? mode.restricted === 1 : String(this.env.APP_RESTRICTED || 'true') !== 'false';
   }
 
   async applicationAccess(userId) {
     userId = cleanAccessId(userId);
-    const restricted = String(this.env.APP_RESTRICTED || 'true') !== 'false';
+    const restricted = this.restrictionActive();
     const isRoot = Boolean(userId && userId === this.ownerId());
     // Root is immutable. Delegated administrators receive no automatic exception.
     if (isRoot) return { ok: true, success: true, allowed: true, restricted, isRoot, userId, isBanned: false };
@@ -74,7 +87,12 @@ export class UserStore extends V17UserStore {
     const actorId = cleanAccessId(body.actorId);
     if (!actorId || actorId !== this.ownerId()) return json({ ok: false, error: 'Только главный администратор может снимать ограничения' }, 403);
     const targetId = cleanAccessId(body.targetId);
-    if (url.pathname !== '/app-access/list') {
+    if (url.pathname === '/app-access/restore') {
+      if (this.restrictionActive()) {
+        this.sql.exec('INSERT INTO app_access_mode (id, restricted) VALUES (1, 0) ON CONFLICT(id) DO UPDATE SET restricted = 0');
+        await this.adminAuditLog({ actorId, action: 'appAccessRestore' });
+      }
+    } else if (url.pathname !== '/app-access/list') {
       if (!targetId) return json({ ok: false, error: 'Введите корректный Telegram ID' }, 400);
       if (targetId === this.ownerId()) return json({ ok: false, error: 'Главный администратор всегда имеет доступ' }, 400);
       if (url.pathname === '/app-access/grant') {
@@ -84,7 +102,7 @@ export class UserStore extends V17UserStore {
       } else return json({ ok: false, error: 'Not found' }, 404);
       await this.adminAuditLog({ actorId, action: url.pathname.endsWith('/grant') ? 'appAccessGrant' : 'appAccessRevoke', targetId });
     }
-    return json({ ok: true, success: true, restricted: String(this.env.APP_RESTRICTED || 'true') !== 'false',
+    return json({ ok: true, success: true, restricted: this.restrictionActive(),
       users: this.sql.exec('SELECT user_id AS userId, granted_at AS grantedAt FROM app_access_exceptions ORDER BY granted_at DESC').toArray() });
   }
 }
@@ -136,12 +154,11 @@ export default {
       if (origin && !String(env.ALLOWED_ORIGINS || '').split(',').includes(origin)) throw accessError(403, 'Origin not allowed');
       const body = request.method === 'POST' ? await request.clone().json() : {};
       const action = String(body?.payload?.action || '');
-      const management = compat && MANAGEMENT.has(action);
-      const userId = await accessIdentity(request, body, env, { fresh: management, optional: check });
+      const management = compat ? MANAGEMENT.get(action) : null;
+      const userId = await accessIdentity(request, body, env, { fresh: Boolean(management), optional: check });
       if (management) {
         if (userId !== String(env.ADMIN_TELEGRAM_ID || '')) throw accessError(403, 'Только главный администратор может снимать ограничения');
-        const path = { appAccessList: 'list', appAccessGrant: 'grant', appAccessRevoke: 'revoke' }[action];
-        return json(await accessStore(env, `/app-access/${path}`, { actorId: userId, targetId: body.payload.targetId }), 200, cors);
+        return json(await accessStore(env, `/app-access/${management}`, { actorId: userId, targetId: body.payload.targetId }), 200, cors);
       }
       const access = await accessStore(env, '/app-access/check', { userId });
       if (check || legacyAccess || (compat && ACCESS_ACTIONS.has(action) && !access.allowed)) return json(access, 200, cors);
@@ -153,7 +170,7 @@ export default {
   },
   async scheduled(controller, env, ctx) {
     // Users cannot return while restricted: freeze automatic inactivity deletion.
-    if (String(env.APP_RESTRICTED || 'true') !== 'false') return;
+    if ((await accessStore(env, '/app-access/check', { userId: '' })).restricted) return;
     return coreV17.scheduled?.(controller, env, ctx);
   },
 };
