@@ -44,5 +44,14 @@ html.theme-dark .app-access__mark, html.theme-dark .app-access button { backgrou
 .app-access-manager form { display: flex; flex-wrap: wrap; gap: 8px; }
 .app-access-manager input { flex: 1; min-width: 150px; padding: 12px; border: 1px solid #b8cbd2; border-radius: 10px; font: inherit; }
 .app-access-manager button { min-height: 44px; padding: 9px 12px; border: 1px solid #b8cbd2; border-radius: 10px; cursor: pointer; }
+.app-access-manager [hidden] { display: none !important; }
+.app-access-manager .app-access-restore {
+  background: #4a3fbd;
+  border-color: #4a3fbd;
+  color: #fff;
+  font-weight: 780;
+}
+.app-access-manager .app-access-restore:disabled { cursor: default; opacity: .6; }
+.app-access-manager summary { cursor: pointer; margin: 12px 0; font-weight: 720; }
 .app-access-manager li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; }
 .app-access-manager ul { list-style: none; margin: 10px 0 0; padding: 0; }

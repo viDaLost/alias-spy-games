@@ -2728,6 +2728,10 @@ html.theme-dark .app-access-manager input {
 html.theme-dark .app-access-manager button {
   border: 1px solid #3a4a50 !important;
 }
+html.theme-dark .app-access-manager .app-access-restore {
+  background: #4d42c0 !important;
+  border-color: #4d42c0 !important;
+}
 
 /* web/games/quartet-v2.css */
 html.theme-dark .qv2-root {

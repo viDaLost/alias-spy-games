@@ -19,6 +19,7 @@ let allowed = false;
 let fail = false;
 let id = '555555555';
 let isRoot = false;
+let restricted = true;
 const exceptions = new Set();
 const authErrors = [];
 async function contextFor({ android = false, web = false, telegram = true, social = false } = {}) {
@@ -40,7 +41,7 @@ async function contextFor({ android = false, web = false, telegram = true, socia
         if (route.request().postDataJSON()?.telegramInitData) authErrors.push('native marker sent as signed Telegram proof');
       }
       if (fail) return route.abort();
-      return route.fulfill({ json: { success: true, allowed, restricted: true, isRoot, userId: allowed ? id : '' } });
+      return route.fulfill({ json: { success: true, allowed: allowed || !restricted, restricted, isRoot, userId: allowed || !restricted ? id : '' } });
     }
     const body = route.request().postDataJSON?.() || {};
     const action = body?.payload?.action;
@@ -54,6 +55,8 @@ async function contextFor({ android = false, web = false, telegram = true, socia
     if (action?.startsWith('appAccess')) {
       if (action === 'appAccessGrant') exceptions.add(body.payload.targetId);
       if (action === 'appAccessRevoke') exceptions.delete(body.payload.targetId);
+      if (action === 'appAccessRestore' && isRoot) restricted = false;
+      data.restricted = restricted;
       data.users = [...exceptions].map((userId) => ({ userId }));
     }
     if (url.pathname === '/admin/verify') data = { ...data, admin: isRoot, isAdmin: isRoot, isRoot, userId: id, id };
@@ -119,6 +122,11 @@ try {
   await page.getByRole('button', { name: 'Закрыть доступ', exact: true }).click();
   await page.waitForFunction(() => document.querySelector('#app-access-manager [data-access-admin-status]')?.textContent.includes('снова закрыт'));
   assert.equal(exceptions.size, 0);
+  await page.getByRole('button', { name: 'Снять блокировку', exact: true }).click();
+  await page.getByText('Обычный режим восстановлен.', { exact: true }).waitFor();
+  assert.equal(restricted, false);
+  assert.equal(await page.getByRole('button', { name: 'Снять блокировку', exact: true }).isVisible(), false);
+  restricted = true;
   await context.close();
 
   const favoriteContext = await contextFor({ social: true });

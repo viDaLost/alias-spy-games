@@ -34,5 +34,6 @@ export async function restrictedBotReply(request, env, update) {
   if (access.allowed) return null;
   const result = await accessStore(env, '/app-access/bot-reply', { userId, updateId: String(update.update_id || ''), callbackId: String(callback?.id || '') });
   if (!result.success) throw accessError(502, 'Telegram reply delivery failed');
+  if (result.skipped) return null;
   return new Response('OK');
 }
