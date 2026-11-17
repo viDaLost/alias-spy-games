@@ -14,7 +14,7 @@
       <p data-access-mode>Проверяем состояние блокировки…</p>
       <button class="app-access-restore" type="button" data-access-restore disabled>Снять блокировку</button>
       <p data-access-admin-status role="status" aria-live="polite"></p>
-      <details data-access-exceptions hidden>
+      <details data-access-exceptions open hidden>
         <summary>Открыть доступ по Telegram ID</summary>
         <form><label for="app-access-id">Telegram ID</label><input id="app-access-id" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789" required pattern="[1-9][0-9]{4,19}"><button type="submit">Открыть доступ</button></form>
         <ul></ul>
@@ -65,7 +65,7 @@
         }
         status.textContent = action === 'appAccessRestore' && !restricted ? 'Обычный режим восстановлен.'
           : action === 'appAccessGrant' ? `Доступ открыт для ${targetId}.`
-          : action === 'appAccessRevoke' ? `Доступ для ${targetId} закрыт.` : '';
+          : action === 'appAccessRevoke' ? `Доступ для ${targetId} снова закрыт.` : '';
         if (action === 'appAccessGrant') input.value = '';
       } catch (error) {
         if (restricted === null) mode.textContent = 'Не удалось определить состояние блокировки.';
