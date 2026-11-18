@@ -138,6 +138,8 @@ const dynamicPublishedFiles = new Set([
   // Loaded by relative paths from isolated game documents, and copied to the Worker.
   'web/js/standalone-app-access.js',
   ...['en', 'de', 'es'].map((lang) => `web/locales/${lang}/js/standalone-app-access.js`),
+  // The Telegram launch context resolves the profile script after language selection.
+  ...['en', 'de', 'es'].map((lang) => `web/locales/${lang}/js/social-dock-v2.js`),
   'web/assets/home-gamehub-parallax-v1/01-gamehub-base.webp',
   'web/assets/home-gamehub-parallax-v1/02-atmosphere.webp',
   'web/assets/home-gamehub-parallax-v1/03-architecture.webp',
