@@ -68,10 +68,8 @@
     banner.querySelector('[data-bot-start-open]').addEventListener('click', () => { open(); dismiss(banner); });
     banner.querySelector('[data-bot-start-later]').addEventListener('click', () => dismiss(banner));
 
-    // Тем же местом, что и приглашение в канал: сразу под панелью прогресса,
-    // а не выше карточек игр, ради которых человек открыл меню.
     const existingPromo = document.getElementById('channel-promo');
-    const dashboard = menu.querySelector('.home-dashboard');
+    const dashboard = menu.querySelector('#main-catalog .catalog-system') || menu.querySelector('.home-dashboard');
     if (existingPromo) existingPromo.after(banner);
     else if (dashboard) dashboard.after(banner);
     else menu.prepend(banner);

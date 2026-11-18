@@ -64,8 +64,7 @@
     banner.querySelector('[data-channel-join]').addEventListener('click', () => { open(); dismiss(banner); });
     banner.querySelector('[data-channel-later]').addEventListener('click', () => dismiss(banner));
 
-    // Под панелью прогресса: сверху человек ищет игры, а не объявления.
-    const dashboard = menu.querySelector('.home-dashboard');
+    const dashboard = menu.querySelector('#main-catalog .catalog-system') || menu.querySelector('.home-dashboard');
     if (dashboard) dashboard.after(banner);
     else menu.prepend(banner);
     requestAnimationFrame(() => banner.classList.add('is-visible'));

@@ -68,7 +68,7 @@
   <meta name="app-shell" content="https://alias-spy-games-app.vitaledanilov.workers.dev" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
   <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
-  <script src="web/js/telegram-launch-context.js?v=3"></script>
+  <script src="web/js/telegram-launch-context.js?v=4"></script>
   <script>
     (() => {
       try {
@@ -137,7 +137,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.0cc1b15be5.css" />
+  <link rel="stylesheet" href="web/dist/app.f8d41569de.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -202,7 +202,7 @@
         <span>Библейские игры</span>
       </a>
       <div class="catalog-tools">
-        <a class="catalog-tool" id="open-profile" href="https://t.me/bibleiskie_bot?startapp" target="_blank" rel="noopener noreferrer" aria-label="Профиль">
+        <a class="catalog-tool" id="open-profile" href="https://t.me/bibleiskie_bot?startapp=profile" target="_blank" rel="noopener noreferrer" aria-label="Профиль">
           <img class="catalog-system-icon" src="web/assets/icons/profile.webp" alt=""><span class="catalog-tool-label">Профиль</span>
         </a>
         <button type="button" class="catalog-tool" id="open-favorites" aria-label="Избранное">
@@ -230,19 +230,12 @@
       <div class="catalog-promo-viewport"></div>
     </section>
     <div class="catalog-system-quick" id="catalog-system-quick"></div>
-    <section class="catalog-favorites" id="catalog-favorites" aria-labelledby="catalog-favorites-title" hidden>
-      <h2 id="catalog-favorites-title">Избранное</h2>
-      <div id="favorite-games"></div>
-    </section>
     <section class="catalog-library" aria-label="Список игр" id="catalog-library">
-      <div class="catalog-find">
-        <label class="catalog-search"><img class="catalog-system-icon" src="web/assets/icons/menu-system/search.webp" alt=""><input id="catalog-query" type="search" placeholder="Найти игру" aria-label="Найти игру" aria-controls="catalog-games" maxlength="60" autocomplete="off"></label>
-        <nav id="catalog-filters" class="catalog-filters" data-current="all" aria-label="Категории игр">
-          <button type="button" data-filter="all" aria-pressed="true">Все игры</button>
-          <button type="button" data-filter="company" aria-pressed="false">Для компании</button>
-          <button type="button" data-filter="solo" aria-pressed="false">Одиночные</button>
-        </nav>
-      </div>
+      <nav id="catalog-filters" class="catalog-filters" data-current="all" aria-label="Категории игр">
+        <button type="button" data-filter="all" aria-pressed="true" aria-controls="catalog-games">Все</button>
+        <button type="button" data-filter="solo" aria-pressed="false" aria-controls="catalog-games">Одиночные</button>
+        <button type="button" data-filter="company" aria-pressed="false" aria-controls="catalog-games">Для компании</button>
+      </nav>
       <div id="catalog-games" class="catalog-collections"></div>
     </section>
     <section class="catalog-system home-dashboard" aria-label="Сервисы приложения">
@@ -352,7 +345,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.76dee88b95.js","en":"web/dist/app.en.ac58eb0a35.js","de":"web/dist/app.de.96becf3963.js","es":"web/dist/app.es.c08ddf03a8.js"}</script>
+  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.94e73ed944.js","en":"web/dist/app.en.b48f18935b.js","de":"web/dist/app.de.97b4a37cbf.js","es":"web/dist/app.es.74e5b72312.js"}</script>
   <script src="web/i18n/bootstrap.js" defer></script>
   <!-- /build:js -->
 </body>

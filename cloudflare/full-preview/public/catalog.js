@@ -8,9 +8,7 @@
   const feature = document.getElementById('catalog-feature');
   let carousel;
   const filters = document.getElementById('catalog-filters');
-  const search = document.getElementById('catalog-query');
   const status = document.getElementById('catalog-status');
-  const favoritesShelf = document.getElementById('catalog-favorites');
   const settings = document.getElementById('settings-dialog');
   const favoritesDialog = document.getElementById('favorites-dialog');
   const invitation = document.getElementById('invite-dialog');
@@ -18,7 +16,6 @@
   const inviteFeedback = document.getElementById('invite-feedback');
   const resources = new Map();
   const favoritesKey = 'bible_game_favorites_v1';
-  const favoriteShelfList = document.getElementById('favorite-games');
   const favoriteDialogList = document.getElementById('favorites-dialog-games');
   let favorites = new Set(readFavorites());
   let games = [];
@@ -33,7 +30,6 @@
     'promised-land': ['2–6 игроков', '≈ 30–60 мин'],
     kingdoms: ['2–5 игроков', '≈ 20–35 мин'],
   };
-  const normalize = (text) => text.toLowerCase().replaceAll('ё', 'е').trim();
 
   const gameObserver = typeof IntersectionObserver === 'function' ? new IntersectionObserver((entries, observer) => {
     for (const { target, isIntersecting } of entries) {
@@ -92,17 +88,13 @@
   }
 
   function renderLibrary(entering = false) {
-    const query = normalize(search.value);
-    const terms = query.split(/\s+/).filter(Boolean);
-    const scoped = games.filter((game) => {
-      const inGroup = filter === 'all' || (game.group === 'company-games') === (filter === 'company');
-      return inGroup && terms.every((term) => game.search.includes(term));
-    });
+    const scoped = filter === 'all' ? games : games.filter((game) =>
+      (game.group === 'company-games') === (filter === 'company'));
     gameObserver?.disconnect();
     gamesGrid.innerHTML = Object.entries(groupNames).map(([id, title]) => {
       const list = scoped.filter((game) => game.group === id);
       return list.length ? `<section class="catalog-collection" aria-labelledby="collection-${id}"><h2 id="collection-${id}">${title}</h2><div class="catalog-games">${list.map(card).join('')}</div></section>` : '';
-    }).join('') || '<p class="catalog-empty">Игры не найдены. Попробуйте другое название.</p>';
+    }).join('');
     if (entering && !window.GameDisplay.reducedMotion()) {
       for (const item of gamesGrid.querySelectorAll('.catalog-game')) {
         if (gameObserver) gameObserver.observe(item);
@@ -113,16 +105,11 @@
     for (const tab of filters.querySelectorAll('[data-filter]')) {
       tab.setAttribute('aria-pressed', String(tab.dataset.filter === filter));
     }
-    if (query) status.textContent = scoped.length ? `Найдено игр: ${scoped.length}` : 'Игры не найдены';
   }
 
   function render(entering = false) {
     renderLibrary(entering);
     const saved = games.filter((game) => favorites.has(game.key));
-    favoritesShelf.hidden = !saved.length;
-    favoriteShelfList.innerHTML = saved.map((game) =>
-      `<a class="catalog-pin" href="${routeURL(game.key)}" data-launch="${game.key}">${icon(game)}${game.title}</a>`
-    ).join('');
     favoriteDialogList.innerHTML = saved.length ? saved.map(card).join('')
       : '<p class="catalog-favorite-empty">Нажмите сердечко на карточке игры, чтобы она появилась здесь.</p>';
   }
@@ -137,10 +124,14 @@
     const selected = !favorites.has(id);
     const host = button.closest('#favorites-dialog') ? favoriteDialogList : gamesGrid;
     if (signedProfile()) {
-      if (!window.PlayerSocial) { status.textContent = 'Профиль ещё загружается'; return; }
       pendingFavorite = true;
-      try { favorites = new Set(await window.PlayerSocial.setFavorite(id, selected)); }
-      catch { status.textContent = 'Не удалось обновить избранное профиля'; return; }
+      try {
+        const social = await window.TelegramLaunchContext.loadPlayerSocial();
+        favorites = new Set(await social.setFavorite(id, selected));
+      } catch {
+        window.showToast?.('Не удалось обновить избранное профиля', 'error');
+        return;
+      }
       finally { pendingFavorite = false; }
     } else {
       if (selected) favorites.add(id); else favorites.delete(id);
@@ -216,7 +207,6 @@
       { key: 'bible-sketch', title: 'Библейский художник', desc: 'Рисуйте и угадывайте', group: 'company-games', art: 'web/assets/icons/unified-v1/bible-sketch.webp' },
       { key: 'biblical-match-three', title: 'Библейские сокровища', desc: 'Комбинации и раскопки', group: 'kids-games', art: 'web/assets/icons/unified-v1/biblical-treasures.webp' }
     );
-    for (const game of allGames) game.search = normalize(`${game.title} ${game.desc} ${game.key}`);
     games = allGames.filter(canShow);
     mounted = true;
     menu.hidden = false;
@@ -328,7 +318,6 @@
       navigate(target.href);
     }
   });
-  search.addEventListener('input', () => renderLibrary());
   document.getElementById('open-settings').addEventListener('click', () => {
     reflectSettings();
     window.CatalogSystem.refresh();

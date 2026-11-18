@@ -3,6 +3,7 @@ import { createHmac, createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { register } from 'node:module';
 import { deflateSync } from 'node:zlib';
+import { JSDOM } from 'jsdom';
 register('./lib/cloudflare-workers-loader.mjs', import.meta.url);
 const { default: worker, UserStore } = await import('../cloudflare/app-core-worker/src/index-v18.js');
 const { requireAppAccess, allowAppSocket } = await import('../cloudflare/shared/app-access.js');
@@ -155,14 +156,49 @@ try {
   const games = ['quartet', 'bible-geography', 'twelve-tribes', 'kingdoms'];
   const saved = await compat(owner, 'profileSetFavorites', { favorites: [...games, 'invalid'] });
   assert.deepEqual(saved.data.favorites, games);
-  await botUpdate({ message: { ...ownerChat, text: '/start favorites_en' } });
-  const widget = replies.at(-1).body;
-  assert.deepEqual(JSON.parse(widget.chat_data), games);
-  assert.equal(widget.allow_queries, true);
-  assert.equal(widget.protect_content, true);
-  assert(widget.html.includes('My games'));
-  assert(Buffer.byteLength(widget.html) <= 32768 && deflateSync(widget.html, { level: 9 }).length <= 4096);
-  assert.equal(widget.reply_markup.inline_keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=favorites');
+  for (const lang of ['ru', 'en', 'de', 'es']) {
+    await botUpdate({ message: { ...ownerChat, text: `/start favorites_${lang}` } });
+    const { url, body: widget } = replies.at(-1);
+    assert(url.endsWith('/sendWidget'));
+    assert.equal(widget.chat_id, owner);
+    assert.deepEqual(JSON.parse(widget.chat_data), games);
+    assert.equal(widget.allow_queries, true);
+    assert(Buffer.byteLength(widget.html) <= 32768 && deflateSync(widget.html, { level: 9 }).length <= 4096, lang);
+    assert(widget.html.includes('https://t.me/FavoritesTestBot?startapp=favorites'));
+  }
+  const { html } = replies.at(-1).body;
+  let refreshData = [...games, 'bible-wow'];
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    beforeParse(window) {
+      window.TelegramWidget = {
+        chatData: JSON.stringify(refreshData),
+        onEvent() {},
+        ready() {},
+        async request(data) {
+          assert.equal(data, 'favorite_games_v1');
+          return { result: JSON.stringify(refreshData) };
+        },
+      };
+    },
+  });
+  try {
+    const { document } = dom.window;
+    assert.equal(document.querySelectorAll('#games a').length, 4);
+    assert.equal(document.querySelector('.game').href, 'https://t.me/FavoritesTestBot?startapp=game_quartet');
+    document.getElementById('next').click();
+    assert.equal(document.querySelectorAll('#games a').length, 1);
+    assert.equal(document.getElementById('page').textContent, '2 / 2');
+    refreshData = ['twelve-tribes'];
+    await new Promise((resolve) => setImmediate(resolve));
+    document.getElementById('refresh').click();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(document.querySelector('.game').href, 'https://t.me/FavoritesTestBot?startapp=game_twelve-tribes');
+    assert.equal(document.getElementById('pages').hidden, true);
+    assert.equal(document.getElementById('status').hidden, false);
+  } finally {
+    dom.window.close();
+  }
 
   await compat(owner, 'profileSetFavorites', { favorites: ['bible-wow'] });
   const query = { id: '8123456789012345678', data: 'favorite_games_v1', ...ownerChat };

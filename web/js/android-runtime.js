@@ -100,10 +100,9 @@
     // Social/profile functionality is part of the product UI and must never be
     // coupled to telemetry. Tests and privacy modes may disable telemetry while
     // Profile/Favorites remain fully operational.
-    ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
     ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
     const localized = (path) => window.AppLanguage?.asset?.(path) || path;
-    ensureScript('social-dock-v2-js', `${localized('web/js/social-dock-v2.js')}?v=5`);
+    window.TelegramLaunchContext.loadPlayerSocial?.().catch(() => {});
     ensureScript('game-friend-invites-js', `${localized('web/js/game-friend-invites.js')}?v=2`);
   }
 
