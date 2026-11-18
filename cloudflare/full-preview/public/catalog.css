@@ -599,7 +599,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-games { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 630px) {
-  .catalog-find { grid-template-columns: 1fr; }
+  .catalog-find { grid-template-columns: minmax(0, 1fr); }
   .catalog-game a, #favorites-dialog-games .catalog-game a { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; align-items: start; }
   .catalog-game-copy { padding-right: 0; }
 }
@@ -611,8 +611,12 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-game a { min-height: 178px; padding: 10px 9px 9px; gap: 8px; }
   .catalog-game-emblem { width: 67px; height: 62px; border-radius: 17px; }
   .catalog-game img { width: 58px; height: 58px; }
-  .catalog-filters { width: 100%; grid-template-columns: repeat(3, 1fr); }
-  .catalog-filters button { padding: 0 5px; }
+  .catalog-filters { width: 100%; }
+  .catalog-filters button {
+    padding: 4px 5px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
   .catalog-hero-visual { right: -4px; width: 57%; perspective: 500px; }
   .catalog-portal { inset: 13% 13% 22%; }
   .catalog-plinth { top: 70%; width: 93%; }
