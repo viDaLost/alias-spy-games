@@ -931,7 +931,8 @@ function startQuartetGame(catalogUrl = 'web/locales/en/data/quartet_bible.json',
 
   function announceTurnStart(next, prefix) {
     if (next.turnPlayerId === next.me?.playerId) {
-      showTurnNotice(prefix, 'Your turn has started · choose an opponent and a card', 'mine', '✦', 2300);
+      const instruction = table ? 'Tap a missing card.' : 'Your turn has started · choose an opponent and a card';
+      showTurnNotice(prefix, instruction, 'mine', '✦', 2300);
       haptic('success');
     } else {
       showTurnNotice(prefix, `First turn ${next.turnPlayerName || 'player'}`, 'waiting', '▶', 2100);
@@ -1030,7 +1031,7 @@ function startQuartetGame(catalogUrl = 'web/locales/en/data/quartet_bible.json',
   }
 
   function openRules() {
-    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>How to play Quartet</h3>\n          <ol>\n            <li>Each group has four cards. Collect the most complete quartets.</li>\n            ${table ? '<li>В свой ход выберите квартет под картами и нажмите на недостающую карту.</li><li>Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.</li>'
+    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>How to play Quartet</h3>\n          <ol>\n            <li>Each group has four cards. Collect the most complete quartets.</li>\n            ${table ? '<li>On your turn, choose a quartet below the cards and tap a missing card.</li><li>Tap an opponent’s name inside the card to send your request.</li>'
             : '<li>When the top shows <b>«Your turn”</b>, choose an opponent first.</li><li>Then browse your quartets and choose a missing card.</li><li>Check your selection below and tap <b>«Ask for card”</b>.</li>'}\n            <li>If the opponent has the card, you receive it and keep your turn.</li>\n            <li>If they do not have it or time runs out, the turn passes to the next player.</li>\n            <li>Collect all four cards and the quartet is counted automatically.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Got it</button>\n        </div>\n      </div>\n    `;
   }
 

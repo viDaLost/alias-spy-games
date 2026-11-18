@@ -1057,7 +1057,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
 
   function announceTurnStart(next, prefix) {
     if (next.turnPlayerId === next.me?.playerId) {
-      showTurnNotice(prefix, 'Ваш ход начался · выберите соперника и карту', 'mine', '✦', 2300);
+      const instruction = table ? 'Нажмите на недостающую карту.' : 'Ваш ход начался · выберите соперника и карту';
+      showTurnNotice(prefix, instruction, 'mine', '✦', 2300);
       haptic('success');
     } else {
       showTurnNotice(prefix, `Первым ходит ${next.turnPlayerName || 'игрок'}`, 'waiting', '▶', 2100);

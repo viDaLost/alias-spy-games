@@ -92,35 +92,7 @@
           <section class="qt-turn" id="qv2-turn-banner">
             <div class="qt-turn-main"><h3 aria-live="polite" data-turn-name></h3><p data-turn-guide></p></div>
             ${practice ? '' : `<span class="qt-timer" id="qv2-turn-timer" aria-label="Время на ход"></span>
-            <div class="qt-timer-bar" aria-hidden="true"><span id="qv2-turn-progress"></span></div>`}
-          </section>
-          <div class="qt-table-grid">
-            <section class="qt-opponents" aria-labelledby="qt-opponents-title">
-              <div class="qt-section-title qt-players-title">
-                <div class="qt-table-stack" aria-hidden="true">
-                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>
-                </div>
-                <h3 id="qt-opponents-title">Соперники</h3><span data-table-score></span>
-              </div>
-              <label class="qt-player-search" hidden>
-                <input type="search" placeholder="Поиск по имени" aria-label="Найти соперника" aria-controls="qt-player-list" maxlength="32">
-              </label>
-              <div class="qt-players" id="qt-player-list" data-players></div>
-              <p class="qt-note" data-player-empty role="status" hidden>Соперник не найден.</p>
-            </section>
-            <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">
-              <div class="qt-section-title"><h3 id="qt-hand-title">Ваша рука</h3><span data-hand-score></span></div>
-              <div data-inspection></div>
-              <div class="qt-groups" data-groups aria-label="Квартеты в вашей руке"></div>
-              <div class="qt-completed" data-completed hidden></div>
-            </section>
-            <p class="qt-event" data-event aria-live="polite" hidden></p>
-          </div>
-          <details class="qt-paper qt-details">
-            <summary>История ходов</summary>
-            <ol class="qt-history" data-history></ol>
-          </details>
-          ${practice ? '' : `<details class="qt-paper qt-details">\n            <summary>Chat de la sala</summary>\n            <ol class="qt-history qt-chat" data-chat></ol>\n            <form id="qt-chat-form" class="qt-chat-form">\n              <input name="message" maxlength="300" placeholder="Mensaje" aria-label="Mensaje" required>\n              <button type="submit" class="qt-btn qt-btn--line">Enviar</button>\n            </form>\n          </details>`}\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Salir de la partida</button>\n        </div>`;
+            <div class="qt-timer-bar" aria-hidden="true"><span id="qv2-turn-progress"></span></div>`}\n          </section>\n          <div class="qt-table-grid">\n            <section class="qt-opponents" aria-labelledby="qt-opponents-title">\n              <div class="qt-section-title qt-players-title">\n                <div class="qt-table-stack" aria-hidden="true">\n                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>\n                </div>\n                <h3 id="qt-opponents-title">Rivales</h3><span data-table-score></span>\n              </div>\n              <label class="qt-player-search" hidden>\n                <input type="search" placeholder="Поиск по имени" aria-label="Найти соперника" aria-controls="qt-player-list" maxlength="32">\n              </label>\n              <div class="qt-players" id="qt-player-list" data-players></div>\n              <p class="qt-note" data-player-empty role="status" hidden>Соперник не найден.</p>\n            </section>\n            <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">\n              <div class="qt-section-title"><h3 id="qt-hand-title">Ваша рука</h3><span data-hand-score></span></div>\n              <div data-inspection></div>\n              <div class="qt-groups" data-groups aria-label="Квартеты в вашей руке"></div>\n              <div class="qt-completed" data-completed hidden></div>\n            </section>\n            <p class="qt-event" data-event aria-live="polite" hidden></p>\n          </div>\n          <details class="qt-paper qt-details">\n            <summary>История ходов</summary>\n            <ol class="qt-history" data-history></ol>\n          </details>\n          ${practice ? '' : `<details class="qt-paper qt-details">\n            <summary>Chat de la sala</summary>\n            <ol class="qt-history qt-chat" data-chat></ol>\n            <form id="qt-chat-form" class="qt-chat-form">\n              <input name="message" maxlength="300" placeholder="Mensaje" aria-label="Mensaje" required>\n              <button type="submit" class="qt-btn qt-btn--line">Enviar</button>\n            </form>\n          </details>`}\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Salir de la partida</button>\n        </div>`;
       table = {
         root: content.querySelector('.qt-play'),
         timer: content.querySelector('.qt-turn'),
@@ -271,8 +243,8 @@
       groupId = group?.quartet.id || '';
 
       const advice = !connected ? 'Восстанавливаем связь…' : pending ? 'Ждём ответ…'
-        : !myTurn ? 'Вы можете листать свою руку.'
-        : canAsk ? 'Нажмите на недостающую карту.' : 'У соперников не осталось карт.';
+        : !myTurn ? 'Puedes revisar tu mano.'
+        : canAsk ? 'Toca una carta que te falte.' : 'Tus rivales ya no tienen cartas.';
       table.timer.classList.toggle('is-mine', myTurn);
       table.root.dataset.askStep = canAsk ? 'card' : 'wait';
       setText(table.name, myTurn ? 'Tu turno' : `Juega ${state.turnPlayerName || 'rival'}`);
@@ -305,8 +277,7 @@
         button.parentElement.classList.toggle('is-choosing', active);
         slot.hidden = !active;
         if (active) {
-          patch(slot, `<span class="qt-target-label">Спросить у</span>
-            <div class="qt-target-list">${targets.map((player) => `<button type="button" data-action="table-ask"
+          patch(slot, `<span class="qt-target-label">Pedir a</span>\n            <div class="qt-target-list">${targets.map((player) => `<button type="button" data-action="table-ask"
               data-card-id="${esc(cardId)}" data-player-id="${esc(player.playerId)}" title="${esc(player.name)}">
               ${esc(player.name)}</button>`).join('')}</div>`);
         }

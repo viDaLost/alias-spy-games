@@ -931,7 +931,8 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
 
   function announceTurnStart(next, prefix) {
     if (next.turnPlayerId === next.me?.playerId) {
-      showTurnNotice(prefix, 'Ha empezado tu turno · elige un rival y una carta', 'mine', '✦', 2300);
+      const instruction = table ? 'Toca una carta que te falte.' : 'Ha empezado tu turno · elige un rival y una carta';
+      showTurnNotice(prefix, instruction, 'mine', '✦', 2300);
       haptic('success');
     } else {
       showTurnNotice(prefix, `Primer turno ${next.turnPlayerName || 'jugador'}`, 'waiting', '▶', 2100);
@@ -1030,7 +1031,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
   }
 
   function openRules() {
-    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>Cómo jugar a Cuarteto</h3>\n          <ol>\n            <li>Cada grupo tiene cuatro cartas. Reúne más cuartetos completos.</li>\n            ${table ? '<li>В свой ход выберите квартет под картами и нажмите на недостающую карту.</li><li>Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.</li>'
+    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>Cómo jugar a Cuarteto</h3>\n          <ol>\n            <li>Cada grupo tiene cuatro cartas. Reúne más cuartetos completos.</li>\n            ${table ? '<li>En tu turno, elige un cuarteto debajo de las cartas y toca una carta que te falte.</li><li>Toca el nombre de un rival dentro de la carta para enviar tu solicitud.</li>'
             : '<li>Cuando arriba aparezca <b>«Tu turno»</b>, primero elige un rival.</li><li>Después explora tus cuartetos y elige una carta que te falte.</li><li>Revisa tu selección abajo y pulsa <b>«Pedir carta»</b>.</li>'}\n            <li>Si el rival tiene la carta, la recibes y sigues jugando.</li>\n            <li>Si no la tiene o se acaba el tiempo, el turno pasa al siguiente jugador.</li>\n            <li>Al reunir las cuatro cartas, el cuarteto se cuenta automáticamente.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Entendido</button>\n        </div>\n      </div>\n    `;
   }
 

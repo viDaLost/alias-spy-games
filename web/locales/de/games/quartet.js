@@ -931,7 +931,8 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
 
   function announceTurnStart(next, prefix) {
     if (next.turnPlayerId === next.me?.playerId) {
-      showTurnNotice(prefix, 'Dein Zug hat begonnen · wähle einen Mitspieler und eine Karte', 'mine', '✦', 2300);
+      const instruction = table ? 'Tippe auf eine fehlende Karte.' : 'Dein Zug hat begonnen · wähle einen Mitspieler und eine Karte';
+      showTurnNotice(prefix, instruction, 'mine', '✦', 2300);
       haptic('success');
     } else {
       showTurnNotice(prefix, `Erster Zug ${next.turnPlayerName || 'Spieler'}`, 'waiting', '▶', 2100);
@@ -1030,7 +1031,7 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
   }
 
   function openRules() {
-    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>So spielst du Quartett</h3>\n          <ol>\n            <li>Jede Gruppe hat vier Karten. Sammle die meisten vollständigen Quartette.</li>\n            ${table ? '<li>В свой ход выберите квартет под картами и нажмите на недостающую карту.</li><li>Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.</li>'
+    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>So spielst du Quartett</h3>\n          <ol>\n            <li>Jede Gruppe hat vier Karten. Sammle die meisten vollständigen Quartette.</li>\n            ${table ? '<li>Wähle in deinem Zug unten ein Quartett und tippe auf eine fehlende Karte.</li><li>Tippe auf den Namen eines Mitspielers auf der Karte, um deine Anfrage zu senden.</li>'
             : '<li>Wenn oben erscheint <b>«Du bist dran“</b>, wähle zuerst einen Mitspieler.</li><li>Blättere dann durch deine Quartette und wähle eine fehlende Karte.</li><li>Prüfe deine Auswahl unten und tippe auf <b>«Nach Karte fragen“</b>.</li>'}\n            <li>Hat der Mitspieler die Karte, bekommst du sie und bleibst am Zug.</li>\n            <li>Fehlt die Karte oder läuft die Zeit ab, ist automatisch der nächste Spieler dran.</li>\n            <li>Sind alle vier Karten gesammelt, zählt das Quartett automatisch.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Verstanden</button>\n        </div>\n      </div>\n    `;
   }
 

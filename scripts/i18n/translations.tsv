@@ -1272,6 +1272,13 @@
 ВАШ ХОД	YOUR TURN	DU BIST DRAN	TU TURNO
 ОЖИДАНИЕ	WAITING	WARTEN	ESPERANDO
 Ваш ход начался	Your turn has started	Dein Zug hat begonnen	Ha empezado tu turno
+Соперники	Opponents	Mitspieler	Rivales
+Вы можете листать свою руку.	You can browse your hand.	Du kannst deine Karten ansehen.	Puedes revisar tu mano.
+Нажмите на недостающую карту.	Tap a missing card.	Tippe auf eine fehlende Karte.	Toca una carta que te falte.
+У соперников не осталось карт.	Your opponents have no cards left.	Deine Mitspieler haben keine Karten mehr.	Tus rivales ya no tienen cartas.
+Спросить у	Ask	Fragen	Pedir a
+В свой ход выберите квартет под картами и нажмите на недостающую карту.	On your turn, choose a quartet below the cards and tap a missing card.	Wähle in deinem Zug unten ein Quartett und tippe auf eine fehlende Karte.	En tu turno, elige un cuarteto debajo de las cartas y toca una carta que te falte.
+Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.	Tap an opponent’s name inside the card to send your request.	Tippe auf den Namen eines Mitspielers auf der Karte, um deine Anfrage zu senden.	Toca el nombre de un rival dentro de la carta para enviar tu solicitud.
 Ход игрока	Player turn	Spieler am Zug	Turno del jugador
 Выберите соперника и карту. После выбора подтвердите запрос.	Choose an opponent and a card, then confirm your request.	Wähle einen Mitspieler und eine Karte und bestätige dann die Anfrage.	Elige un rival y una carta y confirma la petición.
 Ваши игровые действия временно заблокированы. Следите за партией — очередь переключится автоматически.	Your actions are temporarily disabled. Watch the game; turns change automatically.	Deine Aktionen sind vorübergehend gesperrt. Verfolge die Partie; die Züge wechseln automatisch.	Tus acciones están desactivadas temporalmente. Sigue la partida; los turnos cambian solos.
