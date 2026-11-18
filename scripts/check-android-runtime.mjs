@@ -76,7 +76,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
   // feedbackStatus is the one-off app survey asking whether this player has already
   // answered. It runs on every start on every platform -- the Android wrapper included,
   // since the survey serves the session route too.
-  if (!['syncUser', 'syncGameWallet', 'updateHistory', 'profileBootstrap', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
+  if (!['syncUser', 'syncGameWallet', 'updateHistory', 'profileBootstrap', 'profileTrackGame', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
     throw new Error(`Unexpected Android action: ${action}`);
   }
 
@@ -88,6 +88,12 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
       contentType: 'application/json; charset=utf-8',
       body: JSON.stringify({ ok: true, success: true, answered: true, eligible: false }),
     });
+    return;
+  }
+
+  if (action === 'profileTrackGame') {
+    if (body.payload.game !== 'bible-sketch') throw new Error(`Unexpected tracked game: ${body.payload.game}`);
+    await route.fulfill({ json: { success: true, gamesPlayed: 10, lastGame: 'bible-sketch', gameStats: { 'bible-sketch': 4 } } });
     return;
   }
 
@@ -275,6 +281,7 @@ if (!sketchLayout.topInsideGame) throw new Error(`A foreign/background layer is 
 
 if (androidCalls < 2) throw new Error(`Expected Android sync + profile calls, got ${androidCalls}.`);
 if (!androidActions.includes('profileBootstrap')) throw new Error(`profileBootstrap was not routed through Android bearer API: ${androidActions.join(', ')}`);
+if (!androidActions.includes('profileTrackGame')) throw new Error('The game launch was not tracked through the Android bearer API.');
 if (telegramCompatCalls !== 0) throw new Error(`APK incorrectly called Telegram /compat ${telegramCompatCalls} time(s).`);
 
 console.log(`OK: Android standalone rendered Profile/Favorites and Bible Sketch foreground UI above the disabled menu parallax (${androidActions.join(', ')}).`);
