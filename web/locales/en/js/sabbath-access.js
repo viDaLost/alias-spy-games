@@ -5,7 +5,7 @@
   const sourceURL = new URL(document.currentScript?.src || 'web/locales/en/js/sabbath-access.js', document.baseURI);
   sourceURL.pathname = sourceURL.pathname.replace(/\/web\/locales\/(?:en|de|es)\/js\//,'/web/js/');
   const catalogURL = new URL('../data/sabbath-cities.json', sourceURL);
-  const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Bible Treasures','kids-ark-pairs':'Find a Pair','twelve-tribes':'Двенадцать колен','promised-land':'Земля обетованная'};
+  const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Bible Treasures','kids-ark-pairs':'Find a Pair','twelve-tribes':'Twelve Tribes','promised-land':'Promised Land'};
   const restricted = game => Clock.GAME_IDS.includes(game);
   let city = readCity(), pendingGame = null, modal = null, returnFocus = null, editing = false;
   let timer = null, standalone = null, catalogPromise = null, searchVersion = 0;

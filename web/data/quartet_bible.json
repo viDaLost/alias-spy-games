@@ -1,16 +1,32 @@
 {
   "title": "Библейский Квартет",
-  "version": 3,
+  "version": 5,
   "quartets": [
     {
       "id": "apostles",
       "name": "Апостолы",
       "icon": "⛪",
       "cards": [
-        {"id": "apostles_peter", "title": "Пётр", "art": "web/assets/quartet/cards/apostles_peter.webp"},
-        {"id": "apostles_john", "title": "Иоанн", "art": "web/assets/quartet/cards/apostles_john.webp"},
-        {"id": "apostles_james", "title": "Иаков", "art": "web/assets/quartet/cards/apostles_james.webp"},
-        {"id": "apostles_andrew", "title": "Андрей", "art": "web/assets/quartet/cards/apostles_andrew.webp"}
+        {
+          "id": "apostles_peter",
+          "title": "Пётр",
+          "art": "web/assets/quartet/cards/apostles_peter.webp"
+        },
+        {
+          "id": "apostles_john",
+          "title": "Иоанн",
+          "art": "web/assets/quartet/cards/apostles_john.webp"
+        },
+        {
+          "id": "apostles_james",
+          "title": "Иаков",
+          "art": "web/assets/quartet/cards/apostles_james.webp"
+        },
+        {
+          "id": "apostles_andrew",
+          "title": "Андрей",
+          "art": "web/assets/quartet/cards/apostles_andrew.webp"
+        }
       ]
     },
     {
@@ -18,10 +34,26 @@
       "name": "Евангелисты",
       "icon": "📖",
       "cards": [
-        {"id": "evangelists_matthew", "title": "Матфей", "art": "web/assets/quartet/cards/evangelists_matthew.webp"},
-        {"id": "evangelists_mark", "title": "Марк", "art": "web/assets/quartet/cards/evangelists_mark.webp"},
-        {"id": "evangelists_luke", "title": "Лука", "art": "web/assets/quartet/cards/evangelists_luke.webp"},
-        {"id": "evangelists_john", "title": "Иоанн", "art": "web/assets/quartet/cards/evangelists_john.webp"}
+        {
+          "id": "evangelists_matthew",
+          "title": "Матфей",
+          "art": "web/assets/quartet/cards/evangelists_matthew.webp"
+        },
+        {
+          "id": "evangelists_mark",
+          "title": "Марк",
+          "art": "web/assets/quartet/cards/evangelists_mark.webp"
+        },
+        {
+          "id": "evangelists_luke",
+          "title": "Лука",
+          "art": "web/assets/quartet/cards/evangelists_luke.webp"
+        },
+        {
+          "id": "evangelists_john",
+          "title": "Иоанн",
+          "art": "web/assets/quartet/cards/evangelists_john.webp"
+        }
       ]
     },
     {
@@ -29,10 +61,26 @@
       "name": "Патриархи",
       "icon": "👑",
       "cards": [
-        {"id": "patriarchs_abraham", "title": "Авраам", "art": "web/assets/quartet/cards/patriarchs_abraham.webp"},
-        {"id": "patriarchs_isaac", "title": "Исаак", "art": "web/assets/quartet/cards/patriarchs_isaac.webp"},
-        {"id": "patriarchs_jacob", "title": "Иаков", "art": "web/assets/quartet/cards/patriarchs_jacob.webp"},
-        {"id": "patriarchs_joseph", "title": "Иосиф", "art": "web/assets/quartet/cards/patriarchs_joseph.webp"}
+        {
+          "id": "patriarchs_abraham",
+          "title": "Авраам",
+          "art": "web/assets/quartet/cards/patriarchs_abraham.webp"
+        },
+        {
+          "id": "patriarchs_isaac",
+          "title": "Исаак",
+          "art": "web/assets/quartet/cards/patriarchs_isaac.webp"
+        },
+        {
+          "id": "patriarchs_jacob",
+          "title": "Иаков",
+          "art": "web/assets/quartet/cards/patriarchs_jacob.webp"
+        },
+        {
+          "id": "patriarchs_joseph",
+          "title": "Иосиф",
+          "art": "web/assets/quartet/cards/patriarchs_joseph.webp"
+        }
       ]
     },
     {
@@ -40,10 +88,26 @@
       "name": "Пророки",
       "icon": "📜",
       "cards": [
-        {"id": "prophets_isaiah", "title": "Исаия", "art": "web/assets/quartet/cards/prophets_isaiah.webp"},
-        {"id": "prophets_jeremiah", "title": "Иеремия", "art": "web/assets/quartet/cards/prophets_jeremiah.webp"},
-        {"id": "prophets_ezekiel", "title": "Иезекииль", "art": "web/assets/quartet/cards/prophets_ezekiel.webp"},
-        {"id": "prophets_daniel", "title": "Даниил", "art": "web/assets/quartet/cards/prophets_daniel.webp"}
+        {
+          "id": "prophets_isaiah",
+          "title": "Исаия",
+          "art": "web/assets/quartet/cards/prophets_isaiah.webp"
+        },
+        {
+          "id": "prophets_jeremiah",
+          "title": "Иеремия",
+          "art": "web/assets/quartet/cards/prophets_jeremiah.webp"
+        },
+        {
+          "id": "prophets_ezekiel",
+          "title": "Иезекииль",
+          "art": "web/assets/quartet/cards/prophets_ezekiel.webp"
+        },
+        {
+          "id": "prophets_daniel",
+          "title": "Даниил",
+          "art": "web/assets/quartet/cards/prophets_daniel.webp"
+        }
       ]
     },
     {
@@ -51,10 +115,26 @@
       "name": "Судьи",
       "icon": "⚖️",
       "cards": [
-        {"id": "judges_deborah", "title": "Девора", "art": "web/assets/quartet/cards/judges_deborah.webp"},
-        {"id": "judges_gideon", "title": "Гедеон", "art": "web/assets/quartet/cards/judges_gideon.webp"},
-        {"id": "judges_samson", "title": "Самсон", "art": "web/assets/quartet/cards/judges_samson.webp"},
-        {"id": "judges_jephthah", "title": "Иеффай", "art": "web/assets/quartet/cards/judges_jephthah.webp"}
+        {
+          "id": "judges_deborah",
+          "title": "Девора",
+          "art": "web/assets/quartet/cards/judges_deborah.webp"
+        },
+        {
+          "id": "judges_gideon",
+          "title": "Гедеон",
+          "art": "web/assets/quartet/cards/judges_gideon.webp"
+        },
+        {
+          "id": "judges_samson",
+          "title": "Самсон",
+          "art": "web/assets/quartet/cards/judges_samson.webp"
+        },
+        {
+          "id": "judges_jephthah",
+          "title": "Иеффай",
+          "art": "web/assets/quartet/cards/judges_jephthah.webp"
+        }
       ]
     },
     {
@@ -62,10 +142,26 @@
       "name": "Цари",
       "icon": "🏰",
       "cards": [
-        {"id": "kings_saul", "title": "Саул", "art": "web/assets/quartet/cards/kings_saul.webp"},
-        {"id": "kings_david", "title": "Давид", "art": "web/assets/quartet/cards/kings_david.webp"},
-        {"id": "kings_solomon", "title": "Соломон", "art": "web/assets/quartet/cards/kings_solomon.webp"},
-        {"id": "kings_hezekiah", "title": "Езекия", "art": "web/assets/quartet/cards/kings_hezekiah.webp"}
+        {
+          "id": "kings_saul",
+          "title": "Саул",
+          "art": "web/assets/quartet/cards/kings_saul.webp"
+        },
+        {
+          "id": "kings_david",
+          "title": "Давид",
+          "art": "web/assets/quartet/cards/kings_david.webp"
+        },
+        {
+          "id": "kings_solomon",
+          "title": "Соломон",
+          "art": "web/assets/quartet/cards/kings_solomon.webp"
+        },
+        {
+          "id": "kings_hezekiah",
+          "title": "Езекия",
+          "art": "web/assets/quartet/cards/kings_hezekiah.webp"
+        }
       ]
     },
     {
@@ -73,10 +169,26 @@
       "name": "Жёны веры",
       "icon": "🌿",
       "cards": [
-        {"id": "women_sarah", "title": "Сарра", "art": "web/assets/quartet/cards/women_sarah.webp"},
-        {"id": "women_rebekah", "title": "Ревекка", "art": "web/assets/quartet/cards/women_rebekah.webp"},
-        {"id": "women_rachel", "title": "Рахиль", "art": "web/assets/quartet/cards/women_rachel.webp"},
-        {"id": "women_leah", "title": "Лия", "art": "web/assets/quartet/cards/women_leah.webp"}
+        {
+          "id": "women_sarah",
+          "title": "Сарра",
+          "art": "web/assets/quartet/cards/women_sarah.webp"
+        },
+        {
+          "id": "women_rebekah",
+          "title": "Ревекка",
+          "art": "web/assets/quartet/cards/women_rebekah.webp"
+        },
+        {
+          "id": "women_rachel",
+          "title": "Рахиль",
+          "art": "web/assets/quartet/cards/women_rachel.webp"
+        },
+        {
+          "id": "women_leah",
+          "title": "Лия",
+          "art": "web/assets/quartet/cards/women_leah.webp"
+        }
       ]
     },
     {
@@ -84,10 +196,26 @@
       "name": "Женщины Библии",
       "icon": "✨",
       "cards": [
-        {"id": "heroes_ruth", "title": "Руфь", "art": "web/assets/quartet/cards/heroes_ruth.webp"},
-        {"id": "heroes_esther", "title": "Есфирь", "art": "web/assets/quartet/cards/heroes_esther.webp"},
-        {"id": "heroes_mary", "title": "Мария", "art": "web/assets/quartet/cards/heroes_mary.webp"},
-        {"id": "heroes_anna", "title": "Анна", "art": "web/assets/quartet/cards/heroes_anna.webp"}
+        {
+          "id": "heroes_ruth",
+          "title": "Руфь",
+          "art": "web/assets/quartet/cards/heroes_ruth.webp"
+        },
+        {
+          "id": "heroes_esther",
+          "title": "Есфирь",
+          "art": "web/assets/quartet/cards/heroes_esther.webp"
+        },
+        {
+          "id": "heroes_mary",
+          "title": "Мария",
+          "art": "web/assets/quartet/cards/heroes_mary.webp"
+        },
+        {
+          "id": "heroes_anna",
+          "title": "Анна",
+          "art": "web/assets/quartet/cards/heroes_anna.webp"
+        }
       ]
     },
     {
@@ -95,10 +223,26 @@
       "name": "Команда Павла",
       "icon": "🤝",
       "cards": [
-        {"id": "paulteam_barnabas", "title": "Варнава", "art": "web/assets/quartet/cards/paulteam_barnabas.webp"},
-        {"id": "paulteam_silas", "title": "Сила", "art": "web/assets/quartet/cards/paulteam_silas.webp"},
-        {"id": "paulteam_timothy", "title": "Тимофей", "art": "web/assets/quartet/cards/paulteam_timothy.webp"},
-        {"id": "paulteam_titus", "title": "Тит", "art": "web/assets/quartet/cards/paulteam_titus.webp"}
+        {
+          "id": "paulteam_barnabas",
+          "title": "Варнава",
+          "art": "web/assets/quartet/cards/paulteam_barnabas.webp"
+        },
+        {
+          "id": "paulteam_silas",
+          "title": "Сила",
+          "art": "web/assets/quartet/cards/paulteam_silas.webp"
+        },
+        {
+          "id": "paulteam_timothy",
+          "title": "Тимофей",
+          "art": "web/assets/quartet/cards/paulteam_timothy.webp"
+        },
+        {
+          "id": "paulteam_titus",
+          "title": "Тит",
+          "art": "web/assets/quartet/cards/paulteam_titus.webp"
+        }
       ]
     },
     {
@@ -106,10 +250,26 @@
       "name": "Города",
       "icon": "🏛️",
       "cards": [
-        {"id": "places_bethlehem", "title": "Вифлеем", "art": "web/assets/quartet/cards/places_bethlehem.webp"},
-        {"id": "places_nazareth", "title": "Назарет", "art": "web/assets/quartet/cards/places_nazareth.webp"},
-        {"id": "places_capernaum", "title": "Капернаум", "art": "web/assets/quartet/cards/places_capernaum.webp"},
-        {"id": "places_jerusalem", "title": "Иерусалим", "art": "web/assets/quartet/cards/places_jerusalem.webp"}
+        {
+          "id": "places_bethlehem",
+          "title": "Вифлеем",
+          "art": "web/assets/quartet/cards/places_bethlehem.webp"
+        },
+        {
+          "id": "places_nazareth",
+          "title": "Назарет",
+          "art": "web/assets/quartet/cards/places_nazareth.webp"
+        },
+        {
+          "id": "places_capernaum",
+          "title": "Капернаум",
+          "art": "web/assets/quartet/cards/places_capernaum.webp"
+        },
+        {
+          "id": "places_jerusalem",
+          "title": "Иерусалим",
+          "art": "web/assets/quartet/cards/places_jerusalem.webp"
+        }
       ]
     },
     {
@@ -117,10 +277,26 @@
       "name": "Чудеса",
       "icon": "🌊",
       "cards": [
-        {"id": "miracles_water_wine", "title": "Вода в вино", "art": "web/assets/quartet/cards/miracles_water_wine.webp"},
-        {"id": "miracles_feeding_5000", "title": "Накормил 5000", "art": "web/assets/quartet/cards/miracles_feeding_5000.webp"},
-        {"id": "miracles_calm_storm", "title": "Утихомирил бурю", "art": "web/assets/quartet/cards/miracles_calm_storm.webp"},
-        {"id": "miracles_raise_lazarus", "title": "Воскресил Лазаря", "art": "web/assets/quartet/cards/miracles_raise_lazarus.webp"}
+        {
+          "id": "miracles_water_wine",
+          "title": "Вода в вино",
+          "art": "web/assets/quartet/cards/miracles_water_wine.webp"
+        },
+        {
+          "id": "miracles_feeding_5000",
+          "title": "Накормил 5000",
+          "art": "web/assets/quartet/cards/miracles_feeding_5000.webp"
+        },
+        {
+          "id": "miracles_calm_storm",
+          "title": "Утихомирил бурю",
+          "art": "web/assets/quartet/cards/miracles_calm_storm.webp"
+        },
+        {
+          "id": "miracles_raise_lazarus",
+          "title": "Воскресил Лазаря",
+          "art": "web/assets/quartet/cards/miracles_raise_lazarus.webp"
+        }
       ]
     },
     {
@@ -128,10 +304,770 @@
       "name": "Всеоружие",
       "icon": "🛡️",
       "cards": [
-        {"id": "armor_belt_truth", "title": "Пояс истины", "art": "web/assets/quartet/cards/armor_belt_truth.webp"},
-        {"id": "armor_breastplate", "title": "Броня праведности", "art": "web/assets/quartet/cards/armor_breastplate.webp"},
-        {"id": "armor_shield_faith", "title": "Щит веры", "art": "web/assets/quartet/cards/armor_shield_faith.webp"},
-        {"id": "armor_helmet_salvation", "title": "Шлем спасения", "art": "web/assets/quartet/cards/armor_helmet_salvation.webp"}
+        {
+          "id": "armor_belt_truth",
+          "title": "Пояс истины",
+          "art": "web/assets/quartet/cards/armor_belt_truth.webp"
+        },
+        {
+          "id": "armor_breastplate",
+          "title": "Броня праведности",
+          "art": "web/assets/quartet/cards/armor_breastplate.webp"
+        },
+        {
+          "id": "armor_shield_faith",
+          "title": "Щит веры",
+          "art": "web/assets/quartet/cards/armor_shield_faith.webp"
+        },
+        {
+          "id": "armor_helmet_salvation",
+          "title": "Шлем спасения",
+          "art": "web/assets/quartet/cards/armor_helmet_salvation.webp"
+        }
+      ]
+    },
+    {
+      "id": "creation",
+      "name": "Дни творения",
+      "icon": "☀️",
+      "cards": [
+        {
+          "id": "creation_light",
+          "title": "Свет",
+          "icon": "💡",
+          "art": "web/assets/quartet/cards/creation_light.webp"
+        },
+        {
+          "id": "creation_sky",
+          "title": "Небо",
+          "icon": "☁️",
+          "art": "web/assets/quartet/cards/creation_sky.webp"
+        },
+        {
+          "id": "creation_plants",
+          "title": "Растения",
+          "icon": "🌿",
+          "art": "web/assets/quartet/cards/creation_plants.webp"
+        },
+        {
+          "id": "creation_stars",
+          "title": "Светила",
+          "icon": "✨",
+          "art": "web/assets/quartet/cards/creation_stars.webp"
+        }
+      ]
+    },
+    {
+      "id": "exodus",
+      "name": "Исход из Египта",
+      "icon": "🌊",
+      "cards": [
+        {
+          "id": "exodus_basket",
+          "title": "Корзинка Моисея",
+          "icon": "🧺",
+          "art": "web/assets/quartet/cards/exodus_basket.webp"
+        },
+        {
+          "id": "exodus_bush",
+          "title": "Неопалимая купина",
+          "icon": "🔥",
+          "art": "web/assets/quartet/cards/exodus_bush.webp"
+        },
+        {
+          "id": "exodus_sea",
+          "title": "Переход через море",
+          "icon": "🌊",
+          "art": "web/assets/quartet/cards/exodus_sea.webp"
+        },
+        {
+          "id": "exodus_manna",
+          "title": "Манна в пустыне",
+          "icon": "🫓",
+          "art": "web/assets/quartet/cards/exodus_manna.webp"
+        }
+      ]
+    },
+    {
+      "id": "plagues",
+      "name": "Казни Египетские",
+      "icon": "🐸",
+      "cards": [
+        {
+          "id": "plagues_blood",
+          "title": "Вода в кровь",
+          "icon": "🩸",
+          "art": "web/assets/quartet/cards/plagues_blood.webp"
+        },
+        {
+          "id": "plagues_frogs",
+          "title": "Жабы",
+          "icon": "🐸",
+          "art": "web/assets/quartet/cards/plagues_frogs.webp"
+        },
+        {
+          "id": "plagues_hail",
+          "title": "Град",
+          "icon": "🌨️",
+          "art": "web/assets/quartet/cards/plagues_hail.webp"
+        },
+        {
+          "id": "plagues_darkness",
+          "title": "Тьма",
+          "icon": "🌑",
+          "art": "web/assets/quartet/cards/plagues_darkness.webp"
+        }
+      ]
+    },
+    {
+      "id": "tent",
+      "name": "Убранство скинии",
+      "icon": "⛺",
+      "cards": [
+        {
+          "id": "tent_ark",
+          "title": "Ковчег Завета",
+          "icon": "🧰",
+          "art": "web/assets/quartet/cards/tent_ark.webp"
+        },
+        {
+          "id": "tent_lamp",
+          "title": "Светильник",
+          "icon": "🕯️",
+          "art": "web/assets/quartet/cards/tent_lamp.webp"
+        },
+        {
+          "id": "tent_bread",
+          "title": "Стол для хлебов",
+          "icon": "🍞",
+          "art": "web/assets/quartet/cards/tent_bread.webp"
+        },
+        {
+          "id": "tent_incense",
+          "title": "Жертвенник курений",
+          "icon": "🏺",
+          "art": "web/assets/quartet/cards/tent_incense.webp"
+        }
+      ]
+    },
+    {
+      "id": "feasts",
+      "name": "Праздники Израиля",
+      "icon": "🫓",
+      "cards": [
+        {
+          "id": "feasts_passover",
+          "title": "Пасха",
+          "icon": "🫓",
+          "art": "web/assets/quartet/cards/feasts_passover.webp"
+        },
+        {
+          "id": "feasts_weeks",
+          "title": "Праздник седмиц",
+          "icon": "🌾",
+          "art": "web/assets/quartet/cards/feasts_weeks.webp"
+        },
+        {
+          "id": "feasts_trumpets",
+          "title": "Праздник труб",
+          "icon": "🎺",
+          "art": "web/assets/quartet/cards/feasts_trumpets.webp"
+        },
+        {
+          "id": "feasts_booths",
+          "title": "Праздник кущей",
+          "icon": "⛺",
+          "art": "web/assets/quartet/cards/feasts_booths.webp"
+        }
+      ]
+    },
+    {
+      "id": "mounts",
+      "name": "Горы Библии",
+      "icon": "⛰️",
+      "cards": [
+        {
+          "id": "mounts_sinai",
+          "title": "Синай",
+          "icon": "⛰️",
+          "art": "web/assets/quartet/cards/mounts_sinai.webp"
+        },
+        {
+          "id": "mounts_carmel",
+          "title": "Кармил",
+          "icon": "🔥",
+          "art": "web/assets/quartet/cards/mounts_carmel.webp"
+        },
+        {
+          "id": "mounts_nebo",
+          "title": "Нево",
+          "icon": "🗻",
+          "art": "web/assets/quartet/cards/mounts_nebo.webp"
+        },
+        {
+          "id": "mounts_olives",
+          "title": "Елеонская гора",
+          "icon": "🫒",
+          "art": "web/assets/quartet/cards/mounts_olives.webp"
+        }
+      ]
+    },
+    {
+      "id": "rivers",
+      "name": "Воды Библии",
+      "icon": "💧",
+      "cards": [
+        {
+          "id": "rivers_jordan",
+          "title": "Иордан",
+          "icon": "💧",
+          "art": "web/assets/quartet/cards/rivers_jordan.webp"
+        },
+        {
+          "id": "rivers_euphrates",
+          "title": "Евфрат",
+          "icon": "🏞️",
+          "art": "web/assets/quartet/cards/rivers_euphrates.webp"
+        },
+        {
+          "id": "rivers_galilee",
+          "title": "Галилейское море",
+          "icon": "🌊",
+          "art": "web/assets/quartet/cards/rivers_galilee.webp"
+        },
+        {
+          "id": "rivers_siloam",
+          "title": "Купальня Силоам",
+          "icon": "🫗",
+          "art": "web/assets/quartet/cards/rivers_siloam.webp"
+        }
+      ]
+    },
+    {
+      "id": "parables_seed",
+      "name": "Притчи о семенах",
+      "icon": "🌾",
+      "cards": [
+        {
+          "id": "parables_seed_sower",
+          "title": "Сеятель",
+          "icon": "🌱",
+          "art": "web/assets/quartet/cards/parables_seed_sower.webp"
+        },
+        {
+          "id": "parables_seed_weeds",
+          "title": "Пшеница и плевелы",
+          "icon": "🌾",
+          "art": "web/assets/quartet/cards/parables_seed_weeds.webp"
+        },
+        {
+          "id": "parables_seed_mustard",
+          "title": "Горчичное зерно",
+          "icon": "🌿",
+          "art": "web/assets/quartet/cards/parables_seed_mustard.webp"
+        },
+        {
+          "id": "parables_seed_growth",
+          "title": "Растущее семя",
+          "icon": "🌻",
+          "art": "web/assets/quartet/cards/parables_seed_growth.webp"
+        }
+      ]
+    },
+    {
+      "id": "parables_mercy",
+      "name": "Притчи о милости",
+      "icon": "🤲",
+      "cards": [
+        {
+          "id": "parables_mercy_sheep",
+          "title": "Потерянная овца",
+          "icon": "🐑",
+          "art": "web/assets/quartet/cards/parables_mercy_sheep.webp"
+        },
+        {
+          "id": "parables_mercy_coin",
+          "title": "Потерянная драхма",
+          "icon": "🪙",
+          "art": "web/assets/quartet/cards/parables_mercy_coin.webp"
+        },
+        {
+          "id": "parables_mercy_son",
+          "title": "Блудный сын",
+          "icon": "🏠",
+          "art": "web/assets/quartet/cards/parables_mercy_son.webp"
+        },
+        {
+          "id": "parables_mercy_samaritan",
+          "title": "Добрый самарянин",
+          "icon": "🩹",
+          "art": "web/assets/quartet/cards/parables_mercy_samaritan.webp"
+        }
+      ]
+    },
+    {
+      "id": "parables_kingdom",
+      "name": "Притчи о Царстве",
+      "icon": "💎",
+      "cards": [
+        {
+          "id": "parables_kingdom_leaven",
+          "title": "Закваска",
+          "icon": "🥖",
+          "art": "web/assets/quartet/cards/parables_kingdom_leaven.webp"
+        },
+        {
+          "id": "parables_kingdom_treasure",
+          "title": "Сокровище на поле",
+          "icon": "🪙",
+          "art": "web/assets/quartet/cards/parables_kingdom_treasure.webp"
+        },
+        {
+          "id": "parables_kingdom_pearl",
+          "title": "Дорогая жемчужина",
+          "icon": "🦪",
+          "art": "web/assets/quartet/cards/parables_kingdom_pearl.webp"
+        },
+        {
+          "id": "parables_kingdom_net",
+          "title": "Невод",
+          "icon": "🎣",
+          "art": "web/assets/quartet/cards/parables_kingdom_net.webp"
+        }
+      ]
+    },
+    {
+      "id": "noah",
+      "name": "История Ноя",
+      "icon": "🌈",
+      "cards": [
+        {
+          "id": "noah_ark",
+          "title": "Ноев ковчег",
+          "icon": "⛵",
+          "art": "web/assets/quartet/cards/noah_ark.webp"
+        },
+        {
+          "id": "noah_rain",
+          "title": "Потоп",
+          "icon": "🌧️",
+          "art": "web/assets/quartet/cards/noah_rain.webp"
+        },
+        {
+          "id": "noah_dove",
+          "title": "Голубь с ветвью",
+          "icon": "🕊️",
+          "art": "web/assets/quartet/cards/noah_dove.webp"
+        },
+        {
+          "id": "noah_rainbow",
+          "title": "Радуга",
+          "icon": "🌈",
+          "art": "web/assets/quartet/cards/noah_rainbow.webp"
+        }
+      ]
+    },
+    {
+      "id": "joseph",
+      "name": "История Иосифа",
+      "icon": "🌾",
+      "cards": [
+        {
+          "id": "joseph_coat",
+          "title": "Разноцветная одежда",
+          "icon": "🧥",
+          "art": "web/assets/quartet/cards/joseph_coat.webp"
+        },
+        {
+          "id": "joseph_pit",
+          "title": "Пустой ров",
+          "icon": "🕳️",
+          "art": "web/assets/quartet/cards/joseph_pit.webp"
+        },
+        {
+          "id": "joseph_cows",
+          "title": "Семь коров",
+          "icon": "🐄",
+          "art": "web/assets/quartet/cards/joseph_cows.webp"
+        },
+        {
+          "id": "joseph_grain",
+          "title": "Запасы зерна",
+          "icon": "🌾",
+          "art": "web/assets/quartet/cards/joseph_grain.webp"
+        }
+      ]
+    },
+    {
+      "id": "david",
+      "name": "Жизнь Давида",
+      "icon": "🎵",
+      "cards": [
+        {
+          "id": "david_flock",
+          "title": "Пастух овец",
+          "icon": "🐑",
+          "art": "web/assets/quartet/cards/david_flock.webp"
+        },
+        {
+          "id": "david_harp",
+          "title": "Игра для Саула",
+          "icon": "🎵",
+          "art": "web/assets/quartet/cards/david_harp.webp"
+        },
+        {
+          "id": "david_sling",
+          "title": "Праща и камень",
+          "icon": "🪨",
+          "art": "web/assets/quartet/cards/david_sling.webp"
+        },
+        {
+          "id": "david_crown",
+          "title": "Царский престол",
+          "icon": "👑",
+          "art": "web/assets/quartet/cards/david_crown.webp"
+        }
+      ]
+    },
+    {
+      "id": "daniel",
+      "name": "Книга Даниила",
+      "icon": "🦁",
+      "cards": [
+        {
+          "id": "daniel_food",
+          "title": "Овощи и вода",
+          "icon": "🥕",
+          "art": "web/assets/quartet/cards/daniel_food.webp"
+        },
+        {
+          "id": "daniel_image",
+          "title": "Истукан во сне",
+          "icon": "🗿",
+          "art": "web/assets/quartet/cards/daniel_image.webp"
+        },
+        {
+          "id": "daniel_furnace",
+          "title": "Огненная печь",
+          "icon": "🔥",
+          "art": "web/assets/quartet/cards/daniel_furnace.webp"
+        },
+        {
+          "id": "daniel_lions",
+          "title": "Ров со львами",
+          "icon": "🦁",
+          "art": "web/assets/quartet/cards/daniel_lions.webp"
+        }
+      ]
+    },
+    {
+      "id": "elijah",
+      "name": "История Илии",
+      "icon": "🔥",
+      "cards": [
+        {
+          "id": "elijah_ravens",
+          "title": "Вороны у потока",
+          "icon": "🐦‍⬛",
+          "art": "web/assets/quartet/cards/elijah_ravens.webp"
+        },
+        {
+          "id": "elijah_flour",
+          "title": "Мука и масло",
+          "icon": "🌾",
+          "art": "web/assets/quartet/cards/elijah_flour.webp"
+        },
+        {
+          "id": "elijah_altar",
+          "title": "Огонь на Кармиле",
+          "icon": "🔥",
+          "art": "web/assets/quartet/cards/elijah_altar.webp"
+        },
+        {
+          "id": "elijah_whirlwind",
+          "title": "Вихрь",
+          "icon": "🌪️",
+          "art": "web/assets/quartet/cards/elijah_whirlwind.webp"
+        }
+      ]
+    },
+    {
+      "id": "elisha",
+      "name": "История Елисея",
+      "icon": "🏺",
+      "cards": [
+        {
+          "id": "elisha_oil",
+          "title": "Масло вдовы",
+          "icon": "🏺",
+          "art": "web/assets/quartet/cards/elisha_oil.webp"
+        },
+        {
+          "id": "elisha_son",
+          "title": "Сын сонамитянки",
+          "icon": "🛏️",
+          "art": "web/assets/quartet/cards/elisha_son.webp"
+        },
+        {
+          "id": "elisha_naaman",
+          "title": "Исцеление Неемана",
+          "icon": "🌊",
+          "art": "web/assets/quartet/cards/elisha_naaman.webp"
+        },
+        {
+          "id": "elisha_axe",
+          "title": "Всплывший топор",
+          "icon": "🪓",
+          "art": "web/assets/quartet/cards/elisha_axe.webp"
+        }
+      ]
+    },
+    {
+      "id": "john_signs",
+      "name": "Знамения у Иоанна",
+      "icon": "🏺",
+      "cards": [
+        {
+          "id": "john_signs_cana",
+          "title": "Брак в Кане",
+          "icon": "🍷",
+          "art": "web/assets/quartet/cards/john_signs_cana.webp"
+        },
+        {
+          "id": "john_signs_son",
+          "title": "Сын царедворца",
+          "icon": "👦",
+          "art": "web/assets/quartet/cards/john_signs_son.webp"
+        },
+        {
+          "id": "john_signs_bethesda",
+          "title": "Исцеление у Вифезды",
+          "icon": "💧",
+          "art": "web/assets/quartet/cards/john_signs_bethesda.webp"
+        },
+        {
+          "id": "john_signs_blind",
+          "title": "Исцеление слепорождённого",
+          "icon": "👁️",
+          "art": "web/assets/quartet/cards/john_signs_blind.webp"
+        }
+      ]
+    },
+    {
+      "id": "sermon",
+      "name": "Нагорная проповедь",
+      "icon": "🕯️",
+      "cards": [
+        {
+          "id": "sermon_salt",
+          "title": "Соль земли",
+          "icon": "🧂",
+          "art": "web/assets/quartet/cards/sermon_salt.webp"
+        },
+        {
+          "id": "sermon_light",
+          "title": "Свет миру",
+          "icon": "🕯️",
+          "art": "web/assets/quartet/cards/sermon_light.webp"
+        },
+        {
+          "id": "sermon_birds",
+          "title": "Птицы небесные",
+          "icon": "🐦",
+          "art": "web/assets/quartet/cards/sermon_birds.webp"
+        },
+        {
+          "id": "sermon_rock",
+          "title": "Дом на камне",
+          "icon": "🪨",
+          "art": "web/assets/quartet/cards/sermon_rock.webp"
+        }
+      ]
+    },
+    {
+      "id": "acts",
+      "name": "Деяния апостолов",
+      "icon": "📜",
+      "cards": [
+        {
+          "id": "acts_tongues",
+          "title": "Языки пламени",
+          "icon": "🔥",
+          "art": "web/assets/quartet/cards/acts_tongues.webp"
+        },
+        {
+          "id": "acts_gate",
+          "title": "Исцеление у ворот",
+          "icon": "🦯",
+          "art": "web/assets/quartet/cards/acts_gate.webp"
+        },
+        {
+          "id": "acts_chariot",
+          "title": "Колесница евнуха",
+          "icon": "🛞",
+          "art": "web/assets/quartet/cards/acts_chariot.webp"
+        },
+        {
+          "id": "acts_sheet",
+          "title": "Видение Петра",
+          "icon": "🪢",
+          "art": "web/assets/quartet/cards/acts_sheet.webp"
+        }
+      ]
+    },
+    {
+      "id": "paul_road",
+      "name": "Путешествия Павла",
+      "icon": "⛵",
+      "cards": [
+        {
+          "id": "paul_road_antioch",
+          "title": "Отправление из Антиохии",
+          "icon": "🧭",
+          "art": "web/assets/quartet/cards/paul_road_antioch.webp"
+        },
+        {
+          "id": "paul_road_philippi",
+          "title": "Темница в Филиппах",
+          "icon": "🔐",
+          "art": "web/assets/quartet/cards/paul_road_philippi.webp"
+        },
+        {
+          "id": "paul_road_athens",
+          "title": "Речь в Афинах",
+          "icon": "🏛️",
+          "art": "web/assets/quartet/cards/paul_road_athens.webp"
+        },
+        {
+          "id": "paul_road_malta",
+          "title": "Кораблекрушение у Мальты",
+          "icon": "⛵",
+          "art": "web/assets/quartet/cards/paul_road_malta.webp"
+        }
+      ]
+    },
+    {
+      "id": "prayer",
+      "name": "Библейские молитвы",
+      "icon": "🙏",
+      "cards": [
+        {
+          "id": "prayer_hannah",
+          "title": "Молитва Анны",
+          "icon": "🙏",
+          "art": "web/assets/quartet/cards/prayer_hannah.webp"
+        },
+        {
+          "id": "prayer_solomon",
+          "title": "Молитва Соломона",
+          "icon": "🏛️",
+          "art": "web/assets/quartet/cards/prayer_solomon.webp"
+        },
+        {
+          "id": "prayer_daniel",
+          "title": "Молитва Даниила",
+          "icon": "🪟",
+          "art": "web/assets/quartet/cards/prayer_daniel.webp"
+        },
+        {
+          "id": "prayer_lord",
+          "title": "Отче наш",
+          "icon": "📜",
+          "art": "web/assets/quartet/cards/prayer_lord.webp"
+        }
+      ]
+    },
+    {
+      "id": "gifts",
+      "name": "Дары из библейских историй",
+      "icon": "🎁",
+      "cards": [
+        {
+          "id": "gifts_gold",
+          "title": "Золото мудрецов",
+          "icon": "🪙",
+          "art": "web/assets/quartet/cards/gifts_gold.webp"
+        },
+        {
+          "id": "gifts_incense",
+          "title": "Ладан мудрецов",
+          "icon": "🕯️",
+          "art": "web/assets/quartet/cards/gifts_incense.webp"
+        },
+        {
+          "id": "gifts_myrrh",
+          "title": "Смирна мудрецов",
+          "icon": "🌿",
+          "art": "web/assets/quartet/cards/gifts_myrrh.webp"
+        },
+        {
+          "id": "gifts_oil",
+          "title": "Драгоценное миро",
+          "icon": "🏺",
+          "art": "web/assets/quartet/cards/gifts_oil.webp"
+        }
+      ]
+    },
+    {
+      "id": "building",
+      "name": "Библейские сооружения",
+      "icon": "🧱",
+      "cards": [
+        {
+          "id": "building_babel",
+          "title": "Вавилонская башня",
+          "icon": "🧱",
+          "art": "web/assets/quartet/cards/building_babel.webp"
+        },
+        {
+          "id": "building_jericho",
+          "title": "Стены Иерихона",
+          "icon": "🏰",
+          "art": "web/assets/quartet/cards/building_jericho.webp"
+        },
+        {
+          "id": "building_temple",
+          "title": "Храм Соломона",
+          "icon": "🏛️",
+          "art": "web/assets/quartet/cards/building_temple.webp"
+        },
+        {
+          "id": "building_wall",
+          "title": "Стена Неемии",
+          "icon": "🧰",
+          "art": "web/assets/quartet/cards/building_wall.webp"
+        }
+      ]
+    },
+    {
+      "id": "letters",
+      "name": "Послания Павла",
+      "icon": "✉️",
+      "cards": [
+        {
+          "id": "letters_romans",
+          "title": "К Римлянам",
+          "icon": "✉️",
+          "art": "web/assets/quartet/cards/letters_romans.webp"
+        },
+        {
+          "id": "letters_galatians",
+          "title": "К Галатам",
+          "icon": "📜",
+          "art": "web/assets/quartet/cards/letters_galatians.webp"
+        },
+        {
+          "id": "letters_ephesians",
+          "title": "К Ефесянам",
+          "icon": "🖋️",
+          "art": "web/assets/quartet/cards/letters_ephesians.webp"
+        },
+        {
+          "id": "letters_philippians",
+          "title": "К Филиппийцам",
+          "icon": "🕊️",
+          "art": "web/assets/quartet/cards/letters_philippians.webp"
+        }
       ]
     }
   ]

@@ -54,6 +54,10 @@ export const styleSources = [
   'web/styles/game-scene-parallax.css',
   'web/styles/sabbath-access.css',
   'web/styles/app-access.css',
+  'cloudflare/full-preview/public/catalog.css',
+  'cloudflare/full-preview/public/catalog-system.css',
+  'cloudflare/full-preview/public/display-preferences.css',
+  'web/styles/catalog-client.css',
 ];
 
 export const scriptSources = [
@@ -72,6 +76,11 @@ export const scriptSources = [
   'web/games/kids-ark-pairs.js',
   'web/js/quartet-production-v43-loader.js',
   'web/js/game-card-details.js',
+  'cloudflare/full-preview/public/display-preferences.js',
+  'cloudflare/full-preview/public/game-wallet.js',
+  'cloudflare/full-preview/public/catalog-carousel.js',
+  'cloudflare/full-preview/public/catalog-system.js',
+  'cloudflare/full-preview/public/catalog.js',
   'web/js/app.js',
   'web/js/home-parallax-v1.js',
   'web/js/cloudflare-request-budget.js',

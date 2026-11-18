@@ -17,6 +17,7 @@ export async function buildLocales(root, jsOptions) {
   const dictionaries = readTranslations(root);
   const outputs = new Map();
   const runtimeSources = [fs.readFileSync(path.join(root,'index.html'),'utf8'),
+    fs.readFileSync(path.join(root,'cloudflare/full-preview/public/index.html'),'utf8'),
     ...walk(path.join(root,'cloudflare')).filter(file=>file.endsWith('.js') && !file.includes('/node_modules/') && !file.includes('/public/') && !file.includes('/shared/')).map(file=>fs.readFileSync(file,'utf8')),
     ...walk(path.join(root,'web/data')).filter(file=>file.endsWith('.json')&&!file.endsWith('/sabbath-cities.json')).map(file=>fs.readFileSync(file,'utf8'))];
   const runtimeKeys = new Set(runtimeSources.flatMap(source=>[...source.matchAll(phrasePattern)].map(match=>match[0].trim())));

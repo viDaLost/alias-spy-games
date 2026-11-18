@@ -119,7 +119,8 @@ async function executeProfileAction(env, store, userId, displayName, sender, pay
     return callStore(store, '/profile/friend-remove', { userId, friendId: payload.friendId });
   }
   if (action === 'profileSetFavorites') {
-    return callStore(store, '/profile/favorites', { userId, displayName, favorites: payload.favorites });
+    return callStore(store, '/profile/favorites', { userId, displayName, favorites: payload.favorites,
+      game: payload.game, selected: payload.selected });
   }
   if (action === 'profileTrackGame') {
     return callStore(store, '/profile/track', { userId, displayName, game: payload.game });

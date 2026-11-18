@@ -112,6 +112,7 @@ async function handleExtendedAdminCompat(request, env, body, payload, action, co
       const users = (data.users || []).map((user) => ({
         ...user,
         bmtStars: clampStars(byId.get(cleanUserId(user?.id))?.bmtStars),
+        unifiedWallet: byId.get(cleanUserId(user?.id))?.unifiedWallet === true,
       }));
       let admins;
       if (role.isRoot === true) {

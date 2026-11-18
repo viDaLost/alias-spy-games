@@ -52,6 +52,7 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function loadStars() {
+    if (window.GameWallet) return window.GameWallet.balance();
     try {
       const n = Number(localStorage.getItem(STARS_KEY));
       return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
@@ -70,7 +71,8 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function addStars(delta) {
-    setStars(stars + delta);
+    if (window.GameWallet) stars = window.GameWallet.add(delta, "wordsearch");
+    else setStars(stars + delta);
   }
 
   function toast(msg) {
@@ -100,7 +102,7 @@ function startBibleWordSearchGame(levelsUrl) {
 
   // ===== UI helpers =====
   function renderShell() {
-    container.innerHTML = `\n      <style>\n        #ws-board, .ws-cell { touch-action: none !important; user-select: none !important; -webkit-user-select: none !important; position: relative;}\n      </style>\n      <div class="ws-wrap fade-in">\n        <div class="ws-topbar">\n          <button class="back-button" style="width:auto; padding: 10px 14px; margin:0;" onclick="goToMainMenu()">Zurück</button>\n          <div class="ws-title">\n            <div class="ws-title__name">Wortsuche</div>\n            <div class="ws-title__meta">\n              <span class="ws-stars">⭐ <b id="ws-stars">${stars}</b></span>\n            </div>\n          </div>\n        </div>\n\n        <div class="ws-panel">\n          <div class="ws-levelrow">\n            <div id="ws-level-btn" class="ws-level-btn">\n               <div>Thema: <b id="ws-theme-label">...</b> <span class="ws-level-num">(Lv. <span id="ws-lvl-label">1</span>)</span></div>\n               <div style="font-size:0.85rem; opacity:0.8;">Menü</div>\n            </div>\n          </div>\n          <div class="ws-actions">\n            <button class="start-button" id="ws-hint" onclick="window.__wsHint()">Tipp (-${HINT_COST}⭐)</button>\n            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">Zurücksetzen</button>\n          </div>\n          <div class="ws-progress" id="ws-progress"></div>\n        </div>\n\n        <div class="ws-board" id="ws-board" aria-label="Spielfeld"></div>\n\n        <div class="ws-bottom">\n          <button class="start-button" id="ws-prev" onclick="window.__wsPrev()">Zurück</button>\n          <button class="start-button" id="ws-next" onclick="window.__wsNext()">Weiter</button>\n        </div>\n\n        <div id="ws-level-modal" class="ws-modal hidden">\n           <div class="ws-modal-content">\n              <div class="ws-modal-header">\n                <h3>Levelauswahl</h3>\n                <button class="ws-modal-close" id="ws-modal-close">✖</button>\n              </div>\n              <div class="ws-levels-grid" id="ws-levels-grid"></div>\n           </div>\n        </div>\n      </div>\n    `;
+    container.innerHTML = `\n      <style>\n        #ws-board, .ws-cell { touch-action: none !important; user-select: none !important; -webkit-user-select: none !important; position: relative;}\n      </style>\n      <div class="ws-wrap fade-in">\n        <div class="ws-topbar">\n          <button class="back-button" style="width:auto; padding: 10px 14px; margin:0;" onclick="goToMainMenu()">Zurück</button>\n          <div class="ws-title">\n            <div class="ws-title__name">Wortsuche</div>\n            <div class="ws-title__meta">\n              <span class="ws-stars">⭐ <b id="ws-stars">${window.GameWallet?.balance() ?? stars}</b></span>\n            </div>\n          </div>\n        </div>\n\n        <div class="ws-panel">\n          <div class="ws-levelrow">\n            <div id="ws-level-btn" class="ws-level-btn">\n               <div>Thema: <b id="ws-theme-label">...</b> <span class="ws-level-num">(Lv. <span id="ws-lvl-label">1</span>)</span></div>\n               <div style="font-size:0.85rem; opacity:0.8;">Menü</div>\n            </div>\n          </div>\n          <div class="ws-actions">\n            <button class="start-button" id="ws-hint" onclick="window.__wsHint()">Tipp (-${HINT_COST}⭐)</button>\n            <button class="wrong-button" id="ws-reset" onclick="window.__wsReset()">Zurücksetzen</button>\n          </div>\n          <div class="ws-progress" id="ws-progress"></div>\n        </div>\n\n        <div class="ws-board" id="ws-board" aria-label="Spielfeld"></div>\n\n        <div class="ws-bottom">\n          <button class="start-button" id="ws-prev" onclick="window.__wsPrev()">Zurück</button>\n          <button class="start-button" id="ws-next" onclick="window.__wsNext()">Weiter</button>\n        </div>\n\n        <div id="ws-level-modal" class="ws-modal hidden">\n           <div class="ws-modal-content">\n              <div class="ws-modal-header">\n                <h3>Levelauswahl</h3>\n                <button class="ws-modal-close" id="ws-modal-close">✖</button>\n              </div>\n              <div class="ws-levels-grid" id="ws-levels-grid"></div>\n           </div>\n        </div>\n      </div>\n    `;
 
     document.getElementById("ws-level-btn").addEventListener("click", openLevelModal);
     document.getElementById("ws-modal-close").addEventListener("click", closeLevelModal);
@@ -537,7 +539,7 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function hint(level, levelState) {
-    if (stars < HINT_COST) {
+    if ((window.GameWallet?.balance() ?? stars) < HINT_COST) {
       toast(`Benötigt ${HINT_COST}⭐`);
       return;
     }
@@ -546,7 +548,9 @@ function startBibleWordSearchGame(levelsUrl) {
     const remaining = level.words.map((w, index) => ({w, index})).filter(item => !found.has(item.w.text));
     if (!remaining.length) return;
 
-    addStars(-HINT_COST);
+    if (window.GameWallet) {
+      if (!window.GameWallet.spend(HINT_COST, "wordsearch-hint").ok) return;
+    } else addStars(-HINT_COST);
 
     const match = remaining[Math.floor(Math.random() * remaining.length)];
     const w = match.w;

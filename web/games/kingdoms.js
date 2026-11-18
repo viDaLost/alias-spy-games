@@ -612,7 +612,7 @@
     mount3d() {
       const K = window.Kingdoms3D;
       const toggle = this.root.querySelector('[data-view-toggle]');
-      const can = Boolean(K?.supported()) && !this.no3d;
+      const can = !window.GameDisplay?.lowGraphics() && Boolean(K?.supported()) && !this.no3d;
       // Очень слабому устройству объём не навязывается: плоская карта, пока игрок сам не выберет 3D.
       const chosen = safeGet(VIEW_KEY);
       const want = can && (chosen === '3d' || (chosen !== '2d' && !K.prefersFlat?.()));

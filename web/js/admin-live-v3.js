@@ -237,15 +237,17 @@
       : 'Комнаты нет — играет на одном устройстве или выбирает комнату';
     const soloNote = !canObserve && backend && user.game
       ? `<div class="admin-live-v3__observe-none">${soloText}</div>` : '';
-    const balances = profile ? BALANCES.map((item) => renderBalance(id, profile, item)).join('') : '<div class="admin-live-v3__profile-loading">Баланс загружается…</div>';
+    const balances = profile ? BALANCES.filter((item) => !profile.unifiedWallet || ['stars_sw', 'stars_bmt'].includes(item.type))
+      .map((item) => renderBalance(id, profile, item)).join('') : '<div class="admin-live-v3__profile-loading">Баланс загружается…</div>';
     return `<article class="admin-live-v3__person" data-live-user="${escapeText(id)}"><div class="admin-live-v3__identity"><span class="admin-live-v3__dot"></span><div class="admin-live-v3__avatar">${escapeText(initials(name))}</div><div class="admin-live-v3__name"><b>${escapeText(name)}</b><small>ID ${escapeText(id)} · ${escapeText(gameName + roomText)} · ${platform}</small></div><button type="button" class="admin-live-v3__chat" data-user-chat="${escapeText(id)}">Чат</button></div><div class="admin-live-v3__balances">${balances}</div>${canObserve ? `<button type="button" class="admin-live-v3__observe" data-observe-game="${escapeText(user.game)}" data-observe-room="${escapeText(user.roomId)}">◉ Наблюдать за комнатой · только чтение</button>` : soloNote}</article>`;
   }
 
   function renderBalance(id, profile, item) {
+    const label = profile.unifiedWallet && item.type === 'stars_bmt' ? 'Общие звёзды' : item.label;
     const value = Number(profile[item.field] || 0);
     const key = `${id}:${item.type}`;
     const disabled = busyBalances.has(key) ? 'disabled' : '';
-    return `<div class="admin-live-v3__balance" data-balance-type="${item.type}"><span>${item.icon} ${escapeText(item.label)}</span><div><button type="button" ${disabled} data-balance-adjust="-1" data-user-id="${escapeText(id)}" data-type="${item.type}" aria-label="Уменьшить ${escapeText(item.label)}">−</button><b>${value}</b><button type="button" ${disabled} data-balance-adjust="1" data-user-id="${escapeText(id)}" data-type="${item.type}" aria-label="Увеличить ${escapeText(item.label)}">+</button></div></div>`;
+    return `<div class="admin-live-v3__balance" data-balance-type="${item.type}"><span>${item.icon} ${escapeText(label)}</span><div><button type="button" ${disabled} data-balance-adjust="-1" data-user-id="${escapeText(id)}" data-type="${item.type}" aria-label="Уменьшить ${escapeText(label)}">−</button><b>${value}</b><button type="button" ${disabled} data-balance-adjust="1" data-user-id="${escapeText(id)}" data-type="${item.type}" aria-label="Увеличить ${escapeText(label)}">+</button></div></div>`;
   }
 
   function bindPanelActions(panel) {
@@ -478,7 +480,14 @@
   function hydrateAdminBmtFields() {
     document.querySelectorAll('[data-admin-bmt-input]').forEach((input) => {
       const id = String(input.dataset.adminBmtInput || ''); const profile = profiles.get(id);
-      if (profile && document.activeElement !== input) input.value = String(Number(profile.bmtStars || 0));
+      if (!profile) return;
+      if (document.activeElement !== input) input.value = String(Number(profile.bmtStars || 0));
+      const label = input.closest('label')?.querySelector('span');
+      const title = profile.unifiedWallet ? 'Общие звёзды' : 'Библейские сокровища';
+      if (label && label.textContent !== title) label.textContent = title;
+      for (const field of input.closest('.admin-v2-user__scores')?.querySelectorAll('[data-score="wowStars"], [data-score="wsStars"]') || []) {
+        field.closest('label').hidden = profile.unifiedWallet;
+      }
     });
   }
 
@@ -491,7 +500,7 @@
     finally { button.disabled = false; }
   }
 
-  function normalizeProfile(user = {}) { return { id: String(user.id || ''), username: String(user.username || ''), link: String(user.link || ''), wowStars: num(user.wowStars, 20), wsStars: num(user.wsStars, 0), swLevel: num(user.swLevel, 0), bmtStars: num(user.bmtStars, 0), bmtRevision: num(user.bmtRevision, 0), isBanned: Boolean(user.isBanned) }; }
+  function normalizeProfile(user = {}) { return { id: String(user.id || ''), username: String(user.username || ''), link: String(user.link || ''), wowStars: num(user.wowStars, 20), wsStars: num(user.wsStars, 0), swLevel: num(user.swLevel, 0), bmtStars: num(user.bmtStars, 0), bmtRevision: num(user.bmtRevision, 0), unifiedWallet: user.unifiedWallet === true, isBanned: Boolean(user.isBanned) }; }
   function num(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? Math.trunc(n) : fallback; }
   function initials(name) { const clean = String(name || '?').replace(/^@/, '').trim(); return (clean[0] || '?').toUpperCase(); }
   function phaseLabel(value) { return ({ lobby: 'Лобби', playing: 'Игра', drawing: 'Рисование', voting: 'Голосование', answerReview: 'Проверка ответа', finalGuess: 'Финальный ответ', finished: 'Завершено', roles: 'Раздача ролей', discussion: 'Обсуждение', results: 'Итоги', setup: 'Расстановка', planning: 'Приказы', reveal: 'Раскрытие', over: 'Партия окончена' }[value] || String(value || '—')); }

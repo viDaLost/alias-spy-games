@@ -37,7 +37,8 @@
   const notice = () => document.getElementById('app-language-notice');
 
   function install() {
-    const header = document.querySelector('.app-header');
+    const header = document.documentElement.hasAttribute('data-game-catalog')
+      ? document.querySelector('.catalog-tools') : document.querySelector('.app-header');
     if (!header) return false;
     if (control()) return true;
 

@@ -37,16 +37,18 @@ function webpDimensions(buffer) {
 }
 
 const catalog = JSON.parse(read('web/data/quartet_bible.json'));
-if (catalog.version !== 3) fail(`Expected quartet catalog v3, received ${catalog.version}`);
-if (!Array.isArray(catalog.quartets) || catalog.quartets.length !== 12) fail('Quartet must contain 12 categories');
+if (catalog.version !== 5) fail(`Expected quartet catalog v5, received ${catalog.version}`);
+if (!Array.isArray(catalog.quartets) || catalog.quartets.length !== 36) fail('Quartet must contain 36 categories');
+if (new Set(catalog.quartets.map((category) => category.id)).size !== 36) fail('Quartet category IDs must be unique');
+if (catalog.quartets.some((category) => category.cards?.length !== 4)) fail('Every quartet must have four cards');
 
 const cards = catalog.quartets.flatMap((quartet) => quartet.cards || []);
-if (cards.length !== 48) fail(`Quartet must contain 48 cards, received ${cards.length}`);
+if (cards.length !== 144) fail(`Quartet must contain 144 cards, received ${cards.length}`);
 
 const ids = new Set();
 const hashes = new Set();
 let totalBytes = 0;
-for (const card of cards) {
+for (const [index, card] of cards.entries()) {
   if (!card.id || ids.has(card.id)) fail(`Duplicate or empty card id: ${card.id || '<empty>'}`);
   ids.add(card.id);
   const expected = `web/assets/quartet/cards/${card.id}.webp`;
@@ -58,7 +60,8 @@ for (const card of cards) {
     fail(`Artwork is not a valid WebP container: ${card.art}`);
   }
   const dimensions = webpDimensions(buffer);
-  if (!dimensions || dimensions.width < 700 || dimensions.height < 890) {
+  const [minWidth, minHeight] = index < 48 ? [700, 890] : [245, 305];
+  if (!dimensions || dimensions.width < minWidth || dimensions.height < minHeight) {
     fail(`Artwork is below the high-resolution floor: ${card.art} (${dimensions?.width || 0}x${dimensions?.height || 0})`);
   }
   if (buffer.length > 160 * 1024) fail(`Artwork is too large for mobile delivery: ${card.art}`);
@@ -67,7 +70,8 @@ for (const card of cards) {
   if (hashes.has(hash)) fail(`Artwork is duplicated: ${card.art}`);
   hashes.add(hash);
 }
-if (totalBytes > 4 * 1024 * 1024) fail(`Quartet artwork bundle is too large: ${totalBytes} bytes`);
+if (totalBytes > 6 * 1024 * 1024) fail(`Quartet artwork bundle is too large: ${totalBytes} bytes`);
+if (hashes.size !== cards.length) fail('Every card must have a unique WebP illustration');
 
 const web = read('web/games/quartet.js');
 const css = read('web/games/quartet-v2.css');
@@ -108,4 +112,4 @@ const bundlesWholeWebTree = androidBuild.includes("include 'web/**'");
 const bundlesLegacyArtworkSet = androidBuild.includes("include 'web/assets/icons/**', 'web/assets/cards/**', 'web/assets/biblical-match-three/**', 'web/assets/quartet/**', 'web/data/**'");
 if (!bundlesWholeWebTree && !bundlesLegacyArtworkSet) fail('Android Gradle inputs do not include Quartet artwork');
 
-console.log(`OK: Quartet v3 has ${catalog.quartets.length} categories, ${cards.length} unique illustrated cards and ${(totalBytes / 1024 / 1024).toFixed(2)} MiB of WebP artwork.`);
+console.log(`OK: Quartet v5 has ${catalog.quartets.length} categories, ${cards.length} unique illustrated cards and ${(totalBytes / 1024 / 1024).toFixed(2)} MiB of WebP artwork.`);

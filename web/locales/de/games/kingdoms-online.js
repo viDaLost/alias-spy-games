@@ -440,7 +440,7 @@
       const code = this.view?.roomId || '';
       if (!code) return;
       if (!window.RoomInvite?.openQr) { this.say('QR-код недоступен без сети'); return; }
-      window.RoomInvite.openQr('kingdoms', code, 'Царства · вход в комнату');
+      window.RoomInvite.openQr('kingdoms', code, 'Königreiche · вход в комнату');
     }
 
     inviteFriends() {

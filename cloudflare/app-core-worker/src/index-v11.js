@@ -233,17 +233,19 @@ export class UserStore extends V10UserStore {
     await this.ensureMigrated();
     const userId = cleanUserId(raw.userId);
     if (!userId) return fail('Некорректный Telegram ID');
-    const favorites = [...new Set((Array.isArray(raw.favorites) ? raw.favorites : [])
-      .map(cleanGameKey)
-      .filter(Boolean))].slice(0, GAMES.size);
+    const game = cleanGameKey(raw.game);
+    if (raw.game !== undefined && (!game || typeof raw.selected !== 'boolean')) return fail('Неизвестная игра');
     this.ensurePlayerProfile(userId, raw.displayName);
-    this.sql.exec(
-      'UPDATE player_profiles SET favorites_json = ?, updated_at = ? WHERE user_id = ?',
-      JSON.stringify(favorites),
-      Date.now(),
-      userId,
-    );
-    return { ok: true, success: true, favorites };
+    return this.ctx.storage.transactionSync(() => {
+      const saved = Array.isArray(raw.favorites) ? raw.favorites : [];
+      const favorites = new Set(game ? this.readProfile(userId).favorites : saved.map(cleanGameKey).filter(Boolean));
+      if (game && raw.selected) favorites.add(game);
+      if (game && !raw.selected) favorites.delete(game);
+      const updated = [...favorites].slice(0, GAMES.size);
+      this.sql.exec('UPDATE player_profiles SET favorites_json = ?, updated_at = ? WHERE user_id = ?',
+        JSON.stringify(updated), Date.now(), userId);
+      return { ok: true, success: true, favorites: updated };
+    });
   }
 
   async profileTrackGame(raw = {}) {

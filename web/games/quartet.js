@@ -1,6 +1,6 @@
 // games/quartet.js — Quartet v3, tactile card-table UX
 
-function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
+function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview = false } = {}) {
   const container = document.getElementById('game-container');
   if (!container) return;
 
@@ -15,11 +15,15 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   };
 
   const TURN_TIMEOUT_SECONDS = 90;
-  const backendBase = resolveBackendBase();
+  const backendBase = preview ? window.location.origin : resolveBackendBase();
   const guestId = getOrCreateGuestId();
-  const telegramInitData = String(tg?.initData || '');
-  const telegramUser = tg?.initDataUnsafe?.user || {};
+  const telegramInitData = preview ? '' : String(tg?.initData || '');
+  const telegramUser = preview ? {} : tg?.initDataUnsafe?.user || {};
   const defaultName = String(telegramUser.first_name || telegramUser.username || 'Игрок').trim() || 'Игрок';
+  const inviteCode = preview ? normalizeRoomId(new URL(location.href).searchParams.get('room')) : '';
+  const fallbackSocket = preview && !window.QuartetPreviewSocket ? window.QuartetPollingSocket : null;
+  const loadPractice = preview ? window.FullPreviewMenu?.loadQuartetPractice : null;
+  const directPractice = loadPractice && !inviteCode && new URL(location.href).searchParams.get('mode') === 'bots';
 
   let catalog = [];
   let quartetById = new Map();
@@ -27,9 +31,12 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   let quartetByCardId = new Map();
   let state = null;
   let roomId = localStorage.getItem(LS.roomId) || '';
+  if (inviteCode && roomId !== inviteCode) roomId = '';
   let playerName = localStorage.getItem(LS.playerName) || defaultName;
   let sessionToken = '';
   let socket = null;
+  let socketStartupTimer = null;
+  let usePolling = false;
   let reconnectTimer = null;
   let reconnectAttempt = 0;
   let reconnecting = false;
@@ -42,24 +49,48 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   let toastTimer = null;
   let turnNoticeTimer = null;
   let currentScreen = 'loading';
+  let table = null;
+  let tableRequest = null;
+  let tableRequestTimer = null;
+  let practice = null;
 
   const ui = {};
 
   injectStylesheet();
   renderRoot();
+  if (preview) {
+    ui.root.classList.add('qt-root');
+    table = window.QuartetTable.create({
+      content: ui.content,
+      escapeHtml,
+      getGroups: buildHandGroups,
+      getQuartet: (id) => quartetById.get(id),
+      getCard: (id) => cardById.get(id),
+      getEvent: renderLastEvent,
+    });
+  }
   bindRootEvents();
   startTurnClock();
 
   window.__quartetCleanup = cleanup;
 
   boot().catch((error) => {
+    if (destroyed) return;
     console.error('Quartet v3 boot error', error);
     showFatal(String(error?.message || error));
   });
 
   async function boot() {
     catalog = normalizeCatalog(await loadCatalog(catalogUrl));
+    if (destroyed) return;
     indexCatalog(catalog);
+
+    if (directPractice) {
+      renderHome();
+      try { await startPractice(ui.content.querySelector('[data-action="start-practice"]')); }
+      catch (error) { if (!destroyed) showToast(error.message, 'error'); }
+      return;
+    }
 
     if (!backendBase) {
       showBackendNotConfigured();
@@ -72,10 +103,10 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
         await joinOrResume(roomId, true);
         return;
       } catch (error) {
-        if (error?.clientBackoff) {
+        if (error?.clientBackoff || (preview && temporaryRoomError(error))) {
           // Комната цела, вход просто отложен: ждём, пока приложение вернётся
           // на экран, и заходим снова.
-          showConnecting('Возвращаемся в комнату…');
+          showConnecting('Восстанавливаем связь с комнатой…', preview);
           scheduleReconnect();
           return;
         }
@@ -105,15 +136,17 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function injectStylesheet() {
-    const existing = document.getElementById('quartet-v2-css');
+    const href = 'web/games/quartet-v2.css?v=4';
+    const existing = document.getElementById('quartet-v2-css') || document.querySelector(`link[href="${href}"]`);
     if (existing) {
-      existing.href = 'web/games/quartet-v2.css?v=4';
+      existing.id = 'quartet-v2-css';
+      if (existing.getAttribute('href') !== href) existing.href = href;
       return;
     }
     const link = document.createElement('link');
     link.id = 'quartet-v2-css';
     link.rel = 'stylesheet';
-    link.href = 'web/games/quartet-v2.css?v=4';
+    link.href = href;
     document.head.appendChild(link);
   }
 
@@ -132,7 +165,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       icon: String(quartet.icon || '🃏'),
       cards: (quartet.cards || []).map((card, index) => typeof card === 'string'
         ? { id: `${quartet.id || 'q'}_${index}`, title: card, art: '' }
-        : { id: String(card.id || ''), title: String(card.title || ''), art: String(card.art || '') }),
+        : { id: String(card.id || ''), title: String(card.title || ''), art: String(card.art || ''), icon: String(card.icon || '') }),
     }));
   }
 
@@ -153,7 +186,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     container.innerHTML = `
       <section class="qv2-root" id="qv2-root">
         <header class="qv2-topbar qv2-glass">
-          <button type="button" class="qv2-icon-btn" data-action="back" aria-label="Назад">←</button>
+          <button type="button" class="qv2-icon-btn" data-action="back" aria-label="${preview ? 'В меню' : 'Назад'}">←</button>
           <div class="qv2-titlebox">
             <h2 class="qv2-title">Квартет</h2>
             <div class="qv2-subtitle" id="qv2-subtitle">Онлайн-игра</div>
@@ -198,16 +231,34 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       // администратору она прилетала как ошибка приложения.
       try {
         if (action === 'back') return await onBack();
+        if (action === 'start-practice') return await startPractice(target);
         if (action === 'create') return await createRoom(target);
         if (action === 'join') return await joinRoomFromForm(target);
         if (action === 'copy-room') return await copyRoomCode();
         if (action === 'share-room') return await shareRoom();
-        if (action === 'start-game') return await sendAction('startGame', {}, target);
-        if (action === 'restart-game') return await sendAction('restartGame', {}, target);
+        if (action === 'start-game') return table ? await sendTableAction('startGame') : await sendAction('startGame', {}, target);
+        if (action === 'restart-game') return table ? await sendTableAction('restartGame') : await sendAction('restartGame', {}, target);
         if (action === 'leave-room') return await confirmLeave();
         if (action === 'select-target') return await selectTarget(target);
         if (action === 'select-card') return await selectCard(target);
         if (action === 'confirm-ask') return await confirmAsk(target);
+        if (action === 'table-target' && isMyTurn()) {
+          selectedTargetId = target.dataset.playerId || '';
+          renderGame();
+          return haptic('selection');
+        }
+        if (action === 'table-card' && isMyTurn() && selectedTargetId) {
+          selectedCardId = selectedCardId === target.dataset.cardId ? '' : target.dataset.cardId;
+          renderGame();
+          return haptic('selection');
+        }
+        if (action === 'table-group') {
+          table.selectGroup(target.dataset.groupId);
+          return renderGame();
+        }
+        if (action === 'table-deck') {
+          return await sendTableAction('setDeckSize', { count: Number(target.dataset.count) });
+        }
         if (action === 'focus-group') return await focusGroup(target.dataset.groupId || '');
         if (action === 'open-rules') return await openRules();
         if (action === 'close-modal') return await closeModal();
@@ -220,6 +271,26 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     ui.root?.addEventListener('input', (event) => {
       if (event.target.id === 'qv2-room-code') event.target.value = normalizeRoomId(event.target.value);
     });
+    if (table) {
+      ui.root.addEventListener('change', (event) => {
+        if (event.target.id !== 'qt-deck-size') return;
+        const count = event.target.value ? Number(event.target.value) : null;
+        sendTableAction('setDeckSize', { count }).catch((error) => showToast(error.message, 'error'));
+      });
+      ui.root.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.target;
+        try {
+          if (form.id === 'qt-join-form') return await joinRoomFromForm(form.querySelector('button'));
+          if (form.id === 'qt-chat-form') {
+            const input = form.elements.message;
+            if (!input.value.trim()) return;
+            await sendAction('chat', { text: input.value });
+            input.value = '';
+          }
+        } catch (error) { showToast(error.message, 'error'); }
+      });
+    }
   }
 
   function selectTarget(button) {
@@ -244,6 +315,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     if (!isMyTurn()) return showToast('Сейчас ход другого игрока', 'info');
     if (!selectedTargetId) return showToast('Сначала выбери игрока', 'info');
     if (!selectedCardId) return showToast('Теперь выбери недостающую карту', 'info');
+    if (table) return sendTableAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId });
     const card = cardById.get(selectedCardId);
     showTurnNotice('Запрос отправлен', `Спрашиваем «${card?.title || 'карту'}»…`, 'pending', '↗', 1200);
     return sendAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId }, button);
@@ -260,10 +332,14 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     state = null;
     resetSelection();
     updateHeader();
+    if (table) {
+      table.renderHome({ playerName, inviteCode, playerLimit: ROOM_LIMIT, catalogSize: catalog.length, allowPractice: Boolean(loadPractice) && !inviteCode });
+      return;
+    }
     ui.content.innerHTML = `
       <div class="qv2-home">
         <section class="qv2-hero qv2-glass">
-          <span class="qv2-kicker">Realtime · 2–15 игроков</span>
+          <span class="qv2-kicker">Онлайн · 3–24 игрока</span>
           <h2>Собери больше квартетов</h2>
           <p>Выбирай соперника, отмечай нужную карту и собирай группы по четыре. Успешный запрос сохраняет ход за тобой.</p>
           <div class="qv2-steps">
@@ -292,6 +368,30 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     `;
   }
 
+  async function startPractice(button) {
+    if (!loadPractice || currentScreen !== 'home' || button?.disabled) return;
+    const name = ui.content.querySelector('#qv2-player-name')?.value.trim() || playerName;
+    setButtonBusy(button, true);
+    try {
+      const controller = await loadPractice();
+      if (destroyed || currentScreen !== 'home') return;
+      clearTimeout(reconnectTimer);
+      closeSocket(false);
+      practice = controller.create(name, (next) => {
+        const previous = state;
+        state = next;
+        reconcileSelection(previous, state);
+        renderState();
+        handleStateTransition(previous, state);
+      });
+      ui.connection.hidden = true;
+      practice.act('startGame');
+      ui.root.scrollIntoView?.({ block: 'start' });
+    } finally {
+      setButtonBusy(button, false);
+    }
+  }
+
   function showBackendNotConfigured() {
     currentScreen = 'backend-missing';
     setConnection('offline', 'Cloudflare не настроен');
@@ -304,11 +404,12 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     `;
   }
 
-  function showConnecting(text = 'Подключение…') {
+  function showConnecting(text = 'Подключение…', allowRetry = false) {
     currentScreen = 'connecting';
     ui.content.innerHTML = `
       <section class="qv2-loading qv2-glass">
         <div class="qv2-loading-box"><div class="qv2-spinner"></div><div>${escapeHtml(text)}</div></div>
+        ${allowRetry ? '<button type="button" class="qv2-btn qv2-btn--secondary" data-action="retry-connect">Повторить</button>' : ''}
       </section>
     `;
   }
@@ -331,6 +432,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     setButtonBusy(button, true, 'Создаём…');
     try {
       const response = await http('/rooms', { method: 'POST', body: authBody() });
+      if (destroyed || leaving) return;
       roomId = normalizeRoomId(response.roomId);
       sessionToken = String(response.sessionToken || '');
       localStorage.setItem(LS.roomId, roomId);
@@ -347,13 +449,23 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     if (!code) throw new Error('Введите код комнаты');
     setButtonBusy(button, true, 'Входим…');
     try { await joinOrResume(code, false); }
+    catch (error) {
+      if (table && !destroyed) {
+        clearRoomSession();
+        renderHome();
+        document.getElementById('qv2-room-code').value = code;
+      }
+      throw error;
+    }
     finally { setButtonBusy(button, false); }
   }
 
   async function joinOrResume(code, quiet) {
-    roomId = normalizeRoomId(code);
+    const joining = normalizeRoomId(code);
+    roomId = joining;
     if (!quiet) showConnecting('Подключаемся к комнате…');
-    const response = await http(`/rooms/${encodeURIComponent(roomId)}/join`, { method: 'POST', body: authBody() });
+    const response = await http(`/rooms/${encodeURIComponent(joining)}/join`, { method: 'POST', body: authBody() });
+    if (destroyed || leaving || roomId !== joining) return;
     sessionToken = String(response.sessionToken || '');
     localStorage.setItem(LS.roomId, roomId);
     connectSocket();
@@ -383,7 +495,11 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       if (response.headers.get('X-Client-Backoff') === '1') {
         throw Object.assign(new Error('Подключение отложено'), { clientBackoff: true });
       }
-      if (!response.ok || !payload?.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
+      if (!response.ok || !payload?.ok) {
+        throw Object.assign(new Error(payload?.error || `HTTP ${response.status}`), {
+          status: response.ok ? 502 : response.status,
+        });
+      }
       return payload;
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('Сервер долго не отвечает');
@@ -400,19 +516,43 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     url.searchParams.set('token', sessionToken);
 
-    setConnection('connecting', reconnectAttempt ? 'Переподключение' : 'Подключение');
-    socket = new WebSocket(url.toString());
+    const Socket = usePolling ? fallbackSocket : (preview && window.QuartetPreviewSocket) || WebSocket;
+    const maySwitchTransport = Boolean(fallbackSocket && !usePolling);
+    setConnection('connecting', usePolling ? 'Резервное подключение' : reconnectAttempt ? 'Переподключение' : 'Подключение');
+    let connection;
+    try {
+      connection = new Socket(url.toString());
+    } catch (error) {
+      if (!maySwitchTransport) throw error;
+      usePolling = true;
+      connectSocket();
+      return;
+    }
+    socket = connection;
+    let synchronized = false;
+    const switchTransport = () => {
+      if (!maySwitchTransport || synchronized || socket !== connection || destroyed || leaving) return false;
+      usePolling = true;
+      connectSocket();
+      return true;
+    };
+    if (maySwitchTransport) socketStartupTimer = setTimeout(switchTransport, 3500);
 
     socket.addEventListener('open', () => {
+      if (socket !== connection) return;
       reconnectAttempt = 0;
       reconnecting = false;
       setConnection('online', 'Онлайн');
     });
 
     socket.addEventListener('message', (event) => {
+      if (socket !== connection) return;
       let message;
       try { message = JSON.parse(event.data); } catch { return; }
       if (message.type === 'state' && message.state) {
+        synchronized = true;
+        clearTimeout(socketStartupTimer);
+        if (tableRequest !== null && tableRequest !== message.state.version) clearTableRequest();
         const previousState = state;
         state = message.state;
         roomId = normalizeRoomId(state.roomId || roomId);
@@ -421,38 +561,72 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
         renderState();
         handleStateTransition(previousState, state);
       } else if (message.type === 'error') {
+        if (table) {
+          clearTableRequest();
+          renderState();
+        }
         showToast(message.error || 'Ошибка сервера', 'error');
       }
     });
 
     socket.addEventListener('close', () => {
-      if (destroyed || leaving) return;
+      if (socket !== connection || destroyed || leaving) return;
+      if (switchTransport()) return;
+      clearTimeout(socketStartupTimer);
+      reconnecting = false;
+      clearTableRequest();
       setConnection('offline', 'Связь потеряна');
       showToast('Связь потеряна. Переподключаемся…', 'info');
       scheduleReconnect();
     });
 
-    socket.addEventListener('error', () => setConnection('offline', 'Ошибка связи'));
+    socket.addEventListener('error', () => {
+      if (socket === connection && !switchTransport()) setConnection('offline', 'Ошибка связи');
+    });
+  }
+
+  function temporaryRoomError(error) {
+    return error?.clientBackoff || !error?.status || error.status === 429 || error.status >= 500;
+  }
+
+  async function reconnectSavedRoom() {
+    if (destroyed || leaving || reconnecting || !roomId) return;
+    reconnecting = true;
+    try {
+      await joinOrResume(roomId, true);
+    } catch (error) {
+      reconnecting = false;
+      if (destroyed || leaving) return;
+      if (preview && !temporaryRoomError(error)) {
+        clearRoomSession();
+        setConnection('offline', 'Не подключено');
+        renderHome();
+        showToast(error.message, 'error');
+        return;
+      }
+      setConnection('offline', 'Нет связи');
+      if (preview && currentScreen === 'connecting') showConnecting('Восстанавливаем связь с комнатой…', true);
+      scheduleReconnect();
+    }
   }
 
   function scheduleReconnect() {
     if (destroyed || leaving || document.hidden || reconnectTimer || reconnecting || !roomId) return;
     reconnectAttempt += 1;
     const delay = Math.min(30_000, 2_500 * 2 ** Math.min(reconnectAttempt - 1, 4));
-    reconnectTimer = setTimeout(async () => {
+    reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
-      reconnecting = true;
-      try { await joinOrResume(roomId, true); }
-      catch {
-        reconnecting = false;
-        setConnection('offline', 'Нет связи');
-        scheduleReconnect();
-      }
+      if (!document.hidden) reconnectSavedRoom();
     }, delay);
   }
 
   async function retryConnect() {
     if (!backendBase) return showBackendNotConfigured();
+    if (preview && roomId) {
+      showConnecting('Переподключаемся…');
+      onVisible();
+      return;
+    }
     if (roomId) {
       showConnecting('Переподключаемся…');
       try { await joinOrResume(roomId, true); }
@@ -469,14 +643,15 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function updateHeader() {
-    if (ui.subtitle) ui.subtitle.textContent = roomId ? `Комната ${roomId}` : 'Онлайн-игра';
+    if (ui.subtitle) ui.subtitle.textContent = practice ? 'Партия с ботами'
+      : roomId && currentScreen !== 'home' ? `Комната ${roomId}` : loadPractice ? 'Карточная игра' : 'Онлайн-игра';
   }
 
   // Столько же, сколько требует сервер: engine.js, MIN_PLAYERS и ROOM_LIMIT.
   // Разойдётся минимум — кнопка станет активной, а запуск вернёт отказ, и
   // человек не поймёт почему. Разойдётся потолок — счётчик в лобби соврёт.
   const MIN_PLAYERS = 3;
-  const ROOM_LIMIT = 15;
+  const ROOM_LIMIT = 24;
 
   /** «одного игрока» / «двух игроков» — чтобы кнопка читалась как фраза. */
   function playersNeeded(count) {
@@ -488,6 +663,10 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
 
   function renderLobby() {
     currentScreen = 'lobby';
+    if (table) {
+      table.renderLobby(state, tableRequest !== null);
+      return;
+    }
     const me = state.me || {};
     const activePlayers = (state.players || []).filter((player) => player.isActive !== false);
     const canStart = !!me.isHost && activePlayers.length >= MIN_PLAYERS;
@@ -535,6 +714,16 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
 
   function renderGame() {
     currentScreen = 'game';
+    if (table) {
+      table.renderGame(state, {
+        targetId: selectedTargetId,
+        cardId: selectedCardId,
+        pending: tableRequest !== null,
+        connected: Boolean(practice) || socket?.readyState === WebSocket.OPEN,
+      });
+      updateTurnTimer();
+      return;
+    }
     const me = state.me || {};
     const myTurn = isMyTurn();
     const targets = availableTargets();
@@ -683,7 +872,9 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
       return `
         <div class="qv2-playing-card is-owned" aria-label="${escapeHtml(card.title)}, карта у вас">
           <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
-          <div class="qv3-card-art"><img src="${escapeHtml(cardArtUrl(card))}" alt="" loading="lazy" decoding="async"></div>
+          <div class="qv3-card-art">${card.icon && !card.art
+            ? `<span aria-hidden="true">${escapeHtml(card.icon)}</span>`
+            : `<img src="${escapeHtml(cardArtUrl(card))}" alt="" loading="lazy" decoding="async">`}</div>
           <div class="qv2-playing-card-title">${escapeHtml(card.title)}</div>
           <div class="qv2-card-status">✓ В руке</div>
         </div>`;
@@ -728,6 +919,10 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
 
   function renderResults() {
     currentScreen = 'results';
+    if (table) {
+      table.renderResults(state, tableRequest !== null);
+      return;
+    }
     const me = state.me || {};
     const winners = (state.score || []).filter((player) => (state.winnerIds || []).includes(player.playerId));
     const iWon = (state.winnerIds || []).includes(me.playerId);
@@ -790,7 +985,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     }
 
     if (!previous && next.status === 'playing') {
-      announceTurnStart(next, 'Партия продолжается');
+      announceTurnStart(next, next.practice ? 'Партия началась' : 'Партия продолжается');
       return;
     }
 
@@ -857,6 +1052,26 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     }
   }
 
+  function clearTableRequest() {
+    tableRequest = null;
+    clearTimeout(tableRequestTimer);
+  }
+
+  async function sendTableAction(action, payload = {}) {
+    if (tableRequest !== null) return;
+    if (action === 'setDeckSize' && (state?.deckSettings?.requested ?? null) === payload.count) return;
+    if (practice) return practice.act(action, payload);
+    await sendAction(action, payload);
+    tableRequest = state.version;
+    renderState();
+    tableRequestTimer = setTimeout(() => {
+      if (destroyed) return;
+      clearTableRequest();
+      renderState();
+      showToast('Сервер не подтвердил действие. Попробуйте ещё раз.', 'error');
+    }, 5000);
+  }
+
   async function sendAction(action, payload = {}, button = null) {
     if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error('Нет соединения с комнатой');
     if (button) setButtonBusy(button, true, 'Отправляем…');
@@ -865,6 +1080,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   async function confirmLeave() {
+    if (practice) return onBack();
     const ok = window.confirm(state?.status === 'playing'
       ? 'Выйти из партии? Твои оставшиеся карты будут перераспределены между игроками.'
       : 'Выйти из комнаты?');
@@ -883,7 +1099,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function onBack() {
-    if (currentScreen === 'home' || currentScreen === 'backend-missing' || !roomId) {
+    if (preview || currentScreen === 'home' || currentScreen === 'backend-missing' || !roomId) {
       cleanup();
       if (typeof window.appGoToMainMenu === 'function') return window.appGoToMainMenu();
       if (typeof window.goToMainMenu === 'function') return window.goToMainMenu();
@@ -902,7 +1118,23 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
 
   async function shareRoom() {
     if (!roomId) return;
+    if (preview && window.FullPreviewMenu && window.RoomInvite?.openQr) {
+      return window.RoomInvite.openQr('quartet', roomId, 'Пригласить в «Квартет»');
+    }
     const text = `Присоединяйся к игре «Квартет». Код комнаты: ${roomId}`;
+    if (preview) {
+      const url = new URL('/', window.location.origin);
+      url.searchParams.set('room', roomId);
+      const invite = url.toString();
+      try {
+        if (navigator.share) await navigator.share({ title: 'Квартет', text, url: invite });
+        else {
+          await navigator.clipboard.writeText(invite);
+          showToast('Ссылка на комнату скопирована', 'success');
+        }
+      } catch (error) { if (error?.name !== 'AbortError') await copyRoomCode(); }
+      return;
+    }
     try {
       if (navigator.share) await navigator.share({ title: 'Библейский Квартет', text });
       else await copyRoomCode();
@@ -998,6 +1230,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     ui.connection.setAttribute('role', 'status');
     ui.connection.setAttribute('title', text);
     ui.connection.setAttribute('aria-label', `Связь: ${text}`);
+    if (table && currentScreen === 'game') renderGame();
   }
 
   function setButtonBusy(button, busy, text = '') {
@@ -1048,6 +1281,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function updateTurnTimer() {
+    if (practice) return;
     const element = document.getElementById('qv2-turn-timer');
     const progress = document.getElementById('qv2-turn-progress');
     const banner = document.getElementById('qv2-turn-banner');
@@ -1060,7 +1294,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function prefersReducedMotion() {
-    return document.documentElement.classList.contains('reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    return window.GameDisplay?.reducedMotion() || document.documentElement.classList.contains('reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   }
 
   function normalizeRoomId(value) {
@@ -1081,9 +1315,11 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
   }
 
   function closeSocket(schedule = false) {
+    clearTimeout(socketStartupTimer);
     if (socket) {
-      try { socket.close(1000, 'client closing'); } catch {}
+      const connection = socket;
       socket = null;
+      try { connection.close(1000, 'client closing'); } catch {}
     }
     if (schedule) scheduleReconnect();
   }
@@ -1096,25 +1332,29 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json') {
     комнату. Отсчёт сбрасывается, чтобы вход был сразу, а не через полминуты.
   */
   function onVisible() {
-    if (destroyed || leaving || document.hidden || !roomId) return;
+    if (destroyed || practice || directPractice || leaving || document.hidden || reconnecting || !roomId) return;
     if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) return;
     reconnectAttempt = 0;
-    reconnecting = false;
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
-    joinOrResume(roomId, true).catch(() => scheduleReconnect());
+    reconnectSavedRoom();
   }
   document.addEventListener('visibilitychange', onVisible);
+  if (preview) window.addEventListener('online', onVisible);
 
   function cleanup() {
     destroyed = true;
+    practice?.stop();
+    table?.dispose?.();
     document.removeEventListener('visibilitychange', onVisible);
+    if (preview) window.removeEventListener('online', onVisible);
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
     clearInterval(turnTimerInterval);
     turnTimerInterval = null;
     clearTimeout(toastTimer);
     clearTimeout(turnNoticeTimer);
+    clearTableRequest();
     closeSocket(false);
     try { tg?.disableClosingConfirmation?.(); } catch {}
     window.__quartetCleanup = null;

@@ -80,6 +80,8 @@
       wowStars: safeNumber(user?.wowStars, 0),
       wsStars: safeNumber(user?.wsStars, 0),
       swLevel: safeNumber(user?.swLevel, 0),
+      bmtStars: safeNumber(user?.bmtStars, 0),
+      unifiedWallet: user?.unifiedWallet === true,
       isBanned: isTrue(user?.isBanned),
     };
   }
@@ -249,6 +251,7 @@
   // Строка под именем показывает главное, не раскрывая карточку:
   // сколько у игрока звёзд по каждой игре.
   function summaryScores(user) {
+    if (user.unifiedWallet) return `Общие звёзды ${user.bmtStars} ★ · Священное слово ${user.swLevel}`;
     return `${safeNumber(user.wowStars)}/${safeNumber(user.wsStars)}/${safeNumber(user.swLevel)}`;
   }
 

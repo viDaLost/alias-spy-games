@@ -328,7 +328,9 @@ function startBibleWowGame(levelsUrl) {
         st.levelIndex = Number.isFinite(d.levelIndex) ? d.levelIndex : 0;
         
         // Принудительно ставим 20 звезд один раз (патч для тех, кто нафармил 1000+)
-        if (!localStorage.getItem(LS_COINS_FIX)) {
+        if (window.GameWallet) {
+          st.coins = window.GameWallet.balance();
+        } else if (!localStorage.getItem(LS_COINS_FIX)) {
           st.coins = 20;
           localStorage.setItem(LS_COINS_FIX, "done");
         } else {
@@ -368,7 +370,8 @@ function startBibleWowGame(levelsUrl) {
 
   function savePersisted(st) {
     try {
-      localStorage.setItem(LS_DATA, JSON.stringify({ coins: st.coins, levelIndex: st.levelIndex }));
+      const coins = window.GameWallet ? JSON.parse(localStorage.getItem(LS_DATA) || "{}").coins : st.coins;
+      localStorage.setItem(LS_DATA, JSON.stringify({ coins, levelIndex: st.levelIndex }));
     } catch {}
     try {
       localStorage.setItem(LS_COMPLETED, JSON.stringify(Array.from(st.completed || new Set())));
@@ -650,7 +653,7 @@ function startBibleWowGame(levelsUrl) {
 
     // Вычитаем заработанное. Math.max(0, ...) не даст уйти в минус, 
     // если игрок потратил нафармленные на этом уровне звезды на подсказки.
-    st.coins = Math.max(0, st.coins - earnedStars);
+    changeCoins(-earnedStars);
 
     // Сброс прогресса
     st.foundWords = new Set();
@@ -711,7 +714,7 @@ function startBibleWowGame(levelsUrl) {
              <div class="wow-chip btn" id="wow-menu">Меню</div>
              <div class="wow-chip btn" id="wow-levels-open">Уровни</div>
            </div>
-           <div class="wow-stars wow-stars-floating">⭐ <span id="wow-score">${st.coins}</span></div>
+           <div class="wow-stars wow-stars-floating">⭐ <span id="wow-score">${coinsAvailable()}</span></div>
         </div>
 
         <div class="wow-board-area" id="wow-board-area">
@@ -834,11 +837,12 @@ function startBibleWowGame(levelsUrl) {
 
     const hint = document.getElementById("wow-hint");
     const reveal = document.getElementById("wow-reveal");
-    setChipDisabled(hint, st.coins < 6);
-    setChipDisabled(reveal, st.coins < 20);
+    const coins = coinsAvailable();
+    setChipDisabled(hint, coins < 6);
+    setChipDisabled(reveal, coins < 20);
 
     const score = document.getElementById("wow-score");
-    if (score) score.textContent = String(st.coins);
+    if (score) score.textContent = String(coins);
     const bc = document.getElementById("wow-bonus-count");
     if (bc) bc.textContent = String(st.bonusWordsFound.size);
   }
@@ -1172,6 +1176,19 @@ function startBibleWowGame(levelsUrl) {
   }
 
   // -------------------- Word checking / rewards --------------------
+  function coinsAvailable() { return window.GameWallet?.balance() ?? st.coins; }
+
+  function changeCoins(delta) {
+    if (window.GameWallet) window.GameWallet.add(delta, "bible-wow");
+    else st.coins = Math.max(0, st.coins + delta);
+  }
+
+  function spendCoins(cost) {
+    if (window.GameWallet) return window.GameWallet.spend(cost, "bible-wow-hint").ok;
+    if (st.coins < cost) return false;
+    changeCoins(-cost);
+    return true;
+  }
   // Слово легло в кроссворд — набранное или открытое за звёзды. Последнее
   // слово уровня засчитывает уровень и ведёт дальше, как бы оно ни открылось.
   function afterWordFound() {
@@ -1181,7 +1198,7 @@ function startBibleWowGame(levelsUrl) {
       const levelId = Number(st.currLevel.id);
       if (!st.completed.has(levelId)) {
         st.completed.add(levelId);
-        st.coins += 10;
+        changeCoins(10);
         showMsg("Уровень пройден! +10⭐");
       } else {
         showMsg("Уровень пройден!");
@@ -1226,7 +1243,7 @@ function startBibleWowGame(levelsUrl) {
       const lid = String(st.currLevel.id);
       st.bonusByLevel[lid] = Array.from(new Set([...(st.bonusByLevel[lid] || []), word]));
 
-      st.coins += 2;
+      changeCoins(2);
       showMsg("Бонус! +2⭐");
       saveCurrLevelProgress();
       savePersisted(st);
@@ -1255,7 +1272,7 @@ function startBibleWowGame(levelsUrl) {
     найденным словом тоже: буква на поле уже стояла, а звёзды списывались.
   */
   function giveHint() {
-    if (st.coins < 6) { showMsg("Нужно 6⭐"); return; }
+    if (coinsAvailable() < 6) { showMsg("Нужно 6⭐"); return; }
 
     const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
     if (!remaining.length) { showMsg("Всё найдено"); return; }
@@ -1269,7 +1286,7 @@ function startBibleWowGame(levelsUrl) {
 
     const pool = Array.from(candidates.values());
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    st.coins -= 6;
+    if (!spendCoins(6)) { showMsg("Нужно 6⭐"); return; }
     st.hintedCells.add(pick.key);
 
     showMsg(`💡 Открыта буква: ${pick.letter}`);
@@ -1282,14 +1299,14 @@ function startBibleWowGame(levelsUrl) {
   // «Слово» открывает слово, в котором есть что открыть: слово, чьи буквы
   // уже все видны через пересечения и подсказки, за звёзды не показывается.
   function revealWordPaid() {
-    if (st.coins < 20) { showMsg("Нужно 20⭐"); return; }
+    if (coinsAvailable() < 20) { showMsg("Нужно 20⭐"); return; }
     const remaining = st.currLevel.words.filter(w => !st.foundWords.has(w));
     if (!remaining.length) { showMsg("Всё найдено"); return; }
     const seen = visibleCells();
     const closed = remaining.filter(w => hiddenCellsOf(w, seen).length);
     if (!closed.length) { showMsg("Все буквы уже открыты — наберите слово"); return; }
     const pick = closed[Math.floor(Math.random() * closed.length)];
-    st.coins -= 20;
+    if (!spendCoins(20)) { showMsg("Нужно 20⭐"); return; }
     st.foundWords.add(pick);
 
     // Подсказанные буквы этого слова теперь часть найденного слова.

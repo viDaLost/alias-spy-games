@@ -5,6 +5,7 @@ const ADMIN_ID = "1288379477";
 window.APP_ROOT_ADMIN_ID = ADMIN_ID;
 const SUPPORT_LINK = "https://t.me/D_a_n_Vi";
 const ADMIN_PAGE_SIZE = 10;
+const fullCatalogPreview = document.documentElement.hasAttribute('data-full-preview');
 
 let currentGameScript = null;
 const loadedGameScripts = new Map();
@@ -387,6 +388,7 @@ function safeNumber(value, fallback = 0) {
 // этом должен вызывающий: остальные проверяют результат на null и от смены
 // формата сломались бы.
 async function apiRequest(payload, { quiet = false, raw = false } = {}) {
+  if (fullCatalogPreview) return null;
   try {
     const res = await fetch(GAS_API_URL, {
       method: "POST",
@@ -479,7 +481,7 @@ const isOwner = () => document.documentElement.classList.contains("admin-rbac-ro
 */
 const KINGDOMS_TESTERS = new Set(["5502223852","6533461232","5148935464","7101682106","1661715859","8224133751"]);
 const isKingdomsTester = () => KINGDOMS_TESTERS.has(String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || ""));
-const canPlayKingdoms = () => isOwner() || isKingdomsTester();
+const canPlayKingdoms = () => fullCatalogPreview || isOwner() || isKingdomsTester();
 
 function renderGameButton(item) {
   const gate = item.owner ? ` game-card--owner${item.tryout ? " game-card--tryout" : ""}` : "";
@@ -496,6 +498,10 @@ function renderGameButton(item) {
 }
 
 function renderMainMenu() {
+  if (fullCatalogPreview) {
+    window.FullPreviewMenu.mount(GAME_GROUPS, MENU_ICON_SOURCES);
+    return;
+  }
   document.documentElement.classList.toggle("kd-tester", isKingdomsTester());
   GAME_GROUPS.forEach((group) => {
     const root = document.getElementById(group.id);
@@ -517,6 +523,7 @@ function renderMainMenu() {
     `;
     systemRoot.dataset.ready = "1";
   }
+  window.GameCatalog?.mount(GAME_GROUPS, MENU_ICON_SOURCES, (item) => !item.owner || canPlayKingdoms());
 }
 
 function renderAdminButton() {
@@ -632,6 +639,7 @@ async function syncCurrentUser({ force = false } = {}) {
       accessState.lastSyncAt = now;
       accessState.isBanned = isTrue(res.isBanned);
       applyServerProgress(res, tgUser.id, localWowData);
+      window.GameCatalog?.refresh();
     } else {
       // Если сервер недоступен, не блокируем запуск приложения.
       accessState.checked = true;
@@ -647,6 +655,11 @@ async function syncCurrentUser({ force = false } = {}) {
 }
 
 async function initializeApp() {
+  if (fullCatalogPreview) {
+    renderMainMenu();
+    showMenu();
+    return;
+  }
   prepareTelegramWebApp();
   renderMainMenu();
   if (window.AppAccess && !window.AppAccess.allowed()) return;
@@ -716,6 +729,14 @@ function showGame(gameName) {
   const container = document.getElementById("game-container");
   const menu = document.getElementById("menu-container");
 
+  if (window.GameCatalog && gameName === 'biblical-match-three') {
+    activeGameName = gameName;
+    document.body.dataset.currentGame = gameName;
+    const levelId = Number(new URLSearchParams(location.search).get('level')) || undefined;
+    void window.openBiblicalMatchThree({ levelId });
+    return;
+  }
+
   const routes = {
     alias: ["web/games/alias.js", () => window.startAliasGame?.()],
     coimaginarium: ["web/games/coimaginarium.js", () => window.startCoimaginariumGame?.("web/data/coimaginarium_themes.json")],
@@ -723,7 +744,9 @@ function showGame(gameName) {
     describe: ["web/games/describe-char.js", () => window.startDescribeCharacterGame?.("web/data/describe_words.json")],
     spy: ["web/games/spy.js", () => window.startSpyGame?.("web/data/spy_locations.json")],
     "kids-ark-pairs": ["web/games/kids-ark-pairs.js", () => window.startKidsArkPairsGame?.()],
-    quartet: ["web/games/quartet.js", () => window.startQuartetGame?.("web/data/quartet_bible.json")],
+    quartet: ["web/games/quartet.js", () => fullCatalogPreview
+      ? window.FullPreviewMenu.prepareQuartet()
+      : window.startQuartetGame?.("web/data/quartet_bible.json")],
     /*
       «Двенадцать колен» подтягивают свои правила сами: движок, колода и
       соперники лежат отдельными файлами, чтобы их можно было проверить
@@ -987,6 +1010,7 @@ function goToMainMenu() {
 
   if (accessState.isBanned) showBannedScreen();
   else if (menu) menu.classList.remove("hidden");
+  window.GameCatalog?.returnHome();
 
   window.scrollTo({ top: 0, behavior: "auto" });
 }

@@ -1,0 +1,26 @@
+html[data-game-catalog]:not([data-full-preview]) body:not([data-mode]) > #menu-container {
+  width: min(100%, 1120px);
+  max-width: 1120px;
+  padding-inline: 0;
+}
+
+html[data-game-catalog]:not([data-full-preview]) :is(.app-header, #home-dashboard, .social-bottom-dock) {
+  display: none !important;
+}
+
+html[data-game-catalog]:not([data-full-preview]) #menu-container > .menu-section {
+  display: none !important;
+}
+
+html[data-game-catalog] #main-catalog[hidden] { display: none; }
+
+html[data-game-catalog] .catalog-tools #app-language-control {
+  margin: 0;
+  align-self: center;
+}
+
+html[data-game-catalog] #more-screen #system-actions .game-card {
+  border-radius: 15px;
+  border: 1px solid var(--catalog-line, #cad8f1);
+  box-shadow: 0 4px 12px #30255c30;
+}

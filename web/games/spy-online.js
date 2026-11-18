@@ -29,9 +29,12 @@ function startSpyOnlineGame() {
   const telegramInitData = String(tg?.initData || '');
   const telegramUser = tg?.initDataUnsafe?.user || {};
   const defaultName = String(telegramUser.first_name || telegramUser.username || '').trim();
+  const previewInvite = window.FullPreviewMenu && window.RoomInvite?.peek();
+  const inviteCode = previewInvite?.game === 'spy' ? previewInvite.room : '';
 
   let state = null;
   let roomId = localStorage.getItem(LS.roomId) || '';
+  if (inviteCode && roomId !== inviteCode) roomId = '';
   let playerName = localStorage.getItem(LS.name) || defaultName;
   let sessionToken = '';
   let socket = null;
@@ -359,7 +362,7 @@ function startSpyOnlineGame() {
 
         <label class="setup-label" for="spyOnlineCode">Код комнаты</label>
         <input id="spyOnlineCode" class="input input-lg spy-online-code-input" maxlength="10" autocomplete="off"
-               autocapitalize="characters" spellcheck="false" placeholder="ABCDE">
+               autocapitalize="characters" spellcheck="false" placeholder="ABCDE" value="${esc(inviteCode)}">
         <button class="correct-button" data-spy-online="join">Войти</button>
 
         <button class="menu-button" data-spy-online="single">Играть на одном телефоне</button>
@@ -433,6 +436,7 @@ function startSpyOnlineGame() {
           <span class="spy-room-dot ${transport === 'ws' ? 'is-live' : 'is-poll'}"></span>
           ${online} из ${state.players.length} на связи
         </div>
+        ${window.FullPreviewMenu ? '<button type="button" class="menu-button" data-spy-room="invite">Пригласить</button>' : ''}
       </div>`;
   }
 
@@ -713,6 +717,7 @@ function startSpyOnlineGame() {
 
   async function onRoomAction(action, node) {
     if (action === 'copy') return copyRoomCode();
+    if (action === 'invite') return window.RoomInvite?.openQr?.('spy', roomId, 'Пригласить в «Соглядатай»');
     if (action === 'flip') { roleFaceUp = !roleFaceUp; return renderRoom(); }
     if (action === 'roleSeen') return send('roleSeen');
     if (action === 'start') return send('startGame');

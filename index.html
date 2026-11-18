@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" class="app-booting app-access-pending">
+<html lang="ru" class="app-booting app-access-pending" data-game-catalog>
 <head>
   <meta charset="UTF-8" />
   <!-- Тема ставится до первой отрисовки и до загрузки стилей: иначе тёмное
@@ -68,7 +68,7 @@
   <meta name="app-shell" content="https://alias-spy-games-app.vitaledanilov.workers.dev" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://telegram.org https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' https://*.workers.dev wss://*.workers.dev https://cdn.jsdelivr.net; frame-src 'self' https://*.workers.dev; font-src 'self' data:;" />
   <script id="telegram-web-app-sdk" src="https://telegram.org/js/telegram-web-app.js?63" async></script>
-  <script src="web/js/telegram-launch-context.js?v=2"></script>
+  <script src="web/js/telegram-launch-context.js?v=3"></script>
   <script>
     (() => {
       try {
@@ -137,7 +137,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.7be519687b.css" />
+  <link rel="stylesheet" href="web/dist/app.44cb4e738e.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -194,6 +194,71 @@
   </div>
 
   <main class="menu-container hidden" id="menu-container">
+    <!-- build:catalog -->
+    <section class="catalog" id="main-catalog" hidden>
+    <div class="catalog-top" role="banner">
+      <a class="catalog-brand" href="./" aria-label="Библейские игры, главная">
+        <img src="web/assets/pwa/icon-192.png" alt="" width="44" height="44">
+        <span>Библейские игры</span>
+      </a>
+      <div class="catalog-tools">
+        <button type="button" class="catalog-tool" id="open-favorites" aria-label="Избранное">
+          <img class="catalog-system-icon" src="web/assets/icons/menu-system/favorites.webp" alt=""><span class="catalog-tool-label">Избранное</span>
+        </button>
+        <button type="button" class="catalog-tool" id="open-settings" aria-label="Настройки">
+          <img class="catalog-system-icon" src="web/assets/icons/menu-system/settings.webp" alt=""><span class="catalog-tool-label">Настройки</span>
+        </button>
+      </div>
+    </div>
+    <div class="catalog-heading">
+      <h1>Во что сыграем?</h1>
+      <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
+        <img class="catalog-system-icon" src="web/assets/icons/menu-system/stars.webp" alt="">
+        <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
+      </div>
+    </div>
+    <section class="catalog-feature" id="catalog-feature" aria-label="Игры на витрине" aria-roledescription="карусель">
+      <div class="catalog-promo-viewport"></div>
+      <div class="catalog-promo-controls">
+        <button type="button" data-carousel="previous" aria-label="Предыдущая игра">‹</button>
+        <span data-promo-index aria-hidden="true"></span>
+        <button type="button" data-carousel="next" aria-label="Следующая игра">›</button>
+        <button type="button" data-carousel="pause" aria-label="Пауза смены игр">Ⅱ</button>
+      </div>
+    </section>
+    <div class="catalog-resume" id="catalog-resume" hidden></div>
+    <section id="catalog-recent" class="catalog-quick" hidden aria-label="Недавние игры"></section>
+    <section class="catalog-favorites" id="catalog-favorites" aria-labelledby="catalog-favorites-title" hidden>
+      <h2 id="catalog-favorites-title">Избранное</h2>
+      <div id="favorite-games"></div>
+    </section>
+    <section class="catalog-library" aria-label="Список игр" id="catalog-library">
+      <div class="catalog-find">
+        <label class="catalog-search"><img class="catalog-system-icon" src="web/assets/icons/menu-system/search.webp" alt=""><input id="catalog-query" type="search" placeholder="Найти игру" aria-label="Найти игру" aria-controls="catalog-games" maxlength="60" autocomplete="off"></label>
+        <nav id="catalog-filters" class="catalog-filters" data-current="all" aria-label="Категории игр">
+          <button type="button" data-filter="all" aria-pressed="true">Все игры</button>
+          <button type="button" data-filter="company" aria-pressed="false">Для компании</button>
+          <button type="button" data-filter="solo" aria-pressed="false">Одиночные</button>
+        </nav>
+      </div>
+      <div id="catalog-games" class="catalog-collections"></div>
+    </section>
+    <section class="catalog-system home-dashboard" aria-label="Сервисы приложения">
+      <div id="catalog-progress" class="catalog-progress">
+        <img class="catalog-system-icon" src="web/assets/icons/menu-system/progress.webp" alt="">
+        <span>Ваш прогресс</span>
+        <span id="catalog-progress-summary"></span>
+      </div>
+      <div class="catalog-system-quick" id="catalog-system-quick"></div>
+      <button class="catalog-more" type="button" id="open-more" aria-haspopup="dialog">
+        <img class="catalog-system-icon" src="web/assets/icons/menu-system/settings.webp" alt="">
+        <span><strong>Ещё</strong><small>Правила, расписание, профиль и установка</small></span>
+        <b aria-hidden="true">›</b>
+      </button>
+    </section>
+    <p id="catalog-status" class="catalog-sr" role="status" aria-live="polite"></p>
+    </section>
+  <!-- /build:catalog -->
     <section class="menu-section">
       <div class="menu-section-title">Игры для компании</div>
       <div class="menu-grid" id="company-games"></div>
@@ -224,10 +289,75 @@
   </section>
 
   <main id="game-container" aria-live="polite"></main>
+  <!-- build:catalog-dialogs -->
+  <dialog class="catalog-dialog" id="settings-dialog" aria-labelledby="settings-title">
+    <div class="catalog-dialog-head">
+      <h2 id="settings-title">Настройки</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть настройки">×</button></form>
+    </div>
+    <div class="catalog-setting-row">
+      <button class="catalog-system-action" id="catalog-theme" type="button" aria-pressed="false"><img class="catalog-system-icon" src="web/assets/icons/menu-system/theme.webp" alt=""><span>Тёмная тема</span></button>
+    </div>
+    <form id="display-settings">
+      <fieldset>
+        <legend>Качество графики</legend>
+        <div class="catalog-options">
+          <label><input type="radio" name="graphics" value="low"><span>Минимальное</span></label>
+          <label><input type="radio" name="graphics" value="normal"><span>Обычное</span></label>
+          <label><input type="radio" name="graphics" value="high"><span>Высокое</span></label>
+        </div>
+        <p id="graphics-description"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Анимации</legend>
+        <div class="catalog-options">
+          <label><input type="radio" name="animations" value="low"><span>Минимальные</span></label>
+          <label><input type="radio" name="animations" value="normal"><span>Обычные</span></label>
+          <label><input type="radio" name="animations" value="high"><span>Все эффекты</span></label>
+        </div>
+        <p id="motion-description"></p>
+      </fieldset>
+    </form>
+    <fieldset id="catalog-home-settings">
+      <legend>Блоки меню</legend>
+      <label><input type="checkbox" data-home-section="continue"> Продолжить игру</label>
+      <label><input type="checkbox" data-home-section="recent"> Недавние игры</label>
+      <label><input type="checkbox" data-home-section="progress"> Ваш прогресс</label>
+    </fieldset>
+    <button type="button" class="catalog-light-preset" id="display-light-preset">Включить облегчённый режим</button>
+    <form method="dialog"><button class="catalog-dialog-done">Готово</button></form>
+  </dialog>
+  <dialog class="catalog-dialog" id="favorites-dialog" aria-labelledby="favorites-title">
+    <div class="catalog-dialog-head">
+      <h2 id="favorites-title">Избранное</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть избранное">×</button></form>
+    </div>
+    <div id="favorites-dialog-games" class="catalog-games"></div>
+  </dialog>
+  <dialog class="catalog-dialog" id="join-dialog" aria-labelledby="join-title">
+    <div class="catalog-dialog-head"><h2 id="join-title">Подключиться к комнате</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть">×</button></form>
+    </div>
+    <form class="catalog-join" id="catalog-join-form">
+      <label>Игра <select id="catalog-join-game"></select></label>
+      <label>Код или ссылка из QR <input id="catalog-join-code" required maxlength="300" autocomplete="off" spellcheck="false"></label>
+      <p id="catalog-join-error" role="status"></p>
+      <button type="submit" class="catalog-dialog-done">Подключиться</button>
+      <button type="button" class="catalog-light-preset" id="catalog-scan" hidden>Сканировать QR камерой Telegram</button>
+    </form>
+  </dialog>
+  <dialog class="catalog-dialog" id="donate-dialog" aria-labelledby="donate-title">
+    <div class="catalog-dialog-head"><h2 id="donate-title">Поддержать проект</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть">×</button></form>
+    </div>
+    <img class="catalog-donate-art" src="web/assets/support-project.webp" alt="" loading="lazy">
+    <div class="catalog-system-list" id="donate-dialog-links"></div>
+  </dialog>
+  <!-- /build:catalog-dialogs -->
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.55d21dc074.js","en":"web/dist/app.en.02cc09b8f9.js","de":"web/dist/app.de.c34981c724.js","es":"web/dist/app.es.21a391605d.js"}</script>
+  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.429a86377a.js","en":"web/dist/app.en.c1e0228023.js","de":"web/dist/app.de.5d07bf3af7.js","es":"web/dist/app.es.24791ef8dd.js"}</script>
   <script src="web/i18n/bootstrap.js" defer></script>
   <!-- /build:js -->
 </body>

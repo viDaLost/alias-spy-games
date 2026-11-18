@@ -31,9 +31,12 @@ function startBibleSketchGame() {
   const telegramUser = tg?.initDataUnsafe?.user || {};
   const defaultName = String(telegramUser.first_name || telegramUser.username || 'Игрок').trim() || 'Игрок';
   const guestId = getOrCreateGuestId();
+  const previewInvite = window.FullPreviewMenu && window.RoomInvite?.peek();
+  const inviteCode = previewInvite?.game === 'bible-sketch' ? previewInvite.room : '';
 
   let state = null;
   let roomId = localStorage.getItem(LS.roomId) || '';
+  if (inviteCode && roomId !== inviteCode) roomId = '';
   let playerName = localStorage.getItem(LS.playerName) || defaultName;
   let sessionToken = '';
   let socket = null;
@@ -361,7 +364,7 @@ function startBibleSketchGame() {
         </section>
         <div class="bsk-home-grid">
           <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Создать комнату</h3><label class="bsk-field"><span>Ваше имя</span><input id="bsk-player-name" class="bsk-input" maxlength="32" value="${attr(playerName)}"></label><div class="bsk-category-grid">${categoryCards}</div><p class="bsk-note">Слово в одной комнате не повторяется, пока не будут использованы все слова выбранной категории. После этого колода начинается заново.</p><button type="button" class="bsk-primary" data-action="create-room" style="width:100%;margin-top:10px">Создать лобби</button></section>
-          <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Войти по коду</h3><label class="bsk-field"><span>Код комнаты</span><input id="bsk-room-code" class="bsk-input" maxlength="10" placeholder="ABC123" autocapitalize="characters"></label><button type="button" class="bsk-secondary" data-action="join-room" style="width:100%">Войти в комнату</button><p class="bsk-note">Для игры через Telegram используется ваша проверенная сессия. В обычном браузере доступен гостевой режим.</p></section>
+          <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Войти по коду</h3><label class="bsk-field"><span>Код комнаты</span><input id="bsk-room-code" class="bsk-input" maxlength="10" placeholder="ABC123" value="${attr(inviteCode)}" autocapitalize="characters"></label><button type="button" class="bsk-secondary" data-action="join-room" style="width:100%">Войти в комнату</button><p class="bsk-note">Для игры через Telegram используется ваша проверенная сессия. В обычном браузере доступен гостевой режим.</p></section>
         </div>
       </div>`;
   }
@@ -606,7 +609,7 @@ function startBibleSketchGame() {
     const canvas = document.getElementById('bsk-canvas');
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = window.GameDisplay?.pixelRatio() ?? Math.min(2, window.devicePixelRatio || 1);
     const width = Math.max(300, Math.round(rect.width * dpr));
     const height = Math.max(180, Math.round(rect.height * dpr));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
@@ -742,6 +745,9 @@ function startBibleSketchGame() {
 
   async function shareRoom() {
     if (!roomId) return;
+    if (window.FullPreviewMenu && window.RoomInvite?.openQr) {
+      return window.RoomInvite.openQr('bible-sketch', roomId, 'Пригласить в «Библейский художник»');
+    }
     const text = `Библейский художник · код комнаты ${roomId}`;
     if (navigator.share) {
       try { await navigator.share({ title: 'Библейский художник', text }); return; } catch {}

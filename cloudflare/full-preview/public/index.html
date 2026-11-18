@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ru" data-full-preview>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eaf3ff">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Библейские игры для компании и для одного игрока">
+  <title>Библейские игры</title>
+  <link rel="icon" href="/web/assets/pwa/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/web/assets/pwa/apple-touch-icon.png">
+  <meta name="promised-land-app" content="/land/">
+  <meta name="bible-sketch-backend" content="">
+  <meta name="spy-backend" content="">
+  <meta name="twelve-tribes-backend" content="">
+  <meta name="kingdoms-backend" content="">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' wss: blob:; frame-src 'self'; font-src 'self'; media-src 'self' blob:">
+  <script src="/display-preferences.js"></script>
+  <link rel="stylesheet" href="/web/styles/full-games.css?v=3">
+  <link rel="stylesheet" href="/catalog.css?v=3">
+  <link rel="stylesheet" href="/display-preferences.css">
+  <link rel="stylesheet" href="/catalog-system.css?v=2">
+  <script src="/game-wallet.js?v=1" defer></script>
+  <script src="/catalog-carousel.js?v=1" defer></script>
+  <script src="/catalog-system.js?v=2" defer></script>
+  <script src="/catalog.js?v=3" defer></script>
+  <script src="/full-runtime.js?v=4" defer></script>
+  <script src="/web/js/home-parallax-v1.js?v=21" defer></script>
+  <script src="/web/js/sabbath-access.js" defer></script>
+</head>
+<body data-reopening-preview>
+  <main class="catalog" id="menu-container">
+    <div class="catalog-top" role="banner">
+      <a class="catalog-brand" href="/" aria-label="Библейские игры, главная">
+        <img src="/web/assets/pwa/icon-192.png" alt="" width="44" height="44">
+        <span>Библейские игры</span>
+      </a>
+      <div class="catalog-tools">
+        <button type="button" class="catalog-tool" id="open-favorites" aria-label="Избранное">
+          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/favorites.webp" alt=""><span class="catalog-tool-label">Избранное</span>
+        </button>
+        <button type="button" class="catalog-tool" id="open-settings" aria-label="Настройки">
+          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/settings.webp" alt=""><span class="catalog-tool-label">Настройки</span>
+        </button>
+      </div>
+    </div>
+    <div class="catalog-heading">
+      <h1>Во что сыграем?</h1>
+      <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
+        <img class="catalog-system-icon" src="/web/assets/icons/menu-system/stars.webp" alt="">
+        <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
+      </div>
+    </div>
+    <section class="catalog-feature" id="catalog-feature" aria-label="Игры на витрине" aria-roledescription="карусель">
+      <div class="catalog-promo-viewport"></div>
+      <div class="catalog-promo-controls">
+        <button type="button" data-carousel="previous" aria-label="Предыдущая игра">‹</button>
+        <span data-promo-index aria-hidden="true"></span>
+        <button type="button" data-carousel="next" aria-label="Следующая игра">›</button>
+        <button type="button" data-carousel="pause" aria-label="Пауза смены игр">Ⅱ</button>
+      </div>
+    </section>
+    <div class="catalog-resume" id="catalog-resume" hidden></div>
+    <section id="catalog-recent" class="catalog-quick" hidden aria-label="Недавние игры"></section>
+    <section class="catalog-favorites" id="catalog-favorites" aria-labelledby="catalog-favorites-title" hidden>
+      <h2 id="catalog-favorites-title">Избранное</h2>
+      <div id="favorite-games"></div>
+    </section>
+    <section class="catalog-library" aria-label="Список игр" id="catalog-library">
+      <div class="catalog-find">
+        <label class="catalog-search"><img class="catalog-system-icon" src="/web/assets/icons/menu-system/search.webp" alt=""><input id="catalog-query" type="search" placeholder="Найти игру" aria-label="Найти игру" aria-controls="catalog-games" maxlength="60" autocomplete="off"></label>
+        <nav id="catalog-filters" class="catalog-filters" data-current="all" aria-label="Категории игр">
+          <button type="button" data-filter="all" aria-pressed="true">Все игры</button>
+          <button type="button" data-filter="company" aria-pressed="false">Для компании</button>
+          <button type="button" data-filter="solo" aria-pressed="false">Одиночные</button>
+        </nav>
+      </div>
+      <div id="catalog-games" class="catalog-collections"></div>
+    </section>
+    <section class="catalog-system home-dashboard" aria-label="Сервисы приложения">
+      <div id="catalog-progress" class="catalog-progress">
+        <img class="catalog-system-icon" src="/web/assets/icons/menu-system/progress.webp" alt="">
+        <span>Ваш прогресс</span>
+        <span id="catalog-progress-summary"></span>
+      </div>
+      <div class="catalog-system-quick" id="catalog-system-quick"></div>
+      <button class="catalog-more" type="button" id="open-more" aria-haspopup="dialog">
+        <img class="catalog-system-icon" src="/web/assets/icons/menu-system/settings.webp" alt="">
+        <span><strong>Ещё</strong><small>Правила, расписание, профиль и установка</small></span>
+        <b aria-hidden="true">›</b>
+      </button>
+    </section>
+    <p id="catalog-status" class="catalog-sr" role="status" aria-live="polite"></p>
+  </main>
+  <main id="game-container"></main>
+  <section id="banned-screen" class="hidden"></section>
+  <dialog class="catalog-dialog" id="more-dialog" aria-labelledby="more-title">
+    <div class="catalog-dialog-head"><h2 id="more-title">Ещё</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть">×</button></form>
+    </div>
+    <div class="catalog-system-list" id="catalog-system-list"></div>
+  </dialog>
+  <dialog class="catalog-dialog" id="join-dialog" aria-labelledby="join-title">
+    <div class="catalog-dialog-head"><h2 id="join-title">Подключиться к комнате</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть">×</button></form>
+    </div>
+    <form class="catalog-join" id="catalog-join-form">
+      <label>Игра <select id="catalog-join-game"></select></label>
+      <label>Код или ссылка из QR <input id="catalog-join-code" required maxlength="300" autocomplete="off" spellcheck="false"></label>
+      <p id="catalog-join-error" role="status"></p>
+      <button type="submit" class="catalog-dialog-done">Подключиться</button>
+      <button type="button" class="catalog-light-preset" id="catalog-scan" hidden>Сканировать QR камерой Telegram</button>
+    </form>
+  </dialog>
+  <dialog class="catalog-dialog" id="support-dialog" aria-labelledby="support-title">
+    <div class="catalog-dialog-head"><h2 id="support-title">Техподдержка</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть">×</button></form>
+    </div>
+    <div class="catalog-system-list" id="support-dialog-links"></div>
+  </dialog>
+  <dialog class="catalog-dialog" id="donate-dialog" aria-labelledby="donate-title">
+    <div class="catalog-dialog-head"><h2 id="donate-title">Поддержать проект</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть">×</button></form>
+    </div>
+    <img class="catalog-donate-art" src="/web/assets/support-project.webp" alt="" loading="lazy">
+    <div class="catalog-system-list" id="donate-dialog-links"></div>
+  </dialog>
+  <dialog class="catalog-dialog" id="settings-dialog" aria-labelledby="settings-title">
+    <div class="catalog-dialog-head">
+      <h2 id="settings-title">Настройки</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть настройки">×</button></form>
+    </div>
+    <div class="catalog-setting-row">
+      <button class="catalog-system-action" id="catalog-theme" type="button" aria-pressed="false"><img class="catalog-system-icon" src="/web/assets/icons/menu-system/theme.webp" alt=""><span>Тёмная тема</span></button>
+    </div>
+    <form id="display-settings">
+      <fieldset>
+        <legend>Качество графики</legend>
+        <div class="catalog-options">
+          <label><input type="radio" name="graphics" value="low"><span>Минимальное</span></label>
+          <label><input type="radio" name="graphics" value="normal"><span>Обычное</span></label>
+          <label><input type="radio" name="graphics" value="high"><span>Высокое</span></label>
+        </div>
+        <p id="graphics-description"></p>
+      </fieldset>
+      <fieldset>
+        <legend>Анимации</legend>
+        <div class="catalog-options">
+          <label><input type="radio" name="animations" value="low"><span>Минимальные</span></label>
+          <label><input type="radio" name="animations" value="normal"><span>Обычные</span></label>
+          <label><input type="radio" name="animations" value="high"><span>Все эффекты</span></label>
+        </div>
+        <p id="motion-description"></p>
+      </fieldset>
+    </form>
+    <fieldset id="catalog-home-settings">
+      <legend>Блоки меню</legend>
+      <label><input type="checkbox" data-home-section="continue"> Продолжить игру</label>
+      <label><input type="checkbox" data-home-section="recent"> Недавние игры</label>
+      <label><input type="checkbox" data-home-section="progress"> Ваш прогресс</label>
+    </fieldset>
+    <button type="button" class="catalog-light-preset" id="display-light-preset">Включить облегчённый режим</button>
+    <form method="dialog"><button class="catalog-dialog-done">Готово</button></form>
+  </dialog>
+  <dialog class="catalog-dialog" id="favorites-dialog" aria-labelledby="favorites-title">
+    <div class="catalog-dialog-head">
+      <h2 id="favorites-title">Избранное</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть избранное">×</button></form>
+    </div>
+    <div id="favorites-dialog-games" class="catalog-games"></div>
+  </dialog>
+  <dialog class="catalog-dialog catalog-invitation" id="invite-dialog" aria-labelledby="invite-title">
+    <div class="catalog-dialog-head">
+      <h2 id="invite-title">Приглашение в игру</h2>
+      <form method="dialog"><button class="catalog-dialog-close" aria-label="Закрыть приглашение">×</button></form>
+    </div>
+    <p id="invite-code"></p>
+    <div id="invite-qr" class="catalog-invite-qr" aria-label="QR-код приглашения"></div>
+    <label for="invite-url">Ссылка на комнату</label>
+    <input id="invite-url" type="url" readonly>
+    <button class="catalog-dialog-done" type="button" id="copy-invite">Скопировать ссылку</button>
+    <p role="status" id="invite-feedback"></p>
+  </dialog>
+  <script id="three-js" type="application/json" data-src="/web/vendor/three.min.js?v=r128"></script>
+</body>
+</html>

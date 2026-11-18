@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = 'af6f6b42cb';
+const VERSION = '42f5213144';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -29,8 +29,8 @@ const PRECACHE = [
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.7be519687b.css',
-  'web/dist/app.55d21dc074.js',
+  'web/dist/app.44cb4e738e.css',
+  'web/dist/app.429a86377a.js',
   'web/games/alias.js',
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
@@ -71,6 +71,8 @@ const PRECACHE = [
   'web/games/moses-nile-v7/js/shaders.js',
   'web/games/moses-nile-v7/js/sound.js',
   'web/games/quartet-mobile.css',
+  'web/games/quartet-table.css',
+  'web/games/quartet-table.js',
   'web/games/quartet-v2.css',
   'web/games/quartet-v4-preview.css',
   'web/games/quartet.js',
@@ -111,6 +113,18 @@ const PRECACHE = [
   'web/assets/icons/install-ios.webp',
   'web/assets/icons/kingdoms.svg',
   'web/assets/icons/kingdoms.webp',
+  'web/assets/icons/menu-system/admin.webp',
+  'web/assets/icons/menu-system/channel.webp',
+  'web/assets/icons/menu-system/donate.webp',
+  'web/assets/icons/menu-system/favorites.webp',
+  'web/assets/icons/menu-system/progress.webp',
+  'web/assets/icons/menu-system/rules.webp',
+  'web/assets/icons/menu-system/search.webp',
+  'web/assets/icons/menu-system/settings.webp',
+  'web/assets/icons/menu-system/share.webp',
+  'web/assets/icons/menu-system/stars.webp',
+  'web/assets/icons/menu-system/support.webp',
+  'web/assets/icons/menu-system/theme.webp',
   'web/assets/icons/more.webp',
   'web/assets/icons/moses-nile.webp',
   'web/assets/icons/profile.webp',

@@ -2,11 +2,17 @@
   const GAME_KEY = 'biblical-match-three';
   const SAFETY_SYNC_INTERVAL_MS = 90_000;
   const MAX_QUEUE = 250;
+  const sharedQueuePrefix = (id) => `game_wallet_op_v1_${id}_`;
+  const sharedWallet = window.GameWallet;
   let timer = 0;
   let syncPromise = null;
   let applyingServer = false;
 
   function userId() {
+    if (sharedWallet) {
+      const id = sharedWallet.accountId();
+      return /^\d{5,20}$/.test(id) ? id : '';
+    }
     const values = [window.Telegram?.WebApp?.initDataUnsafe?.user?.id, window.__ANDROID_TELEGRAM_ID__];
     for (const value of values) {
       const id = String(value ?? '').trim();
@@ -57,6 +63,20 @@
     try { localStorage.setItem(queueKey(id), JSON.stringify(queue.slice(-MAX_QUEUE))); } catch {}
   }
 
+  function sharedQueue(id) {
+    const prefix = sharedQueuePrefix(id);
+    const items = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(prefix)) continue;
+      try {
+        const item = JSON.parse(localStorage.getItem(key));
+        if (validMutation(item)) items.push({ ...item, key });
+      } catch {}
+    }
+    return items.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
+  }
+
   function validMutation(item) {
     return item && /^bmt_[A-Za-z0-9_-]{12,80}$/.test(String(item.id || ''))
       && Number.isFinite(Number(item.delta)) && Number(item.delta) !== 0;
@@ -72,8 +92,13 @@
   function queueMutation(id, delta, reason) {
     const amount = Math.trunc(Number(delta || 0));
     if (!id || !amount) return;
+    const item = { id: mutationId(), delta: amount, reason: String(reason || '').slice(0, 96), at: Date.now() };
+    if (sharedWallet) {
+      try { localStorage.setItem(sharedQueuePrefix(id) + item.id, JSON.stringify(item)); } catch {}
+      return;
+    }
     const queue = readQueue(id);
-    queue.push({ id: mutationId(), delta: amount, reason: String(reason || '').slice(0, 96), at: Date.now() });
+    queue.push(item);
     writeQueue(id, queue);
   }
 
@@ -81,6 +106,10 @@
     const balance = Math.max(0, Math.floor(Number(value || 0)));
     applyingServer = true;
     try {
+      if (sharedWallet) {
+        sharedWallet.set(balance, 'cloud-game-wallet');
+        return;
+      }
       const progress = window.BiblicalMatchThreeProgress;
       if (progress?.setStars && progress.getStars?.() !== balance) progress.setStars(balance, 'cloudflare-admin-sync');
       else {
@@ -96,6 +125,7 @@
 
   async function api(payload) {
     const response = await window.apiRequest(payload);
+    if (sharedWallet && !response) throw new Error('Game wallet sync unavailable');
     if (response?.success === false || response?.ok === false) throw new Error(response?.error || 'BMT cloud sync failed');
     return response || {};
   }
@@ -125,6 +155,27 @@
     if (syncPromise) return syncPromise;
 
     syncPromise = (async () => {
+      if (sharedWallet) {
+        const sync = await api({ action: 'syncGameWallet', id });
+        if (!Number.isSafeInteger(sync.bmtStars) || !Number.isSafeInteger(sync.revision)) return null;
+        const legacyQueue = readQueue(id);
+        if (legacyQueue.length) {
+          for (const item of legacyQueue) localStorage.setItem(sharedQueuePrefix(id) + item.id, JSON.stringify(item));
+          writeQueue(id, []);
+        }
+        let { bmtStars: balance, revision } = sync;
+        for (const item of sharedQueue(id).slice(0, MAX_QUEUE)) {
+          const applied = await replayMutation(id, item, balance, revision);
+          balance = applied.balance;
+          revision = applied.revision;
+          if (!applied.ok) break;
+          localStorage.removeItem(item.key);
+        }
+        const queued = sharedQueue(id);
+        if (userId() === id) applyBalance(id, balance + queued.reduce((sum, item) => sum + item.delta, 0));
+        if (queued.length) schedule(1000, true);
+        return { bmtStars: balance, revision, pendingMutations: queued.length };
+      }
       const shadow = readShadow(id);
       let queue = readQueue(id);
       const sync = await api({
@@ -166,13 +217,13 @@
   function schedule(delay = 250, force = false) {
     clearTimeout(timer);
     timer = window.setTimeout(() => {
-      if ((force || gameActive()) && !document.hidden && navigator.onLine) syncNow();
+      if ((force || gameActive() || sharedWallet) && !document.hidden && navigator.onLine) syncNow();
     }, delay);
   }
 
   window.addEventListener('app:stars-changed', (event) => {
-    if (applyingServer || event?.detail?.source !== 'biblical-match-three') return;
-    if (event?.detail?.reason === 'cloudflare-admin-sync') return;
+    if (applyingServer || event?.detail?.source !== (sharedWallet ? 'game-wallet' : 'biblical-match-three')) return;
+    if (['cloudflare-admin-sync', 'cloud-game-wallet'].includes(event?.detail?.reason)) return;
     const id = userId();
     const delta = Math.trunc(Number(event?.detail?.delta || 0));
     if (id && delta) queueMutation(id, delta, event?.detail?.reason || 'match3-local-change');
@@ -181,8 +232,9 @@
     schedule(180, true);
   });
 
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && gameActive()) schedule(120); });
-  window.addEventListener('online', () => { if (gameActive()) schedule(100); });
+  if (sharedWallet) window.addEventListener('app:menu-ready', () => schedule(120));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && (gameActive() || sharedWallet)) schedule(120); });
+  window.addEventListener('online', () => { if (gameActive() || sharedWallet) schedule(100); });
   window.setInterval(() => {
     if (gameActive() && !document.hidden && navigator.onLine) syncNow();
   }, SAFETY_SYNC_INTERVAL_MS);

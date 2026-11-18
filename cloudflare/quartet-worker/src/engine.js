@@ -1,6 +1,7 @@
-import { ALL_CARD_IDS, CARD_BY_ID, CARD_TO_QUARTET, CATALOG } from './catalog.js';
+import { CARD_BY_ID, CARD_TO_QUARTET, CATALOG } from './catalog.js';
 
-export const ROOM_LIMIT = 15;
+const LEGACY_QUARTET_COUNT = 12;
+export const ROOM_LIMIT = 24;
 // Втроём и больше. Вдвоём «Квартет» вырождается: спрашивать можно только
 // одного соперника, и каждый ход — это перебор его руки, пока карта не найдётся.
 // Выбор, у кого спросить, появляется начиная с третьего игрока.
@@ -17,6 +18,7 @@ export function createRoomState(roomId, player, now = Date.now()) {
     version: 1,
     status: 'lobby',
     hostPlayerId: player.playerId,
+    requestedQuartetCount: null,
     players: [{
       playerId: player.playerId,
       name: sanitizeName(player.name),
@@ -37,6 +39,10 @@ export function createRoomState(roomId, player, now = Date.now()) {
 
 export function joinRoom(state, player, now = Date.now()) {
   const existing = state.players.find((item) => item.playerId === player.playerId);
+  const roomFull = state.status === 'lobby' && activePlayers(state).length >= ROOM_LIMIT;
+  if (roomFull && (!existing || existing.isActive === false)) {
+    throw gameError(`В комнате уже максимум ${ROOM_LIMIT} игроков`, 'ROOM_FULL');
+  }
   if (existing) {
     if (state.status === 'playing' && existing.isActive === false) {
       throw gameError('Нельзя вернуться в уже начатую партию после выхода', 'LEFT_GAME');
@@ -49,10 +55,6 @@ export function joinRoom(state, player, now = Date.now()) {
   }
 
   if (state.status !== 'lobby') throw gameError('Игра уже началась', 'GAME_STARTED');
-  if (state.players.filter((item) => item.isActive !== false).length >= ROOM_LIMIT) {
-    throw gameError(`В комнате уже максимум ${ROOM_LIMIT} игроков`, 'ROOM_FULL');
-  }
-
   state.players.push({
     playerId: player.playerId,
     name: sanitizeName(player.name),
@@ -68,8 +70,37 @@ export function joinRoom(state, player, now = Date.now()) {
   return { rejoined: false };
 }
 
+function deckSettings(state, playerCount) {
+  const min = Math.max(MIN_PLAYERS, playerCount);
+  const max = CATALOG.length;
+  const requested = state.requestedQuartetCount ?? null;
+  return {
+    min,
+    max,
+    requested,
+    count: Math.max(min, Math.min(max, requested ?? LEGACY_QUARTET_COUNT)),
+  };
+}
+
+export function setDeckSize(state, actorId, count, now = Date.now()) {
+  assertHost(state, actorId);
+  if (state.status !== 'lobby' && state.status !== 'finished') {
+    throw gameError('Размер колоды можно изменить между партиями', 'GAME_ALREADY_RUNNING');
+  }
+  const { min, max } = deckSettings(state, activePlayers(state).length);
+  if (count !== null && (!Number.isInteger(count) || count < min || count > max)) {
+    throw gameError(`Выберите от ${min} до ${max} квартетов`, 'BAD_DECK_SIZE');
+  }
+  if ((state.requestedQuartetCount ?? null) === count) return;
+  state.requestedQuartetCount = count;
+  touch(state, now);
+}
+
 export function startGame(state, actorId, now = Date.now(), rng = cryptoRandomInt) {
   assertHost(state, actorId);
+  if (state.status === 'playing') {
+    throw gameError('Партия уже идёт', 'GAME_ALREADY_RUNNING');
+  }
   const players = activePlayers(state);
   if (players.length < MIN_PLAYERS) {
     throw gameError(`Нужно минимум ${MIN_PLAYERS} игрока`, 'NOT_ENOUGH_PLAYERS');
@@ -80,7 +111,10 @@ export function startGame(state, actorId, now = Date.now(), rng = cryptoRandomIn
     player.completedQuartets = [];
   }
 
-  const deck = shuffle([...ALL_CARD_IDS], rng);
+  const { count } = deckSettings(state, players.length);
+  const quartets = shuffle([...CATALOG], rng).slice(0, count);
+  const deck = shuffle(quartets.flatMap((quartet) => quartet.cards.map((card) => card.id)), rng);
+  state.dealtQuartetCount = quartets.length;
   deck.forEach((cardId, index) => {
     players[index % players.length].hand.push(cardId);
   });
@@ -94,7 +128,7 @@ export function startGame(state, actorId, now = Date.now(), rng = cryptoRandomIn
   state.winnerIds = [];
   state.turnPlayerId = firstTurnPlayer(state)?.playerId || null;
   state.turnDeadlineMs = state.turnPlayerId ? now + TURN_TIMEOUT_MS : 0;
-  state.log = [`Игра началась · ${players.length} игроков`];
+  state.log = [`Игра началась · ${players.length} игроков · ${quartets.length} квартетов`];
   for (const entry of completedNow) {
     state.log.push(`${entry.player.name} сразу собрал «${entry.quartet.name}»`);
   }
@@ -112,6 +146,7 @@ export function askCard(state, actorId, targetId, cardId, now = Date.now()) {
   const target = getActivePlayer(state, targetId);
   if (!asker || !target) throw gameError('Игрок недоступен', 'PLAYER_NOT_FOUND');
   if (actorId === targetId) throw gameError('Нельзя спрашивать карту у себя', 'SELF_TARGET');
+  if (target.hand.length === 0) throw gameError('У игрока больше нет карт', 'EMPTY_TARGET');
 
   const card = CARD_BY_ID.get(cardId);
   const quartet = CARD_TO_QUARTET.get(cardId);
@@ -249,8 +284,6 @@ export function leaveRoom(state, actorId, now = Date.now()) {
 }
 
 export function restartGame(state, actorId, now = Date.now(), rng = cryptoRandomInt) {
-  assertHost(state, actorId);
-  for (const player of state.players) player.isActive = player.isActive !== false;
   return startGame(state, actorId, now, rng);
 }
 
@@ -270,6 +303,7 @@ export function buildView(state, playerId, connectedIds = new Set()) {
   const turnPlayer = state.players.find((item) => item.playerId === state.turnPlayerId);
   const score = [...players]
     .sort((a, b) => b.quartetsCount - a.quartetsCount || b.cardsCount - a.cardsCount || a.name.localeCompare(b.name, 'ru'));
+  const limits = deckSettings(state, players.filter((player) => player.isActive).length);
 
   return {
     roomId: state.roomId,
@@ -293,14 +327,17 @@ export function buildView(state, playerId, connectedIds = new Set()) {
     score,
     log: [...state.log],
     lastEvent: state.lastEvent,
-    totalQuartets: CATALOG.length,
+    totalQuartets: state.status === 'lobby' ? limits.count : state.dealtQuartetCount ?? LEGACY_QUARTET_COUNT,
+    deckSettings: limits,
+    playerLimit: ROOM_LIMIT,
+    minPlayers: MIN_PLAYERS,
   };
 }
 
 export function checkFinished(state, now = Date.now()) {
   const completed = state.players.reduce((sum, player) => sum + player.completedQuartets.length, 0);
   const cardsInHands = state.players.reduce((sum, player) => sum + player.hand.length, 0);
-  if (completed < CATALOG.length && cardsInHands > 0) return false;
+  if (completed < (state.dealtQuartetCount ?? LEGACY_QUARTET_COUNT) && cardsInHands > 0) return false;
 
   state.status = 'finished';
   state.turnPlayerId = null;
@@ -337,14 +374,14 @@ function firstTurnPlayer(state) {
 }
 
 function nextTurnPlayer(state, currentId) {
-  const players = activePlayers(state);
+  const players = state.players;
   if (!players.length) return null;
-  const currentIndex = Math.max(0, players.findIndex((item) => item.playerId === currentId));
+  const currentIndex = players.findIndex((item) => item.playerId === currentId);
   for (let step = 1; step <= players.length; step += 1) {
     const candidate = players[(currentIndex + step) % players.length];
-    if (candidate.hand.length > 0) return candidate;
+    if (candidate.isActive !== false && candidate.hand.length > 0) return candidate;
   }
-  return players[(currentIndex + 1) % players.length] || null;
+  return null;
 }
 
 function activePlayers(state) {

@@ -52,6 +52,7 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function loadStars() {
+    if (window.GameWallet) return window.GameWallet.balance();
     try {
       const n = Number(localStorage.getItem(STARS_KEY));
       return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
@@ -70,7 +71,8 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function addStars(delta) {
-    setStars(stars + delta);
+    if (window.GameWallet) stars = window.GameWallet.add(delta, "wordsearch");
+    else setStars(stars + delta);
   }
 
   function toast(msg) {
@@ -110,7 +112,7 @@ function startBibleWordSearchGame(levelsUrl) {
           <div class="ws-title">
             <div class="ws-title__name">Поиск слов</div>
             <div class="ws-title__meta">
-              <span class="ws-stars">⭐ <b id="ws-stars">${stars}</b></span>
+              <span class="ws-stars">⭐ <b id="ws-stars">${window.GameWallet?.balance() ?? stars}</b></span>
             </div>
           </div>
         </div>
@@ -592,7 +594,7 @@ function startBibleWordSearchGame(levelsUrl) {
   }
 
   function hint(level, levelState) {
-    if (stars < HINT_COST) {
+    if ((window.GameWallet?.balance() ?? stars) < HINT_COST) {
       toast(`Нужно ${HINT_COST}⭐`);
       return;
     }
@@ -601,7 +603,9 @@ function startBibleWordSearchGame(levelsUrl) {
     const remaining = level.words.map((w, index) => ({w, index})).filter(item => !found.has(item.w.text));
     if (!remaining.length) return;
 
-    addStars(-HINT_COST);
+    if (window.GameWallet) {
+      if (!window.GameWallet.spend(HINT_COST, "wordsearch-hint").ok) return;
+    } else addStars(-HINT_COST);
 
     const match = remaining[Math.floor(Math.random() * remaining.length)];
     const w = match.w;

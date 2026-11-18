@@ -24,6 +24,51 @@
     return Math.abs(aa.row - bb.row) + Math.abs(aa.col - bb.col) === 1;
   }
 
+  const excavationSizes = { coin: [2, 2], amphora: [3, 4], scroll: [4, 2], chest: [4, 3] };
+
+  function createExcavation(placements, rows, cols, mask) {
+    const cells = new Map();
+    const buried = new Set();
+    const treasures = placements.map(({ type, origin, layers }, id) => {
+      const [width, height] = excavationSizes[type];
+      const top = coordinates(origin, cols);
+      const size = width * height;
+      if (!Number.isInteger(origin) || origin < 0 || top.row + height > rows || top.col + width > cols
+        || !Number.isInteger(layers) || layers < 1 || layers > 3) throw new Error(`Invalid treasure placement: ${type}`);
+      const treasure = { id, type, origin, width, height, size, uncovered: 0 };
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const index = origin + y * cols + x;
+          if (cells.has(index) || !mask[index]) throw new Error(`Invalid treasure cell: ${index}`);
+          cells.set(index, { treasure, x, y, depth: layers });
+          buried.add(index);
+        }
+      }
+      return treasure;
+    });
+    return { cells, buried, treasures, found: 0 };
+  }
+
+  function excavate(state, hits) {
+    const changed = [];
+    const found = [];
+    for (const index of hits) {
+      if (!state.buried.has(index)) continue;
+      const cell = state.cells.get(index);
+      cell.depth -= 1;
+      changed.push(index);
+      if (cell.depth === 0) {
+        state.buried.delete(index);
+        cell.treasure.uncovered += 1;
+        if (cell.treasure.uncovered === cell.treasure.size) {
+          state.found += 1;
+          found.push(cell.treasure);
+        }
+      }
+    }
+    return { changed, found };
+  }
+
   function swap(board, a, b) {
     const next = cloneBoard(board);
     [next[a], next[b]] = [next[b], next[a]];
@@ -242,5 +287,5 @@
     return null;
   }
 
-  return { cloneBoard, coordinates, indexOf, areAdjacent, swap, findMatchGroups, findMatches, analyzeMatches, createsMatch, findMoves, findHint, createBoard, reshuffle, areaIndices, rowIndices, columnIndices, specialComboClearSet };
+  return { cloneBoard, coordinates, indexOf, areAdjacent, swap, findMatchGroups, findMatches, analyzeMatches, createsMatch, findMoves, findHint, createBoard, reshuffle, areaIndices, rowIndices, columnIndices, specialComboClearSet, createExcavation, excavate };
 });

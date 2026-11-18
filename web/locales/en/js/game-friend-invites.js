@@ -26,7 +26,7 @@
       место, которого в разметке нет, — а всё остальное берётся отсюда.
     */
     'twelve-tribes': {
-      title: 'Двенадцать колен',
+      title: 'Twelve Tribes',
       actionSelector: '.tt-friend-slot',
       roomSelector: '.tt-room-code',
       storageKey: 'tt_room_id',
@@ -35,7 +35,7 @@
     // «Царства» зовут друзей той же кнопкой лобби, что и «Двенадцать колен»,
     // и по той же причине actionSelector указывает в никуда.
     kingdoms: {
-      title: 'Царства',
+      title: 'Kingdoms',
       actionSelector: '.kd-friend-slot',
       roomSelector: '.kd-room-code',
       storageKey: 'kd_room_id',

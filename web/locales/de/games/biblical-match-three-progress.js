@@ -119,6 +119,7 @@
       if (!parsed || typeof parsed !== "object") return fallback;
       const next = defaultProgress();
       next.unlocked = Math.max(1, Number(parsed.unlocked || fallback.unlocked || 1));
+      if (Number.isSafeInteger(parsed.campaignLevel) && parsed.campaignLevel > 0) next.campaignLevel = parsed.campaignLevel;
       const ratings = parsed.levelRatings || parsed.stars || {};
       if (ratings && typeof ratings === "object") {
         for (const [id, rating] of Object.entries(ratings)) next.levelRatings[id] = Math.max(0, Math.min(3, Number(rating || 0)));
@@ -150,6 +151,7 @@
   }
 
   function getStars() {
+    if (root?.GameWallet) return root.GameWallet.balance();
     migrateLegacyStarsOnce();
     try {
       const value = Number(storage.getItem(starsKey()));
@@ -164,6 +166,7 @@
   }
 
   function setStars(value, reason = "") {
+    if (root?.GameWallet) return root.GameWallet.set(value, reason);
     const previous = getStars();
     const balance = Math.max(0, Math.floor(Number(value || 0)));
     try { storage.setItem(starsKey(), String(balance)); } catch {}
@@ -174,6 +177,7 @@
   function addStars(delta, reason = "") { return setStars(getStars() + Math.trunc(Number(delta || 0)), reason); }
 
   function spendStars(cost, reason = "") {
+    if (root?.GameWallet) return root.GameWallet.spend(cost, reason);
     const price = Math.max(0, Math.floor(Number(cost || 0)));
     const balance = getStars();
     if (balance < price) return { ok: false, balance, cost: price };

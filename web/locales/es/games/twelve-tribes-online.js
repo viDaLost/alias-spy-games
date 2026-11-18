@@ -565,7 +565,7 @@
       const code = this.view?.roomId || '';
       if (!code) return;
       if (!window.RoomInvite?.openQr) { this.say('QR-код недоступен без сети'); return; }
-      window.RoomInvite.openQr('twelve-tribes', code, 'Двенадцать колен · вход в комнату');
+      window.RoomInvite.openQr('twelve-tribes', code, 'Doce tribus · вход в комнату');
     }
 
     inviteFriends() {

@@ -29,9 +29,12 @@ function startSpyOnlineGame() {
   const telegramInitData = String(tg?.initData || '');
   const telegramUser = tg?.initDataUnsafe?.user || {};
   const defaultName = String(telegramUser.first_name || telegramUser.username || '').trim();
+  const previewInvite = window.FullPreviewMenu && window.RoomInvite?.peek();
+  const inviteCode = previewInvite?.game === 'spy' ? previewInvite.room : '';
 
   let state = null;
   let roomId = localStorage.getItem(LS.roomId) || '';
+  if (inviteCode && roomId !== inviteCode) roomId = '';
   let playerName = localStorage.getItem(LS.name) || defaultName;
   let sessionToken = '';
   let socket = null;
@@ -336,7 +339,7 @@ function startSpyOnlineGame() {
 
   function renderHome() {
     screen = 'home';
-    container.innerHTML = `\n      <div class="spy-online-wrap fade-in">\n        <h2>🌐 Spion online</h2>\n        <p class="spy-online-lead">Jeder spielt auf dem eigenen Handy. Nur du siehst deine Rolle; diskutiert im integrierten Chat.</p>\n\n        ${errorText ? `<div class="spy-online-alert">${esc(errorText)}</div>` : ''}\n\n        <label class="setup-label" for="spyOnlineName">Dein Name</label>\n        <input id="spyOnlineName" class="input input-lg" maxlength="24" placeholder="Dein Name" value="${esc(playerName)}">\n\n        <button class="menu-button" data-spy-online="create">Raum erstellen</button>\n\n        <div class="spy-online-divider"><span>oder mit Code beitreten</span></div>\n\n        <label class="setup-label" for="spyOnlineCode">Raumcode</label>\n        <input id="spyOnlineCode" class="input input-lg spy-online-code-input" maxlength="10" autocomplete="off"\n               autocapitalize="characters" spellcheck="false" placeholder="ABCDE">\n        <button class="correct-button" data-spy-online="join">Anmelden</button>\n\n        <button class="menu-button" data-spy-online="single">Auf einem Handy spielen</button>\n        <button class="back-button" data-spy-online="menu">Hauptmenü</button>\n      </div>`;
+    container.innerHTML = `\n      <div class="spy-online-wrap fade-in">\n        <h2>🌐 Spion online</h2>\n        <p class="spy-online-lead">Jeder spielt auf dem eigenen Handy. Nur du siehst deine Rolle; diskutiert im integrierten Chat.</p>\n\n        ${errorText ? `<div class="spy-online-alert">${esc(errorText)}</div>` : ''}\n\n        <label class="setup-label" for="spyOnlineName">Dein Name</label>\n        <input id="spyOnlineName" class="input input-lg" maxlength="24" placeholder="Dein Name" value="${esc(playerName)}">\n\n        <button class="menu-button" data-spy-online="create">Raum erstellen</button>\n\n        <div class="spy-online-divider"><span>oder mit Code beitreten</span></div>\n\n        <label class="setup-label" for="spyOnlineCode">Raumcode</label>\n        <input id="spyOnlineCode" class="input input-lg spy-online-code-input" maxlength="10" autocomplete="off"\n               autocapitalize="characters" spellcheck="false" placeholder="ABCDE" value="${esc(inviteCode)}">\n        <button class="correct-button" data-spy-online="join">Anmelden</button>\n\n        <button class="menu-button" data-spy-online="single">Auf einem Handy spielen</button>\n        <button class="back-button" data-spy-online="menu">Hauptmenü</button>\n      </div>`;
     bindHome();
   }
 
@@ -397,7 +400,8 @@ function startSpyOnlineGame() {
         </button>
         <div class="spy-room-meta">
           <span class="spy-room-dot ${transport === 'ws' ? 'is-live' : 'is-poll'}"></span>
-          ${online} von ${state.players.length} verbunden\n        </div>\n      </div>`;
+          ${online} von ${state.players.length} verbunden\n        </div>\n        ${window.FullPreviewMenu ? '<button type="button" class="menu-button" data-spy-room="invite">Einladen</button>' : ''}
+      </div>`;
   }
 
   function renderLobby() {
@@ -634,6 +638,7 @@ function startSpyOnlineGame() {
 
   async function onRoomAction(action, node) {
     if (action === 'copy') return copyRoomCode();
+    if (action === 'invite') return window.RoomInvite?.openQr?.('spy', roomId, 'Пригласить в «Соглядатай»');
     if (action === 'flip') { roleFaceUp = !roleFaceUp; return renderRoom(); }
     if (action === 'roleSeen') return send('roleSeen');
     if (action === 'start') return send('startGame');

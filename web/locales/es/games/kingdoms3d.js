@@ -569,7 +569,8 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     const forced = options.quality || window.KD3D_QUALITY;
     const quality = forced || detectQuality(renderer);
-    let pixelRatio = Math.min(window.devicePixelRatio || 1, quality === 'high' ? 2 : quality === 'mid' ? 1.6 : 1.25);
+    const maxPixelRatio = quality === 'high' ? 2 : quality === 'mid' ? 1.6 : 1.25;
+    let pixelRatio = window.GameDisplay?.pixelRatio(maxPixelRatio) ?? Math.min(window.devicePixelRatio || 1, maxPixelRatio);
     renderer.setPixelRatio(pixelRatio);
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;

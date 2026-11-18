@@ -4,15 +4,14 @@ function startSacredWordGame(wordsUrl) {
   const container = document.getElementById("game-container");
   if (!container) return;
 
-  const lowPowerDevice = Boolean(navigator.connection?.saveData
+  const lowPowerDevice = Boolean(window.GameDisplay?.lowGraphics() || navigator.connection?.saveData
     || (Number(navigator.hardwareConcurrency || 0) > 0 && Number(navigator.hardwareConcurrency) <= 4)
     || (Number(navigator.deviceMemory || 0) > 0 && Number(navigator.deviceMemory) <= 3));
   const frameInterval = lowPowerDevice ? 1000 / 30 : 1000 / 60;
 
-  if (typeof THREE === 'undefined') {
-    container.innerHTML = `<div style="padding: 20px; color: red;">Fehler: Bibliothek Three.js ist nicht geladen!</div>`;
-    return;
-  }
+  let flatLamps = typeof THREE === 'undefined' || window.GameDisplay?.lowGraphics();
+  const stillLamps = Boolean(window.GameDisplay?.reducedMotion());
+  const extinctOrder = [0, 6, 1, 5, 2, 4, 3];
 
   const tgUser = (typeof getTelegramUser === "function") ? getTelegramUser() : { id: "anon" };
   // Используем v4, чтобы синхронизация с вашим app.js работала корректно
@@ -30,6 +29,7 @@ function startSacredWordGame(wordsUrl) {
   // --- THREE.JS ПЕРЕМЕННЫЕ ---
   let threeCanvas = null;
   let scene, camera, renderer, menorahGroup;
+  let texCore, texHalo, texSmoke, smokeMat;
   let flames3D = [];
   let smokeParticles = [];
   let animationFrameId;
@@ -51,6 +51,9 @@ function startSacredWordGame(wordsUrl) {
       .sw-card { padding: 16px; }
       .sw-grid { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; gap: 16px; align-items: center; }
       .sw-lamp-card { background: radial-gradient(circle at center, #1e293b, #020617); border-radius: 20px; padding: 0; min-height: 290px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+      .sw-flat-lamps { display: flex; align-items: end; padding: 10px; gap: 4px; width: min(93%, 320px); }
+      .sw-flat-lamps img { width: calc((100% - 24px) / 7); aspect-ratio: 1; object-fit: contain; }
+      .sw-flat-lamps img.is-out { opacity: .28; filter: grayscale(1); }
       .sw-info { display: grid; gap: 12px; }
       .sw-pillrow { display: flex; flex-wrap: wrap; gap: 8px; }
       .sw-pill { background: #dbeafe; color: #1e293b; border-radius: 999px; padding: 8px 12px; font-size: .94rem; font-weight: 700; }
@@ -128,9 +131,14 @@ function startSacredWordGame(wordsUrl) {
       powerPreference: lowPowerDevice ? 'low-power' : 'default',
     });
     renderer.setSize(260, 260);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPowerDevice ? 1 : 2));
+    const maxPixelRatio = lowPowerDevice ? 1 : 2;
+    renderer.setPixelRatio(window.GameDisplay?.pixelRatio(maxPixelRatio) ?? Math.min(window.devicePixelRatio || 1, maxPixelRatio));
     renderer.setClearColor(0x000000, 0);
     renderer.shadowMap.enabled = !lowPowerDevice;
+    texCore = createRadialGradientTexture('rgba(255, 255, 255, 1)', 'rgba(255, 220, 100, 0)');
+    texHalo = createRadialGradientTexture('rgba(255, 120, 0, 0.8)', 'rgba(255, 50, 0, 0)');
+    texSmoke = createRadialGradientTexture('rgba(200, 200, 200, 0.6)', 'rgba(100, 100, 100, 0)');
+    smokeMat = new THREE.SpriteMaterial({ map: texSmoke, transparent: true });
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
     if ('toneMapping' in renderer) renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -220,14 +228,11 @@ function startSacredWordGame(wordsUrl) {
     scene.add(floor);
 
     scene.add(menorahGroup);
-    document.addEventListener("visibilitychange", handleThreeVisibility);
-    animateThreeJS();
+    if (!stillLamps) {
+      document.addEventListener("visibilitychange", handleThreeVisibility);
+      animateThreeJS();
+    }
   }
-
-  const texCore = createRadialGradientTexture('rgba(255, 255, 255, 1)', 'rgba(255, 220, 100, 0)');
-  const texHalo = createRadialGradientTexture('rgba(255, 120, 0, 0.8)', 'rgba(255, 50, 0, 0)');
-  const texSmoke = createRadialGradientTexture('rgba(200, 200, 200, 0.6)', 'rgba(100, 100, 100, 0)');
-  const smokeMat = new THREE.SpriteMaterial({ map: texSmoke, transparent: true });
 
   function addCandleCupAndFire(x, y, parentGroup) {
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xffc24d, emissive: 0x3a1f00, emissiveIntensity: 0.14, metalness: 0.96, roughness: 0.18 });
@@ -367,7 +372,6 @@ function startSacredWordGame(wordsUrl) {
     if (!flames3D.length) return;
     
     const sortedFlames = [...flames3D].sort((a,b) => a.xPosition - b.xPosition);
-    const extinctOrder = [0, 6, 1, 5, 2, 4, 3]; 
     
     for (let idx = 0; idx < 7; idx++) {
       const extinguishErrorLevel = extinctOrder.indexOf(idx) + 1; 
@@ -382,7 +386,7 @@ function startSacredWordGame(wordsUrl) {
          flame.light.intensity = 0;
          const worldPos = new THREE.Vector3();
          flame.group.getWorldPosition(worldPos);
-         spawnSmokeCloud(worldPos.x, worldPos.y, worldPos.z);
+         if (!stillLamps) spawnSmokeCloud(worldPos.x, worldPos.y, worldPos.z);
       } else if (!shouldBeOff && !flame.active) {
          flame.active = true;
          flame.core.visible = true;
@@ -524,7 +528,7 @@ function startSacredWordGame(wordsUrl) {
     `;
 
     const lampContainer = document.getElementById("sw-lamp-container");
-    if (!threeCanvas) {
+    if (!threeCanvas && !flatLamps) {
       // Единственная игра с WebGL: контекста может не оказаться вовсе — их у браузера
       // ограниченное число, а на слабой машине или при отключённом ускорении его не
       // дадут совсем. Раньше это роняло весь экран игры; теперь она просто идёт без
@@ -534,13 +538,25 @@ function startSacredWordGame(wordsUrl) {
         initThreeJS();
       } catch (error) {
         console.warn("Sacred Word: konnte 3 nicht startenD-Szene; Spiel läuft ohne sie:", error);
+        renderer?.dispose();
+        renderer?.forceContextLoss();
+        renderer = null;
+        scene = null;
         threeCanvas = null;
+        flatLamps = true;
       }
     }
     if (threeCanvas && lampContainer) {
       lampContainer.appendChild(threeCanvas);
     }
-    syncFlamesWithState();
+    if (flatLamps && lampContainer) {
+      lampContainer.innerHTML = `<div class="sw-flat-lamps" role="img" aria-label="Горит светильников: ${MAX_ERRORS - state.errors} von ${MAX_ERRORS}">
+        ${extinctOrder.map((_, index) => `<img class="${state.errors > extinctOrder.indexOf(index) ? 'is-out' : ''}" src="web/assets/biblical-match-three/icons-v17/candle.webp" alt="">`).join('')}
+      </div>`;
+    } else {
+      syncFlamesWithState();
+      if (stillLamps && renderer) renderer.render(scene, camera);
+    }
 
     container.querySelectorAll(".sw-kb-key").forEach(btn => {
       btn.addEventListener("click", () => pressLetter(btn.dataset.letter));
@@ -590,6 +606,8 @@ function startSacredWordGame(wordsUrl) {
         }
       }
     });
+    [texCore, texHalo, texSmoke].filter(Boolean).forEach((texture) => textures.add(texture));
+    if (smokeMat) materials.add(smokeMat);
     textures.forEach((texture) => texture.dispose());
     geometries.forEach((geometry) => geometry.dispose());
     materials.forEach((material) => material.dispose());

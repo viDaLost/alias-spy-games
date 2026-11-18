@@ -19,9 +19,10 @@
       const translated=t(node.nodeValue);if(translated!==node.nodeValue)node.nodeValue=translated;
     }
     document.title=t(document.title);
-    for(const node of document.querySelectorAll('[aria-label],meta[name="description"],meta[name="application-name"],meta[name="apple-mobile-web-app-title"]')) {
-      const attr=node.tagName==='META'?'content':'aria-label';
-      node.setAttribute(attr,t(node.getAttribute(attr)));
+    const localizedAttributes = ['aria-label', 'aria-roledescription', 'placeholder'];
+    for(const node of document.querySelectorAll('[aria-label],[aria-roledescription],[placeholder],meta[name="description"],meta[name="application-name"],meta[name="apple-mobile-web-app-title"]')) {
+      const attrs=node.tagName==='META'?['content']:localizedAttributes;
+      for(const attr of attrs) if(node.hasAttribute(attr)) node.setAttribute(attr,t(node.getAttribute(attr)));
     }
     document.documentElement.dataset.languageReady=lang;
   };

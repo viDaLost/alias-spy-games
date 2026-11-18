@@ -545,6 +545,11 @@ export class PromisedLandRoom extends DurableObject {
 }
 
 async function authenticatedPlayer(body, env) {
+  if (env.PREVIEW_GUESTS === 'true') {
+    const guestId = String(body?.playerId || '');
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(guestId)) throw httpError(401, 'Не удалось определить гостя');
+    return { playerId: `guest:${guestId}`, name: sanitizeName(body?.name) };
+  }
   const access = await env.APP_ACCESS.authorize(body.appAccessProof || {});
   if (!access.allowed || !access.userId) throw httpError(403, 'Библейские игры временно заблокированы');
   return { playerId: `tg:${access.userId}`, name: sanitizeName(body?.name) };

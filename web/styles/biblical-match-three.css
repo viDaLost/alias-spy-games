@@ -2105,3 +2105,167 @@ body[data-current-game="biblical-match-three"] .bmt-board.has-relic-gate .bmt-ti
 body[data-current-game="biblical-match-three"] .bmt-goals-v2[data-count="4"] {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
+
+/* Раскопки привязаны к клеткам поля, по которым двигаются фишки. */
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  body[data-current-game="biblical-match-three"] .bmt-tile:not(.is-dropping, .is-swapping, .is-swap-back, .is-clearing) {
+    will-change: auto;
+  }
+}
+
+.bmt-dig-guide {
+  margin: 5px 0 8px;
+  padding: 7px 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #c5d4ee;
+  border-radius: 13px;
+  background: #f4f7ff;
+  color: #263a66;
+}
+.bmt-dig-instruction { display: grid; gap: 2px; min-width: 0; }
+.bmt-dig-instruction strong { font-size: 13px; }
+.bmt-dig-instruction small { font-size: 10px; line-height: 1.2; color: #425277; }
+.bmt-dig-found { display: grid; flex: 0 0 auto; justify-items: center; gap: 3px; }
+.bmt-dig-found-title { color: #34446a; font-size: 10px; line-height: 1.15; }
+.bmt-dig-inventory { display: flex; align-items: center; gap: 4px; }
+.bmt-dig-item {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 33px;
+  padding: 2px 0 0;
+  color: #3b4b72;
+  font: 800 10px/1 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.bmt-dig-item small { font-size: inherit; }
+.bmt-dig-slot {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 30px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px dashed #9eafd0;
+  background: #ebf1fd;
+}
+.bmt-dig-slot img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: auto;
+  object-fit: contain;
+  visibility: hidden;
+}
+.bmt-dig-item.is-found { color: #215b41; }
+.bmt-dig-item.is-found:not(.is-arriving) .bmt-dig-slot { border: 1px solid #a0c9b1; background: #eef9f1; }
+.bmt-dig-item.is-found:not(.is-arriving) img { visibility: visible; animation: bmt-dig-land .27s ease-out; }
+@keyframes bmt-dig-land { 50% { transform: scale(1.14); } }
+.bmt-dig-flight {
+  position: fixed;
+  z-index: 1090;
+  object-fit: contain;
+  visibility: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 8px #61401340);
+}
+.bmt-tile[data-dig-depth] .bmt-piece-wrap { position: relative; z-index: 2; }
+.bmt-dig-marker {
+  position: absolute;
+  z-index: 1;
+  inset: 3px;
+  pointer-events: none;
+  border: 1px solid #987554b0;
+  border-radius: 7px;
+  background: linear-gradient(150deg, #d3a97548, #99704442);
+  box-shadow: inset 0 1px #fff4db7a, inset 0 -2px #95674148;
+}
+.bmt-tile[data-dig-depth="2"] .bmt-dig-marker,
+.bmt-tile[data-dig-depth="3"] .bmt-dig-marker {
+  background: linear-gradient(145deg, #bb956364, #8a603960);
+}
+.bmt-dig-depth {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  min-width: 11px;
+  border-radius: 3px 0 5px 0;
+  background: #f5ede2;
+  color: #63513b;
+  text-align: center;
+  font: 800 9px/11px system-ui, sans-serif;
+}
+.bmt-dig-depth:empty { display: none; }
+body[data-current-game="biblical-match-three"] .bmt-board.has-excavation {
+  --bmt-dig-gap: 0px;
+  gap: var(--bmt-dig-gap) !important;
+}
+.bmt-dig-fragment { position: absolute; inset: 0; display: none; overflow: hidden; pointer-events: none; }
+.bmt-tile[data-dig-depth="0"] .bmt-dig-marker {
+  inset: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: #876b53;
+  background-image: radial-gradient(circle at 15% 20%, #d3b08b43 0 1px, transparent 1.4px),
+    radial-gradient(circle at 70% 55%, #5238215c 0 .9px, transparent 1.2px);
+  background-size: 8px 7px, 9px 11px;
+  box-shadow: none;
+}
+.bmt-tile[data-dig-depth="0"] .bmt-dig-fragment {
+  display: block;
+}
+.bmt-dig-fragment::before {
+  content: "";
+  position: absolute;
+  left: var(--bmt-dig-art-x);
+  top: var(--bmt-dig-art-y);
+  width: var(--bmt-dig-art-width);
+  height: var(--bmt-dig-art-height);
+  background-image: var(--bmt-dig-art);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(.91);
+  filter: drop-shadow(0 3px 2px #21140cdc);
+}
+.bmt-tile[data-dig-edges~="top"] { --bmt-pit-top: 9px; }
+.bmt-tile[data-dig-edges~="right"] { --bmt-pit-right: 6px; }
+.bmt-tile[data-dig-edges~="bottom"] { --bmt-pit-bottom: 5px; }
+.bmt-tile[data-dig-edges~="left"] { --bmt-pit-left: 7px; }
+.bmt-tile[data-dig-depth="0"] .bmt-dig-marker::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#24150dba, transparent) top / 100% var(--bmt-pit-top, 0px) no-repeat,
+    linear-gradient(270deg, #3923169a, transparent) right / var(--bmt-pit-right, 0px) 100% no-repeat,
+    linear-gradient(0deg, #f5d5a978, transparent) bottom / 100% var(--bmt-pit-bottom, 0px) no-repeat,
+    linear-gradient(90deg, #2b1b12ac, transparent) left / var(--bmt-pit-left, 0px) 100% no-repeat;
+}
+html[data-graphics="low"] .bmt-dig-fragment::before { filter: none; }
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-animations="low"]) .bmt-tile[data-dig-depth="0"] .bmt-dig-fragment {
+    animation: bmt-dig-uncover .32s ease-out;
+  }
+}
+@keyframes bmt-dig-uncover {
+  from { opacity: .2; clip-path: inset(50% 0 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
+.bmt-prelevel .bmt-dig-instruction small { font-size: 12px; }
+@media (max-width: 400px) {
+  .bmt-dig-item { width: 25px; }
+  .bmt-dig-slot { width: 25px; height: 24px; }
+  .bmt-dig-slot img { width: 19px; height: 19px; }
+  .bmt-dig-instruction strong { font-size: 12px; }
+}
+html[data-animations="low"] .bmt-dig-item.is-found img { animation: none; }
+html[data-graphics="low"] .bmt-dig-flight { filter: none; }
+@media (prefers-reduced-motion: reduce) {
+  .bmt-dig-item.is-found img { animation: none; }
+}
