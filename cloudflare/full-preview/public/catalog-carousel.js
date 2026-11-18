@@ -14,6 +14,18 @@
     let cleanup;
     let pointer;
     let suppressClickUntil = 0;
+    let autoplayTimer;
+
+    function restartAutoplay() {
+      clearInterval(autoplayTimer);
+      autoplayTimer = null;
+      if (order.length < 2) return;
+      autoplayTimer = setInterval(() => {
+        if (document.hidden || pointer || document.body.dataset.currentGame || !feature.getClientRects().length) return;
+        index = (index + 1) % order.length;
+        draw(1);
+      }, 3000);
+    }
 
     function draw(direction = 0) {
       const game = order[index];
@@ -61,6 +73,7 @@
       if (!event.isPrimary || event.button !== 0 || order.length < 2) return;
       suppressClickUntil = 0;
       pointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      restartAutoplay();
     });
     window.addEventListener('pointerup', (event) => {
       if (pointer?.id !== event.pointerId) return;
@@ -72,6 +85,7 @@
       suppressClickUntil = performance.now() + 350;
       index = (index + direction + order.length) % order.length;
       draw(direction);
+      restartAutoplay();
     });
     window.addEventListener('pointercancel', (event) => {
       if (pointer?.id === event.pointerId) pointer = null;
@@ -79,11 +93,13 @@
     window.addEventListener('game-display:change', () => draw());
 
     draw();
+    restartAutoplay();
     return { updateGames(items) {
       const key = order[index]?.key;
       order = sort(items);
       index = Math.max(0, order.findIndex((game) => game.key === key));
       draw();
+      restartAutoplay();
     } };
   }
 
