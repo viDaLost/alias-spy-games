@@ -156,7 +156,7 @@ try {
   await delegatedPage.waitForFunction(() => document.documentElement.classList.contains('app-ui-ready') && window.AppAccess?.allowed());
   assert.equal(await delegatedPage.evaluate(() => document.body.dataset.currentGame || ''), '');
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
-  await delegatedPage.locator('#catalog-system-quick [data-service="social"]').waitFor();
+  await delegatedPage.locator('#catalog-account-actions [data-service="social"]').waitFor();
   assert.equal(await delegatedPage.locator('.social-sheet-overlay.is-open').count(), 0);
   await delegatedContext.close();
 
@@ -172,7 +172,7 @@ try {
   assert.equal(await catalog.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
   await catalog.locator('#catalog-games [data-favorite="bible-wow"]').click();
   await catalog.locator('#favorite-games [data-launch="bible-wow"]').waitFor();
-  await catalog.locator('#catalog-system-quick [data-service="social"]').click();
+  await catalog.locator('#catalog-account-actions [data-service="social"]').click();
   await catalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
   await catalog.locator('[data-social-tab="friends"]').click();
   await catalog.waitForFunction(() => document.querySelector('[data-social-tab="friends"]')?.getAttribute('aria-selected') === 'true');
@@ -194,7 +194,7 @@ try {
   const webCatalog = await webCatalogContext.newPage();
   await webCatalog.goto(`${base}/?menu=catalog`);
   await webCatalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '55');
-  await webCatalog.locator('#catalog-system-quick [data-service="social"]').click();
+  await webCatalog.locator('#catalog-account-actions [data-service="social"]').click();
   await webCatalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
   await webCatalogContext.close();
 

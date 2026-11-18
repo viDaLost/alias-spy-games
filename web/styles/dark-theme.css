@@ -2815,17 +2815,12 @@ html.theme-dark .catalog-hero-play {
 html.theme-dark .catalog-hero-play:hover {
   background: #3f310b !important;
 }
-html.theme-dark .catalog-resume a,
 html.theme-dark .catalog-pin {
   color: #818fd3 !important;
   background: #071428 !important;
 }
-html.theme-dark .catalog-resume a:hover,
 html.theme-dark .catalog-pin:hover {
   background: #091535 !important;
-}
-html.theme-dark .catalog-last small {
-  color: #7081ab !important;
 }
 html.theme-dark .catalog-favorites h2 {
   color: #8894d5 !important;
@@ -2933,11 +2928,6 @@ html.theme-dark .catalog-promo-controls {
 html.theme-dark .catalog-promo-controls button {
   border: 1px solid rgba(44, 55, 103, 0.369) !important;
 }
-html.theme-dark .catalog-quick h2 {
-  background: rgba(7, 18, 42, 0.969) !important;
-  color: #8a9bd5 !important;
-}
-html.theme-dark .catalog-progress,
 html.theme-dark .catalog-more,
 html.theme-dark .catalog-system-action {
   border: 1px solid #192743 !important;
@@ -2948,7 +2938,12 @@ html.theme-dark .catalog-system-action:hover,
 html.theme-dark .catalog-more:hover {
   background: #091735 !important;
 }
-html.theme-dark .catalog-progress > span:last-child {
+html.theme-dark .catalog-progress {
+  border: 1px solid #192743 !important;
+  background: #08142b !important;
+  color: #8a9ed5 !important;
+}
+html.theme-dark #catalog-progress-summary {
   color: #7b8dbb !important;
 }
 html.theme-dark .catalog-system-action small,

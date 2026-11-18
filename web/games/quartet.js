@@ -221,8 +221,12 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
   function bindRootEvents() {
     ui.root?.addEventListener('click', async (event) => {
       const target = event.target.closest('[data-action]');
+      const action = target?.dataset.action;
+      if (table && selectedCardId && !event.target.closest('.qt-card')) {
+        selectedCardId = '';
+        renderGame();
+      }
       if (!target) return;
-      const action = target.dataset.action;
       if (action === 'close-modal' && event.target.closest('[data-modal-card]') && !event.target.closest('button[data-action="close-modal"]')) return;
 
       // await обязателен. Без него «return createRoom(target)» отдаёт промис из
@@ -242,15 +246,17 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
         if (action === 'select-target') return await selectTarget(target);
         if (action === 'select-card') return await selectCard(target);
         if (action === 'confirm-ask') return await confirmAsk(target);
-        if (action === 'table-target' && isMyTurn()) {
-          selectedTargetId = target.dataset.playerId || '';
-          renderGame();
-          return haptic('selection');
-        }
-        if (action === 'table-card' && isMyTurn() && selectedTargetId) {
+        if (action === 'table-card' && isMyTurn() && !target.disabled) {
           selectedCardId = selectedCardId === target.dataset.cardId ? '' : target.dataset.cardId;
           renderGame();
           return haptic('selection');
+        }
+        if (action === 'table-ask' && isMyTurn() && selectedCardId === target.dataset.cardId
+          && availableTargets().some((player) => player.playerId === target.dataset.playerId)) {
+          const payload = { targetId: target.dataset.playerId, cardId: selectedCardId };
+          selectedCardId = '';
+          renderGame();
+          return await sendTableAction('askCard', payload);
         }
         if (action === 'table-group') {
           table.selectGroup(target.dataset.groupId);
@@ -272,6 +278,13 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
       if (event.target.id === 'qv2-room-code') event.target.value = normalizeRoomId(event.target.value);
     });
     if (table) {
+      ui.root.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !selectedCardId) return;
+        const trigger = ui.content.querySelector('[data-action="table-card"][aria-expanded="true"]');
+        selectedCardId = '';
+        renderGame();
+        trigger?.focus();
+      });
       ui.root.addEventListener('change', (event) => {
         if (event.target.id !== 'qt-deck-size') return;
         const count = event.target.value ? Number(event.target.value) : null;
@@ -315,7 +328,6 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     if (!isMyTurn()) return showToast('Сейчас ход другого игрока', 'info');
     if (!selectedTargetId) return showToast('Сначала выбери игрока', 'info');
     if (!selectedCardId) return showToast('Теперь выбери недостающую карту', 'info');
-    if (table) return sendTableAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId });
     const card = cardById.get(selectedCardId);
     showTurnNotice('Запрос отправлен', `Спрашиваем «${card?.title || 'карту'}»…`, 'pending', '↗', 1200);
     return sendAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId }, button);
@@ -716,8 +728,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     currentScreen = 'game';
     if (table) {
       table.renderGame(state, {
-        targetId: selectedTargetId,
         cardId: selectedCardId,
+        targets: availableTargets(),
         pending: tableRequest !== null,
         connected: Boolean(practice) || socket?.readyState === WebSocket.OPEN,
       });
@@ -1150,9 +1162,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
           <h3>Как играть в Квартет</h3>
           <ol>
             <li>В каждой группе четыре карты. Цель — собрать больше полных квартетов.</li>
-            <li>Когда сверху появляется <b>«Ваш ход»</b>, сначала выберите соперника.</li>
-            <li>Затем листайте квартеты в своей руке и выберите одну недостающую карту.</li>
-            <li>Проверьте выбор в нижней панели и нажмите <b>«Спросить карту»</b>.</li>
+            ${table ? '<li>В свой ход выберите квартет под картами и нажмите на недостающую карту.</li><li>Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.</li>'
+            : '<li>Когда сверху появляется <b>«Ваш ход»</b>, сначала выберите соперника.</li><li>Затем листайте квартеты в своей руке и выберите одну недостающую карту.</li><li>Проверьте выбор в нижней панели и нажмите <b>«Спросить карту»</b>.</li>'}
             <li>Если карта есть у соперника, она сразу переходит к вам и ваш ход продолжается.</li>
             <li>Если карты нет или вышел таймер, ход завершается и автоматически переходит следующему игроку.</li>
             <li>Когда все четыре карты группы собраны, квартет засчитывается автоматически.</li>

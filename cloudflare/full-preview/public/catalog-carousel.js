@@ -11,7 +11,7 @@
     const indicator = feature.querySelector('[data-promo-index]');
     const low = () => window.GameDisplay.reducedMotion();
     const sort = (items) => [...featured.map(key => items.find(game => game.key === key)).filter(Boolean),
-      ...items.filter(game => !featured.includes(game.key))];
+      ...items.filter(game => game.key !== 'kingdoms' && !featured.includes(game.key))];
     let order = sort(games);
     let index = 0;
     let timer = 0;
@@ -38,13 +38,12 @@
       const previous = viewport.querySelector('.catalog-promo.is-current');
       const slide = document.createElement('article');
       const treasure = game.key === 'biblical-match-three';
-      const image = treasure && !window.GameDisplay.lowGraphics()
-        ? 'web/assets/biblical-match-three/excavation/chest-hd.webp' : artwork(game);
+      const image = artwork(game);
       slide.className = 'catalog-promo is-current';
       slide.style.setProperty('--promo-color', colors[index % colors.length]);
       slide.dataset.promoGame = game.key;
       slide.innerHTML = `<div class="catalog-promo-copy"><h2>${game.title}</h2><p>${game.desc}</p><a class="catalog-hero-play" href="${routeURL(game.key, treasure ? { level: 51 } : {})}" data-launch="${game.key}">${treasure ? 'Начать раскопки' : 'Играть'} <span aria-hidden="true">›</span></a></div>
-        <div class="catalog-promo-stage${treasure ? ' is-treasure' : ''}" aria-hidden="true"><img src="${image}" width="280" height="250" alt="" decoding="async" draggable="false"></div>`;
+        <div class="catalog-promo-stage" aria-hidden="true"><img src="${image}" width="280" height="250" alt="" decoding="async" draggable="false"></div>`;
       clearTimeout(cleanup);
       if (direction && previous && !low()) {
         previous.classList.remove('is-current', 'from-left', 'from-right');
@@ -60,7 +59,7 @@
       const next = order[(index + 1) % order.length];
       if (!window.GameDisplay.lowGraphics()) {
         const preload = new Image();
-        preload.src = next.key === 'biblical-match-three' ? 'web/assets/biblical-match-three/excavation/chest-hd.webp' : artwork(next);
+        preload.src = artwork(next);
       }
       reschedule();
     }

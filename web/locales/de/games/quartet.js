@@ -204,8 +204,12 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
   function bindRootEvents() {
     ui.root?.addEventListener('click', async (event) => {
       const target = event.target.closest('[data-action]');
+      const action = target?.dataset.action;
+      if (table && selectedCardId && !event.target.closest('.qt-card')) {
+        selectedCardId = '';
+        renderGame();
+      }
       if (!target) return;
-      const action = target.dataset.action;
       if (action === 'close-modal' && event.target.closest('[data-modal-card]') && !event.target.closest('button[data-action="close-modal"]')) return;
 
       // await обязателен. Без него «return createRoom(target)» отдаёт промис из
@@ -225,15 +229,17 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
         if (action === 'select-target') return await selectTarget(target);
         if (action === 'select-card') return await selectCard(target);
         if (action === 'confirm-ask') return await confirmAsk(target);
-        if (action === 'table-target' && isMyTurn()) {
-          selectedTargetId = target.dataset.playerId || '';
-          renderGame();
-          return haptic('selection');
-        }
-        if (action === 'table-card' && isMyTurn() && selectedTargetId) {
+        if (action === 'table-card' && isMyTurn() && !target.disabled) {
           selectedCardId = selectedCardId === target.dataset.cardId ? '' : target.dataset.cardId;
           renderGame();
           return haptic('selection');
+        }
+        if (action === 'table-ask' && isMyTurn() && selectedCardId === target.dataset.cardId
+          && availableTargets().some((player) => player.playerId === target.dataset.playerId)) {
+          const payload = { targetId: target.dataset.playerId, cardId: selectedCardId };
+          selectedCardId = '';
+          renderGame();
+          return await sendTableAction('askCard', payload);
         }
         if (action === 'table-group') {
           table.selectGroup(target.dataset.groupId);
@@ -255,6 +261,13 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
       if (event.target.id === 'qv2-room-code') event.target.value = normalizeRoomId(event.target.value);
     });
     if (table) {
+      ui.root.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !selectedCardId) return;
+        const trigger = ui.content.querySelector('[data-action="table-card"][aria-expanded="true"]');
+        selectedCardId = '';
+        renderGame();
+        trigger?.focus();
+      });
       ui.root.addEventListener('change', (event) => {
         if (event.target.id !== 'qt-deck-size') return;
         const count = event.target.value ? Number(event.target.value) : null;
@@ -298,7 +311,6 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
     if (!isMyTurn()) return showToast('Ein anderer Spieler ist am Zug', 'info');
     if (!selectedTargetId) return showToast('Wähle zuerst einen Spieler', 'info');
     if (!selectedCardId) return showToast('Wähle jetzt eine fehlende Karte', 'info');
-    if (table) return sendTableAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId });
     const card = cardById.get(selectedCardId);
     showTurnNotice('Anfrage gesendet', `Fragen nach «${card?.title || 'Karte'}»…`, 'pending', '↗', 1200);
     return sendAction('askCard', { targetId: selectedTargetId, cardId: selectedCardId }, button);
@@ -641,8 +653,8 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
     currentScreen = 'game';
     if (table) {
       table.renderGame(state, {
-        targetId: selectedTargetId,
         cardId: selectedCardId,
+        targets: availableTargets(),
         pending: tableRequest !== null,
         connected: Boolean(practice) || socket?.readyState === WebSocket.OPEN,
       });
@@ -1018,7 +1030,8 @@ function startQuartetGame(catalogUrl = 'web/locales/de/data/quartet_bible.json',
   }
 
   function openRules() {
-    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>So spielst du Quartett</h3>\n          <ol>\n            <li>Jede Gruppe hat vier Karten. Sammle die meisten vollständigen Quartette.</li>\n            <li>Wenn oben erscheint <b>«Du bist dran“</b>, wähle zuerst einen Mitspieler.</li>\n            <li>Blättere dann durch deine Quartette und wähle eine fehlende Karte.</li>\n            <li>Prüfe deine Auswahl unten und tippe auf <b>«Nach Karte fragen“</b>.</li>\n            <li>Hat der Mitspieler die Karte, bekommst du sie und bleibst am Zug.</li>\n            <li>Fehlt die Karte oder läuft die Zeit ab, ist automatisch der nächste Spieler dran.</li>\n            <li>Sind alle vier Karten gesammelt, zählt das Quartett automatisch.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Verstanden</button>\n        </div>\n      </div>\n    `;
+    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>So spielst du Quartett</h3>\n          <ol>\n            <li>Jede Gruppe hat vier Karten. Sammle die meisten vollständigen Quartette.</li>\n            ${table ? '<li>В свой ход выберите квартет под картами и нажмите на недостающую карту.</li><li>Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.</li>'
+            : '<li>Wenn oben erscheint <b>«Du bist dran“</b>, wähle zuerst einen Mitspieler.</li><li>Blättere dann durch deine Quartette und wähle eine fehlende Karte.</li><li>Prüfe deine Auswahl unten und tippe auf <b>«Nach Karte fragen“</b>.</li>'}\n            <li>Hat der Mitspieler die Karte, bekommst du sie und bleibst am Zug.</li>\n            <li>Fehlt die Karte oder läuft die Zeit ab, ist automatisch der nächste Spieler dran.</li>\n            <li>Sind alle vier Karten gesammelt, zählt das Quartett automatisch.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Verstanden</button>\n        </div>\n      </div>\n    `;
   }
 
   function closeModal() { ui.modalRoot.innerHTML = ''; }

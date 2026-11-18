@@ -189,9 +189,10 @@ if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.
 }
 
 await page.waitForSelector('#main-catalog:not([hidden])', { timeout: 5_000 });
-for (const id of ['catalog-resume', 'catalog-recent', 'catalog-progress']) {
-  if (!(await page.locator(`#${id}`).isHidden())) throw new Error(`Hidden section ${id} reappeared in the catalog.`);
+for (const id of ['catalog-resume', 'catalog-recent']) {
+  if (await page.locator(`#${id}`).count()) throw new Error(`Removed catalog section ${id} is still rendered.`);
 }
+if (!(await page.locator('#catalog-progress').isHidden())) throw new Error('Hidden progress reappeared in the catalog.');
 const legacyMenu = page.locator('#menu-container > .menu-section').first();
 if (!(await legacyMenu.isHidden())) throw new Error('Legacy cards appeared alongside the new catalog.');
 

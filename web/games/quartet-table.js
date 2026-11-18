@@ -127,25 +127,25 @@
           </section>
           <div class="qt-table-grid">
             <section class="qt-opponents" aria-labelledby="qt-opponents-title">
-              <div class="qt-section-title"><h3 id="qt-opponents-title">Соперники</h3><span data-table-score></span></div>
+              <div class="qt-section-title qt-players-title">
+                <div class="qt-table-stack" aria-hidden="true">
+                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>
+                </div>
+                <h3 id="qt-opponents-title">Соперники</h3><span data-table-score></span>
+              </div>
               <label class="qt-player-search" hidden>
                 <input type="search" placeholder="Поиск по имени" aria-label="Найти соперника" aria-controls="qt-player-list" maxlength="32">
               </label>
               <div class="qt-players" id="qt-player-list" data-players></div>
               <p class="qt-note" data-player-empty role="status" hidden>Соперник не найден.</p>
-              <div class="qt-table-center">
-                <div class="qt-table-stack" aria-hidden="true">
-                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>
-                </div>
-                <p class="qt-event" data-event aria-live="polite" hidden></p>
-              </div>
             </section>
             <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">
               <div class="qt-section-title"><h3 id="qt-hand-title">Ваша рука</h3><span data-hand-score></span></div>
-              <div class="qt-groups" data-groups aria-label="Квартеты в вашей руке"></div>
               <div data-inspection></div>
+              <div class="qt-groups" data-groups aria-label="Квартеты в вашей руке"></div>
               <div class="qt-completed" data-completed hidden></div>
             </section>
+            <p class="qt-event" data-event aria-live="polite" hidden></p>
           </div>
           <details class="qt-paper qt-details">
             <summary>История ходов</summary>
@@ -160,10 +160,6 @@
             </form>
           </details>`}
           <button type="button" class="qt-link qt-leave" data-action="leave-room">Выйти из партии</button>
-          <div class="qt-dock">
-            <p aria-live="polite"><span data-action-label>Ваш запрос</span><strong data-action-context></strong></p>
-            <button type="button" class="qt-btn qt-btn--gold" data-action="confirm-ask">Спросить карту</button>
-          </div>
         </div>`;
       table = {
         root: content.querySelector('.qt-play'),
@@ -184,9 +180,6 @@
         history: content.querySelector('[data-history]'),
         chat: content.querySelector('[data-chat]'),
         chatSubmit: content.querySelector('#qt-chat-form button'),
-        label: content.querySelector('[data-action-label]'),
-        context: content.querySelector('[data-action-context]'),
-        confirm: content.querySelector('[data-action="confirm-ask"]'),
       };
       table.opponentQuery.addEventListener('input', filterOpponents);
     }
@@ -194,23 +187,21 @@
     function filterOpponents() {
       const query = filterName(table.opponentQuery.value);
       let found = false;
-      for (const button of table.opponents.children) {
-        const matches = button.dataset.searchName.includes(query);
-        button.hidden = !matches;
+      for (const seat of table.opponents.children) {
+        const matches = seat.dataset.searchName.includes(query);
+        seat.hidden = !matches;
         found ||= matches;
       }
       table.opponentEmpty.hidden = found || !query;
     }
 
     function playerCard(player, turnId, practice) {
-      return `<button class="qt-player ${player.playerId === turnId ? 'is-current' : ''}"
-        type="button" data-action="table-target" data-player-id="${esc(player.playerId)}"
-        data-search-name="${esc(filterName(player.name))}" title="${esc(player.name)}" aria-pressed="false">
+      return `<div class="qt-player ${player.playerId === turnId ? 'is-current' : ''}"
+        data-player-id="${esc(player.playerId)}" data-search-name="${esc(filterName(player.name))}" title="${esc(player.name)}">
         <span class="qt-avatar" aria-hidden="true">${esc(player.name[0]?.toUpperCase() || '?')}</span>
-        ${player.cardsCount ? '<span class="qt-seat-deck" aria-hidden="true"><i class="qt-card-back"></i><i class="qt-card-back"></i></span>' : ''}
         <strong>${esc(player.name)}${practice ? ' <span class="qt-bot-label">бот</span>' : ''}</strong>
         <small>${player.cardsCount} <span aria-label="карт">▤</span> · ${player.quartetsCount} <span aria-label="квартетов">★</span></small>
-      </button>`;
+      </div>`;
     }
 
     function cardAsset(card) {
@@ -225,8 +216,11 @@
       const content = `<span class="qt-card-face qt-color-${color}">${visual}</span>
         <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ У вас' : 'Нужна'}</small>`;
       return card.owned
-        ? `<div class="qt-card is-owned" data-card-id="${esc(card.id)}">${content}</div>`
-        : `<button type="button" class="qt-card" data-action="table-card" data-card-id="${esc(card.id)}" aria-pressed="false">${content}</button>`;
+        ? `<div class="qt-card is-owned" data-card-id="${esc(card.id)}"><div class="qt-card-content">${content}</div></div>`
+        : `<div class="qt-card" data-card-id="${esc(card.id)}">
+            <button type="button" class="qt-card-content" data-action="table-card" data-card-id="${esc(card.id)}" aria-expanded="false">${content}</button>
+            <div class="qt-card-targets" data-card-targets hidden></div>
+          </div>`;
     }
 
     function dispose() {
@@ -286,7 +280,7 @@
         const seats = [...scene.opponents.querySelectorAll('.qt-player:not([hidden])')];
         const hand = scene.inspection.querySelector('.qt-card') || scene.handScore;
         if (event.type === 'game_started' && entering) {
-          const targets = seats.slice(0, 3).map((seat) => seat.querySelector('.qt-seat-deck') || seat);
+          const targets = seats.slice(0, 3);
           for (const [index, target] of [...targets, hand].entries()) flyCard(scene.stack, target, { delay: index * 108 });
         }
         if (event.type !== 'ask_success' || entering) return;
@@ -305,24 +299,23 @@
       if (node.textContent !== value) node.textContent = value;
     }
 
-    function renderGame(state, { targetId, cardId, pending, connected }) {
+    function renderGame(state, { cardId, targets, pending, connected }) {
       const entering = !table?.root.isConnected;
       if (entering) mountTable(state.practice);
       const me = state.me || {};
       const myTurn = state.turnPlayerId === me.playerId;
       const players = state.players.filter((player) => player.isActive !== false);
       const opponents = players.filter((player) => player.playerId !== me.playerId);
-      const target = opponents.find((player) => player.playerId === targetId && player.cardsCount > 0);
-      const card = getCard(cardId);
+      const canAsk = myTurn && connected && !pending && targets.length > 0;
       const myGroups = getGroups(me.hand || []);
       const group = myGroups.find((item) => item.quartet.id === groupId) || myGroups[0];
       groupId = group?.quartet.id || '';
 
       const advice = !connected ? 'Восстанавливаем связь…' : pending ? 'Ждём ответ…'
-        : !myTurn ? 'Вы можете листать свою руку.' : !target ? 'Выберите, у кого спросить карту.'
-        : !card ? 'Выберите карту, которой не хватает в квартете.' : 'Подтвердите запрос внизу.';
+        : !myTurn ? 'Вы можете листать свою руку.'
+        : canAsk ? 'Нажмите на недостающую карту.' : 'У соперников не осталось карт.';
       table.timer.classList.toggle('is-mine', myTurn);
-      table.root.dataset.askStep = !myTurn || !connected || pending ? 'wait' : !target ? 'player' : !card ? 'card' : 'confirm';
+      table.root.dataset.askStep = canAsk ? 'card' : 'wait';
       setText(table.name, myTurn ? 'Ваш ход' : `Ходит ${state.turnPlayerName || 'соперник'}`);
       setText(table.guide, advice);
       setText(table.score, `${state.players.reduce((sum, player) => sum + player.quartetsCount, 0)} / ${state.totalQuartets} собрано`);
@@ -332,13 +325,6 @@
       if (table.opponentSearch.hidden && table.opponentQuery.value) table.opponentQuery.value = '';
       patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice)).join(''));
       filterOpponents();
-      const opponentsById = new Map(opponents.map((player) => [player.playerId, player]));
-      for (const button of table.opponents.children) {
-        const player = opponentsById.get(button.dataset.playerId);
-        button.disabled = !myTurn || !player.cardsCount || pending || !connected;
-        button.setAttribute('aria-pressed', String(player === target));
-      }
-
       patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
         `<button type="button" class="qt-group" data-action="table-group" data-group-id="${esc(quartet.id)}">
           <span aria-hidden="true">${esc(quartet.icon)}</span><strong>${esc(quartet.name)}</strong><small>${ownedCount}/4</small>
@@ -352,9 +338,19 @@
         table.inspection.querySelector('.qt-cards')?.classList.add('is-fanning');
       }
       table.inspectedGroup = groupId;
-      for (const button of table.inspection.querySelectorAll('button[data-card-id]')) {
-        button.disabled = !myTurn || !target || pending || !connected;
-        button.setAttribute('aria-pressed', String(button.dataset.cardId === cardId));
+      for (const button of table.inspection.querySelectorAll('[data-action="table-card"]')) {
+        const active = canAsk && button.dataset.cardId === cardId;
+        const slot = button.nextElementSibling;
+        button.disabled = !canAsk;
+        button.setAttribute('aria-expanded', String(active));
+        button.parentElement.classList.toggle('is-choosing', active);
+        slot.hidden = !active;
+        if (active) {
+          patch(slot, `<span class="qt-target-label">Спросить у</span>
+            <div class="qt-target-list">${targets.map((player) => `<button type="button" data-action="table-ask"
+              data-card-id="${esc(cardId)}" data-player-id="${esc(player.playerId)}" title="${esc(player.name)}">
+              ${esc(player.name)}</button>`).join('')}</div>`);
+        }
       }
 
       const completed = (me.completedQuartets || []).map((id) => getQuartet(id)?.name).filter(Boolean);
@@ -375,11 +371,6 @@
         table.chatSubmit.disabled = !connected;
       }
 
-      setText(table.label, myTurn ? 'Ваш запрос' : 'Ожидание хода');
-      setText(table.context, !myTurn ? `Сейчас ходит ${state.turnPlayerName || 'соперник'}`
-        : !target ? 'Выберите соперника' : !card ? `${target.name} · выберите карту` : `${target.name} · ${card.title}`);
-      table.confirm.disabled = !myTurn || !target || !card || pending || !connected;
-      setText(table.confirm, pending ? 'Отправляем…' : 'Спросить карту');
       animateEvent(state.lastEvent, me.playerId, entering);
     }
 

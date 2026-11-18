@@ -313,9 +313,8 @@ html[data-full-preview] body:not([data-mode="game"]) {
 .catalog-hero-play:hover { background: #fff5d8; }
 .catalog-hero-play span { font: 700 21px/1 system-ui, sans-serif; }
 
-.catalog-resume, #favorite-games { display: flex; flex-wrap: wrap; gap: 8px; }
-.catalog-resume { margin-bottom: 14px; }
-.catalog-resume a, .catalog-pin {
+#favorite-games { display: flex; flex-wrap: wrap; gap: 8px; }
+.catalog-pin {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -331,11 +330,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   text-decoration: none;
   box-shadow: 0 3px 0 #b3c2e8, 0 6px 12px #263d7826, inset 0 1px white;
 }
-.catalog-resume a:hover, .catalog-pin:hover { background: #e6edff; }
-.catalog-last img { width: 40px; height: 40px; object-fit: contain; }
-.catalog-last span { display: grid; line-height: 1.24; }
-.catalog-last small { color: #52638c; font-size: 11px; font-weight: 650; }
-.catalog-last b { margin-left: 7px; font-size: 20px; }
+.catalog-pin:hover { background: #e6edff; }
 .catalog-pin img { display: block; width: 27px; height: 27px; object-fit: contain; }
 .catalog-favorites { margin-bottom: 17px; }
 .catalog-favorites h2 {

@@ -91,7 +91,6 @@
     else hide.add(key);
     try { localStorage.setItem(preferenceKey, JSON.stringify([...hide])); } catch {}
     refresh();
-    window.dispatchEvent(new Event('catalog-home:change'));
   });
 
   const selection = document.getElementById('catalog-join-game');
@@ -159,7 +158,10 @@
   more?.addEventListener('click', openService);
   quick.addEventListener('click', openService);
   if (!preview) {
-    quick.prepend(...[
+    const accountActions = document.getElementById('catalog-account-actions');
+    accountActions.hidden = false;
+    accountActions.addEventListener('click', openService);
+    accountActions.append(...[
       { art: 'share', title: 'Подключиться к комнате', action: 'join' },
       { art: 'admin', title: 'Профиль и друзья', action: 'social' },
     ].map((item) => {
@@ -185,7 +187,7 @@
     }, { once: true });
   }
 
-  window.CatalogSystem = Object.freeze({ icon, refresh, hiddenSections, acceptInvite(value) {
+  window.CatalogSystem = Object.freeze({ icon, refresh, acceptInvite(value) {
     const url = roomURL(value, selection.value);
     return joinRoom(url) ? { url } : null;
   } });

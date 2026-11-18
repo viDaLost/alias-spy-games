@@ -18,14 +18,14 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' wss: blob:; frame-src 'self'; font-src 'self'; media-src 'self' blob:">
   <script src="/display-preferences.js"></script>
   <link rel="stylesheet" href="/web/styles/full-games.css?v=3">
-  <link rel="stylesheet" href="/catalog.css?v=3">
+  <link rel="stylesheet" href="/catalog.css?v=4">
   <link rel="stylesheet" href="/display-preferences.css">
-  <link rel="stylesheet" href="/catalog-system.css?v=2">
+  <link rel="stylesheet" href="/catalog-system.css?v=3">
   <script src="/game-wallet.js?v=1" defer></script>
-  <script src="/catalog-carousel.js?v=1" defer></script>
-  <script src="/catalog-system.js?v=2" defer></script>
-  <script src="/catalog.js?v=3" defer></script>
-  <script src="/full-runtime.js?v=4" defer></script>
+  <script src="/catalog-carousel.js?v=2" defer></script>
+  <script src="/catalog-system.js?v=3" defer></script>
+  <script src="/catalog.js?v=4" defer></script>
+  <script src="/full-runtime.js?v=5" defer></script>
   <script src="/web/js/home-parallax-v1.js?v=21" defer></script>
   <script src="/web/js/sabbath-access.js" defer></script>
 </head>
@@ -47,9 +47,15 @@
     </div>
     <div class="catalog-heading">
       <h1>Во что сыграем?</h1>
-      <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
-        <img class="catalog-system-icon" src="/web/assets/icons/menu-system/stars.webp" alt="">
-        <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
+      <div class="catalog-home-stats">
+        <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
+          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/stars.webp" alt="">
+          <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
+        </div>
+        <div id="catalog-progress" class="catalog-progress">
+          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/progress.webp" alt="">
+          <div><small>Ваш прогресс</small><span id="catalog-progress-summary"></span></div>
+        </div>
       </div>
     </div>
     <section class="catalog-feature" id="catalog-feature" aria-label="Игры на витрине" aria-roledescription="карусель">
@@ -61,8 +67,7 @@
         <button type="button" data-carousel="pause" aria-label="Пауза смены игр">Ⅱ</button>
       </div>
     </section>
-    <div class="catalog-resume" id="catalog-resume" hidden></div>
-    <section id="catalog-recent" class="catalog-quick" hidden aria-label="Недавние игры"></section>
+    <div class="catalog-system-quick" id="catalog-system-quick"></div>
     <section class="catalog-favorites" id="catalog-favorites" aria-labelledby="catalog-favorites-title" hidden>
       <h2 id="catalog-favorites-title">Избранное</h2>
       <div id="favorite-games"></div>
@@ -79,12 +84,7 @@
       <div id="catalog-games" class="catalog-collections"></div>
     </section>
     <section class="catalog-system home-dashboard" aria-label="Сервисы приложения">
-      <div id="catalog-progress" class="catalog-progress">
-        <img class="catalog-system-icon" src="/web/assets/icons/menu-system/progress.webp" alt="">
-        <span>Ваш прогресс</span>
-        <span id="catalog-progress-summary"></span>
-      </div>
-      <div class="catalog-system-quick" id="catalog-system-quick"></div>
+      <div class="catalog-account-actions" id="catalog-account-actions" hidden></div>
       <button class="catalog-more" type="button" id="open-more" aria-haspopup="dialog">
         <img class="catalog-system-icon" src="/web/assets/icons/menu-system/settings.webp" alt="">
         <span><strong>Ещё</strong><small>Правила, расписание, профиль и установка</small></span>
@@ -156,8 +156,6 @@
     </form>
     <fieldset id="catalog-home-settings">
       <legend>Блоки меню</legend>
-      <label><input type="checkbox" data-home-section="continue"> Продолжить игру</label>
-      <label><input type="checkbox" data-home-section="recent"> Недавние игры</label>
       <label><input type="checkbox" data-home-section="progress"> Ваш прогресс</label>
     </fieldset>
     <button type="button" class="catalog-light-preset" id="display-light-preset">Включить облегчённый режим</button>

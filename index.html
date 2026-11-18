@@ -137,7 +137,7 @@
     }
   </style>
   <!-- build:css -->
-  <link rel="stylesheet" href="web/dist/app.b4e4336811.css" />
+  <link rel="stylesheet" href="web/dist/app.bbfc236021.css" />
   <!-- /build:css -->
 </head>
 <body>
@@ -212,9 +212,15 @@
     </div>
     <div class="catalog-heading">
       <h1>Во что сыграем?</h1>
-      <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
-        <img class="catalog-system-icon" src="web/assets/icons/menu-system/stars.webp" alt="">
-        <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
+      <div class="catalog-home-stats">
+        <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
+          <img class="catalog-system-icon" src="web/assets/icons/menu-system/stars.webp" alt="">
+          <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
+        </div>
+        <div id="catalog-progress" class="catalog-progress">
+          <img class="catalog-system-icon" src="web/assets/icons/menu-system/progress.webp" alt="">
+          <div><small>Ваш прогресс</small><span id="catalog-progress-summary"></span></div>
+        </div>
       </div>
     </div>
     <section class="catalog-feature" id="catalog-feature" aria-label="Игры на витрине" aria-roledescription="карусель">
@@ -226,8 +232,7 @@
         <button type="button" data-carousel="pause" aria-label="Пауза смены игр">Ⅱ</button>
       </div>
     </section>
-    <div class="catalog-resume" id="catalog-resume" hidden></div>
-    <section id="catalog-recent" class="catalog-quick" hidden aria-label="Недавние игры"></section>
+    <div class="catalog-system-quick" id="catalog-system-quick"></div>
     <section class="catalog-favorites" id="catalog-favorites" aria-labelledby="catalog-favorites-title" hidden>
       <h2 id="catalog-favorites-title">Избранное</h2>
       <div id="favorite-games"></div>
@@ -244,12 +249,7 @@
       <div id="catalog-games" class="catalog-collections"></div>
     </section>
     <section class="catalog-system home-dashboard" aria-label="Сервисы приложения">
-      <div id="catalog-progress" class="catalog-progress">
-        <img class="catalog-system-icon" src="web/assets/icons/menu-system/progress.webp" alt="">
-        <span>Ваш прогресс</span>
-        <span id="catalog-progress-summary"></span>
-      </div>
-      <div class="catalog-system-quick" id="catalog-system-quick"></div>
+      <div class="catalog-account-actions" id="catalog-account-actions" hidden></div>
       <button class="catalog-more" type="button" id="open-more" aria-haspopup="dialog">
         <img class="catalog-system-icon" src="web/assets/icons/menu-system/settings.webp" alt="">
         <span><strong>Ещё</strong><small>Правила, расписание, профиль и установка</small></span>
@@ -320,8 +320,6 @@
     </form>
     <fieldset id="catalog-home-settings">
       <legend>Блоки меню</legend>
-      <label><input type="checkbox" data-home-section="continue"> Продолжить игру</label>
-      <label><input type="checkbox" data-home-section="recent"> Недавние игры</label>
       <label><input type="checkbox" data-home-section="progress"> Ваш прогресс</label>
     </fieldset>
     <button type="button" class="catalog-light-preset" id="display-light-preset">Включить облегчённый режим</button>
@@ -357,7 +355,7 @@
 
   <script id="three-js" type="application/json" data-src="web/vendor/three.min.js?v=r128"></script>
   <!-- build:js -->
-  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.ba2439c38c.js","en":"web/dist/app.en.27c8eaefc2.js","de":"web/dist/app.de.8ad4801eab.js","es":"web/dist/app.es.b9cdd58309.js"}</script>
+  <script id="app-language-bundles" type="application/json">{"ru":"web/dist/app.a3672c5a94.js","en":"web/dist/app.en.5c5c4d4bd8.js","de":"web/dist/app.de.992c74e46a.js","es":"web/dist/app.es.7caaa07afd.js"}</script>
   <script src="web/i18n/bootstrap.js" defer></script>
   <!-- /build:js -->
 </body>

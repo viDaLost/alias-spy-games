@@ -18,8 +18,6 @@
   const inviteFeedback = document.getElementById('invite-feedback');
   const resources = new Map();
   const favoritesKey = 'bible_game_favorites_v1';
-  const lastGameKey = 'bible_game_preview_last';
-  const gamesHistoryKey = 'bible_game_preview_recent';
   const favoriteShelfList = document.getElementById('favorite-games');
   const favoriteDialogList = document.getElementById('favorites-dialog-games');
   let favorites = new Set(readFavorites());
@@ -154,41 +152,6 @@
       || favoritesDialog.querySelector('.catalog-dialog-close')).focus({ preventScroll: true });
   }
 
-  function refreshResume() {
-    const progress = window.BiblicalMatchThreeProgress?.load();
-    const level = progress?.campaignLevel;
-    const room = value('quartet_v2_room_id');
-    const area = document.getElementById('catalog-resume');
-    const links = [];
-    if (/^[A-Z0-9]{6}$/.test(room || '')) {
-      links.push(`<a href="${routeURL('quartet', { room })}" data-launch="quartet">Вернуться в «Квартет» <span aria-hidden="true">›</span></a>`);
-    }
-    const list = recentGames();
-    const last = games.find((game) => game.key === value(lastGameKey)) || list[0];
-    if (last && !(last.key === 'quartet' && links.length)) {
-      const newLevel = last.key === 'biblical-match-three' && Number.isSafeInteger(level) && level > 1;
-      const href = newLevel ? routeURL(last.key, { level }) : routeURL(last.key);
-      links.unshift(`<a class="catalog-last" href="${href}" data-launch="${last.key}">${icon(last)}<span><small>${newLevel ? `Продолжить · уровень ${level}` : 'Недавняя игра'}</small><strong>${last.title}</strong></span><b aria-hidden="true">›</b></a>`);
-    }
-    area.innerHTML = links.join('');
-    const hidden = window.CatalogSystem.hiddenSections();
-    area.hidden = !links.length || hidden.has('continue');
-    const recent = document.getElementById('catalog-recent');
-    recent.hidden = hidden.has('recent') || !list.length;
-    recent.innerHTML = list.length ? '<h2>Недавние игры</h2><div>' + list.map(game =>
-      `<a class="catalog-pin" href="${routeURL(game.key)}" data-launch="${game.key}">${icon(game)}${game.title}</a>`).join('') + '</div>' : '';
-    window.CatalogSystem.refresh();
-  }
-
-  function recentGames() {
-    let keys;
-    try { keys = JSON.parse(value(gamesHistoryKey) || '[]'); } catch { keys = []; }
-    if (!Array.isArray(keys) || !keys.length) {
-      try { keys = JSON.parse(value('last_games_history') || '[]'); } catch { keys = []; }
-    }
-    return Array.isArray(keys) ? keys.map(key => games.find(game => game.key === key || game.title === key)).filter(Boolean).slice(0, 3) : [];
-  }
-
   function navigate(href) {
     const target = new URL(href, location.href);
     if (target.origin !== location.origin) return;
@@ -205,11 +168,6 @@
       if (document.body.dataset.currentGame) window.appGoToMainMenu();
       return;
     }
-    try {
-      localStorage.setItem(lastGameKey, key);
-      const recent = recentGames().map(game => game.key).filter(id => id !== key);
-      localStorage.setItem(gamesHistoryKey, JSON.stringify([key, ...recent].slice(0, 3)));
-    } catch {}
     if (!preview && params.has('room') && window.RoomInvite) {
       const id = params.get('room');
       if (/^[A-Z0-9]{4,10}$/.test(id) && window.RoomInvite.acceptScanned(`${key}:${id}`)) return;
@@ -268,7 +226,7 @@
     carousel = window.CatalogCarousel.mount({ feature, games, artwork, routeURL });
     document.documentElement.classList.toggle('theme-dark', window.AppTheme?.isDark() === true);
     document.querySelector('[data-game-wallet]').textContent = String(window.GameWallet.balance());
-    refreshResume();
+    window.CatalogSystem.refresh();
     if (preview) queueMicrotask(openURL);
     else {
       window.addEventListener('app:menu-ready', openURL, { once: true });
@@ -278,7 +236,7 @@
         games = available;
         render();
         carousel.updateGames(games);
-        refreshResume();
+        window.CatalogSystem.refresh();
       }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     }
   }
@@ -289,7 +247,7 @@
     if (url.href !== location.href) history.replaceState(null, '', url);
     consumedRoom = '';
     if (invitation?.open) invitation.close();
-    refreshResume();
+    window.CatalogSystem.refresh();
     carousel?.refresh();
   }
 
@@ -317,8 +275,8 @@
     const container = document.getElementById('game-container');
     try {
       await Promise.all([
-        loadResource('/web/games/quartet-table.css?v=5', true),
-        loadResource('/web/games/quartet-table.js?v=5'),
+        loadResource('/web/games/quartet-table.css?v=6', true),
+        loadResource('/web/games/quartet-table.js?v=6'),
         loadResource('/quartet-polling.js'),
       ]);
       if (document.body.dataset.currentGame === 'quartet') {
@@ -379,8 +337,7 @@
     favoritesDialog.showModal();
     carousel?.refresh();
   });
-  window.addEventListener('catalog-home:change', refreshResume);
-  window.addEventListener('app:progress-reset', refreshResume);
+  window.addEventListener('app:progress-reset', window.CatalogSystem.refresh);
   window.addEventListener('player:favorites-changed', (event) => {
     if (!signedProfile()) return;
     favorites = new Set(event.detail);
@@ -410,7 +367,7 @@
       favorites = new Set(readFavorites());
       if (mounted) render();
     }
-    if (!menu.classList.contains('hidden')) refreshResume();
+    if (!menu.classList.contains('hidden')) window.CatalogSystem.refresh();
   });
   window.addEventListener('popstate', () => {
     const historyURL = location.href;
@@ -455,6 +412,6 @@
     openQr: openInvite,
     acceptScanned: window.CatalogSystem.acceptInvite,
   });
-  window.GameCatalog = Object.freeze({ mount, returnHome, navigate, refresh: refreshResume });
+  window.GameCatalog = Object.freeze({ mount, returnHome, navigate, refresh: window.CatalogSystem.refresh });
   if (preview) window.FullPreviewMenu = Object.freeze({ ...window.GameCatalog, prepareQuartet, loadQuartetPractice });
 })();
