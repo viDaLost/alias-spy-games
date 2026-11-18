@@ -52,6 +52,7 @@ html body[data-current-game="quartet"] #game-container {
   color: #fff;
 }
 .qt-root .qt-hero { min-height: clamp(174px, 36vw, 253px); }
+.qt-root .qt-hero h3 { max-inline-size: 13ch; text-wrap: balance; }
 .qt-root :is(.qt-hero h3, .qt-results h3) { font-family: Georgia, serif; font-weight: 600; }
 #game-container .qt-root .qt-hero p, .qt-root .qt-invite span { color: #eef1ff; }
 .qt-root .qt-practice {
@@ -404,7 +405,7 @@ html body[data-current-game="quartet"] #game-container {
   box-shadow: 0 2px 8px #14225b44;
 }
 #game-container .qt-root .qt-card.is-missing:not(.is-choosing)::before {
-  content: "＋ НУЖНА";
+  content: "＋ MISSING";
   background: #4b3dc4;
   color: #fff;
 }

@@ -27,10 +27,7 @@
         <div class="qt-pages">
           <section class="qt-hero">
             <div class="qt-hero-cards" aria-hidden="true">
-              ${['daniel_lions', 'elijah_altar', 'noah_dove'].map((id) => `<img src="${esc(cardAsset({ art: `web/assets/quartet/cards/${id}.webp` }))}" alt="" width="124" height="155" decoding="async">`).join('')}\n            </div>\n            <div><h3>Соберите<br>cuarteto</h3><p>3–${playerLimit} jugador · ${catalogSize} cuartetos</p></div>\n          </section>\n          ${allowPractice ? `<button class="qt-practice" type="button" data-action="start-practice">
-            <span><strong>Играть с ботами</strong><small>Вы и два бота · без таймера</small></span>
-            <span class="qt-practice-arrow" aria-hidden="true">›</span>
-          </button>` : ''}\n          <section class="qt-paper qt-home-form">\n            <label class="qt-field" for="qv2-player-name">Tu nombre\n              <input id="qv2-player-name" maxlength="32" value="${esc(playerName)}" autocomplete="nickname">\n            </label>\n            <button class="qt-btn qt-btn--solid" type="button" data-action="create">Crear sala</button>\n            <form class="qt-join" id="qt-join-form">\n              <label class="qt-field" for="qv2-room-code">Código de sala\n                <input id="qv2-room-code" maxlength="8" placeholder="Например, AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>\n              </label>\n              <button class="qt-btn qt-btn--line" type="submit">Entrar</button>\n            </form>\n            ${window.RoomQrScanner?.isAvailable() ? '<button class="qt-btn qt-btn--line" type="button" data-action="scan-room">Escanear QR</button>' : ''}\n            <button class="qt-link" type="button" data-action="open-rules">Reglas del juego</button>\n          </section>\n        </div>`;
+              ${['daniel_lions', 'elijah_altar', 'noah_dove'].map((id) => `<img src="${esc(cardAsset({ art: `web/assets/quartet/cards/${id}.webp` }))}" alt="" width="124" height="155" decoding="async">`).join('')}\n            </div>\n            <div><h3>Completa un cuarteto</h3><p>3–${playerLimit} jugador · ${catalogSize} cuartetos</p></div>\n          </section>\n          ${allowPractice ? `<button class="qt-practice" type="button" data-action="start-practice">\n            <span><strong>Jugar con bots</strong><small>Tú y dos bots · sin temporizador</small></span>\n            <span class="qt-practice-arrow" aria-hidden="true">›</span>\n          </button>` : ''}\n          <section class="qt-paper qt-home-form">\n            <label class="qt-field" for="qv2-player-name">Tu nombre\n              <input id="qv2-player-name" maxlength="32" value="${esc(playerName)}" autocomplete="nickname">\n            </label>\n            <button class="qt-btn qt-btn--solid" type="button" data-action="create">Crear sala</button>\n            <form class="qt-join" id="qt-join-form">\n              <label class="qt-field" for="qv2-room-code">Código de sala\n                <input id="qv2-room-code" maxlength="8" placeholder="AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>\n              </label>\n              <button class="qt-btn qt-btn--line" type="submit">Entrar</button>\n            </form>\n            ${window.RoomQrScanner?.isAvailable() ? '<button class="qt-btn qt-btn--line" type="button" data-action="scan-room">Escanear QR</button>' : ''}\n            <button class="qt-link" type="button" data-action="open-rules">Reglas del juego</button>\n          </section>\n        </div>`;
     }
 
     function playerRow(player, me, end) {
@@ -39,14 +36,14 @@
         <span class="qt-seat-name">${esc(player.name)}${player.playerId === me?.playerId ? ' <small>tú</small>' : ''}</span>
         ${end
           ? `<span class="qt-seat-score">${player.quartetsCount} ★</span>`
-          : `<span class="qt-seat-tag">${player.isHost ? 'Anfitrión' : player.connected ? 'В комнате' : 'Sin conexión'}</span>`}
+          : `<span class="qt-seat-tag">${player.isHost ? 'Anfitrión' : player.connected ? 'En la sala' : 'Sin conexión'}</span>`}
       </li>`;
     }
 
     function deckPicker(state, players, pending) {
       if (!state.deckSettings) return '';
       const { min, max, requested, count } = state.deckSettings;
-      if (!state.me?.isHost) return `<div class="qt-deck-read"><span>Квартетов в колоде</span><strong>${count}</strong></div>`;
+      if (!state.me?.isHost) return `<div class="qt-deck-read"><span>Cuartetos en la baraja</span><strong>${count}</strong></div>`;
       const selected = requested === null ? '' : count;
       const options = Array.from({ length: max - min + 1 }, (_, index) => {
         const value = min + index;
@@ -56,17 +53,14 @@
       const cards = count * 4;
       const low = Math.floor(cards / players), high = Math.ceil(cards / players);
       const equivalent = players >= state.minPlayers && count % players === 0
-        ? `По ${count / players} квартета на игрока в расчёте колоды. ` : '';
-      const initialHand = players < state.minPlayers ? '' : low === high ? `На старте по ${low} карт.` : `На старте по ${low}–${high} карт.`;
-      return `
-        <label class="qt-deck-read" for="qt-deck-size"><span>Квартетов в колоде</span>
-          <select id="qt-deck-size" ${pending ? 'disabled' : ''}>
-            <option value="" ${requested === null ? 'selected' : ''}>Авто · ${Math.max(min, 12)}</option>
+        ? `Cuartetos por jugador: ${count / players}. ` : '';
+      const initialHand = players < state.minPlayers ? '' : `Cartas iniciales: ${low === high ? low : `${low}–${high}`}.`;
+      return `\n        <label class="qt-deck-read" for="qt-deck-size"><span>Cuartetos en la baraja</span>\n          <select id="qt-deck-size" ${pending ? 'disabled' : ''}>
+            <option value="" ${requested === null ? 'selected' : ''}>Automático · ${Math.max(min, 12)}</option>
             ${options}
           </select>
         </label>
-        ${presets.length ? `<div class="qt-presets" aria-label="Размер колоды в расчёте на игрока">
-          ${presets.map((perPlayer) => `<button type="button" data-action="table-deck" data-count="${perPlayer * players}" aria-pressed="${count === perPlayer * players}" ${pending ? 'disabled' : ''}>По ${perPlayer}</button>`).join('')}
+        ${presets.length ? `<div class="qt-presets" aria-label="Tamaño de la baraja por jugador">\n          ${presets.map((perPlayer) => `<button type="button" data-action="table-deck" data-count="${perPlayer * players}" aria-pressed="${count === perPlayer * players}" ${pending ? 'disabled' : ''}>${perPlayer} por jugador</button>`).join('')}
         </div>` : ''}
         <p class="qt-note">${equivalent}${initialHand}</p>`;
     }
@@ -75,15 +69,15 @@
       dispose();
       const players = state.players.filter((player) => player.isActive !== false);
       const waiting = (state.minPlayers ?? minPlayers) - players.length;
-      const action = waiting > 0 ? `Нужно ещё игроков: ${waiting}` : 'Начать партию';
-      patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite">\n            <div><span>Código de sala</span><strong>${esc(state.roomId)}</strong></div>\n            <div class="qt-invite-actions">\n              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Поделиться и QR</button>\n              <button type="button" class="qt-btn qt-btn--ghost" data-action="copy-room">Копировать код</button>\n            </div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Jugadores</h3><span>${players.length} / ${state.playerLimit ?? playerLimit}</span></div>
+      const action = waiting > 0 ? `Faltan jugadores: ${waiting}` : 'Empezar la partida';
+      patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite">\n            <div><span>Código de sala</span><strong>${esc(state.roomId)}</strong></div>\n            <div class="qt-invite-actions">\n              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Compartir y QR</button>\n              <button type="button" class="qt-btn qt-btn--ghost" data-action="copy-room">Copiar código</button>\n            </div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Jugadores</h3><span>${players.length} / ${state.playerLimit ?? playerLimit}</span></div>
             <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false)).join('')}</ul>
           </section>
           <section class="qt-paper">
             ${deckPicker(state, players.length, pending)}
             ${state.me?.isHost
               ? `<button type="button" class="qt-btn qt-btn--solid" data-action="start-game" ${waiting > 0 || pending ? 'disabled' : ''}>${action}</button>`
-              : '<p class="qt-note">Ведущий запустит партию, когда все соберутся.</p>'}\n          </section>\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Salir de la sala</button>\n        </div>`);
+              : '<p class="qt-note">El anfitrión inicia la partida cuando todos se hayan unido.</p>'}\n          </section>\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Salir de la sala</button>\n        </div>`);
     }
 
     function mountTable(practice) {
@@ -93,8 +87,7 @@
         <div class="qt-play">
           <section class="qt-turn" id="qv2-turn-banner">
             <div class="qt-turn-main"><h3 aria-live="polite" data-turn-name></h3><p data-turn-guide></p></div>
-            ${practice ? '' : `<span class="qt-timer" id="qv2-turn-timer" aria-label="Время на ход"></span>
-            <div class="qt-timer-bar" aria-hidden="true"><span id="qv2-turn-progress"></span></div>`}\n          </section>\n          <div class="qt-table-grid">\n            <section class="qt-opponents" aria-labelledby="qt-opponents-title">\n              <div class="qt-section-title qt-players-title">\n                <div class="qt-table-stack" aria-hidden="true">\n                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>\n                </div>\n                <h3 id="qt-opponents-title">Rivales</h3><span data-table-score></span>\n              </div>\n              <label class="qt-player-search" hidden>\n                <input type="search" placeholder="Поиск по имени" aria-label="Найти соперника" aria-controls="qt-player-list" maxlength="32">\n              </label>\n              <div class="qt-players" id="qt-player-list" data-players></div>\n              <p class="qt-note" data-player-empty role="status" hidden>Соперник не найден.</p>\n            </section>\n            <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">\n              <div class="qt-section-title"><h3 id="qt-hand-title">Ваша рука</h3><span data-hand-score></span></div>\n              <div data-inspection></div>\n              <div class="qt-groups" data-groups aria-label="Квартеты в вашей руке"></div>\n              <div class="qt-completed" data-completed hidden></div>\n            </section>\n            <p class="qt-event" data-event aria-live="polite" hidden></p>\n          </div>\n          <details class="qt-paper qt-details">\n            <summary>История ходов</summary>\n            <ol class="qt-history" data-history></ol>\n          </details>\n          ${practice ? '' : `<details class="qt-paper qt-details">\n            <summary>Chat de la sala</summary>\n            <ol class="qt-history qt-chat" data-chat></ol>\n            <form id="qt-chat-form" class="qt-chat-form">\n              <input name="message" maxlength="300" placeholder="Mensaje" aria-label="Mensaje" required>\n              <button type="submit" class="qt-btn qt-btn--line">Enviar</button>\n            </form>\n          </details>`}\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Salir de la partida</button>\n        </div>`;
+            ${practice ? '' : `<span class="qt-timer" id="qv2-turn-timer" aria-label="Tiempo restante del turno"></span>\n            <div class="qt-timer-bar" aria-hidden="true"><span id="qv2-turn-progress"></span></div>`}\n          </section>\n          <div class="qt-table-grid">\n            <section class="qt-opponents" aria-labelledby="qt-opponents-title">\n              <div class="qt-section-title qt-players-title">\n                <div class="qt-table-stack" aria-hidden="true">\n                  <i class="qt-card-back"></i><i class="qt-card-back"></i><i class="qt-card-back"></i>\n                </div>\n                <h3 id="qt-opponents-title">Rivales</h3><span data-table-score></span>\n              </div>\n              <label class="qt-player-search" hidden>\n                <input type="search" placeholder="Buscar por nombre" aria-label="Buscar rival" aria-controls="qt-player-list" maxlength="32">\n              </label>\n              <div class="qt-players" id="qt-player-list" data-players></div>\n              <p class="qt-note" data-player-empty role="status" hidden>No se encontró ningún rival.</p>\n            </section>\n            <section class="qt-paper qt-hand" aria-labelledby="qt-hand-title">\n              <div class="qt-section-title"><h3 id="qt-hand-title">Tu mano</h3><span data-hand-score></span></div>\n              <div data-inspection></div>\n              <div class="qt-groups" data-groups aria-label="Cuartetos en tu mano"></div>\n              <div class="qt-completed" data-completed hidden></div>\n            </section>\n            <p class="qt-event" data-event aria-live="polite" hidden></p>\n          </div>\n          <details class="qt-paper qt-details">\n            <summary>Historial de turnos</summary>\n            <ol class="qt-history" data-history></ol>\n          </details>\n          ${practice ? '' : `<details class="qt-paper qt-details">\n            <summary>Chat de la sala</summary>\n            <ol class="qt-history qt-chat" data-chat></ol>\n            <form id="qt-chat-form" class="qt-chat-form">\n              <input name="message" maxlength="300" placeholder="Mensaje" aria-label="Mensaje" required>\n              <button type="submit" class="qt-btn qt-btn--line">Enviar</button>\n            </form>\n          </details>`}\n          <button type="button" class="qt-link qt-leave" data-action="leave-room">Salir de la partida</button>\n        </div>`;
       table = {
         root: content.querySelector('.qt-play'),
         timer: content.querySelector('.qt-turn'),
@@ -133,7 +126,7 @@
       return `<div class="qt-player ${player.playerId === turnId ? 'is-current' : ''}"
         data-player-id="${esc(player.playerId)}" data-search-name="${esc(filterName(player.name))}" title="${esc(player.name)}">
         <span class="qt-avatar" aria-hidden="true">${esc(player.name[0]?.toUpperCase() || '?')}</span>
-        <strong>${esc(player.name)}${practice ? ' <span class="qt-bot-label">бот</span>' : ''}</strong>
+        <strong>${esc(player.name)}${practice ? ' <span class="qt-bot-label">bot</span>' : ''}</strong>
         <small>${player.cardsCount} <span aria-label="cartas">▤</span> · ${player.quartetsCount} <span aria-label="cuartetos">★</span></small>\n      </div>`;
     }
 
@@ -147,7 +140,7 @@
       const visual = art ? `<img src="${esc(art)}" alt="" loading="lazy" decoding="async">`
         : `<span class="qt-card-symbol" aria-hidden="true">${esc(card.icon || quartet.icon)}</span>`;
       const content = `<span class="qt-card-face qt-color-${color}">${visual}</span>
-        <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ En tu mano' : 'Нужна'}</small>`;
+        <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ En tu mano' : 'Falta'}</small>`;
       return card.owned
         ? `<div class="qt-card is-owned" data-card-id="${esc(card.id)}"><div class="qt-card-content">${content}</div></div>`
         : `<div class="qt-card is-missing" data-card-id="${esc(card.id)}">
@@ -246,7 +239,7 @@
       const group = myGroups.find((item) => item.quartet.id === groupId) || myGroups[0];
       groupId = group?.quartet.id || '';
 
-      const advice = !connected ? 'Восстанавливаем связь…' : pending ? 'Ждём ответ…'
+      const advice = !connected ? 'Reconectando…' : pending ? 'Esperando respuesta…'
         : !myTurn ? 'Puedes revisar tu mano.'
         : canAsk ? 'Toca una carta que te falte.' : 'Tus rivales ya no tienen cartas.';
       table.timer.classList.toggle('is-mine', myTurn);
@@ -328,12 +321,8 @@
       const winners = state.score.filter((player) => state.winnerIds.includes(player.playerId));
       const active = state.players.filter((player) => player.isActive !== false).length;
       const canRestart = active >= (state.minPlayers ?? minPlayers);
-      patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite qt-results"><div><span>Partida terminada</span>\n            <h3>${winners.length > 1 ? 'Ничья' : winners[0]?.playerId === state.me?.playerId ? 'Вы победили' : 'Победитель'}</h3>
-            <p>${esc(winners.map((winner) => winner.name).join(', '))}</p></div>
-          </section>
-          <section class="qt-paper">
-            <div class="qt-section-title"><h3>Итог партии</h3><span>${state.totalQuartets} в колоде</span></div>
-            <ol class="qt-seats">${state.score.map((player) => playerRow(player, state.me, true)).join('')}</ol>
+      patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite qt-results"><div><span>Partida terminada</span>\n            <h3>${winners.length > 1 ? 'Empate' : winners[0]?.playerId === state.me?.playerId ? 'Has ganado' : 'Ganador'}</h3>
+            <p>${esc(winners.map((winner) => winner.name).join(', '))}</p></div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Resultado de la partida</h3><span>${state.totalQuartets} en la baraja</span></div>\n            <ol class="qt-seats">${state.score.map((player) => playerRow(player, state.me, true)).join('')}</ol>
           </section>
           ${state.me?.isHost && canRestart ? `<section class="qt-paper">
             ${deckPicker(state, active, pending)}

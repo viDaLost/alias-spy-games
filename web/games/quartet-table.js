@@ -29,7 +29,7 @@
             <div class="qt-hero-cards" aria-hidden="true">
               ${['daniel_lions', 'elijah_altar', 'noah_dove'].map((id) => `<img src="${esc(cardAsset({ art: `web/assets/quartet/cards/${id}.webp` }))}" alt="" width="124" height="155" decoding="async">`).join('')}
             </div>
-            <div><h3>Соберите<br>квартет</h3><p>3–${playerLimit} игрока · ${catalogSize} квартетов</p></div>
+            <div><h3>Соберите квартет</h3><p>3–${playerLimit} игрока · ${catalogSize} квартетов</p></div>
           </section>
           ${allowPractice ? `<button class="qt-practice" type="button" data-action="start-practice">
             <span><strong>Играть с ботами</strong><small>Вы и два бота · без таймера</small></span>
@@ -42,7 +42,7 @@
             <button class="qt-btn qt-btn--solid" type="button" data-action="create">Создать комнату</button>
             <form class="qt-join" id="qt-join-form">
               <label class="qt-field" for="qv2-room-code">Код комнаты
-                <input id="qv2-room-code" maxlength="8" placeholder="Например, AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+                <input id="qv2-room-code" maxlength="8" placeholder="AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
               </label>
               <button class="qt-btn qt-btn--line" type="submit">Войти</button>
             </form>
@@ -75,8 +75,8 @@
       const cards = count * 4;
       const low = Math.floor(cards / players), high = Math.ceil(cards / players);
       const equivalent = players >= state.minPlayers && count % players === 0
-        ? `По ${count / players} квартета на игрока в расчёте колоды. ` : '';
-      const initialHand = players < state.minPlayers ? '' : low === high ? `На старте по ${low} карт.` : `На старте по ${low}–${high} карт.`;
+        ? `Квартетов на игрока: ${count / players}. ` : '';
+      const initialHand = players < state.minPlayers ? '' : `Карт на старте: ${low === high ? low : `${low}–${high}`}.`;
       return `
         <label class="qt-deck-read" for="qt-deck-size"><span>Квартетов в колоде</span>
           <select id="qt-deck-size" ${pending ? 'disabled' : ''}>
@@ -85,7 +85,7 @@
           </select>
         </label>
         ${presets.length ? `<div class="qt-presets" aria-label="Размер колоды в расчёте на игрока">
-          ${presets.map((perPlayer) => `<button type="button" data-action="table-deck" data-count="${perPlayer * players}" aria-pressed="${count === perPlayer * players}" ${pending ? 'disabled' : ''}>По ${perPlayer}</button>`).join('')}
+          ${presets.map((perPlayer) => `<button type="button" data-action="table-deck" data-count="${perPlayer * players}" aria-pressed="${count === perPlayer * players}" ${pending ? 'disabled' : ''}>${perPlayer} на игрока</button>`).join('')}
         </div>` : ''}
         <p class="qt-note">${equivalent}${initialHand}</p>`;
     }

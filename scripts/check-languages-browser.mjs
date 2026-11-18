@@ -110,6 +110,7 @@ try {
         await page.evaluate(key=>{window.showGame(key);},key);
         await page.waitForFunction(key=>document.body.dataset.currentGame===key,key);
         await page.waitForFunction(()=>{const node=document.getElementById('game-container');return node?.children.length && !node.querySelector('.app-game-loading');});
+        if (key === 'quartet') await page.locator('#qv2-root.qt-root .qt-home-form').waitFor();
         const content=await page.locator('#game-container').innerText();
         check(!/[А-Яа-яЁё]/.test(content),`${lang}/${key}: untranslated content: ${content.slice(0,1000)}`);
         assert.equal(await page.locator('#game-container .app-error-card').count(),0,`${lang}/${key}: error screen`);

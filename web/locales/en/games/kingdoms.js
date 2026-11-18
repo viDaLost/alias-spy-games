@@ -844,7 +844,7 @@
         emblem.style.display = cell.owner === null ? 'none' : '';
         if (cell.owner !== null) emblem.setAttribute('href', EMBLEM_ART[v.players[cell.owner].kingdomId]);
         const special = cell.special ? this.R.SPECIALS[cell.special] : null;
-        group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'ничья' : nameOf(v, cell.owner)}, ценность ${area.value}${special ? `, ${special.title}` : ''}`);
+        group.setAttribute('aria-label', `${area.name}, ${cell.owner === null ? 'draw' : nameOf(v, cell.owner)}, ценность ${area.value}${special ? `, ${special.title}` : ''}`);
         group.classList.toggle('is-mine', cell.owner === v.you);
         // «Владения»: земли выбранного игрока — в полном цвете, остальное притушено.
         const focus = this.focusSeat ?? null;
