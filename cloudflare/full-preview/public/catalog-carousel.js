@@ -21,7 +21,9 @@
       autoplayTimer = null;
       if (order.length < 2) return;
       autoplayTimer = setInterval(() => {
-        if (document.hidden || pointer || document.body.dataset.currentGame || !feature.getClientRects().length) return;
+        if (document.hidden || pointer || document.body.dataset.mode || document.body.dataset.currentGame
+          || viewport.contains(document.activeElement) || document.querySelector('dialog[open]')
+          || !feature.getClientRects().length) return;
         index = (index + 1) % order.length;
         draw(1);
       }, 3000);

@@ -53,7 +53,16 @@ html[data-full-preview] body:not([data-mode="game"]) {
   align-items: center;
   gap: 9px;
 }
-.catalog-brand { color: var(--catalog-ink); font-weight: 820; text-decoration: none; text-shadow: 0 1px 5px #eef5ff; }
+.catalog-brand {
+  min-width: 0;
+  padding: 3px 9px 3px 3px;
+  border: 1px solid #cbd5ef;
+  border-radius: 15px;
+  background: #f8faff;
+  color: var(--catalog-ink);
+  font-weight: 820;
+  text-decoration: none;
+}
 .catalog-brand img { border-radius: 13px; display: block; width: 42px; height: 42px; flex: none; box-shadow: 0 4px 12px #263c7b34; }
 .catalog-tool {
   min-width: 44px;
@@ -81,6 +90,9 @@ html[data-full-preview] body:not([data-mode="game"]) {
 }
 .catalog-heading h1 {
   margin: 0;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: #f8faff;
   color: var(--catalog-ink);
   font-size: clamp(38px, 6vw, 74px);
   line-height: .99;

@@ -8,20 +8,19 @@
   const bot = 'https://t.me/bibleiskie_bot';
   const preferenceKey = 'home_hidden_sections_v1';
   const quick = document.getElementById('catalog-system-quick');
+  const accountActions = document.getElementById('catalog-account-actions');
   const more = document.getElementById('more-dialog');
   const join = document.getElementById('join-dialog');
   const cityName = () => window.SabbathAccess?.status()?.city?.name || '';
-  const rooms = {
-    quartet: 'Квартет', 'bible-sketch': 'Библейский художник', spy: 'Соглядатай',
-    'twelve-tribes': 'Двенадцать колен', 'promised-land': 'Земля обетованная', kingdoms: 'Царства',
-  };
+  const rooms = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land', 'kingdoms']);
   const icon = (key) => `<img class="catalog-system-icon" src="${systemRoot}${key}.webp" alt="" draggable="false">`;
   const help = { art: 'support', title: 'Техподдержка', action: 'support' };
+  const joinAction = { art: 'share', title: 'Подключиться к комнате', action: 'join' };
+  const friends = { art: 'admin', title: 'Друзья', ...(preview ? { href: `${production}/?account=friends` } : { action: 'friends' }) };
   const donate = { art: 'donate', title: 'Поддержать проект', action: 'donate' };
   const channel = { art: 'channel', title: 'Канал обновлений', href: 'https://t.me/+WEBlCGtAywEyZmNi' };
   const rows = [
     { art: 'rules', title: 'Правила игр', caption: 'Правила и разбор механик', action: 'rules' },
-    { art: 'share', title: 'Подключиться к комнате', caption: 'По коду, ссылке или QR', action: 'join' },
     { art: 'theme', title: 'Город для расписания', caption: '', action: 'city' },
     { art: 'progress', title: 'Сбросить прогресс', caption: 'Выбор игры с подтверждением', action: 'reset' },
     donate, channel,
@@ -37,6 +36,8 @@
       : `<button class="catalog-system-action" type="button" data-service="${action}" aria-haspopup="dialog">${copy}</button>`;
   }
   quick.innerHTML = [donate, preview ? channel : { ...channel, href: '', action: 'channel' }, help].map(row).join('');
+  accountActions.innerHTML = [joinAction, friends].map(row).join('');
+  accountActions.hidden = false;
   if (preview) document.getElementById('catalog-system-list').innerHTML = rows.map(row).join('') +
     `<nav class="catalog-system-languages" aria-label="Язык рабочего приложения">
       <span>Язык рабочего приложения</span>${Object.entries({ ru: 'Русский', en: 'English', de: 'Deutsch', es: 'Español' }).map(([code, label]) => `<a href="${bot}?startapp=lang_${code}" target="_blank" rel="noopener noreferrer" lang="${code}">${label}</a>`).join('')}
@@ -93,11 +94,17 @@
   });
 
   const selection = document.getElementById('catalog-join-game');
-  selection.innerHTML = Object.entries(rooms).map(([key,title]) => `<option value="${key}">${title}</option>`).join('');
+
+  function setRoomGames(games) {
+    const previous = selection.value;
+    selection.replaceChildren(...games.filter(({ key }) => rooms.has(key))
+      .map(({ key, title }) => new Option(title, key)));
+    if ([...selection.options].some((option) => option.value === previous)) selection.value = previous;
+  }
 
   function roomURL(value, game) {
     const code = value.trim().toUpperCase();
-    if (/^[A-Z0-9]{4,10}$/.test(code) && Object.hasOwn(rooms, game)) return `?${new URLSearchParams({ game, room: code })}`;
+    if (/^[A-Z0-9]{4,10}$/.test(code) && rooms.has(game)) return `?${new URLSearchParams({ game, room: code })}`;
     let url;
     try { url = new URL(value); } catch { return ''; }
     if (url.origin === location.origin) {
@@ -142,9 +149,10 @@
     reset: () => window.openProgressReset(),
     city: () => window.SabbathAccess.openCityPicker(),
     join: () => {
-      camera.hidden = typeof window.Telegram?.WebApp?.showScanQrPopup !== 'function';
+      camera.hidden = !window.RoomQrScanner?.isAvailable();
       join.showModal();
     },
+    friends: () => openAccount('friends'),
     support: () => preview ? document.getElementById('support-dialog').showModal() : window.openSupportChat(),
     donate: () => document.getElementById('donate-dialog').showModal(),
   };
@@ -156,37 +164,46 @@
   }
   more?.addEventListener('click', openService);
   quick.addEventListener('click', openService);
+  accountActions.addEventListener('click', openService);
+
+  function openAccount(tab = 'profile') {
+    const signed = window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || window.WebSession?.active?.();
+    if (signed && window.PlayerSocial) return window.PlayerSocial.open(tab);
+    if (signed) return window.showToast?.('Профиль загружается. Попробуйте ещё раз.');
+    return window.WebSession?.open();
+  }
+
   if (!preview) {
-    const accountActions = document.getElementById('catalog-account-actions');
-    accountActions.hidden = false;
-    accountActions.addEventListener('click', openService);
-    accountActions.innerHTML = row({ art: 'share', title: 'Подключиться к комнате', action: 'join' });
     const profile = document.getElementById('open-profile');
     profile.setAttribute('role', 'button');
     function openProfile(event) {
       event.preventDefault();
-      const signed = window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || window.WebSession?.active?.();
-      if (signed && window.PlayerSocial) window.PlayerSocial.open('profile');
-      else if (signed) window.showToast?.('Профиль загружается. Попробуйте ещё раз.');
-      else window.WebSession?.open();
+      openAccount();
     }
     profile.addEventListener('click', openProfile);
     profile.addEventListener('keydown', (event) => {
       if (event.key === ' ') openProfile(event);
     });
     window.addEventListener('app:menu-ready', () => {
-      if (!window.WebSession?.active?.() || document.getElementById('social-dock-v2-js')) return;
-      const css = document.createElement('link');
-      css.rel = 'stylesheet';
-      css.href = 'web/styles/social-dock-v2.css?v=1';
-      const script = document.createElement('script');
-      script.src = 'web/js/social-dock-v2.js?v=4';
-      script.id = 'social-dock-v2-js';
-      document.head.append(css, script);
+      const friendsRequested = new URLSearchParams(location.search).get('account') === 'friends';
+      let script = document.getElementById('social-dock-v2-js');
+      if (!script && window.WebSession?.active?.()) {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.id = 'social-dock-v2-css';
+        css.href = 'web/styles/social-dock-v2.css?v=1';
+        script = document.createElement('script');
+        script.src = 'web/js/social-dock-v2.js?v=5';
+        script.id = 'social-dock-v2-js';
+        document.head.append(css, script);
+      }
+      if (!friendsRequested) return;
+      if (script && !window.PlayerSocial) script.addEventListener('load', () => openAccount('friends'), { once: true });
+      else openAccount('friends');
     }, { once: true });
   }
 
-  window.CatalogSystem = Object.freeze({ icon, refresh, acceptInvite(value) {
+  window.CatalogSystem = Object.freeze({ icon, refresh, setRoomGames, acceptInvite(value) {
     const url = roomURL(value, selection.value);
     return joinRoom(url) ? { url } : null;
   } });

@@ -9,6 +9,7 @@
     let groupId = '';
     let table = null;
     let chatSize = 0;
+    let chatKey = '';
 
     function patch(node, markup) {
       if (!node || regions.get(node) === markup) return false;
@@ -45,6 +46,7 @@
               </label>
               <button class="qt-btn qt-btn--line" type="submit">Войти</button>
             </form>
+            ${window.RoomQrScanner?.isAvailable() ? '<button class="qt-btn qt-btn--line" type="button" data-action="scan-room">Сканировать QR</button>' : ''}
             <button class="qt-link" type="button" data-action="open-rules">Правила игры</button>
           </section>
         </div>`;
@@ -61,6 +63,7 @@
     }
 
     function deckPicker(state, players, pending) {
+      if (!state.deckSettings) return '';
       const { min, max, requested, count } = state.deckSettings;
       if (!state.me?.isHost) return `<div class="qt-deck-read"><span>Квартетов в колоде</span><strong>${count}</strong></div>`;
       const selected = requested === null ? '' : count;
@@ -87,22 +90,22 @@
         <p class="qt-note">${equivalent}${initialHand}</p>`;
     }
 
-    function renderLobby(state, pending) {
+    function renderLobby(state, pending, { minPlayers, playerLimit }) {
       dispose();
       const players = state.players.filter((player) => player.isActive !== false);
-      const waiting = state.minPlayers - players.length;
+      const waiting = (state.minPlayers ?? minPlayers) - players.length;
       const action = waiting > 0 ? `Нужно ещё игроков: ${waiting}` : 'Начать партию';
       patch(content, `
         <div class="qt-pages">
           <section class="qt-invite">
             <div><span>Код комнаты</span><strong>${esc(state.roomId)}</strong></div>
             <div class="qt-invite-actions">
-              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Поделиться</button>
+              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Поделиться и QR</button>
               <button type="button" class="qt-btn qt-btn--ghost" data-action="copy-room">Копировать код</button>
             </div>
           </section>
           <section class="qt-paper">
-            <div class="qt-section-title"><h3>Игроки</h3><span>${players.length} / ${state.playerLimit}</span></div>
+            <div class="qt-section-title"><h3>Игроки</h3><span>${players.length} / ${state.playerLimit ?? playerLimit}</span></div>
             <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false)).join('')}</ul>
           </section>
           <section class="qt-paper">
@@ -206,7 +209,7 @@
 
     function cardAsset(card) {
       const art = card?.art;
-      return art && window.GameDisplay?.lowGraphics() ? art.replace('/cards/', '/thumbs/') : art;
+      return art && window.FullPreviewMenu && window.GameDisplay?.lowGraphics() ? art.replace('/cards/', '/thumbs/') : art;
     }
 
     function cardFace(card, quartet, color) {
@@ -229,6 +232,8 @@
         sprite.remove();
       }
       flights.clear();
+      if (chatKey) window.GameChatToasts?.reset(chatKey);
+      chatKey = '';
       table = null;
     }
 
@@ -369,17 +374,31 @@
         }
         chatSize = chat.length;
         table.chatSubmit.disabled = !connected;
+        const chatList = table.chat;
+        const panel = chatList.closest('details');
+        chatKey = `quartet:${state.roomId}`;
+        window.GameChatToasts?.sync({
+          key: chatKey,
+          messages: chat,
+          selfId: me.playerId,
+          chatVisible: () => panel.open && Boolean(visibleCenter(chatList)),
+          onOpen: () => {
+            if (!panel.isConnected) return;
+            panel.open = true;
+            panel.scrollIntoView({ block: 'nearest' });
+          },
+        });
       }
 
       animateEvent(state.lastEvent, me.playerId, entering);
     }
 
-    function renderResults(state, pending) {
+    function renderResults(state, pending, minPlayers) {
       dispose();
       groupId = '';
       const winners = state.score.filter((player) => state.winnerIds.includes(player.playerId));
       const active = state.players.filter((player) => player.isActive !== false).length;
-      const canRestart = active >= state.minPlayers;
+      const canRestart = active >= (state.minPlayers ?? minPlayers);
       patch(content, `
         <div class="qt-pages">
           <section class="qt-invite qt-results"><div><span>Партия завершена</span>

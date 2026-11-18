@@ -44,12 +44,12 @@ const constant = (source, name) => {
   return match ? Number(match[1]) : null;
 };
 
-const wowLevel = Number(wow.match(/st\.coins \+= (\d+);\s*\n\s*showMsg\("Уровень пройден!/)?.[1] || 0);
-const wowBonus = Number(wow.match(/st\.coins \+= (\d+);\s*\n\s*showMsg\("Бонус!/)?.[1] || 0);
-const wowLetter = Number(wow.match(/st\.coins -= (\d+);\s*\n\s*st\.hintedCells\.add/)?.[1] || 0);
+const wowLevel = Number(wow.match(/changeCoins\((\d+)\);\s*\n\s*showMsg\("Уровень пройден!/)?.[1] || 0);
+const wowBonus = Number(wow.match(/changeCoins\((\d+)\);\s*\n\s*showMsg\("Бонус!/)?.[1] || 0);
+const wowLetter = Number(wow.match(/spendCoins\((\d+)\)\)[^\n]*\s*\n\s*st\.hintedCells\.add/)?.[1] || 0);
 // Цена «открыть слово целиком» ищется внутри своей функции: порог «не хватает
 // звёзд» с тем же текстом есть и у подсказки на букву.
-const wowWord = Number(wow.match(/function revealWordPaid\(\)[\s\S]*?st\.coins < (\d+)/)?.[1] || 0);
+const wowWord = Number(wow.match(/function revealWordPaid\(\)[\s\S]*?!spendCoins\((\d+)\)/)?.[1] || 0);
 need(wowLevel === 10 && wowBonus === 2 && wowLetter === 6 && wowWord === 20,
   `награды «Библейских слов» в коде изменились: уровень ${wowLevel}, бонус ${wowBonus}, буква ${wowLetter}, слово ${wowWord}`);
 need(rules.includes(`<b>+${wowLevel}★</b>`), `в справочнике нет награды +${wowLevel}★ за уровень «Библейских слов»`);

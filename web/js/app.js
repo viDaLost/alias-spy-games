@@ -744,8 +744,8 @@ function showGame(gameName) {
     describe: ["web/games/describe-char.js", () => window.startDescribeCharacterGame?.("web/data/describe_words.json")],
     spy: ["web/games/spy.js", () => window.startSpyGame?.("web/data/spy_locations.json")],
     "kids-ark-pairs": ["web/games/kids-ark-pairs.js", () => window.startKidsArkPairsGame?.()],
-    quartet: ["web/games/quartet.js", () => fullCatalogPreview
-      ? window.FullPreviewMenu.prepareQuartet()
+    quartet: ["web/games/quartet.js", () => window.GameCatalog
+      ? window.GameCatalog.prepareQuartet()
       : window.startQuartetGame?.("web/data/quartet_bible.json")],
     /*
       «Двенадцать колен» подтягивают свои правила сами: движок, колода и

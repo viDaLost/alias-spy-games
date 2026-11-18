@@ -463,23 +463,12 @@
     return state;
   }
 
-  function inferGame(card) {
-    const explicit = String(card?.dataset?.gameKey || card?.dataset?.game || '').trim();
-    if (GAMES.has(explicit)) return explicit;
-    const text = String(card?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    if (!text) return '';
-    return [...GAME_CATALOG].sort((a, b) => b.title.length - a.title.length)
-      .find((game) => text.includes(game.title.toLowerCase()))?.id || '';
-  }
-
   function installTracking() {
     if (trackingInstalled) return;
     trackingInstalled = true;
-    document.addEventListener('click', (event) => {
-      const card = event.target?.closest?.('#menu-container .game-card');
-      if (!card) return;
-      const game = inferGame(card);
-      if (!game) return;
+    function trackCurrentGame() {
+      const game = document.body.dataset.currentGame;
+      if (!GAMES.has(game) || !hasTelegramSession()) return;
       const now = Date.now();
       if (game === lastTrackedGame && now - lastTrackedAt < 1300) return;
       lastTrackedGame = game;
@@ -490,7 +479,11 @@
         state.profile.gameStats = result.gameStats || state.profile.gameStats || {};
         state.profile.lastGame = result.lastGame || game;
       }).catch((error) => console.warn('Social game tracking:', error));
-    }, true);
+    }
+    new MutationObserver(trackCurrentGame).observe(document.body, {
+      attributes: true, attributeFilter: ['data-current-game'],
+    });
+    trackCurrentGame();
   }
 
   async function copyText(value) {

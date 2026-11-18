@@ -58,7 +58,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
 
   injectStylesheet();
   renderRoot();
-  if (preview) {
+  if (window.QuartetTable) {
     ui.root.classList.add('qt-root');
     table = window.QuartetTable.create({
       content: ui.content,
@@ -223,6 +223,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
         if (action === 'join') return await joinRoomFromForm(target);
         if (action === 'copy-room') return await copyRoomCode();
         if (action === 'share-room') return await shareRoom();
+        if (action === 'scan-room') return await window.RoomQrScanner?.open();
         if (action === 'start-game') return table ? await sendTableAction('startGame') : await sendAction('startGame', {}, target);
         if (action === 'restart-game') return table ? await sendTableAction('restartGame') : await sendAction('restartGame', {}, target);
         if (action === 'leave-room') return await confirmLeave();
@@ -232,7 +233,8 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
         if (action === 'table-card' && isMyTurn() && !target.disabled) {
           selectedCardId = selectedCardId === target.dataset.cardId ? '' : target.dataset.cardId;
           renderGame();
-          return haptic('selection');
+          haptic('selection');
+          return;
         }
         if (action === 'table-ask' && isMyTurn() && selectedCardId === target.dataset.cardId
           && availableTargets().some((player) => player.playerId === target.dataset.playerId)) {
@@ -243,7 +245,8 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
         }
         if (action === 'table-group') {
           table.selectGroup(target.dataset.groupId);
-          return renderGame();
+          renderGame();
+          return;
         }
         if (action === 'table-deck') {
           return await sendTableAction('setDeckSize', { count: Number(target.dataset.count) });
@@ -617,7 +620,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
   function renderLobby() {
     currentScreen = 'lobby';
     if (table) {
-      table.renderLobby(state, tableRequest !== null);
+      table.renderLobby(state, tableRequest !== null, { minPlayers: MIN_PLAYERS, playerLimit: ROOM_LIMIT });
       return;
     }
     const me = state.me || {};
@@ -813,7 +816,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
   function renderResults() {
     currentScreen = 'results';
     if (table) {
-      table.renderResults(state, tableRequest !== null);
+      table.renderResults(state, tableRequest !== null, MIN_PLAYERS);
       return;
     }
     const me = state.me || {};
@@ -1005,7 +1008,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json',
 
   async function shareRoom() {
     if (!roomId) return;
-    if (preview && window.FullPreviewMenu && window.RoomInvite?.openQr) {
+    if (table && window.RoomInvite?.openQr) {
       return window.RoomInvite.openQr('quartet', roomId, 'Пригласить в «Квартет»');
     }
     const text = `Únete a Cuarteto. Código de sala: ${roomId}`;

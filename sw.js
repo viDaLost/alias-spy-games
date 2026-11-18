@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '629052c19e';
+const VERSION = 'e063534803';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -29,8 +29,8 @@ const PRECACHE = [
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.2eee94c06e.css',
-  'web/dist/app.a9b37c058c.js',
+  'web/dist/app.0cc1b15be5.css',
+  'web/dist/app.9222cc87a0.js',
   'web/games/alias.js',
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
@@ -71,6 +71,7 @@ const PRECACHE = [
   'web/games/moses-nile-v7/js/shaders.js',
   'web/games/moses-nile-v7/js/sound.js',
   'web/games/quartet-mobile.css',
+  'web/games/quartet-table-theme.css',
   'web/games/quartet-table.css',
   'web/games/quartet-table.js',
   'web/games/quartet-v2.css',

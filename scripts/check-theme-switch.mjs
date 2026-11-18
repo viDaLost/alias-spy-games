@@ -70,7 +70,7 @@ async function openApp(colorScheme) {
   }));
   for (const pattern of ['https://script.google.com/**', 'https://*.workers.dev/**']) {
     await page.route(pattern, (route) => route.fulfill({
-      status: 200, contentType: 'application/json', body: '{"success":true,"isBanned":false,"lastGames":[]}',
+      status: 200, contentType: 'application/json', body: '{"success":true,"isBanned":false,"lastGames":[],"answered":true,"required":false}',
     }));
   }
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
@@ -100,7 +100,7 @@ if (now.choice !== 'dark') await fail(`выбор сохранён как «${no
 if (now.pressed !== 'true') await fail('настройка темы не отражает тёмное состояние');
 
 const painted = await light.page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-if (!/^rgb\(\s*(\d+)/.test(painted) || Number(painted.match(/\d+/g).slice(0, 3).reduce((a, b) => Number(a) + Number(b))) > 300) {
+if (!/^rgba?\(\s*(\d+)/.test(painted) || Number(painted.match(/\d+/g).slice(0, 3).reduce((a, b) => Number(a) + Number(b))) > 300) {
   await fail(`тёмная тема включилась, но фон остался светлым: ${painted}`);
 }
 

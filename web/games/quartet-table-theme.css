@@ -1,12 +1,13 @@
-body[data-current-game="quartet"] {
+body[data-current-game="quartet"]:has(.qt-root) {
+  padding-inline: 0 !important;
   background: radial-gradient(ellipse at 75% 16%, #d5e8ff, transparent 54%), linear-gradient(160deg, #f4f0ff, #f7faff 48%, #e6f7ff);
   color: #233265;
 }
 
-html[data-full-preview] body[data-current-game="quartet"] #game-container {
+html body[data-current-game="quartet"] #game-container {
   width: min(100%, 1060px) !important;
   max-width: 1060px !important;
-  padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+  padding: max(6px, env(safe-area-inset-top), var(--tg-top-gap, 0px)) max(8px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)) !important;
 }
 
@@ -25,7 +26,7 @@ html[data-full-preview] body[data-current-game="quartet"] #game-container {
 #game-container .qt-root :focus-visible { outline-color: #6b5def; }
 #game-container .qt-root .qv2-topbar {
   min-height: 48px;
-  top: env(safe-area-inset-top, 0px);
+  top: max(env(safe-area-inset-top, 0px), var(--tg-top-gap, 0px));
   padding: 3px 7px;
   border-radius: 12px;
   background: #ffffff;
@@ -323,7 +324,7 @@ html[data-full-preview] body[data-current-game="quartet"] #game-container {
   vertical-align: 1px;
 }
 #game-container .qt-root .qt-hand {
-  padding: 8px;
+  padding: 8px 4px;
   border: 1px solid #d2dcf6;
   border-radius: 15px;
   background: #fffffff2;

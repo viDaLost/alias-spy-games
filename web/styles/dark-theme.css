@@ -2755,6 +2755,10 @@ html.theme-dark a):focus-visible {
 html.theme-dark .catalog-top {
   border-bottom: 1px solid rgba(95, 114, 168, 0.259) !important;
 }
+html.theme-dark .catalog-brand {
+  border: 1px solid #1f2943 !important;
+  background: #071028 !important;
+}
 html.theme-dark .catalog-tool {
   color: #8695d1 !important;
   border: 1px solid #1f2943 !important;
@@ -2763,6 +2767,9 @@ html.theme-dark .catalog-tool {
 html.theme-dark .catalog-tool:hover,
 html.theme-dark .catalog-tool[aria-expanded="true"] {
   background: #0a1336 !important;
+}
+html.theme-dark .catalog-heading h1 {
+  background: #071028 !important;
 }
 html.theme-dark .catalog-filters {
   background: rgba(8, 20, 47, 0.949) !important;

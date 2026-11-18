@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  if (window.__QUARTET_PRODUCTION_V43_LOADER__) return;
+  if (window.__QUARTET_PRODUCTION_V43_LOADER__ || document.documentElement.hasAttribute('data-game-catalog')) return;
   window.__QUARTET_PRODUCTION_V43_LOADER__ = true;
 
   const originalAppendChild = Node.prototype.appendChild;

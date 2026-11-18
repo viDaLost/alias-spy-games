@@ -9,6 +9,7 @@
     let groupId = '';
     let table = null;
     let chatSize = 0;
+    let chatKey = '';
 
     function patch(node, markup) {
       if (!node || regions.get(node) === markup) return false;
@@ -29,7 +30,7 @@
               ${['daniel_lions', 'elijah_altar', 'noah_dove'].map((id) => `<img src="${esc(cardAsset({ art: `web/assets/quartet/cards/${id}.webp` }))}" alt="" width="124" height="155" decoding="async">`).join('')}\n            </div>\n            <div><h3>Соберите<br>quartet</h3><p>3–${playerLimit} player · ${catalogSize} quartets</p></div>\n          </section>\n          ${allowPractice ? `<button class="qt-practice" type="button" data-action="start-practice">
             <span><strong>Играть с ботами</strong><small>Вы и два бота · без таймера</small></span>
             <span class="qt-practice-arrow" aria-hidden="true">›</span>
-          </button>` : ''}\n          <section class="qt-paper qt-home-form">\n            <label class="qt-field" for="qv2-player-name">Your name\n              <input id="qv2-player-name" maxlength="32" value="${esc(playerName)}" autocomplete="nickname">\n            </label>\n            <button class="qt-btn qt-btn--solid" type="button" data-action="create">Create room</button>\n            <form class="qt-join" id="qt-join-form">\n              <label class="qt-field" for="qv2-room-code">Room code\n                <input id="qv2-room-code" maxlength="8" placeholder="Например, AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>\n              </label>\n              <button class="qt-btn qt-btn--line" type="submit">Sign in</button>\n            </form>\n            <button class="qt-link" type="button" data-action="open-rules">Game rules</button>\n          </section>\n        </div>`;
+          </button>` : ''}\n          <section class="qt-paper qt-home-form">\n            <label class="qt-field" for="qv2-player-name">Your name\n              <input id="qv2-player-name" maxlength="32" value="${esc(playerName)}" autocomplete="nickname">\n            </label>\n            <button class="qt-btn qt-btn--solid" type="button" data-action="create">Create room</button>\n            <form class="qt-join" id="qt-join-form">\n              <label class="qt-field" for="qv2-room-code">Room code\n                <input id="qv2-room-code" maxlength="8" placeholder="Например, AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>\n              </label>\n              <button class="qt-btn qt-btn--line" type="submit">Sign in</button>\n            </form>\n            ${window.RoomQrScanner?.isAvailable() ? '<button class="qt-btn qt-btn--line" type="button" data-action="scan-room">Scan QR</button>' : ''}\n            <button class="qt-link" type="button" data-action="open-rules">Game rules</button>\n          </section>\n        </div>`;
     }
 
     function playerRow(player, me, end) {
@@ -43,6 +44,7 @@
     }
 
     function deckPicker(state, players, pending) {
+      if (!state.deckSettings) return '';
       const { min, max, requested, count } = state.deckSettings;
       if (!state.me?.isHost) return `<div class="qt-deck-read"><span>Квартетов в колоде</span><strong>${count}</strong></div>`;
       const selected = requested === null ? '' : count;
@@ -69,12 +71,12 @@
         <p class="qt-note">${equivalent}${initialHand}</p>`;
     }
 
-    function renderLobby(state, pending) {
+    function renderLobby(state, pending, { minPlayers, playerLimit }) {
       dispose();
       const players = state.players.filter((player) => player.isActive !== false);
-      const waiting = state.minPlayers - players.length;
+      const waiting = (state.minPlayers ?? minPlayers) - players.length;
       const action = waiting > 0 ? `Нужно ещё игроков: ${waiting}` : 'Начать партию';
-      patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite">\n            <div><span>Room code</span><strong>${esc(state.roomId)}</strong></div>\n            <div class="qt-invite-actions">\n              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Share</button>\n              <button type="button" class="qt-btn qt-btn--ghost" data-action="copy-room">Копировать код</button>\n            </div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Players</h3><span>${players.length} / ${state.playerLimit}</span></div>
+      patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite">\n            <div><span>Room code</span><strong>${esc(state.roomId)}</strong></div>\n            <div class="qt-invite-actions">\n              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Поделиться и QR</button>\n              <button type="button" class="qt-btn qt-btn--ghost" data-action="copy-room">Копировать код</button>\n            </div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Players</h3><span>${players.length} / ${state.playerLimit ?? playerLimit}</span></div>
             <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false)).join('')}</ul>
           </section>
           <section class="qt-paper">
@@ -137,7 +139,7 @@
 
     function cardAsset(card) {
       const art = card?.art;
-      return art && window.GameDisplay?.lowGraphics() ? art.replace('/cards/', '/thumbs/') : art;
+      return art && window.FullPreviewMenu && window.GameDisplay?.lowGraphics() ? art.replace('/cards/', '/thumbs/') : art;
     }
 
     function cardFace(card, quartet, color) {
@@ -148,7 +150,7 @@
         <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ You have' : 'Нужна'}</small>`;
       return card.owned
         ? `<div class="qt-card is-owned" data-card-id="${esc(card.id)}"><div class="qt-card-content">${content}</div></div>`
-        : `<div class="qt-card" data-card-id="${esc(card.id)}">
+        : `<div class="qt-card is-missing" data-card-id="${esc(card.id)}">
             <button type="button" class="qt-card-content" data-action="table-card" data-card-id="${esc(card.id)}" aria-expanded="false">${content}</button>
             <div class="qt-card-targets" data-card-targets hidden></div>
           </div>`;
@@ -160,6 +162,8 @@
         sprite.remove();
       }
       flights.clear();
+      if (chatKey) window.GameChatToasts?.reset(chatKey);
+      chatKey = '';
       table = null;
     }
 
@@ -299,17 +303,31 @@
         }
         chatSize = chat.length;
         table.chatSubmit.disabled = !connected;
+        const chatList = table.chat;
+        const panel = chatList.closest('details');
+        chatKey = `quartet:${state.roomId}`;
+        window.GameChatToasts?.sync({
+          key: chatKey,
+          messages: chat,
+          selfId: me.playerId,
+          chatVisible: () => panel.open && Boolean(visibleCenter(chatList)),
+          onOpen: () => {
+            if (!panel.isConnected) return;
+            panel.open = true;
+            panel.scrollIntoView({ block: 'nearest' });
+          },
+        });
       }
 
       animateEvent(state.lastEvent, me.playerId, entering);
     }
 
-    function renderResults(state, pending) {
+    function renderResults(state, pending, minPlayers) {
       dispose();
       groupId = '';
       const winners = state.score.filter((player) => state.winnerIds.includes(player.playerId));
       const active = state.players.filter((player) => player.isActive !== false).length;
-      const canRestart = active >= state.minPlayers;
+      const canRestart = active >= (state.minPlayers ?? minPlayers);
       patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite qt-results"><div><span>Game over</span>\n            <h3>${winners.length > 1 ? 'Ничья' : winners[0]?.playerId === state.me?.playerId ? 'Вы победили' : 'Победитель'}</h3>
             <p>${esc(winners.map((winner) => winner.name).join(', '))}</p></div>
           </section>

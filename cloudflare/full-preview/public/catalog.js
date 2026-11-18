@@ -223,6 +223,7 @@
     const account = window.PlayerSocial?.getState?.();
     if (signedProfile() && account?.profile) favorites = new Set(account.profile.favorites || []);
     render(true);
+    window.CatalogSystem.setRoomGames(games);
     carousel = window.CatalogCarousel.mount({ feature, games, artwork, routeURL });
     document.documentElement.classList.toggle('theme-dark', window.AppTheme?.isDark() === true);
     document.querySelector('[data-game-wallet]').textContent = String(window.GameWallet.balance());
@@ -236,6 +237,7 @@
         games = available;
         render();
         carousel.updateGames(games);
+        window.CatalogSystem.setRoomGames(games);
         window.CatalogSystem.refresh();
       }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     }
@@ -274,13 +276,13 @@
     const container = document.getElementById('game-container');
     try {
       await Promise.all([
-        loadResource('/web/games/quartet-table.css?v=7', true),
-        loadResource('/quartet-preview.css?v=2', true),
-        loadResource('/web/games/quartet-table.js?v=7'),
-        loadResource('/quartet-polling.js'),
+        loadResource('web/games/quartet-table.css?v=8', true),
+        loadResource('web/games/quartet-table-theme.css?v=2', true),
+        loadResource('web/games/quartet-table.js?v=8'),
+        ...(preview ? [loadResource('/quartet-polling.js')] : []),
       ]);
       if (document.body.dataset.currentGame === 'quartet') {
-        window.startQuartetGame('web/data/quartet_bible.json', { preview: true });
+        window.startQuartetGame('web/data/quartet_bible.json', { preview });
       }
     } catch {
       if (document.body.dataset.currentGame !== 'quartet') return;
@@ -410,6 +412,6 @@
     openQr: openInvite,
     acceptScanned: window.CatalogSystem.acceptInvite,
   });
-  window.GameCatalog = Object.freeze({ mount, returnHome, navigate, refresh: window.CatalogSystem.refresh });
-  if (preview) window.FullPreviewMenu = Object.freeze({ ...window.GameCatalog, prepareQuartet, loadQuartetPractice });
+  window.GameCatalog = Object.freeze({ mount, returnHome, navigate, prepareQuartet, refresh: window.CatalogSystem.refresh });
+  if (preview) window.FullPreviewMenu = Object.freeze({ ...window.GameCatalog, loadQuartetPractice });
 })();

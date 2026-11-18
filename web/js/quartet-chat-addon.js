@@ -31,7 +31,7 @@
   }
 
   function currentRoom() {
-    if (document.body.dataset.currentGame !== 'quartet') return '';
+    if (document.body.dataset.currentGame !== 'quartet' || document.querySelector('.qt-play [data-chat]')) return '';
     const subtitle = document.querySelector('.qv2-subtitle')?.textContent || '';
     return subtitle.match(/Комната\s+([A-Z0-9]{4,10})/i)?.[1]?.toUpperCase() || '';
   }

@@ -143,7 +143,7 @@ stage = 'app startup';
 await page.goto(`${baseURL}/?android=1&apk=33&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
-await page.waitForSelector('#catalog-account-actions [data-service="social"]', { timeout: 10_000 });
+await page.waitForSelector('#open-profile', { timeout: 10_000 });
 await page.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '32');
 
 const state = await page.evaluate(() => ({
@@ -164,7 +164,7 @@ if (!state.authenticated) throw new Error('Android Web bridge did not expose an 
 if (!state.socialMounted) throw new Error('Android social dock did not mount while telemetry was disabled.');
 
 stage = 'profile rendering';
-await page.locator('#catalog-account-actions [data-service="social"]').click();
+await page.locator('#open-profile').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-hero', { timeout: 8_000 });
 await page.waitForFunction(() => document.querySelector('.social-sheet-overlay.is-open')?.textContent?.includes('Android Runtime'), null, { timeout: 8_000 });
 
@@ -194,7 +194,7 @@ await page.locator('[data-social-close]').click();
 await page.locator('#open-favorites').click();
 await page.locator('#favorites-dialog [data-launch="bible-sketch"]').waitFor();
 await page.locator('#favorites-dialog .catalog-dialog-close').click();
-await page.locator('#catalog-account-actions [data-service="social"]').click();
+await page.locator('#open-profile').click();
 await page.locator('[data-social-tab="favorites"]').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-favorites-grid', { timeout: 8_000 });
 const favoritesState = await page.evaluate(() => ({
