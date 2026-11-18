@@ -27,9 +27,11 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Prepare thumbnail conversion
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y imagemagick
           if ! command -v magick >/dev/null; then
+            if ! command -v convert >/dev/null; then
+              sudo apt-get update -qq
+              sudo apt-get install -y imagemagick
+            fi
             sudo ln -s "$(command -v convert)" /usr/local/bin/magick
           fi
       - name: Validate carousel
