@@ -23,7 +23,11 @@ jobs:
       - run: npm ci
       - run: npm run check:kingdoms
       - run: npm run check:build
-      - run: npx playwright-core install --with-deps chromium
+      - name: Locate Chrome
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
       - name: Test mobile layouts
         run: node scripts/check-kingdoms-browser.mjs
         env:
