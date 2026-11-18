@@ -47,7 +47,7 @@
   }
 
   function hasTelegramSession() {
-    return Boolean(tgUser()?.id && (initData() || window.WebSession?.active?.()));
+    return Boolean(initData() || window.WebSession?.active?.());
   }
 
   async function api(action, payload = {}) {

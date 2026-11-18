@@ -3,6 +3,7 @@
 
   const STORAGE_KEY = 'telegram_launch_init_data_v1';
   const JSON_FIELDS = new Set(['user', 'receiver', 'chat']);
+  let playerSocialPromise;
 
   function safeSessionGet(key) {
     try { return sessionStorage.getItem(key) || ''; } catch { return ''; }
@@ -137,13 +138,54 @@
     document.head.appendChild(script);
   }
 
+  function loadSocialAsset(id, url, stylesheet = false) {
+    if (document.getElementById(id)) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const node = document.createElement(stylesheet ? 'link' : 'script');
+      node.id = id;
+      if (stylesheet) {
+        node.rel = 'stylesheet';
+        node.href = url;
+      } else node.src = url;
+      const timer = setTimeout(fail, 8000);
+      function fail() {
+        clearTimeout(timer);
+        node.remove();
+        reject(new Error('Profile resource did not load'));
+      }
+      node.addEventListener('error', fail, { once: true });
+      node.addEventListener('load', () => {
+        clearTimeout(timer);
+        if (stylesheet || window.PlayerSocial) resolve();
+        else fail();
+      }, { once: true });
+      document.head.appendChild(node);
+    });
+  }
+
+  function loadPlayerSocial() {
+    if (!playerSocialPromise) {
+      const path = 'web/js/social-dock-v2.js';
+      const localized = window.AppLanguage?.asset?.(path) || path;
+      playerSocialPromise = Promise.allSettled([
+        loadSocialAsset('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1', true),
+        window.PlayerSocial || loadSocialAsset('social-dock-v2-js', `${localized}?v=6`),
+      ]).then((results) => {
+        const failure = results.find((result) => result.status === 'rejected');
+        if (!failure) return window.PlayerSocial;
+        playerSocialPromise = null;
+        throw failure.reason;
+      });
+    }
+    return playerSocialPromise;
+  }
+
   function maybeLoadSocialFeatures(user) {
     // Browser QA intentionally disables auxiliary network/features so request
     // budget and startup checks only measure the production core path under test.
     if (window.__APP_TELEMETRY_DISABLED__ === true) return;
     if (!/^\d{5,20}$/.test(String(user?.id || ''))) return;
 
-    ensureStyle('social-dock-v2-css', 'web/styles/social-dock-v2.css?v=1');
     ensureStyle('game-friend-invites-css', 'web/styles/game-friend-invites.css?v=1');
 
     /*
@@ -161,7 +203,7 @@
     */
     const mount = () => {
       const localized = (path) => window.AppLanguage?.asset?.(path) || path;
-      ensureScript('social-dock-v2-js', `${localized('web/js/social-dock-v2.js')}?v=5`);
+      loadPlayerSocial().catch(() => {});
       ensureScript('game-friend-invites-js', `${localized('web/js/game-friend-invites.js')}?v=1`);
     };
     const ready = () => Boolean(document.documentElement.dataset.languageReady);
@@ -181,6 +223,8 @@
     window.TelegramLaunchContext = {
       getInitData: () => String(window.Telegram?.WebApp?.initData || captureInitData().value || ''),
       getUser: () => window.Telegram?.WebApp?.initDataUnsafe?.user || user || null,
+      getStartParam: () => String(window.Telegram?.WebApp?.initDataUnsafe?.start_param || readLaunchParam('tgWebAppStartParam') || readLaunchParam('startapp') || ''),
+      loadPlayerSocial,
       source: launch.source,
       hasInitData: Boolean(launch.value),
     };
@@ -203,7 +247,7 @@
       tg?.ready?.();
       tg?.expand?.();
       maybeLoadSocialFeatures(tg?.initDataUnsafe?.user || null);
-      window.dispatchEvent(new CustomEvent('telegram:sdk-ready'));
     } catch {}
+    window.dispatchEvent(new CustomEvent('telegram:sdk-ready'));
   }, { once: true });
 })();

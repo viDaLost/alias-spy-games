@@ -174,8 +174,19 @@ try {
   await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '61');
   await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 17);
   assert.equal(await catalog.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  assert.equal(await catalog.locator('#catalog-library input, #catalog-favorites').count(), 0);
+  assert.deepEqual(await catalog.locator('#catalog-filters button').allTextContents(), ['Все', 'Одиночные', 'Для компании']);
+  await catalog.locator('#catalog-filters [data-filter="solo"]').click();
+  assert.equal(await catalog.locator('#collection-company-games').count(), 0);
+  assert.ok(await catalog.locator('#collection-word-games').isVisible());
+  await catalog.locator('#catalog-filters [data-filter="company"]').click();
+  assert.equal(await catalog.locator('#collection-word-games, #collection-kids-games').count(), 0);
+  assert.ok(await catalog.locator('#collection-company-games').isVisible());
+  await catalog.locator('#catalog-filters [data-filter="all"]').click();
   await catalog.locator('#catalog-games [data-favorite="bible-wow"]').click();
-  await catalog.locator('#favorite-games [data-launch="bible-wow"]').waitFor();
+  await catalog.locator('#open-favorites').click();
+  await catalog.locator('#favorites-dialog[open] [data-launch="bible-wow"]').waitFor();
+  await catalog.locator('#favorites-dialog .catalog-dialog-close').click();
   await catalog.locator('#open-profile').click();
   await catalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
   await catalog.evaluate(() => window.PlayerSocial.close());
@@ -202,6 +213,28 @@ try {
   await webCatalog.locator('#open-profile').click();
   await webCatalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
   await webCatalogContext.close();
+
+  const slowContext = await contextFor();
+  let finishProfileLoad;
+  const profileLoad = new Promise((resolve) => { finishProfileLoad = resolve; });
+  await slowContext.route('**/web/js/social-dock-v2.js*', async (route) => {
+    await profileLoad;
+    await route.continue();
+  });
+  const slow = await slowContext.newPage();
+  await slow.goto(base);
+  await slow.locator('#open-profile').tap();
+  assert.equal(await slow.locator('#open-profile').getAttribute('aria-busy'), 'true');
+  assert.equal(await slow.evaluate(() => Boolean(window.PlayerSocial)), false);
+  finishProfileLoad();
+  await slow.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
+  await slowContext.close();
+
+  const linkedProfileContext = await contextFor();
+  const linkedProfile = await linkedProfileContext.newPage();
+  await linkedProfile.goto(`${base}/#tgWebAppStartParam=profile`);
+  await linkedProfile.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
+  await linkedProfileContext.close();
 
   assert.deepEqual(authErrors, [], 'Android and iOS must use their verified session, never the native launch marker');
   console.log('PASS: mobile lock, Telegram/Android/iOS/guest denial, no guest bypass, unchanged local progress, retry/unlock, offline denial, root entry and working grant/revoke controls.');

@@ -2781,18 +2781,6 @@ html.theme-dark .catalog-filters::before {
 html.theme-dark .catalog-filters button {
   color: #8595c7 !important;
 }
-html.theme-dark .catalog-find {
-  border: 1px solid #0b1c41 !important;
-  background: rgba(8, 22, 44, 0.961) !important;
-}
-html.theme-dark .catalog-search {
-  border: 1px solid #1a2740 !important;
-  background: #141414 !important;
-  color: #737abf !important;
-}
-html.theme-dark .catalog-search:focus-within {
-  outline: 2px solid #241bbf !important;
-}
 html.theme-dark .catalog-hero {
   border: 1px solid #232b66 !important;
   background: radial-gradient(ellipse at 80% 47%, #223792 0%, #5468bb 29%, transparent 63%),
@@ -2822,24 +2810,10 @@ html.theme-dark .catalog-hero-play {
 html.theme-dark .catalog-hero-play:hover {
   background: #3f310b !important;
 }
-html.theme-dark .catalog-pin {
-  color: #818fd3 !important;
-  background: #071428 !important;
-}
-html.theme-dark .catalog-pin:hover {
-  background: #091535 !important;
-}
-html.theme-dark .catalog-favorites h2 {
-  color: #8894d5 !important;
-}
 html.theme-dark .catalog-collection > h2 {
   border: 1px solid #18253e !important;
   background: rgba(7, 18, 42, 0.969) !important;
   color: #8a9bd5 !important;
-}
-html.theme-dark .catalog-empty {
-  background: #08142b !important;
-  color: #8595c9 !important;
 }
 html.theme-dark .catalog-game-face {
   border: 1px solid #091735 !important;
@@ -2907,6 +2881,12 @@ html.theme-dark .catalog-dialog-done {
 html.theme-dark .catalog-invite-qr {
   background: #141414 !important;
 }
+@media (max-width: 510px) {
+html.theme-dark .catalog-top {
+  border: 1px solid #18253f !important;
+  background: rgba(7, 16, 40, 0.961) !important;
+}
+}
 
 /* cloudflare/full-preview/public/catalog-system.css */
 html.theme-dark .catalog-game .catalog-save[aria-pressed="true"] {
@@ -2967,6 +2947,16 @@ html.theme-dark .theme-dark .catalog {
   --catalog-ink: #080b2d !important;
   --catalog-muted: #262f50 !important;
   --catalog-line: #7880a6 !important;
+}
+html.theme-dark .theme-dark .catalog-promo .catalog-hero-play {
+  background: #574618 !important;
+  color: #aba0de !important;
+}
+@media (max-width: 510px) {
+html.theme-dark :is(html[data-full-preview],
+html.theme-dark[data-game-catalog]) .home-gamehub-parallax__scene::after {
+  background: linear-gradient(180deg, rgba(9, 24, 50, 0.361), rgba(11, 27, 60, 0.522)) !important;
+}
 }
 
 /* web/styles/catalog-client.css */

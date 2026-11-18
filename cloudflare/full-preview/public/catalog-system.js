@@ -166,41 +166,51 @@
   quick.addEventListener('click', openService);
   accountActions.addEventListener('click', openService);
 
-  function openAccount(tab = 'profile') {
-    const signed = window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || window.WebSession?.active?.();
-    if (signed && window.PlayerSocial) return window.PlayerSocial.open(tab);
-    if (signed) return window.showToast?.('Профиль загружается. Попробуйте ещё раз.');
-    return window.WebSession?.open();
+  function hasAccountSession() {
+    return Boolean(window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || window.WebSession?.active?.());
+  }
+
+  const profile = document.getElementById('open-profile');
+  async function openAccount(tab = 'profile') {
+    if (profile.hasAttribute('aria-busy')) return;
+    if (!hasAccountSession()) return window.WebSession?.open();
+    profile.setAttribute('aria-busy', 'true');
+    try {
+      const social = await window.TelegramLaunchContext.loadPlayerSocial();
+      if (window.AppAccess?.allowed()) await social.open(tab);
+    } catch {
+      window.showToast?.('Не удалось загрузить профиль. Попробуйте ещё раз.', 'error');
+    } finally {
+      profile.removeAttribute('aria-busy');
+    }
   }
 
   if (!preview) {
-    const profile = document.getElementById('open-profile');
     profile.setAttribute('role', 'button');
+    profile.setAttribute('aria-haspopup', 'dialog');
     function openProfile(event) {
       event.preventDefault();
-      openAccount();
+      void openAccount();
     }
     profile.addEventListener('click', openProfile);
     profile.addEventListener('keydown', (event) => {
       if (event.key === ' ') openProfile(event);
     });
+    let openedFromLink = false;
+    function openRequestedAccount() {
+      if (openedFromLink || !document.documentElement.classList.contains('app-ui-ready') || !window.AppAccess?.allowed()) return;
+      const requested = new URLSearchParams(location.search).get('account');
+      const tab = requested === 'friends' ? 'friends'
+        : window.TelegramLaunchContext?.getStartParam?.() === 'profile' && hasAccountSession() ? 'profile' : '';
+      if (!tab) return;
+      openedFromLink = true;
+      void openAccount(tab);
+    }
     window.addEventListener('app:menu-ready', () => {
-      const friendsRequested = new URLSearchParams(location.search).get('account') === 'friends';
-      let script = document.getElementById('social-dock-v2-js');
-      if (!script && window.WebSession?.active?.()) {
-        const css = document.createElement('link');
-        css.rel = 'stylesheet';
-        css.id = 'social-dock-v2-css';
-        css.href = 'web/styles/social-dock-v2.css?v=1';
-        script = document.createElement('script');
-        script.src = 'web/js/social-dock-v2.js?v=5';
-        script.id = 'social-dock-v2-js';
-        document.head.append(css, script);
-      }
-      if (!friendsRequested) return;
-      if (script && !window.PlayerSocial) script.addEventListener('load', () => openAccount('friends'), { once: true });
-      else openAccount('friends');
-    }, { once: true });
+      if (window.WebSession?.active?.()) window.TelegramLaunchContext.loadPlayerSocial().catch(() => {});
+      openRequestedAccount();
+    });
+    window.addEventListener('telegram:sdk-ready', openRequestedAccount, { once: true });
   }
 
   window.CatalogSystem = Object.freeze({ icon, refresh, setRoomGames, acceptInvite(value) {
