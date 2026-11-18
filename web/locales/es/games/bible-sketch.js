@@ -31,9 +31,12 @@ function startBibleSketchGame() {
   const telegramUser = tg?.initDataUnsafe?.user || {};
   const defaultName = String(telegramUser.first_name || telegramUser.username || 'Jugador').trim() || 'Jugador';
   const guestId = getOrCreateGuestId();
+  const previewInvite = window.FullPreviewMenu && window.RoomInvite?.peek();
+  const inviteCode = previewInvite?.game === 'bible-sketch' ? previewInvite.room : '';
 
   let state = null;
   let roomId = localStorage.getItem(LS.roomId) || '';
+  if (inviteCode && roomId !== inviteCode) roomId = '';
   let playerName = localStorage.getItem(LS.playerName) || defaultName;
   let sessionToken = '';
   let socket = null;
@@ -343,7 +346,7 @@ function startBibleSketchGame() {
       <button type="button" class="bsk-category ${category.id === selectedCategory ? 'is-selected' : ''}" data-action="category" data-category="${category.id}">
         <span class="bsk-category-icon">${category.icon}</span><b>${category.title}</b><small>${category.size} palabras · ${esc(category.hint)}</small>
       </button>`).join('');
-    document.getElementById('bsk-content').innerHTML = `\n      <div class="bsk-home">\n        <section class="bsk-hero"><span class="bsk-kicker">Realtime · 3–15 jugadores</span><h2>Dibuja. Observa. Encuentra al espía.</h2><p>Todos menos el espía conocen la palabra bíblica. Los jugadores añaden trazos por turnos y el espía intenta descubrir la respuesta.</p>\n          <div class="bsk-rules"><div class="bsk-rule"><b>1 · Categoría</b>El anfitrión elige entre seis categorías: Objetos, Lugares, Personas, Sucesos, Naturaleza u Oficios.</div><div class="bsk-rule"><b>2 · Por turnos</b>Cada jugador tiene 40 segundos para añadir líneas al lienzo común.</div><div class="bsk-rule"><b>3 · Espía</b>Puede arriesgarse a responder antes de votar.</div></div>\n        </section>\n        <div class="bsk-home-grid">\n          <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Crear sala</h3><label class="bsk-field"><span>Tu nombre</span><input id="bsk-player-name" class="bsk-input" maxlength="32" value="${attr(playerName)}"></label><div class="bsk-category-grid">${categoryCards}</div><p class="bsk-note">Las palabras no se repiten hasta usar todas las de la categoría. Después se reinicia la baraja.</p><button type="button" class="bsk-primary" data-action="create-room" style="width:100%;margin-top:10px">Crear sala de espera</button></section>\n          <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Entrar con código</h3><label class="bsk-field"><span>Código de sala</span><input id="bsk-room-code" class="bsk-input" maxlength="10" placeholder="ABC123" autocapitalize="characters"></label><button type="button" class="bsk-secondary" data-action="join-room" style="width:100%">Entrar en la sala</button><p class="bsk-note">Al jugar mediante Telegram se usa tu sesión verificada. En un navegador normal hay modo invitado.</p></section>\n        </div>\n      </div>`;
+    document.getElementById('bsk-content').innerHTML = `\n      <div class="bsk-home">\n        <section class="bsk-hero"><span class="bsk-kicker">Realtime · 3–15 jugadores</span><h2>Dibuja. Observa. Encuentra al espía.</h2><p>Todos menos el espía conocen la palabra bíblica. Los jugadores añaden trazos por turnos y el espía intenta descubrir la respuesta.</p>\n          <div class="bsk-rules"><div class="bsk-rule"><b>1 · Categoría</b>El anfitrión elige entre seis categorías: Objetos, Lugares, Personas, Sucesos, Naturaleza u Oficios.</div><div class="bsk-rule"><b>2 · Por turnos</b>Cada jugador tiene 40 segundos para añadir líneas al lienzo común.</div><div class="bsk-rule"><b>3 · Espía</b>Puede arriesgarse a responder antes de votar.</div></div>\n        </section>\n        <div class="bsk-home-grid">\n          <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Crear sala</h3><label class="bsk-field"><span>Tu nombre</span><input id="bsk-player-name" class="bsk-input" maxlength="32" value="${attr(playerName)}"></label><div class="bsk-category-grid">${categoryCards}</div><p class="bsk-note">Las palabras no se repiten hasta usar todas las de la categoría. Después se reinicia la baraja.</p><button type="button" class="bsk-primary" data-action="create-room" style="width:100%;margin-top:10px">Crear sala de espera</button></section>\n          <section class="bsk-card bsk-glass"><h3 class="bsk-section-title">Entrar con código</h3><label class="bsk-field"><span>Código de sala</span><input id="bsk-room-code" class="bsk-input" maxlength="10" placeholder="ABC123" value="${attr(inviteCode)}" autocapitalize="characters"></label><button type="button" class="bsk-secondary" data-action="join-room" style="width:100%">Entrar en la sala</button><p class="bsk-note">Al jugar mediante Telegram se usa tu sesión verificada. En un navegador normal hay modo invitado.</p></section>\n        </div>\n      </div>`;
   }
 
   function renderState() {
@@ -581,7 +584,7 @@ function startBibleSketchGame() {
     const canvas = document.getElementById('bsk-canvas');
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = window.GameDisplay?.pixelRatio() ?? Math.min(2, window.devicePixelRatio || 1);
     const width = Math.max(300, Math.round(rect.width * dpr));
     const height = Math.max(180, Math.round(rect.height * dpr));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
@@ -717,6 +720,9 @@ function startBibleSketchGame() {
 
   async function shareRoom() {
     if (!roomId) return;
+    if (window.FullPreviewMenu && window.RoomInvite?.openQr) {
+      return window.RoomInvite.openQr('bible-sketch', roomId, 'Пригласить в «Библейский художник»');
+    }
     const text = `Artista bíblico · código de sala ${roomId}`;
     if (navigator.share) {
       try { await navigator.share({ title: 'Artista bíblico', text }); return; } catch {}

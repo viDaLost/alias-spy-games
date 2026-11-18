@@ -1,0 +1,47 @@
+name: Deploy full-preview feature menu
+
+on:
+  push:
+    branches:
+      - feat/catalog-account-integration
+    paths:
+      - 'cloudflare/full-preview/**'
+      - '.github/workflows/deploy-full-preview-feature.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-preview-feature
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install app build dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Prepare thumbnail conversion
+        run: |
+          if ! command -v magick >/dev/null; then
+            if ! command -v convert >/dev/null; then
+              sudo apt-get update -qq
+              sudo apt-get install -y imagemagick
+            fi
+            sudo ln -s "$(command -v convert)" /usr/local/bin/magick
+          fi
+      - name: Validate carousel
+        run: |
+          node --check cloudflare/full-preview/public/catalog-carousel.js
+          node --input-type=module -e "import fs from 'node:fs'; const s=fs.readFileSync('cloudflare/full-preview/public/catalog-carousel.js','utf8'); if(!s.includes('}, 3000);') || !s.includes('restartAutoplay();')) process.exit(1)"
+      - name: Build full game preview
+        run: node cloudflare/full-preview/build.mjs
+      - name: Publish isolated preview
+        run: npx --yes wrangler@4 deploy --config cloudflare/full-preview/wrangler.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

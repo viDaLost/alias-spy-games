@@ -77,7 +77,7 @@
   }
 
   function isQuartet() {
-    return document.body?.dataset?.currentGame === 'quartet' && !!document.getElementById('qv2-root');
+    return document.body?.dataset?.currentGame === 'quartet' && Boolean(document.querySelector('#qv2-root:not(.qt-root)'));
   }
 
   function ensurePortal() {

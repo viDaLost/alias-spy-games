@@ -102,7 +102,7 @@ try {
   check(await page.locator('[data-channel-later]').count() === 1, 'в баннере нет кнопки «Не сейчас»');
 
   // 2. Кнопка в главном меню — не за дверью «Ещё», а на виду.
-  const button = page.locator('.home-channel-trigger');
+  const button = page.locator('#catalog-system-quick [data-service="channel"]');
   check(await button.count() === 1, 'в главном меню нет кнопки канала');
   check(await button.evaluate((node) => Boolean(node.closest('#menu-container')) && !node.closest('#system-actions'))
     .catch(() => false), 'кнопка канала уехала в служебный раздел');
@@ -119,7 +119,7 @@ try {
   check(await page.locator('#channel-promo').count() === 0, 'баннер не закрылся по «Не сейчас»');
   await openMenu();
   check(await page.locator('#channel-promo').count() === 0, 'баннер вернулся после перезапуска — он одноразовый');
-  check(await page.locator('.home-channel-trigger').count() === 1, 'вместе с баннером пропала и кнопка канала');
+  check(await page.locator('#catalog-system-quick [data-service="channel"]').count() === 1, 'вместе с баннером пропала и кнопка канала');
 
   // 5. Подписка тоже закрывает баннер навсегда — и открывает тот же адрес.
   await page.evaluate(() => localStorage.removeItem('channel_promo_seen_v1'));

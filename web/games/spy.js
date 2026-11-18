@@ -348,6 +348,7 @@ function ensureSpyRoleCardStyles() {
   кнопка «Новая игра» внутри партии зовёт startSpyGame(url, 'single').
 */
 async function startSpyGame(locationsUrl, mode) {
+  if (!mode && window.FullPreviewMenu && window.RoomInvite?.peek()?.game === 'spy') return openSpyOnline();
   if (mode !== 'single') return showSpyModePicker(locationsUrl);
   return startSpySingleDevice(locationsUrl);
 }

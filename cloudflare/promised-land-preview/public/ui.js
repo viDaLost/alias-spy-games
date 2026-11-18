@@ -8,7 +8,7 @@
 
 (async () => {
   'use strict';
-  await window.SabbathAccess.waitForAccess('promised-land');
+  await window.SabbathAccess?.waitForAccess('promised-land');
 
   const B = window.PromisedLandBoard;
   const E = window.PromisedLandEngine;
@@ -721,7 +721,7 @@
   */
   function setupScene() {
     const canvas = $('board3d');
-    if (!canvas || scene || !window.PromisedLand3D || !window.PromisedLand3D.supported()) return;
+    if (window.GameDisplay?.lowGraphics() || !canvas || scene || !window.PromisedLand3D || !window.PromisedLand3D.supported()) return;
     const style = getComputedStyle(document.body);
     const pick = (name, fallback) => (style.getPropertyValue(name) || fallback).trim();
     try {
@@ -2083,7 +2083,7 @@
     нельзя: тогда кости не бросают, а просто объявляют.
   */
   let rolling = false;
-  const REDUCED = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const REDUCED = window.GameDisplay?.reducedMotion() || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
   /**
    * Бросок с показом. В объёме кости кувыркаются и ложатся выпавшими числами,

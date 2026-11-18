@@ -104,13 +104,13 @@ function adjacentIndex(index,dx,dy,rows,cols){
 }
 function attachSwipe(board){
   if(!board||board.dataset.v15Swipe==="1")return;board.dataset.v15Swipe="1";
-  let pointer=null,synthetic=false,suppressClickUntil=0;
-  board.addEventListener("click",event=>{if(synthetic||performance.now()>=suppressClickUntil)return;event.preventDefault();event.stopImmediatePropagation()},true);
+  let pointer=null,suppressClickUntil=0;
+  board.addEventListener("click",event=>{if(event.detail===0||performance.now()>=suppressClickUntil)return;event.preventDefault();event.stopImmediatePropagation()},true);
   board.addEventListener("pointerdown",event=>{
     if(event.button!=null&&event.button!==0)return;
     const tile=event.target.closest(".bmt-tile");if(!tile||!board.contains(tile)||tile.disabled||tile.classList.contains("is-hole"))return;
     pointer={id:event.pointerId,index:Number(tile.dataset.index),x:event.clientX,y:event.clientY};
-    try{board.setPointerCapture?.(event.pointerId)}catch{}
+    try{tile.setPointerCapture?.(event.pointerId)}catch{}
   },{passive:true});
   board.addEventListener("pointermove",event=>{if(!pointer||pointer.id!==event.pointerId)return;if(Math.hypot(event.clientX-pointer.x,event.clientY-pointer.y)>7)event.preventDefault()},{passive:false});
   board.addEventListener("pointercancel",()=>{pointer=null},{passive:true});
@@ -123,7 +123,7 @@ function attachSwipe(board){
     const rows=Math.max(1,Number(board.dataset.rows||8)),cols=Math.max(1,Number(board.dataset.cols||8));const targetIndex=adjacentIndex(state.index,sx,sy,rows,cols);if(targetIndex==null)return;
     const source=board.querySelector(`.bmt-tile[data-index="${state.index}"]`),target=board.querySelector(`.bmt-tile[data-index="${targetIndex}"]`);if(!source||!target||source.disabled||target.disabled||source.classList.contains("is-hole")||target.classList.contains("is-hole"))return;
     suppressClickUntil=performance.now()+420;event.preventDefault();event.stopPropagation();
-    requestAnimationFrame(()=>{synthetic=true;try{source.click();target.click()}finally{synthetic=false}});
+    board.dispatchEvent(new CustomEvent("bmt:swipe",{detail:{from:state.index,to:targetIndex}}));
   },{passive:false});
 }
 function fitBoardNow(){
@@ -136,7 +136,9 @@ function fitBoardNow(){
 function scheduleFit(){if(fitFrame)return;fitFrame=requestAnimationFrame(()=>requestAnimationFrame(fitBoardNow))}
 function watchBoard(board){
   if(observedBoard===board)return;boardResizeObserver?.disconnect();observedBoard=board||null;if(!board)return;
-  boardResizeObserver=new ResizeObserver(scheduleFit);const wrap=board.closest(".bmt-board-wrap");if(wrap)boardResizeObserver.observe(wrap);attachSwipe(board);scheduleFit();
+  const wrap=board.closest(".bmt-board-wrap");
+  if(wrap&&typeof ResizeObserver==="function"){boardResizeObserver=new ResizeObserver(scheduleFit);boardResizeObserver.observe(wrap)}
+  attachSwipe(board);scheduleFit();
 }
 function mountOverlays(){document.querySelectorAll("#game-container .bmt-sheet-overlay,#game-container .bmt-result-overlay,#game-container .bmt-pause-overlay,#game-container .bmt-tutorial").forEach(overlay=>document.body.append(overlay))}
 function enhance(){

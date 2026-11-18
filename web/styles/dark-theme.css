@@ -2733,6 +2733,247 @@ html.theme-dark .app-access-manager .app-access-restore {
   border-color: #4d42c0 !important;
 }
 
+/* cloudflare/full-preview/public/catalog.css */
+html.theme-dark[data-full-preview] body:not([data-mode="game"]) {
+  background: radial-gradient(ellipse at 12% 8%, #071a29 10%, transparent 52%),
+    linear-gradient(151deg, #071a29, #0a173a 63%, #0a293a) !important;
+  color: #a9b3e0 !important;
+}
+html.theme-dark .catalog,
+html.theme-dark .catalog-dialog {
+  --catalog-ink: #a9b3e0 !important;
+  --catalog-muted: #7d89b1 !important;
+  --catalog-brand-color: #241bbf !important;
+  --catalog-line: #192443 !important;
+}
+html.theme-dark .catalog :where(button,
+html.theme-dark a):focus-visible,
+html.theme-dark .catalog-dialog :where(button,
+html.theme-dark a):focus-visible {
+  outline: 3px solid #2c7dd7 !important;
+}
+html.theme-dark .catalog-top {
+  border-bottom: 1px solid rgba(95, 114, 168, 0.259) !important;
+}
+html.theme-dark .catalog-brand {
+  border: 1px solid #1f2943 !important;
+  background: #071028 !important;
+}
+html.theme-dark .catalog-tool {
+  color: #8695d1 !important;
+  border: 1px solid #1f2943 !important;
+  background: rgba(7, 16, 40, 0.929) !important;
+}
+html.theme-dark .catalog-tool:hover,
+html.theme-dark .catalog-tool[aria-expanded="true"] {
+  background: #0a1336 !important;
+}
+html.theme-dark .catalog-heading h1 {
+  background: #071028 !important;
+}
+html.theme-dark .catalog-filters {
+  background: rgba(8, 20, 47, 0.949) !important;
+  border: 1px solid #1d2744 !important;
+}
+html.theme-dark .catalog-filters::before {
+  background: linear-gradient(150deg, #2c21ae, #34349f) !important;
+}
+html.theme-dark .catalog-filters button {
+  color: #8595c7 !important;
+}
+html.theme-dark .catalog-find {
+  border: 1px solid #0b1c41 !important;
+  background: rgba(8, 22, 44, 0.961) !important;
+}
+html.theme-dark .catalog-search {
+  border: 1px solid #1a2740 !important;
+  background: #141414 !important;
+  color: #737abf !important;
+}
+html.theme-dark .catalog-search:focus-within {
+  outline: 2px solid #241bbf !important;
+}
+html.theme-dark .catalog-hero {
+  border: 1px solid #232b66 !important;
+  background: radial-gradient(ellipse at 80% 47%, #223792 0%, #5468bb 29%, transparent 63%),
+    linear-gradient(126deg, #181337 0%, #281d61 44%, #203c7b 100%) !important;
+}
+html.theme-dark .catalog-hero::before {
+  border: 1px solid rgba(23, 42, 81, 0.302) !important;
+  background: conic-gradient(from 218deg at 83% 72%, transparent, rgba(14, 42, 80, 0.224) 17deg, transparent 35deg, rgba(15, 38, 83, 0.251) 66deg, transparent 87deg) !important;
+}
+html.theme-dark .catalog-portal {
+  border: 1px solid rgba(107, 78, 19, 0.769) !important;
+  background: radial-gradient(ellipse at 50% 79%, rgba(17, 61, 98, 0.6) 3%, rgba(58, 83, 170, 0.271) 56%, transparent 74%) !important;
+}
+html.theme-dark .catalog-plinth i {
+  border: 1px solid #465887 !important;
+  background: linear-gradient(140deg, #28385e, #312e66 59%, #161b4c) !important;
+}
+html.theme-dark .catalog-plinth i:nth-child(4) {
+  border-color: #655019 !important;
+  background: repeating-radial-gradient(ellipse at center, rgba(36, 70, 145, 0.09) 0 15%, rgba(100, 80, 24, 0.412) 15.3% 16%, rgba(30, 72, 157, 0.129) 16.4% 28%),
+    radial-gradient(ellipse at 57% 35%, #143752, #526cb3 53%, #292e64) !important;
+}
+html.theme-dark .catalog-hero-play {
+  color: #928ddc !important;
+  background: linear-gradient(170deg, #372e0a, #6b5628) !important;
+}
+html.theme-dark .catalog-hero-play:hover {
+  background: #3f310b !important;
+}
+html.theme-dark .catalog-pin {
+  color: #818fd3 !important;
+  background: #071428 !important;
+}
+html.theme-dark .catalog-pin:hover {
+  background: #091535 !important;
+}
+html.theme-dark .catalog-favorites h2 {
+  color: #8894d5 !important;
+}
+html.theme-dark .catalog-collection > h2 {
+  border: 1px solid #18253e !important;
+  background: rgba(7, 18, 42, 0.969) !important;
+  color: #8a9bd5 !important;
+}
+html.theme-dark .catalog-empty {
+  background: #08142b !important;
+  color: #8595c9 !important;
+}
+html.theme-dark .catalog-game-face {
+  border: 1px solid #091735 !important;
+  background: radial-gradient(ellipse at 14% 4%, rgba(9, 18, 51, 0.655) 0%, transparent 61%),
+    linear-gradient(146deg, #141414, rgba(8, 20, 43, 0.937) 77%, rgba(11, 9, 48, 0.851)) !important;
+}
+html.theme-dark .catalog-game-face::before {
+  background: linear-gradient(145deg, #122149, #34488e) !important;
+}
+html.theme-dark .catalog-game:hover .catalog-game-face {
+  border-color: #223060 !important;
+}
+html.theme-dark .catalog-game-emblem {
+  background: radial-gradient(ellipse at 35% 20%, white, #0b1a3c 57%, #0d0934 82%) !important;
+}
+html.theme-dark .catalog-game-description {
+  color: #7c8ab1 !important;
+}
+html.theme-dark .catalog-game-stats {
+  border-top: 1px solid #121f39 !important;
+  color: #899cd2 !important;
+}
+html.theme-dark .catalog-game-stats > span {
+  background: #0d1730 !important;
+}
+html.theme-dark .catalog-game-stats b {
+  color: #5e55b8 !important;
+}
+html.theme-dark .catalog-save {
+  background: #080f30 !important;
+  color: #5a54bd !important;
+}
+html.theme-dark .catalog-save[aria-pressed="true"] {
+  background: #0a1037 !important;
+  color: #4b3eca !important;
+}
+html.theme-dark .catalog-save:hover {
+  background: #0b183e !important;
+}
+html.theme-dark .catalog-dialog {
+  border: 1px solid #182448 !important;
+  background: #071028 !important;
+}
+html.theme-dark .catalog-dialog-close {
+  background: #091232 !important;
+  color: #8695d1 !important;
+}
+html.theme-dark .catalog-options span {
+  color: #818fc3 !important;
+  background: #091331 !important;
+}
+html.theme-dark .catalog-options input:checked + span {
+  background: #4139bf !important;
+}
+html.theme-dark .catalog-options input:focus-visible + span {
+  outline: 2px solid #2c7dd7 !important;
+}
+html.theme-dark .catalog-light-preset {
+  background: #091632 !important;
+  color: #6d61d2 !important;
+}
+html.theme-dark .catalog-dialog-done {
+  background: #4139bf !important;
+}
+html.theme-dark .catalog-invite-qr {
+  background: #141414 !important;
+}
+
+/* cloudflare/full-preview/public/catalog-system.css */
+html.theme-dark .catalog-game .catalog-save[aria-pressed="true"] {
+  background: #44360c !important;
+}
+html.theme-dark .catalog-wallet {
+  border: 1px solid #594a25 !important;
+  background: #352909 !important;
+  color: #dabf98 !important;
+}
+html.theme-dark .catalog-feature {
+  border: 1px solid #30305d !important;
+}
+html.theme-dark .catalog-promo-stage {
+  background: radial-gradient(ellipse at 50% 55%, rgba(30, 43, 99, 0.298), transparent 67%) !important;
+}
+html.theme-dark .catalog-promo[data-promo-game="quartet"] {
+  --promo-light: #8d661b !important;
+}
+html.theme-dark .catalog-promo[data-promo-game="twelve-tribes"] {
+  --promo-light: #8d600d !important;
+}
+html.theme-dark .catalog-more,
+html.theme-dark .catalog-system-action {
+  border: 1px solid #192743 !important;
+  background: #08142b !important;
+  color: #8a9ed5 !important;
+}
+html.theme-dark .catalog-system-action:hover,
+html.theme-dark .catalog-more:hover {
+  background: #091735 !important;
+}
+html.theme-dark .catalog-progress {
+  border: 1px solid #192743 !important;
+  background: #08142b !important;
+  color: #8a9ed5 !important;
+}
+html.theme-dark #catalog-progress-summary {
+  color: #7b8dbb !important;
+}
+html.theme-dark .catalog-system-action small,
+html.theme-dark .catalog-more small {
+  color: #7484b0 !important;
+}
+html.theme-dark .catalog-system-languages a {
+  border: 1px solid #1f2b44 !important;
+}
+html.theme-dark .catalog-join :is(input,
+html.theme-dark select) {
+  border: 1px solid #202c45 !important;
+  background: #141414 !important;
+  color: #90a3d6 !important;
+}
+html.theme-dark #catalog-join-error {
+  color: #ca776c !important;
+}
+html.theme-dark .theme-dark .catalog {
+  --catalog-ink: #080b2d !important;
+  --catalog-muted: #262f50 !important;
+  --catalog-line: #7880a6 !important;
+}
+
+/* web/styles/catalog-client.css */
+html.theme-dark[data-game-catalog] #more-screen #system-actions .game-card {
+  border: 1px solid var(--catalog-line, #1d2b44) !important;
+}
+
 /* web/games/quartet-v2.css */
 html.theme-dark .qv2-root {
   --qv2-ink: #c2cde4 !important;
@@ -4623,6 +4864,49 @@ html.theme-dark .bmt-fx-pillar {
 html.theme-dark .bmt-fx-vine-sprout {
   background: radial-gradient(circle at 32% 28%, rgba(54, 116, 74, 0.82), transparent 62%),
     radial-gradient(circle at 70% 72%, rgba(53, 112, 74, .78), transparent 60%) !important;
+}
+html.theme-dark .bmt-dig-guide {
+  border: 1px solid #202f48 !important;
+  background: #08112b !important;
+  color: #8ca2d4 !important;
+}
+html.theme-dark .bmt-dig-instruction small {
+  color: #8192b9 !important;
+}
+html.theme-dark .bmt-dig-found-title {
+  color: #8b9cc6 !important;
+}
+html.theme-dark .bmt-dig-item {
+  color: #8496c0 !important;
+}
+html.theme-dark .bmt-dig-slot {
+  border: 1px dashed #35486d !important;
+  background: #0d182f !important;
+}
+html.theme-dark .bmt-dig-item.is-found {
+  color: #95d8ba !important;
+}
+html.theme-dark .bmt-dig-item.is-found:not(.is-arriving) .bmt-dig-slot {
+  border: 1px solid #3c6a4f !important;
+  background: #142819 !important;
+}
+html.theme-dark .bmt-dig-marker {
+  border: 1px solid rgba(170, 134, 101, 0.69) !important;
+  background: linear-gradient(150deg, rgba(147, 102, 47, 0.282), #99704442) !important;
+}
+html.theme-dark .bmt-tile[data-dig-depth="2"] .bmt-dig-marker,
+html.theme-dark .bmt-tile[data-dig-depth="3"] .bmt-dig-marker {
+  background: linear-gradient(145deg, rgba(159, 121, 70, 0.392), #8a603960) !important;
+}
+html.theme-dark .bmt-dig-depth {
+  background: #312718 !important;
+  color: #beaa92 !important;
+}
+html.theme-dark .bmt-tile[data-dig-depth="0"] .bmt-dig-marker::after {
+  background: linear-gradient(#24150dba, transparent) top / 100% var(--bmt-pit-top, 0px) no-repeat,
+    linear-gradient(270deg, #3923169a, transparent) right / var(--bmt-pit-right, 0px) 100% no-repeat,
+    linear-gradient(0deg, rgba(94, 66, 27, 0.471), transparent) bottom / 100% var(--bmt-pit-bottom, 0px) no-repeat,
+    linear-gradient(90deg, #2b1b12ac, transparent) left / var(--bmt-pit-left, 0px) 100% no-repeat !important;
 }
 
 /* web/styles/biblical-match-three-v23-polish.css */

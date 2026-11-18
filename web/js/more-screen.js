@@ -28,7 +28,29 @@
 
   function cards() { return document.getElementById(HOST_ID); }
 
-  const CARD_ICON = 'web/assets/icons/more.webp?v=1';
+  const CARD_ICON = 'web/assets/icons/menu-system/settings.webp';
+  const serviceIcons = [
+    ['#web-session-btn', 'admin'],
+    ['#game-rules-btn', 'rules'],
+    ['#sabbath-city-card', 'theme'],
+    ['[data-room-scan-global], #install-app-btn, #android-download-btn', 'share'],
+  ];
+
+  function updateServiceIcons(host) {
+    for (const [selector, name] of serviceIcons) {
+      for (const card of host.querySelectorAll(selector)) {
+        const holder = card.querySelector('.game-card__icon');
+        if (!holder) continue;
+        const image = document.createElement('img');
+        image.className = 'game-card__img';
+        image.src = `web/assets/icons/menu-system/${name}.webp`;
+        image.alt = '';
+        image.draggable = false;
+        holder.classList.add('game-card__icon--image');
+        holder.replaceChildren(image);
+      }
+    }
+  }
 
   /** Возвращает карточки домой и убирает слой. */
   function close() {
@@ -59,6 +81,7 @@
       </section>`;
     document.body.append(node);
     document.documentElement.classList.add('more-screen-open');
+    updateServiceIcons(host);
     node.querySelector('[data-more-slot]')?.append(host);
     node.querySelector('[data-more-back]')?.addEventListener('click', close);
     node.scrollTop = 0;

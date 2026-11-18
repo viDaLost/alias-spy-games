@@ -353,7 +353,8 @@ window.PromisedLand3D = (() => {
       antialias: !lowPowerDevice,
       powerPreference: lowPowerDevice ? 'low-power' : 'default',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPowerDevice ? 1 : 2));
+    const maxPixelRatio = lowPowerDevice ? 1 : 2;
+    renderer.setPixelRatio(window.GameDisplay?.pixelRatio(maxPixelRatio) ?? Math.min(window.devicePixelRatio || 1, maxPixelRatio));
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.setClearColor(0xdcc49a, 1);
 

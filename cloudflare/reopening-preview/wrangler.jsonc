@@ -1,0 +1,20 @@
+{
+  "name": "alias-spy-games-reopening-preview",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-16",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../../preview-dist/reopening",
+    "binding": "PREVIEW_ASSETS",
+    "html_handling": "auto-trailing-slash"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "QuartetRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["QuartetRoom"] }],
+  "observability": {
+    "enabled": true,
+    "traces": { "enabled": true, "head_sampling_rate": 0.1 }
+  }
+}

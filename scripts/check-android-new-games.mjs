@@ -115,14 +115,8 @@ async function openApp(android) {
   return { context, page, crashes };
 }
 
-const menuCards = (page) => page.evaluate(() => [...new Set([...document.querySelectorAll('[onclick*="showGame("]')]
-  .filter((node) => {
-    const rect = node.getBoundingClientRect();
-    const style = getComputedStyle(node);
-    return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
-  })
-  .map((node) => node.getAttribute('onclick').match(/showGame\('([^']+)'/)?.[1])
-  .filter(Boolean))].sort());
+const menuCards = (page) => page.locator('#catalog-games [data-launch]:visible').evaluateAll((cards) =>
+  cards.map((card) => card.dataset.launch).sort());
 
 const backToMenu = async (page) => {
   await page.evaluate(() => (window.appGoToMainMenu || window.goToMainMenu)?.());

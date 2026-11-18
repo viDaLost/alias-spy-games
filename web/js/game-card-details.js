@@ -16,6 +16,7 @@
     'moses-nile': ['1 игрок', '≈ 1–3 мин / забег', 'Без сети'],
     'biblical-match-three': ['1 игрок', '≈ 3–5 мин / уровень', 'Без сети'],
   };
+  window.gameCardDetails = (key) => details[key]?.slice() || [];
   window.gameCardDetailsHTML = (key) => {
     const values = details[key];
     if (!values) return '';

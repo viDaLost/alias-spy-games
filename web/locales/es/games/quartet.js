@@ -1,6 +1,6 @@
 // games/quartet.js — Quartet v3, tactile card-table UX
 
-function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json') {
+function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json', { preview = false } = {}) {
   const container = document.getElementById('game-container');
   if (!container) return;
 
@@ -15,11 +15,15 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   };
 
   const TURN_TIMEOUT_SECONDS = 90;
-  const backendBase = resolveBackendBase();
+  const backendBase = preview ? window.location.origin : resolveBackendBase();
   const guestId = getOrCreateGuestId();
-  const telegramInitData = String(tg?.initData || '');
-  const telegramUser = tg?.initDataUnsafe?.user || {};
+  const telegramInitData = preview ? '' : String(tg?.initData || '');
+  const telegramUser = preview ? {} : tg?.initDataUnsafe?.user || {};
   const defaultName = String(telegramUser.first_name || telegramUser.username || 'Jugador').trim() || 'Jugador';
+  const inviteCode = preview ? normalizeRoomId(new URL(location.href).searchParams.get('room')) : '';
+  const fallbackSocket = preview && !window.QuartetPreviewSocket ? window.QuartetPollingSocket : null;
+  const loadPractice = preview ? window.FullPreviewMenu?.loadQuartetPractice : null;
+  const directPractice = loadPractice && !inviteCode && new URL(location.href).searchParams.get('mode') === 'bots';
 
   let catalog = [];
   let quartetById = new Map();
@@ -27,9 +31,12 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   let quartetByCardId = new Map();
   let state = null;
   let roomId = localStorage.getItem(LS.roomId) || '';
+  if (inviteCode && roomId !== inviteCode) roomId = '';
   let playerName = localStorage.getItem(LS.playerName) || defaultName;
   let sessionToken = '';
   let socket = null;
+  let socketStartupTimer = null;
+  let usePolling = false;
   let reconnectTimer = null;
   let reconnectAttempt = 0;
   let reconnecting = false;
@@ -42,24 +49,48 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   let toastTimer = null;
   let turnNoticeTimer = null;
   let currentScreen = 'loading';
+  let table = null;
+  let tableRequest = null;
+  let tableRequestTimer = null;
+  let practice = null;
 
   const ui = {};
 
   injectStylesheet();
   renderRoot();
+  if (window.QuartetTable) {
+    ui.root.classList.add('qt-root');
+    table = window.QuartetTable.create({
+      content: ui.content,
+      escapeHtml,
+      getGroups: buildHandGroups,
+      getQuartet: (id) => quartetById.get(id),
+      getCard: (id) => cardById.get(id),
+      getEvent: renderLastEvent,
+    });
+  }
   bindRootEvents();
   startTurnClock();
 
   window.__quartetCleanup = cleanup;
 
   boot().catch((error) => {
+    if (destroyed) return;
     console.error('Quartet v3 boot error', error);
     showFatal(String(error?.message || error));
   });
 
   async function boot() {
     catalog = normalizeCatalog(await loadCatalog(catalogUrl));
+    if (destroyed) return;
     indexCatalog(catalog);
+
+    if (directPractice) {
+      renderHome();
+      try { await startPractice(ui.content.querySelector('[data-action="start-practice"]')); }
+      catch (error) { if (!destroyed) showToast(error.message, 'error'); }
+      return;
+    }
 
     if (!backendBase) {
       showBackendNotConfigured();
@@ -72,10 +103,10 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
         await joinOrResume(roomId, true);
         return;
       } catch (error) {
-        if (error?.clientBackoff) {
+        if (error?.clientBackoff || (preview && temporaryRoomError(error))) {
           // Комната цела, вход просто отложен: ждём, пока приложение вернётся
           // на экран, и заходим снова.
-          showConnecting('Volviendo a la sala…');
+          showConnecting('Восстанавливаем связь с комнатой…', preview);
           scheduleReconnect();
           return;
         }
@@ -105,15 +136,17 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function injectStylesheet() {
-    const existing = document.getElementById('quartet-v2-css');
+    const href = 'web/locales/es/games/quartet-v2.css?v=4';
+    const existing = document.getElementById('quartet-v2-css') || document.querySelector(`link[href="${href}"]`);
     if (existing) {
-      existing.href = 'web/locales/es/games/quartet-v2.css?v=4';
+      existing.id = 'quartet-v2-css';
+      if (existing.getAttribute('href') !== href) existing.href = href;
       return;
     }
     const link = document.createElement('link');
     link.id = 'quartet-v2-css';
     link.rel = 'stylesheet';
-    link.href = 'web/locales/es/games/quartet-v2.css?v=4';
+    link.href = href;
     document.head.appendChild(link);
   }
 
@@ -132,7 +165,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
       icon: String(quartet.icon || '🃏'),
       cards: (quartet.cards || []).map((card, index) => typeof card === 'string'
         ? { id: `${quartet.id || 'q'}_${index}`, title: card, art: '' }
-        : { id: String(card.id || ''), title: String(card.title || ''), art: String(card.art || '') }),
+        : { id: String(card.id || ''), title: String(card.title || ''), art: String(card.art || ''), icon: String(card.icon || '') }),
     }));
   }
 
@@ -150,7 +183,10 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function renderRoot() {
-    container.innerHTML = `\n      <section class="qv2-root" id="qv2-root">\n        <header class="qv2-topbar qv2-glass">\n          <button type="button" class="qv2-icon-btn" data-action="back" aria-label="Atrás">←</button>\n          <div class="qv2-titlebox">\n            <h2 class="qv2-title">Cuarteto</h2>\n            <div class="qv2-subtitle" id="qv2-subtitle">Juego en línea</div>\n          </div>\n          <div class="qv2-connection" id="qv2-connection">\n            <span class="qv2-dot"></span><span id="qv2-connection-text">Conexión</span>\n          </div>\n        </header>\n        <div id="qv2-content"></div>\n        <div class="qv2-turn-notice" id="qv2-turn-notice" role="status" aria-live="assertive">\n          <div class="qv2-turn-notice-icon" id="qv2-turn-notice-icon">↻</div>\n          <div><strong id="qv2-turn-notice-title"></strong><span id="qv2-turn-notice-text"></span></div>\n        </div>\n        <div class="qv2-toast" id="qv2-toast" role="status" aria-live="polite"></div>\n        <div id="qv2-modal-root"></div>\n      </section>\n    `;
+    container.innerHTML = `
+      <section class="qv2-root" id="qv2-root">
+        <header class="qv2-topbar qv2-glass">
+          <button type="button" class="qv2-icon-btn" data-action="back" aria-label="${preview ? 'Al menú' : 'Atrás'}">←</button>\n          <div class="qv2-titlebox">\n            <h2 class="qv2-title">Cuarteto</h2>\n            <div class="qv2-subtitle" id="qv2-subtitle">Juego en línea</div>\n          </div>\n          <div class="qv2-connection" id="qv2-connection">\n            <span class="qv2-dot"></span><span id="qv2-connection-text">Conexión</span>\n          </div>\n        </header>\n        <div id="qv2-content"></div>\n        <div class="qv2-turn-notice" id="qv2-turn-notice" role="status" aria-live="assertive">\n          <div class="qv2-turn-notice-icon" id="qv2-turn-notice-icon">↻</div>\n          <div><strong id="qv2-turn-notice-title"></strong><span id="qv2-turn-notice-text"></span></div>\n        </div>\n        <div class="qv2-toast" id="qv2-toast" role="status" aria-live="polite"></div>\n        <div id="qv2-modal-root"></div>\n      </section>\n    `;
     ui.root = document.getElementById('qv2-root');
     ui.content = document.getElementById('qv2-content');
     ui.subtitle = document.getElementById('qv2-subtitle');
@@ -168,8 +204,12 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   function bindRootEvents() {
     ui.root?.addEventListener('click', async (event) => {
       const target = event.target.closest('[data-action]');
+      const action = target?.dataset.action;
+      if (table && selectedCardId && !event.target.closest('.qt-card')) {
+        selectedCardId = '';
+        renderGame();
+      }
       if (!target) return;
-      const action = target.dataset.action;
       if (action === 'close-modal' && event.target.closest('[data-modal-card]') && !event.target.closest('button[data-action="close-modal"]')) return;
 
       // await обязателен. Без него «return createRoom(target)» отдаёт промис из
@@ -178,16 +218,39 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
       // администратору она прилетала как ошибка приложения.
       try {
         if (action === 'back') return await onBack();
+        if (action === 'start-practice') return await startPractice(target);
         if (action === 'create') return await createRoom(target);
         if (action === 'join') return await joinRoomFromForm(target);
         if (action === 'copy-room') return await copyRoomCode();
         if (action === 'share-room') return await shareRoom();
-        if (action === 'start-game') return await sendAction('startGame', {}, target);
-        if (action === 'restart-game') return await sendAction('restartGame', {}, target);
+        if (action === 'scan-room') return await window.RoomQrScanner?.open();
+        if (action === 'start-game') return table ? await sendTableAction('startGame') : await sendAction('startGame', {}, target);
+        if (action === 'restart-game') return table ? await sendTableAction('restartGame') : await sendAction('restartGame', {}, target);
         if (action === 'leave-room') return await confirmLeave();
         if (action === 'select-target') return await selectTarget(target);
         if (action === 'select-card') return await selectCard(target);
         if (action === 'confirm-ask') return await confirmAsk(target);
+        if (action === 'table-card' && isMyTurn() && !target.disabled) {
+          selectedCardId = selectedCardId === target.dataset.cardId ? '' : target.dataset.cardId;
+          renderGame();
+          haptic('selection');
+          return;
+        }
+        if (action === 'table-ask' && isMyTurn() && selectedCardId === target.dataset.cardId
+          && availableTargets().some((player) => player.playerId === target.dataset.playerId)) {
+          const payload = { targetId: target.dataset.playerId, cardId: selectedCardId };
+          selectedCardId = '';
+          renderGame();
+          return await sendTableAction('askCard', payload);
+        }
+        if (action === 'table-group') {
+          table.selectGroup(target.dataset.groupId);
+          renderGame();
+          return;
+        }
+        if (action === 'table-deck') {
+          return await sendTableAction('setDeckSize', { count: Number(target.dataset.count) });
+        }
         if (action === 'focus-group') return await focusGroup(target.dataset.groupId || '');
         if (action === 'open-rules') return await openRules();
         if (action === 'close-modal') return await closeModal();
@@ -200,6 +263,33 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     ui.root?.addEventListener('input', (event) => {
       if (event.target.id === 'qv2-room-code') event.target.value = normalizeRoomId(event.target.value);
     });
+    if (table) {
+      ui.root.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !selectedCardId) return;
+        const trigger = ui.content.querySelector('[data-action="table-card"][aria-expanded="true"]');
+        selectedCardId = '';
+        renderGame();
+        trigger?.focus();
+      });
+      ui.root.addEventListener('change', (event) => {
+        if (event.target.id !== 'qt-deck-size') return;
+        const count = event.target.value ? Number(event.target.value) : null;
+        sendTableAction('setDeckSize', { count }).catch((error) => showToast(error.message, 'error'));
+      });
+      ui.root.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.target;
+        try {
+          if (form.id === 'qt-join-form') return await joinRoomFromForm(form.querySelector('button'));
+          if (form.id === 'qt-chat-form') {
+            const input = form.elements.message;
+            if (!input.value.trim()) return;
+            await sendAction('chat', { text: input.value });
+            input.value = '';
+          }
+        } catch (error) { showToast(error.message, 'error'); }
+      });
+    }
   }
 
   function selectTarget(button) {
@@ -240,7 +330,35 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     state = null;
     resetSelection();
     updateHeader();
-    ui.content.innerHTML = `\n      <div class="qv2-home">\n        <section class="qv2-hero qv2-glass">\n          <span class="qv2-kicker">Realtime · 2–15 jugadores</span>\n          <h2>Reúne más cuartetos</h2>\n          <p>Elige un rival y una carta y reúne grupos de cuatro. Si aciertas, conservas el turno.</p>\n          <div class="qv2-steps">\n            <div class="qv2-step"><b>1 · Jugador</b><span>elige un rival</span></div>\n            <div class="qv2-step"><b>2 · Carta</b><span>elige la que te falta</span></div>\n            <div class="qv2-step"><b>3 · Petición</b><span>confirma la acción</span></div>\n          </div>\n        </section>\n\n        <section class="qv2-form-card qv2-glass">\n          <label class="qv2-label">\n            <span>Nombre del jugador</span>\n            <input id="qv2-player-name" class="qv2-input" maxlength="32" value="${escapeHtml(playerName)}" autocomplete="nickname" />\n          </label>\n          <div class="qv2-actions">\n            <button class="qv2-btn qv2-btn--primary" type="button" data-action="create">＋ Crear sala</button>\n            <button class="qv2-btn qv2-btn--secondary" type="button" data-action="open-rules">? Reglas</button>\n          </div>\n          <label class="qv2-label">\n            <span>Código de sala</span>\n            <input id="qv2-room-code" class="qv2-input qv2-code-input" maxlength="8" placeholder="ABC123" autocomplete="off" />\n          </label>\n          <button class="qv2-btn qv2-btn--secondary qv2-btn--full" type="button" data-action="join">Entrar con código</button>\n        </section>\n      </div>\n    `;
+    if (table) {
+      table.renderHome({ playerName, inviteCode, playerLimit: ROOM_LIMIT, catalogSize: catalog.length, allowPractice: Boolean(loadPractice) && !inviteCode });
+      return;
+    }
+    ui.content.innerHTML = `\n      <div class="qv2-home">\n        <section class="qv2-hero qv2-glass">\n          <span class="qv2-kicker">En línea · 3–24 jugador</span>\n          <h2>Reúne más cuartetos</h2>\n          <p>Elige un rival y una carta y reúne grupos de cuatro. Si aciertas, conservas el turno.</p>\n          <div class="qv2-steps">\n            <div class="qv2-step"><b>1 · Jugador</b><span>elige un rival</span></div>\n            <div class="qv2-step"><b>2 · Carta</b><span>elige la que te falta</span></div>\n            <div class="qv2-step"><b>3 · Petición</b><span>confirma la acción</span></div>\n          </div>\n        </section>\n\n        <section class="qv2-form-card qv2-glass">\n          <label class="qv2-label">\n            <span>Nombre del jugador</span>\n            <input id="qv2-player-name" class="qv2-input" maxlength="32" value="${escapeHtml(playerName)}" autocomplete="nickname" />\n          </label>\n          <div class="qv2-actions">\n            <button class="qv2-btn qv2-btn--primary" type="button" data-action="create">＋ Crear sala</button>\n            <button class="qv2-btn qv2-btn--secondary" type="button" data-action="open-rules">? Reglas</button>\n          </div>\n          <label class="qv2-label">\n            <span>Código de sala</span>\n            <input id="qv2-room-code" class="qv2-input qv2-code-input" maxlength="8" placeholder="ABC123" autocomplete="off" />\n          </label>\n          <button class="qv2-btn qv2-btn--secondary qv2-btn--full" type="button" data-action="join">Entrar con código</button>\n        </section>\n      </div>\n    `;
+  }
+
+  async function startPractice(button) {
+    if (!loadPractice || currentScreen !== 'home' || button?.disabled) return;
+    const name = ui.content.querySelector('#qv2-player-name')?.value.trim() || playerName;
+    setButtonBusy(button, true);
+    try {
+      const controller = await loadPractice();
+      if (destroyed || currentScreen !== 'home') return;
+      clearTimeout(reconnectTimer);
+      closeSocket(false);
+      practice = controller.create(name, (next) => {
+        const previous = state;
+        state = next;
+        reconcileSelection(previous, state);
+        renderState();
+        handleStateTransition(previous, state);
+      });
+      ui.connection.hidden = true;
+      practice.act('startGame');
+      ui.root.scrollIntoView?.({ block: 'start' });
+    } finally {
+      setButtonBusy(button, false);
+    }
   }
 
   function showBackendNotConfigured() {
@@ -249,11 +367,12 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     ui.content.innerHTML = `\n      <section class="qv2-hero qv2-glass">\n        <span class="qv2-kicker">Quartet v2</span>\n        <h2>Cloudflare backend sin conectar</h2>\n        <p>В <code>index.html</code> debe indicarse URL Cloudflare Worker в meta <b>quartet-backend</b>.</p>\n      </section>\n    `;
   }
 
-  function showConnecting(text = 'Conectando…') {
+  function showConnecting(text = 'Conectando…', allowRetry = false) {
     currentScreen = 'connecting';
     ui.content.innerHTML = `
       <section class="qv2-loading qv2-glass">
         <div class="qv2-loading-box"><div class="qv2-spinner"></div><div>${escapeHtml(text)}</div></div>
+        ${allowRetry ? '<button type="button" class="qv2-btn qv2-btn--secondary" data-action="retry-connect">Reintentar</button>' : ''}
       </section>
     `;
   }
@@ -269,6 +388,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     setButtonBusy(button, true, 'Creando…');
     try {
       const response = await http('/rooms', { method: 'POST', body: authBody() });
+      if (destroyed || leaving) return;
       roomId = normalizeRoomId(response.roomId);
       sessionToken = String(response.sessionToken || '');
       localStorage.setItem(LS.roomId, roomId);
@@ -285,13 +405,23 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     if (!code) throw new Error('Introduce el código de sala');
     setButtonBusy(button, true, 'Entrando…');
     try { await joinOrResume(code, false); }
+    catch (error) {
+      if (table && !destroyed) {
+        clearRoomSession();
+        renderHome();
+        document.getElementById('qv2-room-code').value = code;
+      }
+      throw error;
+    }
     finally { setButtonBusy(button, false); }
   }
 
   async function joinOrResume(code, quiet) {
-    roomId = normalizeRoomId(code);
+    const joining = normalizeRoomId(code);
+    roomId = joining;
     if (!quiet) showConnecting('Conectando con la sala…');
-    const response = await http(`/rooms/${encodeURIComponent(roomId)}/join`, { method: 'POST', body: authBody() });
+    const response = await http(`/rooms/${encodeURIComponent(joining)}/join`, { method: 'POST', body: authBody() });
+    if (destroyed || leaving || roomId !== joining) return;
     sessionToken = String(response.sessionToken || '');
     localStorage.setItem(LS.roomId, roomId);
     connectSocket();
@@ -321,7 +451,11 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
       if (response.headers.get('X-Client-Backoff') === '1') {
         throw Object.assign(new Error('Conexión aplazada'), { clientBackoff: true });
       }
-      if (!response.ok || !payload?.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
+      if (!response.ok || !payload?.ok) {
+        throw Object.assign(new Error(payload?.error || `HTTP ${response.status}`), {
+          status: response.ok ? 502 : response.status,
+        });
+      }
       return payload;
     } catch (error) {
       if (error?.name === 'AbortError') throw new Error('El servidor tarda en responder');
@@ -338,19 +472,43 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
     url.searchParams.set('token', sessionToken);
 
-    setConnection('connecting', reconnectAttempt ? 'Reconectando' : 'Conexión');
-    socket = new WebSocket(url.toString());
+    const Socket = usePolling ? fallbackSocket : (preview && window.QuartetPreviewSocket) || WebSocket;
+    const maySwitchTransport = Boolean(fallbackSocket && !usePolling);
+    setConnection('connecting', usePolling ? 'Резервное подключение' : reconnectAttempt ? 'Reconectando' : 'Conexión');
+    let connection;
+    try {
+      connection = new Socket(url.toString());
+    } catch (error) {
+      if (!maySwitchTransport) throw error;
+      usePolling = true;
+      connectSocket();
+      return;
+    }
+    socket = connection;
+    let synchronized = false;
+    const switchTransport = () => {
+      if (!maySwitchTransport || synchronized || socket !== connection || destroyed || leaving) return false;
+      usePolling = true;
+      connectSocket();
+      return true;
+    };
+    if (maySwitchTransport) socketStartupTimer = setTimeout(switchTransport, 3500);
 
     socket.addEventListener('open', () => {
+      if (socket !== connection) return;
       reconnectAttempt = 0;
       reconnecting = false;
       setConnection('online', 'En línea');
     });
 
     socket.addEventListener('message', (event) => {
+      if (socket !== connection) return;
       let message;
       try { message = JSON.parse(event.data); } catch { return; }
       if (message.type === 'state' && message.state) {
+        synchronized = true;
+        clearTimeout(socketStartupTimer);
+        if (tableRequest !== null && tableRequest !== message.state.version) clearTableRequest();
         const previousState = state;
         state = message.state;
         roomId = normalizeRoomId(state.roomId || roomId);
@@ -359,38 +517,72 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
         renderState();
         handleStateTransition(previousState, state);
       } else if (message.type === 'error') {
+        if (table) {
+          clearTableRequest();
+          renderState();
+        }
         showToast(message.error || 'Error del servidor', 'error');
       }
     });
 
     socket.addEventListener('close', () => {
-      if (destroyed || leaving) return;
+      if (socket !== connection || destroyed || leaving) return;
+      if (switchTransport()) return;
+      clearTimeout(socketStartupTimer);
+      reconnecting = false;
+      clearTableRequest();
       setConnection('offline', 'Conexión perdida');
       showToast('Conexión perdida. Reconectando…', 'info');
       scheduleReconnect();
     });
 
-    socket.addEventListener('error', () => setConnection('offline', 'Error de conexión'));
+    socket.addEventListener('error', () => {
+      if (socket === connection && !switchTransport()) setConnection('offline', 'Error de conexión');
+    });
+  }
+
+  function temporaryRoomError(error) {
+    return error?.clientBackoff || !error?.status || error.status === 429 || error.status >= 500;
+  }
+
+  async function reconnectSavedRoom() {
+    if (destroyed || leaving || reconnecting || !roomId) return;
+    reconnecting = true;
+    try {
+      await joinOrResume(roomId, true);
+    } catch (error) {
+      reconnecting = false;
+      if (destroyed || leaving) return;
+      if (preview && !temporaryRoomError(error)) {
+        clearRoomSession();
+        setConnection('offline', 'Sin conectar');
+        renderHome();
+        showToast(error.message, 'error');
+        return;
+      }
+      setConnection('offline', 'Sin conexión');
+      if (preview && currentScreen === 'connecting') showConnecting('Восстанавливаем связь с комнатой…', true);
+      scheduleReconnect();
+    }
   }
 
   function scheduleReconnect() {
     if (destroyed || leaving || document.hidden || reconnectTimer || reconnecting || !roomId) return;
     reconnectAttempt += 1;
     const delay = Math.min(30_000, 2_500 * 2 ** Math.min(reconnectAttempt - 1, 4));
-    reconnectTimer = setTimeout(async () => {
+    reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
-      reconnecting = true;
-      try { await joinOrResume(roomId, true); }
-      catch {
-        reconnecting = false;
-        setConnection('offline', 'Sin conexión');
-        scheduleReconnect();
-      }
+      if (!document.hidden) reconnectSavedRoom();
     }, delay);
   }
 
   async function retryConnect() {
     if (!backendBase) return showBackendNotConfigured();
+    if (preview && roomId) {
+      showConnecting('Reconectando…');
+      onVisible();
+      return;
+    }
     if (roomId) {
       showConnecting('Reconectando…');
       try { await joinOrResume(roomId, true); }
@@ -407,14 +599,15 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function updateHeader() {
-    if (ui.subtitle) ui.subtitle.textContent = roomId ? `Sala ${roomId}` : 'Juego en línea';
+    if (ui.subtitle) ui.subtitle.textContent = practice ? 'Партия с ботами'
+      : roomId && currentScreen !== 'home' ? `Sala ${roomId}` : loadPractice ? 'Juego de cartas' : 'Juego en línea';
   }
 
   // Столько же, сколько требует сервер: engine.js, MIN_PLAYERS и ROOM_LIMIT.
   // Разойдётся минимум — кнопка станет активной, а запуск вернёт отказ, и
   // человек не поймёт почему. Разойдётся потолок — счётчик в лобби соврёт.
   const MIN_PLAYERS = 3;
-  const ROOM_LIMIT = 15;
+  const ROOM_LIMIT = 24;
 
   /** «одного игрока» / «двух игроков» — чтобы кнопка читалась как фраза. */
   function playersNeeded(count) {
@@ -426,6 +619,10 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
 
   function renderLobby() {
     currentScreen = 'lobby';
+    if (table) {
+      table.renderLobby(state, tableRequest !== null, { minPlayers: MIN_PLAYERS, playerLimit: ROOM_LIMIT });
+      return;
+    }
     const me = state.me || {};
     const activePlayers = (state.players || []).filter((player) => player.isActive !== false);
     const canStart = !!me.isHost && activePlayers.length >= MIN_PLAYERS;
@@ -457,6 +654,16 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
 
   function renderGame() {
     currentScreen = 'game';
+    if (table) {
+      table.renderGame(state, {
+        cardId: selectedCardId,
+        targets: availableTargets(),
+        pending: tableRequest !== null,
+        connected: Boolean(practice) || socket?.readyState === WebSocket.OPEN,
+      });
+      updateTurnTimer();
+      return;
+    }
     const me = state.me || {};
     const myTurn = isMyTurn();
     const targets = availableTargets();
@@ -566,7 +773,9 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     if (card.owned) {
       return `
         <div class="qv2-playing-card is-owned" aria-label="${escapeHtml(card.title)}, tienes esta carta">\n          <div class="qv2-card-corner"><span>${escapeHtml(quartet?.icon || '🃏')}</span><b>${number}</b></div>
-          <div class="qv3-card-art"><img src="${escapeHtml(cardArtUrl(card))}" alt="" loading="lazy" decoding="async"></div>
+          <div class="qv3-card-art">${card.icon && !card.art
+            ? `<span aria-hidden="true">${escapeHtml(card.icon)}</span>`
+            : `<img src="${escapeHtml(cardArtUrl(card))}" alt="" loading="lazy" decoding="async">`}</div>
           <div class="qv2-playing-card-title">${escapeHtml(card.title)}</div>\n          <div class="qv2-card-status">✓ En la mano</div>\n        </div>`;
     }
     const canSelect = myTurn && !!selectedTargetId;
@@ -606,6 +815,10 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
 
   function renderResults() {
     currentScreen = 'results';
+    if (table) {
+      table.renderResults(state, tableRequest !== null, MIN_PLAYERS);
+      return;
+    }
     const me = state.me || {};
     const winners = (state.score || []).filter((player) => (state.winnerIds || []).includes(player.playerId));
     const iWon = (state.winnerIds || []).includes(me.playerId);
@@ -661,7 +874,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     }
 
     if (!previous && next.status === 'playing') {
-      announceTurnStart(next, 'La partida continúa');
+      announceTurnStart(next, next.practice ? 'Partida iniciada' : 'La partida continúa');
       return;
     }
 
@@ -721,11 +934,32 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
 
   function announceTurnStart(next, prefix) {
     if (next.turnPlayerId === next.me?.playerId) {
-      showTurnNotice(prefix, 'Ha empezado tu turno · elige un rival y una carta', 'mine', '✦', 2300);
+      const instruction = table ? 'Toca una carta que te falte.' : 'Ha empezado tu turno · elige un rival y una carta';
+      showTurnNotice(prefix, instruction, 'mine', '✦', 2300);
       haptic('success');
     } else {
       showTurnNotice(prefix, `Primer turno ${next.turnPlayerName || 'jugador'}`, 'waiting', '▶', 2100);
     }
+  }
+
+  function clearTableRequest() {
+    tableRequest = null;
+    clearTimeout(tableRequestTimer);
+  }
+
+  async function sendTableAction(action, payload = {}) {
+    if (tableRequest !== null) return;
+    if (action === 'setDeckSize' && (state?.deckSettings?.requested ?? null) === payload.count) return;
+    if (practice) return practice.act(action, payload);
+    await sendAction(action, payload);
+    tableRequest = state.version;
+    renderState();
+    tableRequestTimer = setTimeout(() => {
+      if (destroyed) return;
+      clearTableRequest();
+      renderState();
+      showToast('Сервер не подтвердил действие. Попробуйте ещё раз.', 'error');
+    }, 5000);
   }
 
   async function sendAction(action, payload = {}, button = null) {
@@ -736,6 +970,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   async function confirmLeave() {
+    if (practice) return onBack();
     const ok = window.confirm(state?.status === 'playing'
       ? '¿Salir de la partida? Tus cartas restantes se repartirán entre los demás.'
       : '¿Salir de la sala?');
@@ -754,7 +989,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function onBack() {
-    if (currentScreen === 'home' || currentScreen === 'backend-missing' || !roomId) {
+    if (preview || currentScreen === 'home' || currentScreen === 'backend-missing' || !roomId) {
       cleanup();
       if (typeof window.appGoToMainMenu === 'function') return window.appGoToMainMenu();
       if (typeof window.goToMainMenu === 'function') return window.goToMainMenu();
@@ -773,7 +1008,23 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
 
   async function shareRoom() {
     if (!roomId) return;
+    if (table && window.RoomInvite?.openQr) {
+      return window.RoomInvite.openQr('quartet', roomId, 'Пригласить в «Квартет»');
+    }
     const text = `Únete a Cuarteto. Código de sala: ${roomId}`;
+    if (preview) {
+      const url = new URL('/', window.location.origin);
+      url.searchParams.set('room', roomId);
+      const invite = url.toString();
+      try {
+        if (navigator.share) await navigator.share({ title: 'Cuarteto', text, url: invite });
+        else {
+          await navigator.clipboard.writeText(invite);
+          showToast('Ссылка на комнату скопирована', 'success');
+        }
+      } catch (error) { if (error?.name !== 'AbortError') await copyRoomCode(); }
+      return;
+    }
     try {
       if (navigator.share) await navigator.share({ title: 'Cuarteto bíblico', text });
       else await copyRoomCode();
@@ -783,7 +1034,8 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function openRules() {
-    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>Cómo jugar a Cuarteto</h3>\n          <ol>\n            <li>Cada grupo tiene cuatro cartas. Reúne más cuartetos completos.</li>\n            <li>Cuando arriba aparezca <b>«Tu turno»</b>, primero elige un rival.</li>\n            <li>Después explora tus cuartetos y elige una carta que te falte.</li>\n            <li>Revisa tu selección abajo y pulsa <b>«Pedir carta»</b>.</li>\n            <li>Si el rival tiene la carta, la recibes y sigues jugando.</li>\n            <li>Si no la tiene o se acaba el tiempo, el turno pasa al siguiente jugador.</li>\n            <li>Al reunir las cuatro cartas, el cuarteto se cuenta automáticamente.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Entendido</button>\n        </div>\n      </div>\n    `;
+    ui.modalRoot.innerHTML = `\n      <div class="qv2-modal" data-action="close-modal">\n        <div class="qv2-modal-card" data-modal-card>\n          <h3>Cómo jugar a Cuarteto</h3>\n          <ol>\n            <li>Cada grupo tiene cuatro cartas. Reúne más cuartetos completos.</li>\n            ${table ? '<li>En tu turno, elige un cuarteto debajo de las cartas y toca una carta que te falte.</li><li>Toca el nombre de un rival dentro de la carta para enviar tu solicitud.</li>'
+            : '<li>Cuando arriba aparezca <b>«Tu turno»</b>, primero elige un rival.</li><li>Después explora tus cuartetos y elige una carta que te falte.</li><li>Revisa tu selección abajo y pulsa <b>«Pedir carta»</b>.</li>'}\n            <li>Si el rival tiene la carta, la recibes y sigues jugando.</li>\n            <li>Si no la tiene o se acaba el tiempo, el turno pasa al siguiente jugador.</li>\n            <li>Al reunir las cuatro cartas, el cuarteto se cuenta automáticamente.</li>\n          </ol>\n          <button class="qv2-btn qv2-btn--primary qv2-btn--full" data-action="close-modal">Entendido</button>\n        </div>\n      </div>\n    `;
   }
 
   function closeModal() { ui.modalRoot.innerHTML = ''; }
@@ -853,6 +1105,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     ui.connection.setAttribute('role', 'status');
     ui.connection.setAttribute('title', text);
     ui.connection.setAttribute('aria-label', `Conexión: ${text}`);
+    if (table && currentScreen === 'game') renderGame();
   }
 
   function setButtonBusy(button, busy, text = '') {
@@ -903,6 +1156,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function updateTurnTimer() {
+    if (practice) return;
     const element = document.getElementById('qv2-turn-timer');
     const progress = document.getElementById('qv2-turn-progress');
     const banner = document.getElementById('qv2-turn-banner');
@@ -915,7 +1169,7 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function prefersReducedMotion() {
-    return document.documentElement.classList.contains('reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    return window.GameDisplay?.reducedMotion() || document.documentElement.classList.contains('reduce-motion') || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
   }
 
   function normalizeRoomId(value) {
@@ -936,9 +1190,11 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
   }
 
   function closeSocket(schedule = false) {
+    clearTimeout(socketStartupTimer);
     if (socket) {
-      try { socket.close(1000, 'client closing'); } catch {}
+      const connection = socket;
       socket = null;
+      try { connection.close(1000, 'client closing'); } catch {}
     }
     if (schedule) scheduleReconnect();
   }
@@ -951,25 +1207,29 @@ function startQuartetGame(catalogUrl = 'web/locales/es/data/quartet_bible.json')
     комнату. Отсчёт сбрасывается, чтобы вход был сразу, а не через полминуты.
   */
   function onVisible() {
-    if (destroyed || leaving || document.hidden || !roomId) return;
+    if (destroyed || practice || directPractice || leaving || document.hidden || reconnecting || !roomId) return;
     if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) return;
     reconnectAttempt = 0;
-    reconnecting = false;
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
-    joinOrResume(roomId, true).catch(() => scheduleReconnect());
+    reconnectSavedRoom();
   }
   document.addEventListener('visibilitychange', onVisible);
+  if (preview) window.addEventListener('online', onVisible);
 
   function cleanup() {
     destroyed = true;
+    practice?.stop();
+    table?.dispose?.();
     document.removeEventListener('visibilitychange', onVisible);
+    if (preview) window.removeEventListener('online', onVisible);
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
     clearInterval(turnTimerInterval);
     turnTimerInterval = null;
     clearTimeout(toastTimer);
     clearTimeout(turnNoticeTimer);
+    clearTableRequest();
     closeSocket(false);
     try { tg?.disableClosingConfirmation?.(); } catch {}
     window.__quartetCleanup = null;

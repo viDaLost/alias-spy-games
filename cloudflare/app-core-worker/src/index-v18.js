@@ -14,6 +14,7 @@ const MANAGEMENT = new Map([
   ['appAccessRestore', 'restore'],
 ]);
 const ACCESS_ACTIONS = new Set(['syncUser', 'accessStatus']);
+const MAX_GAME_STARS = 999_999;
 
 export class UserStore extends V17UserStore {
   constructor(ctx, env) {
@@ -25,6 +26,7 @@ export class UserStore extends V17UserStore {
       CREATE TABLE IF NOT EXISTS app_access_mode (
         id INTEGER PRIMARY KEY CHECK (id = 1), restricted INTEGER NOT NULL CHECK (restricted IN (0, 1))
       )`);
+    try { this.sql.exec('ALTER TABLE game_balances ADD COLUMN unified_wallet INTEGER NOT NULL DEFAULT 0'); } catch {}
   }
 
   restrictionActive() {
@@ -54,6 +56,38 @@ export class UserStore extends V17UserStore {
     return { ...result, ...await this.applicationAccess(id) };
   }
 
+  async syncGameWallet({ userId }) {
+    if (!userId) return { ok: false, error: 'Некорректный Telegram ID' };
+    await this.ensureMigrated();
+    return this.ctx.storage.transactionSync(() => {
+      const current = this.sql.exec('SELECT bmt_stars, revision, unified_wallet FROM game_balances WHERE user_id = ?', userId).toArray()[0];
+      if (current?.unified_wallet) return { ok: true, success: true, bmtStars: current.bmt_stars, revision: current.revision };
+      const legacy = this.getRow(userId);
+      const balance = Math.min(MAX_GAME_STARS, Math.max(0, legacy?.wow_stars ?? 20)
+        + Math.max(0, legacy?.ws_stars ?? 0, current?.bmt_stars ?? 0));
+      const revision = (current?.revision || 0) + 1;
+      this.sql.exec(`INSERT INTO game_balances (user_id, bmt_stars, admin_pending_bmt, updated_at, revision, unified_wallet)
+        VALUES (?, ?, 0, ?, ?, 1) ON CONFLICT(user_id) DO UPDATE SET bmt_stars = excluded.bmt_stars,
+        updated_at = excluded.updated_at, revision = excluded.revision, unified_wallet = 1, admin_pending_bmt = 0`,
+      userId, balance, Date.now(), revision);
+      return { ok: true, success: true, bmtStars: balance, revision };
+    });
+  }
+
+  async adminUsersBriefV2(raw) {
+    const result = await super.adminUsersBriefV2(raw);
+    for (const user of result.users || []) {
+      user.unifiedWallet = Boolean(this.sql.exec('SELECT unified_wallet FROM game_balances WHERE user_id = ?', user.id).toArray()[0]?.unified_wallet);
+    }
+    return result;
+  }
+
+  readUser(userId) {
+    const user = super.readUser(userId);
+    if (user) user.unifiedWallet = Boolean(this.sql.exec('SELECT unified_wallet FROM game_balances WHERE user_id = ?', userId).toArray()[0]?.unified_wallet);
+    return user;
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
     if (request.method === 'POST' && url.pathname.startsWith('/star-donations/')) {
@@ -63,6 +97,7 @@ export class UserStore extends V17UserStore {
     if (request.method !== 'POST' || !url.pathname.startsWith('/app-access/')) return super.fetch(request);
     const body = await request.json();
     if (url.pathname === '/app-access/check') return json(await this.applicationAccess(body.userId));
+    if (url.pathname === '/app-access/game-wallet') return json(await this.syncGameWallet({ userId: cleanAccessId(body.userId) }));
     if (url.pathname === '/app-access/widget-favorites') {
       const userId = cleanAccessId(body.userId);
       if (!userId || userId !== this.ownerId()) return json({ ok: false, error: 'Owner only' }, 403);
@@ -170,6 +205,10 @@ export default {
       const access = await accessStore(env, '/app-access/check', { userId });
       if (check || legacyAccess || (compat && ACCESS_ACTIONS.has(action) && !access.allowed)) return json(access, 200, cors);
       if (!access.allowed) return json({ ...access, ok: false, success: false, error: MESSAGE }, 403, cors);
+      if (compat && action === 'syncGameWallet') {
+        if (body.payload.id && String(body.payload.id) !== userId) throw accessError(403, 'User mismatch');
+        return json(await accessStore(env, '/app-access/game-wallet', { userId }), 200, cors);
+      }
       return coreV17.fetch(request, env, ctx);
     } catch (error) {
       return json({ ok: false, success: false, allowed: false, error: error.message || 'Access check unavailable', code: error.code || 'APP_ACCESS_ERROR' }, error.status || 503, cors);

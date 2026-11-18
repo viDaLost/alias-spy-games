@@ -84,13 +84,27 @@ function seedGoalSpecials(level, board, mask) {
   return placed;
 }
 
-assert(levels.length === 50, 'Expected 50 campaign levels');
+assert(levels.length === 53, 'Expected 53 campaign levels');
 for (const [offset, level] of levels.entries()) {
   assert(level.id === offset + 1, `Level ids are not continuous at ${level.id}`);
   assert(level.rows >= 5 && level.rows <= 8, `Level ${level.id}: invalid row count`);
   assert(level.moves >= 20, `Level ${level.id}: too few moves for a campaign level`);
   const mask = maskFor(level);
   assert(mask.filter(Boolean).length >= 24, `Level ${level.id}: fewer than 24 active cells`);
+  if (level.excavation) {
+    const dig = Core.createExcavation(level.excavation, level.rows, COLS, mask);
+    assert(dig.treasures.length === level.goals.find(goal => goal.type === 'excavate')?.count, `Level ${level.id}: excavation goal mismatch`);
+    const multilayer = [...dig.cells].find(([, cell]) => cell.depth > 1);
+    if (multilayer) {
+      const [index, cell] = multilayer;
+      const originalDepth = cell.depth;
+      Core.excavate(dig, new Set([index]));
+      assert(cell.depth === originalDepth - 1 && dig.buried.has(index), `Level ${level.id}: one strike cannot remove multiple layers`);
+    }
+    const count = dig.treasures.length;
+    for (let pass = 0; pass < 3; pass += 1) Core.excavate(dig, new Set(dig.buried));
+    assert(!dig.buried.size && dig.found === count, `Level ${level.id}: excavation cannot be completed`);
+  }
   const occupied = new Set();
   for (const group of level.blockers || []) for (const index of group.cells || []) {
     assert(index >= 0 && index < level.rows * COLS, `Level ${level.id}: blocker outside the board`);

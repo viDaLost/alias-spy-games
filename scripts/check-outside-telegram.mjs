@@ -110,11 +110,11 @@ const measure = (page) => page.evaluate(() => {
     outside: document.documentElement.classList.contains('app-outside-telegram'),
     // Само зарезервированное место, а не положение заголовка: заголовок несёт
     // собственные отступы и сдвигается недостаточно, чтобы поломку было видно.
-    headerPad: Math.round(parseFloat(getComputedStyle(document.querySelector('.app-header')).paddingTop) || 0),
-    firstMeaningfulTop: Math.round(document.querySelector('.app-header h1')?.getBoundingClientRect().top ?? -1),
+    headerPad: Math.round(parseFloat(getComputedStyle(document.getElementById('main-catalog')).paddingTop) || 0),
+    firstMeaningfulTop: Math.round(document.querySelector('.catalog-heading h1')?.getBoundingClientRect().top ?? -1),
     // Только игры: в системном разделе состав нарочно разный — вне Telegram
     // там есть вход по коду и установка на главный экран.
-    cards: document.querySelectorAll('#company-games .game-card, #word-games .game-card, #kids-games .game-card').length,
+    cards: document.querySelectorAll('#catalog-games [data-launch]').length,
   };
 });
 

@@ -1085,7 +1085,7 @@ body[data-current-game="bible-geography"] .geo-stop__text small { color: var(--g
   body[data-current-game="bible-geography"] .geo-node.is-wrong { animation: none; }
 }
 
-/* --- тёмная тема ------------------------------------------------------------------- */
+/* --- modo oscuro ------------------------------------------------------------------- */
 
 html.theme-dark body[data-current-game="bible-geography"] .geo {
   --geo-ink: #e8e7ff;

@@ -19,6 +19,8 @@ const root = path.resolve(import.meta.dirname, '..');
 const distDir = path.join(root, 'web', 'dist');
 const CSS_MARK = ['<!-- build:css -->', '<!-- /build:css -->'];
 const JS_MARK = ['<!-- build:js -->', '<!-- /build:js -->'];
+const CATALOG_MARK = ['<!-- build:catalog -->', '<!-- /build:catalog -->'];
+const CATALOG_DIALOGS_MARK = ['<!-- build:catalog-dialogs -->', '<!-- /build:catalog-dialogs -->'];
 const SW_MARK = ['/* build:precache */', '/* /build:precache */'];
 
 // Что кладётся в кеш сразу при установке работника. Оболочка, скрипты игр,
@@ -85,7 +87,7 @@ export async function build({ write = true } = {}) {
 
   // web/dist sits at the same depth as web/styles and web/games, so the handful of
   // relative url(../assets/...) references in the stylesheets keep resolving.
-  const css = await esbuild.transform(concat(styleSources), {
+  const css = await esbuild.transform(concat(styleSources).replaceAll('url("/web/assets/', 'url("../assets/'), {
     loader: 'css',
     minify: true,
   });
@@ -109,7 +111,16 @@ export async function build({ write = true } = {}) {
   const jsTag = `  <script id="app-language-bundles" type="application/json">${JSON.stringify({ru:`web/dist/${jsName}`,...localized.entries})}</script>\n  <script src="web/i18n/bootstrap.js" defer></script>`;
 
   let html = read('index.html');
-  for (const [[open, close], tag] of [[CSS_MARK, cssTag], [JS_MARK, jsTag]]) {
+  const catalogPage = read('cloudflare/full-preview/public/index.html');
+  const catalogMarkup = catalogPage.match(/<main class="catalog" id="menu-container">([\s\S]*?)<\/main>/)[1]
+    .replaceAll('="/web/', '="web/').replace('href="/"', 'href="./"');
+  const catalogDialogs = ['settings', 'favorites', 'join', 'donate'].map(id =>
+    catalogPage.match(new RegExp(`<dialog[^>]*id="${id}-dialog"[\\s\\S]*?<\\/dialog>`))[0].replaceAll('="/web/', '="web/'),
+  ).join('\n  ');
+  for (const [[open, close], tag] of [[CSS_MARK, cssTag], [JS_MARK, jsTag],
+    [CATALOG_MARK, `    <section class="catalog" id="main-catalog" hidden>${catalogMarkup}  </section>`],
+    [CATALOG_DIALOGS_MARK, `  ${catalogDialogs}`],
+  ]) {
     const start = html.indexOf(open);
     const end = html.indexOf(close);
     if (start < 0 || end < 0) throw new Error(`index.html is missing the ${open} region`);

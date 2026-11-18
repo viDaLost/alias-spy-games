@@ -37,7 +37,8 @@
   const notice = () => document.getElementById('app-language-notice');
 
   function install() {
-    const header = document.querySelector('.app-header');
+    const header = document.documentElement.hasAttribute('data-game-catalog')
+      ? document.querySelector('.catalog-tools') : document.querySelector('.app-header');
     if (!header) return false;
     if (control()) return true;
 
@@ -61,7 +62,9 @@
       note.className = 'language-note';
       note.id = 'app-language-notice';
       note.textContent = NOTICE;
-      header.append(note);
+      const catalogHeader = header.closest('.catalog-top');
+      if (catalogHeader) catalogHeader.after(note);
+      else header.append(note);
     }
     return true;
   }

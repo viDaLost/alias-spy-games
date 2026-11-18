@@ -9,6 +9,7 @@ import {
   passTimedOutTurn,
   restartGame,
   sanitizeName,
+  setDeckSize,
   startGame,
 } from './engine.js';
 
@@ -184,6 +185,8 @@ export class QuartetRoom extends DurableObject {
       if (!player) return json({ ok: false, error: 'Игрок не найден в комнате', code: 'PLAYER_NOT_FOUND' }, 403);
       const payload = await readJson(request);
       const now = Date.now();
+      const lastSeen = this.pollingPresence.get(playerId);
+      const newlyOnline = lastSeen === undefined || now - lastSeen >= POLL_PRESENCE_TTL_MS;
       this.pollingPresence.set(playerId, now);
       await this.markOccupied();
       await this.scheduleAlarm();
@@ -195,7 +198,7 @@ export class QuartetRoom extends DurableObject {
           const result = await this.applyAction(playerId, action, payload.payload || {}, now);
           this.rememberPollingAction(playerId, requestId);
           if (result.deleted) return json({ ok: true, closed: true, transport: 'https' });
-        } else {
+        } else if (newlyOnline) {
           await this.broadcastState();
         }
         if (!this.room) return json({ ok: true, closed: true, transport: 'https' });
@@ -247,6 +250,7 @@ export class QuartetRoom extends DurableObject {
     ensureChat(this.room);
     if (action === 'startGame') startGame(this.room, playerId, now);
     else if (action === 'restartGame') restartGame(this.room, playerId, now);
+    else if (action === 'setDeckSize') setDeckSize(this.room, playerId, data.count, now);
     else if (action === 'askCard') askCard(this.room, playerId, String(data.targetId || ''), String(data.cardId || ''), now);
     else if (action === 'chat') addChatMessage(this.room, playerId, String(data.text || ''), now);
     else if (action === 'leave') {

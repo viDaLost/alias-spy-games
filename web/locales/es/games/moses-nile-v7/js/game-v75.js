@@ -473,11 +473,11 @@
     const tier = detectTier();
     const limit = mobileDevice() ? (tier >= 1 ? 1.25 : 1) : MAX_DPR;
     const resolution = .80 + .20 * clamp((state.quality - .35) / .3, 0, 1);
-    return Math.min(window.devicePixelRatio || 1, limit) * resolution;
+    return (window.GameDisplay?.pixelRatio(limit) ?? Math.min(window.devicePixelRatio || 1, limit)) * resolution;
   }
 
   function tryCreateRenderer() {
-    if (!THREE || !dom.canvas) return null;
+    if (!THREE || !dom.canvas || window.GameDisplay?.lowGraphics()) return null;
     try {
       const attributes = { alpha: true, antialias: true, depth: true, stencil: false, powerPreference: 'default' };
       const context = dom.canvas.getContext('webgl2', attributes) || dom.canvas.getContext('webgl', attributes);
@@ -5333,7 +5333,7 @@ ${shader.vertexShader}`.replace(
   }
 
   async function boot() {
-    await window.SabbathAccess.waitForAccess('moses-nile');
+    await window.SabbathAccess?.waitForAccess('moses-nile');
     readBest();
     showBestOnStart();
     bindControls();

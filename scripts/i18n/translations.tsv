@@ -1272,6 +1272,13 @@
 ВАШ ХОД	YOUR TURN	DU BIST DRAN	TU TURNO
 ОЖИДАНИЕ	WAITING	WARTEN	ESPERANDO
 Ваш ход начался	Your turn has started	Dein Zug hat begonnen	Ha empezado tu turno
+Соперники	Opponents	Mitspieler	Rivales
+Вы можете листать свою руку.	You can browse your hand.	Du kannst deine Karten ansehen.	Puedes revisar tu mano.
+Нажмите на недостающую карту.	Tap a missing card.	Tippe auf eine fehlende Karte.	Toca una carta que te falte.
+У соперников не осталось карт.	Your opponents have no cards left.	Deine Mitspieler haben keine Karten mehr.	Tus rivales ya no tienen cartas.
+Спросить у	Ask	Fragen	Pedir a
+В свой ход выберите квартет под картами и нажмите на недостающую карту.	On your turn, choose a quartet below the cards and tap a missing card.	Wähle in deinem Zug unten ein Quartett und tippe auf eine fehlende Karte.	En tu turno, elige un cuarteto debajo de las cartas y toca una carta que te falte.
+Нажмите на имя соперника в списке внутри карты, чтобы отправить запрос.	Tap an opponent’s name inside the card to send your request.	Tippe auf den Namen eines Mitspielers auf der Karte, um deine Anfrage zu senden.	Toca el nombre de un rival dentro de la carta para enviar tu solicitud.
 Ход игрока	Player turn	Spieler am Zug	Turno del jugador
 Выберите соперника и карту. После выбора подтвердите запрос.	Choose an opponent and a card, then confirm your request.	Wähle einen Mitspieler und eine Karte und bestätige dann die Anfrage.	Elige un rival y una carta y confirma la petición.
 Ваши игровые действия временно заблокированы. Следите за партией — очередь переключится автоматически.	Your actions are temporarily disabled. Watch the game; turns change automatically.	Deine Aktionen sind vorübergehend gesperrt. Verfolge die Partie; die Züge wechseln automatisch.	Tus acciones están desactivadas temporalmente. Sigue la partida; los turnos cambian solos.
@@ -2143,3 +2150,229 @@
 Берлин	Berlin	Berlin	Berlín
 Киев	Kyiv	Kiew	Kiev
 Готово	Done	Fertig	Listo
+
+# Excavation levels and the expanded Quartet deck
+Древние сокровища	Ancient Treasures	Antike Schätze	Tesoros antiguos
+Первые раскопки	The First Excavation	Die erste Ausgrabung	La primera excavación
+Тайник у древней стены	A Cache by the Ancient Wall	Versteck an der alten Mauer	El escondite junto al muro antiguo
+Забытое хранилище	The Forgotten Vault	Die vergessene Schatzkammer	La cámara olvidada
+Дни творения	Days of Creation	Tage der Schöpfung	Días de la creación
+Растения	Plants	Pflanzen	Plantas
+Светила	Heavenly Lights	Himmelslichter	Lumbreras
+Исход из Египта	Exodus from Egypt	Auszug aus Ägypten	Éxodo de Egipto
+Корзинка Моисея	Moses' Basket	Moses im Korb	La cesta de Moisés
+Неопалимая купина	The Burning Bush	Der brennende Dornbusch	La zarza ardiente
+Переход через море	Crossing the Sea	Durchzug durchs Meer	El paso por el mar
+Манна в пустыне	Manna in the Wilderness	Manna in der Wüste	Maná en el desierto
+Казни Египетские	Plagues of Egypt	Plagen Ägyptens	Plagas de Egipto
+Вода в кровь	Water into Blood	Wasser wird zu Blut	El agua se convierte en sangre
+Жабы	Frogs	Frösche	Ranas
+Убранство скинии	Furnishings of the Tabernacle	Ausstattung der Stiftshütte	Mobiliario del tabernáculo
+Ковчег Завета	Ark of the Covenant	Bundeslade	Arca del pacto
+Стол для хлебов	Table of Showbread	Schaubrottisch	Mesa de los panes de la proposición
+Жертвенник курений	Altar of Incense	Räucheraltar	Altar del incienso
+Праздники Израиля	Feasts of Israel	Feste Israels	Fiestas de Israel
+Праздник седмиц	Feast of Weeks	Wochenfest	Fiesta de las Semanas
+Праздник труб	Feast of Trumpets	Posaunenfest	Fiesta de las Trompetas
+Праздник кущей	Feast of Tabernacles	Laubhüttenfest	Fiesta de los Tabernáculos
+Горы Библии	Mountains of the Bible	Berge der Bibel	Montes de la Biblia
+Елеонская гора	Mount of Olives	Ölberg	Monte de los Olivos
+Воды Библии	Waters of the Bible	Gewässer der Bibel	Aguas de la Biblia
+Галилейское море	Sea of Galilee	See Genezareth	Mar de Galilea
+Купальня Силоам	Pool of Siloam	Teich Siloah	Estanque de Siloé
+Притчи о семенах	Parables about Seeds	Gleichnisse von der Saat	Parábolas de las semillas
+Пшеница и плевелы	Wheat and Weeds	Weizen und Unkraut	El trigo y la cizaña
+Растущее семя	The Growing Seed	Die wachsende Saat	La semilla que crece
+Притчи о милости	Parables of Mercy	Gleichnisse der Barmherzigkeit	Parábolas de la misericordia
+Потерянная овца	The Lost Sheep	Das verlorene Schaf	La oveja perdida
+Потерянная драхма	The Lost Coin	Die verlorene Drachme	La moneda perdida
+Блудный сын	The Prodigal Son	Der verlorene Sohn	El hijo pródigo
+Добрый самарянин	The Good Samaritan	Der barmherzige Samariter	El buen samaritano
+Притчи о Царстве	Parables of the Kingdom	Gleichnisse vom Himmelreich	Parábolas del Reino
+Сокровище на поле	Treasure in a Field	Der Schatz im Acker	El tesoro en el campo
+Дорогая жемчужина	The Pearl of Great Price	Die kostbare Perle	La perla de gran valor
+Невод	The Dragnet	Das Schleppnetz	La red
+История Ноя	The Story of Noah	Die Geschichte Noahs	La historia de Noé
+Ноев ковчег	Noah's Ark	Arche Noah	El arca de Noé
+Голубь с ветвью	Dove with a Branch	Taube mit einem Zweig	La paloma con una rama
+История Иосифа	The Story of Joseph	Die Geschichte Josefs	La historia de José
+Разноцветная одежда	Coat of Many Colors	Das bunte Gewand	La túnica de colores
+Пустой ров	The Empty Pit	Die leere Grube	La cisterna vacía
+Семь коров	Seven Cows	Sieben Kühe	Siete vacas
+Запасы зерна	Grain Stores	Getreidevorräte	Reservas de grano
+Жизнь Давида	The Life of David	Das Leben Davids	La vida de David
+Пастух овец	The Shepherd	Der Schafhirte	El pastor de ovejas
+Игра для Саула	Playing for Saul	Musik für Saul	Música para Saúl
+Праща и камень	Sling and Stone	Schleuder und Stein	Honda y piedra
+Царский престол	The Royal Throne	Der Königsthron	El trono real
+Книга Даниила	The Book of Daniel	Das Buch Daniel	El libro de Daniel
+Овощи и вода	Vegetables and Water	Gemüse und Wasser	Legumbres y agua
+Истукан во сне	The Statue in the Dream	Das Standbild im Traum	La estatua del sueño
+Огненная печь	The Fiery Furnace	Der Feuerofen	El horno de fuego
+Ров со львами	The Lions' Den	Die Löwengrube	El foso de los leones
+История Илии	The Story of Elijah	Die Geschichte Elias	La historia de Elías
+Вороны у потока	Ravens by the Brook	Raben am Bach	Cuervos junto al arroyo
+Мука и масло	Flour and Oil	Mehl und Öl	Harina y aceite
+Огонь на Кармиле	Fire on Mount Carmel	Feuer auf dem Karmel	Fuego en el monte Carmelo
+История Елисея	The Story of Elisha	Die Geschichte Elisas	La historia de Eliseo
+Масло вдовы	The Widow's Oil	Das Öl der Witwe	El aceite de la viuda
+Сын сонамитянки	The Shunammite's Son	Der Sohn der Schunemiterin	El hijo de la sunamita
+Исцеление Неемана	Naaman Is Healed	Naamans Heilung	La curación de Naamán
+Всплывший топор	The Floating Axe Head	Das schwimmende Beil	El hacha que flotó
+Знамения у Иоанна	Signs in John's Gospel	Zeichen im Johannesevangelium	Señales en el Evangelio de Juan
+Брак в Кане	The Wedding at Cana	Die Hochzeit zu Kana	Las bodas de Caná
+Сын царедворца	The Official's Son	Der Sohn des königlichen Beamten	El hijo del funcionario
+Исцеление у Вифезды	Healing at Bethesda	Heilung am Teich Bethesda	Curación en Betesda
+Исцеление слепорождённого	The Man Born Blind	Heilung des Blindgeborenen	Curación del ciego de nacimiento
+Нагорная проповедь	The Sermon on the Mount	Die Bergpredigt	El Sermón del Monte
+Соль земли	Salt of the Earth	Salz der Erde	Sal de la tierra
+Свет миру	Light of the World	Licht der Welt	Luz del mundo
+Птицы небесные	Birds of the Air	Vögel des Himmels	Aves del cielo
+Дом на камне	The House on the Rock	Das Haus auf dem Felsen	La casa sobre la roca
+Деяния апостолов	Acts of the Apostles	Apostelgeschichte	Hechos de los Apóstoles
+Языки пламени	Tongues of Fire	Feuerzungen	Lenguas de fuego
+Исцеление у ворот	Healing at the Gate	Heilung am Tempeltor	Curación junto a la puerta
+Колесница евнуха	The Eunuch's Chariot	Der Wagen des Kämmerers	El carro del eunuco
+Видение Петра	Peter's Vision	Petrus' Vision	La visión de Pedro
+Путешествия Павла	Paul's Journeys	Die Reisen des Paulus	Los viajes de Pablo
+Отправление из Антиохии	Departure from Antioch	Aufbruch aus Antiochia	La partida de Antioquía
+Темница в Филиппах	Prison in Philippi	Gefängnis in Philippi	La prisión de Filipos
+Речь в Афинах	Speech in Athens	Rede in Athen	El discurso en Atenas
+Кораблекрушение у Мальты	Shipwreck off Malta	Schiffbruch vor Malta	El naufragio en Malta
+Библейские молитвы	Prayers of the Bible	Gebete der Bibel	Oraciones de la Biblia
+Молитва Анны	Hannah's Prayer	Hannas Gebet	La oración de Ana
+Молитва Соломона	Solomon's Prayer	Salomos Gebet	La oración de Salomón
+Молитва Даниила	Daniel's Prayer	Daniels Gebet	La oración de Daniel
+Отче наш	The Lord's Prayer	Vaterunser	Padrenuestro
+Дары из библейских историй	Gifts in Bible Stories	Gaben aus biblischen Geschichten	Regalos en historias bíblicas
+Золото мудрецов	Gold from the Magi	Gold der Weisen	El oro de los magos
+Ладан мудрецов	Frankincense from the Magi	Weihrauch der Weisen	El incienso de los magos
+Смирна мудрецов	Myrrh from the Magi	Myrrhe der Weisen	La mirra de los magos
+Драгоценное миро	Precious Perfume	Kostbares Salböl	Perfume precioso
+Библейские сооружения	Buildings of the Bible	Bauwerke der Bibel	Construcciones de la Biblia
+Храм Соломона	Solomon's Temple	Salomos Tempel	El templo de Salomón
+Стена Неемии	Nehemiah's Wall	Nehemias Mauer	La muralla de Nehemías
+Послания Павла	Paul's Letters	Paulusbriefe	Epístolas de Pablo
+К Римлянам	Romans	Römerbrief	A los Romanos
+К Галатам	Galatians	Galaterbrief	A los Gálatas
+К Ефесянам	Ephesians	Epheserbrief	A los Efesios
+К Филиппийцам	Philippians	Philipperbrief	A los Filipenses
+
+# Catalog, carousel, and display settings
+Библейские игры для компании и для одного игрока	Bible games for groups and solo players	Bibelspiele für Gruppen und Einzelspieler	Juegos bíblicos para grupos y para una persona
+Библейские игры, главная	Bible Games home	Bibelspiele Startseite	Inicio de Juegos bíblicos
+Во что сыграем?	What shall we play?	Was spielen wir?	¿A qué jugamos?
+Общий баланс игровых звёзд	Shared game stars balance	Gemeinsames Spielsterne-Guthaben	Saldo común de estrellas de juego
+Игры на витрине	Featured games	Vorgestellte Spiele	Juegos destacados
+карусель	carousel	Karussell	carrusel
+Предыдущая игра	Previous game	Vorheriges Spiel	Juego anterior
+Следующая игра	Next game	Nächstes Spiel	Juego siguiente
+Пауза смены игр	Pause game rotation	Spielwechsel pausieren	Pausar la rotación de juegos
+Список игр	Game list	Spieleliste	Lista de juegos
+Найти игру	Find a game	Spiel suchen	Buscar un juego
+Категории игр	Game categories	Spielkategorien	Categorías de juegos
+Для компании	Group games	Gruppenspiele	Para grupos
+Одиночные	Solo games	Einzelspieler	Para una persona
+Сервисы приложения	App services	App-Funktionen	Servicios de la aplicación
+Правила, расписание, профиль и установка	Rules, schedule, profile and installation	Regeln, Zeiten, Profil und Installation	Reglas, horarios, perfil e instalación
+Подключиться к комнате	Join a room	Raum beitreten	Unirse a una sala
+Код или ссылка из	Code or link from	Code oder Link aus	Código o enlace del
+Подключиться	Join	Beitreten	Unirse
+камерой	using the camera	mit der Kamera	con la cámara
+Закрыть настройки	Close settings	Einstellungen schließen	Cerrar ajustes
+Тёмная тема	Dark mode	Dunkles Design	Modo oscuro
+Качество графики	Graphics quality	Grafikqualität	Calidad gráfica
+Минимальное	Low	Niedrig	Baja
+Обычное	Standard	Standard	Normal
+Высокое	High	Hoch	Alta
+Анимации	Animations	Animationen	Animaciones
+Минимальные	Minimal	Minimal	Mínimas
+Обычные	Standard	Standard	Normales
+Все эффекты	All effects	Alle Effekte	Todos los efectos
+Блоки меню	Menu sections	Menübereiche	Secciones del menú
+Включить облегчённый режим	Enable lightweight mode	Leichten Modus einschalten	Activar el modo ligero
+Закрыть избранное	Close favorites	Favoriten schließen	Cerrar favoritos
+Приглашение в игру	Game invitation	Spieleinladung	Invitación a una partida
+Закрыть приглашение	Close invitation	Einladung schließen	Cerrar invitación
+код приглашения	invite code	Einladungscode	código de invitación
+Ссылка на комнату	Room link	Raumlink	Enlace de la sala
+Убрать из избранного	Remove from favorites	Aus Favoriten entfernen	Quitar de favoritos
+В избранное	Add to favorites	Zu Favoriten hinzufügen	Añadir a favoritos
+Игры не найдены. Попробуйте другое название.	No games found. Try another title.	Keine Spiele gefunden. Probiere einen anderen Titel.	No se encontraron juegos. Prueba con otro título.
+Найдено игр	Games found	Spiele gefunden	Juegos encontrados
+Игры не найдены	No games found	Keine Spiele gefunden	No se encontraron juegos
+Нажмите сердечко на карточке игры, чтобы она появилась здесь.	Tap the heart on a game card to add it here.	Tippe auf das Herz einer Spielkarte, um sie hier hinzuzufügen.	Toca el corazón en la tarjeta de un juego para añadirlo aquí.
+Профиль ещё загружается	The profile is still loading	Das Profil lädt noch	El perfil aún se está cargando
+Не удалось обновить избранное профиля	Could not update profile favorites	Profilfavoriten konnten nicht aktualisiert werden	No se pudieron actualizar los favoritos del perfil
+добавлена в избранное	added to favorites	zu Favoriten hinzugefügt	añadido a favoritos
+убрана из избранного	removed from favorites	aus Favoriten entfernt	quitado de favoritos
+Вернуться в «Квартет»	Return to Quartet	Zurück zu Quartett	Volver a Cuarteto
+Недавняя игра	Recent game	Zuletzt gespielt	Juego reciente
+Ссылка на комнату доступна для копирования.	You can copy the room link.	Du kannst den Raumlink kopieren.	Puedes copiar el enlace de la sala.
+Рисуйте и угадывайте	Draw and guess	Zeichnen und raten	Dibuja y adivina
+Комбинации и раскопки	Matches and excavations	Kombinationen und Ausgrabungen	Combinaciones y excavaciones
+Не удалось загрузить файлы игры	Could not load the game files	Spieldateien konnten nicht geladen werden	No se pudieron cargar los archivos del juego
+Не удалось открыть «Квартет»	Could not open Quartet	Quartett konnte nicht gestartet werden	No se pudo abrir Cuarteto
+Упрощённый фон, небольшие текстуры и меньше нагрузки на экран.	Simpler backgrounds and smaller textures reduce the rendering load.	Einfachere Hintergründe und kleinere Texturen entlasten die Grafik.	Los fondos simples y las texturas pequeñas reducen la carga gráfica.
+Детальные иллюстрации и мягкие тени.	Detailed illustrations and soft shadows.	Detaillierte Illustrationen und weiche Schatten.	Ilustraciones detalladas y sombras suaves.
+Максимальная чёткость и выраженная глубина карточек.	Sharper art and more depth on cards.	Schärfere Bilder und mehr Tiefe auf den Karten.	Ilustraciones más nítidas y tarjetas con más profundidad.
+Переходы почти мгновенные, без частиц и лишних движений.	Near-instant transitions with particles and extra motion disabled.	Fast sofortige Übergänge ohne Partikel oder zusätzliche Bewegungen.	Transiciones casi instantáneas, sin partículas ni movimientos añadidos.
+Основные эффекты и переходы.	Core effects and transitions.	Wichtige Effekte und Übergänge.	Efectos y transiciones principales.
+Полные эффекты в играх, которые их поддерживают.	Full effects in supported games.	Alle Effekte in unterstützten Spielen.	Todos los efectos en los juegos compatibles.
+Скопируйте выделенную ссылку.	Copy the selected link.	Kopiere den ausgewählten Link.	Copia el enlace seleccionado.
+Запустить смену игр	Start game rotation	Spielwechsel starten	Iniciar la rotación de juegos
+Начать раскопки	Start digging	Ausgrabung starten	Empezar a excavar
+Двенадцать колен	Twelve Tribes	Zwölf Stämme	Doce tribus
+Земля обетованная	Promised Land	Gelobtes Land	Tierra prometida
+Царства	Kingdoms	Königreiche	Reinos
+Правила и разбор механик	Rules and game mechanics	Regeln und Spielmechanik	Reglas y mecánicas
+По коду, ссылке или	By code, link or	Per Code, Link oder	Por código, enlace o
+Выбор игры с подтверждением	Select a game and confirm	Spiel wählen und bestätigen	Elige un juego y confirma
+Открыть бота	Open the bot	Bot öffnen	Abrir el bot
+Профиль и друзья	Profile and friends	Profil und Freunde	Perfil y amigos
+Вход в рабочее приложение	Open the main app	Haupt-App öffnen	Abrir la aplicación principal
+Скачать приложение для	Download the app for	App herunterladen für	Descargar la aplicación para
+Язык рабочего приложения	Main app language	Sprache der Haupt-App	Idioma de la aplicación principal
+Написать в поддержку	Contact support	Support kontaktieren	Contactar con soporte
+Открыть поддержку в боте	Open support in the bot	Support im Bot öffnen	Abrir el soporte en el bot
+Поддержать звёздами	Donate with Stars	Mit Sternen unterstützen	Apoyar con estrellas
+Поддержать через	Donate via	Unterstützen über	Apoyar mediante
+Проверьте код комнаты или вставьте ссылку из приглашения.	Check the room code or paste the invitation link.	Prüfe den Raumcode oder füge den Einladungslink ein.	Comprueba el código de sala o pega el enlace de la invitación.
+Профиль загружается. Попробуйте ещё раз.	The profile is loading. Try again in a moment.	Das Profil lädt. Versuche es gleich erneut.	El perfil se está cargando. Vuelve a intentarlo en un momento.
+От 3 до 24 игроков.	3 to 24 players.	Für 3 bis 24 Spieler.	De 3 a 24 jugadores.
+Поделиться и QR	Share and QR code	Teilen und QR-Code	Compartir y código QR
+В свой ход выберите квартет под картами, нажмите на недостающую карту и выберите соперника в списке на карте.	On your turn, choose a quartet below the cards, tap a missing card, then pick an opponent from the list on the card.	Wähle in deinem Zug unten ein Quartett, tippe auf eine fehlende Karte und wähle einen Mitspieler aus der Liste auf der Karte.	En tu turno, elige un cuarteto debajo de las cartas, toca una carta que te falte y selecciona a un rival de la lista de la carta.
+В главном меню откройте «Ещё» → «Правила игр».	In the main menu, open More → Game Rules.	Öffne im Hauptmenü Mehr → Spielregeln.	En el menú principal, abre Más → Reglas de juego.
+Соберите квартет	Complete a quartet	Sammle ein Quartett	Completa un cuarteto
+Играть с ботами	Play with bots	Mit Bots spielen	Jugar con bots
+Вы и два бота	You and two bots	Du und zwei Bots	Tú y dos bots
+без таймера	no timer	ohne Timer	sin temporizador
+В комнате	In the room	Im Raum	En la sala
+Квартетов в колоде	Quartets in the deck	Quartette im Stapel	Cuartetos en la baraja
+Квартетов на игрока	Quartets per player	Quartette pro Spieler	Cuartetos por jugador
+Карт на старте	Starting cards	Startkarten	Cartas iniciales
+Авто	Auto	Automatisch	Automático
+Размер колоды в расчёте на игрока	Deck size per player	Stapelgröße pro Spieler	Tamaño de la baraja por jugador
+на игрока	per player	pro Spieler	por jugador
+Нужно ещё игроков	More players needed	Weitere Spieler nötig	Faltan jugadores
+Начать партию	Start match	Partie starten	Empezar la partida
+Поделиться и	Share and	Teilen und	Compartir y
+Копировать код	Copy code	Code kopieren	Copiar código
+Ведущий запустит партию, когда все соберутся.	The host starts the match once everyone has joined.	Der Gastgeber startet die Partie, sobald alle da sind.	El anfitrión inicia la partida cuando todos se hayan unido.
+Время на ход	Time left for the turn	Verbleibende Zugzeit	Tiempo restante del turno
+Поиск по имени	Search by name	Nach Namen suchen	Buscar por nombre
+Найти соперника	Find an opponent	Mitspieler finden	Buscar rival
+Соперник не найден.	No matching opponent.	Kein Mitspieler gefunden.	No se encontró ningún rival.
+Ваша рука	Your hand	Deine Hand	Tu mano
+Квартеты в вашей руке	Quartets in your hand	Quartette auf deiner Hand	Cuartetos en tu mano
+История ходов	Turn history	Zugverlauf	Historial de turnos
+бот	bot	Bot	bot
+Нужна	Missing	Fehlt	Falta
+Нет на руке	Missing from hand	Fehlt auf der Hand	No está en tu mano
+Восстанавливаем связь…	Reconnecting…	Verbindung wird wiederhergestellt…	Reconectando…
+Ждём ответ…	Waiting for a reply…	Warten auf Antwort…	Esperando respuesta…
+Ничья	Draw	Unentschieden	Empate
+Вы победили	You won	Du hast gewonnen	Has ganado
+Победитель	Winner	Gewinner	Ganador
+Итог партии	Match results	Ergebnis der Partie	Resultado de la partida
+в колоде	in the deck	im Stapel	en la baraja

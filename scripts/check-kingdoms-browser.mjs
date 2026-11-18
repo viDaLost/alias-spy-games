@@ -135,12 +135,12 @@ async function locked() {
   const { context, page } = await roleContext({ width: 390, height: 844, admin: false });
   await page.waitForTimeout(2000);
   const seen = await page.evaluate(() => {
-    const card = document.querySelector('[onclick*="kingdoms"]');
+    const card = document.querySelector('#catalog-games [data-launch="kingdoms"]');
     return {
       exists: Boolean(card),
       shown: card ? getComputedStyle(card).display !== 'none' : false,
       root: document.documentElement.classList.contains('admin-rbac-root'),
-      others: document.querySelectorAll('[onclick*="quartet"]').length,
+      others: document.querySelectorAll('#catalog-games [data-launch="quartet"]').length,
     };
   });
   need(!seen.root, 'обычному человеку выдали роль главного администратора');
@@ -166,7 +166,7 @@ async function tester() {
   const { context, page } = await roleContext({ width: 390, height: 844, admin: false, userId: 5502223852 });
   await page.waitForTimeout(1500);
   const seen = await page.evaluate(() => {
-    const card = document.querySelector('[onclick*="kingdoms"]');
+    const card = document.querySelector('#catalog-games [data-launch="kingdoms"]');
     return {
       shown: card ? getComputedStyle(card).display !== 'none' : false,
       root: document.documentElement.classList.contains('admin-rbac-root'),
@@ -175,7 +175,7 @@ async function tester() {
   need(!seen.root, 'допущенному выдали роль главного администратора');
   need(seen.shown, 'допущенному (id 5502223852) карточка «Царств» не видна');
   if (!seen.shown) { await context.close(); return; }
-  await page.locator('[onclick*="kingdoms"]').first().click();
+  await page.locator('#catalog-games [data-launch="kingdoms"]').first().click();
   const opened = await page.waitForSelector('[data-start]', { timeout: 20_000 }).then(() => true, () => false);
   need(opened, 'допущенному (id 5502223852) игра не открылась');
   await context.close();
@@ -185,7 +185,7 @@ async function tester() {
 async function play(width, height) {
   const { context, page, errors } = await roleContext({ width, height, admin: true });
   await page.waitForSelector('html.admin-rbac-root', { timeout: 15_000 });
-  const card = page.locator('[onclick*="kingdoms"]').first();
+  const card = page.locator('#catalog-games [data-launch="kingdoms"]').first();
   need(await card.isVisible(), 'у главного администратора карточка игры не видна');
   await card.click();
 

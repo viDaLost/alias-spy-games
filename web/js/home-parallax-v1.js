@@ -50,7 +50,7 @@
     image.fetchPriority = index === 0 ? 'high' : index <= 2 ? 'auto' : 'low';
     image.draggable = false;
     image.style.opacity = String(config.opacity);
-    image.src = assetUrl(config.file);
+    if (index === 0 || !window.GameDisplay?.lowGraphics()) image.src = assetUrl(config.file);
     return image;
   }
 
@@ -58,11 +58,11 @@
     menu = document.getElementById(MENU_ID);
     if (!menu || document.querySelector('.home-gamehub-parallax__scene')) return false;
 
-    reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
-      || lowPowerDevice();
+    updateMotionPreference();
 
     scene = document.createElement('div');
     scene.className = 'home-gamehub-parallax__scene';
+    scene.hidden = true;
     scene.dataset.quality = 'source-resolution-png';
     scene.dataset.audience = 'all-users';
     scene.setAttribute('aria-hidden', 'true');
@@ -99,6 +99,7 @@
       menu &&
       scene &&
       !menu.classList.contains('hidden') &&
+      !document.body.dataset.currentGame &&
       document.body.dataset.mode !== 'admin'
     );
   }
@@ -132,6 +133,18 @@
     if (!rafId) return;
     cancelAnimationFrame(rafId);
     rafId = 0;
+  }
+
+  function updateMotionPreference() {
+    reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true
+      || lowPowerDevice() || window.GameDisplay?.reducedMotion() === true || window.GameDisplay?.lowGraphics() === true;
+    for (const [index, layer] of layers.entries()) {
+      if (index > 0 && window.GameDisplay?.lowGraphics()) layer.element.removeAttribute('src');
+      else if (!layer.element.hasAttribute('src')) layer.element.src = assetUrl(layer.file);
+      layer.element.style.willChange = active && !reducedMotion ? 'transform' : 'auto';
+    }
+    stopAnimation();
+    onResize();
   }
 
   function renderFrame() {
@@ -177,10 +190,11 @@
   function bindLifecycle() {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('game-display:change', updateMotionPreference);
 
     visibilityObserver = new MutationObserver(syncVisibility);
     visibilityObserver.observe(menu, { attributes: true, attributeFilter: ['class'] });
-    visibilityObserver.observe(document.body, { attributes: true, attributeFilter: ['data-mode'] });
+    visibilityObserver.observe(document.body, { attributes: true, attributeFilter: ['data-mode', 'data-current-game'] });
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) stopAnimation();

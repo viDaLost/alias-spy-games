@@ -231,7 +231,7 @@ await page.goto(`${baseURL}/#tgWebAppData=query_id%3Dstub`, { waitUntil: 'commit
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
 await page.waitForTimeout(3000);
 
-await page.evaluate(() => document.getElementById('more-entry')?.click());
+await page.evaluate(() => document.getElementById('open-more')?.click());
 await page.waitForTimeout(700);
 if (!(await page.locator('#install-app-btn').count())) {
   problems.push('на iPhone внутри Telegram нет карточки установки — уйти в Safari неоткуда');
@@ -263,8 +263,8 @@ if (await page.locator('[data-install-close]').count()) {
   await page.locator('[data-install-close]').click();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
-  await page.waitForSelector('#more-entry', { timeout: 5_000 });
-  await page.locator('#more-entry').click();
+  await page.waitForSelector('#open-more', { timeout: 5_000 });
+  await page.locator('#open-more').click();
   await page.waitForSelector('#install-app-btn', { timeout: 5_000 });
   if (!(await page.locator('#install-app-btn').isVisible())) problems.push('после закрытия инструкции и перезапуска пропала установка на iPhone');
 }

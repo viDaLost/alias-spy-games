@@ -32,7 +32,7 @@
 
   window.showGame = async function gatedShowGame(gameName) {
     if (window.AppAccess && !window.AppAccess.allowed()) return;
-    if (gameName !== 'sacred-word' || window.THREE) return originalShowGame(gameName);
+    if (gameName !== 'sacred-word' || window.THREE || window.GameDisplay?.lowGraphics()) return originalShowGame(gameName);
 
     const menu = document.getElementById('menu-container');
     const container = document.getElementById('game-container');

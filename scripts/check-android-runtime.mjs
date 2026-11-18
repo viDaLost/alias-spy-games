@@ -76,7 +76,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
   // feedbackStatus is the one-off app survey asking whether this player has already
   // answered. It runs on every start on every platform -- the Android wrapper included,
   // since the survey serves the session route too.
-  if (!['syncUser', 'updateHistory', 'profileBootstrap', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
+  if (!['syncUser', 'syncGameWallet', 'updateHistory', 'profileBootstrap', 'profileTrackGame', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
     throw new Error(`Unexpected Android action: ${action}`);
   }
 
@@ -88,6 +88,17 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
       contentType: 'application/json; charset=utf-8',
       body: JSON.stringify({ ok: true, success: true, answered: true, eligible: false }),
     });
+    return;
+  }
+
+  if (action === 'profileTrackGame') {
+    if (body.payload.game !== 'bible-sketch') throw new Error(`Unexpected tracked game: ${body.payload.game}`);
+    await route.fulfill({ json: { success: true, gamesPlayed: 10, lastGame: 'bible-sketch', gameStats: { 'bible-sketch': 4 } } });
+    return;
+  }
+
+  if (action === 'syncGameWallet') {
+    await route.fulfill({ json: { success: true, bmtStars: 32, revision: 1 } });
     return;
   }
 
@@ -138,7 +149,8 @@ stage = 'app startup';
 await page.goto(`${baseURL}/?android=1&apk=33&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
-await page.waitForSelector('[data-social-open="profile"]', { timeout: 10_000 });
+await page.waitForSelector('#open-profile', { timeout: 10_000 });
+await page.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '32');
 
 const state = await page.evaluate(() => ({
   android: window.__ANDROID_APK__ === true,
@@ -158,7 +170,7 @@ if (!state.authenticated) throw new Error('Android Web bridge did not expose an 
 if (!state.socialMounted) throw new Error('Android social dock did not mount while telemetry was disabled.');
 
 stage = 'profile rendering';
-await page.locator('[data-social-open="profile"]').click();
+await page.locator('#open-profile').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-hero', { timeout: 8_000 });
 await page.waitForFunction(() => document.querySelector('.social-sheet-overlay.is-open')?.textContent?.includes('Android Runtime'), null, { timeout: 8_000 });
 
@@ -185,7 +197,11 @@ if (profileLayout.top < -2 || profileLayout.left < -2 || profileLayout.bottom > 
 
 stage = 'favorites rendering';
 await page.locator('[data-social-close]').click();
-await page.locator('[data-social-open="favorites"]').click();
+await page.locator('#open-favorites').click();
+await page.locator('#favorites-dialog [data-launch="bible-sketch"]').waitFor();
+await page.locator('#favorites-dialog .catalog-dialog-close').click();
+await page.locator('#open-profile').click();
+await page.locator('[data-social-tab="favorites"]').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-favorites-grid', { timeout: 8_000 });
 const favoritesState = await page.evaluate(() => ({
   visible: Boolean(document.querySelector('.social-sheet-overlay.is-open .social-favorites-grid')),
@@ -203,7 +219,7 @@ await page.locator('[data-social-close]').click();
 // remains covered by the general all-games smoke suite.
 stage = 'Bible Sketch foreground rendering';
 await page.evaluate(() => localStorage.removeItem('bible_sketch_room_id_v1'));
-await page.waitForSelector('#bible-sketch-card', { timeout: 8_000 });
+await page.waitForSelector('#catalog-games [data-launch="bible-sketch"]', { timeout: 8_000 });
 await page.evaluate(() => { window.showGame?.('bible-sketch'); });
 await page.waitForSelector('#bsk-root #bsk-content .bsk-home', { timeout: 8_000 });
 await page.waitForFunction(() => {
@@ -265,6 +281,7 @@ if (!sketchLayout.topInsideGame) throw new Error(`A foreign/background layer is 
 
 if (androidCalls < 2) throw new Error(`Expected Android sync + profile calls, got ${androidCalls}.`);
 if (!androidActions.includes('profileBootstrap')) throw new Error(`profileBootstrap was not routed through Android bearer API: ${androidActions.join(', ')}`);
+if (!androidActions.includes('profileTrackGame')) throw new Error('The game launch was not tracked through the Android bearer API.');
 if (telegramCompatCalls !== 0) throw new Error(`APK incorrectly called Telegram /compat ${telegramCompatCalls} time(s).`);
 
 console.log(`OK: Android standalone rendered Profile/Favorites and Bible Sketch foreground UI above the disabled menu parallax (${androidActions.join(', ')}).`);

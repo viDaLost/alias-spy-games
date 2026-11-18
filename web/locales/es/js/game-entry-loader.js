@@ -33,7 +33,7 @@
       icon: 'web/assets/icons/unified-v1/quartet.webp?v=1', motif: 'quartet',
     },
     'twelve-tribes': {
-      title: 'Двенадцать колен', eyebrow: 'Juego de cartas', status: 'Собираем станы…', status2: 'Раздаём по семь…',
+      title: 'Doce tribus', eyebrow: 'Juego de cartas', status: 'Собираем станы…', status2: 'Раздаём по семь…',
       icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1', motif: 'twelve-tribes',
     },
     'bible-sketch': {
@@ -69,7 +69,7 @@
       icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1', motif: 'moses-nile',
     },
     'promised-land': {
-      title: 'Земля обетованная', eyebrow: 'Настольная игра', status: 'Расставляем фишки…', status2: 'Тасуем колоды…',
+      title: 'Tierra prometida', eyebrow: 'Настольная игра', status: 'Расставляем фишки…', status2: 'Тасуем колоды…',
       icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1', motif: 'promised-land',
     },
   });

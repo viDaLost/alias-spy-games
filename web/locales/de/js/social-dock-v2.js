@@ -18,10 +18,10 @@
     { id: 'kids-ark-pairs', title: 'Finde ein Paar', icon: 'web/assets/icons/unified-v1/ark.webp?v=1' },
     { id: 'moses-nile', title: 'Mose: Reise auf dem Nil', icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1' },
     { id: 'biblical-match-three', title: 'Bibelschätze', icon: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39' },
-    { id: 'twelve-tribes', title: 'Двенадцать колен', icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1' },
-    { id: 'promised-land', title: 'Земля обетованная', icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1' },
+    { id: 'twelve-tribes', title: 'Zwölf Stämme', icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1' },
+    { id: 'promised-land', title: 'Gelobtes Land', icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1' },
     { id: 'bible-geography', title: 'Biblische Geografie', icon: 'web/assets/icons/unified-v1/bible-geography.webp?v=1' },
-    { id: 'kingdoms', title: 'Царства', icon: 'web/assets/icons/unified-v1/kingdoms.webp?v=1', restricted: true },
+    { id: 'kingdoms', title: 'Königreiche', icon: 'web/assets/icons/unified-v1/kingdoms.webp?v=1', restricted: true },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 
@@ -36,6 +36,7 @@
   let lastTrackedAt = 0;
   let lastTrackedGame = '';
   let trackingInstalled = false;
+  let favoriteUpdates = Promise.resolve();
 
   function tgUser() {
     return window.Telegram?.WebApp?.initDataUnsafe?.user || window.TelegramLaunchContext?.getUser?.() || null;
@@ -46,13 +47,13 @@
   }
 
   function hasTelegramSession() {
-    return Boolean(tgUser()?.id && initData());
+    return Boolean(tgUser()?.id && (initData() || window.WebSession?.active?.()));
   }
 
   async function api(action, payload = {}) {
     if (!CORE) throw new Error('Profildienst nicht eingerichtet');
     const telegramInitData = initData();
-    if (!telegramInitData) throw new Error('Profil nur verfügbar in Telegram');
+    if (!telegramInitData && !window.WebSession?.active?.()) throw new Error('Войдите в профиль через Telegram');
     const response = await fetch(`${CORE}/compat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,6 +74,7 @@
     const request = api('profileBootstrap').then((data) => {
       state = data;
       updateDock();
+      notifyFavorites();
       return state;
     });
 
@@ -244,10 +246,9 @@
           <button type="button" class="social-id-chip" data-copy-id="${escapeHtml(user.id)}">ID ${escapeHtml(user.id)}</button>
         </div>
         <div class="social-stats">
-          <div><b>${Number(profile.gamesPlayed || 0)}</b><span>Partien</span></div>\n          <div><b>${friends.length}</b><span>Freunde</span></div>\n          <div><b>${Number(profile.favorites?.length || 0)}</b><span>Favoriten</span></div>\n        </div>\n      </section>\n      <section class="social-section">\n        <div class="social-section-head"><h3>Spielstatistik</h3><span>mit der Cloud synchronisiert</span></div>\n        <div class="social-balances">\n          ${balance(user.wowStars, 'Bibelwörter')}
-          ${balance(user.wsStars, 'Wortsuche')}
-          ${balance(user.swLevel, 'Heiliges Wort')}
-          ${balance(user.bmtStars, 'Schätze')}\n        </div>\n      </section>\n      <section class="social-section">\n        <div class="social-section-head"><h3>Am häufigsten gespielt</h3><span>${stats.length ? 'laut deiner Statistik' : 'noch keine Daten'}</span></div>
+          <div><b>${Number(profile.gamesPlayed || 0)}</b><span>Partien</span></div>\n          <div><b>${friends.length}</b><span>Freunde</span></div>\n          <div><b>${Number(profile.favorites?.length || 0)}</b><span>Favoriten</span></div>\n        </div>\n      </section>\n      <section class="social-section">\n        <div class="social-section-head"><h3>Spielstatistik</h3><span>mit der Cloud synchronisiert</span></div>\n        <div class="social-balances">\n          ${user.unifiedWallet || window.GameWallet ? balance(window.GameWallet?.balance() ?? user.bmtStars, 'Gemeinsame Sterne')
+            : balance(user.wowStars, 'Bibelwörter') + balance(user.wsStars, 'Wortsuche') + balance(user.bmtStars, 'Schätze')}
+          ${balance(user.swLevel, 'Heiliges Wort')}\n        </div>\n      </section>\n      <section class="social-section">\n        <div class="social-section-head"><h3>Am häufigsten gespielt</h3><span>${stats.length ? 'laut deiner Statistik' : 'noch keine Daten'}</span></div>
         <div class="social-game-stats">${stats.length ? stats.map(([id, count]) => gameStat(id, count)).join('') : '<div class="social-empty social-empty--compact"><span>Öffne ein Spiel, um hier Statistiken zu sehen.</span></div>'}</div>
       </section>`;
   }
@@ -370,25 +371,34 @@
     }
   }
 
-  async function toggleFavorite(id) {
-    if (!GAMES.has(id) || busy || !state?.profile) return;
-    const previous = [...(state.profile.favorites || [])];
-    const favorites = new Set(previous);
-    if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
-    state.profile.favorites = [...favorites];
-    updateDock();
-    render();
-    busy = true;
-    try {
-      const result = await api('profileSetFavorites', { favorites: [...favorites] });
+  function notifyFavorites() {
+    window.dispatchEvent(new CustomEvent('player:favorites-changed', { detail: [...(state?.profile?.favorites || [])] }));
+  }
+
+  function setFavorite(id, selected) {
+    const update = favoriteUpdates.then(async () => {
+      const { profile } = await bootstrap();
+      const favorites = new Set(profile.favorites || []);
+      if (selected) favorites.add(id); else favorites.delete(id);
+      const result = await api('profileSetFavorites', { game: id, selected, favorites: [...favorites] });
       state.profile.favorites = Array.isArray(result.favorites) ? result.favorites : [...favorites];
       updateDock();
-      render();
-      toast(favorites.has(id) ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt');
+      notifyFavorites();
+      if (overlay?.classList.contains('is-open')) render();
+      return state.profile.favorites;
+    });
+    favoriteUpdates = update.catch(() => {});
+    return update;
+  }
+
+  async function toggleFavorite(id) {
+    if (!GAMES.has(id) || busy || !state?.profile) return;
+    const selected = !state.profile.favorites?.includes(id);
+    busy = true;
+    try {
+      await setFavorite(id, selected);
+      toast(selected ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt');
     } catch (error) {
-      state.profile.favorites = previous;
-      updateDock();
-      render();
       toast(error?.message || error, true);
     } finally {
       busy = false;
@@ -399,26 +409,16 @@
     state = await api('profileBootstrap');
     updateDock();
     hydrateHeader();
+    notifyFavorites();
     return state;
-  }
-
-  function inferGame(card) {
-    const explicit = String(card?.dataset?.gameKey || card?.dataset?.game || '').trim();
-    if (GAMES.has(explicit)) return explicit;
-    const text = String(card?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    if (!text) return '';
-    return [...GAME_CATALOG].sort((a, b) => b.title.length - a.title.length)
-      .find((game) => text.includes(game.title.toLowerCase()))?.id || '';
   }
 
   function installTracking() {
     if (trackingInstalled) return;
     trackingInstalled = true;
-    document.addEventListener('click', (event) => {
-      const card = event.target?.closest?.('#menu-container .game-card');
-      if (!card) return;
-      const game = inferGame(card);
-      if (!game) return;
+    function trackCurrentGame() {
+      const game = document.body.dataset.currentGame;
+      if (!GAMES.has(game) || !hasTelegramSession()) return;
       const now = Date.now();
       if (game === lastTrackedGame && now - lastTrackedAt < 1300) return;
       lastTrackedGame = game;
@@ -429,7 +429,11 @@
         state.profile.gameStats = result.gameStats || state.profile.gameStats || {};
         state.profile.lastGame = result.lastGame || game;
       }).catch((error) => console.warn('Social game tracking:', error));
-    }, true);
+    }
+    new MutationObserver(trackCurrentGame).observe(document.body, {
+      attributes: true, attributeFilter: ['data-current-game'],
+    });
+    trackCurrentGame();
   }
 
   async function copyText(value) {
@@ -492,9 +496,14 @@
     api,
     bootstrap,
     refresh,
+    setFavorite,
     open,
     close,
     getState: () => state,
+  });
+
+  window.addEventListener('app:stars-changed', () => {
+    if (activeTab === 'profile' && overlay?.classList.contains('is-open')) render();
   });
 
   if (document.documentElement.classList.contains('app-ui-ready')) mountWhenReady();

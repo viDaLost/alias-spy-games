@@ -86,8 +86,16 @@ try {
       for(const width of [320,390]) {
         await page.setViewportSize({width,height:844});
         assert.ok(await page.locator('.language-pill').evaluate(node=>node.scrollWidth<=node.clientWidth+1));
-        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1),
-          `${lang}: header overflows at ${width}px`);
+        const layout = await page.evaluate(() => {
+          const { clientWidth, scrollWidth } = document.documentElement;
+          const overflows = [...document.querySelectorAll('#main-catalog *')]
+            .filter((node) => !node.closest('.catalog-promo-viewport'))
+            .filter((node) => node.getBoundingClientRect().right > clientWidth + 1)
+            .slice(0, 8).map((node) => node.className);
+          return { clientWidth, scrollWidth, overflows };
+        });
+        assert.ok(layout.scrollWidth <= layout.clientWidth + 1,
+          `${lang}: catalog overflows at ${width}px: ${JSON.stringify(layout)}`);
       }
       /*
         Тяжёлый разбор — игры и кадр «Моисея» — гоняется один раз на язык, от
@@ -102,6 +110,7 @@ try {
         await page.evaluate(key=>{window.showGame(key);},key);
         await page.waitForFunction(key=>document.body.dataset.currentGame===key,key);
         await page.waitForFunction(()=>{const node=document.getElementById('game-container');return node?.children.length && !node.querySelector('.app-game-loading');});
+        if (key === 'quartet') await page.locator('#qv2-root.qt-root .qt-home-form').waitFor();
         const content=await page.locator('#game-container').innerText();
         check(!/[А-Яа-яЁё]/.test(content),`${lang}/${key}: untranslated content: ${content.slice(0,1000)}`);
         assert.equal(await page.locator('#game-container .app-error-card').count(),0,`${lang}/${key}: error screen`);

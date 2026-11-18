@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CATALOG } from '../src/catalog.js';
-import { MIN_PLAYERS, ROOM_LIMIT, askCard, buildView, createRoomState, joinRoom, startGame } from '../src/engine.js';
+import { MIN_PLAYERS, ROOM_LIMIT, askCard, buildView, createRoomState, joinRoom, setDeckSize, startGame } from '../src/engine.js';
 
 function deterministicRng(max) { return max - 1; }
 function player(id, name = id) { return { playerId: id, name }; }
@@ -13,16 +13,20 @@ test('room can be created and joined', () => {
   assert.equal(state.hostPlayerId, 'p1');
 });
 
-test('start deals all cards without leaking opponents hands in view', () => {
-  const state = createRoomState('ABC123', player('p1'), 1);
-  joinRoom(state, player('p2'), 2);
-  joinRoom(state, player('p3'), 3);
-  startGame(state, 'p1', 4, deterministicRng);
-  const total = state.players.reduce((sum, item) => sum + item.hand.length + item.completedQuartets.length * 4, 0);
-  assert.equal(total, CATALOG.length * 4);
-  const view = buildView(state, 'p1', new Set(['p1', 'p2', 'p3']));
-  assert.ok(Array.isArray(view.me.hand));
-  assert.equal('hand' in view.players[1], false);
+test('the host picks a complete deck for three players and opponents hands stay private', () => {
+  for (const count of [12, 15, CATALOG.length]) {
+    const state = createRoomState('ABC123', player('p1'), 1);
+    joinRoom(state, player('p2'), 2);
+    joinRoom(state, player('p3'), 3);
+    setDeckSize(state, 'p1', count, 4);
+    startGame(state, 'p1', 5, deterministicRng);
+    const total = state.players.reduce((sum, item) => sum + item.hand.length + item.completedQuartets.length * 4, 0);
+    assert.equal(total, count * 4);
+    const view = buildView(state, 'p1', new Set(['p1', 'p2', 'p3']));
+    assert.equal(view.deckSettings.requested, count);
+    assert.ok(Array.isArray(view.me.hand));
+    assert.equal('hand' in view.players[1], false);
+  }
 });
 
 test('game needs three players', () => {
@@ -65,11 +69,12 @@ test('miss passes the turn', () => {
   assert.equal(state.turnPlayerId, 'p2');
 });
 
-test('в комнату помещаются пятнадцать игроков, шестнадцатый получает отказ', () => {
-  const state = createRoomState('ROOM15', { playerId: 'p1', name: 'Игрок 1' }, 1000);
+test('в комнату помещаются 24 игрока, следующий получает отказ', () => {
+  const state = createRoomState('ROOM24', { playerId: 'p1', name: 'Игрок 1' }, 1000);
   for (let index = 2; index <= ROOM_LIMIT; index += 1) {
     joinRoom(state, { playerId: `p${index}`, name: `Игрок ${index}` }, 1000 + index);
   }
-  assert.equal(state.players.length, 15);
-  assert.throws(() => joinRoom(state, { playerId: 'p99', name: 'Лишний' }, 2000), /максимум 15/);
+  assert.equal(ROOM_LIMIT, 24);
+  assert.equal(state.players.length, 24);
+  assert.throws(() => joinRoom(state, { playerId: 'p99', name: 'Лишний' }, 2000), /максимум 24/);
 });

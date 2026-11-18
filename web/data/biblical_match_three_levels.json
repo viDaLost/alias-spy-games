@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "rows": 8,
   "cols": 8,
   "dailyReward": 5,
@@ -2163,6 +2163,158 @@
         14200
       ],
       "reward": 20
+    },
+    {
+      "id": 51,
+      "rows": 6,
+      "shape": "rect",
+      "chapter": "Древние сокровища",
+      "title": "Первые раскопки",
+      "moves": 45,
+      "symbolCount": 6,
+      "goals": [
+        {
+          "type": "excavate",
+          "count": 3
+        }
+      ],
+      "starThresholds": [
+        1500,
+        2000,
+        2500
+      ],
+      "reward": 12,
+      "excavation": [
+        {
+          "type": "coin",
+          "origin": 9,
+          "layers": 1
+        },
+        {
+          "type": "amphora",
+          "origin": 12,
+          "layers": 1
+        },
+        {
+          "type": "scroll",
+          "origin": 32,
+          "layers": 1
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "rows": 7,
+      "shape": "rect",
+      "chapter": "Древние сокровища",
+      "title": "Тайник у древней стены",
+      "moves": 52,
+      "symbolCount": 7,
+      "goals": [
+        {
+          "type": "excavate",
+          "count": 3
+        },
+        {
+          "type": "clearBlockers",
+          "blocker": "chain",
+          "count": 4
+        }
+      ],
+      "blockers": [
+        {
+          "type": "chain",
+          "cells": [
+            10,
+            21,
+            37,
+            45
+          ],
+          "layers": 1
+        }
+      ],
+      "starThresholds": [
+        3500,
+        4600,
+        5800
+      ],
+      "reward": 14,
+      "excavation": [
+        {
+          "type": "coin",
+          "origin": 8,
+          "layers": 2
+        },
+        {
+          "type": "scroll",
+          "origin": 4,
+          "layers": 1
+        },
+        {
+          "type": "chest",
+          "origin": 24,
+          "layers": 1
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "rows": 8,
+      "shape": "rect",
+      "chapter": "Древние сокровища",
+      "title": "Забытое хранилище",
+      "moves": 66,
+      "symbolCount": 7,
+      "goals": [
+        {
+          "type": "excavate",
+          "count": 4
+        },
+        {
+          "type": "lightLamps",
+          "count": 4
+        }
+      ],
+      "blockers": [
+        {
+          "type": "lamp",
+          "cells": [
+            12,
+            27,
+            45,
+            59
+          ],
+          "layers": 1
+        }
+      ],
+      "starThresholds": [
+        4600,
+        6200,
+        7600
+      ],
+      "reward": 16,
+      "excavation": [
+        {
+          "type": "coin",
+          "origin": 46,
+          "layers": 1
+        },
+        {
+          "type": "amphora",
+          "origin": 8,
+          "layers": 2
+        },
+        {
+          "type": "scroll",
+          "origin": 40,
+          "layers": 1
+        },
+        {
+          "type": "chest",
+          "origin": 20,
+          "layers": 2
+        }
+      ]
     }
   ]
 }

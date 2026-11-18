@@ -75,8 +75,7 @@ try {
   await page.waitForTimeout(2200);
 
   const card = () => page.evaluate(() => {
-    const node = [...document.querySelectorAll('.game-card')]
-      .find((one) => one.textContent.includes('Земля обетованная'));
+    const node = document.querySelector('#catalog-games [data-card-game="promised-land"]');
     if (!node) return { есть: false, видна: false, иконка: '', загружена: 0 };
     const image = node.querySelector('img');
     return {
@@ -88,6 +87,8 @@ try {
   });
 
   // Карточку видит обычный игрок — без роли администратора и без ничего.
+  await page.locator('#catalog-games [data-card-game="promised-land"]').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector('#catalog-games [data-card-game="promised-land"] img')?.naturalWidth > 0);
   const plain = await card();
   need(plain.есть, 'карточки «Земли обетованной» нет в меню вовсе');
   need(plain.видна, 'карточка «Земли обетованной» не видна обычному игроку');
@@ -104,8 +105,7 @@ try {
     висит, правило можно вернуть одной строкой, и никто этого не заметит.
   */
   const marked = await page.evaluate(() => {
-    const node = [...document.querySelectorAll('.game-card')]
-      .find((one) => one.textContent.includes('Земля обетованная'));
+    const node = document.querySelector('#catalog-games [data-card-game="promised-land"]');
     return Boolean(node?.classList.contains('game-card--owner'));
   });
   need(!marked, 'на карточке остался признак «только администратору»');

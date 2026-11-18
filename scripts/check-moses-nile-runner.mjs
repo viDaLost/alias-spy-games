@@ -84,7 +84,7 @@ await page.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({ statu
 try {
   await page.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
-  await page.waitForSelector('#home-dashboard[data-content-ready="1"]', { timeout: 5_000 });
+  await page.waitForSelector('#home-dashboard[data-content-ready="1"]', { state: 'attached', timeout: 5_000 });
   const state = await page.evaluate(() => ({
     card: Boolean(document.getElementById('moses-nile-runner-card')),
     dashboardText: document.getElementById('home-dashboard')?.textContent || '',

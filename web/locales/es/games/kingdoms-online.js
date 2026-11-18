@@ -401,7 +401,7 @@
               </div>
             </label>` : `<p class="kd-note">Царей от игры выбирает хозяин комнаты: сейчас ${view.settings.bots}.</p>`}
           <div class="kd-row">
-            ${host ? `<button type="button" class="kd-btn" data-start ${view.canStart ? '' : 'disabled'}>Начать партию</button>`
+            ${host ? `<button type="button" class="kd-btn" data-start ${view.canStart ? '' : 'disabled'}>Empezar la partida</button>`
     : `<button type="button" class="kd-btn" data-ready>${you.ready ? 'Я не готов' : 'Я готов'}</button>`}\n            <button type="button" class="kd-btn kd-btn--ghost" data-leave>Salir</button>\n          </div>\n          <p class="kd-note" data-state></p>\n          <p class="kd-note" data-message>${escapeHTML(this.error)}</p>
         </section></div>`;
 
@@ -440,7 +440,7 @@
       const code = this.view?.roomId || '';
       if (!code) return;
       if (!window.RoomInvite?.openQr) { this.say('QR-код недоступен без сети'); return; }
-      window.RoomInvite.openQr('kingdoms', code, 'Царства · вход в комнату');
+      window.RoomInvite.openQr('kingdoms', code, 'Reinos · вход в комнату');
     }
 
     inviteFriends() {

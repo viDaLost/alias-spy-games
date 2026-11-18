@@ -20,6 +20,8 @@ let fail = false;
 let id = '555555555';
 let isRoot = false;
 let restricted = true;
+let accountStars = 61;
+let accountRevision = 1;
 const exceptions = new Set();
 const authErrors = [];
 async function contextFor({ android = false, web = false, telegram = true, social = false } = {}) {
@@ -49,6 +51,12 @@ async function contextFor({ android = false, web = false, telegram = true, socia
     if (action === 'adminRoleStatus') data = { ...data, isAdmin: isRoot, isRoot, userId: id };
     if (action === 'getAdminData') data = { ...data, users: [], adminAccess: { isAdmin: isRoot, isRoot, userId: id }, admins: [] };
     if (action === 'syncUser') data = { ...data, isBanned: false, swLevel: 7, wowStars: 42 };
+    if (action === 'syncGameWallet') data = { ...data, bmtStars: accountStars, revision: accountRevision };
+    if (action === 'mutateBmtStars') {
+      accountStars += body.payload.delta;
+      accountRevision += 1;
+      data = { ...data, bmtStars: accountStars, revision: accountRevision };
+    }
     if (action === 'profileBootstrap') data = { ...data, user: { id }, profile: { favorites: ['quartet'], gameStats: {} }, friends: [] };
     if (action === 'profileSetFavorites') data.favorites = body.payload.favorites;
     if (action === 'referralStatus') data.answered = true;
@@ -133,6 +141,7 @@ try {
   const favoritePage = await favoriteContext.newPage();
   await favoritePage.goto(`${base}/?tgWebAppStartParam=game_quartet`);
   await favoritePage.waitForFunction(() => document.body.dataset.currentGame === 'quartet');
+  await favoritePage.locator('#qv2-root.qt-root').waitFor();
   await favoritePage.goto(`${base}/#tgWebAppStartParam=favorites`);
   await favoritePage.locator('.social-sheet-overlay.is-open .social-favorites-grid').waitFor();
   await favoritePage.locator('.social-favorites-grid').getByRole('button', { name: /Библейская география/ }).click();
@@ -148,9 +157,51 @@ try {
   await delegatedPage.waitForFunction(() => document.documentElement.classList.contains('app-ui-ready') && window.AppAccess?.allowed());
   assert.equal(await delegatedPage.evaluate(() => document.body.dataset.currentGame || ''), '');
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
-  await delegatedPage.locator('.social-bottom-dock').waitFor();
+  await delegatedPage.locator('#open-profile').waitFor();
   assert.equal(await delegatedPage.locator('.social-sheet-overlay.is-open').count(), 0);
   await delegatedContext.close();
+
+  id = '1288379477'; isRoot = true;
+  const catalogContext = await contextFor({ social: true });
+  const catalog = await catalogContext.newPage();
+  await catalog.goto(`${base}/`);
+  await catalog.locator('#main-catalog').waitFor();
+  await catalog.locator('#menu-container > .menu-section').first().waitFor({ state: 'hidden' });
+  await catalog.locator('.catalog-tools #app-language').waitFor();
+  const hero = catalog.locator('#catalog-feature');
+  const currentPromo = await hero.getAttribute('data-active-promo');
+  await catalog.waitForFunction((key) => document.querySelector('#catalog-feature')?.dataset.activePromo !== key, currentPromo, { timeout: 5000 });
+  await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '61');
+  await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 17);
+  assert.equal(await catalog.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  await catalog.locator('#catalog-games [data-favorite="bible-wow"]').click();
+  await catalog.locator('#favorite-games [data-launch="bible-wow"]').waitFor();
+  await catalog.locator('#open-profile').click();
+  await catalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
+  await catalog.evaluate(() => window.PlayerSocial.close());
+  await catalog.locator('#catalog-account-actions [data-service="friends"]').click();
+  await catalog.waitForFunction(() => document.querySelector('[data-social-tab="friends"]')?.getAttribute('aria-selected') === 'true');
+  await catalog.evaluate(() => window.PlayerSocial.close());
+  await catalog.locator('#open-more').click();
+  await catalog.locator('#more-screen #admin-btn').waitFor();
+  await catalog.locator('#more-screen [data-more-back]').click();
+  await catalog.evaluate(() => {
+    window.GameWallet.spend(6, 'test hint');
+    document.body.dataset.currentGame = 'bible-wow';
+    delete document.body.dataset.currentGame;
+  });
+  await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '55');
+  await catalog.waitForFunction(() => !Object.keys(localStorage).some((key) => key.startsWith('game_wallet_op_v1_')));
+  assert.equal(accountStars, 55);
+  await catalogContext.close();
+
+  const webCatalogContext = await contextFor({ web: true, telegram: false, social: true });
+  const webCatalog = await webCatalogContext.newPage();
+  await webCatalog.goto(`${base}/?menu=catalog`);
+  await webCatalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '55');
+  await webCatalog.locator('#open-profile').click();
+  await webCatalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
+  await webCatalogContext.close();
 
   assert.deepEqual(authErrors, [], 'Android and iOS must use their verified session, never the native launch marker');
   console.log('PASS: mobile lock, Telegram/Android/iOS/guest denial, no guest bypass, unchanged local progress, retry/unlock, offline denial, root entry and working grant/revoke controls.');

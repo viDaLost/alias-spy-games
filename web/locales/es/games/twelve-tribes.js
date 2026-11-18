@@ -311,23 +311,7 @@
     setup() {
       this.net = null;
       stopTimers();
-      this.root.innerHTML = `
-        <div class="tt-wrap">
-          <section class="tt-setup">
-            <h2>Двенадцать колен</h2>
-            <p>Израиль в пустыне стоял четырьмя станами вокруг скинии: Иуда на востоке,
-              Рувим на юге, Ефрем на западе, Дан на севере (Числа 2). Кладите карту того же
-              стана или того же жребия, а кто первым останется без карт, тот и взял раздачу.</p>
-            <div class="tt-modes">
-              <button type="button" data-mode="solo">За одним столом
-                <small>против соперников от игры</small></button>
-              <button type="button" data-mode="online">По сети
-                <small>комната для друзей</small></button>
-            </div>
-            <label class="tt-choice">
-              <span>Соперников</span>
-              <div class="tt-choice--wide" data-foes>
-                ${SEATS.map((many) => `<button type="button" data-value="${many}"
+      this.root.innerHTML = `\n        <div class="tt-wrap">\n          <section class="tt-setup">\n            <h2>Doce tribus</h2>\n            <p>Израиль в пустыне стоял четырьмя станами вокруг скинии: Иуда на востоке,\n              Рувим на юге, Ефрем на западе, Дан на севере (Числа 2). Кладите карту того же\n              стана или того же жребия, а кто первым останется без карт, тот и взял раздачу.</p>\n            <div class="tt-modes">\n              <button type="button" data-mode="solo">За одним столом\n                <small>против соперников от игры</small></button>\n              <button type="button" data-mode="online">По сети\n                <small>комната для друзей</small></button>\n            </div>\n            <label class="tt-choice">\n              <span>Соперников</span>\n              <div class="tt-choice--wide" data-foes>\n                ${SEATS.map((many) => `<button type="button" data-value="${many}"
                   aria-pressed="${many === this.foes}">${many}</button>`).join('')}\n              </div>\n              <small class="tt-choice-note" data-foes-note></small>\n            </label>\n            <label class="tt-choice">\n              <span>Partida</span>\n              <div data-target>\n                <button type="button" data-value="0" aria-pressed="${this.target === 0}">Раздача<small>места по выходу</small></button>
                 <button type="button" data-value="300" aria-pressed="${this.target === 300}">До 300<small>очки за сброшенные карты</small></button>\n              </div>\n            </label>\n            <div class="tt-row">\n              <button type="button" class="tt-btn" data-start>Сдавать</button>\n              <button type="button" class="tt-btn tt-btn--ghost" data-menu>Al menú</button>\n            </div>\n          </section>\n        </div>`;
       const pick = (group, apply) => {

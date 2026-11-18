@@ -1,8 +1,8 @@
 (() => {
   const ICON_VERSION = '22';
   const SOURCES = {
-    support: 'web/assets/icons/support.webp',
-    admin: 'web/assets/icons/admin.webp',
+    support: 'web/assets/icons/menu-system/support.webp',
+    admin: 'web/assets/icons/menu-system/admin.webp',
   };
 
   function ensureStyle() {

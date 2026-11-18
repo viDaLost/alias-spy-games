@@ -9,7 +9,7 @@ const warnings = [];
 // Installed dependencies are not project sources: they carry their own broken-looking
 // relative references and bundled vendor HTML, and scanning them makes the result depend
 // on whether `npm install` has run.
-const ignoredDirs = new Set(['.git', 'node_modules', 'build', '.gradle']);
+const ignoredDirs = new Set(['.git', 'node_modules', 'build', '.gradle', 'preview-dist']);
 // Замороженная копия старой версии приложения. Это музейный экспонат, а не
 // исходники: ссылки в ней относительны её собственного корня, а часть данных
 // была повреждена ещё тогда. Чинить их значило бы показывать в превью не ту
@@ -29,6 +29,8 @@ const files = walk(root);
 // intentionally not part of the production web reachability graph.
 const previewOnlyPrefixes = ['web/games/moses-nile-v7/', ...['en','de','es'].map(lang=>`web/locales/${lang}/games/moses-nile-v7/`)];
 const isPreviewOnly = (file) => previewOnlyPrefixes.some((prefix) => rel(file).startsWith(prefix));
+// These templates use the paths in preview-dist after build.mjs copies the assets.
+const previewTemplates = ['cloudflare/full-preview/public/', 'cloudflare/reopening-preview/public/'];
 
 for (const file of files.filter((f) => f.endsWith('.js'))) {
   try { execFileSync(process.execPath, ['--check', file], { stdio: 'pipe' }); }
@@ -62,7 +64,8 @@ if (pwaPresent.length === pwaFiles.length) {
   if (!registers) failures.push('sw.js ships but nothing in the bundle registers it');
 }
 
-const searchable = files.filter((f) => /\.(?:html|js|css|md)$/i.test(f) && !isPreviewOnly(f));
+const searchable = files.filter((f) => /\.(?:html|js|css|md)$/i.test(f) && !isPreviewOnly(f)
+  && !previewTemplates.some((prefix) => rel(f).startsWith(prefix)));
 
 const markdownLinkRegex = /\[[^\]]*\]\((?!https?:|mailto:|#)([^)#\s]+)(?:#[^)]+)?\)/g;
 for (const file of files.filter((f) => f.endsWith('.md'))) {
@@ -98,7 +101,7 @@ for (const file of searchable.filter((f) => /\.(?:html|js|css)$/i.test(f))) {
   for (const match of text.matchAll(localRefRegex)) {
     const ref = match[1] || match[2];
     if (!ref || ref.startsWith('javascript:') || ref.includes('${')) continue;
-    const target = path.resolve(siteRootOf(file), ref);
+    const target = path.resolve(siteRootOf(file), ref.replace(/^\//, ''));
     if (!fs.existsSync(target)) failures.push(`Broken local reference in ${rel(file)}: ${ref}`);
   }
 }
@@ -155,6 +158,8 @@ const dynamicPublishedFiles = new Set([
 */
 const dynamicPublishedPrefixes = [
   'web/assets/promised-land/',
+  // The treasure type and graphics preference choose the filename at runtime.
+  'web/assets/biblical-match-three/excavation/',
 ];
 const dynamicSingles = new Set([
   'web/assets/icons/promised-land-v2.webp',
