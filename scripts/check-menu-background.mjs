@@ -118,7 +118,7 @@ if (before.hidden || before.opacity < 0.9) {
 // поэтому проверяются обе двери: обычная игра и он.
 for (const [label, open] of [
   ['обычная игра', () => window.showGame('spy')],
-  ['Библейский художник', () => document.getElementById('bible-sketch-card')?.click()],
+  ['Библейский художник', () => document.querySelector('#catalog-games [data-launch="bible-sketch"]')?.click()],
 ]) {
   const opened = await page.evaluate(open);
   await page.waitForTimeout(3000);

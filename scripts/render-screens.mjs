@@ -32,7 +32,7 @@ const SCREENS = [
   { id: 'sacred-word', open: 'sacred-word' },
   { id: 'kids-ark-pairs', open: 'kids-ark-pairs' },
   // Biblical Treasures has its own launcher card rather than a showGame key.
-  { id: 'biblical-treasures', click: '#biblical-match-three-card', settleMs: 6000 },
+  { id: 'biblical-treasures', click: '#catalog-games [data-launch="biblical-match-three"]', settleMs: 6000 },
 ];
 
 const mime = new Map([

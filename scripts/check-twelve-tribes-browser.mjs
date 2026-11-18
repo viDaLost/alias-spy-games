@@ -127,7 +127,7 @@ async function play(width, height, foes = 2) {
     Вход именно из меню, а не вызовом showGame: карточка игры — это и есть
     дверь, и её отсутствие никак иначе не заметить.
   */
-  const card = page.locator('[onclick*="twelve-tribes"]').first();
+  const card = page.locator('#catalog-games [data-launch="twelve-tribes"]').first();
   need(await card.isVisible(), 'у главного администратора карточка игры не видна');
   await card.click();
 
@@ -634,12 +634,12 @@ async function asGuest(userId) {
   await page.waitForTimeout(2500);
 
   const seen = await page.evaluate(() => {
-    const card = document.querySelector('[onclick*="twelve-tribes"]');
+    const card = document.querySelector('#catalog-games [data-launch="twelve-tribes"]');
     return {
       exists: Boolean(card),
       shown: card ? getComputedStyle(card).display !== 'none' : false,
       root: document.documentElement.classList.contains('admin-rbac-root'),
-      others: document.querySelectorAll('[onclick*="quartet"]').length,
+      others: document.querySelectorAll('#catalog-games [data-launch="quartet"]').length,
     };
   });
 

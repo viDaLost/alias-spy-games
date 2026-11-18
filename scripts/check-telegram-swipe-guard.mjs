@@ -74,7 +74,7 @@ await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
 await page.waitForFunction(() => window.__tgCalls?.disable > 0, null, { timeout: 15_000 })
   .catch(() => fail('disableVerticalSwipes was never called after the SDK loaded late'));
 
-await page.click('#biblical-match-three-card', { timeout: 10_000 });
+await page.click('#catalog-games [data-launch="biblical-match-three"]', { timeout: 10_000 });
 await page.waitForTimeout(6000);
 try {
   await page.locator('.bmt-v13-level:not([disabled]), .bmt-map-node:not([disabled]), .bmt-journey-node:not([disabled])').first().click({ timeout: 6000 });
