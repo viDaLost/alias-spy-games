@@ -216,7 +216,7 @@ async function handleSupportTelegramUpdate(update, env, ctx) {
   return false;
 }
 
-async function createTicketFromTelegram(env, message, userMessage) {
+export async function createTicketFromTelegram(env, message, userMessage, subject = 'Обращение из Telegram') {
   const cleanMessage = String(userMessage || '').trim().slice(0, 2000);
   const chatId = cleanUserId(message.chat?.id);
   if (!chatId) return;
@@ -228,7 +228,7 @@ async function createTicketFromTelegram(env, message, userMessage) {
   const result = await callStore(store, '/support/create', {
     userId: chatId,
     source: 'web',
-    subject: 'Обращение из Telegram',
+    subject,
     message: cleanMessage,
   });
   if (!result?.ticket) {
@@ -378,7 +378,7 @@ async function telegramWebhookSecret(env) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(String(env.TELEGRAM_BOT_TOKEN || ''))));
   return [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
-async function telegramApi(env, method, payload) {
+export async function telegramApi(env, method, payload) {
   const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

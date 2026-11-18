@@ -56,7 +56,12 @@ require(coreWorkerHasLayer('index-v14.js'), 'support-enabled v14 core entrypoint
 requireText(deploy, 'setWebhook', 'Telegram webhook is not configured during deploy');
 requireText(deploy, 'setMyCommands', 'Telegram bot commands are not registered during deploy');
 requireText(deploy, "command: 'support'", '/support command is not registered');
-requireText(webhookFix, "const requiredUpdates = ['message', 'edited_message', 'callback_query', 'widget_query']", 'Telegram callback and widget updates are not enabled after deploy');
+for (const workflow of [deploy, webhookFix]) {
+  const updates = workflow.match(/const requiredUpdates = \[([^\]]*)\]/)?.[1] || '';
+  for (const type of ['message', 'edited_message', 'callback_query', 'widget_query', 'pre_checkout_query']) {
+    requireText(updates, `'${type}'`, `Telegram webhook update ${type} is not enabled`);
+  }
+}
 requireText(webhookFix, 'requiredUpdates.some((type) => !allowed.includes(type))', 'Telegram webhook update verification is missing');
 requireText(store, 'CREATE TABLE IF NOT EXISTS support_tickets', 'ticket SQL missing');
 requireText(store, 'CREATE TABLE IF NOT EXISTS support_messages', 'message SQL missing');

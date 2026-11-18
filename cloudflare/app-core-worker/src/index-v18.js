@@ -4,6 +4,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-access-auth.js';
 import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
+import { DonationStore, handleStarDonation } from './telegram-star-donations.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
 const MANAGEMENT = new Map([
@@ -17,6 +18,7 @@ const ACCESS_ACTIONS = new Set(['syncUser', 'accessStatus']);
 export class UserStore extends V17UserStore {
   constructor(ctx, env) {
     super(ctx, env);
+    this.donations = new DonationStore(this.sql);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS app_access_exceptions (
       user_id TEXT PRIMARY KEY, granted_by TEXT NOT NULL, granted_at INTEGER NOT NULL
     ); CREATE TABLE IF NOT EXISTS app_access_bot_replies (update_id TEXT PRIMARY KEY, replied_at INTEGER NOT NULL);
@@ -54,6 +56,10 @@ export class UserStore extends V17UserStore {
 
   async fetch(request) {
     const url = new URL(request.url);
+    if (request.method === 'POST' && url.pathname.startsWith('/star-donations/')) {
+      const result = this.donations.handle(url.pathname, await request.json());
+      return result ? json(result) : json({ ok: false }, 404);
+    }
     if (request.method !== 'POST' || !url.pathname.startsWith('/app-access/')) return super.fetch(request);
     const body = await request.json();
     if (url.pathname === '/app-access/check') return json(await this.applicationAccess(body.userId));
@@ -130,6 +136,7 @@ export default {
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {
       try {
         const update = await readTelegramWebhookUpdate(request, env);
+        if (await handleStarDonation(update, env)) return new Response('OK');
         const reply = await restrictedBotReply(request, env, update);
         if (reply) return reply;
         if (handleFavoritesWidget(update, env, ctx)) return new Response('OK');

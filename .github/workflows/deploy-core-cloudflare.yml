@@ -69,7 +69,7 @@ jobs:
             console.log(`Replacing previous Telegram webhook: ${previous.url}`);
           }
 
-          const requiredUpdates = ['message', 'edited_message', 'callback_query', 'widget_query'];
+          const requiredUpdates = ['message', 'edited_message', 'callback_query', 'widget_query', 'pre_checkout_query'];
           await telegram('setWebhook', {
             url: webhookUrl,
             secret_token: secretToken,
@@ -83,6 +83,9 @@ jobs:
           const publicCommands = [
             { command: 'start', description: 'Открыть приложение' },
             { command: 'support', description: 'Написать в техподдержку' },
+            { command: 'donate', description: 'Поддержать проект звёздами' },
+            { command: 'paysupport', description: 'Помощь с оплатой звёздами' },
+            { command: 'terms', description: 'Условия поддержки проекта' },
             { command: 'cancel', description: 'Отменить отправку обращения' },
             { command: 'help', description: 'Список команд' },
           ];
