@@ -10,6 +10,8 @@
 
   function userId() {
     if (sharedWallet) {
+      const signed = window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || window.WebSession?.active?.();
+      if (!signed) return '';
       const id = sharedWallet.accountId();
       return /^\d{5,20}$/.test(id) ? id : '';
     }
@@ -124,7 +126,7 @@
   }
 
   async function api(payload) {
-    const response = await window.apiRequest(payload);
+    const response = await window.apiRequest(payload, { quiet: Boolean(sharedWallet) });
     if (sharedWallet && !response) throw new Error('Game wallet sync unavailable');
     if (response?.success === false || response?.ok === false) throw new Error(response?.error || 'BMT cloud sync failed');
     return response || {};
