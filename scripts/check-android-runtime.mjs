@@ -76,7 +76,7 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
   // feedbackStatus is the one-off app survey asking whether this player has already
   // answered. It runs on every start on every platform -- the Android wrapper included,
   // since the survey serves the session route too.
-  if (!['syncUser', 'updateHistory', 'profileBootstrap', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
+  if (!['syncUser', 'syncGameWallet', 'updateHistory', 'profileBootstrap', 'adminRoleStatus', 'feedbackStatus'].includes(action)) {
     throw new Error(`Unexpected Android action: ${action}`);
   }
 
@@ -88,6 +88,11 @@ await page.route('https://alias-spy-games-core.vitaledanilov.workers.dev/android
       contentType: 'application/json; charset=utf-8',
       body: JSON.stringify({ ok: true, success: true, answered: true, eligible: false }),
     });
+    return;
+  }
+
+  if (action === 'syncGameWallet') {
+    await route.fulfill({ json: { success: true, bmtStars: 32, revision: 1 } });
     return;
   }
 
@@ -139,6 +144,7 @@ await page.goto(`${baseURL}/?android=1&apk=33&native=bundled-web`, { waitUntil: 
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
 await page.waitForSelector('#catalog-system-quick [data-service="social"]', { timeout: 10_000 });
+await page.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '32');
 
 const state = await page.evaluate(() => ({
   android: window.__ANDROID_APK__ === true,
