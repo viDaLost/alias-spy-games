@@ -62,7 +62,9 @@
       note.className = 'language-note';
       note.id = 'app-language-notice';
       note.textContent = NOTICE;
-      header.append(note);
+      const catalogHeader = header.closest('.catalog-top');
+      if (catalogHeader) catalogHeader.after(note);
+      else header.append(note);
     }
     return true;
   }

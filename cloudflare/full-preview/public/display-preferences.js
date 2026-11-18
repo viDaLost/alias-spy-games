@@ -4,7 +4,7 @@
   const key = 'bible_game_display_v1';
   const levels = new Set(['low', 'normal', 'high']);
   const documentRoot = document.documentElement;
-  if (!documentRoot.hasAttribute('data-full-preview') && new URLSearchParams(location.search).get('menu') !== 'catalog') return;
+  if (!documentRoot.hasAttribute('data-full-preview') && !documentRoot.hasAttribute('data-game-catalog')) return;
   documentRoot.dataset.gameCatalog = '';
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
   let preferences;
