@@ -8,7 +8,7 @@ window.__bmtV6RuntimeInstalled = true;
 const TEST_HOST_UNLOCK = (() => {
   try {
     const url = new URL(location.href);
-    return document.body?.hasAttribute("data-reopening-preview")
+    return document.body?.hasAttribute?.("data-reopening-preview")
       || url.searchParams.get("unlockAll") === "1" || /workers\.dev$/i.test(location.hostname) || /preview/i.test(location.hostname);
   } catch { return true; }
 })();
@@ -70,7 +70,7 @@ function patchProgress() {
   const originalLoad = P.load.bind(P);
   P.load = function() {
     const progress = originalLoad();
-    if (!document.body?.hasAttribute("data-reopening-preview") && unlockAllLevels()) progress.unlocked = Math.max(Number(progress.unlocked || 1), 999);
+    if (!document.body?.hasAttribute?.("data-reopening-preview") && unlockAllLevels()) progress.unlocked = Math.max(Number(progress.unlocked || 1), 999);
     return progress;
   };
   const originalBegin = P.beginFreeRun.bind(P);

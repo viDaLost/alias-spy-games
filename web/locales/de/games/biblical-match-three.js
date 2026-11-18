@@ -3,7 +3,7 @@
 
 const Core = window.BiblicalMatchThreeCore;
 const Progress = window.BiblicalMatchThreeProgress;
-const reopeningPreview = window.document?.body?.hasAttribute("data-reopening-preview");
+const reopeningPreview = window.document?.body?.hasAttribute?.("data-reopening-preview");
 const EXCAVATION_ART = "web/assets/biblical-match-three/excavation/";
 const treasureArt = (type) => `${EXCAVATION_ART}${type}${window.GameDisplay?.lowGraphics?.() ? "" : "-hd"}.webp`;
 const TREASURE_LABELS = {

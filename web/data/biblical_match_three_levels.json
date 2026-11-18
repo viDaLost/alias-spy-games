@@ -2180,8 +2180,8 @@
       ],
       "starThresholds": [
         1500,
-        3100,
-        5400
+        2000,
+        2500
       ],
       "reward": 12,
       "excavation": [
@@ -2235,8 +2235,8 @@
       ],
       "starThresholds": [
         3500,
-        5600,
-        8000
+        4600,
+        5800
       ],
       "reward": 14,
       "excavation": [
@@ -2289,8 +2289,8 @@
       ],
       "starThresholds": [
         4600,
-        6900,
-        9400
+        6200,
+        7600
       ],
       "reward": 16,
       "excavation": [
