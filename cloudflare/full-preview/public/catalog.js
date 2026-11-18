@@ -163,7 +163,8 @@
     if (/^[A-Z0-9]{6}$/.test(room || '')) {
       links.push(`<a href="${routeURL('quartet', { room })}" data-launch="quartet">Вернуться в «Квартет» <span aria-hidden="true">›</span></a>`);
     }
-    const last = games.find((game) => game.key === value(lastGameKey));
+    const list = recentGames();
+    const last = games.find((game) => game.key === value(lastGameKey)) || list[0];
     if (last && !(last.key === 'quartet' && links.length)) {
       const newLevel = last.key === 'biblical-match-three' && Number.isSafeInteger(level) && level > 1;
       const href = newLevel ? routeURL(last.key, { level }) : routeURL(last.key);
@@ -173,7 +174,6 @@
     const hidden = window.CatalogSystem.hiddenSections();
     area.hidden = !links.length || hidden.has('continue');
     const recent = document.getElementById('catalog-recent');
-    const list = recentGames();
     recent.hidden = hidden.has('recent') || !list.length;
     recent.innerHTML = list.length ? '<h2>Недавние игры</h2><div>' + list.map(game =>
       `<a class="catalog-pin" href="${routeURL(game.key)}" data-launch="${game.key}">${icon(game)}${game.title}</a>`).join('') + '</div>' : '';
@@ -380,6 +380,7 @@
     carousel?.refresh();
   });
   window.addEventListener('catalog-home:change', refreshResume);
+  window.addEventListener('app:progress-reset', refreshResume);
   window.addEventListener('player:favorites-changed', (event) => {
     if (!signedProfile()) return;
     favorites = new Set(event.detail);

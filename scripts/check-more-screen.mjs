@@ -110,13 +110,13 @@ const menu = await page.evaluate(() => {
       const host = document.getElementById('system-actions');
       return host ? visible(host) : 'нет узла';
     })(),
-    entry: Boolean(document.getElementById('more-entry')),
+    entry: Boolean(document.getElementById('open-more')),
     entryIcon: (() => {
-      const img = document.querySelector('#more-entry img');
+      const img = document.querySelector('#open-more img');
       return img ? { src: img.getAttribute('src') || '', loaded: img.naturalWidth > 0 } : null;
     })(),
     strayCards: [...document.querySelectorAll('#menu-container .game-card')]
-      .filter((card) => visible(card) && card.id !== 'more-entry')
+      .filter((card) => visible(card) && card.id !== 'open-more')
       .filter((card) => !card.closest('#company-games, #word-games, #kids-games'))
       .map((card) => card.querySelector('.game-card__title')?.textContent || card.id),
     games: document.querySelectorAll('#company-games .game-card, #word-games .game-card, #kids-games .game-card').length,
@@ -125,7 +125,7 @@ const menu = await page.evaluate(() => {
 if (menu.systemVisible !== false) await fail(`служебные карточки всё ещё видны в главном меню (${menu.systemVisible})`);
 if (!menu.entry) await fail('в меню нет двери в раздел «Ещё»');
 if (!menu.entryIcon) await fail('у двери в раздел нет картинки-иконки');
-if (!menu.entryIcon.src.startsWith('web/assets/icons/more.webp')) {
+if (!menu.entryIcon.src.startsWith('web/assets/icons/menu-system/settings.webp')) {
   await fail(`иконка двери берётся не из набора: ${menu.entryIcon.src}`);
 }
 if (!menu.entryIcon.loaded) await fail('иконка двери не загрузилась');
@@ -133,7 +133,7 @@ if (menu.strayCards.length) await fail(`в меню остались служе�
 if (menu.games < 10) await fail(`в меню собралось всего ${menu.games} карточек игр`);
 
 // 2. в разделе — все пункты
-await page.evaluate(() => document.getElementById('more-entry').click());
+await page.evaluate(() => document.getElementById('open-more').click());
 await page.waitForSelector('#more-screen', { timeout: 10_000 });
 await page.waitForTimeout(600);
 const titles = await page.evaluate(() => [...document.querySelectorAll('#more-screen .game-card')]
@@ -168,7 +168,7 @@ if (afterAdmin.cards < 5) await fail(`после открытия админки
 // 5. возврат в меню и повторный вход
 await page.evaluate(() => (window.appGoToMainMenu || window.goToMainMenu)?.());
 await page.waitForTimeout(900);
-await page.evaluate(() => document.getElementById('more-entry').click());
+await page.evaluate(() => document.getElementById('open-more').click());
 await page.waitForSelector('#more-screen', { timeout: 10_000 });
 await page.waitForTimeout(500);
 const again = await page.evaluate(() => document.querySelectorAll('#more-screen .game-card').length);
@@ -190,7 +190,7 @@ if (!closed.menu) await fail('после закрытия раздела не в
 // Вход там подтверждён мессенджером: ни войти, ни выйти из профиля нельзя, и
 // пункт про него только занимает место. Вне Telegram он нужен и проверяется в
 // check-offline-pwa.
-await page.evaluate(() => document.getElementById('more-entry').click());
+await page.evaluate(() => document.getElementById('open-more').click());
 await page.waitForSelector('#more-screen', { timeout: 10_000 });
 await page.waitForTimeout(500);
 if (await page.locator('#more-screen #web-session-btn').count()) {

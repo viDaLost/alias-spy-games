@@ -188,39 +188,19 @@ if (startupState.rootClass.split(/\s+/).includes('app-booting') || startupState.
   throw new Error(`Стартовый gate не завершился: ${JSON.stringify(startupState)}`);
 }
 
-await page.waitForSelector('#home-dashboard[data-content-ready="1"][data-controls-ready="1"]', { timeout: 5_000 });
+await page.waitForSelector('#main-catalog:not([hidden])', { timeout: 5_000 });
+for (const id of ['catalog-resume', 'catalog-recent', 'catalog-progress']) {
+  if (!(await page.locator(`#${id}`).isHidden())) throw new Error(`Hidden section ${id} reappeared in the catalog.`);
+}
+const legacyMenu = page.locator('#menu-container > .menu-section').first();
+if (!(await legacyMenu.isHidden())) throw new Error('Legacy cards appeared alongside the new catalog.');
 
-const prepared = await page.evaluate(() => {
-  const imageState = [...document.querySelectorAll('#menu-container .game-card__img, #menu-container .home-continue__icon img')]
-    .map((img) => ({ complete: img.complete, width: img.naturalWidth, src: img.getAttribute('src') }));
-  const menu = document.getElementById('menu-container');
-  const menuStyle = menu ? getComputedStyle(menu) : null;
-  return {
-    marker: document.documentElement.dataset.homeHidden || '',
-    continueDisplay: getComputedStyle(document.querySelector('.home-continue')).display,
-    recentDisplay: getComputedStyle(document.querySelector('.home-recent')).display,
-    progressDisplay: getComputedStyle(document.querySelector('.home-progress')).display,
-    images: imageState,
-    menuVisibility: menuStyle?.visibility || null,
-    menuOpacity: menuStyle?.opacity || null,
-    menuPointerEvents: menuStyle?.pointerEvents || null,
-  };
-});
+await page.locator('#open-settings').click();
+await page.locator('[data-home-section="progress"]').check();
+await page.locator('#settings-dialog .catalog-dialog-done').click();
+await page.locator('#catalog-progress').waitFor();
 
-if (!prepared.marker.includes('continue') || !prepared.marker.includes('recent') || !prepared.marker.includes('progress')) {
-  throw new Error(`Hidden-section first-frame marker is incomplete: ${JSON.stringify(prepared)}`);
-}
-if (prepared.continueDisplay !== 'none' || prepared.recentDisplay !== 'none' || prepared.progressDisplay !== 'none') {
-  throw new Error(`Hidden dashboard section flashed back into the UI: ${JSON.stringify(prepared)}`);
-}
-if (prepared.menuVisibility === 'hidden' || prepared.menuOpacity === '0' || prepared.menuPointerEvents === 'none') {
-  throw new Error(`Menu is not interactive after startup: ${JSON.stringify(prepared)}`);
-}
-if (prepared.images.some((image) => !image.complete || image.width <= 0)) {
-  throw new Error(`One or more menu images were not decoded before interaction: ${JSON.stringify(prepared.images)}`);
-}
-
-await page.locator('#company-games .game-card').first().click();
+await page.locator('#catalog-games [data-launch="alias"]').click();
 await page.waitForFunction(() => document.body?.dataset.mode === 'game', null, { timeout: 3000 });
 await page.evaluate(() => window.goToMainMenu?.());
 await page.waitForFunction(() => !document.body?.dataset.mode, null, { timeout: 3000 });

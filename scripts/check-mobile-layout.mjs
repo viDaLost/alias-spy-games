@@ -56,14 +56,13 @@ async function pageFor(width) {
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
-  await page.waitForSelector('#bible-sketch-card', { timeout: 5_000 });
+  await page.waitForSelector('#catalog-games [data-launch="bible-sketch"]', { timeout: 5_000 });
   return { page, context };
 }
 
 const discovery = await pageFor(390);
-const gameKeys = [...new Set(await discovery.page.locator('.game-card[onclick*="showGame("]').evaluateAll((buttons) => buttons
-  .map((button) => (button.getAttribute('onclick') || '').match(/showGame\(['\"]([^'\"]+)['\"]\)/)?.[1])
-  .filter(Boolean)))];
+const gameKeys = await discovery.page.locator('#catalog-games [data-launch]').evaluateAll((cards) =>
+  cards.map((card) => card.dataset.launch));
 await discovery.context.close();
 if (!gameKeys.includes('bible-sketch')) failures.push('Библейский художник отсутствует в mobile discovery.');
 

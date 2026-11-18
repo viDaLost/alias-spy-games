@@ -156,7 +156,7 @@ try {
   await delegatedPage.waitForFunction(() => document.documentElement.classList.contains('app-ui-ready') && window.AppAccess?.allowed());
   assert.equal(await delegatedPage.evaluate(() => document.body.dataset.currentGame || ''), '');
   await delegatedPage.goto(`${base}/?tgWebAppStartParam=favorites`);
-  await delegatedPage.locator('.social-bottom-dock').waitFor();
+  await delegatedPage.locator('#catalog-system-quick [data-service="social"]').waitFor();
   assert.equal(await delegatedPage.locator('.social-sheet-overlay.is-open').count(), 0);
   await delegatedContext.close();
 
@@ -180,7 +180,11 @@ try {
   await catalog.locator('#open-more').click();
   await catalog.locator('#more-screen #admin-btn').waitFor();
   await catalog.locator('#more-screen [data-more-back]').click();
-  await catalog.evaluate(() => window.GameWallet.spend(6, 'test hint'));
+  await catalog.evaluate(() => {
+    window.GameWallet.spend(6, 'test hint');
+    document.body.dataset.currentGame = 'bible-wow';
+    delete document.body.dataset.currentGame;
+  });
   await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '55');
   await catalog.waitForFunction(() => !Object.keys(localStorage).some((key) => key.startsWith('game_wallet_op_v1_')));
   assert.equal(accountStars, 55);

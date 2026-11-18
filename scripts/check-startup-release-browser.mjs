@@ -53,7 +53,7 @@ try {
     });
     await page.goto(base, {waitUntil:'domcontentloaded'});
     await page.waitForSelector('#menu-container:not(.hidden)');
-    await page.waitForFunction(() => document.querySelectorAll('.game-card__details').length === 14).catch(async (error) => {
+    await page.waitForFunction(() => document.querySelectorAll('#catalog-games .catalog-game').length === (document.documentElement.classList.contains('admin-rbac-root') ? 17 : 16)).catch(async (error) => {
       console.error('Startup state:', await page.evaluate(() => ({ access: window.AppAccess?.state(), cards: document.querySelectorAll('.game-card').length, details: document.querySelectorAll('.game-card__details').length, ready: document.readyState })));
       throw error;
     });
@@ -62,9 +62,9 @@ try {
       for (const width of [320, 390]) for (const theme of ['light','dark']) {
         await page.setViewportSize({width,height:844});
         await page.evaluate(theme => document.documentElement.classList.toggle('theme-dark', theme === 'dark'), theme);
-        const layout = await page.locator('.game-card__details').evaluateAll(nodes => nodes.every(node => {
+        const layout = await page.locator('#catalog-games .catalog-game-stats').evaluateAll(nodes => nodes.every(node => {
           const box = node.getBoundingClientRect();
-          const card = node.closest('.game-card').getBoundingClientRect();
+          const card = node.closest('.catalog-game').getBoundingClientRect();
           return box.width > 0 && box.height > 0 && node.scrollWidth <= node.clientWidth + 1 && box.left >= card.left && box.right <= card.right + 1;
         }));
         assert.ok(layout, `Card details overflow at ${width}px in ${theme} theme`);
@@ -75,7 +75,7 @@ try {
       assert.equal(requests.length, 0, 'Denied users must not load admin interfaces');
     }
     if (['root','delegated'].includes(role)) {
-      await page.click('#more-entry');
+      await page.click('#open-more');
       await page.waitForSelector('#admin-btn:not([hidden])');
       await page.click('#admin-btn');
       if (role === 'root') {
@@ -88,7 +88,7 @@ try {
       assert.equal(requests.length, expected);
       assert.equal(await page.locator('#admin-btn').getAttribute('aria-busy'), null, 'Admin entry must stop showing a loading state');
       await page.evaluate(() => window.goToMainMenu());
-      await page.click('#more-entry');
+      await page.click('#open-more');
       await page.click('#admin-btn');
       await page.waitForSelector('.admin-v2, .admin-page:not(.admin-loading)');
       assert.equal(requests.length, expected, 'Reopening admin must reuse the loaded bundle');
@@ -97,7 +97,7 @@ try {
     console.log(`Startup browser scenario passed: ${role}`);
     await context.close();
   }
-  console.log('Startup browser checks passed: 13 cards, mobile themes, guest/denied/root/delegated entry, retry and reuse.');
+  console.log('Startup browser checks passed: catalog cards, mobile themes, guest/denied/root/delegated entry, retry and reuse.');
 } finally {
   await browser?.close();
   await new Promise(resolve => server.close(resolve));

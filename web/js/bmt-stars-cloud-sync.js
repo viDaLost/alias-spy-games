@@ -232,15 +232,23 @@
     schedule(180, true);
   });
 
-  if (sharedWallet) window.addEventListener('app:menu-ready', () => schedule(120));
+  if (sharedWallet) {
+    window.addEventListener('app:menu-ready', () => schedule(120));
+    window.addEventListener('storage', (event) => {
+      const id = userId();
+      if (id && event.key?.startsWith(sharedQueuePrefix(id)) && event.newValue !== null) schedule(180);
+    });
+  }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && (gameActive() || sharedWallet)) schedule(120); });
   window.addEventListener('online', () => { if (gameActive() || sharedWallet) schedule(100); });
   window.setInterval(() => {
-    if (gameActive() && !document.hidden && navigator.onLine) syncNow();
+    if (document.hidden || !navigator.onLine) return;
+    const id = userId();
+    if (gameActive() || (sharedWallet && id && sharedQueue(id).length)) syncNow();
   }, SAFETY_SYNC_INTERVAL_MS);
 
   const gameObserver = new MutationObserver(() => {
-    if (gameActive()) schedule(80);
+    if (sharedWallet || gameActive()) schedule(180);
     else clearTimeout(timer);
   });
   if (document.body) gameObserver.observe(document.body, { attributes: true, attributeFilter: ['data-current-game'] });

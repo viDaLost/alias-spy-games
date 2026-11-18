@@ -37,7 +37,7 @@
       ? `<a class="catalog-system-action" href="${href}" target="_blank" rel="noopener noreferrer">${copy}</a>`
       : `<button class="catalog-system-action" type="button" data-service="${action}" aria-haspopup="dialog">${copy}</button>`;
   }
-  quick.innerHTML = [donate, channel].map(row).join('');
+  quick.innerHTML = [donate, preview ? channel : { ...channel, href: '', action: 'channel' }].map(row).join('');
   if (preview) document.getElementById('catalog-system-list').innerHTML = rows.map(row).join('') +
     `<nav class="catalog-system-languages" aria-label="Язык рабочего приложения">
       <span>Язык рабочего приложения</span>${Object.entries({ ru: 'Русский', en: 'English', de: 'Deutsch', es: 'Español' }).map(([code, label]) => `<a href="${bot}?startapp=lang_${code}" target="_blank" rel="noopener noreferrer" lang="${code}">${label}</a>`).join('')}
@@ -123,13 +123,23 @@
 
   document.getElementById('catalog-join-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    const url = roomURL(document.getElementById('catalog-join-code').value, selection.value);
+    const value = document.getElementById('catalog-join-code').value;
+    if (!preview && window.RoomInvite?.acceptScanned(value)) {
+      join.close();
+      document.getElementById('catalog-join-error').textContent = '';
+      return;
+    }
+    const url = roomURL(value, selection.value);
     document.getElementById('catalog-join-error').textContent = joinRoom(url) ? '' : 'Проверьте код комнаты или вставьте ссылку из приглашения.';
   });
   const camera = document.getElementById('catalog-scan');
-  camera.addEventListener('click', () => window.RoomQrScanner?.open());
+  camera.addEventListener('click', () => {
+    join.close();
+    window.RoomQrScanner?.open();
+  });
 
   const actions = {
+    channel: () => window.ChannelPromo?.open(),
     rules: () => window.openGameRules(),
     reset: () => window.openProgressReset(),
     city: () => window.SabbathAccess.openCityPicker(),

@@ -101,27 +101,15 @@ async function makePage() {
   await page.goto(baseURL, { waitUntil: 'commit', timeout: 20_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
   await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
-  await page.waitForSelector('#bible-sketch-card', { timeout: 5_000 });
+  await page.waitForSelector('#catalog-games [data-launch="bible-sketch"]', { timeout: 5_000 });
   return { context, page, pageErrors, consoleErrors };
 }
 
 let gameKeys = [];
 {
   const session = await makePage();
-  /*
-    Только то, что этому человеку и правда открыто.
-
-    Карточки игр на обкатке лежат в разметке всегда — они прячутся таблицей
-    стилей, чтобы появиться сразу, как придёт роль, и не пересобирать меню.
-    Дымовая проверка ходит обычным гостем, и открыть их ему нечем: вместо игры
-    он получает отказ «игра ещё не открыта». Раньше она честно считала это
-    поломкой игры — а поломки не было, был замок.
-  */
-  gameKeys = await session.page.locator('.game-card[onclick*="showGame("]').evaluateAll((buttons) => buttons
-    .filter((button) => getComputedStyle(button).display !== 'none')
-    .map((button) => button.getAttribute('onclick') || '')
-    .map((text) => text.match(/showGame\(['\"]([^'\"]+)['\"]\)/)?.[1])
-    .filter(Boolean));
+  gameKeys = await session.page.locator('#catalog-games [data-launch]').evaluateAll((cards) =>
+    cards.map((card) => card.dataset.launch));
   gameKeys = [...new Set(gameKeys)];
   await session.context.close();
 }
@@ -135,13 +123,7 @@ for (const gameKey of gameKeys) {
   const session = await makePage();
   const { page, context, pageErrors, consoleErrors } = session;
   try {
-    // Do not return showGame() from page.evaluate. Bible Sketch deliberately
-    // uses an async launcher, and Playwright would otherwise await that Promise
-    // instead of observing the rendered game with the bounded checks below.
-    await page.evaluate((key) => {
-      window.showGame(key);
-      return true;
-    }, gameKey);
+    await page.locator(`#catalog-games [data-launch="${gameKey}"]`).click();
     await page.waitForFunction((key) => document.body.dataset.currentGame === key, gameKey, { timeout: 10_000 });
     await page.waitForFunction(() => {
       const container = document.getElementById('game-container');

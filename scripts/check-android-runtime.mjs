@@ -138,7 +138,7 @@ stage = 'app startup';
 await page.goto(`${baseURL}/?android=1&apk=33&native=bundled-web`, { waitUntil: 'commit', timeout: 20_000 });
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 10_000 });
 await page.waitForFunction(() => !document.documentElement.classList.contains('app-booting') && !document.documentElement.classList.contains('app-menu-preparing'), null, { timeout: 10_000 });
-await page.waitForSelector('[data-social-open="profile"]', { timeout: 10_000 });
+await page.waitForSelector('#catalog-system-quick [data-service="social"]', { timeout: 10_000 });
 
 const state = await page.evaluate(() => ({
   android: window.__ANDROID_APK__ === true,
@@ -158,7 +158,7 @@ if (!state.authenticated) throw new Error('Android Web bridge did not expose an 
 if (!state.socialMounted) throw new Error('Android social dock did not mount while telemetry was disabled.');
 
 stage = 'profile rendering';
-await page.locator('[data-social-open="profile"]').click();
+await page.locator('#catalog-system-quick [data-service="social"]').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-hero', { timeout: 8_000 });
 await page.waitForFunction(() => document.querySelector('.social-sheet-overlay.is-open')?.textContent?.includes('Android Runtime'), null, { timeout: 8_000 });
 
@@ -185,7 +185,11 @@ if (profileLayout.top < -2 || profileLayout.left < -2 || profileLayout.bottom > 
 
 stage = 'favorites rendering';
 await page.locator('[data-social-close]').click();
-await page.locator('[data-social-open="favorites"]').click();
+await page.locator('#open-favorites').click();
+await page.locator('#favorites-dialog [data-launch="bible-sketch"]').waitFor();
+await page.locator('#favorites-dialog .catalog-dialog-close').click();
+await page.locator('#catalog-system-quick [data-service="social"]').click();
+await page.locator('[data-social-tab="favorites"]').click();
 await page.waitForSelector('.social-sheet-overlay.is-open .social-favorites-grid', { timeout: 8_000 });
 const favoritesState = await page.evaluate(() => ({
   visible: Boolean(document.querySelector('.social-sheet-overlay.is-open .social-favorites-grid')),
@@ -203,7 +207,7 @@ await page.locator('[data-social-close]').click();
 // remains covered by the general all-games smoke suite.
 stage = 'Bible Sketch foreground rendering';
 await page.evaluate(() => localStorage.removeItem('bible_sketch_room_id_v1'));
-await page.waitForSelector('#bible-sketch-card', { timeout: 8_000 });
+await page.waitForSelector('#catalog-games [data-launch="bible-sketch"]', { timeout: 8_000 });
 await page.evaluate(() => { window.showGame?.('bible-sketch'); });
 await page.waitForSelector('#bsk-root #bsk-content .bsk-home', { timeout: 8_000 });
 await page.waitForFunction(() => {
