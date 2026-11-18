@@ -248,7 +248,6 @@
     consumedRoom = '';
     if (invitation?.open) invitation.close();
     window.CatalogSystem.refresh();
-    carousel?.refresh();
   }
 
   function loadResource(path, stylesheet = false) {
@@ -276,6 +275,7 @@
     try {
       await Promise.all([
         loadResource('/web/games/quartet-table.css?v=6', true),
+        loadResource('/quartet-preview.css?v=1', true),
         loadResource('/web/games/quartet-table.js?v=6'),
         loadResource('/quartet-polling.js'),
       ]);
@@ -331,11 +331,9 @@
     reflectSettings();
     window.CatalogSystem.refresh();
     settings.showModal();
-    carousel?.refresh();
   });
   document.getElementById('open-favorites').addEventListener('click', () => {
     favoritesDialog.showModal();
-    carousel?.refresh();
   });
   window.addEventListener('app:progress-reset', window.CatalogSystem.refresh);
   window.addEventListener('player:favorites-changed', (event) => {

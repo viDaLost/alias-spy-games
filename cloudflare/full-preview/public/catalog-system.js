@@ -16,7 +16,7 @@
     'twelve-tribes': 'Двенадцать колен', 'promised-land': 'Земля обетованная', kingdoms: 'Царства',
   };
   const icon = (key) => `<img class="catalog-system-icon" src="${systemRoot}${key}.webp" alt="" draggable="false">`;
-  const help = { art: 'support', title: 'Техподдержка', caption: 'Сообщить об ошибке или предложить идею', action: 'support' };
+  const help = { art: 'support', title: 'Техподдержка', action: 'support' };
   const donate = { art: 'donate', title: 'Поддержать проект', action: 'donate' };
   const channel = { art: 'channel', title: 'Канал обновлений', href: 'https://t.me/+WEBlCGtAywEyZmNi' };
   const rows = [
@@ -24,9 +24,8 @@
     { art: 'share', title: 'Подключиться к комнате', caption: 'По коду, ссылке или QR', action: 'join' },
     { art: 'theme', title: 'Город для расписания', caption: '', action: 'city' },
     { art: 'progress', title: 'Сбросить прогресс', caption: 'Выбор игры с подтверждением', action: 'reset' },
-    help, donate, channel,
+    donate, channel,
     { art: 'support', title: 'Открыть бота', href: bot },
-    { art: 'admin', title: 'Профиль и друзья', caption: 'Вход в рабочее приложение', href: `${bot}?startapp` },
     { art: 'share', title: 'Установить на iPhone', href: `${production}/install.html` },
     { art: 'share', title: 'Скачать приложение для Android', href: 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-latest.apk' },
   ];
@@ -37,7 +36,7 @@
       ? `<a class="catalog-system-action" href="${href}" target="_blank" rel="noopener noreferrer">${copy}</a>`
       : `<button class="catalog-system-action" type="button" data-service="${action}" aria-haspopup="dialog">${copy}</button>`;
   }
-  quick.innerHTML = [donate, preview ? channel : { ...channel, href: '', action: 'channel' }].map(row).join('');
+  quick.innerHTML = [donate, preview ? channel : { ...channel, href: '', action: 'channel' }, help].map(row).join('');
   if (preview) document.getElementById('catalog-system-list').innerHTML = rows.map(row).join('') +
     `<nav class="catalog-system-languages" aria-label="Язык рабочего приложения">
       <span>Язык рабочего приложения</span>${Object.entries({ ru: 'Русский', en: 'English', de: 'Deutsch', es: 'Español' }).map(([code, label]) => `<a href="${bot}?startapp=lang_${code}" target="_blank" rel="noopener noreferrer" lang="${code}">${label}</a>`).join('')}
@@ -146,7 +145,7 @@
       camera.hidden = typeof window.Telegram?.WebApp?.showScanQrPopup !== 'function';
       join.showModal();
     },
-    support: () => document.getElementById('support-dialog').showModal(),
+    support: () => preview ? document.getElementById('support-dialog').showModal() : window.openSupportChat(),
     donate: () => document.getElementById('donate-dialog').showModal(),
   };
   function openService(event) {
@@ -161,20 +160,20 @@
     const accountActions = document.getElementById('catalog-account-actions');
     accountActions.hidden = false;
     accountActions.addEventListener('click', openService);
-    accountActions.append(...[
-      { art: 'share', title: 'Подключиться к комнате', action: 'join' },
-      { art: 'admin', title: 'Профиль и друзья', action: 'social' },
-    ].map((item) => {
-      const template = document.createElement('template');
-      template.innerHTML = row(item);
-      return template.content.firstElementChild;
-    }));
-    actions.social = () => {
+    accountActions.innerHTML = row({ art: 'share', title: 'Подключиться к комнате', action: 'join' });
+    const profile = document.getElementById('open-profile');
+    profile.setAttribute('role', 'button');
+    function openProfile(event) {
+      event.preventDefault();
       const signed = window.Telegram?.WebApp?.initData || window.TelegramLaunchContext?.getInitData?.() || window.WebSession?.active?.();
       if (signed && window.PlayerSocial) window.PlayerSocial.open('profile');
       else if (signed) window.showToast?.('Профиль загружается. Попробуйте ещё раз.');
       else window.WebSession?.open();
-    };
+    }
+    profile.addEventListener('click', openProfile);
+    profile.addEventListener('keydown', (event) => {
+      if (event.key === ' ') openProfile(event);
+    });
     window.addEventListener('app:menu-ready', () => {
       if (!window.WebSession?.active?.() || document.getElementById('social-dock-v2-js')) return;
       const css = document.createElement('link');

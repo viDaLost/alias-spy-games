@@ -2913,20 +2913,14 @@ html.theme-dark .catalog-wallet {
 html.theme-dark .catalog-feature {
   border: 1px solid #30305d !important;
 }
-html.theme-dark .catalog-promo {
-  background: radial-gradient(ellipse at 80% 42%, rgba(16, 17, 88, 0.329), transparent 65%), linear-gradient(116deg, #191c41 3%, var(--promo-color)) !important;
-}
 html.theme-dark .catalog-promo-stage {
   background: radial-gradient(ellipse at 50% 55%, rgba(30, 43, 99, 0.298), transparent 67%) !important;
 }
-html.theme-dark .catalog-promo-stage::before {
-  border: 1px solid rgba(14, 19, 80, 0.659) !important;
+html.theme-dark .catalog-promo[data-promo-game="quartet"] {
+  --promo-light: #8d661b !important;
 }
-html.theme-dark .catalog-promo-controls {
-  border-top: 1px solid rgba(11, 16, 65, 0.157) !important;
-}
-html.theme-dark .catalog-promo-controls button {
-  border: 1px solid rgba(44, 55, 103, 0.369) !important;
+html.theme-dark .catalog-promo[data-promo-game="twelve-tribes"] {
+  --promo-light: #8d600d !important;
 }
 html.theme-dark .catalog-more,
 html.theme-dark .catalog-system-action {
