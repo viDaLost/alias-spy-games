@@ -72,6 +72,7 @@ export const WELCOME_LANGUAGES = {
   es: ['Juegos bíblicos','Juega con amigos y descubre la Biblia de una nueva manera.',' Jugar',' Ayuda','Minijuegos • salas • progreso'],
 };
 const FAVORITES_LABEL = { ru: 'Мои игры', en: 'My games', de: 'Meine Spiele', es: 'Mis juegos' };
+const DONATE_LABEL = { ru: 'Поддержать звёздами', en: 'Support with Stars', de: 'Mit Stars unterstützen', es: 'Apoyar con estrellas' };
 
 async function sendRichWelcomeMessage(env, chatId, language='ru') {
   const miniAppUrl = await getMainMiniAppUrl(env) + `=lang_${language}`;
@@ -134,6 +135,11 @@ async function sendRichWelcomeMessage(env, chatId, language='ru') {
               url: miniAppUrl.replace(/\?startapp.*$/, `?start=favorites_${language}`),
             }] : []),
           ],
+        },
+        {
+          type: 'buttons',
+          align: 'center',
+          buttons: [{ text: DONATE_LABEL[language] || DONATE_LABEL.ru, callback_data: 'donate:open' }],
         },
         ...languageButtons,
         { type: 'divider' },
