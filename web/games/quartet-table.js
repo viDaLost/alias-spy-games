@@ -217,7 +217,7 @@
         <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ У вас' : 'Нужна'}</small>`;
       return card.owned
         ? `<div class="qt-card is-owned" data-card-id="${esc(card.id)}"><div class="qt-card-content">${content}</div></div>`
-        : `<div class="qt-card" data-card-id="${esc(card.id)}">
+        : `<div class="qt-card is-missing" data-card-id="${esc(card.id)}">
             <button type="button" class="qt-card-content" data-action="table-card" data-card-id="${esc(card.id)}" aria-expanded="false">${content}</button>
             <div class="qt-card-targets" data-card-targets hidden></div>
           </div>`;
