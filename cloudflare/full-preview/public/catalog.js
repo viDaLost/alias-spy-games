@@ -274,9 +274,9 @@
     const container = document.getElementById('game-container');
     try {
       await Promise.all([
-        loadResource('/web/games/quartet-table.css?v=6', true),
-        loadResource('/quartet-preview.css?v=1', true),
-        loadResource('/web/games/quartet-table.js?v=6'),
+        loadResource('/web/games/quartet-table.css?v=7', true),
+        loadResource('/quartet-preview.css?v=2', true),
+        loadResource('/web/games/quartet-table.js?v=7'),
         loadResource('/quartet-polling.js'),
       ]);
       if (document.body.dataset.currentGame === 'quartet') {
