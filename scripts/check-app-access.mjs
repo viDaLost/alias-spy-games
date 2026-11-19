@@ -101,12 +101,12 @@ assert.equal(closed, true, 'existing sockets must close after revocation');
 const realFetch = globalThis.fetch;
 const replies = [];
 let deliveryFails = false;
-let widgetUnsupported = false;
+let widgetFailure = null;
 globalThis.fetch = async (url, init) => {
   replies.push({ url, body: JSON.parse(init.body) });
   if (url.endsWith('/getMe')) return Response.json({ ok: true, result: { username: 'FavoritesTestBot' } });
-  if (widgetUnsupported && url.endsWith('/sendWidget')) {
-    return Response.json({ ok: false, error_code: 404, description: 'Not Found' }, { status: 404 });
+  if (widgetFailure && url.endsWith('/sendWidget')) {
+    return Response.json({ ok: false, ...widgetFailure }, { status: widgetFailure.error_code });
   }
   return Response.json({ ok: !deliveryFails }, { status: deliveryFails ? 502 : 200 });
 };
@@ -217,10 +217,22 @@ try {
   assert.equal((await botUpdate({ widget_query: query }, 'forged')).status, 403);
   assert(!replies.slice(beforeUnauthorized).some(({ url }) => /\/(sendWidget|answerWidgetQuery)$/.test(url)));
 
-  widgetUnsupported = true;
-  await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
-  assert(replies.at(-1).url.endsWith('/sendMessage'));
-  assert.equal(replies.at(-1).body.reply_markup.inline_keyboard[0][0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+  for (const [code, description, notice] of [
+    [400, 'Bad Request: INPUT_MEDIA_WIDGET_NOT_ALLOWED', 'Telegram пока не разрешает этому боту отправлять HTML-виджеты.'],
+    [404, 'Not Found', 'Telegram не принял HTML-виджет.'],
+  ]) {
+    widgetFailure = { error_code: code, description };
+    await botUpdate({ message: { ...ownerChat, text: '/favorites' } });
+    const [attempt, fallback] = replies.slice(-2);
+    assert(attempt.url.endsWith('/sendWidget'));
+    assert(fallback.url.endsWith('/sendMessage'));
+    assert(fallback.body.text.includes(notice));
+    assert.equal(fallback.body.protect_content, true);
+    const [open, game] = fallback.body.reply_markup.inline_keyboard;
+    assert.deepEqual(open, [{ text: 'Открыть избранное', url: 'https://t.me/FavoritesTestBot?startapp=favorites' }]);
+    assert.equal(game[0].url, 'https://t.me/FavoritesTestBot?startapp=game_bible-wow');
+  }
+  widgetFailure = null;
 
   assert.equal((await compat('555555555', 'appAccessRestore', { adminId: env.ADMIN_TELEGRAM_ID })).status, 403);
   assert.equal((await compat('666666666', 'appAccessRestore')).status, 403);
