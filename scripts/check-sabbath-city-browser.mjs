@@ -30,10 +30,14 @@ try {
   page.on('request',request=>requests.push(request.url()));page.on('pageerror',error=>crashes.push(String(error)));
   await page.goto(base+'/city-test.html');await page.locator('#sabbath-city-card').click();
   await page.locator('.sabbath-privacy').waitFor({state:'visible'});
-  assert.match(await page.locator('.sabbath-privacy').innerText(),/никуда не передаётся/);
+  assert.match(await page.locator('.sabbath-privacy').textContent(),/никуда не передаётся/);
+  assert.match(await page.locator('#sabbath-dialog').textContent(),/До выбора действует время Москвы/);
+  assert.equal(await page.locator('.sabbath-schedule dd').count(),2);
   await page.locator('#sabbath-city').fill('Токио');await page.locator('.sabbath-city-form button').click();
   const tokyo=page.locator('.sabbath-city-result').filter({hasText:'Tokyo'}).first();await tokyo.waitFor({state:'visible',timeout:30000});await tokyo.click();
   assert.equal(await page.evaluate(()=>SabbathAccess.status().city.timeZone),'Asia/Tokyo');
+  assert.match(await page.locator('#sabbath-title').textContent(),/Субботнее расписание/);
+  assert.equal(await page.locator('.sabbath-schedule dd').count(),2);
   await page.reload();assert.equal(await page.evaluate(()=>SabbathAccess.status().city.timeZone),'Asia/Tokyo');
   for(const width of [390,320]) {
     await page.setViewportSize({width,height:844});await page.locator('#sabbath-city-card').click();

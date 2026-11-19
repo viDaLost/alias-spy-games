@@ -213,6 +213,11 @@ function sunset(date, latitude, longitude, timeZone) {
   const set = getSetJ(-0.833 * rad, dt, 1, lw, phi, dec);
   return Number.isFinite(set) ? +fromJulian(set + J2000) : null;
 }
+function weekendSchedule(fridayDay, {latitude, longitude}, timeZone) {
+  const sunsetOn = day => sunset(new Date(localHour(day, 12, timeZone)), latitude, longitude, timeZone);
+  const start = sunsetOn(fridayDay), end = sunsetOn(fridayDay + dayMs);
+  return start !== null && end !== null && end > start ? {start, end} : null;
+}
 function state(now, place) {
   const date = new Date(now);
   if (!Number.isFinite(+date)) return {allowed:false, reason:'clock'};
@@ -224,15 +229,14 @@ function state(now, place) {
   const midnight = localHour(calendarDay+dayMs,0,timeZone);
   if (!validCoordinates(place)) return {allowed:!weekend, reason:weekend?'location':'open', nextChange:+midnight};
   const fridayDay = calendarDay - (weekday+2)%7 * dayMs;
-  const friday = new Date(localHour(fridayDay,12,timeZone));
-  const start = sunset(friday, place.latitude, place.longitude, timeZone);
-  if (start === null) return {allowed:!weekend, reason:weekend?'polar':'open', nextChange:+midnight};
-  // The requested lock lasts exactly 24 hours from Friday sunset.
-  const end = start + dayMs;
-  if (now >= start && now < end) return {allowed:false, reason:'sabbath', start, end, nextChange:end};
-  if (now < start) return {allowed:true, reason:'open', start, end, nextChange:start};
-  const next = sunset(new Date(localHour(fridayDay+7*dayMs,12,timeZone)), place.latitude, place.longitude, timeZone);
-  return {allowed:true, reason:'open', start:next, end:next===null?null:next+dayMs, nextChange:Math.min(next || +midnight,+midnight)};
+  const current = weekendSchedule(fridayDay, place, timeZone);
+  if (!current && weekend) return {allowed:false, reason:'polar', nextChange:midnight};
+  if (current && now < current.end) {
+    const allowed = now < current.start;
+    return {allowed, reason:allowed?'open':'sabbath', ...current, nextChange:allowed?current.start:current.end};
+  }
+  const next = weekendSchedule(fridayDay + 7 * dayMs, place, timeZone);
+  return {allowed:true, reason:'open', start:next?.start, end:next?.end, nextChange:Math.min(next?.start ?? midnight, midnight)};
 }
 const api = Object.freeze({GAME_IDS, CITIES, validCoordinates, validCity, sunset, state, dayMs});
 root.SabbathClock = api;

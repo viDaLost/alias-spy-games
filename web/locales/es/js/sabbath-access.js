@@ -7,7 +7,8 @@
   const catalogURL = new URL('../data/sabbath-cities.json', sourceURL);
   const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Tesoros bíblicos','kids-ark-pairs':'Encuentra la pareja','twelve-tribes':'Doce tribus','promised-land':'Tierra prometida'};
   const restricted = game => Clock.GAME_IDS.includes(game);
-  let city = readCity(), pendingGame = null, modal = null, returnFocus = null, editing = false;
+  let savedCity = readCity();
+  let city = savedCity || Clock.CITIES[0], pendingGame = null, modal = null, returnFocus = null, editing = false;
   let timer = null, standalone = null, catalogPromise = null, searchVersion = 0;
   const waiters = new Set();
   const PARENT_ORIGINS = new Set(['https://vidalost.github.io','https://alias-spy-games-app.vitaledanilov.workers.dev','https://appassets.androidplatform.net']);
@@ -20,18 +21,20 @@
   function readCity() {
     try {
       localStorage.removeItem('sabbath-device-location-v1');
-      return cleanCity(JSON.parse(localStorage.getItem(KEY))) || Clock.CITIES[0];
-    } catch { return Clock.CITIES[0]; }
+      return cleanCity(JSON.parse(localStorage.getItem(KEY)));
+    } catch { return null; }
   }
-  function status() { return {...Clock.state(Date.now(),city),city}; }
+  function status() { return {...Clock.state(Date.now(),city),city,citySelected:Boolean(savedCity)}; }
+  function notifyCityChange() { window.dispatchEvent(new Event('sabbath:city-change')); }
   function saveCity(value) {
     const chosen = cleanCity(value);
     if (!chosen) return;
-    city = chosen;
+    savedCity = city = chosen;
     try { localStorage.setItem(KEY, JSON.stringify(city)); } catch {}
     const resume = pendingGame;
-    editing = false;
+    editing = !resume;
     check();
+    notifyCityChange();
     if (modal) renderModal();
     if (resume && status().allowed && !standalone) {
       close();
@@ -78,21 +81,29 @@
     if(!modal)return;
     searchVersion++;
     const state=status(),shell=document.createElement('section');shell.className='sabbath-sheet';modal.dataset.state=state.reason;
-    const top=textNode('div',editing?'Ciudad del horario':'Acceso al juego','sabbath-kicker');
+    const top=textNode('div',editing?'Ciudad para el horario del sábado':'Acceso al juego','sabbath-kicker');
     const dismiss=button('×',close,'sabbath-close');dismiss.setAttribute('aria-label','Cerrar');top.append(dismiss);shell.append(top);
-    const heading=textNode('h2',editing?'Elige tu ciudad':state.reason==='sabbath'?'Juegos en pausa':'Juego temporalmente no disponible');heading.id='sabbath-title';shell.append(heading);
+    const heading=textNode('h2',editing?(state.citySelected?'Horario del sábado':'Elige tu ciudad'):state.reason==='sabbath'?'Juegos en pausa':'Juego temporalmente no disponible');heading.id='sabbath-title';shell.append(heading);
     shell.append(textNode('p',city.name+' · '+new Date(Date.now()).toLocaleTimeString(document.documentElement.lang||'ru',
       {timeZone:city.timeZone,hour:'2-digit',minute:'2-digit'}),'sabbath-city-current'));
     if(editing) {
-      shell.append(textNode('p','El horario se calcula para la ciudad elegida. La predeterminada es Moscú.'));
+      if (!state.citySelected) shell.append(textNode('p','Elige tu ciudad para pausar los juegos al atardecer local. Hasta entonces se usa el horario de Moscú.'));
+      if (Number.isFinite(state.start) && Number.isFinite(state.end)) {
+        const schedule=textNode('dl','','sabbath-schedule');
+        schedule.append(textNode('dt','Pausa desde la puesta de sol del viernes'),textNode('dd',fmt(state.start)),
+          textNode('dt','Reapertura al ponerse el sol el sábado'),textNode('dd',fmt(state.end)));
+        shell.append(schedule);
+      } else if (state.reason==='polar') {
+        shell.append(textNode('p','No se puede calcular una puesta de sol normal para esta fecha. Cinco juegos no están disponibles temporalmente; los demás están en el menú.'));
+      }
       const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Selección rápida de ciudad');
       for(const value of Clock.CITIES){const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
-        option.setAttribute('aria-pressed',String(city.timeZone===value.timeZone&&city.name===value.name));presets.append(option);}
+        option.setAttribute('aria-pressed',String(state.citySelected&&city.timeZone===value.timeZone&&city.name===value.name));presets.append(option);}
       shell.append(presets);appendSearch(shell);
       shell.append(button('Listo',close));
     } else {
       shell.append(textNode('p',state.reason==='sabbath'
-        ?'Estos cinco juegos se pausan durante 24 horas desde la puesta de sol del viernes. Los demás siguen disponibles.'
+        ?'Estos cinco juegos se pausan desde la puesta de sol del viernes hasta la del sábado. Los demás siguen disponibles.'
         :state.reason==='polar'?'No se puede calcular una puesta de sol normal para esta fecha. Cinco juegos no están disponibles temporalmente; los demás están en el menú.'
         :'No se pudo calcular el horario. Comprueba la fecha y hora del dispositivo.'));
       if(state.reason==='sabbath') {
@@ -165,7 +176,7 @@
   function sendStatus(frame) {
     if(!frame||!restricted(document.body.dataset.currentGame))return;
     const state=status();frame.contentWindow?.postMessage({type:'sabbath:status',game:document.body.dataset.currentGame,
-      city,allowed:state.allowed,reason:state.reason,start:state.start,end:state.end,nextChange:state.allowed?state.start:state.nextChange},new URL(frame.src,location.href).origin);
+      city,citySelected:state.citySelected,allowed:state.allowed,reason:state.reason,start:state.start,end:state.end,nextChange:state.allowed?state.start:state.nextChange},new URL(frame.src,location.href).origin);
   }
   function check() {
     clearTimeout(timer);const state=status(),active=document.body?.dataset.currentGame;
@@ -176,10 +187,12 @@
     }
     if(state.allowed){for(const resolve of waiters)resolve();waiters.clear();if(modal&&!editing)close();}
     document.querySelectorAll('[data-sabbath-game]').forEach(card=>{
-      const value=state.allowed?'':state.reason==='sabbath'?'Hasta el sábado':'Comprobando acceso';
+      const value=state.allowed?'':state.reason==='sabbath'?'En pausa':'Comprobando acceso';
       if(card.dataset.sabbathStatus!==value){card.dataset.sabbathStatus=value;card.classList.toggle('sabbath-card-paused',!state.allowed);}
     });
-    const label=document.querySelector('#sabbath-city-card .game-card__desc');if(label&&label.textContent!==city.name)label.textContent=city.name;
+    const label=document.querySelector('#sabbath-city-card .game-card__desc');
+    const cityLabel=state.citySelected?city.name:'Elegir ciudad';
+    if(label&&label.textContent!==cityLabel)label.textContent=cityLabel;
     if(modal&&modal.dataset.state!==state.reason&&!editing)renderModal();
     updateCountdown();sendStatus(document.querySelector('#game-container iframe'));
     timer=setTimeout(check,Math.max(20,Math.min(30000,(state.nextChange||Date.now()+30000)-Date.now())));
@@ -189,7 +202,7 @@
     if(host&&!document.getElementById('sabbath-city-card')) {
       const card=button('',()=>present(null,true),'game-card');card.id='sabbath-city-card';
       const icon=textNode('span','◷','game-card__icon');icon.setAttribute('aria-hidden','true');
-      const body=textNode('span','','game-card__body');body.append(textNode('span','Ciudad del horario','game-card__title'),textNode('span',city.name,'game-card__desc'));
+      const body=textNode('span','','game-card__body');body.append(textNode('span','Ciudad para el horario del sábado','game-card__title'),textNode('span','','game-card__desc'));
       card.append(icon,body);host.append(card);added=true;
     }
     for(const key of Clock.GAME_IDS)document.querySelectorAll(`[data-card-game="${key}"],#${key}-card,button[onclick*="'${key}'"],button[onclick*='"${key}"']`).forEach(card=>{if(!card.dataset.sabbathGame){card.dataset.sabbathGame=key;added=true;}});
@@ -203,7 +216,8 @@
         const onMessage=event=>{
           if(event.source!==parent||event.origin!==expected||event.data?.type!=='sabbath:status'||event.data.game!==game)return;
           const chosen=cleanCity(event.data.city);if(!chosen)return;
-          city=chosen;try{localStorage.setItem(KEY,JSON.stringify(city));}catch{}
+          city=chosen;savedCity=event.data.citySelected?chosen:null;
+          if (savedCity) try {localStorage.setItem(KEY,JSON.stringify(savedCity));} catch {}
           if(!standalone.bridgePending)check();resolve();
         };
         window.addEventListener('message',onMessage);parent.postMessage({type:'sabbath:request',game},expected);
@@ -222,7 +236,12 @@
   window.SabbathAccess=Object.freeze({authorize,status,restricted,refresh:check,openCityPicker:()=>present(null,true),waitForAccess});
   window.addEventListener('focus',check);window.addEventListener('pageshow',check);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
-  window.addEventListener('storage',event=>{if(event.key===KEY){city=readCity();check();if(modal)renderModal();}});
+  window.addEventListener('storage',event=>{
+    if(event.key!==KEY && event.key!==null)return;
+    savedCity=readCity();city=savedCity||Clock.CITIES[0];check();
+    notifyCityChange();
+    if(modal)renderModal();
+  });
   function init(){installCards();new MutationObserver(installCards).observe(document.body,{childList:true,subtree:true});check();window.Telegram?.WebApp?.onEvent?.('activated',check);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

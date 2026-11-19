@@ -273,8 +273,6 @@ async function sendCommandHelp(env, chatId, isAdmin, replyToMessageId) {
     '',
     '/start — открыть приложение',
     '/support — написать в техподдержку',
-    '/donate — поддержать проект звёздами',
-    '/paysupport — помощь с оплатой',
     '/cancel — отменить начатое обращение',
     '/help — этот список',
   ];

@@ -8,6 +8,8 @@
 .sabbath-button{font:inherit;line-height:1.35;min-height:46px;border:1px solid #d7ccb8;border-radius:13px;padding:11px 14px;background:#f6f1e8;color:#192331;cursor:pointer;width:100%;margin:5px 0;white-space:normal}
 .sabbath-button:focus-visible,.sabbath-close:focus-visible{outline:3px solid #a18aff;outline-offset:3px}
 .sabbath-schedule{display:grid;gap:7px;background:#eee8ff;border:1px solid #dcd0ff;border-radius:15px;padding:14px;margin:16px 0;font-size:14px;color:#3c2c76}
+.sabbath-schedule dd{margin:0 0 5px;font-weight:700}
+.sabbath-schedule dd:last-child{margin-bottom:0}
 .sabbath-game-name{font-weight:650;color:#6650a0}
 .sabbath-city-current{font-weight:600;overflow-wrap:anywhere}
 .sabbath-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}

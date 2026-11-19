@@ -69,8 +69,6 @@ jobs:
         run: node scripts/check-presence-freshness.mjs
       - name: Check support center integration
         run: node scripts/check-support-center.mjs
-      - name: Check Telegram Stars donation flow
-        run: node scripts/check-telegram-star-donations.mjs
       - name: Check referral survey and inactive cleanup
         run: node scripts/check-referral-retention.mjs
       - name: Check room QR invites

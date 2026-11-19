@@ -284,10 +284,10 @@
 .catalog-system-quick .catalog-system-action { padding: 7px 8px; gap: 5px; line-height: 1.18; }
 .catalog-system-quick .catalog-system-icon { width: 23px; height: 23px; }
 .catalog-system-quick strong { font-size: clamp(12px, 3.4vw, 16px); }
-.catalog-system-action > span, .catalog-more > span { display: grid; gap: 2px; }
+.catalog-system-action > span, .catalog-more > span { display: grid; gap: 2px; min-width: 0; }
+.catalog-system-quick [data-service="city"] small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .catalog-system-action small, .catalog-more small { font-size: 12px; color: #4d5d87; line-height: 1.25; }
 .catalog-system-list, .catalog-join { display: grid; gap: 7px; }
-.catalog-donate-art { display: block; width: 100%; max-height: 220px; margin: 0 0 10px; border-radius: 12px; object-fit: cover; }
 .catalog-system-languages { display: flex; flex-wrap: wrap; gap: 7px; }
 .catalog-system-languages > span { flex-basis: 100%; font-size: 13px; font-weight: 750; }
 .catalog-system-languages a { padding: 6px 8px; border: 1px solid #cad6ef; border-radius: 8px; color: inherit; font-size: 13px; }

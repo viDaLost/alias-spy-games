@@ -11,19 +11,18 @@
   const accountActions = document.getElementById('catalog-account-actions');
   const more = document.getElementById('more-dialog');
   const join = document.getElementById('join-dialog');
-  const cityName = () => window.SabbathAccess?.status()?.city?.name || '';
   const rooms = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land']);
   const icon = (key) => `<img class="catalog-system-icon" src="${systemRoot}${key}.webp" alt="" draggable="false">`;
   const help = { art: 'support', title: 'Техподдержка', action: 'support' };
   const joinAction = { art: 'share', title: 'Подключиться к комнате', action: 'join' };
   const friends = { art: 'admin', title: 'Друзья', ...(preview ? { href: `${production}/?account=friends` } : { action: 'friends' }) };
-  const donate = { art: 'donate', title: 'Поддержать проект', action: 'donate' };
+  const city = { art: 'theme', title: 'Город для субботы', caption: 'Выбрать город', action: 'city' };
   const channel = { art: 'channel', title: 'Канал обновлений', href: 'https://t.me/+WEBlCGtAywEyZmNi' };
   const rows = [
     { art: 'rules', title: 'Правила игр', caption: 'Правила и разбор механик', action: 'rules' },
-    { art: 'theme', title: 'Город для расписания', caption: '', action: 'city' },
+    city,
     { art: 'progress', title: 'Сбросить прогресс', caption: 'Выбор игры с подтверждением', action: 'reset' },
-    donate, channel,
+    channel,
     { art: 'support', title: 'Открыть бота', href: bot },
     { art: 'share', title: 'Установить на iPhone', href: `${production}/install.html` },
     { art: 'share', title: 'Скачать приложение для Android', href: 'https://github.com/viDaLost/alias-spy-games/releases/download/android-latest/BibleGames-Android-latest.apk' },
@@ -35,7 +34,7 @@
       ? `<a class="catalog-system-action" href="${href}" target="_blank" rel="noopener noreferrer">${copy}</a>`
       : `<button class="catalog-system-action" type="button" data-service="${action}" aria-haspopup="dialog">${copy}</button>`;
   }
-  quick.innerHTML = [donate, preview ? channel : { ...channel, href: '', action: 'channel' }, help].map(row).join('');
+  quick.innerHTML = [city, preview ? channel : { ...channel, href: '', action: 'channel' }, help].map(row).join('');
   accountActions.innerHTML = [joinAction, friends].map(row).join('');
   accountActions.hidden = false;
   if (preview) document.getElementById('catalog-system-list').innerHTML = rows.map(row).join('') +
@@ -46,10 +45,13 @@
     { art: 'support', title: 'Написать в поддержку', href: 'https://t.me/D_a_n_Vi' },
     { art: 'channel', title: 'Открыть поддержку в боте', href: `${bot}?text=%2Fsupport` },
   ].map(row).join('');
-  document.getElementById('donate-dialog-links').innerHTML = [
-    { art: 'stars', title: 'Поддержать звёздами Telegram', href: `${bot}?start=donate` },
-    { art: 'donate', title: 'Поддержать через Tribute', href: 'https://t.me/tribute/app?startapp=dPzg' },
-  ].map(row).join('');
+  function refreshCity() {
+    const schedule = window.SabbathAccess?.status();
+    for (const label of document.querySelectorAll('[data-service="city"] small')) {
+      label.textContent = schedule?.citySelected ? schedule.city.name : city.caption;
+    }
+  }
+  window.addEventListener('sabbath:city-change', refreshCity);
 
   const hiddenSections = () => {
     try { const saved = JSON.parse(localStorage.getItem(preferenceKey) || '[]'); return new Set(Array.isArray(saved) ? saved : []); }
@@ -57,6 +59,7 @@
   };
 
   function refresh() {
+    refreshCity();
     const hide = hiddenSections();
     for (const box of document.querySelectorAll('[data-home-section]')) box.checked = !hide.has(box.dataset.homeSection);
     document.getElementById('catalog-progress').hidden = hide.has('progress');
@@ -73,12 +76,7 @@
 
   document.getElementById('open-more').addEventListener('click', () => {
     if (!preview) { window.openMoreScreen(); return; }
-    const city = more.querySelector('[data-service="city"] span');
-    const current = cityName();
-    if (current) {
-      const detail = city.querySelector('small') || city.appendChild(document.createElement('small'));
-      detail.textContent = current;
-    }
+    refreshCity();
     more.showModal();
   });
 
@@ -154,7 +152,6 @@
     },
     friends: () => openAccount('friends'),
     support: () => preview ? document.getElementById('support-dialog').showModal() : window.openSupportChat(),
-    donate: () => document.getElementById('donate-dialog').showModal(),
   };
   function openService(event) {
     const action = event.target.closest('[data-service]')?.dataset.service;

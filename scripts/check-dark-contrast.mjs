@@ -6,9 +6,7 @@
 // буквы на тёмно-синем — контраст 1.74 при пороге 4.5. Так и написал человек в
 // отзыве: «сделать светлее шрифт на тёмных кнопках».
 //
-// Нашлось это на кнопке рейтинга; рейтинг из приложения убран, и сторожит
-// теперь «Поддержать проект» — та же светлая надпись на том же синем градиенте,
-// и стоит она прямо в меню.
+// Проверяем читаемость кнопки быстрого доступа на главном экране.
 //
 // Дефект этого рода не виден в светлой теме, не ломает ни одной проверки и
 // возвращается от любой правки генератора — поэтому он закреплён здесь.
@@ -196,10 +194,10 @@ if (survey.backgroundLightness > 0.5) {
 await page.evaluate(() => document.querySelector('.referral-survey-later')?.click());
 await page.waitForTimeout(600);
 
-const primary = await measure('.home-support-trigger');
-if (!primary) await fail('кнопка «Поддержать проект» не найдена — мерить нечего');
+const primary = await measure('[data-service="city"]');
+if (!primary) await fail('кнопка «Город для субботы» не найдена — мерить нечего');
 if (primary.ratio < MIN_BUTTON_CONTRAST) {
-  await fail(`«Поддержать проект»: ${primary.color} на ${primary.background} — контраст ${primary.ratio} при пороге ${MIN_BUTTON_CONTRAST}`);
+  await fail(`«Город для субботы»: ${primary.color} на ${primary.background} — контраст ${primary.ratio} при пороге ${MIN_BUTTON_CONTRAST}`);
 }
 
 console.log('Контраст тёмной темы в порядке: тёмного текста в теме нет, генератор оставляет светлые буквы '

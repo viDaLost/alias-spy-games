@@ -64,8 +64,7 @@ for(const id of ['123','456'])for(const lang of ['ru','en','de','es']) {
   const languageButtons=buttonBlocks.at(-1)?.buttons;
   assert.ok(languageButtons,`${id}/${lang}: language buttons are missing`);
   assert.deepEqual(languageButtons.map(button=>button.text),['Русский','English','Deutsch','Español'],`${id}/${lang}: language buttons`);
-  const donation=buttonBlocks.flatMap(block=>block.buttons).find(button=>button.callback_data==='donate:open');
-  assert.equal(donation?.text,{ru:'Поддержать звёздами',en:'Support with Stars',de:'Mit Stars unterstützen',es:'Apoyar con estrellas'}[lang],`${id}/${lang}: donation button`);
+  assert.ok(buttonBlocks.flatMap(block=>block.buttons).some(button=>button.callback_data==='support:start'),`${id}/${lang}: support button`);
   const favorites=blocks.find(block=>block.type==='buttons').buttons.find(button=>button.url?.includes('start=favorites'));
   assert.equal(favorites?.url,id===env.ADMIN_TELEGRAM_ID?`https://t.me/BibleTestBot?start=favorites_${lang}`:undefined);
 }

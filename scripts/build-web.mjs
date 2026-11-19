@@ -114,7 +114,7 @@ export async function build({ write = true } = {}) {
   const catalogPage = read('cloudflare/full-preview/public/index.html');
   const catalogMarkup = catalogPage.match(/<main class="catalog" id="menu-container">([\s\S]*?)<\/main>/)[1]
     .replaceAll('="/web/', '="web/').replace('href="/"', 'href="./"');
-  const catalogDialogs = ['settings', 'favorites', 'join', 'donate'].map(id =>
+  const catalogDialogs = ['settings', 'favorites', 'join'].map(id =>
     catalogPage.match(new RegExp(`<dialog[^>]*id="${id}-dialog"[\\s\\S]*?<\\/dialog>`))[0].replaceAll('="/web/', '="web/'),
   ).join('\n  ');
   for (const [[open, close], tag] of [[CSS_MARK, cssTag], [JS_MARK, jsTag],

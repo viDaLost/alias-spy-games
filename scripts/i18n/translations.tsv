@@ -202,18 +202,6 @@
 Перезапускаем игру	Restarting game	Spiel wird neu gestartet	Reiniciando el juego
 Интерфейс игры находится внутри	The game interface is inside	Die Spieloberfläche befindet sich in	La interfaz del juego está dentro de
 Нажмите кнопку, чтобы повторно открыть локальную копию.	Tap the button to reopen the local copy.	Tippe auf die Schaltfläche, um die lokale Kopie erneut zu öffnen.	Pulsa el botón para volver a abrir la copia local.
-Спасибо, что пользуетесь нашим проектом!	Thank you for using our project!	Danke, dass du unser Projekt nutzt!	¡Gracias por usar nuestro proyecto!
-Нам очень приятно, что вы выбираете наши игры и проводите с ними время	We are happy you choose our games and spend time playing them	Wir freuen uns, dass du unsere Spiele wählst und Zeit mit ihnen verbringst	Nos alegra que elijas nuestros juegos y disfrutes de ellos
-Мы продолжаем развивать проект: улучшаем уже существующие игры	We keep developing the project: improving existing games	Wir entwickeln das Projekt weiter: Wir verbessern bestehende Spiele	Seguimos desarrollando el proyecto: mejoramos los juegos existentes
-и создаём новые	and creating new ones	und entwickeln neue	y creamos otros nuevos
-Если вам хочется поддержать нашу работу — будем искренне благодарны за любую помощь	If you would like to support our work, we would be grateful for any help	Wenn du unsere Arbeit unterstützen möchtest, freuen wir uns über jede Hilfe	Si quieres apoyar nuestro trabajo, agradeceremos cualquier ayuda
-Все пожертвования помогают нам уделять больше времени развитию, улучшениям и созданию новых игр.	Every donation helps us spend more time developing, improving and creating new games.	Jede Spende hilft uns, mehr Zeit in die Entwicklung, Verbesserung und Erstellung neuer Spiele zu investieren.	Cada donación nos ayuda a dedicar más tiempo a desarrollar, mejorar y crear nuevos juegos.
-Спасибо за вашу поддержку!	Thank you for your support!	Danke für deine Unterstützung!	¡Gracias por tu apoyo!
-Благодаря вам проект может становиться лучше!	You help make the project better!	Dank dir kann das Projekt besser werden!	¡Gracias a ti el proyecto puede mejorar!
-Поддержать проект	Support the project	Projekt unterstützen	Apoyar el proyecto
-Поддержи проект	Support the project	Unterstütze das Projekt	Apoya el proyecto
-ПОДДЕРЖАТЬ	SUPPORT	UNTERSTÜTZEN	APOYAR
-Открыть поддержку проекта	Open project support	Projektunterstützung öffnen	Abrir apoyo al proyecto
 Иконка игры	Game icon	Spielsymbol	Icono del juego
 нет связи)	no connection)	keine Verbindung)	sin conexión)
 ошибка	error	Fehler	error
@@ -2101,7 +2089,7 @@
 В этой местности нет захода солнца	No sunset at this location	Kein Sonnenuntergang an diesem Ort	No hay puesta de sol en este lugar
 Расписание игр	Game schedule	Spielzeiten	Horario de los juegos
 Укажите своё местоположение	Set your location	Standort festlegen	Indica tu ubicación
-Эти пять игр закрыты на 24 часа с пятничного захода солнца. Остальные игры доступны.	These five games pause for 24 hours from Friday sunset. Other games remain available.	Diese fünf Spiele pausieren ab Sonnenuntergang am Freitag für 24 Stunden. Andere Spiele bleiben verfügbar.	Estos cinco juegos se pausan durante 24 horas desde la puesta de sol del viernes. Los demás siguen disponibles.
+Эти пять игр на паузе с пятничного до субботнего заката. Остальные игры доступны.	These five games pause from Friday sunset until Saturday sunset. Other games remain available.	Diese fünf Spiele pausieren von Freitag bis Samstag jeweils ab beziehungsweise bis Sonnenuntergang. Andere Spiele bleiben verfügbar.	Estos cinco juegos se pausan desde la puesta de sol del viernes hasta la del sábado. Los demás siguen disponibles.
 На эту дату невозможно рассчитать обычный заход солнца. Пять игр временно недоступны; остальные можно открыть в меню.	A regular sunset cannot be calculated for this date. Five games are temporarily unavailable; other games are in the menu.	Für dieses Datum lässt sich kein normaler Sonnenuntergang berechnen. Fünf Spiele sind vorübergehend nicht verfügbar; andere Spiele finden Sie im Menü.	No se puede calcular una puesta de sol normal para esta fecha. Cinco juegos no están disponibles temporalmente; los demás están en el menú.
 Заход солнца рассчитывается по месту, где вы находитесь.	Sunset is calculated for your actual location.	Der Sonnenuntergang wird für Ihren tatsächlichen Standort berechnet.	La puesta de sol se calcula para tu ubicación real.
 на расчёт не влияет.	does not affect the calculation.	beeinflusst die Berechnung nicht.	no afecta al cálculo.
@@ -2137,9 +2125,14 @@
 Время доступа рассчитывается автоматически по геолокации устройства. Игра откроется после проверки, если сейчас доступна.	Access times are calculated automatically using device geolocation. The game will open after the check if it is currently available.	Die Zugangszeiten werden automatisch anhand des Gerätestandorts berechnet. Das Spiel öffnet sich nach der Prüfung, falls es gerade verfügbar ist.	El horario de acceso se calcula automáticamente con la geolocalización del dispositivo. El juego se abrirá tras la comprobación si está disponible.
 Для автоматического расчёта нужна геолокация устройства. Проверка повторится при следующем входе в игру. Остальные игры доступны.	Automatic calculation requires device geolocation. The check will run again the next time you open the game. Other games remain available.	Die automatische Berechnung benötigt den Gerätestandort. Beim nächsten Öffnen des Spiels wird erneut geprüft. Andere Spiele bleiben verfügbar.	El cálculo automático necesita la geolocalización del dispositivo. Se comprobará de nuevo la próxima vez que abras el juego. Los demás juegos siguen disponibles.
 Проверка доступа	Checking access	Zugang wird geprüft	Comprobando acceso
-Город для расписания	Schedule city	Ort für den Zeitplan	Ciudad del horario
+Город для субботы	City for Sabbath times	Ort für die Sabbatzeiten	Ciudad para el horario del sábado
 Выберите свой город	Choose your city	Wähle deinen Ort	Elige tu ciudad
-Время рассчитывается для выбранного города. По умолчанию — Москва.	Times are calculated for the selected city. Moscow is the default.	Die Zeiten werden für den gewählten Ort berechnet. Standard ist Moskau.	El horario se calcula para la ciudad elegida. La predeterminada es Moscú.
+Выбрать город	Choose a city	Ort auswählen	Elegir ciudad
+Субботнее расписание	Sabbath schedule	Sabbatzeiten	Horario del sábado
+Пауза с пятничного заката	Pauses at Friday sunset	Pause ab Sonnenuntergang am Freitag	Pausa desde la puesta de sol del viernes
+Открытие в субботний закат	Reopens at Saturday sunset	Wieder verfügbar ab Sonnenuntergang am Samstag	Reapertura al ponerse el sol el sábado
+На паузе	Paused	Pausiert	En pausa
+Выберите город, чтобы игры ставились на паузу по вашему местному закату. До выбора действует время Москвы.	Choose your city to pause games at your local sunset. Moscow times apply until you choose.	Wähle deinen Ort, damit die Spiele zum örtlichen Sonnenuntergang pausieren. Bis zur Auswahl gelten die Zeiten für Moskau.	Elige tu ciudad para pausar los juegos al atardecer local. Hasta entonces se usa el horario de Moscú.
 Быстрый выбор города	Quick city selection	Schnellauswahl des Ortes	Selección rápida de ciudad
 Найти другой город	Find another city	Anderen Ort suchen	Buscar otra ciudad
 Выбранный город хранится только на этом устройстве и никуда не передаётся. Эти данные нужны только для вычисления захода солнца.	Your selected city stays on this device and is not shared. It is used only to calculate sunset.	Der gewählte Ort bleibt auf diesem Gerät und wird nicht weitergegeben. Er wird nur zur Berechnung des Sonnenuntergangs verwendet.	La ciudad elegida se guarda solo en este dispositivo y no se comparte. Solo se usa para calcular la puesta de sol.
@@ -2335,8 +2328,6 @@
 Язык рабочего приложения	Main app language	Sprache der Haupt-App	Idioma de la aplicación principal
 Написать в поддержку	Contact support	Support kontaktieren	Contactar con soporte
 Открыть поддержку в боте	Open support in the bot	Support im Bot öffnen	Abrir el soporte en el bot
-Поддержать звёздами	Donate with Stars	Mit Sternen unterstützen	Apoyar con estrellas
-Поддержать через	Donate via	Unterstützen über	Apoyar mediante
 Проверьте код комнаты или вставьте ссылку из приглашения.	Check the room code or paste the invitation link.	Prüfe den Raumcode oder füge den Einladungslink ein.	Comprueba el código de sala o pega el enlace de la invitación.
 Профиль загружается. Попробуйте ещё раз.	The profile is loading. Try again in a moment.	Das Profil lädt. Versuche es gleich erneut.	El perfil se está cargando. Vuelve a intentarlo en un momento.
 От 3 до 24 игроков.	3 to 24 players.	Für 3 bis 24 Spieler.	De 3 a 24 jugadores.
