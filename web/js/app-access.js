@@ -3,6 +3,7 @@
   const core = String(document.querySelector('meta[name="app-core-backend"]')?.content || '').replace(/\/+$/, '');
   const state = { allowed: true, checked: false, checking: null, userId: '', isRoot: false, restricted: false };
   let timer;
+  let sabbathProfile = null, sabbathUser = '';
 
   function applyAccess(data) {
     const userId = String(data.userId || '');
@@ -10,7 +11,16 @@
     const allowed = data.isBanned !== true || data.appRestricted === true;
     const notify = allowed && (!state.checked || !state.allowed || userId !== state.userId || isRoot !== state.isRoot);
     Object.assign(state, { allowed, userId, isRoot, restricted: data.restricted === true });
+    setSabbathProfile(data.sabbath || null,userId);
     if (notify) window.dispatchEvent(new CustomEvent('app-access:allowed'));
+  }
+
+  function setSabbathProfile(next, userId) {
+    if (userId === sabbathUser && next && sabbathProfile && next.revision < sabbathProfile.revision) return;
+    if (userId === sabbathUser && JSON.stringify(next) === JSON.stringify(sabbathProfile)) return;
+    sabbathUser = userId;
+    sabbathProfile = next;
+    window.dispatchEvent(new Event('app-access:sabbath'));
   }
 
   function credentials() {
@@ -29,16 +39,27 @@
     return { body: {}, headers: token ? { Authorization: `Bearer ${token}` } : {} };
   }
 
+  async function post(path, payload, auth = credentials()) {
+    if (!core) throw new Error('Сервер проверки доступа недоступен.');
+    return fetch(`${core}${path}`, {
+      method:'POST', headers:{'Content-Type':'application/json', ...auth.headers},
+      body:JSON.stringify({...auth.body,...payload}), cache:'no-store', signal:AbortSignal.timeout(8000),
+    });
+  }
+
+  async function sabbathRequest(action, payload) {
+    const response = await post(`/sabbath/${action}`,payload);
+    const result = await response.json();
+    if (action === 'confirm' && result.sabbath) setSabbathProfile(result.sabbath,state.userId);
+    if (!response.ok || result.ok !== true) throw new Error(result.error || 'Не удалось получить субботнее расписание.');
+    return result;
+  }
+
   async function verify() {
     if (state.checking) return state.checking;
     state.checking = (async () => {
       try {
-        if (!core) throw new Error('Сервер проверки доступа недоступен.');
-        const auth = credentials();
-        const response = await fetch(`${core}/app/access`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', ...auth.headers },
-          body: JSON.stringify(auth.body), cache: 'no-store', signal: AbortSignal.timeout(8000),
-        });
+        const response = await post('/app/access', {sabbathTimeZone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'});
         const data = await response.json();
         if (response.ok && data.success === true) applyAccess(data);
       } catch {
@@ -59,7 +80,15 @@
     void verify();
   }
 
-  window.AppAccess = { verify, allowed: () => state.allowed, state: () => ({ ...state, checking: Boolean(state.checking) }) };
+  window.AppAccess = {
+    verify, allowed: () => state.allowed, state: () => ({ ...state, checking: Boolean(state.checking) }),
+    sabbathProfile: () => sabbathProfile,
+    sabbathSignedIn: () => {
+      const auth = credentials();
+      return Boolean(auth.body.telegramInitData || auth.headers.Authorization);
+    },
+    sabbathRequest,
+  };
   const roomOrigins = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes'].map((key) => {
     try { return new URL(document.querySelector(`meta[name="${key}-backend"]`)?.content).origin; } catch { return ''; }
   }));

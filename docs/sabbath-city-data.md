@@ -12,12 +12,12 @@ IANA time-zone identifiers. It is sorted by population so ambiguous search
 results prefer larger cities. Population and source identifiers are not stored.
 
 The browser downloads the same static catalog for every search, with no search
-text, chosen city, coordinates or time zone in the request. Searching and sunset
-calculation run locally; only the chosen city is saved in localStorage. No device
-location APIs, permissions or IP-location services are used. Previous device
-location records are deleted. The home screen links directly to the city picker,
-which displays the two local sunset times. Moscow is used until a city is chosen.
-A saved choice also works without the catalog or a network connection.
+text or coordinates in the request. It uses the device time zone and its
+largest catalog city (a preset for Moscow, Berlin and Kyiv) as an approximate
+schedule. Zones without a reference city use 18:00 local time. No location
+permission, IP geolocation, or device coordinates are used. For guests, a city
+choice is stored on the device. For signed-in players it is saved to their
+account after they choose it so the rule works on their other devices.
 The catalog is excluded from eager service-worker precaching and translations.
 
 Catalog schema: `{version:1, source, license, zones, cities}`. Each city is
@@ -26,9 +26,15 @@ Sunset is calculated at the city's center. Local calendar days and displayed
 schedule times use its IANA time zone, including seasonal clock changes. The
 pause starts at Friday sunset and ends at the separately calculated Saturday
 sunset. A city without a sunset on either date shows an unavailable state.
-City selection is read-only from Thursday in the saved city's time zone
-through the end of the Saturday pause. A picker left open switches to the
-read-only schedule at the cutoff.
+Each weekly confirmation opens at the start of local Wednesday, beginning
+November 25, 2026. The in-app prompt remains mandatory until a city is chosen,
+including on a late return. Confirmation locks the choice through Saturday's
+sunset. A late confirmation preserves the schedule already fixed for that
+weekend. The owner-only Cities tab includes all registered users. Changes
+within the 30-day observation period are counted, excluding the initial
+selection and repeats of the same city. The report shows the current city,
+time zone, count and last change, and retains the aggregate after collection
+stops.
 
 The client retrieves UTC time from the core Worker's uncached public clock.
 Requests carry no location, query, or authentication data. The session clock

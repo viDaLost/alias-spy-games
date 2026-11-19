@@ -385,7 +385,8 @@ body[data-mode="admin"] #game-container {
 .admin-v3-shell[data-admin-v3-section="support"] [data-admin-v3-owner="support"],
 .admin-v3-shell[data-admin-v3-section="users"] [data-admin-v3-owner="users"],
 .admin-v3-shell[data-admin-v3-section="broadcast"] [data-admin-v3-owner="broadcast"],
-.admin-v3-shell[data-admin-v3-section="rating"] [data-admin-v3-owner="rating"] {
+.admin-v3-shell[data-admin-v3-section="rating"] [data-admin-v3-owner="rating"],
+.admin-v3-shell[data-admin-v3-section="sabbath"] [data-admin-v3-owner="sabbath"] {
   display: revert;
 }
 
@@ -407,3 +408,13 @@ body[data-mode="admin"] #game-container {
   }
   .admin-v3-nav [data-admin-v3-target] > span:first-child { display: none; }
 }
+
+
+.admin-v3-nav:has([data-admin-v3-target="sabbath"]) {
+  grid-template-columns: repeat(5, minmax(max-content, 1fr));
+}
+.admin-sabbath-table { overflow-x: auto; margin-block: 12px; }
+.admin-sabbath-table table { border-collapse: collapse; width: 100%; text-align: start; }
+.admin-sabbath-table :is(th, td) { border-block-end: 1px solid currentColor; padding: 9px; white-space: nowrap; }
+.admin-sabbath-table tbody tr[data-frequent="true"] td:nth-child(3) { font-weight: 800; }
+.admin-sabbath-actions { display: flex; flex-wrap: wrap; gap: 8px; }

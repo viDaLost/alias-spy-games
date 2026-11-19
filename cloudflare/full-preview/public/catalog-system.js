@@ -48,7 +48,7 @@
   function refreshCity() {
     const schedule = window.SabbathAccess?.status();
     for (const label of document.querySelectorAll('[data-service="city"] small')) {
-      label.textContent = schedule?.citySelected ? schedule.city.name : city.caption;
+      label.textContent = schedule?.selectedCity?.name || schedule?.city?.name || city.caption;
     }
   }
   window.addEventListener('sabbath:city-change', refreshCity);

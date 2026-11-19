@@ -4,6 +4,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { accessIdentity, accessStore, cleanAccessId, accessError } from './app-access-auth.js';
 import { readTelegramWebhookUpdate, restrictedBotReply, RESTRICTED_BOT_TEXT } from './restricted-bot.js';
 import { handleFavoritesWidget } from './telegram-favorites-widget.js';
+import { SabbathUserStore } from './sabbath-user-store.js';
 
 const MESSAGE = 'Библейские игры временно заблокированы. Не волнуйтесь: ваши данные и достижения на месте.';
 const MANAGEMENT = new Map([
@@ -18,6 +19,7 @@ const MAX_GAME_STARS = 999_999;
 export class UserStore extends V17UserStore {
   constructor(ctx, env) {
     super(ctx, env);
+    this.sabbath = new SabbathUserStore(ctx.storage);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS app_access_exceptions (
       user_id TEXT PRIMARY KEY, granted_by TEXT NOT NULL, granted_at INTEGER NOT NULL
     ); CREATE TABLE IF NOT EXISTS app_access_bot_replies (update_id TEXT PRIMARY KEY, replied_at INTEGER NOT NULL);
@@ -73,6 +75,12 @@ export class UserStore extends V17UserStore {
     });
   }
 
+  async purgeInactiveAccounts(raw) {
+    const result = await super.purgeInactiveAccounts(raw);
+    for (const id of result.deletedIds || []) this.sql.exec('DELETE FROM sabbath_preferences WHERE user_id = ?',id);
+    return result;
+  }
+
   async adminUsersBriefV2(raw) {
     const result = await super.adminUsersBriefV2(raw);
     for (const user of result.users || []) {
@@ -91,7 +99,21 @@ export class UserStore extends V17UserStore {
     const url = new URL(request.url);
     if (request.method !== 'POST' || !url.pathname.startsWith('/app-access/')) return super.fetch(request);
     const body = await request.json();
-    if (url.pathname === '/app-access/check') return json(await this.applicationAccess(body.userId));
+    if (url.pathname === '/app-access/check') {
+      const result = await this.applicationAccess(body.userId);
+      if (result.allowed && result.userId && typeof body.sabbathTimeZone === 'string') {
+        result.sabbath = this.sabbath.status(result.userId, body.sabbathTimeZone);
+      }
+      return json(result);
+    }
+    if (url.pathname === '/app-access/sabbath-confirm') {
+      return json({ok:true,result:this.sabbath.confirm(cleanAccessId(body.userId),body)});
+    }
+    if (url.pathname === '/app-access/sabbath-report') {
+      if (cleanAccessId(body.userId) !== this.ownerId()) return json({ok:false,error:'Только главный администратор'},403);
+      await this.ensureMigrated();
+      return json(this.sabbath.report(body.offset));
+    }
     if (url.pathname === '/app-access/game-wallet') return json(await this.syncGameWallet({ userId: cleanAccessId(body.userId) }));
     if (url.pathname === '/app-access/widget-favorites') {
       const userId = cleanAccessId(body.userId);
@@ -185,9 +207,10 @@ export default {
     }
     const compat = ['/compat', '/android/compat'].includes(url.pathname) && request.method === 'POST';
     const check = url.pathname === '/app/access' && ['GET', 'POST'].includes(request.method);
+    const sabbath = request.method === 'POST' && ['/sabbath/confirm','/sabbath/report'].includes(url.pathname);
     const legacyAccess = url.pathname === '/android/access' && request.method === 'GET';
     const sessionIssue = ['/admin/verify', '/web/session'].includes(url.pathname) && request.method === 'POST';
-    if (!compat && !check && !legacyAccess && !sessionIssue && url.pathname !== '/android/room-relay') return coreV17.fetch(request, env, ctx);
+    if (!sabbath && !compat && !check && !legacyAccess && !sessionIssue && url.pathname !== '/android/room-relay') return coreV17.fetch(request, env, ctx);
     try {
       const origin = request.headers.get('Origin');
       if (origin && !String(env.ALLOWED_ORIGINS || '').split(',').includes(origin)) throw accessError(403, 'Origin not allowed');
@@ -199,9 +222,18 @@ export default {
         if (userId !== String(env.ADMIN_TELEGRAM_ID || '')) throw accessError(403, 'Только главный администратор может снимать ограничения');
         return json(await accessStore(env, `/app-access/${management}`, { actorId: userId, targetId: body.payload.targetId }), 200, cors);
       }
-      const access = await accessStore(env, '/app-access/check', { userId });
+      const access = await accessStore(env, '/app-access/check', {
+        userId, ...(check && typeof body.sabbathTimeZone === 'string' ? {sabbathTimeZone:body.sabbathTimeZone} : {}),
+      });
       if (check || legacyAccess || (compat && ACCESS_ACTIONS.has(action) && !access.allowed)) return json(access, 200, cors);
       if (!access.allowed) return json({ ...access, ok: false, success: false, error: MESSAGE }, 403, cors);
+      if (sabbath) {
+        if (url.pathname === '/sabbath/report') {
+          return json(await accessStore(env, '/app-access/sabbath-report', {userId,offset:body.offset}),200,cors);
+        }
+        const {result} = await accessStore(env, '/app-access/sabbath-confirm', {userId,city:body.city,week:body.week});
+        return json(result.data,result.status,cors);
+      }
       if (compat && action === 'syncGameWallet') {
         if (body.payload.id && String(body.payload.id) !== userId) throw accessError(403, 'User mismatch');
         return json(await accessStore(env, '/app-access/game-wallet', { userId }), 200, cors);

@@ -75,13 +75,20 @@ ok(catalog.cities.length>170000&&catalog.zones.length>350,'worldwide city catalo
 const rowCity=row=>({name:row[0],country:row[2],latitude:row[3],longitude:row[4],timeZone:catalog.zones[row[5]]});
 for(const name of ['париж','токио','ессентуки','берлин','москва','киев'])ok(catalog.cities.some(row=>row[1].includes(name)),'world catalog supports local name: '+name);
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
-async function page({now='2026-10-16T18:00:00Z',city,legacy=false,fetchImpl,serverOnline=true,deviceNow,url='https://vidalost.github.io/alias-spy-games/',loadApp=false}={}) {
+async function page({now='2026-10-16T18:00:00Z',city,legacy=false,fetchImpl,serverOnline=true,deviceNow,zone='Europe/Moscow',local={},account,url='https://vidalost.github.io/alias-spy-games/',loadApp=false}={}) {
   const dom=new JSDOM('<!doctype html><html lang="ru"><body><main id="menu-container"><section><div id="system-actions"></div></section></main><div id="game-container"></div></body></html>',{url,runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;let time=Date.parse(now),locationCalls=0;const RealDate=w.Date;
   let wall = deviceNow ? Date.parse(deviceNow) : time;
   let elapsed = 0, online = serverOnline;
   w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[wall]));}static now(){return wall;}};
   w.performance.now = () => elapsed;
+  const nativeDateFormat = w.Intl.DateTimeFormat;
+  w.Intl.DateTimeFormat = function(locale,options={}) {
+    return new nativeDateFormat(locale,{timeZone:zone,...options});
+  };
+  for (const [key,value] of Object.entries(local)) w.localStorage.setItem(key,JSON.stringify(value));
+  if (account) w.AppAccess = account(w);
+
   const scheduled=new Map();let id=0;w.setTimeout=(fn,delay)=>{scheduled.set(++id,{fn,delay});return id;};w.clearTimeout=key=>scheduled.delete(key);
   w.scrollTo=()=>{};w.alert=()=>{};
   const requests=[], timeRequests=[];
@@ -113,7 +120,7 @@ async function search(p,query) {
 }
 {
   const p=await page({loadApp:true,legacy:true});
-  ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Moscow'&&!p.w.SabbathAccess.status().citySelected,'Moscow is the default until explicitly selected');
+  ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Moscow'&&!p.w.SabbathAccess.status().citySelected,'the schedule uses the device zone until explicitly selected');
   ok(!p.w.localStorage.getItem('sabbath-device-location-v1'),'legacy device coordinates deleted');
   for(const game of Clock.GAME_IDS){ok(!p.w.SabbathAccess.authorize(game),`${game} blocked`);if(!['biblical-match-three','moses-nile'].includes(game))p.w.showGame(game);ok(!p.w.document.querySelector('iframe'),`${game} does not launch behind dialog`);}
   ok(p.w.document.getElementById('sabbath-dialog').textContent.includes('до субботнего заката'),'pause explains Saturday sunset');
@@ -234,7 +241,7 @@ async function search(p,query) {
   const p=await page({city:{name:'Bad',latitude:99,longitude:0,timeZone:'bad'}});ok(p.w.SabbathAccess.status().city.name==='Москва','invalid saved city safely defaults to Moscow');p.close();
 }
 {
-  const start=Clock.sunset(new Date('2026-10-16T12:00Z'),55.7558,37.6173,'Europe/Moscow');let cleans=0;
+  const start=Clock.state(Date.parse('2026-10-16T12:00Z'),Clock.referenceCity('Europe/Moscow')).start;let cleans=0;
   const p=await page({now:new Date(start-1000).toISOString(),loadApp:true});
   p.w.startKidsArkPairsGame=()=>{p.w.document.getElementById('game-container').textContent='playing';};p.w.__kidsArkPairsCleanup=()=>cleans++;
   p.w.showGame('kids-ark-pairs');ok(p.w.document.body.dataset.currentGame==='kids-ark-pairs','before sunset game opens');
@@ -242,7 +249,7 @@ async function search(p,query) {
   ok(p.w.document.getElementById('game-container').textContent==='','game removed, progress storage retained');p.close();
 }
 {
-  const start=Clock.sunset(new Date('2026-10-16T12:00Z'),55.7558,37.6173,'Europe/Moscow');
+  const start=Clock.state(Date.parse('2026-10-16T12:00Z'),Clock.referenceCity('Europe/Moscow')).start;
   const p=await page({now:new Date(start-1000).toISOString(),loadApp:true});let started=0;
   p.w.startTwelveTribesGame=()=>started++;p.w.requestAnimationFrame=fn=>fn();
   p.w.showGame('twelve-tribes');const script=p.w.document.querySelector('script[data-game-script]');
@@ -250,7 +257,7 @@ async function search(p,query) {
   ok(started===0,'late script callback cannot resurrect blocked game');p.close();
 }
 {
-  const start=Clock.sunset(new Date('2026-10-16T12:00Z'),55.7558,37.6173,'Europe/Moscow');
+  const start=Clock.state(Date.parse('2026-10-16T12:00Z'),Clock.referenceCity('Europe/Moscow')).start;
   const p=await page({now:new Date(start-1000).toISOString(),loadApp:true});let resolveArt,starts=0;
   p.w.BiblicalMatchThreeV5ArtReady=new Promise(resolve=>{resolveArt=resolve;});
   for(const marker of ['BiblicalMatchThreeCore','__bmtV45SpecialSwipeInstalled','BiblicalMatchThreeProgress','BiblicalMatchThreeEffects','__bmtV10RuntimeInstalled','__bmtV15UiInstalled','__bmtV15PolishInstalled'])p.w[marker]={};
@@ -299,6 +306,51 @@ async function search(p,query) {
   p.w.dispatchEvent(new p.w.MessageEvent('message',{source:frame.contentWindow,origin:p.w.location.origin,data:{type:'sabbath:request',game:'promised-land'}}));
   ok(reply?.allowed&&reply.citySelected&&reply.city.timeZone==='Europe/Berlin'&&reply.nextChange===p.w.SabbathAccess.status().start,'embedded game receives selected city and actual Friday boundary');
   reply=undefined;p.w.dispatchEvent(new p.w.MessageEvent('message',{source:p.w,origin:'https://untrusted.invalid',data:{type:'sabbath:request',game:'promised-land'}}));ok(!reply,'untrusted frames cannot use the city bridge');p.close();
+}
+{
+  const p = await page({now:'2026-11-24T16:00Z',zone:'Asia/Tokyo'});
+  const state = p.w.SabbathAccess.status();
+  ok(state.city.timeZone==='Asia/Tokyo'&&state.city.automatic,'automatic mode uses the device time zone');
+  ok(state.mandatory,'Wednesday starts according to the device time zone');
+  const dialog = p.w.document.querySelector('#sabbath-dialog');
+  dialog.dispatchEvent(new p.w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  ok(dialog.isConnected&&!dialog.querySelector('.sabbath-close'),'the weekly reminder has no dismiss action');
+  ok(!p.w.SabbathAccess.authorize('alias'),'even a deep link cannot skip the mandatory selection');
+  const saved = Object.fromEntries(Object.keys(p.w.localStorage).map(key=>[key,JSON.parse(p.w.localStorage.getItem(key))]));
+  p.close();
+  const offline = await page({now:'2026-11-26T08:00Z',serverOnline:false,zone:'Asia/Tokyo',local:saved});
+  ok(offline.w.SabbathAccess.status().mandatory,'an unanswered reminder survives an offline restart');
+  ok(!offline.w.SabbathAccess.authorize('alias'),'known pending confirmation cannot be skipped offline');
+  offline.close();
+  const late = await page({now:'2026-11-29T08:00Z',zone:'Asia/Tokyo',local:saved});
+  ok(late.w.SabbathAccess.status().mandatory,'a missed Wednesday stays pending until the player returns');
+  late.w.document.querySelector('[data-city="Берлин"]').click();
+  ok(!late.w.SabbathAccess.status().mandatory && late.w.SabbathAccess.authorize('alias'),'a valid city completes the reminder');
+  late.close();
+}
+{
+  const [moscow, berlin] = Clock.CITIES;
+  let resolveSave;
+  let profile={city:null,place:Clock.referenceCity('Europe/Moscow'),week:Clock.FIRST_WEEK,confirmedWeek:0};
+  const p = await page({now:'2026-11-25T12:00Z',city:moscow,account:w=>({
+    sabbathProfile:()=>profile,sabbathSignedIn:()=>true,
+    sabbathRequest:(action,body)=>new Promise(resolve=>{
+      ok(action==='confirm'&&body.city.name==='Берлин'&&body.week===Clock.FIRST_WEEK,'confirmation is sent to the account service');
+      resolveSave=()=>{
+        profile={...profile,city:berlin,place:berlin,confirmedWeek:Clock.FIRST_WEEK,
+          lockedUntil:Clock.weekWindow(Clock.FIRST_WEEK,berlin).end};
+        w.dispatchEvent(new w.Event('app-access:sabbath'));resolve({ok:true});
+      };
+    }),
+  })});
+  p.w.document.querySelector('[data-city="Берлин"]').click();
+  await flush();
+  ok(p.w.SabbathAccess.status().mandatory,'the notification stays until the server accepts the city');
+  resolveSave();await flush();
+  ok(!p.w.SabbathAccess.status().mandatory,'server confirmation closes the mandatory gate');
+  ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Berlin','confirmed city corrects the automatic time zone');
+  ok(!p.w.document.querySelector('[data-city="Москва"]'),'confirmation on Wednesday locks editing immediately');
+  p.close();
 }
 for(const url of ['/js/sabbath-clock.js','/js/sabbath-access.js','/styles/sabbath-access.css']) {
   let body,status;ok(serveSabbathTestAsset({url},{writeHead:value=>{status=value;},end:value=>{body=value;}}),'isolated Nile fixture serves shared policy');ok(status===200&&body.length>0,'fixture gets actual policy source');

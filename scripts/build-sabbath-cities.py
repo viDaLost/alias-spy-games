@@ -52,3 +52,14 @@ data = dict(version=1, source='GeoNames cities1000, ' + sys.argv[2],
 output = Path(__file__).resolve().parent.parent / 'web/data/sabbath-cities.json'
 output.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')) + '\n')
 print(f'{len(rows)} cities, {len(zones)} time zones, {output.stat().st_size} bytes')
+
+# Update the compact list used when no city has been confirmed.
+reference = {}
+for name, _, country, latitude, longitude, zone_id in data['cities']:
+    reference.setdefault(zones[zone_id], [name, country, latitude, longitude])
+clock = output.parent.parent / 'js/sabbath-clock.js'
+source = clock.read_text()
+start = source.index('const ZONE_CITIES = ')
+end = source.index(';\n', start)
+clock.write_text(source[:start] + 'const ZONE_CITIES = '
+                 + json.dumps(reference, ensure_ascii=False, separators=(',', ':')) + source[end:])

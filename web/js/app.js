@@ -689,6 +689,10 @@ let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
   if (gameName === "moses-nile") {
+    if (window.SabbathAccess?.status().mandatory) {
+      window.SabbathAccess.authorize(gameName);
+      return;
+    }
     const existing = document.getElementById("moses-maintenance");
     if (existing) return;
     const notice = document.createElement("dialog");
