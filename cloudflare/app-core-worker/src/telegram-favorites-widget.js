@@ -8,21 +8,29 @@ const COPY = {
     title: 'Мои игры', empty: 'Добавьте игры в избранное.', edit: 'Изменить избранное',
     pin: 'Закрепите сообщение для быстрого запуска игр.', previous: 'Назад', next: 'Далее',
     refresh: 'Обновить список', updating: 'Обновляем…', updated: 'Список обновлён', failed: 'Не удалось обновить',
+    open: 'Открыть избранное', widgetDenied: 'Telegram пока не разрешает этому боту отправлять HTML-виджеты.',
+    widgetUnavailable: 'Telegram не принял HTML-виджет.',
   },
   en: {
     title: 'My games', empty: 'Add games to your favorites.', edit: 'Edit favorites',
     pin: 'Pin this message to launch your games quickly.', previous: 'Previous', next: 'Next',
     refresh: 'Refresh list', updating: 'Updating…', updated: 'List updated', failed: 'Could not refresh',
+    open: 'Open favorites', widgetDenied: 'Telegram currently does not allow this bot to send HTML widgets.',
+    widgetUnavailable: 'Telegram did not accept the HTML widget.',
   },
   de: {
     title: 'Meine Spiele', empty: 'Füge Spiele zu deinen Favoriten hinzu.', edit: 'Favoriten bearbeiten',
     pin: 'Hefte die Nachricht an, um deine Spiele schnell zu starten.', previous: 'Zurück', next: 'Weiter',
     refresh: 'Liste aktualisieren', updating: 'Wird aktualisiert…', updated: 'Liste aktualisiert', failed: 'Aktualisierung fehlgeschlagen',
+    open: 'Favoriten öffnen', widgetDenied: 'Telegram erlaubt diesem Bot derzeit keine HTML-Widgets.',
+    widgetUnavailable: 'Telegram hat das HTML-Widget abgelehnt.',
   },
   es: {
     title: 'Mis juegos', empty: 'Añade juegos a tus favoritos.', edit: 'Editar favoritos',
     pin: 'Fija este mensaje para abrir tus juegos rápidamente.', previous: 'Anterior', next: 'Siguiente',
     refresh: 'Actualizar lista', updating: 'Actualizando…', updated: 'Lista actualizada', failed: 'No se pudo actualizar',
+    open: 'Abrir favoritos', widgetDenied: 'Telegram aún no permite que este bot envíe widgets HTML.',
+    widgetUnavailable: 'Telegram no aceptó el widget HTML.',
   },
 };
 const GAME_MARKS = {
@@ -73,11 +81,11 @@ async function sendFavorites(env, owner, lang) {
   const titles = Object.fromEntries([...PLAYER_GAMES].map(([id, names]) => [id, names[languageIndex]]));
   const copy = COPY[lang];
   const launchUrl = `${appUrl}=game_`;
-  const edit = { text: copy.edit, url: `${appUrl}=favorites` };
+  const editUrl = `${appUrl}=favorites`;
   try {
     await telegramApi(env, 'sendWidget', {
       chat_id: Number(owner),
-      html: renderFavoritesHtml({ copy, titles, launchUrl, editUrl: edit.url, lang }),
+      html: renderFavoritesHtml({ copy, titles, launchUrl, editUrl, lang }),
       chat_data: JSON.stringify(favorites),
       caption: `${copy.title} · ${favorites.length ? copy.pin : copy.empty}`,
       allow_queries: true,
@@ -86,12 +94,13 @@ async function sendFavorites(env, owner, lang) {
     // Retry as a standard message only when Telegram explicitly refused the widget.
     if (![400, 404, 501].includes(error.status)) throw error;
     console.warn('Telegram sendWidget declined', { status: error.status, description: error.message.slice(0, 180) });
+    const notice = error.message.includes('INPUT_MEDIA_WIDGET_NOT_ALLOWED') ? copy.widgetDenied : copy.widgetUnavailable;
     const games = favorites.map((id) => [{ text: `${GAME_MARKS[id] || '▶'} ${titles[id]}`, url: launchUrl + id }]);
     await telegramApi(env, 'sendMessage', {
       chat_id: owner,
-      text: `${copy.title}\n${favorites.length ? copy.pin : copy.empty}`,
+      text: `${copy.title}\n${notice}\n\n${favorites.length ? copy.pin : copy.empty}`,
       protect_content: true,
-      reply_markup: { inline_keyboard: [...games, [edit]] },
+      reply_markup: { inline_keyboard: [[{ text: copy.open, url: editUrl }], ...games] },
     });
   }
 }
