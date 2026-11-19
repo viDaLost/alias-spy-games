@@ -30,7 +30,8 @@
       <button type="button" data-admin-v3-target="overview" class="is-active"><span>◉</span>Обзор</button>
       <button type="button" data-admin-v3-target="support"><span>◌</span>Поддержка</button>
       <button type="button" data-admin-v3-target="users"><span>◎</span>Пользователи</button>
-      <button type="button" data-admin-v3-target="broadcast"><span>↗</span>Рассылка</button>`;
+      <button type="button" data-admin-v3-target="broadcast"><span>↗</span>Рассылка</button>
+      ${window.AdminRBAC?.state?.isRoot ? '<button type="button" data-admin-v3-target="sabbath"><span>◷</span>Города</button>' : ''}`;
 
     nav.addEventListener('click', (event) => {
       const button = event.target.closest('[data-admin-v3-target]');
@@ -49,7 +50,7 @@
   // broadcast form between you and the list. Now a tab shows its own sections and
   // hides the rest. The choice lives on the page element, so it survives the
   // re-render that follows every filter change and every refresh.
-  const SECTIONS = ['overview', 'support', 'users', 'broadcast'];
+  const SECTIONS = ['overview', 'support', 'users', 'broadcast', 'sabbath'];
 
   function currentSection(page) {
     const value = String(page.dataset.adminV3Section || '');
@@ -59,6 +60,7 @@
   function setSection(page, key) {
     const next = SECTIONS.includes(key) ? key : 'overview';
     page.dataset.adminV3Section = next;
+    if (next === 'sabbath') window.AdminSabbath?.mount(page);
     const nav = first('.admin-v3-nav', page);
     nav?.querySelectorAll('[data-admin-v3-target]').forEach((item) => {
       item.classList.toggle('is-active', item.dataset.adminV3Target === next);

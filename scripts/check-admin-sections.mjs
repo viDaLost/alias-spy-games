@@ -77,10 +77,15 @@ await page.route('https://telegram.org/**', (route) => route.fulfill({
 function backendReply(route) {
   const request = route.request();
   const body = `${request.postData() || ''}${request.url()}`;
+  if (request.url().endsWith('/sabbath/report')) return route.fulfill({
+    json: {ok:true,from:1795514400000,until:1798106400000,offset:0,previous:null,next:null,
+      users:[{id:'555555555',username:'audit-player',city:'Берлин',timeZone:'Europe/Berlin',changes:2,lastChange:1796160000000,pending:false}]},
+    headers: {'Access-Control-Allow-Origin':'*'},
+  });
   const payload = body.includes('getAdminData')
     ? { success: true, users }
     : body.includes('adminRoleStatus')
-      ? { success: true, isAdmin: true }
+      ? { success: true, isAdmin: true, isRoot:true, userId:String(ADMIN_ID) }
       : { success: true, isBanned: false, wowStars: 20, wsStars: 0, swLevel: 0, lastGames: [] };
   return route.fulfill({ status: 200, contentType: 'application/json; charset=utf-8', body: JSON.stringify(payload) });
 }
@@ -96,6 +101,7 @@ await page.click('.referral-survey-later', { timeout: 6000 }).catch(() => {});
 await page.evaluate(async () => {
   await window.loadAdminFeatures();
   await window.__adminEnhancementsReady;
+  await window.AdminRBAC.refresh();
   await window.openAdminPanelV2();
 });
 await page.waitForSelector('.admin-v3-nav [data-admin-v3-target="users"]', { timeout: 20_000 })
@@ -115,13 +121,17 @@ const openTab = async (tab) => {
   await page.waitForTimeout(400);
 };
 
-for (const tab of ['overview', 'support', 'users', 'broadcast']) {
+for (const tab of ['overview', 'support', 'users', 'broadcast', 'sabbath']) {
   await openTab(tab);
   const shown = await visibleOwners();
   if (shown.length !== 1 || shown[0] !== tab) {
     await fail(`tab "${tab}" shows sections ${JSON.stringify(shown)} instead of only its own`);
   }
 }
+
+const auditRow = page.locator('#admin-sabbath tbody tr[data-frequent="true"]');
+await auditRow.waitFor({state:'visible'}).catch(() => fail('the Sabbath report is empty'));
+if (!(await auditRow.textContent()).includes('Берлин')) await fail('the Sabbath report does not show the reported city');
 
 // The user list is the panel's working surface: on its tab it must actually be there.
 await openTab('users');

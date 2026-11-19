@@ -148,6 +148,7 @@ export const adminScriptSources = [
   'web/js/broadcast-cloudflare.js',
   'web/js/admin-live-v3.js',
   'web/js/admin-live-rescue.js',
+  'web/js/admin-sabbath.js',
   'web/js/admin-shell-v3.js',
 ];
 const bundled = new Set([...styleSources, ...scriptSources, ...adminScriptSources]);
