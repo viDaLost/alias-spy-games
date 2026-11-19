@@ -71,10 +71,14 @@ for (const width of widths) {
     const { page, context } = await pageFor(width);
     try {
       await page.evaluate((key) => window.showGame(key), gameKey);
-      await page.waitForFunction(() => {
-        const container = document.getElementById('game-container');
+      const surface = gameKey === 'moses-nile' ? '#moses-maintenance[open]' : '#game-container';
+      await page.waitForFunction((selector) => {
+        const container = document.querySelector(selector);
         return container && container.children.length > 0 && !container.querySelector('.app-game-loading');
-      }, null, { timeout: 15_000 });
+      }, surface, { timeout: 15_000 });
+      if (gameKey === 'moses-nile' && await page.locator('#game-container iframe').count()) {
+        throw new Error('Moses Nile launched from its maintenance notice');
+      }
       await page.waitForTimeout(500);
 
       // The setup screen is wider and easier than the actual 6×6 board. Check
@@ -85,10 +89,11 @@ for (const width of widths) {
         await page.waitForTimeout(350);
       }
 
-      const geometry = await page.evaluate(() => {
+      const geometry = await page.evaluate((selector) => {
+        const container = document.querySelector(selector);
         const viewport = window.innerWidth;
         const docWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-        const offenders = [...document.querySelectorAll('#game-container *')]
+        const offenders = [...container.querySelectorAll('*')]
           .map((el) => ({ el, rect: el.getBoundingClientRect() }))
           .filter(({ rect }) => rect.width > 0 && (rect.right > viewport + 2 || rect.left < -2))
           .slice(0, 5)
@@ -101,7 +106,7 @@ for (const width of widths) {
             width: Math.round(rect.width),
           }));
 
-        const tinyControls = [...document.querySelectorAll('#game-container button:not(.sw-kb-key), #game-container [role="button"]')]
+        const tinyControls = [...container.querySelectorAll('button:not(.sw-kb-key), [role="button"]')]
           .map((el) => ({ el, rect: el.getBoundingClientRect() }))
           .filter(({ el, rect }) => !el.disabled && rect.width > 0 && rect.height > 0 && (rect.width < 28 || rect.height < 28))
           .slice(0, 5)
@@ -114,7 +119,7 @@ for (const width of widths) {
         const kidsCardMin = kidsCardSizes.length ? Math.min(...kidsCardSizes) : null;
 
         return { viewport, docWidth, offenders, tinyControls, kidsCardMin };
-      });
+      }, surface);
 
       if (geometry.docWidth > geometry.viewport + 2) {
         throw new Error(`horizontal overflow ${geometry.docWidth}px > ${geometry.viewport}px; ${JSON.stringify(geometry.offenders)}`);
@@ -140,4 +145,4 @@ if (failures.length) {
   console.error(`\nMobile layout check failed (${failures.length}):\n- ${failures.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`\nOK: ${gameKeys.length} games fit both ${widths.join('px and ')}px phone viewports.`);
+console.log(`\nOK: ${gameKeys.length} catalog entries fit both ${widths.join('px and ')}px phone viewports.`);
