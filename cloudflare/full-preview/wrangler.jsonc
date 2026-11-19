@@ -15,7 +15,6 @@
       { "name": "SKETCH_ROOMS", "class_name": "BibleSketchRoom" },
       { "name": "SPY_ROOMS", "class_name": "SpyRoom" },
       { "name": "TRIBES_ROOMS", "class_name": "TwelveTribesRoom" },
-      { "name": "KINGDOMS_ROOMS", "class_name": "KingdomsRoom" },
       { "name": "LAND_ROOMS", "class_name": "PromisedLandRoom" }
     ]
   },

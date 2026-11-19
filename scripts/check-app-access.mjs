@@ -153,8 +153,8 @@ try {
   assert(replies.at(-1).url.endsWith('/sendWidget'));
   assert.equal(replies.at(-1).body.chat_data, '[]');
 
-  const games = ['quartet', 'bible-geography', 'twelve-tribes', 'kingdoms'];
-  const saved = await compat(owner, 'profileSetFavorites', { favorites: [...games, 'invalid'] });
+  const games = ['quartet', 'bible-geography', 'twelve-tribes', 'alias'];
+  const saved = await compat(owner, 'profileSetFavorites', { favorites: [...games, 'kingdoms', 'invalid'] });
   assert.deepEqual(saved.data.favorites, games);
   for (const lang of ['ru', 'en', 'de', 'es']) {
     await botUpdate({ message: { ...ownerChat, text: `/start favorites_${lang}` } });

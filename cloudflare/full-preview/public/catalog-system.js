@@ -12,7 +12,7 @@
   const more = document.getElementById('more-dialog');
   const join = document.getElementById('join-dialog');
   const cityName = () => window.SabbathAccess?.status()?.city?.name || '';
-  const rooms = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land', 'kingdoms']);
+  const rooms = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land']);
   const icon = (key) => `<img class="catalog-system-icon" src="${systemRoot}${key}.webp" alt="" draggable="false">`;
   const help = { art: 'support', title: 'Техподдержка', action: 'support' };
   const joinAction = { art: 'share', title: 'Подключиться к комнате', action: 'join' };

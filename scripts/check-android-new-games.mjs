@@ -149,9 +149,8 @@ async function openGame(page, key) {
   const frameHandle = await page.$('#game-container iframe.game-frame');
   const frame = await frameHandle.contentFrame();
   const src = new URL(await frameHandle.getAttribute('src'), page.url());
-  await frame.waitForFunction((game) => game === 'moses-nile'
-    ? Boolean(window.__mosesV75Ready) : Boolean(window.PromisedLandGame), key, { timeout: 20000 });
-  const landmark = key === 'moses-nile' ? '#start-btn' : '#mode';
+  await frame.waitForFunction(() => Boolean(window.PromisedLandGame), null, { timeout: 20_000 });
+  const landmark = '#mode';
   await frame.waitForSelector(`${landmark}:not([hidden])`, { timeout: 20_000 });
   // Кадр въезжает на экран с анимацией: ширина снимается, когда он встал.
   await page.waitForFunction(() => {
@@ -209,7 +208,7 @@ async function quickSwitch(page) {
   return '';
 }
 
-const NEW_GAMES = ['moses-nile', 'promised-land', 'twelve-tribes'];
+const NEW_GAMES = ['promised-land', 'twelve-tribes'];
 const results = {};
 
 try {
@@ -219,6 +218,14 @@ try {
     if (mode === 'apk') {
       check(await page.evaluate(() => window.__ANDROID_APK__ === true), 'режим APK не включился — сверять не с чем');
     }
+    const nile = page.locator('#main-catalog [data-launch="moses-nile"]');
+    await nile.click();
+    const notice = page.locator('#moses-maintenance[open]');
+    await notice.waitFor();
+    check((await notice.textContent()).includes('Игра на стадии доработки'), `${mode}: нет текста о доработке`);
+    check(await page.locator('#game-container iframe').count() === 0, `${mode}: Моисей запустился за предупреждением`);
+    await notice.locator('button').click();
+    await notice.waitFor({ state: 'hidden' });
     for (const key of NEW_GAMES) {
       try {
         results[mode].games[key] = await openGame(page, key);
@@ -249,7 +256,6 @@ try {
     check(JSON.stringify(inApk) === JSON.stringify(inWeb),
       `${key}: первый экран в APK не такой, как в вебе — веб ${JSON.stringify(inWeb)}, APK ${JSON.stringify(inApk)}`);
   }
-  check(apk.games['moses-nile']?.host === 'app', '«Моисей» в APK грузится не из самого пакета');
   check(apk.games['promised-land']?.host === PROMISED_LAND_HOST, '«Земля обетованная» в APK открывается не со своего адреса');
 } finally {
   await browser.close();
@@ -261,6 +267,6 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Новые игры в Android — как в вебе: меню APK совпадает с вебом (${results.apk.cards.length} игр), `
-  + '«Моисей: Путь по Нилу» грузится из самого пакета, «Земля обетованная» — со своего адреса с верным адресом родителя, '
+  + 'у «Моисея» показывается предупреждение, «Земля обетованная» — со своего адреса с верным адресом родителя, '
   + '«Двенадцать колен» раздаёт руку за столом, и у каждой первый экран тот же, что в вебе; '
   + 'быстрое переключение игр не оставляет заставку входа поверх стола.');

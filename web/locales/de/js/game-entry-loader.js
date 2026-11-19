@@ -64,10 +64,6 @@
       title: 'Bibelschätze', eyebrow: 'Sammle Schätze', status: 'Schatzkammer wird geöffnet…', status2: 'Schätze werden verteilt…',
       icon: 'web/assets/icons/unified-v1/biblical-treasures.webp?v=39', motif: 'biblical-match-three',
     },
-    'moses-nile': {
-      title: 'Mose: Reise auf dem Nil', eyebrow: 'Den Fluss hinab', status: 'Flussbett wird gefüllt…', status2: 'Uferpflanzen werden verteilt…',
-      icon: 'web/assets/icons/unified-v1/moses-nile.webp?v=1', motif: 'moses-nile',
-    },
     'promised-land': {
       title: 'Gelobtes Land', eyebrow: 'Настольная игра', status: 'Расставляем фишки…', status2: 'Тасуем колоды…',
       icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1', motif: 'promised-land',
@@ -102,7 +98,6 @@
     'bible-geography': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',
     'kids-ark-pairs': '<span class="gel-tile">✦</span><span class="gel-tile">✦</span><span class="gel-tile">◆</span><span class="gel-tile">◆</span>',
     'biblical-match-three': '<span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span><span class="gel-gem"></span>',
-    'moses-nile': '<span class="gel-spark"></span><span class="gel-spark"></span><span class="gel-spark"></span>',
     // Кость и две карты: во что играют, видно до того, как игра открылась.
     'promised-land': '<span class="gel-die"></span><span class="gel-card"></span><span class="gel-card"></span>',
     // Четыре карты — по одной на стан: игра узнаётся до того, как открылась.

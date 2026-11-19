@@ -19,7 +19,7 @@
 //     подсунутый из кеша, — это чужой прогресс и просроченные права.
 
 /* build:precache */
-const VERSION = '53f91cfbb2';
+const VERSION = 'b8247737bd';
 const PRECACHE = [
   'index.html',
   'install.html',
@@ -29,8 +29,8 @@ const PRECACHE = [
   'web/assets/twelve-tribes/art.json',
   'web/assets/bible-geography/map.json',
   'web/assets/bible-geography/art.json',
-  'web/dist/app.8226ed2246.css',
-  'web/dist/app.94e73ed944.js',
+  'web/dist/app.97db866003.css',
+  'web/dist/app.b2198e5611.js',
   'web/games/alias.js',
   'web/games/bible-geography-logic.js',
   'web/games/bible-geography.css',
@@ -53,14 +53,6 @@ const PRECACHE = [
   'web/games/guess-character.js',
   'web/games/kids-ark-pairs.css',
   'web/games/kids-ark-pairs.js',
-  'web/games/kingdoms-bots.js',
-  'web/games/kingdoms-engine.js',
-  'web/games/kingdoms-map.js',
-  'web/games/kingdoms-online.js',
-  'web/games/kingdoms-rules.js',
-  'web/games/kingdoms.css',
-  'web/games/kingdoms.js',
-  'web/games/kingdoms3d.js',
   'web/games/moses-nile-v7/PACKAGE.txt',
   'web/games/moses-nile-v7/index.html',
   'web/games/moses-nile-v7/js/assets.js',
@@ -112,8 +104,6 @@ const PRECACHE = [
   'web/assets/icons/describe.webp',
   'web/assets/icons/idea.webp',
   'web/assets/icons/install-ios.webp',
-  'web/assets/icons/kingdoms.svg',
-  'web/assets/icons/kingdoms.webp',
   'web/assets/icons/menu-system/admin.webp',
   'web/assets/icons/menu-system/channel.webp',
   'web/assets/icons/menu-system/donate.webp',
@@ -146,7 +136,6 @@ const PRECACHE = [
   'web/assets/icons/unified-v1/character.webp',
   'web/assets/icons/unified-v1/describe.webp',
   'web/assets/icons/unified-v1/idea.webp',
-  'web/assets/icons/unified-v1/kingdoms.webp',
   'web/assets/icons/unified-v1/moses-nile.webp',
   'web/assets/icons/unified-v1/promised-land.webp',
   'web/assets/icons/unified-v1/quartet.webp',

@@ -172,7 +172,7 @@ try {
   const currentPromo = await hero.getAttribute('data-active-promo');
   await catalog.waitForFunction((key) => document.querySelector('#catalog-feature')?.dataset.activePromo !== key, currentPromo, { timeout: 5000 });
   await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999953');
-  await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 17);
+  await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 16);
   assert.equal((await catalog.locator('#main-catalog h1').textContent()).trim(), 'Библейские игры');
   assert.equal(await catalog.locator('#main-catalog').getByText('Во что сыграем?', { exact: true }).count(), 0);
   for (const width of [320, 375, 390, 667, 820]) {
@@ -227,6 +227,24 @@ try {
   await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999947');
   await catalog.waitForFunction(() => !Object.keys(localStorage).some((key) => key.startsWith('game_wallet_op_v1_')));
   assert.equal(accountStars, 999947);
+  const nileNotice = catalog.locator('#moses-maintenance[open]');
+  const catalogURL = catalog.url();
+  await catalog.locator('#catalog-games [data-launch="moses-nile"]').click();
+  await nileNotice.getByRole('heading', { name: 'Игра на стадии доработки' }).waitFor();
+  assert.match(await nileNotice.textContent(), /Ожидайте, в скором времени она будет доступна\./);
+  assert.equal(catalog.url(), catalogURL, 'maintenance notice keeps the player in the catalog');
+  assert.equal(await catalog.locator('#game-container iframe').count(), 0);
+  await nileNotice.getByRole('button', { name: 'Понятно' }).click();
+  await nileNotice.waitFor({ state: 'hidden' });
+  await catalog.goto(`${base}/?game=moses-nile`);
+  await nileNotice.waitFor();
+  assert.equal(await catalog.locator('#game-container iframe').count(), 0);
+  await nileNotice.getByRole('button', { name: 'Понятно' }).click();
+  assert.equal(await catalog.locator('[data-launch="kingdoms"], [data-card-game="kingdoms"]').count(), 0);
+  assert.equal(await catalog.evaluate(() => window.RoomInvite.acceptScanned('kd:ABCDE')), null);
+  await catalog.goto(`${base}/?game=kingdoms&room=ABCDE`);
+  await catalog.locator('#main-catalog').waitFor();
+  assert.equal(await catalog.evaluate(() => document.body.dataset.currentGame || ''), '');
   await catalogContext.close();
 
   const webCatalogContext = await contextFor({ web: true, telegram: false, social: true });

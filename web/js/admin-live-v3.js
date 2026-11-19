@@ -7,7 +7,6 @@
   const tribesBackend = metaUrl('twelve-tribes-backend');
   const promisedBackend = metaUrl('promised-land-app');
   const spyBackend = metaUrl('spy-backend');
-  const kingdomsBackend = metaUrl('kingdoms-backend');
   const coreBackend = metaUrl('app-core-backend');
   if (!observability || !coreBackend) return;
 
@@ -20,7 +19,6 @@
     ['kids-ark-pairs', 'Найди пару'], ['biblical-match-three', 'Библейские сокровища'],
     ['moses-nile', 'Моисей: Путь по Нилу'],
     ['twelve-tribes', 'Двенадцать колен'], ['promised-land', 'Земля обетованная'],
-    ['kingdoms', 'Царства'],
   ];
   /*
     Игры, которые бывают только по сети. Без комнаты человек в них может быть
@@ -348,7 +346,6 @@
       'bible-sketch': sketchBackend,
       spy: spyBackend,
       'twelve-tribes': tribesBackend,
-      kingdoms: kingdomsBackend,
       'promised-land': promisedBackend,
     })[game] || '';
   }
@@ -363,24 +360,8 @@
     if (game === 'bible-sketch') return renderSketchObserver(data);
     if (game === 'twelve-tribes') return renderTribesObserver(data);
     if (game === 'promised-land') return renderPromisedObserver(data);
-    if (game === 'kingdoms') return renderKingdomsObserver(data);
     if (game === 'spy') return renderSpyObserver(data);
     return '<div class="admin-live-v3__empty">Для этой игры монитора нет.</div>';
-  }
-
-  /*
-    «Царства». По карте сразу видно, кто теряет землю, а по очереди — не
-    встала ли партия на чьём-то приказе. Сами приказы закрыты: комната
-    присылает только их число.
-  */
-  function renderKingdomsObserver(data) {
-    const table = data.table;
-    const seats = (table?.seats || []).map((one) => `<div class="admin-live-v3__observer-player ${one.name === table.turnName ? 'is-turn' : ''}"><b>${escapeText(one.name)}${one.isBot ? ' ⚙' : ''}</b><span>${escapeText(one.kingdom || '')} · ${Number(one.areas || 0)} обл.${one.orders ? ` · приказов ${Number(one.orders)}` : ''}${one.score !== null && one.score !== undefined ? ` · ${Number(one.score)} очк.` : ''}${one.out ? ' · выбыл' : ''}</span></div>`).join('');
-    const stats = table
-      ? `<div><span>Раунд</span><b>${Number(table.round || 0)}${table.rounds ? `/${Number(table.rounds)}` : ''}</b></div><div><span>Этап</span><b>${escapeText(phaseLabel(table.phase))}</b></div><div><span>Ход</span><b>${escapeText(table.turnName || '—')}${table.turnIsBot ? ' ⚙' : ''}</b></div>${table.winners?.length ? `<div><span>Победа</span><b>${escapeText(table.winners.join(', '))}</b></div>` : ''}`
-      : `<div><span>Игроков</span><b>${(data.players || []).length}</b></div>`;
-    const lobby = (data.players || []).map((one) => `<div class="admin-live-v3__observer-player"><b>${escapeText(one.name)}${one.host ? ' ♛' : ''}</b><span>${one.left ? 'ушёл' : (one.online ? 'онлайн' : 'не в сети')}</span></div>`).join('');
-    return `<div class="admin-live-v3__observer-stats"><div><span>Статус</span><b>${escapeText(phaseLabel(data.status))}</b></div>${stats}</div><div class="admin-live-v3__observer-players">${table ? seats : lobby}</div>${renderLog(data.log)}`;
   }
 
   /*

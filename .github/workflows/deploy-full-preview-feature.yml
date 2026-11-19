@@ -3,6 +3,7 @@ name: Deploy full-preview feature menu
 on:
   push:
     branches:
+      - main
       - feat/catalog-account-integration
     paths:
       - 'cloudflare/full-preview/**'

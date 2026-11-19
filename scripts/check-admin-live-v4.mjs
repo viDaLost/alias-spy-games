@@ -82,11 +82,8 @@ includes('web/js/presence-identity.js', "scope: 'presence'", 'Presence must use 
 */
 includes('web/js/admin-live-v3.js', "'twelve-tribes': tribesBackend", 'Twelve Tribes rooms must be observable');
 includes('web/js/admin-live-v3.js', "'promised-land': promisedBackend", 'Promised Land rooms must be observable');
-includes('web/js/admin-live-v3.js', 'kingdoms: kingdomsBackend', 'Kingdoms rooms must be observable');
 includes('web/js/admin-live-v3.js', 'spy: spyBackend', 'Online Spy rooms must be observable');
-includes('cloudflare/kingdoms-worker/src/index.js', 'adminRoomState(request, env', 'Kingdoms worker must route the admin observer');
 includes('cloudflare/spy-worker/src/index.js', 'adminRoomState(request, env', 'Spy worker must route the admin observer');
-includes('cloudflare/kingdoms-worker/wrangler.jsonc', '"binding": "APP_CORE"', 'Kingdoms observer must verify admins through the core');
 includes('cloudflare/spy-worker/wrangler.jsonc', '"binding": "APP_CORE"', 'Spy observer must verify admins through the core');
 /*
   «Партия за одним столом» стояла у «Художника», который без сети не играется:
@@ -109,7 +106,6 @@ includes('web/js/presence-identity.js', "'bible-sketch': 'bible_sketch_room_id_v
 excludes('web/js/presence-identity.js', "'twelve-tribes': 'tt_room_id'", 'Twelve Tribes must report its room explicitly, not from storage');
 for (const [file, game] of [
   ['web/games/twelve-tribes-online.js', 'twelve-tribes'],
-  ['web/games/kingdoms-online.js', 'kingdoms'],
   ['web/games/spy-online.js', 'spy'],
 ]) {
   includes(file, `AppPresenceContext?.setRoom?.('${game}'`, `${game} must report the room it joins`);

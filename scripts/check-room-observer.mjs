@@ -1,5 +1,5 @@
 // Монитор комнаты для админ-панели: что он показывает и чего не показывает.
-// Игр четыре — «Двенадцать колен», «Земля обетованная», «Царства» и онлайн-
+// Игр три — «Двенадцать колен», «Земля обетованная» и онлайн-
 // «Соглядатай»; у «Квартета» и «Художника» мониторы старше и проверяются
 // check-admin-live-v4.mjs.
 //
@@ -44,22 +44,6 @@ import {
   startGame as landStart,
 } from '../cloudflare/promised-land-preview/src/room.js';
 import { B, E } from '../cloudflare/promised-land-preview/src/rules.js';
-
-import {
-  adminRoomState as kingdomsRoute,
-  adminStateResponse as kingdomsState,
-} from '../cloudflare/kingdoms-worker/src/admin-observer.js';
-import {
-  buildView as kingdomsView,
-  createRoomState as kingdomsRoom,
-  joinRoom as kingdomsJoin,
-  playerAction as kingdomsAction,
-  setReady as kingdomsReady,
-  setSettings as kingdomsSettings,
-  startGame as kingdomsStart,
-  stepTable as kingdomsStep,
-} from '../cloudflare/kingdoms-worker/src/room.js';
-import { R as KR } from '../cloudflare/kingdoms-worker/src/rules.js';
 
 import {
   adminRoomState as spyRoute,
@@ -148,49 +132,6 @@ need(landBody.table.seats.every((one) => Number.isInteger(one.silver)),
 need(landBody.table.seats.every((one) => Number.isInteger(one.plots)),
   'уделы игроков не сочтены');
 
-// ——— «Царства»: карта, приказы и тайна ———
-
-const kingdoms = kingdomsRoom('KLMNP', host, 1000);
-kingdomsJoin(kingdoms, guest, 1001);
-kingdomsSettings(kingdoms, host.playerId, { bots: 1 }, 1002);
-kingdomsReady(kingdoms, guest.playerId, true, 1003);
-kingdomsStart(kingdoms, host.playerId, 1004, seeded(7));
-// Расстановка до конца: люди ставят жетон в первую свободную область, соперники от игры — сами.
-for (let guard = 0; kingdoms.game.phase === 'setup' && guard < 100; guard += 1) {
-  const seat = kingdoms.game.turnOrder[kingdoms.game.turnPointer];
-  const humanId = kingdoms.seats[seat];
-  if (humanId) {
-    const free = KR.AREAS.find((area) => kingdoms.game.areas[area.id].owner === null);
-    kingdomsAction(kingdoms, humanId, 'placeControl', { area: free.id }, 1005);
-  } else kingdomsStep(kingdoms, 1005, seeded(guard), new Set());
-}
-for (let guard = 0; !kingdoms.seats[kingdoms.game.turnOrder[kingdoms.game.turnPointer]] && guard < 20; guard += 1) {
-  kingdomsStep(kingdoms, 1006, seeded(guard), new Set());
-}
-// Закрытый приказ на столе: его вид и сила — тайна, которую монитор хранить обязан.
-const orderSeat = kingdoms.game.turnOrder[kingdoms.game.turnPointer];
-const orderArea = KR.startingAreasOf(kingdoms.game.players[orderSeat].kingdomId)[0];
-kingdoms.game.players[orderSeat].hand[0] = 'march3';
-kingdomsAction(kingdoms, kingdoms.seats[orderSeat], 'placeOrder', { kind: 'march3', area: orderArea }, 1007);
-
-const kingdomsBody = await kingdomsState(GET(), kingdoms,
-  kingdomsView(kingdoms, '', new Set([host.playerId])), KR).json();
-need(kingdomsBody.ok === true, `монитор «Царств» не ответил: ${JSON.stringify(kingdomsBody).slice(0, 80)}`);
-need(kingdomsBody.status === 'playing', `партия «Царств» видна как «${kingdomsBody.status}»`);
-need(kingdomsBody.table?.seats?.length === 3, `за столом «Царств» ${kingdomsBody.table?.seats?.length} мест вместо трёх`);
-need(kingdomsBody.table?.turnName, 'в «Царствах» не видно, чей ход');
-need(kingdomsBody.table.seats.every((one) => Number.isInteger(one.areas) && one.areas > 0),
-  'земля игроков не сочтена — по ней и видно, кто проигрывает');
-need(kingdomsBody.table.seats.some((one) => one.orders > 0), 'поставленный приказ не виден даже числом');
-need(kingdomsBody.table.seats.every((one) => one.kingdom && !/^[a-z]+$/.test(one.kingdom)),
-  'царства названы кодами, а не именами');
-const kingdomsText = JSON.stringify(kingdomsBody);
-need(!/march3|"kind"/.test(kingdomsText), 'в ответ монитора попал вид закрытого приказа');
-const secretObjectives = kingdoms.game.players.flatMap((one) => [one.objectiveId, ...(one.objectiveChoices || [])])
-  .filter(Boolean);
-need(!secretObjectives.some((id) => kingdomsText.includes(`"${id}"`)), 'в ответ монитора попала тайная цель');
-need(!/"hand"/.test(kingdomsText), 'в ответе монитора «Царств» есть поле руки');
-
 // ——— «Соглядатай»: этап, голоса и тайна локации ———
 
 const spy = spyRoom('QRSTU', host, 1000);
@@ -254,7 +195,6 @@ need(landStranger && landStranger.status === 403,
   `с обычной сессией монитор «Земли» ответил ${landStranger?.status}`);
 
 for (const [title, route, path] of [
-  ['«Царств»', kingdomsRoute, 'https://x/admin/rooms/KLMNP/state'],
   ['«Соглядатая»', spyRoute, 'https://x/admin/rooms/QRSTU/state'],
 ]) {
   const passing = await route(new Request(path), core('admin'), { roomStub, normalizeRoomId, cors: {} });
@@ -285,7 +225,6 @@ const landRepeat = landState(GET({ 'If-None-Match': landEtag }), land, landGame,
 need(landRepeat.status === 304, `повторный опрос «Земли» вернул ${landRepeat.status} вместо 304`);
 
 for (const [title, respond] of [
-  ['«Царств»', (headers) => kingdomsState(GET(headers), kingdoms, kingdomsView(kingdoms, '', new Set()), KR)],
   ['«Соглядатая»', (headers) => spyState(GET(headers), spy, spyView(spy, '', new Set()))],
 ]) {
   const tag = respond({}).headers.get('ETag');
@@ -305,7 +244,7 @@ if (problems.length) {
 }
 
 console.log('OK: монитор показывает идущую партию всех четырёх игр — чей ход, колода и очки в «Коленах», '
-  + 'год, серебро и уделы в «Земле», землю и число приказов в «Царствах», этап и общий чат в «Соглядатае», — '
+  + 'год, серебро и уделы в «Земле», этап и общий чат в «Соглядатае», — '
   + 'но ни одной карты с чужих рук, ни закрытого приказа, ни тайной цели, ни локации с ролями до итогов, ни '
   + 'закрытого чата соглядатаев; без токена запрос идёт мимо '
   + 'монитора, с обычной сессией получает отказ, POST не принимается вовсе; пока версия комнаты не '

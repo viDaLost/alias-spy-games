@@ -32,7 +32,7 @@
     if (typeof original !== 'function' || original[WRAPPED]) return;
     function wrappedShowGame(gameName, ...args) {
       if (window.AppAccess && !window.AppAccess.allowed()) return;
-      announce(gameName);
+      if (gameName !== 'moses-nile') announce(gameName);
       return original.call(this, gameName, ...args);
     }
     Object.defineProperty(wrappedShowGame, WRAPPED, { value: true });

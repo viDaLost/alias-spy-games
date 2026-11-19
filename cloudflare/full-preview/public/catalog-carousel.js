@@ -4,7 +4,7 @@
   const featured = ['quartet', 'biblical-match-three'];
   const sort = (games) => [
     ...featured.map(key => games.find(game => game.key === key)).filter(Boolean),
-    ...games.filter(game => game.key !== 'kingdoms' && !featured.includes(game.key)),
+    ...games.filter(game => !featured.includes(game.key)),
   ];
 
   function mount({ feature, games, artwork, routeURL }) {

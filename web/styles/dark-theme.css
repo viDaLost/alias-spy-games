@@ -2617,6 +2617,66 @@ html.theme-dark.theme-dark .game-scene__veil {
       rgba(2, 4, 10, .5) 58%,
       rgba(2, 4, 10, .66) 100%) !important;
 }
+html.theme-dark body[data-mode="game"][data-current-game]:not(:where([data-current-game="biblical-match-three"])) {
+  --game-ambient: #3626a6 !important;
+  --game-glow: #165590 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="quartet"] {
+  --game-ambient: #2e28a6 !important;
+  --game-glow: #a67928 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="alias"] {
+  --game-ambient: #2a1c9c !important;
+  --game-glow: #995211 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="coimaginarium"] {
+  --game-ambient: #4f2299 !important;
+  --game-glow: #145a8d !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="guess"] {
+  --game-ambient: #4530b4 !important;
+  --game-glow: #643453 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="describe"] {
+  --game-ambient: #22409a !important;
+  --game-glow: #8f5e10 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="spy"] {
+  --game-ambient: #5663ae !important;
+  --game-glow: #3c4878 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="bible-sketch"] {
+  --game-ambient: #522290 !important;
+  --game-glow: #5e261d !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="bible-wow"] {
+  --game-ambient: #3b27a1 !important;
+  --game-glow: #956716 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="bible-wordsearch"] {
+  --game-ambient: #2c31a1 !important;
+  --game-glow: #286d88 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="sacred-word"] {
+  --game-ambient: #5a4d95 !important;
+  --game-glow: #7b5c29 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="kids-ark-pairs"] {
+  --game-ambient: #182c92 !important;
+  --game-glow: #247a81 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="bible-geography"] {
+  --game-ambient: #3c579b !important;
+  --game-glow: #8c6b2b !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="twelve-tribes"] {
+  --game-ambient: #4f3daf !important;
+  --game-glow: #9b5e26 !important;
+}
+html.theme-dark body[data-mode="game"][data-current-game="promised-land"] {
+  --game-ambient: #3d2ca2 !important;
+  --game-glow: #b28948 !important;
+}
 
 /* web/styles/sabbath-access.css */
 html.theme-dark .sabbath-overlay {

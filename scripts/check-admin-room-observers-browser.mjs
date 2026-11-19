@@ -3,8 +3,7 @@
 // Жалоба была такая: игрок сидит в «Библейском художнике», а панель пишет
 // «партия за одним столом — комнаты нет», хотя без сети эта игра не играется
 // вовсе. И за партиями «Двенадцати колен» и «Земли обетованной» наблюдать было
-// нельзя, хотя мониторы у них есть: код комнаты по дороге терялся. За
-// «Царствами» и онлайн-«Соглядатаем» мониторов не было совсем.
+// нельзя, хотя мониторы у них есть: код комнаты по дороге терялся.
 //
 // Проверка ставит панель на страницу и отдаёт ей список онлайна, где есть все
 // случаи сразу: «Художник» в лобби, «Соглядатай» на одном телефоне и по
@@ -21,16 +20,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from './lib/playwright-app-fixture.mjs';
 
-import { adminStateResponse as kingdomsState } from '../cloudflare/kingdoms-worker/src/admin-observer.js';
-import {
-  buildView as kingdomsView,
-  createRoomState as kingdomsRoom,
-  joinRoom as kingdomsJoin,
-  setReady as kingdomsReady,
-  setSettings as kingdomsSettings,
-  startGame as kingdomsStart,
-} from '../cloudflare/kingdoms-worker/src/room.js';
-import { R as KR } from '../cloudflare/kingdoms-worker/src/rules.js';
 import { adminStateResponse as spyState } from '../cloudflare/spy-worker/src/admin-observer.js';
 import {
   addChatMessage as spyChat,
@@ -55,7 +44,7 @@ const need = (condition, message) => { if (!condition) problems.push(message); }
 const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const meta = (name) => (indexHtml.match(new RegExp(`<meta name="${name}" content="([^"]*)"`)) || [])[1] || '';
 const BACKENDS = Object.fromEntries(['app-core-backend', 'app-observability', 'quartet-backend', 'bible-sketch-backend',
-  'spy-backend', 'twelve-tribes-backend', 'kingdoms-backend', 'promised-land-app'].map((name) => [name, meta(name)]));
+  'spy-backend', 'twelve-tribes-backend', 'promised-land-app'].map((name) => [name, meta(name)]));
 for (const [name, url] of Object.entries(BACKENDS)) need(url, `в index.html нет адреса ${name}`);
 
 function seeded(seed) {
@@ -72,12 +61,6 @@ const GET = new Request('https://x/admin-state');
 
 // ——— комнаты, о которых спросит панель ———
 
-const kingdoms = kingdomsRoom('KNGDM', host, 1000);
-kingdomsJoin(kingdoms, guest, 1001);
-kingdomsSettings(kingdoms, host.playerId, { bots: 1 }, 1002);
-kingdomsReady(kingdoms, guest.playerId, true, 1003);
-kingdomsStart(kingdoms, host.playerId, 1004, seeded(7));
-
 const spy = spyRoom('SPYRM', host, 1000);
 spyJoin(spy, guest, 1001);
 spyJoin(spy, { playerId: 'tg:3', name: 'Третий' }, 1002);
@@ -88,7 +71,6 @@ const tribes = tribesRoom('TRIBE', host, 1000);
 tribesJoin(tribes, guest, 1001);
 
 const ROOMS = {
-  KNGDM: () => kingdomsState(GET, kingdoms, kingdomsView(kingdoms, '', new Set([host.playerId])), KR),
   SPYRM: () => spyState(GET, spy, spyView(spy, '', new Set([host.playerId]))),
   TRIBE: () => tribesState(GET, tribes, tribesView(tribes, '', new Set([host.playerId]))),
 };
@@ -97,7 +79,6 @@ const ONLINE = [
   { id: '1000001', username: 'sketch_lobby', game: 'bible-sketch', roomId: '' },
   { id: '1000002', username: 'spy_alone', game: 'spy', roomId: '' },
   { id: '1000003', username: 'tribes_room', game: 'twelve-tribes', roomId: 'TRIBE' },
-  { id: '1000004', username: 'kingdoms_room', game: 'kingdoms', roomId: 'KNGDM' },
   { id: '1000005', username: 'spy_room', game: 'spy', roomId: 'SPYRM' },
   { id: '1000006', username: 'land_room', game: 'promised-land', roomId: 'LANDS' },
   { id: '1000007', username: 'sketch_room', game: 'bible-sketch', roomId: 'DRAWS' },
@@ -182,7 +163,7 @@ try {
       : { ok: true };
     return route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(body) });
   });
-  for (const name of ['spy-backend', 'twelve-tribes-backend', 'kingdoms-backend']) {
+  for (const name of ['spy-backend', 'twelve-tribes-backend']) {
     await page.route(`${BACKENDS[name]}/**`, async (route) => {
       const request = route.request();
       if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
@@ -224,7 +205,7 @@ try {
   need(!/Партия за одним столом/.test(allText), 'в панели осталась строка «Партия за одним столом»');
 
   // 2. Кнопка наблюдения у каждого, кто в комнате.
-  for (const [id, game] of [['1000003', 'twelve-tribes'], ['1000004', 'kingdoms'], ['1000005', 'spy'],
+  for (const [id, game] of [['1000003', 'twelve-tribes'], ['1000005', 'spy'],
     ['1000006', 'promised-land'], ['1000007', 'bible-sketch']]) {
     need(cards[id]?.observe === game, `у игрока в комнате «${game}» нет кнопки наблюдения`);
   }
@@ -242,13 +223,6 @@ try {
     await page.waitForTimeout(100);
     return text;
   };
-
-  const kingdomsText = await observe('1000004', 'обл.');
-  need(/Царства · KNGDM/.test(kingdomsText), 'заголовок монитора «Царств» не назвал игру и комнату');
-  need(/обл\./.test(kingdomsText) && /Расстановка|Приказы/.test(kingdomsText),
-    `монитор «Царств» не показал землю и этап: «${kingdomsText.slice(0, 160)}»`);
-  const kingdomNames = kingdoms.game.players.map((one) => KR.kingdomOf(one.kingdomId)?.name).filter(Boolean);
-  need(kingdomNames.some((name) => kingdomsText.includes(name)), 'монитор «Царств» не назвал царства игроков');
 
   const spyText = await observe('1000005', 'Общий чат');
   need(/Соглядатай · SPYRM/.test(spyText), 'заголовок монитора «Соглядатая» не назвал игру и комнату');
@@ -274,5 +248,5 @@ if (problems.length) {
   process.exit(1);
 }
 console.log('OK: админ-панель честно пишет, почему кнопки наблюдения нет — «Художник» в лобби, «Соглядатай» '
-  + 'на одном устройстве, — и даёт наблюдать за комнатой каждой сетевой игры; мониторы «Царств», '
+  + 'на одном устройстве, — и даёт наблюдать за комнатой каждой сетевой игры; мониторы '
   + '«Соглядатая» и «Колен» открываются с токеном администратора и показывают партию без её тайн.');

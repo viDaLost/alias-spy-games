@@ -43,18 +43,6 @@ const GAME_GROUPS = [
         key: "promised-land", title: "Земля обетованная",
         desc: "Уделы, поселения и юбилей", icon: "promised-land",
       },
-      /*
-        «Царства» тоже пока открыты только главному администратору и тем,
-        кто в KINGDOMS_TESTERS: игра готова, но в общий список ещё не
-        выпущена. Тот же признак owner
-        прячет карточку у всех остальных и закрывает вход даже по прямому
-        вызову — см. renderGameButton и showGame.
-      */
-      {
-        key: "kingdoms", title: "Царства",
-        desc: "Тайные приказы и спор за земли — пять раундов", icon: "kingdoms",
-        owner: true,
-      },
     ],
   },
   {
@@ -97,7 +85,6 @@ const MENU_ICON_SOURCES = {
   "moses-nile": "web/assets/icons/unified-v1/moses-nile.webp",
   "promised-land": "web/assets/icons/unified-v1/promised-land.webp",
   "twelve-tribes": "web/assets/icons/unified-v1/twelve-tribes.webp",
-  kingdoms: "web/assets/icons/unified-v1/kingdoms.webp",
   geography: "web/assets/icons/unified-v1/bible-geography.webp",
 };
 
@@ -465,28 +452,9 @@ function openSupportChat() {
   }
 }
 
-/*
-  Главный администратор. Роль ставит серверная проверка — та же, что у кнопки
-  админки (admin-rbac-root в admin-live-modal-safety.js), и приходит она позже
-  первой отрисовки меню. Поэтому карточка не «не рисуется», а рисуется
-  скрытой: появится, когда придёт роль, и не потребует перерисовывать меню.
-*/
-const isOwner = () => document.documentElement.classList.contains("admin-rbac-root");
-
-/*
-  Кому «Царства» открыты до выпуска, кроме главного администратора: id в
-  Telegram. Id известен сразу, без ответа сервера, поэтому признак ставится
-  классом на <html> при первой отрисовке меню — по нему таблица стилей
-  показывает карточку, а справочник правил — игру в списке.
-*/
-const KINGDOMS_TESTERS = new Set(["5502223852","6533461232","5148935464","7101682106","1661715859","8224133751"]);
-const isKingdomsTester = () => KINGDOMS_TESTERS.has(String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || ""));
-const canPlayKingdoms = () => fullCatalogPreview || isOwner() || isKingdomsTester();
-
 function renderGameButton(item) {
-  const gate = item.owner ? ` game-card--owner${item.tryout ? " game-card--tryout" : ""}` : "";
   return `
-    <button type="button" class="game-card${gate}" data-card-game="${item.key}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
+    <button type="button" class="game-card" data-card-game="${item.key}" onclick="showGame('${item.key}')" aria-label="Открыть игру ${escapeHTML(item.title)}" aria-describedby="game-details-${item.key}">
       <span class="game-card__icon game-card__icon--image">${menuIconHTML(item.icon, item.title)}</span>
       <span class="game-card__body">
         <span class="game-card__title">${escapeHTML(item.title)}</span>
@@ -502,7 +470,6 @@ function renderMainMenu() {
     window.FullPreviewMenu.mount(GAME_GROUPS, MENU_ICON_SOURCES);
     return;
   }
-  document.documentElement.classList.toggle("kd-tester", isKingdomsTester());
   GAME_GROUPS.forEach((group) => {
     const root = document.getElementById(group.id);
     if (!root || root.dataset.ready === "1") return;
@@ -523,7 +490,7 @@ function renderMainMenu() {
     `;
     systemRoot.dataset.ready = "1";
   }
-  window.GameCatalog?.mount(GAME_GROUPS, MENU_ICON_SOURCES, (item) => !item.owner || canPlayKingdoms());
+  window.GameCatalog?.mount(GAME_GROUPS, MENU_ICON_SOURCES);
 }
 
 function renderAdminButton() {
@@ -722,6 +689,23 @@ function startGameSafely(callback, expectedGame = activeGameName, expectedEntry 
 let gameLaunchEntry = 0;
 function showGame(gameName) {
   if (window.AppAccess && !window.AppAccess.allowed()) return;
+  if (gameName === "moses-nile") {
+    const existing = document.getElementById("moses-maintenance");
+    if (existing) return;
+    const notice = document.createElement("dialog");
+    notice.id = "moses-maintenance";
+    notice.className = "catalog-dialog";
+    notice.setAttribute("aria-labelledby", "moses-maintenance-title");
+    notice.setAttribute("aria-describedby", "moses-maintenance-message");
+    notice.innerHTML = `
+      <div class="catalog-dialog-head"><h2 id="moses-maintenance-title">Игра на стадии доработки</h2></div>
+      <p id="moses-maintenance-message">Ожидайте, в скором времени она будет доступна.</p>
+      <form method="dialog"><button type="submit" class="catalog-dialog-done" autofocus>Понятно</button></form>`;
+    notice.addEventListener("close", () => notice.remove(), { once: true });
+    document.body.append(notice);
+    notice.showModal();
+    return;
+  }
   if (window.SabbathAccess && !window.SabbathAccess.authorize(gameName)) return;
   gameLaunchEntry += 1;
   rememberGameOpen(gameName);
@@ -753,12 +737,6 @@ function showGame(gameName) {
       машиной без браузера, а оболочка умеет загружать только один файл.
     */
     "twelve-tribes": ["web/games/twelve-tribes.js", () => window.startTwelveTribesGame?.()],
-    /*
-      «Царства» устроены так же: карта, движок и соперники от игры — в
-      отдельных файлах, которые экран подтягивает сам (kingdoms.js), чтобы
-      их можно было прогнать проверкой без браузера.
-    */
-    kingdoms: ["web/games/kingdoms.js", () => window.startKingdomsGame?.()],
     "bible-wow": ["web/games/bible-wow.js", () => window.startBibleWowGame?.("web/data/bible_wow_levels.json")],
     "bible-wordsearch": ["web/games/bible-wordsearch.js", () => window.startBibleWordSearchGame?.("web/data/bible_wordsearch_levels.json")],
     "sacred-word": ["web/games/sacred-word.js", () => window.startSacredWordGame?.("web/data/sacred_words.json")],
@@ -769,23 +747,6 @@ function showGame(gameName) {
     "bible-geography": ["web/games/bible-geography.js", () => window.startBibleGeographyGame?.()],
   };
 
-  /*
-    «Моисей: Путь по Нилу» — отдельная страница со своим three.js, шейдерами и
-    циклом кадров. Остальные игры подключаются скриптом в общую область
-    видимости; для этой так нельзя — она принесла бы за собой вторую копию
-    three и собственный рендер-цикл. Поэтому она открывается во фрейме того же
-    источника: CSP это разрешает ('self'), а игра внутри дотягивается до
-    Telegram у родителя, чтобы отключить жест закрытия.
-  */
-  /*
-    «Земля обетованная» — тоже отдельная страница со своим three.js, моделями
-    и циклом кадров, и открывается тем же способом, что «Моисей на Ниле»:
-    фреймом того же происхождения, которое разрешает CSP.
-
-    Обкатка кончилась: игра открыта всем наравне с остальными. Прежний замок —
-    скрытая карточка и отказ в showGame — снят целиком, а не оставлен
-    выключенным: выключенный замок однажды включается сам, от чужой правки.
-  */
   if (gameName === "promised-land") {
     if (menu) menu.classList.add("hidden");
     document.body.dataset.mode = "game";
@@ -829,49 +790,6 @@ function showGame(gameName) {
                   loading="eager"></iframe>
           <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
         </div>`;
-    }
-    return;
-  }
-
-  if (gameName === "moses-nile") {
-    if (menu) menu.classList.add("hidden");
-    document.body.dataset.mode = "game";
-    document.body.dataset.currentGame = gameName;
-    activeGameName = gameName;
-    window.scrollTo({ top: 0, behavior: "auto" });
-    if (container) {
-      // Игра раздаётся отдельным воркером: в репозитории лежит только её
-      // рантайм, а модели, текстуры и three.js кладёт сборка превью. По
-      // локальному пути игра ушла бы в запасной 2D-режим.
-      const configured = String(document.querySelector('meta[name="moses-nile-app"]')?.content || '').trim();
-      // Вырез экрана и кнопки Telegram фрейм увидеть не может — их размеры
-      // оболочка дописывает в адрес, чтобы HUD встал верно с первого кадра.
-      const base = configured || 'web/games/moses-nile-v7/index.html?v=770';
-      const src = window.__gameFrameInsets?.seedUrl?.(base) || base;
-      container.innerHTML = `
-        <div class="game-frame-wrap">
-          <iframe class="game-frame" src="${escapeHTML(src)}"
-                  title="Моисей: Путь по Нилу" allow="autoplay; fullscreen"
-                  loading="eager"></iframe>
-          <button type="button" class="back-button game-frame-exit" onclick="goToMainMenu()">Главное меню</button>
-        </div>`;
-    }
-    return;
-  }
-
-  /* Тот же замок — у «Царств»: игра готова, но в общий список ещё не выпущена. */
-  if (gameName === "kingdoms" && !canPlayKingdoms()) {
-    if (menu) menu.classList.add("hidden");
-    document.body.dataset.mode = "game";
-    activeGameName = gameName;
-    document.body.dataset.currentGame = gameName;
-    if (container) {
-      container.innerHTML = `
-        <section class="app-error-card fade-in">
-          <h2>Игра ещё не открыта</h2>
-          <p>«Царства» пока проходят обкатку и доступны только администратору.</p>
-          <button class="back-button" onclick="goToMainMenu()">В главное меню</button>
-        </section>`;
     }
     return;
   }
@@ -979,9 +897,6 @@ function cleanupActiveGame() {
   // Соперники в «Двенадцати коленах» ходят по таймеру: без уборки они
   // продолжают ходить в закрытой игре и дорисовывают стол поверх меню.
   try { window.__twelveTribesCleanup?.(); } catch {}
-  // «Царства» устроены так же: соперники от игры и анимация раскрытия идут
-  // по таймеру и без уборки продолжаются в уже закрытой игре.
-  try { window.__kingdomsCleanup?.(); } catch {}
   // У карты «Библейской географии» живой наблюдатель размера и кадры анимации:
   // без уборки они продолжают считать закрытую карту.
   try { window.__bibleGeographyCleanup?.(); } catch {}
