@@ -20,7 +20,7 @@ let fail = false;
 let id = '555555555';
 let isRoot = false;
 let restricted = true;
-let accountStars = 61;
+let accountStars = 999953;
 let accountRevision = 1;
 const exceptions = new Set();
 const authErrors = [];
@@ -171,9 +171,24 @@ try {
   const hero = catalog.locator('#catalog-feature');
   const currentPromo = await hero.getAttribute('data-active-promo');
   await catalog.waitForFunction((key) => document.querySelector('#catalog-feature')?.dataset.activePromo !== key, currentPromo, { timeout: 5000 });
-  await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '61');
+  await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999953');
   await catalog.waitForFunction(() => document.querySelectorAll('#catalog-games [data-launch]').length === 17);
-  assert.equal(await catalog.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  assert.equal((await catalog.locator('#main-catalog h1').textContent()).trim(), 'Библейские игры');
+  assert.equal(await catalog.locator('#main-catalog').getByText('Во что сыграем?', { exact: true }).count(), 0);
+  for (const width of [320, 375, 390]) {
+    await catalog.setViewportSize({ width, height: 844 });
+    await catalog.evaluate(() => document.fonts.ready.then(() => {}));
+    const title = await catalog.locator('.catalog-title span').boundingBox();
+    const wallet = await catalog.locator('.catalog-top .catalog-wallet').boundingBox();
+    const digits = await catalog.locator('.catalog-wallet [data-game-wallet]').boundingBox();
+    const tools = await catalog.locator('.catalog-top .catalog-tools').boundingBox();
+    assert.ok(title?.width && wallet && digits?.width && tools, `catalog header is visible at ${width}px`);
+    assert.ok(title.y + title.height < wallet.y, 'title is above the wallet and controls');
+    assert.ok(Math.abs(wallet.y + wallet.height / 2 - tools.y - tools.height / 2) < 1, 'wallet and controls share a row');
+    assert.ok(digits.x + digits.width <= wallet.x + wallet.width, 'the whole balance fits');
+    assert.ok(wallet.x + wallet.width < tools.x && tools.x + tools.width <= width, 'wallet and controls fit the viewport');
+    assert.equal(await catalog.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+  }
   assert.equal(await catalog.locator('#catalog-library input, #catalog-favorites').count(), 0);
   assert.deepEqual(await catalog.locator('#catalog-filters button').allTextContents(), ['Все', 'Одиночные', 'Для компании']);
   await catalog.locator('#catalog-filters [data-filter="solo"]').click();
@@ -201,15 +216,15 @@ try {
     document.body.dataset.currentGame = 'bible-wow';
     delete document.body.dataset.currentGame;
   });
-  await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '55');
+  await catalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999947');
   await catalog.waitForFunction(() => !Object.keys(localStorage).some((key) => key.startsWith('game_wallet_op_v1_')));
-  assert.equal(accountStars, 55);
+  assert.equal(accountStars, 999947);
   await catalogContext.close();
 
   const webCatalogContext = await contextFor({ web: true, telegram: false, social: true });
   const webCatalog = await webCatalogContext.newPage();
   await webCatalog.goto(`${base}/?menu=catalog`);
-  await webCatalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '55');
+  await webCatalog.waitForFunction(() => document.querySelector('[data-game-wallet]')?.textContent === '999947');
   await webCatalog.locator('#open-profile').click();
   await webCatalog.locator('.social-sheet-overlay.is-open .social-hero').waitFor();
   await webCatalogContext.close();

@@ -18,9 +18,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self' wss: blob:; frame-src 'self'; font-src 'self'; media-src 'self' blob:">
   <script src="/display-preferences.js"></script>
   <link rel="stylesheet" href="/web/styles/full-games.css?v=4">
-  <link rel="stylesheet" href="/catalog.css?v=7">
+  <link rel="stylesheet" href="/catalog.css?v=8">
   <link rel="stylesheet" href="/display-preferences.css">
-  <link rel="stylesheet" href="/catalog-system.css?v=5">
+  <link rel="stylesheet" href="/catalog-system.css?v=6">
   <script src="/game-wallet.js?v=1" defer></script>
   <script src="/catalog-carousel.js?v=5" defer></script>
   <script src="/catalog-system.js?v=6" defer></script>
@@ -31,34 +31,33 @@
 </head>
 <body data-reopening-preview>
   <main class="catalog" id="menu-container">
-    <div class="catalog-top" role="banner">
-      <a class="catalog-brand" href="/" aria-label="Библейские игры, главная">
-        <img src="/web/assets/pwa/icon-192.png" alt="" width="44" height="44">
-        <span>Библейские игры</span>
-      </a>
-      <div class="catalog-tools">
-        <a class="catalog-tool" id="open-profile" href="https://t.me/bibleiskie_bot?startapp=profile" target="_blank" rel="noopener noreferrer" aria-label="Профиль">
-          <img class="catalog-system-icon" src="/web/assets/icons/profile.webp" alt=""><span class="catalog-tool-label">Профиль</span>
+    <div class="catalog-header" role="banner">
+      <h1 class="catalog-title">
+        <a class="catalog-brand" href="/" aria-label="Библейские игры, главная">
+          <img src="/web/assets/pwa/icon-192.png" alt="" width="44" height="44">
+          <span>Библейские игры</span>
         </a>
-        <button type="button" class="catalog-tool" id="open-favorites" aria-label="Избранное">
-          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/favorites.webp" alt=""><span class="catalog-tool-label">Избранное</span>
-        </button>
-        <button type="button" class="catalog-tool" id="open-settings" aria-label="Настройки">
-          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/settings.webp" alt=""><span class="catalog-tool-label">Настройки</span>
-        </button>
-      </div>
-    </div>
-    <div class="catalog-heading">
-      <h1>Во что сыграем?</h1>
-      <div class="catalog-home-stats">
-        <div class="catalog-wallet" aria-label="Общий баланс игровых звёзд">
+      </h1>
+      <div class="catalog-top">
+        <div class="catalog-wallet" role="group" aria-label="Общий баланс игровых звёзд">
           <img class="catalog-system-icon" src="/web/assets/icons/menu-system/stars.webp" alt="">
           <div><small>Общие звёзды</small><strong data-game-wallet>0</strong></div>
         </div>
-        <div id="catalog-progress" class="catalog-progress">
-          <img class="catalog-system-icon" src="/web/assets/icons/menu-system/progress.webp" alt="">
-          <div><small>Ваш прогресс</small><span id="catalog-progress-summary"></span></div>
+        <div class="catalog-tools">
+          <a class="catalog-tool" id="open-profile" href="https://t.me/bibleiskie_bot?startapp=profile" target="_blank" rel="noopener noreferrer" aria-label="Профиль">
+            <img class="catalog-system-icon" src="/web/assets/icons/profile.webp" alt=""><span class="catalog-tool-label">Профиль</span>
+          </a>
+          <button type="button" class="catalog-tool" id="open-favorites" aria-label="Избранное">
+            <img class="catalog-system-icon" src="/web/assets/icons/menu-system/favorites.webp" alt=""><span class="catalog-tool-label">Избранное</span>
+          </button>
+          <button type="button" class="catalog-tool" id="open-settings" aria-label="Настройки">
+            <img class="catalog-system-icon" src="/web/assets/icons/menu-system/settings.webp" alt=""><span class="catalog-tool-label">Настройки</span>
+          </button>
         </div>
+      </div>
+      <div id="catalog-progress" class="catalog-progress">
+        <img class="catalog-system-icon" src="/web/assets/icons/menu-system/progress.webp" alt="">
+        <div><small>Ваш прогресс</small><span id="catalog-progress-summary"></span></div>
       </div>
     </div>
     <section class="catalog-feature" id="catalog-feature" aria-label="Игры на витрине" aria-roledescription="карусель">
