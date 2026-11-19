@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {evaluate,distanceKm,destination,scenes,levels,regions,scenesForLevel,eventChoices,createJourney,maxCampaignScore} from '../public/rules.mjs';
+import {evaluate,distanceKm,destination,scenes,levels,regions,scenesForLevel,eventChoices,createJourney,maxRoundScore} from '../public/rules.mjs';
 import {rayToUV,wrapAngle,panoramaSamples,framebufferSize,maxFov} from '../public/camera.mjs';
 const correct={guess:destination,event:'babel',epoch:'early'};
 test('полный правильный ответ даёт 5000 очков',()=>{assert.equal(evaluate(correct).total,5000);});
@@ -38,10 +38,10 @@ test('assembled panoramas preserve longitude without another seam crop',()=>{
   assert.equal(s.a,expected);assert.equal(s.b,expected);assert.equal(s.weight,1);
  }
 });
-test('fifteen distinct scenes form three five-round levels with valid answers',()=>{
- assert.equal(scenes.length,15);assert.equal(new Set(scenes.map(s=>s.id)).size,15);
+test('thirty distinct scenes form three ten-round levels with valid answers',()=>{
+ assert.equal(scenes.length,30);assert.equal(new Set(scenes.map(s=>s.id)).size,30);
  assert.equal(levels.length,3);
- for(const level of levels){const selected=scenesForLevel(level.id);assert.equal(selected.length,5);
+ for(const level of levels){const selected=scenesForLevel(level.id);assert.equal(selected.length,10);
   for(const scene of selected){
    assert.equal(scene.difficulty,level.id);assert.equal(scene.hints.length,3);assert.equal(scene.visualClues.length,3);
    const correct={guess:{region:scene.region},event:scene.event,epoch:scene.epoch};
@@ -51,13 +51,13 @@ test('fifteen distinct scenes form three five-round levels with valid answers',(
  }
  assert.throws(()=>scenesForLevel('missing'));
 });
-test('each five-round journey guards advancement and duplicate scores and resets',()=>{
+test('each ten-round journey guards advancement and duplicate scores and resets',()=>{
  for(const level of levels){const j=createJourney(level.id);assert.equal(j.next(),false);
   for(const [i,scene] of j.scenes.entries()){
    assert.equal(j.scene.id,scene.id);const answer={guess:{region:scene.region},event:scene.event,epoch:scene.epoch};
-   const first=j.submit(answer);assert.equal(j.submit({...answer,hints:3}),first);assert.equal(j.results.length,i+1);assert.equal(j.next(),i<4);
+   const first=j.submit(answer);assert.equal(j.submit({...answer,hints:3}),first);assert.equal(j.results.length,i+1);assert.equal(j.next(),i<j.roundCount-1);
   }
-  assert.equal(j.total,25000);assert.equal(maxCampaignScore,25000);assert.equal(j.complete,true);
+  assert.equal(j.total,50000);assert.equal(j.maxScore,j.roundCount*maxRoundScore);assert.equal(j.complete,true);
   j.restart();assert.equal(j.index,0);assert.equal(j.total,0);assert.equal(j.complete,false);
  }
 });

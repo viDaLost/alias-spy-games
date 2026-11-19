@@ -1,3 +1,5 @@
+import {additionalScenes} from './additional-scenes.mjs?v=11';
+
 export const scenes = [
  {
   "id": "babel",
@@ -565,5 +567,6 @@ export const scenes = [
   "sourceUrl": "https://bible.by/syn/44/16/",
   "quote": "«Все мы здесь»",
   "quoteSource": "Деяния 16:28 · Синодальный перевод"
- }
+ },
+ ...additionalScenes
 ];

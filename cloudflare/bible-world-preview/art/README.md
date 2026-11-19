@@ -1,5 +1,9 @@
 # Panorama sources and reproduction
 
+## November 19 expansion
+
+The fifteen additional scenes use individual 1774 × 887 generated source panoramas in `sources/`. `close-panorama.mjs` joins the overlapping rear edges before resampling and gradually removes longitude-dependent detail at each spherical pole. The 4096 × 2048 lossless WebP outputs are rebuilt from those sources by the same CI command as the original fifteen scenes. Story cues and Scripture references are defined in `public/additional-scenes.mjs`.
+
 ## October 16 longitude repairs
 
 All fifteen rear longitude joins now have individual native 1254×1254 ImageGen repairs in `sources/repairs/`. Each repair reconstructs the damaged centre of a 104-degree rectilinear rear view while retaining surrounding composition and story clues. The riverbank, pottery rims, masonry, cloth, tree branches and ground are reconstructed as continuous opaque geometry. The Gideon ridge and sky required a further background refinement before selection.

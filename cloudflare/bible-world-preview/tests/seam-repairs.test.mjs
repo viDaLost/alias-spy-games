@@ -14,7 +14,7 @@ test('rear repairs cross the longitude boundary continuously and preserve the fr
 test('all fifteen final joins use the reviewed repair without stale directional detail',async()=>{
  const manifest=JSON.parse(await readFile(new URL('../art/seam-repairs.json',import.meta.url),'utf8'));
  assert.equal(Object.keys(manifest.scenes).length,15);
- for(const scene of scenes){
+ for(const scene of scenes.filter(scene=>/-seams2-4k\.webp$/.test(scene.image))){
   const [repair]=manifest.scenes[scene.id];assert.ok(repair,scene.id);
   const bytes=await readFile(new URL('../art/sources/'+repair.source,import.meta.url));
   assert.equal(createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex'),repair.gitBlob);
@@ -34,5 +34,27 @@ test('all fifteen final joins use the reviewed repair without stale directional 
   }
   assert.ok(checked>150&&left>60&&right>60,`${scene.id}: both wrap edges must be tested`);
   assert.match(scene.image,/-seams2-4k\.webp$/);
+ }
+});
+
+test('new spherical textures have a continuous rear overlap and uniform poles',async()=>{
+ const sources=scenes.filter(scene=>!/-seams2-4k\.webp$/.test(scene.image));
+ assert.equal(sources.length,15);
+ for(const scene of sources){
+  const {data,info:{width,height,channels}}=await sharp(new URL('../public/'+scene.image,import.meta.url).pathname)
+   .removeAlpha().raw().toBuffer({resolveWithObject:true});
+  const row=width*channels;
+  let edgeDelta=0,nearbyDelta=0;
+  for(let y=0;y<height;y++){
+   const first=y*row,last=first+row-channels;
+   for(let c=0;c<channels;c++){
+    edgeDelta+=Math.abs(data[first+c]-data[last+c]);
+    nearbyDelta+=(Math.abs(data[first+c]-data[first+channels+c])+Math.abs(data[last+c]-data[last-channels+c]))/2;
+   }
+  }
+  assert.ok(edgeDelta<=1.5*nearbyDelta+height*channels,scene.id+': abrupt longitude join');
+  for(const start of [0,(height-1)*row]){
+   for(let x=channels;x<row;x++)assert.equal(data[start+x],data[start+x%channels],scene.id+': visible polar seam');
+  }
  }
 });

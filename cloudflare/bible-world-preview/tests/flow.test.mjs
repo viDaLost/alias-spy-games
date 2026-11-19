@@ -37,7 +37,7 @@ const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8'
 const elements=new Map([...html.matchAll(/<([a-z][a-z0-9]*)\b[^>]*\bid="([^"]+)"[^>]*>/g)].map(m=>{const e=new Element(m[1]);e.id=m[2];e.hidden=m[0].includes(' hidden');e.disabled=m[0].includes(' disabled');return [e.id,e];}));
 const tabs=['place','event','epoch'].map(n=>{const e=elements.get('tab-'+n);e.dataset={tab:n};return e;});
 const radios=()=>['regions','events','epochs'].flatMap(n=>elements.get(n).children.flatMap(c=>c.children.filter(x=>x.tag==='input')));
-const storage=new Map([['bible-world-best-v3','12345']]),images=[];let tick;
+const storage=new Map([['bible-world-best-v4-easy','23000']]),images=[];let tick;
 Object.assign(globalThis,{
  document:{hidden:false,body:new Element('body'),getElementById:id=>{assert.ok(elements.has(id),`HTML element ${id} exists`);return elements.get(id);},createElement:t=>new Element(t),createElementNS:(_,t)=>new Element(t),querySelectorAll:s=>s==='[data-tab]'?tabs:s==='input[type=radio]'?radios():[],addEventListener(){}},
  window:{devicePixelRatio:1,scrollTo(){}},Image:class{constructor(){this.width=4096;this.height=2048;images.push(this);}},
@@ -48,12 +48,12 @@ const {levels,scenesForLevel}=await import('../public/rules.mjs');
 await import('../public/app.js');
 const $=id=>elements.get(id),choose=(name,value)=>{const r=radios().find(r=>r.name===name&&r.value===value);assert.ok(r,`${name}: ${value}`);r.change(value);};
 const start=id=>$('levelCards').children.find(x=>x.id==='level-'+id).click();
-test('all 15 fullscreen rounds: automatic steps, editing, final submission and independent records',()=>{
+test('all 30 fullscreen rounds: automatic steps, editing, final submission and independent records',()=>{
  assert.equal(images.length,0);assert.equal($('levelCards').children.length,3);
  for(const level of levels){
   start(level.id);assert.equal($('levelMenu').hidden,true);assert.equal($('gameView').hidden,false);
   for(const [i,scene] of scenesForLevel(level.id).entries()){
-   assert.equal(images.at(-1).src,scene.image);assert.equal($('openAnswers').disabled,true);
+   assert.equal($('roundTotal').textContent,' / 10');assert.equal(images.at(-1).src,scene.image);assert.equal($('openAnswers').disabled,true);
    tick();assert.equal($('timer').textContent,'00:00');images.at(-1).onload();assert.equal($('openAnswers').disabled,false);
    tick();assert.equal($('timer').textContent,'00:01');$('helpButton').click();tick();assert.equal($('timer').textContent,'00:01');$('closeHelp').click();
    $('openAnswers').click();assert.equal($('answerDialog').open,true);assert.equal($('scene').inert,true);
@@ -65,13 +65,13 @@ test('all 15 fullscreen rounds: automatic steps, editing, final submission and i
    choose('regions',scene.region);$('tab-epoch').click();$('nextAnswer').click();
    $('closeAnswers').click();assert.equal($('scene').inert,false);$('openAnswers').click();assert.equal($('answerReview').hidden,false);
    $('submitGuess').click();assert.equal($('resultDialog').open,true);assert.equal($('submitGuess').disabled,true);
-   if(i<4)assert.equal(storage.has('bible-world-best-v4-'+level.id),false);
-   if(i<4)$('playAgain').click();
+   if(i<level.sceneIds.length-1)assert.equal(storage.has('bible-world-best-v5-'+level.id),false);
+   if(i<level.sceneIds.length-1)$('playAgain').click();
   }
-  assert.equal(storage.get('bible-world-best-v4-'+level.id),'25000');
+  assert.equal(storage.get('bible-world-best-v5-'+level.id),'50000');
   $('resultLevels').click();assert.equal($('levelMenu').hidden,false);
  }
- assert.equal(storage.get('bible-world-best-v3'),'12345');assert.equal(gpu.programs,1);assert.equal(gpu.textures,1);assert.equal(gpu.uploads,15);
+ assert.equal(storage.get('bible-world-best-v4-easy'),'23000');assert.equal(gpu.programs,1);assert.equal(gpu.textures,1);assert.equal(gpu.uploads,30);
 });
 test('stale loads cannot unlock a new round and failed images can be retried',()=>{
  start('easy');const stale=images.at(-1);$('chooseLevel').click();start('hard');const active=images.at(-1);

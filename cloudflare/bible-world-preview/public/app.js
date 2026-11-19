@@ -1,14 +1,32 @@
-import {levels,regions,events,epochs,createJourney,eventChoices} from './rules.mjs?v=10';
+import {levels,regions,events,epochs,createJourney,eventChoices,maxRoundScore} from './rules.mjs?v=11';
 import {createPanorama} from './viewer.mjs?v=10';
 const $=id=>document.getElementById(id),fmt=n=>n.toLocaleString('ru-RU'),steps=['place','event','epoch'],titles=['Где вы находитесь?','Что здесь происходит?','В какое время это было?'];
 const state={active:false,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0};let journey,cueTimer;
-const key=id=>`bible-world-best-v4-${id}`;
-function best(id){try{return Math.max(0,Math.min(25000,Number(localStorage.getItem(key(id)))||0));}catch{return 0;}}
+const key=id=>`bible-world-best-v5-${id}`;
+function best(id,limit){
+ try{return Math.max(0,Math.min(limit,Number(localStorage.getItem(key(id)))||0));}
+ catch{return 0;}
+}
 function renderLevels(){
  $('levelCards').replaceChildren();
  for(const [index,level] of levels.entries()){
-  const button=document.createElement('button');button.id='level-'+level.id;button.className='level-card';button.setAttribute('aria-label',`${level.label}: ${level.tag}. Пять локаций.`);
-  const mark=document.createElement('span'),title=document.createElement('h3'),tag=document.createElement('small'),text=document.createElement('p'),footer=document.createElement('span');mark.className='level-mark';mark.setAttribute('aria-hidden','true');mark.textContent='●'.repeat(index+1)+'○'.repeat(2-index);title.textContent=level.label;tag.textContent=level.tag;text.textContent=level.description;footer.className='level-bottom';footer.textContent=`5 локаций · ${best(level.id)?'Рекорд: '+fmt(best(level.id)):'Начать путешествие'} →`;button.append(mark,title,tag,text,footer);button.onclick=()=>startLevel(level.id);$('levelCards').append(button);
+  const count=level.sceneIds.length,record=best(level.id,count*maxRoundScore);
+  const button=document.createElement('button');
+  button.id='level-'+level.id;
+  button.className='level-card';
+  button.setAttribute('aria-label',`${level.label}: ${level.tag}. ${count} локаций.`);
+  const mark=document.createElement('span'),title=document.createElement('h3'),tag=document.createElement('small'),text=document.createElement('p'),footer=document.createElement('span');
+  mark.className='level-mark';
+  mark.setAttribute('aria-hidden','true');
+  mark.textContent='●'.repeat(index+1)+'○'.repeat(2-index);
+  title.textContent=level.label;
+  tag.textContent=level.tag;
+  text.textContent=level.description;
+  footer.className='level-bottom';
+  footer.textContent=`${count} локаций · ${record?'Рекорд: '+fmt(record):'Начать путешествие'} →`;
+  button.append(mark,title,tag,text,footer);
+  button.onclick=()=>startLevel(level.id);
+  $('levelCards').append(button);
  }
 }
 function inert(){$('scene').inert=['answerDialog','resultDialog','helpDialog'].some(id=>$(id).open);}
@@ -37,18 +55,18 @@ $('openAnswers').onclick=()=>{if(!state.active||!state.loaded)return;if(state.su
 $('hintButton').onclick=()=>{if(!state.active||!state.loaded||state.submitted||state.hints===3)return;$('hintText').textContent=journey.scene.hints[state.hints++];$('hintCounter').textContent=`Подсказка ${state.hints} / 3 · −150 очков`;$('hintToast').hidden=false;$('lookCue').hidden=true;$('hintButton').disabled=state.hints===3;};$('closeHint').onclick=()=>$('hintToast').hidden=true;
 setInterval(()=>{if(document.hidden||!state.active||state.submitted||!state.loaded||$('helpDialog').open)return;state.seconds++;$('timer').textContent=`${String(Math.floor(state.seconds/60)).padStart(2,'0')}:${String(state.seconds%60).padStart(2,'0')}`;},1000);
 function card(label,score,detail){const div=document.createElement('div'),t=document.createElement('span'),b=document.createElement('b'),p=document.createElement('p');div.className='score-card';t.textContent=label;b.textContent=score;p.textContent=detail;div.append(t,b,p);return div;}
-function result(r){const s=journey.scene;$('resultEyebrow').textContent=journey.complete?'Уровень пройден':`Локация ${journey.index+1} из 5 открыта`;$('resultTitle').textContent=journey.complete?'Пять историй открыты!':r.story===2000?'Вы узнали историю!':'История раскрыта';$('resultLocation').textContent=s.subtitle;$('resultMessage').textContent=journey.complete?'Ваш итог за пять локаций. Ниже — детали последней истории.':'Сравните ответ с деталями, которые были вокруг вас.';$('totalScore').textContent=fmt(journey.complete?journey.total:r.total);$('scoreLimit').textContent=`/ ${fmt(journey.complete?25000:5000)} очков`;
+function result(r){const s=journey.scene;$('resultEyebrow').textContent=journey.complete?'Уровень пройден':`Локация ${journey.index+1} из ${journey.roundCount} открыта`;$('resultTitle').textContent=journey.complete?'Все истории открыты!':r.story===2000?'Вы узнали историю!':'История раскрыта';$('resultLocation').textContent=s.subtitle;$('resultMessage').textContent=journey.complete?'Ваш итог за весь уровень. Ниже — детали последней истории.':'Сравните ответ с деталями, которые были вокруг вас.';$('totalScore').textContent=fmt(journey.complete?journey.total:r.total);$('scoreLimit').textContent=`/ ${fmt(journey.complete?journey.maxScore:maxRoundScore)} очков`;
  const answerRegion=regions.find(x=>x.id===s.region).label,answerEvent=events.find(x=>x.id===s.event).label,answerEpoch=epochs.find(x=>x.id===s.epoch).label;
  $('scoreBreakdown').replaceChildren(card('МЕСТО',`${r.place} / 2000`,state.guess?.region===s.region?'Верно: '+answerRegion:`Ваш выбор: ${labelFor(0)}. Ответ: ${answerRegion}.`),card('СОБЫТИЕ',`${r.story} / 2000`,r.story?'Верно':`Ваш выбор: ${labelFor(1)}. Ответ: ${answerEvent}.`),card('ЭПОХА',`${r.time} / 1000`,r.time?'Верно':`Ваш выбор: ${labelFor(2)}. Ответ: ${answerEpoch}.`),card('ПОДСКАЗКИ',`−${r.penalty}`,`${state.hints} из 3 использовано`));
  $('visualClues').replaceChildren();for(const clue of s.visualClues){const li=document.createElement('li');li.textContent=clue;$('visualClues').append(li);}
  for(const [id,text] of [['resultDescription',s.description],['resultEpoch','Эпоха: '+s.epochText],['locationNote',s.locationNote],['verseQuote',s.quote],['verseSource',s.quoteSource]])$(id).textContent=text;
- $('verseReference').textContent=`Открыть ${s.reference} ↗`;$('verseReference').href=s.sourceUrl;$('campaignSummary').hidden=!journey.complete;$('campaignScore').textContent=fmt(journey.total);$('campaignBest').textContent=`Рекорд уровня: ${fmt(best(journey.levelId))}`;
+ $('verseReference').textContent=`Открыть ${s.reference} ↗`;$('verseReference').href=s.sourceUrl;$('campaignSummary').hidden=!journey.complete;$('campaignScore').textContent=fmt(journey.total);$('campaignBest').textContent=`Рекорд уровня: ${fmt(best(journey.levelId,journey.maxScore))}`;
  $('roundResults').replaceChildren();for(const [i,scene] of journey.scenes.entries()){const row=document.createElement('div'),name=document.createElement('span'),score=document.createElement('b');row.className='round-result';name.textContent=`${i+1}. ${scene.title}`;score.textContent=journey.results[i]?fmt(journey.results[i].total):'—';row.append(name,score);$('roundResults').append(row);}
  $('playAgain').textContent=journey.complete?'Сыграть ещё раз ↺':'Следующая локация →';$('resultScroll').scrollTop=0;$('resultDialog').showModal();inert();
 }
-$('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete){try{localStorage.setItem(key(journey.levelId),String(Math.max(best(journey.levelId),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / 25 000`;completion();result(r);};
+$('submitGuess').onclick=()=>{if(state.submitted||!state.loaded||!values().every(Boolean))return;const r=journey.submit(state);state.submitted=true;closeAnswers();$('hintToast').hidden=true;$('lookCue').hidden=true;$('hintButton').disabled=true;if(journey.complete){try{localStorage.setItem(key(journey.levelId),String(Math.max(best(journey.levelId,journey.maxScore),journey.total)));}catch{}}$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;completion();result(r);};
 function loadScene(){state.loaded=false;$('loading').hidden=false;$('lookCue').hidden=false;completion();const orb=document.createElement('span'),message=document.createElement('span');orb.className='loading-orb';orb.textContent='✦';message.textContent='Открываем древний мир…';$('loading').replaceChildren(orb,message);viewer.load(journey.scene.image,journey.scene.camera);}
-function startRound(){clearTimeout(cueTimer);for(const id of ['answerDialog','resultDialog'])if($(id).open)$(id).close();Object.assign(state,{active:true,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0});$('hintToast').hidden=true;$('hintButton').disabled=false;$('timer').textContent='00:00';$('roundNumber').textContent=journey.index+1;$('roundTotal').textContent=' / 5';$('journeyScore').textContent=`${fmt(journey.total)} / 25 000`;choices('regions',regions);choices('events',eventChoices(journey.levelId,journey.scene.id));choices('epochs',epochs);showStep(0);inert();loadScene();}
+function startRound(){clearTimeout(cueTimer);for(const id of ['answerDialog','resultDialog'])if($(id).open)$(id).close();Object.assign(state,{active:true,guess:null,event:null,epoch:null,hints:0,submitted:false,loaded:false,seconds:0,step:0});$('hintToast').hidden=true;$('hintButton').disabled=false;$('timer').textContent='00:00';$('roundNumber').textContent=journey.index+1;$('roundTotal').textContent=` / ${journey.roundCount}`;$('journeyScore').textContent=`${fmt(journey.total)} / ${fmt(journey.maxScore)}`;choices('regions',regions);choices('events',eventChoices(journey.levelId,journey.scene.id));choices('epochs',epochs);showStep(0);inert();loadScene();}
 function startLevel(id){journey=createJourney(id);$('levelLabel').textContent=levels.find(x=>x.id===id).label;$('levelMenu').hidden=true;$('gameView').hidden=false;document.body.classList.add('playing');startRound();viewer.redraw();$('scene').focus({preventScroll:true});}
 function menu(){state.active=false;clearTimeout(cueTimer);for(const id of ['answerDialog','resultDialog','helpDialog'])if($(id).open)$(id).close();$('gameView').hidden=true;$('levelMenu').hidden=false;document.body.classList.remove('playing');renderLevels();inert();$('levelCards').querySelector('button').focus({preventScroll:true});}
 $('chooseLevel').onclick=menu;$('resultLevels').onclick=menu;$('playAgain').onclick=()=>{if(journey.complete)journey.restart();else if(!journey.next())return;startRound();};

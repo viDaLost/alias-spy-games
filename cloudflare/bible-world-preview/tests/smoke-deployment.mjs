@@ -7,7 +7,7 @@ const base=process.env.PREVIEW_URL;
 assert.ok(base,'PREVIEW_URL is required');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const paths=[
-  'index.html','app.js','rules.mjs','scenes.mjs','camera.mjs','viewer.mjs','style.css',
+  'index.html','app.js','rules.mjs','scenes.mjs','additional-scenes.mjs','camera.mjs','viewer.mjs','style.css',
   ...scenes.map(s=>s.image),'assets/temple-360-v1.webp',
   'assets/fonts/onest-cyrillic.woff2','assets/fonts/onest-latin.woff2'
 ];

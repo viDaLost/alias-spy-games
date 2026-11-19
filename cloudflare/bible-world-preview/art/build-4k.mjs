@@ -6,6 +6,8 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {panoramaSamples} from '../public/camera.mjs';
 import {sceneAssets} from './scene-assets.mjs';
+import {additionalScenes} from '../public/additional-scenes.mjs';
+import {closePanorama} from './close-panorama.mjs';
 import {applySphericalRepairs} from './spherical-repairs.mjs';
 const require=createRequire(import.meta.url);
 const sharp=require(require.resolve('sharp',{paths:[process.cwd(),process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES].filter(Boolean)}));
@@ -163,9 +165,19 @@ async function direct(scene,derive){
  await writeFile(path.join(work,'qa',scene+'-4k.jpg'),await assembled.clone().resize(2048,1024).jpeg({quality:95}).toBuffer());
  console.log(JSON.stringify({scene,file,width:W,height:H,kind:'derived-from-directions',faces:tiles.map(t=>({direction:t.name,width:t.im.w,height:t.im.h}))}));
 }
+const addedScenes=new Map(additionalScenes.map(scene=>[scene.id,scene]));
 const [mode,...scenes]=process.argv.slice(2);
 if(!['prepare','build','derive-base'].includes(mode))throw Error('Usage: build-4k.mjs prepare|build|derive-base [scene IDs]');
-for(const scene of scenes.length?scenes:Object.keys(sceneAssets)){
+for(const scene of scenes.length?scenes:[...Object.keys(sceneAssets),...addedScenes.keys()]){
+ const added=addedScenes.get(scene);
+ if(added){
+  if(mode==='build'){
+   const bytes=await closePanorama(await source(scene+'-panorama'));
+   await writeFile(path.join(root,'public',added.image),bytes);
+   console.log(JSON.stringify({scene,file:added.image,width:4096,height:2048}));
+  }
+  continue;
+ }
  if(!sceneAssets[scene])throw Error('Unknown scene '+scene);
  await (mode==='prepare'?prepare(scene):mode==='derive-base'?direct(scene,true):build(scene));
 }
