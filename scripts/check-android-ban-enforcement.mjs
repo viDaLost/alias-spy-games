@@ -14,7 +14,7 @@ const sql = read('cloudflare/app-core-worker/src/sql-user-store.js');
 const gradle = read('android-app/app/build.gradle');
 
 // The audited native OTP gate owns verified-session access/ban enforcement.
-// After AndroidSessionStore contains a verified encrypted session, 3.0.8 serves
+// After AndroidSessionStore contains a verified encrypted session, 3.0.9 serves
 // the shared Web UI from APK assets under Android's private HTTPS appassets
 // origin. GitHub Pages is neither an origin alias nor a runtime fallback.
 need(app, 'ACCESS_POLL_MS = 3_000L', 'Android does not poll account status quickly');
@@ -27,6 +27,8 @@ reject(app, 'LaunchedEffect(userId, accessChecked)', 'cached banned users cannot
 need(parityShell, 'sessionStore.load()', 'Web parity shell can start without an encrypted verified session');
 need(parityShell, 'if (activeSession == null)', 'Web parity shell does not retain the native login gate');
 need(parityShell, 'BibleGamesApp(assets = assets, cloud = cloud)', 'native verified login gate is missing');
+reject(parityShell, 'Библейские игры временно заблокированы', 'Android still renders the global lock screen');
+reject(parityShell, 'if (!accessAllowed)', 'global access check still blocks startup');
 need(parityShell, 'WebViewAssetLoader', 'bundled standalone Web shell is missing');
 need(parityShell, 'WEB_APP_ORIGIN = "appassets.androidplatform.net"', 'bundled Web UI is not served from the private Android asset origin');
 need(parityShell, 'WEB_APP_PATH_PREFIX = "/assets/"', 'bundled Web UI does not use the Android asset-loader path');
@@ -51,7 +53,7 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, 'versionCode 35', 'Android versionCode is not current');
-need(gradle, "versionName '3.0.8-standalone'", 'Android version is not current');
+need(gradle, 'versionCode 36', 'Android versionCode is not current');
+need(gradle, "versionName '3.0.9-standalone'", 'Android version is not current');
 
-console.log('Android 3.0.8 verified-session access, standalone appassets Web runtime and ban refresh checks passed.');
+console.log('Android 3.0.9 verified-session access, standalone appassets Web runtime and ban refresh checks passed.');
