@@ -111,7 +111,7 @@ const measure = (page) => page.evaluate(() => {
     // Само зарезервированное место, а не положение заголовка: заголовок несёт
     // собственные отступы и сдвигается недостаточно, чтобы поломку было видно.
     headerPad: Math.round(parseFloat(getComputedStyle(document.getElementById('main-catalog')).paddingTop) || 0),
-    firstMeaningfulTop: Math.round(document.querySelector('.catalog-heading h1')?.getBoundingClientRect().top ?? -1),
+    firstMeaningfulTop: Math.round(document.querySelector('.catalog-title')?.getBoundingClientRect().top ?? -1),
     // Только игры: в системном разделе состав нарочно разный — вне Telegram
     // там есть вход по коду и установка на главный экран.
     cards: document.querySelectorAll('#catalog-games [data-launch]').length,
@@ -140,6 +140,9 @@ if (web.headerPad < 12) {
 }
 
 for (const [name, snapshot] of [['Telegram', tg], ['браузер', web]]) {
+  if (snapshot.firstMeaningfulTop <= 0) {
+    problems.push(`${name}: заголовок каталога отсутствует или обрезан сверху`);
+  }
   if (snapshot.scrollW > snapshot.clientW + 1) {
     problems.push(`${name}: страница шире экрана (${snapshot.scrollW} против ${snapshot.clientW}), появилась прокрутка вбок`);
   }

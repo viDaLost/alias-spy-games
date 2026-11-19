@@ -2753,7 +2753,8 @@ html.theme-dark a):focus-visible {
   outline: 3px solid #2c7dd7 !important;
 }
 html.theme-dark .catalog-top {
-  border-bottom: 1px solid rgba(95, 114, 168, 0.259) !important;
+  border: 1px solid #18253f !important;
+  background: rgba(7, 16, 40, 0.961) !important;
 }
 html.theme-dark .catalog-brand {
   border: 1px solid #1f2943 !important;
@@ -2767,9 +2768,6 @@ html.theme-dark .catalog-tool {
 html.theme-dark .catalog-tool:hover,
 html.theme-dark .catalog-tool[aria-expanded="true"] {
   background: #0a1336 !important;
-}
-html.theme-dark .catalog-heading h1 {
-  background: #071028 !important;
 }
 html.theme-dark .catalog-filters {
   background: rgba(8, 20, 47, 0.949) !important;
@@ -2881,12 +2879,6 @@ html.theme-dark .catalog-dialog-done {
 html.theme-dark .catalog-invite-qr {
   background: #141414 !important;
 }
-@media (max-width: 510px) {
-html.theme-dark .catalog-top {
-  border: 1px solid #18253f !important;
-  background: rgba(7, 16, 40, 0.961) !important;
-}
-}
 
 /* cloudflare/full-preview/public/catalog-system.css */
 html.theme-dark .catalog-game .catalog-save[aria-pressed="true"] {
@@ -2951,12 +2943,6 @@ html.theme-dark .theme-dark .catalog {
 html.theme-dark .theme-dark .catalog-promo .catalog-hero-play {
   background: #574618 !important;
   color: #aba0de !important;
-}
-@media (max-width: 510px) {
-html.theme-dark :is(html[data-full-preview],
-html.theme-dark[data-game-catalog]) .home-gamehub-parallax__scene::after {
-  background: linear-gradient(180deg, rgba(9, 24, 50, 0.361), rgba(11, 27, 60, 0.522)) !important;
-}
 }
 
 /* web/styles/catalog-client.css */
