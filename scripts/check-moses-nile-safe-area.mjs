@@ -15,7 +15,7 @@
 //
 // Проверять это чтением стилей бесполезно: перекрытие — это пересечение
 // прямоугольников на живом экране. Поэтому приложение поднимается целиком, в
-// Telegram с вырезом и кнопками клиента, игра открывается по-настоящему, и
+// Telegram с вырезом и кнопками клиента, игра загружается во фрейме, и
 // каждая плашка HUD и каждая кнопка управления сверяется с чужими рамками.
 
 import http from 'node:http';
@@ -136,7 +136,26 @@ try {
   await page.goto(`${baseURL}/#tgWebAppData=query_id%3Dstub`, { waitUntil: 'commit', timeout: 30_000 });
   await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
 
-  await page.evaluate(() => window.showGame?.('moses-nile'));
+  // Пока меню показывает окно доработки, монтируем игровой фрейм только в тесте.
+  // Сам фрейм, правила и передача отступов работают с обычным кодом приложения.
+  await page.evaluate(() => {
+    const menu = document.getElementById('menu-container');
+    const container = document.getElementById('game-container');
+    const frame = document.createElement('iframe');
+    frame.className = 'game-frame';
+    frame.src = window.__gameFrameInsets.seedUrl('web/games/moses-nile-v7/index.html');
+    frame.title = 'Путь по Нилу';
+    const exit = document.createElement('button');
+    exit.className = 'back-button game-frame-exit';
+    exit.textContent = 'Главное меню';
+    const wrap = document.createElement('div');
+    wrap.className = 'game-frame-wrap';
+    wrap.append(frame, exit);
+    menu.classList.add('hidden');
+    document.body.dataset.mode = 'game';
+    document.body.dataset.currentGame = 'moses-nile';
+    container.append(wrap);
+  });
   await page.waitForSelector('.game-frame', { timeout: 15_000 });
   const frame = await (await page.$('.game-frame')).contentFrame();
   await frame.waitForSelector('#hud', { timeout: 20_000 });

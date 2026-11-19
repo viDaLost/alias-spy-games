@@ -1,6 +1,6 @@
 // Guards the admin panel's tabs.
 //
-// The four buttons used to only scroll: every section stayed on the page, so picking
+// The buttons used to only scroll: every section stayed on the page, so picking
 // "Пользователи" still left the stats, the support queue and the broadcast form
 // between you and the list. Now each tab owns its sections. This asserts that a tab
 // really does show its own and hide the others, that the choice survives the
@@ -121,16 +121,28 @@ const openTab = async (tab) => {
   await page.waitForTimeout(400);
 };
 
-for (const tab of ['overview', 'support', 'users', 'broadcast', 'sabbath']) {
-  await openTab(tab);
-  const shown = await visibleOwners();
-  if (shown.length !== 1 || shown[0] !== tab) {
-    await fail(`tab "${tab}" shows sections ${JSON.stringify(shown)} instead of only its own`);
+const auditRow = page.locator('#admin-sabbath tbody tr[data-frequent="true"]');
+for (const width of [390, 320]) {
+  await page.setViewportSize({ width, height: 844 });
+  for (const tab of ['overview', 'support', 'users', 'broadcast', 'sabbath']) {
+    await openTab(tab);
+    const shown = await visibleOwners();
+    if (shown.length !== 1 || shown[0] !== tab) {
+      await fail(`tab "${tab}" at ${width}px shows sections ${JSON.stringify(shown)} instead of only its own`);
+    }
+  }
+  await auditRow.waitFor({ state: 'visible' }).catch(() => fail('the Sabbath report is empty'));
+  await page.waitForFunction(() => document.documentElement.scrollWidth <= screen.width, null, { timeout: 6000 })
+    .catch(() => fail(`the report expands the page beyond ${width}px`));
+  if (width === 320) {
+    const table = page.locator('.admin-sabbath-table');
+    await table.evaluate(node => { node.scrollLeft = node.scrollWidth; });
+    if (!(await table.evaluate(node => node.scrollLeft > 0))) {
+      await fail('the report columns cannot be reached by scrolling on a 320px screen');
+    }
   }
 }
 
-const auditRow = page.locator('#admin-sabbath tbody tr[data-frequent="true"]');
-await auditRow.waitFor({state:'visible'}).catch(() => fail('the Sabbath report is empty'));
 if (!(await auditRow.textContent()).includes('Берлин')) await fail('the Sabbath report does not show the reported city');
 
 // The user list is the panel's working surface: on its tab it must actually be there.

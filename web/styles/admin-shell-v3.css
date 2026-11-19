@@ -411,8 +411,17 @@ body[data-mode="admin"] #game-container {
 
 
 .admin-v3-nav:has([data-admin-v3-target="sabbath"]) {
-  grid-template-columns: repeat(5, minmax(max-content, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
+
+@media (max-width: 560px) {
+  .admin-v3-nav:has([data-admin-v3-target="sabbath"]) {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+#admin-sabbath { min-width: 0; }
 .admin-sabbath-table { overflow-x: auto; margin-block: 12px; }
 .admin-sabbath-table table { border-collapse: collapse; width: 100%; text-align: start; }
 .admin-sabbath-table :is(th, td) { border-block-end: 1px solid currentColor; padding: 9px; white-space: nowrap; }
