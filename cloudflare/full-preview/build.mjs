@@ -100,7 +100,6 @@ await Promise.all([
   compile([
     'web/js/game-card-details.js',
     'web/js/theme-switch.js',
-    'web/js/sabbath-clock.js',
     'web/js/app.js',
     'web/games/kids-ark-pairs.js',
     'web/games/biblical-match-three-progress.js',
