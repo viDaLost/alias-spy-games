@@ -43,6 +43,17 @@ async function request(path, body, token) {
   return { status: response.status, data: await response.json() };
 }
 const compat = (id, action, extra = {}) => request('/compat', { telegramInitData: signed(id), payload: { action, ...extra } });
+const timeBefore = Date.now();
+const timeResponse = await worker.fetch(new Request('https://core.test/app/time', {
+  headers: { Origin: 'https://standalone.test' },
+}), {}, {});
+assert.equal(timeResponse.status, 200);
+assert.equal(timeResponse.headers.get('Cache-Control'), 'no-store');
+assert.equal(timeResponse.headers.get('Access-Control-Allow-Origin'), '*');
+const timeData = await timeResponse.json();
+assert.deepEqual(Object.keys(timeData), ['now']);
+assert.ok(timeData.now >= timeBefore && timeData.now <= Date.now(), 'public time comes from the worker clock');
+
 const original = JSON.stringify(store.getRow('555555555'));
 assert.equal((await request('/app/access?userId=1288379477')).data.allowed, false);
 assert.equal((await request('/app/access', { telegramInitData: signed(env.ADMIN_TELEGRAM_ID) })).data.isRoot, true);
