@@ -12,6 +12,11 @@ async function preparePage(page) {
     await page.route('**/app/access', (route) => route.fulfill({
       json: { ok: true, success: true, allowed: true, restricted: false, userId: '555555555' },
     }));
+    // Gameplay and layout tests run outside the weekly pause.
+    if (!page.__customSabbathClock) await page.route('**/app/time', (route) => route.fulfill({
+      json: { now: Date.parse('2026-10-14T08:00:00Z') },
+      headers: { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' },
+    }));
     // Isolated game tests exercise game mechanics, without a parent launcher.
     await page.route('**/standalone-app-access.js', (route) => route.fulfill({
       contentType: 'text/javascript',

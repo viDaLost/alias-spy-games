@@ -7,9 +7,16 @@
   const catalogURL = new URL('../data/sabbath-cities.json', sourceURL);
   const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Bibelschätze','kids-ark-pairs':'Finde ein Paar','twelve-tribes':'Zwölf Stämme','promised-land':'Gelobtes Land'};
   const restricted = game => Clock.GAME_IDS.includes(game);
-  const cityChangeLocked = ({reason}) => reason === 'sabbath' || reason === 'polar';
+  const core = document.querySelector('meta[name="app-core-backend"]')?.content
+    || 'https://alias-spy-games-core.vitaledanilov.workers.dev';
+  const clockURL = new URL('/app/time', core);
+  const refreshInterval = 15 * 60_000;
+  const offlineLimit = 6 * 60 * 60_000;
+  const cityChangeLocked = ({reason,cityFrozen}) => cityFrozen || reason === 'sabbath' || reason === 'polar' || reason === 'unverified';
+  let clockAnchor, clockRequest, nextClockSync = 0;
   let savedCity = readCity();
   let city = savedCity || Clock.CITIES[0], pendingGame = null, modal = null, returnFocus = null, editing = false;
+  let resumeAfterSync = null;
   let timer = null, standalone = null, catalogPromise = null, searchVersion = 0;
   const waiters = new Set();
   const PARENT_ORIGINS = new Set(['https://vidalost.github.io','https://alias-spy-games-app.vitaledanilov.workers.dev','https://appassets.androidplatform.net']);
@@ -25,18 +32,59 @@
       return cleanCity(JSON.parse(localStorage.getItem(KEY)));
     } catch { return null; }
   }
-  function status() { return {...Clock.state(Date.now(),city),city,citySelected:Boolean(savedCity)}; }
+  function trustedNow() {
+    if (!clockAnchor) return null;
+    const elapsed = performance.now() - clockAnchor.monotonic;
+    // The device clock can invalidate a sample after sleep or a clock adjustment.
+    // It never supplies the time used for a game or the city cutoff.
+    const wallElapsed = Date.now() - clockAnchor.wall;
+    if (elapsed < 0 || elapsed >= offlineLimit || Math.abs(wallElapsed - elapsed) > 90_000) {
+      clockAnchor = null;
+      nextClockSync = 0;
+      return null;
+    }
+    return clockAnchor.server + elapsed;
+  }
+  function syncClock(force = false) {
+    const started = performance.now();
+    if (clockRequest || (!force && started < nextClockSync)) return;
+    nextClockSync = started + 30_000;
+    clockRequest = (async () => {
+      try {
+        const response = await fetch(clockURL.href, {
+          cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer',
+          signal:AbortSignal.timeout(5000)
+        });
+        if (!response.ok) return;
+        const {now} = await response.json();
+        if (!Number.isSafeInteger(now) || now <= 0 || !Number.isFinite(+new Date(now))) return;
+        const monotonic = performance.now();
+        clockAnchor = {server:now, monotonic, wall:Date.now()};
+        nextClockSync = monotonic + refreshInterval;
+      } catch { /* Retain a usable sample during a brief outage. */ }
+      finally {
+        clockRequest = null;
+        check();
+      }
+    })();
+  }
+  function status() {
+    const now = trustedNow();
+    const schedule = now === null ? {allowed:false,reason:'unverified'} : Clock.state(now,city);
+    return {...schedule,now,city,citySelected:Boolean(savedCity)};
+  }
   function notifyCityChange() { window.dispatchEvent(new Event('sabbath:city-change')); }
   function saveCity(value) {
     const chosen = cleanCity(value);
     if (!chosen) return;
-    if (cityChangeLocked(status())) {
+    const state = status();
+    if (cityChangeLocked(state)) {
       check();
       return;
     }
     // A different tab may have saved a city before its storage event reaches this one.
     const latest = window.parent === window ? readCity() : null;
-    if (latest && cityChangeLocked(Clock.state(Date.now(), latest))) {
+    if (latest && cityChangeLocked(Clock.state(state.now, latest))) {
       savedCity = city = latest;
       check();
       notifyCityChange();
@@ -65,7 +113,7 @@
     const node = textNode('button',text,cls);node.type='button';node.addEventListener('click',action);return node;
   }
   function close() {
-    searchVersion++;pendingGame=null;editing=false;
+    searchVersion++;pendingGame=null;editing=false;resumeAfterSync=null;
     modal?.remove();modal=null;document.documentElement.classList.remove('sabbath-dialog-open');
     returnFocus?.focus?.();returnFocus=null;
   }
@@ -95,11 +143,18 @@
     searchVersion++;
     const state=status(),shell=document.createElement('section');shell.className='sabbath-sheet';modal.dataset.state=state.reason;
     const cityLocked = cityChangeLocked(state);
+    const unverified = state.reason === 'unverified';
+    modal.dataset.cityLocked = String(cityLocked);
+    const clockNotice = () => {
+      shell.append(textNode('p','Stelle eine Internetverbindung her, um die Uhrzeit zu prüfen. Andere Spiele bleiben verfügbar.'));
+      shell.append(button('Uhrzeit prüfen',()=>syncClock(true)));
+    };
     const top=textNode('div',editing?'Ort für die Sabbatzeiten':'Spielzugang','sabbath-kicker');
     const dismiss=button('×',close,'sabbath-close');dismiss.setAttribute('aria-label','Schließen');top.append(dismiss);shell.append(top);
     const heading=textNode('h2',editing?((state.citySelected||cityLocked)?'Sabbatzeiten':'Wähle deinen Ort'):state.reason==='sabbath'?'Spiele pausiert':'Spiel vorübergehend nicht verfügbar');heading.id='sabbath-title';shell.append(heading);
-    shell.append(textNode('p',city.name+' · '+new Date(Date.now()).toLocaleTimeString(document.documentElement.lang||'ru',
-      {timeZone:city.timeZone,hour:'2-digit',minute:'2-digit'}),'sabbath-city-current'));
+    const localTime = unverified ? '' : new Date(state.now).toLocaleTimeString(document.documentElement.lang||'ru',
+      {timeZone:city.timeZone,hour:'2-digit',minute:'2-digit'});
+    shell.append(textNode('p',localTime ? city.name+' · '+localTime : city.name,'sabbath-city-current'));
     if(editing) {
       if (!state.citySelected && !cityLocked) shell.append(textNode('p','Wähle deinen Ort, damit die Spiele zum örtlichen Sonnenuntergang pausieren. Bis zur Auswahl gelten die Zeiten für Moskau.'));
       if (Number.isFinite(state.start) && Number.isFinite(state.end)) {
@@ -110,8 +165,10 @@
       } else if (state.reason==='polar') {
         shell.append(textNode('p','Für dieses Datum lässt sich kein normaler Sonnenuntergang berechnen. Fünf Spiele sind vorübergehend nicht verfügbar; andere Spiele finden Sie im Menü.'));
       }
-      if (cityLocked) {
-        shell.append(textNode('p','Du kannst den Ort nach Ende der Pause ändern.'));
+      if (unverified) {
+        clockNotice();
+      } else if (cityLocked) {
+        shell.append(textNode('p','Ab Donnerstag bleibt der Ort bis zum Ende der Sabbatpause festgelegt.'));
       } else {
         const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Schnellauswahl des Ortes');
         for(const value of Clock.CITIES){const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
@@ -120,18 +177,21 @@
       }
       shell.append(button('Fertig',close));
     } else {
-      shell.append(textNode('p',state.reason==='sabbath'
+      if (unverified) clockNotice();
+      else shell.append(textNode('p',state.reason==='sabbath'
         ?'Diese fünf Spiele pausieren von Freitag bis Samstag jeweils ab beziehungsweise bis Sonnenuntergang. Andere Spiele bleiben verfügbar.'
         :state.reason==='polar'?'Für dieses Datum lässt sich kein normaler Sonnenuntergang berechnen. Fünf Spiele sind vorübergehend nicht verfügbar; andere Spiele finden Sie im Menü.'
-        :'Der Zeitplan konnte nicht berechnet werden. Prüfe Datum und Uhrzeit auf deinem Gerät.'));
+        :'Die Uhrzeit konnte nicht berechnet werden.'));
       if(state.reason==='sabbath') {
         const schedule=textNode('div','','sabbath-schedule');
         schedule.append(textNode('span','Automatische Freigabe'),textNode('strong',fmt(state.end)));
         const countdown=textNode('span','');countdown.dataset.sabbathCountdown='';schedule.append(countdown);shell.append(schedule);
       }
       if(pendingGame)shell.append(textNode('p',titles[pendingGame]||'','sabbath-game-name'));
-      if (cityLocked) shell.append(textNode('p','Du kannst den Ort nach Ende der Pause ändern.'));
-      else shell.append(button('Ort ändern',()=>present(pendingGame,true)));
+      if (!unverified) {
+        if (cityLocked) shell.append(textNode('p','Du kannst den Ort nach Ende der Pause ändern.'));
+        else shell.append(button('Ort ändern',()=>present(pendingGame,true)));
+      }
       shell.append(button(document.getElementById('menu-container')?'Andere Spiele':'Schließen',close));
     }
     shell.append(textNode('p','Der gewählte Ort bleibt auf diesem Gerät und wird nicht weitergegeben. Er wird nur zur Berechnung des Sonnenuntergangs verwendet.','sabbath-privacy'));
@@ -184,27 +244,48 @@
   }
   function updateCountdown() {
     const node=modal?.querySelector('[data-sabbath-countdown]'),end=status().end;
-    if(!node||!end)return;const minutes=Math.max(0,Math.ceil((end-Date.now())/60000));
+    const now=trustedNow();
+    if(!node||!end||now===null)return;const minutes=Math.max(0,Math.ceil((end-now)/60000));
     node.textContent=`Zeit bis zur Freigabe: ${Math.floor(minutes/60)} ч ${minutes%60} Min.`;
   }
-  function authorize(game) {
+  function authorize(game, retry) {
     if(!restricted(game)){if(modal)close();return true;}
-    if(status().allowed){if(modal)close();return true;}
+    const state = status();
+    if(state.allowed){if(modal)close();return true;}
+    resumeAfterSync = state.reason === 'unverified' ? retry : null;
+    if (state.reason === 'unverified') syncClock();
     present(game);return false;
   }
   function sendStatus(frame) {
     if(!frame||!restricted(document.body.dataset.currentGame))return;
     const state=status();frame.contentWindow?.postMessage({type:'sabbath:status',game:document.body.dataset.currentGame,
-      city,citySelected:state.citySelected,allowed:state.allowed,reason:state.reason,start:state.start,end:state.end,nextChange:state.allowed?state.start:state.nextChange},new URL(frame.src,location.href).origin);
+      city,citySelected:state.citySelected,now:state.now,allowed:state.allowed,reason:state.reason,start:state.start,end:state.end,nextChange:state.allowed?state.start:state.nextChange},new URL(frame.src,location.href).origin);
   }
   function check() {
     clearTimeout(timer);const state=status(),active=document.body?.dataset.currentGame;
-    if(restricted(active)&&!state.allowed){(window.appGoToMainMenu||window.goToMainMenu)?.();present(active);}
+    if (restricted(active) && !state.allowed) {
+      (window.appGoToMainMenu||window.goToMainMenu)?.();
+      present(active);
+    }
     if(standalone&&!standalone.bridgePending&&!state.allowed){
-      if(standalone.started){location.reload();return;}
+      if (standalone.started) {
+        standalone.started = false;
+        location.reload();
+        return;
+      }
       if(!modal)present(standalone.game);
     }
-    if(state.allowed){for(const resolve of waiters)resolve();waiters.clear();if(modal&&!editing)close();}
+    if(state.allowed){
+      for(const resolve of waiters)resolve();
+      waiters.clear();
+      if(modal&&!editing){
+        const resume = resumeAfterSync;
+        close();
+        if (resume) queueMicrotask(resume);
+      }
+    } else if (state.reason !== 'unverified') {
+      resumeAfterSync = null;
+    }
     document.querySelectorAll('[data-sabbath-game]').forEach(card=>{
       const value=state.allowed?'':state.reason==='sabbath'?'Pausiert':'Zugang wird geprüft';
       if(card.dataset.sabbathStatus!==value){card.dataset.sabbathStatus=value;card.classList.toggle('sabbath-card-paused',!state.allowed);}
@@ -212,9 +293,11 @@
     const label=document.querySelector('#sabbath-city-card .game-card__desc');
     const cityLabel=state.citySelected?city.name:'Ort auswählen';
     if(label&&label.textContent!==cityLabel)label.textContent=cityLabel;
-    if(modal&&modal.dataset.state!==state.reason)renderModal();
+    if(modal&&(modal.dataset.state!==state.reason||modal.dataset.cityLocked!==String(cityChangeLocked(state))))renderModal();
     updateCountdown();sendStatus(document.querySelector('#game-container iframe'));
-    timer=setTimeout(check,Math.max(20,Math.min(30000,(state.nextChange||Date.now()+30000)-Date.now())));
+    if (!document.hidden && (!standalone || !standalone.bridgePending)) syncClock();
+    const delay = state.nextChange && state.now !== null ? state.nextChange - state.now : 30_000;
+    timer=setTimeout(check,Math.max(20,Math.min(30_000,delay)));
   }
   function installCards() {
     let added=false;const host=document.getElementById('system-actions');
@@ -236,6 +319,11 @@
           if(event.source!==parent||event.origin!==expected||event.data?.type!=='sabbath:status'||event.data.game!==game)return;
           const chosen=cleanCity(event.data.city);if(!chosen)return;
           city=chosen;savedCity=event.data.citySelected?chosen:null;
+          if (Number.isFinite(event.data.now) && (trustedNow() === null || standalone.bridgePending)) {
+            const monotonic = performance.now();
+            clockAnchor = {server:event.data.now, monotonic, wall:Date.now()};
+            nextClockSync = monotonic + refreshInterval;
+          }
           if (savedCity) try {localStorage.setItem(KEY,JSON.stringify(savedCity));} catch {}
           if(!standalone.bridgePending)check();resolve();
         };
@@ -254,6 +342,7 @@
   });
   window.SabbathAccess=Object.freeze({authorize,status,restricted,refresh:check,openCityPicker:()=>present(null,true),waitForAccess});
   window.addEventListener('focus',check);window.addEventListener('pageshow',check);
+  window.addEventListener('online',()=>syncClock(true));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)check();});
   window.addEventListener('storage',event=>{
     if(event.key!==KEY && event.key!==null)return;

@@ -230,13 +230,14 @@ function state(now, place) {
   if (!validCoordinates(place)) return {allowed:!weekend, reason:weekend?'location':'open', nextChange:+midnight};
   const fridayDay = calendarDay - (weekday+2)%7 * dayMs;
   const current = weekendSchedule(fridayDay, place, timeZone);
-  if (!current && weekend) return {allowed:false, reason:'polar', nextChange:midnight};
+  const cityFrozen = weekday === 4 || weekday === 5;
+  if (!current && weekend) return {allowed:false, reason:'polar', cityFrozen, nextChange:midnight};
   if (current && now < current.end) {
     const allowed = now < current.start;
-    return {allowed, reason:allowed?'open':'sabbath', ...current, nextChange:allowed?current.start:current.end};
+    return {allowed, reason:allowed?'open':'sabbath', cityFrozen, ...current, nextChange:allowed?Math.min(current.start,midnight):current.end};
   }
   const next = weekendSchedule(fridayDay + 7 * dayMs, place, timeZone);
-  return {allowed:true, reason:'open', start:next?.start, end:next?.end, nextChange:Math.min(next?.start ?? midnight, midnight)};
+  return {allowed:true, reason:'open', cityFrozen, start:next?.start, end:next?.end, nextChange:Math.min(next?.start ?? midnight, midnight)};
 }
 const api = Object.freeze({GAME_IDS, CITIES, validCoordinates, validCity, sunset, state, dayMs});
 root.SabbathClock = api;
