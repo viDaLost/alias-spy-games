@@ -7,6 +7,7 @@
   const catalogURL = new URL('../data/sabbath-cities.json', sourceURL);
   const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Bible Treasures','kids-ark-pairs':'Find a Pair','twelve-tribes':'Twelve Tribes','promised-land':'Promised Land'};
   const restricted = game => Clock.GAME_IDS.includes(game);
+  const cityChangeLocked = ({reason}) => reason === 'sabbath' || reason === 'polar';
   let savedCity = readCity();
   let city = savedCity || Clock.CITIES[0], pendingGame = null, modal = null, returnFocus = null, editing = false;
   let timer = null, standalone = null, catalogPromise = null, searchVersion = 0;
@@ -29,6 +30,18 @@
   function saveCity(value) {
     const chosen = cleanCity(value);
     if (!chosen) return;
+    if (cityChangeLocked(status())) {
+      check();
+      return;
+    }
+    // A different tab may have saved a city before its storage event reaches this one.
+    const latest = window.parent === window ? readCity() : null;
+    if (latest && cityChangeLocked(Clock.state(Date.now(), latest))) {
+      savedCity = city = latest;
+      check();
+      notifyCityChange();
+      return;
+    }
     savedCity = city = chosen;
     try { localStorage.setItem(KEY, JSON.stringify(city)); } catch {}
     const resume = pendingGame;
@@ -81,13 +94,14 @@
     if(!modal)return;
     searchVersion++;
     const state=status(),shell=document.createElement('section');shell.className='sabbath-sheet';modal.dataset.state=state.reason;
+    const cityLocked = cityChangeLocked(state);
     const top=textNode('div',editing?'City for Sabbath times':'Game access','sabbath-kicker');
     const dismiss=button('×',close,'sabbath-close');dismiss.setAttribute('aria-label','Close');top.append(dismiss);shell.append(top);
-    const heading=textNode('h2',editing?(state.citySelected?'Sabbath schedule':'Choose your city'):state.reason==='sabbath'?'Games are paused':'Game temporarily unavailable');heading.id='sabbath-title';shell.append(heading);
+    const heading=textNode('h2',editing?((state.citySelected||cityLocked)?'Sabbath schedule':'Choose your city'):state.reason==='sabbath'?'Games are paused':'Game temporarily unavailable');heading.id='sabbath-title';shell.append(heading);
     shell.append(textNode('p',city.name+' · '+new Date(Date.now()).toLocaleTimeString(document.documentElement.lang||'ru',
       {timeZone:city.timeZone,hour:'2-digit',minute:'2-digit'}),'sabbath-city-current'));
     if(editing) {
-      if (!state.citySelected) shell.append(textNode('p','Choose your city to pause games at your local sunset. Moscow times apply until you choose.'));
+      if (!state.citySelected && !cityLocked) shell.append(textNode('p','Choose your city to pause games at your local sunset. Moscow times apply until you choose.'));
       if (Number.isFinite(state.start) && Number.isFinite(state.end)) {
         const schedule=textNode('dl','','sabbath-schedule');
         schedule.append(textNode('dt','Pauses at Friday sunset'),textNode('dd',fmt(state.start)),
@@ -96,10 +110,14 @@
       } else if (state.reason==='polar') {
         shell.append(textNode('p','A regular sunset cannot be calculated for this date. Five games are temporarily unavailable; other games are in the menu.'));
       }
-      const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Quick city selection');
-      for(const value of Clock.CITIES){const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
-        option.setAttribute('aria-pressed',String(state.citySelected&&city.timeZone===value.timeZone&&city.name===value.name));presets.append(option);}
-      shell.append(presets);appendSearch(shell);
+      if (cityLocked) {
+        shell.append(textNode('p','You can change the city once the pause ends.'));
+      } else {
+        const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Quick city selection');
+        for(const value of Clock.CITIES){const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
+          option.setAttribute('aria-pressed',String(state.citySelected&&city.timeZone===value.timeZone&&city.name===value.name));presets.append(option);}
+        shell.append(presets);appendSearch(shell);
+      }
       shell.append(button('Done',close));
     } else {
       shell.append(textNode('p',state.reason==='sabbath'
@@ -112,7 +130,8 @@
         const countdown=textNode('span','');countdown.dataset.sabbathCountdown='';schedule.append(countdown);shell.append(schedule);
       }
       if(pendingGame)shell.append(textNode('p',titles[pendingGame]||'','sabbath-game-name'));
-      shell.append(button('Change city',()=>present(pendingGame,true)));
+      if (cityLocked) shell.append(textNode('p','You can change the city once the pause ends.'));
+      else shell.append(button('Change city',()=>present(pendingGame,true)));
       shell.append(button(document.getElementById('menu-container')?'Other games':'Close',close));
     }
     shell.append(textNode('p','Your selected city stays on this device and is not shared. It is used only to calculate sunset.','sabbath-privacy'));
@@ -193,7 +212,7 @@
     const label=document.querySelector('#sabbath-city-card .game-card__desc');
     const cityLabel=state.citySelected?city.name:'Choose a city';
     if(label&&label.textContent!==cityLabel)label.textContent=cityLabel;
-    if(modal&&modal.dataset.state!==state.reason&&!editing)renderModal();
+    if(modal&&modal.dataset.state!==state.reason)renderModal();
     updateCountdown();sendStatus(document.querySelector('#game-container iframe'));
     timer=setTimeout(check,Math.max(20,Math.min(30000,(state.nextChange||Date.now()+30000)-Date.now())));
   }

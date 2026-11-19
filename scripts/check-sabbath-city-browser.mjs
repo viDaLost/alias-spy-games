@@ -20,7 +20,9 @@ try {
   browser=await chromium.launch({executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,timezoneId:'America/Los_Angeles'});
   await context.addInitScript(()=>{
-    const OriginalDate=Date;window.Date=class extends OriginalDate{constructor(...args){super(...(args.length?args:['2026-10-16T08:00:00Z']));}static now(){return +new OriginalDate('2026-10-16T08:00:00Z');}};
+    const OriginalDate=Date;
+    window.testNow = OriginalDate.parse('2026-10-16T03:00:00Z');
+    window.Date=class extends OriginalDate{constructor(...args){super(...(args.length?args:[window.testNow]));}static now(){return window.testNow;}};
     window.locationAccesses=0;
     const forbidden=()=>{window.locationAccesses++;throw new Error('Location API accessed');};
     Object.defineProperty(navigator,'geolocation',{get:forbidden});Object.defineProperty(navigator,'permissions',{get:forbidden});
@@ -46,6 +48,13 @@ try {
     assert.ok(geometry.scroll<=geometry.width+1&&geometry.form<=geometry.width,'picker fits phone width '+width);
     assert.match(geometry.privacy,/только для вычисления захода солнца/);await page.locator('.sabbath-close').click();
   }
+  await page.locator('#sabbath-city-card').click();
+  const {start,end}=await page.evaluate(()=>SabbathAccess.status());
+  await page.evaluate(time=>{window.testNow=time;SabbathAccess.refresh();},start);
+  assert.equal(await page.locator('.sabbath-city-form,[data-city]').count(),0);
+  assert.match(await page.locator('#sabbath-dialog').textContent(),/Город можно изменить после окончания паузы/);
+  await page.evaluate(time=>{window.testNow=time;SabbathAccess.refresh();},end);
+  await page.locator('.sabbath-city-form').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.locationAccesses),0);assert.deepEqual(crashes,[]);
   const catalogs=requests.filter(url=>url.includes('sabbath-cities.json'));
   assert.equal(catalogs.length,1);assert.ok(catalogs.every(url=>url===base+'/web/data/sabbath-cities.json'));

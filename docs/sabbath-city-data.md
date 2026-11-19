@@ -26,3 +26,5 @@ Sunset is calculated at the city's center. Local calendar days and displayed
 schedule times use its IANA time zone, including seasonal clock changes. The
 pause starts at Friday sunset and ends at the separately calculated Saturday
 sunset. A city without a sunset on either date shows an unavailable state.
+City changes are accepted once the current pause ends. A picker left open
+across the start of the pause switches to a read-only schedule.

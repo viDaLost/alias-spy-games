@@ -109,6 +109,46 @@ async function search(p,query) {
   ok(p.requests.length===0,'startup, boundaries and game entry do not send city or location data');p.close();
 }
 {
+  const [moscow, berlin] = Clock.CITIES;
+  const {start, end} = Clock.state(Date.parse('2026-10-16T14:00Z'), moscow);
+  const p = await page({now:new Date(start-1).toISOString(), city:moscow});
+  p.w.SabbathAccess.openCityPicker();
+  const stalePreset = p.w.document.querySelector('[data-city="Берлин"]');
+  ok(stalePreset && Clock.state(start, berlin).allowed, 'Berlin would allow play when Moscow first pauses');
+  p.setTime(start);
+  stalePreset.click();
+  ok(!p.w.document.querySelector('.sabbath-city-form'), 'a picker left open at sunset becomes read-only');
+  ok(!p.w.document.querySelector('[data-city]'), 'quick selection is hidden during the pause');
+  ok(p.w.SabbathAccess.status().end === end, 'changing from an already open picker cannot move the deadline');
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'), 'the pause stays in force after the attempted city change');
+  const dialog = p.w.document.getElementById('sabbath-dialog');
+  ok(dialog.textContent.includes('Город можно изменить после окончания паузы.'), 'the pause explains when city changes are allowed');
+  ok(!dialog.textContent.includes('Изменить город'), 'the pause provides no shortcut to change the city');
+  const saved = JSON.parse(p.w.localStorage.getItem(KEY));
+  const reloaded = await page({now:new Date(end-1).toISOString(), city:saved});
+  ok(saved.name === moscow.name && !reloaded.w.SabbathAccess.status().allowed, 'the saved city still blocks games on reload');
+  reloaded.w.SabbathAccess.openCityPicker();
+  reloaded.setTime(end);reloaded.w.SabbathAccess.refresh();
+  ok(reloaded.w.SabbathAccess.status().allowed, 'games reopen at the original Saturday sunset');
+  const anotherCity = reloaded.w.document.querySelector('[data-city="Берлин"]');
+  ok(anotherCity, 'the previously open picker becomes editable at sunset');
+  anotherCity.click();
+  ok(JSON.parse(reloaded.w.localStorage.getItem(KEY)).timeZone === berlin.timeZone, 'city change can be saved again');
+  reloaded.close();p.close();
+}
+{
+  const [moscow, berlin] = Clock.CITIES;
+  const start = Clock.state(Date.parse('2026-10-16T14:00Z'), moscow).start;
+  const p = await page({now:new Date(start).toISOString(), city:berlin});
+  p.w.SabbathAccess.openCityPicker();
+  // A city write made just before sunset in another tab has not fired its event here yet.
+  p.w.localStorage.setItem(KEY, JSON.stringify(moscow));
+  p.w.document.querySelector('[data-city="Берлин"]').click();
+  ok(p.w.SabbathAccess.status().city.name === moscow.name, 'a delayed storage event cannot bypass the selected city');
+  ok(!p.w.SabbathAccess.status().allowed, 'the latest saved city controls the active pause');
+  p.close();
+}
+{
   const p=await page({now:'2026-10-16T08:00Z'});
   p.w.document.getElementById('sabbath-city-card').click();
   ok(p.w.document.querySelector('.sabbath-privacy').textContent.includes('никуда не передаётся'),'privacy notice states local storage and sunset-only purpose');
@@ -132,13 +172,13 @@ async function search(p,query) {
   const small=await search(p,'Ессентук');ok(small.length>0,'global search covers regional towns');p.close();
 }
 {
-  let reply;const p=await page({fetchImpl:()=>new Promise(resolve=>{reply=resolve;})});
+  let reply;const p=await page({now:'2026-10-16T08:00Z',fetchImpl:()=>new Promise(resolve=>{reply=resolve;})});
   const pending=search(p,'Paris');await flush();p.w.document.querySelector('.sabbath-close').click();
   reply({ok:true,json:async()=>catalog});await pending;
   ok(!p.w.document.getElementById('sabbath-dialog'),'late catalog load cannot reopen a closed picker');p.close();
 }
 {
-  const p=await page({fetchImpl:async()=>{throw new Error('offline');}});
+  const p=await page({now:'2026-10-16T08:00Z',fetchImpl:async()=>{throw new Error('offline');}});
   await search(p,'Paris');ok(p.w.document.querySelector('.sabbath-city-results').textContent.includes('Повторите поиск'),'catalog failure is recoverable');
   p.w.document.querySelector('[data-city="Берлин"]').click();ok(p.w.SabbathAccess.status().city.name==='Берлин','presets remain available offline');p.close();
 }
