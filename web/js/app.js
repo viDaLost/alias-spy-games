@@ -705,7 +705,7 @@ function showGame(gameName) {
     notice.showModal();
     return;
   }
-  if (window.SabbathAccess && !window.SabbathAccess.authorize(gameName)) return;
+  if (window.SabbathAccess && !window.SabbathAccess.authorize(gameName, () => showGame(gameName))) return;
   gameLaunchEntry += 1;
   rememberGameOpen(gameName);
 

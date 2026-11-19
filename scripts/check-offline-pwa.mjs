@@ -149,6 +149,7 @@ const fail = async (message) => {
   process.exit(1);
 };
 
+page.__customSabbathClock = true;
 const calls = [];
 // На GitHub telegram.org доступен, и настоящий SDK затирает поставленную
 // здесь личность: тест начинает видеть чужое состояние и падает только в CI.
@@ -157,6 +158,10 @@ await page.route('https://telegram.org/**', (route) => route.fulfill({
   body: 'window.Telegram=window.Telegram||{WebApp:{initData:"",initDataUnsafe:{},ready(){},expand(){}}};',
 }));
 await page.route('https://*.workers.dev/**', async (route) => {
+  if (new URL(route.request().url()).pathname === '/app/time') {
+    if (unplugged) return route.abort('internetdisconnected');
+    return route.fulfill({ json:{ now:Date.parse('2026-10-14T08:00:00Z') }, headers:{ 'Access-Control-Allow-Origin':'*' } });
+  }
   const body = JSON.parse(route.request().postData() || '{}');
   calls.push({ url: route.request().url(), auth: route.request().headers().authorization || '', body });
   return route.fulfill({
@@ -177,6 +182,7 @@ let navigations = 0;
 page.on('framenavigated', (frame) => { if (frame === page.mainFrame()) navigations += 1; });
 
 await page.goto(baseURL, { waitUntil: 'commit', timeout: 30_000 });
+
 await page.waitForSelector('#menu-container:not(.hidden)', { timeout: 25_000 });
 await page.waitForTimeout(2500);
 
@@ -235,6 +241,7 @@ if (!cached.has.wow) await fail('в кеше нет данных уровней'
 if (cached.has.foreign) await fail('работник закешировал ответ сервера — офлайн покажет чужой прогресс');
 if (catalogRequests.length) await fail('каталог городов загрузился без поиска');
 // A chosen preset must survive a truly offline restart without the catalog.
+await page.waitForFunction(() => window.SabbathAccess?.status().allowed);
 await page.evaluate(() => window.SabbathAccess.openCityPicker());
 await page.locator('[data-city="Берлин"]').click();
 
@@ -266,6 +273,8 @@ if (!offlineMenu.bar) {
     + ` полоска: ${offlineMenu.node})`);
 }
 assert.equal(await page.evaluate(() => window.SabbathAccess.status().city.timeZone), 'Europe/Berlin', 'выбранный город сохраняется без сети');
+assert.equal(await page.evaluate(() => window.SabbathAccess.status().reason), 'unverified', 'после офлайн-перезапуска время ещё не подтверждено');
+
 assert.equal(catalogRequests.length, 0, 'сохранённый город работает без загрузки каталога');
 
 // --- 4. игра запускается без сети ----------------------------------------------------

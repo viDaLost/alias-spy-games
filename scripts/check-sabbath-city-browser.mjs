@@ -21,7 +21,7 @@ try {
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,timezoneId:'America/Los_Angeles'});
   await context.addInitScript(()=>{
     const OriginalDate=Date;
-    window.testNow = OriginalDate.parse('2026-10-16T03:00:00Z');
+    window.testNow = OriginalDate.parse('2026-10-13T08:00:00Z');
     window.Date=class extends OriginalDate{constructor(...args){super(...(args.length?args:[window.testNow]));}static now(){return window.testNow;}};
     window.locationAccesses=0;
     const forbidden=()=>{window.locationAccesses++;throw new Error('Location API accessed');};
@@ -29,8 +29,15 @@ try {
     window.Telegram={WebApp:{}};Object.defineProperty(Telegram.WebApp,'LocationManager',{get:forbidden});
   });
   const page=await context.newPage(),requests=[],crashes=[];
+  let serverNow=Date.parse('2026-10-13T08:00:00Z');
+  page.__customSabbathClock = true;
+  await page.route('**/app/time', route => route.fulfill({
+    json:{now:serverNow},headers:{'Access-Control-Allow-Origin':'*','Cache-Control':'no-store'},
+  }));
   page.on('request',request=>requests.push(request.url()));page.on('pageerror',error=>crashes.push(String(error)));
-  await page.goto(base+'/city-test.html');await page.locator('#sabbath-city-card').click();
+  await page.goto(base+'/city-test.html');
+  await page.waitForFunction(()=>SabbathAccess.status().allowed);
+  await page.locator('#sabbath-city-card').click();
   await page.locator('.sabbath-privacy').waitFor({state:'visible'});
   assert.match(await page.locator('.sabbath-privacy').textContent(),/никуда не передаётся/);
   assert.match(await page.locator('#sabbath-dialog').textContent(),/До выбора действует время Москвы/);
@@ -41,7 +48,9 @@ try {
   assert.equal(await page.evaluate(()=>SabbathAccess.status().city.timeZone),'Asia/Tokyo');
   assert.match(await page.locator('#sabbath-title').textContent(),/Субботнее расписание/);
   assert.equal(await page.locator('.sabbath-schedule dd').count(),2);
-  await page.reload();assert.equal(await page.evaluate(()=>SabbathAccess.status().city.timeZone),'Asia/Tokyo');
+  await page.reload();
+  await page.waitForFunction(()=>SabbathAccess.status().allowed);
+  assert.equal(await page.evaluate(()=>SabbathAccess.status().city.timeZone),'Asia/Tokyo');
   for(const width of [390,320]) {
     await page.setViewportSize({width,height:844});await page.locator('#sabbath-city-card').click();
     const geometry=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,form:document.querySelector('.sabbath-city-form').getBoundingClientRect().right,privacy:document.querySelector('.sabbath-privacy').textContent}));
@@ -50,15 +59,29 @@ try {
   }
   await page.locator('#sabbath-city-card').click();
   const {start,end}=await page.evaluate(()=>SabbathAccess.status());
-  await page.evaluate(time=>{window.testNow=time;SabbathAccess.refresh();},start);
+  const cutoff = Date.parse('2026-10-14T15:00:00Z'); // Thursday 00:00 in Tokyo
+  serverNow = cutoff;
+  await page.evaluate(()=>{window.testNow+=7*86_400_000;SabbathAccess.refresh();});
+  await page.waitForFunction(()=>SabbathAccess.status().cityFrozen === true);
   assert.equal(await page.locator('.sabbath-city-form,[data-city]').count(),0);
-  assert.match(await page.locator('#sabbath-dialog').textContent(),/Город можно изменить после окончания паузы/);
-  await page.evaluate(time=>{window.testNow=time;SabbathAccess.refresh();},end);
+  assert.match(await page.locator('#sabbath-dialog').textContent(),/С четверга город закреплён/);
+  assert.equal(await page.evaluate(()=>SabbathAccess.status().allowed),true);
+  serverNow = start;
+  await page.evaluate(()=>{window.testNow-=4*86_400_000;SabbathAccess.refresh();});
+  await page.waitForFunction(()=>SabbathAccess.status().reason==='sabbath');
+  assert.equal(await page.evaluate(()=>SabbathAccess.authorize('kids-ark-pairs')),false);
+  assert.equal(await page.locator('.sabbath-city-form,[data-city]').count(),0);
+  serverNow = end;
+  await page.evaluate(()=>{window.testNow+=3*86_400_000;SabbathAccess.refresh();});
+  await page.waitForFunction(()=>SabbathAccess.status().allowed);
+  await page.locator('#sabbath-city-card').click();
   await page.locator('.sabbath-city-form').waitFor({state:'visible'});
   assert.equal(await page.evaluate(()=>window.locationAccesses),0);assert.deepEqual(crashes,[]);
   const catalogs=requests.filter(url=>url.includes('sabbath-cities.json'));
   assert.equal(catalogs.length,1);assert.ok(catalogs.every(url=>url===base+'/web/data/sabbath-cities.json'));
-  assert.ok(requests.every(url=>url.startsWith(base+'/')),'no external city, permission or location requests');
+  const clockURL='https://alias-spy-games-core.vitaledanilov.workers.dev/app/time';
+  assert.ok(requests.includes(clockURL));
+  assert.ok(requests.every(url=>url.startsWith(base+'/')||url===clockURL),'the only external request is for anonymous time');
   await context.close();
   console.log('City picker browser: worldwide local search, privacy, no location API, persistence, selected time zone and 390/320px layouts passed.');
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

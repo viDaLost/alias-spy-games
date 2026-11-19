@@ -75,14 +75,24 @@ ok(catalog.cities.length>170000&&catalog.zones.length>350,'worldwide city catalo
 const rowCity=row=>({name:row[0],country:row[2],latitude:row[3],longitude:row[4],timeZone:catalog.zones[row[5]]});
 for(const name of ['париж','токио','ессентуки','берлин','москва','киев'])ok(catalog.cities.some(row=>row[1].includes(name)),'world catalog supports local name: '+name);
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
-async function page({now='2026-10-16T18:00:00Z',city,legacy=false,fetchImpl,url='https://vidalost.github.io/alias-spy-games/',loadApp=false}={}) {
+async function page({now='2026-10-16T18:00:00Z',city,legacy=false,fetchImpl,serverOnline=true,deviceNow,url='https://vidalost.github.io/alias-spy-games/',loadApp=false}={}) {
   const dom=new JSDOM('<!doctype html><html lang="ru"><body><main id="menu-container"><section><div id="system-actions"></div></section></main><div id="game-container"></div></body></html>',{url,runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;let time=Date.parse(now),locationCalls=0;const RealDate=w.Date;
-  w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[time]));}static now(){return time;}};
+  let wall = deviceNow ? Date.parse(deviceNow) : time;
+  let elapsed = 0, online = serverOnline;
+  w.Date=class extends RealDate{constructor(...args){super(...(args.length?args:[wall]));}static now(){return wall;}};
+  w.performance.now = () => elapsed;
   const scheduled=new Map();let id=0;w.setTimeout=(fn,delay)=>{scheduled.set(++id,{fn,delay});return id;};w.clearTimeout=key=>scheduled.delete(key);
   w.scrollTo=()=>{};w.alert=()=>{};
-  const requests=[];
-  w.fetch=async(url,options)=>{requests.push({url:String(url),options});return fetchImpl?fetchImpl(url,options):{ok:true,json:async()=>catalog};};
+  const requests=[], timeRequests=[];
+  w.fetch=async(url,options)=>{
+    if (new URL(url).pathname === '/app/time') {
+      timeRequests.push({url:String(url),options});
+      if (!online) throw new Error('offline');
+      return {ok:true,json:async()=>({now:time})};
+    }
+    requests.push({url:String(url),options});return fetchImpl?fetchImpl(url,options):{ok:true,json:async()=>catalog};
+  };
   const forbidden=()=>{locationCalls++;throw new Error('Device location must never be accessed');};
   Object.defineProperty(w.navigator,'geolocation',{get:forbidden});Object.defineProperty(w.navigator,'permissions',{get:forbidden});
   w.Telegram={WebApp:{}};Object.defineProperty(w.Telegram.WebApp,'LocationManager',{get:forbidden});
@@ -90,7 +100,11 @@ async function page({now='2026-10-16T18:00:00Z',city,legacy=false,fetchImpl,url=
   if(legacy)w.localStorage.setItem('sabbath-device-location-v1',JSON.stringify({latitude:0,longitude:0,source:'gps'}));
   if(loadApp)w.eval(appSource.replace('document.addEventListener("DOMContentLoaded", initializeApp);','').replace('  initializeApp();',''));
   w.eval(clockSource);w.eval(accessSource);w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await flush();
-  return {w,dom,scheduled,requests,setTime:value=>{time=typeof value==='number'?value:Date.parse(value);},close:()=>{ok(locationCalls===0,'zero browser/Telegram geolocation or permission API accesses');dom.window.close();}};
+  return {w,dom,scheduled,requests,timeRequests,
+    setTime(value){const next=typeof value==='number'?value:Date.parse(value);elapsed+=next-time;wall+=next-time;time=next;},
+    setWall(value){wall=Date.parse(value);},setOnline(value){online=value;},
+    close:()=>{ok(locationCalls===0,'zero browser/Telegram geolocation or permission API accesses');dom.window.close();}};
+
 }
 async function search(p,query) {
   p.w.SabbathAccess.openCityPicker();const form=p.w.document.querySelector('.sabbath-city-form');
@@ -104,20 +118,27 @@ async function search(p,query) {
   for(const game of Clock.GAME_IDS){ok(!p.w.SabbathAccess.authorize(game),`${game} blocked`);if(!['biblical-match-three','moses-nile'].includes(game))p.w.showGame(game);ok(!p.w.document.querySelector('iframe'),`${game} does not launch behind dialog`);}
   ok(p.w.document.getElementById('sabbath-dialog').textContent.includes('до субботнего заката'),'pause explains Saturday sunset');
   for(const game of ['alias','spy','quartet','bible-geography'])ok(p.w.SabbathAccess.authorize(game),`${game} unaffected`);
-  p.setTime(p.w.SabbathAccess.status().end);p.w.SabbathAccess.refresh();
+  p.setTime(p.w.SabbathAccess.status().end);p.w.SabbathAccess.refresh();await flush();
   ok(p.w.SabbathAccess.authorize('kids-ark-pairs'),'unlocks at Saturday sunset without device coordinates or permission');
-  ok(p.requests.length===0,'startup, boundaries and game entry do not send city or location data');p.close();
+  ok(p.requests.length===0,'startup, boundaries and game entry do not request the city directory');
+  ok(p.timeRequests.length>0 && p.timeRequests.every(({url,options}) =>
+    url==='https://alias-spy-games-core.vitaledanilov.workers.dev/app/time'
+    && options.cache==='no-store' && options.credentials==='omit' && options.referrerPolicy==='no-referrer'),
+    'clock requests contain no city, timezone, referrer, credentials or query');p.close();
 }
 {
   const [moscow, berlin] = Clock.CITIES;
   const {start, end} = Clock.state(Date.parse('2026-10-16T14:00Z'), moscow);
-  const p = await page({now:new Date(start-1).toISOString(), city:moscow});
+  const cutoff = Date.parse('2026-10-14T21:00Z');
+  const p = await page({now:new Date(cutoff-1).toISOString(), city:moscow});
   p.w.SabbathAccess.openCityPicker();
   const stalePreset = p.w.document.querySelector('[data-city="Берлин"]');
   ok(stalePreset && Clock.state(start, berlin).allowed, 'Berlin would allow play when Moscow first pauses');
-  p.setTime(start);
+  p.setTime(cutoff);
   stalePreset.click();
-  ok(!p.w.document.querySelector('.sabbath-city-form'), 'a picker left open at sunset becomes read-only');
+  ok(!p.w.document.querySelector('.sabbath-city-form'), 'a picker left open at the Thursday cutoff becomes read-only');
+  ok(p.w.SabbathAccess.status().allowed, 'the city freeze does not start gameplay pause');
+  p.setTime(start);p.w.SabbathAccess.refresh();await flush();
   ok(!p.w.document.querySelector('[data-city]'), 'quick selection is hidden during the pause');
   ok(p.w.SabbathAccess.status().end === end, 'changing from an already open picker cannot move the deadline');
   ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'), 'the pause stays in force after the attempted city change');
@@ -138,18 +159,45 @@ async function search(p,query) {
 }
 {
   const [moscow, berlin] = Clock.CITIES;
-  const start = Clock.state(Date.parse('2026-10-16T14:00Z'), moscow).start;
-  const p = await page({now:new Date(start).toISOString(), city:berlin});
+  const p = await page({now:'2026-10-14T21:30Z', city:berlin});
   p.w.SabbathAccess.openCityPicker();
-  // A city write made just before sunset in another tab has not fired its event here yet.
+  // A city write made just before the cutoff in another tab has not fired its event here yet.
   p.w.localStorage.setItem(KEY, JSON.stringify(moscow));
   p.w.document.querySelector('[data-city="Берлин"]').click();
   ok(p.w.SabbathAccess.status().city.name === moscow.name, 'a delayed storage event cannot bypass the selected city');
-  ok(!p.w.SabbathAccess.status().allowed, 'the latest saved city controls the active pause');
+  ok(p.w.SabbathAccess.status().cityFrozen, 'the latest saved city controls the preset freeze');
   p.close();
 }
 {
-  const p=await page({now:'2026-10-16T08:00Z'});
+  const p = await page({now:'2026-10-16T18:00Z', deviceNow:'2026-10-14T12:00Z'});
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'), 'a device already set to Wednesday still pauses on server Friday');
+  ok(p.w.SabbathAccess.status().reason === 'sabbath', 'server, not the device, controls the displayed date');
+  p.setWall('2026-10-18T16:00Z');
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'), 'jumping ahead to Sunday cannot lift the pause');
+  await flush();
+  ok(p.w.SabbathAccess.status().reason === 'sabbath', 'resync restores the real paused state');
+  p.setOnline(false);
+  p.setWall('2026-10-19T16:00Z');
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'), 'clock manipulation without a network fails closed');
+  ok(p.w.SabbathAccess.authorize('alias'), 'the five-game rule does not restrict other games');
+  p.close();
+}
+{
+  const p = await page({now:'2026-10-14T08:00Z', serverOnline:false});
+  let resumed = false;
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs',() => { resumed = true; }), 'fresh offline launch has no verified sample');
+  p.setOnline(true);
+  p.w.dispatchEvent(new p.w.Event('online'));await flush();
+  ok(resumed && p.w.SabbathAccess.status().allowed, 'the intended game resumes after successful verification');
+  p.setOnline(false);
+  p.setTime('2026-10-14T10:00Z');p.w.SabbathAccess.refresh();await flush();
+  ok(p.w.SabbathAccess.authorize('kids-ark-pairs'), 'a short offline interruption keeps trusted elapsed time');
+  p.setTime('2026-10-14T15:00Z');p.w.SabbathAccess.refresh();await flush();
+  ok(!p.w.SabbathAccess.authorize('kids-ark-pairs'), 'an old offline reading expires');
+  p.close();
+}
+{
+  const p=await page({now:'2026-10-14T08:00Z'});
   p.w.document.getElementById('sabbath-city-card').click();
   ok(p.w.document.querySelector('.sabbath-privacy').textContent.includes('никуда не передаётся'),'privacy notice states local storage and sunset-only purpose');
   const choices=[...p.w.document.querySelectorAll('[data-city]')];
@@ -161,7 +209,7 @@ async function search(p,query) {
   const next=await page({city:saved});ok(next.w.SabbathAccess.status().city.timeZone==='Europe/Berlin','city preference survives reopening');next.close();p.close();
 }
 {
-  const p=await page({now:'2026-10-16T08:00Z'});
+  const p=await page({now:'2026-10-14T08:00Z'});
   const results=await search(p,'Париж');ok(results.some(x=>x.textContent.includes('Paris')),'global search accepts Cyrillic city names');
   ok(p.requests.length===1&&p.requests[0].url==='https://vidalost.github.io/alias-spy-games/web/data/sabbath-cities.json','search fetches only the same static catalog, with no query parameters');
   ok(p.requests[0].options.credentials==='omit'&&p.requests[0].options.referrerPolicy==='no-referrer','catalog request omits credentials and referrer');
@@ -172,13 +220,13 @@ async function search(p,query) {
   const small=await search(p,'Ессентук');ok(small.length>0,'global search covers regional towns');p.close();
 }
 {
-  let reply;const p=await page({now:'2026-10-16T08:00Z',fetchImpl:()=>new Promise(resolve=>{reply=resolve;})});
+  let reply;const p=await page({now:'2026-10-14T08:00Z',fetchImpl:()=>new Promise(resolve=>{reply=resolve;})});
   const pending=search(p,'Paris');await flush();p.w.document.querySelector('.sabbath-close').click();
   reply({ok:true,json:async()=>catalog});await pending;
   ok(!p.w.document.getElementById('sabbath-dialog'),'late catalog load cannot reopen a closed picker');p.close();
 }
 {
-  const p=await page({now:'2026-10-16T08:00Z',fetchImpl:async()=>{throw new Error('offline');}});
+  const p=await page({now:'2026-10-14T08:00Z',fetchImpl:async()=>{throw new Error('offline');}});
   await search(p,'Paris');ok(p.w.document.querySelector('.sabbath-city-results').textContent.includes('Повторите поиск'),'catalog failure is recoverable');
   p.w.document.querySelector('[data-city="Берлин"]').click();ok(p.w.SabbathAccess.status().city.name==='Берлин','presets remain available offline');p.close();
 }
@@ -242,8 +290,8 @@ async function search(p,query) {
   p.setTime(p.w.SabbathAccess.status().end);p.w.SabbathAccess.refresh();await waiting;ok(started,'standalone automatically unlocks without permissions');p.close();
 }
 {
-  const p=await page({now:'2026-10-16T08:00Z'});await p.w.SabbathAccess.waitForAccess('promised-land');
-  ok(p.requests.length===0&&!p.w.document.querySelector('#sabbath-dialog'),'standalone entry needs no network or location prompt');p.close();
+  const p=await page({now:'2026-10-14T08:00Z'});await p.w.SabbathAccess.waitForAccess('promised-land');
+  ok(p.requests.length===0&&p.timeRequests.length===1&&!p.w.document.querySelector('#sabbath-dialog'),'standalone verifies time without a location prompt');p.close();
 }
 {
   const p=await page({now:'2026-10-14T23:00Z',loadApp:true,city:Clock.CITIES[1]});

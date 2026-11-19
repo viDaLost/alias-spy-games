@@ -26,5 +26,14 @@ Sunset is calculated at the city's center. Local calendar days and displayed
 schedule times use its IANA time zone, including seasonal clock changes. The
 pause starts at Friday sunset and ends at the separately calculated Saturday
 sunset. A city without a sunset on either date shows an unavailable state.
-City changes are accepted once the current pause ends. A picker left open
-across the start of the pause switches to a read-only schedule.
+City selection is read-only from Thursday in the saved city's time zone
+through the end of the Saturday pause. A picker left open switches to the
+read-only schedule at the cutoff.
+
+The client retrieves UTC time from the core Worker's uncached public clock.
+Requests carry no location, query, or authentication data. The session clock
+advances by monotonic elapsed time and refreshes in the foreground. An offline
+session can use an in-memory reading for up to six hours, unless elapsed times
+diverge after a device clock adjustment or sleep. After a restart without a
+server reading, only the five scheduled games and city selection wait for
+verification. Other games remain available.
