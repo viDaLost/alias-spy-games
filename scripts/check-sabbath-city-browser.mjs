@@ -33,7 +33,8 @@ try {
   assert.match(await page.locator('.sabbath-privacy').textContent(),/никуда не передаётся/);
   assert.match(await page.locator('#sabbath-dialog').textContent(),/До выбора действует время Москвы/);
   assert.equal(await page.locator('.sabbath-schedule dd').count(),2);
-  await page.locator('#sabbath-city').fill('Токио');await page.locator('.sabbath-city-form button').click();
+  await page.locator('#sabbath-city').evaluate(input => { input.value = 'Токио'; });
+  await page.locator('.sabbath-city-form button').click();
   const tokyo=page.locator('.sabbath-city-result').filter({hasText:'Tokyo'}).first();await tokyo.waitFor({state:'visible',timeout:30000});await tokyo.click();
   assert.equal(await page.evaluate(()=>SabbathAccess.status().city.timeZone),'Asia/Tokyo');
   assert.match(await page.locator('#sabbath-title').textContent(),/Субботнее расписание/);
