@@ -7,6 +7,7 @@
   const catalogURL = new URL('../data/sabbath-cities.json', sourceURL);
   const titles = {'moses-nile':'Путь по Нилу','biblical-match-three':'Tesoros bíblicos','kids-ark-pairs':'Encuentra la pareja','twelve-tribes':'Doce tribus','promised-land':'Tierra prometida'};
   const restricted = game => Clock.GAME_IDS.includes(game);
+  const cityChangeLocked = ({reason}) => reason === 'sabbath' || reason === 'polar';
   let savedCity = readCity();
   let city = savedCity || Clock.CITIES[0], pendingGame = null, modal = null, returnFocus = null, editing = false;
   let timer = null, standalone = null, catalogPromise = null, searchVersion = 0;
@@ -29,6 +30,18 @@
   function saveCity(value) {
     const chosen = cleanCity(value);
     if (!chosen) return;
+    if (cityChangeLocked(status())) {
+      check();
+      return;
+    }
+    // A different tab may have saved a city before its storage event reaches this one.
+    const latest = window.parent === window ? readCity() : null;
+    if (latest && cityChangeLocked(Clock.state(Date.now(), latest))) {
+      savedCity = city = latest;
+      check();
+      notifyCityChange();
+      return;
+    }
     savedCity = city = chosen;
     try { localStorage.setItem(KEY, JSON.stringify(city)); } catch {}
     const resume = pendingGame;
@@ -81,13 +94,14 @@
     if(!modal)return;
     searchVersion++;
     const state=status(),shell=document.createElement('section');shell.className='sabbath-sheet';modal.dataset.state=state.reason;
+    const cityLocked = cityChangeLocked(state);
     const top=textNode('div',editing?'Ciudad para el horario del sábado':'Acceso al juego','sabbath-kicker');
     const dismiss=button('×',close,'sabbath-close');dismiss.setAttribute('aria-label','Cerrar');top.append(dismiss);shell.append(top);
-    const heading=textNode('h2',editing?(state.citySelected?'Horario del sábado':'Elige tu ciudad'):state.reason==='sabbath'?'Juegos en pausa':'Juego temporalmente no disponible');heading.id='sabbath-title';shell.append(heading);
+    const heading=textNode('h2',editing?((state.citySelected||cityLocked)?'Horario del sábado':'Elige tu ciudad'):state.reason==='sabbath'?'Juegos en pausa':'Juego temporalmente no disponible');heading.id='sabbath-title';shell.append(heading);
     shell.append(textNode('p',city.name+' · '+new Date(Date.now()).toLocaleTimeString(document.documentElement.lang||'ru',
       {timeZone:city.timeZone,hour:'2-digit',minute:'2-digit'}),'sabbath-city-current'));
     if(editing) {
-      if (!state.citySelected) shell.append(textNode('p','Elige tu ciudad para pausar los juegos al atardecer local. Hasta entonces se usa el horario de Moscú.'));
+      if (!state.citySelected && !cityLocked) shell.append(textNode('p','Elige tu ciudad para pausar los juegos al atardecer local. Hasta entonces se usa el horario de Moscú.'));
       if (Number.isFinite(state.start) && Number.isFinite(state.end)) {
         const schedule=textNode('dl','','sabbath-schedule');
         schedule.append(textNode('dt','Pausa desde la puesta de sol del viernes'),textNode('dd',fmt(state.start)),
@@ -96,10 +110,14 @@
       } else if (state.reason==='polar') {
         shell.append(textNode('p','No se puede calcular una puesta de sol normal para esta fecha. Cinco juegos no están disponibles temporalmente; los demás están en el menú.'));
       }
-      const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Selección rápida de ciudad');
-      for(const value of Clock.CITIES){const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
-        option.setAttribute('aria-pressed',String(state.citySelected&&city.timeZone===value.timeZone&&city.name===value.name));presets.append(option);}
-      shell.append(presets);appendSearch(shell);
+      if (cityLocked) {
+        shell.append(textNode('p','Puedes cambiar de ciudad cuando termine la pausa.'));
+      } else {
+        const presets=textNode('div','','sabbath-presets');presets.setAttribute('aria-label','Selección rápida de ciudad');
+        for(const value of Clock.CITIES){const option=button(value.name,()=>saveCity(value));option.dataset.city=value.name;
+          option.setAttribute('aria-pressed',String(state.citySelected&&city.timeZone===value.timeZone&&city.name===value.name));presets.append(option);}
+        shell.append(presets);appendSearch(shell);
+      }
       shell.append(button('Listo',close));
     } else {
       shell.append(textNode('p',state.reason==='sabbath'
@@ -112,7 +130,8 @@
         const countdown=textNode('span','');countdown.dataset.sabbathCountdown='';schedule.append(countdown);shell.append(schedule);
       }
       if(pendingGame)shell.append(textNode('p',titles[pendingGame]||'','sabbath-game-name'));
-      shell.append(button('Cambiar ciudad',()=>present(pendingGame,true)));
+      if (cityLocked) shell.append(textNode('p','Puedes cambiar de ciudad cuando termine la pausa.'));
+      else shell.append(button('Cambiar ciudad',()=>present(pendingGame,true)));
       shell.append(button(document.getElementById('menu-container')?'Otros juegos':'Cerrar',close));
     }
     shell.append(textNode('p','La ciudad elegida se guarda solo en este dispositivo y no se comparte. Solo se usa para calcular la puesta de sol.','sabbath-privacy'));
@@ -193,7 +212,7 @@
     const label=document.querySelector('#sabbath-city-card .game-card__desc');
     const cityLabel=state.citySelected?city.name:'Elegir ciudad';
     if(label&&label.textContent!==cityLabel)label.textContent=cityLabel;
-    if(modal&&modal.dataset.state!==state.reason&&!editing)renderModal();
+    if(modal&&modal.dataset.state!==state.reason)renderModal();
     updateCountdown();sendStatus(document.querySelector('#game-container iframe'));
     timer=setTimeout(check,Math.max(20,Math.min(30000,(state.nextChange||Date.now()+30000)-Date.now())));
   }
