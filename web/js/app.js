@@ -604,7 +604,7 @@ async function syncCurrentUser({ force = false } = {}) {
     if (res) {
       accessState.checked = true;
       accessState.lastSyncAt = now;
-      accessState.isBanned = isTrue(res.isBanned);
+      accessState.isBanned = isTrue(res.isBanned) && res.appRestricted !== true;
       applyServerProgress(res, tgUser.id, localWowData);
       window.GameCatalog?.refresh();
     } else {
@@ -629,7 +629,6 @@ async function initializeApp() {
   }
   prepareTelegramWebApp();
   renderMainMenu();
-  if (window.AppAccess && !window.AppAccess.allowed()) return;
 
   const tgUser = getTelegramUser();
   if (String(tgUser.id) === ADMIN_ID) renderAdminButton();

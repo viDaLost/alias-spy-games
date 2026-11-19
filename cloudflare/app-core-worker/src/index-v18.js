@@ -30,8 +30,9 @@ export class UserStore extends V17UserStore {
   }
 
   restrictionActive() {
+    if (String(this.env.APP_RESTRICTED) !== 'true') return false;
     const mode = this.sql.exec('SELECT restricted FROM app_access_mode WHERE id = 1').toArray()[0];
-    return mode ? mode.restricted === 1 : String(this.env.APP_RESTRICTED || 'true') !== 'false';
+    return mode ? mode.restricted === 1 : true;
   }
 
   async applicationAccess(userId) {
@@ -46,7 +47,7 @@ export class UserStore extends V17UserStore {
     const allowed = !banned && (!restricted || excepted);
     return {
       ok: true, success: true, allowed, restricted, isRoot: false, userId,
-      isBanned: banned || !allowed, appRestricted: restricted && !allowed,
+      isBanned: banned || !allowed, appRestricted: restricted && !excepted && !banned,
       ...(allowed ? {} : { code: 'APP_RESTRICTED', message: MESSAGE }),
     };
   }

@@ -23,7 +23,7 @@
     }
   },
   "vars": {
-    "APP_RESTRICTED": "true",
+    "APP_RESTRICTED": "false",
     "ALLOWED_ORIGINS": "https://vidalost.github.io,https://appassets.androidplatform.net,https://alias-spy-games-app.vitaledanilov.workers.dev,https://alias-spy-games-promised-land-preview.vitaledanilov.workers.dev",
     "ADMIN_TELEGRAM_ID": "1288379477",
     "ADMIN_AUTH_CODE_COPY_ENABLED": "true"

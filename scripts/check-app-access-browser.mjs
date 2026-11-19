@@ -17,6 +17,7 @@ const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_BIN || chromium.executablePath(), args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 let allowed = false;
 let fail = false;
+let banned = false;
 let id = '555555555';
 let isRoot = false;
 let restricted = true;
@@ -43,14 +44,15 @@ async function contextFor({ android = false, web = false, telegram = true, socia
         if (route.request().postDataJSON()?.telegramInitData) authErrors.push('native marker sent as signed Telegram proof');
       }
       if (fail) return route.abort();
-      return route.fulfill({ json: { success: true, allowed: allowed || !restricted, restricted, isRoot, userId: allowed || !restricted ? id : '' } });
+      const appRestricted = restricted && !allowed && !banned;
+      return route.fulfill({ json: { success: true, allowed: !appRestricted && !banned, restricted, appRestricted, isBanned: appRestricted || banned, isRoot, userId: id } });
     }
     const body = route.request().postDataJSON?.() || {};
     const action = body?.payload?.action;
     let data = { success: true, ok: true };
     if (action === 'adminRoleStatus') data = { ...data, isAdmin: isRoot, isRoot, userId: id };
     if (action === 'getAdminData') data = { ...data, users: [], adminAccess: { isAdmin: isRoot, isRoot, userId: id }, admins: [] };
-    if (action === 'syncUser') data = { ...data, isBanned: false, swLevel: 7, wowStars: 42 };
+    if (action === 'syncUser') data = { ...data, isBanned: banned, swLevel: 7, wowStars: 42 };
     if (action === 'syncGameWallet') data = { ...data, bmtStars: accountStars, revision: accountRevision };
     if (action === 'mutateBmtStars') {
       accountStars += body.payload.delta;
@@ -79,42 +81,38 @@ try {
     const context = await contextFor(config);
     const page = await context.newPage();
     await page.goto(base);
-    await page.waitForFunction(() => window.AppAccess && !window.AppAccess.state().checking);
-    await assert.doesNotReject(() => page.locator('#app-access-title').waitFor({ state: 'visible' }));
-    assert.equal(await page.evaluate(() => { window.showGame('sacred-word'); return document.body.dataset.mode || ''; }), '');
+    await page.waitForFunction(() => window.AppAccess?.state().checked);
+    await page.locator('#main-catalog').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#app-access-screen').count(), 0);
+    assert.equal(await page.evaluate(() => window.AppAccess.allowed()), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('sacred_word_levels_v4_555555555')).level), 7);
-    if (config.web) {
-      await page.getByRole('button', { name: 'Войти в профиль', exact: true }).click();
-      await page.locator('#ws-login-id').waitFor({ state: 'visible' });
-      assert.equal(await page.locator('[data-ws-skip]').isVisible(), false, 'guest login must not bypass restriction');
-      await page.evaluate(() => document.querySelector('#web-session-overlay')?.remove());
-    }
-    if (config.android || config.web) {
-      allowed = true;
-      await page.evaluate(() => window.AppAccess.verify());
-      assert.equal(await page.evaluate(() => window.AppAccess.allowed()), true, 'approved session must unlock Android/iOS');
-    }
-    if (!config.android && !config.web && config.telegram !== false) {
-      await page.screenshot({ path: '/tmp/bible-app-lock-mobile.png', fullPage: true });
-      allowed = true;
-      await page.getByRole('button', { name: 'Проверить доступ', exact: true }).click();
-      await page.waitForFunction(() => window.AppAccess.allowed());
-      await page.evaluate(() => {
-        window.__accessCleanupCount = 0;
-        window.goToMainMenu = () => { window.__accessCleanupCount += 1; };
-        document.dispatchEvent(new Event('visibilitychange'));
-      });
-      await page.waitForFunction(() => window.AppAccess.allowed());
-      assert.equal(await page.evaluate(() => window.__accessCleanupCount), 0, 'successful foreground recheck must preserve the active game');
+    if (config.telegram !== false) {
+      await page.evaluate(() => window.showGame('sacred-word'));
+      await page.waitForFunction(() => document.body.dataset.currentGame === 'sacred-word');
       fail = true;
-      await page.evaluate(() => window.AppAccess.verify());
-      assert.equal(await page.evaluate(() => window.AppAccess.allowed()), false, 'offline check must fail closed');
-      assert.equal(await page.evaluate(() => window.__accessCleanupCount), 1, 'failed recheck must stop the active game');
-      fail = false;
+      try {
+        await page.evaluate(async () => {
+          document.dispatchEvent(new Event('visibilitychange'));
+          await window.AppAccess.verify();
+        });
+        assert.equal(await page.evaluate(() => window.AppAccess.allowed()), true);
+        assert.equal(await page.evaluate(() => document.body.dataset.currentGame), 'sacred-word');
+        assert.equal(await page.locator('#app-access-screen').count(), 0);
+      } finally { fail = false; }
     }
     await context.close();
   }
+  banned = true;
+  const bannedContext = await contextFor();
+  const bannedPage = await bannedContext.newPage();
+  await bannedPage.goto(base);
+  await bannedPage.locator('#banned-screen').waitFor({ state: 'visible' });
+  assert.equal(await bannedPage.evaluate(() => window.AppAccess.allowed()), false);
+  assert.equal(await bannedPage.locator('#app-access-screen').count(), 0);
+  await bannedContext.close();
+  banned = false;
+
   id = '1288379477'; isRoot = true; allowed = true;
   const context = await contextFor();
   const page = await context.newPage();
@@ -278,6 +276,6 @@ try {
   await linkedProfileContext.close();
 
   assert.deepEqual(authErrors, [], 'Android and iOS must use their verified session, never the native launch marker');
-  console.log('PASS: mobile lock, Telegram/Android/iOS/guest denial, no guest bypass, unchanged local progress, retry/unlock, offline denial, root entry and working grant/revoke controls.');
+  console.log('PASS: app startup without the global lock screen on Telegram, Android, iOS and guest sessions, foreground recovery, individual bans and verified access controls.');
   console.log('PASS: favorite game links and the favorites editor open directly for the root account only.');
 } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }

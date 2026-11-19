@@ -239,6 +239,18 @@ try {
   assert.equal((await request('/compat', { telegramInitData: signed(owner, 1801), payload: { action: 'appAccessRestore' } })).status, 401);
   assert.equal((await request('/app/access')).data.restricted, true);
 
+  env.APP_RESTRICTED = 'false';
+  assert.equal((await request('/app/access')).data.allowed, true, 'the production flag disables the global restriction without a saved override');
+  db.prepare('INSERT INTO app_access_mode VALUES (1, 1)').run();
+  assert.equal((await request('/app/access')).data.allowed, true, 'a stale restricted database row cannot re-enable the restriction');
+  db.prepare('UPDATE users SET is_banned = 1 WHERE telegram_id = ?').run('555555555');
+  const bannedAccess = (await request('/app/access', { telegramInitData: signed('555555555') })).data;
+  assert.equal(bannedAccess.allowed, false, 'turning off the global restriction preserves individual bans');
+  assert.equal(bannedAccess.appRestricted, false);
+  db.prepare('UPDATE users SET is_banned = 0 WHERE telegram_id = ?').run('555555555');
+  db.prepare('DELETE FROM app_access_mode WHERE id = 1').run();
+  env.APP_RESTRICTED = 'true';
+
   const restored = await compat(owner, 'appAccessRestore');
   assert.equal(restored.status, 200);
   assert.equal(restored.data.restricted, false);
