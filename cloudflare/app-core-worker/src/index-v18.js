@@ -161,6 +161,9 @@ export class AppAccess extends WorkerEntrypoint {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === '/app/time' && request.method === 'GET') {
+      return json({ now: Date.now() }, 200, { 'Access-Control-Allow-Origin': '*' });
+    }
     const cors = corsHeaders(request, env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (url.pathname === '/telegram/webhook' && request.method === 'POST') {

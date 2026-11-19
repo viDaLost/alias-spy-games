@@ -139,6 +139,23 @@ jobs:
           }
           console.log(`Telegram webhook configured with updates: ${allowedUpdates.join(', ')}`);
           NODE
+      - name: Verify public clock on the deployed worker
+        run: |
+          node <<'NODE'
+          const before = Date.now();
+          const response = await fetch('https://alias-spy-games-core.vitaledanilov.workers.dev/app/time', {
+            cache: 'no-store',
+            headers: { Origin: 'https://vidalost.github.io' },
+          });
+          if (!response.ok || response.headers.get('Access-Control-Allow-Origin') !== '*'
+              || response.headers.get('Cache-Control') !== 'no-store') {
+            throw new Error(`Clock endpoint returned unexpected headers or status: ${response.status}`);
+          }
+          const { now } = await response.json();
+          if (!Number.isSafeInteger(now) || now < before - 5000 || now > Date.now() + 5000) {
+            throw new Error('Clock endpoint did not return the current time');
+          }
+          NODE
       - name: Verify Android authenticated boundary
         env:
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
