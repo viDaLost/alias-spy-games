@@ -117,6 +117,7 @@ let gameKeys = [];
 if (!gameKeys.length) failures.push('Главное меню не содержит ни одной запускаемой игры.');
 if (!gameKeys.includes('bible-sketch')) failures.push('Библейский художник не зарегистрирован в главном меню.');
 if (!gameKeys.includes('bible-geography')) failures.push('Библейская география не открыта обычному игроку в главном меню.');
+if (!gameKeys.includes('moses-nile')) failures.push('Карточка «Моисей: Путь по Нилу» отсутствует в меню.');
 console.log(`Discovered ${gameKeys.length} games: ${gameKeys.join(', ')}`);
 
 for (const gameKey of gameKeys) {
@@ -124,6 +125,16 @@ for (const gameKey of gameKeys) {
   const { page, context, pageErrors, consoleErrors } = session;
   try {
     await page.locator(`#catalog-games [data-launch="${gameKey}"]`).click();
+    if (gameKey === 'moses-nile') {
+      const notice = page.locator('#moses-maintenance[open]');
+      await notice.getByRole('heading', { name: 'Игра на стадии доработки' }).waitFor();
+      assert.equal(await page.locator('#game-container iframe').count(), 0);
+      assert.equal(await page.evaluate(() => document.body.dataset.currentGame || ''), '');
+      await notice.getByRole('button', { name: 'Понятно' }).click();
+      await notice.waitFor({ state: 'hidden' });
+      console.log(`✓ ${gameKey}: maintenance notice`);
+      continue;
+    }
     await page.waitForFunction((key) => document.body.dataset.currentGame === key, gameKey, { timeout: 10_000 });
     await page.waitForFunction(() => {
       const container = document.getElementById('game-container');
@@ -176,4 +187,4 @@ if (failures.length) {
   console.error(`\nAll-games smoke test failed (${failures.length}):\n- ${failures.join('\n- ')}`);
   process.exit(1);
 }
-console.log(`\nOK: all ${gameKeys.length} games opened and returned to the menu without critical browser errors.`);
+console.log(`\nOK: ${gameKeys.length - 1} games opened and returned to the menu without critical browser errors.`);
