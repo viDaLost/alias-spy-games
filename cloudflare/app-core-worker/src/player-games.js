@@ -16,5 +16,4 @@ export const PLAYER_GAMES = new Map([
   ['twelve-tribes', ['Двенадцать колен', 'Twelve Tribes', 'Die zwölf Stämme', 'Las doce tribus']],
   ['promised-land', ['Земля обетованная', 'Promised Land', 'Das gelobte Land', 'Tierra Prometida']],
   ['bible-geography', ['Библейская география', 'Bible Geography', 'Biblische Geografie', 'Geografía bíblica']],
-  ['kingdoms', ['Царства', 'Kingdoms', 'Königreiche', 'Reinos']],
 ]);

@@ -21,7 +21,6 @@
     { id: 'twelve-tribes', title: 'Двенадцать колен', icon: 'web/assets/icons/unified-v1/twelve-tribes.webp?v=1' },
     { id: 'promised-land', title: 'Земля обетованная', icon: 'web/assets/icons/unified-v1/promised-land.webp?v=1' },
     { id: 'bible-geography', title: 'Библейская география', icon: 'web/assets/icons/unified-v1/bible-geography.webp?v=1' },
-    { id: 'kingdoms', title: 'Царства', icon: 'web/assets/icons/unified-v1/kingdoms.webp?v=1', restricted: true },
   ];
   const GAMES = new Map(GAME_CATALOG.map((game) => [game.id, game]));
 
@@ -335,8 +334,7 @@
 
   function renderFavorites() {
     const favorites = new Set(state.profile?.favorites || []);
-    const canPlayKingdoms = window.AppAccess?.state?.()?.isRoot || document.documentElement.classList.contains('kd-tester');
-    const games = GAME_CATALOG.filter((game) => !game.restricted || canPlayKingdoms);
+    const games = GAME_CATALOG;
     return `<div class="social-favorite-intro"><b>Избранные игры</b><span>Отмеченные игры сохраняются в вашем профиле и доступны на любом устройстве.</span></div><div class="social-favorites-grid">${games.map((game) => {
       const selected = favorites.has(game.id);
       return `<button type="button" class="social-favorite ${selected ? 'is-selected' : ''}" data-toggle-favorite="${game.id}">

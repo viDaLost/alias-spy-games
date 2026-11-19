@@ -71,7 +71,6 @@
     "check:twelve-tribes": "node scripts/check-twelve-tribes.mjs && node --test cloudflare/twelve-tribes-worker/test/room.test.mjs",
     "check:twelve-tribes:browser": "node scripts/check-twelve-tribes-browser.mjs",
     "check:twelve-tribes:online": "node scripts/check-twelve-tribes-online.mjs",
-    "check:kingdoms": "node scripts/check-kingdoms.mjs && node scripts/check-kingdoms-ui.mjs && node --test cloudflare/kingdoms-worker/test/room.test.mjs",
     "check:sabbath": "node scripts/check-sabbath-access.mjs"
   },
   "devDependencies": {

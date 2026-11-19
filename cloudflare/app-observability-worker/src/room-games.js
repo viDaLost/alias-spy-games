@@ -13,6 +13,5 @@ export const ROOM_GAMES = new Set([
   'bible-sketch',
   'spy',
   'twelve-tribes',
-  'kingdoms',
   'promised-land',
 ]);

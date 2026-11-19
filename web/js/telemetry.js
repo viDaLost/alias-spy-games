@@ -80,7 +80,7 @@
     if (typeof window.showGame === 'function' && !window.showGame.__telemetryWrapped) {
       const originalShowGame = window.showGame;
       const wrapped = function(gameName) {
-        track('game_open', { game: gameName, roomId: '' });
+        if (gameName !== 'moses-nile') track('game_open', { game: gameName, roomId: '' });
         return originalShowGame.apply(this, arguments);
       };
       wrapped.__telemetryWrapped = true;

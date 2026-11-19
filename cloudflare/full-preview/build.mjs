@@ -74,8 +74,9 @@ await cp(source('cloudflare/full-preview/public'), output, { recursive: true });
 
 await Promise.all([
   copy('web/assets', 'web/assets', { filter: (file) => {
-    const [folder] = path.relative(source('web/assets'), file).split(path.sep);
-    return !['startup-loader', 'promised-land', 'game-scenes'].includes(folder);
+    const [folder, scene] = path.relative(source('web/assets'), file).split(path.sep);
+    if (folder === 'game-scenes') return !scene || scene === 'path';
+    return !['startup-loader', 'promised-land'].includes(folder);
   } }),
   copy('web/data'),
   copy('web/games'),
@@ -117,6 +118,7 @@ await Promise.all([
     'web/js/channel-promo.js',
     'web/js/bot-start-promo.js',
     'web/js/game-frame-safe-area.js',
+    'web/js/game-scene-parallax.js',
   ], 'js', 'full-runtime.js'),
   compile([
     'web/styles/home-parallax-v1.css',
@@ -138,6 +140,7 @@ await Promise.all([
     'web/styles/game-rules.css',
     'web/styles/progress-reset.css',
     'web/styles/dark-theme.css',
+    'web/styles/game-scene-parallax.css',
     'web/styles/sabbath-access.css',
   ], 'css', 'web/styles/full-games.css'),
   thumbnails('web/assets/icons/unified-v1', 'web/assets/catalog-low', '100x100'),

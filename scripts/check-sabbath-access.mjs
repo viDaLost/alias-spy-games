@@ -96,9 +96,9 @@ async function search(p,query) {
   const p=await page({loadApp:true,legacy:true});
   ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Moscow','Moscow is the default without any setup');
   ok(!p.w.localStorage.getItem('sabbath-device-location-v1'),'legacy device coordinates deleted');
-  for(const game of Clock.GAME_IDS){ok(!p.w.SabbathAccess.authorize(game),`${game} blocked`);if(game!=='biblical-match-three')p.w.showGame(game);ok(!p.w.document.querySelector('iframe'),`${game} does not launch behind dialog`);}
+  for(const game of Clock.GAME_IDS){ok(!p.w.SabbathAccess.authorize(game),`${game} blocked`);if(!['biblical-match-three','moses-nile'].includes(game))p.w.showGame(game);ok(!p.w.document.querySelector('iframe'),`${game} does not launch behind dialog`);}
   ok(p.w.document.getElementById('sabbath-dialog').textContent.includes('24 часа'),'pause explains exact duration');
-  for(const game of ['alias','spy','quartet','kingdoms','bible-geography'])ok(p.w.SabbathAccess.authorize(game),`${game} unaffected`);
+  for(const game of ['alias','spy','quartet','bible-geography'])ok(p.w.SabbathAccess.authorize(game),`${game} unaffected`);
   p.setTime(p.w.SabbathAccess.status().end);p.w.SabbathAccess.refresh();
   ok(p.w.SabbathAccess.authorize('kids-ark-pairs'),'unlocks after 24h without coordinates or permission');
   ok(p.requests.length===0,'startup, boundaries and game entry do not send city or location data');p.close();
@@ -200,10 +200,10 @@ async function search(p,query) {
 }
 {
   const p=await page({now:'2026-10-14T23:00Z',loadApp:true,city:Clock.CITIES[1]});
-  p.w.showGame('moses-nile');const frame=p.w.document.querySelector('iframe');let reply;frame.contentWindow.postMessage=data=>{reply=data;};
-  p.w.dispatchEvent(new p.w.MessageEvent('message',{source:frame.contentWindow,origin:p.w.location.origin,data:{type:'sabbath:request',game:'moses-nile'}}));
+  p.w.showGame('promised-land');const frame=p.w.document.querySelector('iframe');let reply;frame.contentWindow.postMessage=data=>{reply=data;};
+  p.w.dispatchEvent(new p.w.MessageEvent('message',{source:frame.contentWindow,origin:p.w.location.origin,data:{type:'sabbath:request',game:'promised-land'}}));
   ok(reply?.allowed&&reply.city.timeZone==='Europe/Berlin'&&reply.nextChange===p.w.SabbathAccess.status().start,'embedded game receives selected city and actual Friday boundary');
-  reply=undefined;p.w.dispatchEvent(new p.w.MessageEvent('message',{source:p.w,origin:'https://untrusted.invalid',data:{type:'sabbath:request',game:'moses-nile'}}));ok(!reply,'untrusted frames cannot use the city bridge');p.close();
+  reply=undefined;p.w.dispatchEvent(new p.w.MessageEvent('message',{source:p.w,origin:'https://untrusted.invalid',data:{type:'sabbath:request',game:'promised-land'}}));ok(!reply,'untrusted frames cannot use the city bridge');p.close();
 }
 for(const url of ['/js/sabbath-clock.js','/js/sabbath-access.js','/styles/sabbath-access.css']) {
   let body,status;ok(serveSabbathTestAsset({url},{writeHead:value=>{status=value;},end:value=>{body=value;}}),'isolated Nile fixture serves shared policy');ok(status===200&&body.length>0,'fixture gets actual policy source');

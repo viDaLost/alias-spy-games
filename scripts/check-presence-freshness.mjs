@@ -29,7 +29,7 @@ requireText(worker, 'verifyAndroidIdentity', 'verified Android presence path is 
 // два, и оба знали только «Квартет» и «Художника»: код комнаты «Колен» и
 // «Земли» приходил с телефона и выбрасывался, кнопки наблюдения не было.
 const roomGames = read('cloudflare/app-observability-worker/src/room-games.js');
-for (const game of ['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'kingdoms', 'promised-land']) {
+for (const game of ['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'promised-land']) {
   requireText(roomGames, `'${game}'`, `${game} rooms are not tracked by presence`);
 }
 requireText(worker, "import { ROOM_GAMES } from './room-games.js';", 'presence intake must use the shared room-game list');

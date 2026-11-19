@@ -37,7 +37,7 @@ const GAME_MARKS = {
   alias: '⏳', coimaginarium: '💡', guess: '❓', describe: '💬', spy: '🕵️', quartet: '🃏',
   'bible-sketch': '🎨', 'bible-wow': '🔤', 'bible-wordsearch': '🔍', 'sacred-word': '📖',
   'kids-ark-pairs': '🐾', 'biblical-match-three': '💎', 'moses-nile': '🧺', 'twelve-tribes': '⛺',
-  'promised-land': '🧱', 'bible-geography': '🧭', kingdoms: '👑',
+  'promised-land': '🧱', 'bible-geography': '🧭',
 };
 
 export function handleFavoritesWidget(update, env, ctx) {

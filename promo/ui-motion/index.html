@@ -211,9 +211,9 @@ N.sHard = el('div', 'a', text('Трудная', 28, 600, INK));
 N.moon = el('div', 'a');
 N.theme = el('div', 'a');
 // 7. Вкладки
-N.tabs = ['Слова', 'Шпион', 'Царства'].map((s) => el('div', 'a', text(s, 28, 600, PAPER)));
+N.tabs = ['Слова', 'Шпион', 'Квартет'].map((s) => el('div', 'a', text(s, 28, 600, PAPER)));
 // 8. График
-N.cTitle = el('div', 'a', text('Царства', 32, 650, PAPER));
+N.cTitle = el('div', 'a', text('Квартет', 32, 650, PAPER));
 N.cSub = el('div', 'a', text('Очки за неделю', 20, 500, MUTE));
 N.cBig = el('div', 'a', text('164', 56, 650, PAPER, 'letter-spacing:-0.03em'));
 N.cBigSub = el('div', 'a', text('за воскресенье', 18, 500, MUTE));
@@ -238,7 +238,7 @@ N.key.dataset.display = 'flex';
 N.key.innerHTML = `${icon(18, ICON.command, '#C9C9CE')}<span class="t" style="font-size:20px;font-weight:600;color:#C9C9CE">K</span>`;
 N.divider = el('div', 'a'); N.divider.style.cssText += 'height:1.5px;background:#26262A;';
 N.rowBg = el('div', 'a');
-N.rows = [['Ц', 'Царства'], ['З', 'Земля обетованная'], ['Д', 'Двенадцать колен']].map(([l, name], i) => {
+N.rows = [['К', 'Квартет'], ['З', 'Земля обетованная'], ['Д', 'Двенадцать колен']].map(([l, name], i) => {
   const tile = el('div', 'a', text(l, 20, 650, PAPER));
   tile.style.cssText += `width:40px;height:40px;border-radius:11px;background:${i === 0 ? ACCENT : DIM};display:flex;align-items:center;justify-content:center;`;
   tile.dataset.display = 'flex';
@@ -246,7 +246,7 @@ N.rows = [['Ц', 'Царства'], ['З', 'Земля обетованная'],
 });
 N.open = el('div', 'a', `<div style="display:flex;align-items:center;gap:8px">${text('Открыть', 18, 500, MUTE)}${icon(20, ICON.enter, MUTE)}</div>`);
 // 10. Уведомление
-N.toast = el('div', 'a', text('Царства · партия началась', 26, 600, PAPER));
+N.toast = el('div', 'a', text('Квартет · партия началась', 26, 600, PAPER));
 
 // ——————————————————————————————————————————————— раскладка и дорожки
 
@@ -325,7 +325,7 @@ function build() {
   const ctx = document.createElement('canvas').getContext('2d');
   ctx.font = '600 28px Geist';
   const TAB_X = [-220, 0, 220];
-  const tabRect = ['Слова', 'Шпион', 'Царства'].map((s, i) => {
+  const tabRect = ['Слова', 'Шпион', 'Квартет'].map((s, i) => {
     const wT = ctx.measureText(s).width + 64;
     return { L: TAB_X[i] - wT / 2, R: TAB_X[i] + wT / 2, w: ctx.measureText(s).width };
   });
@@ -471,7 +471,7 @@ function seek(tRaw) {
   const tL = lerp(146, 190, S(t - B(17), 'trail')), tR = lerp(194, 238, S(t - B(17), 'lead'));
   let knobL = lerp(kx - kd / 2, tL, kT), knobR = lerp(kx + kd / 2, tR, kT);
   let knobT = lerp(ky - kd / 2, -24, kT), knobB = lerp(ky + kd / 2, 24, kT);
-  // вкладки: ручка вытягивается в индикатор под «Слова» (ведёт левый край), затем перетекает к «Царства» (ведёт правый)
+  // вкладки: ручка вытягивается в индикатор под «Слова» (ведёт левый край), затем перетекает к «Квартет» (ведёт правый)
   const tabs = L.tabRect;
   const toTabs = { L: S(t - B(18) + 0.04, 'lead'), R: S(t - B(18) + 0.04, 'trail'), V: S(t - B(18) + 0.04, 'ui') };
   const toThird = { L: S(t - B(19), 'trail'), R: S(t - B(19), 'lead') };

@@ -28,7 +28,6 @@
     quartet: ['3–24 игрока', '≈ 15–30 мин'],
     'twelve-tribes': ['2–8 игроков', '≈ 15–30 мин'],
     'promised-land': ['2–6 игроков', '≈ 30–60 мин'],
-    kingdoms: ['2–5 игроков', '≈ 20–35 мин'],
   };
 
   const gameObserver = typeof IntersectionObserver === 'function' ? new IntersectionObserver((entries, observer) => {
@@ -43,7 +42,6 @@
     'bible-sketch': 'sketch',
     spy: 'spy',
     'twelve-tribes': 'tribes',
-    kingdoms: 'kingdoms',
   })) {
     document.querySelector(`meta[name="${game}-backend"]`).content = `${location.origin}/online/${endpoint}`;
   }
@@ -148,6 +146,10 @@
     if (target.origin !== location.origin) return;
     if (!preview) target.searchParams.set('menu', 'catalog');
     if (window.AppAccess && !window.AppAccess.allowed()) return;
+    if (target.searchParams.get('game') === 'moses-nile') {
+      window.showGame('moses-nile');
+      return;
+    }
     if (target.href !== location.href) history.pushState(null, '', target);
     openURL();
   }

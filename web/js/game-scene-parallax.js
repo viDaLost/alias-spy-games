@@ -1,23 +1,3 @@
-/*
-  Живой фон игры.
-
-  Взято из превью-веток конца августа: preview/unified-games-redesign-review-v1
-  и отдельных preview/*-parallax-review-v1, где у каждой игры была своя сцена со
-  слоями. Тогда это жило рядом с полной переделкой всего приложения в тёмный вид
-  — с перекрытием заголовка, меню и панелей каждой игры через !important.
-  Приложение с тех пор ушло далеко: у него свой набор стилей, светлая и тёмная
-  темы и параллакс главного меню. Поэтому перенесена только сцена, без чужого
-  меню и без переопределений.
-
-  Обе темы показывают сцену одинаково, в полном цвете; чем они различаются и
-  как на картине читается текст — в game-scene-parallax.css. Сюда тема не
-  заглядывает вовсе.
-
-  Движение не спорит с игрой за жест. Горизонтальное перетаскивание из превью
-  не перенесено намеренно: в «Поиске слов» пальцем ведут по буквам, в
-  «Художнике» рисуют, в «Сокровищах» двигают фишки. Сцена слушает только то,
-  что игре не нужно: прокрутку, наклон телефона и мышь без нажатой кнопки.
-*/
 (() => {
   'use strict';
 
@@ -37,61 +17,12 @@
     file, depth, opacity: 1, scale: 1.06, filter: 'none', ...options,
   });
 
-  /*
-    Каталог. Четыре игры получили в превью настоящие многослойные сцены,
-    остальные — по одному фону: рисовать десять слоёв там, где экран почти
-    целиком занят полем, незачем.
-
-    Глубина — то, насколько слой близко: небо 2–4, город и крыши 9–19,
-    передний план 30–40. Одиночный фон стоит на 10: внутри него двигаться
-    нечему, но он ходит под экраном игры, и карточки висят над картиной, а не
-    лежат на ней. «Художник» остаётся неподвижным: там рисуют, и фон под
-    холстом не должен плыть под рукой.
-
-    Каталог же решает, у кого сцена есть. «Моисея на Ниле» здесь нет намеренно:
-    он рисует свой трёхмерный мир во весь экран, чужой фон под ним не виден и
-    только тратит трафик. Отдельной проверки на его имя нет — она была бы
-    заведомо мёртвой строкой, которую не сломать.
-  */
   const CATALOG = {
-    alias: [
-      layer('web/assets/game-scenes/alias/01-sky-sunset.webp', 2), layer('web/assets/game-scenes/alias/02-mountains.webp', 5),
-      layer('web/assets/game-scenes/alias/03-city-far.webp', 9), layer('web/assets/game-scenes/alias/04-market-mid.webp', 14),
-      layer('web/assets/game-scenes/alias/09-dust-haze.webp', 19, { opacity: .34 }),
-      layer('web/assets/game-scenes/alias/05-left-foreground.webp', 30), layer('web/assets/game-scenes/alias/06-right-foreground.webp', 32),
-      layer('web/assets/game-scenes/alias/08-props.webp', 36), layer('web/assets/game-scenes/alias/07-hourglass.webp', 40),
-    ],
-    spy: [
-      layer('web/assets/game-scenes/spy/01-sky-moon-stars.webp', 3), layer('web/assets/game-scenes/spy/02-mountains.webp', 6),
-      layer('web/assets/game-scenes/spy/03-temple-far.webp', 9), layer('web/assets/game-scenes/spy/04-city-mid.webp', 13),
-      layer('web/assets/game-scenes/spy/05-rooftops.webp', 19), layer('web/assets/game-scenes/spy/06-fog.webp', 23, { opacity: .42 }),
-      layer('web/assets/game-scenes/spy/16-light-particles.webp', 25, { opacity: .3 }),
-      layer('web/assets/game-scenes/spy/08-spy.webp', 34, { opacity: .97 }),
-      layer('web/assets/game-scenes/spy/07-left-foreground.webp', 30), layer('web/assets/game-scenes/spy/10-right-foreground.webp', 30),
-      layer('web/assets/game-scenes/spy/09-leaves.webp', 34, { opacity: .55 }), layer('web/assets/game-scenes/spy/12-plants-right.webp', 36, { opacity: .76 }),
-    ],
-    'bible-wow': [
-      layer('web/assets/game-scenes/bible-words/01-temple-base.webp', 3, { filter: 'brightness(.82) saturate(.9)' }),
-      layer('web/assets/game-scenes/bible-words/02-distant-sanctuary.webp', 7, { opacity: .82 }),
-      layer('web/assets/game-scenes/bible-words/06-moonbeams.webp', 12, { opacity: .22 }),
-      layer('web/assets/game-scenes/bible-words/03-left-arch.webp', 24, { opacity: .78 }),
-      layer('web/assets/game-scenes/bible-words/04-right-arch.webp', 26, { opacity: .78 }),
-      layer('web/assets/game-scenes/bible-words/05-scriptorium-ledge.webp', 32, { opacity: .7 }),
-      layer('web/assets/game-scenes/bible-words/07-dust-motes.webp', 18, { opacity: .16 }),
-    ],
     'biblical-match-three': [
       layer('web/assets/game-scenes/path/temple-base-v3.webp', 4, { filter: 'brightness(.78) saturate(.9)' }),
       layer('web/assets/game-scenes/path/temple-light-v3.webp', 14, { opacity: .18 }),
       layer('web/assets/game-scenes/path/temple-foreground-v3.webp', 32, { opacity: .68, filter: 'brightness(.72) saturate(.82)' }),
     ],
-    coimaginarium: [layer('web/assets/game-scenes/scenes/coimaginarium.webp', 10, { filter: 'brightness(.82)' })],
-    guess: [layer('web/assets/game-scenes/scenes/guess.webp', 10, { filter: 'brightness(.8)' })],
-    describe: [layer('web/assets/game-scenes/scenes/describe.webp', 10, { filter: 'brightness(.82)' })],
-    'sacred-word': [layer('web/assets/game-scenes/scenes/sacred-word.webp', 10, { filter: 'brightness(.8)' })],
-    quartet: [layer('web/assets/game-scenes/scenes/quartet.webp', 10, { opacity: .94, filter: 'brightness(.82) saturate(.9)' })],
-    'bible-sketch': [layer('web/assets/game-scenes/scenes/bible-sketch.webp', 0, { opacity: .93, filter: 'brightness(.8) saturate(.86)' })],
-    'bible-wordsearch': [layer('web/assets/game-scenes/scenes/wordsearch.webp', 10, { opacity: .95, filter: 'brightness(.86) saturate(.88)' })],
-    'kids-ark-pairs': [layer('web/assets/game-scenes/scenes/pairs.webp', 10, { opacity: .98, filter: 'brightness(.98) saturate(.92)' })],
   };
 
   /*

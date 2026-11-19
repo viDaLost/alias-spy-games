@@ -97,7 +97,7 @@
   }
 
   window.AppAccess = { verify, allowed: () => state.allowed, state: () => ({ ...state, checking: Boolean(state.checking) }) };
-  const roomOrigins = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes', 'kingdoms'].map((key) => {
+  const roomOrigins = new Set(['quartet', 'bible-sketch', 'spy', 'twelve-tribes'].map((key) => {
     try { return new URL(document.querySelector(`meta[name="${key}-backend"]`)?.content).origin; } catch { return ''; }
   }));
   const baseFetch = window.fetch.bind(window);

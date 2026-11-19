@@ -121,30 +121,12 @@ try {
         await page.evaluate(()=>window.goToMainMenu());
         await page.waitForSelector('#menu-container:not(.hidden)');
       }
-      /*
-        «Моисей: путь по Ниле» открывается отдельной страницей во фрейме, и его
-        текст в #game-container не попадает — проверять надо внутри фрейма.
-        Именно там дольше всего и оставался русский: шапка игры была переведена,
-        а окно «Путь начинается» — нет.
-      */
-      await page.evaluate(()=>{window.showGame('moses-nile');});
-      await page.waitForFunction(()=>document.body.dataset.currentGame==='moses-nile');
-      const frame=await (await page.waitForSelector('#game-container iframe')).contentFrame();
-      /*
-        Ждём именно окно запуска: пустой кадр молча прошёл бы любую проверку на
-        русские буквы, и «перевод в порядке» значило бы «мерить было нечего».
-
-        Ждём разметку, а не видимость: окно показывается только когда доедет
-        трёхмерная сцена, а в headless её может не быть вовсе. Переводится же
-        сама разметка, и textContent читает её независимо от того, показана ли
-        она сейчас на экране.
-      */
-      await frame.waitForSelector('#start-screen .panel h1',{state:'attached',timeout:30000});
-      const nile=await frame.evaluate(()=>document.getElementById('start-screen').textContent);
-      check(nile.trim().length>=40,`${lang}/moses-nile: start screen is empty, nothing to audit`);
-      check(!/[А-Яа-яЁё]/.test(nile),`${lang}/moses-nile: untranslated content: ${nile.replace(/\s+/g,' ').slice(0,400)}`);
-      await page.evaluate(()=>window.goToMainMenu());
-      await page.waitForSelector('#menu-container:not(.hidden)');
+      await page.evaluate(() => window.showGame('moses-nile'));
+      const maintenance = page.locator('#moses-maintenance[open]');
+      await maintenance.waitFor();
+      const nile = await maintenance.textContent();
+      check(!/[А-Яа-яЁё]/.test(nile), `${lang}/moses-nile: untranslated notice: ${nile.trim()}`);
+      await maintenance.locator('button').click();
 
       await page.selectOption('#app-language','ru');
       await page.waitForFunction(()=>document.documentElement.dataset.languageReady==='ru');
