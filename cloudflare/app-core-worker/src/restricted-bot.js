@@ -10,9 +10,7 @@ export const RESTRICTED_BOT_TEXT = `⏸ Библейские игры време
 «Только всё должно быть благопристойно и чинно».
 <a href="https://www.bible-center.ru/ru/bibletext/synnew_ru/1co/14%3A40">1 Коринфянам 14:40</a>
 
-Синодальный перевод
-
-⭐ Поддержать проект можно командой /donate.`;
+Синодальный перевод`;
 
 export async function readTelegramWebhookUpdate(request, env) {
   const received = request.headers.get('X-Telegram-Bot-Api-Secret-Token') || '';

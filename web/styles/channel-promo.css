@@ -82,7 +82,7 @@
 .channel-promo__join:active,
 .channel-promo__later:active { transform: scale(.97); }
 
-/* --- кнопка в ряду с «Поддержать проект» ------------------------------------ */
+/* Кнопка канала в меню */
 
 .home-actions {
   display: flex;
@@ -92,8 +92,6 @@
   gap: 8px;
   margin: 3px auto 0;
 }
-
-.home-actions .home-support-trigger { margin: 0; }
 
 .home-channel-trigger {
   display: inline-flex;

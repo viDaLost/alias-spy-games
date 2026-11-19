@@ -30,10 +30,6 @@
     'moses-nile': `web/assets/icons/unified-v1/moses-nile.webp?v=${ICON_VERSION}`,
   };
 
-  const SUPPORT_URL = 'https://t.me/tribute/app?startapp=dPzg';
-  const SUPPORT_POSTER = 'web/assets/support-project.webp?v=3';
-  const SUPPORT_TEXT = `💙 Спасибо, что пользуетесь нашим проектом!\nНам очень приятно, что вы выбираете наши игры и проводите с ними время 😊\n\nМы продолжаем развивать проект: улучшаем уже существующие игры 🎮 и создаём новые ✨\n\nЕсли вам хочется поддержать нашу работу — будем искренне благодарны за любую помощь 💙\nВсе пожертвования помогают нам уделять больше времени развитию, улучшениям и созданию новых игр.\n\nСпасибо за вашу поддержку! 🥰💙\nБлагодаря вам проект может становиться лучше! ✨`;
-
   const HIDDEN_KEY = 'home_hidden_sections_v1';
   const ALLOWED_HIDDEN = new Set(['continue', 'recent', 'progress']);
   let lastSignature = '';
@@ -83,60 +79,9 @@
     if (typeof window.showGame === 'function') window.showGame(game.key);
   }
 
-  function openSupport() {
-    const modal = document.getElementById('home-support-modal');
-    if (!modal) return;
-    modal.classList.add('is-open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('home-support-modal-open');
-  }
-
-  function closeSupport() {
-    const modal = document.getElementById('home-support-modal');
-    if (!modal) return;
-    modal.classList.remove('is-open');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('home-support-modal-open');
-  }
-
-  function donate() {
-    try {
-      if (window.Telegram?.WebApp?.openTelegramLink) {
-        window.Telegram.WebApp.openTelegramLink(SUPPORT_URL);
-        return;
-      }
-    } catch {}
-    window.open(SUPPORT_URL, '_blank', 'noopener,noreferrer');
-  }
-
-  function ensureSupportModal() {
-    if (document.getElementById('home-support-modal')) return;
-    const modal = document.createElement('div');
-    modal.id = 'home-support-modal';
-    modal.className = 'home-support-modal';
-    modal.setAttribute('aria-hidden', 'true');
-    modal.innerHTML = `
-      <div class="home-support-modal__backdrop" data-support-close></div>
-      <section class="home-support-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="home-support-title">
-        <button type="button" class="home-support-modal__close" aria-label="Закрыть" data-support-close>×</button>
-        <div class="home-support-modal__scroll">
-          <img class="home-support-modal__poster" src="${SUPPORT_POSTER}" alt="Поддержи проект" loading="eager" decoding="async">
-          <div class="home-support-modal__body">
-            <h2 id="home-support-title">Поддержать проект 💙</h2>
-            <p>${escapeText(SUPPORT_TEXT).replace(/\n/g, '<br>')}</p>
-            <button type="button" class="home-support-modal__button" data-support-donate>ПОДДЕРЖАТЬ</button>
-          </div>
-        </div>
-      </section>`;
-    document.body.appendChild(modal);
-    modal.querySelectorAll('[data-support-close]').forEach((node) => node.addEventListener('click', closeSupport));
-    modal.querySelector('[data-support-donate]')?.addEventListener('click', donate);
-  }
-
   function render() {
     const menu = document.getElementById('menu-container');
     if (!menu || document.body.dataset.mode) return;
-    ensureSupportModal();
     const recent = history();
     const p = progress();
     const hidden = hiddenSections();
@@ -154,13 +99,6 @@
         <span class="home-continue__arrow" aria-hidden="true">→</span>
       </button>` : '';
     const recentHtml = recent.length ? `<div class="home-dashboard__label home-dashboard__label--recent${hiddenClass(hidden, 'recent')}">Недавние игры</div><div class="home-recent${hiddenClass(hidden, 'recent')}">${recent.map((title) => `<button type="button" class="home-recent__item" data-home-game="${escapeAttr(title)}">${escapeText(title)}</button>`).join('')}</div>` : '';
-    // Две кнопки в один ряд: поддержать проект и подписаться на канал.
-    // Канал живёт здесь, а не за дверью «Ещё»: за дверью его никто не найдёт,
-    // а объявления об обновлениях — единственная причина туда заглядывать.
-    const supportHtml = `<div class="home-actions">`
-      + `<button type="button" class="home-support-trigger" data-support-open aria-haspopup="dialog"><span class="home-support-trigger__heart">💙</span><span>Поддержать проект</span></button>`
-      + `<button type="button" class="home-channel-trigger" data-channel-open><span class="home-channel-trigger__icon"><img src="web/assets/icons/channel.webp?v=1" alt="" width="20" height="20" loading="lazy" decoding="async" draggable="false"></span><span>Канал обновлений</span></button>`
-      + `</div>`;
     dashboard.innerHTML = `
       ${continueHtml}${recentHtml}
       <div class="home-dashboard__label home-dashboard__label--progress${hiddenClass(hidden, 'progress')}">Ваш прогресс</div>
@@ -169,9 +107,10 @@
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.wow))}</strong><span class="home-progress__name">Монеты «Библейских слов»</span></div>
         <div class="home-progress__item"><strong class="home-progress__value">${Math.max(0, Math.round(p.sacred))}</strong><span class="home-progress__name">Уровень «Священного слова»</span></div>
       </div>
-      ${supportHtml}`;
+      <div class="home-actions">
+        <button type="button" class="home-channel-trigger" data-channel-open><span class="home-channel-trigger__icon"><img src="web/assets/icons/channel.webp?v=1" alt="" width="20" height="20" loading="lazy" decoding="async" draggable="false"></span><span>Канал обновлений</span></button>
+      </div>`;
     dashboard.querySelectorAll('[data-home-game]').forEach((node) => node.addEventListener('click', () => openGame(node.dataset.homeGame || '')));
-    dashboard.querySelector('[data-support-open]')?.addEventListener('click', openSupport);
     dashboard.querySelector('[data-channel-open]')?.addEventListener('click', () => window.ChannelPromo?.open?.());
     if (!existing) menu.prepend(dashboard);
     dashboard.dataset.contentReady = '1'; window.__homeControlsApply?.(); window.dispatchEvent(new CustomEvent('app:home-dashboard-ready'));
@@ -184,10 +123,6 @@
 
   function escapeText(value) { return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
   function escapeAttr(value) { return escapeText(value); }
-
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeSupport();
-  });
 
   const observer = new MutationObserver(scheduleRender);
   observer.observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:['data-mode'] });

@@ -25,7 +25,8 @@ function standaloneMarkup(html) {
   return html
     .replace(/\s*<style>html:not\(\.standalone-access-allowed\)[^<]*<\/style>/g, '')
     .replace(/\s*<script[^>]+standalone-app-access\.js[^>]*><\/script>/g, '')
-    .replace(/\s*<(?:link|script)[^>]+sabbath[-\/]([^>]+)>(?:<\/script>)?/g, '')
+    .replace(/(href|src)="sabbath\/(sabbath-[^"]+)"/g, (_, attribute, file) =>
+      `${attribute}="/web/${file.endsWith('.css') ? 'styles' : 'js'}/${file}"`)
     .replace(/\s*<script[^>]+src="https:\/\/telegram\.org[^"]+"[^>]*><\/script>/g, '')
     .replace(/type="application\/x-app-access" data-app-access-src=/g, 'src=')
     .replace('<head>', '<head>\n  <script src="/display-preferences.js"></script>\n  <link rel="stylesheet" href="/display-preferences.css">');
@@ -99,7 +100,6 @@ await Promise.all([
   compile([
     'web/js/game-card-details.js',
     'web/js/theme-switch.js',
-    'web/js/sabbath-clock.js',
     'web/js/app.js',
     'web/games/kids-ark-pairs.js',
     'web/games/biblical-match-three-progress.js',

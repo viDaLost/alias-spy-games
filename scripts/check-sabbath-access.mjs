@@ -25,9 +25,12 @@ for(const [tz,latitude,longitude] of cities){
     ok(new Date(start).getDay()===5,`${tz} sunset belongs to local Friday`);
     ok(Clock.state(start-1,place).allowed,`${tz} open until sunset`);
     ok(!Clock.state(start,place).allowed,`${tz} closes at sunset`);
-    ok(!Clock.state(start+Clock.dayMs-1,place).allowed,`${tz} closed until 24 hours`);
-    ok(Clock.state(start+Clock.dayMs,place).allowed,`${tz} opens exactly after 24 hours`);
-    const saturday=new Date(friday);saturday.setDate(saturday.getDate()+1);saturday.setHours(1);
+    const saturday=new Date(friday);saturday.setDate(saturday.getDate()+1);
+    const end=Clock.sunset(saturday,latitude,longitude);
+    ok(Number.isFinite(end),`${tz} ${date} Saturday sunset exists`);
+    ok(!Clock.state(end-1,place).allowed,`${tz} closed until Saturday sunset`);
+    ok(Clock.state(end,place).allowed,`${tz} opens exactly at Saturday sunset`);
+    saturday.setHours(1);
     ok(!Clock.state(+saturday,place).allowed,`${tz} Saturday morning still closed`);
     const sunday=new Date(friday);sunday.setDate(sunday.getDate()+2);
     ok(Clock.state(+sunday,place).allowed,`${tz} Sunday open`);
@@ -54,13 +57,15 @@ for(const [timeZone,latitude,longitude] of [...cities,['Europe/Berlin',52.5244,1
     process.env.TZ=timeZone;
     const base=Clock.state(Date.parse(iso),place);
     const fridayNoon=new Date(iso.slice(0,10)+'T12:00:00');
+    const saturdayNoon=new Date(+fridayNoon+Clock.dayMs);
     for(const deviceZone of ['UTC','Asia/Tokyo','America/Los_Angeles']) {
       process.env.TZ=deviceZone;
       const actual=Clock.state(Date.parse(iso),place);
       ok(actual.start===base.start&&actual.end===base.end&&actual.allowed===base.allowed,'selected city ignores device zone: '+timeZone+' / '+deviceZone);
       const start=Clock.sunset(fridayNoon,latitude,longitude,timeZone);
       ok(Clock.state(start-1,place).allowed&&!Clock.state(start,place).allowed,'selected-city sunset boundary');
-      ok(!Clock.state(start+Clock.dayMs-1,place).allowed&&Clock.state(start+Clock.dayMs,place).allowed,'selected-city exact 24h boundary');
+      const end=Clock.sunset(saturdayNoon,latitude,longitude,timeZone);
+      ok(Clock.state(start,place).end===end&&!Clock.state(end-1,place).allowed&&Clock.state(end,place).allowed,'selected-city Saturday sunset boundary');
     }
   }
 }
@@ -94,13 +99,13 @@ async function search(p,query) {
 }
 {
   const p=await page({loadApp:true,legacy:true});
-  ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Moscow','Moscow is the default without any setup');
+  ok(p.w.SabbathAccess.status().city.timeZone==='Europe/Moscow'&&!p.w.SabbathAccess.status().citySelected,'Moscow is the default until explicitly selected');
   ok(!p.w.localStorage.getItem('sabbath-device-location-v1'),'legacy device coordinates deleted');
   for(const game of Clock.GAME_IDS){ok(!p.w.SabbathAccess.authorize(game),`${game} blocked`);if(!['biblical-match-three','moses-nile'].includes(game))p.w.showGame(game);ok(!p.w.document.querySelector('iframe'),`${game} does not launch behind dialog`);}
-  ok(p.w.document.getElementById('sabbath-dialog').textContent.includes('24 часа'),'pause explains exact duration');
+  ok(p.w.document.getElementById('sabbath-dialog').textContent.includes('до субботнего заката'),'pause explains Saturday sunset');
   for(const game of ['alias','spy','quartet','bible-geography'])ok(p.w.SabbathAccess.authorize(game),`${game} unaffected`);
   p.setTime(p.w.SabbathAccess.status().end);p.w.SabbathAccess.refresh();
-  ok(p.w.SabbathAccess.authorize('kids-ark-pairs'),'unlocks after 24h without coordinates or permission');
+  ok(p.w.SabbathAccess.authorize('kids-ark-pairs'),'unlocks at Saturday sunset without device coordinates or permission');
   ok(p.requests.length===0,'startup, boundaries and game entry do not send city or location data');p.close();
 }
 {
@@ -111,6 +116,8 @@ async function search(p,query) {
   ok(choices.map(x=>x.textContent).join(',')==='Москва,Берлин,Киев','three fast city choices');
   choices[1].click();const saved=JSON.parse(p.w.localStorage.getItem(KEY));
   ok(saved.timeZone==='Europe/Berlin'&&p.requests.length===0,'preset selection is offline and saved locally');
+  ok(p.w.SabbathAccess.status().citySelected,'explicit selection is distinct from the default');
+  ok(p.w.document.querySelectorAll('.sabbath-schedule dd').length===2,'the picker displays both sunset times after selection');
   const next=await page({city:saved});ok(next.w.SabbathAccess.status().city.timeZone==='Europe/Berlin','city preference survives reopening');next.close();p.close();
 }
 {
@@ -202,7 +209,7 @@ async function search(p,query) {
   const p=await page({now:'2026-10-14T23:00Z',loadApp:true,city:Clock.CITIES[1]});
   p.w.showGame('promised-land');const frame=p.w.document.querySelector('iframe');let reply;frame.contentWindow.postMessage=data=>{reply=data;};
   p.w.dispatchEvent(new p.w.MessageEvent('message',{source:frame.contentWindow,origin:p.w.location.origin,data:{type:'sabbath:request',game:'promised-land'}}));
-  ok(reply?.allowed&&reply.city.timeZone==='Europe/Berlin'&&reply.nextChange===p.w.SabbathAccess.status().start,'embedded game receives selected city and actual Friday boundary');
+  ok(reply?.allowed&&reply.citySelected&&reply.city.timeZone==='Europe/Berlin'&&reply.nextChange===p.w.SabbathAccess.status().start,'embedded game receives selected city and actual Friday boundary');
   reply=undefined;p.w.dispatchEvent(new p.w.MessageEvent('message',{source:p.w,origin:'https://untrusted.invalid',data:{type:'sabbath:request',game:'promised-land'}}));ok(!reply,'untrusted frames cannot use the city bridge');p.close();
 }
 for(const url of ['/js/sabbath-clock.js','/js/sabbath-access.js','/styles/sabbath-access.css']) {
@@ -212,4 +219,4 @@ const android=fs.readFileSync('android-app/app/src/main/java/com/vidalost/bibleg
 const manifest=fs.readFileSync('android-app/app/src/main/AndroidManifest.xml','utf8');
 ok(!/ACCESS_(?:FINE|COARSE)_LOCATION|onGeolocationPermissions|setGeolocationEnabled|requestLocation|locationLauncher/.test(android+manifest),'Android location permissions and request plumbing removed');
 ok(!/navigator\.(?:geolocation|permissions)|LocationManager|open-meteo|requestPermission/.test(accessSource),'controller has no location API or external geocoder');
-console.log(`Sabbath city access: ${assertions} assertions passed (worldwide offline search, zero location permissions, privacy, selected time zones, exact 24h and game cleanup).`);
+console.log(`Sabbath city access: ${assertions} assertions passed (worldwide offline search, zero location permissions, privacy, selected time zones, both local sunset boundaries and game cleanup).`);

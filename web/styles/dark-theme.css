@@ -915,30 +915,6 @@ html.theme-dark .home-progress__value {
 html.theme-dark .home-progress__name {
   color: #6c7484 !important;
 }
-html.theme-dark .home-support-trigger {
-  border: 2px solid #d5941a !important;
-  background: linear-gradient(180deg, #0c4cbe, #3365db) !important;
-}
-html.theme-dark .home-support-modal__dialog {
-  border: 1px solid rgba(20, 20, 20, 0.72) !important;
-  background: linear-gradient(145deg, #071828, #091832) !important;
-}
-html.theme-dark .home-support-modal__close {
-  border: 1px solid rgba(20, 20, 20, 0.85) !important;
-}
-html.theme-dark .home-support-modal__poster {
-  background: #0b1d3c !important;
-}
-html.theme-dark .home-support-modal__body h2 {
-  color: #5a80e6 !important;
-}
-html.theme-dark .home-support-modal__body p {
-  color: #8e9db3 !important;
-}
-html.theme-dark .home-support-modal__button {
-  border: 2px solid #d39218 !important;
-  background: linear-gradient(180deg, #0d52c9, #214fc4) !important;
-}
 html.theme-dark .menu-section-title {
   color: #73839a !important;
 }
