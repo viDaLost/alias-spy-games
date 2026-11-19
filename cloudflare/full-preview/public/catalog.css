@@ -544,7 +544,7 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-game a, #favorites-dialog-games .catalog-game a { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; align-items: start; }
   .catalog-game-copy { padding-right: 0; }
 }
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   .catalog-top {
     gap: 6px;
     padding: 5px;
@@ -576,8 +576,8 @@ html[data-full-preview] body:not([data-mode="game"]) {
   .catalog-hero-copy h2 { font-size: clamp(35px, 10vw, 52px); }
 }
 @media (max-width: 360px) {
-  .catalog { padding-inline: 8px; }
-  .catalog-top { gap: 4px; padding: 3px; }
-  .catalog-tools { gap: 3px; }
+  .catalog { padding-inline: 6px; }
+  .catalog-top { gap: 3px; padding: 3px; }
+  .catalog-tools { gap: 2px; }
   .catalog-game strong { font-size: 14px; }
 }
