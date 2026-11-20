@@ -7,6 +7,9 @@
   if (!documentRoot.hasAttribute('data-full-preview') && !documentRoot.hasAttribute('data-game-catalog')) return;
   documentRoot.dataset.gameCatalog = '';
   const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const limitedDevice = Boolean(navigator.connection?.saveData
+    || (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4)
+    || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 4));
   let preferences;
 
   function read() {
@@ -50,6 +53,7 @@
     set,
     lowGraphics: () => preferences.graphics === 'low',
     reducedMotion: () => preferences.animations === 'low' || reduceMotion?.matches === true,
+    staticMenu: () => preferences.graphics === 'low' || (limitedDevice && preferences.graphics !== 'high'),
     pixelRatio,
   });
 })();

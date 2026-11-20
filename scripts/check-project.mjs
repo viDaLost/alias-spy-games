@@ -145,6 +145,7 @@ const dynamicPublishedFiles = new Set([
   'web/assets/home-gamehub-parallax-v1/03-architecture.webp',
   'web/assets/home-gamehub-parallax-v1/04-game-icons.webp',
   'web/assets/home-gamehub-parallax-v1/05-game-library.webp',
+  'web/assets/home-gamehub-parallax-v1/menu-still.webp',
   'web/assets/startup-loader/portal-01.webp',
 ]);
 
