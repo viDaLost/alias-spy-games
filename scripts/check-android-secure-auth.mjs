@@ -9,6 +9,7 @@ const reject = (text, needle, label) => {
 };
 
 const app = read('android-app/app/src/main/java/com/vidalost/biblegames/App.kt');
+const login = read('android-app/app/src/main/java/com/vidalost/biblegames/LoginScreen.kt');
 const main = read('android-app/app/src/main/java/com/vidalost/biblegames/MainActivity.kt');
 const parityShell = read('android-app/app/src/main/java/com/vidalost/biblegames/AndroidParityApp.kt');
 const cloud = read('android-app/app/src/main/java/com/vidalost/biblegames/data/CloudRepository.kt');
@@ -24,12 +25,12 @@ const assetSync = read('scripts/sync-android-assets.mjs');
 const androidRuntime = read('web/js/android-runtime.js');
 const backendBridge = read('web/js/backend-bridge.js');
 
-need(app, 'requestLoginCode(id)', 'login does not request a Telegram ownership code');
-need(app, 'verifyLoginCode(current, code)', 'login does not verify the Telegram code');
+need(login, 'requestLoginCode(id)', 'login does not request a Telegram ownership code');
+need(login, 'verifyLoginCode(current, code)', 'login does not verify the Telegram code');
 need(app, 'sessionStore.save(id, token, expiresAt)', 'verified bearer is not persisted securely');
 need(app, 'AuthSessionInvalid', 'expired/revoked sessions are not handled');
 need(app, 'clearVerifiedSession()', 'invalid session does not force a fresh verified login');
-need(app, 'TELEGRAM_BOT_USERNAME = "bibleiskie_bot"', 'verification bot link is not explicit');
+need(login, 'TELEGRAM_BOT_USERNAME = "bibleiskie_bot"', 'verification bot link is not explicit');
 reject(app, 'ADMIN_ID', 'Android still special-cases the administrator account');
 reject(app, 'Вход администратора через Android недоступен', 'Android still blocks the administrator account');
 need(main, 'AndroidSessionStore(applicationContext)', 'bearer is not restored before access checks');
@@ -47,7 +48,7 @@ need(parityShell, '.setHttpAllowed(false)', 'local asset loader permits cleartex
 reject(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android auth shell still impersonates GitHub Pages');
 reject(parityShell, 'https://vidalost.github.io', 'Android auth shell still contains a GitHub Pages runtime URL');
 reject(parityShell, 'nativeFallback', 'signed-in sessions can still enter divergent native games');
-need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle cleanup can still destroy the instance during startup');
+need(parityShell, 'onRelease = ::releaseWebView', 'WebView cleanup must follow the container lifecycle');
 reject(parityShell, 'DisposableEffect(webView)', 'WebView cleanup is incorrectly keyed by the WebView instance');
 need(assetSync, "['index.html', 'index.html']", 'APK bundle does not include index.html');
 need(assetSync, "['web', 'web']", 'APK bundle does not include the production web tree');
@@ -84,7 +85,7 @@ need(core, "request.headers.get('CF-Connecting-IP')", 'auth request rate limit i
 need(core, 'if (begin.existing)', 'retrying a lost code-request response can send a second Telegram code');
 need(core, "url.pathname === '/android/room-relay'", 'Android room relay route missing');
 need(core, 'ANDROID_ROOM_BACKENDS', 'room relay backend allowlist missing');
-need(cloud, 'authRequestClient', 'login code request still waits on long access retry timeouts');
+need(cloud, 'executeSmallJsonWithRetry(request, retryServerErrors = false)', 'code request does not retry an ambiguous failure with the same challenge');
 need(cloud, 'postRoomViaCore', 'room requests have no core relay fallback');
 reject(core, 'Вход администратора через Android недоступен', 'backend still blocks the administrator account on Android');
 
@@ -107,8 +108,8 @@ reject(presence, 'androidUserId=$userId', 'presence identity is still selected b
 need(observability, '/android/auth/me', 'presence worker does not resolve bearer identity through core');
 need(observability, "headers.set('X-App-User-Id', androidUserId)", 'verified presence identity is not propagated internally');
 
-need(gradle, "versionName '3.0.14-standalone'", 'secure auth release version is not current');
-need(gradle, 'versionCode 41', 'secure auth versionCode is not current');
+need(gradle, "versionName '3.0.15-standalone'", 'secure auth release version is not current');
+need(gradle, 'versionCode 42', 'secure auth versionCode is not current');
 need(gradle, "implementation 'androidx.webkit:webkit:1.14.0'", 'Kotlin-compatible local WebView asset dependency is missing');
 
-console.log('Android 3.0.14 ownership, encrypted bearer session, authenticated social API and standalone appassets security checks passed without GitHub Pages runtime dependency.');
+console.log('Android 3.0.15 ownership, encrypted bearer session, authenticated social API and standalone appassets security checks passed without GitHub Pages runtime dependency.');

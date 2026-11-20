@@ -1,13 +1,10 @@
 package com.vidalost.biblegames
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,13 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,10 +54,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,9 +65,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.vidalost.biblegames.data.AppPresenceClient
 import com.vidalost.biblegames.data.AssetRepository
 import com.vidalost.biblegames.data.CloudRepository
-import com.vidalost.biblegames.data.AndroidAuthChallenge
 import com.vidalost.biblegames.data.AndroidSessionStore
-import com.vidalost.biblegames.data.AuthBotStartRequired
 import com.vidalost.biblegames.data.AuthSessionInvalid
 import com.vidalost.biblegames.games.GameHost
 import com.vidalost.biblegames.model.GameKey
@@ -104,8 +91,6 @@ private const val HISTORY_KEY = "last_games"
 private const val RECENT_HIDDEN_KEY = "recent_games_hidden"
 private const val ACCESS_POLL_MS = 3_000L
 private const val ACCESS_RETRY_MS = 900L
-private const val TELEGRAM_BOT_USERNAME = "bibleiskie_bot"
-private const val TELEGRAM_ID_HELP_BOT_USERNAME = "userinfobot"
 private fun profileKey(userId: String, field: String) = "profile_${userId}_$field"
 private fun banKey(userId: String) = "profile_${userId}_banned"
 
@@ -320,8 +305,8 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
             !signedIn -> LoginScreen(
                 cloud = cloud,
                 onLogin = { id, token, expiresAt ->
-                    cloud.setSessionToken(token)
                     sessionStore.save(id, token, expiresAt)
+                    cloud.setSessionToken(token)
                     prefs.edit().putString(ID_KEY, id).apply()
                     userId = id
                 },
@@ -353,177 +338,6 @@ fun BibleGamesApp(assets: AssetRepository, cloud: CloudRepository) {
                 onLogout = ::logout,
                 onSupport = { supportOpen = true },
             )
-        }
-    }
-}
-
-@Composable
-private fun LoginScreen(
-    cloud: CloudRepository,
-    onLogin: (String, String, Long) -> Unit,
-) {
-    val context = LocalContext.current
-    val focus = LocalFocusManager.current
-    val scope = rememberCoroutineScope()
-    var id by rememberSaveable { mutableStateOf("") }
-    var code by rememberSaveable { mutableStateOf("") }
-    var challenge by remember { mutableStateOf<AndroidAuthChallenge?>(null) }
-    var error by rememberSaveable { mutableStateOf<String?>(null) }
-    var info by rememberSaveable { mutableStateOf<String?>(null) }
-    var busy by rememberSaveable { mutableStateOf(false) }
-
-    fun validId(): Boolean {
-        focus.clearFocus()
-        error = when {
-            !id.matches(Regex("^[0-9]{5,20}$")) -> "Введите числовой Telegram ID (от 5 до 20 цифр)."
-            else -> null
-        }
-        return error == null
-    }
-
-    fun requestCode() {
-        if (!validId() || busy) return
-        busy = true
-        error = null
-        info = null
-        challenge = null
-        code = ""
-        scope.launch {
-            cloud.requestLoginCode(id).onSuccess {
-                challenge = it
-                info = if (it.deliveryConfirmed) {
-                    "Код отправлен в @$TELEGRAM_BOT_USERNAME. Введите 6 цифр из сообщения бота."
-                } else {
-                    "Если код уже пришёл в @$TELEGRAM_BOT_USERNAME, введите 6 цифр ниже. Ответ сервера потерялся, но полученный код можно подтвердить."
-                }
-            }.onFailure { cause ->
-                error = if (cause is AuthBotStartRequired) {
-                    "Откройте @$TELEGRAM_BOT_USERNAME, нажмите Start и запросите код ещё раз."
-                } else {
-                    cause.message ?: "Не удалось отправить код"
-                }
-            }
-            busy = false
-        }
-    }
-
-    fun verifyCode() {
-        val current = challenge ?: run {
-            error = "Сначала запросите код в Telegram."
-            return
-        }
-        if (!code.matches(Regex("^\\d{6}$"))) {
-            error = "Введите шестизначный код из Telegram."
-            return
-        }
-        if (busy) return
-        busy = true
-        error = null
-        scope.launch {
-            cloud.verifyLoginCode(current, code).onSuccess { session ->
-                onLogin(session.userId, session.token, session.expiresAt)
-            }.onFailure { cause ->
-                error = cause.message ?: "Код не подтверждён"
-            }
-            busy = false
-        }
-    }
-
-    AppBackground {
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(22.dp, 34.dp, 22.dp, 38.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            item {
-                Surface(Modifier.size(92.dp), RoundedCornerShape(28.dp), color = Color.White, shadowElevation = 12.dp) {
-                    Box(Modifier.background(Brush.linearGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0F7FF)))), contentAlignment = Alignment.Center) {
-                        Text("📖", fontSize = 47.sp)
-                    }
-                }
-                Spacer(Modifier.height(18.dp))
-                Text("Библейские игры", color = Color(0xFF25236E), fontSize = 31.sp, fontWeight = FontWeight.Black, textAlign = TextAlign.Center)
-                Text("Безопасный вход через Telegram", color = InkSoft, fontSize = 15.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Spacer(Modifier.height(24.dp))
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Text("Подтвердите свой Telegram", color = Color(0xFF312E81), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                    Spacer(Modifier.height(9.dp))
-                    Text(
-                        "Telegram ID нужен, чтобы загрузить ваш профиль, прогресс и историю игр. Свой числовой ID можно узнать у @$TELEGRAM_ID_HELP_BOT_USERNAME. Код подтверждения придёт в @$TELEGRAM_BOT_USERNAME.",
-                        color = InkSoft,
-                        lineHeight = 21.sp,
-                    )
-                    Spacer(Modifier.height(15.dp))
-                    OutlinedTextField(
-                        value = id,
-                        onValueChange = { value ->
-                            id = value.filter(Char::isDigit).take(20)
-                            challenge = null
-                            code = ""
-                            error = null
-                            info = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !busy,
-                        label = { Text("Telegram ID") },
-                        placeholder = { Text("Например: 123456789") },
-                        singleLine = true,
-                        isError = error != null,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Indigo, unfocusedBorderColor = Color(0xFFC7D2FE)),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    PrimaryButton(
-                        if (busy && challenge == null) "Отправляем…" else "Получить код в Telegram",
-                        ::requestCode,
-                        Modifier.fillMaxWidth(),
-                        icon = "✉",
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    com.vidalost.biblegames.ui.SecondaryButton(
-                        "Где узнать Telegram ID",
-                        { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_ID_HELP_BOT_USERNAME"))) },
-                        Modifier.fillMaxWidth(),
-                        icon = "?",
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    com.vidalost.biblegames.ui.SecondaryButton(
-                        "Открыть @$TELEGRAM_BOT_USERNAME",
-                        { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$TELEGRAM_BOT_USERNAME?start=android_login"))) },
-                        Modifier.fillMaxWidth(),
-                        icon = "↗",
-                    )
-                    if (challenge != null) {
-                        Spacer(Modifier.height(14.dp))
-                        OutlinedTextField(
-                            value = code,
-                            onValueChange = { value -> code = value.filter(Char::isDigit).take(6); error = null },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !busy,
-                            label = { Text("Код из Telegram") },
-                            placeholder = { Text("000000") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(onDone = { verifyCode() }),
-                            shape = RoundedCornerShape(18.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Indigo, unfocusedBorderColor = Color(0xFFC7D2FE)),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        PrimaryButton(if (busy) "Проверяем…" else "Подтвердить и войти", ::verifyCode, Modifier.fillMaxWidth(), icon = "✓")
-                    }
-                    info?.let {
-                        Spacer(Modifier.height(10.dp))
-                        Text(it, color = Color(0xFF047857), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    error?.let {
-                        Spacer(Modifier.height(10.dp))
-                        Text(it, color = Color(0xFFB91C1C), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-                Spacer(Modifier.height(13.dp))
-                Text("Код действует 10 минут.", color = InkSoft, textAlign = TextAlign.Center, fontSize = 12.sp)
-            }
         }
     }
 }

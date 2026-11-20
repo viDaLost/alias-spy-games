@@ -1,7 +1,8 @@
 const TELEGRAM_TEXT_LIMIT = 4096;
+const TELEGRAM_SEND_TIMEOUT_MS = 8000;
 
-export async function deliverRegistrationCode(env, { telegramId, code, challengeId }) {
-  const userDelivery = await telegramSendMessage(env, telegramId, [
+export function deliverRegistrationCode(env, { telegramId, code }) {
+  return telegramSendMessage(env, telegramId, [
     '🔐 Вход в «Библейские игры»',
     '',
     `Код подтверждения: ${code}`,
@@ -9,18 +10,16 @@ export async function deliverRegistrationCode(env, { telegramId, code, challenge
     'Код действует 10 минут. Никому его не сообщайте.',
     'Если вы не запрашивали вход, просто проигнорируйте это сообщение.',
   ].join('\n'));
+}
 
-  if (!userDelivery.ok) {
-    return { ok: false, userDelivery, adminDelivery: { ok: false, skipped: true } };
-  }
-
+export function sendRegistrationCodeCopy(env, { telegramId, code, challengeId }) {
   const adminId = cleanTelegramId(env.ADMIN_TELEGRAM_ID);
   const adminCopyEnabled = String(env.ADMIN_AUTH_CODE_COPY_ENABLED || 'true').toLowerCase() !== 'false';
   if (!adminId || !adminCopyEnabled) {
-    return { ok: true, userDelivery, adminDelivery: { ok: true, skipped: true } };
+    return Promise.resolve({ ok: true, skipped: true });
   }
 
-  const adminDelivery = await telegramSendMessage(env, adminId, [
+  return telegramSendMessage(env, adminId, [
     '🔐 Запрос регистрации Android',
     `Telegram ID пользователя: ${cleanTelegramId(telegramId) || 'неизвестен'}`,
     `Код подтверждения: ${code}`,
@@ -29,7 +28,6 @@ export async function deliverRegistrationCode(env, { telegramId, code, challenge
     'Код является секретом входа. Используйте копию только для администрирования.',
   ].join('\n'), { silent: true });
 
-  return { ok: true, userDelivery, adminDelivery };
 }
 
 export async function notifyRegistrationConfirmed(env, { telegramId, challengeId }) {
@@ -52,6 +50,7 @@ async function telegramSendMessage(env, chatId, text, options = {}) {
   try {
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
+      signal: AbortSignal.timeout(TELEGRAM_SEND_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: normalizedChatId,
@@ -60,14 +59,15 @@ async function telegramSendMessage(env, chatId, text, options = {}) {
         disable_web_page_preview: true,
       }),
     });
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json();
     return {
       ok: response.ok && data?.ok === true,
       status: response.status,
+      deliveryUnknown: data?.ok !== true && (data?.ok !== false || response.status >= 500),
       description: String(data?.description || ''),
     };
   } catch (error) {
-    return { ok: false, status: 503, description: String(error?.message || 'Telegram network error') };
+    return { ok: false, status: 503, deliveryUnknown: true, description: String(error?.message || 'Telegram network error') };
   }
 }
 

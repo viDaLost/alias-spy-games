@@ -1,6 +1,6 @@
 import core from './index-v3.js';
 import { AndroidAuthUserStore } from './android-auth-user-store.js';
-import { deliverRegistrationCode, notifyRegistrationConfirmed } from './auth-notifications.js';
+import { deliverRegistrationCode, notifyRegistrationConfirmed, sendRegistrationCodeCopy } from './auth-notifications.js';
 
 export class UserStore extends AndroidAuthUserStore {}
 
@@ -25,10 +25,10 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
     if (url.pathname === '/android/auth/request' && request.method === 'POST') {
-      return handleAndroidAuthRequest(request, env, cors);
+      return handleAndroidAuthRequest(request, env, ctx, cors);
     }
     if (url.pathname === '/android/auth/verify' && request.method === 'POST') {
-      return handleAndroidAuthVerify(request, env, cors);
+      return handleAndroidAuthVerify(request, env, ctx, cors);
     }
     if (url.pathname === '/android/auth/me' && request.method === 'GET') {
       return handleAndroidAuthMe(request, env, cors);
@@ -227,7 +227,7 @@ async function handleAndroidRoomRelay(request, env, cors) {
   }
 }
 
-async function handleAndroidAuthRequest(request, env, cors) {
+async function handleAndroidAuthRequest(request, env, ctx, cors) {
   try {
     if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
     if (!env.TELEGRAM_BOT_TOKEN) throw httpError(500, 'Telegram secret is not configured');
@@ -246,43 +246,40 @@ async function handleAndroidAuthRequest(request, env, cors) {
     const store = env.USERS.get(env.USERS.idFromName('global'));
     const begin = await callStore(store, '/android-auth/begin', { challengeId, telegramId, codeHash, requestKey, expiresAt });
 
-    if (begin.existing) {
-      return json({
-        success: true,
-        challengeId,
-        expiresInSeconds: Math.max(1, Math.floor((Number(begin.expiresAt || expiresAt) - Date.now()) / 1000)),
-        reused: true,
-      }, 200, cors);
-    }
+    const challengeResponse = (deliveryConfirmed) => json({
+      success: true,
+      challengeId,
+      expiresInSeconds: Math.max(1, Math.floor((Number(begin.expiresAt || expiresAt) - Date.now()) / 1000)),
+      deliveryConfirmed,
+    }, 200, cors);
 
-    const delivery = await deliverRegistrationCode(env, { telegramId, code, challengeId });
+    if (begin.existing) return challengeResponse(begin.deliveryConfirmed === true);
+
+    const delivery = await deliverRegistrationCode(env, { telegramId, code });
     if (!delivery.ok) {
+      if (delivery.deliveryUnknown) return challengeResponse(false);
       await callStore(store, '/android-auth/drop', { challengeId }).catch(() => {});
-      const botUsername = await telegramBotUsername(env).catch(() => '');
-      const needsStart = delivery.userDelivery.status === 400 || delivery.userDelivery.status === 403;
+      const needsStart = delivery.status === 403
+        || (delivery.status === 400 && /chat not found/i.test(delivery.description));
       return json({
         success: false,
         code: needsStart ? 'BOT_START_REQUIRED' : 'TELEGRAM_DELIVERY_FAILED',
         requiresBotStart: needsStart,
-        botUsername,
         error: needsStart
-          ? 'Бот пока не может написать вам. Откройте бота, нажмите Start и запросите код ещё раз.'
+          ? 'Откройте бота, нажмите «Старт» и запросите код ещё раз. Проверьте, что Telegram ID указан верно.'
           : 'Не удалось отправить код в Telegram. Попробуйте ещё раз.',
       }, needsStart ? 409 : 502, cors);
     }
 
-    return json({
-      success: true,
-      challengeId,
-      expiresInSeconds: Math.floor(ANDROID_AUTH_CODE_TTL_MS / 1000),
-      adminCopyDelivered: delivery.adminDelivery.ok === true && delivery.adminDelivery.skipped !== true,
-    }, 200, cors);
+    ctx.waitUntil(sendRegistrationCodeCopy(env, { telegramId, code, challengeId }));
+    await callStore(store, '/android-auth/delivered', { challengeId }).catch(() => {});
+    return challengeResponse(true);
   } catch (error) {
     return json({ success: false, error: String(error?.message || 'Не удалось запросить код') }, Number(error?.status || 500), cors);
   }
 }
 
-async function handleAndroidAuthVerify(request, env, cors) {
+async function handleAndroidAuthVerify(request, env, ctx, cors) {
   try {
     if (!isAllowedOrigin(request, env)) throw httpError(403, 'Origin not allowed');
     if (!env.TELEGRAM_BOT_TOKEN) throw httpError(500, 'Telegram secret is not configured');
@@ -310,14 +307,13 @@ async function handleAndroidAuthVerify(request, env, cors) {
     });
     if (String(result.userId || '') !== telegramId) throw httpError(403, 'Telegram ID не совпадает с кодом');
     const access = await callStore(store, '/access', { id: telegramId });
-    const adminConfirmation = await notifyRegistrationConfirmed(env, { telegramId, challengeId });
+    ctx.waitUntil(notifyRegistrationConfirmed(env, { telegramId, challengeId }));
     return json({
       success: true,
       userId: String(result.userId || ''),
       token,
       expiresAt: Number(result.expiresAt || sessionExpiresAt),
       isBanned: Boolean(access.isBanned),
-      adminConfirmationDelivered: adminConfirmation.ok === true && adminConfirmation.skipped !== true,
       source: 'telegram-code-session',
     }, 200, cors);
   } catch (error) {
@@ -365,13 +361,6 @@ function androidBearerToken(request) {
   const header = String(request.headers.get('Authorization') || '');
   const match = header.match(/^Bearer\s+(bgs_[A-Za-z0-9_-]{40,80})$/i);
   return match ? match[1] : '';
-}
-
-async function telegramBotUsername(env) {
-  const response = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/getMe`);
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data?.ok !== true) return '';
-  return String(data?.result?.username || '').replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 64);
 }
 
 async function authHmacHex(secret, value) {

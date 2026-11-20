@@ -41,7 +41,6 @@ private data class SmallJsonResponse(
 )
 
 class AuthBotStartRequired(
-    val botUsername: String,
     message: String,
 ) : IOException(message)
 
@@ -68,19 +67,6 @@ class CloudRepository(initialSessionToken: String = "") {
         .readTimeout(16, TimeUnit.SECONDS)
         .writeTimeout(16, TimeUnit.SECONDS)
         .pingInterval(20, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(true)
-        .build()
-
-    /** Login code delivery must not keep the user on the sending screen while
-     * Telegram has already delivered the OTP. This short HTTP/1.1 request waits
-     * only long enough to surface fast server-side validation errors. If the
-     * response is lost, requestLoginCode returns the locally owned challenge id. */
-    private val authRequestClient: OkHttpClient = OkHttpClient.Builder()
-        .protocols(listOf(Protocol.HTTP_1_1))
-        .connectTimeout(3, TimeUnit.SECONDS)
-        .readTimeout(3, TimeUnit.SECONDS)
-        .writeTimeout(3, TimeUnit.SECONDS)
-        .callTimeout(4, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
 
@@ -161,18 +147,15 @@ class CloudRepository(initialSessionToken: String = "") {
                 .header("Cache-Control", "no-store")
                 .header("User-Agent", "BibleGames-Android/2.9.1 Native")
                 .build()
-            val response = authRequestClient.newCall(request).execute().use { http ->
-                val payload = http.body?.string().orEmpty()
-                SmallJsonResponse(
-                    status = http.code,
-                    json = runCatching { JSONObject(payload) }.getOrNull(),
-                )
-            }
+            val response = executeSmallJsonWithRetry(request, retryServerErrors = false)
             val json = response.json
-            if (response.status !in 200..299 || json == null || !json.optBoolean("success", false)) {
-                val message = json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Не удалось отправить код"
-                if (json?.optBoolean("requiresBotStart", false) == true) {
-                    throw AuthBotStartRequired(json.optString("botUsername", ""), message)
+            if (json == null || !json.has("success")) {
+                throw IOException("Не удалось подтвердить отправку кода")
+            }
+            if (response.status !in 200..299 || !json.optBoolean("success", false)) {
+                val message = json.optString("error").ifBlank { "Не удалось отправить код" }
+                if (json.optBoolean("requiresBotStart", false)) {
+                    throw AuthBotStartRequired(message)
                 }
                 throw AuthRequestRejected(message)
             }
@@ -180,15 +163,13 @@ class CloudRepository(initialSessionToken: String = "") {
                 telegramId = id,
                 challengeId = json.optString("challengeId", challengeId).ifBlank { challengeId },
                 expiresInSeconds = json.optInt("expiresInSeconds", 600),
-                deliveryConfirmed = true,
+                deliveryConfirmed = json.optBoolean("deliveryConfirmed", true),
             )
         }.recoverCatching { cause ->
             if (cause is AuthBotStartRequired || cause is AuthRequestRejected) throw cause
             if (cause is IOException) {
-                // A lost response must not hide the code field. If the server already
-                // sent the Telegram message, the locally known challenge id is enough
-                // to verify it. If the request never arrived, no code will arrive and
-                // the player can simply request another one.
+                // The server may have sent the message before both replies were lost.
+                // The original challenge still lets Android verify that code.
                 AndroidAuthChallenge(
                     telegramId = id,
                     challengeId = challengeId,
@@ -341,7 +322,10 @@ class CloudRepository(initialSessionToken: String = "") {
         )
     }
 
-    private suspend fun executeSmallJsonWithRetry(request: Request): SmallJsonResponse {
+    private suspend fun executeSmallJsonWithRetry(
+        request: Request,
+        retryServerErrors: Boolean = true,
+    ): SmallJsonResponse {
         val clients = listOf(accessClient, accessFallbackClient)
         var lastFailure: IOException? = null
         for ((index, http) in clients.withIndex()) {
@@ -349,7 +333,10 @@ class CloudRepository(initialSessionToken: String = "") {
                 http.newCall(request).execute().use { response ->
                     val payload = response.body?.string().orEmpty()
                     val json = runCatching { JSONObject(payload) }.getOrNull()
-                    val shouldRetry = index < clients.lastIndex && (response.code >= 500 || (response.isSuccessful && json == null))
+                    val shouldRetry = index < clients.lastIndex && (
+                        if (retryServerErrors) response.code >= 500 || (response.isSuccessful && json == null)
+                        else json?.has("success") != true
+                    )
                     if (!shouldRetry) return SmallJsonResponse(response.code, json)
                     lastFailure = IOException(json?.optString("error")?.takeIf { it.isNotBlank() } ?: "Сервер временно недоступен")
                 }
@@ -360,7 +347,7 @@ class CloudRepository(initialSessionToken: String = "") {
             if (index < clients.lastIndex) delay(220)
         }
         throw IOException(
-            "Не удалось связаться с сервером. Проверьте интернет или VPN — приложение повторит проверку автоматически.",
+            "Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз.",
             lastFailure,
         )
     }

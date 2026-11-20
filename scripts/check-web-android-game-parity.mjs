@@ -44,7 +44,7 @@ const sorted = (values) => [...values].sort();
 assert(JSON.stringify(sorted(webRoutes)) === JSON.stringify(sorted(expectedWebRoutes)), `unexpected Web routes: ${sorted(webRoutes).join(', ')}`);
 assert(JSON.stringify(sorted(androidRoutes)) === JSON.stringify(sorted(expectedNativeRoutes)), `unexpected packaged Android routes: ${sorted(androidRoutes).join(', ')}`);
 
-// Android 3.0.14 uses the exact production Web catalog copied into the APK after
+// Android 3.0.15 uses the exact production Web catalog copied into the APK after
 // the encrypted native OTP gate. WebViewAssetLoader serves those packaged bytes
 // from Android's private HTTPS appassets origin. This gives Web/Android feature
 // parity without using GitHub Pages as an origin alias or runtime dependency.
@@ -70,7 +70,12 @@ assert(!parityShell.includes('onNativeFallback'), 'signed-in APK can still fall 
 assert(!parityShell.includes('nativeFallback'), 'signed-in APK retains the divergent native fallback state');
 assert(parityShell.includes('mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW'), 'WebView allows mixed content');
 assert(parityShell.includes('allowFileAccess = false') && parityShell.includes('allowContentAccess = false'), 'WebView local file/content access is not disabled');
-assert(parityShell.includes('DisposableEffect(Unit)'), 'WebView cleanup is not tied to screen lifecycle');
+assert(parityShell.includes('onRelease = ::releaseWebView'), 'WebView cleanup is not tied to its container');
+assert(/container\.removeView\(view\)\s+view\.destroy\(\)/.test(parityShell), 'WebView must be detached before destruction');
+assert(/override fun onRenderProcessGone[\s\S]*?WebScreen\.RendererGone[\s\S]*?releaseWebView\(container\)[\s\S]*?return true/.test(parityShell),
+  'renderer loss must release the old WebView and offer recovery');
+assert(/reloadKey \+= 1\s+screen = WebScreen\.Loading/.test(parityShell) && !parityShell.includes('webView?.loadUrl'),
+  'retry must create a new WebView and load the bundled menu');
 assert(!parityShell.includes('DisposableEffect(webView)'), 'WebView can be destroyed during startup state replacement');
 assert(androidRuntime.includes('ensureSocialFeatures'), 'Android does not mount profile/friends/favorites Web modules');
 assert(androidRuntime.includes('android-native-session'), 'Android social identity marker is missing');
@@ -122,10 +127,10 @@ for (const { meta, worker } of gameHosts) {
 const gradle = read('android-app/app/build.gradle');
 const androidMenu = read('web/js/android-download-menu.js');
 const releaseWorkflow = read('.github/workflows/build-android-apk.yml');
-assert(gradle.includes('versionCode 41') && gradle.includes("versionName '3.0.14-standalone'"), 'APK version must be 3.0.14-standalone (41)');
+assert(gradle.includes('versionCode 42') && gradle.includes("versionName '3.0.15-standalone'"), 'APK version must be 3.0.15-standalone (42)');
 assert(gradle.includes("implementation 'androidx.webkit:webkit:1.14.0'"), 'APK is missing the Kotlin-compatible AndroidX WebKit');
 assert(androidMenu.includes('BibleGames-Android-latest.apk'), 'Web download menu does not point to the stable latest APK');
-assert(releaseWorkflow.includes('BibleGames-Android-3.0.14-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.14 standalone APK');
+assert(releaseWorkflow.includes('BibleGames-Android-3.0.15-standalone.apk'), 'Android release workflow does not publish the versioned 3.0.15 standalone APK');
 assert(releaseWorkflow.includes('BibleGames-Android-latest.apk'), 'Android release workflow does not publish the stable latest APK alias');
 
 console.log(`Web/Android parity passed: standalone bundled Web UI with ${webRoutes.size} routes + ${androidRoutes.size} packaged native compatibility routes, with no GitHub Pages runtime origin.`);
