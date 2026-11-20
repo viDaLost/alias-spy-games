@@ -12,16 +12,17 @@ import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.JsResult
 import android.webkit.PermissionRequest
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +30,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,6 +67,13 @@ private const val WEB_CACHE_PREFS = "android_web_parity_runtime"
 private const val WEB_CACHE_VERSION = "cache_version"
 private const val WEB_REVEAL_WATCHDOG_MS = 1_500L
 private const val WEB_LOAD_TIMEOUT_MS = 8_000L
+
+private enum class WebScreen(val failed: Boolean = false) {
+    Loading,
+    Ready,
+    LoadError(true),
+    RendererGone(true),
+}
 
 /**
  * The native screen owns the verified Android login. After a valid session
@@ -141,43 +148,36 @@ private fun AndroidWebExperience(
     }
 
     var webView by remember { mutableStateOf<WebView?>(null) }
-    var loadFailed by remember(session.userId) { mutableStateOf(false) }
-    var committed by remember(session.userId) { mutableStateOf(false) }
+    var screen by remember(session.userId) { mutableStateOf(WebScreen.Loading) }
     var reloadKey by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(webView, reloadKey, session.userId) {
+    fun isLive(view: WebView?): Boolean = view != null && webView === view && !screen.failed
+
+    LaunchedEffect(webView, screen) {
         val view = webView ?: return@LaunchedEffect
+        if (screen != WebScreen.Loading) return@LaunchedEffect
 
         delay(WEB_REVEAL_WATCHDOG_MS)
-        if (!committed && !loadFailed) {
-            val hasDocument = !view.url.isNullOrBlank() && view.url != "about:blank"
-            if (hasDocument && view.progress >= 60) committed = true
+        if (webView !== view || screen != WebScreen.Loading) return@LaunchedEffect
+        val url = view.url
+        if (!url.isNullOrBlank() && url != "about:blank" && view.progress >= 60) {
+            screen = WebScreen.Ready
+            return@LaunchedEffect
         }
 
         delay(WEB_LOAD_TIMEOUT_MS - WEB_REVEAL_WATCHDOG_MS)
-        if (!committed && !loadFailed) loadFailed = true
+        if (webView === view && screen == WebScreen.Loading) screen = WebScreen.LoadError
     }
 
     BackHandler(enabled = true) {
         val view = webView
-        if (view == null) {
+        if (view == null || screen.failed) {
             activity?.finish()
         } else {
             view.evaluateJavascript(JS_BACK_TO_MENU) { result ->
-                if (result != "\"handled\"") {
+                if (isLive(view) && result != "\"handled\"") {
                     if (view.canGoBack()) view.goBack() else activity?.finish()
                 }
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            webView?.apply {
-                stopLoading()
-                removeJavascriptInterface("AndroidApp")
-                loadUrl("about:blank")
-                destroy()
             }
         }
     }
@@ -193,10 +193,55 @@ private fun AndroidWebExperience(
                 ),
             ),
     ) {
+        if (screen.failed) {
+            Box(
+                Modifier.fillMaxSize().background(Color(0xE6E0F2FE)).padding(22.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                GlassCard(Modifier.fillMaxWidth()) {
+                    Text(
+                        if (screen == WebScreen.RendererGone) "Игровой экран закрылся" else "Не удалось открыть игры",
+                        color = Ink,
+                        fontSize = 23.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Откройте игры снова, чтобы вернуться в главное меню.",
+                        color = InkSoft,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    PrimaryButton(
+                        text = "Открыть игры снова",
+                        onClick = {
+                            reloadKey += 1
+                            screen = WebScreen.Loading
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = "↻",
+                    )
+                }
+            }
+            return@Box
+        }
+
+        val chromeClient = remember(activity) { AndroidParityChromeClient(activity) }
+        // Own the WebView as a child so renderer loss can detach it immediately.
+        fun releaseWebView(container: FrameLayout) {
+            val view = container.getChildAt(0) as? WebView ?: return
+            if (webView === view) webView = null
+            chromeClient.release()
+            container.removeView(view)
+            view.destroy()
+        }
+
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { viewContext ->
-                WebView(viewContext).apply {
+                val container = FrameLayout(viewContext)
+                val view = WebView(viewContext).apply {
                     val appWebView = this
                     setBackgroundColor(AndroidColor.rgb(224, 242, 254))
                     settings.apply {
@@ -231,12 +276,14 @@ private fun AndroidWebExperience(
                             activity = activity,
                             userId = session.userId,
                             sessionToken = session.token,
-                            onLogout = onLogout,
+                            onLogout = {
+                                if (isLive(appWebView)) onLogout()
+                            },
                         ),
                         "AndroidApp",
                     )
 
-                    webChromeClient = AndroidParityChromeClient(activity)
+                    webChromeClient = chromeClient
                     webViewClient = object : android.webkit.WebViewClient() {
                         override fun shouldInterceptRequest(
                             view: WebView,
@@ -247,16 +294,15 @@ private fun AndroidWebExperience(
                         }
 
                         override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                            committed = false
-                            loadFailed = false
+                            if (isLive(view)) screen = WebScreen.Loading
                         }
 
                         override fun onPageCommitVisible(view: WebView?, url: String?) {
-                            committed = true
+                            if (isLive(view)) screen = WebScreen.Ready
                         }
 
                         override fun onPageFinished(view: WebView?, url: String?) {
-                            if (!loadFailed) committed = true
+                            if (isLive(view)) screen = WebScreen.Ready
                         }
 
                         override fun onReceivedError(
@@ -264,7 +310,9 @@ private fun AndroidWebExperience(
                             request: WebResourceRequest?,
                             error: WebResourceError?,
                         ) {
-                            if (request?.isForMainFrame == true) loadFailed = true
+                            if (isLive(view) && request?.isForMainFrame == true) {
+                                screen = WebScreen.LoadError
+                            }
                         }
 
                         override fun onReceivedHttpError(
@@ -272,9 +320,17 @@ private fun AndroidWebExperience(
                             request: WebResourceRequest?,
                             errorResponse: WebResourceResponse?,
                         ) {
-                            if (request?.isForMainFrame == true && (errorResponse?.statusCode ?: 0) >= 400) {
-                                loadFailed = true
+                            if (isLive(view) && request?.isForMainFrame == true && (errorResponse?.statusCode ?: 0) >= 400) {
+                                screen = WebScreen.LoadError
                             }
+                        }
+
+                        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                            if (view.parent === container) {
+                                if (webView === view) screen = WebScreen.RendererGone
+                                releaseWebView(container)
+                            }
+                            return true
                         }
 
                         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
@@ -286,19 +342,19 @@ private fun AndroidWebExperience(
                             return openExternal(activity, uri)
                         }
                     }
-
-                    webView = this
-                    loadUrl(webUrl(reloadKey))
                 }
+                container.addView(
+                    view,
+                    FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT),
+                )
+                webView = view
+                view.loadUrl(webUrl(reloadKey))
+                container
             },
-            update = { view ->
-                if (view.url.isNullOrBlank() || view.url == "about:blank") {
-                    view.loadUrl(webUrl(reloadKey))
-                }
-            },
+            onRelease = ::releaseWebView,
         )
 
-        if (!committed && !loadFailed) {
+        if (screen == WebScreen.Loading) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -318,48 +374,23 @@ private fun AndroidWebExperience(
                 )
             }
         }
-
-        if (loadFailed) {
-            Box(
-                Modifier.fillMaxSize().background(Color(0xE6E0F2FE)).padding(22.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                GlassCard(Modifier.fillMaxWidth()) {
-                    Text(
-                        "Не удалось запустить интерфейс",
-                        color = Ink,
-                        fontSize = 23.sp,
-                        fontWeight = FontWeight.Black,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Игровой интерфейс встроен в APK. Повторите запуск — приложение не зависит от сайта или репозитория.",
-                        color = InkSoft,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    PrimaryButton(
-                        text = "Повторить запуск",
-                        onClick = {
-                            loadFailed = false
-                            committed = false
-                            reloadKey += 1
-                            webView?.loadUrl(webUrl(reloadKey))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        icon = "↻",
-                    )
-                }
-            }
-        }
     }
 }
 
 private class AndroidParityChromeClient(
     private val activity: Activity?,
 ) : WebChromeClient() {
+    private var released = false
+    private var confirmDialog: AlertDialog? = null
+
+    fun release() {
+        released = true
+        confirmDialog?.dismiss()
+        confirmDialog = null
+    }
+
     override fun onPermissionRequest(request: PermissionRequest?) {
+        if (released) return
         val permissionRequest = request ?: return
         val wantsCamera = permissionRequest.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)
         if (!wantsCamera || activity == null) {
@@ -377,21 +408,32 @@ private class AndroidParityChromeClient(
     }
 
     override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+        if (released) return true
         val jsResult = result ?: return false
         val hostActivity = activity
-        if (hostActivity == null || hostActivity.isFinishing || hostActivity.isDestroyed) {
+        if (hostActivity == null) {
             jsResult.cancel()
             return true
         }
 
         hostActivity.runOnUiThread {
-            AlertDialog.Builder(hostActivity)
+            if (released) return@runOnUiThread
+            if (hostActivity.isFinishing || hostActivity.isDestroyed) {
+                jsResult.cancel()
+                return@runOnUiThread
+            }
+            val dialog = AlertDialog.Builder(hostActivity)
                 .setTitle("Библейские игры")
                 .setMessage(message.orEmpty())
-                .setNegativeButton("Отмена") { _, _ -> jsResult.cancel() }
-                .setPositiveButton("OK") { _, _ -> jsResult.confirm() }
-                .setOnCancelListener { jsResult.cancel() }
-                .show()
+                .setNegativeButton("Отмена") { _, _ -> if (!released) jsResult.cancel() }
+                .setPositiveButton("OK") { _, _ -> if (!released) jsResult.confirm() }
+                .setOnCancelListener { if (!released) jsResult.cancel() }
+                .create()
+            dialog.setOnDismissListener {
+                if (confirmDialog === dialog) confirmDialog = null
+            }
+            confirmDialog = dialog
+            dialog.show()
         }
         return true
     }

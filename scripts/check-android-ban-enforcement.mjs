@@ -14,7 +14,7 @@ const sql = read('cloudflare/app-core-worker/src/sql-user-store.js');
 const gradle = read('android-app/app/build.gradle');
 
 // The audited native OTP gate owns verified-session access/ban enforcement.
-// After AndroidSessionStore contains a verified encrypted session, 3.0.14 serves
+// After AndroidSessionStore contains a verified encrypted session, 3.0.15 serves
 // the shared Web UI from APK assets under Android's private HTTPS appassets
 // origin. GitHub Pages is neither an origin alias nor a runtime fallback.
 need(app, 'ACCESS_POLL_MS = 3_000L', 'Android does not poll account status quickly');
@@ -36,7 +36,7 @@ reject(parityShell, 'WEB_APP_ORIGIN = "vidalost.github.io"', 'Android still impe
 reject(parityShell, 'https://vidalost.github.io', 'Android shell still contains a GitHub Pages runtime URL');
 need(parityShell, 'getSessionToken(): String = sessionToken', 'Web parity requests cannot use the verified bearer');
 reject(parityShell, 'nativeFallback', 'signed-in Android can still switch to divergent native games');
-need(parityShell, 'DisposableEffect(Unit)', 'WebView lifecycle can destroy the active instance during startup');
+need(parityShell, 'onRelease = ::releaseWebView', 'WebView must be released when its container leaves the screen');
 need(cloud, 'callTimeout(11, TimeUnit.SECONDS)', 'bounded primary access deadline missing');
 need(cloud, 'accessFallbackClient', 'fallback access transport missing');
 need(cloud, 'protocols(listOf(Protocol.HTTP_1_1))', 'access transport is not VPN-friendly HTTP/1.1');
@@ -53,7 +53,7 @@ need(authStore, 'MAX_CHALLENGES_PER_ID = 6', 'verification request rate limit mi
 need(legacy, "url.pathname === '/access'", 'Durable Object access route missing');
 need(sql, 'async accessStatus({ id })', 'SQL read-only access query missing');
 need(sql, 'Boolean(row?.is_banned)', 'SQL access query does not read ban state');
-need(gradle, 'versionCode 41', 'Android versionCode is not current');
-need(gradle, "versionName '3.0.14-standalone'", 'Android version is not current');
+need(gradle, 'versionCode 42', 'Android versionCode is not current');
+need(gradle, "versionName '3.0.15-standalone'", 'Android version is not current');
 
-console.log('Android 3.0.14 verified-session access, standalone appassets Web runtime and ban refresh checks passed.');
+console.log('Android 3.0.15 verified-session access, standalone appassets Web runtime and ban refresh checks passed.');

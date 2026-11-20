@@ -290,7 +290,7 @@ jobs:
           }
           throw lastError;
           NODE
-      - name: Verify registration code delivery to administrator
+      - name: Verify registration code delivery
         env:
           ADMIN_TELEGRAM_ID: '1288379477'
           CORE_WORKER_URL: 'https://alias-spy-games-core.vitaledanilov.workers.dev'
@@ -311,10 +311,10 @@ jobs:
           if (!response.ok || data?.success !== true) {
             throw new Error(`Registration delivery failed: HTTP ${response.status} ${data?.error || ''}`);
           }
-          if (data?.adminCopyDelivered !== true) {
-            throw new Error('Registration code reached the player but not the configured administrator');
+          if (data?.deliveryConfirmed !== true) {
+            throw new Error('Telegram did not confirm registration code delivery');
           }
-          console.log(`Registration code and administrator copy delivered for Telegram ID ${adminId}.`);
+          console.log('Telegram accepted the registration code message.');
           NODE
       - name: Verify SQL user migration
         env:

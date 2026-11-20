@@ -21,7 +21,8 @@ export class AndroidAuthUserStore extends SupportUserStore {
         request_key TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         expires_at INTEGER NOT NULL,
-        attempts INTEGER NOT NULL DEFAULT 0
+        attempts INTEGER NOT NULL DEFAULT 0,
+        delivery_confirmed INTEGER NOT NULL DEFAULT 1
       );
       CREATE INDEX IF NOT EXISTS idx_android_auth_challenges_user
         ON android_auth_challenges(telegram_id, created_at DESC);
@@ -41,6 +42,10 @@ export class AndroidAuthUserStore extends SupportUserStore {
       CREATE INDEX IF NOT EXISTS idx_android_sessions_expiry
         ON android_sessions(expires_at);
     `);
+    const challengeColumns = this.sql.exec('PRAGMA table_info(android_auth_challenges)').toArray();
+    if (!challengeColumns.some((column) => column.name === 'delivery_confirmed')) {
+      this.sql.exec('ALTER TABLE android_auth_challenges ADD COLUMN delivery_confirmed INTEGER NOT NULL DEFAULT 1');
+    }
   }
 
   async fetch(request) {
@@ -48,6 +53,7 @@ export class AndroidAuthUserStore extends SupportUserStore {
     if (request.method === 'POST' && url.pathname.startsWith('/android-auth/')) {
       const body = await request.json().catch(() => ({}));
       if (url.pathname === '/android-auth/begin') return authResponse(await this.beginAuth(body));
+      if (url.pathname === '/android-auth/delivered') return authResponse(this.markChallengeDelivered(body));
       if (url.pathname === '/android-auth/drop') return authResponse(await this.dropChallenge(body));
       if (url.pathname === '/android-auth/consume') return authResponse(await this.consumeAuth(body));
       if (url.pathname === '/android-auth/session') return authResponse(await this.resolveSession(body));
@@ -80,7 +86,7 @@ export class AndroidAuthUserStore extends SupportUserStore {
     // challenge id. Return the existing challenge before rate-limit accounting
     // so a transport retry neither creates a second code nor consumes quota.
     const existing = this.sql.exec(
-      'SELECT telegram_id, expires_at FROM android_auth_challenges WHERE id = ?',
+      'SELECT telegram_id, expires_at, delivery_confirmed FROM android_auth_challenges WHERE id = ?',
       challengeId,
     ).toArray()[0];
     if (existing) {
@@ -92,6 +98,7 @@ export class AndroidAuthUserStore extends SupportUserStore {
           ok: true,
           success: true,
           existing: true,
+          deliveryConfirmed: existing.delivery_confirmed === 1,
           expiresAt: Number(existing.expires_at || 0),
         };
       }
@@ -118,8 +125,8 @@ export class AndroidAuthUserStore extends SupportUserStore {
 
     this.sql.exec(
       `INSERT INTO android_auth_challenges
-       (id, telegram_id, code_hash, request_key, created_at, expires_at, attempts)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`,
+       (id, telegram_id, code_hash, request_key, created_at, expires_at, attempts, delivery_confirmed)
+       VALUES (?, ?, ?, ?, ?, ?, 0, 0)`,
       challengeId,
       telegramId,
       codeHash,
@@ -128,6 +135,14 @@ export class AndroidAuthUserStore extends SupportUserStore {
       expiresAt,
     );
     return { ok: true, success: true, existing: false, expiresAt };
+  }
+
+  markChallengeDelivered(raw = {}) {
+    const challengeId = cleanChallengeId(raw.challengeId);
+    if (challengeId) {
+      this.sql.exec('UPDATE android_auth_challenges SET delivery_confirmed = 1 WHERE id = ?', challengeId);
+    }
+    return { ok: true, success: true };
   }
 
   async dropChallenge(raw = {}) {
