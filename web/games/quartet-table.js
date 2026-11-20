@@ -8,7 +8,7 @@
     const flights = new Map();
     let groupId = '';
     let table = null;
-    let chatSize = 0;
+    let chat = null;
     let chatKey = '';
 
     function patch(node, markup) {
@@ -91,7 +91,7 @@
     }
 
     function renderLobby(state, pending, { minPlayers, playerLimit }) {
-      dispose();
+      disposeTable();
       const players = state.players.filter((player) => player.isActive !== false);
       const waiting = (state.minPlayers ?? minPlayers) - players.length;
       const action = waiting > 0 ? `Нужно ещё игроков: ${waiting}` : 'Начать партию';
@@ -120,7 +120,6 @@
 
     function mountTable(practice) {
       groupId = '';
-      chatSize = 0;
       content.innerHTML = `
         <div class="qt-play">
           <section class="qt-turn" id="qv2-turn-banner">
@@ -154,14 +153,6 @@
             <summary>История ходов</summary>
             <ol class="qt-history" data-history></ol>
           </details>
-          ${practice ? '' : `<details class="qt-paper qt-details">
-            <summary>Чат комнаты</summary>
-            <ol class="qt-history qt-chat" data-chat></ol>
-            <form id="qt-chat-form" class="qt-chat-form">
-              <input name="message" maxlength="300" placeholder="Сообщение" aria-label="Сообщение" required>
-              <button type="submit" class="qt-btn qt-btn--line">Отправить</button>
-            </form>
-          </details>`}
           <button type="button" class="qt-link qt-leave" data-action="leave-room">Выйти из партии</button>
         </div>`;
       table = {
@@ -181,10 +172,11 @@
         inspection: content.querySelector('[data-inspection]'),
         completed: content.querySelector('[data-completed]'),
         history: content.querySelector('[data-history]'),
-        chat: content.querySelector('[data-chat]'),
-        chatSubmit: content.querySelector('#qt-chat-form button'),
       };
       table.opponentQuery.addEventListener('input', filterOpponents);
+      table.inspection.addEventListener('error', (event) => {
+        if (event.target.matches('.qt-card-face img')) event.target.hidden = true;
+      }, true);
     }
 
     function filterOpponents() {
@@ -214,8 +206,8 @@
 
     function cardFace(card, quartet, color) {
       const art = cardAsset(card);
-      const visual = art ? `<img src="${esc(art)}" alt="" loading="lazy" decoding="async">`
-        : `<span class="qt-card-symbol" aria-hidden="true">${esc(card.icon || quartet.icon)}</span>`;
+      const visual = `<span class="qt-card-symbol" aria-hidden="true">${esc(card.icon || quartet.icon)}</span>
+        ${art ? `<img src="${esc(art)}" alt="" decoding="async">` : ''}`;
       const content = `<span class="qt-card-face qt-color-${color}">${visual}</span>
         <strong>${esc(card.title)}</strong><small>${card.owned ? '✓ У вас' : 'Нужна'}</small>`;
       return card.owned
@@ -226,15 +218,21 @@
           </div>`;
     }
 
-    function dispose() {
+    function disposeTable() {
       for (const [animation, sprite] of flights) {
         animation.cancel();
         sprite.remove();
       }
       flights.clear();
+      table = null;
+    }
+
+    function dispose() {
+      disposeTable();
       if (chatKey) window.GameChatToasts?.reset(chatKey);
       chatKey = '';
-      table = null;
+      chat?.panel.remove();
+      chat = null;
     }
 
     function visibleCenter(node) {
@@ -330,11 +328,19 @@
       if (table.opponentSearch.hidden && table.opponentQuery.value) table.opponentQuery.value = '';
       patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice)).join(''));
       filterOpponents();
-      patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
+      const groupsChanged = patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
         `<button type="button" class="qt-group" data-action="table-group" data-group-id="${esc(quartet.id)}">
           <span aria-hidden="true">${esc(quartet.icon)}</span><strong>${esc(quartet.name)}</strong><small>${ownedCount}/4</small>
         </button>`).join(''));
-      for (const button of table.groups.children) button.setAttribute('aria-pressed', String(button.dataset.groupId === groupId));
+      for (const button of table.groups.children) {
+        const active = button.dataset.groupId === groupId;
+        button.setAttribute('aria-pressed', String(active));
+        if (active && groupsChanged) {
+          const strip = table.groups.getBoundingClientRect();
+          const tab = button.getBoundingClientRect();
+          table.groups.scrollLeft += tab.left < strip.left ? tab.left - strip.left : Math.max(0, tab.right - strip.right);
+        }
+      }
       const handChanged = patch(table.inspection, group
         ? `<div class="qt-cards" aria-label="${esc(group.quartet.name)}">${group.cards.map((item) =>
           cardFace(item, group.quartet, group.catalogIndex % 6)).join('')}</div>`
@@ -367,34 +373,50 @@
       patch(table.event, event?.text || '');
       patch(table.history, (state.log || []).slice().reverse().map((line) => `<li>${esc(line)}</li>`).join(''));
 
-      if (table.chat) {
-        const chat = state.chat || [];
-        if (patch(table.chat, chat.map((item) => `<li><strong>${esc(item.name)}</strong><span>${esc(item.text)}</span></li>`).join('')) && chat.length >= chatSize) {
-          table.chat.scrollTop = table.chat.scrollHeight;
-        }
-        chatSize = chat.length;
-        table.chatSubmit.disabled = !connected;
-        const chatList = table.chat;
-        const panel = chatList.closest('details');
-        chatKey = `quartet:${state.roomId}`;
-        window.GameChatToasts?.sync({
-          key: chatKey,
-          messages: chat,
-          selfId: me.playerId,
-          chatVisible: () => panel.open && Boolean(visibleCenter(chatList)),
-          onOpen: () => {
-            if (!panel.isConnected) return;
-            panel.open = true;
-            panel.scrollIntoView({ block: 'nearest' });
-          },
-        });
-      }
-
       animateEvent(state.lastEvent, me.playerId, entering);
     }
 
+    function renderChat(state, { connected, pending }) {
+      if (!state?.me || state.practice) return;
+      if (!chat) {
+        content.insertAdjacentHTML('beforebegin', `<details class="qt-paper qt-details qt-room-chat">
+          <summary>Чат комнаты</summary>
+          <ol class="qt-history qt-chat" data-chat role="log"></ol>
+          <form id="qt-chat-form" class="qt-chat-form">
+            <input name="message" maxlength="300" placeholder="Сообщение" aria-label="Сообщение" autocomplete="off" required>
+            <button type="submit" class="qt-btn qt-btn--line">Отправить</button>
+          </form>
+        </details>`);
+        const panel = content.previousElementSibling;
+        const list = panel.querySelector('[data-chat]');
+        chat = { panel, list, submit: panel.querySelector('button') };
+        panel.addEventListener('toggle', () => {
+          if (panel.open) list.scrollTop = list.scrollHeight;
+        });
+      }
+      const { panel, list, submit } = chat;
+      const messages = state.chat || [];
+      if (patch(list, messages.map((item) => `<li><strong>${esc(item.name)}</strong><span>${esc(item.text)}</span></li>`).join('')) && panel.open) {
+        list.scrollTop = list.scrollHeight;
+      }
+      submit.disabled = !connected || pending;
+      setText(submit, pending ? 'Отправляем…' : 'Отправить');
+      chatKey = `quartet:${state.roomId}`;
+      window.GameChatToasts?.sync({
+        key: chatKey,
+        messages,
+        selfId: state.me.playerId,
+        chatVisible: () => panel.open && Boolean(visibleCenter(list)),
+        onOpen: () => {
+          if (!panel.isConnected) return;
+          panel.open = true;
+          panel.scrollIntoView({ block: 'nearest' });
+        },
+      });
+    }
+
     function renderResults(state, pending, minPlayers) {
-      dispose();
+      disposeTable();
       groupId = '';
       const winners = state.score.filter((player) => state.winnerIds.includes(player.playerId));
       const active = state.players.filter((player) => player.isActive !== false).length;
@@ -417,7 +439,7 @@
         </div>`);
     }
 
-    return { renderHome, renderLobby, renderGame, renderResults, dispose, selectGroup: (id) => { groupId = id; } };
+    return { renderHome, renderLobby, renderGame, renderChat, renderResults, dispose, selectGroup: (id) => { groupId = id; } };
   }
 
   window.QuartetTable = { create };

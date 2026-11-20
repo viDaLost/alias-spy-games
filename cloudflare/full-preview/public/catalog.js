@@ -269,8 +269,8 @@
     try {
       await Promise.all([
         loadResource('web/games/quartet-table.css?v=8', true),
-        loadResource('web/games/quartet-table-theme.css?v=3', true),
-        loadResource('web/games/quartet-table.js?v=9'),
+        loadResource('web/games/quartet-table-theme.css?v=4', true),
+        loadResource('web/games/quartet-table.js?v=10'),
         ...(preview ? [loadResource('/quartet-polling.js')] : []),
       ]);
       if (document.body.dataset.currentGame === 'quartet') {
