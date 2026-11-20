@@ -58,7 +58,36 @@ export function evaluate({guess,event,epoch,hints=0},scene=scenes[0]){
  const story=event===scene.event?2000:0,time=epoch===scene.epoch?1000:0,penalty=Math.min(3,Math.max(0,Math.floor(Number.isFinite(hints)?hints:0)))*150;
  return {distance,place,story,time,penalty,total:Math.max(0,place+story+time-penalty)};
 }
-export function createJourney(levelId='easy'){
- const selected=scenesForLevel(levelId);let round=0;const results=[];
- return {get levelId(){return levelId;},get scenes(){return [...selected];},get roundCount(){return selected.length;},get maxScore(){return selected.length*maxRoundScore;},get index(){return round;},get scene(){return selected[round];},get results(){return [...results];},get total(){return results.reduce((sum,r)=>sum+r.total,0);},get complete(){return results.length===selected.length;},submit(answer){if(results[round])return results[round];const r=Object.freeze({...evaluate(answer,selected[round]),sceneId:selected[round].id,seconds:answer.seconds||0});results[round]=r;return r;},next(){if(!results[round]||round===selected.length-1)return false;round++;return true;},restart(){round=0;results.length=0;}};
+export function createJourney(levelId='easy', sceneIndex){
+ const levelScenes=scenesForLevel(levelId);
+ const single=sceneIndex!==undefined;
+ if(single&&(!Number.isInteger(sceneIndex)||sceneIndex<0||sceneIndex>=levelScenes.length))throw Error('Неизвестная локация для уровня');
+ const selected=single?[levelScenes[sceneIndex]]:levelScenes;
+ let round=0;
+ const results=[];
+ return {
+  get levelId(){return levelId;},
+  get single(){return single;},
+  get scenes(){return [...selected];},
+  get roundCount(){return levelScenes.length;},
+  get maxScore(){return selected.length*maxRoundScore;},
+  get index(){return single?sceneIndex:round;},
+  get scene(){return selected[round];},
+  get results(){return [...results];},
+  get total(){return results.reduce((sum,r)=>sum+r.total,0);},
+  get complete(){return results.length===selected.length;},
+  submit(answer){
+   if(results[round])return results[round];
+   const scene=selected[round];
+   const record=Object.freeze({...evaluate(answer,scene),sceneId:scene.id,seconds:answer.seconds||0});
+   results[round]=record;
+   return record;
+  },
+  next(){
+   if(!results[round]||round===selected.length-1)return false;
+   round++;
+   return true;
+  },
+  restart(){round=0;results.length=0;}
+ };
 }

@@ -6,7 +6,7 @@ Russian mobile 360° Bible guessing game: three difficulty levels, ten scenes ea
 - Medium adds Jacob at Bethel, Ruth’s gleaning, Nehemiah’s wall, Naaman at the Jordan, and the wedding at Cana.
 - Hard adds Hagar’s well, Hezekiah’s waterworks, Jeremiah at the potter’s, Peter’s rooftop vision, and the Bereans studying Scripture.
 
-Choosing a level opens its panorama immediately. A small drag hint introduces 360° exploration. The bottom answer button opens a compact modal: place → event → period, advancing automatically after each selection. Back, tabs and review allow editing without discarding other answers; submission is explicit. Ten rounds award up to 50,000 points. Hints cost 150 points each, at most three per round. Completed-level records are separate and device-local. Earlier five-scene best scores are retained in their original storage keys, separate from ten-scene scores.
+Choosing a difficulty opens a numbered location picker. Players can replay any single round or play all ten in order. Individual rounds leave full-journey records untouched. A small drag hint introduces 360° exploration. The bottom answer button opens a compact modal: place → event → period, advancing automatically after each selection. Back, tabs and review allow editing without discarding other answers; submission is explicit. Ten rounds award up to 50,000 points. Hints cost 150 points each, at most three per round. Completed-level records are separate and device-local. Earlier five-scene best scores are retained in their original storage keys, separate from ten-scene scores.
 
 ## Build and deployment
 

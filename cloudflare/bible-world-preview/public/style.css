@@ -7,3 +7,36 @@ dialog{background:#1b2031;color:#f6f4ff;border:1px solid #ffffff24;border-radius
 @media(max-width:700px){.level-menu{padding:22px 22px 18px}.menu-intro{padding:58px 0 37px}.menu-intro h1{font-size:clamp(32px,8vw,49px)}.menu-intro p{font-size:14px}.desktop-break{display:none}.menu-badges{gap:10px 16px;font-size:10px}.level-cards{grid-template-columns:1fr;gap:13px}.level-card{min-height:0;padding:21px}.level-mark{position:absolute;right:21px;top:24px;margin:0}.level-card h3{font-size:24px}.level-card p{max-width:none;margin-bottom:14px}.levels-heading{align-items:start;flex-direction:column;gap:7px}.levels-heading h2{font-size:19px}.menu-footer{font-size:9px;margin-top:25px}.game-hud{left:14px;right:14px;top:max(12px,env(safe-area-inset-top))}.glass-button{min-width:42px;padding:0 10px}.game-hud>button span{display:none}.hud-center{min-width:142px;padding:9px 14px}.hud-right{gap:8px}.hud-right>span{display:none}.look-cue{bottom:114px;padding:10px 13px}.look-cue span{font-size:9px}.game-dock{width:calc(100% - 28px);max-width:510px;bottom:max(17px,env(safe-area-inset-bottom));grid-template-columns:54px minmax(0,1fr);gap:11px}.game-dock>.primary-button{min-height:54px;padding:13px 16px;gap:12px}.zoom-controls{position:absolute;right:0;bottom:75px}.zoom-controls button{min-width:39px;height:41px}.hint-toast{bottom:154px}.answer-modal{width:100%;max-width:100%;left:0;transform:none;bottom:0;border-radius:21px 21px 0 0;max-height:calc(100dvh - 18px);padding:17px 18px max(18px,env(safe-area-inset-bottom))}.answer-heading h2{font-size:20px}.answer-heading p{font-size:10px}.answer-tabs{padding-top:14px}.answer-scroll{max-height:37dvh}.answer-footer{padding-top:11px;margin-top:13px}.result-modal{max-width:calc(100% - 20px);height:92dvh;border-radius:19px}.result-scroll{padding:25px 18px}.result-heading{padding:9px 9px 22px}.result-heading h2{font-size:25px}.score-display{gap:8px}.score-display b{font-size:42px}.score-display span{font-size:10px}.score-card{padding:12px}.result-footer{padding:13px 14px}.result-footer .primary-button{padding:12px 10px;font-size:12px}.help-modal{padding:28px 23px}.help-modal h2{font-size:22px}}
 @media(max-height:500px){.look-cue{bottom:92px}.game-dock{bottom:12px}.game-hud{top:9px}.hud-center{padding:6px 12px}.hud-center small{display:none}.answer-modal{padding-top:12px}.sheet-handle{display:none}.answer-heading p{display:none}.answer-heading h2{font-size:17px}.answer-tabs{padding:9px 0}.answer-scroll{max-height:32dvh}.answer-footer{padding-top:8px;margin-top:9px}.answer-footer>span{display:none}.answer-actions .primary-button{min-height:42px;padding:9px}.hint-toast{bottom:95px}}
 @keyframes float{50%{opacity:.5;transform:translateY(-5px)}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.location-modal {
+ width: 440px;
+ max-height: calc(100dvh - 24px);
+ overflow: auto;
+}
+.location-modal h2 {
+ margin: 8px 30px 18px 0;
+ font-size: clamp(22px, 5vw, 27px);
+}
+.location-numbers {
+ display: grid;
+ grid-template-columns: repeat(5, minmax(0, 1fr));
+ gap: 8px;
+ margin-bottom: 18px;
+}
+.location-numbers .location-number {
+ min-height: 48px;
+ padding: 8px 0;
+ font-size: 17px;
+}
+.location-number:hover {
+ border-color: var(--violet);
+ background: #9c8cff22;
+}
+.location-modal .primary-button {
+ justify-content: center;
+ width: 100%;
+}
+@media (max-width: 360px) {
+ .location-modal { padding: 18px; }
+ .location-numbers { gap: 6px; }
+}

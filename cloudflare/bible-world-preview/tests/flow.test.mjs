@@ -47,7 +47,12 @@ Object.assign(globalThis,{
 const {levels,scenesForLevel}=await import('../public/rules.mjs');
 await import('../public/app.js');
 const $=id=>elements.get(id),choose=(name,value)=>{const r=radios().find(r=>r.name===name&&r.value===value);assert.ok(r,`${name}: ${value}`);r.change(value);};
-const start=id=>$('levelCards').children.find(x=>x.id==='level-'+id).click();
+const pickDifficulty=id=>$('levelCards').children.find(x=>x.id==='level-'+id).click();
+const start=id=>{
+ pickDifficulty(id);
+ assert.equal($('locationDialog').open,true);
+ $('startJourney').click();
+};
 test('all 30 fullscreen rounds: automatic steps, editing, final submission and independent records',()=>{
  assert.equal(images.length,0);assert.equal($('levelCards').children.length,3);
  for(const level of levels){
@@ -77,5 +82,36 @@ test('stale loads cannot unlock a new round and failed images can be retried',()
  start('easy');const stale=images.at(-1);$('chooseLevel').click();start('hard');const active=images.at(-1);
  stale.onload();assert.equal($('openAnswers').disabled,true);
  active.onerror();assert.equal($('openAnswers').disabled,true);$('loading').children.find(x=>x.tag==='button').click();
- images.at(-1).onload();assert.equal($('openAnswers').disabled,false);
+ images.at(-1).onload();assert.equal($('openAnswers').disabled,false);$('chooseLevel').click();
+});
+
+test('numbered locations open directly and keep full-journey scores intact',()=>{
+ const originalRecords=new Map(storage);
+ for(const [level,index] of [['easy',0],['medium',9],['hard',6]]){
+  const scene=scenesForLevel(level)[index];
+  pickDifficulty(level);
+  assert.equal($('locationNumbers').children.length,10);
+  assert.equal($('locationNumbers').children[index].textContent,String(index+1));
+  $('locationNumbers').children[index].click();
+  assert.equal($('locationDialog').open,false);
+  assert.equal($('roundNumber').textContent,String(index+1));
+  assert.equal($('roundTotal').textContent,' / 10');
+  assert.match($('journeyScore').textContent,/^0 \/ 5\s000$/);
+  assert.equal(images.at(-1).src,scene.image);
+  images.at(-1).onload();
+  $('openAnswers').click();
+  choose('regions',scene.region);choose('events',scene.event);choose('epochs',scene.epoch);
+  $('submitGuess').click();
+  assert.equal($('campaignSummary').hidden,true);
+  assert.match($('totalScore').textContent,/^5\s000$/);
+  assert.equal($('resultLevels').textContent,'К локациям');
+  $('playAgain').click();
+  assert.equal(images.at(-1).src,scene.image);
+  assert.match($('journeyScore').textContent,/^0 \/ 5\s000$/);
+  $('chooseLevel').click();
+  assert.equal($('locationDialog').open,true);
+  $('closeLocations').click();
+  assert.equal($('levelMenu').hidden,false);
+ }
+ assert.deepEqual(storage,originalRecords);
 });
