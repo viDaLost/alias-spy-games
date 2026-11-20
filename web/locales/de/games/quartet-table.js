@@ -30,13 +30,19 @@
               ${['daniel_lions', 'elijah_altar', 'noah_dove'].map((id) => `<img src="${esc(cardAsset({ art: `web/assets/quartet/cards/${id}.webp` }))}" alt="" width="124" height="155" decoding="async">`).join('')}\n            </div>\n            <div><h3>Sammle ein Quartett</h3><p>3–${playerLimit} Spieler · ${catalogSize} Quartette</p></div>\n          </section>\n          ${allowPractice ? `<button class="qt-practice" type="button" data-action="start-practice">\n            <span><strong>Mit Bots spielen</strong><small>Du und zwei Bots · ohne Timer</small></span>\n            <span class="qt-practice-arrow" aria-hidden="true">›</span>\n          </button>` : ''}\n          <section class="qt-paper qt-home-form">\n            <label class="qt-field" for="qv2-player-name">Dein Name\n              <input id="qv2-player-name" maxlength="32" value="${esc(playerName)}" autocomplete="nickname">\n            </label>\n            <button class="qt-btn qt-btn--solid" type="button" data-action="create">Raum erstellen</button>\n            <form class="qt-join" id="qt-join-form">\n              <label class="qt-field" for="qv2-room-code">Raumcode\n                <input id="qv2-room-code" maxlength="8" placeholder="AB2CD3" value="${esc(inviteCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" required>\n              </label>\n              <button class="qt-btn qt-btn--line" type="submit">Anmelden</button>\n            </form>\n            ${window.RoomQrScanner?.isAvailable() ? '<button class="qt-btn qt-btn--line" type="button" data-action="scan-room">Scannen QR</button>' : ''}\n            <button class="qt-link" type="button" data-action="open-rules">Spielregeln</button>\n          </section>\n        </div>`;
     }
 
-    function playerRow(player, me, end) {
+    function removePlayerButton(player, pending) {
+      if (!player.canRemove) return '';
+      return `<button type="button" class="qt-remove-player" data-action="remove-offline-player" data-player-id="${esc(player.playerId)}"\n        aria-label="Spieler entfernen ${esc(player.name)}" ${pending ? 'disabled' : ''}>Entfernen</button>`;
+    }
+
+    function playerRow(player, me, end, pending) {
       return `<li class="qt-seat">
         <span class="qt-avatar" aria-hidden="true">${esc(player.name[0]?.toUpperCase() || '?')}</span>
         <span class="qt-seat-name">${esc(player.name)}${player.playerId === me?.playerId ? ' <small>du</small>' : ''}</span>
-        ${end
+        <span class="qt-seat-actions">${end
           ? `<span class="qt-seat-score">${player.quartetsCount} ★</span>`
           : `<span class="qt-seat-tag">${player.isHost ? 'Gastgeber' : player.connected ? 'Im Raum' : 'Keine Verbindung'}</span>`}
+        ${removePlayerButton(player, pending)}</span>
       </li>`;
     }
 
@@ -71,7 +77,7 @@
       const waiting = (state.minPlayers ?? minPlayers) - players.length;
       const action = waiting > 0 ? `Weitere Spieler nötig: ${waiting}` : 'Partie starten';
       patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite">\n            <div><span>Raumcode</span><strong>${esc(state.roomId)}</strong></div>\n            <div class="qt-invite-actions">\n              <button type="button" class="qt-btn qt-btn--gold" data-action="share-room">Teilen und QR</button>\n              <button type="button" class="qt-btn qt-btn--ghost" data-action="copy-room">Code kopieren</button>\n            </div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Spieler</h3><span>${players.length} / ${state.playerLimit ?? playerLimit}</span></div>
-            <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false)).join('')}</ul>
+            <ul class="qt-seats">${players.map((player) => playerRow(player, state.me, false, pending)).join('')}</ul>
           </section>
           <section class="qt-paper">
             ${deckPicker(state, players.length, pending)}
@@ -122,12 +128,14 @@
       table.opponentEmpty.hidden = found || !query;
     }
 
-    function playerCard(player, turnId, practice) {
+    function playerCard(player, turnId, practice, pending) {
       return `<div class="qt-player ${player.playerId === turnId ? 'is-current' : ''}"
         data-player-id="${esc(player.playerId)}" data-search-name="${esc(filterName(player.name))}" title="${esc(player.name)}">
         <span class="qt-avatar" aria-hidden="true">${esc(player.name[0]?.toUpperCase() || '?')}</span>
         <strong>${esc(player.name)}${practice ? ' <span class="qt-bot-label">Bot</span>' : ''}</strong>
-        <small>${player.cardsCount} <span aria-label="Karten">▤</span> · ${player.quartetsCount} <span aria-label="Quartette">★</span></small>\n      </div>`;
+        <small>${player.cardsCount} <span aria-label="Karten">▤</span> · ${player.quartetsCount} <span aria-label="Quartette">★</span></small>\n        ${!practice && !player.connected ? '<small class="qt-player-offline">Keine Verbindung</small>' : ''}
+        ${removePlayerButton(player, pending)}
+      </div>`;
     }
 
     function cardAsset(card) {
@@ -257,7 +265,7 @@
 
       table.opponentSearch.hidden = opponents.length < 7;
       if (table.opponentSearch.hidden && table.opponentQuery.value) table.opponentQuery.value = '';
-      patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice)).join(''));
+      patch(table.opponents, opponents.map((player) => playerCard(player, state.turnPlayerId, state.practice, pending || !connected)).join(''));
       filterOpponents();
       const groupsChanged = patch(table.groups, myGroups.map(({ quartet, ownedCount }) =>
         `<button type="button" class="qt-group" data-action="table-group" data-group-id="${esc(quartet.id)}">
@@ -345,7 +353,7 @@
       const active = state.players.filter((player) => player.isActive !== false).length;
       const canRestart = active >= (state.minPlayers ?? minPlayers);
       patch(content, `\n        <div class="qt-pages">\n          <section class="qt-invite qt-results"><div><span>Partie beendet</span>\n            <h3>${winners.length > 1 ? 'Unentschieden' : winners[0]?.playerId === state.me?.playerId ? 'Du hast gewonnen' : 'Gewinner'}</h3>
-            <p>${esc(winners.map((winner) => winner.name).join(', '))}</p></div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Ergebnis der Partie</h3><span>${state.totalQuartets} im Stapel</span></div>\n            <ol class="qt-seats">${state.score.map((player) => playerRow(player, state.me, true)).join('')}</ol>
+            <p>${esc(winners.map((winner) => winner.name).join(', '))}</p></div>\n          </section>\n          <section class="qt-paper">\n            <div class="qt-section-title"><h3>Ergebnis der Partie</h3><span>${state.totalQuartets} im Stapel</span></div>\n            <ol class="qt-seats">${state.score.map((player) => playerRow(player, state.me, true, pending)).join('')}</ol>
           </section>
           ${state.me?.isHost && canRestart ? `<section class="qt-paper">
             ${deckPicker(state, active, pending)}

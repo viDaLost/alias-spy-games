@@ -212,6 +212,18 @@ html[data-full-preview] body[data-current-game="quartet"] #game-container {
 .qt-seat-name small { margin-left: 2px; color: var(--qt-muted); font-weight: 600; }
 .qt-seat-tag, .qt-seat-score { color: var(--qt-muted); font-size: 12px; }
 .qt-seat-score { color: #775a25; font-weight: 800; }
+.qt-seat-actions { display: flex; align-items: center; gap: 6px; }
+.qt-remove-player {
+  min-height: 30px;
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: transparent;
+  color: #a3414d;
+  font: 700 11px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+.qt-remove-player:disabled { cursor: wait; opacity: .5; }
 .qt-deck-read { display: flex; gap: 8px; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 800; }
 .qt-deck-read select { flex: 0 0 auto; width: auto; max-width: 58%; }
 .qt-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
@@ -301,6 +313,7 @@ html[data-full-preview] body[data-current-game="quartet"] #game-container {
 .qt-player .qt-avatar { grid-row: span 2; align-self: center; width: 20px; height: 20px; font-size: 10px; background: #e4eaff; }
 .qt-player strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .qt-player small, .qt-group small, .qt-card small { color: var(--qt-muted); font-size: 11px; font-weight: 700; }
+.qt-player .qt-player-offline, .qt-player .qt-remove-player { grid-column: 2; justify-self: start; }
 .qt-group { flex: 0 0 128px; min-height: 44px; }
 .qt-group strong { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 12px; line-height: 1.12; }
 .qt-group span { grid-row: span 2; align-self: center; font-size: 13px; }

@@ -38,6 +38,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
   let socket = null;
   let roomReady = false;
   let socketStartupTimer = null;
+  let socketProbeTimer = null;
+  let probeRoomConnection = null;
   let usePolling = false;
   let reconnectTimer = null;
   let reconnectAttempt = 0;
@@ -247,6 +249,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
         if (action === 'start-game') return table ? await sendTableAction('startGame') : await sendAction('startGame', {}, target);
         if (action === 'restart-game') return table ? await sendTableAction('restartGame') : await sendAction('restartGame', {}, target);
         if (action === 'leave-room') return await confirmLeave();
+        if (action === 'remove-offline-player') return await removeOfflinePlayer(target.dataset.playerId);
         if (action === 'select-target') return await selectTarget(target);
         if (action === 'select-card') return await selectCard(target);
         if (action === 'confirm-ask') return await confirmAsk(target);
@@ -570,12 +573,24 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
       scheduleReconnect();
     };
     socketStartupTimer = setTimeout(connectionLost, maySwitchTransport ? 3500 : 9000);
+    if (!usePolling) {
+      probeRoomConnection = () => {
+        if (!roomReady || socketProbeTimer) return;
+        try {
+          connection.send(JSON.stringify({ type: 'ping' }));
+          socketProbeTimer = setTimeout(connectionLost, 5000);
+        } catch {
+          connectionLost();
+        }
+      };
+    }
 
     socket.addEventListener('message', (event) => {
       if (socket !== connection) return;
       let message;
       try { message = JSON.parse(event.data); } catch { return; }
       if (message.type === 'state' && message.state) {
+        clearSocketProbe();
         const firstState = !synchronized;
         synchronized = true;
         clearTimeout(socketStartupTimer);
@@ -596,6 +611,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
         reconcileSelection(previousState, state);
         renderState();
         handleStateTransition(previousState, state);
+      } else if (message.type === 'pong') {
+        clearSocketProbe();
       } else if (message.type === 'actionOk' && message.requestId === tableRequest?.id) {
         clearTableRequest();
         renderState();
@@ -624,7 +641,7 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     clearRoomSession();
     renderHome();
     setConnection('offline', 'Не подключено');
-    showToast(error.message, 'error');
+    showToast(window.AppLanguage?.text(error.message) || error.message, 'error');
   }
 
   async function reconnectSavedRoom() {
@@ -1101,7 +1118,17 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     const matchingMove = event?.id !== eventId && event?.actorId === state.me?.playerId &&
       event?.targetId === payload.targetId && event?.cardId === payload.cardId;
     const moveResolved = action === 'askCard' && (state.status === 'finished' || matchingMove);
-    if (deckChanged || roundStarted || moveResolved) clearTableRequest();
+    const playerRemoved = action === 'removeOfflinePlayer' &&
+      !state.players.some((player) => player.playerId === payload.targetId && player.isActive !== false);
+    if (deckChanged || roundStarted || moveResolved || playerRemoved) clearTableRequest();
+  }
+
+  async function removeOfflinePlayer(playerId) {
+    const player = state?.players.find((entry) => entry.playerId === playerId && entry.canRemove);
+    if (!player || !state.me?.isHost) return;
+    if (window.confirm(`Удалить игрока «${player.name}» из комнаты?`)) {
+      await sendTableAction('removeOfflinePlayer', { targetId: playerId });
+    }
   }
 
   async function sendTableAction(action, payload = {}) {
@@ -1434,6 +1461,8 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
 
   function closeSocket(schedule = false) {
     clearTimeout(socketStartupTimer);
+    clearSocketProbe();
+    probeRoomConnection = null;
     roomReady = false;
     if (socket) {
       const connection = socket;
@@ -1441,6 +1470,11 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
       try { connection.close(1000, 'client closing'); } catch {}
     }
     if (schedule) scheduleReconnect();
+  }
+
+  function clearSocketProbe() {
+    clearTimeout(socketProbeTimer);
+    socketProbeTimer = null;
   }
 
   /*
@@ -1451,8 +1485,16 @@ function startQuartetGame(catalogUrl = 'web/data/quartet_bible.json', { preview 
     комнату. Отсчёт сбрасывается, чтобы вход был сразу, а не через полминуты.
   */
   function onVisible() {
-    if (destroyed || practice || directPractice || leaving || document.hidden || reconnecting || !roomId) return;
-    if (socket && [WebSocket.OPEN, WebSocket.CONNECTING].includes(socket.readyState)) return;
+    if (document.hidden) {
+      clearSocketProbe();
+      return;
+    }
+    if (destroyed || practice || directPractice || leaving || reconnecting || !roomId) return;
+    if (socket?.readyState === WebSocket.OPEN) {
+      probeRoomConnection?.();
+      return;
+    }
+    if (socket?.readyState === WebSocket.CONNECTING) return;
     reconnectAttempt = 0;
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
